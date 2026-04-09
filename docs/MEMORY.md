@@ -1,6 +1,6 @@
 # MEMORY.md — AscendaOS v1
-## Contexto activo — Última actualización: 2026-04-08
-## Para continuar: pega este archivo al inicio del nuevo chat
+## Contexto activo — Última actualización: 09/04/2026
+## Para continuar: pega este archivo + ULTRAPROMPMT_MAESTRO.md al inicio del nuevo chat
 
 ---
 
@@ -10,63 +10,91 @@
 - **Stack:** Google Apps Script + Google Sheets + WebApp HTML/CSS/JS
 - **Sheet ID:** `1rtl0SxBjck4gXM-ahj_aVudzi1NDoOpk29JbwI95jKM`
 - **Repo GitHub:** `https://github.com/CESARJAUREGUITORRES/ascenda-os`
-- **Carpeta frontend en repo:** `src/frontend/` (NO src/Interfaz)
-- **Operador:** César Jáuregui
+- **Carpeta frontend en repo:** `src/frontend/`
+- **Carpeta backend en repo:** `src/backend/`
+- **Operador:** César Jáuregui / CREACTIVE OS
+- **Deploy URL:** `script.google.com/macros/s/AKfycbyVoliSxxF3gJTX71Yi3tTd7L1sAUSyFj3HPmBYVaFCGKy69uWLzJV6nDcYjVBn-L5/exec`
 
 ---
 
-## ARCHIVOS DEL PROYECTO (en GAS)
+## ARCHIVOS GAS — ESTADO ACTUAL
 
 ```
-GS_00_Shell.gs              ← sirve el HTML como WebApp
-GS_01_Config.gs             ← constantes CFG, LLAM_COL, LEAD_COL, VENT_COL, AG_COL
-GS_02_Auth.gs               ← sesiones, tokens, funciones de turno
-GS_03_CoreHelpers.gs        ← _up, _norm, _normNum, _date, _inRango, etc.
-GS_04_DataAccess.gs         ← _sh, _shAgenda, _shLlamadas, etc.
-GS_05_Cache.gs              ← caché
-GS_06_AdvisorCalls.gs       ← MOD-01 a MOD-10 + api_getLeadsCampanaMesT
-GS_07_AdvisorMetrics.gs     ← ranking equipo
-GS_08_Agenda.gs             ← citas
-GS_09_Patients.gs           ← api_getPatientProfileT
-GS_10_Sales.gs              ← ventas
-GS_12_AdminDashboard.gs     ← home admin
-GS_13_Marketing.gs          ← marketing dashboard
-GS_14_Billing.gs            ← facturación
-GS_15_Notifications.gs      ← notificaciones
-GS_16_Integrations.gs       ← integraciones (GCal, WhatBot, webhook)
-GS_17_Security.gs           ← seguridad
-GS_18_MigrationCompat.gs    ← aliases de compatibilidad
-GS_23_SheetSetup.gs         ← setup de hojas (script de inicialización)
-GS_LeadsCampana.gs          ← ⚠️ ELIMINAR (constantes inventadas, causa errores)
-```
+GS_00_Shell.gs              ✅ sirve HTML como WebApp — router dinámico
+GS_01_Config.gs v2.0        ✅ constantes CFG, todos los COL, MESES_ES
+GS_02_Auth.gs               ✅ sesiones, tokens, turno, permisos
+GS_03_CoreHelpers.gs        ✅ _up, _norm, _normNum, _date, _inRango, etc.
+GS_04_DataAccess.gs         ✅ da_leadsData, da_llamadasData, da_ventasData, da_inversionData
+GS_05_Cache.gs              ✅ caché (pendiente optimizar - bug B-01)
+GS_06_AdvisorCalls.gs       ✅ call center asesor v2.6 - MOD-01 a MOD-10
+GS_07_AdvisorMetrics.gs     ✅ ranking + api_getMisSemanaT
+GS_08_Agenda.gs             ✅ citas GCal
+GS_09_Patients.gs           ✅ api_getPatientProfileT
+GS_10_Sales.gs              ✅ ventas asesor
+GS_11_Commissions.gs        ✅ comisiones (bug B-03 en header TABLA)
+GS_12_AdminDashboard.gs     ✅ home admin - KPIs + ticker + semáforo + pagos
+GS_13_Marketing.gs v4.2     ✅ marketing dashboard - subsanadas/nuncaContactadas
+GS_14_Billing.gs            ⚠️ bug B-07 spinner infinito
+GS_15_Notifications.gs      ✅ notificaciones base
+GS_16_Integrations.gs       ✅ GCal, WhatBot, webhook
+GS_17_Security.gs           ✅ seguridad
+GS_18_MigrationCompat.gs    ✅ aliases compatibilidad
+GS_19_InversionCampanas.gs  ✅ NUEVO - CRUD inversión campañas marketing
+GS_20_AdminSales.gs v2.0    ✅ NUEVO - dashboard ventas admin completo
+GS_23_SheetSetup.gs         ✅ setup hojas del sistema
 
----
-
-## ARCHIVOS FRONTEND (en repo src/frontend/)
-
-```
-AppShell.html               ← 942 líneas, 53.6 KB — shell global ✅ HECHO
-Login.html                  ← pantalla de login
-ViewAdminBilling.html       ← facturación admin
-ViewAdminHome.html          ← home admin ✅ HECHO
-ViewAdminMarketing.html     ← marketing
-ViewAdminOperations.html    ← operaciones
-ViewAdminTeam.html          ← equipo
-ViewAdvisorAgenda.html      ← agenda del asesor
-ViewAdvisorAttendance.html  ← asistencia asesor
-ViewAdvisorCalls.html       ← call center asesor ✅ HECHO v2.6
+⚠️ GS_LeadsCampana.gs       → ELIMINAR (constantes inventadas causan errores)
 
 PENDIENTES DE CREAR:
-  ViewAdminSales.html       ← Fase 3 (nuevo)
-  ViewAdminCalls.html       ← Fase 5 (nuevo)
-  ViewAdminPatients.html    ← Fase 6 (nuevo — mejora del existente)
-  ViewAdminConfig.html      ← Fase 7 (nuevo)
-  ViewAdminComisiones.html  ← Fase 11 (nuevo)
+GS_21_AdminComisiones.gs    ← Bloque 1
+GS_22_AdminCalls.gs         ← Bloque 2
+GS_24_Patients360.gs        ← Bloque 3
+GS_25_Config.gs             ← Bloque 4
+GS_26_Services.gs           ← Bloque 9
+GS_27_Products.gs           ← Bloque 10
+GS_28_Warehouse.gs          ← Bloque 11
+GS_29_Notifications_v2.gs   ← Bloque 8
+GS_30_Caja.gs               ← Bloque 12
 ```
 
 ---
 
-## COLUMNAS REALES DEL GOOGLE SHEET (verificadas en GS_01_Config.gs v2.0)
+## ARCHIVOS HTML — ESTADO ACTUAL
+
+```
+AppShell.html               ✅ 942 líneas - overlay, turno, sidebar, SVG icons
+Login.html                  ✅ pantalla login
+ViewAdminHome.html v2.1     ✅ 3 cols: ventas+alertas / ticker+monitoreo / ranking+pagos
+ViewAdminMarketing.html v5.1 ✅ 4 filas: KPIs / embudo+hist / 3cols / gestión operacional
+ViewAdminSales.html v2.0    ✅ NUEVO - hoy/mes/año/rango - USD - historial cliente - config
+ViewAdminBilling.html       ⚠️ bug B-07
+ViewAdminOperations.html    ✅
+ViewAdminTeam.html          ✅ (pendiente bloque 5: foto/permisos/turnos)
+ViewAdvisorHome.html v1.2   ✅ embudo mes + 3 cards + mini calendario turnos
+ViewAdvisorCalls.html v2.6  ✅ call center con ficha 360° lateral
+ViewAdvisorAgenda.html      ✅ (pendiente bloque 6: KPIs/slots/panel lateral)
+ViewAdvisorAttendance.html  ✅
+ViewAdvisorCitas.html       ✅ (pendiente bloque 6: modal editar)
+ViewAdvisorFollowups.html   ✅
+ViewAdvisorPatients.html    ✅
+ViewAdvisorSales.html       ✅
+ViewAdvisorCommissions.html ✅
+
+PENDIENTES DE CREAR:
+ViewAdminComisiones.html    ← Bloque 1
+ViewAdminCalls.html         ← Bloque 2
+ViewAdminPatients.html      ← Bloque 3 (mejora del existente)
+ViewAdminConfig.html        ← Bloque 4
+ViewAdminServices.html      ← Bloque 9
+ViewAdvisorServices.html    ← Bloque 9
+ViewAdminProducts.html      ← Bloque 10
+ViewAdminWarehouse.html     ← Bloque 11
+ViewAdminCaja.html          ← Bloque 12
+```
+
+---
+
+## COLUMNAS REALES DEL GOOGLE SHEET (GS_01_Config.gs v2.0)
 
 ```javascript
 LLAM_COL = {
@@ -74,7 +102,7 @@ LLAM_COL = {
   HORA: 5, ASESOR: 6, _F7: 7, NUM_LIMPIO: 8, ID_ASESOR: 9,
   ANUNCIO: 10, ORIGEN: 11, INTENTO: 12, ULT_TS: 13,
   PROX_REIN: 14, RESULTADO: 15, SESSION_ID: 16, DEVICE: 17,
-  WHATSAPP: 18, TS_LOG: 19, SUB_ESTADO: 20  ← NEW v2.0 col U
+  WHATSAPP: 18, TS_LOG: 19, SUB_ESTADO: 20  // col U - NEW v2.0
 }
 
 LEAD_COL = {
@@ -90,16 +118,69 @@ VENT_COL = {
   NRO_DOC: 17, ESTADO_DOC: 18
 }
 
+AG_COL = {
+  ID: 0, FECHA: 1, TRATAMIENTO: 2, TIPO_CITA: 3, SEDE: 4,
+  NUMERO: 5, NOMBRE: 6, APELLIDO: 7, DNI: 8, CORREO: 9,
+  ASESOR: 10, ID_ASESOR: 11, ESTADO: 12, VENTA_ID: 13,
+  OBS: 14, TS_CREADO: 15, TS_ACTUALIZADO: 16, HORA_CITA: 17,
+  ETIQUETA_CAMP: 18, DOCTORA: 19, TIPO_ATENCION: 20, GCAL_ID: 21
+}
+
 RRHH_COL = {
-  ... (16 cols originales A-P) ...
-  PERMISOS: 16,  ← NEW v2.0 col Q
-  FOTO_URL: 17   ← NEW v2.0 col R
+  CODIGO: 0, NOMBRE: 1, APELLIDO: 2, PUESTO: 3, SUELDO: 4,
+  FECHA_ING: 5, FECHA_SAL: 6, ESTADO: 7, META: 8, BONUS: 9,
+  SEDE: 10, LABEL: 11, USUARIO: 12, PASS: 13, NUMERO: 14,
+  AGENDA: 15, PERMISOS: 16, FOTO_URL: 17  // NEW v2.0
 }
 
 PAC_COL = {
-  ... (20 cols originales A-T) ...
-  FOTO_URL: 20   ← NEW v2.0 col U
+  ID: 0, NOMBRES: 1, APELLIDOS: 2, TELEFONO: 3, EMAIL: 4,
+  DOCUMENTO: 5, SEXO: 6, FECHA_NAC: 7, DIRECCION: 8, OCUPACION: 9,
+  SEDE: 10, FUENTE: 11, FECHA_REG: 12, TOTAL_COMPRAS: 13,
+  TOTAL_FACTURADO: 14, ULTIMA_VISITA: 15, TOTAL_LLAMADAS: 16,
+  TOTAL_CITAS: 17, ESTADO: 18, NOTAS: 19, FOTO_URL: 20  // NEW v2.0
 }
+
+CONF_COL = { CLAVE: 0, VALOR: 1, DESCRIPCION: 2, UPDATED_AT: 3, UPDATED_BY: 4 }
+TURN_COL = { FECHA: 0, ID_ASESOR: 1, ASESOR: 2, HORA_ENTRADA: 3, HORA_SALIDA: 4,
+  MIN_BREAK: 5, MIN_BANIO: 6, MIN_ATENCION: 7, MIN_LIMPIEZA: 8,
+  MIN_CAPACITACION: 9, MIN_OTROS: 10, MIN_TRABAJO: 11,
+  TARDANZA_MIN: 12, HORAS_EXTRA_MIN: 13, ESTADO_TURNO: 14,
+  TS_CREADO: 15, TS_ACTUALIZADO: 16 }
+```
+
+---
+
+## HOJAS GOOGLE SHEET
+
+```
+EXISTENTES Y EN USO:
+  CONSOLIDADO DE LLAMADAS       ~11,830 filas (Abril 2026)
+  CONSOLIDADO DE LEADS
+  CONSOLIDADO DE VENTAS         74 ventas Abril / S/33,328
+  AGENDA_CITAS
+  SEGUIMIENTOS
+  CONSOLIDADO_DE_PACIENTES      ~6,994 filas
+  RRHH
+  TABLA DE COMISIONES           cols A-B (productos) y D-E (servicios)
+  COMISIONES                    comisión servicios: 0.50% del monto
+  CONSOLIDADO DE INVERSION DE CAMPAÑAS  ← nombre real con Ñ
+  LOG_TURNOS                    ← NEW v2.0
+  CONFIGURACION                 ← NEW v2.0
+
+NUEVAS CREADAS EN SESIÓN 09/04/2026:
+  CAT_METODOS_PAGO              ← creada por setupSalesSheets()
+  METAS_VENTAS                  ← creada por setupSalesSheets()
+  ⚠️ BUG: CAT_METODOS_PAGO quedó vacía - fix pendiente en GS_20
+
+ESTRUCTURA CONSOLIDADO DE INVERSION DE CAMPAÑAS:
+  Col A: TRATAMIENTO
+  Col B: MES (ENERO..DICIEMBRE)
+  Col C: INVERSION (número)
+  Col D: RED_SOCIAL (META ADS / TIKTOK ADS / GOOGLE ADS / ORGÁNICO) ← creada
+  Col E: ANIO (número) ← creada
+  Headers cols D y E dicen "Columna 1" y "Columna 2" (cosmético, no afecta)
+  Fix: ejecutar setupInversionSheet() de nuevo → rescribe headers correctos
 ```
 
 ---
@@ -113,9 +194,12 @@ CFG.SHEET_VENTAS       = "CONSOLIDADO DE VENTAS"
 CFG.SHEET_AGENDA       = "AGENDA_CITAS"
 CFG.SHEET_SEGUIMIENTOS = "SEGUIMIENTOS"
 CFG.SHEET_PACIENTES    = "CONSOLIDADO_DE_PACIENTES"
-CFG.SHEET_INVERSION    = "CONSOLIDADO DE INVERSION DE CAM"  ← FIX v2.0
-CFG.SHEET_TURNOS       = "LOG_TURNOS"                       ← NEW v2.0
-CFG.SHEET_CONFIG_SYS   = "CONFIGURACION"                    ← NEW v2.0
+CFG.SHEET_INVERSION    = "CONSOLIDADO DE INVERSION DE CAMPAÑAS"  // con Ñ real
+CFG.SHEET_TURNOS       = "LOG_TURNOS"
+CFG.SHEET_CONFIG_SYS   = "CONFIGURACION"
+// NUEVAS - agregar a GS_01_Config.gs cuando se creen:
+// CFG.SHEET_CAT_METODOS  = "CAT_METODOS_PAGO"
+// CFG.SHEET_METAS        = "METAS_VENTAS"
 ```
 
 ---
@@ -125,272 +209,364 @@ CFG.SHEET_CONFIG_SYS   = "CONFIGURACION"                    ← NEW v2.0
 ```
 DOCTORAS:
   ID: 3784316650e1124f3eb82be4f123001347a18fb1808e4292e0d0503925d4f967@group.calendar.google.com
-  Formato SUMMARY: "(PROCED)DRA YESSICA PEREZ 5PM - 7.30PM"
+  Formato evento: "(PROCED)DRA YESSICA PEREZ 5PM - 7.30PM"
   Sede en LOCATION: "Av. Javier Prado Este 996" → SAN ISIDRO
                     "Av. Brasil 1170"            → PUEBLO LIBRE
 
-ENFERMERÍA:
+PERSONAL/ASESORES (HORARIO_PERSONAL_CAL_ID):
   ID: 2db1abef4cf3589e8646a162324c5818ef5732918ae8a113c1792e759a43e0c2@group.calendar.google.com
-  Formato SUMMARY: "🟢 MIREYA - Turno Enfermería | SAN ISIDRO"
+  Formato evento: "🟢 MIREYA - Turno Enfermería | SAN ISIDRO"
+  Verde (🟢) = SAN ISIDRO | Amarillo (🟡) = PUEBLO LIBRE
+
+LIMITACIÓN TÉCNICA:
+  GAS solo accede al calendario del Gmail que autorizó el script.
+  Los IDs son de cuentas distintas → editables desde Config (Bloque 4)
+  pero cambiar Gmail de autorización requiere reautorizar el script manualmente.
 ```
 
 ---
 
-## ESTADO ACTUAL — FASES COMPLETADAS
+## DATOS DEL NEGOCIO
 
 ```
-FASE 12 — Estructura de datos         ✅ 100% COMPLETA
-  GS_01_Config.gs: todas las constantes nuevas ✅
-  GS_02_Auth.gs: api_abrirTurnoT, api_cerrarTurnoT, api_registrarMinutosEstadoT ✅
-  ⚠️ Hojas físicas LOG_TURNOS y CONFIGURACION en Sheet: SIN CONFIRMAR
+Empresa: Zi Vital (clínica estética)
+Sedes: San Isidro · Pueblo Libre (Lima, Perú)
+Moneda principal: Soles (PEN) - también hay ventas en USD
 
-FASE 1 — AppShell                     ✅ COMPLETA (declarada por César)
-  942 líneas, 53.6 KB
-  Overlay bloqueante, turno, sidebar toggle, menú admin ✅
+Equipo activo:
+  Asesoras: RUVILA, MIREYA, SRA CARMEN
+  Asesor: WILMER
+  Admin: CESAR
+  Doctoras (en sistema): DRA CAROLINA, DRA PAMELA, DRA YESSICA
 
-FASE 2 — Home Admin                   ✅ COMPLETA (declarada por César)
-  Monitoreo equipo visible en imagen live ✅
-  KPIs reales funcionando ✅
+Datos reales al 09/04/2026:
+  Ventas Mes Abril: 74 ventas · S/33,328.45
+    San Isidro: S/22,632 · 41 ventas
+    Pueblo Libre: S/10,696 · 33 ventas
+  Ticket promedio: S/450
+  Servicios del mes: 53 · Productos: 21
+  Adelantos pendientes: 2 (S/1,300 + S/300)
+  Proyección mes: S/111,094 (ritmo S/3,703/día · día 9/30)
 
-FASE 9 — Call Center Asesor           ✅ ~90% COMPLETA
-  v2.6 instalada y funcionando en producción ✅
-  Sub-tipificación SIN CONTACTO ✅
-  Hora AM/PM en seguimiento ✅
-  Ficha 360° lateral ✅
-  Datos en métricas visibles ✅
-  ⚠️ Pendiente: calendario GCal no conecta (columnas vacías)
-  ⚠️ Pendiente: Ficha 360° tab Compras no muestra datos
+  Histórico mensual:
+    ENE 2026: 1018 leads · S/90,931 · 191 ventas · 18.8% conv
+    FEB 2026: 904 leads  · S/84,486 · 179 ventas · 19.8% conv
+    MAR 2026: 676 leads  · S/63,521 · 155 ventas · 22.9% conv
+    ABR 2026: 51 leads   · S/33,328 · 74 ventas  · 145% conv (mes en curso)
+
+Top tratamientos Abril:
+  1. TOXINA S/9,910
+  2. ACIDO HIALURONICO S/8,645
+  3. COMPRA DE PRODUCTO S/2,948
+  4. HIFU S/1,998
+  5. BIOESTIMULADOR S/1,799
 ```
 
 ---
 
-## BUGS ACTIVOS — PRIORIDAD
+## LÓGICA DE NEGOCIO — REGLAS IMPORTANTES
+
+```
+COMISIONES:
+  Servicios: 0.50% del monto de venta
+  Productos: según tabla (col A=monto mínimo, col B=comisión)
+  TABLA DE COMISIONES en GS: cols A-B (productos) y D-E (servicios)
+
+LEADS Y MARKETING:
+  - Leads del mes = números nuevos del período
+  - Llamados = leads únicos contactados (NO total llamadas)
+  - Ticker Home Admin muestra solo leads del mes
+  - Historial: LLAM. = leads únicos contactados (fix aplicado 09/04)
+  - Sin llamar del mes: foto fija al cierre del mes
+  - Subsanadas: leads sin llamar del mes contactados después
+  - Nunca contactadas: los que siguen sin llamada en toda la historia
+  
+INVERSIÓN DE CAMPAÑAS:
+  - Se registra por tratamiento + mes + red social + año
+  - Se accede con: da_inversionData(mes, anio, 'mes')
+  - Funciones CRUD en GS_19_InversionCampanas.gs
+  - setupInversionSheet() ejecutar UNA VEZ para agregar cols D y E
+
+VENTAS Y CAJA:
+  - ESTADO_PAGO: ADELANTO / PAGO COMPLETO / PENDIENTE
+  - USD detectado: si campo PAGO contiene "$" o "USD" o "DOLAR"
+  - Histórico de cliente: api_getClienteHistorialT(token, num)
+  - Metas en hoja METAS_VENTAS con clave yyyy-MM
+
+ALMACÉN (futuro Bloque 11):
+  - Auto-descuento al cerrar venta en GS_10
+  - 3 almacenes: SI / PL / CTR (central)
+  - Insumos: descuento manual con responsable
+  - Productos: descuento automático vinculado a venta
+```
+
+---
+
+## BUGS ACTIVOS — ESTADO AL 09/04/2026
 
 ```
 🔴 B-01 · Velocidad ~3min en todos los paneles
-   Causa: Sin caché precargado, GAS lee sheets enteras en cada request
-   Hojas afectadas: LLAMADAS (11,830 filas), PACIENTES (6,994 filas)
-   Fix: Precarga de caché al login + reducir cols leídas
+   Causa: GAS lee sheets enteras sin caché eficiente
+   Hojas: LLAMADAS (11,830 filas), PACIENTES (6,994 filas)
+   Fix: Precarga caché al login + reducir cols leídas
    Archivo: GS_05_Cache.gs + AppShell.html
+   Estado: PENDIENTE
 
 🔴 B-02 · Fechas "DEC 30 1899" en seguimientos
-   Causa: HORA_PROG guardada como string con TZ Colombia
-   Síntoma: 9 seguimientos "vencidos" con fecha 1899
+   Causa: HORA_PROG guardada con TZ Colombia
    Fix: Sanitizar parseo en api_getMySeguimientosT
    Archivo: GS_06_AdvisorCalls.gs MOD-03
+   Estado: PENDIENTE
 
 🔴 B-03 · "Error" en Mis Comisiones del asesor
-   Causa: TABLA DE COMISIONES con estructura de header mal leída
-   Fix: Revisar GS de comisiones + estructura de la hoja
-   Archivo: GS de comisiones (por identificar)
+   Causa: TABLA DE COMISIONES header mal leído
+   Fix: Revisar GS_11 + estructura hoja
+   Estado: PENDIENTE
 
 🟡 B-04 · Calendario GCal vacío en Call Center
    Causa: api_getSemanaCalT no retorna datos
-   Fix: Debug de la función, verificar permisos GCal
    Archivo: GS_06_AdvisorCalls.gs MOD-10
+   Estado: PENDIENTE
 
-🟡 B-05 · "undefined min" SRA CARMEN en Home Admin
-   Causa: LOG_PERSONAL sin registro válido para ese asesor
-   Fix: Manejar null en cálculo de tiempo en GS_12
+🟡 B-05 · undefined min SRA CARMEN semáforo
+   Causa: LOG_PERSONAL sin registro válido
+   Archivo: GS_12_AdminDashboard.gs
+   Estado: PENDIENTE
 
-🟡 B-06 · ROAS/CAC vacíos en Marketing
-   Causa: Nombre hoja ya corregido en Config pero falta redespliegue
-   Fix: Redesplegar + verificar lectura de INVERSION
+🟡 B-06 · Facturación KPIs spinner infinito
+   Causa: GS_14 timeout o bug lectura
+   Archivo: GS_14_Billing.gs
+   Estado: PENDIENTE
 
-🟡 B-07 · Facturación KPIs no cargan (spinner infinito)
-   Causa: GS_14 timeout o bug en lectura
-   Fix: Debug GS_14_Billing.gs
-
-🟡 B-08 · Zona horaria Colombia en lugar de Lima/Perú
-   Causa: Cliente JS usa TZ del navegador, no CFG.TZ
+🟡 B-07 · Zona horaria Colombia vs Lima/Perú
+   Causa: JS usa TZ del navegador
    Fix: Forzar TZ Lima en frontend
+   Estado: PENDIENTE
+
+🟡 B-08 · CAT_METODOS_PAGO creada vacía
+   Causa: setupSalesSheets() leía índice PAGO+1 en vez de SEDE
+   Fix en GS_20: cambiar a getRange con col 14 cols completas
+   Estado: PENDIENTE - fix documentado en log sesión
 ```
 
 ---
 
-## ÍNDICE MAESTRO DE TRABAJO — ORDEN DE EJECUCIÓN
+## PATCHES APLICADOS EN SESIÓN 09/04/2026
 
-### BLOQUE 0 — BUGS CRÍTICOS (primero, bloquean uso diario)
 ```
-B-01 · Fix velocidad precarga caché          → GS_05 + AppShell
-B-02 · Fix fechas 1899 seguimientos          → GS_06 MOD-03
-B-03 · Fix Error comisiones asesor           → GS comisiones
-B-04 · Fix undefined min SRA CARMEN          → GS_12
-B-05 · Fix zona horaria Colombia             → GS_06 + frontend
-```
+✅ GS_12_AdminDashboard.gs — api_getMarketingTicker()
+   Fix: llamados = leads únicos contactados (no total llamadas)
+   Ahora: Leads 51 · Llamados 50 · Ventas 0 (consistente con Marketing)
 
-### BLOQUE 1 — FASE 1+2 verificación (confirmar items pendientes)
-```
-1.1 · Verificar todos los items F1 AppShell  → leer código
-1.2 · Verificar todos los items F2 HomeAdmin → leer código
-```
+✅ GS_13_Marketing.gs v4.2
+   Fix: _buildHistorialMeses → llamados = leads únicos del mes
+   Nuevo: subsanadas / nuncaContactadas / pctSubsanadas / pctNunca
+   El histórico ya no muestra 1387 llamadas sino 50
 
-### BLOQUE 2 — FASE 9 cerrar pendientes
-```
-9.1 · Fix calendario GCal                    → GS_06 MOD-10
-9.2 · Fix Ficha 360° tab Compras             → GS_09_Patients.gs
-```
+✅ GS_19_InversionCampanas.gs — setupInversionSheet()
+   Cols D (RED_SOCIAL) y E (ANIO) creadas en sheet
+   Datos de Marzo guardados correctamente
 
-### BLOQUE 3 — FASE 4: Marketing Fix
-```
-4.1 · Fix ROAS/CAC vacíos                    → GS_13
-4.2 · Fix embudo responde al filtro de mes   → GS_13
-4.3 · Fix citas en embudo = solo AGENDA      → GS_13
-4.4 · Botón + Presupuesto campaña            → ViewAdminMarketing + GS_13
-4.5 · Filtrar filas vacías en tablas         → ViewAdminMarketing
-4.6 · Fix embudo 0 ventas vs histórico 62    → GS_13
-```
+✅ ViewAdminMarketing.html v5.1
+   Nuevo layout 4 filas aprobado y funcionando
+   Modal inversión con filtro por mes/año funcionando
+   Chips por red social: META ADS S/1,500 visible
 
-### BLOQUE 4 — FASE 3: Ventas Admin (módulo nuevo)
-```
-5.1 · Crear GS_19_AdminSales.gs              → NUEVO
-5.2 · Crear ViewAdminSales.html              → NUEVO
-5.3 · Cards facturado, ventas, por sede      → En 5.2
-5.4 · Métodos de pago por sede expandible    → En 5.2
-5.5 · Popup Adelantos + marcar pagado        → En 5.2 + 5.1
-5.6 · Tabla detalle paginada por sede        → En 5.2
-5.7 · Proyección del mes                     → En 5.1
-```
+✅ GS_20_AdminSales.gs v2.0
+   Dashboard con modos Hoy/Mes/Año/Rango
+   Detección USD automática
+   Historial cliente + WA plantillas
+   Config metas y métodos de pago
+   Hojas METAS_VENTAS y CAT_METODOS_PAGO creadas
 
-### BLOQUE 5 — FASE 11: Comisiones Admin (módulo nuevo)
-```
-6.1 · api_getTeamCommissionsT                → GS_12 patch
-6.2 · api_updateComisionesT                  → GS_12 patch
-6.3 · Crear ViewAdminComisiones.html         → NUEVO
-6.4 · Cards superiores (3)                   → En 6.3
-6.5 · Tabla récord equipo por mes            → En 6.3
-6.6 · Top clientes del mes                   → En 6.3
-6.7 · Tabla ventas con comisión por fila     → En 6.3
-6.8 · Modal actualizar comisiones editable   → En 6.3
-```
-
-### BLOQUE 6 — FASE 5: Llamadas Admin (módulo nuevo)
-```
-7.1 · Crear GS_20_CallsAdmin.gs              → NUEVO
-7.2 · Crear ViewAdminCalls.html              → NUEVO
-7.3 · KPIs leads vírgenes, llamados, conv%   → En 7.2
-7.4 · Tabla base vírgenes color por días     → En 7.2
-7.5 · Score por asesor con sub-estados       → En 7.2
-7.6 · Distribución tipificaciones barras     → En 7.2
-7.7 · Histórico mensual gestión              → En 7.2
-```
-
-### BLOQUE 7 — FASE 6: Pacientes 360° (módulo nuevo)
-```
-8.1 · Crear GS_21_Patients360.gs             → NUEVO
-8.2 · Mejorar ViewAdminPatients.html         → PATCH
-8.3 · Panel lateral: badges + datos          → En 8.2
-8.4 · Tabs Compras / Citas / Contactos       → En 8.2
-8.5 · Detección de duplicados                → En 8.1 + 8.2
-8.6 · Campo Notas + guardar                  → En 8.2
-```
-
-### BLOQUE 8 — FASE 7: Configuración (módulo nuevo)
-```
-9.1 · Crear GS_22_Config.gs                  → NUEVO
-9.2 · Crear ViewAdminConfig.html             → NUEVO
-9.3 · Datos empresa (nombre, RUC, logo)      → En 9.2
-9.4 · Horarios de trabajo editables          → En 9.2
-9.5 · Tabla comisiones editable              → En 9.2
-9.6 · Fix TZ Lima desde config               → En 9.1
-```
-
-### BLOQUE 9 — FASE 8: Equipo + fotos + permisos
-```
-10.1 · Campo FOTO_URL en editar usuario      → ViewAdminTeam patch
-10.2 · Checkboxes permisos por módulo        → ViewAdminTeam patch
-10.3 · Tab Turnos → ver LOG_TURNOS           → ViewAdminTeam patch
-10.4 · Alertas tardanza / break excedido     → ViewAdminTeam patch
-```
-
-### BLOQUE 10 — FASE 10: Agenda + Mis Citas (patch)
-```
-11.1 · KPIs superiores en agenda             → ViewAdvisorAgenda patch
-11.2 · Barra HOY ATIENDEN con doctoras       → ViewAdvisorAgenda patch
-11.3 · Panel lateral al click en cita        → ViewAdvisorAgenda patch
-11.4 · Botones cambio estado con colores     → ViewAdvisorAgenda patch
-11.5 · Filtros Sede + Estado                 → ViewAdvisorAgenda patch
-11.6 · Slots con capacidad X/5              → ViewAdvisorAgenda patch
-11.7 · Modal editar cita completo + REAGENDAR → ViewAdvisorCitas patch
+✅ ViewAdminSales.html v2.0
+   Filtros Hoy/Mes/Año/Rango funcionando
+   Formatos S/33,328.45 y $1,250.00
+   Cards sede con desglose serv/prod/USD
+   Chips métodos de pago por sede
+   Modal adelantos con historial de cliente
+   Botones WA: "Seguimiento cita" y "Pago pendiente"
+   Modal Config: metas + métodos
 ```
 
 ---
 
-## RESUMEN EJECUTIVO
+## FUNCIONES API — ÍNDICE COMPLETO
 
 ```
-TOTAL ÍTEMS PENDIENTES:    ~65
-BUGS CRÍTICOS:              5  (Bloque 0)
-ARCHIVOS NUEVOS:            7  (GS_19, GS_20, GS_21, GS_22 + 4 HTML)
-ARCHIVOS A PARCHEAR:       ~8
-ARCHIVOS A VERIFICAR:       2  (AppShell, ViewAdminHome)
-ARCHIVO A ELIMINAR:         1  (GS_LeadsCampana.gs)
+── GS_00_Shell ──
+getViewHtml(fileName, token)
+getScriptUrl()
+api_pingT(token)
+
+── GS_02_Auth ──
+api_loginT(usuario, pass)
+cc_getSession(token)
+cc_requireSession()
+cc_requireAdmin()
+api_abrirTurnoT(token)
+api_cerrarTurnoT(token)
+api_registrarMinutosEstadoT(token, estado, minutos)
+
+── GS_06_AdvisorCalls ──
+api_getNextLeadT(token)
+api_saveCallOutcomeT(token, payload)
+api_getMySeguimientosT(token)
+api_getLeadsCampanaMesT(token)
+api_getMyScoreMesT(token)
+api_getSemanaCalT(token)
+
+── GS_07_AdvisorMetrics ──
+api_getAdvisorDashboardT(token)
+api_getTeamRanking(anio, mes)
+api_getMisSemanaT(token)
+
+── GS_08_Agenda ──
+api_getAgendaT(token, fecha, sede)
+api_saveCitaT(token, payload)
+api_updateCitaEstadoT(token, citaId, estado)
+
+── GS_09_Patients ──
+api_getPatientProfileT(token, num)
+api_savePatientT(token, payload)
+
+── GS_10_Sales ──
+api_saveSaleT(token, payload)
+api_getMySalesT(token)
+
+── GS_11_Commissions ──
+api_getMyCommissionsT(token)
+api_getTeamRanking(anio, mes)
+
+── GS_12_AdminDashboard ──
+api_getAdminHomeKpisT(token)          → llama a V2
+api_getAdminHomeKpisV2()              → con factHoySI, factHoyPL, nVentasHoy
+api_getTeamSemaforoT(token)
+api_getMarketingTickerT(token)        → PATCH 09/04: solo leads del mes
+api_getOperationsPanelT(token)
+api_getAdminRankingComisionesT(token)
+api_getPagosAdelantoT(token)
+api_marcarPagadoT(token, ventaId)
+
+── GS_13_Marketing ──
+api_getMarketingDashboardT(token, mes, anio)
+api_getAdminCallsPanelT(token, mes, anio, asesor)
+
+── GS_19_InversionCampanas ──
+setupInversionSheet()                 → ejecutar UNA VEZ
+api_getInversionPanelT(token, mes, anio)
+api_saveInversionRowT(token, payload)
+api_deleteInversionRowT(token, rowNum)
+api_getTratamientosListT(token)
+
+── GS_20_AdminSales ──
+setupSalesSheets()                    → ejecutar UNA VEZ
+api_getAdminSalesDashboardT(token, modo, mes, anio, desde, hasta)
+api_getAdminSalesDetailT(token, modo, mes, anio, desde, hasta, page, perPage, sede, asesor, tipo)
+api_getClienteHistorialT(token, num)
+api_getSalesConfigT(token)
+api_saveSalesConfigT(token, payload)  → { periodo, meta, moneda, desc }
+api_saveMetodoPagoT(token, payload)   → { rowNum, metodo, sede, activo, orden, moneda }
+api_deleteMetodoPagoT(token, rowNum)
 ```
 
 ---
 
-## DECISIÓN TÉCNICA IMPORTANTE — RAILWAY
+## ROADMAP — BLOQUES PENDIENTES
 
 ```
-PREGUNTA: ¿Migrar a Railway mejoraría la velocidad?
-RESPUESTA: SÍ, pero NO ahora. Explicación:
+BLOQUE 0 — Bugs críticos (prioridad siempre)
+  B-01 velocidad · B-02 fechas 1899 · B-03 comisiones
+  B-04 GCal call center · B-05 undefined min · B-06 billing
+  B-07 zona horaria · B-08 CAT_METODOS_PAGO vacía
 
-PROBLEMA ACTUAL (velocidad ~3min):
-  El cuello de botella NO es el servidor — es Google Apps Script
-  leyendo Google Sheets con 6,994 + 11,830 filas sin caché eficiente.
-  Railway no resuelve eso porque el backend sigue siendo GAS.
+BLOQUE 1 — Comisiones Admin
+  GS_21_AdminComisiones.gs + ViewAdminComisiones.html
+  Team commissions dashboard · tabla récord · top clientes
 
-LO QUE RAILWAY RESOLVERÍA (en Fase 2):
-  - Backend Node.js con Supabase (PostgreSQL) → consultas en <100ms
-  - Sin límites de tiempo de ejecución (GAS tiene 30s límite)
-  - Sin límites de quota de Google (6min/día en GAS)
-  - Multi-tenancy real para vender AscendaOS a otras clínicas
-  - API REST documentada
+BLOQUE 2 — Llamadas Admin
+  GS_22_AdminCalls.gs + ViewAdminCalls.html
+  KPIs leads vírgenes · base vírgenes · score asesor · historial
 
-CUÁNDO MIGRAR A RAILWAY:
-  → Cuando el sistema esté 100% completo y validado en producción
-  → Cuando tengas 2-3 clientes pagando (validación comercial)
-  → Estimado: 3-6 meses desde ahora
-  → Costo Railway: ~$5-20/mes (vs $0 actual en GAS)
+BLOQUE 3 — Pacientes 360°
+  GS_24_Patients360.gs + ViewAdminPatients.html (patch)
+  Panel lateral 360° · tabs compras/citas · duplicados · notas
 
-FIX DE VELOCIDAD AHORA (sin migrar):
-  → Precarga de caché al momento del login
-  → Reducir columnas leídas (solo las necesarias)
-  → Lazy loading: no cargar todo a la vez
-  → Esto baja de 3min a ~8-15 segundos realistas
+BLOQUE 4 — Configuración del sistema
+  GS_25_Config.gs + ViewAdminConfig.html
+  Datos empresa · horarios · comisiones editables · IDs GCal
+  Botón verificar conexión calendarios · sedes editables
+
+BLOQUE 5 — Equipo + fotos + permisos
+  ViewAdminTeam.html (patch)
+  FOTO_URL · checkboxes permisos · tab turnos · alertas tardanza
+
+BLOQUE 6 — Agenda + Mis Citas (patch)
+  ViewAdvisorAgenda.html + ViewAdvisorCitas.html
+  KPIs · HOY ATIENDEN · panel lateral · slots · modal editar
+
+BLOQUE 7 — Call Center cerrar pendientes
+  GS_06 + ViewAdvisorCalls (patch)
+  Fix GCal · fix ficha 360° compras
+
+BLOQUE 8 — Notificaciones de ventas en tiempo real
+  GS_29_Notifications_v2.gs + AppShell.html (patch)
+  Sonido timbre · toast agrupado · badge sidebar
+
+BLOQUE 9 — Catálogo de Servicios (Knowledge Base)
+  GS_26_Services.gs + ViewAdminServices.html + ViewAdvisorServices.html
+  Hoja: CAT_SERVICIOS
+  Ficha completa: beneficios, contraindicaciones, insumos, doctoras
+  Vista asesor: cards con popup detalle
+
+BLOQUE 10 — Catálogo de Productos (E-commerce interno)
+  GS_27_Products.gs + ViewAdminProducts.html
+  Hoja: CAT_PRODUCTOS
+  Cards visuales · foto · precio costo/venta · stock por sede
+
+BLOQUE 11 — Almacén (módulo central)
+  GS_28_Warehouse.gs + ViewAdminWarehouse.html
+  Hojas: INVENTARIO_PROD_SI/PL/CTR · INVENTARIO_INS_SI/PL/CTR · MOV_ALMACEN
+  Auto-descuento al vender · trazabilidad completa · alertas stock
+
+BLOQUE 12 — Sistema de Caja (al final)
+  GS_30_Caja.gs + ViewAdminCaja.html
+  Hoja: CAJA_TURNOS
+  Conecta TODO: ventas + pacientes + almacén + comisiones + marketing
 ```
 
 ---
 
-## DATOS DEL EQUIPO (activos en producción)
+## NOTAS TÉCNICAS CRÍTICAS
 
 ```
-Asesores activos: RUVILA, MIREYA, WILMER, SRA CARMEN
-Admin: CESAR
-Doctoras (inactivas en sistema): DRA CAROLINA, DRA PAMELA, DRA YESSICA
-Datos reales al 08/04/2026:
-  Pacientes: 6,994 total (134 activos, 6,860 nuevos sin actualizar)
-  Llamadas Abril: 563 (WILMER: 563 acum., Citas: 37, Fact: S/9,049)
-  Ventas Año: ENE S/90,931 · FEB S/84,486 · MAR S/63,521 · ABR ~S/30,987
-```
+ROUTER GS_00_Shell:
+  Completamente dinámico — no necesita modificarse para nuevas vistas.
+  getViewHtml('ViewAdminSales', token) → carga ViewAdminSales.html automático.
+  Solo agregar al sidebar en AppShell.html.
 
----
+AL PEGAR EN GAS:
+  Ctrl+A → Delete → Ctrl+V → Ctrl+S → Redesplegar
+  Deploy → Manage deployments → lápiz → New version → Deploy
 
-## NOTAS TÉCNICAS IMPORTANTES
+SETUP SHEETS (ejecutar una vez cada uno):
+  setupInversionSheet()   → GS_19 (ya ejecutado)
+  setupSalesSheets()      → GS_20 (ya ejecutado, BUG: métodos vacíos)
 
-```
-- Repo GitHub es PÚBLICO → Claude puede leer raw URLs directamente
-  Formato: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/[ruta]
-  IMPORTANTE: Claude solo lee URLs que el usuario escribe explícitamente en el chat
-  
-- Carpeta frontend en repo: src/frontend/ (NO src/Interfaz)
-  
-- Al pegar archivos en GAS: Ctrl+A → Delete → Ctrl+V → Ctrl+S → Redesplegar
-  
-- Redespliegue: Deploy → Manage deployments → lápiz → New version → Deploy
+REPO GITHUB (público):
+  Raw URL formato: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/[ruta]
+  Claude solo lee URLs escritas explícitamente en el chat.
 
-- GS_LeadsCampana.gs debe ELIMINARSE del proyecto GAS
-  (tiene constantes HOJA_LEADS, LEADS_COL inventadas que no existen)
+MIGRACIÓN FUTURA A RAILWAY/NODE.JS:
+  Cuando sistema esté 100% completo y validado en producción.
+  Fix de velocidad ahora (sin migrar): caché al login + lazy loading.
+  Estimado migración: 3-6 meses desde ahora.
+
+CALENDARIOS GOOGLE:
+  3 cuentas distintas: Cal.Doctoras / Cal.Personal / Google Contacts
+  GAS solo accede al Gmail que autorizó el script.
+  Solución en Bloque 4: editar IDs desde config + botón verificar.
+  Cambiar Gmail autorización: reautorizar manualmente en GAS.
 ```
 
 ---
@@ -399,14 +575,19 @@ Datos reales al 08/04/2026:
 
 ```
 Soy César, continúo el desarrollo de AscendaOS v1.
-Sistema activo en producción — clínica Zi Vital, Lima Perú.
+Sistema en producción — clínica Zi Vital, Lima Perú.
+Stack: Google Apps Script + Google Sheets + WebApp HTML/CSS/JS
 
-Lee el contexto completo en:
-https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/docs/MEMORY.md
+Lee el ULTRAPROMPMT_MAESTRO.md primero (ya adjunto en el proyecto).
+Luego lee este MEMORY.md para el contexto completo.
 
-Archivos clave para leer antes de arrancar:
-- GS_06: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/src/backend/GS_06_AdvisorCalls.gs
-- Config: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/src/backend/GS_01_Config.gs
+Contexto en GitHub:
+  MEMORY: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/docs/MEMORY.md
+  Config: https://raw.githubusercontent.com/CESARJAUREGUITORRES/ascenda-os/main/src/backend/GS_01_Config.gs
 
-[DESCRIBE QUÉ HACER EN ESTA SESIÓN — ejemplo: "Atacar Bloque 0 bugs críticos"]
+[INDICA EL BLOQUE A TRABAJAR — ejemplo: "/bloque 1" para Comisiones Admin]
+
+Estado al 09/04/2026:
+  ✅ Completados: AppShell, Home Admin, Home Asesor, Call Center, Marketing, Ventas Admin
+  🔵 Siguiente: Bloque 1 (Comisiones Admin) o Bloque 2 (Llamadas Admin)
 ```
