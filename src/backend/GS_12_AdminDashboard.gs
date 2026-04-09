@@ -179,7 +179,9 @@ function _calcAlertas(byAsesorHoy, now) {
 
 /** Wrapper token */
 function api_getAdminHomeKpisT(token) {
-  _setToken(token); return api_getAdminHomeKpis();
+  _setToken(token);
+  // Usar V2 que incluye factHoySI, factHoyPL, nVentasHoy
+  return api_getAdminHomeKpisV2();
 }
 // L01_END
 
@@ -281,42 +283,77 @@ function api_getTeamSemaforoT(token) {
  * api_getMarketingTicker — Datos del ticker del topbar admin
  * Leads/Llamados/Citas/Ventas del mes con ROAS y CAC estimados
  */
+// ===== CTRL+F: function api_getMarketingTicker() =====
+// REEMPLAZA toda la función api_getMarketingTicker()
+// desde "function api_getMarketingTicker() {" hasta su "}" de cierre
+
+/**
+ * PATCH GS_12_AdminDashboard.gs — Ticker v2
+ * ════════════════════════════════════════════════════════
+ * PROBLEMA: ventas y fact en el ticker muestran TODAS las ventas del mes
+ *           (74 ventas / S/33328) en vez de solo ventas de leads nuevos
+ *           del mes (0 ventas / S/0) — inconsistente con el panel Marketing
+ *
+ * INSTRUCCIÓN:
+ * Ctrl+F en GS_12_AdminDashboard.gs: "function api_getMarketingTicker() {"
+ * Selecciona desde esa línea hasta su "}" de cierre (antes del wrapper token)
+ * Reemplaza con el bloque de abajo
+ * El wrapper "function api_getMarketingTickerT(token)" NO se toca
+ * ════════════════════════════════════════════════════════
+ */
+
+// ===== CTRL+F: function api_getMarketingTicker() { =====
 function api_getMarketingTicker() {
   cc_requireAdmin();
-  var now  = new Date();
-  var mes  = now.getMonth() + 1;
-  var anio = now.getFullYear();
-  var mesStr = anio + '-' + String(mes).padStart(2,'0');
+  var now   = new Date();
+  var mes   = now.getMonth() + 1;
+  var anio  = now.getFullYear();
+  var desde = new Date(anio, mes - 1, 1, 0, 0, 0);
+  var hasta = new Date(anio, mes, 0, 23, 59, 59);
+  var mesStr = anio + '-' + String(mes).padStart(2, '0');
 
-  // Leads del mes
-  var shLd  = _sh(CFG.SHEET_LEADS);
-  var lrLd  = shLd.getLastRow();
-  var leads = 0;
+  // ── 1. LEADS DEL MES ─────────────────────────────────
+  var shLd = _sh(CFG.SHEET_LEADS);
+  var lrLd = shLd.getLastRow();
+  var leads    = 0;
+  var leadNums = {};
   if (lrLd >= 2) {
-    shLd.getRange(2, 1, lrLd - 1, 3).getValues().forEach(function(r) {
-      if (_date(r[LEAD_COL.FECHA] || r[0]).slice(0,7) === mesStr) leads++;
+    shLd.getRange(2, 1, lrLd - 1, 9).getValues().forEach(function(r) {
+      if (!_inRango(r[LEAD_COL.FECHA] || r[0], desde, hasta)) return;
+      leads++;
+      var n = _normNum(r[LEAD_COL.NUM_LIMPIO] || r[LEAD_COL.CELULAR]);
+      if (n) {
+        leadNums[n]                   = true;
+        leadNums['51' + n]            = true;
+        leadNums[n.replace(/^51/,'')] = true;
+      }
     });
   }
 
-  // Llamados del mes
+  // ── 2. LLAMADOS DEL MES — solo leads únicos contactados ──
   var shL  = _sh(CFG.SHEET_LLAMADAS);
   var lrL  = shL.getLastRow();
-  var llamados = 0; var citasLlam = 0;
+  var llamadosSet = {};
+  var citasLlam   = 0;
   if (lrL >= 2) {
-    shL.getRange(2, 1, lrL - 1, 12).getValues().forEach(function(r) {
-      if (_date(r[LLAM_COL.FECHA]).slice(0,7) !== mesStr) return;
-      llamados++;
+    shL.getRange(2, 1, lrL - 1, 10).getValues().forEach(function(r) {
+      if (!_inRango(r[LLAM_COL.FECHA], desde, hasta)) return;
+      var n = _normNum(r[LLAM_COL.NUM_LIMPIO] || r[LLAM_COL.NUMERO]);
+      if (!n) return;
+      if (!leadNums[n]) return;   // solo leads del mes
+      llamadosSet[n] = true;
       if (_up(r[LLAM_COL.ESTADO]) === 'CITA CONFIRMADA') citasLlam++;
     });
   }
+  var llamados = Object.keys(llamadosSet).length;
 
-  // Citas del mes en agenda
-  var shAg  = _shAgenda();
-  var lrAg  = shAg.getLastRow();
+  // ── 3. CITAS EN AGENDA DEL MES ───────────────────────
+  var shAg = _shAgenda();
+  var lrAg = shAg.getLastRow();
   var citas = 0; var asistieron = 0;
   if (lrAg >= 2) {
     shAg.getRange(2, 1, lrAg - 1, 15).getValues().forEach(function(r) {
-      if (_date(r[AG_COL.FECHA]).slice(0,7) !== mesStr) return;
+      if (_date(r[AG_COL.FECHA]).slice(0, 7) !== mesStr) return;
       if (_up(r[AG_COL.ESTADO]) === 'CANCELADA') return;
       citas++;
       var edo = _up(r[AG_COL.ESTADO]);
@@ -324,45 +361,72 @@ function api_getMarketingTicker() {
     });
   }
 
-  // Ventas del mes
+  // ── 4. VENTAS — SOLO de leads nuevos del mes ─────────
   var shV  = _sh(CFG.SHEET_VENTAS);
   var lrV  = shV.getLastRow();
-  var ventas = 0; var factMes = 0;
+  var ventas  = 0;
+  var factMes = 0;
   if (lrV >= 2) {
-    shV.getRange(2, 1, lrV - 1, 12).getValues().forEach(function(r) {
-      if (_date(r[VENT_COL.FECHA]).slice(0,7) !== mesStr) return;
-      ventas++; factMes += Number(r[VENT_COL.MONTO]) || 0;
+    shV.getRange(2, 1, lrV - 1, 17).getValues().forEach(function(r) {
+      if (_date(r[VENT_COL.FECHA]).slice(0, 7) !== mesStr) return;
+      var numV = _normNum(r[VENT_COL.NUM_LIMPIO] || r[VENT_COL.CELULAR]);
+      if (!numV) return;
+      // Filtro: solo si el número pertenece a un lead nuevo del mes
+      if (!leadNums[numV]) return;
+      ventas++;
+      factMes += Number(r[VENT_COL.MONTO]) || 0;
     });
   }
 
-  // ROAS y CAC estimados (inversión desde GS_01_Config o placeholder)
-  var inversion = MKTG_CONFIG ? (MKTG_CONFIG.INV_MES || 0) : 0;
-  var roas = inversion > 0 ? factMes / inversion : null;
-  var cac  = ventas > 0 && inversion > 0 ? inversion / ventas : null;
+  // ── 5. INVERSIÓN REAL DEL MES (para ROAS y CAC) ──────
+  var invTotal = 0;
+  try {
+    var invMap = da_inversionData(mes, anio, 'mes');
+    invTotal = Object.values(invMap).reduce(function(s, v) { return s + v; }, 0);
+  } catch(e) {}
+  if (!invTotal) {
+    try {
+      var shCfg = _sh(CFG.SHEET_CONFIG_SYS || 'CONFIGURACION');
+      var lrCfg = shCfg.getLastRow();
+      if (lrCfg >= 2) {
+        shCfg.getRange(2, 1, lrCfg - 1, 2).getValues().forEach(function(r) {
+          if (_norm(r[0]) === 'inversion_mes') invTotal = Number(r[1]) || 0;
+        });
+      }
+    } catch(e2) {}
+  }
 
-  // Tasas
-  var tLlamados   = leads    > 0 ? Math.round(llamados   / leads    * 100) : 0;
-  var tCitas      = llamados > 0 ? Math.round(citasLlam  / llamados * 100) : 0;
-  var tAsistencia = citas    > 0 ? Math.round(asistieron / citas    * 100) : 0;
-  var tConversion = asistieron > 0 ? Math.round(ventas / asistieron * 100) : 0;
+  var roas = invTotal > 0 && factMes > 0 ? +(factMes  / invTotal).toFixed(2) : null;
+  var cac  = invTotal > 0 && ventas  > 0 ? +(invTotal / ventas).toFixed(2)   : null;
+
+  // ── 6. TASAS ─────────────────────────────────────────
+  var tLlamados = leads      > 0 ? Math.round(llamados   / leads      * 100) : 0;
+  var tCitas    = llamados   > 0 ? Math.round(citasLlam  / llamados   * 100) : 0;
+  var tAsist    = citas      > 0 ? Math.round(asistieron / citas      * 100) : 0;
+  var tConv     = asistieron > 0 ? Math.round(ventas     / asistieron * 100) : 0;
 
   return {
-    ok:          true,
-    leads:       leads,
-    llamados:    llamados,
-    citas:       citasLlam,
-    asistieron:  asistieron,
-    ventas:      ventas,
-    factMes:     factMes,
-    roas:        roas,
-    cac:         cac,
+    ok:         true,
+    leads:      leads,
+    llamados:   llamados,
+    citas:      citasLlam,
+    asistieron: asistieron,
+    ventas:     ventas,
+    factMes:    factMes,
+    roas:       roas,
+    cac:        cac,
     tasas: {
       llamados:   tLlamados,
       citas:      tCitas,
-      asistencia: tAsistencia,
-      conversion: tConversion
+      asistencia: tAsist,
+      conversion: tConv
     }
   };
+}
+
+/** Wrapper token */
+function api_getMarketingTickerT(token) {
+  _setToken(token); return api_getMarketingTicker();
 }
 
 /** Wrapper token */
@@ -656,10 +720,15 @@ function api_getAdminHomeKpisV2() {
   }
 
   var factHoy   = ventasHoyAll.reduce(function(s, v) { return s + v.monto; }, 0);
-  var factHoySI = ventasHoyAll.filter(function(v) { return v.sede.indexOf('SAN ISIDRO') >= 0; })
-                              .reduce(function(s, v) { return s + v.monto; }, 0);
-  var factHoyPL = ventasHoyAll.filter(function(v) { return v.sede.indexOf('PUEBLO') >= 0; })
-                              .reduce(function(s, v) { return s + v.monto; }, 0);
+  var factHoySI = ventasHoyAll.filter(function(v) {
+  var s = (v.sede || '').toUpperCase();
+  return s.indexOf('SAN') >= 0 || s.indexOf('ISIDRO') >= 0;
+}).reduce(function(s, v) { return s + v.monto; }, 0);
+
+var factHoyPL = ventasHoyAll.filter(function(v) {
+  var s = (v.sede || '').toUpperCase();
+  return s.indexOf('PUEBLO') >= 0 || s.indexOf('LIBRE') >= 0;
+}).reduce(function(s, v) { return s + v.monto; }, 0);
 
   // ── Ventas de ayer (para delta) ──────────────────────
   var ayer     = _date(new Date(now.getTime() - 86400000));
