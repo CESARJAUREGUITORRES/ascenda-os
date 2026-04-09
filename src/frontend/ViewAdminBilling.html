@@ -1,0 +1,476 @@
+<!-- ViewAdminBilling.html — Facturación Admin AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.vb{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;background:#F0F4FC;min-height:100%;}
+/* HEADER */
+.vb-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vb-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.psel{padding:5px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+/* KPIs */
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.b::before{background:#0A4FBF;}.kc.g::before{background:#16A34A;}
+.kc.a::before{background:#D97706;}.kc.r::before{background:#DC2626;}.kc.p::before{background:#7C3AED;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-v{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
+.kc-s{font-size:10px;color:#6B7BA8;}
+.delta{display:inline-flex;align-items:center;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;margin-top:3px;}
+.d-up{background:#F0FDF4;color:#16A34A;}.d-dn{background:#FEF2F2;color:#DC2626;}.d-n{background:#F0F4FC;color:#9AAAC8;}
+/* PROGRESS BAR */
+.prog-wrap{height:6px;background:#F0F4FC;border-radius:20px;overflow:hidden;margin-top:6px;}
+.prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
+/* MAIN 2-COL */
+.main2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:10px;}
+/* CARD */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+/* FILTROS TABLA */
+.flt-row{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;}
+.fi{padding:5px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.fi:focus{border-color:#0A4FBF;}
+/* TABLA */
+.comp-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.comp-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;background:#F8FAFF;text-align:left;white-space:nowrap;}
+.comp-table td{padding:8px 8px;border-bottom:1px solid rgba(221,228,245,.3);font-size:11px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.comp-table tr:last-child td{border-bottom:none;}
+.comp-table tr:hover td{background:#F8FAFF;}
+.chip{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;white-space:nowrap;}
+.cp-pend{background:#FFFBEB;color:#D97706;}
+.cp-emit{background:#F0FDF4;color:#16A34A;}
+.cp-rh{background:#EBF2FF;color:#0A4FBF;}
+.cp-fact{background:#F5F3FF;color:#7C3AED;}
+.asig-btn{padding:3px 9px;border-radius:6px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:#0A4FBF;}
+.asig-btn:hover{background:#EBF2FF;}
+/* DISTRIBUCIÓN TIPOS */
+.tipo-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(221,228,245,.3);}
+.tipo-row:last-child{border-bottom:none;}
+.tipo-lbl{font-size:11px;font-weight:700;color:#0D1B3E;min-width:110px;}
+.tipo-bar{flex:1;background:#F0F4FC;border-radius:4px;height:18px;overflow:hidden;}
+.tipo-fill{height:100%;border-radius:4px;}
+.tipo-n{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:800;color:#0A4FBF;min-width:30px;text-align:right;}
+/* SEDE */
+.sede-card{background:#F8FAFF;border:1px solid #DDE4F5;border-radius:10px;padding:10px 12px;margin-bottom:7px;}
+.sede-card:last-child{margin-bottom:0;}
+.sede-nom{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0D1B3E;margin-bottom:4px;}
+.sede-fact{font-size:12px;color:#6B7BA8;}
+/* MODAL ASIGNACIÓN */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:440px;border:1px solid #DDE4F5;}
+.mhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.msub{font-size:11px;color:#9AAAC8;margin-top:2px;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:8px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mdet{background:#F8FAFF;border-radius:9px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:#6B7BA8;}
+.mdet strong{color:#0D1B3E;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:8px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:8px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mlimpia{flex:1.5;padding:8px;border-radius:9px;border:1px solid #FCA5A5;background:#FEF2F2;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#DC2626;}
+/* LOADING */
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sc{overflow-y:auto;max-height:310px;}
+.sc::-webkit-scrollbar{width:3px;}
+.sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+</style>
+
+<div class="vb">
+
+  <!-- HEADER -->
+  <div class="vb-hdr">
+    <div class="vb-ttl">Facturación</div>
+    <div style="display:flex;gap:7px;">
+      <select class="psel" id="mes-sel">
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Septiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <select class="psel" id="anio-sel">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="krow">
+    <div class="kc b">
+      <div class="kc-l">Facturado bruto</div>
+      <div class="kc-v" id="k-fact">—</div>
+      <div class="delta d-n" id="k-delta">—</div>
+    </div>
+    <div class="kc g">
+      <div class="kc-l">Documentado</div>
+      <div class="kc-v" id="k-doc">—</div>
+      <div class="prog-wrap"><div class="prog-fill" id="k-prog" style="width:0%;"></div></div>
+      <div class="kc-s" id="k-pct-doc">0% del total</div>
+    </div>
+    <div class="kc a">
+      <div class="kc-l">Pendientes comprobante</div>
+      <div class="kc-v" id="k-pend">—</div>
+      <div class="kc-s">requieren asignación</div>
+    </div>
+    <div class="kc p">
+      <div class="kc-l">Ticket promedio</div>
+      <div class="kc-v" id="k-ticket">—</div>
+      <div class="kc-s" id="k-ventas">— ventas</div>
+    </div>
+    <div class="kc r">
+      <div class="kc-l">Comprobantes emitidos</div>
+      <div class="kc-v" id="k-emitidos">—</div>
+      <div class="kc-s">del período</div>
+    </div>
+  </div>
+
+  <!-- MAIN 2-COL -->
+  <div class="main2">
+
+    <!-- TABLA COMPROBANTES -->
+    <div class="card">
+      <div class="chd">
+        <div class="ct">COMPROBANTES DEL MES</div>
+        <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:#9AAAC8;" id="comp-total">0 registros</div>
+      </div>
+      <div class="flt-row">
+        <select class="fi" id="flt-estado" onchange="filtrar()">
+          <option value="">Todos los estados</option>
+          <option value="PENDIENTE">Pendientes</option>
+          <option value="BOLETA_E">Boleta electrónica</option>
+          <option value="FACTURA_E">Factura electrónica</option>
+          <option value="RH">Recibo de honorarios</option>
+          <option value="BOLETA_FISICA">Boleta física</option>
+          <option value="LIBRE">Comprobante libre</option>
+          <option value="COORDINACION">Coordinación</option>
+        </select>
+        <select class="fi" id="flt-sede" onchange="filtrar()">
+          <option value="">Todas las sedes</option>
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+        </select>
+      </div>
+      <div class="sc">
+        <table class="comp-table" style="table-layout:fixed;">
+          <colgroup>
+            <col style="width:72px;">
+            <col style="width:auto;">
+            <col style="width:85px;">
+            <col style="width:70px;">
+            <col style="width:70px;">
+            <col style="width:100px;">
+            <col style="width:60px;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Paciente</th>
+              <th>Tratamiento</th>
+              <th class="t-r">Monto</th>
+              <th>Sede</th>
+              <th>Comprobante</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="comp-tbody">
+            <tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANEL LATERAL -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- DISTRIBUCIÓN POR TIPO -->
+      <div class="card">
+        <div class="chd"><div class="ct">POR TIPO DE COMPROBANTE</div></div>
+        <div id="tipo-container">
+          <div class="ld"><span class="sp"></span>Cargando...</div>
+        </div>
+      </div>
+
+      <!-- POR SEDE -->
+      <div class="card">
+        <div class="chd"><div class="ct">POR SEDE</div></div>
+        <div id="sede-container">
+          <div class="ld"><span class="sp"></span>Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL ASIGNACIÓN -->
+<div class="mov" id="m-asig">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <div class="mtit">📄 Asignar comprobante</div>
+        <div class="msub" id="masig-sub">Venta — Paciente</div>
+      </div>
+      <div class="mclose" onclick="closeModal()">✕</div>
+    </div>
+    <div class="mdet" id="masig-det">Cargando detalles...</div>
+    <div class="mg">
+      <div class="mf">
+        <div class="ml">Tipo de comprobante</div>
+        <select class="ms" id="masig-tipo">
+          <option value="BOLETA_E">Boleta electrónica</option>
+          <option value="FACTURA_E">Factura electrónica</option>
+          <option value="RH">Recibo de honorarios</option>
+          <option value="BOLETA_FISICA">Boleta física</option>
+          <option value="COORDINACION">Coordinación</option>
+          <option value="LIBRE">Libre</option>
+        </select>
+      </div>
+      <div class="mf">
+        <div class="ml">Emisor</div>
+        <select class="ms" id="masig-emisor">
+          <option value="">Sin emisor</option>
+        </select>
+      </div>
+      <div class="mf full">
+        <div class="ml">Número de comprobante</div>
+        <input class="mi" id="masig-nro" placeholder="Ej: B001-00001234"/>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc"  onclick="closeModal()">Cancelar</button>
+      <button class="mlimpia" onclick="limpiarComp()">🗑 Limpiar</button>
+      <button class="mconf"  onclick="guardarComp()">✓ Asignar</button>
+    </div>
+  </div>
+</div>
+
+<style>.t-r{text-align:right!important;}</style>
+
+<script>
+var VB = {
+  token:    '',
+  data:     null,
+  allItems: [],
+  mes:      new Date().getMonth() + 1,
+  anio:     new Date().getFullYear(),
+  ventaAct: null
+};
+var MNOM = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+(function(){
+  VB.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  document.getElementById('mes-sel').value  = VB.mes;
+  document.getElementById('anio-sel').value = VB.anio;
+
+  // Listeners de cambio de período
+  ['mes-sel','anio-sel'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', reload);
+  });
+
+  loadEmisores();
+  reload();
+})();
+
+function reload() {
+  VB.mes  = Number(document.getElementById('mes-sel').value);
+  VB.anio = Number(document.getElementById('anio-sel').value);
+  setLoading();
+
+  // Cargar KPIs
+  google.script.run
+    .withSuccessHandler(renderKpis)
+    .withFailureHandler(function(){})
+    .api_getBillingKpisT(VB.token, VB.mes, VB.anio);
+
+  // Cargar tabla comprobantes
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) return;
+      VB.allItems = res.items || [];
+      filtrar();
+    })
+    .withFailureHandler(function(){})
+    .api_listComprobantesT(VB.token, VB.mes, VB.anio, '', '');
+}
+
+function renderKpis(res) {
+  if (!res||!res.ok) return;
+  var k = res.kpis;
+
+  document.getElementById('k-fact').textContent    = 'S/' + (k.factBruta||0).toFixed(2);
+  document.getElementById('k-doc').textContent     = 'S/' + (k.factDocumentada||0).toFixed(2);
+  document.getElementById('k-pend').textContent    = k.nPendientes || 0;
+  document.getElementById('k-ticket').textContent  = 'S/' + (k.ticketProm||0).toFixed(0);
+  document.getElementById('k-ventas').textContent  = (k.nVentas||0) + ' ventas (' + (k.nServ||0) + ' serv. · ' + (k.nProd||0) + ' prod.)';
+  document.getElementById('k-emitidos').textContent= k.nEmitidos || 0;
+
+  var pct = k.pctDocumentado || 0;
+  document.getElementById('k-pct-doc').textContent = pct + '% del total';
+  document.getElementById('k-prog').style.width    = pct + '%';
+
+  var d = k.deltaFact;
+  var dEl = document.getElementById('k-delta');
+  if (d !== null && d !== undefined) {
+    var p   = Math.abs(Math.round(d * 100));
+    var up  = d >= 0;
+    dEl.textContent = (up?'▲':'▼') + ' ' + p + '% vs mes ant.';
+    dEl.className   = 'delta ' + (up ? 'd-up' : 'd-dn');
+  } else {
+    dEl.textContent = '— vs mes ant.'; dEl.className = 'delta d-n';
+  }
+
+  // Por tipo
+  var pt  = res.porTipo || {};
+  var ptK = Object.keys(pt);
+  var ptMax = ptK.reduce(function(m,k){ return Math.max(m,pt[k]); },1);
+  var colMap = { BOLETA_E:'#0A4FBF', FACTURA_E:'#7C3AED', RH:'#16A34A',
+    BOLETA_FISICA:'#D97706', COORDINACION:'#9AAAC8', LIBRE:'#6B7BA8', PENDIENTE:'#DDE4F5' };
+
+  document.getElementById('tipo-container').innerHTML = ptK.length
+    ? ptK.sort(function(a,b){return pt[b]-pt[a];}).map(function(t) {
+        var w = Math.round(pt[t]/ptMax*100);
+        var c = colMap[t] || '#9AAAC8';
+        return '<div class="tipo-row">' +
+          '<div class="tipo-lbl">' + _fmtTipo(t) + '</div>' +
+          '<div class="tipo-bar"><div class="tipo-fill" style="width:'+w+'%;background:'+c+';"></div></div>' +
+          '<div class="tipo-n">'+pt[t]+'</div></div>';
+      }).join('')
+    : '<div class="ld">Sin comprobantes</div>';
+
+  // Por sede
+  var ps = res.porSede || {};
+  document.getElementById('sede-container').innerHTML = Object.keys(ps).length
+    ? Object.keys(ps).map(function(sd) {
+        var d = ps[sd];
+        return '<div class="sede-card">' +
+          '<div class="sede-nom">' + sd + '</div>' +
+          '<div class="sede-fact">S/' + (d.fact||0).toFixed(2) + ' · ' + (d.ventas||0) + ' ventas</div>' +
+          '</div>';
+      }).join('')
+    : '<div class="ld">Sin datos por sede</div>';
+}
+
+function filtrar() {
+  var est  = document.getElementById('flt-estado').value;
+  var sede = document.getElementById('flt-sede').value.toUpperCase();
+  var items = VB.allItems.filter(function(v) {
+    if (sede && (v.sede||'').toUpperCase() !== sede) return false;
+    if (est) {
+      var ed = (v.estadoDoc||'PENDIENTE').toUpperCase();
+      if (est === 'PENDIENTE' && ed && ed !== 'PENDIENTE') return false;
+      if (est !== 'PENDIENTE' && ed !== est) return false;
+    }
+    return true;
+  });
+  renderTabla(items);
+}
+
+function renderTabla(items) {
+  document.getElementById('comp-total').textContent = items.length + ' registros';
+  var tbody = document.getElementById('comp-tbody');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="ld">Sin registros para el filtro seleccionado</td></tr>'; return;
+  }
+  tbody.innerHTML = items.map(function(v) {
+    var edo    = (v.estadoDoc||'PENDIENTE').toUpperCase();
+    var edoCls = edo === 'PENDIENTE' ? 'cp-pend' :
+                 edo === 'RH' ? 'cp-rh' :
+                 (edo.indexOf('FACTURA') >= 0) ? 'cp-fact' : 'cp-emit';
+    var edoLbl = v.nroDoc ? v.nroDoc : _fmtTipo(edo);
+
+    return '<tr>' +
+      '<td style="color:#9AAAC8;">' + (v.fecha||'—') + '</td>' +
+      '<td style="font-weight:700;overflow:hidden;text-overflow:ellipsis;">' + (v.paciente||'—').slice(0,20) + '</td>' +
+      '<td style="color:#6B7BA8;overflow:hidden;text-overflow:ellipsis;">' + (v.trat||'—').slice(0,14) + '</td>' +
+      '<td style="text-align:right;font-family:\'Exo 2\',sans-serif;font-weight:700;color:#0A4FBF;">S/' + (v.monto||0).toFixed(0) + '</td>' +
+      '<td style="font-size:10px;color:#6B7BA8;">' + (v.sede||'—').replace('SAN ISIDRO','S.Isidro').replace('PUEBLO LIBRE','P.Libre') + '</td>' +
+      '<td><span class="chip ' + edoCls + '">' + edoLbl.slice(0,14) + '</span></td>' +
+      '<td><button class="asig-btn" onclick="openAsig(' + JSON.stringify(v) + ')">Asignar</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function _fmtTipo(t) {
+  var m = { BOLETA_E:'Boleta E.', FACTURA_E:'Factura E.', RH:'RH', BOLETA_FISICA:'Boleta F.',
+    COORDINACION:'Coord.', LIBRE:'Libre', PENDIENTE:'Pendiente' };
+  return m[t] || t;
+}
+
+function openAsig(v) {
+  VB.ventaAct = v;
+  document.getElementById('masig-sub').textContent = (v.paciente||'—') + ' · S/' + (v.monto||0).toFixed(2);
+  document.getElementById('masig-det').innerHTML =
+    '<strong>Trat:</strong> ' + (v.trat||'—') + '&nbsp;&nbsp;' +
+    '<strong>Asesor:</strong> ' + (v.asesor||'—') + '&nbsp;&nbsp;' +
+    '<strong>Sede:</strong> ' + (v.sede||'—') + '&nbsp;&nbsp;' +
+    '<strong>Pago:</strong> ' + (v.estadoPago||'—');
+  document.getElementById('masig-nro').value   = v.nroDoc   || '';
+  document.getElementById('masig-tipo').value  = v.estadoDoc || 'BOLETA_E';
+  document.getElementById('m-asig').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('m-asig').classList.remove('open');
+  VB.ventaAct = null;
+}
+
+function guardarComp() {
+  if (!VB.ventaAct) return;
+  var nro    = document.getElementById('masig-nro').value.trim();
+  var tipo   = document.getElementById('masig-tipo').value;
+  var emisor = document.getElementById('masig-emisor').value;
+  if (!nro) { alert('Ingresa el número del comprobante.'); return; }
+
+  google.script.run
+    .withSuccessHandler(function() {
+      closeModal();
+      if (window.AOS_showToast) AOS_showToast('✓ Comprobante asignado','','');
+      reload();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+(e&&e.message||'desconocido')); })
+    .api_asignarComprobanteT(VB.token, VB.ventaAct.ventaId, nro, tipo, emisor);
+}
+
+function limpiarComp() {
+  if (!VB.ventaAct) return;
+  if (!confirm('¿Quitar el comprobante asignado a esta venta?')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      closeModal();
+      if (window.AOS_showToast) AOS_showToast('🗑 Comprobante eliminado','','');
+      reload();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+(e&&e.message||'desconocido')); })
+    .api_limpiarComprobanteT(VB.token, VB.ventaAct.ventaId);
+}
+
+function loadEmisores() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok||!res.items.length) return;
+      var sel = document.getElementById('masig-emisor');
+      sel.innerHTML = '<option value="">Sin emisor</option>' +
+        res.items.map(function(e) {
+          return '<option value="'+e.id+'">'+e.nombre+' ('+e.serie+')</option>';
+        }).join('');
+    })
+    .api_listEmisoresT(VB.token);
+}
+
+function setLoading() {
+  document.getElementById('comp-tbody').innerHTML =
+    '<tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr>';
+}
+</script>

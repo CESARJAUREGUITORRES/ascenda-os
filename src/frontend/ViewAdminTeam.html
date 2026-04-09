@@ -1,0 +1,494 @@
+<!-- ViewAdminTeam.html — Equipo + Seguridad AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.vt{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;background:#F0F4FC;min-height:100%;}
+/* TABS */
+.tab-bar{display:flex;border-radius:10px;overflow:hidden;border:1px solid #DDE4F5;background:#fff;}
+.tb{flex:1;padding:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;text-align:center;transition:all .15s;}
+.tb.act{background:#0A4FBF;color:#fff;}
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.b::before{background:#0A4FBF;}.kc.g::before{background:#16A34A;}
+.kc.a::before{background:#D97706;}.kc.r::before{background:#DC2626;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
+.kc-s{font-size:10px;color:#6B7BA8;}
+/* CARD */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+/* TEAM GRID */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
+.user-card{background:#F8FAFF;border:1px solid #DDE4F5;border-radius:12px;padding:13px;position:relative;}
+.user-card.inactivo{opacity:.55;}
+.uc-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.uc-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#fff;flex-shrink:0;}
+.av-admin{background:linear-gradient(135deg,#071D4A,#0A4FBF);}
+.av-asesor{background:linear-gradient(135deg,#0A4FBF,#00C9A7);}
+.av-doctora{background:linear-gradient(135deg,#7C3AED,#A78BFA);}
+.av-enfermeria{background:linear-gradient(135deg,#D97706,#F59E0B);}
+.uc-info{flex:1;min-width:0;}
+.uc-nom{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.uc-meta{font-size:10px;color:#9AAAC8;margin-top:1px;}
+.role-pill{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.rp-admin{background:#EBF2FF;color:#0A4FBF;}
+.rp-asesor{background:#F0FDF4;color:#16A34A;}
+.rp-doctora{background:#F5F3FF;color:#7C3AED;}
+.rp-enfermeria{background:#FFFBEB;color:#D97706;}
+.rp-inact{background:#F0F4FC;color:#9AAAC8;}
+.uc-actions{display:flex;gap:5px;margin-top:9px;}
+.ua{flex:1;padding:6px;border-radius:7px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:#0D1B3E;text-align:center;}
+.ua:hover{background:#EBF2FF;border-color:#BFDBFE;color:#0A4FBF;}
+.ua.danger{color:#DC2626;border-color:#FECACA;}
+.ua.danger:hover{background:#FEF2F2;}
+/* AUDITORÍA */
+.aud-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(221,228,245,.3);}
+.aud-row:last-child{border-bottom:none;}
+.aud-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.aud-info{flex:1;min-width:0;}
+.aud-accion{font-size:12px;font-weight:700;color:#0D1B3E;}
+.aud-meta{font-size:10px;color:#9AAAC8;margin-top:2px;}
+.aud-data{font-size:10px;color:#6B7BA8;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* HEALTH */
+.health-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+.hc{padding:11px 13px;border-radius:11px;border:1px solid;}
+.hc.ok{background:#F0FDF4;border-color:#BBF7D0;}
+.hc.err{background:#FEF2F2;border-color:#FECACA;}
+.hc.opc{background:#F0F4FC;border-color:#DDE4F5;}
+.hc-ttl{font-size:11px;font-weight:700;color:#0D1B3E;margin-bottom:3px;}
+.hc-val{font-size:10px;color:#6B7BA8;}
+/* MODAL */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:460px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
+.mhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.msub{font-size:11px;color:#9AAAC8;margin-top:2px;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:8px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mtmp{background:#FEF9EE;border:1px solid #FDE68A;border-radius:9px;padding:9px 12px;font-size:12px;color:#92400E;margin-top:10px;}
+/* MISC */
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sc{overflow-y:auto;max-height:320px;}
+.sc::-webkit-scrollbar{width:3px;}
+.sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.add-btn{padding:7px 16px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.add-btn:hover{opacity:.88;}
+.refresh-btn{padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:700;cursor:pointer;color:#0A4FBF;font-family:'DM Sans',sans-serif;}
+</style>
+
+<div class="vt">
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tb act" id="tb-equipo"   onclick="setTab('equipo')">👥 Equipo</button>
+    <button class="tb"     id="tb-sesiones" onclick="setTab('sesiones')">🟢 Sesiones</button>
+    <button class="tb"     id="tb-audit"    onclick="setTab('audit')">📋 Auditoría</button>
+    <button class="tb"     id="tb-health"   onclick="setTab('health')">⚡ Sistema</button>
+  </div>
+
+  <!-- CONTENIDO DINÁMICO -->
+  <div id="tab-content">
+    <div class="ld"><span class="sp"></span>Cargando...</div>
+  </div>
+
+</div>
+
+<!-- MODAL NUEVO USUARIO -->
+<div class="mov" id="m-user">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <div class="mtit" id="m-user-ttl">👤 Nuevo usuario</div>
+        <div class="msub" id="m-user-sub">Crear cuenta en el sistema</div>
+      </div>
+      <div class="mclose" onclick="closeModal()">✕</div>
+    </div>
+    <div class="mg">
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="u-nombre" placeholder="Juan"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="u-apellido" placeholder="García"/></div>
+      <div class="mf"><div class="ml">Puesto / Rol</div>
+        <select class="ms" id="u-puesto">
+          <option value="ASESOR">Asesor</option>
+          <option value="ADMIN">Admin</option>
+          <option value="DOCTORA">Doctora</option>
+          <option value="ENFERMERIA">Enfermería</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Sede</div>
+        <select class="ms" id="u-sede">
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+          <option value="">Ambas</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Nombre de usuario (login)</div><input class="mi" id="u-usuario" placeholder="jgarcia"/></div>
+      <div class="mf"><div class="ml">Contraseña inicial</div><input class="mi" id="u-pass" type="password" placeholder="min. 4 caracteres"/></div>
+      <div class="mf"><div class="ml">Nombre a mostrar (label)</div><input class="mi" id="u-label" placeholder="JUAN"/></div>
+      <div class="mf"><div class="ml">Teléfono (opcional)</div><input class="mi" id="u-numero" placeholder="987654321"/></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal()">Cancelar</button>
+      <button class="mconf" onclick="guardarUser()">✓ Crear usuario</button>
+    </div>
+    <div class="mtmp" id="m-user-result" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTRASEÑA -->
+<div class="mov" id="m-pass">
+  <div class="modal">
+    <div class="mhd">
+      <div><div class="mtit">🔑 Resetear contraseña</div><div class="msub" id="m-pass-sub"></div></div>
+      <div class="mclose" onclick="closePassModal()">✕</div>
+    </div>
+    <div id="m-pass-result" style="display:none;" class="mtmp"></div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closePassModal()">Cancelar</button>
+      <button class="mconf" onclick="confirmarReset()">↺ Resetear y generar temporal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var VT = {
+  token:    '',
+  tab:      'equipo',
+  users:    [],
+  codActual:''
+};
+var PUESTO_COLOR = { ADMIN:'av-admin', ASESOR:'av-asesor', DOCTORA:'av-doctora', ENFERMERIA:'av-enfermeria' };
+var AUD_ICONS = {
+  CREATE_USER:'👤', UPDATE_USER:'✏️', TOGGLE_USER:'🔄', CHANGE_PASS:'🔑',
+  RESET_PASS:'🔑', FORCE_LOGOUT:'🚪', VENTA:'💰', CITA:'📅', DEFAULT:'📋'
+};
+
+(function(){
+  VT.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  loadEquipo();
+})();
+
+function setTab(t) {
+  VT.tab = t;
+  ['equipo','sesiones','audit','health'].forEach(function(x){
+    document.getElementById('tb-'+x).classList.toggle('act', x===t);
+  });
+  switch(t) {
+    case 'equipo':   loadEquipo();   break;
+    case 'sesiones': loadSesiones(); break;
+    case 'audit':    loadAudit();    break;
+    case 'health':   loadHealth();   break;
+  }
+}
+
+// ── EQUIPO ──
+function loadEquipo() {
+  document.getElementById('tab-content').innerHTML =
+    '<div class="ld"><span class="sp"></span>Cargando equipo...</div>';
+  google.script.run
+    .withSuccessHandler(renderEquipo)
+    .withFailureHandler(function(){})
+    .api_getSecurityPanelT(VT.token);
+}
+
+function renderEquipo(res) {
+  if (!res||!res.ok) return;
+  VT.users = res.users || [];
+  var stats = res.stats || {};
+  var el = document.getElementById('tab-content');
+
+  var html = '<div class="krow" style="margin-bottom:10px;">' +
+    '<div class="kc b"><div class="kc-l">Total usuarios</div><div class="kc-v">' + (stats.total||0) + '</div></div>' +
+    '<div class="kc g"><div class="kc-l">Activos</div><div class="kc-v">' + (stats.activos||0) + '</div></div>' +
+    '<div class="kc a"><div class="kc-l">Inactivos</div><div class="kc-v">' + (stats.inactivos||0) + '</div></div>' +
+    '<div class="kc r"><div class="kc-l">Sesiones vivas</div><div class="kc-v">' + (res.sessions||[]).length + '</div></div>' +
+    '</div>';
+
+  html += '<div class="card">' +
+    '<div class="chd"><div class="ct">MIEMBROS DEL EQUIPO</div>' +
+    '<button class="add-btn" onclick="openNewUser()">+ Nuevo usuario</button></div>' +
+    '<div class="team-grid">';
+
+  VT.users.forEach(function(u) {
+    var avCls = PUESTO_COLOR[u.puesto] || 'av-asesor';
+    var rCls  = u.estado === 'ACTIVO'
+      ? ('rp-' + (u.puesto||'').toLowerCase())
+      : 'rp-inact';
+    var initials = (u.nombre.charAt(0) + (u.apellido||'').charAt(0)).toUpperCase() || '?';
+    html += '<div class="user-card' + (u.estado!=='ACTIVO'?' inactivo':'') + '">' +
+      '<div class="uc-hdr">' +
+        '<div class="uc-avatar ' + avCls + '">' + initials + '</div>' +
+        '<div class="uc-info">' +
+          '<div class="uc-nom">' + (u.label||u.nombre) + '</div>' +
+          '<div class="uc-meta">' + (u.usuario||'—') + ' · ' + (u.sede||'—').replace('SAN ISIDRO','SI').replace('PUEBLO LIBRE','PL') + '</div>' +
+        '</div>' +
+        '<span class="role-pill ' + rCls + '">' + (u.estado==='ACTIVO'?u.puesto:'INACTIVO') + '</span>' +
+      '</div>' +
+      '<div class="uc-actions">' +
+        '<button class="ua" onclick="editUser(\'' + u.codigo + '\')">✏️ Editar</button>' +
+        '<button class="ua" onclick="openResetPass(\'' + u.codigo + '\',\'' + (u.label||u.nombre) + '\')">🔑 Pass</button>' +
+        '<button class="ua danger" onclick="toggleUser(\'' + u.codigo + '\',\'' + u.estado + '\')">' +
+          (u.estado==='ACTIVO'?'⏸ Inactivar':'▶ Activar') +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  });
+
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+// ── SESIONES ──
+function loadSesiones() {
+  document.getElementById('tab-content').innerHTML =
+    '<div class="ld"><span class="sp"></span>Cargando sesiones...</div>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) return;
+      var ses = res.sessions || [];
+      var html = '<div class="card">' +
+        '<div class="chd"><div class="ct">USUARIOS ACTIVOS EN EL SISTEMA</div>' +
+        '<button class="refresh-btn" onclick="loadSesiones()">↺ Actualizar</button></div>';
+
+      if (!ses.length) {
+        html += '<div class="ld">Sin sesiones activas en este momento</div>';
+      } else {
+        html += '<div style="display:flex;flex-direction:column;gap:7px;">' +
+        ses.map(function(s) {
+          var avCls = PUESTO_COLOR[s.puesto] || 'av-asesor';
+          var initials = s.nombre.charAt(0).toUpperCase();
+          return '<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#F8FAFF;border-radius:10px;border:1px solid #DDE4F5;">' +
+            '<div class="uc-avatar ' + avCls + '" style="width:32px;height:32px;font-size:12px;">' + initials + '</div>' +
+            '<div style="flex:1;">' +
+              '<div style="font-weight:700;font-size:12px;">' + s.nombre + '</div>' +
+              '<div style="font-size:10px;color:#9AAAC8;">' + s.puesto + ' · ' + (s.sede||'—') + ' · Estado: ' + (s.estadoOp||'—') + '</div>' +
+            '</div>' +
+            '<div style="font-size:10px;color:#9AAAC8;">' + s.ultActiv + '</div>' +
+            '<button style="padding:4px 10px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;font-size:10px;font-weight:700;cursor:pointer;color:#DC2626;" ' +
+              'onclick="forceLogout(\'' + s.idAsesor + '\',\'' + s.nombre + '\')">Cerrar sesión</button>' +
+          '</div>';
+        }).join('') + '</div>';
+      }
+      html += '</div>';
+      document.getElementById('tab-content').innerHTML = html;
+    })
+    .api_getActiveSessionsT(VT.token);
+}
+
+// ── AUDITORÍA ──
+function loadAudit() {
+  document.getElementById('tab-content').innerHTML =
+    '<div class="ld"><span class="sp"></span>Cargando auditoría...</div>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) return;
+      var items = res.items || [];
+      var html = '<div class="card">' +
+        '<div class="chd"><div class="ct">LOG DE AUDITORÍA</div>' +
+        '<button class="refresh-btn" onclick="loadAudit()">↺ Actualizar</button></div>';
+
+      if (!items.length) {
+        html += '<div class="ld">Sin entradas en el log</div>';
+      } else {
+        html += '<div class="sc">' + items.map(function(a) {
+          var ico = AUD_ICONS[a.accion] || AUD_ICONS.DEFAULT;
+          return '<div class="aud-row">' +
+            '<div class="aud-ico">' + ico + '</div>' +
+            '<div class="aud-info">' +
+              '<div class="aud-accion">' + a.accion + '</div>' +
+              '<div class="aud-meta">' + a.fecha + ' ' + a.hora + ' · ' + (a.userNom||a.userId||'—') + '</div>' +
+              (a.data&&a.data!=='{}'?'<div class="aud-data">' + a.data.slice(0,60) + '</div>':'') +
+            '</div></div>';
+        }).join('') + '</div>';
+      }
+      html += '</div>';
+      document.getElementById('tab-content').innerHTML = html;
+    })
+    .api_getAuditLogT(VT.token, 50);
+}
+
+// ── SISTEMA / HEALTH ──
+function loadHealth() {
+  document.getElementById('tab-content').innerHTML =
+    '<div class="ld"><span class="sp"></span>Verificando sistema...</div>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok&&res.ok!==false) return;
+      var det = res.detalle || {};
+      var html = '<div class="card" style="margin-bottom:10px;">' +
+        '<div class="chd"><div class="ct">ESTADO DEL SISTEMA</div>' +
+        '<button class="refresh-btn" onclick="loadHealth()">↺ Verificar</button></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:10px 13px;border-radius:9px;background:' + (res.ok?'#F0FDF4':'#FEF2F2') + ';border:1px solid ' + (res.ok?'#BBF7D0':'#FECACA') + ';">' +
+          '<div style="font-size:20px;">' + (res.ok?'✅':'❌') + '</div>' +
+          '<div>' +
+            '<div style="font-weight:700;color:#0D1B3E;">' + (res.ok?'Sistema operativo':'Hay errores críticos') + '</div>' +
+            '<div style="font-size:11px;color:#6B7BA8;">' + res.ts + ' · Hojas OK: ' + res.nHojasCriticas + ' · Usuarios activos: ' + (res.usuariosActivos||0) + '</div>' +
+          '</div>' +
+        '</div>';
+
+      html += '<div class="health-grid">';
+      Object.keys(det).forEach(function(k) {
+        var d  = det[k];
+        var cls = d.ok ? (d.opcional?'opc':'ok') : 'err';
+        html += '<div class="hc ' + cls + '">' +
+          '<div class="hc-ttl">' + (d.ok?'✓ ':'✗ ') + k + '</div>' +
+          '<div class="hc-val">' + (d.filas!==undefined?d.filas+' filas':'') + (d.error?d.error:'') + (d.opcional?' (opcional)':'') + '</div>' +
+        '</div>';
+      });
+      html += '</div></div>';
+
+      // Stats del sistema
+      google.script.run
+        .withSuccessHandler(function(st) {
+          if (!st||!st.ok) return;
+          document.getElementById('tab-content').innerHTML += '<div class="krow" style="margin-top:0;">' +
+            '<div class="kc b"><div class="kc-l">Total leads</div><div class="kc-v">' + (st.totalLeads||0) + '</div><div class="kc-s">' + (st.leadesMes||0) + ' este mes</div></div>' +
+            '<div class="kc g"><div class="kc-l">Total llamadas</div><div class="kc-v">' + (st.totalLlamadas||0) + '</div></div>' +
+            '<div class="kc a"><div class="kc-l">Total ventas</div><div class="kc-v">' + (st.totalVentas||0) + '</div><div class="kc-s">S/' + (st.factMes||0).toFixed(0) + ' este mes</div></div>' +
+            '<div class="kc r"><div class="kc-l">Usuarios sistema</div><div class="kc-v">' + (st.totalUsuarios||0) + '</div><div class="kc-s">' + (st.usuariosActivos||0) + ' activos</div></div>' +
+            '</div>';
+        })
+        .api_getSystemStatsT(VT.token);
+
+      document.getElementById('tab-content').innerHTML = html;
+    })
+    .api_healthCheckT(VT.token);
+}
+
+// ── ACCIONES ──
+function openNewUser() {
+  VT.codActual = '';
+  document.getElementById('m-user-ttl').textContent  = '👤 Nuevo usuario';
+  document.getElementById('m-user-sub').textContent  = 'Crear cuenta en el sistema';
+  document.getElementById('m-user-result').style.display = 'none';
+  ['u-nombre','u-apellido','u-usuario','u-label','u-numero'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('u-pass').value   = '';
+  document.getElementById('u-puesto').value = 'ASESOR';
+  document.getElementById('u-sede').value   = 'SAN ISIDRO';
+  document.getElementById('m-user').classList.add('open');
+}
+
+function editUser(codigo) {
+  var u = VT.users.find(function(x){ return x.codigo === codigo; });
+  if (!u) return;
+  VT.codActual = codigo;
+  document.getElementById('m-user-ttl').textContent = '✏️ Editar usuario';
+  document.getElementById('m-user-sub').textContent = u.usuario || codigo;
+  document.getElementById('m-user-result').style.display = 'none';
+  document.getElementById('u-nombre').value   = u.nombre   || '';
+  document.getElementById('u-apellido').value = u.apellido || '';
+  document.getElementById('u-puesto').value   = u.puesto   || 'ASESOR';
+  document.getElementById('u-sede').value     = u.sede     || '';
+  document.getElementById('u-usuario').value  = u.usuario  || '';
+  document.getElementById('u-label').value    = u.label    || '';
+  document.getElementById('u-numero').value   = u.numero   || '';
+  document.getElementById('u-pass').value     = '';
+  document.getElementById('m-user').classList.add('open');
+}
+
+function guardarUser() {
+  var res = document.getElementById('m-user-result');
+  var payload = {
+    nombre:   document.getElementById('u-nombre').value.trim(),
+    apellido: document.getElementById('u-apellido').value.trim(),
+    puesto:   document.getElementById('u-puesto').value,
+    sede:     document.getElementById('u-sede').value,
+    usuario:  document.getElementById('u-usuario').value.trim().toLowerCase(),
+    pass:     document.getElementById('u-pass').value,
+    label:    document.getElementById('u-label').value.trim().toUpperCase(),
+    numero:   document.getElementById('u-numero').value.trim()
+  };
+
+  if (VT.codActual) {
+    // Editar
+    var campos = {};
+    if (payload.nombre)   campos.nombre   = payload.nombre;
+    if (payload.apellido) campos.apellido = payload.apellido;
+    if (payload.puesto)   campos.puesto   = payload.puesto;
+    if (payload.sede)     campos.sede     = payload.sede;
+    if (payload.label)    campos.label    = payload.label;
+    if (payload.numero)   campos.numero   = payload.numero;
+    if (payload.usuario)  campos.usuario  = payload.usuario;
+
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (!r||!r.ok) return;
+        res.style.display = 'block';
+        res.textContent   = '✅ Usuario actualizado correctamente';
+        loadEquipo();
+      })
+      .withFailureHandler(function(e){ res.style.display='block'; res.textContent='❌ '+((e&&e.message)||'Error'); })
+      .api_updateUserT(VT.token, VT.codActual, campos);
+  } else {
+    // Crear
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (!r||!r.ok) return;
+        res.style.display = 'block';
+        res.innerHTML     = '✅ Usuario <strong>' + r.usuario + '</strong> creado. Código: <strong>' + r.codigo + '</strong>';
+        loadEquipo();
+      })
+      .withFailureHandler(function(e){ res.style.display='block'; res.textContent='❌ '+((e&&e.message)||'Error'); })
+      .api_createUserT(VT.token, payload);
+  }
+}
+
+function toggleUser(codigo, estadoActual) {
+  var accion = estadoActual === 'ACTIVO' ? 'INACTIVAR' : 'ACTIVAR';
+  if (!confirm('¿' + accion + ' este usuario?')) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (window.AOS_showToast) AOS_showToast((r.estado==='ACTIVO'?'✅ Activado':'⏸ Inactivado'),'','');
+      loadEquipo();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+((e&&e.message)||'desconocido')); })
+    .api_toggleUserEstadoT(VT.token, codigo);
+}
+
+function openResetPass(codigo, nombre) {
+  VT.codActual = codigo;
+  document.getElementById('m-pass-sub').textContent = nombre || codigo;
+  document.getElementById('m-pass-result').style.display = 'none';
+  document.getElementById('m-pass').classList.add('open');
+}
+
+function confirmarReset() {
+  var res = document.getElementById('m-pass-result');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r||!r.ok) return;
+      res.style.display = 'block';
+      res.innerHTML = '✅ Contraseña temporal generada: <strong>' + r.tempPass + '</strong><br>Entrégala al usuario de forma segura.';
+    })
+    .withFailureHandler(function(e){ res.style.display='block'; res.textContent='❌ '+((e&&e.message)||'Error'); })
+    .api_resetPasswordT(VT.token, VT.codActual);
+}
+
+function forceLogout(idAsesor, nombre) {
+  if (!confirm('¿Cerrar la sesión de ' + nombre + '?')) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (window.AOS_showToast) AOS_showToast('🚪 Sesión cerrada','','');
+      loadSesiones();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+((e&&e.message)||'desconocido')); })
+    .api_forceLogoutT(VT.token, idAsesor);
+}
+
+function closeModal()    { document.getElementById('m-user').classList.remove('open'); }
+function closePassModal(){ document.getElementById('m-pass').classList.remove('open'); }
+</script>

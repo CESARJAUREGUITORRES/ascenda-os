@@ -1,0 +1,322 @@
+<!-- ViewAdvisorAttendance.html — Mis Atenciones AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.va-root{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+/* HEADER */
+.va-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.va-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.period-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+/* HERO MÉTRICAS */
+.hero-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:9px;}
+.hero-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:14px;padding:16px;color:#fff;}
+.hero-lbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.7;margin-bottom:5px;}
+.hero-val{font-family:'Exo 2',sans-serif;font-size:38px;font-weight:800;line-height:1;}
+.hero-sub{font-size:12px;opacity:.65;margin-top:5px;}
+.metric-card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.mc-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:6px;}
+.mc-val{font-family:'Exo 2',sans-serif;font-size:28px;font-weight:800;color:#0D1B3E;line-height:1;}
+.mc-sub{font-size:11px;color:#6B7BA8;margin-top:4px;}
+/* ESTRELLAS */
+.stars{display:flex;gap:3px;margin-top:5px;}
+.star{font-size:16px;}
+/* MAIN */
+.main2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;}
+/* CARDS */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+/* TABLA ATENCIONES */
+.at-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.at-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 9px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.at-table th:nth-child(1){width:90px;}
+.at-table th:nth-child(2){width:auto;}
+.at-table th:nth-child(3){width:60px;}
+.at-table th:nth-child(4){width:130px;}
+.at-table th:nth-child(5){width:80px;}
+.at-table td{padding:9px 9px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.at-table tr:last-child td{border-bottom:none;}
+.at-table tr:hover td{background:#F8FAFF;}
+.nota-badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;}
+.nota-alta{background:#F0FDF4;color:#16A34A;}
+.nota-media{background:#FFFBEB;color:#D97706;}
+.nota-baja{background:#FEF2F2;color:#DC2626;}
+.nota-na{background:#F0F4FC;color:#9AAAC8;}
+.at-scroll{overflow-y:auto;max-height:260px;}
+.at-scroll::-webkit-scrollbar{width:3px;}
+.at-scroll::-webkit-scrollbar-thumb{background:#DDE4F5;}
+/* PREGUNTAS PROMEDIO */
+.pq-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}
+.pq-row:last-child{border-bottom:none;}
+.pq-lbl{flex:1;font-size:11px;color:#6B7BA8;}
+.pq-bar{flex:1.5;background:#F0F4FC;border-radius:20px;height:6px;overflow:hidden;}
+.pq-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
+.pq-val{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:800;color:#0A4FBF;min-width:32px;text-align:right;}
+/* FEEDBACK */
+.fb-item{padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F8FAFF;margin-bottom:6px;}
+.fb-item:last-child{margin-bottom:0;}
+.fb-meta{font-size:10px;color:#9AAAC8;margin-bottom:3px;}
+.fb-txt{font-size:12px;color:#0D1B3E;font-style:italic;}
+/* VACIO */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;color:#9AAAC8;}
+.empty-state .ico{font-size:32px;margin-bottom:8px;}
+.empty-state p{font-size:12px;}
+/* LOADING */
+.ld{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* SCROLL */
+.fb-scroll{overflow-y:auto;max-height:180px;}
+.fb-scroll::-webkit-scrollbar{width:3px;}
+.fb-scroll::-webkit-scrollbar-thumb{background:#DDE4F5;}
+</style>
+
+<div class="va-root">
+
+  <!-- HEADER -->
+  <div class="va-hdr">
+    <div class="va-ttl">Mis Atenciones</div>
+    <div style="display:flex;gap:7px;">
+      <select class="period-sel" id="mes-sel" onchange="reload()">
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Septiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <select class="period-sel" id="anio-sel" onchange="reload()">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- HERO MÉTRICAS -->
+  <div class="hero-row">
+    <div class="hero-main">
+      <div class="hero-lbl">Pacientes atendidos</div>
+      <div class="hero-val" id="h-atendidos">—</div>
+      <div class="hero-sub" id="h-atendidos-sub">del período seleccionado</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-lbl">Nota promedio</div>
+      <div class="mc-val" id="h-nota">—</div>
+      <div class="stars" id="h-stars"></div>
+      <div class="mc-sub">Sobre 10 puntos</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-lbl">% Recomendaría</div>
+      <div class="mc-val" id="h-recom">—%</div>
+      <div class="mc-sub">Puntaje ≥ 8/10</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-lbl">Encuestas recibidas</div>
+      <div class="mc-val" id="h-encuestas">—</div>
+      <div class="mc-sub" id="h-encuestas-sub">respondidas</div>
+    </div>
+  </div>
+
+  <!-- ESTADO SIN DATOS -->
+  <div id="estado-sin-datos" style="display:none;">
+    <div class="empty-state">
+      <div class="ico">📋</div>
+      <p style="font-weight:700;color:#6B7BA8;margin-bottom:4px;">Sin encuestas de satisfacción para este período</p>
+      <p>Las encuestas se registran luego de cada atención. Cuando las pacientes las completen, verás aquí tus métricas.</p>
+    </div>
+  </div>
+
+  <!-- CONTENIDO CON DATOS -->
+  <div id="contenido-datos">
+    <div class="main2">
+
+      <!-- TABLA DE ATENCIONES -->
+      <div class="card">
+        <div class="chd"><div class="ct">DETALLE DE ATENCIONES</div></div>
+        <div class="at-scroll">
+          <table class="at-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Paciente</th>
+                <th>Nota</th>
+                <th>Feedback</th>
+                <th>¿Recom.?</th>
+              </tr>
+            </thead>
+            <tbody id="at-tbody">
+              <tr><td colspan="5" class="ld"><span class="sp"></span>Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- LADO DERECHO -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <!-- PROMEDIO POR PREGUNTA -->
+        <div class="card">
+          <div class="chd"><div class="ct">NOTA POR CRITERIO</div></div>
+          <div id="pq-container">
+            <div class="ld"><span class="sp"></span>Cargando...</div>
+          </div>
+        </div>
+
+        <!-- FEEDBACK RECIENTE -->
+        <div class="card" style="flex:1;">
+          <div class="chd"><div class="ct">FEEDBACK RECIENTE</div></div>
+          <div class="fb-scroll" id="fb-container">
+            <div class="ld"><span class="sp"></span>Cargando...</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var VA = {
+  token: '',
+  mes:   new Date().getMonth() + 1,
+  anio:  new Date().getFullYear()
+};
+
+(function() {
+  VA.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  document.getElementById('mes-sel').value  = VA.mes;
+  document.getElementById('anio-sel').value = VA.anio;
+  reload();
+})();
+
+function reload() {
+  VA.mes  = Number(document.getElementById('mes-sel').value);
+  VA.anio = Number(document.getElementById('anio-sel').value);
+
+  // Poner loading
+  document.getElementById('at-tbody').innerHTML =
+    '<tr><td colspan="5" class="ld"><span class="sp"></span>Cargando...</td></tr>';
+  document.getElementById('pq-container').innerHTML =
+    '<div class="ld"><span class="sp"></span>Cargando...</div>';
+  document.getElementById('fb-container').innerHTML =
+    '<div class="ld"><span class="sp"></span>Cargando...</div>';
+
+  google.script.run
+    .withSuccessHandler(renderPanel)
+    .withFailureHandler(function() {
+      document.getElementById('h-atendidos').textContent = '0';
+      document.getElementById('estado-sin-datos').style.display = 'block';
+      document.getElementById('contenido-datos').style.display  = 'none';
+    })
+    .api_getMyAttendanceT(VA.token, VA.mes, VA.anio);
+}
+
+function renderPanel(res) {
+  if (!res || !res.ok) return;
+
+  var items = res.items || [];
+
+  // Hero métricas
+  document.getElementById('h-atendidos').textContent     = res.atendidos || 0;
+  document.getElementById('h-atendidos-sub').textContent = 'de ' + VA.mes + '/' + VA.anio;
+  document.getElementById('h-encuestas').textContent     = items.length || 0;
+  document.getElementById('h-encuestas-sub').textContent =
+    items.length ? 'de ' + res.atendidos + ' atenciones' : 'sin encuestas';
+
+  if (res.notaProm) {
+    document.getElementById('h-nota').textContent = res.notaProm.toFixed(1);
+    renderStars(res.notaProm);
+  } else {
+    document.getElementById('h-nota').textContent = '—';
+  }
+
+  document.getElementById('h-recom').textContent = (res.pctRecom||0) + '%';
+
+  // Sin datos
+  if (!items.length) {
+    document.getElementById('estado-sin-datos').style.display = 'block';
+    document.getElementById('contenido-datos').style.display  = 'none';
+    return;
+  }
+  document.getElementById('estado-sin-datos').style.display = 'none';
+  document.getElementById('contenido-datos').style.display  = 'block';
+
+  // Tabla atenciones
+  var tbody = document.getElementById('at-tbody');
+  tbody.innerHTML = items.map(function(it) {
+    var nota  = it.nota;
+    var nCls  = nota >= 8 ? 'nota-alta' : nota >= 6 ? 'nota-media' : nota > 0 ? 'nota-baja' : 'nota-na';
+    var nLbl  = nota > 0 ? nota.toFixed(1) : '—';
+    var recom = it.p6 >= 8;
+    return '<tr>' +
+      '<td style="color:#6B7BA8;">' + (it.fecha||'—') + '</td>' +
+      '<td style="font-weight:600;overflow:hidden;text-overflow:ellipsis;">' + (it.paciente||'—') + '</td>' +
+      '<td><span class="nota-badge ' + nCls + '">' + nLbl + '</span></td>' +
+      '<td style="font-size:10px;color:#6B7BA8;overflow:hidden;text-overflow:ellipsis;">' + (it.feedback||'—').slice(0,22) + '</td>' +
+      '<td style="text-align:center;">' + (recom ? '✅' : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  // Promedios por pregunta
+  renderPreguntas(items);
+
+  // Feedback reciente
+  renderFeedback(items);
+}
+
+function renderStars(nota) {
+  var stars = document.getElementById('h-stars');
+  stars.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var s  = document.createElement('span');
+    s.className = 'star';
+    var v  = nota / 2; // sobre 5
+    s.textContent = (i + 0.5 < v) ? '★' : (i < v ? '½' : '☆');
+    s.style.color = i < Math.floor(v) ? '#D97706' : '#DDE4F5';
+    stars.appendChild(s);
+  }
+}
+
+function renderPreguntas(items) {
+  if (!items.length) {
+    document.getElementById('pq-container').innerHTML =
+      '<div class="ld">Sin datos</div>'; return;
+  }
+  var labels = [
+    'Presentación',
+    'Comunicación',
+    'Explicación del trat.',
+    'Calidad de atención',
+    'Satisfacción trat.',
+    'Recomendaría'
+  ];
+  var keys = ['p1','p2','p3','p4','p5','p6'];
+  var html = '';
+  keys.forEach(function(k, i) {
+    var vals = items.map(function(it){ return Number(it[k])||0; });
+    var avg  = vals.reduce(function(s,v){return s+v;},0) / (vals.length||1);
+    html += '<div class="pq-row">' +
+      '<div class="pq-lbl">' + labels[i] + '</div>' +
+      '<div class="pq-bar"><div class="pq-fill" style="width:' + (avg*10) + '%;"></div></div>' +
+      '<div class="pq-val">' + avg.toFixed(1) + '</div>' +
+      '</div>';
+  });
+  document.getElementById('pq-container').innerHTML = html;
+}
+
+function renderFeedback(items) {
+  var conFeedback = items.filter(function(it){ return it.feedback && it.feedback.trim(); });
+  if (!conFeedback.length) {
+    document.getElementById('fb-container').innerHTML =
+      '<div class="ld">Sin comentarios recibidos</div>'; return;
+  }
+  document.getElementById('fb-container').innerHTML = conFeedback.slice(0,5).map(function(it) {
+    return '<div class="fb-item">' +
+      '<div class="fb-meta">' + (it.fecha||'—') + ' · ' + (it.paciente||'—').slice(0,20) +
+      (it.nota ? ' · <span style="font-weight:800;color:#0A4FBF;">' + it.nota.toFixed(1) + '/10</span>' : '') +
+      '</div>' +
+      '<div class="fb-txt">"' + it.feedback + '"</div>' +
+      '</div>';
+  }).join('');
+}
+</script>

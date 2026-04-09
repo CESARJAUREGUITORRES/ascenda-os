@@ -1,0 +1,625 @@
+<!-- ViewAdvisorHome.html — Panel Principal Asesor AscendaOS v1 -->
+<style>
+.vh-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+/* KPI ROW */
+.krow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
+.kpi{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:12px 14px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;}
+.kpi.b::before{background:#0A4FBF;}
+.kpi.c::before{background:#00C9A7;}
+.kpi.a::before{background:#D97706;}
+.kpi.g::before{background:#16A34A;}
+.kl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kv{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:4px 0 2px;}
+.ks{font-size:10px;font-weight:600;}
+.ks.up{color:#16A34A;}.ks.dn{color:#DC2626;}.ks.n{color:#6B7BA8;}
+/* MAIN 2-COL */
+.main2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px;}
+/* CALL PANEL */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:15px;padding:15px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.p-live{background:#F0FDF4;border:1px solid #BBF7D0;color:#15803D;}
+.p-tier{background:#EBF2FF;border:1px solid #BFDBFE;color:#0A4FBF;}
+/* NÚMERO */
+.num-block{background:linear-gradient(135deg,#EBF2FF,#E0F7F3);border-radius:12px;padding:14px 16px;margin-bottom:11px;border:1px solid #DBEAFE;}
+.num-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.call-num{font-family:'Exo 2',sans-serif;font-size:30px;font-weight:800;letter-spacing:4px;color:#0A4FBF;white-space:nowrap;line-height:1;}
+.num-meta{margin-top:6px;display:flex;align-items:center;gap:10px;}
+.num-trat{font-size:11px;font-weight:700;color:#1A6FE8;}
+.num-mini{font-size:10px;color:#6B7BA8;}
+.num-ad{margin-top:7px;padding-top:7px;border-top:1px solid rgba(10,79,191,.12);font-size:10px;color:#6B7BA8;line-height:1.4;}
+.num-ad b{color:#1A6FE8;font-size:10px;font-weight:700;}
+.num-actions{display:flex;gap:5px;flex-shrink:0;}
+.ib{width:30px;height:30px;border-radius:8px;border:1px solid #DDE4F5;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#6B7BA8;}
+/* BOTONES */
+.cbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
+.cbtn{padding:10px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;border:none;transition:opacity .15s;}
+.cbtn:hover{opacity:.88;}
+.cb-call{background:#0A4FBF;color:#fff;}
+.cb-wa{background:#25D366;color:#fff;}
+/* FORM */
+.fsel,.fta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;margin-bottom:8px;}
+.fsel:focus,.fta:focus{border-color:#0A4FBF;background:#fff;}
+.fta{resize:none;height:50px;margin-bottom:10px;}
+.sbtn-main{width:100%;padding:10px;border-radius:10px;background:#0A4FBF;border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s;}
+.sbtn-main:hover{opacity:.88;}
+.sbtn-main:disabled{opacity:.5;cursor:not-allowed;}
+/* DERECHA */
+.rcol{display:flex;flex-direction:column;gap:9px;}
+.scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:13px;}
+.schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.st{font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
+.slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
+/* ATENCIONES */
+.atc-row{display:flex;align-items:center;justify-content:space-around;padding:6px 0;}
+.atc-item{text-align:center;}
+.atc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0A4FBF;line-height:1;}
+.atc-v.g{color:#16A34A;}.atc-v.m{color:#6B7BA8;}
+.atc-l{font-size:9px;color:#9AAAC8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+.atc-div{width:1px;height:26px;background:#DDE4F5;}
+/* COMISION */
+.com-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;}
+.com-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0A4FBF;}
+.com-meta{font-size:10px;color:#9AAAC8;}
+.prog{background:#F0F4FC;border-radius:20px;height:5px;overflow:hidden;border:1px solid #DDE4F5;margin:7px 0 4px;}
+.prog-f{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
+.com-labels{display:flex;justify-content:space-between;font-size:10px;color:#9AAAC8;}
+.delta-row{display:flex;gap:7px;margin-top:8px;}
+.dc{flex:1;padding:5px 7px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
+.dc-l{font-size:9px;color:#9AAAC8;}.dc-v{font-size:11px;font-weight:700;color:#DC2626;}
+/* SEGUIMIENTOS */
+.seg-list{display:flex;flex-direction:column;gap:6px;}
+.si{padding:8px 10px;border-radius:9px;border:1px solid;cursor:pointer;}
+.si:hover{opacity:.82;}
+.sv{background:#FEF2F2;border-color:#FECACA;}
+.sh2{background:#F0FDF4;border-color:#BBF7D0;}
+.sp{background:#F0F4FC;border-color:#DDE4F5;}
+.st2{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;margin-bottom:1px;}
+.sv .st2{color:#DC2626;}.sh2 .st2{color:#16A34A;}.sp .st2{color:#9AAAC8;}
+.sn{font-size:12px;font-weight:600;color:#0D1B3E;}
+/* MODAL */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:460px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
+.mhd{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.msub{font-size:11px;color:#6B7BA8;margin-top:1px;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mta2{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:none;height:55px;}
+.tbs{display:flex;gap:5px;flex-wrap:wrap;}
+.tb{padding:4px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;color:#6B7BA8;}
+.tb.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mconf.gr{background:#16A34A;}
+.no-lead{text-align:center;padding:20px;color:#6B7BA8;font-size:12px;}
+.no-lead .ico{font-size:28px;margin-bottom:8px;}
+</style>
+
+<div class="vh-root">
+
+  <!-- KPI ROW -->
+  <div class="krow">
+    <div class="kpi b">
+      <div class="kl">Llamadas hoy</div>
+      <div class="kv" id="kpi-llam">—</div>
+      <div class="ks n" id="kpi-llam-sub">Cargando...</div>
+    </div>
+    <div class="kpi c">
+      <div class="kl">Citas confirmadas</div>
+      <div class="kv" id="kpi-citas">—</div>
+      <div class="ks up" id="kpi-citas-sub"></div>
+    </div>
+    <div class="kpi a">
+      <div class="kl">Seguimientos</div>
+      <div class="kv" id="kpi-seg">—</div>
+      <div class="ks dn" id="kpi-seg-sub"></div>
+    </div>
+    <div class="kpi g">
+      <div class="kl">Ranking hoy</div>
+      <div class="kv" id="kpi-rank" style="font-size:20px;margin-top:5px;">—</div>
+      <div class="ks n">Equipo</div>
+    </div>
+  </div>
+
+  <!-- MAIN 2-COL -->
+  <div class="main2">
+
+    <!-- CALL PANEL -->
+    <div class="card">
+      <div class="chd">
+        <div class="ct">PANEL DE LLAMADAS</div>
+        <div style="display:flex;gap:5px;">
+          <div class="pill p-tier" id="tier-badge">CARGANDO...</div>
+          <div class="pill p-live">● ACTIVO</div>
+        </div>
+      </div>
+
+      <!-- SIN LEADS -->
+      <div class="no-lead" id="no-lead-msg" style="display:none;">
+        <div class="ico">🎉</div>
+        <div style="font-weight:700;color:#0A4FBF;margin-bottom:4px;">¡Base trabajada al 100%!</div>
+        <div id="no-lead-txt">Sin leads pendientes por ahora.</div>
+        <button onclick="loadNextLead()" style="margin-top:10px;padding:7px 16px;border-radius:8px;background:#0A4FBF;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Reintentar</button>
+      </div>
+
+      <!-- LEAD ACTIVO -->
+      <div id="lead-panel">
+        <div class="num-block">
+          <div class="num-top">
+            <div>
+              <div style="font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px;">Llamada activa</div>
+              <div class="call-num" id="lead-num">Cargando...</div>
+              <div class="num-meta">
+                <div class="num-trat" id="lead-trat"></div>
+                <div class="num-mini" id="lead-meta"></div>
+              </div>
+            </div>
+            <div class="num-actions">
+              <div class="ib" onclick="copyNum()" title="Copiar número">⧉</div>
+              <div class="ib" onclick="openWa()" title="WhatsApp">💬</div>
+            </div>
+          </div>
+          <div class="num-ad" id="lead-anuncio"></div>
+        </div>
+
+        <div class="cbtns">
+          <button class="cbtn cb-call" onclick="doCall()">📞 &nbsp;Llamar ahora</button>
+          <button class="cbtn cb-wa"   onclick="openWa()">💬 &nbsp;WhatsApp</button>
+        </div>
+
+        <select class="fsel" id="tipif" onchange="onTipif(this.value)">
+          <option value="">— Tipificación —</option>
+          <option value="CITA CONFIRMADA">✅ CITA CONFIRMADA</option>
+          <option value="NO CONTESTA">📵 NO CONTESTA</option>
+          <option value="NO LE INTERESA">❌ NO LE INTERESA</option>
+          <option value="SEGUIMIENTO">🔁 SEGUIMIENTO</option>
+          <option value="PROVINCIA">📍 PROVINCIA</option>
+          <option value="SACAR DE LA BASE">🗑 SACAR DE LA BASE</option>
+        </select>
+
+        <textarea class="fta" id="obs-txt" placeholder="Observación o nota de la llamada..."></textarea>
+
+        <button class="sbtn-main" id="btn-guardar" onclick="guardarLlamada()">✓ Guardar resultado</button>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div class="rcol">
+
+      <!-- MIS ATENCIONES -->
+      <div class="scard">
+        <div class="schd">
+          <div class="st">MIS ATENCIONES</div>
+          <button class="slink" onclick="window.AOS_navigateTo('advisor-attendance')">Ver más →</button>
+        </div>
+        <div class="atc-row">
+          <div class="atc-item">
+            <div class="atc-v" id="atc-total">—</div>
+            <div class="atc-l">Atendidos</div>
+          </div>
+          <div class="atc-div"></div>
+          <div class="atc-item">
+            <div class="atc-v g" id="atc-nota">—</div>
+            <div class="atc-l">Nota prom.</div>
+          </div>
+          <div class="atc-div"></div>
+          <div class="atc-item">
+            <div class="atc-v m" id="atc-recom">—%</div>
+            <div class="atc-l">Recom.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIS COMISIONES -->
+      <div class="scard">
+        <div class="schd">
+          <div class="st">MIS COMISIONES</div>
+          <button class="slink" onclick="window.AOS_navigateTo('advisor-commissions')">Ver detalle →</button>
+        </div>
+        <div class="com-hd">
+          <div class="com-v" id="com-total">S/. —</div>
+          <div class="com-meta" id="com-meta">/ Meta S/. —</div>
+        </div>
+        <div class="prog"><div class="prog-f" id="com-prog" style="width:0%;"></div></div>
+        <div class="com-labels">
+          <span id="com-pct">—% completado</span>
+          <span id="com-rank-lbl">Rank —</span>
+        </div>
+        <div class="delta-row">
+          <div class="dc">
+            <div class="dc-l">Ventas</div>
+            <div class="dc-v" id="com-delta-v">—</div>
+          </div>
+          <div class="dc">
+            <div class="dc-l">Comisión</div>
+            <div class="dc-v" id="com-delta-c">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEGUIMIENTOS -->
+      <div class="scard" style="flex:1;">
+        <div class="schd">
+          <div class="st">SEGUIMIENTOS</div>
+          <button class="slink" onclick="window.AOS_navigateTo('advisor-followups')">Ver todos →</button>
+        </div>
+        <div class="seg-list" id="seg-list">
+          <div style="text-align:center;color:#9AAAC8;font-size:11px;padding:10px;">Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CITA CONFIRMADA -->
+<div class="mov" id="m-cita">
+  <div class="modal">
+    <div class="mhd">
+      <span style="font-size:20px;">📅</span>
+      <div>
+        <div class="mtit">Registrar cita confirmada</div>
+        <div class="msub" id="m-cita-num">Número: —</div>
+      </div>
+    </div>
+    <div class="mg">
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="c-nombre" placeholder="Nombre"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="c-apellido" placeholder="Apellido"/></div>
+      <div class="mf"><div class="ml">DNI / CE</div><input class="mi" id="c-dni" placeholder="DNI / CE"/></div>
+      <div class="mf"><div class="ml">Correo</div><input class="mi" id="c-correo" placeholder="correo@email.com"/></div>
+      <div class="mf"><div class="ml">Tipo de atención</div>
+        <select class="ms" id="c-tipo-at">
+          <option value="">— Seleccionar —</option>
+          <option value="DOCTORA">Doctora</option>
+          <option value="ENFERMERIA">Enfermería</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Sede</div>
+        <select class="ms" id="c-sede">
+          <option value="">— Sede —</option>
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Fecha de cita</div><input class="mi" id="c-fecha" type="date"/></div>
+      <div class="mf"><div class="ml">Hora de llegada</div>
+        <select class="ms" id="c-hora">
+          <option>Elige fecha primero...</option>
+        </select>
+      </div>
+      <div class="mf full"><div class="ml">Tratamiento</div>
+        <select class="ms" id="c-trat"></select>
+      </div>
+      <div class="mf full">
+        <div class="ml">Tipo de cita</div>
+        <div class="tbs" id="c-tipo-cita-group">
+          <div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div>
+          <div class="tb" data-val="APLICACIÓN">Aplicación</div>
+          <div class="tb" data-val="CONTROL">Control</div>
+          <div class="tb" data-val="REPROGRAMACIÓN">Reprogramación</div>
+        </div>
+      </div>
+      <div class="mf full"><div class="ml">Observación</div><textarea class="mta2" id="c-obs" placeholder="Notas para la cita..."></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal('m-cita')">Cancelar</button>
+      <button class="mconf gr" onclick="confirmarCita()">✓ Guardar cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SEGUIMIENTO -->
+<div class="mov" id="m-seg">
+  <div class="modal" style="max-width:380px;">
+    <div class="mhd">
+      <span style="font-size:20px;">⏰</span>
+      <div>
+        <div class="mtit">Programar seguimiento</div>
+        <div class="msub" id="m-seg-num">Número: —</div>
+      </div>
+    </div>
+    <div class="mg">
+      <div class="mf"><div class="ml">Fecha de rellamada</div><input class="mi" id="s-fecha" type="date"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="s-hora" type="time" value="10:00"/></div>
+      <div class="mf full"><div class="ml">Nota para el recontacto</div>
+        <textarea class="mta2" id="s-obs" style="height:65px;" placeholder="Ej: Le interesa HIFU, pedir precio, llamar en la mañana..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal('m-seg')">Cancelar</button>
+      <button class="mconf" onclick="confirmarSeguimiento()">✓ Programar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ESTADO LOCAL ──
+var VH = {
+  lead:    null,
+  token:   '',
+  tipoCita:'CONSULTA NUEVA',
+  guardando: false
+};
+
+// ── INIT ──
+(function() {
+  VH.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  loadDashboard();
+  loadNextLead();
+  loadTratamientos();
+  // Fecha mínima de cita = hoy
+  var hoy = new Date().toISOString().slice(0, 10);
+  document.getElementById('c-fecha').min = hoy;
+  document.getElementById('s-fecha').min = hoy;
+  document.getElementById('s-fecha').value = hoy;
+})();
+
+function loadDashboard() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      var k = res.kpis;
+      document.getElementById('kpi-llam').textContent = k.llamHoy;
+      document.getElementById('kpi-llam-sub').textContent = 'Hoy';
+      document.getElementById('kpi-citas').textContent = k.citasHoy;
+      document.getElementById('kpi-seg').textContent   = k.segPend;
+      if (k.segVencidos > 0) {
+        document.getElementById('kpi-seg-sub').textContent = k.segVencidos + ' vencidos';
+      }
+      document.getElementById('kpi-rank').textContent  = k.rankingEmoji + ' #' + k.rankingHoy;
+
+      // Comisión mini
+      var c = res.comMes;
+      document.getElementById('com-total').textContent = 'S/. ' + (c.total||0).toFixed(2);
+      document.getElementById('com-meta').textContent  = '/ Meta S/. ' + (c.meta||100).toFixed(2);
+      var pct = c.pct || 0;
+      document.getElementById('com-prog').style.width = Math.min(pct, 100) + '%';
+      document.getElementById('com-pct').textContent  = pct + '% completado';
+      document.getElementById('com-rank-lbl').textContent = 'Rank ' + (res.kpis.rankingEmoji || '') + '#' + (res.kpis.rankingHoy || 1);
+      if (c.deltaVentas !== null && c.deltaVentas !== undefined) {
+        document.getElementById('com-delta-v').textContent = (c.deltaVentas >= 0 ? '▲' : '▼') + ' ' + Math.abs(Math.round(c.deltaVentas * 100)) + '%';
+        document.getElementById('com-delta-v').style.color = c.deltaVentas >= 0 ? '#16A34A' : '#DC2626';
+      }
+      if (c.deltaCom !== null && c.deltaCom !== undefined) {
+        document.getElementById('com-delta-c').textContent = (c.deltaCom >= 0 ? '▲' : '▼') + ' ' + Math.abs(Math.round(c.deltaCom * 100)) + '%';
+        document.getElementById('com-delta-c').style.color = c.deltaCom >= 0 ? '#16A34A' : '#DC2626';
+      }
+
+      // Atenciones
+      var a = res.atenciones;
+      document.getElementById('atc-total').textContent = a.atendidos || '0';
+      document.getElementById('atc-nota').textContent  = a.notaProm ? a.notaProm.toFixed(1) : '—';
+      document.getElementById('atc-recom').textContent = (a.pctRecom || 0) + '%';
+
+      // Seguimientos panel
+      renderSegs(res.seguimientos || []);
+    })
+    .withFailureHandler(function() {})
+    .api_getAdvisorDashboardT(VH.token);
+}
+
+function renderSegs(items) {
+  var el = document.getElementById('seg-list');
+  if (!items.length) {
+    el.innerHTML = '<div style="text-align:center;color:#9AAAC8;font-size:11px;padding:10px;">Sin seguimientos pendientes 🎉</div>';
+    return;
+  }
+  el.innerHTML = items.map(function(s) {
+    var cls  = s.tipo === 'vencido' ? 'sv' : s.tipo === 'hoy' ? 'sh2' : 'sp';
+    var tag  = s.tipo === 'vencido' ? '⚠ Vencido' : s.tipo === 'hoy' ? '● Hoy' : '○ Próximo';
+    if (s.hora) tag += ' · ' + s.hora;
+    return '<div class="si ' + cls + '" onclick="callNum(\'' + s.num + '\')">' +
+      '<div class="st2">' + tag + '</div>' +
+      '<div class="sn">' + s.num + ' · ' + (s.trat || '—') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function loadNextLead() {
+  document.getElementById('lead-num').textContent = 'Cargando...';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res) return;
+      if (!res.ok || res.sin_leads) {
+        document.getElementById('no-lead-msg').style.display = 'block';
+        document.getElementById('lead-panel').style.display  = 'none';
+        document.getElementById('no-lead-txt').textContent   = res.msg || 'Sin leads.';
+        document.getElementById('tier-badge').textContent    = 'BASE OK';
+        return;
+      }
+      document.getElementById('no-lead-msg').style.display = 'none';
+      document.getElementById('lead-panel').style.display  = 'block';
+
+      VH.lead = res.lead;
+      document.getElementById('tier-badge').textContent = res.tier || 'TIER 1';
+      document.getElementById('lead-num').textContent   = res.lead.num;
+      document.getElementById('lead-trat').textContent  = res.lead.trat || '';
+      document.getElementById('lead-meta').textContent  = 'Intento #' + (res.lead.intento || 1) + '  ·  Lead ' + (res.lead.fecha || '');
+      if (res.anuncio) {
+        document.getElementById('lead-anuncio').innerHTML =
+          '<b>Anuncio:</b> ' + res.anuncio.nombre + '  ·  ' + res.anuncio.pregunta;
+      }
+      // Pre-seleccionar tratamiento en modal
+      document.getElementById('c-trat').value = res.lead.trat || '';
+      document.getElementById('m-cita-num').textContent = 'Número: ' + res.lead.num;
+      document.getElementById('m-seg-num').textContent  = 'Número: ' + res.lead.num;
+    })
+    .withFailureHandler(function() {
+      document.getElementById('lead-num').textContent = 'Error al cargar lead';
+    })
+    .api_getNextLeadT(VH.token);
+}
+
+function loadTratamientos() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      var sel = document.getElementById('c-trat');
+      sel.innerHTML = res.items.map(function(t) {
+        return '<option value="' + t + '">' + t + '</option>';
+      }).join('');
+    })
+    .api_listTratamientosT(VH.token);
+}
+
+function onTipif(val) {
+  if (val === 'CITA CONFIRMADA') openModal('m-cita');
+  if (val === 'SEGUIMIENTO')     openModal('m-seg');
+}
+
+function guardarLlamada() {
+  if (VH.guardando) return;
+  var tipif = document.getElementById('tipif').value;
+  if (!tipif) { alert('Seleccioná una tipificación.'); return; }
+  if (tipif === 'CITA CONFIRMADA' || tipif === 'SEGUIMIENTO') return;
+
+  VH.guardando = true;
+  document.getElementById('btn-guardar').disabled = true;
+  document.getElementById('btn-guardar').textContent = 'Guardando...';
+
+  var payload = {
+    numero:       VH.lead ? VH.lead.num : '',
+    estado:       tipif,
+    obs:          document.getElementById('obs-txt').value.trim(),
+    tratamiento:  VH.lead ? VH.lead.trat : '',
+    rowNum:       VH.lead ? (VH.lead.rowNum || 0) : 0
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      VH.guardando = false;
+      document.getElementById('btn-guardar').disabled = false;
+      document.getElementById('btn-guardar').textContent = '✓ Guardar resultado';
+      document.getElementById('tipif').value   = '';
+      document.getElementById('obs-txt').value = '';
+      if (window.AOS_playSound) AOS_playSound('notif');
+      loadNextLead();
+      loadDashboard();
+    })
+    .withFailureHandler(function(e) {
+      VH.guardando = false;
+      document.getElementById('btn-guardar').disabled = false;
+      document.getElementById('btn-guardar').textContent = '✓ Guardar resultado';
+      alert('Error: ' + (e && e.message ? e.message : 'desconocido'));
+    })
+    .api_saveCallT(VH.token, payload);
+}
+
+function confirmarCita() {
+  var tipoCita = '';
+  document.querySelectorAll('#c-tipo-cita-group .tb').forEach(function(t) {
+    if (t.classList.contains('act')) tipoCita = t.getAttribute('data-val');
+  });
+
+  var payload = {
+    numero:      VH.lead ? VH.lead.num : '',
+    estado:      'CITA CONFIRMADA',
+    nombre:      document.getElementById('c-nombre').value.trim(),
+    apellido:    document.getElementById('c-apellido').value.trim(),
+    dni:         document.getElementById('c-dni').value.trim(),
+    correo:      document.getElementById('c-correo').value.trim(),
+    tipoAtencion:document.getElementById('c-tipo-at').value,
+    sede:        document.getElementById('c-sede').value,
+    fechaCita:   document.getElementById('c-fecha').value,
+    horaCita:    document.getElementById('c-hora').value,
+    tratamiento: document.getElementById('c-trat').value,
+    tipoCita:    tipoCita || 'CONSULTA NUEVA',
+    obs:         document.getElementById('c-obs').value.trim(),
+    rowNum:      VH.lead ? (VH.lead.rowNum || 0) : 0
+  };
+
+  if (!payload.fechaCita) { alert('Falta la fecha de la cita.'); return; }
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      closeModal('m-cita');
+      document.getElementById('tipif').value   = '';
+      document.getElementById('obs-txt').value = '';
+      if (window.AOS_playSound) AOS_playSound('venta');
+      if (window.AOS_showToast) AOS_showToast('📅 Cita confirmada', 'Cita registrada exitosamente', 'toast-venta');
+      loadNextLead();
+      loadDashboard();
+      if (window.AOS_pollNow) AOS_pollNow();
+    })
+    .withFailureHandler(function(e) {
+      alert('Error al guardar cita: ' + (e && e.message ? e.message : 'desconocido'));
+    })
+    .api_saveCallT(VH.token, payload);
+}
+
+function confirmarSeguimiento() {
+  var fecha = document.getElementById('s-fecha').value;
+  var hora  = document.getElementById('s-hora').value;
+  if (!fecha) { alert('Falta la fecha del seguimiento.'); return; }
+
+  var proxTs = new Date(fecha + 'T' + (hora || '10:00') + ':00').toISOString();
+  var payload = {
+    numero:           VH.lead ? VH.lead.num : '',
+    estado:           'SEGUIMIENTO',
+    obs:              document.getElementById('s-obs').value.trim(),
+    tratamiento:      VH.lead ? VH.lead.trat : '',
+    proxReintentoTs:  proxTs,
+    rowNum:           VH.lead ? (VH.lead.rowNum || 0) : 0,
+    segRowNum:        VH.lead ? (VH.lead.segRowNum || 0) : 0
+  };
+
+  google.script.run
+    .withSuccessHandler(function() {
+      closeModal('m-seg');
+      document.getElementById('tipif').value   = '';
+      document.getElementById('obs-txt').value = '';
+      if (window.AOS_playSound) AOS_playSound('notif');
+      loadNextLead();
+      loadDashboard();
+    })
+    .withFailureHandler(function(e) {
+      alert('Error: ' + (e && e.message ? e.message : 'desconocido'));
+    })
+    .api_saveCallT(VH.token, payload);
+}
+
+function doCall() {
+  if (!VH.lead) return;
+  if (window.AOS_setEstado) AOS_setEstado('EN LLAMADA', '#0A4FBF');
+  google.script.run.api_setEstadoAsesorT(VH.token, 'EN LLAMADA');
+}
+
+function openWa() {
+  if (!VH.lead || !VH.lead.wa) return;
+  window.open(VH.lead.wa, '_blank');
+}
+
+function copyNum() {
+  if (!VH.lead) return;
+  navigator.clipboard.writeText(VH.lead.num).catch(function() {});
+}
+
+function callNum(num) {
+  // Abrir WhatsApp del seguimiento
+  window.open('https://wa.me/51' + num, '_blank');
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('tipif').value = '';
+}
+
+// Tipo de cita toggle
+document.querySelectorAll('#c-tipo-cita-group .tb').forEach(function(t) {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('#c-tipo-cita-group .tb').forEach(function(x) { x.classList.remove('act'); });
+    this.classList.add('act');
+    VH.tipoCita = this.getAttribute('data-val');
+  });
+});
+</script>

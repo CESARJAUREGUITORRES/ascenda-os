@@ -1,0 +1,61 @@
+📑 ÍNDICE
+Carátula
+Índice
+Introducción
+3.1 Contexto del caso “Fancy Shoes SAC”
+3.2 Objetivo del informe
+
+2- Resolución del Caso
+
+2.1 Identificación del Régimen Tributario
+
+2.1.1 Determinación del régimen tributario de la empresa
+2.1.2 Sustento técnico del régimen elegido
+
+2.2 Libros y Registros Contables
+
+2.2.1 Libros contables obligatorios según el régimen
+2.2.2 Importancia de los registros contables
+
+2.3 Evaluación del Cambio de Régimen Tributario
+
+2.3.1 Proyección de ingresos y crecimiento empresarial
+2.3.2 Determinación del nuevo régimen tributario
+2.3.3 Obligaciones tributarias del nuevo régimen
+
+2.4 Libros Contables en el Nuevo Régimen
+
+2.4.1 Registros exigidos según el nuevo régimen
+
+2.5 Aplicación de los Principios de Contabilidad (PCGA)
+
+2.5.1 Registro de ventas en moneda extranjera
+2.5.2 Sustento contable aplicado al caso
+
+2.6 Aplicación del Plan Contable General Empresarial (PCGE)
+
+2.6.1 Identificación de cuentas contables aplicables
+2.6.2 Sustento técnico del uso de cuentas
+
+3- Cálculo de Impuestos
+
+3.1 Determinación de ingresos mensuales
+3.2 Determinación de base imponible
+3.3 Cálculo de impuestos del año 2021
+3.4 Interpretación de resultados
+
+4 - Análisis del Caso
+
+4.1 Evaluación ética según los PCGA
+4.2 Análisis de meses con mayor carga tributaria
+4.3 Evaluación del ciclo contable de la empresa
+4.4 Importancia del control contable en el crecimiento empresarial
+
+5 - Conclusiones
+6 - Recomendaciones
+
+ 7 - Anexos
+
+9.1 Anexo 1: Cálculo de impuestos en Excel
+9.2 Anexo 2: Registro de operaciones contables
+9.3 Anexo 3: Tablas de ventas y compras

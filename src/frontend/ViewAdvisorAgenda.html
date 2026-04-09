@@ -1,0 +1,630 @@
+<!-- ViewAdvisorAgenda.html — Agenda AscendaOS v1 -->
+<style>
+.ag-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+/* TOOLBAR */
+.ag-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.view-tabs{display:flex;border-radius:9px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;}
+.vt{padding:6px 14px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;transition:all .15s;}
+.vt.act{background:#0A4FBF;color:#fff;}
+.ag-nav{display:flex;align-items:center;gap:6px;}
+.nav-btn{width:30px;height:30px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#6B7BA8;}
+.nav-btn:hover{background:#F0F4FC;border-color:#0A4FBF;}
+.date-inp{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.ag-today-btn{padding:6px 13px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#0A4FBF;font-family:'DM Sans',sans-serif;}
+.ag-today-btn:hover{background:#EBF2FF;}
+.sede-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.btn-nueva{padding:6px 14px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto;}
+.btn-nueva:hover{opacity:.88;}
+/* MAIN */
+.ag-main{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px;flex:1;}
+/* SIDEBAR AGENDA */
+.ag-side{display:flex;flex-direction:column;gap:9px;}
+.ag-card{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:13px;}
+.ag-card-title{font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:#0D1B3E;margin-bottom:9px;}
+/* DOCTORA DEL DÍA */
+.doc-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;margin-bottom:8px;}
+.doc-name{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}
+.doc-horario{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.doc-sede{font-size:10px;color:#9AAAC8;margin-top:2px;}
+.enf-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;background:#E0F7F3;border:1px solid #A7EDDE;font-size:10px;font-weight:700;color:#047857;margin-top:8px;}
+/* RESUMEN */
+.resumen-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.rg-item{padding:7px 8px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
+.rg-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;}
+.rg-l{font-size:9px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+/* FILTROS */
+.filter-row{display:flex;flex-direction:column;gap:6px;}
+.filter-lbl{font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;}
+.filter-sel{width:100%;padding:6px 9px;border-radius:8px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+/* VISTA DÍA */
+.vista-dia{background:#fff;border:1px solid #DDE4F5;border-radius:13px;overflow:hidden;}
+.dia-header{display:grid;border-bottom:1px solid #DDE4F5;background:#F8FAFF;}
+.dia-col-hdr{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;border-right:1px solid #DDE4F5;text-align:center;}
+.dia-col-hdr:last-child{border-right:none;}
+.dia-body{overflow-y:auto;max-height:calc(100vh - 280px);}
+.dia-body::-webkit-scrollbar{width:3px;}
+.dia-body::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.dia-slot-row{display:grid;border-bottom:1px solid rgba(221,228,245,.4);min-height:50px;}
+.dia-slot-row:last-child{border-bottom:none;}
+.dia-slot-row:hover{background:#FAFBFF;}
+.slot-hora{padding:6px 10px;font-size:11px;font-weight:700;color:#9AAAC8;border-right:1px solid #DDE4F5;display:flex;align-items:flex-start;min-width:55px;flex-shrink:0;}
+.slot-cells{display:grid;flex:1;}
+.slot-cell{padding:6px 8px;border-right:1px solid rgba(221,228,245,.3);}
+.slot-cell:last-child{border-right:none;}
+.cita-chip{padding:5px 8px;border-radius:7px;background:#EBF2FF;border:1px solid #BFDBFE;margin-bottom:3px;cursor:pointer;transition:opacity .12s;}
+.cita-chip:hover{opacity:.82;}
+.cita-chip-nom{font-size:11px;font-weight:700;color:#0A4FBF;}
+.cita-chip-meta{font-size:10px;color:#6B7BA8;margin-top:1px;}
+.cita-chip.efectiva{background:#F0FDF4;border-color:#BBF7D0;}
+.cita-chip.efectiva .cita-chip-nom{color:#15803D;}
+.cita-chip.cancelada{background:#FEF2F2;border-color:#FECACA;opacity:.6;}
+.cita-chip.cancelada .cita-chip-nom{color:#DC2626;}
+.slot-empty{font-size:10px;color:#C8D0E0;padding:4px 0;}
+.slot-cap{font-size:10px;color:#9AAAC8;display:flex;align-items:center;gap:3px;padding:4px 0;}
+.cap-dot{width:6px;height:6px;border-radius:50%;}
+.cap-dot.libre{background:#16A34A;}
+.cap-dot.lleno{background:#DC2626;}
+.cap-dot.casi{background:#D97706;}
+/* VISTA SEMANA */
+.vista-sem{background:#fff;border:1px solid #DDE4F5;border-radius:13px;overflow:hidden;}
+.sem-header{display:grid;border-bottom:1px solid #DDE4F5;background:#F8FAFF;}
+.sem-day-hdr{padding:9px 8px;text-align:center;border-right:1px solid #DDE4F5;cursor:pointer;}
+.sem-day-hdr:hover{background:#EBF2FF;}
+.sem-day-hdr.hoy{background:#EBF2FF;}
+.sem-day-hdr:last-child{border-right:none;}
+.sem-day-nom{font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;text-transform:uppercase;}
+.sem-day-num{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;margin-top:2px;}
+.sem-day-num.hoy{color:#0A4FBF;}
+.sem-day-cnt{font-size:10px;color:#6B7BA8;margin-top:1px;}
+.sem-body{display:grid;min-height:200px;}
+.sem-day-col{padding:8px;border-right:1px solid rgba(221,228,245,.3);min-height:120px;}
+.sem-day-col:last-child{border-right:none;}
+.sem-cita-item{padding:5px 7px;border-radius:7px;background:#EBF2FF;border:1px solid #BFDBFE;margin-bottom:4px;cursor:pointer;}
+.sem-cita-item:hover{opacity:.82;}
+.sem-cita-hora{font-size:10px;font-weight:700;color:#0A4FBF;}
+.sem-cita-nom{font-size:10px;color:#6B7BA8;margin-top:1px;}
+.sem-empty{text-align:center;color:#C8D0E0;font-size:11px;padding:20px 0;}
+/* LOADING / ERROR */
+.ag-loading{display:flex;align-items:center;justify-content:center;height:200px;color:#9AAAC8;gap:10px;font-size:12px;}
+.ag-spinner{width:24px;height:24px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* MODAL CITA */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:480px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.mg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mta2{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:none;height:55px;}
+.tbs-row{display:flex;gap:5px;flex-wrap:wrap;}
+.tb{padding:4px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;color:#6B7BA8;}
+.tb.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+/* DETALLE CITA */
+.cita-det{padding:14px;}
+.det-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.det-estado{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
+.det-fields{display:flex;flex-direction:column;gap:8px;}
+.det-row{display:flex;align-items:flex-start;gap:8px;}
+.det-lbl{font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;min-width:90px;}
+.det-val{font-size:12px;color:#0D1B3E;font-weight:500;}
+.det-actions{display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid #DDE4F5;}
+.det-btn{flex:1;padding:8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;}
+.det-btn.pri{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.det-btn.danger{background:#FEF2F2;border-color:#FECACA;color:#DC2626;}
+.det-btn.wa{background:#25D366;border-color:#25D366;color:#fff;}
+</style>
+
+<div class="ag-root">
+
+  <!-- TOOLBAR -->
+  <div class="ag-toolbar">
+    <div class="view-tabs">
+      <button class="vt act" id="vt-dia"  onclick="setView('dia')">Día</button>
+      <button class="vt"     id="vt-sem"  onclick="setView('semana')">Semana</button>
+    </div>
+    <div class="ag-nav">
+      <div class="nav-btn" onclick="navPrev()">◀</div>
+      <input class="date-inp" id="fecha-sel" type="date"/>
+      <div class="nav-btn" onclick="navNext()">▶</div>
+    </div>
+    <button class="ag-today-btn" onclick="goToday()">Hoy</button>
+    <select class="sede-sel" id="sede-sel" onchange="reload()">
+      <option value="">Ambas sedes</option>
+      <option value="SAN ISIDRO">San Isidro</option>
+      <option value="PUEBLO LIBRE">Pueblo Libre</option>
+    </select>
+    <button class="btn-nueva" onclick="openNuevaCita()">+ Nueva cita</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="ag-main">
+
+    <!-- SIDEBAR AGENDA -->
+    <div class="ag-side">
+
+      <!-- DOCTORA DEL DÍA -->
+      <div class="ag-card">
+        <div class="ag-card-title">DOCTORA DEL DÍA</div>
+        <div id="doctora-panel">
+          <div class="ag-loading" style="height:80px;">
+            <div class="ag-spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESUMEN RÁPIDO -->
+      <div class="ag-card">
+        <div class="ag-card-title">RESUMEN</div>
+        <div class="resumen-grid">
+          <div class="rg-item"><div class="rg-v" id="res-total">—</div><div class="rg-l">Total</div></div>
+          <div class="rg-item"><div class="rg-v" id="res-conf" style="color:#0A4FBF;">—</div><div class="rg-l">Confirm.</div></div>
+          <div class="rg-item"><div class="rg-v" id="res-asist" style="color:#16A34A;">—</div><div class="rg-l">Asistieron</div></div>
+          <div class="rg-item"><div class="rg-v" id="res-cancel" style="color:#DC2626;">—</div><div class="rg-l">Canceladas</div></div>
+        </div>
+      </div>
+
+      <!-- FILTRO ESTADO -->
+      <div class="ag-card">
+        <div class="ag-card-title">FILTRAR POR</div>
+        <div class="filter-row">
+          <div class="filter-lbl">Estado de cita</div>
+          <select class="filter-sel" id="filtro-estado" onchange="renderVista()">
+            <option value="">Todas</option>
+            <option value="CITA CONFIRMADA">Confirmadas</option>
+            <option value="ASISTIO">Asistieron</option>
+            <option value="EFECTIVA">Efectivas</option>
+            <option value="CANCELADA">Canceladas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA PRINCIPAL -->
+    <div id="vista-container">
+      <div class="ag-loading"><div class="ag-spinner"></div><span>Cargando agenda...</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA CITA -->
+<div class="mov" id="m-nueva-cita">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mtit">Nueva cita</div>
+      <div class="mclose" onclick="closeModal('m-nueva-cita')">✕</div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><div class="ml">Número</div><input class="mi" id="nc-num" placeholder="987654321"/></div>
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="nc-nombre" placeholder="Nombre"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="nc-apellido" placeholder="Apellido"/></div>
+      <div class="mf"><div class="ml">DNI / CE</div><input class="mi" id="nc-dni" placeholder="DNI / CE"/></div>
+      <div class="mf"><div class="ml">Tipo de atención</div>
+        <select class="ms" id="nc-tipo-at" onchange="onTipoAtChange()">
+          <option value="">— Seleccionar —</option>
+          <option value="DOCTORA">Doctora</option>
+          <option value="ENFERMERIA">Enfermería</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Sede</div>
+        <select class="ms" id="nc-sede">
+          <option value="">— Sede —</option>
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Fecha de cita</div><input class="mi" id="nc-fecha" type="date" onchange="loadSlots()"/></div>
+      <div class="mf"><div class="ml">Hora de llegada</div>
+        <select class="ms" id="nc-hora"><option>Elige tipo y fecha primero...</option></select>
+      </div>
+      <div class="mf full"><div class="ml">Tratamiento</div>
+        <select class="ms" id="nc-trat"></select>
+      </div>
+      <div class="mf full">
+        <div class="ml">Tipo de cita</div>
+        <div class="tbs-row" id="nc-tipo-grp">
+          <div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div>
+          <div class="tb" data-val="APLICACIÓN">Aplicación</div>
+          <div class="tb" data-val="CONTROL">Control</div>
+          <div class="tb" data-val="REPROGRAMACIÓN">Reprogramación</div>
+        </div>
+      </div>
+      <div class="mf full"><div class="ml">Observación</div><textarea class="mta2" id="nc-obs" placeholder="Notas..."></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal('m-nueva-cita')">Cancelar</button>
+      <button class="mconf" onclick="crearCita()">✓ Crear cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE CITA -->
+<div class="mov" id="m-detalle-cita">
+  <div class="modal" style="max-width:400px;">
+    <div class="mhd">
+      <div class="mtit">Detalle de cita</div>
+      <div class="mclose" onclick="closeModal('m-detalle-cita')">✕</div>
+    </div>
+    <div id="detalle-content"></div>
+  </div>
+</div>
+
+<script>
+var AG = {
+  token:    '',
+  view:     'dia',
+  fecha:    '',
+  data:     null,
+  dataSem:  null,
+  citaSelId:''
+};
+
+(function() {
+  AG.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  var hoy  = new Date().toISOString().slice(0, 10);
+  AG.fecha = hoy;
+  document.getElementById('fecha-sel').value = hoy;
+  document.getElementById('fecha-sel').addEventListener('change', function() {
+    AG.fecha = this.value; reload();
+  });
+  var minFecha = new Date().toISOString().slice(0, 10);
+  document.getElementById('nc-fecha').min = minFecha;
+  loadTratamientos();
+  reload();
+})();
+
+function setView(v) {
+  AG.view = v;
+  document.getElementById('vt-dia').classList.toggle('act', v === 'dia');
+  document.getElementById('vt-sem').classList.toggle('act', v === 'semana');
+  reload();
+}
+
+function goToday() {
+  AG.fecha = new Date().toISOString().slice(0, 10);
+  document.getElementById('fecha-sel').value = AG.fecha;
+  reload();
+}
+
+function navPrev() {
+  var d = new Date(AG.fecha + 'T12:00:00');
+  d.setDate(d.getDate() - (AG.view === 'semana' ? 7 : 1));
+  AG.fecha = d.toISOString().slice(0, 10);
+  document.getElementById('fecha-sel').value = AG.fecha;
+  reload();
+}
+
+function navNext() {
+  var d = new Date(AG.fecha + 'T12:00:00');
+  d.setDate(d.getDate() + (AG.view === 'semana' ? 7 : 1));
+  AG.fecha = d.toISOString().slice(0, 10);
+  document.getElementById('fecha-sel').value = AG.fecha;
+  reload();
+}
+
+function reload() {
+  var sede = document.getElementById('sede-sel').value;
+  setLoading();
+  loadDoctora();
+
+  if (AG.view === 'dia') {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.ok) { setError(); return; }
+        AG.data = res;
+        updateResumen(res.resumen);
+        renderDia(res.citas, res.doctoraDia);
+      })
+      .withFailureHandler(setError)
+      .api_getAgendaDiaT(AG.token, AG.fecha, sede, null);
+  } else {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.ok) { setError(); return; }
+        AG.dataSem = res;
+        renderSemana(res.dias);
+      })
+      .withFailureHandler(setError)
+      .api_getAgendaSemanaT(AG.token, AG.fecha, sede, null);
+  }
+}
+
+function loadDoctora() {
+  var sede = document.getElementById('sede-sel').value;
+  google.script.run
+    .withSuccessHandler(function(res) {
+      var panel = document.getElementById('doctora-panel');
+      if (!res || !res.ok || !res.doctora) {
+        panel.innerHTML = '<div style="text-align:center;color:#9AAAC8;font-size:11px;padding:10px;">Sin horario configurado</div>';
+        return;
+      }
+      var d = res.doctora;
+      var initials = d.nombre.replace('DRA. ','').slice(0,2).toUpperCase();
+      panel.innerHTML =
+        '<div class="doc-avatar">' + initials + '</div>' +
+        '<div class="doc-name">' + d.nombre + '</div>' +
+        '<div class="doc-horario">' + (d.horaIni || '—') + ' – ' + (d.horaFin || '—') + '</div>' +
+        '<div class="doc-sede">' + (d.sede || '—') + '</div>' +
+        (res.enfermeria ? '<div class="enf-badge">👩‍⚕️ Apoyo: ' + res.enfermeria + '</div>' : '');
+    })
+    .withFailureHandler(function() {
+      document.getElementById('doctora-panel').innerHTML =
+        '<div style="text-align:center;color:#9AAAC8;font-size:11px;padding:10px;">Sin datos</div>';
+    })
+    .api_getDoctoraDiaT(AG.token, AG.fecha, sede);
+}
+
+function updateResumen(r) {
+  if (!r) return;
+  document.getElementById('res-total').textContent  = r.total  || 0;
+  document.getElementById('res-conf').textContent   = r.confirmadas || 0;
+  document.getElementById('res-asist').textContent  = r.asistieron  || 0;
+  document.getElementById('res-cancel').textContent = r.canceladas  || 0;
+}
+
+function renderDia(citas, doctoraDia) {
+  var filtro = document.getElementById('filtro-estado').value;
+  if (filtro) citas = citas.filter(function(c) { return c.estadoCita === filtro; });
+
+  var slots = [];
+  var hIni  = 8; var hFin = 21;
+  for (var h = hIni; h < hFin; h++) {
+    slots.push(String(h).padStart(2,'0') + ':00');
+    slots.push(String(h).padStart(2,'0') + ':30');
+  }
+
+  var colsDoc = ['DOCTORA','ENFERMERIA'];
+  var html = '<div class="vista-dia">';
+
+  // Header
+  html += '<div class="dia-header" style="grid-template-columns:56px 1fr 1fr;">';
+  html += '<div class="dia-col-hdr">Hora</div>';
+  colsDoc.forEach(function(col) {
+    html += '<div class="dia-col-hdr">' + (col === 'DOCTORA' ? '👩‍⚕️ ' + (doctoraDia ? doctoraDia.nombre : 'Doctora') : '💉 Enfermería') + '</div>';
+  });
+  html += '</div>';
+
+  // Body
+  html += '<div class="dia-body">';
+  slots.forEach(function(hora) {
+    html += '<div class="dia-slot-row" style="grid-template-columns:56px 1fr 1fr;">';
+    html += '<div class="slot-hora">' + hora + '</div>';
+
+    colsDoc.forEach(function(tipo) {
+      var citasSlot = citas.filter(function(c) {
+        var h = (c.hora || '').slice(0, 5);
+        return h === hora && c.tipoAtencion.toUpperCase() === tipo;
+      });
+      html += '<div class="slot-cell">';
+      if (citasSlot.length) {
+        citasSlot.forEach(function(c) {
+          var cls = c.estadoCita === 'EFECTIVA' || c.estadoCita === 'ASISTIO' ? ' efectiva' :
+                    c.estadoCita === 'CANCELADA' ? ' cancelada' : '';
+          html += '<div class="cita-chip' + cls + '" onclick="showDetalle(\'' + c.id + '\')">' +
+            '<div class="cita-chip-nom">' + (c.nombre || c.num || '—') + (c.apellido ? ' ' + c.apellido.slice(0,1) + '.' : '') + '</div>' +
+            '<div class="cita-chip-meta">' + (c.trat || '').slice(0, 18) + ' · ' + (c.tipoCita || '') + '</div>' +
+            '</div>';
+        });
+      } else {
+        html += '<div class="slot-empty">—</div>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  document.getElementById('vista-container').innerHTML = html;
+}
+
+function renderSemana(dias) {
+  var hoy = new Date().toISOString().slice(0, 10);
+  var html = '<div class="vista-sem">';
+
+  // Header
+  html += '<div class="sem-header" style="grid-template-columns:repeat(7,minmax(0,1fr));">';
+  dias.forEach(function(d) {
+    var isHoy = d.fecha === hoy;
+    html += '<div class="sem-day-hdr' + (isHoy ? ' hoy' : '') + '" onclick="goDay(\'' + d.fecha + '\')">' +
+      '<div class="sem-day-nom">' + d.diaNom.slice(0,3) + '</div>' +
+      '<div class="sem-day-num' + (isHoy ? ' hoy' : '') + '">' + d.fecha.slice(8) + '</div>' +
+      '<div class="sem-day-cnt">' + d.total + ' citas</div>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  // Body
+  html += '<div class="sem-body" style="grid-template-columns:repeat(7,minmax(0,1fr));">';
+  dias.forEach(function(d) {
+    html += '<div class="sem-day-col">';
+    if (d.citas.length) {
+      d.citas.slice(0, 5).forEach(function(c) {
+        html += '<div class="sem-cita-item" onclick="goDay(\'' + d.fecha + '\')">' +
+          '<div class="sem-cita-hora">' + (c.hora || '—') + '</div>' +
+          '<div class="sem-cita-nom">' + (c.nombre || c.num || '—').slice(0, 14) + '</div>' +
+          '</div>';
+      });
+      if (d.citas.length > 5) {
+        html += '<div style="font-size:10px;color:#9AAAC8;text-align:center;padding:4px;">+' + (d.citas.length - 5) + ' más</div>';
+      }
+    } else {
+      html += '<div class="sem-empty">Sin citas</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  document.getElementById('vista-container').innerHTML = html;
+}
+
+function goDay(fecha) {
+  AG.fecha = fecha;
+  document.getElementById('fecha-sel').value = fecha;
+  setView('dia');
+}
+
+function showDetalle(citaId) {
+  AG.citaSelId = citaId;
+  var cita = null;
+  if (AG.data && AG.data.citas) {
+    cita = AG.data.citas.find(function(c) { return c.id === citaId; });
+  }
+  if (!cita) return;
+
+  var colores = {
+    'CITA CONFIRMADA': '#EBF2FF', 'ASISTIO': '#F0FDF4',
+    'EFECTIVA': '#F0FDF4', 'CANCELADA': '#FEF2F2', '': '#F0F4FC'
+  };
+  var bgColor = colores[cita.estadoCita] || '#F0F4FC';
+
+  document.getElementById('detalle-content').innerHTML =
+    '<div class="cita-det">' +
+    '<div class="det-header">' +
+      '<div style="font-family:\'Exo 2\',sans-serif;font-size:16px;font-weight:800;color:#0D1B3E;">' +
+        (cita.nombre || '') + ' ' + (cita.apellido || '') +
+      '</div>' +
+      '<div class="det-estado" style="background:' + bgColor + '">' + (cita.estadoCita || 'CONFIRMADA') + '</div>' +
+    '</div>' +
+    '<div class="det-fields">' +
+      '<div class="det-row"><div class="det-lbl">Número</div><div class="det-val">' + cita.num + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Tratamiento</div><div class="det-val">' + cita.trat + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Hora cita</div><div class="det-val">' + (cita.hora || '—') + ' · ' + cita.fecha + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Sede</div><div class="det-val">' + cita.sede + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Doctora</div><div class="det-val">' + (cita.doctora || '—') + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Asesor</div><div class="det-val">' + cita.asesor + '</div></div>' +
+      '<div class="det-row"><div class="det-lbl">Tipo</div><div class="det-val">' + cita.tipoCita + ' · ' + cita.tipoAtencion + '</div></div>' +
+      (cita.obs ? '<div class="det-row"><div class="det-lbl">Observación</div><div class="det-val">' + cita.obs + '</div></div>' : '') +
+    '</div>' +
+    '<div class="det-actions">' +
+      '<button class="det-btn wa" onclick="waDetalle()">💬 WhatsApp</button>' +
+      '<button class="det-btn" onclick="closeModal(\'m-detalle-cita\')">Cerrar</button>' +
+      '<button class="det-btn danger" onclick="cancelarCita()">Cancelar cita</button>' +
+    '</div>' +
+    '</div>';
+
+  document.getElementById('m-detalle-cita').classList.add('open');
+}
+
+function waDetalle() {
+  if (!AG.data || !AG.data.citas) return;
+  var cita = AG.data.citas.find(function(c) { return c.id === AG.citaSelId; });
+  if (cita && cita.wa) window.open(cita.wa, '_blank');
+}
+
+function cancelarCita() {
+  if (!AG.citaSelId || !confirm('¿Cancelar esta cita?')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      closeModal('m-detalle-cita');
+      if (window.AOS_showToast) AOS_showToast('🗑 Cita cancelada', 'La cita fue cancelada exitosamente', '');
+      reload();
+    })
+    .withFailureHandler(function(e) { alert('Error: ' + (e && e.message || 'desconocido')); })
+    .api_deleteCitaT(AG.token, AG.citaSelId);
+}
+
+function openNuevaCita() {
+  document.getElementById('nc-fecha').value = AG.fecha;
+  document.getElementById('m-nueva-cita').classList.add('open');
+}
+
+function loadSlots() {
+  var fecha  = document.getElementById('nc-fecha').value;
+  var tipoAt = document.getElementById('nc-tipo-at').value;
+  var sede   = document.getElementById('nc-sede').value;
+  if (!fecha) return;
+
+  var selHora = document.getElementById('nc-hora');
+  selHora.innerHTML = '<option>Cargando slots...</option>';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok || !res.slots.length) {
+        selHora.innerHTML = '<option>Sin slots disponibles</option>';
+        return;
+      }
+      selHora.innerHTML = res.slots.map(function(s) {
+        var lbl = s.hora + ' ' + (s.libre ? '✅' : '🔴') +
+          ' ' + s.libres + '/' + s.cap + ' libres' +
+          (s.doctora ? ' · ' + s.doctora : '');
+        return '<option value="' + s.hora + '" ' + (!s.libre ? 'disabled' : '') + '>' + lbl + '</option>';
+      }).join('');
+    })
+    .withFailureHandler(function() {
+      document.getElementById('nc-hora').innerHTML = '<option>Error al cargar slots</option>';
+    })
+    .api_getSlotsDisponiblesT(AG.token, fecha, sede, tipoAt);
+}
+
+function onTipoAtChange() { loadSlots(); }
+
+function crearCita() {
+  var num = document.getElementById('nc-num').value.trim();
+  if (!num) { alert('Falta el número de teléfono.'); return; }
+  if (!document.getElementById('nc-fecha').value) { alert('Falta la fecha.'); return; }
+
+  var tipoCita = '';
+  document.querySelectorAll('#nc-tipo-grp .tb').forEach(function(t) {
+    if (t.classList.contains('act')) tipoCita = t.getAttribute('data-val');
+  });
+
+  var payload = {
+    numero:       num,
+    nombre:       document.getElementById('nc-nombre').value.trim(),
+    apellido:     document.getElementById('nc-apellido').value.trim(),
+    dni:          document.getElementById('nc-dni').value.trim(),
+    tipoAtencion: document.getElementById('nc-tipo-at').value,
+    sede:         document.getElementById('nc-sede').value,
+    fechaCita:    document.getElementById('nc-fecha').value,
+    horaCita:     document.getElementById('nc-hora').value,
+    tratamiento:  document.getElementById('nc-trat').value,
+    tipoCita:     tipoCita || 'CONSULTA NUEVA',
+    obs:          document.getElementById('nc-obs').value.trim()
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      closeModal('m-nueva-cita');
+      if (window.AOS_playSound) AOS_playSound('venta');
+      if (window.AOS_showToast) AOS_showToast('📅 Cita creada', 'La cita fue registrada exitosamente', 'toast-venta');
+      reload();
+    })
+    .withFailureHandler(function(e) {
+      alert('Error: ' + (e && e.message || 'desconocido'));
+    })
+    .api_createCitaT(AG.token, payload);
+}
+
+function loadTratamientos() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      var sel = document.getElementById('nc-trat');
+      sel.innerHTML = res.items.map(function(t) {
+        return '<option value="' + t + '">' + t + '</option>';
+      }).join('');
+    })
+    .api_listTratamientosT(AG.token);
+}
+
+function closeModal(id)  { document.getElementById(id).classList.remove('open'); }
+function renderVista()   { if (AG.data) renderDia(AG.data.citas, AG.data.doctoraDia); }
+function setLoading()    { document.getElementById('vista-container').innerHTML = '<div class="ag-loading"><div class="ag-spinner"></div><span>Cargando...</span></div>'; }
+function setError()      { document.getElementById('vista-container').innerHTML = '<div class="ag-loading" style="color:#DC2626;">⚠️ Error al cargar agenda</div>'; }
+
+document.querySelectorAll('#nc-tipo-grp .tb').forEach(function(t) {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('#nc-tipo-grp .tb').forEach(function(x) { x.classList.remove('act'); });
+    this.classList.add('act');
+  });
+});
+</script>

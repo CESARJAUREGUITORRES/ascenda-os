@@ -1,0 +1,622 @@
+<!-- ViewAdvisorCitas.html v2 — Mis Citas Confirmadas AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.vc2{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+/* KPI */
+.krow4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.b::before{background:#0A4FBF;}.kc.g::before{background:#16A34A;}
+.kc.r::before{background:#DC2626;}.kc.a::before{background:#9AAAC8;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 1px;}
+/* HEADER */
+.vc2-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vc2-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.yr-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+/* TABS */
+.tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tab{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;border:1.5px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:'DM Sans',sans-serif;}
+.tab.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.tab-cnt{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:800;}
+.tab.act .tab-cnt{background:rgba(255,255,255,.25);}
+.tab:not(.act) .tab-cnt{background:#DDE4F5;color:#6B7BA8;}
+/* FILTROS */
+.filtros{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.fi{padding:7px 11px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.fi:focus{border-color:#0A4FBF;}
+.fi-search{flex:1;min-width:180px;}
+/* TABLA */
+.tbl-wrap{background:#fff;border:1px solid #DDE4F5;border-radius:13px;overflow:hidden;}
+.tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
+.tbl thead th{background:#F8FAFF;padding:9px 12px;font-size:9px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;text-align:left;border-bottom:1px solid #DDE4F5;}
+.tbl thead th:nth-child(1){width:130px;}
+.tbl thead th:nth-child(2){width:auto;}
+.tbl thead th:nth-child(3){width:140px;}
+.tbl thead th:nth-child(4){width:90px;}
+.tbl thead th:nth-child(5){width:80px;}
+.tbl thead th:nth-child(6){width:90px;}
+.tbl thead th:nth-child(7){width:110px;}
+.tbl tbody td{padding:10px 12px;border-bottom:1px solid rgba(221,228,245,.4);font-size:12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:#F8FAFF;cursor:pointer;}
+.tbl-scroll{overflow-y:auto;max-height:calc(100vh - 320px);}
+.tbl-scroll::-webkit-scrollbar{width:3px;}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#DDE4F5;}
+/* CELDAS */
+.c-fecha{font-weight:700;color:#0D1B3E;font-size:12px;}
+.c-hora{font-size:10px;color:#9AAAC8;margin-top:1px;}
+.c-ts{font-size:9px;color:#C8D0E0;margin-top:1px;}
+.c-nom{font-weight:700;color:#0D1B3E;}
+.c-num{font-size:10px;color:#9AAAC8;margin-top:1px;}
+.est-pill{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap;}
+.ep-activa{background:#EBF2FF;color:#0A4FBF;}
+.ep-vencida{background:#FEF2F2;color:#DC2626;}
+.ep-sin{background:#F0F4FC;color:#9AAAC8;}
+/* ACCIONES */
+.acciones{display:flex;gap:4px;align-items:center;}
+.abtn{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;}
+.abtn:hover{background:#EBF2FF;border-color:#BFDBFE;}
+.abtn.danger:hover{background:#FEF2F2;border-color:#FECACA;}
+.abtn.reagendar:hover{background:#FFF7ED;border-color:#FED7AA;}
+/* PAGINACION */
+.pag{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #DDE4F5;font-size:11px;color:#6B7BA8;}
+.pag-btns{display:flex;gap:5px;}
+.pbtn{padding:4px 11px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.pbtn:hover:not(:disabled){background:#EBF2FF;}
+.pbtn:disabled{opacity:.4;cursor:not-allowed;}
+/* LOADING */
+.ld{text-align:center;padding:28px;color:#9AAAC8;font-size:12px;}
+.sp{width:18px;height:18px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* MODALES */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:500px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
+.modal::-webkit-scrollbar{width:3px;}
+.modal::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#0D1B3E;}
+.msub{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:4px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:none;height:65px;}
+/* TIPO CITA Y ESTADO BUTTONS */
+.tbs{display:flex;gap:5px;flex-wrap:wrap;}
+.tbb{padding:5px 12px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;color:#6B7BA8;transition:all .15s;}
+.tbb.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.tbb.act-verde{background:#16A34A;border-color:#16A34A;color:#fff;}
+.tbb.act-cyan{background:#00C9A7;border-color:#00C9A7;color:#fff;}
+.tbb.act-rojo{background:#DC2626;border-color:#DC2626;color:#fff;}
+/* REAGENDAR INFO */
+.reag-info{padding:10px 12px;border-radius:9px;background:#EBF2FF;border:1px solid #BFDBFE;font-size:12px;color:#0A4FBF;font-weight:600;margin-bottom:10px;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:10px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mconf.green{background:#16A34A;}
+.mconf.amber{background:#D97706;}
+</style>
+
+<div class="vc2">
+  <!-- KPI -->
+  <div class="krow4">
+    <div class="kc b"><div class="kc-l">Total citas año</div><div class="kc-v" id="kc-total">—</div></div>
+    <div class="kc g"><div class="kc-l">Activas</div><div class="kc-v" id="kc-activas">—</div></div>
+    <div class="kc r"><div class="kc-l">Vencidas</div><div class="kc-v" id="kc-vencidas">—</div></div>
+    <div class="kc a"><div class="kc-l">Sin fecha</div><div class="kc-v" id="kc-sinfecha">—</div></div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="vc2-hdr">
+    <div class="vc2-ttl">Mis citas confirmadas</div>
+    <select class="yr-sel" id="yr-sel" onchange="loadCitas()">
+      <option value="2026">2026</option>
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+    </select>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab act" id="tab-activas" onclick="setTab('activas')">
+      Activas <span class="tab-cnt" id="cnt-activas">0</span>
+    </div>
+    <div class="tab" id="tab-vencidas" onclick="setTab('vencidas')">
+      Vencidas <span class="tab-cnt" id="cnt-vencidas">0</span>
+    </div>
+    <div class="tab" id="tab-todas" onclick="setTab('todas')">
+      Todas <span class="tab-cnt" id="cnt-todas">0</span>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros">
+    <input class="fi fi-search" id="fi-search" type="text" placeholder="Buscar nombre, número, tratamiento..." oninput="applyFilters()"/>
+    <select class="fi" id="fi-sede" onchange="applyFilters()">
+      <option value="">Todas las sedes</option>
+      <option value="SAN ISIDRO">San Isidro</option>
+      <option value="PUEBLO LIBRE">Pueblo Libre</option>
+    </select>
+  </div>
+
+  <!-- TABLA -->
+  <div class="tbl-wrap">
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Fecha · Hora</th>
+            <th>Paciente</th>
+            <th>Tratamiento</th>
+            <th>Sede</th>
+            <th>Estado</th>
+            <th>Tipo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="citas-tbody">
+          <tr><td colspan="7" class="ld"><span class="sp"></span>Cargando citas...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pag">
+      <span id="pag-info">—</span>
+      <div class="pag-btns">
+        <button class="pbtn" id="btn-prev" onclick="changePag(-1)" disabled>◀ Anterior</button>
+        <button class="pbtn" id="btn-next" onclick="changePag(1)">Siguiente ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR CITA -->
+<div class="mov" id="m-edit">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <div class="mtit">✏️ Editar cita confirmada</div>
+        <div class="msub" id="e-num-lbl">Número: —</div>
+      </div>
+      <div class="mclose" onclick="closeModal('m-edit')">✕</div>
+    </div>
+    <div class="mg">
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="e-nombre"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="e-apellido"/></div>
+      <div class="mf"><div class="ml">DNI / CE</div><input class="mi" id="e-dni"/></div>
+      <div class="mf"><div class="ml">Correo</div><input class="mi" id="e-correo"/></div>
+      <div class="mf"><div class="ml">Tipo de atención</div>
+        <select class="ms" id="e-tipo-at">
+          <option value="DOCTORA">Doctora</option>
+          <option value="ENFERMERIA">Enfermería</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Sede</div>
+        <select class="ms" id="e-sede">
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Fecha de cita</div><input class="mi" id="e-fecha" type="date" onchange="cargarSlotsEdit()"/></div>
+      <div class="mf"><div class="ml">Hora de llegada</div>
+        <select class="ms" id="e-hora"></select>
+      </div>
+      <div class="mf full"><div class="ml">Tratamiento</div>
+        <select class="ms" id="e-trat"></select>
+      </div>
+      <div class="mf full">
+        <div class="ml">Tipo de cita</div>
+        <div class="tbs" id="e-tipo-cita-grp">
+          <div class="tbb" data-val="CONSULTA NUEVA">Consulta nueva</div>
+          <div class="tbb" data-val="APLICACIÓN">Aplicación</div>
+          <div class="tbb" data-val="CONTROL">Control</div>
+          <div class="tbb" data-val="REPROGRAMACIÓN">Reprogramación</div>
+        </div>
+      </div>
+      <div class="mf full">
+        <div class="ml">Estado de la cita</div>
+        <div class="tbs" id="e-estado-grp">
+          <div class="tbb" data-val="PENDIENTE">❌ Pendiente</div>
+          <div class="tbb act" data-val="CITA CONFIRMADA">✅ Confirmada</div>
+          <div class="tbb" data-val="ASISTIO">🟢 Asistió</div>
+          <div class="tbb" data-val="EFECTIVA">✨ Efectiva</div>
+          <div class="tbb" data-val="NO ASISTIO">🔴 No asistió</div>
+          <div class="tbb" data-val="CANCELADA">❌ Cancelada</div>
+        </div>
+      </div>
+      <!-- REAGENDAR inline -->
+      <div class="mf full" id="reag-section" style="display:none;">
+        <div style="padding:10px 12px;border-radius:9px;background:#FFF7ED;border:1px solid #FED7AA;font-size:12px;color:#D97706;font-weight:600;margin-bottom:8px;">
+          🔁 La cita original quedará como REAGENDADA. Aquí crearás la nueva cita con sede, fecha y hora.
+        </div>
+        <div class="mg" style="margin-bottom:0;">
+          <div class="mf"><div class="ml">Nueva fecha</div><input class="mi" id="reag-fecha" type="date" onchange="cargarSlotsReag()"/></div>
+          <div class="mf"><div class="ml">Nueva sede</div>
+            <select class="ms" id="reag-sede">
+              <option value="SAN ISIDRO">San Isidro</option>
+              <option value="PUEBLO LIBRE">Pueblo Libre</option>
+            </select>
+          </div>
+          <div class="mf full"><div class="ml">Nueva hora</div>
+            <select class="ms" id="reag-hora"><option>Elige fecha primero...</option></select>
+          </div>
+          <div class="mf full"><div class="ml">Motivo de reagendamiento</div>
+            <textarea class="mta" id="reag-motivo" placeholder="Ej. Paciente solicitó cambio de fecha..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="mf full"><div class="ml">Observación</div>
+        <textarea class="mta" id="e-obs" placeholder="Notas adicionales..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal('m-edit')">Cancelar</button>
+      <button class="mconf green" id="btn-guardar-edit" onclick="guardarEdicion()">✓ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var VC2 = {
+  token:    '',
+  tab:      'activas',
+  allItems: [],
+  filtered: [],
+  page:     1,
+  perPage:  30,
+  editId:   '',
+  editCita: null
+};
+
+(function() {
+  VC2.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  document.getElementById('yr-sel').value = new Date().getFullYear();
+  loadCitas();
+  loadTrats();
+  var hoy = new Date().toISOString().slice(0,10);
+  document.getElementById('e-fecha').min = hoy;
+  document.getElementById('reag-fecha').min = hoy;
+
+  // Tipo cita toggle
+  document.querySelectorAll('#e-tipo-cita-grp .tbb').forEach(function(b) {
+    b.addEventListener('click', function() {
+      document.querySelectorAll('#e-tipo-cita-grp .tbb').forEach(function(x){x.classList.remove('act');});
+      b.classList.add('act');
+    });
+  });
+
+  // Estado toggle con lógica reagendar
+  document.querySelectorAll('#e-estado-grp .tbb').forEach(function(b) {
+    b.addEventListener('click', function() {
+      document.querySelectorAll('#e-estado-grp .tbb').forEach(function(x){x.classList.remove('act');});
+      b.classList.add('act');
+      var val = b.getAttribute('data-val');
+      document.getElementById('reag-section').style.display =
+        val === 'REAGENDADA' ? 'block' : 'none';
+      document.getElementById('btn-guardar-edit').textContent =
+        val === 'REAGENDADA' ? '🔁 Reagendar cita' : '✓ Guardar cambios';
+    });
+  });
+})();
+
+function loadCitas() {
+  var anio = document.getElementById('yr-sel').value;
+  setLoadingTable();
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) { setErrorTable('Error al cargar citas'); return; }
+      document.getElementById('kc-total').textContent    = res.totales.total    || 0;
+      document.getElementById('kc-activas').textContent  = res.totales.activas  || 0;
+      document.getElementById('kc-vencidas').textContent = res.totales.vencidas || 0;
+      document.getElementById('kc-sinfecha').textContent = res.totales.sinFecha || 0;
+      document.getElementById('cnt-activas').textContent  = res.totales.activas  || 0;
+      document.getElementById('cnt-vencidas').textContent = res.totales.vencidas || 0;
+      document.getElementById('cnt-todas').textContent    = res.totales.total    || 0;
+      VC2.allItems = res.items || [];
+      VC2.page = 1;
+      applyFilters();
+    })
+    .withFailureHandler(function(e) { setErrorTable('Error: ' + (e&&e.message||'desconocido')); })
+    .api_getMyCitasT(VC2.token, 'todas', anio);
+}
+
+function setTab(t) {
+  VC2.tab = t; VC2.page = 1;
+  ['activas','vencidas','todas'].forEach(function(x) {
+    document.getElementById('tab-' + x).classList.toggle('act', x === t);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  var search = document.getElementById('fi-search').value.trim().toUpperCase();
+  var sede   = document.getElementById('fi-sede').value.toUpperCase();
+  VC2.filtered = VC2.allItems.filter(function(c) {
+    if (VC2.tab === 'activas'  && c.estado !== 'ACTIVA')  return false;
+    if (VC2.tab === 'vencidas' && c.estado !== 'VENCIDA') return false;
+    if (sede && !c.sede.toUpperCase().includes(sede))     return false;
+    if (search) {
+      var hay = (c.nombre+' '+c.apellido+' '+c.num+' '+c.trat).toUpperCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  renderTabla();
+}
+
+function renderTabla() {
+  var tbody   = document.getElementById('citas-tbody');
+  var total   = VC2.filtered.length;
+  var start   = (VC2.page - 1) * VC2.perPage;
+  var end     = Math.min(start + VC2.perPage, total);
+  var slice   = VC2.filtered.slice(start, end);
+  var pages   = Math.max(1, Math.ceil(total / VC2.perPage));
+
+  document.getElementById('pag-info').textContent =
+    total ? (start+1) + '–' + end + ' de ' + total : '0 citas';
+  document.getElementById('btn-prev').disabled = VC2.page <= 1;
+  document.getElementById('btn-next').disabled = VC2.page >= pages;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="ld">Sin citas para mostrar</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(function(c) {
+    var estCls = c.estado==='ACTIVA' ? 'ep-activa' : c.estado==='VENCIDA' ? 'ep-vencida' : 'ep-sin';
+    var estLbl = c.estado==='ACTIVA' ? 'Activa' : c.estado==='VENCIDA' ? 'Vencida' : 'Sin fecha';
+    var nom    = ((c.nombre||'')+ ' ' +(c.apellido||'')).trim() || '—';
+    var tsCre  = '';
+    if (c.tsCreado) {
+      try {
+        var d = new Date(c.tsCreado);
+        if (!isNaN(d)) tsCre = 'agendado ' + d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+      } catch(e) {}
+    }
+    return '<tr onclick="openEdit(\'' + c.id + '\')">' +
+      '<td><div class="c-fecha">' + (c.fecha||'—') + '</div>' +
+           '<div class="c-hora">' + (c.hora||'—') + '</div>' +
+           (tsCre ? '<div class="c-ts">' + tsCre + '</div>' : '') + '</td>' +
+      '<td><div class="c-nom">' + nom + '</div>' +
+           '<div class="c-num">' + (c.num||'—') + '</div></td>' +
+      '<td style="font-size:11px;color:#6B7BA8;overflow:hidden;text-overflow:ellipsis;">' + (c.trat||'—').slice(0,20) + '</td>' +
+      '<td style="font-size:11px;color:#6B7BA8;">' + (c.sede||'—').replace('SAN ISIDRO','S.Isidro').replace('PUEBLO LIBRE','P.Libre') + '</td>' +
+      '<td><span class="est-pill ' + estCls + '">' + estLbl + '</span></td>' +
+      '<td style="font-size:10px;color:#9AAAC8;">' + (c.tipoCita||'—').slice(0,14) + '</td>' +
+      '<td onclick="event.stopPropagation()">' +
+        '<div class="acciones">' +
+          (c.wa ? '<div class="abtn" onclick="window.open(\'' + c.wa + '\',\'_blank\')" title="WhatsApp">💬</div>' : '') +
+          '<div class="abtn reagendar" onclick="openReagendar(\'' + c.id + '\')" title="Reagendar">🔁</div>' +
+          '<div class="abtn" onclick="openEdit(\'' + c.id + '\')" title="Editar">✏️</div>' +
+          '<div class="abtn danger" onclick="cancelarCita(\'' + c.id + '\')" title="Cancelar">🗑</div>' +
+        '</div>' +
+      '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function changePag(d) {
+  var pages = Math.max(1, Math.ceil(VC2.filtered.length / VC2.perPage));
+  VC2.page = Math.min(Math.max(1, VC2.page + d), pages);
+  renderTabla();
+}
+
+function openEdit(citaId) {
+  var c = VC2.allItems.find(function(x){ return x.id === citaId; });
+  if (!c) return;
+  VC2.editId   = citaId;
+  VC2.editCita = c;
+
+  document.getElementById('e-num-lbl').textContent = 'Número: ' + (c.num||'—');
+  document.getElementById('e-nombre').value    = c.nombre   || '';
+  document.getElementById('e-apellido').value  = c.apellido || '';
+  document.getElementById('e-dni').value       = c.dni      || '';
+  document.getElementById('e-correo').value    = c.correo   || '';
+  document.getElementById('e-tipo-at').value   = c.tipoAtencion || 'DOCTORA';
+  document.getElementById('e-sede').value      = c.sede     || '';
+  document.getElementById('e-fecha').value     = c.fecha    || '';
+  document.getElementById('e-obs').value       = c.obs      || '';
+
+  // Hora guardada
+  var horaEl = document.getElementById('e-hora');
+  horaEl.innerHTML = '<option value="' + (c.hora||'') + '">' + (c.hora||'—') + ' ✓ (hora guardada)</option>';
+
+  // Tipo cita
+  document.querySelectorAll('#e-tipo-cita-grp .tbb').forEach(function(b) {
+    b.classList.toggle('act', b.getAttribute('data-val') === (c.tipoCita||'CONSULTA NUEVA'));
+  });
+
+  // Estado
+  document.querySelectorAll('#e-estado-grp .tbb').forEach(function(b) {
+    b.classList.toggle('act', b.getAttribute('data-val') === (c.estadoCita||'CITA CONFIRMADA'));
+  });
+
+  document.getElementById('reag-section').style.display = 'none';
+  document.getElementById('btn-guardar-edit').textContent = '✓ Guardar cambios';
+  document.getElementById('m-edit').classList.add('open');
+}
+
+function openReagendar(citaId) {
+  openEdit(citaId);
+  // Activar tab REAGENDADA
+  setTimeout(function() {
+    document.querySelectorAll('#e-estado-grp .tbb').forEach(function(b) {
+      var isReag = b.getAttribute('data-val') === 'REAGENDADA';
+      b.classList.toggle('act', isReag);
+    });
+    document.getElementById('reag-section').style.display = 'block';
+    document.getElementById('btn-guardar-edit').textContent = '🔁 Reagendar cita';
+  }, 50);
+}
+
+function cargarSlotsEdit() {
+  var fecha  = document.getElementById('e-fecha').value;
+  var tipoAt = document.getElementById('e-tipo-at').value;
+  var sede   = document.getElementById('e-sede').value;
+  if (!fecha) return;
+  var horaEl = document.getElementById('e-hora');
+  horaEl.innerHTML = '<option>Cargando slots...</option>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok||!res.slots.length) {
+        horaEl.innerHTML = '<option>' + (VC2.editCita&&VC2.editCita.hora ? VC2.editCita.hora + ' ✓ (guardada)' : 'Sin slots') + '</option>';
+        return;
+      }
+      horaEl.innerHTML = res.slots.map(function(s) {
+        return '<option value="' + s.hora + '" ' + (!s.libre?'disabled':'') + '>' +
+          s.hora + ' ' + (s.libre?'✅':'🔴') + ' ' + s.libres + '/' + s.cap + ' libres' +
+          (s.doctora?' · '+s.doctora:'') + '</option>';
+      }).join('');
+    })
+    .withFailureHandler(function() {})
+    .api_getSlotsDisponiblesT(VC2.token, fecha, sede, tipoAt);
+}
+
+function cargarSlotsReag() {
+  var fecha = document.getElementById('reag-fecha').value;
+  var sede  = document.getElementById('reag-sede').value;
+  var tipoAt= VC2.editCita ? (VC2.editCita.tipoAtencion||'') : '';
+  if (!fecha) return;
+  var horaEl = document.getElementById('reag-hora');
+  horaEl.innerHTML = '<option>Cargando slots...</option>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok||!res.slots.length) {
+        horaEl.innerHTML = '<option>Sin slots disponibles</option>'; return;
+      }
+      horaEl.innerHTML = res.slots.map(function(s) {
+        return '<option value="' + s.hora + '" ' + (!s.libre?'disabled':'') + '>' +
+          s.hora + ' ' + (s.libre?'✅':'🔴') + ' ' + s.libres + '/' + s.cap + ' libres' +
+          (s.doctora?' · '+s.doctora:'') + '</option>';
+      }).join('');
+    })
+    .withFailureHandler(function() {})
+    .api_getSlotsDisponiblesT(VC2.token, fecha, sede, tipoAt);
+}
+
+function guardarEdicion() {
+  var estadoActivo = '';
+  document.querySelectorAll('#e-estado-grp .tbb').forEach(function(b) {
+    if (b.classList.contains('act')) estadoActivo = b.getAttribute('data-val');
+  });
+  var tipoCitaActivo = '';
+  document.querySelectorAll('#e-tipo-cita-grp .tbb').forEach(function(b) {
+    if (b.classList.contains('act')) tipoCitaActivo = b.getAttribute('data-val');
+  });
+
+  var btn = document.getElementById('btn-guardar-edit');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  var payload = {
+    nombre:       document.getElementById('e-nombre').value.trim(),
+    apellido:     document.getElementById('e-apellido').value.trim(),
+    dni:          document.getElementById('e-dni').value.trim(),
+    correo:       document.getElementById('e-correo').value.trim(),
+    tipoAtencion: document.getElementById('e-tipo-at').value,
+    sede:         document.getElementById('e-sede').value,
+    fechaCita:    document.getElementById('e-fecha').value,
+    horaCita:     document.getElementById('e-hora').value,
+    tratamiento:  document.getElementById('e-trat').value,
+    tipoCita:     tipoCitaActivo,
+    estadoCita:   estadoActivo || 'CITA CONFIRMADA',
+    obs:          document.getElementById('e-obs').value.trim()
+  };
+
+  // Si es REAGENDADA — crear nueva cita primero
+  if (estadoActivo === 'REAGENDADA') {
+    var nuevaFecha = document.getElementById('reag-fecha').value;
+    var nuevaHora  = document.getElementById('reag-hora').value;
+    var motivo     = document.getElementById('reag-motivo').value.trim();
+    if (!nuevaFecha || !nuevaHora) {
+      btn.disabled = false; btn.textContent = '🔁 Reagendar cita';
+      alert('Falta la nueva fecha u hora para reagendar.');
+      return;
+    }
+    var c = VC2.editCita;
+    var nuevaCitaPayload = {
+      numero:       c.num,
+      nombre:       payload.nombre || c.nombre,
+      apellido:     payload.apellido || c.apellido,
+      tipoAtencion: payload.tipoAtencion,
+      sede:         document.getElementById('reag-sede').value,
+      fechaCita:    nuevaFecha,
+      horaCita:     nuevaHora,
+      tratamiento:  payload.tratamiento || c.trat,
+      tipoCita:     tipoCitaActivo || c.tipoCita,
+      obs:          motivo || 'Reagendamiento desde cita ' + VC2.editId
+    };
+    google.script.run
+      .withSuccessHandler(function() {
+        // Marcar la original como REAGENDADA
+        google.script.run
+          .withSuccessHandler(function() {
+            btn.disabled=false; btn.textContent='🔁 Reagendar cita';
+            closeModal('m-edit');
+            if (window.AOS_showToast) AOS_showToast('🔁 Cita reagendada', 'Nueva cita creada exitosamente','');
+            if (window.AOS_playSound) AOS_playSound('notif');
+            loadCitas();
+          })
+          .withFailureHandler(function(e){
+            btn.disabled=false; btn.textContent='🔁 Reagendar cita';
+            alert('Error: '+(e&&e.message||'desconocido'));
+          })
+          .api_updateCitaT(VC2.token, VC2.editId, { estadoCita: 'REAGENDADA', obs: motivo });
+      })
+      .withFailureHandler(function(e){
+        btn.disabled=false; btn.textContent='🔁 Reagendar cita';
+        alert('Error creando nueva cita: '+(e&&e.message||'desconocido'));
+      })
+      .api_createCitaT(VC2.token, nuevaCitaPayload);
+    return;
+  }
+
+  // Edición normal
+  google.script.run
+    .withSuccessHandler(function() {
+      btn.disabled=false; btn.textContent='✓ Guardar cambios';
+      closeModal('m-edit');
+      if (window.AOS_showToast) AOS_showToast('✓ Cita actualizada','Los cambios fueron guardados','');
+      loadCitas();
+    })
+    .withFailureHandler(function(e){
+      btn.disabled=false; btn.textContent='✓ Guardar cambios';
+      alert('Error: '+(e&&e.message||'desconocido'));
+    })
+    .api_updateCitaT(VC2.token, VC2.editId, payload);
+}
+
+function cancelarCita(citaId) {
+  if (!confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      if (window.AOS_showToast) AOS_showToast('🗑 Cita cancelada','','');
+      loadCitas();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+(e&&e.message||'desconocido')); })
+    .api_deleteCitaT(VC2.token, citaId);
+}
+
+function loadTrats() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) return;
+      var sel = document.getElementById('e-trat');
+      sel.innerHTML = res.items.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+    })
+    .api_listTratamientosT(VC2.token);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setLoadingTable() {
+  document.getElementById('citas-tbody').innerHTML =
+    '<tr><td colspan="7" class="ld"><span class="sp"></span>Cargando citas...</td></tr>';
+}
+function setErrorTable(msg) {
+  document.getElementById('citas-tbody').innerHTML =
+    '<tr><td colspan="7" class="ld" style="color:#DC2626;">⚠️ '+msg+'</td></tr>';
+}
+</script>

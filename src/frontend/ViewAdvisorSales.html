@@ -1,0 +1,478 @@
+<!-- ViewAdvisorSales.html — Ventas Asesor AscendaOS v1 -->
+<style>
+.vs-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+/* HEADER */
+.vs-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vs-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.vs-controls{display:flex;align-items:center;gap:7px;}
+.period-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.btn-nueva-venta{padding:7px 16px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-nueva-venta:hover{opacity:.88;}
+/* KPI */
+.krow5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.b::before{background:#0A4FBF;}.kc.c::before{background:#00C9A7;}
+.kc.g::before{background:#16A34A;}.kc.a::before{background:#D97706;}.kc.p::before{background:#7C3AED;}
+.kc-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-val{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
+.kc-sub{font-size:10px;color:#6B7BA8;}
+/* MAIN 2-COL */
+.main2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:10px;}
+/* TABLA VENTAS */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.tipo-tabs{display:flex;border-radius:8px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;}
+.tt{padding:5px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;}
+.tt.act{background:#0A4FBF;color:#fff;}
+.v-table{width:100%;border-collapse:collapse;}
+.v-table th{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.v-table td{padding:9px 8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.v-table tr:last-child td{border-bottom:none;}
+.v-table tr:hover td{background:#F8FAFF;}
+.v-nom{font-weight:700;color:#0D1B3E;font-size:12px;}
+.v-num{font-size:10px;color:#9AAAC8;}
+.v-fact{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0A4FBF;}
+.v-com{font-family:'Exo 2',sans-serif;font-weight:700;font-size:12px;color:#16A34A;}
+.vtag{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.vtag-serv{background:#EBF2FF;color:#0A4FBF;}
+.vtag-prod{background:#F5F3FF;color:#7C3AED;}
+.wrap-scroll{overflow-y:auto;max-height:320px;}
+.wrap-scroll::-webkit-scrollbar{width:3px;}
+.wrap-scroll::-webkit-scrollbar-thumb{background:#DDE4F5;}
+/* DERECHA */
+.rcol2{display:flex;flex-direction:column;gap:10px;}
+/* SEDES */
+.sede-row{display:flex;gap:7px;}
+.sede-card{flex:1;padding:10px 12px;border-radius:10px;background:#EBF2FF;border:1px solid #BFDBFE;text-align:center;}
+.sede-n{font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.4px;}
+.sede-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;margin-top:3px;}
+/* RÉCORD */
+.record-table{width:100%;border-collapse:collapse;}
+.record-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:4px 7px;border-bottom:1px solid #DDE4F5;}
+.record-table td{padding:7px 7px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;}
+.record-table tr:last-child td{border-bottom:none;}
+.record-table tr.mes-act{background:#EBF2FF;}
+/* TOP CLIENTES */
+.top-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}
+.top-item:last-child{border-bottom:none;}
+.top-rank{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:800;color:#9AAAC8;width:22px;text-align:center;}
+.top-info{flex:1;min-width:0;}
+.top-nom{font-size:12px;font-weight:700;color:#0D1B3E;}
+.top-tel{font-size:10px;color:#9AAAC8;}
+.top-fact{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;flex-shrink:0;}
+.wa-btn{width:24px;height:24px;border-radius:6px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;flex-shrink:0;}
+/* LOADING */
+.ld-row{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
+.sp{width:18px;height:18px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* MODAL NUEVA VENTA */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:480px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.mg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#16A34A;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+/* PREVIEW COM */
+.com-preview{padding:10px 12px;border-radius:9px;background:#F0FDF4;border:1px solid #BBF7D0;margin-top:8px;}
+.cp-lbl{font-size:10px;color:#6B7BA8;}
+.cp-val{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;color:#16A34A;}
+</style>
+
+<div class="vs-root">
+
+  <!-- HEADER -->
+  <div class="vs-header">
+    <div class="vs-title">Mis Ventas</div>
+    <div class="vs-controls">
+      <select class="period-sel" id="mes-sel" onchange="reload()">
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Septiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <select class="period-sel" id="anio-sel" onchange="reload()">
+        <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
+      </select>
+      <button class="btn-nueva-venta" onclick="openNuevaVenta()">+ Registrar venta</button>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="krow5">
+    <div class="kc b"><div class="kc-lbl">Facturado</div><div class="kc-val" id="kv-fact">—</div><div class="kc-sub" id="kv-fact-sub">del mes</div></div>
+    <div class="kc c"><div class="kc-lbl">Ventas</div><div class="kc-val" id="kv-count">—</div><div class="kc-sub">registradas</div></div>
+    <div class="kc g"><div class="kc-lbl">Ticket prom.</div><div class="kc-val" id="kv-ticket">—</div><div class="kc-sub">por venta</div></div>
+    <div class="kc a"><div class="kc-lbl">Servicios</div><div class="kc-val" id="kv-serv">—</div><div class="kc-sub" id="kv-serv-sub">ventas</div></div>
+    <div class="kc p"><div class="kc-lbl">Productos</div><div class="kc-val" id="kv-prod">—</div><div class="kc-sub" id="kv-prod-sub">ventas</div></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main2">
+
+    <!-- TABLA VENTAS -->
+    <div class="card">
+      <div class="chd">
+        <div class="ct">VENTAS DEL MES</div>
+        <div class="tipo-tabs">
+          <button class="tt act" id="tt-all"  onclick="setTipo('')">Todas</button>
+          <button class="tt"     id="tt-serv" onclick="setTipo('SERVICIO')">Servicios</button>
+          <button class="tt"     id="tt-prod" onclick="setTipo('PRODUCTO')">Productos</button>
+        </div>
+      </div>
+      <div class="wrap-scroll">
+        <table class="v-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Tratamiento</th>
+              <th>Monto</th>
+              <th>Comisión</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody id="ventas-body">
+            <tr><td colspan="6" class="ld-row"><span class="sp"></span>Cargando ventas...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:9px 0 0;font-size:11px;border-top:1px solid #DDE4F5;margin-top:8px;">
+        <span style="color:#6B7BA8;">Total facturado: <b id="sum-fact" style="color:#0A4FBF;font-family:'Exo 2',sans-serif;">—</b></span>
+        <span style="color:#6B7BA8;">Total comisión: <b id="sum-com" style="color:#16A34A;font-family:'Exo 2',sans-serif;">—</b></span>
+      </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="rcol2">
+
+      <!-- POR SEDE -->
+      <div class="card">
+        <div class="chd"><div class="ct">POR SEDE</div></div>
+        <div class="sede-row">
+          <div class="sede-card">
+            <div class="sede-n">San Isidro</div>
+            <div class="sede-v" id="sede-si">S/0</div>
+          </div>
+          <div class="sede-card">
+            <div class="sede-n">Pueblo Libre</div>
+            <div class="sede-v" id="sede-pl">S/0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RÉCORD DEL AÑO -->
+      <div class="card">
+        <div class="chd"><div class="ct">RÉCORD DEL AÑO</div></div>
+        <div class="wrap-scroll" style="max-height:160px;">
+          <table class="record-table">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Fact.</th>
+                <th>Com. Serv</th>
+                <th>Com. Prod</th>
+                <th>Total com.</th>
+              </tr>
+            </thead>
+            <tbody id="record-body">
+              <tr><td colspan="5" class="ld-row"><span class="sp"></span>Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TOP CLIENTES -->
+      <div class="card" style="flex:1;">
+        <div class="chd"><div class="ct">TOP CLIENTES</div></div>
+        <div id="top-clientes">
+          <div class="ld-row"><span class="sp"></span>Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA VENTA -->
+<div class="mov" id="m-venta">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mtit">Registrar venta</div>
+      <div class="mclose" onclick="closeVentaModal()">✕</div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><div class="ml">Celular del cliente</div><input class="mi" id="nv-cel" placeholder="987654321" oninput="simularCom()"/></div>
+      <div class="mf"><div class="ml">Monto (S/.)</div><input class="mi" id="nv-monto" type="number" placeholder="169" oninput="simularCom()"/></div>
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="nv-nombre" placeholder="Nombre"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="nv-apellido" placeholder="Apellido"/></div>
+      <div class="mf full"><div class="ml">Tratamiento</div>
+        <select class="ms" id="nv-trat" onchange="simularCom()"></select>
+      </div>
+      <div class="mf"><div class="ml">Tipo</div>
+        <select class="ms" id="nv-tipo" onchange="simularCom()">
+          <option value="SERVICIO">Servicio</option>
+          <option value="PRODUCTO">Producto</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Sede</div>
+        <select class="ms" id="nv-sede">
+          <option value="SAN ISIDRO">San Isidro</option>
+          <option value="PUEBLO LIBRE">Pueblo Libre</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Forma de pago</div>
+        <select class="ms" id="nv-pago">
+          <option value="EFECTIVO">Efectivo</option>
+          <option value="TARJETA">Tarjeta</option>
+          <option value="YAPE">Yape</option>
+          <option value="PLIN">Plin</option>
+          <option value="TRANSFERENCIA">Transferencia</option>
+        </select>
+      </div>
+      <div class="mf"><div class="ml">Estado de pago</div>
+        <select class="ms" id="nv-estado-pago">
+          <option value="PAGO COMPLETO">Pago completo</option>
+          <option value="ADELANTO">Adelanto</option>
+          <option value="PENDIENTE">Pendiente</option>
+        </select>
+      </div>
+      <div class="mf full">
+        <div class="com-preview">
+          <div class="cp-lbl">Comisión estimada</div>
+          <div class="cp-val" id="com-preview-v">S/. 0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeVentaModal()">Cancelar</button>
+      <button class="mconf" id="btn-guardar-venta" onclick="guardarVenta()">✓ Registrar venta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var VSales = {
+  token:    '',
+  mes:      new Date().getMonth() + 1,
+  anio:     new Date().getFullYear(),
+  tipo:     '',
+  allVentas:[]
+};
+
+(function() {
+  VSales.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  document.getElementById('mes-sel').value  = VSales.mes;
+  document.getElementById('anio-sel').value = VSales.anio;
+  reload();
+  loadTrats();
+})();
+
+function reload() {
+  VSales.mes  = Number(document.getElementById('mes-sel').value);
+  VSales.anio = Number(document.getElementById('anio-sel').value);
+  setLoading();
+  google.script.run
+    .withSuccessHandler(renderDashboard)
+    .withFailureHandler(setError)
+    .api_getAdvisorSalesDashboardT(VSales.token, VSales.mes, VSales.anio);
+}
+
+function renderDashboard(res) {
+  if (!res || !res.ok) { setError(); return; }
+  var k = res.kpis;
+
+  // KPIs
+  document.getElementById('kv-fact').textContent     = 'S/' + (k.factTotal||0).toFixed(2);
+  document.getElementById('kv-count').textContent    = k.count || 0;
+  document.getElementById('kv-ticket').textContent   = 'S/' + (k.ticketProm||0).toFixed(0);
+  document.getElementById('kv-serv').textContent     = k.cnServ || 0;
+  document.getElementById('kv-serv-sub').textContent = 'S/' + (k.factServ||0).toFixed(0);
+  document.getElementById('kv-prod').textContent     = k.cnProd || 0;
+  document.getElementById('kv-prod-sub').textContent = 'S/' + (k.factProd||0).toFixed(0);
+
+  // Por sede
+  var sede = res.porSede || {};
+  document.getElementById('sede-si').textContent = 'S/' + ((sede['SAN ISIDRO']||0)).toFixed(0);
+  document.getElementById('sede-pl').textContent = 'S/' + ((sede['PUEBLO LIBRE']||0)).toFixed(0);
+
+  // Récord
+  var tb = document.getElementById('record-body');
+  if (res.historial && res.historial.length) {
+    tb.innerHTML = res.historial.map(function(h) {
+      var isCur = h.mes === VSales.mes;
+      return '<tr' + (isCur ? ' class="mes-act"' : '') + '>' +
+        '<td style="font-weight:700;">' + h.mesNom + '</td>' +
+        '<td>S/' + (h.fact||0).toFixed(0) + '</td>' +
+        '<td>S/' + (h.comServ||0).toFixed(2) + '</td>' +
+        '<td>S/' + (h.comProd||0).toFixed(2) + '</td>' +
+        '<td style="font-weight:700;color:#0A4FBF;">S/' + (h.comTotal||0).toFixed(2) + '</td>' +
+        '</tr>';
+    }).join('');
+  } else {
+    tb.innerHTML = '<tr><td colspan="5" class="ld-row">Sin datos</td></tr>';
+  }
+
+  // Top clientes
+  var tc = document.getElementById('top-clientes');
+  if (res.topClientes && res.topClientes.length) {
+    var emojis = ['🥇','🥈','🥉','4','5'];
+    tc.innerHTML = res.topClientes.map(function(c, i) {
+      return '<div class="top-item">' +
+        '<div class="top-rank">' + (emojis[i] || (i+1)) + '</div>' +
+        '<div class="top-info">' +
+          '<div class="top-nom">' + (c.nombre || c.num || '—').slice(0,24) + '</div>' +
+          '<div class="top-tel">' + (c.num || '—') + ' · ' + (c.ultFecha || '') + '</div>' +
+        '</div>' +
+        '<div class="top-fact">S/' + (c.fact||0).toFixed(2) + '</div>' +
+        (c.wa ? '<div class="wa-btn" onclick="window.open(\'' + c.wa + '\',\'_blank\')">💬</div>' : '') +
+        '</div>';
+    }).join('');
+  } else {
+    tc.innerHTML = '<div style="text-align:center;color:#9AAAC8;font-size:12px;padding:14px;">Sin clientes este mes</div>';
+  }
+
+  // Guardar todas las ventas para la tabla
+  VSales.allVentas = res.ultimas || [];
+  loadVentasTabla();
+}
+
+function setTipo(tipo) {
+  VSales.tipo = tipo;
+  ['all','serv','prod'].forEach(function(t) {
+    document.getElementById('tt-' + t).classList.remove('act');
+  });
+  var map = { '':'all', 'SERVICIO':'serv', 'PRODUCTO':'prod' };
+  document.getElementById('tt-' + (map[tipo] || 'all')).classList.add('act');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      renderVentasTable(res.items, res.factTotal, res.comTotal);
+    })
+    .api_listAdvisorSalesT(VSales.token, VSales.mes, VSales.anio, tipo);
+}
+
+function loadVentasTabla() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      renderVentasTable(res.items, res.factTotal, res.comTotal);
+    })
+    .api_listAdvisorSalesT(VSales.token, VSales.mes, VSales.anio, VSales.tipo);
+}
+
+function renderVentasTable(items, factTotal, comTotal) {
+  var tbody = document.getElementById('ventas-body');
+  document.getElementById('sum-fact').textContent = 'S/' + (factTotal||0).toFixed(2);
+  document.getElementById('sum-com').textContent  = 'S/' + (comTotal||0).toFixed(2);
+
+  if (!items || !items.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="ld-row" style="color:#9AAAC8;">Sin ventas para el período</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(function(v) {
+    var nom = ((v.nombres||'') + ' ' + (v.apellidos||'')).trim() || v.num || '—';
+    var cls = v.tipo === 'PRODUCTO' ? 'vtag-prod' : 'vtag-serv';
+    return '<tr>' +
+      '<td style="color:#6B7BA8;font-size:11px;">' + (v.fecha||'—') + '</td>' +
+      '<td><div class="v-nom">' + nom.slice(0,20) + '</div><div class="v-num">' + (v.num||'') + '</div></td>' +
+      '<td style="font-size:11px;">' + (v.trat||'—').slice(0,18) + '</td>' +
+      '<td><span class="v-fact">S/' + (v.monto||0).toFixed(2) + '</span></td>' +
+      '<td><span class="v-com">S/' + (v.comision||0).toFixed(2) + '</span></td>' +
+      '<td><span class="vtag ' + cls + '">' + (v.tipo||'—') + '</span></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function openNuevaVenta() {
+  document.getElementById('m-venta').classList.add('open');
+  simularCom();
+}
+function closeVentaModal() { document.getElementById('m-venta').classList.remove('open'); }
+
+function simularCom() {
+  var monto = Number(document.getElementById('nv-monto').value) || 0;
+  var tipo  = document.getElementById('nv-tipo').value;
+  if (!monto) { document.getElementById('com-preview-v').textContent = 'S/. 0.00'; return; }
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res) return;
+      document.getElementById('com-preview-v').textContent = res.comFmt || 'S/. 0.00';
+    })
+    .withFailureHandler(function() {})
+    .api_getComisionSimuladaT(VSales.token, monto, tipo);
+}
+
+function guardarVenta() {
+  var cel   = document.getElementById('nv-cel').value.trim();
+  var monto = Number(document.getElementById('nv-monto').value);
+  var trat  = document.getElementById('nv-trat').value;
+  if (!cel)  { alert('Falta el celular del cliente.'); return; }
+  if (!monto){ alert('Falta el monto de la venta.'); return; }
+  if (!trat) { alert('Falta el tratamiento.'); return; }
+
+  var btn = document.getElementById('btn-guardar-venta');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  var payload = {
+    celular:      cel,
+    nombres:      document.getElementById('nv-nombre').value.trim(),
+    apellidos:    document.getElementById('nv-apellido').value.trim(),
+    tratamiento:  trat,
+    tipo:         document.getElementById('nv-tipo').value,
+    monto:        monto,
+    pago:         document.getElementById('nv-pago').value,
+    estadoPago:   document.getElementById('nv-estado-pago').value,
+    sede:         document.getElementById('nv-sede').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false; btn.textContent = '✓ Registrar venta';
+      closeVentaModal();
+      if (window.AOS_playSound) AOS_playSound('venta');
+      if (window.AOS_showToast) AOS_showToast('💰 Venta registrada', 'S/' + monto.toFixed(2) + ' — ' + trat, 'toast-venta');
+      reload();
+    })
+    .withFailureHandler(function(e) {
+      btn.disabled = false; btn.textContent = '✓ Registrar venta';
+      alert('Error: ' + (e && e.message || 'desconocido'));
+    })
+    .api_registerSaleT(VSales.token, payload);
+}
+
+function loadTrats() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      var sel = document.getElementById('nv-trat');
+      sel.innerHTML = res.items.map(function(t) {
+        return '<option value="' + t + '">' + t + '</option>';
+      }).join('');
+    })
+    .api_listTratamientosT(VSales.token);
+}
+
+function setLoading() {
+  document.getElementById('ventas-body').innerHTML =
+    '<tr><td colspan="6" class="ld-row"><span class="sp"></span>Cargando ventas...</td></tr>';
+}
+function setError() {
+  document.getElementById('ventas-body').innerHTML =
+    '<tr><td colspan="6" class="ld-row" style="color:#DC2626;">⚠️ Error al cargar ventas</td></tr>';
+}
+</script>

@@ -1,0 +1,481 @@
+<!-- ViewAdvisorFollowups.html — Seguimientos AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.vf-root{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.r::before{background:#DC2626;}
+.kc.a::before{background:#D97706;}
+.kc.b::before{background:#0A4FBF;}
+.kc.g::before{background:#16A34A;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
+.kc-s{font-size:10px;font-weight:600;color:#6B7BA8;}
+/* MAIN */
+.main2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:10px;flex:1;}
+/* LISTA */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+/* TABS */
+.ftabs{display:flex;border-radius:9px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;margin-bottom:10px;}
+.ft{flex:1;padding:7px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;text-align:center;transition:all .15s;}
+.ft.act-r{background:#DC2626;color:#fff;}
+.ft.act-a{background:#D97706;color:#fff;}
+.ft.act-b{background:#0A4FBF;color:#fff;}
+.ft.act-g{background:#16A34A;color:#fff;}
+/* LISTA SEGUIMIENTOS */
+.seg-list{display:flex;flex-direction:column;gap:7px;overflow-y:auto;max-height:calc(100vh - 320px);}
+.seg-list::-webkit-scrollbar{width:3px;}
+.seg-list::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.si{border-radius:11px;border:1px solid;padding:11px 13px;cursor:pointer;transition:opacity .12s;}
+.si:hover{opacity:.85;}
+.si.sv{background:#FEF2F2;border-color:#FECACA;}
+.si.sh{background:#FFFBEB;border-color:#FDE68A;}
+.si.sp{background:#F0F4FC;border-color:#BFDBFE;}
+.si.sc{background:#F0FDF4;border-color:#BBF7D0;}
+.si-top{display:flex;align-items:center;justify-content:space-between;}
+.si-tag{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;}
+.sv .si-tag{color:#DC2626;}
+.sh .si-tag{color:#D97706;}
+.sp .si-tag{color:#0A4FBF;}
+.sc .si-tag{color:#16A34A;}
+.si-actions{display:flex;gap:4px;}
+.sab{width:26px;height:26px;border-radius:7px;border:1px solid #DDE4F5;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;}
+.sab:hover{background:#fff;}
+.si-num{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;margin:4px 0 2px;}
+.si-trat{font-size:12px;font-weight:600;color:#6B7BA8;}
+.si-obs{font-size:11px;color:#9AAAC8;margin-top:3px;font-style:italic;}
+.si-hora{font-size:11px;color:#6B7BA8;margin-top:2px;}
+/* NUEVO SEGUIMIENTO */
+.nueva-seg-btn{width:100%;padding:9px;border-radius:10px;border:2px dashed #BFDBFE;background:transparent;font-size:12px;font-weight:700;color:#0A4FBF;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;transition:background .15s;}
+.nueva-seg-btn:hover{background:#EBF2FF;}
+/* LADO DERECHO */
+.rcol2{display:flex;flex-direction:column;gap:10px;}
+/* MINI CALENDARIO */
+.cal-wrap{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-nav{width:24px;height:24px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#6B7BA8;}
+.cal-nav:hover{background:#EBF2FF;}
+.cal-mes{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-day-hdr{text-align:center;font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;padding:3px 0;}
+.cal-day{text-align:center;padding:5px 2px;border-radius:6px;font-size:12px;cursor:pointer;transition:background .1s;position:relative;}
+.cal-day:hover{background:#EBF2FF;}
+.cal-day.hoy{background:#0A4FBF;color:#fff;font-weight:800;}
+.cal-day.tiene-seg{background:#FEF2F2;color:#DC2626;font-weight:800;}
+.cal-day.tiene-seg.hoy{background:#0A4FBF;color:#fff;}
+.cal-day.vacio{opacity:0;}
+.cal-day.otro-mes{color:#C8D0E0;}
+.cal-dot{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#DC2626;}
+/* RESUMEN PRÓXIMOS */
+.prox-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}
+.prox-item:last-child{border-bottom:none;}
+.prox-fecha{min-width:38px;text-align:center;padding:5px 4px;border-radius:8px;background:#EBF2FF;}
+.prox-dia{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0A4FBF;line-height:1;}
+.prox-mes{font-size:9px;color:#6B7BA8;text-transform:uppercase;letter-spacing:.3px;}
+.prox-info{flex:1;min-width:0;}
+.prox-num{font-size:12px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prox-trat{font-size:10px;color:#9AAAC8;}
+.prox-hora{font-size:10px;color:#0A4FBF;font-weight:700;}
+.prox-wa{width:24px;height:24px;border-radius:6px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;flex-shrink:0;}
+/* MODAL */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;border:1px solid #DDE4F5;}
+.mhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.msub{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:none;height:65px;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ld{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+
+<div class="vf-root">
+  <!-- KPI -->
+  <div class="krow">
+    <div class="kc r"><div class="kc-l">Vencidos</div><div class="kc-v" id="k-venc">—</div><div class="kc-s">Requieren atención</div></div>
+    <div class="kc a"><div class="kc-l">Para hoy</div><div class="kc-v" id="k-hoy">—</div><div class="kc-s">Programados hoy</div></div>
+    <div class="kc b"><div class="kc-l">Próximos</div><div class="kc-v" id="k-prox">—</div><div class="kc-s">En los siguientes días</div></div>
+    <div class="kc g"><div class="kc-l">Cerrados</div><div class="kc-v" id="k-cerr">—</div><div class="kc-s">Este mes</div></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main2">
+
+    <!-- LISTA SEGUIMIENTOS -->
+    <div class="card">
+      <div class="chd">
+        <div class="ct">MIS SEGUIMIENTOS</div>
+      </div>
+      <div class="ftabs">
+        <button class="ft act-r" id="ft-venc"  onclick="setTab('vencido')">⚠ Vencidos</button>
+        <button class="ft"       id="ft-hoy"   onclick="setTab('hoy')">● Hoy</button>
+        <button class="ft"       id="ft-prox"  onclick="setTab('proximo')">○ Próximos</button>
+        <button class="ft"       id="ft-todos" onclick="setTab('todos')">Todos</button>
+      </div>
+      <div class="seg-list" id="seg-list">
+        <div class="ld"><span class="sp"></span>Cargando seguimientos...</div>
+      </div>
+      <button class="nueva-seg-btn" onclick="openNuevo()">+ Nuevo seguimiento manual</button>
+    </div>
+
+    <!-- LADO DERECHO -->
+    <div class="rcol2">
+
+      <!-- MINI CALENDARIO -->
+      <div class="cal-wrap">
+        <div class="cal-hd">
+          <div class="cal-nav" onclick="calNav(-1)">◀</div>
+          <div class="cal-mes" id="cal-mes-lbl">— —</div>
+          <div class="cal-nav" onclick="calNav(1)">▶</div>
+        </div>
+        <div class="cal-grid" id="cal-grid">
+          <div class="cal-day-hdr">LU</div>
+          <div class="cal-day-hdr">MA</div>
+          <div class="cal-day-hdr">MI</div>
+          <div class="cal-day-hdr">JU</div>
+          <div class="cal-day-hdr">VI</div>
+          <div class="cal-day-hdr">SA</div>
+          <div class="cal-day-hdr">DO</div>
+        </div>
+      </div>
+
+      <!-- PRÓXIMOS 5 -->
+      <div class="card" style="flex:1;">
+        <div class="chd"><div class="ct">PRÓXIMOS 5 DÍAS</div></div>
+        <div id="prox-list">
+          <div class="ld"><span class="sp"></span>Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO SEGUIMIENTO -->
+<div class="mov" id="m-nuevo">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <div class="mtit">⏰ Nuevo seguimiento</div>
+        <div class="msub">Programar recontacto manual</div>
+      </div>
+      <div class="mclose" onclick="closeModal()">✕</div>
+    </div>
+    <div class="mg">
+      <div class="mf full"><div class="ml">Número de teléfono</div><input class="mi" id="ns-num" placeholder="987654321"/></div>
+      <div class="mf"><div class="ml">Fecha de rellamada</div><input class="mi" id="ns-fecha" type="date"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="ns-hora" type="time" value="10:00"/></div>
+      <div class="mf full"><div class="ml">Tratamiento</div>
+        <select class="ms" id="ns-trat"></select>
+      </div>
+      <div class="mf full"><div class="ml">Nota para el recontacto</div>
+        <textarea class="mta" id="ns-obs" placeholder="Ej: Le interesa HIFU, pedir precio, llamar en la mañana..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal()">Cancelar</button>
+      <button class="mconf" onclick="guardarNuevo()">✓ Programar seguimiento</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var VF = {
+  token:     '',
+  tab:       'vencido',
+  allItems:  [],
+  calAnio:   new Date().getFullYear(),
+  calMes:    new Date().getMonth()
+};
+var MESES_CAL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+(function() {
+  VF.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  var hoy = new Date().toISOString().slice(0,10);
+  document.getElementById('ns-fecha').value = hoy;
+  document.getElementById('ns-fecha').min   = hoy;
+  loadTrats();
+  loadFollowups();
+})();
+
+function loadFollowups() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      var all = res.items || [];
+      var tot = res.totales || {};
+
+      document.getElementById('k-venc').textContent = tot.vencido  || 0;
+      document.getElementById('k-hoy').textContent  = tot.hoy      || 0;
+      document.getElementById('k-prox').textContent = tot.proximo  || 0;
+
+      VF.allItems = all;
+      renderList();
+      renderCalendario(all);
+      renderProximos(all);
+
+      // Contar cerrados del mes
+      google.script.run
+        .withSuccessHandler(function(r2) {
+          if (r2 && r2.ok) {
+            document.getElementById('k-cerr').textContent = r2.totales ? (r2.totales.cerrados||0) : 0;
+          }
+        })
+        .withFailureHandler(function(){})
+        .api_listFollowupsT(VF.token, 'todos');
+    })
+    .withFailureHandler(function() {
+      document.getElementById('seg-list').innerHTML =
+        '<div class="ld" style="color:#DC2626;">Error al cargar seguimientos</div>';
+    })
+    .api_listFollowupsT(VF.token, 'todos');
+}
+
+function setTab(t) {
+  VF.tab = t;
+  var clsMap = { vencido:'act-r', hoy:'act-a', proximo:'act-b', todos:'act-g' };
+  var idMap  = { vencido:'ft-venc', hoy:'ft-hoy', proximo:'ft-prox', todos:'ft-todos' };
+  ['ft-venc','ft-hoy','ft-prox','ft-todos'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.className = 'ft';
+  });
+  var actEl = document.getElementById(idMap[t]);
+  if (actEl) actEl.classList.add(clsMap[t] || 'act-b');
+  renderList();
+}
+
+function renderList() {
+  var el    = document.getElementById('seg-list');
+  var items = VF.allItems.filter(function(s) {
+    if (VF.tab === 'todos') return true;
+    return s.tipo === VF.tab;
+  });
+
+  if (!items.length) {
+    var msgs = { vencido:'Sin seguimientos vencidos 🎉', hoy:'Sin seguimientos para hoy',
+      proximo:'Sin seguimientos próximos', todos:'Sin seguimientos pendientes' };
+    el.innerHTML = '<div class="ld" style="color:#16A34A;font-weight:700;">' + (msgs[VF.tab]||'Sin datos') + '</div>';
+    return;
+  }
+
+  el.innerHTML = items.map(function(s) {
+    var clsMap  = { vencido:'sv', hoy:'sh', proximo:'sp' };
+    var tagMap  = {
+      vencido:'⚠ VENCIDO · ' + s.fecha,
+      hoy:    '● HOY · ' + s.hora,
+      proximo:'○ ' + s.fecha + (s.hora ? ' · ' + s.hora : '')
+    };
+    var cls = clsMap[s.tipo] || 'sp';
+    var tag = tagMap[s.tipo] || s.fecha;
+    return '<div class="si ' + cls + '">' +
+      '<div class="si-top">' +
+        '<span class="si-tag">' + tag + '</span>' +
+        '<div class="si-actions">' +
+          (s.wa ? '<div class="sab" onclick="openWa(\'' + s.wa + '\')" title="WhatsApp">💬</div>' : '') +
+          '<div class="sab" onclick="llamar(\'' + s.num + '\')" title="Llamar">📞</div>' +
+          '<div class="sab" onclick="cerrarSeg(' + s.rowNum + ')" title="Cerrar">✓</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="si-num">' + s.num + '</div>' +
+      '<div class="si-trat">' + (s.trat||'—') + '</div>' +
+      (s.obs ? '<div class="si-obs">"' + s.obs + '"</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function renderCalendario(items) {
+  var segsMap = {};
+  items.forEach(function(s) {
+    if (s.fecha) segsMap[s.fecha] = (segsMap[s.fecha]||0) + 1;
+  });
+
+  var hoy   = new Date();
+  var anio  = VF.calAnio;
+  var mes   = VF.calMes;
+  var lbl   = MESES_CAL[mes] + ' ' + anio;
+  document.getElementById('cal-mes-lbl').textContent = lbl;
+
+  var primerDia = new Date(anio, mes, 1);
+  var totalDias = new Date(anio, mes+1, 0).getDate();
+  var diaSem    = primerDia.getDay(); // 0=Dom
+  var offset    = diaSem === 0 ? 6 : diaSem - 1; // Lunes=0
+
+  var grid = document.getElementById('cal-grid');
+  // Quitar celdas anteriores (mantener los 7 headers)
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  // Celdas vacías antes
+  for (var i = 0; i < offset; i++) {
+    var v = document.createElement('div');
+    v.className = 'cal-day vacio';
+    v.textContent = ' ';
+    grid.appendChild(v);
+  }
+
+  var todayStr = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+
+  for (var d = 1; d <= totalDias; d++) {
+    var fd   = anio+'-'+String(mes+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var cell = document.createElement('div');
+    cell.className = 'cal-day';
+    cell.textContent = d;
+    if (fd === todayStr) cell.classList.add('hoy');
+    if (segsMap[fd]) {
+      cell.classList.add('tiene-seg');
+      var dot = document.createElement('div');
+      dot.className = 'cal-dot';
+      cell.appendChild(dot);
+    }
+    cell.setAttribute('data-fecha', fd);
+    cell.addEventListener('click', function() {
+      var f = this.getAttribute('data-fecha');
+      filterByFecha(f);
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function calNav(dir) {
+  VF.calMes += dir;
+  if (VF.calMes > 11) { VF.calMes = 0;  VF.calAnio++; }
+  if (VF.calMes < 0)  { VF.calMes = 11; VF.calAnio--; }
+  renderCalendario(VF.allItems);
+}
+
+function filterByFecha(fecha) {
+  VF.tab = 'todos';
+  ['ft-venc','ft-hoy','ft-prox','ft-todos'].forEach(function(id) {
+    document.getElementById(id).className = 'ft';
+  });
+  document.getElementById('ft-todos').classList.add('act-g');
+
+  var el    = document.getElementById('seg-list');
+  var items = VF.allItems.filter(function(s) { return s.fecha === fecha; });
+
+  if (!items.length) {
+    el.innerHTML = '<div class="ld">Sin seguimientos para ' + fecha + '</div>';
+    return;
+  }
+  el.innerHTML = items.map(function(s) {
+    return '<div class="si sp">' +
+      '<div class="si-top"><span class="si-tag">📅 ' + fecha + ' · ' + (s.hora||'—') + '</span>' +
+      '<div class="si-actions">' +
+        (s.wa?'<div class="sab" onclick="openWa(\''+s.wa+'\')">💬</div>':'') +
+        '<div class="sab" onclick="cerrarSeg('+s.rowNum+')">✓</div>' +
+      '</div></div>' +
+      '<div class="si-num">'+s.num+'</div>' +
+      '<div class="si-trat">'+(s.trat||'—')+'</div>' +
+      (s.obs?'<div class="si-obs">"'+s.obs+'"</div>':'') +
+      '</div>';
+  }).join('');
+}
+
+function renderProximos(items) {
+  var hoy  = new Date();
+  var prox = items
+    .filter(function(s) { return s.tipo === 'proximo' || s.tipo === 'hoy'; })
+    .slice(0, 5);
+
+  var el = document.getElementById('prox-list');
+  if (!prox.length) {
+    el.innerHTML = '<div class="ld">Sin seguimientos próximos</div>'; return;
+  }
+
+  var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  el.innerHTML = prox.map(function(s) {
+    var partes = (s.fecha||'').split('-');
+    var dia    = partes[2] || '—';
+    var mesIdx = partes[1] ? parseInt(partes[1])-1 : 0;
+    var mesLbl = meses[mesIdx] || '—';
+    return '<div class="prox-item">' +
+      '<div class="prox-fecha"><div class="prox-dia">'+dia+'</div><div class="prox-mes">'+mesLbl+'</div></div>' +
+      '<div class="prox-info">' +
+        '<div class="prox-num">'+s.num+'</div>' +
+        '<div class="prox-trat">'+(s.trat||'—')+'</div>' +
+      '</div>' +
+      (s.hora ? '<div class="prox-hora">'+s.hora+'</div>' : '') +
+      (s.wa ? '<div class="prox-wa" onclick="openWa(\''+s.wa+'\')">💬</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
+function openWa(wa) { if(wa) window.open(wa,'_blank'); }
+
+function llamar(num) {
+  if (window.AOS_setEstado) AOS_setEstado('EN LLAMADA','#0A4FBF');
+  if (window.AOS_navigateTo) AOS_navigateTo('advisor-calls');
+}
+
+function cerrarSeg(rowNum) {
+  if (!rowNum || !confirm('¿Marcar este seguimiento como cerrado?')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      if (window.AOS_showToast) AOS_showToast('✓ Seguimiento cerrado','','');
+      loadFollowups();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+(e&&e.message||'desconocido')); })
+    .api_closeFollowupT(VF.token, rowNum);
+}
+
+function openNuevo() {
+  document.getElementById('m-nuevo').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('m-nuevo').classList.remove('open');
+}
+
+function guardarNuevo() {
+  var num   = document.getElementById('ns-num').value.trim();
+  var fecha = document.getElementById('ns-fecha').value;
+  var hora  = document.getElementById('ns-hora').value;
+  if (!num)   { alert('Falta el número.'); return; }
+  if (!fecha) { alert('Falta la fecha.'); return; }
+
+  var proxTs = new Date(fecha + 'T' + (hora||'10:00') + ':00').toISOString();
+  var payload = {
+    numero:          num,
+    estado:          'SEGUIMIENTO',
+    obs:             document.getElementById('ns-obs').value.trim(),
+    tratamiento:     document.getElementById('ns-trat').value,
+    proxReintentoTs: proxTs,
+    rowNum:          0
+  };
+
+  google.script.run
+    .withSuccessHandler(function() {
+      closeModal();
+      if (window.AOS_playSound) AOS_playSound('notif');
+      if (window.AOS_showToast) AOS_showToast('⏰ Seguimiento programado','','');
+      loadFollowups();
+    })
+    .withFailureHandler(function(e){ alert('Error: '+(e&&e.message||'desconocido')); })
+    .api_saveCallT(VF.token, payload);
+}
+
+function loadTrats() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) return;
+      var sel = document.getElementById('ns-trat');
+      sel.innerHTML = res.items.map(function(t){return '<option>'+t+'</option>';}).join('');
+    })
+    .api_listTratamientosT(VF.token);
+}
+</script>

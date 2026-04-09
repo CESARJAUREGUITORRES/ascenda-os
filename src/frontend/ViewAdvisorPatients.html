@@ -1,0 +1,381 @@
+<!-- ViewAdvisorPatients.html — Pacientes AscendaOS v1 -->
+<style>
+.vp-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.ksc{background:#fff;border:1px solid #DDE4F5;border-radius:11px;padding:10px 12px;position:relative;overflow:hidden;}
+.ksc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:11px 11px 0 0;}
+.ksc.b::before{background:#0A4FBF;}.ksc.g::before{background:#16A34A;}
+.ksc.r::before{background:#DC2626;}.ksc.a::before{background:#00C9A7;}
+.ksc-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.ksc-val{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 1px;}
+/* SEARCH */
+.search-bar{display:flex;gap:8px;align-items:center;}
+.search-inp{flex:1;padding:10px 14px;border-radius:10px;border:1px solid #DDE4F5;background:#fff;font-size:13px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.search-inp:focus{border-color:#0A4FBF;box-shadow:0 0 0 3px rgba(10,79,191,.06);}
+.search-btn{padding:10px 20px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.search-btn:hover{opacity:.88;}
+/* TABLA */
+.table-wrap{background:#fff;border:1px solid #DDE4F5;border-radius:13px;overflow:hidden;}
+.t-header{display:grid;grid-template-columns:80px minmax(0,1fr) 110px 90px 90px 90px 80px;border-bottom:1px solid #DDE4F5;background:#F8FAFF;}
+.t-col{padding:9px 11px;font-size:9px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;}
+.t-body{overflow-y:auto;max-height:calc(100vh - 300px);}
+.t-body::-webkit-scrollbar{width:3px;}
+.t-body::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.t-row{display:grid;grid-template-columns:80px minmax(0,1fr) 110px 90px 90px 90px 80px;border-bottom:1px solid rgba(221,228,245,.4);cursor:pointer;transition:background .1s;}
+.t-row:last-child{border-bottom:none;}
+.t-row:hover{background:#F8FAFF;}
+.t-cell{padding:10px 11px;font-size:12px;display:flex;align-items:center;}
+.pac-id{font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;color:#9AAAC8;}
+.pac-nom{font-weight:700;color:#0D1B3E;}
+.pac-tel{font-size:10px;color:#6B7BA8;margin-top:1px;}
+.fact-v{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;}
+.estado-badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.eb-activo{background:#F0FDF4;color:#16A34A;}
+.eb-nuevo{background:#EBF2FF;color:#0A4FBF;}
+.eb-inactivo{background:#FEF2F2;color:#DC2626;}
+.act-btn{width:26px;height:26px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;margin-right:4px;}
+.act-btn:hover{background:#EBF2FF;border-color:#BFDBFE;}
+.pag-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #DDE4F5;font-size:12px;color:#6B7BA8;}
+.pag-btns{display:flex;gap:5px;}
+.pag-btn{padding:4px 11px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.pag-btn.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.pag-btn:hover:not(.act){background:#EBF2FF;}
+.pag-btn:disabled{opacity:.4;cursor:not-allowed;}
+.loading-row{text-align:center;padding:32px;color:#9AAAC8;font-size:12px;}
+.spinner-sm{width:20px;height:20px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* MODAL PERFIL */
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
+.mov.open{display:flex;}
+.modal-xl{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:700px;border:1px solid #DDE4F5;max-height:92vh;overflow-y:auto;}
+.modal-xl::-webkit-scrollbar{width:3px;}
+.modal-xl::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:17px;color:#0D1B3E;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+/* PERFIL HEADER */
+.pfil-header{display:flex;align-items:flex-start;gap:14px;padding:14px;background:#F8FAFF;border-radius:11px;margin-bottom:14px;border:1px solid #DDE4F5;}
+.pfil-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;}
+.pfil-info{flex:1;}
+.pfil-nom{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.pfil-tel{font-size:13px;color:#6B7BA8;margin-top:3px;}
+.pfil-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.pfil-chip{padding:3px 9px;border-radius:6px;background:#EBF2FF;border:1px solid #BFDBFE;font-size:11px;font-weight:700;color:#0A4FBF;}
+/* HISTORIAL TABS */
+.hist-tabs{display:flex;border-radius:9px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;margin-bottom:12px;}
+.ht{flex:1;padding:8px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;transition:all .15s;text-align:center;}
+.ht.act{background:#0A4FBF;color:#fff;}
+/* HISTORIAL ITEMS */
+.hist-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;}
+.hist-list::-webkit-scrollbar{width:3px;}
+.hist-list::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.hi{padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F8FAFF;}
+.hi-top{display:flex;align-items:center;justify-content:space-between;}
+.hi-fecha{font-size:10px;font-weight:700;color:#9AAAC8;}
+.hi-badge{padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;}
+.hi-titulo{font-size:12px;font-weight:700;color:#0D1B3E;margin-top:3px;}
+.hi-meta{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.hi-venta{border-color:#BBF7D0;background:#F0FDF4;}
+.hi-llam{border-color:#BFDBFE;background:#EBF2FF;}
+.hi-cita{border-color:#E9D5FF;background:#F5F3FF;}
+.notas-area{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:70px;margin-top:8px;}
+.save-notes-btn{width:100%;margin-top:7px;padding:8px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+</style>
+
+<div class="vp-root">
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="ksc b"><div class="ksc-lbl">Total pacientes</div><div class="ksc-val" id="kp-total">—</div></div>
+    <div class="ksc g"><div class="ksc-lbl">Activos</div><div class="ksc-val" id="kp-activos">—</div></div>
+    <div class="ksc r"><div class="ksc-lbl">Inactivos</div><div class="ksc-val" id="kp-inactivos">—</div></div>
+    <div class="ksc a"><div class="ksc-lbl">Nuevos</div><div class="ksc-val" id="kp-nuevos">—</div></div>
+  </div>
+
+  <!-- BÚSQUEDA -->
+  <div class="search-bar">
+    <input class="search-inp" id="search-q" type="text" placeholder="Buscar por nombre, DNI, teléfono o ID..." autocomplete="off"/>
+    <button class="search-btn" onclick="buscar()">Buscar</button>
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-wrap">
+    <div class="t-header">
+      <div class="t-col">ID</div>
+      <div class="t-col">Paciente</div>
+      <div class="t-col">Teléfono</div>
+      <div class="t-col">Facturado</div>
+      <div class="t-col">Últ. visita</div>
+      <div class="t-col">Estado</div>
+      <div class="t-col">Acción</div>
+    </div>
+    <div class="t-body" id="pac-body">
+      <div class="loading-row"><span class="spinner-sm"></span>Cargando pacientes...</div>
+    </div>
+    <div class="pag-row">
+      <span id="pag-info">—</span>
+      <div class="pag-btns">
+        <button class="pag-btn" id="btn-prev" onclick="changePage(-1)" disabled>◀ Anterior</button>
+        <button class="pag-btn" id="btn-next" onclick="changePage(1)">Siguiente ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="mov" id="m-perfil">
+  <div class="modal-xl">
+    <div class="mhd">
+      <div class="mtit" id="m-pfil-title">Perfil del paciente</div>
+      <div class="mclose" onclick="closeModal()">✕</div>
+    </div>
+    <div id="perfil-content">
+      <div class="loading-row"><span class="spinner-sm"></span>Cargando perfil...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var VP = {
+  token: '',
+  page:  1,
+  pages: 1,
+  query: '',
+  currentPac: null
+};
+
+(function() {
+  VP.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  loadStats();
+  loadPatients();
+  document.getElementById('search-q').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') buscar();
+  });
+})();
+
+function loadStats() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) return;
+      document.getElementById('kp-total').textContent    = res.total    || 0;
+      document.getElementById('kp-activos').textContent  = res.activos  || 0;
+      document.getElementById('kp-inactivos').textContent= res.inactivos|| 0;
+      document.getElementById('kp-nuevos').textContent   = res.nuevos   || 0;
+    })
+    .withFailureHandler(function() {})
+    .api_getPatientsStatsT(VP.token);
+}
+
+function buscar() {
+  VP.query = document.getElementById('search-q').value.trim();
+  VP.page  = 1;
+  loadPatients();
+}
+
+function loadPatients() {
+  setLoading();
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) { setError(); return; }
+      VP.pages = res.pages;
+      VP.page  = res.page;
+      renderTable(res.items, res.total, res.page, res.pages);
+    })
+    .withFailureHandler(setError)
+    .api_listPatientsT(VP.token, VP.query, VP.page, 50);
+}
+
+function changePage(dir) {
+  var np = VP.page + dir;
+  if (np < 1 || np > VP.pages) return;
+  VP.page = np;
+  loadPatients();
+}
+
+function renderTable(items, total, page, pages) {
+  var body = document.getElementById('pac-body');
+  if (!items.length) {
+    body.innerHTML = '<div class="loading-row" style="color:#9AAAC8;">Sin resultados' + (VP.query ? ' para "' + VP.query + '"' : '') + '</div>';
+    document.getElementById('pag-info').textContent = '0 pacientes';
+    document.getElementById('btn-prev').disabled = true;
+    document.getElementById('btn-next').disabled = true;
+    return;
+  }
+
+  var start = (page - 1) * 50 + 1;
+  var end   = Math.min(start + items.length - 1, total);
+  document.getElementById('pag-info').textContent = start + '–' + end + ' de ' + total;
+  document.getElementById('btn-prev').disabled = page <= 1;
+  document.getElementById('btn-next').disabled = page >= pages;
+
+  body.innerHTML = items.map(function(p) {
+    var nom     = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || '—';
+    var factFmt = p.totalFact > 0 ? 'S/' + p.totalFact.toFixed(0) : '—';
+    var estCls  = p.estado === 'ACTIVO' ? 'eb-activo' : p.estado === 'NUEVO' ? 'eb-nuevo' : 'eb-inactivo';
+    return '<div class="t-row" onclick="openPerfil(\'' + p.telefono + '\')">' +
+      '<div class="t-cell"><span class="pac-id">' + (p.id || '—') + '</span></div>' +
+      '<div class="t-cell" style="flex-direction:column;align-items:flex-start;">' +
+        '<span class="pac-nom">' + nom + '</span>' +
+        (p.documento ? '<span class="pac-tel">DNI: ' + p.documento + '</span>' : '') +
+      '</div>' +
+      '<div class="t-cell"><span style="font-size:12px;color:#6B7BA8;">' + (p.telefono || '—') + '</span></div>' +
+      '<div class="t-cell"><span class="fact-v">' + factFmt + '</span></div>' +
+      '<div class="t-cell"><span style="font-size:11px;color:#6B7BA8;">' + (p.ultVisita || '—') + '</span></div>' +
+      '<div class="t-cell"><span class="estado-badge ' + estCls + '">' + (p.estado || 'NUEVO') + '</span></div>' +
+      '<div class="t-cell">' +
+        '<div class="act-btn" onclick="openWa(event,\'' + p.wa + '\')" title="WhatsApp">💬</div>' +
+        '<div class="act-btn" onclick="openPerfil(\'' + p.telefono + '\')" title="Ver perfil">👁</div>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function openWa(evt, wa) {
+  evt.stopPropagation();
+  if (wa) window.open(wa, '_blank');
+}
+
+function openPerfil(telefono) {
+  VP.currentPac = telefono;
+  document.getElementById('perfil-content').innerHTML =
+    '<div class="loading-row"><span class="spinner-sm"></span>Cargando...</div>';
+  document.getElementById('m-perfil').classList.add('open');
+
+  google.script.run
+    .withSuccessHandler(renderPerfil)
+    .withFailureHandler(function() {
+      document.getElementById('perfil-content').innerHTML =
+        '<div class="loading-row" style="color:#DC2626;">Error al cargar el perfil</div>';
+    })
+    .api_getPatientProfileT(VP.token, telefono);
+}
+
+function renderPerfil(res) {
+  if (!res || !res.ok) {
+    document.getElementById('perfil-content').innerHTML =
+      '<div class="loading-row" style="color:#DC2626;">Paciente no encontrado</div>';
+    return;
+  }
+  var p   = res.paciente;
+  var h   = res.historial;
+  var nom = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || 'Sin nombre';
+  var ini = nom.split(' ').map(function(w) { return w[0] || ''; }).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('m-pfil-title').textContent = nom;
+
+  var html = '';
+  // Header perfil
+  html += '<div class="pfil-header">' +
+    '<div class="pfil-avatar">' + ini + '</div>' +
+    '<div class="pfil-info">' +
+      '<div class="pfil-nom">' + nom + '</div>' +
+      '<div class="pfil-tel">' + (p.telefono || '—') +
+        (p.documento ? ' &nbsp;·&nbsp; DNI: ' + p.documento : '') +
+        (p.email ? ' &nbsp;·&nbsp; ' + p.email : '') +
+      '</div>' +
+      '<div class="pfil-meta">' +
+        '<span class="pfil-chip">Facturado: S/' + (h.totalFact || 0).toFixed(2) + '</span>' +
+        '<span class="pfil-chip">' + (h.totalVentas||0) + ' compras</span>' +
+        '<span class="pfil-chip">' + (h.totalLlam||0) + ' llamadas</span>' +
+        '<span class="pfil-chip">' + (h.totalCitas||0) + ' citas</span>' +
+        (p.sede ? '<span class="pfil-chip">' + p.sede + '</span>' : '') +
+      '</div>' +
+    '</div>' +
+    (p.wa ? '<div style="display:flex;gap:6px;">' +
+      '<button onclick="window.open(\'' + p.wa + '\',\'_blank\')" style="padding:8px 14px;border-radius:9px;border:none;background:#25D366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">💬 WhatsApp</button>' +
+      '</div>' : '') +
+    '</div>';
+
+  // Tabs historial
+  html += '<div class="hist-tabs">' +
+    '<button class="ht act" id="ht-ventas" onclick="switchHistTab(\'ventas\')">💰 Ventas (' + (h.totalVentas||0) + ')</button>' +
+    '<button class="ht" id="ht-llam" onclick="switchHistTab(\'llam\')">📞 Llamadas (' + (h.totalLlam||0) + ')</button>' +
+    '<button class="ht" id="ht-citas" onclick="switchHistTab(\'citas\')">📅 Citas (' + (h.totalCitas||0) + ')</button>' +
+    '<button class="ht" id="ht-notas" onclick="switchHistTab(\'notas\')">📝 Notas</button>' +
+    '</div>';
+
+  // Contenedor del historial
+  html += '<div id="hist-content">' + renderHistTab('ventas', h) + '</div>';
+
+  // Guardar referencia al historial
+  window._pacHistorial = h;
+  window._pacNotas     = p.notas || '';
+  window._pacId        = p.id;
+
+  document.getElementById('perfil-content').innerHTML = html;
+}
+
+function switchHistTab(tab) {
+  ['ventas','llam','citas','notas'].forEach(function(t) {
+    var el = document.getElementById('ht-' + t);
+    if (el) el.classList.toggle('act', t === tab);
+  });
+  document.getElementById('hist-content').innerHTML =
+    renderHistTab(tab, window._pacHistorial);
+}
+
+function renderHistTab(tab, h) {
+  if (tab === 'notas') {
+    return '<textarea class="notas-area" id="notas-txt" placeholder="Escribí notas sobre este paciente...">' +
+      (window._pacNotas || '') + '</textarea>' +
+      '<button class="save-notes-btn" onclick="saveNotes()">✓ Guardar notas</button>';
+  }
+
+  var items = tab === 'ventas' ? (h.ventas||[]) :
+              tab === 'llam'   ? (h.llamadas||[]) :
+              (h.citas||[]);
+
+  if (!items.length) {
+    return '<div style="text-align:center;color:#9AAAC8;font-size:12px;padding:20px;">Sin ' + tab + ' registradas</div>';
+  }
+
+  var clsMap = { ventas:'hi-venta', llam:'hi-llam', citas:'hi-cita' };
+  var cls    = clsMap[tab] || '';
+
+  return '<div class="hist-list">' + items.slice(0, 20).map(function(it) {
+    if (tab === 'ventas') {
+      return '<div class="hi ' + cls + '">' +
+        '<div class="hi-top"><span class="hi-fecha">' + (it.fecha||'—') + '</span>' +
+        '<span class="hi-badge" style="background:#F0FDF4;color:#16A34A;">S/' + (it.monto||0).toFixed(2) + '</span></div>' +
+        '<div class="hi-titulo">' + (it.trat||'—') + '</div>' +
+        '<div class="hi-meta">' + (it.asesor||'—') + ' · ' + (it.sede||'—') + '</div>' +
+        '</div>';
+    } else if (tab === 'llam') {
+      return '<div class="hi ' + cls + '">' +
+        '<div class="hi-top"><span class="hi-fecha">' + (it.fecha||'—') + ' ' + (it.hora||'') + '</span>' +
+        '<span class="hi-badge" style="background:#EBF2FF;color:#0A4FBF;">' + (it.estado||'—') + '</span></div>' +
+        '<div class="hi-titulo">' + (it.trat||'—') + '</div>' +
+        '<div class="hi-meta">' + (it.asesor||'—') + (it.obs ? ' · ' + it.obs.slice(0,40) : '') + '</div>' +
+        '</div>';
+    } else {
+      return '<div class="hi ' + cls + '">' +
+        '<div class="hi-top"><span class="hi-fecha">' + (it.fecha||'—') + ' ' + (it.hora||'') + '</span>' +
+        '<span class="hi-badge" style="background:#F5F3FF;color:#7C3AED;">' + (it.tipoCita||it.estado||'—') + '</span></div>' +
+        '<div class="hi-titulo">' + (it.trat||'—') + '</div>' +
+        '<div class="hi-meta">' + (it.asesor||'—') + ' · ' + (it.sede||'—') + ' · ' + (it.doctora||'—') + '</div>' +
+        '</div>';
+    }
+  }).join('') + '</div>';
+}
+
+function saveNotes() {
+  var notas = document.getElementById('notas-txt').value;
+  google.script.run
+    .withSuccessHandler(function() {
+      if (window.AOS_showToast) AOS_showToast('📝 Notas guardadas', '', '');
+      window._pacNotas = notas;
+    })
+    .withFailureHandler(function() { alert('Error al guardar notas.'); })
+    .api_updatePatientNotesT(VP.token, VP.currentPac, notas);
+}
+
+function closeModal() { document.getElementById('m-perfil').classList.remove('open'); }
+function setLoading() {
+  document.getElementById('pac-body').innerHTML =
+    '<div class="loading-row"><span class="spinner-sm"></span>Cargando...</div>';
+}
+function setError() {
+  document.getElementById('pac-body').innerHTML =
+    '<div class="loading-row" style="color:#DC2626;">⚠️ Error al cargar pacientes</div>';
+}
+</script>

@@ -1,0 +1,299 @@
+<!-- ViewAdminOperations.html — Operación Admin AscendaOS v1 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.ao-root{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+.ao-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.ao-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.ao-ts{font-size:11px;color:#9AAAC8;margin-top:2px;}
+.refresh-btn{padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:700;cursor:pointer;color:#0A4FBF;font-family:'DM Sans',sans-serif;}
+.refresh-btn:hover{background:#EBF2FF;}
+/* SEMÁFORO EXPANDIDO */
+.sem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:9px;margin-bottom:10px;}
+.sem-card{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:13px;position:relative;overflow:hidden;}
+.sem-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.sem-card.verde::before{background:#16A34A;}
+.sem-card.amarillo::before{background:#D97706;}
+.sem-card.rojo::before{background:#DC2626;}
+.sem-card.gris::before{background:#9AAAC8;}
+.sc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sc-nom{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}
+.sc-estado{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.sce-activo{background:#F0FDF4;color:#16A34A;}
+.sce-pausa{background:#FFFBEB;color:#D97706;}
+.sce-llamada{background:#EBF2FF;color:#0A4FBF;}
+.sce-off{background:#F0F4FC;color:#9AAAC8;}
+.sc-kpis{display:flex;gap:10px;margin-bottom:8px;}
+.sc-kpi{text-align:center;}
+.sc-kpi-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1;}
+.sc-kpi-l{font-size:9px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+.sc-kpi-div{width:1px;background:#DDE4F5;align-self:stretch;margin:0 2px;}
+.sc-conv{font-size:11px;font-weight:700;margin-top:4px;}
+.sc-conv.buena{color:#16A34A;}
+.sc-conv.media{color:#D97706;}
+.sc-conv.baja{color:#DC2626;}
+.sc-meta{font-size:10px;color:#9AAAC8;}
+.sc-ult{font-size:10px;color:#9AAAC8;margin-top:4px;padding-top:5px;border-top:1px solid rgba(221,228,245,.5);}
+/* MAIN 2-COL */
+.main2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+/* CARDS */
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+/* TABLA LLAMADAS */
+.llam-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.llam-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.llam-table th:nth-child(1){width:55px;}
+.llam-table th:nth-child(2){width:80px;}
+.llam-table th:nth-child(3){width:auto;}
+.llam-table th:nth-child(4){width:80px;}
+.llam-table th:nth-child(5){width:110px;}
+.llam-table td{padding:8px 8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.llam-table tr:last-child td{border-bottom:none;}
+.llam-table tr:hover td{background:#F8FAFF;}
+.est-chip{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.ec-cita{background:#F0FDF4;color:#16A34A;}
+.ec-nc{background:#FEF2F2;color:#DC2626;}
+.ec-ni{background:#F5F3FF;color:#7C3AED;}
+.ec-seg{background:#EBF2FF;color:#0A4FBF;}
+.ec-otro{background:#F0F4FC;color:#9AAAC8;}
+/* TABLA CITAS */
+.citas-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.citas-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.citas-table th:nth-child(1){width:55px;}
+.citas-table th:nth-child(2){width:auto;}
+.citas-table th:nth-child(3){width:100px;}
+.citas-table th:nth-child(4){width:80px;}
+.citas-table th:nth-child(5){width:80px;}
+.citas-table td{padding:8px 8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.citas-table tr:last-child td{border-bottom:none;}
+.citas-table tr:hover td{background:#F8FAFF;}
+/* TIPIF DIST */
+.tipif-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(221,228,245,.3);}
+.tipif-row:last-child{border-bottom:none;}
+.tipif-lbl{font-size:11px;font-weight:600;color:#0D1B3E;min-width:140px;}
+.tipif-bar{flex:1;background:#F0F4FC;border-radius:4px;height:18px;overflow:hidden;}
+.tipif-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#0A4FBF,#1A6FE8);}
+.tipif-val{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:800;color:#0A4FBF;min-width:30px;text-align:right;}
+.tipif-pct{font-size:10px;color:#9AAAC8;min-width:35px;text-align:right;}
+/* LOADING */
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sc-wrap{overflow-y:auto;max-height:240px;}
+.sc-wrap::-webkit-scrollbar{width:3px;}
+.sc-wrap::-webkit-scrollbar-thumb{background:#DDE4F5;}
+</style>
+
+<div class="ao-root">
+  <div class="ao-hdr">
+    <div>
+      <div class="ao-ttl">Panel de Operación</div>
+      <div class="ao-ts" id="ao-ts">Última actualización: —</div>
+    </div>
+    <button class="refresh-btn" onclick="loadAll()">↺ Actualizar</button>
+  </div>
+
+  <!-- SEMÁFORO EXPANDIDO -->
+  <div>
+    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;margin-bottom:8px;">ESTADO DEL EQUIPO HOY</div>
+    <div class="sem-grid" id="sem-grid">
+      <div class="ld"><span class="sp"></span>Cargando...</div>
+    </div>
+  </div>
+
+  <!-- MAIN 2-COL -->
+  <div class="main2">
+
+    <!-- ÚLTIMAS LLAMADAS -->
+    <div class="card">
+      <div class="chd"><div class="ct">ÚLTIMAS LLAMADAS HOY</div></div>
+      <div class="sc-wrap">
+        <table class="llam-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Asesor</th>
+              <th>Número</th>
+              <th>Trat.</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="llam-tbody">
+            <tr><td colspan="5" class="ld"><span class="sp"></span>Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CITAS DE HOY -->
+    <div class="card">
+      <div class="chd"><div class="ct">AGENDA DE HOY</div></div>
+      <div class="sc-wrap">
+        <table class="citas-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Paciente</th>
+              <th>Trat.</th>
+              <th>Asesor</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="citas-tbody">
+            <tr><td colspan="5" class="ld"><span class="sp"></span>Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DISTRIBUCIÓN TIPIFICACIONES -->
+  <div class="card">
+    <div class="chd"><div class="ct">TIPIFICACIONES DEL DÍA</div></div>
+    <div id="tipif-container">
+      <div class="ld"><span class="sp"></span>Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var AO = { token: '' };
+
+(function() {
+  AO.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  loadAll();
+})();
+
+function loadAll() {
+  document.getElementById('ao-ts').textContent = 'Actualizando...';
+  google.script.run
+    .withSuccessHandler(renderPanel)
+    .withFailureHandler(function() {
+      document.getElementById('ao-ts').textContent = 'Error al cargar';
+    })
+    .api_getOperationsPanelT(AO.token);
+}
+
+function renderPanel(res) {
+  if (!res || !res.ok) return;
+  document.getElementById('ao-ts').textContent = 'Última actualización: ' + res.ts;
+
+  // Semáforo expandido
+  renderSemaforo(res.semaforo);
+
+  // Últimas llamadas
+  renderLlamadas(res.ultLlamadas || []);
+
+  // Citas de hoy
+  renderCitas(res.citasHoy || []);
+
+  // Tipificaciones
+  renderTipif(res.tipifMap || {});
+}
+
+function renderSemaforo(semData) {
+  var el = document.getElementById('sem-grid');
+  if (!semData || !semData.ok || !semData.filas.length) {
+    el.innerHTML = '<div class="ld">Sin asesores</div>'; return;
+  }
+
+  el.innerHTML = semData.filas.map(function(f) {
+    var sem    = f.semaforo || 'gris';
+    var edoCls = f.estado === 'ACTIVO' ? 'sce-activo' :
+                 f.estado === 'PAUSA'  ? 'sce-pausa'  :
+                 f.estado === 'EN LLAMADA' ? 'sce-llamada' : 'sce-off';
+    var conv   = f.llamadas > 0 ? Math.round(f.citas / f.llamadas * 100) : 0;
+    var convCls = conv >= 20 ? 'buena' : conv >= 10 ? 'media' : 'baja';
+    var mins   = f.minsSin !== null ? f.minsSin + ' min sin llamar' : 'Sin actividad';
+
+    return '<div class="sem-card ' + sem + '">' +
+      '<div class="sc-header">' +
+        '<div class="sc-nom">' + f.nombre.split(' ')[0] + '</div>' +
+        '<span class="sc-estado ' + edoCls + '">' + (f.estado||'—') + '</span>' +
+      '</div>' +
+      '<div class="sc-kpis">' +
+        '<div class="sc-kpi"><div class="sc-kpi-v">' + f.llamadas + '</div><div class="sc-kpi-l">Llamadas</div></div>' +
+        '<div class="sc-kpi-div"></div>' +
+        '<div class="sc-kpi"><div class="sc-kpi-v" style="color:#16A34A;">' + f.citas + '</div><div class="sc-kpi-l">Citas</div></div>' +
+      '</div>' +
+      '<div class="sc-conv ' + convCls + '">' + conv + '% conversión</div>' +
+      '<div class="sc-ult">' + mins + (f.sede ? ' · ' + f.sede : '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderLlamadas(items) {
+  var tbody = document.getElementById('llam-tbody');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="ld">Sin llamadas registradas hoy</td></tr>'; return;
+  }
+  var estMap = {
+    'CITA CONFIRMADA':'ec-cita','NO CONTESTA':'ec-nc',
+    'NO LE INTERESA':'ec-ni','SEGUIMIENTO':'ec-seg'
+  };
+  tbody.innerHTML = items.map(function(r) {
+    var cls = estMap[r.estado] || 'ec-otro';
+    return '<tr>' +
+      '<td style="color:#9AAAC8;">' + (r.hora||'—') + '</td>' +
+      '<td style="font-weight:700;">' + (r.asesor||'—').split(' ')[0] + '</td>' +
+      '<td style="font-family:\'Exo 2\',sans-serif;font-weight:700;">' + (r.num||'—') + '</td>' +
+      '<td style="color:#6B7BA8;">' + (r.trat||'—').slice(0,12) + '</td>' +
+      '<td><span class="est-chip ' + cls + '">' + (r.estado||'—').slice(0,14) + '</span></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderCitas(items) {
+  var tbody = document.getElementById('citas-tbody');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="ld">Sin citas agendadas para hoy</td></tr>'; return;
+  }
+  var estMap = {
+    'CITA CONFIRMADA':'ec-seg','ASISTIO':'ec-cita',
+    'EFECTIVA':'ec-cita','CANCELADA':'ec-nc'
+  };
+  tbody.innerHTML = items.map(function(c) {
+    var cls = estMap[c.estado] || 'ec-otro';
+    return '<tr>' +
+      '<td style="color:#9AAAC8;font-weight:700;">' + (c.hora||'—') + '</td>' +
+      '<td style="font-weight:700;overflow:hidden;text-overflow:ellipsis;">' + (c.nombre||'—').slice(0,22) + '</td>' +
+      '<td style="color:#6B7BA8;">' + (c.trat||'—').slice(0,14) + '</td>' +
+      '<td style="color:#6B7BA8;">' + (c.asesor||'—').split(' ')[0] + '</td>' +
+      '<td><span class="est-chip ' + cls + '">' + (c.estado||'—').slice(0,13) + '</span></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderTipif(tipifMap) {
+  var el    = document.getElementById('tipif-container');
+  var keys  = Object.keys(tipifMap);
+  if (!keys.length) {
+    el.innerHTML = '<div class="ld">Sin llamadas hoy</div>'; return;
+  }
+  var total = keys.reduce(function(s, k) { return s + tipifMap[k]; }, 0);
+  keys.sort(function(a, b) { return tipifMap[b] - tipifMap[a]; });
+
+  var colMap = {
+    'CITA CONFIRMADA': 'linear-gradient(90deg,#16A34A,#22C55E)',
+    'NO CONTESTA':     'linear-gradient(90deg,#DC2626,#EF4444)',
+    'SEGUIMIENTO':     'linear-gradient(90deg,#0A4FBF,#1A6FE8)',
+    'NO LE INTERESA':  'linear-gradient(90deg,#7C3AED,#8B5CF6)',
+    'PROVINCIA':       'linear-gradient(90deg,#D97706,#F59E0B)'
+  };
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px;">' +
+    keys.map(function(k) {
+      var n   = tipifMap[k];
+      var pct = Math.round(n / total * 100);
+      var bg  = colMap[k] || 'linear-gradient(90deg,#9AAAC8,#C8D0E0)';
+      return '<div class="tipif-row">' +
+        '<div class="tipif-lbl">' + k + '</div>' +
+        '<div class="tipif-bar"><div class="tipif-fill" style="width:'+pct+'%;background:'+bg+';"></div></div>' +
+        '<div class="tipif-val">' + n + '</div>' +
+        '<div class="tipif-pct">' + pct + '%</div>' +
+        '</div>';
+    }).join('') +
+    '</div>';
+}
+</script>
