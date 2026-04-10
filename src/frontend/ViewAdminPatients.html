@@ -1,0 +1,1504 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  AscendaOS v1 — GS_24_Pacientes360.gs                      ║
+ * ║  Módulo: Pacientes 360° — Historia Clínica, Notas,          ║
+ * ║          Seguimientos Programados, Timeline, Fusión         ║
+ * ║  Autor: César Jáuregui / CREACTIVE OS                      ║
+ * ║  Versión: 2.0.0                                             ║
+ * ║  Dependencias: GS_01, GS_02, GS_03, GS_04, GS_09          ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * CAMBIOS v2.0.0 vs v1.0.0:
+ *   FIX-01 · diasUltVisita devuelto directamente en api_getPatient360T
+ *            (ya no depende de api_getPatientScore360T por separado)
+ *   FIX-02 · api_fusionarPacientes recibe parámetro "rowPrincipal" elegido
+ *            por el usuario — no asume el primero de la lista
+ *   FIX-03 · api_detectarDuplicados devuelve datos completos de cada
+ *            registro (nombre, tel, dni, totalFact, ultVisita, compras)
+ *            para que el usuario elija quién es el principal
+ *   FIX-04 · api_getPatient360T incluye el cálculo de diasUltVisita
+ *            directamente en el objeto paciente retornado
+ *   NEW-01 · api_getEquipoActivoT devuelve lista de asesores para
+ *            el modal de nueva cita (campo Asesor)
+ *   NEW-02 · _norm_estado() normaliza estados con/sin tilde para
+ *            que los colores del frontend funcionen correctamente
+ *
+ * CONTENIDO:
+ *   MOD-01 · Historia Clínica (MINSA estética)
+ *   MOD-02 · Notas multi-rol del equipo
+ *   MOD-03 · Seguimientos programados por tratamiento
+ *   MOD-04 · Timeline unificado del paciente
+ *   MOD-05 · Crear cita desde panel 360
+ *   MOD-06 · Score y alertas del paciente
+ *   MOD-07 · Fusión de pacientes (mejorada — usuario elige principal)
+ *   MOD-08 · Helpers internos de GS_24
+ *   MOD-09 · Wrappers token
+ *   MOD-10 · Tests
+ */
+
+// ══════════════════════════════════════════════════════════════
+// MOD-01 · HISTORIA CLÍNICA
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: HC_START =====
+
+/**
+ * Índices de columnas de HISTORIA_CLINICA (base 0)
+ * Mapeados al orden de headers creado por setup_CrearHojasBloque3
+ */
+var HC_COL = {
+  DNI:                    0,
+  NOMBRES:                1,
+  APELLIDOS:              2,
+  TELEFONO:               3,
+  EMAIL:                  4,
+  FECHA_NAC:              5,
+  SEXO:                   6,
+  ESTADO_CIVIL:           7,
+  GRADO_INSTRUCCION:      8,
+  OCUPACION:              9,
+  DISTRITO:               10,
+  DIRECCION:              11,
+  CONTACTO_EMERG_NOMBRE:  12,
+  CONTACTO_EMERG_TEL:     13,
+  ALERGIAS_MEDICAMENTOS:  14,
+  ALERGIAS_MATERIALES:    15,
+  ENFERMEDADES_CRONICAS:  16,
+  MEDICAMENTOS_ACTUALES:  17,
+  SUPLEMENTOS_VITAMINAS:  18,
+  VACUNAS_RECIENTES:      19,
+  CIRUGIAS_PREVIAS:       20,
+  TRAT_ESTETICOS_PREVIOS: 21,
+  QUELOIDES:              22,
+  IMPLANTES:              23,
+  MARCAPASOS:             24,
+  EMBARAZO:               25,
+  LACTANCIA:              26,
+  ANTICONCEPTIVOS:        27,
+  FECHA_ULT_MENSTRUACION: 28,
+  FECHA_ULT_PAPANICOLAU:  29,
+  TABACO:                 30,
+  ALCOHOL:                31,
+  ACTIVIDAD_FISICA:       32,
+  HORAS_SUENO:            33,
+  CONSENTIMIENTO_FIRMADO: 34,
+  FECHA_REGISTRO_HC:      35,
+  MEDICO_RESPONSABLE:     36,
+  TS_CREADO:              37,
+  TS_ACTUALIZADO:         38
+};
+
+var HC_TOTAL_COLS = 39;
+
+/**
+ * api_saveHistoriaClinica
+ * Crea o actualiza la historia clínica de un paciente.
+ * Clave primaria: DNI del paciente.
+ * Acceso: ADMIN, DOCTOR, ADMINISTRADOR
+ */
+function api_saveHistoriaClinica(payload) {
+  var s = cc_requireSession();
+  if (s.rol !== "ADMIN" && s.rol !== "DOCTOR" && s.rol !== "ADMINISTRADOR")
+    throw new Error("Acceso denegado. Solo ADMIN o DOCTOR.");
+
+  payload = payload || {};
+  var dni = _norm(payload.dni);
+  if (!dni) throw new Error("DNI requerido para historia clínica.");
+
+  var sh  = _sh("HISTORIA_CLINICA");
+  var lr  = sh.getLastRow();
+  var now = new Date();
+  var rowExistente = null;
+
+  if (lr >= 2) {
+    var dnis = sh.getRange(2, 1, lr - 1, 1).getValues();
+    for (var i = 0; i < dnis.length; i++) {
+      if (_norm(dnis[i][0]) === dni) { rowExistente = i + 2; break; }
+    }
+  }
+
+  var fila = [
+    dni,
+    _norm(payload.nombres   || "").toUpperCase(),
+    _norm(payload.apellidos || "").toUpperCase(),
+    _normNum(payload.telefono  || ""),
+    _norm(payload.email        || ""),
+    _norm(payload.fechaNac     || ""),
+    _up(payload.sexo           || ""),
+    _norm(payload.estadoCivil  || ""),
+    _norm(payload.gradoInst    || ""),
+    _norm(payload.ocupacion    || ""),
+    _norm(payload.distrito     || ""),
+    _norm(payload.direccion    || ""),
+    _norm(payload.contactoEmergNombre || ""),
+    _norm(payload.contactoEmergTel    || ""),
+    _norm(payload.alergiasMedicamentos  || ""),
+    _norm(payload.alergiasMateria       || ""),
+    _norm(payload.enfermedadesCron      || ""),
+    _norm(payload.medicamentosActuales  || ""),
+    _norm(payload.suplementos           || ""),
+    _norm(payload.vacunas               || ""),
+    _norm(payload.cirugiasPrevias       || ""),
+    _norm(payload.tratEsteticos         || ""),
+    _norm(payload.queloides             || ""),
+    _norm(payload.implantes             || ""),
+    _norm(payload.marcapasos            || ""),
+    _norm(payload.embarazo              || ""),
+    _norm(payload.lactancia             || ""),
+    _norm(payload.anticonceptivos       || ""),
+    _norm(payload.fechaUltMenstruacion  || ""),
+    _norm(payload.fechaUltPapanicolau   || ""),
+    _norm(payload.tabaco                || ""),
+    _norm(payload.alcohol               || ""),
+    _norm(payload.actividadFisica       || ""),
+    _norm(payload.horasSueno            || ""),
+    _norm(payload.consentimientoFirmado || "NO"),
+    _date(now),
+    _norm(payload.medicoResponsable || s.asesor || ""),
+    rowExistente ? sh.getRange(rowExistente, HC_COL.TS_CREADO + 1).getValue() : now,
+    now
+  ];
+
+  if (rowExistente) {
+    sh.getRange(rowExistente, 1, 1, fila.length).setValues([fila]);
+    return { ok: true, accion: "actualizado", dni: dni };
+  }
+
+  sh.appendRow(fila);
+  return { ok: true, accion: "creado", dni: dni };
+}
+
+/**
+ * api_getHistoriaClinica
+ * Obtiene la historia clínica por DNI o teléfono.
+ */
+function api_getHistoriaClinica(dniOrTel) {
+  cc_requireSession();
+  var busq = _norm(dniOrTel);
+  if (!busq) return { ok: true, hc: null };
+
+  var sh = _sh("HISTORIA_CLINICA");
+  var lr = sh.getLastRow();
+  if (lr < 2) return { ok: true, hc: null };
+
+  var data = sh.getRange(2, 1, lr - 1, HC_TOTAL_COLS).getValues();
+  var fila = null;
+
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    if (_norm(r[HC_COL.DNI]) === busq ||
+        _normNum(r[HC_COL.TELEFONO]) === _normNum(busq)) {
+      fila = r; break;
+    }
+  }
+
+  if (!fila) return { ok: true, hc: null };
+
+  return {
+    ok: true,
+    hc: {
+      dni:                   _norm(fila[HC_COL.DNI]),
+      nombres:               _norm(fila[HC_COL.NOMBRES]),
+      apellidos:             _norm(fila[HC_COL.APELLIDOS]),
+      telefono:              _norm(fila[HC_COL.TELEFONO]),
+      email:                 _norm(fila[HC_COL.EMAIL]),
+      fechaNac:              _date(fila[HC_COL.FECHA_NAC]),
+      sexo:                  _norm(fila[HC_COL.SEXO]),
+      estadoCivil:           _norm(fila[HC_COL.ESTADO_CIVIL]),
+      gradoInst:             _norm(fila[HC_COL.GRADO_INSTRUCCION]),
+      ocupacion:             _norm(fila[HC_COL.OCUPACION]),
+      distrito:              _norm(fila[HC_COL.DISTRITO]),
+      direccion:             _norm(fila[HC_COL.DIRECCION]),
+      contactoEmergNombre:   _norm(fila[HC_COL.CONTACTO_EMERG_NOMBRE]),
+      contactoEmergTel:      _norm(fila[HC_COL.CONTACTO_EMERG_TEL]),
+      alergiasMedicamentos:  _norm(fila[HC_COL.ALERGIAS_MEDICAMENTOS]),
+      alergiasMateria:       _norm(fila[HC_COL.ALERGIAS_MATERIALES]),
+      enfermedadesCron:      _norm(fila[HC_COL.ENFERMEDADES_CRONICAS]),
+      medicamentosActuales:  _norm(fila[HC_COL.MEDICAMENTOS_ACTUALES]),
+      suplementos:           _norm(fila[HC_COL.SUPLEMENTOS_VITAMINAS]),
+      cirugiasPrevias:       _norm(fila[HC_COL.CIRUGIAS_PREVIAS]),
+      tratEsteticos:         _norm(fila[HC_COL.TRAT_ESTETICOS_PREVIOS]),
+      queloides:             _norm(fila[HC_COL.QUELOIDES]),
+      implantes:             _norm(fila[HC_COL.IMPLANTES]),
+      marcapasos:            _norm(fila[HC_COL.MARCAPASOS]),
+      embarazo:              _norm(fila[HC_COL.EMBARAZO]),
+      lactancia:             _norm(fila[HC_COL.LACTANCIA]),
+      anticonceptivos:       _norm(fila[HC_COL.ANTICONCEPTIVOS]),
+      fechaUltMenstruacion:  _norm(fila[HC_COL.FECHA_ULT_MENSTRUACION]),
+      fechaUltPapanicolau:   _norm(fila[HC_COL.FECHA_ULT_PAPANICOLAU]),
+      tabaco:                _norm(fila[HC_COL.TABACO]),
+      alcohol:               _norm(fila[HC_COL.ALCOHOL]),
+      actividadFisica:       _norm(fila[HC_COL.ACTIVIDAD_FISICA]),
+      horasSueno:            _norm(fila[HC_COL.HORAS_SUENO]),
+      consentimientoFirmado: _norm(fila[HC_COL.CONSENTIMIENTO_FIRMADO]),
+      fechaRegistroHc:       _date(fila[HC_COL.FECHA_REGISTRO_HC]),
+      medicoResponsable:     _norm(fila[HC_COL.MEDICO_RESPONSABLE]),
+      tsActualizado:         _datetime(fila[HC_COL.TS_ACTUALIZADO])
+    }
+  };
+}
+
+/**
+ * _hc_getAlertas
+ * Detecta alertas de contraindicaciones para mostrar banner rojo en el panel.
+ * @param {Object} hc Objeto de historia clínica
+ * @returns {Array} Lista de alertas con tipo y mensaje
+ */
+function _hc_getAlertas(hc) {
+  if (!hc) return [];
+  var alertas = [];
+  if (_norm(hc.embarazo)            ) alertas.push({ tipo:"CRITICO", msg:"⚠️ EMBARAZO registrado" });
+  if (_norm(hc.lactancia)           ) alertas.push({ tipo:"CRITICO", msg:"⚠️ LACTANCIA activa" });
+  if (_norm(hc.marcapasos)          ) alertas.push({ tipo:"CRITICO", msg:"⚠️ MARCAPASOS — contraindicación HIFU/RF" });
+  if (_norm(hc.alergiasMedicamentos)) alertas.push({ tipo:"ALERTA",  msg:"Alergias: " + hc.alergiasMedicamentos.slice(0,60) });
+  if (_norm(hc.implantes)           ) alertas.push({ tipo:"ALERTA",  msg:"Implantes: " + hc.implantes.slice(0,40) });
+  if (_norm(hc.queloides)           ) alertas.push({ tipo:"INFO",    msg:"Queloides registrados" });
+  return alertas;
+}
+// ===== CTRL+F: HC_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-02 · NOTAS MULTI-ROL
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: NOTAS_START =====
+
+/**
+ * api_saveNotaPaciente360
+ * Guarda una nota en NOTAS_PACIENTES.
+ * Roles válidos: ASESOR, DOCTOR, ENFERMERO, RECEPCION, ADMIN, ADMINISTRADOR
+ */
+function api_saveNotaPaciente360(num, texto, tipoNota) {
+  var s = cc_requireSession();
+  num      = _normNum(num);
+  texto    = _norm(texto);
+  tipoNota = _up(_norm(tipoNota || "GENERAL"));
+
+  if (!num || !texto) throw new Error("Número y texto son requeridos.");
+  if (texto.length > 2000) throw new Error("Nota máximo 2000 caracteres.");
+
+  var sh  = _sh("NOTAS_PACIENTES");
+  var now = new Date();
+
+  sh.appendRow([
+    _uid(),
+    _date(now),
+    _time(now),
+    num,
+    texto,
+    s.rol    || "ASESOR",
+    s.asesor || "",
+    tipoNota,
+    now
+  ]);
+
+  return { ok: true };
+}
+
+/**
+ * api_getNotasPaciente360
+ * Obtiene las notas de un paciente, de más reciente a más antiguo.
+ * @param {string} num       Teléfono del paciente
+ * @param {string} tipoNota  Filtro opcional por tipo
+ */
+function api_getNotasPaciente360(num, tipoNota) {
+  cc_requireSession();
+  num = _normNum(num);
+  if (!num) return { ok: true, notas: [] };
+
+  var sh = _sh("NOTAS_PACIENTES");
+  var lr = sh.getLastRow();
+  if (lr < 2) return { ok: true, notas: [] };
+
+  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
+  var notas = data
+    .filter(function(r) {
+      var coincide = _normNum(r[3]) === num;
+      if (tipoNota) coincide = coincide && _up(_norm(r[7])) === _up(tipoNota);
+      return coincide;
+    })
+    .map(function(r) {
+      return {
+        id:      _norm(r[0]),
+        fecha:   _date(r[1]),
+        hora:    _norm(r[2]),
+        texto:   _norm(r[4]),
+        rol:     _norm(r[5]),
+        usuario: _norm(r[6]),
+        tipo:    _norm(r[7])
+      };
+    })
+    .sort(function(a, b) { return a.fecha < b.fecha ? 1 : -1; });
+
+  return { ok: true, notas: notas };
+}
+// ===== CTRL+F: NOTAS_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-03 · SEGUIMIENTOS PROGRAMADOS
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: SEG_PROG_START =====
+
+/**
+ * Ciclos de recontacto por tratamiento (en días)
+ * Se usa si no se especifica diasCiclo en el payload
+ */
+var CICLOS_TRATAMIENTO = {
+  "TOXINA BOTULINICA":  150,
+  "TOXINA":             150,
+  "ACIDO HIALURONICO":  450,
+  "HIALURONICO":        450,
+  "HIFU":               365,
+  "BIO ESTIMULADOR":    180,
+  "BIOESTIMULADOR":     180,
+  "CRIOLIPOLISIS":      180,
+  "ENZIMAS FACIALES":    90,
+  "ENZIMAS":             90,
+  "HIDROFACIAL":         30,
+  "CAPILAR":             30,
+  "VITAMINAS":           30,
+  "DETOX":               30,
+  "PQ AGE":             120,
+  "DERMAPEN":            30
+};
+
+/**
+ * _seg_calcCiclo
+ * Calcula el ciclo de días para un tratamiento.
+ * Si no está en la tabla, usa 90 días por defecto.
+ */
+function _seg_calcCiclo(tratamiento) {
+  var t = _up(_norm(tratamiento || ""));
+  for (var key in CICLOS_TRATAMIENTO) {
+    if (t.indexOf(key) >= 0) return CICLOS_TRATAMIENTO[key];
+  }
+  return 90;
+}
+
+/**
+ * api_saveSeguimientoProgramado
+ * Crea o actualiza un seguimiento programado para un paciente.
+ */
+function api_saveSeguimientoProgramado(payload) {
+  cc_requireSession();
+  payload = payload || {};
+  var num  = _normNum(payload.num || "");
+  var trat = _norm(payload.tratamiento || "");
+  if (!num || !trat) throw new Error("Número y tratamiento requeridos.");
+
+  var sh  = _sh("SEGUIMIENTOS_PROGRAMADOS");
+  var lr  = sh.getLastRow();
+  var now = new Date();
+
+  var diasCiclo       = Number(payload.diasCiclo) || _seg_calcCiclo(trat);
+  var fechaUltApp     = payload.fechaUltAplicacion ? new Date(payload.fechaUltAplicacion) : now;
+  var fechaRecontacto = new Date(fechaUltApp.getTime() + diasCiclo * 24 * 60 * 60 * 1000);
+
+  var rowExistente = null;
+  if (lr >= 2) {
+    var data = sh.getRange(2, 1, lr - 1, 7).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (_normNum(data[i][1]) === num &&
+          _up(_norm(data[i][2])) === _up(trat) &&
+          _up(_norm(data[i][6])) === "PENDIENTE") {
+        rowExistente = i + 2; break;
+      }
+    }
+  }
+
+  var fila = [
+    rowExistente ? sh.getRange(rowExistente, 1).getValue() : _uid(),
+    num,
+    _up(trat),
+    _date(fechaUltApp),
+    diasCiclo,
+    _date(fechaRecontacto),
+    "PENDIENTE",
+    _norm(payload.asesorAsignado || ""),
+    _norm(payload.obs || ""),
+    rowExistente ? sh.getRange(rowExistente, 10).getValue() : now,
+    now
+  ];
+
+  if (rowExistente) {
+    sh.getRange(rowExistente, 1, 1, fila.length).setValues([fila]);
+    return { ok: true, accion: "actualizado", fechaRecontacto: _date(fechaRecontacto) };
+  }
+
+  sh.appendRow(fila);
+  return { ok: true, accion: "creado", fechaRecontacto: _date(fechaRecontacto) };
+}
+
+/**
+ * api_getSeguimientosProgramados
+ * Obtiene seguimientos de un paciente o todos según filtro.
+ * @param {string} num    Teléfono (o null para todos)
+ * @param {string} filtro "todos" | "pendientes" | "vencidos" | "proximos_7d"
+ */
+function api_getSeguimientosProgramados(num, filtro) {
+  cc_requireSession();
+  filtro = _norm(filtro || "todos").toLowerCase();
+
+  var sh = _sh("SEGUIMIENTOS_PROGRAMADOS");
+  var lr = sh.getLastRow();
+  if (lr < 2) return { ok: true, items: [] };
+
+  var data = sh.getRange(2, 1, lr - 1, 11).getValues();
+  var hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
+  var en7d = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  var items = data
+    .filter(function(r) {
+      if (_up(_norm(r[6])) !== "PENDIENTE") return false;
+      if (num && _normNum(r[1]) !== _normNum(num)) return false;
+      return true;
+    })
+    .map(function(r) {
+      var fRec   = r[5] ? (r[5] instanceof Date ? r[5] : new Date(r[5])) : null;
+      var vencido = fRec && fRec < hoy;
+      var enProx  = fRec && !vencido && fRec <= en7d;
+      return {
+        id:              _norm(r[0]),
+        num:             _normNum(r[1]),
+        tratamiento:     _norm(r[2]),
+        fechaUltApp:     _date(r[3]),
+        diasCiclo:       Number(r[4]) || 0,
+        fechaRecontacto: _date(r[5]),
+        estado:          _norm(r[6]),
+        asesor:          _norm(r[7]),
+        obs:             _norm(r[8]),
+        vencido:         vencido,
+        esHoy:           fRec && fRec.toDateString() === hoy.toDateString(),
+        enProximos7d:    enProx,
+        diasRestantes:   fRec ? Math.floor((fRec - hoy) / (1000 * 60 * 60 * 24)) : null
+      };
+    })
+    .filter(function(item) {
+      if (filtro === "vencidos")    return item.vencido;
+      if (filtro === "proximos_7d") return item.enProximos7d || item.esHoy;
+      if (filtro === "pendientes")  return !item.vencido;
+      return true;
+    })
+    .sort(function(a, b) {
+      if (a.vencido && !b.vencido) return -1;
+      if (!a.vencido && b.vencido) return 1;
+      return a.fechaRecontacto < b.fechaRecontacto ? -1 : 1;
+    });
+
+  return { ok: true, total: items.length, items: items };
+}
+
+/**
+ * api_cerrarSeguimientoProgramado
+ * Marca como CERRADO un seguimiento programado por su ID.
+ */
+function api_cerrarSeguimientoProgramado(segId) {
+  cc_requireSession();
+  segId = _norm(segId);
+  if (!segId) throw new Error("ID de seguimiento requerido.");
+
+  var sh = _sh("SEGUIMIENTOS_PROGRAMADOS");
+  var lr = sh.getLastRow();
+  if (lr < 2) throw new Error("Sin seguimientos.");
+
+  var ids = sh.getRange(2, 1, lr - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (_norm(ids[i][0]) === segId) {
+      sh.getRange(i + 2, 7).setValue("CERRADO");
+      sh.getRange(i + 2, 11).setValue(new Date());
+      return { ok: true };
+    }
+  }
+  throw new Error("Seguimiento no encontrado: " + segId);
+}
+// ===== CTRL+F: SEG_PROG_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-04 · TIMELINE UNIFICADO
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: TIMELINE_START =====
+
+/**
+ * api_getPatientTimeline
+ * Devuelve todos los eventos del paciente mezclados y ordenados
+ * cronológicamente: llamadas + citas + compras + notas.
+ * Máximo 100 eventos.
+ */
+function api_getPatientTimeline(num) {
+  cc_requireSession();
+  num = _normNum(num);
+  if (!num) return { ok: true, eventos: [] };
+
+  var perfil = api_getPatientProfile(num);
+  if (!perfil || !perfil.ok) return { ok: true, eventos: [] };
+
+  var h      = perfil.historial || {};
+  var eventos = [];
+
+  // Llamadas
+  (h.llamadas || []).forEach(function(l) {
+    var estadoNorm = _g24_normEstado(l.estado);
+    eventos.push({
+      fecha:   l.fecha,
+      hora:    l.hora,
+      tipo:    "LLAMADA",
+      icono:   "📞",
+      titulo:  estadoNorm,
+      sub:     l.trat,
+      detalle: l.obs,
+      actor:   l.asesor,
+      color:   estadoNorm === "CITA CONFIRMADA" ? "#16A34A" :
+               (estadoNorm === "SIN CONTACTO"   ? "#DC2626" : "#6B7BA8")
+    });
+  });
+
+  // Compras
+  (h.ventas || []).forEach(function(v) {
+    eventos.push({
+      fecha:   v.fecha,
+      tipo:    "COMPRA",
+      icono:   "💰",
+      titulo:  v.trat,
+      sub:     "S/ " + (v.monto || 0).toFixed(0),
+      detalle: (v.pago || "") + (v.sede ? " · " + v.sede : ""),
+      actor:   v.asesor,
+      color:   "#0A4FBF"
+    });
+  });
+
+  // Citas — FIX: normalizar estado con tilde para color correcto
+  (h.citas || []).forEach(function(c) {
+    var estadoNorm = _g24_normEstado(c.estado);
+    var color =
+      (estadoNorm === "ASISTIO" || estadoNorm === "EFECTIVA") ? "#16A34A" :
+      estadoNorm === "NO ASISTIO"  ? "#DC2626" :
+      estadoNorm === "CANCELADA"   ? "#9AAAC8" : "#D97706";
+    eventos.push({
+      fecha:   c.fecha,
+      hora:    c.hora,
+      tipo:    "CITA",
+      icono:   "📅",
+      titulo:  c.trat,
+      sub:     estadoNorm,
+      detalle: (c.sede || "") + (c.doctora ? " · " + c.doctora : ""),
+      actor:   c.asesor,
+      color:   color
+    });
+  });
+
+  // Notas
+  var notasRes = api_getNotasPaciente360(num);
+  (notasRes.notas || []).forEach(function(n) {
+    eventos.push({
+      fecha:   n.fecha,
+      hora:    n.hora,
+      tipo:    "NOTA",
+      icono:   "📝",
+      titulo:  n.tipo,
+      sub:     n.texto.slice(0, 80),
+      detalle: "",
+      actor:   n.usuario,
+      color:   "#7C3AED"
+    });
+  });
+
+  // Ordenar de más reciente a más antiguo
+  eventos.sort(function(a, b) {
+    var da = (a.fecha || "") + (a.hora || "");
+    var db = (b.fecha || "") + (b.hora || "");
+    return da < db ? 1 : -1;
+  });
+
+  return { ok: true, total: eventos.length, eventos: eventos.slice(0, 100) };
+}
+// ===== CTRL+F: TIMELINE_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-05 · CREAR CITA DESDE PANEL 360
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: CITA360_START =====
+
+/**
+ * api_createCitaDesde360
+ * Crea una cita en AGENDA_CITAS desde el panel 360.
+ * Pre-rellena datos del paciente desde su perfil.
+ * Registra ORIGEN_CITA = "360"
+ */
+function api_createCitaDesde360(payload) {
+  var s = cc_requireSession();
+  payload = payload || {};
+
+  var num = _normNum(payload.num || "");
+  if (!num) throw new Error("Número de paciente requerido.");
+  if (!payload.fechaCita)   throw new Error("Fecha de cita requerida.");
+  if (!payload.tratamiento) throw new Error("Tratamiento requerido.");
+
+  // Obtener datos del paciente para pre-rellenar
+  var perfil = null;
+  try {
+    var res = api_getPatientProfile(num);
+    if (res && res.ok && res.paciente) perfil = res.paciente;
+  } catch(e) {}
+
+  var sh  = _shAgenda();
+  var now = new Date();
+  var cid = _uid();
+
+  var nombre   = _norm(payload.nombre   || (perfil ? perfil.nombres   : ""));
+  var apellido = _norm(payload.apellido || (perfil ? perfil.apellidos  : ""));
+  var dni      = _norm(payload.dni      || (perfil ? perfil.documento  : ""));
+  var correo   = _norm(payload.correo   || (perfil ? perfil.email      : ""));
+  var sede     = _up(_norm(payload.sede || (perfil ? perfil.sede : "")));
+
+  // Asesor: usa el del payload si viene, si no usa el de la sesión
+  var asesorNombre = _norm(payload.asesorNombre || s.asesor || "");
+  var asesorId     = _norm(payload.asesorId     || s.idAsesor || "");
+
+  sh.appendRow([
+    cid,
+    _norm(payload.fechaCita),
+    _up(_norm(payload.tratamiento)),
+    _norm(payload.tipoCita || "CONSULTA NUEVA"),
+    sede,
+    num,
+    nombre,
+    apellido,
+    dni,
+    correo,
+    asesorNombre,
+    asesorId,
+    "PENDIENTE",
+    "",                                           // VENTA_ID
+    _norm(payload.obs || ""),
+    now,                                          // TS_CREADO
+    now,                                          // TS_ACTUALIZADO
+    _norm(payload.horaCita || ""),
+    "",                                           // ETIQUETA_CAMP
+    _norm(payload.doctora || ""),
+    _tipoAtencion(_norm(payload.tratamiento)),     // TIPO_ATENCION
+    "",                                           // GCAL_EVENT_ID
+    "360"                                         // ORIGEN_CITA
+  ]);
+
+  return { ok: true, citaId: cid, msg: "Cita creada desde panel 360." };
+}
+
+/**
+ * api_getEquipoActivo
+ * Devuelve la lista de asesores activos desde hoja RRHH.
+ * Usado para poblar el selector de Asesor en modal nueva cita.
+ */
+function api_getEquipoActivo() {
+  cc_requireSession();
+  var sh = _sh("RRHH");
+  var lr = sh.getLastRow();
+  if (lr < 2) return { ok: true, items: [] };
+
+  var data = sh.getRange(2, 1, lr - 1, 10).getValues();
+  var items = data
+    .filter(function(r) {
+      var activo = _up(_norm(r[7] || ""));
+      return activo !== "INACTIVO" && activo !== "RETIRADO" && _norm(r[1]);
+    })
+    .map(function(r) {
+      return {
+        id:     _norm(r[0]),
+        nombre: _norm(r[1]),
+        rol:    _up(_norm(r[3] || "ASESOR")),
+        sede:   _up(_norm(r[5] || ""))
+      };
+    });
+
+  return { ok: true, items: items };
+}
+// ===== CTRL+F: CITA360_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-06 · SCORE Y ALERTAS
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: SCORE360_START =====
+
+/**
+ * api_getPatientScore360
+ * Devuelve el score completo del paciente con alertas de HC,
+ * seguimientos vencidos y próximos.
+ * NOTA: diasUltVisita también viene en api_getPatient360T directamente (FIX-04)
+ */
+function api_getPatientScore360(num) {
+  cc_requireSession();
+  num = _normNum(num);
+  if (!num) throw new Error("Número requerido.");
+
+  var perfilRes = api_getPatientProfile(num);
+  if (!perfilRes || !perfilRes.ok) return { ok: false };
+
+  var p = perfilRes.paciente || {};
+
+  var hcRes  = api_getHistoriaClinica(_norm(p.documento || num));
+  var alertas = hcRes.hc ? _hc_getAlertas(hcRes.hc) : [];
+
+  var segRes      = api_getSeguimientosProgramados(num, "vencidos");
+  var segsVencidos = segRes.total || 0;
+
+  var score = _norm(p.estado) || "NUEVO";
+  var dias  = null;
+  if (p.ultVisita) {
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var uv  = new Date(p.ultVisita); uv.setHours(0, 0, 0, 0);
+    dias = Math.floor((hoy - uv) / (1000 * 60 * 60 * 24));
+    if      (dias <= 90)  score = "ACTIVO";
+    else if (dias <= 180) score = "EN_RIESGO";
+    else                  score = "INACTIVO";
+  }
+
+  var colorScore = {
+    "ACTIVO":    "#16A34A",
+    "EN_RIESGO": "#D97706",
+    "INACTIVO":  "#DC2626",
+    "NUEVO":     "#6B7BA8"
+  };
+
+  return {
+    ok:            true,
+    num:           num,
+    score:         score,
+    colorScore:    colorScore[score] || "#6B7BA8",
+    diasUltVisita: dias,
+    ultVisita:     _date(p.ultVisita),
+    totalFact:     p.totalFact || 0,
+    totalCompras:  p.totalCompras || 0,
+    alertas:       alertas,
+    segsVencidos:  segsVencidos,
+    tieneHC:       !!hcRes.hc
+  };
+}
+// ===== CTRL+F: SCORE360_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-07 · FUSIÓN DE PACIENTES (MEJORADA v2.0)
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: FUSION_START =====
+
+/**
+ * api_detectarDuplicados
+ * Detecta pacientes duplicados por teléfono y nombre similar.
+ *
+ * v2.0: Devuelve datos COMPLETOS de cada registro para que el
+ * usuario pueda elegir quién es el principal con información real:
+ *   - nombre completo, teléfono, DNI
+ *   - total facturado, última visita, total compras
+ *   - número de fila en el Sheet (para la fusión)
+ */
+function api_detectarDuplicados() {
+  cc_requireSession();
+
+  var sh = _sh("CONSOLIDADO_DE_PACIENTES");
+  var lr = sh.getLastRow();
+  if (lr < 2) return { ok: true, grupos: [], total: 0 };
+
+  // Leer todas las columnas necesarias
+  // PAC_COL: ID:0, NOMBRES:1, APELLIDOS:2, TELEFONO:3, DOCUMENTO:5,
+  //          TOTAL_FACTURADO:14, ULTIMA_VISITA:15, TOTAL_COMPRAS:13, ESTADO:18
+  var data = sh.getRange(2, 1, lr - 1, 21).getValues();
+
+  // Mapa teléfono → filas
+  var mapaTeléfono = {};
+  data.forEach(function(r, i) {
+    var tel = _normNum(r[3]);
+    var est = _up(_norm(r[18] || ""));
+    if (!tel || est === "RETIRADO") return;
+    if (!mapaTeléfono[tel]) mapaTeléfono[tel] = [];
+    mapaTeléfono[tel].push({
+      row:        i + 2,
+      id:         _norm(r[0]),
+      nombres:    _norm(r[1]),
+      apellidos:  _norm(r[2]),
+      tel:        tel,
+      dni:        _norm(r[5]),
+      totalFact:  Number(r[14]) || 0,
+      ultVisita:  _date(r[15]),
+      totalComp:  Number(r[13]) || 0,
+      estado:     _up(_norm(r[18] || "NUEVO"))
+    });
+  });
+
+  var grupos = [];
+
+  // Grupos por teléfono duplicado
+  Object.keys(mapaTeléfono).forEach(function(tel) {
+    var filas = mapaTeléfono[tel];
+    if (filas.length >= 2) {
+      grupos.push({
+        tipo:      "TELEFONO_DUPLICADO",
+        clave:     tel,
+        registros: filas
+      });
+    }
+  });
+
+  // Grupos por nombre similar (solo si no ya está en duplicado de tel)
+  var telefonosDuplicados = {};
+  grupos.forEach(function(g) {
+    g.registros.forEach(function(r) { telefonosDuplicados[r.tel] = true; });
+  });
+
+  var mapaNombre = {};
+  data.forEach(function(r, i) {
+    var tel = _normNum(r[3]);
+    if (telefonosDuplicados[tel]) return; // ya está en grupo tel
+    var est = _up(_norm(r[18] || ""));
+    if (est === "RETIRADO") return;
+
+    // Normalizar nombre: primera palabra de nombres + primera de apellidos
+    var n1 = _norm(r[1]).split(" ")[0] || "";
+    var a1 = _norm(r[2]).split(" ")[0] || "";
+    var clave = n1 + "_" + a1;
+    if (!clave || clave === "_") return;
+
+    if (!mapaNombre[clave]) mapaNombre[clave] = [];
+    mapaNombre[clave].push({
+      row:       i + 2,
+      id:        _norm(r[0]),
+      nombres:   _norm(r[1]),
+      apellidos: _norm(r[2]),
+      tel:       tel,
+      dni:       _norm(r[5]),
+      totalFact: Number(r[14]) || 0,
+      ultVisita: _date(r[15]),
+      totalComp: Number(r[13]) || 0,
+      estado:    _up(_norm(r[18] || "NUEVO"))
+    });
+  });
+
+  Object.keys(mapaNombre).forEach(function(clave) {
+    var filas = mapaNombre[clave];
+    if (filas.length >= 2) {
+      grupos.push({
+        tipo:      "NOMBRE_SIMILAR",
+        clave:     clave.replace("_", " "),
+        registros: filas
+      });
+    }
+  });
+
+  // Limitar a 50 grupos para no sobrecargar el modal
+  grupos = grupos.slice(0, 50);
+
+  return { ok: true, grupos: grupos, total: grupos.length };
+}
+
+/**
+ * api_fusionarPacientes
+ * Fusiona dos registros de paciente.
+ *
+ * v2.0 — CAMBIO CRÍTICO:
+ *   Ahora recibe rowPrincipal y rowSecundario como parámetros.
+ *   El USUARIO elige quién es el principal desde el modal.
+ *   El principal conserva su fila y recibe los datos del secundario
+ *   si sus campos están vacíos.
+ *   El secundario queda con ESTADO = RETIRADO.
+ *
+ * @param {number} rowPrincipal   Fila en el Sheet del registro que MANDA
+ * @param {number} rowSecundario  Fila en el Sheet del registro que se retira
+ */
+function api_fusionarPacientes(rowPrincipal, rowSecundario) {
+  var s = cc_requireSession();
+  if (s.rol !== "ADMIN" && s.rol !== "ADMINISTRADOR")
+    throw new Error("Solo ADMIN puede fusionar pacientes.");
+
+  rowPrincipal  = Number(rowPrincipal);
+  rowSecundario = Number(rowSecundario);
+
+  if (!rowPrincipal || !rowSecundario)
+    throw new Error("Filas de principal y secundario requeridas.");
+  if (rowPrincipal === rowSecundario)
+    throw new Error("No puedes fusionar un registro consigo mismo.");
+
+  var sh = _sh("CONSOLIDADO_DE_PACIENTES");
+  var totalCols = 24; // hasta col X (ETIQUETA_BASE incluida si ya se creó)
+
+  // Leer ambas filas
+  var filaPrinc = sh.getRange(rowPrincipal,  1, 1, totalCols).getValues()[0];
+  var filaSecun = sh.getRange(rowSecundario, 1, 1, totalCols).getValues()[0];
+
+  var telPrinc  = _normNum(filaPrinc[3]);
+  var telSecun  = _normNum(filaSecun[3]);
+
+  if (!telPrinc)  throw new Error("El registro principal no tiene teléfono válido.");
+  if (!telSecun)  throw new Error("El registro secundario no tiene teléfono válido.");
+
+  // Enriquecer principal con datos del secundario donde el principal tenga vacíos
+  // Campos a transferir si están vacíos en el principal: EMAIL(4), DOCUMENTO(5),
+  // FECHA_NAC(7), DIRECCION(8), OCUPACION(9), SEDE(10), FUENTE(11)
+  var camposTransferir = [4, 5, 7, 8, 9, 10, 11];
+  var filaActualizada  = filaPrinc.slice();
+
+  camposTransferir.forEach(function(col) {
+    if (!_norm(String(filaActualizada[col])) && _norm(String(filaSecun[col]))) {
+      filaActualizada[col] = filaSecun[col];
+    }
+  });
+
+  // Sumar acumulados si el secundario tiene valores
+  // TOTAL_COMPRAS(13), TOTAL_FACTURADO(14), TOTAL_LLAMADAS(16), TOTAL_CITAS(17)
+  var camposSumar = [13, 14, 16, 17];
+  camposSumar.forEach(function(col) {
+    var vP = Number(filaActualizada[col]) || 0;
+    var vS = Number(filaSecun[col]) || 0;
+    filaActualizada[col] = vP + vS;
+  });
+
+  // Conservar la ULTIMA_VISITA más reciente (col 15)
+  var uvP = filaPrinc[15] ? new Date(filaPrinc[15]) : null;
+  var uvS = filaSecun[15] ? new Date(filaSecun[15]) : null;
+  if (uvP && uvS) {
+    filaActualizada[15] = uvP > uvS ? uvP : uvS;
+  } else if (!uvP && uvS) {
+    filaActualizada[15] = uvS;
+  }
+
+  // Escribir fila actualizada en el principal
+  sh.getRange(rowPrincipal, 1, 1, filaActualizada.length).setValues([filaActualizada]);
+
+  // Marcar secundario como RETIRADO (col 19 = ESTADO, base 1)
+  sh.getRange(rowSecundario, 19).setValue("RETIRADO");
+
+  // Reasignar llamadas del número secundario al principal en CONSOLIDADO DE LLAMADAS
+  _fusion_reasignarLlamadas(telSecun, telPrinc);
+
+  // Reasignar citas del secundario al principal en AGENDA_CITAS
+  _fusion_reasignarCitas(telSecun, telPrinc);
+
+  // Reasignar ventas del secundario al principal en CONSOLIDADO DE VENTAS
+  _fusion_reasignarVentas(telSecun, telPrinc);
+
+  // Reasignar notas del secundario al principal en NOTAS_PACIENTES
+  _fusion_reasignarNotas(telSecun, telPrinc);
+
+  Logger.log("FUSION OK — principal: " + telPrinc + " (row " + rowPrincipal + ")" +
+             " | secundario: " + telSecun + " → RETIRADO");
+
+  return {
+    ok:  true,
+    msg: "Fusión completada. " + telSecun + " consolidado en " + telPrinc + "."
+  };
+}
+
+/**
+ * _fusion_reasignarLlamadas
+ * Reasigna llamadas del teléfono secundario al principal
+ * en CONSOLIDADO DE LLAMADAS (col NUM_LIMPIO = col 9, base 1)
+ */
+function _fusion_reasignarLlamadas(telSecun, telPrinc) {
+  try {
+    var sh = _sh("CONSOLIDADO DE LLAMADAS");
+    var lr = sh.getLastRow();
+    if (lr < 2) return;
+    // LLAM_COL.NUM_LIMPIO = 8 (base 0) → col 9 (base 1)
+    var nums = sh.getRange(2, 9, lr - 1, 1).getValues();
+    var updates = [];
+    for (var i = 0; i < nums.length; i++) {
+      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
+    }
+    updates.forEach(function(row) {
+      sh.getRange(row, 9).setValue(telPrinc);
+    });
+    Logger.log("  Llamadas reasignadas: " + updates.length);
+  } catch(e) {
+    Logger.log("  WARN _fusion_reasignarLlamadas: " + e.message);
+  }
+}
+
+/**
+ * _fusion_reasignarCitas
+ * Reasigna citas del número secundario al principal
+ * en AGENDA_CITAS (col NUMERO = col 6, base 1)
+ */
+function _fusion_reasignarCitas(telSecun, telPrinc) {
+  try {
+    var sh = _shAgenda();
+    var lr = sh.getLastRow();
+    if (lr < 2) return;
+    // AG_COL.NUMERO = 5 (base 0) → col 6 (base 1)
+    var nums = sh.getRange(2, 6, lr - 1, 1).getValues();
+    var updates = [];
+    for (var i = 0; i < nums.length; i++) {
+      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
+    }
+    updates.forEach(function(row) {
+      sh.getRange(row, 6).setValue(telPrinc);
+    });
+    Logger.log("  Citas reasignadas: " + updates.length);
+  } catch(e) {
+    Logger.log("  WARN _fusion_reasignarCitas: " + e.message);
+  }
+}
+
+/**
+ * _fusion_reasignarVentas
+ * Reasigna ventas del número secundario al principal
+ * en CONSOLIDADO DE VENTAS (col NUM_LIMPIO = col 16, base 1)
+ */
+function _fusion_reasignarVentas(telSecun, telPrinc) {
+  try {
+    var sh = _sh("CONSOLIDADO DE VENTAS");
+    var lr = sh.getLastRow();
+    if (lr < 2) return;
+    // VENT_COL.NUM_LIMPIO = 15 (base 0) → col 16 (base 1)
+    var nums = sh.getRange(2, 16, lr - 1, 1).getValues();
+    var updates = [];
+    for (var i = 0; i < nums.length; i++) {
+      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
+    }
+    updates.forEach(function(row) {
+      sh.getRange(row, 16).setValue(telPrinc);
+    });
+    Logger.log("  Ventas reasignadas: " + updates.length);
+  } catch(e) {
+    Logger.log("  WARN _fusion_reasignarVentas: " + e.message);
+  }
+}
+
+/**
+ * _fusion_reasignarNotas
+ * Reasigna notas del número secundario al principal
+ * en NOTAS_PACIENTES (col 4 = NUM_PACIENTE, base 1)
+ */
+function _fusion_reasignarNotas(telSecun, telPrinc) {
+  try {
+    var sh = _sh("NOTAS_PACIENTES");
+    var lr = sh.getLastRow();
+    if (lr < 2) return;
+    var nums = sh.getRange(2, 4, lr - 1, 1).getValues();
+    var updates = [];
+    for (var i = 0; i < nums.length; i++) {
+      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
+    }
+    updates.forEach(function(row) {
+      sh.getRange(row, 4).setValue(telPrinc);
+    });
+    Logger.log("  Notas reasignadas: " + updates.length);
+  } catch(e) {
+    Logger.log("  WARN _fusion_reasignarNotas: " + e.message);
+  }
+}
+// ===== CTRL+F: FUSION_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-08 · HELPERS INTERNOS DE GS_24
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: HELPERS24_START =====
+
+/**
+ * _g24_normEstado
+ * Normaliza estados de citas y llamadas con/sin tilde.
+ * FIX: resuelve el bug de colores que fallaban por tildes en el Sheet.
+ *
+ * Ejemplos:
+ *   "ASISTIÓ"    → "ASISTIO"
+ *   "NO ASISTIÓ" → "NO ASISTIO"
+ *   "CANCELÓ"    → "CANCELADA"
+ */
+function _g24_normEstado(estado) {
+  if (!estado) return "";
+  var e = estado.toUpperCase().trim()
+    .replace(/Ó/g, "O").replace(/É/g, "E")
+    .replace(/Á/g, "A").replace(/Í/g, "I")
+    .replace(/Ú/g, "U");
+
+  // Aliases
+  var map = {
+    "NO CONTESTA":        "SIN CONTACTO",
+    "NO CONTEST":         "SIN CONTACTO",
+    "ASISTIO":            "ASISTIO",
+    "ASISTIÓ":            "ASISTIO",
+    "NO ASISTIO":         "NO ASISTIO",
+    "NO ASISTIÓ":         "NO ASISTIO",
+    "EFECTIVA":           "ASISTIO",
+    "CITA CONFIRMADA":    "CITA CONFIRMADA",
+    "CANCELADA":          "CANCELADA",
+    "CANCELO":            "CANCELADA",
+    "CANCELÓ":            "CANCELADA",
+    "REAGENDADA":         "REAGENDADA",
+    "PENDIENTE":          "PENDIENTE"
+  };
+
+  return map[e] || e;
+}
+
+/**
+ * _g24_calcDiasUltVisita
+ * Calcula días desde la última visita.
+ * @param {string|Date} ultVisita Fecha de última visita
+ * @returns {number|null} Días o null si no hay fecha
+ */
+function _g24_calcDiasUltVisita(ultVisita) {
+  if (!ultVisita) return null;
+  try {
+    var uv  = new Date(ultVisita); uv.setHours(0, 0, 0, 0);
+    var hoy = new Date();          hoy.setHours(0, 0, 0, 0);
+    var dias = Math.floor((hoy - uv) / (1000 * 60 * 60 * 24));
+    return dias >= 0 ? dias : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+/**
+ * api_getPatient360T (override wrapper enriquecido)
+ * Llama a api_getPatientProfile + calcula diasUltVisita directamente.
+ * FIX-04: diasUltVisita ya viene en el objeto paciente retornado,
+ *         no hay que llamar a api_getPatientScore360T por separado.
+ */
+function api_getPatient360(numOrId) {
+  cc_requireSession();
+  var num = _normNum(numOrId);
+  if (!num) return { ok: false, msg: "Número requerido." };
+
+  var res = api_getPatientProfile(num);
+  if (!res || !res.ok) return { ok: false, msg: "Paciente no encontrado." };
+
+  var p = res.paciente || {};
+
+  // FIX-04: calcular diasUltVisita aquí mismo
+  p.diasUltVisita = _g24_calcDiasUltVisita(p.ultVisita);
+
+  // Calcular score si no viene
+  if (!p.estado || p.estado === "") {
+    if (p.diasUltVisita === null) {
+      p.estado = "NUEVO";
+    } else if (p.diasUltVisita <= 90) {
+      p.estado = "ACTIVO";
+    } else if (p.diasUltVisita <= 180) {
+      p.estado = "EN_RIESGO";
+    } else {
+      p.estado = "INACTIVO";
+    }
+  }
+
+  // Normalizar estado con tilde
+  p.estado = _g24_normEstado(p.estado);
+
+  // Normalizar estados de citas en historial
+  var h = res.historial || {};
+  if (h.citas) {
+    h.citas = h.citas.map(function(c) {
+      c.estado = _g24_normEstado(c.estado);
+      return c;
+    });
+  }
+  if (h.llamadas) {
+    h.llamadas = h.llamadas.map(function(l) {
+      l.estado = _g24_normEstado(l.estado);
+      return l;
+    });
+  }
+
+  return { ok: true, paciente: p, historial: h };
+}
+// ===== CTRL+F: HELPERS24_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-09 · WRAPPERS TOKEN
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: WRAP360_START =====
+
+function api_saveHistoriaClinicaT(token, payload)            { _setToken(token); return api_saveHistoriaClinica(payload); }
+function api_getHistoriaClinicaT(token, dniOrTel)            { _setToken(token); return api_getHistoriaClinica(dniOrTel); }
+function api_saveNotaPaciente360T(token, num, texto, tipo)   { _setToken(token); return api_saveNotaPaciente360(num, texto, tipo); }
+function api_getNotasPaciente360T(token, num, tipo)          { _setToken(token); return api_getNotasPaciente360(num, tipo); }
+function api_saveSeguimientoProgramadoT(token, payload)      { _setToken(token); return api_saveSeguimientoProgramado(payload); }
+function api_getSeguimientosProgramadosT(token, num, filtro) { _setToken(token); return api_getSeguimientosProgramados(num, filtro); }
+function api_cerrarSeguimientoProgramadoT(token, segId)      { _setToken(token); return api_cerrarSeguimientoProgramado(segId); }
+function api_getPatientTimelineT(token, num)                 { _setToken(token); return api_getPatientTimeline(num); }
+function api_createCitaDesde360T(token, payload)             { _setToken(token); return api_createCitaDesde360(payload); }
+function api_getPatientScore360T(token, num)                 { _setToken(token); return api_getPatientScore360(num); }
+function api_getEquipoActivoT(token)                         { _setToken(token); return api_getEquipoActivo(); }
+
+// FIX-04: wrapper del perfil enriquecido (reemplaza api_getPatientProfileT para el panel 360)
+function api_getPatient360T(token, numOrId)                  { _setToken(token); return api_getPatient360(numOrId); }
+
+// FIX-02/03: fusión y detección con nuevos parámetros
+function api_detectarDuplicadosT(token)                              { _setToken(token); return api_detectarDuplicados(); }
+function api_fusionarPacientesT(token, rowPrincipal, rowSecundario)  { _setToken(token); return api_fusionarPacientes(rowPrincipal, rowSecundario); }
+// ===== CTRL+F: WRAP360_END =====
+
+
+// ══════════════════════════════════════════════════════════════
+// MOD-10 · TESTS
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: TEST360_START =====
+
+function test_GS24_v2_verificar() {
+  Logger.log("=== TEST GS_24_Pacientes360 v2.0 ===");
+
+  // Test HC
+  try {
+    var hc = api_getHistoriaClinica("99999999");
+    Logger.log("✅ api_getHistoriaClinica OK — hc: " + (hc.hc ? "encontrada" : "no existe"));
+  } catch(e) { Logger.log("❌ api_getHistoriaClinica: " + e.message); }
+
+  // Test seguimientos
+  try {
+    var segs = api_getSeguimientosProgramados(null, "vencidos");
+    Logger.log("✅ api_getSeguimientosProgramados OK — vencidos: " + segs.total);
+  } catch(e) { Logger.log("❌ api_getSeguimientosProgramados: " + e.message); }
+
+  // Test notas
+  try {
+    var notas = api_getNotasPaciente360("987654321");
+    Logger.log("✅ api_getNotasPaciente360 OK — notas: " + notas.notas.length);
+  } catch(e) { Logger.log("❌ api_getNotasPaciente360: " + e.message); }
+
+  // Test normalización de estados (FIX-03)
+  Logger.log("--- Test _g24_normEstado ---");
+  Logger.log("'ASISTIÓ'   → " + _g24_normEstado("ASISTIÓ"));       // esperado: ASISTIO
+  Logger.log("'NO ASISTIÓ'→ " + _g24_normEstado("NO ASISTIÓ"));    // esperado: NO ASISTIO
+  Logger.log("'CANCELÓ'   → " + _g24_normEstado("CANCELÓ"));       // esperado: CANCELADA
+  Logger.log("'NO CONTESTA'→ " + _g24_normEstado("NO CONTESTA"));  // esperado: SIN CONTACTO
+
+  // Test diasUltVisita (FIX-04)
+  Logger.log("--- Test _g24_calcDiasUltVisita ---");
+  var dias = _g24_calcDiasUltVisita("2026-01-01");
+  Logger.log("Días desde 2026-01-01: " + dias + " (debe ser > 0)");
+
+  // Test equipo activo (NEW-01)
+  try {
+    var equipo = api_getEquipoActivo();
+    Logger.log("✅ api_getEquipoActivo OK — asesores: " + equipo.items.length);
+  } catch(e) { Logger.log("❌ api_getEquipoActivo: " + e.message); }
+
+  // Test detectar duplicados (FIX-02)
+  try {
+    var dupes = api_detectarDuplicados();
+    Logger.log("✅ api_detectarDuplicados OK — grupos: " + dupes.total);
+    if (dupes.grupos.length > 0) {
+      var g = dupes.grupos[0];
+      Logger.log("   Primer grupo tipo: " + g.tipo + " | registros: " + g.registros.length);
+      Logger.log("   Primer registro tiene totalFact: " + g.registros[0].totalFact);
+    }
+  } catch(e) { Logger.log("❌ api_detectarDuplicados: " + e.message); }
+
+  Logger.log("=== FIN TEST GS_24 v2.0 ===");
+}
+
+/**
+ * ══════════════════════════════════════════════════════════════
+ * CHECKLIST DE PRUEBA — GS_24_Pacientes360.gs v2.0
+ * ══════════════════════════════════════════════════════════════
+ *
+ * PREREQUISITO: GS_00_Repairs.gs ya ejecutado ✅
+ *
+ * PRUEBA 1 — Ejecutar test completo:
+ *   test_GS24_v2_verificar() → todos ✅ en Logger
+ *
+ * PRUEBA 2 — Días sin visita:
+ *   api_getPatient360T(token, "986293339")
+ *   → res.paciente.diasUltVisita debe ser un número, NO null
+ *
+ * PRUEBA 3 — Colores de citas:
+ *   En el panel, tab Citas de un paciente con citas ASISTIDAS
+ *   → debe aparecer punto VERDE (no amarillo/gris)
+ *
+ * PRUEBA 4 — Fusión con elección de principal:
+ *   api_detectarDuplicadosT(token)
+ *   → cada registro en grupos.registros debe tener:
+ *      { row, id, nombres, apellidos, tel, dni, totalFact, ultVisita, totalComp }
+ *
+ * PRUEBA 5 — Fusionar eligiendo principal:
+ *   api_fusionarPacientesT(token, ROW_QUE_QUIERO, ROW_QUE_RETIRO)
+ *   → el Row que quieres conserva nombre + suma acumulados
+ *   → el otro queda ESTADO=RETIRADO
+ *
+ * SEÑALES DE ÉXITO:
+ *   ✅ diasUltVisita es número en el badge del panel
+ *   ✅ Citas ASISTIO = punto verde, NO ASISTIO = rojo
+ *   ✅ Modal duplicados muestra totalFact y ultVisita de cada registro
+ *   ✅ Puedes elegir quién es el PRINCIPAL antes de fusionar
+ *   ✅ Selector Asesor en modal nueva cita tiene opciones del equipo
+ */
+// ===== CTRL+F: TEST360_END =====
+
+// ══════════════════════════════════════════════════════════════
+// PATCH GS_24 — Pegar al FINAL de GS_24_Pacientes360.gs
+// AscendaOS v1 · CREACTIVE OS
+//
+// INSTRUCCIÓN EXACTA:
+//   1. Abre GS_24_Pacientes360.gs en Apps Script
+//   2. Baja hasta la ÚLTIMA línea del archivo
+//      (después del bloque TEST360_END y el comentario de checklist)
+//   3. Pega TODO este bloque sin tocar nada de lo anterior
+//   4. Ctrl+S para guardar
+//
+// QUÉ AGREGA (2 funciones nuevas):
+//   api_updateNotaPaciente360T → edita el texto de una nota por ID
+//   api_deleteNotaPaciente360T → elimina una nota por ID
+//
+// REGLAS DE ACCESO:
+//   Editar  → el mismo usuario que creó la nota, o ADMIN
+//   Eliminar → el mismo usuario que creó la nota, o ADMIN
+//
+// HOJA QUE TOCA:
+//   NOTAS_PACIENTES — cols confirmadas del Sheet real (base 0):
+//     0=ID, 1=FECHA, 2=HORA, 3=NUMERO, 4=TEXTO,
+//     5=ROL, 6=USUARIO, 7=TIPO_NOTA, 8=TS_CREADO
+// ══════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════
+// PATCH-GS24-01 · EDITAR NOTA
+// ===== CTRL+F: api_updateNotaPaciente360 =====
+// ═══════════════════════════════════════════════════
+
+/**
+ * api_updateNotaPaciente360
+ * Edita el texto de una nota existente en NOTAS_PACIENTES.
+ * Busca la nota por su ID (col 0).
+ *
+ * Acceso: el mismo usuario que la creó, o ADMIN/ADMINISTRADOR.
+ *
+ * @param {string} notaId     ID único de la nota (col A de la hoja)
+ * @param {string} nuevoTexto Texto de reemplazo (máx. 2000 chars)
+ */
+function api_updateNotaPaciente360(notaId, nuevoTexto) {
+  var s = cc_requireSession();
+  notaId     = _norm(notaId);
+  nuevoTexto = _norm(nuevoTexto);
+
+  if (!notaId)     throw new Error("ID de nota requerido.");
+  if (!nuevoTexto) throw new Error("Texto no puede estar vacío.");
+  if (nuevoTexto.length > 2000) throw new Error("Nota máximo 2000 caracteres.");
+
+  var sh = _sh("NOTAS_PACIENTES");
+  var lr = sh.getLastRow();
+  if (lr < 2) throw new Error("Sin notas registradas.");
+
+  // Leer las 9 columnas de la hoja
+  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
+
+  for (var i = 0; i < data.length; i++) {
+    if (_norm(data[i][0]) !== notaId) continue;
+
+    // Verificar permisos
+    var usuarioNota  = _norm(data[i][6]);
+    var esAdmin      = s.rol === "ADMIN" || s.rol === "ADMINISTRADOR";
+    var esPropietario= _norm(s.asesor)  === usuarioNota ||
+                       _norm(s.usuario) === usuarioNota;
+
+    if (!esAdmin && !esPropietario)
+      throw new Error("Solo puedes editar tus propias notas.");
+
+    // Actualizar TEXTO (col 5 base-1) y marcar como editado en TIPO_NOTA (col 8)
+    sh.getRange(i + 2, 5).setValue(nuevoTexto);
+
+    var tipoActual = _norm(data[i][7]);
+    if (tipoActual && tipoActual.indexOf("(editado)") < 0) {
+      sh.getRange(i + 2, 8).setValue(tipoActual + " (editado)");
+    }
+
+    Logger.log("api_updateNotaPaciente360 OK — id: " + notaId +
+               " | por: " + s.asesor);
+
+    return { ok: true, msg: "Nota actualizada." };
+  }
+
+  throw new Error("Nota no encontrada: " + notaId);
+}
+
+function api_updateNotaPaciente360T(token, notaId, nuevoTexto) {
+  _setToken(token); return api_updateNotaPaciente360(notaId, nuevoTexto);
+}
+// ===== CTRL+F: api_updateNotaPaciente360_END =====
+
+
+// ═══════════════════════════════════════════════════
+// PATCH-GS24-02 · ELIMINAR NOTA
+// ===== CTRL+F: api_deleteNotaPaciente360 =====
+// ═══════════════════════════════════════════════════
+
+/**
+ * api_deleteNotaPaciente360
+ * Elimina una nota de NOTAS_PACIENTES por su ID.
+ * La fila se borra físicamente del Sheet.
+ *
+ * Acceso: el mismo usuario que la creó, o ADMIN/ADMINISTRADOR.
+ *
+ * @param {string} notaId  ID único de la nota (col A de la hoja)
+ */
+function api_deleteNotaPaciente360(notaId) {
+  var s = cc_requireSession();
+  notaId = _norm(notaId);
+  if (!notaId) throw new Error("ID de nota requerido.");
+
+  var sh = _sh("NOTAS_PACIENTES");
+  var lr = sh.getLastRow();
+  if (lr < 2) throw new Error("Sin notas registradas.");
+
+  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
+
+  for (var i = 0; i < data.length; i++) {
+    if (_norm(data[i][0]) !== notaId) continue;
+
+    // Verificar permisos
+    var usuarioNota  = _norm(data[i][6]);
+    var esAdmin      = s.rol === "ADMIN" || s.rol === "ADMINISTRADOR";
+    var esPropietario= _norm(s.asesor)  === usuarioNota ||
+                       _norm(s.usuario) === usuarioNota;
+
+    if (!esAdmin && !esPropietario)
+      throw new Error("Solo puedes eliminar tus propias notas.");
+
+    // Eliminar la fila
+    sh.deleteRow(i + 2);
+
+    Logger.log("api_deleteNotaPaciente360 OK — id: " + notaId +
+               " | por: " + s.asesor);
+
+    return { ok: true, msg: "Nota eliminada." };
+  }
+
+  throw new Error("Nota no encontrada: " + notaId);
+}
+
+function api_deleteNotaPaciente360T(token, notaId) {
+  _setToken(token); return api_deleteNotaPaciente360(notaId);
+}
+// ===== CTRL+F: api_deleteNotaPaciente360_END =====
+
+
+/**
+ * ══════════════════════════════════════════════════
+ * CHECKLIST DE PRUEBA — PATCH GS_24 Notas
+ * ══════════════════════════════════════════════════
+ *
+ * PRUEBA 1 — Crear nota (ya existente, confirmar que sigue):
+ *   Panel → buscar paciente → panel notas derecho
+ *   → Click "+ Nueva" → escribir "Nota de prueba" → Guardar
+ *   → Verificar que aparece en el panel lateral
+ *   → Verificar nueva fila en NOTAS_PACIENTES del Sheet
+ *
+ * PRUEBA 2 — Editar nota:
+ *   → Click ✏️ en la nota recién creada
+ *   → Aparece textarea con el texto actual
+ *   → Modificar el texto → click "✓ Guardar"
+ *   → Nota se actualiza en el panel con texto nuevo
+ *   → Verificar en Sheet que TEXTO cambió y TIPO_NOTA tiene "(editado)"
+ *
+ * PRUEBA 3 — Eliminar nota:
+ *   → Click 🗑 en la nota → aparece confirmación
+ *   → Confirmar → nota desaparece del panel
+ *   → Verificar en Sheet que la fila ya no existe
+ *
+ * SEÑALES DE ÉXITO:
+ *   ✅ api_updateNotaPaciente360T devuelve { ok: true }
+ *   ✅ Sheet NOTAS_PACIENTES tiene el texto nuevo en col E
+ *   ✅ Sheet NOTAS_PACIENTES tiene "(editado)" en col H (TIPO_NOTA)
+ *   ✅ api_deleteNotaPaciente360T devuelve { ok: true }
+ *   ✅ La fila fue eliminada físicamente del Sheet
+ */

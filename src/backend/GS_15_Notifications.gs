@@ -1,4 +1,9 @@
 /**
+ * RESTAURAR_GS15_Notificaciones.gs
+ * Versión original del GitHub — reemplaza TODO el contenido de GS_15_Notificaciones.gs
+ * Ctrl+A → Borrar → Pegar → Ctrl+S → Desplegar nueva versión
+ */
+/**
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  AscendaOS v1 — GS_15_Notifications.gs                     ║
  * ║  Módulo: Notificaciones y Mensajería Interna                ║
@@ -461,4 +466,41 @@ function test_Notifications() {
   Logger.log('  api_marcarTodasLeidasT(token)');
   Logger.log('  api_getAdminNotifPanelT(token)');
   Logger.log('=== OK ===');
+}
+// ══════════════════════════════════════════════════════════════
+// ALIAS — api_listNotificationsT
+// AppShell llama api_listNotificationsT → redirige a api_getNotifCenterT
+// ══════════════════════════════════════════════════════════════
+function api_listNotificationsT(token) {
+  _setToken(token);
+  var s   = cc_requireSession();
+  var res = api_getNotifCenter();
+  // Adaptar formato para que AppShell lo procese igual
+  var items = [];
+  (res.notifs || []).forEach(function(n) {
+    items.push({ id:n.id, tipo:n.tipo, titulo:n.titulo, cuerpo:n.cuerpo, fecha:n.fecha, hora:n.hora, tsLeido:n.leido?n.fecha:null });
+  });
+  return {
+    ok:          true,
+    items:       items,
+    unreadNotifs:res.unreadNotifs || 0,
+    unreadMsgs:  res.unreadMsgs  || 0
+  };
+}
+
+function api_markNotifReadT(token, notifId) {
+  _setToken(token); cc_requireSession();
+  // Marcar como leída en la hoja de notificaciones
+  try {
+    var sh = _notifSheet(); var lr = sh.getLastRow();
+    if (lr < 2) return { ok:true };
+    var ids = sh.getRange(2, 1, lr-1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (_norm(ids[i][0]) === _norm(notifId)) {
+        sh.getRange(i+2, 11).setValue(_datetime(new Date()));
+        break;
+      }
+    }
+  } catch(e) {}
+  return { ok:true };
 }

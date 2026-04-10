@@ -520,3 +520,94 @@ function test_VerificarSetup() {
   Logger.log("  Verificación completada");
   Logger.log("═══════════════════════════════════════════════");
 }
+
+// ══════════════════════════════════════════════════════════════
+// PARCHE BLOQUE 3 — Agregar al FINAL de GS_23_SheetSetup.gs
+// ══════════════════════════════════════════════════════════════
+// BLOQUE3_SETUP_START
+
+/**
+ * setup_CrearHojasBloque3
+ * Crea las 5 hojas nuevas necesarias para Pacientes 360.
+ * Llamar desde runSheetSetup_v2() o ejecutar sola.
+ * Idempotente: no hace nada si las hojas ya existen.
+ *
+ * INSTRUCCIÓN ADICIONAL:
+ * En runSheetSetup_v2() agrega esta línea dentro del bloque try/catch:
+ *   resultados.push(setup_CrearHojasBloque3());
+ */
+function setup_CrearHojasBloque3() {
+  var creadas = [];
+  var existentes = [];
+
+  var hojas = [
+    {
+      nombre:  "BASE_ETIQUETAS",
+      headers: ["NUMERO","ETIQUETA","CAMPANA","ULT_ACTIVIDAD","ASESOR","TS_ACTUALIZADO"]
+    },
+    {
+      nombre:  "NOTAS_PACIENTES",
+      headers: ["ID","FECHA","HORA","NUMERO","TEXTO","ROL","USUARIO","TIPO_NOTA","TS_CREADO"]
+    },
+    {
+      nombre:  "DOCUMENTOS_PACIENTES",
+      headers: ["ID","FECHA","TIPO","URL_DRIVE","NOMBRE_ARCHIVO","USUARIO","NUMERO","TS_CREADO"]
+    },
+    {
+      nombre:  "SEGUIMIENTOS_PROGRAMADOS",
+      headers: ["ID","NUMERO","TRATAMIENTO","FECHA_ULT_APLICACION","DIAS_CICLO",
+                "FECHA_RECONTACTO","ESTADO","ASESOR_ASIGNADO","OBS","TS_CREADO","TS_ACTUALIZADO"]
+    },
+    {
+      nombre:  "HISTORIA_CLINICA",
+      headers: [
+        // Identificación
+        "DNI","NOMBRES","APELLIDOS","TELEFONO","EMAIL",
+        "FECHA_NAC","SEXO","ESTADO_CIVIL","GRADO_INSTRUCCION",
+        "OCUPACION","DISTRITO","DIRECCION",
+        "CONTACTO_EMERG_NOMBRE","CONTACTO_EMERG_TEL",
+        // Antecedentes
+        "ALERGIAS_MEDICAMENTOS","ALERGIAS_MATERIALES",
+        "ENFERMEDADES_CRONICAS","MEDICAMENTOS_ACTUALES",
+        "SUPLEMENTOS_VITAMINAS","VACUNAS_RECIENTES",
+        "CIRUGIAS_PREVIAS","TRAT_ESTETICOS_PREVIOS",
+        "QUELOIDES","IMPLANTES","MARCAPASOS",
+        // Mujer
+        "EMBARAZO","LACTANCIA","ANTICONCEPTIVOS",
+        "FECHA_ULT_MENSTRUACION","FECHA_ULT_PAPANICOLAU",
+        // Hábitos
+        "TABACO","ALCOHOL","ACTIVIDAD_FISICA","HORAS_SUENO",
+        // Control
+        "CONSENTIMIENTO_FIRMADO","FECHA_REGISTRO_HC",
+        "MEDICO_RESPONSABLE","TS_CREADO","TS_ACTUALIZADO"
+      ]
+    }
+  ];
+
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+
+  hojas.forEach(function(h) {
+    var sh = ss.getSheetByName(h.nombre);
+    if (sh) {
+      existentes.push(h.nombre);
+      return;
+    }
+    sh = ss.insertSheet(h.nombre);
+    sh.getRange(1, 1, 1, h.headers.length).setValues([h.headers]);
+    // Header azul
+    var rng = sh.getRange(1, 1, 1, h.headers.length);
+    rng.setBackground("#0A4FBF");
+    rng.setFontColor("#ffffff");
+    rng.setFontWeight("bold");
+    rng.setFontSize(9);
+    sh.setFrozenRows(1);
+    creadas.push(h.nombre);
+  });
+
+  var msg = "";
+  if (creadas.length)    msg += "✅ Creadas: " + creadas.join(", ");
+  if (existentes.length) msg += (msg ? " | " : "") + "⏭️  Ya existen: " + existentes.join(", ");
+  Logger.log("setup_CrearHojasBloque3: " + msg);
+  return msg || "✅ Hojas Bloque 3 OK";
+}
+// BLOQUE3_SETUP_END

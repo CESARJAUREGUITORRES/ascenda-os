@@ -2,25 +2,23 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  AscendaOS v1 — GS_06_AdvisorCalls.gs                      ║
  * ║  Módulo: Panel de Llamadas, Leads y Seguimientos            ║
- * ║  Versión: 2.0.0 — Consolidado con GS_24_CallCenterPatch    ║
+ * ║  Versión: 2.1.0 — Bloque 2.5: Ficha contextual asesor      ║
+ * ║  Cambios v2.1: _ac_buildContexto + campo contexto en lead   ║
  * ║  Dependencias: GS_01–05                                     ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * CONTENIDO:
- *   MOD-01 · Obtener lead activo (con tiers)
+ *   MOD-01 · Obtener lead activo (con tiers + CONTEXTO)  ← v2.1
  *   MOD-02 · Guardar resultado de llamada
  *   MOD-03 · Gestión de seguimientos
  *   MOD-04 · Llamadas del asesor hoy
  *   MOD-05 · Monitoreo de equipo (admin)
  *   MOD-06 · Citas confirmadas del asesor
- *   MOD-07 · Score y métricas por mes (nuevo)
- *   MOD-08 · Top clientes del asesor (nuevo)
- *   MOD-09 · Búsqueda live de pacientes (nuevo)
- *   MOD-10 · Calendario desde Google Calendar real (nuevo)
- *
- * CALENDARIOS CONFIGURADOS:
- *   HORARIO_DOCTOR_CAL_ID  → turnos de doctoras
- *   HORARIO_PERSONAL_CAL_ID → turnos de enfermería/personal
+ *   MOD-07 · Score y métricas por mes
+ *   MOD-08 · Top clientes del asesor
+ *   MOD-09 · Búsqueda live de pacientes
+ *   MOD-10 · Calendario desde Google Calendar real
+ *   MOD-11 · CONTEXTO — ficha contextual por número     ← NUEVO
  */
 
 // ══════════════════════════════════════════════════════════════
@@ -128,6 +126,18 @@ function api_getNextLead() {
   };
 
   var anuncioInfo = _getAnuncioInfo(lead.anuncio, lead.trat);
+
+  // ===== CTRL+F: contexto_lead_v2_1 =====
+  // BLOQUE 2.5: Agregar ficha contextual al lead antes de retornar
+  // Cruza el número con LLAMADAS + AGENDA + VENTAS
+  // Si el lead es virgen puro (sin historial) retorna contexto:null
+  try {
+    lead.contexto = _ac_buildContexto(lead.num);
+  } catch(eCtx) {
+    Logger.log('_ac_buildContexto error: ' + eCtx.message);
+    lead.contexto = null;
+  }
+
   return {
     ok: true, lead: lead, tier: tier, anuncio: anuncioInfo,
     stats: { tier1: tier1.length, tier2: tier2.length,
@@ -158,6 +168,143 @@ function _getAnuncioInfo(anuncioNom, trat) {
 // F01_END
 
 // ══════════════════════════════════════════════════════════════
+// MOD-11 · CONTEXTO — FICHA CONTEXTUAL POR NÚMERO (BLOQUE 2.5)
+// ══════════════════════════════════════════════════════════════
+// F11_START
+
+// ===== CTRL+F: _ac_buildContexto =====
+/**
+ * Construye el objeto contexto para la ficha del asesor.
+ * Cruza NUM_LIMPIO con LLAMADAS, AGENDA y VENTAS.
+ * Llamado al final de api_getNextLead() — no modifica la lógica de tiers.
+ *
+ * @param  {string}      num   Número normalizado (9 dígitos)
+ * @returns {object|null}      Objeto contexto, o null si el número es virgen puro
+ */
+function _ac_buildContexto(num) {
+  if (!num) return null;
+
+  var ctx = {
+    intentosPrevios: 0,
+    ultContacto:     null,   // { fecha, asesor, estado, obs }
+    ultCita:         null,   // { fecha, trat, estado, doctora, sede }
+    ultCompra:       null,   // { fecha, trat, monto, totalFact, nVentas }
+    accionSugerida:  ''
+  };
+
+  // ── 1. Historial de llamadas ──────────────────────────
+  try {
+    var shL = _sh(CFG.SHEET_LLAMADAS);
+    var lrL = shL.getLastRow();
+    if (lrL >= 2) {
+      var ultTs = null;
+      shL.getRange(2, 1, lrL - 1, 21).getValues().forEach(function(r) {
+        var n = _normNum(r[LLAM_COL.NUM_LIMPIO] || r[LLAM_COL.NUMERO]);
+        if (n !== num) return;
+        ctx.intentosPrevios++;
+        var ts = r[LLAM_COL.ULT_TS] ? new Date(r[LLAM_COL.ULT_TS]) : null;
+        if (ts && (!ultTs || ts > ultTs)) {
+          ultTs = ts;
+          ctx.ultContacto = {
+            fecha:  _date(ts),
+            asesor: _up(r[LLAM_COL.ASESOR] || ''),
+            estado: _up(r[LLAM_COL.ESTADO]  || ''),
+            obs:    _norm(r[LLAM_COL.OBS]   || '')
+          };
+        }
+      });
+    }
+  } catch(e) { Logger.log('_ac_buildContexto LLAMADAS: ' + e.message); }
+
+  // ── 2. Última cita en AGENDA ──────────────────────────
+  try {
+    var shA = _shAgenda();
+    var lrA = shA.getLastRow();
+    if (lrA >= 2) {
+      var ultFechaCita = '';
+      shA.getRange(2, 1, lrA - 1, 22).getValues().forEach(function(r) {
+        var n = _normNum(r[AG_COL.NUMERO]);
+        if (n !== num) return;
+        var fd = _date(r[AG_COL.FECHA]);
+        if (!ultFechaCita || fd > ultFechaCita) {
+          ultFechaCita = fd;
+          ctx.ultCita = {
+            fecha:   fd,
+            trat:    _norm(r[AG_COL.TRATAMIENTO] || ''),
+            estado:  _up(r[AG_COL.ESTADO]        || ''),
+            doctora: _norm(r[AG_COL.DOCTORA]      || ''),
+            sede:    _norm(r[AG_COL.SEDE]          || '')
+          };
+        }
+      });
+    }
+  } catch(e) { Logger.log('_ac_buildContexto AGENDA: ' + e.message); }
+
+  // ── 3. Última compra en VENTAS ────────────────────────
+  try {
+    var shV = _sh(CFG.SHEET_VENTAS);
+    var lrV = shV.getLastRow();
+    if (lrV >= 2) {
+      var totalFact = 0, nVentas = 0, ultFechaV = '';
+      shV.getRange(2, 1, lrV - 1, 17).getValues().forEach(function(r) {
+        var n = _normNum(r[VENT_COL.NUM_LIMPIO] || r[VENT_COL.CELULAR]);
+        if (n !== num) return;
+        totalFact += Number(r[VENT_COL.MONTO]) || 0;
+        nVentas++;
+        var fd = _date(r[VENT_COL.FECHA]);
+        if (!ultFechaV || fd > ultFechaV) {
+          ultFechaV = fd;
+          ctx.ultCompra = {
+            fecha:     fd,
+            trat:      _norm(r[VENT_COL.TRATAMIENTO] || ''),
+            monto:     Number(r[VENT_COL.MONTO]) || 0,
+            totalFact: 0,
+            nVentas:   0
+          };
+        }
+      });
+      if (ctx.ultCompra) {
+        ctx.ultCompra.totalFact = Math.round(totalFact);
+        ctx.ultCompra.nVentas   = nVentas;
+      }
+    }
+  } catch(e) { Logger.log('_ac_buildContexto VENTAS: ' + e.message); }
+
+  // ── 4. Acción sugerida según el estado ───────────────
+  if (!ctx.intentosPrevios && !ctx.ultCita && !ctx.ultCompra) {
+    // Virgen puro — no hay contexto útil
+    return null;
+  }
+
+  if (!ctx.intentosPrevios) {
+    ctx.accionSugerida = 'Primer contacto de llamadas — tiene historial en sistema';
+  } else if (ctx.ultCita && _up(ctx.ultCita.estado) === 'NO ASISTIO') {
+    ctx.accionSugerida = 'Preguntar por la cita del ' + ctx.ultCita.fecha + ' que no pudo asistir';
+  } else if (ctx.ultCita && (_up(ctx.ultCita.estado) === 'CANCELADA' ||
+             _up(ctx.ultCita.estado) === 'REPROGRAMADA')) {
+    ctx.accionSugerida = 'Cita ' + _up(ctx.ultCita.estado).toLowerCase() + ' el ' +
+                         ctx.ultCita.fecha + ' — proponer nueva fecha';
+  } else if (ctx.ultCompra && ctx.ultCompra.nVentas > 0) {
+    ctx.accionSugerida = 'Paciente activo · ' + ctx.ultCompra.nVentas + ' compra(s) · S/' +
+                         ctx.ultCompra.totalFact + ' total · ofrecer complementario de ' +
+                         (ctx.ultCompra.trat || 'su tratamiento');
+  } else if (ctx.ultCita && (_up(ctx.ultCita.estado) === 'ASISTIO' ||
+             _up(ctx.ultCita.estado) === 'EFECTIVA')) {
+    ctx.accionSugerida = 'Asistió a cita de ' + ctx.ultCita.trat + ' el ' +
+                         ctx.ultCita.fecha + ' — dar seguimiento de resultados';
+  } else if (ctx.ultContacto) {
+    ctx.accionSugerida = 'Intento ' + ctx.intentosPrevios + ' — último: ' +
+                         ctx.ultContacto.estado +
+                         (ctx.ultContacto.obs ? ' · "' + ctx.ultContacto.obs.slice(0, 40) + '"' : '');
+  } else {
+    ctx.accionSugerida = 'Recontacto — ' + ctx.intentosPrevios + ' intentos previos';
+  }
+
+  return ctx;
+}
+// F11_END
+
+// ══════════════════════════════════════════════════════════════
 // MOD-02 · GUARDAR RESULTADO DE LLAMADA
 // ══════════════════════════════════════════════════════════════
 // F02_START
@@ -176,7 +323,6 @@ function api_saveCall(payload) {
     try { _guardarCitaDesdeCall(payload, s, now); } catch(eC) {
       Logger.log("Error guardando cita: " + eC.message);
     }
-    // Guardar en Google Contacts si se solicitó
     if (payload.guardarGoogleContacts && payload.nombre) {
       try { _guardarEnGoogleContacts(payload); } catch(eG) {
         Logger.log("Error Google Contacts: " + eG.message);
@@ -250,10 +396,24 @@ function _guardarSeguimiento(payload, s, now) {
   var sid = "SEG-" + _uid().slice(0, 8).toUpperCase();
   var num = _phone(payload.numero || "");
   var fechaProg = "", horaProg = "";
+
   if (payload.proxReintentoTs) {
-    var dt = new Date(payload.proxReintentoTs);
-    if (!isNaN(dt)) { fechaProg = _date(dt); horaProg = _time(dt); }
+    try {
+      var dt = new Date(payload.proxReintentoTs);
+      if (!isNaN(dt) && dt.getFullYear() >= 2020) {
+        var lYear  = dt.toLocaleDateString('es-PE', { timeZone: 'America/Lima', year: 'numeric' });
+        var lMonth = dt.toLocaleDateString('es-PE', { timeZone: 'America/Lima', month: '2-digit' });
+        var lDay   = dt.toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: '2-digit' });
+        fechaProg = lYear + '-' + lMonth + '-' + lDay;
+        var hh = String(dt.getHours()).padStart(2, '0');
+        var mm = String(dt.getMinutes()).padStart(2, '0');
+        horaProg  = hh + ':' + mm;
+      }
+    } catch(eD) {
+      Logger.log('_guardarSeguimiento fecha error: ' + eD.message);
+    }
   }
+
   sh.appendRow([
     sid, fechaProg, horaProg, "'" + num,
     _norm(payload.tratamiento || ""), _norm(s.asesor), _norm(s.idAsesor),
@@ -261,27 +421,17 @@ function _guardarSeguimiento(payload, s, now) {
   ]);
 }
 
-/**
- * Guarda el paciente en Google Contacts con formato:
- * NOMBRE + MES AÑO + TRATAMIENTO
- */
 function _guardarEnGoogleContacts(payload) {
   var nombre   = _norm(payload.nombre   || '');
   var apellido = _norm(payload.apellido || '');
   var trat     = _norm(payload.tratamiento || '').toUpperCase();
   var correo   = _norm(payload.correo || '');
   var num      = _phone(payload.numero || '');
-
-  // Construir nombre en formato: NOMBRE APELLIDO · ABR AÑO · TRAT
-  var meses = ['ENE','FEB','MAR','ABR','MAY','JUN',
-               'JUL','AGO','SEP','OCT','NOV','DIC'];
+  var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   var now = new Date();
   var mesAbr = meses[now.getMonth()];
   var anio   = now.getFullYear();
-
-  var nombreCompleto = nombre + ' ' + apellido;
   var lastName = apellido + ' - ' + mesAbr + ' ' + anio + ' - ' + trat;
-
   try {
     var body = {
       names: [{ givenName: nombre, familyName: lastName }],
@@ -289,7 +439,6 @@ function _guardarEnGoogleContacts(payload) {
     };
     if (correo) body.emailAddresses = [{ value: correo, type: 'home' }];
     People.people.createContact(body);
-    Logger.log("✅ Google Contacts guardado: " + nombreCompleto);
   } catch(e) {
     Logger.log("⚠️ Google Contacts error: " + e.message);
   }
@@ -351,19 +500,24 @@ function api_closeFollowup(rowNum) {
   return { ok: true };
 }
 
-// ── Aliases del ViewAdvisorCalls v2.1 ──
 function api_getMySeguimientosT(token) {
   _setToken(token);
   var res = api_listFollowups("todos");
   if (!res || !res.ok) return { ok: true, items: [], totales: {} };
   var items = res.items.map(function(s) {
+    var fechaHora = '';
+    if (s.fecha && s.fecha !== '' && s.fecha !== '1899-12-30') {
+      fechaHora = s.fecha + (s.hora ? ' ' + s.hora : '');
+    }
     return {
       segId:    s.rowNum ? String(s.rowNum) : (s.id || ''),
       rowNum:   s.rowNum || 0,
       num:      s.num || '',
       trat:     s.trat || '',
       obs:      s.obs  || '',
-      fechaHora:(s.fecha || '') + (s.hora ? ' ' + s.hora : ''),
+      fechaHora: fechaHora,
+      fecha:    (s.fecha && s.fecha !== '1899-12-30') ? s.fecha : '',
+      hora:     s.hora || '',
       vencido:  s.tipo === 'vencido',
       esHoy:    s.tipo === 'hoy',
       whatsapp: s.wa || ('https://wa.me/51' + (s.num||'').replace(/\D/g,''))
@@ -811,24 +965,17 @@ function api_searchPatientsLiveT(token, query) {
 // F09_END
 
 // ══════════════════════════════════════════════════════════════
-// MOD-10 v2 · CALENDARIO DESDE GOOGLE CALENDAR REAL (SEMANAL)
+// MOD-10 · CALENDARIO DESDE GOOGLE CALENDAR REAL (SEMANAL)
 // ══════════════════════════════════════════════════════════════
 // F10_START
 
 // ===== CTRL+F: api_getSemanaCalT =====
-/**
- * Retorna los 7 días de una semana con turnos reales de GCal.
- * @param {string} token
- * @param {number} semanaOffset  0=actual, -1=anterior, 1=próxima
- * @param {string} sede          "SAN ISIDRO" | "PUEBLO LIBRE" | "" (ambas)
- */
 function api_getSemanaCalT(token, semanaOffset, sede) {
   _setToken(token);
   cc_requireSession();
   semanaOffset = semanaOffset || 0;
   sede = _up(sede || '');
 
-  // Calcular lunes de la semana
   var now    = new Date();
   var dow    = now.getDay();
   var diffL  = dow === 0 ? -6 : 1 - dow;
@@ -836,7 +983,6 @@ function api_getSemanaCalT(token, semanaOffset, sede) {
   lunes.setDate(now.getDate() + diffL + semanaOffset * 7);
   lunes.setHours(0, 0, 0, 0);
 
-  // Generar los 7 días
   var dias = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(lunes);
@@ -849,7 +995,6 @@ function api_getSemanaCalT(token, semanaOffset, sede) {
   hasta.setDate(lunes.getDate() + 6);
   hasta.setHours(23, 59, 59);
 
-  // Leer ambos calendarios
   var evDocRes = _leerEventosCalendarRango(HORARIO_DOCTOR_CAL_ID,   desde, hasta);
   var evEnfRes = _leerEventosCalendarRango(HORARIO_PERSONAL_CAL_ID, desde, hasta);
 
@@ -864,26 +1009,21 @@ function api_getSemanaCalT(token, semanaOffset, sede) {
     var esHoy   = fd === hoy;
     var esPasado= d < new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    var doctoras  = [];
+    var doctoras   = [];
     var enfermeria = [];
 
-    // ── Doctoras de GCal ──────────────────────────────────
     var evsDia = evDocRes[fd] || [];
     evsDia.forEach(function(ev) {
       var parsed = _parsearEventoDoctor(ev.titulo);
       var sedeDia = _sedeDesdeLocation(ev.location || '');
       if (sede && sedeDia && sedeDia !== sede) return;
       doctoras.push({
-        label:    parsed.nombre,
-        tipo:     parsed.tipo,
-        horaIni:  ev.horaIni,
-        horaFin:  ev.horaFin,
-        sede:     sedeDia,
-        fuente:   'gcal'
+        label:   parsed.nombre, tipo: parsed.tipo,
+        horaIni: ev.horaIni,    horaFin: ev.horaFin,
+        sede:    sedeDia,       fuente: 'gcal'
       });
     });
 
-    // ── Enfermería de GCal ───────────────────────────────
     var evsEnf = evEnfRes[fd] || [];
     var porSede = {};
     evsEnf.forEach(function(ev) {
@@ -898,51 +1038,29 @@ function api_getSemanaCalT(token, semanaOffset, sede) {
       enfermeria.push({ sede: s, nombres: porSede[s] });
     });
 
-    // Determinar estado visual del día
     var estado;
-    if (esDom && !doctoras.length && !enfermeria.length) {
-      estado = 'sin_horario';
-    } else if (!doctoras.length && !enfermeria.length) {
-      estado = 'sin_horario';
-    } else {
-      estado = 'disponible';
-    }
+    if (!doctoras.length && !enfermeria.length) estado = 'sin_horario';
+    else estado = 'disponible';
 
     return {
-      fecha:      fd,
-      dia:        d.getDate(),
-      mes:        d.getMonth() + 1,
-      anio:       d.getFullYear(),
-      diaSem:     diaSem,
-      estado:     estado,
-      doctoras:   doctoras,
-      enfermeria: enfermeria,
-      esHoy:      esHoy,
-      esPasado:   esPasado
+      fecha: fd, dia: d.getDate(), mes: d.getMonth() + 1,
+      anio: d.getFullYear(), diaSem: diaSem, estado: estado,
+      doctoras: doctoras, enfermeria: enfermeria,
+      esHoy: esHoy, esPasado: esPasado
     };
   });
 
   return {
-    ok:          true,
-    semanaOffset: semanaOffset,
-    dias:        resultado,
-    desde:       _date(lunes),
-    hasta:       _date(hasta)
+    ok: true, semanaOffset: semanaOffset,
+    dias: resultado, desde: _date(lunes), hasta: _date(hasta)
   };
 }
 
-/**
- * Parsea el SUMMARY de un evento de doctora.
- * "(PROCED)DRA YESSICA PEREZ 5PM - 7.30PM" → { nombre, tipo }
- */
 function _parsearEventoDoctor(summary) {
   summary = _norm(summary || '');
-  // Extraer tipo entre paréntesis
   var tipoMatch = summary.match(/\(([^)]+)\)/);
   var tipo = tipoMatch ? tipoMatch[1].toUpperCase() : 'CONSULTA';
-  // Nombre: quitar paréntesis y lo que viene después de un patrón de hora
   var sin_paren = summary.replace(/\([^)]*\)/g, '').trim();
-  // Quitar el horario al final (números seguidos de am/pm o :)
   var nombre = sin_paren.replace(/\s+\d{1,2}[:.:]?\d{0,2}\s*[aApP][mM].*$/, '')
                          .replace(/\s+\d{1,2}[:.:]\d{2}.*$/, '')
                          .trim().toUpperCase();
@@ -950,22 +1068,14 @@ function _parsearEventoDoctor(summary) {
   return { nombre: nombre, tipo: tipo };
 }
 
-/**
- * Extrae el nombre del enfermero del SUMMARY.
- * "🟢 MIREYA - Turno Enfermería | SAN ISIDRO" → "MIREYA"
- */
 function _parsearNombreEnfermero(summary) {
   var m = summary.match(/([A-ZÁÉÍÓÚÑ]{3,})/);
   if (!m) return '';
   var name = m[1].toUpperCase();
-  // Excluir palabras comunes
   if (['TURNO', 'ENFERMERIA', 'VITAL', 'SAN', 'ISIDRO', 'PUEBLO', 'LIBRE'].indexOf(name) >= 0) return '';
   return name;
 }
 
-/**
- * Extrae la sede desde el LOCATION del evento.
- */
 function _sedeDesdeLocation(location) {
   var loc = location.toLowerCase();
   if (loc.indexOf('brasil') >= 0 || loc.indexOf('pueblo libre') >= 0) return 'PUEBLO LIBRE';
@@ -973,10 +1083,6 @@ function _sedeDesdeLocation(location) {
   return '';
 }
 
-/**
- * Lee eventos de un Google Calendar entre dos fechas.
- * Retorna: { "YYYY-MM-DD": [{titulo, horaIni, horaFin, location, allDay}] }
- */
 function _leerEventosCalendarRango(calId, desde, hasta) {
   var result = {};
   try {
@@ -990,20 +1096,18 @@ function _leerEventosCalendarRango(calId, desde, hasta) {
       var titulo = _norm(ev.getTitle());
       var allDay = ev.isAllDayEvent();
       var loc    = _norm(ev.getLocation() || '');
-      // Recorrer días del evento (por si es multi-día)
       var dia = new Date(start.getFullYear(), start.getMonth(), start.getDate());
       var diaFin = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-      // Para eventos de todo el día, la fecha fin es exclusiva
       if (allDay) diaFin.setDate(diaFin.getDate() - 1);
       while (dia <= diaFin) {
         var fd = _date(dia);
         if (!result[fd]) result[fd] = [];
         result[fd].push({
-          titulo:  titulo,
-          horaIni: allDay ? '' : Utilities.formatDate(start, TZ, 'HH:mm'),
-          horaFin: allDay ? '' : Utilities.formatDate(end,   TZ, 'HH:mm'),
+          titulo:   titulo,
+          horaIni:  allDay ? '' : Utilities.formatDate(start, TZ, 'HH:mm'),
+          horaFin:  allDay ? '' : Utilities.formatDate(end,   TZ, 'HH:mm'),
           location: loc,
-          allDay:  allDay
+          allDay:   allDay
         });
         dia.setDate(dia.getDate() + 1);
       }
@@ -1014,8 +1118,6 @@ function _leerEventosCalendarRango(calId, desde, hasta) {
   return result;
 }
 
-// Wrapper del calendario mensual (para compatibilidad)
-// Actualizado para NO usar fallback del sheet cuando GCal retorna datos
 function api_getCalendarioMesT(token, mes, anio, sede) {
   _setToken(token);
   cc_requireSession();
@@ -1058,10 +1160,9 @@ function api_getCalendarioMesT(token, mes, anio, sede) {
     var fechaObj = new Date(anio, mes - 1, d);
     var fd       = _date(fechaObj);
     var diaSem   = DIAS_ES[fechaObj.getDay()];
-    var esDom    = fechaObj.getDay() === 0;
     var esPasado = fechaObj < new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    var doctoras   = (evDoc[fd] || []).map(function(ev) {
+    var doctoras = (evDoc[fd] || []).map(function(ev) {
       var p = _parsearEventoDoctor(ev.titulo);
       var s = _sedeDesdeLocation(ev.location || '');
       if (sede && s && s !== sede) return null;
@@ -1088,22 +1189,15 @@ function api_getCalendarioMesT(token, mes, anio, sede) {
                  (citas >= 5)  ? 'parcial' : 'disponible';
 
     dias[d] = {
-      fecha:      fd,
-      dia:        d,
-      diaSem:     diaSem,
-      estado:     estado,
-      citas:      citas,
-      doctoras:   doctoras,
-      enfermeria: enfermeria,
-      esHoy:      fd === hoy,
-      esPasado:   esPasado
+      fecha: fd, dia: d, diaSem: diaSem, estado: estado, citas: citas,
+      doctoras: doctoras, enfermeria: enfermeria,
+      esHoy: fd === hoy, esPasado: esPasado
     };
   }
 
   return { ok: true, mes: mes, anio: anio, diasEnMes: diasEnMes, offsetLunes: offsetLunes, dias: dias };
 }
 
-// ── UTILIDADES HEREDADAS (compatibilidad) ────────────────────
 function _leerEventosCalendar(calId, anio, mes) {
   var desde = new Date(anio, mes - 1, 1, 0, 0, 0);
   var hasta = new Date(anio, mes, 0, 23, 59, 59);
@@ -1117,12 +1211,9 @@ function _minutosEntre(horaIni, horaFin) {
 }
 // F10_END
 
-// ════════════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════
-// api_getLeadsCampanaMesT — v2 con columnas correctas
-// LEAD_COL.NUM_LIMPIO=7, LLAM_COL.NUM_LIMPIO=8, VENT_COL.MONTO=8
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// api_getLeadsCampanaMesT
+// ══════════════════════════════════════════════════════════════
 function api_getLeadsCampanaMesT(token, mes, anio) {
   _setToken(token);
   var s   = cc_requireSession();
@@ -1135,8 +1226,6 @@ function api_getLeadsCampanaMesT(token, mes, anio) {
   var miNom = _up(s.asesor   || '');
   var miId  = _norm(s.idAsesor || '');
 
-  // ── 1. Leads del mes por HORA_INGRESO (col F=5) ──────
-  // NUM_LIMPIO = LEAD_COL.NUM_LIMPIO = 7 (col H)
   var leadsDelMes = {};
   try {
     var shLd = _sh(CFG.SHEET_LEADS);
@@ -1149,12 +1238,10 @@ function api_getLeadsCampanaMesT(token, mes, anio) {
         if (_inRango(fechaIn, desde, hasta)) leadsDelMes[numL] = fechaIn;
       });
     }
-  } catch(e) { Logger.log('LeadsCampana LEADS: ' + e.message); }
+  } catch(e) {}
 
   var totalLeads = Object.keys(leadsDelMes).length;
 
-  // ── 2. Llamadas del asesor en el período ─────────────
-  // NUM_LIMPIO = LLAM_COL.NUM_LIMPIO = 8 (col I)
   var llamadasPorNum = {}, todosNums = {};
   try {
     var shL = _sh(CFG.SHEET_LLAMADAS);
@@ -1167,10 +1254,7 @@ function api_getLeadsCampanaMesT(token, mes, anio) {
         var estado = _up(r[LLAM_COL.ESTADO] || '');
         var idCol  = _norm(r[LLAM_COL.ID_ASESOR] || '');
         if (!num) return;
-        // Filtrar por asesor
-        var esDelAsesor = (!miNom) ||
-          (asesor === miNom) ||
-          (idCol && idCol === miId);
+        var esDelAsesor = (!miNom) || (asesor === miNom) || (idCol && idCol === miId);
         if (!esDelAsesor) return;
         todosNums[num] = true;
         if (leadsDelMes[num]) {
@@ -1179,18 +1263,14 @@ function api_getLeadsCampanaMesT(token, mes, anio) {
         }
       });
     }
-  } catch(e) { Logger.log('LeadsCampana LLAMADAS: ' + e.message); }
+  } catch(e) {}
 
   var leadsLlamados  = Object.keys(llamadasPorNum).length;
   var clientesUnicos = Object.keys(todosNums).length;
   var leadsCitas = Object.keys(llamadasPorNum).filter(function(n) {
-    return llamadasPorNum[n].estados.some(function(e) {
-      return e === 'CITA CONFIRMADA';
-    });
+    return llamadasPorNum[n].estados.some(function(e) { return e === 'CITA CONFIRMADA'; });
   }).length;
 
-  // ── 3. Ventas del período ─────────────────────────────
-  // VENT_COL.MONTO=8, VENT_COL.ASESOR=10, VENT_COL.NUM_LIMPIO=15
   var leadsVentas = 0, leadsFact = 0;
   try {
     var shV = _sh(CFG.SHEET_VENTAS);
@@ -1206,19 +1286,13 @@ function api_getLeadsCampanaMesT(token, mes, anio) {
         leadsFact += Number(r[VENT_COL.MONTO]) || 0;
       });
     }
-  } catch(e) { Logger.log('LeadsCampana VENTAS: ' + e.message); }
+  } catch(e) {}
 
   return {
-    ok:                 true,
-    mes:                mes,
-    anio:               anio,
-    leadsNuevos:        totalLeads,
-    leadsLlamados:      leadsLlamados,
-    pctLlamados:        totalLeads > 0 ? Math.round(leadsLlamados / totalLeads * 100) : 0,
-    leadsCitas:         leadsCitas,
-    leadsVentas:        leadsVentas,
-    leadsFact:          leadsFact,
-    clientesUnicos:     clientesUnicos,
-    clientesUnicosCamp: leadsLlamados
+    ok: true, mes: mes, anio: anio,
+    leadsNuevos: totalLeads, leadsLlamados: leadsLlamados,
+    pctLlamados: totalLeads > 0 ? Math.round(leadsLlamados / totalLeads * 100) : 0,
+    leadsCitas: leadsCitas, leadsVentas: leadsVentas, leadsFact: leadsFact,
+    clientesUnicos: clientesUnicos, clientesUnicosCamp: leadsLlamados
   };
 }

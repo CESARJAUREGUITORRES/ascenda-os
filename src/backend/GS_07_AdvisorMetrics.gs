@@ -535,6 +535,92 @@ function api_getMyLastSalesT(token, limit) {
 }
 // G05_END
 
+// ══════════════════════════════════════════════════════════════
+// MOD-06 · TURNOS DE LA SEMANA DEL ASESOR
+// ══════════════════════════════════════════════════════════════
+// G06_START
+
+// ===== CTRL+F: api_getMisSemanaT =====
+/**
+ * Retorna los turnos del asesor logueado para la semana actual.
+ * Filtra por nombre del asesor en el título del evento GCal.
+ * Verde (🟢) = SAN ISIDRO | Amarillo (🟡) = PUEBLO LIBRE
+ */
+// ===== CTRL+F: api_getMisSemanaT =====
+function api_getMisSemanaT(token) {
+  _setToken(token);
+  var s     = cc_requireSession();
+  var now   = new Date();
+  // Nombre del asesor: primera palabra en mayúsculas para buscar en título
+  var miNom = _up((s.asesor || '').trim().split(' ')[0]); // ej: "WILMER"
+
+  var dow   = now.getDay();
+  var diffL = dow === 0 ? -6 : 1 - dow;
+  var lunes = new Date(now);
+  lunes.setDate(now.getDate() + diffL);
+  lunes.setHours(0, 0, 0, 0);
+
+  var hasta = new Date(lunes);
+  hasta.setDate(lunes.getDate() + 6);
+  hasta.setHours(23, 59, 59);
+
+  var evEnf = _leerEventosCalendarRango(HORARIO_PERSONAL_CAL_ID, lunes, hasta);
+
+  var hoy   = _date(now);
+  // Orden: Lu Ma Mi Ju Vi Sa Do
+  var ORDEN = [1,2,3,4,5,6,0];
+  var ABREV = {0:'DO',1:'LU',2:'MA',3:'MI',4:'JU',5:'VI',6:'SA'};
+
+  var dias = [];
+  for (var i = 0; i < 7; i++) {
+    var d  = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    var fd = _date(d);
+    var diaN = d.getDay();
+
+    var turnos = (evEnf[fd] || []).filter(function(ev) {
+      var titulo = _up(ev.titulo || '');
+      // Buscar si el nombre del asesor aparece en el título
+      return titulo.indexOf(miNom) >= 0;
+    });
+
+    var tieneTurno = turnos.length > 0;
+    var sede = '';
+    if (tieneTurno) {
+      var ev0 = turnos[0];
+      // Prioridad: location → emoji en título → texto en título
+      sede = _sedeDesdeLocation(ev0.location || '');
+      if (!sede) {
+        var tit = ev0.titulo || '';
+        if (tit.indexOf('🟢') >= 0)                           sede = 'SAN ISIDRO';
+        else if (tit.indexOf('🟡') >= 0)                      sede = 'PUEBLO LIBRE';
+        else if (_up(tit).indexOf('SAN ISIDRO') >= 0)         sede = 'SAN ISIDRO';
+        else if (_up(tit).indexOf('PUEBLO LIBRE') >= 0)       sede = 'PUEBLO LIBRE';
+        // Fallback por location del evento
+        else sede = _sedeDesdeLocation(_up(tit));
+      }
+    }
+
+    dias.push({
+      fecha:      fd,
+      dia:        d.getDate(),
+      diaSem:     ABREV[diaN],
+      diaN:       diaN,
+      tieneTurno: tieneTurno,
+      sede:       sede,
+      esHoy:      fd === hoy,
+      esPasado:   d < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    });
+  }
+
+  // Log para debug
+  Logger.log('api_getMisSemanaT — asesor: ' + miNom +
+             ' — días con turno: ' + dias.filter(function(d){ return d.tieneTurno; }).length);
+
+  return { ok: true, dias: dias, asesor: miNom };
+}
+// G06_END
+
 /**
  * TEST
  */

@@ -60,7 +60,7 @@ var CFG = {
   SHEET_TABLA_COM:    "TABLA DE COMISIONES",
 
   // FIX v2.0: Nombre real en GSheets (estaba truncado con Ñ)
-  SHEET_INVERSION:    "CONSOLIDADO DE INVERSION DE CAM",
+  SHEET_INVERSION: "CONSOLIDADO DE INVERSION DE CAMPAÑAS",
 
   // ── Hojas de logs y soporte ──────────────────────────────────
   LOG_NOTIF:          "LOG_NOTIFICACIONES",

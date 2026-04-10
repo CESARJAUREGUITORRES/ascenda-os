@@ -472,3 +472,28 @@ SEG_COL:  ID:0, FECHA_PROG:1, HORA_PROG:2, NUMERO:3 (BUG: sobreescrito),
 
 *Generado por CreActive OS · AscendaOS v1 · Abril 2026*
 *Próxima sesión: arrancar con GS_00_Repairs.gs — CAPA 0 del Bloque 3*
+
+---
+
+## 15. ESTADO AL CIERRE DE SESIÓN — Abril 2026
+
+### Bloque 3 — Capa 2 completada ✅
+
+**Archivos entregados esta sesión:**
+- `GS_00_Repairs.gs` → ejecutado con éxito ✅
+- `PARCHE_GS23_agregar_al_final.gs` → pegar al final de GS_23
+- `PARCHES_GS09_agregar_al_final.gs` → pegar al final de GS_09
+- `GS_24_Pacientes360.gs` → archivo nuevo ✅
+- `ViewAdminPatients.html` → panel funcionando ✅
+
+**Estado del panel ViewAdminPatients:**
+- Panel cargando y funcionando
+- Pendiente: revisar detalles visuales con capturas en sesión nueva
+
+**Próxima sesión — qué hacer:**
+1. Abrir chat nuevo
+2. Pegar el ULTRA PROMPT + este MEMORY.md como primer mensaje
+3. Compartir capturas del panel con los detalles a corregir
+4. Continuar con ajustes del panel o avanzar al siguiente bloque
+
+**Siguiente bloque según roadmap:** Bloque 4 — Configuración del sistema

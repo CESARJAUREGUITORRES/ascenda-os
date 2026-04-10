@@ -1,0 +1,1089 @@
+<!-- ViewAdminComisiones.html — AscendaOS v1 · Bloque 1 v3.0 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.adc{padding:14px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+
+/* ── FILTROS ── */
+.adc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.adc-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:17px;}
+.adc-ttl span{color:#0A4FBF;}
+.adc-filtros{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+.adc-ftab{padding:5px 11px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;color:#6B7BA8;font-family:'DM Sans',sans-serif;}
+.adc-ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.adc-ftab:hover:not(.act){background:#EBF2FF;color:#0A4FBF;}
+.adc-mes-nav{display:flex;align-items:center;gap:3px;}
+.adc-mb{width:24px;height:24px;border-radius:6px;border:1px solid #DDE4F5;background:#F0F4FC;cursor:pointer;font-size:13px;color:#6B7BA8;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;}
+.adc-mb:hover{background:#EBF2FF;color:#0A4FBF;}
+.adc-ri{padding:4px 8px;border-radius:7px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
+.adc-ri:focus{border-color:#0A4FBF;}
+.adc-apply{padding:5px 13px;border-radius:7px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.adc-lbl{font-size:11px;color:#9AAAC8;font-style:italic;}
+
+/* ── CARDS KPI ── */
+.adc-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;}
+.adc-card-kpi{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px 16px;}
+.adc-ck-ttl{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.adc-ck-big{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;margin-bottom:8px;}
+.adc-ck-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.adc-ck-col{background:#F0F4FC;border-radius:9px;padding:8px 10px;}
+.adc-ck-col-ttl{font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.adc-ck-col-val{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;color:#0A4FBF;}
+.adc-ck-col-sub{font-size:9px;color:#9AAAC8;margin-top:2px;}
+.adc-ck-col-com{font-size:10px;font-weight:700;color:#16A34A;margin-top:1px;}
+
+/* ── LAYOUT ── */
+.adc-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:12px;align-items:start;}
+.adc-card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.adc-chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;flex-wrap:wrap;gap:6px;}
+.adc-ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.5px;color:#0D1B3E;}
+
+/* ── TABLA VENTAS ── */
+.adc-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.adc-tbl th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #F0F4FC;text-align:left;white-space:nowrap;}
+.adc-tbl td{padding:7px 6px;border-bottom:1px solid rgba(221,228,245,.3);vertical-align:middle;}
+.adc-tbl tr:last-child td{border-bottom:none;}
+.adc-tbl tr:hover td{background:#FAFBFF;}
+.adc-nom{font-weight:700;color:#0D1B3E;font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adc-num{font-size:9px;color:#9AAAC8;font-family:'Exo 2',sans-serif;letter-spacing:.5px;}
+.adc-tc{padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
+.adc-tc-s{background:#EBF2FF;color:#0A4FBF;}
+.adc-tc-p{background:#F5F3FF;color:#7C3AED;}
+.adc-tc-n{background:#F0F4FC;color:#9AAAC8;}
+.adc-com{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:800;color:#16A34A;}
+.adc-monto{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:700;color:#0D1B3E;}
+.adc-ep{padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
+.adc-ep-c{background:#F0FDF4;color:#16A34A;}
+.adc-ep-a{background:#FFFBEB;color:#D97706;}
+.adc-ep-o{background:#F0F4FC;color:#9AAAC8;}
+.adc-na{padding:2px 6px;border-radius:4px;background:#F0F4FC;color:#9AAAC8;font-size:9px;font-weight:700;}
+.adc-edit-btn{width:22px;height:22px;border-radius:6px;border:1px solid #DDE4F5;background:#F0F4FC;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.adc-edit-btn:hover{background:#EBF2FF;}
+
+/* ── PAGINACIÓN ── */
+.adc-pag{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid #F0F4FC;}
+.adc-pag-info{font-size:10px;color:#9AAAC8;}
+.adc-pag-btns{display:flex;gap:5px;}
+.adc-pag-btn{padding:4px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.adc-pag-btn:hover{background:#EBF2FF;color:#0A4FBF;}
+.adc-pag-btn:disabled{opacity:.4;cursor:default;}
+
+/* ── RANKING ── */
+.adc-rk-item{padding:8px;border-radius:8px;cursor:pointer;margin:1px 0;}
+.adc-rk-item:hover{background:#F0F4FC;}
+.adc-rk-r1{display:flex;align-items:center;gap:7px;}
+.adc-rk-pos{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
+.adc-rk-nom{font-size:12px;font-weight:700;color:#0D1B3E;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.adc-rk-com{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;color:#0A4FBF;flex-shrink:0;}
+.adc-rk-r2{display:flex;gap:7px;padding-left:31px;margin-top:3px;flex-wrap:wrap;}
+.adc-rk-det{font-size:9px;color:#9AAAC8;}
+.adc-rk-det strong{color:#6B7BA8;}
+.adc-rk-bar{height:3px;background:#F0F4FC;border-radius:10px;margin:4px 0 0 31px;overflow:hidden;}
+.adc-rk-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
+
+/* ── HISTORIAL GRÁFICA ── */
+.adc-chart{height:72px;display:flex;align-items:flex-end;gap:4px;margin-bottom:12px;}
+.adc-chart-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px;}
+.adc-chart-bar{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#0A4FBF,#1A6FE8);min-height:3px;}
+.adc-chart-lbl{font-size:8px;color:#9AAAC8;white-space:nowrap;}
+.adc-chart-val{font-size:7px;color:#0A4FBF;font-weight:700;}
+
+/* ── BOTONES ── */
+.adc-btn-p{padding:8px 15px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.adc-btn-p:hover{background:#1A6FE8;}
+.adc-btn-p:disabled{opacity:.5;cursor:wait;}
+.adc-btn-s{padding:7px 13px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.adc-btn-s:hover{background:#EBF2FF;color:#0A4FBF;}
+.adc-btn-sm{padding:4px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.adc-btn-sm:hover{background:#EBF2FF;color:#0A4FBF;}
+
+/* ── MODALES ── */
+.adc-modal-ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.5);z-index:9999;align-items:center;justify-content:center;}
+.adc-modal-ov.open{display:flex;}
+.adc-modal-box{background:#fff;border-radius:16px;display:flex;flex-direction:column;border:1px solid #DDE4F5;box-shadow:0 16px 48px rgba(10,79,191,.16);max-height:90vh;}
+.adc-mhd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #F0F4FC;flex-shrink:0;}
+.adc-mttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;}
+.adc-mclose{font-size:18px;cursor:pointer;color:#9AAAC8;border:none;background:none;}
+.adc-mbody{padding:14px 18px;overflow-y:auto;flex:1;}
+.adc-mbody::-webkit-scrollbar{width:3px;}
+.adc-mbody::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.adc-mft{padding:12px 18px;border-top:1px solid #F0F4FC;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+
+/* Modal asesor */
+.adc-det-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.adc-det-kpi{background:#F0F4FC;border-radius:10px;padding:10px;}
+.adc-det-kpi-lbl{font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;margin-bottom:3px;}
+.adc-det-kpi-val{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0A4FBF;}
+.adc-det-hist{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
+.adc-det-hist::-webkit-scrollbar{height:2px;}
+.adc-det-hist-col{flex-shrink:0;background:#F0F4FC;border-radius:8px;padding:7px 10px;min-width:76px;text-align:center;cursor:default;}
+.adc-det-hist-col.act{background:#EBF2FF;border:1px solid #BFDBFE;}
+.adc-det-hist-mes{font-size:9px;color:#9AAAC8;font-weight:700;}
+.adc-det-hist-com{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;}
+.adc-det-hist-fact{font-size:9px;color:#6B7BA8;}
+.adc-det-rent{background:#F0F4FC;border-radius:10px;padding:10px;margin-bottom:12px;}
+.adc-det-rent-ttl{font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:7px;text-transform:uppercase;}
+.adc-det-rent-row{display:flex;gap:12px;flex-wrap:wrap;}
+.adc-det-rent-item .lbl{font-size:9px;color:#9AAAC8;}
+.adc-det-rent-item .val{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0D1B3E;}
+/* Origen cliente */
+.adc-orig-nuevo{background:#F0FDF4;color:#16A34A;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
+.adc-orig-base{background:#EBF2FF;color:#6B7BA8;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
+
+/* Modal editar */
+.adc-ef-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.adc-ef-lbl{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;}
+.adc-ef-input{padding:8px 11px;border-radius:9px;border:1px solid #DDE4F5;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;width:100%;}
+.adc-ef-input:focus{border-color:#0A4FBF;}
+.adc-ef-info{background:#F0F4FC;border-radius:9px;padding:9px 12px;font-size:11px;color:#6B7BA8;margin-bottom:10px;line-height:1.5;}
+
+/* Modal reglas */
+.adc-rg-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:7px;}
+.adc-rg-input{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
+.adc-rg-input:focus{border-color:#0A4FBF;}
+.adc-rg-del{width:26px;height:26px;border-radius:7px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+
+/* ── UTILS ── */
+.adc-ld{text-align:center;padding:20px;color:#9AAAC8;font-size:11px;}
+.adc-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:adcSpin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+@keyframes adcSpin{to{transform:rotate(360deg);}}
+.adc-sep{height:1px;background:#F0F4FC;margin:10px 0;}
+.adc-empty{text-align:center;color:#9AAAC8;font-size:11px;padding:16px;}
+.adc-scroll-x{overflow-x:auto;}
+.adc-scroll-x::-webkit-scrollbar{height:3px;}
+.adc-scroll-x::-webkit-scrollbar-thumb{background:#DDE4F5;}
+</style>
+
+<!-- ════════════════════════ ESTRUCTURA ════════════════════════ -->
+<div class="adc">
+
+  <!-- HEADER -->
+  <div class="adc-hd">
+    <div class="adc-ttl">💰 Comisiones <span>Admin</span></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      <button class="adc-btn-s" onclick="adcAbrirReglas()" style="font-size:10px;">⚙️ Tabla de comisiones</button>
+      <button class="adc-btn-s" onclick="adcAbrirAjuste()" style="font-size:10px;">+ Ajuste manual</button>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="adc-filtros">
+    <button class="adc-ftab" id="adc-ftab-dia"   onclick="adcSetTipo('dia')">Día</button>
+    <button class="adc-ftab act" id="adc-ftab-mes" onclick="adcSetTipo('mes')">Mes</button>
+    <button class="adc-ftab" id="adc-ftab-anio"  onclick="adcSetTipo('anio')">Año</button>
+    <button class="adc-ftab" id="adc-ftab-rango" onclick="adcSetTipo('rango')">Rango</button>
+    <div id="adc-ctrl"></div>
+    <button class="adc-apply" onclick="adcCargar()">Aplicar</button>
+    <span class="adc-lbl" id="adc-lbl"></span>
+  </div>
+
+  <!-- CARDS -->
+  <div class="adc-cards">
+    <div class="adc-card-kpi">
+      <div class="adc-ck-ttl">Comisiones totales del equipo</div>
+      <div class="adc-ck-big" id="adc-ck-com">S/0.00</div>
+      <div class="adc-ck-grid">
+        <div class="adc-ck-col">
+          <div class="adc-ck-col-ttl">Servicios</div>
+          <div class="adc-ck-col-val" id="adc-ck-cserv">S/0</div>
+          <div class="adc-ck-col-sub" id="adc-ck-nserv">0 ventas</div>
+        </div>
+        <div class="adc-ck-col">
+          <div class="adc-ck-col-ttl">Productos</div>
+          <div class="adc-ck-col-val" id="adc-ck-cprod">S/0</div>
+          <div class="adc-ck-col-sub" id="adc-ck-nprod">0 ventas</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#9AAAC8;margin-top:7px;" id="adc-ck-ntot">0 ventas con comisión</div>
+    </div>
+    <div class="adc-card-kpi">
+      <div class="adc-ck-ttl">Facturación del equipo (con comisión)</div>
+      <div class="adc-ck-big" id="adc-ck-fact">S/0.00</div>
+      <div class="adc-ck-grid">
+        <div class="adc-ck-col">
+          <div class="adc-ck-col-ttl">Servicios</div>
+          <div class="adc-ck-col-val" id="adc-ck-fserv">S/0</div>
+          <div class="adc-ck-col-com" id="adc-ck-fpct-serv">0% del total</div>
+          <div class="adc-ck-col-sub" id="adc-ck-fcom-serv">Com: S/0</div>
+        </div>
+        <div class="adc-ck-col">
+          <div class="adc-ck-col-ttl">Productos</div>
+          <div class="adc-ck-col-val" id="adc-ck-fprod">S/0</div>
+          <div class="adc-ck-col-com" id="adc-ck-fpct-prod">0% del total</div>
+          <div class="adc-ck-col-sub" id="adc-ck-fcom-prod">Com: S/0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN 2 COLS -->
+  <div class="adc-main">
+
+    <!-- COL IZQUIERDA: Tabla ventas -->
+    <div class="adc-card">
+      <div class="adc-chd">
+        <div class="adc-ct">VENTAS DEL PERÍODO</div>
+        <span style="font-size:10px;color:#9AAAC8;" id="adc-tbl-lbl"></span>
+      </div>
+      <div class="adc-scroll-x">
+        <table class="adc-tbl" style="min-width:600px;">
+          <thead>
+            <tr>
+              <th style="min-width:130px;">Cliente / Nº</th>
+              <th style="min-width:110px;">Tratamiento</th>
+              <th>Tipo</th>
+              <th style="text-align:right;">Monto</th>
+              <th style="text-align:right;color:#16A34A;">Comisión</th>
+              <th>Sede</th>
+              <th>Asesor</th>
+              <th>Origen</th>
+              <th>Pago</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adc-tbody">
+            <tr><td colspan="9"><div class="adc-ld"><span class="adc-sp"></span>Cargando...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="adc-pag">
+        <div class="adc-pag-info" id="adc-pag-info">—</div>
+        <div class="adc-pag-btns">
+          <button class="adc-pag-btn" id="adc-pag-prev" onclick="adcPaginar(-1)" disabled>‹ Ant.</button>
+          <button class="adc-pag-btn" id="adc-pag-next" onclick="adcPaginar(1)">Sig. ›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL DERECHA: Ranking -->
+    <div class="adc-card">
+      <div class="adc-chd">
+        <div class="adc-ct">RANKING COMISIONES</div>
+        <span style="font-size:9px;color:#9AAAC8;">click para ver detalle</span>
+      </div>
+      <div class="adc-chart" id="adc-chart"></div>
+      <div id="adc-ranking"><div class="adc-ld"><span class="adc-sp"></span>Cargando...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL DETALLE ASESOR ══ -->
+<div class="adc-modal-ov" id="adc-m-det">
+  <div class="adc-modal-box" style="width:700px;max-width:97vw;">
+    <div class="adc-mhd">
+      <div class="adc-mttl" id="adc-det-nom">Detalle asesor</div>
+      <button class="adc-mclose" onclick="adcCerrar('adc-m-det')">✕</button>
+    </div>
+    <div class="adc-mbody">
+      <!-- KPIs — 4 columnas -->
+      <div class="adc-det-kpis" style="grid-template-columns:repeat(4,1fr);">
+        <div class="adc-det-kpi">
+          <div class="adc-det-kpi-lbl">Com. base</div>
+          <div class="adc-det-kpi-val" id="adc-det-base">S/0</div>
+          <div style="font-size:9px;color:#9AAAC8;margin-top:2px;" id="adc-det-breakdown"></div>
+        </div>
+        <div class="adc-det-kpi">
+          <div class="adc-det-kpi-lbl">Ajuste</div>
+          <div class="adc-det-kpi-val" id="adc-det-ajuste" style="color:#D97706;">S/0</div>
+        </div>
+        <div class="adc-det-kpi" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+          <div class="adc-det-kpi-lbl">Com. final</div>
+          <div class="adc-det-kpi-val" id="adc-det-final" style="color:#16A34A;">S/0</div>
+        </div>
+        <div class="adc-det-kpi" style="background:#EBF2FF;border:1px solid #BFDBFE;">
+          <div class="adc-det-kpi-lbl">% Clientes nuevos</div>
+          <div class="adc-det-kpi-val" id="adc-det-pct-nuevos" style="color:#0A4FBF;">0%</div>
+          <div style="font-size:9px;color:#6B7BA8;margin-top:2px;" id="adc-det-cnt-nuevos">0 nuevos · 0 base</div>
+        </div>
+      </div>
+      <!-- Meta -->
+      <div id="adc-det-meta-wrap" style="display:none;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#6B7BA8;margin-bottom:4px;">
+          <span>Meta mensual</span><span id="adc-det-meta-txt"></span>
+        </div>
+        <div style="height:6px;background:#F0F4FC;border-radius:10px;overflow:hidden;">
+          <div id="adc-det-meta-bar" style="height:100%;border-radius:10px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);width:0%;transition:width .5s;"></div>
+        </div>
+      </div>
+      <!-- Historial 6 meses -->
+      <div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Histórico de comisiones</div>
+      <div class="adc-det-hist" id="adc-det-hist"></div>
+      <!-- Rentabilidad -->
+      <div class="adc-det-rent" id="adc-det-rent" style="display:none;">
+        <div class="adc-det-rent-ttl">📊 Rentabilidad vs sueldo</div>
+        <div class="adc-det-rent-row">
+          <div class="adc-det-rent-item"><div class="lbl">Sueldo</div><div class="val" id="adc-det-sueldo">—</div></div>
+          <div class="adc-det-rent-item"><div class="lbl">Facturación</div><div class="val" id="adc-det-fact">—</div></div>
+          <div class="adc-det-rent-item"><div class="lbl">Utilidad</div><div class="val" id="adc-det-util">—</div></div>
+          <div class="adc-det-rent-item"><div class="lbl">Ratio</div><div class="val" id="adc-det-ratio" style="color:#16A34A;">—</div></div>
+        </div>
+      </div>
+      <div class="adc-sep"></div>
+      <!-- Ventas del período con origen -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;" id="adc-det-vtitulo">Ventas del período</div>
+        <div style="font-size:9px;color:#9AAAC8;">
+          <span class="adc-orig-nuevo">NUEVO</span> = lead del mes
+          <span class="adc-orig-base" style="margin-left:4px;">BASE</span> = cliente recurrente
+        </div>
+      </div>
+      <div class="adc-scroll-x">
+        <table class="adc-tbl" style="min-width:440px;">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Cliente</th><th>Trat.</th>
+              <th>Tipo</th><th style="text-align:right;">Monto</th>
+              <th style="text-align:right;color:#16A34A;">Com.</th>
+              <th>Origen</th>
+            </tr>
+          </thead>
+          <tbody id="adc-det-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="adc-mft">
+      <div style="flex:1;font-size:10px;color:#9AAAC8;" id="adc-det-info-ft"></div>
+      <button class="adc-btn-sm" onclick="adcAjusteDesdeDetalle()">+ Ajuste</button>
+      <button class="adc-btn-s" onclick="adcCerrar('adc-m-det')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR VENTA ══ -->
+<div class="adc-modal-ov" id="adc-m-edit">
+  <div class="adc-modal-box" style="width:440px;max-width:96vw;">
+    <div class="adc-mhd">
+      <div class="adc-mttl">✏️ Editar venta</div>
+      <button class="adc-mclose" onclick="adcCerrar('adc-m-edit')">✕</button>
+    </div>
+    <div class="adc-mbody">
+      <div class="adc-ef-info" id="adc-edit-info"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+        <div style="background:#F0F4FC;border-radius:8px;padding:7px 9px;">
+          <div style="font-size:9px;color:#9AAAC8;font-weight:700;">FECHA</div>
+          <div style="font-size:11px;font-weight:700;" id="adc-edit-fecha">—</div>
+        </div>
+        <div style="background:#F0F4FC;border-radius:8px;padding:7px 9px;">
+          <div style="font-size:9px;color:#9AAAC8;font-weight:700;">TIPO</div>
+          <div style="font-size:11px;font-weight:700;" id="adc-edit-tipo">—</div>
+        </div>
+        <div style="background:#F0FDF4;border-radius:8px;padding:7px 9px;">
+          <div style="font-size:9px;color:#9AAAC8;font-weight:700;">COM. ACTUAL</div>
+          <div style="font-size:11px;font-weight:800;color:#16A34A;" id="adc-edit-com">S/0</div>
+        </div>
+      </div>
+      <div class="adc-sep"></div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Asesor — "NO APLICA" = sin comisión</div>
+        <select class="adc-ef-input" id="adc-edit-asesor">
+          <option value="">NO APLICA (sin comisión)</option>
+        </select>
+      </div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Monto S/ — corrige si fue registrado mal</div>
+        <input class="adc-ef-input" id="adc-edit-monto" type="number" step="0.01" placeholder="Monto de la venta">
+      </div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Motivo del cambio (para auditoría)</div>
+        <input class="adc-ef-input" id="adc-edit-motivo" type="text"
+          placeholder="Ej: Error asignación · Venta sin asesor · Monto incorrecto" maxlength="120">
+      </div>
+    </div>
+    <div class="adc-mft">
+      <div style="flex:1;font-size:9px;color:#9AAAC8;">Cambio registrado en auditoría</div>
+      <button class="adc-btn-p" onclick="adcGuardarEdit()" id="adc-edit-btn">Guardar cambio</button>
+      <button class="adc-btn-s" onclick="adcCerrar('adc-m-edit')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL AJUSTE MANUAL ══ -->
+<div class="adc-modal-ov" id="adc-m-ajuste">
+  <div class="adc-modal-box" style="width:380px;max-width:96vw;">
+    <div class="adc-mhd">
+      <div class="adc-mttl">💰 Ajuste manual de comisión</div>
+      <button class="adc-mclose" onclick="adcCerrar('adc-m-ajuste')">✕</button>
+    </div>
+    <div class="adc-mbody">
+      <div style="font-size:11px;color:#9AAAC8;margin-bottom:12px;line-height:1.5;">
+        Suma (+) o descuenta (−) un monto fijo. Se registra con auditoría.
+      </div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Asesor</div>
+        <select class="adc-ef-input" id="adc-aj-asesor"><option value="">Selecciona...</option></select>
+      </div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Ajuste S/ (+ suma · − descuenta)</div>
+        <input class="adc-ef-input" id="adc-aj-monto" type="number" step="0.01" placeholder="Ej: 50 o -20">
+      </div>
+      <div class="adc-ef-row">
+        <div class="adc-ef-lbl">Motivo</div>
+        <input class="adc-ef-input" id="adc-aj-motivo" type="text" placeholder="Ej: Bono puntualidad" maxlength="100">
+      </div>
+    </div>
+    <div class="adc-mft">
+      <button class="adc-btn-p" onclick="adcGuardarAjuste()" id="adc-aj-btn">Guardar ajuste</button>
+      <button class="adc-btn-s" onclick="adcCerrar('adc-m-ajuste')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL REGLAS CRUD ══ -->
+<div class="adc-modal-ov" id="adc-m-reg">
+  <div class="adc-modal-box" style="width:600px;max-width:97vw;">
+    <div class="adc-mhd">
+      <div class="adc-mttl">⚙️ Tabla de comisiones</div>
+      <button class="adc-mclose" onclick="adcCerrar('adc-m-reg')">✕</button>
+    </div>
+    <div class="adc-mbody">
+
+      <!-- SERVICIOS: rangos igual que productos -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;">Servicios — comisión por rango de monto</div>
+          <div style="font-size:9px;color:#9AAAC8;margin-top:2px;">Porcentaje fijo: escribir 0.005 = 0.5% · o monto fijo S/</div>
+        </div>
+        <button class="adc-btn-sm" onclick="adcAgregarRangoServ()">+ Rango</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:5px;margin-bottom:5px;">
+        <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;padding-left:4px;">Desde S/</div>
+        <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;padding-left:4px;">% (ej: 0.005)</div>
+        <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;padding-left:4px;">O monto fijo S/</div>
+        <div></div>
+      </div>
+      <div id="adc-rangos-serv"></div>
+
+      <div class="adc-sep"></div>
+
+      <!-- PRODUCTOS: rangos existentes -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;">Productos — comisión fija por rango de monto</div>
+          <div style="font-size:9px;color:#9AAAC8;margin-top:2px;">Monto fijo S/ por venta según el precio del producto</div>
+        </div>
+        <button class="adc-btn-sm" onclick="adcAgregarRango()">+ Rango</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:5px;margin-bottom:5px;">
+        <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;padding-left:4px;">Desde S/</div>
+        <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;padding-left:4px;">Com. fija S/</div>
+        <div></div>
+      </div>
+      <div id="adc-rangos"></div>
+
+      <div class="adc-sep"></div>
+
+      <!-- INCENTIVO: bono adicional -->
+      <div style="margin-bottom:4px;">
+        <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
+          🎯 Incentivo — bono adicional por cliente nuevo
+        </div>
+        <div style="font-size:9px;color:#9AAAC8;margin-bottom:8px;line-height:1.5;">
+          Bono fijo que se suma a la comisión cuando la venta proviene de un lead nuevo del mes.
+          Dejar en 0 para no aplicar.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Bono por cliente nuevo S/</div>
+            <input class="adc-rg-input" id="adc-rg-bono-nuevo" type="number" step="0.01"
+              placeholder="Ej: 10 = S/10 extra por lead nuevo" style="width:100%;">
+          </div>
+          <div>
+            <div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Aplica desde monto de venta S/</div>
+            <input class="adc-rg-input" id="adc-rg-bono-desde" type="number" step="1"
+              placeholder="Ej: 100 = solo si venta ≥ S/100" style="width:100%;">
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="adc-mft">
+      <div style="flex:1;font-size:10px;color:#9AAAC8;">Los cambios afectan cálculos futuros</div>
+      <button class="adc-btn-p" onclick="adcGuardarReglas()" id="adc-rg-btn">Guardar tabla</button>
+      <button class="adc-btn-s" onclick="adcCerrar('adc-m-reg')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ SCRIPT ════════════════════════ -->
+<script>
+// ── Estado ───────────────────────────────────────────────────
+var ADC = {
+  token:'', tipo:'mes',
+  mes: new Date().getMonth()+1, anio: new Date().getFullYear(),
+  fecha:'', fechaIni:'', fechaFin:'',
+  data:null, pag:0, ppag:15,
+  editVid:'', detNom:'', detFiltro:null
+};
+var MNOM = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+var MNOM_LARGO = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ── INIT — IIFE directo, sin setTimeout ──────────────────────
+// El HTML se inserta en el workspace antes de que los scripts
+// se re-ejecuten, por lo que el DOM ya existe aquí.
+(function adcInit(){
+  ADC.token = window.AOS_getToken ? window.AOS_getToken() : '';
+  adcRenderCtrl();
+  adcCargar();
+})();
+
+// ── FILTROS ──────────────────────────────────────────────────
+function adcSetTipo(t) {
+  ADC.tipo = t;
+  ['dia','mes','anio','rango'].forEach(function(x){
+    document.getElementById('adc-ftab-'+x).classList.toggle('act', x===t);
+  });
+  adcRenderCtrl();
+}
+
+function adcRenderCtrl() {
+  var el  = document.getElementById('adc-ctrl');
+  var now = new Date();
+  if (ADC.tipo === 'dia') {
+    var hoy = now.toISOString().slice(0,10);
+    el.innerHTML = '<input type="date" class="adc-ri" id="adc-ci-fecha" value="'+(ADC.fecha||hoy)+'">';
+  } else if (ADC.tipo === 'mes') {
+    var opts = MNOM_LARGO.slice(1).map(function(m,i){
+      var v=i+1; return '<option value="'+v+'"'+(v===ADC.mes?' selected':'')+'>'+m+'</option>';
+    }).join('');
+    el.innerHTML = '<div class="adc-mes-nav">'+
+      '<button class="adc-mb" onclick="adcMesDelta(-1)">‹</button>'+
+      '<select class="adc-ri" id="adc-ci-mes" style="min-width:75px;" onchange="ADC.mes=+this.value">'+opts+'</select>'+
+      '<input type="number" class="adc-ri" id="adc-ci-anio" value="'+ADC.anio+'" style="width:64px;" onchange="ADC.anio=+this.value">'+
+      '<button class="adc-mb" onclick="adcMesDelta(1)">›</button>'+
+      '</div>';
+  } else if (ADC.tipo === 'anio') {
+    el.innerHTML = '<input type="number" class="adc-ri" id="adc-ci-anio" value="'+ADC.anio+'" style="width:72px;" onchange="ADC.anio=+this.value">';
+  } else {
+    var h2 = now.toISOString().slice(0,10);
+    el.innerHTML = '<input type="date" class="adc-ri" id="adc-ci-ini" value="'+(ADC.fechaIni||h2)+'">'+
+      '<span style="font-size:11px;color:#9AAAC8;padding:0 4px;">→</span>'+
+      '<input type="date" class="adc-ri" id="adc-ci-fin" value="'+(ADC.fechaFin||h2)+'">';
+  }
+}
+
+function adcMesDelta(d) {
+  ADC.mes += d;
+  if (ADC.mes>12){ADC.mes=1;ADC.anio++;} if (ADC.mes<1){ADC.mes=12;ADC.anio--;}
+  adcRenderCtrl();
+}
+
+function adcBuildFiltro() {
+  var f = {tipo:ADC.tipo};
+  if (ADC.tipo==='dia') {
+    var e=document.getElementById('adc-ci-fecha');
+    f.fecha = e?e.value:ADC.fecha;
+  } else if (ADC.tipo==='mes') {
+    var em=document.getElementById('adc-ci-mes'), ea=document.getElementById('adc-ci-anio');
+    f.mes=em?+em.value:ADC.mes; f.anio=ea?+ea.value:ADC.anio;
+    ADC.mes=f.mes; ADC.anio=f.anio;
+  } else if (ADC.tipo==='anio') {
+    var ea2=document.getElementById('adc-ci-anio');
+    f.anio=ea2?+ea2.value:ADC.anio; ADC.anio=f.anio;
+  } else {
+    var ei=document.getElementById('adc-ci-ini'), ef=document.getElementById('adc-ci-fin');
+    f.fechaIni=ei?ei.value:ADC.fechaIni; f.fechaFin=ef?ef.value:ADC.fechaFin;
+    ADC.fechaIni=f.fechaIni; ADC.fechaFin=f.fechaFin;
+  }
+  return f;
+}
+
+// ── CARGA PRINCIPAL ──────────────────────────────────────────
+function adcCargar() {
+  var filtro = adcBuildFiltro();
+  adcH_set('adc-tbody','<tr><td colspan="10"><div class="adc-ld"><span class="adc-sp"></span>Cargando...</div></td></tr>');
+  adcH_set('adc-ranking','<div class="adc-ld"><span class="adc-sp"></span>Cargando...</div>');
+  adcH_set('adc-chart','');
+  google.script.run
+    .withSuccessHandler(adcOnLoaded)
+    .withFailureHandler(function(e){
+      adcH_set('adc-tbody','<tr><td colspan="10"><div class="adc-empty">Error: '+(e&&e.message?adcH(e.message):'desconocido')+'</div></td></tr>');
+    })
+    .api_getAdminComisionesT(ADC.token, filtro);
+}
+
+function adcOnLoaded(res) {
+  if (!res || !res.ok) { adcH_set('adc-tbody','<tr><td colspan="10"><div class="adc-empty">Sin datos</div></td></tr>'); return; }
+  ADC.data = res;
+  ADC.pag  = 0;
+  adcT('adc-lbl', res.rangoLabel||'');
+  adcRenderCards(res.cards);
+  adcRenderChart(res.historial||[]);
+  adcRenderRanking(res.ranking||[]);
+  adcRenderVentas(res.ventasMes||[]);
+  adcPoblarSelect(res.ranking||[]);
+}
+
+// ── CARDS ────────────────────────────────────────────────────
+function adcRenderCards(c) {
+  adcT('adc-ck-com',       'S/'+adcFmt(c.comTotal));
+  adcT('adc-ck-cserv',     'S/'+adcFmt(c.comServ));
+  adcT('adc-ck-nserv',     c.cntServ+' ventas');
+  adcT('adc-ck-cprod',     'S/'+adcFmt(c.comProd));
+  adcT('adc-ck-nprod',     c.cntProd+' ventas');
+  adcT('adc-ck-ntot',      c.cntTotal+' ventas con comisión · '+c.cntTotal+' total');
+  adcT('adc-ck-fact',      'S/'+adcFmt(c.factTotal));
+  adcT('adc-ck-fserv',     'S/'+adcFmt(c.factServ));
+  adcT('adc-ck-fpct-serv', c.pctServ+'% del total');
+  adcT('adc-ck-fcom-serv', 'Com: S/'+adcFmt(c.comServ));
+  adcT('adc-ck-fprod',     'S/'+adcFmt(c.factProd));
+  adcT('adc-ck-fpct-prod', c.pctProd+'% del total');
+  adcT('adc-ck-fcom-prod', 'Com: S/'+adcFmt(c.comProd));
+}
+
+// ── HISTORIAL ────────────────────────────────────────────────
+function adcRenderChart(hist) {
+  var el = document.getElementById('adc-chart');
+  if (!el || !hist.length) return;
+  var max = Math.max.apply(null, hist.map(function(h){return h.com;})) || 1;
+  el.innerHTML = hist.map(function(h) {
+    var pct = Math.round(h.com/max*100);
+    var v   = h.com>=1000?(h.com/1000).toFixed(1)+'k':h.com.toFixed(0);
+    return '<div class="adc-chart-col">'+
+      '<div class="adc-chart-val">S/'+v+'</div>'+
+      '<div class="adc-chart-bar" style="height:'+Math.max(pct,4)+'%;"></div>'+
+      '<div class="adc-chart-lbl">'+adcH(h.label)+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+// ── RANKING ──────────────────────────────────────────────────
+function adcRenderRanking(ranking) {
+  var el = document.getElementById('adc-ranking');
+  if (!el) return;
+  if (!ranking.length) { el.innerHTML='<div class="adc-empty">Sin comisiones en este período</div>'; return; }
+  var em  = ['🥇','🥈','🥉'];
+  var max = ranking[0].comTotal||1;
+  el.innerHTML = ranking.map(function(r,i) {
+    var pct    = Math.round(r.comTotal/max*100);
+    var metaTxt= r.pctMeta!==null ? r.pctMeta+'% meta' : '';
+    var metaCol= r.pctMeta>=100?'#16A34A':r.pctMeta>=70?'#D97706':'#DC2626';
+    // % clientes nuevos en el ranking (viene del backend si está disponible, sino 0)
+    var pctN   = r.pctNuevos != null ? r.pctNuevos : null;
+    var pctNCol= pctN >= 40 ? '#16A34A' : pctN >= 20 ? '#D97706' : '#DC2626';
+    var pctNStr= pctN !== null ? ('<span style="font-size:9px;font-weight:700;color:'+pctNCol+';margin-left:4px;">'+pctN+'% nuevos</span>') : '';
+    return '<div class="adc-rk-item" onclick="adcVerAsesor(\''+adcH(r.nombre)+'\')">' +
+      '<div class="adc-rk-r1">'+
+        '<div class="adc-rk-pos">'+(em[i]||'#'+(i+1))+'</div>'+
+        '<div class="adc-rk-nom">'+adcH(r.nombre)+pctNStr+'</div>'+
+        '<div class="adc-rk-com">S/'+adcFmt(r.comTotal)+'</div>'+
+      '</div>'+
+      '<div class="adc-rk-r2">'+
+        '<span class="adc-rk-det">Serv:<strong>S/'+adcFmt(r.comServ)+'</strong></span>'+
+        '<span class="adc-rk-det">Prod:<strong>S/'+adcFmt(r.comProd)+'</strong></span>'+
+        '<span class="adc-rk-det">Fact:<strong>S/'+adcFmt(r.fact)+'</strong></span>'+
+        '<span class="adc-rk-det">'+r.ventas+' v ('+r.servicios+'S·'+r.productos+'P)</span>'+
+      '</div>'+
+      (metaTxt?'<div style="font-size:9px;font-weight:700;color:'+metaCol+';padding-left:31px;margin-top:2px;">'+metaTxt+'</div>':'')+
+      '<div class="adc-rk-bar"><div class="adc-rk-fill" style="width:'+pct+'%;"></div></div>'+
+      '</div>';
+  }).join('');
+}
+
+// ── TABLA VENTAS ─────────────────────────────────────────────
+function adcRenderVentas(items) {
+  var tbody = document.getElementById('adc-tbody');
+  if (!tbody) return;
+  adcT('adc-tbl-lbl', items.length+' ventas');
+
+  if (!items.length) {
+    tbody.innerHTML='<tr><td colspan="10"><div class="adc-empty">Sin ventas en este período</div></td></tr>';
+    adcT('adc-pag-info','0 registros');
+    document.getElementById('adc-pag-prev').disabled=true;
+    document.getElementById('adc-pag-next').disabled=true;
+    return;
+  }
+
+  var ini  = ADC.pag * ADC.ppag;
+  var fin  = Math.min(ini+ADC.ppag, items.length);
+  var page = items.slice(ini,fin);
+
+  var html = '';
+  for (var i=0;i<page.length;i++) {
+    var v    = page[i];
+    var idx  = ini+i;
+    var tc   = v.noAplica?'adc-tc-n':v.tipo==='PRODUCTO'?'adc-tc-p':'adc-tc-s';
+    var tl   = v.noAplica?'N/A':v.tipo==='PRODUCTO'?'PROD':'SERV';
+    var pcls = v.estadoPago==='PAGO COMPLETO'?'adc-ep-c':v.estadoPago==='ADELANTO'?'adc-ep-a':'adc-ep-o';
+    var comStr = v.noAplica
+      ? '<span class="adc-na">NO APLICA</span>'
+      : '<span class="adc-com">S/'+adcFmt(v.comision)+'</span>';
+    html += '<tr>'+
+      '<td>'+
+        '<div class="adc-nom" title="'+adcH(v.cliente)+'">'+adcH((v.cliente||'').slice(0,22))+'</div>'+
+        '<div class="adc-num">'+adcH(v.num||'—')+'</div>'+
+      '</td>'+
+      '<td style="font-size:10px;color:#6B7BA8;">'+adcH((v.trat||'—').slice(0,18))+'</td>'+
+      '<td><span class="adc-tc '+tc+'">'+tl+'</span></td>'+
+      '<td style="text-align:right;"><span class="adc-monto">S/'+adcFmt(v.monto)+'</span></td>'+
+      '<td style="text-align:right;">'+comStr+'</td>'+
+      '<td style="font-size:10px;color:#6B7BA8;">'+adcH((v.sede||'—').slice(0,8))+'</td>'+
+      '<td style="font-size:10px;font-weight:700;color:'+(v.noAplica?'#9AAAC8':'#0D1B3E')+';">'+adcH((v.asesor||'—').split(' ')[0])+'</td>'+
+      '<td>'+( v.esNuevo ? '<span class="adc-orig-nuevo">NUEVO</span>' : '<span class="adc-orig-base">BASE</span>' )+'</td>'+
+      '<td><span class="adc-ep '+pcls+'">'+adcH((v.estadoPago||'—').slice(0,10))+'</span></td>'+
+      '<td><button class="adc-edit-btn" data-idx="'+idx+'" title="Editar">✏️</button></td>'+
+      '</tr>';
+  }
+  tbody.innerHTML = html;
+
+  // Event delegation para botones editar
+  tbody.onclick = function(e) {
+    var btn = e.target.closest('.adc-edit-btn');
+    if (!btn) return;
+    var idx2 = parseInt(btn.getAttribute('data-idx'),10);
+    var v2   = ADC.data && ADC.data.ventasMes ? ADC.data.ventasMes[idx2] : null;
+    if (v2) adcAbrirEdit(v2);
+  };
+
+  adcT('adc-pag-info','Mostrando '+(ini+1)+'–'+fin+' de '+items.length);
+  document.getElementById('adc-pag-prev').disabled = ADC.pag===0;
+  document.getElementById('adc-pag-next').disabled = fin>=items.length;
+}
+
+function adcPaginar(dir) {
+  if (!ADC.data) return;
+  ADC.pag += dir;
+  if (ADC.pag<0) ADC.pag=0;
+  var total = ADC.data.ventasMes.length;
+  if (ADC.pag*ADC.ppag>=total) ADC.pag=Math.max(0,Math.ceil(total/ADC.ppag)-1);
+  adcRenderVentas(ADC.data.ventasMes);
+}
+
+// ── MODAL DETALLE ASESOR ─────────────────────────────────────
+function adcVerAsesor(nombre) {
+  if (!nombre||nombre==='—') return;
+  ADC.detNom    = nombre;
+  ADC.detFiltro = adcBuildFiltro();
+  adcT('adc-det-nom', nombre);
+  adcH_set('adc-det-tbody','<tr><td colspan="7"><div class="adc-ld"><span class="adc-sp"></span>Cargando...</div></td></tr>');
+  adcH_set('adc-det-hist','');
+  document.getElementById('adc-m-det').classList.add('open');
+
+  google.script.run
+    .withSuccessHandler(adcRenderDetalle)
+    .withFailureHandler(function(){
+      adcH_set('adc-det-tbody','<tr><td colspan="7"><div class="adc-empty">Error cargando detalle</div></td></tr>');
+    })
+    .api_getDetalleAsesorComT(ADC.token, nombre, ADC.detFiltro);
+}
+
+function adcRenderDetalle(res) {
+  if (!res||!res.ok) return;
+  adcT('adc-det-base',      'S/'+adcFmt(res.comBase));
+  adcT('adc-det-breakdown', 'Serv S/'+adcFmt(res.comServ)+' ('+res.cntServ+') · Prod S/'+adcFmt(res.comProd)+' ('+res.cntProd+')');
+  adcT('adc-det-ajuste',    (res.ajuste>=0?'+':'')+'S/'+adcFmt(res.ajuste));
+  adcT('adc-det-final',     'S/'+adcFmt(res.comFinal));
+  adcT('adc-det-info-ft',   'Fact: S/'+adcFmt(res.factTotal)+' · '+res.nVentas+' ventas');
+  adcT('adc-det-vtitulo',   'Ventas del período ('+res.nVentas+')');
+
+  // % clientes nuevos (leads del mes)
+  var cntNuevos = (res.ventas||[]).filter(function(v){ return v.esNuevo; }).length;
+  var cntBase   = res.nVentas - cntNuevos;
+  var pctNuevos = res.nVentas > 0 ? Math.round(cntNuevos / res.nVentas * 100) : 0;
+  adcT('adc-det-pct-nuevos', pctNuevos + '%');
+  adcT('adc-det-cnt-nuevos', cntNuevos + ' nuevos · ' + cntBase + ' base');
+
+  // Meta
+  if (res.meta>0 && res.pctMeta!==null) {
+    document.getElementById('adc-det-meta-wrap').style.display='block';
+    adcT('adc-det-meta-txt','S/'+adcFmt(res.comFinal)+' / S/'+adcFmt(res.meta)+' ('+res.pctMeta+'%)');
+    document.getElementById('adc-det-meta-bar').style.width=Math.min(res.pctMeta,100)+'%';
+  } else {
+    document.getElementById('adc-det-meta-wrap').style.display='none';
+  }
+
+  // Historial 6 meses
+  var histEl = document.getElementById('adc-det-hist');
+  if (res.histMeses&&res.histMeses.length) {
+    var mesActualStr = ADC.anio+'-'+String(ADC.mes).padStart(2,'0');
+    // Mostrar solo meses con datos O el mes actual aunque tenga 0
+    var histVisible = res.histMeses.filter(function(m) {
+      return m.com > 0 || m.fact > 0 || m.mes === mesActualStr;
+    });
+    if (!histVisible.length) histVisible = res.histMeses.slice(-1); // al menos el último
+    histEl.innerHTML = histVisible.map(function(m) {
+      var isAct = m.mes === mesActualStr;
+      return '<div class="adc-det-hist-col'+(isAct?' act':'')+'">'+
+        '<div class="adc-det-hist-mes">'+adcH(m.label)+'</div>'+
+        '<div class="adc-det-hist-com">S/'+adcFmt(m.com)+'</div>'+
+        '<div class="adc-det-hist-fact">S/'+adcFmt(m.fact)+'</div>'+
+        '</div>';
+    }).join('');
+  }
+
+  // Rentabilidad
+  var rent = res.rentabilidad;
+  if (rent&&rent.sueldo>0) {
+    document.getElementById('adc-det-rent').style.display='block';
+    adcT('adc-det-sueldo','S/'+adcFmt(rent.sueldo));
+    adcT('adc-det-fact',  'S/'+adcFmt(rent.fact));
+    adcT('adc-det-util',  'S/'+adcFmt(rent.utilidad));
+    adcT('adc-det-ratio', rent.ratio?rent.ratio+'x':'—');
+  } else {
+    document.getElementById('adc-det-rent').style.display='none';
+  }
+
+  // Ventas con origen (nuevo lead vs cliente base)
+  var tbody = document.getElementById('adc-det-tbody');
+  if (!res.ventas||!res.ventas.length) {
+    tbody.innerHTML='<tr><td colspan="7"><div class="adc-empty">Sin ventas</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = res.ventas.map(function(v) {
+    var tc  = v.tipo==='PRODUCTO'?'adc-tc-p':'adc-tc-s';
+    var tl  = v.tipo==='PRODUCTO'?'PROD':'SERV';
+    // Origen: si el número está en leadNums del mes = NUEVO, si no = BASE
+    var origTag = v.esNuevo
+      ? '<span class="adc-orig-nuevo">NUEVO</span>'
+      : '<span class="adc-orig-base">BASE</span>';
+    return '<tr>'+
+      '<td style="font-size:10px;color:#9AAAC8;">'+adcH(v.fecha.slice(5))+'</td>'+
+      '<td><div class="adc-nom">'+adcH((v.cliente||'—').slice(0,18))+'</div>'+
+          '<div class="adc-num">'+adcH(v.num||'—')+'</div></td>'+
+      '<td style="font-size:10px;color:#6B7BA8;">'+adcH((v.trat||'—').slice(0,15))+'</td>'+
+      '<td><span class="adc-tc '+tc+'">'+tl+'</span></td>'+
+      '<td style="text-align:right;"><span class="adc-monto">S/'+adcFmt(v.monto)+'</span></td>'+
+      '<td style="text-align:right;"><span class="adc-com">S/'+adcFmt(v.comision)+'</span></td>'+
+      '<td>'+origTag+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+function adcAjusteDesdeDetalle() {
+  adcCerrar('adc-m-det');
+  setTimeout(function(){ adcAbrirAjuste(ADC.detNom); }, 150);
+}
+
+// ── MODAL EDITAR VENTA ───────────────────────────────────────
+function adcAbrirEdit(v) {
+  ADC.editVid = v.ventaId||'';
+  document.getElementById('adc-edit-info').textContent =
+    (v.cliente||'—')+' · '+(v.trat||'—')+' · '+(v.sede||'—');
+  adcT('adc-edit-fecha', v.fecha||'—');
+  adcT('adc-edit-tipo',  v.tipo||'—');
+  adcT('adc-edit-com',   'S/'+adcFmt(v.comision));
+
+  // Poblar select con asesores del ranking actual
+  var sel  = document.getElementById('adc-edit-asesor');
+  var opts = '<option value="">NO APLICA (sin comisión)</option>';
+  if (ADC.data && ADC.data.ranking) {
+    ADC.data.ranking.forEach(function(r) {
+      opts += '<option value="'+adcH(r.nombre)+'">'+adcH(r.nombre)+'</option>';
+    });
+  }
+  sel.innerHTML = opts;
+  // Preseleccionar asesor actual
+  sel.value = v.noAplica ? '' : (v.asesor||'');
+
+  document.getElementById('adc-edit-monto').value  = v.monto||'';
+  document.getElementById('adc-edit-motivo').value = '';
+  document.getElementById('adc-m-edit').classList.add('open');
+}
+
+function adcGuardarEdit() {
+  if (!ADC.editVid) return;
+  var asesor = document.getElementById('adc-edit-asesor').value.trim().toUpperCase();
+  var monto  = document.getElementById('adc-edit-monto').value.trim();
+  var motivo = document.getElementById('adc-edit-motivo').value.trim();
+  var cambios = {motivo:motivo};
+  if (asesor!==undefined) cambios.asesor = asesor;
+  if (monto!=='')         cambios.monto  = Number(monto);
+  var btn = document.getElementById('adc-edit-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  google.script.run
+    .withSuccessHandler(function(res){
+      btn.disabled=false; btn.textContent='Guardar cambio';
+      if (!res||!res.ok){ alert('Error: '+(res&&res.error?res.error:'desconocido')); return; }
+      adcCerrar('adc-m-edit');
+      if (window.AOS_showToast) AOS_showToast('✅ Venta editada', (res.cambios||[]).join(' | '), '');
+      adcCargar();
+    })
+    .withFailureHandler(function(){
+      btn.disabled=false; btn.textContent='Guardar cambio';
+      alert('Error de conexión');
+    })
+    .api_editarVentaComisionT(ADC.token, ADC.editVid, cambios);
+}
+
+// ── MODAL AJUSTE MANUAL ──────────────────────────────────────
+function adcPoblarSelect(ranking) {
+  var sel  = document.getElementById('adc-aj-asesor');
+  var opts = '<option value="">Selecciona...</option>';
+  (ranking||[]).forEach(function(r){ opts+='<option value="'+adcH(r.nombre)+'">'+adcH(r.nombre)+'</option>'; });
+  sel.innerHTML = opts;
+}
+
+function adcAbrirAjuste(preselect) {
+  document.getElementById('adc-aj-monto').value  = '';
+  document.getElementById('adc-aj-motivo').value = '';
+  if (preselect) {
+    var sel = document.getElementById('adc-aj-asesor');
+    for (var i=0;i<sel.options.length;i++) {
+      if (sel.options[i].value===preselect){ sel.selectedIndex=i; break; }
+    }
+  }
+  document.getElementById('adc-m-ajuste').classList.add('open');
+}
+
+function adcGuardarAjuste() {
+  var asesor = document.getElementById('adc-aj-asesor').value;
+  var monto  = parseFloat(document.getElementById('adc-aj-monto').value);
+  var motivo = document.getElementById('adc-aj-motivo').value.trim();
+  if (!asesor||isNaN(monto)){ alert('Completa asesor y monto'); return; }
+  var f   = adcBuildFiltro();
+  var mes = f.mes||new Date().getMonth()+1;
+  var anio= f.anio||new Date().getFullYear();
+  var btn = document.getElementById('adc-aj-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  google.script.run
+    .withSuccessHandler(function(res){
+      btn.disabled=false; btn.textContent='Guardar ajuste';
+      if (!res||!res.ok){ alert('Error al guardar'); return; }
+      adcCerrar('adc-m-ajuste');
+      if (window.AOS_showToast) AOS_showToast('💰 Ajuste guardado','Comisión actualizada para '+asesor,'');
+      adcCargar();
+    })
+    .withFailureHandler(function(){btn.disabled=false; btn.textContent='Guardar ajuste';})
+    .api_updateComisionManualT(ADC.token, asesor, mes, anio, monto, motivo);
+}
+
+// ── MODAL REGLAS ─────────────────────────────────────────────
+function adcAbrirReglas() {
+  document.getElementById('adc-rangos-serv').innerHTML='<div class="adc-ld"><span class="adc-sp"></span>Cargando...</div>';
+  document.getElementById('adc-rangos').innerHTML='<div class="adc-ld"><span class="adc-sp"></span>Cargando...</div>';
+  document.getElementById('adc-m-reg').classList.add('open');
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (!res||!res.ok){
+        document.getElementById('adc-rangos').innerHTML='<div class="adc-empty">Error cargando reglas</div>';
+        return;
+      }
+      // Servicios: si hay servRangos los usa, si no convierte el servPct flat a un rango único
+      var servRangos = res.servRangos && res.servRangos.length
+        ? res.servRangos
+        : [{min:0, pct: res.servPct||0, fijo:0}];
+      adcRenderRangosServUI(servRangos);
+
+      // Productos
+      adcRenderRangosUI(res.prodRangos||[]);
+
+      // Incentivo
+      var inc = res.incentivo || {};
+      document.getElementById('adc-rg-bono-nuevo').value = inc.bonoNuevo||0;
+      document.getElementById('adc-rg-bono-desde').value = inc.bonoDesde||0;
+    })
+    .withFailureHandler(function(){
+      document.getElementById('adc-rangos').innerHTML='<div class="adc-empty">Error de conexión</div>';
+    })
+    .api_getReglasComT(ADC.token);
+}
+
+// ── Rangos SERVICIOS (pct + opcional monto fijo) ──────────────
+function adcRenderRangosServUI(rangos) {
+  var el = document.getElementById('adc-rangos-serv');
+  if (!rangos.length){ el.innerHTML='<div class="adc-empty">Sin rangos — agrega uno</div>'; return; }
+  el.innerHTML = rangos.map(function(rg,i){
+    return '<div class="adc-rg-row" style="grid-template-columns:1fr 1fr 1fr auto;" id="adc-rgs-'+i+'">'+
+      '<input class="adc-rg-input" type="number" placeholder="Desde S/" value="'+(rg.min||0)+'" id="adc-rgsmin-'+i+'" step="1">'+
+      '<input class="adc-rg-input" type="number" placeholder="% (ej: 0.005)" value="'+(rg.pct||0)+'" id="adc-rgspct-'+i+'" step="0.0001">'+
+      '<input class="adc-rg-input" type="number" placeholder="Fijo S/ (opcional)" value="'+(rg.fijo||0)+'" id="adc-rgsfijo-'+i+'" step="0.01">'+
+      '<button class="adc-rg-del" onclick="adcDelRangoServ('+i+')">✕</button>'+
+      '</div>';
+  }).join('');
+}
+
+function adcAgregarRangoServ() { adcRenderRangosServUI(adcLeerRangosServ().concat([{min:0,pct:0,fijo:0}])); }
+function adcDelRangoServ(idx)  { var r=adcLeerRangosServ(); r.splice(idx,1); adcRenderRangosServUI(r); }
+function adcLeerRangosServ() {
+  var r=[]; var i=0;
+  while(document.getElementById('adc-rgsmin-'+i)){
+    r.push({
+      min:  parseFloat(document.getElementById('adc-rgsmin-'+i).value)||0,
+      pct:  parseFloat(document.getElementById('adc-rgspct-'+i).value)||0,
+      fijo: parseFloat(document.getElementById('adc-rgsfijo-'+i).value)||0
+    });
+    i++;
+  }
+  return r;
+}
+
+// ── Rangos PRODUCTOS ──────────────────────────────────────────
+function adcRenderRangosUI(rangos) {
+  var el=document.getElementById('adc-rangos');
+  if (!rangos.length){ el.innerHTML='<div class="adc-empty">Sin rangos — agrega uno</div>'; return; }
+  el.innerHTML = rangos.map(function(rg,i){
+    return '<div class="adc-rg-row" id="adc-rg-'+i+'">'+
+      '<input class="adc-rg-input" type="number" placeholder="Desde S/" value="'+(rg.min||0)+'" id="adc-rgmin-'+i+'" step="0.01">'+
+      '<input class="adc-rg-input" type="number" placeholder="Com. fija S/" value="'+(rg.com||0)+'" id="adc-rgcom-'+i+'" step="0.01">'+
+      '<button class="adc-rg-del" onclick="adcDelRango('+i+')">✕</button>'+
+      '</div>';
+  }).join('');
+}
+
+function adcAgregarRango() { adcRenderRangosUI(adcLeerRangos().concat([{min:0,com:0}])); }
+function adcDelRango(idx)  { var r=adcLeerRangos(); r.splice(idx,1); adcRenderRangosUI(r); }
+function adcLeerRangos() {
+  var r=[]; var i=0;
+  while(document.getElementById('adc-rgmin-'+i)){
+    r.push({min:parseFloat(document.getElementById('adc-rgmin-'+i).value)||0,
+            com:parseFloat(document.getElementById('adc-rgcom-'+i).value)||0});
+    i++;
+  }
+  return r;
+}
+
+function adcGuardarReglas() {
+  var sr = adcLeerRangosServ();
+  var pr = adcLeerRangos();
+  var bonoNuevo = parseFloat(document.getElementById('adc-rg-bono-nuevo').value)||0;
+  var bonoDesde = parseFloat(document.getElementById('adc-rg-bono-desde').value)||0;
+
+  if (!sr.length){ alert('Agrega al menos un rango de servicios'); return; }
+  if (!pr.length){ alert('Agrega al menos un rango de productos'); return; }
+  // Validar que al menos un rango de servicios tiene pct > 0 o fijo > 0
+  var tieneValorServ = sr.some(function(r){ return r.pct>0||r.fijo>0; });
+  if (!tieneValorServ){ alert('Define al menos un porcentaje o monto fijo en servicios'); return; }
+
+  var btn=document.getElementById('adc-rg-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+
+  // Para compatibilidad con el backend: usar el pct del primer rango como servPct
+  var servPctCompat = sr[0].pct || 0;
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      btn.disabled=false; btn.textContent='Guardar tabla';
+      if (!res||!res.ok){ alert('Error: '+(res&&res.error?res.error:'?')); return; }
+      adcCerrar('adc-m-reg');
+      if (window.AOS_showToast) AOS_showToast('✅ Tabla guardada',sr.length+' rangos serv · '+pr.length+' rangos prod','');
+      adcCargar();
+    })
+    .withFailureHandler(function(){btn.disabled=false; btn.textContent='Guardar tabla';})
+    .api_saveReglasComT(ADC.token, {
+      servPct:    servPctCompat,
+      servRangos: sr,
+      prodRangos: pr,
+      incentivo:  { bonoNuevo: bonoNuevo, bonoDesde: bonoDesde }
+    });
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function adcCerrar(id){ document.getElementById(id).classList.remove('open'); }
+function adcT(id, txt) {
+  var el=document.getElementById(id);
+  if (!el) return;
+  el.textContent=String(txt!=null?txt:'');
+}
+// Para contenidos HTML (tablas, divs, spans)
+function adcH_set(id, html) {
+  var el=document.getElementById(id);
+  if (!el) return;
+  el.innerHTML=html||'';
+}
+function adcFmt(n){
+  return (Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function adcH(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
