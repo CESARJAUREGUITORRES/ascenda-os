@@ -250,7 +250,7 @@ function comProd(m){
 function renderSB(d){
   var pos=Math.min(d.ranking||1, MEDALS.length-1);
   var detalle=(d.detalle||[]).map(function(v){
-    
+    // comision_calculada viene desde SQL usando la tabla real de rangos
     var com=v.comision_calculada!==undefined?v.comision_calculada:
             (v.tipo==='PRODUCTO'?comProd(v.monto):(v.monto||0)*0.0005);
     return{fecha:v.fecha||'',
@@ -402,7 +402,7 @@ function loadRankingMini(){
 
 function renderReglas(reglas){
   var el=document.getElementById('reglas-container');
-  
+  // Cargar desde Supabase si está disponible
   if(window.sb_fetch){
     window.sb_fetch('/rest/v1/aos_tabla_comisiones?select=tipo,monto_min,comision,comision_pct&order=tipo,monto_min')
     .then(function(rows){
