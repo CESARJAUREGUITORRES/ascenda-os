@@ -1,4 +1,4 @@
-
+<!-- ViewAdminHome.html — Home Admin AscendaOS v2.2 — Supabase directo -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 .adh{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
@@ -11,13 +11,13 @@
 .tk-val{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;color:#fff;}
 .tk-pct{font-size:9px;color:#00E5A0;font-weight:700;margin-left:2px;}
 .tk-kpi-v{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#00C9A7;}
- 
+/* Layout: ventas angosta, monitoreo ancho */
 .main3{display:grid;grid-template-columns:minmax(0,0.7fr) minmax(0,2fr) minmax(0,0.9fr);gap:10px;align-items:start;}
 .card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
 .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.5px;color:#0D1B3E;}
 .slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
- 
+/* Indicador Supabase */
 .sb-status{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;font-size:10px;font-weight:600;margin-bottom:10px;border:1px solid;}
 .sb-ok{background:#F0FDF4;border-color:#BBF7D0;color:#16A34A;}
 .sb-err{background:#FEF2F2;border-color:#FECACA;color:#DC2626;}
@@ -28,7 +28,7 @@
 .sb-load .sb-dot{background:#0A4FBF;animation:pulse-b .8s infinite;}
 @keyframes pulse-r{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes pulse-b{0%,100%{opacity:1}50%{opacity:.3}}
- 
+/* Ventas */
 .vd-big{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;line-height:1;}
 .vd-sub{font-size:10px;color:#9AAAC8;margin:3px 0 8px;}
 .vd-sedes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
@@ -45,7 +45,7 @@
 .tipo-b{padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;margin-left:4px;}
 .tb-s{background:#EBF2FF;color:#0A4FBF;}
 .tb-p{background:#F5F3FF;color:#7C3AED;}
- 
+/* Monitoreo */
 .mon-table{width:100%;border-collapse:collapse;font-size:11px;}
 .mon-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #F0F4FC;text-align:left;white-space:nowrap;}
 .mon-table td{padding:9px 8px;border-bottom:1px solid rgba(221,228,245,.35);vertical-align:middle;}
@@ -59,12 +59,12 @@
 .ep-pausa{background:#FFFBEB;color:#D97706;}
 .ep-inactivo{background:#FEF2F2;color:#DC2626;}
 .ep-off{background:#F0F4FC;color:#9AAAC8;}
- 
+/* Alertas */
 .alerta-item{padding:8px 10px;border-radius:9px;margin-bottom:5px;display:flex;align-items:flex-start;gap:8px;}
 .al-inactivo{background:#FEF2F2;border:1px solid #FECACA;}
 .al-amarillo{background:#FFFBEB;border:1px solid #FDE68A;}
 .ai-txt{font-size:11px;font-weight:700;color:#0D1B3E;}
- 
+/* Ranking */
 .tab-row{display:flex;border-radius:8px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;margin-bottom:10px;}
 .tabr{flex:1;padding:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;text-align:center;}
 .tabr.act{background:#0A4FBF;color:#fff;}
@@ -83,7 +83,7 @@
 .d-up{background:#F0FDF4;color:#16A34A;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;}
 .d-dn{background:#FEF2F2;color:#DC2626;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;}
 .rank-total{font-size:10px;color:#9AAAC8;margin-top:8px;padding-top:6px;border-top:1px solid #DDE4F5;text-align:right;}
- 
+/* Pagos */
 .pagos-sec{margin-top:10px;padding-top:10px;border-top:1px solid #F0F4FC;}
 .pagos-hd{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
 .pagos-ttl{font-size:10px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:.5px;}
@@ -98,7 +98,7 @@
 .pago-wa{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;background:#25D366;color:#fff;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;}
 .pago-ok{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;background:#0A4FBF;color:#fff;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;}
 .pago-hist{padding:4px 8px;border-radius:6px;border:1px solid #DDE4F5;cursor:pointer;background:#F0F4FC;color:#6B7BA8;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;}
- 
+/* Modal */
 .mpov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.5);z-index:900;align-items:center;justify-content:center;padding:16px;}
 .mpov.open{display:flex;}
 .mpmodal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;border:1px solid #DDE4F5;}
@@ -141,7 +141,7 @@
 .mp-btn-wa{flex:1;padding:9px;border-radius:9px;border:none;background:#25D366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .mp-btn-ok{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .mp-btn-cancel{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
- 
+/* Utils */
 .ld{text-align:center;padding:16px;color:#9AAAC8;font-size:11px;}
 .sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -154,7 +154,7 @@
 <div class="adh">
   <div class="main3">
 
-    
+    <!-- COL 1: VENTAS (angosta) -->
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div class="sb-status sb-load" id="sb-indicator">
         <div class="sb-dot"></div>
@@ -182,7 +182,7 @@
       </div>
     </div>
 
-    
+    <!-- COL 2: TICKER + MONITOREO (ancho) -->
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div class="ticker-wrap">
         <div class="ticker-mkt">MKT</div>
@@ -252,7 +252,7 @@
   </div>
 </div>
 
-
+<!-- MODAL HISTORIAL PAGO -->
 <div class="mpov" id="mp-modal">
   <div class="mpmodal">
     <div class="mp-hd">
@@ -297,7 +297,7 @@ function loadAdminSB() {
   var ayer=new Date(now-86400000).toISOString().slice(0,10);
   var mesI=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
 
-  
+  // Usar fecha Peru (UTC-5) no UTC
   var nowPE=new Date(now.getTime()-5*60*60*1000);
   var hoyPE=nowPE.toISOString().slice(0,10);
   var ayerPE=new Date(nowPE.getTime()-86400000).toISOString().slice(0,10);
@@ -316,7 +316,7 @@ function loadAdminSB() {
     }
     renderVentasHoy(d.ventasHoy||[]);
 
-    
+    // Semáforo completo desde función dedicada (incluye todos los asesores)
     loadSemaforoSB(hoyPE);
   })
   .catch(function(err){
@@ -371,8 +371,9 @@ function renderTicker(res){
 }
 
 
-
-
+/* ═══════════════════════════════════════════════════
+   SEMÁFORO COMPLETO — Todos los asesores + estado real
+═══════════════════════════════════════════════════ */
 function loadSemaforoSB(hoyPE) {
   var hoy = hoyPE || new Date().toISOString().slice(0,10);
   window.sb_rpc('aos_semaforo_equipo', { p_hoy: hoy })
@@ -396,7 +397,7 @@ function loadSemaforoSB(hoyPE) {
     });
     renderSemaforo({ ok: true, filas: filas });
 
-    
+    // Alertas con lógica completa de estados
     var alertas = [];
     filas.forEach(function(f) {
       if (f.estado === 'INACTIVO' && f.minsSin !== null) {
@@ -565,7 +566,7 @@ function abrirModalPago(vid,num,nom,wa){
 function renderModalPago(d,nom){
   if(!d){document.getElementById('mp-body').innerHTML='<div class="ld">Sin datos</div>';return;}
   var ventas=d.ventas||[],citas=d.citas||[];
-  
+  // Usar nombre de la venta si está disponible
   var nombreReal = d.nombre || nom;
   document.getElementById('mp-tit').textContent = nombreReal;
 
@@ -576,7 +577,7 @@ function renderModalPago(d,nom){
 
   var html='<div style="font-size:11px;color:#6B7BA8;text-align:center;margin-bottom:12px;">'+ventas.length+' registros · '+h(nombreReal)+' · '+h(ADH.pagoActual&&ADH.pagoActual.num||'')+'</div>';
   
-  
+  // Stats estilo imagen 4
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">' +
     '<div style="background:#F0F4FC;border-radius:10px;padding:10px;text-align:center;">' +
       '<div style="font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total pagado</div>' +
@@ -592,7 +593,7 @@ function renderModalPago(d,nom){
     '</div>' +
     '</div>';
 
-  
+  // Lista de ventas estilo imagen 4
   if(ventas.length){
     html+=ventas.map(function(v){
       var epago=(v.estado_pago||'').toUpperCase();
