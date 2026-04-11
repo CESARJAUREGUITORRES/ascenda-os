@@ -1,0 +1,89 @@
+name: Sync Supabase Code to GitHub
+
+on:
+  # Se activa manualmente desde GitHub Actions tab
+  workflow_dispatch:
+  # O automáticamente cada hora
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Instalar dependencias
+        run: npm install node-fetch@2
+
+      - name: Descargar código desde Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          node << 'EOF'
+          const fetch = require('node-fetch');
+          const fs = require('fs');
+          const path = require('path');
+
+          async function main() {
+            const resp = await fetch(
+              `${process.env.SUPABASE_URL}/rest/v1/aos_codigo_fuente?select=nombre,tipo,contenido,updated_at&order=tipo.asc,nombre.asc`,
+              {
+                headers: {
+                  'apikey': process.env.SUPABASE_KEY,
+                  'Authorization': `Bearer ${process.env.SUPABASE_KEY}`
+                }
+              }
+            );
+            
+            const archivos = await resp.json();
+            console.log(`Archivos encontrados: ${archivos.length}`);
+            
+            let cambios = 0;
+            
+            for (const archivo of archivos) {
+              if (!archivo.contenido || archivo.contenido === 'PENDIENTE_CONTENIDO_COMPLETO') continue;
+              
+              // Determinar carpeta destino
+              const carpeta = archivo.tipo === 'gs' ? 'src/backend' : 'src/frontend';
+              const filePath = path.join(carpeta, archivo.nombre);
+              
+              // Crear carpeta si no existe
+              fs.mkdirSync(carpeta, { recursive: true });
+              
+              // Verificar si el contenido cambió
+              let contenidoActual = '';
+              try { contenidoActual = fs.readFileSync(filePath, 'utf8'); } catch(e) {}
+              
+              if (contenidoActual !== archivo.contenido) {
+                fs.writeFileSync(filePath, archivo.contenido, 'utf8');
+                console.log(`Actualizado: ${filePath}`);
+                cambios++;
+              }
+            }
+            
+            console.log(`Total cambios: ${cambios}`);
+            fs.writeFileSync('sync_result.txt', String(cambios));
+          }
+          
+          main().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - name: Commit y push si hay cambios
+        run: |
+          CAMBIOS=$(cat sync_result.txt 2>/dev/null || echo "0")
+          if [ "$CAMBIOS" -gt "0" ]; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "AscendaOS Sync"
+            git add src/
+            git commit -m "sync: $CAMBIOS archivos actualizados desde Supabase [$(date +'%Y-%m-%d %H:%M')]"
+            git push
+            echo "Push completado: $CAMBIOS archivos"
+          else
+            echo "Sin cambios — no se hace commit"
+          fi
