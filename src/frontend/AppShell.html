@@ -900,15 +900,26 @@ window.AOS_playSound   = playSound;
 window.AOS_showToast   = showToast;
 
 
+/* ═══════════════════════════════════════════════════
+   SUPABASE DIRECT CLIENT
+   Lee datos directamente desde Supabase sin pasar por GAS.
+   GAS sigue para: login, guardar llamadas, lógica de tiers.
+   Supabase directo para: KPIs, historial, tipificaciones.
 
-
+   Tiempo: GAS intermediario = 1-3s overhead por request
+           Supabase directo  = ~200-400ms total
+═══════════════════════════════════════════════════ */
 var _SB = {
   url: 'https://ituyqwstonmhnfshnaqz.supabase.co',
   key: 'sb_publishable_mz1j7bmlLulSqUposiKUCg_fka59fW_'
 };
 
-
-
+/**
+ * sb_fetch — cliente Supabase para lecturas directas desde el browser
+ * @param {string} path   — endpoint, ej: '/rest/v1/aos_llamadas?fecha=eq.2024-01-01'
+ * @param {object} opts   — { method, body } para RPCs
+ * @returns {Promise}     — promesa con los datos JSON
+ */
 window.sb_fetch = function(path, opts) {
   opts = opts || {};
   var url    = _SB.url + path;
@@ -926,8 +937,12 @@ window.sb_fetch = function(path, opts) {
   });
 };
 
-
-
+/**
+ * sb_rpc — llama una función SQL en Supabase
+ * @param {string} fn     — nombre de la función, ej: 'aos_panel_asesor'
+ * @param {object} params — parámetros de la función
+ * @returns {Promise}
+ */
 window.sb_rpc = function(fn, params) {
   return window.sb_fetch('/rest/v1/rpc/' + fn, {
     method: 'POST',
@@ -935,8 +950,13 @@ window.sb_rpc = function(fn, params) {
   });
 };
 
-
-
+/**
+ * sb_get — query a una tabla con filtros
+ * @param {string} table  — nombre de la tabla, ej: 'aos_llamadas'
+ * @param {object} params — { select, filters, order, limit }
+ *   filters: { campo: valor } → genera campo=eq.valor
+ * @returns {Promise}
+ */
 window.sb_get = function(table, params) {
   params = params || {};
   var q = [];
@@ -955,7 +975,7 @@ window.sb_get = function(table, params) {
   return window.sb_fetch(path);
 };
 
-
+// Exponer en API pública del AppShell
 window.AOS_sbFetch = window.sb_fetch;
 window.AOS_sbRpc   = window.sb_rpc;
 window.AOS_sbGet   = window.sb_get;
