@@ -1,1504 +1,1313 @@
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  AscendaOS v1 — GS_24_Pacientes360.gs                      ║
- * ║  Módulo: Pacientes 360° — Historia Clínica, Notas,          ║
- * ║          Seguimientos Programados, Timeline, Fusión         ║
- * ║  Autor: César Jáuregui / CREACTIVE OS                      ║
- * ║  Versión: 2.0.0                                             ║
- * ║  Dependencias: GS_01, GS_02, GS_03, GS_04, GS_09          ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * CAMBIOS v2.0.0 vs v1.0.0:
- *   FIX-01 · diasUltVisita devuelto directamente en api_getPatient360T
- *            (ya no depende de api_getPatientScore360T por separado)
- *   FIX-02 · api_fusionarPacientes recibe parámetro "rowPrincipal" elegido
- *            por el usuario — no asume el primero de la lista
- *   FIX-03 · api_detectarDuplicados devuelve datos completos de cada
- *            registro (nombre, tel, dni, totalFact, ultVisita, compras)
- *            para que el usuario elija quién es el principal
- *   FIX-04 · api_getPatient360T incluye el cálculo de diasUltVisita
- *            directamente en el objeto paciente retornado
- *   NEW-01 · api_getEquipoActivoT devuelve lista de asesores para
- *            el modal de nueva cita (campo Asesor)
- *   NEW-02 · _norm_estado() normaliza estados con/sin tilde para
- *            que los colores del frontend funcionen correctamente
- *
- * CONTENIDO:
- *   MOD-01 · Historia Clínica (MINSA estética)
- *   MOD-02 · Notas multi-rol del equipo
- *   MOD-03 · Seguimientos programados por tratamiento
- *   MOD-04 · Timeline unificado del paciente
- *   MOD-05 · Crear cita desde panel 360
- *   MOD-06 · Score y alertas del paciente
- *   MOD-07 · Fusión de pacientes (mejorada — usuario elige principal)
- *   MOD-08 · Helpers internos de GS_24
- *   MOD-09 · Wrappers token
- *   MOD-10 · Tests
- */
+<!-- ViewAdminPatients.html — AscendaOS v1 · Pacientes 360°
+     Versión: 4.0.0 | Autor: César Jáuregui / CREACTIVE OS
 
-// ══════════════════════════════════════════════════════════════
-// MOD-01 · HISTORIA CLÍNICA
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: HC_START =====
+     CAMBIOS v4.0:
+       NEW  Sidebar y notas colapsables lateralmente (◀/▶)
+       NEW  Notas: badge rol + nombre usuario + editar + eliminar
+       NEW  Tab Compras: cards + modal registrar pago con métodos REALES
+       NEW  Tab Comprobantes: desde CONSOLIDADO DE COMPROBANTES real
+       FIX  Modal duplicados: Principal/Secundario visual claro
+       NEW  Timeline: mini-calendario + detalle por día al click
+       KEEP Todos los fixes de v3.0
 
-/**
- * Índices de columnas de HISTORIA_CLINICA (base 0)
- * Mapeados al orden de headers creado por setup_CrearHojasBloque3
- */
-var HC_COL = {
-  DNI:                    0,
-  NOMBRES:                1,
-  APELLIDOS:              2,
-  TELEFONO:               3,
-  EMAIL:                  4,
-  FECHA_NAC:              5,
-  SEXO:                   6,
-  ESTADO_CIVIL:           7,
-  GRADO_INSTRUCCION:      8,
-  OCUPACION:              9,
-  DISTRITO:               10,
-  DIRECCION:              11,
-  CONTACTO_EMERG_NOMBRE:  12,
-  CONTACTO_EMERG_TEL:     13,
-  ALERGIAS_MEDICAMENTOS:  14,
-  ALERGIAS_MATERIALES:    15,
-  ENFERMEDADES_CRONICAS:  16,
-  MEDICAMENTOS_ACTUALES:  17,
-  SUPLEMENTOS_VITAMINAS:  18,
-  VACUNAS_RECIENTES:      19,
-  CIRUGIAS_PREVIAS:       20,
-  TRAT_ESTETICOS_PREVIOS: 21,
-  QUELOIDES:              22,
-  IMPLANTES:              23,
-  MARCAPASOS:             24,
-  EMBARAZO:               25,
-  LACTANCIA:              26,
-  ANTICONCEPTIVOS:        27,
-  FECHA_ULT_MENSTRUACION: 28,
-  FECHA_ULT_PAPANICOLAU:  29,
-  TABACO:                 30,
-  ALCOHOL:                31,
-  ACTIVIDAD_FISICA:       32,
-  HORAS_SUENO:            33,
-  CONSENTIMIENTO_FIRMADO: 34,
-  FECHA_REGISTRO_HC:      35,
-  MEDICO_RESPONSABLE:     36,
-  TS_CREADO:              37,
-  TS_ACTUALIZADO:         38
+     APIs:
+       api_listPatientsT, api_getPatient360T,
+       api_getHistoriaClinicaT, api_saveHistoriaClinicaT,
+       api_getPatientTimelineT,
+       api_saveNotaPaciente360T, api_getNotasPaciente360T,
+       api_updateNotaPaciente360T, api_deleteNotaPaciente360T,
+       api_getSeguimientosProgramadosT, api_cerrarSeguimientoProgramadoT,
+       api_detectarDuplicadosT, api_fusionarPacientesT,
+       api_createCitaDesde360T, api_getEquipoActivoT,
+       api_updatePatientFullT, api_getVentasComprobantesT,
+       api_getComprobantesRealT, api_registrarPagoT,
+       api_getMetodosPagoT
+-->
+<style>
+:root{
+  --az:#0A4FBF;--az-cl:#EBF2FF;--az-brd:#BFDBFE;
+  --vd:#16A34A;--vd-cl:#F0FDF4;--vd-brd:#86EFAC;
+  --rj:#DC2626;--rj-cl:#FEF2F2;--rj-brd:#FECACA;
+  --am:#D97706;--am-cl:#FFFBEB;--am-brd:#FDE68A;
+  --mo:#7C3AED;--mo-cl:#F5F3FF;
+  --gr:#9AAAC8;--gr-cl:#F0F4FC;
+  --txt:#0D1B3E;--txt-s:#6B7BA8;
+  --brd:#DDE4F5;--bg:#F4F6FB;--wh:#fff;
+  --shd:0 2px 12px rgba(10,79,191,.08);
+  --shd-lg:0 8px 32px rgba(10,79,191,.14);
+  --r:11px;--r-sm:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;color:var(--txt);}
+
+/* ── LAYOUT 3 COLUMNAS ── */
+.p360{display:flex;height:calc(100vh - 60px);background:var(--bg);overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sb{background:var(--wh);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;transition:width .25s ease;width:290px;flex-shrink:0;position:relative;}
+.sb.oculto{width:0;border-right:none;}
+.sb-inner{width:290px;display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+/* Toggle lateral sidebar */
+.sb-toggle{position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;width:14px;height:40px;background:var(--az);color:#fff;border:none;cursor:pointer;border-radius:0 6px 6px 0;font-size:9px;display:flex;align-items:center;justify-content:center;}
+.sb.oculto .sb-toggle{right:-14px;}
+
+/* Búsqueda */
+.srch-a{padding:11px;border-bottom:1px solid var(--brd);flex-shrink:0;}
+.srch-box{display:flex;gap:5px;}
+.srch-in{flex:1;padding:8px 10px;border-radius:var(--r);border:1.5px solid var(--brd);background:var(--gr-cl);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--txt);outline:none;transition:border-color .15s;}
+.srch-in:focus{border-color:var(--az);background:var(--wh);}
+.srch-btn{padding:8px 12px;border-radius:var(--r);background:var(--az);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;}
+.srch-stats{margin-top:6px;font-size:10px;color:var(--gr);display:none;gap:7px;}
+.s-dot{width:6px;height:6px;border-radius:50%;}
+
+/* Lista */
+.pac-list-wrap{flex:1;overflow:hidden;transition:max-height .25s ease;max-height:100%;}
+.pac-list-wrap.col{max-height:72px;}
+.pac-lista{height:100%;overflow-y:auto;padding:6px;}
+.pac-lista::-webkit-scrollbar{width:3px;}
+.pac-lista::-webkit-scrollbar-thumb{background:var(--brd);}
+.pac-card{padding:8px 10px;border-radius:var(--r);border:1px solid var(--brd);background:var(--wh);cursor:pointer;margin-bottom:4px;transition:all .12s;}
+.pac-card:hover{border-color:var(--az-brd);background:#F8FAFF;}
+.pac-card.activa{border-color:var(--az);background:var(--az-cl);}
+.pac-nom{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pac-tel{font-size:10px;color:var(--gr);}
+.pac-meta{display:flex;gap:4px;margin-top:3px;align-items:center;}
+.pac-sc{padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;}
+.sc-ACTIVO{background:var(--vd-cl);color:var(--vd);}
+.sc-EN_RIESGO{background:var(--am-cl);color:var(--am);}
+.sc-INACTIVO{background:var(--rj-cl);color:var(--rj);}
+.sc-NUEVO{background:var(--gr-cl);color:var(--gr);}
+.pac-fact{font-size:10px;font-weight:700;color:var(--az);}
+
+.pac-toggle-bar{padding:5px 10px;border-top:1px solid var(--brd);display:none;align-items:center;justify-content:space-between;cursor:pointer;font-size:10px;color:var(--gr);font-weight:700;flex-shrink:0;background:var(--wh);}
+.pac-toggle-bar.vis{display:flex;}
+.pac-toggle-bar:hover{background:var(--gr-cl);}
+.sb-footer{padding:7px;border-top:1px solid var(--brd);flex-shrink:0;}
+.btn-dupes{width:100%;padding:7px;border-radius:var(--r-sm);background:var(--rj-cl);color:var(--rj);border:1px solid var(--rj-brd);font-size:11px;font-weight:700;cursor:pointer;}
+
+/* ── PANEL CENTRAL ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--brd);min-width:0;}
+.p360-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--gr);}
+
+/* Header */
+.p360-hd{padding:13px 17px;border-bottom:1px solid var(--brd);background:var(--wh);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;box-shadow:var(--shd);}
+.p360-av{width:48px;height:48px;border-radius:13px;flex-shrink:0;background:linear-gradient(135deg,var(--az),#00C9A7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;margin-right:10px;}
+.p360-nom{font-weight:800;font-size:16px;color:var(--txt);line-height:1.2;}
+.p360-tel{font-size:11px;color:var(--gr);letter-spacing:.7px;margin-top:2px;}
+.p360-sc-bar{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap;}
+.sc-bdg{padding:2px 8px;border-radius:5px;font-size:9px;font-weight:800;text-transform:uppercase;}
+.p360-acc{display:flex;gap:5px;flex-shrink:0;margin-top:2px;}
+.p360-btn{padding:6px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;gap:3px;transition:opacity .12s;white-space:nowrap;}
+.p360-btn:hover{opacity:.85;}
+.pb-wa{background:#25D366;color:#fff;}
+.pb-cita{background:var(--az);color:#fff;}
+.pb-edit{background:var(--gr-cl);color:var(--txt);border:1px solid var(--brd);}
+
+/* Alertas */
+.p360-alts{padding:0 17px 7px;background:var(--wh);border-bottom:1px solid var(--brd);flex-shrink:0;display:none;}
+.alt-banner{padding:6px 10px;border-radius:var(--r-sm);margin-top:5px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.al-c{background:var(--rj-cl);color:#B91C1C;border:1px solid var(--rj-brd);}
+.al-a{background:var(--am-cl);color:var(--am);border:1px solid var(--am-brd);}
+
+/* KPIs */
+.p360-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:9px 17px;border-bottom:1px solid var(--brd);background:var(--wh);flex-shrink:0;}
+.kpi{background:var(--bg);border-radius:9px;padding:7px 5px;text-align:center;border:1px solid var(--brd);}
+.kpi-v{font-size:14px;font-weight:800;color:var(--az);}
+.kpi-v.d-ok{color:var(--vd);}
+.kpi-v.d-risk{color:var(--am);}
+.kpi-v.d-bad{color:var(--rj);}
+.kpi-l{font-size:8px;color:var(--gr);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
+
+/* Tabs */
+.p360-tabs{display:flex;background:var(--gr-cl);border-bottom:1px solid var(--brd);flex-shrink:0;overflow-x:auto;}
+.p360-tabs::-webkit-scrollbar{height:0;}
+.p360-tab{padding:8px 11px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;color:var(--gr);border-bottom:2px solid transparent;transition:all .15s;flex-shrink:0;}
+.p360-tab.act{color:var(--az);border-bottom-color:var(--az);background:var(--wh);}
+.p360-content{flex:1;overflow-y:auto;padding:13px 17px;}
+.p360-content::-webkit-scrollbar{width:3px;}
+.p360-content::-webkit-scrollbar-thumb{background:var(--brd);}
+
+/* Cards historial */
+.h-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);padding:10px 13px;margin-bottom:7px;box-shadow:var(--shd);position:relative;overflow:hidden;transition:border-color .12s;}
+.h-card:hover{border-color:var(--az-brd);}
+.h-card-acc{position:absolute;left:0;top:0;bottom:0;width:4px;}
+.h-card-b{padding-left:6px;}
+.h-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;}
+.h-card-tit{font-size:12px;font-weight:800;color:var(--txt);}
+.h-card-monto{font-size:14px;font-weight:800;color:var(--az);white-space:nowrap;}
+.h-card-sub{font-size:11px;color:var(--txt-s);margin-bottom:3px;}
+.h-card-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.h-bdg{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:800;display:inline-block;}
+.h-fecha{font-size:10px;color:var(--gr);}
+.h-asesor{font-size:10px;color:var(--gr);}
+
+/* Separador fecha */
+.f-sep{font-size:10px;font-weight:800;color:var(--az);text-transform:uppercase;letter-spacing:.4px;padding:5px 0 4px;border-bottom:1px solid var(--brd);margin-bottom:7px;display:flex;justify-content:space-between;}
+.f-sep-tot{font-size:13px;font-weight:800;color:var(--az);}
+
+/* Compras: botones de gestión */
+.h-card-actions{display:flex;gap:5px;margin-top:7px;}
+.btn-pago{padding:4px 10px;border-radius:5px;background:var(--vd-cl);color:var(--vd);border:1px solid var(--vd-brd);font-size:10px;font-weight:700;cursor:pointer;}
+.btn-ver-comp{padding:4px 10px;border-radius:5px;background:var(--az-cl);color:var(--az);border:1px solid var(--az-brd);font-size:10px;font-weight:700;cursor:pointer;}
+
+/* Comprobantes */
+.comp-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);margin-bottom:9px;box-shadow:var(--shd);overflow:hidden;}
+.comp-hd{padding:10px 13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--bg);border-bottom:1px solid var(--brd);}
+.comp-hd:hover{background:var(--az-cl);}
+.comp-hd-l{display:flex;align-items:center;gap:8px;}
+.comp-num{font-size:11px;font-weight:800;color:var(--txt);}
+.comp-fec{font-size:10px;color:var(--gr);}
+.comp-bdg-p{padding:2px 8px;border-radius:4px;font-size:9px;font-weight:800;background:var(--vd-cl);color:var(--vd);border:1px solid var(--vd-brd);}
+.comp-bdg-d{padding:2px 8px;border-radius:4px;font-size:9px;font-weight:800;background:var(--rj-cl);color:var(--rj);border:1px solid var(--rj-brd);}
+.comp-tots{display:flex;gap:12px;align-items:center;}
+.comp-tl{font-size:10px;color:var(--gr);}
+.comp-tv{font-size:13px;font-weight:800;color:var(--az);}
+.comp-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.comp-body.open{max-height:600px;}
+.comp-tbl{width:100%;border-collapse:collapse;}
+.comp-tbl th{font-size:9px;font-weight:700;color:var(--gr);text-transform:uppercase;padding:6px 12px;text-align:left;background:var(--gr-cl);border-bottom:1px solid var(--brd);}
+.comp-tbl td{font-size:11px;padding:8px 12px;border-bottom:1px solid rgba(221,228,245,.4);color:var(--txt);}
+.comp-tbl tr:last-child td{border-bottom:none;}
+.comp-tbl .monto-c{font-weight:800;color:var(--az);text-align:right;}
+.comp-ft{padding:7px 13px;background:var(--bg);border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:12px;}
+.comp-ft-r{display:flex;align-items:center;gap:5px;}
+.comp-ft-l{font-size:10px;color:var(--gr);font-weight:600;}
+.comp-ft-v{font-size:12px;font-weight:800;color:var(--txt);}
+
+/* Timeline calendario */
+.tl-wrap{display:grid;grid-template-columns:220px 1fr;gap:12px;height:100%;}
+.tl-cal{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);padding:12px;flex-shrink:0;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-mes{font-size:12px;font-weight:800;color:var(--txt);}
+.cal-nav-btn{background:none;border:none;cursor:pointer;color:var(--gr);font-size:14px;padding:2px 5px;}
+.cal-nav-btn:hover{color:var(--az);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{font-size:8px;font-weight:700;color:var(--gr);text-align:center;padding:2px 0;text-transform:uppercase;}
+.cal-day{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;position:relative;margin:1px auto;transition:all .12s;}
+.cal-day:hover{background:var(--az-cl);}
+.cal-day.hoy{font-weight:800;color:var(--az);}
+.cal-day.sel{background:var(--az);color:#fff !important;font-weight:800;}
+.cal-day.con-ev::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--az);}
+.cal-day.sel::after{background:#fff;}
+.cal-day.vacio{cursor:default;}
+.tl-detail{overflow-y:auto;}
+.tl-detail::-webkit-scrollbar{width:3px;}
+.tl-detail::-webkit-scrollbar-thumb{background:var(--brd);}
+.tl-day-tit{font-size:11px;font-weight:800;color:var(--az);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--brd);}
+.tl-ev{display:flex;gap:8px;margin-bottom:8px;}
+.tl-ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-ev-b{flex:1;}
+.tl-ev-tit{font-size:12px;font-weight:700;color:var(--txt);}
+.tl-ev-sub{font-size:11px;color:var(--txt-s);}
+.tl-ev-meta{font-size:10px;color:var(--gr);}
+
+/* HC accordion */
+.hc-acc{margin-bottom:9px;border-radius:var(--r);border:1px solid var(--brd);overflow:hidden;}
+.hc-acc-hd{padding:9px 13px;background:var(--az-cl);display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:11px;font-weight:800;color:var(--az);}
+.hc-acc-hd:hover{background:var(--az-brd);}
+.hc-acc-body{padding:11px;background:var(--wh);display:none;}
+.hc-acc-body.open{display:block;}
+.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.hc-f{background:var(--bg);border-radius:var(--r-sm);padding:6px 8px;}
+.hc-fl{font-size:8px;color:var(--gr);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.hc-fv{font-size:11px;font-weight:600;color:var(--txt);}
+.hc-fv.empty{color:var(--brd);font-style:italic;}
+.hc-alerta{background:var(--rj-cl);border:1px solid var(--rj-brd);border-radius:var(--r-sm);padding:7px 9px;font-size:11px;font-weight:700;color:#B91C1C;margin-bottom:7px;}
+
+/* Seg */
+.seg-card{padding:9px 11px;border-radius:var(--r);border:1px solid var(--brd);margin-bottom:5px;background:var(--wh);}
+
+/* Loader */
+.ld{text-align:center;padding:18px;color:var(--gr);font-size:12px;}
+.sp{width:12px;height:12px;border:2px solid var(--az-cl);border-top-color:var(--az);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PANEL NOTAS LATERAL ── */
+.notas-panel{background:var(--wh);display:flex;flex-direction:column;overflow:hidden;transition:width .25s ease;width:290px;flex-shrink:0;position:relative;}
+.notas-panel.oculto{width:0;}
+.notas-inner{width:290px;display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+/* Toggle notas */
+.notas-toggle{position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;width:14px;height:40px;background:var(--az);color:#fff;border:none;cursor:pointer;border-radius:6px 0 0 6px;font-size:9px;display:flex;align-items:center;justify-content:center;}
+
+.notas-hd{padding:11px 13px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.notas-tit{font-size:12px;font-weight:800;color:var(--txt);}
+.btn-nueva-nota{padding:4px 9px;border-radius:var(--r-sm);background:var(--az);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;}
+.notas-form{padding:9px 11px;border-bottom:1px solid var(--brd);display:none;}
+.nota-ta{width:100%;padding:7px 9px;border-radius:var(--r-sm);border:1.5px solid var(--brd);background:var(--gr-cl);font-size:11px;font-family:'DM Sans',sans-serif;color:var(--txt);outline:none;resize:none;height:60px;transition:border-color .15s;}
+.nota-ta:focus{border-color:var(--az);background:var(--wh);}
+.nota-btns{display:flex;gap:4px;margin-top:4px;}
+.nota-cancel{flex:1;padding:5px;border-radius:var(--r-sm);background:var(--gr-cl);color:var(--txt-s);border:1px solid var(--brd);font-size:10px;font-weight:600;cursor:pointer;}
+.nota-ok{flex:2;padding:5px;border-radius:var(--r-sm);background:var(--vd);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;}
+.notas-lista{flex:1;overflow-y:auto;padding:7px 9px;}
+.notas-lista::-webkit-scrollbar{width:3px;}
+.notas-lista::-webkit-scrollbar-thumb{background:var(--brd);}
+
+/* Nota item mejorada */
+.nota-item{padding:8px 9px;background:var(--bg);border-radius:9px;border:1px solid var(--brd);margin-bottom:5px;position:relative;}
+.nota-item-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:6px;}
+.nota-hd-left{display:flex;flex-direction:column;gap:2px;}
+.nota-rol{padding:1px 7px;border-radius:4px;font-size:9px;font-weight:700;display:inline-block;}
+.nr-ASESOR{background:var(--az-cl);color:var(--az);}
+.nr-DOCTOR{background:var(--vd-cl);color:var(--vd);}
+.nr-ENFERMERO{background:var(--am-cl);color:var(--am);}
+.nr-RECEPCION{background:var(--mo-cl);color:var(--mo);}
+.nr-ADMIN,.nr-ADMINISTRADOR{background:var(--rj-cl);color:var(--rj);}
+.nota-usuario{font-size:9px;color:var(--txt-s);font-weight:600;}
+.nota-fecha-txt{font-size:9px;color:var(--gr);}
+.nota-acc{display:flex;gap:3px;flex-shrink:0;}
+.nota-acc-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:2px;opacity:.5;transition:opacity .12s;}
+.nota-acc-btn:hover{opacity:1;}
+.nota-txt{font-size:11px;color:var(--txt);line-height:1.5;}
+.nota-edit-area{width:100%;padding:6px 7px;border-radius:var(--r-sm);border:1.5px solid var(--az);background:var(--wh);font-size:11px;font-family:'DM Sans',sans-serif;color:var(--txt);outline:none;resize:none;min-height:50px;margin-top:4px;}
+.nota-edit-btns{display:flex;gap:4px;margin-top:4px;}
+.nota-edit-cancel{flex:1;padding:4px;border-radius:5px;background:var(--gr-cl);color:var(--txt-s);border:1px solid var(--brd);font-size:9px;cursor:pointer;}
+.nota-edit-ok{flex:2;padding:4px;border-radius:5px;background:var(--az);color:#fff;border:none;font-size:9px;font-weight:700;cursor:pointer;}
+.notas-empty{padding:18px;text-align:center;color:var(--gr);font-size:11px;}
+
+/* ── MODALES ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:900;align-items:center;justify-content:center;padding:16px;}
+.ov.open{display:flex;}
+.mbox{background:var(--wh);border-radius:16px;padding:20px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shd-lg);}
+.mbox::-webkit-scrollbar{width:3px;}
+.mbox::-webkit-scrollbar-thumb{background:var(--brd);}
+.mtit{font-weight:800;font-size:15px;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.mclose{cursor:pointer;color:var(--gr);font-size:14px;background:none;border:none;padding:2px;}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mgrid-full{grid-column:1/-1;}
+.mfield{display:flex;flex-direction:column;gap:3px;}
+.mlbl{font-size:9px;font-weight:700;color:var(--gr);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:2px;}
+.minp,.msel,.mta{width:100%;padding:7px 9px;border-radius:var(--r-sm);border:1.5px solid var(--brd);background:var(--gr-cl);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--txt);outline:none;transition:border-color .15s;}
+.minp:focus,.msel:focus,.mta:focus{border-color:var(--az);background:var(--wh);}
+.mta{resize:none;min-height:48px;}
+.mbtns{display:flex;gap:8px;margin-top:12px;}
+.btn-cancel{flex:1;padding:9px;border-radius:var(--r);border:1px solid var(--brd);background:var(--gr-cl);font-size:12px;font-weight:600;cursor:pointer;color:var(--txt-s);}
+.btn-ok{flex:2;padding:9px;border-radius:var(--r);border:none;background:var(--vd);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-ok.az{background:var(--az);}
+.btn-ok.rj{background:var(--rj);}
+
+/* HC form */
+.hc-sec{font-size:10px;font-weight:800;color:var(--az);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;border-bottom:2px solid var(--az-cl);margin-bottom:9px;}
+
+/* Duplicados mejorado */
+.dup-g{padding:11px;background:var(--rj-cl);border:1px solid var(--rj-brd);border-radius:10px;margin-bottom:8px;}
+.dup-tipo{font-size:9px;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;}
+.dup-card{padding:10px 11px;background:var(--wh);border-radius:var(--r-sm);margin-bottom:5px;border:2px solid transparent;transition:all .15s;position:relative;}
+.dup-card.principal{border-color:var(--az);background:var(--az-cl);}
+.dup-card.secundario{border-color:var(--gr);background:var(--gr-cl);opacity:.7;}
+.dup-card-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.dup-nom{font-size:12px;font-weight:800;color:var(--txt);}
+.dup-tel{font-size:10px;color:var(--gr);}
+.dup-stats{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;}
+.dup-stat{font-size:10px;color:var(--txt-s);}
+.dup-stat b{color:var(--az);}
+.dup-tag{position:absolute;top:6px;right:8px;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:800;}
+.dup-tag.p{background:var(--az);color:#fff;}
+.dup-tag.s{background:var(--gr-cl);color:var(--gr);}
+.btn-ep{padding:4px 10px;border-radius:6px;background:var(--az-cl);color:var(--az);border:1px solid var(--az-brd);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-ep.sel{background:var(--az);color:#fff;border-color:var(--az);}
+.dup-preview{padding:9px;background:var(--vd-cl);border:1px solid var(--vd-brd);border-radius:var(--r-sm);margin-top:7px;font-size:11px;color:#14532D;display:none;}
+.btn-fusionar{width:100%;padding:8px;border-radius:var(--r);background:var(--rj);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px;display:none;}
+</style>
+
+<div class="p360">
+  <!-- ── SIDEBAR ── -->
+  <div class="sb" id="sb">
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSb()" title="Ocultar/mostrar lista">◀</button>
+    <div class="sb-inner">
+      <div class="srch-a">
+        <div class="srch-box">
+          <input class="srch-in" id="srch-in" type="text" placeholder="Nombre, tel, DNI..."
+                 oninput="onSrch(this.value)" onkeydown="if(event.key==='Enter')buscar()"/>
+          <button class="srch-btn" onclick="buscar()">Buscar</button>
+        </div>
+        <div class="srch-stats" id="srch-stats" style="display:flex;">
+          <div style="display:flex;align-items:center;gap:3px;"><div class="s-dot" style="background:var(--vd);"></div><span id="st-a">0 activos</span></div>
+          <div style="display:flex;align-items:center;gap:3px;"><div class="s-dot" style="background:var(--am);"></div><span id="st-r">0 riesgo</span></div>
+          <div style="display:flex;align-items:center;gap:3px;"><div class="s-dot" style="background:var(--rj);"></div><span id="st-i">0 inactivos</span></div>
+        </div>
+      </div>
+      <div class="pac-list-wrap" id="pac-lw">
+        <div class="pac-lista" id="pac-lista">
+          <div class="ld"><span class="sp"></span>Cargando...</div>
+        </div>
+      </div>
+      <div class="pac-toggle-bar" id="pac-tb" onclick="toggleLista()">
+        <span id="pac-tb-txt">▲ Colapsar</span>
+        <span id="pac-tb-pac" style="font-size:11px;color:var(--az);"></span>
+      </div>
+      <div class="sb-footer">
+        <button class="btn-dupes" onclick="abrirDupes()">⚠️ Ver duplicados</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL CENTRAL ── -->
+  <div class="main">
+    <div class="p360-empty" id="p360-empty">
+      <div style="font-size:44px;margin-bottom:10px;">🔍</div>
+      <div style="font-weight:800;color:var(--txt-s);font-size:13px;">Selecciona un paciente</div>
+      <div style="font-size:11px;color:var(--gr);margin-top:5px;">6,994 pacientes</div>
+    </div>
+    <div id="p360-perfil" style="display:none;flex-direction:column;height:100%;">
+      <div class="p360-hd">
+        <div style="display:flex;align-items:flex-start;flex:1;min-width:0;">
+          <div class="p360-av" id="p360-av">?</div>
+          <div style="flex:1;min-width:0;">
+            <div class="p360-nom" id="p360-nom">—</div>
+            <div class="p360-tel" id="p360-tel">—</div>
+            <div class="p360-sc-bar">
+              <span class="sc-bdg sc-NUEVO" id="p360-sc">NUEVO</span>
+              <span style="font-size:10px;color:var(--gr);" id="p360-uv"></span>
+            </div>
+          </div>
+        </div>
+        <div class="p360-acc">
+          <button class="p360-btn pb-wa"   onclick="p360Wa()">📱 WA</button>
+          <button class="p360-btn pb-cita" onclick="abrirModalCita()">📅 Cita</button>
+          <button class="p360-btn pb-edit" onclick="abrirEditar()">✏️ Editar</button>
+        </div>
+      </div>
+      <div class="p360-alts" id="p360-alts"></div>
+      <div class="p360-kpis">
+        <div class="kpi"><div class="kpi-v" id="kpi-f">S/0</div><div class="kpi-l">Facturado</div></div>
+        <div class="kpi"><div class="kpi-v" id="kpi-c">0</div><div class="kpi-l">Compras</div></div>
+        <div class="kpi"><div class="kpi-v" id="kpi-ci">0</div><div class="kpi-l">Citas</div></div>
+        <div class="kpi"><div class="kpi-v" id="kpi-ll">0</div><div class="kpi-l">Contactos</div></div>
+        <div class="kpi"><div class="kpi-v" id="kpi-d">—</div><div class="kpi-l">Días sin visita</div></div>
+      </div>
+      <div class="p360-tabs">
+        <div class="p360-tab act" id="pt-timeline"     onclick="setTab('timeline')">⏱ Timeline</div>
+        <div class="p360-tab"     id="pt-compras"      onclick="setTab('compras')">💰 Compras</div>
+        <div class="p360-tab"     id="pt-citas"        onclick="setTab('citas')">📅 Citas</div>
+        <div class="p360-tab"     id="pt-contactos"    onclick="setTab('contactos')">📞 Contactos</div>
+        <div class="p360-tab"     id="pt-comprobantes" onclick="setTab('comprobantes')">💳 Comprobantes</div>
+        <div class="p360-tab"     id="pt-hc"           onclick="setTab('hc')">🏥 Hist. Clínica</div>
+        <div class="p360-tab"     id="pt-segs"         onclick="setTab('segs')">🔔 Seguimientos</div>
+      </div>
+      <div class="p360-content" id="p360-tc"><div class="ld"><span class="sp"></span>Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- ── NOTAS LATERAL ── -->
+  <div class="notas-panel" id="notas-panel">
+    <button class="notas-toggle" id="notas-toggle" onclick="toggleNotas()" title="Ocultar/mostrar notas">▶</button>
+    <div class="notas-inner">
+      <div class="notas-hd">
+        <span class="notas-tit">📝 Notas de evolución</span>
+        <button class="btn-nueva-nota" onclick="toggleNotaForm()">+ Nueva</button>
+      </div>
+      <div class="notas-form" id="notas-form">
+        <textarea class="nota-ta" id="nota-txt" placeholder="Escribe una nota..."></textarea>
+        <div class="nota-btns">
+          <button class="nota-cancel" onclick="toggleNotaForm()">Cancelar</button>
+          <button class="nota-ok"     onclick="guardarNota()">✓ Guardar</button>
+        </div>
+      </div>
+      <div class="notas-lista" id="notas-lista">
+        <div class="notas-empty">Selecciona un paciente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CITA -->
+<div class="ov" id="ov-cita">
+  <div class="mbox" style="max-width:450px;">
+    <div class="mtit">📅 Nueva cita — <span id="cita-pac">—</span><button class="mclose" onclick="cerrarOv('ov-cita')">✕</button></div>
+    <div class="mgrid">
+      <div class="mfield"><label class="mlbl">Fecha</label><input id="c-fecha" type="date" class="minp"/></div>
+      <div class="mfield"><label class="mlbl">Hora</label><input id="c-hora" type="time" value="10:00" class="minp"/></div>
+      <div class="mfield"><label class="mlbl">Tratamiento</label><select id="c-trat" class="msel"></select></div>
+      <div class="mfield"><label class="mlbl">Sede</label>
+        <select id="c-sede" class="msel"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+      <div class="mfield"><label class="mlbl">Asesor</label><select id="c-asesor" class="msel"><option value="">— Seleccionar —</option></select></div>
+      <div class="mfield"><label class="mlbl">Doctora</label>
+        <select id="c-doctora" class="msel"><option value="">— Sin asignar —</option><option>DRA. CAROLINA</option><option>DRA. PAOLA</option></select></div>
+      <div class="mfield mgrid-full"><label class="mlbl">Observación</label><textarea id="c-obs" class="mta"></textarea></div>
+    </div>
+    <div class="mbtns"><button class="btn-cancel" onclick="cerrarOv('ov-cita')">Cancelar</button><button class="btn-ok" onclick="guardarCita()">✓ Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PACIENTE -->
+<div class="ov" id="ov-edit">
+  <div class="mbox" style="max-width:560px;">
+    <div class="mtit">✏️ Editar — <span id="edit-nom">—</span><button class="mclose" onclick="cerrarOv('ov-edit')">✕</button></div>
+    <div id="edit-content"></div>
+    <div class="mbtns"><button class="btn-cancel" onclick="cerrarOv('ov-edit')">Cancelar</button><button class="btn-ok az" onclick="guardarEdicion()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIA CLÍNICA -->
+<div class="ov" id="ov-hc">
+  <div class="mbox" style="max-width:620px;">
+    <div class="mtit">🏥 Historia Clínica<button class="mclose" onclick="cerrarOv('ov-hc')">✕</button></div>
+    <div id="hc-content"></div>
+    <div class="mbtns"><button class="btn-cancel" onclick="cerrarOv('ov-hc')">Cancelar</button><button class="btn-ok az" onclick="guardarHC()">💾 Guardar HC</button></div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR PAGO -->
+<div class="ov" id="ov-pago">
+  <div class="mbox" style="max-width:460px;">
+    <div class="mtit">💳 Registrar pago<button class="mclose" onclick="cerrarOv('ov-pago')">✕</button></div>
+    <div id="pago-info" style="padding:8px 10px;background:var(--az-cl);border-radius:var(--r-sm);margin-bottom:12px;font-size:11px;color:var(--az);font-weight:700;"></div>
+    <div class="mgrid">
+      <div class="mfield"><label class="mlbl">Método de pago</label><select id="pg-metodo" class="msel"></select></div>
+      <div class="mfield"><label class="mlbl">Monto pagado (S/)</label><input id="pg-monto" type="number" class="minp" min="0" step="0.01"/></div>
+      <div class="mfield"><label class="mlbl">Tipo comprobante</label>
+        <select id="pg-tipo" class="msel">
+          <option>BOLETA FISICA</option><option>BOLETA VIRTUAL</option><option>LIBRE</option><option>RH</option>
+        </select>
+      </div>
+      <div class="mfield"><label class="mlbl">N° de documento</label><input id="pg-nrodoc" type="text" class="minp" placeholder="BF-001234"/></div>
+      <div class="mfield"><label class="mlbl">Sede</label>
+        <select id="pg-sede" class="msel"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+      <div class="mfield"><label class="mlbl">Estado</label>
+        <select id="pg-estado" class="msel"><option value="false">PAGO COMPLETO</option><option value="true">ADELANTO</option></select></div>
+    </div>
+    <div class="mbtns"><button class="btn-cancel" onclick="cerrarOv('ov-pago')">Cancelar</button><button class="btn-ok" onclick="guardarPago()">✓ Registrar pago</button></div>
+  </div>
+</div>
+
+<!-- MODAL DUPLICADOS -->
+<div class="ov" id="ov-dupes">
+  <div class="mbox" style="max-width:560px;">
+    <div class="mtit">⚠️ Pacientes Duplicados<button class="mclose" onclick="cerrarOv('ov-dupes')">✕</button></div>
+    <div id="dupes-content"><div class="ld"><span class="sp"></span>Analizando...</div></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════ ESTADO ═══════════════════════ */
+var S={
+  token:'', pac:null, hist:null, tab:'timeline',
+  tmr:null, equipo:[], metodosPago:[],
+  sbVisible:true, notasVisible:true,
+  listaExp:true,
+  // Timeline
+  calFecha:new Date(), calEventos:{},
+  calDiaSelecto:null,
+  // Pago pendiente
+  pagoPayload:null
 };
+var TRATS=['HIFU','ENZIMAS FACIALES','HIDROFACIAL','CAPILAR','TOXINA',
+  'ACIDO HIALURONICO','BIO ESTIMULADOR','CRIOLIPOLISIS','DETOX',
+  'PQ AGE','DERMAPEN','VITAMINAS','COMPRA DE PRODUCTO','OTRO'];
 
-var HC_TOTAL_COLS = 39;
+(function init(){
+  S.token=window.AOS_getToken?window.AOS_getToken():'';
+  var fi=document.getElementById('c-fecha');
+  if(fi) fi.min=new Date().toISOString().slice(0,10);
+  var sel=document.getElementById('c-trat');
+  if(sel) sel.innerHTML=TRATS.map(function(t){return '<option value="'+h(t)+'">'+h(t)+'</option>';}).join('');
+  cargarLista('');
+  cargarEquipo();
+  cargarMetodosPago();
+})();
 
-/**
- * api_saveHistoriaClinica
- * Crea o actualiza la historia clínica de un paciente.
- * Clave primaria: DNI del paciente.
- * Acceso: ADMIN, DOCTOR, ADMINISTRADOR
- */
-function api_saveHistoriaClinica(payload) {
-  var s = cc_requireSession();
-  if (s.rol !== "ADMIN" && s.rol !== "DOCTOR" && s.rol !== "ADMINISTRADOR")
-    throw new Error("Acceso denegado. Solo ADMIN o DOCTOR.");
-
-  payload = payload || {};
-  var dni = _norm(payload.dni);
-  if (!dni) throw new Error("DNI requerido para historia clínica.");
-
-  var sh  = _sh("HISTORIA_CLINICA");
-  var lr  = sh.getLastRow();
-  var now = new Date();
-  var rowExistente = null;
-
-  if (lr >= 2) {
-    var dnis = sh.getRange(2, 1, lr - 1, 1).getValues();
-    for (var i = 0; i < dnis.length; i++) {
-      if (_norm(dnis[i][0]) === dni) { rowExistente = i + 2; break; }
-    }
-  }
-
-  var fila = [
-    dni,
-    _norm(payload.nombres   || "").toUpperCase(),
-    _norm(payload.apellidos || "").toUpperCase(),
-    _normNum(payload.telefono  || ""),
-    _norm(payload.email        || ""),
-    _norm(payload.fechaNac     || ""),
-    _up(payload.sexo           || ""),
-    _norm(payload.estadoCivil  || ""),
-    _norm(payload.gradoInst    || ""),
-    _norm(payload.ocupacion    || ""),
-    _norm(payload.distrito     || ""),
-    _norm(payload.direccion    || ""),
-    _norm(payload.contactoEmergNombre || ""),
-    _norm(payload.contactoEmergTel    || ""),
-    _norm(payload.alergiasMedicamentos  || ""),
-    _norm(payload.alergiasMateria       || ""),
-    _norm(payload.enfermedadesCron      || ""),
-    _norm(payload.medicamentosActuales  || ""),
-    _norm(payload.suplementos           || ""),
-    _norm(payload.vacunas               || ""),
-    _norm(payload.cirugiasPrevias       || ""),
-    _norm(payload.tratEsteticos         || ""),
-    _norm(payload.queloides             || ""),
-    _norm(payload.implantes             || ""),
-    _norm(payload.marcapasos            || ""),
-    _norm(payload.embarazo              || ""),
-    _norm(payload.lactancia             || ""),
-    _norm(payload.anticonceptivos       || ""),
-    _norm(payload.fechaUltMenstruacion  || ""),
-    _norm(payload.fechaUltPapanicolau   || ""),
-    _norm(payload.tabaco                || ""),
-    _norm(payload.alcohol               || ""),
-    _norm(payload.actividadFisica       || ""),
-    _norm(payload.horasSueno            || ""),
-    _norm(payload.consentimientoFirmado || "NO"),
-    _date(now),
-    _norm(payload.medicoResponsable || s.asesor || ""),
-    rowExistente ? sh.getRange(rowExistente, HC_COL.TS_CREADO + 1).getValue() : now,
-    now
-  ];
-
-  if (rowExistente) {
-    sh.getRange(rowExistente, 1, 1, fila.length).setValues([fila]);
-    return { ok: true, accion: "actualizado", dni: dni };
-  }
-
-  sh.appendRow(fila);
-  return { ok: true, accion: "creado", dni: dni };
+/* ═══════════════════════ COLLAPSE LATERAL ═══════════════════════ */
+// ===== CTRL+F: toggleSb =====
+function toggleSb(){
+  var sb=document.getElementById('sb');
+  var btn=document.getElementById('sb-toggle');
+  S.sbVisible=!S.sbVisible;
+  sb.classList.toggle('oculto',!S.sbVisible);
+  btn.textContent=S.sbVisible?'◀':'▶';
+}
+// ===== CTRL+F: toggleNotas =====
+function toggleNotas(){
+  var np=document.getElementById('notas-panel');
+  var btn=document.getElementById('notas-toggle');
+  S.notasVisible=!S.notasVisible;
+  np.classList.toggle('oculto',!S.notasVisible);
+  btn.textContent=S.notasVisible?'▶':'◀';
 }
 
-/**
- * api_getHistoriaClinica
- * Obtiene la historia clínica por DNI o teléfono.
- */
-function api_getHistoriaClinica(dniOrTel) {
-  cc_requireSession();
-  var busq = _norm(dniOrTel);
-  if (!busq) return { ok: true, hc: null };
+/* ═══════════════════════ LISTA Y BÚSQUEDA ═══════════════════════ */
+function onSrch(q){ clearTimeout(S.tmr); S.tmr=setTimeout(function(){cargarLista(q);},350); }
+function buscar(){ cargarLista(document.getElementById('srch-in').value.trim()); }
 
-  var sh = _sh("HISTORIA_CLINICA");
-  var lr = sh.getLastRow();
-  if (lr < 2) return { ok: true, hc: null };
-
-  var data = sh.getRange(2, 1, lr - 1, HC_TOTAL_COLS).getValues();
-  var fila = null;
-
-  for (var i = 0; i < data.length; i++) {
-    var r = data[i];
-    if (_norm(r[HC_COL.DNI]) === busq ||
-        _normNum(r[HC_COL.TELEFONO]) === _normNum(busq)) {
-      fila = r; break;
-    }
-  }
-
-  if (!fila) return { ok: true, hc: null };
-
-  return {
-    ok: true,
-    hc: {
-      dni:                   _norm(fila[HC_COL.DNI]),
-      nombres:               _norm(fila[HC_COL.NOMBRES]),
-      apellidos:             _norm(fila[HC_COL.APELLIDOS]),
-      telefono:              _norm(fila[HC_COL.TELEFONO]),
-      email:                 _norm(fila[HC_COL.EMAIL]),
-      fechaNac:              _date(fila[HC_COL.FECHA_NAC]),
-      sexo:                  _norm(fila[HC_COL.SEXO]),
-      estadoCivil:           _norm(fila[HC_COL.ESTADO_CIVIL]),
-      gradoInst:             _norm(fila[HC_COL.GRADO_INSTRUCCION]),
-      ocupacion:             _norm(fila[HC_COL.OCUPACION]),
-      distrito:              _norm(fila[HC_COL.DISTRITO]),
-      direccion:             _norm(fila[HC_COL.DIRECCION]),
-      contactoEmergNombre:   _norm(fila[HC_COL.CONTACTO_EMERG_NOMBRE]),
-      contactoEmergTel:      _norm(fila[HC_COL.CONTACTO_EMERG_TEL]),
-      alergiasMedicamentos:  _norm(fila[HC_COL.ALERGIAS_MEDICAMENTOS]),
-      alergiasMateria:       _norm(fila[HC_COL.ALERGIAS_MATERIALES]),
-      enfermedadesCron:      _norm(fila[HC_COL.ENFERMEDADES_CRONICAS]),
-      medicamentosActuales:  _norm(fila[HC_COL.MEDICAMENTOS_ACTUALES]),
-      suplementos:           _norm(fila[HC_COL.SUPLEMENTOS_VITAMINAS]),
-      cirugiasPrevias:       _norm(fila[HC_COL.CIRUGIAS_PREVIAS]),
-      tratEsteticos:         _norm(fila[HC_COL.TRAT_ESTETICOS_PREVIOS]),
-      queloides:             _norm(fila[HC_COL.QUELOIDES]),
-      implantes:             _norm(fila[HC_COL.IMPLANTES]),
-      marcapasos:            _norm(fila[HC_COL.MARCAPASOS]),
-      embarazo:              _norm(fila[HC_COL.EMBARAZO]),
-      lactancia:             _norm(fila[HC_COL.LACTANCIA]),
-      anticonceptivos:       _norm(fila[HC_COL.ANTICONCEPTIVOS]),
-      fechaUltMenstruacion:  _norm(fila[HC_COL.FECHA_ULT_MENSTRUACION]),
-      fechaUltPapanicolau:   _norm(fila[HC_COL.FECHA_ULT_PAPANICOLAU]),
-      tabaco:                _norm(fila[HC_COL.TABACO]),
-      alcohol:               _norm(fila[HC_COL.ALCOHOL]),
-      actividadFisica:       _norm(fila[HC_COL.ACTIVIDAD_FISICA]),
-      horasSueno:            _norm(fila[HC_COL.HORAS_SUENO]),
-      consentimientoFirmado: _norm(fila[HC_COL.CONSENTIMIENTO_FIRMADO]),
-      fechaRegistroHc:       _date(fila[HC_COL.FECHA_REGISTRO_HC]),
-      medicoResponsable:     _norm(fila[HC_COL.MEDICO_RESPONSABLE]),
-      tsActualizado:         _datetime(fila[HC_COL.TS_ACTUALIZADO])
-    }
-  };
-}
-
-/**
- * _hc_getAlertas
- * Detecta alertas de contraindicaciones para mostrar banner rojo en el panel.
- * @param {Object} hc Objeto de historia clínica
- * @returns {Array} Lista de alertas con tipo y mensaje
- */
-function _hc_getAlertas(hc) {
-  if (!hc) return [];
-  var alertas = [];
-  if (_norm(hc.embarazo)            ) alertas.push({ tipo:"CRITICO", msg:"⚠️ EMBARAZO registrado" });
-  if (_norm(hc.lactancia)           ) alertas.push({ tipo:"CRITICO", msg:"⚠️ LACTANCIA activa" });
-  if (_norm(hc.marcapasos)          ) alertas.push({ tipo:"CRITICO", msg:"⚠️ MARCAPASOS — contraindicación HIFU/RF" });
-  if (_norm(hc.alergiasMedicamentos)) alertas.push({ tipo:"ALERTA",  msg:"Alergias: " + hc.alergiasMedicamentos.slice(0,60) });
-  if (_norm(hc.implantes)           ) alertas.push({ tipo:"ALERTA",  msg:"Implantes: " + hc.implantes.slice(0,40) });
-  if (_norm(hc.queloides)           ) alertas.push({ tipo:"INFO",    msg:"Queloides registrados" });
-  return alertas;
-}
-// ===== CTRL+F: HC_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-02 · NOTAS MULTI-ROL
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: NOTAS_START =====
-
-/**
- * api_saveNotaPaciente360
- * Guarda una nota en NOTAS_PACIENTES.
- * Roles válidos: ASESOR, DOCTOR, ENFERMERO, RECEPCION, ADMIN, ADMINISTRADOR
- */
-function api_saveNotaPaciente360(num, texto, tipoNota) {
-  var s = cc_requireSession();
-  num      = _normNum(num);
-  texto    = _norm(texto);
-  tipoNota = _up(_norm(tipoNota || "GENERAL"));
-
-  if (!num || !texto) throw new Error("Número y texto son requeridos.");
-  if (texto.length > 2000) throw new Error("Nota máximo 2000 caracteres.");
-
-  var sh  = _sh("NOTAS_PACIENTES");
-  var now = new Date();
-
-  sh.appendRow([
-    _uid(),
-    _date(now),
-    _time(now),
-    num,
-    texto,
-    s.rol    || "ASESOR",
-    s.asesor || "",
-    tipoNota,
-    now
-  ]);
-
-  return { ok: true };
-}
-
-/**
- * api_getNotasPaciente360
- * Obtiene las notas de un paciente, de más reciente a más antiguo.
- * @param {string} num       Teléfono del paciente
- * @param {string} tipoNota  Filtro opcional por tipo
- */
-function api_getNotasPaciente360(num, tipoNota) {
-  cc_requireSession();
-  num = _normNum(num);
-  if (!num) return { ok: true, notas: [] };
-
-  var sh = _sh("NOTAS_PACIENTES");
-  var lr = sh.getLastRow();
-  if (lr < 2) return { ok: true, notas: [] };
-
-  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
-  var notas = data
-    .filter(function(r) {
-      var coincide = _normNum(r[3]) === num;
-      if (tipoNota) coincide = coincide && _up(_norm(r[7])) === _up(tipoNota);
-      return coincide;
+function cargarLista(q){
+  var el=document.getElementById('pac-lista');
+  el.innerHTML='<div class="ld"><span class="sp"></span>Buscando...</div>';
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(!res||!res.ok){el.innerHTML='<div class="ld">Error</div>';return;}
+      renderLista(res.items||[]);renderStats(res.items||[]);
     })
-    .map(function(r) {
-      return {
-        id:      _norm(r[0]),
-        fecha:   _date(r[1]),
-        hora:    _norm(r[2]),
-        texto:   _norm(r[4]),
-        rol:     _norm(r[5]),
-        usuario: _norm(r[6]),
-        tipo:    _norm(r[7])
-      };
+    .withFailureHandler(function(){el.innerHTML='<div class="ld">Error de conexión</div>';})
+    .api_listPatientsT(S.token,q,1,50);
+}
+function renderLista(items){
+  var el=document.getElementById('pac-lista');
+  if(!items.length){el.innerHTML='<div class="ld">Sin resultados</div>';return;}
+  el.innerHTML=items.map(function(p){
+    var sc=normSc(p.estado||'NUEVO');
+    var act=S.pac&&S.pac.telefono===p.telefono?'activa':'';
+    var fact=p.totalFact>0?'S/'+p.totalFact.toFixed(0):'';
+    return '<div class="pac-card '+act+'" onclick="selPac(\''+h(p.telefono||p.id)+'\',this)">'+
+      '<div class="pac-nom">'+h((p.nombres||'')+' '+(p.apellidos||''))+'</div>'+
+      '<div class="pac-tel">'+h(p.telefono||'—')+'</div>'+
+      '<div class="pac-meta"><span class="pac-sc sc-'+sc+'">'+sc.replace('_',' ')+'</span>'+(fact?'<span class="pac-fact">'+fact+'</span>':'')+' </div>'+
+    '</div>';
+  }).join('');
+}
+function renderStats(items){
+  var a=0,r=0,i=0;
+  items.forEach(function(p){var s=normSc(p.estado||'');if(s==='ACTIVO')a++;else if(s==='EN_RIESGO')r++;else if(s==='INACTIVO')i++;});
+  document.getElementById('st-a').textContent=a+' activos';
+  document.getElementById('st-r').textContent=r+' riesgo';
+  document.getElementById('st-i').textContent=i+' inactivos';
+}
+function toggleLista(){
+  var w=document.getElementById('pac-lw');
+  var bt=document.getElementById('pac-tb-txt');
+  S.listaExp=!S.listaExp;
+  w.classList.toggle('col',!S.listaExp);
+  bt.textContent=S.listaExp?'▲ Colapsar':'▼ Expandir lista';
+}
+
+/* ═══════════════════════ SELECCIONAR PACIENTE ═══════════════════════ */
+// ===== CTRL+F: selPac =====
+function selPac(idOrNum,card){
+  document.querySelectorAll('.pac-card').forEach(function(c){c.classList.remove('activa');});
+  if(card) card.classList.add('activa');
+  // Colapsar lista y mostrar toggle
+  var w=document.getElementById('pac-lw');
+  var tb=document.getElementById('pac-tb');
+  w.classList.add('col'); S.listaExp=false;
+  tb.classList.add('vis');
+  document.getElementById('pac-tb-txt').textContent='▼ Expandir lista';
+
+  document.getElementById('p360-empty').style.display='none';
+  document.getElementById('p360-perfil').style.display='flex';
+  document.getElementById('p360-tc').innerHTML='<div class="ld"><span class="sp"></span>Cargando...</div>';
+  document.getElementById('notas-lista').innerHTML='<div class="ld"><span class="sp"></span>Cargando...</div>';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(!res||!res.ok){document.getElementById('p360-tc').innerHTML='<div class="ld">Error</div>';return;}
+      S.pac=res.paciente; S.hist=res.historial;
+      renderPerfil(res); setTab('timeline');
+      cargarNotasLateral(res.paciente.telefono);
+      cargarAlertasHC(res.paciente.documento||res.paciente.telefono);
     })
-    .sort(function(a, b) { return a.fecha < b.fecha ? 1 : -1; });
-
-  return { ok: true, notas: notas };
+    .withFailureHandler(function(){document.getElementById('p360-tc').innerHTML='<div class="ld">Error de conexión</div>';})
+    .api_getPatient360T(S.token,idOrNum);
 }
-// ===== CTRL+F: NOTAS_END =====
 
+/* ═══════════════════════ RENDER PERFIL ═══════════════════════ */
+function renderPerfil(res){
+  var p=res.paciente||{},h2=res.historial||{};
+  var ini=((p.nombres||'?')[0]||'')+((p.apellidos||'')[0]||'');
+  document.getElementById('p360-av').textContent=ini.toUpperCase()||'?';
+  document.getElementById('p360-nom').textContent=((p.nombres||'')+' '+(p.apellidos||'')).trim()||'—';
+  document.getElementById('p360-tel').textContent=p.telefono||'—';
+  document.getElementById('cita-pac').textContent=document.getElementById('p360-nom').textContent;
+  document.getElementById('edit-nom').textContent=document.getElementById('p360-nom').textContent;
+  var sc=normSc(p.estado||'NUEVO');
+  var bdg=document.getElementById('p360-sc');
+  bdg.textContent=sc.replace('_',' '); bdg.className='sc-bdg sc-'+sc;
+  document.getElementById('p360-uv').textContent=p.ultVisita?'Últ. visita: '+p.ultVisita:'';
+  document.getElementById('kpi-f').textContent='S/'+(h2.totalFact||0).toFixed(0);
+  document.getElementById('kpi-c').textContent=h2.totalVentas||0;
+  document.getElementById('kpi-ci').textContent=h2.totalCitas||0;
+  document.getElementById('kpi-ll').textContent=h2.totalLlam||0;
+  var dias=p.diasUltVisita;
+  var de=document.getElementById('kpi-d');
+  if(dias!==null&&dias!==undefined){
+    de.textContent=dias;
+    de.className='kpi-v '+(dias<=90?'d-ok':dias<=180?'d-risk':'d-bad');
+  } else {de.textContent='—';de.className='kpi-v';}
+}
+function cargarAlertasHC(dniOrTel){
+  google.script.run
+    .withSuccessHandler(function(res){
+      var w=document.getElementById('p360-alts');
+      if(!res||!res.ok||!res.hc){w.style.display='none';return;}
+      var hc=res.hc,html='';
+      if(hc.embarazo)            html+='<div class="alt-banner al-c">⚠️ EMBARAZO registrado</div>';
+      if(hc.lactancia)           html+='<div class="alt-banner al-c">⚠️ LACTANCIA activa</div>';
+      if(hc.marcapasos)          html+='<div class="alt-banner al-c">⚠️ MARCAPASOS — contraindicación HIFU/RF</div>';
+      if(hc.alergiasMedicamentos)html+='<div class="alt-banner al-a">Alergias: '+h(hc.alergiasMedicamentos.slice(0,55))+'</div>';
+      if(!html){w.style.display='none';return;}
+      w.innerHTML=html; w.style.display='block';
+    })
+    .withFailureHandler(function(){})
+    .api_getHistoriaClinicaT(S.token,dniOrTel);
+}
 
-// ══════════════════════════════════════════════════════════════
-// MOD-03 · SEGUIMIENTOS PROGRAMADOS
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: SEG_PROG_START =====
+/* ═══════════════════════ TABS ═══════════════════════ */
+// ===== CTRL+F: setTab =====
+function setTab(tab){
+  S.tab=tab;
+  ['timeline','compras','citas','contactos','comprobantes','hc','segs'].forEach(function(t){
+    var el=document.getElementById('pt-'+t);
+    if(el)el.classList.toggle('act',t===tab);
+  });
+  renderTab(tab);
+}
+function renderTab(tab){
+  var el=document.getElementById('p360-tc');
+  var h2=S.hist||{},pac=S.pac||{},num=pac.telefono||'';
+  var colPago={'EFECTIVO':'var(--vd)','MERCADOPAGO':'var(--az)','IZIPAY YA':'var(--az)',
+    'QR CARMEN':'var(--mo)','QR DOCTORA':'var(--mo)',
+    'BCP DRA':'var(--az)','BCP CARMEN':'var(--az)',
+    'INTERBANK DRA':'var(--am)','INTERBANK CARMEN':'var(--am)',
+    'TRANSFERENCIA BCP':'var(--az)','TRANSFERECIA IBK':'var(--am)',
+    'POS NIUBIZ S.I.':'var(--vd)','POS NIUBIZ P.L.':'var(--vd)',
+    'DOLARES EFECTIVO':'var(--am)'};
 
-/**
- * Ciclos de recontacto por tratamiento (en días)
- * Se usa si no se especifica diasCiclo en el payload
- */
-var CICLOS_TRATAMIENTO = {
-  "TOXINA BOTULINICA":  150,
-  "TOXINA":             150,
-  "ACIDO HIALURONICO":  450,
-  "HIALURONICO":        450,
-  "HIFU":               365,
-  "BIO ESTIMULADOR":    180,
-  "BIOESTIMULADOR":     180,
-  "CRIOLIPOLISIS":      180,
-  "ENZIMAS FACIALES":    90,
-  "ENZIMAS":             90,
-  "HIDROFACIAL":         30,
-  "CAPILAR":             30,
-  "VITAMINAS":           30,
-  "DETOX":               30,
-  "PQ AGE":             120,
-  "DERMAPEN":            30
-};
+  if(tab==='compras'){
+    var vs=h2.ventas||[];
+    if(!vs.length){el.innerHTML='<div class="ld">Sin compras</div>';return;}
+    var porDia={};
+    vs.forEach(function(v){var k=v.fecha||'Sin fecha';if(!porDia[k])porDia[k]={items:[],total:0};porDia[k].items.push(v);porDia[k].total+=v.monto||0;});
+    el.innerHTML=Object.keys(porDia).map(function(dia){
+      var g=porDia[dia];
+      return '<div class="f-sep"><span>'+h(dia)+'</span><span class="f-sep-tot">S/'+g.total.toFixed(0)+'</span></div>'+
+        g.items.map(function(v){
+          var pg=v.pago?v.pago.toUpperCase():'';
+          var pc=colPago[pg]||'var(--gr)';
+          return '<div class="h-card">'+
+            '<div class="h-card-acc" style="background:var(--az);"></div>'+
+            '<div class="h-card-b">'+
+              '<div class="h-card-top"><div class="h-card-tit">'+h(v.trat||'—')+'</div><div class="h-card-monto">S/'+((v.monto||0).toFixed(0))+'</div></div>'+
+              '<div class="h-card-meta">'+
+                (v.pago?'<span class="h-bdg" style="background:'+pc+'22;color:'+pc+';">'+h(v.pago)+'</span>':'')+
+                (v.sede?'<span class="h-bdg" style="background:var(--gr-cl);color:var(--gr);">'+h(v.sede)+'</span>':'')+
+                '<span class="h-asesor">'+(v.asesor?'· '+h(v.asesor):'')+'</span>'+
+              '</div>'+
+              '<div class="h-card-actions">'+
+                '<button class="btn-pago" onclick="abrirPago('+JSON.stringify({trat:v.trat,monto:v.monto,sede:v.sede,fecha:v.fecha,ventaId:v.ventaId}).replace(/"/g,"'")+')">💳 Registrar pago</button>'+
+                '<button class="btn-ver-comp" onclick="setTab(\'comprobantes\')">📄 Comprobantes</button>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+    }).join('');
 
-/**
- * _seg_calcCiclo
- * Calcula el ciclo de días para un tratamiento.
- * Si no está en la tabla, usa 90 días por defecto.
- */
-function _seg_calcCiclo(tratamiento) {
-  var t = _up(_norm(tratamiento || ""));
-  for (var key in CICLOS_TRATAMIENTO) {
-    if (t.indexOf(key) >= 0) return CICLOS_TRATAMIENTO[key];
+  } else if(tab==='citas'){
+    var cs=h2.citas||[];
+    if(!cs.length){el.innerHTML='<div class="ld">Sin citas</div>';return;}
+    var colCita={'ASISTIO':'var(--vd)','EFECTIVA':'var(--vd)','NO ASISTIO':'var(--rj)','CANCELADA':'var(--gr)','PENDIENTE':'var(--am)','REAGENDADA':'var(--mo)','CITA CONFIRMADA':'var(--az)'};
+    el.innerHTML=cs.map(function(c){
+      var est=normCita(c.estado);var col=colCita[est]||'var(--am)';
+      return '<div class="h-card">'+
+        '<div class="h-card-acc" style="background:'+col+';"></div>'+
+        '<div class="h-card-b">'+
+          '<div class="h-card-top"><div><div class="h-card-tit">'+h(c.trat||'—')+'</div><div class="h-card-sub">'+(c.sede?h(c.sede):'')+(c.doctora?' · '+h(c.doctora):'')+'</div></div>'+
+          '<span class="h-bdg" style="background:'+col+'22;color:'+col+';">'+h(est)+'</span></div>'+
+          '<div class="h-card-meta"><span class="h-fecha">'+h(c.fecha||'')+(c.hora?' '+h(c.hora):'')+'</span><span class="h-asesor">'+(c.asesor?'· '+h(c.asesor):'')+'</span></div>'+
+        '</div></div>';
+    }).join('');
+
+  } else if(tab==='contactos'){
+    var ls=h2.llamadas||[];
+    if(!ls.length){el.innerHTML='<div class="ld">Sin contactos</div>';return;}
+    el.innerHTML=ls.map(function(l){
+      var est=normCita(l.estado);var col=est==='CITA CONFIRMADA'?'var(--vd)':est==='SIN CONTACTO'?'var(--rj)':'var(--txt-s)';
+      return '<div class="h-card">'+
+        '<div class="h-card-acc" style="background:'+col+';"></div>'+
+        '<div class="h-card-b">'+
+          '<div class="h-card-top"><div><div class="h-card-tit" style="color:'+col+';">'+h(est)+'</div><div class="h-card-sub">'+h(l.trat||'')+'</div></div>'+
+          '<span class="h-fecha">'+h(l.fecha||'')+'</span></div>'+
+          '<div class="h-card-meta"><span class="h-asesor">'+h(l.asesor||'')+'</span>'+(l.obs?'<span class="h-fecha" style="font-style:italic;">'+h(l.obs.slice(0,45))+'...</span>':'')+'</div>'+
+        '</div></div>';
+    }).join('');
+
+  } else if(tab==='comprobantes'){
+    el.innerHTML='<div class="ld"><span class="sp"></span>Cargando comprobantes...</div>';
+    cargarComprobantes(num);
+
+  } else if(tab==='hc'){
+    el.innerHTML='<div class="ld"><span class="sp"></span>Cargando HC...</div>';
+    cargarHCTab(pac.documento||num);
+
+  } else if(tab==='segs'){
+    el.innerHTML='<div class="ld"><span class="sp"></span>Cargando seguimientos...</div>';
+    cargarSegs(num);
+
+  } else if(tab==='timeline'){
+    el.innerHTML='<div class="ld"><span class="sp"></span>Cargando timeline...</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.ok){el.innerHTML='<div class="ld">Sin actividad</div>';return;}
+        S.calEventos={};
+        (res.eventos||[]).forEach(function(ev){
+          var k=ev.fecha||'';
+          if(!S.calEventos[k]) S.calEventos[k]=[];
+          S.calEventos[k].push(ev);
+        });
+        renderTimeline();
+      })
+      .withFailureHandler(function(){el.innerHTML='<div class="ld">Error</div>';})
+      .api_getPatientTimelineT(S.token,num);
   }
-  return 90;
 }
 
-/**
- * api_saveSeguimientoProgramado
- * Crea o actualiza un seguimiento programado para un paciente.
- */
-function api_saveSeguimientoProgramado(payload) {
-  cc_requireSession();
-  payload = payload || {};
-  var num  = _normNum(payload.num || "");
-  var trat = _norm(payload.tratamiento || "");
-  if (!num || !trat) throw new Error("Número y tratamiento requeridos.");
+/* ═══════════════════════ TIMELINE CON MINI-CALENDARIO ═══════════════════════ */
+// ===== CTRL+F: renderTimeline =====
+function renderTimeline(){
+  var el=document.getElementById('p360-tc');
+  el.innerHTML='<div class="tl-wrap"><div class="tl-cal" id="tl-cal"></div><div class="tl-detail" id="tl-detail"><div class="notas-empty">Selecciona un día en el calendario</div></div></div>';
+  renderCalendario();
+}
+function renderCalendario(){
+  var cal=document.getElementById('tl-cal');
+  if(!cal) return;
+  var d=S.calFecha;
+  var anio=d.getFullYear(),mes=d.getMonth();
+  var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var primerDia=new Date(anio,mes,1).getDay();
+  var diasEnMes=new Date(anio,mes+1,0).getDate();
+  var hoy=new Date();
+  cal.innerHTML=
+    '<div class="cal-nav">'+
+      '<button class="cal-nav-btn" onclick="cambiarMes(-1)">◀</button>'+
+      '<span class="cal-mes">'+MESES[mes]+' '+anio+'</span>'+
+      '<button class="cal-nav-btn" onclick="cambiarMes(1)">▶</button>'+
+    '</div>'+
+    '<div class="cal-grid">'+
+      ['Do','Lu','Ma','Mi','Ju','Vi','Sa'].map(function(d){return '<div class="cal-dow">'+d+'</div>';}).join('')+
+      // Días vacíos inicio
+      Array(primerDia).fill('<div class="cal-day vacio"></div>').join('')+
+      // Días del mes
+      Array.from({length:diasEnMes},function(_,i){
+        var dia=i+1;
+        var fechaStr=anio+'-'+pad2(mes+1)+'-'+pad2(dia);
+        var tieneEv=!!S.calEventos[fechaStr];
+        var esHoy=hoy.getFullYear()===anio&&hoy.getMonth()===mes&&hoy.getDate()===dia;
+        var esSel=S.calDiaSelecto===fechaStr;
+        var cls='cal-day'+(esHoy?' hoy':'')+(esSel?' sel':'')+(tieneEv?' con-ev':'');
+        return '<div class="'+cls+'" onclick="selDia(\''+fechaStr+'\')">'+dia+'</div>';
+      }).join('')+
+    '</div>';
+}
+function cambiarMes(d){
+  S.calFecha=new Date(S.calFecha.getFullYear(),S.calFecha.getMonth()+d,1);
+  renderCalendario();
+}
+function selDia(fecha){
+  S.calDiaSelecto=fecha;
+  renderCalendario();
+  var det=document.getElementById('tl-detail');
+  if(!det) return;
+  var evs=S.calEventos[fecha]||[];
+  if(!evs.length){det.innerHTML='<div class="notas-empty">Sin actividad este día</div>';return;}
+  var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var pts=fecha.split('-');
+  var tit=parseInt(pts[2])+' '+MESES[parseInt(pts[1])-1]+' '+pts[0];
+  var colTipo={'COMPRA':'var(--az)','LLAMADA':'var(--rj)','CITA':'var(--vd)','NOTA':'var(--mo)'};
+  det.innerHTML='<div class="tl-day-tit">'+tit+' · '+evs.length+' eventos</div>'+
+    evs.map(function(ev){
+      var col=colTipo[ev.tipo]||ev.color||'var(--gr)';
+      return '<div class="tl-ev">'+
+        '<div class="tl-ev-dot" style="background:'+col+';"></div>'+
+        '<div class="tl-ev-b">'+
+          '<div class="tl-ev-tit">'+ev.icono+' '+h(ev.titulo||'')+'</div>'+
+          '<div class="tl-ev-sub">'+h(ev.sub||'')+'</div>'+
+          '<div class="tl-ev-meta">'+(ev.hora?h(ev.hora)+' · ':'')+h(ev.actor||'')+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+}
+function pad2(n){return n<10?'0'+n:String(n);}
 
-  var sh  = _sh("SEGUIMIENTOS_PROGRAMADOS");
-  var lr  = sh.getLastRow();
-  var now = new Date();
-
-  var diasCiclo       = Number(payload.diasCiclo) || _seg_calcCiclo(trat);
-  var fechaUltApp     = payload.fechaUltAplicacion ? new Date(payload.fechaUltAplicacion) : now;
-  var fechaRecontacto = new Date(fechaUltApp.getTime() + diasCiclo * 24 * 60 * 60 * 1000);
-
-  var rowExistente = null;
-  if (lr >= 2) {
-    var data = sh.getRange(2, 1, lr - 1, 7).getValues();
-    for (var i = 0; i < data.length; i++) {
-      if (_normNum(data[i][1]) === num &&
-          _up(_norm(data[i][2])) === _up(trat) &&
-          _up(_norm(data[i][6])) === "PENDIENTE") {
-        rowExistente = i + 2; break;
+/* ═══════════════════════ COMPROBANTES REALES ═══════════════════════ */
+// ===== CTRL+F: cargarComprobantes =====
+function cargarComprobantes(num){
+  var el=document.getElementById('p360-tc');
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(!res||!res.ok||!res.comprobantes||!res.comprobantes.length){
+        el.innerHTML='<div class="ld">Sin comprobantes. Usa "Registrar pago" desde la pestaña Compras.</div>'; return;
       }
-    }
-  }
-
-  var fila = [
-    rowExistente ? sh.getRange(rowExistente, 1).getValue() : _uid(),
-    num,
-    _up(trat),
-    _date(fechaUltApp),
-    diasCiclo,
-    _date(fechaRecontacto),
-    "PENDIENTE",
-    _norm(payload.asesorAsignado || ""),
-    _norm(payload.obs || ""),
-    rowExistente ? sh.getRange(rowExistente, 10).getValue() : now,
-    now
-  ];
-
-  if (rowExistente) {
-    sh.getRange(rowExistente, 1, 1, fila.length).setValues([fila]);
-    return { ok: true, accion: "actualizado", fechaRecontacto: _date(fechaRecontacto) };
-  }
-
-  sh.appendRow(fila);
-  return { ok: true, accion: "creado", fechaRecontacto: _date(fechaRecontacto) };
-}
-
-/**
- * api_getSeguimientosProgramados
- * Obtiene seguimientos de un paciente o todos según filtro.
- * @param {string} num    Teléfono (o null para todos)
- * @param {string} filtro "todos" | "pendientes" | "vencidos" | "proximos_7d"
- */
-function api_getSeguimientosProgramados(num, filtro) {
-  cc_requireSession();
-  filtro = _norm(filtro || "todos").toLowerCase();
-
-  var sh = _sh("SEGUIMIENTOS_PROGRAMADOS");
-  var lr = sh.getLastRow();
-  if (lr < 2) return { ok: true, items: [] };
-
-  var data = sh.getRange(2, 1, lr - 1, 11).getValues();
-  var hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
-  var en7d = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  var items = data
-    .filter(function(r) {
-      if (_up(_norm(r[6])) !== "PENDIENTE") return false;
-      if (num && _normNum(r[1]) !== _normNum(num)) return false;
-      return true;
+      var tg=res.totalGeneral||0;
+      el.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div style="font-size:11px;color:var(--gr);">'+res.comprobantes.length+' comprobantes</div><div style="font-size:13px;font-weight:800;color:var(--az);">Total: S/'+tg.toFixed(0)+'</div></div>'+
+        res.comprobantes.map(function(c,ci){
+          var tid='cb-'+ci;
+          return '<div class="comp-card">'+
+            '<div class="comp-hd" onclick="tgComp(\''+tid+'\')">'+
+              '<div class="comp-hd-l">'+
+                '<span class="comp-num">'+h(c.nroDoc||'#'+ci)+'</span>'+
+                '<span class="comp-fec">'+h(c.fechaLabel||c.fecha)+'</span>'+
+                '<span class="'+(c.tieneDeuda?'comp-bdg-d':'comp-bdg-p')+'">'+h(c.estado||'OK')+'</span>'+
+              '</div>'+
+              '<div class="comp-tots"><div><div class="comp-tl">Total</div><div class="comp-tv">S/'+c.total.toFixed(0)+'</div></div></div>'+
+            '</div>'+
+            '<div class="comp-body" id="'+tid+'">'+
+              '<table class="comp-tbl"><thead><tr><th>Tratamiento</th><th>Pago</th><th>Sede</th><th>Asesor</th><th style="text-align:right;">Monto</th></tr></thead>'+
+              '<tbody>'+c.items.map(function(it){
+                return '<tr><td style="font-weight:700;">'+h(it.tratamiento||it.trat||'—')+'</td>'+
+                  '<td>'+h(it.pagoCon||it.pago||'—')+'</td>'+
+                  '<td>'+h(it.sede||'—')+'</td>'+
+                  '<td>'+h(it.asesor||'—')+'</td>'+
+                  '<td class="monto-c">S/'+((it.montoPagado||it.monto||0).toFixed(0))+'</td></tr>';
+              }).join('')+'</tbody></table>'+
+              '<div class="comp-ft"><div class="comp-ft-r"><span class="comp-ft-l">Total:</span><span class="comp-ft-v">S/'+c.total.toFixed(0)+'</span></div></div>'+
+            '</div>'+
+          '</div>';
+        }).join('');
     })
-    .map(function(r) {
-      var fRec   = r[5] ? (r[5] instanceof Date ? r[5] : new Date(r[5])) : null;
-      var vencido = fRec && fRec < hoy;
-      var enProx  = fRec && !vencido && fRec <= en7d;
-      return {
-        id:              _norm(r[0]),
-        num:             _normNum(r[1]),
-        tratamiento:     _norm(r[2]),
-        fechaUltApp:     _date(r[3]),
-        diasCiclo:       Number(r[4]) || 0,
-        fechaRecontacto: _date(r[5]),
-        estado:          _norm(r[6]),
-        asesor:          _norm(r[7]),
-        obs:             _norm(r[8]),
-        vencido:         vencido,
-        esHoy:           fRec && fRec.toDateString() === hoy.toDateString(),
-        enProximos7d:    enProx,
-        diasRestantes:   fRec ? Math.floor((fRec - hoy) / (1000 * 60 * 60 * 24)) : null
-      };
+    .withFailureHandler(function(){el.innerHTML='<div class="ld">Error al cargar comprobantes</div>';})
+    .api_getComprobantesRealT(S.token,num);
+}
+function tgComp(id){var el=document.getElementById(id);if(el)el.classList.toggle('open');}
+
+/* ═══════════════════════ REGISTRAR PAGO ═══════════════════════ */
+// ===== CTRL+F: abrirPago =====
+function abrirPago(payload){
+  S.pagoPayload=payload;
+  document.getElementById('pago-info').textContent=
+    (payload.trat||'—')+' · S/'+(payload.monto||0)+' · '+(payload.fecha||'');
+  var sel=document.getElementById('pg-metodo');
+  sel.innerHTML=S.metodosPago.map(function(m){return '<option value="'+h(m)+'">'+h(m)+'</option>';}).join('');
+  document.getElementById('pg-monto').value=payload.monto||'';
+  var sedeSel=document.getElementById('pg-sede');
+  if(payload.sede&&payload.sede.indexOf('PUEBLO')>=0) sedeSel.value='PUEBLO LIBRE';
+  else sedeSel.value='SAN ISIDRO';
+  document.getElementById('ov-pago').classList.add('open');
+}
+function guardarPago(){
+  if(!S.pac||!S.pagoPayload) return;
+  var payload=Object.assign({},S.pagoPayload,{
+    num:      S.pac.telefono,
+    pagoCon:  document.getElementById('pg-metodo').value,
+    montoPagado: parseFloat(document.getElementById('pg-monto').value)||0,
+    estado:   document.getElementById('pg-tipo').value,
+    nroDoc:   document.getElementById('pg-nrodoc').value.trim(),
+    sede:     document.getElementById('pg-sede').value,
+    esAdelanto: document.getElementById('pg-estado').value==='true'
+  });
+  if(!payload.montoPagado){if(window.AOS_showToast)AOS_showToast('⚠️ Ingresa el monto','','');return;}
+  var btn=document.querySelector('#ov-pago .btn-ok');
+  if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+  google.script.run
+    .withSuccessHandler(function(res){
+      cerrarOv('ov-pago');
+      if(window.AOS_showToast)AOS_showToast('✅ Pago registrado','','toast-venta');
+      setTab('comprobantes');
+      if(btn){btn.disabled=false;btn.textContent='✓ Registrar pago';}
     })
-    .filter(function(item) {
-      if (filtro === "vencidos")    return item.vencido;
-      if (filtro === "proximos_7d") return item.enProximos7d || item.esHoy;
-      if (filtro === "pendientes")  return !item.vencido;
-      return true;
+    .withFailureHandler(function(e){
+      if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');
+      if(btn){btn.disabled=false;btn.textContent='✓ Registrar pago';}
     })
-    .sort(function(a, b) {
-      if (a.vencido && !b.vencido) return -1;
-      if (!a.vencido && b.vencido) return 1;
-      return a.fechaRecontacto < b.fechaRecontacto ? -1 : 1;
-    });
-
-  return { ok: true, total: items.length, items: items };
+    .api_registrarPagoT(S.token,payload);
+}
+function cargarMetodosPago(){
+  google.script.run
+    .withSuccessHandler(function(res){if(res&&res.ok)S.metodosPago=res.metodos||[];})
+    .withFailureHandler(function(){})
+    .api_getMetodosPagoT(S.token);
 }
 
-/**
- * api_cerrarSeguimientoProgramado
- * Marca como CERRADO un seguimiento programado por su ID.
- */
-function api_cerrarSeguimientoProgramado(segId) {
-  cc_requireSession();
-  segId = _norm(segId);
-  if (!segId) throw new Error("ID de seguimiento requerido.");
-
-  var sh = _sh("SEGUIMIENTOS_PROGRAMADOS");
-  var lr = sh.getLastRow();
-  if (lr < 2) throw new Error("Sin seguimientos.");
-
-  var ids = sh.getRange(2, 1, lr - 1, 1).getValues();
-  for (var i = 0; i < ids.length; i++) {
-    if (_norm(ids[i][0]) === segId) {
-      sh.getRange(i + 2, 7).setValue("CERRADO");
-      sh.getRange(i + 2, 11).setValue(new Date());
-      return { ok: true };
-    }
-  }
-  throw new Error("Seguimiento no encontrado: " + segId);
-}
-// ===== CTRL+F: SEG_PROG_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-04 · TIMELINE UNIFICADO
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: TIMELINE_START =====
-
-/**
- * api_getPatientTimeline
- * Devuelve todos los eventos del paciente mezclados y ordenados
- * cronológicamente: llamadas + citas + compras + notas.
- * Máximo 100 eventos.
- */
-function api_getPatientTimeline(num) {
-  cc_requireSession();
-  num = _normNum(num);
-  if (!num) return { ok: true, eventos: [] };
-
-  var perfil = api_getPatientProfile(num);
-  if (!perfil || !perfil.ok) return { ok: true, eventos: [] };
-
-  var h      = perfil.historial || {};
-  var eventos = [];
-
-  // Llamadas
-  (h.llamadas || []).forEach(function(l) {
-    var estadoNorm = _g24_normEstado(l.estado);
-    eventos.push({
-      fecha:   l.fecha,
-      hora:    l.hora,
-      tipo:    "LLAMADA",
-      icono:   "📞",
-      titulo:  estadoNorm,
-      sub:     l.trat,
-      detalle: l.obs,
-      actor:   l.asesor,
-      color:   estadoNorm === "CITA CONFIRMADA" ? "#16A34A" :
-               (estadoNorm === "SIN CONTACTO"   ? "#DC2626" : "#6B7BA8")
-    });
-  });
-
-  // Compras
-  (h.ventas || []).forEach(function(v) {
-    eventos.push({
-      fecha:   v.fecha,
-      tipo:    "COMPRA",
-      icono:   "💰",
-      titulo:  v.trat,
-      sub:     "S/ " + (v.monto || 0).toFixed(0),
-      detalle: (v.pago || "") + (v.sede ? " · " + v.sede : ""),
-      actor:   v.asesor,
-      color:   "#0A4FBF"
-    });
-  });
-
-  // Citas — FIX: normalizar estado con tilde para color correcto
-  (h.citas || []).forEach(function(c) {
-    var estadoNorm = _g24_normEstado(c.estado);
-    var color =
-      (estadoNorm === "ASISTIO" || estadoNorm === "EFECTIVA") ? "#16A34A" :
-      estadoNorm === "NO ASISTIO"  ? "#DC2626" :
-      estadoNorm === "CANCELADA"   ? "#9AAAC8" : "#D97706";
-    eventos.push({
-      fecha:   c.fecha,
-      hora:    c.hora,
-      tipo:    "CITA",
-      icono:   "📅",
-      titulo:  c.trat,
-      sub:     estadoNorm,
-      detalle: (c.sede || "") + (c.doctora ? " · " + c.doctora : ""),
-      actor:   c.asesor,
-      color:   color
-    });
-  });
-
-  // Notas
-  var notasRes = api_getNotasPaciente360(num);
-  (notasRes.notas || []).forEach(function(n) {
-    eventos.push({
-      fecha:   n.fecha,
-      hora:    n.hora,
-      tipo:    "NOTA",
-      icono:   "📝",
-      titulo:  n.tipo,
-      sub:     n.texto.slice(0, 80),
-      detalle: "",
-      actor:   n.usuario,
-      color:   "#7C3AED"
-    });
-  });
-
-  // Ordenar de más reciente a más antiguo
-  eventos.sort(function(a, b) {
-    var da = (a.fecha || "") + (a.hora || "");
-    var db = (b.fecha || "") + (b.hora || "");
-    return da < db ? 1 : -1;
-  });
-
-  return { ok: true, total: eventos.length, eventos: eventos.slice(0, 100) };
-}
-// ===== CTRL+F: TIMELINE_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-05 · CREAR CITA DESDE PANEL 360
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: CITA360_START =====
-
-/**
- * api_createCitaDesde360
- * Crea una cita en AGENDA_CITAS desde el panel 360.
- * Pre-rellena datos del paciente desde su perfil.
- * Registra ORIGEN_CITA = "360"
- */
-function api_createCitaDesde360(payload) {
-  var s = cc_requireSession();
-  payload = payload || {};
-
-  var num = _normNum(payload.num || "");
-  if (!num) throw new Error("Número de paciente requerido.");
-  if (!payload.fechaCita)   throw new Error("Fecha de cita requerida.");
-  if (!payload.tratamiento) throw new Error("Tratamiento requerido.");
-
-  // Obtener datos del paciente para pre-rellenar
-  var perfil = null;
-  try {
-    var res = api_getPatientProfile(num);
-    if (res && res.ok && res.paciente) perfil = res.paciente;
-  } catch(e) {}
-
-  var sh  = _shAgenda();
-  var now = new Date();
-  var cid = _uid();
-
-  var nombre   = _norm(payload.nombre   || (perfil ? perfil.nombres   : ""));
-  var apellido = _norm(payload.apellido || (perfil ? perfil.apellidos  : ""));
-  var dni      = _norm(payload.dni      || (perfil ? perfil.documento  : ""));
-  var correo   = _norm(payload.correo   || (perfil ? perfil.email      : ""));
-  var sede     = _up(_norm(payload.sede || (perfil ? perfil.sede : "")));
-
-  // Asesor: usa el del payload si viene, si no usa el de la sesión
-  var asesorNombre = _norm(payload.asesorNombre || s.asesor || "");
-  var asesorId     = _norm(payload.asesorId     || s.idAsesor || "");
-
-  sh.appendRow([
-    cid,
-    _norm(payload.fechaCita),
-    _up(_norm(payload.tratamiento)),
-    _norm(payload.tipoCita || "CONSULTA NUEVA"),
-    sede,
-    num,
-    nombre,
-    apellido,
-    dni,
-    correo,
-    asesorNombre,
-    asesorId,
-    "PENDIENTE",
-    "",                                           // VENTA_ID
-    _norm(payload.obs || ""),
-    now,                                          // TS_CREADO
-    now,                                          // TS_ACTUALIZADO
-    _norm(payload.horaCita || ""),
-    "",                                           // ETIQUETA_CAMP
-    _norm(payload.doctora || ""),
-    _tipoAtencion(_norm(payload.tratamiento)),     // TIPO_ATENCION
-    "",                                           // GCAL_EVENT_ID
-    "360"                                         // ORIGEN_CITA
-  ]);
-
-  return { ok: true, citaId: cid, msg: "Cita creada desde panel 360." };
-}
-
-/**
- * api_getEquipoActivo
- * Devuelve la lista de asesores activos desde hoja RRHH.
- * Usado para poblar el selector de Asesor en modal nueva cita.
- */
-function api_getEquipoActivo() {
-  cc_requireSession();
-  var sh = _sh("RRHH");
-  var lr = sh.getLastRow();
-  if (lr < 2) return { ok: true, items: [] };
-
-  var data = sh.getRange(2, 1, lr - 1, 10).getValues();
-  var items = data
-    .filter(function(r) {
-      var activo = _up(_norm(r[7] || ""));
-      return activo !== "INACTIVO" && activo !== "RETIRADO" && _norm(r[1]);
+/* ═══════════════════════ HISTORIA CLÍNICA ═══════════════════════ */
+function cargarHCTab(dniOrTel){
+  var el=document.getElementById('p360-tc');
+  google.script.run
+    .withSuccessHandler(function(res){
+      var hc=res&&res.hc?res.hc:null;
+      if(!hc){
+        el.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:36px;margin-bottom:10px;">🏥</div>'+
+          '<div style="font-size:13px;font-weight:700;color:var(--txt-s);margin-bottom:10px;">Sin historia clínica</div>'+
+          '<button onclick="abrirFormHC(null)" style="padding:8px 18px;border-radius:var(--r);background:var(--az);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">+ Crear HC</button></div>';
+        return;
+      }
+      window._hcActual=hc;
+      var alertas='';
+      if(hc.embarazo) alertas+='<div class="hc-alerta">⚠️ EMBARAZO: '+h(hc.embarazo)+'</div>';
+      if(hc.marcapasos) alertas+='<div class="hc-alerta">⚠️ MARCAPASOS</div>';
+      if(hc.alergiasMedicamentos) alertas+='<div class="hc-alerta">⚠️ Alergias: '+h(hc.alergiasMedicamentos)+'</div>';
+      function f(l,v){return '<div class="hc-f"><div class="hc-fl">'+h(l)+'</div><div class="hc-fv'+(v?'':' empty')+'">'+h(v||'—')+'</div></div>';}
+      function acc(ico,tit,cont){
+        return '<div class="hc-acc"><div class="hc-acc-hd" onclick="tgAcc(this)">'+ico+' '+tit+'<span>▼</span></div>'+
+          '<div class="hc-acc-body open">'+cont+'</div></div>';
+      }
+      el.innerHTML=alertas+
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:7px;">'+
+          '<button onclick="abrirFormHC(window._hcActual)" style="padding:4px 11px;border-radius:var(--r-sm);background:var(--az-cl);color:var(--az);border:1px solid var(--az-brd);font-size:11px;font-weight:700;cursor:pointer;">✏️ Editar</button>'+
+        '</div>'+
+        acc('👤','Identificación','<div class="hc-grid">'+f('DNI',hc.dni)+f('Fecha nac.',hc.fechaNac)+f('Sexo',hc.sexo)+f('Estado civil',hc.estadoCivil)+f('Distrito',hc.distrito)+f('Ocupación',hc.ocupacion)+f('Contacto emerg.',hc.contactoEmergNombre)+f('Tel. emerg.',hc.contactoEmergTel)+'</div>')+
+        acc('🩺','Antecedentes','<div class="hc-grid">'+f('Alergias medicam.',hc.alergiasMedicamentos)+f('Alergias mat.',hc.alergiasMateria)+f('Enf. crónicas',hc.enfermedadesCron)+f('Medicamentos',hc.medicamentosActuales)+f('Cirugías previas',hc.cirugiasPrevias)+f('Implantes',hc.implantes)+f('Queloides',hc.queloides)+f('Marcapasos',hc.marcapasos)+'</div>')+
+        acc('🌸','Mujeres','<div class="hc-grid">'+f('Embarazo',hc.embarazo)+f('Lactancia',hc.lactancia)+f('Anticonceptivos',hc.anticonceptivos)+f('Últ. menstruación',hc.fechaUltMenstruacion)+'</div>')+
+        acc('🏃','Hábitos','<div class="hc-grid">'+f('Tabaco',hc.tabaco)+f('Alcohol',hc.alcohol)+f('Actividad física',hc.actividadFisica)+f('Horas sueño',hc.horasSueno)+'</div>')+
+        '<div style="margin-top:7px;font-size:10px;color:var(--gr);">Consentimiento: <b>'+h(hc.consentimientoFirmado||'NO')+'</b> · Médico: <b>'+h(hc.medicoResponsable||'—')+'</b> · Act: '+h(hc.tsActualizado||'—')+'</div>';
     })
-    .map(function(r) {
-      return {
-        id:     _norm(r[0]),
-        nombre: _norm(r[1]),
-        rol:    _up(_norm(r[3] || "ASESOR")),
-        sede:   _up(_norm(r[5] || ""))
-      };
-    });
-
-  return { ok: true, items: items };
+    .withFailureHandler(function(){el.innerHTML='<div class="ld">Error al cargar HC</div>';})
+    .api_getHistoriaClinicaT(S.token,dniOrTel);
 }
-// ===== CTRL+F: CITA360_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-06 · SCORE Y ALERTAS
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: SCORE360_START =====
-
-/**
- * api_getPatientScore360
- * Devuelve el score completo del paciente con alertas de HC,
- * seguimientos vencidos y próximos.
- * NOTA: diasUltVisita también viene en api_getPatient360T directamente (FIX-04)
- */
-function api_getPatientScore360(num) {
-  cc_requireSession();
-  num = _normNum(num);
-  if (!num) throw new Error("Número requerido.");
-
-  var perfilRes = api_getPatientProfile(num);
-  if (!perfilRes || !perfilRes.ok) return { ok: false };
-
-  var p = perfilRes.paciente || {};
-
-  var hcRes  = api_getHistoriaClinica(_norm(p.documento || num));
-  var alertas = hcRes.hc ? _hc_getAlertas(hcRes.hc) : [];
-
-  var segRes      = api_getSeguimientosProgramados(num, "vencidos");
-  var segsVencidos = segRes.total || 0;
-
-  var score = _norm(p.estado) || "NUEVO";
-  var dias  = null;
-  if (p.ultVisita) {
-    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    var uv  = new Date(p.ultVisita); uv.setHours(0, 0, 0, 0);
-    dias = Math.floor((hoy - uv) / (1000 * 60 * 60 * 24));
-    if      (dias <= 90)  score = "ACTIVO";
-    else if (dias <= 180) score = "EN_RIESGO";
-    else                  score = "INACTIVO";
-  }
-
-  var colorScore = {
-    "ACTIVO":    "#16A34A",
-    "EN_RIESGO": "#D97706",
-    "INACTIVO":  "#DC2626",
-    "NUEVO":     "#6B7BA8"
-  };
-
-  return {
-    ok:            true,
-    num:           num,
-    score:         score,
-    colorScore:    colorScore[score] || "#6B7BA8",
-    diasUltVisita: dias,
-    ultVisita:     _date(p.ultVisita),
-    totalFact:     p.totalFact || 0,
-    totalCompras:  p.totalCompras || 0,
-    alertas:       alertas,
-    segsVencidos:  segsVencidos,
-    tieneHC:       !!hcRes.hc
-  };
+function tgAcc(hd){var b=hd.nextElementSibling;var ic=hd.querySelector('span');if(!b)return;b.classList.toggle('open');if(ic)ic.textContent=b.classList.contains('open')?'▼':'▶';}
+function abrirFormHC(hc){
+  hc=hc||{};var p=S.pac||{};
+  function inp(id,lbl,val,tp){return '<div class="mfield"><label class="mlbl">'+h(lbl)+'</label><input id="hc-'+id+'" type="'+(tp||'text')+'" class="minp" value="'+h(val||'')+'"/></div>';}
+  function sel(id,lbl,val,opts){return '<div class="mfield"><label class="mlbl">'+h(lbl)+'</label><select id="hc-'+id+'" class="msel">'+opts.map(function(o){return '<option value="'+h(o)+'" '+(o===val?'selected':'')+'>'+h(o)+'</option>';}).join('')+'</select></div>';}
+  function ta(id,lbl,val){return '<div class="mfield"><label class="mlbl">'+h(lbl)+'</label><textarea id="hc-'+id+'" class="mta">'+h(val||'')+'</textarea></div>';}
+  document.getElementById('hc-content').innerHTML=
+    '<div class="hc-sec">👤 Identificación</div><div class="mgrid">'+
+      inp('dni','DNI',hc.dni||p.documento)+inp('fechaNac','Fecha nac.',hc.fechaNac,'date')+
+      sel('sexo','Sexo',hc.sexo,['','FEMENINO','MASCULINO','OTRO'])+
+      sel('estadoCivil','Estado civil',hc.estadoCivil,['','SOLTERO/A','CASADO/A','DIVORCIADO/A','VIUDO/A','CONVIVIENTE'])+
+      inp('ocupacion','Ocupación',hc.ocupacion||p.ocupacion)+inp('distrito','Distrito',hc.distrito)+
+      inp('contactoEmergNombre','Contacto emergencia',hc.contactoEmergNombre)+inp('contactoEmergTel','Tel. emergencia',hc.contactoEmergTel)+
+    '</div>'+
+    '<div class="hc-sec">🩺 Antecedentes</div><div class="mgrid">'+
+      ta('alergiasMedicamentos','Alergias medicamentos',hc.alergiasMedicamentos)+ta('alergiasMateria','Alergias materiales',hc.alergiasMateria)+
+      ta('enfermedadesCron','Enfermedades crónicas',hc.enfermedadesCron)+ta('medicamentosActuales','Medicamentos',hc.medicamentosActuales)+
+      ta('cirugiasPrevias','Cirugías previas',hc.cirugiasPrevias)+ta('tratEsteticos','Trat. estéticos prev.',hc.tratEsteticos)+
+      ta('implantes','Implantes',hc.implantes)+
+      sel('queloides','Queloides',hc.queloides,['','NO','SÍ'])+sel('marcapasos','Marcapasos',hc.marcapasos,['','NO','SÍ'])+
+    '</div>'+
+    '<div class="hc-sec">🌸 Mujeres</div><div class="mgrid">'+
+      sel('embarazo','Embarazo',hc.embarazo,['','NO','SÍ','POSIBLE'])+sel('lactancia','Lactancia',hc.lactancia,['','NO','SÍ'])+
+      sel('anticonceptivos','Anticonceptivos',hc.anticonceptivos,['','NO','SÍ'])+inp('fechaUltMenstruacion','Últ. menstruación',hc.fechaUltMenstruacion,'date')+
+    '</div>'+
+    '<div class="hc-sec">🏃 Hábitos</div><div class="mgrid">'+
+      sel('tabaco','Tabaco',hc.tabaco,['','NO FUMA','OCASIONAL','HABITUAL'])+
+      sel('alcohol','Alcohol',hc.alcohol,['','NO','OCASIONAL','FRECUENTE'])+
+      sel('actividadFisica','Actividad física',hc.actividadFisica,['','SEDENTARIO','MODERADO','ACTIVO'])+
+      inp('horasSueno','Horas sueño',hc.horasSueno)+
+    '</div>'+
+    '<div class="hc-sec">📋 Control</div><div class="mgrid">'+
+      sel('consentimientoFirmado','Consentimiento',hc.consentimientoFirmado,['NO','SÍ','DIGITAL'])+
+      inp('medicoResponsable','Médico responsable',hc.medicoResponsable)+
+    '</div>';
+  document.getElementById('ov-hc').classList.add('open');
 }
-// ===== CTRL+F: SCORE360_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-07 · FUSIÓN DE PACIENTES (MEJORADA v2.0)
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: FUSION_START =====
-
-/**
- * api_detectarDuplicados
- * Detecta pacientes duplicados por teléfono y nombre similar.
- *
- * v2.0: Devuelve datos COMPLETOS de cada registro para que el
- * usuario pueda elegir quién es el principal con información real:
- *   - nombre completo, teléfono, DNI
- *   - total facturado, última visita, total compras
- *   - número de fila en el Sheet (para la fusión)
- */
-function api_detectarDuplicados() {
-  cc_requireSession();
-
-  var sh = _sh("CONSOLIDADO_DE_PACIENTES");
-  var lr = sh.getLastRow();
-  if (lr < 2) return { ok: true, grupos: [], total: 0 };
-
-  // Leer todas las columnas necesarias
-  // PAC_COL: ID:0, NOMBRES:1, APELLIDOS:2, TELEFONO:3, DOCUMENTO:5,
-  //          TOTAL_FACTURADO:14, ULTIMA_VISITA:15, TOTAL_COMPRAS:13, ESTADO:18
-  var data = sh.getRange(2, 1, lr - 1, 21).getValues();
-
-  // Mapa teléfono → filas
-  var mapaTeléfono = {};
-  data.forEach(function(r, i) {
-    var tel = _normNum(r[3]);
-    var est = _up(_norm(r[18] || ""));
-    if (!tel || est === "RETIRADO") return;
-    if (!mapaTeléfono[tel]) mapaTeléfono[tel] = [];
-    mapaTeléfono[tel].push({
-      row:        i + 2,
-      id:         _norm(r[0]),
-      nombres:    _norm(r[1]),
-      apellidos:  _norm(r[2]),
-      tel:        tel,
-      dni:        _norm(r[5]),
-      totalFact:  Number(r[14]) || 0,
-      ultVisita:  _date(r[15]),
-      totalComp:  Number(r[13]) || 0,
-      estado:     _up(_norm(r[18] || "NUEVO"))
-    });
-  });
-
-  var grupos = [];
-
-  // Grupos por teléfono duplicado
-  Object.keys(mapaTeléfono).forEach(function(tel) {
-    var filas = mapaTeléfono[tel];
-    if (filas.length >= 2) {
-      grupos.push({
-        tipo:      "TELEFONO_DUPLICADO",
-        clave:     tel,
-        registros: filas
-      });
-    }
-  });
-
-  // Grupos por nombre similar (solo si no ya está en duplicado de tel)
-  var telefonosDuplicados = {};
-  grupos.forEach(function(g) {
-    g.registros.forEach(function(r) { telefonosDuplicados[r.tel] = true; });
-  });
-
-  var mapaNombre = {};
-  data.forEach(function(r, i) {
-    var tel = _normNum(r[3]);
-    if (telefonosDuplicados[tel]) return; // ya está en grupo tel
-    var est = _up(_norm(r[18] || ""));
-    if (est === "RETIRADO") return;
-
-    // Normalizar nombre: primera palabra de nombres + primera de apellidos
-    var n1 = _norm(r[1]).split(" ")[0] || "";
-    var a1 = _norm(r[2]).split(" ")[0] || "";
-    var clave = n1 + "_" + a1;
-    if (!clave || clave === "_") return;
-
-    if (!mapaNombre[clave]) mapaNombre[clave] = [];
-    mapaNombre[clave].push({
-      row:       i + 2,
-      id:        _norm(r[0]),
-      nombres:   _norm(r[1]),
-      apellidos: _norm(r[2]),
-      tel:       tel,
-      dni:       _norm(r[5]),
-      totalFact: Number(r[14]) || 0,
-      ultVisita: _date(r[15]),
-      totalComp: Number(r[13]) || 0,
-      estado:    _up(_norm(r[18] || "NUEVO"))
-    });
-  });
-
-  Object.keys(mapaNombre).forEach(function(clave) {
-    var filas = mapaNombre[clave];
-    if (filas.length >= 2) {
-      grupos.push({
-        tipo:      "NOMBRE_SIMILAR",
-        clave:     clave.replace("_", " "),
-        registros: filas
-      });
-    }
-  });
-
-  // Limitar a 50 grupos para no sobrecargar el modal
-  grupos = grupos.slice(0, 50);
-
-  return { ok: true, grupos: grupos, total: grupos.length };
+function guardarHC(){
+  var p=S.pac||{};
+  function v(id){var e=document.getElementById('hc-'+id);return e?e.value.trim():'';}
+  var pay={dni:v('dni')||p.documento,nombres:p.nombres,apellidos:p.apellidos,telefono:p.telefono,email:p.email,
+    fechaNac:v('fechaNac'),sexo:v('sexo'),estadoCivil:v('estadoCivil'),ocupacion:v('ocupacion'),distrito:v('distrito'),
+    contactoEmergNombre:v('contactoEmergNombre'),contactoEmergTel:v('contactoEmergTel'),
+    alergiasMedicamentos:v('alergiasMedicamentos'),alergiasMateria:v('alergiasMateria'),
+    enfermedadesCron:v('enfermedadesCron'),medicamentosActuales:v('medicamentosActuales'),
+    cirugiasPrevias:v('cirugiasPrevias'),tratEsteticos:v('tratEsteticos'),
+    implantes:v('implantes'),queloides:v('queloides'),marcapasos:v('marcapasos'),
+    embarazo:v('embarazo'),lactancia:v('lactancia'),anticonceptivos:v('anticonceptivos'),
+    fechaUltMenstruacion:v('fechaUltMenstruacion'),tabaco:v('tabaco'),alcohol:v('alcohol'),
+    actividadFisica:v('actividadFisica'),horasSueno:v('horasSueno'),
+    consentimientoFirmado:v('consentimientoFirmado'),medicoResponsable:v('medicoResponsable')};
+  if(!pay.dni){if(window.AOS_showToast)AOS_showToast('⚠️ Falta DNI','','');return;}
+  var btn=document.querySelector('#ov-hc .btn-ok');if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+  google.script.run
+    .withSuccessHandler(function(){cerrarOv('ov-hc');if(window.AOS_showToast)AOS_showToast('✅ HC guardada','','toast-venta');cargarHCTab(pay.dni);cargarAlertasHC(pay.dni);if(btn){btn.disabled=false;btn.textContent='💾 Guardar HC';}})
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');if(btn){btn.disabled=false;btn.textContent='💾 Guardar HC';}})
+    .api_saveHistoriaClinicaT(S.token,pay);
 }
 
-/**
- * api_fusionarPacientes
- * Fusiona dos registros de paciente.
- *
- * v2.0 — CAMBIO CRÍTICO:
- *   Ahora recibe rowPrincipal y rowSecundario como parámetros.
- *   El USUARIO elige quién es el principal desde el modal.
- *   El principal conserva su fila y recibe los datos del secundario
- *   si sus campos están vacíos.
- *   El secundario queda con ESTADO = RETIRADO.
- *
- * @param {number} rowPrincipal   Fila en el Sheet del registro que MANDA
- * @param {number} rowSecundario  Fila en el Sheet del registro que se retira
- */
-function api_fusionarPacientes(rowPrincipal, rowSecundario) {
-  var s = cc_requireSession();
-  if (s.rol !== "ADMIN" && s.rol !== "ADMINISTRADOR")
-    throw new Error("Solo ADMIN puede fusionar pacientes.");
-
-  rowPrincipal  = Number(rowPrincipal);
-  rowSecundario = Number(rowSecundario);
-
-  if (!rowPrincipal || !rowSecundario)
-    throw new Error("Filas de principal y secundario requeridas.");
-  if (rowPrincipal === rowSecundario)
-    throw new Error("No puedes fusionar un registro consigo mismo.");
-
-  var sh = _sh("CONSOLIDADO_DE_PACIENTES");
-  var totalCols = 24; // hasta col X (ETIQUETA_BASE incluida si ya se creó)
-
-  // Leer ambas filas
-  var filaPrinc = sh.getRange(rowPrincipal,  1, 1, totalCols).getValues()[0];
-  var filaSecun = sh.getRange(rowSecundario, 1, 1, totalCols).getValues()[0];
-
-  var telPrinc  = _normNum(filaPrinc[3]);
-  var telSecun  = _normNum(filaSecun[3]);
-
-  if (!telPrinc)  throw new Error("El registro principal no tiene teléfono válido.");
-  if (!telSecun)  throw new Error("El registro secundario no tiene teléfono válido.");
-
-  // Enriquecer principal con datos del secundario donde el principal tenga vacíos
-  // Campos a transferir si están vacíos en el principal: EMAIL(4), DOCUMENTO(5),
-  // FECHA_NAC(7), DIRECCION(8), OCUPACION(9), SEDE(10), FUENTE(11)
-  var camposTransferir = [4, 5, 7, 8, 9, 10, 11];
-  var filaActualizada  = filaPrinc.slice();
-
-  camposTransferir.forEach(function(col) {
-    if (!_norm(String(filaActualizada[col])) && _norm(String(filaSecun[col]))) {
-      filaActualizada[col] = filaSecun[col];
-    }
-  });
-
-  // Sumar acumulados si el secundario tiene valores
-  // TOTAL_COMPRAS(13), TOTAL_FACTURADO(14), TOTAL_LLAMADAS(16), TOTAL_CITAS(17)
-  var camposSumar = [13, 14, 16, 17];
-  camposSumar.forEach(function(col) {
-    var vP = Number(filaActualizada[col]) || 0;
-    var vS = Number(filaSecun[col]) || 0;
-    filaActualizada[col] = vP + vS;
-  });
-
-  // Conservar la ULTIMA_VISITA más reciente (col 15)
-  var uvP = filaPrinc[15] ? new Date(filaPrinc[15]) : null;
-  var uvS = filaSecun[15] ? new Date(filaSecun[15]) : null;
-  if (uvP && uvS) {
-    filaActualizada[15] = uvP > uvS ? uvP : uvS;
-  } else if (!uvP && uvS) {
-    filaActualizada[15] = uvS;
-  }
-
-  // Escribir fila actualizada en el principal
-  sh.getRange(rowPrincipal, 1, 1, filaActualizada.length).setValues([filaActualizada]);
-
-  // Marcar secundario como RETIRADO (col 19 = ESTADO, base 1)
-  sh.getRange(rowSecundario, 19).setValue("RETIRADO");
-
-  // Reasignar llamadas del número secundario al principal en CONSOLIDADO DE LLAMADAS
-  _fusion_reasignarLlamadas(telSecun, telPrinc);
-
-  // Reasignar citas del secundario al principal en AGENDA_CITAS
-  _fusion_reasignarCitas(telSecun, telPrinc);
-
-  // Reasignar ventas del secundario al principal en CONSOLIDADO DE VENTAS
-  _fusion_reasignarVentas(telSecun, telPrinc);
-
-  // Reasignar notas del secundario al principal en NOTAS_PACIENTES
-  _fusion_reasignarNotas(telSecun, telPrinc);
-
-  Logger.log("FUSION OK — principal: " + telPrinc + " (row " + rowPrincipal + ")" +
-             " | secundario: " + telSecun + " → RETIRADO");
-
-  return {
-    ok:  true,
-    msg: "Fusión completada. " + telSecun + " consolidado en " + telPrinc + "."
-  };
+/* ═══════════════════════ PANEL NOTAS MEJORADO ═══════════════════════ */
+// ===== CTRL+F: cargarNotasLateral =====
+function cargarNotasLateral(num){
+  var lista=document.getElementById('notas-lista');
+  lista.innerHTML='<div class="ld"><span class="sp"></span>Cargando...</div>';
+  google.script.run
+    .withSuccessHandler(function(res){
+      var notas=res&&res.notas?res.notas:[];
+      if(!notas.length){lista.innerHTML='<div class="notas-empty">Sin notas</div>';return;}
+      lista.innerHTML=notas.map(function(n){
+        var rol=(n.rol||'ASESOR').toUpperCase().replace('ADMINISTRADOR','ADMIN');
+        return '<div class="nota-item" id="ni-'+h(n.id)+'">'+
+          '<div class="nota-item-hd">'+
+            '<div class="nota-hd-left">'+
+              '<span class="nota-rol nr-'+rol+'">'+h(n.rol||'ASESOR')+'</span>'+
+              '<span class="nota-usuario">'+h(n.usuario||'—')+'</span>'+
+            '</div>'+
+            '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">'+
+              '<span class="nota-fecha-txt">'+h(n.fecha||'')+'</span>'+
+              '<div class="nota-acc">'+
+                '<button class="nota-acc-btn" title="Editar" onclick="editarNota(\''+h(n.id)+'\',\''+h(n.texto).replace(/'/g,'\\\'').replace(/\n/g,' ')+'\')">✏️</button>'+
+                '<button class="nota-acc-btn" title="Eliminar" onclick="eliminarNota(\''+h(n.id)+'\')">🗑</button>'+
+              '</div>'+
+            '</div>'+
+          '</div>'+
+          '<div class="nota-txt" id="ntxt-'+h(n.id)+'">'+h(n.texto)+'</div>'+
+        '</div>';
+      }).join('');
+    })
+    .withFailureHandler(function(){lista.innerHTML='<div class="notas-empty">Error al cargar</div>';})
+    .api_getNotasPaciente360T(S.token,num);
+}
+function toggleNotaForm(){
+  var f=document.getElementById('notas-form');
+  f.style.display=f.style.display==='block'?'none':'block';
+  if(f.style.display==='block') document.getElementById('nota-txt').focus();
+}
+function guardarNota(){
+  if(!S.pac) return;
+  var num=S.pac.telefono;
+  var txt=(document.getElementById('nota-txt')||{}).value||'';
+  if(!txt.trim()) return;
+  google.script.run
+    .withSuccessHandler(function(){
+      document.getElementById('nota-txt').value='';
+      document.getElementById('notas-form').style.display='none';
+      cargarNotasLateral(num);
+      if(window.AOS_showToast)AOS_showToast('✓ Nota guardada','','');
+    })
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
+    .api_saveNotaPaciente360T(S.token,num,txt.trim(),'GENERAL');
+}
+// ===== CTRL+F: editarNota =====
+function editarNota(notaId,textoActual){
+  var txtEl=document.getElementById('ntxt-'+notaId);
+  if(!txtEl) return;
+  var parent=txtEl.parentElement;
+  // Si ya hay un editor abierto, ciérralo
+  var existente=parent.querySelector('.nota-edit-area');
+  if(existente){parent.removeChild(existente);parent.removeChild(parent.querySelector('.nota-edit-btns'));txtEl.style.display='block';return;}
+  // Crear editor inline
+  txtEl.style.display='none';
+  var ta=document.createElement('textarea');
+  ta.className='nota-edit-area'; ta.value=textoActual;
+  var btns=document.createElement('div');
+  btns.className='nota-edit-btns';
+  btns.innerHTML='<button class="nota-edit-cancel" onclick="cancelarEditarNota(\''+notaId+'\')">Cancelar</button>'+
+    '<button class="nota-edit-ok" onclick="guardarEditarNota(\''+notaId+'\')">✓ Guardar</button>';
+  parent.appendChild(ta); parent.appendChild(btns);
+  ta.focus();
+}
+function cancelarEditarNota(notaId){
+  var txtEl=document.getElementById('ntxt-'+notaId);
+  if(!txtEl) return;
+  var parent=txtEl.parentElement;
+  var ta=parent.querySelector('.nota-edit-area');
+  var btns=parent.querySelector('.nota-edit-btns');
+  if(ta) parent.removeChild(ta);
+  if(btns) parent.removeChild(btns);
+  txtEl.style.display='block';
+}
+function guardarEditarNota(notaId){
+  var parent=document.getElementById('ntxt-'+notaId).parentElement;
+  var ta=parent.querySelector('.nota-edit-area');
+  if(!ta||!ta.value.trim()) return;
+  var nuevoTexto=ta.value.trim();
+  google.script.run
+    .withSuccessHandler(function(){
+      cargarNotasLateral(S.pac.telefono);
+      if(window.AOS_showToast)AOS_showToast('✓ Nota actualizada','','');
+    })
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
+    .api_updateNotaPaciente360T(S.token,notaId,nuevoTexto);
+}
+function eliminarNota(notaId){
+  if(!confirm('¿Eliminar esta nota? Esta acción no se puede deshacer.')) return;
+  google.script.run
+    .withSuccessHandler(function(){
+      cargarNotasLateral(S.pac.telefono);
+      if(window.AOS_showToast)AOS_showToast('🗑 Nota eliminada','','');
+    })
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
+    .api_deleteNotaPaciente360T(S.token,notaId);
 }
 
-/**
- * _fusion_reasignarLlamadas
- * Reasigna llamadas del teléfono secundario al principal
- * en CONSOLIDADO DE LLAMADAS (col NUM_LIMPIO = col 9, base 1)
- */
-function _fusion_reasignarLlamadas(telSecun, telPrinc) {
-  try {
-    var sh = _sh("CONSOLIDADO DE LLAMADAS");
-    var lr = sh.getLastRow();
-    if (lr < 2) return;
-    // LLAM_COL.NUM_LIMPIO = 8 (base 0) → col 9 (base 1)
-    var nums = sh.getRange(2, 9, lr - 1, 1).getValues();
-    var updates = [];
-    for (var i = 0; i < nums.length; i++) {
-      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
-    }
-    updates.forEach(function(row) {
-      sh.getRange(row, 9).setValue(telPrinc);
-    });
-    Logger.log("  Llamadas reasignadas: " + updates.length);
-  } catch(e) {
-    Logger.log("  WARN _fusion_reasignarLlamadas: " + e.message);
-  }
+/* ═══════════════════════ SEGUIMIENTOS ═══════════════════════ */
+function cargarSegs(num){
+  var el=document.getElementById('p360-tc');
+  google.script.run
+    .withSuccessHandler(function(res){
+      var items=res&&res.items?res.items:[];
+      if(!items.length){el.innerHTML='<div class="ld">Sin seguimientos programados</div>';return;}
+      el.innerHTML=items.map(function(s){
+        var bg=s.vencido?'var(--rj-cl)':s.esHoy?'var(--am-cl)':'var(--wh)';
+        var bc=s.vencido?'var(--rj-brd)':s.esHoy?'var(--am-brd)':'var(--brd)';
+        var cf=s.vencido?'var(--rj)':s.esHoy?'var(--am)':'var(--az)';
+        var dias=s.diasRestantes!==null?(s.vencido?'Vencido hace '+Math.abs(s.diasRestantes)+'d':'En '+s.diasRestantes+'d'):'';
+        return '<div class="seg-card" style="background:'+bg+';border-color:'+bc+';">'+
+          '<div style="display:flex;justify-content:space-between;"><div style="font-size:12px;font-weight:700;">'+h(s.tratamiento||'—')+'</div>'+
+          '<div style="font-size:10px;font-weight:700;color:'+cf+';">'+h(dias)+'</div></div>'+
+          '<div style="font-size:11px;font-weight:600;color:var(--az);">📅 Recontacto: '+h(s.fechaRecontacto||'—')+'</div>'+
+          '<div style="font-size:10px;color:var(--gr);">Ciclo: '+s.diasCiclo+'d · Últ. ap.: '+h(s.fechaUltApp||'—')+'</div>'+
+          '<button onclick="cerrarSeg(\''+h(s.id)+'\',this)" style="margin-top:5px;padding:3px 8px;border-radius:5px;background:var(--gr-cl);color:var(--txt-s);border:1px solid var(--brd);font-size:10px;font-weight:700;cursor:pointer;">✓ Cerrar</button>'+
+        '</div>';
+      }).join('');
+    })
+    .withFailureHandler(function(){el.innerHTML='<div class="ld">Error</div>';})
+    .api_getSeguimientosProgramadosT(S.token,num,'todos');
+}
+function cerrarSeg(segId,btn){
+  btn.disabled=true;btn.textContent='...';
+  google.script.run
+    .withSuccessHandler(function(){cargarSegs(S.pac?S.pac.telefono:'');})
+    .withFailureHandler(function(){btn.disabled=false;btn.textContent='✓ Cerrar';})
+    .api_cerrarSeguimientoProgramadoT(S.token,segId);
 }
 
-/**
- * _fusion_reasignarCitas
- * Reasigna citas del número secundario al principal
- * en AGENDA_CITAS (col NUMERO = col 6, base 1)
- */
-function _fusion_reasignarCitas(telSecun, telPrinc) {
-  try {
-    var sh = _shAgenda();
-    var lr = sh.getLastRow();
-    if (lr < 2) return;
-    // AG_COL.NUMERO = 5 (base 0) → col 6 (base 1)
-    var nums = sh.getRange(2, 6, lr - 1, 1).getValues();
-    var updates = [];
-    for (var i = 0; i < nums.length; i++) {
-      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
-    }
-    updates.forEach(function(row) {
-      sh.getRange(row, 6).setValue(telPrinc);
-    });
-    Logger.log("  Citas reasignadas: " + updates.length);
-  } catch(e) {
-    Logger.log("  WARN _fusion_reasignarCitas: " + e.message);
-  }
+/* ═══════════════════════ MODAL CITA ═══════════════════════ */
+function abrirModalCita(){if(S.pac) document.getElementById('ov-cita').classList.add('open');}
+function cargarEquipo(){
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(!res||!res.ok) return;
+      S.equipo=res.items||[];
+      var sel=document.getElementById('c-asesor');
+      if(!sel) return;
+      sel.innerHTML='<option value="">— Seleccionar —</option>'+
+        S.equipo.map(function(a){return '<option value="'+h(a.id)+'|'+h(a.nombre)+'">'+h(a.nombre)+(a.sede?' ('+a.sede+')':'')+'</option>';}).join('');
+    })
+    .withFailureHandler(function(){})
+    .api_getEquipoActivoT(S.token);
+}
+function guardarCita(){
+  if(!S.pac) return;
+  var p=S.pac;
+  var fecha=document.getElementById('c-fecha').value;
+  var trat=document.getElementById('c-trat').value;
+  if(!fecha||!trat){if(window.AOS_showToast)AOS_showToast('⚠️ Faltan datos','','');return;}
+  var ar=document.getElementById('c-asesor').value.split('|');
+  google.script.run
+    .withSuccessHandler(function(){cerrarOv('ov-cita');if(window.AOS_showToast)AOS_showToast('📅 Cita creada','','toast-venta');setTab('citas');})
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
+    .api_createCitaDesde360T(S.token,{num:p.telefono,nombre:p.nombres,apellido:p.apellidos,dni:p.documento,correo:p.email,
+      sede:document.getElementById('c-sede').value,fechaCita:fecha,horaCita:document.getElementById('c-hora').value,
+      tratamiento:trat,doctora:document.getElementById('c-doctora').value,
+      asesorId:ar[0]||'',asesorNombre:ar[1]||'',obs:document.getElementById('c-obs').value});
 }
 
-/**
- * _fusion_reasignarVentas
- * Reasigna ventas del número secundario al principal
- * en CONSOLIDADO DE VENTAS (col NUM_LIMPIO = col 16, base 1)
- */
-function _fusion_reasignarVentas(telSecun, telPrinc) {
-  try {
-    var sh = _sh("CONSOLIDADO DE VENTAS");
-    var lr = sh.getLastRow();
-    if (lr < 2) return;
-    // VENT_COL.NUM_LIMPIO = 15 (base 0) → col 16 (base 1)
-    var nums = sh.getRange(2, 16, lr - 1, 1).getValues();
-    var updates = [];
-    for (var i = 0; i < nums.length; i++) {
-      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
-    }
-    updates.forEach(function(row) {
-      sh.getRange(row, 16).setValue(telPrinc);
-    });
-    Logger.log("  Ventas reasignadas: " + updates.length);
-  } catch(e) {
-    Logger.log("  WARN _fusion_reasignarVentas: " + e.message);
-  }
+/* ═══════════════════════ EDITAR PACIENTE ═══════════════════════ */
+// ===== CTRL+F: abrirEditar =====
+function abrirEditar(){
+  if(!S.pac) return;
+  var p=S.pac;
+  function inp(id,lbl,val,tp){return '<div class="mfield"><label class="mlbl">'+h(lbl)+'</label><input id="ed-'+id+'" type="'+(tp||'text')+'" class="minp" value="'+h(val||'')+'"/></div>';}
+  function sel(id,lbl,val,opts){return '<div class="mfield"><label class="mlbl">'+h(lbl)+'</label><select id="ed-'+id+'" class="msel">'+opts.map(function(o){return '<option value="'+h(o)+'" '+(o===val?'selected':'')+'>'+h(o)+'</option>';}).join('')+'</select></div>';}
+  document.getElementById('edit-content').innerHTML=
+    '<div class="hc-sec">👤 Datos personales</div><div class="mgrid">'+
+      inp('nombres','Nombres',p.nombres)+inp('apellidos','Apellidos',p.apellidos)+
+      inp('email','Email',p.email,'email')+inp('documento','DNI',p.documento)+
+      sel('sexo','Sexo',p.sexo,['','FEMENINO','MASCULINO','OTRO'])+inp('fechaNac','Fecha nac.',p.fechaNac,'date')+
+    '</div>'+
+    '<div class="hc-sec">📍 Contacto y ubicación</div><div class="mgrid">'+
+      inp('ocupacion','Ocupación',p.ocupacion)+inp('direccion','Dirección',p.direccion)+
+      sel('sede','Sede',p.sede,['','SAN ISIDRO','PUEBLO LIBRE'])+inp('fuente','Fuente captación',p.fuente)+
+    '</div>'+
+    '<div class="mfield"><label class="mlbl">Notas internas</label><textarea id="ed-notas" class="mta" style="height:55px;">'+h(p.notas||'')+'</textarea></div>'+
+    '<div style="margin-top:7px;padding:7px 9px;background:var(--am-cl);border-radius:var(--r-sm);font-size:10px;color:var(--am);">⚠️ No se modifican: ID, teléfono, fecha de registro.</div>';
+  document.getElementById('ov-edit').classList.add('open');
+}
+function guardarEdicion(){
+  if(!S.pac) return;
+  function v(id){var e=document.getElementById('ed-'+id);return e?e.value.trim():undefined;}
+  var btn=document.querySelector('#ov-edit .btn-ok');if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+  google.script.run
+    .withSuccessHandler(function(){cerrarOv('ov-edit');if(window.AOS_showToast)AOS_showToast('✅ Paciente actualizado','','toast-venta');selPac(S.pac.telefono,null);if(btn){btn.disabled=false;btn.textContent='💾 Guardar';}})
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');if(btn){btn.disabled=false;btn.textContent='💾 Guardar';}})
+    .api_updatePatientFullT(S.token,S.pac.telefono,{nombres:v('nombres'),apellidos:v('apellidos'),email:v('email'),documento:v('documento'),sexo:v('sexo'),fechaNac:v('fechaNac'),ocupacion:v('ocupacion'),direccion:v('direccion'),sede:v('sede'),fuente:v('fuente'),notas:v('notas')});
 }
 
-/**
- * _fusion_reasignarNotas
- * Reasigna notas del número secundario al principal
- * en NOTAS_PACIENTES (col 4 = NUM_PACIENTE, base 1)
- */
-function _fusion_reasignarNotas(telSecun, telPrinc) {
-  try {
-    var sh = _sh("NOTAS_PACIENTES");
-    var lr = sh.getLastRow();
-    if (lr < 2) return;
-    var nums = sh.getRange(2, 4, lr - 1, 1).getValues();
-    var updates = [];
-    for (var i = 0; i < nums.length; i++) {
-      if (_normNum(nums[i][0]) === telSecun) updates.push(i + 2);
-    }
-    updates.forEach(function(row) {
-      sh.getRange(row, 4).setValue(telPrinc);
-    });
-    Logger.log("  Notas reasignadas: " + updates.length);
-  } catch(e) {
-    Logger.log("  WARN _fusion_reasignarNotas: " + e.message);
-  }
-}
-// ===== CTRL+F: FUSION_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-08 · HELPERS INTERNOS DE GS_24
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: HELPERS24_START =====
-
-/**
- * _g24_normEstado
- * Normaliza estados de citas y llamadas con/sin tilde.
- * FIX: resuelve el bug de colores que fallaban por tildes en el Sheet.
- *
- * Ejemplos:
- *   "ASISTIÓ"    → "ASISTIO"
- *   "NO ASISTIÓ" → "NO ASISTIO"
- *   "CANCELÓ"    → "CANCELADA"
- */
-function _g24_normEstado(estado) {
-  if (!estado) return "";
-  var e = estado.toUpperCase().trim()
-    .replace(/Ó/g, "O").replace(/É/g, "E")
-    .replace(/Á/g, "A").replace(/Í/g, "I")
-    .replace(/Ú/g, "U");
-
-  // Aliases
-  var map = {
-    "NO CONTESTA":        "SIN CONTACTO",
-    "NO CONTEST":         "SIN CONTACTO",
-    "ASISTIO":            "ASISTIO",
-    "ASISTIÓ":            "ASISTIO",
-    "NO ASISTIO":         "NO ASISTIO",
-    "NO ASISTIÓ":         "NO ASISTIO",
-    "EFECTIVA":           "ASISTIO",
-    "CITA CONFIRMADA":    "CITA CONFIRMADA",
-    "CANCELADA":          "CANCELADA",
-    "CANCELO":            "CANCELADA",
-    "CANCELÓ":            "CANCELADA",
-    "REAGENDADA":         "REAGENDADA",
-    "PENDIENTE":          "PENDIENTE"
-  };
-
-  return map[e] || e;
+/* ═══════════════════════ MODAL DUPLICADOS MEJORADO ═══════════════════════ */
+// ===== CTRL+F: abrirDupes =====
+function abrirDupes(){
+  document.getElementById('ov-dupes').classList.add('open');
+  document.getElementById('dupes-content').innerHTML='<div class="ld"><span class="sp"></span>Analizando...</div>';
+  google.script.run
+    .withSuccessHandler(function(res){
+      var el=document.getElementById('dupes-content');
+      if(!res||!res.ok||!res.grupos||!res.grupos.length){
+        el.innerHTML='<div class="ld" style="color:var(--vd);">✅ No se detectaron duplicados</div>'; return;
+      }
+      el.innerHTML='<div style="font-size:11px;color:var(--gr);margin-bottom:10px;">'+
+        res.total+' grupos — elige el <b>PRINCIPAL</b> y los demás quedan como SECUNDARIOS</div>'+
+        res.grupos.map(function(g,gi){
+          return '<div class="dup-g">'+
+            '<div class="dup-tipo">'+(g.tipo==='TELEFONO_DUPLICADO'?'📞 Teléfono duplicado':'👤 Nombre similar')+' · '+h(g.clave)+'</div>'+
+            g.registros.map(function(r,ri){
+              return '<div class="dup-card" id="dc-'+gi+'-'+ri+'">'+
+                '<div class="dup-card-hd">'+
+                  '<div><div class="dup-nom">'+h(r.nombres||'—')+' '+h(r.apellidos||'')+'</div>'+
+                  '<div class="dup-tel">'+h(r.tel||'—')+(r.dni?' · DNI: '+h(r.dni):'')+'</div></div>'+
+                  '<button class="btn-ep" id="bep-'+gi+'-'+ri+'"'+
+                    ' onclick="elegirPrincipal('+gi+','+ri+','+r.row+','+JSON.stringify(g.registros).replace(/</g,'\\u003c')+')"'+
+                    '>👑 Principal</button>'+
+                '</div>'+
+                '<div class="dup-stats">'+
+                  '<div class="dup-stat">Facturado: <b>S/'+(Number(r.totalFact||0).toFixed(0))+'</b></div>'+
+                  '<div class="dup-stat">Compras: <b>'+(r.totalComp||0)+'</b></div>'+
+                  '<div class="dup-stat">Últ. visita: <b>'+(r.ultVisita||'—')+'</b></div>'+
+                  '<div class="dup-stat">Estado: <b>'+h(r.estado||'NUEVO')+'</b></div>'+
+                '</div>'+
+              '</div>';
+            }).join('')+
+            '<div class="dup-preview" id="dp-'+gi+'"></div>'+
+            '<button class="btn-fusionar btn-ok rj" id="dfus-'+gi+'" onclick="confirmarFusion('+gi+')">🔀 Confirmar fusión (irreversible)</button>'+
+          '</div>';
+        }).join('');
+      window._dupGrupos=res.grupos;
+      window._dupSel={};  // {gi: {rowP, rowS}}
+    })
+    .withFailureHandler(function(e){document.getElementById('dupes-content').innerHTML='<div class="ld">Error: '+(e&&e.message||'')+'</div>';})
+    .api_detectarDuplicadosT(S.token);
 }
 
-/**
- * _g24_calcDiasUltVisita
- * Calcula días desde la última visita.
- * @param {string|Date} ultVisita Fecha de última visita
- * @returns {number|null} Días o null si no hay fecha
- */
-function _g24_calcDiasUltVisita(ultVisita) {
-  if (!ultVisita) return null;
-  try {
-    var uv  = new Date(ultVisita); uv.setHours(0, 0, 0, 0);
-    var hoy = new Date();          hoy.setHours(0, 0, 0, 0);
-    var dias = Math.floor((hoy - uv) / (1000 * 60 * 60 * 24));
-    return dias >= 0 ? dias : null;
-  } catch(e) {
-    return null;
-  }
-}
+function elegirPrincipal(gi,ri,rowElegido,registros){
+  // Guardar selección
+  var secs=registros.filter(function(r,rj){return rj!==ri;});
+  window._dupSel[gi]={rowP:rowElegido,rowS:secs[0]?secs[0].row:null,p:registros[ri],s:secs[0]};
 
-/**
- * api_getPatient360T (override wrapper enriquecido)
- * Llama a api_getPatientProfile + calcula diasUltVisita directamente.
- * FIX-04: diasUltVisita ya viene en el objeto paciente retornado,
- *         no hay que llamar a api_getPatientScore360T por separado.
- */
-function api_getPatient360(numOrId) {
-  cc_requireSession();
-  var num = _normNum(numOrId);
-  if (!num) return { ok: false, msg: "Número requerido." };
-
-  var res = api_getPatientProfile(num);
-  if (!res || !res.ok) return { ok: false, msg: "Paciente no encontrado." };
-
-  var p = res.paciente || {};
-
-  // FIX-04: calcular diasUltVisita aquí mismo
-  p.diasUltVisita = _g24_calcDiasUltVisita(p.ultVisita);
-
-  // Calcular score si no viene
-  if (!p.estado || p.estado === "") {
-    if (p.diasUltVisita === null) {
-      p.estado = "NUEVO";
-    } else if (p.diasUltVisita <= 90) {
-      p.estado = "ACTIVO";
-    } else if (p.diasUltVisita <= 180) {
-      p.estado = "EN_RIESGO";
+  // Visual: actualizar cada card del grupo
+  registros.forEach(function(r,rj){
+    var card=document.getElementById('dc-'+gi+'-'+rj);
+    var btn=document.getElementById('bep-'+gi+'-'+rj);
+    // Limpiar tags anteriores
+    var oldTag=card.querySelector('.dup-tag');if(oldTag)oldTag.remove();
+    if(rj===ri){
+      card.classList.add('principal'); card.classList.remove('secundario');
+      btn.classList.add('sel'); btn.textContent='👑 PRINCIPAL';
+      var tag=document.createElement('span');tag.className='dup-tag p';tag.textContent='PRINCIPAL';card.appendChild(tag);
     } else {
-      p.estado = "INACTIVO";
+      card.classList.add('secundario'); card.classList.remove('principal');
+      btn.classList.remove('sel'); btn.textContent='👑 Principal';
+      var tag2=document.createElement('span');tag2.className='dup-tag s';tag2.textContent='SECUNDARIO';card.appendChild(tag2);
     }
-  }
+  });
 
-  // Normalizar estado con tilde
-  p.estado = _g24_normEstado(p.estado);
+  // Preview
+  var prev=document.getElementById('dp-'+gi);
+  var p=registros[ri],s=secs[0]||{};
+  prev.style.display='block';
+  prev.innerHTML='<b>'+h(p.nombres||'—')+' '+h(p.apellidos||'')+'</b> ('+h(p.tel||'—')+') absorberá el historial de <b>'+h(s.nombres||'—')+' '+h(s.apellidos||'')+'</b> ('+h(s.tel||'—')+').<br><span style="font-size:10px;color:#14532D;">El secundario quedará como RETIRADO.</span>';
 
-  // Normalizar estados de citas en historial
-  var h = res.historial || {};
-  if (h.citas) {
-    h.citas = h.citas.map(function(c) {
-      c.estado = _g24_normEstado(c.estado);
-      return c;
-    });
-  }
-  if (h.llamadas) {
-    h.llamadas = h.llamadas.map(function(l) {
-      l.estado = _g24_normEstado(l.estado);
-      return l;
-    });
-  }
-
-  return { ok: true, paciente: p, historial: h };
-}
-// ===== CTRL+F: HELPERS24_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-09 · WRAPPERS TOKEN
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: WRAP360_START =====
-
-function api_saveHistoriaClinicaT(token, payload)            { _setToken(token); return api_saveHistoriaClinica(payload); }
-function api_getHistoriaClinicaT(token, dniOrTel)            { _setToken(token); return api_getHistoriaClinica(dniOrTel); }
-function api_saveNotaPaciente360T(token, num, texto, tipo)   { _setToken(token); return api_saveNotaPaciente360(num, texto, tipo); }
-function api_getNotasPaciente360T(token, num, tipo)          { _setToken(token); return api_getNotasPaciente360(num, tipo); }
-function api_saveSeguimientoProgramadoT(token, payload)      { _setToken(token); return api_saveSeguimientoProgramado(payload); }
-function api_getSeguimientosProgramadosT(token, num, filtro) { _setToken(token); return api_getSeguimientosProgramados(num, filtro); }
-function api_cerrarSeguimientoProgramadoT(token, segId)      { _setToken(token); return api_cerrarSeguimientoProgramado(segId); }
-function api_getPatientTimelineT(token, num)                 { _setToken(token); return api_getPatientTimeline(num); }
-function api_createCitaDesde360T(token, payload)             { _setToken(token); return api_createCitaDesde360(payload); }
-function api_getPatientScore360T(token, num)                 { _setToken(token); return api_getPatientScore360(num); }
-function api_getEquipoActivoT(token)                         { _setToken(token); return api_getEquipoActivo(); }
-
-// FIX-04: wrapper del perfil enriquecido (reemplaza api_getPatientProfileT para el panel 360)
-function api_getPatient360T(token, numOrId)                  { _setToken(token); return api_getPatient360(numOrId); }
-
-// FIX-02/03: fusión y detección con nuevos parámetros
-function api_detectarDuplicadosT(token)                              { _setToken(token); return api_detectarDuplicados(); }
-function api_fusionarPacientesT(token, rowPrincipal, rowSecundario)  { _setToken(token); return api_fusionarPacientes(rowPrincipal, rowSecundario); }
-// ===== CTRL+F: WRAP360_END =====
-
-
-// ══════════════════════════════════════════════════════════════
-// MOD-10 · TESTS
-// ══════════════════════════════════════════════════════════════
-// ===== CTRL+F: TEST360_START =====
-
-function test_GS24_v2_verificar() {
-  Logger.log("=== TEST GS_24_Pacientes360 v2.0 ===");
-
-  // Test HC
-  try {
-    var hc = api_getHistoriaClinica("99999999");
-    Logger.log("✅ api_getHistoriaClinica OK — hc: " + (hc.hc ? "encontrada" : "no existe"));
-  } catch(e) { Logger.log("❌ api_getHistoriaClinica: " + e.message); }
-
-  // Test seguimientos
-  try {
-    var segs = api_getSeguimientosProgramados(null, "vencidos");
-    Logger.log("✅ api_getSeguimientosProgramados OK — vencidos: " + segs.total);
-  } catch(e) { Logger.log("❌ api_getSeguimientosProgramados: " + e.message); }
-
-  // Test notas
-  try {
-    var notas = api_getNotasPaciente360("987654321");
-    Logger.log("✅ api_getNotasPaciente360 OK — notas: " + notas.notas.length);
-  } catch(e) { Logger.log("❌ api_getNotasPaciente360: " + e.message); }
-
-  // Test normalización de estados (FIX-03)
-  Logger.log("--- Test _g24_normEstado ---");
-  Logger.log("'ASISTIÓ'   → " + _g24_normEstado("ASISTIÓ"));       // esperado: ASISTIO
-  Logger.log("'NO ASISTIÓ'→ " + _g24_normEstado("NO ASISTIÓ"));    // esperado: NO ASISTIO
-  Logger.log("'CANCELÓ'   → " + _g24_normEstado("CANCELÓ"));       // esperado: CANCELADA
-  Logger.log("'NO CONTESTA'→ " + _g24_normEstado("NO CONTESTA"));  // esperado: SIN CONTACTO
-
-  // Test diasUltVisita (FIX-04)
-  Logger.log("--- Test _g24_calcDiasUltVisita ---");
-  var dias = _g24_calcDiasUltVisita("2026-01-01");
-  Logger.log("Días desde 2026-01-01: " + dias + " (debe ser > 0)");
-
-  // Test equipo activo (NEW-01)
-  try {
-    var equipo = api_getEquipoActivo();
-    Logger.log("✅ api_getEquipoActivo OK — asesores: " + equipo.items.length);
-  } catch(e) { Logger.log("❌ api_getEquipoActivo: " + e.message); }
-
-  // Test detectar duplicados (FIX-02)
-  try {
-    var dupes = api_detectarDuplicados();
-    Logger.log("✅ api_detectarDuplicados OK — grupos: " + dupes.total);
-    if (dupes.grupos.length > 0) {
-      var g = dupes.grupos[0];
-      Logger.log("   Primer grupo tipo: " + g.tipo + " | registros: " + g.registros.length);
-      Logger.log("   Primer registro tiene totalFact: " + g.registros[0].totalFact);
-    }
-  } catch(e) { Logger.log("❌ api_detectarDuplicados: " + e.message); }
-
-  Logger.log("=== FIN TEST GS_24 v2.0 ===");
+  // Mostrar botón fusionar
+  document.getElementById('dfus-'+gi).style.display='block';
 }
 
-/**
- * ══════════════════════════════════════════════════════════════
- * CHECKLIST DE PRUEBA — GS_24_Pacientes360.gs v2.0
- * ══════════════════════════════════════════════════════════════
- *
- * PREREQUISITO: GS_00_Repairs.gs ya ejecutado ✅
- *
- * PRUEBA 1 — Ejecutar test completo:
- *   test_GS24_v2_verificar() → todos ✅ en Logger
- *
- * PRUEBA 2 — Días sin visita:
- *   api_getPatient360T(token, "986293339")
- *   → res.paciente.diasUltVisita debe ser un número, NO null
- *
- * PRUEBA 3 — Colores de citas:
- *   En el panel, tab Citas de un paciente con citas ASISTIDAS
- *   → debe aparecer punto VERDE (no amarillo/gris)
- *
- * PRUEBA 4 — Fusión con elección de principal:
- *   api_detectarDuplicadosT(token)
- *   → cada registro en grupos.registros debe tener:
- *      { row, id, nombres, apellidos, tel, dni, totalFact, ultVisita, totalComp }
- *
- * PRUEBA 5 — Fusionar eligiendo principal:
- *   api_fusionarPacientesT(token, ROW_QUE_QUIERO, ROW_QUE_RETIRO)
- *   → el Row que quieres conserva nombre + suma acumulados
- *   → el otro queda ESTADO=RETIRADO
- *
- * SEÑALES DE ÉXITO:
- *   ✅ diasUltVisita es número en el badge del panel
- *   ✅ Citas ASISTIO = punto verde, NO ASISTIO = rojo
- *   ✅ Modal duplicados muestra totalFact y ultVisita de cada registro
- *   ✅ Puedes elegir quién es el PRINCIPAL antes de fusionar
- *   ✅ Selector Asesor en modal nueva cita tiene opciones del equipo
- */
-// ===== CTRL+F: TEST360_END =====
-
-// ══════════════════════════════════════════════════════════════
-// PATCH GS_24 — Pegar al FINAL de GS_24_Pacientes360.gs
-// AscendaOS v1 · CREACTIVE OS
-//
-// INSTRUCCIÓN EXACTA:
-//   1. Abre GS_24_Pacientes360.gs en Apps Script
-//   2. Baja hasta la ÚLTIMA línea del archivo
-//      (después del bloque TEST360_END y el comentario de checklist)
-//   3. Pega TODO este bloque sin tocar nada de lo anterior
-//   4. Ctrl+S para guardar
-//
-// QUÉ AGREGA (2 funciones nuevas):
-//   api_updateNotaPaciente360T → edita el texto de una nota por ID
-//   api_deleteNotaPaciente360T → elimina una nota por ID
-//
-// REGLAS DE ACCESO:
-//   Editar  → el mismo usuario que creó la nota, o ADMIN
-//   Eliminar → el mismo usuario que creó la nota, o ADMIN
-//
-// HOJA QUE TOCA:
-//   NOTAS_PACIENTES — cols confirmadas del Sheet real (base 0):
-//     0=ID, 1=FECHA, 2=HORA, 3=NUMERO, 4=TEXTO,
-//     5=ROL, 6=USUARIO, 7=TIPO_NOTA, 8=TS_CREADO
-// ══════════════════════════════════════════════════════════════
-
-
-// ═══════════════════════════════════════════════════
-// PATCH-GS24-01 · EDITAR NOTA
-// ===== CTRL+F: api_updateNotaPaciente360 =====
-// ═══════════════════════════════════════════════════
-
-/**
- * api_updateNotaPaciente360
- * Edita el texto de una nota existente en NOTAS_PACIENTES.
- * Busca la nota por su ID (col 0).
- *
- * Acceso: el mismo usuario que la creó, o ADMIN/ADMINISTRADOR.
- *
- * @param {string} notaId     ID único de la nota (col A de la hoja)
- * @param {string} nuevoTexto Texto de reemplazo (máx. 2000 chars)
- */
-function api_updateNotaPaciente360(notaId, nuevoTexto) {
-  var s = cc_requireSession();
-  notaId     = _norm(notaId);
-  nuevoTexto = _norm(nuevoTexto);
-
-  if (!notaId)     throw new Error("ID de nota requerido.");
-  if (!nuevoTexto) throw new Error("Texto no puede estar vacío.");
-  if (nuevoTexto.length > 2000) throw new Error("Nota máximo 2000 caracteres.");
-
-  var sh = _sh("NOTAS_PACIENTES");
-  var lr = sh.getLastRow();
-  if (lr < 2) throw new Error("Sin notas registradas.");
-
-  // Leer las 9 columnas de la hoja
-  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
-
-  for (var i = 0; i < data.length; i++) {
-    if (_norm(data[i][0]) !== notaId) continue;
-
-    // Verificar permisos
-    var usuarioNota  = _norm(data[i][6]);
-    var esAdmin      = s.rol === "ADMIN" || s.rol === "ADMINISTRADOR";
-    var esPropietario= _norm(s.asesor)  === usuarioNota ||
-                       _norm(s.usuario) === usuarioNota;
-
-    if (!esAdmin && !esPropietario)
-      throw new Error("Solo puedes editar tus propias notas.");
-
-    // Actualizar TEXTO (col 5 base-1) y marcar como editado en TIPO_NOTA (col 8)
-    sh.getRange(i + 2, 5).setValue(nuevoTexto);
-
-    var tipoActual = _norm(data[i][7]);
-    if (tipoActual && tipoActual.indexOf("(editado)") < 0) {
-      sh.getRange(i + 2, 8).setValue(tipoActual + " (editado)");
-    }
-
-    Logger.log("api_updateNotaPaciente360 OK — id: " + notaId +
-               " | por: " + s.asesor);
-
-    return { ok: true, msg: "Nota actualizada." };
-  }
-
-  throw new Error("Nota no encontrada: " + notaId);
+function confirmarFusion(gi){
+  var sel=window._dupSel&&window._dupSel[gi];
+  if(!sel||!sel.rowP||!sel.rowS){if(window.AOS_showToast)AOS_showToast('⚠️ Elige el principal primero','','');return;}
+  if(!confirm('¿Confirmar fusión?\n\nEsta acción es IRREVERSIBLE.\nEl secundario quedará como RETIRADO.')) return;
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(res&&res.ok){
+        if(window.AOS_showToast)AOS_showToast('✅ Fusión completada',res.msg||'','toast-venta');
+        abrirDupes();
+        cargarLista(document.getElementById('srch-in').value);
+      }
+    })
+    .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
+    .api_fusionarPacientesT(S.token,sel.rowP,sel.rowS);
 }
 
-function api_updateNotaPaciente360T(token, notaId, nuevoTexto) {
-  _setToken(token); return api_updateNotaPaciente360(notaId, nuevoTexto);
+/* ═══════════════════════ UTILS ═══════════════════════ */
+function p360Wa(){if(!S.pac)return;var num=(S.pac.telefono||'').replace(/\D/g,'');if(num)window.open('https://wa.me/51'+num,'_blank');}
+function cerrarOv(id){var e=document.getElementById(id);if(e)e.classList.remove('open');}
+
+// ===== CTRL+F: normSc =====
+function normSc(e){
+  if(!e)return'NUEVO';
+  var s=e.toUpperCase().trim().replace(/Ó/g,'O').replace(/É/g,'E').replace(/Á/g,'A').replace(/Í/g,'I').replace(/Ú/g,'U');
+  return{ACTIVO:'ACTIVO','EN RIESGO':'EN_RIESGO',EN_RIESGO:'EN_RIESGO',INACTIVO:'INACTIVO',NUEVO:'NUEVO',RETIRADO:'INACTIVO'}[s]||'NUEVO';
 }
-// ===== CTRL+F: api_updateNotaPaciente360_END =====
-
-
-// ═══════════════════════════════════════════════════
-// PATCH-GS24-02 · ELIMINAR NOTA
-// ===== CTRL+F: api_deleteNotaPaciente360 =====
-// ═══════════════════════════════════════════════════
-
-/**
- * api_deleteNotaPaciente360
- * Elimina una nota de NOTAS_PACIENTES por su ID.
- * La fila se borra físicamente del Sheet.
- *
- * Acceso: el mismo usuario que la creó, o ADMIN/ADMINISTRADOR.
- *
- * @param {string} notaId  ID único de la nota (col A de la hoja)
- */
-function api_deleteNotaPaciente360(notaId) {
-  var s = cc_requireSession();
-  notaId = _norm(notaId);
-  if (!notaId) throw new Error("ID de nota requerido.");
-
-  var sh = _sh("NOTAS_PACIENTES");
-  var lr = sh.getLastRow();
-  if (lr < 2) throw new Error("Sin notas registradas.");
-
-  var data = sh.getRange(2, 1, lr - 1, 9).getValues();
-
-  for (var i = 0; i < data.length; i++) {
-    if (_norm(data[i][0]) !== notaId) continue;
-
-    // Verificar permisos
-    var usuarioNota  = _norm(data[i][6]);
-    var esAdmin      = s.rol === "ADMIN" || s.rol === "ADMINISTRADOR";
-    var esPropietario= _norm(s.asesor)  === usuarioNota ||
-                       _norm(s.usuario) === usuarioNota;
-
-    if (!esAdmin && !esPropietario)
-      throw new Error("Solo puedes eliminar tus propias notas.");
-
-    // Eliminar la fila
-    sh.deleteRow(i + 2);
-
-    Logger.log("api_deleteNotaPaciente360 OK — id: " + notaId +
-               " | por: " + s.asesor);
-
-    return { ok: true, msg: "Nota eliminada." };
-  }
-
-  throw new Error("Nota no encontrada: " + notaId);
+// ===== CTRL+F: normCita =====
+function normCita(e){
+  if(!e)return'—';
+  var s=e.toUpperCase().trim().replace(/Ó/g,'O').replace(/É/g,'E').replace(/Á/g,'A').replace(/Í/g,'I').replace(/Ú/g,'U');
+  return{'ASISTIO':'ASISTIO','EFECTIVA':'ASISTIO','NO ASISTIO':'NO ASISTIO','CANCELADA':'CANCELADA','CANCELO':'CANCELADA',
+    'PENDIENTE':'PENDIENTE','REAGENDADA':'REAGENDADA','CITA CONFIRMADA':'CITA CONFIRMADA',
+    'SIN CONTACTO':'SIN CONTACTO','NO CONTESTA':'SIN CONTACTO','SEGUIMIENTO':'SEGUIMIENTO'}[s]||s;
 }
-
-function api_deleteNotaPaciente360T(token, notaId) {
-  _setToken(token); return api_deleteNotaPaciente360(notaId);
-}
-// ===== CTRL+F: api_deleteNotaPaciente360_END =====
-
-
-/**
- * ══════════════════════════════════════════════════
- * CHECKLIST DE PRUEBA — PATCH GS_24 Notas
- * ══════════════════════════════════════════════════
- *
- * PRUEBA 1 — Crear nota (ya existente, confirmar que sigue):
- *   Panel → buscar paciente → panel notas derecho
- *   → Click "+ Nueva" → escribir "Nota de prueba" → Guardar
- *   → Verificar que aparece en el panel lateral
- *   → Verificar nueva fila en NOTAS_PACIENTES del Sheet
- *
- * PRUEBA 2 — Editar nota:
- *   → Click ✏️ en la nota recién creada
- *   → Aparece textarea con el texto actual
- *   → Modificar el texto → click "✓ Guardar"
- *   → Nota se actualiza en el panel con texto nuevo
- *   → Verificar en Sheet que TEXTO cambió y TIPO_NOTA tiene "(editado)"
- *
- * PRUEBA 3 — Eliminar nota:
- *   → Click 🗑 en la nota → aparece confirmación
- *   → Confirmar → nota desaparece del panel
- *   → Verificar en Sheet que la fila ya no existe
- *
- * SEÑALES DE ÉXITO:
- *   ✅ api_updateNotaPaciente360T devuelve { ok: true }
- *   ✅ Sheet NOTAS_PACIENTES tiene el texto nuevo en col E
- *   ✅ Sheet NOTAS_PACIENTES tiene "(editado)" en col H (TIPO_NOTA)
- *   ✅ api_deleteNotaPaciente360T devuelve { ok: true }
- *   ✅ La fila fue eliminada físicamente del Sheet
- */
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
