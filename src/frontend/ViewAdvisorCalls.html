@@ -691,7 +691,7 @@ function loadHistorial(){
 function loadSeguimientosPendientes(){}
 
 function loadTrats(){
-  
+  // Cache en sessionStorage — los tratamientos no cambian durante la sesión
   try {
     var cached = sessionStorage.getItem('aos_trats');
     if (cached) {
@@ -889,7 +889,7 @@ function poblarMeses(){
 }
 
 
-
+// ── SCORE PANEL DESDE SUPABASE ──────────────────────────────
 function loadScorePanelSB(mes, anio) {
   var ctx  = window.AOS_getCtx ? window.AOS_getCtx() : {};
   var nom  = (ctx.asesor || '').toUpperCase();
@@ -912,7 +912,7 @@ function loadScorePanelSB(mes, anio) {
     set('sc-fact',  d.factMes>0 ? 'S/'+d.factMes.toFixed(0) : '');
   })
   .catch(function() {
-    
+    // fallback a GAS
     google.script.run
       .withSuccessHandler(function(res){
         if(!res||!res.ok)return; var d=res.datos||{};
