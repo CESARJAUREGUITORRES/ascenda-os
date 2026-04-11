@@ -1,4 +1,4 @@
-
+<!-- ViewAdvisorFollowups.html — Seguimientos AscendaOS v1 — Supabase directo -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 .vf-root{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
@@ -185,8 +185,10 @@ var MESES_CAL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
   loadFollowups();
 })();
 
-
-
+/* ═══════════════════════════════════════════════════════
+   CARGA PRINCIPAL — Supabase directo (~300ms)
+   Fallback a GAS si sb_rpc no está disponible
+═══════════════════════════════════════════════════════ */
 function loadFollowups() {
   document.getElementById('seg-list').innerHTML =
     '<div class="ld"><span class="sp-anim"></span>Cargando seguimientos...</div>';
@@ -221,7 +223,7 @@ function loadFollowupsGAS() {
           '<div class="ld" style="color:#DC2626;">Error al cargar. Intenta de nuevo.</div>';
         return;
       }
-      
+      // Adaptar formato GAS al formato interno
       var hoy = new Date().toISOString().slice(0,10);
       var d = {
         items: (res.items||[]).map(function(s) {
@@ -278,8 +280,9 @@ function _renderFollowups(d) {
   renderProximos(VF.allItems);
 }
 
-
-
+/* ═══════════════════════════════════════════════════════
+   TABS Y RENDERIZADO
+═══════════════════════════════════════════════════════ */
 function setTab(t) {
   VF.tab = t;
   var clsMap = { vencido:'act-r', hoy:'act-a', proximo:'act-b', sin_fecha:'act-gr', todos:'act-g' };
@@ -423,8 +426,9 @@ function renderProximos(items) {
   }).join('');
 }
 
-
-
+/* ═══════════════════════════════════════════════════════
+   ACCIONES
+═══════════════════════════════════════════════════════ */
 function openWa(wa) { if(wa) window.open(wa,'_blank'); }
 
 function navegarLlamar(num) {
@@ -435,7 +439,7 @@ function navegarLlamar(num) {
 function cerrarSeg(segId) {
   if(!segId || !confirm('¿Marcar este seguimiento como cerrado?')) return;
 
-  
+  // Intentar cerrar en Supabase directo
   if(window.sb_rpc) {
     window.sb_rpc('aos_cerrar_seguimiento', { p_id: segId })
     .then(function() {
@@ -443,7 +447,7 @@ function cerrarSeg(segId) {
       loadFollowups();
     })
     .catch(function() {
-      
+      // Fallback a GAS si el segId es un rowNum numérico
       var rowNum = parseInt(segId, 10);
       if(!isNaN(rowNum) && rowNum > 0) {
         cerrarSegGAS(rowNum);
@@ -506,7 +510,7 @@ function guardarNuevo() {
 }
 
 function loadTrats() {
-  
+  // Cache en sessionStorage
   try {
     var cached = sessionStorage.getItem('aos_trats');
     if(cached){
