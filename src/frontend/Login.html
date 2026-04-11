@@ -215,14 +215,14 @@ function onLoginOk(res) {
 
   document.getElementById('loading-ov').classList.add('show');
 
-  
-  
+  // FIX: api_login ya devuelve scriptUrl — navegamos sin segundo request
+  // Elimina el error "No Listener" causado por el timeout del segundo request
   if (res.scriptUrl) {
     window.location.href = res.scriptUrl + '?page=app';
     return;
   }
 
-  
+  // Fallback solo si api_login no devolvió la URL (versión vieja de GAS_02)
   google.script.run
     .withSuccessHandler(function(url) {
       window.location.href = (url || window.location.href.split('?')[0]) + '?page=app';
