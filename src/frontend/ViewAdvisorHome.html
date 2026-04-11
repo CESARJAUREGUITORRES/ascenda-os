@@ -234,20 +234,22 @@ var VH = { token: '' };
   loadTurnos();
 })();
 
- 
+/* ── EMBUDO DEL MES ── */
 
-
-
+/* ── CARGA RÁPIDA FASE 1 ─────────────────────────────────────
+   Un solo request devuelve todo el panel del asesor (~1.5s)
+   vs 5 requests separados (~8s) antes
+────────────────────────────────────────────────────────────── */
 function loadPanelFast() {
   google.script.run
     .withSuccessHandler(function(res) {
       if (!res || !res.ok) {
-        
+        // fallback: cargar individual
         loadDashboard();
         loadEmbudo();
         return;
       }
-      
+      // Renderizar embudo
       if (res.embudo) {
         var d = res.embudo;
         var el = function(id) { return document.getElementById(id); };
@@ -258,7 +260,7 @@ function loadPanelFast() {
         if (el('emb-fact'))   el('emb-fact').textContent   =
           'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
       }
-      
+      // Renderizar comisiones si vienen
       if (res.comisiones) {
         var c = res.comisiones;
         var el2 = function(id) { return document.getElementById(id); };
@@ -267,7 +269,7 @@ function loadPanelFast() {
         if (el2('com-prog'))  el2('com-prog').style.width  = Math.min(c.pct||0, 100) + '%';
         if (el2('com-pct'))   el2('com-pct').textContent   = (c.pct||0) + '% completado';
       }
-      
+      // Renderizar seguimientos
       if (res.seguimientos && typeof renderSegs === 'function') {
         renderSegs(res.seguimientos);
       }
