@@ -1,10 +1,10 @@
-<!-- ViewAdminSales.html v2.0 — Panel de Ventas Admin AscendaOS -->
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 .vs{padding:12px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;background:#F0F4FC;min-height:100%;}
 
-/* FILTROS */
+ 
 .vs-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .vs-title{font-family:'Exo 2',sans-serif;font-weight:900;font-size:13px;letter-spacing:.5px;color:#0D1B3E;}
 .modo-grp{display:flex;border-radius:8px;overflow:hidden;border:1px solid #DDE4F5;}
@@ -18,16 +18,16 @@
 .rango-wrap{display:none;align-items:center;gap:6px;}
 .rango-wrap.show{display:flex;}
 
-/* CARD */
+ 
 .card{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:14px;}
 .c-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .c-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#0D1B3E;}
 
-/* GRIDS */
+ 
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 .g3e{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 
-/* KPI HERO */
+ 
 .kpi-hero{background:#0A4FBF;border-radius:13px;padding:16px 20px;color:#fff;}
 .kh-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:4px;}
 .kh-val{font-family:'Exo 2',sans-serif;font-size:30px;font-weight:900;line-height:1;}
@@ -35,7 +35,7 @@
 .kh-sub{font-size:11px;opacity:.7;margin-top:4px;}
 .kh-delta{font-size:12px;font-weight:700;margin-top:5px;}
 
-/* SEDES */
+ 
 .sede-card{border-radius:10px;padding:12px 14px;border:1.5px solid;}
 .sede-si{background:#EBF2FF;border-color:#BFDBFE;}
 .sede-pl{background:#F0FDF4;border-color:#BBF7D0;}
@@ -50,7 +50,7 @@
 .sede-usd{font-size:10px;margin-top:3px;opacity:.8;}
 .sede-si .sede-usd{color:#0A4FBF;}.sede-pl .sede-usd{color:#15803D;}
 
-/* PROYECCIÓN */
+ 
 .proy-bar-bg{height:10px;background:#F0F4FC;border-radius:20px;overflow:hidden;margin:8px 0;}
 .proy-bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
 .proy-meta-bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#22C55E);}
@@ -61,7 +61,7 @@
 .proy-val{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:800;color:#0D1B3E;}
 .proy-val.amber{color:#D97706;}.proy-val.green{color:#16A34A;}.proy-val.blue{color:#0A4FBF;}
 
-/* KPI FILA SECUNDARIA */
+ 
 .kpis-bar{background:#fff;border:1px solid #DDE4F5;border-radius:13px;}
 .kpis-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;}
 .kp{padding:8px 10px;border-right:1px solid #F0F4FC;text-align:center;}
@@ -71,14 +71,14 @@
 .kp-s{font-size:9px;color:#9AAAC8;margin-top:2px;}
 .kp-v.blue{color:#0A4FBF;}.kp-v.green{color:#16A34A;}.kp-v.amber{color:#D97706;}.kp-v.red{color:#DC2626;}
 
-/* CHIPS SEDE para métodos de pago */
+ 
 .sede-chips{display:flex;gap:5px;margin-bottom:10px;}
 .sede-chip-btn{padding:4px 12px;border-radius:20px;border:1.5px solid #DDE4F5;background:#fff;color:#6B7BA8;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .sede-chip-btn.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
 .sede-chip-btn.act-si{background:#0A4FBF;border-color:#0A4FBF;}
 .sede-chip-btn.act-pl{background:#16A34A;border-color:#16A34A;}
 
-/* MÉTODOS DE PAGO */
+ 
 .pago-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(221,228,245,.35);}
 .pago-row:last-child{border-bottom:none;}
 .pago-nombre{font-size:11px;font-weight:600;color:#0D1B3E;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -87,7 +87,7 @@
 .pago-monto{font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;color:#0A4FBF;min-width:75px;text-align:right;}
 .pago-cnt{font-size:9px;color:#9AAAC8;min-width:20px;text-align:right;}
 
-/* TOP BARRAS */
+ 
 .top-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(221,228,245,.3);}
 .top-row:last-child{border-bottom:none;}
 .top-pos{font-size:10px;font-weight:800;color:#9AAAC8;width:18px;text-align:center;flex-shrink:0;}
@@ -97,7 +97,7 @@
 .top-fact{font-family:'Exo 2',sans-serif;font-size:11px;font-weight:800;color:#0A4FBF;min-width:65px;text-align:right;}
 .top-cnt{font-size:9px;color:#9AAAC8;min-width:18px;text-align:right;}
 
-/* TABLA */
+ 
 .det-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
 .det-sel{padding:4px 8px;border-radius:7px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
 table{width:100%;border-collapse:collapse;}
@@ -119,7 +119,7 @@ tr:hover td{background:#FAFBFF;}
 .p-pl{background:#F0FDF4;color:#16A34A;}
 .p-usd{background:#F0FDF4;color:#16A34A;}
 
-/* PAGINACIÓN */
+ 
 .pag{display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-top:4px;}
 .pag-info{font-size:10px;color:#9AAAC8;}
 .pag-btns{display:flex;gap:3px;}
@@ -128,7 +128,7 @@ tr:hover td{background:#FAFBFF;}
 .pag-btn.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
 .pag-btn:disabled{opacity:.4;cursor:not-allowed;}
 
-/* MODAL BASE */
+ 
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,27,62,.45);display:flex;align-items:center;justify-content:center;z-index:9999;}
 .modal-box{background:#fff;border-radius:16px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .modal-box.w640{width:640px;}
@@ -142,7 +142,7 @@ tr:hover td{background:#FAFBFF;}
 .modal-body::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .modal-ft{padding:12px 20px 16px;border-top:1px solid #F0F4FC;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
 
-/* MODAL ADELANTOS */
+ 
 .adel-item{padding:12px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:background .15s;}
 .adel-item:hover{background:#FEF3C7;}
 .adel-nom{font-size:12px;font-weight:700;color:#0D1B3E;}
@@ -154,7 +154,7 @@ tr:hover td{background:#FAFBFF;}
 .btn-pagado{padding:5px 12px;border-radius:7px;border:none;cursor:pointer;background:#0A4FBF;color:#fff;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;}
 .btn-ver-hist{padding:5px 10px;border-radius:7px;border:1px solid #DDE4F5;cursor:pointer;background:#fff;color:#6B7BA8;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;}
 
-/* HISTORIAL CLIENTE */
+ 
 .hist-item{padding:8px 0;border-bottom:1px solid rgba(221,228,245,.35);display:flex;align-items:center;gap:8px;}
 .hist-item:last-child{border-bottom:none;}
 .hist-fecha{font-size:10px;color:#9AAAC8;width:80px;flex-shrink:0;}
@@ -166,7 +166,7 @@ tr:hover td{background:#FAFBFF;}
 .ht-lbl{font-size:9px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
 .ht-v{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:800;}
 
-/* CONFIG MODAL */
+ 
 .cfg-tabs{display:flex;border-bottom:1px solid #DDE4F5;margin-bottom:14px;}
 .cfg-tab{padding:8px 16px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#9AAAC8;font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .cfg-tab.act{color:#0A4FBF;border-bottom-color:#0A4FBF;}
@@ -179,7 +179,7 @@ tr:hover td{background:#FAFBFF;}
 .save-btn{padding:7px 18px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;}
 .add-btn{padding:5px 12px;border-radius:7px;border:1.5px dashed #DDE4F5;background:#F8FAFF;color:#0A4FBF;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;margin-top:8px;}
 
-/* META HISTÓRICO */
+ 
 .meta-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.3);}
 .meta-row:last-child{border-bottom:none;}
 .meta-per{font-size:11px;font-weight:700;color:#0D1B3E;width:80px;}
@@ -188,12 +188,12 @@ tr:hover td{background:#FAFBFF;}
 .meta-pct{font-size:10px;font-weight:700;width:45px;text-align:right;}
 .meta-v{font-family:'Exo 2',sans-serif;font-size:11px;font-weight:800;color:#0A4FBF;width:85px;text-align:right;}
 
-/* SCROLLABLES */
+ 
 .sc{overflow-y:auto;}
 .sc::-webkit-scrollbar{width:3px;}
 .sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
 
-/* LOADING */
+ 
 .ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
 .sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -202,7 +202,7 @@ tr:hover td{background:#FAFBFF;}
 
 <div class="vs">
 
-  <!-- FILTROS -->
+  
   <div class="vs-top">
     <div class="vs-title">&#128722; Ventas</div>
     <div class="modo-grp">
@@ -235,7 +235,7 @@ tr:hover td{background:#FAFBFF;}
     </button>
   </div>
 
-  <!-- ROW 1: Hero + Sedes + Proyección -->
+  
   <div class="g3">
     <div class="kpi-hero">
       <div class="kh-lbl">Facturado del per&iacute;odo</div>
@@ -301,7 +301,7 @@ tr:hover td{background:#FAFBFF;}
     </div>
   </div>
 
-  <!-- ROW 2: KPIs secundarios -->
+  
   <div class="kpis-bar">
     <div class="kpis-row">
       <div class="kp"><div class="kp-l">Servicios</div><div class="kp-v" id="kpi-nserv">&mdash;</div><div class="kp-s" id="kpi-fserv">S/&mdash;</div></div>
@@ -314,7 +314,7 @@ tr:hover td{background:#FAFBFF;}
     </div>
   </div>
 
-  <!-- ROW 3: Métodos pago + Top Asesores + Top Tratamientos -->
+  
   <div class="g3e">
 
     <div class="card">
@@ -339,7 +339,7 @@ tr:hover td{background:#FAFBFF;}
 
   </div>
 
-  <!-- ROW 4: Tabla detalle -->
+  
   <div class="card">
     <div class="c-hd">
       <div class="c-t">&#128203; Detalle de ventas</div>
@@ -384,7 +384,7 @@ tr:hover td{background:#FAFBFF;}
 
 </div>
 
-<!-- MODAL ADELANTOS -->
+
 <div class="modal-overlay" id="adel-modal" style="display:none;">
   <div class="modal-box w640">
     <div class="modal-hd">
@@ -397,7 +397,7 @@ tr:hover td{background:#FAFBFF;}
   </div>
 </div>
 
-<!-- MODAL HISTORIAL CLIENTE -->
+
 <div class="modal-overlay" id="hist-modal" style="display:none;">
   <div class="modal-box w640">
     <div class="modal-hd">
@@ -410,7 +410,7 @@ tr:hover td{background:#FAFBFF;}
   </div>
 </div>
 
-<!-- MODAL CONFIGURACIÓN -->
+
 <div class="modal-overlay" id="cfg-modal" style="display:none;">
   <div class="modal-box w780">
     <div class="modal-hd">
@@ -422,7 +422,7 @@ tr:hover td{background:#FAFBFF;}
         <button class="cfg-tab act" id="cfg-tab-metas"   onclick="setCfgTab('metas')">Metas mensuales</button>
         <button class="cfg-tab"     id="cfg-tab-metodos" onclick="setCfgTab('metodos')">M&eacute;todos de pago</button>
       </div>
-      <!-- SECCIÓN METAS -->
+      
       <div class="cfg-section show" id="cfg-metas">
         <div style="font-size:11px;color:#6B7BA8;margin-bottom:12px;">
           Ingresa la meta de facturaci&oacute;n en soles para cada mes/a&ntilde;o.
@@ -437,7 +437,7 @@ tr:hover td{background:#FAFBFF;}
           <div id="cfg-hist-metas"><div class="ld"><span class="sp"></span></div></div>
         </div>
       </div>
-      <!-- SECCIÓN MÉTODOS -->
+      
       <div class="cfg-section" id="cfg-metodos">
         <div style="font-size:11px;color:#6B7BA8;margin-bottom:12px;">
           Gestiona los m&eacute;todos de pago por sede.
@@ -478,14 +478,14 @@ var MNOM = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
   var now = new Date();
   document.getElementById('mes-sel').value  = VS.mes;
   document.getElementById('anio-sel').value = VS.anio;
-  // Poner fecha de hoy en los inputs rango
+  
   var hoyStr = now.toISOString().slice(0,10);
   document.getElementById('desde-sel').value = hoyStr;
   document.getElementById('hasta-sel').value = hoyStr;
   reload();
 })();
 
-// ── Modo selector ──────────────────────────────────────────
+
 function setModo(m) {
   VS.modo = m;
   ['hoy','mes','anio','rango'].forEach(function(x){
@@ -536,7 +536,7 @@ function renderAll(res) {
   poblarFiltroAsesores(res.asesorList || []);
 }
 
-// ── KPI Hero ──────────────────────────────────────────────
+
 function renderHero(res) {
   var k = res.kpis || {};
   document.getElementById('sede-periodo').textContent = res.periodoLabel || '';
@@ -560,7 +560,7 @@ function renderHero(res) {
   } else { el.textContent = ''; }
 }
 
-// ── Sedes ─────────────────────────────────────────────────
+
 function renderSedes(res) {
   var k = res.kpis || {};
   document.getElementById('sede-si-fact').textContent = fmt(k.factSI||0,'PEN');
@@ -583,7 +583,7 @@ function renderSedes(res) {
   } else plUSD.style.display = 'none';
 }
 
-// ── Proyección ────────────────────────────────────────────
+
 function renderProyeccion(p, modo) {
   var wrap  = document.getElementById('proy-wrap');
   var noMes = document.getElementById('proy-no-mes');
@@ -602,7 +602,7 @@ function renderProyeccion(p, modo) {
   document.getElementById('proy-fin-lbl').textContent = 'Día ' + p.diasMes;
   document.getElementById('proy-ritmo').textContent  = fmt(p.ritmoActual||0,'PEN') + '/día';
   document.getElementById('proy-total').textContent  = fmt(p.proyeccionMes||0,'PEN');
-  // Meta
+  
   var metaWrap = document.getElementById('proy-meta-wrap');
   if (p.meta && p.meta > 0) {
     metaWrap.style.display = '';
@@ -617,7 +617,7 @@ function renderProyeccion(p, modo) {
   }
 }
 
-// ── KPIs secundarios ──────────────────────────────────────
+
 function renderKpisSecundarios(k) {
   document.getElementById('kpi-nserv').textContent  = k.nServicios  || 0;
   document.getElementById('kpi-fserv').textContent  = fmt(k.factServ||0,'PEN');
@@ -631,7 +631,7 @@ function renderKpisSecundarios(k) {
   document.getElementById('kpi-ticket').textContent = fmt(k.ticketProm||0,'PEN');
 }
 
-// ── Métodos de pago con chips ──────────────────────────────
+
 function setChipSede(s) {
   VS.chipSede = s;
   ['todos','SAN ISIDRO','PUEBLO LIBRE'].forEach(function(x) {
@@ -646,7 +646,7 @@ function renderPagos(lista, filtroSede) {
   var el = document.getElementById('pagos-lista');
   if (!lista.length) { el.innerHTML = '<div class="vacio">Sin datos</div>'; return; }
 
-  // Filtrar por sede si aplica
+  
   var filtered = [];
   var maxF = 0;
   lista.forEach(function(p) {
@@ -681,7 +681,7 @@ function renderPagos(lista, filtroSede) {
   el.innerHTML = html || '<div class="vacio">Sin datos para esta sede</div>';
 }
 
-// ── Top Asesores ──────────────────────────────────────────
+
 function renderTopAsesores(lista) {
   var el = document.getElementById('top-asesores');
   if (!lista.length) { el.innerHTML = '<div class="vacio">Sin datos</div>'; return; }
@@ -700,7 +700,7 @@ function renderTopAsesores(lista) {
   el.innerHTML = html;
 }
 
-// ── Top Tratamientos ──────────────────────────────────────
+
 function renderTopTrats(lista) {
   var el = document.getElementById('top-trats');
   if (!lista.length) { el.innerHTML = '<div class="vacio">Sin datos</div>'; return; }
@@ -720,7 +720,7 @@ function renderTopTrats(lista) {
   el.innerHTML = html;
 }
 
-// ── Tabla paginada ─────────────────────────────────────────
+
 function poblarFiltroAsesores(lista) {
   var sel = document.getElementById('fil-asesor');
   var cur = sel.value;
@@ -798,7 +798,7 @@ function renderPaginacion(page, pages, total) {
   el.innerHTML = html;
 }
 
-// ── Modal Adelantos ────────────────────────────────────────
+
 function abrirAdelantos() {
   document.getElementById('adel-modal').style.display = 'flex';
   if (VS.data && VS.data.adelantos) renderAdelantosList(VS.data.adelantos);
@@ -847,7 +847,7 @@ function marcarPagado(vid) {
     .api_marcarPagadoT(VS.token, vid);
 }
 
-// ── Modal Historial Cliente ────────────────────────────────
+
 function verHistorialCliente(num, nomLabel) {
   document.getElementById('hist-modal').style.display = 'flex';
   document.getElementById('hist-ttl').textContent = 'Historial: ' + (nomLabel||num);
@@ -871,14 +871,14 @@ function renderHistorialCliente(res) {
   var html = '<div style="font-size:11px;color:#6B7BA8;margin-bottom:10px;">' +
     res.nVisitas + ' registros · <b>' + res.nombre + '</b> · ' + res.num + '</div>';
 
-  // Totales resumen
+  
   html += '<div class="hist-total-row">' +
     '<div class="ht-box"><div class="ht-lbl">Total pagado</div><div class="ht-v" style="color:#16A34A;">' + fmt(res.totalPagado,'PEN') + '</div></div>' +
     '<div class="ht-box"><div class="ht-lbl">Adelantos</div><div class="ht-v" style="color:#D97706;">' + fmt(res.totalAdelanto,'PEN') + '</div></div>' +
     '<div class="ht-box"><div class="ht-lbl">Sin estado</div><div class="ht-v" style="color:#DC2626;">' + fmt(res.totalPendiente,'PEN') + '</div></div>' +
     '</div>';
 
-  // Tabla historial
+  
   html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #F0F4FC;">';
   res.items.forEach(function(v) {
     var ePago = v.estadoPago === 'PAGO COMPLETO' ? 'p-completo' :
@@ -896,7 +896,7 @@ function renderHistorialCliente(res) {
   });
   html += '</div>';
 
-  // Botón WA con plantilla
+  
   var numWA = res.num ? res.num.replace(/\D/g,'') : '';
   var textWA = encodeURIComponent('Hola ' + (res.nombre.split(' ')[0]||'') + ', le saluda el equipo de Zi Vital. Nos gustaría hacer seguimiento a su tratamiento pendiente. ¿Le gustaría agendar su próxima cita?');
   html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #F0F4FC;display:flex;gap:8px;">' +
@@ -907,7 +907,7 @@ function renderHistorialCliente(res) {
   el.innerHTML = html;
 }
 
-// ── Modal Config ──────────────────────────────────────────
+
 function abrirConfig() {
   document.getElementById('cfg-modal').style.display = 'flex';
   setCfgTab(VS.cfgTab);
@@ -963,7 +963,7 @@ function renderCfgMetodos(metodos) {
 }
 
 function renderCfgHistMetas(metas) {
-  // Necesitamos comparar meta vs resultado real — usamos data del dashboard
+  
   var el = document.getElementById('cfg-hist-metas');
   if (!metas.length) { el.innerHTML = '<div class="vacio">Sin metas registradas</div>'; return; }
   var html = '';
@@ -1005,7 +1005,7 @@ function agregarFilaMetodo() {
 
 function eliminarFilaMeta(btn, rowNum) {
   var div = btn.closest('.cfg-row');
-  if (rowNum > 0) { /* se elimina al guardar, solo ocultar */ }
+  if (rowNum > 0) {   }
   div.remove();
 }
 
@@ -1070,7 +1070,7 @@ function guardarConfig() {
   guardarSig(0);
 }
 
-// ── Helpers ────────────────────────────────────────────────
+
 function cerrarModal(id) {
   document.getElementById(id).style.display = 'none';
 }

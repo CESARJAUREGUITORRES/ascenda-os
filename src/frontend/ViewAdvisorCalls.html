@@ -1,19 +1,7 @@
-<!-- ViewAdvisorCalls.html — Call Center AscendaOS v2.7
-     FASE 9 — Cambios v2.0:
-     ASESOR-1: "SIN CONTACTO" reemplaza "NO CONTESTA" + sub-tipificación
-     ASESOR-2: Hora seguimiento en 24h con AM/PM explícito
-     ASESOR-3: Click en número/cliente → Ficha 360° panel lateral
-     ASESOR-4: Modal cita mejorado (ya existía, refinado)
-     ASESOR-5: Eliminado botón "Registrar venta"
-     BLOQUE 2.5 — Ficha contextual del lead (4 parches quirúrgicos):
-     P1: CSS .ctx-* añadido al final del bloque style
-     P2: div#cc-contexto insertado antes de .num-block-hint
-     P3: función renderContexto() añadida al final del script
-     P4: renderContexto(res.lead.contexto) llamado en loadLead()
--->
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-/* ── MÉTRICAS STRIP ── */
+ 
 .mstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:13px 13px 0;}
 .ms-card{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;}
 .ms-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
@@ -24,7 +12,7 @@
 .ms-val{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
 .ms-sub{font-size:10px;font-weight:600;color:#6B7BA8;}
 
-/* ── LAYOUT PRINCIPAL ── */
+ 
 .cc-layout{display:grid;grid-template-columns:430px 1fr;gap:12px;padding:10px 13px 13px;}
 .cc-left{display:flex;flex-direction:column;gap:0;}
 .cc-center{display:none;}
@@ -37,7 +25,7 @@
 .s-lbl{font-size:9px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
 .s-sub{font-size:10px;color:#6B7BA8;}
 
-/* ── CARDS ── */
+ 
 .card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
 .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.5px;color:#0D1B3E;}
@@ -46,7 +34,7 @@
 .p-tier{background:#EBF2FF;border:1px solid #BFDBFE;color:#0A4FBF;}
 .slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
 
-/* ── NÚMERO / LEAD ACTIVO ── */
+ 
 .num-block{background:linear-gradient(135deg,#EBF2FF,#E0F7F3);border-radius:12px;padding:13px 15px;margin-bottom:10px;border:1px solid #DBEAFE;cursor:pointer;transition:border-color .15s;}
 .num-block:hover{border-color:#0A4FBF;}
 .num-block-hint{font-size:9px;color:#6B7BA8;margin-top:4px;text-align:right;}
@@ -61,14 +49,14 @@
 .ib:hover{background:#EBF2FF;}
 .ib svg{width:14px;height:14px;}
 
-/* ── BOTONES ── */
+ 
 .cbtns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
 .cbtn{padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;border:none;transition:opacity .15s,transform .1s;}
 .cbtn:hover{opacity:.88;transform:translateY(-1px);}
 .cb-call{background:#0A4FBF;color:#fff;}
 .cb-wa{background:#25D366;color:#fff;}
 
-/* ── TIPIFICACIÓN ── */
+ 
 .tipif-wrap{margin-bottom:8px;}
 .fsel{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
 .fsel:focus{border-color:#0A4FBF;background:#fff;}
@@ -84,7 +72,7 @@
 .sbtn-main{width:100%;padding:10px;border-radius:9px;background:#0A4FBF;border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s;}
 .sbtn-main:disabled{opacity:.55;cursor:not-allowed;}
 
-/* ── HISTORIAL ── */
+ 
 .hist-wrap{margin-top:11px;border-top:1px solid #DDE4F5;padding-top:10px;flex:1;min-height:0;display:flex;flex-direction:column;}
 .hist-scroll{flex:1;overflow-y:auto;min-height:0;}
 .hist-scroll::-webkit-scrollbar{width:3px;}
@@ -102,7 +90,7 @@
 .est-prov{background:#FFFBEB;color:#D97706;}
 .est-base{background:#F0F4FC;color:#6B7BA8;}
 
-/* ── PANEL DERECHO ── */
+ 
 .scard{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:13px;}
 .schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
 .st{font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;letter-spacing:.4px;color:#0D1B3E;}
@@ -120,7 +108,7 @@
 .no-lead{text-align:center;padding:24px;}
 .no-lead .ico{font-size:30px;margin-bottom:8px;}
 
-/* ── FICHA 360° ── */
+ 
 .ficha-360{position:fixed;top:0;right:-460px;width:460px;height:100vh;background:#fff;border-left:1px solid #DDE4F5;z-index:600;display:flex;flex-direction:column;transition:right .3s ease;box-shadow:-8px 0 32px rgba(10,79,191,.08);}
 .ficha-360.open{right:0;}
 .ficha-hd{padding:16px 18px;border-bottom:1px solid #DDE4F5;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;background:#fff;}
@@ -170,7 +158,7 @@
 .ficha-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.2);z-index:599;}
 .ficha-overlay.open{display:block;}
 
-/* ── MODALES ── */
+ 
 .mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}
 .mov.open{display:flex;}
 .modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:460px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
@@ -214,7 +202,7 @@
 .cd-hoy{border-color:#0A4FBF!important;box-shadow:0 0 0 2px rgba(10,79,191,.2);}
 .cd-sel{background:#EBF2FF!important;border-color:#0A4FBF!important;}
 
-/* ══ PARCHE 1 — BLOQUE 2.5: Ficha contextual ══════════════════ */
+ 
 .ctx-bloque{margin-top:8px;padding:9px 11px;background:#EBF2FF;border-radius:9px;border-left:3px solid #0A4FBF;}
 .ctx-title{font-size:9px;font-weight:800;color:#0A4FBF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
 .ctx-row{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:10px;line-height:1.4;}
@@ -226,10 +214,10 @@
 .ctx-badge-asistio{background:#F0FDF4;color:#15803D;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;}
 .ctx-badge-cancelada{background:#FFFBEB;color:#D97706;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;}
 .ctx-badge-cita-conf{background:#EBF2FF;color:#0A4FBF;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;}
-/* ══ FIN PARCHE 1 ══════════════════════════════════════════════ */
+ 
 </style>
 
-<!-- ══ DISPONIBILIDAD DE ATENCIÓN — VISTA SEMANAL ══ -->
+
 <div style="margin:8px 13px 0;background:#fff;border:1px solid #DDE4F5;border-radius:14px;overflow:hidden;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px 8px;border-bottom:1px solid #DDE4F5;flex-wrap:wrap;gap:6px;">
     <div style="display:flex;align-items:center;gap:8px;">
@@ -333,9 +321,9 @@
           </div>
           <div class="num-ad" id="cc-anuncio2" style="display:none;"></div>
 
-          <!-- ══ PARCHE 2 — BLOQUE 2.5: div contexto ══════════════════════ -->
+          
           <div id="cc-contexto" style="display:none;"></div>
-          <!-- ══ FIN PARCHE 2 ═════════════════════════════════════════════ -->
+          
 
           <div class="num-block-hint">👆 Toca para ver ficha completa</div>
         </div>
@@ -497,7 +485,7 @@
   </div>
 </div>
 
-<!-- ══ FICHA 360° ══ -->
+
 <div class="ficha-overlay" id="ficha-overlay" onclick="cerrarFicha360()"></div>
 <div class="ficha-360" id="ficha-360">
   <div class="ficha-hd">
@@ -535,7 +523,7 @@
   <div class="ficha-tab-content" id="ficha-tab-content"><div class="ld-inline"><span class="sp-sm"></span>Cargando...</div></div>
 </div>
 
-<!-- MODAL LLAMADA MANUAL -->
+
 <div class="mov" id="cc-m-manual">
   <div class="modal" style="max-width:420px;">
     <div class="mhd"><span style="font-size:20px;">&#128222;</span><div><div class="mtit">Llamada manual</div><div class="msub">Busca por nombre o número</div></div></div>
@@ -679,9 +667,9 @@ function loadLead(){
     document.getElementById('cc-tipif').value='';
     document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(res.lead.num);
-    /* ══ PARCHE 4 — BLOQUE 2.5: renderizar contexto ══════════════ */
+     
     renderContexto(res.lead.contexto||null);
-    /* ══ FIN PARCHE 4 ════════════════════════════════════════════ */
+     
   }).withFailureHandler(function(){document.getElementById('cc-num').textContent='Error al cargar';}).api_getNextLeadT(CC.token);
 }
 
@@ -703,10 +691,23 @@ function loadHistorial(){
 function loadSeguimientosPendientes(){}
 
 function loadTrats(){
+  
+  try {
+    var cached = sessionStorage.getItem('aos_trats');
+    if (cached) {
+      var items = JSON.parse(cached);
+      var sel = document.getElementById('cc-c-trat');
+      if (sel && items.length) {
+        sel.innerHTML = items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');
+        return;
+      }
+    }
+  } catch(e) {}
   google.script.run.withSuccessHandler(function(res){
     if(!res||!res.ok)return;
     var sel=document.getElementById('cc-c-trat');
-    sel.innerHTML=res.items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');
+    if (sel) sel.innerHTML=res.items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');
+    try { sessionStorage.setItem('aos_trats', JSON.stringify(res.items||[])); } catch(e) {}
   }).withFailureHandler(function(){}).api_listTratamientosT(CC.token);
 }
 
@@ -868,7 +869,7 @@ var _segsData=[],_segFiltro='todos',_tipoPeriodo='mes';
 
 function setPanelTab(tab){
   ['score','segs','top'].forEach(function(t){var b=document.getElementById('ptab-'+t),p=document.getElementById('panel-'+t);if(b)b.classList.toggle('act',t===tab);if(p)p.style.display=(t===tab?'block':'none');});
-  if(tab==='score')loadScorePanel();if(tab==='segs')loadSegsPanel();if(tab==='top')loadTopPanel();
+  if(tab==='score'){ if(window.sb_rpc){ var n=new Date(); loadScorePanelSB(n.getMonth()+1, n.getFullYear()); } else { loadScorePanel(); } }if(tab==='segs')loadSegsPanel();if(tab==='top')loadTopPanel();
 }
 
 function setTipoPeriodo(tipo){
@@ -885,6 +886,45 @@ function poblarMeses(){
   var yr=now.getFullYear();
   for(var y=yr;y>=yr-3;y--)aHtml+='<option value="'+y+'"'+(y===yr?' selected':'')+'>'+y+'</option>';
   var sa=document.getElementById('score-anio-sel');if(sa)sa.innerHTML=aHtml;
+}
+
+
+
+function loadScorePanelSB(mes, anio) {
+  var ctx  = window.AOS_getCtx ? window.AOS_getCtx() : {};
+  var nom  = (ctx.asesor || '').toUpperCase();
+  var idAs = ctx.idAsesor || '';
+  var mesI = anio + '-' + String(mes).padStart(2,'0') + '-01';
+
+  window.sb_rpc('aos_panel_asesor', {
+    p_asesor: nom, p_id_asesor: idAs,
+    p_hoy: new Date().toISOString().slice(0,10),
+    p_mes_inicio: mesI
+  })
+  .then(function(d) {
+    if (!d) return;
+    var set = function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    set('sc-llam',  d.llamMes   || 0);
+    set('sc-citas', d.citasMes  || 0);
+    set('sc-asist', d.asistMes  || 0);
+    set('sc-ventas',d.ventasMes || 0);
+    set('sc-pct',   d.llamMes>0 ? Math.round((d.citasMes||0)/d.llamMes*100)+'%' : '');
+    set('sc-fact',  d.factMes>0 ? 'S/'+d.factMes.toFixed(0) : '');
+  })
+  .catch(function() {
+    
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.ok)return; var d=res.datos||{};
+        var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+        set('sc-llam',d.llamadas||0);set('sc-citas',d.citas||0);
+        set('sc-asist',d.asistieron||0);set('sc-ventas',d.ventas||0);
+        set('sc-pct',d.llamadas>0?Math.round((d.citas||0)/d.llamadas*100)+'%':'');
+        set('sc-fact',d.fact>0?'S/'+d.fact.toFixed(0):'');
+      })
+      .withFailureHandler(function(){})
+      .api_getMyScoreMesT(CC.token, mes, anio);
+  });
 }
 
 function loadScorePanel(){
@@ -1046,8 +1086,8 @@ function buscarPacLive(q){
 }
 function selPacLive(el){seleccionarPacManual(el.getAttribute('data-tel'),el.getAttribute('data-nom'),el.getAttribute('data-trat'));}
 
-/* ══ PARCHE 3 — BLOQUE 2.5: función renderContexto ══════════════════════ */
-// ===== CTRL+F: renderContexto_v2_1 =====
+ 
+
 function renderContexto(ctx){
   var el=document.getElementById('cc-contexto');if(!el)return;
   if(!ctx){el.style.display='none';el.innerHTML='';return;}
@@ -1075,7 +1115,7 @@ function renderContexto(ctx){
   html+='</div>';
   el.innerHTML=html;el.style.display='block';
 }
-/* ══ FIN PARCHE 3 ════════════════════════════════════════════════════════ */
+ 
 
 (function(){poblarMeses();loadScorePanel();recargarCalendario();})();
 </script>

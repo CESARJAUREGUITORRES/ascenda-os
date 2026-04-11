@@ -1,8 +1,8 @@
-<!-- ViewAdvisorHome.html — Panel Principal Asesor AscendaOS v1.2 -->
+
 <style>
 .vh-root{padding:16px;display:flex;flex-direction:column;gap:12px;}
 
-/* ── EMBUDO ── */
+ 
 .embudo-bar{
   background:#fff;border:1px solid #DDE4F5;border-radius:13px;
   padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;
@@ -24,7 +24,7 @@
             text-transform:uppercase;color:#9AAAC8;
             margin-right:14px;white-space:nowrap;flex-shrink:0;}
 
-/* ── 3 CARDS ── */
+ 
 .main3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
         gap:12px;align-items:start;}
 .scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;
@@ -36,7 +36,7 @@
 .slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;
        background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
 
-/* ── ATENCIONES ── */
+ 
 .atc-row{display:flex;align-items:center;justify-content:space-around;
          padding:18px 0;}
 .atc-item{text-align:center;}
@@ -47,7 +47,7 @@
        text-transform:uppercase;letter-spacing:.5px;}
 .atc-div{width:1px;height:30px;background:#DDE4F5;}
 
-/* ── COMISIONES ── */
+ 
 .com-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
 .com-v{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;}
 .com-meta{font-size:10px;color:#9AAAC8;}
@@ -62,7 +62,7 @@
 .dc-l{font-size:9px;color:#9AAAC8;margin-bottom:2px;}
 .dc-v{font-size:12px;font-weight:700;}
 
-/* ── MINI CALENDARIO ── */
+ 
 .mini-cal{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;
           padding:10px 12px;margin-bottom:10px;}
 .mc-titulo{font-size:9px;font-weight:700;letter-spacing:.5px;
@@ -80,7 +80,7 @@
 .mc-dot.libre{background:#F0F4FC;color:#CDD5E0;border:1.5px solid transparent;}
 .mc-dia-num{font-size:8px;color:#9AAAC8;margin-top:2px;}
 
-/* ── SEGUIMIENTOS ── */
+ 
 .seg-sep{font-size:9px;font-weight:700;letter-spacing:.5px;
          text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;
          padding-top:2px;border-top:1px solid #F0F4FC;}
@@ -101,7 +101,7 @@
 
 <div class="vh-root">
 
-  <!-- EMBUDO DEL MES -->
+  
   <div class="embudo-bar">
     <div class="emb-titulo">📊 MES</div>
     <div class="emb-item">
@@ -126,10 +126,10 @@
     </div>
   </div>
 
-  <!-- 3 CARDS PRINCIPALES -->
+  
   <div class="main3">
 
-    <!-- MIS ATENCIONES -->
+    
     <div class="scard">
       <div class="schd">
         <div class="st">MIS ATENCIONES</div>
@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    <!-- MIS COMISIONES -->
+    
     <div class="scard">
       <div class="schd">
         <div class="st">MIS COMISIONES</div>
@@ -184,7 +184,7 @@
       </div>
     </div>
 
-    <!-- TURNOS + SEGUIMIENTOS -->
+    
     <div class="scard">
       <div class="schd">
         <div class="st">MI SEMANA</div>
@@ -192,7 +192,7 @@
           onclick="window.AOS_navigateTo('advisor-followups')">Ver segs →</button>
       </div>
 
-      <!-- Mini calendario semanal -->
+      
       <div class="mini-cal">
         <div class="mc-titulo">
           📅 Turnos esta semana
@@ -209,7 +209,7 @@
              font-weight:600;color:#6B7BA8;text-align:center;"></div>
       </div>
 
-      <!-- Seguimientos activos -->
+      
       <div style="font-size:9px;font-weight:700;letter-spacing:.5px;
                   text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;">
         Seguimientos pendientes
@@ -230,12 +230,55 @@ var VH = { token: '' };
 
 (function() {
   VH.token = window.AOS_getToken ? window.AOS_getToken() : '';
-  loadDashboard();
-  loadEmbudo();
+  loadPanelFast();
   loadTurnos();
 })();
 
-/* ── EMBUDO DEL MES ── */
+ 
+
+
+
+function loadPanelFast() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) {
+        
+        loadDashboard();
+        loadEmbudo();
+        return;
+      }
+      
+      if (res.embudo) {
+        var d = res.embudo;
+        var el = function(id) { return document.getElementById(id); };
+        if (el('emb-llam'))   el('emb-llam').textContent   = d.llamadas   || 0;
+        if (el('emb-citas'))  el('emb-citas').textContent  = d.citas      || 0;
+        if (el('emb-asist'))  el('emb-asist').textContent  = d.asistieron || 0;
+        if (el('emb-ventas')) el('emb-ventas').textContent = d.ventas     || 0;
+        if (el('emb-fact'))   el('emb-fact').textContent   =
+          'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
+      }
+      
+      if (res.comisiones) {
+        var c = res.comisiones;
+        var el2 = function(id) { return document.getElementById(id); };
+        if (el2('com-total')) el2('com-total').textContent = 'S/. ' + (c.total||0).toFixed(2);
+        if (el2('com-meta'))  el2('com-meta').textContent  = '/ Meta S/. ' + (c.meta||100).toFixed(2);
+        if (el2('com-prog'))  el2('com-prog').style.width  = Math.min(c.pct||0, 100) + '%';
+        if (el2('com-pct'))   el2('com-pct').textContent   = (c.pct||0) + '% completado';
+      }
+      
+      if (res.seguimientos && typeof renderSegs === 'function') {
+        renderSegs(res.seguimientos);
+      }
+    })
+    .withFailureHandler(function() {
+      loadDashboard();
+      loadEmbudo();
+    })
+    .api_getPanelAsesorFastT(VH.token);
+}
+
 function loadEmbudo() {
   var now = new Date();
   google.script.run
@@ -253,7 +296,7 @@ function loadEmbudo() {
     .api_getMyScoreMesT(VH.token);
 }
 
-/* ── DASHBOARD (comisiones + atenciones + seguimientos) ── */
+ 
 function loadDashboard() {
   google.script.run
     .withSuccessHandler(function(res) {
@@ -261,7 +304,7 @@ function loadDashboard() {
       var c = res.comMes    || {};
       var a = res.atenciones || {};
 
-      // Comisiones
+      
       document.getElementById('com-total').textContent =
         'S/. ' + (c.total || 0).toFixed(2);
       document.getElementById('com-meta').textContent  =
@@ -286,7 +329,7 @@ function loadDashboard() {
         dc.style.color = c.deltaCom >= 0 ? '#16A34A' : '#DC2626';
       }
 
-      // Atenciones
+      
       document.getElementById('atc-total').textContent =
         a.atendidos || '0';
       document.getElementById('atc-nota').textContent  =
@@ -294,14 +337,14 @@ function loadDashboard() {
       document.getElementById('atc-recom').textContent =
         (a.pctRecom || 0) + '%';
 
-      // Seguimientos — solo hoy y próximos
+      
       renderSegs(res.seguimientos || []);
     })
     .withFailureHandler(function() {})
     .api_getAdvisorDashboardT(VH.token);
 }
 
-/* ── MINI CALENDARIO DE TURNOS ── */
+ 
 function loadTurnos() {
   google.script.run
     .withSuccessHandler(function(res) {
@@ -313,7 +356,7 @@ function loadTurnos() {
         return;
       }
 
-      // Ordenar Lu-Sa-Do
+      
       var dias = res.dias;
       cont.innerHTML = dias.map(function(d) {
         var tieneT  = d.tieneTurno;
@@ -332,7 +375,7 @@ function loadTurnos() {
           '</div>';
       }).join('');
 
-      // Mostrar sede de hoy si tiene turno
+      
       var hoy = dias.find(function(d) { return d.esHoy; });
       var sedeHoyEl = document.getElementById('mc-sede-hoy');
       if (hoy && hoy.tieneTurno) {
@@ -350,11 +393,11 @@ function loadTurnos() {
     .api_getMisSemanaT(VH.token);
 }
 
-/* ── RENDER SEGUIMIENTOS ── */
+ 
 function renderSegs(items) {
   var el = document.getElementById('seg-list');
 
-  // Solo hoy y próximos, sin vencidos, sin fechas 1899
+  
   var validos = (items || []).filter(function(s) {
     if (s.tipo === 'vencido') return false;
     if ((s.fecha || '').indexOf('1899') >= 0) return false;
@@ -375,7 +418,7 @@ function renderSegs(items) {
     var cls    = esHoy ? 'sh2' : 'sp';
     var tag    = esHoy ? '● HOY' : '○ PRÓXIMO';
     var fecha  = (s.fecha && s.fecha.indexOf('1899') < 0 && s.fecha !== '')
-      ? ' · ' + s.fecha.slice(5) : ''; // solo MM-DD
+      ? ' · ' + s.fecha.slice(5) : ''; 
     var display = s.num + ' · ' + (s.trat || '—');
 
     return '<div class="si-item ' + cls + '" ' +

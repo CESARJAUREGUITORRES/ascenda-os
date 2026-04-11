@@ -1,10 +1,10 @@
-<!-- ViewAdminMarketing.html v5.1 — Marketing Admin AscendaOS -->
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 .mk{padding:12px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;background:#F0F4FC;min-height:100%;}
 
-/* FILTROS */
+ 
 .mk-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .filt-grp{display:flex;border-radius:8px;overflow:hidden;border:1px solid #DDE4F5;}
 .fb{padding:5px 14px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;background:#fff;color:#6B7BA8;}
@@ -14,7 +14,7 @@
 .inv-btn{padding:6px 14px;border-radius:8px;border:none;background:#16A34A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
 .alerta-bdg{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;background:#fff;border:1px solid #DDE4F5;font-size:11px;font-weight:600;color:#6B7BA8;}
 
-/* KPIs */
+ 
 .kpis-box{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:12px 16px;}
 .kb-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .kb-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;display:flex;align-items:center;gap:7px;}
@@ -28,12 +28,12 @@
 .kp-s{font-size:10px;color:#9AAAC8;margin-top:3px;}
 .si-text{font-size:13px;color:#C8D0E0;font-weight:700;}
 
-/* GRIDS */
+ 
 .g2e{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .g3e{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 .g2l{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;}
 
-/* CARD */
+ 
 .card{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:14px;}
 .c-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .c-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;display:flex;align-items:center;gap:6px;}
@@ -41,7 +41,7 @@
 .tag-lbl{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;background:#EBF2FF;color:#0A4FBF;margin-left:4px;}
 .tag-op{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;background:#FFFBEB;color:#D97706;margin-left:4px;}
 
-/* EMBUDO */
+ 
 .emb-row{display:grid;grid-template-columns:110px 1fr 80px;align-items:center;gap:8px;margin-bottom:5px;}
 .emb-lbl{font-size:11px;font-weight:600;color:#6B7BA8;text-align:right;}
 .emb-track{background:#F0F4FC;border-radius:6px;height:30px;overflow:hidden;}
@@ -55,7 +55,7 @@
 .emb-foot-lbl{font-size:11px;color:#9AAAC8;}
 .emb-foot-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#0A4FBF;}
 
-/* MINI GESTIÓN */
+ 
 .mg-wrap{margin-top:10px;padding-top:10px;border-top:1px solid #F0F4FC;}
 .mg-ttl{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;}
 .mg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;}
@@ -70,7 +70,7 @@
 .mc-in{background:#EBF2FF;border:1px solid #BFDBFE;}.mc-in .mg-v,.mc-in .mg-p{color:#0A4FBF;}
 .mc-pk{background:#FFFBEB;border:1px solid #FDE68A;}.mc-pk .mg-v,.mc-pk .mg-p{color:#D97706;}
 
-/* SIN LLAMAR */
+ 
 .sl-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px;}
 .sl-box{padding:8px 10px;border-radius:9px;}
 .sl-warn{background:#FEF9EE;border:1px solid #FDE68A;}
@@ -83,7 +83,7 @@
 .sl-warn .sl-sub{color:#92400E;}.sl-ok .sl-sub{color:#15803D;}
 .sl-nunca{font-size:9px;color:#DC2626;font-weight:700;margin-top:2px;}
 
-/* HISTORIAL */
+ 
 .hist-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:8px;}
 .hb{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .hb-pair{display:flex;gap:3px;align-items:flex-end;height:55px;}
@@ -95,7 +95,7 @@
 .hb-mes.cur{color:#0D1B3E;font-weight:800;}
 .hist-tbl td,.hist-tbl th{padding:4px 7px;font-size:10px;}
 
-/* GESTIÓN OPERACIONAL */
+ 
 .gest-big{text-align:center;margin-bottom:10px;}
 .gest-n{font-family:'Exo 2',sans-serif;font-size:34px;font-weight:900;color:#0D1B3E;line-height:1;}
 .gest-l{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#9AAAC8;margin-top:3px;}
@@ -116,7 +116,7 @@
 .gf-v{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;}
 .gf-l{font-size:9px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
 
-/* TABLAS */
+ 
 table{width:100%;border-collapse:collapse;}
 th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:6px 9px;border-bottom:1px solid #F0F4FC;background:#F8FAFF;text-align:left;white-space:nowrap;}
 td{padding:7px 9px;border-bottom:1px solid rgba(221,228,245,.3);font-size:11px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -134,15 +134,13 @@ tr:hover td{background:#F8FAFF;}
 .sc::-webkit-scrollbar{width:3px;}
 .sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
 
-/* LOADING */
+ 
 .ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
 .sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .vacio{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;font-weight:600;}
 
-/* ══════════════════════════════════════════
-   MODAL DE INVERSIÓN
-══════════════════════════════════════════ */
+ 
 .modal-overlay{
   position:fixed;top:0;left:0;right:0;bottom:0;
   background:rgba(13,27,62,.45);
@@ -180,7 +178,7 @@ tr:hover td{background:#F8FAFF;}
   padding:3px 10px;border-radius:7px;
 }
 
-/* Tabla de inversión editable */
+ 
 .inv-table-wrap{flex:1;overflow-y:auto;padding:12px 20px;}
 .inv-table-wrap::-webkit-scrollbar{width:4px;}
 .inv-table-wrap::-webkit-scrollbar-thumb{background:#DDE4F5;}
@@ -200,7 +198,7 @@ tr:hover td{background:#F8FAFF;}
 }
 .del-btn:hover{background:#DC2626;color:#fff;}
 
-/* Red social pills */
+ 
 .red-meta{background:#EBF2FF;color:#0A4FBF;}
 .red-tiktok{background:#F5F3FF;color:#7C3AED;}
 .red-google{background:#FEF2F2;color:#DC2626;}
@@ -234,14 +232,14 @@ tr:hover td{background:#F8FAFF;}
 .inv-msg.ok{color:#16A34A;font-weight:700;}
 .inv-msg.err{color:#DC2626;font-weight:700;}
 
-/* Por red social summary */
+ 
 .red-summary{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .red-chip{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;}
 </style>
 
 <div class="mk">
 
-  <!-- FILTROS -->
+  
   <div class="mk-top">
     <div class="filt-grp">
       <button class="fb act" id="fb-mes"  onclick="setR('mes')">Mes</button>
@@ -267,7 +265,7 @@ tr:hover td{background:#F8FAFF;}
     <div class="alerta-bdg">&#128161; <span id="alerta-cnt">0</span> alertas</div>
   </div>
 
-  <!-- ROW 1: KPIs -->
+  
   <div class="kpis-box">
     <div class="kb-hdr">
       <div class="kb-ttl">&#128202; KPIs de Campa&ntilde;a
@@ -286,7 +284,7 @@ tr:hover td{background:#F8FAFF;}
     </div>
   </div>
 
-  <!-- ROW 2: Embudo + Histórico -->
+  
   <div class="g2e">
     <div class="card">
       <div class="c-hd">
@@ -324,7 +322,7 @@ tr:hover td{background:#F8FAFF;}
     </div>
   </div>
 
-  <!-- ROW 3: 3 columnas -->
+  
   <div class="g3e">
     <div class="card">
       <div class="c-hd"><div class="c-t">&#128226; Top Anuncios <span class="tag-lbl">leads del mes</span></div></div>
@@ -360,7 +358,7 @@ tr:hover td{background:#F8FAFF;}
     </div>
   </div>
 
-  <!-- ROW 4: Gestión Operacional + Operación -->
+  
   <div class="g2l">
     <div class="card">
       <div class="c-hd">
@@ -407,9 +405,7 @@ tr:hover td{background:#F8FAFF;}
 
 </div>
 
-<!-- ══════════════════════════════════════════
-     MODAL DE INVERSIÓN
-══════════════════════════════════════════ -->
+
 <div class="modal-overlay" id="inv-modal" style="display:none;">
   <div class="modal-box">
     <div class="modal-hd">
@@ -439,7 +435,7 @@ tr:hover td{background:#F8FAFF;}
       <div class="inv-total-badge" id="inv-total-badge">S/ 0.00 total</div>
     </div>
 
-    <!-- Resumen por red social -->
+    
     <div class="red-summary" id="red-summary" style="padding:8px 20px;border-bottom:1px solid #F0F4FC;display:none;"></div>
 
     <div class="inv-table-wrap">
@@ -482,7 +478,7 @@ var MESES_GAS = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO',
 var REDES = ['META ADS','TIKTOK ADS','GOOGLE ADS','ORGANICO'];
 var RED_COLORS = { 'META ADS':'red-meta','TIKTOK ADS':'red-tiktok','GOOGLE ADS':'red-google','ORGANICO':'red-org' };
 
-// Filas en memoria del modal
+
 var INV = { rows: [], mes: 1, anio: 2026, tratamientos: [] };
 
 (function(){
@@ -764,9 +760,9 @@ function renderOperacion(items) {
   tb.innerHTML = html;
 }
 
-// ══════════════════════════════════════════
-// MODAL INVERSIÓN
-// ══════════════════════════════════════════
+
+
+
 
 function cargarTratamientos() {
   google.script.run
@@ -866,7 +862,7 @@ function agregarFilaInv() {
 function eliminarFila(btn, rowNum) {
   var tr = btn.closest('tr');
   if (rowNum > 0) {
-    // Eliminar del sheet
+    
     btn.disabled = true;
     btn.textContent = '...';
     google.script.run
@@ -879,7 +875,7 @@ function eliminarFila(btn, rowNum) {
             document.getElementById('inv-empty').style.display = 'block';
           }
           setInvMsg('Fila eliminada', false);
-          // Recargar datos del panel
+          
           reload();
         } else {
           btn.disabled = false; btn.textContent = '✕';
@@ -892,7 +888,7 @@ function eliminarFila(btn, rowNum) {
       })
       .api_deleteInversionRowT(MK.token, rowNum);
   } else {
-    // Fila nueva sin guardar, solo remover del DOM
+    
     tr.parentNode.removeChild(tr);
     recalcTotal();
   }
@@ -932,7 +928,7 @@ function guardarTodasInversiones() {
       btn.disabled = false;
       btn.textContent = '💾 Guardar cambios';
       setInvMsg('¡' + saved + ' filas guardadas!', false);
-      // Actualizar rowNums y recargar el panel principal
+      
       cargarInversiones();
       reload();
       return;
@@ -942,7 +938,7 @@ function guardarTodasInversiones() {
       .withSuccessHandler(function(res) {
         if (res && res.ok) {
           saved++;
-          // Actualizar rowNum en el DOM si era nueva
+          
           if (res.action === 'created' && filas[idx]) {
             filas[idx].setAttribute('data-row', res.rowNum);
           }

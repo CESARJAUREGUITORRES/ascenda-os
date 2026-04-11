@@ -4,11 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AscendaOS</title>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Exo&#43;2:wght@400;600;700;800&amp;family=DM&#43;Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════
-   RESET + VARIABLES
-═══════════════════════════════════════════════════ */
+ 
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;--blue-md:#BFDBFE;
@@ -24,16 +22,14 @@
 }
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
 
-/* ═══════════════════════════════════════════════════
-   TOPBAR
-═══════════════════════════════════════════════════ */
+ 
 .topbar{
   height:var(--th);background:var(--surface);
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;
   position:fixed;top:0;left:0;right:0;z-index:100;
 }
-/* G1: Logo = toggle sidebar */
+ 
 .tb-brand{
   display:flex;align-items:center;gap:9px;
   padding:0 16px;border-right:1px solid var(--border);
@@ -54,7 +50,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .tb-date{font-size:11px;color:var(--muted);}
 .tb-right{display:flex;align-items:center;gap:6px;padding-right:13px;flex-shrink:0;}
 
-/* Estado operativo */
+ 
 .edo-btn{
   display:flex;align-items:center;gap:5px;padding:5px 11px;
   border-radius:20px;border:1px solid var(--border);background:var(--surface);
@@ -74,7 +70,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .edo-opt:hover{background:var(--bg);}
 .edo-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
-/* G2: Iconos topbar modernos */
+ 
 .tb-ico{
   width:32px;height:32px;border-radius:9px;border:1px solid var(--border);
   background:var(--surface);display:flex;align-items:center;justify-content:center;
@@ -97,14 +93,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .av-asesor{background:linear-gradient(135deg,var(--blue2),var(--cyan));border-color:var(--blue-md);}
 .av-admin{background:linear-gradient(135deg,var(--purple),var(--blue2));border-color:#c4b5fd;}
 
-/* ═══════════════════════════════════════════════════
-   SHELL
-═══════════════════════════════════════════════════ */
+ 
 .shell{display:flex;position:fixed;top:var(--th);left:0;right:0;bottom:0;}
 
-/* ═══════════════════════════════════════════════════
-   SIDEBAR con iconos SVG modernos
-═══════════════════════════════════════════════════ */
+ 
 .sidebar{
   width:var(--sw);background:var(--surface);
   border-right:1px solid var(--border);
@@ -129,7 +121,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .ni.act-asesor::before{content:'';position:absolute;left:-5px;top:6px;bottom:6px;width:3px;background:var(--blue);border-radius:0 3px 3px 0;}
 .ni.act-admin{background:var(--purple-xl);}
 .ni.act-admin::before{content:'';position:absolute;left:-5px;top:6px;bottom:6px;width:3px;background:var(--purple);border-radius:0 3px 3px 0;}
-/* G2: Contenedor de icono moderno */
+ 
 .ni-ico{
   width:24px;height:24px;display:flex;align-items:center;justify-content:center;
   flex-shrink:0;border-radius:7px;background:var(--bg);
@@ -146,9 +138,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .nsep{height:1px;background:var(--border);margin:5px 10px;}
 .sb-bot{margin-top:auto;}
 
-/* ═══════════════════════════════════════════════════
-   WORKSPACE
-═══════════════════════════════════════════════════ */
+ 
 .workspace{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);position:relative;}
 .workspace::-webkit-scrollbar{width:3px;}
 .workspace::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
@@ -161,9 +151,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .ve-txt{font-size:13px;color:var(--red);font-weight:600;}
 .ve-btn{padding:8px 18px;border-radius:9px;background:var(--blue);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 
-/* ═══════════════════════════════════════════════════
-   PANEL NOTIFICACIONES
-═══════════════════════════════════════════════════ */
+ 
 .notif-panel{
   display:none;position:fixed;top:calc(var(--th) + 6px);right:10px;
   width:320px;max-height:480px;background:var(--surface);border:1px solid var(--border);
@@ -184,9 +172,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .np-item-ts{font-size:9px;color:var(--label);margin-top:3px;}
 .np-empty{text-align:center;padding:24px;color:var(--label);font-size:12px;}
 
-/* ═══════════════════════════════════════════════════
-   TOASTS
-═══════════════════════════════════════════════════ */
+ 
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
 .toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);box-shadow:0 6px 20px rgba(10,79,191,.12);min-width:260px;max-width:340px;pointer-events:all;cursor:pointer;animation:slideIn .3s ease;}
 @keyframes slideIn{from{transform:translateX(120%);opacity:0;}to{transform:none;opacity:1;}}
@@ -198,9 +184,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .toast.toast-alerta{border-color:var(--red-md);background:var(--red-xl);}
 .toast.toast-msg{border-color:var(--blue-md);background:var(--blue-xl);}
 
-/* ═══════════════════════════════════════════════════
-   MODALES
-═══════════════════════════════════════════════════ */
+ 
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.45);z-index:999;align-items:center;justify-content:center;}
 .modal-ov.open{display:flex;}
 .modal-box{background:var(--surface);border-radius:16px;padding:24px;width:340px;border:1px solid var(--border);text-align:center;}
@@ -212,9 +196,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .modal-confirm{flex:1;padding:10px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .modal-confirm.danger{background:var(--red);}
 
-/* ═══════════════════════════════════════════════════
-   S3: PANTALLA INICIO DE TURNO
-═══════════════════════════════════════════════════ */
+ 
 .turno-screen{display:none;position:fixed;inset:0;background:var(--blue);z-index:9998;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
 .turno-screen.open{display:flex;}
 .turno-logo{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
@@ -234,9 +216,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .turno-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,0,0,.25);}
 .turno-btn:disabled{opacity:.6;cursor:wait;transform:none;}
 
-/* ═══════════════════════════════════════════════════
-   S1: OVERLAY BLOQUEANTE DE ESTADO
-═══════════════════════════════════════════════════ */
+ 
 .estado-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.9);z-index:9997;flex-direction:column;align-items:center;justify-content:center;gap:14px;backdrop-filter:blur(6px);}
 .estado-overlay.open{display:flex;}
 .eo-icon{font-size:56px;}
@@ -255,9 +235,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 </head>
 <body>
 
-<!-- TOPBAR -->
+
 <div class="topbar">
-  <!-- G1: Logo clickeable = toggle sidebar -->
+  
   <div class="tb-brand" id="tb-brand" title="Expandir / contraer menú">
     <svg width="26" height="26" viewBox="0 0 48 48" fill="none" style="flex-shrink:0">
       <rect x="2" y="2" width="20" height="20" rx="4" fill="#00E5A0"/>
@@ -272,7 +252,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
     <div class="tb-date" id="tb-date"></div>
   </div>
   <div class="tb-right">
-    <!-- Estado operativo solo asesor -->
+    
     <div class="edo-btn" id="edo-btn" style="display:none;">
       <div class="edo-dot" id="edo-dot"></div>
       <span id="edo-txt">ACTIVO</span>
@@ -287,7 +267,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         <div class="edo-opt" data-edo="CAPACITACIÓN" data-color="#7C3AED" data-block="true" data-ico="📚"><div class="edo-opt-dot" style="background:#7C3AED"></div>Capacitación</div>
       </div>
     </div>
-    <!-- G2: Iconos SVG modernos -->
+    
     <div class="tb-ico" id="btn-notif" title="Notificaciones">
       <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5A.5.5 0 003 15h14a.5.5 0 00.43-.74L16 12V8a6 6 0 00-6-6z" fill="#6B7BA8"/><path d="M8 15a2 2 0 004 0" fill="#6B7BA8"/></svg>
       <div class="tb-badge" id="badge-notif" style="display:none;">0</div>
@@ -300,7 +280,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </div>
 </div>
 
-<!-- PANEL NOTIFICACIONES -->
+
 <div class="notif-panel" id="notif-panel">
   <div class="np-hd">
     <div class="np-title">Notificaciones</div>
@@ -309,7 +289,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   <div class="np-list" id="np-list"><div class="np-empty">Sin notificaciones</div></div>
 </div>
 
-<!-- SHELL -->
+
 <div class="shell">
   <div class="sidebar" id="sidebar"><div id="sb-content"></div></div>
   <div class="workspace" id="workspace">
@@ -317,10 +297,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </div>
 </div>
 
-<!-- TOASTS -->
+
 <div class="toast-container" id="toast-container"></div>
 
-<!-- MODAL LOGOUT -->
+
 <div class="modal-ov" id="modal-logout">
   <div class="modal-box">
     <div class="modal-ico">🚪</div>
@@ -333,7 +313,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </div>
 </div>
 
-<!-- S4: MODAL CERRAR TURNO -->
+
 <div class="modal-ov" id="modal-cierre-turno">
   <div class="modal-box">
     <div class="modal-ico">🏁</div>
@@ -346,7 +326,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </div>
 </div>
 
-<!-- S3: PANTALLA INICIO DE TURNO -->
+
 <div class="turno-screen" id="turno-screen">
   <div class="turno-logo">
     <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
@@ -367,7 +347,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </button>
 </div>
 
-<!-- S1: OVERLAY BLOQUEANTE DE ESTADO -->
+
 <div class="estado-overlay" id="estado-overlay">
   <div class="eo-icon" id="eo-icon">☕</div>
   <div class="eo-title" id="eo-title">EN BREAK</div>
@@ -380,18 +360,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   ESTADO GLOBAL
-═══════════════════════════════════════════════════ */
+
+
 var AOS = {
   token:'', ctx:null, role:'', activeView:'',
   collapsed:false, pollTimer:null, pollAdminTimer:null, audioCtx:null,
   turnoId:null, estadoBloqueo:null, bloqueoTimer:null, bloqueoInicio:null
 };
 
-/* ═══════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════ */
+
+
 (function init() {
   var p = new URLSearchParams(window.location.search);
   AOS.token = p.get('token') || sessionStorage.getItem('aos_token') || '';
@@ -409,9 +387,8 @@ var AOS = {
     .api_getContext(AOS.token);
 })();
 
-/* ═══════════════════════════════════════════════════
-   TOPBAR BUILD
-═══════════════════════════════════════════════════ */
+
+
 function buildTopbar() {
   var ctx = AOS.ctx;
   var pill = document.getElementById('role-pill');
@@ -432,18 +409,16 @@ function buildTopbar() {
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   G1: TOGGLE SIDEBAR — logo clickeable
-═══════════════════════════════════════════════════ */
+
+
 document.getElementById('tb-brand').addEventListener('click', function() {
   AOS.collapsed = !AOS.collapsed;
   document.getElementById('sidebar').classList.toggle('col', AOS.collapsed);
   document.getElementById('tb-brand').classList.toggle('col', AOS.collapsed);
 });
 
-/* ═══════════════════════════════════════════════════
-   G2: SVG ICONS LIBRARY
-═══════════════════════════════════════════════════ */
+
+
 var ICONS = {
   home:      '<svg viewBox="0 0 20 20" fill="none"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" fill="currentColor" opacity=".85"/><path d="M7 18v-5h6v5" stroke="white" stroke-width="1.5" fill="none"/></svg>',
   phone:     '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3h3l1.5 4-2 1.5c1 2 3 4 5 5l1.5-2 4 1.5V16a1 1 0 01-1 1C7 17 3 13 3 4a1 1 0 011-1z" fill="currentColor" opacity=".9"/></svg>',
@@ -471,9 +446,8 @@ function mkIco(name) {
   return '<div class="ni-ico">' + svg + '</div>';
 }
 
-/* ═══════════════════════════════════════════════════
-   SIDEBAR DEFINITIONS
-═══════════════════════════════════════════════════ */
+
+
 var SIDEBAR_ASESOR = [
   {type:'section',label:'Operaciones'},
   {type:'item',id:'advisor-home',       ico:'home',     lbl:'Panel principal'},
@@ -557,9 +531,8 @@ function buildSidebar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════
-   VIEW MAP
-═══════════════════════════════════════════════════ */
+
+
 var VIEW_MAP = {
   'advisor-home':        'ViewAdvisorHome',
   'advisor-calls':       'ViewAdvisorCalls',
@@ -623,9 +596,8 @@ function showViewError(msg) {
     '<button class="ve-btn" onclick="navigateTo(AOS.activeView)">Reintentar</button></div>';
 }
 
-/* ═══════════════════════════════════════════════════
-   RELOJ
-═══════════════════════════════════════════════════ */
+
+
 function startClock() {
   function tick() {
     var d = new Date();
@@ -641,9 +613,8 @@ function startClock() {
   tick(); setInterval(tick, 1000);
 }
 
-/* ═══════════════════════════════════════════════════
-   S3: TURNO
-═══════════════════════════════════════════════════ */
+
+
 function verificarTurnoHoy() {
   google.script.run
     .withSuccessHandler(function(res) {
@@ -700,7 +671,7 @@ function comenzarTurno() {
     .api_iniciarTurnoT(AOS.token);
 }
 
-/* S4: CERRAR TURNO */
+ 
 function openCierreTurnoModal()  { document.getElementById('modal-cierre-turno').classList.add('open'); }
 function closeCierreTurnoModal() { document.getElementById('modal-cierre-turno').classList.remove('open'); }
 function doCierreTurno() {
@@ -718,9 +689,8 @@ function doCierreTurno() {
     .api_cerrarTurnoT(AOS.token);
 }
 
-/* ═══════════════════════════════════════════════════
-   ESTADO OPERATIVO
-═══════════════════════════════════════════════════ */
+
+
 function initEstadoDropdown() {
   var btn = document.getElementById('edo-btn');
   var dd  = document.getElementById('edo-dd');
@@ -758,7 +728,7 @@ function setEstadoUI(edo, color) {
   document.getElementById('edo-dot').style.background = color || m[edo] || '#94A3B8';
 }
 
-/* S1: OVERLAY BLOQUEANTE */
+ 
 function activarOverlayEstado(edo, ico) {
   AOS.estadoBloqueo = edo; AOS.bloqueoInicio = Date.now();
   document.getElementById('eo-icon').textContent  = ico;
@@ -772,7 +742,7 @@ function activarOverlayEstado(edo, ico) {
   }, 1000);
 }
 
-/* S2: Terminar estado bloqueante → ACTIVO automático */
+ 
 function terminarEstadoBloqueante() {
   if (AOS.bloqueoTimer) { clearInterval(AOS.bloqueoTimer); AOS.bloqueoTimer = null; }
   var min   = Math.round((Date.now() - AOS.bloqueoInicio) / 60000);
@@ -791,9 +761,8 @@ function terminarEstadoBloqueante() {
   showToast('🟢 Activo', 'Regresaste de ' + prev + ' (' + min + ' min)', '');
 }
 
-/* ═══════════════════════════════════════════════════
-   POLLING
-═══════════════════════════════════════════════════ */
+
+
 function startPolling() {
   pollNotifications();
   AOS.pollTimer = setInterval(pollNotifications, 30000);
@@ -872,9 +841,8 @@ document.getElementById('np-clear').addEventListener('click', function() {
   updateNotifBadges(0,0);
 });
 
-/* ═══════════════════════════════════════════════════
-   SONIDOS
-═══════════════════════════════════════════════════ */
+
+
 function getAudioCtx() {
   if (!AOS.audioCtx) { try { AOS.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {} }
   return AOS.audioCtx;
@@ -887,9 +855,8 @@ function playSound(tipo) {
   } catch(e) {}
 }
 
-/* ═══════════════════════════════════════════════════
-   TOASTS
-═══════════════════════════════════════════════════ */
+
+
 function showToast(titulo, cuerpo, cls) {
   var tc = document.getElementById('toast-container');
   var t  = document.createElement('div');
@@ -901,9 +868,8 @@ function showToast(titulo, cuerpo, cls) {
   setTimeout(function() { if (t.parentNode) tc.removeChild(t); }, 5000);
 }
 
-/* ═══════════════════════════════════════════════════
-   LOGOUT
-═══════════════════════════════════════════════════ */
+
+
 function openLogoutModal()  { document.getElementById('modal-logout').classList.add('open'); }
 function closeLogoutModal() { document.getElementById('modal-logout').classList.remove('open'); }
 function doLogout() {
@@ -922,9 +888,8 @@ function redirectLogin() {
     .getScriptUrl();
 }
 
-/* ═══════════════════════════════════════════════════
-   API PÚBLICA PARA VISTAS HIJAS
-═══════════════════════════════════════════════════ */
+
+
 window.AOS_getToken    = function() { return AOS.token; };
 window.AOS_getCtx      = function() { return AOS.ctx; };
 window.AOS_getRole     = function() { return AOS.role; };
@@ -933,6 +898,67 @@ window.AOS_pollNow     = function() { pollNotifications(); };
 window.AOS_setEstado   = function(e,c) { setEstadoUI(e,c); };
 window.AOS_playSound   = playSound;
 window.AOS_showToast   = showToast;
+
+
+
+
+var _SB = {
+  url: 'https://ituyqwstonmhnfshnaqz.supabase.co',
+  key: 'sb_publishable_mz1j7bmlLulSqUposiKUCg_fka59fW_'
+};
+
+
+
+window.sb_fetch = function(path, opts) {
+  opts = opts || {};
+  var url    = _SB.url + path;
+  var method = opts.method || 'GET';
+  var headers = {
+    'apikey':        _SB.key,
+    'Authorization': 'Bearer ' + _SB.key,
+    'Content-Type':  'application/json'
+  };
+  var init = { method: method, headers: headers };
+  if (opts.body) init.body = JSON.stringify(opts.body);
+  return fetch(url, init).then(function(r) {
+    if (!r.ok) throw new Error('Supabase ' + r.status + ': ' + path);
+    return r.json();
+  });
+};
+
+
+
+window.sb_rpc = function(fn, params) {
+  return window.sb_fetch('/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    body: params || {}
+  });
+};
+
+
+
+window.sb_get = function(table, params) {
+  params = params || {};
+  var q = [];
+  if (params.select) q.push('select=' + params.select);
+  if (params.filters) {
+    Object.keys(params.filters).forEach(function(k) {
+      var v = params.filters[k];
+      if (v !== null && v !== undefined && v !== '') {
+        q.push(k + '=eq.' + encodeURIComponent(v));
+      }
+    });
+  }
+  if (params.order)  q.push('order=' + params.order);
+  if (params.limit)  q.push('limit=' + params.limit);
+  var path = '/rest/v1/' + table + (q.length ? '?' + q.join('&') : '');
+  return window.sb_fetch(path);
+};
+
+
+window.AOS_sbFetch = window.sb_fetch;
+window.AOS_sbRpc   = window.sb_rpc;
+window.AOS_sbGet   = window.sb_get;
 
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

@@ -1,28 +1,4 @@
-<!-- ViewAdminPatients.html — AscendaOS v1 · Pacientes 360°
-     Versión: 4.0.0 | Autor: César Jáuregui / CREACTIVE OS
 
-     CAMBIOS v4.0:
-       NEW  Sidebar y notas colapsables lateralmente (◀/▶)
-       NEW  Notas: badge rol + nombre usuario + editar + eliminar
-       NEW  Tab Compras: cards + modal registrar pago con métodos REALES
-       NEW  Tab Comprobantes: desde CONSOLIDADO DE COMPROBANTES real
-       FIX  Modal duplicados: Principal/Secundario visual claro
-       NEW  Timeline: mini-calendario + detalle por día al click
-       KEEP Todos los fixes de v3.0
-
-     APIs:
-       api_listPatientsT, api_getPatient360T,
-       api_getHistoriaClinicaT, api_saveHistoriaClinicaT,
-       api_getPatientTimelineT,
-       api_saveNotaPaciente360T, api_getNotasPaciente360T,
-       api_updateNotaPaciente360T, api_deleteNotaPaciente360T,
-       api_getSeguimientosProgramadosT, api_cerrarSeguimientoProgramadoT,
-       api_detectarDuplicadosT, api_fusionarPacientesT,
-       api_createCitaDesde360T, api_getEquipoActivoT,
-       api_updatePatientFullT, api_getVentasComprobantesT,
-       api_getComprobantesRealT, api_registrarPagoT,
-       api_getMetodosPagoT
--->
 <style>
 :root{
   --az:#0A4FBF;--az-cl:#EBF2FF;--az-brd:#BFDBFE;
@@ -40,19 +16,19 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 
-/* ── LAYOUT 3 COLUMNAS ── */
+ 
 .p360{display:flex;height:calc(100vh - 60px);background:var(--bg);overflow:hidden;}
 
-/* ── SIDEBAR ── */
+ 
 .sb{background:var(--wh);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;transition:width .25s ease;width:290px;flex-shrink:0;position:relative;}
 .sb.oculto{width:0;border-right:none;}
 .sb-inner{width:290px;display:flex;flex-direction:column;height:100%;overflow:hidden;}
 
-/* Toggle lateral sidebar */
+ 
 .sb-toggle{position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;width:14px;height:40px;background:var(--az);color:#fff;border:none;cursor:pointer;border-radius:0 6px 6px 0;font-size:9px;display:flex;align-items:center;justify-content:center;}
 .sb.oculto .sb-toggle{right:-14px;}
 
-/* Búsqueda */
+ 
 .srch-a{padding:11px;border-bottom:1px solid var(--brd);flex-shrink:0;}
 .srch-box{display:flex;gap:5px;}
 .srch-in{flex:1;padding:8px 10px;border-radius:var(--r);border:1.5px solid var(--brd);background:var(--gr-cl);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--txt);outline:none;transition:border-color .15s;}
@@ -61,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .srch-stats{margin-top:6px;font-size:10px;color:var(--gr);display:none;gap:7px;}
 .s-dot{width:6px;height:6px;border-radius:50%;}
 
-/* Lista */
+ 
 .pac-list-wrap{flex:1;overflow:hidden;transition:max-height .25s ease;max-height:100%;}
 .pac-list-wrap.col{max-height:72px;}
 .pac-lista{height:100%;overflow-y:auto;padding:6px;}
@@ -86,11 +62,11 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .sb-footer{padding:7px;border-top:1px solid var(--brd);flex-shrink:0;}
 .btn-dupes{width:100%;padding:7px;border-radius:var(--r-sm);background:var(--rj-cl);color:var(--rj);border:1px solid var(--rj-brd);font-size:11px;font-weight:700;cursor:pointer;}
 
-/* ── PANEL CENTRAL ── */
+ 
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--brd);min-width:0;}
 .p360-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--gr);}
 
-/* Header */
+ 
 .p360-hd{padding:13px 17px;border-bottom:1px solid var(--brd);background:var(--wh);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;box-shadow:var(--shd);}
 .p360-av{width:48px;height:48px;border-radius:13px;flex-shrink:0;background:linear-gradient(135deg,var(--az),#00C9A7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;margin-right:10px;}
 .p360-nom{font-weight:800;font-size:16px;color:var(--txt);line-height:1.2;}
@@ -104,13 +80,13 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .pb-cita{background:var(--az);color:#fff;}
 .pb-edit{background:var(--gr-cl);color:var(--txt);border:1px solid var(--brd);}
 
-/* Alertas */
+ 
 .p360-alts{padding:0 17px 7px;background:var(--wh);border-bottom:1px solid var(--brd);flex-shrink:0;display:none;}
 .alt-banner{padding:6px 10px;border-radius:var(--r-sm);margin-top:5px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;}
 .al-c{background:var(--rj-cl);color:#B91C1C;border:1px solid var(--rj-brd);}
 .al-a{background:var(--am-cl);color:var(--am);border:1px solid var(--am-brd);}
 
-/* KPIs */
+ 
 .p360-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:9px 17px;border-bottom:1px solid var(--brd);background:var(--wh);flex-shrink:0;}
 .kpi{background:var(--bg);border-radius:9px;padding:7px 5px;text-align:center;border:1px solid var(--brd);}
 .kpi-v{font-size:14px;font-weight:800;color:var(--az);}
@@ -119,7 +95,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .kpi-v.d-bad{color:var(--rj);}
 .kpi-l{font-size:8px;color:var(--gr);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
 
-/* Tabs */
+ 
 .p360-tabs{display:flex;background:var(--gr-cl);border-bottom:1px solid var(--brd);flex-shrink:0;overflow-x:auto;}
 .p360-tabs::-webkit-scrollbar{height:0;}
 .p360-tab{padding:8px 11px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;color:var(--gr);border-bottom:2px solid transparent;transition:all .15s;flex-shrink:0;}
@@ -128,7 +104,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .p360-content::-webkit-scrollbar{width:3px;}
 .p360-content::-webkit-scrollbar-thumb{background:var(--brd);}
 
-/* Cards historial */
+ 
 .h-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);padding:10px 13px;margin-bottom:7px;box-shadow:var(--shd);position:relative;overflow:hidden;transition:border-color .12s;}
 .h-card:hover{border-color:var(--az-brd);}
 .h-card-acc{position:absolute;left:0;top:0;bottom:0;width:4px;}
@@ -142,16 +118,16 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .h-fecha{font-size:10px;color:var(--gr);}
 .h-asesor{font-size:10px;color:var(--gr);}
 
-/* Separador fecha */
+ 
 .f-sep{font-size:10px;font-weight:800;color:var(--az);text-transform:uppercase;letter-spacing:.4px;padding:5px 0 4px;border-bottom:1px solid var(--brd);margin-bottom:7px;display:flex;justify-content:space-between;}
 .f-sep-tot{font-size:13px;font-weight:800;color:var(--az);}
 
-/* Compras: botones de gestión */
+ 
 .h-card-actions{display:flex;gap:5px;margin-top:7px;}
 .btn-pago{padding:4px 10px;border-radius:5px;background:var(--vd-cl);color:var(--vd);border:1px solid var(--vd-brd);font-size:10px;font-weight:700;cursor:pointer;}
 .btn-ver-comp{padding:4px 10px;border-radius:5px;background:var(--az-cl);color:var(--az);border:1px solid var(--az-brd);font-size:10px;font-weight:700;cursor:pointer;}
 
-/* Comprobantes */
+ 
 .comp-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);margin-bottom:9px;box-shadow:var(--shd);overflow:hidden;}
 .comp-hd{padding:10px 13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--bg);border-bottom:1px solid var(--brd);}
 .comp-hd:hover{background:var(--az-cl);}
@@ -175,7 +151,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .comp-ft-l{font-size:10px;color:var(--gr);font-weight:600;}
 .comp-ft-v{font-size:12px;font-weight:800;color:var(--txt);}
 
-/* Timeline calendario */
+ 
 .tl-wrap{display:grid;grid-template-columns:220px 1fr;gap:12px;height:100%;}
 .tl-cal{background:var(--wh);border-radius:var(--r);border:1px solid var(--brd);padding:12px;flex-shrink:0;}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -202,7 +178,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .tl-ev-sub{font-size:11px;color:var(--txt-s);}
 .tl-ev-meta{font-size:10px;color:var(--gr);}
 
-/* HC accordion */
+ 
 .hc-acc{margin-bottom:9px;border-radius:var(--r);border:1px solid var(--brd);overflow:hidden;}
 .hc-acc-hd{padding:9px 13px;background:var(--az-cl);display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:11px;font-weight:800;color:var(--az);}
 .hc-acc-hd:hover{background:var(--az-brd);}
@@ -215,20 +191,20 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .hc-fv.empty{color:var(--brd);font-style:italic;}
 .hc-alerta{background:var(--rj-cl);border:1px solid var(--rj-brd);border-radius:var(--r-sm);padding:7px 9px;font-size:11px;font-weight:700;color:#B91C1C;margin-bottom:7px;}
 
-/* Seg */
+ 
 .seg-card{padding:9px 11px;border-radius:var(--r);border:1px solid var(--brd);margin-bottom:5px;background:var(--wh);}
 
-/* Loader */
+ 
 .ld{text-align:center;padding:18px;color:var(--gr);font-size:12px;}
 .sp{width:12px;height:12px;border:2px solid var(--az-cl);border-top-color:var(--az);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── PANEL NOTAS LATERAL ── */
+ 
 .notas-panel{background:var(--wh);display:flex;flex-direction:column;overflow:hidden;transition:width .25s ease;width:290px;flex-shrink:0;position:relative;}
 .notas-panel.oculto{width:0;}
 .notas-inner{width:290px;display:flex;flex-direction:column;height:100%;overflow:hidden;}
 
-/* Toggle notas */
+ 
 .notas-toggle{position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;width:14px;height:40px;background:var(--az);color:#fff;border:none;cursor:pointer;border-radius:6px 0 0 6px;font-size:9px;display:flex;align-items:center;justify-content:center;}
 
 .notas-hd{padding:11px 13px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -244,7 +220,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .notas-lista::-webkit-scrollbar{width:3px;}
 .notas-lista::-webkit-scrollbar-thumb{background:var(--brd);}
 
-/* Nota item mejorada */
+ 
 .nota-item{padding:8px 9px;background:var(--bg);border-radius:9px;border:1px solid var(--brd);margin-bottom:5px;position:relative;}
 .nota-item-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:6px;}
 .nota-hd-left{display:flex;flex-direction:column;gap:2px;}
@@ -266,7 +242,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .nota-edit-ok{flex:2;padding:4px;border-radius:5px;background:var(--az);color:#fff;border:none;font-size:9px;font-weight:700;cursor:pointer;}
 .notas-empty{padding:18px;text-align:center;color:var(--gr);font-size:11px;}
 
-/* ── MODALES ── */
+ 
 .ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:900;align-items:center;justify-content:center;padding:16px;}
 .ov.open{display:flex;}
 .mbox{background:var(--wh);border-radius:16px;padding:20px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shd-lg);}
@@ -287,10 +263,10 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 .btn-ok.az{background:var(--az);}
 .btn-ok.rj{background:var(--rj);}
 
-/* HC form */
+ 
 .hc-sec{font-size:10px;font-weight:800;color:var(--az);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;border-bottom:2px solid var(--az-cl);margin-bottom:9px;}
 
-/* Duplicados mejorado */
+ 
 .dup-g{padding:11px;background:var(--rj-cl);border:1px solid var(--rj-brd);border-radius:10px;margin-bottom:8px;}
 .dup-tipo{font-size:9px;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;}
 .dup-card{padding:10px 11px;background:var(--wh);border-radius:var(--r-sm);margin-bottom:5px;border:2px solid transparent;transition:all .15s;position:relative;}
@@ -312,7 +288,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 </style>
 
 <div class="p360">
-  <!-- ── SIDEBAR ── -->
+  
   <div class="sb" id="sb">
     <button class="sb-toggle" id="sb-toggle" onclick="toggleSb()" title="Ocultar/mostrar lista">◀</button>
     <div class="sb-inner">
@@ -343,7 +319,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
     </div>
   </div>
 
-  <!-- ── PANEL CENTRAL ── -->
+  
   <div class="main">
     <div class="p360-empty" id="p360-empty">
       <div style="font-size:44px;margin-bottom:10px;">🔍</div>
@@ -390,7 +366,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
     </div>
   </div>
 
-  <!-- ── NOTAS LATERAL ── -->
+  
   <div class="notas-panel" id="notas-panel">
     <button class="notas-toggle" id="notas-toggle" onclick="toggleNotas()" title="Ocultar/mostrar notas">▶</button>
     <div class="notas-inner">
@@ -412,7 +388,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
   </div>
 </div>
 
-<!-- MODAL CITA -->
+
 <div class="ov" id="ov-cita">
   <div class="mbox" style="max-width:450px;">
     <div class="mtit">📅 Nueva cita — <span id="cita-pac">—</span><button class="mclose" onclick="cerrarOv('ov-cita')">✕</button></div>
@@ -431,7 +407,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
   </div>
 </div>
 
-<!-- MODAL EDITAR PACIENTE -->
+
 <div class="ov" id="ov-edit">
   <div class="mbox" style="max-width:560px;">
     <div class="mtit">✏️ Editar — <span id="edit-nom">—</span><button class="mclose" onclick="cerrarOv('ov-edit')">✕</button></div>
@@ -440,7 +416,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
   </div>
 </div>
 
-<!-- MODAL HISTORIA CLÍNICA -->
+
 <div class="ov" id="ov-hc">
   <div class="mbox" style="max-width:620px;">
     <div class="mtit">🏥 Historia Clínica<button class="mclose" onclick="cerrarOv('ov-hc')">✕</button></div>
@@ -449,7 +425,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
   </div>
 </div>
 
-<!-- MODAL REGISTRAR PAGO -->
+
 <div class="ov" id="ov-pago">
   <div class="mbox" style="max-width:460px;">
     <div class="mtit">💳 Registrar pago<button class="mclose" onclick="cerrarOv('ov-pago')">✕</button></div>
@@ -472,7 +448,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
   </div>
 </div>
 
-<!-- MODAL DUPLICADOS -->
+
 <div class="ov" id="ov-dupes">
   <div class="mbox" style="max-width:560px;">
     <div class="mtit">⚠️ Pacientes Duplicados<button class="mclose" onclick="cerrarOv('ov-dupes')">✕</button></div>
@@ -481,16 +457,16 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);}
 </div>
 
 <script>
-/* ═══════════════════════ ESTADO ═══════════════════════ */
+ 
 var S={
   token:'', pac:null, hist:null, tab:'timeline',
   tmr:null, equipo:[], metodosPago:[],
   sbVisible:true, notasVisible:true,
   listaExp:true,
-  // Timeline
+  
   calFecha:new Date(), calEventos:{},
   calDiaSelecto:null,
-  // Pago pendiente
+  
   pagoPayload:null
 };
 var TRATS=['HIFU','ENZIMAS FACIALES','HIDROFACIAL','CAPILAR','TOXINA',
@@ -508,8 +484,8 @@ var TRATS=['HIFU','ENZIMAS FACIALES','HIDROFACIAL','CAPILAR','TOXINA',
   cargarMetodosPago();
 })();
 
-/* ═══════════════════════ COLLAPSE LATERAL ═══════════════════════ */
-// ===== CTRL+F: toggleSb =====
+ 
+
 function toggleSb(){
   var sb=document.getElementById('sb');
   var btn=document.getElementById('sb-toggle');
@@ -517,7 +493,7 @@ function toggleSb(){
   sb.classList.toggle('oculto',!S.sbVisible);
   btn.textContent=S.sbVisible?'◀':'▶';
 }
-// ===== CTRL+F: toggleNotas =====
+
 function toggleNotas(){
   var np=document.getElementById('notas-panel');
   var btn=document.getElementById('notas-toggle');
@@ -526,7 +502,7 @@ function toggleNotas(){
   btn.textContent=S.notasVisible?'▶':'◀';
 }
 
-/* ═══════════════════════ LISTA Y BÚSQUEDA ═══════════════════════ */
+ 
 function onSrch(q){ clearTimeout(S.tmr); S.tmr=setTimeout(function(){cargarLista(q);},350); }
 function buscar(){ cargarLista(document.getElementById('srch-in').value.trim()); }
 
@@ -570,12 +546,12 @@ function toggleLista(){
   bt.textContent=S.listaExp?'▲ Colapsar':'▼ Expandir lista';
 }
 
-/* ═══════════════════════ SELECCIONAR PACIENTE ═══════════════════════ */
-// ===== CTRL+F: selPac =====
+ 
+
 function selPac(idOrNum,card){
   document.querySelectorAll('.pac-card').forEach(function(c){c.classList.remove('activa');});
   if(card) card.classList.add('activa');
-  // Colapsar lista y mostrar toggle
+  
   var w=document.getElementById('pac-lw');
   var tb=document.getElementById('pac-tb');
   w.classList.add('col'); S.listaExp=false;
@@ -596,10 +572,10 @@ function selPac(idOrNum,card){
       cargarAlertasHC(res.paciente.documento||res.paciente.telefono);
     })
     .withFailureHandler(function(){document.getElementById('p360-tc').innerHTML='<div class="ld">Error de conexión</div>';})
-    .api_getPatient360T(S.token,idOrNum);
+    .api_getPatient360FastT(S.token,idOrNum);
 }
 
-/* ═══════════════════════ RENDER PERFIL ═══════════════════════ */
+ 
 function renderPerfil(res){
   var p=res.paciente||{},h2=res.historial||{};
   var ini=((p.nombres||'?')[0]||'')+((p.apellidos||'')[0]||'');
@@ -640,8 +616,8 @@ function cargarAlertasHC(dniOrTel){
     .api_getHistoriaClinicaT(S.token,dniOrTel);
 }
 
-/* ═══════════════════════ TABS ═══════════════════════ */
-// ===== CTRL+F: setTab =====
+ 
+
 function setTab(tab){
   S.tab=tab;
   ['timeline','compras','citas','contactos','comprobantes','hc','segs'].forEach(function(t){
@@ -749,8 +725,8 @@ function renderTab(tab){
   }
 }
 
-/* ═══════════════════════ TIMELINE CON MINI-CALENDARIO ═══════════════════════ */
-// ===== CTRL+F: renderTimeline =====
+ 
+
 function renderTimeline(){
   var el=document.getElementById('p360-tc');
   el.innerHTML='<div class="tl-wrap"><div class="tl-cal" id="tl-cal"></div><div class="tl-detail" id="tl-detail"><div class="notas-empty">Selecciona un día en el calendario</div></div></div>';
@@ -773,9 +749,9 @@ function renderCalendario(){
     '</div>'+
     '<div class="cal-grid">'+
       ['Do','Lu','Ma','Mi','Ju','Vi','Sa'].map(function(d){return '<div class="cal-dow">'+d+'</div>';}).join('')+
-      // Días vacíos inicio
+      
       Array(primerDia).fill('<div class="cal-day vacio"></div>').join('')+
-      // Días del mes
+      
       Array.from({length:diasEnMes},function(_,i){
         var dia=i+1;
         var fechaStr=anio+'-'+pad2(mes+1)+'-'+pad2(dia);
@@ -817,8 +793,8 @@ function selDia(fecha){
 }
 function pad2(n){return n<10?'0'+n:String(n);}
 
-/* ═══════════════════════ COMPROBANTES REALES ═══════════════════════ */
-// ===== CTRL+F: cargarComprobantes =====
+ 
+
 function cargarComprobantes(num){
   var el=document.getElementById('p360-tc');
   google.script.run
@@ -858,8 +834,8 @@ function cargarComprobantes(num){
 }
 function tgComp(id){var el=document.getElementById(id);if(el)el.classList.toggle('open');}
 
-/* ═══════════════════════ REGISTRAR PAGO ═══════════════════════ */
-// ===== CTRL+F: abrirPago =====
+ 
+
 function abrirPago(payload){
   S.pagoPayload=payload;
   document.getElementById('pago-info').textContent=
@@ -906,7 +882,7 @@ function cargarMetodosPago(){
     .api_getMetodosPagoT(S.token);
 }
 
-/* ═══════════════════════ HISTORIA CLÍNICA ═══════════════════════ */
+ 
 function cargarHCTab(dniOrTel){
   var el=document.getElementById('p360-tc');
   google.script.run
@@ -1000,8 +976,8 @@ function guardarHC(){
     .api_saveHistoriaClinicaT(S.token,pay);
 }
 
-/* ═══════════════════════ PANEL NOTAS MEJORADO ═══════════════════════ */
-// ===== CTRL+F: cargarNotasLateral =====
+ 
+
 function cargarNotasLateral(num){
   var lista=document.getElementById('notas-lista');
   lista.innerHTML='<div class="ld"><span class="sp"></span>Cargando...</div>';
@@ -1052,15 +1028,15 @@ function guardarNota(){
     .withFailureHandler(function(e){if(window.AOS_showToast)AOS_showToast('❌ Error',e&&e.message||'','toast-alerta');})
     .api_saveNotaPaciente360T(S.token,num,txt.trim(),'GENERAL');
 }
-// ===== CTRL+F: editarNota =====
+
 function editarNota(notaId,textoActual){
   var txtEl=document.getElementById('ntxt-'+notaId);
   if(!txtEl) return;
   var parent=txtEl.parentElement;
-  // Si ya hay un editor abierto, ciérralo
+  
   var existente=parent.querySelector('.nota-edit-area');
   if(existente){parent.removeChild(existente);parent.removeChild(parent.querySelector('.nota-edit-btns'));txtEl.style.display='block';return;}
-  // Crear editor inline
+  
   txtEl.style.display='none';
   var ta=document.createElement('textarea');
   ta.className='nota-edit-area'; ta.value=textoActual;
@@ -1105,7 +1081,7 @@ function eliminarNota(notaId){
     .api_deleteNotaPaciente360T(S.token,notaId);
 }
 
-/* ═══════════════════════ SEGUIMIENTOS ═══════════════════════ */
+ 
 function cargarSegs(num){
   var el=document.getElementById('p360-tc');
   google.script.run
@@ -1137,7 +1113,7 @@ function cerrarSeg(segId,btn){
     .api_cerrarSeguimientoProgramadoT(S.token,segId);
 }
 
-/* ═══════════════════════ MODAL CITA ═══════════════════════ */
+ 
 function abrirModalCita(){if(S.pac) document.getElementById('ov-cita').classList.add('open');}
 function cargarEquipo(){
   google.script.run
@@ -1168,8 +1144,8 @@ function guardarCita(){
       asesorId:ar[0]||'',asesorNombre:ar[1]||'',obs:document.getElementById('c-obs').value});
 }
 
-/* ═══════════════════════ EDITAR PACIENTE ═══════════════════════ */
-// ===== CTRL+F: abrirEditar =====
+ 
+
 function abrirEditar(){
   if(!S.pac) return;
   var p=S.pac;
@@ -1199,8 +1175,8 @@ function guardarEdicion(){
     .api_updatePatientFullT(S.token,S.pac.telefono,{nombres:v('nombres'),apellidos:v('apellidos'),email:v('email'),documento:v('documento'),sexo:v('sexo'),fechaNac:v('fechaNac'),ocupacion:v('ocupacion'),direccion:v('direccion'),sede:v('sede'),fuente:v('fuente'),notas:v('notas')});
 }
 
-/* ═══════════════════════ MODAL DUPLICADOS MEJORADO ═══════════════════════ */
-// ===== CTRL+F: abrirDupes =====
+ 
+
 function abrirDupes(){
   document.getElementById('ov-dupes').classList.add('open');
   document.getElementById('dupes-content').innerHTML='<div class="ld"><span class="sp"></span>Analizando...</div>';
@@ -1237,22 +1213,22 @@ function abrirDupes(){
           '</div>';
         }).join('');
       window._dupGrupos=res.grupos;
-      window._dupSel={};  // {gi: {rowP, rowS}}
+      window._dupSel={};  
     })
     .withFailureHandler(function(e){document.getElementById('dupes-content').innerHTML='<div class="ld">Error: '+(e&&e.message||'')+'</div>';})
     .api_detectarDuplicadosT(S.token);
 }
 
 function elegirPrincipal(gi,ri,rowElegido,registros){
-  // Guardar selección
+  
   var secs=registros.filter(function(r,rj){return rj!==ri;});
   window._dupSel[gi]={rowP:rowElegido,rowS:secs[0]?secs[0].row:null,p:registros[ri],s:secs[0]};
 
-  // Visual: actualizar cada card del grupo
+  
   registros.forEach(function(r,rj){
     var card=document.getElementById('dc-'+gi+'-'+rj);
     var btn=document.getElementById('bep-'+gi+'-'+rj);
-    // Limpiar tags anteriores
+    
     var oldTag=card.querySelector('.dup-tag');if(oldTag)oldTag.remove();
     if(rj===ri){
       card.classList.add('principal'); card.classList.remove('secundario');
@@ -1265,13 +1241,13 @@ function elegirPrincipal(gi,ri,rowElegido,registros){
     }
   });
 
-  // Preview
+  
   var prev=document.getElementById('dp-'+gi);
   var p=registros[ri],s=secs[0]||{};
   prev.style.display='block';
   prev.innerHTML='<b>'+h(p.nombres||'—')+' '+h(p.apellidos||'')+'</b> ('+h(p.tel||'—')+') absorberá el historial de <b>'+h(s.nombres||'—')+' '+h(s.apellidos||'')+'</b> ('+h(s.tel||'—')+').<br><span style="font-size:10px;color:#14532D;">El secundario quedará como RETIRADO.</span>';
 
-  // Mostrar botón fusionar
+  
   document.getElementById('dfus-'+gi).style.display='block';
 }
 
@@ -1291,17 +1267,17 @@ function confirmarFusion(gi){
     .api_fusionarPacientesT(S.token,sel.rowP,sel.rowS);
 }
 
-/* ═══════════════════════ UTILS ═══════════════════════ */
+ 
 function p360Wa(){if(!S.pac)return;var num=(S.pac.telefono||'').replace(/\D/g,'');if(num)window.open('https://wa.me/51'+num,'_blank');}
 function cerrarOv(id){var e=document.getElementById(id);if(e)e.classList.remove('open');}
 
-// ===== CTRL+F: normSc =====
+
 function normSc(e){
   if(!e)return'NUEVO';
   var s=e.toUpperCase().trim().replace(/Ó/g,'O').replace(/É/g,'E').replace(/Á/g,'A').replace(/Í/g,'I').replace(/Ú/g,'U');
   return{ACTIVO:'ACTIVO','EN RIESGO':'EN_RIESGO',EN_RIESGO:'EN_RIESGO',INACTIVO:'INACTIVO',NUEVO:'NUEVO',RETIRADO:'INACTIVO'}[s]||'NUEVO';
 }
-// ===== CTRL+F: normCita =====
+
 function normCita(e){
   if(!e)return'—';
   var s=e.toUpperCase().trim().replace(/Ó/g,'O').replace(/É/g,'E').replace(/Á/g,'A').replace(/Í/g,'I').replace(/Ú/g,'U');
