@@ -405,7 +405,7 @@ function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:
   } else {
     navigateTo('admin-home');
   }
-  // Fallback: si en 4 segundos workspace sigue en loading, mostrar botón
+  // Fallback: si en 4 segundos workspace sigue en loading, mostrar botn
   setTimeout(function() {
     var ws = document.getElementById('workspace');
     if (ws && ws.querySelector('.vl-spinner')) {
@@ -418,9 +418,9 @@ function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:
   }, 4000);
 })();
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    TOPBAR BUILD
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function buildTopbar() {
   try {
     var ctx = AOS.ctx;
@@ -442,18 +442,18 @@ function buildTopbar() {
   } catch(e) { console.error('[buildTopbar]', e); }
 }
 
-/* ═══════════════════════════════════════════════════
-   G1: TOGGLE SIDEBAR — logo clickeable
-═══════════════════════════════════════════════════ */
+/* ---------------------------------------------------
+   G1: TOGGLE SIDEBAR - logo clickeable
+--------------------------------------------------- */
 document.getElementById('tb-brand').addEventListener('click', function() {
   AOS.collapsed = !AOS.collapsed;
   document.getElementById('sidebar').classList.toggle('col', AOS.collapsed);
   document.getElementById('tb-brand').classList.toggle('col', AOS.collapsed);
 });
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    G2: SVG ICONS LIBRARY
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 var ICONS = {
   home:      '<svg viewBox="0 0 20 20" fill="none"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" fill="currentColor" opacity=".85"/><path d="M7 18v-5h6v5" stroke="white" stroke-width="1.5" fill="none"/></svg>',
   phone:     '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3h3l1.5 4-2 1.5c1 2 3 4 5 5l1.5-2 4 1.5V16a1 1 0 01-1 1C7 17 3 13 3 4a1 1 0 011-1z" fill="currentColor" opacity=".9"/></svg>',
@@ -481,9 +481,9 @@ function mkIco(name) {
   return '<div class="ni-ico">' + svg + '</div>';
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    SIDEBAR DEFINITIONS
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 var SIDEBAR_ASESOR = [
   {type:'section',label:'Operaciones'},
   {type:'item',id:'advisor-home',       ico:'home',     lbl:'Panel principal'},
@@ -567,9 +567,9 @@ function buildSidebar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    VIEW MAP
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 var VIEW_MAP = {
   'advisor-home':        'ViewAdvisorHome',
   'advisor-calls':       'ViewAdvisorCalls',
@@ -612,7 +612,7 @@ function navigateTo(viewId) {
       '<div style="font-size:12px;color:#9AAAC8;">' + escHtml(viewId) + ' — Próximamente</div></div>';
     return;
   }
-  // Mapeo de panel -> archivo HTML estático
+  // Mapeo de panel -> archivo HTML esttico
   var PANEL_ROUTES = {
     'ViewAdvisorCalls':      '/calls.html',
     'ViewAdvisorHome':       '/advisor-home.html',
@@ -662,9 +662,9 @@ function showViewError(msg) {
     '<button class="ve-btn" onclick="navigateTo(AOS.activeView)">Reintentar</button></div>';
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    RELOJ
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function startClock() {
   function tick() {
     var d = new Date();
@@ -680,9 +680,9 @@ function startClock() {
   tick(); setInterval(tick, 1000);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    S3: TURNO
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function verificarTurnoHoy() {
   // turno verificado (Supabase pendiente)
   AOS.turnoId = null; navigateTo('advisor-calls');
@@ -714,9 +714,9 @@ function comenzarTurno() {
   showToast('🏁 Turno cerrado', '¡Hasta mañana!', ''); setTimeout(function(){doLogout();},1500);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    ESTADO OPERATIVO
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function initEstadoDropdown() {
   var btn = document.getElementById('edo-btn');
   var dd  = document.getElementById('edo-dd');
@@ -762,7 +762,7 @@ function activarOverlayEstado(edo, ico) {
   }, 1000);
 }
 
-/* S2: Terminar estado bloqueante → ACTIVO automático */
+/* S2: Terminar estado bloqueante - ACTIVO autom-tico */
 function terminarEstadoBloqueante() {
   if (AOS.bloqueoTimer) { clearInterval(AOS.bloqueoTimer); AOS.bloqueoTimer = null; }
   var min   = Math.round((Date.now() - AOS.bloqueoInicio) / 60000);
@@ -775,9 +775,9 @@ function terminarEstadoBloqueante() {
   showToast('🟢 Activo', 'Regresaste de ' + prev + ' (' + min + ' min)', '');
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    POLLING
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function startPolling() {
   pollNotifications();
   AOS.pollTimer = setInterval(pollNotifications, 30000);
@@ -849,9 +849,9 @@ document.getElementById('np-clear').addEventListener('click', function() {
   updateNotifBadges(0,0);
 });
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    SONIDOS
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function getAudioCtx() {
   if (!AOS.audioCtx) { try { AOS.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {} }
   return AOS.audioCtx;
@@ -864,9 +864,9 @@ function playSound(tipo) {
   } catch(e) {}
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    TOASTS
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function showToast(titulo, cuerpo, cls) {
   var tc = document.getElementById('toast-container');
   var t  = document.createElement('div');
@@ -878,9 +878,9 @@ function showToast(titulo, cuerpo, cls) {
   setTimeout(function() { if (t.parentNode) tc.removeChild(t); }, 5000);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    LOGOUT
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 function openLogoutModal()  { document.getElementById('modal-logout').classList.add('open'); }
 function closeLogoutModal() { document.getElementById('modal-logout').classList.remove('open'); }
 function doLogout() {
@@ -893,9 +893,9 @@ function redirectLogin() {
   window.location.href = '/';
 }
 
-/* ═══════════════════════════════════════════════════
-   API PÚBLICA PARA VISTAS HIJAS
-═══════════════════════════════════════════════════ */
+/* ---------------------------------------------------
+   API P-BLICA PARA VISTAS HIJAS
+--------------------------------------------------- */
 window.AOS_getToken    = function() { return AOS.token; };
 window.AOS_getCtx      = function() { return AOS.ctx; };
 window.AOS_getRole     = function() { return AOS.role; };
@@ -906,25 +906,25 @@ window.AOS_playSound   = playSound;
 window.AOS_showToast   = showToast;
 
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    SUPABASE DIRECT CLIENT
    Lee datos directamente desde Supabase sin pasar por GAS.
-   GAS sigue para: login, guardar llamadas, lógica de tiers.
+   GAS sigue para: login, guardar llamadas, l-gica de tiers.
    Supabase directo para: KPIs, historial, tipificaciones.
 
    Tiempo: GAS intermediario = 1-3s overhead por request
            Supabase directo  = ~200-400ms total
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 var _SB = {
   url: 'https://ituyqwstonmhnfshnaqz.supabase.co',
   key: 'sb_publishable_mz1j7bmlLulSqUposiKUCg_fka59fW_'
 };
 
 /**
- * sb_fetch — cliente Supabase para lecturas directas desde el browser
- * @param {string} path   — endpoint, ej: '/rest/v1/aos_llamadas?fecha=eq.2024-01-01'
- * @param {object} opts   — { method, body } para RPCs
- * @returns {Promise}     — promesa con los datos JSON
+ * sb_fetch - cliente Supabase para lecturas directas desde el browser
+ * @param {string} path   - endpoint, ej: '/rest/v1/aos_llamadas?fecha=eq.2024-01-01'
+ * @param {object} opts   - { method, body } para RPCs
+ * @returns {Promise}     - promesa con los datos JSON
  */
 window.sb_fetch = function(path, opts) {
   opts = opts || {};
@@ -944,9 +944,9 @@ window.sb_fetch = function(path, opts) {
 };
 
 /**
- * sb_rpc — llama una función SQL en Supabase
- * @param {string} fn     — nombre de la función, ej: 'aos_panel_asesor'
- * @param {object} params — parámetros de la función
+ * sb_rpc - llama una funci-n SQL en Supabase
+ * @param {string} fn     - nombre de la funci-n, ej: 'aos_panel_asesor'
+ * @param {object} params - par-metros de la funci-n
  * @returns {Promise}
  */
 window.sb_rpc = function(fn, params) {
@@ -957,10 +957,10 @@ window.sb_rpc = function(fn, params) {
 };
 
 /**
- * sb_get — query a una tabla con filtros
- * @param {string} table  — nombre de la tabla, ej: 'aos_llamadas'
- * @param {object} params — { select, filters, order, limit }
- *   filters: { campo: valor } → genera campo=eq.valor
+ * sb_get - query a una tabla con filtros
+ * @param {string} table  - nombre de la tabla, ej: 'aos_llamadas'
+ * @param {object} params - { select, filters, order, limit }
+ *   filters: { campo: valor } - genera campo=eq.valor
  * @returns {Promise}
  */
 window.sb_get = function(table, params) {
@@ -981,7 +981,7 @@ window.sb_get = function(table, params) {
   return window.sb_fetch(path);
 };
 
-// Exponer en API pública del AppShell
+// Exponer en API pblica del AppShell
 window.AOS_sbFetch = window.sb_fetch;
 window.AOS_sbRpc   = window.sb_rpc;
 window.AOS_sbGet   = window.sb_get;
