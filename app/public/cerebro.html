@@ -6,89 +6,78 @@
 <title>AscendaOS · Brain · KronIA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--blue:#0A4FBF;--blue2:#071D4A;--cyan:#00C9A7;--bg:#F8FAFE;--white:#FFFFFF;--muted:rgba(10,79,191,0.10);--t2:rgba(7,29,74,0.40);--card:rgba(255,255,255,0.92);}
+:root{--blue:#0A4FBF;--blue2:#071D4A;--cyan:#00C9A7;--bg:#F8FAFE;--card:rgba(255,255,255,0.92);--muted:rgba(10,79,191,0.10);--t2:rgba(7,29,74,0.40);}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'SF Pro Display','Segoe UI',system-ui,sans-serif;touch-action:none;user-select:none}
 canvas{position:fixed;inset:0;display:block}
 #hud{position:fixed;inset:0;z-index:20;pointer-events:none}
 
-/* ── Brand — color dinámico según conexión ── */
-#brand{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:8px;
-  background:var(--card);border:1px solid var(--muted);border-radius:10px;
-  padding:7px 11px;backdrop-filter:blur(12px);pointer-events:all}
-.bc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:all .5s}
-/* ROJO cuando offline */
-.bc-dot{background:#E53935;box-shadow:0 0 6px #E53935}
-/* VERDE cuando online */
+/* Brand */
+#brand{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--muted);border-radius:10px;padding:7px 11px;backdrop-filter:blur(12px);pointer-events:all}
+.bc-dot{width:8px;height:8px;border-radius:50%;background:#E53935;box-shadow:0 0 6px #E53935;flex-shrink:0;transition:all .5s}
 .bc-dot.on{background:#00C9A7;box-shadow:0 0 8px #00C9A7;animation:glow 2.5s infinite}
 @keyframes glow{0%,100%{opacity:1}50%{opacity:.4}}
 .bc-name{font-size:10px;font-weight:700;color:var(--blue2);letter-spacing:.04em;white-space:nowrap}
-/* Subtítulo en color según estado */
-#sb-lbl{font-size:8px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:color .5s;color:#E53935}
+#sb-lbl{font-size:8px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;color:#E53935;transition:color .5s}
 #sb-lbl.on{color:#00C9A7}
 
-/* ── Métricas ── */
+/* Métricas */
 #metrics{position:absolute;top:10px;right:10px;display:flex;gap:5px;flex-direction:column;align-items:flex-end}
-.mcard{background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:4px 9px;backdrop-filter:blur(10px);display:flex;align-items:baseline;gap:5px;white-space:nowrap}
-.mval{font-size:14px;font-weight:800;color:var(--blue)}.mlbl{font-size:7px;color:var(--t2);letter-spacing:.08em;text-transform:uppercase}
-
-/* ── KronIA panel — solo waveform + estado, SIN card de instrucciones ── */
-#kronia{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);
-  width:min(300px,82vw);background:var(--card);
-  border:1px solid rgba(0,201,167,0.20);border-radius:12px;
-  padding:8px 12px;backdrop-filter:blur(14px);
-  display:flex;flex-direction:column;gap:6px;pointer-events:all;
-  opacity:0;transition:all .3s;translate:0 8px;pointer-events:none}
-#kronia.vis{opacity:1;translate:0 0;pointer-events:all}
-.kk-top{display:flex;align-items:center;gap:8px}
-/* Indicador mic — punto que pulsa cuando escucha */
-#kk-mic-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;
-  background:var(--t2);transition:all .4s}
-#kk-mic-dot.listening{background:#00C9A7;box-shadow:0 0 8px #00C9A7;animation:micg 1s infinite}
-#kk-mic-dot.speaking{background:#0A4FBF;box-shadow:0 0 8px #0A4FBF;animation:micg .7s infinite}
-@keyframes micg{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
-.kk-name{font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.04em}
-#kk-st{font-size:8px;color:var(--t2);letter-spacing:.08em;text-transform:uppercase;flex:1}
-/* Waveform — visible siempre que KronIA esté activa */
-#kk-cv{width:100%;height:28px;border-radius:6px;background:rgba(0,201,167,0.04)}
-/* Texto de lo que dice — una sola línea, se reemplaza */
-#kk-txt{font-size:9.5px;color:var(--blue2);line-height:1.4;
-  min-height:14px;font-style:italic;opacity:.75;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc{background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:4px 9px;backdrop-filter:blur(10px);display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.mv{font-size:14px;font-weight:800;color:var(--blue)}.ml{font-size:7px;color:var(--t2);letter-spacing:.08em;text-transform:uppercase}
 
 /* Notificaciones */
 #nl{position:absolute;top:66px;left:10px;width:min(200px,36vw);display:flex;flex-direction:column;gap:4px;pointer-events:all}
 #nr{position:absolute;top:66px;right:10px;width:min(185px,34vw);display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:all}
-#nb{position:absolute;bottom:160px;left:50%;transform:translateX(-50%);width:min(320px,84vw);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:all}
+#nb{position:absolute;bottom:168px;left:50%;transform:translateX(-50%);width:min(320px,84vw);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:all}
 .notif{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:5px 8px;backdrop-filter:blur(10px);animation:nIn .22s ease;max-width:100%;transition:opacity .35s,transform .35s}
 @keyframes nIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
 .rIn{animation:rIn .22s ease}@keyframes rIn{from{opacity:0;transform:translateX(5px)}to{opacity:1;transform:none}}
 .out{opacity:0!important;transform:translateY(-3px) scale(.97)!important}
-.ndot{width:4px;height:4px;border-radius:50%;flex-shrink:0}.ntime{font-size:7.5px;font-weight:600;min-width:32px;white-space:nowrap}.nmsg{font-size:8.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}.ndism{background:none;border:none;color:var(--t2);font-size:11px;cursor:pointer;padding:0 2px;margin-left:2px;flex-shrink:0}
+.ndot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.ntime{font-size:7.5px;font-weight:600;min-width:32px;white-space:nowrap}
+.nmsg{font-size:8.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.ndism{background:none;border:none;color:var(--t2);font-size:11px;cursor:pointer;padding:0 2px;margin-left:2px}
 .na{border-color:rgba(220,50,50,0.18)!important;background:rgba(255,248,248,0.93)!important}
 .ni{flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;border-color:rgba(0,201,167,0.18)!important;background:rgba(248,254,252,0.92)!important}
-.ni .nh{display:flex;align-items:center;gap:5px;width:100%}.ni .nd{font-size:8px;color:#006655;display:none;margin-top:3px;padding-top:4px;border-top:1px solid rgba(0,201,167,0.12);line-height:1.5;white-space:normal;max-width:300px}.ni.exp .nd{display:block}
+.ni .nh{display:flex;align-items:center;gap:5px;width:100%}
+.ni .nd{font-size:8px;color:#006655;display:none;margin-top:3px;padding-top:4px;border-top:1px solid rgba(0,201,167,0.12);line-height:1.5;white-space:normal;max-width:300px}
+.ni.exp .nd{display:block}
 
-/* Selector de dispositivo de audio */
-#kk-dev-wrap select{max-width:100%;font-size:9px}
-#kk-dev-wrap select option{background:#fff;color:#071D4A}
+/* KronIA panel */
+#kronia{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);width:min(300px,82vw);background:var(--card);border:1px solid rgba(0,201,167,0.20);border-radius:12px;padding:8px 12px;backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:6px;pointer-events:all;opacity:0;transition:all .3s;translate:0 8px;pointer-events:none}
+#kronia.vis{opacity:1;translate:0 0;pointer-events:all}
+.kk-top{display:flex;align-items:center;gap:8px}
+#kk-mic-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--t2);transition:background .4s,box-shadow .4s}
+#kk-mic-dot.listening{background:#00C9A7;box-shadow:0 0 8px #00C9A7;animation:micg 1.4s infinite}
+#kk-mic-dot.listening.active{background:#00E5A0;box-shadow:0 0 12px #00E5A0;animation:micg .5s infinite}
+#kk-mic-dot.speaking{background:#0A4FBF;box-shadow:0 0 8px #0A4FBF;animation:micg .7s infinite}
+#kk-mic-dot.thinking{background:#F0A020;box-shadow:0 0 8px #F0A020;animation:micg 1s infinite}
+#kk-mic-dot.nomic{background:#E53935;box-shadow:0 0 6px #E53935}
+@keyframes micg{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.kk-name{font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.04em}
+#kk-st{font-size:8px;color:var(--t2);letter-spacing:.08em;text-transform:uppercase;flex:1}
+#kk-cv{width:100%;height:28px;border-radius:6px;background:rgba(0,201,167,0.04)}
+#kk-txt{font-size:9.5px;color:var(--blue2);line-height:1.4;min-height:14px;font-style:italic;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kk-dev-wrap{display:flex;align-items:center;gap:6px}
+#kk-dev-wrap select{flex:1;font-size:9px;color:#071D4A;background:rgba(255,255,255,0.9);border:1px solid rgba(0,201,167,0.3);border-radius:6px;padding:3px 6px;cursor:pointer;outline:none}
 
-/* Controles bottom */
+/* Controles */
 #ctrls{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;pointer-events:all}
 .cb{background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:4px 10px;font-size:8.5px;color:var(--blue2);cursor:pointer;backdrop-filter:blur(8px);font-weight:600;transition:all .2s;white-space:nowrap}
 .cb:hover{background:rgba(10,79,191,0.06)}.cb.on{border-color:var(--cyan);color:#007060}
 #zpill{font-size:8px;color:var(--t2);background:var(--card);border:1px solid var(--muted);border-radius:20px;padding:3px 9px;backdrop-filter:blur(8px);white-space:nowrap;pointer-events:none}
 
 /* Tooltip */
-#tt{position:fixed;background:var(--white);border:1px solid rgba(10,79,191,0.14);border-radius:12px;padding:10px 14px;min-width:160px;max-width:210px;pointer-events:none;opacity:0;transition:opacity .18s;z-index:30;box-shadow:0 4px 18px rgba(10,79,191,0.09)}
+#tt{position:fixed;background:#fff;border:1px solid rgba(10,79,191,0.14);border-radius:12px;padding:10px 14px;min-width:160px;max-width:210px;pointer-events:none;opacity:0;transition:opacity .18s;z-index:30;box-shadow:0 4px 18px rgba(10,79,191,0.09)}
 #tt-n{font-size:11px;font-weight:700;color:var(--blue2);margin-bottom:5px;display:block}
-.tr{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}.tk{font-size:9px;color:var(--t2)}.tv{font-size:9px;font-weight:700;color:var(--blue2)}
-@media(max-width:480px){#nl{width:min(150px,32vw)}#nr{width:min(140px,30vw)}.nmsg{max-width:85px;font-size:8px}.mval{font-size:12px}}
+.tr{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
+.tk{font-size:9px;color:var(--t2)}.tv{font-size:9px;font-weight:700;color:var(--blue2)}
+@media(max-width:480px){#nl{width:min(150px,32vw)}#nr{width:min(140px,30vw)}.nmsg{max-width:85px;font-size:8px}.mv{font-size:12px}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="hud">
-  <!-- Brand con estado de conexión en color -->
   <div id="brand">
     <div class="bc-dot" id="sb-dot"></div>
     <div>
@@ -96,30 +85,22 @@ canvas{position:fixed;inset:0;display:block}
       <div id="sb-lbl">Sin conexión</div>
     </div>
   </div>
-
-  <!-- Métricas top-right -->
   <div id="metrics">
-    <div class="mcard"><span class="mval" id="m-ev">0</span><span class="mlbl">eventos</span></div>
-    <div class="mcard"><span class="mval" id="m-tb" style="color:var(--cyan)">8</span><span class="mlbl">tablas</span></div>
+    <div class="mc"><span class="mv" id="m-ev">0</span><span class="ml">eventos</span></div>
+    <div class="mc"><span class="mv" id="m-tb" style="color:var(--cyan)">8</span><span class="ml">tablas</span></div>
   </div>
-
-  <!-- Notificaciones -->
   <div id="nl"></div>
   <div id="nr"></div>
   <div id="nb"></div>
-
-  <!-- KronIA — solo cuando está activa, sin card de instrucciones -->
   <div id="kronia">
     <div class="kk-top">
       <div id="kk-mic-dot"></div>
       <span class="kk-name">KronIA</span>
-      <span id="kk-st">inactiva</span>
+      <span id="kk-st">Inactiva</span>
     </div>
     <canvas id="kk-cv"></canvas>
     <div id="kk-txt">…</div>
   </div>
-
-  <!-- Controles bottom -->
   <div id="ctrls">
     <button class="cb" id="btn-fs" onclick="toggleFS()">⛶ Pantalla completa</button>
     <div id="zpill">zoom 1.0×</div>
@@ -129,22 +110,21 @@ canvas{position:fixed;inset:0;display:block}
 <div id="tt"><span id="tt-n"></span><div id="tt-b"></div></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// ASCENDAOS BRAIN v3 + KRONIA v2.1
-// FIX: voz femenina, mic real, nodos quietos, colores estado
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ASCENDAOS BRAIN v3 + KRONIA v3 — archivo único limpio
+// ═══════════════════════════════════════════════════════════════
 const SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 const SK2='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmV6bGh0cWtpdWN3bXJkaXJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5OTY4MjAsImV4cCI6MjAyMjU3MjgyMH0.R5-sbTxsHf-7oSsIw0ZRMqBobDUz0vI62f19hmJKmMA';
 const H={'apikey':SK,'Authorization':'Bearer '+SK};
 
-// Canvas principal
+// ── Canvas ──────────────────────────────────────────────────────
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 let W,H2;
 function resize(){W=cv.width=innerWidth;H2=cv.height=innerHeight;}
 resize();window.addEventListener('resize',()=>{resize();initG();});
 
-// Paleta tablas
+// ── Tablas y conexiones ─────────────────────────────────────────
 const TS={
   aos_llamadas:{idle:[185,212,252],live:[55,138,221],label:'Llamadas',n:12229},
   aos_pacientes:{idle:[158,236,220],live:[0,201,167],label:'Pacientes',n:7010},
@@ -155,11 +135,19 @@ const TS={
   aos_seguimientos:{idle:[251,220,170],live:[240,160,32],label:'Seguim.',n:231},
   aos_inversion_campanas:{idle:[214,210,253],live:[127,119,221],label:'Inversión',n:19},
   aos_rrhh:{idle:[210,223,250],live:[7,29,74],label:'RRHH',n:6},
-  otros:{idle:[214,223,240],live:[100,130,180],label:'Sistema',n:1},
+  otros:{idle:[214,223,240],live:[100,130,180],label:'Sistema',n:1}
 };
-const CONN=[['aos_leads','aos_llamadas'],['aos_leads','aos_pacientes'],['aos_leads','aos_agenda_citas'],['aos_llamadas','aos_agenda_citas'],['aos_llamadas','aos_ventas'],['aos_llamadas','aos_seguimientos'],['aos_llamadas','aos_pacientes'],['aos_pacientes','aos_agenda_citas'],['aos_pacientes','aos_ventas'],['aos_agenda_citas','aos_ventas'],['aos_ventas','aos_seguimientos'],['aos_inversion_campanas','aos_leads'],['aos_base_etiquetas','aos_pacientes'],['aos_rrhh','aos_llamadas']];
+const CONN=[
+  ['aos_leads','aos_llamadas'],['aos_leads','aos_pacientes'],['aos_leads','aos_agenda_citas'],
+  ['aos_llamadas','aos_agenda_citas'],['aos_llamadas','aos_ventas'],['aos_llamadas','aos_seguimientos'],
+  ['aos_llamadas','aos_pacientes'],['aos_pacientes','aos_agenda_citas'],['aos_pacientes','aos_ventas'],
+  ['aos_agenda_citas','aos_ventas'],['aos_ventas','aos_seguimientos'],
+  ['aos_inversion_campanas','aos_leads'],['aos_base_etiquetas','aos_pacientes'],['aos_rrhh','aos_llamadas']
+];
 
-let nodes=[],edges=[],gmap={};const eSet=new Set();
+// ── Grafo ───────────────────────────────────────────────────────
+let nodes=[],edges=[],gmap={};
+const eSet=new Set();
 function nR(n){return Math.max(1.2,Math.log10(n+1)*2.3);}
 function lR(a,b,t){return[~~(a[0]+(b[0]-a[0])*t),~~(a[1]+(b[1]-a[1])*t),~~(a[2]+(b[2]-a[2])*t)];}
 function d2(a,b){return(a.x-b.x)**2+(a.y-b.y)**2;}
@@ -178,33 +166,36 @@ function initG(){
       const hub=j===0,nr=hub?nR(st.n)*1.8:nR(st.n)*(.45+Math.random()*.65);
       const node={id:nodes.length,x:gcx+Math.cos(a)*r,y:gcy+Math.sin(a)*r,ox:gcx,oy:gcy,
         vx:0,vy:0,r:nr,group:k,idle:st.idle,live:st.live,
-        pulse:0,phase:Math.random()*Math.PI*2,pspd:.002+Math.random()*.002,
-        label:hub?st.label:null};
+        pulse:0,phase:Math.random()*Math.PI*2,pspd:.002+Math.random()*.002,label:hub?st.label:null};
       nodes.push(node);gmap[k].push(node);
     }
   });
   Object.values(gmap).forEach(gn=>{
-    gn.forEach(n=>{[...gn].filter(m=>m!==n).sort((a,b)=>d2(n,a)-d2(n,b)).slice(0,2+~~(Math.random()*2)).forEach(m=>addE(n,m,false));});
+    gn.forEach(n=>{
+      [...gn].filter(m=>m!==n).sort((a,b)=>d2(n,a)-d2(n,b))
+        .slice(0,2+~~(Math.random()*2)).forEach(m=>addE(n,m,false));
+    });
   });
   CONN.forEach(([ga,gb])=>{
     const na=gmap[ga]||[],nb=gmap[gb]||[];if(!na.length||!nb.length)return;
-    for(let i=0;i<Math.min(2,na.length);i++)for(let j=0;j<Math.min(2,nb.length);j++)addE(na[i],nb[j],true);
+    for(let i=0;i<Math.min(2,na.length);i++)
+      for(let j=0;j<Math.min(2,nb.length);j++) addE(na[i],nb[j],true);
     const x=~~(Math.min(na.length,nb.length)*.12)+1;
-    for(let k=0;k<x;k++)addE(na[~~(Math.random()*na.length)],nb[~~(Math.random()*nb.length)],true);
+    for(let k=0;k<x;k++) addE(na[~~(Math.random()*na.length)],nb[~~(Math.random()*nb.length)],true);
   });
-  // SETTLE — más iteraciones para que llegue estable y NO se mueva después
-  for(let i=0;i<350;i++)phys(i<80?.82:i<200?.92:.97);
-  // Fijar posiciones base para que no deriven
+  for(let i=0;i<350;i++) phys(i<80?.82:i<200?.92:.97);
   nodes.forEach(n=>{n.ox=n.x;n.oy=n.y;});
 }
 
 function phys(d=.92){
   const k=Math.min(W,H2)*.021;
-  for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
-    const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y,dd=Math.sqrt(dx*dx+dy*dy)||.01;
-    const mD=(a.r+b.r)*3.0;
-    if(dd<k*2.8){const f=k*k/dd*.38;a.vx-=dx/dd*f;a.vy-=dy/dd*f;b.vx+=dx/dd*f;b.vy+=dy/dd*f;}
-    if(dd<mD){const p=(mD-dd)*.2;a.vx-=dx/dd*p;a.vy-=dy/dd*p;b.vx+=dx/dd*p;b.vy+=dy/dd*p;}
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y,dd=Math.sqrt(dx*dx+dy*dy)||.01;
+      const mD=(a.r+b.r)*3;
+      if(dd<k*2.8){const f=k*k/dd*.38;a.vx-=dx/dd*f;a.vy-=dy/dd*f;b.vx+=dx/dd*f;b.vy+=dy/dd*f;}
+      if(dd<mD){const p=(mD-dd)*.2;a.vx-=dx/dd*p;a.vy-=dy/dd*p;b.vx+=dx/dd*p;b.vy+=dy/dd*p;}
+    }
   }
   edges.forEach(e=>{
     const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,dd=Math.sqrt(dx*dx+dy*dy)||.01;
@@ -212,13 +203,13 @@ function phys(d=.92){
     e.a.vx+=dx*f;e.a.vy+=dy*f;e.b.vx-=dx*f;e.b.vy-=dy*f;
   });
   nodes.forEach(n=>{
-    n.vx+=(n.ox-n.x)*.018;n.vy+=(n.oy-n.y)*.018; // gravedad al home
+    n.vx+=(n.ox-n.x)*.018;n.vy+=(n.oy-n.y)*.018;
     n.vx+=(W/2-n.x)*.001;n.vy+=(H2/2-n.y)*.001;
     n.vx*=d;n.vy*=d;n.x+=n.vx;n.y+=n.vy;
   });
 }
 
-// Cámara
+// ── Cámara ──────────────────────────────────────────────────────
 let cam={x:0,y:0,z:1,tz:1},drag={on:false,lx:0,ly:0},pinch={on:false,d0:0,z0:1},hovered=null;
 cv.addEventListener('mousedown',e=>{drag.on=true;drag.lx=e.clientX;drag.ly=e.clientY;cv.style.cursor='grabbing';});
 window.addEventListener('mousemove',e=>{if(drag.on){cam.x+=e.clientX-drag.lx;cam.y+=e.clientY-drag.ly;drag.lx=e.clientX;drag.ly=e.clientY;return;}if(cam.z>1.8)chkHov(e.clientX,e.clientY);});
@@ -244,9 +235,11 @@ function chkHov(sx,sy){
   }else tt.style.opacity='0';
 }
 
-// Viajeros — SOLO con eventos reales
+// ── Viajeros ────────────────────────────────────────────────────
 const travelers=[];
 function spawnT(a,b,color){travelers.push({a,b,t:0,speed:.013+Math.random()*.01,color});}
+
+// ── Activar tabla con dato real ─────────────────────────────────
 let evCnt=0;
 function activateTable(tbl,action){
   const gn=gmap[tbl]||gmap.otros;if(!gn||!gn.length)return;
@@ -258,7 +251,7 @@ function activateTable(tbl,action){
   pushN(tbl,action||'INSERT');
 }
 
-// Notificaciones
+// ── Notificaciones ───────────────────────────────────────────────
 function tStr(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');}
 function rS(c){return'rgb('+c[0]+','+c[1]+','+c[2]+')';}
 function pushN(tbl,action){
@@ -281,455 +274,224 @@ function pushInsight(title,detail){
   setTimeout(()=>{if(!li.classList.contains('exp')){li.classList.add('out');setTimeout(()=>{if(li.parentNode)li.remove();},380);}},30000);
 }
 
-// ══ KRONIA v3.0 — COMUNICACIÓN BIDIRECCIONAL REAL ═════════════
-// Foco: permisos mic, selección dispositivo, waveform real, escucha activa
-// ══════════════════════════════════════════════════════════════
+// ══ KRONIA v3 — VOZ BIDIRECCIONAL ════════════════════════════
+const synth=window.speechSynthesis;
+let kkVoice=null,kkVis=false,micOn=false,isSpeaking=false;
+let recognition=null,audioCtx=null,analyser=null,dataArr=null,micStream=null,waveAnim=null;
+let selectedDeviceId=null,availableDevices=[];
+const SESSION_ID='ses_'+Date.now();
+let memoria=[],ultimaInt=null,ultimoCtx={};
+const kkCv=document.getElementById('kk-cv'),kkCtx2=kkCv.getContext('2d');
 
-let synth = window.speechSynthesis;
-let kkVoice = null;
-let kkVis = false;
-let micOn = false;
-let isSpeaking = false;
-let recognition = null;
-let audioCtx = null, analyser = null, dataArr = null;
-let micStream = null, waveAnim = null;
-let selectedDeviceId = null; // dispositivo de mic seleccionado
-let availableDevices = [];   // lista de mics disponibles
+// Voces
+function getVoz(){
+  const vs=synth.getVoices();if(!vs.length)return null;
+  const p=[v=>v.name==='Google español',v=>v.name.toLowerCase().includes('google')&&v.lang.startsWith('es'),v=>v.lang==='es-MX',v=>v.lang==='es-US',v=>v.lang==='es-419',v=>v.lang.startsWith('es')];
+  for(const t of p){const v=vs.find(t);if(v)return v;}
+  return vs[0]||null;
+}
+if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{kkVoice=getVoz();};
+setTimeout(()=>{kkVoice=getVoz();},400);
+setTimeout(()=>{if(!kkVoice)kkVoice=getVoz();},1500);
 
-const SESSION_ID = 'ses_' + Date.now();
-let memoria = [], ultimaInt = null, ultimoCtx = {};
-
-// ── Panel de selección de dispositivos (se muestra la primera vez) ──
-// El HTML del selector se inyecta dinámicamente dentro de #kronia
-function buildDeviceSelector(devices) {
-  // Eliminar selector previo si existe
-  const old = document.getElementById('kk-dev-wrap');
-  if (old) old.remove();
-
-  if (devices.length <= 1) return; // solo 1 mic, no hace falta selector
-
-  const wrap = document.createElement('div');
-  wrap.id = 'kk-dev-wrap';
-  wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:2px';
-
-  const lbl = document.createElement('span');
-  lbl.textContent = '🎤';
-  lbl.style.cssText = 'font-size:11px;flex-shrink:0';
-
-  const sel = document.createElement('select');
-  sel.id = 'kk-dev-sel';
-  sel.style.cssText = `
-    flex:1;font-size:9px;color:#071D4A;background:rgba(255,255,255,0.9);
-    border:1px solid rgba(0,201,167,0.3);border-radius:6px;
-    padding:3px 6px;cursor:pointer;outline:none;
-  `;
-  devices.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d.deviceId;
-    opt.textContent = d.label || 'Micrófono ' + (devices.indexOf(d) + 1);
-    if (d.deviceId === selectedDeviceId) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  sel.onchange = () => {
-    selectedDeviceId = sel.value;
-    // Reiniciar stream con el nuevo dispositivo
-    if (micOn) {
-      stopMicStream();
-      startMicStream();
-    }
-  };
-
-  wrap.appendChild(lbl);
-  wrap.appendChild(sel);
-  document.getElementById('kronia').appendChild(wrap);
+// Estados
+function kkState(s){
+  const dot=document.getElementById('kk-mic-dot'),st=document.getElementById('kk-st');if(!dot||!st)return;
+  const M={idle:{d:'',t:'Di "Cronia" para activarme'},listening:{d:'listening',t:'Escuchando…'},speaking:{d:'speaking',t:'Hablando…'},thinking:{d:'thinking',t:'Consultando Supabase…'},nomic:{d:'nomic',t:'Sin acceso al micrófono'}};
+  const m=M[s]||M.idle;dot.className='kk-mic-dot'+(m.d?' '+m.d:'');st.textContent=m.t;
 }
 
-// ── Cargar lista de dispositivos ──────────────────────────────
-async function loadDevices() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    availableDevices = devices.filter(d => d.kind === 'audioinput');
-    // Si los labels están vacíos, pedir permiso primero
-    if (availableDevices.length > 0 && !availableDevices[0].label) {
-      // Los labels solo aparecen después de pedir permiso
-      return availableDevices;
-    }
-    buildDeviceSelector(availableDevices);
-    return availableDevices;
-  } catch (e) {
-    return [];
+// Hablar
+function kkSpeak(text){
+  synth.cancel();isSpeaking=true;
+  const u=new SpeechSynthesisUtterance(text);
+  if(!kkVoice)kkVoice=getVoz();if(kkVoice)u.voice=kkVoice;
+  u.lang='es-PE';u.rate=0.90;u.pitch=1.12;u.volume=1;
+  document.getElementById('kk-txt').textContent=text;
+  kkState('speaking');waveSynth('speak');
+  u.onend=()=>{isSpeaking=false;if(micOn){kkState('listening');if(analyser)waveReal();else waveSynth('listen');}else{kkState('idle');stopWave();}};
+  u.onerror=()=>{isSpeaking=false;kkState(micOn?'listening':'idle');};
+  synth.speak(u);showKronIA();
+}
+
+// Toggle KronIA
+function toggleKronIA(){
+  if(!kkVis){showKronIA();pedirPermiso();}
+  else{stopMic();kkVis=false;document.getElementById('kronia').classList.remove('vis');document.getElementById('btn-kk').classList.remove('on');stopWave();}
+}
+function showKronIA(){kkVis=true;document.getElementById('kronia').classList.add('vis');document.getElementById('btn-kk').classList.add('on');}
+
+// Pedir permiso y listar dispositivos
+async function pedirPermiso(){
+  kkState('idle');document.getElementById('kk-txt').textContent='Solicitando acceso al micrófono…';
+  try{
+    // Paso 1: pedir permiso — el navegador muestra el diálogo
+    const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
+    tmp.getTracks().forEach(t=>t.stop());
+    // Paso 2: listar dispositivos con labels reales
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    availableDevices=devs.filter(d=>d.kind==='audioinput');
+    if(availableDevices.length>0)selectedDeviceId=availableDevices[0].deviceId;
+    buildSelector(availableDevices);
+    // Paso 3: iniciar stream y reconocimiento
+    await startStream();
+    startReco();
+    micOn=true;
+    kkState('listening');
+    document.getElementById('kk-txt').textContent='Lista. Di "Cronia" + tu consulta…';
+  }catch(err){
+    console.error('Mic error:',err.name);
+    kkState('nomic');
+    document.getElementById('kk-txt').textContent=err.name==='NotAllowedError'?'Permiso denegado en el navegador.':err.name==='NotFoundError'?'No hay micrófono conectado.':'Error: '+err.name;
+    pushAlert('Mic: '+err.name);
+    waveSynth('listen');
+    kkSpeak('No pude acceder al micrófono. Verifica los permisos del navegador.');
   }
 }
 
-// Escuchar si se conecta/desconecta un dispositivo de audio
-navigator.mediaDevices.addEventListener('devicechange', () => {
-  loadDevices();
+// Selector de dispositivos
+function buildSelector(devs){
+  const old=document.getElementById('kk-dev-wrap');if(old)old.remove();
+  if(devs.length<=1)return;
+  const w=document.createElement('div');w.id='kk-dev-wrap';
+  const ic=document.createElement('span');ic.textContent='🎤';ic.style.fontSize='11px';
+  const sel=document.createElement('select');sel.id='kk-dev-sel';
+  devs.forEach(d=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||'Micrófono '+(devs.indexOf(d)+1);if(d.deviceId===selectedDeviceId)o.selected=true;sel.appendChild(o);});
+  sel.onchange=()=>{selectedDeviceId=sel.value;if(micOn){stopStream();startStream();}};
+  w.appendChild(ic);w.appendChild(sel);
+  document.getElementById('kronia').appendChild(w);
+}
+navigator.mediaDevices.addEventListener('devicechange',async()=>{
+  const devs=await navigator.mediaDevices.enumerateDevices();
+  availableDevices=devs.filter(d=>d.kind==='audioinput');
+  buildSelector(availableDevices);
 });
 
-// ── Voces — esperar carga async ───────────────────────────────
-function getKronIAVoice() {
-  const vs = synth.getVoices();
-  if (!vs.length) return null;
-  const prioridad = [
-    v => v.name === 'Google español',
-    v => v.name.toLowerCase().includes('google') && v.lang.startsWith('es'),
-    v => v.lang === 'es-MX',
-    v => v.lang === 'es-US',
-    v => v.lang === 'es-419',
-    v => v.lang.startsWith('es'),
-  ];
-  for (const test of prioridad) {
-    const v = vs.find(test);
-    if (v) return v;
-  }
-  return vs[0] || null;
+// Stream de audio
+async function startStream(){
+  const c={audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,...(selectedDeviceId?{deviceId:{exact:selectedDeviceId}}:{})}};
+  micStream=await navigator.mediaDevices.getUserMedia(c);
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const src=audioCtx.createMediaStreamSource(micStream);
+  analyser=audioCtx.createAnalyser();analyser.fftSize=64;analyser.smoothingTimeConstant=0.7;
+  dataArr=new Uint8Array(analyser.frequencyBinCount);
+  src.connect(analyser);
+  if(!isSpeaking)waveReal();
 }
-if (synth.onvoiceschanged !== undefined) {
-  synth.onvoiceschanged = () => { kkVoice = getKronIAVoice(); };
+function stopStream(){
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  analyser=null;dataArr=null;
 }
-setTimeout(() => { kkVoice = getKronIAVoice(); }, 400);
-setTimeout(() => { if (!kkVoice) kkVoice = getKronIAVoice(); }, 1500);
+function stopMic(){micOn=false;if(recognition){recognition.stop();recognition=null;}stopStream();}
 
-// ── Hablar ────────────────────────────────────────────────────
-function kkSpeak(text) {
-  if (!synth) return;
-  synth.cancel();
-  isSpeaking = true;
-  const u = new SpeechSynthesisUtterance(text);
-  if (!kkVoice) kkVoice = getKronIAVoice();
-  if (kkVoice) u.voice = kkVoice;
-  u.lang = 'es-PE';
-  u.rate = 0.90;
-  u.pitch = 1.12;
-  u.volume = 1;
-
-  document.getElementById('kk-txt').textContent = text;
-  setKKState('speaking');
-
-  u.onstart = () => {
-    setKKState('speaking');
-    drawWaveSynth('speak'); // waveform animado mientras habla
-  };
-  u.onend = () => {
-    isSpeaking = false;
-    if (micOn) {
-      setKKState('listening');
-      if (analyser) drawWaveReal(); // volver al waveform del mic
-      else drawWaveSynth('listen');
-    } else {
-      setKKState('idle');
-      stopWave();
+// SpeechRecognition
+function startReco(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){pushAlert('Usa Chrome para la voz');return;}
+  recognition=new SR();
+  recognition.lang='es-PE';recognition.continuous=true;
+  recognition.interimResults=true;recognition.maxAlternatives=3;
+  recognition.onresult=e=>{
+    const last=e.results[e.results.length-1];
+    const texts=[];for(let i=0;i<last.length;i++)texts.push(last[i].transcript.trim().toLowerCase());
+    const full=texts[0];
+    if(!last.isFinal){document.getElementById('kk-txt').textContent='… '+full;return;}
+    document.getElementById('kk-txt').textContent='«'+full+'»';
+    const acts=['cronia','kronia','corona','gronia','croni','crónia','kronía','kro nia','cro nia'];
+    if(acts.some(a=>full.includes(a))){
+      const q=full.replace(/(k*r*o*n[ií]?a|corona|gronia|croni[a]?)/gi,'').trim();
+      processQuery(q.length>1?q:'resumen');
     }
   };
-  u.onerror = () => { isSpeaking = false; setKKState(micOn ? 'listening' : 'idle'); };
-  synth.speak(u);
-  showKronIA();
-}
-
-// ── Estados visuales de KronIA ────────────────────────────────
-// idle | listening | speaking | thinking
-function setKKState(state) {
-  const dot = document.getElementById('kk-mic-dot');
-  const st = document.getElementById('kk-st');
-  if (!dot || !st) return;
-  const states = {
-    idle:      { dot: '',          text: 'Inactiva · Di "Cronia" para activarme' },
-    listening: { dot: 'listening', text: 'Escuchando…' },
-    speaking:  { dot: 'speaking',  text: 'Hablando…' },
-    thinking:  { dot: 'thinking',  text: 'Consultando Supabase…' },
-    nomic:     { dot: 'nomic',     text: 'Sin acceso al micrófono' },
+  recognition.onspeechstart=()=>document.getElementById('kk-mic-dot').classList.add('active');
+  recognition.onspeechend=()=>document.getElementById('kk-mic-dot').classList.remove('active');
+  recognition.onerror=e=>{
+    if(e.error==='not-allowed'){pushAlert('Mic: permiso denegado');micOn=false;kkState('nomic');}
+    else if(e.error==='audio-capture'){pushAlert('Mic: sin dispositivo');kkState('nomic');}
   };
-  const s = states[state] || states.idle;
-  dot.className = 'kk-mic-dot' + (s.dot ? ' ' + s.dot : '');
-  st.textContent = s.text;
+  recognition.onend=()=>{if(micOn&&!isSpeaking)setTimeout(()=>{try{recognition.start();}catch(_){}},200);};
+  try{recognition.start();}catch(e){console.error('SR start:',e);}
 }
 
-// ── Toggles ───────────────────────────────────────────────────
-function toggleKronIA() {
-  if (!kkVis) {
-    showKronIA();
-    requestMicPermission();
-  } else {
-    stopMic();
-    kkVis = false;
-    document.getElementById('kronia').classList.remove('vis');
-    document.getElementById('btn-kk').classList.remove('on');
-    stopWave();
-  }
-}
-function showKronIA() {
-  kkVis = true;
-  document.getElementById('kronia').classList.add('vis');
-  document.getElementById('btn-kk').classList.add('on');
-}
-
-// ── Flujo de permisos: primero pedir permiso, luego listar devices ──
-async function requestMicPermission() {
-  setKKState('idle');
-  document.getElementById('kk-txt').textContent = 'Solicitando acceso al micrófono…';
-
-  try {
-    // Paso 1: pedir permiso (esto muestra el diálogo del navegador)
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true }
-    });
-    // Detener el stream temporal — solo era para obtener permiso
-    stream.getTracks().forEach(t => t.stop());
-
-    // Paso 2: ahora que tenemos permiso, listar dispositivos con labels reales
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    availableDevices = devices.filter(d => d.kind === 'audioinput');
-    // Seleccionar el primer dispositivo por defecto
-    if (availableDevices.length > 0) {
-      selectedDeviceId = availableDevices[0].deviceId;
-    }
-    // Mostrar selector si hay más de 1
-    buildDeviceSelector(availableDevices);
-
-    // Paso 3: iniciar stream real + reconocimiento
-    await startMicStream();
-    startRecognition();
-    micOn = true;
-    setKKState('listening');
-    document.getElementById('kk-txt').textContent = 'Lista. Di "Cronia" + tu consulta…';
-
-  } catch (err) {
-    console.error('Permiso mic denegado:', err);
-    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-      setKKState('nomic');
-      document.getElementById('kk-txt').textContent = 'Permiso denegado. Habilita el micrófono en el navegador.';
-      pushAlert('Mic: permiso denegado');
-    } else if (err.name === 'NotFoundError') {
-      setKKState('nomic');
-      document.getElementById('kk-txt').textContent = 'No se encontró micrófono conectado.';
-      pushAlert('Mic: no encontrado');
-    } else {
-      setKKState('nomic');
-      document.getElementById('kk-txt').textContent = 'Error de micrófono: ' + err.name;
-      pushAlert('Error mic: ' + err.name);
-    }
-    // Activar waveform sintético igual para que se vea que KronIA existe
-    drawWaveSynth('listen');
-    kkSpeak('No pude acceder al micrófono. Revisa los permisos del navegador.');
-  }
-}
-
-// ── Stream de audio real ──────────────────────────────────────
-async function startMicStream() {
-  try {
-    const constraints = {
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {})
-      }
-    };
-    micStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-    // Web Audio API — waveform real
-    if (audioCtx) { audioCtx.close(); audioCtx = null; }
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = audioCtx.createMediaStreamSource(micStream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
-    analyser.smoothingTimeConstant = 0.7;
-    dataArr = new Uint8Array(analyser.frequencyBinCount);
-    src.connect(analyser);
-
-    if (!isSpeaking) drawWaveReal();
-  } catch (e) {
-    console.error('startMicStream error:', e);
-    throw e;
-  }
-}
-
-function stopMicStream() {
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
-  analyser = null; dataArr = null;
-}
-
-function stopMic() {
-  micOn = false;
-  if (recognition) { recognition.stop(); recognition = null; }
-  stopMicStream();
-  setKKState('idle');
-}
-
-// ── SpeechRecognition ─────────────────────────────────────────
-function startRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    pushAlert('SpeechRecognition requiere Chrome');
-    document.getElementById('kk-txt').textContent = 'Usa Chrome para activar la voz.';
-    return;
-  }
-  if (recognition) { try { recognition.stop(); } catch (_) {} }
-
-  recognition = new SR();
-  recognition.lang = 'es-PE';
-  recognition.continuous = true;
-  recognition.interimResults = true; // resultados intermedios para feedback visual
-  recognition.maxAlternatives = 3;
-
-  recognition.onstart = () => {
-    console.log('KronIA: reconocimiento activo');
-  };
-
-  recognition.onresult = e => {
-    const last = e.results[e.results.length - 1];
-    const isFinal = last.isFinal;
-    const texts = [];
-    for (let i = 0; i < last.length; i++) texts.push(last[i].transcript.trim().toLowerCase());
-    const full = texts[0];
-
-    if (!isFinal) {
-      // Resultado intermedio — mostrar lo que está escuchando
-      document.getElementById('kk-txt').textContent = '… ' + full;
-      return;
-    }
-
-    // Resultado final
-    console.log('KronIA final:', texts);
-    document.getElementById('kk-txt').textContent = '«' + full + '»';
-
-    // Detectar activación
-    const activaciones = ['cronia', 'kronia', 'corona', 'gronia', 'crónica', 'crónia', 'kronía', 'kro nia', 'cro nia'];
-    const activo = activaciones.some(a => full.includes(a));
-
-    if (activo) {
-      const query = full
-        .replace(/(k+r+o+n+[ií]?a|corona|gronia|cronica|cro nia|kro nia)/gi, '')
-        .trim();
-      if (query.length > 1) {
-        processQuery(query);
-      } else {
-        // Solo dijo "Cronia" sin consulta — responder con ayuda
-        kkSpeak('Aquí estoy. Puedes preguntarme sobre ventas, citas, leads, pacientes, llamadas o el resumen del día.');
-      }
-    }
-  };
-
-  recognition.onspeechstart = () => {
-    // Detectó que hay voz — feedback visual
-    document.getElementById('kk-mic-dot').classList.add('active');
-  };
-
-  recognition.onspeechend = () => {
-    document.getElementById('kk-mic-dot').classList.remove('active');
-  };
-
-  recognition.onerror = e => {
-    console.warn('SR error:', e.error);
-    if (e.error === 'not-allowed') {
-      pushAlert('Mic: permiso denegado');
-      micOn = false;
-      setKKState('nomic');
-    } else if (e.error === 'audio-capture') {
-      pushAlert('Mic: sin dispositivo');
-      setKKState('nomic');
-    }
-    // no-speech es normal, ignorar
-  };
-
-  recognition.onend = () => {
-    // Reiniciar siempre que KronIA esté activa y no esté hablando
-    if (micOn && !isSpeaking) {
-      setTimeout(() => {
-        try { recognition.start(); }
-        catch (e) { console.warn('SR restart:', e); }
-      }, 200);
-    }
-  };
-
-  try {
-    recognition.start();
-  } catch (e) {
-    console.error('SR start error:', e);
-  }
-}
-
-// ── Waveforms ─────────────────────────────────────────────────
-function stopWave() {
-  if (waveAnim) { cancelAnimationFrame(waveAnim); waveAnim = null; }
-  kkCv.width = kkCv.offsetWidth || 280;
-  kkCv.height = kkCv.offsetHeight || 28;
-  kkCtx2.clearRect(0, 0, kkCv.width, kkCv.height);
-}
-
-function drawWaveReal() {
-  if (waveAnim) cancelAnimationFrame(waveAnim);
-  kkCv.width = kkCv.offsetWidth || 280;
-  kkCv.height = kkCv.offsetHeight || 28;
-  const cw = kkCv.width, ch = kkCv.height;
-
-  function frame() {
-    if (!analyser || isSpeaking) { waveAnim = null; return; }
+// Waveforms
+function stopWave(){if(waveAnim){cancelAnimationFrame(waveAnim);waveAnim=null;}kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;kkCtx2.clearRect(0,0,kkCv.width,kkCv.height);}
+function waveReal(){
+  if(waveAnim)cancelAnimationFrame(waveAnim);
+  kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;
+  const cw=kkCv.width,ch=kkCv.height;
+  function frame(){
+    if(!analyser||isSpeaking){waveAnim=null;return;}
     analyser.getByteFrequencyData(dataArr);
-    kkCtx2.clearRect(0, 0, cw, ch);
-
-    const bars = dataArr.length;
-    const bw = cw / bars;
-    const hasSignal = dataArr.some(v => v > 8);
-
-    for (let i = 0; i < bars; i++) {
-      // Altura mínima visible siempre — para confirmar que el mic está conectado
-      const h = hasSignal
-        ? Math.max(2, (dataArr[i] / 255) * ch * 0.88)
-        : 2; // línea base cuando no hay sonido
-      const alpha = hasSignal ? (0.3 + (dataArr[i] / 255) * 0.65) : 0.20;
-
-      kkCtx2.fillStyle = 'rgba(0,201,167,' + alpha.toFixed(2) + ')';
+    kkCtx2.clearRect(0,0,cw,ch);
+    const bars=dataArr.length,bw=cw/bars,sig=dataArr.some(v=>v>8);
+    for(let i=0;i<bars;i++){
+      const h=sig?Math.max(2,(dataArr[i]/255)*ch*.88):2;
+      const al=sig?(0.3+dataArr[i]/255*.65):0.18;
+      kkCtx2.fillStyle='rgba(0,201,167,'+al.toFixed(2)+')';
       kkCtx2.beginPath();
-      if (kkCtx2.roundRect) kkCtx2.roundRect(i * bw + 1, ch / 2 - h / 2, bw - 2, h, 2);
-      else kkCtx2.rect(i * bw + 1, ch / 2 - h / 2, bw - 2, h);
+      if(kkCtx2.roundRect)kkCtx2.roundRect(i*bw+1,ch/2-h/2,bw-2,h,2);else kkCtx2.rect(i*bw+1,ch/2-h/2,bw-2,h);
       kkCtx2.fill();
     }
-    waveAnim = requestAnimationFrame(frame);
+    waveAnim=requestAnimationFrame(frame);
+  }
+  frame();
+}
+function waveSynth(mode){
+  if(waveAnim)cancelAnimationFrame(waveAnim);
+  kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;
+  const cw=kkCv.width,ch=kkCv.height,spd=mode==='speak'?.10:.04,amp=mode==='speak'?.75:.30;
+  let t=0;
+  function frame(){
+    t+=spd;kkCtx2.clearRect(0,0,cw,ch);
+    for(let i=0;i<22;i++){
+      const h=Math.max(2,(Math.sin(t+i*.42)*amp+amp+.05)*ch*.82);
+      kkCtx2.fillStyle='rgba(0,201,167,'+(mode==='speak'?.65:.30)+')';
+      kkCtx2.beginPath();
+      if(kkCtx2.roundRect)kkCtx2.roundRect(i*(cw/22)+1,ch/2-h/2,cw/22-2,h,2);else kkCtx2.rect(i*(cw/22)+1,ch/2-h/2,cw/22-2,h);
+      kkCtx2.fill();
+    }
+    waveAnim=requestAnimationFrame(frame);
   }
   frame();
 }
 
-// mode: 'speak' (más energía) | 'listen' (suave)
-function drawWaveSynth(mode) {
-  if (waveAnim) cancelAnimationFrame(waveAnim);
-  kkCv.width = kkCv.offsetWidth || 280;
-  kkCv.height = kkCv.offsetHeight || 28;
-  const cw = kkCv.width, ch = kkCv.height;
-  let t = 0;
-  const spd = mode === 'speak' ? 0.10 : 0.04;
-  const amp = mode === 'speak' ? 0.75 : 0.30;
-
-  function frame() {
-    t += spd;
-    kkCtx2.clearRect(0, 0, cw, ch);
-    const bars = 22;
-    for (let i = 0; i < bars; i++) {
-      const h = Math.max(2, (Math.sin(t + i * 0.42) * amp + amp + 0.05) * ch * 0.82);
-      const alpha = mode === 'speak' ? 0.65 : 0.30;
-      kkCtx2.fillStyle = 'rgba(0,201,167,' + alpha + ')';
-      kkCtx2.beginPath();
-      if (kkCtx2.roundRect) kkCtx2.roundRect(i * (cw / bars) + 1, ch / 2 - h / 2, cw / bars - 2, h, 2);
-      else kkCtx2.rect(i * (cw / bars) + 1, ch / 2 - h / 2, cw / bars - 2, h);
-      kkCtx2.fill();
-    }
-    waveAnim = requestAnimationFrame(frame);
-  }
-  frame();
+// ══ MOTOR DE INTENCIONES ═════════════════════════════════════
+function norm(s){return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i').replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n').replace(/[¿¡]/g,'').trim();}
+const INTS={ventas:['venta','vendim','factur','cobr','ingreso','cuanto hicim','cuanto ganamos','cuanto vendim','cuanto hemos'],citas:['cita','agenda','quien viene','citados','consulta','atencion','quien tenemos','visita'],leads:['lead','prospecto','contacto nuevo','cuantos nuevos','cuantos llegaron','campana'],cliente:['cliente','paciente','busca','informacion de','dime sobre','quien es','datos de'],llamadas:['llamada','llame','llamo','llaman','cuantas llamadas'],seguimientos:['seguimiento','pendiente','hay que llamar','sin contactar','retomar'],resumen:['resumen','como va','que paso','ponte al dia','hola','buenos dias','buenas','que hay','informe'],estado:['estado','conexion','sistema','funciona','como estamos','todo bien']};
+const AP=['Claro que sí,','Déjame revisar,','Aquí lo que encontré:','Te cuento,','Revisando los datos,','Mira,'];
+const APc=['Siguiendo con eso,','Sobre lo mismo,','Para agregar,'];
+const NSE=['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','Mmm, no estoy segura. ¿Me lo dices de otra forma?','Por ahora no tengo acceso a eso. ¿Quieres algo sobre ventas o el equipo?'];
+const OPTS={ventas:'¿Quieres verlo por sede, tratamiento o asesor?',citas:'¿Te digo el tratamiento o quién las agendó?',leads:'¿Por campaña o por fecha?',cliente:'¿Sus compras o sus llamadas?',llamadas:'¿Por asesor o por resultado?',seguimientos:'¿Los que llevan más tiempo sin contacto?'};
+function ap(c){return(c?APc:AP)[~~(Math.random()*(c?APc:AP).length)];}
+function opt(i){return OPTS[i]?' '+OPTS[i]:'';}
+function nse(){return NSE[~~(Math.random()*NSE.length)];}
+function topV(arr,key){const c={};let mx=0,res='sin datos';arr.forEach(o=>{const v=o[key]||'sin datos';c[v]=(c[v]||0)+1;if(c[v]>mx){mx=c[v];res=v;}});return res;}
+function detectInt(q){
+  const qn=norm(q);
+  if(qn.length<20&&ultimaInt){const cont=['y','por','de','en','ese','esa','eso','cual','cuales','mas','tambien','ahora','el','la'];if(cont.some(c=>qn===c||qn.startsWith(c+' ')))return{i:ultimaInt,c:true};}
+  for(const[int,cls]of Object.entries(INTS)){if(cls.some(c=>qn.includes(c)))return{i:int,c:false};}
+  if(ultimaInt)return{i:ultimaInt,c:true};
+  return{i:'resumen',c:false};
 }
-
+function getPer(q,ctx){
+  const qn=norm(q),hoy=new Date().toISOString().split('T')[0];
+  if(qn.includes('hoy')||qn.includes('dia'))return{label:'hoy',f:'fecha=eq.'+hoy};
+  if(qn.includes('semana')){const d7=new Date(Date.now()-7*86400000).toISOString().split('T')[0];return{label:'esta semana',f:'fecha=gte.'+d7};}
+  if(qn.includes('mes'))return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};
+  if(qn.includes('ayer')){const ay=new Date(Date.now()-86400000).toISOString().split('T')[0];return{label:'ayer',f:'fecha=eq.'+ay};}
+  if(ctx&&ctx.per)return ctx.per;
+  return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};
+}
+function getSede(q){const qn=norm(q);if(qn.includes('pueblo')||qn.includes('libre'))return'PUEBLO LIBRE';if(qn.includes('isidro')||qn.includes('prado'))return'SAN ISIDRO';return null;}
 async function guardar(int,preg,resp,tabs){try{await fetch(SB+'/rest/v1/aos_kronia_conversaciones',{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ts:new Date().toISOString(),usuario:'admin',rol:'admin',pregunta:preg,intencion:int,tablas_usadas:tabs||[],respuesta:resp,session_id:SESSION_ID,fue_redundante:ultimaInt===int})});}catch(_){}}
 async function aprender(int,frase){try{await fetch('https://tgnezlhtqkiucwmrdirw.supabase.co/rest/v1/rpc/fn_kronia_aprender',{method:'POST',headers:{'apikey':SK2,'Content-Type':'application/json'},body:JSON.stringify({p_empresa:'ASCENDAOS',p_intencion:int,p_frase:frase})});}catch(_){}}
 
 async function processQuery(q){
   if(!q||q.trim().length<2){kkSpeak('¿En qué te puedo ayudar?');return;}
-  document.getElementById('kk-st').textContent='Consultando…';
-  document.getElementById('kk-mic-dot').className='speaking';
-  const{i:int,c:esC}=detectInt(q);
-  const per=getPeriodo(q,ultimoCtx);
-  const sd=getSede(q);
-  const a=ap(esC);
+  kkState('thinking');
+  const{i:int,c:esC}=detectInt(q),per=getPer(q,ultimoCtx),sd=getSede(q),a=ap(esC);
   const esRed=memoria.length>0&&memoria[0].i===int&&(Date.now()-memoria[0].ts)<30000;
   let resp='',tabs=[];
   try{
@@ -737,66 +499,78 @@ async function processQuery(q){
       let url=SB+'/rest/v1/aos_ventas?select=monto,tratamiento,sede,asesor,fecha&'+per.f+'&estado_pago=eq.PAGO COMPLETO';
       if(sd)url+='&sede=eq.'+encodeURIComponent(sd);
       const d=await fetch(url,{headers:H}).then(r=>r.json());tabs=['aos_ventas'];
-      if(d&&d.length){const total=d.reduce((a,v)=>a+(parseFloat(v.monto)||0),0),tT=topV(d,'tratamiento'),tA=topV(d,'asesor');
-        resp=esRed?'Como te comenté, '+per.label+' van '+d.length+' ventas por S/ '+total.toFixed(0)+'. ¿Quieres el desglose por '+(sd?'tratamiento':'sede')+'?':a+' '+per.label+(sd?' en '+sd:'')+' van '+d.length+' ventas por S/ '+total.toFixed(0)+'. El tratamiento estrella fue '+tT+' y quien más vendió fue '+tA+'.'+opt('ventas');
-        ultimoCtx={per,i:'ventas',total,count:d.length};
-      }else resp='No encontré ventas para '+per.label+(sd?' en '+sd:'')+'. ¿Quieres que revise otro período?';
+      if(d&&d.length){const total=d.reduce((ac,v)=>ac+(parseFloat(v.monto)||0),0),tT=topV(d,'tratamiento'),tA=topV(d,'asesor');
+        resp=esRed?'Como te comenté, '+per.label+' van '+d.length+' ventas por S/ '+total.toFixed(0)+'. ¿El desglose por '+(sd?'tratamiento':'sede')+'?':a+' '+per.label+(sd?' en '+sd:'')+' van '+d.length+' ventas por S/ '+total.toFixed(0)+'. El tratamiento estrella fue '+tT+' y quien más vendió fue '+tA+'.'+opt('ventas');
+        ultimoCtx={per,i:'ventas'};
+      }else resp='No encontré ventas para '+per.label+(sd?' en '+sd:'')+'. ¿Quieres revisar otro período?';
     }else if(int==='citas'){
       const qn=norm(q),hoy=new Date().toISOString().split('T')[0],man=new Date(Date.now()+86400000).toISOString().split('T')[0];
       const fc=qn.includes('mañana')||qn.includes('manana')?man:hoy,lf=fc===man?'mañana':'hoy';
-      let url=SB+'/rest/v1/aos_agenda_citas?select=nombre,apellido,tratamiento,hora_cita,sede,asesor&fecha_cita=eq.'+fc;
+      let url=SB+'/rest/v1/aos_agenda_citas?select=nombre,apellido,tratamiento,hora_cita,sede&fecha_cita=eq.'+fc;
       if(sd)url+='&sede=eq.'+encodeURIComponent(sd);
       const d=await fetch(url,{headers:H}).then(r=>r.json());tabs=['aos_agenda_citas'];
-      if(d&&d.length){const p=d[0],nom=((p.nombre||'')+(p.apellido?' '+p.apellido:'')).trim()||'primer paciente';
+      if(d&&d.length){const p=d[0],nom=((p.nombre||'')+(p.apellido?' '+p.apellido:'')).trim()||'un paciente';
         resp=a+' hay '+d.length+' cita'+(d.length>1?'s':'')+' para '+lf+'. La primera es '+nom+' a las '+(p.hora_cita||'hora por confirmar')+' por '+(p.tratamiento||'tratamiento sin registrar')+'.'+opt('citas');
-        ultimoCtx={fc,i:'citas',count:d.length};
+        ultimoCtx={fc,i:'citas'};
       }else resp='No hay citas para '+lf+(sd?' en '+sd:'')+'. ¿Quieres que revise otra fecha?';
     }else if(int==='leads'){
       const d=await fetch(SB+'/rest/v1/aos_leads?select=tratamiento,fecha&'+per.f,{headers:H}).then(r=>r.json());tabs=['aos_leads'];
-      if(d&&d.length){const tC=topV(d,'tratamiento');resp=a+' '+per.label+' ingresaron '+d.length+' leads. La campaña líder fue '+tC+'.'+opt('leads');ultimoCtx={per,i:'leads'};}
+      if(d&&d.length){resp=a+' '+per.label+' ingresaron '+d.length+' leads. La campaña líder fue '+topV(d,'tratamiento')+'.'+opt('leads');ultimoCtx={per,i:'leads'};}
       else resp='No encontré leads para '+per.label+'. ¿Quieres otro período?';
     }else if(int==='cliente'){
       const num=(q.match(/\d{7,}/)||[''])[0];
-      if(num){const d=await fetch(SB+'/rest/v1/aos_pacientes?select="Nombres","Apellidos","SCORE_ESTADO",n_ventas,"TOTAL_FACTURADO",tratamiento_principal&numero_limpio=eq.'+num+'&limit=1',{headers:H}).then(r=>r.json());tabs=['aos_pacientes'];
-        if(d&&d[0]){const p=d[0],nom=((p['Nombres']||'')+(p['Apellidos']?' '+p['Apellidos']:'')).trim();resp=a+' el '+num+' es '+nom+'. Tiene '+p.n_ventas+' compras por S/ '+parseFloat(p['TOTAL_FACTURADO']||0).toFixed(0)+'. Tratamiento principal: '+(p.tratamiento_principal||'sin registrar')+'. Estado: '+(p['SCORE_ESTADO']||'sin score')+'.'+opt('cliente');ultimoCtx={num,nom,i:'cliente'};}
-        else resp='No encontré paciente con el número '+num+'. ¿Puedes verificarlo?';
-      }else resp='Dime el número de teléfono y te doy la información del paciente.';
+      if(num){
+        const d=await fetch(SB+'/rest/v1/aos_pacientes?select="Nombres","Apellidos","SCORE_ESTADO",n_ventas,"TOTAL_FACTURADO",tratamiento_principal&numero_limpio=eq.'+num+'&limit=1',{headers:H}).then(r=>r.json());tabs=['aos_pacientes'];
+        if(d&&d[0]){const p=d[0],nom=((p['Nombres']||'')+(p['Apellidos']?' '+p['Apellidos']:'')).trim();
+          resp=a+' el '+num+' es '+nom+'. Tiene '+p.n_ventas+' compras por S/ '+parseFloat(p['TOTAL_FACTURADO']||0).toFixed(0)+'. Tratamiento: '+(p.tratamiento_principal||'sin registrar')+'. Estado: '+(p['SCORE_ESTADO']||'sin score')+'.'+opt('cliente');
+          ultimoCtx={num,nom,i:'cliente'};
+        }else resp='No encontré paciente con el número '+num+'. ¿Puedes verificarlo?';
+      }else resp='Dime el número de teléfono del paciente y te doy su información.';
     }else if(int==='llamadas'){
-      const hoy=new Date().toISOString().split('T')[0];const d=await fetch(SB+'/rest/v1/aos_llamadas?select=asesor,estado&fecha=eq.'+hoy,{headers:H}).then(r=>r.json());tabs=['aos_llamadas'];
-      if(d&&d.length){const tA=topV(d,'asesor');resp=a+' hoy van '+d.length+' llamadas. El que más llamó fue '+tA+'.'+opt('llamadas');}
-      else resp='No hay llamadas registradas por hoy todavía.';
+      const hoy=new Date().toISOString().split('T')[0];
+      const d=await fetch(SB+'/rest/v1/aos_llamadas?select=asesor,estado&fecha=eq.'+hoy,{headers:H}).then(r=>r.json());tabs=['aos_llamadas'];
+      if(d&&d.length)resp=a+' hoy van '+d.length+' llamadas. El que más llamó fue '+topV(d,'asesor')+'.'+opt('llamadas');
+      else resp='No hay llamadas registradas hoy todavía.';
     }else if(int==='seguimientos'){
       const d=await fetch(SB+'/rest/v1/aos_seguimientos?select="ESTADO","ASESOR"&"ESTADO"=eq.PENDIENTE',{headers:H}).then(r=>r.json());tabs=['aos_seguimientos'];
-      if(d&&d.length){const tA=topV(d,'ASESOR');resp=a+' hay '+d.length+' seguimientos pendientes. El que tiene más es '+tA+'.'+opt('seguimientos');}
+      if(d&&d.length)resp=a+' hay '+d.length+' seguimientos pendientes. El que tiene más es '+topV(d,'ASESOR')+'.'+opt('seguimientos');
       else resp='No hay seguimientos pendientes. ¡Todo al día!';
     }else if(int==='resumen'){
       const hoy=new Date().toISOString().split('T')[0];
-      const[rv,rl,rc,rs]=await Promise.all([fetch(SB+'/rest/v1/aos_ventas?select=monto&fecha=eq.'+hoy+'&estado_pago=eq.PAGO COMPLETO',{headers:H}).then(r=>r.json()),fetch(SB+'/rest/v1/aos_llamadas?select=id&fecha=eq.'+hoy,{headers:H}).then(r=>r.json()),fetch(SB+'/rest/v1/aos_agenda_citas?select=id&fecha_cita=eq.'+hoy,{headers:H}).then(r=>r.json()),fetch(SB+'/rest/v1/aos_seguimientos?select=id&"ESTADO"=eq.PENDIENTE',{headers:H}).then(r=>r.json())]);
+      const[rv,rl,rc,rs]=await Promise.all([
+        fetch(SB+'/rest/v1/aos_ventas?select=monto&fecha=eq.'+hoy+'&estado_pago=eq.PAGO COMPLETO',{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_llamadas?select=id&fecha=eq.'+hoy,{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_agenda_citas?select=id&fecha_cita=eq.'+hoy,{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_seguimientos?select=id&"ESTADO"=eq.PENDIENTE',{headers:H}).then(r=>r.json()),
+      ]);
       tabs=['aos_ventas','aos_llamadas','aos_agenda_citas','aos_seguimientos'];
-      const totalV=(rv||[]).reduce((a,v)=>a+(parseFloat(v.monto)||0),0);
+      const totalV=(rv||[]).reduce((ac,v)=>ac+(parseFloat(v.monto)||0),0);
       const hora=new Date().getHours(),sal=hora<12?'Buenos días':hora<18?'Buenas tardes':'Buenas noches';
       resp=sal+' César. Hoy: '+(rl||[]).length+' llamadas, '+(rc||[]).length+' citas, S/ '+totalV.toFixed(0)+' en ventas y '+(rs||[]).length+' seguimientos pendientes. ¿Por dónde empezamos?';
       ultimoCtx={i:'resumen'};
     }else if(int==='estado'){
       const on=document.getElementById('sb-dot').classList.contains('on');
-      resp=on?'Todo funciona bien César. Supabase está conectado, '+evCnt+' eventos en esta sesión.':'Hay un problema de conexión con Supabase. Verifica la red.';
-    }else resp=noSe();
-// Supabase status — color en texto y punto
+      resp=on?'Todo funciona bien César. Supabase está conectado y '+evCnt+' eventos registrados en esta sesión.':'Hay un problema de conexión con Supabase. Verifica la red.';
+    }else resp=nse();
+  }catch(e){resp='Tuve un problema consultando. Intenta de nuevo.';}
+  tabs.forEach((t,i)=>setTimeout(()=>activateTable(t,'CONSULTA'),i*200));
+  memoria.unshift({i:int,q,r:resp,tabs,ts:Date.now()});if(memoria.length>5)memoria.pop();
+  ultimaInt=int;
+  guardar(int,q,resp,tabs);aprender(int,q);
+  kkSpeak(resp);
+}
+
+// ── Supabase ─────────────────────────────────────────────────
 function checkSB(){
   fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H})
     .then(r=>{
       const on=r.ok;
-      const dot=document.getElementById('sb-dot');
-      const lbl=document.getElementById('sb-lbl');
-      dot.className='bc-dot'+(on?' on':'');
-      lbl.className=on?'on':'';
-      lbl.textContent=on?'Live · Supabase':'Sin conexión';
+      document.getElementById('sb-dot').className='bc-dot'+(on?' on':'');
+      const lbl=document.getElementById('sb-lbl');lbl.className=on?'on':'';lbl.textContent=on?'Live · Supabase':'Sin conexión';
       if(!on)pushAlert('Supabase desconectado');
-    })
-    .catch(()=>{
+    }).catch(()=>{
       document.getElementById('sb-dot').className='bc-dot';
-      document.getElementById('sb-lbl').className='';
-      document.getElementById('sb-lbl').textContent='Sin conexión';
+      document.getElementById('sb-lbl').className='';document.getElementById('sb-lbl').textContent='Sin conexión';
     });
 }
 checkSB();setInterval(checkSB,30000);
@@ -825,7 +599,13 @@ connectRT();
 
 // Polling fallback
 let lastId=0;
-async function poll(){try{const r=await fetch(SB+'/rest/v1/aos_log_auditoria?select=id,tabla,accion&id=gt.'+lastId+'&order=id.asc&limit=10',{headers:H});const rows=await r.json();if(Array.isArray(rows)&&rows.length){rows.forEach(row=>{if(row.tabla&&row.tabla!=='sistema')activateTable(row.tabla,row.accion);lastId=Math.max(lastId,row.id);});}}catch(_){}}
+async function poll(){
+  try{
+    const r=await fetch(SB+'/rest/v1/aos_log_auditoria?select=id,tabla,accion&id=gt.'+lastId+'&order=id.asc&limit=10',{headers:H});
+    const rows=await r.json();
+    if(Array.isArray(rows)&&rows.length){rows.forEach(row=>{if(row.tabla&&row.tabla!=='sistema')activateTable(row.tabla,row.accion);lastId=Math.max(lastId,row.id);});}
+  }catch(_){}
+}
 fetch(SB+'/rest/v1/aos_log_auditoria?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).then(d=>{if(d&&d[0])lastId=d[0].id;});
 setInterval(poll,8000);
 
@@ -835,57 +615,38 @@ rqWake();document.addEventListener('visibilitychange',()=>{if(document.visibilit
 
 // Fullscreen
 function toggleFS(){
-  if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(()=>{});document.getElementById('btn-fs').textContent='⛶ Salir pantalla';}
+  if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(()=>{});document.getElementById('btn-fs').textContent='⛶ Salir';}
   else{document.exitFullscreen();document.getElementById('btn-fs').textContent='⛶ Pantalla completa';}
 }
 
-// Page visibility — pausar physics
+// Draw — nodos quietos, solo se mueven cuando hay dato real
 let paused=false;
 document.addEventListener('visibilitychange',()=>{paused=document.hidden;});
 
-// DRAW — nodos QUIETOS: solo respiran levemente, sin physics en loop
 function draw(){
-  ctx.fillStyle='rgba(248,250,254,0.13)';
-  ctx.fillRect(0,0,W,H2);
+  ctx.fillStyle='rgba(248,250,254,0.13)';ctx.fillRect(0,0,W,H2);
   cam.z+=(cam.tz-cam.z)*0.07;
   document.getElementById('zpill').textContent='zoom '+cam.z.toFixed(1)+'×';
-
-  // Physics SOLO cuando hay pulso activo (dato real llegó)
-  // De lo contrario los nodos están COMPLETAMENTE quietos
-  const hayPulso=nodes.some(n=>n.pulse>0.05);
-  if(!paused&&hayPulso) phys(.985);
+  if(!paused&&nodes.some(n=>n.pulse>0.05))phys(.985);
 
   ctx.save();ctx.translate(W/2+cam.x,H2/2+cam.y);ctx.scale(cam.z,cam.z);ctx.translate(-W/2,-H2/2);
 
-  // Aristas
   edges.forEach(e=>{
-    const p=Math.max(e.a.pulse,e.b.pulse);
-    const ci=e.cross?lR(e.a.idle,e.b.idle,.5):e.a.idle;
-    const ca=e.cross?lR(e.a.live,e.b.live,.5):e.a.live;
-    const c=lR(ci,ca,p);
+    const p=Math.max(e.a.pulse,e.b.pulse),ci=e.cross?lR(e.a.idle,e.b.idle,.5):e.a.idle,ca=e.cross?lR(e.a.live,e.b.live,.5):e.a.live,c=lR(ci,ca,p);
     ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);
     ctx.strokeStyle='rgba('+c+','+(e.cross?0.05+p*.6:0.16+p*.45).toFixed(2)+')';
     ctx.lineWidth=(e.cross?.38:.26)/cam.z;ctx.stroke();
   });
 
-  // Nodos
   nodes.forEach(n=>{
-    n.phase+=n.pspd;
-    if(n.pulse>0)n.pulse=Math.max(0,n.pulse-0.016);
+    n.phase+=n.pspd;if(n.pulse>0)n.pulse=Math.max(0,n.pulse-0.016);
     const p=n.pulse,c=lR(n.idle,n.live,p),isH=n===hovered,r=n.r+(isH?1.2:0);
-    // Halo solo cuando hay pulso real
     if(p>0.05||isH){
-      ctx.beginPath();ctx.arc(n.x,n.y,r*(2.6+p*2.8),0,Math.PI*2);
-      ctx.fillStyle='rgba('+c+','+(p*.08+(isH?.05:0)).toFixed(2)+')';ctx.fill();
-      ctx.beginPath();ctx.arc(n.x,n.y,r*(1.4+p*.8),0,Math.PI*2);
-      ctx.fillStyle='rgba('+c+','+(p*.18+(isH?.12:0)).toFixed(2)+')';ctx.fill();
+      ctx.beginPath();ctx.arc(n.x,n.y,r*(2.6+p*2.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.08+(isH?.05:0)).toFixed(2)+')';ctx.fill();
+      ctx.beginPath();ctx.arc(n.x,n.y,r*(1.4+p*.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.18+(isH?.12:0)).toFixed(2)+')';ctx.fill();
     }
-    // Punto principal
-    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);
-    ctx.fillStyle='rgba('+c+','+(0.68+p*.32).toFixed(2)+')';ctx.fill();
-    // Centro blanco
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(0.68+p*.32).toFixed(2)+')';ctx.fill();
     if(r>1.0){ctx.beginPath();ctx.arc(n.x,n.y,r*.28,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+(0.48+p*.45).toFixed(2)+')';ctx.fill();}
-    // Label
     if(n.label&&cam.z>.55){
       const sz=Math.max(6.5,9/cam.z);
       ctx.font='600 '+sz+'px \'SF Pro Display\',\'Segoe UI\',sans-serif';ctx.textAlign='center';
@@ -895,17 +656,13 @@ function draw(){
     }
   });
 
-  // Viajeros — el efecto visible de los datos moviéndose
   for(let i=travelers.length-1;i>=0;i--){
     const tv=travelers[i];tv.t+=tv.speed;
     if(tv.t>=1){travelers.splice(i,1);continue;}
     const x=tv.a.x+(tv.b.x-tv.a.x)*tv.t,y=tv.a.y+(tv.b.y-tv.a.y)*tv.t;
     const xt=tv.a.x+(tv.b.x-tv.a.x)*Math.max(0,tv.t-.18),yt=tv.a.y+(tv.b.y-tv.a.y)*Math.max(0,tv.t-.18);
-    const g2=ctx.createLinearGradient(xt,yt,x,y);
-    g2.addColorStop(0,'rgba('+tv.color+',0)');g2.addColorStop(1,'rgba('+tv.color+',.95)');
-    ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);
-    ctx.strokeStyle=g2;ctx.lineWidth=1.8/cam.z;ctx.stroke();
-    // Cabeza brillante
+    const g2=ctx.createLinearGradient(xt,yt,x,y);g2.addColorStop(0,'rgba('+tv.color+',0)');g2.addColorStop(1,'rgba('+tv.color+',.95)');
+    ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);ctx.strokeStyle=g2;ctx.lineWidth=1.8/cam.z;ctx.stroke();
     const hr=2.4/cam.z;
     ctx.beginPath();ctx.arc(x,y,hr*2.2,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.12)';ctx.fill();
     ctx.beginPath();ctx.arc(x,y,hr,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.95)';ctx.fill();
@@ -915,10 +672,10 @@ function draw(){
   requestAnimationFrame(draw);
 }
 
-// Init
+// ── Init ────────────────────────────────────────────────────────
 initG();
 setTimeout(()=>{
-  pushInsight('Brain listo · Toca KronIA para activar la voz','KronIA escucha con el micrófono. Di "Cronia" + tu consulta. Ejemplos: "Cronia ventas de hoy", "Cronia citas de mañana", "Cronia resumen del día"');
+  pushInsight('Brain listo · Toca KronIA para voz','Toca el botón KronIA → acepta el permiso del micrófono → di "Cronia" + tu consulta. Ejemplo: "Cronia ventas de hoy"');
 },800);
 draw();
 </script>
