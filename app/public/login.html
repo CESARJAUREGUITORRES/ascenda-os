@@ -28,10 +28,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .deco-3{width:200px;height:200px;background:#fff;top:40%;right:30px;}
 .brand-iso{display:flex;align-items:center;gap:14px;margin-bottom:52px;position:relative;z-index:1;}
 .iso-icon{width:48px;height:48px;flex-shrink:0;}
-.iso-name{font-family:'Exo 2',sans-serif;font-weight:800;font-size:26px;color:#fff;letter-spacing:1px;}
+.iso-name{font-family:Exo 2,sans-serif;font-weight:800;font-size:26px;color:#fff;letter-spacing:1px;}
 .iso-name span{color:var(--mint);}
 .left-eyebrow{font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:20px;position:relative;z-index:1;}
-.left-heading{font-family:'Exo 2',sans-serif;font-size:clamp(32px,4vw,52px);font-weight:800;color:#fff;line-height:1.1;margin-bottom:20px;position:relative;z-index:1;}
+.left-heading{font-family:Exo 2,sans-serif;font-size:clamp(32px,4vw,52px);font-weight:800;color:#fff;line-height:1.1;margin-bottom:20px;position:relative;z-index:1;}
 .left-heading .accent{color:var(--mint);}
 .left-desc{font-size:15px;color:rgba(255,255,255,.65);line-height:1.7;max-width:380px;margin-bottom:36px;position:relative;z-index:1;}
 .left-tags{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1;}
@@ -40,7 +40,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .form-wrap{width:100%;max-width:360px;}
 .form-logo{width:44px;height:44px;border-radius:14px;background:var(--blue-xl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
 .form-brand{text-align:center;margin-bottom:32px;}
-.form-brand h2{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:.5px;}
+.form-brand h2{font-family:Exo 2,sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:.5px;}
 .form-brand p{color:var(--muted);font-size:13px;margin-top:4px;}
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:11px;font-weight:700;color:var(--label);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;}
@@ -49,7 +49,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .inp:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(10,79,191,.08);}
 .inp.error{border-color:var(--red);}
 .inp-ico{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:15px;cursor:pointer;color:var(--muted);user-select:none;}
-.btn-login{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;transition:opacity .15s,transform .12s;box-shadow:0 6px 20px rgba(10,79,191,.25);}
+.btn-login{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-family:Exo 2,sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;transition:opacity .15s,transform .12s;box-shadow:0 6px 20px rgba(10,79,191,.25);}
 .btn-login:hover{opacity:.9;transform:translateY(-1px);}
 .btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none;}
 .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
@@ -65,7 +65,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .loading-ov{display:none;position:fixed;inset:0;background:rgba(240,244,252,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
 .loading-ov.show{display:flex;}
 .load-spinner{width:40px;height:40px;border:3px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
-.load-txt{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
+.load-txt{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
 </style>
 </head>
 <body>
@@ -141,6 +141,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 
 <script>
 
+
+
+
 //  MOSTRAR/OCULTAR CONTRASEA 
 document.getElementById('toggle-pass').addEventListener('click', function() {
   var inp = document.getElementById('inp-pass');
@@ -163,7 +166,7 @@ function doLogin() {
   errEl.textContent = '';
 
   if (!user || !pass) {
-    errEl.textContent = 'Completá usuario y contraseña.';
+    errEl.textContent = 'Completa usuario y contrasena.';
     return;
   }
   setLoading(true);
@@ -249,6 +252,9 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
     sessionStorage.removeItem('aos_ctx');
   } catch(e) {}
 })();
+
+
+
 
 </script>
 </body>
