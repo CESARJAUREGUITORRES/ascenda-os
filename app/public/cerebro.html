@@ -11,14 +11,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 canvas{position:fixed;inset:0;display:block}
 #hud{position:fixed;inset:0;z-index:20;pointer-events:none}
 
-/* Brand */
-#brand{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--muted);border-radius:10px;padding:7px 11px;backdrop-filter:blur(12px);pointer-events:all}
+/* Brand + botón config mic glass */
+#brand{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--muted);border-radius:10px;padding:6px 10px;backdrop-filter:blur(12px);pointer-events:all}
 .bc-dot{width:8px;height:8px;border-radius:50%;background:#E53935;box-shadow:0 0 6px #E53935;flex-shrink:0;transition:all .5s}
 .bc-dot.on{background:#00C9A7;box-shadow:0 0 8px #00C9A7;animation:glow 2.5s infinite}
 @keyframes glow{0%,100%{opacity:1}50%{opacity:.4}}
 .bc-name{font-size:10px;font-weight:700;color:var(--blue2);letter-spacing:.04em;white-space:nowrap}
 #sb-lbl{font-size:8px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;color:#E53935;transition:color .5s}
 #sb-lbl.on{color:#00C9A7}
+.bc-sep{width:1px;height:20px;background:rgba(10,79,191,0.10);flex-shrink:0;margin:0 1px}
+#btn-mic-cfg{width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.30);border:1px solid rgba(10,79,191,0.10);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;font-size:11px;opacity:0.50;line-height:1}
+#btn-mic-cfg:hover{opacity:0.9;background:rgba(0,201,167,0.10);border-color:rgba(0,201,167,0.22)}
 
 /* Métricas */
 #metrics{position:absolute;top:10px;right:10px;display:flex;gap:5px;flex-direction:column;align-items:flex-end}
@@ -66,11 +69,6 @@ canvas{position:fixed;inset:0;display:block}
 .kk-name{font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.04em}
 #kk-st{font-size:8px;color:var(--t2);flex:1;letter-spacing:.07em;text-transform:uppercase}
 
-/* Botón config — pequeño, transparente, tuerca */
-#kk-cfg{width:22px;height:22px;border-radius:6px;border:1px solid rgba(10,79,191,0.12);
-  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:12px;transition:background .2s;flex-shrink:0}
-#kk-cfg:hover{background:rgba(10,79,191,0.07)}
 
 /* Waveform */
 #kk-cv{width:100%;height:28px;border-radius:6px;background:rgba(0,201,167,0.04)}
@@ -131,6 +129,8 @@ canvas{position:fixed;inset:0;display:block}
       <div class="bc-name">AscendaOS · Brain</div>
       <div id="sb-lbl">Sin conexión</div>
     </div>
+    <div class="bc-sep"></div>
+    <button id="btn-mic-cfg" onclick="openMicModal()" title="Configurar micrófono">⚙︎</button>
   </div>
   <div id="metrics">
     <div class="mc"><span class="mv" id="m-ev">0</span><span class="ml">eventos</span></div>
@@ -146,7 +146,6 @@ canvas{position:fixed;inset:0;display:block}
       <div id="kk-dot"></div>
       <span class="kk-name">KronIA</span>
       <span id="kk-st">Inactiva</span>
-      <button id="kk-cfg" onclick="openMicModal()" title="Configurar micrófono">⚙️</button>
     </div>
     <canvas id="kk-cv"></canvas>
     <div id="kk-txt">…</div>
@@ -353,29 +352,67 @@ async function pedirPermiso(){
 async function openMicModal(){
   const modal=document.getElementById('mic-modal');
   const list=document.getElementById('mic-list');
-  list.innerHTML='';
-  // Obtener dispositivos (ya tenemos permiso)
+  list.innerHTML='<p style="font-size:10px;color:var(--t2);text-align:center;padding:8px">Cargando dispositivos…</p>';
+  modal.classList.add('open');
+
   try{
+    // Paso 1: pedir permiso si no lo tenemos aún (necesario para ver los labels)
+    let permiso=false;
+    try{
+      const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
+      tmp.getTracks().forEach(t=>t.stop());
+      permiso=true;
+    }catch(e){
+      // Si falla, mostramos igual con labels genéricos
+      permiso=false;
+    }
+
+    // Paso 2: listar dispositivos (con labels si hay permiso)
     const devs=await navigator.mediaDevices.enumerateDevices();
     availableDevices=devs.filter(d=>d.kind==='audioinput');
-  }catch(e){list.textContent='No se pudieron listar los dispositivos.';return;}
 
-  if(availableDevices.length===0){list.innerHTML='<p style="font-size:10px;color:var(--t2);text-align:center">No hay micrófonos detectados.</p>';modal.classList.add('open');return;}
+    if(availableDevices.length===0){
+      list.innerHTML='<p style="font-size:10px;color:var(--t2);text-align:center;padding:8px">No hay micrófonos detectados. Conecta uno e intenta de nuevo.</p>';
+      return;
+    }
 
-  pendingDeviceId=selectedDeviceId; // temporal hasta que acepte
-  availableDevices.forEach(d=>{
-    const item=document.createElement('div');item.className='mic-opt'+(d.deviceId===pendingDeviceId?' sel':'');
-    const isDefault=d.deviceId==='default'||d.label.toLowerCase().includes('default')||d.label.toLowerCase().includes('predeterminado');
-    const isBT=d.label.toLowerCase().includes('bluetooth')||d.label.toLowerCase().includes('bt')||d.label.toLowerCase().includes('airpods')||d.label.toLowerCase().includes('headset');
-    item.innerHTML='<div class="mic-opt-dot"></div>'+'<div class="mic-opt-name">'+(d.label||'Micrófono')+'</div>'+'<div class="mic-opt-type">'+(isBT?'🔵 Bluetooth':isDefault?'🎤 Predeterminado':'🎙️ Interno')+'</div>';
-    item.onclick=()=>{
-      pendingDeviceId=d.deviceId;
-      list.querySelectorAll('.mic-opt').forEach(o=>o.classList.remove('sel'));
-      item.classList.add('sel');
-    };
-    list.appendChild(item);
-  });
-  modal.classList.add('open');
+    // Si no hay deviceId seleccionado, usar el primero
+    if(!selectedDeviceId&&availableDevices.length>0)
+      selectedDeviceId=availableDevices[0].deviceId;
+
+    pendingDeviceId=selectedDeviceId;
+    list.innerHTML='';
+
+    availableDevices.forEach((d,idx)=>{
+      const label=d.label||('Micrófono '+(idx+1));
+      const ln=label.toLowerCase();
+      const isBT=ln.includes('bluetooth')||ln.includes('airpod')||ln.includes('headset')||ln.includes('wireless');
+      const isDefault=d.deviceId==='default'||ln.includes('default')||ln.includes('predeterminado');
+      const isHDMI=ln.includes('hdmi')||ln.includes('display');
+      const tipo=isBT?'🔵 Bluetooth':isHDMI?'🖥️ HDMI/Display':isDefault?'🎤 Predeterminado':'🎙️ Interno';
+      const item=document.createElement('div');
+      item.className='mic-opt'+(d.deviceId===pendingDeviceId?' sel':'');
+      item.innerHTML=
+        '<div class="mic-opt-dot"></div>'+
+        '<div style="flex:1;min-width:0"><div class="mic-opt-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+label+'</div>'+
+        '<div class="mic-opt-type">'+tipo+'</div></div>';
+      item.onclick=()=>{
+        pendingDeviceId=d.deviceId;
+        list.querySelectorAll('.mic-opt').forEach(o=>o.classList.remove('sel'));
+        item.classList.add('sel');
+      };
+      list.appendChild(item);
+    });
+
+    if(!permiso){
+      const warn=document.createElement('p');
+      warn.style.cssText='font-size:8.5px;color:#B07000;margin-top:6px;text-align:center';
+      warn.textContent='⚠️ Activa el permiso del micrófono en el navegador para ver los nombres reales.';
+      list.appendChild(warn);
+    }
+  }catch(e){
+    list.innerHTML='<p style="font-size:10px;color:#B01010;text-align:center;padding:8px">Error al listar dispositivos: '+e.name+'</p>';
+  }
 }
 function closeMicModal(){document.getElementById('mic-modal').classList.remove('open');}
 async function applyMicSelection(){
