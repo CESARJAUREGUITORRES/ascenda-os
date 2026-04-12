@@ -182,8 +182,13 @@ tr:last-child td{border-bottom:none}
   <span class="role-pill">ADMINISTRADOR</span>
   <span class="tb-date" id="tb-date"></span>
   <a href="/calls.html" class="tb-btn">Call Center</a>
+  <button class="tb-btn" onclick="window.open('/cerebro.html','_blank','noopener')" style="border-color:#00C9A7;color:#00875A;background:rgba(0,201,167,0.06);display:flex;align-items:center;gap:5px">
+    <span style="width:7px;height:7px;border-radius:50%;background:#00C9A7;box-shadow:0 0 6px #00C9A7;animation:sbpulse 2s infinite;display:inline-block"></span>
+    Brain
+  </button>
   <button class="tb-btn danger" onclick="logout()">Salir</button>
 </div>
+<style>@keyframes sbpulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
 
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
