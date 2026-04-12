@@ -399,10 +399,13 @@ function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{me
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
   buildTopbar(); buildSidebar(); startClock();
-  if (AOS.role !== 'ADMIN') verificarTurnoHoy();
-  else navigateTo('admin-home');
-})(
-);
+  // Redirigir al panel standalone correcto segun rol
+  if (AOS.role === 'ADMIN') {
+    window.location.href = '/admin-home.html';
+  } else {
+    window.location.href = '/advisor-home.html';
+  }
+})();
 
 /* ---------------------------------------------------
    TOPBAR BUILD
