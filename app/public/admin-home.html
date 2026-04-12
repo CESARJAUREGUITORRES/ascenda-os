@@ -8,96 +8,88 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;
+  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;--blue-md:#BFDBFE;
   --cyan:#00C9A7;--mint:#00E5A0;
   --bg:#F0F4FC;--surface:#fff;--border:#DDE4F5;
   --text:#0D1B3E;--muted:#6B7BA8;--label:#9AAAC8;
-  --green:#16A34A;--green-xl:#F0FDF4;
+  --green:#16A34A;--green-xl:#F0FDF4;--green-md:#BBF7D0;
   --red:#DC2626;--red-xl:#FEF2F2;--red-md:#FECACA;
   --amber:#D97706;--amber-xl:#FFFBEB;
   --purple:#7C3AED;--purple-xl:#F5F3FF;
-  --sw:200px; --th:52px;
+  --sw:200px;--th:52px;
 }
-html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
-/* ── TOPBAR ── */
-.topbar{
-  height:var(--th);background:var(--surface);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;padding:0 14px;
-  position:fixed;top:0;left:0;right:0;z-index:200;
-}
-.logo{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0}
-.logo svg{width:24px;height:24px;flex-shrink:0}
-.logo-txt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:var(--blue);white-space:nowrap}
-.logo-txt span{color:var(--cyan)}
-.role-pill{padding:3px 10px;border-radius:20px;font-size:9px;font-weight:700;
-  border:1.5px solid var(--purple);color:var(--purple);background:var(--purple-xl);
-  white-space:nowrap;flex-shrink:0}
-.tb-date{font-size:10px;color:var(--muted);flex:1;text-align:center}
-.tb-actions{display:flex;gap:6px;flex-shrink:0}
-.tb-btn{padding:5px 10px;border-radius:8px;border:1px solid var(--border);
-  background:var(--bg);font-size:10px;font-weight:600;color:var(--muted);
-  cursor:pointer;text-decoration:none;white-space:nowrap}
-.tb-btn:hover{background:var(--border)}
+/* TOPBAR */
+.topbar{height:var(--th);background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  position:fixed;top:0;left:0;right:0;z-index:200}
 .menu-btn{display:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
   background:var(--surface);cursor:pointer;align-items:center;justify-content:center;
-  flex-shrink:0;font-size:16px}
+  flex-shrink:0;font-size:16px;color:var(--text)}
+.logo{display:flex;align-items:center;gap:7px;text-decoration:none;flex-shrink:0}
+.logo svg{width:22px;height:22px}
+.logo-txt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:var(--blue)}
+.logo-txt span{color:var(--cyan)}
+.role-pill{padding:3px 10px;border-radius:20px;font-size:9px;font-weight:700;
+  border:1.5px solid var(--purple);color:var(--purple);background:var(--purple-xl);white-space:nowrap}
+.tb-date{font-size:10px;color:var(--muted);flex:1;text-align:center}
+.tb-btn{padding:5px 10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);font-size:10px;font-weight:600;color:var(--muted);
+  cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.tb-btn.danger{border-color:var(--red-md);color:var(--red);background:var(--red-xl)}
 
-/* ── SIDEBAR ── */
-.sidebar{
-  position:fixed;top:var(--th);left:0;bottom:0;width:var(--sw);
+/* SIDEBAR */
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.sidebar{position:fixed;top:var(--th);left:0;bottom:0;width:var(--sw);
   background:var(--surface);border-right:1px solid var(--border);
   display:flex;flex-direction:column;padding:8px 0;z-index:100;
-  overflow-y:auto;transition:transform .25s;
-}
-.sb-section{padding:4px 10px 2px;font-size:9px;font-weight:700;
-  letter-spacing:1px;color:var(--label);text-transform:uppercase}
-.sb-item{display:flex;align-items:center;gap:9px;padding:7px 10px;
-  margin:1px 5px;border-radius:9px;cursor:pointer;font-size:11.5px;
-  font-weight:500;color:var(--muted);text-decoration:none;transition:background .12s}
-.sb-item:hover{background:var(--bg);color:var(--text)}
-.sb-item.active{background:var(--purple-xl);color:var(--purple);font-weight:700}
-.sb-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
-.sb-item.active svg{opacity:1}
+  overflow-y:auto;transition:transform .25s}
+.sb-sec{padding:5px 10px 2px;font-size:9px;font-weight:700;letter-spacing:1px;
+  color:var(--label);text-transform:uppercase}
+.sb-a{display:flex;align-items:center;gap:8px;padding:7px 10px;margin:1px 5px;
+  border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:500;
+  color:var(--muted);text-decoration:none;transition:background .12s}
+.sb-a:hover{background:var(--bg);color:var(--text)}
+.sb-a.act{background:var(--purple-xl);color:var(--purple);font-weight:700}
+.sb-a svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.sb-a.act svg,.sb-a:hover svg{opacity:1}
 .sb-sep{height:1px;background:var(--border);margin:5px 10px}
 .sb-bot{margin-top:auto}
 
-/* ── MAIN ── */
-.main{margin-left:var(--sw);margin-top:var(--th);padding:14px;min-height:calc(100vh - var(--th))}
+/* MAIN */
+.main{margin-left:var(--sw);margin-top:var(--th);padding:12px;min-height:calc(100vh - var(--th))}
 
-/* ── TICKER MKT ── */
-.ticker{
-  background:var(--text);border-radius:10px;padding:10px 14px;
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  margin-bottom:12px;font-size:11px;color:#fff;
-}
-.tk-lbl{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--cyan);flex-shrink:0}
-.tk-item{display:flex;align-items:center;gap:5px}
-.tk-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px}
-.tk-name{font-size:9px;color:#aaa}
-.tk-sep{color:#444}
-.tk-pct{font-size:9px;font-weight:700;color:var(--mint)}
+/* TICKER — EMBUDO COMPLETO */
+.ticker{background:var(--text);border-radius:10px;padding:10px 14px;
+  display:flex;align-items:center;gap:0;margin-bottom:10px;flex-wrap:wrap;row-gap:6px}
+.tk-lbl{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--cyan);
+  padding-right:10px;border-right:1px solid #333;margin-right:10px;flex-shrink:0}
+.tk-step{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 8px}
+.tk-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#fff}
+.tk-name{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+.tk-arr{color:#444;font-size:12px;align-self:center;flex-shrink:0}
+.tk-pct{font-size:9px;font-weight:700;color:var(--mint);display:block}
 
-/* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .kpi-card{background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px}
+  border-radius:10px;padding:11px 12px}
 .kpi-card.hi{border-color:var(--blue);background:var(--blue-xl)}
 .kpi-lbl{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px}
-.kpi-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:20px;color:var(--text)}
+.kpi-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;
+  color:var(--text);margin-top:2px}
 .kpi-card.hi .kpi-val{color:var(--blue)}
-.kpi-sub{font-size:9px;color:var(--muted)}
+.kpi-sub{font-size:9px;color:var(--muted);margin-top:1px}
 
-/* ── GRID PRINCIPAL ── */
-.panel-grid{display:grid;grid-template-columns:1fr 300px;gap:10px;margin-bottom:10px}
-
-/* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
-.card-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;
-  color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.card-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:var(--text);
+  margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .card-upd{font-size:9px;font-weight:400;color:var(--label)}
+.cnt-badge{background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;flex-shrink:0}
 
-/* ── TABLA MONITOREO ── */
+/* TABLA MONITOREO */
 table{width:100%;border-collapse:collapse;font-size:10px}
 th{text-align:left;padding:5px 6px;color:var(--label);font-weight:700;
   font-size:8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
@@ -108,18 +100,31 @@ tr:last-child td{border-bottom:none}
 .b-warn{background:var(--amber-xl);color:var(--amber)}
 .b-idle{background:var(--bg);color:var(--muted)}
 
-/* ── RANKING ── */
-.rank-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bg)}
-.rank-item:last-child{border-bottom:none}
-.rank-pos{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:var(--label);width:20px;text-align:center}
-.rank-info{flex:1;min-width:0}
-.rank-name{font-weight:700;font-size:12px}
-.rank-meta{font-size:9px;color:var(--muted);margin-top:1px}
-.rank-bar-bg{height:3px;background:var(--bg);border-radius:2px;margin-top:3px}
-.rank-bar{height:3px;border-radius:2px;background:var(--blue);transition:width .5s}
-.rank-fact{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:var(--blue);flex-shrink:0}
+/* VENTAS */
+.venta-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg)}
+.venta-item:last-child{border-bottom:none}
+.venta-info{flex:1;min-width:0}
+.venta-trat{font-weight:600;font-size:11px}
+.venta-meta{font-size:9px;color:var(--muted);margin-top:1px}
+.venta-monto{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:var(--green);flex-shrink:0}
 
-/* ── PAGOS ── */
+/* RANKING */
+.rank-item{padding:10px 0;border-bottom:1px solid var(--bg)}
+.rank-item:last-child{border-bottom:none}
+.rank-header{display:flex;align-items:center;gap:8px}
+.rank-pos{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;
+  color:var(--label);width:22px;text-align:center;flex-shrink:0}
+.rank-name{font-weight:700;font-size:13px;flex:1}
+.rank-fact{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:var(--blue);flex-shrink:0}
+.rank-desglose{display:flex;gap:12px;margin-top:5px;margin-left:30px;flex-wrap:wrap}
+.rank-bloque{background:var(--bg);border-radius:7px;padding:5px 8px;min-width:90px}
+.rank-bloque-lbl{font-size:8px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px}
+.rank-bloque-val{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:var(--text);margin-top:1px}
+.rank-bloque-sub{font-size:9px;color:var(--muted)}
+.rank-bar-bg{height:3px;background:var(--bg);border-radius:2px;margin-top:6px;margin-left:30px}
+.rank-bar{height:3px;border-radius:2px;background:var(--blue);transition:width .5s}
+
+/* PAGOS */
 .pago-item{padding:9px 10px;border:1px solid var(--border);border-radius:9px;
   margin-bottom:7px;display:flex;align-items:center;gap:8px}
 .pago-info{flex:1;min-width:0}
@@ -129,51 +134,42 @@ tr:last-child td{border-bottom:none}
 .pago-btn{padding:4px 10px;border-radius:7px;border:none;background:var(--green);
   color:#fff;font-size:9px;font-weight:700;cursor:pointer;flex-shrink:0}
 
-/* ── VENTAS ── */
-.venta-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg)}
-.venta-item:last-child{border-bottom:none}
-.venta-info{flex:1;min-width:0}
-.venta-trat{font-weight:600;font-size:11px}
-.venta-meta{font-size:9px;color:var(--muted);margin-top:1px}
-.venta-monto{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:var(--green);flex-shrink:0}
-
-/* ── LOADING ── */
-.ld{text-align:center;padding:20px;color:var(--label);font-size:11px}
-.sp{width:22px;height:22px;border:2px solid var(--bg);border-top-color:var(--blue);
-  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 6px}
+/* LOADING */
+.ld{text-align:center;padding:18px;color:var(--label);font-size:11px}
+.sp{width:20px;height:20px;border:2px solid var(--bg);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 5px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── OVERLAY SIDEBAR MOBILE ── */
-.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
-
-/* ── RESPONSIVE ── */
+/* RESPONSIVE */
 @media(max-width:768px){
   .menu-btn{display:flex}
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
   .sb-overlay.open{display:block}
   .main{margin-left:0;padding:10px}
-  .panel-grid{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .tb-date{display:none}
+  .ticker{gap:0;row-gap:4px}
+  .tk-step{padding:0 5px}
+  .tk-val{font-size:14px}
   table th:nth-child(3),table td:nth-child(3),
   table th:nth-child(4),table td:nth-child(4){display:none}
+  .rank-desglose{gap:6px}
+  .rank-bloque{min-width:80px}
 }
 @media(max-width:400px){
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .kpi-val{font-size:16px}
-  .ticker{flex-direction:column;align-items:flex-start;gap:6px}
 }
 </style>
 </head>
 <body>
 
-<!-- OVERLAY MOBILE -->
 <div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <button class="menu-btn" id="menu-btn" onclick="toggleSidebar()">☰</button>
+  <button class="menu-btn" onclick="toggleSidebar()">☰</button>
   <a href="/admin-home.html" class="logo">
     <svg viewBox="0 0 48 48" fill="none">
       <rect x="2" y="2" width="20" height="20" rx="4" fill="#00E5A0"/>
@@ -185,146 +181,150 @@ tr:last-child td{border-bottom:none}
   </a>
   <span class="role-pill">ADMINISTRADOR</span>
   <span class="tb-date" id="tb-date"></span>
-  <div class="tb-actions">
-    <a href="/calls.html" class="tb-btn">Call Center</a>
-    <button class="tb-btn" onclick="logout()" style="border-color:#FECACA;color:#DC2626;background:#FEF2F2">Salir</button>
-  </div>
+  <a href="/calls.html" class="tb-btn">Call Center</a>
+  <button class="tb-btn danger" onclick="logout()">Salir</button>
 </div>
 
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
-  <div class="sb-section">Supervisión</div>
-  <a href="/admin-home.html" class="sb-item active">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
-    Home admin
+  <div class="sb-sec">Supervisión</div>
+  <a href="/admin-home.html" class="sb-a act">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>Home admin
   </a>
-  <a href="/calls.html" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><path d="M4 3h3l1.5 4-2 1.5c1 2 3 4 5 5l1.5-2 4 1.5V16a1 1 0 01-1 1C7 17 3 13 3 4a1 1 0 011-1z" fill="currentColor" opacity=".9"/></svg>
-    Llamadas
+  <a href="/calls.html" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><path d="M4 3h3l1.5 4-2 1.5c1 2 3 4 5 5l1.5-2 4 1.5V16a1 1 0 01-1 1C7 17 3 13 3 4a1 1 0 011-1z" fill="currentColor" opacity=".9"/></svg>Llamadas
   </a>
-  <div class="sb-section">Clínica</div>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 17c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Pacientes
+  <div class="sb-sec">Clínica</div>
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 17c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Pacientes
   </a>
-  <div class="sb-section">Comercial</div>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>
-    Ventas
+  <div class="sb-sec">Comercial</div>
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>Ventas
   </a>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="12" width="3" height="5" rx="1" fill="currentColor" opacity=".65"/><rect x="8.5" y="7" width="3" height="10" rx="1" fill="currentColor" opacity=".8"/><rect x="14" y="4" width="3" height="13" rx="1" fill="currentColor"/></svg>
-    Comisiones
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="12" width="3" height="5" rx="1" fill="currentColor" opacity=".65"/><rect x="8.5" y="7" width="3" height="10" rx="1" fill="currentColor" opacity=".8"/><rect x="14" y="4" width="3" height="13" rx="1" fill="currentColor"/></svg>Comisiones
   </a>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5h2.5L14 4v12L6.5 12.5H4a1.5 1.5 0 01-1.5-1.5v-2A1.5 1.5 0 014 7.5z" fill="currentColor" opacity=".85"/></svg>
-    Marketing
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5h2.5L14 4v12L6.5 12.5H4a1.5 1.5 0 01-1.5-1.5v-2A1.5 1.5 0 014 7.5z" fill="currentColor" opacity=".85"/></svg>Marketing
   </a>
   <div class="sb-sep"></div>
-  <div class="sb-section">Recursos</div>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><circle cx="7.5" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 17c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="14" cy="6" r="2.5" stroke="currentColor" stroke-width="1.3" opacity=".65"/></svg>
-    Equipo
+  <div class="sb-sec">Recursos</div>
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><circle cx="7.5" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 17c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="14" cy="6" r="2.5" stroke="currentColor" stroke-width="1.3" opacity=".65"/></svg>Equipo
   </a>
-  <a href="#" class="sb-item">
-    <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-    Configuración
+  <a href="#" class="sb-a">
+    <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Configuración
   </a>
   <div class="sb-bot sb-sep"></div>
-  <a href="#" onclick="logout()" class="sb-item" style="color:var(--red)">
-    <svg viewBox="0 0 20 20" fill="none"><path d="M8 4H5a1 1 0 00-1 1v10a1 1 0 001 1h3M13 14l3-4-3-4M7 10h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Salir
+  <a href="#" onclick="logout()" class="sb-a" style="color:var(--red)">
+    <svg viewBox="0 0 20 20" fill="none"><path d="M8 4H5a1 1 0 00-1 1v10a1 1 0 001 1h3M13 14l3-4-3-4M7 10h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Salir
   </a>
 </nav>
 
-<!-- CONTENIDO PRINCIPAL -->
+<!-- MAIN -->
 <div class="main">
 
-  <!-- TICKER MKT -->
+  <!-- 1. TICKER EMBUDO COMPLETO -->
   <div class="ticker">
     <span class="tk-lbl">MKT</span>
-    <div class="tk-item"><span class="tk-val" id="tk-leads">—</span><span class="tk-name"> leads</span></div>
-    <span class="tk-sep">›</span>
-    <div class="tk-item"><span class="tk-val" id="tk-llam">—</span><span class="tk-pct" id="tk-pct"></span></div>
-    <span class="tk-sep">›</span>
-    <div class="tk-item"><span class="tk-val" id="tk-citas">—</span><span class="tk-name"> citas</span></div>
-    <span class="tk-sep">›</span>
-    <div class="tk-item"><span class="tk-val" id="tk-fact">S/—</span></div>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-leads">—</span>
+      <span class="tk-name">Leads</span>
+    </div>
+    <span class="tk-arr">›</span>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-llam">—</span>
+      <span class="tk-name">Llamados<span class="tk-pct" id="tk-pct"></span></span>
+    </div>
+    <span class="tk-arr">›</span>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-citas">—</span>
+      <span class="tk-name">Citas</span>
+    </div>
+    <span class="tk-arr">›</span>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-asistio">—</span>
+      <span class="tk-name">Asistio</span>
+    </div>
+    <span class="tk-arr">›</span>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-ventas">—</span>
+      <span class="tk-name">Ventas</span>
+    </div>
+    <span class="tk-arr">›</span>
+    <div class="tk-step">
+      <span class="tk-val" id="tk-fact">—</span>
+      <span class="tk-name">Fact. S/</span>
+    </div>
   </div>
 
-  <!-- KPIs -->
+  <!-- 2. KPI GRID -->
   <div class="kpi-grid">
     <div class="kpi-card hi">
-      <span class="kpi-lbl">Facturado Hoy</span>
-      <span class="kpi-val" id="k-fact">S/0</span>
-      <span class="kpi-sub" id="k-ventas">0 ventas</span>
+      <div class="kpi-lbl">Facturado Hoy</div>
+      <div class="kpi-val" id="k-fact">S/0</div>
+      <div class="kpi-sub" id="k-ventas">0 ventas</div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-lbl">San Isidro</span>
-      <span class="kpi-val" id="k-si">S/0</span>
+      <div class="kpi-lbl">San Isidro</div>
+      <div class="kpi-val" id="k-si">S/0</div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-lbl">Pueblo Libre</span>
-      <span class="kpi-val" id="k-pl">S/0</span>
+      <div class="kpi-lbl">Pueblo Libre</div>
+      <div class="kpi-val" id="k-pl">S/0</div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-lbl">Llamadas Hoy</span>
-      <span class="kpi-val" id="k-llam">0</span>
-      <span class="kpi-sub" id="k-mes">0 este mes</span>
+      <div class="kpi-lbl">Llamadas Hoy</div>
+      <div class="kpi-val" id="k-llam">0</div>
+      <div class="kpi-sub" id="k-mes">— este mes</div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-lbl">Citas Hoy</span>
-      <span class="kpi-val" id="k-citas">0</span>
+      <div class="kpi-lbl">Citas Hoy</div>
+      <div class="kpi-val" id="k-citas">0</div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-lbl">Leads Mes</span>
-      <span class="kpi-val" id="k-leads">0</span>
+      <div class="kpi-lbl">Leads Mes</div>
+      <div class="kpi-val" id="k-leads">0</div>
     </div>
   </div>
 
-  <!-- MONITOREO + RANKING -->
-    <!-- VENTAS + PAGOS (arriba) -->
-  <div class="panel-grid">
-    <div class="card">
-      <div class="card-ttl" id="ventas-ttl">VENTAS DEL DIA</div>
-      <div id="ventas-list"><div class="ld">Sin ventas hoy</div></div>
+  <!-- 3. MONITOREO -->
+  <div class="card">
+    <div class="card-ttl">
+      MONITOREO DE LLAMADAS
+      <span class="card-upd" id="mon-upd"></span>
     </div>
-    <div class="card">
-      <div class="card-ttl">
-        PAGOS PENDIENTES
-        <span id="pagos-cnt" style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px"></span>
-      </div>
-      <div id="pagos-list"><div class="ld"><div class="sp"></div></div></div>
-    </div>
-  
+    <table>
+      <thead><tr>
+        <th>Asesor</th><th>Llam.</th><th>Citas</th><th>Conv%</th>
+        <th>Ult. contacto</th><th>Estado</th>
+      </tr></thead>
+      <tbody id="mon-tbody">
+        <tr><td colspan="6"><div class="ld"><div class="sp"></div>Cargando...</div></td></tr>
+      </tbody>
+    </table>
   </div>
 
-  <!-- MONITOREO (en medio) -->
-  <div class="panel-grid" style="grid-template-columns:1fr">
-    <div class="card">
-      <div class="card-ttl">
-        MONITOREO DE LLAMADAS
-        <span class="card-upd" id="mon-upd"></span>
-      </div>
-      <table>
-        <thead><tr>
-          <th>Asesor</th><th>Llam.</th><th>Citas</th><th>Conv%</th>
-          <th>Ult. contacto</th><th>Estado</th>
-        </tr></thead>
-        <tbody id="mon-tbody">
-          <tr><td colspan="6"><div class="ld"><div class="sp"></div>Cargando...</div></td></tr>
-        </tbody>
-      </table>
-    </div>
+  <!-- 4. VENTAS HOY (solo si hay) -->
+  <div class="card" id="ventas-card" style="display:none">
+    <div class="card-ttl" id="ventas-ttl">VENTAS DEL DIA</div>
+    <div id="ventas-list"></div>
   </div>
 
-  <!-- RANKING (abajo) -->
-  <div class="panel-grid" style="grid-template-columns:1fr">
-    <div class="card">
-      <div class="card-ttl">RANKING — MES ACTUAL</div>
-      <div id="ranking-list"><div class="ld"><div class="sp"></div></div></div>
+  <!-- 5. RANKING MES — con desglose -->
+  <div class="card">
+    <div class="card-ttl">RANKING MES ACTUAL</div>
+    <div id="ranking-list"><div class="ld"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- 6. PAGOS PENDIENTES (al último) -->
+  <div class="card">
+    <div class="card-ttl">
+      PAGOS PENDIENTES
+      <span class="cnt-badge" id="pagos-cnt" style="display:none"></span>
     </div>
-  
+    <div id="pagos-list"><div class="ld"><div class="sp"></div></div></div>
   </div>
 
 </div>
@@ -333,24 +333,15 @@ tr:last-child td{border-bottom:none}
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
-function rpc(fn,p,cb){
-  fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',
-    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
-    body:JSON.stringify(p||{})
-  }).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});
-}
-function q(t,f,cb){
-  fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
-    .then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});
-}
+function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
+function q(t,f,cb){fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function hoy(){return new Date().toISOString().slice(0,10);}
 function ayer(){var d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}
 function mes(){return new Date().toISOString().slice(0,7)+'-01';}
-function fmt(n){return 'S/'+parseFloat(n||0).toFixed(0);}
 function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
 
-// Verificar sesion
+// Sesion
 (function(){
   try{
     var s=JSON.parse(localStorage.getItem('aos_session')||'{}');
@@ -359,17 +350,12 @@ function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
   }catch(e){window.location.href='/';}
 })();
 
-// Sidebar toggle
+// Sidebar
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sb-overlay').classList.toggle('open');
 }
-
-// Logout
-function logout(){
-  try{localStorage.removeItem('aos_session');}catch(e){}
-  window.location.href='/';
-}
+function logout(){try{localStorage.removeItem('aos_session');}catch(e){}window.location.href='/';}
 
 // Fecha
 (function(){
@@ -379,55 +365,83 @@ function logout(){
   set('tb-date',dias[d.getDay()]+' '+d.getDate()+' de '+meses[d.getMonth()]);
 })();
 
-// ── KPIs y semaforo ──────────────────────────────────────────────
+// ── 1. TICKER EMBUDO ─────────────────────────────────────────────
 rpc('aos_panel_admin',{p_hoy:hoy(),p_ayer:ayer(),p_mes_inicio:mes()},function(res){
   if(!res||!res.kpis)return;
   var k=res.kpis;
+  // KPIs hoy
   var fh=parseFloat(k.factHoy||0);
   var nv=parseInt(k.nVentasHoy||0);
   set('k-fact','S/'+fh.toFixed(2));
-  set('k-ventas',nv+' venta'+(nv!==1?'s':'')+(nv>0?' · ticket S/'+(fh/nv).toFixed(0):''));
+  set('k-ventas',nv+' venta'+(nv!==1?'s':'')+(nv>0?' · S/'+(fh/nv).toFixed(0)+' ticket':''));
   set('k-si','S/'+parseFloat(k.factHoySI||0).toFixed(0));
   set('k-pl','S/'+parseFloat(k.factHoyPL||0).toFixed(0));
   set('k-llam',k.llamHoy||0);
   set('k-mes',(k.llamMes||0)+' este mes');
   set('k-citas',k.citasHoy||0);
   set('k-leads',k.leadsMes||0);
-
+  // Semaforo
+  renderSemaforo(res.semaforo||[]);
   // Ventas hoy
   var ventas=res.ventasHoy||[];
-  var vel=document.getElementById('ventas-list');
-  var ventasTtl=document.getElementById('ventas-ttl');
   if(ventas.length){
-    if(ventasTtl)ventasTtl.textContent='VENTAS DEL DIA';
-    vel.innerHTML=ventas.map(function(v){
+    document.getElementById('ventas-card').style.display='block';
+    document.getElementById('ventas-list').innerHTML=ventas.map(function(v){
+      var sede=esc(v.sede||'--');
+      if(sede==='WILMER'||sede==='RUVILA'||sede==='MIREYA')sede='SAN ISIDRO';
       return '<div class="venta-item">'+
-        '<div class="venta-info"><div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
-        '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+esc(v.sede||'--')+'</div></div>'+
-        '<div class="venta-monto">S/'+parseFloat(v.monto||0).toFixed(2)+'</div></div>';
+        '<div class="venta-info">'+
+          '<div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
+          '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+sede+'</div>'+
+        '</div>'+
+        '<div class="venta-monto">S/'+parseFloat(v.monto||0).toFixed(2)+'</div>'+
+      '</div>';
     }).join('');
   } else {
-    // Sin ventas hoy → cargar ventas de ayer
-    if(ventasTtl)ventasTtl.textContent='VENTAS DE AYER (hoy sin registros)';
-    q('aos_ventas','select=tratamiento,monto,asesor,sede&fecha=eq.'+ayer()+'&order=created_at.desc&limit=10',function(rows){
-      vel.innerHTML=(rows&&rows.length)?rows.map(function(v){
-        return '<div class="venta-item">'+
-          '<div class="venta-info"><div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
-          '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+esc(v.sede||'--')+'</div></div>'+
-          '<div class="venta-monto" style="color:var(--muted)">S/'+parseFloat(v.monto||0).toFixed(2)+'</div></div>';
-      }).join(''):'<div class="ld">Sin ventas ayer tampoco</div>';
-    });
+    // No mostrar ventas si no hay hoy (no mostrar ayer)
+    document.getElementById('ventas-card').style.display='none';
   }
+  set('mon-upd','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
+});
 
-  // Semaforo
-  var sem=res.semaforo||[];
+// Ticker embudo: datos del mes desde Supabase directo
+q('aos_leads','select=id&fecha=gte.'+mes(),function(rows){set('tk-leads',(rows||[]).length);});
+
+q('aos_llamadas','select=numero_limpio&fecha=gte.'+mes()+'&limit=5000',function(rows){
+  var nums={};(rows||[]).forEach(function(r){if(r.numero_limpio)nums[r.numero_limpio]=1;});
+  var c=Object.keys(nums).length;
+  set('tk-llam',c);
+  q('aos_leads','select=id&fecha=gte.'+mes(),function(leads){
+    var tl=(leads||[]).length;
+    set('tk-leads',tl);
+    if(tl>0)set('tk-pct',Math.round(c/tl*100)+'%');
+  });
+});
+
+q('aos_agenda_citas','select=id,estado_cita&fecha_cita=gte.'+mes(),function(rows){
+  var total=(rows||[]).length;
+  var asistio=(rows||[]).filter(function(r){
+    var e=(r.estado_cita||'').toUpperCase();
+    return e!=='CANCELADA'&&e!=='NO ASISTIO'&&e!=='REAGENDADA'&&e!=='NO_ASISTIO';
+  }).length;
+  set('tk-citas',total);
+  set('tk-asistio',asistio);
+});
+
+q('aos_ventas','select=id,monto&fecha=gte.'+mes()+'&estado_pago=neq.ADELANTO&asesor=neq.NO APLICA',function(rows){
+  var nv=(rows||[]).length;
+  var fact=(rows||[]).reduce(function(s,r){return s+parseFloat(r.monto||0);},0);
+  set('tk-ventas',nv);
+  set('tk-fact',fact.toFixed(0));
+});
+
+// ── 2. SEMAFORO ──────────────────────────────────────────────────
+function renderSemaforo(sem){
+  var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'];
+  var map={};(sem||[]).forEach(function(s){map[s.asesor]=s;});
   var tbody=document.getElementById('mon-tbody');
-  // Mostrar todos los asesores — los del semaforo y los que no llamaron hoy
-  var todosAsesores=['WILMER','RUVILA','MIREYA','SRA CARMEN'];
-  var semMap={};
-  (sem||[]).forEach(function(s){semMap[s.asesor]=s;});
-  var rows=todosAsesores.map(function(nombre){
-    var s=semMap[nombre];
+  tbody.innerHTML=todos.map(function(nombre){
+    var s=map[nombre];
     if(s){
       var mins=parseInt(s.mins_sin||0);
       var estado=mins<30?'ACTIVO':mins<120?'INACTIVO':'SIN ACTIV.';
@@ -435,33 +449,31 @@ rpc('aos_panel_admin',{p_hoy:hoy(),p_ayer:ayer(),p_mes_inicio:mes()},function(re
       var conv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
       return '<tr>'+
         '<td><b>'+esc(s.asesor)+'</b></td>'+
-        '<td>'+s.llamadas+'</td>'+
-        '<td>+'+s.citas+'</td>'+
+        '<td>'+esc(s.llamadas||0)+'</td>'+
+        '<td>+'+esc(s.citas||0)+'</td>'+
         '<td>'+conv+'%</td>'+
-        '<td style="font-size:9px;color:var(--muted)">'+esc(s.ult_hora||'--')+'<br>'+esc(s.ult_numero||'')+'</td>'+
+        '<td style="font-size:9px;color:var(--muted)">'+esc(s.ult_hora||'—')+'<br>'+esc(s.ult_numero||'')+'</td>'+
         '<td><span class="badge '+cls+'">'+estado+'</span></td></tr>';
-    } else {
+    }else{
       return '<tr>'+
         '<td><b>'+nombre+'</b></td>'+
         '<td>0</td><td>+0</td><td>0%</td>'+
         '<td style="font-size:9px;color:var(--muted)">—</td>'+
         '<td><span class="badge b-idle">SIN ACTIV.</span></td></tr>';
     }
-  });
-  tbody.innerHTML=rows.join('');
-  set('mon-upd','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
-});
+  }).join('');
+}
 
-// ── Ranking comisiones (mes actual) ──────────────────────────────
-q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADELANTO',function(rows){
+// ── 3. RANKING con desglose correcto ─────────────────────────────
+q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADELANTO&asesor=neq.NO APLICA&limit=2000',function(rows){
   var map={};
   (rows||[]).forEach(function(r){
-    if(!r.asesor||r.asesor==='NO APLICA')return;
-    if(!map[r.asesor])map[r.asesor]={n:r.asesor,serv:0,prod:0,fact:0};
+    if(!r.asesor)return;
+    if(!map[r.asesor])map[r.asesor]={n:r.asesor,nServ:0,fServ:0,nProd:0,fProd:0,fact:0};
     var m=parseFloat(r.monto||0);
     map[r.asesor].fact+=m;
-    if(r.tipo==='PRODUCTO')map[r.asesor].prod+=m;
-    else map[r.asesor].serv+=m;
+    if(r.tipo==='PRODUCTO'){map[r.asesor].nProd++;map[r.asesor].fProd+=m;}
+    else{map[r.asesor].nServ++;map[r.asesor].fServ+=m;}
   });
   var lista=Object.values(map).sort(function(a,b){return b.fact-a.fact;});
   var maxF=lista.length?lista[0].fact:1;
@@ -469,35 +481,44 @@ q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADE
   var el=document.getElementById('ranking-list');
   el.innerHTML=lista.length?lista.map(function(a,i){
     var pct=maxF>0?Math.round(a.fact/maxF*100):0;
-    // Comision real: servicio=0.05% del monto, producto=escalonado
-    var comServ=a.serv*0.0005;
-    var comProd=0;
-    // Aproximacion escalonada por monto promedio producto
-    // (la tabla real requiere calcular por cada venta individual)
-    var comTotal=comServ+comProd;
     return '<div class="rank-item">'+
-      '<div class="rank-pos">'+(medals[i]||String(i+1))+'</div>'+
-      '<div class="rank-info">'+
+      '<div class="rank-header">'+
+        '<div class="rank-pos">'+(medals[i]||String(i+1))+'</div>'+
         '<div class="rank-name">'+esc(a.n)+'</div>'+
-        '<div class="rank-meta">Fact: S/'+a.fact.toFixed(0)+' · Serv S/'+a.serv.toFixed(0)+' · Prod S/'+a.prod.toFixed(0)+'</div>'+
-        '<div class="rank-bar-bg"><div class="rank-bar" style="width:'+pct+'%"></div></div>'+
+        '<div class="rank-fact">S/'+a.fact.toFixed(0)+'</div>'+
       '</div>'+
-      '<div class="rank-fact">S/'+a.fact.toFixed(0)+'</div></div>';
-  }).join(''):'<div class="ld">Sin ventas este mes</div>';
+      '<div class="rank-desglose">'+
+        '<div class="rank-bloque">'+
+          '<div class="rank-bloque-lbl">Servicios</div>'+
+          '<div class="rank-bloque-val">S/'+a.fServ.toFixed(0)+'</div>'+
+          '<div class="rank-bloque-sub">'+a.nServ+' venta'+(a.nServ!==1?'s':'')+'</div>'+
+        '</div>'+
+        '<div class="rank-bloque">'+
+          '<div class="rank-bloque-lbl">Productos</div>'+
+          '<div class="rank-bloque-val">S/'+a.fProd.toFixed(0)+'</div>'+
+          '<div class="rank-bloque-sub">'+a.nProd+' venta'+(a.nProd!==1?'s':'')+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="rank-bar-bg"><div class="rank-bar" style="width:'+pct+'%"></div></div>'+
+    '</div>';
+  }).join(''):'<div class="ld">Sin ventas registradas este mes</div>';
 });
 
-// ── Pagos pendientes ─────────────────────────────────────────────
-q('aos_ventas','select=venta_id,nombres,apellidos,tratamiento,monto,asesor,sede&estado_pago=eq.ADELANTO&order=fecha.desc&limit=10',function(rows){
+// ── 4. PAGOS PENDIENTES ──────────────────────────────────────────
+q('aos_ventas','select=venta_id,nombres,apellidos,tratamiento,monto,asesor,sede&estado_pago=eq.ADELANTO&order=fecha.desc&limit=20',function(rows){
   var el=document.getElementById('pagos-list');
   var cnt=document.getElementById('pagos-cnt');
-  if(!rows||!rows.length){el.innerHTML='<div class="ld">Sin pagos pendientes</div>';if(cnt)cnt.style.display='none';return;}
-  if(cnt)cnt.textContent=rows.length;
+  if(!rows||!rows.length){
+    el.innerHTML='<div class="ld">Sin pagos pendientes</div>';
+    if(cnt)cnt.style.display='none';return;
+  }
+  if(cnt){cnt.textContent=rows.length;cnt.style.display='inline';}
   el.innerHTML=rows.map(function(p){
     var nom=esc(((p.nombres||'')+' '+(p.apellidos||'')).trim()||'--');
     return '<div class="pago-item" id="pg-'+esc(p.venta_id)+'">'+
       '<div class="pago-info">'+
         '<div class="pago-nom">'+nom+'</div>'+
-        '<div class="pago-meta">'+esc(p.tratamiento||'--')+' · '+esc(p.asesor||'--')+'</div>'+
+        '<div class="pago-meta">'+esc(p.tratamiento||'--')+' · '+esc(p.asesor||'--')+' · '+esc(p.sede||'--')+'</div>'+
       '</div>'+
       '<div class="pago-monto">S/'+parseFloat(p.monto||0).toFixed(2)+'</div>'+
       '<button class="pago-btn" onclick="marcarPagado(\''+esc(p.venta_id)+'\')">Pagado</button>'+
@@ -505,24 +526,6 @@ q('aos_ventas','select=venta_id,nombres,apellidos,tratamiento,monto,asesor,sede&
   }).join('');
 });
 
-// ── Ticker MKT ───────────────────────────────────────────────────
-// Ticker: llamadas del mes (números únicos contactados)
-q('aos_llamadas','select=numero_limpio&fecha=gte.'+mes()+'&limit=5000',function(rows){
-  var nums={};(rows||[]).forEach(function(r){if(r.numero_limpio)nums[r.numero_limpio]=1;});
-  var contactados=Object.keys(nums).length;
-  set('tk-llam',contactados);
-  // % contactados vs leads del mes
-  q('aos_leads','select=id&fecha=gte.'+mes(),function(leads){
-    var tl=(leads||[]).length;
-    set('tk-leads',tl);
-    if(tl>0 && contactados>0)set('tk-pct',Math.round(contactados/tl*100)+'%');
-  });
-});
-q('aos_agenda_citas','select=id&fecha_cita=gte.'+mes(),function(rows){
-  set('tk-citas',(rows||[]).length);
-});
-
-// ── Marcar pagado ────────────────────────────────────────────────
 function marcarPagado(vid){
   fetch(SB+'/rest/v1/aos_ventas?venta_id=eq.'+encodeURIComponent(vid),{
     method:'PATCH',
@@ -534,12 +537,6 @@ function marcarPagado(vid){
     if(el&&el.parentNode)el.parentNode.removeChild(el);
   });
 }
-
-// Ticker fact del mes
-q('aos_ventas','select=monto&fecha=gte.'+mes()+'&estado_pago=neq.ADELANTO',function(rows){
-  var total=(rows||[]).reduce(function(s,r){return s+parseFloat(r.monto||0);},0);
-  set('tk-fact','S/'+total.toFixed(0));
-});
 </script>
 </body>
 </html>
