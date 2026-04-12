@@ -50,8 +50,8 @@ canvas{position:fixed;inset:0;display:block}
 #kronia{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);
   width:min(300px,82vw);background:var(--card);
   border:1px solid rgba(0,201,167,0.22);border-radius:12px;
-  padding:9px 12px 8px;backdrop-filter:blur(14px);
-  display:flex;flex-direction:column;gap:6px;
+  padding:7px 11px 7px;backdrop-filter:blur(14px);
+  display:flex;flex-direction:column;gap:4px;
   opacity:0;translate:0 8px;transition:all .3s;
   pointer-events:none}
 #kronia.vis{opacity:1;translate:0 0;pointer-events:all}
@@ -71,7 +71,7 @@ canvas{position:fixed;inset:0;display:block}
 
 
 /* Waveform */
-#kk-cv{width:100%;height:20px;border-radius:5px;background:rgba(0,201,167,0.04);margin-top:1px}
+#kk-cv{width:100%;height:16px;border-radius:4px;background:rgba(0,201,167,0.05)}
 
 /* Texto acumulado — muestra lo que está escuchando */
 #kk-txt{font-size:9.5px;color:var(--blue2);line-height:1.4;
@@ -530,7 +530,9 @@ async function startStream(){
 function stopStream(){if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}if(audioCtx){audioCtx.close();audioCtx=null;}analyser=null;dataArr=null;}
 function stopMic(){micOn=false;buffer='';waitingForTrigger=false;if(recognition){recognition.stop();recognition=null;}stopStream();}
 
-// ── SpeechRecognition con patrón "KronIA ... respondeme" ────────
+// ── SpeechRecognition ─────────────────────────────────────────
+// Diseño: acumulador de texto continuo. Busca "kronia" para activar
+// y "respondeme" para cortar. Funciona en Android Chrome.
 function startReco(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){pushAlert('Usa Chrome para la voz');return;}
@@ -539,110 +541,89 @@ function startReco(){
   recognition=new SR();
   recognition.lang='es-PE';
   recognition.continuous=true;
-  recognition.interimResults=true;
-  recognition.maxAlternatives=5; // más alternativas para detectar mejor
+  recognition.interimResults=true;  // capturar texto mientras habla
+  recognition.maxAlternatives=3;
+
+  let ultimoTexto=''; // guardar el último texto interim para no repetir
 
   recognition.onresult=e=>{
-    // Revisar TODOS los resultados del evento (no solo el último)
-    for(let ri=e.resultIndex;ri<e.results.length;ri++){
-      const result=e.results[ri];
-      // Recoger todas las alternativas y unirlas para maximizar detección
-      const alts=[];
-      for(let ai=0;ai<result.length;ai++) alts.push(result[ai].transcript.trim().toLowerCase());
-      const fullText=alts[0];
+    // Acumular TODO el texto transcrito en esta sesión
+    let textoCompleto='';
+    for(let i=0;i<e.results.length;i++){
+      textoCompleto+=e.results[i][0].transcript+' ';
+    }
+    textoCompleto=textoCompleto.trim().toLowerCase();
 
-      // Mostrar feedback en tiempo real
-      if(!result.isFinal){
-        const preview=waitingForTrigger?'📝 '+(buffer?buffer+' ':'')+fullText:'👂 '+fullText;
-        document.getElementById('kk-txt').textContent=preview;
-        // Detección anticipada: si ya acumula y ya viene "respondeme" en interim
-        if(waitingForTrigger && /responde/.test(norm(fullText))){
-          document.getElementById('kk-txt').textContent='📝 Procesando…';
-        }
-        continue; // solo feedback, no procesar aún
+    // Normalizar para comparar
+    const tn=norm(textoCompleto);
+
+    // Mostrar en tiempo real
+    document.getElementById('kk-txt').textContent='👂 '+textoCompleto.slice(-60);
+
+    // PASO 1: Buscar "kronia" (activación)
+    const posKronia=tn.search(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/);
+
+    // PASO 2: Buscar "respondeme" (corte) — DESPUÉS de kronia si existe
+    const posResponde=tn.search(/(respondeme|responde me|respond e me|ya responde|eso es todo)/);
+
+    if(posKronia>=0 && posResponde>posKronia){
+      // Tenemos activación Y corte — extraer la consulta entre ellos
+      const consultaRaw=tn.slice(posKronia,posResponde)
+        .replace(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/,'')
+        .replace(/^\s*,?\s*/,'')
+        .trim();
+
+      if(consultaRaw.length>2 && consultaRaw!==ultimoTexto){
+        ultimoTexto=consultaRaw;
+        document.getElementById('kk-txt').textContent='📝 '+consultaRaw;
+        // Detener reconocimiento mientras procesa
+        try{recognition.stop();}catch(_){}
+        setTimeout(()=>dispararQuery(consultaRaw),50);
       }
-
-      // === RESULTADO FINAL ===
-      const cn=norm(fullText);
-      console.log('[KronIA] Final:', JSON.stringify(cn), '| alts:', alts.map(a=>norm(a)));
-
-      // Detectar activación en cualquier alternativa
-      const ACT=/(kronia|cronia|corona|gronia|kroni|croni|cron[ií]a|kron[ií]a)/;
-      // Detectar corte en cualquier alternativa  
-      const CUT=/(responde\s*me|respondeme|responde$|ya responde|eso es todo|fin$|listo$|proceso|procesa)/;
-
-      const esAct=ACT.test(cn)||alts.some(a=>ACT.test(norm(a)));
-      const esCut=CUT.test(cn)||alts.some(a=>CUT.test(norm(a)));
-
-      if(esAct && !waitingForTrigger){
-        // Activación detectada — extraer consulta después del nombre
-        waitingForTrigger=true;
-        const resto=cn.replace(ACT,'').trim();
-        buffer=resto;
+    } else if(posKronia>=0){
+      // Solo activación detectada — mostrar que está acumulando
+      const parcial=tn.slice(posKronia).replace(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/,'').trim();
+      if(parcial){
+        document.getElementById('kk-txt').textContent='📝 '+parcial+'…';
         kkState('collecting');
-        document.getElementById('kk-txt').textContent='📝 '+(buffer||'escuchando consulta…');
-        // Si activación y corte vienen en el mismo fragmento
-        if(esCut){
-          const q=buffer.replace(CUT,'').trim();
-          setTimeout(()=>dispararQuery(q),0);
-        }
-      } else if(waitingForTrigger){
-        if(esCut){
-          // Llegó el corte — procesar todo lo acumulado
-          const addedText=cn.replace(CUT,'').replace(ACT,'').trim();
-          if(addedText) buffer+=(buffer?' ':'')+addedText;
-          const q=buffer.trim();
-          document.getElementById('kk-txt').textContent='📝 Procesando: '+q;
-          setTimeout(()=>dispararQuery(q),0);
-        } else {
-          // Seguir acumulando
-          const texto=cn.replace(ACT,'').trim();
-          if(texto) buffer+=(buffer?' ':'')+texto;
-          kkState('collecting');
-          document.getElementById('kk-txt').textContent='📝 '+buffer;
-        }
       }
-      // Sin activación y sin modo colección → ignorar silenciosamente
     }
   };
 
   recognition.onspeechstart=()=>{
-    if(!isSpeaking) document.getElementById('kk-dot').classList.add('active-voice');
+    document.getElementById('kk-dot').classList.add('active-voice');
   };
   recognition.onspeechend=()=>{
     document.getElementById('kk-dot').classList.remove('active-voice');
   };
   recognition.onerror=e=>{
-    console.warn('[KronIA] SR error:', e.error);
+    console.warn('[KronIA] error:', e.error);
     if(e.error==='not-allowed'){pushAlert('Mic: permiso denegado');micOn=false;kkState('nomic');}
-    else if(e.error==='audio-capture'){pushAlert('Mic: sin dispositivo');kkState('nomic');}
-    else if(e.error==='network'){console.warn('SR: error de red, reintentando...');}
-    // no-speech, aborted: normales, ignorar
+    // no-speech, aborted, network: reiniciar
   };
   recognition.onend=()=>{
-    // Reiniciar siempre que KronIA esté activa
-    // IMPORTANTE: reiniciar aunque KronIA esté hablando,
-    // para que cuando termine de hablar ya esté listo para escuchar
+    // Reiniciar siempre que el mic esté activo
     if(micOn){
       setTimeout(()=>{
-        try{recognition.start();}
-        catch(e){
-          // Si ya está corriendo (InvalidStateError) no pasa nada
-          if(e.name!=='InvalidStateError') console.warn('SR restart:', e.name);
-        }
-      },150);
+        try{recognition.start();}catch(_){}
+        ultimoTexto=''; // limpiar buffer al reiniciar
+      },200);
     }
   };
 
   try{recognition.start();}
-  catch(e){console.error('[KronIA] SR start error:',e);}
-}
-function dispararQuery(q){
-  buffer='';waitingForTrigger=false;
-  if(!q||q.trim().length<2){kkSpeak('¿Qué quieres saber?');return;}
-  processQuery(q.trim());
+  catch(e){console.error('[KronIA] start error:',e);}
 }
 
+function dispararQuery(q){
+  buffer='';waitingForTrigger=false;
+  if(!q||q.trim().length<2){
+    kkSpeak('¿En qué te puedo ayudar?');
+    return;
+  }
+  console.log('[KronIA] Procesando consulta:', q);
+  processQuery(q.trim());
+}
 // ── Waveforms ──────────────────────────────────────────────────
 function stopWave(){if(waveAnim){cancelAnimationFrame(waveAnim);waveAnim=null;}kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;kkCtx2.clearRect(0,0,kkCv.width,kkCv.height);}
 function waveReal(){
