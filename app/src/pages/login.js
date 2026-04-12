@@ -1,90 +1,290 @@
 // src/pages/login.js
-import { rpc, session } from '../lib/supabase.js'
-import { navigate } from '../lib/router.js'
+// Diseño ORIGINAL del Login GAS — portado a Vite + Supabase directo
+
+var _SB = "https://ituyqwstonmhnfshnaqz.supabase.co";
+var _SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0";
 
 export function LoginPage() {
-  return `
-    <div class="login-wrap">
-      <div class="login-card">
-        <div class="login-logo">
-          <div class="logo-icon">⬡</div>
-          <div class="logo-text">
-            <span class="logo-ascenda">ASCENDA</span><span class="logo-os">OS</span>
-          </div>
-          <div class="logo-sub">Zi Vital · CRM Clínica</div>
-        </div>
-        <div class="login-form">
-          <div class="field">
-            <label>Usuario</label>
-            <input id="login-user" type="text" placeholder="ej: wilmer" autocomplete="username" />
-          </div>
-          <div class="field">
-            <label>Contraseña</label>
-            <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
-          </div>
-          <div class="login-error" id="login-error"></div>
-          <button id="login-btn" class="btn-primary" onclick="window._doLogin()">
-            Ingresar
-          </button>
-        </div>
-        <div class="login-footer">AscendaOS v2 · Supabase Direct</div>
-      </div>
+  return `<style>*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;
+  --cyan:#00C9A7;--mint:#00E5A0;
+  --bg:#F0F4FC;--surface:#FFFFFF;--border:#DDE4F5;
+  --text:#0D1B3E;--muted:#6B7BA8;--label:#9AAAC8;
+  --red:#DC2626;--green:#16A34A;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
+.login-wrap{min-height:100vh;display:flex;align-items:stretch;}
+.login-left{
+  flex:1.1;background:linear-gradient(145deg,#071D4A 0%,#0A4FBF 60%,#1A6FE8 100%);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:60px 64px;position:relative;overflow:hidden;
+}
+.left-deco{position:absolute;border-radius:50%;opacity:0.08;pointer-events:none;}
+.deco-1{width:500px;height:500px;background:#00E5A0;top:-150px;right:-100px;}
+.deco-2{width:300px;height:300px;background:#00C9A7;bottom:-80px;left:-60px;}
+.deco-3{width:200px;height:200px;background:#fff;top:40%;right:30px;}
+.brand-iso{display:flex;align-items:center;gap:14px;margin-bottom:52px;position:relative;z-index:1;}
+.iso-icon{width:48px;height:48px;flex-shrink:0;}
+.iso-name{font-family:'Exo 2',sans-serif;font-weight:800;font-size:26px;color:#fff;letter-spacing:1px;}
+.iso-name span{color:var(--mint);}
+.left-eyebrow{font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:20px;position:relative;z-index:1;}
+.left-heading{font-family:'Exo 2',sans-serif;font-size:clamp(32px,4vw,52px);font-weight:800;color:#fff;line-height:1.1;margin-bottom:20px;position:relative;z-index:1;}
+.left-heading .accent{color:var(--mint);}
+.left-desc{font-size:15px;color:rgba(255,255,255,.65);line-height:1.7;max-width:380px;margin-bottom:36px;position:relative;z-index:1;}
+.left-tags{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1;}
+.ltag{font-size:11px;padding:5px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);backdrop-filter:blur(8px);background:rgba(255,255,255,.06);}
+.login-right{flex:0.9;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:48px 56px;background:var(--surface);border-left:1px solid var(--border);}
+.form-wrap{width:100%;max-width:360px;}
+.form-logo{width:44px;height:44px;border-radius:14px;background:var(--blue-xl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.form-brand{text-align:center;margin-bottom:32px;}
+.form-brand h2{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:.5px;}
+.form-brand p{color:var(--muted);font-size:13px;margin-top:4px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--label);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;}
+.inp-wrap{position:relative;}
+.inp{width:100%;padding:12px 16px;padding-right:42px;border-radius:12px;border:1px solid var(--border);background:var(--bg);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border .15s,box-shadow .15s;}
+.inp:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(10,79,191,.08);}
+.inp.error{border-color:var(--red);}
+.inp-ico{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:15px;cursor:pointer;color:var(--muted);user-select:none;}
+.btn-login{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;transition:opacity .15s,transform .12s;box-shadow:0 6px 20px rgba(10,79,191,.25);}
+.btn-login:hover{opacity:.9;transform:translateY(-1px);}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.error-msg{color:var(--red);font-size:12px;text-align:center;margin-top:12px;min-height:18px;font-weight:600;}
+.form-footer{text-align:center;color:var(--label);font-size:11px;margin-top:24px;}
+@media(max-width:768px){
+  .login-wrap{flex-direction:column;}
+  .login-left{padding:48px 28px 36px;flex:none;min-height:220px;}
+  .login-right{padding:36px 24px;border-left:none;border-top:1px solid var(--border);}
+  .left-heading{font-size:28px;}
+}
+.loading-ov{display:none;position:fixed;inset:0;background:rgba(240,244,252,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.loading-ov.show{display:flex;}
+.load-spinner{width:40px;height:40px;border:3px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+.load-txt{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--blue);letter-spacing:.5px;}</style><div class="loading-ov" id="loading-ov">
+  <div class="load-spinner"></div>
+  <div class="load-txt">Iniciando AscendaOS...</div>
+</div>
+
+<div class="login-wrap">
+  <div class="login-left">
+    <div class="deco-1 left-deco"></div>
+    <div class="deco-2 left-deco"></div>
+    <div class="deco-3 left-deco"></div>
+    <div class="brand-iso">
+      <svg class="iso-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="#00E5A0"/>
+        <rect x="26" y="2" width="13" height="13" rx="3" fill="#00C9A7" opacity=".9"/>
+        <rect x="2" y="26" width="13" height="13" rx="3" fill="#1A6FE8" opacity=".85"/>
+        <rect x="20" y="20" width="26" height="26" rx="4" fill="#0A4FBF" opacity=".95"/>
+      </svg>
+      <div class="iso-name">ASCENDA<span>OS</span></div>
     </div>
-  `
+    <div class="left-eyebrow">Sistema de gestión comercial</div>
+    <div class="left-heading">Tu equipo.<br>Tu <span class="accent">operación.</span><br>Tu control.</div>
+    <div class="left-desc">Plataforma integral para gestión de llamadas, agenda, pacientes, ventas y marketing para clínicas estéticas.</div>
+    <div class="left-tags">
+      <div class="ltag">Call Center</div>
+      <div class="ltag">Agenda Clínica</div>
+      <div class="ltag">Marketing</div>
+      <div class="ltag">Comisiones</div>
+      <div class="ltag">Facturación</div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="form-wrap">
+      <div class="form-logo">
+        <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+          <rect x="2" y="2" width="20" height="20" rx="4" fill="#00E5A0"/>
+          <rect x="26" y="2" width="13" height="13" rx="3" fill="#00C9A7"/>
+          <rect x="2" y="26" width="13" height="13" rx="3" fill="#1A6FE8"/>
+          <rect x="20" y="20" width="26" height="26" rx="4" fill="#0A4FBF"/>
+        </svg>
+      </div>
+      <div class="form-brand">
+        <h2>Iniciar sesión</h2>
+        <p>Ingresá tus credenciales para continuar</p>
+      </div>
+      <div class="field">
+        <label>Usuario</label>
+        <div class="inp-wrap">
+          <input class="inp" id="inp-user" type="text" placeholder="tu.usuario" autocomplete="username" autocapitalize="none"/>
+          <span class="inp-ico">👤</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="inp-wrap">
+          <input class="inp" id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <span class="inp-ico" id="toggle-pass" title="Mostrar/ocultar">👁</span>
+        </div>
+      </div>
+      <button class="btn-login" id="btn-login">
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-txt">Ingresar al sistema</span>
+      </button>
+      <div class="error-msg" id="error-msg"></div>
+      <div class="form-footer">AscendaOS v1.0 &nbsp;·&nbsp; by CREACTIVE</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MOSTRAR/OCULTAR CONTRASEÑA ──
+document.getElementById('toggle-pass').addEventListener('click', function() {
+  var inp = document.getElementById('inp-pass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.textContent = inp.type === 'password' ? '👁' : '🙈';
+});
+
+// ── ENTER KEY ──
+['inp-user','inp-pass'].forEach(function(id) {
+  document.getElementById(id).addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+});
+
+// ── HELPERS ──
+function setLoading(on) {
+  var btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = on; btn.textContent = on ? 'Verificando...' : 'Ingresar al sistema'; }
+}
+
+// ── LOGIN → SUPABASE DIRECTO ──
+var _SB = 'https://ituyqwstonmhnfshnaqz.supabase.co';
+var _SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+function doLogin() {
+  var user  = document.getElementById('inp-user').value.trim();
+  var pass  = document.getElementById('inp-pass').value.trim();
+  var errEl = document.getElementById('error-msg');
+  errEl.textContent = '';
+
+  if (!user || !pass) {
+    errEl.textContent = 'Completá usuario y contraseña.';
+    return;
+  }
+  setLoading(true);
+
+  fetch(_SB + '/rest/v1/rpc/aos_login', {
+    method: 'POST',
+    headers: {
+      'apikey': _SK,
+      'Authorization': 'Bearer ' + _SK,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_usuario: user.toLowerCase(), p_password: pass })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res && res.ok) {
+      try {
+        localStorage.setItem('aos_session', JSON.stringify({
+          codigo_asesor: res.codigo_asesor,
+          nombre:        res.nombre,
+          apellido:      res.apellido,
+          puesto:        res.puesto,
+          sede:          res.sede,
+          usuario:       res.usuario,
+          permisos:      res.permisos || {},
+          expires:       Date.now() + (12 * 60 * 60 * 1000)
+        }));
+      } catch(e) {}
+      document.getElementById('loading-ov').classList.add('show');
+      window.location.href = (res.puesto === 'ADMINISTRADOR') ? '/admin' : '/asesor';
+    } else {
+      setLoading(false);
+      errEl.textContent = (res && res.error) ? res.error : 'Credenciales incorrectas.';
+      document.getElementById('inp-pass').value = '';
+      document.getElementById('inp-pass').focus();
+    }
+  })
+  .catch(function() {
+    setLoading(false);
+    errEl.textContent = 'Error de conexión. Intentá de nuevo.';
+  });
+}
+</script>`;
 }
 
 export function initLogin() {
-  document.querySelectorAll('#login-user, #login-pass').forEach(el => {
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
-  })
-  window._doLogin = doLogin
+  var togBtn = document.getElementById("toggle-pass");
+  if (togBtn) {
+    togBtn.addEventListener("click", function() {
+      var inp = document.getElementById("inp-pass");
+      inp.type = inp.type === "password" ? "text" : "password";
+      this.textContent = inp.type === "password" ? "\u{1F441}" : "\u{1F648}";
+    });
+  }
 
-  // Auto-focus
-  setTimeout(() => document.getElementById('login-user')?.focus(), 100)
+  ["inp-user","inp-pass"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") doLogin();
+    });
+  });
+
+  window._doLogin = doLogin;
+
+  setTimeout(function() {
+    var u = document.getElementById("inp-user");
+    if (u) u.focus();
+  }, 100);
 }
 
-async function doLogin() {
-  const user = (document.getElementById('login-user')?.value || '').trim().toLowerCase()
-  const pass = (document.getElementById('login-pass')?.value || '').trim()
-  const errEl = document.getElementById('login-error')
-  const btn   = document.getElementById('login-btn')
+function setLoading(on) {
+  var btn = document.getElementById("btn-login");
+  if (btn) { btn.disabled = on; btn.textContent = on ? "Verificando..." : "Ingresar al sistema"; }
+}
 
-  if (!user || !pass) { errEl.textContent = 'Ingresa usuario y contraseña'; return }
+function doLogin() {
+  var user  = (document.getElementById("inp-user").value || "").trim();
+  var pass  = (document.getElementById("inp-pass").value || "").trim();
+  var errEl = document.getElementById("error-msg");
+  errEl.textContent = "";
 
-  btn.textContent = 'Verificando...'
-  btn.disabled = true
-  errEl.textContent = ''
+  if (!user || !pass) { errEl.textContent = "Completá usuario y contraseña."; return; }
+  setLoading(true);
 
-  try {
-    // Llamada directa a la RPC de login en Supabase
-    const res = await rpc('aos_login', { p_usuario: user, p_password: pass })
-
-    if (!res || !res.ok) {
-      errEl.textContent = res?.error || 'Credenciales incorrectas'
-      btn.textContent = 'Ingresar'
-      btn.disabled = false
-      return
+  fetch(_SB + "/rest/v1/rpc/aos_login", {
+    method: "POST",
+    headers: {
+      "apikey": _SK,
+      "Authorization": "Bearer " + _SK,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ p_usuario: user.toLowerCase(), p_password: pass })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res && res.ok) {
+      try {
+        localStorage.setItem("aos_session", JSON.stringify({
+          codigo_asesor: res.codigo_asesor,
+          nombre:        res.nombre,
+          apellido:      res.apellido,
+          puesto:        res.puesto,
+          sede:          res.sede,
+          usuario:       res.usuario,
+          permisos:      res.permisos || {},
+          expires:       Date.now() + (12 * 60 * 60 * 1000)
+        }));
+      } catch(e) {}
+      var ov = document.getElementById("loading-ov");
+      if (ov) ov.classList.add("show");
+      window.location.href = (res.puesto === "ADMINISTRADOR") ? "/admin" : "/asesor";
+    } else {
+      setLoading(false);
+      errEl.textContent = (res && res.error) ? res.error : "Credenciales incorrectas.";
+      document.getElementById("inp-pass").value = "";
+      document.getElementById("inp-pass").focus();
     }
-
-    // Guardar sesión 12 horas
-    session.set({
-      codigo_asesor: res.codigo_asesor,
-      nombre:        res.nombre,
-      apellido:      res.apellido,
-      puesto:        res.puesto,
-      sede:          res.sede,
-      usuario:       res.usuario,
-      permisos:      res.permisos || {},
-      expires:       Date.now() + (12 * 60 * 60 * 1000)
-    })
-
-    const ruta = res.puesto === 'ADMINISTRADOR' ? '/admin' : '/asesor'
-    navigate(ruta)
-
-  } catch (err) {
-    console.error('Login error:', err)
-    errEl.textContent = 'Error de conexión. Intenta de nuevo.'
-    btn.textContent = 'Ingresar'
-    btn.disabled = false
-  }
+  })
+  .catch(function() {
+    setLoading(false);
+    errEl.textContent = "Error de conexión. Intentá de nuevo.";
+  });
 }
