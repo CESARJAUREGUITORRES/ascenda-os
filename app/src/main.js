@@ -1,12 +1,13 @@
 // src/main.js
 import "../src/styles/main.css"
 import { session } from "./lib/supabase.js"
-import { register, init, navigate } from "./lib/router.js"
+import { register, init } from "./lib/router.js"
 import { LoginPage, initLogin } from "./pages/login.js"
 
-// Login route
 register("/", () => {
-  if (session.isValid()) {
+  // Si viene de /app (sesión inválida), NO redirigir de vuelta — mostrar login
+  const sesionOk = session.isValid();
+  if (sesionOk) {
     window.location.href = "/app";
     return "";
   }
@@ -15,10 +16,8 @@ register("/", () => {
 
 register("/login", LoginPage);
 
-// Inicializar login
 document.addEventListener("page:mounted", function(e) {
-  var path = e.detail.path;
-  if (path === "/" || path === "/login") initLogin();
+  if (e.detail.path === "/" || e.detail.path === "/login") initLogin();
 });
 
 init();
