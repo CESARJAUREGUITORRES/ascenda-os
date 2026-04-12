@@ -1,9 +1,9 @@
-
+<!-- ViewAdminComisiones.html — AscendaOS v1 · Bloque 1 v3.0 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 .adc{padding:14px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
 
- 
+/* ── FILTROS ── */
 .adc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
 .adc-ttl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:17px;}
 .adc-ttl span{color:#0A4FBF;}
@@ -19,7 +19,7 @@
 .adc-apply{padding:5px 13px;border-radius:7px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .adc-lbl{font-size:11px;color:#9AAAC8;font-style:italic;}
 
- 
+/* ── CARDS KPI ── */
 .adc-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;}
 .adc-card-kpi{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px 16px;}
 .adc-ck-ttl{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
@@ -31,13 +31,13 @@
 .adc-ck-col-sub{font-size:9px;color:#9AAAC8;margin-top:2px;}
 .adc-ck-col-com{font-size:10px;font-weight:700;color:#16A34A;margin-top:1px;}
 
- 
+/* ── LAYOUT ── */
 .adc-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:12px;align-items:start;}
 .adc-card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
 .adc-chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;flex-wrap:wrap;gap:6px;}
 .adc-ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.5px;color:#0D1B3E;}
 
- 
+/* ── TABLA VENTAS ── */
 .adc-tbl{width:100%;border-collapse:collapse;font-size:11px;}
 .adc-tbl th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #F0F4FC;text-align:left;white-space:nowrap;}
 .adc-tbl td{padding:7px 6px;border-bottom:1px solid rgba(221,228,245,.3);vertical-align:middle;}
@@ -59,7 +59,7 @@
 .adc-edit-btn{width:22px;height:22px;border-radius:6px;border:1px solid #DDE4F5;background:#F0F4FC;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
 .adc-edit-btn:hover{background:#EBF2FF;}
 
- 
+/* ── PAGINACIÓN ── */
 .adc-pag{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid #F0F4FC;}
 .adc-pag-info{font-size:10px;color:#9AAAC8;}
 .adc-pag-btns{display:flex;gap:5px;}
@@ -67,7 +67,7 @@
 .adc-pag-btn:hover{background:#EBF2FF;color:#0A4FBF;}
 .adc-pag-btn:disabled{opacity:.4;cursor:default;}
 
- 
+/* ── RANKING ── */
 .adc-rk-item{padding:8px;border-radius:8px;cursor:pointer;margin:1px 0;}
 .adc-rk-item:hover{background:#F0F4FC;}
 .adc-rk-r1{display:flex;align-items:center;gap:7px;}
@@ -80,14 +80,14 @@
 .adc-rk-bar{height:3px;background:#F0F4FC;border-radius:10px;margin:4px 0 0 31px;overflow:hidden;}
 .adc-rk-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
 
- 
+/* ── HISTORIAL GRÁFICA ── */
 .adc-chart{height:72px;display:flex;align-items:flex-end;gap:4px;margin-bottom:12px;}
 .adc-chart-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px;}
 .adc-chart-bar{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#0A4FBF,#1A6FE8);min-height:3px;}
 .adc-chart-lbl{font-size:8px;color:#9AAAC8;white-space:nowrap;}
 .adc-chart-val{font-size:7px;color:#0A4FBF;font-weight:700;}
 
- 
+/* ── BOTONES ── */
 .adc-btn-p{padding:8px 15px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .adc-btn-p:hover{background:#1A6FE8;}
 .adc-btn-p:disabled{opacity:.5;cursor:wait;}
@@ -96,7 +96,7 @@
 .adc-btn-sm{padding:4px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .adc-btn-sm:hover{background:#EBF2FF;color:#0A4FBF;}
 
- 
+/* ── MODALES ── */
 .adc-modal-ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.5);z-index:9999;align-items:center;justify-content:center;}
 .adc-modal-ov.open{display:flex;}
 .adc-modal-box{background:#fff;border-radius:16px;display:flex;flex-direction:column;border:1px solid #DDE4F5;box-shadow:0 16px 48px rgba(10,79,191,.16);max-height:90vh;}
@@ -108,7 +108,7 @@
 .adc-mbody::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .adc-mft{padding:12px 18px;border-top:1px solid #F0F4FC;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
 
- 
+/* Modal asesor */
 .adc-det-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
 .adc-det-kpi{background:#F0F4FC;border-radius:10px;padding:10px;}
 .adc-det-kpi-lbl{font-size:9px;color:#9AAAC8;font-weight:700;text-transform:uppercase;margin-bottom:3px;}
@@ -125,24 +125,24 @@
 .adc-det-rent-row{display:flex;gap:12px;flex-wrap:wrap;}
 .adc-det-rent-item .lbl{font-size:9px;color:#9AAAC8;}
 .adc-det-rent-item .val{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0D1B3E;}
- 
+/* Origen cliente */
 .adc-orig-nuevo{background:#F0FDF4;color:#16A34A;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
 .adc-orig-base{background:#EBF2FF;color:#6B7BA8;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
 
- 
+/* Modal editar */
 .adc-ef-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
 .adc-ef-lbl{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;}
 .adc-ef-input{padding:8px 11px;border-radius:9px;border:1px solid #DDE4F5;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;width:100%;}
 .adc-ef-input:focus{border-color:#0A4FBF;}
 .adc-ef-info{background:#F0F4FC;border-radius:9px;padding:9px 12px;font-size:11px;color:#6B7BA8;margin-bottom:10px;line-height:1.5;}
 
- 
+/* Modal reglas */
 .adc-rg-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:7px;}
 .adc-rg-input{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
 .adc-rg-input:focus{border-color:#0A4FBF;}
 .adc-rg-del{width:26px;height:26px;border-radius:7px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
 
- 
+/* ── UTILS ── */
 .adc-ld{text-align:center;padding:20px;color:#9AAAC8;font-size:11px;}
 .adc-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:adcSpin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
 @keyframes adcSpin{to{transform:rotate(360deg);}}
@@ -153,10 +153,10 @@
 .adc-scroll-x::-webkit-scrollbar-thumb{background:#DDE4F5;}
 </style>
 
-
+<!-- ════════════════════════ ESTRUCTURA ════════════════════════ -->
 <div class="adc">
 
-  
+  <!-- HEADER -->
   <div class="adc-hd">
     <div class="adc-ttl">💰 Comisiones <span>Admin</span></div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
@@ -165,7 +165,7 @@
     </div>
   </div>
 
-  
+  <!-- FILTROS -->
   <div class="adc-filtros">
     <button class="adc-ftab" id="adc-ftab-dia"   onclick="adcSetTipo('dia')">Día</button>
     <button class="adc-ftab act" id="adc-ftab-mes" onclick="adcSetTipo('mes')">Mes</button>
@@ -176,7 +176,7 @@
     <span class="adc-lbl" id="adc-lbl"></span>
   </div>
 
-  
+  <!-- CARDS -->
   <div class="adc-cards">
     <div class="adc-card-kpi">
       <div class="adc-ck-ttl">Comisiones totales del equipo</div>
@@ -215,10 +215,10 @@
     </div>
   </div>
 
-  
+  <!-- MAIN 2 COLS -->
   <div class="adc-main">
 
-    
+    <!-- COL IZQUIERDA: Tabla ventas -->
     <div class="adc-card">
       <div class="adc-chd">
         <div class="adc-ct">VENTAS DEL PERÍODO</div>
@@ -254,7 +254,7 @@
       </div>
     </div>
 
-    
+    <!-- COL DERECHA: Ranking -->
     <div class="adc-card">
       <div class="adc-chd">
         <div class="adc-ct">RANKING COMISIONES</div>
@@ -267,7 +267,7 @@
   </div>
 </div>
 
-
+<!-- ══ MODAL DETALLE ASESOR ══ -->
 <div class="adc-modal-ov" id="adc-m-det">
   <div class="adc-modal-box" style="width:700px;max-width:97vw;">
     <div class="adc-mhd">
@@ -275,7 +275,7 @@
       <button class="adc-mclose" onclick="adcCerrar('adc-m-det')">✕</button>
     </div>
     <div class="adc-mbody">
-      
+      <!-- KPIs — 4 columnas -->
       <div class="adc-det-kpis" style="grid-template-columns:repeat(4,1fr);">
         <div class="adc-det-kpi">
           <div class="adc-det-kpi-lbl">Com. base</div>
@@ -296,7 +296,7 @@
           <div style="font-size:9px;color:#6B7BA8;margin-top:2px;" id="adc-det-cnt-nuevos">0 nuevos · 0 base</div>
         </div>
       </div>
-      
+      <!-- Meta -->
       <div id="adc-det-meta-wrap" style="display:none;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:#6B7BA8;margin-bottom:4px;">
           <span>Meta mensual</span><span id="adc-det-meta-txt"></span>
@@ -305,10 +305,10 @@
           <div id="adc-det-meta-bar" style="height:100%;border-radius:10px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);width:0%;transition:width .5s;"></div>
         </div>
       </div>
-      
+      <!-- Historial 6 meses -->
       <div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Histórico de comisiones</div>
       <div class="adc-det-hist" id="adc-det-hist"></div>
-      
+      <!-- Rentabilidad -->
       <div class="adc-det-rent" id="adc-det-rent" style="display:none;">
         <div class="adc-det-rent-ttl">📊 Rentabilidad vs sueldo</div>
         <div class="adc-det-rent-row">
@@ -319,7 +319,7 @@
         </div>
       </div>
       <div class="adc-sep"></div>
-      
+      <!-- Ventas del período con origen -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;" id="adc-det-vtitulo">Ventas del período</div>
         <div style="font-size:9px;color:#9AAAC8;">
@@ -349,7 +349,7 @@
   </div>
 </div>
 
-
+<!-- ══ MODAL EDITAR VENTA ══ -->
 <div class="adc-modal-ov" id="adc-m-edit">
   <div class="adc-modal-box" style="width:440px;max-width:96vw;">
     <div class="adc-mhd">
@@ -397,7 +397,7 @@
   </div>
 </div>
 
-
+<!-- ══ MODAL AJUSTE MANUAL ══ -->
 <div class="adc-modal-ov" id="adc-m-ajuste">
   <div class="adc-modal-box" style="width:380px;max-width:96vw;">
     <div class="adc-mhd">
@@ -428,7 +428,7 @@
   </div>
 </div>
 
-
+<!-- ══ MODAL REGLAS CRUD ══ -->
 <div class="adc-modal-ov" id="adc-m-reg">
   <div class="adc-modal-box" style="width:600px;max-width:97vw;">
     <div class="adc-mhd">
@@ -437,7 +437,7 @@
     </div>
     <div class="adc-mbody">
 
-      
+      <!-- SERVICIOS: rangos igual que productos -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div>
           <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;">Servicios — comisión por rango de monto</div>
@@ -455,7 +455,7 @@
 
       <div class="adc-sep"></div>
 
-      
+      <!-- PRODUCTOS: rangos existentes -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div>
           <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;">Productos — comisión fija por rango de monto</div>
@@ -472,7 +472,7 @@
 
       <div class="adc-sep"></div>
 
-      
+      <!-- INCENTIVO: bono adicional -->
       <div style="margin-bottom:4px;">
         <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
           🎯 Incentivo — bono adicional por cliente nuevo
@@ -504,9 +504,9 @@
   </div>
 </div>
 
-
+<!-- ════════════════════════ SCRIPT ════════════════════════ -->
 <script>
-
+// ── Estado ───────────────────────────────────────────────────
 var ADC = {
   token:'', tipo:'mes',
   mes: new Date().getMonth()+1, anio: new Date().getFullYear(),
@@ -518,16 +518,16 @@ var MNOM = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov'
 var MNOM_LARGO = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-
-
-
+// ── INIT — IIFE directo, sin setTimeout ──────────────────────
+// El HTML se inserta en el workspace antes de que los scripts
+// se re-ejecuten, por lo que el DOM ya existe aquí.
 (function adcInit(){
   ADC.token = window.AOS_getToken ? window.AOS_getToken() : '';
   adcRenderCtrl();
   adcCargar();
 })();
 
-
+// ── FILTROS ──────────────────────────────────────────────────
 function adcSetTipo(t) {
   ADC.tipo = t;
   ['dia','mes','anio','rango'].forEach(function(x){
@@ -588,7 +588,7 @@ function adcBuildFiltro() {
   return f;
 }
 
-
+// ── CARGA PRINCIPAL ──────────────────────────────────────────
 function adcCargar() {
   var filtro = adcBuildFiltro();
   adcH_set('adc-tbody','<tr><td colspan="10"><div class="adc-ld"><span class="adc-sp"></span>Cargando...</div></td></tr>');
@@ -614,7 +614,7 @@ function adcOnLoaded(res) {
   adcPoblarSelect(res.ranking||[]);
 }
 
-
+// ── CARDS ────────────────────────────────────────────────────
 function adcRenderCards(c) {
   adcT('adc-ck-com',       'S/'+adcFmt(c.comTotal));
   adcT('adc-ck-cserv',     'S/'+adcFmt(c.comServ));
@@ -631,7 +631,7 @@ function adcRenderCards(c) {
   adcT('adc-ck-fcom-prod', 'Com: S/'+adcFmt(c.comProd));
 }
 
-
+// ── HISTORIAL ────────────────────────────────────────────────
 function adcRenderChart(hist) {
   var el = document.getElementById('adc-chart');
   if (!el || !hist.length) return;
@@ -647,7 +647,7 @@ function adcRenderChart(hist) {
   }).join('');
 }
 
-
+// ── RANKING ──────────────────────────────────────────────────
 function adcRenderRanking(ranking) {
   var el = document.getElementById('adc-ranking');
   if (!el) return;
@@ -658,7 +658,7 @@ function adcRenderRanking(ranking) {
     var pct    = Math.round(r.comTotal/max*100);
     var metaTxt= r.pctMeta!==null ? r.pctMeta+'% meta' : '';
     var metaCol= r.pctMeta>=100?'#16A34A':r.pctMeta>=70?'#D97706':'#DC2626';
-    
+    // % clientes nuevos en el ranking (viene del backend si está disponible, sino 0)
     var pctN   = r.pctNuevos != null ? r.pctNuevos : null;
     var pctNCol= pctN >= 40 ? '#16A34A' : pctN >= 20 ? '#D97706' : '#DC2626';
     var pctNStr= pctN !== null ? ('<span style="font-size:9px;font-weight:700;color:'+pctNCol+';margin-left:4px;">'+pctN+'% nuevos</span>') : '';
@@ -680,7 +680,7 @@ function adcRenderRanking(ranking) {
   }).join('');
 }
 
-
+// ── TABLA VENTAS ─────────────────────────────────────────────
 function adcRenderVentas(items) {
   var tbody = document.getElementById('adc-tbody');
   if (!tbody) return;
@@ -726,7 +726,7 @@ function adcRenderVentas(items) {
   }
   tbody.innerHTML = html;
 
-  
+  // Event delegation para botones editar
   tbody.onclick = function(e) {
     var btn = e.target.closest('.adc-edit-btn');
     if (!btn) return;
@@ -749,7 +749,7 @@ function adcPaginar(dir) {
   adcRenderVentas(ADC.data.ventasMes);
 }
 
-
+// ── MODAL DETALLE ASESOR ─────────────────────────────────────
 function adcVerAsesor(nombre) {
   if (!nombre||nombre==='—') return;
   ADC.detNom    = nombre;
@@ -776,14 +776,14 @@ function adcRenderDetalle(res) {
   adcT('adc-det-info-ft',   'Fact: S/'+adcFmt(res.factTotal)+' · '+res.nVentas+' ventas');
   adcT('adc-det-vtitulo',   'Ventas del período ('+res.nVentas+')');
 
-  
+  // % clientes nuevos (leads del mes)
   var cntNuevos = (res.ventas||[]).filter(function(v){ return v.esNuevo; }).length;
   var cntBase   = res.nVentas - cntNuevos;
   var pctNuevos = res.nVentas > 0 ? Math.round(cntNuevos / res.nVentas * 100) : 0;
   adcT('adc-det-pct-nuevos', pctNuevos + '%');
   adcT('adc-det-cnt-nuevos', cntNuevos + ' nuevos · ' + cntBase + ' base');
 
-  
+  // Meta
   if (res.meta>0 && res.pctMeta!==null) {
     document.getElementById('adc-det-meta-wrap').style.display='block';
     adcT('adc-det-meta-txt','S/'+adcFmt(res.comFinal)+' / S/'+adcFmt(res.meta)+' ('+res.pctMeta+'%)');
@@ -792,15 +792,15 @@ function adcRenderDetalle(res) {
     document.getElementById('adc-det-meta-wrap').style.display='none';
   }
 
-  
+  // Historial 6 meses
   var histEl = document.getElementById('adc-det-hist');
   if (res.histMeses&&res.histMeses.length) {
     var mesActualStr = ADC.anio+'-'+String(ADC.mes).padStart(2,'0');
-    
+    // Mostrar solo meses con datos O el mes actual aunque tenga 0
     var histVisible = res.histMeses.filter(function(m) {
       return m.com > 0 || m.fact > 0 || m.mes === mesActualStr;
     });
-    if (!histVisible.length) histVisible = res.histMeses.slice(-1); 
+    if (!histVisible.length) histVisible = res.histMeses.slice(-1); // al menos el último
     histEl.innerHTML = histVisible.map(function(m) {
       var isAct = m.mes === mesActualStr;
       return '<div class="adc-det-hist-col'+(isAct?' act':'')+'">'+
@@ -811,7 +811,7 @@ function adcRenderDetalle(res) {
     }).join('');
   }
 
-  
+  // Rentabilidad
   var rent = res.rentabilidad;
   if (rent&&rent.sueldo>0) {
     document.getElementById('adc-det-rent').style.display='block';
@@ -823,7 +823,7 @@ function adcRenderDetalle(res) {
     document.getElementById('adc-det-rent').style.display='none';
   }
 
-  
+  // Ventas con origen (nuevo lead vs cliente base)
   var tbody = document.getElementById('adc-det-tbody');
   if (!res.ventas||!res.ventas.length) {
     tbody.innerHTML='<tr><td colspan="7"><div class="adc-empty">Sin ventas</div></td></tr>';
@@ -832,7 +832,7 @@ function adcRenderDetalle(res) {
   tbody.innerHTML = res.ventas.map(function(v) {
     var tc  = v.tipo==='PRODUCTO'?'adc-tc-p':'adc-tc-s';
     var tl  = v.tipo==='PRODUCTO'?'PROD':'SERV';
-    
+    // Origen: si el número está en leadNums del mes = NUEVO, si no = BASE
     var origTag = v.esNuevo
       ? '<span class="adc-orig-nuevo">NUEVO</span>'
       : '<span class="adc-orig-base">BASE</span>';
@@ -854,7 +854,7 @@ function adcAjusteDesdeDetalle() {
   setTimeout(function(){ adcAbrirAjuste(ADC.detNom); }, 150);
 }
 
-
+// ── MODAL EDITAR VENTA ───────────────────────────────────────
 function adcAbrirEdit(v) {
   ADC.editVid = v.ventaId||'';
   document.getElementById('adc-edit-info').textContent =
@@ -863,7 +863,7 @@ function adcAbrirEdit(v) {
   adcT('adc-edit-tipo',  v.tipo||'—');
   adcT('adc-edit-com',   'S/'+adcFmt(v.comision));
 
-  
+  // Poblar select con asesores del ranking actual
   var sel  = document.getElementById('adc-edit-asesor');
   var opts = '<option value="">NO APLICA (sin comisión)</option>';
   if (ADC.data && ADC.data.ranking) {
@@ -872,7 +872,7 @@ function adcAbrirEdit(v) {
     });
   }
   sel.innerHTML = opts;
-  
+  // Preseleccionar asesor actual
   sel.value = v.noAplica ? '' : (v.asesor||'');
 
   document.getElementById('adc-edit-monto').value  = v.monto||'';
@@ -905,7 +905,7 @@ function adcGuardarEdit() {
     .api_editarVentaComisionT(ADC.token, ADC.editVid, cambios);
 }
 
-
+// ── MODAL AJUSTE MANUAL ──────────────────────────────────────
 function adcPoblarSelect(ranking) {
   var sel  = document.getElementById('adc-aj-asesor');
   var opts = '<option value="">Selecciona...</option>';
@@ -947,7 +947,7 @@ function adcGuardarAjuste() {
     .api_updateComisionManualT(ADC.token, asesor, mes, anio, monto, motivo);
 }
 
-
+// ── MODAL REGLAS ─────────────────────────────────────────────
 function adcAbrirReglas() {
   document.getElementById('adc-rangos-serv').innerHTML='<div class="adc-ld"><span class="adc-sp"></span>Cargando...</div>';
   document.getElementById('adc-rangos').innerHTML='<div class="adc-ld"><span class="adc-sp"></span>Cargando...</div>';
@@ -958,16 +958,16 @@ function adcAbrirReglas() {
         document.getElementById('adc-rangos').innerHTML='<div class="adc-empty">Error cargando reglas</div>';
         return;
       }
-      
+      // Servicios: si hay servRangos los usa, si no convierte el servPct flat a un rango único
       var servRangos = res.servRangos && res.servRangos.length
         ? res.servRangos
         : [{min:0, pct: res.servPct||0, fijo:0}];
       adcRenderRangosServUI(servRangos);
 
-      
+      // Productos
       adcRenderRangosUI(res.prodRangos||[]);
 
-      
+      // Incentivo
       var inc = res.incentivo || {};
       document.getElementById('adc-rg-bono-nuevo').value = inc.bonoNuevo||0;
       document.getElementById('adc-rg-bono-desde').value = inc.bonoDesde||0;
@@ -978,7 +978,7 @@ function adcAbrirReglas() {
     .api_getReglasComT(ADC.token);
 }
 
-
+// ── Rangos SERVICIOS (pct + opcional monto fijo) ──────────────
 function adcRenderRangosServUI(rangos) {
   var el = document.getElementById('adc-rangos-serv');
   if (!rangos.length){ el.innerHTML='<div class="adc-empty">Sin rangos — agrega uno</div>'; return; }
@@ -1007,7 +1007,7 @@ function adcLeerRangosServ() {
   return r;
 }
 
-
+// ── Rangos PRODUCTOS ──────────────────────────────────────────
 function adcRenderRangosUI(rangos) {
   var el=document.getElementById('adc-rangos');
   if (!rangos.length){ el.innerHTML='<div class="adc-empty">Sin rangos — agrega uno</div>'; return; }
@@ -1040,14 +1040,14 @@ function adcGuardarReglas() {
 
   if (!sr.length){ alert('Agrega al menos un rango de servicios'); return; }
   if (!pr.length){ alert('Agrega al menos un rango de productos'); return; }
-  
+  // Validar que al menos un rango de servicios tiene pct > 0 o fijo > 0
   var tieneValorServ = sr.some(function(r){ return r.pct>0||r.fijo>0; });
   if (!tieneValorServ){ alert('Define al menos un porcentaje o monto fijo en servicios'); return; }
 
   var btn=document.getElementById('adc-rg-btn');
   btn.disabled=true; btn.textContent='Guardando...';
 
-  
+  // Para compatibilidad con el backend: usar el pct del primer rango como servPct
   var servPctCompat = sr[0].pct || 0;
 
   google.script.run
@@ -1067,14 +1067,14 @@ function adcGuardarReglas() {
     });
 }
 
-
+// ── UTILS ────────────────────────────────────────────────────
 function adcCerrar(id){ document.getElementById(id).classList.remove('open'); }
 function adcT(id, txt) {
   var el=document.getElementById(id);
   if (!el) return;
   el.textContent=String(txt!=null?txt:'');
 }
-
+// Para contenidos HTML (tablas, divs, spans)
 function adcH_set(id, html) {
   var el=document.getElementById(id);
   if (!el) return;
