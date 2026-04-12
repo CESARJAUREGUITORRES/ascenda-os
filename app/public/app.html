@@ -594,12 +594,46 @@ function navigateTo(viewId) {
       '<div style="font-size:12px;color:#9AAAC8;">' + escHtml(viewId) + ' — Próximamente</div></div>';
     return;
   }
-  // Cargar panel via import dinmico  sin GAS
-  var panelMap = window.AOS_PANELS || {};
-  if (panelMap[hf]) {
-    var mod = panelMap[hf];
-    ws.innerHTML = mod.html();
-    if (mod.init) setTimeout(function() { mod.init(); }, 50);
+  // Cargar panel via fetch() de HTML estatico en /public/
+  var PANEL_ROUTES = {
+    'ViewAdvisorCalls':       '/calls.html',
+    'ViewAdvisorHome':        '/advisor-home.html',
+    'ViewAdvisorFollowups':   '/followups.html',
+    'ViewAdvisorAgenda':      '/agenda.html',
+    'ViewAdvisorCitas':       '/citas.html',
+    'ViewAdvisorPatients':    '/patients.html',
+    'ViewAdvisorSales':       '/sales.html',
+    'ViewAdvisorCommissions': '/commissions.html',
+    'ViewAdvisorAttendance':  '/attendance.html',
+    'ViewAdminHome':          '/admin-home.html',
+    'ViewAdminOperations':    '/admin-ops.html',
+    'ViewAdminCalls':         '/admin-calls.html',
+    'ViewAdminPatients':      '/admin-patients.html',
+    'ViewAdminSales':         '/admin-sales.html',
+    'ViewAdminComisiones':    '/admin-comisiones.html',
+    'ViewAdminTeam':          '/admin-team.html',
+    'ViewAdminMarketing':     '/admin-marketing.html',
+    'ViewAdminBilling':       '/admin-billing.html'
+  };
+  var route = PANEL_ROUTES[hf];
+  if (route) {
+    fetch(route)
+      .then(function(r) { return r.text(); })
+      .then(function(panelHtml) {
+        ws.innerHTML = panelHtml;
+        ws.querySelectorAll('script').forEach(function(old) {
+          var s = document.createElement('script');
+          s.textContent = old.textContent;
+          try { document.head.appendChild(s); } catch(e) {}
+        });
+      })
+      .catch(function(e) {
+        console.error('[AOS] Error cargando panel:', route, e);
+        ws.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;">' +
+          '<div style="font-size:32px;">⚠️</div>' +
+          '<div style="font-size:14px;font-weight:700;color:#DC2626;">Error cargando panel</div>' +
+          '<div style="font-size:12px;color:#9AAAC8;">' + escHtml(route) + '</div></div>';
+      });
   } else {
     ws.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;">' +
       '<div style="font-size:32px;">🔧</div>' +
