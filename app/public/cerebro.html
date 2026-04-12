@@ -557,36 +557,48 @@ function startReco(){
     // Normalizar para comparar
     const tn=norm(textoCompleto);
 
-    // Mostrar en tiempo real
-    document.getElementById('kk-txt').textContent='👂 '+textoCompleto.slice(-60);
+    // Mostrar texto completo acumulado para debug
+    const dbg=document.getElementById('kk-debug');
+    if(dbg) dbg.textContent=textoCompleto.slice(-120);
+    document.getElementById('kk-txt').textContent='👂 '+textoCompleto.slice(-55);
 
-    // PASO 1: Buscar "kronia" (activación)
-    const posKronia=tn.search(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/);
+    // Detectar activación y corte en el texto acumulado
+    const actWords=['kronia','cronia','corona','gronia','kroni','croni','cron ia','kron ia'];
+    const cutWords=['respondeme','responde me','responde','ya responde','eso es todo','ejecuta','procesa'];
 
-    // PASO 2: Buscar "respondeme" (corte) — DESPUÉS de kronia si existe
-    const posResponde=tn.search(/(respondeme|responde me|respond e me|ya responde|eso es todo)/);
+    // Buscar posición de activación
+    let posAct=-1, actLen=0;
+    for(const w of actWords){
+      const p=tn.indexOf(w);
+      if(p>=0 && (posAct<0||p<posAct)){posAct=p;actLen=w.length;}
+    }
+    // Buscar posición de corte (después de activación si hay)
+    let posCut=-1;
+    const buscarDesde=posAct>=0?posAct+actLen:0;
+    for(const w of cutWords){
+      const p=tn.indexOf(w,buscarDesde);
+      if(p>=0 && (posCut<0||p<posCut)) posCut=p;
+    }
 
-    if(posKronia>=0 && posResponde>posKronia){
-      // Tenemos activación Y corte — extraer la consulta entre ellos
-      const consultaRaw=tn.slice(posKronia,posResponde)
-        .replace(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/,'')
-        .replace(/^\s*,?\s*/,'')
-        .trim();
+    // Log visible para debug
+    console.log('[KronIA] TEXTO='+JSON.stringify(tn.slice(0,100))+' ACT='+posAct+' CUT='+posCut);
+    const dbg=document.getElementById('kk-debug');
+    if(dbg) dbg.textContent='ACT:'+posAct+' CUT:'+posCut+' | '+tn.slice(0,80);
 
-      if(consultaRaw.length>2 && consultaRaw!==ultimoTexto){
-        ultimoTexto=consultaRaw;
-        document.getElementById('kk-txt').textContent='📝 '+consultaRaw;
-        // Detener reconocimiento mientras procesa
+    if(posAct>=0 && posCut>posAct){
+      // Tenemos activación Y corte — extraer consulta entre ellos
+      let consulta=tn.slice(posAct+actLen, posCut).replace(/^[\s,]+/,'').trim();
+      if(consulta.length>1 && consulta!==ultimoTexto){
+        ultimoTexto=consulta;
+        document.getElementById('kk-txt').textContent='✅ procesando: '+consulta;
         try{recognition.stop();}catch(_){}
-        setTimeout(()=>dispararQuery(consultaRaw),50);
+        setTimeout(function(){dispararQuery(consulta);},80);
       }
-    } else if(posKronia>=0){
-      // Solo activación detectada — mostrar que está acumulando
-      const parcial=tn.slice(posKronia).replace(/(kronia|cronia|corona i|gronia|kroni a|cron ia)/,'').trim();
-      if(parcial){
-        document.getElementById('kk-txt').textContent='📝 '+parcial+'…';
-        kkState('collecting');
-      }
+    } else if(posAct>=0){
+      // Solo activación — acumulando
+      const parcial=tn.slice(posAct+actLen).replace(/^[\s,]+/,'').trim();
+      kkState('collecting');
+      document.getElementById('kk-txt').textContent='📝 '+(parcial||'escuchando consulta…');
     }
   };
 
