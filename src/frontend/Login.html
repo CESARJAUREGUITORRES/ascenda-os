@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AscendaOS — Iniciar sesión</title>
-<link href="https://fonts.googleapis.com/css2?family=Exo&#43;2:wght@300;400;600;700;800&amp;family=DM&#43;Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -139,21 +139,21 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 </div>
 
 <script>
-
+// ── MOSTRAR/OCULTAR CONTRASEÑA ──
 document.getElementById('toggle-pass').addEventListener('click', function() {
   var inp = document.getElementById('inp-pass');
   inp.type = inp.type === 'password' ? 'text' : 'password';
   this.textContent = inp.type === 'password' ? '👁' : '🙈';
 });
 
-
+// ── ENTER EN CAMPOS ──
 ['inp-user','inp-pass'].forEach(function(id) {
   document.getElementById(id).addEventListener('keydown', function(e) {
     if (e.key === 'Enter') doLogin();
   });
 });
 
-
+// ── LOGIN PRINCIPAL ──
 function doLogin() {
   var user  = document.getElementById('inp-user').value.trim();
   var pass  = document.getElementById('inp-pass').value.trim();
@@ -184,27 +184,27 @@ function doLogin() {
     .api_login(user, pass, navigator.userAgent);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// ── ÉXITO DE LOGIN ──
+// ═══════════════════════════════════════════════════════════════
+// FIX DEFINITIVO — por qué este enfoque:
+//
+// El sandbox de GAS tiene allow-top-navigation-by-user-activation.
+// Esto significa que window.top.location.* SOLO funciona si el
+// código corre DIRECTAMENTE dentro del handler de un click/gesture.
+//
+// El setTimeout(300ms) y las llamadas asíncronas (google.script.run)
+// rompen esa cadena — el navegador ya no considera que hay un
+// "user activation" activo.
+//
+// SOLUCIÓN:
+//   1. Guardar token en sessionStorage (antes de cualquier async)
+//   2. Usar window.location.href = url (navega el IFRAME, no el top)
+//      GAS propaga automáticamente la navegación al top-level
+//      cuando el iframe navega a la misma WebApp URL
+//   3. AppShell lee el token de sessionStorage, no de la URL
+//
+// Esto es exactamente el patrón que funcionaba antes de los cambios.
+// ═══════════════════════════════════════════════════════════════
 function onLoginOk(res) {
   try {
     sessionStorage.removeItem('aos_token');
@@ -233,7 +233,7 @@ function onLoginOk(res) {
     .getScriptUrl();
 }
 
-
+// ── TOGGLE LOADING ──
 function setLoading(on) {
   var btn = document.getElementById('btn-login');
   var sp  = document.getElementById('spinner');
@@ -248,7 +248,7 @@ function setLoading(on) {
 
 document.getElementById('btn-login').addEventListener('click', doLogin);
 
-
+// ── LIMPIAR SESIÓN VIEJA AL CARGAR LOGIN ──
 (function() {
   try {
     sessionStorage.removeItem('aos_token');
