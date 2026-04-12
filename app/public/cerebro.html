@@ -149,7 +149,7 @@ canvas{position:fixed;inset:0;display:block}
     </div>
     <canvas id="kk-cv"></canvas>
     <div id="kk-txt">…</div>
-    <div id="kk-hint">Di: Cronia [consulta] respondeme</div>
+    <div id="kk-hint">Di: KronIA [consulta] respondeme</div>
   </div>
 
   <div id="ctrls">
@@ -179,7 +179,7 @@ canvas{position:fixed;inset:0;display:block}
 <script>
 // ═══════════════════════════════════════════════════════════════
 // ASCENDAOS BRAIN v3 + KRONIA v3.1
-// Patrón: "Cronia [consulta] respondeme"
+// Patrón: "KronIA [consulta] respondeme"
 // ═══════════════════════════════════════════════════════════════
 const SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
@@ -281,7 +281,7 @@ let memoria=[],ultimaInt=null,ultimoCtx={};
 
 // Buffer de texto acumulado — se llena hasta que llega "respondeme"
 let buffer='';
-let waitingForTrigger=false; // true cuando ya detectó "Cronia" y acumula
+let waitingForTrigger=false; // true cuando ya detectó "KronIA" y acumula
 
 const kkCv=document.getElementById('kk-cv'),kkCtx2=kkCv.getContext('2d');
 
@@ -296,7 +296,7 @@ function kkState(s){
   const dot=document.getElementById('kk-dot'),st=document.getElementById('kk-st');if(!dot||!st)return;
   const M={
     idle:{d:'',t:'Inactiva'},
-    listening:{d:'listening',t:'Escuchando… Di: Cronia [consulta] respondeme'},
+    listening:{d:'listening',t:'Escuchando… Di: KronIA [consulta] respondeme'},
     collecting:{d:'active-voice',t:'Acumulando consulta…'},
     speaking:{d:'speaking',t:'Hablando…'},
     thinking:{d:'thinking',t:'Consultando Supabase…'},
@@ -320,31 +320,68 @@ function kkSpeak(text){
 
 // ── Toggle KronIA ──────────────────────────────────────────────
 function toggleKronIA(){
-  if(!kkVis){showKronIA();pedirPermiso();}
-  else{stopMic();kkVis=false;document.getElementById('kronia').classList.remove('vis');document.getElementById('btn-kk').classList.remove('on');stopWave();}
+  if(!kkVis){
+    showKronIA();
+    // Si ya hay stream activo (mic configurado antes), conectar directo
+    if(micOn && micStream){
+      kkState('listening');
+      if(analyser) waveReal();
+    } else {
+      pedirPermiso();
+    }
+  } else {
+    // Cerrar — detener todo
+    stopMic();
+    kkVis=false;
+    document.getElementById('kronia').classList.remove('vis');
+    document.getElementById('btn-kk').classList.remove('on');
+    stopWave();
+  }
 }
 function showKronIA(){kkVis=true;document.getElementById('kronia').classList.add('vis');document.getElementById('btn-kk').classList.add('on');}
 
-// ── Flujo de permisos ──────────────────────────────────────────
+// ── Flujo de permisos y arranque ───────────────────────────────
 async function pedirPermiso(){
-  kkState('idle');document.getElementById('kk-txt').textContent='Solicitando acceso al micrófono…';
+  kkState('idle');
+  const txt=document.getElementById('kk-txt');
+  txt.textContent='Solicitando acceso al micrófono…';
   try{
+    // Paso 1: pedir permiso (diálogo del navegador)
     const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
     tmp.getTracks().forEach(t=>t.stop());
+
+    // Paso 2: listar dispositivos con labels reales
     const devs=await navigator.mediaDevices.enumerateDevices();
     availableDevices=devs.filter(d=>d.kind==='audioinput');
-    if(availableDevices.length>0)selectedDeviceId=availableDevices[0].deviceId;
+    // Preferir el seleccionado previamente en el modal, o el primero
+    if(!selectedDeviceId && availableDevices.length>0){
+      selectedDeviceId=availableDevices[0].deviceId;
+    }
+
+    // Paso 3: iniciar stream real
+    txt.textContent='Conectando micrófono…';
     await startStream();
+
+    // Paso 4: iniciar reconocimiento de voz
     startReco();
     micOn=true;
     kkState('listening');
-    document.getElementById('kk-txt').textContent='Lista. Di: Cronia [consulta] respondeme';
+    txt.textContent='Lista. Di: KronIA [tu consulta] respondeme';
+
   }catch(err){
+    console.error('KronIA mic error:', err.name, err.message);
     kkState('nomic');
-    document.getElementById('kk-txt').textContent=err.name==='NotAllowedError'?'Permiso denegado.':err.name==='NotFoundError'?'Sin micrófono.':'Error: '+err.name;
+    if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){
+      txt.textContent='Permiso denegado. Ve a ajustes del navegador y permite el micrófono.';
+    } else if(err.name==='NotFoundError'){
+      txt.textContent='No hay micrófono conectado.';
+    } else if(err.name==='NotReadableError'){
+      txt.textContent='Micrófono en uso por otra app. Ciérrala e intenta de nuevo.';
+    } else {
+      txt.textContent='Error de micrófono: '+err.name;
+    }
     pushAlert('Mic: '+err.name);
-    waveSynth('listen');
-    kkSpeak('No pude acceder al micrófono. Verifica los permisos.');
+    waveSynth('listen'); // mostrar waveform sintético aunque no haya mic
   }
 }
 
@@ -417,9 +454,28 @@ async function openMicModal(){
 function closeMicModal(){document.getElementById('mic-modal').classList.remove('open');}
 async function applyMicSelection(){
   closeMicModal();
-  if(pendingDeviceId&&pendingDeviceId!==selectedDeviceId){
-    selectedDeviceId=pendingDeviceId;
-    if(micOn){stopStream();await startStream();kkSpeak('Micrófono cambiado.');}
+  const changed = pendingDeviceId && pendingDeviceId !== selectedDeviceId;
+  if(changed) selectedDeviceId = pendingDeviceId;
+
+  if(kkVis){
+    // KronIA está abierta — reiniciar el stream con el nuevo dispositivo
+    try{
+      if(micStream) stopStream();
+      if(recognition){try{recognition.stop();}catch(_){} recognition=null;}
+      await startStream();
+      if(!micOn){
+        startReco();
+        micOn=true;
+      } else {
+        startReco();
+      }
+      kkState('listening');
+      document.getElementById('kk-txt').textContent='Lista. Di: KronIA [tu consulta] respondeme';
+      if(changed) kkSpeak('Micrófono actualizado.');
+    }catch(e){
+      kkState('nomic');
+      document.getElementById('kk-txt').textContent='Error al conectar: '+e.name;
+    }
   }
 }
 // Cerrar modal si toca fuera
@@ -436,12 +492,16 @@ async function startStream(){
   analyser=audioCtx.createAnalyser();analyser.fftSize=64;analyser.smoothingTimeConstant=0.7;
   dataArr=new Uint8Array(analyser.frequencyBinCount);
   src.connect(analyser);
-  if(!isSpeaking)waveReal();
+  // Iniciar waveform después de conectar el stream
+  if(!isSpeaking){
+    // Pequeño delay para que el canvas esté visible
+    setTimeout(waveReal, 80);
+  }
 }
 function stopStream(){if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}if(audioCtx){audioCtx.close();audioCtx=null;}analyser=null;dataArr=null;}
 function stopMic(){micOn=false;buffer='';waitingForTrigger=false;if(recognition){recognition.stop();recognition=null;}stopStream();}
 
-// ── SpeechRecognition con patrón "Cronia ... respondeme" ────────
+// ── SpeechRecognition con patrón "KronIA ... respondeme" ────────
 function startReco(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){pushAlert('Usa Chrome para la voz');return;}
@@ -469,7 +529,7 @@ function startReco(){
     const esCorte=/(respondeme|responde me|respondame|responde|ya responde|eso es todo|fin|listo)/.test(chunkNorm);
 
     if(esActivacion&&!waitingForTrigger){
-      // Detectó "Cronia" — empezar a acumular
+      // Detectó "KronIA" — empezar a acumular
       waitingForTrigger=true;
       // Extraer lo que viene después del nombre
       const resto=chunkNorm.replace(/(cronia|kronia|corona|gronia|kroni|croni)/,'').trim();
@@ -516,18 +576,34 @@ function dispararQuery(q){
 function stopWave(){if(waveAnim){cancelAnimationFrame(waveAnim);waveAnim=null;}kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;kkCtx2.clearRect(0,0,kkCv.width,kkCv.height);}
 function waveReal(){
   if(waveAnim)cancelAnimationFrame(waveAnim);
-  kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;
-  const cw=kkCv.width,ch=kkCv.height;
-  function frame(){
-    if(!analyser||isSpeaking){waveAnim=null;return;}
-    analyser.getByteFrequencyData(dataArr);kkCtx2.clearRect(0,0,cw,ch);
-    const bars=dataArr.length,bw=cw/bars,sig=dataArr.some(v=>v>8);
-    // Color: cyan normal, verde cuando acumula
-    const col=waitingForTrigger?'0,229,160':'0,201,167';
-    for(let i=0;i<bars;i++){const h=sig?Math.max(2,(dataArr[i]/255)*ch*.88):2,al=sig?(0.3+dataArr[i]/255*.65):0.18;kkCtx2.fillStyle='rgba('+col+','+al.toFixed(2)+')';kkCtx2.beginPath();if(kkCtx2.roundRect)kkCtx2.roundRect(i*bw+1,ch/2-h/2,bw-2,h,2);else kkCtx2.rect(i*bw+1,ch/2-h/2,bw-2,h);kkCtx2.fill();}
-    waveAnim=requestAnimationFrame(frame);
-  }
-  frame();
+  // Esperar a que el canvas tenga dimensiones reales (puede estar oculto al inicio)
+  const tryStart=()=>{
+    const cw=kkCv.offsetWidth||280, ch=kkCv.offsetHeight||28;
+    if(cw<10){setTimeout(tryStart,50);return;} // canvas aún no visible
+    kkCv.width=cw; kkCv.height=ch;
+    function frame(){
+      if(!analyser||isSpeaking){waveAnim=null;return;}
+      analyser.getByteFrequencyData(dataArr);
+      kkCtx2.clearRect(0,0,cw,ch);
+      const bars=dataArr.length,bw=cw/bars;
+      const sig=dataArr.some(v=>v>5);
+      // Cyan escuchando, verde menta cuando acumula consulta
+      const col=waitingForTrigger?'0,229,160':'0,201,167';
+      for(let i=0;i<bars;i++){
+        // Altura mínima de 3px siempre para confirmar que el mic está activo
+        const h=sig?Math.max(3,(dataArr[i]/255)*ch*.88):3;
+        const al=sig?(0.35+dataArr[i]/255*.60):0.22;
+        kkCtx2.fillStyle='rgba('+col+','+al.toFixed(2)+')';
+        kkCtx2.beginPath();
+        if(kkCtx2.roundRect)kkCtx2.roundRect(i*bw+1,ch/2-h/2,bw-2,h,2);
+        else kkCtx2.rect(i*bw+1,ch/2-h/2,bw-2,h);
+        kkCtx2.fill();
+      }
+      waveAnim=requestAnimationFrame(frame);
+    }
+    frame();
+  };
+  tryStart();
 }
 function waveSynth(mode){
   if(waveAnim)cancelAnimationFrame(waveAnim);
@@ -543,7 +619,7 @@ function norm(s){return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[é�
 const INTS={ventas:['venta','vendim','factur','cobr','ingreso','cuanto hicim','cuanto ganamos','cuanto vendim','cuanto hemos'],citas:['cita','agenda','quien viene','citados','atencion','quien tenemos','visita'],leads:['lead','prospecto','contacto nuevo','cuantos nuevos','cuantos llegaron','campana'],cliente:['cliente','paciente','busca','informacion de','dime sobre','quien es','datos de'],llamadas:['llamada','llame','llamo','llaman','cuantas llamadas'],seguimientos:['seguimiento','pendiente','hay que llamar','sin contactar','retomar'],resumen:['resumen','como va','que paso','ponte al dia','hola','buenos dias','buenas','que hay','informe'],estado:['estado','conexion','sistema','funciona','como estamos','todo bien']};
 const AP=['Claro que sí,','Déjame revisar,','Aquí lo que encontré:','Te cuento,','Revisando los datos,','Mira,'];
 const APc=['Siguiendo con eso,','Sobre lo mismo,','Para agregar,'];
-const NSE=['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','No estoy segura. Di nuevamente: Cronia, tu consulta, respondeme.','Por ahora no tengo eso. ¿Quieres ventas, citas o el resumen?'];
+const NSE=['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','No estoy segura. Di nuevamente: KronIA, tu consulta, respondeme.','Por ahora no tengo eso. ¿Quieres ventas, citas o el resumen?'];
 const OPTS={ventas:'¿Quieres verlo por sede, tratamiento o asesor?',citas:'¿Te digo el tratamiento o quién las agendó?',leads:'¿Por campaña o por fecha?',cliente:'¿Sus compras o sus llamadas?',llamadas:'¿Por asesor o por resultado?',seguimientos:'¿Los que llevan más tiempo sin contacto?'};
 function ap(c){return(c?APc:AP)[~~(Math.random()*(c?APc:AP).length)];}
 function opt(i){return OPTS[i]?' '+OPTS[i]:'';}
@@ -652,7 +728,7 @@ function draw(){
 
 // ── Init ─────────────────────────────────────────────────────────
 initG();
-setTimeout(()=>{pushInsight('KronIA lista','Toca 🧠 KronIA → acepta el micrófono → di: Cronia [tu consulta] respondeme');},800);
+setTimeout(()=>{pushInsight('KronIA lista','Toca 🧠 KronIA → acepta el micrófono → di: KronIA [tu consulta] respondeme');},800);
 draw();
 </script>
 </body>
