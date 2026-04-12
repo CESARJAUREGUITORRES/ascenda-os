@@ -283,7 +283,24 @@ tr:last-child td{border-bottom:none}
   </div>
 
   <!-- MONITOREO + RANKING -->
+    <!-- VENTAS + PAGOS (arriba) -->
   <div class="panel-grid">
+    <div class="card">
+      <div class="card-ttl" id="ventas-ttl">VENTAS DEL DIA</div>
+      <div id="ventas-list"><div class="ld">Sin ventas hoy</div></div>
+    </div>
+    <div class="card">
+      <div class="card-ttl">
+        PAGOS PENDIENTES
+        <span id="pagos-cnt" style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px"></span>
+      </div>
+      <div id="pagos-list"><div class="ld"><div class="sp"></div></div></div>
+    </div>
+  
+  </div>
+
+  <!-- MONITOREO (en medio) -->
+  <div class="panel-grid" style="grid-template-columns:1fr">
     <div class="card">
       <div class="card-ttl">
         MONITOREO DE LLAMADAS
@@ -299,25 +316,15 @@ tr:last-child td{border-bottom:none}
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- RANKING (abajo) -->
+  <div class="panel-grid" style="grid-template-columns:1fr">
     <div class="card">
       <div class="card-ttl">RANKING — MES ACTUAL</div>
       <div id="ranking-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
-  </div>
-
-  <!-- VENTAS + PAGOS -->
-  <div class="panel-grid">
-    <div class="card">
-      <div class="card-ttl" id="ventas-ttl">VENTAS DEL DIA</div>
-      <div id="ventas-list"><div class="ld">Sin ventas hoy</div></div>
-    </div>
-    <div class="card">
-      <div class="card-ttl">
-        PAGOS PENDIENTES
-        <span id="pagos-cnt" style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px"></span>
-      </div>
-      <div id="pagos-list"><div class="ld"><div class="sp"></div></div></div>
-    </div>
+  
   </div>
 
 </div>
