@@ -275,7 +275,7 @@ function doLogin() {
       } catch(e) {}
       var ov = document.getElementById("loading-ov");
       if (ov) ov.classList.add("show");
-      window.location.href = (res.puesto === "ADMINISTRADOR") ? "/admin" : "/asesor";
+      window.location.href = "/app";
     } else {
       setLoading(false);
       errEl.textContent = (res && res.error) ? res.error : "Credenciales incorrectas.";
