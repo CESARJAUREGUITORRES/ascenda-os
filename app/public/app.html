@@ -591,12 +591,41 @@ function navigateTo(viewId) {
       '<div style="font-size:12px;color:#9AAAC8;">' + escHtml(viewId) + ' — Próximamente</div></div>';
     return;
   }
-  // Cargar panel via import dinámico — sin GAS
-  var panelMap = window.AOS_PANELS || {};
-  if (panelMap[hf]) {
-    var mod = panelMap[hf];
-    ws.innerHTML = mod.html();
-    if (mod.init) setTimeout(function() { mod.init(); }, 50);
+  // Mapeo de panel -> archivo HTML estático
+  var PANEL_ROUTES = {
+    'ViewAdvisorCalls':      '/calls.html',
+    'ViewAdvisorHome':       '/advisor-home.html',
+    'ViewAdvisorFollowups':  '/followups.html',
+    'ViewAdvisorAgenda':     '/agenda.html',
+    'ViewAdvisorCitas':      '/citas.html',
+    'ViewAdvisorPatients':   '/patients.html',
+    'ViewAdvisorSales':      '/sales.html',
+    'ViewAdvisorCommissions':'/commissions.html',
+    'ViewAdvisorAttendance': '/attendance.html',
+    'ViewAdminHome':         '/admin-home.html',
+    'ViewAdminCalls':        '/admin-calls.html',
+    'ViewAdminOperations':   '/admin-ops.html',
+    'ViewAdminPatients':     '/admin-patients.html',
+    'ViewAdminSales':        '/admin-sales.html',
+    'ViewAdminComisiones':   '/admin-comisiones.html',
+    'ViewAdminTeam':         '/admin-team.html',
+    'ViewAdminMarketing':    '/admin-marketing.html',
+    'ViewAdminBilling':      '/admin-billing.html',
+  };
+  var route = PANEL_ROUTES[hf];
+  if (route) {
+    fetch(route)
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        ws.innerHTML = html;
+        // Re-ejecutar scripts del panel
+        ws.querySelectorAll('script').forEach(function(old) {
+          var s = document.createElement('script');
+          s.textContent = old.textContent;
+          try { document.head.appendChild(s); } catch(e) {}
+        });
+      })
+      .catch(function() { showViewError('Error cargando panel: ' + hf); });
   } else {
     ws.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;">' +
       '<div style="font-size:32px;">🔧</div>' +
