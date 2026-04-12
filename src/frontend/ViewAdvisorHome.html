@@ -1,198 +1,123 @@
-
 <style>
 .vh-root{padding:16px;display:flex;flex-direction:column;gap:12px;}
-
- 
-.embudo-bar{
-  background:#fff;border:1px solid #DDE4F5;border-radius:13px;
-  padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;
-}
-.emb-item{
-  display:flex;flex-direction:column;align-items:center;
-  flex:1;padding:4px 6px;position:relative;
-}
-.emb-item:not(:last-child)::after{
-  content:'›';position:absolute;right:-2px;top:50%;transform:translateY(-50%);
-  font-size:16px;color:#DDE4F5;font-weight:700;
-}
-.emb-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;
-        color:#0A4FBF;line-height:1;}
+.embudo-bar{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;}
+.emb-item{display:flex;flex-direction:column;align-items:center;flex:1;padding:4px 6px;position:relative;}
+.emb-item:not(:last-child)::after{content:'›';position:absolute;right:-2px;top:50%;transform:translateY(-50%);font-size:16px;color:#DDE4F5;font-weight:700;}
+.emb-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;line-height:1;}
 .emb-v.fact{font-size:14px;color:#16A34A;}
-.emb-l{font-size:9px;font-weight:600;color:#9AAAC8;text-transform:uppercase;
-        letter-spacing:.5px;margin-top:2px;}
-.emb-titulo{font-size:9px;font-weight:700;letter-spacing:.6px;
-            text-transform:uppercase;color:#9AAAC8;
-            margin-right:14px;white-space:nowrap;flex-shrink:0;}
-
- 
-.main3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-        gap:12px;align-items:start;}
-.scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;
-       padding:15px;}
-.schd{display:flex;align-items:center;justify-content:space-between;
-      margin-bottom:11px;}
-.st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;
-    letter-spacing:.5px;color:#0D1B3E;}
-.slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;
-       background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
-
- 
-.atc-row{display:flex;align-items:center;justify-content:space-around;
-         padding:18px 0;}
+.emb-l{font-size:9px;font-weight:600;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.emb-titulo{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-right:14px;white-space:nowrap;flex-shrink:0;}
+.main3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;}
+.scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:15px;}
+.schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
+.slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
+.atc-row{display:flex;align-items:center;justify-content:space-around;padding:18px 0;}
 .atc-item{text-align:center;}
-.atc-v{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;
-       color:#0A4FBF;line-height:1;}
+.atc-v{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;}
 .atc-v.g{color:#16A34A;}.atc-v.m{color:#6B7BA8;}
-.atc-l{font-size:9px;color:#9AAAC8;margin-top:3px;
-       text-transform:uppercase;letter-spacing:.5px;}
+.atc-l{font-size:9px;color:#9AAAC8;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;}
 .atc-div{width:1px;height:30px;background:#DDE4F5;}
-
- 
 .com-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
 .com-v{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;}
 .com-meta{font-size:10px;color:#9AAAC8;}
-.prog{background:#F0F4FC;border-radius:20px;height:6px;overflow:hidden;
-      border:1px solid #DDE4F5;margin:8px 0 5px;}
-.prog-f{height:100%;border-radius:20px;
-        background:linear-gradient(90deg,#0A4FBF,#00C9A7);transition:width .5s;}
+.prog{background:#F0F4FC;border-radius:20px;height:6px;overflow:hidden;border:1px solid #DDE4F5;margin:8px 0 5px;}
+.prog-f{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);transition:width .5s;}
 .com-labels{display:flex;justify-content:space-between;font-size:10px;color:#9AAAC8;}
 .delta-row{display:flex;gap:7px;margin-top:10px;}
-.dc{flex:1;padding:6px 8px;border-radius:8px;background:#F0F4FC;
-    border:1px solid #DDE4F5;text-align:center;}
+.dc{flex:1;padding:6px 8px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
 .dc-l{font-size:9px;color:#9AAAC8;margin-bottom:2px;}
 .dc-v{font-size:12px;font-weight:700;}
-
- 
-.mini-cal{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;
-          padding:10px 12px;margin-bottom:10px;}
-.mc-titulo{font-size:9px;font-weight:700;letter-spacing:.5px;
-           text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;}
+/* Calendario mini */
+.mini-cal{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.mc-titulo{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;}
 .mc-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.mc-dia{display:flex;flex-direction:column;align-items:center;
-        padding:4px 2px;border-radius:7px;border:1.5px solid transparent;}
+.mc-dia{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:7px;border:1.5px solid transparent;}
 .mc-dia.hoy{border-color:#0A4FBF;background:#EBF2FF;}
 .mc-dia.pasado{opacity:.4;}
 .mc-lbl{font-size:8px;font-weight:600;color:#9AAAC8;margin-bottom:3px;}
-.mc-dot{width:22px;height:22px;border-radius:50%;display:flex;
-        align-items:center;justify-content:center;font-size:9px;font-weight:800;}
+.mc-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;}
 .mc-dot.si{background:#DCFCE7;color:#16A34A;border:1.5px solid #BBF7D0;}
 .mc-dot.pl{background:#FFFBEB;color:#D97706;border:1.5px solid #FDE68A;}
 .mc-dot.libre{background:#F0F4FC;color:#CDD5E0;border:1.5px solid transparent;}
 .mc-dia-num{font-size:8px;color:#9AAAC8;margin-top:2px;}
-
- 
-.seg-sep{font-size:9px;font-weight:700;letter-spacing:.5px;
-         text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;
-         padding-top:2px;border-top:1px solid #F0F4FC;}
+/* Seguimientos */
 .seg-list{display:flex;flex-direction:column;gap:6px;}
 .si-item{padding:9px 11px;border-radius:9px;border:1px solid;cursor:pointer;}
 .si-item:hover{opacity:.8;}
 .sh2{background:#F0FDF4;border-color:#BBF7D0;}
 .sp{background:#F0F4FC;border-color:#DDE4F5;}
-.st2{font-size:9px;font-weight:800;letter-spacing:.5px;
-     text-transform:uppercase;margin-bottom:2px;}
-.sh2 .st2{color:#16A34A;}.sp .st2{color:#9AAAC8;}
+.sv{background:#FEF2F2;border-color:#FECACA;}
+.st2{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
+.sh2 .st2{color:#16A34A;}.sp .st2{color:#9AAAC8;}.sv .st2{color:#DC2626;}
 .sn{font-size:12px;font-weight:600;color:#0D1B3E;}
 .sm{font-size:10px;color:#6B7BA8;margin-top:1px;}
 .empty-state{text-align:center;padding:16px 12px;color:#9AAAC8;}
 .empty-state .ico{font-size:22px;margin-bottom:5px;}
 .empty-state .msg{font-size:11px;}
+.sp-sm{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 
 <div class="vh-root">
 
-  
+  <!-- Embudo del mes -->
   <div class="embudo-bar">
     <div class="emb-titulo">📊 MES</div>
-    <div class="emb-item">
-      <div class="emb-v" id="emb-llam">—</div>
-      <div class="emb-l">Llamadas</div>
-    </div>
-    <div class="emb-item">
-      <div class="emb-v" id="emb-citas">—</div>
-      <div class="emb-l">Citas</div>
-    </div>
-    <div class="emb-item">
-      <div class="emb-v" id="emb-asist">—</div>
-      <div class="emb-l">Asistidos</div>
-    </div>
-    <div class="emb-item">
-      <div class="emb-v" id="emb-ventas">—</div>
-      <div class="emb-l">Ventas</div>
-    </div>
-    <div class="emb-item">
-      <div class="emb-v fact" id="emb-fact">S/—</div>
-      <div class="emb-l">Facturado</div>
-    </div>
+    <div class="emb-item"><div class="emb-v" id="emb-llam">—</div><div class="emb-l">Llamadas</div></div>
+    <div class="emb-item"><div class="emb-v" id="emb-citas">—</div><div class="emb-l">Citas</div></div>
+    <div class="emb-item"><div class="emb-v" id="emb-asist">—</div><div class="emb-l">Asistidos</div></div>
+    <div class="emb-item"><div class="emb-v" id="emb-ventas">—</div><div class="emb-l">Ventas</div></div>
+    <div class="emb-item"><div class="emb-v fact" id="emb-fact">S/—</div><div class="emb-l">Facturado</div></div>
   </div>
 
-  
   <div class="main3">
 
-    
+    <!-- Mis Atenciones -->
     <div class="scard">
       <div class="schd">
         <div class="st">MIS ATENCIONES</div>
-        <button class="slink"
-          onclick="window.AOS_navigateTo('advisor-attendance')">Ver más →</button>
+        <button class="slink" onclick="window.AOS_navigateTo('advisor-attendance')">Ver más →</button>
       </div>
       <div class="atc-row">
-        <div class="atc-item">
-          <div class="atc-v" id="atc-total">—</div>
-          <div class="atc-l">Atendidos</div>
-        </div>
+        <div class="atc-item"><div class="atc-v" id="atc-total">0</div><div class="atc-l">Atendidos</div></div>
         <div class="atc-div"></div>
-        <div class="atc-item">
-          <div class="atc-v g" id="atc-nota">—</div>
-          <div class="atc-l">Nota prom.</div>
-        </div>
+        <div class="atc-item"><div class="atc-v g" id="atc-nota">—</div><div class="atc-l">Nota prom.</div></div>
         <div class="atc-div"></div>
-        <div class="atc-item">
-          <div class="atc-v m" id="atc-recom">—%</div>
-          <div class="atc-l">Recom.</div>
-        </div>
+        <div class="atc-item"><div class="atc-v m" id="atc-recom">0%</div><div class="atc-l">Recom.</div></div>
       </div>
     </div>
 
-    
+    <!-- Mis Comisiones -->
     <div class="scard">
       <div class="schd">
         <div class="st">MIS COMISIONES</div>
-        <button class="slink"
-          onclick="window.AOS_navigateTo('advisor-commissions')">Ver detalle →</button>
+        <button class="slink" onclick="window.AOS_navigateTo('advisor-commissions')">Ver detalle →</button>
       </div>
+      <!-- com-v muestra comisión real (S/38.94), NO el facturado -->
       <div class="com-hd">
         <div class="com-v" id="com-total">S/. —</div>
         <div class="com-meta" id="com-meta">/ Meta S/. —</div>
       </div>
-      <div class="prog">
-        <div class="prog-f" id="com-prog" style="width:0%;"></div>
-      </div>
+      <div class="prog"><div class="prog-f" id="com-prog" style="width:0%;"></div></div>
       <div class="com-labels">
         <span id="com-pct">—% completado</span>
-        <span id="com-rank-lbl">Rank —</span>
+        <span id="com-rank-lbl" style="font-weight:700;color:#0A4FBF;">Rank —</span>
       </div>
       <div class="delta-row">
-        <div class="dc">
-          <div class="dc-l">Ventas</div>
-          <div class="dc-v" id="com-delta-v">—</div>
-        </div>
-        <div class="dc">
-          <div class="dc-l">Comisión</div>
-          <div class="dc-v" id="com-delta-c">—</div>
-        </div>
+        <div class="dc"><div class="dc-l">Ventas</div><div class="dc-v" id="com-delta-v">—</div></div>
+        <div class="dc"><div class="dc-l">S/ Fact.</div><div class="dc-v" id="com-delta-fact" style="color:#16A34A;">—</div></div>
       </div>
     </div>
 
-    
+    <!-- Mi Semana -->
     <div class="scard">
       <div class="schd">
         <div class="st">MI SEMANA</div>
-        <button class="slink"
-          onclick="window.AOS_navigateTo('advisor-followups')">Ver segs →</button>
+        <button class="slink" onclick="window.AOS_navigateTo('advisor-followups')">Ver segs →</button>
       </div>
 
-      
+      <!-- Calendario mini de turnos -->
       <div class="mini-cal">
         <div class="mc-titulo">
           📅 Turnos esta semana
@@ -202,23 +127,17 @@
           </span>
         </div>
         <div class="mc-dias" id="mc-dias">
-          <div style="text-align:center;font-size:10px;color:#9AAAC8;grid-column:1/-1;
-                      padding:8px;">Cargando turnos...</div>
+          <div style="text-align:center;font-size:10px;color:#9AAAC8;grid-column:1/-1;padding:8px;"><span class="sp-sm"></span>Cargando...</div>
         </div>
-        <div id="mc-sede-hoy" style="margin-top:6px;font-size:10px;
-             font-weight:600;color:#6B7BA8;text-align:center;"></div>
+        <div id="mc-sede-hoy" style="margin-top:6px;font-size:10px;font-weight:600;color:#6B7BA8;text-align:center;"></div>
       </div>
 
-      
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;
-                  text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;">
+      <!-- Seguimientos pendientes -->
+      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;">
         Seguimientos pendientes
       </div>
       <div class="seg-list" id="seg-list">
-        <div class="empty-state">
-          <div class="ico">⏳</div>
-          <div class="msg">Cargando...</div>
-        </div>
+        <div class="empty-state"><div class="ico">⏳</div><div class="msg">Cargando...</div></div>
       </div>
 
     </div>
@@ -230,214 +149,138 @@ var VH = { token: '' };
 
 (function() {
   VH.token = window.AOS_getToken ? window.AOS_getToken() : '';
-  loadPanelFast();
-  loadTurnos();
+  loadPanelFast();   // embudo + comisiones reales
+  loadTurnos();      // calendario semanal
+  loadSeguimientos();// seguimientos pendientes
 })();
 
-/* ── EMBUDO DEL MES ── */
-
-/* ── CARGA RÁPIDA FASE 1 ─────────────────────────────────────
-   Un solo request devuelve todo el panel del asesor (~1.5s)
-   vs 5 requests separados (~8s) antes
-────────────────────────────────────────────────────────────── */
+// ── Panel rápido (embudo + comisiones REALES) ─────────────────
+// Fuente: api_getPanelAsesorFastT → res.embudo + res.comisiones
+// IMPORTANTE: res.comisiones.total = comisión real (S/38.94)
+//             res.embudo.fact      = facturado (S/9,094)
 function loadPanelFast() {
   google.script.run
     .withSuccessHandler(function(res) {
-      if (!res || !res.ok) {
-        // fallback: cargar individual
-        loadDashboard();
-        loadEmbudo();
-        return;
-      }
-      // Renderizar embudo
+      if (!res || !res.ok) return;
+      var el = function(id) { return document.getElementById(id); };
+
+      // Embudo
       if (res.embudo) {
         var d = res.embudo;
-        var el = function(id) { return document.getElementById(id); };
         if (el('emb-llam'))   el('emb-llam').textContent   = d.llamadas   || 0;
         if (el('emb-citas'))  el('emb-citas').textContent  = d.citas      || 0;
         if (el('emb-asist'))  el('emb-asist').textContent  = d.asistieron || 0;
         if (el('emb-ventas')) el('emb-ventas').textContent = d.ventas     || 0;
-        if (el('emb-fact'))   el('emb-fact').textContent   =
-          'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
+        if (el('emb-fact'))   el('emb-fact').textContent   = 'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
       }
-      // Renderizar comisiones si vienen
+
+      // Comisiones REALES (no confundir con facturado)
       if (res.comisiones) {
         var c = res.comisiones;
-        var el2 = function(id) { return document.getElementById(id); };
-        if (el2('com-total')) el2('com-total').textContent = 'S/. ' + (c.total||0).toFixed(2);
-        if (el2('com-meta'))  el2('com-meta').textContent  = '/ Meta S/. ' + (c.meta||100).toFixed(2);
-        if (el2('com-prog'))  el2('com-prog').style.width  = Math.min(c.pct||0, 100) + '%';
-        if (el2('com-pct'))   el2('com-pct').textContent   = (c.pct||0) + '% completado';
+        var comReal = parseFloat(c.total) || 0;
+        var meta    = parseFloat(c.meta)  || 100;
+        var pct     = Number(c.pct)       || 0;
+
+        if (el('com-total')) el('com-total').textContent = 'S/. ' + comReal.toFixed(2);
+        if (el('com-meta'))  el('com-meta').textContent  = '/ Meta S/. ' + meta.toFixed(2);
+        if (el('com-prog'))  el('com-prog').style.width  = Math.min(pct, 100) + '%';
+        if (el('com-pct'))   el('com-pct').textContent   = pct + '% completado';
+        if (el('com-rank-lbl')) el('com-rank-lbl').textContent = 'Rank ' + (c.rank || '#1');
       }
-      // Renderizar seguimientos
-      if (res.seguimientos && typeof renderSegs === 'function') {
-        renderSegs(res.seguimientos);
+
+      // Ventas y facturado en las delta cards
+      if (res.embudo) {
+        if (el('com-delta-v'))    el('com-delta-v').textContent    = res.embudo.ventas || 0;
+        if (el('com-delta-fact')) el('com-delta-fact').textContent = 'S/' + ((res.embudo.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
       }
     })
-    .withFailureHandler(function() {
-      loadDashboard();
-      loadEmbudo();
-    })
+    .withFailureHandler(function() {})
     .api_getPanelAsesorFastT(VH.token);
 }
 
-function loadEmbudo() {
-  var now = new Date();
-  google.script.run
-    .withSuccessHandler(function(res) {
-      if (!res || !res.ok) return;
-      var d = res.datos || {};
-      document.getElementById('emb-llam').textContent   = d.llamadas || 0;
-      document.getElementById('emb-citas').textContent  = d.citas    || 0;
-      document.getElementById('emb-asist').textContent  = d.asistieron || 0;
-      document.getElementById('emb-ventas').textContent = d.ventas   || 0;
-      document.getElementById('emb-fact').textContent   =
-        'S/' + ((d.fact || 0).toLocaleString('es-PE', {minimumFractionDigits:0}));
-    })
-    .withFailureHandler(function() {})
-    .api_getMyScoreMesT(VH.token);
-}
-
- 
-function loadDashboard() {
-  google.script.run
-    .withSuccessHandler(function(res) {
-      if (!res || !res.ok) return;
-      var c = res.comMes    || {};
-      var a = res.atenciones || {};
-
-      
-      document.getElementById('com-total').textContent =
-        'S/. ' + (c.total || 0).toFixed(2);
-      document.getElementById('com-meta').textContent  =
-        '/ Meta S/. ' + (c.meta || 100).toFixed(2);
-      var pct = c.pct || 0;
-      document.getElementById('com-prog').style.width  = Math.min(pct, 100) + '%';
-      document.getElementById('com-pct').textContent   = pct + '% completado';
-      var k = res.kpis || {};
-      document.getElementById('com-rank-lbl').textContent =
-        'Rank ' + (k.rankingEmoji || '') + '#' + (k.rankingHoy || 1);
-
-      if (c.deltaVentas != null) {
-        var dv = document.getElementById('com-delta-v');
-        dv.textContent = (c.deltaVentas >= 0 ? '▲ ' : '▼ ') +
-          Math.abs(Math.round(c.deltaVentas * 100)) + '%';
-        dv.style.color = c.deltaVentas >= 0 ? '#16A34A' : '#DC2626';
-      }
-      if (c.deltaCom != null) {
-        var dc = document.getElementById('com-delta-c');
-        dc.textContent = (c.deltaCom >= 0 ? '▲ ' : '▼ ') +
-          Math.abs(Math.round(c.deltaCom * 100)) + '%';
-        dc.style.color = c.deltaCom >= 0 ? '#16A34A' : '#DC2626';
-      }
-
-      
-      document.getElementById('atc-total').textContent =
-        a.atendidos || '0';
-      document.getElementById('atc-nota').textContent  =
-        a.notaProm ? a.notaProm.toFixed(1) : '—';
-      document.getElementById('atc-recom').textContent =
-        (a.pctRecom || 0) + '%';
-
-      
-      renderSegs(res.seguimientos || []);
-    })
-    .withFailureHandler(function() {})
-    .api_getAdvisorDashboardT(VH.token);
-}
-
- 
+// ── Calendario de turnos (Mi Semana) ─────────────────────────
+// Fuente: api_getMisSemanaT → res.dias[{diaSem,dia,esHoy,esPasado,tieneTurno,sede}]
 function loadTurnos() {
   google.script.run
     .withSuccessHandler(function(res) {
       var cont = document.getElementById('mc-dias');
-      if (!res || !res.ok || !res.dias) {
-        cont.innerHTML =
-          '<div style="grid-column:1/-1;text-align:center;' +
-          'font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';
+      if (!res || !res.ok || !res.dias || !res.dias.length) {
+        cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';
         return;
       }
-
-      
-      var dias = res.dias;
-      cont.innerHTML = dias.map(function(d) {
-        var tieneT  = d.tieneTurno;
-        var esSI    = tieneT && d.sede === 'SAN ISIDRO';
-        var esPL    = tieneT && d.sede === 'PUEBLO LIBRE';
-        var dotCls  = esSI ? 'si' : esPL ? 'pl' : 'libre';
-        var dotTxt  = esSI ? 'SI' : esPL ? 'PL' : '';
-        var hoyCls  = d.esHoy  ? ' hoy'   : '';
-        var pasadoCls = d.esPasado && !d.esHoy ? ' pasado' : '';
-
-        return '<div class="mc-dia' + hoyCls + pasadoCls + '" ' +
-               'title="' + esc(d.fecha) + (tieneT ? ' · ' + esc(d.sede) : '') + '">' +
+      cont.innerHTML = res.dias.map(function(d) {
+        var tieneT = d.tieneTurno;
+        var esSI   = tieneT && d.sede === 'SAN ISIDRO';
+        var esPL   = tieneT && d.sede === 'PUEBLO LIBRE';
+        var dotCls = esSI ? 'si' : esPL ? 'pl' : 'libre';
+        var dotTxt = esSI ? 'SI' : esPL ? 'PL' : '';
+        var cls    = (d.esHoy ? ' hoy' : '') + (d.esPasado && !d.esHoy ? ' pasado' : '');
+        return '<div class="mc-dia' + cls + '" title="' + esc(d.fecha) + (tieneT?' · '+esc(d.sede):'') + '">' +
           '<div class="mc-lbl">' + esc(d.diaSem) + '</div>' +
           '<div class="mc-dot ' + dotCls + '">' + dotTxt + '</div>' +
-          '<div class="mc-dia-num">' + d.dia + '</div>' +
-          '</div>';
+          '<div class="mc-dia-num">' + (d.dia||'') + '</div></div>';
       }).join('');
 
-      
-      var hoy = dias.find(function(d) { return d.esHoy; });
-      var sedeHoyEl = document.getElementById('mc-sede-hoy');
+      // Sede de hoy
+      var hoy = res.dias.find(function(d) { return d.esHoy; });
+      var sedeEl = document.getElementById('mc-sede-hoy');
       if (hoy && hoy.tieneTurno) {
-        sedeHoyEl.textContent = '📍 Hoy: ' + hoy.sede;
-        sedeHoyEl.style.color = hoy.sede === 'SAN ISIDRO' ? '#16A34A' : '#D97706';
-      } else if (hoy && !hoy.tieneTurno) {
-        sedeHoyEl.textContent = '— Sin turno hoy';
+        sedeEl.textContent = '📍 Hoy: ' + hoy.sede;
+        sedeEl.style.color = hoy.sede === 'SAN ISIDRO' ? '#16A34A' : '#D97706';
+      } else if (hoy) {
+        sedeEl.textContent = '— Sin turno hoy';
+        sedeEl.style.color = '#9AAAC8';
       }
     })
     .withFailureHandler(function() {
       document.getElementById('mc-dias').innerHTML =
-        '<div style="grid-column:1/-1;text-align:center;' +
-        'font-size:10px;color:#9AAAC8;padding:6px;">Sin acceso al calendario</div>';
+        '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin acceso al calendario</div>';
     })
     .api_getMisSemanaT(VH.token);
 }
 
- 
+// ── Seguimientos pendientes ───────────────────────────────────
+// Fuente: api_getMySeguimientosT → res.items[{segId,num,trat,obs,fecha,fechaHora,tipo,whatsapp}]
+function loadSeguimientos() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      renderSegs(res && res.items ? res.items : []);
+    })
+    .withFailureHandler(function() { renderSegs([]); })
+    .api_getMySeguimientosT(VH.token);
+}
+
 function renderSegs(items) {
   var el = document.getElementById('seg-list');
 
-  
+  // Filtrar los inválidos (fecha 1899, etc.)
   var validos = (items || []).filter(function(s) {
-    if (s.tipo === 'vencido') return false;
     if ((s.fecha || '').indexOf('1899') >= 0) return false;
     return true;
   });
 
   if (!validos.length) {
-    el.innerHTML =
-      '<div class="empty-state">' +
-      '<div class="ico">🎉</div>' +
-      '<div class="msg">Sin seguimientos pendientes</div>' +
-      '</div>';
+    el.innerHTML = '<div class="empty-state"><div class="ico">🎉</div><div class="msg">Sin seguimientos pendientes</div></div>';
     return;
   }
 
-  el.innerHTML = validos.slice(0, 4).map(function(s) {
-    var esHoy  = s.tipo === 'hoy';
-    var cls    = esHoy ? 'sh2' : 'sp';
-    var tag    = esHoy ? '● HOY' : '○ PRÓXIMO';
-    var fecha  = (s.fecha && s.fecha.indexOf('1899') < 0 && s.fecha !== '')
-      ? ' · ' + s.fecha.slice(5) : ''; 
-    var display = s.num + ' · ' + (s.trat || '—');
-
-    return '<div class="si-item ' + cls + '" ' +
-           'onclick="window.open(\'https://wa.me/51' +
-           esc(s.num.replace(/\D/g,'')) + '\',\'_blank\')">' +
-      '<div class="st2">' + tag + esc(fecha) + '</div>' +
-      '<div class="sn">' + esc(display) + '</div>' +
-      (s.obs ? '<div class="sm">' + esc(s.obs.slice(0,45)) + '</div>' : '') +
+  el.innerHTML = validos.slice(0, 5).map(function(s) {
+    var esHoy  = s.esHoy    || s.tipo === 'hoy';
+    var esVenc = s.vencido  || s.tipo === 'vencido';
+    var cls    = esVenc ? 'sv' : esHoy ? 'sh2' : 'sp';
+    var tag    = esVenc ? '⚠ VENCIDO' : esHoy ? '● HOY' : '○ PRÓXIMO';
+    var fechaStr = (s.fecha && s.fecha.indexOf('1899') < 0 && s.fecha !== '')
+                   ? ' · ' + s.fecha.slice(5) : '';
+    return '<div class="si-item ' + cls + '"' +
+           ' onclick="window.open(\'' + esc(s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/\\D/g,''))) + '\',\'_blank\')">' +
+      '<div class="st2">' + tag + esc(fechaStr) + '</div>' +
+      '<div class="sn">' + esc(s.num||'—') + ' · ' + esc(s.trat||'—') + '</div>' +
+      (s.obs ? '<div class="sm">' + esc(s.obs.slice(0, 50)) + '</div>' : '') +
       '</div>';
   }).join('');
 }
 
 function esc(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
