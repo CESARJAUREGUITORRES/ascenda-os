@@ -5,614 +5,189 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=10">
 <title>AscendaOS · Brain</title>
 <style>
-/* ── RESET & VARS ──────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --blue:#0A4FBF;--blue2:#071D4A;--blue3:#378ADD;
-  --cyan:#00C9A7;--mint:#00E5A0;
-  --bg:#F8FAFE;--white:#FFFFFF;
-  --muted:rgba(10,79,191,0.12);
-  --text:#071D4A;--text2:rgba(7,29,74,0.45);
-  --card:rgba(255,255,255,0.92);
-  --glass:rgba(248,250,254,0.88);
-}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
-  font-family:'SF Pro Display','Segoe UI',system-ui,sans-serif;
-  touch-action:none;user-select:none}
+:root{--blue:#0A4FBF;--blue2:#071D4A;--blue3:#378ADD;--cyan:#00C9A7;--mint:#00E5A0;--bg:#F8FAFE;--white:#FFFFFF;--muted:rgba(10,79,191,0.10);--text:#071D4A;--text2:rgba(7,29,74,0.40);--card:rgba(255,255,255,0.90);}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'SF Pro Display','Segoe UI',system-ui,sans-serif;touch-action:none;user-select:none}
 canvas{position:fixed;inset:0;display:block}
-
-/* ── HUD ────────────────────────────────────────────────────── */
-#hud{position:fixed;inset:0;z-index:20;pointer-events:none;
-  display:grid;
-  grid-template-areas:"tl . tr" ". . ." "bl . br";
-  grid-template-rows:auto 1fr auto;
-  grid-template-columns:auto 1fr auto;
-  padding:14px;}
-
-/* Zonas */
-#zone-tl{grid-area:tl;display:flex;flex-direction:column;gap:6px;max-width:220px}
-#zone-tr{grid-area:tr;display:flex;flex-direction:column;gap:6px;align-items:flex-end;max-width:200px}
-#zone-bl{grid-area:bl;display:flex;flex-direction:column;gap:5px;max-width:220px}
-#zone-br{grid-area:br;display:flex;flex-direction:column;gap:5px;align-items:flex-end;max-width:200px}
-
-/* Brand card */
-.brand-card{background:var(--card);border:1px solid rgba(10,79,191,0.1);
-  border-radius:10px;padding:8px 12px;backdrop-filter:blur(12px);
-  display:flex;align-items:center;gap:8px;pointer-events:all}
-.bc-dot{width:8px;height:8px;border-radius:50%;background:#E53935;
-  box-shadow:0 0 6px #E53935;transition:all .5s;flex-shrink:0}
+#hud{position:fixed;inset:0;z-index:20;pointer-events:none}
+#brand{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--muted);border-radius:10px;padding:6px 10px;backdrop-filter:blur(12px);pointer-events:all}
+.bc-dot{width:7px;height:7px;border-radius:50%;background:#E53935;box-shadow:0 0 5px #E53935;transition:all .5s;flex-shrink:0}
 .bc-dot.on{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:cpulse 2.5s infinite}
-@keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
-.bc-texts{display:flex;flex-direction:column;gap:0px}
-.bc-name{font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.04em}
-.bc-sub{font-size:8px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase}
-
-/* Notificación genérica */
-.notif{background:var(--card);border:1px solid rgba(10,79,191,0.1);
-  border-radius:8px;padding:6px 10px;backdrop-filter:blur(10px);
-  display:flex;align-items:center;gap:6px;animation:slideIn .25s ease;
-  max-width:100%}
-@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.notif-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.notif-time{font-size:8px;color:var(--text2);min-width:38px;font-weight:600}
-.notif-msg{font-size:9px;font-weight:600}
-.notif-icon{font-size:10px;flex-shrink:0}
-
-/* Alerta de error (zona br) */
-.alert{background:rgba(255,248,248,0.95);border-color:rgba(220,50,50,0.2)}
-.alert .notif-msg{color:#B01010}
-/* Insight (zona bl) */
-.insight{background:rgba(248,254,252,0.95);border-color:rgba(0,201,167,0.2)}
-.insight .notif-msg{color:#006655}
-
-/* Métricas top right */
-.metric-row{background:var(--card);border:1px solid rgba(10,79,191,0.08);
-  border-radius:8px;padding:5px 10px;backdrop-filter:blur(10px);
-  display:flex;align-items:baseline;gap:6px}
-.mval{font-size:16px;font-weight:800;color:var(--blue)}
-.mlbl{font-size:8px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase}
-
-/* Zoom indicator */
-#zoom-lbl{position:fixed;top:14px;left:50%;transform:translateX(-50%);
-  font-size:8.5px;color:var(--text2);letter-spacing:.1em;pointer-events:none;
-  background:var(--card);border:1px solid var(--muted);border-radius:20px;
-  padding:3px 10px;backdrop-filter:blur(8px)}
-
-/* Tooltip hover */
-#tt{position:fixed;background:var(--white);border:1px solid rgba(10,79,191,0.15);
-  border-radius:12px;padding:12px 14px;min-width:180px;max-width:230px;
-  pointer-events:none;opacity:0;transition:opacity .18s;z-index:30;
-  box-shadow:0 4px 20px rgba(10,79,191,0.1)}
-#tt-name{font-size:12px;font-weight:700;color:var(--blue2);margin-bottom:8px;display:block}
-.tt-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
-.tt-k{font-size:9.5px;color:var(--text2)}
-.tt-v{font-size:9.5px;font-weight:700;color:var(--blue2)}
-.tt-badge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:10px;
-  font-size:8.5px;font-weight:700}
-.badge-ACTIVO{background:rgba(0,201,167,0.12);color:#007060}
-.badge-RECOMPRA{background:rgba(240,160,32,0.12);color:#8A5000}
-
-/* Hint */
-#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
-  font-size:8px;color:var(--text2);letter-spacing:.08em;pointer-events:none;
-  background:var(--card);border:1px solid var(--muted);border-radius:20px;
-  padding:3px 12px;backdrop-filter:blur(8px)}
-
-/* Botón demo — mínimo */
-#bsim{position:fixed;bottom:14px;right:14px;z-index:25;pointer-events:all;
-  background:var(--card);border:1px solid rgba(10,79,191,0.15);
-  border-radius:8px;padding:5px 12px;font-size:9px;color:var(--blue);
-  cursor:pointer;backdrop-filter:blur(8px);font-weight:600;letter-spacing:.04em;
-  transition:all .2s}
-#bsim:hover{background:rgba(10,79,191,0.06)}
-#bsim.on{border-color:var(--cyan);color:#007060}
-
-/* Botón nueva tabla (para registrar triggers manualmente) */
-#btn-open{display:none} /* se muestra desde admin */
+@keyframes cpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.bc-name{font-size:10px;font-weight:700;color:var(--blue2);letter-spacing:.04em;white-space:nowrap}
+.bc-sub{font-size:7.5px;color:var(--text2);letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+#metrics{position:absolute;top:10px;right:10px;display:flex;gap:5px;align-items:flex-start;flex-direction:column}
+.mcard{background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:4px 9px;backdrop-filter:blur(10px);display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.mval{font-size:14px;font-weight:800;color:var(--blue)}
+.mlbl{font-size:7px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase}
+#notif-left{position:absolute;top:66px;left:10px;width:min(220px,40vw);display:flex;flex-direction:column;gap:4px;pointer-events:all}
+#notif-right{position:absolute;top:66px;right:10px;width:min(200px,38vw);display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:all}
+#notif-bottom{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);width:min(360px,86vw);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:all}
+.notif{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:5px 8px;backdrop-filter:blur(10px);animation:nIn .22s ease;max-width:100%;transition:opacity .35s,transform .35s}
+@keyframes nIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
+.notif.rIn{animation:rIn .22s ease}
+@keyframes rIn{from{opacity:0;transform:translateX(5px)}to{opacity:1;transform:none}}
+.notif.out{opacity:0;transform:translateY(-3px) scale(.97)}
+.ndot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.ntime{font-size:7.5px;font-weight:600;min-width:32px;white-space:nowrap}
+.nmsg{font-size:8.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.ndism{background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;margin-left:2px;flex-shrink:0;line-height:1}
+.notif-alert{border-color:rgba(220,50,50,0.18);background:rgba(255,248,248,0.93)}
+.notif-ins{flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;border-color:rgba(0,201,167,0.18);background:rgba(248,254,252,0.92)}
+.notif-ins .nh{display:flex;align-items:center;gap:5px;width:100%}
+.notif-ins .nd{font-size:8px;color:#006655;display:none;margin-top:3px;padding-top:4px;border-top:1px solid rgba(0,201,167,0.12);line-height:1.5;max-width:340px;white-space:normal}
+.notif-ins.exp .nd{display:block}
+#zoom-pill{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--text2);letter-spacing:.08em;pointer-events:none;background:var(--card);border:1px solid var(--muted);border-radius:20px;padding:3px 10px;backdrop-filter:blur(8px);white-space:nowrap}
+#hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:7.5px;color:var(--text2);letter-spacing:.07em;pointer-events:none;background:var(--card);border:1px solid var(--muted);border-radius:20px;padding:2px 10px;backdrop-filter:blur(8px);white-space:nowrap}
+#tt{position:fixed;background:var(--white);border:1px solid rgba(10,79,191,0.14);border-radius:12px;padding:10px 14px;min-width:170px;max-width:220px;pointer-events:none;opacity:0;transition:opacity .18s;z-index:30;box-shadow:0 4px 18px rgba(10,79,191,0.09)}
+#tt-name{font-size:11px;font-weight:700;color:var(--blue2);margin-bottom:6px;display:block}
+.tt-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
+.tt-k{font-size:9px;color:var(--text2)}.tt-v{font-size:9px;font-weight:700;color:var(--blue2)}
+@media(max-width:480px){#notif-left{width:min(170px,36vw)}#notif-right{width:min(155px,34vw)}.nmsg{max-width:100px;font-size:8px}.mval{font-size:12px}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-
-<!-- HUD con 4 zonas -->
 <div id="hud">
-
-  <!-- TOP LEFT: brand + log de eventos -->
-  <div id="zone-tl">
-    <div class="brand-card">
-      <div class="bc-dot" id="sb-dot"></div>
-      <div class="bc-texts">
-        <span class="bc-name">AscendaOS · Brain</span>
-        <span class="bc-sub" id="sb-lbl">Conectando…</span>
-      </div>
-    </div>
-    <ul id="log-tl" style="list-style:none;display:flex;flex-direction:column;gap:4px"></ul>
+  <div id="brand">
+    <div class="bc-dot" id="sb-dot"></div>
+    <div><div class="bc-name">AscendaOS · Brain</div><div class="bc-sub" id="sb-lbl">Conectando…</div></div>
   </div>
-
-  <!-- TOP RIGHT: métricas en vivo -->
-  <div id="zone-tr">
-    <div class="metric-row">
-      <span class="mval" id="m-events">0</span>
-      <span class="mlbl">eventos hoy</span>
-    </div>
-    <div class="metric-row">
-      <span class="mval" id="m-tables" style="color:var(--cyan)">8</span>
-      <span class="mlbl">tablas activas</span>
-    </div>
-    <ul id="log-tr" style="list-style:none;display:flex;flex-direction:column;gap:4px"></ul>
+  <div id="metrics">
+    <div class="mcard"><span class="mval" id="m-ev">0</span><span class="mlbl">eventos</span></div>
+    <div class="mcard"><span class="mval" id="m-tb" style="color:var(--cyan)">8</span><span class="mlbl">tablas</span></div>
   </div>
-
-  <!-- BOTTOM LEFT: insights -->
-  <div id="zone-bl">
-    <ul id="log-bl" style="list-style:none;display:flex;flex-direction:column;gap:4px"></ul>
-  </div>
-
-  <!-- BOTTOM RIGHT: alertas/errores -->
-  <div id="zone-br">
-    <ul id="log-br" style="list-style:none;display:flex;flex-direction:column;gap:4px"></ul>
-  </div>
-
+  <div id="notif-left"></div>
+  <div id="notif-right"></div>
+  <div id="notif-bottom"></div>
+  <div id="zoom-pill">zoom 1.0×</div>
+  <div id="hint">Arrastra · Pellizca para zoom · Acércate para leer</div>
 </div>
-
-<div id="zoom-lbl">zoom 1.0×</div>
-<div id="hint">Arrastra · Pellizca para zoom · Acércate para ver datos</div>
-<button id="bsim" onclick="toggleDemo()">Demo</button>
 <div id="tt"><span id="tt-name"></span><div id="tt-body"></div></div>
-
 <script>
-// ═══════════════════════════════════════════════════════════════
-// ASCENDAOS BRAIN — PANEL CEREBRO v1.0
-// Fondo blanco · Paleta marca · Realtime Supabase real
-// ═══════════════════════════════════════════════════════════════
-
-const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-
-// ── CANVAS ──────────────────────────────────────────────────────
-const cv = document.getElementById('c');
-const ctx = cv.getContext('2d');
-let W, H;
-function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
-resize(); window.addEventListener('resize',()=>{ resize(); initGraph(); });
-
-// ── PALETA MARCA ────────────────────────────────────────────────
-// Color por tabla: [reposo_r,g,b] [activo_r,g,b]
-const TABLE_STYLE = {
-  aos_llamadas:       {idle:[180,210,250], live:[55,138,221],  label:'Llamadas',       n:12229},
-  aos_pacientes:      {idle:[160,235,220], live:[0,201,167],   label:'Pacientes',      n:7010 },
-  aos_base_etiquetas: {idle:[195,215,240], live:[10,79,191],   label:'Etiquetas',      n:6547 },
-  aos_leads:          {idle:[190,215,255], live:[10,79,191],   label:'Leads',          n:2704 },
-  aos_ventas:         {idle:[175,235,195], live:[34,200,112],  label:'Ventas',         n:608  },
-  aos_agenda_citas:   {idle:[165,240,215], live:[0,229,160],   label:'Citas',          n:480  },
-  aos_seguimientos:   {idle:[250,220,170], live:[240,160,32],  label:'Seguimientos',   n:231  },
-  aos_inversion_campanas:{idle:[215,210,255],live:[127,119,221],label:'Inversión',     n:19   },
-  aos_rrhh:           {idle:[210,225,250], live:[7,29,74],     label:'RRHH',           n:6    },
-  otros:              {idle:[215,225,240], live:[100,130,180], label:'Sistema',        n:1    },
+const SB_URL='https://ituyqwstonmhnfshnaqz.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W,H;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+resize();window.addEventListener('resize',()=>{resize();initG();});
+const TS={
+  aos_llamadas:{idle:[180,210,250],live:[55,138,221],label:'Llamadas',n:12229},
+  aos_pacientes:{idle:[155,235,218],live:[0,201,167],label:'Pacientes',n:7010},
+  aos_base_etiquetas:{idle:[195,215,240],live:[10,79,191],label:'Etiquetas',n:6547},
+  aos_leads:{idle:[190,215,255],live:[10,79,191],label:'Leads',n:2704},
+  aos_ventas:{idle:[172,235,192],live:[34,200,112],label:'Ventas',n:608},
+  aos_agenda_citas:{idle:[162,240,212],live:[0,229,160],label:'Citas',n:480},
+  aos_seguimientos:{idle:[250,218,168],live:[240,160,32],label:'Seguim.',n:231},
+  aos_inversion_campanas:{idle:[212,208,252],live:[127,119,221],label:'Inversión',n:19},
+  aos_rrhh:{idle:[208,222,248],live:[7,29,74],label:'RRHH',n:6},
+  otros:{idle:[212,222,238],live:[100,130,180],label:'Sistema',n:1},
 };
-
-// Conexiones reales (topología)
-const CONN = [
-  ['aos_leads','aos_llamadas'],
-  ['aos_leads','aos_pacientes'],
-  ['aos_leads','aos_agenda_citas'],
-  ['aos_llamadas','aos_agenda_citas'],
-  ['aos_llamadas','aos_ventas'],
-  ['aos_llamadas','aos_seguimientos'],
-  ['aos_llamadas','aos_pacientes'],
-  ['aos_pacientes','aos_agenda_citas'],
-  ['aos_pacientes','aos_ventas'],
-  ['aos_agenda_citas','aos_ventas'],
-  ['aos_ventas','aos_seguimientos'],
-  ['aos_inversion_campanas','aos_leads'],
-  ['aos_base_etiquetas','aos_pacientes'],
-  ['aos_rrhh','aos_llamadas'],
-];
-
-// ── NODOS ────────────────────────────────────────────────────────
-let nodes=[], edges=[], gmap={};
-const edgeSet=new Set();
-
-function nodeCount(n){ return Math.max(1, Math.log10(n+1)*2.8); }
-
-function initGraph(){
-  nodes=[]; edges=[]; gmap={}; edgeSet.clear();
-  const keys = Object.keys(TABLE_STYLE);
-  const N = keys.length;
-  const R = Math.min(W,H) * 0.33;
-
+const CONN=[['aos_leads','aos_llamadas'],['aos_leads','aos_pacientes'],['aos_leads','aos_agenda_citas'],['aos_llamadas','aos_agenda_citas'],['aos_llamadas','aos_ventas'],['aos_llamadas','aos_seguimientos'],['aos_llamadas','aos_pacientes'],['aos_pacientes','aos_agenda_citas'],['aos_pacientes','aos_ventas'],['aos_agenda_citas','aos_ventas'],['aos_ventas','aos_seguimientos'],['aos_inversion_campanas','aos_leads'],['aos_base_etiquetas','aos_pacientes'],['aos_rrhh','aos_llamadas']];
+let nodes=[],edges=[],gmap={};
+const eSet=new Set();
+function nR(n){return Math.max(1.2,Math.log10(n+1)*2.4);}
+function lR(a,b,t){return[~~(a[0]+(b[0]-a[0])*t),~~(a[1]+(b[1]-a[1])*t),~~(a[2]+(b[2]-a[2])*t)];}
+function d2(a,b){return(a.x-b.x)**2+(a.y-b.y)**2;}
+function addE(a,b,cr){if(a===b)return;const k=a.id<b.id?a.id+'|'+b.id:b.id+'|'+a.id;if(!eSet.has(k)){eSet.add(k);edges.push({a,b,cross:cr});}}
+function initG(){
+  nodes=[];edges=[];gmap={};eSet.clear();
+  const keys=Object.keys(TS),N=keys.length,R=Math.min(W,H)*.32;
   keys.forEach((k,i)=>{
-    const st = TABLE_STYLE[k];
-    const ang = (i/N)*Math.PI*2 - Math.PI/2;
-    // Nodos del grupo: distribución tipo polvo alrededor del centro del grupo
-    const gcx = W/2 + R*0.65*Math.cos(ang);
-    const gcy = H/2 + R*0.65*Math.sin(ang);
-    const count = Math.max(4, Math.floor(Math.log10(st.n+1)*6));
-    gmap[k] = [];
-    for(let j=0;j<count;j++){
-      const a = Math.random()*Math.PI*2;
-      const r = Math.random()*R*0.15*(0.4+Math.random()*0.6);
-      const isHub = j===0;
-      const nr = isHub ? nodeCount(st.n)*1.8 : nodeCount(st.n)*(0.5+Math.random()*0.7);
-      const node = {
-        id:nodes.length, x:gcx+Math.cos(a)*r, y:gcy+Math.sin(a)*r,
-        ox:gcx, oy:gcy, vx:0, vy:0,
-        r:nr, group:k, idle:st.idle, live:st.live,
-        pulse:0, phase:Math.random()*Math.PI*2, pspd:0.003+Math.random()*0.003,
-        label:isHub?st.label:null,
-      };
-      nodes.push(node); gmap[k].push(node);
+    const st=TS[k],ang=(i/N)*Math.PI*2-Math.PI/2;
+    const gcx=W/2+R*.65*Math.cos(ang),gcy=H/2+R*.65*Math.sin(ang);
+    const cnt=Math.max(3,Math.floor(Math.log10(st.n+1)*5.5));
+    gmap[k]=[];
+    for(let j=0;j<cnt;j++){
+      const a=Math.random()*Math.PI*2,r=Math.random()*R*.18*(0.4+Math.random()*.6);
+      const hub=j===0,nr=hub?nR(st.n)*1.8:nR(st.n)*(.45+Math.random()*.65);
+      const node={id:nodes.length,x:gcx+Math.cos(a)*r,y:gcy+Math.sin(a)*r,ox:gcx,oy:gcy,vx:0,vy:0,r:nr,group:k,idle:st.idle,live:st.live,pulse:0,phase:Math.random()*Math.PI*2,pspd:.003+Math.random()*.003,label:hub?st.label:null};
+      nodes.push(node);gmap[k].push(node);
     }
   });
-
-  // Aristas intra-grupo
-  Object.values(gmap).forEach(gn=>{
-    gn.forEach((n,i)=>{
-      const sorted=[...gn].filter(m=>m!==n).sort((a,b)=>d2(n,a)-d2(n,b));
-      sorted.slice(0,2+~~(Math.random()*2)).forEach(m=>addEdge(n,m,false));
-    });
-  });
-  // Aristas inter-grupo (topología real)
-  CONN.forEach(([ga,gb])=>{
-    const na=gmap[ga]||[], nb=gmap[gb]||[];
-    if(!na.length||!nb.length) return;
-    for(let i=0;i<Math.min(2,na.length);i++)
-      for(let j=0;j<Math.min(2,nb.length);j++)
-        addEdge(na[i],nb[j],true);
-    const x=~~(Math.min(na.length,nb.length)*0.12)+1;
-    for(let k=0;k<x;k++) addEdge(na[~~(Math.random()*na.length)],nb[~~(Math.random()*nb.length)],true);
-  });
-
-  // Settle physics
-  for(let i=0;i<200;i++) physics(i<50?0.85:0.93);
+  Object.values(gmap).forEach(gn=>{gn.forEach(n=>{[...gn].filter(m=>m!==n).sort((a,b)=>d2(n,a)-d2(n,b)).slice(0,2+~~(Math.random()*2)).forEach(m=>addE(n,m,false));});});
+  CONN.forEach(([ga,gb])=>{const na=gmap[ga]||[],nb=gmap[gb]||[];if(!na.length||!nb.length)return;for(let i=0;i<Math.min(2,na.length);i++)for(let j=0;j<Math.min(2,nb.length);j++)addE(na[i],nb[j],true);const x=~~(Math.min(na.length,nb.length)*.12)+1;for(let k=0;k<x;k++)addE(na[~~(Math.random()*na.length)],nb[~~(Math.random()*nb.length)],true);});
+  for(let i=0;i<200;i++)phys(i<50?.85:.93);
 }
-
-function addEdge(a,b,cross){
-  if(a===b) return;
-  const k=a.id<b.id?`${a.id}|${b.id}`:`${b.id}|${a.id}`;
-  if(!edgeSet.has(k)){ edgeSet.add(k); edges.push({a,b,cross}); }
+function phys(d=.92){
+  const k=Math.min(W,H)*.021;
+  for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y,dd=Math.sqrt(dx*dx+dy*dy)||.01,mD=(a.r+b.r)*3;if(dd<k*2.8){const f=k*k/dd*.38;a.vx-=dx/dd*f;a.vy-=dy/dd*f;b.vx+=dx/dd*f;b.vy+=dy/dd*f;}if(dd<mD){const p=(mD-dd)*.2;a.vx-=dx/dd*p;a.vy-=dy/dd*p;b.vx+=dx/dd*p;b.vy+=dy/dd*p;}}
+  edges.forEach(e=>{const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,dd=Math.sqrt(dx*dx+dy*dy)||.01,ideal=e.cross?k*2.5:k*1.1,f=(dd-ideal)/dd*.08;e.a.vx+=dx*f;e.a.vy+=dy*f;e.b.vx-=dx*f;e.b.vy-=dy*f;});
+  nodes.forEach(n=>{n.vx+=(n.ox-n.x)*.014;n.vy+=(n.oy-n.y)*.014;n.vx+=(W/2-n.x)*.002;n.vy+=(H/2-n.y)*.002;n.vx*=d;n.vy*=d;n.x+=n.vx;n.y+=n.vy;});
 }
-function d2(a,b){ return(a.x-b.x)**2+(a.y-b.y)**2; }
-
-function physics(damp=0.92){
-  const k=Math.min(W,H)*0.022;
-  for(let i=0;i<nodes.length;i++){
-    for(let j=i+1;j<nodes.length;j++){
-      const a=nodes[i],b=nodes[j];
-      const dx=b.x-a.x,dy=b.y-a.y;
-      const d=Math.sqrt(dx*dx+dy*dy)||.01;
-      const minD=(a.r+b.r)*3;
-      if(d<k*2.8){const f=k*k/d*.38;a.vx-=dx/d*f;a.vy-=dy/d*f;b.vx+=dx/d*f;b.vy+=dy/d*f;}
-      if(d<minD){const p=(minD-d)*.2;a.vx-=dx/d*p;a.vy-=dy/d*p;b.vx+=dx/d*p;b.vy+=dy/d*p;}
-    }
-  }
-  edges.forEach(e=>{
-    const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y;
-    const d=Math.sqrt(dx*dx+dy*dy)||.01;
-    const ideal=e.cross?k*2.5:k*1.1;
-    const f=(d-ideal)/d*.08;
-    e.a.vx+=dx*f;e.a.vy+=dy*f;e.b.vx-=dx*f;e.b.vy-=dy*f;
-  });
-  nodes.forEach(n=>{
-    n.vx+=(n.ox-n.x)*.014; n.vy+=(n.oy-n.y)*.014;
-    n.vx+=(W/2-n.x)*.002;  n.vy+=(H/2-n.y)*.002;
-    n.vx*=damp; n.vy*=damp;
-    n.x+=n.vx; n.y+=n.vy;
-  });
-}
-
-// ── CÁMARA ──────────────────────────────────────────────────────
 let cam={x:0,y:0,z:1,tz:1};
 let drag={on:false,lx:0,ly:0};
 let pinch={on:false,d0:0,z0:1};
 let hovered=null;
-
 cv.addEventListener('mousedown',e=>{drag.on=true;drag.lx=e.clientX;drag.ly=e.clientY;cv.style.cursor='grabbing';});
-window.addEventListener('mousemove',e=>{
-  if(drag.on){cam.x+=e.clientX-drag.lx;cam.y+=e.clientY-drag.ly;drag.lx=e.clientX;drag.ly=e.clientY;return;}
-  if(cam.z>1.8) checkHover(e.clientX,e.clientY);
-});
+window.addEventListener('mousemove',e=>{if(drag.on){cam.x+=e.clientX-drag.lx;cam.y+=e.clientY-drag.ly;drag.lx=e.clientX;drag.ly=e.clientY;return;}if(cam.z>1.8)chkHov(e.clientX,e.clientY);});
 window.addEventListener('mouseup',()=>{drag.on=false;cv.style.cursor='default';});
 cv.addEventListener('wheel',e=>{e.preventDefault();cam.tz=Math.max(.12,Math.min(16,cam.tz*(e.deltaY<0?1.12:.9)));},{passive:false});
-cv.addEventListener('touchstart',e=>{
-  if(e.touches.length===1){drag.on=true;drag.lx=e.touches[0].clientX;drag.ly=e.touches[0].clientY;}
-  if(e.touches.length===2){pinch.on=true;drag.on=false;pinch.d0=ptd(e);pinch.z0=cam.z;}
-},{passive:true});
-cv.addEventListener('touchmove',e=>{
-  if(drag.on&&e.touches.length===1){
-    cam.x+=e.touches[0].clientX-drag.lx;cam.y+=e.touches[0].clientY-drag.ly;
-    drag.lx=e.touches[0].clientX;drag.ly=e.touches[0].clientY;
-    if(cam.z>1.8) checkHover(e.touches[0].clientX,e.touches[0].clientY);
-  }
-  if(pinch.on&&e.touches.length===2) cam.tz=Math.max(.12,Math.min(16,pinch.z0*(ptd(e)/pinch.d0)));
-},{passive:true});
+cv.addEventListener('touchstart',e=>{if(e.touches.length===1){drag.on=true;drag.lx=e.touches[0].clientX;drag.ly=e.touches[0].clientY;}if(e.touches.length===2){pinch.on=true;drag.on=false;pinch.d0=ptd(e);pinch.z0=cam.z;}},{passive:true});
+cv.addEventListener('touchmove',e=>{if(drag.on&&e.touches.length===1){cam.x+=e.touches[0].clientX-drag.lx;cam.y+=e.touches[0].clientY-drag.ly;drag.lx=e.touches[0].clientX;drag.ly=e.touches[0].clientY;if(cam.z>1.8)chkHov(e.touches[0].clientX,e.touches[0].clientY);}if(pinch.on&&e.touches.length===2)cam.tz=Math.max(.12,Math.min(16,pinch.z0*(ptd(e)/pinch.d0)));},{passive:true});
 cv.addEventListener('touchend',e=>{if(e.touches.length<2)pinch.on=false;if(!e.touches.length)drag.on=false;},{passive:true});
 function ptd(e){return Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
-
-// Coord mundo
-function toWorld(sx,sy){
-  return {wx:(sx-W/2-cam.x)/cam.z+W/2, wy:(sy-H/2-cam.y)/cam.z+H/2};
-}
-function checkHover(sx,sy){
-  const {wx,wy}=toWorld(sx,sy);
-  let best=null,bd=Infinity;
-  nodes.forEach(n=>{ const d2n=(n.x-wx)**2+(n.y-wy)**2; if(d2n<(n.r*3)**2&&d2n<bd){bd=d2n;best=n;} });
-  hovered=best;
-  const tt=document.getElementById('tt');
-  if(best){
-    const st=TABLE_STYLE[best.group]||TABLE_STYLE.otros;
-    document.getElementById('tt-name').textContent=st.label;
-    document.getElementById('tt-body').innerHTML=
-      `<div class="tt-row"><span class="tt-k">Tabla</span><span class="tt-v">${best.group}</span></div>`+
-      `<div class="tt-row"><span class="tt-k">Registros</span><span class="tt-v">${st.n.toLocaleString()}</span></div>`+
-      `<div class="tt-row"><span class="tt-k">Estado</span><span class="tt-v" style="color:var(--cyan)">ACTIVO</span></div>`;
-    // Posicionar tooltip en coordenadas pantalla
-    const sx2=best.x*cam.z+W/2+cam.x-W/2*cam.z+W*(1-cam.z)/2;
-    const sy2=best.y*cam.z+H/2+cam.y-H/2*cam.z+H*(1-cam.z)/2;
-    tt.style.left=Math.min(W-240,sx2+14)+'px';
-    tt.style.top=Math.max(10,sy2-60)+'px';
-    tt.style.opacity='1';
-  } else {
-    tt.style.opacity='0';
-  }
-}
-
-// ── VIAJEROS (solo con eventos reales o demo) ────────────────────
+function chkHov(sx,sy){const wx=(sx-W/2-cam.x)/cam.z+W/2,wy=(sy-H/2-cam.y)/cam.z+H/2;let best=null,bd=Infinity;nodes.forEach(n=>{const dd=(n.x-wx)**2+(n.y-wy)**2;if(dd<(n.r*3)**2&&dd<bd){bd=dd;best=n;}});hovered=best;const tt=document.getElementById('tt');if(best){const st=TS[best.group]||TS.otros;document.getElementById('tt-name').textContent=st.label;document.getElementById('tt-body').innerHTML='<div class="tt-row"><span class="tt-k">Tabla</span><span class="tt-v">'+best.group+'</span></div><div class="tt-row"><span class="tt-k">Registros</span><span class="tt-v">'+st.n.toLocaleString()+'</span></div>';const sx2=best.x*cam.z+W/2+cam.x-W/2*cam.z+W*(1-cam.z)/2,sy2=best.y*cam.z+H/2+cam.y-H/2*cam.z+H*(1-cam.z)/2;tt.style.left=Math.min(W-230,sx2+14)+'px';tt.style.top=Math.max(10,sy2-55)+'px';tt.style.opacity='1';}else tt.style.opacity='0';}
 const travelers=[];
-function spawnTraveler(a,b,color){
-  travelers.push({a,b,t:0,speed:.014+Math.random()*.012,color});
-}
-
-// ── ACTIVAR GRUPO ────────────────────────────────────────────────
-let eventsToday=0;
-function activateTable(tableName, action='INSERT'){
-  const gn=gmap[tableName]||gmap.otros;
-  if(!gn||!gn.length) return;
+function spawnT(a,b,color){travelers.push({a,b,t:0,speed:.014+Math.random()*.012,color});}
+let evCnt=0;
+function activateTable(tbl,action){
+  const gn=gmap[tbl]||gmap.otros;if(!gn||!gn.length)return;
   gn.forEach((n,i)=>setTimeout(()=>{n.pulse=1;},i*5));
-  // Viajeros por aristas cross-group de esta tabla
-  edges.filter(e=>e.cross&&(e.a.group===tableName||e.b.group===tableName))
-    .sort(()=>Math.random()-.5).slice(0,8)
-    .forEach((e,i)=>setTimeout(()=>spawnTraveler(e.a,e.b,TABLE_STYLE[tableName]?.live||[10,79,191]),i*60));
-  eventsToday++;
-  document.getElementById('m-events').textContent=eventsToday;
-  addLog('tl', tableName, action);
+  edges.filter(e=>e.cross&&(e.a.group===tbl||e.b.group===tbl)).sort(()=>Math.random()-.5).slice(0,8).forEach((e,i)=>setTimeout(()=>spawnT(e.a,e.b,(TS[tbl]||TS.otros).live),i*55));
+  evCnt++;document.getElementById('m-ev').textContent=evCnt;
+  pushN(tbl,action||'INSERT');
 }
-
-// ── LOG MULTI-ZONA ───────────────────────────────────────────────
-const LOG_MAX=4;
-const logZones={tl:'log-tl',tr:'log-tr',bl:'log-bl',br:'log-br'};
-const logColors={
-  INSERT:'var(--cyan)',UPDATE:'var(--blue3)',DELETE:'#E53935',
-  ERROR:'#E53935',INSIGHT:'#007060',WARN:'#E07800',BRAIN_INIT:'var(--blue)',
-};
-function ts(){
-  const n=new Date();
-  return `${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')}`;
-}
-function addLog(zone, tabla, action='INSERT', msg=null){
-  const ulId=logZones[zone]||'log-tl';
-  const ul=document.getElementById(ulId);
-  if(!ul) return;
-  const st=TABLE_STYLE[tabla]||TABLE_STYLE.otros;
-  const color=logColors[action]||'var(--blue)';
-  const label=msg||(st.label+' → '+action);
-  const li=document.createElement('li');
-  li.className='notif'+(zone==='br'?' alert':zone==='bl'?' insight':'');
-  li.innerHTML=
-    `<span class="notif-dot" style="background:${color}"></span>`+
-    `<span class="notif-time" style="color:${color}">${ts()}</span>`+
-    `<span class="notif-msg" style="color:${color}">${label}</span>`;
+function tStr(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');}
+function rgbStr(c){return'rgb('+c[0]+','+c[1]+','+c[2]+')';}
+function pushN(tbl,action){
+  const st=TS[tbl]||TS.otros,c=rgbStr(st.live);
+  const label=(st.label||tbl.replace('aos_',''))+' → '+action;
+  const ul=document.getElementById('notif-left');
+  const li=document.createElement('li');li.className='notif';
+  li.innerHTML='<span class="ndot" style="background:'+c+'"></span><span class="ntime" style="color:'+c+'">'+tStr()+'</span><span class="nmsg" style="color:'+c+'">'+label+'</span>';
   ul.insertBefore(li,ul.firstChild);
-  while(ul.children.length>LOG_MAX) ul.removeChild(ul.lastChild);
+  while(ul.children.length>5)ul.removeChild(ul.lastChild);
+  setTimeout(()=>{li.classList.add('out');setTimeout(()=>{if(li.parentNode)li.remove();},380);},5000);
 }
-
-// ── SUPABASE STATUS ──────────────────────────────────────────────
-function checkSB(){
-  fetch(`${SB_URL}/rest/v1/aos_log_auditoria?select=id&limit=1`,
-    {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
-    .then(r=>{
-      const on=r.ok;
-      document.getElementById('sb-dot').className=on?'on':'';
-      document.getElementById('sb-lbl').textContent=on?'Live · Supabase conectado':'Sin conexión';
-      if(!on) addLog('br','sistema','ERROR','Supabase desconectado');
-    }).catch(()=>{
-      document.getElementById('sb-dot').className='';
-      document.getElementById('sb-lbl').textContent='Sin conexión';
-      addLog('br','sistema','ERROR','No se puede alcanzar Supabase');
-    });
+function pushAlert(msg){
+  const ul=document.getElementById('notif-right');
+  const li=document.createElement('li');li.className='notif notif-alert rIn';
+  li.innerHTML='<span class="ndot" style="background:#E53935"></span><span class="ntime" style="color:#B01010">'+tStr()+'</span><span class="nmsg" style="color:#B01010;max-width:110px">'+msg+'</span><button class="ndism" onclick="this.closest(\'li\').remove()">×</button>';
+  ul.insertBefore(li,ul.firstChild);
+  while(ul.children.length>4)ul.removeChild(ul.lastChild);
 }
-checkSB();
-setInterval(checkSB,30000);
-
-// ── SUPABASE REALTIME (WebSocket nativo sin librería) ─────────────
-// Supabase Realtime v2 usa WebSocket directo
-let ws=null, wsRetries=0;
-function connectRealtime(){
-  const wsUrl=`wss://ituyqwstonmhnfshnaqz.supabase.co/realtime/v1/websocket?apikey=${SB_KEY}&vsn=1.0.0`;
-  ws=new WebSocket(wsUrl);
-  ws.onopen=()=>{
-    wsRetries=0;
-    // Suscribir al canal de auditoría
-    ws.send(JSON.stringify({
-      topic:'realtime:public:aos_log_auditoria',
-      event:'phx_join',payload:{config:{broadcast:{self:true},presence:{key:''},postgres_changes:[{event:'INSERT',schema:'public',table:'aos_log_auditoria'}]}},
-      ref:'1'
-    }));
-    addLog('tl','sistema','BRAIN_INIT','Realtime conectado ✓');
-  };
-  ws.onmessage=e=>{
-    try{
-      const msg=JSON.parse(e.data);
-      if(msg.event==='INSERT'||msg.event==='postgres_changes'){
-        const rec=msg.payload?.data?.record||msg.payload?.record;
-        if(rec&&rec.tabla){
-          const action=rec.accion||'INSERT';
-          activateTable(rec.tabla, action);
-          // Insights automáticos
-          if(action==='INSERT') addLog('bl',rec.tabla,action,`+1 en ${rec.tabla.replace('aos_','')}`);
-          if(action==='DELETE') addLog('br',rec.tabla,'ERROR',`Registro eliminado en ${rec.tabla.replace('aos_','')}`);
-        }
-      }
-      // Heartbeat
-      if(msg.event==='phx_reply'&&msg.payload?.status==='ok') return;
-    }catch(err){}
-  };
-  ws.onclose=()=>{
-    wsRetries++;
-    const delay=Math.min(30000,2000*wsRetries);
-    addLog('br','sistema','WARN',`Realtime desconectado. Reconectando en ${Math.round(delay/1000)}s…`);
-    setTimeout(connectRealtime,delay);
-  };
-  ws.onerror=()=>{ ws.close(); };
+function pushInsight(title,detail){
+  const ul=document.getElementById('notif-bottom');
+  const li=document.createElement('li');li.className='notif notif-ins';
+  li.innerHTML='<div class="nh"><span class="ndot" style="background:#00C9A7"></span><span class="ntime" style="color:#007060">'+tStr()+'</span><span class="nmsg" style="color:#007060;max-width:260px">'+title+'</span><button class="ndism" style="margin-left:auto" onclick="event.stopPropagation();this.closest(\'li\').remove()">×</button></div><div class="nd">'+detail+'</div>';
+  li.addEventListener('click',()=>li.classList.toggle('exp'));
+  ul.insertBefore(li,ul.firstChild);
+  while(ul.children.length>3)ul.removeChild(ul.lastChild);
+  setTimeout(()=>{if(!li.classList.contains('exp')){li.classList.add('out');setTimeout(()=>{if(li.parentNode)li.remove();},380);}},30000);
 }
-// Heartbeat cada 25s
-setInterval(()=>{ if(ws&&ws.readyState===1) ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'})); },25000);
-connectRealtime();
-
-// ── POLLING FALLBACK (cada 8s, por si WS no funciona en móvil) ────
-let lastAuditId=0;
-async function pollAudit(){
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/aos_log_auditoria?select=id,tabla,accion,ts&id=gt.${lastAuditId}&order=id.asc&limit=10`,
-      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-    const rows=await r.json();
-    if(Array.isArray(rows)&&rows.length){
-      rows.forEach(row=>{
-        if(row.tabla&&row.tabla!=='sistema'){
-          activateTable(row.tabla, row.accion);
-        }
-        lastAuditId=Math.max(lastAuditId,row.id);
-      });
-    }
-  }catch(err){}
-}
-// Cargar el último id primero
-fetch(`${SB_URL}/rest/v1/aos_log_auditoria?select=id&order=id.desc&limit=1`,
-  {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
-  .then(r=>r.json()).then(d=>{ if(d&&d[0]) lastAuditId=d[0].id; });
-setInterval(pollAudit,8000);
-
-// ── DEMO ─────────────────────────────────────────────────────────
-let demoOn=false,demoTmr=null;
-const DEMO_FLOWS=[
-  ['aos_leads','aos_llamadas','aos_agenda_citas','aos_ventas'],
-  ['aos_leads','aos_pacientes','aos_ventas'],
-  ['aos_llamadas','aos_seguimientos'],
-  ['aos_inversion_campanas','aos_leads','aos_llamadas'],
-  ['aos_pacientes','aos_agenda_citas','aos_ventas'],
-];
-function runDemo(){
-  const f=DEMO_FLOWS[~~(Math.random()*DEMO_FLOWS.length)];
-  let d=0; f.forEach(t=>{ setTimeout(()=>activateTable(t,'INSERT'),d); d+=600+~~(Math.random()*250); });
-}
-function toggleDemo(){
-  const b=document.getElementById('bsim');
-  if(!demoOn){demoOn=true;b.classList.add('on');b.textContent='Detener';runDemo();demoTmr=setInterval(runDemo,4000);}
-  else{demoOn=false;b.classList.remove('on');b.textContent='Demo';clearInterval(demoTmr);}
-}
-
-// ── DRAW LOOP ─────────────────────────────────────────────────────
+function checkSB(){fetch(SB_URL+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>{const on=r.ok;document.getElementById('sb-dot').className=on?'on':'';document.getElementById('sb-lbl').textContent=on?'Live · Supabase conectado':'Sin conexión';if(!on)pushAlert('Supabase desconectado');}).catch(()=>{document.getElementById('sb-dot').className='';document.getElementById('sb-lbl').textContent='Sin conexión';pushAlert('Sin conexión a Supabase');});}
+checkSB();setInterval(checkSB,30000);
+let ws=null,wsR=0;
+function connectRT(){ws=new WebSocket('wss://ituyqwstonmhnfshnaqz.supabase.co/realtime/v1/websocket?apikey='+SB_KEY+'&vsn=1.0.0');ws.onopen=()=>{wsR=0;ws.send(JSON.stringify({topic:'realtime:public:aos_log_auditoria',event:'phx_join',payload:{config:{postgres_changes:[{event:'INSERT',schema:'public',table:'aos_log_auditoria'}]}},ref:'1'}));};ws.onmessage=e=>{try{const msg=JSON.parse(e.data),rec=msg.payload?.data?.record||msg.payload?.record;if(rec&&rec.tabla&&rec.tabla!=='sistema'){activateTable(rec.tabla,rec.accion||'INSERT');if(rec.accion==='DELETE')pushAlert('Eliminación en '+(rec.tabla.replace('aos_','')));}}catch(_){}};ws.onclose=()=>{wsR++;setTimeout(connectRT,Math.min(30000,2000*wsR));};ws.onerror=()=>ws.close();}
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));},25000);
+connectRT();
+let lastId=0;
+async function poll(){try{const r=await fetch(SB_URL+'/rest/v1/aos_log_auditoria?select=id,tabla,accion&id=gt.'+lastId+'&order=id.asc&limit=10',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});const rows=await r.json();if(Array.isArray(rows)&&rows.length){rows.forEach(row=>{if(row.tabla&&row.tabla!=='sistema')activateTable(row.tabla,row.accion);lastId=Math.max(lastId,row.id);});}}catch(_){}}
+fetch(SB_URL+'/rest/v1/aos_log_auditoria?select=id&order=id.desc&limit=1',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()).then(d=>{if(d&&d[0])lastId=d[0].id;});
+setInterval(poll,8000);
 function draw(){
-  // Fondo blanco con fade suave
-  ctx.fillStyle='rgba(248,250,254,0.14)';
-  ctx.fillRect(0,0,W,H);
-
+  ctx.fillStyle='rgba(248,250,254,0.14)';ctx.fillRect(0,0,W,H);
   cam.z+=(cam.tz-cam.z)*0.07;
-  document.getElementById('zoom-lbl').textContent=`zoom ${cam.z.toFixed(1)}×`;
-
-  ctx.save();
-  ctx.translate(W/2+cam.x, H/2+cam.y);
-  ctx.scale(cam.z, cam.z);
-  ctx.translate(-W/2, -H/2);
-
-  // ── Aristas ──────────────────────────────────────────────────
-  edges.forEach(e=>{
-    const pulse=Math.max(e.a.pulse,e.b.pulse);
-    const ci=e.cross?lerpRGB(e.a.idle,e.b.idle,.5):e.a.idle;
-    const ca=e.cross?lerpRGB(e.a.live,e.b.live,.5):e.a.live;
-    const c=lerpRGB(ci,ca,pulse);
-    const op=e.cross?(0.06+pulse*0.55):(0.18+pulse*0.45);
-    ctx.beginPath(); ctx.moveTo(e.a.x,e.a.y); ctx.lineTo(e.b.x,e.b.y);
-    ctx.strokeStyle=`rgba(${c},${Math.min(.9,op).toFixed(2)})`;
-    ctx.lineWidth=(e.cross?0.4:0.3)/cam.z;
-    ctx.stroke();
-  });
-
-  // ── Nodos ────────────────────────────────────────────────────
-  nodes.forEach(n=>{
-    n.phase+=n.pspd;
-    if(n.pulse>0) n.pulse=Math.max(0,n.pulse-0.018);
-    const p=n.pulse;
-    // Interpolar color idle → live según pulse
-    const c=lerpRGB(n.idle,n.live,p);
-    const isH=n===hovered;
-    const r=n.r+(isH?1.2:0);
-
-    // Halo (solo cuando activo)
-    if(p>0.04||isH){
-      ctx.beginPath(); ctx.arc(n.x,n.y,r*(2.8+p*3),0,Math.PI*2);
-      ctx.fillStyle=`rgba(${c},${((p*0.10)+(isH?.07:0)).toFixed(2)})`;ctx.fill();
-      ctx.beginPath(); ctx.arc(n.x,n.y,r*(1.5+p),0,Math.PI*2);
-      ctx.fillStyle=`rgba(${c},${((p*0.20)+(isH?.14:0)).toFixed(2)})`;ctx.fill();
-    }
-
-    // Punto principal
-    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
-    ctx.fillStyle=`rgba(${c},${(0.72+p*0.28).toFixed(2)})`;ctx.fill();
-
-    // Centro blanco pequeño
-    if(r>1.0){
-      ctx.beginPath(); ctx.arc(n.x,n.y,r*0.30,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,255,255,${(0.50+p*0.45).toFixed(2)})`;ctx.fill();
-    }
-
-    // Label al hub con zoom suficiente
-    if(n.label&&cam.z>0.6){
-      const sz=Math.max(7,9.5/cam.z);
-      ctx.font=`600 ${sz}px 'SF Pro Display','Segoe UI',sans-serif`;
-      ctx.textAlign='center';
-      const cc=lerpRGB(n.idle,n.live,Math.max(0.3,p));
-      ctx.fillStyle=`rgba(${cc},${Math.min(.75,.2+cam.z*.35)})`;
-      ctx.fillText(n.label,n.x,n.y-r-3/cam.z);
-    }
-  });
-
-  // ── Viajeros ─────────────────────────────────────────────────
-  for(let i=travelers.length-1;i>=0;i--){
-    const tv=travelers[i];
-    tv.t+=tv.speed;
-    if(tv.t>=1){travelers.splice(i,1);continue;}
-    const x=tv.a.x+(tv.b.x-tv.a.x)*tv.t;
-    const y=tv.a.y+(tv.b.y-tv.a.y)*tv.t;
-    const xt=tv.a.x+(tv.b.x-tv.a.x)*Math.max(0,tv.t-.2);
-    const yt=tv.a.y+(tv.b.y-tv.a.y)*Math.max(0,tv.t-.2);
-    const g2=ctx.createLinearGradient(xt,yt,x,y);
-    g2.addColorStop(0,`rgba(${tv.color},0)`);
-    g2.addColorStop(1,`rgba(${tv.color},.9)`);
-    ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);
-    ctx.strokeStyle=g2;ctx.lineWidth=1.6/cam.z;ctx.stroke();
-    const hr=2.2/cam.z;
-    ctx.beginPath();ctx.arc(x,y,hr*2,0,Math.PI*2);
-    ctx.fillStyle=`rgba(${tv.color},.12)`;ctx.fill();
-    ctx.beginPath();ctx.arc(x,y,hr,0,Math.PI*2);
-    ctx.fillStyle=`rgba(${tv.color},.92)`;ctx.fill();
-    ctx.beginPath();ctx.arc(x,y,hr*.32,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();
-  }
-
-  ctx.restore();
-  requestAnimationFrame(draw);
+  document.getElementById('zoom-pill').textContent='zoom '+cam.z.toFixed(1)+'×';
+  ctx.save();ctx.translate(W/2+cam.x,H/2+cam.y);ctx.scale(cam.z,cam.z);ctx.translate(-W/2,-H/2);
+  edges.forEach(e=>{const p=Math.max(e.a.pulse,e.b.pulse),ci=e.cross?lR(e.a.idle,e.b.idle,.5):e.a.idle,ca=e.cross?lR(e.a.live,e.b.live,.5):e.a.live,c=lR(ci,ca,p);ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.strokeStyle='rgba('+c+','+(e.cross?0.06+p*.55:0.18+p*.42).toFixed(2)+')';ctx.lineWidth=(e.cross?.4:.28)/cam.z;ctx.stroke();});
+  nodes.forEach(n=>{n.phase+=n.pspd;if(n.pulse>0)n.pulse=Math.max(0,n.pulse-0.018);const p=n.pulse,c=lR(n.idle,n.live,p),isH=n===hovered,r=n.r+(isH?1.2:0);if(p>0.04||isH){ctx.beginPath();ctx.arc(n.x,n.y,r*(2.8+p*3),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.09+(isH?.06:0)).toFixed(2)+')';ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,r*(1.5+p),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.20+(isH?.13:0)).toFixed(2)+')';ctx.fill();}ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(0.72+p*.28).toFixed(2)+')';ctx.fill();if(r>1.0){ctx.beginPath();ctx.arc(n.x,n.y,r*.30,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+(0.50+p*.42).toFixed(2)+')';ctx.fill();}if(n.label&&cam.z>.55){const sz=Math.max(6.5,9/cam.z);ctx.font='600 '+sz+'px \'SF Pro Display\',\'Segoe UI\',sans-serif';ctx.textAlign='center';const cc=lR(n.idle,n.live,Math.max(.3,p));ctx.fillStyle='rgba('+cc+','+Math.min(.72,.18+cam.z*.33)+')';ctx.fillText(n.label,n.x,n.y-r-3/cam.z);}});
+  for(let i=travelers.length-1;i>=0;i--){const tv=travelers[i];tv.t+=tv.speed;if(tv.t>=1){travelers.splice(i,1);continue;}const x=tv.a.x+(tv.b.x-tv.a.x)*tv.t,y=tv.a.y+(tv.b.y-tv.a.y)*tv.t,xt=tv.a.x+(tv.b.x-tv.a.x)*Math.max(0,tv.t-.2),yt=tv.a.y+(tv.b.y-tv.a.y)*Math.max(0,tv.t-.2);const g2=ctx.createLinearGradient(xt,yt,x,y);g2.addColorStop(0,'rgba('+tv.color+',0)');g2.addColorStop(1,'rgba('+tv.color+',.9)');ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);ctx.strokeStyle=g2;ctx.lineWidth=1.5/cam.z;ctx.stroke();const hr=2.1/cam.z;ctx.beginPath();ctx.arc(x,y,hr*2,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.12)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.92)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr*.32,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.86)';ctx.fill();}
+  ctx.restore();requestAnimationFrame(draw);
 }
-
-function lerpRGB(a,b,t){
-  return[~~(a[0]+(b[0]-a[0])*t),~~(a[1]+(b[1]-a[1])*t),~~(a[2]+(b[2]-a[2])*t)];
-}
-
-// ── INIT ─────────────────────────────────────────────────────────
-initGraph();
-setTimeout(()=>{
-  addLog('tl','sistema','BRAIN_INIT','Brain cargado · 8 tablas');
-  addLog('bl','aos_pacientes','INSERT','7,010 pacientes en memoria');
-},500);
+initG();
+setTimeout(()=>{pushInsight('Brain activo · 8 tablas monitoreadas','Toca aquí para expandir. Los eventos de Supabase aparecen en tiempo real en la izquierda. Alertas importantes a la derecha. Toca un nodo para ver su información.');},700);
 draw();
 </script>
 </body>
