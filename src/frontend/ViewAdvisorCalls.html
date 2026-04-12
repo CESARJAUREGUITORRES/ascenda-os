@@ -660,7 +660,16 @@ function recargarCalendario(){
     var lsStr=ls.getFullYear()+'-'+String(ls.getMonth()+1).padStart(2,'0')+'-'+String(ls.getDate()).padStart(2,'0');
     (function(lunesStr){
       google.script.run.withSuccessHandler(function(res){
-        if(res&&res.ok&&res.dias){res.dias.forEach(function(d){if(d.fecha)CAL_DATA_MES[d.fecha]=d.turnos||[];});}
+        if(res&&res.ok&&res.dias){res.dias.forEach(function(d){
+          if(!d.fecha)return;
+          // Normalizar: GS_06 devuelve doctoras[]+enfermeria[], el HTML espera turnos[]
+          var t=d.turnos||[];
+          if(!t.length&&(d.doctoras||d.enfermeria)){
+            (d.doctoras||[]).forEach(function(x){t.push({rol:'DOCTORA',personal:x.label||x.personal||'',sede:x.sede||'',hora_inicio:x.horaIni||x.hora_inicio||'',hora_fin:x.horaFin||x.hora_fin||'',notas:x.tipo||x.notas||''});});
+            (d.enfermeria||[]).forEach(function(g){(g.nombres||[]).forEach(function(n){t.push({rol:'ENFERMERIA',personal:n,sede:g.sede||'',hora_inicio:'',hora_fin:'',notas:''});});});
+          }
+          CAL_DATA_MES[d.fecha]=t;
+        });}}
         if(--pend===0)renderMes(_sede);
       }).withFailureHandler(function(){if(--pend===0)renderMes(_sede);}).api_getSemanaCalT(CC.token,0,_sede,lunesStr);
     })(lsStr);
