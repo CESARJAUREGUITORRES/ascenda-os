@@ -1,4 +1,4 @@
-
+<!-- ViewAdminCalls.html v3.3 — Panel Maestro de Llamadas Admin AscendaOS -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 .ac{padding:14px;display:flex;flex-direction:column;gap:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;}
@@ -8,7 +8,7 @@
 .chip{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid #DDE4F5;cursor:pointer;background:#fff;color:#6B7BA8;transition:all .15s;white-space:nowrap;}
 .chip.act{background:#1A4FD6;border-color:#1A4FD6;color:#fff;}
 
- 
+/* KPIs v2 */
 .kg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;}
 .kpi{background:#F4F7FE;border-radius:10px;padding:13px 10px;text-align:center;position:relative;}
 .kpi.kpi-ase{border:1.5px solid #1A4FD6;background:#EBF2FF;}
@@ -19,7 +19,7 @@
 .kpi-fix-badge{position:absolute;top:6px;right:7px;font-size:8px;padding:1px 5px;border-radius:20px;background:#F4F7FE;color:#8FA3C8;border:0.5px solid #DDE4F5;}
 .ase-kpi-badge{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:20px;background:#1A4FD6;color:#fff;margin-top:3px;}
 
- 
+/* Monitoreo */
 .mon-t{width:100%;border-collapse:collapse;table-layout:fixed;}
 .mon-t th{font-size:10px;color:#8FA3C8;padding:7px 10px;border-bottom:1px solid #F0F4FC;text-align:left;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
 .mon-t td{padding:13px 10px;border-bottom:1px solid #F5F7FC;vertical-align:middle;}
@@ -27,17 +27,17 @@
 .mon-t tr.ar{cursor:pointer;}
 .mon-t tr.ar:hover td{background:#FAFBFF;}
 .mon-t tr.ar.sel td{background:#EBF2FF;}
- 
+/* Último contacto — rediseñado */
 .ult-num{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;color:#0D1B3E;letter-spacing:.5px;display:block;}
 .ult-hora{font-size:12px;font-weight:600;color:#1A4FD6;margin-top:2px;display:block;}
 .ult-mins{font-size:10px;color:#8FA3C8;display:block;}
- 
+/* Pills de estado */
 .pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;}
 .p-a{background:#F0FDF4;color:#15803D;}.p-l{background:#EBF2FF;color:#1D4ED8;}
 .p-b{background:#FFFBEB;color:#B45309;}.p-i{background:#FEF2F2;color:#B91C1C;}.p-o{background:#F4F7FE;color:#8FA3C8;}
- 
+/* Asesor badge */
 .ase-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;background:#EBF2FF;color:#1A4FD6;margin-left:8px;}
- 
+/* Tablas */
 .ht{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
 .ht th{font-size:9px;color:#8FA3C8;padding:5px 9px;border-bottom:1px solid #F0F4FC;font-weight:600;text-transform:uppercase;letter-spacing:.4px;text-align:right;}
 .ht th:first-child{text-align:left;}
@@ -51,7 +51,7 @@
 .ht2 td{padding:8px 7px;border-bottom:1px solid #F5F7FC;text-align:right;font-size:12px;}
 .ht2 td:first-child{text-align:left;font-weight:600;}
 .ht2 tr:last-child td{border-bottom:none;}
- 
+/* Embudo */
 .es{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F5F7FC;}
 .es:last-child{border-bottom:none;}
 .el{width:75px;font-size:11px;color:#8FA3C8;}
@@ -59,7 +59,7 @@
 .ebf{height:100%;border-radius:4px;transition:width .4s;}
 .ev{font-size:12px;font-weight:700;width:65px;text-align:right;}
 .ep{font-size:10px;color:#8FA3C8;width:32px;text-align:right;}
- 
+/* Bases */
 .tab-bar{display:flex;gap:0;border-bottom:1px solid #E2E8F5;margin-bottom:12px;overflow-x:auto;}
 .tab{padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;color:#8FA3C8;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
 .tab.act{color:#1A4FD6;border-bottom-color:#1A4FD6;}
@@ -82,7 +82,7 @@
 .sem-no-contesta{background:#D97706;}.sem-no-interes{background:#9AAAC8;}
 .sem-cita-conf{background:#15803D;}.sem-sacar{background:#B91C1C;}
 .sem-provincia{background:#EA580C;}.sem-seguimiento{background:#7C3AED;}.sem-virgen{background:#1A4FD6;}
- 
+/* Asesores */
 .ag{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
 .ac2{border:1px solid #E2E8F5;border-radius:10px;padding:11px 12px;cursor:pointer;transition:all .15s;}
 .ac2:hover{border-color:#1A4FD6;background:#FAFCFF;}
@@ -90,7 +90,7 @@
 .ac2-n{font-size:13px;font-weight:700;}
 .ac2-c{font-size:11px;font-weight:700;margin-top:3px;}
 .ac2-d{font-size:10px;color:#8FA3C8;margin-top:2px;}
- 
+/* Config inline */
 .cfg-inline{background:#F0F5FF;border:1px solid #C7D7FA;border-left:4px solid #1A4FD6;border-radius:10px;padding:16px;margin-top:12px;}
 .cfg-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0;}
 .copt{border:1px solid #DDE4F5;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .15s;background:#fff;}
@@ -99,13 +99,13 @@
 .copt-ico{font-size:18px;margin-bottom:4px;}
 .copt-t{font-size:11px;font-weight:700;}
 .copt-s{font-size:9px;color:#8FA3C8;margin-top:2px;line-height:1.4;}
- 
+/* Popup alertas */
 .al-popup-wrap{position:relative;display:inline-block;}
 .al-popup{position:absolute;top:calc(100% + 6px);right:0;width:340px;background:#fff;border:1px solid #E2E8F5;border-radius:12px;padding:14px;z-index:999;display:none;}
 .al-popup.open{display:block;}
 .al-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .al-ok{background:#F0FDF4;color:#15803D;}.al-warn{background:#FEF2F2;color:#B91C1C;}
- 
+/* Btns */
 .btn-s{border:1px solid #DDE4F5;border-radius:7px;padding:4px 11px;font-size:11px;cursor:pointer;background:transparent;color:#0D1B3E;font-family:'DM Sans',sans-serif;font-weight:500;}
 .btn-s:hover{background:#F4F7FE;}
 .btn-p{border:none;border-radius:7px;padding:5px 14px;font-size:11px;cursor:pointer;background:#1A4FD6;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;}
@@ -118,7 +118,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
 
 <div class="ac">
 
-  
+  <!-- CABECERA -->
   <div style="display:flex;align-items:center;justify-content:space-between;">
     <div style="font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;">Panel de llamadas</div>
     <div style="display:flex;align-items:center;gap:9px;">
@@ -138,7 +138,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
     </div>
   </div>
 
-  
+  <!-- FILTROS -->
   <div class="fbar">
     <span style="font-size:10px;color:#6B7BA8;font-weight:700;">Período</span>
     <span class="chip" id="c-dia" onclick="setF('dia',this)">Día</span>
@@ -155,7 +155,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
     <span id="f-ase-lbl" style="display:none;font-size:10px;font-weight:700;color:#1A4FD6;padding:3px 10px;border-radius:20px;background:#EBF2FF;"></span>
   </div>
 
-  
+  <!-- KPIs v2 -->
   <div class="kg" id="kpi-grid">
     <div class="kpi" id="kpi1">
       <div class="kv" id="k1">—</div>
@@ -190,11 +190,11 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
     </div>
   </div>
 
-  
+  <!-- ZONA PRINCIPAL -->
   <div style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:12px;align-items:start;">
     <div style="display:flex;flex-direction:column;gap:12px;">
 
-      
+      <!-- MONITOREO -->
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <div class="sec-t">Monitoreo de llamadas</div>
@@ -214,7 +214,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
         <div id="mon-ts" style="font-size:9px;color:#8FA3C8;margin-top:8px;text-align:right;"></div>
       </div>
 
-      
+      <!-- HISTÓRICO -->
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div style="display:flex;align-items:center;">
@@ -237,7 +237,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
       </div>
     </div>
 
-    
+    <!-- DERECHA -->
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="card">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
@@ -260,7 +260,7 @@ select{font-size:10px;padding:3px 6px;border:1px solid #DDE4F5;border-radius:6px
     </div>
   </div>
 
-  
+  <!-- GESTIÓN DE BASES -->
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div class="sec-t">Gestión de bases y distribución</div>
@@ -391,7 +391,7 @@ function aplicar(){
   cargarTodo();
 }
 
- 
+/* ── KPIs v2 ── */
 function loadKpis(){
   var ase = AC.asesorF!=='todos' ? AC.asesorF : '';
   google.script.run.withSuccessHandler(renderKpis).withFailureHandler(function(){})
@@ -403,42 +403,42 @@ function renderKpis(r){
   var k=r.kpis;
   var lbl=document.getElementById('f-lbl'); if(lbl) lbl.textContent=r.filtro?r.filtro.label:'';
 
-  
+  // Badge asesor en filtro bar
   var fab=document.getElementById('f-ase-lbl');
   if(fab){
     if(r.asesor){fab.style.display='inline-block';fab.textContent='Asesor: '+r.asesor;}
     else fab.style.display='none';
   }
 
-  
+  // KPI 1: Llamadas
   setEl('k1', k.totalLlamadas||0);
   setEl('k1s', r.filtro?(r.filtro.label==='Hoy'?'hoy':'del período'):'del período');
 
-  
+  // KPI 2: Vírgenes (siempre global, texto fijo)
   setEl('k2', k.virgenesHistoricos||0);
 
-  
+  // KPI 3: Leads contactados / total (fracción)
   var k3el=document.getElementById('k3');
   if(k3el) k3el.innerHTML=(k.leadsContactados||0)+
     ' <span style="font-size:13px;font-weight:400;color:#8FA3C8">/ '+(k.totalLeadsPeriodo||0)+'</span>';
   setEl('k3s',(k.pctContactados||0)+'% cobertura');
 
-  
+  // KPI 4: Citas agendadas
   var k4col = (k.citasAgendadas||0)>0?'#15803D':'#8FA3C8';
   var k4el=document.getElementById('k4'); if(k4el){k4el.textContent=k.citasAgendadas||0;k4el.style.color=k4col;}
 
-  
+  // KPI 5: Asistidos / agendadas
   var k5el=document.getElementById('k5');
   if(k5el) k5el.innerHTML=(k.citasAsistidas||0)+
     ' <span style="font-size:13px;font-weight:400;color:#8FA3C8">/ '+(k.citasAgendadas||0)+'</span>';
   setEl('k5s',(k.pctAsistencia||0)+'% asistencia');
 
-  
+  // KPI 6: Facturación call center
   var k6el=document.getElementById('k6');
   if(k6el){k6el.textContent=fmtS(k.factCallCenter);k6el.style.fontSize='16px';}
   setEl('k6s',(k.ventasCallCenter||0)+' ventas con asesor');
 
-  
+  // Resaltar KPIs si hay asesor filtrado
   var kpis=['kpi1','kpi3','kpi4','kpi5','kpi6'];
   kpis.forEach(function(id){
     var el=document.getElementById(id); if(!el) return;
@@ -447,7 +447,7 @@ function renderKpis(r){
   });
 }
 
- 
+/* ── Monitoreo ── */
 function loadMon(){
   google.script.run.withSuccessHandler(renderMon).withFailureHandler(function(){}).api_getMonitoreoEquipoT(AC.token);
 }
@@ -470,7 +470,7 @@ function renderMon(res){
   tb.innerHTML=fl.map(function(f){
     var cv=f.llamadas>0?Math.round((f.citas||0)/f.llamadas*100):0;
     var cc=cv>=20?'#15803D':cv>=10?'#B45309':'#8FA3C8';
-    
+    // ÚLTIMO CONTACTO — rediseñado: número grande + hora coloreada + mins
     var ultHtml='<span style="color:#8FA3C8;font-size:11px;">—</span>';
     if(f.ultNum && f.ultNum!=='—'){
       var mins=(f.minsSin!==null&&f.minsSin!==undefined)?'<span class="ult-mins">('+f.minsSin+'m)</span>':'';
@@ -579,7 +579,7 @@ function loadHist(){
   }).withFailureHandler(function(){}).api_getHistoricoAnualT(AC.token,ase);
 }
 
- 
+/* ── Bases ── */
 function selTab(el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('act');});
   el.classList.add('act'); AC.tipoBase=el.dataset.tipo;
@@ -652,7 +652,7 @@ function selBase(nom,tipo,el){
   }
 }
 
- 
+/* ── Asesores ── */
 function loadAseGrid(){
   google.script.run.withSuccessHandler(function(res){
     var g=document.getElementById('ase-grid'); if(!g) return;
@@ -741,7 +741,7 @@ function resetDist(){
   }).withFailureHandler(function(){}).api_resetDistribucionT(AC.token,AC.distSelNom);
 }
 
- 
+/* ── Alertas popup ── */
 function toggleAlertas(e){
   e.stopPropagation();
   var ap=document.getElementById('al-popup'); if(ap) ap.classList.toggle('open');
