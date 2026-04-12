@@ -675,3 +675,49 @@ function _leerEventosCalendarRango(calId, desde, hasta) {
 
   return result;
 }
+
+// ============================================================
+// PATCH — GS_06_AdvisorCalls.gs
+// Agregar al FINAL del archivo (antes del último })
+// CTRL+F: "api_getLeadsCampanaMesT" para verificar que no existe
+// ============================================================
+
+// ══════════════════════════════════════════════════════════════
+// MOD-16 · LEADS CAMPAÑA DEL MES
+// Usa aos_panel_asesor (misma RPC) — devuelve datos de leads
+// El HTML llama: api_getLeadsCampanaMesT(token, mes, anio)
+// ══════════════════════════════════════════════════════════════
+// ===== CTRL+F: api_getLeadsCampanaMesT =====
+
+function api_getLeadsCampanaMesT(token, mes, anio) {
+  var c = _ctx(token);
+  if (!c.ok) return { ok: false };
+  var now = new Date();
+  mes  = Number(mes)  || (now.getMonth()+1);
+  anio = Number(anio) || now.getFullYear();
+  var mesStr = anio+'-'+(mes<10?'0'+mes:mes)+'-01';
+  try {
+    var d = _sbRpc('aos_panel_asesor', {
+      p_asesor:     c.asesor,
+      p_id_asesor:  c.idAsesor,
+      p_hoy:        _hoy(),
+      p_mes_inicio: mesStr
+    });
+    if (!d) return { ok: false };
+    var leadsN = Number(d.leadsNuevos)  || 0;
+    var leadsL = Number(d.leadsLlamados)|| 0;
+    var leadsC = Number(d.leadsCitas)   || 0;
+    return {
+      ok:           true,
+      leadsNuevos:  leadsN,
+      leadsLlamados: leadsL,
+      leadsCitas:   leadsC,
+      leadsVentas:  0,
+      leadsFact:    0,
+      pctLlamados:  leadsN > 0 ? Math.round(leadsL / leadsN * 100) : 0
+    };
+  } catch (e) {
+    Logger.log('getLeadsCampana: ' + e.message);
+    return { ok: false };
+  }
+}
