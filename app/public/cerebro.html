@@ -68,6 +68,10 @@ canvas{position:fixed;inset:0;display:block}
 .ni{flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;border-color:rgba(0,201,167,0.18)!important;background:rgba(248,254,252,0.92)!important}
 .ni .nh{display:flex;align-items:center;gap:5px;width:100%}.ni .nd{font-size:8px;color:#006655;display:none;margin-top:3px;padding-top:4px;border-top:1px solid rgba(0,201,167,0.12);line-height:1.5;white-space:normal;max-width:300px}.ni.exp .nd{display:block}
 
+/* Selector de dispositivo de audio */
+#kk-dev-wrap select{max-width:100%;font-size:9px}
+#kk-dev-wrap select option{background:#fff;color:#071D4A}
+
 /* Controles bottom */
 #ctrls{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;pointer-events:all}
 .cb{background:var(--card);border:1px solid var(--muted);border-radius:8px;padding:4px 10px;font-size:8.5px;color:var(--blue2);cursor:pointer;backdrop-filter:blur(8px);font-weight:600;transition:all .2s;white-space:nowrap}
@@ -277,236 +281,444 @@ function pushInsight(title,detail){
   setTimeout(()=>{if(!li.classList.contains('exp')){li.classList.add('out');setTimeout(()=>{if(li.parentNode)li.remove();},380);}},30000);
 }
 
-// ══ KRONIA v2.1 — VOZ FEMENINA REAL ══════════════════════════
-let synth=window.speechSynthesis;
-let kkVoice=null;
-let kkVis=false;
-let micOn=false;
-let recognition=null;
-let audioCtx=null,analyser=null,dataArr=null,micStream=null,waveAnim=null;
-const kkCv=document.getElementById('kk-cv'),kkCtx2=kkCv.getContext('2d');
-const SESSION_ID='ses_'+Date.now();
-let memoria=[],ultimaInt=null,ultimoCtx={};
+// ══ KRONIA v3.0 — COMUNICACIÓN BIDIRECCIONAL REAL ═════════════
+// Foco: permisos mic, selección dispositivo, waveform real, escucha activa
+// ══════════════════════════════════════════════════════════════
 
-// ── Cargar voces: ESPERAR a que estén disponibles ─────────────
-function getKronIAVoice(){
-  const vs=synth.getVoices();
-  if(!vs.length) return null;
-  // Log para debug
-  console.log('Voces disponibles:',vs.map(v=>v.name+' ('+v.lang+')'));
-  // Prioridad: Google español → español de cualquier región → cualquier mujer
-  const prioridad=[
-    v=>v.name==='Google español',
-    v=>v.name.toLowerCase().includes('google') && v.lang.startsWith('es'),
-    v=>v.lang==='es-US' && v.name.toLowerCase().includes('female'),
-    v=>v.lang==='es-MX',
-    v=>v.lang==='es-US',
-    v=>v.lang==='es-419',
-    v=>v.lang.startsWith('es'),
-  ];
-  for(const test of prioridad){const v=vs.find(test);if(v)return v;}
-  return vs[0];
-}
+let synth = window.speechSynthesis;
+let kkVoice = null;
+let kkVis = false;
+let micOn = false;
+let isSpeaking = false;
+let recognition = null;
+let audioCtx = null, analyser = null, dataArr = null;
+let micStream = null, waveAnim = null;
+let selectedDeviceId = null; // dispositivo de mic seleccionado
+let availableDevices = [];   // lista de mics disponibles
 
-// Las voces cargan async — esperar el evento
-if(synth.onvoiceschanged!==undefined){
-  synth.onvoiceschanged=()=>{kkVoice=getKronIAVoice();};
-}
-setTimeout(()=>{kkVoice=getKronIAVoice();},500);
-setTimeout(()=>{if(!kkVoice)kkVoice=getKronIAVoice();},1500);
+const SESSION_ID = 'ses_' + Date.now();
+let memoria = [], ultimaInt = null, ultimoCtx = {};
 
-function kkSpeak(text){
-  if(!synth)return;
-  synth.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  // Reintentar voz si no se cargó aún
-  if(!kkVoice)kkVoice=getKronIAVoice();
-  if(kkVoice)u.voice=kkVoice;
-  u.lang='es-PE';u.rate=0.90;u.pitch=1.10;u.volume=1;
-  document.getElementById('kk-txt').textContent=text;
-  document.getElementById('kk-st').textContent='Hablando…';
-  document.getElementById('kk-mic-dot').className='speaking';
-  u.onstart=()=>{if(!waveAnim)drawWaveSynth();};
-  u.onend=()=>{
-    document.getElementById('kk-st').textContent=micOn?'Escuchando…':'Inactiva';
-    document.getElementById('kk-mic-dot').className=micOn?'listening':'';
-    if(!micOn){stopWave();}
+// ── Panel de selección de dispositivos (se muestra la primera vez) ──
+// El HTML del selector se inyecta dinámicamente dentro de #kronia
+function buildDeviceSelector(devices) {
+  // Eliminar selector previo si existe
+  const old = document.getElementById('kk-dev-wrap');
+  if (old) old.remove();
+
+  if (devices.length <= 1) return; // solo 1 mic, no hace falta selector
+
+  const wrap = document.createElement('div');
+  wrap.id = 'kk-dev-wrap';
+  wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:2px';
+
+  const lbl = document.createElement('span');
+  lbl.textContent = '🎤';
+  lbl.style.cssText = 'font-size:11px;flex-shrink:0';
+
+  const sel = document.createElement('select');
+  sel.id = 'kk-dev-sel';
+  sel.style.cssText = `
+    flex:1;font-size:9px;color:#071D4A;background:rgba(255,255,255,0.9);
+    border:1px solid rgba(0,201,167,0.3);border-radius:6px;
+    padding:3px 6px;cursor:pointer;outline:none;
+  `;
+  devices.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.label || 'Micrófono ' + (devices.indexOf(d) + 1);
+    if (d.deviceId === selectedDeviceId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    selectedDeviceId = sel.value;
+    // Reiniciar stream con el nuevo dispositivo
+    if (micOn) {
+      stopMicStream();
+      startMicStream();
+    }
   };
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(sel);
+  document.getElementById('kronia').appendChild(wrap);
+}
+
+// ── Cargar lista de dispositivos ──────────────────────────────
+async function loadDevices() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableDevices = devices.filter(d => d.kind === 'audioinput');
+    // Si los labels están vacíos, pedir permiso primero
+    if (availableDevices.length > 0 && !availableDevices[0].label) {
+      // Los labels solo aparecen después de pedir permiso
+      return availableDevices;
+    }
+    buildDeviceSelector(availableDevices);
+    return availableDevices;
+  } catch (e) {
+    return [];
+  }
+}
+
+// Escuchar si se conecta/desconecta un dispositivo de audio
+navigator.mediaDevices.addEventListener('devicechange', () => {
+  loadDevices();
+});
+
+// ── Voces — esperar carga async ───────────────────────────────
+function getKronIAVoice() {
+  const vs = synth.getVoices();
+  if (!vs.length) return null;
+  const prioridad = [
+    v => v.name === 'Google español',
+    v => v.name.toLowerCase().includes('google') && v.lang.startsWith('es'),
+    v => v.lang === 'es-MX',
+    v => v.lang === 'es-US',
+    v => v.lang === 'es-419',
+    v => v.lang.startsWith('es'),
+  ];
+  for (const test of prioridad) {
+    const v = vs.find(test);
+    if (v) return v;
+  }
+  return vs[0] || null;
+}
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = () => { kkVoice = getKronIAVoice(); };
+}
+setTimeout(() => { kkVoice = getKronIAVoice(); }, 400);
+setTimeout(() => { if (!kkVoice) kkVoice = getKronIAVoice(); }, 1500);
+
+// ── Hablar ────────────────────────────────────────────────────
+function kkSpeak(text) {
+  if (!synth) return;
+  synth.cancel();
+  isSpeaking = true;
+  const u = new SpeechSynthesisUtterance(text);
+  if (!kkVoice) kkVoice = getKronIAVoice();
+  if (kkVoice) u.voice = kkVoice;
+  u.lang = 'es-PE';
+  u.rate = 0.90;
+  u.pitch = 1.12;
+  u.volume = 1;
+
+  document.getElementById('kk-txt').textContent = text;
+  setKKState('speaking');
+
+  u.onstart = () => {
+    setKKState('speaking');
+    drawWaveSynth('speak'); // waveform animado mientras habla
+  };
+  u.onend = () => {
+    isSpeaking = false;
+    if (micOn) {
+      setKKState('listening');
+      if (analyser) drawWaveReal(); // volver al waveform del mic
+      else drawWaveSynth('listen');
+    } else {
+      setKKState('idle');
+      stopWave();
+    }
+  };
+  u.onerror = () => { isSpeaking = false; setKKState(micOn ? 'listening' : 'idle'); };
   synth.speak(u);
   showKronIA();
 }
 
-function toggleKronIA(){
-  if(!kkVis){
-    // Primer click: pedir permiso de micrófono y activar
+// ── Estados visuales de KronIA ────────────────────────────────
+// idle | listening | speaking | thinking
+function setKKState(state) {
+  const dot = document.getElementById('kk-mic-dot');
+  const st = document.getElementById('kk-st');
+  if (!dot || !st) return;
+  const states = {
+    idle:      { dot: '',          text: 'Inactiva · Di "Cronia" para activarme' },
+    listening: { dot: 'listening', text: 'Escuchando…' },
+    speaking:  { dot: 'speaking',  text: 'Hablando…' },
+    thinking:  { dot: 'thinking',  text: 'Consultando Supabase…' },
+    nomic:     { dot: 'nomic',     text: 'Sin acceso al micrófono' },
+  };
+  const s = states[state] || states.idle;
+  dot.className = 'kk-mic-dot' + (s.dot ? ' ' + s.dot : '');
+  st.textContent = s.text;
+}
+
+// ── Toggles ───────────────────────────────────────────────────
+function toggleKronIA() {
+  if (!kkVis) {
     showKronIA();
-    startMic();
+    requestMicPermission();
   } else {
-    // Segundo click: cerrar
     stopMic();
-    kkVis=false;
+    kkVis = false;
     document.getElementById('kronia').classList.remove('vis');
     document.getElementById('btn-kk').classList.remove('on');
     stopWave();
   }
 }
-function showKronIA(){
-  kkVis=true;
+function showKronIA() {
+  kkVis = true;
   document.getElementById('kronia').classList.add('vis');
   document.getElementById('btn-kk').classList.add('on');
 }
 
-// ── Micrófono — flujo correcto con selección de dispositivo ──
-function startMic(){
-  // Pedir permiso con selector de dispositivo
-  navigator.mediaDevices.getUserMedia({
-    audio:{
-      echoCancellation:true,
-      noiseSuppression:true,
-      // Sin deviceId fijo: el usuario elige en el diálogo del navegador
+// ── Flujo de permisos: primero pedir permiso, luego listar devices ──
+async function requestMicPermission() {
+  setKKState('idle');
+  document.getElementById('kk-txt').textContent = 'Solicitando acceso al micrófono…';
+
+  try {
+    // Paso 1: pedir permiso (esto muestra el diálogo del navegador)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true }
+    });
+    // Detener el stream temporal — solo era para obtener permiso
+    stream.getTracks().forEach(t => t.stop());
+
+    // Paso 2: ahora que tenemos permiso, listar dispositivos con labels reales
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableDevices = devices.filter(d => d.kind === 'audioinput');
+    // Seleccionar el primer dispositivo por defecto
+    if (availableDevices.length > 0) {
+      selectedDeviceId = availableDevices[0].deviceId;
     }
-  })
-  .then(stream=>{
-    micStream=stream;
-    // Web Audio API para waveform
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    const src=audioCtx.createMediaStreamSource(stream);
-    analyser=audioCtx.createAnalyser();
-    analyser.fftSize=64;
-    dataArr=new Uint8Array(analyser.frequencyBinCount);
-    src.connect(analyser);
-    if(waveAnim)cancelAnimationFrame(waveAnim);
-    drawWaveReal();
-    // Speech Recognition
+    // Mostrar selector si hay más de 1
+    buildDeviceSelector(availableDevices);
+
+    // Paso 3: iniciar stream real + reconocimiento
+    await startMicStream();
     startRecognition();
-    document.getElementById('kk-st').textContent='Escuchando…';
-    document.getElementById('kk-mic-dot').className='listening';
-    micOn=true;
-  })
-  .catch(err=>{
-    pushAlert('Sin acceso al mic: '+err.name);
-    document.getElementById('kk-st').textContent='Sin permiso de mic';
-    // Fallback: usar síntesis sin mic
-    drawWaveSynth();
-    kkSpeak('No pude acceder al micrófono. Puedes escribir tu consulta.');
-  });
+    micOn = true;
+    setKKState('listening');
+    document.getElementById('kk-txt').textContent = 'Lista. Di "Cronia" + tu consulta…';
+
+  } catch (err) {
+    console.error('Permiso mic denegado:', err);
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      setKKState('nomic');
+      document.getElementById('kk-txt').textContent = 'Permiso denegado. Habilita el micrófono en el navegador.';
+      pushAlert('Mic: permiso denegado');
+    } else if (err.name === 'NotFoundError') {
+      setKKState('nomic');
+      document.getElementById('kk-txt').textContent = 'No se encontró micrófono conectado.';
+      pushAlert('Mic: no encontrado');
+    } else {
+      setKKState('nomic');
+      document.getElementById('kk-txt').textContent = 'Error de micrófono: ' + err.name;
+      pushAlert('Error mic: ' + err.name);
+    }
+    // Activar waveform sintético igual para que se vea que KronIA existe
+    drawWaveSynth('listen');
+    kkSpeak('No pude acceder al micrófono. Revisa los permisos del navegador.');
+  }
 }
 
-function stopMic(){
-  if(recognition){recognition.stop();recognition=null;}
-  if(micStream)micStream.getTracks().forEach(t=>t.stop());
-  if(audioCtx){audioCtx.close();audioCtx=null;}
-  micStream=null;analyser=null;dataArr=null;
-  micOn=false;
+// ── Stream de audio real ──────────────────────────────────────
+async function startMicStream() {
+  try {
+    const constraints = {
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {})
+      }
+    };
+    micStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    // Web Audio API — waveform real
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.7;
+    dataArr = new Uint8Array(analyser.frequencyBinCount);
+    src.connect(analyser);
+
+    if (!isSpeaking) drawWaveReal();
+  } catch (e) {
+    console.error('startMicStream error:', e);
+    throw e;
+  }
 }
 
-function startRecognition(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){
-    pushAlert('SpeechRecognition no disponible. Usa Chrome.');
+function stopMicStream() {
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  analyser = null; dataArr = null;
+}
+
+function stopMic() {
+  micOn = false;
+  if (recognition) { recognition.stop(); recognition = null; }
+  stopMicStream();
+  setKKState('idle');
+}
+
+// ── SpeechRecognition ─────────────────────────────────────────
+function startRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    pushAlert('SpeechRecognition requiere Chrome');
+    document.getElementById('kk-txt').textContent = 'Usa Chrome para activar la voz.';
     return;
   }
-  recognition=new SR();
-  recognition.lang='es-PE';
-  recognition.continuous=true;
-  recognition.interimResults=false;
-  recognition.maxAlternatives=3;
-  recognition.onresult=e=>{
-    // Revisar todas las alternativas para detectar "Cronia"
-    const result=e.results[e.results.length-1];
-    let transcripts=[];
-    for(let i=0;i<result.length;i++) transcripts.push(result[i].transcript.trim().toLowerCase());
-    console.log('KronIA escuchó:',transcripts);
-    const full=transcripts[0];
-    document.getElementById('kk-txt').textContent='«'+full+'»';
-    // Detectar activación — variantes de "Cronia"
-    const activaciones=['cronia','kronia','corona','gronia','crónica','crónia','kronía'];
-    const activo=activaciones.some(a=>full.includes(a));
-    if(activo){
-      const query=full.replace(/(k?k?r?o?n[ií]?a|corona|gronia|cronica)/g,'').trim();
-      processQuery(query||'resumen');
+  if (recognition) { try { recognition.stop(); } catch (_) {} }
+
+  recognition = new SR();
+  recognition.lang = 'es-PE';
+  recognition.continuous = true;
+  recognition.interimResults = true; // resultados intermedios para feedback visual
+  recognition.maxAlternatives = 3;
+
+  recognition.onstart = () => {
+    console.log('KronIA: reconocimiento activo');
+  };
+
+  recognition.onresult = e => {
+    const last = e.results[e.results.length - 1];
+    const isFinal = last.isFinal;
+    const texts = [];
+    for (let i = 0; i < last.length; i++) texts.push(last[i].transcript.trim().toLowerCase());
+    const full = texts[0];
+
+    if (!isFinal) {
+      // Resultado intermedio — mostrar lo que está escuchando
+      document.getElementById('kk-txt').textContent = '… ' + full;
+      return;
+    }
+
+    // Resultado final
+    console.log('KronIA final:', texts);
+    document.getElementById('kk-txt').textContent = '«' + full + '»';
+
+    // Detectar activación
+    const activaciones = ['cronia', 'kronia', 'corona', 'gronia', 'crónica', 'crónia', 'kronía', 'kro nia', 'cro nia'];
+    const activo = activaciones.some(a => full.includes(a));
+
+    if (activo) {
+      const query = full
+        .replace(/(k+r+o+n+[ií]?a|corona|gronia|cronica|cro nia|kro nia)/gi, '')
+        .trim();
+      if (query.length > 1) {
+        processQuery(query);
+      } else {
+        // Solo dijo "Cronia" sin consulta — responder con ayuda
+        kkSpeak('Aquí estoy. Puedes preguntarme sobre ventas, citas, leads, pacientes, llamadas o el resumen del día.');
+      }
     }
   };
-  recognition.onerror=e=>{
-    if(e.error==='not-allowed'){pushAlert('Permiso de mic denegado');stopMic();}
-    else if(e.error!=='no-speech') console.warn('SR error:',e.error);
+
+  recognition.onspeechstart = () => {
+    // Detectó que hay voz — feedback visual
+    document.getElementById('kk-mic-dot').classList.add('active');
   };
-  recognition.onend=()=>{
-    if(micOn){
-      // Reiniciar automáticamente
-      setTimeout(()=>{try{recognition.start();}catch(_){}},300);
+
+  recognition.onspeechend = () => {
+    document.getElementById('kk-mic-dot').classList.remove('active');
+  };
+
+  recognition.onerror = e => {
+    console.warn('SR error:', e.error);
+    if (e.error === 'not-allowed') {
+      pushAlert('Mic: permiso denegado');
+      micOn = false;
+      setKKState('nomic');
+    } else if (e.error === 'audio-capture') {
+      pushAlert('Mic: sin dispositivo');
+      setKKState('nomic');
+    }
+    // no-speech es normal, ignorar
+  };
+
+  recognition.onend = () => {
+    // Reiniciar siempre que KronIA esté activa y no esté hablando
+    if (micOn && !isSpeaking) {
+      setTimeout(() => {
+        try { recognition.start(); }
+        catch (e) { console.warn('SR restart:', e); }
+      }, 200);
     }
   };
-  recognition.start();
+
+  try {
+    recognition.start();
+  } catch (e) {
+    console.error('SR start error:', e);
+  }
 }
 
-// ── Waveforms ────────────────────────────────────────────────
-function stopWave(){
-  if(waveAnim){cancelAnimationFrame(waveAnim);waveAnim=null;}
-  kkCv.width=kkCv.offsetWidth;kkCv.height=kkCv.offsetHeight;
-  kkCtx2.clearRect(0,0,kkCv.width,kkCv.height);
+// ── Waveforms ─────────────────────────────────────────────────
+function stopWave() {
+  if (waveAnim) { cancelAnimationFrame(waveAnim); waveAnim = null; }
+  kkCv.width = kkCv.offsetWidth || 280;
+  kkCv.height = kkCv.offsetHeight || 28;
+  kkCtx2.clearRect(0, 0, kkCv.width, kkCv.height);
 }
 
-function drawWaveReal(){
-  kkCv.width=kkCv.offsetWidth||300;kkCv.height=kkCv.offsetHeight||28;
-  const cw=kkCv.width,ch=kkCv.height;
-  function frame(){
-    if(!analyser){stopWave();return;}
+function drawWaveReal() {
+  if (waveAnim) cancelAnimationFrame(waveAnim);
+  kkCv.width = kkCv.offsetWidth || 280;
+  kkCv.height = kkCv.offsetHeight || 28;
+  const cw = kkCv.width, ch = kkCv.height;
+
+  function frame() {
+    if (!analyser || isSpeaking) { waveAnim = null; return; }
     analyser.getByteFrequencyData(dataArr);
-    kkCtx2.clearRect(0,0,cw,ch);
-    const bars=dataArr.length,bw=cw/bars;
-    // Mostrar si hay señal de audio
-    const hasSignal=dataArr.some(v=>v>10);
-    for(let i=0;i<bars;i++){
-      const h=Math.max(2,(dataArr[i]/255)*ch*.9);
-      const alpha=hasSignal?(0.35+dataArr[i]/255*.6):0.15;
-      kkCtx2.fillStyle='rgba(0,201,167,'+alpha.toFixed(2)+')';
+    kkCtx2.clearRect(0, 0, cw, ch);
+
+    const bars = dataArr.length;
+    const bw = cw / bars;
+    const hasSignal = dataArr.some(v => v > 8);
+
+    for (let i = 0; i < bars; i++) {
+      // Altura mínima visible siempre — para confirmar que el mic está conectado
+      const h = hasSignal
+        ? Math.max(2, (dataArr[i] / 255) * ch * 0.88)
+        : 2; // línea base cuando no hay sonido
+      const alpha = hasSignal ? (0.3 + (dataArr[i] / 255) * 0.65) : 0.20;
+
+      kkCtx2.fillStyle = 'rgba(0,201,167,' + alpha.toFixed(2) + ')';
       kkCtx2.beginPath();
-      if(kkCtx2.roundRect)kkCtx2.roundRect(i*bw+1,ch/2-h/2,bw-2,h,2);
-      else kkCtx2.rect(i*bw+1,ch/2-h/2,bw-2,h);
+      if (kkCtx2.roundRect) kkCtx2.roundRect(i * bw + 1, ch / 2 - h / 2, bw - 2, h, 2);
+      else kkCtx2.rect(i * bw + 1, ch / 2 - h / 2, bw - 2, h);
       kkCtx2.fill();
     }
-    waveAnim=requestAnimationFrame(frame);
+    waveAnim = requestAnimationFrame(frame);
   }
   frame();
 }
 
-function drawWaveSynth(){
-  if(waveAnim)cancelAnimationFrame(waveAnim);
-  kkCv.width=kkCv.offsetWidth||300;kkCv.height=kkCv.offsetHeight||28;
-  const cw=kkCv.width,ch=kkCv.height;
-  let t=0;
-  function frame(){
-    t+=0.06;
-    kkCtx2.clearRect(0,0,cw,ch);
-    const bars=22;
-    for(let i=0;i<bars;i++){
-      const h=Math.max(2,(Math.sin(t+i*.45)*0.28+0.35)*ch*.75);
-      kkCtx2.fillStyle='rgba(0,201,167,0.45)';
+// mode: 'speak' (más energía) | 'listen' (suave)
+function drawWaveSynth(mode) {
+  if (waveAnim) cancelAnimationFrame(waveAnim);
+  kkCv.width = kkCv.offsetWidth || 280;
+  kkCv.height = kkCv.offsetHeight || 28;
+  const cw = kkCv.width, ch = kkCv.height;
+  let t = 0;
+  const spd = mode === 'speak' ? 0.10 : 0.04;
+  const amp = mode === 'speak' ? 0.75 : 0.30;
+
+  function frame() {
+    t += spd;
+    kkCtx2.clearRect(0, 0, cw, ch);
+    const bars = 22;
+    for (let i = 0; i < bars; i++) {
+      const h = Math.max(2, (Math.sin(t + i * 0.42) * amp + amp + 0.05) * ch * 0.82);
+      const alpha = mode === 'speak' ? 0.65 : 0.30;
+      kkCtx2.fillStyle = 'rgba(0,201,167,' + alpha + ')';
       kkCtx2.beginPath();
-      if(kkCtx2.roundRect)kkCtx2.roundRect(i*(cw/bars)+1,ch/2-h/2,cw/bars-2,h,2);
-      else kkCtx2.rect(i*(cw/bars)+1,ch/2-h/2,cw/bars-2,h);
+      if (kkCtx2.roundRect) kkCtx2.roundRect(i * (cw / bars) + 1, ch / 2 - h / 2, cw / bars - 2, h, 2);
+      else kkCtx2.rect(i * (cw / bars) + 1, ch / 2 - h / 2, cw / bars - 2, h);
       kkCtx2.fill();
     }
-    waveAnim=requestAnimationFrame(frame);
+    waveAnim = requestAnimationFrame(frame);
   }
   frame();
 }
 
-// ══ MOTOR DE INTENCIONES + CONSULTAS ══════════════════════════
-function norm(s){return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i').replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n').replace(/[¿¡]/g,'').trim();}
-const INTS={ventas:['venta','vendim','factur','cobr','ingreso','cuanto hicim','cuanto ganamos','cuanto vendim','cuanto hemos','cuanto hicimos'],citas:['cita','agenda','quien viene','citados','consulta','atencion','quien tenemos','visita','a quien tengo'],leads:['lead','prospecto','contacto nuevo','base de datos','cuantos nuevos','cuantos llegaron','campana','nuevos clientes'],cliente:['cliente','paciente','busca','informacion de','dime sobre','numero de telefono','quien es','datos de'],llamadas:['llamada','llame','llamo','llaman','cuantas llamadas','equipo llamo','llamaron'],seguimientos:['seguimiento','pendiente','hay que llamar','sin contactar','no respondio','retomar','contactar'],resumen:['resumen','como va','que paso','ponte al dia','hola','buenos dias','buenas','que hay','novedad','informe','empezamos'],estado:['estado','conexion','sistema','funciona','como estamos','todo bien','hay problemas']};
-const APERT=['Claro que sí,','Déjame revisar,','Aquí lo que encontré:','Te cuento,','Revisando los datos,','Mira,','Encontré esto:'];
-const CONT=['Siguiendo con eso,','Sobre lo mismo,','Para agregar,'];
-const NO_SE=['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','Mmm, no estoy segura. ¿Me lo dices de otra forma? Manejo ventas, citas, leads y seguimientos.','Por ahora no tengo acceso a eso. ¿Quieres que te diga algo sobre las ventas o el equipo?'];
-const OPTS={ventas:'¿Quieres verlo por sede, tratamiento o asesor?',citas:'¿Te digo el tratamiento o quién las agendó?',leads:'¿Por campaña o por fecha?',cliente:'¿Sus compras o sus llamadas?',llamadas:'¿Por asesor o por resultado?',seguimientos:'¿Los que llevan más tiempo sin contacto?'};
-function ap(c){return(c?CONT:APERT)[~~(Math.random()*(c?CONT:APERT).length)];}
-function opt(i){return OPTS[i]?' '+OPTS[i]:'';}
-function noSe(){return NO_SE[~~(Math.random()*NO_SE.length)];}
-function topV(arr,key){const c={};let mx=0,res='sin datos';arr.forEach(o=>{const v=o[key]||'sin datos';c[v]=(c[v]||0)+1;if(c[v]>mx){mx=c[v];res=v;}});return res;}
-function detectInt(q){const qn=norm(q);if(qn.length<20&&ultimaInt){const cont=['y','por','de','en','ese','esa','eso','cual','cuales','mas','tambien','ahora','el','la'];if(cont.some(c=>qn===c||qn.startsWith(c+' ')))return{i:ultimaInt,c:true};}for(const[int,cls]of Object.entries(INTS)){if(cls.some(c=>qn.includes(c)))return{i:int,c:false};}if(ultimaInt)return{i:ultimaInt,c:true};return{i:'resumen',c:false};}
-function getPeriodo(q,ctx){const qn=norm(q),hoy=new Date().toISOString().split('T')[0];if(qn.includes('hoy')||qn.includes('dia'))return{label:'hoy',f:'fecha=eq.'+hoy};if(qn.includes('semana')){const d7=new Date(Date.now()-7*86400000).toISOString().split('T')[0];return{label:'esta semana',f:'fecha=gte.'+d7};}if(qn.includes('mes'))return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};if(qn.includes('ayer')){const ay=new Date(Date.now()-86400000).toISOString().split('T')[0];return{label:'ayer',f:'fecha=eq.'+ay};}if(ctx&&ctx.per)return ctx.per;return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};}
-function getSede(q){const qn=norm(q);if(qn.includes('pueblo')||qn.includes('libre')||qn.includes('brasil'))return'PUEBLO LIBRE';if(qn.includes('isidro')||qn.includes('prado'))return'SAN ISIDRO';return null;}
 async function guardar(int,preg,resp,tabs){try{await fetch(SB+'/rest/v1/aos_kronia_conversaciones',{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ts:new Date().toISOString(),usuario:'admin',rol:'admin',pregunta:preg,intencion:int,tablas_usadas:tabs||[],respuesta:resp,session_id:SESSION_ID,fue_redundante:ultimaInt===int})});}catch(_){}}
 async function aprender(int,frase){try{await fetch('https://tgnezlhtqkiucwmrdirw.supabase.co/rest/v1/rpc/fn_kronia_aprender',{method:'POST',headers:{'apikey':SK2,'Content-Type':'application/json'},body:JSON.stringify({p_empresa:'ASCENDAOS',p_intencion:int,p_frase:frase})});}catch(_){}}
 
@@ -569,14 +781,6 @@ async function processQuery(q){
       const on=document.getElementById('sb-dot').classList.contains('on');
       resp=on?'Todo funciona bien César. Supabase está conectado, '+evCnt+' eventos en esta sesión.':'Hay un problema de conexión con Supabase. Verifica la red.';
     }else resp=noSe();
-  }catch(e){resp='Tuve un problema consultando. Intenta de nuevo.';}
-  tabs.forEach((t,i)=>setTimeout(()=>activateTable(t,'CONSULTA'),i*200));
-  memoria.unshift({i:int,q,r:resp,tabs,ts:Date.now()});if(memoria.length>5)memoria.pop();
-  ultimaInt=int;
-  guardar(int,q,resp,tabs);aprender(int,q);
-  kkSpeak(resp);
-}
-
 // Supabase status — color en texto y punto
 function checkSB(){
   fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H})
