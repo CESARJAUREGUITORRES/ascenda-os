@@ -506,15 +506,20 @@ q('aos_ventas','select=venta_id,nombres,apellidos,tratamiento,monto,asesor,sede&
 });
 
 // ── Ticker MKT ───────────────────────────────────────────────────
-rpc('aos_estado_bases',{p_desde:mes(),p_hasta:hoy()},function(d){
-  var b=(d&&d.bases)||[];
-  var tl=b.reduce(function(s,x){return s+(x.total_leads||0);},0);
-  var tc=b.reduce(function(s,x){return s+(x.contactados||0);},0);
-  var tci=b.reduce(function(s,x){return s+(x.citas||0);},0);
-  set('tk-leads',tl);
-  set('tk-llam',tc);
-  if(tl>0)set('tk-pct',Math.round(tc/tl*100)+'%');
-  set('tk-citas',tci);
+// Ticker: llamadas del mes (números únicos contactados)
+q('aos_llamadas','select=numero_limpio&fecha=gte.'+mes()+'&limit=5000',function(rows){
+  var nums={};(rows||[]).forEach(function(r){if(r.numero_limpio)nums[r.numero_limpio]=1;});
+  var contactados=Object.keys(nums).length;
+  set('tk-llam',contactados);
+  // % contactados vs leads del mes
+  q('aos_leads','select=id&fecha=gte.'+mes(),function(leads){
+    var tl=(leads||[]).length;
+    set('tk-leads',tl);
+    if(tl>0 && contactados>0)set('tk-pct',Math.round(contactados/tl*100)+'%');
+  });
+});
+q('aos_agenda_citas','select=id&fecha_cita=gte.'+mes(),function(rows){
+  set('tk-citas',(rows||[]).length);
 });
 
 // ── Marcar pagado ────────────────────────────────────────────────
