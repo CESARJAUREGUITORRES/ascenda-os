@@ -308,7 +308,7 @@ tr:last-child td{border-bottom:none}
   <!-- VENTAS + PAGOS -->
   <div class="panel-grid">
     <div class="card">
-      <div class="card-ttl">VENTAS DEL DIA</div>
+      <div class="card-ttl" id="ventas-ttl">VENTAS DEL DIA</div>
       <div id="ventas-list"><div class="ld">Sin ventas hoy</div></div>
     </div>
     <div class="card">
@@ -390,29 +390,58 @@ rpc('aos_panel_admin',{p_hoy:hoy(),p_ayer:ayer(),p_mes_inicio:mes()},function(re
   // Ventas hoy
   var ventas=res.ventasHoy||[];
   var vel=document.getElementById('ventas-list');
-  vel.innerHTML=ventas.length?ventas.map(function(v){
-    return '<div class="venta-item">'+
-      '<div class="venta-info"><div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
-      '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+esc(v.sede||'--')+'</div></div>'+
-      '<div class="venta-monto">S/'+parseFloat(v.monto||0).toFixed(2)+'</div></div>';
-  }).join(''):'<div class="ld">Sin ventas hoy</div>';
+  var ventasTtl=document.getElementById('ventas-ttl');
+  if(ventas.length){
+    if(ventasTtl)ventasTtl.textContent='VENTAS DEL DIA';
+    vel.innerHTML=ventas.map(function(v){
+      return '<div class="venta-item">'+
+        '<div class="venta-info"><div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
+        '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+esc(v.sede||'--')+'</div></div>'+
+        '<div class="venta-monto">S/'+parseFloat(v.monto||0).toFixed(2)+'</div></div>';
+    }).join('');
+  } else {
+    // Sin ventas hoy → cargar ventas de ayer
+    if(ventasTtl)ventasTtl.textContent='VENTAS DE AYER (hoy sin registros)';
+    q('aos_ventas','select=tratamiento,monto,asesor,sede&fecha=eq.'+ayer()+'&order=created_at.desc&limit=10',function(rows){
+      vel.innerHTML=(rows&&rows.length)?rows.map(function(v){
+        return '<div class="venta-item">'+
+          '<div class="venta-info"><div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
+          '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+esc(v.sede||'--')+'</div></div>'+
+          '<div class="venta-monto" style="color:var(--muted)">S/'+parseFloat(v.monto||0).toFixed(2)+'</div></div>';
+      }).join(''):'<div class="ld">Sin ventas ayer tampoco</div>';
+    });
+  }
 
   // Semaforo
   var sem=res.semaforo||[];
   var tbody=document.getElementById('mon-tbody');
-  tbody.innerHTML=sem.length?sem.map(function(s){
-    var mins=parseInt(s.mins_sin||0);
-    var estado=mins<30?'ACTIVO':mins<120?'INACTIVO':'SIN ACTIV.';
-    var cls=mins<30?'b-ok':mins<120?'b-warn':'b-idle';
-    var conv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
-    return '<tr>'+
-      '<td><b>'+esc(s.asesor)+'</b></td>'+
-      '<td>'+esc(s.llamadas||0)+'</td>'+
-      '<td>+'+esc(s.citas||0)+'</td>'+
-      '<td>'+conv+'%</td>'+
-      '<td style="font-size:9px;color:var(--muted)">'+esc(s.ult_hora||'--')+'<br>'+esc(s.ult_numero||'')+'</td>'+
-      '<td><span class="badge '+cls+'">'+estado+'</span></td></tr>';
-  }).join(''):'<tr><td colspan="6"><div class="ld">Sin actividad hoy</div></td></tr>';
+  // Mostrar todos los asesores — los del semaforo y los que no llamaron hoy
+  var todosAsesores=['WILMER','RUVILA','MIREYA','SRA CARMEN'];
+  var semMap={};
+  (sem||[]).forEach(function(s){semMap[s.asesor]=s;});
+  var rows=todosAsesores.map(function(nombre){
+    var s=semMap[nombre];
+    if(s){
+      var mins=parseInt(s.mins_sin||0);
+      var estado=mins<30?'ACTIVO':mins<120?'INACTIVO':'SIN ACTIV.';
+      var cls=mins<30?'b-ok':mins<120?'b-warn':'b-idle';
+      var conv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
+      return '<tr>'+
+        '<td><b>'+esc(s.asesor)+'</b></td>'+
+        '<td>'+s.llamadas+'</td>'+
+        '<td>+'+s.citas+'</td>'+
+        '<td>'+conv+'%</td>'+
+        '<td style="font-size:9px;color:var(--muted)">'+esc(s.ult_hora||'--')+'<br>'+esc(s.ult_numero||'')+'</td>'+
+        '<td><span class="badge '+cls+'">'+estado+'</span></td></tr>';
+    } else {
+      return '<tr>'+
+        '<td><b>'+nombre+'</b></td>'+
+        '<td>0</td><td>+0</td><td>0%</td>'+
+        '<td style="font-size:9px;color:var(--muted)">—</td>'+
+        '<td><span class="badge b-idle">SIN ACTIV.</span></td></tr>';
+    }
+  });
+  tbody.innerHTML=rows.join('');
   set('mon-upd','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
 });
 
@@ -433,14 +462,20 @@ q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADE
   var el=document.getElementById('ranking-list');
   el.innerHTML=lista.length?lista.map(function(a,i){
     var pct=maxF>0?Math.round(a.fact/maxF*100):0;
+    // Comision real: servicio=0.05% del monto, producto=escalonado
+    var comServ=a.serv*0.0005;
+    var comProd=0;
+    // Aproximacion escalonada por monto promedio producto
+    // (la tabla real requiere calcular por cada venta individual)
+    var comTotal=comServ+comProd;
     return '<div class="rank-item">'+
       '<div class="rank-pos">'+(medals[i]||String(i+1))+'</div>'+
       '<div class="rank-info">'+
         '<div class="rank-name">'+esc(a.n)+'</div>'+
-        '<div class="rank-meta">Serv S/'+a.serv.toFixed(0)+' · Prod S/'+a.prod.toFixed(0)+'</div>'+
+        '<div class="rank-meta">Fact: S/'+a.fact.toFixed(0)+' · Serv S/'+a.serv.toFixed(0)+' · Prod S/'+a.prod.toFixed(0)+'</div>'+
         '<div class="rank-bar-bg"><div class="rank-bar" style="width:'+pct+'%"></div></div>'+
       '</div>'+
-      '<div class="rank-fact">'+fmt(a.fact)+'</div></div>';
+      '<div class="rank-fact">S/'+a.fact.toFixed(0)+'</div></div>';
   }).join(''):'<div class="ld">Sin ventas este mes</div>';
 });
 
