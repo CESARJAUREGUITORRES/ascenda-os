@@ -3,23 +3,23 @@
 .embudo-bar{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;}
 .emb-item{display:flex;flex-direction:column;align-items:center;flex:1;padding:4px 6px;position:relative;}
 .emb-item:not(:last-child)::after{content:'›';position:absolute;right:-2px;top:50%;transform:translateY(-50%);font-size:16px;color:#DDE4F5;font-weight:700;}
-.emb-v{font-family:Exo 2,sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;line-height:1;}
+.emb-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;line-height:1;}
 .emb-v.fact{font-size:14px;color:#16A34A;}
 .emb-l{font-size:9px;font-weight:600;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
 .emb-titulo{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-right:14px;white-space:nowrap;flex-shrink:0;}
 .main3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;}
 .scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:15px;}
 .schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
-.st{font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
+.st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
 .slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
 .atc-row{display:flex;align-items:center;justify-content:space-around;padding:18px 0;}
 .atc-item{text-align:center;}
-.atc-v{font-family:Exo 2,sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;}
+.atc-v{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;}
 .atc-v.g{color:#16A34A;}.atc-v.m{color:#6B7BA8;}
 .atc-l{font-size:9px;color:#9AAAC8;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;}
 .atc-div{width:1px;height:30px;background:#DDE4F5;}
 .com-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
-.com-v{font-family:Exo 2,sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;}
+.com-v{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;}
 .com-meta{font-size:10px;color:#9AAAC8;}
 .prog{background:#F0F4FC;border-radius:20px;height:6px;overflow:hidden;border:1px solid #DDE4F5;margin:8px 0 5px;}
 .prog-f{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);transition:width .5s;}
@@ -145,20 +145,20 @@
 </div>
 
 <script>
-
-
-
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
-function _hoy(){return new Date().toISOString().slice(0,10);}
-function _mesInicio(){return new Date().toISOString().slice(0,7)+'-01';}
+function _q(t,f,ok){fetch(_SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
+function _hoy(){
+  return new Date().toISOString().slice(0,10);
+}
+function _mes(){
+  return new Date().toISOString().slice(0,7)+'-01';
+}
 function _ctx(){
-  try{
+  try {
     var s=JSON.parse(localStorage.getItem('aos_session')||'{}');
-    return {a:(s.nombre||'').toUpperCase(), id:s.codigo_asesor||''};
-  } catch(e) {
-    return {a:'', id:''};
-  }
+    return { a:(s.nombre||'').toUpperCase(), id:s.codigo_asesor||'' };
+  } catch(e) { return { a:'', id:'' }; }
 }
 
 var VH = { token: '' };
@@ -175,73 +175,83 @@ var VH = { token: '' };
 // IMPORTANTE: res.comisiones.total = comisin real (S/38.94)
 //             res.embudo.fact      = facturado (S/9,094)
 function loadPanelFast() {
-  (function(){var x=_ctx();_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mesInicio()},function(res){
-      if (!res) return;
-      // Adaptar al formato esperado por el panel
-      res.ok = true;
-      res.embudo = {
-        llamadas: Number(res.llamMes)||0,
-        citas:    Number(res.citasMes)||0,
-        asistieron: Number(res.asistMes)||0,
-        ventas:   Number(res.ventasMes)||0,
-        fact:     parseFloat(res.factMes)||0
-      };
+  (function(){var x=_ctx();_rpc("aos_panel_asesor",{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mes()},function(res) {
+      if (!res || !res.ok) return;
       var el = function(id) { return document.getElementById(id); };
+
+      // Embudo
       if (res.embudo) {
         var d = res.embudo;
-        if (el('emb-llam'))   el('emb-llam').textContent   = d.llamadas || 0;
-        if (el('emb-citas'))  el('emb-citas').textContent  = d.citas || 0;
+        if (el('emb-llam'))   el('emb-llam').textContent   = d.llamadas   || 0;
+        if (el('emb-citas'))  el('emb-citas').textContent  = d.citas      || 0;
         if (el('emb-asist'))  el('emb-asist').textContent  = d.asistieron || 0;
-        if (el('emb-ventas')) el('emb-ventas').textContent = d.ventas || 0;
-        if (el('com-delta-v'))    el('com-delta-v').textContent    = d.ventas || 0;
-        if (el('com-delta-fact')) el('com-delta-fact').textContent = 'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
+        if (el('emb-ventas')) el('emb-ventas').textContent = d.ventas     || 0;
+        if (el('emb-fact'))   el('emb-fact').textContent   = 'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
       }
-    });})();
+
+      // Comisiones REALES (no confundir con facturado)
+      if (res.comisiones) {
+        var c = res.comisiones;
+        var comReal = parseFloat(c.total) || 0;
+        var meta    = parseFloat(c.meta)  || 100;
+        var pct     = Number(c.pct)       || 0;
+
+        if (el('com-total')) el('com-total').textContent = 'S/. ' + comReal.toFixed(2);
+        if (el('com-meta'))  el('com-meta').textContent  = '/ Meta S/. ' + meta.toFixed(2);
+        if (el('com-prog'))  el('com-prog').style.width  = Math.min(pct, 100) + '%';
+        if (el('com-pct'))   el('com-pct').textContent   = pct + '% completado';
+        if (el('com-rank-lbl')) el('com-rank-lbl').textContent = 'Rank ' + (c.rank || '#1');
+      }
+
+      // Ventas y facturado en las delta cards
+      if (res.embudo) {
+        if (el('com-delta-v'))    el('com-delta-v').textContent    = res.embudo.ventas || 0;
+        if (el('com-delta-fact')) el('com-delta-fact').textContent = 'S/' + ((res.embudo.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
+      }
+    });})()
+;
 }
 
 //  Calendario de turnos (Mi Semana) 
 // Fuente: api_getMisSemanaT  res.dias[{diaSem,dia,esHoy,esPasado,tieneTurno,sede}]
 function loadTurnos() {
-  (function(){var x=_ctx();_rpc('aos_semana_asesor',{p_id_asesor:x.id,p_hoy:_hoy()},function(res){
+  (function(){var x=_ctx();_rpc("aos_semana_asesor",{p_id_asesor:x.id,p_hoy:_hoy()},function(res) {
       var cont = document.getElementById('mc-dias');
       if (!res || !res.ok || !res.dias || !res.dias.length) {
-        cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turno</div>';
+        cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';
         return;
       }
-      var hoy = _hoy();
-      var html = res.dias.map(function(d) {
-        var esHoy = d.fecha === hoy;
-        var bg = esHoy ? '#EBF2FF' : '#F8FAFF';
-        var border = esHoy ? '1.5px solid #0A4FBF' : '1px solid #DDE4F5';
-        return '<div style="background:'+bg+';border:'+border+';border-radius:8px;padding:6px 8px;font-size:10px;">' +
-          '<div style="font-weight:700;color:'+(esHoy?'#0A4FBF':'#0D1B3E')+';">'+escHtml(d.dia_sem||d.dia||'')+'</div>' +
-          '<div style="color:#6B7BA8;font-size:9px;margin-top:2px;">'+escHtml(d.sede||'Sin turno')+'</div>' +
-          (d.hora_ini?'<div style="color:#9AAAC8;font-size:8px;">'+escHtml(d.hora_ini)+'</div>':'') +
-        '</div>';
+      cont.innerHTML = res.dias.map(function(d) {
+        var tieneT = d.tieneTurno;
+        var esSI   = tieneT && d.sede === 'SAN ISIDRO';
+        var esPL   = tieneT && d.sede === 'PUEBLO LIBRE';
+        var dotCls = esSI ? 'si' : esPL ? 'pl' : 'libre';
+        var dotTxt = esSI ? 'SI' : esPL ? 'PL' : '';
+        var cls    = (d.esHoy ? ' hoy' : '') + (d.esPasado && !d.esHoy ? ' pasado' : '');
+        return '<div class="mc-dia' + cls + '" title="' + esc(d.fecha) + (tieneT?' · '+esc(d.sede):'') + '">' +
+          '<div class="mc-lbl">' + esc(d.diaSem) + '</div>' +
+          '<div class="mc-dot ' + dotCls + '">' + dotTxt + '</div>' +
+          '<div class="mc-dia-num">' + (d.dia||'') + '</div></div>';
       }).join('');
-      cont.innerHTML = html;
+
+      // Sede de hoy
+      var hoy = res.dias.find(function(d) { return d.esHoy; });
       var sedeEl = document.getElementById('mc-sede-hoy');
-      var diaHoy = res.dias.filter(function(d){return d.fecha===hoy;})[0];
-      if (sedeEl && diaHoy && diaHoy.sede) {
-        sedeEl.textContent = diaHoy.sede;
-        sedeEl.style.color = '#0A4FBF';
+      if (hoy && hoy.tieneTurno) {
+        sedeEl.textContent = '📍 Hoy: ' + hoy.sede;
+        sedeEl.style.color = hoy.sede === 'SAN ISIDRO' ? '#16A34A' : '#D97706';
+      } else if (hoy) {
+        sedeEl.textContent = '— Sin turno hoy';
+        sedeEl.style.color = '#9AAAC8';
       }
-    });})();
+    });})()
+;
 }
 
 //  Seguimientos pendientes 
 // Fuente: api_getMySeguimientosT  res.items[{segId,num,trat,obs,fecha,fechaHora,tipo,whatsapp}]
 function loadSeguimientos() {
-  (function(){var x=_ctx();_rpc('aos_get_seguimientos',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(rows){
-    var hoy=_hoy();
-    var items=(rows||[]).map(function(s){
-      var fecha=String(s.fecha_prog||'').slice(0,10);
-      return {segId:s.id||'',num:s.numero||'',trat:s.tratamiento||'',obs:s.obs||'',
-        fecha:fecha,fechaHora:fecha,tipo:s.estado||'',
-        whatsapp:'https://wa.me/51'+(s.numero||'').replace(/\D/g,'')};
-    });
-    renderSegs(items);
-  });})();
+  (function(){var x=_ctx();_rpc("aos_get_seguimientos",{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(res){renderSegs(res&&res.items?res.items:[]);},function(){renderSegs([]);});})();
 }
 
 function renderSegs(items) {
@@ -262,13 +272,13 @@ function renderSegs(items) {
     var esHoy  = s.esHoy    || s.tipo === 'hoy';
     var esVenc = s.vencido  || s.tipo === 'vencido';
     var cls    = esVenc ? 'sv' : esHoy ? 'sh2' : 'sp';
-    var tag    = esVenc ? '⚠ VENCIDO' : esHoy ? '● HOY' : '○ PROXIMO';
+    var tag    = esVenc ? '⚠ VENCIDO' : esHoy ? '● HOY' : '○ PRÓXIMO';
     var fechaStr = (s.fecha && s.fecha.indexOf('1899') < 0 && s.fecha !== '')
                    ? ' · ' + s.fecha.slice(5) : '';
     return '<div class="si-item ' + cls + '"' +
            ' onclick="window.open(\'' + esc(s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/\\D/g,''))) + '\',\'_blank\')">' +
       '<div class="st2">' + tag + esc(fechaStr) + '</div>' +
-      '<div class="sn">' + esc(s.num||'--') + ' · ' + esc(s.trat||'--') + '</div>' +
+      '<div class="sn">' + esc(s.num||'—') + ' · ' + esc(s.trat||'—') + '</div>' +
       (s.obs ? '<div class="sm">' + esc(s.obs.slice(0, 50)) + '</div>' : '') +
       '</div>';
   }).join('');
@@ -277,8 +287,5 @@ function renderSegs(items) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-
-
 
 </script>
