@@ -145,6 +145,7 @@
 </div>
 
 <script>
+
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _hoy(){return new Date().toISOString().slice(0,10);}
@@ -160,9 +161,9 @@ var VH = { token: '' };
   loadSeguimientos();// seguimientos pendientes
 })();
 
-// ── Panel rápido (embudo + comisiones REALES) ─────────────────
-// Fuente: api_getPanelAsesorFastT → res.embudo + res.comisiones
-// IMPORTANTE: res.comisiones.total = comisión real (S/38.94)
+//  Panel rpido (embudo + comisiones REALES) 
+// Fuente: api_getPanelAsesorFastT  res.embudo + res.comisiones
+// IMPORTANTE: res.comisiones.total = comisin real (S/38.94)
 //             res.embudo.fact      = facturado (S/9,094)
 function loadPanelFast() {
   (function(){var x=_ctx();_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mesInicio()},function(res){
@@ -189,8 +190,8 @@ function loadPanelFast() {
     });})();
 }
 
-// ── Calendario de turnos (Mi Semana) ─────────────────────────
-// Fuente: api_getMisSemanaT → res.dias[{diaSem,dia,esHoy,esPasado,tieneTurno,sede}]
+//  Calendario de turnos (Mi Semana) 
+// Fuente: api_getMisSemanaT  res.dias[{diaSem,dia,esHoy,esPasado,tieneTurno,sede}]
 function loadTurnos() {
   (function(){var x=_ctx();_rpc('aos_semana_asesor',{p_id_asesor:x.id,p_hoy:_hoy()},function(res){
       var cont = document.getElementById('mc-dias');
@@ -219,8 +220,8 @@ function loadTurnos() {
     });})();
 }
 
-// ── Seguimientos pendientes ───────────────────────────────────
-// Fuente: api_getMySeguimientosT → res.items[{segId,num,trat,obs,fecha,fechaHora,tipo,whatsapp}]
+//  Seguimientos pendientes 
+// Fuente: api_getMySeguimientosT  res.items[{segId,num,trat,obs,fecha,fechaHora,tipo,whatsapp}]
 function loadSeguimientos() {
   (function(){var x=_ctx();_rpc('aos_get_seguimientos',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(rows){
     var hoy=_hoy();
@@ -237,7 +238,7 @@ function loadSeguimientos() {
 function renderSegs(items) {
   var el = document.getElementById('seg-list');
 
-  // Filtrar los inválidos (fecha 1899, etc.)
+  // Filtrar los invlidos (fecha 1899, etc.)
   var validos = (items || []).filter(function(s) {
     if ((s.fecha || '').indexOf('1899') >= 0) return false;
     return true;
@@ -267,5 +268,6 @@ function renderSegs(items) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
 
 </script>
