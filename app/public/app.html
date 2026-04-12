@@ -843,7 +843,12 @@ function doLogout() {
   localStorage.removeItem('aos_session'); redirectLogin();
 }
 function redirectLogin() {
-  try { sessionStorage.removeItem('aos_token'); } catch(e) {}
+  try {
+    sessionStorage.removeItem('aos_token');
+    localStorage.removeItem('aos_session');
+    if (sessionStorage.getItem('_redir')) { sessionStorage.removeItem('_redir'); return; }
+    sessionStorage.setItem('_redir', '1');
+  } catch(e) {}
   window.location.href = '/';
 }
 
