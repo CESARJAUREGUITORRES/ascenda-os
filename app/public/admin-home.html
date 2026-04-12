@@ -149,6 +149,23 @@
 .scroll-y::-webkit-scrollbar{width:3px;}
 .scroll-y::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .empty-ok{text-align:center;color:#16A34A;font-size:11px;padding:10px;font-weight:700;}
+
+/* ═══ RESPONSIVE MOBILE ═══ */
+@media (max-width: 768px) {
+  .content-grid { grid-template-columns: 1fr !important; }
+  .main-col, .side-col { width: 100% !important; }
+  .panel-row { flex-direction: column !important; }
+  .mon-table { font-size: 10px !important; }
+  .mon-table td, .mon-table th { padding: 5px 4px !important; }
+  .kpi-strip { flex-wrap: wrap !important; }
+  .kpi-strip > * { min-width: 120px !important; }
+  /* Ocultar columnas menos importantes en mobile */
+  .hide-mobile { display: none !important; }
+  /* Grid de pagos y ventas en columna */
+  .grid-2col { grid-template-columns: 1fr !important; }
+  /* Tabla monitoreo: ocultar columnas extras */
+  table { display: block; overflow-x: auto; }
+}
 </style>
 
 <div class="adh">
@@ -494,7 +511,7 @@ function renderAlertas(items){
 }
 
 function loadRanking(){
-  _q("aos_ventas","select=asesor,monto,tipo&fecha=gte."+_mes()+"&estado_pago=neq.ADELANTO",function(rows){var m={};(rows||[]).forEach(function(r){if(!r.asesor||r.asesor==="NO APLICA")return;if(!m[r.asesor])m[r.asesor]={asesor:r.asesor,serv:0,prod:0,fact:0};var v=parseFloat(r.monto||0);m[r.asesor].fact+=v;if(r.tipo==="PRODUCTO")m[r.asesor].prod+=v;else m[r.asesor].serv+=v;});ADH.rankData={ok:true,ranking:Object.values(m).sort(function(a,b){return b.fact-a.fact;}).map(function(a){return{nombre:a.asesor,asesor:a.asesor,serv:a.serv,prod:a.prod,fact:a.fact,comTotal:Math.round(a.serv*0.03*100)/100};})};renderRanking();});
+  _q("aos_ventas","select=asesor,monto,tipo&fecha=gte."+_mes()+"&estado_pago=neq.ADELANTO",function(rows){var m={};(rows||[]).forEach(function(r){if(!r.asesor||r.asesor==="NO APLICA")return;if(!m[r.asesor])m[r.asesor]={asesor:r.asesor,serv:0,prod:0,fact:0};var v=parseFloat(r.monto||0);m[r.asesor].fact+=v;if(r.tipo==="PRODUCTO")m[r.asesor].prod+=v;else m[r.asesor].serv+=v;});ADH.rankData={ok:true,ranking:Object.values(m).sort(function(a,b){return b.fact-a.fact;}).map(function(a){return{nombre:a.asesor,asesor:a.asesor,serv:a.serv,prod:a.prod,fact:a.fact,comTotal:null};})};renderRanking();});
 }
 
 function setRankTab(t){
