@@ -3,7 +3,6 @@ const fs   = require('fs')
 const path = require('path')
 
 const PORT = parseInt(process.env.PORT || '4173', 10)
-const DIST = path.join(__dirname, 'dist')
 const PUB  = path.join(__dirname, 'public')
 
 const MIME = {
@@ -28,40 +27,37 @@ function serve(filePath, res) {
 http.createServer((req, res) => {
   const p = req.url.split('?')[0]
 
-  // AppShell — todas las rutas de la app
-  if (p === '/app' || p.startsWith('/asesor') || p.startsWith('/admin')) {
-    const f = path.join(PUB, 'app.html')
-    if (fs.existsSync(f)) { serve(f, res); return }
+  // Login — raiz
+  if (p === '/' || p === '/login') {
+    serve(path.join(PUB, 'login.html'), res); return
   }
 
-  // Paneles específicos
+  // AppShell
+  if (p === '/app' || p.startsWith('/asesor') || p.startsWith('/admin')) {
+    serve(path.join(PUB, 'app.html'), res); return
+  }
+
+  // Paneles
   const panelMap = {
-    '/calls':   'calls.html',
-    '/advisor/calls': 'calls.html',
+    '/calls':         'calls.html',
+    '/advisor-home':  'advisor-home.html',
+    '/admin-home':    'admin-home.html',
   }
   if (panelMap[p]) {
     const f = path.join(PUB, panelMap[p])
     if (fs.existsSync(f)) { serve(f, res); return }
   }
 
-  // Assets Vite
-  if (p.startsWith('/assets/')) {
-    const f = path.join(DIST, p)
-    if (fs.existsSync(f)) { serve(f, res); return }
+  // Cualquier otro archivo en public/
+  const f = path.join(PUB, p.slice(1))
+  if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) {
+    serve(f, res); return
   }
 
-  // Archivos de public/
-  if (p !== '/') {
-    const f = path.join(PUB, p)
-    if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
-  }
-
-  // SPA fallback → login
-  const idx = path.join(DIST, 'index.html')
-  if (fs.existsSync(idx)) { serve(idx, res); return }
-
+  // 404
   res.writeHead(404); res.end('Not found')
+
 }).listen(PORT, '0.0.0.0', () => {
   console.log('AscendaOS en http://0.0.0.0:' + PORT)
-  console.log('Paneles: /app (AppShell), /calls (CallCenter)')
+  console.log('/ -> login.html | /app -> AppShell | /calls -> CallCenter')
 })
