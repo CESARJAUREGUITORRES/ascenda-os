@@ -499,7 +499,7 @@ q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADE
       comV=m>=201?6:m>=149?5:m>=101?4:m>=51?3:m>=18?1:0.30;
     }else{
       map[r.asesor].nServ++;map[r.asesor].fServ+=m;
-      comV=m*0.0005;
+      comV=m*0.005;
     }
     map[r.asesor].com+=comV;
   });
