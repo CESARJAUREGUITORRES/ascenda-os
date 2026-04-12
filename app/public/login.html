@@ -193,7 +193,8 @@ function doLogin() {
         }));
       } catch(e) {}
       setLoading(false);
-      window.location.href = '/app';
+      var dest = (res.puesto === 'ADMINISTRADOR') ? '/admin-home.html' : '/advisor-home.html';
+          window.location.href = dest;
     } else {
       setLoading(false);
       errEl.textContent = (res && res.error) ? res.error : 'Credenciales incorrectas.';
