@@ -1,0 +1,325 @@
+/* src/styles/main.css */
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* ── Variables ─────────────────────────────────────────── */
+:root {
+  --blue-deep:  #071D4A;
+  --blue:       #0A4FBF;
+  --blue-light: #EBF2FF;
+  --cyan:       #00C9A7;
+  --mint:       #00E5A0;
+  --bg:         #F0F4FC;
+  --white:      #ffffff;
+  --border:     #DDE4F5;
+  --text:       #0D1B3E;
+  --text-muted: #6B7BA8;
+  --text-light: #9AAAC8;
+  --green:      #16A34A;
+  --red:        #DC2626;
+  --amber:      #D97706;
+  --purple:     #7C3AED;
+
+  --sidebar-w:  220px;
+  --radius:     12px;
+  --shadow:     0 2px 12px rgba(10,79,191,.08);
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ── App root ───────────────────────────────────────────── */
+#app { height: 100vh; overflow: hidden; }
+
+/* ── Login ─────────────────────────────────────────────── */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--blue-deep) 0%, #0A2A6B 60%, #0A4FBF 100%);
+}
+
+.login-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 24px 60px rgba(7,29,74,.4);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo-icon {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-text {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--blue-deep);
+}
+
+.logo-ascenda { color: var(--blue-deep); }
+.logo-os { color: var(--blue); }
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+  letter-spacing: .5px;
+}
+
+.login-form .field {
+  margin-bottom: 16px;
+}
+
+.login-form label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+
+.login-form input:focus {
+  border-color: var(--blue);
+  background: var(--white);
+}
+
+.login-error {
+  min-height: 20px;
+  font-size: 12px;
+  color: var(--red);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: var(--blue);
+  color: var(--white);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  transition: background .15s, transform .1s;
+}
+.btn-primary:hover { background: #083fa0; }
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+.login-footer {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 24px;
+}
+
+/* ── Shell / Sidebar ───────────────────────────────────── */
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--blue-deep);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+
+.sb-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  margin-bottom: 16px;
+}
+.sb-logo-icon { font-size: 22px; }
+.sb-logo-txt {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: .5px;
+}
+
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  margin: 0 8px 12px;
+  background: rgba(255,255,255,.08);
+  border-radius: 10px;
+}
+
+.sb-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: var(--white);
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sb-name { font-size: 12px; font-weight: 700; color: var(--white); }
+.sb-role { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .4px; }
+
+.sb-nav { flex: 1; padding: 0 8px; display: flex; flex-direction: column; gap: 2px; }
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,.6);
+  transition: background .15s, color .15s;
+}
+.sb-item:hover { background: rgba(255,255,255,.1); color: var(--white); }
+.sb-item.act { background: var(--blue); color: var(--white); }
+.sb-icon { font-size: 14px; width: 18px; text-align: center; }
+
+.sb-bottom { padding: 8px; border-top: 1px solid rgba(255,255,255,.1); margin-top: auto; }
+.sb-logout { color: rgba(255,255,255,.4); }
+.sb-logout:hover { background: rgba(220,38,38,.2); color: #fca5a5; }
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── KPI Cards ─────────────────────────────────────────── */
+.kpi-strip {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px 0;
+  overflow-x: auto;
+}
+.kpi-card {
+  flex: 1;
+  min-width: 120px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+.kpi-card.blue::before  { background: var(--blue); }
+.kpi-card.cyan::before  { background: var(--cyan); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.amber::before { background: var(--amber); }
+.kpi-card.purple::before{ background: var(--purple); }
+
+.kpi-label { font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-light); }
+.kpi-val {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  margin: 3px 0 2px;
+}
+.kpi-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+
+/* ── Loader ─────────────────────────────────────────────── */
+.sp {
+  width: 16px; height: 16px;
+  border: 2px solid var(--blue-light);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ld { text-align: center; padding: 20px; color: var(--text-light); font-size: 12px; }
+
+/* ── Chips de estado ────────────────────────────────────── */
+.chip { padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.chip-cita   { background: #F0FDF4; color: var(--green); }
+.chip-sc     { background: #FEF2F2; color: var(--red); }
+.chip-ni     { background: #F5F3FF; color: var(--purple); }
+.chip-seg    { background: var(--blue-light); color: var(--blue); }
+.chip-base   { background: var(--bg); color: var(--text-muted); }
+
+/* ── Utilities ──────────────────────────────────────────── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.page-grid {
+  display: grid;
+  gap: 14px;
+  padding: 14px 20px 20px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+.btn-sm.primary { background: var(--blue); color: var(--white); }
+.btn-sm.ghost   { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
