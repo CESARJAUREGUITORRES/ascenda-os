@@ -369,7 +369,6 @@ function logout(){try{localStorage.removeItem('aos_session');}catch(e){}window.l
 rpc('aos_panel_admin',{p_hoy:hoy(),p_ayer:ayer(),p_mes_inicio:mes()},function(res){
   if(!res||!res.kpis)return;
   var k=res.kpis;
-  // KPIs hoy
   var fh=parseFloat(k.factHoy||0);
   var nv=parseInt(k.nVentasHoy||0);
   set('k-fact','S/'+fh.toFixed(2));
@@ -380,30 +379,52 @@ rpc('aos_panel_admin',{p_hoy:hoy(),p_ayer:ayer(),p_mes_inicio:mes()},function(re
   set('k-mes',(k.llamMes||0)+' este mes');
   set('k-citas',k.citasHoy||0);
   set('k-leads',k.leadsMes||0);
-  // Semaforo
-  renderSemaforo(res.semaforo||[]);
-  // Ventas hoy
-  var ventas=res.ventasHoy||[];
-  if(ventas.length){
-    document.getElementById('ventas-card').style.display='block';
-    document.getElementById('ventas-list').innerHTML=ventas.map(function(v){
-      var sede=esc(v.sede||'--');
-      if(sede==='WILMER'||sede==='RUVILA'||sede==='MIREYA')sede='SAN ISIDRO';
-      return '<div class="venta-item">'+
-        '<div class="venta-info">'+
-          '<div class="venta-trat">'+esc(v.tratamiento||'--')+'</div>'+
-          '<div class="venta-meta">'+esc(v.asesor||'--')+' · '+sede+'</div>'+
-        '</div>'+
-        '<div class="venta-monto">S/'+parseFloat(v.monto||0).toFixed(2)+'</div>'+
-      '</div>';
-    }).join('');
-  } else {
-    // No mostrar ventas si no hay hoy (no mostrar ayer)
-    document.getElementById('ventas-card').style.display='none';
-  }
   set('mon-upd','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
-});
+  renderSemaforo(res.semaforo||[]);
 
+  // VENTAS HOY — con desglose por sede, servicio y producto
+  var ventas=res.ventasHoy||[];
+  var vc=document.getElementById('ventas-card');
+  if(!ventas.length){vc.style.display='none';return;}
+  vc.style.display='block';
+  // Agrupar por sede
+  var sedes={};
+  ventas.forEach(function(v){
+    var sede=v.sede||'--';
+    if(sede==='WILMER'||sede==='RUVILA'||sede==='MIREYA')sede='SAN ISIDRO';
+    if(!sedes[sede])sedes[sede]={serv:0,prod:0,fact:0,usd:0,nServ:0,nProd:0};
+    var m=parseFloat(v.monto||0);
+    sedes[sede].fact+=m;
+    if(v.tipo==='PRODUCTO'){sedes[sede].prod+=m;sedes[sede].nProd++;}
+    else{sedes[sede].serv+=m;sedes[sede].nServ++;}
+    if(v.moneda==='USD')sedes[sede].usd+=m;
+  });
+  // Total
+  var totalF=ventas.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+  var totalServ=ventas.filter(function(v){return v.tipo!=='PRODUCTO';}).reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+  var totalProd=ventas.filter(function(v){return v.tipo==='PRODUCTO';}).reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+
+  var html='<div style="margin-bottom:10px">'+
+    '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:22px;color:var(--blue)">S/'+totalF.toFixed(2)+'</div>'+
+    '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+ventas.length+' venta'+(ventas.length!==1?'s':'')+
+    ' · Serv S/'+totalServ.toFixed(0)+' · Prod S/'+totalProd.toFixed(0)+'</div></div>';
+
+  // Por sede
+  Object.keys(sedes).forEach(function(sede){
+    var s=sedes[sede];
+    html+='<div style="padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<span style="font-size:11px;font-weight:700">'+esc(sede)+'</span>'+
+        '<span style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:var(--green)">S/'+s.fact.toFixed(0)+'</span>'+
+      '</div>'+
+      '<div style="font-size:9px;color:var(--muted);margin-top:3px">'+
+        'Serv S/'+s.serv.toFixed(0)+' ('+s.nServ+') · Prod S/'+s.prod.toFixed(0)+' ('+s.nProd+')'+
+        (s.usd>0?' · <span style="color:#2563EB">$'+s.usd.toFixed(2)+'</span>':'')+
+      '</div>'+
+    '</div>';
+  });
+  document.getElementById('ventas-list').innerHTML=html;
+});
 // Ticker embudo: datos del mes desde Supabase directo
 q('aos_leads','select=id&fecha=gte.'+mes(),function(rows){set('tk-leads',(rows||[]).length);});
 
@@ -469,11 +490,18 @@ q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADE
   var map={};
   (rows||[]).forEach(function(r){
     if(!r.asesor)return;
-    if(!map[r.asesor])map[r.asesor]={n:r.asesor,nServ:0,fServ:0,nProd:0,fProd:0,fact:0};
+    if(!map[r.asesor])map[r.asesor]={n:r.asesor,nServ:0,fServ:0,nProd:0,fProd:0,fact:0,com:0};
     var m=parseFloat(r.monto||0);
     map[r.asesor].fact+=m;
-    if(r.tipo==='PRODUCTO'){map[r.asesor].nProd++;map[r.asesor].fProd+=m;}
-    else{map[r.asesor].nServ++;map[r.asesor].fServ+=m;}
+    var comV=0;
+    if(r.tipo==='PRODUCTO'){
+      map[r.asesor].nProd++;map[r.asesor].fProd+=m;
+      comV=m>=201?6:m>=149?5:m>=101?4:m>=51?3:m>=18?1:0.30;
+    }else{
+      map[r.asesor].nServ++;map[r.asesor].fServ+=m;
+      comV=m*0.0005;
+    }
+    map[r.asesor].com+=comV;
   });
   var lista=Object.values(map).sort(function(a,b){return b.fact-a.fact;});
   var maxF=lista.length?lista[0].fact:1;
@@ -481,30 +509,32 @@ q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+mes()+'&estado_pago=neq.ADE
   var el=document.getElementById('ranking-list');
   el.innerHTML=lista.length?lista.map(function(a,i){
     var pct=maxF>0?Math.round(a.fact/maxF*100):0;
-    return '<div class="rank-item">'+
-      '<div class="rank-header">'+
-        '<div class="rank-pos">'+(medals[i]||String(i+1))+'</div>'+
-        '<div class="rank-name">'+esc(a.n)+'</div>'+
-        '<div class="rank-fact">S/'+a.fact.toFixed(0)+'</div>'+
-      '</div>'+
-      '<div class="rank-desglose">'+
-        '<div class="rank-bloque">'+
-          '<div class="rank-bloque-lbl">Servicios</div>'+
-          '<div class="rank-bloque-val">S/'+a.fServ.toFixed(0)+'</div>'+
-          '<div class="rank-bloque-sub">'+a.nServ+' venta'+(a.nServ!==1?'s':'')+'</div>'+
-        '</div>'+
-        '<div class="rank-bloque">'+
-          '<div class="rank-bloque-lbl">Productos</div>'+
-          '<div class="rank-bloque-val">S/'+a.fProd.toFixed(0)+'</div>'+
-          '<div class="rank-bloque-sub">'+a.nProd+' venta'+(a.nProd!==1?'s':'')+'</div>'+
+    return '<div style="padding:10px 0;border-bottom:1px solid var(--bg)">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+        '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:var(--label);width:22px;text-align:center">'+(medals[i]||String(i+1))+'</div>'+
+        '<div style="flex:1;font-weight:700;font-size:13px">'+esc(a.n)+'</div>'+
+        '<div>'+
+          '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:var(--green)">S/'+a.com.toFixed(2)+'</div>'+
+          '<div style="font-size:9px;color:var(--muted);text-align:right">com.</div>'+
         '</div>'+
       '</div>'+
-      '<div class="rank-bar-bg"><div class="rank-bar" style="width:'+pct+'%"></div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-left:30px">'+
+        '<div style="background:var(--bg);border-radius:7px;padding:5px 8px">'+
+          '<div style="font-size:8px;font-weight:700;color:var(--label);text-transform:uppercase">Servicios</div>'+
+          '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:13px">S/'+a.fServ.toFixed(0)+'</div>'+
+          '<div style="font-size:9px;color:var(--muted)">'+a.nServ+' venta'+(a.nServ!==1?'s':'')+'</div>'+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:7px;padding:5px 8px">'+
+          '<div style="font-size:8px;font-weight:700;color:var(--label);text-transform:uppercase">Productos</div>'+
+          '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:13px">S/'+a.fProd.toFixed(0)+'</div>'+
+          '<div style="font-size:9px;color:var(--muted)">'+a.nProd+' venta'+(a.nProd!==1?'s':'')+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:10px;color:var(--muted);margin-left:30px;margin-top:4px">Facturado: <b>S/'+a.fact.toFixed(0)+'</b></div>'+
+      '<div style="height:3px;background:var(--bg);border-radius:2px;margin-top:6px;margin-left:30px"><div style="height:3px;border-radius:2px;background:var(--blue);width:'+pct+'%"></div></div>'+
     '</div>';
-  }).join(''):'<div class="ld">Sin ventas registradas este mes</div>';
+  }).join(''):'<div class="ld">Sin ventas este mes</div>';
 });
-
-// ── 4. PAGOS PENDIENTES ──────────────────────────────────────────
 q('aos_ventas','select=venta_id,nombres,apellidos,tratamiento,monto,asesor,sede&estado_pago=eq.ADELANTO&order=fecha.desc&limit=20',function(rows){
   var el=document.getElementById('pagos-list');
   var cnt=document.getElementById('pagos-cnt');
