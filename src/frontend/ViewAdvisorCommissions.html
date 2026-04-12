@@ -1,10 +1,10 @@
-
+<!-- ViewAdvisorCommissions.html — Comisiones Asesor AscendaOS v1 -->
 <style>
 .vcom-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
 .vcom-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .vcom-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
 .period-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
- 
+/* KPI HERO */
 .kpi-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;}
 .hero-card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:16px;}
 .hero-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:14px;padding:18px;color:#fff;}
@@ -21,25 +21,25 @@
 .delta-up{background:#F0FDF4;color:#16A34A;}
 .delta-dn{background:#FEF2F2;color:#DC2626;}
 .delta-n{background:#F0F4FC;color:#6B7BA8;}
- 
+/* RANKING CARD */
 .rank-display{display:flex;align-items:center;gap:12px;}
 .rank-emoji{font-size:36px;}
 .rank-info{}
 .rank-pos{font-family:'Exo 2',sans-serif;font-size:32px;font-weight:800;color:#0D1B3E;line-height:1;}
 .rank-lbl{font-size:11px;color:#6B7BA8;margin-top:2px;}
- 
+/* MAIN 2-COL */
 .main2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
 .card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
 .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
- 
+/* HISTORIAL */
 .hist-table{width:100%;border-collapse:collapse;}
 .hist-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
 .hist-table td{padding:8px 8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;}
 .hist-table tr:last-child td{border-bottom:none;}
 .hist-table tr.cur{background:#EBF2FF;}
 .hist-table td:nth-child(2){font-family:'Exo 2',sans-serif;font-weight:700;color:#0A4FBF;}
- 
+/* DETALLE VENTAS */
 .det-table{width:100%;border-collapse:collapse;}
 .det-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
 .det-table td{padding:8px 8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
@@ -49,7 +49,7 @@
 .tipo-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
 .tb-serv{background:#EBF2FF;color:#0A4FBF;}
 .tb-prod{background:#F5F3FF;color:#7C3AED;}
- 
+/* TOP CLIENTES */
 .top-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}
 .top-row:last-child{border-bottom:none;}
 .top-rank{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
@@ -58,12 +58,12 @@
 .top-met{font-size:10px;color:#9AAAC8;}
 .top-fact{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;flex-shrink:0;}
 .wa-sm{width:22px;height:22px;border-radius:6px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;flex-shrink:0;}
- 
+/* REGLAS */
 .regla-item{padding:8px 11px;border-radius:9px;background:#F0F4FC;border:1px solid #DDE4F5;margin-bottom:6px;}
 .regla-item:last-child{margin-bottom:0;}
 .regla-txt{font-size:12px;color:#0D1B3E;font-weight:600;}
 .regla-sub{font-size:11px;color:#6B7BA8;margin-top:2px;}
- 
+/* LOADING */
 .ld{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
 .sp{width:18px;height:18px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -74,7 +74,7 @@
 
 <div class="vcom-root">
 
-  
+  <!-- HEADER -->
   <div class="vcom-header">
     <div class="vcom-title">Mis Comisiones</div>
     <div style="display:flex;gap:7px;">
@@ -92,10 +92,10 @@
     </div>
   </div>
 
-  
+  <!-- KPI HERO ROW -->
   <div class="kpi-hero">
 
-    
+    <!-- COMISIÓN TOTAL -->
     <div class="hero-main">
       <div class="hero-lbl">Comisión total del mes</div>
       <div class="hero-val" id="h-com-total">S/. —</div>
@@ -104,7 +104,7 @@
       <div class="prog-labels"><span id="h-com-pct">0%</span><span id="h-com-rank">Rank —</span></div>
     </div>
 
-    
+    <!-- SERVICIOS + PRODUCTOS -->
     <div class="hero-card">
       <div class="sub-lbl">Por tipo</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -122,7 +122,7 @@
       <div class="delta-chip delta-n" id="h-delta" style="margin-top:10px;">vs mes anterior: —</div>
     </div>
 
-    
+    <!-- RANKING -->
     <div class="hero-card">
       <div class="sub-lbl">Ranking del equipo</div>
       <div class="rank-display">
@@ -137,10 +137,10 @@
 
   </div>
 
-  
+  <!-- MAIN 2-COL -->
   <div class="main2">
 
-    
+    <!-- HISTORIAL ANUAL -->
     <div class="card">
       <div class="chd"><div class="ct">RÉCORD DEL AÑO</div></div>
       <div class="wrap-sc">
@@ -158,7 +158,7 @@
       </div>
     </div>
 
-    
+    <!-- TOP CLIENTES -->
     <div class="card">
       <div class="chd"><div class="ct">TOP CLIENTES DEL MES</div></div>
       <div id="top-clientes">
@@ -168,10 +168,10 @@
 
   </div>
 
-  
+  <!-- DETALLE + REGLAS -->
   <div class="main2">
 
-    
+    <!-- DETALLE POR VENTA -->
     <div class="card">
       <div class="chd"><div class="ct">DETALLE POR VENTA</div></div>
       <div class="wrap-sc">
@@ -189,7 +189,7 @@
       </div>
     </div>
 
-    
+    <!-- REGLAS DE COMISIÓN -->
     <div class="card">
       <div class="chd"><div class="ct">TABLA DE COMISIONES</div></div>
       <div id="reglas-container">
