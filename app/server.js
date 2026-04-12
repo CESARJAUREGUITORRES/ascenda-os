@@ -16,9 +16,8 @@ const MIME = {
   '.woff2':'font/woff2',
 }
 
-function serveFile(filePath, res) {
-  const ext  = path.extname(filePath)
-  const mime = MIME[ext] || 'text/plain'
+function serve(filePath, res) {
+  const mime = MIME[path.extname(filePath)] || 'text/plain'
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found'); return }
     res.writeHead(200, { 'Content-Type': mime })
@@ -27,31 +26,42 @@ function serveFile(filePath, res) {
 }
 
 http.createServer((req, res) => {
-  const urlPath = req.url.split('?')[0]
+  const p = req.url.split('?')[0]
 
-  // Rutas de la app (AppShell) -> servir app.html desde public/
-  if (urlPath === '/app' || urlPath.startsWith('/asesor') || urlPath.startsWith('/admin')) {
-    const appHtml = path.join(PUB, 'app.html')
-    if (fs.existsSync(appHtml)) { serveFile(appHtml, res); return }
+  // AppShell — todas las rutas de la app
+  if (p === '/app' || p.startsWith('/asesor') || p.startsWith('/admin')) {
+    const f = path.join(PUB, 'app.html')
+    if (fs.existsSync(f)) { serve(f, res); return }
   }
 
-  // Assets de Vite (CSS, JS, fonts)
-  if (urlPath.startsWith('/assets/')) {
-    const assetFile = path.join(DIST, urlPath)
-    if (fs.existsSync(assetFile)) { serveFile(assetFile, res); return }
+  // Paneles específicos
+  const panelMap = {
+    '/calls':   'calls.html',
+    '/advisor/calls': 'calls.html',
+  }
+  if (panelMap[p]) {
+    const f = path.join(PUB, panelMap[p])
+    if (fs.existsSync(f)) { serve(f, res); return }
   }
 
-  // Public files
-  const pubFile = path.join(PUB, urlPath === '/' ? '' : urlPath)
-  if (fs.existsSync(pubFile) && !fs.statSync(pubFile).isDirectory()) {
-    serveFile(pubFile, res); return
+  // Assets Vite
+  if (p.startsWith('/assets/')) {
+    const f = path.join(DIST, p)
+    if (fs.existsSync(f)) { serve(f, res); return }
   }
 
-  // SPA fallback -> index.html de Vite (login)
-  const indexFile = path.join(DIST, 'index.html')
-  if (fs.existsSync(indexFile)) { serveFile(indexFile, res); return }
+  // Archivos de public/
+  if (p !== '/') {
+    const f = path.join(PUB, p)
+    if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
+  }
+
+  // SPA fallback → login
+  const idx = path.join(DIST, 'index.html')
+  if (fs.existsSync(idx)) { serve(idx, res); return }
 
   res.writeHead(404); res.end('Not found')
 }).listen(PORT, '0.0.0.0', () => {
   console.log('AscendaOS en http://0.0.0.0:' + PORT)
+  console.log('Paneles: /app (AppShell), /calls (CallCenter)')
 })
