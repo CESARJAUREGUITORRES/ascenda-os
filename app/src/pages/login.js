@@ -1,5 +1,5 @@
 // src/pages/login.js
-import { query, session } from '../lib/supabase.js'
+import { rpc, session } from '../lib/supabase.js'
 import { navigate } from '../lib/router.js'
 
 export function LoginPage() {
@@ -13,7 +13,6 @@ export function LoginPage() {
           </div>
           <div class="logo-sub">Zi Vital · CRM Clínica</div>
         </div>
-
         <div class="login-form">
           <div class="field">
             <label>Usuario</label>
@@ -28,7 +27,6 @@ export function LoginPage() {
             Ingresar
           </button>
         </div>
-
         <div class="login-footer">AscendaOS v2 · Supabase Direct</div>
       </div>
     </div>
@@ -36,67 +34,51 @@ export function LoginPage() {
 }
 
 export function initLogin() {
-  // Enter key
   document.querySelectorAll('#login-user, #login-pass').forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
   })
-
   window._doLogin = doLogin
+
+  // Auto-focus
+  setTimeout(() => document.getElementById('login-user')?.focus(), 100)
 }
 
 async function doLogin() {
   const user = (document.getElementById('login-user')?.value || '').trim().toLowerCase()
   const pass = (document.getElementById('login-pass')?.value || '').trim()
   const errEl = document.getElementById('login-error')
-  const btn = document.getElementById('login-btn')
+  const btn   = document.getElementById('login-btn')
 
-  if (!user || !pass) {
-    errEl.textContent = 'Ingresa usuario y contraseña'
-    return
-  }
+  if (!user || !pass) { errEl.textContent = 'Ingresa usuario y contraseña'; return }
 
   btn.textContent = 'Verificando...'
   btn.disabled = true
   errEl.textContent = ''
 
   try {
-    // Buscar en Supabase directamente
-    const datos = await query(
-      'aos_rrhh',
-      `?usuario=eq.${encodeURIComponent(user)}&estado=eq.ACTIVO&select=codigo_asesor,nombre,apellido,puesto,sede,usuario,password_hash,permisos`
-    )
+    // Llamada directa a la RPC de login en Supabase
+    const res = await rpc('aos_login', { p_usuario: user, p_password: pass })
 
-    if (!datos || datos.length === 0) {
-      errEl.textContent = 'Usuario no encontrado'
+    if (!res || !res.ok) {
+      errEl.textContent = res?.error || 'Credenciales incorrectas'
       btn.textContent = 'Ingresar'
       btn.disabled = false
       return
     }
 
-    const u = datos[0]
-
-    // Validar contraseña (texto plano por ahora — migrar a hash después)
-    if (u.password_hash !== pass) {
-      errEl.textContent = 'Contraseña incorrecta'
-      btn.textContent = 'Ingresar'
-      btn.disabled = false
-      return
-    }
-
-    // Guardar sesión
+    // Guardar sesión 12 horas
     session.set({
-      codigo_asesor: u.codigo_asesor,
-      nombre:        u.nombre,
-      apellido:      u.apellido,
-      puesto:        u.puesto,
-      sede:          u.sede,
-      usuario:       u.usuario,
-      permisos:      u.permisos || {},
-      expires:       Date.now() + (12 * 60 * 60 * 1000) // 12 horas
+      codigo_asesor: res.codigo_asesor,
+      nombre:        res.nombre,
+      apellido:      res.apellido,
+      puesto:        res.puesto,
+      sede:          res.sede,
+      usuario:       res.usuario,
+      permisos:      res.permisos || {},
+      expires:       Date.now() + (12 * 60 * 60 * 1000)
     })
 
-    // Redirigir según rol
-    const ruta = u.puesto === 'ADMINISTRADOR' ? '/admin' : '/asesor'
+    const ruta = res.puesto === 'ADMINISTRADOR' ? '/admin' : '/asesor'
     navigate(ruta)
 
   } catch (err) {
