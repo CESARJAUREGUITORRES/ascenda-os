@@ -383,63 +383,45 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <script>
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
+function _q(tabla,filtro,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
+function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){r.ok&&ok&&ok();});}
 (function init() {
   try {
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
-    if (!s || !s.codigo_asesor || s.expires < Date.now()) {
-      console.log('[AOS] Sin sesion valida, redirigiendo a login');
-      redirectLogin(); return;
-    }
+    if (!s || !s.codigo_asesor || s.expires < Date.now()) { redirectLogin(); return; }
     AOS.token = s.codigo_asesor;
     AOS.ctx = { nombre:s.nombre, apellido:s.apellido,
       role:(s.puesto==='ADMINISTRADOR'?'ADMIN':'ASESOR'),
       puesto:s.puesto, sede:s.sede, idAsesor:s.codigo_asesor, asesor:s.nombre };
     AOS.role = AOS.ctx.role;
-    console.log('[AOS] Sesion OK:', AOS.ctx.nombre, '| Rol:', AOS.role);
-  } catch(e) { console.error('[AOS] Error init:', e); redirectLogin(); return; }
-  try { buildTopbar(); } catch(e) { console.error('[AOS] buildTopbar:', e); }
-  try { buildSidebar(); } catch(e) { console.error('[AOS] buildSidebar:', e); }
-  try { startClock(); } catch(e) { console.error('[AOS] startClock:', e); }
-  if (AOS.role !== 'ADMIN') {
-    try { verificarTurnoHoy(); } catch(e) { navigateTo('advisor-calls'); }
-  } else {
-    navigateTo('admin-home');
-  }
-  // Fallback: si en 4 segundos workspace sigue en loading, mostrar botn
-  setTimeout(function() {
-    var ws = document.getElementById('workspace');
-    if (ws && ws.querySelector('.vl-spinner')) {
-      ws.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;font-family:sans-serif;">' +
-        '<div style="font-size:13px;color:#6B7BA8;">Panel tardando en cargar...</div>' +
-        '<button onclick="navigateTo(AOS.role==='ADMIN'?'admin-home':'advisor-calls')" style="padding:10px 24px;border-radius:10px;background:#0A4FBF;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">Reintentar</button>' +
-        '<button onclick="window.location.href='/'" style="padding:8px 16px;border-radius:8px;background:#F0F4FC;color:#6B7BA8;border:1px solid #DDE4F5;font-size:12px;cursor:pointer;">Ir al login</button>' +
-      '</div>';
-    }
-  }, 4000);
-})();
+  } catch(e) { redirectLogin(); return; }
+  buildTopbar(); buildSidebar(); startClock();
+  if (AOS.role !== 'ADMIN') verificarTurnoHoy();
+  else navigateTo('admin-home');
+})(
+);
 
 /* ---------------------------------------------------
    TOPBAR BUILD
 --------------------------------------------------- */
 function buildTopbar() {
-  try {
-    var ctx = AOS.ctx;
-    var pill = document.getElementById('role-pill');
-    if (pill) { pill.textContent = AOS.role === 'ADMIN' ? 'ADMINISTRADOR' : 'ASESOR'; pill.className = 'role-pill ' + (AOS.role === 'ADMIN' ? 'rp-admin' : 'rp-asesor'); }
-    var av = document.getElementById('avatar-btn');
-    var nom = ctx.asesor || ctx.idAsesor || 'US';
-    if (av) {
-      if (ctx.fotoUrl) { av.innerHTML = '<img src="' + escHtml(ctx.fotoUrl) + '" alt="' + escHtml(nom) + '">'; }
-      else { av.textContent = nom.slice(0,2).toUpperCase(); }
-      av.className = 'avatar ' + (AOS.role === 'ADMIN' ? 'av-admin' : 'av-asesor');
-      av.onclick = function() { openLogoutModal(); };
-    }
-    if (AOS.role !== 'ADMIN') {
-      var edoBtn = document.getElementById('edo-btn');
-      if (edoBtn) edoBtn.style.display = 'flex';
-      try { initEstadoDropdown(); } catch(e) {}
-    }
-  } catch(e) { console.error('[buildTopbar]', e); }
+  var ctx = AOS.ctx;
+  var pill = document.getElementById('role-pill');
+  pill.textContent = AOS.role === 'ADMIN' ? 'ADMINISTRADOR' : 'ASESOR';
+  pill.className   = 'role-pill ' + (AOS.role === 'ADMIN' ? 'rp-admin' : 'rp-asesor');
+  var av  = document.getElementById('avatar-btn');
+  var nom = ctx.asesor || ctx.idAsesor || 'US';
+  if (ctx.fotoUrl) {
+    av.innerHTML = '<img src="' + escHtml(ctx.fotoUrl) + '" alt="' + escHtml(nom) + '">';
+  } else {
+    av.textContent = nom.slice(0,2).toUpperCase();
+  }
+  av.className = 'avatar ' + (AOS.role === 'ADMIN' ? 'av-admin' : 'av-asesor');
+  av.onclick   = function() { openLogoutModal(); };
+  if (AOS.role !== 'ADMIN') {
+    document.getElementById('edo-btn').style.display = 'flex';
+    initEstadoDropdown();
+  }
 }
 
 /* ---------------------------------------------------
@@ -612,41 +594,12 @@ function navigateTo(viewId) {
       '<div style="font-size:12px;color:#9AAAC8;">' + escHtml(viewId) + ' — Próximamente</div></div>';
     return;
   }
-  // Mapeo de panel -> archivo HTML esttico
-  var PANEL_ROUTES = {
-    'ViewAdvisorCalls':      '/calls.html',
-    'ViewAdvisorHome':       '/advisor-home.html',
-    'ViewAdvisorFollowups':  '/followups.html',
-    'ViewAdvisorAgenda':     '/agenda.html',
-    'ViewAdvisorCitas':      '/citas.html',
-    'ViewAdvisorPatients':   '/patients.html',
-    'ViewAdvisorSales':      '/sales.html',
-    'ViewAdvisorCommissions':'/commissions.html',
-    'ViewAdvisorAttendance': '/attendance.html',
-    'ViewAdminHome':         '/admin-home.html',
-    'ViewAdminCalls':        '/admin-calls.html',
-    'ViewAdminOperations':   '/admin-ops.html',
-    'ViewAdminPatients':     '/admin-patients.html',
-    'ViewAdminSales':        '/admin-sales.html',
-    'ViewAdminComisiones':   '/admin-comisiones.html',
-    'ViewAdminTeam':         '/admin-team.html',
-    'ViewAdminMarketing':    '/admin-marketing.html',
-    'ViewAdminBilling':      '/admin-billing.html',
-  };
-  var route = PANEL_ROUTES[hf];
-  if (route) {
-    fetch(route)
-      .then(function(r) { return r.text(); })
-      .then(function(html) {
-        ws.innerHTML = html;
-        // Re-ejecutar scripts del panel
-        ws.querySelectorAll('script').forEach(function(old) {
-          var s = document.createElement('script');
-          s.textContent = old.textContent;
-          try { document.head.appendChild(s); } catch(e) {}
-        });
-      })
-      .catch(function() { showViewError('Error cargando panel: ' + hf); });
+  // Cargar panel via import dinmico  sin GAS
+  var panelMap = window.AOS_PANELS || {};
+  if (panelMap[hf]) {
+    var mod = panelMap[hf];
+    ws.innerHTML = mod.html();
+    if (mod.init) setTimeout(function() { mod.init(); }, 50);
   } else {
     ws.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;">' +
       '<div style="font-size:32px;">🔧</div>' +
@@ -793,6 +746,7 @@ function pollNotifications() {
       if (!res || !res.ok) return;
       updateNotifBadges(res.unreadNotifs||0, res.unreadMsgs||0);
       renderNotifPanel(res.items||[]);
+    });
 }
 
 var _lastNids = new Set();
