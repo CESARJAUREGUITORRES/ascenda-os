@@ -1,14 +1,108 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- sales.html — Mis Ventas | AscendaOS v1 | 100% Supabase -->
+<style>
+.vs-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.vs-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vs-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kcard{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px;}
+.kcard-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.kcard-val{font-family:Exo\ 2,sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1;}
+.kcard-sub{font-size:10px;color:#6B7BA8;margin-top:3px;}
+.kcard-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;}
+.kcard-main .kcard-lbl{color:rgba(255,255,255,.7);}.kcard-main .kcard-val{color:#fff;font-size:26px;}.kcard-main .kcard-sub{color:rgba(255,255,255,.6);}
+.main2{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:10px;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.ftabs{display:flex;gap:4px;}
+.ftab{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}
+.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.vtable{width:100%;border-collapse:collapse;}
+.vtable th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.vtable td{padding:8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.vtable tr:last-child td{border-bottom:none;}
+.vtable tr:hover td{background:#F8FAFF;}
+.tipo-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.tb-serv{background:#EBF2FF;color:#0A4FBF;}.tb-prod{background:#F5F3FF;color:#7C3AED;}
+.com-v{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:11px;color:#16A34A;}
+.sede-box{display:flex;gap:8px;}
+.sede-card{flex:1;padding:12px;border-radius:10px;border:1px solid #DDE4F5;text-align:center;}
+.sede-card-lbl{font-size:10px;font-weight:700;color:#9AAAC8;margin-bottom:4px;}
+.sede-card-val{font-family:Exo\ 2,sans-serif;font-size:20px;font-weight:800;color:#0A4FBF;}
+.htable{width:100%;border-collapse:collapse;}
+.htable th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.htable td{padding:6px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;}
+.htable tr:last-child td{border-bottom:none;}
+.htable tr.cur{background:#EBF2FF;}
+.htable td:nth-child(2){font-family:Exo\ 2,sans-serif;font-weight:700;color:#0A4FBF;}
+.top-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(221,228,245,.4);}
+.top-row:last-child{border-bottom:none;}
+.top-rank{font-size:14px;width:20px;text-align:center;flex-shrink:0;}
+.top-info{flex:1;min-width:0;}.top-nom{font-size:11px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top-met{font-size:9px;color:#9AAAC8;}.top-fact{font-family:Exo\ 2,sans-serif;font-size:12px;font-weight:800;color:#0A4FBF;flex-shrink:0;}
+.wa-sm{width:20px;height:20px;border-radius:5px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;flex-shrink:0;}
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.wrap-sc{overflow-y:auto;max-height:260px;}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.totals-row{display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid #DDE4F5;margin-top:4px;font-size:12px;font-weight:700;}
+.totals-row span:first-child{color:#6B7BA8;}.totals-row span:last-child{color:#0A4FBF;font-family:Exo\ 2,sans-serif;}
+@media(max-width:768px){.krow{grid-template-columns:repeat(2,1fr);}.main2{grid-template-columns:1fr;}}
+</style>
+
+<div class="vs-root">
+  <div class="vs-hdr">
+    <div class="vs-title">Mis Ventas</div>
+    <div style="display:flex;gap:7px;">
+      <select class="psel" id="vs-mes" onchange="vsReload()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <select class="psel" id="vs-anio" onchange="vsReload()"><option value="2026">2026</option><option value="2025">2025</option></select>
+    </div>
+  </div>
+
+  <div class="krow">
+    <div class="kcard kcard-main"><div class="kcard-lbl">Facturado</div><div class="kcard-val" id="vs-fact">--</div><div class="kcard-sub">del mes</div></div>
+    <div class="kcard"><div class="kcard-lbl">Ventas</div><div class="kcard-val" id="vs-nv">--</div><div class="kcard-sub">registradas</div></div>
+    <div class="kcard"><div class="kcard-lbl">Ticket prom.</div><div class="kcard-val" id="vs-ticket">--</div><div class="kcard-sub">por venta</div></div>
+    <div class="kcard"><div class="kcard-lbl">Servicios</div><div class="kcard-val" id="vs-nserv">--</div><div class="kcard-sub" id="vs-fserv">S/0</div></div>
+    <div class="kcard"><div class="kcard-lbl">Productos</div><div class="kcard-val" id="vs-nprod">--</div><div class="kcard-sub" id="vs-fprod">S/0</div></div>
+  </div>
+
+  <div class="main2">
+    <div class="crd">
+      <div class="chd">
+        <div class="ct">Ventas del mes</div>
+        <div class="ftabs">
+          <div class="ftab act" data-f="all" onclick="vsFilter(this)">Todas</div>
+          <div class="ftab" data-f="SERVICIO" onclick="vsFilter(this)">Servicios</div>
+          <div class="ftab" data-f="PRODUCTO" onclick="vsFilter(this)">Productos</div>
+        </div>
+      </div>
+      <div class="wrap-sc" style="max-height:380px;">
+        <table class="vtable"><thead><tr><th>Fecha</th><th>Cliente</th><th>Tratamiento</th><th>Monto</th><th>Comisi&oacute;n</th><th>Tipo</th></tr></thead>
+        <tbody id="vs-tbody"><tr><td colspan="6" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table>
+      </div>
+      <div class="totals-row"><span>Total facturado: <b id="vs-tfact" style="color:#0A4FBF;">--</b></span><span>Total comisi&oacute;n: <b id="vs-tcom" style="color:#16A34A;">--</b></span></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="crd">
+        <div class="chd"><div class="ct">Por sede</div></div>
+        <div class="sede-box" id="vs-sedes"><div class="ld"><span class="sp"></span></div></div>
+      </div>
+      <div class="crd">
+        <div class="chd"><div class="ct">R&eacute;cord del a&ntilde;o</div></div>
+        <div class="wrap-sc">
+          <table class="htable"><thead><tr><th>Mes</th><th>Fact.</th><th>Com. Serv</th><th>Com. Prod</th><th>Total Com.</th></tr></thead>
+          <tbody id="vs-hist"><tr><td colspan="5" class="ld"><span class="sp"></span></td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="crd">
+        <div class="chd"><div class="ct">Top Clientes</div></div>
+        <div class="wrap-sc" id="vs-top"><div class="ld"><span class="sp"></span></div></div>
+      </div>
+    </div>
   </div>
 </div>
-</body>
-</html>
+
+<script src="/sales.js"></script>
