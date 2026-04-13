@@ -1,14 +1,84 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- citas.html — Mis Citas | AscendaOS v1 | 100% Supabase -->
+<style>
+.vc-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.vc-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vc-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px;text-align:center;}
+.kc-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.kc-val{font-family:Exo\ 2,sans-serif;font-size:28px;font-weight:800;line-height:1;}
+.kc-sub{font-size:10px;color:#6B7BA8;margin-top:3px;}
+.kc-blue{background:linear-gradient(135deg,#071D4A,#0A4FBF);}.kc-blue .kc-lbl{color:rgba(255,255,255,.7);}.kc-blue .kc-val{color:#fff;}.kc-blue .kc-sub{color:rgba(255,255,255,.6);}
+.kc-green .kc-val{color:#16A34A;}.kc-red .kc-val{color:#DC2626;}.kc-amber .kc-val{color:#D97706;}
+.main2{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:10px;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.ftabs{display:flex;gap:4px;flex-wrap:wrap;}
+.ftab{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}
+.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.ctable{width:100%;border-collapse:collapse;}
+.ctable th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.ctable td{padding:7px 6px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.ctable tr:last-child td{border-bottom:none;}
+.ctable tr:hover td{background:#F8FAFF;}
+.est-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.est-pend{background:#FEF3C7;color:#D97706;}.est-asist{background:#F0FDF4;color:#16A34A;}
+.est-noasist{background:#FEF2F2;color:#DC2626;}.est-cancel{background:#F0F4FC;color:#6B7BA8;}
+.bar-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.bar-lbl{font-size:11px;color:#0D1B3E;font-weight:600;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:8px;background:#F0F4FC;border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:#0A4FBF;}
+.bar-n{font-size:11px;font-weight:700;color:#0A4FBF;min-width:24px;text-align:right;}
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.wrap-sc{overflow-y:auto;max-height:400px;}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+@media(max-width:768px){.krow{grid-template-columns:repeat(3,1fr);}.main2{grid-template-columns:1fr;}}
+</style>
+
+<div class="vc-root">
+  <div class="vc-hdr">
+    <div class="vc-title">Mis Citas</div>
+    <div style="display:flex;gap:7px;">
+      <select class="psel" id="vc-mes" onchange="vcReload()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <select class="psel" id="vc-anio" onchange="vcReload()"><option value="2026">2026</option><option value="2025">2025</option></select>
+    </div>
+  </div>
+
+  <div class="krow">
+    <div class="kc kc-blue"><div class="kc-lbl">Total citas</div><div class="kc-val" id="vc-total">--</div><div class="kc-sub">del mes</div></div>
+    <div class="kc"><div class="kc-lbl">Pendientes</div><div class="kc-val kc-amber" id="vc-pend" style="color:#D97706;">--</div><div class="kc-sub">por confirmar</div></div>
+    <div class="kc kc-green"><div class="kc-lbl">Asistieron</div><div class="kc-val" id="vc-asist">--</div><div class="kc-sub" id="vc-pct">0%</div></div>
+    <div class="kc kc-red"><div class="kc-lbl">No asistieron</div><div class="kc-val" id="vc-noasist">--</div><div class="kc-sub">inasistencias</div></div>
+    <div class="kc"><div class="kc-lbl">Canceladas</div><div class="kc-val" id="vc-cancel">--</div><div class="kc-sub">del mes</div></div>
+  </div>
+
+  <div class="main2">
+    <div class="crd">
+      <div class="chd">
+        <div class="ct">Citas del mes</div>
+        <div class="ftabs">
+          <div class="ftab act" data-f="all" onclick="vcFilter(this)">Todas</div>
+          <div class="ftab" data-f="PENDIENTE" onclick="vcFilter(this)">Pendientes</div>
+          <div class="ftab" data-f="ASISTIO" onclick="vcFilter(this)">Asistieron</div>
+          <div class="ftab" data-f="NO ASISTIO" onclick="vcFilter(this)">No asistieron</div>
+          <div class="ftab" data-f="CANCELADA" onclick="vcFilter(this)">Canceladas</div>
+        </div>
+      </div>
+      <div class="wrap-sc">
+        <table class="ctable"><thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Estado</th><th>Doctora</th></tr></thead>
+        <tbody id="vc-tbody"><tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="crd"><div class="chd"><div class="ct">Por sede</div></div><div id="vc-sedes"><div class="ld"><span class="sp"></span></div></div></div>
+      <div class="crd"><div class="chd"><div class="ct">Por tratamiento</div></div><div class="wrap-sc" id="vc-trats"><div class="ld"><span class="sp"></span></div></div></div>
+      <div class="crd"><div class="chd"><div class="ct">Por estado</div></div><div id="vc-estados"><div class="ld"><span class="sp"></span></div></div></div>
+    </div>
   </div>
 </div>
-</body>
-</html>
+
+<script src="/citas.js"></script>
