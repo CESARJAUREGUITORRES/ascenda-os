@@ -1,14 +1,166 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- agenda.html — Agenda Global | AscendaOS v1 | 100% Supabase -->
+<style>
+.ag-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.ag-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.ag-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.ag-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.psel{padding:5px 9px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.ag-btn{padding:6px 14px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}
+.ag-btn:hover{background:#071D4A;}
+.nav-row{display:flex;align-items:center;gap:8px;}
+.nav-arrow{width:28px;height:28px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0D1B3E;}
+.nav-arrow:hover{background:#EBF2FF;}
+.nav-date{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;min-width:160px;text-align:center;}
+.nav-today{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;font-size:10px;font-weight:700;cursor:pointer;color:#0A4FBF;background:#EBF2FF;}
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:8px 10px;text-align:center;}
+.kc-v{font-family:Exo\ 2,sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-top:3px;}
+.ag-main{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:10px;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.ag-table{width:100%;border-collapse:collapse;}
+.ag-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;position:sticky;top:0;background:#fff;z-index:1;}
+.ag-table td{padding:7px 6px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.ag-table tr:last-child td{border-bottom:none;}
+.ag-table tr{cursor:pointer;}.ag-table tr:hover td{background:#F8FAFF;}
+.est-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;display:inline-block;}
+.est-pend{background:#FEF3C7;color:#D97706;}.est-conf{background:#EBF2FF;color:#0A4FBF;}
+.est-asist{background:#F0FDF4;color:#16A34A;}.est-efect{background:#ECFDF5;color:#059669;}
+.est-noasist{background:#FEF2F2;color:#DC2626;}.est-cancel{background:#F0F4FC;color:#6B7BA8;}
+.turno-card{padding:6px 8px;border-radius:8px;border:1px solid #DDE4F5;margin-bottom:5px;font-size:11px;}
+.turno-card:last-child{margin-bottom:0;}
+.turno-doc{border-left:3px solid #16A34A;}.turno-enf{border-left:3px solid #0A4FBF;}
+.turno-nombre{font-weight:700;color:#0D1B3E;}.turno-meta{font-size:10px;color:#9AAAC8;margin-top:2px;}
+/* MODALES */
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.45);display:none;justify-content:center;align-items:flex-start;padding:40px 12px;z-index:999;overflow-y:auto;}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:520px;box-shadow:0 12px 40px rgba(0,0,0,.15);animation:slideUp .2s;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #DDE4F5;}
+.mtit{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.msub{font-size:11px;color:#9AAAC8;}
+.mbody{padding:16px 18px;}
+.mfoot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid #DDE4F5;}
+.mfoot button{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}
+.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}
+.mconf{background:#0A4FBF;border:none;color:#fff;}.mconf.gr{background:#16A34A;}
+.mconf.red{background:#DC2626;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mf{display:flex;flex-direction:column;gap:3px;}
+.mf.full{grid-column:1/-1;}
+.ml{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;}
+.mi{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.mi:focus{border-color:#0A4FBF;}
+.ms2{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;background:#fff;}
+.mta2{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:50px;}
+.det-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(221,228,245,.3);}
+.det-row:last-child{border-bottom:none;}
+.det-lbl{font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;}.det-val{font-size:12px;font-weight:600;color:#0D1B3E;}
+.est-btns{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+.est-btn{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid transparent;}
+.est-btn.act{border-color:#0D1B3E;box-shadow:0 0 0 1px #0D1B3E;}
+.est-btn-pend{background:#FEF3C7;color:#D97706;}.est-btn-conf{background:#EBF2FF;color:#0A4FBF;}
+.est-btn-asist{background:#F0FDF4;color:#16A34A;}.est-btn-efect{background:#ECFDF5;color:#059669;}
+.est-btn-noasist{background:#FEF2F2;color:#DC2626;}.est-btn-cancel{background:#F0F4FC;color:#6B7BA8;}
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.wrap-sc{overflow-y:auto;max-height:calc(100vh - 320px);}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+@media(max-width:768px){.ag-main{grid-template-columns:1fr;}.krow{grid-template-columns:repeat(3,1fr);}}
+</style>
+
+<div class="ag-root">
+  <div class="ag-hdr">
+    <div class="ag-title">Agenda</div>
+    <div class="ag-filters">
+      <select class="psel" id="ag-sede" onchange="agLoad()"><option value="">Ambas sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
+      <select class="psel" id="ag-asesor" onchange="agLoad()"><option value="">Todos</option><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option></select>
+      <select class="psel" id="ag-estado" onchange="agFilterEstado()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="ASISTIO">Asistieron</option><option value="NO ASISTIO">No asistieron</option><option value="CANCELADA">Canceladas</option></select>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <div class="nav-row">
+        <div class="nav-arrow" onclick="agNav(-1)">&lt;</div>
+        <div class="nav-date" id="ag-fecha-lbl">--</div>
+        <div class="nav-arrow" onclick="agNav(1)">&gt;</div>
+        <div class="nav-today" onclick="agHoy()">Hoy</div>
+      </div>
+      <input type="date" class="psel" id="ag-fecha" onchange="agLoad()" style="width:130px;">
+      <button class="ag-btn" onclick="agAbrirNueva()">+ Nueva cita</button>
+    </div>
+  </div>
+
+  <div class="krow">
+    <div class="kc"><div class="kc-v" id="ag-total" style="color:#0A4FBF;">0</div><div class="kc-l">Total</div></div>
+    <div class="kc"><div class="kc-v" id="ag-pend" style="color:#D97706;">0</div><div class="kc-l">Pendientes</div></div>
+    <div class="kc"><div class="kc-v" id="ag-asist" style="color:#16A34A;">0</div><div class="kc-l">Asistieron</div></div>
+    <div class="kc"><div class="kc-v" id="ag-noasist" style="color:#DC2626;">0</div><div class="kc-l">No asistieron</div></div>
+    <div class="kc"><div class="kc-v" id="ag-cancel" style="color:#6B7BA8;">0</div><div class="kc-l">Canceladas</div></div>
+  </div>
+
+  <div class="ag-main">
+    <div class="crd">
+      <div class="chd"><div class="ct" id="ag-list-title">Citas del d&iacute;a</div><div style="font-size:11px;color:#9AAAC8;" id="ag-list-count">0 citas</div></div>
+      <div class="wrap-sc">
+        <table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Doctora</th></tr></thead>
+        <tbody id="ag-tbody"><tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="crd"><div class="chd"><div class="ct">Turnos del d&iacute;a</div></div><div id="ag-turnos"><div class="ld"><span class="sp"></span></div></div></div>
+    </div>
   </div>
 </div>
-</body>
-</html>
+
+<!-- MODAL DETALLE CITA (vista rápida) -->
+<div class="mov" id="ag-m-det">
+  <div class="modal" style="max-width:440px;">
+    <div class="mhd"><span style="font-size:18px;">&#128197;</span><div><div class="mtit" id="det-nombre">--</div><div class="msub" id="det-sub">--</div></div><div style="margin-left:auto;cursor:pointer;font-size:18px;" onclick="agCloseDet()">&times;</div></div>
+    <div class="mbody">
+      <div id="det-info"></div>
+      <div style="margin-top:10px;"><div class="ml">Cambiar estado</div>
+        <div class="est-btns" id="det-estados"></div>
+      </div>
+      <div style="margin-top:8px;"><div class="ml">Nota adicional</div><textarea class="mta2" id="det-nota" placeholder="Agregar nota..." style="width:100%;margin-top:4px;"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="agCloseDet()">Cerrar</button>
+      <button class="mconf" onclick="agReagendar()" style="background:#D97706;">Reagendar</button>
+      <button class="mconf" onclick="agAbrirEditar()">Editar</button>
+      <button class="mconf gr" onclick="agGuardarEstado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR/NUEVA CITA -->
+<div class="mov" id="ag-m-edit">
+  <div class="modal" style="max-width:540px;">
+    <div class="mhd"><span style="font-size:18px;">&#9999;&#65039;</span><div><div class="mtit" id="edit-titulo">Nueva cita</div><div class="msub" id="edit-sub"></div></div></div>
+    <div class="mbody">
+      <div class="mg">
+        <div class="mf"><div class="ml">Nombre</div><input class="mi" id="ed-nombre" placeholder="Nombre"/></div>
+        <div class="mf"><div class="ml">Apellido</div><input class="mi" id="ed-apellido" placeholder="Apellido"/></div>
+        <div class="mf"><div class="ml">Tel&eacute;fono</div><input class="mi" id="ed-num" type="tel" placeholder="987654321" oninput="agBuscarPac(this.value)"/></div>
+        <div class="mf"><div class="ml">DNI</div><input class="mi" id="ed-dni" placeholder="DNI/CE"/></div>
+        <div class="mf"><div class="ml">Correo</div><input class="mi" id="ed-correo" placeholder="correo@..."/></div>
+        <div class="mf"><div class="ml">Asesor</div><select class="ms2" id="ed-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option></select></div>
+        <div class="mf"><div class="ml">Sede</div><select class="ms2" id="ed-sede"><option value="">-- Sede --</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+        <div class="mf"><div class="ml">Tipo atenci&oacute;n</div><select class="ms2" id="ed-tipo-at"><option value="">-- Tipo --</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermer&iacute;a</option></select></div>
+        <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="ed-fecha" type="date"/></div>
+        <div class="mf"><div class="ml">Hora</div><input class="mi" id="ed-hora" type="time" value="10:00"/></div>
+        <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="ed-trat"><option value="">-- Seleccionar --</option><option value="ACIDO HIALURONICO">Acido Hialuronico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACION">Biorevitalizacion</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MEDICA">Consulta Medica</option><option value="CRIOLIPOLISIS">Criolipolisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="ENZIMAS">Enzimas</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA">Toxina Botulinica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">Otros</option></select></div>
+        <div class="mf full"><div class="ml">Tipo cita</div><select class="ms2" id="ed-tipo-cita"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="APLICACION">Aplicacion</option><option value="CONTROL">Control</option><option value="REPROGRAMACION">Reprogramacion</option></select></div>
+        <div class="mf full"><div class="ml">Estado</div><select class="ms2" id="ed-estado"><option value="PENDIENTE">Pendiente</option><option value="CITA CONFIRMADA">Cita Confirmada</option><option value="ASISTIO">Asistio</option><option value="EFECTIVA">Efectiva</option><option value="NO ASISTIO">No Asistio</option><option value="CANCELADA">Cancelada</option></select></div>
+        <div class="mf full"><div class="ml">Observaci&oacute;n</div><textarea class="mta2" id="ed-obs" placeholder="Notas..."></textarea></div>
+      </div>
+      <div id="ed-pac-info" style="display:none;margin-top:8px;padding:8px;background:#EBF2FF;border-radius:8px;font-size:11px;color:#0A4FBF;font-weight:700;"></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="agCloseEdit()">Cancelar</button>
+      <button class="mconf gr" onclick="agGuardarEdit()">Guardar cita</button>
+    </div>
+  </div>
+</div>
+
+<script src="/agenda.js"></script>
