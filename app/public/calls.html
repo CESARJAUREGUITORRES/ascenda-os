@@ -931,20 +931,35 @@ function detectarDoctora(fechaStr,horaStr,sede,targetId){
   if(!fechaStr||!sede){el.value='';return;}
   el.value='Buscando...';
   var hora=(horaStr||'10:00').slice(0,5);
-  // Buscar en turnos REALES por fecha (aos_horarios_personal)
-  var filtro='fecha=eq.'+fechaStr+'&sede=eq.'+encodeURIComponent(sede)+'&rol=eq.DOCTORA&select=personal,hora_inicio,hora_fin';
-  fetch(_SB+'/rest/v1/aos_horarios_personal?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
-    if(!rows||!rows.length){el.value='Sin doctora ese dia';el.style.color='#D97706';return;}
-    var matches=rows.filter(function(r){var hi=(r.hora_inicio||'').slice(0,5);var hf=(r.hora_fin||'').slice(0,5);return hora>=hi&&hora<=hf;});
+  // Calcular lunes de la semana del fechaStr
+  var dd=new Date(fechaStr+'T12:00:00');
+  var day=dd.getDay();var diff=dd.getDate()-day+(day===0?-6:1);
+  var lunes=new Date(dd.getFullYear(),dd.getMonth(),diff);
+  var lunesStr=lunes.toISOString().slice(0,10);
+  // Usar MISMA RPC que el calendario
+  _rpc('aos_horarios_semana',{p_fecha_lunes:lunesStr,p_sede:sede,p_rol:''},function(res){
+    if(!res||!res.dias){el.value='Sin datos';el.style.color='#D97706';return;}
+    // Encontrar el día correcto en res.dias[]
+    var diaObj=null;
+    (res.dias||[]).forEach(function(d){if(d.fecha===fechaStr||d.fecha_date===fechaStr)diaObj=d;});
+    if(!diaObj||!diaObj.turnos){el.value='Sin turnos ese dia';el.style.color='#D97706';return;}
+    // Filtrar solo doctoras
+    var docs=diaObj.turnos.filter(function(t){return(t.rol||'').toUpperCase()==='DOCTORA';});
+    if(!docs.length){el.value='Sin doctora ese dia';el.style.color='#D97706';return;}
+    // Filtrar por hora
+    var matches=docs.filter(function(t){
+      var hi=(t.hora_inicio||'').slice(0,5);var hf=(t.hora_fin||'').slice(0,5);
+      return hora>=hi&&hora<=hf;
+    });
     if(matches.length>0){
       el.value=matches[0].personal;
       el.style.color='#16A34A';
     } else {
-      var allDocs=rows.map(function(r){return r.personal+' ('+r.hora_inicio.slice(0,5)+'-'+r.hora_fin.slice(0,5)+')';}).join(', ');
-      el.value='Fuera de horario. Dras: '+allDocs;
+      var allDocs=docs.map(function(t){return t.personal+' ('+t.hora_inicio.slice(0,5)+'-'+t.hora_fin.slice(0,5)+')';}).join(', ');
+      el.value='Fuera de horario. '+allDocs;
       el.style.color='#D97706';
     }
-  }).catch(function(){el.value='Error consultando turnos';el.style.color='#DC2626';});
+  });
 }
 
 // Event listeners para auto-detectar doctora en modal de cita
