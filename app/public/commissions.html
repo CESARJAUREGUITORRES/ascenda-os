@@ -1,14 +1,110 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- commissions.html — Panel Comisiones Asesor | AscendaOS v1 | 100% Supabase -->
+<style>
+.vcom-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.vcom-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vcom-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.period-sel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.kpi-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;}
+.hero-card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:16px;}
+.hero-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:14px;padding:18px;color:#fff;}
+.hero-lbl{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;opacity:.7;margin-bottom:6px;}
+.hero-val{font-family:Exo\ 2,sans-serif;font-size:36px;font-weight:800;line-height:1;}
+.hero-meta{font-size:12px;opacity:.7;margin-top:6px;}
+.prog-bar{background:rgba(255,255,255,.15);border-radius:20px;height:6px;overflow:hidden;margin-top:10px;}
+.prog-fill-w{height:100%;border-radius:20px;background:linear-gradient(90deg,#00E5A0,#00C9A7);}
+.prog-labels{display:flex;justify-content:space-between;font-size:10px;opacity:.7;margin-top:5px;}
+.sub-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:8px;}
+.sub-val{font-family:Exo\ 2,sans-serif;font-size:26px;font-weight:800;color:#0D1B3E;line-height:1;}
+.sub-meta{font-size:11px;color:#6B7BA8;margin-top:4px;}
+.delta-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;margin-top:6px;}
+.delta-up{background:#F0FDF4;color:#16A34A;}.delta-dn{background:#FEF2F2;color:#DC2626;}.delta-n{background:#F0F4FC;color:#6B7BA8;}
+.rank-display{display:flex;align-items:center;gap:12px;}
+.rank-emoji{font-size:36px;}.rank-pos{font-family:Exo\ 2,sans-serif;font-size:32px;font-weight:800;color:#0D1B3E;line-height:1;}
+.rank-lbl{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.main2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.hist-table{width:100%;border-collapse:collapse;}
+.hist-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.hist-table td{padding:8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;}
+.hist-table tr:last-child td{border-bottom:none;}
+.hist-table tr.cur{background:#EBF2FF;}
+.hist-table td:nth-child(2){font-family:Exo\ 2,sans-serif;font-weight:700;color:#0A4FBF;}
+.det-table{width:100%;border-collapse:collapse;}
+.det-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.det-table td{padding:8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.det-table tr:last-child td{border-bottom:none;}
+.det-table tr:hover td{background:#F8FAFF;}
+.com-v{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;color:#16A34A;}
+.tipo-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.tb-serv{background:#EBF2FF;color:#0A4FBF;}.tb-prod{background:#F5F3FF;color:#7C3AED;}
+.top-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}
+.top-row:last-child{border-bottom:none;}
+.top-rank{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
+.top-info{flex:1;min-width:0;}.top-nom{font-size:12px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top-met{font-size:10px;color:#9AAAC8;}.top-fact{font-family:Exo\ 2,sans-serif;font-size:13px;font-weight:800;color:#0A4FBF;flex-shrink:0;}
+.wa-sm{width:22px;height:22px;border-radius:6px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;flex-shrink:0;}
+.regla-item{padding:8px 11px;border-radius:9px;background:#F0F4FC;border:1px solid #DDE4F5;margin-bottom:6px;}
+.regla-item:last-child{margin-bottom:0;}
+.regla-txt{font-size:12px;color:#0D1B3E;font-weight:600;}.regla-sub{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.ld{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
+.sp{width:18px;height:18px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.wrap-sc{overflow-y:auto;max-height:260px;}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+@media(max-width:768px){.kpi-hero{grid-template-columns:1fr;}.main2{grid-template-columns:1fr;}}
+</style>
+
+<div class="vcom-root">
+  <div class="vcom-header">
+    <div class="vcom-title">Mis Comisiones</div>
+    <div style="display:flex;gap:7px;">
+      <select class="period-sel" id="mes-sel" onchange="reload()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <select class="period-sel" id="anio-sel" onchange="reload()"><option value="2026">2026</option><option value="2025">2025</option></select>
+    </div>
+  </div>
+
+  <div class="kpi-hero">
+    <div class="hero-main">
+      <div class="hero-lbl">Comisi&oacute;n total del mes</div>
+      <div class="hero-val" id="h-com-total">--</div>
+      <div class="hero-meta" id="h-com-meta">Cargando...</div>
+      <div class="prog-bar"><div class="prog-fill-w" id="h-com-prog" style="width:0%"></div></div>
+      <div class="prog-labels"><span id="h-com-pct">0%</span><span id="h-com-rank">--</span></div>
+      <div class="delta-chip delta-n" id="h-delta">vs mes anterior: ...</div>
+    </div>
+    <div class="hero-card">
+      <div class="sub-lbl">Servicios</div>
+      <div class="sub-val" id="h-com-serv">--</div>
+      <div class="sub-meta" id="h-com-serv-sub">0.5% del monto facturado</div>
+      <div style="margin-top:12px;"><div class="sub-lbl">Productos</div>
+      <div class="sub-val" id="h-com-prod">--</div>
+      <div class="sub-meta" id="h-com-prod-sub">Tabla de rangos por monto</div></div>
+    </div>
+    <div class="hero-card">
+      <div class="sub-lbl">Ranking del mes</div>
+      <div class="rank-display"><div class="rank-emoji" id="h-rank-emoji">--</div><div><div class="rank-pos" id="h-rank-pos">#-</div><div class="rank-lbl">en equipo</div></div></div>
+      <div id="h-rank-mini" style="margin-top:12px;font-size:11px;color:#6B7BA8;">Cargando ranking...</div>
+    </div>
+  </div>
+
+  <div class="main2">
+    <div class="card"><div class="chd"><div class="ct">R&eacute;cord del a&ntilde;o</div></div>
+      <div class="wrap-sc"><table class="hist-table"><thead><tr><th>Mes</th><th>Facturaci&oacute;n</th><th>Com Serv</th><th>Com Prod</th><th>Com Total</th></tr></thead><tbody id="hist-body"><tr><td colspan="5" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table></div>
+    </div>
+    <div class="card"><div class="chd"><div class="ct">Top Clientes</div><select class="period-sel" id="top-limit" onchange="reload()" style="font-size:10px;padding:3px 6px;"><option value="5">Top 5</option><option value="10">Top 10</option></select></div>
+      <div class="wrap-sc" id="top-clientes"><div class="ld"><span class="sp"></span>Cargando...</div></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="chd"><div class="ct">Ventas del mes</div><div style="font-size:11px;color:#6B7BA8;" id="det-count">0 ventas</div></div>
+    <div class="wrap-sc" style="max-height:350px;"><table class="det-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Tratamiento</th><th>Monto</th><th>Comisi&oacute;n</th><th>Tipo</th></tr></thead><tbody id="det-body"><tr><td colspan="6" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table></div>
+  </div>
+
+  <div class="card"><div class="chd"><div class="ct">Reglas de comisiones</div></div>
+    <div class="regla-item"><div class="regla-txt">Servicios: 0.5% del monto facturado</div><div class="regla-sub">Se aplica sobre el monto de cada servicio realizado</div></div>
+    <div class="regla-item"><div class="regla-txt">Productos: Tabla de rangos</div><div class="regla-sub">S/0-17 = S/0.30 | S/18-50 = S/1.00 | S/51-100 = S/3.00 | S/101-148 = S/4.00 | S/149-200 = S/5.00 | S/201+ = S/6.00</div></div>
   </div>
 </div>
-</body>
-</html>
+
+<script src="/commissions.js"></script>
