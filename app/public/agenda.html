@@ -1,4 +1,4 @@
-<!-- agenda.html — Agenda Global | AscendaOS v1 | 100% Supabase -->
+<!-- agenda.html v2 — Agenda Global | AscendaOS v1 | 100% Supabase -->
 <style>
 .ag-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
 .ag-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
@@ -7,16 +7,18 @@
 .psel{padding:5px 9px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
 .ag-btn{padding:6px 14px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}
 .ag-btn:hover{background:#071D4A;}
-.nav-row{display:flex;align-items:center;gap:8px;}
-.nav-arrow{width:28px;height:28px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0D1B3E;}
-.nav-arrow:hover{background:#EBF2FF;}
-.nav-date{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;min-width:160px;text-align:center;}
+.nav-row{display:flex;align-items:center;gap:6px;}
+.nav-arrow{width:28px;height:28px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0D1B3E;}.nav-arrow:hover{background:#EBF2FF;}
+.nav-date{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;min-width:140px;text-align:center;}
 .nav-today{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;font-size:10px;font-weight:700;cursor:pointer;color:#0A4FBF;background:#EBF2FF;}
+.vtabs{display:flex;gap:3px;background:#F0F4FC;border-radius:8px;padding:2px;}
+.vtab{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:DM\ Sans,sans-serif;border:none;background:transparent;}
+.vtab.act{background:#fff;color:#0A4FBF;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}
 .kc{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:8px 10px;text-align:center;}
 .kc-v{font-family:Exo\ 2,sans-serif;font-size:22px;font-weight:800;line-height:1;}
 .kc-l{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-top:3px;}
-.ag-main{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:10px;}
+.ag-main{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:10px;}
 .crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
 .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
@@ -33,60 +35,94 @@
 .turno-card:last-child{margin-bottom:0;}
 .turno-doc{border-left:3px solid #16A34A;}.turno-enf{border-left:3px solid #0A4FBF;}
 .turno-nombre{font-weight:700;color:#0D1B3E;}.turno-meta{font-size:10px;color:#9AAAC8;margin-top:2px;}
+/* GRID VIEW */
+.grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid-col-hdr{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:11px;color:#fff;padding:6px 10px;border-radius:8px 8px 0 0;text-align:center;}
+.grid-col-doc{background:#16A34A;}.grid-col-enf{background:#0A4FBF;}
+.grid-card{padding:8px;border:1px solid #DDE4F5;border-radius:8px;margin-bottom:5px;cursor:pointer;font-size:11px;}
+.grid-card:hover{background:#F8FAFF;}
+.grid-card-hora{font-weight:800;color:#0D1B3E;font-family:Exo\ 2,sans-serif;}
+.grid-card-cli{font-weight:700;color:#0D1B3E;margin-top:2px;}.grid-card-meta{font-size:10px;color:#9AAAC8;margin-top:1px;}
+/* WEEK VIEW */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.week-day{background:#fff;border:1px solid #DDE4F5;border-radius:8px;min-height:80px;padding:6px;font-size:10px;}
+.week-day-hdr{font-weight:800;font-size:10px;color:#0D1B3E;margin-bottom:4px;text-align:center;}
+.week-day.today{border-color:#0A4FBF;background:#EBF2FF;}
+.week-cita{padding:3px 5px;background:#F0F4FC;border-radius:4px;margin-bottom:2px;font-size:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.week-cita:hover{background:#DDE4F5;}
+/* MONTH VIEW */
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.month-hdr{font-size:9px;font-weight:700;color:#9AAAC8;text-align:center;padding:4px;}
+.month-cell{background:#fff;border:1px solid #EBF2FF;border-radius:6px;min-height:50px;padding:4px;font-size:10px;cursor:pointer;}
+.month-cell:hover{background:#F8FAFF;}.month-cell.today{border-color:#0A4FBF;background:#EBF2FF;}
+.month-cell.other{opacity:.4;}
+.month-num{font-weight:700;color:#0D1B3E;margin-bottom:2px;}
+.month-dots{display:flex;gap:2px;flex-wrap:wrap;}
+.month-dot{width:6px;height:6px;border-radius:50%;}
+.dot-pend{background:#D97706;}.dot-asist{background:#16A34A;}.dot-noasist{background:#DC2626;}.dot-cancel{background:#9AAAC8;}.dot-conf{background:#0A4FBF;}
 /* MODALES */
-.mov{position:fixed;inset:0;background:rgba(7,29,74,.45);display:none;justify-content:center;align-items:flex-start;padding:40px 12px;z-index:999;overflow-y:auto;}
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.45);display:none;justify-content:center;align-items:center;padding:20px;z-index:999;overflow-y:auto;}
 .mov.open{display:flex;}
-.modal{background:#fff;border-radius:16px;width:100%;max-width:520px;box-shadow:0 12px 40px rgba(0,0,0,.15);animation:slideUp .2s;}
+.modal{background:#fff;border-radius:16px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.15);animation:slideUp .2s;}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #DDE4F5;}
-.mtit{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.mhd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #DDE4F5;}
+.mtit{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}
 .msub{font-size:11px;color:#9AAAC8;}
+.mclose{margin-left:auto;cursor:pointer;font-size:18px;color:#9AAAC8;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;}.mclose:hover{background:#F0F4FC;}
 .mbody{padding:16px 18px;}
 .mfoot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid #DDE4F5;}
 .mfoot button{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}
-.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}
-.mconf{background:#0A4FBF;border:none;color:#fff;}.mconf.gr{background:#16A34A;}
-.mconf.red{background:#DC2626;}
+.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}.mconf{background:#0A4FBF;border:none;color:#fff;}.mconf.gr{background:#16A34A;}.mconf.amber{background:#D97706;}.mconf.red{background:#DC2626;}
 .mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.mf{display:flex;flex-direction:column;gap:3px;}
-.mf.full{grid-column:1/-1;}
+.mf{display:flex;flex-direction:column;gap:3px;}.mf.full{grid-column:1/-1;}
 .ml{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;}
-.mi{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
-.mi:focus{border-color:#0A4FBF;}
+.mi{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}.mi:focus{border-color:#0A4FBF;}
 .ms2{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;background:#fff;}
 .mta2{padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:50px;}
-.det-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(221,228,245,.3);}
-.det-row:last-child{border-bottom:none;}
-.det-lbl{font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;}.det-val{font-size:12px;font-weight:600;color:#0D1B3E;}
-.est-btns{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+/* DETALLE 2 COL */
+.det-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.det-col{display:flex;flex-direction:column;gap:8px;}
+.det-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(221,228,245,.3);}.det-row:last-child{border-bottom:none;}
+.det-lbl{font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;}.det-val{font-size:12px;font-weight:600;color:#0D1B3E;text-align:right;}
+.est-btns{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;}
 .est-btn{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid transparent;}
 .est-btn.act{border-color:#0D1B3E;box-shadow:0 0 0 1px #0D1B3E;}
 .est-btn-pend{background:#FEF3C7;color:#D97706;}.est-btn-conf{background:#EBF2FF;color:#0A4FBF;}
 .est-btn-asist{background:#F0FDF4;color:#16A34A;}.est-btn-efect{background:#ECFDF5;color:#059669;}
 .est-btn-noasist{background:#FEF2F2;color:#DC2626;}.est-btn-cancel{background:#F0F4FC;color:#6B7BA8;}
-.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
+.hist-mini{max-height:180px;overflow-y:auto;font-size:10px;}
+.hist-mini::-webkit-scrollbar{width:3px;}.hist-mini::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.hist-item{padding:4px 0;border-bottom:1px solid rgba(221,228,245,.3);}.hist-item:last-child{border-bottom:none;}
+.ld{text-align:center;padding:16px;color:#9AAAC8;font-size:12px;}
 .sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.wrap-sc{overflow-y:auto;max-height:calc(100vh - 320px);}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
-@media(max-width:768px){.ag-main{grid-template-columns:1fr;}.krow{grid-template-columns:repeat(3,1fr);}}
+.wrap-sc{overflow-y:auto;max-height:calc(100vh - 300px);}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
+@media(max-width:768px){.ag-main{grid-template-columns:1fr;}.krow{grid-template-columns:repeat(3,1fr);}.det-2col{grid-template-columns:1fr;}.grid-2col{grid-template-columns:1fr;}.week-grid{grid-template-columns:repeat(3,1fr);}}
 </style>
 
 <div class="ag-root">
   <div class="ag-hdr">
-    <div class="ag-title">Agenda</div>
-    <div class="ag-filters">
-      <select class="psel" id="ag-sede" onchange="agLoad()"><option value="">Ambas sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
-      <select class="psel" id="ag-asesor" onchange="agLoad()"><option value="">Todos</option><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option></select>
-      <select class="psel" id="ag-estado" onchange="agFilterEstado()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="ASISTIO">Asistieron</option><option value="NO ASISTIO">No asistieron</option><option value="CANCELADA">Canceladas</option></select>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="ag-title">Agenda</div>
+      <div class="ag-filters">
+        <select class="psel" id="ag-sede" onchange="agLoad()"><option value="">Ambas sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
+        <select class="psel" id="ag-estado" onchange="agFilterLocal()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="ASISTIO">Asistieron</option><option value="NO ASISTIO">No asistieron</option><option value="CANCELADA">Canceladas</option></select>
+      </div>
     </div>
-    <div style="display:flex;gap:6px;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="vtabs">
+        <div class="vtab act" data-v="list" onclick="agVista(this)">Lista</div>
+        <div class="vtab" data-v="grid" onclick="agVista(this)">Cuadr&iacute;cula</div>
+        <div class="vtab" data-v="week" onclick="agVista(this)">Semana</div>
+        <div class="vtab" data-v="month" onclick="agVista(this)">Mes</div>
+      </div>
       <div class="nav-row">
         <div class="nav-arrow" onclick="agNav(-1)">&lt;</div>
         <div class="nav-date" id="ag-fecha-lbl">--</div>
         <div class="nav-arrow" onclick="agNav(1)">&gt;</div>
         <div class="nav-today" onclick="agHoy()">Hoy</div>
       </div>
-      <input type="date" class="psel" id="ag-fecha" onchange="agLoad()" style="width:130px;">
+      <input type="date" class="psel" id="ag-fecha" onchange="agLoad()" style="width:125px;">
       <button class="ag-btn" onclick="agAbrirNueva()">+ Nueva cita</button>
     </div>
   </div>
@@ -102,40 +138,48 @@
   <div class="ag-main">
     <div class="crd">
       <div class="chd"><div class="ct" id="ag-list-title">Citas del d&iacute;a</div><div style="font-size:11px;color:#9AAAC8;" id="ag-list-count">0 citas</div></div>
-      <div class="wrap-sc">
-        <table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Doctora</th></tr></thead>
+      <div class="wrap-sc" id="ag-content">
+        <table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci&oacute;n</th></tr></thead>
         <tbody id="ag-tbody"><tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="crd"><div class="chd"><div class="ct">Turnos del d&iacute;a</div></div><div id="ag-turnos"><div class="ld"><span class="sp"></span></div></div></div>
+      <div class="crd"><div class="chd"><div class="ct">Turnos</div></div><div id="ag-turnos"><div class="ld"><span class="sp"></span></div></div></div>
     </div>
   </div>
 </div>
 
-<!-- MODAL DETALLE CITA (vista rápida) -->
+<!-- MODAL DETALLE 2 COLUMNAS -->
 <div class="mov" id="ag-m-det">
-  <div class="modal" style="max-width:440px;">
-    <div class="mhd"><span style="font-size:18px;">&#128197;</span><div><div class="mtit" id="det-nombre">--</div><div class="msub" id="det-sub">--</div></div><div style="margin-left:auto;cursor:pointer;font-size:18px;" onclick="agCloseDet()">&times;</div></div>
+  <div class="modal" style="max-width:700px;">
+    <div class="mhd"><span style="font-size:18px;">&#128197;</span><div><div class="mtit" id="det-nombre">--</div><div class="msub" id="det-sub">--</div></div><div class="mclose" onclick="agCloseDet()">&times;</div></div>
     <div class="mbody">
-      <div id="det-info"></div>
-      <div style="margin-top:10px;"><div class="ml">Cambiar estado</div>
-        <div class="est-btns" id="det-estados"></div>
+      <div class="det-2col">
+        <div class="det-col">
+          <div class="ct" style="margin-bottom:4px;">Datos de la cita</div>
+          <div id="det-info"></div>
+          <div style="margin-top:6px;"><div class="ml">Cambiar estado</div><div class="est-btns" id="det-estados"></div></div>
+          <div><div class="ml">Nota</div><textarea class="mta2" id="det-nota" placeholder="Agregar nota..." style="width:100%;margin-top:4px;"></textarea></div>
+        </div>
+        <div class="det-col">
+          <div class="ct" style="margin-bottom:4px;">Historial del paciente</div>
+          <div id="det-historial"><div class="ld"><span class="sp"></span></div></div>
+        </div>
       </div>
-      <div style="margin-top:8px;"><div class="ml">Nota adicional</div><textarea class="mta2" id="det-nota" placeholder="Agregar nota..." style="width:100%;margin-top:4px;"></textarea></div>
     </div>
     <div class="mfoot">
       <button class="mcanc" onclick="agCloseDet()">Cerrar</button>
-      <button class="mconf" onclick="agReagendar()" style="background:#D97706;">Reagendar</button>
+      <button class="mconf red" onclick="agEliminar()" style="flex:.6;">Eliminar</button>
+      <button class="mconf amber" onclick="agReagendar()">Reagendar</button>
       <button class="mconf" onclick="agAbrirEditar()">Editar</button>
       <button class="mconf gr" onclick="agGuardarEstado()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL EDITAR/NUEVA CITA -->
+<!-- MODAL EDITAR/NUEVA -->
 <div class="mov" id="ag-m-edit">
-  <div class="modal" style="max-width:540px;">
+  <div class="modal" style="max-width:520px;">
     <div class="mhd"><span style="font-size:18px;">&#9999;&#65039;</span><div><div class="mtit" id="edit-titulo">Nueva cita</div><div class="msub" id="edit-sub"></div></div></div>
     <div class="mbody">
       <div class="mg">
@@ -150,8 +194,8 @@
         <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="ed-fecha" type="date"/></div>
         <div class="mf"><div class="ml">Hora</div><input class="mi" id="ed-hora" type="time" value="10:00"/></div>
         <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="ed-trat"><option value="">-- Seleccionar --</option><option value="ACIDO HIALURONICO">Acido Hialuronico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACION">Biorevitalizacion</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MEDICA">Consulta Medica</option><option value="CRIOLIPOLISIS">Criolipolisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="ENZIMAS">Enzimas</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA">Toxina Botulinica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">Otros</option></select></div>
-        <div class="mf full"><div class="ml">Tipo cita</div><select class="ms2" id="ed-tipo-cita"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="APLICACION">Aplicacion</option><option value="CONTROL">Control</option><option value="REPROGRAMACION">Reprogramacion</option></select></div>
-        <div class="mf full"><div class="ml">Estado</div><select class="ms2" id="ed-estado"><option value="PENDIENTE">Pendiente</option><option value="CITA CONFIRMADA">Cita Confirmada</option><option value="ASISTIO">Asistio</option><option value="EFECTIVA">Efectiva</option><option value="NO ASISTIO">No Asistio</option><option value="CANCELADA">Cancelada</option></select></div>
+        <div class="mf"><div class="ml">Tipo cita</div><select class="ms2" id="ed-tipo-cita"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="APLICACION">Aplicacion</option><option value="CONTROL">Control</option><option value="REPROGRAMACION">Reprogramacion</option></select></div>
+        <div class="mf"><div class="ml">Estado</div><select class="ms2" id="ed-estado"><option value="PENDIENTE">Pendiente</option><option value="CITA CONFIRMADA">Confirmada</option><option value="ASISTIO">Asistio</option><option value="EFECTIVA">Efectiva</option><option value="NO ASISTIO">No Asistio</option><option value="CANCELADA">Cancelada</option></select></div>
         <div class="mf full"><div class="ml">Observaci&oacute;n</div><textarea class="mta2" id="ed-obs" placeholder="Notas..."></textarea></div>
       </div>
       <div id="ed-pac-info" style="display:none;margin-top:8px;padding:8px;background:#EBF2FF;border-radius:8px;font-size:11px;color:#0A4FBF;font-weight:700;"></div>

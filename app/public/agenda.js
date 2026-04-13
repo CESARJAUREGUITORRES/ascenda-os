@@ -1,158 +1,221 @@
-// agenda.js — Agenda Global | AscendaOS v1 | 100% Supabase
+// agenda.js v2 — Agenda Global | AscendaOS v1 | 100% Supabase
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
+function _rest(path,opts){return fetch(_SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
 function h(s){var o=String(s||'');o=o.split('&').join('&amp;');o=o.split(String.fromCharCode(60)).join('&lt;');o=o.split('>').join('&gt;');o=o.split('"').join('&quot;');return o;}
 function el(id){return document.getElementById(id);}
 
-var DIAS=['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
+var DIAS_S=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
+var DIAS_L=['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
 var MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var AG={fecha:new Date().toISOString().slice(0,10), data:null, sel:null, editId:null, filtroEstado:''};
-var ASESORES_MAP={'WILMER':'ZIV-004','RUVILA':'ZIV-002','MIREYA':'ZIV-003','SRA CARMEN':'ZIV-005','CESAR':'ZIV-001'};
-var ESTADOS=[
-  {val:'PENDIENTE',lbl:'Pendiente',cls:'est-btn-pend'},
-  {val:'CITA CONFIRMADA',lbl:'Cita Confirmada',cls:'est-btn-conf'},
-  {val:'ASISTIO',lbl:'Asisti\u00f3',cls:'est-btn-asist'},
-  {val:'EFECTIVA',lbl:'Efectiva',cls:'est-btn-efect'},
-  {val:'NO ASISTIO',lbl:'No Asisti\u00f3',cls:'est-btn-noasist'},
-  {val:'CANCELADA',lbl:'Cancelada',cls:'est-btn-cancel'}
-];
+var AG={fecha:new Date().toISOString().slice(0,10),data:null,sel:null,editId:null,filtro:'',vista:'list'};
+var AMAP={'WILMER':'ZIV-004','RUVILA':'ZIV-002','MIREYA':'ZIV-003','SRA CARMEN':'ZIV-005','CESAR':'ZIV-001'};
+var ESTADOS=[{val:'PENDIENTE',lbl:'Pendiente',cls:'est-btn-pend'},{val:'CITA CONFIRMADA',lbl:'Confirmada',cls:'est-btn-conf'},{val:'ASISTIO',lbl:'Asisti\u00f3',cls:'est-btn-asist'},{val:'EFECTIVA',lbl:'Efectiva',cls:'est-btn-efect'},{val:'NO ASISTIO',lbl:'No Asisti\u00f3',cls:'est-btn-noasist'},{val:'CANCELADA',lbl:'Cancelada',cls:'est-btn-cancel'}];
 
-(function(){
-  el('ag-fecha').value=AG.fecha;
-  updateDateLabel();
-  var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var a=(ctx.asesor||'').toUpperCase();
-  if(a&&el('ed-asesor')){el('ed-asesor').value=a;}
-  agLoad();
-})();
+(function(){el('ag-fecha').value=AG.fecha;updateLbl();agLoad();})();
 
-function updateDateLabel(){
-  var d=new Date(AG.fecha+'T12:00:00');
-  el('ag-fecha-lbl').textContent=DIAS[d.getDay()]+', '+d.getDate()+' de '+MESES[d.getMonth()+1]+' '+d.getFullYear();
-}
-function agNav(dir){
-  var d=new Date(AG.fecha+'T12:00:00');
-  d.setDate(d.getDate()+dir);
-  AG.fecha=d.toISOString().slice(0,10);
-  el('ag-fecha').value=AG.fecha;
-  updateDateLabel();agLoad();
-}
-function agHoy(){AG.fecha=new Date().toISOString().slice(0,10);el('ag-fecha').value=AG.fecha;updateDateLabel();agLoad();}
+function updateLbl(){var d=new Date(AG.fecha+'T12:00:00');el('ag-fecha-lbl').textContent=DIAS_L[d.getDay()]+', '+d.getDate()+' de '+MESES[d.getMonth()+1]+' '+d.getFullYear();}
+function agNav(dir){var d=new Date(AG.fecha+'T12:00:00');if(AG.vista==='week')d.setDate(d.getDate()+dir*7);else if(AG.vista==='month')d.setMonth(d.getMonth()+dir);else d.setDate(d.getDate()+dir);AG.fecha=d.toISOString().slice(0,10);el('ag-fecha').value=AG.fecha;updateLbl();agLoad();}
+function agHoy(){AG.fecha=new Date().toISOString().slice(0,10);el('ag-fecha').value=AG.fecha;updateLbl();agLoad();}
+function agVista(btn){document.querySelectorAll('.vtab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');AG.vista=btn.getAttribute('data-v');agLoad();}
+function agFilterLocal(){AG.filtro=el('ag-estado').value;if(AG.data)renderView();}
+
+function estCls(e){var u=(e||'').toUpperCase();if(u==='PENDIENTE')return'est-pend';if(u==='CITA CONFIRMADA'||u==='CONFIRMADA')return'est-conf';if(u==='EFECTIVA')return'est-efect';if(u.indexOf('ASISTI')>=0&&u.indexOf('NO')<0)return'est-asist';if(u.indexOf('NO ASIST')>=0)return'est-noasist';if(u==='CANCELADA')return'est-cancel';return'est-pend';}
+function atencionLabel(c){if((c.tipo_atencion||'').toUpperCase()==='DOCTORA')return c.doctora||'Doctora';return'Enfermer\u00eda';}
+
+function filterCitas(citas){var f=AG.filtro;if(!f)return citas;return citas.filter(function(c){var e=(c.estado_cita||'').toUpperCase();if(f==='ASISTIO')return e.indexOf('ASISTI')>=0||e==='EFECTIVA';if(f==='NO ASISTIO')return e.indexOf('NO ASIST')>=0;return e===f;});}
 
 function agLoad(){
-  AG.fecha=el('ag-fecha').value||AG.fecha;
-  updateDateLabel();
+  AG.fecha=el('ag-fecha').value||AG.fecha;updateLbl();
+  if(AG.vista==='week'){loadWeek();return;}
+  if(AG.vista==='month'){loadMonth();return;}
   var sede=el('ag-sede').value;
-  var asesor=el('ag-asesor').value;
-  _rpc('aos_agenda_dia',{p_fecha:AG.fecha,p_sede:sede||'',p_asesor_filtro:asesor||''},function(d){
-    if(!d){return;}
-    AG.data=d;
-    renderKPIs(d.resumen||{});
-    renderCitas(d.citas||[]);
-    renderTurnos(d.turnos||[]);
+  _rpc('aos_agenda_dia',{p_fecha:AG.fecha,p_sede:sede||'',p_asesor_filtro:''},function(d){
+    if(!d)return;AG.data=d;
+    renderKPIs(d.resumen||{});renderView();renderTurnos(d.turnos||[]);
   });
 }
 
-function agFilterEstado(){AG.filtroEstado=el('ag-estado').value;if(AG.data)renderCitas(AG.data.citas||[]);}
+function renderKPIs(r){el('ag-total').textContent=r.total||0;el('ag-pend').textContent=r.pendiente||0;el('ag-asist').textContent=r.asistio||0;el('ag-noasist').textContent=r.noAsistio||0;el('ag-cancel').textContent=r.cancelada||0;}
 
-function estCls(e){
-  var u=(e||'').toUpperCase();
-  if(u==='PENDIENTE')return 'est-pend';
-  if(u==='CITA CONFIRMADA'||u==='CONFIRMADA')return 'est-conf';
-  if(u==='ASISTIO'||u==='ASISTI\u00d3'||u==='EFECTIVA')return 'est-asist';
-  if(u==='EFECTIVA')return 'est-efect';
-  if(u.indexOf('NO ASIST')>=0)return 'est-noasist';
-  if(u==='CANCELADA')return 'est-cancel';
-  return 'est-pend';
+function renderView(){
+  var citas=filterCitas((AG.data&&AG.data.citas)||[]);
+  el('ag-list-count').textContent=citas.length+' cita'+(citas.length!==1?'s':'');
+  if(AG.vista==='grid')renderGrid(citas);
+  else renderList(citas);
 }
 
-function renderKPIs(r){
-  el('ag-total').textContent=r.total||0;
-  el('ag-pend').textContent=r.pendiente||0;
-  el('ag-asist').textContent=r.asistio||0;
-  el('ag-noasist').textContent=r.noAsistio||0;
-  el('ag-cancel').textContent=r.cancelada||0;
-}
-
-function renderCitas(citas){
-  var f=AG.filtroEstado;
-  var filtered=f?citas.filter(function(c){
-    var e=(c.estado_cita||'').toUpperCase();
-    if(f==='ASISTIO')return e.indexOf('ASISTI')>=0||e==='EFECTIVA';
-    if(f==='NO ASISTIO')return e.indexOf('NO ASIST')>=0;
-    return e===f;
-  }):citas;
-  el('ag-list-count').textContent=filtered.length+' cita'+(filtered.length!==1?'s':'');
+function renderList(citas){
+  var box=el('ag-content');
+  box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci\u00f3n</th></tr></thead><tbody id="ag-tbody"></tbody></table>';
   var tb=el('ag-tbody');
-  if(!filtered.length){tb.innerHTML='<tr><td colspan="7" class="ld">Sin citas este d\u00eda</td></tr>';return;}
-  tb.innerHTML=filtered.map(function(c){
+  if(!citas.length){tb.innerHTML='<tr><td colspan="7" class="ld">Sin citas</td></tr>';return;}
+  tb.innerHTML=citas.map(function(c){
     var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
     var hora=(c.hora_cita||'').toString().substring(0,5);
-    var cls=estCls(c.estado_cita);
-    return '<tr onclick="agDetalle(\''+h(c.id||'')+'\')">'+'<td style="font-weight:700;color:#0D1B3E;white-space:nowrap;">'+h(hora||'--')+'</td>'+'<td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td>'+'<td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+'</td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td>'+'<td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td>'+'<td><span class="est-b '+cls+'">'+h(c.estado_cita||'')+'</span></td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h((c.doctora||'').substring(0,12))+'</td></tr>';
+    return '<tr onclick="agDetalle(\''+h(c.id)+'\')">'+'<td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td>'+'<td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td>'+'<td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+'</td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td>'+'<td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td>'+'<td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td></tr>';
   }).join('');
+}
+
+function renderGrid(citas){
+  var docs=citas.filter(function(c){return(c.tipo_atencion||'').toUpperCase()==='DOCTORA';});
+  var enfs=citas.filter(function(c){return(c.tipo_atencion||'').toUpperCase()!=='DOCTORA';});
+  var box=el('ag-content');
+  box.innerHTML='<div class="grid-2col"><div><div class="grid-col-hdr grid-col-doc">DOCTORA ('+docs.length+')</div><div id="grid-docs"></div></div><div><div class="grid-col-hdr grid-col-enf">ENFERMER\u00cdA ('+enfs.length+')</div><div id="grid-enfs"></div></div></div>';
+  function renderCards(items,containerId){
+    var c=document.getElementById(containerId);
+    if(!items.length){c.innerHTML='<div class="ld">Sin citas</div>';return;}
+    c.innerHTML=items.map(function(ci){
+      var cli=((ci.nombre||'')+' '+(ci.apellido||'')).trim();
+      return '<div class="grid-card" onclick="agDetalle(\''+h(ci.id)+'\')">'+'<div style="display:flex;justify-content:space-between;"><div class="grid-card-hora">'+h((ci.hora_cita||'').toString().substring(0,5))+'</div><span class="est-b '+estCls(ci.estado_cita)+'">'+h(ci.estado_cita||'')+'</span></div>'+'<div class="grid-card-cli">'+h((cli||'--').substring(0,22))+'</div>'+'<div class="grid-card-meta">'+h(ci.tratamiento||'')+' \u00b7 '+h(ci.asesor||'')+'</div></div>';
+    }).join('');
+  }
+  renderCards(docs,'grid-docs');renderCards(enfs,'grid-enfs');
+}
+
+// ── SEMANA ──
+function loadWeek(){
+  var d=new Date(AG.fecha+'T12:00:00');var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);
+  var lunes=new Date(d.getFullYear(),d.getMonth(),diff);
+  var dias=[];for(var i=0;i<7;i++){var dd=new Date(lunes);dd.setDate(lunes.getDate()+i);dias.push(dd.toISOString().slice(0,10));}
+  var hoy=new Date().toISOString().slice(0,10);
+  var sede=el('ag-sede').value;
+  // Fetch citas de toda la semana
+  var desde=dias[0],hasta=dias[6];
+  fetch(_SB+'/rest/v1/aos_agenda_citas?fecha_cita=gte.'+desde+'&fecha_cita=lte.'+hasta+(sede?'&sede=ilike.*'+sede+'*':'')+'&select=id,fecha_cita,hora_cita,nombre,apellido,numero_limpio,tratamiento,estado_cita,asesor,tipo_atencion,doctora&order=hora_cita',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
+    var byDay={};dias.forEach(function(d){byDay[d]=[];});
+    (rows||[]).forEach(function(c){var f=c.fecha_cita;if(f&&byDay[f])byDay[f].push(c);});
+    var total=rows?rows.length:0;el('ag-total').textContent=total;el('ag-list-count').textContent=total+' citas';
+    var box=el('ag-content');
+    box.innerHTML='<div class="week-grid">'+dias.map(function(fecha){
+      var dd=new Date(fecha+'T12:00:00');
+      var isToday=fecha===hoy;
+      var citasDia=filterCitas(byDay[fecha]||[]);
+      return '<div class="week-day'+(isToday?' today':'')+'"><div class="week-day-hdr">'+DIAS_S[dd.getDay()]+' '+dd.getDate()+'</div>'+citasDia.map(function(c){
+        var hora=(c.hora_cita||'').toString().substring(0,5);
+        var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+        return '<div class="week-cita" onclick="agDetalle(\''+h(c.id)+'\')">'+h(hora)+' '+h((cli||'').substring(0,12))+'</div>';
+      }).join('')+'</div>';
+    }).join('')+'</div>';
+  });
+}
+
+// ── MES ──
+function loadMonth(){
+  var d=new Date(AG.fecha+'T12:00:00');var anio=d.getFullYear(),mes=d.getMonth();
+  var primero=new Date(anio,mes,1);var startDay=primero.getDay();
+  var diasMes=new Date(anio,mes+1,0).getDate();
+  var desde=anio+'-'+String(mes+1).padStart(2,'0')+'-01';
+  var hasta=anio+'-'+String(mes+1).padStart(2,'0')+'-'+diasMes;
+  var hoy=new Date().toISOString().slice(0,10);
+  var sede=el('ag-sede').value;
+  el('ag-fecha-lbl').textContent=MESES[mes+1]+' '+anio;
+  fetch(_SB+'/rest/v1/aos_agenda_citas?fecha_cita=gte.'+desde+'&fecha_cita=lte.'+hasta+(sede?'&sede=ilike.*'+sede+'*':'')+'&select=id,fecha_cita,estado_cita',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
+    var byDay={};(rows||[]).forEach(function(c){var f=c.fecha_cita;if(!byDay[f])byDay[f]=[];byDay[f].push(c);});
+    el('ag-total').textContent=rows?rows.length:0;
+    var cells='';var hdrs=DIAS_S.map(function(d){return '<div class="month-hdr">'+d+'</div>';}).join('');
+    // Celdas vacías antes del 1
+    var emptyStart=(startDay===0?6:startDay-1);
+    for(var e=0;e<emptyStart;e++)cells+='<div class="month-cell other"></div>';
+    for(var day=1;day<=diasMes;day++){
+      var f=anio+'-'+String(mes+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      var isToday=f===hoy;
+      var citasDia=byDay[f]||[];
+      var dots=citasDia.slice(0,6).map(function(c){
+        var e=(c.estado_cita||'').toUpperCase();
+        var dc=e==='PENDIENTE'?'dot-pend':e.indexOf('ASIST')>=0&&e.indexOf('NO')<0?'dot-asist':e.indexOf('NO ASIST')>=0?'dot-noasist':e==='CANCELADA'?'dot-cancel':'dot-conf';
+        return '<div class="month-dot '+dc+'"></div>';
+      }).join('');
+      cells+='<div class="month-cell'+(isToday?' today':'')+'" onclick="AG.fecha=\''+f+'\';el(\'ag-fecha\').value=\''+f+'\';agVista(document.querySelector(\'[data-v=list]\'))"><div class="month-num">'+day+'</div><div class="month-dots">'+dots+'</div></div>';
+    }
+    el('ag-content').innerHTML='<div class="month-grid">'+hdrs+cells+'</div>';
+  });
 }
 
 function renderTurnos(turnos){
   var box=el('ag-turnos');
   if(!turnos||!turnos.length){box.innerHTML='<div class="ld">Sin turnos</div>';return;}
-  box.innerHTML=turnos.map(function(t){
-    var isDoc=(t.rol||'').toUpperCase()==='DOCTORA';
-    return '<div class="turno-card '+(isDoc?'turno-doc':'turno-enf')+'"><div class="turno-nombre">'+h(t.personal)+'</div><div class="turno-meta">'+h(t.rol)+' \u00b7 '+h(t.sede)+' \u00b7 '+h(t.hora_inicio)+'-'+h(t.hora_fin)+'</div></div>';
-  }).join('');
+  box.innerHTML=turnos.map(function(t){var isDoc=(t.rol||'').toUpperCase()==='DOCTORA';return '<div class="turno-card '+(isDoc?'turno-doc':'turno-enf')+'"><div class="turno-nombre">'+h(t.personal)+'</div><div class="turno-meta">'+h(t.rol)+' \u00b7 '+h(t.sede)+' \u00b7 '+h(t.hora_inicio)+'-'+h(t.hora_fin)+'</div></div>';}).join('');
 }
 
 // ── MODAL DETALLE ──
 function agDetalle(id){
-  var citas=(AG.data&&AG.data.citas)||[];
+  var citas=[];
+  if(AG.data&&AG.data.citas)citas=AG.data.citas;
   var c=citas.find(function(x){return x.id===id;});
-  if(!c)return;
-  AG.sel=c;
+  if(!c){
+    // Para vistas semana/mes, buscar en Supabase
+    fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+id+'&select=*',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){if(rows&&rows[0]){AG.sel=rows[0];showDetalle(rows[0]);}});
+    return;
+  }
+  AG.sel=c;showDetalle(c);
+}
+function showDetalle(c){
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
   el('det-nombre').textContent=cli||'--';
   el('det-sub').textContent=(c.numero_limpio||c.numero||'')+' \u00b7 '+(c.tratamiento||'');
-  var info='<div class="det-row"><div class="det-lbl">Fecha</div><div class="det-val">'+h(c.fecha_cita)+'</div></div>'+'<div class="det-row"><div class="det-lbl">Hora</div><div class="det-val">'+h((c.hora_cita||'').toString().substring(0,5))+'</div></div>'+'<div class="det-row"><div class="det-lbl">Sede</div><div class="det-val">'+h(c.sede)+'</div></div>'+'<div class="det-row"><div class="det-lbl">Tipo</div><div class="det-val">'+h(c.tipo_cita)+'</div></div>'+'<div class="det-row"><div class="det-lbl">Tratamiento</div><div class="det-val">'+h(c.tratamiento)+'</div></div>'+'<div class="det-row"><div class="det-lbl">Asesor</div><div class="det-val">'+h(c.asesor)+'</div></div>'+'<div class="det-row"><div class="det-lbl">Atenci\u00f3n</div><div class="det-val">'+h(c.tipo_atencion||'')+'</div></div>'+'<div class="det-row"><div class="det-lbl">Doctora</div><div class="det-val">'+h(c.doctora||'Sin asignar')+'</div></div>';
-  el('det-info').innerHTML=info;
+  el('det-info').innerHTML=[['Fecha',c.fecha_cita],['Hora',(c.hora_cita||'').toString().substring(0,5)],['Sede',c.sede],['Tipo',c.tipo_cita],['Tratamiento',c.tratamiento],['Asesor',c.asesor],['Atenci\u00f3n',c.tipo_atencion||''],['Doctora',c.doctora||'Sin asignar']].map(function(r){return '<div class="det-row"><div class="det-lbl">'+r[0]+'</div><div class="det-val">'+h(r[1]||'--')+'</div></div>';}).join('');
   el('det-nota').value=c.obs||'';
-  // Botones de estado
-  el('det-estados').innerHTML=ESTADOS.map(function(e){
-    var act=(c.estado_cita||'').toUpperCase()===e.val?'act':'';
-    return '<div class="est-btn '+e.cls+' '+act+'" data-val="'+e.val+'" onclick="agSelEstado(this)">'+e.lbl+'</div>';
-  }).join('');
+  el('det-estados').innerHTML=ESTADOS.map(function(e){return '<div class="est-btn '+e.cls+' '+((c.estado_cita||'').toUpperCase()===e.val?'act':'')+'" data-val="'+e.val+'" onclick="agSelEstado(this)">'+e.lbl+'</div>';}).join('');
+  // Cargar historial del paciente
+  var num=c.numero_limpio||c.numero||'';
+  if(num){
+    _rpc('aos_get_historial_paciente',{p_numero:num},function(hist){
+      var box=el('det-historial');
+      if(!hist||(!hist.llamadas&&!hist.compras&&!hist.citas)){box.innerHTML='<div class="ld">Sin historial</div>';return;}
+      var html='';
+      if(hist.compras&&hist.compras.length){
+        html+='<div class="ml" style="margin-bottom:4px;">Compras ('+hist.compras.length+')</div><div class="hist-mini">';
+        html+=hist.compras.map(function(v){return '<div class="hist-item"><b>'+h(v.fecha)+'</b> '+h(v.trat)+' <span style="color:#0A4FBF;font-weight:800;">S/'+parseFloat(v.monto||0).toFixed(0)+'</span></div>';}).join('');
+        html+='</div>';
+      }
+      if(hist.citas&&hist.citas.length){
+        html+='<div class="ml" style="margin:8px 0 4px;">Citas ('+hist.citas.length+')</div><div class="hist-mini">';
+        html+=hist.citas.map(function(ci){return '<div class="hist-item"><b>'+h(ci.fecha)+'</b> '+h(ci.trat)+' <span class="est-b '+estCls(ci.estado)+'">'+h(ci.estado||'')+'</span></div>';}).join('');
+        html+='</div>';
+      }
+      if(hist.llamadas&&hist.llamadas.length){
+        html+='<div class="ml" style="margin:8px 0 4px;">Llamadas ('+hist.llamadas.length+')</div><div class="hist-mini">';
+        html+=hist.llamadas.slice(0,5).map(function(l){return '<div class="hist-item"><b>'+h(l.fecha)+'</b> '+h(l.trat)+' <span style="color:#6B7BA8;">'+h(l.estado)+'</span></div>';}).join('');
+        html+='</div>';
+      }
+      box.innerHTML=html||'<div class="ld">Sin historial</div>';
+    });
+  } else {el('det-historial').innerHTML='<div class="ld">Sin n\u00famero</div>';}
   el('ag-m-det').classList.add('open');
 }
 function agCloseDet(){el('ag-m-det').classList.remove('open');}
-function agSelEstado(btn){
-  el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});
-  btn.classList.add('act');
-}
+function agSelEstado(btn){el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');}
+
 function agGuardarEstado(){
   if(!AG.sel)return;
-  var nuevoEstado='';
-  el('det-estados').querySelectorAll('.est-btn.act').forEach(function(b){nuevoEstado=b.getAttribute('data-val');});
+  var est='';el('det-estados').querySelectorAll('.est-btn.act').forEach(function(b){est=b.getAttribute('data-val');});
   var nota=el('det-nota').value.trim();
-  var updates={estado_cita:nuevoEstado,ts_actualizado:new Date().toISOString()};
-  if(nota&&nota!==(AG.sel.obs||''))updates.obs=nota;
-  fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(updates)}).then(function(r){
+  var upd={estado_cita:est,ts_actualizado:new Date().toISOString()};
+  if(nota!==(AG.sel.obs||''))upd.obs=nota;
+  _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
-    if(window.AOS_showToast)AOS_showToast('Estado actualizado',nuevoEstado,'');
-    agCloseDet();agLoad();
+    if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');agCloseDet();agLoad();
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
-function agReagendar(){
+
+function agEliminar(){
   if(!AG.sel)return;
-  agAbrirEditar();
-  el('edit-titulo').textContent='Reagendar cita';
-  el('ed-fecha').value='';el('ed-fecha').focus();
+  if(!confirm('Eliminar esta cita?'))return;
+  _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');agCloseDet();agLoad();
+  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
+
+function agReagendar(){if(!AG.sel)return;agAbrirEditar();el('edit-titulo').textContent='Reagendar cita';el('ed-fecha').value='';el('ed-fecha').focus();}
 
 // ── MODAL EDITAR / NUEVA ──
 function agAbrirEditar(){
   var c=AG.sel;
   if(c){
-    el('edit-titulo').textContent='Editar cita';
-    el('edit-sub').textContent='N\u00famero: '+(c.numero_limpio||c.numero||'');
+    el('edit-titulo').textContent='Editar cita';el('edit-sub').textContent='N\u00famero: '+(c.numero_limpio||c.numero||'');
     el('ed-nombre').value=c.nombre||'';el('ed-apellido').value=c.apellido||'';
     el('ed-num').value=c.numero_limpio||c.numero||'';el('ed-dni').value=c.dni||'';
     el('ed-correo').value=c.correo||'';el('ed-asesor').value=c.asesor||'';
@@ -162,18 +225,15 @@ function agAbrirEditar(){
     el('ed-estado').value=c.estado_cita||'PENDIENTE';el('ed-obs').value=c.obs||'';
     AG.editId=c.id;
   }
-  agCloseDet();
-  el('ag-m-edit').classList.add('open');
+  agCloseDet();el('ag-m-edit').classList.add('open');
 }
 function agAbrirNueva(){
   AG.sel=null;AG.editId=null;
   el('edit-titulo').textContent='Nueva cita';el('edit-sub').textContent='';
-  el('ed-nombre').value='';el('ed-apellido').value='';el('ed-num').value='';
-  el('ed-dni').value='';el('ed-correo').value='';el('ed-sede').value='';
-  el('ed-tipo-at').value='';el('ed-fecha').value=AG.fecha;
-  el('ed-hora').value='10:00';el('ed-trat').value='';
-  el('ed-tipo-cita').value='CONSULTA NUEVA';el('ed-estado').value='PENDIENTE';
-  el('ed-obs').value='';el('ed-pac-info').style.display='none';
+  ['ed-nombre','ed-apellido','ed-num','ed-dni','ed-correo','ed-obs'].forEach(function(id){el(id).value='';});
+  el('ed-sede').value='';el('ed-tipo-at').value='';el('ed-fecha').value=AG.fecha;
+  el('ed-hora').value='10:00';el('ed-trat').value='';el('ed-tipo-cita').value='CONSULTA NUEVA';
+  el('ed-estado').value='PENDIENTE';el('ed-pac-info').style.display='none';
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
   el('ed-asesor').value=(ctx.asesor||'WILMER').toUpperCase();
   el('ag-m-edit').classList.add('open');
@@ -184,56 +244,35 @@ function agGuardarEdit(){
   var num=(el('ed-num').value||'').trim().replace(/\D/g,'');
   var fecha=el('ed-fecha').value;
   if(!fecha){alert('Selecciona fecha');return;}
-  var asesor=el('ed-asesor').value;
-  var now=new Date();
-  var row={
-    nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),
-    numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),
-    correo:el('ed-correo').value.trim(),asesor:asesor,
-    id_asesor:ASESORES_MAP[asesor]||'',sede:el('ed-sede').value,
-    tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,
-    hora_cita:el('ed-hora').value||'10:00',tratamiento:el('ed-trat').value,
-    tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',
-    obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()
-  };
+  var asesor=el('ed-asesor').value;var now=new Date();
+  var row={nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),correo:el('ed-correo').value.trim(),asesor:asesor,id_asesor:AMAP[asesor]||'',sede:el('ed-sede').value,tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,hora_cita:el('ed-hora').value||'10:00',tratamiento:el('ed-trat').value,tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()};
   if(AG.editId){
-    // UPDATE existente
-    fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
+    _rest('aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
-      if(window.AOS_showToast)AOS_showToast('Cita actualizada','','');
-      agCloseEdit();agLoad();
+      if(window.AOS_showToast)AOS_showToast('Cita actualizada','','');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   } else {
-    // INSERT nueva (desde agenda NO cuenta como llamada)
-    row.ts_creado=now.toISOString();
-    row.origen_cita='AGENDA';
-    fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
+    row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
+    _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
-      if(window.AOS_showToast)AOS_showToast('Cita creada','Agregada a la agenda','toast-venta');
-      agCloseEdit();agLoad();
+      if(window.AOS_showToast)AOS_showToast('Cita creada','','toast-venta');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   }
 }
 
-// Buscar paciente por número
 var _agTmr=null;
 function agBuscarPac(q){
-  clearTimeout(_agTmr);
-  var info=el('ed-pac-info');
+  clearTimeout(_agTmr);var info=el('ed-pac-info');
   if(!q||q.length<6){if(info)info.style.display='none';return;}
   _agTmr=setTimeout(function(){
     _rpc('aos_search_pacientes',{p_query:q,p_limit:3},function(rows){
       if(!rows||!rows.length){if(info)info.style.display='none';return;}
-      var num=q.replace(/\D/g,'');
-      var match=rows.find(function(p){return(p.telefono||'').replace(/\D/g,'')===num;})||rows[0];
-      if(match){
-        info.style.display='block';
-        info.innerHTML='\u2713 Paciente: '+(match.nombres||'')+' '+(match.apellidos||'');
+      var num=q.replace(/\D/g,'');var match=rows.find(function(p){return(p.telefono||'').replace(/\D/g,'')===num;})||rows[0];
+      if(match){info.style.display='block';info.innerHTML='\u2713 '+(match.nombres||'')+' '+(match.apellidos||'');
         if(match.nombres&&!el('ed-nombre').value)el('ed-nombre').value=match.nombres;
         if(match.apellidos&&!el('ed-apellido').value)el('ed-apellido').value=match.apellidos;
         if(match.dni&&!el('ed-dni').value)el('ed-dni').value=match.dni;
-        if(match.correo&&!el('ed-correo').value)el('ed-correo').value=match.correo;
-      }
+        if(match.correo&&!el('ed-correo').value)el('ed-correo').value=match.correo;}
     });
   },400);
 }
