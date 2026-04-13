@@ -893,7 +893,11 @@ function loadTrats(){
   });
 }
 
-function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){document.getElementById('cc-m-cita').classList.add('open');}else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
+function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){
+    document.getElementById('cc-m-cita').classList.add('open');
+    document.getElementById('cc-m-cita-num').textContent='Número: '+(CC.lead?CC.lead.num:'—');
+    if(CC.lead&&CC.lead.num){buscarPacParaCita(CC.lead.num);}
+  }else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
 function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
 function doCallCC(){if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');}
 function openWaCC(){if(!CC.lead||!CC.lead.wa)return;window.open(CC.lead.wa,'_blank');}
@@ -934,32 +938,21 @@ var _DIAS_SEM=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO
 function detectarDoctora(fechaStr,horaStr,sede,targetId){
   var el=document.getElementById(targetId);if(!el)return;
   if(!fechaStr||!sede){el.value='';return;}
+  el.value='Buscando...';
   var d=new Date(fechaStr+'T12:00:00');var diaSem=_DIAS_SEM[d.getDay()];
-  _rpc('aos_horarios_semana',{p_fecha_lunes:fechaStr,p_sede:sede,p_rol:''},function(res){
-    if(!res||!res.turnos){el.value='No disponible';return;}
-    var hora=horaStr||'10:00';
-    var found=null;
-    (res.turnos||[]).forEach(function(t){
-      if(!t.fecha||t.fecha!==fechaStr)return;
-      if(t.rol&&t.rol.toUpperCase().indexOf('DOCTOR')>=0){
-        var hi=t.hora_inicio||'00:00';var hf=t.hora_fin||'23:59';
-        if(hora>=hi.slice(0,5)&&hora<=hf.slice(0,5)){
-          found=t.personal||t.nombre||'Doctora en turno';
-        }
-      }
-    });
-    if(!found){
-      // Fallback: buscar en aos_horarios_doctoras por día de semana
-      fetch(_SB+'/rest/v1/aos_horarios_doctoras?dia_semana=eq.'+diaSem+'&sede=eq.'+encodeURIComponent(sede)+'&activo=eq.SI',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
-        if(!rows||!rows.length){el.value='Sin doctora asignada';return;}
-        var h=horaStr||'10:00';
-        var match=rows.find(function(r){return h>=r.hora_inicio.slice(0,5)&&h<=r.hora_fin.slice(0,5);});
-        el.value=match?match.doctora_label:'Sin doctora en ese horario';
-      });
+  var hora=(horaStr||'10:00').slice(0,5);
+  fetch(_SB+'/rest/v1/aos_horarios_doctoras?dia_semana=eq.'+diaSem+'&sede=eq.'+encodeURIComponent(sede)+'&activo=eq.SI&select=doctora_label,hora_inicio,hora_fin',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el.value='Sin doctora asignada';el.style.color='#D97706';return;}
+    var matches=rows.filter(function(r){var hi=(r.hora_inicio||'').slice(0,5);var hf=(r.hora_fin||'').slice(0,5);return hora>=hi&&hora<=hf;});
+    if(matches.length>0){
+      el.value=matches.map(function(m){return m.doctora_label;}).join(' / ');
+      el.style.color='#16A34A';
     } else {
-      el.value=found;
+      var allDocs=rows.map(function(r){return r.doctora_label+' ('+r.hora_inicio.slice(0,5)+'-'+r.hora_fin.slice(0,5)+')';}).join(', ');
+      el.value='Fuera de horario. Disponibles: '+allDocs;
+      el.style.color='#D97706';
     }
-  });
+  }).catch(function(){el.value='Error consultando horarios';el.style.color='#DC2626';});
 }
 
 // Event listeners para auto-detectar doctora en modal de cita
@@ -1088,5 +1081,21 @@ ccConfirmarCita = function(){
     _origCCConfirmarCita();
   }
 };
+
+
+// Buscar paciente existente y autocompletar campos del modal de cita
+function buscarPacParaCita(num){
+  var numL=String(num||'').replace(/\D/g,'');
+  if(!numL||numL.length<7)return;
+  _rpc('aos_search_pacientes',{p_query:numL,p_limit:3},function(rows){
+    if(!rows||!rows.length)return;
+    var match=rows.find(function(p){return(p.telefono||'').replace(/\D/g,'')===numL;});
+    if(!match)match=rows[0];
+    if(match.nombres){var e=document.getElementById('cc-c-nombre');if(e&&!e.value)e.value=match.nombres;}
+    if(match.apellidos){var e=document.getElementById('cc-c-apellido');if(e&&!e.value)e.value=match.apellidos;}
+    if(match.dni){var e=document.getElementById('cc-c-dni');if(e&&!e.value)e.value=match.dni;}
+    if(match.correo){var e=document.getElementById('cc-c-correo');if(e&&!e.value)e.value=match.correo;}
+  });
+}
 
 </script>
