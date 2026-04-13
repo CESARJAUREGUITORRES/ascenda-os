@@ -1076,19 +1076,27 @@ function guardarCitaManual(){
     tipo_cita:tipoCita,
     doctora:doctora,
     asesor:x.a,id_asesor:x.id,
-    estado_cita:'CONFIRMADA',
+    estado_cita:'PENDIENTE',
     origen_cita:'CITA_MANUAL',
     obs:document.getElementById('cm-obs').value.trim(),
     ts_creado:now.toISOString()
   };
-  console.log('[AOS-DEBUG] guardarCitaManual rowC:',JSON.stringify(rowC));
-  fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}).then(function(r){
-    if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
+  rowC.estado_cita='PENDIENTE';
+  var rowLM={fecha:x.hoy,numero:num,numero_limpio:num,tratamiento:rowC.tratamiento||'',estado:'CITA CONFIRMADA',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:1,created_at:now.toISOString()};
+  console.log('[AOS] citaManual cita:',JSON.stringify(rowC));
+  console.log('[AOS] citaManual llamada:',JSON.stringify(rowLM));
+  Promise.all([
+    fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}),
+    fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowLM)})
+  ]).then(function(results){
+    var allOk=results.every(function(r){return r.ok;});
+    if(!allOk)throw new Error('Error guardando');
     closeCCModal('cc-m-cita-manual');
     if(window.AOS_playSound)AOS_playSound('venta');
-    if(window.AOS_showToast)AOS_showToast('Cita agendada','Registrada correctamente','toast-venta');
-    loadMetrics();
+    if(window.AOS_showToast)AOS_showToast('Cita agendada','Cita + llamada registradas','toast-venta');
+    loadMetrics();loadHistorial();
   }).catch(function(e){
+    console.error('[AOS] Error citaManual:',e);
     if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error al guardar','toast-alerta');
   });
 }
