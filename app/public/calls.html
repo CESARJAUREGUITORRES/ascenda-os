@@ -433,9 +433,9 @@
       <div class="mf"><div class="ml">DNI</div><input class="mi" id="cc-c-dni" placeholder="DNI/CE"/></div>
       <div class="mf"><div class="ml">Correo</div><input class="mi" id="cc-c-correo" placeholder="correo@..."/></div>
       <div class="mf"><div class="ml">Tipo atención</div><select class="ms2" id="cc-c-tipo-at"><option value="">— Seleccionar —</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermería</option></select></div>
-      <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cc-c-sede"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-      <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cc-c-fecha" type="date"/></div>
-      <div class="mf"><div class="ml">Hora</div><input class="mi" id="cc-c-hora" type="time" value="10:00"/></div>
+      <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cc-c-sede" onchange="if(document.getElementById('cc-c-fecha').value)detectarDoctora(document.getElementById('cc-c-fecha').value,document.getElementById('cc-c-hora').value,this.value,'cc-c-doctora')"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+      <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cc-c-fecha" type="date" onchange="if(document.getElementById('cc-c-sede').value)detectarDoctora(this.value,document.getElementById('cc-c-hora').value,document.getElementById('cc-c-sede').value,'cc-c-doctora')"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="cc-c-hora" type="time" onchange="if(document.getElementById('cc-c-fecha').value&&document.getElementById('cc-c-sede').value)detectarDoctora(document.getElementById('cc-c-fecha').value,this.value,document.getElementById('cc-c-sede').value,'cc-c-doctora')" value="10:00"/></div>
       <div class="mf full"><div class="ml">Tratamiento a realizar</div><select class="ms2" id="cc-c-trat"><option value="">— Seleccionar —</option><option value="ÁCIDO HIALURÓNICO">Ácido Hialurónico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACIÓN">Biorevitalización</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MÉDICA">Consulta Médica</option><option value="CRIOLIPÓLISIS">Criolipólisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA BOTULÍNICA">Toxina Botulínica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">OTROS</option></select></div>
       <div class="mf full"><div class="ml">Doctora asignada</div><input class="mi" id="cc-c-doctora" readonly placeholder="Se detecta automáticamente..." style="background:#F0FDF4;color:#16A34A;font-weight:700;"/></div>
       <div class="mf full"><div class="ml">Tipo cita</div><div class="tbs" id="cc-tipo-cita-grp"><div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div><div class="tb" data-val="APLICACIÓN">Aplicación</div><div class="tb" data-val="CONTROL">Control</div><div class="tb" data-val="REPROGRAMACIÓN">Reprog.</div></div></div>
@@ -468,9 +468,9 @@
       <div class="mf"><div class="ml">DNI</div><input class="mi" id="cm-dni" placeholder="DNI/CE"/></div>
       <div class="mf"><div class="ml">Correo</div><input class="mi" id="cm-correo" placeholder="correo@..."/></div>
       <div class="mf"><div class="ml">Tipo atención</div><select class="ms2" id="cm-tipo-at"><option value="">— Seleccionar —</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermería</option></select></div>
-      <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cm-sede"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-      <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cm-fecha" type="date"/></div>
-      <div class="mf"><div class="ml">Hora</div><input class="mi" id="cm-hora" type="time" value="10:00"/></div>
+      <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cm-sede" onchange="if(document.getElementById('cm-fecha').value)detectarDoctora(document.getElementById('cm-fecha').value,document.getElementById('cm-hora').value,this.value,'cm-doctora')"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+      <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cm-fecha" type="date" onchange="if(document.getElementById('cm-sede').value)detectarDoctora(this.value,document.getElementById('cm-hora').value,document.getElementById('cm-sede').value,'cm-doctora')"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="cm-hora" type="time" onchange="if(document.getElementById('cm-fecha').value&&document.getElementById('cm-sede').value)detectarDoctora(document.getElementById('cm-fecha').value,this.value,document.getElementById('cm-sede').value,'cm-doctora')" value="10:00"/></div>
       <div class="mf full"><div class="ml">Tratamiento a realizar</div><select class="ms2" id="cm-trat"><option value="">— Seleccionar —</option><option value="ÁCIDO HIALURÓNICO">Ácido Hialurónico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACIÓN">Biorevitalización</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MÉDICA">Consulta Médica</option><option value="CRIOLIPÓLISIS">Criolipólisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA BOTULÍNICA">Toxina Botulínica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">OTROS</option></select></div>
       <div class="mf full"><div class="ml">Doctora asignada</div><input class="mi" id="cm-doctora" readonly placeholder="Se detecta automáticamente..." style="background:#F0FDF4;color:#16A34A;font-weight:700;"/></div>
       <div class="mf full"><div class="ml">Tipo cita</div><div class="tbs" id="cm-tipo-cita-grp"><div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div><div class="tb" data-val="APLICACI\u00d3N">Aplicación</div><div class="tb" data-val="CONTROL">Control</div><div class="tb" data-val="REPROGRAMACI\u00d3N">Reprog.</div></div></div>
@@ -575,11 +575,11 @@ function ccGuardar(){
   var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',created_at:now.toISOString()};
   fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
     CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('\u2713 Guardado','Llamada registrada.','');
     loadLead();loadHistorial();loadMetrics();
-  }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';console.error('[AOS] Error guardando llamada:',e);if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarCita(){
@@ -985,27 +985,28 @@ function detectarDoctora(fechaStr,horaStr,sede,targetId){
 
 // Event listeners para auto-detectar doctora en modal de cita
 (function(){
-  var els=['cc-c-fecha','cc-c-hora','cc-c-sede'];
-  els.forEach(function(id){
+  // Detectar doctora en modal cita CC
+  ['cc-c-fecha','cc-c-hora','cc-c-sede','cc-c-tipo-at'].forEach(function(id){
     var e=document.getElementById(id);
-    if(e)e.addEventListener('change',function(){
-      var f=document.getElementById('cc-c-fecha').value;
-      var h=document.getElementById('cc-c-hora').value;
-      var s=document.getElementById('cc-c-sede').value;
-      if(f&&s)detectarDoctora(f,h,s,'cc-c-doctora');
-    });
+    if(e){e.addEventListener('change',_triggerDocCC);e.addEventListener('input',_triggerDocCC);}
   });
-  // Lo mismo para modal manual
-  var els2=['cm-fecha','cm-hora','cm-sede'];
-  els2.forEach(function(id){
+  function _triggerDocCC(){
+    var f=document.getElementById('cc-c-fecha').value;
+    var h=document.getElementById('cc-c-hora').value;
+    var s=document.getElementById('cc-c-sede').value;
+    if(f&&s)detectarDoctora(f,h,s,'cc-c-doctora');
+  }
+  // Detectar doctora en modal cita manual
+  ['cm-fecha','cm-hora','cm-sede','cm-tipo-at'].forEach(function(id){
     var e=document.getElementById(id);
-    if(e)e.addEventListener('change',function(){
-      var f=document.getElementById('cm-fecha').value;
-      var h=document.getElementById('cm-hora').value;
-      var s=document.getElementById('cm-sede').value;
-      if(f&&s)detectarDoctora(f,h,s,'cm-doctora');
-    });
+    if(e){e.addEventListener('change',_triggerDocCM);e.addEventListener('input',_triggerDocCM);}
   });
+  function _triggerDocCM(){
+    var f=document.getElementById('cm-fecha').value;
+    var h=document.getElementById('cm-hora').value;
+    var s=document.getElementById('cm-sede').value;
+    if(f&&s)detectarDoctora(f,h,s,'cm-doctora');
+  }
   // Tipo cita tabs en modal manual
   var grp=document.getElementById('cm-tipo-cita-grp');
   if(grp)grp.querySelectorAll('.tb').forEach(function(t){t.addEventListener('click',function(){grp.querySelectorAll('.tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
@@ -1080,7 +1081,7 @@ function guardarCitaManual(){
     ts_creado:now.toISOString()
   };
   fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     closeCCModal('cc-m-cita-manual');
     if(window.AOS_playSound)AOS_playSound('venta');
     if(window.AOS_showToast)AOS_showToast('Cita agendada','Registrada correctamente','toast-venta');
