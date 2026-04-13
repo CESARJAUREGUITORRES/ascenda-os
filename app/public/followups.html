@@ -1,14 +1,218 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- ═══════════════════════════════════════════════════════════
+     ADVISOR FOLLOWUPS — AscendaOS v1 — 100% Supabase — CERO GAS
+     RPCs: aos_seguimientos_asesor, aos_cerrar_seguimiento, aos_get_tratamientos
+     ═══════════════════════════════════════════════════════════ -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.vf-root{padding:13px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;min-height:100%;}
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:11px 13px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kc.r::before{background:#DC2626;}.kc.a::before{background:#D97706;}.kc.b::before{background:#0A4FBF;}.kc.g::before{background:#16A34A;}.kc.gr::before{background:#9AAAC8;}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;}
+.kc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1.1;margin:3px 0 2px;}
+.kc-s{font-size:10px;font-weight:600;color:#6B7BA8;}
+.main2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:10px;flex:1;}
+.card{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.ftabs{display:flex;border-radius:9px;border:1px solid #DDE4F5;overflow:hidden;background:#F0F4FC;margin-bottom:10px;}
+.ft{flex:1;padding:7px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;text-align:center;transition:all .15s;}
+.ft.act-r{background:#DC2626;color:#fff;}.ft.act-a{background:#D97706;color:#fff;}.ft.act-b{background:#0A4FBF;color:#fff;}.ft.act-g{background:#16A34A;color:#fff;}.ft.act-gr{background:#6B7BA8;color:#fff;}
+.seg-list{display:flex;flex-direction:column;gap:7px;overflow-y:auto;max-height:calc(100vh - 340px);}
+.seg-list::-webkit-scrollbar{width:3px;}.seg-list::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.si{border-radius:11px;border:1px solid;padding:11px 13px;cursor:pointer;transition:opacity .12s;}.si:hover{opacity:.85;}
+.si.sv{background:#FEF2F2;border-color:#FECACA;}.si.sh{background:#FFFBEB;border-color:#FDE68A;}.si.sp{background:#F0F4FC;border-color:#BFDBFE;}.si.sc{background:#F0FDF4;border-color:#BBF7D0;}.si.ssf{background:#F8F8F8;border-color:#DDE4F5;}
+.si-top{display:flex;align-items:center;justify-content:space-between;}
+.si-tag{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;}
+.sv .si-tag{color:#DC2626;}.sh .si-tag{color:#D97706;}.sp .si-tag{color:#0A4FBF;}.sc .si-tag{color:#16A34A;}.ssf .si-tag{color:#9AAAC8;}
+.si-actions{display:flex;gap:4px;}
+.sab{width:26px;height:26px;border-radius:7px;border:1px solid #DDE4F5;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;}.sab:hover{background:#fff;}
+.si-num{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;margin:4px 0 2px;}
+.si-trat{font-size:12px;font-weight:600;color:#6B7BA8;}
+.si-obs{font-size:11px;color:#9AAAC8;margin-top:3px;font-style:italic;}
+.nueva-seg-btn{width:100%;padding:9px;border-radius:10px;border:2px dashed #BFDBFE;background:transparent;font-size:12px;font-weight:700;color:#0A4FBF;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;transition:background .15s;}.nueva-seg-btn:hover{background:#EBF2FF;}
+.rcol2{display:flex;flex-direction:column;gap:10px;}
+.cal-wrap{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-nav{width:24px;height:24px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#6B7BA8;}.cal-nav:hover{background:#EBF2FF;}
+.cal-mes{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-day-hdr{text-align:center;font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;padding:3px 0;}
+.cal-day{text-align:center;padding:5px 2px;border-radius:6px;font-size:12px;cursor:pointer;transition:background .1s;position:relative;}.cal-day:hover{background:#EBF2FF;}
+.cal-day.hoy{background:#0A4FBF;color:#fff;font-weight:800;}.cal-day.tiene-seg{background:#FEF2F2;color:#DC2626;font-weight:800;}.cal-day.tiene-seg.hoy{background:#0A4FBF;color:#fff;}.cal-day.vacio{opacity:0;}
+.cal-dot{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#DC2626;}
+.prox-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(221,228,245,.4);}.prox-item:last-child{border-bottom:none;}
+.prox-fecha{min-width:38px;text-align:center;padding:5px 4px;border-radius:8px;background:#EBF2FF;}
+.prox-dia{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0A4FBF;line-height:1;}.prox-mes{font-size:9px;color:#6B7BA8;text-transform:uppercase;letter-spacing:.3px;}
+.prox-info{flex:1;min-width:0;}.prox-num{font-size:12px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.prox-trat{font-size:10px;color:#9AAAC8;}
+.prox-hora{font-size:10px;color:#0A4FBF;font-weight:700;}
+.prox-wa{width:24px;height:24px;border-radius:6px;border:1px solid #BBF7D0;background:#F0FDF4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;flex-shrink:0;}
+.mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;border:1px solid #DDE4F5;}
+.mhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}.msub{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.mclose{width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:3px;}.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;}
+.mi,.ms{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}.mi:focus,.ms:focus{border-color:#0A4FBF;background:#fff;}
+.mta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:none;height:65px;}
+.mfoot{display:flex;gap:8px;margin-top:12px;}
+.mcanc{flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6B7BA8;}
+.mconf{flex:2;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ld{text-align:center;padding:24px;color:#9AAAC8;font-size:12px;}
+.sp-anim{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:900px){.krow{grid-template-columns:repeat(3,1fr);}.main2{grid-template-columns:1fr;}}
+</style>
+
+<div class="vf-root">
+  <div class="krow">
+    <div class="kc r"><div class="kc-l">Vencidos</div><div class="kc-v" id="k-venc">—</div><div class="kc-s">Requieren atención</div></div>
+    <div class="kc a"><div class="kc-l">Para hoy</div><div class="kc-v" id="k-hoy">—</div><div class="kc-s">Programados hoy</div></div>
+    <div class="kc b"><div class="kc-l">Próximos</div><div class="kc-v" id="k-prox">—</div><div class="kc-s">En los siguientes días</div></div>
+    <div class="kc gr"><div class="kc-l">Sin fecha</div><div class="kc-v" id="k-sf">—</div><div class="kc-s">Por programar</div></div>
+    <div class="kc g"><div class="kc-l">Cerrados</div><div class="kc-v" id="k-cerr">—</div><div class="kc-s">Este mes</div></div>
+  </div>
+  <div class="main2">
+    <div class="card">
+      <div class="chd"><div class="ct">MIS SEGUIMIENTOS</div></div>
+      <div class="ftabs">
+        <button class="ft act-r" id="ft-venc" onclick="setTab('vencido')">⚠ Vencidos</button>
+        <button class="ft" id="ft-hoy" onclick="setTab('hoy')">● Hoy</button>
+        <button class="ft" id="ft-prox" onclick="setTab('proximo')">○ Próximos</button>
+        <button class="ft" id="ft-sf" onclick="setTab('sin_fecha')">— Sin fecha</button>
+        <button class="ft" id="ft-todos" onclick="setTab('todos')">Todos</button>
+      </div>
+      <div class="seg-list" id="seg-list"><div class="ld"><span class="sp-anim"></span>Cargando seguimientos...</div></div>
+      <button class="nueva-seg-btn" onclick="openNuevo()">+ Nuevo seguimiento manual</button>
+    </div>
+    <div class="rcol2">
+      <div class="cal-wrap">
+        <div class="cal-hd">
+          <div class="cal-nav" onclick="calNav(-1)">◀</div>
+          <div class="cal-mes" id="cal-mes-lbl">— —</div>
+          <div class="cal-nav" onclick="calNav(1)">▶</div>
+        </div>
+        <div class="cal-grid" id="cal-grid">
+          <div class="cal-day-hdr">LU</div><div class="cal-day-hdr">MA</div><div class="cal-day-hdr">MI</div><div class="cal-day-hdr">JU</div><div class="cal-day-hdr">VI</div><div class="cal-day-hdr">SA</div><div class="cal-day-hdr">DO</div>
+        </div>
+      </div>
+      <div class="card" style="flex:1;">
+        <div class="chd"><div class="ct">PRÓXIMOS 5 DÍAS</div></div>
+        <div id="prox-list"><div class="ld"><span class="sp-anim"></span>Cargando...</div></div>
+      </div>
+    </div>
   </div>
 </div>
-</body>
-</html>
+
+<div class="mov" id="m-nuevo">
+  <div class="modal">
+    <div class="mhd">
+      <div><div class="mtit">⏰ Nuevo seguimiento</div><div class="msub">Programar recontacto manual</div></div>
+      <div class="mclose" onclick="closeModal()">✕</div>
+    </div>
+    <div class="mg">
+      <div class="mf full"><div class="ml">Número de teléfono</div><input class="mi" id="ns-num" placeholder="987654321"/></div>
+      <div class="mf"><div class="ml">Fecha de rellamada</div><input class="mi" id="ns-fecha" type="date"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="ns-hora" type="time" value="10:00"/></div>
+      <div class="mf full"><div class="ml">Tratamiento</div><select class="ms" id="ns-trat"></select></div>
+      <div class="mf full"><div class="ml">Nota para el recontacto</div><textarea class="mta" id="ns-obs" placeholder="Ej: Le interesa HIFU, llamar en la mañana..."></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="closeModal()">Cancelar</button>
+      <button class="mconf" onclick="guardarNuevo()">✓ Programar seguimiento</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ADVISOR FOLLOWUPS — 100% SUPABASE DIRECTO — CERO GAS
+   ═══════════════════════════════════════════════════════════ */
+var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
+function _insert(t,body,ok,fail){fetch(_SB+'/rest/v1/'+t,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){if(r.ok&&ok)ok();else if(fail)fail();}).catch(fail||function(){});}
+
+function _hoy(){return new Date().toISOString().slice(0,10);}
+function _ctx(){try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');return{a:(s.nombre||'').toUpperCase(),id:s.codigo_asesor||''};}catch(e){return{a:'',id:''};}}
+function $(id){return document.getElementById(id);}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+var VF={tab:'vencido',allItems:[],calAnio:new Date().getFullYear(),calMes:new Date().getMonth()};
+var MESES_CAL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+(function(){var h=_hoy();$('ns-fecha').value=h;$('ns-fecha').min=h;loadTrats();loadFollowups();})();
+
+function loadFollowups(){
+  $('seg-list').innerHTML='<div class="ld"><span class="sp-anim"></span>Cargando seguimientos...</div>';
+  var x=_ctx();
+  _rpc('aos_seguimientos_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(d){
+    if(!d||!d.items){$('seg-list').innerHTML='<div class="ld" style="color:#DC2626;">Error al cargar.</div>';return;}
+    var tot=d.totales||{};
+    if($('k-venc'))$('k-venc').textContent=tot.vencido||0;
+    if($('k-hoy'))$('k-hoy').textContent=tot.hoy||0;
+    if($('k-prox'))$('k-prox').textContent=tot.proximo||0;
+    if($('k-sf'))$('k-sf').textContent=tot.sin_fecha||0;
+    if($('k-cerr'))$('k-cerr').textContent=d.cerrados||0;
+    VF.allItems=(d.items||[]).map(function(s){return{id:s.id||'',rowNum:s.row_num||s.id||'',num:s.numero||'',trat:s.tratamiento||'',obs:s.obs||'',tipo:s.tipo||'sin_fecha',fecha:s.fecha_prog||null,hora:s.hora_prog?String(s.hora_prog).slice(0,5):'',wa:s.wa||''};});
+    renderList();renderCalendario(VF.allItems);renderProximos(VF.allItems);
+  },function(){$('seg-list').innerHTML='<div class="ld" style="color:#DC2626;">Error al cargar. Intenta de nuevo.</div>';});
+}
+
+function setTab(t){
+  VF.tab=t;
+  var cm={vencido:'act-r',hoy:'act-a',proximo:'act-b',sin_fecha:'act-gr',todos:'act-g'};
+  var im={vencido:'ft-venc',hoy:'ft-hoy',proximo:'ft-prox',sin_fecha:'ft-sf',todos:'ft-todos'};
+  ['ft-venc','ft-hoy','ft-prox','ft-sf','ft-todos'].forEach(function(id){var e=$(id);if(e)e.className='ft';});
+  var ae=$(im[t]);if(ae)ae.classList.add(cm[t]||'act-b');renderList();
+}
+
+function renderList(){
+  var el=$('seg-list');
+  var items=VF.allItems.filter(function(s){return VF.tab==='todos'?true:s.tipo===VF.tab;});
+  if(!items.length){var ms={vencido:'Sin seguimientos vencidos 🎉',hoy:'Sin seguimientos para hoy',proximo:'Sin seguimientos próximos',sin_fecha:'Sin seguimientos sin fecha',todos:'Sin seguimientos pendientes'};el.innerHTML='<div class="ld" style="color:#16A34A;font-weight:700;">'+(ms[VF.tab]||'Sin datos')+'</div>';return;}
+  var cm={vencido:'sv',hoy:'sh',proximo:'sp',sin_fecha:'ssf'};
+  var tm={vencido:function(s){return '⚠ VENCIDO · '+(s.fecha||'sin fecha');},hoy:function(s){return '● HOY'+(s.hora?' · '+s.hora:'');},proximo:function(s){return '○ '+(s.fecha||'')+(s.hora?' · '+s.hora:'');},sin_fecha:function(){return '— SIN FECHA · PENDIENTE';}};
+  el.innerHTML=items.map(function(s){
+    var cl=cm[s.tipo]||'ssf',tg=(tm[s.tipo]||function(){return s.fecha||'';})(s),sid=String(s.id||s.rowNum||'');
+    return '<div class="si '+cl+'"><div class="si-top"><span class="si-tag">'+escH(tg)+'</span><div class="si-actions">'+(s.wa?'<div class="sab" onclick="openWa(\''+escH(s.wa)+'\')" title="WhatsApp">💬</div>':'')+
+      '<div class="sab" onclick="navegarLlamar(\''+escH(s.num)+'\')" title="Llamar">📞</div><div class="sab" onclick="cerrarSeg(\''+escH(sid)+'\')" title="Cerrar">✓</div></div></div>'+
+      '<div class="si-num">'+escH(s.num)+'</div><div class="si-trat">'+escH(s.trat||'—')+'</div>'+(s.obs?'<div class="si-obs">"'+escH(s.obs)+'"</div>':'')+'</div>';
+  }).join('');
+}
+
+function renderCalendario(items){
+  var sm={};items.forEach(function(s){if(s.fecha)sm[s.fecha]=(sm[s.fecha]||0)+1;});
+  var a=VF.calAnio,m=VF.calMes;$('cal-mes-lbl').textContent=MESES_CAL[m]+' '+a;
+  var pd=new Date(a,m,1),td=new Date(a,m+1,0).getDate(),ds=pd.getDay(),off=ds===0?6:ds-1;
+  var g=$('cal-grid');while(g.children.length>7)g.removeChild(g.lastChild);
+  for(var i=0;i<off;i++){var v=document.createElement('div');v.className='cal-day vacio';v.textContent=' ';g.appendChild(v);}
+  var h=new Date(),ts=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0');
+  for(var d=1;d<=td;d++){var fd=a+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var c=document.createElement('div');c.className='cal-day';c.textContent=d;if(fd===ts)c.classList.add('hoy');if(sm[fd]){c.classList.add('tiene-seg');var dot=document.createElement('div');dot.className='cal-dot';c.appendChild(dot);}c.setAttribute('data-fecha',fd);c.addEventListener('click',function(){filterByFecha(this.getAttribute('data-fecha'));});g.appendChild(c);}
+}
+function calNav(dir){VF.calMes+=dir;if(VF.calMes>11){VF.calMes=0;VF.calAnio++;}if(VF.calMes<0){VF.calMes=11;VF.calAnio--;}renderCalendario(VF.allItems);}
+function filterByFecha(f){VF.tab='todos';['ft-venc','ft-hoy','ft-prox','ft-sf','ft-todos'].forEach(function(id){var e=$(id);if(e)e.className='ft';});var e=$('ft-todos');if(e)e.classList.add('act-g');var fi=VF.allItems.filter(function(s){return s.fecha===f;});if(!fi.length){$('seg-list').innerHTML='<div class="ld">Sin seguimientos para '+f+'</div>';return;}VF.tab='__fecha__';var tmp=VF.allItems;VF.allItems=fi;renderList();VF.allItems=tmp;}
+
+function renderProximos(items){
+  var pr=items.filter(function(s){return s.tipo==='proximo'||s.tipo==='hoy';}).slice(0,5);
+  var el=$('prox-list');if(!pr.length){el.innerHTML='<div class="ld">Sin seguimientos próximos</div>';return;}
+  var mn=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  el.innerHTML=pr.map(function(s){var p=(s.fecha||'').split('-'),dia=p[2]||'—',mi=p[1]?parseInt(p[1])-1:0;return '<div class="prox-item"><div class="prox-fecha"><div class="prox-dia">'+dia+'</div><div class="prox-mes">'+(mn[mi]||'—')+'</div></div><div class="prox-info"><div class="prox-num">'+escH(s.num)+'</div><div class="prox-trat">'+escH(s.trat||'—')+'</div></div>'+(s.hora?'<div class="prox-hora">'+s.hora+'</div>':'')+(s.wa?'<div class="prox-wa" onclick="openWa(\''+escH(s.wa)+'\')">💬</div>':'')+'</div>';}).join('');
+}
+
+function openWa(wa){if(wa)window.open(wa,'_blank');}
+function navegarLlamar(num){if(window.navigateTo)navigateTo('advisor-calls');else if(window.AOS_navigateTo)AOS_navigateTo('advisor-calls');}
+function cerrarSeg(sid){if(!sid||!confirm('¿Marcar este seguimiento como cerrado?'))return;_rpc('aos_cerrar_seguimiento',{p_id:sid},function(){if(window.AOS_showToast)AOS_showToast('✓ Seguimiento cerrado','','');loadFollowups();},function(){VF.allItems=VF.allItems.filter(function(s){return s.id!==sid;});renderList();});}
+function openNuevo(){$('m-nuevo').classList.add('open');}
+function closeModal(){$('m-nuevo').classList.remove('open');}
+function guardarNuevo(){
+  var num=$('ns-num').value.trim(),fecha=$('ns-fecha').value,hora=$('ns-hora').value;
+  if(!num){alert('Falta el número.');return;}if(!fecha){alert('Falta la fecha.');return;}
+  var x=_ctx();
+  _insert('aos_seguimientos',{"NUMERO":num,"TRATAMIENTO":$('ns-trat').value,"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora||'10:00',"OBS_RECONTACTO":$('ns-obs').value.trim(),"ESTADO":"PENDIENTE"},function(){closeModal();if(window.AOS_showToast)AOS_showToast('⏰ Seguimiento programado','','');loadFollowups();},function(){alert('Error al programar. Intenta de nuevo.');});
+}
+function loadTrats(){_rpc('aos_get_tratamientos',{},function(items){var sel=$('ns-trat');if(!sel||!items||!items.length)return;sel.innerHTML=items.map(function(t){return '<option>'+escH(t)+'</option>';}).join('');});}
+</script>
