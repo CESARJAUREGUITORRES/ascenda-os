@@ -45,6 +45,7 @@ function renderKPIs(d){
 function estCls(e){
   var u=(e||'').toUpperCase();
   if(u==='PENDIENTE')return 'est-pend';
+  if(u==='CONFIRMADA')return 'est-asist';
   if(u.indexOf('ASISTI')>=0&&u.indexOf('NO')<0)return 'est-asist';
   if(u.indexOf('NO ASISTI')>=0||u==='NO ASISTIO')return 'est-noasist';
   if(u==='CANCELADA')return 'est-cancel';

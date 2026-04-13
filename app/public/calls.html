@@ -589,6 +589,7 @@ function ccConfirmarCita(){
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,created_at:now.toISOString()};
   var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'CONFIRMADA',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
+  console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada','Excelente','toast-venta');loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
@@ -1080,6 +1081,7 @@ function guardarCitaManual(){
     obs:document.getElementById('cm-obs').value.trim(),
     ts_creado:now.toISOString()
   };
+  console.log('[AOS-DEBUG] guardarCitaManual rowC:',JSON.stringify(rowC));
   fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}).then(function(r){
     if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     closeCCModal('cc-m-cita-manual');
