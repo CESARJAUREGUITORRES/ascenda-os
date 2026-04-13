@@ -874,11 +874,32 @@ function fichaEditar(){if(window.AOS_showToast)AOS_showToast('ℹ️ Próximamen
 // ══════════════════════════════════════════════════════════════
 function cargarNombrePaciente(num){
   _rpc('aos_get_historial_paciente',{p_numero:String(num||'').replace(/\D/g,'')},function(res){
-    var w=document.getElementById('pac-nombre-wrap');if(!w)return;
-    if(!res||!res.paciente){w.style.display='none';return;}
+    var w=document.getElementById('pac-nombre-wrap');
+    if(!res||!res.paciente){if(w)w.style.display='none';renderContexto(null);return;}
     var p=res.paciente,nombre=((p.nombres||'')+' '+(p.apellidos||'')).trim();
-    if(nombre){document.getElementById('pac-nombre-txt').textContent=nombre;w.style.display='block';}else w.style.display='none';
+    if(w){
+      if(nombre){document.getElementById('pac-nombre-txt').textContent=nombre;w.style.display='block';}
+      else w.style.display='none';
+    }
+    // Renderizar contexto completo
+    renderContexto({
+      intentosPrevios:res.intentosPrevios||0,
+      ultContacto:res.ultContacto||null,
+      ultCita:res.ultCita||null,
+      ultCompra:res.ultCompra||null,
+      accionSugerida:generarSugerencia(res)
+    });
   });
+}
+
+function generarSugerencia(res){
+  if(!res)return '';
+  var uc=res.ultContacto,uv=res.ultCompra,ucit=res.ultCita;
+  if(uv&&uv.monto>500)return 'Cliente de alto valor (S/'+uv.monto+'). Ofrecer tratamiento complementario.';
+  if(ucit&&ucit.estado==='PENDIENTE')return 'Tiene cita pendiente: '+ucit.trat+' en '+ucit.sede+'. Confirmar asistencia.';
+  if(uc&&(uc.estado==='SIN CONTACTO'||uc.estado==='NO CONTESTA'))return 'Intentar contacto nuevamente. '+res.intentosPrevios+' intentos previos.';
+  if(uv)return 'Paciente activo. Ult. compra: '+uv.trat+' ('+uv.fecha+')';
+  return '';
 }
 
 function loadTrats(){
