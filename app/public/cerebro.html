@@ -46,62 +46,61 @@ canvas{position:fixed;inset:0;display:block}
 .ni .nd{font-size:8px;color:#006655;display:none;margin-top:3px;padding-top:4px;border-top:1px solid rgba(0,201,167,0.12);line-height:1.5;white-space:normal;max-width:300px}
 .ni.exp .nd{display:block}
 
-/* ── KronIA panel ── */
-#kronia{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);
-  width:min(320px,88vw);background:var(--card);
-  border:1px solid rgba(0,201,167,0.22);border-radius:14px;
-  padding:10px 14px 10px;backdrop-filter:blur(14px);
-  display:flex;flex-direction:column;gap:7px;
-  opacity:0;translate:0 8px;transition:all .3s;
-  pointer-events:none}
-#kronia.vis{opacity:1;translate:0 0;pointer-events:all}
-
-/* Header KronIA */
-.kk-top{display:flex;align-items:center;gap:7px}
-#kk-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;
-  background:var(--t2);transition:background .4s,box-shadow .4s}
-#kk-dot.listening{background:#00C9A7;box-shadow:0 0 8px #00C9A7}
-#kk-dot.recording{background:#E53935;box-shadow:0 0 10px #E53935;animation:mglow .5s infinite}
-#kk-dot.speaking{background:#0A4FBF;box-shadow:0 0 8px #0A4FBF;animation:mglow .7s infinite}
-#kk-dot.thinking{background:#F0A020;box-shadow:0 0 8px #F0A020;animation:mglow 1s infinite}
-#kk-dot.nomic{background:#E53935;box-shadow:0 0 6px #E53935}
-@keyframes mglow{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+/* ── KronIA chip flotante ── */
+#kronia{
+  position:absolute;bottom:52px;right:14px;
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(145deg,#00C9A7,#0A4FBF);
+  border:none;
+  box-shadow:0 4px 16px rgba(0,201,167,0.40);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  opacity:0;transition:opacity .3s,width .3s,height .3s,border-radius .3s,background .3s,padding .3s;
+  pointer-events:none;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+#kronia.vis{opacity:1;pointer-events:all}
+#kronia.expanded{
+  width:min(300px,84vw);height:auto;border-radius:16px;
+  padding:10px 13px 10px;
+  background:var(--card);
+  border:1.5px solid rgba(0,201,167,0.22);
+  box-shadow:0 6px 28px rgba(10,79,191,0.12);
+  flex-direction:column;gap:6px;align-items:stretch;
+  cursor:default;
+}
+#kk-chip-icon{font-size:21px;line-height:1;color:#fff;transition:opacity .2s;flex-shrink:0}
+#kronia.expanded #kk-chip-icon{display:none}
+#kk-inner{display:none;flex-direction:column;gap:6px;width:100%}
+#kronia.expanded #kk-inner{display:flex}
+.kk-top{display:flex;align-items:center;gap:6px}
+#kk-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--t2);transition:background .3s,box-shadow .3s}
+#kk-dot.idle{background:#00C9A7;box-shadow:0 0 7px #00C9A7}
+#kk-dot.recording{background:#E53935;box-shadow:0 0 10px #E53935;animation:kpulse .45s infinite}
+#kk-dot.speaking{background:#0A4FBF;box-shadow:0 0 8px #0A4FBF;animation:kpulse .7s infinite}
+#kk-dot.thinking{background:#F0A020;box-shadow:0 0 8px #F0A020;animation:kpulse 1s infinite}
+#kk-dot.nomic{background:#E53935}
+@keyframes kpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
 .kk-name{font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.04em}
-#kk-st{font-size:8px;color:var(--t2);flex:1;letter-spacing:.07em;text-transform:uppercase}
-
-/* Waveform */
-#kk-cv{width:100%;height:28px;border-radius:6px;background:rgba(0,201,167,0.04)}
-
-/* Texto transcrito */
-#kk-txt{font-size:9.5px;color:var(--blue2);line-height:1.4;
-  min-height:14px;opacity:.72;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* ── BOTÓN PTT ── */
-#ptt-area{display:flex;flex-direction:column;align-items:center;gap:5px}
-#btn-ptt{
-  width:62px;height:62px;border-radius:50%;
+#kk-st{font-size:8px;color:var(--t2);flex:1;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kk-close{background:none;border:none;font-size:14px;color:var(--t2);cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0}
+#kk-cv{width:100%;height:24px;border-radius:5px;background:rgba(0,201,167,0.04)}
+#kk-txt{font-size:9.5px;color:var(--blue2);line-height:1.45;min-height:13px;max-height:54px;overflow:hidden;opacity:.76;word-break:break-word}
+#btn-tap{
+  align-self:center;width:46px;height:46px;border-radius:50%;
   background:linear-gradient(145deg,#00C9A7,#0A4FBF);
   border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  font-size:24px;color:#fff;
-  box-shadow:0 4px 18px rgba(0,201,167,0.35);
-  transition:all .15s;
+  font-size:19px;color:#fff;
+  box-shadow:0 3px 14px rgba(0,201,167,0.35);
+  transition:all .18s;
   -webkit-tap-highlight-color:transparent;
-  touch-action:none;
-  user-select:none;
+  touch-action:manipulation;user-select:none;margin-top:1px;
 }
-#btn-ptt:active,#btn-ptt.recording{
-  background:linear-gradient(145deg,#E53935,#B01010);
-  box-shadow:0 4px 22px rgba(229,57,53,0.45);
-  transform:scale(1.08);
-}
-#btn-ptt.thinking{
-  background:linear-gradient(145deg,#F0A020,#D08000);
-  box-shadow:0 4px 18px rgba(240,160,32,0.35);
-}
-#ptt-hint{font-size:8px;color:var(--t2);text-align:center;letter-spacing:.05em}
-
+#btn-tap.recording{background:linear-gradient(145deg,#E53935,#B01010);box-shadow:0 3px 18px rgba(229,57,53,0.45);animation:tapRec .9s infinite}
+#btn-tap.thinking{background:linear-gradient(145deg,#F0A020,#D08000);animation:none}
+@keyframes tapRec{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+#tap-hint{font-size:7.5px;color:var(--t2);text-align:center;letter-spacing:.05em}
 /* ── Modal mic ── */
 #mic-modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
   background:rgba(7,29,74,0.22);backdrop-filter:blur(6px);
@@ -161,21 +160,22 @@ canvas{position:fixed;inset:0;display:block}
   <div id="nr"></div>
   <div id="nb"></div>
 
-  <!-- KronIA panel -->
+  <!-- KronIA chip flotante v5 -->
   <div id="kronia">
-    <div class="kk-top">
-      <div id="kk-dot"></div>
-      <span class="kk-name">KronIA</span>
-      <span id="kk-st">Lista</span>
-    </div>
-    <canvas id="kk-cv"></canvas>
-    <div id="kk-txt">Presiona y habla 🎙️</div>
-    <div id="ptt-area">
-      <button id="btn-ptt">🎙️</button>
-      <div id="ptt-hint">Mantén presionado · Habla · Suelta</div>
+    <span id="kk-chip-icon">&#127908;</span>
+    <div id="kk-inner">
+      <div class="kk-top">
+        <div id="kk-dot"></div>
+        <span class="kk-name">KronIA</span>
+        <span id="kk-st">Toca para hablar</span>
+        <button id="kk-close">&#215;</button>
+      </div>
+      <canvas id="kk-cv"></canvas>
+      <div id="kk-txt">...</div>
+      <button id="btn-tap">&#127908;</button>
+      <div id="tap-hint">Toca &middot; Habla &middot; Para solo</div>
     </div>
   </div>
-
   <div id="ctrls">
     <button class="cb" id="btn-fs">⛶ Pantalla completa</button>
     <div id="zpill">zoom 1.0×</div>
@@ -304,219 +304,386 @@ function pushAlert(msg){const ul=document.getElementById('nr');const li=document
 function pushInsight(title,detail){const ul=document.getElementById('nb');const li=document.createElement('li');li.className='notif ni';li.innerHTML='<div class="nh"><span class="ndot" style="background:#00C9A7"></span><span class="ntime" style="color:#007060">'+tStr()+'</span><span class="nmsg" style="color:#007060;max-width:210px">'+title+'</span><button class="ndism" style="margin-left:auto" onclick="event.stopPropagation();this.closest(\'li\').remove()">×</button></div><div class="nd">'+detail+'</div>';li.addEventListener('click',()=>li.classList.toggle('exp'));ul.insertBefore(li,ul.firstChild);while(ul.children.length>3)ul.removeChild(ul.lastChild);setTimeout(()=>{if(!li.classList.contains('exp')){li.classList.add('out');setTimeout(()=>{if(li.parentNode)li.remove();},380);}},30000);}
 
 // ═══════════════════════════════════════════════════════════════
-// KRONIA v4.0 — PTT (Push-to-Talk)
+// KRONIA v5.0 — Conversacion fluida
+// Tap unico | VAD auto-stop por silencio | Loop automatico
 // ═══════════════════════════════════════════════════════════════
 const synth = window.speechSynthesis;
-let kkVoice = null, kkVis = false, isSpeaking = false;
-let audioCtx = null, analyser = null, dataArr = null, micStream = null, waveAnim = null;
-let selectedDeviceId = null, pendingDeviceId = null, availableDevices = [];
-let recognition = null, isRecording = false, micReady = false;
-const SESSION_ID = 'ses_' + Date.now();
-let memoria = [], ultimaInt = null, ultimoCtx = {};
+let kkVoice=null, kkVis=false, kkExpanded=false, isSpeaking=false;
+let audioCtx=null, analyser=null, dataArr=null, micStream=null, waveAnim=null;
+let selectedDeviceId=null, pendingDeviceId=null, availableDevices=[];
+let recognition=null, isRecording=false, micReady=false;
+const SESSION_ID='ses_'+Date.now();
+let memoria=[], ultimaInt=null, ultimoCtx={};
 
-const kkCv  = document.getElementById('kk-cv');
-const kkCtx2 = kkCv.getContext('2d');
+// VAD — deteccion de silencio para auto-stop
+let vadTimer=null, silenceMs=0;
+const SILENCE_THRESHOLD = 7;    // nivel minimo de audio considerado voz
+const SILENCE_STOP_MS   = 1600; // ms de silencio antes de parar
+
+const kkCv=document.getElementById('kk-cv');
+const kkCtx2=kkCv.getContext('2d');
 
 // ── Voces ────────────────────────────────────────────────────────
 function getVoz(){
-  const vs = synth.getVoices(); if(!vs.length)return null;
-  const p = [
-    v => v.name === 'Google español',
-    v => v.name.toLowerCase().includes('google') && v.lang.startsWith('es'),
-    v => v.lang === 'es-MX', v => v.lang === 'es-US',
-    v => v.lang === 'es-419', v => v.lang.startsWith('es')
+  const vs=synth.getVoices(); if(!vs.length)return null;
+  const p=[
+    v=>v.name==='Google espanol',
+    v=>v.name.toLowerCase().includes('google')&&v.lang.startsWith('es'),
+    v=>v.lang==='es-MX', v=>v.lang==='es-US',
+    v=>v.lang==='es-419', v=>v.lang.startsWith('es')
   ];
-  for(const t of p){ const v = vs.find(t); if(v)return v; }
-  return vs[0] || null;
+  for(const t of p){const v=vs.find(t);if(v)return v;}
+  return vs[0]||null;
 }
-if(synth.onvoiceschanged !== undefined) synth.onvoiceschanged = () => { kkVoice = getVoz(); };
-setTimeout(()=>{ kkVoice = getVoz(); }, 400);
-setTimeout(()=>{ if(!kkVoice)kkVoice = getVoz(); }, 1500);
+if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{kkVoice=getVoz();};
+setTimeout(()=>{kkVoice=getVoz();},400);
+setTimeout(()=>{if(!kkVoice)kkVoice=getVoz();},1500);
 
 // ── Estado visual ────────────────────────────────────────────────
 function kkState(s){
-  const dot = document.getElementById('kk-dot'), st = document.getElementById('kk-st');
-  if(!dot || !st) return;
-  const M = {
-    idle:      { d:'',          t:'Lista — presiona para hablar' },
-    recording: { d:'recording', t:'Grabando… suelta para enviar' },
-    thinking:  { d:'thinking',  t:'Consultando Supabase…'        },
-    speaking:  { d:'speaking',  t:'Hablando…'                    },
-    nomic:     { d:'nomic',     t:'Sin acceso al micrófono'       }
+  const dot=document.getElementById('kk-dot');
+  const st=document.getElementById('kk-st');
+  const btn=document.getElementById('btn-tap');
+  if(!dot||!st)return;
+  const M={
+    idle:     {d:'idle',     t:'Toca para hablar', icon:'&#127908;'},
+    recording:{d:'recording',t:'Escuchando...',     icon:'&#9646;&#9646;'},
+    thinking: {d:'thinking', t:'Consultando...',    icon:'&#8987;'},
+    speaking: {d:'speaking', t:'Hablando...',       icon:'&#128264;'},
+    nomic:    {d:'nomic',    t:'Sin microfono',     icon:'&#127908;'}
   };
-  const m = M[s] || M.idle;
-  dot.className = 'kk-dot' + (m.d ? ' ' + m.d : '');
-  st.textContent = m.t;
+  const m=M[s]||M.idle;
+  dot.className=m.d;
+  st.textContent=m.t;
+  if(btn){
+    btn.className='';
+    if(s==='recording')btn.classList.add('recording');
+    if(s==='thinking') btn.classList.add('thinking');
+    btn.innerHTML=m.icon;
+  }
 }
 
-// ── Hablar ───────────────────────────────────────────────────────
+// ── Chip: expand / collapse ──────────────────────────────────────
+function expandKK(){
+  document.getElementById('kronia').classList.add('expanded');
+  kkExpanded=true;
+}
+function collapseKK(){
+  document.getElementById('kronia').classList.remove('expanded');
+  kkExpanded=false;
+  stopWave();
+}
+function setKKTxt(t){
+  const el=document.getElementById('kk-txt');
+  if(el)el.textContent=t;
+}
+
+// ── Hablar — loop: al terminar vuelve a idle listo ───────────────
 function kkSpeak(text){
-  synth.cancel(); isSpeaking = true;
-  const u = new SpeechSynthesisUtterance(text);
-  if(!kkVoice) kkVoice = getVoz();
-  if(kkVoice) u.voice = kkVoice;
-  u.lang = 'es-PE'; u.rate = 0.90; u.pitch = 1.12; u.volume = 1;
-  document.getElementById('kk-txt').textContent = text;
-  kkState('speaking'); waveSynth('speak');
-  u.onend = () => {
-    isSpeaking = false;
-    if(micReady){ kkState('idle'); if(analyser)waveReal(); else waveSynth('listen'); }
-    else { kkState('idle'); stopWave(); }
-    setPTTIcon('🎙️');
+  synth.cancel(); isSpeaking=true;
+  const u=new SpeechSynthesisUtterance(text);
+  if(!kkVoice)kkVoice=getVoz();
+  if(kkVoice)u.voice=kkVoice;
+  u.lang='es-PE'; u.rate=0.92; u.pitch=1.10; u.volume=1;
+  setKKTxt(text);
+  kkState('speaking');
+  waveSynth('speak');
+  expandKK();
+  u.onend=()=>{
+    isSpeaking=false;
+    kkState('idle');
+    // LOOP automatico: queda listo para siguiente pregunta sin hacer nada
+    if(analyser)waveReal(); else waveSynth('listen');
   };
-  u.onerror = () => { isSpeaking = false; kkState('idle'); setPTTIcon('🎙️'); };
+  u.onerror=()=>{isSpeaking=false;kkState('idle');};
   synth.speak(u);
-  showKronIA();
 }
 
-// ── Toggle KronIA ────────────────────────────────────────────────
+// ── Toggle KronIA (boton barra inferior) ─────────────────────────
 function toggleKronIA(){
-  if(!kkVis){ showKronIA(); pedirPermiso(); }
-  else {
-    stopMic(); kkVis = false;
-    document.getElementById('kronia').classList.remove('vis');
+  if(!kkVis){
+    kkVis=true;
+    document.getElementById('kronia').classList.add('vis');
+    document.getElementById('btn-kk').classList.add('on');
+    expandKK();
+    pedirPermiso();
+  } else if(!kkExpanded){
+    expandKK();
+    if(!micReady)pedirPermiso();
+  } else {
+    stopMic();kkVis=false;kkExpanded=false;
+    document.getElementById('kronia').classList.remove('vis','expanded');
     document.getElementById('btn-kk').classList.remove('on');
     stopWave();
   }
-}
-function showKronIA(){
-  kkVis = true;
-  document.getElementById('kronia').classList.add('vis');
-  document.getElementById('btn-kk').classList.add('on');
 }
 
 // ── Permisos + stream ────────────────────────────────────────────
 async function pedirPermiso(){
   kkState('idle');
-  document.getElementById('kk-txt').textContent = 'Solicitando acceso al micrófono…';
-  try {
-    const tmp = await navigator.mediaDevices.getUserMedia({audio:true});
+  setKKTxt('Solicitando microfono...');
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
     tmp.getTracks().forEach(t=>t.stop());
-    const devs = await navigator.mediaDevices.enumerateDevices();
-    availableDevices = devs.filter(d=>d.kind==='audioinput');
-    if(availableDevices.length > 0) selectedDeviceId = availableDevices[0].deviceId;
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    availableDevices=devs.filter(d=>d.kind==='audioinput');
+    if(availableDevices.length>0)selectedDeviceId=availableDevices[0].deviceId;
     await startStream();
-    micReady = true;
+    micReady=true;
     kkState('idle');
-    document.getElementById('kk-txt').textContent = 'Presiona el botón y habla 🎙️';
-    setPTTIcon('🎙️');
+    setKKTxt('Listo. Toca el boton y habla.');
     waveReal();
-  } catch(err){
-    micReady = false;
-    kkState('nomic');
-    const msg = err.name==='NotAllowedError' ? 'Permiso denegado.' : err.name==='NotFoundError' ? 'Sin micrófono.' : 'Error: '+err.name;
-    document.getElementById('kk-txt').textContent = msg;
+  }catch(err){
+    micReady=false; kkState('nomic');
+    const msg=err.name==='NotAllowedError'?'Permiso denegado.':err.name==='NotFoundError'?'Sin microfono.':'Error: '+err.name;
+    setKKTxt(msg);
     pushAlert('Mic: '+err.name);
-    kkSpeak('No pude acceder al micrófono. Verifica los permisos en el navegador.');
   }
 }
 
 async function startStream(){
-  const c = { audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true,
-    ...(selectedDeviceId ? {deviceId:{exact:selectedDeviceId}} : {}) }};
-  micStream = await navigator.mediaDevices.getUserMedia(c);
-  if(audioCtx){ audioCtx.close(); audioCtx = null; }
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const src = audioCtx.createMediaStreamSource(micStream);
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 64; analyser.smoothingTimeConstant = 0.7;
-  dataArr = new Uint8Array(analyser.frequencyBinCount);
+  const c={audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,...(selectedDeviceId?{deviceId:{exact:selectedDeviceId}}:{})}};
+  micStream=await navigator.mediaDevices.getUserMedia(c);
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const src=audioCtx.createMediaStreamSource(micStream);
+  analyser=audioCtx.createAnalyser();
+  analyser.fftSize=64; analyser.smoothingTimeConstant=0.7;
+  dataArr=new Uint8Array(analyser.frequencyBinCount);
   src.connect(analyser);
 }
 function stopStream(){
-  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
-  if(audioCtx){ audioCtx.close(); audioCtx = null; }
-  analyser = null; dataArr = null;
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  analyser=null;dataArr=null;
 }
 function stopMic(){
-  micReady = false; isRecording = false;
-  if(recognition){ try{recognition.abort();}catch(_){} recognition = null; }
+  micReady=false;isRecording=false;
+  clearVAD();
+  if(recognition){try{recognition.abort();}catch(_){}recognition=null;}
   stopStream();
 }
 
-// ── PTT: botón ───────────────────────────────────────────────────
-// Funciona tanto con mouse como con touch (mobile)
-function setPTTIcon(icon){ document.getElementById('btn-ptt').textContent = icon; }
-
-function pttStart(){
-  if(!micReady){
-    showKronIA(); pedirPermiso();
+// ── TAP UNICO — inicia, interrumpe o para ────────────────────────
+function tapBtn(){
+  if(isSpeaking){
+    // Interrumpir KronIA y escuchar nueva pregunta de inmediato
+    synth.cancel();isSpeaking=false;
+    startGrabacion();
     return;
   }
-  if(isSpeaking){ synth.cancel(); isSpeaking = false; }
-  if(isRecording) return;
-  isRecording = true;
-  document.getElementById('btn-ptt').classList.add('recording');
-  setPTTIcon('⏹️');
-  kkState('recording');
-  document.getElementById('kk-txt').textContent = '🎤 Escuchando…';
-  startSingleReco();
-}
-
-function pttStop(){
-  if(!isRecording) return;
-  isRecording = false;
-  document.getElementById('btn-ptt').classList.remove('recording');
-  setPTTIcon('⏳');
-  document.getElementById('btn-ptt').classList.add('thinking');
-  if(recognition){
-    try{ recognition.stop(); }catch(_){}
+  if(isRecording){
+    // Segundo tap = parar manualmente y procesar
+    pararGrabacion();
+    return;
   }
+  if(!micReady){expandKK();pedirPermiso();return;}
+  startGrabacion();
 }
 
-// ── Reconocimiento ÚNICO por grabación ──────────────────────────
+function startGrabacion(){
+  if(isRecording)return;
+  isRecording=true;
+  expandKK();
+  kkState('recording');
+  setKKTxt('Escuchando...');
+  startSingleReco();
+  startVAD();
+}
+
+function pararGrabacion(){
+  if(!isRecording)return;
+  clearVAD();
+  isRecording=false;
+  if(recognition){try{recognition.stop();}catch(_){}}
+}
+
+// ── VAD — auto-stop por silencio ─────────────────────────────────
+function startVAD(){
+  clearVAD();silenceMs=0;
+  vadTimer=setInterval(()=>{
+    if(!analyser||!dataArr||!isRecording){clearVAD();return;}
+    analyser.getByteFrequencyData(dataArr);
+    const avg=dataArr.reduce((a,v)=>a+v,0)/dataArr.length;
+    if(avg<SILENCE_THRESHOLD){
+      silenceMs+=100;
+      if(silenceMs>=SILENCE_STOP_MS)pararGrabacion();
+    } else {
+      silenceMs=0;
+    }
+  },100);
+}
+function clearVAD(){if(vadTimer){clearInterval(vadTimer);vadTimer=null;}silenceMs=0;}
+
+// ── Reconocimiento unico por tap ─────────────────────────────────
 function startSingleReco(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ pushAlert('Usa Chrome para la voz'); return; }
-
-  recognition = new SR();
-  recognition.lang = 'es-PE';
-  recognition.continuous = false;   // ← UNA sola grabación
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 3;
-
-  recognition.onresult = function(e){
-    // Mostrar transcripción en tiempo real
-    const last = e.results[e.results.length - 1];
-    const txt = last[0].transcript.trim();
-    document.getElementById('kk-txt').textContent = (last.isFinal ? '✅ ' : '👂 ') + txt;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){pushAlert('Usa Chrome para voz');return;}
+  recognition=new SR();
+  recognition.lang='es-PE';
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  recognition.maxAlternatives=3;
+  let finalTxt='';
+  recognition.onresult=function(e){
+    const last=e.results[e.results.length-1];
+    const txt=last[0].transcript.trim();
+    if(last.isFinal)finalTxt=txt;
+    setKKTxt(txt);
   };
-
-  recognition.onend = function(){
-    // Al terminar, tomar el mejor resultado final
-    document.getElementById('btn-ptt').classList.remove('thinking');
-    setPTTIcon('🎙️');
-    isRecording = false;
-
-    // Recuperar último texto mostrado (ya filtrado de interim)
-    const txt = document.getElementById('kk-txt').textContent
-      .replace(/^[✅👂⏳🎤]\s*/, '').trim();
-
-    if(!txt || txt.length < 2){
-      kkState('idle');
-      document.getElementById('kk-txt').textContent = 'No te escuché. Intenta de nuevo.';
+  recognition.onend=function(){
+    clearVAD();isRecording=false;
+    const q=finalTxt||document.getElementById('kk-txt').textContent.trim();
+    if(!q||q.length<2){
+      kkState('idle');setKKTxt('No te escuche. Toca e intenta de nuevo.');
+      if(analyser)waveReal();
       return;
     }
-    processQuery(txt);
+    processQuery(q);
   };
+  recognition.onerror=function(e){
+    clearVAD();isRecording=false;
+    if(e.error==='not-allowed'){pushAlert('Mic: permiso denegado');micReady=false;kkState('nomic');}
+    else if(e.error==='no-speech'){kkState('idle');setKKTxt('No te escuche. Intenta de nuevo.');if(analyser)waveReal();}
+    else{kkState('idle');setKKTxt('Error: '+e.error);}
+  };
+  try{recognition.start();}catch(e){console.error('SR:',e);}
+}
 
-  recognition.onerror = function(e){
-    document.getElementById('btn-ptt').classList.remove('recording');
-    document.getElementById('btn-ptt').classList.remove('thinking');
-    setPTTIcon('🎙️');
-    isRecording = false;
-    if(e.error === 'not-allowed'){
-      pushAlert('Mic: permiso denegado'); micReady = false; kkState('nomic');
-    } else if(e.error === 'no-speech'){
-      kkState('idle');
-      document.getElementById('kk-txt').textContent = 'No te escuché. Intenta de nuevo.';
+// ═══════════════════════════════════════════════════════════════
+// MOTOR DE INTENCIONES
+// ═══════════════════════════════════════════════════════════════
+function norm(s){ return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i').replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n').replace(/[¿¡]/g,'').trim(); }
+const INTS = {
+  ventas:       ['venta','vendim','factur','cobr','ingreso','cuanto hicim','cuanto ganamos','cuanto vendim','cuanto hemos'],
+  citas:        ['cita','agenda','quien viene','citados','atencion','quien tenemos','visita'],
+  leads:        ['lead','prospecto','contacto nuevo','cuantos nuevos','cuantos llegaron','campana'],
+  cliente:      ['cliente','paciente','busca','informacion de','dime sobre','quien es','datos de'],
+  llamadas:     ['llamada','llame','llamo','llaman','cuantas llamadas'],
+  seguimientos: ['seguimiento','pendiente','hay que llamar','sin contactar','retomar'],
+  resumen:      ['resumen','como va','que paso','ponte al dia','hola','buenos dias','buenas','que hay','informe'],
+  estado:       ['estado','conexion','sistema','funciona','como estamos','todo bien']
+};
+const AP  = ['Claro que sí,','Déjame revisar,','Aquí lo que encontré:','Te cuento,','Revisando los datos,','Mira,'];
+const APc = ['Siguiendo con eso,','Sobre lo mismo,','Para agregar,'];
+const NSE = ['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','No entendí bien. ¿Ventas, citas, leads o el resumen del día?','Por ahora no tengo eso. ¿Quieres ventas, citas o el resumen?'];
+const OPTS = { ventas:'¿Quieres verlo por sede, tratamiento o asesor?', citas:'¿Te digo el tratamiento o quién las agendó?', leads:'¿Por campaña o por fecha?', cliente:'¿Sus compras o sus llamadas?', llamadas:'¿Por asesor o por resultado?', seguimientos:'¿Los que llevan más tiempo sin contacto?' };
+function ap(c){ return (c ? APc : AP)[~~(Math.random()*(c?APc:AP).length)]; }
+function opt(i){ return OPTS[i] ? ' ' + OPTS[i] : ''; }
+function nse(){ return NSE[~~(Math.random()*NSE.length)]; }
+function topV(arr,key){ const c={}; let mx=0,res='sin datos'; arr.forEach(o=>{ const v=o[key]||'sin datos'; c[v]=(c[v]||0)+1; if(c[v]>mx){mx=c[v];res=v;} }); return res; }
+function detectInt(q){
+  const qn = norm(q);
+  if(qn.length < 20 && ultimaInt){ const cont=['y','por','de','en','ese','esa','eso','cual','cuales','mas','tambien','ahora']; if(cont.some(c=>qn===c||qn.startsWith(c+' ')))return{i:ultimaInt,c:true}; }
+  for(const [int,cls] of Object.entries(INTS)){ if(cls.some(c=>qn.includes(c)))return{i:int,c:false}; }
+  if(ultimaInt) return{i:ultimaInt,c:true};
+  return{i:'resumen',c:false};
+}
+function getPer(q,ctx){
+  const qn=norm(q), hoy=new Date().toISOString().split('T')[0];
+  if(qn.includes('hoy')||qn.includes('dia'))return{label:'hoy',f:'fecha=eq.'+hoy};
+  if(qn.includes('semana')){const d7=new Date(Date.now()-7*86400000).toISOString().split('T')[0];return{label:'esta semana',f:'fecha=gte.'+d7};}
+  if(qn.includes('mes'))return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};
+  if(qn.includes('ayer')){const ay=new Date(Date.now()-86400000).toISOString().split('T')[0];return{label:'ayer',f:'fecha=eq.'+ay};}
+  if(ctx&&ctx.per)return ctx.per;
+  return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};
+}
+function getSede(q){ const qn=norm(q); if(qn.includes('pueblo')||qn.includes('libre'))return'PUEBLO LIBRE'; if(qn.includes('isidro')||qn.includes('prado'))return'SAN ISIDRO'; return null; }
+
+async function guardar(int,preg,resp,tabs){
+  try{
+    await fetch(SB+'/rest/v1/aos_kronia_conversaciones',{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ts:new Date().toISOString(),usuario:'admin',rol:'admin',pregunta:preg,intencion:int,tablas_usadas:tabs||[],respuesta:resp,session_id:SESSION_ID,fue_redundante:ultimaInt===int})});
+  }catch(_){}
+}
+async function aprender(int,frase){
+  try{
+    await fetch('https://tgnezlhtqkiucwmrdirw.supabase.co/rest/v1/rpc/fn_kronia_aprender',{method:'POST',headers:{'apikey':SK2,'Content-Type':'application/json'},body:JSON.stringify({p_empresa:'ASCENDAOS',p_intencion:int,p_frase:frase})});
+  }catch(_){}
+}
+
+async function processQuery(q){
+  if(!q || q.trim().length < 2){ kkSpeak('¿Qué quieres saber?'); return; }
+  kkState('thinking');
+  kkState('thinking');
+  const {i:int, c:esC} = detectInt(q), per = getPer(q,ultimoCtx), sd = getSede(q), a = ap(esC);
+  let resp = '', tabs = [];
+  try{
+    if(int==='ventas'){
+      let url=SB+'/rest/v1/aos_ventas?select=monto,tratamiento,sede,asesor,fecha&'+per.f+'&estado_pago=eq.PAGO COMPLETO';
+      if(sd)url+='&sede=eq.'+encodeURIComponent(sd);
+      const d=await fetch(url,{headers:H}).then(r=>r.json()); tabs=['aos_ventas'];
+      if(d&&d.length){const total=d.reduce((ac,v)=>ac+(parseFloat(v.monto)||0),0),tT=topV(d,'tratamiento'),tA=topV(d,'asesor');
+        resp=a+' '+per.label+(sd?' en '+sd:'')+' van '+d.length+' ventas por S/ '+total.toFixed(0)+'. El tratamiento estrella fue '+tT+' y quien más vendió fue '+tA+'.'+opt('ventas');
+        ultimoCtx={per,i:'ventas'};
+      } else resp='No encontré ventas para '+per.label+(sd?' en '+sd:'')+'. ¿Quieres revisar otro período?';
+
+    } else if(int==='citas'){
+      const qn=norm(q),hoy=new Date().toISOString().split('T')[0],man=new Date(Date.now()+86400000).toISOString().split('T')[0];
+      const fc=qn.includes('mañana')||qn.includes('manana')?man:hoy, lf=fc===man?'mañana':'hoy';
+      let url=SB+'/rest/v1/aos_agenda_citas?select=nombre,apellido,tratamiento,hora_cita,sede&fecha_cita=eq.'+fc;
+      if(sd)url+='&sede=eq.'+encodeURIComponent(sd);
+      const d=await fetch(url,{headers:H}).then(r=>r.json()); tabs=['aos_agenda_citas'];
+      if(d&&d.length){const p=d[0],nom=((p.nombre||'')+(p.apellido?' '+p.apellido:'')).trim()||'un paciente';
+        resp=a+' hay '+d.length+' cita'+(d.length>1?'s':'')+' para '+lf+'. La primera es '+nom+' a las '+(p.hora_cita||'hora por confirmar')+' por '+(p.tratamiento||'tratamiento sin registrar')+'.'+opt('citas');
+        ultimoCtx={fc,i:'citas'};
+      } else resp='No hay citas para '+lf+(sd?' en '+sd:'')+'. ¿Quieres que revise otra fecha?';
+
+    } else if(int==='leads'){
+      const d=await fetch(SB+'/rest/v1/aos_leads?select=tratamiento,fecha&'+per.f,{headers:H}).then(r=>r.json()); tabs=['aos_leads'];
+      if(d&&d.length){resp=a+' '+per.label+' ingresaron '+d.length+' leads. La campaña líder fue '+topV(d,'tratamiento')+'.'+opt('leads');ultimoCtx={per,i:'leads'};}
+      else resp='No encontré leads para '+per.label+'. ¿Quieres otro período?';
+
+    } else if(int==='cliente'){
+      const num=(q.match(/\d{7,}/)||[''])[0];
+      if(num){
+        const d=await fetch(SB+'/rest/v1/aos_pacientes?select="Nombres","Apellidos","SCORE_ESTADO",n_ventas,"TOTAL_FACTURADO",tratamiento_principal&numero_limpio=eq.'+num+'&limit=1',{headers:H}).then(r=>r.json()); tabs=['aos_pacientes'];
+        if(d&&d[0]){const p=d[0],nom=((p['Nombres']||'')+(p['Apellidos']?' '+p['Apellidos']:'')).trim();
+          resp=a+' el '+num+' es '+nom+'. Tiene '+p.n_ventas+' compras por S/ '+parseFloat(p['TOTAL_FACTURADO']||0).toFixed(0)+'. Tratamiento: '+(p.tratamiento_principal||'sin registrar')+'. Estado: '+(p['SCORE_ESTADO']||'sin score')+'.'+opt('cliente');
+          ultimoCtx={num,i:'cliente'};
+        } else resp='No encontré paciente con el número '+num+'. ¿Puedes verificarlo?';
+      } else resp='Dime el número de teléfono del paciente.';
+
+    } else if(int==='llamadas'){
+      const hoy=new Date().toISOString().split('T')[0];
+      const d=await fetch(SB+'/rest/v1/aos_llamadas?select=asesor,estado&fecha=eq.'+hoy,{headers:H}).then(r=>r.json()); tabs=['aos_llamadas'];
+      if(d&&d.length)resp=a+' hoy van '+d.length+' llamadas. El que más llamó fue '+topV(d,'asesor')+'.'+opt('llamadas');
+      else resp='No hay llamadas registradas hoy todavía.';
+
+    } else if(int==='seguimientos'){
+      const d=await fetch(SB+'/rest/v1/aos_seguimientos?select="ESTADO","ASESOR"&"ESTADO"=eq.PENDIENTE',{headers:H}).then(r=>r.json()); tabs=['aos_seguimientos'];
+      if(d&&d.length)resp=a+' hay '+d.length+' seguimientos pendientes. El que tiene más es '+topV(d,'ASESOR')+'.'+opt('seguimientos');
+      else resp='No hay seguimientos pendientes. ¡Todo al día!';
+
+    } else if(int==='resumen'){
+      const hoy=new Date().toISOString().split('T')[0];
+      const [rv,rl,rc,rs] = await Promise.all([
+        fetch(SB+'/rest/v1/aos_ventas?select=monto&fecha=eq.'+hoy+'&estado_pago=eq.PAGO COMPLETO',{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_llamadas?select=id&fecha=eq.'+hoy,{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_agenda_citas?select=id&fecha_cita=eq.'+hoy,{headers:H}).then(r=>r.json()),
+        fetch(SB+'/rest/v1/aos_seguimientos?select=id&"ESTADO"=eq.PENDIENTE',{headers:H}).then(r=>r.json())
+      ]);
+      tabs=['aos_ventas','aos_llamadas','aos_agenda_citas','aos_seguimientos'];
+      const totalV=(rv||[]).reduce((ac,v)=>ac+(parseFloat(v.monto)||0),0);
+      const hora=new Date().getHours(), sal=hora<12?'Buenos días':hora<18?'Buenas tardes':'Buenas noches';
+      resp=sal+' César. Hoy: '+(rl||[]).length+' llamadas, '+(rc||[]).length+' citas, S/ '+totalV.toFixed(0)+' en ventas y '+(rs||[]).length+' seguimientos pendientes. ¿Por dónde empezamos?';
+      ultimoCtx={i:'resumen'};
+
+    } else if(int==='estado'){
+      const on=document.getElementById('sb-dot').classList.contains('on');
+      resp=on?'Todo funciona bien César. Supabase conectado, '+evCnt+' eventos en esta sesión.':'Hay un problema de conexión con Supabase.';
     } else {
-      pushAlert('Error voz: ' + e.error);
-      kkState('idle');
+      resp = nse();
     }
-  };
+  } catch(e){ resp='Tuve un problema consultando los datos. Intenta de nuevo.'; }
 
-  try{ recognition.start(); } catch(e){ console.error('SR start:', e); }
+  
+  tabs.forEach((t,i)=>setTimeout(()=>activateTable(t,'CONSULTA'),i*200));
+  memoria.unshift({i:int,q,r:resp,tabs,ts:Date.now()});
+  if(memoria.length>5)memoria.pop();
+  ultimaInt=int;
+  guardar(int,q,resp,tabs);
+  aprender(int,q);
+  kkSpeak(resp);
 }
 
 // ── Waveforms ────────────────────────────────────────────────────
@@ -624,7 +791,7 @@ async function aprender(int,frase){
 async function processQuery(q){
   if(!q || q.trim().length < 2){ kkSpeak('¿Qué quieres saber?'); return; }
   kkState('thinking');
-  document.getElementById('btn-ptt').classList.add('thinking');
+  kkState('thinking');
   const {i:int, c:esC} = detectInt(q), per = getPer(q,ultimoCtx), sd = getSede(q), a = ap(esC);
   let resp = '', tabs = [];
   try{
@@ -696,7 +863,7 @@ async function processQuery(q){
     }
   } catch(e){ resp='Tuve un problema consultando los datos. Intenta de nuevo.'; }
 
-  document.getElementById('btn-ptt').classList.remove('thinking');
+  kkState('idle');
   tabs.forEach((t,i)=>setTimeout(()=>activateTable(t,'CONSULTA'),i*200));
   memoria.unshift({i:int,q,r:resp,tabs,ts:Date.now()});
   if(memoria.length>5)memoria.pop();
@@ -752,14 +919,133 @@ document.getElementById('btn-fs').addEventListener('click', ()=>{
   else{ document.exitFullscreen(); document.getElementById('btn-fs').textContent='⛶ Pantalla completa'; }
 });
 
-// PTT — mouse
-const btnPTT = document.getElementById('btn-ptt');
-btnPTT.addEventListener('mousedown',  e=>{ e.preventDefault(); pttStart(); });
-window.addEventListener('mouseup',    ()=>{ if(isRecording) pttStop(); });
-// PTT — touch (mobile)
-btnPTT.addEventListener('touchstart', e=>{ e.preventDefault(); pttStart(); }, {passive:false});
-btnPTT.addEventListener('touchend',   e=>{ e.preventDefault(); pttStop();  }, {passive:false});
-btnPTT.addEventListener('touchcancel',e=>{ e.preventDefault(); pttStop();  }, {passive:false});
+// listeners PTT v4 eliminados — usa btnTap v5
+
+navigator.mediaDevices.addEventListener('devicechange', async()=>{
+  const devs = await navigator.mediaDevices.enumerateDevices();
+  availableDevices = devs.filter(d=>d.kind==='audioinput');
+});
+
+// ── Supabase Realtime ────────────────────────────────────────────
+function checkSB(){
+  fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H}).then(r=>{
+    const on=r.ok;
+    document.getElementById('sb-dot').className='bc-dot'+(on?' on':'');
+    const lbl=document.getElementById('sb-lbl'); lbl.className=on?'on':''; lbl.textContent=on?'Live · Supabase':'Sin conexión';
+    if(!on)pushAlert('Supabase desconectado');
+  }).catch(()=>{
+    document.getElementById('sb-dot').className='bc-dot';
+    document.getElementById('sb-lbl').className='';
+    document.getElementById('sb-lbl').textContent='Sin conexión';
+  });
+}
+checkSB(); setInterval(checkSB, 30000);
+
+let ws=null, wsR=0;
+function connectRT(){
+  ws=new WebSocket('wss://ituyqwstonmhnfshnaqz.supabase.co/realtime/v1/websocket?apikey='+SK+'&vsn=1.0.0');
+  ws.onopen=()=>{ wsR=0; ws.send(JSON.stringify({topic:'realtime:public:aos_log_auditoria',event:'phx_join',payload:{config:{postgres_changes:[{event:'INSERT',schema:'public',table:'aos_log_auditoria'}]}},ref:'1'})); };
+  ws.onmessage=e=>{ try{ const msg=JSON.parse(e.data),rec=msg.payload?.data?.record||msg.payload?.record; if(rec&&rec.tabla&&rec.tabla!=='sistema'){activateTable(rec.tabla,rec.accion||'INSERT');} }catch(_){} };
+  ws.onclose=()=>{ wsR++; setTimeout(connectRT,Math.min(30000,2000*wsR)); };
+  ws.onerror=()=>ws.close();
+}
+setInterval(()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'})); }, 25000);
+connectRT();
+
+let lastId=0;
+async function poll(){
+  try{ const r=await fetch(SB+'/rest/v1/aos_log_auditoria?select=id,tabla,accion&id=gt.'+lastId+'&order=id.asc&limit=10',{headers:H}); const rows=await r.json(); if(Array.isArray(rows)&&rows.length){rows.forEach(row=>{if(row.tabla&&row.tabla!=='sistema')activateTable(row.tabla,row.accion);lastId=Math.max(lastId,row.id);});} }catch(_){}
+}
+fetch(SB+'/rest/v1/aos_log_auditoria?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).then(d=>{ if(d&&d[0])lastId=d[0].id; });
+setInterval(poll, 8000);
+
+async function rqWake(){ try{ if('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }catch(_){} }
+rqWake(); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')rqWake(); });
+
+// ── Draw loop ────────────────────────────────────────────────────
+let paused = false;
+document.addEventListener('visibilitychange', ()=>{ paused = document.hidden; });
+
+function draw(){
+  ctx.fillStyle='rgba(248,250,254,0.13)';ctx.fillRect(0,0,W,H2);
+  cam.z+=(cam.tz-cam.z)*0.07;
+  document.getElementById('zpill').textContent='zoom '+cam.z.toFixed(1)+'×';
+  if(!paused&&nodes.some(n=>n.pulse>0.05))phys(.985);
+  ctx.save();ctx.translate(W/2+cam.x,H2/2+cam.y);ctx.scale(cam.z,cam.z);ctx.translate(-W/2,-H2/2);
+  edges.forEach(e=>{const p=Math.max(e.a.pulse,e.b.pulse),ci=e.cross?lR(e.a.idle,e.b.idle,.5):e.a.idle,ca=e.cross?lR(e.a.live,e.b.live,.5):e.a.live,c=lR(ci,ca,p);ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.strokeStyle='rgba('+c+','+(e.cross?0.05+p*.6:0.16+p*.45).toFixed(2)+')';ctx.lineWidth=(e.cross?.38:.26)/cam.z;ctx.stroke();});
+  nodes.forEach(n=>{n.phase+=n.pspd;if(n.pulse>0)n.pulse=Math.max(0,n.pulse-0.016);const p=n.pulse,c=lR(n.idle,n.live,p),isH=n===hovered,r=n.r+(isH?1.2:0);if(p>0.05||isH){ctx.beginPath();ctx.arc(n.x,n.y,r*(2.6+p*2.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.08+(isH?.05:0)).toFixed(2)+')';ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,r*(1.4+p*.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.18+(isH?.12:0)).toFixed(2)+')';ctx.fill();}ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(0.68+p*.32).toFixed(2)+')';ctx.fill();if(r>1.0){ctx.beginPath();ctx.arc(n.x,n.y,r*.28,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+(0.48+p*.45).toFixed(2)+')';ctx.fill();}if(n.label&&cam.z>.55){const sz=Math.max(6.5,9/cam.z);ctx.font='600 '+sz+'px \'SF Pro Display\',\'Segoe UI\',sans-serif';ctx.textAlign='center';const cc=lR(n.idle,n.live,Math.max(.25,p));ctx.fillStyle='rgba('+cc+','+Math.min(.7,.15+cam.z*.32)+')';ctx.fillText(n.label,n.x,n.y-r-2.5/cam.z);}});
+  for(let i=travelers.length-1;i>=0;i--){const tv=travelers[i];tv.t+=tv.speed;if(tv.t>=1){travelers.splice(i,1);continue;}const x=tv.a.x+(tv.b.x-tv.a.x)*tv.t,y=tv.a.y+(tv.b.y-tv.a.y)*tv.t,xt=tv.a.x+(tv.b.x-tv.a.x)*Math.max(0,tv.t-.18),yt=tv.a.y+(tv.b.y-tv.a.y)*Math.max(0,tv.t-.18);const g2=ctx.createLinearGradient(xt,yt,x,y);g2.addColorStop(0,'rgba('+tv.color+',0)');g2.addColorStop(1,'rgba('+tv.color+',.95)');ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);ctx.strokeStyle=g2;ctx.lineWidth=1.8/cam.z;ctx.stroke();const hr=2.4/cam.z;ctx.beginPath();ctx.arc(x,y,hr*2.2,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.12)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.95)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr*.32,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.9)';ctx.fill();}
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+initG();
+setTimeout(()=>{ pushInsight('KronIA v4 lista','Toca 🧠 KronIA → acepta el micrófono → presiona el botón y habla.'); }, 800);
+draw();
+</script>
+</body>
+</html>
+
+// ── Modal micrófono ──────────────────────────────────────────────
+async function openMicModal(){
+  const modal = document.getElementById('mic-modal');
+  const list  = document.getElementById('mic-list');
+  list.innerHTML = '<p style="font-size:10px;color:var(--t2);text-align:center;padding:8px">Cargando dispositivos…</p>';
+  modal.classList.add('open');
+  try{
+    try{ const tmp=await navigator.mediaDevices.getUserMedia({audio:true}); tmp.getTracks().forEach(t=>t.stop()); }catch(e){}
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    availableDevices = devs.filter(d=>d.kind==='audioinput');
+    if(!availableDevices.length){ list.innerHTML='<p style="font-size:10px;color:var(--t2);text-align:center;padding:8px">No hay micrófonos detectados.</p>'; return; }
+    if(!selectedDeviceId&&availableDevices.length>0) selectedDeviceId = availableDevices[0].deviceId;
+    pendingDeviceId = selectedDeviceId;
+    list.innerHTML = '';
+    availableDevices.forEach((d,idx)=>{
+      const label = d.label || ('Micrófono '+(idx+1));
+      const ln = label.toLowerCase();
+      const tipo = ln.includes('bluetooth')||ln.includes('airpod')||ln.includes('wireless')?'🔵 Bluetooth':ln.includes('hdmi')||ln.includes('display')?'🖥️ HDMI':d.deviceId==='default'||ln.includes('default')||ln.includes('predeterminado')?'🎤 Predeterminado':'🎙️ Interno';
+      const item = document.createElement('div');
+      item.className = 'mic-opt' + (d.deviceId===pendingDeviceId?' sel':'');
+      item.innerHTML = '<div class="mic-opt-dot"></div><div style="flex:1;min-width:0"><div class="mic-opt-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+label+'</div><div class="mic-opt-type">'+tipo+'</div></div>';
+      item.onclick = () => { pendingDeviceId=d.deviceId; list.querySelectorAll('.mic-opt').forEach(o=>o.classList.remove('sel')); item.classList.add('sel'); };
+      list.appendChild(item);
+    });
+  }catch(e){ list.innerHTML='<p style="font-size:10px;color:#B01010;text-align:center;padding:8px">Error: '+e.name+'</p>'; }
+}
+function closeMicModal(){ document.getElementById('mic-modal').classList.remove('open'); }
+async function applyMicSelection(){
+  closeMicModal();
+  if(pendingDeviceId && pendingDeviceId !== selectedDeviceId){
+    selectedDeviceId = pendingDeviceId;
+    if(micReady){ stopStream(); await startStream(); kkSpeak('Micrófono cambiado.'); }
+  }
+}
+
+// ── Event listeners ──────────────────────────────────────────────
+document.getElementById('btn-mic-cfg').addEventListener('click', openMicModal);
+document.getElementById('mic-cancel').addEventListener('click', closeMicModal);
+document.getElementById('mic-accept').addEventListener('click', applyMicSelection);
+document.getElementById('mic-modal').addEventListener('click', e=>{ if(e.target===document.getElementById('mic-modal'))closeMicModal(); });
+document.getElementById('btn-kk').addEventListener('click', toggleKronIA);
+document.getElementById('btn-fs').addEventListener('click', ()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); document.getElementById('btn-fs').textContent='⛶ Salir'; }
+  else{ document.exitFullscreen(); document.getElementById('btn-fs').textContent='⛶ Pantalla completa'; }
+});
+
+// ── Event listeners KronIA v5 ────────────────────────────────────
+// Chip cerrado: tap abre y activa microfono
+document.getElementById('kronia').addEventListener('click',function(e){
+  if(!kkExpanded){expandKK();if(!micReady)pedirPermiso();}
+});
+// Boton cerrar panel
+document.getElementById('kk-close').addEventListener('click',function(e){
+  e.stopPropagation();collapseKK();
+});
+// Boton tap — click y touch
+const btnTap=document.getElementById('btn-tap');
+btnTap.addEventListener('click',     e=>{e.stopPropagation();tapBtn();});
+btnTap.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();tapBtn();},{passive:false});
 
 navigator.mediaDevices.addEventListener('devicechange', async()=>{
   const devs = await navigator.mediaDevices.enumerateDevices();
