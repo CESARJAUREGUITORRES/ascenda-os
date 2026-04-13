@@ -286,6 +286,7 @@
         <textarea class="fta" id="cc-obs" placeholder="Observación..."></textarea>
         <button class="sbtn" id="cc-btn-guardar" onclick="ccGuardar()"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>Guardar resultado</button>
         <button class="sbtn-manual" onclick="abrirModalManual()">&#128222; Llamada manual a cliente</button>
+      <button class="sbtn-manual" onclick="abrirCitaManual()" style="margin-top:3px;border-color:#BBF7D0;color:#16A34A;">📅 Agendar cita manual</button>
       </div>
 
       <!-- historial -->
@@ -435,7 +436,8 @@
       <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cc-c-sede"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
       <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cc-c-fecha" type="date"/></div>
       <div class="mf"><div class="ml">Hora</div><input class="mi" id="cc-c-hora" type="time" value="10:00"/></div>
-      <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="cc-c-trat"></select></div>
+      <div class="mf full"><div class="ml">Tratamiento a realizar</div><select class="ms2" id="cc-c-trat"><option value="">— Seleccionar —</option><option value="ÁCIDO HIALURÓNICO">Ácido Hialurónico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACIÓN">Biorevitalización</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MÉDICA">Consulta Médica</option><option value="CRIOLIPÓLISIS">Criolipólisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA BOTULÍNICA">Toxina Botulínica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">OTROS</option></select></div>
+      <div class="mf full"><div class="ml">Doctora asignada</div><input class="mi" id="cc-c-doctora" readonly placeholder="Se detecta automáticamente..." style="background:#F0FDF4;color:#16A34A;font-weight:700;"/></div>
       <div class="mf full"><div class="ml">Tipo cita</div><div class="tbs" id="cc-tipo-cita-grp"><div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div><div class="tb" data-val="APLICACIÓN">Aplicación</div><div class="tb" data-val="CONTROL">Control</div><div class="tb" data-val="REPROGRAMACIÓN">Reprog.</div></div></div>
       <div class="mf full"><div class="ml">Observación</div><textarea class="mta2" id="cc-c-obs" placeholder="Notas..."></textarea></div>
     </div>
@@ -452,6 +454,29 @@
       <div class="mf full"><div class="ml">Nota para el recontacto</div><textarea class="mta2" id="cc-s-obs" style="height:60px;" placeholder="Ej: Le interesa HIFU, llamar en la mañana..."></textarea></div>
     </div>
     <div class="mfoot"><button class="mcanc" onclick="closeCCModal('cc-m-seg')">Cancelar</button><button class="mconf" onclick="ccConfirmarSeguimiento()">✓ Programar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="cc-m-cita-manual">
+  <div class="modal">
+    <div class="mhd"><span style="font-size:18px;">📅</span><div><div class="mtit">Agendar cita manual</div><div style="font-size:10px;color:#9AAAC8;">Ingresar número del paciente</div></div></div>
+    <div class="mg">
+      <div class="mf full"><div class="ml">Número de teléfono</div><div style="display:flex;gap:6px;"><input class="mi" id="cm-num" type="tel" placeholder="Ej: 945398807" style="flex:1;" oninput="buscarPacCitaManual(this.value)"/></div></div>
+      <div id="cm-pac-info" style="display:none;grid-column:1/-1;padding:8px;background:#EBF2FF;border:1px solid #BFDBFE;border-radius:8px;margin-bottom:4px;"></div>
+      <div class="mf"><div class="ml">Nombre</div><input class="mi" id="cm-nombre" placeholder="Nombre"/></div>
+      <div class="mf"><div class="ml">Apellido</div><input class="mi" id="cm-apellido" placeholder="Apellido"/></div>
+      <div class="mf"><div class="ml">DNI</div><input class="mi" id="cm-dni" placeholder="DNI/CE"/></div>
+      <div class="mf"><div class="ml">Correo</div><input class="mi" id="cm-correo" placeholder="correo@..."/></div>
+      <div class="mf"><div class="ml">Tipo atención</div><select class="ms2" id="cm-tipo-at"><option value="">— Seleccionar —</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermería</option></select></div>
+      <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cm-sede"><option value="">— Sede —</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+      <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="cm-fecha" type="date"/></div>
+      <div class="mf"><div class="ml">Hora</div><input class="mi" id="cm-hora" type="time" value="10:00"/></div>
+      <div class="mf full"><div class="ml">Tratamiento a realizar</div><select class="ms2" id="cm-trat"><option value="">— Seleccionar —</option><option value="ÁCIDO HIALURÓNICO">Ácido Hialurónico</option><option value="BIOESTIMULADOR">Bioestimulador</option><option value="BIOREVITALIZACIÓN">Biorevitalización</option><option value="COMPRA DE PRODUCTO">Compra de Producto</option><option value="CONSULTA MÉDICA">Consulta Médica</option><option value="CRIOLIPÓLISIS">Criolipólisis</option><option value="DETOX">Detox</option><option value="ENZIMAS FACIALES">Enzimas Faciales</option><option value="EXOSOMAS CAPILARES">Exosomas Capilares</option><option value="EXOSOMAS FACIAL">Exosomas Facial</option><option value="HIDROFACIAL">Hidrofacial</option><option value="HIFU">HIFU</option><option value="MESOTERAPIA CAPILAR">Mesoterapia Capilar</option><option value="MESOTERAPIA FACIAL">Mesoterapia Facial</option><option value="PEPTONAS">Peptonas</option><option value="PQ AGE">PQ Age</option><option value="RADIOFRECUENCIA CAPILAR">Radiofrecuencia Capilar</option><option value="RADIOFRECUENCIA FACIAL">Radiofrecuencia Facial</option><option value="RADIOFRECUENCIA FRACCIONADA">Radiofrecuencia Fraccionada</option><option value="TOXINA BOTULÍNICA">Toxina Botulínica</option><option value="VITAMINAS">Vitaminas</option><option value="OTROS">OTROS</option></select></div>
+      <div class="mf full"><div class="ml">Doctora asignada</div><input class="mi" id="cm-doctora" readonly placeholder="Se detecta automáticamente..." style="background:#F0FDF4;color:#16A34A;font-weight:700;"/></div>
+      <div class="mf full"><div class="ml">Tipo cita</div><div class="tbs" id="cm-tipo-cita-grp"><div class="tb act" data-val="CONSULTA NUEVA">Consulta nueva</div><div class="tb" data-val="APLICACI\u00d3N">Aplicación</div><div class="tb" data-val="CONTROL">Control</div><div class="tb" data-val="REPROGRAMACI\u00d3N">Reprog.</div></div></div>
+      <div class="mf full"><div class="ml">Observación</div><textarea class="mta2" id="cm-obs" placeholder="Notas para la cita..."></textarea></div>
+    </div>
+    <div class="mfoot"><button class="mcanc" onclick="closeCCModal('cc-m-cita-manual')">Cancelar</button><button class="mconf gr" onclick="guardarCitaManual()">✓ Guardar cita</button></div>
   </div>
 </div>
 
@@ -899,5 +924,169 @@ function selPacManual(el){var tel=el.getAttribute('data-tel'),nd=document.getEle
 function renderContexto(ctx){var el=document.getElementById('cc-contexto');if(!el)return;if(!ctx){el.style.display='none';el.innerHTML='';return;}var html='<div class="ctx-bloque"><div class="ctx-tit">📋 Contexto</div>';if(ctx.intentosPrevios>0)html+='<div class="ctx-row"><span class="ctx-lbl">Intentos prev.:</span><span class="ctx-val">'+ctx.intentosPrevios+'</span></div>';if(ctx.ultContacto){var est=(ctx.ultContacto.estado||'').toUpperCase(),badge=est==='SIN CONTACTO'||est==='NO CONTESTA'?'<span style="background:#FEF2F2;color:#B91C1C;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;">'+escH(est)+'</span>':est==='CITA CONFIRMADA'?'<span style="background:#EBF2FF;color:#0A4FBF;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;">CITA CONF.</span>':'<span style="color:#6B7BA8;font-weight:600;">'+escH(ctx.ultContacto.estado)+'</span>';html+='<div class="ctx-row"><span class="ctx-lbl">Últ. contacto:</span><span class="ctx-val">'+escH(ctx.ultContacto.fecha||'')+' · '+badge+'</span></div>';}if(ctx.ultCita)html+='<div class="ctx-row"><span class="ctx-lbl">Últ. cita:</span><span class="ctx-val">'+escH(ctx.ultCita.fecha||'')+' · '+escH(ctx.ultCita.trat||'')+'</span></div>';if(ctx.ultCompra)html+='<div class="ctx-row"><span class="ctx-lbl">Últ. compra:</span><span class="ctx-val">'+escH(ctx.ultCompra.trat||'')+' · S/'+(parseFloat(ctx.ultCompra.monto)||0).toFixed(0)+'</span></div>';if(ctx.accionSugerida)html+='<div class="ctx-acc"><span>💡</span><span>'+escH(ctx.accionSugerida)+'</span></div>';html+='</div>';el.innerHTML=html;el.style.display='block';}
 
 function escH(s){return String(s||'').replace(/&/g,'&amp;').split('<').join('&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+
+// ══════════════════════════════════════════════════════════════
+// DETECCIÓN AUTOMÁTICA DE DOCTORA POR SEDE + DÍA + HORA
+// ══════════════════════════════════════════════════════════════
+var _DIAS_SEM=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+function detectarDoctora(fechaStr,horaStr,sede,targetId){
+  var el=document.getElementById(targetId);if(!el)return;
+  if(!fechaStr||!sede){el.value='';return;}
+  var d=new Date(fechaStr+'T12:00:00');var diaSem=_DIAS_SEM[d.getDay()];
+  _rpc('aos_horarios_semana',{p_fecha_lunes:fechaStr,p_sede:sede,p_rol:''},function(res){
+    if(!res||!res.turnos){el.value='No disponible';return;}
+    var hora=horaStr||'10:00';
+    var found=null;
+    (res.turnos||[]).forEach(function(t){
+      if(!t.fecha||t.fecha!==fechaStr)return;
+      if(t.rol&&t.rol.toUpperCase().indexOf('DOCTOR')>=0){
+        var hi=t.hora_inicio||'00:00';var hf=t.hora_fin||'23:59';
+        if(hora>=hi.slice(0,5)&&hora<=hf.slice(0,5)){
+          found=t.personal||t.nombre||'Doctora en turno';
+        }
+      }
+    });
+    if(!found){
+      // Fallback: buscar en aos_horarios_doctoras por día de semana
+      fetch(_SB+'/rest/v1/aos_horarios_doctoras?dia_semana=eq.'+diaSem+'&sede=eq.'+encodeURIComponent(sede)+'&activo=eq.SI',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
+        if(!rows||!rows.length){el.value='Sin doctora asignada';return;}
+        var h=horaStr||'10:00';
+        var match=rows.find(function(r){return h>=r.hora_inicio.slice(0,5)&&h<=r.hora_fin.slice(0,5);});
+        el.value=match?match.doctora_label:'Sin doctora en ese horario';
+      });
+    } else {
+      el.value=found;
+    }
+  });
+}
+
+// Event listeners para auto-detectar doctora en modal de cita
+(function(){
+  var els=['cc-c-fecha','cc-c-hora','cc-c-sede'];
+  els.forEach(function(id){
+    var e=document.getElementById(id);
+    if(e)e.addEventListener('change',function(){
+      var f=document.getElementById('cc-c-fecha').value;
+      var h=document.getElementById('cc-c-hora').value;
+      var s=document.getElementById('cc-c-sede').value;
+      if(f&&s)detectarDoctora(f,h,s,'cc-c-doctora');
+    });
+  });
+  // Lo mismo para modal manual
+  var els2=['cm-fecha','cm-hora','cm-sede'];
+  els2.forEach(function(id){
+    var e=document.getElementById(id);
+    if(e)e.addEventListener('change',function(){
+      var f=document.getElementById('cm-fecha').value;
+      var h=document.getElementById('cm-hora').value;
+      var s=document.getElementById('cm-sede').value;
+      if(f&&s)detectarDoctora(f,h,s,'cm-doctora');
+    });
+  });
+  // Tipo cita tabs en modal manual
+  var grp=document.getElementById('cm-tipo-cita-grp');
+  if(grp)grp.querySelectorAll('.tb').forEach(function(t){t.addEventListener('click',function(){grp.querySelectorAll('.tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
+})();
+
+// ══════════════════════════════════════════════════════════════
+// MODAL CITA MANUAL (con número)
+// ══════════════════════════════════════════════════════════════
+function abrirCitaManual(){
+  var hoy=new Date().toISOString().slice(0,10);
+  var el=document.getElementById('cm-fecha');if(el){el.min=hoy;el.value='';}
+  document.getElementById('cm-num').value='';
+  document.getElementById('cm-nombre').value='';
+  document.getElementById('cm-apellido').value='';
+  document.getElementById('cm-dni').value='';
+  document.getElementById('cm-correo').value='';
+  document.getElementById('cm-doctora').value='';
+  document.getElementById('cm-obs').value='';
+  var info=document.getElementById('cm-pac-info');if(info){info.style.display='none';info.innerHTML='';}
+  document.getElementById('cc-m-cita-manual').classList.add('open');
+}
+
+var _cmTimer=null;
+function buscarPacCitaManual(q){
+  clearTimeout(_cmTimer);
+  var info=document.getElementById('cm-pac-info');
+  if(!q||q.length<3){if(info)info.style.display='none';return;}
+  _cmTimer=setTimeout(function(){
+    _rpc('aos_search_pacientes',{p_query:q,p_limit:5},function(rows){
+      if(!rows||!rows.length){if(info)info.style.display='none';return;}
+      var num=(document.getElementById('cm-num').value||'').replace(/\D/g,'');
+      var match=rows.find(function(p){return (p.telefono||'').replace(/\D/g,'')===num;});
+      if(match){
+        info.style.display='block';
+        info.innerHTML='<div style="font-size:11px;font-weight:700;color:#0A4FBF;">\u2713 Paciente encontrado: '+(match.nombres||'')+' '+(match.apellidos||'')+'</div><div style="font-size:9px;color:#6B7BA8;">DNI: '+(match.dni||'—')+' | Tel: '+(match.telefono||'')+'</div>';
+        if(match.nombres)document.getElementById('cm-nombre').value=match.nombres;
+        if(match.apellidos)document.getElementById('cm-apellido').value=match.apellidos;
+        if(match.dni)document.getElementById('cm-dni').value=match.dni;
+        if(match.correo)document.getElementById('cm-correo').value=match.correo;
+      }
+    });
+  },400);
+}
+
+function guardarCitaManual(){
+  var num=(document.getElementById('cm-num').value||'').trim().replace(/\D/g,'');
+  if(!num||num.length<7){alert('Ingresa un número válido.');return;}
+  var fecha=document.getElementById('cm-fecha').value;
+  if(!fecha){alert('Selecciona la fecha de la cita.');return;}
+  var x=_ctx();var now=new Date();
+  var tipoCita='CONSULTA NUEVA';
+  var grp=document.getElementById('cm-tipo-cita-grp');
+  if(grp)grp.querySelectorAll('.tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
+  var doctora=document.getElementById('cm-doctora').value||'';
+  var rowC={
+    numero_limpio:num,numero:num,
+    nombre:document.getElementById('cm-nombre').value.trim(),
+    apellido:document.getElementById('cm-apellido').value.trim(),
+    dni:document.getElementById('cm-dni').value.trim(),
+    correo:document.getElementById('cm-correo').value.trim(),
+    tipo_atencion:document.getElementById('cm-tipo-at').value,
+    sede:document.getElementById('cm-sede').value,
+    fecha_cita:fecha,
+    hora_cita:document.getElementById('cm-hora').value||'10:00',
+    tratamiento:document.getElementById('cm-trat').value,
+    tipo_cita:tipoCita,
+    doctora:doctora,
+    asesor:x.a,id_asesor:x.id,
+    estado_cita:'CONFIRMADA',
+    origen_cita:'CITA_MANUAL',
+    obs:document.getElementById('cm-obs').value.trim(),
+    ts_creado:now.toISOString()
+  };
+  fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    closeCCModal('cc-m-cita-manual');
+    if(window.AOS_playSound)AOS_playSound('venta');
+    if(window.AOS_showToast)AOS_showToast('Cita agendada','Registrada correctamente','toast-venta');
+    loadMetrics();
+  }).catch(function(e){
+    if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error al guardar','toast-alerta');
+  });
+}
+
+// Incluir doctora en ccConfirmarCita
+var _origCCConfirmarCita = ccConfirmarCita;
+ccConfirmarCita = function(){
+  // Inyectar doctora al payload antes de guardar
+  var docEl=document.getElementById('cc-c-doctora');
+  if(docEl&&docEl.value){
+    var _origFetch=window.fetch;
+    window.fetch=function(url,opts){
+      if(url.indexOf('aos_agenda_citas')>=0&&opts&&opts.body){
+        try{var b=JSON.parse(opts.body);b.doctora=docEl.value;opts.body=JSON.stringify(b);}catch(e){}
+      }
+      return _origFetch.call(this,url,opts);
+    };
+    _origCCConfirmarCita();
+    setTimeout(function(){window.fetch=_origFetch;},3000);
+  } else {
+    _origCCConfirmarCita();
+  }
+};
 
 </script>
