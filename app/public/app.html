@@ -399,11 +399,11 @@ function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{me
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
   buildTopbar(); buildSidebar(); startClock();
-  // Redirigir al panel standalone correcto segun rol
+  // Cargar panel inicial DENTRO del workspace (no redirect)
   if (AOS.role === 'ADMIN') {
-    window.location.href = '/admin-home.html';
+    navigateTo('admin-home');
   } else {
-    window.location.href = '/advisor-home.html';
+    navigateTo('advisor-home');
   }
 })();
 
@@ -899,6 +899,7 @@ window.AOS_getToken    = function() { return AOS.token; };
 window.AOS_getCtx      = function() { return AOS.ctx; };
 window.AOS_getRole     = function() { return AOS.role; };
 window.AOS_navigateTo  = function(v) { navigateTo(v); };
+window.navigateTo      = navigateTo;
 window.AOS_pollNow     = function() { pollNotifications(); };
 window.AOS_setEstado   = function(e,c) { setEstadoUI(e,c); };
 window.AOS_playSound   = playSound;
