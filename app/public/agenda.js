@@ -200,13 +200,35 @@ function agGuardarEstado(){
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
+var _confirmCb=null;
+function agConfirmResp(ok){
+  el('ag-m-confirm').classList.remove('open');
+  if(ok&&_confirmCb)_confirmCb();
+  _confirmCb=null;
+}
+function agShowConfirm(titulo,msg,btnText,btnCls,cb){
+  el('confirm-titulo').textContent=titulo;
+  el('confirm-msg').textContent=msg;
+  var btn=el('confirm-btn');btn.textContent=btnText;btn.className='mconf '+(btnCls||'red');
+  _confirmCb=cb;
+  el('ag-m-confirm').classList.add('open');
+}
+
 function agEliminar(){
   if(!AG.sel)return;
-  if(!confirm('Eliminar esta cita?'))return;
-  _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');agCloseDet();agLoad();
-  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+  var cli=((AG.sel.nombre||'')+' '+(AG.sel.apellido||'')).trim();
+  agShowConfirm(
+    'Eliminar cita',
+    'Se eliminar\u00e1 la cita de '+cli+' del '+(AG.sel.fecha_cita||'')+'. Esta acci\u00f3n no se puede deshacer.',
+    'S\u00ed, eliminar',
+    'red',
+    function(){
+      _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');agCloseDet();agLoad();
+      }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+    }
+  );
 }
 
 function agReagendar(){if(!AG.sel)return;agAbrirEditar();el('edit-titulo').textContent='Reagendar cita';el('ed-fecha').value='';el('ed-fecha').focus();}
@@ -233,7 +255,7 @@ function agAbrirNueva(){
   ['ed-nombre','ed-apellido','ed-num','ed-dni','ed-correo','ed-obs'].forEach(function(id){el(id).value='';});
   el('ed-sede').value='';el('ed-tipo-at').value='';el('ed-fecha').value=AG.fecha;
   el('ed-hora').value='10:00';el('ed-trat').value='';el('ed-tipo-cita').value='CONSULTA NUEVA';
-  el('ed-estado').value='PENDIENTE';el('ed-pac-info').style.display='none';
+  el('ed-estado').value='PENDIENTE';el('ed-pac-info').style.display='none';var sr=el('ed-search-results');if(sr)sr.innerHTML='';var sb=el('ed-buscar');if(sb)sb.value='';
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
   el('ed-asesor').value=(ctx.asesor||'WILMER').toUpperCase();
   el('ag-m-edit').classList.add('open');
@@ -262,17 +284,32 @@ function agGuardarEdit(){
 
 var _agTmr=null;
 function agBuscarPac(q){
-  clearTimeout(_agTmr);var info=el('ed-pac-info');
-  if(!q||q.length<6){if(info)info.style.display='none';return;}
+  clearTimeout(_agTmr);
+  var res=el('ed-search-results');var info=el('ed-pac-info');
+  if(!q||q.length<3){if(res)res.innerHTML='';if(info)info.style.display='none';return;}
+  if(res)res.innerHTML='<div style="font-size:10px;color:#9AAAC8;padding:4px;">Buscando...</div>';
   _agTmr=setTimeout(function(){
-    _rpc('aos_search_pacientes',{p_query:q,p_limit:3},function(rows){
-      if(!rows||!rows.length){if(info)info.style.display='none';return;}
-      var num=q.replace(/\D/g,'');var match=rows.find(function(p){return(p.telefono||'').replace(/\D/g,'')===num;})||rows[0];
-      if(match){info.style.display='block';info.innerHTML='\u2713 '+(match.nombres||'')+' '+(match.apellidos||'');
-        if(match.nombres&&!el('ed-nombre').value)el('ed-nombre').value=match.nombres;
-        if(match.apellidos&&!el('ed-apellido').value)el('ed-apellido').value=match.apellidos;
-        if(match.dni&&!el('ed-dni').value)el('ed-dni').value=match.dni;
-        if(match.correo&&!el('ed-correo').value)el('ed-correo').value=match.correo;}
+    _rpc('aos_search_pacientes',{p_query:q,p_limit:5},function(rows){
+      if(!rows||!rows.length){if(res)res.innerHTML='<div style="font-size:10px;color:#D97706;padding:4px;">Sin resultados</div>';return;}
+      if(res)res.innerHTML=rows.map(function(p){
+        var nom=((p.nombres||'')+' '+(p.apellidos||'')).trim();
+        var tel=p.telefono||'';
+        return '<div style="padding:6px 8px;background:#F0F4FC;border:1px solid #DDE4F5;border-radius:7px;margin-bottom:3px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="agSelPac(this)" data-nom="'+h(p.nombres||'')+'" data-ape="'+h(p.apellidos||'')+'" data-tel="'+h(tel)+'" data-dni="'+h(p.dni||'')+'" data-correo="'+h(p.correo||'')+'">'
+          +'<div><div style="font-size:11px;font-weight:700;color:#0D1B3E;">'+h(nom)+'</div>'
+          +'<div style="font-size:9px;color:#9AAAC8;">'+h(tel)+(p.dni?' \u00b7 DNI: '+h(p.dni):'')+'</div></div>'
+          +'<div style="font-size:9px;color:#0A4FBF;font-weight:700;">Seleccionar</div></div>';
+      }).join('');
     });
-  },400);
+  },350);
+}
+
+function agSelPac(el2){
+  el('ed-nombre').value=el2.getAttribute('data-nom')||'';
+  el('ed-apellido').value=el2.getAttribute('data-ape')||'';
+  el('ed-num').value=el2.getAttribute('data-tel')||'';
+  el('ed-dni').value=el2.getAttribute('data-dni')||'';
+  el('ed-correo').value=el2.getAttribute('data-correo')||'';
+  var res=el('ed-search-results');if(res)res.innerHTML='';
+  var info=el('ed-pac-info');
+  if(info){info.style.display='block';info.innerHTML='\u2713 Paciente seleccionado: '+el2.getAttribute('data-nom')+' '+el2.getAttribute('data-ape');}
 }

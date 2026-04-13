@@ -154,15 +154,15 @@
   <div class="modal" style="max-width:700px;">
     <div class="mhd"><span style="font-size:18px;">&#128197;</span><div><div class="mtit" id="det-nombre">--</div><div class="msub" id="det-sub">--</div></div><div class="mclose" onclick="agCloseDet()">&times;</div></div>
     <div class="mbody">
-      <div class="det-2col">
+      <div class="det-2col" style="gap:24px;">
         <div class="det-col">
-          <div class="ct" style="margin-bottom:4px;">Datos de la cita</div>
+          <div class="ct" style="margin-bottom:8px;font-size:13px;">Datos de la cita</div>
           <div id="det-info"></div>
           <div style="margin-top:6px;"><div class="ml">Cambiar estado</div><div class="est-btns" id="det-estados"></div></div>
           <div><div class="ml">Nota</div><textarea class="mta2" id="det-nota" placeholder="Agregar nota..." style="width:100%;margin-top:4px;"></textarea></div>
         </div>
         <div class="det-col">
-          <div class="ct" style="margin-bottom:4px;">Historial del paciente</div>
+          <div class="ct" style="margin-bottom:8px;font-size:13px;">Historial del paciente</div>
           <div id="det-historial"><div class="ld"><span class="sp"></span></div></div>
         </div>
       </div>
@@ -183,6 +183,19 @@
     <div class="mhd"><span style="font-size:18px;">&#9999;&#65039;</span><div><div class="mtit" id="edit-titulo">Nueva cita</div><div class="msub" id="edit-sub"></div></div></div>
     <div class="mbody">
       <div class="mg">
+        <div class="mf full" style="margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="ml" style="margin:0;">Buscar paciente</div>
+            <span style="font-size:9px;color:#9AAAC8;">(teléfono, nombre o DNI)</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <input class="mi" id="ed-buscar" placeholder="Ej: 987654321 o nombre..." style="flex:1;" oninput="agBuscarPac(this.value)"/>
+            <div style="width:36px;height:36px;border-radius:8px;background:#0A4FBF;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="agBuscarPac(document.getElementById('ed-buscar').value)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+          </div>
+          <div id="ed-search-results" style="margin-top:4px;"></div>
+        </div>
         <div class="mf"><div class="ml">Nombre</div><input class="mi" id="ed-nombre" placeholder="Nombre"/></div>
         <div class="mf"><div class="ml">Apellido</div><input class="mi" id="ed-apellido" placeholder="Apellido"/></div>
         <div class="mf"><div class="ml">Tel&eacute;fono</div><input class="mi" id="ed-num" type="tel" placeholder="987654321" oninput="agBuscarPac(this.value)"/></div>
@@ -203,6 +216,24 @@
     <div class="mfoot">
       <button class="mcanc" onclick="agCloseEdit()">Cancelar</button>
       <button class="mconf gr" onclick="agGuardarEdit()">Guardar cita</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL CONFIRMACIÓN PERSONALIZADO -->
+<div class="mov" id="ag-m-confirm">
+  <div class="modal" style="max-width:380px;">
+    <div style="padding:24px;text-align:center;">
+      <div style="margin-bottom:12px;">
+        <svg width="40" height="40" viewBox="0 0 80 80" fill="none"><rect width="80" height="80" rx="16" fill="#071D4A"/><text x="40" y="32" text-anchor="middle" font-size="14" font-weight="800" fill="#00E5A0" font-family="sans-serif">ASCENDA</text><text x="40" y="48" text-anchor="middle" font-size="10" font-weight="700" fill="white" font-family="sans-serif">OS</text></svg>
+      </div>
+      <div style="font-family:Exo\ 2,sans-serif;font-weight:800;font-size:16px;color:#0D1B3E;margin-bottom:6px;" id="confirm-titulo">Confirmar acción</div>
+      <div style="font-size:13px;color:#6B7BA8;margin-bottom:16px;" id="confirm-msg">Estás seguro?</div>
+      <div style="display:flex;gap:8px;">
+        <button class="mcanc" style="flex:1;padding:10px;" onclick="agConfirmResp(false)">Cancelar</button>
+        <button class="mconf red" style="flex:1;padding:10px;" id="confirm-btn" onclick="agConfirmResp(true)">Eliminar</button>
+      </div>
     </div>
   </div>
 </div>
