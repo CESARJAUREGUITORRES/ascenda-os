@@ -507,7 +507,6 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   loadMetrics();
   loadLead();
   loadHistorial();
-  loadTrats();
   recargarCalendario();
 })();
 
@@ -883,14 +882,7 @@ function cargarNombrePaciente(num){
 }
 
 function loadTrats(){
-  try{var c=sessionStorage.getItem('aos_trats');if(c){var items=JSON.parse(c);var sel=document.getElementById('cc-c-trat');if(sel&&items.length){sel.innerHTML=items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');return;}}}catch(e){}
-  _rpc('aos_get_tratamientos',{},function(rows){
-    if(!rows)return;
-    var sel=document.getElementById('cc-c-trat');
-    var items=(Array.isArray(rows)?rows:[]).map(function(r){return r.nombre||'';}).filter(Boolean);
-    if(sel)sel.innerHTML=items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');
-    try{sessionStorage.setItem('aos_trats',JSON.stringify(items));}catch(e){}
-  });
+  // Tratamientos ya hardcodeados en el HTML — no sobrescribir
 }
 
 function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){
@@ -934,25 +926,25 @@ function escH(s){return String(s||'').replace(/&/g,'&amp;').split('<').join('&lt
 // ══════════════════════════════════════════════════════════════
 // DETECCIÓN AUTOMÁTICA DE DOCTORA POR SEDE + DÍA + HORA
 // ══════════════════════════════════════════════════════════════
-var _DIAS_SEM=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
 function detectarDoctora(fechaStr,horaStr,sede,targetId){
   var el=document.getElementById(targetId);if(!el)return;
   if(!fechaStr||!sede){el.value='';return;}
   el.value='Buscando...';
-  var d=new Date(fechaStr+'T12:00:00');var diaSem=_DIAS_SEM[d.getDay()];
   var hora=(horaStr||'10:00').slice(0,5);
-  fetch(_SB+'/rest/v1/aos_horarios_doctoras?dia_semana=eq.'+diaSem+'&sede=eq.'+encodeURIComponent(sede)+'&activo=eq.SI&select=doctora_label,hora_inicio,hora_fin',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
-    if(!rows||!rows.length){el.value='Sin doctora asignada';el.style.color='#D97706';return;}
+  // Buscar en turnos REALES por fecha (aos_horarios_personal)
+  var filtro='fecha=eq.'+fechaStr+'&sede=eq.'+encodeURIComponent(sede)+'&rol=eq.DOCTORA&select=personal,hora_inicio,hora_fin';
+  fetch(_SB+'/rest/v1/aos_horarios_personal?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el.value='Sin doctora ese dia';el.style.color='#D97706';return;}
     var matches=rows.filter(function(r){var hi=(r.hora_inicio||'').slice(0,5);var hf=(r.hora_fin||'').slice(0,5);return hora>=hi&&hora<=hf;});
     if(matches.length>0){
-      el.value=matches.map(function(m){return m.doctora_label;}).join(' / ');
+      el.value=matches[0].personal;
       el.style.color='#16A34A';
     } else {
-      var allDocs=rows.map(function(r){return r.doctora_label+' ('+r.hora_inicio.slice(0,5)+'-'+r.hora_fin.slice(0,5)+')';}).join(', ');
-      el.value='Fuera de horario. Disponibles: '+allDocs;
+      var allDocs=rows.map(function(r){return r.personal+' ('+r.hora_inicio.slice(0,5)+'-'+r.hora_fin.slice(0,5)+')';}).join(', ');
+      el.value='Fuera de horario. Dras: '+allDocs;
       el.style.color='#D97706';
     }
-  }).catch(function(){el.value='Error consultando horarios';el.style.color='#DC2626';});
+  }).catch(function(){el.value='Error consultando turnos';el.style.color='#DC2626';});
 }
 
 // Event listeners para auto-detectar doctora en modal de cita
