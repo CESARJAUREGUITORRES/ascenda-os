@@ -1,116 +1,133 @@
-<!-- patients.html — Pacientes 360 | AscendaOS v1 | 100% Supabase -->
+<!-- patients.html v2 — Pacientes 360 | AscendaOS v1 | 100% Supabase -->
 <style>
 .pt-root{display:flex;height:100%;overflow:hidden;position:relative;}
-/* PANEL IZQUIERDO - BUSCADOR */
-.pt-left{width:320px;min-width:320px;background:#fff;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-left .3s;z-index:2;}
-.pt-left.hidden{margin-left:-320px;}
-.pt-left-toggle{position:absolute;top:50%;left:0;transform:translateY(-50%);width:24px;height:48px;background:#0A4FBF;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:3;transition:left .3s;}
-.pt-left.hidden ~ .pt-left-toggle{left:0;}
-.pt-left:not(.hidden) ~ .pt-left-toggle{left:320px;}
-.pt-search-hdr{padding:14px;border-bottom:1px solid #DDE4F5;}
-.pt-search-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:16px;color:#0D1B3E;margin-bottom:8px;}
-.pt-search-box{display:flex;gap:6px;}
-.pt-search-input{flex:1;padding:8px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;font-family:DM\ Sans,sans-serif;outline:none;}
-.pt-search-input:focus{border-color:#0A4FBF;}
-.pt-search-btn{width:36px;height:36px;border-radius:8px;background:#0A4FBF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.pt-results{flex:1;overflow-y:auto;padding:8px;}
-.pt-results::-webkit-scrollbar{width:3px;}.pt-results::-webkit-scrollbar-thumb{background:#DDE4F5;}
-.pt-card{padding:10px;border:1px solid #DDE4F5;border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all .15s;}
-.pt-card:hover{border-color:#0A4FBF;background:#F8FAFF;}
-.pt-card.act{border-color:#0A4FBF;background:#EBF2FF;}
-.pt-card-name{font-weight:700;font-size:12px;color:#0D1B3E;}
-.pt-card-meta{font-size:10px;color:#9AAAC8;margin-top:2px;}
-.pt-card-badges{display:flex;gap:4px;margin-top:4px;}
-.pt-badge{padding:1px 6px;border-radius:4px;font-size:8px;font-weight:700;}
+.pt-left{width:300px;min-width:300px;background:#fff;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-left .3s;z-index:2;}
+.pt-left.hidden{margin-left:-300px;}
+.pt-left-toggle{position:absolute;top:50%;transform:translateY(-50%);width:24px;height:48px;background:#0A4FBF;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:3;transition:left .3s;}
+.pt-left.hidden~.pt-left-toggle{left:0;}.pt-left:not(.hidden)~.pt-left-toggle{left:300px;}
+.pt-sh{padding:12px;border-bottom:1px solid #DDE4F5;}
+.pt-st{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;margin-bottom:6px;}
+.pt-sb{display:flex;gap:5px;}
+.pt-si{flex:1;padding:7px 9px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:DM\ Sans,sans-serif;outline:none;}.pt-si:focus{border-color:#0A4FBF;}
+.pt-sbtn{width:34px;height:34px;border-radius:8px;background:#0A4FBF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pt-res{flex:1;overflow-y:auto;padding:6px;}.pt-res::-webkit-scrollbar{width:3px;}.pt-res::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.pt-c{padding:8px;border:1px solid #DDE4F5;border-radius:9px;margin-bottom:5px;cursor:pointer;transition:all .15s;}.pt-c:hover{border-color:#0A4FBF;background:#F8FAFF;}.pt-c.act{border-color:#0A4FBF;background:#EBF2FF;}
+.pt-cn{font-weight:700;font-size:11px;color:#0D1B3E;}.pt-cm{font-size:9px;color:#9AAAC8;margin-top:2px;}
+.pt-cb{display:flex;gap:3px;margin-top:3px;}
+.pt-bg{padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;}
 .bg-pac{background:#F0FDF4;color:#16A34A;}.bg-pros{background:#FEF3C7;color:#D97706;}.bg-inact{background:#F0F4FC;color:#6B7BA8;}
-/* CENTRO - FICHA 360 */
-.pt-center{flex:1;overflow-y:auto;padding:16px;background:#F8FAFF;}
-.pt-center::-webkit-scrollbar{width:3px;}.pt-center::-webkit-scrollbar-thumb{background:#DDE4F5;}
-.pt-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9AAAC8;gap:12px;}
-.pt-empty-icon{font-size:48px;opacity:.3;}
-.ficha-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding:16px;background:#fff;border-radius:14px;border:1px solid #DDE4F5;}
-.ficha-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;font-family:Exo\ 2,sans-serif;flex-shrink:0;}
-.ficha-name{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:20px;color:#0D1B3E;}
-.ficha-sub{font-size:12px;color:#6B7BA8;margin-top:2px;}
-.ficha-actions{margin-left:auto;display:flex;gap:6px;}
-.ficha-act-btn{padding:6px 12px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-family:DM\ Sans,sans-serif;display:flex;align-items:center;gap:4px;}
-.ficha-act-btn:hover{background:#EBF2FF;}
-.ficha-act-btn.wa{border-color:#BBF7D0;color:#16A34A;}
-.ficha-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-.fk{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:10px;text-align:center;}
-.fk-v{font-family:Exo\ 2,sans-serif;font-size:20px;font-weight:800;color:#0A4FBF;}
-.fk-l{font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
-.ficha-datos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
-.fd-card{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:12px;}
-.fd-lbl{font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
-.fd-val{font-size:12px;font-weight:600;color:#0D1B3E;}
-.ficha-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
-.ftab{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}
-.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
-.ficha-tab-content{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;min-height:200px;}
-.tb-table{width:100%;border-collapse:collapse;}
-.tb-table th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
-.tb-table td{padding:6px;border-bottom:1px solid rgba(221,228,245,.3);font-size:11px;}
-.tb-table tr:last-child td{border-bottom:none;}
-.dup-card{padding:8px;border:2px solid #FEF3C7;border-radius:8px;background:#FFFBEB;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
-.dup-info{font-size:11px;}.dup-name{font-weight:700;color:#D97706;}.dup-meta{font-size:10px;color:#9AAAC8;}
-.dup-btn{padding:4px 10px;border-radius:6px;border:1px solid #D97706;background:#fff;font-size:10px;font-weight:700;color:#D97706;cursor:pointer;}
-.est-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;display:inline-block;}
+.pt-center{flex:1;overflow-y:auto;padding:14px;background:#F8FAFF;}.pt-center::-webkit-scrollbar{width:3px;}.pt-center::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.pt-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9AAAC8;gap:10px;}.pt-empty-i{font-size:44px;opacity:.3;}
+.fh{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px;background:#fff;border-radius:14px;border:1px solid #DDE4F5;}
+.fav{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;font-family:Exo\ 2,sans-serif;flex-shrink:0;}
+.fn{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}.fs{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.fa{margin-left:auto;display:flex;gap:5px;}
+.fab{padding:5px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-family:DM\ Sans,sans-serif;text-decoration:none;display:flex;align-items:center;gap:3px;}.fab:hover{background:#EBF2FF;}.fab.wa{border-color:#BBF7D0;color:#16A34A;}
+.fkr{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}
+.fk{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:9px;text-align:center;}
+.fkv{font-family:Exo\ 2,sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;}.fkl{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.fd{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;}
+.fdc{background:#fff;border:1px solid #DDE4F5;border-radius:9px;padding:8px 10px;}
+.fdl{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}.fdv{font-size:11px;font-weight:600;color:#0D1B3E;}
+.dup-w{margin-bottom:12px;}.dup-c{padding:7px;border:2px solid #FEF3C7;border-radius:8px;background:#FFFBEB;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
+.dup-n{font-weight:700;color:#D97706;font-size:11px;}.dup-m{font-size:9px;color:#9AAAC8;}
+.dup-b{padding:3px 8px;border-radius:5px;border:1px solid #D97706;background:#fff;font-size:9px;font-weight:700;color:#D97706;cursor:pointer;}
+.ftabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;}
+.ftab{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.ftc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px;min-height:180px;}
+.tt{width:100%;border-collapse:collapse;}.tt th{font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#9AAAC8;padding:4px 5px;border-bottom:1px solid #DDE4F5;text-align:left;}.tt td{padding:5px;border-bottom:1px solid rgba(221,228,245,.3);font-size:10px;}.tt tr:last-child td{border-bottom:none;}
+.est-b{padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;display:inline-block;}
 .est-pend{background:#FEF3C7;color:#D97706;}.est-asist{background:#F0FDF4;color:#16A34A;}.est-noasist{background:#FEF2F2;color:#DC2626;}.est-cancel{background:#F0F4FC;color:#6B7BA8;}.est-conf{background:#EBF2FF;color:#0A4FBF;}
-/* PANEL DERECHO - NOTAS */
-.pt-right{width:300px;min-width:300px;background:#fff;border-left:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-right .3s;z-index:2;}
-.pt-right.hidden{margin-right:-300px;}
+.pt-right{width:320px;min-width:320px;background:#fff;border-left:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-right .3s;z-index:2;}
+.pt-right.hidden{margin-right:-320px;}
 .pt-right-toggle{position:absolute;top:50%;right:0;transform:translateY(-50%);width:24px;height:48px;background:#16A34A;border-radius:8px 0 0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:3;transition:right .3s;}
-.pt-right.hidden ~ .pt-right-toggle{right:0;}
-.pt-right:not(.hidden) ~ .pt-right-toggle{right:300px;}
-.pt-notes-hdr{padding:14px;border-bottom:1px solid #DDE4F5;}
-.pt-notes-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}
-.pt-notes-list{flex:1;overflow-y:auto;padding:8px;}
-.pt-notes-list::-webkit-scrollbar{width:3px;}.pt-notes-list::-webkit-scrollbar-thumb{background:#DDE4F5;}
-.note-card{padding:8px;border:1px solid #DDE4F5;border-radius:8px;margin-bottom:6px;font-size:11px;}
-.note-card-hdr{display:flex;justify-content:space-between;margin-bottom:3px;}
-.note-card-author{font-weight:700;color:#0A4FBF;}.note-card-date{font-size:9px;color:#9AAAC8;}
-.note-card-text{color:#0D1B3E;line-height:1.4;}
-.note-add{padding:10px;border-top:1px solid #DDE4F5;}
-.note-add textarea{width:100%;padding:8px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:DM\ Sans,sans-serif;resize:vertical;min-height:50px;outline:none;}
-.note-add-btn{margin-top:6px;width:100%;padding:8px;border-radius:8px;background:#16A34A;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;}
-.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:12px;}
-.sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
+.pt-right.hidden~.pt-right-toggle{right:0;}.pt-right:not(.hidden)~.pt-right-toggle{right:320px;}
+.pt-nh{padding:12px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;justify-content:space-between;}
+.pt-nt{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}
+.pt-nb{padding:4px 10px;border-radius:7px;background:#16A34A;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;}
+.pt-nl{flex:1;overflow-y:auto;padding:6px;}.pt-nl::-webkit-scrollbar{width:3px;}.pt-nl::-webkit-scrollbar-thumb{background:#DDE4F5;}
+.nc{padding:8px;border:1px solid #DDE4F5;border-radius:8px;margin-bottom:5px;font-size:10px;}
+.nc-h{display:flex;justify-content:space-between;margin-bottom:3px;}.nc-a{font-weight:700;color:#0A4FBF;}.nc-d{font-size:9px;color:#9AAAC8;}
+.nc-tipo{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;margin-right:4px;}
+.nc-t-rec{background:#EBF2FF;color:#0A4FBF;}.nc-t-inf{background:#F0F4FC;color:#6B7BA8;}.nc-t-enf{background:#F0FDF4;color:#16A34A;}.nc-t-doc{background:#FEF3C7;color:#D97706;}
+.nc-txt{color:#0D1B3E;line-height:1.4;white-space:pre-wrap;}
+/* Modal nota */
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.45);display:none;justify-content:center;align-items:center;padding:20px;z-index:999;overflow-y:auto;}.mov.open{display:flex;}
+.modal{background:#fff;border-radius:16px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.15);animation:slideUp .2s;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #DDE4F5;}
+.mtit{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}
+.mclose{margin-left:auto;cursor:pointer;font-size:18px;color:#9AAAC8;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;}.mclose:hover{background:#F0F4FC;}
+.mbody{padding:16px 18px;}
+.mfoot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid #DDE4F5;}
+.mfoot button{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}
+.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}.mconf{background:#16A34A;border:none;color:#fff;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mf{display:flex;flex-direction:column;gap:3px;}.mf.full{grid-column:1/-1;}
+.ml{font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.4px;}
+.mi{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}.mi:focus{border-color:#0A4FBF;}
+.ms2{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;background:#fff;}
+.mta{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:60px;width:100%;}
+.ld{text-align:center;padding:16px;color:#9AAAC8;font-size:11px;}
+.sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px;}
 @keyframes spin{to{transform:rotate(360deg);}}
-@media(max-width:900px){.pt-left{width:260px;min-width:260px;}.pt-right{width:240px;min-width:240px;}.ficha-kpis{grid-template-columns:repeat(2,1fr);}.ficha-datos{grid-template-columns:1fr;}}
+@media(max-width:900px){.pt-left{width:240px;min-width:240px;}.pt-right{width:260px;min-width:260px;}.fkr{grid-template-columns:repeat(2,1fr);}.fd{grid-template-columns:1fr 1fr;}}
 </style>
 
 <div class="pt-root">
-  <!-- PANEL IZQUIERDO: BUSCADOR -->
   <div class="pt-left" id="pt-left">
-    <div class="pt-search-hdr">
-      <div class="pt-search-title">Pacientes</div>
-      <div class="pt-search-box">
-        <input class="pt-search-input" id="pt-q" placeholder="Nombre, tel\u00e9fono o DNI..." oninput="ptSearch(this.value)" onkeydown="if(event.key==='Enter')ptSearch(this.value)"/>
-        <button class="pt-search-btn" onclick="ptSearch(el('pt-q').value)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-      </div>
-      <div style="margin-top:6px;font-size:10px;color:#9AAAC8;" id="pt-count">7,010 pacientes</div>
-    </div>
-    <div class="pt-results" id="pt-results"><div class="ld">Busca un paciente para ver su ficha 360</div></div>
+    <div class="pt-sh"><div class="pt-st">Pacientes</div><div class="pt-sb"><input class="pt-si" id="pt-q" placeholder="Nombre, tel o DNI..." oninput="ptSearch(this.value)"/><button class="pt-sbtn" onclick="ptSearch(el('pt-q').value)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div></div>
+    <div class="pt-res" id="pt-res"><div class="ld">Busca un paciente</div></div>
   </div>
-  <div class="pt-left-toggle" id="pt-left-tog" onclick="ptToggleLeft()">&#9776;</div>
+  <div class="pt-left-toggle" id="pt-lt" onclick="ptTL()">&#9776;</div>
 
-  <!-- CENTRO: FICHA 360 -->
   <div class="pt-center" id="pt-center">
-    <div class="pt-empty" id="pt-empty"><div class="pt-empty-icon">&#128100;</div><div style="font-size:14px;font-weight:700;">Selecciona un paciente</div><div style="font-size:12px;">Busca por nombre, tel\u00e9fono o DNI</div></div>
+    <div class="pt-empty" id="pt-empty"><div class="pt-empty-i">&#128100;</div><div style="font-size:13px;font-weight:700;">Selecciona un paciente</div></div>
     <div id="pt-ficha" style="display:none;"></div>
   </div>
 
-  <!-- PANEL DERECHO: NOTAS -->
   <div class="pt-right hidden" id="pt-right">
-    <div class="pt-notes-hdr"><div class="pt-notes-title">Notas del paciente</div></div>
-    <div class="pt-notes-list" id="pt-notes-list"><div class="ld">Selecciona un paciente</div></div>
-    <div class="note-add">
-      <textarea id="pt-note-text" placeholder="Escribir nota..."></textarea>
-      <button class="note-add-btn" onclick="ptAddNote()">Agregar nota</button>
-    </div>
+    <div class="pt-nh"><div class="pt-nt">Notas cl&iacute;nicas</div><button class="pt-nb" onclick="ptAbrirNota()">+ Nueva nota</button></div>
+    <div class="pt-nl" id="pt-nl"><div class="ld">Selecciona un paciente</div></div>
   </div>
-  <div class="pt-right-toggle hidden" id="pt-right-tog" onclick="ptToggleRight()">&#128221;</div>
+  <div class="pt-right-toggle hidden" id="pt-rt" onclick="ptTR()">&#128221;</div>
+</div>
+
+<!-- MODAL NUEVA NOTA -->
+<div class="mov" id="pt-m-nota">
+  <div class="modal" style="max-width:520px;">
+    <div class="mhd"><span style="font-size:16px;">&#128221;</span><div class="mtit">Nueva nota cl&iacute;nica</div><div class="mclose" onclick="ptCloseNota()">&times;</div></div>
+    <div class="mbody">
+      <div class="mg">
+        <div class="mf"><div class="ml">Tipo de nota</div>
+          <select class="ms2" id="nt-tipo" onchange="ptTipoNota()">
+            <option value="RECEPCION">Recepci&oacute;n</option>
+            <option value="INFORMATIVA">Informativa</option>
+            <option value="ENFERMERIA">Enfermer&iacute;a</option>
+            <option value="DOCTORA">Doctora</option>
+          </select>
+        </div>
+        <div class="mf"><div class="ml">Sede</div>
+          <select class="ms2" id="nt-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
+        </div>
+        <div class="mf full"><div class="ml">Contenido / Observaci&oacute;n</div><textarea class="mta" id="nt-contenido" placeholder="Escribir nota..."></textarea></div>
+        <div class="mf full" id="nt-clinico" style="display:none;">
+          <div class="ml">Evoluci&oacute;n y cuadro cl&iacute;nico</div><textarea class="mta" id="nt-evolucion" placeholder="Evoluci\u00f3n..." style="min-height:50px;"></textarea>
+          <div class="ml" style="margin-top:6px;">Diagn&oacute;stico</div><input class="mi" id="nt-diagnostico" placeholder="Diagn\u00f3stico"/>
+          <div class="ml" style="margin-top:6px;">Plan de trabajo / tratamiento</div><textarea class="mta" id="nt-plan" placeholder="Plan..." style="min-height:40px;"></textarea>
+          <div class="ml" style="margin-top:6px;">Resultado de estudios</div><input class="mi" id="nt-resultados" placeholder="Resultados..."/>
+          <div class="ml" style="margin-top:6px;">Signos vitales</div><input class="mi" id="nt-signos" placeholder="PA, FC, Temp..."/>
+          <div class="ml" style="margin-top:6px;">Nota adicional</div><input class="mi" id="nt-adicional" placeholder="Nota adicional..."/>
+        </div>
+        <div class="mf full" id="nt-enf" style="display:none;">
+          <div class="ml">Triaje</div><input class="mi" id="nt-triaje" placeholder="Triaje..."/>
+          <div class="ml" style="margin-top:6px;">Evoluci&oacute;n</div><textarea class="mta" id="nt-evol-enf" placeholder="Evoluci\u00f3n enfermeria..." style="min-height:40px;"></textarea>
+          <div class="ml" style="margin-top:6px;">Plan de tratamiento</div><input class="mi" id="nt-plan-enf" placeholder="Plan enfermeria..."/>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="mcanc" onclick="ptCloseNota()">Cancelar</button><button class="mconf" onclick="ptGuardarNota()">Guardar nota</button></div>
+  </div>
 </div>
 
 <script src="/patients.js"></script>
