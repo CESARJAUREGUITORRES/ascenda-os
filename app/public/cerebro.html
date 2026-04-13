@@ -445,94 +445,113 @@ function stopMic(){micOn=false;buffer='';waitingForTrigger=false;if(recognition)
 function startReco(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){pushAlert('Usa Chrome para la voz');return;}
-  if(recognition){try{recognition.abort();}catch(_){} recognition=null;}
-
   recognition=new SR();
   recognition.lang='es-PE';
   recognition.continuous=true;
   recognition.interimResults=true;
   recognition.maxAlternatives=3;
 
-  // Buffer acumulador — más fiable que isFinal en Android Chrome
-  let acum='';
-  let procesado='';
+  recognition.onresult=e=>{
+    const last=e.results[e.results.length-1];
+    const texts=[];for(let i=0;i<last.length;i++)texts.push(last[i].transcript.trim().toLowerCase());
+    const chunk=texts[0];
 
-  recognition.onresult=function(e){
-    // Reconstruir TODO el texto de la sesión
-    acum='';
-    for(var i=0;i<e.results.length;i++){
-      acum+=e.results[i][0].transcript+' ';
-    }
-    var tn=acum.trim().toLowerCase();
-
-    // Feedback visual
-    document.getElementById('kk-txt').textContent='👂 '+tn.slice(-55);
-
-    // Palabras de activación — todas las formas que Chrome puede decir "KronIA"
-    var actW=['kronia','cronia','corona','gronia','kroni','croni','cron','kron ia','cro nia'];
-    // Palabras de corte
-    var cutW=['respondeme','responde me','responde','ya responde','ejecuta','procesa'];
-
-    // Buscar activación
-    var posAct=-1, actLen=0;
-    for(var a=0;a<actW.length;a++){
-      var p=tn.indexOf(actW[a]);
-      if(p>=0&&(posAct<0||p<posAct)){posAct=p;actLen=actW[a].length;}
+    // Mostrar en tiempo real lo que escucha
+    if(!last.isFinal){
+      document.getElementById('kk-txt').textContent=(waitingForTrigger?'📝 '+buffer+' '+chunk:'👂 '+chunk);
+      return;
     }
 
-    // Buscar corte (solo después de activación)
-    var posCut=-1;
-    if(posAct>=0){
-      for(var c=0;c<cutW.length;c++){
-        var pc=tn.indexOf(cutW[c],posAct+actLen);
-        if(pc>=0&&(posCut<0||pc<posCut)) posCut=pc;
-      }
-    }
+    // Resultado final — acumular al buffer
+    // Normalizar variantes de "respondeme"
+    const chunkNorm=norm(chunk);
+    const esActivacion=/(cronia|kronia|corona|gronia|kroni|croni)/.test(chunkNorm);
+    const esCorte=/(respondeme|responde me|respondame|responde|ya responde|eso es todo|fin|listo)/.test(chunkNorm);
 
-    if(posAct>=0&&posCut>posAct){
-      // Extraer consulta entre activación y corte
-      var consulta=tn.slice(posAct+actLen,posCut).replace(/^[\s,]+/,'').trim();
-      if(consulta.length>1&&consulta!==procesado){
-        procesado=consulta;
-        document.getElementById('kk-txt').textContent='✅ '+consulta;
-        kkState('thinking');
-        try{recognition.stop();}catch(_){}
-        setTimeout(function(){dispararQuery(consulta);},100);
-      }
-    } else if(posAct>=0){
-      // Activación detectada, acumulando
-      var parcial=tn.slice(posAct+actLen).replace(/^[\s,]+/,'').trim();
+    if(esActivacion&&!waitingForTrigger){
+      // Detectó "Cronia" — empezar a acumular
+      waitingForTrigger=true;
+      // Extraer lo que viene después del nombre
+      const resto=chunkNorm.replace(/(cronia|kronia|corona|gronia|kroni|croni)/,'').trim();
+      buffer=resto;
       kkState('collecting');
-      document.getElementById('kk-txt').textContent='📝 '+(parcial||'escuchando...');
+      document.getElementById('kk-txt').textContent='📝 '+buffer;
+      // Si en el mismo fragmento también está "respondeme", procesar ya
+      if(esCorte){const q=buffer.replace(/(respondeme|responde me|respondame|responde|ya responde|eso es todo|fin|listo)/g,'').trim();dispararQuery(q);}
+    } else if(waitingForTrigger){
+      // Acumular más texto al buffer
+      if(esCorte){
+        // Llegó la palabra de corte — procesar
+        const clean=chunkNorm.replace(/(respondeme|responde me|respondame|responde|ya responde|eso es todo|fin|listo)/g,'').trim();
+        if(clean)buffer+=(buffer?' ':'')+clean;
+        const q=buffer.trim();
+        dispararQuery(q);
+      } else {
+        buffer+=(buffer?' ':'')+chunkNorm;
+        kkState('collecting');
+        document.getElementById('kk-txt').textContent='📝 '+buffer;
+      }
     }
+    // Si no está en modo colección y no hay activación, ignorar
   };
 
-  recognition.onspeechstart=function(){
-    document.getElementById('kk-dot').classList.add('active-voice');
-  };
-  recognition.onspeechend=function(){
-    document.getElementById('kk-dot').classList.remove('active-voice');
-  };
-  recognition.onerror=function(e){
+  recognition.onspeechstart=()=>{if(!isSpeaking)document.getElementById('kk-dot').classList.add('active-voice');};
+  recognition.onspeechend=()=>{document.getElementById('kk-dot').classList.remove('active-voice');};
+  recognition.onerror=e=>{
     if(e.error==='not-allowed'){pushAlert('Mic: permiso denegado');micOn=false;kkState('nomic');}
+    else if(e.error==='audio-capture'){pushAlert('Mic: sin dispositivo');kkState('nomic');}
+    // no-speech: normal, ignorar
   };
-  recognition.onend=function(){
-    if(micOn){
-      setTimeout(function(){
-        acum=''; // limpiar acumulador al reiniciar
-        try{recognition.start();}catch(_){}
-      },200);
-    }
-  };
+  recognition.onend=()=>{if(micOn&&!isSpeaking)setTimeout(()=>{try{recognition.start();}catch(_){}},200);};
   try{recognition.start();}catch(e){console.error('SR:',e);}
 }
 
 function dispararQuery(q){
-  if(!q||q.trim().length<2){kkSpeak('En que te puedo ayudar');return;}
+  buffer='';waitingForTrigger=false;
+  if(!q||q.trim().length<2){kkSpeak('¿Qué quieres saber?');return;}
   processQuery(q.trim());
 }
 
+// ── Waveforms ──────────────────────────────────────────────────
+function stopWave(){if(waveAnim){cancelAnimationFrame(waveAnim);waveAnim=null;}kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;kkCtx2.clearRect(0,0,kkCv.width,kkCv.height);}
+function waveReal(){
+  if(waveAnim)cancelAnimationFrame(waveAnim);
+  kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;
+  const cw=kkCv.width,ch=kkCv.height;
+  function frame(){
+    if(!analyser||isSpeaking){waveAnim=null;return;}
+    analyser.getByteFrequencyData(dataArr);kkCtx2.clearRect(0,0,cw,ch);
+    const bars=dataArr.length,bw=cw/bars,sig=dataArr.some(v=>v>8);
+    // Color: cyan normal, verde cuando acumula
+    const col=waitingForTrigger?'0,229,160':'0,201,167';
+    for(let i=0;i<bars;i++){const h=sig?Math.max(2,(dataArr[i]/255)*ch*.88):2,al=sig?(0.3+dataArr[i]/255*.65):0.18;kkCtx2.fillStyle='rgba('+col+','+al.toFixed(2)+')';kkCtx2.beginPath();if(kkCtx2.roundRect)kkCtx2.roundRect(i*bw+1,ch/2-h/2,bw-2,h,2);else kkCtx2.rect(i*bw+1,ch/2-h/2,bw-2,h);kkCtx2.fill();}
+    waveAnim=requestAnimationFrame(frame);
+  }
+  frame();
+}
+function waveSynth(mode){
+  if(waveAnim)cancelAnimationFrame(waveAnim);
+  kkCv.width=kkCv.offsetWidth||280;kkCv.height=kkCv.offsetHeight||28;
+  const cw=kkCv.width,ch=kkCv.height,spd=mode==='speak'?.10:.04,amp=mode==='speak'?.75:.30;
+  let t=0;
+  function frame(){t+=spd;kkCtx2.clearRect(0,0,cw,ch);for(let i=0;i<22;i++){const h=Math.max(2,(Math.sin(t+i*.42)*amp+amp+.05)*ch*.82);kkCtx2.fillStyle='rgba(0,201,167,'+(mode==='speak'?.65:.30)+')';kkCtx2.beginPath();if(kkCtx2.roundRect)kkCtx2.roundRect(i*(cw/22)+1,ch/2-h/2,cw/22-2,h,2);else kkCtx2.rect(i*(cw/22)+1,ch/2-h/2,cw/22-2,h);kkCtx2.fill();}waveAnim=requestAnimationFrame(frame);}
+  frame();
+}
 
+// ══ MOTOR DE INTENCIONES ════════════════════════════════════════
+function norm(s){return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i').replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n').replace(/[¿¡]/g,'').trim();}
+const INTS={ventas:['venta','vendim','factur','cobr','ingreso','cuanto hicim','cuanto ganamos','cuanto vendim','cuanto hemos'],citas:['cita','agenda','quien viene','citados','atencion','quien tenemos','visita'],leads:['lead','prospecto','contacto nuevo','cuantos nuevos','cuantos llegaron','campana'],cliente:['cliente','paciente','busca','informacion de','dime sobre','quien es','datos de'],llamadas:['llamada','llame','llamo','llaman','cuantas llamadas'],seguimientos:['seguimiento','pendiente','hay que llamar','sin contactar','retomar'],resumen:['resumen','como va','que paso','ponte al dia','hola','buenos dias','buenas','que hay','informe'],estado:['estado','conexion','sistema','funciona','como estamos','todo bien']};
+const AP=['Claro que sí,','Déjame revisar,','Aquí lo que encontré:','Te cuento,','Revisando los datos,','Mira,'];
+const APc=['Siguiendo con eso,','Sobre lo mismo,','Para agregar,'];
+const NSE=['Eso no lo tengo aún. Puedo ayudarte con ventas, citas, leads, pacientes, llamadas o el resumen del día.','No estoy segura. Di nuevamente: Cronia, tu consulta, respondeme.','Por ahora no tengo eso. ¿Quieres ventas, citas o el resumen?'];
+const OPTS={ventas:'¿Quieres verlo por sede, tratamiento o asesor?',citas:'¿Te digo el tratamiento o quién las agendó?',leads:'¿Por campaña o por fecha?',cliente:'¿Sus compras o sus llamadas?',llamadas:'¿Por asesor o por resultado?',seguimientos:'¿Los que llevan más tiempo sin contacto?'};
+function ap(c){return(c?APc:AP)[~~(Math.random()*(c?APc:AP).length)];}
+function opt(i){return OPTS[i]?' '+OPTS[i]:'';}
+function nse(){return NSE[~~(Math.random()*NSE.length)];}
+function topV(arr,key){const c={};let mx=0,res='sin datos';arr.forEach(o=>{const v=o[key]||'sin datos';c[v]=(c[v]||0)+1;if(c[v]>mx){mx=c[v];res=v;}});return res;}
+function detectInt(q){const qn=norm(q);if(qn.length<20&&ultimaInt){const cont=['y','por','de','en','ese','esa','eso','cual','cuales','mas','tambien','ahora'];if(cont.some(c=>qn===c||qn.startsWith(c+' ')))return{i:ultimaInt,c:true};}for(const[int,cls]of Object.entries(INTS)){if(cls.some(c=>qn.includes(c)))return{i:int,c:false};}if(ultimaInt)return{i:ultimaInt,c:true};return{i:'resumen',c:false};}
+function getPer(q,ctx){const qn=norm(q),hoy=new Date().toISOString().split('T')[0];if(qn.includes('hoy')||qn.includes('dia'))return{label:'hoy',f:'fecha=eq.'+hoy};if(qn.includes('semana')){const d7=new Date(Date.now()-7*86400000).toISOString().split('T')[0];return{label:'esta semana',f:'fecha=gte.'+d7};}if(qn.includes('mes'))return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};if(qn.includes('ayer')){const ay=new Date(Date.now()-86400000).toISOString().split('T')[0];return{label:'ayer',f:'fecha=eq.'+ay};}if(ctx&&ctx.per)return ctx.per;return{label:'este mes',f:'fecha=gte.'+hoy.slice(0,7)+'-01'};}
+function getSede(q){const qn=norm(q);if(qn.includes('pueblo')||qn.includes('libre'))return'PUEBLO LIBRE';if(qn.includes('isidro')||qn.includes('prado'))return'SAN ISIDRO';return null;}
 async function guardar(int,preg,resp,tabs){try{await fetch(SB+'/rest/v1/aos_kronia_conversaciones',{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ts:new Date().toISOString(),usuario:'admin',rol:'admin',pregunta:preg,intencion:int,tablas_usadas:tabs||[],respuesta:resp,session_id:SESSION_ID,fue_redundante:ultimaInt===int})});}catch(_){}}
 async function aprender(int,frase){try{await fetch('https://tgnezlhtqkiucwmrdirw.supabase.co/rest/v1/rpc/fn_kronia_aprender',{method:'POST',headers:{'apikey':SK2,'Content-Type':'application/json'},body:JSON.stringify({p_empresa:'ASCENDAOS',p_intencion:int,p_frase:frase})});}catch(_){}}
 
