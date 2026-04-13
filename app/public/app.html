@@ -630,24 +630,43 @@ function navigateTo(viewId) {
       .then(function(r) { return r.text(); })
       .then(function(panelHtml) {
         ws.innerHTML = panelHtml;
-        // Ejecutar scripts del panel — scope global via blob URL
+        // Ejecutar scripts del panel
         var scripts = ws.querySelectorAll('script');
-        var allCode = [];
+        var allInline = [];
+        var extSrcs = [];
         scripts.forEach(function(old) {
-          if (old.textContent && old.textContent.trim()) {
-            allCode.push(old.textContent);
+          if (old.src) {
+            // Script externo (ej: calls.js)
+            var srcUrl = old.src;
+            // Si es relativo, resolver contra origin
+            if (old.getAttribute('src').charAt(0) === '/') {
+              srcUrl = location.origin + old.getAttribute('src');
+            }
+            extSrcs.push(srcUrl);
+          } else if (old.textContent && old.textContent.trim()) {
+            allInline.push(old.textContent);
           }
           old.remove();
         });
-        if (allCode.length) {
-          var blob = new Blob([allCode.join('\n;\n')], {type:'application/javascript'});
-          var url = URL.createObjectURL(blob);
-          var s = document.createElement('script');
-          s.src = url;
-          s.onload = function() { URL.revokeObjectURL(url); };
-          s.onerror = function(e) { console.error('[AOS] Script load error:', e); URL.revokeObjectURL(url); };
-          document.head.appendChild(s);
+        // Cargar scripts externos primero, luego inline
+        function loadNext() {
+          if (extSrcs.length) {
+            var url = extSrcs.shift();
+            var s = document.createElement('script');
+            s.src = url;
+            s.onload = function() { loadNext(); };
+            s.onerror = function() { console.error('[AOS] Script load error:', url); loadNext(); };
+            document.head.appendChild(s);
+          } else if (allInline.length) {
+            var blob = new Blob([allInline.join('\n;\n')], {type:'application/javascript'});
+            var burl = URL.createObjectURL(blob);
+            var s = document.createElement('script');
+            s.src = burl;
+            s.onload = function() { URL.revokeObjectURL(burl); };
+            document.head.appendChild(s);
+          }
         }
+        loadNext();
       })
       .catch(function(e) {
         console.error('[AOS] Error cargando panel:', route, e);
