@@ -47,7 +47,7 @@
 @media(max-width:900px){.pt-left{width:240px;min-width:240px;}.pt-right{width:260px;min-width:260px;}.fkr{grid-template-columns:repeat(2,1fr);}.fd{grid-template-columns:1fr 1fr;}}
 </style>
 <div class="pt-root">
-  <div class="pt-left" id="pt-left"><div class="pt-sh"><div class="pt-st">Pacientes</div><div class="pt-sb"><input class="pt-si" id="pt-q" placeholder="Nombre, tel o DNI..." oninput="ptSearch(this.value)"/><button class="pt-sbtn" onclick="ptSearch(el('pt-q').value)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div></div><div class="pt-res" id="pt-res"><div class="ld">Busca un paciente</div></div></div>
+  <div class="pt-left" id="pt-left"><div class="pt-sh"><div class="pt-st">Pacientes</div><div class="pt-sb"><input class="pt-si" id="pt-q" placeholder="Nombre, tel o DNI..." oninput="ptSearch(this.value)"/><button class="pt-sbtn" onclick="ptSearch(el('pt-q').value)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div><button class="pt-nb" onclick="ptNuevoPac()" style="width:100%;margin-top:6px;background:#0A4FBF;">+ Nuevo paciente</button></div><div class="pt-res" id="pt-res"><div class="ld">Busca un paciente</div></div></div>
   <div class="pt-left-toggle" id="pt-lt" onclick="ptTL()">&#9776;</div>
   <div class="pt-center" id="pt-center"><div class="pt-empty" id="pt-empty"><div class="pt-empty-i">&#128100;</div><div style="font-size:13px;font-weight:700;">Selecciona un paciente</div></div><div id="pt-ficha" style="display:none;"></div></div>
   <div class="pt-right hidden" id="pt-right"><div class="pt-nh"><div class="pt-nt">Notas cl&iacute;nicas</div><button class="pt-nb" onclick="ptAbrirNota()">+ Nueva nota</button></div><div class="pt-nl" id="pt-nl"><div class="ld">Selecciona un paciente</div></div></div>
@@ -96,4 +96,17 @@
 <div class="mf full"><div class="ml">URL del documento (Google Drive, link directo)</div><input class="mi" id="doc-url" placeholder="https://drive.google.com/..."/></div>
 <div class="mf full"><div class="ml">Nombre descriptivo</div><input class="mi" id="doc-nombre" placeholder="Ej: Consentimiento HIFU 14-04-2026"/></div>
 </div></div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-doc').classList.remove('open')">Cancelar</button><button class="mconf" onclick="ptGuardarDoc()">Subir</button></div></div></div>
+
+<!-- MODAL NUEVO PACIENTE -->
+<div class="mov" id="pt-m-nuevo"><div class="modal" style="max-width:480px;"><div class="mhd"><span style="font-size:16px;">&#128100;</span><div class="mtit">Nuevo paciente</div><div class="mclose" onclick="el('pt-m-nuevo').classList.remove('open')">&times;</div></div><div class="mbody"><div class="mg">
+<div class="mf"><div class="ml">Nombres *</div><input class="mi" id="np-nom" placeholder="Nombres"/></div>
+<div class="mf"><div class="ml">Apellidos *</div><input class="mi" id="np-ape" placeholder="Apellidos"/></div>
+<div class="mf"><div class="ml">Teléfono *</div><input class="mi" id="np-tel" placeholder="987654321" type="tel"/></div>
+<div class="mf"><div class="ml">DNI</div><input class="mi" id="np-dni" placeholder="DNI/CE"/></div>
+<div class="mf"><div class="ml">Correo</div><input class="mi" id="np-correo" placeholder="correo@..."/></div>
+<div class="mf"><div class="ml">Sexo</div><select class="ms2" id="np-sexo"><option value="">--</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+<div class="mf"><div class="ml">Sede</div><select class="ms2" id="np-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+<div class="mf"><div class="ml">Fuente</div><input class="mi" id="np-fuente" placeholder="Referido, Redes..."/></div>
+</div></div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-nuevo').classList.remove('open')">Cancelar</button><button class="mconf blue" onclick="ptCrearPac()">Crear paciente</button></div></div></div>
+
 <script src="/patients.js"></script>

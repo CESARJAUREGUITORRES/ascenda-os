@@ -157,3 +157,30 @@ function ptGuardarDoc(){
     if(!r.ok)throw new Error('Error');el('pt-m-doc').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Documento guardado','','');ptSel(PT.sel.telefono);
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
+
+// NUEVO PACIENTE
+function ptNuevoPac(){
+  ['np-nom','np-ape','np-tel','np-dni','np-correo','np-fuente'].forEach(function(id){el(id).value='';});
+  el('np-sexo').value='';el('np-sede').value='SAN ISIDRO';
+  el('pt-m-nuevo').classList.add('open');
+}
+function ptCrearPac(){
+  var nom=el('np-nom').value.trim(),ape=el('np-ape').value.trim(),tel=el('np-tel').value.trim().replace(/\D/g,'');
+  if(!nom||!ape){alert('Nombres y apellidos son obligatorios');return;}
+  if(!tel||tel.length<7){alert('Teléfono válido obligatorio');return;}
+  var now=new Date();
+  var row={"Nombres":nom.toUpperCase(),"Apellidos":ape.toUpperCase(),"Teléfono":tel,
+    numero_limpio:tel,"N° documento":el('np-dni').value.trim(),"Email":el('np-correo').value.trim(),
+    "Sexo":el('np-sexo').value,"SEDE_PRINCIPAL":el('np-sede').value,
+    "FUENTE":el('np-fuente').value.trim(),"ESTADO_PACIENTE":"PROSPECTO",
+    "FECHA_REGISTRO":now.toISOString().slice(0,10),
+    "ID_PACIENTE":"P-"+Date.now(),
+    pais:"Perú",departamento:"Lima",ciudad:"Lima",
+    etiqueta_vip:"NORMAL"};
+  _rest('aos_pacientes',{method:'POST',body:JSON.stringify(row)}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    el('pt-m-nuevo').classList.remove('open');
+    if(window.AOS_showToast)AOS_showToast('Paciente creado','','toast-venta');
+    ptSel(tel);
+  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+}
