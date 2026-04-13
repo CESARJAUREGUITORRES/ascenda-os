@@ -84,7 +84,7 @@ function ptSubirDoc(){
   if(!tipo)tipo='CONSENTIMIENTO';
   var trat=prompt('Tratamiento relacionado (opcional):');
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero_limpio:PT.sel.telefono,tipo_documento:tipo.toUpperCase(),nombre_archivo:url.split('/').pop(),url_archivo:url,tratamiento:trat||'',autor:(ctx.asesor||'').toUpperCase(),id_autor:ctx.idAsesor||'',sede:''})}).then(function(r){
+  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:tipo.toUpperCase(),nombre_archivo:url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:new Date().toISOString().slice(0,10)})}).then(function(r){
     if(!r.ok)throw new Error('Error');
     if(window.AOS_showToast)AOS_showToast('Documento guardado','','');
     ptSel(PT.sel.telefono);
@@ -126,7 +126,7 @@ function ptGuardarNota(){
   if(!PT.sel)return;
   var tipo=el('nt-tipo').value;
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var row={numero_limpio:PT.sel.telefono,tipo_nota:tipo,contenido:el('nt-contenido').value.trim(),autor:(ctx.asesor||'').toUpperCase(),id_autor:ctx.idAsesor||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value};
+  var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:new Date().toISOString().slice(0,10),hora:new Date().toTimeString().slice(0,8)};
   if(tipo==='DOCTORA'){
     row.evolucion=el('nt-evolucion').value.trim();
     row.diagnostico=el('nt-diagnostico').value.trim();
