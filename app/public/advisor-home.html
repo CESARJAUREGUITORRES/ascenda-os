@@ -1,3 +1,8 @@
+<!-- ═══════════════════════════════════════════════════════════
+     ADVISOR HOME — AscendaOS v1
+     Migrado 100% Supabase directo — CERO GAS
+     RPCs: aos_panel_asesor, aos_comisiones_asesor, aos_semana_asesor, aos_get_seguimientos
+     ═══════════════════════════════════════════════════════════ -->
 <style>
 .vh-root{padding:16px;display:flex;flex-direction:column;gap:12px;}
 .embudo-bar{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;}
@@ -12,6 +17,7 @@
 .schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
 .slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
+.slink:hover{text-decoration:underline;}
 .atc-row{display:flex;align-items:center;justify-content:space-around;padding:18px 0;}
 .atc-item{text-align:center;}
 .atc-v{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;}
@@ -28,7 +34,6 @@
 .dc{flex:1;padding:6px 8px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
 .dc-l{font-size:9px;color:#9AAAC8;margin-bottom:2px;}
 .dc-v{font-size:12px;font-weight:700;}
-/* Calendario mini */
 .mini-cal{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;padding:10px 12px;margin-bottom:10px;}
 .mc-titulo{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;}
 .mc-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -41,9 +46,8 @@
 .mc-dot.pl{background:#FFFBEB;color:#D97706;border:1.5px solid #FDE68A;}
 .mc-dot.libre{background:#F0F4FC;color:#CDD5E0;border:1.5px solid transparent;}
 .mc-dia-num{font-size:8px;color:#9AAAC8;margin-top:2px;}
-/* Seguimientos */
 .seg-list{display:flex;flex-direction:column;gap:6px;}
-.si-item{padding:9px 11px;border-radius:9px;border:1px solid;cursor:pointer;}
+.si-item{padding:9px 11px;border-radius:9px;border:1px solid;cursor:pointer;transition:opacity .15s;}
 .si-item:hover{opacity:.8;}
 .sh2{background:#F0FDF4;border-color:#BBF7D0;}
 .sp{background:#F0F4FC;border-color:#DDE4F5;}
@@ -57,11 +61,12 @@
 .empty-state .msg{font-size:11px;}
 .sp-sm{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:900px){.main3{grid-template-columns:1fr;}}
 </style>
 
 <div class="vh-root">
 
-  <!-- Embudo del mes -->
+  <!-- ===== EMBUDO-BAR-START ===== -->
   <div class="embudo-bar">
     <div class="emb-titulo">📊 MES</div>
     <div class="emb-item"><div class="emb-v" id="emb-llam">—</div><div class="emb-l">Llamadas</div></div>
@@ -70,14 +75,15 @@
     <div class="emb-item"><div class="emb-v" id="emb-ventas">—</div><div class="emb-l">Ventas</div></div>
     <div class="emb-item"><div class="emb-v fact" id="emb-fact">S/—</div><div class="emb-l">Facturado</div></div>
   </div>
+  <!-- ===== EMBUDO-BAR-END ===== -->
 
   <div class="main3">
 
-    <!-- Mis Atenciones -->
+    <!-- ===== CARD-ATENCIONES-START ===== -->
     <div class="scard">
       <div class="schd">
         <div class="st">MIS ATENCIONES</div>
-        <button class="slink" onclick="window.AOS_navigateTo('advisor-attendance')">Ver más →</button>
+        <button class="slink" onclick="navTo('advisor-attendance')">Ver más →</button>
       </div>
       <div class="atc-row">
         <div class="atc-item"><div class="atc-v" id="atc-total">0</div><div class="atc-l">Atendidos</div></div>
@@ -87,14 +93,14 @@
         <div class="atc-item"><div class="atc-v m" id="atc-recom">0%</div><div class="atc-l">Recom.</div></div>
       </div>
     </div>
+    <!-- ===== CARD-ATENCIONES-END ===== -->
 
-    <!-- Mis Comisiones -->
+    <!-- ===== CARD-COMISIONES-START ===== -->
     <div class="scard">
       <div class="schd">
         <div class="st">MIS COMISIONES</div>
-        <button class="slink" onclick="window.AOS_navigateTo('advisor-commissions')">Ver detalle →</button>
+        <button class="slink" onclick="navTo('advisor-commissions')">Ver detalle →</button>
       </div>
-      <!-- com-v muestra comisión real (S/38.94), NO el facturado -->
       <div class="com-hd">
         <div class="com-v" id="com-total">S/. —</div>
         <div class="com-meta" id="com-meta">/ Meta S/. —</div>
@@ -109,15 +115,14 @@
         <div class="dc"><div class="dc-l">S/ Fact.</div><div class="dc-v" id="com-delta-fact" style="color:#16A34A;">—</div></div>
       </div>
     </div>
+    <!-- ===== CARD-COMISIONES-END ===== -->
 
-    <!-- Mi Semana -->
+    <!-- ===== CARD-MI-SEMANA-START ===== -->
     <div class="scard">
       <div class="schd">
         <div class="st">MI SEMANA</div>
-        <button class="slink" onclick="window.AOS_navigateTo('advisor-followups')">Ver segs →</button>
+        <button class="slink" onclick="navTo('advisor-followups')">Ver segs →</button>
       </div>
-
-      <!-- Calendario mini de turnos -->
       <div class="mini-cal">
         <div class="mc-titulo">
           📅 Turnos esta semana
@@ -131,161 +136,126 @@
         </div>
         <div id="mc-sede-hoy" style="margin-top:6px;font-size:10px;font-weight:600;color:#6B7BA8;text-align:center;"></div>
       </div>
-
-      <!-- Seguimientos pendientes -->
       <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;">
         Seguimientos pendientes
       </div>
       <div class="seg-list" id="seg-list">
         <div class="empty-state"><div class="ico">⏳</div><div class="msg">Cargando...</div></div>
       </div>
-
     </div>
+    <!-- ===== CARD-MI-SEMANA-END ===== -->
   </div>
 </div>
 
 <script>
-var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+/* ═══════════════════════════════════════════════════════════
+   ADVISOR HOME — 100% SUPABASE DIRECTO — CERO GAS
+   ═══════════════════════════════════════════════════════════ */
+var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
-function _q(t,f,ok){fetch(_SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
-function _hoy(){
-  return new Date().toISOString().slice(0,10);
-}
-function _mes(){
-  return new Date().toISOString().slice(0,7)+'-01';
-}
-function _ctx(){
-  try {
-    var s=JSON.parse(localStorage.getItem('aos_session')||'{}');
-    return { a:(s.nombre||'').toUpperCase(), id:s.codigo_asesor||'' };
-  } catch(e) { return { a:'', id:'' }; }
-}
 
-var VH = { token: '' };
+/* ===== HELPERS ===== */
+function _hoy(){return new Date().toISOString().slice(0,10);}
+function _mes(){return new Date().toISOString().slice(0,7)+'-01';}
+function _lunesSemana(){var d=new Date();var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);return new Date(d.getFullYear(),d.getMonth(),diff).toISOString().slice(0,10);}
+function _ctx(){try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');return{a:(s.nombre||'').toUpperCase(),id:s.codigo_asesor||''};}catch(e){return{a:'',id:''};}}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(n){return(n||0).toLocaleString('es-PE',{minimumFractionDigits:0});}
+function navTo(v){if(window.navigateTo)window.navigateTo(v);else if(window.AOS_navigateTo)window.AOS_navigateTo(v);}
 
-(function() {
-  VH.token = window.AOS_getToken ? window.AOS_getToken() : '';
-  loadPanelFast();   // embudo + comisiones reales
-  loadTurnos();      // calendario semanal
-  loadSeguimientos();// seguimientos pendientes
-})();
+/* ===== INIT ===== */
+(function(){loadEmbudo();loadComisiones();loadTurnos();loadSeguimientos();})();
 
-//  Panel rpido (embudo + comisiones REALES) 
-// Fuente: api_getPanelAsesorFastT  res.embudo + res.comisiones
-// IMPORTANTE: res.comisiones.total = comisin real (S/38.94)
-//             res.embudo.fact      = facturado (S/9,094)
-function loadPanelFast() {
-  (function(){var x=_ctx();_rpc("aos_panel_asesor",{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mes()},function(res) {
-      if (!res || !res.ok) return;
-      var el = function(id) { return document.getElementById(id); };
-
-      // Embudo
-      if (res.embudo) {
-        var d = res.embudo;
-        if (el('emb-llam'))   el('emb-llam').textContent   = d.llamadas   || 0;
-        if (el('emb-citas'))  el('emb-citas').textContent  = d.citas      || 0;
-        if (el('emb-asist'))  el('emb-asist').textContent  = d.asistieron || 0;
-        if (el('emb-ventas')) el('emb-ventas').textContent = d.ventas     || 0;
-        if (el('emb-fact'))   el('emb-fact').textContent   = 'S/' + ((d.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
-      }
-
-      // Comisiones REALES (no confundir con facturado)
-      if (res.comisiones) {
-        var c = res.comisiones;
-        var comReal = parseFloat(c.total) || 0;
-        var meta    = parseFloat(c.meta)  || 100;
-        var pct     = Number(c.pct)       || 0;
-
-        if (el('com-total')) el('com-total').textContent = 'S/. ' + comReal.toFixed(2);
-        if (el('com-meta'))  el('com-meta').textContent  = '/ Meta S/. ' + meta.toFixed(2);
-        if (el('com-prog'))  el('com-prog').style.width  = Math.min(pct, 100) + '%';
-        if (el('com-pct'))   el('com-pct').textContent   = pct + '% completado';
-        if (el('com-rank-lbl')) el('com-rank-lbl').textContent = 'Rank ' + (c.rank || '#1');
-      }
-
-      // Ventas y facturado en las delta cards
-      if (res.embudo) {
-        if (el('com-delta-v'))    el('com-delta-v').textContent    = res.embudo.ventas || 0;
-        if (el('com-delta-fact')) el('com-delta-fact').textContent = 'S/' + ((res.embudo.fact||0).toLocaleString('es-PE',{minimumFractionDigits:0}));
-      }
-    });})()
-;
-}
-
-//  Calendario de turnos (Mi Semana) 
-// Fuente: api_getMisSemanaT  res.dias[{diaSem,dia,esHoy,esPasado,tieneTurno,sede}]
-function loadTurnos() {
-  (function(){var x=_ctx();_rpc("aos_semana_asesor",{p_id_asesor:x.id,p_hoy:_hoy()},function(res) {
-      var cont = document.getElementById('mc-dias');
-      if (!res || !res.ok || !res.dias || !res.dias.length) {
-        cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';
-        return;
-      }
-      cont.innerHTML = res.dias.map(function(d) {
-        var tieneT = d.tieneTurno;
-        var esSI   = tieneT && d.sede === 'SAN ISIDRO';
-        var esPL   = tieneT && d.sede === 'PUEBLO LIBRE';
-        var dotCls = esSI ? 'si' : esPL ? 'pl' : 'libre';
-        var dotTxt = esSI ? 'SI' : esPL ? 'PL' : '';
-        var cls    = (d.esHoy ? ' hoy' : '') + (d.esPasado && !d.esHoy ? ' pasado' : '');
-        return '<div class="mc-dia' + cls + '" title="' + esc(d.fecha) + (tieneT?' · '+esc(d.sede):'') + '">' +
-          '<div class="mc-lbl">' + esc(d.diaSem) + '</div>' +
-          '<div class="mc-dot ' + dotCls + '">' + dotTxt + '</div>' +
-          '<div class="mc-dia-num">' + (d.dia||'') + '</div></div>';
-      }).join('');
-
-      // Sede de hoy
-      var hoy = res.dias.find(function(d) { return d.esHoy; });
-      var sedeEl = document.getElementById('mc-sede-hoy');
-      if (hoy && hoy.tieneTurno) {
-        sedeEl.textContent = '📍 Hoy: ' + hoy.sede;
-        sedeEl.style.color = hoy.sede === 'SAN ISIDRO' ? '#16A34A' : '#D97706';
-      } else if (hoy) {
-        sedeEl.textContent = '— Sin turno hoy';
-        sedeEl.style.color = '#9AAAC8';
-      }
-    });})()
-;
-}
-
-//  Seguimientos pendientes 
-// Fuente: api_getMySeguimientosT  res.items[{segId,num,trat,obs,fecha,fechaHora,tipo,whatsapp}]
-function loadSeguimientos() {
-  (function(){var x=_ctx();_rpc("aos_get_seguimientos",{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(res){renderSegs(res&&res.items?res.items:[]);},function(){renderSegs([]);});})();
-}
-
-function renderSegs(items) {
-  var el = document.getElementById('seg-list');
-
-  // Filtrar los invlidos (fecha 1899, etc.)
-  var validos = (items || []).filter(function(s) {
-    if ((s.fecha || '').indexOf('1899') >= 0) return false;
-    return true;
+/* ═════ 1. EMBUDO DEL MES ═════════════════════════════════
+   RPC: aos_panel_asesor
+   Retorna: { llamMes, citasMes, asistMes, ventasMes, factMes, ... }
+   ═══════════════════════════════════════════════════════ */
+function loadEmbudo(){
+  var x=_ctx();
+  _rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mes()},function(r){
+    if(!r)return;
+    if($('emb-llam'))  $('emb-llam').textContent  = r.llamMes  ||0;
+    if($('emb-citas')) $('emb-citas').textContent = r.citasMes ||0;
+    if($('emb-asist')) $('emb-asist').textContent = r.asistMes ||0;
+    if($('emb-ventas'))$('emb-ventas').textContent= r.ventasMes||0;
+    if($('emb-fact'))  $('emb-fact').textContent  = 'S/'+fmt(r.factMes);
+    if($('com-delta-v'))   $('com-delta-v').textContent   = r.ventasMes||0;
+    if($('com-delta-fact'))$('com-delta-fact').textContent = 'S/'+fmt(r.factMes);
   });
+}
 
-  if (!validos.length) {
-    el.innerHTML = '<div class="empty-state"><div class="ico">🎉</div><div class="msg">Sin seguimientos pendientes</div></div>';
-    return;
-  }
+/* ═════ 2. COMISIONES REALES ══════════════════════════════
+   RPC: aos_comisiones_asesor
+   Retorna: { comTotal, meta, pct, ranking, nVentas, factTotal }
+   ═══════════════════════════════════════════════════════ */
+function loadComisiones(){
+  var x=_ctx(), h=new Date();
+  var mes=String(h.getMonth()+1).padStart(2,'0'), anio=String(h.getFullYear());
+  _rpc('aos_comisiones_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_mes:mes,p_anio:anio},function(r){
+    if(!r)return;
+    var com=parseFloat(r.comTotal)||0, meta=parseFloat(r.meta)||100, pct=Number(r.pct)||0;
+    if($('com-total'))   $('com-total').textContent   ='S/. '+com.toFixed(2);
+    if($('com-meta'))    $('com-meta').textContent    ='/ Meta S/ '+fmt(meta);
+    if($('com-prog'))    $('com-prog').style.width    =Math.min(pct,100)+'%';
+    if($('com-pct'))     $('com-pct').textContent     =pct+'% completado';
+    if($('com-rank-lbl'))$('com-rank-lbl').textContent='Rank #'+(r.ranking||'—');
+  });
+}
 
-  el.innerHTML = validos.slice(0, 5).map(function(s) {
-    var esHoy  = s.esHoy    || s.tipo === 'hoy';
-    var esVenc = s.vencido  || s.tipo === 'vencido';
-    var cls    = esVenc ? 'sv' : esHoy ? 'sh2' : 'sp';
-    var tag    = esVenc ? '⚠ VENCIDO' : esHoy ? '● HOY' : '○ PRÓXIMO';
-    var fechaStr = (s.fecha && s.fecha.indexOf('1899') < 0 && s.fecha !== '')
-                   ? ' · ' + s.fecha.slice(5) : '';
-    return '<div class="si-item ' + cls + '"' +
-           ' onclick="window.open(\'' + esc(s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/\\D/g,''))) + '\',\'_blank\')">' +
-      '<div class="st2">' + tag + esc(fechaStr) + '</div>' +
-      '<div class="sn">' + esc(s.num||'—') + ' · ' + esc(s.trat||'—') + '</div>' +
-      (s.obs ? '<div class="sm">' + esc(s.obs.slice(0, 50)) + '</div>' : '') +
+/* ═════ 3. CALENDARIO TURNOS ══════════════════════════════
+   RPC: aos_semana_asesor(p_asesor, p_fecha_lunes)
+   Retorna: { dias:[{fecha,dia,dia_sem,es_hoy,es_pasado,tiene_turno,sede}] }
+   ═══════════════════════════════════════════════════════ */
+function loadTurnos(){
+  var x=_ctx();
+  _rpc('aos_semana_asesor',{p_asesor:x.a,p_fecha_lunes:_lunesSemana()},function(r){
+    var cont=$('mc-dias');
+    if(!r||!r.dias||!r.dias.length){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';return;}
+    cont.innerHTML=r.dias.map(function(d){
+      var t=d.tiene_turno;
+      var si=t&&(d.sede==='SAN ISIDRO'||d.sede==='SAN_ISIDRO');
+      var pl=t&&(d.sede==='PUEBLO LIBRE'||d.sede==='PUEBLO_LIBRE');
+      var dc=si?'si':pl?'pl':'libre', dt=si?'SI':pl?'PL':'';
+      var cl=(d.es_hoy?' hoy':'')+(d.es_pasado&&!d.es_hoy?' pasado':'');
+      return '<div class="mc-dia'+cl+'" title="'+esc(d.fecha)+(t?' - '+esc(d.sede||''):'')+'">'+
+        '<div class="mc-lbl">'+esc(d.dia_sem)+'</div>'+
+        '<div class="mc-dot '+dc+'">'+dt+'</div>'+
+        '<div class="mc-dia-num">'+(d.dia||'')+'</div></div>';
+    }).join('');
+    var hoy=r.dias.find(function(d){return d.es_hoy;});
+    var se=$('mc-sede-hoy');
+    if(hoy&&hoy.tiene_turno){var sn=(hoy.sede||'').replace(/_/g,' ');se.textContent='📍 Hoy: '+sn;se.style.color=sn.indexOf('SAN')>=0?'#16A34A':'#D97706';}
+    else if(hoy){se.textContent='— Sin turno hoy';se.style.color='#9AAAC8';}
+  },function(){$('mc-dias').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin acceso al calendario</div>';});
+}
+
+/* ═════ 4. SEGUIMIENTOS PENDIENTES ════════════════════════
+   RPC: aos_get_seguimientos(p_asesor, p_id_asesor, p_hoy)
+   Retorna: { ok, items:[{segId,fecha,num,trat,obs,tipo,vencido,esHoy,whatsapp}] }
+   ═══════════════════════════════════════════════════════ */
+function loadSeguimientos(){
+  var x=_ctx();
+  _rpc('aos_get_seguimientos',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(r){
+    renderSegs(r&&r.items?r.items:[]);
+  },function(){renderSegs([]);});
+}
+function renderSegs(items){
+  var el=$('seg-list');
+  var v=(items||[]).filter(function(s){return(s.fecha||'').indexOf('1899')<0;});
+  if(!v.length){el.innerHTML='<div class="empty-state"><div class="ico">🎉</div><div class="msg">Sin seguimientos pendientes</div></div>';return;}
+  el.innerHTML=v.slice(0,5).map(function(s){
+    var esH=s.esHoy||s.tipo==='hoy', esV=s.vencido||s.tipo==='vencido';
+    var cl=esV?'sv':esH?'sh2':'sp';
+    var tg=esV?'⚠ VENCIDO':esH?'● HOY':'○ PRÓXIMO';
+    var fs=(s.fecha&&s.fecha.indexOf('1899')<0&&s.fecha!=='')?(' · '+s.fecha.slice(5)):'';
+    var wa=s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/\D/g,''));
+    return '<div class="si-item '+cl+'" onclick="window.open(\''+esc(wa)+'\',\'_blank\')">'+
+      '<div class="st2">'+tg+esc(fs)+'</div>'+
+      '<div class="sn">'+esc(s.num||'—')+' · '+esc(s.trat||'—')+'</div>'+
+      (s.obs?'<div class="sm">'+esc(s.obs.slice(0,50))+'</div>':'')+
       '</div>';
   }).join('');
 }
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 </script>
