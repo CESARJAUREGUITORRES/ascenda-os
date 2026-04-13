@@ -382,13 +382,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 
 <script>
 
-
+/* ===== GLOBAL STATE ===== */
+var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', estadoBloqueo:'', bloqueoInicio:0 };
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _q(tabla,filtro,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
 function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){r.ok&&ok&&ok();});}
-(function init() {
+
+/* ===== INIT — se ejecuta al final del script via setTimeout para garantizar que todas las funciones estén definidas ===== */
+setTimeout(function() {
   try {
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
     if (!s || !s.codigo_asesor || s.expires < Date.now()) { redirectLogin(); return; }
@@ -399,13 +402,13 @@ function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{me
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
   buildTopbar(); buildSidebar(); startClock();
-  // Cargar panel inicial DENTRO del workspace (no redirect)
+  // Cargar panel inicial DENTRO del workspace
   if (AOS.role === 'ADMIN') {
     navigateTo('admin-home');
   } else {
     navigateTo('advisor-home');
   }
-})();
+}, 0);
 
 /* ---------------------------------------------------
    TOPBAR BUILD
