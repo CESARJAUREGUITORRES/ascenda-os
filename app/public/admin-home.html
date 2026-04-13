@@ -16,7 +16,7 @@
   --red:#DC2626;--red-xl:#FEF2F2;--red-md:#FECACA;
   --amber:#D97706;--amber-xl:#FFFBEB;
   --purple:#7C3AED;--purple-xl:#F5F3FF;
-  --sw:200px;--th:52px;
+  --sw:200px;--th:52px;--rw:260px;--rw-collapsed:0px;
 }
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
@@ -170,7 +170,7 @@ tr:last-child td{border-bottom:none}
 <!-- TOPBAR -->
 <div class="topbar">
   <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-  <a href="/admin-home.html" class="logo">
+  <a href="/admin-home.html" class="logo" onclick="event.preventDefault();toggleRightPanel()" title="Abrir/Cerrar panel">
     <svg viewBox="0 0 48 48" fill="none">
       <rect x="2" y="2" width="20" height="20" rx="4" fill="#00E5A0"/>
       <rect x="26" y="2" width="13" height="13" rx="3" fill="#00C9A7"/>
@@ -188,7 +188,53 @@ tr:last-child td{border-bottom:none}
   </button>
   <button class="tb-btn danger" onclick="logout()">Salir</button>
 </div>
-<style>@keyframes sbpulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+<style>@keyframes sbpulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ── LAYOUT PC: 3 columnas sidebar|main|right-panel ── */
+@media(min-width:900px){
+  .menu-btn{display:none !important}
+  .sidebar{transform:none !important}
+  .sb-overlay{display:none !important}
+  .layout-wrap{display:flex;min-height:calc(100vh - var(--th))}
+  .main{flex:1;margin-left:var(--sw);margin-right:0;min-width:0;transition:margin-right .25s}
+  .main.rp-open{margin-right:var(--rw)}
+}
+
+/* ── RIGHT PANEL ── */
+.rp{
+  position:fixed;top:var(--th);right:0;bottom:0;
+  width:var(--rw);
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;z-index:90;
+  transform:translateX(100%);
+  transition:transform .25s;
+}
+.rp.open{transform:translateX(0)}
+.rp-inner{padding:10px 0}
+.rp-sec{
+  padding:14px 14px 6px;
+  font-size:9px;font-weight:700;letter-spacing:1px;
+  color:var(--label);text-transform:uppercase;
+  border-bottom:1px solid var(--border);margin-bottom:4px;
+}
+.rp-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 14px;cursor:pointer;
+  font-size:11px;font-weight:500;color:var(--muted);
+  text-decoration:none;transition:background .12s;
+  white-space:nowrap;overflow:hidden;
+}
+.rp-item:hover{background:var(--bg);color:var(--text)}
+.rp-item.act{color:var(--blue);font-weight:700}
+.rp-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7;color:var(--cyan)}
+.rp-item:hover svg,.rp-item.act svg{opacity:1}
+/* Solo icono cuando sidebar colapsado — futuro */
+.rp-lbl{flex:1}
+
+/* Logo clickeable toggle ── */
+.logo{cursor:pointer;user-select:none}
+</style>
 
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
@@ -226,6 +272,62 @@ tr:last-child td{border-bottom:none}
     <svg viewBox="0 0 20 20" fill="none"><path d="M8 4H5a1 1 0 00-1 1v10a1 1 0 001 1h3M13 14l3-4-3-4M7 10h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Salir
   </a>
 </nav>
+
+<!-- RIGHT PANEL (click logo para abrir/cerrar) -->
+<div class="rp" id="rp">
+  <div class="rp-inner">
+    <div class="rp-sec">Gestión Clínica</div>
+    <a href="/admin-patients.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 17c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="rp-lbl">Pacientes</span>
+    </a>
+    <a href="/agenda.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v4M13 2v4M3 9h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="rp-lbl">Agenda</span>
+    </a>
+
+    <div class="rp-sec">Comercial</div>
+    <a href="/admin-sales.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>
+      <span class="rp-lbl">Ventas</span>
+    </a>
+    <a href="/admin-comisiones.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="12" width="3" height="5" rx="1" fill="currentColor" opacity=".65"/><rect x="8.5" y="7" width="3" height="10" rx="1" fill="currentColor" opacity=".8"/><rect x="14" y="4" width="3" height="13" rx="1" fill="currentColor"/></svg>
+      <span class="rp-lbl">Comisiones</span>
+    </a>
+    <a href="/admin-marketing.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5h2.5L14 4v12L6.5 12.5H4a1.5 1.5 0 01-1.5-1.5v-2A1.5 1.5 0 014 7.5z" fill="currentColor" opacity=".85"/></svg>
+      <span class="rp-lbl">Marketing</span>
+    </a>
+    <a href="/calls.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M4 3h3l1.5 4-2 1.5c1 2 3 4 5 5l1.5-2 4 1.5V16a1 1 0 01-1 1C7 17 3 13 3 4a1 1 0 011-1z" fill="currentColor" opacity=".9"/></svg>
+      <span class="rp-lbl">Llamadas</span>
+    </a>
+
+    <div class="rp-sec">Finanzas</div>
+    <a href="/admin-billing.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 9h16" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="rp-lbl">Facturación</span>
+    </a>
+
+    <div class="rp-sec">Recursos</div>
+    <a href="/admin-team.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="7" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 16c0-2.8 2.5-4.5 5.5-4.5M18.5 16c0-2.8-2.5-4.5-5.5-4.5M7.5 16c0-2.5 1.1-4 3-4s3 1.5 3 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="rp-lbl">Equipo</span>
+    </a>
+    <a href="/admin-ops.html" class="rp-item">
+      <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="rp-lbl">Configuración</span>
+    </a>
+
+    <div class="rp-sec" style="margin-top:8px">Acceso rápido</div>
+    <a href="/cerebro.html" target="_blank" class="rp-item act">
+      <svg viewBox="0 0 20 20" fill="none"><ellipse cx="10" cy="10" rx="4" ry="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 7.5C4 6.5 2.5 7 2 9M14 7.5c2-1 3.5-.5 4 1.5M6 12.5C4 13.5 2.5 13 2 11M14 12.5c2 1 3.5.5 4-1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <span class="rp-lbl">Brain · KronIA</span>
+    </a>
+  </div>
+</div>
+
 
 <!-- MAIN -->
 <div class="main">
@@ -335,6 +437,28 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <script>
+
+// Right panel — toggle con click en logo
+function toggleRightPanel(){
+  var rp=document.getElementById('rp');
+  var main=document.querySelector('.main');
+  rp.classList.toggle('open');
+  if(main)main.classList.toggle('rp-open');
+  // Guardar estado en localStorage
+  try{localStorage.setItem('rp_open', rp.classList.contains('open')?'1':'0');}catch(e){}
+}
+// Restaurar estado al cargar
+(function(){
+  try{
+    if(localStorage.getItem('rp_open')==='1'){
+      var rp=document.getElementById('rp');
+      var main=document.querySelector('.main');
+      if(rp){rp.classList.add('open');if(main)main.classList.add('rp-open');}
+    }
+  }catch(e){}
+})();
+
+
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
