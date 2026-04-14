@@ -150,8 +150,8 @@ function pagoAbrir(cotId){
   el('pt-m-pago').classList.add('open');
 }
 function loadMetodosPago(cb){
-  if(PT.metodos.length){if(cb)cb();return;}
-  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(mets){PT.metodos=mets||[];if(cb)cb();});
+  if(PT.metodos&&PT.metodos.length>0){if(cb)cb();return;}
+  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(mets){PT.metodos=mets||[];if(cb)cb();}).catch(function(){PT.metodos=[{nombre:'EFECTIVO',moneda:'PEN'},{nombre:'NIUBIZ SAN ISIDRO',moneda:'PEN'},{nombre:'NIUBIZ PUEBLO LIBRE',moneda:'PEN'},{nombre:'IZIPAY YA',moneda:'PEN'},{nombre:'TRANSFERENCIA BCP',moneda:'PEN'},{nombre:'TRANSFERENCIA IBK',moneda:'PEN'},{nombre:'INTERBANK DRA',moneda:'PEN'},{nombre:'BBVA DRA',moneda:'PEN'},{nombre:'BCP DRA',moneda:'PEN'},{nombre:'QR DOCTORA',moneda:'PEN'},{nombre:'QR CARMEN',moneda:'PEN'},{nombre:'MERCADO PAGO',moneda:'PEN'},{nombre:'DOLARES EFECTIVO',moneda:'USD'},{nombre:'IBK DRA DOLARES',moneda:'USD'}];if(cb)cb();});
 }
 function pagoToggleDividir(){
   PT.isDividido=!PT.isDividido;
