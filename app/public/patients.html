@@ -1,9 +1,9 @@
-<!-- patients.html v3 — Pacientes 360 | AscendaOS v1 | 100% Supabase -->
+<!-- patients.html v4 — Pacientes 360 + Cotizaciones Doctocliq | AscendaOS SES-014 -->
 <style>
 .pt-root{display:flex;height:100%;overflow:hidden;position:relative;}
 .pt-left{width:300px;min-width:300px;background:#fff;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-left .3s;z-index:2;}.pt-left.hidden{margin-left:-300px;}
 .pt-left-toggle{position:absolute;top:50%;transform:translateY(-50%);width:24px;height:48px;background:#0A4FBF;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:3;transition:left .3s;}.pt-left.hidden~.pt-left-toggle{left:0;}.pt-left:not(.hidden)~.pt-left-toggle{left:300px;}
-.pt-sh{padding:12px;border-bottom:1px solid #DDE4F5;}.pt-st{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;margin-bottom:6px;}.pt-sb{display:flex;gap:5px;}.pt-si{flex:1;padding:7px 9px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:DM\ Sans,sans-serif;outline:none;}.pt-si:focus{border-color:#0A4FBF;}.pt-sbtn{width:34px;height:34px;border-radius:8px;background:#0A4FBF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pt-sh{padding:12px;border-bottom:1px solid #DDE4F5;}.pt-st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;margin-bottom:6px;}.pt-sb{display:flex;gap:5px;}.pt-si{flex:1;padding:7px 9px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;}.pt-si:focus{border-color:#0A4FBF;}.pt-sbtn{width:34px;height:34px;border-radius:8px;background:#0A4FBF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .pt-res{flex:1;overflow-y:auto;padding:6px;}.pt-res::-webkit-scrollbar{width:3px;}.pt-res::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .pt-c{padding:8px;border:1px solid #DDE4F5;border-radius:9px;margin-bottom:5px;cursor:pointer;transition:all .15s;}.pt-c:hover{border-color:#0A4FBF;background:#F8FAFF;}.pt-c.act{border-color:#0A4FBF;background:#EBF2FF;}
 .pt-cn{font-weight:700;font-size:11px;color:#0D1B3E;}.pt-cm{font-size:9px;color:#9AAAC8;margin-top:2px;}
@@ -13,37 +13,72 @@
 .pt-center{flex:1;overflow-y:auto;padding:14px;background:#F8FAFF;}.pt-center::-webkit-scrollbar{width:3px;}.pt-center::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .pt-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9AAAC8;gap:10px;}.pt-empty-i{font-size:44px;opacity:.3;}
 .fh{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px;background:#fff;border-radius:14px;border:1px solid #DDE4F5;}
-.fav{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;font-family:Exo\ 2,sans-serif;flex-shrink:0;}
-.fn{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;display:flex;align-items:center;gap:8px;}.fs{font-size:11px;color:#6B7BA8;margin-top:2px;}
+.fav{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;font-family:'Exo 2',sans-serif;flex-shrink:0;}
+.fn{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.fs{font-size:11px;color:#6B7BA8;margin-top:2px;}
 .vip-badge{padding:2px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.5px;}
 .vip-NORMAL{display:none;}.vip-PREMIUM{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;}.vip-VIP{background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;}.vip-DIAMANTE{background:linear-gradient(135deg,#0EA5E9,#0284C7);color:#fff;}
-.fa{margin-left:auto;display:flex;gap:5px;}.fab{padding:5px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-family:DM\ Sans,sans-serif;text-decoration:none;display:flex;align-items:center;gap:3px;}.fab:hover{background:#EBF2FF;}.fab.wa{border-color:#BBF7D0;color:#16A34A;}.fab.edit{border-color:#D97706;color:#D97706;}
-.fkr{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}.fk{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:9px;text-align:center;}.fkv{font-family:Exo\ 2,sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;}.fkl{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.fa{margin-left:auto;display:flex;gap:5px;flex-shrink:0;}.fab{padding:5px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;gap:3px;}.fab:hover{background:#EBF2FF;}.fab.wa{border-color:#BBF7D0;color:#16A34A;}.fab.edit{border-color:#D97706;color:#D97706;}
+.fkr{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}.fk{background:#fff;border:1px solid #DDE4F5;border-radius:10px;padding:9px;text-align:center;}.fkv{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;}.fkl{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
 .fd{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;}.fdc{background:#fff;border:1px solid #DDE4F5;border-radius:9px;padding:8px 10px;}.fdl{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}.fdv{font-size:11px;font-weight:600;color:#0D1B3E;}
 .dup-w{margin-bottom:12px;}.dup-c{padding:7px;border:2px solid #FEF3C7;border-radius:8px;background:#FFFBEB;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}.dup-n{font-weight:700;color:#D97706;font-size:11px;}.dup-m{font-size:9px;color:#9AAAC8;}.dup-b{padding:3px 8px;border-radius:5px;border:1px solid #D97706;background:#fff;font-size:9px;font-weight:700;color:#D97706;cursor:pointer;}
-.ftabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;}.ftab{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.ftabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;}.ftab{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;font-family:'DM Sans',sans-serif;}.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
 .ftc{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px;min-height:180px;}
 .tt{width:100%;border-collapse:collapse;}.tt th{font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#9AAAC8;padding:4px 5px;border-bottom:1px solid #DDE4F5;text-align:left;}.tt td{padding:5px;border-bottom:1px solid rgba(221,228,245,.3);font-size:10px;}.tt tr:last-child td{border-bottom:none;}
 .est-b{padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;display:inline-block;}.est-pend{background:#FEF3C7;color:#D97706;}.est-asist{background:#F0FDF4;color:#16A34A;}.est-noasist{background:#FEF2F2;color:#DC2626;}.est-cancel{background:#F0F4FC;color:#6B7BA8;}.est-conf{background:#EBF2FF;color:#0A4FBF;}
 .pt-right{width:320px;min-width:320px;background:#fff;border-left:1px solid #DDE4F5;display:flex;flex-direction:column;transition:margin-right .3s;z-index:2;}.pt-right.hidden{margin-right:-320px;}
 .pt-right-toggle{position:absolute;top:50%;right:0;transform:translateY(-50%);width:24px;height:48px;background:#16A34A;border-radius:8px 0 0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:3;transition:right .3s;}.pt-right.hidden~.pt-right-toggle{right:0;}.pt-right:not(.hidden)~.pt-right-toggle{right:320px;}
-.pt-nh{padding:12px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;justify-content:space-between;}.pt-nt{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}.pt-nb{padding:4px 10px;border-radius:7px;background:#16A34A;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;}
+.pt-nh{padding:12px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;justify-content:space-between;}.pt-nt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}.pt-nb{padding:4px 10px;border-radius:7px;background:#16A34A;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;}
 .pt-nl{flex:1;overflow-y:auto;padding:6px;}.pt-nl::-webkit-scrollbar{width:3px;}.pt-nl::-webkit-scrollbar-thumb{background:#DDE4F5;}
 .nc{padding:8px;border:1px solid #DDE4F5;border-radius:8px;margin-bottom:5px;font-size:10px;}.nc-h{display:flex;justify-content:space-between;margin-bottom:3px;}.nc-a{font-weight:700;color:#0A4FBF;}.nc-d{font-size:9px;color:#9AAAC8;}
 .nc-tipo{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;margin-right:4px;}.nc-t-rec{background:#EBF2FF;color:#0A4FBF;}.nc-t-inf{background:#F0F4FC;color:#6B7BA8;}.nc-t-enf{background:#F0FDF4;color:#16A34A;}.nc-t-doc{background:#FEF3C7;color:#D97706;}.nc-txt{color:#0D1B3E;line-height:1.4;white-space:pre-wrap;}
 .mov{position:fixed;inset:0;background:rgba(7,29,74,.45);display:none;justify-content:center;align-items:center;padding:20px;z-index:999;overflow-y:auto;}.mov.open{display:flex;}
 .modal{background:#fff;border-radius:16px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.15);animation:slideUp .2s;}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #DDE4F5;}.mtit{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}.mclose{margin-left:auto;cursor:pointer;font-size:18px;color:#9AAAC8;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;}.mclose:hover{background:#F0F4FC;}
+.mhd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #DDE4F5;}.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}.mclose{margin-left:auto;cursor:pointer;font-size:18px;color:#9AAAC8;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;}.mclose:hover{background:#F0F4FC;}
 .mbody{padding:16px 18px;max-height:70vh;overflow-y:auto;}.mfoot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid #DDE4F5;}
-.mfoot button{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM\ Sans,sans-serif;}.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}.mconf{background:#16A34A;border:none;color:#fff;}.mconf.blue{background:#0A4FBF;}
+.mfoot button{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}.mcanc{background:#fff;border:1px solid #DDE4F5;color:#6B7BA8;}.mconf{background:#16A34A;border:none;color:#fff;}.mconf.blue{background:#0A4FBF;}
 .mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.mf{display:flex;flex-direction:column;gap:3px;}.mf.full{grid-column:1/-1;}.ml{font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.4px;}
-.mi{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}.mi:focus{border-color:#0A4FBF;}.ms2{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;outline:none;background:#fff;}
-.mta{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:60px;width:100%;}
+.mi{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}.mi:focus{border-color:#0A4FBF;}.ms2{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;}
+.mta{padding:7px 9px;border:1px solid #DDE4F5;border-radius:7px;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;resize:vertical;min-height:60px;width:100%;}
 .imc-pill{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;display:inline-block;margin-left:6px;}
 .imc-bajo{background:#EBF2FF;color:#0A4FBF;}.imc-normal{background:#F0FDF4;color:#16A34A;}.imc-sobre{background:#FEF3C7;color:#D97706;}.imc-obeso{background:#FEF2F2;color:#DC2626;}
 .ld{text-align:center;padding:16px;color:#9AAAC8;font-size:11px;}.sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* ===== COT-CARD DOCTOCLIQ ===== */
+.cot-card{border:1px solid #DDE4F5;border-radius:14px;margin-bottom:14px;overflow:hidden;background:#fff;transition:box-shadow .2s;}.cot-card:hover{box-shadow:0 4px 16px rgba(10,79,191,.08);}
+.cot-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;}
+.cot-hdr-left{display:flex;align-items:center;gap:8px;}
+.cot-chevron{width:20px;height:20px;color:#9AAAC8;transition:transform .2s;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.cot-card.collapsed .cot-chevron{transform:rotate(-90deg);}
+.cot-card.collapsed .cot-body{display:none;}
+.cot-est{padding:3px 10px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.3px;}
+.cot-est-pagado{background:#F0FDF4;color:#16A34A;}.cot-est-deuda{background:#FEF2F2;color:#DC2626;}.cot-est-creado{background:#EBF2FF;color:#0A4FBF;}.cot-est-cancel{background:#F0F4FC;color:#6B7BA8;}
+.cot-num{font-family:'Exo 2',sans-serif;font-weight:800;color:#0D1B3E;font-size:14px;}
+.cot-fecha{font-size:10px;color:#6B7BA8;}
+.cot-hdr-right{display:flex;align-items:center;gap:4px;}
+.cot-btn{width:30px;height:30px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6B7BA8;transition:all .15s;}.cot-btn:hover{background:#F0F4FC;border-color:#0A4FBF;color:#0A4FBF;}
+.cot-btn.pay{border-color:#16A34A;color:#16A34A;font-weight:800;}.cot-btn.pay:hover{background:#F0FDF4;}
+.cot-body{border-top:1px solid #DDE4F5;}
+.cot-tbl{width:100%;border-collapse:collapse;}
+.cot-tbl th{font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#fff;padding:7px 8px;text-align:left;background:#0A4FBF;}
+.cot-tbl td{padding:8px;border-bottom:1px solid #F0F4FC;font-size:11px;color:#0D1B3E;vertical-align:middle;}
+.cot-tbl tr:last-child td{border-bottom:none;}
+.item-name{font-weight:700;display:flex;align-items:center;gap:5px;}.item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#0A4FBF;}
+.item-check{color:#16A34A;font-size:16px;}
+.item-pay-btn{padding:3px 10px;border-radius:5px;font-size:9px;font-weight:800;cursor:pointer;border:none;background:#F59E0B;color:#fff;}.item-pay-btn:hover{background:#D97706;}
+.cot-est-entrega{padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;cursor:pointer;display:inline-block;transition:all .15s;border:1px solid transparent;}.cot-est-entrega:hover{border-color:#0A4FBF;opacity:.85;}
+.est-espera{background:#F0F4FC;color:#6B7BA8;}.est-proceso{background:#FEF3C7;color:#D97706;}.est-completado{background:#F0FDF4;color:#16A34A;}.est-enviado{background:#EBF2FF;color:#0A4FBF;}.est-entregado{background:#F0FDF4;color:#16A34A;}
+.cot-footer{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;background:#FAFBFE;border-top:1px solid #F0F4FC;}
+.cot-notas{font-size:10px;color:#6B7BA8;max-width:55%;line-height:1.5;}
+.cot-notas strong{color:#0D1B3E;}
+.cot-totals{text-align:right;font-size:11px;line-height:1.7;}
+.cot-totals .t-label{color:#6B7BA8;}.cot-totals .t-val{font-family:'Exo 2',sans-serif;font-weight:800;color:#0D1B3E;margin-left:6px;}
+.cot-totals .t-saldo{color:#DC2626;}
+.cot-pagos-row{padding:6px 14px;background:#F8FAFF;border-top:1px solid #F0F4FC;font-size:9px;color:#6B7BA8;}
+.cot-pago-line{display:flex;justify-content:space-between;padding:2px 0;}
+.cot-pago-line .pago-met{font-weight:700;color:#0D1B3E;}
+.pago-line{display:grid;grid-template-columns:1fr 100px 30px;gap:6px;align-items:center;margin-bottom:6px;padding:8px;background:#F8FAFF;border-radius:8px;border:1px solid #F0F4FC;}
+.pago-line .mi,.pago-line .ms2{font-size:10px;padding:5px 7px;}
 @media(max-width:900px){.pt-left{width:240px;min-width:240px;}.pt-right{width:260px;min-width:260px;}.fkr{grid-template-columns:repeat(2,1fr);}.fd{grid-template-columns:1fr 1fr;}}
 </style>
 <div class="pt-root">
@@ -53,29 +88,12 @@
   <div class="pt-right hidden" id="pt-right"><div class="pt-nh"><div class="pt-nt">Notas cl&iacute;nicas</div><button class="pt-nb" onclick="ptAbrirNota()">+ Nueva nota</button></div><div class="pt-nl" id="pt-nl"><div class="ld">Selecciona un paciente</div></div></div>
   <div class="pt-right-toggle hidden" id="pt-rt" onclick="ptTR()">&#128221;</div>
 </div>
+
 <!-- MODAL NOTA -->
 <div class="mov" id="pt-m-nota"><div class="modal" style="max-width:540px;"><div class="mhd"><span style="font-size:16px;">&#128221;</span><div class="mtit">Nueva nota cl&iacute;nica</div><div class="mclose" onclick="ptCloseNota()">&times;</div></div><div class="mbody"><div class="mg"><div class="mf"><div class="ml">Tipo de nota</div><select class="ms2" id="nt-tipo" onchange="ptTipoNota()"><option value="RECEPCION">Recepci&oacute;n</option><option value="INFORMATIVA">Informativa</option><option value="ENFERMERIA">Enfermer&iacute;a</option><option value="DOCTORA">Doctora</option></select></div><div class="mf"><div class="ml">Sede</div><select class="ms2" id="nt-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div><div class="mf full"><div class="ml">Contenido / Observaci&oacute;n</div><textarea class="mta" id="nt-contenido" placeholder="Escribir nota..."></textarea></div>
-<div class="mf full" id="nt-clinico" style="display:none;">
-  <div class="ml">Evoluci&oacute;n y actualizaci&oacute;n del cuadro cl&iacute;nico</div><textarea class="mta" id="nt-evolucion" placeholder="Evoluci\u00f3n..." style="min-height:60px;"></textarea>
-  <div class="ml" style="margin-top:8px;">Resultado de estudios</div><textarea class="mta" id="nt-resultados" placeholder="Resultados..." style="min-height:40px;"></textarea>
-  <div class="ml" style="margin-top:8px;">Diagn&oacute;stico</div><input class="mi" id="nt-diagnostico" placeholder="Diagn\u00f3stico"/>
-  <div class="ml" style="margin-top:8px;">Pron&oacute;stico</div><input class="mi" id="nt-pronostico" placeholder="Pron\u00f3stico"/>
-  <div class="ml" style="margin-top:8px;">Plan de tratamiento</div><textarea class="mta" id="nt-plan" placeholder="Plan..." style="min-height:50px;"></textarea>
-  <div class="ml" style="margin-top:8px;">Nota adicional</div><textarea class="mta" id="nt-adicional" placeholder="Nota adicional..." style="min-height:40px;"></textarea>
-</div>
-<div class="mf full" id="nt-enf" style="display:none;">
-  <div class="ml">Triaje</div>
-  <div class="mg" style="gap:6px;">
-    <div class="mf"><div class="ml">Talla (m)</div><input class="mi" id="nt-talla" placeholder="1.65" type="number" step="0.01" oninput="calcIMC()"/></div>
-    <div class="mf"><div class="ml">Peso (kg)</div><input class="mi" id="nt-peso" placeholder="70" type="number" step="0.1" oninput="calcIMC()"/></div>
-    <div class="mf"><div class="ml">IMC</div><div style="display:flex;align-items:center;"><input class="mi" id="nt-imc" readonly style="width:60px;background:#F0F4FC;"/><span id="nt-imc-pill"></span></div></div>
-    <div class="mf"><div class="ml">P/A</div><input class="mi" id="nt-pa" placeholder="120/80"/></div>
-    <div class="mf"><div class="ml">F.C</div><input class="mi" id="nt-fc" placeholder="72 bpm"/></div>
-    <div class="mf"><div class="ml">Motivo consulta</div><input class="mi" id="nt-motivo" placeholder="Motivo..."/></div>
-  </div>
-  <div class="ml" style="margin-top:8px;">Evoluci&oacute;n</div><textarea class="mta" id="nt-evol-enf" placeholder="Evoluci\u00f3n enfermeria..." style="min-height:40px;"></textarea>
-  <div class="ml" style="margin-top:8px;">Plan de tratamiento</div><textarea class="mta" id="nt-plan-enf" placeholder="Plan enfermeria..." style="min-height:40px;"></textarea>
-</div></div></div><div class="mfoot"><button class="mcanc" onclick="ptCloseNota()">Cancelar</button><button class="mconf" onclick="ptGuardarNota()">Guardar nota</button></div></div></div>
+<div class="mf full" id="nt-clinico" style="display:none;"><div class="ml">Evoluci&oacute;n</div><textarea class="mta" id="nt-evolucion" placeholder="Evoluci&oacute;n..." style="min-height:60px;"></textarea><div class="ml" style="margin-top:8px;">Resultado de estudios</div><textarea class="mta" id="nt-resultados" placeholder="Resultados..." style="min-height:40px;"></textarea><div class="ml" style="margin-top:8px;">Diagn&oacute;stico</div><input class="mi" id="nt-diagnostico" placeholder="Diagn&oacute;stico"/><div class="ml" style="margin-top:8px;">Pron&oacute;stico</div><input class="mi" id="nt-pronostico" placeholder="Pron&oacute;stico"/><div class="ml" style="margin-top:8px;">Plan de tratamiento</div><textarea class="mta" id="nt-plan" placeholder="Plan..." style="min-height:50px;"></textarea><div class="ml" style="margin-top:8px;">Nota adicional</div><textarea class="mta" id="nt-adicional" placeholder="Nota adicional..." style="min-height:40px;"></textarea></div>
+<div class="mf full" id="nt-enf" style="display:none;"><div class="ml">Triaje</div><div class="mg" style="gap:6px;"><div class="mf"><div class="ml">Talla (m)</div><input class="mi" id="nt-talla" placeholder="1.65" type="number" step="0.01" oninput="calcIMC()"/></div><div class="mf"><div class="ml">Peso (kg)</div><input class="mi" id="nt-peso" placeholder="70" type="number" step="0.1" oninput="calcIMC()"/></div><div class="mf"><div class="ml">IMC</div><div style="display:flex;align-items:center;"><input class="mi" id="nt-imc" readonly style="width:60px;background:#F0F4FC;"/><span id="nt-imc-pill"></span></div></div><div class="mf"><div class="ml">P/A</div><input class="mi" id="nt-pa" placeholder="120/80"/></div><div class="mf"><div class="ml">F.C</div><input class="mi" id="nt-fc" placeholder="72 bpm"/></div><div class="mf"><div class="ml">Motivo consulta</div><input class="mi" id="nt-motivo" placeholder="Motivo..."/></div></div><div class="ml" style="margin-top:8px;">Evoluci&oacute;n</div><textarea class="mta" id="nt-evol-enf" placeholder="Evoluci&oacute;n enfermeria..." style="min-height:40px;"></textarea><div class="ml" style="margin-top:8px;">Plan de tratamiento</div><textarea class="mta" id="nt-plan-enf" placeholder="Plan enfermeria..." style="min-height:40px;"></textarea></div></div></div><div class="mfoot"><button class="mcanc" onclick="ptCloseNota()">Cancelar</button><button class="mconf" onclick="ptGuardarNota()">Guardar nota</button></div></div></div>
+
 <!-- MODAL EDITAR DATOS -->
 <div class="mov" id="pt-m-edit"><div class="modal" style="max-width:540px;"><div class="mhd"><span style="font-size:16px;">&#9999;&#65039;</span><div class="mtit">Editar datos del paciente</div><div class="mclose" onclick="el('pt-m-edit').classList.remove('open')">&times;</div></div><div class="mbody"><div class="mg">
 <div class="mf"><div class="ml">Nombres</div><input class="mi" id="ep-nom"/></div><div class="mf"><div class="ml">Apellidos</div><input class="mi" id="ep-ape"/></div>
@@ -84,24 +102,25 @@
 <div class="mf"><div class="ml">Nacimiento</div><input class="mi" id="ep-nac" type="date"/></div>
 <div class="mf"><div class="ml">Estado civil</div><select class="ms2" id="ep-ecivil"><option value="">--</option><option value="SOLTERO/A">Soltero/a</option><option value="CASADO/A">Casado/a</option><option value="CONVIVIENTE">Conviviente</option><option value="DIVORCIADO/A">Divorciado/a</option><option value="VIUDO/A">Viudo/a</option></select></div>
 <div class="mf"><div class="ml">Ocupaci&oacute;n</div><input class="mi" id="ep-ocup"/></div>
-<div class="mf"><div class="ml">Pa&iacute;s</div><input class="mi" id="ep-pais" value="Per\u00fa"/></div><div class="mf"><div class="ml">Departamento</div><input class="mi" id="ep-depto" value="Lima"/></div>
+<div class="mf"><div class="ml">Pa&iacute;s</div><input class="mi" id="ep-pais" value="Per&uacute;"/></div><div class="mf"><div class="ml">Departamento</div><input class="mi" id="ep-depto" value="Lima"/></div>
 <div class="mf"><div class="ml">Ciudad</div><input class="mi" id="ep-ciudad" value="Lima"/></div><div class="mf"><div class="ml">Distrito</div><input class="mi" id="ep-dist"/></div>
 <div class="mf full"><div class="ml">Direcci&oacute;n</div><input class="mi" id="ep-dir"/></div>
-<div class="mf full"><div class="ml">Contacto emergencia</div><input class="mi" id="ep-emerg" placeholder="Nombre - Tel\u00e9fono"/></div>
+<div class="mf full"><div class="ml">Contacto emergencia</div><input class="mi" id="ep-emerg" placeholder="Nombre - Tel&eacute;fono"/></div>
 </div></div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-edit').classList.remove('open')">Cancelar</button><button class="mconf blue" onclick="ptGuardarDatos()">Guardar cambios</button></div></div></div>
+
 <!-- MODAL SUBIR DOCUMENTO -->
 <div class="mov" id="pt-m-doc"><div class="modal" style="max-width:420px;"><div class="mhd"><span style="font-size:16px;">&#128206;</span><div class="mtit">Subir documento</div><div class="mclose" onclick="el('pt-m-doc').classList.remove('open')">&times;</div></div><div class="mbody"><div class="mg">
 <div class="mf"><div class="ml">Tipo</div><select class="ms2" id="doc-tipo"><option value="CONSENTIMIENTO">Consentimiento</option><option value="FOTO_ANTES">Foto antes</option><option value="FOTO_DESPUES">Foto despu&eacute;s</option><option value="RECETA">Receta</option><option value="COMPROBANTE">Comprobante</option><option value="OTRO">Otro</option></select></div>
 <div class="mf"><div class="ml">Tratamiento</div><input class="mi" id="doc-trat" placeholder="Opcional"/></div>
-<div class="mf full"><div class="ml">URL del documento (Google Drive, link directo)</div><input class="mi" id="doc-url" placeholder="https://drive.google.com/..."/></div>
-<div class="mf full"><div class="ml">Nombre descriptivo</div><input class="mi" id="doc-nombre" placeholder="Ej: Consentimiento HIFU 14-04-2026"/></div>
+<div class="mf full"><div class="ml">URL del documento</div><input class="mi" id="doc-url" placeholder="https://drive.google.com/..."/></div>
+<div class="mf full"><div class="ml">Nombre descriptivo</div><input class="mi" id="doc-nombre" placeholder="Ej: Consentimiento HIFU"/></div>
 </div></div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-doc').classList.remove('open')">Cancelar</button><button class="mconf" onclick="ptGuardarDoc()">Subir</button></div></div></div>
 
 <!-- MODAL NUEVO PACIENTE -->
 <div class="mov" id="pt-m-nuevo"><div class="modal" style="max-width:480px;"><div class="mhd"><span style="font-size:16px;">&#128100;</span><div class="mtit">Nuevo paciente</div><div class="mclose" onclick="el('pt-m-nuevo').classList.remove('open')">&times;</div></div><div class="mbody"><div class="mg">
 <div class="mf"><div class="ml">Nombres *</div><input class="mi" id="np-nom" placeholder="Nombres"/></div>
 <div class="mf"><div class="ml">Apellidos *</div><input class="mi" id="np-ape" placeholder="Apellidos"/></div>
-<div class="mf"><div class="ml">Teléfono *</div><input class="mi" id="np-tel" placeholder="987654321" type="tel"/></div>
+<div class="mf"><div class="ml">Tel&eacute;fono *</div><input class="mi" id="np-tel" placeholder="987654321" type="tel"/></div>
 <div class="mf"><div class="ml">DNI</div><input class="mi" id="np-dni" placeholder="DNI/CE"/></div>
 <div class="mf"><div class="ml">Correo</div><input class="mi" id="np-correo" placeholder="correo@..."/></div>
 <div class="mf"><div class="ml">Sexo</div><select class="ms2" id="np-sexo"><option value="">--</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
@@ -109,37 +128,62 @@
 <div class="mf"><div class="ml">Fuente</div><input class="mi" id="np-fuente" placeholder="Referido, Redes..."/></div>
 </div></div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-nuevo').classList.remove('open')">Cancelar</button><button class="mconf blue" onclick="ptCrearPac()">Crear paciente</button></div></div></div>
 
-
 <!-- MODAL CREAR COTIZACIÓN -->
-<div class="mov" id="pt-m-cot"><div class="modal" style="max-width:580px;"><div class="mhd"><span style="font-size:16px;">&#128176;</span><div class="mtit">Crear presupuesto</div><div class="mclose" onclick="el('pt-m-cot').classList.remove('open')">&times;</div></div><div class="mbody">
+<div class="mov" id="pt-m-cot"><div class="modal" style="max-width:620px;"><div class="mhd"><span style="font-size:16px;">&#128176;</span><div class="mtit">Crear presupuesto</div><div class="mclose" onclick="el('pt-m-cot').classList.remove('open')">&times;</div></div><div class="mbody">
 <div class="mg">
 <div class="mf"><div class="ml">Sede</div><select class="ms2" id="cot-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-<div class="mf"><div class="ml">Asesor</div><select class="ms2" id="cot-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option></select></div>
-<div class="mf full"><div class="ml">Nota interna</div><input class="mi" id="cot-nota" placeholder="Nota opcional..."/></div>
+<div class="mf"><div class="ml">Asesor</div><select class="ms2" id="cot-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option><option value="CESAR">C&eacute;sar</option></select></div>
+<div class="mf"><div class="ml">Doctor responsable</div><input class="mi" id="cot-doctor" placeholder="Dra. ..."/></div>
+<div class="mf"><div class="ml">Estado</div><select class="ms2" id="cot-estado" disabled><option value="CREADO">Creado</option></select></div>
+<div class="mf full"><div class="ml">Nota interna</div><input class="mi" id="cot-nota" placeholder="Nota interna..."/></div>
+<div class="mf full"><div class="ml">Nota para paciente</div><input class="mi" id="cot-nota-pac" placeholder="Nota visible para el paciente..."/></div>
 </div>
-<div style="margin-top:10px;border-top:1px solid #DDE4F5;padding-top:10px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="ml">Items del presupuesto</div><button class="pt-nb" onclick="cotAddItem()" style="font-size:9px;padding:3px 8px;">+ Agregar item</button></div>
+<div style="margin-top:12px;border-top:1px solid #DDE4F5;padding-top:10px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="ml">Items</div><button class="pt-nb" onclick="cotAddItem()" style="font-size:9px;padding:3px 8px;">+ Agregar item</button></div>
   <div id="cot-items"></div>
-  <div style="text-align:right;margin-top:8px;font-family:Exo\ 2,sans-serif;font-weight:800;font-size:16px;color:#0A4FBF;">Total: S/<span id="cot-total">0.00</span></div>
+  <div style="text-align:right;margin-top:10px;font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0A4FBF;">Total: S/<span id="cot-total">0.00</span></div>
 </div>
 </div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-cot').classList.remove('open')">Cancelar</button><button class="mconf blue" onclick="cotGuardar()">Crear presupuesto</button></div></div></div>
 
-<!-- MODAL REGISTRAR PAGO -->
-<div class="mov" id="pt-m-pago"><div class="modal" style="max-width:480px;"><div class="mhd"><span style="font-size:16px;">&#128181;</span><div class="mtit" id="pago-titulo">Registrar pago</div><div class="mclose" onclick="el('pt-m-pago').classList.remove('open')">&times;</div></div><div class="mbody">
-<div style="background:#071D4A;color:#fff;padding:14px;border-radius:10px;text-align:center;margin-bottom:12px;">
-  <div style="font-size:10px;opacity:.7;">Monto a cobrar</div>
-  <div style="font-family:Exo\ 2,sans-serif;font-size:24px;font-weight:800;">S/ <span id="pago-monto-total">0.00</span></div>
+<!-- MODAL EDITAR COTIZACIÓN -->
+<div class="mov" id="pt-m-editcot"><div class="modal" style="max-width:680px;"><div class="mhd"><span style="font-size:16px;">&#9999;</span><div class="mtit">Editar presupuesto</div><div class="mclose" onclick="el('pt-m-editcot').classList.remove('open')">&times;</div></div><div class="mbody">
+<div class="mg">
+<div class="mf"><div class="ml">Nombre interno</div><input class="mi" id="ec-nombre" readonly style="background:#F0F4FC;"/></div>
+<div class="mf"><div class="ml">Doctor responsable</div><input class="mi" id="ec-doctor"/></div>
+<div class="mf"><div class="ml">Estado</div><select class="ms2" id="ec-estado"><option value="CREADO">Creado</option><option value="PAGADO_PARCIAL">Adelanto</option><option value="PAGADO_COMPLETO">Pagado</option><option value="CANCELADO">Cancelado</option></select></div>
+<div class="mf"><div class="ml">Sede</div><select class="ms2" id="ec-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
+</div>
+<div style="margin-top:12px;border-top:1px solid #DDE4F5;padding-top:10px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="ml">Items</div><button class="pt-nb" onclick="ecAddItem()" style="font-size:9px;padding:3px 8px;">+ Agregar item</button></div>
+  <div id="ec-items"></div>
+  <div style="text-align:right;margin-top:10px;font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0A4FBF;">Total: S/<span id="ec-total">0.00</span></div>
+  <div style="font-size:10px;color:#6B7BA8;" id="ec-pagado-info"></div>
+</div>
+<div class="mg" style="margin-top:10px;">
+<div class="mf full"><div class="ml">Nota para paciente</div><input class="mi" id="ec-nota-pac"/></div>
+<div class="mf full"><div class="ml">Nota interna</div><input class="mi" id="ec-nota"/></div>
+</div>
+</div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-editcot').classList.remove('open')">Cancelar</button><button class="mconf blue" onclick="ecGuardar()">Guardar cambios</button></div></div></div>
+
+<!-- MODAL REGISTRAR PAGO V2 -->
+<div class="mov" id="pt-m-pago"><div class="modal" style="max-width:560px;"><div class="mhd"><span style="font-size:16px;">&#128181;</span><div class="mtit" id="pago-titulo">Registrar pago</div><div class="mclose" onclick="el('pt-m-pago').classList.remove('open')">&times;</div></div><div class="mbody">
+<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;padding:16px;border-radius:12px;text-align:center;margin-bottom:14px;">
+  <div style="font-size:10px;opacity:.7;">Saldo pendiente</div>
+  <div style="font-family:'Exo 2',sans-serif;font-size:28px;font-weight:800;">S/ <span id="pago-monto-total">0.00</span></div>
+</div>
+<div style="margin-bottom:12px;">
+  <div class="ml" style="margin-bottom:6px;">L&iacute;neas de pago</div>
+  <div id="pago-lines"></div>
+  <button onclick="pagoAddLine()" style="font-size:9px;padding:4px 10px;border:1px dashed #DDE4F5;border-radius:6px;background:none;color:#0A4FBF;cursor:pointer;font-weight:700;margin-top:4px;">+ Agregar m&eacute;todo</button>
 </div>
 <div class="mg">
-<div class="mf"><div class="ml">Monto a pagar</div><input class="mi" id="pago-monto" type="number" step="0.01" placeholder="0.00"/></div>
-<div class="mf"><div class="ml">Método de pago</div><select class="ms2" id="pago-metodo"></select></div>
-<div class="mf"><div class="ml">Moneda</div><select class="ms2" id="pago-moneda"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select></div>
+<div class="mf"><div class="ml">Asesor comisi&oacute;n</div><select class="ms2" id="pago-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option><option value="CESAR">C&eacute;sar</option></select></div>
+<div class="mf"><div class="ml">Fecha</div><input class="mi" id="pago-fecha" type="date"/></div>
 <div class="mf"><div class="ml">Comprobante</div><select class="ms2" id="pago-comprobante"><option value="BOLETA">Boleta</option><option value="FACTURA">Factura</option><option value="RECIBO">Recibo</option><option value="OTRO">Otro</option></select></div>
 <div class="mf"><div class="ml">Sede</div><select class="ms2" id="pago-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-<div class="mf"><div class="ml">Fecha</div><input class="mi" id="pago-fecha" type="date"/></div>
 <div class="mf full"><div class="ml">Nota</div><input class="mi" id="pago-nota" placeholder="Nota del pago..."/></div>
 </div>
-<div style="margin-top:8px;padding:8px;background:#FEF3C7;border-radius:8px;font-size:10px;color:#D97706;display:none;" id="pago-dividir-info">Puedes registrar pagos parciales. El saldo se actualizará automáticamente.</div>
+<div style="margin-top:10px;text-align:right;font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#16A34A;">Total a cobrar: S/ <span id="pago-cobrar">0.00</span></div>
 </div><div class="mfoot"><button class="mcanc" onclick="el('pt-m-pago').classList.remove('open')">Cancelar</button><button class="mconf" onclick="pagoGuardar()">Confirmar pago</button></div></div></div>
 
 <script src="/patients.js"></script>

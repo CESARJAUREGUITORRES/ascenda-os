@@ -1,16 +1,20 @@
-// patients.js v3 — Pacientes 360 | AscendaOS v1 | 100% Supabase
+// patients.js v4 — Pacientes 360 + Cotizaciones Doctocliq | AscendaOS SES-014
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _rest(path,opts){return fetch(_SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
 function h(s){var o=String(s||'');o=o.split('&').join('&amp;');o=o.split(String.fromCharCode(60)).join('&lt;');o=o.split('>').join('&gt;');o=o.split('"').join('&quot;');return o;}
 function el(id){return document.getElementById(id);}
+function localDate(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fmtMoney(v){return parseFloat(v||0).toFixed(2);}
 function estCls(e){var u=(e||'').toUpperCase();if(u==='PENDIENTE')return'est-pend';if(u==='CONFIRMADA'||u==='CITA CONFIRMADA')return'est-conf';if(u.indexOf('ASISTI')>=0&&u.indexOf('NO')<0||u==='EFECTIVA')return'est-asist';if(u.indexOf('NO ASIST')>=0)return'est-noasist';if(u==='CANCELADA')return'est-cancel';return'est-pend';}
-var PT={sel:null,data:null,tab:'cotizaciones',cots:null,payCotId:null};
-function ptTL(){var p=el('pt-left');p.classList.toggle('hidden');el('pt-lt').style.left=p.classList.contains('hidden')?'0':'300px';}
-function ptTR(){var p=el('pt-right');p.classList.toggle('hidden');el('pt-rt').style.right=p.classList.contains('hidden')?'0':'320px';}
+var PT={sel:null,data:null,tab:'cotizaciones',cots:null,payCotId:null,metodos:[]};
 
-// IMC calculator
+// ===== PANEL TOGGLE =====
+function ptTL(){var p=el('pt-left');p.classList.toggle('hidden');}
+function ptTR(){var p=el('pt-right');p.classList.toggle('hidden');}
+
+// ===== IMC CALCULATOR =====
 function calcIMC(){
   var t=parseFloat(el('nt-talla').value)||0,w=parseFloat(el('nt-peso').value)||0;
   if(t>0&&w>0){var imc=(w/(t*t)).toFixed(1);el('nt-imc').value=imc;var v=parseFloat(imc);
@@ -19,11 +23,10 @@ function calcIMC(){
   }else{el('nt-imc').value='';el('nt-imc-pill').innerHTML='';}
 }
 
-// SEARCH with duplicate detection
+// ===== SEARCH =====
 var _ptT=null;
 function ptSearch(q){clearTimeout(_ptT);var r=el('pt-res');if(!q||q.length<2){r.innerHTML='<div class="ld">Min. 2 caracteres</div>';return;}r.innerHTML='<div class="ld"><span class="sp"></span>Buscando...</div>';_ptT=setTimeout(function(){_rpc('aos_search_pacientes',{p_query:q,p_limit:20},function(rows){
   if(!rows||!rows.length){r.innerHTML='<div class="ld">Sin resultados</div>';return;}
-  // Detect duplicates: same name different number
   var nameMap={};rows.forEach(function(p){var k=((p.nombres||'')+(p.apellidos||'')).toUpperCase().replace(/\s/g,'');if(!nameMap[k])nameMap[k]=[];nameMap[k].push(p);});
   r.innerHTML=rows.map(function(p){
     var n=((p.nombres||'')+' '+(p.apellidos||'')).trim();var t=p.telefono||'';
@@ -40,9 +43,11 @@ function ptSearch(q){clearTimeout(_ptT);var r=el('pt-res');if(!q||q.length<2){r.
   }).join('');
 });},300);}
 
+// ===== SELECCIONAR PACIENTE =====
 function ptSel(num){
   document.querySelectorAll('.pt-c').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-num')===num);});
-  el('pt-rt').classList.remove('hidden');el('pt-empty').style.display='none';
+  var rt=el('pt-right');if(rt)rt.classList.remove('hidden');
+  el('pt-empty').style.display='none';
   var f=el('pt-ficha');f.style.display='block';f.innerHTML='<div class="ld"><span class="sp"></span>Cargando 360...</div>';
   _rpc('aos_paciente_360',{p_numero:num},function(d){
     if(!d||!d.found){f.innerHTML='<div class="ld">No encontrado</div>';return;}
@@ -50,6 +55,7 @@ function ptSel(num){
   });
 }
 
+// ===== RENDER 360 =====
 function render360(d){
   var p=d.paciente;var n=((p.nombres||'')+' '+(p.apellidos||'')).trim();
   var ini=((p.nombres||'')[0]||'')+((p.apellidos||'')[0]||'');
@@ -62,7 +68,7 @@ function render360(d){
   var campos=[['DNI',p.dni],['Correo',p.correo],['Sexo',p.sexo],['Nacimiento',p.fecha_nac],['Estado civil',p.estado_civil],['Ocupaci\u00f3n',p.ocupacion],['Pa\u00eds',p.pais],['Departamento',p.departamento],['Ciudad',p.ciudad],['Distrito',p.distrito],['Direcci\u00f3n',p.direccion],['Contacto emerg.',p.contacto_emergencia],['Fuente',p.fuente],['Registro',p.fecha_registro],['Trat. principal',p.trat_principal]];
   html+='<div class="fd">';campos.forEach(function(r){html+='<div class="fdc"><div class="fdl">'+r[0]+'</div><div class="fdv">'+h(r[1]||'\u2014')+'</div></div>';});html+='</div>';
   if(d.duplicados&&d.duplicados.length){
-    html+='<div class="dup-w"><div style="font-family:Exo\\ 2,sans-serif;font-weight:800;font-size:11px;color:#D97706;margin-bottom:4px;">\u26a0 Posibles duplicados ('+d.duplicados.length+')</div>';
+    html+='<div class="dup-w"><div style="font-family:\'Exo 2\',sans-serif;font-weight:800;font-size:11px;color:#D97706;margin-bottom:4px;">\u26a0 Posibles duplicados ('+d.duplicados.length+')</div>';
     d.duplicados.forEach(function(dup){html+='<div class="dup-c"><div><div class="dup-n">'+h((dup.nombres||'')+' '+(dup.apellidos||''))+'</div><div class="dup-m">Tel: '+h(dup.telefono||'')+' | DNI: '+h(dup.dni||'')+'</div></div><div class="dup-b" onclick="ptSel(\''+h(dup.telefono||'')+'\')">Ver</div></div>';});
     html+='</div>';
   }
@@ -71,15 +77,15 @@ function render360(d){
   el('pt-ficha').innerHTML=html;renderTab();
 }
 
+// ===== TAB SWITCH =====
 function ptTab(t){PT.tab=t;document.querySelectorAll('.ftab').forEach(function(f){f.classList.toggle('act',f.getAttribute('data-tab')===t);});renderTab();}
 function renderTab(){
   var b=el('pt-tc');if(!b||!PT.data)return;var d=PT.data;
   if(PT.tab==='compras'){var r=d.compras||[];if(!r.length){b.innerHTML='<div class="ld">Sin compras</div>';return;}
-    // Agrupar por fecha
     var byDay={};r.forEach(function(v){var f=v.fecha||'';if(!byDay[f])byDay[f]=[];byDay[f].push(v);});
     var days=Object.keys(byDay).sort().reverse();
     b.innerHTML=days.map(function(f){var items=byDay[f];var total=items.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
-      return '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#F0F4FC;border-radius:8px 8px 0 0;"><div style="font-weight:800;font-size:11px;color:#0D1B3E;">'+h(f)+'</div><div style="font-family:Exo\\ 2,sans-serif;font-weight:800;color:#0A4FBF;">S/'+total.toFixed(2)+' ('+items.length+' item'+(items.length>1?'s':'')+')</div></div>'
+      return '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#F0F4FC;border-radius:8px 8px 0 0;"><div style="font-weight:800;font-size:11px;color:#0D1B3E;">'+h(f)+'</div><div style="font-family:\'Exo 2\',sans-serif;font-weight:800;color:#0A4FBF;">S/'+total.toFixed(2)+' ('+items.length+' item'+(items.length>1?'s':'')+')</div></div>'
         +'<table class="tt"><thead><tr><th>Tratamiento</th><th>Monto</th><th>Tipo</th><th>Sede</th><th>Asesor</th><th>Pago</th></tr></thead><tbody>'
         +items.map(function(v){return '<tr><td>'+h(v.tratamiento)+'</td><td style="font-weight:700;color:#0A4FBF;">S/'+parseFloat(v.monto||0).toFixed(2)+'</td><td><span class="pt-bg" style="background:'+(v.tipo==='PRODUCTO'?'#F5F3FF;color:#7C3AED':'#EBF2FF;color:#0A4FBF')+'">'+h(v.tipo||'')+'</span></td><td>'+h((v.sede||'').substring(0,10))+'</td><td>'+h(v.asesor||'')+'</td><td style="font-size:9px;">'+h(v.pago||'')+'</td></tr>';}).join('')
         +'</tbody></table></div>';
@@ -90,7 +96,7 @@ function renderTab(){
   else if(PT.tab==='consentimientos'){var r=d.documentos||[];b.innerHTML='<div style="margin-bottom:8px;display:flex;justify-content:flex-end;"><button class="pt-nb" onclick="ptAbrirDoc()">+ Subir documento</button></div>';if(!r.length){b.innerHTML+='<div class="ld">Sin documentos</div>';return;}b.innerHTML+='<table class="tt"><thead><tr><th>Fecha</th><th>Tipo</th><th>Nombre</th><th>Autor</th></tr></thead><tbody>'+r.map(function(doc){return '<tr><td>'+h(doc.fecha||'')+'</td><td><span class="pt-bg" style="background:#EBF2FF;color:#0A4FBF;">'+h(doc.tipo_documento||'')+'</span></td><td>'+(doc.url_archivo?'<a href="'+h(doc.url_archivo)+'" target="_blank" style="color:#0A4FBF;text-decoration:underline;">'+h(doc.nombre_archivo||'Ver')+'</a>':h(doc.nombre_archivo||'--'))+'</td><td>'+h(doc.autor||'')+'</td></tr>';}).join('')+'</tbody></table>';}
 }
 
-// EDITAR DATOS PACIENTE
+// ===== EDITAR DATOS PACIENTE =====
 function ptEditarDatos(){
   if(!PT.sel)return;var p=PT.sel;
   el('ep-nom').value=p.nombres||'';el('ep-ape').value=p.apellidos||'';
@@ -120,7 +126,7 @@ function ptGuardarDatos(){
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
-// NOTAS CLÍNICAS
+// ===== NOTAS CLÍNICAS =====
 function renderNotas(notas){
   var list=el('pt-nl');if(!notas||!notas.length){list.innerHTML='<div class="ld">Sin notas cl\u00ednicas</div>';return;}
   var tm={'RECEPCION':'nc-t-rec','INFORMATIVA':'nc-t-inf','ENFERMERIA':'nc-t-enf','DOCTORA':'nc-t-doc'};
@@ -145,7 +151,7 @@ function ptTipoNota(){var t=el('nt-tipo').value;el('nt-clinico').style.display=t
 function ptGuardarNota(){
   if(!PT.sel)return;var tipo=el('nt-tipo').value;
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})(),hora:new Date().toTimeString().slice(0,8)};
+  var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:localDate(),hora:new Date().toTimeString().slice(0,8)};
   if(tipo==='DOCTORA'){row.evolucion=el('nt-evolucion').value.trim();row.diagnostico=el('nt-diagnostico').value.trim();row.pronostico=el('nt-pronostico').value.trim();row.plan_trabajo=el('nt-plan').value.trim();row.resultado_estudios=el('nt-resultados').value.trim();row.nota_adicional=el('nt-adicional').value.trim();}
   else if(tipo==='ENFERMERIA'){
     var triaje='Talla:'+el('nt-talla').value+' Peso:'+el('nt-peso').value+' IMC:'+el('nt-imc').value+' P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value+' Motivo:'+el('nt-motivo').value;
@@ -157,17 +163,17 @@ function ptGuardarNota(){
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
-// SUBIR DOCUMENTO
+// ===== SUBIR DOCUMENTO =====
 function ptAbrirDoc(){if(!PT.sel)return;el('doc-url').value='';el('doc-nombre').value='';el('doc-trat').value='';el('doc-tipo').value='CONSENTIMIENTO';el('pt-m-doc').classList.add('open');}
 function ptGuardarDoc(){
   if(!PT.sel)return;var url=el('doc-url').value.trim();if(!url){alert('Ingresa la URL del documento');return;}
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:el('doc-tipo').value,nombre_archivo:el('doc-nombre').value.trim()||url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})()})}).then(function(r){
+  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:el('doc-tipo').value,nombre_archivo:el('doc-nombre').value.trim()||url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:localDate()})}).then(function(r){
     if(!r.ok)throw new Error('Error');el('pt-m-doc').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Documento guardado','','');ptSel(PT.sel.telefono);
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
-// NUEVO PACIENTE
+// ===== NUEVO PACIENTE =====
 function ptNuevoPac(){
   ['np-nom','np-ape','np-tel','np-dni','np-correo','np-fuente'].forEach(function(id){el(id).value='';});
   el('np-sexo').value='';el('np-sede').value='SAN ISIDRO';
@@ -176,16 +182,13 @@ function ptNuevoPac(){
 function ptCrearPac(){
   var nom=el('np-nom').value.trim(),ape=el('np-ape').value.trim(),tel=el('np-tel').value.trim().replace(/\D/g,'');
   if(!nom||!ape){alert('Nombres y apellidos son obligatorios');return;}
-  if(!tel||tel.length<7){alert('Teléfono válido obligatorio');return;}
-  var now=new Date();
-  var row={"Nombres":nom.toUpperCase(),"Apellidos":ape.toUpperCase(),"Teléfono":tel,
-    numero_limpio:tel,"N° documento":el('np-dni').value.trim(),"Email":el('np-correo').value.trim(),
+  if(!tel||tel.length<7){alert('Tel\u00e9fono v\u00e1lido obligatorio');return;}
+  var row={"Nombres":nom.toUpperCase(),"Apellidos":ape.toUpperCase(),"Tel\u00e9fono":tel,
+    numero_limpio:tel,"N\u00b0 documento":el('np-dni').value.trim(),"Email":el('np-correo').value.trim(),
     "Sexo":el('np-sexo').value,"SEDE_PRINCIPAL":el('np-sede').value,
     "FUENTE":el('np-fuente').value.trim(),"ESTADO_PACIENTE":"PROSPECTO",
-    "FECHA_REGISTRO":now.toISOString().slice(0,10),
-    "ID_PACIENTE":"P-"+Date.now(),
-    pais:"Perú",departamento:"Lima",ciudad:"Lima",
-    etiqueta_vip:"NORMAL"};
+    "FECHA_REGISTRO":localDate(),"ID_PACIENTE":"P-"+Date.now(),
+    pais:"Per\u00fa",departamento:"Lima",ciudad:"Lima",etiqueta_vip:"NORMAL"};
   _rest('aos_pacientes',{method:'POST',body:JSON.stringify(row)}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
     el('pt-m-nuevo').classList.remove('open');
@@ -194,53 +197,124 @@ function ptCrearPac(){
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
-// ===================== COTIZACIONES =====================
+// ===== COTIZACIONES DOCTOCLIQ =====
 function loadCotizaciones(){
   var b=el('pt-tc');if(!b||!PT.sel)return;
   b.innerHTML='<div class="ld"><span class="sp"></span>Cargando cotizaciones...</div>';
   _rpc('aos_cotizaciones_paciente',{p_numero:PT.sel.telefono},function(cots){
     PT.cots=cots||[];
-    b.innerHTML='<div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="pt-nb" onclick="cotAbrir()" style="background:#0A4FBF;">+ Crear presupuesto</button></div>';
-    if(!cots||!cots.length){b.innerHTML+='<div class="ld">Sin cotizaciones</div>';return;}
-    b.innerHTML+=cots.map(function(c){
-      var estCol=c.estado==='PAGADO_COMPLETO'?'#16A34A':c.estado==='PAGADO_PARCIAL'?'#D97706':c.estado==='CANCELADO'?'#DC2626':'#0A4FBF';
-      var estLbl=c.estado==='PAGADO_COMPLETO'?'Pagado':c.estado==='PAGADO_PARCIAL'?'Adelanto':c.estado==='CANCELADO'?'Cancelado':'Creado';
+    var html='<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="pt-nb" onclick="cotAbrir()" style="background:#0A4FBF;padding:6px 14px;font-size:11px;">+ Crear presupuesto</button></div>';
+    if(!cots||!cots.length){html+='<div class="ld">Sin cotizaciones</div>';b.innerHTML=html;return;}
+    html+=cots.map(function(c){
+      var estCls=c.estado==='PAGADO_COMPLETO'?'cot-est-pagado':c.estado==='PAGADO_PARCIAL'?'cot-est-deuda':c.estado==='CANCELADO'?'cot-est-cancel':'cot-est-creado';
+      var estLbl=c.estado==='PAGADO_COMPLETO'?'Pagado':c.estado==='PAGADO_PARCIAL'?'Deuda':c.estado==='CANCELADO'?'Cancelado':'Creado';
       var items=c.items||[];
       var pagos=c.pagos||[];
-      return '<div style="border:1px solid #DDE4F5;border-radius:12px;margin-bottom:10px;overflow:hidden;">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#F8FAFF;border-bottom:1px solid #DDE4F5;">'
-        +'<div><span style="font-weight:800;color:#0D1B3E;font-family:Exo\\ 2,sans-serif;">#'+h(c.numero_cotizacion)+'</span> <span style="font-size:10px;color:#6B7BA8;">'+h(c.fecha)+'</span> <span style="padding:2px 8px;border-radius:5px;font-size:9px;font-weight:700;color:#fff;background:'+estCol+';">'+estLbl+'</span></div>'
-        +'<div style="display:flex;gap:4px;">'
-        +(c.estado!=='PAGADO_COMPLETO'&&c.estado!=='CANCELADO'?'<button class="fab" style="font-size:9px;border-color:#16A34A;color:#16A34A;" onclick="pagoAbrir(\''+h(c.id)+'\')">Pagar</button>':'')
-        +'</div></div>'
-        +'<table class="tt"><thead><tr><th>Item</th><th>Tipo</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th>Estado</th></tr></thead><tbody>'
-        +items.map(function(it){
-          var edCol=it.estado_entrega==='COMPLETADO'||it.estado_entrega==='ENTREGADO'?'#16A34A':it.estado_entrega==='EN_PROCESO'||it.estado_entrega==='ENVIADO'?'#D97706':'#6B7BA8';
-          return '<tr><td style="font-weight:600;">'+h(it.descripcion)+'</td><td><span class="pt-bg" style="background:'+(it.tipo==='PRODUCTO'?'#F5F3FF;color:#7C3AED':'#EBF2FF;color:#0A4FBF')+'">'+h(it.tipo)+'</span></td><td>'+it.cantidad+'</td><td>S/'+parseFloat(it.precio_unitario||0).toFixed(2)+'</td><td style="font-weight:700;">S/'+parseFloat(it.subtotal||0).toFixed(2)+'</td><td style="color:'+edCol+';font-weight:700;font-size:9px;">'+h((it.estado_entrega||'').replace(/_/g,' '))+'</td></tr>';
-        }).join('')
-        +'</tbody></table>'
-        +'<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#F8FAFF;border-top:1px solid #DDE4F5;">'
-        +'<div style="font-size:10px;color:#6B7BA8;">'+(pagos.length?pagos.length+' pago(s)':'Sin pagos')+(c.asesor?' | '+h(c.asesor):'')+'</div>'
-        +'<div style="font-family:Exo\\ 2,sans-serif;font-weight:800;"><span style="color:#0D1B3E;">Total: S/'+parseFloat(c.subtotal||0).toFixed(2)+'</span>'
-        +(parseFloat(c.saldo_pendiente||0)>0?' <span style="color:#DC2626;font-size:11px;">Saldo: S/'+parseFloat(c.saldo_pendiente||0).toFixed(2)+'</span>':'')
-        +'</div></div></div>';
+      var saldo=parseFloat(c.saldo_pendiente||0);
+      var showPay=saldo>0&&c.estado!=='CANCELADO';
+
+      var card='<div class="cot-card">';
+      // HEADER
+      card+='<div class="cot-hdr" onclick="cotToggle(this)">';
+      card+='<div class="cot-hdr-left">';
+      card+='<div class="cot-chevron">\u25BC</div>';
+      card+='<span class="cot-est '+estCls+'">'+estLbl+'</span>';
+      card+='<span class="cot-num">#'+h(c.numero_cotizacion)+'</span>';
+      card+='<span class="cot-fecha">'+h(c.fecha||'')+'</span>';
+      card+='</div>';
+      card+='<div class="cot-hdr-right" onclick="event.stopPropagation()">';
+      if(showPay)card+='<button class="cot-btn pay" title="Pagar" onclick="pagoAbrir(\''+h(c.id)+'\')">$</button>';
+      card+='<button class="cot-btn" title="Editar" onclick="ecAbrir(\''+h(c.id)+'\')">&#9999;</button>';
+      card+='<button class="cot-btn" title="Descargar PDF" onclick="cotPDF(\''+h(c.id)+'\')">&#8681;</button>';
+      card+='</div></div>';
+
+      // BODY — TABLE
+      card+='<div class="cot-body">';
+      card+='<table class="cot-tbl"><thead><tr><th>Item</th><th>Cant.</th><th>Subtotal</th><th>Pagado</th><th>Por pagar</th><th>Estado</th></tr></thead><tbody>';
+      items.forEach(function(it){
+        var itSub=parseFloat(it.subtotal||0);
+        var itPagado=parseFloat(it.pagado_item||0);
+        var itPorPagar=itSub-itPagado;
+        if(itPorPagar<0)itPorPagar=0;
+        var fullyPaid=itPorPagar<=0.01;
+        // Estado entrega
+        var entEst=(it.estado_entrega||'EN_ESPERA').toUpperCase();
+        var entCls=entEst==='COMPLETADO'||entEst==='ENTREGADO'?'est-completado':entEst==='EN_PROCESO'||entEst==='ENVIADO'?'est-proceso':'est-espera';
+        var entLbl=entEst.replace(/_/g,' ');
+
+        card+='<tr>';
+        card+='<td><div class="item-name"><span class="item-dot"></span>';
+        if(itPorPagar>0){card+='<span style="color:#D97706;">'+h(it.descripcion)+'</span>';}
+        else{card+=h(it.descripcion);}
+        card+='</div></td>';
+        card+='<td>'+it.cantidad+'</td>';
+        card+='<td>S/ '+fmtMoney(it.subtotal)+'</td>';
+        card+='<td style="color:#0A4FBF;font-weight:700;">'+fmtMoney(itPagado)+'</td>';
+        card+='<td style="color:'+(itPorPagar>0?'#DC2626':'#16A34A')+';font-weight:700;">'+fmtMoney(itPorPagar)+'</td>';
+        card+='<td>';
+        if(fullyPaid){card+='<span class="item-check">\u2705</span> ';}
+        else{card+='<button class="item-pay-btn" onclick="pagoAbrir(\''+h(c.id)+'\')">Pagar</button> ';}
+        card+='<span class="cot-est-entrega '+entCls+'" onclick="cotCicloEstado(\''+h(it.id)+'\',\''+h(it.tipo)+'\',this)">'+h(entLbl)+'</span>';
+        card+='</td></tr>';
+      });
+      card+='</tbody></table>';
+
+      // PAGOS REGISTRADOS
+      if(pagos.length){
+        card+='<div class="cot-pagos-row">';
+        pagos.forEach(function(pg){
+          card+='<div class="cot-pago-line"><span>'+h(pg.fecha||'')+' \u00b7 <span class="pago-met">'+h(pg.metodo_pago)+'</span>'+(pg.asesor_comision?' \u00b7 '+h(pg.asesor_comision):'')+'</span><span style="font-weight:700;color:#0D1B3E;">S/ '+fmtMoney(pg.monto)+'</span></div>';
+        });
+        card+='</div>';
+      }
+
+      // FOOTER
+      card+='<div class="cot-footer">';
+      card+='<div class="cot-notas">';
+      if(c.nota_interna)card+='<div><strong>Nota interna:</strong> '+h(c.nota_interna)+'</div>';
+      if(c.nota_paciente)card+='<div>Nota paciente: '+h(c.nota_paciente)+'</div>';
+      card+='<div style="font-size:9px;margin-top:3px;">Creado el: '+h(c.fecha||'')+' \u00b7 '+(c.sede?'\u{1F4CD} '+h(c.sede)+' - Zi Vital':'')+'</div>';
+      card+='</div>';
+      card+='<div class="cot-totals">';
+      card+='<div><span class="t-label">Total:</span><span class="t-val">S/ '+fmtMoney(c.subtotal)+'</span></div>';
+      card+='<div><span class="t-label">Pagado:</span><span class="t-val">S/ '+fmtMoney(c.total_pagado)+'</span></div>';
+      if(saldo>0)card+='<div><span class="t-label">Por pagar:</span><span class="t-val t-saldo">S/ '+fmtMoney(saldo)+'</span></div>';
+      card+='</div></div>';
+
+      card+='</div></div>';
+      return card;
     }).join('');
+    b.innerHTML=html;
   });
 }
 
-// CREAR COTIZACIÓN
+function cotToggle(hdr){hdr.parentElement.classList.toggle('collapsed');}
+
+// ===== CICLO ESTADO ENTREGA =====
+function cotCicloEstado(itemId,tipo,elem){
+  var servicioFlow=['EN_ESPERA','EN_PROCESO','COMPLETADO'];
+  var productoFlow=['EN_ESPERA','ENVIADO','ENTREGADO'];
+  var flow=(tipo||'').toUpperCase()==='PRODUCTO'?productoFlow:servicioFlow;
+  var current=(elem.textContent||'').trim().replace(/ /g,'_').toUpperCase();
+  var idx=flow.indexOf(current);
+  var next=flow[(idx+1)%flow.length];
+  _rest('aos_cotizacion_items?id=eq.'+itemId,{method:'PATCH',body:JSON.stringify({estado_entrega:next})}).then(function(r){
+    if(!r.ok)throw new Error('Error');
+    loadCotizaciones();
+  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+}
+
+// ===== CREAR COTIZACIÓN =====
 var _cotItems=[];
 function cotAbrir(){
   if(!PT.sel)return;_cotItems=[];cotAddItem();
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
   el('cot-asesor').value=(ctx.asesor||'WILMER').toUpperCase();
-  el('cot-nota').value='';el('cot-total').textContent='0.00';
+  el('cot-nota').value='';el('cot-nota-pac').value='';el('cot-doctor').value='';
+  el('cot-total').textContent='0.00';
   el('pt-m-cot').classList.add('open');
 }
-function cotAddItem(){
-  _cotItems.push({tipo:'SERVICIO',desc:'',cant:1,precio:0});
-  cotRenderItems();
-}
+function cotAddItem(){_cotItems.push({tipo:'SERVICIO',desc:'',cant:1,precio:0});cotRenderItems();}
 function cotRenderItems(){
   var box=el('cot-items');
   box.innerHTML=_cotItems.map(function(it,i){
@@ -262,11 +336,11 @@ function cotGuardar(){
   if(!valid.length){alert('Agrega al menos un item con descripci\u00f3n y precio');return;}
   var total=valid.reduce(function(s,it){return s+(it.cant||1)*(it.precio||0);},0);
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var cot={numero_limpio:PT.sel.telefono,nombre_paciente:((PT.sel.nombres||'')+' '+(PT.sel.apellidos||'')).trim(),dni_paciente:PT.sel.dni||'',estado:'CREADO',subtotal:total,saldo_pendiente:total,sede:el('cot-sede').value,asesor:el('cot-asesor').value,id_asesor:ctx.idAsesor||'',nota_interna:el('cot-nota').value.trim()};
+  var cot={numero_limpio:PT.sel.telefono,nombre_paciente:((PT.sel.nombres||'')+' '+(PT.sel.apellidos||'')).trim(),dni_paciente:PT.sel.dni||'',estado:'CREADO',subtotal:total,saldo_pendiente:total,sede:el('cot-sede').value,asesor:el('cot-asesor').value,id_asesor:ctx.idAsesor||'',doctor_responsable:el('cot-doctor').value.trim(),nota_interna:el('cot-nota').value.trim(),nota_paciente:el('cot-nota-pac').value.trim(),fecha_creacion:localDate()};
   fetch(_SB+'/rest/v1/aos_cotizaciones',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(cot)}).then(function(r){return r.json();}).then(function(rows){
     if(!rows||!rows[0])throw new Error('Error creando');
     var cotId=rows[0].id;
-    var items=valid.map(function(it){return {cotizacion_id:cotId,tipo:it.tipo,descripcion:it.desc,cantidad:it.cant||1,precio_unitario:it.precio,subtotal:(it.cant||1)*it.precio};});
+    var items=valid.map(function(it){return {cotizacion_id:cotId,tipo:it.tipo,descripcion:it.desc,cantidad:it.cant||1,precio_unitario:it.precio,subtotal:(it.cant||1)*it.precio,estado_entrega:'EN_ESPERA'};});
     return fetch(_SB+'/rest/v1/aos_cotizacion_items',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(items)});
   }).then(function(r){
     if(!r.ok)throw new Error('Error items');
@@ -276,42 +350,250 @@ function cotGuardar(){
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
-// REGISTRAR PAGO
+// ===== EDITAR COTIZACIÓN =====
+var _ecCotId=null,_ecItems=[],_ecDeletedItems=[];
+function ecAbrir(cotId){
+  _ecCotId=cotId;_ecDeletedItems=[];
+  var c=(PT.cots||[]).find(function(x){return x.id===cotId;});
+  if(!c)return;
+  el('ec-nombre').value=c.fecha||'';
+  el('ec-doctor').value=c.doctor_responsable||'';
+  el('ec-estado').value=c.estado||'CREADO';
+  el('ec-sede').value=c.sede||'SAN ISIDRO';
+  el('ec-nota').value=c.nota_interna||'';
+  el('ec-nota-pac').value=c.nota_paciente||'';
+  el('ec-pagado-info').textContent='Pagado: S/'+fmtMoney(c.total_pagado)+' | Por pagar: S/'+fmtMoney(c.saldo_pendiente);
+  _ecItems=(c.items||[]).map(function(it){return {id:it.id,tipo:it.tipo,desc:it.descripcion,cant:it.cantidad,precio:parseFloat(it.precio_unitario)||0,existing:true};});
+  ecRenderItems();
+  el('pt-m-editcot').classList.add('open');
+}
+function ecAddItem(){_ecItems.push({id:null,tipo:'SERVICIO',desc:'',cant:1,precio:0,existing:false});ecRenderItems();}
+function ecRenderItems(){
+  var box=el('ec-items');
+  box.innerHTML=_ecItems.map(function(it,i){
+    return '<div style="display:grid;grid-template-columns:80px 1fr 50px 80px 30px;gap:4px;margin-bottom:4px;align-items:center;">'
+      +'<select class="ms2" style="font-size:10px;padding:4px;" onchange="_ecItems['+i+'].tipo=this.value"><option value="SERVICIO"'+(it.tipo==='SERVICIO'?' selected':'')+'>Servicio</option><option value="PRODUCTO"'+(it.tipo==='PRODUCTO'?' selected':'')+'>Producto</option></select>'
+      +'<input class="mi" style="font-size:10px;padding:4px;" placeholder="Descripci\u00f3n..." value="'+h(it.desc)+'" oninput="_ecItems['+i+'].desc=this.value"/>'
+      +'<input class="mi" style="font-size:10px;padding:4px;text-align:center;" type="number" min="1" value="'+it.cant+'" oninput="_ecItems['+i+'].cant=parseInt(this.value)||1;ecCalcTotal()"/>'
+      +'<input class="mi" style="font-size:10px;padding:4px;text-align:right;" type="number" step="0.01" value="'+(it.precio||'')+'" oninput="_ecItems['+i+'].precio=parseFloat(this.value)||0;ecCalcTotal()"/>'
+      +'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="ecRemoveItem('+i+')">&times;</div></div>';
+  }).join('');
+  ecCalcTotal();
+}
+function ecCalcTotal(){var t=_ecItems.reduce(function(s,it){return s+(it.cant||1)*(it.precio||0);},0);el('ec-total').textContent=t.toFixed(2);}
+function ecRemoveItem(i){
+  var it=_ecItems[i];
+  if(it.existing&&it.id)_ecDeletedItems.push(it.id);
+  _ecItems.splice(i,1);ecRenderItems();
+}
+function ecGuardar(){
+  if(!_ecCotId)return;
+  var valid=_ecItems.filter(function(it){return it.desc&&it.precio>0;});
+  var total=valid.reduce(function(s,it){return s+(it.cant||1)*(it.precio||0);},0);
+  var c=(PT.cots||[]).find(function(x){return x.id===_ecCotId;});
+  var pagado=parseFloat((c&&c.total_pagado)||0);
+  var saldo=total-pagado;if(saldo<0)saldo=0;
+  var estado=el('ec-estado').value;
+  // Update cotización
+  var upd={doctor_responsable:el('ec-doctor').value.trim(),estado:estado,sede:el('ec-sede').value,subtotal:total,saldo_pendiente:saldo,nota_interna:el('ec-nota').value.trim(),nota_paciente:el('ec-nota-pac').value.trim()};
+  var promises=[];
+  promises.push(_rest('aos_cotizaciones?id=eq.'+_ecCotId,{method:'PATCH',body:JSON.stringify(upd)}));
+  // Delete removed items
+  _ecDeletedItems.forEach(function(delId){
+    promises.push(_rest('aos_cotizacion_items?id=eq.'+delId,{method:'DELETE'}));
+  });
+  // Update existing items
+  valid.filter(function(it){return it.existing&&it.id;}).forEach(function(it){
+    promises.push(_rest('aos_cotizacion_items?id=eq.'+it.id,{method:'PATCH',body:JSON.stringify({tipo:it.tipo,descripcion:it.desc,cantidad:it.cant||1,precio_unitario:it.precio,subtotal:(it.cant||1)*it.precio})}));
+  });
+  // Insert new items
+  var newItems=valid.filter(function(it){return !it.existing;}).map(function(it){
+    return {cotizacion_id:_ecCotId,tipo:it.tipo,descripcion:it.desc,cantidad:it.cant||1,precio_unitario:it.precio,subtotal:(it.cant||1)*it.precio,estado_entrega:'EN_ESPERA'};
+  });
+  if(newItems.length){
+    promises.push(fetch(_SB+'/rest/v1/aos_cotizacion_items',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(newItems)}));
+  }
+  Promise.all(promises).then(function(){
+    el('pt-m-editcot').classList.remove('open');
+    if(window.AOS_showToast)AOS_showToast('Presupuesto actualizado','','');
+    loadCotizaciones();
+  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+}
+
+// ===== REGISTRAR PAGO V2 — MULTI-LÍNEA =====
+var _pagoLines=[];
 function pagoAbrir(cotId){
   PT.payCotId=cotId;
   var c=(PT.cots||[]).find(function(x){return x.id===cotId;});
   if(!c)return;
   var saldo=parseFloat(c.saldo_pendiente||c.subtotal||0);
-  el('pago-monto-total').textContent=saldo.toFixed(2);
-  el('pago-monto').value=saldo.toFixed(2);
-  el('pago-fecha').value=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
+  el('pago-monto-total').textContent=fmtMoney(saldo);
+  el('pago-fecha').value=localDate();
   el('pago-nota').value='';
-  el('pago-dividir-info').style.display='block';
-  // Cargar métodos de pago
-  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(mets){
-    el('pago-metodo').innerHTML=(mets||[]).map(function(m){return '<option value="'+h(m.nombre)+'">'+h(m.nombre)+(m.moneda==='USD'?' ($)':'')+'</option>';}).join('');
-  });
+  var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
+  el('pago-asesor').value=(ctx.asesor||c.asesor||'WILMER').toUpperCase();
+  // Load métodos de pago
+  _pagoLines=[];
+  pagoAddLine(saldo);
+  loadMetodosPago();
   el('pt-m-pago').classList.add('open');
+}
+function loadMetodosPago(){
+  if(PT.metodos.length){pagoRenderLines();return;}
+  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(mets){
+    PT.metodos=mets||[];pagoRenderLines();
+  });
+}
+function pagoAddLine(monto){
+  _pagoLines.push({metodo:'EFECTIVO',monto:monto||0});
+  pagoRenderLines();
+}
+function pagoRenderLines(){
+  var box=el('pago-lines');if(!box)return;
+  box.innerHTML=_pagoLines.map(function(ln,i){
+    var opts=(PT.metodos||[]).map(function(m){return '<option value="'+h(m.nombre)+'"'+(ln.metodo===m.nombre?' selected':'')+'>'+h(m.nombre)+(m.moneda==='USD'?' ($)':'')+'</option>';}).join('');
+    return '<div class="pago-line">'
+      +'<select class="ms2" onchange="_pagoLines['+i+'].metodo=this.value">'+opts+'</select>'
+      +'<input class="mi" type="number" step="0.01" value="'+(ln.monto||'')+'" placeholder="S/" oninput="_pagoLines['+i+'].monto=parseFloat(this.value)||0;pagoCalcTotal()"/>'
+      +(i>0?'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="_pagoLines.splice('+i+',1);pagoRenderLines();pagoCalcTotal();">&times;</div>':'<div></div>')
+      +'</div>';
+  }).join('');
+  pagoCalcTotal();
+}
+function pagoCalcTotal(){
+  var t=_pagoLines.reduce(function(s,ln){return s+(ln.monto||0);},0);
+  el('pago-cobrar').textContent=fmtMoney(t);
 }
 function pagoGuardar(){
   if(!PT.payCotId)return;
-  var monto=parseFloat(el('pago-monto').value)||0;
-  if(monto<=0){alert('Ingresa un monto v\u00e1lido');return;}
+  var totalPago=_pagoLines.reduce(function(s,ln){return s+(ln.monto||0);},0);
+  if(totalPago<=0){alert('Ingresa un monto v\u00e1lido');return;}
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var pago={cotizacion_id:PT.payCotId,monto:monto,moneda:el('pago-moneda').value,metodo_pago:el('pago-metodo').value,tipo_comprobante:el('pago-comprobante').value,sede:el('pago-sede').value,registrado_por:(ctx.asesor||'').toUpperCase(),fecha_pago:el('pago-fecha').value,nota:el('pago-nota').value.trim()};
-  _rest('aos_pagos',{method:'POST',body:JSON.stringify(pago)}).then(function(r){
-    if(!r.ok)throw new Error('Error');
-    // Actualizar cotización: total_pagado y saldo
+  var asesorCom=el('pago-asesor').value;
+  var fecha=el('pago-fecha').value;
+  var comprobante=el('pago-comprobante').value;
+  var sede=el('pago-sede').value;
+  var nota=el('pago-nota').value.trim();
+  var registradoPor=(ctx.asesor||'').toUpperCase();
+
+  // Create one pago record per payment line
+  var pagos=_pagoLines.filter(function(ln){return ln.monto>0;}).map(function(ln){
+    return {cotizacion_id:PT.payCotId,monto:ln.monto,moneda:'PEN',metodo_pago:ln.metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota};
+  });
+
+  fetch(_SB+'/rest/v1/aos_pagos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(pagos)}).then(function(r){
+    if(!r.ok)throw new Error('Error guardando pagos');
+    // Update cotización totals
     var c=(PT.cots||[]).find(function(x){return x.id===PT.payCotId;});
     if(c){
-      var nuevoPagado=parseFloat(c.total_pagado||0)+monto;
+      var nuevoPagado=parseFloat(c.total_pagado||0)+totalPago;
       var nuevoSaldo=parseFloat(c.subtotal||0)-nuevoPagado;
-      var nuevoEstado=nuevoSaldo<=0?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
-      return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:Math.max(0,nuevoSaldo),estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})():null})});
+      if(nuevoSaldo<0)nuevoSaldo=0;
+      var nuevoEstado=nuevoSaldo<=0.01?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
+      return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:nuevoSaldo,estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?localDate():null})});
     }
-  }).then(function(r){
+  }).then(function(){
     el('pt-m-pago').classList.remove('open');
     if(window.AOS_showToast)AOS_showToast('Pago registrado','','toast-venta');
     loadCotizaciones();
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+}
+
+// ===== PDF INVOICE =====
+function cotPDF(cotId){
+  var c=(PT.cots||[]).find(function(x){return x.id===cotId;});
+  if(!c)return;
+  var items=c.items||[];var pagos=c.pagos||[];
+  var pacNom=c.nombre_paciente||((PT.sel&&PT.sel.nombres||'')+' '+(PT.sel&&PT.sel.apellidos||'')).trim();
+  var pacDni=c.dni_paciente||(PT.sel&&PT.sel.dni)||'';
+  var estLbl=c.estado==='PAGADO_COMPLETO'?'PAGADO':c.estado==='PAGADO_PARCIAL'?'ADELANTO':c.estado==='CANCELADO'?'CANCELADO':'PRESUPUESTO';
+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cotizaci\u00f3n #'+c.numero_cotizacion+'</title>';
+  html+='<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">';
+  html+='<style>';
+  html+='*{margin:0;padding:0;box-sizing:border-box;}';
+  html+='body{font-family:"DM Sans",sans-serif;color:#0D1B3E;background:#fff;padding:0;}';
+  html+='.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm 18mm;position:relative;}';
+  html+='.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #0A4FBF;}';
+  html+='.logo-area{display:flex;align-items:center;gap:10px;}.logo-text{font-family:"Exo 2",sans-serif;font-weight:800;font-size:22px;color:#0A4FBF;}.logo-sub{font-size:10px;color:#6B7BA8;}';
+  html+='.invoice-info{text-align:right;}.invoice-title{font-family:"Exo 2",sans-serif;font-weight:800;font-size:18px;color:#071D4A;}.invoice-num{font-size:13px;color:#0A4FBF;font-weight:700;}.invoice-date{font-size:11px;color:#6B7BA8;}';
+  html+='.status-badge{display:inline-block;padding:4px 14px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.5px;margin-top:4px;}';
+  html+='.st-pagado{background:#F0FDF4;color:#16A34A;}.st-adelanto{background:#FEF3C7;color:#D97706;}.st-presupuesto{background:#EBF2FF;color:#0A4FBF;}.st-cancelado{background:#F0F4FC;color:#6B7BA8;}';
+  html+='.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #DDE4F5;}';
+  html+='.info-label{font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;letter-spacing:.4px;}.info-value{font-size:12px;font-weight:600;}';
+  html+='table{width:100%;border-collapse:collapse;margin-bottom:16px;}';
+  html+='thead th{background:#0A4FBF;color:#fff;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:8px 10px;text-align:left;}';
+  html+='thead th:first-child{border-radius:8px 0 0 0;}thead th:last-child{border-radius:0 8px 0 0;}';
+  html+='tbody td{padding:8px 10px;border-bottom:1px solid #F0F4FC;font-size:11px;}';
+  html+='.totals-box{display:flex;justify-content:flex-end;margin-bottom:16px;}.totals-inner{width:220px;}';
+  html+='.total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}.total-row.main{font-family:"Exo 2",sans-serif;font-weight:800;font-size:15px;color:#0A4FBF;border-top:2px solid #0A4FBF;padding-top:8px;margin-top:4px;}';
+  html+='.total-row .label{color:#6B7BA8;}.total-row .val{font-weight:700;}';
+  html+='.pay-section{margin-bottom:16px;padding:12px;background:#F8FAFF;border-radius:8px;border:1px solid #DDE4F5;}';
+  html+='.pay-title{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;}';
+  html+='.pay-line{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;}';
+  html+='.footer{position:absolute;bottom:15mm;left:18mm;right:18mm;text-align:center;padding-top:12px;border-top:2px solid #0A4FBF;}';
+  html+='.footer-text{font-size:9px;color:#6B7BA8;}.footer-brand{font-family:"Exo 2",sans-serif;font-weight:800;font-size:11px;color:#0A4FBF;margin-top:3px;}';
+  html+='.thanks{text-align:center;font-family:"Exo 2",sans-serif;font-weight:800;font-size:14px;color:#00C9A7;margin-top:20px;}';
+  html+='@media print{.page{padding:10mm 12mm;}.footer{bottom:8mm;left:12mm;right:12mm;}}';
+  html+='</style></head><body>';
+
+  html+='<div class="page">';
+  // Header
+  html+='<div class="header"><div class="logo-area"><div><div class="logo-text">Zi Vital</div><div class="logo-sub">Cl\u00ednica Est\u00e9tica</div></div></div>';
+  html+='<div class="invoice-info"><div class="invoice-title">COTIZACI\u00d3N</div><div class="invoice-num">N\u00b0 '+String(c.numero_cotizacion).padStart(6,'0')+'</div><div class="invoice-date">Fecha: '+h(c.fecha||localDate())+'</div>';
+  var stCls=estLbl==='PAGADO'?'st-pagado':estLbl==='ADELANTO'?'st-adelanto':estLbl==='CANCELADO'?'st-cancelado':'st-presupuesto';
+  html+='<div class="status-badge '+stCls+'">'+estLbl+'</div></div></div>';
+
+  // Info grid
+  html+='<div class="info-grid">';
+  html+='<div><div class="info-label">Paciente</div><div class="info-value">'+h(pacNom)+'</div></div>';
+  html+='<div><div class="info-label">DNI / Doc.</div><div class="info-value">'+h(pacDni||'-')+'</div></div>';
+  html+='<div><div class="info-label">Sede</div><div class="info-value">'+h(c.sede||'')+'</div></div>';
+  html+='<div><div class="info-label">Asesor</div><div class="info-value">'+h(c.asesor||'')+'</div></div>';
+  if(c.doctor_responsable){html+='<div><div class="info-label">Doctor</div><div class="info-value">'+h(c.doctor_responsable)+'</div></div>';}
+  html+='</div>';
+
+  // Items table
+  html+='<table><thead><tr><th>Descripci\u00f3n</th><th>Tipo</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead><tbody>';
+  items.forEach(function(it){
+    html+='<tr><td style="font-weight:600;">'+h(it.descripcion)+'</td><td>'+h(it.tipo)+'</td><td style="text-align:center;">'+it.cantidad+'</td><td>S/ '+fmtMoney(it.precio_unitario)+'</td><td style="font-weight:700;">S/ '+fmtMoney(it.subtotal)+'</td></tr>';
+  });
+  html+='</tbody></table>';
+
+  // Totals
+  html+='<div class="totals-box"><div class="totals-inner">';
+  html+='<div class="total-row"><span class="label">Subtotal</span><span class="val">S/ '+fmtMoney(c.subtotal)+'</span></div>';
+  if(parseFloat(c.total_pagado||0)>0)html+='<div class="total-row"><span class="label">Pagado</span><span class="val" style="color:#16A34A;">S/ '+fmtMoney(c.total_pagado)+'</span></div>';
+  if(parseFloat(c.saldo_pendiente||0)>0)html+='<div class="total-row"><span class="label">Por pagar</span><span class="val" style="color:#DC2626;">S/ '+fmtMoney(c.saldo_pendiente)+'</span></div>';
+  html+='<div class="total-row main"><span>TOTAL</span><span>S/ '+fmtMoney(c.subtotal)+'</span></div>';
+  html+='</div></div>';
+
+  // Pagos
+  if(pagos.length){
+    html+='<div class="pay-section"><div class="pay-title">Historial de pagos</div>';
+    pagos.forEach(function(pg){
+      html+='<div class="pay-line"><span>'+h(pg.fecha||'')+' \u2014 '+h(pg.metodo_pago)+'</span><span style="font-weight:700;">S/ '+fmtMoney(pg.monto)+'</span></div>';
+    });
+    html+='</div>';
+  }
+
+  // Notes
+  if(c.nota_interna||c.nota_paciente){
+    html+='<div style="padding:10px;background:#FFFBEB;border-radius:8px;border:1px solid #FEF3C7;font-size:11px;margin-bottom:16px;">';
+    if(c.nota_paciente)html+='<div>'+h(c.nota_paciente)+'</div>';
+    if(c.nota_interna)html+='<div style="color:#6B7BA8;font-size:10px;margin-top:4px;">Nota interna: '+h(c.nota_interna)+'</div>';
+    html+='</div>';
+  }
+
+  html+='<div class="thanks">\u00a1Gracias por su confianza!</div>';
+
+  // Footer
+  html+='<div class="footer"><div class="footer-text">Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre | Tel: (01) 123-4567</div><div class="footer-brand">AscendaOS \u2014 Powered by CREACTIVE OS</div></div>';
+  html+='</div></body></html>';
+
+  // Open in new window for print/download
+  var w=window.open('','_blank','width=800,height=1100');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},500);
 }
