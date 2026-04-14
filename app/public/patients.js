@@ -142,16 +142,7 @@ function pagoAbrir(cotId){
   el('pago-dividir-zone').style.display='none';
   var btn=el('pago-dividir-btn');if(btn)btn.classList.remove('active');
   _pagoLines=[];
-  loadMetodosPago(function(){
-    // Set single method selector
-    var sel=el('pago-metodo-single');
-    sel.innerHTML=(PT.metodos||[]).map(function(m){return '<option value="'+h(m.nombre)+'">'+h(m.nombre)+(m.moneda==='USD'?' ($)':'')+'</option>';}).join('');
-  });
   el('pt-m-pago').classList.add('open');
-}
-function loadMetodosPago(cb){
-  if(PT.metodos&&PT.metodos.length>0){if(cb)cb();return;}
-  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(mets){PT.metodos=mets||[];if(cb)cb();}).catch(function(){PT.metodos=[{nombre:'EFECTIVO',moneda:'PEN'},{nombre:'NIUBIZ SAN ISIDRO',moneda:'PEN'},{nombre:'NIUBIZ PUEBLO LIBRE',moneda:'PEN'},{nombre:'IZIPAY YA',moneda:'PEN'},{nombre:'TRANSFERENCIA BCP',moneda:'PEN'},{nombre:'TRANSFERENCIA IBK',moneda:'PEN'},{nombre:'INTERBANK DRA',moneda:'PEN'},{nombre:'BBVA DRA',moneda:'PEN'},{nombre:'BCP DRA',moneda:'PEN'},{nombre:'QR DOCTORA',moneda:'PEN'},{nombre:'QR CARMEN',moneda:'PEN'},{nombre:'MERCADO PAGO',moneda:'PEN'},{nombre:'DOLARES EFECTIVO',moneda:'USD'},{nombre:'IBK DRA DOLARES',moneda:'USD'}];if(cb)cb();});
 }
 function pagoToggleDividir(){
   PT.isDividido=!PT.isDividido;
@@ -170,12 +161,12 @@ function pagoToggleDividir(){
   }
 }
 var _METODOS_PAGO=['EFECTIVO','NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','TRANSFERENCIA BCP','TRANSFERENCIA IBK','INTERBANK DRA','BBVA DRA','BCP DRA','QR DOCTORA','QR CARMEN','MERCADO PAGO','DOLARES EFECTIVO','IBK DRA DOLARES'];
-function pagoAddLine(){_pagoLines.push({metodo:'EFECTIVO',monto:0});pagoRenderLines();}
+function pagoAddLine(){_pagoLines.push({metodo:'',monto:0});pagoRenderLines();}
 function pagoRenderLines(){
   var box=el('pago-lines');if(!box)return;
   box.innerHTML=_pagoLines.map(function(ln,i){
-    var opts=_METODOS_PAGO.map(function(m){var isDol=m.indexOf('DOLAR')>=0;return '<option value="'+h(m)+'"'+(ln.metodo===m?' selected':'')+'>'+h(m)+(isDol?' ($)':'')+'</option>';}).join('');
-    return '<div class="pago-line"><select class="ms2" onchange="_pagoLines['+i+'].metodo=this.value">'+opts+'</select><input class="mi" type="number" step="0.01" value="'+(ln.monto||'')+'" placeholder="S/" oninput="_pagoLines['+i+'].monto=parseFloat(this.value)||0;pagoCalcDividido()"/>'+(i>1?'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="_pagoLines.splice('+i+',1);pagoRenderLines();pagoCalcDividido();">&times;</div>':'<div></div>')+'</div>';
+    var opts='<option value="">-- Seleccionar --</option>'+_METODOS_PAGO.map(function(m){var isDol=m.indexOf('DOLAR')>=0;return '<option value="'+h(m)+'"'+(ln.metodo===m?' selected':'')+'>'+h(m)+(isDol?' ($)':'')+'</option>';}).join('');
+    return '<div class="pago-line"><select class="ms2" onchange="_pagoLines['+i+'].metodo=this.value">'+opts+'</select><input class="mi" type="number" step="0.01" value="'+(ln.monto||'')+'" placeholder="S/" oninput="_pagoLines['+i+'].monto=parseFloat(this.value)||0;pagoCalcDividido()"/>'+(i>0?'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="_pagoLines.splice('+i+',1);pagoRenderLines();pagoCalcDividido();">&times;</div>':'<div></div>')+'</div>';
   }).join('');
   pagoCalcDividido();
 }
@@ -188,23 +179,43 @@ function pagoGuardar(){
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
   var asesorCom=el('pago-asesor').value;var fecha=el('pago-fecha').value;
   var comprobante=el('pago-comprobante').value;var sede=el('pago-sede').value;
-  var nota=el('pago-nota').value.trim();var registradoPor=(ctx.asesor||'').toUpperCase();
+  var nota=el('pago-nota').value.trim();var registradoPor=(ctx.asesor||asesorCom||'').toUpperCase();
+  if(!fecha){alert('Selecciona una fecha');return;}
   var pagos=[];
   if(PT.isDividido){
-    // Multiple payment lines
-    pagos=_pagoLines.filter(function(ln){return ln.monto>0;}).map(function(ln){return{cotizacion_id:PT.payCotId,monto:ln.monto,moneda:'PEN',metodo_pago:ln.metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota};});
+    var lineasValidas=_pagoLines.filter(function(ln){return ln.monto>0;});
+    // Validar que todas las líneas tengan método seleccionado
+    for(var i=0;i<lineasValidas.length;i++){
+      if(!lineasValidas[i].metodo){alert('Selecciona un m\u00e9todo de pago en todas las l\u00edneas');return;}
+    }
+    pagos=lineasValidas.map(function(ln){return{cotizacion_id:PT.payCotId,monto:ln.monto,moneda:ln.metodo.indexOf('DOLAR')>=0?'USD':'PEN',metodo_pago:ln.metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota};});
   }else{
-    // Single payment = full saldo
     var metodo=el('pago-metodo-single').value;
-    pagos=[{cotizacion_id:PT.payCotId,monto:saldo,moneda:'PEN',metodo_pago:metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota}];
+    if(!metodo){alert('Selecciona un m\u00e9todo de pago');return;}
+    pagos=[{cotizacion_id:PT.payCotId,monto:saldo,moneda:metodo.indexOf('DOLAR')>=0?'USD':'PEN',metodo_pago:metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota}];
   }
   var totalPago=pagos.reduce(function(s,p){return s+p.monto;},0);
-  if(totalPago<=0){alert('Ingresa un monto v\u00e1lido');return;}
-  fetch(_SB+'/rest/v1/aos_pagos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(pagos)}).then(function(r){
-    if(!r.ok)throw new Error('Error guardando pagos');
-    var nuevoPagado=parseFloat(c.total_pagado||0)+totalPago;var nuevoSaldo=parseFloat(c.subtotal||0)-nuevoPagado;if(nuevoSaldo<0)nuevoSaldo=0;var nuevoEstado=nuevoSaldo<=0.01?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
+  if(totalPago<=0){alert('El monto total debe ser mayor a 0');return;}
+  // Guardar pagos en aos_pagos
+  fetch(_SB+'/rest/v1/aos_pagos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(pagos)}).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error('Error: '+t);});
+    return r.json();
+  }).then(function(saved){
+    console.log('[PAGO] Guardados '+saved.length+' pagos en aos_pagos:', saved);
+    // Actualizar cotización
+    var nuevoPagado=parseFloat(c.total_pagado||0)+totalPago;
+    var nuevoSaldo=parseFloat(c.subtotal||0)-nuevoPagado;if(nuevoSaldo<0)nuevoSaldo=0;
+    var nuevoEstado=nuevoSaldo<=0.01?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
     return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:nuevoSaldo,estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?localDate():null})});
-  }).then(function(){el('pt-m-pago').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Pago registrado','','toast-venta');loadCotizaciones();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+  }).then(function(r){
+    if(!r.ok)throw new Error('Error actualizando cotizaci\u00f3n');
+    el('pt-m-pago').classList.remove('open');
+    if(window.AOS_showToast)AOS_showToast('Pago registrado correctamente','S/'+fmtMoney(totalPago)+' - '+pagos[0].metodo_pago,'toast-venta');
+    loadCotizaciones();
+  }).catch(function(e){
+    console.error('[PAGO] Error:',e);
+    if(window.AOS_showToast)AOS_showToast('Error al registrar pago',e.message||'','toast-alerta');
+  });
 }
 
 // ===== PDF INVOICE =====
