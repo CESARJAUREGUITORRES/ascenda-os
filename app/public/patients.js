@@ -65,7 +65,8 @@ function loadCotizaciones(){
       card+='<div class="cot-body"><table class="cot-tbl"><thead><tr><th>Item</th><th>Cant.</th><th>Subtotal</th><th>Pagado</th><th>Por pagar</th><th>Estado</th></tr></thead><tbody>';
       items.forEach(function(it){
         var itSub=parseFloat(it.subtotal||0);var itPagado=parseFloat(it.pagado_item||0);var itPorPagar=itSub-itPagado;if(itPorPagar<0.01)itPorPagar=0;
-        var fullyPaid=itPorPagar<=0.01;
+        var itemEsPago=(it.estado_pago_item||'PAGO COMPLETO').toUpperCase();
+        var fullyPaid=itemEsPago==='PAGO COMPLETO';
         // Estado entrega — defaults
         var entEst=(it.estado_entrega||'').toUpperCase();
         var tipo=(it.tipo||'SERVICIO').toUpperCase();
@@ -74,8 +75,8 @@ function loadCotizaciones(){
         var entClsMap={'POR COMENZAR':'est-porcomenzar','EN PROCESO':'est-proceso','COMPLETADO':'est-completado','POR ENTREGAR':'est-porentregar','ENVIADO':'est-enviado','ENTREGADO':'est-entregado'};
         var entCls=entClsMap[entEst]||'est-espera';
         // Color item name
-        var nameColor=itPorPagar>0.01?'color:#D97706;':'';
-        card+='<tr><td><div class="item-name"><span class="item-dot"></span><span style="'+nameColor+'">'+h(it.descripcion)+'</span></div></td><td>'+it.cantidad+'</td><td>S/ '+fmtMoney(it.subtotal)+'</td><td style="color:#0A4FBF;font-weight:700;">'+fmtMoney(itPagado)+'</td><td style="color:'+(itPorPagar>0.01?'#DC2626':'#16A34A')+';font-weight:700;">'+fmtMoney(itPorPagar)+'</td><td>';
+        var nameColor=fullyPaid?'':'color:#D97706;';
+        card+='<tr><td><div class="item-name"><span class="item-dot"></span><span style="'+nameColor+'">'+h(it.descripcion)+'</span></div></td><td>'+it.cantidad+'</td><td>S/ '+fmtMoney(it.subtotal)+'</td><td style="color:#0A4FBF;font-weight:700;">'+(fullyPaid?fmtMoney(itSub):(itemEsPago==='ADELANTO'?fmtMoney(itSub)+' <span style="font-size:8px;color:#D97706;">(adelanto)</span>':fmtMoney(itPagado)))+'</td><td style="color:'+(fullyPaid?'#16A34A':'#DC2626')+';font-weight:700;">'+(fullyPaid?'0.00':'Pendiente')+'</td><td>';
         // Estado pago: check o boton pagar
         if(fullyPaid){card+='<span class="item-check">\u2705</span> ';}
         else{card+='<button class="item-pay-btn" onclick="pagoAbrir(\''+h(c.id)+'\')">Pagar</button> ';}
