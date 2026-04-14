@@ -9,7 +9,7 @@ function el(id){return document.getElementById(id);}
 var DIAS_S=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
 var DIAS_L=['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
 var MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var AG={fecha:new Date().toISOString().slice(0,10),data:null,sel:null,editId:null,filtro:'',vista:'list'};
+var AG={fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})(),data:null,sel:null,editId:null,filtro:'',vista:'list'};
 var AMAP={'WILMER':'ZIV-004','RUVILA':'ZIV-002','MIREYA':'ZIV-003','SRA CARMEN':'ZIV-005','CESAR':'ZIV-001'};
 var ESTADOS=[{val:'PENDIENTE',lbl:'Pendiente',cls:'est-btn-pend'},{val:'CITA CONFIRMADA',lbl:'Confirmada',cls:'est-btn-conf'},{val:'ASISTIO',lbl:'Asisti\u00f3',cls:'est-btn-asist'},{val:'EFECTIVA',lbl:'Efectiva',cls:'est-btn-efect'},{val:'NO ASISTIO',lbl:'No Asisti\u00f3',cls:'est-btn-noasist'},{val:'CANCELADA',lbl:'Cancelada',cls:'est-btn-cancel'}];
 
@@ -17,7 +17,7 @@ var ESTADOS=[{val:'PENDIENTE',lbl:'Pendiente',cls:'est-btn-pend'},{val:'CITA CON
 
 function updateLbl(){var d=new Date(AG.fecha+'T12:00:00');el('ag-fecha-lbl').textContent=DIAS_L[d.getDay()]+', '+d.getDate()+' de '+MESES[d.getMonth()+1]+' '+d.getFullYear();}
 function agNav(dir){var d=new Date(AG.fecha+'T12:00:00');if(AG.vista==='week')d.setDate(d.getDate()+dir*7);else if(AG.vista==='month')d.setMonth(d.getMonth()+dir);else d.setDate(d.getDate()+dir);AG.fecha=d.toISOString().slice(0,10);el('ag-fecha').value=AG.fecha;updateLbl();agLoad();}
-function agHoy(){AG.fecha=new Date().toISOString().slice(0,10);el('ag-fecha').value=AG.fecha;updateLbl();agLoad();}
+function agHoy(){AG.fecha=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();el('ag-fecha').value=AG.fecha;updateLbl();agLoad();}
 function agVista(btn){document.querySelectorAll('.vtab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');AG.vista=btn.getAttribute('data-v');agLoad();}
 function agFilterLocal(){AG.filtro=el('ag-estado').value;if(AG.data)renderView();}
 
@@ -79,7 +79,7 @@ function loadWeek(){
   var d=new Date(AG.fecha+'T12:00:00');var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);
   var lunes=new Date(d.getFullYear(),d.getMonth(),diff);
   var dias=[];for(var i=0;i<7;i++){var dd=new Date(lunes);dd.setDate(lunes.getDate()+i);dias.push(dd.toISOString().slice(0,10));}
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
   var sede=el('ag-sede').value;
   // Fetch citas de toda la semana
   var desde=dias[0],hasta=dias[6];
@@ -108,7 +108,7 @@ function loadMonth(){
   var diasMes=new Date(anio,mes+1,0).getDate();
   var desde=anio+'-'+String(mes+1).padStart(2,'0')+'-01';
   var hasta=anio+'-'+String(mes+1).padStart(2,'0')+'-'+diasMes;
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
   var sede=el('ag-sede').value;
   el('ag-fecha-lbl').textContent=MESES[mes+1]+' '+anio;
   fetch(_SB+'/rest/v1/aos_agenda_citas?fecha_cita=gte.'+desde+'&fecha_cita=lte.'+hasta+(sede?'&sede=ilike.*'+sede+'*':'')+'&select=id,fecha_cita,estado_cita',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(function(rows){

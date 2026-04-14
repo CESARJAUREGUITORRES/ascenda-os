@@ -484,7 +484,7 @@
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
-function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var hh=new Date().toISOString().slice(0,10);return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
+function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Date();var hh=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
 
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL
@@ -498,7 +498,7 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
 // ── INIT ──────────────────────────────────────────────────────
 (function(){
   CC.token = window.AOS_getToken ? window.AOS_getToken() : '';
-  var hoy = new Date().toISOString().slice(0,10);
+  var hoy = (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
   document.getElementById('cc-c-fecha').min = hoy;
   document.getElementById('cc-s-fecha').min = hoy;
   document.getElementById('cc-s-fecha').value = hoy;
@@ -1017,7 +1017,7 @@ function detectarDoctora(fechaStr,horaStr,sede,targetId){
 // MODAL CITA MANUAL (con número)
 // ══════════════════════════════════════════════════════════════
 function abrirCitaManual(){
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
   var el=document.getElementById('cm-fecha');if(el){el.min=hoy;el.value='';}
   document.getElementById('cm-num').value='';
   document.getElementById('cm-nombre').value='';

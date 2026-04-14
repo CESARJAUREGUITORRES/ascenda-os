@@ -145,7 +145,7 @@ function ptTipoNota(){var t=el('nt-tipo').value;el('nt-clinico').style.display=t
 function ptGuardarNota(){
   if(!PT.sel)return;var tipo=el('nt-tipo').value;
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:new Date().toISOString().slice(0,10),hora:new Date().toTimeString().slice(0,8)};
+  var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})(),hora:new Date().toTimeString().slice(0,8)};
   if(tipo==='DOCTORA'){row.evolucion=el('nt-evolucion').value.trim();row.diagnostico=el('nt-diagnostico').value.trim();row.pronostico=el('nt-pronostico').value.trim();row.plan_trabajo=el('nt-plan').value.trim();row.resultado_estudios=el('nt-resultados').value.trim();row.nota_adicional=el('nt-adicional').value.trim();}
   else if(tipo==='ENFERMERIA'){
     var triaje='Talla:'+el('nt-talla').value+' Peso:'+el('nt-peso').value+' IMC:'+el('nt-imc').value+' P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value+' Motivo:'+el('nt-motivo').value;
@@ -162,7 +162,7 @@ function ptAbrirDoc(){if(!PT.sel)return;el('doc-url').value='';el('doc-nombre').
 function ptGuardarDoc(){
   if(!PT.sel)return;var url=el('doc-url').value.trim();if(!url){alert('Ingresa la URL del documento');return;}
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
-  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:el('doc-tipo').value,nombre_archivo:el('doc-nombre').value.trim()||url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:new Date().toISOString().slice(0,10)})}).then(function(r){
+  _rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:el('doc-tipo').value,nombre_archivo:el('doc-nombre').value.trim()||url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})()})}).then(function(r){
     if(!r.ok)throw new Error('Error');el('pt-m-doc').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Documento guardado','','');ptSel(PT.sel.telefono);
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
@@ -284,7 +284,7 @@ function pagoAbrir(cotId){
   var saldo=parseFloat(c.saldo_pendiente||c.subtotal||0);
   el('pago-monto-total').textContent=saldo.toFixed(2);
   el('pago-monto').value=saldo.toFixed(2);
-  el('pago-fecha').value=new Date().toISOString().slice(0,10);
+  el('pago-fecha').value=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
   el('pago-nota').value='';
   el('pago-dividir-info').style.display='block';
   // Cargar métodos de pago
@@ -307,7 +307,7 @@ function pagoGuardar(){
       var nuevoPagado=parseFloat(c.total_pagado||0)+monto;
       var nuevoSaldo=parseFloat(c.subtotal||0)-nuevoPagado;
       var nuevoEstado=nuevoSaldo<=0?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
-      return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:Math.max(0,nuevoSaldo),estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?new Date().toISOString().slice(0,10):null})});
+      return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:Math.max(0,nuevoSaldo),estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})():null})});
     }
   }).then(function(r){
     el('pt-m-pago').classList.remove('open');

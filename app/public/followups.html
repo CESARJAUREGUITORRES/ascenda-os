@@ -136,7 +136,7 @@ var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _insert(t,body,ok,fail){fetch(_SB+'/rest/v1/'+t,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){if(r.ok&&ok)ok();else if(fail)fail();}).catch(fail||function(){});}
 
-function _hoy(){return new Date().toISOString().slice(0,10);}
+function _hoy(){return (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();}
 function _ctx(){try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');return{a:(s.nombre||'').toUpperCase(),id:s.codigo_asesor||''};}catch(e){return{a:'',id:''};}}
 function $(id){return document.getElementById(id);}
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
