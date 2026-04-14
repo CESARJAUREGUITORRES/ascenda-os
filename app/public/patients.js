@@ -169,11 +169,12 @@ function pagoToggleDividir(){
     el('pago-cobrar').textContent=fmtMoney(saldo);
   }
 }
+var _METODOS_PAGO=['EFECTIVO','NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','TRANSFERENCIA BCP','TRANSFERENCIA IBK','INTERBANK DRA','BBVA DRA','BCP DRA','QR DOCTORA','QR CARMEN','MERCADO PAGO','DOLARES EFECTIVO','IBK DRA DOLARES'];
 function pagoAddLine(){_pagoLines.push({metodo:'EFECTIVO',monto:0});pagoRenderLines();}
 function pagoRenderLines(){
   var box=el('pago-lines');if(!box)return;
   box.innerHTML=_pagoLines.map(function(ln,i){
-    var opts=(PT.metodos||[]).map(function(m){return '<option value="'+h(m.nombre)+'"'+(ln.metodo===m.nombre?' selected':'')+'>'+h(m.nombre)+(m.moneda==='USD'?' ($)':'')+'</option>';}).join('');
+    var opts=_METODOS_PAGO.map(function(m){var isDol=m.indexOf('DOLAR')>=0;return '<option value="'+h(m)+'"'+(ln.metodo===m?' selected':'')+'>'+h(m)+(isDol?' ($)':'')+'</option>';}).join('');
     return '<div class="pago-line"><select class="ms2" onchange="_pagoLines['+i+'].metodo=this.value">'+opts+'</select><input class="mi" type="number" step="0.01" value="'+(ln.monto||'')+'" placeholder="S/" oninput="_pagoLines['+i+'].monto=parseFloat(this.value)||0;pagoCalcDividido()"/>'+(i>1?'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="_pagoLines.splice('+i+',1);pagoRenderLines();pagoCalcDividido();">&times;</div>':'<div></div>')+'</div>';
   }).join('');
   pagoCalcDividido();
