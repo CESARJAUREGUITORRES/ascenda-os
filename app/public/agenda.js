@@ -231,7 +231,14 @@ function agEliminar(){
   );
 }
 
-function agReagendar(){if(!AG.sel)return;agAbrirEditar();el('edit-titulo').textContent='Reagendar cita';el('ed-fecha').value='';el('ed-fecha').focus();}
+function agReagendar(){
+  if(!AG.sel)return;
+  AG.reagendando=true;
+  AG.reagendaOrigId=AG.sel.id;
+  agAbrirEditar();
+  el('edit-titulo').textContent='Reagendar cita';
+  el('ed-fecha').value='';el('ed-fecha').focus();
+}
 
 // ── MODAL EDITAR / NUEVA ──
 function agAbrirEditar(){
@@ -260,7 +267,7 @@ function agAbrirNueva(){
   el('ed-asesor').value=(ctx.asesor||'WILMER').toUpperCase();
   el('ag-m-edit').classList.add('open');
 }
-function agCloseEdit(){el('ag-m-edit').classList.remove('open');}
+function agCloseEdit(){el('ag-m-edit').classList.remove('open');AG.reagendando=false;AG.reagendaOrigId=null;}
 
 function agGuardarEdit(){
   var num=(el('ed-num').value||'').trim().replace(/\D/g,'');
@@ -268,7 +275,20 @@ function agGuardarEdit(){
   if(!fecha){alert('Selecciona fecha');return;}
   var asesor=el('ed-asesor').value;var now=new Date();
   var row={nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),correo:el('ed-correo').value.trim(),asesor:asesor,id_asesor:AMAP[asesor]||'',sede:el('ed-sede').value,tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,hora_cita:el('ed-hora').value||'10:00',tratamiento:el('ed-trat').value,tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()};
-  if(AG.editId){
+  if(AG.reagendando && AG.reagendaOrigId){
+    // REAGENDAR: marcar original como REAGENDADA + crear nueva cita
+    var origPatch={estado_cita:'REAGENDADA',obs:(el('ed-obs').value.trim()?el('ed-obs').value.trim()+' | ':'')+'Reagendada a '+fecha,ts_actualizado:now.toISOString()};
+    row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';
+    Promise.all([
+      _rest('aos_agenda_citas?id=eq.'+AG.reagendaOrigId,{method:'PATCH',body:JSON.stringify(origPatch)}),
+      _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)})
+    ]).then(function(results){
+      var allOk=results.every(function(r){return r.ok;});
+      if(!allOk)throw new Error('Error al reagendar');
+      AG.reagendando=false;AG.reagendaOrigId=null;
+      if(window.AOS_showToast)AOS_showToast('Cita reagendada','Original marcada + nueva creada en '+fecha,'toast-venta');agCloseEdit();agLoad();
+    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+  } else if(AG.editId){
     _rest('aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
       if(window.AOS_showToast)AOS_showToast('Cita actualizada','','');agCloseEdit();agLoad();
