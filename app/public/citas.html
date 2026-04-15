@@ -36,6 +36,8 @@
 @keyframes spin{to{transform:rotate(360deg);}}
 .wrap-sc{overflow-y:auto;max-height:400px;}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
 @media(max-width:768px){.krow{grid-template-columns:repeat(3,1fr);}.main2{grid-template-columns:1fr;}}
+.vc-mov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.42);z-index:800;align-items:center;justify-content:center;padding:16px;}.vc-mov.open{display:flex;}
+.vc-mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:520px;border:1px solid #DDE4F5;max-height:90vh;overflow-y:auto;}
 </style>
 
 <div class="vc-root">
@@ -59,12 +61,15 @@
     <div class="crd">
       <div class="chd">
         <div class="ct">Citas del mes</div>
-        <div class="ftabs">
-          <div class="ftab act" data-f="all" onclick="vcFilter(this)">Todas</div>
-          <div class="ftab" data-f="PENDIENTE" onclick="vcFilter(this)">Pendientes</div>
-          <div class="ftab" data-f="ASISTIO" onclick="vcFilter(this)">Asistieron</div>
-          <div class="ftab" data-f="NO ASISTIO" onclick="vcFilter(this)">No asistieron</div>
-          <div class="ftab" data-f="CANCELADA" onclick="vcFilter(this)">Canceladas</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="vc-buscar" placeholder="Buscar nombre o número..." oninput="vcBuscar()" style="padding:5px 10px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-family:DM Sans,sans-serif;outline:none;width:180px;">
+          <div class="ftabs">
+            <div class="ftab act" data-f="all" onclick="vcFilter(this)">Todas</div>
+            <div class="ftab" data-f="PENDIENTE" onclick="vcFilter(this)">Pendientes</div>
+            <div class="ftab" data-f="ASISTIO" onclick="vcFilter(this)">Asistieron</div>
+            <div class="ftab" data-f="NO ASISTIO" onclick="vcFilter(this)">No asistieron</div>
+            <div class="ftab" data-f="CANCELADA" onclick="vcFilter(this)">Canceladas</div>
+          </div>
         </div>
       </div>
       <div class="wrap-sc">
