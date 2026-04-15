@@ -1,261 +1,214 @@
-<!-- ═══════════════════════════════════════════════════════════
-     ADVISOR HOME — AscendaOS v1
-     Migrado 100% Supabase directo — CERO GAS
-     RPCs: aos_panel_asesor, aos_comisiones_asesor, aos_semana_asesor, aos_get_seguimientos
-     ═══════════════════════════════════════════════════════════ -->
+<!-- advisor-home.html v2 — AscendaOS SES-015 | Layout: 2/3 libre + 1/3 derecha -->
 <style>
 .vh-root{padding:16px;display:flex;flex-direction:column;gap:12px;}
 .embudo-bar{background:#fff;border:1px solid #DDE4F5;border-radius:13px;padding:11px 18px;display:flex;align-items:center;gap:0;overflow:hidden;}
 .emb-item{display:flex;flex-direction:column;align-items:center;flex:1;padding:4px 6px;position:relative;}
-.emb-item:not(:last-child)::after{content:'›';position:absolute;right:-2px;top:50%;transform:translateY(-50%);font-size:16px;color:#DDE4F5;font-weight:700;}
+.emb-item:not(:last-child)::after{content:'\203A';position:absolute;right:-2px;top:50%;transform:translateY(-50%);font-size:16px;color:#DDE4F5;font-weight:700;}
 .emb-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0A4FBF;line-height:1;}
 .emb-v.fact{font-size:14px;color:#16A34A;}
 .emb-l{font-size:9px;font-weight:600;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
 .emb-titulo{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-right:14px;white-space:nowrap;flex-shrink:0;}
-.main3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;}
-.scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:15px;}
+.main-layout{display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:start;}
+.zone-left{min-height:200px;}
+.scard{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:15px;margin-bottom:12px;}
 .schd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .st{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;letter-spacing:.5px;color:#0D1B3E;}
-.slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
-.slink:hover{text-decoration:underline;}
-.atc-row{display:flex;align-items:center;justify-content:space-around;padding:18px 0;}
-.atc-item{text-align:center;}
-.atc-v{font-family:'Exo 2',sans-serif;font-size:26px;font-weight:800;color:#0A4FBF;line-height:1;}
-.atc-v.g{color:#16A34A;}.atc-v.m{color:#6B7BA8;}
-.atc-l{font-size:9px;color:#9AAAC8;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;}
-.atc-div{width:1px;height:30px;background:#DDE4F5;}
+.slink{font-size:11px;font-weight:600;color:#0A4FBF;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}.slink:hover{text-decoration:underline;}
+.atc-row{display:flex;align-items:center;justify-content:space-around;padding:14px 0;}
+.atc-item{text-align:center;}.atc-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0A4FBF;line-height:1;}
+.atc-v.g{color:#16A34A;}.atc-v.m{color:#6B7BA8;}.atc-l{font-size:9px;color:#9AAAC8;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;}.atc-div{width:1px;height:24px;background:#DDE4F5;}
 .com-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
-.com-v{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:800;color:#0A4FBF;}
+.com-v{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0A4FBF;}
 .com-meta{font-size:10px;color:#9AAAC8;}
 .prog{background:#F0F4FC;border-radius:20px;height:6px;overflow:hidden;border:1px solid #DDE4F5;margin:8px 0 5px;}
 .prog-f{height:100%;border-radius:20px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);transition:width .5s;}
 .com-labels{display:flex;justify-content:space-between;font-size:10px;color:#9AAAC8;}
 .delta-row{display:flex;gap:7px;margin-top:10px;}
-.dc{flex:1;padding:6px 8px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
-.dc-l{font-size:9px;color:#9AAAC8;margin-bottom:2px;}
-.dc-v{font-size:12px;font-weight:700;}
-.mini-cal{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;padding:10px 12px;margin-bottom:10px;}
-.mc-titulo{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;}
-.mc-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.mc-dia{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:7px;border:1.5px solid transparent;}
-.mc-dia.hoy{border-color:#0A4FBF;background:#EBF2FF;}
-.mc-dia.pasado{opacity:.4;}
-.mc-lbl{font-size:8px;font-weight:600;color:#9AAAC8;margin-bottom:3px;}
-.mc-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;}
-.mc-dot.si{background:#DCFCE7;color:#16A34A;border:1.5px solid #BBF7D0;}
-.mc-dot.pl{background:#FFFBEB;color:#D97706;border:1.5px solid #FDE68A;}
-.mc-dot.libre{background:#F0F4FC;color:#CDD5E0;border:1.5px solid transparent;}
-.mc-dia-num{font-size:8px;color:#9AAAC8;margin-top:2px;}
-.seg-list{display:flex;flex-direction:column;gap:6px;}
-.si-item{padding:9px 11px;border-radius:9px;border:1px solid;cursor:pointer;transition:opacity .15s;}
-.si-item:hover{opacity:.8;}
-.sh2{background:#F0FDF4;border-color:#BBF7D0;}
-.sp{background:#F0F4FC;border-color:#DDE4F5;}
-.sv{background:#FEF2F2;border-color:#FECACA;}
-.st2{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
-.sh2 .st2{color:#16A34A;}.sp .st2{color:#9AAAC8;}.sv .st2{color:#DC2626;}
-.sn{font-size:12px;font-weight:600;color:#0D1B3E;}
-.sm{font-size:10px;color:#6B7BA8;margin-top:1px;}
-.empty-state{text-align:center;padding:16px 12px;color:#9AAAC8;}
-.empty-state .ico{font-size:22px;margin-bottom:5px;}
-.empty-state .msg{font-size:11px;}
-.sp-sm{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
-@keyframes spin{to{transform:rotate(360deg);}}
-@media(max-width:900px){.main3{grid-template-columns:1fr;}}
+.dc{flex:1;padding:5px 8px;border-radius:8px;background:#F0F4FC;border:1px solid #DDE4F5;text-align:center;}
+.dc-l{font-size:9px;color:#9AAAC8;margin-bottom:2px;}.dc-v{font-size:12px;font-weight:700;}
+/* ===== CALENDARIO MENSUAL ===== */
+.cal-mes{background:#F8F9FF;border:1px solid #DDE4F5;border-radius:10px;padding:10px 12px;}
+.cal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.cal-titulo{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:#0D1B3E;}
+.cal-leyenda{font-size:8px;color:#9AAAC8;display:flex;gap:8px;align-items:center;}
+.cal-leyenda span{display:inline-flex;align-items:center;gap:2px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{text-align:center;font-size:7px;font-weight:700;color:#9AAAC8;text-transform:uppercase;padding:2px 0;}
+.cal-cell{display:flex;flex-direction:column;align-items:center;padding:3px 1px;border-radius:6px;min-height:28px;justify-content:center;position:relative;}
+.cal-cell.hoy{background:#EBF2FF;border:1.5px solid #0A4FBF;}
+.cal-cell.pasado{opacity:.35;}
+.cal-num{font-size:9px;font-weight:700;color:#0D1B3E;}
+.cal-dot{width:6px;height:6px;border-radius:50%;margin-top:2px;}
+.cal-dot.si{background:#16A34A;}.cal-dot.pl{background:#D97706;}.cal-dot.off{background:transparent;}
+.cal-sede-hoy{margin-top:7px;font-size:10px;font-weight:600;text-align:center;}
+@media(max-width:900px){.main-layout{grid-template-columns:1fr;}}
 </style>
-
 <div class="vh-root">
-
-  <!-- ===== EMBUDO-BAR-START ===== -->
+  <!-- ===== EMBUDO BAR ===== -->
   <div class="embudo-bar">
-    <div class="emb-titulo">📊 MES</div>
+    <div class="emb-titulo">&#128197; Mes</div>
     <div class="emb-item"><div class="emb-v" id="emb-llam">—</div><div class="emb-l">Llamadas</div></div>
     <div class="emb-item"><div class="emb-v" id="emb-citas">—</div><div class="emb-l">Citas</div></div>
     <div class="emb-item"><div class="emb-v" id="emb-asist">—</div><div class="emb-l">Asistidos</div></div>
     <div class="emb-item"><div class="emb-v" id="emb-ventas">—</div><div class="emb-l">Ventas</div></div>
     <div class="emb-item"><div class="emb-v fact" id="emb-fact">S/—</div><div class="emb-l">Facturado</div></div>
   </div>
-  <!-- ===== EMBUDO-BAR-END ===== -->
 
-  <div class="main3">
+  <div class="main-layout">
+    <!-- ===== ZONA IZQUIERDA (2/3) — Reservada para futuro ===== -->
+    <div class="zone-left"></div>
 
-    <!-- ===== CARD-ATENCIONES-START ===== -->
-    <div class="scard">
-      <div class="schd">
-        <div class="st">MIS ATENCIONES</div>
-        <button class="slink" onclick="navTo('advisor-attendance')">Ver más →</button>
-      </div>
-      <div class="atc-row">
-        <div class="atc-item"><div class="atc-v" id="atc-total">0</div><div class="atc-l">Atendidos</div></div>
-        <div class="atc-div"></div>
-        <div class="atc-item"><div class="atc-v g" id="atc-nota">—</div><div class="atc-l">Nota prom.</div></div>
-        <div class="atc-div"></div>
-        <div class="atc-item"><div class="atc-v m" id="atc-recom">0%</div><div class="atc-l">Recom.</div></div>
-      </div>
-    </div>
-    <!-- ===== CARD-ATENCIONES-END ===== -->
+    <!-- ===== ZONA DERECHA (1/3) ===== -->
+    <div class="zone-right">
 
-    <!-- ===== CARD-COMISIONES-START ===== -->
-    <div class="scard">
-      <div class="schd">
-        <div class="st">MIS COMISIONES</div>
-        <button class="slink" onclick="navTo('advisor-commissions')">Ver detalle →</button>
-      </div>
-      <div class="com-hd">
-        <div class="com-v" id="com-total">S/. —</div>
-        <div class="com-meta" id="com-meta">/ Meta S/. —</div>
-      </div>
-      <div class="prog"><div class="prog-f" id="com-prog" style="width:0%;"></div></div>
-      <div class="com-labels">
-        <span id="com-pct">—% completado</span>
-        <span id="com-rank-lbl" style="font-weight:700;color:#0A4FBF;">Rank —</span>
-      </div>
-      <div class="delta-row">
-        <div class="dc"><div class="dc-l">Ventas</div><div class="dc-v" id="com-delta-v">—</div></div>
-        <div class="dc"><div class="dc-l">S/ Fact.</div><div class="dc-v" id="com-delta-fact" style="color:#16A34A;">—</div></div>
-      </div>
-    </div>
-    <!-- ===== CARD-COMISIONES-END ===== -->
-
-    <!-- ===== CARD-MI-SEMANA-START ===== -->
-    <div class="scard">
-      <div class="schd">
-        <div class="st">MI SEMANA</div>
-        <button class="slink" onclick="navTo('advisor-followups')">Ver segs →</button>
-      </div>
-      <div class="mini-cal">
-        <div class="mc-titulo">
-          📅 Turnos esta semana
-          <span id="mc-leyenda" style="margin-left:6px;font-weight:400;">
-            <span style="color:#16A34A;">■</span> S.Isidro
-            <span style="margin-left:5px;color:#D97706;">■</span> P.Libre
-          </span>
+      <!-- CALENDARIO MENSUAL -->
+      <div class="scard">
+        <div class="cal-hdr">
+          <div class="cal-titulo" id="cal-mes-titulo">Abril 2026</div>
+          <div class="cal-leyenda">
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#16A34A;"></span> S.Isidro</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#D97706;"></span> P.Libre</span>
+          </div>
         </div>
-        <div class="mc-dias" id="mc-dias">
-          <div style="text-align:center;font-size:10px;color:#9AAAC8;grid-column:1/-1;padding:8px;"><span class="sp-sm"></span>Cargando...</div>
+        <div class="cal-mes" id="cal-mes-grid">
+          <div style="text-align:center;font-size:10px;color:#9AAAC8;padding:12px;">Cargando calendario...</div>
         </div>
-        <div id="mc-sede-hoy" style="margin-top:6px;font-size:10px;font-weight:600;color:#6B7BA8;text-align:center;"></div>
+        <div class="cal-sede-hoy" id="cal-sede-hoy"></div>
       </div>
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-bottom:7px;">
-        Seguimientos pendientes
+
+      <!-- COMISIONES -->
+      <div class="scard">
+        <div class="schd">
+          <div class="st">MIS COMISIONES</div>
+          <button class="slink" onclick="navTo('advisor-commissions')">Ver detalle &#8594;</button>
+        </div>
+        <div class="com-hd">
+          <div class="com-v" id="com-total">S/. —</div>
+          <div class="com-meta" id="com-meta">/ Meta S/. —</div>
+        </div>
+        <div class="prog"><div class="prog-f" id="com-prog" style="width:0%;"></div></div>
+        <div class="com-labels">
+          <span id="com-pct">—% completado</span>
+          <span id="com-rank-lbl" style="font-weight:700;color:#0A4FBF;">Rank —</span>
+        </div>
+        <div class="delta-row">
+          <div class="dc"><div class="dc-l">Ventas</div><div class="dc-v" id="com-delta-v">—</div></div>
+          <div class="dc"><div class="dc-l">S/ Fact.</div><div class="dc-v" id="com-delta-fact" style="color:#16A34A;">—</div></div>
+        </div>
       </div>
-      <div class="seg-list" id="seg-list">
-        <div class="empty-state"><div class="ico">⏳</div><div class="msg">Cargando...</div></div>
+
+      <!-- ATENCIONES -->
+      <div class="scard">
+        <div class="schd">
+          <div class="st">MIS ATENCIONES</div>
+          <button class="slink" onclick="navTo('advisor-attendance')">Ver m&aacute;s &#8594;</button>
+        </div>
+        <div class="atc-row">
+          <div class="atc-item"><div class="atc-v" id="atc-total">0</div><div class="atc-l">Atendidos</div></div>
+          <div class="atc-div"></div>
+          <div class="atc-item"><div class="atc-v g" id="atc-nota">—</div><div class="atc-l">Nota prom.</div></div>
+          <div class="atc-div"></div>
+          <div class="atc-item"><div class="atc-v m" id="atc-recom">0%</div><div class="atc-l">Recom.</div></div>
+        </div>
       </div>
+
     </div>
-    <!-- ===== CARD-MI-SEMANA-END ===== -->
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   ADVISOR HOME — 100% SUPABASE DIRECTO — CERO GAS
-   ═══════════════════════════════════════════════════════════ */
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
-
-/* ===== HELPERS ===== */
-function _hoy(){return (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();}
+function _hoy(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
 function _mes(){return new Date().toISOString().slice(0,7)+'-01';}
-function _lunesSemana(){var d=new Date();var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);return new Date(d.getFullYear(),d.getMonth(),diff).toISOString().slice(0,10);}
 function _ctx(){try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');return{a:(s.nombre||'').toUpperCase(),id:s.codigo_asesor||''};}catch(e){return{a:'',id:''};}}
 function $(id){return document.getElementById(id);}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return(n||0).toLocaleString('es-PE',{minimumFractionDigits:0});}
 function navTo(v){if(window.navigateTo)window.navigateTo(v);else if(window.AOS_navigateTo)window.AOS_navigateTo(v);}
+var MES_NOM=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-/* ===== INIT ===== */
-(function(){loadEmbudo();loadComisiones();loadTurnos();loadSeguimientos();})();
+(function(){loadEmbudo();loadComisiones();loadCalendarioMes();})();
 
-/* ═════ 1. EMBUDO DEL MES ═════════════════════════════════
-   RPC: aos_panel_asesor
-   Retorna: { llamMes, citasMes, asistMes, ventasMes, factMes, ... }
-   ═══════════════════════════════════════════════════════ */
+/* ═════ 1. EMBUDO DEL MES ═════ */
 function loadEmbudo(){
   var x=_ctx();
   _rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy(),p_mes_inicio:_mes()},function(r){
     if(!r)return;
-    if($('emb-llam'))  $('emb-llam').textContent  = r.llamMes  ||0;
-    if($('emb-citas')) $('emb-citas').textContent = r.citasMes ||0;
-    if($('emb-asist')) $('emb-asist').textContent = r.asistMes ||0;
-    if($('emb-ventas'))$('emb-ventas').textContent= r.ventasMes||0;
-    if($('emb-fact'))  $('emb-fact').textContent  = 'S/'+fmt(r.factMes);
-    if($('com-delta-v'))   $('com-delta-v').textContent   = r.ventasMes||0;
-    if($('com-delta-fact'))$('com-delta-fact').textContent = 'S/'+fmt(r.factMes);
+    if($('emb-llam'))$('emb-llam').textContent=r.llamMes||0;
+    if($('emb-citas'))$('emb-citas').textContent=r.citasMes||0;
+    if($('emb-asist'))$('emb-asist').textContent=r.asistMes||0;
+    if($('emb-ventas'))$('emb-ventas').textContent=r.ventasMes||0;
+    if($('emb-fact'))$('emb-fact').textContent='S/'+fmt(r.factMes);
+    if($('com-delta-v'))$('com-delta-v').textContent=r.ventasMes||0;
+    if($('com-delta-fact'))$('com-delta-fact').textContent='S/'+fmt(r.factMes);
   });
 }
 
-/* ═════ 2. COMISIONES REALES ══════════════════════════════
-   RPC: aos_comisiones_asesor
-   Retorna: { comTotal, meta, pct, ranking, nVentas, factTotal }
-   ═══════════════════════════════════════════════════════ */
+/* ═════ 2. COMISIONES ═════ */
 function loadComisiones(){
-  var x=_ctx(), h=new Date();
-  var mes=String(h.getMonth()+1).padStart(2,'0'), anio=String(h.getFullYear());
+  var x=_ctx(),h=new Date();
+  var mes=String(h.getMonth()+1).padStart(2,'0'),anio=String(h.getFullYear());
   _rpc('aos_comisiones_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_mes:mes,p_anio:anio},function(r){
     if(!r)return;
-    var com=parseFloat(r.comTotal)||0, meta=parseFloat(r.meta)||100, pct=Number(r.pct)||0;
-    if($('com-total'))   $('com-total').textContent   ='S/. '+com.toFixed(2);
-    if($('com-meta'))    $('com-meta').textContent    ='/ Meta S/ '+fmt(meta);
-    if($('com-prog'))    $('com-prog').style.width    =Math.min(pct,100)+'%';
-    if($('com-pct'))     $('com-pct').textContent     =pct+'% completado';
-    if($('com-rank-lbl'))$('com-rank-lbl').textContent='Rank #'+(r.ranking||'—');
+    var com=parseFloat(r.comTotal)||0,meta=parseFloat(r.meta)||100,pct=Number(r.pct)||0;
+    if($('com-total'))$('com-total').textContent='S/. '+com.toFixed(2);
+    if($('com-meta'))$('com-meta').textContent='/ Meta S/ '+fmt(meta);
+    if($('com-prog'))$('com-prog').style.width=Math.min(pct,100)+'%';
+    if($('com-pct'))$('com-pct').textContent=pct+'% completado';
+    if($('com-rank-lbl'))$('com-rank-lbl').textContent='Rank #'+(r.ranking||'\u2014');
   });
 }
 
-/* ═════ 3. CALENDARIO TURNOS ══════════════════════════════
-   RPC: aos_semana_asesor(p_asesor, p_fecha_lunes)
-   Retorna: { dias:[{fecha,dia,dia_sem,es_hoy,es_pasado,tiene_turno,sede}] }
-   ═══════════════════════════════════════════════════════ */
-function loadTurnos(){
+/* ═════ 3. CALENDARIO MENSUAL (30 días con puntos) ═════ */
+function loadCalendarioMes(){
+  var now=new Date(),anio=now.getFullYear(),mes=now.getMonth()+1;
+  if($('cal-mes-titulo'))$('cal-mes-titulo').textContent=MES_NOM[mes-1]+' '+anio;
   var x=_ctx();
-  _rpc('aos_semana_asesor',{p_asesor:x.a,p_fecha_lunes:_lunesSemana()},function(r){
-    var cont=$('mc-dias');
-    if(!r||!r.dias||!r.dias.length){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin datos de turnos</div>';return;}
-    cont.innerHTML=r.dias.map(function(d){
-      var t=d.tiene_turno;
-      var si=t&&(d.sede==='SAN ISIDRO'||d.sede==='SAN_ISIDRO');
-      var pl=t&&(d.sede==='PUEBLO LIBRE'||d.sede==='PUEBLO_LIBRE');
-      var dc=si?'si':pl?'pl':'libre', dt=si?'SI':pl?'PL':'';
-      var cl=(d.es_hoy?' hoy':'')+(d.es_pasado&&!d.es_hoy?' pasado':'');
-      return '<div class="mc-dia'+cl+'" title="'+esc(d.fecha)+(t?' - '+esc(d.sede||''):'')+'">'+
-        '<div class="mc-lbl">'+esc(d.dia_sem)+'</div>'+
-        '<div class="mc-dot '+dc+'">'+dt+'</div>'+
-        '<div class="mc-dia-num">'+(d.dia||'')+'</div></div>';
-    }).join('');
-    var hoy=r.dias.find(function(d){return d.es_hoy;});
-    var se=$('mc-sede-hoy');
-    if(hoy&&hoy.tiene_turno){var sn=(hoy.sede||'').replace(/_/g,' ');se.textContent='📍 Hoy: '+sn;se.style.color=sn.indexOf('SAN')>=0?'#16A34A':'#D97706';}
-    else if(hoy){se.textContent='— Sin turno hoy';se.style.color='#9AAAC8';}
-  },function(){$('mc-dias').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:10px;color:#9AAAC8;padding:6px;">Sin acceso al calendario</div>';});
-}
-
-/* ═════ 4. SEGUIMIENTOS PENDIENTES ════════════════════════
-   RPC: aos_get_seguimientos(p_asesor, p_id_asesor, p_hoy)
-   Retorna: { ok, items:[{segId,fecha,num,trat,obs,tipo,vencido,esHoy,whatsapp}] }
-   ═══════════════════════════════════════════════════════ */
-function loadSeguimientos(){
-  var x=_ctx();
-  _rpc('aos_get_seguimientos',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:_hoy()},function(r){
-    renderSegs(r&&r.items?r.items:[]);
-  },function(){renderSegs([]);});
-}
-function renderSegs(items){
-  var el=$('seg-list');
-  var v=(items||[]).filter(function(s){return(s.fecha||'').indexOf('1899')<0;});
-  if(!v.length){el.innerHTML='<div class="empty-state"><div class="ico">🎉</div><div class="msg">Sin seguimientos pendientes</div></div>';return;}
-  el.innerHTML=v.slice(0,5).map(function(s){
-    var esH=s.esHoy||s.tipo==='hoy', esV=s.vencido||s.tipo==='vencido';
-    var cl=esV?'sv':esH?'sh2':'sp';
-    var tg=esV?'⚠ VENCIDO':esH?'● HOY':'○ PRÓXIMO';
-    var fs=(s.fecha&&s.fecha.indexOf('1899')<0&&s.fecha!=='')?(' · '+s.fecha.slice(5)):'';
-    var wa=s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/\D/g,''));
-    return '<div class="si-item '+cl+'" onclick="window.open(\''+esc(wa)+'\',\'_blank\')">'+
-      '<div class="st2">'+tg+esc(fs)+'</div>'+
-      '<div class="sn">'+esc(s.num||'—')+' · '+esc(s.trat||'—')+'</div>'+
-      (s.obs?'<div class="sm">'+esc(s.obs.slice(0,50))+'</div>':'')+
-      '</div>';
-  }).join('');
+  _rpc('aos_mes_asesor',{p_asesor:x.a,p_anio:anio,p_mes:mes},function(r){
+    if(!r||!r.ok){$('cal-mes-grid').innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:8px;">Sin datos</div>';return;}
+    var diasMes=r.dias_mes||30;
+    var primerDia=r.primer_dia_sem; // 0=domingo
+    // Convertir para que lunes=0
+    var offset=(primerDia===0)?6:primerDia-1;
+    var turnos=r.turnos||[];
+    var turnoMap={};
+    turnos.forEach(function(t){turnoMap[t.dia]=t;});
+    var hoyDia=now.getDate();
+    var hoyMes=now.getMonth()+1;
+    var esEsteMes=(mes===hoyMes&&anio===now.getFullYear());
+    var html='<div class="cal-grid">';
+    // Headers
+    var dows=['LU','MA','MI','JU','VI','SA','DO'];
+    dows.forEach(function(d){html+='<div class="cal-dow">'+d+'</div>';});
+    // Espacios vacíos antes del día 1
+    for(var i=0;i<offset;i++){html+='<div class="cal-cell"></div>';}
+    // Días del mes
+    for(var d=1;d<=diasMes;d++){
+      var t=turnoMap[d];
+      var esHoy=esEsteMes&&d===hoyDia;
+      var esPasado=esEsteMes&&d<hoyDia;
+      var cls='cal-cell'+(esHoy?' hoy':'')+(esPasado?' pasado':'');
+      var dotCls='cal-dot off';
+      if(t){
+        var sede=(t.sede||'').toUpperCase();
+        if(sede.indexOf('SAN')>=0)dotCls='cal-dot si';
+        else if(sede.indexOf('PUEBLO')>=0)dotCls='cal-dot pl';
+      }
+      html+='<div class="'+cls+'"><div class="cal-num">'+d+'</div><div class="'+dotCls+'"></div></div>';
+    }
+    html+='</div>';
+    $('cal-mes-grid').innerHTML=html;
+    // Sede hoy
+    var se=$('cal-sede-hoy');
+    if(esEsteMes&&turnoMap[hoyDia]){
+      var sn=(turnoMap[hoyDia].sede||'').replace(/_/g,' ');
+      se.textContent='\uD83D\uDCCD Hoy: '+sn+' ('+turnoMap[hoyDia].hora_inicio+'-'+turnoMap[hoyDia].hora_fin+')';
+      se.style.color=sn.indexOf('SAN')>=0?'#16A34A':'#D97706';
+    }else if(esEsteMes){
+      se.textContent='\u2014 Sin turno hoy';se.style.color='#9AAAC8';
+    }
+  },function(){$('cal-mes-grid').innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:8px;">Sin acceso al calendario</div>';});
 }
 </script>
