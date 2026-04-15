@@ -185,13 +185,13 @@ function renderList(){
 }
 
 function renderCalendario(items){
-  var sm={};items.forEach(function(s){if(s.fecha)sm[s.fecha]=(sm[s.fecha]||0)+1;});
+  var sm={};items.forEach(function(s){if(s.fecha){if(!sm[s.fecha])sm[s.fecha]={cnt:0,tipo:s.tipo};sm[s.fecha].cnt++;if(s.tipo==='vencido')sm[s.fecha].tipo='vencido';else if(s.tipo==='hoy'&&sm[s.fecha].tipo!=='vencido')sm[s.fecha].tipo='hoy';}});
   var a=VF.calAnio,m=VF.calMes;$('cal-mes-lbl').textContent=MESES_CAL[m]+' '+a;
   var pd=new Date(a,m,1),td=new Date(a,m+1,0).getDate(),ds=pd.getDay(),off=ds===0?6:ds-1;
   var g=$('cal-grid');while(g.children.length>7)g.removeChild(g.lastChild);
   for(var i=0;i<off;i++){var v=document.createElement('div');v.className='cal-day vacio';v.textContent=' ';g.appendChild(v);}
   var h=new Date(),ts=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0');
-  for(var d=1;d<=td;d++){var fd=a+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var c=document.createElement('div');c.className='cal-day';c.textContent=d;if(fd===ts)c.classList.add('hoy');if(sm[fd]){c.classList.add('tiene-seg');var dot=document.createElement('div');dot.className='cal-dot';c.appendChild(dot);}c.setAttribute('data-fecha',fd);c.addEventListener('click',function(){filterByFecha(this.getAttribute('data-fecha'));});g.appendChild(c);}
+  for(var d=1;d<=td;d++){var fd=a+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var c=document.createElement('div');c.className='cal-day';c.textContent=d;if(fd===ts)c.classList.add('hoy');if(sm[fd]){c.classList.add('tiene-seg');var dot=document.createElement('div');dot.className='cal-dot';var tp=sm[fd].tipo;if(tp==='vencido')dot.style.background='#DC2626';else if(tp==='hoy')dot.style.background='#D97706';else dot.style.background='#16A34A';c.appendChild(dot);}c.setAttribute('data-fecha',fd);c.addEventListener('click',function(){filterByFecha(this.getAttribute('data-fecha'));});g.appendChild(c);}
 }
 function calNav(dir){VF.calMes+=dir;if(VF.calMes>11){VF.calMes=0;VF.calAnio++;}if(VF.calMes<0){VF.calMes=11;VF.calAnio--;}renderCalendario(VF.allItems);}
 function filterByFecha(f){VF.tab='todos';['ft-venc','ft-hoy','ft-prox','ft-sf','ft-todos'].forEach(function(id){var e=$(id);if(e)e.className='ft';});var e=$('ft-todos');if(e)e.classList.add('act-g');var fi=VF.allItems.filter(function(s){return s.fecha===f;});if(!fi.length){$('seg-list').innerHTML='<div class="ld">Sin seguimientos para '+f+'</div>';return;}VF.tab='__fecha__';var tmp=VF.allItems;VF.allItems=fi;renderList();VF.allItems=tmp;}
