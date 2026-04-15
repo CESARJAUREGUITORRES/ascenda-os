@@ -279,13 +279,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
       <span id="edo-txt">ACTIVO</span>
       <span class="edo-arr">▾</span>
       <div class="edo-dd" id="edo-dd">
-        <div class="edo-opt" data-edo="ACTIVO"       data-color="#16A34A" data-block="false"><div class="edo-opt-dot" style="background:#16A34A"></div>Activo</div>
         <div class="edo-opt" data-edo="EN LLAMADA"   data-color="#0A4FBF" data-block="false"><div class="edo-opt-dot" style="background:#0A4FBF"></div>En llamada</div>
         <div class="edo-opt" data-edo="BREAK"        data-color="#D97706" data-block="true" data-ico="☕"><div class="edo-opt-dot" style="background:#D97706"></div>Break</div>
         <div class="edo-opt" data-edo="BAÑO"         data-color="#D97706" data-block="true" data-ico="🚻"><div class="edo-opt-dot" style="background:#D97706"></div>Baño</div>
         <div class="edo-opt" data-edo="ATENCIÓN"     data-color="#EA580C" data-block="true" data-ico="🙋"><div class="edo-opt-dot" style="background:#EA580C"></div>Atención presencial</div>
         <div class="edo-opt" data-edo="LIMPIEZA"     data-color="#EA580C" data-block="true" data-ico="🧹"><div class="edo-opt-dot" style="background:#EA580C"></div>Limpieza</div>
         <div class="edo-opt" data-edo="CAPACITACIÓN" data-color="#7C3AED" data-block="true" data-ico="📚"><div class="edo-opt-dot" style="background:#7C3AED"></div>Capacitación</div>
+        <div class="edo-opt" data-edo="CIERRE_TURNO" data-color="#DC2626" data-block="false" data-ico="🏁" style="border-top:1px solid #DDE4F5;margin-top:4px;padding-top:6px;"><div class="edo-opt-dot" style="background:#DC2626"></div>Cierre de turno</div>
       </div>
     </div>
     <!-- G2: Iconos SVG modernos -->
@@ -739,7 +739,15 @@ function comenzarTurno() {
   var btn = document.getElementById('turno-btn');
   btn.disabled = true;
   btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="white" stroke-width="2"/></svg> Registrando...';
-  showToast('🏁 Turno cerrado', '¡Hasta manana!', ''); setTimeout(function(){doLogout();},1500);
+  var asesor = AOS.ctx ? (AOS.ctx.asesor || '') : '';
+  var idAsesor = AOS.ctx ? (AOS.ctx.idAsesor || '') : '';
+  _rpc('aos_registrar_turno',{p_id_asesor:idAsesor, p_asesor:asesor, p_tipo:'INICIO_TURNO'},function(r){
+    var sc = document.getElementById('turno-screen');
+    if(sc._ci) clearInterval(sc._ci);
+    sc.classList.remove('open');
+    setEstadoUI('ACTIVO');
+    showToast('🟢 Turno iniciado', 'Hora de entrada registrada', '');
+  });
 }
 
 /* ---------------------------------------------------
@@ -765,6 +773,7 @@ function initEstadoDropdown() {
 }
 
 function setEstado(edo, color, isBlocking, ico) {
+  if (edo === 'CIERRE_TURNO') { openCierreTurnoModal(); return; }
   setEstadoUI(edo, color);
   _rpc('aos_set_estado_asesor',{p_id_asesor:AOS.ctx&&AOS.ctx.idAsesor||'',p_estado:edo},function(){});
   if (isBlocking) activarOverlayEstado(edo, ico || '⏸️');
@@ -799,8 +808,25 @@ function terminarEstadoBloqueante() {
   AOS.estadoBloqueo = null; AOS.bloqueoInicio = null;
   setEstadoUI('ACTIVO');
   _rpc('aos_set_estado_asesor',{p_id_asesor:AOS.ctx&&AOS.ctx.idAsesor||'',p_estado:'ACTIVO'},function(){});
-  _rpc('aos_registrar_estado',{p_id_asesor:AOS.ctx&&AOS.ctx.idAsesor||'',p_estado:prev,p_minutos:min},function(){});
+  _rpc('aos_registrar_estado',{p_id_asesor:AOS.ctx&&AOS.ctx.idAsesor||'',p_asesor:AOS.ctx&&AOS.ctx.asesor||'',p_estado:prev,p_minutos:min},function(){});
   showToast('🟢 Activo', 'Regresaste de ' + prev + ' (' + min + ' min)', '');
+}
+
+/* ------- CIERRE DE TURNO ------- */
+function openCierreTurnoModal() {
+  document.getElementById('modal-cierre-turno').classList.add('open');
+}
+function closeCierreTurnoModal() {
+  document.getElementById('modal-cierre-turno').classList.remove('open');
+}
+function doCierreTurno() {
+  var asesor = AOS.ctx ? (AOS.ctx.asesor || '') : '';
+  var idAsesor = AOS.ctx ? (AOS.ctx.idAsesor || '') : '';
+  _rpc('aos_registrar_turno',{p_id_asesor:idAsesor, p_asesor:asesor, p_tipo:'CIERRE_TURNO'},function(){
+    closeCierreTurnoModal();
+    showToast('🏁 Turno cerrado', '¡Hasta mañana! Hora de salida registrada.', '');
+    setTimeout(function(){ doLogout(); }, 1800);
+  });
 }
 
 /* ---------------------------------------------------

@@ -191,12 +191,14 @@ function loadCalendarioMes(){
       var esPasado=esEsteMes&&d<hoyDia;
       var cls='cal-cell'+(esHoy?' hoy':'')+(esPasado?' pasado':'');
       var dotCls='cal-dot off';
+      var title='Día '+d;
       if(t){
         var sede=(t.sede||'').toUpperCase();
         if(sede.indexOf('SAN')>=0)dotCls='cal-dot si';
         else if(sede.indexOf('PUEBLO')>=0)dotCls='cal-dot pl';
-      }
-      html+='<div class="'+cls+'"><div class="cal-num">'+d+'</div><div class="'+dotCls+'"></div></div>';
+        title=(t.sede||'')+' ('+t.hora_inicio+' - '+t.hora_fin+')';
+      }else{title='Día libre';}
+      html+='<div class="'+cls+'" style="cursor:pointer;" onclick="mostrarDiaCal('+d+',\''+esc(title)+'\')" title="'+esc(title)+'"><div class="cal-num">'+d+'</div><div class="'+dotCls+'"></div></div>';
     }
     html+='</div>';
     $('cal-mes-grid').innerHTML=html;
@@ -210,5 +212,10 @@ function loadCalendarioMes(){
       se.textContent='\u2014 Sin turno hoy';se.style.color='#9AAAC8';
     }
   },function(){$('cal-mes-grid').innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:8px;">Sin acceso al calendario</div>';});
+}
+function mostrarDiaCal(dia,info){
+  var se=$('cal-sede-hoy');
+  if(se)se.innerHTML='<span style="font-size:11px;font-weight:700;">Día '+dia+':</span> '+info;
+  se.style.color='#0D1B3E';
 }
 </script>
