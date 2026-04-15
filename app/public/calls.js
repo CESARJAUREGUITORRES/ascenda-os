@@ -22,7 +22,24 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
   poblarMeses();
   loadMetrics();
-  loadLead();
+  // Si viene de seguimientos con un número específico, cargarlo directo
+  if(window._pendingLead && window._pendingLead.num){
+    var pl = window._pendingLead;
+    window._pendingLead = null;
+    CC.lead = {num:pl.num, trat:pl.trat||'', wa:'https://wa.me/51'+pl.num, rowNum:0, segId:pl.segId||'', fromSeg:true};
+    document.getElementById('cc-num').textContent = pl.num;
+    document.getElementById('cc-trat').textContent = pl.trat||'';
+    document.getElementById('cc-meta').textContent = 'SEGUIMIENTO' + (pl.segId?' · '+pl.segId.slice(0,8):'');
+    document.getElementById('cc-tier').textContent = 'SEGUIMIENTO';
+    document.getElementById('cc-no-lead').style.display = 'none';
+    document.getElementById('cc-lead-panel').style.display = 'block';
+    document.getElementById('cc-tipif').value = '';
+    document.getElementById('cc-m-cita-num').textContent = 'Número: '+pl.num;
+    document.getElementById('cc-m-seg-num').textContent = 'Número: '+pl.num;
+    cargarNombrePaciente(pl.num);
+  } else {
+    loadLead();
+  }
   loadHistorial();
   loadTrats();
   recargarCalendario();
@@ -114,7 +131,12 @@ function ccConfirmarCita(){
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,created_at:now.toISOString()};
   var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'CONFIRMADA',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
-  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada','Excelente','toast-venta');loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
+    // Si venía de un seguimiento, cerrarlo automáticamente
+    if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){
+      fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":now.toISOString()})});
+    }
+    closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarSeguimiento(){
@@ -124,8 +146,20 @@ function ccConfirmarSeguimiento(){
   var p={numero:CC.lead?CC.lead.num:'',estado:'SEGUIMIENTO',obs:document.getElementById('cc-s-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',proxReintentoTs:proxTs,rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:p.tratamiento||'',estado:'SEGUIMIENTO',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,prox_rein:p.proxReintentoTs,created_at:now.toISOString()};
-  var rowS={"NUMERO":numL,"TRATAMIENTO":p.tratamiento||'',"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE"};
-  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_seguimientos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowS)})]).then(function(){closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento programado',fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+
+  // Si viene de un seguimiento existente, actualizar en vez de crear nuevo
+  var segPromise;
+  if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){
+    var histEntry=now.toISOString().slice(0,10)+' reprog→'+fecha;
+    segPromise=fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE","TS_ACTUALIZADO":now.toISOString(),"reprogramaciones":1,"historial":histEntry})});
+  } else {
+    var rowS={"NUMERO":numL,"TRATAMIENTO":p.tratamiento||'',"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE"};
+    segPromise=fetch(_SB+'/rest/v1/aos_seguimientos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowS)});
+  }
+  Promise.all([
+    fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),
+    segPromise
+  ]).then(function(){closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 // ══════════════════════════════════════════════════════════════

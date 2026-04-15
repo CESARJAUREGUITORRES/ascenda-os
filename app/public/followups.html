@@ -179,7 +179,7 @@ function renderList(){
   el.innerHTML=items.map(function(s){
     var cl=cm[s.tipo]||'ssf',tg=(tm[s.tipo]||function(){return s.fecha||'';})(s),sid=String(s.id||s.rowNum||'');
     return '<div class="si '+cl+'"><div class="si-top"><span class="si-tag">'+escH(tg)+'</span><div class="si-actions">'+(s.wa?'<div class="sab" onclick="openWa(\''+escH(s.wa)+'\')" title="WhatsApp">💬</div>':'')+
-      '<div class="sab" onclick="navegarLlamar(\''+escH(s.num)+'\')" title="Llamar">📞</div><div class="sab" onclick="cerrarSeg(\''+escH(sid)+'\')" title="Cerrar">✓</div></div></div>'+
+      '<div class="sab" onclick="navegarLlamar(\''+escH(s.num)+'\',\''+escH(s.trat)+'\',\''+escH(sid)+'\')" title="Llamar">📞</div><div class="sab" onclick="cerrarSeg(\''+escH(sid)+'\')" title="Cerrar">✓</div></div></div>'+
       '<div class="si-num">'+escH(s.num)+'</div><div class="si-trat">'+escH(s.trat||'—')+'</div>'+(s.obs?'<div class="si-obs">"'+escH(s.obs)+'"</div>':'')+'</div>';
   }).join('');
 }
@@ -204,7 +204,10 @@ function renderProximos(items){
 }
 
 function openWa(wa){if(wa)window.open(wa,'_blank');}
-function navegarLlamar(num){if(window.navigateTo)navigateTo('advisor-calls');else if(window.AOS_navigateTo)AOS_navigateTo('advisor-calls');}
+function navegarLlamar(num,trat,segId){
+  window._pendingLead={num:num,trat:trat||'',segId:segId||'',fromSeg:true};
+  if(window.navigateTo)navigateTo('advisor-calls');else if(window.AOS_navigateTo)AOS_navigateTo('advisor-calls');
+}
 function cerrarSeg(sid){if(!sid||!confirm('¿Marcar este seguimiento como cerrado?'))return;_rpc('aos_cerrar_seguimiento',{p_id:sid},function(){if(window.AOS_showToast)AOS_showToast('✓ Seguimiento cerrado','','');loadFollowups();},function(){VF.allItems=VF.allItems.filter(function(s){return s.id!==sid;});renderList();});}
 function openNuevo(){$('m-nuevo').classList.add('open');}
 function closeModal(){$('m-nuevo').classList.remove('open');}
