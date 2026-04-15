@@ -127,7 +127,6 @@ function vcAbrirCita(idx){
   var c=(VC._filtered||[])[idx];if(!c)return;
   VC._citaSel=c;
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
-  // Crear modal dinámico si no existe
   var m=document.getElementById('vc-modal');
   if(!m){
     m=document.createElement('div');m.id='vc-modal';m.className='vc-mov';
@@ -135,31 +134,80 @@ function vcAbrirCita(idx){
     m.addEventListener('click',function(e){if(e.target===m)vcCerrarModal();});
     document.querySelector('.vc-root').appendChild(m);
   }
+  var estados=['PENDIENTE','CONFIRMADA','ASISTIO','EFECTIVA','NO ASISTIO','CANCELADA','REAGENDADA'];
+  var cols={'PENDIENTE':'#D97706','CONFIRMADA':'#0A4FBF','ASISTIO':'#16A34A','EFECTIVA':'#16A34A','NO ASISTIO':'#DC2626','CANCELADA':'#6B7BA8','REAGENDADA':'#7C3AED'};
+  var estBtns=estados.map(function(e){
+    var ac=(c.estado_cita||'').toUpperCase()===e;
+    return '<div onclick="vcCambiarEstado(\''+e+'\')" style="padding:3px 9px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;border:1.5px solid '+(cols[e]||'#DDE4F5')+';'+(ac?'background:'+(cols[e]||'#DDE4F5')+';color:#fff;':'background:#fff;color:'+(cols[e]||'#6B7BA8')+';')+'">'+e.replace('_',' ')+'</div>';
+  }).join('');
+
   document.getElementById('vc-mbox').innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'+
-    '<div><div style="font-family:Exo\\ 2,sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;">'+h(cli||'Sin nombre')+'</div>'+
-    '<div style="font-size:11px;color:#6B7BA8;">'+h(c.numero_limpio||c.numero||'')+' · '+h(c.tratamiento||'')+'</div></div>'+
-    '<div style="cursor:pointer;font-size:18px;color:#9AAAC8;" onclick="vcCerrarModal()">✕</div></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;font-size:11px;">'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">FECHA:</span> '+h(c.fecha_cita||'')+'</div>'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">HORA:</span> '+h((c.hora_cita||'').toString().substring(0,5))+'</div>'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">SEDE:</span> '+h(c.sede||'')+'</div>'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">TIPO:</span> '+h(c.tipo_cita||'')+'</div>'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">ASESOR:</span> '+h(c.asesor||'No aplica')+'</div>'+
-    '<div><span style="color:#9AAAC8;font-weight:700;">DOCTORA:</span> '+h(c.doctora||'Sin asignar')+'</div></div>'+
-    '<div style="margin-bottom:10px;"><div style="font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">CAMBIAR ESTADO</div>'+
-    '<div style="display:flex;gap:5px;flex-wrap:wrap;" id="vc-estados-btns">'+
-    ['PENDIENTE','CONFIRMADA','ASISTIO','EFECTIVA','NO ASISTIO','CANCELADA','REAGENDADA'].map(function(e){
-      var ac=(c.estado_cita||'').toUpperCase()===e;
-      var cols={'PENDIENTE':'#D97706','CONFIRMADA':'#0A4FBF','ASISTIO':'#16A34A','EFECTIVA':'#16A34A','NO ASISTIO':'#DC2626','CANCELADA':'#6B7BA8','REAGENDADA':'#7C3AED'};
-      return '<div onclick="vcCambiarEstado(\''+e+'\')" style="padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid '+(cols[e]||'#DDE4F5')+';'+(ac?'background:'+(cols[e]||'#DDE4F5')+';color:#fff;':'background:#fff;color:'+(cols[e]||'#6B7BA8')+';')+'">'+e+'</div>';
-    }).join('')+'</div></div>'+
-    (c.obs?'<div style="font-size:11px;color:#6B7BA8;background:#F0F4FC;padding:8px;border-radius:7px;margin-bottom:10px;">'+h(c.obs)+'</div>':'')+
-    '<div style="display:flex;gap:8px;margin-top:12px;">'+
-    '<button onclick="vcCerrarModal()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;color:#6B7BA8;">Cerrar</button>'+
-    '<button onclick="vcEliminarCita()" style="padding:8px 14px;border-radius:8px;border:none;background:#DC2626;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">Eliminar</button>'+
-    '<button onclick="vcEditarEnAgenda()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">Editar en Agenda</button></div>';
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">'+
+    '<div style="display:flex;align-items:center;gap:10px;">'+
+    '<div style="width:36px;height:36px;border-radius:10px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>'+
+    '<div><div style="font-family:Exo\\ 2,sans-serif;font-weight:800;font-size:16px;color:#0D1B3E;">'+h(cli||'Sin nombre')+'</div>'+
+    '<div style="font-size:11px;color:#6B7BA8;">'+h(c.numero_limpio||c.numero||'')+' · '+h(c.tratamiento||'')+'</div></div></div>'+
+    '<div style="cursor:pointer;width:28px;height:28px;border-radius:7px;border:1px solid #DDE4F5;background:#F0F4FC;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;" onclick="vcCerrarModal()">✕</div></div>'+
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">'+
+    // Columna izquierda: Datos de la cita
+    '<div>'+
+    '<div style="font-family:Exo\\ 2,sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;margin-bottom:8px;">Datos de la cita</div>'+
+    '<div style="display:flex;flex-direction:column;gap:0;">'+
+    [['FECHA',c.fecha_cita],['HORA',(c.hora_cita||'').toString().substring(0,5)],['SEDE',c.sede],['TIPO',c.tipo_cita],['TRATAMIENTO',c.tratamiento],['ASESOR',c.asesor||'No aplica'],['ATENCIÓN',c.tipo_atencion||'--'],['DOCTORA',c.doctora||'Sin asignar']].map(function(r){
+      return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(221,228,245,.3);"><span style="font-size:10px;font-weight:700;color:#9AAAC8;text-transform:uppercase;">'+r[0]+'</span><span style="font-size:12px;font-weight:600;color:#0D1B3E;text-align:right;">'+h(r[1]||'--')+'</span></div>';
+    }).join('')+'</div>'+
+    '<div style="margin-top:10px;"><div style="font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">CAMBIAR ESTADO</div>'+
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;">'+estBtns+'</div></div>'+
+    (c.obs?'<div style="margin-top:8px;"><div style="font-size:9px;font-weight:700;color:#9AAAC8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">NOTA</div><div style="font-size:11px;color:#6B7BA8;background:#F0F4FC;padding:8px;border-radius:7px;max-height:80px;overflow-y:auto;">'+h(c.obs)+'</div></div>':'')+
+    '</div>'+
+
+    // Columna derecha: Historial del paciente
+    '<div>'+
+    '<div style="font-family:Exo\\ 2,sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;margin-bottom:8px;">Historial del paciente</div>'+
+    '<div id="vc-historial-pac"><div style="text-align:center;padding:12px;color:#9AAAC8;font-size:11px;">Cargando historial...</div></div>'+
+    '</div></div>'+
+
+    // Botones inferiores — igual que agenda
+    '<div style="display:flex;gap:8px;margin-top:16px;">'+
+    '<button onclick="vcCerrarModal()" style="flex:1;padding:9px;border-radius:9px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;color:#6B7BA8;">Cerrar</button>'+
+    '<button onclick="vcEliminarCita()" style="flex:.6;padding:9px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">Eliminar</button>'+
+    '<button onclick="vcEditarEnAgenda()" style="flex:1;padding:9px;border-radius:9px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">Editar en Agenda</button></div>';
+
   m.classList.add('open');
+  // Cargar historial del paciente
+  vcCargarHistorial(c.numero_limpio||c.numero||'');
+}
+
+function vcCargarHistorial(num){
+  var box=document.getElementById('vc-historial-pac');if(!box||!num)return;
+  _rpc('aos_paciente_360',{p_numero:num},function(d){
+    if(!d){box.innerHTML='<div style="color:#9AAAC8;font-size:10px;">Sin historial</div>';return;}
+    var html='';
+    // Compras
+    var compras=d.compras||[];
+    if(compras.length){
+      html+='<div style="font-size:10px;font-weight:700;color:#0A4FBF;margin-bottom:4px;">COMPRAS ('+compras.length+')</div>';
+      html+=compras.slice(0,5).map(function(v){return '<div style="font-size:10px;color:#0D1B3E;padding:2px 0;">'+h(v.fecha||'')+' '+h(v.tratamiento||'')+' <span style="color:#16A34A;font-weight:700;">S/'+h(v.monto||'0')+'</span></div>';}).join('');
+    }
+    // Citas
+    var citas=d.citas||[];
+    if(citas.length){
+      html+='<div style="font-size:10px;font-weight:700;color:#0A4FBF;margin-top:8px;margin-bottom:4px;">CITAS ('+citas.length+')</div>';
+      html+=citas.slice(0,6).map(function(c2){
+        var ec=c2.estado_cita||'';var ecol={'PENDIENTE':'#D97706','ASISTIO':'#16A34A','NO ASISTIO':'#DC2626','CANCELADA':'#6B7BA8','CONFIRMADA':'#0A4FBF','EFECTIVA':'#16A34A'}[ec.toUpperCase()]||'#6B7BA8';
+        return '<div style="font-size:10px;color:#0D1B3E;padding:2px 0;">'+h(c2.fecha_cita||'')+' '+h(c2.tratamiento||'')+' <span style="font-weight:700;color:'+ecol+';">'+h(ec)+'</span></div>';
+      }).join('');
+    }
+    // Llamadas
+    var llam=d.llamadas||[];
+    if(llam.length){
+      html+='<div style="font-size:10px;font-weight:700;color:#0A4FBF;margin-top:8px;margin-bottom:4px;">LLAMADAS ('+llam.length+')</div>';
+      html+=llam.slice(0,5).map(function(l){return '<div style="font-size:10px;color:#0D1B3E;padding:2px 0;">'+h(l.fecha||'')+' '+h(l.tratamiento||'')+' <span style="color:#6B7BA8;">'+h(l.estado||'')+'</span></div>';}).join('');
+    }
+    if(!html)html='<div style="color:#9AAAC8;font-size:10px;">Sin historial registrado</div>';
+    box.innerHTML=html;
+  },function(){box.innerHTML='<div style="color:#DC2626;font-size:10px;">Error al cargar</div>';});
 }
 
 function vcCerrarModal(){var m=document.getElementById('vc-modal');if(m)m.classList.remove('open');}
