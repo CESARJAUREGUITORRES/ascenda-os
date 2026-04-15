@@ -22,11 +22,17 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
   poblarMeses();
   loadMetrics();
-  loadScorePanel();
   loadLead();
   loadHistorial();
   loadTrats();
   recargarCalendario();
+  // Score: cargar con delay para asegurar que AOS_getCtx esté disponible
+  setTimeout(function(){loadScorePanel();}, 300);
+  // Retry si aún no cargó (contexto tardío)
+  setTimeout(function(){
+    var sc=document.getElementById('sc-llam');
+    if(sc&&(sc.textContent==='—'||sc.textContent===''))loadScorePanel();
+  }, 1500);
 })();
 
 // ══════════════════════════════════════════════════════════════
