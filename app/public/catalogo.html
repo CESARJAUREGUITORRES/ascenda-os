@@ -12,7 +12,7 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 .leg b{font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.4px}.leg-i{display:flex;align-items:center;gap:3px;color:#475569}.leg-d{width:8px;height:8px;border-radius:2px}
 
 /* ═══ SPLIT LAYOUT ═══ */
-.sp{display:grid;grid-template-columns:1fr 320px;gap:8px;height:calc(100vh - 145px)}
+.sp{display:grid;grid-template-columns:1fr 340px;gap:8px;height:calc(100vh - 145px)}
 
 /* TABLA */
 .tbl-w{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
@@ -22,14 +22,14 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 .tbl-f{padding:3px 7px;border-radius:4px;font-size:9px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit'}.tbl-f:hover,.tbl-f.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
 .tbl-c{font-size:8px;color:var(--zg)}
 .tbl-s{flex:1;overflow-y:auto}.tbl-s::-webkit-scrollbar{width:3px}.tbl-s::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-table.T{width:100%;border-collapse:collapse;font-size:10px}
-.T thead{background:#F8FAFC;position:sticky;top:0;z-index:2}.T th{padding:4px 6px;text-align:left;font-weight:700;font-size:7px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);border-bottom:2px solid var(--zl)}
-.T td{padding:3px 6px;border-bottom:1px solid #F1F5F9;color:#475569}.T tr:hover td{background:#F0F4FF}.T tr.sel td{background:#EEF2FF}
-.T-ch{background:#EEF2FF;padding:3px 6px;font-weight:800;font-size:8px;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #D4DDFF}
-.T-n{font-weight:600;color:#1E293B;font-size:10px}.T-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:11px;padding:1px 4px;border-radius:3px}
+table.T{width:100%;border-collapse:collapse;font-size:12px}
+.T thead{background:#F8FAFC;position:sticky;top:0;z-index:2}.T th{padding:6px 10px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);border-bottom:2px solid var(--zl)}
+.T td{padding:5px 10px;border-bottom:1px solid #F1F5F9;color:#475569}.T tr:hover td{background:#F0F4FF}.T tr.sel td{background:#EEF2FF}
+.T-ch{background:#EEF2FF;padding:5px 10px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #D4DDFF}
+.T-n{font-weight:600;color:#1E293B;font-size:12px}.T-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px;padding:1px 5px;border-radius:3px}
 .T-p-t{color:var(--turq);background:#E6F7F5}.T-p-r{color:var(--rosa);background:#FDE8F0}.T-p-y{color:#92600A;background:#FEF3C7}
-.T-old{font-size:8px;color:#94A3B8;text-decoration:line-through}.T-g{font-size:7px;color:var(--zcy);font-weight:600}
-.T-add{width:18px;height:18px;border-radius:4px;border:1px solid var(--zl);background:var(--zw);color:var(--zbl);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:700;transition:all .1s}.T-add:hover{background:var(--zbl);color:#fff}
+.T-old{font-size:10px;color:#94A3B8;text-decoration:line-through}.T-g{font-size:9px;color:var(--zcy);font-weight:600}
+.T-add{width:22px;height:22px;border-radius:5px;border:1px solid var(--zl);background:var(--zw);color:var(--zbl);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:700;transition:all .1s}.T-add:hover{background:var(--zbl);color:#fff}
 
 /* ═══ PANEL COTIZACIÓN ═══ */
 .cot{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);display:flex;flex-direction:column;overflow:hidden}
@@ -190,8 +190,8 @@ function cClr(){D.cart=[];D.pac=null;$('psel').innerHTML='';$('pq').style.displa
 function cSave(){
   if(!D.cart.length){tst('Agrega items');return}if(!D.pac){tst('Selecciona paciente');return}
   var tot=0;D.cart.forEach(function(x){tot+=x.p});
-  var data={numero:D.pac.numero,nombre:D.pac.nombre,dni:D.pac.dni||'',total:tot,sede:window._SEDE||'SAN ISIDRO',asesor:window._USER_NAME||'',id_asesor:window._USER_ID||'',nota:$('cnota').value,items:D.cart.map(function(x){return{nombre:x.n,precio:x.p,tipo:x.t,cantidad:1,subtotal:x.p}})};
-  rpc('aos_crear_cotizacion',{p_data:data},function(r){if(r&&r.id){tst('✅ Cotización '+r.id+' guardada');cClr()}else{tst('Error')}})}
+  var data={numero:D.pac.numero,nombre:D.pac.nombre,dni:D.pac.dni||'',total:tot,sede:window._SEDE||'SAN ISIDRO',asesor:window._USER_NAME||'',id_asesor:window._USER_ID||'',nota:$('cnota').value,items:D.cart.map(function(x){return{nombre:x.n,precio:x.p,tipo:x.t||'SERVICIO',cantidad:1,subtotal:x.p}})};
+  rpc('aos_crear_cotizacion',{p_data:data},function(r){if(r&&r.id){tst('✅ Cotización '+r.id+' guardada para '+D.pac.nombre);cClr()}else{tst('Error al guardar')}})}
 
 /* ═══ ALERTAS DESPLEGABLES ═══ */
 function ldAl(){rpc('aos_alertas_venta',{},function(d){if(!d)return;var htm='';
