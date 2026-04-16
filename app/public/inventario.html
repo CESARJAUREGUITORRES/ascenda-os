@@ -119,14 +119,14 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 
 <!-- TAB 1: CONTEO -->
 <div class="pan" id="p1">
-<div class="sbar"><button class="sp a" onclick="sS('SAN ISIDRO',this);ldCnt()">📍 San Isidro</button><button class="sp" onclick="sS('PUEBLO LIBRE',this);ldCnt()">📍 Pueblo Libre</button></div>
+<div class="sbar"><button class="sp a" onclick="sS('SAN ISIDRO',this);ldCnt()">📍 San Isidro</button><button class="sp" onclick="sS('PUEBLO LIBRE',this);ldCnt()">📍 Pueblo Libre</button><div id="cnt-actions" style="margin-left:auto;display:flex;gap:4px"></div></div>
 <div style="display:grid;grid-template-columns:260px 1fr 300px;gap:8px;height:calc(100vh - 175px)">
   <!-- COL 1: Historial -->
   <div class="card" style="display:flex;flex-direction:column"><div class="ch" style="background:var(--zb);color:#fff">📋 Historial</div><div style="padding:4px"><input class="pac-in" id="cnt-search" placeholder="🔍 Buscar código, asesor..." oninput="cntFilter()" style="margin:0;font-size:9px"></div><div style="padding:4px;border-bottom:1px solid var(--zl)"><button class="btn btn-g" onclick="cntNew()" style="width:100%;padding:5px;font-size:9px">+ Nuevo conteo</button></div><div class="cb" id="cnt-hist" style="max-height:none;flex:1;font-size:8px;padding:4px"><div class="ld"><span class="spi"></span></div></div></div>
-  <!-- COL 2: Conteo / Incidencias -->
-  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" id="cnt-act-h" style="display:flex;align-items:center;justify-content:space-between;gap:4px">📝 Selecciona o crea un conteo <div id="cnt-btns"></div></div><div style="flex:1;overflow-y:auto;padding:0" id="cnt-act"><div class="de" style="padding:40px">← Selecciona un conteo o crea uno nuevo</div></div></div>
+  <!-- COL 2: Conteo -->
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" id="cnt-act-h">📝 Selecciona o crea un conteo</div><div style="flex:1;overflow-y:auto;padding:0" id="cnt-act"><div class="de" style="padding:40px">← Selecciona un conteo o crea uno nuevo</div></div></div>
   <!-- COL 3: Incidencias -->
-  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" style="color:var(--red)" id="cnt-inc-h">⚠️ Incidencias</div><div style="flex:1;overflow-y:auto;padding:4px" id="cnt-inc"><div class="de">Aparecerán al guardar</div></div></div>
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" style="color:var(--red);display:flex;align-items:center;justify-content:space-between" id="cnt-inc-h">⚠️ Incidencias</div><div style="flex:1;overflow-y:auto;padding:4px" id="cnt-inc"><div class="de">Aparecerán al guardar</div></div></div>
 </div>
 </div>
 
@@ -218,6 +218,7 @@ function mSave(){var nom=$('m-nom').value.trim();if(!nom){tst('Nombre requerido'
 /* ═══ CONTEO ═══ */
 var cntData=[],cntRep=null,cntRepCode='',cntOwner='',cntReps=[],cntMode='tabla';
 function ldCnt(){
+  $('cnt-actions').innerHTML='';
   rpc('aos_conteo_reportes',{p_sede:IV.sede},function(reps){
     cntReps=reps||[];cntRenderHist()})}
 function cntFilter(){cntRenderHist()}
@@ -235,7 +236,8 @@ function cntDel(repId){if(!confirm('¿Eliminar este conteo borrador?'))return;
 function cntNew(){
   rpc('aos_inventario_plantilla_conteo',{p_sede:IV.sede},function(items){
     cntData=items||[];cntRep=null;cntRepCode='';cntMode='tabla';
-    $('cnt-act-h').innerHTML='📝 Nuevo conteo — '+H(IV.sede)+' ('+cntData.length+') <div id="cnt-btns"><button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar borrador</button> <button class="btn" onclick="cntGrabar()" style="padding:3px 10px;font-size:9px;background:#F59E0B;color:#fff;font-weight:800">📋 GRABAR CONTEO</button></div>';
+    $('cnt-act-h').textContent='📝 Nuevo conteo — '+IV.sede+' ('+cntData.length+')';
+    $('cnt-actions').innerHTML='<button style="padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;background:var(--zbg);color:var(--zg);font-family:Outfit" onclick="cntSaveDraft()">💾 Guardar borrador</button><button style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;border:none;background:#F59E0B;color:#fff;font-family:Outfit" onclick="cntGrabar()">📋 GRABAR CONTEO</button>';
     var h='<div style="padding:6px"><div style="display:flex;gap:6px;margin-bottom:6px"><div style="flex:1"><label style="font-size:7px;font-weight:700;color:var(--zg)">ENCARGADO</label><input id="cnt-enc" value="'+(window._USER_NAME||'')+'" style="width:100%;padding:3px 5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none"></div></div>';
     h+='<table class="CT"><thead><tr><th>Producto</th><th>Lote</th><th>Und</th><th style="text-align:center">Sistema</th><th style="text-align:center">Físico</th><th></th></tr></thead><tbody>';
     cntData.forEach(function(it,i){
@@ -251,8 +253,8 @@ function cntSaveDraft(){
   var enc=$('cnt-enc')?$('cnt-enc').value:'ASESOR';
   rpc('aos_conteo_guardar',{p_sede:IV.sede,p_usuario:enc,p_items:items,p_reporte_id:cntRep,p_grabar:false},function(r){
     if(r&&r.codigo){tst('💾 Guardado: '+r.codigo+' (borrador)');cntRep=r.reporte_id;cntRepCode=r.codigo;ldCnt();cntLoadInc(r.reporte_id);
-      // Update header with both buttons
-      $('cnt-act-h').innerHTML='📝 '+H(r.codigo)+' — BORRADOR <div id="cnt-btns"><button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar</button> <button class="btn btn-g" onclick="cntGrabar()" style="padding:3px 8px;font-size:8px">📋 Grabar oficial</button></div>'
+      $('cnt-act-h').textContent='📝 '+r.codigo+' — BORRADOR';
+      $('cnt-actions').innerHTML='<button style="padding:5px 10px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid #FEE2E2;background:#FEE2E2;color:var(--red);font-family:Outfit" onclick="cntDel(\''+r.reporte_id+'\')">🗑 Eliminar</button><button style="padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;background:var(--zbg);color:var(--zg);font-family:Outfit" onclick="cntSaveDraft()">💾 Guardar</button><button style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;border:none;background:#F59E0B;color:#fff;font-family:Outfit" onclick="cntGrabar()">📋 GRABAR CONTEO</button>';
     }else{tst('Error')}})}
 
 function cntGrabar(){
@@ -266,10 +268,13 @@ function cntGrabar(){
 function cntOpen(repId,code,encargado,estado){
   cntRep=repId;cntRepCode=code;cntOwner=encargado;cntMode='tabla';
   var isOwner=true;var isBorrador=estado==='BORRADOR';
-  var btns='';
-  if(isOwner&&isBorrador)btns='<button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar</button> <button class="btn" onclick="cntGrabar()" style="padding:3px 10px;font-size:9px;background:#F59E0B;color:#fff;font-weight:800">📋 GRABAR CONTEO</button>';
   var estCol=estado==='CERRADO'?'var(--grn)':estado==='GRABADO'?'var(--zbl)':'var(--orn)';
-  $('cnt-act-h').innerHTML='📋 '+H(code)+' · 👤 '+H(encargado)+' <span style="font-size:8px;font-weight:700;color:'+estCol+'">'+H(estado)+'</span> <div id="cnt-btns">'+btns+'</div>';
+  $('cnt-act-h').innerHTML='📋 '+H(code)+' · 👤 '+H(encargado)+' <span style="font-size:8px;font-weight:700;color:'+estCol+'">'+H(estado)+'</span>';
+  if(isBorrador){
+    $('cnt-actions').innerHTML='<button style="padding:5px 10px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid #FEE2E2;background:#FEE2E2;color:var(--red);font-family:Outfit" onclick="cntDel(\''+repId+'\')">🗑 Eliminar</button><button style="padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;background:var(--zbg);color:var(--zg);font-family:Outfit" onclick="cntSaveDraft()">💾 Guardar</button><button style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;border:none;background:#F59E0B;color:#fff;font-family:Outfit" onclick="cntGrabar()">📋 GRABAR CONTEO</button>';
+  } else {
+    $('cnt-actions').innerHTML='<span style="font-size:9px;color:'+estCol+';font-weight:700">'+H(estado)+'</span>';
+  }
   // Show info or editable table
   if(isOwner&&isBorrador){
     // Re-load plantilla with saved values
