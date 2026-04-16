@@ -22,11 +22,11 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 .tbl-f{padding:3px 7px;border-radius:4px;font-size:9px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit'}.tbl-f:hover,.tbl-f.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
 .tbl-c{font-size:8px;color:var(--zg)}
 .tbl-s{flex:1;overflow-y:auto}.tbl-s::-webkit-scrollbar{width:3px}.tbl-s::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-table.T{width:100%;border-collapse:collapse;font-size:12px}
-.T thead{background:#F8FAFC;position:sticky;top:0;z-index:2}.T th{padding:6px 10px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);border-bottom:2px solid var(--zl)}
-.T td{padding:5px 10px;border-bottom:1px solid #F1F5F9;color:#475569}.T tr:hover td{background:#F0F4FF}.T tr.sel td{background:#EEF2FF}
-.T-ch{background:#EEF2FF;padding:5px 10px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #D4DDFF}
-.T-n{font-weight:600;color:#1E293B;font-size:12px}.T-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px;padding:1px 5px;border-radius:3px}
+table.T{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.T thead{background:#F8FAFC;position:sticky;top:0;z-index:2}.T th{padding:6px 12px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);border-bottom:2px solid var(--zl)}
+.T td{padding:6px 12px;border-bottom:1px solid #F1F5F9;color:#475569}.T tr:hover td{background:#F0F4FF}.T tr.sel td{background:#EEF2FF}
+.T-ch{background:#EEF2FF;padding:6px 12px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #D4DDFF}
+.T-n{font-weight:600;color:#1E293B;font-size:12px}.T-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:14px;padding:2px 6px;border-radius:3px}
 .T-p-t{color:var(--turq);background:#E6F7F5}.T-p-r{color:var(--rosa);background:#FDE8F0}.T-p-y{color:#92600A;background:#FEF3C7}
 .T-old{font-size:10px;color:#94A3B8;text-decoration:line-through}.T-g{font-size:9px;color:var(--zcy);font-weight:600}
 .T-add{width:22px;height:22px;border-radius:5px;border:1px solid var(--zl);background:var(--zw);color:var(--zbl);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:700;transition:all .1s}.T-add:hover{background:var(--zbl);color:#fff}
@@ -158,10 +158,10 @@ function lF(){
   if(q)all=all.filter(function(i){return(i.nombre||'').toLowerCase().indexOf(q)>=0||(i.categoria||'').toLowerCase().indexOf(q)>=0});
   var g={};all.forEach(function(i){var c=i.categoria||'OTROS';if(!g[c])g[c]=[];g[c].push(i)});var cs=Object.keys(g).sort();
   $('lc').textContent=all.length;
-  var r='<table class="T"><thead><tr><th></th><th>Servicio / Producto</th><th>Promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
+  var r='<table class="T"><thead><tr><th style="width:36px"></th><th style="width:45%">Servicio / Producto</th><th style="width:15%;text-align:center">Promo</th><th style="width:12%;text-align:center">Regular</th><th>Incluye</th></tr></thead><tbody>';
   cs.forEach(function(c){var m=CM[c]||{i:'📋',c:'#6B7BA8'};r+='<tr><td colspan="5" class="T-ch" style="border-left:3px solid '+m.c+'">'+m.i+' '+H(c)+' ('+g[c].length+')</td></tr>';
     g[c].forEach(function(it){var cl=pc(it.precio_base,it.precio_oferta);var inC=D.cart.some(function(x){return x.n===it.nombre});
-      r+='<tr class="'+(inC?'sel':'')+'"><td><button class="T-add" onclick="cAdd(\''+H(it.nombre).replace(/'/g,"\\'")+'\','+it.precio_oferta+',\''+H(it.tipo)+'\')">+</button></td><td class="T-n">'+H(it.nombre)+'</td><td><span class="T-p '+cl+'">'+fmt(it.precio_oferta)+'</span></td><td class="T-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="T-g">🎁 '+H(it.indicaciones)+'</span>':'')+'</td></tr>'})});
+      r+='<tr class="'+(inC?'sel':'')+'"><td style="text-align:center"><button class="T-add" onclick="cAdd(\''+H(it.nombre).replace(/'/g,"\\'")+'\','+it.precio_oferta+',\''+H(it.tipo)+'\')">+</button></td><td class="T-n">'+H(it.nombre)+'</td><td style="text-align:center"><span class="T-p '+cl+'">'+fmt(it.precio_oferta)+'</span></td><td style="text-align:center" class="T-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="T-g">🎁 '+H(it.indicaciones)+'</span>':'')+'</td></tr>'})});
   r+='</tbody></table>';$('lw').innerHTML=r}
 
 /* ═══ CARRITO EDITABLE ═══ */
