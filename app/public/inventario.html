@@ -14,9 +14,9 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 .sp{padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--zl);background:var(--zw);color:var(--zg);font-family:'Outfit'}.sp:hover{border-color:var(--zbl);color:var(--zbl)}.sp.a{background:var(--zbl);color:#fff;border-color:var(--zbl)}
 .sbtn{padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;background:var(--zcy);color:var(--zb);font-family:'Outfit';margin-left:auto}
 /* KPI */
-.krow{display:flex;gap:6px;margin-bottom:6px}.kpi{background:var(--zw);border:1px solid var(--zl);border-radius:8px;padding:6px 10px;flex:1;min-width:80px;text-align:center}.kv{font-family:'Source Serif 4',serif;font-weight:700;font-size:16px}.kl{font-size:7px;font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.3px}
+.krow{display:flex;gap:4px;flex-wrap:wrap}.kpi{background:var(--zbg);border-radius:6px;padding:4px 10px;text-align:center;flex:1;min-width:70px}.kv{font-family:'Source Serif 4',serif;font-weight:700;font-size:14px}.kl{font-size:6px;font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.3px}
 /* Layout */
-.lay{display:grid;grid-template-columns:1fr 380px;gap:8px;height:calc(100vh - 195px)}
+.lay{display:grid;grid-template-columns:1fr 440px;gap:8px;height:calc(100vh - 165px)}
 /* Table */
 .tw{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
 .tbar{display:flex;align-items:center;gap:4px;padding:5px 8px;border-bottom:1px solid var(--zl);background:#FAFBFE;flex-wrap:wrap}
@@ -104,10 +104,9 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 
 <!-- TAB 0: STOCK -->
 <div class="pan a" id="p0">
-<div class="sbar"><button class="sp a" onclick="sS('SAN ISIDRO',this)">📍 San Isidro</button><button class="sp" onclick="sS('PUEBLO LIBRE',this)">📍 Pueblo Libre</button><button class="sp" onclick="sS('CENTRAL',this)">🏢 Central</button><button class="sbtn" onclick="mOpen()">➕ Nuevo producto</button></div>
-<div class="krow" id="kpis"></div>
+<div class="sbar"><button class="sp a" onclick="sS('SAN ISIDRO',this)">📍 San Isidro</button><button class="sp" onclick="sS('PUEBLO LIBRE',this)">📍 Pueblo Libre</button><button class="sp" onclick="sS('CENTRAL',this)">🏢 Central</button><button class="sbtn" onclick="mOpen()">+ Nuevo</button></div>
 <div class="lay">
-<div class="tw"><div class="tbar"><div class="tq"><span style="color:#94A3B8;font-size:10px">🔍</span><input id="iq" placeholder="Buscar..." oninput="iL()"></div><button class="tf a" onclick="iC(this,'')">Todos</button><button class="tf" onclick="iC(this,'INSUMO_CLINICO')">Insumos</button><button class="tf" onclick="iC(this,'PRODUCTO_VENTA')">Productos</button><button class="tf" onclick="iC(this,'MATERIAL')">Material</button></div><div class="tscr" id="tscr"><div class="ld"><span class="spi"></span>Cargando...</div></div></div>
+<div class="tw"><div class="krow" id="kpis" style="padding:6px 8px;margin:0;border-bottom:1px solid var(--zl)"></div><div class="tbar"><div class="tq"><span style="color:#94A3B8;font-size:10px">🔍</span><input id="iq" placeholder="Buscar..." oninput="iL()"></div><button class="tf a" onclick="iC(this,'')">Todos</button><button class="tf" onclick="iC(this,'INSUMO_CLINICO')">Insumos</button><button class="tf" onclick="iC(this,'PRODUCTO_VENTA')">Productos</button><button class="tf" onclick="iC(this,'MATERIAL')">Material</button></div><div class="tscr" id="tscr"><div class="ld"><span class="spi"></span>Cargando...</div></div></div>
 <div class="side">
 <!-- DESCUENTO -->
 <div class="card"><div class="ch" style="background:var(--zb);color:#fff">🔻 Descuento <span id="dc" style="background:var(--zcy);color:var(--zb);padding:1px 6px;border-radius:3px;font-size:8px">0</span></div><div class="cb" id="ditems"><div class="de">Click ➕ para descontar</div></div><div style="padding:8px 12px;border-top:1px solid var(--zl)"><input class="pac-in" id="dp" placeholder="🔍 Paciente..." oninput="dpS()"><div class="pac-dd" id="dpd"></div><div id="dps"></div><div class="cot-dd" id="dcd"></div><div id="dcs"></div><div class="btn-row"><button class="btn btn-c" onclick="dClr()">Limpiar</button><button class="btn btn-r" onclick="dExec()">🔻 Descontar</button></div></div></div>
@@ -134,6 +133,9 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 <!-- MODAL INCIDENCIA -->
 <div class="imbg" id="imod" onclick="if(event.target===this)imClose()"><div class="imod"><h3>📝 Resolver incidencia</h3><div id="im-info"></div><label>Búsqueda / Investigación</label><textarea id="im-busq" placeholder="Qué se investigó..."></textarea><label>Conclusión</label><textarea id="im-conc" placeholder="Conclusión de la investigación..."></textarea><label>Cantidad corregida (opcional)</label><input id="im-qty" type="number" placeholder="Dejar vacío si no se corrige"><div class="mbtns"><button class="mbtn mb-c" onclick="imClose()">Cancelar</button><button class="mbtn mb-s" onclick="imSave()">✅ Resolver</button></div></div></div>
 
+<!-- MODAL DETALLE PRODUCTO -->
+<div class="mbg" id="pdmod" onclick="if(event.target===this)pdClose()"><div class="mod" style="max-width:520px"><h3 id="pd-title">Detalle del producto</h3><div id="pd-body"></div></div></div>
+
 <div class="toast" id="tst"></div>
 
 <script>
@@ -155,7 +157,7 @@ function iL(){var q=($('iq').value||'').trim();rpc('aos_inventario_sede',{p_sede
   var its=d.items||[];if(!its.length){$('tscr').innerHTML='<div class="ld">Sin resultados</div>';return}
   var r='<table class="T"><thead><tr><th style="width:30px"></th><th>Producto</th><th>Lote</th><th>Cant.</th><th>Unid.</th><th>F. Venc.</th><th>Estado</th></tr></thead><tbody>';
   its.forEach(function(it){var sc=it.estado==='VENCIDO'?'sv':it.estado==='POR_VENCER'?'spv':it.estado==='AGOTADO'?'sa':'sok';var st=it.estado==='VENCIDO'?'VENCIDO':it.estado==='POR_VENCER'?'POR VENCER ('+it.dias_venc+'d)':it.estado==='AGOTADO'?'AGOTADO':'OK';
-    r+='<tr><td style="text-align:center"><button class="abtn" onclick="dAdd(\''+it.id+'\',\''+H(it.nombre_producto).replace(/'/g,"\\'")+'\','+it.cantidad+',\''+H(it.unidad)+'\')">+</button></td><td style="font-weight:600;color:#1E293B;font-size:9px">'+H(it.nombre_producto)+'</td><td style="font-size:8px;color:var(--zg)">'+H(it.lote)+'</td><td style="font-weight:700">'+it.cantidad+'</td><td style="font-size:8px">'+H(it.unidad)+'</td><td style="font-size:8px">'+(it.fecha_vencimiento||'—')+'</td><td><span class="'+sc+'">'+st+'</span></td></tr>'});
+    r+='<tr><td style="text-align:center"><button class="abtn" onclick="dAdd(\''+it.id+'\',\''+H(it.nombre_producto).replace(/'/g,"\\'")+'\','+it.cantidad+',\''+H(it.unidad)+'\')">+</button></td><td style="font-weight:600;color:#1E293B;font-size:9px;cursor:pointer;text-decoration:underline dotted" onclick="prodDetail(\''+it.id+'\',\''+H(it.nombre_producto).replace(/'/g,"\\'")+'\',\''+H(it.lote||'')+'\','+it.cantidad+',\''+H(it.unidad)+'\',\''+(it.fecha_vencimiento||'')+'\',\''+H(it.estado)+'\',\''+H(it.categoria||'')+'\')">'+H(it.nombre_producto)+'</td><td style="font-size:8px;color:var(--zg)">'+H(it.lote)+'</td><td style="font-weight:700">'+it.cantidad+'</td><td style="font-size:8px">'+H(it.unidad)+'</td><td style="font-size:8px">'+(it.fecha_vencimiento||'—')+'</td><td><span class="'+sc+'">'+st+'</span></td></tr>'});
   r+='</tbody></table>';$('tscr').innerHTML=r})}
 
 /* ═══ DESCUENTO ═══ */
@@ -275,4 +277,28 @@ function ldMet(){rpc('aos_inventario_metricas',{p_sede:IV.sede},function(d){if(!
   [['Total items',d.total_items],['Total unidades',Math.round(d.total_unidades)],['Disponibles',d.disponibles,'var(--grn)'],['Vencidos',d.vencidos,'var(--red)'],['Por vencer',d.por_vencer,'var(--orn)'],['Agotados',d.agotados,'var(--yel)'],['Último conteo',d.ultimo_conteo||'—'],['Incidencias abiertas',d.incidencias_abiertas,'var(--red)'],['Movimientos hoy',d.movimientos_hoy],['Egresos semana',d.egresos_semana]].forEach(function(r){h+='<div class="mr"><span>'+r[0]+'</span><span'+(r[2]?' style="color:'+r[2]+'"':'')+'>'+r[1]+'</span></div>'});h+='</div>';
   if(d.por_categoria){h+='<div class="mc"><div class="mt">📦 Por categoría</div>';d.por_categoria.forEach(function(c){h+='<div class="mr"><span>'+H(c.categoria)+'</span><span>'+c.items+' ('+Math.round(c.unidades)+' und)</span></div>'});h+='</div>'}
   h+='</div>';$('met-wrap').innerHTML=h})}
+/* ═══ DETALLE PRODUCTO ═══ */
+var pdId='';
+function prodDetail(id,nom,lote,qty,und,fv,est,cat){
+  pdId=id;$('pd-title').textContent=nom;
+  var h='<div class="mrow"><div><label>Nombre</label><input id="pd-nom" value="'+H(nom)+'"></div><div><label>Categoría</label><select id="pd-cat"><option value="INSUMO_CLINICO"'+(cat==='INSUMO_CLINICO'?' selected':'')+'>Insumo</option><option value="PRODUCTO_VENTA"'+(cat==='PRODUCTO_VENTA'?' selected':'')+'>Producto</option><option value="MATERIAL"'+(cat==='MATERIAL'?' selected':'')+'>Material</option><option value="MEDICAMENTO"'+(cat==='MEDICAMENTO'?' selected':'')+'>Medicamento</option></select></div></div>';
+  h+='<div class="mrow"><div><label>Lote</label><input id="pd-lot" value="'+H(lote)+'"></div><div><label>Cantidad</label><input id="pd-qty" type="number" value="'+qty+'"></div></div>';
+  h+='<div class="mrow"><div><label>Unidad</label><select id="pd-und"><option value="und"'+(und==='und'?' selected':'')+'>Unidad</option><option value="ml"'+(und==='ml'?' selected':'')+'>ml</option><option value="gr"'+(und==='gr'?' selected':'')+'>gr</option><option value="caja"'+(und==='caja'?' selected':'')+'>Caja</option></select></div><div><label>F. Vencimiento</label><input id="pd-fv" type="date" value="'+H(fv)+'"></div></div>';
+  h+='<div style="margin-top:8px"><label>Estado actual</label><div style="font-size:12px;font-weight:700;color:'+(est==='VENCIDO'?'var(--red)':est==='POR_VENCER'?'var(--orn)':est==='AGOTADO'?'var(--yel)':'var(--grn)')+'">'+H(est)+'</div></div>';
+  h+='<label>Descargo de corrección (obligatorio si cambias cantidad)</label><textarea id="pd-desc" placeholder="Explica por qué se modifica..."></textarea>';
+  h+='<div class="mbtns"><button class="mbtn" style="background:#FEE2E2;color:var(--red)" onclick="prodDel()">🗑 Eliminar</button><button class="mbtn mb-c" onclick="pdClose()">Cancelar</button><button class="mbtn mb-s" onclick="prodSave()">💾 Guardar</button></div>';
+  $('pd-body').innerHTML=h;$('pdmod').classList.add('sh')}
+function pdClose(){$('pdmod').classList.remove('sh')}
+function prodSave(){
+  var nom=$('pd-nom').value.trim();if(!nom){tst('Nombre requerido');return}
+  var newQty=parseFloat($('pd-qty').value);var desc=$('pd-desc').value;
+  // Update via REST
+  var data={nombre_producto:nom,lote:$('pd-lot').value,cantidad:newQty,unidad:$('pd-und').value,categoria:$('pd-cat').value};
+  if($('pd-fv').value)data.fecha_vencimiento=$('pd-fv').value;
+  fetch(SB+'/rest/v1/aos_inventario?id=eq.'+pdId,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){
+    // Si cambió cantidad, registrar corrección
+    if(desc){rpc('aos_inventario_correccion',{p_data:{inventario_id:pdId,cantidad_nueva:newQty,nombre:nom,sede:IV.sede,descargo:desc,usuario:window._USER_NAME||''}},function(){})}
+    tst('✅ '+nom+' actualizado');pdClose();iL()}).catch(function(){tst('Error')})}
+function prodDel(){if(!confirm('¿Eliminar este producto del inventario?'))return;
+  fetch(SB+'/rest/v1/aos_inventario?id=eq.'+pdId,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){tst('🗑 Producto eliminado');pdClose();iL()}).catch(function(){tst('Error')})}
 </script>
