@@ -89,7 +89,7 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 
 <div class="cat-panel act" id="tab0"><div class="lp"><div class="lp-bar"><div class="lp-search"><span style="color:#94A3B8;font-size:12px">🔍</span><input id="lp-q" placeholder="Buscar servicio, tratamiento, producto..." oninput="lpF()"></div><button class="lp-f act" onclick="lpC(this,'')">Todos</button><button class="lp-f" onclick="lpC(this,'S')">Servicios</button><button class="lp-f" onclick="lpC(this,'P')">Productos</button><span class="lp-cnt" id="lp-cnt"></span></div><div class="lp-wrap" id="lp-wrap"><div class="ld"><span class="sp"></span>Cargando...</div></div></div></div>
 
-<div class="cat-panel" id="tab1"><div class="repo"><div class="repo-sb"><input id="repo-q" placeholder="🔍 Buscar categoría..." oninput="repoF()"><div class="repo-sl" id="repo-list"></div></div><div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento</div></div></div></div>
+<div class="cat-panel" id="tab1"><div style="display:flex;gap:5px;margin-bottom:8px"><button class="lp-f act" id="repo-tab-s" onclick="repoTipo('SERVICIO',this)">🏥 Servicios</button><button class="lp-f" id="repo-tab-p" onclick="repoTipo('PRODUCTO',this)">🛍 Productos</button></div><div class="repo"><div class="repo-sb"><input id="repo-q" placeholder="🔍 Buscar categoría..." oninput="repoF()"><div class="repo-sl" id="repo-list"></div></div><div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento o producto</div></div></div></div>
 
 <div class="cat-panel" id="tab2"><div id="promo-wrap"><div class="ld"><span class="sp"></span>Cargando promos...</div></div></div>
 </div>
@@ -123,7 +123,9 @@ function lpF(){
   r+='</tbody></table>';document.getElementById('lp-wrap').innerHTML=r}
 
 /* ═══ REPOSITORIO ═══ */
-function loadRepo(){rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){D.repoData=d.categorias||[];repoR()})}
+var repoTipoAct='SERVICIO';
+function repoTipo(t,el){repoTipoAct=t;document.getElementById('repo-tab-s').classList.toggle('act',t==='SERVICIO');document.getElementById('repo-tab-p').classList.toggle('act',t==='PRODUCTO');D.repoData=[];loadRepo()}
+function loadRepo(){rpc('aos_catalogo_repo_v2',{p_tipo:repoTipoAct},function(d){D.repoData=d.categorias||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>📖</span>Selecciona '+(repoTipoAct==='PRODUCTO'?'un producto':'un tratamiento')+'</div>'})}
 function repoF(){repoR()}
 function repoR(){var q=(document.getElementById('repo-q').value||'').toLowerCase();var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('')}
 
@@ -136,7 +138,8 @@ function repoSel(cn){
   var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">TRATAMIENTO</div><div class="rd-t">'+h(cn)+'</div><div class="rd-s">'+cat.total_items+' opciones · Desde '+fmt(cat.precio_desde)+'</div></div><div class="rd-body">';
   if(src.descripcion_clinica)htm+='<div class="rd-desc">'+h(src.descripcion_clinica)+'</div>';
   var cards='';function ac(l,ic,v){if(v)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}
-  ac('Composición','⚗️',src.composicion);ac('Beneficios','✅',src.beneficios);ac('Contraindicaciones','⚠️',src.contraindicaciones);ac('Perfil de paciente','👤',src.perfil_paciente);ac('Mecanismo de acción','🔬',src.mecanismo_accion);ac('Rol en el proceso','🎯',src.rol_proceso);
+  var isProd=repoTipoAct==='PRODUCTO';
+  ac('Composición / Ingredientes','⚗️',src.composicion);ac('Beneficios','✅',src.beneficios);ac('Contraindicaciones','⚠️',src.contraindicaciones);ac('Perfil de paciente / Recomendado para','👤',src.perfil_paciente);ac(isProd?'Modo de uso':'Mecanismo de acción',isProd?'📋':'🔬',isProd?src.indicaciones:src.mecanismo_accion);if(!isProd)ac('Rol en el proceso','🎯',src.rol_proceso);
   if(cards)htm+='<div class="rd-grid">'+cards+'</div>';
   if(!src.descripcion_clinica&&!cards)htm+='<div class="rd-no">ℹ️ Información clínica próximamente — este tratamiento será documentado siguiendo el Índice Maestro</div>';
 
