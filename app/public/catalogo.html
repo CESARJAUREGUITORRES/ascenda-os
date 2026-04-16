@@ -123,11 +123,54 @@ function lpF(){
   r+='</tbody></table>';document.getElementById('lp-wrap').innerHTML=r}
 
 /* ═══ REPOSITORIO ═══ */
-var repoTipoAct='SERVICIO';
-function repoTipo(t,el){repoTipoAct=t;document.getElementById('repo-tab-s').classList.toggle('act',t==='SERVICIO');document.getElementById('repo-tab-p').classList.toggle('act',t==='PRODUCTO');D.repoData=[];loadRepo()}
-function loadRepo(){rpc('aos_catalogo_repo_v2',{p_tipo:repoTipoAct},function(d){D.repoData=d.categorias||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>📖</span>Selecciona '+(repoTipoAct==='PRODUCTO'?'un producto':'un tratamiento')+'</div>'})}
+var repoTipoAct='SERVICIO';var prodItems=[];
+function repoTipo(t,el){repoTipoAct=t;document.getElementById('repo-tab-s').classList.toggle('act',t==='SERVICIO');document.getElementById('repo-tab-p').classList.toggle('act',t==='PRODUCTO');D.repoData=[];prodItems=[];loadRepo()}
+function loadRepo(){
+  if(repoTipoAct==='PRODUCTO'){
+    rpc('aos_catalogo_productos',{},function(d){prodItems=d.items||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>🛍</span>Selecciona un producto para ver su información</div>'});
+  } else {
+    rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){D.repoData=d.categorias||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>📖</span>Selecciona un tratamiento</div>'});
+  }
+}
 function repoF(){repoR()}
-function repoR(){var q=(document.getElementById('repo-q').value||'').toLowerCase();var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('')}
+function repoR(){
+  var q=(document.getElementById('repo-q').value||'').toLowerCase();
+  if(repoTipoAct==='PRODUCTO'){
+    var items=prodItems.filter(function(p){return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});
+    var lastCat='';
+    document.getElementById('repo-list').innerHTML=items.map(function(p,i){
+      var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};
+      var sep='';
+      if(p.categoria!==lastCat){lastCat=p.categoria;sep='<div style="padding:4px 8px;font-size:8px;font-weight:800;color:var(--zbl);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--zl);margin:4px 0 2px">'+m.i+' '+h(p.categoria)+'</div>'}
+      var hasInfo=p.descripcion_clinica&&p.descripcion_clinica.length>20;
+      return sep+'<div class="repo-si" onclick="repoProd('+i+')" data-c="'+i+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(p.nombre)+'</div><div class="repo-si-m">'+fmt(p.precio_oferta)+(hasInfo?' · ℹ️':'')+'</div></div></div>'
+    }).join('');
+  } else {
+    var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});
+    document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('');
+  }
+}
+
+function repoProd(idx){
+  var filtered=prodItems.filter(function(p){var q=(document.getElementById('repo-q').value||'').toLowerCase();return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});
+  var p=filtered[idx];if(!p)return;
+  document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===''+idx)});
+  var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};
+  var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">PRODUCTO · '+h(p.categoria)+'</div><div class="rd-t">'+h(p.nombre)+'</div><div class="rd-s">'+fmt(p.precio_oferta)+(p.precio_base?' <span style="text-decoration:line-through;opacity:.5">'+fmt(p.precio_base)+'</span>':'')+'</div></div><div class="rd-body">';
+  if(p.descripcion_clinica)htm+='<div class="rd-desc">'+h(p.descripcion_clinica)+'</div>';
+  var cards='';function ac(l,ic,v){if(v&&v.length>5)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}
+  ac('Ingredientes / Composición','⚗️',p.composicion);ac('Beneficios','✅',p.beneficios);ac('Recomendado para','👤',p.perfil_paciente);ac('Modo de uso','📋',p.indicaciones);
+  if(cards)htm+='<div class="rd-grid">'+cards+'</div>';
+  if(!p.descripcion_clinica&&!cards)htm+='<div class="rd-no">Información del producto próximamente</div>';
+  // Price + FAQs split
+  htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Precio</div><div style="background:var(--zbg);border-radius:8px;padding:14px;text-align:center"><div style="font-family:Source Serif 4,serif;font-weight:700;font-size:28px;color:var(--zbl)">'+fmt(p.precio_oferta)+'</div>'+(p.precio_base?'<div style="font-size:12px;color:#94A3B8;text-decoration:line-through">'+fmt(p.precio_base)+'</div>':'')+'<div style="margin-top:8px;font-size:10px;color:var(--zg)">Disponible en ambas sedes y en zivital.pe/tienda</div></div></div>';
+  // FAQs
+  var faqs=p.faqs||[];
+  htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ Preguntas frecuentes'+(faqs.length?' <span style="font-weight:400;color:var(--zg);font-size:9px">'+faqs.length+'</span>':'')+'</div>';
+  if(faqs.length){htm+='<div class="faq-list">'+faqs.map(function(f){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>'} else {htm+='<div class="faq-none">Preguntas frecuentes próximamente</div>'}
+  htm+='</div></div></div>';
+  document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0
+}
 
 function repoSel(cn){
   document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===cn)});
