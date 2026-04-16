@@ -479,6 +479,7 @@ function mkIco(name) {
 var SIDEBAR_ASESOR = [
   {type:'section',label:'Operaciones'},
   {type:'item',id:'advisor-home',       ico:'home',     lbl:'Panel principal'},
+  {type:'item',id:'advisor-leads',      ico:'plus',     lbl:'Agregar leads',  action:'leads'},
   {type:'item',id:'advisor-calls',      ico:'phone',    lbl:'Call center',   badge:'',badgeColor:'#DC2626'},
   {type:'item',id:'advisor-followups',  ico:'clock',    lbl:'Seguimientos',  badge:'',badgeColor:'#DC2626'},
   {type:'sep'},
@@ -556,6 +557,7 @@ function buildSidebar() {
       if (v === '__logout')      { openLogoutModal(); return; }
       if (v === '__profile')     { return; }
       if (v === '__cierre_turno'){ openCierreTurnoModal(); return; }
+      if (v === 'advisor-leads') { if(window.AOS_openLeads)AOS_openLeads(); return; }
       navigateTo(v);
     });
   });
@@ -1059,6 +1061,86 @@ function escHtml(s) {
 }
 
 
+
+<!-- MODAL AGREGAR LEADS -->
+<div id="leads-modal" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px)" onclick="if(event.target===this)this.style.display='none'">
+<div style="background:#fff;border-radius:14px;max-width:860px;width:95%;max-height:90vh;display:flex;flex-direction:column;border:1px solid #E2E8F0">
+<div style="padding:14px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between">
+<div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:#071D4A">📥 Agregar Leads</div><div style="font-size:9px;color:#7A869A">Pega datos desde tu Excel con la misma estructura de columnas</div></div>
+<button onclick="document.getElementById('leads-modal').style.display='none'" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#7A869A">✕</button>
+</div>
+<div style="padding:14px 18px;flex:1;overflow-y:auto">
+<div style="overflow-x:auto;border:1px solid #E2E8F0;border-radius:8px">
+<table id="leads-table" style="width:100%;border-collapse:collapse;font-size:11px;font-family:'Outfit',sans-serif">
+<thead style="background:#F0F4FC;position:sticky;top:0"><tr>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">DÍA INGRESO</th>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">NÚMERO</th>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">TRATAMIENTO</th>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">ANUNCIO</th>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">PREGUNTA</th>
+<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">HORA INGRESO</th>
+</tr></thead>
+<tbody id="leads-tbody"></tbody>
+</table>
+</div>
+<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+<textarea id="leads-paste" placeholder="Pega aquí las filas de tu Excel (Ctrl+V)... cada fila será una línea, las columnas separadas por TAB" style="flex:1;height:60px;padding:8px;border-radius:6px;border:1px solid #E2E8F0;font-size:10px;font-family:'Outfit',sans-serif;outline:none;resize:none"></textarea>
+</div>
+<div id="leads-info" style="font-size:9px;color:#7A869A;margin-top:4px"></div>
+</div>
+<div style="padding:12px 18px;border-top:1px solid #E2E8F0;display:flex;gap:6px;justify-content:flex-end">
+<button onclick="leadsClear()" style="padding:7px 16px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #E2E8F0;background:#F4F6FB;color:#7A869A;cursor:pointer;font-family:'Outfit'">🗑 Limpiar</button>
+<button onclick="leadsSave()" style="padding:7px 20px;border-radius:6px;font-size:12px;font-weight:800;border:none;background:#0A4FBF;color:#fff;cursor:pointer;font-family:'Outfit'">📥 Agregar leads</button>
+</div>
+</div>
+</div>
+
+<script>
+// ===== LEADS MODAL =====
+var _leadsRows=[];
+document.getElementById('leads-paste').addEventListener('paste',function(e){
+  e.preventDefault();
+  var txt=(e.clipboardData||window.clipboardData).getData('text');
+  var lines=txt.split('\n').filter(function(l){return l.trim();});
+  lines.forEach(function(line){
+    var cols=line.split('\t');
+    if(cols.length<2)cols=line.split(',');
+    _leadsRows.push({
+      fecha:(cols[0]||'').trim(),
+      celular:(cols[1]||'').trim().replace(/\D/g,''),
+      tratamiento:(cols[2]||'').trim().toUpperCase(),
+      anuncio:(cols[3]||'').trim(),
+      preguntas:(cols[4]||'').trim(),
+      hora_ingreso:(cols[5]||'').trim()
+    });
+  });
+  leadsRender();
+  document.getElementById('leads-paste').value='';
+});
+
+function leadsRender(){
+  var tb=document.getElementById('leads-tbody');
+  if(!_leadsRows.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:#7A869A;font-style:italic">Pega datos desde tu Excel en el campo de abajo</td></tr>';document.getElementById('leads-info').textContent='';return;}
+  tb.innerHTML=_leadsRows.map(function(r,i){
+    return '<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px"><input value="'+escH(r.fecha)+'" onchange="_leadsRows['+i+'].fecha=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.celular)+'" onchange="_leadsRows['+i+'].celular=this.value.replace(/\\D/g,\'\')" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none;font-weight:700"></td><td style="padding:4px 8px"><input value="'+escH(r.tratamiento)+'" onchange="_leadsRows['+i+'].tratamiento=this.value" style="width:100px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.anuncio)+'" onchange="_leadsRows['+i+'].anuncio=this.value" style="width:110px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.preguntas)+'" onchange="_leadsRows['+i+'].preguntas=this.value" style="width:140px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px;display:flex;align-items:center;gap:3px"><input value="'+escH(r.hora_ingreso)+'" onchange="_leadsRows['+i+'].hora_ingreso=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"><button onclick="_leadsRows.splice('+i+',1);leadsRender()" style="border:none;background:#FEE2E2;color:#DC2626;width:16px;height:16px;border-radius:3px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button></td></tr>';
+  }).join('');
+  document.getElementById('leads-info').textContent=_leadsRows.length+' leads listos para agregar';
+}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function leadsClear(){_leadsRows=[];leadsRender();}
+function leadsSave(){
+  if(!_leadsRows.length){showToast('Pega leads primero','','toast-alerta');return;}
+  var valid=_leadsRows.filter(function(r){return r.celular&&r.celular.length>=7;});
+  if(!valid.length){showToast('No hay números válidos','','toast-alerta');return;}
+  var SBU='https://ituyqwstonmhnfshnaqz.supabase.co';
+  var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+  fetch(SBU+'/rest/v1/rpc/aos_agregar_leads',{method:'POST',headers:{'apikey':SBK,'Authorization':'Bearer '+SBK,'Content-Type':'application/json'},body:JSON.stringify({p_leads:valid})}).then(function(r){return r.json();}).then(function(d){
+    if(d&&d.insertados!==undefined){showToast('✅ '+d.insertados+' leads agregados'+(d.duplicados?' ('+d.duplicados+' duplicados)':''),'','');leadsClear();document.getElementById('leads-modal').style.display='none';}else{showToast('Error','','toast-alerta');}
+  }).catch(function(e){showToast('Error: '+e.message,'','toast-alerta');});
+}
+window.AOS_openLeads=function(){document.getElementById('leads-modal').style.display='flex';leadsRender();};
+leadsRender();
+</script>
 
 </script>
 </body>
