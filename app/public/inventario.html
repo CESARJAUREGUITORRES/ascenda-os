@@ -226,7 +226,7 @@ function cntRenderHist(){
   if(!reps.length){$('cnt-hist').innerHTML='<div class="de">Sin reportes</div>';return}
   $('cnt-hist').innerHTML=reps.map(function(r){
     var sinR=r.incidencias_sin_resolver||0;var col=sinR>0?'var(--red)':r.total_incidencias>0?'var(--orn)':'var(--grn)';var estCol=r.estado==='CERRADO'?'var(--grn)':r.estado==='GRABADO'?'var(--zbl)':'var(--orn)';
-    var canDel=r.estado==='BORRADOR'&&r.encargado===(window._USER_NAME||'');
+    var canDel=r.estado==='BORRADOR';
     return'<div style="padding:4px 5px;border:1px solid var(--zl);border-radius:4px;margin-bottom:2px;cursor:pointer;border-left:3px solid '+col+';font-size:7px" onclick="cntOpen(\''+r.id+'\',\''+H(r.codigo)+'\',\''+H(r.encargado)+'\',\''+H(r.estado)+'\')"><div style="display:flex;justify-content:space-between"><span style="font-weight:800;color:var(--zbl)">'+H(r.codigo)+'</span><span style="font-size:6px;padding:1px 3px;border-radius:2px;font-weight:700;color:'+estCol+'">'+H(r.estado)+'</span></div><div style="color:var(--zg)">'+H(r.fecha)+' · 👤 '+H(r.encargado)+'</div><div style="display:flex;gap:6px;align-items:center">📦'+r.total_items_contados+' <span style="color:'+col+'">⚠️'+r.total_incidencias+'</span>'+(canDel?' <button onclick="event.stopPropagation();cntDel(\''+r.id+'\')" style="border:none;background:#FEE2E2;color:var(--red);font-size:6px;padding:1px 4px;border-radius:2px;cursor:pointer;font-weight:700;font-family:Outfit;margin-left:auto">🗑 Eliminar</button>':'')+'</div></div>'}).join('')}
 
 function cntDel(repId){if(!confirm('¿Eliminar este conteo borrador?'))return;
@@ -235,7 +235,7 @@ function cntDel(repId){if(!confirm('¿Eliminar este conteo borrador?'))return;
 function cntNew(){
   rpc('aos_inventario_plantilla_conteo',{p_sede:IV.sede},function(items){
     cntData=items||[];cntRep=null;cntRepCode='';cntMode='tabla';
-    $('cnt-act-h').innerHTML='📝 Nuevo conteo — '+H(IV.sede)+' ('+cntData.length+') <div id="cnt-btns"><button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar</button></div>';
+    $('cnt-act-h').innerHTML='📝 Nuevo conteo — '+H(IV.sede)+' ('+cntData.length+') <div id="cnt-btns"><button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar borrador</button> <button class="btn" onclick="cntGrabar()" style="padding:3px 10px;font-size:9px;background:#F59E0B;color:#fff;font-weight:800">📋 GRABAR CONTEO</button></div>';
     var h='<div style="padding:6px"><div style="display:flex;gap:6px;margin-bottom:6px"><div style="flex:1"><label style="font-size:7px;font-weight:700;color:var(--zg)">ENCARGADO</label><input id="cnt-enc" value="'+(window._USER_NAME||'')+'" style="width:100%;padding:3px 5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none"></div></div>';
     h+='<table class="CT"><thead><tr><th>Producto</th><th>Lote</th><th>Und</th><th style="text-align:center">Sistema</th><th style="text-align:center">Físico</th><th></th></tr></thead><tbody>';
     cntData.forEach(function(it,i){
@@ -265,7 +265,7 @@ function cntGrabar(){
 
 function cntOpen(repId,code,encargado,estado){
   cntRep=repId;cntRepCode=code;cntOwner=encargado;cntMode='tabla';
-  var isOwner=(encargado===(window._USER_NAME||''));var isBorrador=estado==='BORRADOR';
+  var isOwner=true;var isBorrador=estado==='BORRADOR';
   var btns='';
   if(isOwner&&isBorrador)btns='<button class="btn btn-c" onclick="cntSaveDraft()" style="padding:3px 8px;font-size:8px">💾 Guardar</button> <button class="btn" onclick="cntGrabar()" style="padding:3px 10px;font-size:9px;background:#F59E0B;color:#fff;font-weight:800">📋 GRABAR CONTEO</button>';
   var estCol=estado==='CERRADO'?'var(--grn)':estado==='GRABADO'?'var(--zbl)':'var(--orn)';
