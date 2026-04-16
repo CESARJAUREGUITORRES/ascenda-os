@@ -100,7 +100,7 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 </style>
 
 <div class="P">
-<div class="hdr"><div><div class="h1">Inventario</div></div><div class="pills"><button class="pill a" onclick="iT(0,this)">📦 Stock</button><button class="pill" onclick="iT(1,this)">📋 Conteo</button><button class="pill" onclick="iT(2,this)">📊 Movimientos</button><button class="pill" onclick="iT(3,this)">📈 Métricas</button></div></div>
+<div class="hdr"><div><div class="h1">Inventario</div></div><div class="pills"><button class="pill a" onclick="iT(0,this)">📦 Stock</button><button class="pill" onclick="iT(1,this)">📋 Conteo</button><button class="pill" onclick="iT(2,this)">📊 Movimientos</button></div></div>
 
 <!-- TAB 0: STOCK -->
 <div class="pan a" id="p0">
@@ -118,13 +118,22 @@ body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 </div></div>
 
 <!-- TAB 1: CONTEO -->
-<div class="pan" id="p1"><div id="cnt-wrap"><div class="ld"><span class="spi"></span>Cargando conteo...</div></div></div>
+<div class="pan" id="p1">
+<div class="sbar"><button class="sp a" onclick="sS('SAN ISIDRO',this);ldCnt()">📍 San Isidro</button><button class="sp" onclick="sS('PUEBLO LIBRE',this);ldCnt()">📍 Pueblo Libre</button></div>
+<div style="display:grid;grid-template-columns:260px 1fr 300px;gap:8px;height:calc(100vh - 175px)">
+  <!-- COL 1: Historial -->
+  <div class="card" style="display:flex;flex-direction:column"><div class="ch" style="background:var(--zb);color:#fff">📋 Historial</div><div style="padding:4px"><input class="pac-in" id="cnt-search" placeholder="🔍 Buscar código, asesor..." oninput="cntFilter()" style="margin:0;font-size:9px"></div><div style="padding:4px;border-bottom:1px solid var(--zl)"><button class="btn btn-g" onclick="cntNew()" style="width:100%;padding:5px;font-size:9px">+ Nuevo conteo</button></div><div class="cb" id="cnt-hist" style="max-height:none;flex:1;font-size:8px;padding:4px"><div class="ld"><span class="spi"></span></div></div></div>
+  <!-- COL 2: Conteo -->
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" id="cnt-act-h">📝 Selecciona o crea un conteo</div><div style="flex:1;overflow-y:auto;padding:0" id="cnt-act"><div class="de" style="padding:40px">← Selecciona un conteo o crea uno nuevo</div></div></div>
+  <!-- COL 3: Incidencias + BOTONES FIJOS -->
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden"><div class="ch" style="color:var(--red);display:flex;align-items:center;justify-content:space-between" id="cnt-inc-h">⚠️ Incidencias</div><div id="cnt-fixed-btns" style="display:none;padding:6px 8px;border-bottom:1px solid var(--zl);gap:4px"></div><div style="flex:1;overflow-y:auto;padding:4px" id="cnt-inc"><div class="de">Aparecerán al guardar</div></div></div>
+</div>
+</div>
 
 <!-- TAB 2: MOVIMIENTOS -->
 <div class="pan" id="p2"><div id="mov-wrap"><div class="ld"><span class="spi"></span></div></div></div>
 
-<!-- TAB 3: MÉTRICAS -->
-<div class="pan" id="p3"><div id="met-wrap"><div class="ld"><span class="spi"></span></div></div></div>
+<!-- FIN TABS -->
 </div>
 
 <!-- MODAL NUEVO PRODUCTO -->
@@ -146,7 +155,7 @@ function $(s){return document.getElementById(s)}
 function tst(m){var t=$('tst');t.textContent=m;t.classList.add('sh');setTimeout(function(){t.classList.remove('sh')},2500)}
 var IV={sede:'SAN ISIDRO',cat:'',desc:[],dpac:null,dcot:null,ing:[]};
 
-function iT(n,el){document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('a')});el.classList.add('a');document.querySelectorAll('.pan').forEach(function(p,i){p.classList.toggle('a',i===n)});if(n===1)ldCnt();if(n===2)ldMov();if(n===3)ldMet()}
+function iT(n,el){document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('a')});el.classList.add('a');document.querySelectorAll('.pan').forEach(function(p,i){p.classList.toggle('a',i===n)});if(n===1)ldCnt();if(n===2)ldMov()}
 function sS(s,el){IV.sede=s;document.querySelectorAll('.sp').forEach(function(p){p.classList.remove('a')});el.classList.add('a');iL();ldAl()}
 function iC(el,c){IV.cat=c;document.querySelectorAll('.tf').forEach(function(f){f.classList.remove('a')});el.classList.add('a');iL()}
 
@@ -207,62 +216,134 @@ function mSave(){var nom=$('m-nom').value.trim();if(!nom){tst('Nombre requerido'
   rpc('aos_inventario_agregar',{p_data:{sede:$('m-sede').value,nombre:nom,lote:$('m-lot').value,cantidad:parseFloat($('m-qty').value)||0,unidad:$('m-und').value,fecha_vencimiento:$('m-fv').value||null,categoria:$('m-cat').value,observaciones:$('m-obs').value,usuario:window._USER_NAME||''}},function(r){if(r&&r.ok){tst('✅ '+nom+' agregado');mClose();iL();$('m-nom').value='';$('m-lot').value='';$('m-qty').value='';$('m-fv').value='';$('m-obs').value=''}else{tst('Error')}})}
 
 /* ═══ CONTEO ═══ */
-var cntData=[],cntRep=null;
+var cntData=[],cntRep=null,cntRepCode='',cntOwner='',cntReps=[],cntMode='tabla';
+
+function showFixedBtns(repId){
+  $('cnt-fixed-btns').style.display='flex';
+  $('cnt-fixed-btns').innerHTML='<button style="flex:1;padding:6px;border-radius:5px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid #FEE2E2;background:#FEE2E2;color:var(--red);font-family:Outfit" onclick="cntDel(\''+repId+'\')">🗑 Eliminar conteo</button><button style="flex:1;padding:6px;border-radius:5px;font-size:10px;font-weight:800;cursor:pointer;border:none;background:#16A34A;color:#fff;font-family:Outfit" onclick="cntGrabar()">📋 GRABAR CONTEO</button>';
+}
+function hideFixedBtns(){$('cnt-fixed-btns').style.display='none';$('cnt-fixed-btns').innerHTML='';}
+
 function ldCnt(){
-  // Cargar reportes anteriores + plantilla para nuevo conteo
+  hideFixedBtns();
   rpc('aos_conteo_reportes',{p_sede:IV.sede},function(reps){
-    var h='<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn btn-g" onclick="cntNew()" style="flex:none;padding:6px 14px">📋 Nuevo conteo</button></div>';
-    h+='<div style="font-size:11px;font-weight:700;margin-bottom:6px">Reportes anteriores</div>';
-    if(!reps||!reps.length){h+='<div class="ld">Sin reportes previos</div>'}else{
-      h+='<table class="MT"><thead><tr><th>Código</th><th>Sede</th><th>Fecha</th><th>Encargado</th><th>Items</th><th>Incidencias</th><th>Estado</th></tr></thead><tbody>';
-      reps.forEach(function(r){h+='<tr style="cursor:pointer" onclick="cntView(\''+r.id+'\')"><td style="font-weight:700;color:var(--zbl)">'+H(r.codigo)+'</td><td>'+H(r.sede)+'</td><td>'+H(r.fecha)+'</td><td>'+H(r.encargado)+'</td><td>'+r.total_items_contados+'</td><td style="color:'+(r.incidencias_sin_resolver>0?'var(--red)':'var(--grn)')+'">'+r.total_incidencias+' ('+r.incidencias_sin_resolver+' sin resolver)</td><td>'+H(r.estado)+'</td></tr>'});
-      h+='</tbody></table>'}
-    $('cnt-wrap').innerHTML=h})}
+    cntReps=reps||[];cntRenderHist()})}
+function cntFilter(){cntRenderHist()}
+function cntRenderHist(){
+  var q=($('cnt-search').value||'').toLowerCase();var reps=cntReps.filter(function(r){return!q||r.codigo.toLowerCase().indexOf(q)>=0||(r.encargado||'').toLowerCase().indexOf(q)>=0||(r.fecha||'').indexOf(q)>=0});
+  if(!reps.length){$('cnt-hist').innerHTML='<div class="de">Sin reportes</div>';return}
+  $('cnt-hist').innerHTML=reps.map(function(r){
+    var sinR=r.incidencias_sin_resolver||0;var col=sinR>0?'var(--red)':r.total_incidencias>0?'var(--orn)':'var(--grn)';var estCol=r.estado==='CERRADO'?'var(--grn)':r.estado==='GRABADO'?'var(--zbl)':'var(--orn)';
+    var canDel=r.estado==='BORRADOR'||r.estado==='EN_PROCESO';
+    return'<div style="padding:4px 5px;border:1px solid var(--zl);border-radius:4px;margin-bottom:2px;cursor:pointer;border-left:3px solid '+col+';font-size:7px" onclick="cntOpen(\''+r.id+'\',\''+H(r.codigo)+'\',\''+H(r.encargado)+'\',\''+H(r.estado)+'\')"><div style="display:flex;justify-content:space-between"><span style="font-weight:800;color:var(--zbl)">'+H(r.codigo)+'</span><span style="font-size:6px;padding:1px 3px;border-radius:2px;font-weight:700;color:'+estCol+'">'+H(r.estado)+'</span></div><div style="color:var(--zg)">'+H(r.fecha)+' · 👤 '+H(r.encargado)+'</div><div style="display:flex;gap:6px;align-items:center">📦'+r.total_items_contados+' <span style="color:'+col+'">⚠️'+r.total_incidencias+'</span>'+(canDel?' <button onclick="event.stopPropagation();cntDel(\''+r.id+'\')" style="border:none;background:#FEE2E2;color:var(--red);font-size:6px;padding:1px 4px;border-radius:2px;cursor:pointer;font-weight:700;font-family:Outfit;margin-left:auto">🗑 Eliminar</button>':'')+'</div></div>'}).join('')}
+
+function cntDel(repId){if(!confirm('¿Eliminar este conteo borrador?'))return;
+  rpc('aos_conteo_eliminar',{p_reporte_id:repId,p_usuario:window._USER_NAME||''},function(r){if(r&&r.ok){tst('🗑 Conteo eliminado');ldCnt();$('cnt-act').innerHTML='<div class="de" style="padding:40px">← Selecciona o crea un conteo</div>';$('cnt-inc').innerHTML='<div class="de">Aparecerán al guardar</div>'}else{tst(r&&r.error?r.error:'Error')}})}
 
 function cntNew(){
   rpc('aos_inventario_plantilla_conteo',{p_sede:IV.sede},function(items){
-    cntData=items||[];
-    var h='<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center"><button class="btn btn-c" onclick="ldCnt()" style="flex:none;padding:6px 14px">← Volver</button><span style="font-size:12px;font-weight:700">Nuevo conteo — '+H(IV.sede)+' ('+cntData.length+' productos)</span><button class="btn btn-g" onclick="cntSave()" style="flex:none;padding:6px 14px">💾 Grabar conteo</button></div>';
-    h+='<div style="background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;max-height:calc(100vh - 240px);overflow-y:auto"><table class="CT"><thead><tr><th>Producto</th><th>Lote</th><th>Unid.</th><th>Sistema</th><th>Físico</th><th>Estado</th></tr></thead><tbody>';
+    cntData=items||[];cntRep=null;cntRepCode='';cntMode='tabla';
+    $('cnt-act-h').textContent='📝 Nuevo conteo — '+IV.sede+' ('+cntData.length+')';
+    
+    var h='<div style="padding:6px"><div style="display:flex;gap:6px;margin-bottom:6px"><div style="flex:1"><label style="font-size:7px;font-weight:700;color:var(--zg)">ENCARGADO</label><input id="cnt-enc" value="'+(window._USER_NAME||'')+'" style="width:100%;padding:3px 5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none"></div></div>';
+    h+='<table class="CT"><thead><tr><th>Producto</th><th>Lote</th><th>Und</th><th style="text-align:center">Sistema</th><th style="text-align:center">Físico</th><th></th></tr></thead><tbody>';
     cntData.forEach(function(it,i){
-      h+='<tr id="cr-'+i+'"><td style="font-weight:600;font-size:9px">'+H(it.nombre_producto)+'</td><td style="font-size:8px;color:var(--zg)">'+H(it.lote)+'</td><td style="font-size:8px">'+H(it.unidad)+'</td><td style="font-weight:700">'+it.cantidad_sistema+'</td><td><input class="cin" id="cf-'+i+'" type="number" min="0" placeholder="?" onchange="cntCheck('+i+')"></td><td id="cs-'+i+'">—</td></tr>'});
-    h+='</tbody></table></div>';$('cnt-wrap').innerHTML=h})}
+      h+='<tr id="cr-'+i+'"><td style="font-weight:600;font-size:7px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+H(it.nombre_producto)+'</td><td style="font-size:6px;color:var(--zg)">'+H(it.lote)+'</td><td style="font-size:6px">'+H(it.unidad)+'</td><td style="font-weight:700;font-size:9px;text-align:center" id="csis-'+i+'">'+it.cantidad_sistema+'</td><td><input class="cin" id="cf-'+i+'" type="number" min="0" placeholder="?" onchange="cntChk('+i+')"></td><td id="cs-'+i+'" style="font-size:7px;text-align:center">—</td></tr>'});
+    h+='</tbody></table></div>';$('cnt-act').innerHTML=h;$('cnt-inc').innerHTML='<div class="de">Guarda el conteo para ver incidencias</div>';
+    $('cnt-fixed-btns').style.display='flex';$('cnt-fixed-btns').innerHTML='<button style="flex:1;padding:6px;border-radius:5px;font-size:10px;font-weight:800;cursor:pointer;border:none;background:#16A34A;color:#fff;font-family:Outfit" onclick="cntGrabar()">📋 GRABAR CONTEO</button>'})}
 
-function cntCheck(i){
-  var fisico=parseFloat($('cf-'+i).value);var sistema=cntData[i].cantidad_sistema;
-  var row=$('cr-'+i);var st=$('cs-'+i);
-  if(isNaN(fisico)){st.textContent='—';row.className='';return}
-  if(fisico===sistema){st.innerHTML='<span class="sok">✅ OK</span>';row.className='ok'}
-  else{var diff=sistema-fisico;st.innerHTML='<span class="sv">⚠️ Diff: '+(diff>0?'-':'+')+''+Math.abs(diff)+'</span>';row.className='bad'}}
+function cntChk(i){var f=parseFloat($('cf-'+i).value);var s=cntData[i].cantidad_sistema;var row=$('cr-'+i);var st=$('cs-'+i);if(isNaN(f)){st.textContent='—';row.className='';return}
+  if(f===s){st.innerHTML='<span class="sok">✅</span>';row.className='ok'}else{var d=s-f;st.innerHTML='<span class="sv" style="font-weight:800">'+(d>0?'-':'+')+''+Math.abs(d)+'</span>';row.className='bad'}}
 
-function cntSave(){
+function cntSaveDraft(){
   var items=[];cntData.forEach(function(it,i){var v=$('cf-'+i).value;if(v!==''){items.push({inventario_id:it.id,cantidad_fisica:parseFloat(v)||0})}});
   if(!items.length){tst('Ingresa al menos un conteo');return}
-  rpc('aos_inventario_conteo_v2',{p_sede:IV.sede,p_usuario:window._USER_NAME||'ASESOR',p_items:items},function(r){
-    if(r&&r.codigo){tst('✅ Reporte '+r.codigo+' — '+r.cuadran+' OK, '+r.incidencias+' incidencias');ldCnt()}else{tst('Error')}})}
+  var enc=$('cnt-enc')?$('cnt-enc').value:'ASESOR';
+  rpc('aos_conteo_guardar',{p_sede:IV.sede,p_usuario:enc,p_items:items,p_reporte_id:cntRep,p_grabar:false},function(r){
+    if(r&&r.codigo){tst('💾 Guardado: '+r.codigo+' (borrador)');cntRep=r.reporte_id;cntRepCode=r.codigo;ldCnt();cntLoadInc(r.reporte_id);
+      $('cnt-act-h').textContent='📝 '+r.codigo+' — BORRADOR';
+      showFixedBtns(r.reporte_id);
+      
+    }else{tst('Error')}})}
 
-function cntView(repId){
-  cntRep=repId;
+function cntGrabar(){
+  if(!cntRep){tst('Guarda primero');return}
+  if(!confirm('¿Grabar conteo oficial? Esto notificará al administrador.'))return;
+  var items=[];cntData.forEach(function(it,i){var v=$('cf-'+i).value;if(v!==''){items.push({inventario_id:it.id,cantidad_fisica:parseFloat(v)||0})}});
+  var enc=$('cnt-enc')?$('cnt-enc').value:'ASESOR';
+  rpc('aos_conteo_guardar',{p_sede:IV.sede,p_usuario:enc,p_items:items,p_reporte_id:cntRep,p_grabar:true},function(r){
+    if(r&&r.codigo){tst('📋 Conteo '+r.codigo+' GRABADO — Admin notificado');ldCnt();cntOpen(r.reporte_id,r.codigo,enc,'GRABADO')}else{tst('Error')}})}
+
+function cntOpen(repId,code,encargado,estado){
+  cntRep=repId;cntRepCode=code;cntOwner=encargado;cntMode='tabla';
+  var isOwner=true;var isBorrador=estado==='BORRADOR'||estado==='EN_PROCESO';
+  var estCol=estado==='CERRADO'?'var(--grn)':estado==='GRABADO'?'var(--zbl)':'var(--orn)';
+  $('cnt-act-h').innerHTML='📋 '+H(code)+' · 👤 '+H(encargado)+' <span style="font-size:8px;font-weight:700;color:'+estCol+'">'+H(estado)+'</span>';
+  if(isBorrador){
+    showFixedBtns(repId);
+    
+  } else {
+    
+  }
+  // Show info or editable table
+  if(isOwner&&isBorrador){
+    // Re-load plantilla with saved values
+    rpc('aos_inventario_plantilla_conteo',{p_sede:IV.sede},function(items){
+      cntData=items||[];
+      var h='<div style="padding:6px"><div style="margin-bottom:4px"><label style="font-size:7px;font-weight:700;color:var(--zg)">ENCARGADO</label><input id="cnt-enc" value="'+H(encargado)+'" style="width:200px;padding:3px 5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none"></div>';
+      h+='<table class="CT"><thead><tr><th>Producto</th><th>Lote</th><th>Und</th><th style="text-align:center">Sistema</th><th style="text-align:center">Físico</th><th></th></tr></thead><tbody>';
+      cntData.forEach(function(it,i){h+='<tr id="cr-'+i+'"><td style="font-weight:600;font-size:7px">'+H(it.nombre_producto)+'</td><td style="font-size:6px;color:var(--zg)">'+H(it.lote)+'</td><td style="font-size:6px">'+H(it.unidad)+'</td><td style="font-weight:700;font-size:9px;text-align:center">'+it.cantidad_sistema+'</td><td><input class="cin" id="cf-'+i+'" type="number" min="0" placeholder="?" onchange="cntChk('+i+')"></td><td id="cs-'+i+'" style="font-size:7px;text-align:center">—</td></tr>'});
+      h+='</tbody></table></div>';$('cnt-act').innerHTML=h})}
+  else{$('cnt-act').innerHTML='<div style="padding:15px;text-align:center;font-size:10px;color:var(--zg)"><div style="font-size:14px;margin-bottom:4px">📋 '+H(code)+'</div>Encargado: <b>'+H(encargado)+'</b><br>Estado: <b style="color:'+estCol+'">'+H(estado)+'</b><br><br>Ver incidencias en panel derecho →</div>'}
+  cntLoadInc(repId)}
+
+function cntShowIncidencias(){
+  cntMode='incidencias';cntLoadIncCenter(cntRep)}
+
+function cntLoadInc(repId){
   rpc('aos_conteo_incidencias',{p_reporte_id:repId},function(incs){
-    var h='<div style="display:flex;gap:6px;margin-bottom:8px"><button class="btn btn-c" onclick="ldCnt()" style="flex:none;padding:6px 14px">← Volver</button><span style="font-size:12px;font-weight:700">Incidencias del reporte</span></div>';
-    if(!incs||!incs.length){h+='<div class="ld">Sin incidencias — todo cuadró ✅</div>';$('cnt-wrap').innerHTML=h;return}
+    $('cnt-inc-h').innerHTML='⚠️ Incidencias'+(incs&&incs.length?' ('+incs.length+')':'');
+    if(!incs||!incs.length){$('cnt-inc').innerHTML='<div style="text-align:center;padding:15px;color:var(--grn);font-size:9px">✅ Sin incidencias</div>';return}
+    var h='';
     incs.forEach(function(inc){
-      var col=inc.estado==='SIN_RESOLVER'?'var(--red)':'var(--grn)';
-      h+='<div class="inc" style="border-left:3px solid '+col+'"><div class="inc-h"><span>'+H(inc.nombre_producto)+'</span><span style="color:'+col+';font-size:8px">'+H(inc.estado)+'</span></div><div class="inc-d">'+H(inc.problema)+'</div><div class="inc-vals"><span style="color:var(--zbl)">Sistema: '+inc.cantidad_sistema+'</span><span style="color:var(--red)">Físico: '+inc.cantidad_fisica+'</span><span style="font-weight:800">Diff: '+inc.diferencia+'</span></div>';
-      if(inc.busqueda)h+='<div style="margin-top:4px;font-size:8px"><b>Búsqueda:</b> '+H(inc.busqueda)+'</div>';
-      if(inc.conclusion)h+='<div style="font-size:8px"><b>Conclusión:</b> '+H(inc.conclusion)+'</div>';
-      if(inc.estado==='SIN_RESOLVER')h+='<button class="inc-btn" onclick="imOpen(\''+inc.id+'\',\''+H(inc.nombre_producto).replace(/'/g,"\\'")+'\','+inc.cantidad_sistema+','+inc.cantidad_fisica+',\''+inc.inventario_id+'\',\''+H(inc.lote||'')+'\')">📝 Resolver</button>';
+      var cols={'PENDIENTE':'var(--yel)','INVESTIGACION':'var(--orn)','SOLUCIONADO':'var(--grn)','SIN_SOLUCION':'var(--red)'};var col=cols[inc.estado]||'var(--zg)';
+      h+='<div style="border:1px solid var(--zl);border-radius:5px;padding:5px;margin-bottom:3px;border-left:3px solid '+col+';font-size:7px;cursor:pointer" onclick="cntIncDetail(\''+inc.id+'\',\''+H(inc.nombre_producto).replace(/'/g,"\\'")+'\','+inc.cantidad_sistema+','+inc.cantidad_fisica+',\''+inc.inventario_id+'\',\''+H(inc.lote||'')+'\',\''+H(inc.estado)+'\',\''+H(inc.busqueda||'')+'\',\''+H(inc.conclusion||'')+'\')">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:8px;color:#1E293B">'+H(inc.nombre_producto)+'</span><span style="font-size:6px;padding:1px 4px;border-radius:2px;font-weight:700;background:'+col+'15;color:'+col+'">'+H(inc.estado)+'</span></div>';
+      h+='<div style="display:flex;gap:6px;margin-top:2px;font-weight:600"><span style="color:var(--zbl)">Sis:'+inc.cantidad_sistema+'</span><span style="color:var(--red)">Fís:'+inc.cantidad_fisica+'</span><span style="font-weight:800">Diff:'+inc.diferencia+'</span></div>';
+      if(inc.conclusion){h+='<div style="margin-top:2px;color:var(--zg);font-style:italic">'+H(inc.conclusion).substring(0,50)+'</div>'}
       h+='</div>'});
-    $('cnt-wrap').innerHTML=h})}
+    $('cnt-inc').innerHTML=h})}
 
-/* Modal incidencia */
+function cntIncDetail(id,nom,sis,fis,invId,lote,estado,busq,conc){
+  // Show descargo form in CENTER column
+  imData={id:id,nombre:nom,sistema:sis,fisico:fis,invId:invId,estado:estado};
+  var cols={'PENDIENTE':'var(--yel)','INVESTIGACION':'var(--orn)','SOLUCIONADO':'var(--grn)','SIN_SOLUCION':'var(--red)'};var col=cols[estado]||'var(--zg)';
+  var h='<div style="padding:12px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><button class="btn btn-c" onclick="cntOpen(\''+cntRep+'\',\''+H(cntRepCode)+'\',\''+H(cntOwner)+'\',\'BORRADOR\')" style="padding:3px 10px;font-size:9px;flex:none">← Volver al conteo</button><span style="font-size:8px;font-weight:700;color:'+col+'">'+H(estado)+'</span></div>';
+  h+='<div style="background:var(--zbg);border-radius:6px;padding:10px;margin-bottom:10px"><div style="font-weight:700;font-size:13px;color:#1E293B;margin-bottom:4px">'+H(nom)+'</div><div style="font-size:9px;color:var(--zg);margin-bottom:6px">Lote: '+H(lote)+'</div>';
+  h+='<div style="display:flex;gap:12px;font-size:11px;font-weight:700"><div style="text-align:center"><div style="font-size:18px;color:var(--zbl)">'+sis+'</div><div style="font-size:7px;color:var(--zg)">SISTEMA</div></div><div style="text-align:center"><div style="font-size:18px;color:var(--red)">'+fis+'</div><div style="font-size:7px;color:var(--zg)">FÍSICO</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:900">'+(sis-fis)+'</div><div style="font-size:7px;color:var(--zg)">DIFERENCIA</div></div></div></div>';
+  h+='<label style="font-size:8px;font-weight:700;color:var(--zg)">ESTADO</label><select id="im-estado" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--zl);font-size:10px;font-family:Outfit;outline:none;margin-bottom:6px"><option value="PENDIENTE"'+(estado==='PENDIENTE'?' selected':'')+'>📌 Pendiente</option><option value="INVESTIGACION"'+(estado==='INVESTIGACION'?' selected':'')+'>🔍 En investigación</option><option value="SOLUCIONADO"'+(estado==='SOLUCIONADO'?' selected':'')+'>✅ Solucionado</option><option value="SIN_SOLUCION"'+(estado==='SIN_SOLUCION'?' selected':'')+'>❌ Sin solución</option></select>';
+  h+='<label style="font-size:8px;font-weight:700;color:var(--zg)">PROBLEMA / BÚSQUEDA</label><textarea id="im-busq" style="width:100%;height:50px;padding:5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none;resize:none;margin-bottom:6px" placeholder="¿Qué se investigó? ¿Qué se encontró?">'+H(busq)+'</textarea>';
+  h+='<label style="font-size:8px;font-weight:700;color:var(--zg)">CONCLUSIÓN</label><textarea id="im-conc" style="width:100%;height:50px;padding:5px;border-radius:4px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;outline:none;resize:none;margin-bottom:6px" placeholder="Conclusión de la investigación...">'+H(conc)+'</textarea>';
+  h+='<label style="font-size:8px;font-weight:700;color:var(--zg)">CORRECCIÓN DE CANTIDAD (opcional)</label><input id="im-qty" type="number" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--zl);font-size:10px;font-family:Outfit;outline:none;margin-bottom:8px" placeholder="Nueva cantidad si se corrige">';
+  h+='<button class="btn btn-g" onclick="imSaveInline()" style="width:100%;padding:7px">💾 Guardar descargo</button></div>';
+  $('cnt-act').innerHTML=h}
+
+function imSaveInline(){
+  var estado=$('im-estado').value;
+  var data={incidencia_id:imData.id,reporte_id:cntRep,inventario_id:imData.invId,sede:IV.sede,nombre:imData.nombre,busqueda:$('im-busq').value,conclusion:$('im-conc').value,estado:estado,responsable:window._USER_NAME||''};
+  if($('im-qty').value)data.cantidad_corregida=$('im-qty').value;
+  rpc('aos_conteo_resolver_incidencia',{p_data:data},function(r){if(r&&r.ok){tst('✅ Incidencia actualizada');cntLoadInc(cntRep);ldCnt();
+    // Volver al conteo
+    cntOpen(cntRep,cntRepCode,cntOwner,'BORRADOR')}else{tst('Error')}})}
+
+/* Modal incidencia (legacy, keep for compatibility) */
 var imData={};
-function imOpen(id,nom,sis,fis,invId,lote){imData={id:id,nombre:nom,sistema:sis,fisico:fis,invId:invId};$('im-info').innerHTML='<div style="background:var(--zbg);border-radius:5px;padding:8px;margin-bottom:8px;font-size:10px"><b>'+H(nom)+'</b> (Lote: '+H(lote)+')<br>Sistema: <b>'+sis+'</b> vs Físico: <b>'+fis+'</b> — Diferencia: <b>'+(sis-fis)+'</b></div>';$('im-busq').value='';$('im-conc').value='';$('im-qty').value='';$('imod').classList.add('sh')}
+function imOpen(id,nom,sis,fis,invId,lote){cntIncDetail(id,nom,sis,fis,invId,lote,'PENDIENTE','','')}
 function imClose(){$('imod').classList.remove('sh')}
 function imSave(){
-  var data={incidencia_id:imData.id,reporte_id:cntRep,inventario_id:imData.invId,sede:IV.sede,nombre:imData.nombre,busqueda:$('im-busq').value,conclusion:$('im-conc').value,estado:'SUBSANADA',responsable:window._USER_NAME||''};
+  var data={incidencia_id:imData.id,reporte_id:cntRep,inventario_id:imData.invId,sede:IV.sede,nombre:imData.nombre,busqueda:$('im-busq').value,conclusion:$('im-conc').value,estado:'SOLUCIONADO',responsable:window._USER_NAME||''};
   if($('im-qty').value)data.cantidad_corregida=$('im-qty').value;
-  rpc('aos_conteo_resolver_incidencia',{p_data:data},function(r){if(r&&r.ok){tst('✅ Incidencia resuelta');imClose();cntView(cntRep)}else{tst('Error')}})}
+  rpc('aos_conteo_resolver_incidencia',{p_data:data},function(r){if(r&&r.ok){tst('✅ Incidencia resuelta');imClose();cntLoadInc(cntRep);ldCnt()}else{tst('Error')}})}
 
 /* ═══ MOVIMIENTOS ═══ */
 function ldMov(){rpc('aos_inventario_movimientos',{p_sede:IV.sede},function(d){if(!d||!d.length){$('mov-wrap').innerHTML='<div class="ld">Sin movimientos</div>';return}
