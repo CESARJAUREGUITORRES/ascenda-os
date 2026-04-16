@@ -463,6 +463,7 @@ var ICONS = {
   settings:  '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   chat:      '<svg viewBox="0 0 20 20" fill="none"><path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" fill="currentColor" opacity=".85"/><path d="M6 8h8M6 11h5" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>',
   logout:    '<svg viewBox="0 0 20 20" fill="none"><path d="M8 4H5a1 1 0 00-1 1v10a1 1 0 001 1h3M13 14l3-4-3-4M7 10h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  book:      '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4V3z" stroke="currentColor" stroke-width="1.5"/><path d="M4 3v14M8 3v14M4 8h13M4 13h13" stroke="currentColor" stroke-width="1.2"/></svg>',
   profile:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7.5" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 17c0-3.5 2.7-5 6-5s6 1.5 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   clockend:  '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14.5 3L16 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".5"/></svg>'
 };
@@ -485,6 +486,7 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-agenda',     ico:'calendar', lbl:'Agenda'},
   {type:'item',id:'advisor-citas',      ico:'check',    lbl:'Mis citas',     badge:'',badgeColor:'#0A4FBF'},
   {type:'item',id:'advisor-patients',   ico:'user',     lbl:'Pacientes'},
+  {type:'item',id:'advisor-catalogo',   ico:'book',     lbl:'Catálogo'},
   {type:'sep'},
   {type:'section',label:'Resultados'},
   {type:'item',id:'advisor-sales',      ico:'money',    lbl:'Ventas'},
@@ -568,6 +570,7 @@ var VIEW_MAP = {
   'advisor-agenda':      'ViewAdvisorAgenda',
   'advisor-citas':       'ViewAdvisorCitas',
   'advisor-patients':    'ViewAdvisorPatients',
+  'advisor-catalogo':    'ViewAdvisorCatalogo',
   'advisor-sales':       'ViewAdvisorSales',
   'advisor-commissions': 'ViewAdvisorCommissions',
   'advisor-attendance':  'ViewAdvisorAttendance',
@@ -611,6 +614,7 @@ function navigateTo(viewId) {
     'ViewAdvisorAgenda':      '/agenda.html',
     'ViewAdvisorCitas':       '/citas.html',
     'ViewAdvisorPatients':    '/patients.html',
+    'ViewAdvisorCatalogo':    '/catalogo.html',
     'ViewAdvisorSales':       '/sales.html',
     'ViewAdvisorCommissions': '/commissions.html',
     'ViewAdvisorAttendance':  '/attendance.html',
