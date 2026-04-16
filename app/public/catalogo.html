@@ -1,152 +1,97 @@
-<!-- CATÁLOGO ZI VITAL v3 — Lista de precios + Repositorio + Promos | AscendaOS -->
+<!-- CATÁLOGO v4 | Lista de precios + Repositorio con FAQs + Promos | AscendaOS -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Source+Serif+4:wght@400;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--zb:#071D4A;--zbl:#0A4FBF;--zcy:#00C9A7;--zmint:#00E5A0;--zbg:#F4F6FB;--zg:#7A869A;--zl:#E2E8F0;--zw:#fff;--rad:10px}
+*{box-sizing:border-box;margin:0;padding:0}:root{--zb:#071D4A;--zbl:#0A4FBF;--zcy:#00C9A7;--zmint:#00E5A0;--zbg:#F4F6FB;--zg:#7A869A;--zl:#E2E8F0;--zw:#fff;--rad:10px;--turq:#0A9B8E;--rosa:#E84393;--yel:#F39C12}
 body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
 .cat{padding:12px;min-height:100vh}
-
-/* ── HEADER ── */
-.cat-hdr{background:var(--zb);border-radius:14px;padding:18px 22px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden}
-.cat-hdr::after{content:'';position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:rgba(0,201,167,.08)}
-.cat-hdr-left{position:relative;z-index:1}
-.cat-h1{font-family:'Source Serif 4',serif;font-weight:700;font-size:20px;color:#fff}
-.cat-h2{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:400}
-.cat-pills{display:flex;gap:4px;position:relative;z-index:1}
-.cat-pill{padding:7px 18px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transition:all .2s;font-family:'Outfit'}
-.cat-pill:hover{background:rgba(255,255,255,.15);color:#fff}
-.cat-pill.act{background:#fff;color:var(--zbl)}
-
-/* ── PANEL CONTENEDOR ── */
+.cat-hdr{background:var(--zb);border-radius:14px;padding:16px 22px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.cat-h1{font-family:'Source Serif 4',serif;font-weight:700;font-size:18px;color:#fff}
+.cat-h2{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
+.cat-pills{display:flex;gap:4px}
+.cat-pill{padding:7px 16px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transition:all .2s;font-family:'Outfit'}.cat-pill:hover{background:rgba(255,255,255,.15);color:#fff}.cat-pill.act{background:#fff;color:var(--zbl)}
 .cat-panel{display:none}.cat-panel.act{display:block}
 
-/* ══════ PESTAÑA 1: LISTA DE PRECIOS ══════ */
+/* ═══ LEGEND ═══ */
+.legend{display:flex;gap:12px;padding:6px 12px;background:var(--zw);border-radius:8px;border:1px solid var(--zl);margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.legend-title{font-size:9px;font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.5px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#475569}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+
+/* ═══ TAB 0: LISTA DE PRECIOS ═══ */
 .lp{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden}
-.lp-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--zl);background:#FAFBFE}
-.lp-search{flex:1;display:flex;align-items:center;gap:6px;background:var(--zbg);border:1px solid var(--zl);border-radius:7px;padding:6px 10px}
+.lp-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--zl);background:#FAFBFE;flex-wrap:wrap}
+.lp-search{flex:1;min-width:200px;display:flex;align-items:center;gap:6px;background:var(--zbg);border:1px solid var(--zl);border-radius:7px;padding:6px 10px}
 .lp-search input{border:none;outline:none;background:transparent;font-size:12px;font-family:'Outfit';width:100%;color:#1E293B}.lp-search input::placeholder{color:#94A3B8}
-.lp-filter{padding:5px 12px;border-radius:6px;font-size:10px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit';transition:all .15s}
-.lp-filter:hover,.lp-filter.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
-.lp-count{font-size:10px;color:var(--zg);white-space:nowrap}
-.lp-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.lp-tbl thead{background:#F8FAFC;position:sticky;top:0;z-index:2}
-.lp-tbl th{padding:8px 10px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--zbl);border-bottom:2px solid var(--zl);cursor:pointer;white-space:nowrap;user-select:none}
-.lp-tbl th:hover{color:var(--zb)}
-.lp-tbl td{padding:7px 10px;border-bottom:1px solid #F1F5F9;color:#475569;vertical-align:middle}
-.lp-tbl tr:hover td{background:#F8FAFF}
-.lp-tbl .lp-cat{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:4px;display:inline-block}
-.lp-tbl .lp-name{font-weight:600;color:#1E293B}
-.lp-tbl .lp-promo{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px;color:var(--zbl)}
-.lp-tbl .lp-reg{font-size:10px;color:#94A3B8;text-decoration:line-through}
-.lp-tbl .lp-gift{font-size:9px;color:var(--zcy);font-weight:600}
-.lp-tbl .lp-ses{font-size:10px;color:var(--zg);font-weight:500}
-.lp-tbl .lp-info-btn{width:22px;height:22px;border-radius:5px;border:1px solid var(--zl);background:var(--zw);color:var(--zbl);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.lp-tbl .lp-info-btn:hover{background:var(--zbl);color:#fff;border-color:var(--zbl)}
-.lp-wrap{max-height:calc(100vh - 200px);overflow-y:auto}
-.lp-wrap::-webkit-scrollbar{width:4px}.lp-wrap::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.lp-cat-header{background:#EEF2FF;padding:6px 10px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #D4DDFF;position:sticky;top:0;z-index:1}
+.lp-f{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit';transition:all .15s}.lp-f:hover,.lp-f.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
+.lp-cnt{font-size:10px;color:var(--zg);white-space:nowrap}
+.lp-wrap{max-height:calc(100vh - 220px);overflow-y:auto}.lp-wrap::-webkit-scrollbar{width:4px}.lp-wrap::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.lt{width:100%;border-collapse:collapse;font-size:11px}
+.lt thead{background:#F8FAFC;position:sticky;top:0;z-index:2}
+.lt th{padding:7px 10px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--zbl);border-bottom:2px solid var(--zl)}
+.lt td{padding:6px 10px;border-bottom:1px solid #F1F5F9;color:#475569}.lt tr:hover td{background:#F8FAFF}
+.lt-ch{background:#EEF2FF;padding:5px 10px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #D4DDFF;position:sticky;top:0;z-index:1}
+.lt-n{font-weight:600;color:#1E293B}.lt-s{font-size:10px;color:var(--zg)}
+.lt-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px;padding:2px 6px;border-radius:4px}
+.lt-p-turq{color:var(--turq);background:#E6F7F5}.lt-p-rosa{color:var(--rosa);background:#FDE8F0}.lt-p-yel{color:#92600A;background:#FEF3C7}
+.lt-old{font-size:10px;color:#94A3B8;text-decoration:line-through}.lt-gift{font-size:9px;color:var(--zcy);font-weight:600}
+.lt-cat{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:4px;display:inline-block}
 
-/* ══════ PESTAÑA 2: REPOSITORIO ══════ */
-.repo{display:grid;grid-template-columns:280px 1fr;gap:12px;height:calc(100vh - 170px)}
-.repo-sidebar{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
-.repo-sb-search{padding:10px;border-bottom:1px solid var(--zl)}
-.repo-sb-search input{width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--zl);background:var(--zbg);font-size:11px;font-family:'Outfit';outline:none}.repo-sb-search input:focus{border-color:var(--zbl)}
-.repo-sb-list{flex:1;overflow-y:auto;padding:4px}
-.repo-sb-list::-webkit-scrollbar{width:3px}.repo-sb-list::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.repo-sb-item{padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;margin-bottom:2px}
-.repo-sb-item:hover{background:var(--zbg)}
-.repo-sb-item.act{background:#EEF2FF;border:1px solid #C7D2FE}
-.repo-sb-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.repo-sb-name{font-size:11px;font-weight:600;color:#1E293B;line-height:1.2}
-.repo-sb-meta{font-size:9px;color:var(--zg);margin-top:1px}
+/* ═══ TAB 1: REPOSITORIO ═══ */
+.repo{display:grid;grid-template-columns:240px 1fr;gap:10px;height:calc(100vh - 180px)}
+.repo-sb{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
+.repo-sb input{width:calc(100% - 16px);margin:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--zl);background:var(--zbg);font-size:11px;font-family:'Outfit';outline:none}
+.repo-sb input:focus{border-color:var(--zbl)}
+.repo-sl{flex:1;overflow-y:auto;padding:3px}.repo-sl::-webkit-scrollbar{width:3px}.repo-sl::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.repo-si{padding:7px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .12s;margin-bottom:1px}.repo-si:hover{background:var(--zbg)}.repo-si.act{background:#EEF2FF;border:1px solid #C7D2FE}
+.repo-si-i{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.repo-si-n{font-size:10px;font-weight:600;color:#1E293B;line-height:1.2}.repo-si-m{font-size:8px;color:var(--zg);margin-top:1px}
 
-.repo-main{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow-y:auto;padding:0}
-.repo-main::-webkit-scrollbar{width:4px}.repo-main::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.repo-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--zg);font-size:13px;flex-direction:column;gap:8px}
-.repo-empty span{font-size:32px}
+.repo-main{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow-y:auto}.repo-main::-webkit-scrollbar{width:4px}.repo-main::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.repo-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--zg);font-size:12px;flex-direction:column;gap:6px}.repo-empty span{font-size:28px}
 
-/* Repo detail */
-.rd-hdr{padding:20px 24px;position:relative;overflow:hidden}
-.rd-hdr::after{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;opacity:.08}
-.rd-icon{font-size:28px;margin-bottom:6px}
-.rd-cat{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;opacity:.7;margin-bottom:2px}
-.rd-title{font-family:'Source Serif 4',serif;font-weight:700;font-size:22px;color:#fff}
-.rd-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:3px}
-.rd-body{padding:20px 24px}
-.rd-desc{font-size:12px;color:#475569;line-height:1.7;margin-bottom:16px;padding:12px;background:var(--zbg);border-radius:8px;border-left:3px solid var(--zbl)}
-.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.rd-card{background:var(--zbg);border-radius:8px;padding:12px}
-.rd-card-lbl{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--zbl);margin-bottom:4px;display:flex;align-items:center;gap:4px}
-.rd-card-txt{font-size:11px;color:#475569;line-height:1.6}
-.rd-sec-title{font-weight:700;font-size:13px;color:#1E293B;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--zl);display:flex;align-items:center;gap:6px}
-.rd-tbl{width:100%;border-collapse:collapse;font-size:11px;border:1px solid var(--zl);border-radius:8px;overflow:hidden}
-.rd-tbl thead{background:var(--zbg)}
-.rd-tbl th{padding:7px 10px;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--zbl);text-align:left}
-.rd-tbl td{padding:7px 10px;border-top:1px solid #F1F5F9;color:#475569}
-.rd-tbl tr:hover td{background:#FAFBFF}
-.rd-no-info{text-align:center;padding:30px;color:var(--zg);font-size:12px;font-style:italic}
+.rd-hdr{padding:18px 22px;position:relative;overflow:hidden;border-radius:var(--rad) var(--rad) 0 0}
+.rd-i{font-size:26px;margin-bottom:4px}.rd-cat{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.6)}.rd-t{font-family:'Source Serif 4',serif;font-weight:700;font-size:20px;color:#fff}.rd-s{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
+.rd-body{padding:18px 22px}
+.rd-desc{font-size:11px;color:#475569;line-height:1.65;margin-bottom:14px;padding:10px;background:var(--zbg);border-radius:7px;border-left:3px solid var(--zbl)}
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.rd-c{background:var(--zbg);border-radius:7px;padding:10px}
+.rd-c-l{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--zbl);margin-bottom:3px}.rd-c-t{font-size:10px;color:#475569;line-height:1.5}
 
-/* ══════ PESTAÑA 3: PROMOS ══════ */
-.promos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.promo-card{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;transition:all .2s}
-.promo-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.promo-top{padding:14px 16px;border-bottom:1px solid var(--zl)}
-.promo-badge{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:6px}
-.promo-name{font-family:'Source Serif 4',serif;font-weight:700;font-size:15px;color:#1E293B}
-.promo-desc{font-size:10px;color:var(--zg);margin-top:3px;line-height:1.4}
-.promo-bottom{padding:10px 16px;background:#FAFBFE;display:flex;align-items:center;justify-content:space-between}
-.promo-prices{display:flex;align-items:baseline;gap:6px}
-.promo-now{font-family:'Source Serif 4',serif;font-weight:700;font-size:18px;color:var(--zbl)}
-.promo-was{font-size:11px;color:#94A3B8;text-decoration:line-through}
-.promo-save{font-size:9px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:2px 6px;border-radius:4px}
+/* Split: Precios izq + FAQs der */
+.rd-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.rd-split-col{min-width:0}
+.rd-sec-t{font-weight:700;font-size:12px;color:#1E293B;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--zl);display:flex;align-items:center;gap:5px}
+.rd-tbl{width:100%;border-collapse:collapse;font-size:10px;border:1px solid var(--zl);border-radius:7px;overflow:hidden}
+.rd-tbl thead{background:var(--zbg)}.rd-tbl th{padding:6px 8px;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);text-align:left}.rd-tbl td{padding:6px 8px;border-top:1px solid #F1F5F9;color:#475569}.rd-tbl tr:hover td{background:#FAFBFF}
 
-.ld{text-align:center;padding:40px;color:var(--zg);font-size:12px}
-.sp{width:16px;height:16px;border:2px solid var(--zl);border-top-color:var(--zbl);border-radius:50%;animation:sp .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
-@keyframes sp{to{transform:rotate(360deg)}}
-@media(max-width:768px){.repo{grid-template-columns:1fr;height:auto}.repo-sidebar{max-height:250px}.rd-grid{grid-template-columns:1fr}}
+.faq-search{width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--zl);background:var(--zbg);font-size:10px;font-family:'Outfit';outline:none;margin-bottom:8px}.faq-search:focus{border-color:var(--zbl)}
+.faq-list{max-height:350px;overflow-y:auto}.faq-list::-webkit-scrollbar{width:3px}.faq-list::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.faq-item{border-bottom:1px solid #F1F5F9;padding:6px 0;cursor:pointer}
+.faq-q{font-size:10px;font-weight:600;color:#1E293B;display:flex;align-items:flex-start;gap:4px;line-height:1.4}.faq-q::before{content:'❓';font-size:9px;flex-shrink:0;margin-top:1px}
+.faq-a{font-size:9px;color:#475569;line-height:1.5;padding:4px 0 4px 18px;display:none}.faq-item.open .faq-a{display:block}
+.faq-none{font-size:10px;color:var(--zg);font-style:italic;text-align:center;padding:20px}
+.rd-no{text-align:center;padding:20px;color:var(--zg);font-size:11px;font-style:italic}
+
+/* ═══ TAB 2: PROMOS ═══ */
+.promo-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden}
+.promo-tbl thead{background:#FEF3C7}.promo-tbl th{padding:8px 12px;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#92600A;text-align:left}
+.promo-tbl td{padding:8px 12px;border-top:1px solid #F1F5F9;color:#475569}.promo-tbl tr:hover td{background:#FFFBEB}
+.promo-pct{font-weight:800;color:#16A34A;background:#DCFCE7;padding:2px 6px;border-radius:4px;font-size:10px}
+
+.ld{text-align:center;padding:30px;color:var(--zg);font-size:11px}.sp{width:14px;height:14px;border:2px solid var(--zl);border-top-color:var(--zbl);border-radius:50%;animation:sp .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:768px){.repo{grid-template-columns:1fr;height:auto}.repo-sb{max-height:200px}.rd-grid,.rd-split{grid-template-columns:1fr}.legend{flex-direction:column;align-items:flex-start}}
 </style>
-
 <div class="cat">
-  <!-- HEADER -->
-  <div class="cat-hdr">
-    <div class="cat-hdr-left">
-      <div class="cat-h1">Catálogo Zi Vital</div>
-      <div class="cat-h2">Precios, tratamientos, información clínica y promociones</div>
-    </div>
-    <div class="cat-pills">
-      <button class="cat-pill act" onclick="catTab(0,this)">📋 Lista de precios</button>
-      <button class="cat-pill" onclick="catTab(1,this)">📖 Repositorio</button>
-      <button class="cat-pill" onclick="catTab(2,this)">🔥 Promos</button>
-    </div>
-  </div>
+<div class="cat-hdr"><div><div class="cat-h1">Catálogo</div><div class="cat-h2">Precios, tratamientos, información clínica y promociones</div></div><div class="cat-pills"><button class="cat-pill act" onclick="catTab(0,this)">📋 Lista de precios</button><button class="cat-pill" onclick="catTab(1,this)">📖 Repositorio</button><button class="cat-pill" onclick="catTab(2,this)">🔥 Promos</button></div></div>
 
-  <!-- TAB 0: LISTA DE PRECIOS -->
-  <div class="cat-panel act" id="tab0">
-    <div class="lp">
-      <div class="lp-bar">
-        <div class="lp-search"><span style="color:#94A3B8">🔍</span><input id="lp-q" placeholder="Buscar servicio, tratamiento, producto..." oninput="lpFilter()"></div>
-        <div id="lp-filters"></div>
-        <div class="lp-count" id="lp-count"></div>
-      </div>
-      <div class="lp-wrap" id="lp-wrap"><div class="ld"><span class="sp"></span>Cargando lista...</div></div>
-    </div>
-  </div>
+<!-- LEGEND -->
+<div class="legend"><span class="legend-title">Código de precios:</span><div class="legend-item"><div class="legend-dot" style="background:var(--turq)"></div>Incluye todos los métodos de pago</div><div class="legend-item"><div class="legend-dot" style="background:var(--rosa)"></div>Precio flexible (negociable)</div><div class="legend-item"><div class="legend-dot" style="background:var(--yel)"></div>Solo efectivo / transferencia / Yape / Plin</div></div>
 
-  <!-- TAB 1: REPOSITORIO -->
-  <div class="cat-panel" id="tab1">
-    <div class="repo">
-      <div class="repo-sidebar">
-        <div class="repo-sb-search"><input id="repo-q" placeholder="Buscar categoría..." oninput="repoFilter()"></div>
-        <div class="repo-sb-list" id="repo-list"></div>
-      </div>
-      <div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento para ver toda su información</div></div>
-    </div>
-  </div>
+<div class="cat-panel act" id="tab0"><div class="lp"><div class="lp-bar"><div class="lp-search"><span style="color:#94A3B8;font-size:12px">🔍</span><input id="lp-q" placeholder="Buscar servicio, tratamiento, producto..." oninput="lpF()"></div><button class="lp-f act" onclick="lpC(this,'')">Todos</button><button class="lp-f" onclick="lpC(this,'S')">Servicios</button><button class="lp-f" onclick="lpC(this,'P')">Productos</button><span class="lp-cnt" id="lp-cnt"></span></div><div class="lp-wrap" id="lp-wrap"><div class="ld"><span class="sp"></span>Cargando...</div></div></div></div>
 
-  <!-- TAB 2: PROMOS -->
-  <div class="cat-panel" id="tab2">
-    <div class="promos" id="promos-grid"></div>
-  </div>
+<div class="cat-panel" id="tab1"><div class="repo"><div class="repo-sb"><input id="repo-q" placeholder="🔍 Buscar categoría..." oninput="repoF()"><div class="repo-sl" id="repo-list"></div></div><div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento</div></div></div></div>
+
+<div class="cat-panel" id="tab2"><div id="promo-wrap"><div class="ld"><span class="sp"></span>Cargando promos...</div></div></div>
 </div>
 
 <script>
@@ -154,152 +99,69 @@ var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cC
 function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json()}).then(ok).catch(function(e){console.error(fn,e)})}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function fmt(n){return n?'S/'+Number(n).toLocaleString('es-PE'):'—'}
+function priceCls(base,promo){if(!base||!promo)return 'lt-p-yel';var d=(base-promo)/base;if(d>.3)return 'lt-p-yel';if(d>.1)return 'lt-p-rosa';return 'lt-p-turq'}
 
-var D={serv:[],prod:[],cats:[],tipo:'SERVICIO',activeCat:'',repoData:[]};
+var D={serv:[],prod:[],repoData:[],af:''};
 var CM={'DETOX':{i:'🧪',c:'#16A34A'},'VITAMINAS':{i:'💉',c:'#D97706'},'FACIALES':{i:'✨',c:'#0A4FBF'},'PEELINGS':{i:'🫧',c:'#7C3AED'},'MESOTERAPIA':{i:'💎',c:'#DC2626'},'BIOREVITALIZACIÓN':{i:'🌸',c:'#0D9488'},'EXOSOMAS':{i:'🧬',c:'#7C3AED'},'BIOESTIMULADOR':{i:'⚡',c:'#B91C1C'},'ACIDO HIALURONICO':{i:'💧',c:'#0A4FBF'},'TOXINA':{i:'🎯',c:'#DC2626'},'ENZIMAS':{i:'🔥',c:'#D97706'},'HIFU':{i:'📡',c:'#0891B2'},'RF FRACCIONADA':{i:'⚡',c:'#9333EA'},'CAPILAR':{i:'💇',c:'#0D9488'},'CORPORAL':{i:'🏋️',c:'#16A34A'},'APARATOLOGÍA':{i:'🔧',c:'#6B7BA8'},'CRIOLIPÓLISIS':{i:'❄️',c:'#0891B2'},'PEPTONAS':{i:'💪',c:'#D97706'},'GLÚTEOS':{i:'🍑',c:'#EC4899'},'CONSULTA':{i:'🩺',c:'#6B7BA8'},'FACIAL ZV':{i:'🧴',c:'#0A4FBF'},'CAPILAR ZV':{i:'🧴',c:'#0D9488'},'CORPORAL ZV':{i:'🧴',c:'#16A34A'},'NUTRICIONAL':{i:'💊',c:'#D97706'},'ISDIN':{i:'☀️',c:'#6366F1'},'FAJAS':{i:'👗',c:'#9AAAC8'}};
 
-function catTab(n,el){
-  document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
-  document.querySelectorAll('.cat-panel').forEach(function(p,i){p.classList.toggle('act',i===n)});
-  if(n===0&&!D.serv.length)loadLP();
-  if(n===1&&!D.repoData.length)loadRepo();
-  if(n===2)loadPromos();
-}
+function catTab(n,el){document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');document.querySelectorAll('.cat-panel').forEach(function(p,i){p.classList.toggle('act',i===n)});if(n===1&&!D.repoData.length)loadRepo();if(n===2)loadPromos()}
 
-/* ═══ TAB 0: LISTA DE PRECIOS ═══ */
-(function(){loadLP()})();
-function loadLP(){
-  rpc('aos_catalogo_repo',{p_tipo:'SERVICIO'},function(d){
-    D.serv=d.items||[];D.cats=d.categorias||[];
-    rpc('aos_catalogo_repo',{p_tipo:'PRODUCTO'},function(d2){
-      D.prod=d2.items||[];
-      renderLPFilters();lpFilter();
-    });
-  });
-}
-
-function renderLPFilters(){
-  var box=document.getElementById('lp-filters');
-  var chips='<button class="lp-filter act" onclick="lpCatClick(this,\'\')">Todos</button>';
-  chips+='<button class="lp-filter" onclick="lpCatClick(this,\'__SERV__\')">Servicios</button>';
-  chips+='<button class="lp-filter" onclick="lpCatClick(this,\'__PROD__\')">Productos</button>';
-  box.innerHTML=chips;
-}
-
-function lpCatClick(el,cat){
-  document.querySelectorAll('.lp-filter').forEach(function(f){f.classList.remove('act')});el.classList.add('act');
-  D.activeCat=cat;lpFilter();
-}
-
-function lpFilter(){
+/* ═══ LISTA DE PRECIOS ═══ */
+(function(){rpc('aos_catalogo_repo',{p_tipo:'SERVICIO'},function(d){D.serv=d.items||[];rpc('aos_catalogo_repo',{p_tipo:'PRODUCTO'},function(d2){D.prod=d2.items||[];lpF()})})})();
+function lpC(el,f){document.querySelectorAll('.lp-f').forEach(function(x){x.classList.remove('act')});el.classList.add('act');D.af=f;lpF()}
+function lpF(){
   var q=(document.getElementById('lp-q').value||'').toLowerCase();
-  var all=D.serv.concat(D.prod);
-  if(D.activeCat==='__SERV__')all=D.serv;
-  else if(D.activeCat==='__PROD__')all=D.prod;
-  else if(D.activeCat)all=all.filter(function(i){return i.categoria===D.activeCat});
+  var all=D.af==='S'?D.serv:D.af==='P'?D.prod:D.serv.concat(D.prod);
   if(q)all=all.filter(function(i){return(i.nombre||'').toLowerCase().indexOf(q)>=0||(i.categoria||'').toLowerCase().indexOf(q)>=0||(i.indicaciones||'').toLowerCase().indexOf(q)>=0});
+  var g={};all.forEach(function(i){var c=i.categoria||'OTROS';if(!g[c])g[c]=[];g[c].push(i)});
+  var cats=Object.keys(g).sort();
+  document.getElementById('lp-cnt').textContent=all.length+' resultados';
+  var r='<table class="lt"><thead><tr><th>Servicio / Producto</th><th>Sesiones</th><th>Precio promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
+  cats.forEach(function(c){var m=CM[c]||{i:'📋',c:'#6B7BA8'};r+='<tr><td colspan="5" class="lt-ch" style="border-left:3px solid '+m.c+'">'+m.i+' '+h(c)+' <span style="font-weight:400;color:#94A3B8">('+g[c].length+')</span></td></tr>';
+    g[c].forEach(function(it){var cls=priceCls(it.precio_base,it.precio_oferta);
+      r+='<tr><td class="lt-n">'+h(it.nombre)+'</td><td class="lt-s">'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones:'1')+'</td><td><span class="lt-p '+cls+'">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'})});
+  r+='</tbody></table>';document.getElementById('lp-wrap').innerHTML=r}
 
-  // Group by categoria
-  var groups={};all.forEach(function(i){var c=i.categoria||'OTROS';if(!groups[c])groups[c]=[];groups[c].push(i)});
-  var cats=Object.keys(groups).sort();
+/* ═══ REPOSITORIO ═══ */
+function loadRepo(){rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){D.repoData=d.categorias||[];repoR()})}
+function repoF(){repoR()}
+function repoR(){var q=(document.getElementById('repo-q').value||'').toLowerCase();var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('')}
 
-  document.getElementById('lp-count').textContent=all.length+' resultados';
-  var html='<table class="lp-tbl"><thead><tr><th>Servicio / Producto</th><th>Categoría</th><th>Sesiones</th><th>Precio Promo</th><th>Precio Regular</th><th>Incluye / Nota</th><th></th></tr></thead><tbody>';
-  cats.forEach(function(cat){
-    var m=CM[cat]||{i:'📋',c:'#6B7BA8'};
-    html+='<tr><td colspan="7" class="lp-cat-header" style="border-left:3px solid '+m.c+'">'+m.i+' '+h(cat)+' ('+groups[cat].length+')</td></tr>';
-    groups[cat].forEach(function(it){
-      html+='<tr>'+
-        '<td class="lp-name">'+h(it.nombre)+'</td>'+
-        '<td><span class="lp-cat" style="background:'+m.c+'15;color:'+m.c+'">'+h(cat)+'</span></td>'+
-        '<td class="lp-ses">'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones+' ses':'1')+'</td>'+
-        '<td class="lp-promo">'+fmt(it.precio_oferta)+'</td>'+
-        '<td class="lp-reg">'+(it.precio_base?fmt(it.precio_base):'')+'</td>'+
-        '<td>'+(it.indicaciones?'<span class="lp-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td>'+
-        '<td>'+(it.descripcion_clinica?'<button class="lp-info-btn" onclick="event.stopPropagation();showInfoFromLP(\''+it.categoria+'\')">ℹ</button>':'')+'</td>'+
-        '</tr>';
-    });
-  });
-  html+='</tbody></table>';
-  document.getElementById('lp-wrap').innerHTML=html;
-}
+function repoSel(cn){
+  document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===cn)});
+  var cat=null;D.repoData.forEach(function(c){if(c.nombre===cn)cat=c});if(!cat)return;
+  var m=CM[cn]||{i:'📋',c:'#6B7BA8'};var src={};var allFaqs=[];
+  (cat.items||[]).forEach(function(x){if(x.descripcion_clinica&&!src.descripcion_clinica)src=x;if(x.faqs&&x.faqs.length)allFaqs=x.faqs});
 
-function showInfoFromLP(cat){catTab(1,document.querySelectorAll('.cat-pill')[1]);setTimeout(function(){repoSelect(cat)},300)}
+  var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">TRATAMIENTO</div><div class="rd-t">'+h(cn)+'</div><div class="rd-s">'+cat.total_items+' opciones · Desde '+fmt(cat.precio_desde)+'</div></div><div class="rd-body">';
+  if(src.descripcion_clinica)htm+='<div class="rd-desc">'+h(src.descripcion_clinica)+'</div>';
+  var cards='';function ac(l,ic,v){if(v)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}
+  ac('Composición','⚗️',src.composicion);ac('Beneficios','✅',src.beneficios);ac('Contraindicaciones','⚠️',src.contraindicaciones);ac('Perfil de paciente','👤',src.perfil_paciente);ac('Mecanismo de acción','🔬',src.mecanismo_accion);ac('Rol en el proceso','🎯',src.rol_proceso);
+  if(cards)htm+='<div class="rd-grid">'+cards+'</div>';
+  if(!src.descripcion_clinica&&!cards)htm+='<div class="rd-no">ℹ️ Información clínica próximamente — este tratamiento será documentado siguiendo el Índice Maestro</div>';
 
-/* ═══ TAB 1: REPOSITORIO ═══ */
-function loadRepo(){
-  rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){
-    D.repoData=d.categorias||[];renderRepoList();
-  });
-}
+  // SPLIT: Precios + FAQs
+  htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Opciones y precios</div><table class="rd-tbl"><thead><tr><th>Opción</th><th>Ses.</th><th>Promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
+  (cat.items||[]).forEach(function(it){var cls=priceCls(it.precio_base,it.precio_oferta);htm+='<tr><td style="font-weight:600;color:#1E293B;font-size:10px">'+h(it.nombre)+'</td><td style="font-size:9px;color:var(--zg)">'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones:'1')+'</td><td><span class="lt-p '+cls+'" style="font-size:11px">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift" style="font-size:8px">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});
+  htm+='</tbody></table></div>';
 
-function repoFilter(){
-  renderRepoList();
-}
+  // FAQs column
+  htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ Preguntas frecuentes <span style="font-weight:400;color:var(--zg);font-size:9px">'+(allFaqs.length?allFaqs.length+' preguntas':'')+'</span></div>';
+  if(allFaqs.length){
+    htm+='<input class="faq-search" placeholder="🔍 Buscar pregunta..." oninput="faqF(this)" data-cat="'+h(cn)+'"><div class="faq-list" id="faq-list-'+cn.replace(/\s/g,'')+'">'+allFaqs.map(function(f,i){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>';
+  } else {
+    htm+='<div class="faq-none">Preguntas frecuentes próximamente</div>';
+  }
+  htm+='</div></div></div>';
+  document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0}
 
-function renderRepoList(){
-  var q=(document.getElementById('repo-q').value||'').toLowerCase();
-  var list=D.repoData.filter(function(c){return !q||c.nombre.toLowerCase().indexOf(q)>=0});
-  var box=document.getElementById('repo-list');
-  box.innerHTML=list.map(function(c){
-    var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};
-    return '<div class="repo-sb-item" onclick="repoSelect(\''+h(c.nombre)+'\')" data-cat="'+h(c.nombre)+'">'+
-      '<div class="repo-sb-icon" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div>'+
-      '<div><div class="repo-sb-name">'+h(c.nombre)+'</div><div class="repo-sb-meta">'+c.total_items+' opciones · '+fmt(c.precio_desde)+'</div></div></div>';
-  }).join('');
-}
+function faqF(inp){var q=inp.value.toLowerCase();var cn=inp.getAttribute('data-cat').replace(/\s/g,'');var list=document.getElementById('faq-list-'+cn);if(!list)return;var items=list.querySelectorAll('.faq-item');items.forEach(function(it){var txt=(it.textContent||'').toLowerCase();it.style.display=txt.indexOf(q)>=0?'':'none'})}
 
-function repoSelect(catName){
-  document.querySelectorAll('.repo-sb-item').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-cat')===catName)});
-  var cat=null;D.repoData.forEach(function(c){if(c.nombre===catName)cat=c});
-  if(!cat)return;
-  var m=CM[catName]||{i:'📋',c:'#6B7BA8'};
-  var src={};(cat.items||[]).forEach(function(x){if(x.descripcion_clinica)src=x});
-
-  var html='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-icon">'+m.i+'</div><div class="rd-cat">TRATAMIENTO</div><div class="rd-title">'+h(catName)+'</div><div class="rd-sub">'+cat.total_items+' opciones · Desde '+fmt(cat.precio_desde)+(cat.precio_hasta&&cat.precio_hasta!=cat.precio_desde?' hasta '+fmt(cat.precio_hasta):'')+'</div></div>';
-  html+='<div class="rd-body">';
-
-  // Description
-  var desc=src.descripcion_clinica;
-  if(desc)html+='<div class="rd-desc">'+h(desc)+'</div>';
-
-  // Info cards
-  var cards='';
-  function ac(lbl,ico,val){if(val)cards+='<div class="rd-card"><div class="rd-card-lbl">'+ico+' '+lbl+'</div><div class="rd-card-txt">'+h(val)+'</div></div>'}
-  ac('Composición','⚗️',src.composicion);
-  ac('Beneficios','✅',src.beneficios);
-  ac('Contraindicaciones','⚠️',src.contraindicaciones);
-  ac('Perfil de paciente','👤',src.perfil_paciente);
-  ac('Mecanismo de acción','🔬',src.mecanismo_accion);
-  ac('Rol en el proceso','🎯',src.rol_proceso);
-  if(cards)html+='<div class="rd-grid">'+cards+'</div>';
-  if(!desc&&!cards)html+='<div class="rd-no-info">Información clínica próximamente — este tratamiento será documentado siguiendo el Índice Maestro Zi Vital</div>';
-
-  // Price table
-  html+='<div class="rd-sec-title">💰 Opciones y precios</div>';
-  html+='<table class="rd-tbl"><thead><tr><th>Opción</th><th>Sesiones</th><th>Precio promo</th><th>Precio regular</th><th>Incluye</th></tr></thead><tbody>';
-  (cat.items||[]).forEach(function(it){
-    html+='<tr><td style="font-weight:600;color:#1E293B">'+h(it.nombre)+'</td>'+
-      '<td>'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones:'1')+'</td>'+
-      '<td style="font-family:Source Serif 4,serif;font-weight:700;font-size:13px;color:var(--zbl)">'+fmt(it.precio_oferta)+'</td>'+
-      '<td style="font-size:10px;color:#94A3B8;text-decoration:line-through">'+(it.precio_base?fmt(it.precio_base):'')+'</td>'+
-      '<td>'+(it.indicaciones?'<span style="font-size:9px;color:var(--zcy);font-weight:600">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-  document.getElementById('repo-main').innerHTML=html;
-}
-
-/* ═══ TAB 2: PROMOS ═══ */
-function loadPromos(){
-  var all=D.serv.concat(D.prod);
-  var promos=all.filter(function(i){return i.precio_base&&i.precio_oferta&&i.precio_base>i.precio_oferta&&(i.precio_base-i.precio_oferta)/i.precio_base>.3});
-  promos.sort(function(a,b){return((b.precio_base-b.precio_oferta)/b.precio_base)-((a.precio_base-a.precio_oferta)/a.precio_base)});
-  var grid=document.getElementById('promos-grid');
-  if(!promos.length){grid.innerHTML='<div class="ld">No hay promociones activas con más del 30% de descuento</div>';return}
-  grid.innerHTML=promos.slice(0,30).map(function(p){
-    var m=CM[p.categoria]||{i:'📋',c:'#6B7BA8'};
-    var pct=Math.round((1-p.precio_oferta/p.precio_base)*100);
-    return '<div class="promo-card"><div class="promo-top"><span class="promo-badge" style="background:'+m.c+'15;color:'+m.c+'">'+m.i+' '+h(p.categoria)+'</span><div class="promo-name">'+h(p.nombre)+'</div>'+(p.indicaciones?'<div class="promo-desc">🎁 '+h(p.indicaciones)+'</div>':'')+(p.num_sesiones&&p.num_sesiones!=='1'?'<div class="promo-desc">📋 '+p.num_sesiones+' sesiones</div>':'')+'</div><div class="promo-bottom"><div class="promo-prices"><span class="promo-now">'+fmt(p.precio_oferta)+'</span><span class="promo-was">'+fmt(p.precio_base)+'</span></div><span class="promo-save">-'+pct+'%</span></div></div>';
-  }).join('');
-}
+/* ═══ PROMOS ═══ */
+function loadPromos(){var all=D.serv.concat(D.prod);var p=all.filter(function(i){return i.precio_base&&i.precio_oferta&&i.precio_base>i.precio_oferta&&(i.precio_base-i.precio_oferta)/i.precio_base>.25}).sort(function(a,b){return((b.precio_base-b.precio_oferta)/b.precio_base)-((a.precio_base-a.precio_oferta)/a.precio_base)});
+  if(!p.length){document.getElementById('promo-wrap').innerHTML='<div class="ld">Sin promociones activas</div>';return}
+  var r='<table class="promo-tbl"><thead><tr><th>🔥</th><th>Servicio / Producto</th><th>Categoría</th><th>Sesiones</th><th>Precio promo</th><th>Precio regular</th><th>Ahorro</th><th>Incluye</th></tr></thead><tbody>';
+  p.slice(0,40).forEach(function(it,i){var pct=Math.round((1-it.precio_oferta/it.precio_base)*100);var m=CM[it.categoria]||{i:'📋',c:'#6B7BA8'};
+    r+='<tr><td style="text-align:center">'+(i+1)+'</td><td style="font-weight:600;color:#1E293B">'+h(it.nombre)+'</td><td><span class="lt-cat" style="background:'+m.c+'15;color:'+m.c+'">'+m.i+' '+h(it.categoria)+'</span></td><td style="font-size:10px;color:var(--zg)">'+(it.num_sesiones&&it.num_sesiones!=='1'?it.num_sesiones:'1')+'</td><td style="font-family:Source Serif 4,serif;font-weight:700;font-size:14px;color:var(--zbl)">'+fmt(it.precio_oferta)+'</td><td class="lt-old">'+fmt(it.precio_base)+'</td><td><span class="promo-pct">-'+pct+'%</span></td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});
+  r+='</tbody></table>';document.getElementById('promo-wrap').innerHTML=r}
 </script>
