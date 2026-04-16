@@ -1,216 +1,92 @@
-<!-- ═══════════════════════════════════════════════════════════
-     REPOSITORIO ZI VITAL — Catálogo de Servicios & Productos
-     AscendaOS v1 | 100% Supabase
-     ═══════════════════════════════════════════════════════════ -->
+<!-- REPOSITORIO ZI VITAL v2 — Catálogo por Categoría | AscendaOS -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-.repo-root{padding:16px;min-height:100%;background:linear-gradient(135deg,#F8FAFF 0%,#EEF2FB 50%,#F0F4FC 100%);font-family:'DM Sans',sans-serif;color:#0D1B3E;}
-.repo-hero{background:linear-gradient(135deg,#071D4A 0%,#0A4FBF 60%,#00C9A7 100%);border-radius:20px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;}
-.repo-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:rgba(0,201,167,.15);}
-.repo-hero::after{content:'';position:absolute;bottom:-30px;left:40%;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05);}
-.rh-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;}
-.rh-title{font-family:'Playfair Display',serif;font-weight:900;font-size:26px;color:#fff;letter-spacing:-.5px;}
-.rh-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:500;}
-.rh-search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 14px;width:320px;backdrop-filter:blur(8px);}
-.rh-search input{background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;width:100%;}.rh-search input::placeholder{color:rgba(255,255,255,.5);}
-.rh-tabs{display:flex;gap:6px;margin-top:16px;position:relative;z-index:1;}
-.rh-tab{padding:7px 18px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);background:transparent;transition:all .2s;font-family:'DM Sans',sans-serif;}
-.rh-tab:hover{background:rgba(255,255,255,.1);color:#fff;}
-.rh-tab.act{background:#fff;color:#0A4FBF;border-color:#fff;}
-.rh-stats{display:flex;gap:16px;margin-top:14px;position:relative;z-index:1;}
-.rh-stat{font-size:11px;color:rgba(255,255,255,.6);}.rh-stat b{color:#00E5A0;font-size:14px;font-family:'Playfair Display',serif;}
-
-.repo-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
-.rf-chip{padding:5px 12px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;transition:all .15s;font-family:'DM Sans',sans-serif;}
-.rf-chip:hover{border-color:#0A4FBF;color:#0A4FBF;}
-.rf-chip.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
-.rf-label{font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
-
-.repo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
-.rc{background:#fff;border:1px solid #E8EDF8;border-radius:16px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-.rc:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(10,79,191,.1);border-color:#0A4FBF;}
-.rc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);opacity:0;transition:opacity .2s;}
-.rc:hover::before{opacity:1;}
-.rc-cat{font-size:8px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0A4FBF;background:#EBF2FF;padding:3px 8px;border-radius:5px;display:inline-block;margin-bottom:6px;}
-.rc-name{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#0D1B3E;line-height:1.3;margin-bottom:4px;}
-.rc-desc{font-size:10px;color:#9AAAC8;line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.rc-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.rc-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:#F0F4FC;color:#6B7BA8;}
-.rc-prices{display:flex;align-items:baseline;gap:6px;margin-top:8px;}
-.rc-promo{font-family:'Playfair Display',serif;font-weight:900;font-size:20px;color:#0A4FBF;}
-.rc-regular{font-size:11px;color:#9AAAC8;text-decoration:line-through;}
-.rc-sessions{font-size:10px;color:#00C9A7;font-weight:700;}
-
-/* MODAL */
-.repo-mov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.5);z-index:900;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}.repo-mov.open{display:flex;}
-.repo-modal{background:#fff;border-radius:20px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;padding:0;border:1px solid #E8EDF8;}
-.rm-header{background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:20px 20px 0 0;position:relative;overflow:hidden;}
-.rm-header::before{content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(0,201,167,.15);}
-.rm-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;}
-.rm-close:hover{background:rgba(255,255,255,.3);}
-.rm-cat{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#00E5A0;margin-bottom:6px;}
-.rm-title{font-family:'Playfair Display',serif;font-weight:900;font-size:22px;color:#fff;}
-.rm-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:4px;}
-.rm-body{padding:24px;}
-.rm-prices{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;}
-.rm-promo{font-family:'Playfair Display',serif;font-weight:900;font-size:28px;color:#0A4FBF;}
-.rm-reg{font-size:14px;color:#9AAAC8;text-decoration:line-through;}
-.rm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
-.rm-tag{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;background:#F0F4FC;color:#6B7BA8;}
-.rm-section{margin-bottom:14px;}
-.rm-section-title{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#0A4FBF;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #EBF2FF;}
-.rm-section-body{font-size:12px;color:#4A5578;line-height:1.6;}
-.rm-empty{font-size:11px;color:#9AAAC8;font-style:italic;}
-
-.ld-center{text-align:center;padding:40px;color:#9AAAC8;font-size:13px;}
-.sp-anim{width:20px;height:20px;border:2.5px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.no-results{text-align:center;padding:60px 20px;}
-.no-results-icon{font-size:48px;margin-bottom:12px;}
-.no-results-text{font-family:'Playfair Display',serif;font-size:18px;color:#0D1B3E;margin-bottom:6px;}
-.no-results-sub{font-size:12px;color:#9AAAC8;}
-@media(max-width:768px){.rh-search{width:100%;}.repo-grid{grid-template-columns:1fr;}.rh-top{flex-direction:column;gap:12px;align-items:flex-start;}}
+*{box-sizing:border-box;margin:0;padding:0}:root{--zb:#071D4A;--zbl:#0A4FBF;--zcy:#00C9A7;--zmint:#00E5A0;--zbg:#F0F4FC;--zg:#6B7BA8;--zl:#E8EDF8}
+.rp{padding:14px;min-height:100vh;background:linear-gradient(160deg,#F8FAFF,#EEF2FB 50%,#F0F4FC);font-family:'DM Sans',sans-serif;color:#0D1B3E}
+.rp-hero{background:linear-gradient(135deg,var(--zb) 0%,var(--zbl) 55%,var(--zcy) 100%);border-radius:18px;padding:24px 28px 20px;margin-bottom:14px;position:relative;overflow:hidden}
+.rp-hero::before{content:'';position:absolute;top:-50px;right:-30px;width:180px;height:180px;border-radius:50%;background:rgba(0,229,160,.1)}
+.rp-h1{font-family:'Playfair Display',serif;font-weight:900;font-size:24px;color:#fff;position:relative;z-index:1}
+.rp-h2{font-size:11px;color:rgba(255,255,255,.65);margin-top:3px;position:relative;z-index:1}
+.rp-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.rp-search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:7px 14px;width:300px;backdrop-filter:blur(8px);position:relative;z-index:1}
+.rp-search input{background:transparent;border:none;outline:none;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:100%}.rp-search input::placeholder{color:rgba(255,255,255,.4)}
+.rp-tabs{display:flex;gap:5px;margin-top:12px;position:relative;z-index:1}
+.rp-tab{padding:6px 16px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);background:transparent;transition:all .2s;font-family:'DM Sans'}
+.rp-tab:hover{background:rgba(255,255,255,.1);color:#fff}.rp-tab.act{background:#fff;color:var(--zbl);border-color:#fff}
+.rp-stats{display:flex;gap:14px;margin-top:10px;position:relative;z-index:1}.rp-stat{font-size:10px;color:rgba(255,255,255,.5)}.rp-stat b{color:var(--zmint);font-size:13px;font-family:'Playfair Display',serif}
+.rp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.rcat{background:#fff;border:1px solid var(--zl);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .25s;position:relative}
+.rcat:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(10,79,191,.12);border-color:var(--zbl)}
+.rcat-top{height:5px}.rcat-body{padding:16px}
+.rcat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
+.rcat-name{font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#0D1B3E;margin-bottom:4px}
+.rcat-desc{font-size:10px;color:var(--zg);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:28px}
+.rcat-foot{display:flex;align-items:center;justify-content:space-between}
+.rcat-price{font-family:'Playfair Display',serif;font-weight:900;font-size:17px;color:var(--zbl)}
+.rcat-range{font-size:9px;color:var(--zg);margin-left:4px}
+.rcat-right{display:flex;align-items:center;gap:6px}
+.rcat-count{font-size:9px;font-weight:700;color:var(--zg);background:var(--zbg);padding:3px 8px;border-radius:6px}
+.rcat-arrow{width:28px;height:28px;border-radius:8px;background:var(--zbg);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--zbl);transition:all .2s}.rcat:hover .rcat-arrow{background:var(--zbl);color:#fff}
+.rpov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:900;overflow-y:auto;backdrop-filter:blur(4px)}.rpov.open{display:flex;align-items:flex-start;justify-content:center;padding:20px 10px}
+.rpanel{background:#fff;border-radius:18px;max-width:800px;width:100%;max-height:92vh;overflow-y:auto;border:1px solid var(--zl)}
+.rpanel::-webkit-scrollbar{width:5px}.rpanel::-webkit-scrollbar-thumb{background:var(--zl);border-radius:4px}
+.rpn-hdr{padding:24px 28px;position:relative;border-radius:18px 18px 0 0;overflow:hidden}
+.rpn-hdr::before{content:'';position:absolute;top:-30px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(0,201,167,.12)}
+.rpn-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}.rpn-close:hover{background:rgba(255,255,255,.3)}
+.rpn-icon{font-size:32px;margin-bottom:6px}.rpn-cat{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--zmint);margin-bottom:4px}
+.rpn-title{font-family:'Playfair Display',serif;font-weight:900;font-size:22px;color:#fff}
+.rpn-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:4px}
+.rpn-body{padding:24px}
+.rpn-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.rpn-ic{background:var(--zbg);border-radius:12px;padding:14px}
+.rpn-ic-lbl{font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--zbl);margin-bottom:6px}
+.rpn-ic-txt{font-size:11px;color:#4A5578;line-height:1.6}
+.rpn-tt{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#0D1B3E;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--zl)}
+.rpt{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--zl);border-radius:10px;overflow:hidden;margin-bottom:20px;font-size:11px}
+.rpt thead{background:var(--zbg)}.rpt th{padding:8px 12px;font-weight:700;color:var(--zbl);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.rpt td{padding:8px 12px;border-top:1px solid #F0F4FC;color:#4A5578}.rpt tr:hover td{background:#FAFBFF}
+.td-n{font-weight:600;color:#0D1B3E}.td-p{font-family:'Playfair Display',serif;font-weight:900;font-size:14px;color:var(--zbl)}.td-o{font-size:10px;color:#9AAAC8;text-decoration:line-through;margin-left:6px}.td-g{font-size:9px;color:var(--zcy);font-weight:600}
+.rpn-desc{font-size:12px;font-weight:500;color:#0D1B3E;border-left:3px solid var(--zbl);background:#fff;padding:12px 14px;border-radius:0 10px 10px 0;margin-bottom:16px}
+.ld-c{text-align:center;padding:50px;color:#9AAAC8;font-size:12px;grid-column:1/-1}.sp{width:18px;height:18px;border:2.5px solid var(--zl);border-top-color:var(--zbl);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.rp-search{width:100%}.rp-grid{grid-template-columns:1fr}.rp-row{flex-direction:column;align-items:flex-start}.rpn-info{grid-template-columns:1fr}}
 </style>
-
-<div class="repo-root">
-  <div class="repo-hero">
-    <div class="rh-top">
-      <div>
-        <div class="rh-title">Repositorio Zi Vital</div>
-        <div class="rh-sub">Servicios, tratamientos y productos — toda la información en un solo lugar</div>
-      </div>
-      <div class="rh-search">
-        <span style="font-size:14px;opacity:.7;">🔍</span>
-        <input type="text" id="repo-search" placeholder="Buscar servicio, producto o tratamiento..." oninput="repoSearch()">
-      </div>
-    </div>
-    <div class="rh-tabs">
-      <div class="rh-tab act" data-tipo="SERVICIO" onclick="repoTab(this)">🏥 Servicios</div>
-      <div class="rh-tab" data-tipo="PRODUCTO" onclick="repoTab(this)">🛍 Productos</div>
-      <div class="rh-tab" data-tipo="ALL" onclick="repoTab(this)">📋 Todo</div>
-    </div>
-    <div class="rh-stats">
-      <div class="rh-stat"><b id="repo-total">--</b> items</div>
-      <div class="rh-stat"><b id="repo-cats">--</b> categorías</div>
-      <div class="rh-stat"><b>3</b> dominios</div>
-      <div class="rh-stat"><b>8</b> enfoques</div>
-    </div>
-  </div>
-
-  <div class="repo-filters" id="repo-filters"></div>
-  <div class="repo-grid" id="repo-grid"><div class="ld-center"><span class="sp-anim"></span>Cargando catálogo...</div></div>
+<div class="rp">
+  <div class="rp-hero"><div class="rp-row"><div><div class="rp-h1">Repositorio Zi Vital</div><div class="rp-h2">Tratamientos, servicios y productos — información clínica y comercial</div></div><div class="rp-search"><span style="font-size:13px;opacity:.6">🔍</span><input id="rp-q" placeholder="Buscar tratamiento..." oninput="rpSearch()"></div></div><div class="rp-tabs"><div class="rp-tab act" onclick="rpTab(this,'SERVICIO')">🏥 Tratamientos</div><div class="rp-tab" onclick="rpTab(this,'PRODUCTO')">🛍 Productos</div></div><div class="rp-stats"><div class="rp-stat"><b id="rp-cats">--</b> categorías</div><div class="rp-stat"><b id="rp-total">--</b> opciones</div><div class="rp-stat"><b>3</b> dominios</div><div class="rp-stat"><b>8</b> enfoques</div></div></div>
+  <div class="rp-grid" id="rp-grid"><div class="ld-c"><span class="sp"></span>Cargando repositorio...</div></div>
 </div>
-
-<div class="repo-mov" id="repo-modal">
-  <div class="repo-modal" id="repo-modal-box"></div>
-</div>
-
+<div class="rpov" id="rpov" onclick="if(event.target===this)rpClose()"><div class="rpanel" id="rpanel"></div></div>
 <script>
-var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
-var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-function _rpc(fn,p,ok){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
-function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-var RP={tipo:'SERVICIO',cat:'',q:'',items:[],cats:[],filtered:[]};
-
-(function(){repoLoad();})();
-
-function repoLoad(){
-  _rpc('aos_catalogo_repo',{p_tipo:RP.tipo==='ALL'?'SERVICIO':RP.tipo},function(d){
-    if(!d||!d.items){document.getElementById('repo-grid').innerHTML='<div class="ld-center">Error al cargar</div>';return;}
-    if(RP.tipo==='ALL'){
-      _rpc('aos_catalogo_repo',{p_tipo:'PRODUCTO'},function(d2){
-        RP.items=d.items.concat(d2?d2.items||[]:[]);
-        RP.cats=[];var seen={};RP.items.forEach(function(i){if(!seen[i.categoria]){seen[i.categoria]=1;RP.cats.push(i.categoria);}});RP.cats.sort();
-        document.getElementById('repo-total').textContent=RP.items.length;
-        document.getElementById('repo-cats').textContent=RP.cats.length;
-        renderFilters();renderGrid();
-      });
-    } else {
-      RP.items=d.items||[];RP.cats=(d.categorias||[]).filter(function(c){return c;});
-      document.getElementById('repo-total').textContent=RP.items.length;
-      document.getElementById('repo-cats').textContent=RP.cats.length;
-      renderFilters();renderGrid();
-    }
-  });
-}
-
-function repoTab(el){
-  document.querySelectorAll('.rh-tab').forEach(function(t){t.classList.remove('act');});
-  el.classList.add('act');RP.tipo=el.getAttribute('data-tipo');RP.cat='';RP.q='';
-  document.getElementById('repo-search').value='';repoLoad();
-}
-
-function renderFilters(){
-  var box=document.getElementById('repo-filters');
-  var chips='<span class="rf-label">Filtrar:</span><div class="rf-chip'+(RP.cat===''?' act':'')+'" onclick="repoCatFilter(\'\')">Todas</div>';
-  RP.cats.forEach(function(c){
-    var colors={'DETOX':'#16A34A','VITAMINAS':'#D97706','FACIALES':'#0A4FBF','PEELINGS':'#7C3AED','MESOTERAPIA':'#DC2626','BIOREVITALIZACIÓN':'#0D9488','EXOSOMAS':'#7C3AED','BIOESTIMULADOR':'#B91C1C','ACIDO HIALURONICO':'#0A4FBF','TOXINA':'#DC2626','ENZIMAS':'#D97706','HIFU':'#0891B2','RF FRACCIONADA':'#9333EA','CAPILAR':'#0D9488','CORPORAL':'#16A34A','FACIAL ZV':'#0A4FBF','CAPILAR ZV':'#0D9488','NUTRICIONAL':'#D97706','ISDIN':'#6366F1','FAJAS':'#9AAAC8'};
-    chips+='<div class="rf-chip'+(RP.cat===c?' act':'')+'" onclick="repoCatFilter(\''+h(c)+'\')" style="'+(RP.cat===c&&colors[c]?'background:'+colors[c]+';border-color:'+colors[c]+';':'')+'">'+h(c)+'</div>';
-  });
-  box.innerHTML=chips;
-}
-
-function repoCatFilter(c){RP.cat=c;renderFilters();renderGrid();}
-function repoSearch(){RP.q=(document.getElementById('repo-search').value||'').toLowerCase();renderGrid();}
-
-function renderGrid(){
-  var items=RP.items.filter(function(i){
-    if(RP.cat&&i.categoria!==RP.cat)return false;
-    if(RP.q&&(i.nombre||'').toLowerCase().indexOf(RP.q)<0&&(i.categoria||'').toLowerCase().indexOf(RP.q)<0&&(i.nombre_corto||'').toLowerCase().indexOf(RP.q)<0)return false;
-    return true;
-  });
-  RP.filtered=items;
-  var grid=document.getElementById('repo-grid');
-  if(!items.length){grid.innerHTML='<div class="no-results" style="grid-column:1/-1;"><div class="no-results-icon">🔍</div><div class="no-results-text">Sin resultados</div><div class="no-results-sub">Prueba con otro término de búsqueda</div></div>';return;}
-  grid.innerHTML=items.map(function(i,idx){
-    var promo=i.precio_oferta?'S/'+Number(i.precio_oferta).toLocaleString():'';
-    var reg=i.precio_base?'S/'+Number(i.precio_base).toLocaleString():'';
-    var sesStr=i.num_sesiones&&i.num_sesiones!=='1'&&i.num_sesiones!==''?i.num_sesiones+' sesiones':'';
-    var desc=i.descripcion_comercial||i.indicaciones||'';
-    var tipo_icon=i.tipo==='PRODUCTO'?'🛍':'🏥';
-    return '<div class="rc" onclick="repoOpenItem('+idx+')">'+
-      '<div class="rc-cat">'+h(i.categoria||'GENERAL')+'</div>'+
-      '<div class="rc-name">'+h(i.nombre)+'</div>'+
-      (desc?'<div class="rc-desc">'+h(desc)+'</div>':'')+
-      '<div class="rc-meta">'+(sesStr?'<span class="rc-badge">'+h(sesStr)+'</span>':'')+'<span class="rc-badge">'+tipo_icon+' '+h(i.tipo)+'</span></div>'+
-      '<div class="rc-prices">'+(promo?'<span class="rc-promo">'+promo+'</span>':'')+(reg&&promo?'<span class="rc-regular">'+reg+'</span>':'')+(reg&&!promo?'<span class="rc-promo">'+reg+'</span>':'')+'</div>'+
-      '</div>';
-  }).join('');
-}
-
-function repoOpenItem(idx){
-  var i=RP.filtered[idx];if(!i)return;
-  var m=document.getElementById('repo-modal');
-  var promo=i.precio_oferta?'S/'+Number(i.precio_oferta).toLocaleString():'';
-  var reg=i.precio_base?'S/'+Number(i.precio_base).toLocaleString():'';
-  var sections='';
-  function addSec(title,content){if(content)sections+='<div class="rm-section"><div class="rm-section-title">'+title+'</div><div class="rm-section-body">'+h(content)+'</div></div>';}
-  addSec('Descripción comercial',i.descripcion_comercial);
-  addSec('Descripción clínica',i.descripcion_clinica);
-  addSec('Indicaciones',i.indicaciones);
-  addSec('Contraindicaciones',i.contraindicaciones);
-  addSec('Composición / Aparatología',i.composicion);
-  addSec('Mecanismo de acción',i.mecanismo_accion);
-  addSec('Beneficios',i.beneficios);
-  addSec('Perfil de paciente',i.perfil_paciente);
-  addSec('Rol en el proceso',i.rol_proceso);
-  if(!sections)sections='<div class="rm-empty">Información detallada próximamente — este servicio será documentado siguiendo el Índice Maestro Zi Vital.</div>';
-
-  document.getElementById('repo-modal-box').innerHTML=
-    '<div class="rm-header"><button class="rm-close" onclick="repoCloseModal()">✕</button>'+
-    '<div class="rm-cat">'+h(i.categoria||'GENERAL')+'</div>'+
-    '<div class="rm-title">'+h(i.nombre)+'</div>'+
-    '<div class="rm-sub">'+h(i.tipo)+' · '+(i.num_sesiones?i.num_sesiones+' sesiones':'Sesión única')+(i.duracion_sesion?' · '+i.duracion_sesion:'')+'</div></div>'+
-    '<div class="rm-body">'+
-    '<div class="rm-prices">'+(promo?'<span class="rm-promo">'+promo+'</span>':'')+(reg&&promo?'<span class="rm-reg">'+reg+'</span>':'')+(reg&&!promo?'<span class="rm-promo">'+reg+'</span>':'')+'</div>'+
-    '<div class="rm-tags">'+(i.num_sesiones&&i.num_sesiones!=='1'?'<span class="rm-tag">'+h(i.num_sesiones)+' sesiones</span>':'')+
-    '<span class="rm-tag">'+h(i.tipo)+'</span><span class="rm-tag">'+h(i.categoria)+'</span></div>'+
-    sections+'</div>';
-  m.classList.add('open');
-  m.addEventListener('click',function(e){if(e.target===m)repoCloseModal();});
-}
-
-function repoCloseModal(){document.getElementById('repo-modal').classList.remove('open');}
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json()}).then(ok).catch(function(e){console.error(fn,e)})}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmt(n){return n?'S/'+Number(n).toLocaleString('es-PE'):''}
+var RP={tipo:'SERVICIO',q:'',data:[],filtered:[]};
+var CM={
+'DETOX':{i:'🧪',c:'#16A34A',d:'Limpieza, descarga y preparación metabólica del organismo'},'VITAMINAS':{i:'💉',c:'#D97706',d:'Suplementación endovenosa estratégica para potenciar tratamientos'},'FACIALES':{i:'✨',c:'#0A4FBF',d:'Hidrofaciales, diamante, células madre — calidad de piel'},'PEELINGS':{i:'🫧',c:'#7C3AED',d:'PQ Age, Pink Intimate — renovación y aclaramiento'},'MESOTERAPIA':{i:'💎',c:'#DC2626',d:'Dermapen, PRP, vitaminas — regeneración profunda facial'},'BIOREVITALIZACIÓN':{i:'🌸',c:'#0D9488',d:'Pink Glow, Amber, BCN Lumen — revitalización y luminosidad'},'EXOSOMAS':{i:'🧬',c:'#7C3AED',d:'Youth Health, V Tech — regeneración celular avanzada'},'BIOESTIMULADOR':{i:'⚡',c:'#B91C1C',d:'Ellansé, Radiesse, Nucleofill — colágeno propio'},'ACIDO HIALURONICO':{i:'💧',c:'#0A4FBF',d:'Monalisa, Skinfill, Profhilo — volumen y armonía'},'TOXINA':{i:'🎯',c:'#DC2626',d:'Nabota — relajación muscular estratégica'},'ENZIMAS':{i:'🔥',c:'#D97706',d:'MCCM, PBSerum, Exo Slim — reducción papada y contorno'},'HIFU':{i:'📡',c:'#0891B2',d:'Ultrasonido focalizado — lifting sin cirugía'},'RF FRACCIONADA':{i:'⚡',c:'#9333EA',d:'Radiofrecuencia fraccionada — rejuvenecimiento profundo'},'CAPILAR':{i:'💇',c:'#0D9488',d:'PRP, mesoterapia, exosomas, RF — densidad capilar'},'CORPORAL':{i:'🏋️',c:'#16A34A',d:'Carboxi, enzimas, HIFU corporal — reducción y remodelación'},'APARATOLOGÍA':{i:'🔧',c:'#6B7BA8',d:'Packs reductores y reafirmantes con tecnología'},'CRIOLIPÓLISIS':{i:'❄️',c:'#0891B2',d:'Reducción de grasa localizada por frío controlado'},'PEPTONAS':{i:'💪',c:'#D97706',d:'Peptoplus — protocolo reductor integral'},'GLÚTEOS':{i:'🍑',c:'#EC4899',d:'Powerfill, AH Skinfill — proyección y firmeza'},'CONSULTA':{i:'🩺',c:'#6B7BA8',d:'Consultas médicas y materiales'},
+'FACIAL ZV':{i:'🧴',c:'#0A4FBF',d:'Línea de productos faciales Zi Vital'},'CAPILAR ZV':{i:'🧴',c:'#0D9488',d:'Productos capilares Zi Vital'},'CORPORAL ZV':{i:'🧴',c:'#16A34A',d:'Productos corporales Zi Vital'},'NUTRICIONAL':{i:'💊',c:'#D97706',d:'Suplementos: zinc, astaxantina, beauty maker'},'ISDIN':{i:'☀️',c:'#6366F1',d:'Línea dermocosmética profesional ISDIN'},'FAJAS':{i:'👗',c:'#9AAAC8',d:'Fajas y mentoneras post-tratamiento'}
+};
+(function(){rpLoad()})();
+function rpLoad(){rpc('aos_catalogo_repo_v2',{p_tipo:RP.tipo},function(d){if(!d||!d.categorias){document.getElementById('rp-grid').innerHTML='<div class="ld-c">Error al cargar</div>';return}RP.data=d.categorias||[];document.getElementById('rp-cats').textContent=RP.data.length;document.getElementById('rp-total').textContent=d.total||0;rpRender()})}
+function rpTab(el,t){document.querySelectorAll('.rp-tab').forEach(function(x){x.classList.remove('act')});el.classList.add('act');RP.tipo=t;RP.q='';document.getElementById('rp-q').value='';rpLoad()}
+function rpSearch(){RP.q=(document.getElementById('rp-q').value||'').toLowerCase();rpRender()}
+function rpRender(){
+  var cats=RP.data.filter(function(c){if(!RP.q)return true;if(c.nombre.toLowerCase().indexOf(RP.q)>=0)return true;var f=false;(c.items||[]).forEach(function(x){if((x.nombre||'').toLowerCase().indexOf(RP.q)>=0)f=true});return f});
+  RP.filtered=cats;var g=document.getElementById('rp-grid');
+  if(!cats.length){g.innerHTML='<div class="ld-c">🔍 Sin resultados para "'+h(RP.q)+'"</div>';return}
+  g.innerHTML=cats.map(function(c,i){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8',d:''};var desc=m.d;(c.items||[]).forEach(function(x){if(x.descripcion_clinica&&!desc.length>60)desc=x.descripcion_clinica.substring(0,120)+'...'});
+    return '<div class="rcat" onclick="rpOpen('+i+')"><div class="rcat-top" style="background:linear-gradient(90deg,'+m.c+','+m.c+'88)"></div><div class="rcat-body"><div class="rcat-icon" style="background:'+m.c+'15;color:'+m.c+'">'+m.i+'</div><div class="rcat-name">'+h(c.nombre)+'</div><div class="rcat-desc">'+h(desc)+'</div><div class="rcat-foot"><div>'+
+    (c.precio_desde?'<span class="rcat-price">'+fmt(c.precio_desde)+'</span>':'')+(c.precio_hasta&&c.precio_hasta!=c.precio_desde?'<span class="rcat-range"> — '+fmt(c.precio_hasta)+'</span>':'')+'</div><div class="rcat-right"><span class="rcat-count">'+c.total_items+' opciones</span><span class="rcat-arrow">→</span></div></div></div></div>'}).join('')}
+function rpOpen(idx){
+  var c=RP.filtered[idx];if(!c)return;var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8',d:''};
+  var src={};(c.items||[]).forEach(function(x){if(x.descripcion_clinica)src=x});
+  var info='';function ai(l,ic,v){if(!v)return;info+='<div class="rpn-ic"><div class="rpn-ic-lbl">'+ic+' '+l+'</div><div class="rpn-ic-txt">'+h(v)+'</div></div>'}
+  ai('Descripción clínica','🏥',src.descripcion_clinica);ai('Composición','⚗️',src.composicion);ai('Beneficios','✅',src.beneficios);ai('Contraindicaciones','⚠️',src.contraindicaciones);ai('Perfil de paciente','👤',src.perfil_paciente);ai('Mecanismo de acción','🔬',src.mecanismo_accion);
+  var rows=(c.items||[]).map(function(x){return '<tr><td class="td-n">'+h(x.nombre)+'</td><td>'+(x.num_sesiones&&x.num_sesiones!=='1'&&x.num_sesiones!==''?x.num_sesiones:'1')+'</td><td><span class="td-p">'+fmt(x.precio_oferta)+'</span>'+(x.precio_base?'<span class="td-o">'+fmt(x.precio_base)+'</span>':'')+'</td><td>'+(x.indicaciones?'<span class="td-g">🎁 '+h(x.indicaciones)+'</span>':'')+'</td></tr>'}).join('');
+  var html='<div class="rpn-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><button class="rpn-close" onclick="rpClose()">✕</button><div class="rpn-icon">'+m.i+'</div><div class="rpn-cat">'+h(RP.tipo)+'</div><div class="rpn-title">'+h(c.nombre)+'</div><div class="rpn-sub">'+c.total_items+' opciones · Desde '+fmt(c.precio_desde)+(c.precio_hasta&&c.precio_hasta!=c.precio_desde?' hasta '+fmt(c.precio_hasta):'')+'</div></div><div class="rpn-body">';
+  if(m.d)html+='<div class="rpn-desc" style="border-left-color:'+m.c+'">'+h(m.d)+'</div>';
+  if(info)html+='<div class="rpn-info">'+info+'</div>';
+  html+='<div class="rpn-tt">💰 Opciones y precios</div><table class="rpt"><thead><tr><th>Opción</th><th>Sesiones</th><th>Precio promo</th><th>Incluye</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById('rpanel').innerHTML=html;document.getElementById('rpov').classList.add('open')}
+function rpClose(){document.getElementById('rpov').classList.remove('open')}
 </script>
