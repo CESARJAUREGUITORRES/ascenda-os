@@ -1,213 +1,225 @@
-<!-- CATÁLOGO v4 | Lista de precios + Repositorio con FAQs + Promos | AscendaOS -->
+<!-- CATÁLOGO v5 | Lista+Cotización | Repositorio+FAQs | Promos | AscendaOS -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Source+Serif+4:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}:root{--zb:#071D4A;--zbl:#0A4FBF;--zcy:#00C9A7;--zmint:#00E5A0;--zbg:#F4F6FB;--zg:#7A869A;--zl:#E2E8F0;--zw:#fff;--rad:10px;--turq:#0A9B8E;--rosa:#E84393;--yel:#F39C12}
 body,html{font-family:'Outfit',sans-serif;color:#1E293B;background:var(--zbg)}
-.cat{padding:12px;min-height:100vh}
-.cat-hdr{background:var(--zb);border-radius:14px;padding:16px 22px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.cat-h1{font-family:'Source Serif 4',serif;font-weight:700;font-size:18px;color:#fff}
-.cat-h2{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
-.cat-pills{display:flex;gap:4px}
-.cat-pill{padding:7px 16px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transition:all .2s;font-family:'Outfit'}.cat-pill:hover{background:rgba(255,255,255,.15);color:#fff}.cat-pill.act{background:#fff;color:var(--zbl)}
+.cat{padding:10px;min-height:100vh}
+.cat-hdr{background:var(--zb);border-radius:12px;padding:12px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.cat-h1{font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:#fff}.cat-h2{font-size:9px;color:rgba(255,255,255,.4)}
+.cat-pills{display:flex;gap:3px}.cat-pill{padding:6px 14px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transition:all .2s;font-family:'Outfit'}.cat-pill:hover{background:rgba(255,255,255,.15);color:#fff}.cat-pill.act{background:#fff;color:var(--zbl)}
 .cat-panel{display:none}.cat-panel.act{display:block}
+.legend{display:flex;gap:10px;padding:4px 10px;background:var(--zw);border-radius:6px;border:1px solid var(--zl);margin-bottom:6px;align-items:center;flex-wrap:wrap;font-size:9px}
+.legend-t{font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.4px}.legend-i{display:flex;align-items:center;gap:3px;color:#475569}.legend-d{width:8px;height:8px;border-radius:2px}
 
-/* ═══ LEGEND ═══ */
-.legend{display:flex;gap:12px;padding:6px 12px;background:var(--zw);border-radius:8px;border:1px solid var(--zl);margin-bottom:10px;align-items:center;flex-wrap:wrap}
-.legend-title{font-size:9px;font-weight:700;color:var(--zg);text-transform:uppercase;letter-spacing:.5px}
-.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#475569}
-.legend-dot{width:10px;height:10px;border-radius:3px}
-
-/* ═══ TAB 0: LISTA DE PRECIOS ═══ */
-.lp{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden}
-.lp-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--zl);background:#FAFBFE;flex-wrap:wrap}
-.lp-search{flex:1;min-width:200px;display:flex;align-items:center;gap:6px;background:var(--zbg);border:1px solid var(--zl);border-radius:7px;padding:6px 10px}
-.lp-search input{border:none;outline:none;background:transparent;font-size:12px;font-family:'Outfit';width:100%;color:#1E293B}.lp-search input::placeholder{color:#94A3B8}
-.lp-f{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit';transition:all .15s}.lp-f:hover,.lp-f.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
-.lp-cnt{font-size:10px;color:var(--zg);white-space:nowrap}
-.lp-wrap{max-height:calc(100vh - 220px);overflow-y:auto}.lp-wrap::-webkit-scrollbar{width:4px}.lp-wrap::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.lt{width:100%;border-collapse:collapse;font-size:11px}
-.lt thead{background:#F8FAFC;position:sticky;top:0;z-index:2}
-.lt th{padding:7px 10px;text-align:left;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--zbl);border-bottom:2px solid var(--zl)}
-.lt td{padding:6px 10px;border-bottom:1px solid #F1F5F9;color:#475569}.lt tr:hover td{background:#F8FAFF}
-.lt-ch{background:#EEF2FF;padding:5px 10px;font-weight:800;font-size:10px;color:var(--zbl);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #D4DDFF;position:sticky;top:0;z-index:1}
-.lt-n{font-weight:600;color:#1E293B}.lt-s{font-size:10px;color:var(--zg)}
-.lt-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px;padding:2px 6px;border-radius:4px}
+/* ═══ TAB 0: LISTA + COTIZACIÓN ═══ */
+.lp-split{display:grid;grid-template-columns:1fr 340px;gap:8px;height:calc(100vh - 160px)}
+.lp{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
+.lp-bar{display:flex;align-items:center;gap:5px;padding:6px 10px;border-bottom:1px solid var(--zl);background:#FAFBFE;flex-wrap:wrap}
+.lp-search{flex:1;min-width:150px;display:flex;align-items:center;gap:5px;background:var(--zbg);border:1px solid var(--zl);border-radius:6px;padding:5px 8px}
+.lp-search input{border:none;outline:none;background:transparent;font-size:11px;font-family:'Outfit';width:100%;color:#1E293B}.lp-search input::placeholder{color:#94A3B8}
+.lp-f{padding:4px 8px;border-radius:5px;font-size:9px;font-weight:600;border:1px solid var(--zl);background:var(--zw);color:var(--zg);cursor:pointer;font-family:'Outfit'}.lp-f:hover,.lp-f.act{background:var(--zbl);color:#fff;border-color:var(--zbl)}
+.lp-cnt{font-size:9px;color:var(--zg);white-space:nowrap}
+.lp-wrap{flex:1;overflow-y:auto}.lp-wrap::-webkit-scrollbar{width:3px}.lp-wrap::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.lt{width:100%;border-collapse:collapse;font-size:10px}
+.lt thead{background:#F8FAFC;position:sticky;top:0;z-index:2}.lt th{padding:5px 8px;text-align:left;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);border-bottom:2px solid var(--zl)}
+.lt td{padding:4px 8px;border-bottom:1px solid #F1F5F9;color:#475569}.lt tr:hover td{background:#F0F4FF}
+.lt tr.sel td{background:#EEF2FF;border-left:2px solid var(--zbl)}
+.lt-ch{background:#EEF2FF;padding:4px 8px;font-weight:800;font-size:9px;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #D4DDFF;position:sticky;top:0;z-index:1}
+.lt-n{font-weight:600;color:#1E293B;cursor:pointer}.lt-n:hover{color:var(--zbl)}
+.lt-p{font-family:'Source Serif 4',serif;font-weight:700;font-size:12px;padding:1px 5px;border-radius:3px}
 .lt-p-turq{color:var(--turq);background:#E6F7F5}.lt-p-rosa{color:var(--rosa);background:#FDE8F0}.lt-p-yel{color:#92600A;background:#FEF3C7}
-.lt-old{font-size:10px;color:#94A3B8;text-decoration:line-through}.lt-gift{font-size:9px;color:var(--zcy);font-weight:600}
-.lt-cat{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:4px;display:inline-block}
+.lt-old{font-size:9px;color:#94A3B8;text-decoration:line-through}.lt-gift{font-size:8px;color:var(--zcy);font-weight:600}
+.lt-add{width:20px;height:20px;border-radius:5px;border:1px solid var(--zl);background:var(--zw);color:var(--zbl);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all .12s}.lt-add:hover{background:var(--zbl);color:#fff;border-color:var(--zbl)}
+
+/* Panel derecho: Cotización */
+.cot{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);display:flex;flex-direction:column;overflow:hidden}
+.cot-hdr{background:var(--zb);padding:10px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.cot-h{font-family:'Source Serif 4',serif;font-weight:700;font-size:13px}.cot-badge{font-size:9px;background:var(--zcy);color:var(--zb);padding:2px 7px;border-radius:4px;font-weight:700}
+.cot-body{flex:1;overflow-y:auto;padding:10px}.cot-body::-webkit-scrollbar{width:3px}.cot-body::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+
+.cot-pac{margin-bottom:8px}.cot-pac input{width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--zl);font-size:10px;font-family:'Outfit';outline:none}.cot-pac input:focus{border-color:var(--zbl)}
+.cot-pac-res{background:var(--zbg);border-radius:6px;max-height:120px;overflow-y:auto;margin-top:3px;display:none}.cot-pac-res.show{display:block}
+.cot-pac-item{padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid var(--zl);display:flex;justify-content:space-between}.cot-pac-item:hover{background:#EEF2FF}
+.cot-pac-sel{background:var(--zbg);border-radius:6px;padding:6px 8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:600}
+.cot-pac-sel .vip{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700}
+
+.cot-items{margin-bottom:8px;min-height:60px}
+.cot-item{display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:1px solid #F1F5F9;font-size:10px}
+.cot-item-name{flex:1;font-weight:500;color:#1E293B}.cot-item-price{font-family:'Source Serif 4',serif;font-weight:700;color:var(--zbl);font-size:11px}
+.cot-item-rm{width:16px;height:16px;border-radius:3px;border:none;background:#FEE2E2;color:#DC2626;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}.cot-item-rm:hover{background:#DC2626;color:#fff}
+.cot-empty{text-align:center;padding:20px;color:var(--zg);font-size:10px;font-style:italic}
+
+.cot-total{background:var(--zbg);border-radius:7px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cot-total-lbl{font-size:10px;font-weight:700;color:var(--zg)}.cot-total-val{font-family:'Source Serif 4',serif;font-weight:900;font-size:20px;color:var(--zbl)}
+
+.cot-note{margin-bottom:8px}.cot-note textarea{width:100%;height:40px;padding:5px 8px;border-radius:6px;border:1px solid var(--zl);font-size:9px;font-family:'Outfit';outline:none;resize:none}.cot-note textarea:focus{border-color:var(--zbl)}
+.cot-btns{display:flex;gap:5px}.cot-btn{flex:1;padding:8px;border-radius:7px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'Outfit';transition:all .15s}
+.cot-btn-save{background:var(--zbl);color:#fff}.cot-btn-save:hover{background:var(--zb)}
+.cot-btn-clear{background:var(--zbg);color:var(--zg);border:1px solid var(--zl)}.cot-btn-clear:hover{background:#FEE2E2;color:#DC2626;border-color:#DC2626}
+
+/* Alertas inventario */
+.cot-alerts{margin-top:8px;border-top:1px solid var(--zl);padding-top:8px}
+.cot-alert-t{font-size:9px;font-weight:700;color:var(--yel);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.cot-alert{font-size:9px;padding:4px 6px;background:#FEF3C7;border-radius:4px;margin-bottom:3px;color:#92600A;display:flex;justify-content:space-between}
+.cot-alert-venc{background:#FEE2E2;color:#DC2626}
 
 /* ═══ TAB 1: REPOSITORIO ═══ */
-.repo{display:grid;grid-template-columns:240px 1fr;gap:10px;height:calc(100vh - 180px)}
+.repo{display:grid;grid-template-columns:240px 1fr;gap:8px;height:calc(100vh - 160px)}
 .repo-sb{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden;display:flex;flex-direction:column}
-.repo-sb input{width:calc(100% - 16px);margin:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--zl);background:var(--zbg);font-size:11px;font-family:'Outfit';outline:none}
-.repo-sb input:focus{border-color:var(--zbl)}
-.repo-sl{flex:1;overflow-y:auto;padding:3px}.repo-sl::-webkit-scrollbar{width:3px}.repo-sl::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.repo-si{padding:7px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .12s;margin-bottom:1px}.repo-si:hover{background:var(--zbg)}.repo-si.act{background:#EEF2FF;border:1px solid #C7D2FE}
-.repo-si-i{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.repo-si-n{font-size:10px;font-weight:600;color:#1E293B;line-height:1.2}.repo-si-m{font-size:8px;color:var(--zg);margin-top:1px}
-
-.repo-main{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow-y:auto}.repo-main::-webkit-scrollbar{width:4px}.repo-main::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.repo-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--zg);font-size:12px;flex-direction:column;gap:6px}.repo-empty span{font-size:28px}
-
-.rd-hdr{padding:18px 22px;position:relative;overflow:hidden;border-radius:var(--rad) var(--rad) 0 0}
-.rd-i{font-size:26px;margin-bottom:4px}.rd-cat{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.6)}.rd-t{font-family:'Source Serif 4',serif;font-weight:700;font-size:20px;color:#fff}.rd-s{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
-.rd-body{padding:18px 22px}
-.rd-desc{font-size:11px;color:#475569;line-height:1.65;margin-bottom:14px;padding:10px;background:var(--zbg);border-radius:7px;border-left:3px solid var(--zbl)}
-.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.rd-c{background:var(--zbg);border-radius:7px;padding:10px}
-.rd-c-l{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--zbl);margin-bottom:3px}.rd-c-t{font-size:10px;color:#475569;line-height:1.5}
-
-/* Split: Precios izq + FAQs der */
-.rd-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.rd-split-col{min-width:0}
-.rd-sec-t{font-weight:700;font-size:12px;color:#1E293B;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--zl);display:flex;align-items:center;gap:5px}
-.rd-tbl{width:100%;border-collapse:collapse;font-size:10px;border:1px solid var(--zl);border-radius:7px;overflow:hidden}
-.rd-tbl thead{background:var(--zbg)}.rd-tbl th{padding:6px 8px;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--zbl);text-align:left}.rd-tbl td{padding:6px 8px;border-top:1px solid #F1F5F9;color:#475569}.rd-tbl tr:hover td{background:#FAFBFF}
-
-.faq-search{width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--zl);background:var(--zbg);font-size:10px;font-family:'Outfit';outline:none;margin-bottom:8px}.faq-search:focus{border-color:var(--zbl)}
-.faq-list{max-height:350px;overflow-y:auto}.faq-list::-webkit-scrollbar{width:3px}.faq-list::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
-.faq-item{border-bottom:1px solid #F1F5F9;padding:6px 0;cursor:pointer}
-.faq-q{font-size:10px;font-weight:600;color:#1E293B;display:flex;align-items:flex-start;gap:4px;line-height:1.4}.faq-q::before{content:'❓';font-size:9px;flex-shrink:0;margin-top:1px}
-.faq-a{font-size:9px;color:#475569;line-height:1.5;padding:4px 0 4px 18px;display:none}.faq-item.open .faq-a{display:block}
-.faq-none{font-size:10px;color:var(--zg);font-style:italic;text-align:center;padding:20px}
-.rd-no{text-align:center;padding:20px;color:var(--zg);font-size:11px;font-style:italic}
+.repo-sb input{width:calc(100% - 12px);margin:6px;padding:5px 8px;border-radius:6px;border:1px solid var(--zl);background:var(--zbg);font-size:10px;font-family:'Outfit';outline:none}.repo-sb input:focus{border-color:var(--zbl)}
+.repo-sl{flex:1;overflow-y:auto;padding:2px}.repo-sl::-webkit-scrollbar{width:3px}.repo-sl::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.repo-si{padding:5px 7px;border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s;margin-bottom:1px;font-size:10px}.repo-si:hover{background:var(--zbg)}.repo-si.act{background:#EEF2FF;border:1px solid #C7D2FE}
+.repo-si-i{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.repo-si-n{font-weight:600;color:#1E293B;line-height:1.2}.repo-si-m{font-size:8px;color:var(--zg);margin-top:1px}
+.repo-main{background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow-y:auto}.repo-main::-webkit-scrollbar{width:3px}.repo-main::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.repo-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--zg);font-size:11px;flex-direction:column;gap:5px}.repo-empty span{font-size:24px}
+.rd-hdr{padding:14px 18px;position:relative;overflow:hidden;border-radius:var(--rad) var(--rad) 0 0}
+.rd-i{font-size:22px;margin-bottom:3px}.rd-cat{font-size:7px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.6)}.rd-t{font-family:'Source Serif 4',serif;font-weight:700;font-size:18px;color:#fff}.rd-s{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px}
+.rd-body{padding:14px 18px}.rd-desc{font-size:10px;color:#475569;line-height:1.6;margin-bottom:10px;padding:8px;background:var(--zbg);border-radius:6px;border-left:3px solid var(--zbl)}
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.rd-c{background:var(--zbg);border-radius:6px;padding:8px}.rd-c-l{font-size:7px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--zbl);margin-bottom:2px}.rd-c-t{font-size:9px;color:#475569;line-height:1.5}
+.rd-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.rd-split-col{min-width:0}
+.rd-sec-t{font-weight:700;font-size:11px;color:#1E293B;margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--zl)}
+.rd-tbl{width:100%;border-collapse:collapse;font-size:9px;border:1px solid var(--zl);border-radius:6px;overflow:hidden}
+.rd-tbl thead{background:var(--zbg)}.rd-tbl th{padding:4px 6px;font-weight:700;font-size:7px;text-transform:uppercase;letter-spacing:.3px;color:var(--zbl);text-align:left}.rd-tbl td{padding:4px 6px;border-top:1px solid #F1F5F9;color:#475569}.rd-tbl tr:hover td{background:#FAFBFF}
+.faq-list{max-height:300px;overflow-y:auto}.faq-list::-webkit-scrollbar{width:2px}.faq-list::-webkit-scrollbar-thumb{background:var(--zl);border-radius:3px}
+.faq-item{border-bottom:1px solid #F1F5F9;padding:4px 0;cursor:pointer}.faq-q{font-size:9px;font-weight:600;color:#1E293B;line-height:1.3}.faq-a{font-size:8px;color:#475569;line-height:1.4;padding:3px 0 3px 12px;display:none}.faq-item.open .faq-a{display:block}
+.faq-none{font-size:9px;color:var(--zg);font-style:italic;text-align:center;padding:15px}
+.rd-no{text-align:center;padding:15px;color:var(--zg);font-size:10px;font-style:italic}
 
 /* ═══ TAB 2: PROMOS ═══ */
-.promo-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden}
-.promo-tbl thead{background:#FEF3C7}.promo-tbl th{padding:8px 12px;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#92600A;text-align:left}
-.promo-tbl td{padding:8px 12px;border-top:1px solid #F1F5F9;color:#475569}.promo-tbl tr:hover td{background:#FFFBEB}
-.promo-pct{font-weight:800;color:#16A34A;background:#DCFCE7;padding:2px 6px;border-radius:4px;font-size:10px}
+.promo-tbl{width:100%;border-collapse:collapse;font-size:10px;background:var(--zw);border-radius:var(--rad);border:1px solid var(--zl);overflow:hidden}
+.promo-tbl thead{background:#FEF3C7}.promo-tbl th{padding:6px 10px;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:#92600A;text-align:left}
+.promo-tbl td{padding:6px 10px;border-top:1px solid #F1F5F9;color:#475569}.promo-tbl tr:hover td{background:#FFFBEB}
+.promo-pct{font-weight:800;color:#16A34A;background:#DCFCE7;padding:2px 5px;border-radius:3px;font-size:9px}
+.lt-cat{font-size:7px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:1px 5px;border-radius:3px;display:inline-block}
 
-.ld{text-align:center;padding:30px;color:var(--zg);font-size:11px}.sp{width:14px;height:14px;border:2px solid var(--zl);border-top-color:var(--zbl);border-radius:50%;animation:sp .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}@keyframes sp{to{transform:rotate(360deg)}}
-@media(max-width:768px){.repo{grid-template-columns:1fr;height:auto}.repo-sb{max-height:200px}.rd-grid,.rd-split{grid-template-columns:1fr}.legend{flex-direction:column;align-items:flex-start}}
+.ld{text-align:center;padding:20px;color:var(--zg);font-size:10px}.sp{width:12px;height:12px;border:2px solid var(--zl);border-top-color:var(--zbl);border-radius:50%;animation:sp .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px}@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--zb);color:#fff;padding:10px 16px;border-radius:8px;font-size:11px;font-weight:600;z-index:999;display:none;animation:fadeIn .3s}.toast.show{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){.lp-split,.repo{grid-template-columns:1fr;height:auto}.cot{max-height:400px}.repo-sb{max-height:200px}.rd-grid,.rd-split{grid-template-columns:1fr}}
 </style>
 <div class="cat">
-<div class="cat-hdr"><div><div class="cat-h1">Catálogo</div><div class="cat-h2">Precios, tratamientos, información clínica y promociones</div></div><div class="cat-pills"><button class="cat-pill act" onclick="catTab(0,this)">📋 Lista de precios</button><button class="cat-pill" onclick="catTab(1,this)">📖 Repositorio</button><button class="cat-pill" onclick="catTab(2,this)">🔥 Promos</button></div></div>
+<div class="cat-hdr"><div><div class="cat-h1">Catálogo</div><div class="cat-h2">Precios · Cotización rápida · Repositorio · Promociones</div></div><div class="cat-pills"><button class="cat-pill act" onclick="catTab(0,this)">📋 Precios</button><button class="cat-pill" onclick="catTab(1,this)">📖 Repositorio</button><button class="cat-pill" onclick="catTab(2,this)">🔥 Promos</button></div></div>
+<div class="legend"><span class="legend-t">Precios:</span><div class="legend-i"><div class="legend-d" style="background:var(--turq)"></div>Todos los pagos</div><div class="legend-i"><div class="legend-d" style="background:var(--rosa)"></div>Flexible</div><div class="legend-i"><div class="legend-d" style="background:var(--yel)"></div>Efectivo/Yape/Plin</div></div>
 
-<!-- LEGEND -->
-<div class="legend"><span class="legend-title">Código de precios:</span><div class="legend-item"><div class="legend-dot" style="background:var(--turq)"></div>Incluye todos los métodos de pago</div><div class="legend-item"><div class="legend-dot" style="background:var(--rosa)"></div>Precio flexible (negociable)</div><div class="legend-item"><div class="legend-dot" style="background:var(--yel)"></div>Solo efectivo / transferencia / Yape / Plin</div></div>
+<!-- TAB 0: LISTA + COTIZACIÓN -->
+<div class="cat-panel act" id="tab0"><div class="lp-split">
+  <div class="lp"><div class="lp-bar"><div class="lp-search"><span style="color:#94A3B8;font-size:11px">🔍</span><input id="lp-q" placeholder="Buscar..." oninput="lpF()"></div><button class="lp-f act" onclick="lpC(this,'')">Todos</button><button class="lp-f" onclick="lpC(this,'S')">Servicios</button><button class="lp-f" onclick="lpC(this,'P')">Productos</button><span class="lp-cnt" id="lp-cnt"></span></div><div class="lp-wrap" id="lp-wrap"><div class="ld"><span class="sp"></span>Cargando...</div></div></div>
+  <div class="cot">
+    <div class="cot-hdr"><span class="cot-h">🧾 Cotización rápida</span><span class="cot-badge" id="cot-count">0</span></div>
+    <div class="cot-body">
+      <div class="cot-pac"><input id="pac-q" placeholder="🔍 Buscar paciente (nombre, teléfono, DNI)..." oninput="pacSearch()" autocomplete="off"><div class="cot-pac-res" id="pac-res"></div><div id="pac-sel"></div></div>
+      <div class="cot-items" id="cot-items"><div class="cot-empty">Haz click en ➕ en la tabla para agregar items</div></div>
+      <div class="cot-total"><span class="cot-total-lbl">TOTAL</span><span class="cot-total-val" id="cot-total">S/0</span></div>
+      <div class="cot-note"><textarea id="cot-nota" placeholder="Nota para el paciente (opcional)..."></textarea></div>
+      <div class="cot-btns"><button class="cot-btn cot-btn-clear" onclick="cotClear()">🗑 Limpiar</button><button class="cot-btn cot-btn-save" onclick="cotSave()">💾 Guardar cotización</button></div>
+      <div class="cot-alerts" id="cot-alerts"></div>
+    </div>
+  </div>
+</div></div>
 
-<div class="cat-panel act" id="tab0"><div class="lp"><div class="lp-bar"><div class="lp-search"><span style="color:#94A3B8;font-size:12px">🔍</span><input id="lp-q" placeholder="Buscar servicio, tratamiento, producto..." oninput="lpF()"></div><button class="lp-f act" onclick="lpC(this,'')">Todos</button><button class="lp-f" onclick="lpC(this,'S')">Servicios</button><button class="lp-f" onclick="lpC(this,'P')">Productos</button><span class="lp-cnt" id="lp-cnt"></span></div><div class="lp-wrap" id="lp-wrap"><div class="ld"><span class="sp"></span>Cargando...</div></div></div></div>
+<!-- TAB 1: REPOSITORIO -->
+<div class="cat-panel" id="tab1"><div style="display:flex;gap:4px;margin-bottom:6px"><button class="lp-f act" id="repo-tab-s" onclick="repoTipo('SERVICIO',this)">🏥 Servicios</button><button class="lp-f" id="repo-tab-p" onclick="repoTipo('PRODUCTO',this)">🛍 Productos</button></div><div class="repo"><div class="repo-sb"><input id="repo-q" placeholder="🔍 Buscar..." oninput="repoF()"><div class="repo-sl" id="repo-list"></div></div><div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento o producto</div></div></div></div>
 
-<div class="cat-panel" id="tab1"><div style="display:flex;gap:5px;margin-bottom:8px"><button class="lp-f act" id="repo-tab-s" onclick="repoTipo('SERVICIO',this)">🏥 Servicios</button><button class="lp-f" id="repo-tab-p" onclick="repoTipo('PRODUCTO',this)">🛍 Productos</button></div><div class="repo"><div class="repo-sb"><input id="repo-q" placeholder="🔍 Buscar categoría..." oninput="repoF()"><div class="repo-sl" id="repo-list"></div></div><div class="repo-main" id="repo-main"><div class="repo-empty"><span>📖</span>Selecciona un tratamiento o producto</div></div></div></div>
-
-<div class="cat-panel" id="tab2"><div id="promo-wrap"><div class="ld"><span class="sp"></span>Cargando promos...</div></div></div>
+<!-- TAB 2: PROMOS -->
+<div class="cat-panel" id="tab2"><div id="promo-wrap"><div class="ld"><span class="sp"></span>Cargando...</div></div></div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json()}).then(ok).catch(function(e){console.error(fn,e)})}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function fmt(n){return n?'S/'+Number(n).toLocaleString('es-PE'):'—'}
-function priceCls(base,promo){if(!base||!promo)return 'lt-p-yel';var d=(base-promo)/base;if(d>.3)return 'lt-p-yel';if(d>.1)return 'lt-p-rosa';return 'lt-p-turq'}
+function pCls(b,p){if(!b||!p)return'lt-p-yel';var d=(b-p)/b;return d>.3?'lt-p-yel':d>.1?'lt-p-rosa':'lt-p-turq'}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}
 
-var D={serv:[],prod:[],repoData:[],af:''};
+var D={serv:[],prod:[],repoData:[],af:'',cart:[],paciente:null};
 var CM={'DETOX':{i:'🧪',c:'#16A34A'},'VITAMINAS':{i:'💉',c:'#D97706'},'FACIALES':{i:'✨',c:'#0A4FBF'},'PEELINGS':{i:'🫧',c:'#7C3AED'},'MESOTERAPIA':{i:'💎',c:'#DC2626'},'BIOREVITALIZACIÓN':{i:'🌸',c:'#0D9488'},'EXOSOMAS':{i:'🧬',c:'#7C3AED'},'BIOESTIMULADOR':{i:'⚡',c:'#B91C1C'},'ACIDO HIALURONICO':{i:'💧',c:'#0A4FBF'},'TOXINA':{i:'🎯',c:'#DC2626'},'ENZIMAS':{i:'🔥',c:'#D97706'},'HIFU':{i:'📡',c:'#0891B2'},'RF FRACCIONADA':{i:'⚡',c:'#9333EA'},'CAPILAR':{i:'💇',c:'#0D9488'},'CORPORAL':{i:'🏋️',c:'#16A34A'},'APARATOLOGÍA':{i:'🔧',c:'#6B7BA8'},'CRIOLIPÓLISIS':{i:'❄️',c:'#0891B2'},'PEPTONAS':{i:'💪',c:'#D97706'},'GLÚTEOS':{i:'🍑',c:'#EC4899'},'CONSULTA':{i:'🩺',c:'#6B7BA8'},'FACIAL ZV':{i:'🧴',c:'#0A4FBF'},'CAPILAR ZV':{i:'🧴',c:'#0D9488'},'CORPORAL ZV':{i:'🧴',c:'#16A34A'},'NUTRICIONAL':{i:'💊',c:'#D97706'},'ISDIN':{i:'☀️',c:'#6366F1'},'FAJAS':{i:'👗',c:'#9AAAC8'}};
+var prodItems=[];
 
 function catTab(n,el){document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');document.querySelectorAll('.cat-panel').forEach(function(p,i){p.classList.toggle('act',i===n)});if(n===1&&!D.repoData.length)loadRepo();if(n===2)loadPromos()}
 
-/* ═══ LISTA DE PRECIOS ═══ */
-(function(){rpc('aos_catalogo_repo',{p_tipo:'SERVICIO'},function(d){D.serv=d.items||[];rpc('aos_catalogo_repo',{p_tipo:'PRODUCTO'},function(d2){D.prod=d2.items||[];lpF()})})})();
+/* ═══ LISTA + COTIZACIÓN ═══ */
+(function(){rpc('aos_catalogo_repo',{p_tipo:'SERVICIO'},function(d){D.serv=d.items||[];rpc('aos_catalogo_repo',{p_tipo:'PRODUCTO'},function(d2){D.prod=d2.items||[];lpF()})});loadAlerts()})();
 function lpC(el,f){document.querySelectorAll('.lp-f').forEach(function(x){x.classList.remove('act')});el.classList.add('act');D.af=f;lpF()}
 function lpF(){
   var q=(document.getElementById('lp-q').value||'').toLowerCase();
   var all=D.af==='S'?D.serv:D.af==='P'?D.prod:D.serv.concat(D.prod);
-  if(q)all=all.filter(function(i){return(i.nombre||'').toLowerCase().indexOf(q)>=0||(i.categoria||'').toLowerCase().indexOf(q)>=0||(i.indicaciones||'').toLowerCase().indexOf(q)>=0});
+  if(q)all=all.filter(function(i){return(i.nombre||'').toLowerCase().indexOf(q)>=0||(i.categoria||'').toLowerCase().indexOf(q)>=0});
   var g={};all.forEach(function(i){var c=i.categoria||'OTROS';if(!g[c])g[c]=[];g[c].push(i)});
   var cats=Object.keys(g).sort();
-  document.getElementById('lp-cnt').textContent=all.length+' resultados';
-  var r='<table class="lt"><thead><tr><th>Servicio / Producto</th><th>Sesiones</th><th>Precio promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
-  cats.forEach(function(c){var m=CM[c]||{i:'📋',c:'#6B7BA8'};r+='<tr><td colspan="5" class="lt-ch" style="border-left:3px solid '+m.c+'">'+m.i+' '+h(c)+' <span style="font-weight:400;color:#94A3B8">('+g[c].length+')</span></td></tr>';
-    g[c].forEach(function(it){var cls=priceCls(it.precio_base,it.precio_oferta);
-      r+='<tr><td class="lt-n">'+h(it.nombre)+'</td><td class="lt-s">'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones:'1')+'</td><td><span class="lt-p '+cls+'">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'})});
+  document.getElementById('lp-cnt').textContent=all.length;
+  var r='<table class="lt"><thead><tr><th></th><th>Servicio / Producto</th><th>Promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
+  cats.forEach(function(c){var m=CM[c]||{i:'📋',c:'#6B7BA8'};r+='<tr><td colspan="5" class="lt-ch" style="border-left:3px solid '+m.c+'">'+m.i+' '+h(c)+' ('+g[c].length+')</td></tr>';
+    g[c].forEach(function(it){var cls=pCls(it.precio_base,it.precio_oferta);var inCart=D.cart.some(function(x){return x.nombre===it.nombre});
+      r+='<tr class="'+(inCart?'sel':'')+'"><td><button class="lt-add" onclick="cartAdd(\''+h(it.nombre).replace(/'/g,"\\'")+'\','+it.precio_oferta+',\''+h(it.tipo)+'\')">+</button></td><td class="lt-n">'+h(it.nombre)+'</td><td><span class="lt-p '+cls+'">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'})});
   r+='</tbody></table>';document.getElementById('lp-wrap').innerHTML=r}
 
-/* ═══ REPOSITORIO ═══ */
-var repoTipoAct='SERVICIO';var prodItems=[];
-function repoTipo(t,el){repoTipoAct=t;document.getElementById('repo-tab-s').classList.toggle('act',t==='SERVICIO');document.getElementById('repo-tab-p').classList.toggle('act',t==='PRODUCTO');D.repoData=[];prodItems=[];loadRepo()}
-function loadRepo(){
-  if(repoTipoAct==='PRODUCTO'){
-    rpc('aos_catalogo_productos',{},function(d){prodItems=d.items||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>🛍</span>Selecciona un producto para ver su información</div>'});
-  } else {
-    rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){D.repoData=d.categorias||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>📖</span>Selecciona un tratamiento</div>'});
-  }
+/* CARRITO */
+function cartAdd(nombre,precio,tipo){
+  if(D.cart.some(function(x){return x.nombre===nombre})){toast('Ya está en la cotización');return}
+  D.cart.push({nombre:nombre,precio:precio||0,tipo:tipo,cantidad:1,subtotal:precio||0});
+  cartRender();lpF();toast('➕ '+nombre)
 }
+function cartRm(idx){D.cart.splice(idx,1);cartRender();lpF()}
+function cartRender(){
+  document.getElementById('cot-count').textContent=D.cart.length;
+  if(!D.cart.length){document.getElementById('cot-items').innerHTML='<div class="cot-empty">Haz click en ➕ en la tabla para agregar items</div>';document.getElementById('cot-total').textContent='S/0';return}
+  var total=0;document.getElementById('cot-items').innerHTML=D.cart.map(function(it,i){total+=it.subtotal;return'<div class="cot-item"><button class="cot-item-rm" onclick="cartRm('+i+')">×</button><span class="cot-item-name">'+h(it.nombre)+'</span><span class="cot-item-price">'+fmt(it.precio)+'</span></div>'}).join('');
+  document.getElementById('cot-total').textContent=fmt(total)
+}
+
+/* PACIENTE */
+var pacTimer=null;
+function pacSearch(){clearTimeout(pacTimer);pacTimer=setTimeout(function(){var q=document.getElementById('pac-q').value;if(q.length<2){document.getElementById('pac-res').classList.remove('show');return}
+  rpc('aos_buscar_paciente',{p_query:q},function(d){var box=document.getElementById('pac-res');if(!d||!d.length){box.innerHTML='<div style="padding:8px;font-size:9px;color:var(--zg)">Sin resultados</div>';box.classList.add('show');return}
+    box.innerHTML=d.map(function(p){return'<div class="cot-pac-item" onclick="pacSel(\''+h(p.numero)+'\',\''+h(p.nombres)+' '+h(p.apellidos)+'\',\''+h(p.dni||'')+'\',\''+h(p.vip||'')+'\')"><span>'+h(p.nombres)+' '+h(p.apellidos)+'</span><span style="color:var(--zg)">'+h(p.numero)+'</span></div>'}).join('');box.classList.add('show')})},300)}
+function pacSel(num,nombre,dni,vip){
+  D.paciente={numero:num,nombre:nombre,dni:dni,vip:vip};document.getElementById('pac-res').classList.remove('show');document.getElementById('pac-q').style.display='none';
+  var vipBadge='';if(vip==='VIP')vipBadge='<span class="vip" style="background:#FEF3C7;color:#92600A">VIP</span>';else if(vip==='DIAMANTE')vipBadge='<span class="vip" style="background:#EDE9FE;color:#7C3AED">DIAMANTE</span>';else if(vip==='PREMIUM')vipBadge='<span class="vip" style="background:#DBEAFE;color:var(--zbl)">PREMIUM</span>';
+  document.getElementById('pac-sel').innerHTML='<div class="cot-pac-sel"><span>👤 '+h(nombre)+'</span><div>'+vipBadge+' <button style="border:none;background:transparent;color:#DC2626;cursor:pointer;font-size:10px" onclick="pacClear()">✕</button></div></div>'
+}
+function pacClear(){D.paciente=null;document.getElementById('pac-sel').innerHTML='';document.getElementById('pac-q').style.display='';document.getElementById('pac-q').value=''}
+
+function cotClear(){D.cart=[];D.paciente=null;document.getElementById('pac-sel').innerHTML='';document.getElementById('pac-q').style.display='';document.getElementById('pac-q').value='';document.getElementById('cot-nota').value='';cartRender();lpF()}
+
+function cotSave(){
+  if(!D.cart.length){toast('Agrega items primero');return}
+  if(!D.paciente){toast('Selecciona un paciente');return}
+  var total=0;D.cart.forEach(function(x){total+=x.subtotal});
+  var data={numero:D.paciente.numero,nombre:D.paciente.nombre,dni:D.paciente.dni||'',total:total,sede:window._SEDE||'SAN ISIDRO',asesor:window._USER_NAME||'ASESOR',id_asesor:window._USER_ID||'',nota:document.getElementById('cot-nota').value,items:D.cart};
+  rpc('aos_crear_cotizacion',{p_data:data},function(r){
+    if(r&&r.id){toast('✅ Cotización '+r.id+' guardada');cotClear()}else{toast('Error al guardar')}
+  })
+}
+
+/* ALERTAS INVENTARIO */
+function loadAlerts(){
+  rpc('aos_alertas_venta',{},function(d){
+    if(!d)return;var htm='';
+    if(d.por_vencer&&d.por_vencer.length){htm+='<div class="cot-alert-t">⚠️ Productos por vencer — OFRECER</div>';d.por_vencer.forEach(function(a){htm+='<div class="cot-alert'+(a.dias_restantes<0?' cot-alert-venc':'')+'"><span>'+h(a.nombre_producto)+'</span><span>'+a.dias_restantes+'d · '+h(a.sede)+'</span></div>'})}
+    if(d.stock_bajo&&d.stock_bajo.length){htm+='<div class="cot-alert-t" style="margin-top:6px">📦 Stock bajo</div>';d.stock_bajo.forEach(function(a){htm+='<div class="cot-alert"><span>'+h(a.nombre_producto)+'</span><span>'+a.cantidad+' und · '+h(a.sede)+'</span></div>'})}
+    document.getElementById('cot-alerts').innerHTML=htm
+  })
+}
+
+/* ═══ REPOSITORIO ═══ */
+var repoTipoAct='SERVICIO';
+function repoTipo(t,el){repoTipoAct=t;document.getElementById('repo-tab-s').classList.toggle('act',t==='SERVICIO');document.getElementById('repo-tab-p').classList.toggle('act',t==='PRODUCTO');D.repoData=[];prodItems=[];loadRepo()}
+function loadRepo(){if(repoTipoAct==='PRODUCTO'){rpc('aos_catalogo_productos',{},function(d){prodItems=d.items||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>🛍</span>Selecciona un producto</div>'})}else{rpc('aos_catalogo_repo_v2',{p_tipo:'SERVICIO'},function(d){D.repoData=d.categorias||[];repoR();document.getElementById('repo-main').innerHTML='<div class="repo-empty"><span>📖</span>Selecciona un tratamiento</div>'})}}
 function repoF(){repoR()}
 function repoR(){
   var q=(document.getElementById('repo-q').value||'').toLowerCase();
-  if(repoTipoAct==='PRODUCTO'){
-    var items=prodItems.filter(function(p){return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});
-    var lastCat='';
-    document.getElementById('repo-list').innerHTML=items.map(function(p,i){
-      var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};
-      var sep='';
-      if(p.categoria!==lastCat){lastCat=p.categoria;sep='<div style="padding:4px 8px;font-size:8px;font-weight:800;color:var(--zbl);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--zl);margin:4px 0 2px">'+m.i+' '+h(p.categoria)+'</div>'}
-      var hasInfo=p.descripcion_clinica&&p.descripcion_clinica.length>20;
-      return sep+'<div class="repo-si" onclick="repoProd('+i+')" data-c="'+i+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(p.nombre)+'</div><div class="repo-si-m">'+fmt(p.precio_oferta)+(hasInfo?' · ℹ️':'')+'</div></div></div>'
-    }).join('');
-  } else {
-    var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});
-    document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('');
-  }
+  if(repoTipoAct==='PRODUCTO'){var items=prodItems.filter(function(p){return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});var lc='';
+    document.getElementById('repo-list').innerHTML=items.map(function(p,i){var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};var sep='';if(p.categoria!==lc){lc=p.categoria;sep='<div style="padding:3px 6px;font-size:7px;font-weight:800;color:var(--zbl);letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid var(--zl);margin:3px 0 1px">'+m.i+' '+h(p.categoria)+'</div>'}var hi=p.descripcion_clinica&&p.descripcion_clinica.length>20;return sep+'<div class="repo-si" onclick="repoProd('+i+')" data-c="'+i+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(p.nombre)+'</div><div class="repo-si-m">'+fmt(p.precio_oferta)+(hi?' · ℹ️':'')+'</div></div></div>'}).join('')}
+  else{var l=D.repoData.filter(function(c){return!q||c.nombre.toLowerCase().indexOf(q)>=0});document.getElementById('repo-list').innerHTML=l.map(function(c){var m=CM[c.nombre]||{i:'📋',c:'#6B7BA8'};return'<div class="repo-si" onclick="repoSel(\''+h(c.nombre)+'\')" data-c="'+h(c.nombre)+'"><div class="repo-si-i" style="background:'+m.c+'12;color:'+m.c+'">'+m.i+'</div><div><div class="repo-si-n">'+h(c.nombre)+'</div><div class="repo-si-m">'+c.total_items+' · '+fmt(c.precio_desde)+'</div></div></div>'}).join('')}
 }
+function repoProd(idx){var filtered=prodItems.filter(function(p){var q=(document.getElementById('repo-q').value||'').toLowerCase();return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});var p=filtered[idx];if(!p)return;document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===''+idx)});var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">PRODUCTO · '+h(p.categoria)+'</div><div class="rd-t">'+h(p.nombre)+'</div><div class="rd-s">'+fmt(p.precio_oferta)+(p.precio_base?' <span style="text-decoration:line-through;opacity:.5">'+fmt(p.precio_base)+'</span>':'')+'</div></div><div class="rd-body">';if(p.descripcion_clinica)htm+='<div class="rd-desc">'+h(p.descripcion_clinica)+'</div>';var cards='';function ac(l,ic,v){if(v&&v.length>5)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}ac('Ingredientes','⚗️',p.composicion);ac('Beneficios','✅',p.beneficios);ac('Recomendado para','👤',p.perfil_paciente);ac('Modo de uso','📋',p.indicaciones);if(cards)htm+='<div class="rd-grid">'+cards+'</div>';if(!p.descripcion_clinica&&!cards)htm+='<div class="rd-no">Información próximamente</div>';htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Precio</div><div style="background:var(--zbg);border-radius:6px;padding:10px;text-align:center"><div style="font-family:Source Serif 4,serif;font-weight:700;font-size:24px;color:var(--zbl)">'+fmt(p.precio_oferta)+'</div>'+(p.precio_base?'<div class="lt-old">'+fmt(p.precio_base)+'</div>':'')+'<div style="margin-top:6px;font-size:9px;color:var(--zg)">Disponible en sedes y zivital.pe/tienda</div></div></div>';var faqs=p.faqs||[];htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ Preguntas frecuentes'+(faqs.length?' ('+faqs.length+')':'')+'</div>';if(faqs.length){htm+='<div class="faq-list">'+faqs.map(function(f){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>'}else{htm+='<div class="faq-none">Próximamente</div>'}htm+='</div></div></div>';document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0}
 
-function repoProd(idx){
-  var filtered=prodItems.filter(function(p){var q=(document.getElementById('repo-q').value||'').toLowerCase();return!q||p.nombre.toLowerCase().indexOf(q)>=0||p.categoria.toLowerCase().indexOf(q)>=0});
-  var p=filtered[idx];if(!p)return;
-  document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===''+idx)});
-  var m=CM[p.categoria]||{i:'🧴',c:'#6B7BA8'};
-  var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">PRODUCTO · '+h(p.categoria)+'</div><div class="rd-t">'+h(p.nombre)+'</div><div class="rd-s">'+fmt(p.precio_oferta)+(p.precio_base?' <span style="text-decoration:line-through;opacity:.5">'+fmt(p.precio_base)+'</span>':'')+'</div></div><div class="rd-body">';
-  if(p.descripcion_clinica)htm+='<div class="rd-desc">'+h(p.descripcion_clinica)+'</div>';
-  var cards='';function ac(l,ic,v){if(v&&v.length>5)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}
-  ac('Ingredientes / Composición','⚗️',p.composicion);ac('Beneficios','✅',p.beneficios);ac('Recomendado para','👤',p.perfil_paciente);ac('Modo de uso','📋',p.indicaciones);
-  if(cards)htm+='<div class="rd-grid">'+cards+'</div>';
-  if(!p.descripcion_clinica&&!cards)htm+='<div class="rd-no">Información del producto próximamente</div>';
-  // Price + FAQs split
-  htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Precio</div><div style="background:var(--zbg);border-radius:8px;padding:14px;text-align:center"><div style="font-family:Source Serif 4,serif;font-weight:700;font-size:28px;color:var(--zbl)">'+fmt(p.precio_oferta)+'</div>'+(p.precio_base?'<div style="font-size:12px;color:#94A3B8;text-decoration:line-through">'+fmt(p.precio_base)+'</div>':'')+'<div style="margin-top:8px;font-size:10px;color:var(--zg)">Disponible en ambas sedes y en zivital.pe/tienda</div></div></div>';
-  // FAQs
-  var faqs=p.faqs||[];
-  htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ Preguntas frecuentes'+(faqs.length?' <span style="font-weight:400;color:var(--zg);font-size:9px">'+faqs.length+'</span>':'')+'</div>';
-  if(faqs.length){htm+='<div class="faq-list">'+faqs.map(function(f){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>'} else {htm+='<div class="faq-none">Preguntas frecuentes próximamente</div>'}
-  htm+='</div></div></div>';
-  document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0
-}
-
-function repoSel(cn){
-  document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===cn)});
-  var cat=null;D.repoData.forEach(function(c){if(c.nombre===cn)cat=c});if(!cat)return;
-  var m=CM[cn]||{i:'📋',c:'#6B7BA8'};var src={};var allFaqs=[];
-  (cat.items||[]).forEach(function(x){if(x.descripcion_clinica&&!src.descripcion_clinica)src=x;if(x.faqs&&x.faqs.length)allFaqs=x.faqs});
-
-  var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">TRATAMIENTO</div><div class="rd-t">'+h(cn)+'</div><div class="rd-s">'+cat.total_items+' opciones · Desde '+fmt(cat.precio_desde)+'</div></div><div class="rd-body">';
-  if(src.descripcion_clinica)htm+='<div class="rd-desc">'+h(src.descripcion_clinica)+'</div>';
-  var cards='';function ac(l,ic,v){if(v)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}
-  var isProd=repoTipoAct==='PRODUCTO';
-  ac('Composición / Ingredientes','⚗️',src.composicion);ac('Beneficios','✅',src.beneficios);ac('Contraindicaciones','⚠️',src.contraindicaciones);ac('Perfil de paciente / Recomendado para','👤',src.perfil_paciente);ac(isProd?'Modo de uso':'Mecanismo de acción',isProd?'📋':'🔬',isProd?src.indicaciones:src.mecanismo_accion);if(!isProd)ac('Rol en el proceso','🎯',src.rol_proceso);
-  if(cards)htm+='<div class="rd-grid">'+cards+'</div>';
-  if(!src.descripcion_clinica&&!cards)htm+='<div class="rd-no">ℹ️ Información clínica próximamente — este tratamiento será documentado siguiendo el Índice Maestro</div>';
-
-  // SPLIT: Precios + FAQs
-  htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Opciones y precios</div><table class="rd-tbl"><thead><tr><th>Opción</th><th>Ses.</th><th>Promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';
-  (cat.items||[]).forEach(function(it){var cls=priceCls(it.precio_base,it.precio_oferta);htm+='<tr><td style="font-weight:600;color:#1E293B;font-size:10px">'+h(it.nombre)+'</td><td style="font-size:9px;color:var(--zg)">'+(it.num_sesiones&&it.num_sesiones!=='1'&&it.num_sesiones!==''?it.num_sesiones:'1')+'</td><td><span class="lt-p '+cls+'" style="font-size:11px">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift" style="font-size:8px">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});
-  htm+='</tbody></table></div>';
-
-  // FAQs column
-  htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ Preguntas frecuentes <span style="font-weight:400;color:var(--zg);font-size:9px">'+(allFaqs.length?allFaqs.length+' preguntas':'')+'</span></div>';
-  if(allFaqs.length){
-    htm+='<input class="faq-search" placeholder="🔍 Buscar pregunta..." oninput="faqF(this)" data-cat="'+h(cn)+'"><div class="faq-list" id="faq-list-'+cn.replace(/\s/g,'')+'">'+allFaqs.map(function(f,i){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>';
-  } else {
-    htm+='<div class="faq-none">Preguntas frecuentes próximamente</div>';
-  }
-  htm+='</div></div></div>';
-  document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0}
-
-function faqF(inp){var q=inp.value.toLowerCase();var cn=inp.getAttribute('data-cat').replace(/\s/g,'');var list=document.getElementById('faq-list-'+cn);if(!list)return;var items=list.querySelectorAll('.faq-item');items.forEach(function(it){var txt=(it.textContent||'').toLowerCase();it.style.display=txt.indexOf(q)>=0?'':'none'})}
+function repoSel(cn){document.querySelectorAll('.repo-si').forEach(function(x){x.classList.toggle('act',x.getAttribute('data-c')===cn)});var cat=null;D.repoData.forEach(function(c){if(c.nombre===cn)cat=c});if(!cat)return;var m=CM[cn]||{i:'📋',c:'#6B7BA8'};var src={};var allFaqs=[];(cat.items||[]).forEach(function(x){if(x.descripcion_clinica&&!src.descripcion_clinica)src=x;if(x.faqs&&x.faqs.length)allFaqs=x.faqs});var htm='<div class="rd-hdr" style="background:linear-gradient(135deg,var(--zb),'+m.c+')"><div class="rd-i">'+m.i+'</div><div class="rd-cat">TRATAMIENTO</div><div class="rd-t">'+h(cn)+'</div><div class="rd-s">'+cat.total_items+' opciones · Desde '+fmt(cat.precio_desde)+'</div></div><div class="rd-body">';if(src.descripcion_clinica)htm+='<div class="rd-desc">'+h(src.descripcion_clinica)+'</div>';var cards='';function ac(l,ic,v){if(v&&v.length>5)cards+='<div class="rd-c"><div class="rd-c-l">'+ic+' '+l+'</div><div class="rd-c-t">'+h(v)+'</div></div>'}ac('Composición','⚗️',src.composicion);ac('Beneficios','✅',src.beneficios);ac('Contraindicaciones','⚠️',src.contraindicaciones);ac('Perfil de paciente','👤',src.perfil_paciente);ac('Mecanismo de acción','🔬',src.mecanismo_accion);ac('Rol en el proceso','🎯',src.rol_proceso);if(cards)htm+='<div class="rd-grid">'+cards+'</div>';if(!src.descripcion_clinica&&!cards)htm+='<div class="rd-no">ℹ️ Información próximamente</div>';htm+='<div class="rd-split"><div class="rd-split-col"><div class="rd-sec-t">💰 Opciones y precios</div><table class="rd-tbl"><thead><tr><th>Opción</th><th>Promo</th><th>Regular</th><th>Incluye</th></tr></thead><tbody>';(cat.items||[]).forEach(function(it){var cls=pCls(it.precio_base,it.precio_oferta);htm+='<tr><td style="font-weight:600;color:#1E293B">'+h(it.nombre)+'</td><td><span class="lt-p '+cls+'">'+fmt(it.precio_oferta)+'</span></td><td class="lt-old">'+(it.precio_base?fmt(it.precio_base):'')+'</td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});htm+='</tbody></table></div>';htm+='<div class="rd-split-col"><div class="rd-sec-t">❓ FAQs'+(allFaqs.length?' ('+allFaqs.length+')':'')+'</div>';if(allFaqs.length){htm+='<input style="width:100%;padding:4px 6px;border-radius:5px;border:1px solid var(--zl);font-size:9px;font-family:Outfit;margin-bottom:4px;outline:none" placeholder="🔍 Buscar..." oninput="faqF(this)" data-cat="'+h(cn)+'"><div class="faq-list" id="faq-list-'+cn.replace(/\s/g,'')+'">'+allFaqs.map(function(f){return'<div class="faq-item" onclick="this.classList.toggle(\'open\')"><div class="faq-q">'+h(f.q)+'</div><div class="faq-a">'+h(f.a)+'</div></div>'}).join('')+'</div>'}else{htm+='<div class="faq-none">Próximamente</div>'}htm+='</div></div></div>';document.getElementById('repo-main').innerHTML=htm;document.getElementById('repo-main').scrollTop=0}
+function faqF(inp){var q=inp.value.toLowerCase();var cn=inp.getAttribute('data-cat').replace(/\s/g,'');var list=document.getElementById('faq-list-'+cn);if(!list)return;list.querySelectorAll('.faq-item').forEach(function(it){it.style.display=(it.textContent||'').toLowerCase().indexOf(q)>=0?'':'none'})}
 
 /* ═══ PROMOS ═══ */
-function loadPromos(){var all=D.serv.concat(D.prod);var p=all.filter(function(i){return i.precio_base&&i.precio_oferta&&i.precio_base>i.precio_oferta&&(i.precio_base-i.precio_oferta)/i.precio_base>.25}).sort(function(a,b){return((b.precio_base-b.precio_oferta)/b.precio_base)-((a.precio_base-a.precio_oferta)/a.precio_base)});
-  if(!p.length){document.getElementById('promo-wrap').innerHTML='<div class="ld">Sin promociones activas</div>';return}
-  var r='<table class="promo-tbl"><thead><tr><th>🔥</th><th>Servicio / Producto</th><th>Categoría</th><th>Sesiones</th><th>Precio promo</th><th>Precio regular</th><th>Ahorro</th><th>Incluye</th></tr></thead><tbody>';
-  p.slice(0,40).forEach(function(it,i){var pct=Math.round((1-it.precio_oferta/it.precio_base)*100);var m=CM[it.categoria]||{i:'📋',c:'#6B7BA8'};
-    r+='<tr><td style="text-align:center">'+(i+1)+'</td><td style="font-weight:600;color:#1E293B">'+h(it.nombre)+'</td><td><span class="lt-cat" style="background:'+m.c+'15;color:'+m.c+'">'+m.i+' '+h(it.categoria)+'</span></td><td style="font-size:10px;color:var(--zg)">'+(it.num_sesiones&&it.num_sesiones!=='1'?it.num_sesiones:'1')+'</td><td style="font-family:Source Serif 4,serif;font-weight:700;font-size:14px;color:var(--zbl)">'+fmt(it.precio_oferta)+'</td><td class="lt-old">'+fmt(it.precio_base)+'</td><td><span class="promo-pct">-'+pct+'%</span></td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});
-  r+='</tbody></table>';document.getElementById('promo-wrap').innerHTML=r}
+function loadPromos(){var all=D.serv.concat(D.prod);var p=all.filter(function(i){return i.precio_base&&i.precio_oferta&&i.precio_base>i.precio_oferta&&(i.precio_base-i.precio_oferta)/i.precio_base>.25}).sort(function(a,b){return((b.precio_base-b.precio_oferta)/b.precio_base)-((a.precio_base-a.precio_oferta)/a.precio_base)});if(!p.length){document.getElementById('promo-wrap').innerHTML='<div class="ld">Sin promos</div>';return}var r='<table class="promo-tbl"><thead><tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Promo</th><th>Regular</th><th>Ahorro</th><th>Incluye</th></tr></thead><tbody>';p.slice(0,40).forEach(function(it,i){var pct=Math.round((1-it.precio_oferta/it.precio_base)*100);var m=CM[it.categoria]||{i:'📋',c:'#6B7BA8'};r+='<tr><td>'+(i+1)+'</td><td style="font-weight:600;color:#1E293B">'+h(it.nombre)+'</td><td><span class="lt-cat" style="background:'+m.c+'15;color:'+m.c+'">'+m.i+' '+h(it.categoria)+'</span></td><td style="font-family:Source Serif 4,serif;font-weight:700;color:var(--zbl)">'+fmt(it.precio_oferta)+'</td><td class="lt-old">'+fmt(it.precio_base)+'</td><td><span class="promo-pct">-'+pct+'%</span></td><td>'+(it.indicaciones?'<span class="lt-gift">🎁 '+h(it.indicaciones)+'</span>':'')+'</td></tr>'});r+='</tbody></table>';document.getElementById('promo-wrap').innerHTML=r}
 </script>
