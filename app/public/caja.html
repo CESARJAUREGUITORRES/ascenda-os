@@ -334,57 +334,100 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- ===== MODAL NUEVA VENTA ===== -->
+<!-- ===== MODAL NUEVA VENTA v2 — pago por ítem ===== -->
 <div class="ov" id="ov-venta">
-  <div class="modal-box modal-venta">
+  <div class="modal-box modal-venta" style="width:760px;max-height:92vh;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue),var(--blue2));">
       <h3>💰 Nueva venta</h3><p id="venta-sede-label"></p>
     </div>
-    <div class="modal-body">
-      <div class="mfield"><label>Buscar paciente (nombre, celular o DNI)</label>
+    <div class="modal-body" style="padding:16px 18px;overflow-y:auto;max-height:70vh;">
+
+      <!-- Buscar paciente -->
+      <div class="mfield">
+        <label>Buscar paciente (nombre, celular o DNI)</label>
         <div class="busq-pac-wrap">
           <input type="text" id="busq-pac-input" placeholder="Escribe al menos 3 caracteres..." autocomplete="off" oninput="buscarPaciente(this.value)">
           <div class="busq-pac-results" id="busq-pac-results"></div>
         </div>
       </div>
-      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;">
+      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11px;">
         <div style="font-weight:700;color:var(--blue);font-size:13px;" id="pac-nombre">—</div>
-        <div style="color:var(--muted);display:flex;gap:12px;margin-top:3px;">
-          <span>📱 <span id="pac-cel">—</span></span><span>🪪 <span id="pac-dni">—</span></span><span>👤 <span id="pac-asesor">—</span></span>
+        <div style="color:var(--muted);display:flex;gap:12px;margin-top:3px;flex-wrap:wrap;">
+          <span>📱 <span id="pac-cel">—</span></span>
+          <span>🪪 <span id="pac-dni">—</span></span>
+          <span>⭐ <span id="pac-asesor">—</span></span>
         </div>
         <button onclick="limpiarPaciente()" style="margin-top:5px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-weight:700;">✕ Cambiar paciente</button>
       </div>
-      <div class="mfield"><label>Servicios / Productos</label>
-        <table class="items-tabla" id="items-tabla">
-          <thead><tr><th>Tipo</th><th style="width:38%">Nombre / Tratamiento</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
-          <tbody id="items-tbody"></tbody>
-        </table>
+
+      <!-- Tabla de ítems CON método de pago por ítem -->
+      <div class="mfield">
+        <label>Servicios / Productos — método de pago por ítem</label>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;" id="items-tabla">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;">Tipo</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:30%">Nombre / Tratamiento</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Cant.</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Precio S/</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método pago 1</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Monto 1</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método pago 2</th>
+                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Monto 2</th>
+                <th style="padding:7px 9px;border-bottom:1px solid var(--border);"></th>
+              </tr>
+            </thead>
+            <tbody id="items-tbody"></tbody>
+          </table>
+        </div>
         <button class="btn-add-item" onclick="addItem()">+ Agregar ítem</button>
-        <div class="total-line"><span class="total-lbl">Total:</span><span class="total-val" id="total-venta">S/ 0.00</span></div>
-      </div>
-      <div class="venta-cols">
-        <div class="mfield"><label>Tipo de comprobante</label>
-          <div class="comprobante-opts" id="comp-opts">
-            <label class="comp-opt sel"><input type="radio" name="comprobante" value="BOLETA" checked onchange="selComp(this)"> Boleta</label>
-            <label class="comp-opt"><input type="radio" name="comprobante" value="FACTURA" onchange="selComp(this)"> Factura</label>
-            <label class="comp-opt"><input type="radio" name="comprobante" value="RECIBO" onchange="selComp(this)"> Recibo</label>
-          </div>
-        </div>
-        <div class="mfield"><label>N° comprobante</label><input type="text" id="nro-doc" placeholder="B001-0001 (opcional)"></div>
-        <div class="mfield"><label>Doctor responsable</label>
-          <select id="doctor-sel"><option value="">— Seleccionar —</option><option>DRA YESSICA PEREZ</option><option>NO APLICA</option></select>
-        </div>
-        <div class="mfield"><label>Estado de pago</label>
-          <select id="estado-pago-sel"><option value="PAGO COMPLETO">Pago completo</option><option value="ADELANTO">Adelanto</option></select>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:8px 0;border-top:2px solid var(--border);margin-top:6px;">
+          <span style="font-size:11px;color:var(--muted);font-weight:600;">Total:</span>
+          <span style="font-family:Source Serif 4,serif;font-size:20px;font-weight:700;" id="total-venta">S/ 0.00</span>
         </div>
       </div>
-      <div class="mfield"><label>Método de pago</label>
-        <div style="display:flex;gap:8px;">
-          <select id="metodo-pago-sel" style="flex:2"></select>
-          <select id="moneda-sel" style="flex:1"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select>
+
+      <!-- Datos del registro -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="mfield">
+          <label>Tipo de comprobante</label>
+          <select id="tipo-comprobante-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="BOLETA">Boleta física</option>
+            <option value="BOLETA VIRTUAL">Boleta virtual</option>
+            <option value="RH">R.H. (Recibo por honorarios)</option>
+            <option value="FACTURA">Factura</option>
+            <option value="OTROS">Otros</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>N° comprobante (opcional)</label>
+          <input type="text" id="nro-doc" placeholder="B001-0001">
+        </div>
+        <div class="mfield">
+          <label>Encargado de atención</label>
+          <select id="doctor-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="">— Sin encargado —</option>
+            <option value="DRA YESSICA PEREZ">DRA YESSICA PEREZ (DOCTORA)</option>
+            <option value="MIREYA X">MIREYA X (ENFERMERIA)</option>
+            <option value="RUVILA CUEVAS">RUVILA CUEVAS (ENFERMERIA)</option>
+            <option value="WILMER CIEZA">WILMER CIEZA (ENFERMERIA)</option>
+            <option value="NO APLICA">NO APLICA</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>Estado de pago</label>
+          <select id="estado-pago-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="PAGO COMPLETO">Pago completo</option>
+            <option value="ADELANTO">Adelanto</option>
+          </select>
         </div>
       </div>
-      <div class="mfield" style="margin-bottom:0;"><label>Nota interna</label><input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)"></div>
+      <div class="mfield" style="margin-bottom:0;">
+        <label>Nota interna</label>
+        <input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+      </div>
+
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="cerrarOv('ov-venta')">Cancelar</button>
@@ -1046,8 +1089,25 @@ function abrirModalVenta() {
   document.getElementById('nro-doc').value = '';
   document.getElementById('venta-sede-label').textContent = CAJA.sede;
   cargarMetodosPagoSelect();
+  cargarPersonalSelect();
   addItem();
   abrirOv('ov-venta');
+}
+
+function cargarPersonalSelect() {
+  sbGet('aos_rrhh', 'order=nombre.asc', function(rows) {
+    var sel = document.getElementById('doctor-sel');
+    if (!sel) return;
+    var opts = '<option value="">— Sin encargado —</option>';
+    if (rows && rows.length) {
+      opts += rows.map(function(r) {
+        return '<option value="' + escH(r.nombre + ' ' + (r.apellido||'')) + '">' + escH(r.nombre + ' ' + (r.apellido||'')) + ' (' + escH(r.puesto||'') + ')</option>';
+      }).join('');
+    } else {
+      opts += '<option value="DRA YESSICA PEREZ">DRA YESSICA PEREZ</option><option value="MIREYA X">MIREYA X</option><option value="RUVILA CUEVAS">RUVILA CUEVAS</option><option value="WILMER CIEZA">WILMER CIEZA</option><option value="NO APLICA">NO APLICA</option>';
+    }
+    sel.innerHTML = opts;
+  });
 }
 
 function cargarMetodosPagoSelect() {
@@ -1062,26 +1122,45 @@ function cargarMetodosPagoSelect() {
 }
 
 function addItem() {
-  CAJA.items.push({ tipo: 'SERVICIO', nombre: '', cantidad: 1, precio: 0, subtotal: 0 });
+  CAJA.items.push({ tipo: 'SERVICIO', nombre: '', cantidad: 1, precio: 0, subtotal: 0, metodo1: '', monto1: 0, metodo2: '', monto2: 0 });
   renderItems();
 }
 
+function mkMetodoOpts(val) {
+  var opts = '<option value="">— Método —</option>';
+  CAJA.metodosDisponibles.forEach(function(m) {
+    opts += '<option value="' + escH(m) + '"' + (val===m?' selected':'') + '>' + escH(m) + '</option>';
+  });
+  return opts;
+}
+
 function renderItems() {
-  var idx = CAJA.items.length;
+  var metOpts = '<option value="">\u2014 M\u00e9todo \u2014</option>' +
+    CAJA.metodosDisponibles.map(function(m){ return '<option value="'+escH(m)+'">'+escH(m)+'</option>'; }).join('');
+
   var html = CAJA.items.map(function(it, i) {
-    return '<tr>' +
-      '<td><select onchange="CAJA.items[' + i + '].tipo=this.value" style="width:90px;border:1px solid var(--border);border-radius:4px;padding:3px;font-family:Outfit;font-size:10px;">' +
-        '<option value="SERVICIO"' + (it.tipo === 'SERVICIO' ? ' selected' : '') + '>Servicio</option>' +
-        '<option value="PRODUCTO"' + (it.tipo === 'PRODUCTO' ? ' selected' : '') + '>Producto</option>' +
+    function mkSel(val) {
+      return metOpts.replace('value="'+escH(val||'')+'"','value="'+escH(val||'')+'" selected');
+    }
+    var monto1 = (it.monto1 !== undefined && it.monto1 !== null) ? parseFloat(it.monto1) : parseFloat(it.subtotal||0);
+    var monto2 = parseFloat(it.monto2 || 0);
+    return '<tr style="border-bottom:1px solid #DDE4F5;">' +
+      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].tipo=this.value" style="width:82px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">' +
+        '<option value="SERVICIO"'+(it.tipo==='SERVICIO'?' selected':'')+'>Servicio</option>' +
+        '<option value="PRODUCTO"'+(it.tipo==='PRODUCTO'?' selected':'')+'>Producto</option>' +
       '</select></td>' +
-      '<td><input type="text" value="' + escH(it.nombre) + '" placeholder="Nombre tratamiento..." oninput="CAJA.items[' + i + '].nombre=this.value" style="width:100%;"></td>' +
-      '<td><input type="number" value="' + it.cantidad + '" min="1" step="1" oninput="CAJA.items[' + i + '].cantidad=parseFloat(this.value||1);calcItem(' + i + ')" style="width:50px;"></td>' +
-      '<td><input type="number" value="' + it.precio + '" min="0" step="0.01" oninput="CAJA.items[' + i + '].precio=parseFloat(this.value||0);calcItem(' + i + ')" style="width:80px;"></td>' +
-      '<td style="font-weight:700;font-family:Source Serif 4,serif;">S/ ' + parseFloat(it.subtotal || 0).toFixed(2) + '</td>' +
-      '<td><button onclick="CAJA.items.splice(' + i + ',1);renderItems()" style="border:none;background:#FEE2E2;color:#DC2626;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:11px;">×</button></td>' +
+      '<td style="padding:5px 6px;"><input type="text" value="'+escH(it.nombre||'')+'" placeholder="Nombre..." oninput="CAJA.items['+i+'].nombre=this.value" style="width:100%;border:1px solid #DDE4F5;border-radius:4px;padding:3px 5px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
+      '<td style="padding:5px 6px;"><input type="number" value="'+it.cantidad+'" min="1" step="1" oninput="CAJA.items['+i+'].cantidad=parseFloat(this.value||1);calcItem('+i+')" style="width:44px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
+      '<td style="padding:5px 6px;"><input type="number" value="'+it.precio+'" min="0" step="0.01" oninput="CAJA.items['+i+'].precio=parseFloat(this.value||0);calcItem('+i+')" style="width:70px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
+      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].metodo1=this.value" style="width:132px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">'+mkSel(it.metodo1)+'</select></td>' +
+      '<td style="padding:5px 6px;"><input type="number" value="'+monto1.toFixed(2)+'" min="0" step="0.01" oninput="CAJA.items['+i+'].monto1=parseFloat(this.value||0)" style="width:65px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
+      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].metodo2=this.value" style="width:132px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">'+mkSel(it.metodo2)+'</select></td>' +
+      '<td style="padding:5px 6px;"><input type="number" value="'+monto2.toFixed(2)+'" min="0" step="0.01" oninput="CAJA.items['+i+'].monto2=parseFloat(this.value||0)" style="width:65px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
+      '<td style="padding:5px 6px;"><button onclick="CAJA.items.splice('+i+',1);renderItems()" style="border:none;background:#FEE2E2;color:#DC2626;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:11px;">x</button></td>' +
     '</tr>';
   }).join('');
-  document.getElementById('items-tbody').innerHTML = html;
+  var tbody = document.getElementById('items-tbody');
+  if (tbody) tbody.innerHTML = html || '<tr><td colspan="9" style="padding:12px;text-align:center;color:#9AAAC8;font-size:11px;">Sin ítems. Haz clic en "+ Agregar ítem"</td></tr>';
   calcTotal();
 }
 
@@ -1109,9 +1188,12 @@ function buscarPaciente(q) {
       resultados.innerHTML = '<div class="busq-item" style="color:var(--muted);">Sin resultados para "' + escH(q) + '"</div>';
     } else {
       resultados.innerHTML = lista.map(function(p) {
+        // RPC devuelve 'numero' en vez de 'celular'
+        p.celular = p.celular || p.numero || p.numero_limpio || '';
+        p.numero_limpio = p.numero_limpio || p.numero || p.celular || '';
         return '<div class="busq-item" onclick="selPaciente(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">' +
           '<strong>' + escH(p.nombres || '') + ' ' + escH(p.apellidos || '') + '</strong>' +
-          ' <span>' + escH(p.celular || p.numero_limpio || '') + ' · DNI: ' + escH(p.dni || '—') + '</span></div>';
+          ' <span>' + escH(p.celular) + ' · DNI: ' + escH(p.dni || '—') + '</span></div>';
       }).join('');
     }
     resultados.classList.add('open');
@@ -1123,9 +1205,9 @@ function selPaciente(p) {
   document.getElementById('busq-pac-input').value = '';
   document.getElementById('busq-pac-results').classList.remove('open');
   document.getElementById('pac-nombre').textContent = (p.nombres || '') + ' ' + (p.apellidos || '');
-  document.getElementById('pac-cel').textContent = p.celular || p.numero_limpio || '—';
+  document.getElementById('pac-cel').textContent = p.numero || p.celular || p.numero_limpio || '—';
   document.getElementById('pac-dni').textContent = p.dni || '—';
-  document.getElementById('pac-asesor').textContent = p.asesor || '—';
+  document.getElementById('pac-asesor').textContent = p.asesor || p.vip || '—';
   document.getElementById('pac-ficha').style.display = 'block';
 }
 
@@ -1139,11 +1221,14 @@ function grabarVenta() {
   var items = CAJA.items.filter(function(it) { return it.nombre && parseFloat(it.precio) > 0; });
   if (!items.length) { toast('Agrega al menos un ítem con nombre y precio', 'warn'); return; }
 
-  var metodo = document.getElementById('metodo-pago-sel').value;
-  if (!metodo) { toast('Selecciona método de pago', 'warn'); return; }
+  // Verificar que todos los ítems tengan método de pago
+  var sinMetodo = items.filter(function(it){ return !it.metodo_pago; });
+  if (sinMetodo.length > 0) { toast('Selecciona método de pago para cada ítem', 'warn'); return; }
+  var metodo = items[0] && items[0].metodo_pago ? items[0].metodo_pago : 'EFECTIVO';
 
   var pac = CAJA.pacSeleccionado || {};
-  var comprobante = document.querySelector('input[name="comprobante"]:checked');
+  var comprobanteEl = document.getElementById('tipo-comprobante-sel');
+  var comprobante = { value: comprobanteEl ? comprobanteEl.value : 'BOLETA' };
 
   loading(true);
   var btn = document.getElementById('btn-grabar-venta');
@@ -1154,22 +1239,29 @@ function grabarVenta() {
     p_fecha: fechaLima(),
     p_usuario: CAJA.usuario || 'CAJA',
     p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
-    p_numero_limpio: pac.numero_limpio || pac.celular || '',
+    p_numero_limpio: pac.numero_limpio || pac.numero || pac.celular || '',
     p_nombres: pac.nombres || 'CLIENTE',
     p_apellidos: pac.apellidos || 'DIRECTO',
-    p_celular: pac.celular || pac.numero_limpio || '',
+    p_celular: pac.celular || pac.numero || pac.numero_limpio || '',
     p_dni: pac.dni || '',
     p_asesor: pac.asesor || CAJA.usuario || '',
-    p_doctor: document.getElementById('doctor-sel').value,
-    p_items: items,
-    p_metodo_pago: metodo,
+    p_encargado: document.getElementById('doctor-sel').value,
+    p_items: items.map(function(it) {
+      return {
+        tipo: it.tipo, nombre: it.nombre, cantidad: it.cantidad,
+        precio: it.precio, subtotal: it.subtotal,
+        metodo1: it.metodo1 || '', monto1: it.monto1 || it.subtotal,
+        metodo2: it.metodo2 || '', monto2: it.monto2 || 0
+      };
+    }),
+    p_metodo_pago: items[0] && items[0].metodo_pago ? items[0].metodo_pago : (metodo || 'EFECTIVO'),
     p_monto_total: items.reduce(function(s, it) { return s + parseFloat(it.subtotal || 0); }, 0),
     p_moneda: document.getElementById('moneda-sel').value,
-    p_tipo_comprobante: comprobante ? comprobante.value : 'BOLETA',
+    p_tipo_comprobante: document.getElementById('tipo-comprobante-sel').value,
     p_nro_doc: document.getElementById('nro-doc').value.trim(),
     p_estado_pago: document.getElementById('estado-pago-sel').value,
     p_nota: document.getElementById('nota-venta').value.trim(),
-    p_tipo: items[0].tipo || 'SERVICIO'
+    p_tipo: items[0] && items[0].tipo ? items[0].tipo : 'SERVICIO'
   }, function(d) {
     loading(false);
     btn.disabled = false;
