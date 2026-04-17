@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caja — AscendaOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== CAJA PANEL — ASCENDAOS SES-017 ===== */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;--blue-md:#BFDBFE;
+  --cyan:#00C9A7;--mint:#00E5A0;--bg:#F0F4FC;--surface:#fff;
+  --border:#DDE4F5;--text:#0D1B3E;--muted:#6B7BA8;--label:#9AAAC8;
+  --red:#DC2626;--red-xl:#FEF2F2;--amber:#D97706;--amber-xl:#FFFBEB;
+  --green:#16A34A;--green-xl:#F0FDF4;--green-md:#BBF7D0;
+  --purple:#7C3AED;--purple-xl:#F5F3FF;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ===== BANNER DIVISAS WALL STREET ===== */
+.ticker-wrap{background:#0D1117;overflow:hidden;height:32px;display:flex;align-items:center;border-bottom:1px solid #1E2D40;flex-shrink:0;}
+.ticker-inner{display:flex;gap:0;animation:ticker 30s linear infinite;white-space:nowrap;}
+.ticker-item{display:flex;align-items:center;gap:7px;padding:0 22px;font-family:'Outfit',monospace;font-size:11px;font-weight:600;color:#E2E8F0;border-right:1px solid #1E2D40;}
+.ticker-sym{color:#00C9A7;font-weight:800;font-size:10px;letter-spacing:.5px;}
+.ticker-val{color:#fff;font-size:12px;}
+.ticker-chg.up{color:#00E5A0;}
+.ticker-chg.dn{color:#F87171;}
+.ticker-label{font-size:9px;color:#64748B;font-weight:400;}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-wrap:hover .ticker-inner{animation-play-state:paused;}
+
+/* ===== HEADER CAJA ===== */
+.caja-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.sede-tabs{display:flex;gap:6px;}
+.sede-tab{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s;}
+.sede-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.caja-estado-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.caja-estado-badge.abierta{background:var(--green-xl);color:var(--green);border:1.5px solid var(--green-md);}
+.caja-estado-badge.cerrada{background:var(--red-xl);color:var(--red);border:1.5px solid #FECACA;}
+.caja-estado-badge.sin-sesion{background:var(--amber-xl);color:var(--amber);border:1.5px solid #FDE68A;}
+.edo-dot2{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.hdr-apertura{font-size:11px;color:var(--muted);margin-left:auto;}
+.hdr-apertura strong{color:var(--text);}
+.btn-abrir-caja{padding:8px 16px;border-radius:9px;background:var(--green);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.btn-cerrar-caja{padding:8px 16px;border-radius:9px;background:var(--red);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+
+/* ===== BODY CAJA ===== */
+.caja-body{padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+
+/* ===== KPIs ===== */
+.kpis-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.kpi-label{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.kpi-val{font-family:'Source Serif 4',serif;font-size:22px;font-weight:700;color:var(--text);}
+.kpi-val.green{color:var(--green);}
+.kpi-val.blue{color:var(--blue);}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* ===== MÉTODOS DE PAGO CARDS ===== */
+.metodos-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.section-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.metodos-grid{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;}
+.metodo-card{background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;min-width:110px;cursor:default;transition:border-color .15s;}
+.metodo-card.has-data{border-color:var(--blue-md);background:var(--blue-xl);}
+.mc-name{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.mc-val{font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;color:var(--text);margin-top:2px;}
+.mc-val.has{color:var(--blue);}
+.mc-cnt{font-size:9px;color:var(--label);}
+
+/* ===== TABLA VENTAS ===== */
+.tabla-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tabla-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.tabla-hdr-title{font-size:11px;font-weight:700;color:var(--text);flex:1;}
+.btn-nueva-venta{padding:8px 16px;border-radius:9px;background:var(--blue);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';display:flex;align-items:center;gap:6px;}
+.tabla-wrap{overflow-x:auto;}
+table.ventas-tabla{width:100%;border-collapse:collapse;font-size:11px;}
+table.ventas-tabla thead tr{background:var(--bg);}
+table.ventas-tabla th{padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.ventas-tabla td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.ventas-tabla tr:hover td{background:#F8FAFF;}
+.td-hora{color:var(--muted);font-size:10px;white-space:nowrap;}
+.td-pac{font-weight:700;color:var(--text);}
+.td-pac small{font-weight:400;color:var(--muted);display:block;font-size:10px;}
+.td-trat{color:var(--text);max-width:200px;}
+.td-trat small{color:var(--muted);font-size:10px;display:block;}
+.badge-metodo{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;background:var(--blue-xl);color:var(--blue);white-space:nowrap;}
+.badge-efectivo{background:#FFF7ED;color:#EA580C;}
+.badge-qr{background:var(--purple-xl);color:var(--purple);}
+.badge-transferencia{background:#F0FDF4;color:#16A34A;}
+.td-monto{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;}
+.td-monto.usd{color:var(--green);}
+.badge-estado{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;}
+.badge-pagado{background:var(--green-xl);color:var(--green);}
+.badge-adelanto{background:var(--amber-xl);color:var(--amber);}
+.badge-pendiente{background:var(--red-xl);color:var(--red);}
+.td-acciones{display:flex;gap:4px;}
+.btn-accion{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:background .12s;}
+.btn-accion:hover{background:var(--blue-xl);}
+.btn-accion.del:hover{background:var(--red-xl);}
+.tabla-empty{text-align:center;padding:40px;color:var(--label);font-size:12px;}
+
+/* ===== CIERRE DE CAJA ===== */
+.cierre-section{background:var(--surface);border:2px solid var(--border);border-radius:12px;overflow:hidden;}
+.cierre-hdr{padding:12px 16px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;display:flex;align-items:center;gap:8px;}
+.cierre-hdr-title{font-size:13px;font-weight:700;flex:1;}
+.cierre-body{padding:16px;}
+.cierre-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.cierre-field{display:flex;flex-direction:column;gap:4px;}
+.cierre-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.cierre-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Outfit';font-size:13px;font-weight:700;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;}
+.cierre-input:focus{border-color:var(--blue);background:#fff;}
+.cierre-resumen{background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
+.cierre-row{display:flex;justify-content:space-between;font-size:11px;}
+.cierre-row.total{font-weight:800;font-size:13px;color:var(--text);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;}
+.cierre-row.diff-ok{color:var(--green);}
+.cierre-row.diff-mal{color:var(--red);}
+.btn-confirmar-cierre{width:100%;padding:12px;border-radius:10px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:'Outfit';}
+.btn-confirmar-cierre:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ===== LOG ===== */
+.log-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.log-list{max-height:180px;overflow-y:auto;padding:8px 14px;}
+.log-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:10px;}
+.log-item:last-child{border-bottom:none;}
+.log-hora{color:var(--label);flex-shrink:0;width:55px;}
+.log-accion{font-weight:700;color:var(--blue);flex-shrink:0;width:110px;}
+.log-det{color:var(--muted);flex:1;}
+
+/* ===== MODAL ABRIR CAJA ===== */
+.ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.ov.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px;width:420px;max-width:95vw;border:1px solid var(--border);overflow:hidden;}
+.modal-hdr{background:linear-gradient(135deg,var(--blue),var(--blue2));padding:16px 20px;color:#fff;}
+.modal-hdr h3{font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;}
+.modal-hdr p{font-size:10px;opacity:.8;margin-top:3px;}
+.modal-body{padding:20px;}
+.mfield{margin-bottom:14px;}
+.mfield label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.mfield input,.mfield select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Outfit';font-size:13px;outline:none;color:var(--text);}
+.mfield input:focus,.mfield select:focus{border-color:var(--blue);}
+.mfield .hint{font-size:9px;color:var(--label);margin-top:3px;}
+.mfield .alerta-saldo{padding:8px 10px;background:var(--amber-xl);border:1px solid #FDE68A;border-radius:6px;font-size:10px;color:var(--amber);font-weight:600;margin-top:4px;display:none;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.btn-cancel{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit';color:var(--muted);}
+.btn-primary{padding:9px 22px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.btn-danger{padding:9px 22px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+
+/* ===== MODAL NUEVA VENTA ===== */
+.modal-venta{width:720px;max-width:98vw;}
+.venta-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.items-tabla{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
+.items-tabla th{padding:6px 8px;background:var(--bg);font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);}
+.items-tabla td{padding:6px 8px;border-bottom:1px solid var(--border);}
+.items-tabla td input{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:'Outfit';font-size:11px;outline:none;}
+.btn-add-item{padding:6px 14px;border-radius:7px;border:1.5px dashed var(--blue);background:var(--blue-xl);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';margin-top:8px;}
+.total-line{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:8px 0;border-top:2px solid var(--border);margin-top:6px;}
+.total-lbl{font-size:12px;color:var(--muted);font-weight:600;}
+.total-val{font-family:'Source Serif 4',serif;font-size:20px;font-weight:700;color:var(--text);}
+.pago-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}
+.pago-row .mfield{flex:1;min-width:120px;margin-bottom:0;}
+.comprobante-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.comp-opt{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);}
+.comp-opt input{margin:0;}
+.comp-opt.sel{border-color:var(--blue);background:var(--blue-xl);color:var(--blue);}
+.busq-pac-wrap{position:relative;}
+.busq-pac-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(10,79,191,.1);display:none;}
+.busq-pac-results.open{display:block;}
+.busq-item{padding:8px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border);}
+.busq-item:hover{background:var(--blue-xl);}
+.busq-item strong{font-weight:700;color:var(--text);}
+.busq-item span{color:var(--muted);}
+
+/* ===== MODAL EDITAR PAGO ===== */
+.modal-edit{width:380px;}
+
+/* ===== OVERLAY DE CARGA ===== */
+.loading-ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:9999;align-items:center;justify-content:center;}
+.loading-ov.open{display:flex;}
+.loading-spin{width:42px;height:42px;border:4px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ===== TOAST ===== */
+.toast-caja{position:fixed;bottom:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.tc-item{padding:10px 16px;border-radius:10px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 16px rgba(10,79,191,.12);font-size:12px;font-weight:600;pointer-events:all;animation:slideup .3s ease;max-width:320px;}
+@keyframes slideup{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.tc-item.ok{border-color:var(--green-md);background:var(--green-xl);color:var(--green);}
+.tc-item.err{border-color:#FECACA;background:var(--red-xl);color:var(--red);}
+.tc-item.warn{border-color:#FDE68A;background:var(--amber-xl);color:var(--amber);}
+
+/* ===== ESTADO SIN SESIÓN ===== */
+.no-sesion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;text-align:center;}
+.no-sesion-ico{font-size:48px;}
+.no-sesion h3{font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;color:var(--text);}
+.no-sesion p{font-size:12px;color:var(--muted);max-width:320px;line-height:1.6;}
+
+@media(max-width:600px){
+  .kpis-row{grid-template-columns:repeat(2,1fr);}
+  .venta-cols{grid-template-columns:1fr;}
+  .cierre-grid{grid-template-columns:1fr;}
+  .caja-body{padding:10px 12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- BANNER DIVISAS -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker-inner">
+    <!-- Generado por JS -->
+  </div>
+</div>
+
+<!-- HEADER CAJA -->
+<div class="caja-header">
+  <div class="sede-tabs">
+    <div class="sede-tab active" data-sede="SAN ISIDRO" onclick="cambiarSede('SAN ISIDRO')">🏢 San Isidro</div>
+    <div class="sede-tab" data-sede="PUEBLO LIBRE" onclick="cambiarSede('PUEBLO LIBRE')">🏢 Pueblo Libre</div>
+  </div>
+  <div id="caja-estado-wrap">
+    <div class="caja-estado-badge sin-sesion">
+      <div class="edo-dot2" style="background:var(--amber)"></div>
+      <span>Sin sesión</span>
+    </div>
+  </div>
+  <div class="hdr-apertura" id="hdr-info">
+    <!-- info apertura -->
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button id="btn-abrir" class="btn-abrir-caja" onclick="abrirModalApertura()" style="display:none;">🔓 Abrir caja</button>
+    <button id="btn-cerrar-caja-btn" class="btn-cerrar-caja" onclick="abrirModalCierre()" style="display:none;">🔒 Cerrar caja</button>
+  </div>
+</div>
+
+<!-- BODY PRINCIPAL -->
+<div class="caja-body" id="caja-body">
+  <div class="no-sesion" id="no-sesion-msg">
+    <div class="no-sesion-ico">🔓</div>
+    <h3>Caja cerrada</h3>
+    <p>La caja de esta sede no está abierta. Haz clic en "Abrir caja" para iniciar el día.</p>
+  </div>
+</div>
+
+<!-- ===== MODAL ABRIR CAJA ===== -->
+<div class="ov" id="ov-apertura">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3>🔓 Abrir caja</h3>
+      <p id="apertura-sede-label">San Isidro · Hoy</p>
+    </div>
+    <div class="modal-body">
+      <div class="mfield">
+        <label>Usuario que abre</label>
+        <input type="text" id="apertura-usuario" placeholder="Tu nombre" value="">
+      </div>
+      <div class="grid2">
+        <div class="mfield">
+          <label>Efectivo en soles S/</label>
+          <input type="number" id="apertura-soles" placeholder="0.00" step="0.01" value="0">
+          <div class="hint">Billetes en caja al abrir</div>
+        </div>
+        <div class="mfield">
+          <label>Efectivo en dólares $</label>
+          <input type="number" id="apertura-dolares" placeholder="0.00" step="0.01" value="0">
+        </div>
+      </div>
+      <div class="mfield" id="campo-tc">
+        <label>Tipo de cambio del día (S/)</label>
+        <input type="number" id="apertura-tc" placeholder="3.70" step="0.01" value="3.70">
+        <div class="hint" id="tc-hint">Cargando tipo de cambio...</div>
+      </div>
+      <div class="alerta-saldo" id="alerta-saldo">
+        ⚠️ <strong>Diferencia detectada</strong> vs cierre anterior. Soles: <span id="alerta-diff-s">0</span> · Dólares: <span id="alerta-diff-d">0</span>
+      </div>
+      <div class="mfield" style="margin-top:8px;margin-bottom:0;">
+        <label>Saldo del día anterior</label>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);">
+          Soles: <strong id="saldo-ant-s">—</strong> &nbsp;|&nbsp; Dólares: <strong id="saldo-ant-d">—</strong>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-apertura')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarApertura()">✓ Abrir caja</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CIERRE DE CAJA ===== -->
+<div class="ov" id="ov-cierre">
+  <div class="modal-box">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#B91C1C,#DC2626);">
+      <h3>🔒 Cierre de caja</h3>
+      <p id="cierre-sede-label">Declaración final del día</p>
+    </div>
+    <div class="modal-body">
+      <div class="cierre-resumen" id="cierre-resumen">
+        <!-- generado dinámicamente -->
+      </div>
+      <div class="grid2">
+        <div class="mfield">
+          <label>Efectivo declarado S/</label>
+          <input type="number" id="cierre-soles" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
+        </div>
+        <div class="mfield">
+          <label>Efectivo declarado $</label>
+          <input type="number" id="cierre-dolares" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
+        </div>
+        <div class="mfield">
+          <label>Retiro efectivo S/</label>
+          <input type="number" id="retiro-soles" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
+          <div class="hint">Cuánto se lleva de la caja</div>
+        </div>
+        <div class="mfield">
+          <label>Retiro dólares $</label>
+          <input type="number" id="retiro-dolares" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
+        </div>
+      </div>
+      <div id="cierre-diferencias" style="margin-bottom:12px;font-size:11px;"></div>
+      <div class="mfield" style="margin-bottom:0">
+        <label>Observaciones</label>
+        <input type="text" id="cierre-obs" placeholder="Notas del cierre (opcional)">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-cierre')">Cancelar</button>
+      <button class="btn-danger" onclick="confirmarCierre()">🔒 Confirmar cierre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL NUEVA VENTA ===== -->
+<div class="ov" id="ov-venta">
+  <div class="modal-box modal-venta">
+    <div class="modal-hdr">
+      <h3>💰 Nueva venta</h3>
+      <p id="venta-sede-label">Registrar venta en caja</p>
+    </div>
+    <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+
+      <!-- Buscar paciente -->
+      <div class="mfield">
+        <label>Buscar paciente (nombre, celular o DNI)</label>
+        <div class="busq-pac-wrap">
+          <input type="text" id="busq-pac-input" placeholder="Escribe al menos 3 caracteres..." autocomplete="off" oninput="buscarPaciente(this.value)">
+          <div class="busq-pac-results" id="busq-pac-results"></div>
+        </div>
+      </div>
+
+      <!-- Ficha paciente seleccionado -->
+      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;">
+        <div style="font-weight:700;color:var(--blue);font-size:13px;" id="pac-nombre">—</div>
+        <div style="color:var(--muted);display:flex;gap:12px;margin-top:3px;">
+          <span>📱 <span id="pac-cel">—</span></span>
+          <span>🪪 <span id="pac-dni">—</span></span>
+          <span>👤 <span id="pac-asesor">—</span></span>
+        </div>
+        <button onclick="limpiarPaciente()" style="margin-top:6px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-weight:700;">✕ Cambiar paciente</button>
+      </div>
+
+      <!-- Items -->
+      <div class="mfield">
+        <label>Servicios / Productos</label>
+        <table class="items-tabla" id="items-tabla">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th style="width:40%">Nombre / Tratamiento</th>
+              <th>Cant.</th>
+              <th>Precio</th>
+              <th>Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody"></tbody>
+        </table>
+        <button class="btn-add-item" onclick="addItem()">+ Agregar ítem</button>
+        <div class="total-line">
+          <span class="total-lbl">Total:</span>
+          <span class="total-val" id="total-venta">S/ 0.00</span>
+        </div>
+      </div>
+
+      <!-- Datos venta -->
+      <div class="venta-cols">
+        <div class="mfield">
+          <label>Tipo de comprobante</label>
+          <div class="comprobante-opts" id="comp-opts">
+            <label class="comp-opt sel"><input type="radio" name="comprobante" value="BOLETA" checked onchange="selComp(this)"> Boleta</label>
+            <label class="comp-opt"><input type="radio" name="comprobante" value="FACTURA" onchange="selComp(this)"> Factura</label>
+            <label class="comp-opt"><input type="radio" name="comprobante" value="RECIBO" onchange="selComp(this)"> Recibo</label>
+          </div>
+        </div>
+        <div class="mfield">
+          <label>N° comprobante</label>
+          <input type="text" id="nro-doc" placeholder="B001-0001 (opcional)">
+        </div>
+        <div class="mfield">
+          <label>Doctor responsable</label>
+          <select id="doctor-sel">
+            <option value="">— Seleccionar —</option>
+            <option>DRA YESSICA PEREZ</option>
+            <option>NO APLICA</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>Estado de pago</label>
+          <select id="estado-pago-sel">
+            <option value="PAGO COMPLETO">Pago completo</option>
+            <option value="ADELANTO">Adelanto</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pago -->
+      <div class="mfield">
+        <label>Método de pago</label>
+        <div class="pago-row">
+          <div class="mfield">
+            <select id="metodo-pago-sel" style="width:100%">
+              <option value="">— Seleccionar método —</option>
+              <!-- cargado dinámicamente -->
+            </select>
+          </div>
+          <div class="mfield">
+            <label>Moneda</label>
+            <select id="moneda-sel">
+              <option value="PEN">S/ Soles</option>
+              <option value="USD">$ Dólares</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="mfield" style="margin-bottom:0">
+        <label>Nota interna</label>
+        <input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)">
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-venta')">Cancelar</button>
+      <button class="btn-primary" onclick="grabarVenta()" id="btn-grabar-venta">💾 Grabar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL EDITAR PAGO ===== -->
+<div class="ov" id="ov-editar">
+  <div class="modal-box modal-edit">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--amber),#B45309);">
+      <h3>✏️ Editar pago</h3>
+      <p id="edit-venta-id-label">—</p>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-venta-id">
+      <div class="mfield">
+        <label>Nuevo método de pago</label>
+        <select id="edit-metodo" style="width:100%"></select>
+      </div>
+      <div class="grid2">
+        <div class="mfield">
+          <label>Nuevo monto</label>
+          <input type="number" id="edit-monto" step="0.01" placeholder="0.00">
+        </div>
+        <div class="mfield">
+          <label>Moneda</label>
+          <select id="edit-moneda">
+            <option value="PEN">S/ Soles</option>
+            <option value="USD">$ Dólares</option>
+          </select>
+        </div>
+      </div>
+      <div class="mfield" style="margin-bottom:0">
+        <label>Estado</label>
+        <select id="edit-estado" style="width:100%">
+          <option value="PAGO COMPLETO">Pago completo</option>
+          <option value="ADELANTO">Adelanto</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-editar')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarEdicion()">✓ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-ov" id="loading-ov">
+  <div class="loading-spin"></div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-caja" id="toast-caja"></div>
+
+<script>
+// ===== MOD-01-START: CONFIG Y ESTADO =====
+var SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+var CAJA = {
+  sede: 'SAN ISIDRO',
+  sesion: null,
+  ventas: [],
+  metodos: [],
+  kpis: {},
+  log: [],
+  tc: 3.70,
+  usuario: '',
+  items: [],
+  pacSeleccionado: null,
+  metodosDisponibles: []
+};
+
+function rpc(fn, params, ok, fail) {
+  fetch(SB_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(params || {})
+  }).then(function(r) { return r.json(); }).then(ok || function() {}).catch(fail || function(e) { console.error('[CAJA RPC]', fn, e); });
+}
+
+function sbGet(tabla, qs, ok) {
+  fetch(SB_URL + '/rest/v1/' + tabla + '?' + qs, {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  }).then(function(r) { return r.json(); }).then(ok || function() {});
+}
+
+function escH(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function esc(s)  { return String(s || ''); }
+function fmtMonto(m, mon) { mon = mon || 'PEN'; return (mon === 'USD' ? '$ ' : 'S/ ') + parseFloat(m || 0).toFixed(2); }
+// ===== MOD-01-END: CONFIG Y ESTADO =====
+
+// ===== MOD-02-START: TICKER DIVISAS =====
+var tickerData = [
+  { sym: 'USD/PEN', val: '—', chg: '', label: 'Dólar (interno)' },
+  { sym: 'EUR/PEN', val: '—', chg: '', label: 'Euro' },
+  { sym: 'TC VENTA', val: '—', chg: '', label: 'BCR Venta' }
+];
+
+function buildTicker() {
+  var items = tickerData.concat(tickerData); // duplicar para loop continuo
+  var html = items.map(function(d) {
+    return '<div class="ticker-item">' +
+      '<span class="ticker-sym">' + escH(d.sym) + '</span>' +
+      '<span class="ticker-val">' + escH(d.val) + '</span>' +
+      (d.chg ? '<span class="ticker-chg ' + (parseFloat(d.chg) >= 0 ? 'up' : 'dn') + '">' + (parseFloat(d.chg) >= 0 ? '▲' : '▼') + ' ' + Math.abs(parseFloat(d.chg)).toFixed(4) + '</span>' : '') +
+      '<span class="ticker-label">' + escH(d.label) + '</span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('ticker-inner').innerHTML = html;
+}
+
+function cargarTC() {
+  // Llamar a nuestro endpoint proxy en Railway para evitar CORS
+  fetch('https://ascenda-os-production.up.railway.app/api/tipo-cambio')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.compra) {
+        var interno = (parseFloat(d.compra) - 0.05).toFixed(3);
+        CAJA.tc = parseFloat(interno);
+        tickerData[0].val = 'S/ ' + interno;
+        tickerData[0].label = 'Interno (compra-0.05)';
+        tickerData[2].val = 'S/ ' + d.venta;
+        if (d.euro_venta) {
+          tickerData[1].val = 'S/ ' + parseFloat(d.euro_venta).toFixed(3);
+        }
+        document.getElementById('apertura-tc').value = interno;
+        document.getElementById('tc-hint').textContent = 'Tipo compra BCR ' + d.compra + ' - 0.05 = ' + interno;
+        buildTicker();
+      }
+    })
+    .catch(function() {
+      // Fallback: valor por defecto
+      tickerData[0].val = 'S/ 3.695';
+      tickerData[0].label = 'Referencial';
+      buildTicker();
+    });
+}
+// ===== MOD-02-END: TICKER DIVISAS =====
+
+// ===== MOD-03-START: SEDE Y CARGA PRINCIPAL =====
+function cambiarSede(sede) {
+  CAJA.sede = sede;
+  document.querySelectorAll('.sede-tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-sede') === sede);
+  });
+  cargarCaja();
+}
+
+function cargarCaja() {
+  loading(true);
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast('Error cargando caja', 'err'); return; }
+    CAJA.sesion  = d.sesion  || null;
+    CAJA.ventas  = d.ventas  || [];
+    CAJA.metodos = d.metodos || [];
+    CAJA.kpis    = d.kpis    || {};
+    CAJA.log     = d.log     || [];
+    renderCaja();
+  }, function() { loading(false); toast('Error de conexión', 'err'); });
+}
+
+function renderCaja() {
+  actualizarHeader();
+  var body = document.getElementById('caja-body');
+  var noSesion = document.getElementById('no-sesion-msg');
+
+  if (!CAJA.sesion) {
+    body.innerHTML = '';
+    body.appendChild(noSesion);
+    noSesion.style.display = 'flex';
+    document.getElementById('btn-abrir').style.display = 'flex';
+    document.getElementById('btn-cerrar-caja-btn').style.display = 'none';
+    return;
+  }
+
+  noSesion.style.display = 'none';
+  document.getElementById('btn-abrir').style.display = 'none';
+  document.getElementById('btn-cerrar-caja-btn').style.display = CAJA.sesion.estado === 'ABIERTA' ? 'flex' : 'none';
+
+  var html = '';
+
+  // KPIs
+  html += '<div class="kpis-row">' +
+    kpiCard('Total soles', 'S/ ' + parseFloat(CAJA.kpis.total_soles || 0).toFixed(2), 'green', CAJA.kpis.total_ventas + ' ventas') +
+    kpiCard('Total dólares', '$ ' + parseFloat(CAJA.kpis.total_dolares || 0).toFixed(2), 'blue', '') +
+    kpiCard('Pago completo', CAJA.kpis.total_pagados || 0, '', '') +
+    kpiCard('Adelantos', CAJA.kpis.total_adelantos || 0, '', '') +
+    kpiCard('Servicios', CAJA.kpis.total_servicios || 0, '', '') +
+    kpiCard('Productos', CAJA.kpis.total_productos || 0, '', '') +
+  '</div>';
+
+  // Métodos de pago
+  html += '<div class="metodos-section">' +
+    '<div class="section-hdr">💳 Totales por método de pago</div>' +
+    '<div class="metodos-grid" id="metodos-grid">' + renderMetodos() + '</div>' +
+    '</div>';
+
+  // Tabla ventas
+  html += '<div class="tabla-section">' +
+    '<div class="tabla-hdr">' +
+      '<div class="tabla-hdr-title">📋 Ventas del día — ' + escH(CAJA.sede) + '</div>' +
+      (CAJA.sesion.estado === 'ABIERTA' ? '<button class="btn-nueva-venta" onclick="abrirModalVenta()">+ Nueva venta</button>' : '') +
+    '</div>' +
+    '<div class="tabla-wrap">' + renderTablaVentas() + '</div>' +
+    '</div>';
+
+  // Log
+  html += '<div class="log-section">' +
+    '<div class="section-hdr">📝 Log de caja</div>' +
+    '<div class="log-list">' + renderLog() + '</div>' +
+    '</div>';
+
+  body.innerHTML = html;
+}
+
+function kpiCard(label, val, cls, sub) {
+  return '<div class="kpi-card">' +
+    '<div class="kpi-label">' + escH(label) + '</div>' +
+    '<div class="kpi-val ' + (cls || '') + '">' + escH(String(val)) + '</div>' +
+    (sub ? '<div class="kpi-sub">' + escH(String(sub)) + '</div>' : '') +
+    '</div>';
+}
+
+function renderMetodos() {
+  if (!CAJA.metodos || !CAJA.metodos.length) {
+    return CAJA.metodosDisponibles.map(function(m) {
+      return '<div class="metodo-card"><div class="mc-name">' + escH(m) + '</div><div class="mc-val">S/ 0.00</div><div class="mc-cnt">0 registros</div></div>';
+    }).join('');
+  }
+  var map = {};
+  CAJA.metodos.forEach(function(m) { map[m.metodo] = m; });
+  return CAJA.metodosDisponibles.map(function(nombre) {
+    var m = map[nombre];
+    var hasData = m && (parseFloat(m.total_soles || 0) > 0 || parseFloat(m.total_dolares || 0) > 0);
+    var val = m ? ('S/ ' + parseFloat(m.total_soles || 0).toFixed(2) + (parseFloat(m.total_dolares || 0) > 0 ? ' · $ ' + parseFloat(m.total_dolares || 0).toFixed(2) : '')) : 'S/ 0.00';
+    return '<div class="metodo-card' + (hasData ? ' has-data' : '') + '">' +
+      '<div class="mc-name">' + escH(nombre) + '</div>' +
+      '<div class="mc-val' + (hasData ? ' has' : '') + '">' + val + '</div>' +
+      '<div class="mc-cnt">' + (m ? m.cantidad + ' reg.' : '0 registros') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderTablaVentas() {
+  if (!CAJA.ventas || !CAJA.ventas.length) {
+    return '<div class="tabla-empty">📭 Sin ventas registradas hoy en esta sede</div>';
+  }
+  var rows = CAJA.ventas.map(function(v) {
+    var esBadge = 'badge-metodo';
+    var mp = esc(v.metodo_pago || '').toUpperCase();
+    if (mp.indexOf('EFECTIVO') > -1) esBadge += ' badge-efectivo';
+    else if (mp.indexOf('QR') > -1 || mp.indexOf('IZIPAY') > -1 || mp.indexOf('MERCADO') > -1) esBadge += ' badge-qr';
+    else if (mp.indexOf('TRANSFER') > -1 || mp.indexOf('BCP') > -1 || mp.indexOf('IBK') > -1 || mp.indexOf('BBVA') > -1) esBadge += ' badge-transferencia';
+
+    var estadoCls = v.estado_pago === 'PAGO COMPLETO' ? 'badge-pagado' : v.estado_pago === 'ADELANTO' ? 'badge-adelanto' : 'badge-pendiente';
+
+    return '<tr>' +
+      '<td class="td-hora">' + escH(v.hora || '') + '</td>' +
+      '<td class="td-pac">' + escH(v.nombres || '') + ' ' + escH(v.apellidos || '') +
+        '<small>' + escH(v.celular || '') + '</small></td>' +
+      '<td class="td-trat">' + escH(v.tratamiento || '') +
+        '<small>' + escH((v.descripcion || '').substring(0, 60)) + '</small></td>' +
+      '<td><span class="' + esBadge + '">' + escH(v.metodo_pago || '') + '</span></td>' +
+      '<td class="td-monto' + (v.moneda === 'USD' ? ' usd' : '') + '">' + fmtMonto(v.monto, v.moneda) + '</td>' +
+      '<td><span class="badge-estado ' + estadoCls + '">' + escH(v.estado_pago || '') + '</span></td>' +
+      '<td>' + escH(v.tipo_comprobante || '') + '</td>' +
+      '<td class="td-acciones">' +
+        (CAJA.sesion && CAJA.sesion.estado === 'ABIERTA' ?
+          '<button class="btn-accion" title="Editar pago" onclick="abrirEdicion(' + "'" + escH(v.venta_id) + "'" + ',' + parseFloat(v.monto||0) + ',' + "'" + escH(v.metodo_pago) + "'" + ',' + "'" + escH(v.moneda||'PEN') + "'" + ',' + "'" + escH(v.estado_pago) + "'" + ')">✏️</button>' : '') +
+      '</td>' +
+    '</tr>';
+  }).join('');
+  return '<table class="ventas-tabla"><thead><tr>' +
+    '<th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Método</th><th>Monto</th><th>Estado</th><th>Doc.</th><th></th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+function renderLog() {
+  if (!CAJA.log || !CAJA.log.length) return '<div style="text-align:center;padding:14px;color:var(--label);font-size:11px;">Sin registros</div>';
+  return CAJA.log.map(function(l) {
+    return '<div class="log-item">' +
+      '<div class="log-hora">' + escH(l.hora || '') + '</div>' +
+      '<div class="log-accion">' + escH(l.accion || '') + '</div>' +
+      '<div class="log-det">' + escH(l.usuario || '') + ' — ' + escH(l.detalle || '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+// ===== MOD-03-END: SEDE Y CARGA PRINCIPAL =====
+
+// ===== MOD-04-START: HEADER Y ESTADO =====
+function actualizarHeader() {
+  var wrap = document.getElementById('caja-estado-wrap');
+  var info = document.getElementById('hdr-info');
+
+  if (!CAJA.sesion) {
+    wrap.innerHTML = '<div class="caja-estado-badge sin-sesion"><div class="edo-dot2" style="background:var(--amber)"></div><span>Sin sesión</span></div>';
+    info.innerHTML = '';
+    document.getElementById('btn-abrir').style.display = 'flex';
+    document.getElementById('btn-cerrar-caja-btn').style.display = 'none';
+    return;
+  }
+
+  var isAbierta = CAJA.sesion.estado === 'ABIERTA';
+  wrap.innerHTML = '<div class="caja-estado-badge ' + (isAbierta ? 'abierta' : 'cerrada') + '">' +
+    '<div class="edo-dot2" style="background:' + (isAbierta ? 'var(--green)' : 'var(--red)') + '"></div>' +
+    '<span>Caja ' + (isAbierta ? 'abierta' : 'cerrada') + '</span></div>';
+
+  info.innerHTML = 'Abierta por <strong>' + escH(CAJA.sesion.abierto_por || '') + '</strong>' +
+    ' · S/ ' + parseFloat(CAJA.sesion.efectivo_apertura_soles || 0).toFixed(2) +
+    ' · $ ' + parseFloat(CAJA.sesion.efectivo_apertura_dolares || 0).toFixed(2) +
+    (CAJA.sesion.alerta_cuadre ? ' <span style="color:var(--red);font-weight:800;">⚠️ Diferencia al abrir</span>' : '');
+
+  document.getElementById('btn-abrir').style.display = 'none';
+  document.getElementById('btn-cerrar-caja-btn').style.display = isAbierta ? 'flex' : 'none';
+}
+// ===== MOD-04-END: HEADER Y ESTADO =====
+
+// ===== MOD-05-START: APERTURA =====
+function abrirModalApertura() {
+  var hoy = new Date();
+  var label = CAJA.sede + ' · ' + hoy.getDate() + '/' + (hoy.getMonth() + 1) + '/' + hoy.getFullYear();
+  document.getElementById('apertura-sede-label').textContent = label;
+  document.getElementById('apertura-usuario').value = CAJA.usuario || obtenerUsuario();
+  document.getElementById('alerta-saldo').style.display = 'none';
+
+  // Consultar saldo anterior
+  rpc('aos_caja_abrir', { p_sede: CAJA.sede, p_usuario: '__CHECK__', p_efectivo_soles: -1 }, function(d) {
+    // Usamos error esperado para preview de saldo anterior
+  });
+
+  sbGet('aos_caja_sesiones', 'sede=eq.' + encodeURIComponent(CAJA.sede) + '&estado=eq.CERRADA&order=fecha.desc&limit=1', function(rows) {
+    if (rows && rows.length) {
+      var ult = rows[0];
+      document.getElementById('saldo-ant-s').textContent = 'S/ ' + parseFloat(ult.efectivo_cierre_soles || 0).toFixed(2);
+      document.getElementById('saldo-ant-d').textContent = '$ ' + parseFloat(ult.efectivo_cierre_dolares || 0).toFixed(2);
+    } else {
+      document.getElementById('saldo-ant-s').textContent = '—';
+      document.getElementById('saldo-ant-d').textContent = '—';
+    }
+  });
+
+  abrirOv('ov-apertura');
+}
+
+function confirmarApertura() {
+  var usuario = document.getElementById('apertura-usuario').value.trim();
+  var soles    = parseFloat(document.getElementById('apertura-soles').value || 0);
+  var dolares  = parseFloat(document.getElementById('apertura-dolares').value || 0);
+  var tc       = parseFloat(document.getElementById('apertura-tc').value || CAJA.tc);
+
+  if (!usuario) { toast('Ingresa tu nombre', 'warn'); return; }
+
+  loading(true);
+  rpc('aos_caja_abrir', {
+    p_sede: CAJA.sede,
+    p_usuario: usuario,
+    p_efectivo_soles: soles,
+    p_efectivo_dolares: dolares,
+    p_tipo_cambio: tc
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al abrir caja', 'err'); return; }
+    CAJA.usuario = usuario;
+    CAJA.tc = tc;
+    if (d.alerta) {
+      toast('⚠️ Caja abierta con diferencia detectada', 'warn');
+    } else {
+      toast('✅ Caja abierta correctamente', 'ok');
+    }
+    cerrarOv('ov-apertura');
+    cargarCaja();
+    notificarVenta('🔓 Caja abierta — ' + CAJA.sede);
+  }, function() { loading(false); toast('Error de conexión', 'err'); });
+}
+// ===== MOD-05-END: APERTURA =====
+
+// ===== MOD-06-START: CIERRE =====
+function abrirModalCierre() {
+  if (!CAJA.sesion) { toast('No hay caja abierta', 'warn'); return; }
+  document.getElementById('cierre-sede-label').textContent = CAJA.sede + ' · ' + new Date().toLocaleDateString('es-PE');
+
+  var resumen = '<strong>Resumen del día</strong><br><br>' +
+    '<div style="display:flex;flex-direction:column;gap:4px;">';
+  resumen += '<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Apertura efectivo S/</span><span>' + parseFloat(CAJA.sesion.efectivo_apertura_soles || 0).toFixed(2) + '</span></div>';
+  resumen += '<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Ventas en efectivo S/</span><span>' + parseFloat(CAJA.kpis.total_soles || 0).toFixed(2) + '</span></div>';
+  resumen += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:6px;margin-top:4px;"><span>Total esperado S/</span><span>S/ ' + (parseFloat(CAJA.sesion.efectivo_apertura_soles || 0) + parseFloat(CAJA.kpis.total_soles || 0)).toFixed(2) + '</span></div>';
+  resumen += '</div>';
+  document.getElementById('cierre-resumen').innerHTML = resumen;
+
+  document.getElementById('cierre-diferencias').innerHTML = '';
+  abrirOv('ov-cierre');
+}
+
+function recalcCierre() {
+  var decSoles    = parseFloat(document.getElementById('cierre-soles').value || 0);
+  var decDolares  = parseFloat(document.getElementById('cierre-dolares').value || 0);
+  var retSoles    = parseFloat(document.getElementById('retiro-soles').value || 0);
+  var retDolares  = parseFloat(document.getElementById('retiro-dolares').value || 0);
+  var esperadoS   = parseFloat(CAJA.sesion.efectivo_apertura_soles || 0) + parseFloat(CAJA.kpis.total_soles || 0);
+  var diffS       = decSoles - esperadoS;
+  var saldoS      = decSoles - retSoles;
+  var saldoD      = decDolares - retDolares;
+  var ok          = Math.abs(diffS) <= 0.05;
+
+  var html = '<div style="display:flex;flex-direction:column;gap:4px;font-size:11px;">';
+  html += '<div style="display:flex;justify-content:space-between;"><span>Diferencia S/</span><span style="font-weight:700;color:' + (ok ? 'var(--green)' : 'var(--red)') + '">' + (diffS >= 0 ? '+' : '') + diffS.toFixed(2) + (ok ? ' ✓ Cuadra' : ' ⚠️ No cuadra') + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;"><span>Saldo que queda en caja S/</span><span style="font-weight:700;">S/ ' + saldoS.toFixed(2) + '</span></div>';
+  if (saldoD > 0) html += '<div style="display:flex;justify-content:space-between;"><span>Saldo dólares $</span><span style="font-weight:700;">$ ' + saldoD.toFixed(2) + '</span></div>';
+  html += '</div>';
+  document.getElementById('cierre-diferencias').innerHTML = html;
+}
+
+function confirmarCierre() {
+  if (!CAJA.sesion) return;
+  var decSoles   = parseFloat(document.getElementById('cierre-soles').value || 0);
+  var decDolares = parseFloat(document.getElementById('cierre-dolares').value || 0);
+  var retSoles   = parseFloat(document.getElementById('retiro-soles').value || 0);
+  var retDolares = parseFloat(document.getElementById('retiro-dolares').value || 0);
+  var obs        = document.getElementById('cierre-obs').value.trim();
+
+  loading(true);
+  rpc('aos_caja_cerrar', {
+    p_sesion_id: CAJA.sesion.id,
+    p_usuario: CAJA.usuario || 'ADMIN',
+    p_efectivo_declarado_soles: decSoles,
+    p_efectivo_declarado_dolares: decDolares,
+    p_retiro_soles: retSoles,
+    p_retiro_dolares: retDolares,
+    p_observaciones: obs
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al cerrar', 'err'); return; }
+    var msg = d.cuadra ? '✅ Caja cerrada. ¡Cuadre perfecto!' : '⚠️ Caja cerrada con diferencia: S/ ' + parseFloat(d.diferencia_soles || 0).toFixed(2);
+    toast(msg, d.cuadra ? 'ok' : 'warn');
+    cerrarOv('ov-cierre');
+    cargarCaja();
+    notificarVenta('🔒 Caja cerrada — ' + CAJA.sede + ' · Saldo mañana: S/ ' + parseFloat(d.saldo_manana_soles || 0).toFixed(2));
+  }, function() { loading(false); toast('Error de conexión', 'err'); });
+}
+// ===== MOD-06-END: CIERRE =====
+
+// ===== MOD-07-START: NUEVA VENTA =====
+function abrirModalVenta() {
+  if (!CAJA.sesion || CAJA.sesion.estado !== 'ABIERTA') { toast('Abre la caja primero', 'warn'); return; }
+  CAJA.items = [];
+  CAJA.pacSeleccionado = null;
+  document.getElementById('busq-pac-input').value = '';
+  document.getElementById('pac-ficha').style.display = 'none';
+  document.getElementById('nota-venta').value = '';
+  document.getElementById('nro-doc').value = '';
+  document.getElementById('venta-sede-label').textContent = CAJA.sede;
+  cargarMetodosPagoSelect();
+  addItem();
+  abrirOv('ov-venta');
+}
+
+function cargarMetodosPagoSelect() {
+  var opts = '<option value="">— Seleccionar método —</option>' +
+    CAJA.metodosDisponibles.map(function(m) {
+      return '<option value="' + escH(m) + '">' + escH(m) + '</option>';
+    }).join('');
+  document.getElementById('metodo-pago-sel').innerHTML = opts;
+  // También para edición
+  var el = document.getElementById('edit-metodo');
+  if (el) el.innerHTML = opts;
+}
+
+function addItem() {
+  CAJA.items.push({ tipo: 'SERVICIO', nombre: '', cantidad: 1, precio: 0, subtotal: 0 });
+  renderItems();
+}
+
+function renderItems() {
+  var idx = CAJA.items.length;
+  var html = CAJA.items.map(function(it, i) {
+    return '<tr>' +
+      '<td><select onchange="CAJA.items[' + i + '].tipo=this.value" style="width:90px;border:1px solid var(--border);border-radius:4px;padding:3px;font-family:Outfit;font-size:10px;">' +
+        '<option value="SERVICIO"' + (it.tipo === 'SERVICIO' ? ' selected' : '') + '>Servicio</option>' +
+        '<option value="PRODUCTO"' + (it.tipo === 'PRODUCTO' ? ' selected' : '') + '>Producto</option>' +
+      '</select></td>' +
+      '<td><input type="text" value="' + escH(it.nombre) + '" placeholder="Nombre tratamiento..." oninput="CAJA.items[' + i + '].nombre=this.value" style="width:100%;"></td>' +
+      '<td><input type="number" value="' + it.cantidad + '" min="1" step="1" oninput="CAJA.items[' + i + '].cantidad=parseFloat(this.value||1);calcItem(' + i + ')" style="width:50px;"></td>' +
+      '<td><input type="number" value="' + it.precio + '" min="0" step="0.01" oninput="CAJA.items[' + i + '].precio=parseFloat(this.value||0);calcItem(' + i + ')" style="width:80px;"></td>' +
+      '<td style="font-weight:700;font-family:Source Serif 4,serif;">S/ ' + parseFloat(it.subtotal || 0).toFixed(2) + '</td>' +
+      '<td><button onclick="CAJA.items.splice(' + i + ',1);renderItems()" style="border:none;background:#FEE2E2;color:#DC2626;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:11px;">×</button></td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('items-tbody').innerHTML = html;
+  calcTotal();
+}
+
+function calcItem(i) {
+  CAJA.items[i].subtotal = (CAJA.items[i].cantidad || 1) * (CAJA.items[i].precio || 0);
+  renderItems();
+}
+
+function calcTotal() {
+  var total = CAJA.items.reduce(function(s, it) { return s + (parseFloat(it.subtotal) || 0); }, 0);
+  document.getElementById('total-venta').textContent = 'S/ ' + total.toFixed(2);
+}
+
+function selComp(radio) {
+  document.querySelectorAll('.comp-opt').forEach(function(el) { el.classList.remove('sel'); });
+  if (radio.parentElement) radio.parentElement.classList.add('sel');
+}
+
+function buscarPaciente(q) {
+  if (q.length < 3) { document.getElementById('busq-pac-results').classList.remove('open'); return; }
+  rpc('aos_buscar_paciente', { p_query: q, p_limit: 8 }, function(res) {
+    var lista = Array.isArray(res) ? res : (res && res.pacientes ? res.pacientes : []);
+    var resultados = document.getElementById('busq-pac-results');
+    if (!lista.length) {
+      resultados.innerHTML = '<div class="busq-item" style="color:var(--muted);">Sin resultados para "' + escH(q) + '"</div>';
+    } else {
+      resultados.innerHTML = lista.map(function(p) {
+        return '<div class="busq-item" onclick="selPaciente(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">' +
+          '<strong>' + escH(p.nombres || '') + ' ' + escH(p.apellidos || '') + '</strong>' +
+          ' <span>' + escH(p.celular || p.numero_limpio || '') + ' · DNI: ' + escH(p.dni || '—') + '</span></div>';
+      }).join('');
+    }
+    resultados.classList.add('open');
+  });
+}
+
+function selPaciente(p) {
+  CAJA.pacSeleccionado = p;
+  document.getElementById('busq-pac-input').value = '';
+  document.getElementById('busq-pac-results').classList.remove('open');
+  document.getElementById('pac-nombre').textContent = (p.nombres || '') + ' ' + (p.apellidos || '');
+  document.getElementById('pac-cel').textContent = p.celular || p.numero_limpio || '—';
+  document.getElementById('pac-dni').textContent = p.dni || '—';
+  document.getElementById('pac-asesor').textContent = p.asesor || '—';
+  document.getElementById('pac-ficha').style.display = 'block';
+}
+
+function limpiarPaciente() {
+  CAJA.pacSeleccionado = null;
+  document.getElementById('pac-ficha').style.display = 'none';
+  document.getElementById('busq-pac-input').value = '';
+}
+
+function grabarVenta() {
+  var items = CAJA.items.filter(function(it) { return it.nombre && parseFloat(it.precio) > 0; });
+  if (!items.length) { toast('Agrega al menos un ítem con nombre y precio', 'warn'); return; }
+
+  var metodo = document.getElementById('metodo-pago-sel').value;
+  if (!metodo) { toast('Selecciona método de pago', 'warn'); return; }
+
+  var pac = CAJA.pacSeleccionado || {};
+  var comprobante = document.querySelector('input[name="comprobante"]:checked');
+
+  loading(true);
+  var btn = document.getElementById('btn-grabar-venta');
+  btn.disabled = true;
+
+  rpc('aos_grabar_venta_caja', {
+    p_sede: CAJA.sede,
+    p_usuario: CAJA.usuario || 'CAJA',
+    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+    p_numero_limpio: pac.numero_limpio || pac.celular || '',
+    p_nombres: pac.nombres || 'CLIENTE',
+    p_apellidos: pac.apellidos || 'DIRECTO',
+    p_celular: pac.celular || pac.numero_limpio || '',
+    p_dni: pac.dni || '',
+    p_asesor: pac.asesor || CAJA.usuario || '',
+    p_doctor: document.getElementById('doctor-sel').value,
+    p_items: items,
+    p_metodo_pago: metodo,
+    p_monto_total: items.reduce(function(s, it) { return s + parseFloat(it.subtotal || 0); }, 0),
+    p_moneda: document.getElementById('moneda-sel').value,
+    p_tipo_comprobante: comprobante ? comprobante.value : 'BOLETA',
+    p_nro_doc: document.getElementById('nro-doc').value.trim(),
+    p_estado_pago: document.getElementById('estado-pago-sel').value,
+    p_nota: document.getElementById('nota-venta').value.trim(),
+    p_tipo: items[0].tipo || 'SERVICIO'
+  }, function(d) {
+    loading(false);
+    btn.disabled = false;
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar', 'err'); return; }
+    toast('✅ Venta grabada — ' + d.venta_id, 'ok');
+    cerrarOv('ov-venta');
+    cargarCaja();
+    notificarVenta('💰 Nueva venta registrada en ' + CAJA.sede);
+  }, function() { loading(false); btn.disabled = false; toast('Error de conexión', 'err'); });
+}
+// ===== MOD-07-END: NUEVA VENTA =====
+
+// ===== MOD-08-START: EDITAR PAGO =====
+function abrirEdicion(ventaId, monto, metodo, moneda, estado) {
+  document.getElementById('edit-venta-id').value = ventaId;
+  document.getElementById('edit-venta-id-label').textContent = 'Venta: ' + ventaId;
+  document.getElementById('edit-monto').value = monto;
+  cargarMetodosPagoSelect();
+  setTimeout(function() {
+    document.getElementById('edit-metodo').value = metodo;
+    document.getElementById('edit-moneda').value = moneda || 'PEN';
+    document.getElementById('edit-estado').value = estado || 'PAGO COMPLETO';
+  }, 100);
+  abrirOv('ov-editar');
+}
+
+function confirmarEdicion() {
+  var vid = document.getElementById('edit-venta-id').value;
+  if (!vid) return;
+  loading(true);
+  rpc('aos_caja_editar_pago', {
+    p_venta_id: vid,
+    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+    p_usuario: CAJA.usuario || 'ADMIN',
+    p_nuevo_metodo: document.getElementById('edit-metodo').value,
+    p_nuevo_monto: parseFloat(document.getElementById('edit-monto').value || 0),
+    p_nuevo_estado: document.getElementById('edit-estado').value,
+    p_nueva_moneda: document.getElementById('edit-moneda').value
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al editar', 'err'); return; }
+    toast('✅ Pago actualizado y ecosistema sincronizado', 'ok');
+    cerrarOv('ov-editar');
+    cargarCaja();
+  }, function() { loading(false); toast('Error de conexión', 'err'); });
+}
+// ===== MOD-08-END: EDITAR PAGO =====
+
+// ===== MOD-09-START: UTILS UI =====
+function abrirOv(id) { document.getElementById(id).classList.add('open'); }
+function cerrarOv(id) { document.getElementById(id).classList.remove('open'); }
+function loading(show) { document.getElementById('loading-ov').classList.toggle('open', show); }
+
+function toast(msg, tipo) {
+  var tc = document.getElementById('toast-caja');
+  var el = document.createElement('div');
+  el.className = 'tc-item ' + (tipo || '');
+  el.textContent = msg;
+  tc.appendChild(el);
+  setTimeout(function() { if (el.parentNode) tc.removeChild(el); }, 4000);
+  // Notificar también al AppShell si está disponible
+  if (window.parent && window.parent.AOS_showToast) {
+    var cls = tipo === 'ok' ? 'toast-venta' : tipo === 'err' ? 'toast-alerta' : '';
+    window.parent.AOS_showToast(msg, '', cls);
+  }
+}
+
+function notificarVenta(msg) {
+  if (window.parent && window.parent.AOS_playSound) {
+    window.parent.AOS_playSound('venta');
+  }
+}
+
+function obtenerUsuario() {
+  try {
+    var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
+    return (s.nombre || '') + (s.apellido ? ' ' + s.apellido : '') || 'ADMIN';
+  } catch(e) { return 'ADMIN'; }
+}
+
+// Cerrar dropdowns al hacer clic fuera
+document.addEventListener('click', function(e) {
+  var res = document.getElementById('busq-pac-results');
+  if (res && !res.contains(e.target)) res.classList.remove('open');
+});
+// ===== MOD-09-END: UTILS UI =====
+
+// ===== MOD-10-START: INICIALIZACIÓN =====
+function init() {
+  buildTicker();
+  cargarTC();
+
+  // Cargar usuario de sesión
+  CAJA.usuario = obtenerUsuario();
+
+  // Cargar métodos de pago
+  sbGet('aos_metodos_pago', 'order=nombre.asc', function(rows) {
+    if (rows && rows.length) {
+      CAJA.metodosDisponibles = rows.map(function(r) { return r.nombre; });
+    } else {
+      CAJA.metodosDisponibles = ['EFECTIVO','DOLARES EFECTIVO','BCP DRA','BBVA DRA',
+        'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
+        'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
+    }
+    cargarCaja();
+  });
+
+  // Actualizar cada 60 segundos
+  setInterval(cargarCaja, 60000);
+  // Actualizar ticker cada 5 min
+  setInterval(cargarTC, 300000);
+}
+
+init();
+// ===== MOD-10-END: INICIALIZACIÓN =====
+</script>
+</body>
+</html>

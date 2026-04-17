@@ -101,6 +101,19 @@ http.createServer(function(req, res) {
     if (req.method === 'POST') return webhookMessage(req, res)
   }
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"status":"ok"}'); return }
+  // ===== TIPO DE CAMBIO PROXY =====
+  if (p === '/api/tipo-cambio') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    https.get({ hostname: 'api.exchangerate-api.com', path: '/v4/latest/USD', headers: { 'User-Agent': 'AscendaOS/1.0' } }, function(apiRes) {
+      var data = ''; apiRes.on('data', function(c) { data += c }); apiRes.on('end', function() {
+        try {
+          var j = JSON.parse(data); var pen = j.rates && j.rates.PEN ? j.rates.PEN : 3.70; var eur = j.rates && j.rates.EUR ? j.rates.EUR : 0.92; var penEur = pen / eur; var compra = (pen - 0.03).toFixed(3); var venta = (pen + 0.03).toFixed(3)
+          res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ compra: compra, venta: venta, euro_venta: penEur.toFixed(3), source: 'exchangerate-api' }))
+        } catch(e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }
+      })
+    }).on('error', function() { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }); return
+  }
+  // ===== FIN TIPO DE CAMBIO =====
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   var f = path.join(PUB, p.slice(1))

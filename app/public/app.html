@@ -518,6 +518,7 @@ var SIDEBAR_ADMIN = [
   {type:'item',id:'admin-calls',        ico:'phone',     lbl:'Llamadas'},
   {type:'sep'},
   {type:'section',label:'Finanzas'},
+  {type:'item',id:'admin-caja',          ico:'money',     lbl:'Caja'},
   {type:'item',id:'admin-billing',      ico:'receipt',   lbl:'Facturacion'},
   {type:'sep'},
   {type:'section',label:'Recursos'},
@@ -587,6 +588,7 @@ var VIEW_MAP = {
   'admin-commissions':   'ViewAdminComisiones',
   'admin-marketing':     'ViewAdminMarketing',
   'admin-calls':         'ViewAdminCalls',
+  'admin-caja':          'ViewAdminCaja',
   'admin-billing':       'ViewAdminBilling',
   'admin-team':          'ViewAdminTeam',
   'admin-config':        'ViewAdminConfig',
@@ -632,6 +634,7 @@ function navigateTo(viewId) {
     'ViewAdminComisiones':    '/admin-comisiones.html',
     'ViewAdminTeam':          '/admin-team.html',
     'ViewAdminMarketing':     '/admin-marketing.html',
+    'ViewAdminCaja':          '/caja.html',
     'ViewAdminBilling':       '/admin-billing.html'
   };
   var route = PANEL_ROUTES[hf];
