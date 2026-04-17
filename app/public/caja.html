@@ -334,107 +334,204 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- ===== MODAL NUEVA VENTA v2 — pago por ítem ===== -->
+<!-- ===== MODAL NUEVA VENTA v3 — layout 2col ===== -->
 <div class="ov" id="ov-venta">
-  <div class="modal-box modal-venta" style="width:760px;max-height:92vh;">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue),var(--blue2));">
+  <div class="modal-box" style="width:1060px;max-width:98vw;max-height:94vh;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);flex-shrink:0;">
       <h3>💰 Nueva venta</h3><p id="venta-sede-label"></p>
     </div>
-    <div class="modal-body" style="padding:16px 18px;overflow-y:auto;max-height:70vh;">
+    <div style="display:grid;grid-template-columns:2fr 1fr;flex:1;overflow:hidden;min-height:0;">
 
-      <!-- Buscar paciente -->
-      <div class="mfield">
-        <label>Buscar paciente (nombre, celular o DNI)</label>
-        <div class="busq-pac-wrap">
-          <input type="text" id="busq-pac-input" placeholder="Escribe al menos 3 caracteres..." autocomplete="off" oninput="buscarPaciente(this.value)">
-          <div class="busq-pac-results" id="busq-pac-results"></div>
-        </div>
-      </div>
-      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11px;">
-        <div style="font-weight:700;color:var(--blue);font-size:13px;" id="pac-nombre">—</div>
-        <div style="color:var(--muted);display:flex;gap:12px;margin-top:3px;flex-wrap:wrap;">
-          <span>📱 <span id="pac-cel">—</span></span>
-          <span>🪪 <span id="pac-dni">—</span></span>
-          <span>⭐ <span id="pac-asesor">—</span></span>
-        </div>
-        <button onclick="limpiarPaciente()" style="margin-top:5px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-weight:700;">✕ Cambiar paciente</button>
-      </div>
+      <!-- COLUMNA IZQUIERDA 2/3 -->
+      <div style="padding:13px 15px;display:flex;flex-direction:column;gap:9px;border-right:1px solid var(--border);overflow-y:auto;">
 
-      <!-- Tabla de ítems CON método de pago por ítem -->
-      <div class="mfield">
-        <label>Servicios / Productos — método de pago por ítem</label>
-        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;" id="items-tabla">
+        <!-- Buscador catálogo -->
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Agregar servicio o producto</div>
+          <div style="display:flex;gap:6px;align-items:center;position:relative;">
+            <input type="text" id="cat-busq" placeholder="Buscar en catálogo..." autocomplete="off" oninput="buscarCatalogo(this.value)" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <select id="cat-tipo" style="padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;background:#fff;min-width:90px;" onchange="buscarCatalogo(document.getElementById('cat-busq').value)">
+              <option value="todos">Todos</option>
+              <option value="SERVICIO">Servicios</option>
+              <option value="PRODUCTO">Productos</option>
+            </select>
+          </div>
+          <div id="cat-results" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:3px;overflow:hidden;max-height:150px;overflow-y:auto;background:#fff;box-shadow:0 4px 16px rgba(10,79,191,.1);position:relative;z-index:10;"></div>
+        </div>
+
+        <!-- Tabla ítems -->
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;overflow-x:auto;flex-shrink:0;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:680px;">
             <thead>
               <tr style="background:var(--bg);">
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;">Tipo</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:30%">Nombre / Tratamiento</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Cant.</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Precio S/</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método pago 1</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Monto 1</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método pago 2</th>
-                <th style="padding:7px 9px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Monto 2</th>
-                <th style="padding:7px 9px;border-bottom:1px solid var(--border);"></th>
+                <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:26%;">Tratamiento / Producto</th>
+                <th style="padding:6px 5px;text-align:center;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:42px;">Cant.</th>
+                <th style="padding:6px 5px;text-align:center;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:42px;">Div.</th>
+                <th style="padding:6px 5px;text-align:right;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:68px;">Precio</th>
+                <th style="padding:6px 5px;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:96px;">Descuento</th>
+                <th style="padding:6px 5px;text-align:right;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:68px;">Subtotal</th>
+                <th style="padding:6px 5px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:94px;">Método</th>
+                <th style="padding:6px 5px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:82px;">Comprobante</th>
+                <th style="padding:6px 5px;text-align:center;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:54px;">Acción</th>
+                <th style="border-bottom:1px solid var(--border);width:20px;"></th>
               </tr>
             </thead>
-            <tbody id="items-tbody"></tbody>
+            <tbody id="items-tbody">
+              <tr id="items-empty-row">
+                <td colspan="10" style="padding:18px;text-align:center;font-size:11px;color:var(--label);font-style:italic;">Busca un tratamiento arriba para agregar ítems</td>
+              </tr>
+            </tbody>
           </table>
         </div>
-        <button class="btn-add-item" onclick="addItem()">+ Agregar ítem</button>
-        <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:8px 0;border-top:2px solid var(--border);margin-top:6px;">
-          <span style="font-size:11px;color:var(--muted);font-weight:600;">Total:</span>
-          <span style="font-family:Source Serif 4,serif;font-size:20px;font-weight:700;" id="total-venta">S/ 0.00</span>
+
+      </div>
+
+      <!-- COLUMNA DERECHA 1/3 -->
+      <div style="padding:13px 13px;display:flex;flex-direction:column;gap:9px;background:var(--bg);overflow-y:auto;">
+
+        <!-- PACIENTE — estado buscador / estado seleccionado -->
+        <div id="pac-search-zone">
+          <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Paciente</div>
+          <div style="position:relative;">
+            <input type="text" id="busq-pac-input" placeholder="Nombre, celular o DNI..." autocomplete="off" oninput="buscarPaciente(this.value)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;background:#fff;">
+            <div id="busq-pac-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:200;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(10,79,191,.1);margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <div id="pac-ficha" style="display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Paciente</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div id="pac-avatar" style="width:30px;height:30px;border-radius:50%;background:var(--blue-xl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--blue);flex-shrink:0;">?</div>
+            <div style="min-width:0;">
+              <div id="pac-nombre" style="font-weight:700;font-size:12px;line-height:1.3;color:var(--text);">—</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);display:flex;flex-direction:column;gap:2px;">
+            <div>📱 <span id="pac-cel">—</span></div>
+            <div>🪪 <span id="pac-dni">—</span></div>
+            <div id="pac-vip-wrap" style="margin-top:3px;display:none;"><span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:1px 8px;border-radius:20px;font-weight:700;">VIP</span></div>
+          </div>
+          <button onclick="limpiarPaciente()" style="margin-top:7px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;padding:0;font-family:Outfit;">× cambiar paciente</button>
+        </div>
+
+        <!-- RESUMEN -->
+        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Resumen</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Subtotal</span><span id="res-subtotal">S/ 0.00</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Descuentos</span><span id="res-descuentos" style="color:var(--green);">— S/ 0.00</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Total</span><span id="res-total" style="font-weight:700;">S/ 0.00</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Pagado</span><span id="res-pagado" style="color:var(--green);font-weight:700;">S/ 0.00</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:2px;border-top:1px solid var(--border);">
+              <span style="font-weight:700;font-size:14px;">Saldo</span>
+              <span id="res-saldo" style="font-weight:700;font-size:14px;color:var(--red);">S/ 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 BOTONES ACCIÓN -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <button onclick="toggleNotas()" id="btn-notas" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 3h10a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Notas
+          </button>
+          <button onclick="cotPDFCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 16h12M10 3v10M6 10l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            PDF
+          </button>
+          <button onclick="cotEmailCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8l8 5 8-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Email
+          </button>
+        </div>
+
+        <!-- NOTAS — colapsado por defecto -->
+        <div id="notas-panel" style="display:none;background:#fff;border:1.5px solid var(--blue-md);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Notas internas</div>
+          <textarea id="nota-venta" placeholder="Notas del equipo sobre esta atención..." style="width:100%;min-height:64px;font-size:11px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:6px 8px;background:transparent;color:var(--text);font-family:Outfit;outline:none;"></textarea>
+        </div>
+
+        <!-- BOTONES PRINCIPALES -->
+        <div style="display:flex;flex-direction:column;gap:5px;margin-top:auto;">
+          <button onclick="grabarCotizacion()" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Outfit;">💾 Grabar cotización</button>
+          <button onclick="cerrarOv('ov-venta')" style="width:100%;padding:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:Outfit;">Cancelar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MINI-MODAL PAGO POR ÍTEM ===== -->
+<div class="ov" id="ov-pago-item" style="z-index:1100;">
+  <div class="modal-box" style="width:480px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
+      <h3>💳 Registrar pago</h3>
+      <p id="pago-item-nombre">—</p>
+    </div>
+    <div class="modal-body">
+      <div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;padding:14px;border-radius:10px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:10px;opacity:.7;margin-bottom:4px;">Monto a cobrar</div>
+        <div style="font-size:26px;font-weight:800;font-family:Source Serif 4,serif;">S/ <span id="pago-monto-display">0.00</span></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);">Método de pago</div>
+        <button onclick="toggleDividir()" id="btn-dividir" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:Outfit;color:var(--muted);">⇄ Dividir pago</button>
+      </div>
+
+      <!-- MODO SIMPLE -->
+      <div id="pago-simple-zone">
+        <div class="mfield">
+          <label>Método</label>
+          <select id="pago-metodo-single" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
         </div>
       </div>
 
-      <!-- Datos del registro -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <!-- MODO DIVIDIDO -->
+      <div id="pago-dividido-zone" style="display:none;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg);margin-bottom:10px;">
+        <div id="pago-lines-container"></div>
+        <button onclick="agregarLineaPago()" style="font-size:11px;padding:4px 12px;border:1.5px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;font-family:Outfit;color:var(--muted);margin-top:6px;">+ agregar método</button>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--muted);">Total cubierto</span>
+          <span id="pago-total-cubierto" style="font-weight:700;color:var(--green);">S/ 0.00</span>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
         <div class="mfield">
-          <label>Tipo de comprobante</label>
-          <select id="tipo-comprobante-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
-            <option value="BOLETA">Boleta física</option>
+          <label>Comprobante</label>
+          <select id="pago-comprobante" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
             <option value="BOLETA VIRTUAL">Boleta virtual</option>
-            <option value="RH">R.H. (Recibo por honorarios)</option>
+            <option value="BOLETA FISICA">Boleta física</option>
+            <option value="RH">R.H. (Honorarios)</option>
             <option value="FACTURA">Factura</option>
             <option value="OTROS">Otros</option>
           </select>
         </div>
         <div class="mfield">
-          <label>N° comprobante (opcional)</label>
-          <input type="text" id="nro-doc" placeholder="B001-0001">
-        </div>
-        <div class="mfield">
-          <label>Encargado de atención</label>
-          <select id="doctor-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
-            <option value="">— Sin encargado —</option>
-            <option value="DRA YESSICA PEREZ">DRA YESSICA PEREZ (DOCTORA)</option>
-            <option value="MIREYA X">MIREYA X (ENFERMERIA)</option>
-            <option value="RUVILA CUEVAS">RUVILA CUEVAS (ENFERMERIA)</option>
-            <option value="WILMER CIEZA">WILMER CIEZA (ENFERMERIA)</option>
-            <option value="NO APLICA">NO APLICA</option>
-          </select>
-        </div>
-        <div class="mfield">
-          <label>Estado de pago</label>
-          <select id="estado-pago-sel" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+          <label>Estado</label>
+          <select id="pago-estado" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
             <option value="PAGO COMPLETO">Pago completo</option>
             <option value="ADELANTO">Adelanto</option>
           </select>
         </div>
+        <div class="mfield">
+          <label>Asesor (comisión)</label>
+          <select id="pago-asesor" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+        </div>
+        <div class="mfield">
+          <label>N° comprobante</label>
+          <input type="text" id="pago-nro-doc" placeholder="B001-0001 (opcional)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+        </div>
       </div>
-      <div class="mfield" style="margin-bottom:0;">
-        <label>Nota interna</label>
-        <input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
-      </div>
-
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="cerrarOv('ov-venta')">Cancelar</button>
-      <button class="btn-primary" onclick="grabarVenta()" id="btn-grabar-venta">💾 Grabar venta</button>
+      <button class="btn-cancel" onclick="cerrarOv('ov-pago-item')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarPagoItem()">✓ Confirmar pago</button>
     </div>
   </div>
 </div>
+
 
 <!-- ===== MODAL EDITAR PAGO ===== -->
 <div class="ov" id="ov-editar">
@@ -1079,228 +1176,454 @@ function confirmarCierre() {
 // ===== MOD-06-END: CIERRE =====
 
 // ===== MOD-07-START: NUEVA VENTA =====
+
+// Estado del modal de venta
+var VT = {
+  items: [],          // [{id,nombre,tipo,cantidad,divisa,precio,descTipo,descVal,subtotal,pagado,metodoPago,metodoPago2,monto1,monto2,comprobante,estadoPago,asesorComision}]
+  pac: null,          // paciente seleccionado
+  itemPagandoIdx: -1, // índice del ítem que está siendo pagado
+  lineasPago: [],     // líneas del dividir pago
+  isDividido: false
+};
+
+var _METODOS_CAJA = [];  // se carga desde aos_metodos_pago
+var _PERSONAL_CAJA = []; // se carga desde aos_rrhh
+
 function abrirModalVenta() {
-  if (!CAJA.sesion || CAJA.sesion.estado !== 'ABIERTA') { toast('Abre la caja primero', 'warn'); return; }
-  CAJA.items = [];
-  CAJA.pacSeleccionado = null;
+  if (!CAJA.sesion || CAJA.sesion.estado !== 'ABIERTA') { toast('Abre la caja primero','warn'); return; }
+  VT.items = [];
+  VT.pac = null;
   document.getElementById('busq-pac-input').value = '';
   document.getElementById('pac-ficha').style.display = 'none';
+  document.getElementById('pac-search-zone').style.display = 'block';
+  document.getElementById('cat-busq').value = '';
+  document.getElementById('cat-results').style.display = 'none';
+  document.getElementById('notas-panel').style.display = 'none';
   document.getElementById('nota-venta').value = '';
-  document.getElementById('nro-doc').value = '';
+  document.getElementById('nro-doc') && (document.getElementById('nro-doc').value = '');
   document.getElementById('venta-sede-label').textContent = CAJA.sede;
-  cargarMetodosPagoSelect();
-  cargarPersonalSelect();
-  addItem();
+  _METODOS_CAJA = CAJA.metodosDisponibles || [];
+  renderItemsTbl();
+  actualizarResumen();
+  // Cargar personal para select
+  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+    _PERSONAL_CAJA = rows && rows.length ? rows : [{nombre:'WILMER',apellido:'CIEZA'},{nombre:'RUVILA',apellido:'CUEVAS'},{nombre:'MIREYA',apellido:'X'},{nombre:'CARMEN',apellido:'ZIMIC'}];
+  });
   abrirOv('ov-venta');
 }
 
-function cargarPersonalSelect() {
-  sbGet('aos_rrhh', 'order=nombre.asc', function(rows) {
-    var sel = document.getElementById('doctor-sel');
-    if (!sel) return;
-    var opts = '<option value="">— Sin encargado —</option>';
-    if (rows && rows.length) {
-      opts += rows.map(function(r) {
-        return '<option value="' + escH(r.nombre + ' ' + (r.apellido||'')) + '">' + escH(r.nombre + ' ' + (r.apellido||'')) + ' (' + escH(r.puesto||'') + ')</option>';
-      }).join('');
-    } else {
-      opts += '<option value="DRA YESSICA PEREZ">DRA YESSICA PEREZ</option><option value="MIREYA X">MIREYA X</option><option value="RUVILA CUEVAS">RUVILA CUEVAS</option><option value="WILMER CIEZA">WILMER CIEZA</option><option value="NO APLICA">NO APLICA</option>';
-    }
-    sel.innerHTML = opts;
+// ===== CATÁLOGO BUSCADOR =====
+function buscarCatalogo(q) {
+  var tipo = document.getElementById('cat-tipo').value;
+  var res = document.getElementById('cat-results');
+  if (!q || q.length < 2) { res.style.display='none'; return; }
+  var qs = 'nombre=ilike.*'+encodeURIComponent(q)+'*&limit=8' + (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '');
+  sbGet('aos_catalogo_servicios', qs, function(rows) {
+    if (!rows || !rows.length) { res.innerHTML='<div style="padding:10px;text-align:center;font-size:11px;color:var(--label);">Sin resultados</div>'; res.style.display='block'; return; }
+    res.innerHTML = rows.map(function(r) {
+      var precio = parseFloat(r.precio_referencial || r.precio || 0);
+      return '<div onclick="agregarItemDesdeCatalogo('+JSON.stringify(r).replace(/"/g,'&quot;')+')" style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;" onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">'+
+        '<span><strong>'+escH(r.nombre||'')+'</strong> <span style="font-size:9px;color:var(--muted);margin-left:6px;">'+escH(r.tipo||'')+'</span></span>'+
+        '<span style="color:var(--muted);font-size:11px;">S/ '+precio.toFixed(2)+'</span>'+
+        '</div>';
+    }).join('');
+    res.style.display = 'block';
   });
 }
 
-function cargarMetodosPagoSelect() {
-  var opts = '<option value="">— Seleccionar método —</option>' +
-    CAJA.metodosDisponibles.map(function(m) {
-      return '<option value="' + escH(m) + '">' + escH(m) + '</option>';
-    }).join('');
-  // metodo-pago-sel puede no existir en el modal rediseñado
-  var sel = document.getElementById('metodo-pago-sel');
-  if (sel) sel.innerHTML = opts;
-  var el = document.getElementById('edit-metodo');
-  if (el) el.innerHTML = opts;
-  // También actualizar gasto-metodo si está abierto
-  var gm = document.getElementById('gasto-metodo');
-  if (gm && CAJA.metodosDisponibles.length) {
-    gm.innerHTML = CAJA.metodosDisponibles.map(function(m){
-      return '<option value="'+escH(m)+'">'+escH(m)+'</option>';
-    }).join('');
+function agregarItemDesdeCatalogo(r) {
+  document.getElementById('cat-busq').value = '';
+  document.getElementById('cat-results').style.display = 'none';
+  var precio = parseFloat(r.precio_referencial || r.precio || 0);
+  VT.items.push({
+    id: Date.now()+'', nombre: r.nombre||'', tipo: r.tipo||'SERVICIO',
+    cantidad: 1, divisa: 'PEN', precio: precio,
+    descTipo: 'PCT', descVal: 0, subtotal: precio,
+    pagado: false, metodoPago: '', metodoPago2: '', monto1: 0, monto2: 0,
+    comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: ''
+  });
+  renderItemsTbl();
+  actualizarResumen();
+}
+
+// ===== RENDER TABLA ÍTEMS =====
+function renderItemsTbl() {
+  var tbody = document.getElementById('items-tbody');
+  if (!tbody) return;
+  if (!VT.items.length) {
+    tbody.innerHTML = '<tr id="items-empty-row"><td colspan="10" style="padding:18px;text-align:center;font-size:11px;color:var(--label);font-style:italic;">Busca un tratamiento arriba para agregar ítems</td></tr>';
+    return;
   }
-}
-
-function addItem() {
-  CAJA.items.push({ tipo: 'SERVICIO', nombre: '', cantidad: 1, precio: 0, subtotal: 0, metodo1: '', monto1: 0, metodo2: '', monto2: 0 });
-  renderItems();
-}
-
-function mkMetodoOpts(val) {
-  var opts = '<option value="">— Método —</option>';
-  CAJA.metodosDisponibles.forEach(function(m) {
-    opts += '<option value="' + escH(m) + '"' + (val===m?' selected':'') + '>' + escH(m) + '</option>';
-  });
-  return opts;
-}
-
-function renderItems() {
-  var metOpts = '<option value="">\u2014 M\u00e9todo \u2014</option>' +
-    CAJA.metodosDisponibles.map(function(m){ return '<option value="'+escH(m)+'">'+escH(m)+'</option>'; }).join('');
-
-  var html = CAJA.items.map(function(it, i) {
-    function mkSel(val) {
-      return metOpts.replace('value="'+escH(val||'')+'"','value="'+escH(val||'')+'" selected');
-    }
-    var monto1 = (it.monto1 !== undefined && it.monto1 !== null) ? parseFloat(it.monto1) : parseFloat(it.subtotal||0);
-    var monto2 = parseFloat(it.monto2 || 0);
-    return '<tr style="border-bottom:1px solid #DDE4F5;">' +
-      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].tipo=this.value" style="width:82px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">' +
-        '<option value="SERVICIO"'+(it.tipo==='SERVICIO'?' selected':'')+'>Servicio</option>' +
-        '<option value="PRODUCTO"'+(it.tipo==='PRODUCTO'?' selected':'')+'>Producto</option>' +
-      '</select></td>' +
-      '<td style="padding:5px 6px;"><input type="text" value="'+escH(it.nombre||'')+'" placeholder="Nombre..." oninput="CAJA.items['+i+'].nombre=this.value" style="width:100%;border:1px solid #DDE4F5;border-radius:4px;padding:3px 5px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
-      '<td style="padding:5px 6px;"><input type="number" value="'+it.cantidad+'" min="1" step="1" oninput="CAJA.items['+i+'].cantidad=parseFloat(this.value||1);calcItem('+i+')" style="width:44px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
-      '<td style="padding:5px 6px;"><input type="number" value="'+it.precio+'" min="0" step="0.01" oninput="CAJA.items['+i+'].precio=parseFloat(this.value||0);calcItem('+i+')" style="width:70px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
-      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].metodo1=this.value" style="width:132px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">'+mkSel(it.metodo1)+'</select></td>' +
-      '<td style="padding:5px 6px;"><input type="number" value="'+monto1.toFixed(2)+'" min="0" step="0.01" oninput="CAJA.items['+i+'].monto1=parseFloat(this.value||0)" style="width:65px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
-      '<td style="padding:5px 6px;"><select onchange="CAJA.items['+i+'].metodo2=this.value" style="width:132px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:10px;">'+mkSel(it.metodo2)+'</select></td>' +
-      '<td style="padding:5px 6px;"><input type="number" value="'+monto2.toFixed(2)+'" min="0" step="0.01" oninput="CAJA.items['+i+'].monto2=parseFloat(this.value||0)" style="width:65px;border:1px solid #DDE4F5;border-radius:4px;padding:3px 4px;font-family:Outfit;font-size:11px;outline:none;"></td>' +
-      '<td style="padding:5px 6px;"><button onclick="CAJA.items.splice('+i+',1);renderItems()" style="border:none;background:#FEE2E2;color:#DC2626;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:11px;">x</button></td>' +
+  tbody.innerHTML = VT.items.map(function(it, i) {
+    var sub = calcSubtotal(it);
+    it.subtotal = sub;
+    var metodoBadge = it.pagado ?
+      '<span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:2px 7px;border-radius:20px;white-space:nowrap;">'+escH(it.metodoPago)+'</span>' +
+      (it.metodoPago2 ? '<br><span style="font-size:9px;background:#F5F3FF;color:#7C3AED;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:2px;display:inline-block;">'+escH(it.metodoPago2)+'</span>' : '') :
+      '<span style="font-size:9px;color:var(--label);font-style:italic;">—</span>';
+    var compBadge = it.pagado ?
+      '<span style="font-size:9px;background:var(--blue-xl);color:var(--blue);padding:2px 7px;border-radius:20px;white-space:nowrap;">'+escH(it.comprobante||'')+'</span>' :
+      '<span style="font-size:9px;color:var(--label);font-style:italic;">—</span>';
+    var accionBtn = it.pagado ?
+      '<span style="font-size:9px;background:var(--green-xl);color:var(--green);padding:2px 7px;border-radius:20px;white-space:nowrap;">✓ pagado</span>' :
+      '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Outfit;white-space:nowrap;">Pagar</button>';
+    var rowBg = it.pagado ? 'background:var(--green-xl);' : '';
+    var divSym = it.divisa === 'USD' ? '$' : 'S/';
+    return '<tr style="'+rowBg+'">' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);"><div style="font-weight:700;font-size:11px;">'+escH(it.nombre)+'</div><div style="font-size:9px;color:var(--muted);">'+escH(it.tipo)+'</div></td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:center;">' +
+        (it.pagado ? it.cantidad : '<input type="number" value="'+it.cantidad+'" min="1" oninput="VT.items['+i+'].cantidad=parseFloat(this.value)||1;renderItemsTbl()" style="width:32px;text-align:center;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">') +
+      '</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:center;">' +
+        (it.pagado ? '<span style="font-size:11px;color:var(--muted);">'+divSym+'</span>' :
+          '<select onchange="VT.items['+i+'].divisa=this.value;renderItemsTbl()" style="width:36px;font-size:10px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">' +
+          '<option value="PEN"'+(it.divisa==='PEN'?' selected':'')+'>S/</option>' +
+          '<option value="USD"'+(it.divisa==='USD'?' selected':'')+'>$</option>' +
+          '</select>') +
+      '</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;">' +
+        (it.pagado ? divSym+' '+parseFloat(it.precio).toFixed(2) :
+          '<input type="number" value="'+it.precio+'" min="0" step="0.01" oninput="VT.items['+i+'].precio=parseFloat(this.value)||0;renderItemsTbl()" style="width:58px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">') +
+      '</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">' +
+        (it.pagado ?
+          (it.descVal > 0 ? '<span style="font-size:9px;color:var(--green);">-'+it.descVal+(it.descTipo==='PCT'?'%':' '+divSym)+'</span>' : '<span style="font-size:9px;color:var(--label);">—</span>') :
+          '<div style="display:flex;gap:3px;align-items:center;">' +
+          '<select onchange="VT.items['+i+'].descTipo=this.value;renderItemsTbl()" style="width:'+(it.divisa==='USD'?'34':'30')+'px;font-size:10px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">' +
+          '<option value="PCT"'+(it.descTipo==='PCT'?' selected':'')+'>%</option>' +
+          '<option value="FIX" '+(it.descTipo==='FIX'?' selected':'')+'>'+(it.divisa==='USD'?'$':'S/')+'</option>' +
+          '</select>' +
+          '<input type="number" value="'+it.descVal+'" min="0" step="0.01" oninput="VT.items['+i+'].descVal=parseFloat(this.value)||0;renderItemsTbl()" style="width:42px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">' +
+          '</div>') +
+      '</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;font-size:11px;">' + divSym + ' ' + sub.toFixed(2) + '</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">'+metodoBadge+'</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">'+compBadge+'</td>' +
+      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:center;">'+accionBtn+'</td>' +
+      '<td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:center;">' +
+        (it.pagado ? '' : '<span onclick="VT.items.splice('+i+',1);renderItemsTbl();actualizarResumen()" style="color:var(--red);cursor:pointer;font-size:14px;">×</span>') +
+      '</td>' +
     '</tr>';
   }).join('');
-  var tbody = document.getElementById('items-tbody');
-  if (tbody) tbody.innerHTML = html || '<tr><td colspan="9" style="padding:12px;text-align:center;color:#9AAAC8;font-size:11px;">Sin ítems. Haz clic en "+ Agregar ítem"</td></tr>';
-  calcTotal();
+  actualizarResumen();
 }
 
-function calcItem(i) {
-  CAJA.items[i].subtotal = (CAJA.items[i].cantidad || 1) * (CAJA.items[i].precio || 0);
-  renderItems();
+function calcSubtotal(it) {
+  var base = parseFloat(it.precio||0) * parseFloat(it.cantidad||1);
+  if (it.descTipo === 'PCT') return base * (1 - (parseFloat(it.descVal||0)/100));
+  return base - parseFloat(it.descVal||0);
 }
 
-function calcTotal() {
-  var total = CAJA.items.reduce(function(s, it) { return s + (parseFloat(it.subtotal) || 0); }, 0);
-  document.getElementById('total-venta').textContent = 'S/ ' + total.toFixed(2);
+function actualizarResumen() {
+  var subtotal = 0, descuentos = 0, pagado = 0;
+  VT.items.forEach(function(it) {
+    var base = parseFloat(it.precio||0) * parseFloat(it.cantidad||1);
+    subtotal += base;
+    var desc = it.descTipo==='PCT' ? base*(parseFloat(it.descVal||0)/100) : parseFloat(it.descVal||0);
+    descuentos += desc;
+    if (it.pagado) pagado += parseFloat(it.subtotal||0);
+  });
+  var total  = subtotal - descuentos;
+  var saldo  = total - pagado;
+  var sym = 'S/';
+  function fmt(n) { return sym + ' ' + Math.max(0,n).toFixed(2); }
+  var rs = document.getElementById('res-subtotal');  if(rs) rs.textContent = fmt(subtotal);
+  var rd = document.getElementById('res-descuentos'); if(rd) rd.textContent = '— '+sym+' '+descuentos.toFixed(2);
+  var rt = document.getElementById('res-total');      if(rt) rt.textContent = fmt(total);
+  var rp = document.getElementById('res-pagado');     if(rp) rp.textContent = fmt(pagado);
+  var rsl = document.getElementById('res-saldo');     if(rsl) { rsl.textContent = fmt(saldo); rsl.style.color = saldo > 0.01 ? 'var(--red)' : 'var(--green)'; }
 }
 
-function selComp(radio) {
-  document.querySelectorAll('.comp-opt').forEach(function(el) { el.classList.remove('sel'); });
-  if (radio.parentElement) radio.parentElement.classList.add('sel');
-}
-
+// ===== BÚSQUEDA PACIENTE =====
 function buscarPaciente(q) {
-  if (q.length < 3) { document.getElementById('busq-pac-results').classList.remove('open'); return; }
-  rpc('aos_buscar_paciente', { p_query: q }, function(res) {
-    var lista = Array.isArray(res) ? res : (res && res.pacientes ? res.pacientes : []);
-    var resultados = document.getElementById('busq-pac-results');
+  var res = document.getElementById('busq-pac-results');
+  if (!q || q.length < 3) { res.style.display='none'; return; }
+  rpc('aos_buscar_paciente', { p_query: q, p_limit: 8 }, function(data) {
+    var lista = Array.isArray(data) ? data : (data && Array.isArray(data.pacientes) ? data.pacientes : []);
     if (!lista.length) {
-      resultados.innerHTML = '<div class="busq-item" style="color:var(--muted);">Sin resultados para "' + escH(q) + '"</div>';
+      res.innerHTML = '<div style="padding:9px 12px;font-size:11px;color:var(--label);">Sin resultados para "'+escH(q)+'"</div>';
     } else {
-      resultados.innerHTML = lista.map(function(p) {
-        // RPC devuelve 'numero' en vez de 'celular'
-        p.celular = p.celular || p.numero || p.numero_limpio || '';
-        p.numero_limpio = p.numero_limpio || p.numero || p.celular || '';
-        return '<div class="busq-item" onclick="selPaciente(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">' +
-          '<strong>' + escH(p.nombres || '') + ' ' + escH(p.apellidos || '') + '</strong>' +
-          ' <span>' + escH(p.celular) + ' · DNI: ' + escH(p.dni || '—') + '</span></div>';
+      res.innerHTML = lista.map(function(p) {
+        return '<div onclick="selPaciente('+JSON.stringify(p).replace(/"/g,'&quot;')+')" style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">' +
+          '<strong>'+escH((p.nombres||p.Nombres||'')+(p.apellidos||p.Apellidos?' '+(p.apellidos||p.Apellidos):''))+'</strong>' +
+          ' <span style="color:var(--muted);">'+escH(p.numero||p.celular||p.Telefono||'')+'</span>' +
+          (p.vip ? ' <span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">VIP</span>' : '') +
+          '</div>';
       }).join('');
     }
-    resultados.classList.add('open');
+    res.style.display = 'block';
   });
 }
 
 function selPaciente(p) {
-  CAJA.pacSeleccionado = p;
+  VT.pac = p;
   document.getElementById('busq-pac-input').value = '';
-  document.getElementById('busq-pac-results').classList.remove('open');
-  document.getElementById('pac-nombre').textContent = (p.nombres || '') + ' ' + (p.apellidos || '');
-  document.getElementById('pac-cel').textContent = p.numero || p.celular || p.numero_limpio || '—';
-  document.getElementById('pac-dni').textContent = p.dni || '—';
-  document.getElementById('pac-asesor').textContent = p.asesor || p.vip || '—';
+  document.getElementById('busq-pac-results').style.display = 'none';
+  var nom = (p.nombres||p.Nombres||'') + ' ' + (p.apellidos||p.Apellidos||'');
+  var ini = nom.trim().slice(0,2).toUpperCase();
+  document.getElementById('pac-avatar').textContent = ini;
+  document.getElementById('pac-nombre').textContent = nom.trim().toUpperCase();
+  document.getElementById('pac-cel').textContent = p.numero||p.celular||p.Telefono||'—';
+  document.getElementById('pac-dni').textContent = p.dni||p.DNI||'—';
+  var vipWrap = document.getElementById('pac-vip-wrap');
+  if (vipWrap) vipWrap.style.display = (p.vip && p.vip!=='') ? 'block' : 'none';
   document.getElementById('pac-ficha').style.display = 'block';
 }
 
 function limpiarPaciente() {
-  CAJA.pacSeleccionado = null;
+  VT.pac = null;
   document.getElementById('pac-ficha').style.display = 'none';
   document.getElementById('busq-pac-input').value = '';
 }
 
-function grabarVenta() {
-  var items = CAJA.items.filter(function(it) { return it.nombre && parseFloat(it.precio) > 0; });
-  if (!items.length) { toast('Agrega al menos un ítem con nombre y precio', 'warn'); return; }
+function toggleNotas() {
+  var panel = document.getElementById('notas-panel');
+  var btn   = document.getElementById('btn-notas');
+  var show  = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  btn.style.borderColor = show ? 'var(--blue)' : 'var(--border)';
+  btn.style.color       = show ? 'var(--blue)' : 'var(--muted)';
+  btn.style.background  = show ? 'var(--blue-xl)' : '#fff';
+}
 
-  // Validar que cada ítem tenga al menos metodo1
-  var sinMetodo = items.filter(function(it){ return !it.metodo1; });
-  if (sinMetodo.length > 0) { toast('Selecciona método de pago 1 para cada ítem', 'warn'); return; }
+// ===== MINI-MODAL PAGO POR ÍTEM =====
+function abrirPagoItem(idx) {
+  var it = VT.items[idx];
+  if (!it) return;
+  VT.itemPagandoIdx = idx;
+  VT.isDividido = false;
+  VT.lineasPago = [{metodo:'', monto: it.subtotal}];
 
-  var pac = CAJA.pacSeleccionado || {};
-  var comprobante = document.getElementById('tipo-comprobante-sel');
-  var comprobanteVal = comprobante ? comprobante.value : 'BOLETA';
+  document.getElementById('pago-item-nombre').textContent = it.nombre;
+  document.getElementById('pago-monto-display').textContent = (it.divisa==='USD'?'$ ':'S/ ') + it.subtotal.toFixed(2);
 
-  // Moneda: PEN por defecto (ya no hay select de moneda en el modal simplificado)
-  var moneda = 'PEN';
-  var monedaSel = document.getElementById('moneda-sel');
-  if (monedaSel) moneda = monedaSel.value || 'PEN';
+  // Cargar métodos en select
+  var opts = '<option value="">— Seleccionar método —</option>' +
+    _METODOS_CAJA.map(function(m){ return '<option value="'+escH(m)+'">'+escH(m)+'</option>'; }).join('');
+  document.getElementById('pago-metodo-single').innerHTML = opts;
+
+  // Sugerir comprobante según método
+  document.getElementById('pago-metodo-single').onchange = function() { sugerirComprobante(this.value); };
+
+  // Cargar asesores
+  var aOpts = '<option value="">— Sin asignar —</option>' +
+    _PERSONAL_CAJA.map(function(r){ return '<option value="'+escH(r.nombre)+'">'+escH(r.nombre+' '+(r.apellido||''))+'</option>'; }).join('');
+  document.getElementById('pago-asesor').innerHTML = aOpts;
+  if (CAJA.usuario) {
+    var nom = CAJA.usuario.split(' ')[0].toUpperCase();
+    _PERSONAL_CAJA.forEach(function(r,i){ if(r.nombre===nom) document.getElementById('pago-asesor').selectedIndex=i+1; });
+  }
+
+  document.getElementById('pago-simple-zone').style.display = 'block';
+  document.getElementById('pago-dividido-zone').style.display = 'none';
+  document.getElementById('btn-dividir').textContent = '⇄ Dividir pago';
+  document.getElementById('pago-estado').value = 'PAGO COMPLETO';
+
+  abrirOv('ov-pago-item');
+}
+
+function sugerirComprobante(metodo) {
+  var m = (metodo||'').toUpperCase();
+  var sel = document.getElementById('pago-comprobante');
+  if (!sel) return;
+  if (m.indexOf('DOLAR')>-1 || m.indexOf('IBK DRA')>-1) { sel.value='OTROS'; return; }
+  if (m==='EFECTIVO') { sel.value='BOLETA FISICA'; return; }
+  if (m.indexOf('QR DOCTORA')>-1||m.indexOf('INTERBANK DRA')>-1||m.indexOf('BBVA DRA')>-1||m.indexOf('BCP DRA')>-1) { sel.value='RH'; return; }
+  if (m.indexOf('NIUBIZ')>-1||m.indexOf('IZIPAY')>-1||m.indexOf('MERCADO')>-1||m.indexOf('TRANSFER')>-1||m.indexOf('QR CARMEN')>-1) { sel.value='BOLETA VIRTUAL'; return; }
+  sel.value='BOLETA VIRTUAL';
+}
+
+function toggleDividir() {
+  VT.isDividido = !VT.isDividido;
+  var it = VT.items[VT.itemPagandoIdx];
+  document.getElementById('pago-simple-zone').style.display = VT.isDividido ? 'none' : 'block';
+  document.getElementById('pago-dividido-zone').style.display = VT.isDividido ? 'block' : 'none';
+  document.getElementById('btn-dividir').textContent = VT.isDividido ? '× Un solo método' : '⇄ Dividir pago';
+  if (VT.isDividido) {
+    VT.lineasPago = [{metodo:'',monto:it?it.subtotal/2:0},{metodo:'',monto:it?it.subtotal/2:0}];
+    renderLineasPago();
+  }
+}
+
+function renderLineasPago() {
+  var opts = '<option value="">— Método —</option>' +
+    _METODOS_CAJA.map(function(m){ return '<option value="'+escH(m)+'">'+escH(m)+'</option>'; }).join('');
+  var it = VT.items[VT.itemPagandoIdx];
+  var divSym = it && it.divisa==='USD' ? '$' : 'S/';
+  document.getElementById('pago-lines-container').innerHTML = VT.lineasPago.map(function(ln,i){
+    return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'+
+      '<select onchange="VT.lineasPago['+i+'].metodo=this.value;sugerirComprobante(this.value)" style="flex:2;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;">'+opts.replace('value="'+escH(ln.metodo||'')+'">','value="'+escH(ln.metodo||'')+'" selected">')+'</select>'+
+      '<input type="number" value="'+(ln.monto||0)+'" min="0" step="0.01" oninput="VT.lineasPago['+i+'].monto=parseFloat(this.value)||0;calcTotalCubierto()" style="width:80px;text-align:right;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;">'+
+      '<span style="font-size:11px;color:var(--muted);">'+divSym+'</span>'+
+      (i>0?'<span onclick="VT.lineasPago.splice('+i+',1);renderLineasPago();calcTotalCubierto()" style="color:var(--red);cursor:pointer;font-size:14px;padding:0 3px;">×</span>':'<span style="width:16px;"></span>')+
+      '</div>';
+  }).join('');
+  calcTotalCubierto();
+}
+
+function agregarLineaPago() {
+  VT.lineasPago.push({metodo:'',monto:0});
+  renderLineasPago();
+}
+
+function calcTotalCubierto() {
+  var it = VT.items[VT.itemPagandoIdx];
+  var divSym = it && it.divisa==='USD' ? '$ ' : 'S/ ';
+  var total = VT.lineasPago.reduce(function(s,ln){ return s+(parseFloat(ln.monto)||0); },0);
+  var el = document.getElementById('pago-total-cubierto');
+  if (el) {
+    el.textContent = divSym + total.toFixed(2);
+    el.style.color = it && Math.abs(total - it.subtotal) < 0.01 ? 'var(--green)' : 'var(--amber)';
+  }
+}
+
+function confirmarPagoItem() {
+  var idx = VT.itemPagandoIdx;
+  if (idx < 0 || !VT.items[idx]) return;
+  var it = VT.items[idx];
+
+  var comprobante = document.getElementById('pago-comprobante').value;
+  var estadoPago  = document.getElementById('pago-estado').value;
+  var asesor      = document.getElementById('pago-asesor').value;
+  var nroDoc      = document.getElementById('pago-nro-doc').value.trim();
+
+  if (VT.isDividido) {
+    var validas = VT.lineasPago.filter(function(ln){ return ln.monto>0; });
+    if (!validas.length) { toast('Agrega al menos un método de pago','warn'); return; }
+    for (var j=0; j<validas.length; j++) {
+      if (!validas[j].metodo) { toast('Selecciona el método en todas las líneas','warn'); return; }
+    }
+    it.metodoPago  = validas[0].metodo;
+    it.monto1      = validas[0].monto;
+    it.metodoPago2 = validas.length > 1 ? validas[1].metodo : '';
+    it.monto2      = validas.length > 1 ? validas[1].monto : 0;
+  } else {
+    var metodoSingle = document.getElementById('pago-metodo-single').value;
+    if (!metodoSingle) { toast('Selecciona el método de pago','warn'); return; }
+    it.metodoPago  = metodoSingle;
+    it.monto1      = it.subtotal;
+    it.metodoPago2 = '';
+    it.monto2      = 0;
+  }
+
+  it.comprobante    = comprobante;
+  it.estadoPago     = estadoPago;
+  it.asesorComision = asesor;
+  it.nroDoc         = nroDoc;
+  it.pagado         = true;
+
+  cerrarOv('ov-pago-item');
+  renderItemsTbl();
+  actualizarResumen();
+  toast('✓ Pago registrado para ' + it.nombre, 'ok');
+}
+
+// ===== GRABAR COTIZACIÓN =====
+function grabarCotizacion() {
+  if (!VT.items.length) { toast('Agrega al menos un ítem','warn'); return; }
+  var itemsConPago = VT.items.filter(function(it){ return it.pagado; });
+  if (!itemsConPago.length) { toast('Registra el pago de al menos un ítem','warn'); return; }
+
+  var pac = VT.pac || {};
+  var nota = (document.getElementById('nota-venta') && document.getElementById('nota-venta').value) || '';
+  var totalMonto = VT.items.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
 
   loading(true);
-  var btn = document.getElementById('btn-grabar-venta');
-  if (btn) btn.disabled = true;
-
-  var totalGeneral = items.reduce(function(s,it){ return s + parseFloat(it.subtotal||0); }, 0);
-
   rpc('aos_grabar_venta_caja', {
-    p_sede:          CAJA.sede,
-    p_fecha:         CAJA.fechaActual || fechaLima(),
-    p_usuario:       CAJA.usuario || 'CAJA',
-    p_sesion_id:     CAJA.sesion ? CAJA.sesion.id : '',
-    p_numero_limpio: pac.numero || pac.numero_limpio || pac.celular || '',
-    p_nombres:       pac.nombres || 'CLIENTE',
-    p_apellidos:     pac.apellidos || 'DIRECTO',
-    p_celular:       pac.numero || pac.celular || pac.numero_limpio || '',
-    p_dni:           pac.dni || '',
-    p_asesor:        pac.asesor || CAJA.usuario || '',
-    p_encargado:     document.getElementById('doctor-sel').value,
-    p_items:         items.map(function(it) {
-      var m1 = parseFloat(it.monto1 || it.subtotal || 0);
-      var m2 = parseFloat(it.monto2 || 0);
-      // Si hay metodo2 y el usuario no ajustó montos, distribuir
-      if (it.metodo2 && it.monto1 === undefined) {
-        m1 = parseFloat(it.subtotal || 0);
-        m2 = 0;
-      }
+    p_sede: CAJA.sede,
+    p_usuario: CAJA.usuario || 'CAJA',
+    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+    p_numero_limpio: pac.numero || pac.celular || pac.Telefono || '',
+    p_nombres: pac.nombres || pac.Nombres || 'CLIENTE',
+    p_apellidos: pac.apellidos || pac.Apellidos || 'DIRECTO',
+    p_celular: pac.numero || pac.celular || pac.Telefono || '',
+    p_dni: pac.dni || pac.DNI || '',
+    p_asesor: (VT.items[0] && VT.items[0].asesorComision) || CAJA.usuario || '',
+    p_doctor: '',
+    p_items: VT.items.map(function(it){
       return {
-        tipo:     it.tipo || 'SERVICIO',
-        nombre:   it.nombre,
-        cantidad: it.cantidad || 1,
-        precio:   parseFloat(it.precio || 0),
-        subtotal: parseFloat(it.subtotal || 0),
-        metodo1:  it.metodo1 || '',
-        monto1:   m1,
-        metodo2:  it.metodo2 || '',
-        monto2:   m2
+        tipo: it.tipo, nombre: it.nombre,
+        cantidad: it.cantidad, precio: it.precio, subtotal: it.subtotal,
+        metodo1: it.metodoPago||'', monto1: it.monto1||it.subtotal,
+        metodo2: it.metodoPago2||'', monto2: it.monto2||0
       };
     }),
-    p_monto_total:      totalGeneral,
-    p_moneda:           moneda,
-    p_tipo_comprobante: comprobanteVal,
-    p_nro_doc:          document.getElementById('nro-doc').value.trim(),
-    p_estado_pago:      document.getElementById('estado-pago-sel').value,
-    p_nota:             document.getElementById('nota-venta').value.trim(),
-    p_tipo:             items[0] ? (items[0].tipo || 'SERVICIO') : 'SERVICIO'
+    p_metodo_pago: (VT.items[0] && VT.items[0].metodoPago) || '',
+    p_monto_total: totalMonto,
+    p_moneda: 'PEN',
+    p_tipo_comprobante: (VT.items[0] && VT.items[0].comprobante) || 'BOLETA VIRTUAL',
+    p_nro_doc: (VT.items[0] && VT.items[0].nroDoc) || '',
+    p_estado_pago: itemsConPago.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
+    p_nota: nota,
+    p_tipo: VT.items[0] ? VT.items[0].tipo : 'SERVICIO',
+    p_fecha: fechaLima()
   }, function(d) {
     loading(false);
-    if (btn) btn.disabled = false;
-    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar', 'err'); return; }
-    toast('✅ ' + (d.mensaje || 'Venta grabada'), 'ok');
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar','err'); return; }
+    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     cerrarOv('ov-venta');
     cargarCaja();
-    notificarVenta('💰 Nueva venta en ' + CAJA.sede);
-  }, function() {
-    loading(false);
-    if (btn) btn.disabled = false;
-    toast('Error de conexión al grabar venta', 'err');
-  });
+    if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
+  }, function(){ loading(false); toast('Error de conexión','err'); });
 }
+
+// ===== PDF COTIZACIÓN DESDE CAJA =====
+function cotPDFCaja() {
+  if (!VT.items.length) { toast('Agrega ítems primero','warn'); return; }
+  var pac = VT.pac || {};
+  var nom = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
+  var total = VT.items.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
+  var pagado = VT.items.filter(function(it){ return it.pagado; }).reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
+  var saldo = total - pagado;
+  var fecha = fechaLima();
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cotización — '+escH(nom)+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Outfit,sans-serif;color:#0D1B3E;padding:30px 36px;max-width:600px;margin:auto;}'+
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0A4FBF;margin-bottom:18px;}'+
+    '.brand{font-size:20px;font-weight:800;color:#0A4FBF;}'+
+    '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;}'+
+    '.pac-info{font-size:11px;margin-bottom:16px;background:#F8FAFF;padding:10px 14px;border-radius:8px;}'+
+    '.pac-info strong{font-size:13px;display:block;margin-bottom:4px;}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:14px;}'+
+    'th{padding:7px 10px;background:#0A4FBF;color:#fff;font-size:10px;text-align:left;}'+
+    'td{padding:7px 10px;border-bottom:1px solid #EEF2FF;font-size:11px;}'+
+    '.totals{display:flex;justify-content:flex-end;}.totals-box{width:200px;}'+
+    '.tot-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;}'+
+    '.tot-row.main{font-weight:800;font-size:14px;border-top:2px solid #0A4FBF;padding-top:7px;margin-top:4px;color:#0A4FBF;}'+
+    '.footer{margin-top:24px;text-align:center;font-size:9px;color:#9AAAC8;border-top:1px solid #EEF2FF;padding-top:10px;}'+
+    '</style></head><body>'+
+    '<div class="hdr"><div class="brand">Zi Vital<small>Clínica Estética</small></div>'+
+    '<div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:#071D4A;">COTIZACIÓN</div>'+
+    '<div style="font-size:11px;color:#6B7BA8;">'+escH(CAJA.sede)+' · '+escH(fecha)+'</div>'+
+    '<div style="margin-top:4px;background:'+(saldo<=0.01?'#F0FDF4':'#FEF9C3')+';color:'+(saldo<=0.01?'#16A34A':'#CA8A04')+';padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;">'+(saldo<=0.01?'PAGADO':'SALDO PENDIENTE')+'</div>'+
+    '</div></div>'+
+    '<div class="pac-info"><strong>'+escH(nom)+'</strong>'+
+    (pac.numero||pac.celular?'<span>📱 '+escH(pac.numero||pac.celular||'')+'</span>  ':'')+
+    (pac.dni||pac.DNI?'<span>🪪 '+escH(pac.dni||pac.DNI||'')+'</span>':'')+'</div>'+
+    '<table><thead><tr><th>Tratamiento / Producto</th><th style="text-align:center;">Cant.</th><th>Divisa</th><th style="text-align:right;">Subtotal</th></tr></thead><tbody>'+
+    VT.items.map(function(it){
+      return '<tr><td>'+escH(it.nombre)+'<br><span style="font-size:9px;color:#6B7BA8;">'+escH(it.tipo)+'</span></td>'+
+        '<td style="text-align:center;">'+it.cantidad+'</td>'+
+        '<td>'+(it.divisa==='USD'?'USD $':'PEN S/')+'</td>'+
+        '<td style="text-align:right;font-weight:700;">'+(it.divisa==='USD'?'$ ':'S/ ')+it.subtotal.toFixed(2)+'</td></tr>';
+    }).join('')+
+    '</tbody></table>'+
+    '<div class="totals"><div class="totals-box">'+
+    '<div class="tot-row"><span style="color:#6B7BA8;">Subtotal</span><span>S/ '+total.toFixed(2)+'</span></div>'+
+    (pagado>0?'<div class="tot-row"><span style="color:#16A34A;">Pagado</span><span style="color:#16A34A;font-weight:700;">S/ '+pagado.toFixed(2)+'</span></div>':'')+''+
+    (saldo>0.01?'<div class="tot-row main"><span>Saldo</span><span style="color:#DC2626;">S/ '+saldo.toFixed(2)+'</span></div>':'<div class="tot-row main"><span>TOTAL</span><span>S/ '+total.toFixed(2)+'</span></div>')+
+    '</div></div>'+
+    '<div class="footer">Zi Vital · Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre<br>Generado por AscendaOS · CREACTIVE OS</div>'+
+    '</body></html>';
+  var w = window.open('','_blank','width=700,height:900');
+  w.document.write(html); w.document.close();
+  setTimeout(function(){ w.print(); }, 600);
+}
+
+function cotEmailCaja() {
+  toast('Función de email próximamente','warn');
+}
+
 // ===== MOD-07-END: NUEVA VENTA =====
 
 // ===== MOD-08-START: EDITAR PAGO =====
