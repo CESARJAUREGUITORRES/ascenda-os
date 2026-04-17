@@ -827,9 +827,8 @@ function cargarCaja(silencioso) {
 }
 
 function renderCaja() {
-  // Verificar que el body existe en el DOM
   var bodyCheck = document.getElementById('caja-body');
-  if (!bodyCheck) { console.error('[CAJA] caja-body no encontrado en DOM'); return; }
+  if (!bodyCheck) return; // Panel no visible, skip silencioso
   actualizarHeader();
   var body = document.getElementById('caja-body');
   var noSesion = document.getElementById('no-sesion-msg');
@@ -2138,11 +2137,15 @@ function grabarCotizacion() {
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     // Esperar un tick para que el modal cierre antes de recargar
     // Forzar recarga explícita de ventas del día
-    // Recarga directa sin setTimeout — la venta ya fue grabada
-    // Asegurar que CAJA.sede está definido
-    if (!CAJA.sede) { console.error('[CAJA] sede undefined al recargar'); return; }
+    // Feedback inmediato en panel mientras recarga
+    var tablaEl = document.getElementById('caja-body');
+    if (tablaEl) {
+      var ventasDiv = tablaEl.querySelector('.tabla-wrap');
+      if (ventasDiv) ventasDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">⏳ Actualizando ventas del día...</div>';
+    }
+    // Recarga directa
+    if (!CAJA.sede) { console.error('[CAJA] sede undefined'); return; }
     rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-      console.log('[CAJA] recarga tras grabar:', res && res.ok, 'ventas:', res && res.ventas && res.ventas.length, 'sede:', CAJA.sede, 'fecha:', CAJA.fechaActual || fechaLima());
       if (res && res.ok) {
         CAJA.sesion  = res.sesion  || CAJA.sesion;
         CAJA.ventas  = res.ventas  || [];
@@ -2151,7 +2154,6 @@ function grabarCotizacion() {
         CAJA.gastos  = res.gastos  || [];
         renderCaja();
       } else {
-        // Fallback: reintentar una vez más
         setTimeout(function() {
           rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(r2) {
             if (r2 && r2.ok) {
@@ -2163,7 +2165,7 @@ function grabarCotizacion() {
               renderCaja();
             }
           });
-        }, 1000);
+        }, 1500);
       }
     });
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
