@@ -827,6 +827,9 @@ function cargarCaja(silencioso) {
 }
 
 function renderCaja() {
+  // Verificar que el body existe en el DOM
+  var bodyCheck = document.getElementById('caja-body');
+  if (!bodyCheck) { console.error('[CAJA] caja-body no encontrado en DOM'); return; }
   actualizarHeader();
   var body = document.getElementById('caja-body');
   var noSesion = document.getElementById('no-sesion-msg');
@@ -2136,8 +2139,10 @@ function grabarCotizacion() {
     // Esperar un tick para que el modal cierre antes de recargar
     // Forzar recarga explícita de ventas del día
     // Recarga directa sin setTimeout — la venta ya fue grabada
+    // Asegurar que CAJA.sede está definido
+    if (!CAJA.sede) { console.error('[CAJA] sede undefined al recargar'); return; }
     rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-      console.log('[CAJA] recarga tras grabar:', res && res.ok, 'ventas:', res && res.ventas && res.ventas.length);
+      console.log('[CAJA] recarga tras grabar:', res && res.ok, 'ventas:', res && res.ventas && res.ventas.length, 'sede:', CAJA.sede, 'fecha:', CAJA.fechaActual || fechaLima());
       if (res && res.ok) {
         CAJA.sesion  = res.sesion  || CAJA.sesion;
         CAJA.ventas  = res.ventas  || [];
