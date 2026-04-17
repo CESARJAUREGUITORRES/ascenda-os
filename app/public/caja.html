@@ -845,7 +845,7 @@ function renderCaja() {
   var gastosTotal = (CAJA.gastos||[]).reduce(function(s,g){ return s+(g.moneda==='PEN'?parseFloat(g.monto||0):0); },0);
   var fechaLabel = CAJA.fechaActual === fechaLima() ? 'Hoy' : CAJA.fechaActual;
 
-  var html = '<div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;align-items:start;">';
+  var html = '<div style="display:grid;grid-template-columns:280px 1fr;gap:12px;align-items:start;">';
 
   // ========== COL IZQUIERDA ==========
   html += '<div style="display:flex;flex-direction:column;gap:10px;">';
@@ -1351,7 +1351,7 @@ function abrirModalVenta() {
   renderItemsTbl();
   actualizarResumen();
   // Cargar personal para select
-  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+  sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
     _PERSONAL_CAJA = rows && rows.length ? rows : [{nombre:'WILMER',apellido:'CIEZA'},{nombre:'RUVILA',apellido:'CUEVAS'},{nombre:'MIREYA',apellido:'X'},{nombre:'CARMEN',apellido:'ZIMIC'}];
   });
   abrirOv('ov-venta');
@@ -1666,6 +1666,7 @@ function toggleNotas() {
 // ===== MINI-MODAL PAGO POR ÍTEM v3 =====
 
 var _COMPROBANTES = ['BOLETA VIRTUAL','BOLETA FISICA','R.H.','FACTURA','OTROS'];
+var _PERSONAL_TODO = []; // Todos incluyendo doctoras (para quién atendió)
 
 function _mkMetodosOpts(selVal) {
   return '<option value="">— Método —</option>' +
@@ -1677,6 +1678,26 @@ function _mkCompOpts(selVal) {
   return _COMPROBANTES.map(function(c){
     return '<option value="'+escH(c)+'"'+(c===selVal?' selected':'')+'>'+escH(c)+'</option>';
   }).join('');
+}
+
+function _mkPersonalOpts(selVal) {
+  var opts = '<option value="">— Sin asignar —</option><option value="NO APLICA"'+(selVal==='NO APLICA'?' selected':'')+'>NO APLICA</option>';
+  _PERSONAL_CAJA.forEach(function(r){
+    var nom = r.nombre+(r.apellido?' '+r.apellido:'');
+    opts += '<option value="'+escH(r.nombre)+'"'+(r.nombre===selVal?' selected':'')+'>'+escH(nom)+'</option>';
+  });
+  return opts;
+}
+
+function _mkAtendioOpts(selVal) {
+  var lista = _PERSONAL_TODO.length ? _PERSONAL_TODO : _PERSONAL_CAJA;
+  var opts = '<option value="">— Sin asignar —</option>';
+  lista.forEach(function(r){
+    var nom = r.nombre+(r.apellido?' '+r.apellido:'');
+    var pue = r.puesto ? ' ('+r.puesto+')' : '';
+    opts += '<option value="'+escH(r.nombre)+'"'+(r.nombre===selVal?' selected':'')+'>'+escH(nom+pue)+'</option>';
+  });
+  return opts;
 }
 function _mkAsesorOpts(selVal) {
   // NO APLICA siempre primero, luego personal de rrhh
@@ -1737,12 +1758,17 @@ function abrirPagoItem(idx) {
   }
 
   // Cargar personal con pre-selección
-  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+  // Cargar activos para asesor comisión
+  sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
     _PERSONAL_CAJA = rows && rows.length ? rows : [];
+  });
+  // Cargar todos (incluyendo doctoras) para quién atendió
+  sbGet('aos_rrhh','order=puesto.asc,nombre.asc', function(rows){
+    _PERSONAL_TODO = rows && rows.length ? rows : [];
     var asesorDef = it.asesorComision || (VT.pac && VT.pac.asesor) || '';
     document.getElementById('pago-asesor-simple').innerHTML = _mkAsesorOpts(asesorDef);
     var selAt = document.getElementById('pago-atendio-simple');
-    if (selAt) selAt.innerHTML = _mkPersonalOpts(it.atendio || '');
+    if (selAt) selAt.innerHTML = _mkAtendioOpts(it.atendio || '');
     if (VT.isDividido) renderTablaLineas();
   });
 
@@ -2203,7 +2229,7 @@ function abrirEdicionCompleta(ventaId) {
   }
 
   // Personal — cargar y pre-seleccionar
-  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+  sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
     _PERSONAL_CAJA = rows && rows.length ? rows : _PERSONAL_CAJA;
     var mkOpts = function(selVal) {
       return '<option value="">— Sin asignar —</option><option value="NO APLICA"'+(selVal==='NO APLICA'?' selected':'')+'>NO APLICA</option>' +
