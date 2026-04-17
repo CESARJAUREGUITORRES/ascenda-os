@@ -997,13 +997,13 @@ function cambiarFechaInline(fecha) {
   var hoy = fechaLima();
   var label = fecha === hoy ? 'Hoy' : fecha;
   document.getElementById('label-fecha-filtro').textContent = label;
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -1044,13 +1044,13 @@ function confirmarIngresoExtra() {
     toast('✅ Ingreso registrado', 'ok');
     cerrarOv('ov-ingreso-extra');
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -1088,13 +1088,13 @@ function confirmarGasto() {
     toast('💸 Gasto registrado', 'ok');
     cerrarOv('ov-gasto');
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -1204,13 +1204,13 @@ function cambiarSede(sede) {
   CAJA.sede = sede;
   CAJA.fechaActual = fechaLima();
   actualizarTabsSede();
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -1295,13 +1295,13 @@ function confirmarApertura() {
     }
     cerrarOv('ov-apertura');
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -1371,13 +1371,13 @@ function confirmarCierre() {
     toast(msg, d.cuadra ? 'ok' : 'warn');
     cerrarOv('ov-cierre');
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -2136,13 +2136,13 @@ function grabarCotizacion() {
     // Esperar un tick para que el modal cierre antes de recargar
     // Forzar recarga explícita de ventas del día
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -2366,13 +2366,13 @@ function confirmarEdicion() {
     cerrarOv('ov-editar');
     // Recarga explícita del panel (más confiable que cargarCaja)
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -2396,13 +2396,13 @@ function eliminarVenta() {
     cerrarOv('ov-editar');
     // Recarga explícita del panel (más confiable que cargarCaja)
     setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
@@ -2514,13 +2514,13 @@ function cargarMetodosYCaja() {
         'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
         'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
     }
-    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
-        if (d && d.ok) {
-          CAJA.sesion  = d.sesion  || CAJA.sesion;
-          CAJA.ventas  = d.ventas  || [];
-          CAJA.metodos = d.metodos || [];
-          CAJA.kpis    = d.kpis    || {};
-          CAJA.gastos  = d.gastos  || [];
+    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+        if (res && res.ok) {
+          CAJA.sesion  = res.sesion  || CAJA.sesion;
+          CAJA.ventas  = res.ventas  || [];
+          CAJA.metodos = res.metodos || [];
+          CAJA.kpis    = res.kpis    || {};
+          CAJA.gastos  = res.gastos  || [];
           renderCaja();
         }
       });
