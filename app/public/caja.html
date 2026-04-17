@@ -1758,13 +1758,21 @@ function abrirPagoItem(idx) {
   }
 
   // Cargar personal con pre-selección
-  // Cargar activos para asesor comisión
+  // Cargar personal en paralelo
   sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
     _PERSONAL_CAJA = rows && rows.length ? rows : [];
+    // Actualizar asesor en select si ya está abierto
+    var sa = document.getElementById('pago-asesor-simple');
+    if (sa && _PERSONAL_CAJA.length) {
+      var curA = sa.value;
+      sa.innerHTML = _mkPersonalOpts(curA);
+    }
   });
-  // Cargar todos (incluyendo doctoras) para quién atendió
   sbGet('aos_rrhh','order=puesto.asc,nombre.asc', function(rows){
     _PERSONAL_TODO = rows && rows.length ? rows : [];
+    // Actualizar quién atendió si ya está abierto
+    var sat = document.getElementById('pago-atendio-simple');
+    if (sat) sat.innerHTML = _mkAtendioOpts(sat.value || '');
     var asesorDef = it.asesorComision || (VT.pac && VT.pac.asesor) || '';
     document.getElementById('pago-asesor-simple').innerHTML = _mkAsesorOpts(asesorDef);
     var selAt = document.getElementById('pago-atendio-simple');
@@ -2054,9 +2062,12 @@ function grabarCotizacion() {
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar','err'); return; }
-    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     cerrarOv('ov-venta');
-    cargarCaja();
+    // Limpiar el estado del modal
+    VT.items = []; VT.pac = null;
+    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
+    // Esperar un tick para que el modal cierre antes de recargar
+    setTimeout(function() { cargarCaja(); }, 150);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
@@ -2389,6 +2400,9 @@ function init() {
 }
 
 function cargarMetodosYCaja() {
+  // Pre-cargar personal para que los selects de pago funcionen inmediatamente
+  sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(r){ if(r&&r.length) _PERSONAL_CAJA=r; });
+  sbGet('aos_rrhh','order=puesto.asc,nombre.asc', function(r){ if(r&&r.length) _PERSONAL_TODO=r; });
   sbGet('aos_metodos_pago', 'order=nombre.asc', function(rows) {
     if (rows && rows.length) {
       CAJA.metodosDisponibles = rows.map(function(r) { return r.nombre; });
