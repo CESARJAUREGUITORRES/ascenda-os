@@ -462,55 +462,87 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- ===== MINI-MODAL PAGO POR ÍTEM v2 ===== -->
+<!-- ===== MINI-MODAL PAGO POR ÍTEM v3 — simple/dividido ===== -->
 <div class="ov" id="ov-pago-item" style="z-index:1100;">
-  <div class="modal-box" style="width:680px;max-width:97vw;">
+  <div class="modal-box" style="width:560px;max-width:96vw;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
       <h3>💳 Registrar pago</h3>
       <p id="pago-item-nombre">—</p>
     </div>
     <div class="modal-body" style="padding:16px 18px;">
 
-      <!-- Monto header -->
-      <div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;padding:13px 16px;border-radius:10px;text-align:center;margin-bottom:14px;">
+      <!-- Monto del ítem -->
+      <div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;padding:12px 16px;border-radius:10px;text-align:center;margin-bottom:14px;">
         <div style="font-size:10px;opacity:.7;margin-bottom:3px;">Monto del ítem</div>
         <div style="font-size:24px;font-weight:800;font-family:'Source Serif 4',serif;" id="pago-monto-display">S/ 0.00</div>
       </div>
 
-      <!-- Toggle dividir -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);">Métodos de pago</div>
+      <!-- Toggle -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);">Método de pago</div>
         <button onclick="toggleDividir()" id="btn-dividir" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:Outfit;color:var(--muted);">⇄ Dividir pago</button>
       </div>
 
-      <!-- Sub-tabla de pagos -->
-      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;">
-        <table style="width:100%;border-collapse:collapse;font-size:11px;">
-          <thead>
-            <tr style="background:var(--bg);">
-              <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método de pago</th>
-              <th style="padding:6px 6px;text-align:center;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:50px;">Divisa</th>
-              <th style="padding:6px 6px;text-align:right;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:80px;">Monto</th>
-              <th style="padding:6px 6px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">Comprobante</th>
-              <th style="padding:6px 6px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">Asesor comisión</th>
-              <th style="padding:6px 6px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">Quién atendió</th>
-              <th style="border-bottom:1px solid var(--border);width:22px;"></th>
-            </tr>
-          </thead>
-          <tbody id="pago-lines-tbody">
-          </tbody>
-        </table>
-        <!-- Agregar línea (solo en modo dividido) -->
-        <div id="pago-add-line-wrap" style="display:none;padding:7px 10px;border-top:1px solid var(--border);">
-          <button onclick="agregarLineaPago()" style="font-size:11px;padding:3px 12px;border:1.5px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;font-family:Outfit;color:var(--muted);">+ agregar método</button>
+      <!-- MODO SIMPLE — campos en línea, sin tabla -->
+      <div id="pago-simple-zone">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
+          <div class="mfield" style="margin:0;">
+            <label>Método de pago</label>
+            <select id="pago-metodo-single" onchange="autoCompSimple(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+          </div>
+          <div class="mfield" style="margin:0;">
+            <label>Monto a pagar</label>
+            <input type="number" id="pago-monto-simple" step="0.01" oninput="recalcSimple()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;text-align:right;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="mfield" style="margin:0;">
+            <label>Comprobante</label>
+            <select id="pago-comp-simple" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+              <option value="BOLETA VIRTUAL">Boleta virtual</option>
+              <option value="BOLETA FISICA">Boleta física</option>
+              <option value="RH">R.H. (Honorarios)</option>
+              <option value="FACTURA">Factura</option>
+              <option value="OTROS">Otros</option>
+            </select>
+          </div>
+          <div class="mfield" style="margin:0;">
+            <label>Asesor comisión</label>
+            <select id="pago-asesor-simple" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:var(--muted);">Total cubierto</span>
+          <span id="pago-cubierto-simple" style="font-size:13px;font-weight:700;color:var(--green);">S/ 0.00</span>
+          <span id="pago-diff-simple" style="font-size:10px;font-weight:700;display:none;"></span>
         </div>
       </div>
 
-      <!-- Resumen cubierto -->
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
-        <div style="font-size:11px;color:var(--muted);">Total cubierto</div>
-        <div id="pago-total-cubierto" style="font-size:13px;font-weight:700;color:var(--green);">S/ 0.00</div>
-        <div id="pago-diferencia-label" style="font-size:10px;font-weight:700;display:none;"></div>
+      <!-- MODO DIVIDIDO — tabla -->
+      <div id="pago-dividido-zone" style="display:none;">
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);">Método</th>
+                <th style="padding:6px 5px;text-align:center;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:44px;">Div.</th>
+                <th style="padding:6px 5px;text-align:right;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:76px;">Monto</th>
+                <th style="padding:6px 5px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:100px;">Comprobante</th>
+                <th style="padding:6px 5px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);width:96px;">Asesor</th>
+                <th style="border-bottom:1px solid var(--border);width:20px;"></th>
+              </tr>
+            </thead>
+            <tbody id="pago-lines-tbody"></tbody>
+          </table>
+          <div style="padding:6px 10px;border-top:1px solid var(--border);">
+            <button onclick="agregarLineaPago()" style="font-size:11px;padding:3px 12px;border:1.5px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;font-family:Outfit;color:var(--muted);">+ agregar método</button>
+          </div>
+        </div>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:var(--muted);">Total cubierto</span>
+          <span id="pago-total-cubierto" style="font-size:13px;font-weight:700;color:var(--green);">S/ 0.00</span>
+          <span id="pago-diferencia-label" style="font-size:10px;font-weight:700;display:none;"></span>
+        </div>
       </div>
 
     </div>
@@ -1203,32 +1235,62 @@ function abrirModalVenta() {
 // ===== CATÁLOGO BUSCADOR =====
 function buscarCatalogo(q) {
   var tipo = document.getElementById('cat-tipo').value;
-  var res = document.getElementById('cat-results');
+  var res  = document.getElementById('cat-results');
   if (!q || q.length < 2) { res.style.display='none'; return; }
-  var qs = 'nombre=ilike.*'+encodeURIComponent(q)+'*&limit=8' + (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '');
+  // Búsqueda primero por string completo, luego por primera palabra si no hay resultados
+  var qs = 'nombre=ilike.*'+encodeURIComponent(q)+'*&limit=12' +
+    (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '') +
+    '&order=nombre.asc';
   sbGet('aos_catalogo_servicios', qs, function(rows) {
-    if (!rows || !rows.length) { res.innerHTML='<div style="padding:10px;text-align:center;font-size:11px;color:var(--label);">Sin resultados</div>'; res.style.display='block'; return; }
-    res.innerHTML = rows.map(function(r) {
-      var precio = parseFloat(r.precio_referencial || r.precio || 0);
-      return '<div onclick="agregarItemDesdeCatalogo('+JSON.stringify(r).replace(/"/g,'&quot;')+')" style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;" onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">'+
-        '<span><strong>'+escH(r.nombre||'')+'</strong> <span style="font-size:9px;color:var(--muted);margin-left:6px;">'+escH(r.tipo||'')+'</span></span>'+
-        '<span style="color:var(--muted);font-size:11px;">S/ '+precio.toFixed(2)+'</span>'+
-        '</div>';
-    }).join('');
-    res.style.display = 'block';
+    if (!rows || !rows.length) {
+      // Intentar con primera palabra del query
+      var p0 = q.trim().split(/\s+/)[0];
+      var qs2 = 'nombre=ilike.*'+encodeURIComponent(p0)+'*&limit=12' +
+        (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '') + '&order=nombre.asc';
+      sbGet('aos_catalogo_servicios', qs2, function(r2){ renderCatResults(r2||[], res); });
+      return;
+    }
+    renderCatResults(rows, res);
   });
+}
+
+function renderCatResults(rows, res) {
+  if (!rows || !rows.length) {
+    res.innerHTML = '<div style="padding:10px;text-align:center;font-size:11px;color:var(--label);">Sin resultados</div>';
+    res.style.display = 'block'; return;
+  }
+  res.innerHTML = rows.map(function(r) {
+    var precio = parseFloat(r.precio_oferta || r.precio_base || 0);
+    var catBadge = r.categoria ? '<span style="font-size:8px;background:var(--blue-xl);color:var(--blue);padding:1px 5px;border-radius:10px;margin-left:4px;">'+escH(r.categoria)+'</span>' : '';
+    var tipoBadge = r.tipo === 'PRODUCTO' ?
+      '<span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">Prod.</span>' :
+      '<span style="font-size:8px;background:var(--green-xl);color:var(--green);padding:1px 5px;border-radius:10px;">Serv.</span>';
+    return '<div onclick="agregarItemDesdeCatalogo('+JSON.stringify(r).replace(/"/g,'&quot;')+')" ' +
+      'style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;" ' +
+      'onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">' +
+      '<div style="display:flex;align-items:center;gap:4px;min-width:0;">' +
+        '<span style="font-weight:700;">'+escH(r.nombre||'')+'</span>' +
+        tipoBadge + catBadge +
+      '</div>' +
+      '<span style="color:var(--blue);font-weight:700;font-size:11px;flex-shrink:0;margin-left:8px;">S/ '+precio.toFixed(2)+'</span>' +
+    '</div>';
+  }).join('');
+  res.style.display = 'block';
 }
 
 function agregarItemDesdeCatalogo(r) {
   document.getElementById('cat-busq').value = '';
   document.getElementById('cat-results').style.display = 'none';
-  var precio = parseFloat(r.precio_referencial || r.precio || 0);
+  var precio = parseFloat(r.precio_oferta || r.precio_base || r.precio || 0);
   VT.items.push({
-    id: Date.now()+'', nombre: r.nombre||'', tipo: r.tipo||'SERVICIO',
+    id: Date.now()+'',
+    nombre: r.nombre||'',
+    tipo: r.tipo||'SERVICIO',
+    categoria: r.categoria||'',
     cantidad: 1, divisa: 'PEN', precio: precio,
     descTipo: 'PCT', descVal: 0, subtotal: precio,
     pagado: false, metodoPago: '', metodoPago2: '', monto1: 0, monto2: 0,
-    comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: ''
+    comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: '', atendio: ''
   });
   renderItemsTbl();
   actualizarResumen();
@@ -1270,7 +1332,15 @@ function renderItemsTbl() {
     var rowBg = it.pagado ? 'background:var(--green-xl);' : '';
     var divSym = it.divisa === 'USD' ? '$' : 'S/';
     return '<tr style="'+rowBg+'">' +
-      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);"><div style="font-weight:700;font-size:11px;">'+escH(it.nombre)+'</div><div style="font-size:9px;color:var(--muted);">'+escH(it.tipo)+'</div></td>' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' +
+        '<div style="font-weight:700;font-size:11px;">'+escH(it.nombre)+'</div>' +
+        '<div style="display:flex;gap:3px;margin-top:2px;flex-wrap:wrap;">' +
+          (it.tipo==='PRODUCTO' ?
+            '<span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">Producto</span>' :
+            '<span style="font-size:8px;background:var(--green-xl);color:var(--green);padding:1px 5px;border-radius:10px;">Servicio</span>') +
+          (it.categoria ? '<span style="font-size:8px;background:var(--blue-xl);color:var(--blue);padding:1px 5px;border-radius:10px;">'+escH(it.categoria)+'</span>' : '') +
+        '</div>' +
+      '</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:center;">' +
         (it.pagado ? it.cantidad : '<input type="number" value="'+it.cantidad+'" min="1" oninput="VT.items['+i+'].cantidad=parseFloat(this.value)||1;renderItemsTbl()" style="width:32px;text-align:center;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">') +
       '</td>' +
@@ -1386,7 +1456,7 @@ function toggleNotas() {
   btn.style.background  = show ? 'var(--blue-xl)' : '#fff';
 }
 
-// ===== MINI-MODAL PAGO POR ÍTEM v2 =====
+// ===== MINI-MODAL PAGO POR ÍTEM v3 =====
 
 var _COMPROBANTES = ['BOLETA VIRTUAL','BOLETA FISICA','R.H.','FACTURA','OTROS'];
 
@@ -1401,12 +1471,15 @@ function _mkCompOpts(selVal) {
     return '<option value="'+escH(c)+'"'+(c===selVal?' selected':'')+'>'+escH(c)+'</option>';
   }).join('');
 }
-function _mkPersonalOpts(selVal) {
-  return '<option value="">— Sin asignar —</option>' +
-    _PERSONAL_CAJA.map(function(r){
-      var nom = r.nombre + (r.apellido ? ' '+r.apellido : '');
-      return '<option value="'+escH(r.nombre)+'"'+(r.nombre===selVal?' selected':'')+'>'+escH(nom)+'</option>';
-    }).join('');
+function _mkAsesorOpts(selVal) {
+  // NO APLICA siempre primero, luego personal de rrhh
+  var opts = '<option value="">— Sin asignar —</option><option value="NO APLICA"'+(selVal==='NO APLICA'?' selected':'')+'>NO APLICA</option>';
+  opts += _PERSONAL_CAJA.map(function(r){
+    var nom = r.nombre + (r.apellido ? ' '+r.apellido : '');
+    var val = r.codigo_asesor || r.nombre;
+    return '<option value="'+escH(val)+'"'+(val===selVal||r.nombre===selVal?' selected':'')+'>'+escH(nom)+'</option>';
+  }).join('');
+  return opts;
 }
 function _sugerirComp(metodo) {
   var m = (metodo||'').toUpperCase();
@@ -1425,143 +1498,140 @@ function abrirPagoItem(idx) {
   VT.itemPagandoIdx = idx;
   VT.isDividido = false;
   var divSym = it.divisa==='USD' ? '$ ' : 'S/ ';
+
   document.getElementById('pago-item-nombre').textContent = it.nombre;
   document.getElementById('pago-monto-display').textContent = divSym + it.subtotal.toFixed(2);
   document.getElementById('btn-dividir').textContent = '⇄ Dividir pago';
-  document.getElementById('pago-add-line-wrap').style.display = 'none';
+  document.getElementById('pago-simple-zone').style.display = 'block';
+  document.getElementById('pago-dividido-zone').style.display = 'none';
 
-  // Una sola línea por defecto
-  VT.lineasPago = [{
-    metodo: '', divisa: it.divisa||'PEN', monto: it.subtotal,
-    comprobante: 'BOLETA VIRTUAL', asesor: CAJA.usuario ? CAJA.usuario.split(' ')[0].toUpperCase() : '',
-    atendio: ''
-  }];
-  renderTablaLineas();
+  // Cargar selects del modo simple
+  var selMetodo = document.getElementById('pago-metodo-single');
+  selMetodo.innerHTML = _mkMetodosOpts('');
+  document.getElementById('pago-monto-simple').value = it.subtotal.toFixed(2);
+  document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts('BOLETA VIRTUAL');
+
+  // Cargar asesores con código correcto
+  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+    _PERSONAL_CAJA = rows && rows.length ? rows : [];
+    var asesorDef = '';
+    // Intentar pre-seleccionar el asesor del paciente
+    if (VT.pac && (VT.pac.asesor||VT.pac.codigo_asesor)) asesorDef = VT.pac.asesor || VT.pac.codigo_asesor;
+    document.getElementById('pago-asesor-simple').innerHTML = _mkAsesorOpts(asesorDef);
+  });
+
+  recalcSimple();
   abrirOv('ov-pago-item');
 }
 
+// Modo simple: auto-sugerir comprobante al cambiar método
+function autoCompSimple(metodo) {
+  var comp = _sugerirComp(metodo);
+  document.getElementById('pago-comp-simple').value = comp;
+  recalcSimple();
+}
+
+function recalcSimple() {
+  var it  = VT.items[VT.itemPagandoIdx];
+  var sub = it ? parseFloat(it.subtotal||0) : 0;
+  var pag = parseFloat(document.getElementById('pago-monto-simple').value||0);
+  var diff = sub - pag;
+  var divSym = it && it.divisa==='USD' ? '$ ' : 'S/ ';
+  var el = document.getElementById('pago-cubierto-simple');
+  var dl = document.getElementById('pago-diff-simple');
+  if (el) { el.textContent = divSym + pag.toFixed(2); el.style.color = Math.abs(diff)<0.01?'var(--green)':diff>0?'var(--amber)':'var(--red)'; }
+  if (dl) {
+    if (diff>0.01) { dl.textContent='Saldo: '+divSym+diff.toFixed(2); dl.style.color='var(--amber)'; dl.style.display='block'; }
+    else if (diff<-0.01) { dl.textContent='Excede: '+divSym+Math.abs(diff).toFixed(2); dl.style.color='var(--red)'; dl.style.display='block'; }
+    else dl.style.display='none';
+  }
+}
+
+// Modo dividido: render tabla
 function renderTablaLineas() {
   var it = VT.items[VT.itemPagandoIdx] || {};
   var tbody = document.getElementById('pago-lines-tbody');
   if (!tbody) return;
-
   tbody.innerHTML = VT.lineasPago.map(function(ln, i) {
-    var esPrimera = i === 0;
     return '<tr style="border-bottom:1px solid var(--border);">' +
-      // Método
       '<td style="padding:5px 8px;">' +
-        '<select onchange="VT.lineasPago['+i+'].metodo=this.value;autoFillLinea('+i+')" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
+        '<select onchange="VT.lineasPago['+i+'].metodo=this.value;autoFillLinea('+i+')" style="width:100%;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
           _mkMetodosOpts(ln.metodo) +
         '</select>' +
       '</td>' +
-      // Divisa
-      '<td style="padding:5px 6px;text-align:center;">' +
-        '<select onchange="VT.lineasPago['+i+'].divisa=this.value;recalcCubierto()" style="width:44px;font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
+      '<td style="padding:5px 5px;text-align:center;">' +
+        '<select onchange="VT.lineasPago['+i+'].divisa=this.value;recalcCubierto()" style="width:40px;font-size:10px;padding:3px 2px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
           '<option value="PEN"'+(ln.divisa==='PEN'?' selected':'')+'>S/</option>' +
           '<option value="USD"'+(ln.divisa==='USD'?' selected':'')+'>$</option>' +
         '</select>' +
       '</td>' +
-      // Monto
-      '<td style="padding:5px 6px;">' +
-        '<input type="number" value="'+(ln.monto||0)+'" min="0" step="0.01" ' +
-          'oninput="VT.lineasPago['+i+'].monto=parseFloat(this.value)||0;recalcCubierto()" ' +
-          'style="width:100%;text-align:right;font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
+      '<td style="padding:5px 5px;">' +
+        '<input type="number" value="'+(ln.monto||0).toFixed(2)+'" min="0" step="0.01" oninput="VT.lineasPago['+i+'].monto=parseFloat(this.value)||0;recalcCubierto()" style="width:100%;text-align:right;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
       '</td>' +
-      // Comprobante
-      '<td style="padding:5px 6px;">' +
-        '<select onchange="VT.lineasPago['+i+'].comprobante=this.value" style="width:100%;font-size:10px;padding:4px 5px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
-          _mkCompOpts(ln.comprobante) +
+      '<td style="padding:5px 5px;">' +
+        '<select onchange="VT.lineasPago['+i+'].comprobante=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
+          _mkCompOpts(ln.comprobante||'BOLETA VIRTUAL') +
         '</select>' +
       '</td>' +
-      // Asesor comisión
-      '<td style="padding:5px 6px;">' +
-        '<select onchange="VT.lineasPago['+i+'].asesor=this.value" style="width:100%;font-size:10px;padding:4px 5px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
-          _mkPersonalOpts(ln.asesor) +
+      '<td style="padding:5px 5px;">' +
+        '<select onchange="VT.lineasPago['+i+'].asesor=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
+          _mkAsesorOpts(ln.asesor||'') +
         '</select>' +
       '</td>' +
-      // Quién atendió
-      '<td style="padding:5px 6px;">' +
-        '<select onchange="VT.lineasPago['+i+'].atendio=this.value" style="width:100%;font-size:10px;padding:4px 5px;border:1px solid var(--border);border-radius:6px;font-family:Outfit;outline:none;">' +
-          _mkPersonalOpts(ln.atendio) +
-        '</select>' +
-      '</td>' +
-      // Eliminar (solo si hay más de 1)
       '<td style="padding:5px 4px;text-align:center;">' +
-        (VT.lineasPago.length > 1 ?
-          '<span onclick="VT.lineasPago.splice('+i+',1);renderTablaLineas();recalcCubierto()" style="color:var(--red);cursor:pointer;font-size:14px;">×</span>' :
-          '') +
+        (VT.lineasPago.length>1 ? '<span onclick="VT.lineasPago.splice('+i+',1);renderTablaLineas();recalcCubierto()" style="color:var(--red);cursor:pointer;font-size:14px;">×</span>' : '') +
       '</td>' +
     '</tr>';
   }).join('');
-
   recalcCubierto();
 }
 
 function autoFillLinea(i) {
   var ln = VT.lineasPago[i];
   if (!ln) return;
-  // Auto-sugerir comprobante y divisa
   ln.comprobante = _sugerirComp(ln.metodo);
   ln.divisa      = _divFromMetodo(ln.metodo);
   renderTablaLineas();
-  recalcCubierto();
 }
 
 function recalcCubierto() {
-  var it = VT.items[VT.itemPagandoIdx];
-  var total = VT.lineasPago.reduce(function(s,ln){ return s + (parseFloat(ln.monto)||0); }, 0);
-  var sub   = it ? parseFloat(it.subtotal||0) : 0;
-  var diff  = sub - total;
+  var it   = VT.items[VT.itemPagandoIdx];
+  var total= VT.lineasPago.reduce(function(s,ln){ return s+(parseFloat(ln.monto)||0); }, 0);
+  var sub  = it ? parseFloat(it.subtotal||0) : 0;
+  var diff = sub - total;
   var divSym = it && it.divisa==='USD' ? '$ ' : 'S/ ';
   var el = document.getElementById('pago-total-cubierto');
   var dl = document.getElementById('pago-diferencia-label');
-  if (el) {
-    el.textContent = divSym + total.toFixed(2);
-    el.style.color = Math.abs(diff) < 0.01 ? 'var(--green)' : (diff > 0 ? 'var(--amber)' : 'var(--red)');
-  }
+  if (el) { el.textContent = divSym+total.toFixed(2); el.style.color = Math.abs(diff)<0.01?'var(--green)':diff>0?'var(--amber)':'var(--red)'; }
   if (dl) {
-    if (diff > 0.01) {
-      dl.textContent = 'Saldo pendiente: ' + divSym + diff.toFixed(2);
-      dl.style.color = 'var(--amber)';
-      dl.style.display = 'block';
-    } else if (diff < -0.01) {
-      dl.textContent = 'Excede en: ' + divSym + Math.abs(diff).toFixed(2);
-      dl.style.color = 'var(--red)';
-      dl.style.display = 'block';
-    } else {
-      dl.style.display = 'none';
-    }
+    if (diff>0.01) { dl.textContent='Saldo: '+divSym+diff.toFixed(2); dl.style.color='var(--amber)'; dl.style.display='block'; }
+    else if (diff<-0.01) { dl.textContent='Excede: '+divSym+Math.abs(diff).toFixed(2); dl.style.color='var(--red)'; dl.style.display='block'; }
+    else dl.style.display='none';
   }
 }
 
 function toggleDividir() {
   VT.isDividido = !VT.isDividido;
-  var it = VT.items[VT.itemPagandoIdx];
+  var it  = VT.items[VT.itemPagandoIdx];
   var btn = document.getElementById('btn-dividir');
-  var addWrap = document.getElementById('pago-add-line-wrap');
+  document.getElementById('pago-simple-zone').style.display   = VT.isDividido ? 'none' : 'block';
+  document.getElementById('pago-dividido-zone').style.display = VT.isDividido ? 'block' : 'none';
+  btn.textContent = VT.isDividido ? '× Un solo método' : '⇄ Dividir pago';
   if (VT.isDividido) {
-    btn.textContent = '× Un solo método';
-    addWrap.style.display = 'block';
-    var mitad = it ? it.subtotal / 2 : 0;
-    var comp  = 'BOLETA VIRTUAL';
-    var asesorDef = CAJA.usuario ? CAJA.usuario.split(' ')[0].toUpperCase() : '';
+    var mitad = it ? it.subtotal/2 : 0;
+    var asDef = '';
+    if (VT.lineasPago.length && VT.lineasPago[0].asesor) asDef = VT.lineasPago[0].asesor;
     VT.lineasPago = [
-      {metodo:'', divisa: it&&it.divisa||'PEN', monto: mitad, comprobante: comp, asesor: asesorDef, atendio:''},
-      {metodo:'', divisa: it&&it.divisa||'PEN', monto: mitad, comprobante: comp, asesor: asesorDef, atendio:''}
+      {metodo:'', divisa: it&&it.divisa||'PEN', monto: parseFloat(mitad.toFixed(2)), comprobante:'BOLETA VIRTUAL', asesor: asDef},
+      {metodo:'', divisa: it&&it.divisa||'PEN', monto: parseFloat(mitad.toFixed(2)), comprobante:'BOLETA VIRTUAL', asesor: asDef}
     ];
-  } else {
-    btn.textContent = '⇄ Dividir pago';
-    addWrap.style.display = 'none';
-    var defMonto = it ? it.subtotal : 0;
-    VT.lineasPago = [{metodo:'', divisa: it&&it.divisa||'PEN', monto: defMonto, comprobante:'BOLETA VIRTUAL', asesor: CAJA.usuario?CAJA.usuario.split(' ')[0].toUpperCase():'', atendio:''}];
+    renderTablaLineas();
   }
-  renderTablaLineas();
 }
 
 function agregarLineaPago() {
   var it = VT.items[VT.itemPagandoIdx];
-  var asesorDef = CAJA.usuario ? CAJA.usuario.split(' ')[0].toUpperCase() : '';
-  VT.lineasPago.push({metodo:'', divisa: it&&it.divisa||'PEN', monto:0, comprobante:'BOLETA VIRTUAL', asesor: asesorDef, atendio:''});
+  VT.lineasPago.push({metodo:'', divisa: it&&it.divisa||'PEN', monto:0, comprobante:'BOLETA VIRTUAL', asesor:''});
   renderTablaLineas();
 }
 
@@ -1570,41 +1640,52 @@ function confirmarPagoItem() {
   if (idx < 0 || !VT.items[idx]) return;
   var it = VT.items[idx];
 
-  // Validar al menos una línea con método y monto
-  var validas = VT.lineasPago.filter(function(ln){ return ln.monto > 0; });
-  if (!validas.length) { toast('Ingresa al menos un monto de pago','warn'); return; }
-  for (var j=0; j<validas.length; j++) {
-    if (!validas[j].metodo) { toast('Selecciona el método de pago en todas las líneas','warn'); return; }
+  var validas, totalCubierto;
+
+  if (VT.isDividido) {
+    validas = VT.lineasPago.filter(function(ln){ return ln.monto > 0; });
+    if (!validas.length) { toast('Ingresa al menos un monto','warn'); return; }
+    for (var j=0; j<validas.length; j++) {
+      if (!validas[j].metodo) { toast('Selecciona el método en todas las líneas','warn'); return; }
+    }
+    totalCubierto = validas.reduce(function(s,ln){ return s+parseFloat(ln.monto||0); }, 0);
+    it.metodoPago     = validas[0].metodo;
+    it.monto1         = validas[0].monto;
+    it.comprobante    = validas[0].comprobante;
+    it.asesorComision = validas[0].asesor;
+    it.metodoPago2    = validas.length>1 ? validas[1].metodo : '';
+    it.monto2         = validas.length>1 ? validas[1].monto  : 0;
+  } else {
+    var metodoS = document.getElementById('pago-metodo-single').value;
+    if (!metodoS) { toast('Selecciona el método de pago','warn'); return; }
+    totalCubierto  = parseFloat(document.getElementById('pago-monto-simple').value||0);
+    if (totalCubierto <= 0) { toast('Ingresa un monto mayor a 0','warn'); return; }
+    it.metodoPago     = metodoS;
+    it.monto1         = totalCubierto;
+    it.comprobante    = document.getElementById('pago-comp-simple').value;
+    it.asesorComision = document.getElementById('pago-asesor-simple').value;
+    it.metodoPago2    = '';
+    it.monto2         = 0;
   }
 
-  // Calcular total cubierto y detectar adelanto automáticamente
-  var totalCubierto = validas.reduce(function(s,ln){ return s + parseFloat(ln.monto||0); }, 0);
   var esAdelanto = totalCubierto < (parseFloat(it.subtotal||0) - 0.01);
-
-  // Guardar en el ítem
-  it.metodoPago     = validas[0].metodo;
-  it.monto1         = validas[0].monto;
-  it.comprobante    = validas[0].comprobante;
-  it.asesorComision = validas[0].asesor;
-  it.atendio        = validas[0].atendio;
-  it.metodoPago2    = validas.length > 1 ? validas[1].metodo : '';
-  it.monto2         = validas.length > 1 ? validas[1].monto  : 0;
-  it.estadoPago     = esAdelanto ? 'ADELANTO' : 'PAGO COMPLETO';
-  it.montoPagado    = totalCubierto;
-  it.saldoItem      = parseFloat(it.subtotal||0) - totalCubierto;
-  it.pagado         = true;
+  it.estadoPago  = esAdelanto ? 'ADELANTO' : 'PAGO COMPLETO';
+  it.montoPagado = totalCubierto;
+  it.saldoItem   = parseFloat(it.subtotal||0) - totalCubierto;
+  it.pagado      = true;
 
   cerrarOv('ov-pago-item');
   renderItemsTbl();
   actualizarResumen();
 
   if (esAdelanto) {
-    toast('⏳ Adelanto registrado — saldo: ' + (it.divisa==='USD'?'$ ':'S/ ') + it.saldoItem.toFixed(2), 'warn');
+    toast('⏳ Adelanto — saldo: '+(it.divisa==='USD'?'$ ':'S/ ')+it.saldoItem.toFixed(2), 'warn');
   } else {
-    toast('✓ Pago completo — ' + it.nombre, 'ok');
+    toast('✓ Pago completo — '+it.nombre, 'ok');
   }
 }
-// ===== FIN MINI-MODAL PAGO =====
+// ===== FIN MINI-MODAL PAGO v3 =====
+
 
 // ===== GRABAR COTIZACIÓN =====
 function grabarCotizacion() {
