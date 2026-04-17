@@ -462,10 +462,22 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 3h10a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             Notas
           </button>
-          <button onclick="cotPDFCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 16h12M10 3v10M6 10l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            PDF
-          </button>
+          <div style="position:relative;">
+            <button onclick="togglePDFMenu()" id="btn-pdf-main" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;width:64px;">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 16h12M10 3v10M6 10l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              PDF ▾
+            </button>
+            <div id="pdf-menu" style="display:none;position:absolute;bottom:110%;right:0;background:#fff;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;min-width:150px;box-shadow:0 4px 16px rgba(10,79,191,.12);z-index:300;">
+              <div onclick="cotPDFCaja('cotizacion');togglePDFMenu()" style="padding:9px 14px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;" onmouseover="this.style.background='var(--blue-xl)'" onmouseout="this.style.background=''">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 3h10a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                Cotización
+              </div>
+              <div onclick="cotPDFCaja('comprobante');togglePDFMenu()" style="padding:9px 14px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;" onmouseover="this.style.background='var(--blue-xl)'" onmouseout="this.style.background=''">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 16h12M10 3v10M6 10l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Comprobante
+              </div>
+            </div>
+          </div>
           <button onclick="cotEmailCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:Outfit;transition:all .15s;">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8l8 5 8-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             Email
@@ -1591,6 +1603,15 @@ function limpiarPaciente() {
   if(inp) { inp.value = ''; inp.focus(); }
 }
 
+function togglePDFMenu() {
+  var menu = document.getElementById('pdf-menu');
+  var btn  = document.getElementById('btn-pdf-main');
+  if (!menu) return;
+  var show = menu.style.display === 'none';
+  menu.style.display = show ? 'block' : 'none';
+  if (btn) { btn.style.borderColor = show ? 'var(--blue)' : 'var(--border)'; btn.style.color = show ? 'var(--blue)' : 'var(--muted)'; }
+}
+
 function toggleNotas() {
   var panel = document.getElementById('notas-panel');
   var btn   = document.getElementById('btn-notas');
@@ -1971,57 +1992,123 @@ function grabarCotizacion() {
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
-// ===== PDF COTIZACIÓN DESDE CAJA =====
-function cotPDFCaja() {
+// ===== PDF COTIZACIÓN DESDE CAJA — DOS TIPOS =====
+function cotPDFCaja(tipo) {
+  // tipo = 'cotizacion' | 'comprobante'
   if (!VT.items.length) { toast('Agrega ítems primero','warn'); return; }
-  var pac = VT.pac || {};
-  var nom = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
-  var total = VT.items.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
-  var pagado = VT.items.filter(function(it){ return it.pagado; }).reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
-  var saldo = total - pagado;
+  tipo = tipo || 'cotizacion';
+  var pac   = VT.pac || {};
+  var nom   = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
   var fecha = fechaLima();
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cotización — '+escH(nom)+'</title>'+
-    '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">'+
-    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Outfit,sans-serif;color:#0D1B3E;padding:30px 36px;max-width:600px;margin:auto;}'+
-    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0A4FBF;margin-bottom:18px;}'+
-    '.brand{font-size:20px;font-weight:800;color:#0A4FBF;}'+
-    '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;}'+
-    '.pac-info{font-size:11px;margin-bottom:16px;background:#F8FAFF;padding:10px 14px;border-radius:8px;}'+
-    '.pac-info strong{font-size:13px;display:block;margin-bottom:4px;}'+
-    'table{width:100%;border-collapse:collapse;margin-bottom:14px;}'+
-    'th{padding:7px 10px;background:#0A4FBF;color:#fff;font-size:10px;text-align:left;}'+
-    'td{padding:7px 10px;border-bottom:1px solid #EEF2FF;font-size:11px;}'+
-    '.totals{display:flex;justify-content:flex-end;}.totals-box{width:200px;}'+
-    '.tot-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;}'+
-    '.tot-row.main{font-weight:800;font-size:14px;border-top:2px solid #0A4FBF;padding-top:7px;margin-top:4px;color:#0A4FBF;}'+
-    '.footer{margin-top:24px;text-align:center;font-size:9px;color:#9AAAC8;border-top:1px solid #EEF2FF;padding-top:10px;}'+
-    '</style></head><body>'+
-    '<div class="hdr"><div class="brand">Zi Vital<small>Clínica Estética</small></div>'+
-    '<div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:#071D4A;">COTIZACIÓN</div>'+
-    '<div style="font-size:11px;color:#6B7BA8;">'+escH(CAJA.sede)+' · '+escH(fecha)+'</div>'+
-    '<div style="margin-top:4px;background:'+(saldo<=0.01?'#F0FDF4':'#FEF9C3')+';color:'+(saldo<=0.01?'#16A34A':'#CA8A04')+';padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;">'+(saldo<=0.01?'PAGADO':'SALDO PENDIENTE')+'</div>'+
-    '</div></div>'+
-    '<div class="pac-info"><strong>'+escH(nom)+'</strong>'+
-    (pac.numero||pac.celular?'<span>📱 '+escH(pac.numero||pac.celular||'')+'</span>  ':'')+
-    (pac.dni||pac.DNI?'<span>🪪 '+escH(pac.dni||pac.DNI||'')+'</span>':'')+'</div>'+
-    '<table><thead><tr><th>Tratamiento / Producto</th><th style="text-align:center;">Cant.</th><th>Divisa</th><th style="text-align:right;">Subtotal</th></tr></thead><tbody>'+
-    VT.items.map(function(it){
-      return '<tr><td>'+escH(it.nombre)+'<br><span style="font-size:9px;color:#6B7BA8;">'+escH(it.tipo)+'</span></td>'+
-        '<td style="text-align:center;">'+it.cantidad+'</td>'+
-        '<td>'+(it.divisa==='USD'?'USD $':'PEN S/')+'</td>'+
-        '<td style="text-align:right;font-weight:700;">'+(it.divisa==='USD'?'$ ':'S/ ')+it.subtotal.toFixed(2)+'</td></tr>';
-    }).join('')+
-    '</tbody></table>'+
-    '<div class="totals"><div class="totals-box">'+
-    '<div class="tot-row"><span style="color:#6B7BA8;">Subtotal</span><span>S/ '+total.toFixed(2)+'</span></div>'+
-    (pagado>0?'<div class="tot-row"><span style="color:#16A34A;">Pagado</span><span style="color:#16A34A;font-weight:700;">S/ '+pagado.toFixed(2)+'</span></div>':'')+''+
-    (saldo>0.01?'<div class="tot-row main"><span>Saldo</span><span style="color:#DC2626;">S/ '+saldo.toFixed(2)+'</span></div>':'<div class="tot-row main"><span>TOTAL</span><span>S/ '+total.toFixed(2)+'</span></div>')+
-    '</div></div>'+
-    '<div class="footer">Zi Vital · Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre<br>Generado por AscendaOS · CREACTIVE OS</div>'+
+  var subtotal   = VT.items.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
+  var descuentos = VT.items.reduce(function(s,it){ var b=parseFloat(it.precio||0)*parseFloat(it.cantidad||1); return s+(it.descTipo==='PCT'?b*(parseFloat(it.descVal||0)/100):parseFloat(it.descVal||0)); },0);
+  var total      = subtotal - descuentos;
+  var pagado     = VT.items.reduce(function(s,it){ return s+(it.pagado?parseFloat(it.montoPagado||it.subtotal||0):0); },0);
+  var saldo      = total - pagado;
+  var estadoLabel = saldo <= 0.01 ? 'PAGADO' : (pagado > 0.01 ? 'ADELANTO' : 'PENDIENTE');
+  var estadoColor = saldo<=0.01?'#16A34A':pagado>0.01?'#D97706':'#0A4FBF';
+  var estadoBg    = saldo<=0.01?'#F0FDF4':pagado>0.01?'#FEF9C3':'#EBF2FF';
+
+  var itemRows = VT.items.map(function(it) {
+    var descStr = it.descVal > 0 ? (it.descTipo==='PCT'?it.descVal+'%':'S/ '+parseFloat(it.descVal).toFixed(2)) : '—';
+    var estadoPago = it.pagado ? (it.estadoPago==='ADELANTO'?'<span style="color:#D97706;font-weight:700;">Adelanto</span>':'<span style="color:#16A34A;font-weight:700;">Pagado</span>') : '<span style="color:#6B7BA8;">Pendiente</span>';
+    var pagoInfo = '';
+    if (tipo === 'comprobante' && it.pagado) {
+      pagoInfo = '<br><span style="font-size:9px;color:#6B7BA8;">' + escH(it.metodoPago||'') +
+        (it.metodoPago2 ? ' + '+escH(it.metodoPago2) : '') + '</span>';
+    }
+    return '<tr>' +
+      '<td style="padding:8px 10px;font-weight:600;">' + escH(it.nombre||'') + pagoInfo +
+        '<br><span style="font-size:9px;color:#6B7BA8;">' + escH(it.tipo||'') + (it.categoria?' · '+escH(it.categoria):'') + '</span></td>' +
+      '<td style="padding:8px 10px;text-align:center;">' + (it.cantidad||1) + '</td>' +
+      '<td style="padding:8px 10px;text-align:center;">' + (it.divisa==='USD'?'USD $':'PEN S/') + '</td>' +
+      '<td style="padding:8px 10px;text-align:right;">S/ ' + parseFloat(it.precio||0).toFixed(2) + '</td>' +
+      '<td style="padding:8px 10px;text-align:center;">' + descStr + '</td>' +
+      '<td style="padding:8px 10px;text-align:right;font-weight:700;">S/ ' + parseFloat(it.subtotal||0).toFixed(2) + '</td>' +
+      (tipo==='comprobante' ? '<td style="padding:8px 10px;text-align:center;">' + estadoPago + (it.pagado&&it.saldoItem>0.01?'<br><span style="font-size:9px;color:#DC2626;">Saldo: S/'+it.saldoItem.toFixed(2)+'</span>':'') + '</td>' : '') +
+    '</tr>';
+  }).join('');
+
+  var extraCols = tipo==='comprobante' ? '<th style="padding:7px 10px;text-align:center;">Estado</th>' : '';
+  var extraColspan = tipo==='comprobante' ? 7 : 6;
+
+  // Sección de pagos para comprobante
+  var pagosSection = '';
+  if (tipo === 'comprobante') {
+    var lineasPago = [];
+    VT.items.forEach(function(it) {
+      if (!it.pagado) return;
+      if (it.metodoPago) lineasPago.push({ metodo: it.metodoPago, monto: parseFloat(it.monto1||it.subtotal||0), comp: it.comprobante||'—', item: it.nombre });
+      if (it.metodoPago2 && it.monto2>0) lineasPago.push({ metodo: it.metodoPago2, monto: parseFloat(it.monto2||0), comp: it.comprobante||'—', item: it.nombre });
+    });
+    if (lineasPago.length) {
+      pagosSection = '<div style="margin-top:20px;padding:14px;background:#F8FAFF;border-radius:8px;border:1px solid #DDE4F5;">' +
+        '<div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:8px;">Detalle de pagos</div>' +
+        lineasPago.map(function(p,i){
+          return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid #EEF2FF;">' +
+            '<span style="color:#0D1B3E;font-weight:600;">' + escH(p.metodo) + ' <span style="color:#6B7BA8;font-weight:400;">· '+escH(p.comp)+'</span></span>' +
+            '<span style="font-weight:700;">S/ ' + p.monto.toFixed(2) + '</span></div>';
+        }).join('') + '</div>';
+    }
+  }
+
+  var tituloDoc = tipo==='comprobante' ? 'COMPROBANTE DE PAGO' : 'COTIZACIÓN';
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + tituloDoc + ' — ' + escH(nom) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Outfit,sans-serif;color:#0D1B3E;padding:28px 36px;max-width:680px;margin:auto;}' +
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0A4FBF;margin-bottom:18px;}' +
+    '.brand{font-size:20px;font-weight:800;color:#0A4FBF;font-family:"Source Serif 4",serif;}' +
+    '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;font-family:Outfit,sans-serif;}' +
+    '.brand .empresa-datos{font-size:9px;color:#9AAAC8;margin-top:4px;line-height:1.5;}' +
+    '.doc-title{font-size:16px;font-weight:800;color:#071D4A;text-align:right;}' +
+    '.doc-meta{font-size:11px;color:#6B7BA8;text-align:right;margin-top:3px;}' +
+    '.status-badge{display:inline-block;padding:3px 12px;border-radius:6px;font-size:10px;font-weight:800;margin-top:5px;}' +
+    '.pac-box{background:#F8FAFF;padding:12px 14px;border-radius:8px;border:1px solid #DDE4F5;margin-bottom:18px;}' +
+    '.pac-box strong{font-size:14px;display:block;margin-bottom:4px;}' +
+    '.pac-box span{font-size:11px;color:#6B7BA8;}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:14px;}' +
+    'thead th{padding:7px 10px;background:#0A4FBF;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left;}' +
+    'tbody td{padding:7px 10px;border-bottom:1px solid #F0F4FC;font-size:11px;}' +
+    'tbody tr:hover td{background:#F8FAFF;}' +
+    '.totals{display:flex;justify-content:flex-end;margin-bottom:16px;}' +
+    '.totals-inner{width:240px;}' +
+    '.tot-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;}' +
+    '.tot-main{font-weight:800;font-size:15px;border-top:2px solid #0A4FBF;padding-top:7px;margin-top:4px;}' +
+    '.footer{margin-top:24px;text-align:center;font-size:9px;color:#9AAAC8;border-top:1px solid #EEF2FF;padding-top:10px;}' +
+    '@media print{body{padding:10mm 12mm;}}</style>' +
+    '</head><body>' +
+    '<div class="hdr">' +
+      '<div class="brand">Zi Vital<small>Clínica Estética</small>' +
+        '<div class="empresa-datos">Av. Javier Prado Este 996, San Isidro<br>Av. Brasil 1170, Pueblo Libre</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="doc-title">' + tituloDoc + '</div>' +
+        '<div class="doc-meta">' + escH(CAJA.sede) + ' · ' + escH(fecha) + '</div>' +
+        '<div style="text-align:right;"><span class="status-badge" style="background:'+estadoBg+';color:'+estadoColor+';">' + estadoLabel + '</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pac-box"><strong>' + escH(nom) + '</strong>' +
+      '<span>' + (pac.numero||pac.celular?'📱 '+escH(pac.numero||pac.celular||'')+'  ':'') +
+      (pac.dni||pac.DNI?'🪪 '+escH(pac.dni||pac.DNI||''):'') + '</span></div>' +
+    '<table><thead><tr>' +
+      '<th>Tratamiento / Producto</th><th style="text-align:center;">Cant.</th><th style="text-align:center;">Div.</th>' +
+      '<th style="text-align:right;">Precio</th><th style="text-align:center;">Desc.</th><th style="text-align:right;">Subtotal</th>' + extraCols +
+    '</tr></thead><tbody>' + itemRows + '</tbody></table>' +
+    '<div class="totals"><div class="totals-inner">' +
+      '<div class="tot-row"><span style="color:#6B7BA8;">Subtotal</span><span>S/ '+subtotal.toFixed(2)+'</span></div>' +
+      (descuentos>0?'<div class="tot-row"><span style="color:#6B7BA8;">Descuentos</span><span style="color:#16A34A;">— S/ '+descuentos.toFixed(2)+'</span></div>':'') +
+      (pagado>0&&tipo==='comprobante'?'<div class="tot-row"><span style="color:#6B7BA8;">Pagado</span><span style="color:#16A34A;font-weight:700;">S/ '+pagado.toFixed(2)+'</span></div>':'') +
+      (saldo>0.01&&tipo==='comprobante'?'<div class="tot-row"><span style="color:#DC2626;font-weight:700;">Saldo pendiente</span><span style="color:#DC2626;font-weight:700;">S/ '+saldo.toFixed(2)+'</span></div>':'') +
+      '<div class="tot-row tot-main"><span>TOTAL</span><span style="color:#0A4FBF;">S/ '+total.toFixed(2)+'</span></div>' +
+    '</div></div>' +
+    pagosSection +
+    '<div class="footer">Zi Vital · Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre<br>Documento generado por AscendaOS · CREACTIVE OS</div>' +
     '</body></html>';
-  var w = window.open('','_blank','width=700,height:900');
-  w.document.write(html); w.document.close();
-  setTimeout(function(){ w.print(); }, 600);
+
+  var w = window.open('','_blank','width=750,height=980');
+  if (w) { w.document.write(html); w.document.close(); setTimeout(function(){ w.print(); }, 700); }
+  else toast('Permite ventanas emergentes para el PDF','warn');
 }
 
 function cotEmailCaja() {
@@ -2100,6 +2187,12 @@ function obtenerUsuario() {
 
 // Cerrar dropdowns al hacer clic fuera
 document.addEventListener('click', function(e) {
+  var pdfMenu = document.getElementById('pdf-menu');
+  var btnPdf  = document.getElementById('btn-pdf-main');
+  if (pdfMenu && btnPdf && !pdfMenu.contains(e.target) && e.target !== btnPdf && !btnPdf.contains(e.target)) {
+    pdfMenu.style.display = 'none';
+    btnPdf.style.borderColor = 'var(--border)'; btnPdf.style.color = 'var(--muted)';
+  }
   var resPac = document.getElementById('busq-pac-results');
   var inpPac = document.getElementById('busq-pac-input');
   if (resPac && inpPac && !resPac.contains(e.target) && e.target !== inpPac) {
