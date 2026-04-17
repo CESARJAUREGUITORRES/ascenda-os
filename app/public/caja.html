@@ -534,10 +534,10 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
             <input type="number" id="pago-monto-simple" step="0.01" oninput="recalcSimple()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;text-align:right;">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div class="mfield" style="margin:0;">
             <label>Comprobante</label>
-            <select id="pago-comp-simple" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <select id="pago-comp-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;">
               <option value="BOLETA VIRTUAL">Boleta virtual</option>
               <option value="BOLETA FISICA">Boleta física</option>
               <option value="RH">R.H. (Honorarios)</option>
@@ -547,7 +547,11 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
           </div>
           <div class="mfield" style="margin:0;">
             <label>Asesor comisión</label>
-            <select id="pago-asesor-simple" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+            <select id="pago-asesor-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;"></select>
+          </div>
+          <div class="mfield" style="margin:0;">
+            <label>Quién atendió</label>
+            <select id="pago-atendio-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;"></select>
           </div>
         </div>
         <div style="margin-top:10px;padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -926,7 +930,7 @@ function renderCaja() {
         '</div>' +
       '</div>';
     });
-    html += renderResumenCuadre();
+    // Cuadre solo visible al cerrar caja (modal de cierre)
   }
   html += '</div></div>';
   html += '</div>'; // fin col izquierda
@@ -977,8 +981,10 @@ function renderResumenCuadre() {
 function toggleMetodos() {
   var body = document.getElementById('metodos-body');
   var arrow = document.getElementById('metodos-arrow');
-  var isOpen = body.classList.toggle('open');
-  arrow.classList.toggle('open', isOpen);
+  if (!body) return;
+  var isOpen = body.style.display === 'none';
+  body.style.display = isOpen ? 'block' : 'none';
+  if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
 }
 
 function cambiarFechaInline(fecha) {
@@ -1113,13 +1119,16 @@ function renderTablaVentas() {
         '<small>' + escH((v.descripcion || '').substring(0, 60)) + '</small></td>' +
       '<td><span class="' + esBadge + '">' + escH(v.metodo_pago || '') + '</span></td>' +
       '<td class="td-monto' + (v.moneda === 'USD' ? ' usd' : '') + '">' + fmtMonto(v.monto, v.moneda) + '</td>' +
+      '<td class="td-saldo">' + (v.estado_pago === 'ADELANTO' ? '<span style="color:var(--red);font-size:10px;font-weight:700;">saldo</span>' : '<span style="color:var(--green);font-size:10px;">—</span>') + '</td>' +
+      '<td class="td-asesor">' + (v.asesor && v.asesor !== 'NO APLICA' ? '<span style="font-size:10px;color:var(--blue);font-weight:600;">' + escH(v.asesor) + '</span>' : '<span style="font-size:9px;color:var(--label);">—</span>') + '</td>' +
+      '<td class="td-asesor">' + (v.atendio ? '<span style="font-size:10px;color:var(--muted);">' + escH(v.atendio) + '</span>' : '<span style="font-size:9px;color:var(--label);">—</span>') + '</td>' +
       '<td><span class="badge-estado ' + estadoCls + '">' + escH(v.estado_pago || '') + '</span></td>' +
       '<td>' + escH(v.tipo_comprobante || '') + '</td>' +
       '<td class="td-acciones">' + (canEdit ? '<span style="font-size:11px;color:var(--muted);">↗</span>' : '') + '</td>' +
     '</tr>';
   }).join('');
   return '<table class="ventas-tabla"><thead><tr>' +
-    '<th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Método</th><th>Monto</th><th>Estado</th><th>Doc.</th><th></th>' +
+    '<th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Método</th><th>Monto</th><th>Saldo</th><th>Estado</th><th>Asesor</th><th>Atendió</th><th>Doc.</th><th></th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
@@ -1732,6 +1741,8 @@ function abrirPagoItem(idx) {
     _PERSONAL_CAJA = rows && rows.length ? rows : [];
     var asesorDef = it.asesorComision || (VT.pac && VT.pac.asesor) || '';
     document.getElementById('pago-asesor-simple').innerHTML = _mkAsesorOpts(asesorDef);
+    var selAt = document.getElementById('pago-atendio-simple');
+    if (selAt) selAt.innerHTML = _mkPersonalOpts(it.atendio || '');
     if (VT.isDividido) renderTablaLineas();
   });
 
