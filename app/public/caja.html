@@ -789,11 +789,6 @@ function abrirModalApertura() {
   document.getElementById('apertura-usuario').value = CAJA.usuario || obtenerUsuario();
   document.getElementById('alerta-saldo').style.display = 'none';
 
-  // Consultar saldo anterior
-  rpc('aos_caja_abrir', { p_sede: CAJA.sede, p_usuario: '__CHECK__', p_efectivo_soles: -1 }, function(d) {
-    // Usamos error esperado para preview de saldo anterior
-  });
-
   sbGet('aos_caja_sesiones', 'sede=eq.' + encodeURIComponent(CAJA.sede) + '&estado=eq.CERRADA&order=fecha.desc&limit=1', function(rows) {
     if (rows && rows.length) {
       var ult = rows[0];
@@ -1131,29 +1126,40 @@ function init() {
   buildTicker();
   cargarTC();
 
-  // ===== SEDE Y USUARIO DESDE SESIÓN =====
+  // ===== SEDE Y USUARIO DESDE SESIÓN + HORARIO DEL DÍA =====
   try {
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
-    CAJA.usuario = (s.nombre || '') + (s.apellido ? ' ' + s.apellido : '') || 'ADMIN';
-    // Sede del asesor según su sede registrada — no puede cambiar de sede
-    if (s.sede) {
-      // Normalizar sede
-      var sedeNorm = s.sede.toUpperCase();
-      if (sedeNorm.indexOf('PUEBLO') > -1 || sedeNorm.indexOf('PL') > -1) {
-        CAJA.sede = 'PUEBLO LIBRE';
-      } else {
-        CAJA.sede = 'SAN ISIDRO';
-      }
-      // Si es ADMIN puede ver ambas; si es ASESOR solo su sede
-      CAJA.esAdmin = (s.puesto === 'ADMINISTRADOR');
-      CAJA.sedeFija = !CAJA.esAdmin; // asesores no pueden cambiar de sede
-    }
-  } catch(e) { CAJA.usuario = 'CAJA'; CAJA.esAdmin = false; CAJA.sedeFija = false; }
+    CAJA.usuario = ((s.nombre || '') + (s.apellido ? ' ' + s.apellido : '')).trim() || 'ADMIN';
+    CAJA.esAdmin = (s.puesto === 'ADMINISTRADOR');
+    CAJA.sedeFija = !CAJA.esAdmin;
+    CAJA.nombrePersonal = s.nombre || '';
+  } catch(e) { CAJA.usuario = 'CAJA'; CAJA.esAdmin = false; CAJA.sedeFija = false; CAJA.nombrePersonal = ''; }
 
-  // Actualizar tabs según rol
+  // Actualizar tabs (default: SAN ISIDRO hasta que carguemos horario)
   actualizarTabsSede();
 
-  // Cargar métodos de pago
+  // Consultar sede real del día desde horarios_personal
+  if (!CAJA.esAdmin && CAJA.nombrePersonal) {
+    var hoy = new Date().toISOString().slice(0,10);
+    sbGet('aos_horarios_personal',
+      'fecha=eq.' + hoy + '&personal=eq.' + encodeURIComponent(CAJA.nombrePersonal.toUpperCase()) + '&activo=eq.true&select=sede&limit=1',
+      function(rows) {
+        if (rows && rows.length && rows[0].sede) {
+          var s = rows[0].sede.toUpperCase();
+          CAJA.sede = (s.indexOf('PUEBLO') > -1) ? 'PUEBLO LIBRE' : 'SAN ISIDRO';
+        }
+        actualizarTabsSede();
+        // Cargar métodos y caja DESPUÉS de tener la sede correcta
+        cargarMetodosYCaja();
+      }
+    );
+    return; // métodos se cargarán en el callback
+  }
+
+  cargarMetodosYCaja();
+}
+
+function cargarMetodosYCaja() {
   sbGet('aos_metodos_pago', 'order=nombre.asc', function(rows) {
     if (rows && rows.length) {
       CAJA.metodosDisponibles = rows.map(function(r) { return r.nombre; });
@@ -1164,10 +1170,7 @@ function init() {
     }
     cargarCaja();
   });
-
-  // Actualizar cada 60 segundos
   setInterval(cargarCaja, 60000);
-  // Actualizar ticker cada 5 min
   setInterval(cargarTC, 300000);
 }
 
