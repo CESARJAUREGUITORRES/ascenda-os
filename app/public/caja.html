@@ -350,10 +350,36 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
           <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Agregar servicio o producto</div>
           <div style="display:flex;gap:6px;align-items:center;position:relative;">
             <input type="text" id="cat-busq" placeholder="Buscar en catálogo..." autocomplete="off" oninput="buscarCatalogo(this.value)" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
-            <select id="cat-tipo" style="padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;background:#fff;min-width:90px;" onchange="buscarCatalogo(document.getElementById('cat-busq').value)">
+            <select id="cat-tipo" style="padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:11px;outline:none;background:#fff;min-width:120px;" onchange="buscarCatalogo(document.getElementById('cat-busq').value)">
               <option value="todos">Todos</option>
-              <option value="SERVICIO">Servicios</option>
-              <option value="PRODUCTO">Productos</option>
+              <optgroup label="— Servicios —">
+              <option value="cat:ACIDO HIALURONICO">Ác. Hialurónico</option>
+              <option value="cat:APARATOLOGÍA">Aparatología</option>
+              <option value="cat:BIOESTIMULADOR">Bioestimulador</option>
+              <option value="cat:BIOREVITALIZACIÓN">Biorevitalización</option>
+              <option value="cat:CAPILAR">Capilar</option>
+              <option value="cat:CORPORAL">Corporal</option>
+              <option value="cat:CRIOLIPÓLISIS">Criolipólisis</option>
+              <option value="cat:DETOX">Detox</option>
+              <option value="cat:ENZIMAS">Enzimas</option>
+              <option value="cat:EXOSOMAS">Exosomas</option>
+              <option value="cat:FACIALES">Faciales</option>
+              <option value="cat:GLÚTEOS">Glúteos</option>
+              <option value="cat:HIFU">HIFU</option>
+              <option value="cat:MESOTERAPIA">Mesoterapia</option>
+              <option value="cat:PEELINGS">Peelings</option>
+              <option value="cat:RF FRACCIONADA">RF Fraccionada</option>
+              <option value="cat:TOXINA">Toxina</option>
+              <option value="cat:VITAMINAS">Vitaminas</option>
+              </optgroup>
+              <optgroup label="— Productos —">
+              <option value="cat:CAPILAR ZV">Capilar ZV</option>
+              <option value="cat:CORPORAL ZV">Corporal ZV</option>
+              <option value="cat:FACIAL ZV">Facial ZV</option>
+              <option value="cat:FAJAS">Fajas</option>
+              <option value="cat:ISDIN">ISDIN</option>
+              <option value="cat:NUTRICIONAL">Nutricional</option>
+              </optgroup>
             </select>
           </div>
           <div id="cat-results" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:3px;overflow:hidden;max-height:150px;overflow-y:auto;background:#fff;box-shadow:0 4px 16px rgba(10,79,191,.1);position:relative;z-index:10;"></div>
@@ -464,7 +490,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 
 <!-- ===== MINI-MODAL PAGO POR ÍTEM v3 — simple/dividido ===== -->
 <div class="ov" id="ov-pago-item" style="z-index:1100;">
-  <div class="modal-box" style="width:560px;max-width:96vw;">
+  <div class="modal-box" style="width:720px;max-width:97vw;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
       <h3>💳 Registrar pago</h3>
       <p id="pago-item-nombre">—</p>
@@ -1236,19 +1262,37 @@ function abrirModalVenta() {
 function buscarCatalogo(q) {
   var tipo = document.getElementById('cat-tipo').value;
   var res  = document.getElementById('cat-results');
-  if (!q || q.length < 2) { res.style.display='none'; return; }
+  var tipo = document.getElementById('cat-tipo') ? document.getElementById('cat-tipo').value : 'todos';
+  var esCat = tipo && tipo.indexOf('cat:') === 0;
+  // Permitir búsqueda vacía si hay categoría seleccionada
+  if ((!q || q.length < 2) && !esCat) { res.style.display='none'; return; }
   // Búsqueda primero por string completo, luego por primera palabra si no hay resultados
-  var qs = 'nombre=ilike.*'+encodeURIComponent(q)+'*&limit=12' +
-    (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '') +
-    '&order=nombre.asc';
+  // Detectar si es filtro por categoría (prefijo cat:)
+  var catFiltro = '';
+  var tipoFiltro = '';
+  if (tipo && tipo.indexOf('cat:') === 0) {
+    catFiltro = tipo.replace('cat:', '');
+  } else if (tipo && tipo !== 'todos') {
+    tipoFiltro = tipo;
+  }
+
+  var qs = (q.trim().length >= 2 ? 'nombre=ilike.*'+encodeURIComponent(q.trim())+'*' : '') +
+    (catFiltro ? (q.trim().length>=2?'&':'')+'categoria=eq.'+encodeURIComponent(catFiltro) : '') +
+    (tipoFiltro ? (q.trim().length>=2||catFiltro?'&':'')+'tipo=eq.'+encodeURIComponent(tipoFiltro) : '') +
+    '&limit=20&order=nombre.asc';
+  if (!qs || qs.charAt(0)==='&') qs = qs.replace(/^&/,'');
+  if (!qs) qs = 'limit=20&order=nombre.asc';
+
   sbGet('aos_catalogo_servicios', qs, function(rows) {
     if (!rows || !rows.length) {
-      // Intentar con primera palabra del query
+      // Fallback: buscar por primera palabra
       var p0 = q.trim().split(/\s+/)[0];
-      var qs2 = 'nombre=ilike.*'+encodeURIComponent(p0)+'*&limit=12' +
-        (tipo && tipo!=='todos' ? '&tipo=eq.'+encodeURIComponent(tipo) : '') + '&order=nombre.asc';
-      sbGet('aos_catalogo_servicios', qs2, function(r2){ renderCatResults(r2||[], res); });
-      return;
+      if (p0.length >= 2) {
+        var qs2 = 'nombre=ilike.*'+encodeURIComponent(p0)+'*&limit=12' +
+          (catFiltro ? '&categoria=eq.'+encodeURIComponent(catFiltro) : '') + '&order=nombre.asc';
+        sbGet('aos_catalogo_servicios', qs2, function(r2){ renderCatResults(r2||[], res); });
+        return;
+      }
     }
     renderCatResults(rows, res);
   });
@@ -1320,12 +1364,16 @@ function renderItemsTbl() {
     var accionBtn;
     if (it.pagado) {
       var esAdelanto = it.estadoPago === 'ADELANTO';
-      accionBtn = esAdelanto ?
+      var estadoBadge = esAdelanto ?
         '<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">' +
           '<span style="font-size:9px;background:var(--amber-xl);color:var(--amber);padding:2px 7px;border-radius:20px;white-space:nowrap;">⏳ adelanto</span>' +
           '<span style="font-size:9px;color:var(--red);font-weight:700;">saldo: '+(it.divisa==='USD'?'$ ':'S/ ')+(parseFloat(it.saldoItem||0)).toFixed(2)+'</span>' +
         '</div>' :
         '<span style="font-size:9px;background:var(--green-xl);color:var(--green);padding:2px 7px;border-radius:20px;white-space:nowrap;">✓ pagado</span>';
+      accionBtn = '<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">' +
+        estadoBadge +
+        '<button onclick="editarPagoItem('+i+')" style="font-size:9px;padding:2px 7px;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:Outfit;white-space:nowrap;">✏️ editar</button>' +
+      '</div>';
     } else {
       accionBtn = '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Outfit;white-space:nowrap;">Pagar</button>';
     }
@@ -1687,6 +1735,19 @@ function confirmarPagoItem() {
 // ===== FIN MINI-MODAL PAGO v3 =====
 
 
+// ===== EDITAR PAGO DE ÍTEM =====
+function editarPagoItem(idx) {
+  // Resetear estado de pago del ítem y abrir modal de pago nuevamente
+  var it = VT.items[idx];
+  if (!it) return;
+  it.pagado = false;
+  it.metodoPago = ''; it.metodoPago2 = ''; it.monto1 = 0; it.monto2 = 0;
+  it.comprobante = ''; it.asesorComision = ''; it.atendio = ''; it.estadoPago = '';
+  renderItemsTbl();
+  actualizarResumen();
+  abrirPagoItem(idx);
+}
+
 // ===== GRABAR COTIZACIÓN =====
 function grabarCotizacion() {
   if (!VT.items.length) { toast('Agrega al menos un ítem','warn'); return; }
@@ -1709,12 +1770,15 @@ function grabarCotizacion() {
     p_dni: pac.dni || pac.DNI || '',
     p_asesor: (VT.items[0] && VT.items[0].asesorComision) || CAJA.usuario || '',
     p_doctor: '',
-    p_items: VT.items.map(function(it){
+    p_items: VT.items.filter(function(it){ return it.pagado; }).map(function(it){
       return {
         tipo: it.tipo, nombre: it.nombre,
         cantidad: it.cantidad, precio: it.precio, subtotal: it.subtotal,
-        metodo1: it.metodoPago||'', monto1: it.monto1||it.subtotal,
-        metodo2: it.metodoPago2||'', monto2: it.monto2||0
+        metodo1: it.metodoPago||'', monto1: parseFloat(it.monto1||it.subtotal),
+        metodo2: it.metodoPago2||'', monto2: parseFloat(it.monto2||0),
+        comprobante: it.comprobante||'BOLETA VIRTUAL',
+        asesor: it.asesorComision||'',
+        atendio: it.atendio||''
       };
     }),
     p_metodo_pago: (VT.items[0] && VT.items[0].metodoPago) || '',
