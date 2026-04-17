@@ -227,7 +227,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
   <div class="hdr-apertura" id="hdr-info"></div>
   <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
-    <button class="btn-filtro-fecha" onclick="abrirFiltroFecha()" id="btn-filtro-fecha">📅 <span id="label-fecha-filtro">Hoy</span></button>
+    <!-- filtro fecha movido a la card de facturación -->
     <button id="btn-abrir" class="btn-abrir-caja" onclick="abrirModalApertura()" style="display:none;">🔓 Abrir caja</button>
     <button id="btn-cerrar-caja-btn" class="btn-cerrar-caja" onclick="abrirModalCierre()" style="display:none;">🔒 Cerrar caja</button>
   </div>
@@ -569,27 +569,35 @@ function renderCaja() {
   var sesion = CAJA.sesion;
   var isAbierta = sesion.estado === 'ABIERTA';
   var gastosTotal = (CAJA.gastos||[]).reduce(function(s,g){ return s+(g.moneda==='PEN'?parseFloat(g.monto||0):0); },0);
+  var fechaLabel = CAJA.fechaActual === fechaLima() ? 'Hoy' : CAJA.fechaActual;
 
-  // ===== LAYOUT 1/3 + 2/3 =====
   var html = '<div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;align-items:start;">';
 
-  // ========== COLUMNA IZQUIERDA 1/3 ==========
+  // ========== COL IZQUIERDA ==========
   html += '<div style="display:flex;flex-direction:column;gap:10px;">';
 
-  // CARD: TOTALES COMPACTA
+  // CARD TOTALES — filtro de fecha en esquina superior derecha como icono
   html += '<div class="card"><div class="card-body" style="padding:12px 14px;">' +
-    '<div class="card-title">💰 Facturado hoy</div>' +
+    // Header de la card con título y botón fecha
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+      '<div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;">💰 Facturado hoy</div>' +
+      '<button onclick="abrirFiltroFecha()" title="Ver otro dia" style="display:flex;align-items:center;gap:4px;border:none;background:transparent;cursor:pointer;color:var(--label);font-size:10px;font-weight:600;padding:3px 6px;border-radius:6px;opacity:.55;">' +
+        '<svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 8h14M7 3v2M13 3v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+        '<span id="fecha-badge">' + escH(fechaLabel) + '</span>' +
+      '</button>' +
+    '</div>' +
+    // Montos
     '<div style="display:flex;align-items:baseline;gap:10px;">' +
       '<div style="font-family:Source Serif 4,serif;font-size:28px;font-weight:700;color:var(--text);">S/ ' + parseFloat(k.total_soles||0).toFixed(2) + '</div>' +
       '<div style="font-family:Source Serif 4,serif;font-size:16px;font-weight:700;color:var(--green);">$ ' + parseFloat(k.total_dolares||0).toFixed(2) + '</div>' +
     '</div>' +
-    // Estado de pagos en una línea
-    '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+    // Badges de estado en línea
+    '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;">' +
       '<span style="font-size:10px;background:var(--green-xl);color:var(--green);padding:2px 8px;border-radius:20px;font-weight:700;">✅ ' + (k.total_pagados||0) + ' completos</span>' +
       '<span style="font-size:10px;background:var(--amber-xl);color:var(--amber);padding:2px 8px;border-radius:20px;font-weight:700;">⏳ ' + (k.total_adelantos||0) + ' adelantos</span>' +
     '</div>' +
     // Servicios vs Productos
-    '<div style="display:flex;gap:0;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">' +
+    '<div style="display:flex;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">' +
       '<div style="flex:1;text-align:center;">' +
         '<div style="font-family:Source Serif 4,serif;font-size:14px;font-weight:700;">S/ ' + parseFloat(k.monto_servicios||0).toFixed(2) + '</div>' +
         '<div style="font-size:9px;color:var(--label);font-weight:700;text-transform:uppercase;margin-top:1px;">Servicios</div>' +
@@ -604,13 +612,7 @@ function renderCaja() {
     '</div>' +
   '</div></div>';
 
-  // FILTRO FECHA (solo)
-  html += '<div style="display:flex;gap:6px;align-items:center;">' +
-    '<div style="font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap;">📅 Ver día:</div>' +
-    '<input type="date" class="input-fecha" id="inline-fecha" value="' + escH(CAJA.fechaActual||fechaLima()) + '" onchange="cambiarFechaInline(this.value)" style="flex:1;">' +
-  '</div>';
-
-  // CARD: EFECTIVO EN CAJA
+  // CARD EFECTIVO
   html += '<div class="card"><div class="card-body" style="padding:12px 14px;">' +
     '<div class="card-title">🏦 Efectivo en caja</div>' +
     '<div style="display:flex;flex-direction:column;gap:5px;">' +
@@ -625,7 +627,7 @@ function renderCaja() {
     '</div>' : '') +
   '</div></div>';
 
-  // MÉTODOS DESPLEGABLE — solo los que tienen registros
+  // MÉTODOS DESPLEGABLE
   var metodosConData = (CAJA.metodos||[]).filter(function(m){ return parseFloat(m.total_soles||0)>0 || parseFloat(m.total_dolares||0)>0; });
   html += '<div class="card" style="overflow:hidden;">' +
     '<div style="padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-bottom:1px solid var(--border);" onclick="toggleMetodos()">' +
@@ -649,14 +651,12 @@ function renderCaja() {
         '</div>' +
       '</div>';
     });
-    // Resumen cuadre al final
     html += renderResumenCuadre();
   }
-
-  html += '</div></div>'; // fin métodos card
+  html += '</div></div>';
   html += '</div>'; // fin col izquierda
 
-  // ========== COLUMNA DERECHA 2/3 ==========
+  // ========== COL DERECHA 2/3 ==========
   html += '<div>';
   html += '<div class="tabla-section">' +
     '<div class="tabla-hdr">' +
@@ -665,9 +665,9 @@ function renderCaja() {
     '</div>' +
     '<div class="tabla-wrap">' + renderTablaVentas() + '</div>' +
   '</div>';
-  html += '</div>'; // fin col derecha
-
+  html += '</div>';
   html += '</div>'; // fin grid
+
   body.innerHTML = html;
 }
 
