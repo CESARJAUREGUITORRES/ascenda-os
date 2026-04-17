@@ -2135,18 +2135,32 @@ function grabarCotizacion() {
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     // Esperar un tick para que el modal cierre antes de recargar
     // Forzar recarga explícita de ventas del día
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 600);
+    // Recarga directa sin setTimeout — la venta ya fue grabada
+    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+      console.log('[CAJA] recarga tras grabar:', res && res.ok, 'ventas:', res && res.ventas && res.ventas.length);
+      if (res && res.ok) {
+        CAJA.sesion  = res.sesion  || CAJA.sesion;
+        CAJA.ventas  = res.ventas  || [];
+        CAJA.metodos = res.metodos || [];
+        CAJA.kpis    = res.kpis    || {};
+        CAJA.gastos  = res.gastos  || [];
+        renderCaja();
+      } else {
+        // Fallback: reintentar una vez más
+        setTimeout(function() {
+          rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(r2) {
+            if (r2 && r2.ok) {
+              CAJA.sesion  = r2.sesion  || CAJA.sesion;
+              CAJA.ventas  = r2.ventas  || [];
+              CAJA.metodos = r2.metodos || [];
+              CAJA.kpis    = r2.kpis    || {};
+              CAJA.gastos  = r2.gastos  || [];
+              renderCaja();
+            }
+          });
+        }, 1000);
+      }
+    });
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
