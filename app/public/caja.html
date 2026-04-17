@@ -728,7 +728,11 @@ function rpc(fn, params, ok, fail) {
     method: 'POST',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(params || {})
-  }).then(function(r) { return r.json(); }).then(ok || function() {}).catch(fail || function(e) { console.error('[CAJA RPC]', fn, e); });
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    // Supabase puede devolver array — normalizar a objeto
+    var result = Array.isArray(d) ? d[0] : d;
+    if (ok) ok(result);
+  }).catch(fail || function(e) { console.error('[CAJA RPC]', fn, e); });
 }
 
 function sbGet(tabla, qs, ok) {
@@ -2067,7 +2071,7 @@ function grabarCotizacion() {
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     // Esperar un tick para que el modal cierre antes de recargar
-    setTimeout(function() { cargarCaja(); }, 150);
+    setTimeout(function() { cargarCaja(); }, 500);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
