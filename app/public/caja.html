@@ -6,10 +6,10 @@
 <title>Caja — AscendaOS</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ===== CAJA PANEL — ASCENDAOS SES-017 ===== */
+/* ===== CAJA PANEL v2 — ASCENDAOS SES-017 ===== */
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-xl:#EBF2FF;--blue-md:#BFDBFE;
+  --blue:#0A4FBF;--blue2:#1A6FE8;--blue-deep:#071D4A;--blue-xl:#EBF2FF;--blue-md:#BFDBFE;
   --cyan:#00C9A7;--mint:#00E5A0;--bg:#F0F4FC;--surface:#fff;
   --border:#DDE4F5;--text:#0D1B3E;--muted:#6B7BA8;--label:#9AAAC8;
   --red:#DC2626;--red-xl:#FEF2F2;--amber:#D97706;--amber-xl:#FFFBEB;
@@ -18,199 +18,203 @@
 }
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
-/* ===== BANNER DIVISAS WALL STREET ===== */
-.ticker-wrap{background:#0D1117;overflow:hidden;height:32px;display:flex;align-items:center;border-bottom:1px solid #1E2D40;flex-shrink:0;}
-.ticker-inner{display:flex;gap:0;animation:ticker 30s linear infinite;white-space:nowrap;}
-.ticker-item{display:flex;align-items:center;gap:7px;padding:0 22px;font-family:'Outfit',monospace;font-size:11px;font-weight:600;color:#E2E8F0;border-right:1px solid #1E2D40;}
-.ticker-sym{color:#00C9A7;font-weight:800;font-size:10px;letter-spacing:.5px;}
-.ticker-val{color:#fff;font-size:12px;}
-.ticker-chg.up{color:#00E5A0;}
+/* ===== BANNER DIVISAS — AZUL PROFUNDO ===== */
+.ticker-wrap{background:var(--blue-deep);overflow:hidden;height:30px;display:flex;align-items:center;border-bottom:2px solid var(--blue);flex-shrink:0;}
+.ticker-inner{display:flex;gap:0;animation:ticker 28s linear infinite;white-space:nowrap;}
+.ticker-item{display:flex;align-items:center;gap:6px;padding:0 20px;font-family:'Outfit',monospace;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);border-right:1px solid rgba(255,255,255,.1);}
+.ticker-sym{color:var(--cyan);font-weight:800;font-size:10px;letter-spacing:.5px;}
+.ticker-val{color:#fff;font-size:12px;font-weight:700;}
+.ticker-chg.up{color:var(--mint);}
 .ticker-chg.dn{color:#F87171;}
-.ticker-label{font-size:9px;color:#64748B;font-weight:400;}
+.ticker-label{font-size:9px;color:rgba(255,255,255,.4);}
 @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .ticker-wrap:hover .ticker-inner{animation-play-state:paused;}
 
 /* ===== HEADER CAJA ===== */
-.caja-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.caja-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .sede-tabs{display:flex;gap:6px;}
-.sede-tab{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s;}
+.sede-tab{padding:6px 14px;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s;display:flex;align-items:center;gap:5px;}
 .sede-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
-.caja-estado-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.caja-estado-badge{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;}
 .caja-estado-badge.abierta{background:var(--green-xl);color:var(--green);border:1.5px solid var(--green-md);}
 .caja-estado-badge.cerrada{background:var(--red-xl);color:var(--red);border:1.5px solid #FECACA;}
 .caja-estado-badge.sin-sesion{background:var(--amber-xl);color:var(--amber);border:1.5px solid #FDE68A;}
-.edo-dot2{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.hdr-apertura{font-size:11px;color:var(--muted);margin-left:auto;}
+.edo-dot2{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.hdr-apertura{font-size:11px;color:var(--muted);}
 .hdr-apertura strong{color:var(--text);}
-.btn-abrir-caja{padding:8px 16px;border-radius:9px;background:var(--green);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
-.btn-cerrar-caja{padding:8px 16px;border-radius:9px;background:var(--red);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.btn-abrir-caja{padding:7px 14px;border-radius:8px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';display:flex;align-items:center;gap:5px;}
+.btn-cerrar-caja{padding:7px 14px;border-radius:8px;background:var(--red);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';display:flex;align-items:center;gap:5px;}
+.btn-filtro-fecha{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit';color:var(--muted);display:flex;align-items:center;gap:5px;}
+.btn-filtro-fecha:hover{border-color:var(--blue);color:var(--blue);}
 
-/* ===== BODY CAJA ===== */
-.caja-body{padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+/* ===== BODY ===== */
+.caja-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px;}
 
-/* ===== KPIs ===== */
-.kpis-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
-.kpi-label{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.kpi-val{font-family:'Source Serif 4',serif;font-size:22px;font-weight:700;color:var(--text);}
-.kpi-val.green{color:var(--green);}
-.kpi-val.blue{color:var(--blue);}
-.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+/* ===== GRID 3 COLUMNAS PRINCIPAL ===== */
+.main-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;}
 
-/* ===== MÉTODOS DE PAGO CARDS ===== */
+/* ===== CARD BASE ===== */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.card-body{padding:14px 16px;}
+.card-title{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+
+/* ===== CARD TOTALES (izquierda) ===== */
+.total-main{font-family:'Source Serif 4',serif;font-size:32px;font-weight:700;color:var(--text);line-height:1;}
+.total-usd{font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;color:var(--green);margin-top:4px;}
+.total-desglose{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.desglose-item{flex:1;text-align:center;}
+.desglose-val{font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;color:var(--text);}
+.desglose-lbl{font-size:9px;color:var(--label);font-weight:600;text-transform:uppercase;margin-top:2px;}
+.desglose-cnt{font-size:10px;color:var(--muted);margin-top:1px;}
+.desglose-div{width:1px;background:var(--border);align-self:stretch;}
+
+/* ===== CARD MÉTRICAS (centro) ===== */
+.metricas-row{display:flex;flex-direction:column;gap:8px;}
+.met-item{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;background:var(--bg);}
+.met-label{font-size:11px;color:var(--muted);font-weight:600;}
+.met-val{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;color:var(--text);}
+.met-val.green{color:var(--green);}
+.met-val.amber{color:var(--amber);}
+.filtro-fecha-wrap{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.input-fecha{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Outfit';font-size:12px;color:var(--text);outline:none;}
+.input-fecha:focus{border-color:var(--blue);}
+
+/* ===== CARD CAJA/EFECTIVO (derecha) ===== */
+.caja-efectivo-vals{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.efect-row{display:flex;justify-content:space-between;align-items:center;}
+.efect-label{font-size:11px;color:var(--muted);}
+.efect-val{font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;color:var(--text);}
+.btns-caja-extra{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.btn-extra{width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';color:var(--text);display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-extra:hover{background:var(--blue-xl);border-color:var(--blue);color:var(--blue);}
+.btn-extra.gasto:hover{background:var(--red-xl);border-color:var(--red);color:var(--red);}
+
+/* ===== MÉTODOS DESPLEGABLE ===== */
 .metodos-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.section-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
-.metodos-grid{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;}
-.metodo-card{background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;min-width:110px;cursor:default;transition:border-color .15s;}
+.metodos-toggle{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .12s;}
+.metodos-toggle:hover{background:var(--bg);}
+.metodos-toggle-title{font-size:11px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;}
+.metodos-toggle-arrow{font-size:10px;color:var(--muted);transition:transform .2s;}
+.metodos-toggle-arrow.open{transform:rotate(180deg);}
+.metodos-body{display:none;padding:0 14px 12px;}
+.metodos-body.open{display:block;}
+.metodos-grid{display:flex;flex-wrap:wrap;gap:7px;padding-top:10px;}
+.metodo-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;min-width:100px;}
 .metodo-card.has-data{border-color:var(--blue-md);background:var(--blue-xl);}
-.mc-name{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-.mc-val{font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;color:var(--text);margin-top:2px;}
+.mc-name{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+.mc-val{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;color:var(--text);margin-top:2px;}
 .mc-val.has{color:var(--blue);}
 .mc-cnt{font-size:9px;color:var(--label);}
+.metodos-resumen{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;background:var(--bg);}
+.mr-item{display:flex;flex-direction:column;gap:2px;}
+.mr-label{font-size:9px;color:var(--label);font-weight:700;text-transform:uppercase;}
+.mr-val{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;color:var(--text);}
 
 /* ===== TABLA VENTAS ===== */
 .tabla-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.tabla-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.tabla-hdr{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
 .tabla-hdr-title{font-size:11px;font-weight:700;color:var(--text);flex:1;}
-.btn-nueva-venta{padding:8px 16px;border-radius:9px;background:var(--blue);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';display:flex;align-items:center;gap:6px;}
+.btn-nueva-venta{padding:7px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';display:flex;align-items:center;gap:5px;}
 .tabla-wrap{overflow-x:auto;}
 table.ventas-tabla{width:100%;border-collapse:collapse;font-size:11px;}
 table.ventas-tabla thead tr{background:var(--bg);}
-table.ventas-tabla th{padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
-table.ventas-tabla td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.ventas-tabla th{padding:7px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.ventas-tabla td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.ventas-tabla tr:last-child td{border-bottom:none;}
 table.ventas-tabla tr:hover td{background:#F8FAFF;}
 .td-hora{color:var(--muted);font-size:10px;white-space:nowrap;}
 .td-pac{font-weight:700;color:var(--text);}
 .td-pac small{font-weight:400;color:var(--muted);display:block;font-size:10px;}
-.td-trat{color:var(--text);max-width:200px;}
-.td-trat small{color:var(--muted);font-size:10px;display:block;}
-.badge-metodo{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;background:var(--blue-xl);color:var(--blue);white-space:nowrap;}
+.td-trat{color:var(--text);max-width:180px;}
+.td-trat small{color:var(--muted);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.badge-metodo{padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;background:var(--blue-xl);color:var(--blue);white-space:nowrap;}
 .badge-efectivo{background:#FFF7ED;color:#EA580C;}
 .badge-qr{background:var(--purple-xl);color:var(--purple);}
-.badge-transferencia{background:#F0FDF4;color:#16A34A;}
-.td-monto{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;}
+.badge-transferencia{background:var(--green-xl);color:var(--green);}
+.td-monto{font-family:'Source Serif 4',serif;font-size:14px;font-weight:700;white-space:nowrap;}
 .td-monto.usd{color:var(--green);}
-.badge-estado{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;}
+.badge-estado{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;}
 .badge-pagado{background:var(--green-xl);color:var(--green);}
 .badge-adelanto{background:var(--amber-xl);color:var(--amber);}
 .badge-pendiente{background:var(--red-xl);color:var(--red);}
 .td-acciones{display:flex;gap:4px;}
-.btn-accion{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:background .12s;}
+.btn-accion{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:background .12s;}
 .btn-accion:hover{background:var(--blue-xl);}
-.btn-accion.del:hover{background:var(--red-xl);}
-.tabla-empty{text-align:center;padding:40px;color:var(--label);font-size:12px;}
+.tabla-empty{text-align:center;padding:36px;color:var(--label);font-size:12px;}
 
-/* ===== CIERRE DE CAJA ===== */
-.cierre-section{background:var(--surface);border:2px solid var(--border);border-radius:12px;overflow:hidden;}
-.cierre-hdr{padding:12px 16px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;display:flex;align-items:center;gap:8px;}
-.cierre-hdr-title{font-size:13px;font-weight:700;flex:1;}
-.cierre-body{padding:16px;}
-.cierre-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
-.cierre-field{display:flex;flex-direction:column;gap:4px;}
-.cierre-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-.cierre-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Outfit';font-size:13px;font-weight:700;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;}
-.cierre-input:focus{border-color:var(--blue);background:#fff;}
-.cierre-resumen{background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
-.cierre-row{display:flex;justify-content:space-between;font-size:11px;}
-.cierre-row.total{font-weight:800;font-size:13px;color:var(--text);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;}
-.cierre-row.diff-ok{color:var(--green);}
-.cierre-row.diff-mal{color:var(--red);}
-.btn-confirmar-cierre{width:100%;padding:12px;border-radius:10px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:'Outfit';}
-.btn-confirmar-cierre:disabled{opacity:.4;cursor:not-allowed;}
+/* ===== NO SESIÓN ===== */
+.no-sesion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;text-align:center;}
+.no-sesion-ico{font-size:44px;}
+.no-sesion h3{font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;}
+.no-sesion p{font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;}
 
-/* ===== LOG ===== */
-.log-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.log-list{max-height:180px;overflow-y:auto;padding:8px 14px;}
-.log-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:10px;}
-.log-item:last-child{border-bottom:none;}
-.log-hora{color:var(--label);flex-shrink:0;width:55px;}
-.log-accion{font-weight:700;color:var(--blue);flex-shrink:0;width:110px;}
-.log-det{color:var(--muted);flex:1;}
-
-/* ===== MODAL ABRIR CAJA ===== */
+/* ===== MODALES ===== */
 .ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
 .ov.open{display:flex;}
-.modal-box{background:#fff;border-radius:16px;width:420px;max-width:95vw;border:1px solid var(--border);overflow:hidden;}
-.modal-hdr{background:linear-gradient(135deg,var(--blue),var(--blue2));padding:16px 20px;color:#fff;}
-.modal-hdr h3{font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;}
-.modal-hdr p{font-size:10px;opacity:.8;margin-top:3px;}
-.modal-body{padding:20px;}
-.mfield{margin-bottom:14px;}
-.mfield label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
-.mfield input,.mfield select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Outfit';font-size:13px;outline:none;color:var(--text);}
+.modal-box{background:#fff;border-radius:14px;max-width:95vw;border:1px solid var(--border);overflow:hidden;}
+.modal-hdr{padding:14px 18px;color:#fff;}
+.modal-hdr h3{font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;}
+.modal-hdr p{font-size:10px;opacity:.8;margin-top:2px;}
+.modal-body{padding:18px;max-height:72vh;overflow-y:auto;}
+.modal-foot{padding:10px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.mfield{margin-bottom:12px;}
+.mfield label{display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.mfield input,.mfield select,.mfield textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'Outfit';font-size:12px;outline:none;color:var(--text);}
 .mfield input:focus,.mfield select:focus{border-color:var(--blue);}
 .mfield .hint{font-size:9px;color:var(--label);margin-top:3px;}
-.mfield .alerta-saldo{padding:8px 10px;background:var(--amber-xl);border:1px solid #FDE68A;border-radius:6px;font-size:10px;color:var(--amber);font-weight:600;margin-top:4px;display:none;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
-.btn-cancel{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit';color:var(--muted);}
-.btn-primary{padding:9px 22px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
-.btn-danger{padding:9px 22px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.mfield .alerta-saldo{padding:7px 10px;background:var(--amber-xl);border:1px solid #FDE68A;border-radius:6px;font-size:10px;color:var(--amber);font-weight:600;margin-top:4px;display:none;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit';color:var(--muted);}
+.btn-primary{padding:8px 20px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.btn-danger{padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';}
+.btn-warning{padding:8px 20px;border-radius:7px;border:none;background:var(--amber);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';}
 
-/* ===== MODAL NUEVA VENTA ===== */
-.modal-venta{width:720px;max-width:98vw;}
-.venta-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+/* ===== MODAL VENTA ===== */
+.modal-venta{width:700px;}
 .items-tabla{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
-.items-tabla th{padding:6px 8px;background:var(--bg);font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);}
-.items-tabla td{padding:6px 8px;border-bottom:1px solid var(--border);}
-.items-tabla td input{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:'Outfit';font-size:11px;outline:none;}
-.btn-add-item{padding:6px 14px;border-radius:7px;border:1.5px dashed var(--blue);background:var(--blue-xl);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit';margin-top:8px;}
-.total-line{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:8px 0;border-top:2px solid var(--border);margin-top:6px;}
-.total-lbl{font-size:12px;color:var(--muted);font-weight:600;}
-.total-val{font-family:'Source Serif 4',serif;font-size:20px;font-weight:700;color:var(--text);}
-.pago-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}
-.pago-row .mfield{flex:1;min-width:120px;margin-bottom:0;}
-.comprobante-opts{display:flex;gap:8px;flex-wrap:wrap;}
-.comp-opt{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);}
+.items-tabla th{padding:5px 7px;background:var(--bg);font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);}
+.items-tabla td{padding:5px 7px;border-bottom:1px solid var(--border);}
+.items-tabla td input,.items-tabla td select{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 5px;font-family:'Outfit';font-size:11px;outline:none;}
+.btn-add-item{padding:5px 12px;border-radius:6px;border:1.5px dashed var(--blue);background:var(--blue-xl);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'Outfit';margin-top:7px;}
+.total-line{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:7px 0;border-top:2px solid var(--border);margin-top:5px;}
+.total-lbl{font-size:11px;color:var(--muted);font-weight:600;}
+.total-val{font-family:'Source Serif 4',serif;font-size:19px;font-weight:700;color:var(--text);}
+.venta-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.comprobante-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.comp-opt{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);}
 .comp-opt input{margin:0;}
 .comp-opt.sel{border-color:var(--blue);background:var(--blue-xl);color:var(--blue);}
 .busq-pac-wrap{position:relative;}
-.busq-pac-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(10,79,191,.1);display:none;}
+.busq-pac-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:200;max-height:160px;overflow-y:auto;box-shadow:0 8px 24px rgba(10,79,191,.1);display:none;}
 .busq-pac-results.open{display:block;}
-.busq-item{padding:8px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border);}
+.busq-item{padding:7px 11px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border);}
 .busq-item:hover{background:var(--blue-xl);}
-.busq-item strong{font-weight:700;color:var(--text);}
-.busq-item span{color:var(--muted);}
 
-/* ===== MODAL EDITAR PAGO ===== */
-.modal-edit{width:380px;}
+/* ===== RESUMEN CIERRE ===== */
+.cierre-resumen-box{background:var(--bg);border-radius:8px;padding:11px 13px;margin-bottom:12px;font-size:11px;}
+.cr-row{display:flex;justify-content:space-between;padding:3px 0;}
+.cr-row.total{font-weight:800;font-size:13px;border-top:1px solid var(--border);padding-top:7px;margin-top:4px;}
+.cr-row.diff-ok{color:var(--green);font-weight:700;}
+.cr-row.diff-mal{color:var(--red);font-weight:700;}
 
-/* ===== OVERLAY DE CARGA ===== */
-.loading-ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:9999;align-items:center;justify-content:center;}
+/* ===== LOADING / TOAST ===== */
+.loading-ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.35);z-index:9999;align-items:center;justify-content:center;}
 .loading-ov.open{display:flex;}
-.loading-spin{width:42px;height:42px;border:4px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+.loading-spin{width:38px;height:38px;border:4px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* ===== TOAST ===== */
 .toast-caja{position:fixed;bottom:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
-.tc-item{padding:10px 16px;border-radius:10px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 16px rgba(10,79,191,.12);font-size:12px;font-weight:600;pointer-events:all;animation:slideup .3s ease;max-width:320px;}
-@keyframes slideup{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.tc-item{padding:9px 14px;border-radius:9px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 16px rgba(10,79,191,.1);font-size:11px;font-weight:600;pointer-events:all;animation:slideup .25s ease;max-width:300px;}
+@keyframes slideup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
 .tc-item.ok{border-color:var(--green-md);background:var(--green-xl);color:var(--green);}
 .tc-item.err{border-color:#FECACA;background:var(--red-xl);color:var(--red);}
 .tc-item.warn{border-color:#FDE68A;background:var(--amber-xl);color:var(--amber);}
 
-/* ===== ESTADO SIN SESIÓN ===== */
-.no-sesion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;text-align:center;}
-.no-sesion-ico{font-size:48px;}
-.no-sesion h3{font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;color:var(--text);}
-.no-sesion p{font-size:12px;color:var(--muted);max-width:320px;line-height:1.6;}
-
-@media(max-width:600px){
-  .kpis-row{grid-template-columns:repeat(2,1fr);}
-  .venta-cols{grid-template-columns:1fr;}
-  .cierre-grid{grid-template-columns:1fr;}
-  .caja-body{padding:10px 12px;}
-}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr;} .venta-cols{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-
 <!-- BANNER DIVISAS -->
-<div class="ticker-wrap">
-  <div class="ticker-inner" id="ticker-inner">
-    <!-- Generado por JS -->
-  </div>
-</div>
+<div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner"></div></div>
 
 <!-- HEADER CAJA -->
 <div class="caja-header">
@@ -219,15 +223,11 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
     <div class="sede-tab" data-sede="PUEBLO LIBRE" onclick="cambiarSede('PUEBLO LIBRE')">🏢 Pueblo Libre</div>
   </div>
   <div id="caja-estado-wrap">
-    <div class="caja-estado-badge sin-sesion">
-      <div class="edo-dot2" style="background:var(--amber)"></div>
-      <span>Sin sesión</span>
-    </div>
+    <div class="caja-estado-badge sin-sesion"><div class="edo-dot2" style="background:var(--amber)"></div><span>Sin sesión</span></div>
   </div>
-  <div class="hdr-apertura" id="hdr-info">
-    <!-- info apertura -->
-  </div>
-  <div style="margin-left:auto;display:flex;gap:8px;">
+  <div class="hdr-apertura" id="hdr-info"></div>
+  <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+    <button class="btn-filtro-fecha" onclick="abrirFiltroFecha()" id="btn-filtro-fecha">📅 <span id="label-fecha-filtro">Hoy</span></button>
     <button id="btn-abrir" class="btn-abrir-caja" onclick="abrirModalApertura()" style="display:none;">🔓 Abrir caja</button>
     <button id="btn-cerrar-caja-btn" class="btn-cerrar-caja" onclick="abrirModalCierre()" style="display:none;">🔒 Cerrar caja</button>
   </div>
@@ -244,40 +244,20 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 
 <!-- ===== MODAL ABRIR CAJA ===== -->
 <div class="ov" id="ov-apertura">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <h3>🔓 Abrir caja</h3>
-      <p id="apertura-sede-label">San Isidro · Hoy</p>
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue),var(--blue2));">
+      <h3>🔓 Abrir caja</h3><p id="apertura-sede-label"></p>
     </div>
     <div class="modal-body">
-      <div class="mfield">
-        <label>Usuario que abre</label>
-        <input type="text" id="apertura-usuario" placeholder="Tu nombre" value="">
-      </div>
+      <div class="mfield"><label>Usuario que abre</label><input type="text" id="apertura-usuario" placeholder="Tu nombre"></div>
       <div class="grid2">
-        <div class="mfield">
-          <label>Efectivo en soles S/</label>
-          <input type="number" id="apertura-soles" placeholder="0.00" step="0.01" value="0">
-          <div class="hint">Billetes en caja al abrir</div>
-        </div>
-        <div class="mfield">
-          <label>Efectivo en dólares $</label>
-          <input type="number" id="apertura-dolares" placeholder="0.00" step="0.01" value="0">
-        </div>
+        <div class="mfield"><label>Efectivo en soles S/</label><input type="number" id="apertura-soles" value="0" step="0.01"><div class="hint">Billetes en caja al abrir</div></div>
+        <div class="mfield"><label>Efectivo en dólares $</label><input type="number" id="apertura-dolares" value="0" step="0.01"></div>
       </div>
-      <div class="mfield" id="campo-tc">
-        <label>Tipo de cambio del día (S/)</label>
-        <input type="number" id="apertura-tc" placeholder="3.70" step="0.01" value="3.70">
-        <div class="hint" id="tc-hint">Cargando tipo de cambio...</div>
-      </div>
-      <div class="alerta-saldo" id="alerta-saldo">
-        ⚠️ <strong>Diferencia detectada</strong> vs cierre anterior. Soles: <span id="alerta-diff-s">0</span> · Dólares: <span id="alerta-diff-d">0</span>
-      </div>
-      <div class="mfield" style="margin-top:8px;margin-bottom:0;">
-        <label>Saldo del día anterior</label>
-        <div style="padding:8px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);">
-          Soles: <strong id="saldo-ant-s">—</strong> &nbsp;|&nbsp; Dólares: <strong id="saldo-ant-d">—</strong>
-        </div>
+      <div class="mfield"><label>Tipo de cambio del día (S/)</label><input type="number" id="apertura-tc" value="3.70" step="0.01"><div class="hint" id="tc-hint">Cargando tipo de cambio...</div></div>
+      <div class="alerta-saldo" id="alerta-saldo">⚠️ Diferencia vs cierre anterior. Soles: <span id="alerta-diff-s">0</span> · Dólares: <span id="alerta-diff-d">0</span></div>
+      <div class="mfield" style="margin-bottom:0;"><label>Saldo del día anterior</label>
+        <div style="padding:7px 11px;background:var(--bg);border-radius:7px;font-size:12px;color:var(--muted);">Soles: <strong id="saldo-ant-s">—</strong> &nbsp;|&nbsp; Dólares: <strong id="saldo-ant-d">—</strong></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -287,41 +267,65 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- ===== MODAL CIERRE DE CAJA ===== -->
-<div class="ov" id="ov-cierre">
-  <div class="modal-box">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,#B91C1C,#DC2626);">
-      <h3>🔒 Cierre de caja</h3>
-      <p id="cierre-sede-label">Declaración final del día</p>
+<!-- ===== MODAL INGRESO EXTRA ===== -->
+<div class="ov" id="ov-ingreso-extra">
+  <div class="modal-box" style="width:380px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--green),#15803d);">
+      <h3>💵 Ingreso extra a caja</h3><p>Registrar efectivo adicional recibido</p>
     </div>
     <div class="modal-body">
-      <div class="cierre-resumen" id="cierre-resumen">
-        <!-- generado dinámicamente -->
-      </div>
+      <div class="mfield"><label>Concepto</label><input type="text" id="ingreso-concepto" placeholder="Ej: Vuelto de compras, ingreso inicial, etc."></div>
       <div class="grid2">
-        <div class="mfield">
-          <label>Efectivo declarado S/</label>
-          <input type="number" id="cierre-soles" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
-        </div>
-        <div class="mfield">
-          <label>Efectivo declarado $</label>
-          <input type="number" id="cierre-dolares" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
-        </div>
-        <div class="mfield">
-          <label>Retiro efectivo S/</label>
-          <input type="number" id="retiro-soles" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
-          <div class="hint">Cuánto se lleva de la caja</div>
-        </div>
-        <div class="mfield">
-          <label>Retiro dólares $</label>
-          <input type="number" id="retiro-dolares" placeholder="0.00" step="0.01" value="0" oninput="recalcCierre()">
-        </div>
+        <div class="mfield"><label>Monto</label><input type="number" id="ingreso-monto" value="0" step="0.01"></div>
+        <div class="mfield"><label>Moneda</label><select id="ingreso-moneda"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select></div>
       </div>
-      <div id="cierre-diferencias" style="margin-bottom:12px;font-size:11px;"></div>
-      <div class="mfield" style="margin-bottom:0">
-        <label>Observaciones</label>
-        <input type="text" id="cierre-obs" placeholder="Notas del cierre (opcional)">
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-ingreso-extra')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarIngresoExtra()">✓ Registrar ingreso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL GASTO ===== -->
+<div class="ov" id="ov-gasto">
+  <div class="modal-box" style="width:380px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--red),#b91c1c);">
+      <h3>💸 Registrar gasto</h3><p>Salida de dinero de caja</p>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Concepto del gasto</label><input type="text" id="gasto-concepto" placeholder="Ej: Materiales, movilidad, etc."></div>
+      <div class="grid2">
+        <div class="mfield"><label>Monto</label><input type="number" id="gasto-monto" value="0" step="0.01"></div>
+        <div class="mfield"><label>Moneda</label><select id="gasto-moneda"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select></div>
       </div>
+      <div class="mfield" style="margin-bottom:0;"><label>Método de pago usado</label>
+        <select id="gasto-metodo" style="width:100%"><option value="EFECTIVO">Efectivo</option></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-gasto')">Cancelar</button>
+      <button class="btn-danger" onclick="confirmarGasto()">💸 Registrar gasto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CIERRE ===== -->
+<div class="ov" id="ov-cierre">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#b91c1c,var(--red));">
+      <h3>🔒 Cierre de caja</h3><p id="cierre-sede-label">Declaración final del día</p>
+    </div>
+    <div class="modal-body">
+      <div class="cierre-resumen-box" id="cierre-resumen"></div>
+      <div class="grid2">
+        <div class="mfield"><label>Efectivo declarado S/</label><input type="number" id="cierre-soles" value="0" step="0.01" oninput="recalcCierre()"></div>
+        <div class="mfield"><label>Efectivo declarado $</label><input type="number" id="cierre-dolares" value="0" step="0.01" oninput="recalcCierre()"></div>
+        <div class="mfield"><label>Retiro efectivo S/</label><input type="number" id="retiro-soles" value="0" step="0.01" oninput="recalcCierre()"><div class="hint">Cuánto se retira</div></div>
+        <div class="mfield"><label>Retiro dólares $</label><input type="number" id="retiro-dolares" value="0" step="0.01" oninput="recalcCierre()"></div>
+      </div>
+      <div id="cierre-diferencias" style="margin-bottom:10px;font-size:11px;"></div>
+      <div class="mfield" style="margin-bottom:0;"><label>Observaciones</label><input type="text" id="cierre-obs" placeholder="Notas del cierre (opcional)"></div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="cerrarOv('ov-cierre')">Cancelar</button>
@@ -333,111 +337,54 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 <!-- ===== MODAL NUEVA VENTA ===== -->
 <div class="ov" id="ov-venta">
   <div class="modal-box modal-venta">
-    <div class="modal-hdr">
-      <h3>💰 Nueva venta</h3>
-      <p id="venta-sede-label">Registrar venta en caja</p>
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue),var(--blue2));">
+      <h3>💰 Nueva venta</h3><p id="venta-sede-label"></p>
     </div>
-    <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
-
-      <!-- Buscar paciente -->
-      <div class="mfield">
-        <label>Buscar paciente (nombre, celular o DNI)</label>
+    <div class="modal-body">
+      <div class="mfield"><label>Buscar paciente (nombre, celular o DNI)</label>
         <div class="busq-pac-wrap">
           <input type="text" id="busq-pac-input" placeholder="Escribe al menos 3 caracteres..." autocomplete="off" oninput="buscarPaciente(this.value)">
           <div class="busq-pac-results" id="busq-pac-results"></div>
         </div>
       </div>
-
-      <!-- Ficha paciente seleccionado -->
-      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;">
+      <div id="pac-ficha" style="display:none;background:var(--blue-xl);border:1.5px solid var(--blue-md);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;">
         <div style="font-weight:700;color:var(--blue);font-size:13px;" id="pac-nombre">—</div>
         <div style="color:var(--muted);display:flex;gap:12px;margin-top:3px;">
-          <span>📱 <span id="pac-cel">—</span></span>
-          <span>🪪 <span id="pac-dni">—</span></span>
-          <span>👤 <span id="pac-asesor">—</span></span>
+          <span>📱 <span id="pac-cel">—</span></span><span>🪪 <span id="pac-dni">—</span></span><span>👤 <span id="pac-asesor">—</span></span>
         </div>
-        <button onclick="limpiarPaciente()" style="margin-top:6px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-weight:700;">✕ Cambiar paciente</button>
+        <button onclick="limpiarPaciente()" style="margin-top:5px;border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-weight:700;">✕ Cambiar paciente</button>
       </div>
-
-      <!-- Items -->
-      <div class="mfield">
-        <label>Servicios / Productos</label>
+      <div class="mfield"><label>Servicios / Productos</label>
         <table class="items-tabla" id="items-tabla">
-          <thead>
-            <tr>
-              <th>Tipo</th>
-              <th style="width:40%">Nombre / Tratamiento</th>
-              <th>Cant.</th>
-              <th>Precio</th>
-              <th>Subtotal</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead><tr><th>Tipo</th><th style="width:38%">Nombre / Tratamiento</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
           <tbody id="items-tbody"></tbody>
         </table>
         <button class="btn-add-item" onclick="addItem()">+ Agregar ítem</button>
-        <div class="total-line">
-          <span class="total-lbl">Total:</span>
-          <span class="total-val" id="total-venta">S/ 0.00</span>
-        </div>
+        <div class="total-line"><span class="total-lbl">Total:</span><span class="total-val" id="total-venta">S/ 0.00</span></div>
       </div>
-
-      <!-- Datos venta -->
       <div class="venta-cols">
-        <div class="mfield">
-          <label>Tipo de comprobante</label>
+        <div class="mfield"><label>Tipo de comprobante</label>
           <div class="comprobante-opts" id="comp-opts">
             <label class="comp-opt sel"><input type="radio" name="comprobante" value="BOLETA" checked onchange="selComp(this)"> Boleta</label>
             <label class="comp-opt"><input type="radio" name="comprobante" value="FACTURA" onchange="selComp(this)"> Factura</label>
             <label class="comp-opt"><input type="radio" name="comprobante" value="RECIBO" onchange="selComp(this)"> Recibo</label>
           </div>
         </div>
-        <div class="mfield">
-          <label>N° comprobante</label>
-          <input type="text" id="nro-doc" placeholder="B001-0001 (opcional)">
+        <div class="mfield"><label>N° comprobante</label><input type="text" id="nro-doc" placeholder="B001-0001 (opcional)"></div>
+        <div class="mfield"><label>Doctor responsable</label>
+          <select id="doctor-sel"><option value="">— Seleccionar —</option><option>DRA YESSICA PEREZ</option><option>NO APLICA</option></select>
         </div>
-        <div class="mfield">
-          <label>Doctor responsable</label>
-          <select id="doctor-sel">
-            <option value="">— Seleccionar —</option>
-            <option>DRA YESSICA PEREZ</option>
-            <option>NO APLICA</option>
-          </select>
-        </div>
-        <div class="mfield">
-          <label>Estado de pago</label>
-          <select id="estado-pago-sel">
-            <option value="PAGO COMPLETO">Pago completo</option>
-            <option value="ADELANTO">Adelanto</option>
-          </select>
+        <div class="mfield"><label>Estado de pago</label>
+          <select id="estado-pago-sel"><option value="PAGO COMPLETO">Pago completo</option><option value="ADELANTO">Adelanto</option></select>
         </div>
       </div>
-
-      <!-- Pago -->
-      <div class="mfield">
-        <label>Método de pago</label>
-        <div class="pago-row">
-          <div class="mfield">
-            <select id="metodo-pago-sel" style="width:100%">
-              <option value="">— Seleccionar método —</option>
-              <!-- cargado dinámicamente -->
-            </select>
-          </div>
-          <div class="mfield">
-            <label>Moneda</label>
-            <select id="moneda-sel">
-              <option value="PEN">S/ Soles</option>
-              <option value="USD">$ Dólares</option>
-            </select>
-          </div>
+      <div class="mfield"><label>Método de pago</label>
+        <div style="display:flex;gap:8px;">
+          <select id="metodo-pago-sel" style="flex:2"></select>
+          <select id="moneda-sel" style="flex:1"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select>
         </div>
       </div>
-
-      <div class="mfield" style="margin-bottom:0">
-        <label>Nota interna</label>
-        <input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)">
-      </div>
-
+      <div class="mfield" style="margin-bottom:0;"><label>Nota interna</label><input type="text" id="nota-venta" placeholder="Observaciones adicionales (opcional)"></div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="cerrarOv('ov-venta')">Cancelar</button>
@@ -448,36 +395,19 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 
 <!-- ===== MODAL EDITAR PAGO ===== -->
 <div class="ov" id="ov-editar">
-  <div class="modal-box modal-edit">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--amber),#B45309);">
-      <h3>✏️ Editar pago</h3>
-      <p id="edit-venta-id-label">—</p>
+  <div class="modal-box" style="width:360px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--amber),#b45309);">
+      <h3>✏️ Editar pago</h3><p id="edit-venta-id-label">—</p>
     </div>
     <div class="modal-body">
       <input type="hidden" id="edit-venta-id">
-      <div class="mfield">
-        <label>Nuevo método de pago</label>
-        <select id="edit-metodo" style="width:100%"></select>
-      </div>
+      <div class="mfield"><label>Nuevo método de pago</label><select id="edit-metodo" style="width:100%"></select></div>
       <div class="grid2">
-        <div class="mfield">
-          <label>Nuevo monto</label>
-          <input type="number" id="edit-monto" step="0.01" placeholder="0.00">
-        </div>
-        <div class="mfield">
-          <label>Moneda</label>
-          <select id="edit-moneda">
-            <option value="PEN">S/ Soles</option>
-            <option value="USD">$ Dólares</option>
-          </select>
-        </div>
+        <div class="mfield"><label>Nuevo monto</label><input type="number" id="edit-monto" step="0.01"></div>
+        <div class="mfield"><label>Moneda</label><select id="edit-moneda"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select></div>
       </div>
-      <div class="mfield" style="margin-bottom:0">
-        <label>Estado</label>
-        <select id="edit-estado" style="width:100%">
-          <option value="PAGO COMPLETO">Pago completo</option>
-          <option value="ADELANTO">Adelanto</option>
-        </select>
+      <div class="mfield" style="margin-bottom:0;"><label>Estado</label>
+        <select id="edit-estado" style="width:100%"><option value="PAGO COMPLETO">Pago completo</option><option value="ADELANTO">Adelanto</option></select>
       </div>
     </div>
     <div class="modal-foot">
@@ -487,12 +417,23 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- Loading overlay -->
-<div class="loading-ov" id="loading-ov">
-  <div class="loading-spin"></div>
+<!-- ===== MODAL FILTRO FECHA ===== -->
+<div class="ov" id="ov-filtro-fecha">
+  <div class="modal-box" style="width:320px;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue-deep),var(--blue));">
+      <h3>📅 Ver registros de otro día</h3><p>Caja y ventas históricas</p>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Seleccionar fecha</label><input type="date" id="filtro-fecha-input"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarOv('ov-filtro-fecha')">Cancelar</button>
+      <button class="btn-primary" onclick="aplicarFiltroFecha()">Ver registros</button>
+    </div>
+  </div>
 </div>
 
-<!-- Toast container -->
+<div class="loading-ov" id="loading-ov"><div class="loading-spin"></div></div>
 <div class="toast-caja" id="toast-caja"></div>
 
 <script>
@@ -593,7 +534,7 @@ function cargarTC() {
 
 function cargarCaja() {
   loading(true);
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: fechaLima() }, function(d) {
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast('Error cargando caja', 'err'); return; }
     CAJA.sesion  = d.sesion  || null;
@@ -601,6 +542,7 @@ function cargarCaja() {
     CAJA.metodos = d.metodos || [];
     CAJA.kpis    = d.kpis    || {};
     CAJA.log     = d.log     || [];
+    CAJA.gastos  = d.gastos  || [];
     renderCaja();
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -623,40 +565,200 @@ function renderCaja() {
   document.getElementById('btn-abrir').style.display = 'none';
   document.getElementById('btn-cerrar-caja-btn').style.display = CAJA.sesion.estado === 'ABIERTA' ? 'flex' : 'none';
 
-  var html = '';
+  var k = CAJA.kpis;
+  var sesion = CAJA.sesion;
+  var isAbierta = sesion.estado === 'ABIERTA';
 
-  // KPIs
-  html += '<div class="kpis-row">' +
-    kpiCard('Total soles', 'S/ ' + parseFloat(CAJA.kpis.total_soles || 0).toFixed(2), 'green', CAJA.kpis.total_ventas + ' ventas') +
-    kpiCard('Total dólares', '$ ' + parseFloat(CAJA.kpis.total_dolares || 0).toFixed(2), 'blue', '') +
-    kpiCard('Pago completo', CAJA.kpis.total_pagados || 0, '', '') +
-    kpiCard('Adelantos', CAJA.kpis.total_adelantos || 0, '', '') +
-    kpiCard('Servicios', CAJA.kpis.total_servicios || 0, '', '') +
-    kpiCard('Productos', CAJA.kpis.total_productos || 0, '', '') +
+  // ===== GRID 3 COLUMNAS =====
+  var html = '<div class="main-grid">';
+
+  // --- COL 1: TOTALES ---
+  html += '<div class="card"><div class="card-body">' +
+    '<div class="card-title">💰 Facturado hoy</div>' +
+    '<div class="total-main">S/ ' + parseFloat(k.total_soles||0).toFixed(2) + '</div>' +
+    '<div class="total-usd">$ ' + parseFloat(k.total_dolares||0).toFixed(2) + '</div>' +
+    '<div class="total-desglose">' +
+      '<div class="desglose-item">' +
+        '<div class="desglose-val">S/ ' + parseFloat(k.monto_servicios||0).toFixed(2) + '</div>' +
+        '<div class="desglose-lbl">Servicios</div>' +
+        '<div class="desglose-cnt">' + (k.total_servicios||0) + ' ventas</div>' +
+      '</div>' +
+      '<div class="desglose-div"></div>' +
+      '<div class="desglose-item">' +
+        '<div class="desglose-val">S/ ' + parseFloat(k.monto_productos||0).toFixed(2) + '</div>' +
+        '<div class="desglose-lbl">Productos</div>' +
+        '<div class="desglose-cnt">' + (k.total_productos||0) + ' ventas</div>' +
+      '</div>' +
+    '</div>' +
+  '</div></div>';
+
+  // --- COL 2: MÉTRICAS ---
+  html += '<div class="card"><div class="card-body">' +
+    '<div class="card-title">📊 Estado de pagos</div>' +
+    '<div class="metricas-row">' +
+      '<div class="met-item"><span class="met-label">✅ Pago completo</span><span class="met-val green">' + (k.total_pagados||0) + '</span></div>' +
+      '<div class="met-item"><span class="met-label">⏳ Adelantos</span><span class="met-val amber">' + (k.total_adelantos||0) + '</span></div>' +
+      '<div class="met-item"><span class="met-label">📋 Total ventas</span><span class="met-val">' + (k.total_ventas||0) + '</span></div>' +
+    '</div>' +
+    '<div class="filtro-fecha-wrap">' +
+      '<div class="card-title" style="margin-bottom:5px;">📅 Ver otro día</div>' +
+      '<input type="date" class="input-fecha" id="inline-fecha" value="' + escH(CAJA.fechaActual) + '" onchange="cambiarFechaInline(this.value)">' +
+    '</div>' +
+  '</div></div>';
+
+  // --- COL 3: CAJA EFECTIVO ---
+  var gastosTotal = (CAJA.gastos || []).reduce(function(s,g){ return s + (g.moneda==='PEN' ? parseFloat(g.monto||0) : 0); }, 0);
+  html += '<div class="card"><div class="card-body">' +
+    '<div class="card-title">🏦 Efectivo en caja</div>' +
+    '<div class="caja-efectivo-vals">' +
+      '<div class="efect-row"><span class="efect-label">Apertura S/</span><span class="efect-val">S/ ' + parseFloat(sesion.efectivo_apertura_soles||0).toFixed(2) + '</span></div>' +
+      '<div class="efect-row"><span class="efect-label">Apertura $</span><span class="efect-val">$ ' + parseFloat(sesion.efectivo_apertura_dolares||0).toFixed(2) + '</span></div>' +
+      (gastosTotal > 0 ? '<div class="efect-row"><span class="efect-label" style="color:var(--red)">Gastos S/</span><span class="efect-val" style="color:var(--red)">- S/ ' + gastosTotal.toFixed(2) + '</span></div>' : '') +
+      '<div class="efect-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px;"><span class="efect-label" style="font-weight:700;">TC del día</span><span class="efect-val">S/ ' + parseFloat(sesion.tipo_cambio_dia||3.70).toFixed(3) + '</span></div>' +
+    '</div>' +
+    (isAbierta ? '<div class="btns-caja-extra">' +
+      '<button class="btn-extra" onclick="abrirIngresoExtra()">💵 Registrar ingreso a caja</button>' +
+      '<button class="btn-extra gasto" onclick="abrirModalGasto()">💸 Registrar gasto</button>' +
+    '</div>' : '') +
+  '</div></div>';
+
+  html += '</div>'; // fin main-grid
+
+  // ===== MÉTODOS DESPLEGABLE =====
+  html += '<div class="metodos-section">' +
+    '<div class="metodos-toggle" onclick="toggleMetodos()">' +
+      '<div class="metodos-toggle-title">💳 Detalle por método de pago <span style="color:var(--muted);font-weight:400;font-size:10px;margin-left:6px;">— solo los con registros</span></div>' +
+      '<span class="metodos-toggle-arrow" id="metodos-arrow">▼</span>' +
+    '</div>' +
+    '<div class="metodos-body" id="metodos-body">' +
+      '<div class="metodos-grid">' + renderMetodos() + '</div>' +
+      renderResumenCuadre() +
+    '</div>' +
   '</div>';
 
-  // Métodos de pago
-  html += '<div class="metodos-section">' +
-    '<div class="section-hdr">💳 Totales por método de pago</div>' +
-    '<div class="metodos-grid" id="metodos-grid">' + renderMetodos() + '</div>' +
-    '</div>';
-
-  // Tabla ventas
+  // ===== TABLA VENTAS =====
   html += '<div class="tabla-section">' +
     '<div class="tabla-hdr">' +
       '<div class="tabla-hdr-title">📋 Ventas del día — ' + escH(CAJA.sede) + '</div>' +
-      (CAJA.sesion.estado === 'ABIERTA' ? '<button class="btn-nueva-venta" onclick="abrirModalVenta()">+ Nueva venta</button>' : '') +
+      (isAbierta ? '<button class="btn-nueva-venta" onclick="abrirModalVenta()">+ Nueva venta</button>' : '') +
     '</div>' +
     '<div class="tabla-wrap">' + renderTablaVentas() + '</div>' +
-    '</div>';
-
-  // Log
-  html += '<div class="log-section">' +
-    '<div class="section-hdr">📝 Log de caja</div>' +
-    '<div class="log-list">' + renderLog() + '</div>' +
-    '</div>';
+  '</div>';
 
   body.innerHTML = html;
+}
+
+function renderResumenCuadre() {
+  var k = CAJA.kpis;
+  var s = CAJA.sesion;
+  if (!s) return '';
+  var efectivoVentas = parseFloat(k.total_soles||0);
+  // Solo ventas en efectivo
+  var ventasEfectivo = 0;
+  if (CAJA.metodos) {
+    CAJA.metodos.forEach(function(m) {
+      if ((m.metodo||'').toUpperCase().indexOf('EFECTIVO') > -1) {
+        ventasEfectivo += parseFloat(m.total_soles||0);
+      }
+    });
+  }
+  var efectivoEsperado = parseFloat(s.efectivo_apertura_soles||0) + ventasEfectivo;
+  var gastosEf = (CAJA.gastos||[]).reduce(function(acc,g){ return acc + (g.moneda==='PEN' ? parseFloat(g.monto||0) : 0); },0);
+  var efectivoNeto = efectivoEsperado - gastosEf;
+
+  return '<div class="metodos-resumen">' +
+    '<div class="mr-item"><div class="mr-label">Apertura</div><div class="mr-val">S/ ' + parseFloat(s.efectivo_apertura_soles||0).toFixed(2) + '</div></div>' +
+    '<div class="mr-item"><div class="mr-label">Efectivo ventas</div><div class="mr-val">S/ ' + ventasEfectivo.toFixed(2) + '</div></div>' +
+    (gastosEf > 0 ? '<div class="mr-item"><div class="mr-label" style="color:var(--red)">Gastos</div><div class="mr-val" style="color:var(--red)">- S/ ' + gastosEf.toFixed(2) + '</div></div>' : '') +
+    '<div class="mr-item"><div class="mr-label" style="color:var(--blue);font-weight:800;">Efectivo esperado</div><div class="mr-val" style="color:var(--blue);">S/ ' + efectivoNeto.toFixed(2) + '</div></div>' +
+    '<div class="mr-item"><div class="mr-label">Total digital</div><div class="mr-val">S/ ' + (parseFloat(k.total_soles||0) - ventasEfectivo).toFixed(2) + '</div></div>' +
+  '</div>';
+}
+
+function toggleMetodos() {
+  var body = document.getElementById('metodos-body');
+  var arrow = document.getElementById('metodos-arrow');
+  var isOpen = body.classList.toggle('open');
+  arrow.classList.toggle('open', isOpen);
+}
+
+function cambiarFechaInline(fecha) {
+  CAJA.fechaActual = fecha;
+  var hoy = fechaLima();
+  var label = fecha === hoy ? 'Hoy' : fecha;
+  document.getElementById('label-fecha-filtro').textContent = label;
+  cargarCaja();
+}
+
+function abrirFiltroFecha() {
+  document.getElementById('filtro-fecha-input').value = CAJA.fechaActual || fechaLima();
+  abrirOv('ov-filtro-fecha');
+}
+
+function aplicarFiltroFecha() {
+  var f = document.getElementById('filtro-fecha-input').value;
+  if (!f) return;
+  cerrarOv('ov-filtro-fecha');
+  cambiarFechaInline(f);
+}
+
+function abrirIngresoExtra() {
+  if (!CAJA.sesion) return;
+  document.getElementById('ingreso-concepto').value = '';
+  document.getElementById('ingreso-monto').value = '0';
+  abrirOv('ov-ingreso-extra');
+}
+
+function confirmarIngresoExtra() {
+  var concepto = document.getElementById('ingreso-concepto').value.trim();
+  var monto    = parseFloat(document.getElementById('ingreso-monto').value || 0);
+  var moneda   = document.getElementById('ingreso-moneda').value;
+  if (!concepto) { toast('Ingresa un concepto', 'warn'); return; }
+  if (monto <= 0) { toast('El monto debe ser mayor a 0', 'warn'); return; }
+  loading(true);
+  rpc('aos_caja_ingreso_extra', {
+    p_sesion_id: CAJA.sesion.id, p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima(),
+    p_concepto: concepto, p_monto: monto, p_moneda: moneda, p_usuario: CAJA.usuario
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast('Error al registrar', 'err'); return; }
+    toast('✅ Ingreso registrado', 'ok');
+    cerrarOv('ov-ingreso-extra');
+    cargarCaja();
+  }, function(){ loading(false); toast('Error de conexión','err'); });
+}
+
+function abrirModalGasto() {
+  if (!CAJA.sesion) return;
+  document.getElementById('gasto-concepto').value = '';
+  document.getElementById('gasto-monto').value = '0';
+  // Cargar métodos en select de gasto
+  var opts = '<option value="EFECTIVO">Efectivo</option>' +
+    CAJA.metodosDisponibles.filter(function(m){ return m !== 'EFECTIVO'; }).map(function(m){
+      return '<option value="'+escH(m)+'">'+escH(m)+'</option>';
+    }).join('');
+  document.getElementById('gasto-metodo').innerHTML = opts;
+  abrirOv('ov-gasto');
+}
+
+function confirmarGasto() {
+  var concepto = document.getElementById('gasto-concepto').value.trim();
+  var monto    = parseFloat(document.getElementById('gasto-monto').value || 0);
+  var moneda   = document.getElementById('gasto-moneda').value;
+  var metodo   = document.getElementById('gasto-metodo').value;
+  if (!concepto) { toast('Ingresa el concepto del gasto', 'warn'); return; }
+  if (monto <= 0) { toast('El monto debe ser mayor a 0', 'warn'); return; }
+  loading(true);
+  rpc('aos_caja_registrar_gasto', {
+    p_sesion_id: CAJA.sesion.id, p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima(),
+    p_concepto: concepto, p_monto: monto, p_moneda: moneda, p_metodo: metodo, p_usuario: CAJA.usuario
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast('Error al registrar gasto', 'err'); return; }
+    toast('💸 Gasto registrado', 'ok');
+    cerrarOv('ov-gasto');
+    cargarCaja();
+  }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
 function kpiCard(label, val, cls, sub) {
@@ -755,6 +857,7 @@ function cambiarSede(sede) {
     return;
   }
   CAJA.sede = sede;
+  CAJA.fechaActual = fechaLima();
   actualizarTabsSede();
   cargarCaja();
 }
