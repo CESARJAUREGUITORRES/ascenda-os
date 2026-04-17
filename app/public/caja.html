@@ -592,42 +592,69 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   </div>
 </div>
 
-<!-- ===== MODAL EDITAR PAGO ===== -->
-<div class="ov" id="ov-editar">
-  <div class="modal-box" style="width:360px;">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--amber),#b45309);">
-      <h3>✏️ Editar pago</h3><p id="edit-venta-id-label">—</p>
+<!-- ===== MODAL EDITAR VENTA COMPLETO ===== -->
+<div class="ov" id="ov-editar" style="z-index:1100;">
+  <div class="modal-box" style="width:580px;max-width:97vw;">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
+      <h3>✏️ Editar venta</h3>
+      <p id="edit-venta-id-label">—</p>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:16px 18px;">
       <input type="hidden" id="edit-venta-id">
-      <div class="mfield"><label>Nuevo método de pago</label><select id="edit-metodo" style="width:100%"></select></div>
-      <div class="grid2">
-        <div class="mfield"><label>Nuevo monto</label><input type="number" id="edit-monto" step="0.01"></div>
-        <div class="mfield"><label>Moneda</label><select id="edit-moneda"><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option></select></div>
-      </div>
-      <div class="mfield" style="margin-bottom:0;"><label>Estado</label>
-        <select id="edit-estado" style="width:100%"><option value="PAGO COMPLETO">Pago completo</option><option value="ADELANTO">Adelanto</option></select>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" onclick="cerrarOv('ov-editar')">Cancelar</button>
-      <button class="btn-primary" onclick="confirmarEdicion()">✓ Guardar cambios</button>
-    </div>
-  </div>
-</div>
 
-<!-- ===== MODAL FILTRO FECHA ===== -->
-<div class="ov" id="ov-filtro-fecha">
-  <div class="modal-box" style="width:320px;">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,var(--blue-deep),var(--blue));">
-      <h3>📅 Ver registros de otro día</h3><p>Caja y ventas históricas</p>
+      <!-- Info de la venta -->
+      <div id="edit-info-venta" style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;"></div>
+
+      <div class="grid2">
+        <div class="mfield">
+          <label>Método de pago</label>
+          <select id="edit-metodo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+        </div>
+        <div class="mfield">
+          <label>Monto</label>
+          <input type="number" id="edit-monto" step="0.01" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;text-align:right;">
+        </div>
+        <div class="mfield">
+          <label>Estado del pago</label>
+          <select id="edit-estado" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="PAGO COMPLETO">Pago completo</option>
+            <option value="ADELANTO">Adelanto</option>
+            <option value="PENDIENTE">Pendiente</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>Comprobante</label>
+          <select id="edit-comprobante" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="BOLETA VIRTUAL">Boleta virtual</option>
+            <option value="BOLETA FISICA">Boleta física</option>
+            <option value="RH">R.H. (Honorarios)</option>
+            <option value="FACTURA">Factura</option>
+            <option value="OTROS">Otros</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>Asesor comisión</label>
+          <select id="edit-asesor" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+        </div>
+        <div class="mfield">
+          <label>Quién atendió</label>
+          <select id="edit-atendio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;"></select>
+        </div>
+        <div class="mfield" style="grid-column:1/-1;">
+          <label>Divisa</label>
+          <select id="edit-moneda" style="width:180px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
+            <option value="PEN">S/ (Soles)</option>
+            <option value="USD">$ (Dólares)</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div class="modal-body">
-      <div class="mfield"><label>Seleccionar fecha</label><input type="date" id="filtro-fecha-input"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" onclick="cerrarOv('ov-filtro-fecha')">Cancelar</button>
-      <button class="btn-primary" onclick="aplicarFiltroFecha()">Ver registros</button>
+    <div class="modal-foot" style="justify-content:space-between;">
+      <button onclick="eliminarVenta()" class="btn-danger" style="font-size:11px;">🗑 Eliminar venta</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" onclick="cerrarOv('ov-editar')">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarEdicion()">✓ Guardar cambios</button>
+      </div>
     </div>
   </div>
 </div>
@@ -855,29 +882,34 @@ function renderCaja() {
     '</div>' +
   '</div></div>';
 
-  // CARD EFECTIVO
-  html += '<div class="card"><div class="card-body" style="padding:12px 14px;">' +
-    '<div class="card-title">🏦 Efectivo en caja</div>' +
-    '<div style="display:flex;flex-direction:column;gap:5px;">' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--muted);">Apertura S/</span><span style="font-family:Source Serif 4,serif;font-weight:700;">S/ ' + parseFloat(sesion.efectivo_apertura_soles||0).toFixed(2) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--muted);">Apertura $</span><span style="font-family:Source Serif 4,serif;font-weight:700;">$ ' + parseFloat(sesion.efectivo_apertura_dolares||0).toFixed(2) + '</span></div>' +
-      (gastosTotal>0 ? '<div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--red);">Gastos S/</span><span style="font-family:Source Serif 4,serif;font-weight:700;color:var(--red);">- S/ ' + gastosTotal.toFixed(2) + '</span></div>' : '') +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;border-top:1px solid var(--border);padding-top:5px;margin-top:2px;"><span style="color:var(--muted);">TC del día</span><span style="font-family:Source Serif 4,serif;font-weight:700;">S/ ' + parseFloat(sesion.tipo_cambio_dia||3.70).toFixed(3) + '</span></div>' +
+  // CARD EFECTIVO — compacta 2 columnas con botones +/-
+  var ingresosHoy = (CAJA.kpis && CAJA.kpis.ingresos_extra) ? parseFloat(CAJA.kpis.ingresos_extra) : 0;
+  html += '<div class="card"><div class="card-body" style="padding:10px 13px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--text);">🏦 Efectivo en caja</div>' +
+      (isAbierta ? '<div style="display:flex;gap:5px;">' +
+        '<button onclick="abrirIngresoExtra()" title="Registrar ingreso" style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--green);background:var(--green-xl);color:var(--green);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">+</button>' +
+        '<button onclick="abrirModalGasto()" title="Registrar gasto" style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--red);background:var(--red-xl);color:var(--red);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">−</button>' +
+      '</div>' : '') +
     '</div>' +
-    (isAbierta ? '<div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">' +
-      '<button class="btn-extra" onclick="abrirIngresoExtra()">💵 Registrar ingreso</button>' +
-      '<button class="btn-extra gasto" onclick="abrirModalGasto()">💸 Registrar gasto</button>' +
-    '</div>' : '') +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px;">' +
+      '<span style="color:var(--muted);">Apertura S/</span><span style="font-weight:700;text-align:right;">S/ ' + parseFloat(sesion.efectivo_apertura_soles||0).toFixed(2) + '</span>' +
+      (parseFloat(sesion.efectivo_apertura_dolares||0) > 0 ? '<span style="color:var(--muted);">Apertura $</span><span style="font-weight:700;text-align:right;">$ ' + parseFloat(sesion.efectivo_apertura_dolares||0).toFixed(2) + '</span>' : '') +
+      (ingresosHoy > 0 ? '<span style="color:var(--green);">Ingresos S/</span><span style="font-weight:700;color:var(--green);text-align:right;">+ S/ ' + ingresosHoy.toFixed(2) + '</span>' : '') +
+      (gastosTotal > 0 ? '<span style="color:var(--red);">Gastos S/</span><span style="font-weight:700;color:var(--red);text-align:right;">− S/ ' + gastosTotal.toFixed(2) + '</span>' : '') +
+      '<span style="color:var(--muted);border-top:1px solid var(--border);padding-top:3px;margin-top:1px;">TC del día</span><span style="font-weight:700;text-align:right;border-top:1px solid var(--border);padding-top:3px;margin-top:1px;">S/ ' + parseFloat(sesion.tipo_cambio_dia||3.70).toFixed(3) + '</span>' +
+    '</div>' +
   '</div></div>';
 
   // MÉTODOS DESPLEGABLE
   var metodosConData = (CAJA.metodos||[]).filter(function(m){ return parseFloat(m.total_soles||0)>0 || parseFloat(m.total_dolares||0)>0; });
+  // Métodos siempre visibles cuando hay datos
   html += '<div class="card" style="overflow:hidden;">' +
-    '<div style="padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-bottom:1px solid var(--border);" onclick="toggleMetodos()">' +
+    '<div style="padding:8px 13px;display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-bottom:1px solid var(--border);cursor:pointer;" onclick="toggleMetodos()">' +
       '<div style="font-size:10px;font-weight:700;color:var(--text);">💳 Métodos de pago <span style="font-weight:400;color:var(--muted);">(' + metodosConData.length + ' activos)</span></div>' +
-      '<span id="metodos-arrow" style="font-size:10px;color:var(--muted);transition:transform .2s;">▼</span>' +
+      '<span id="metodos-arrow" style="font-size:10px;color:var(--muted);">▲</span>' +
     '</div>' +
-    '<div id="metodos-body" style="display:none;">';
+    '<div id="metodos-body" style="display:block;">';
 
   if (metodosConData.length === 0) {
     html += '<div style="padding:12px;text-align:center;font-size:11px;color:var(--label);">Sin registros hoy</div>';
@@ -1069,7 +1101,11 @@ function renderTablaVentas() {
 
     var estadoCls = v.estado_pago === 'PAGO COMPLETO' ? 'badge-pagado' : v.estado_pago === 'ADELANTO' ? 'badge-adelanto' : 'badge-pendiente';
 
-    return '<tr>' +
+    // Fila completa clickeable — abre modal editar/eliminar
+    var canEdit = CAJA.sesion && CAJA.sesion.estado === 'ABIERTA';
+    var rowClick = canEdit ? 'onclick="abrirEdicionCompleta(\'' + escH(v.venta_id) + '\')" style="cursor:pointer;" title="Click para editar o eliminar"' : '';
+    var rowHover = canEdit ? 'onmouseover="this.style.filter=\'brightness(.96)\'" onmouseout="this.style.filter=\'\'"' : '';
+    return '<tr ' + rowClick + ' ' + rowHover + '>' +
       '<td class="td-hora">' + escH(v.hora || '') + '</td>' +
       '<td class="td-pac">' + escH(v.nombres || '') + ' ' + escH(v.apellidos || '') +
         '<small>' + escH(v.celular || '') + '</small></td>' +
@@ -1079,10 +1115,7 @@ function renderTablaVentas() {
       '<td class="td-monto' + (v.moneda === 'USD' ? ' usd' : '') + '">' + fmtMonto(v.monto, v.moneda) + '</td>' +
       '<td><span class="badge-estado ' + estadoCls + '">' + escH(v.estado_pago || '') + '</span></td>' +
       '<td>' + escH(v.tipo_comprobante || '') + '</td>' +
-      '<td class="td-acciones">' +
-        (CAJA.sesion && CAJA.sesion.estado === 'ABIERTA' ?
-          '<button class="btn-accion" title="Editar pago" onclick="abrirEdicion(' + "'" + escH(v.venta_id) + "'" + ',' + parseFloat(v.monto||0) + ',' + "'" + escH(v.metodo_pago) + "'" + ',' + "'" + escH(v.moneda||'PEN') + "'" + ',' + "'" + escH(v.estado_pago) + "'" + ')">✏️</button>' : '') +
-      '</td>' +
+      '<td class="td-acciones">' + (canEdit ? '<span style="font-size:11px;color:var(--muted);">↗</span>' : '') + '</td>' +
     '</tr>';
   }).join('');
   return '<table class="ventas-tabla"><thead><tr>' +
@@ -2116,41 +2149,116 @@ function cotEmailCaja() {
 
 // ===== MOD-07-END: NUEVA VENTA =====
 
-// ===== MOD-08-START: EDITAR PAGO =====
-function abrirEdicion(ventaId, monto, metodo, moneda, estado) {
+// ===== MOD-08-START: EDITAR VENTA =====
+
+function abrirEdicionCompleta(ventaId) {
+  // Buscar la venta en CAJA.ventas
+  var v = null;
+  if (CAJA.ventas) {
+    for (var i=0; i<CAJA.ventas.length; i++) {
+      if (CAJA.ventas[i].venta_id === ventaId) { v = CAJA.ventas[i]; break; }
+    }
+  }
+  if (!v) { toast('Venta no encontrada','warn'); return; }
+
   document.getElementById('edit-venta-id').value = ventaId;
-  document.getElementById('edit-venta-id-label').textContent = 'Venta: ' + ventaId;
-  document.getElementById('edit-monto').value = monto;
-  cargarMetodosPagoSelect();
-  setTimeout(function() {
-    document.getElementById('edit-metodo').value = metodo;
-    document.getElementById('edit-moneda').value = moneda || 'PEN';
-    document.getElementById('edit-estado').value = estado || 'PAGO COMPLETO';
-  }, 100);
+  document.getElementById('edit-venta-id-label').textContent = (v.nombres||'') + ' ' + (v.apellidos||'');
+
+  // Info card
+  var infoEl = document.getElementById('edit-info-venta');
+  if (infoEl) infoEl.innerHTML =
+    '<div style="font-weight:700;font-size:12px;margin-bottom:4px;">'+escH(v.tratamiento||'')+'</div>'+
+    '<div style="display:flex;gap:12px;color:var(--muted);">'+
+      '<span>'+escH(v.hora||'')+'</span>'+
+      '<span>'+escH(v.nombres||'')+' '+escH(v.apellidos||'')+'</span>'+
+      '<span>'+escH(v.celular||'')+'</span>'+
+    '</div>';
+
+  // Cargar métodos
+  var selM = document.getElementById('edit-metodo');
+  selM.innerHTML = '<option value="">— Método —</option>' +
+    _METODOS_CAJA.map(function(m){ return '<option value="'+escH(m)+'"'+(m===v.metodo_pago?' selected':'')+'>'+escH(m)+'</option>'; }).join('');
+
+  // Valores
+  document.getElementById('edit-monto').value = parseFloat(v.monto||0).toFixed(2);
+  document.getElementById('edit-moneda').value = v.moneda || 'PEN';
+  document.getElementById('edit-estado').value = v.estado_pago || 'PAGO COMPLETO';
+
+  // Comprobante
+  var selComp = document.getElementById('edit-comprobante');
+  if (selComp) {
+    var comp = v.tipo_comprobante || 'BOLETA VIRTUAL';
+    Array.prototype.forEach.call(selComp.options, function(o){ o.selected = o.value === comp; });
+  }
+
+  // Personal — cargar y pre-seleccionar
+  sbGet('aos_rrhh','order=nombre.asc', function(rows){
+    _PERSONAL_CAJA = rows && rows.length ? rows : _PERSONAL_CAJA;
+    var mkOpts = function(selVal) {
+      return '<option value="">— Sin asignar —</option><option value="NO APLICA"'+(selVal==='NO APLICA'?' selected':'')+'>NO APLICA</option>' +
+        _PERSONAL_CAJA.map(function(r){
+          var nom = r.nombre + (r.apellido?' '+r.apellido:'');
+          return '<option value="'+escH(r.nombre)+'"'+(r.nombre===selVal?' selected':'')+'>'+escH(nom)+'</option>';
+        }).join('');
+    };
+    var selA = document.getElementById('edit-asesor');
+    var selAt = document.getElementById('edit-atendio');
+    if (selA) selA.innerHTML = mkOpts(v.asesor||'');
+    if (selAt) selAt.innerHTML = mkOpts(v.atendio||'');
+  });
+
   abrirOv('ov-editar');
+}
+
+// Mantener compatibilidad con llamada antigua
+function abrirEdicion(ventaId, monto, metodo, moneda, estado) {
+  abrirEdicionCompleta(ventaId);
 }
 
 function confirmarEdicion() {
   var vid = document.getElementById('edit-venta-id').value;
   if (!vid) return;
+  var metodo = document.getElementById('edit-metodo').value;
+  if (!metodo) { toast('Selecciona el método de pago','warn'); return; }
   loading(true);
   rpc('aos_caja_editar_pago', {
     p_venta_id: vid,
     p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
     p_usuario: CAJA.usuario || 'ADMIN',
-    p_nuevo_metodo: document.getElementById('edit-metodo').value,
+    p_nuevo_metodo: metodo,
     p_nuevo_monto: parseFloat(document.getElementById('edit-monto').value || 0),
     p_nuevo_estado: document.getElementById('edit-estado').value,
-    p_nueva_moneda: document.getElementById('edit-moneda').value
+    p_nueva_moneda: document.getElementById('edit-moneda').value,
+    p_nuevo_comprobante: document.getElementById('edit-comprobante').value,
+    p_nuevo_asesor: document.getElementById('edit-asesor').value,
+    p_nuevo_atendio: document.getElementById('edit-atendio').value
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al editar', 'err'); return; }
-    toast('✅ Pago actualizado y ecosistema sincronizado', 'ok');
+    toast('✅ Venta actualizada — ecosistema sincronizado', 'ok');
     cerrarOv('ov-editar');
     cargarCaja();
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
-// ===== MOD-08-END: EDITAR PAGO =====
+
+function eliminarVenta() {
+  var vid = document.getElementById('edit-venta-id').value;
+  if (!vid) return;
+  if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
+  loading(true);
+  rpc('aos_caja_eliminar_venta', {
+    p_venta_id: vid,
+    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+    p_usuario: CAJA.usuario || 'ADMIN'
+  }, function(d) {
+    loading(false);
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al eliminar', 'err'); return; }
+    toast('🗑 Venta eliminada', 'warn');
+    cerrarOv('ov-editar');
+    cargarCaja();
+  }, function() { loading(false); toast('Error de conexión', 'err'); });
+}
+// ===== MOD-08-END: EDITAR VENTA =====
 
 // ===== MOD-09-START: UTILS UI =====
 function abrirOv(id) { document.getElementById(id).classList.add('open'); }
