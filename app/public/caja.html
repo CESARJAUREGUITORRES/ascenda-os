@@ -999,16 +999,7 @@ function cambiarFechaInline(fecha) {
   var hoy = fechaLima();
   var label = fecha === hoy ? 'Hoy' : fecha;
   document.getElementById('label-fecha-filtro').textContent = label;
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
+  recargarPanel();
 }
 
 function abrirFiltroFecha() {
@@ -1045,18 +1036,7 @@ function confirmarIngresoExtra() {
     if (!d || !d.ok) { toast('Error al registrar', 'err'); return; }
     toast('✅ Ingreso registrado', 'ok');
     cerrarOv('ov-ingreso-extra');
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1089,18 +1069,7 @@ function confirmarGasto() {
     if (!d || !d.ok) { toast('Error al registrar gasto', 'err'); return; }
     toast('💸 Gasto registrado', 'ok');
     cerrarOv('ov-gasto');
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1180,6 +1149,21 @@ function renderLog() {
       '</div>';
   }).join('');
 }
+// ===== FUNCIÓN CENTRALIZADA DE RECARGA =====
+function recargarPanel(callback) {
+  if (!CAJA.sede) return;
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
+    if (res && res.ok) {
+      CAJA.sesion  = res.sesion  || CAJA.sesion;
+      CAJA.ventas  = res.ventas  || [];
+      CAJA.metodos = res.metodos || [];
+      CAJA.kpis    = res.kpis    || {};
+      CAJA.gastos  = res.gastos  || [];
+      renderCaja();
+      if (callback) callback();
+    }
+  });
+}
 // ===== MOD-03-END: SEDE Y CARGA PRINCIPAL =====
 
 // ===== MOD-03B-START: TABS POR ROL =====
@@ -1206,16 +1190,7 @@ function cambiarSede(sede) {
   CAJA.sede = sede;
   CAJA.fechaActual = fechaLima();
   actualizarTabsSede();
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
+  recargarPanel();
 }
 // ===== MOD-03B-END: TABS POR ROL =====
 
@@ -1296,18 +1271,7 @@ function confirmarApertura() {
       toast('✅ Caja abierta correctamente', 'ok');
     }
     cerrarOv('ov-apertura');
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
     notificarVenta('🔓 Caja abierta — ' + CAJA.sede);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -1372,18 +1336,7 @@ function confirmarCierre() {
     var msg = d.cuadra ? '✅ Caja cerrada. ¡Cuadre perfecto!' : '⚠️ Caja cerrada con diferencia: S/ ' + parseFloat(d.diferencia_soles || 0).toFixed(2);
     toast(msg, d.cuadra ? 'ok' : 'warn');
     cerrarOv('ov-cierre');
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
     notificarVenta('🔒 Caja cerrada — ' + CAJA.sede + ' · Saldo mañana: S/ ' + parseFloat(d.saldo_manana_soles || 0).toFixed(2));
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -2137,37 +2090,7 @@ function grabarCotizacion() {
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     // Esperar un tick para que el modal cierre antes de recargar
     // Forzar recarga explícita de ventas del día
-    // Feedback inmediato en panel mientras recarga
-    var tablaEl = document.getElementById('caja-body');
-    if (tablaEl) {
-      var ventasDiv = tablaEl.querySelector('.tabla-wrap');
-      if (ventasDiv) ventasDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">⏳ Actualizando ventas del día...</div>';
-    }
-    // Recarga directa
-    if (!CAJA.sede) { console.error('[CAJA] sede undefined'); return; }
-    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-      if (res && res.ok) {
-        CAJA.sesion  = res.sesion  || CAJA.sesion;
-        CAJA.ventas  = res.ventas  || [];
-        CAJA.metodos = res.metodos || [];
-        CAJA.kpis    = res.kpis    || {};
-        CAJA.gastos  = res.gastos  || [];
-        renderCaja();
-      } else {
-        setTimeout(function() {
-          rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(r2) {
-            if (r2 && r2.ok) {
-              CAJA.sesion  = r2.sesion  || CAJA.sesion;
-              CAJA.ventas  = r2.ventas  || [];
-              CAJA.metodos = r2.metodos || [];
-              CAJA.kpis    = r2.kpis    || {};
-              CAJA.gastos  = r2.gastos  || [];
-              renderCaja();
-            }
-          });
-        }, 1500);
-      }
-    });
+    recargarPanel();
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
@@ -2386,18 +2309,7 @@ function confirmarEdicion() {
     toast('✅ Venta actualizada', 'ok');
     cerrarOv('ov-editar');
     // Recarga explícita del panel (más confiable que cargarCaja)
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
 
@@ -2416,18 +2328,7 @@ function eliminarVenta() {
     toast('🗑 Venta eliminada', 'warn');
     cerrarOv('ov-editar');
     // Recarga explícita del panel (más confiable que cargarCaja)
-    setTimeout(function() {
-      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
-    }, 400);
+    recargarPanel();
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
 // ===== MOD-08-END: EDITAR VENTA =====
@@ -2535,16 +2436,7 @@ function cargarMetodosYCaja() {
         'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
         'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
     }
-    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-        if (res && res.ok) {
-          CAJA.sesion  = res.sesion  || CAJA.sesion;
-          CAJA.ventas  = res.ventas  || [];
-          CAJA.metodos = res.metodos || [];
-          CAJA.kpis    = res.kpis    || {};
-          CAJA.gastos  = res.gastos  || [];
-          renderCaja();
-        }
-      });
+    recargarPanel();
   });
   setInterval(function(){ cargarCaja(true); }, 60000);
   setInterval(cargarTC, 300000);
