@@ -582,13 +582,7 @@ function cargarTC() {
 // ===== MOD-02-END: TICKER DIVISAS =====
 
 // ===== MOD-03-START: SEDE Y CARGA PRINCIPAL =====
-function cambiarSede(sede) {
-  CAJA.sede = sede;
-  document.querySelectorAll('.sede-tab').forEach(function(t) {
-    t.classList.toggle('active', t.getAttribute('data-sede') === sede);
-  });
-  cargarCaja();
-}
+// cambiarSede movida a MOD-03B
 
 function cargarCaja() {
   loading(true);
@@ -731,6 +725,33 @@ function renderLog() {
   }).join('');
 }
 // ===== MOD-03-END: SEDE Y CARGA PRINCIPAL =====
+
+// ===== MOD-03B-START: TABS POR ROL =====
+function actualizarTabsSede() {
+  var tabs = document.querySelectorAll('.sede-tab');
+  tabs.forEach(function(t) {
+    var tabSede = t.getAttribute('data-sede');
+    t.classList.toggle('active', tabSede === CAJA.sede);
+    // Si es asesor (sedeFija), deshabilitar la otra sede
+    if (CAJA.sedeFija && tabSede !== CAJA.sede) {
+      t.style.opacity = '0.35';
+      t.style.pointerEvents = 'none';
+      t.title = 'Solo puedes ver la caja de tu sede (' + CAJA.sede + ')';
+    }
+  });
+}
+
+function cambiarSede(sede) {
+  // Asesores no pueden cambiar de sede
+  if (CAJA.sedeFija && sede !== CAJA.sede) {
+    toast('Solo puedes ver la caja de tu sede: ' + CAJA.sede, 'warn');
+    return;
+  }
+  CAJA.sede = sede;
+  actualizarTabsSede();
+  cargarCaja();
+}
+// ===== MOD-03B-END: TABS POR ROL =====
 
 // ===== MOD-04-START: HEADER Y ESTADO =====
 function actualizarHeader() {
@@ -1110,8 +1131,27 @@ function init() {
   buildTicker();
   cargarTC();
 
-  // Cargar usuario de sesión
-  CAJA.usuario = obtenerUsuario();
+  // ===== SEDE Y USUARIO DESDE SESIÓN =====
+  try {
+    var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
+    CAJA.usuario = (s.nombre || '') + (s.apellido ? ' ' + s.apellido : '') || 'ADMIN';
+    // Sede del asesor según su sede registrada — no puede cambiar de sede
+    if (s.sede) {
+      // Normalizar sede
+      var sedeNorm = s.sede.toUpperCase();
+      if (sedeNorm.indexOf('PUEBLO') > -1 || sedeNorm.indexOf('PL') > -1) {
+        CAJA.sede = 'PUEBLO LIBRE';
+      } else {
+        CAJA.sede = 'SAN ISIDRO';
+      }
+      // Si es ADMIN puede ver ambas; si es ASESOR solo su sede
+      CAJA.esAdmin = (s.puesto === 'ADMINISTRADOR');
+      CAJA.sedeFija = !CAJA.esAdmin; // asesores no pueden cambiar de sede
+    }
+  } catch(e) { CAJA.usuario = 'CAJA'; CAJA.esAdmin = false; CAJA.sedeFija = false; }
+
+  // Actualizar tabs según rol
+  actualizarTabsSede();
 
   // Cargar métodos de pago
   sbGet('aos_metodos_pago', 'order=nombre.asc', function(rows) {
