@@ -820,8 +820,9 @@ function cargarCaja(silencioso) {
     CAJA.gastos  = d.gastos  || [];
     // Rerenderizar siempre (el modal de venta tiene su propio estado VT)
     renderCaja();
-  }, function() {
+  }, function(e) {
     if (!silencioso) { loading(false); toast('Error de conexión', 'err'); }
+    console.error('[CAJA] cargarCaja error:', e);
   });
 }
 
@@ -1124,9 +1125,9 @@ function renderTablaVentas() {
       '<td><span class="' + esBadge + '">' + escH(v.metodo_pago || '') + '</span></td>' +
       '<td class="td-monto' + (v.moneda === 'USD' ? ' usd' : '') + '">' + fmtMonto(v.monto, v.moneda) + '</td>' +
       '<td class="td-saldo">' + (v.estado_pago === 'ADELANTO' ? '<span style="color:var(--red);font-size:10px;font-weight:700;">saldo</span>' : '<span style="color:var(--green);font-size:10px;">—</span>') + '</td>' +
+      '<td><span class="badge-estado ' + estadoCls + '">' + escH(v.estado_pago || '') + '</span></td>' +
       '<td class="td-asesor">' + (v.asesor && v.asesor !== 'NO APLICA' ? '<span style="font-size:10px;color:var(--blue);font-weight:600;">' + escH(v.asesor) + '</span>' : '<span style="font-size:9px;color:var(--label);">—</span>') + '</td>' +
       '<td class="td-asesor">' + (v.atendio ? '<span style="font-size:10px;color:var(--muted);">' + escH(v.atendio) + '</span>' : '<span style="font-size:9px;color:var(--label);">—</span>') + '</td>' +
-      '<td><span class="badge-estado ' + estadoCls + '">' + escH(v.estado_pago || '') + '</span></td>' +
       '<td>' + escH(v.tipo_comprobante || '') + '</td>' +
       '<td class="td-acciones">' + (canEdit ? '<span style="font-size:11px;color:var(--muted);">↗</span>' : '') + '</td>' +
     '</tr>';
@@ -2071,7 +2072,19 @@ function grabarCotizacion() {
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     // Esperar un tick para que el modal cierre antes de recargar
-    setTimeout(function() { cargarCaja(); }, 500);
+    // Forzar recarga explícita de ventas del día
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 600);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
