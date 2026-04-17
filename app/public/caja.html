@@ -1411,10 +1411,10 @@ function renderItemsTbl() {
   tbody.innerHTML = VT.items.map(function(it, i) {
     var sub = calcSubtotal(it);
     it.subtotal = sub;
-    // SIEMPRE clickable si está pagado — abre desglose con editar/eliminar
+    // Badge — sin onclick propio, la fila completa lo tiene
     var metodoBadge = it.pagado ?
-      '<div onclick="verDesglosePago('+i+')" style="cursor:pointer;display:flex;flex-direction:column;gap:2px;" title="Ver pagos / Editar / Eliminar">' +
-        '<span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago||'—')+' ↗</span>' +
+      '<div style="display:flex;flex-direction:column;gap:2px;">' +
+        '<span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago||'—')+'</span>' +
         (it.metodoPago2 ? '<span style="font-size:9px;background:#F5F3FF;color:#7C3AED;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago2)+'</span>' : '') +
         (it.atendio ? '<span style="font-size:8px;color:var(--muted);">'+escH(it.atendio)+'</span>' : '') +
       '</div>' :
@@ -1436,8 +1436,10 @@ function renderItemsTbl() {
       accionBtn = '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Outfit;white-space:nowrap;">Pagar</button>';
     }
     var rowBg = it.pagado ? 'background:var(--green-xl);' : '';
+    var rowClick = it.pagado ? 'onclick="verDesglosePago('+i+')" style="cursor:pointer;" title="Ver / editar pago"' : '';
     var divSym = it.divisa === 'USD' ? '$' : 'S/';
-    return '<tr style="'+rowBg+'">' +
+    var rowHover = it.pagado ? ' onmouseover="this.style.filter=\'brightness(.96)\'" onmouseout="this.style.filter=\'\'"' : '';
+    return '<tr '+rowClick+rowHover+' style="'+rowBg+'">' +
       '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' +
         '<div style="font-weight:700;font-size:11px;">'+escH(it.nombre)+'</div>' +
         '<div style="display:flex;gap:3px;margin-top:2px;flex-wrap:wrap;">' +
@@ -1491,23 +1493,34 @@ function calcSubtotal(it) {
 }
 
 function actualizarResumen() {
-  var subtotal = 0, descuentos = 0, pagado = 0;
+  var subtotal = 0, descuentos = 0, pagado = 0, saldoItems = 0;
   VT.items.forEach(function(it) {
     var base = parseFloat(it.precio||0) * parseFloat(it.cantidad||1);
     subtotal += base;
     var desc = it.descTipo==='PCT' ? base*(parseFloat(it.descVal||0)/100) : parseFloat(it.descVal||0);
     descuentos += desc;
-    if (it.pagado) pagado += parseFloat(it.subtotal||0);
+    if (it.pagado) {
+      // montoPagado es lo realmente cobrado (puede ser < subtotal si es adelanto)
+      var cobrado = parseFloat(it.montoPagado||it.subtotal||0);
+      pagado  += cobrado;
+      saldoItems += Math.max(0, parseFloat(it.subtotal||0) - cobrado);
+    } else {
+      saldoItems += parseFloat(it.subtotal||0);
+    }
   });
-  var total  = subtotal - descuentos;
-  var saldo  = total - pagado;
+  var total = subtotal - descuentos;
+  var saldo = saldoItems; // saldo real = ítems no pagados + adelantos parciales
   var sym = 'S/';
   function fmt(n) { return sym + ' ' + Math.max(0,n).toFixed(2); }
   var rs = document.getElementById('res-subtotal');  if(rs) rs.textContent = fmt(subtotal);
   var rd = document.getElementById('res-descuentos'); if(rd) rd.textContent = '— '+sym+' '+descuentos.toFixed(2);
   var rt = document.getElementById('res-total');      if(rt) rt.textContent = fmt(total);
   var rp = document.getElementById('res-pagado');     if(rp) rp.textContent = fmt(pagado);
-  var rsl = document.getElementById('res-saldo');     if(rsl) { rsl.textContent = fmt(saldo); rsl.style.color = saldo > 0.01 ? 'var(--red)' : 'var(--green)'; }
+  var rsl = document.getElementById('res-saldo');
+  if (rsl) {
+    rsl.textContent = fmt(saldo);
+    rsl.style.color = saldo > 0.01 ? 'var(--red)' : 'var(--green)';
+  }
 }
 
 // ===== BÚSQUEDA PACIENTE =====
