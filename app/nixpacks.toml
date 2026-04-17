@@ -1,8 +1,8 @@
 [phases.install]
 cmds = ["npm install"]
 
-[phases.build]
-cmds = ["npm run build"]
+# No ejecutar vite build — los archivos HTML se sirven directamente desde public/
+# El build de vite no aplica a esta arquitectura de servidor Express-like
 
 [start]
 cmd = "node server.js"

@@ -3,6 +3,8 @@ const https = require('https')
 const fs   = require('fs')
 const path = require('path')
 const PORT = parseInt(process.env.PORT || '4173', 10)
+// Servir siempre desde public/ (archivos HTML estáticos editados directamente)
+// El build de vite no aplica a estos archivos
 const PUB  = path.join(__dirname, 'public')
 const MIME = {
   '.html':'text/html; charset=utf-8','.js':'application/javascript',
