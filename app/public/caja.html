@@ -647,8 +647,12 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         </tfoot>
       </table>
     </div>
-    <div class="modal-foot">
-      <button class="btn-primary" onclick="cerrarOv('ov-desglose')">Cerrar</button>
+    <div class="modal-foot" style="justify-content:space-between;">
+      <button id="desglose-btn-eliminar" onclick="desdesdeEliminarPago()" class="btn-danger" style="font-size:11px;">🗑 Eliminar pago</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" onclick="cerrarOv('ov-desglose')">Cerrar</button>
+        <button onclick="desdesdeEditarPago()" class="btn-primary" style="font-size:11px;">✏️ Editar pago</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1385,10 +1389,10 @@ function renderItemsTbl() {
   tbody.innerHTML = VT.items.map(function(it, i) {
     var sub = calcSubtotal(it);
     it.subtotal = sub;
-    var clickDetalle = it.metodoPago2 ? ' onclick="verDesglosePago('+i+')" style="cursor:pointer;" title="Ver desglose"' : '';
+    // SIEMPRE clickable si está pagado — abre desglose con editar/eliminar
     var metodoBadge = it.pagado ?
-      '<div'+clickDetalle+' style="display:flex;flex-direction:column;gap:2px;">' +
-        '<span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago)+(it.metodoPago2?' 🔍':'')+'</span>' +
+      '<div onclick="verDesglosePago('+i+')" style="cursor:pointer;display:flex;flex-direction:column;gap:2px;" title="Ver pagos / Editar / Eliminar">' +
+        '<span style="font-size:9px;background:#FFF7ED;color:#EA580C;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago||'—')+' ↗</span>' +
         (it.metodoPago2 ? '<span style="font-size:9px;background:#F5F3FF;color:#7C3AED;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;">'+escH(it.metodoPago2)+'</span>' : '') +
         (it.atendio ? '<span style="font-size:8px;color:var(--muted);">'+escH(it.atendio)+'</span>' : '') +
       '</div>' :
@@ -1405,10 +1409,7 @@ function renderItemsTbl() {
           '<span style="font-size:9px;color:var(--red);font-weight:700;">saldo: '+(it.divisa==='USD'?'$ ':'S/ ')+(parseFloat(it.saldoItem||0)).toFixed(2)+'</span>' +
         '</div>' :
         '<span style="font-size:9px;background:var(--green-xl);color:var(--green);padding:2px 7px;border-radius:20px;white-space:nowrap;">✓ pagado</span>';
-      accionBtn = '<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">' +
-        estadoBadge +
-        '<button onclick="editarPagoItem('+i+')" style="font-size:9px;padding:2px 7px;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:Outfit;white-space:nowrap;">✏️ editar</button>' +
-      '</div>';
+      accionBtn = estadoBadge; // Editar/eliminar ya están en el modal desglose (clic en método)
     } else {
       accionBtn = '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Outfit;white-space:nowrap;">Pagar</button>';
     }
@@ -1490,22 +1491,34 @@ function actualizarResumen() {
 // ===== BÚSQUEDA PACIENTE =====
 function buscarPaciente(q) {
   var res = document.getElementById('busq-pac-results');
-  if (!q || q.length < 3) { res.style.display='none'; return; }
-  rpc('aos_buscar_paciente', { p_query: q, p_limit: 8 }, function(data) {
-    var lista = Array.isArray(data) ? data : (data && Array.isArray(data.pacientes) ? data.pacientes : []);
+  if (!q || q.length < 3) { if(res) res.style.display='none'; return; }
+  // Usar fetch directo a Supabase REST para mayor confiabilidad
+  var qs = encodeURIComponent(q);
+  fetch(SB_URL + '/rest/v1/rpc/aos_buscar_paciente', {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_query: q })
+  }).then(function(r){ return r.json(); }).then(function(data) {
+    if (!res) return;
+    var lista = Array.isArray(data) ? data : [];
     if (!lista.length) {
       res.innerHTML = '<div style="padding:9px 12px;font-size:11px;color:var(--label);">Sin resultados para "'+escH(q)+'"</div>';
-    } else {
-      res.innerHTML = lista.map(function(p) {
-        return '<div onclick="selPaciente('+JSON.stringify(p).replace(/"/g,'&quot;')+')" style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">' +
-          '<strong>'+escH((p.nombres||p.Nombres||'')+(p.apellidos||p.Apellidos?' '+(p.apellidos||p.Apellidos):''))+'</strong>' +
-          ' <span style="color:var(--muted);">'+escH(p.numero||p.celular||p.Telefono||'')+'</span>' +
-          (p.vip ? ' <span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">VIP</span>' : '') +
-          '</div>';
-      }).join('');
+      res.style.display = 'block'; return;
     }
+    res.innerHTML = lista.map(function(p) {
+      var nom = ((p.nombres||'').trim()+' '+(p.apellidos||'').trim()).trim();
+      var esVip = p.vip && p.vip !== 'NORMAL' && p.vip !== '';
+      return '<div onclick="selPaciente('+JSON.stringify(p).replace(/"/g,'&quot;')+')" ' +
+        'style="padding:8px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;" ' +
+        'onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">' +
+        '<div><strong>'+escH(nom)+'</strong>' +
+          (esVip ? ' <span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">VIP</span>' : '') +
+        '</div>' +
+        '<span style="color:var(--muted);font-size:10px;">'+escH(p.numero||'')+'</span>' +
+        '</div>';
+    }).join('');
     res.style.display = 'block';
-  });
+  }).catch(function(e){ console.error('[CAJA] buscarPaciente error:', e); });
 }
 
 function selPaciente(p) {
@@ -1593,28 +1606,45 @@ function abrirPagoItem(idx) {
   var it = VT.items[idx];
   if (!it) return;
   VT.itemPagandoIdx = idx;
-  VT.isDividido = false;
   var divSym = it.divisa==='USD' ? '$ ' : 'S/ ';
 
   document.getElementById('pago-item-nombre').textContent = it.nombre;
   document.getElementById('pago-monto-display').textContent = divSym + it.subtotal.toFixed(2);
-  document.getElementById('btn-dividir').textContent = '⇄ Dividir pago';
-  document.getElementById('pago-simple-zone').style.display = 'block';
-  document.getElementById('pago-dividido-zone').style.display = 'none';
 
-  // Cargar selects del modo simple
-  var selMetodo = document.getElementById('pago-metodo-single');
-  selMetodo.innerHTML = _mkMetodosOpts('');
-  document.getElementById('pago-monto-simple').value = it.subtotal.toFixed(2);
-  document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts('BOLETA VIRTUAL');
+  // Determinar modo: si ya tiene 2 métodos y fue dividido, arrancar en dividido
+  var yaEsDividido = it.pagado && it.metodoPago2 && it.monto2 > 0;
+  VT.isDividido = yaEsDividido;
 
-  // Cargar asesores con código correcto
+  if (VT.isDividido) {
+    // Modo dividido — cargar líneas existentes
+    VT.lineasPago = [
+      { metodo: it.metodoPago||'', divisa: it.divisa||'PEN', monto: parseFloat(it.monto1||0), comprobante: it.comprobante||'BOLETA VIRTUAL', asesor: it.asesorComision||'' },
+      { metodo: it.metodoPago2||'', divisa: it.divisa||'PEN', monto: parseFloat(it.monto2||0), comprobante: it.comprobante||'BOLETA VIRTUAL', asesor: it.asesorComision||'' }
+    ];
+    document.getElementById('pago-simple-zone').style.display = 'none';
+    document.getElementById('pago-dividido-zone').style.display = 'block';
+    document.getElementById('btn-dividir').textContent = '× Un solo método';
+  } else {
+    // Modo simple — pre-cargar valores existentes o defaults
+    VT.isDividido = false;
+    document.getElementById('pago-simple-zone').style.display = 'block';
+    document.getElementById('pago-dividido-zone').style.display = 'none';
+    document.getElementById('btn-dividir').textContent = '⇄ Dividir pago';
+    var selMetodo = document.getElementById('pago-metodo-single');
+    selMetodo.innerHTML = _mkMetodosOpts(it.metodoPago || '');
+    // Pre-cargar monto (si ya pagado usar monto1, si no usar subtotal)
+    var montoActual = it.pagado ? parseFloat(it.monto1||it.subtotal) : it.subtotal;
+    document.getElementById('pago-monto-simple').value = montoActual.toFixed(2);
+    // Pre-cargar comprobante
+    document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(it.comprobante || 'BOLETA VIRTUAL');
+  }
+
+  // Cargar personal con pre-selección
   sbGet('aos_rrhh','order=nombre.asc', function(rows){
     _PERSONAL_CAJA = rows && rows.length ? rows : [];
-    var asesorDef = '';
-    // Intentar pre-seleccionar el asesor del paciente
-    if (VT.pac && (VT.pac.asesor||VT.pac.codigo_asesor)) asesorDef = VT.pac.asesor || VT.pac.codigo_asesor;
+    var asesorDef = it.asesorComision || (VT.pac && VT.pac.asesor) || '';
     document.getElementById('pago-asesor-simple').innerHTML = _mkAsesorOpts(asesorDef);
+    if (VT.isDividido) renderTablaLineas();
   });
 
   recalcSimple();
@@ -1693,9 +1723,19 @@ function autoFillLinea(i) {
 
 function recalcCubierto() {
   var it   = VT.items[VT.itemPagandoIdx];
-  var total= VT.lineasPago.reduce(function(s,ln){ return s+(parseFloat(ln.monto)||0); }, 0);
   var sub  = it ? parseFloat(it.subtotal||0) : 0;
-  var diff = sub - total;
+  // Auto-calcular: la última línea sin monto recibe el resto
+  var totalExcLast = 0;
+  VT.lineasPago.forEach(function(ln, i) {
+    if (i < VT.lineasPago.length - 1) totalExcLast += parseFloat(ln.monto||0);
+  });
+  var last = VT.lineasPago[VT.lineasPago.length - 1];
+  if (last && last.monto === 0 && VT.lineasPago.length > 1) {
+    var resto = sub - totalExcLast;
+    if (resto > 0) { last.monto = parseFloat(resto.toFixed(2)); renderTablaLineas(); return; }
+  }
+  var total = VT.lineasPago.reduce(function(s,ln){ return s+(parseFloat(ln.monto)||0); }, 0);
+  var diff  = sub - total;
   var divSym = it && it.divisa==='USD' ? '$ ' : 'S/ ';
   var el = document.getElementById('pago-total-cubierto');
   var dl = document.getElementById('pago-diferencia-label');
@@ -1727,8 +1767,12 @@ function toggleDividir() {
 }
 
 function agregarLineaPago() {
-  var it = VT.items[VT.itemPagandoIdx];
-  VT.lineasPago.push({metodo:'', divisa: it&&it.divisa||'PEN', monto:0, comprobante:'BOLETA VIRTUAL', asesor:''});
+  var it  = VT.items[VT.itemPagandoIdx];
+  var sub = it ? parseFloat(it.subtotal||0) : 0;
+  // Calcular automáticamente el resto para la nueva línea
+  var totalActual = VT.lineasPago.reduce(function(s,ln){ return s+parseFloat(ln.monto||0); }, 0);
+  var resto = Math.max(0, parseFloat((sub - totalActual).toFixed(2)));
+  VT.lineasPago.push({metodo:'', divisa: it&&it.divisa||'PEN', monto: resto, comprobante:'BOLETA VIRTUAL', asesor:''});
   renderTablaLineas();
 }
 
@@ -1787,45 +1831,56 @@ function confirmarPagoItem() {
 // ===== VER DESGLOSE DE PAGO =====
 function verDesglosePago(idx) {
   var it = VT.items[idx];
-  if (!it) return;
+  if (!it || !it.pagado) return;
+  VT.itemPagandoIdx = idx; // para que editar/eliminar sepan el índice
   document.getElementById('desglose-nombre').textContent = it.nombre;
   var lineas = [];
-  if (it.metodoPago && it.monto1 > 0) {
-    lineas.push({ metodo: it.metodoPago, divisa: it.divisa||'PEN', monto: it.monto1, comp: it.comprobante||'—' });
-  }
-  if (it.metodoPago2 && it.monto2 > 0) {
-    lineas.push({ metodo: it.metodoPago2, divisa: it.divisa||'PEN', monto: it.monto2, comp: it.comprobante||'—' });
-  }
+  if (it.metodoPago) lineas.push({ metodo: it.metodoPago, divisa: it.divisa||'PEN', monto: parseFloat(it.monto1||it.subtotal||0), comp: it.comprobante||'—' });
+  if (it.metodoPago2 && it.monto2 > 0) lineas.push({ metodo: it.metodoPago2, divisa: it.divisa||'PEN', monto: parseFloat(it.monto2||0), comp: it.comprobante||'—' });
   var total = lineas.reduce(function(s,l){ return s+l.monto; }, 0);
   var divSym = it.divisa==='USD' ? '$' : 'S/';
   var tbody = document.getElementById('desglose-tbody');
   if (tbody) {
     tbody.innerHTML = lineas.map(function(l, i) {
-      var bdgColor = i===0 ? '#FFF7ED;color:#EA580C' : '#F5F3FF;color:#7C3AED';
+      var bgc = i===0 ? '#FFF7ED;color:#EA580C' : '#F5F3FF;color:#7C3AED';
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:10px 14px;font-weight:700;color:var(--muted);">'+(i+1)+'</td>' +
-        '<td style="padding:10px 14px;"><span style="font-size:10px;background:'+bdgColor+';padding:3px 9px;border-radius:20px;font-weight:700;">'+escH(l.metodo)+'</span></td>' +
-        '<td style="padding:10px 14px;color:var(--muted);">'+(l.divisa==='USD'?'USD $':'PEN S/')+'</td>' +
-        '<td style="padding:10px 14px;text-align:right;font-family:Source Serif 4,serif;font-size:14px;font-weight:700;">'+divSym+' '+l.monto.toFixed(2)+'</td>' +
-        '<td style="padding:10px 14px;font-size:10px;color:var(--muted);">'+escH(l.comp)+'</td>' +
+        '<td style="padding:9px 12px;font-weight:700;color:var(--muted);">'+(i+1)+'</td>' +
+        '<td style="padding:9px 12px;"><span style="font-size:10px;background:'+bgc+';padding:2px 8px;border-radius:20px;font-weight:700;">'+escH(l.metodo)+'</span></td>' +
+        '<td style="padding:9px 12px;color:var(--muted);font-size:10px;">'+(l.divisa==='USD'?'USD $':'PEN S/')+'</td>' +
+        '<td style="padding:9px 12px;text-align:right;font-family:Source Serif 4,serif;font-size:14px;font-weight:700;">'+divSym+' '+l.monto.toFixed(2)+'</td>' +
+        '<td style="padding:9px 12px;font-size:10px;color:var(--muted);">'+escH(l.comp)+'</td>' +
       '</tr>';
     }).join('');
   }
   var dt = document.getElementById('desglose-total');
   if (dt) dt.textContent = divSym + ' ' + total.toFixed(2);
+  // Mostrar/ocultar botón eliminar según si tiene pago
+  var btnEliminar = document.getElementById('desglose-btn-eliminar');
+  if (btnEliminar) btnEliminar.style.display = it.pagado ? 'inline-block' : 'none';
   abrirOv('ov-desglose');
+}
+
+function desdesdeEliminarPago() {
+  var idx = VT.itemPagandoIdx;
+  if (idx < 0 || !VT.items[idx]) return;
+  var it = VT.items[idx];
+  // Eliminar solo el pago, dejar el ítem para ser pagado de nuevo
+  it.pagado = false; it.metodoPago=''; it.metodoPago2=''; it.monto1=0; it.monto2=0;
+  it.comprobante=''; it.asesorComision=''; it.atendio=''; it.estadoPago=''; it.montoPagado=0; it.saldoItem=0;
+  cerrarOv('ov-desglose');
+  renderItemsTbl();
+  actualizarResumen();
+  toast('Pago eliminado — puedes registrar uno nuevo', 'warn');
+}
+
+function desdesdeEditarPago() {
+  cerrarOv('ov-desglose');
+  abrirPagoItem(VT.itemPagandoIdx);
 }
 
 // ===== EDITAR PAGO DE ÍTEM =====
 function editarPagoItem(idx) {
-  // Resetear estado de pago del ítem y abrir modal de pago nuevamente
-  var it = VT.items[idx];
-  if (!it) return;
-  it.pagado = false;
-  it.metodoPago = ''; it.metodoPago2 = ''; it.monto1 = 0; it.monto2 = 0;
-  it.comprobante = ''; it.asesorComision = ''; it.atendio = ''; it.estadoPago = '';
-  renderItemsTbl();
-  actualizarResumen();
+  // Abrir modal con los datos actuales pre-cargados (NO resetear)
   abrirPagoItem(idx);
 }
 
