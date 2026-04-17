@@ -1115,10 +1115,18 @@ function cargarMetodosPagoSelect() {
     CAJA.metodosDisponibles.map(function(m) {
       return '<option value="' + escH(m) + '">' + escH(m) + '</option>';
     }).join('');
-  document.getElementById('metodo-pago-sel').innerHTML = opts;
-  // También para edición
+  // metodo-pago-sel puede no existir en el modal rediseñado
+  var sel = document.getElementById('metodo-pago-sel');
+  if (sel) sel.innerHTML = opts;
   var el = document.getElementById('edit-metodo');
   if (el) el.innerHTML = opts;
+  // También actualizar gasto-metodo si está abierto
+  var gm = document.getElementById('gasto-metodo');
+  if (gm && CAJA.metodosDisponibles.length) {
+    gm.innerHTML = CAJA.metodosDisponibles.map(function(m){
+      return '<option value="'+escH(m)+'">'+escH(m)+'</option>';
+    }).join('');
+  }
 }
 
 function addItem() {
@@ -1181,7 +1189,7 @@ function selComp(radio) {
 
 function buscarPaciente(q) {
   if (q.length < 3) { document.getElementById('busq-pac-results').classList.remove('open'); return; }
-  rpc('aos_buscar_paciente', { p_query: q, p_limit: 8 }, function(res) {
+  rpc('aos_buscar_paciente', { p_query: q }, function(res) {
     var lista = Array.isArray(res) ? res : (res && res.pacientes ? res.pacientes : []);
     var resultados = document.getElementById('busq-pac-results');
     if (!lista.length) {
@@ -1221,56 +1229,77 @@ function grabarVenta() {
   var items = CAJA.items.filter(function(it) { return it.nombre && parseFloat(it.precio) > 0; });
   if (!items.length) { toast('Agrega al menos un ítem con nombre y precio', 'warn'); return; }
 
-  // Verificar que todos los ítems tengan método de pago
-  var sinMetodo = items.filter(function(it){ return !it.metodo_pago; });
-  if (sinMetodo.length > 0) { toast('Selecciona método de pago para cada ítem', 'warn'); return; }
-  var metodo = items[0] && items[0].metodo_pago ? items[0].metodo_pago : 'EFECTIVO';
+  // Validar que cada ítem tenga al menos metodo1
+  var sinMetodo = items.filter(function(it){ return !it.metodo1; });
+  if (sinMetodo.length > 0) { toast('Selecciona método de pago 1 para cada ítem', 'warn'); return; }
 
   var pac = CAJA.pacSeleccionado || {};
-  var comprobanteEl = document.getElementById('tipo-comprobante-sel');
-  var comprobante = { value: comprobanteEl ? comprobanteEl.value : 'BOLETA' };
+  var comprobante = document.getElementById('tipo-comprobante-sel');
+  var comprobanteVal = comprobante ? comprobante.value : 'BOLETA';
+
+  // Moneda: PEN por defecto (ya no hay select de moneda en el modal simplificado)
+  var moneda = 'PEN';
+  var monedaSel = document.getElementById('moneda-sel');
+  if (monedaSel) moneda = monedaSel.value || 'PEN';
 
   loading(true);
   var btn = document.getElementById('btn-grabar-venta');
-  btn.disabled = true;
+  if (btn) btn.disabled = true;
+
+  var totalGeneral = items.reduce(function(s,it){ return s + parseFloat(it.subtotal||0); }, 0);
 
   rpc('aos_grabar_venta_caja', {
-    p_sede: CAJA.sede,
-    p_fecha: fechaLima(),
-    p_usuario: CAJA.usuario || 'CAJA',
-    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
-    p_numero_limpio: pac.numero_limpio || pac.numero || pac.celular || '',
-    p_nombres: pac.nombres || 'CLIENTE',
-    p_apellidos: pac.apellidos || 'DIRECTO',
-    p_celular: pac.celular || pac.numero || pac.numero_limpio || '',
-    p_dni: pac.dni || '',
-    p_asesor: pac.asesor || CAJA.usuario || '',
-    p_encargado: document.getElementById('doctor-sel').value,
-    p_items: items.map(function(it) {
+    p_sede:          CAJA.sede,
+    p_fecha:         CAJA.fechaActual || fechaLima(),
+    p_usuario:       CAJA.usuario || 'CAJA',
+    p_sesion_id:     CAJA.sesion ? CAJA.sesion.id : '',
+    p_numero_limpio: pac.numero || pac.numero_limpio || pac.celular || '',
+    p_nombres:       pac.nombres || 'CLIENTE',
+    p_apellidos:     pac.apellidos || 'DIRECTO',
+    p_celular:       pac.numero || pac.celular || pac.numero_limpio || '',
+    p_dni:           pac.dni || '',
+    p_asesor:        pac.asesor || CAJA.usuario || '',
+    p_encargado:     document.getElementById('doctor-sel').value,
+    p_items:         items.map(function(it) {
+      var m1 = parseFloat(it.monto1 || it.subtotal || 0);
+      var m2 = parseFloat(it.monto2 || 0);
+      // Si hay metodo2 y el usuario no ajustó montos, distribuir
+      if (it.metodo2 && it.monto1 === undefined) {
+        m1 = parseFloat(it.subtotal || 0);
+        m2 = 0;
+      }
       return {
-        tipo: it.tipo, nombre: it.nombre, cantidad: it.cantidad,
-        precio: it.precio, subtotal: it.subtotal,
-        metodo1: it.metodo1 || '', monto1: it.monto1 || it.subtotal,
-        metodo2: it.metodo2 || '', monto2: it.monto2 || 0
+        tipo:     it.tipo || 'SERVICIO',
+        nombre:   it.nombre,
+        cantidad: it.cantidad || 1,
+        precio:   parseFloat(it.precio || 0),
+        subtotal: parseFloat(it.subtotal || 0),
+        metodo1:  it.metodo1 || '',
+        monto1:   m1,
+        metodo2:  it.metodo2 || '',
+        monto2:   m2
       };
     }),
-    p_metodo_pago: items[0] && items[0].metodo_pago ? items[0].metodo_pago : (metodo || 'EFECTIVO'),
-    p_monto_total: items.reduce(function(s, it) { return s + parseFloat(it.subtotal || 0); }, 0),
-    p_moneda: document.getElementById('moneda-sel').value,
-    p_tipo_comprobante: document.getElementById('tipo-comprobante-sel').value,
-    p_nro_doc: document.getElementById('nro-doc').value.trim(),
-    p_estado_pago: document.getElementById('estado-pago-sel').value,
-    p_nota: document.getElementById('nota-venta').value.trim(),
-    p_tipo: items[0] && items[0].tipo ? items[0].tipo : 'SERVICIO'
+    p_monto_total:      totalGeneral,
+    p_moneda:           moneda,
+    p_tipo_comprobante: comprobanteVal,
+    p_nro_doc:          document.getElementById('nro-doc').value.trim(),
+    p_estado_pago:      document.getElementById('estado-pago-sel').value,
+    p_nota:             document.getElementById('nota-venta').value.trim(),
+    p_tipo:             items[0] ? (items[0].tipo || 'SERVICIO') : 'SERVICIO'
   }, function(d) {
     loading(false);
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar', 'err'); return; }
-    toast('✅ Venta grabada — ' + d.venta_id, 'ok');
+    toast('✅ ' + (d.mensaje || 'Venta grabada'), 'ok');
     cerrarOv('ov-venta');
     cargarCaja();
-    notificarVenta('💰 Nueva venta registrada en ' + CAJA.sede);
-  }, function() { loading(false); btn.disabled = false; toast('Error de conexión', 'err'); });
+    notificarVenta('💰 Nueva venta en ' + CAJA.sede);
+  }, function() {
+    loading(false);
+    if (btn) btn.disabled = false;
+    toast('Error de conexión al grabar venta', 'err');
+  });
 }
 // ===== MOD-07-END: NUEVA VENTA =====
 
