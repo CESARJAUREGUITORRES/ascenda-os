@@ -824,7 +824,8 @@ function confirmarApertura() {
     p_usuario: usuario,
     p_efectivo_soles: soles,
     p_efectivo_dolares: dolares,
-    p_tipo_cambio: tc
+    p_tipo_cambio: tc,
+    p_fecha: fechaLima()
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al abrir caja', 'err'); return; }
@@ -1023,6 +1024,7 @@ function grabarVenta() {
 
   rpc('aos_grabar_venta_caja', {
     p_sede: CAJA.sede,
+    p_fecha: fechaLima(),
     p_usuario: CAJA.usuario || 'CAJA',
     p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
     p_numero_limpio: pac.numero_limpio || pac.celular || '',
