@@ -529,6 +529,13 @@ function sbGet(tabla, qs, ok) {
 }
 
 function escH(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+// Fecha local del browser en formato YYYY-MM-DD (evita bug UTC vs Lima)
+function fechaLima() {
+  var d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 function esc(s)  { return String(s || ''); }
 function fmtMonto(m, mon) { mon = mon || 'PEN'; return (mon === 'USD' ? '$ ' : 'S/ ') + parseFloat(m || 0).toFixed(2); }
 // ===== MOD-01-END: CONFIG Y ESTADO =====
@@ -586,7 +593,7 @@ function cargarTC() {
 
 function cargarCaja() {
   loading(true);
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede }, function(d) {
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: fechaLima() }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast('Error cargando caja', 'err'); return; }
     CAJA.sesion  = d.sesion  || null;
@@ -789,7 +796,7 @@ function abrirModalApertura() {
   document.getElementById('apertura-usuario').value = CAJA.usuario || obtenerUsuario();
   document.getElementById('alerta-saldo').style.display = 'none';
 
-  sbGet('aos_caja_sesiones', 'sede=eq.' + encodeURIComponent(CAJA.sede) + '&estado=eq.CERRADA&order=fecha.desc&limit=1', function(rows) {
+  sbGet('aos_caja_sesiones', 'sede=eq.' + encodeURIComponent(CAJA.sede) + '&estado=eq.CERRADA&fecha=lt.' + fechaLima() + '&order=fecha.desc&limit=1', function(rows) {
     if (rows && rows.length) {
       var ult = rows[0];
       document.getElementById('saldo-ant-s').textContent = 'S/ ' + parseFloat(ult.efectivo_cierre_soles || 0).toFixed(2);
@@ -1139,21 +1146,21 @@ function init() {
   actualizarTabsSede();
 
   // Consultar sede real del día desde horarios_personal
+  // IMPORTANTE: usar fecha local del browser (Lima), no UTC del servidor
   if (!CAJA.esAdmin && CAJA.nombrePersonal) {
-    var hoy = new Date().toISOString().slice(0,10);
+    var hoyLima = fechaLima(); // fecha en zona horaria Lima desde el browser
     sbGet('aos_horarios_personal',
-      'fecha=eq.' + hoy + '&personal=eq.' + encodeURIComponent(CAJA.nombrePersonal.toUpperCase()) + '&activo=eq.true&select=sede&limit=1',
+      'fecha=eq.' + hoyLima + '&personal=eq.' + encodeURIComponent(CAJA.nombrePersonal.toUpperCase()) + '&activo=eq.true&select=sede&limit=1',
       function(rows) {
         if (rows && rows.length && rows[0].sede) {
-          var s = rows[0].sede.toUpperCase();
-          CAJA.sede = (s.indexOf('PUEBLO') > -1) ? 'PUEBLO LIBRE' : 'SAN ISIDRO';
+          var sd = rows[0].sede.toUpperCase();
+          CAJA.sede = (sd.indexOf('PUEBLO') > -1) ? 'PUEBLO LIBRE' : 'SAN ISIDRO';
         }
         actualizarTabsSede();
-        // Cargar métodos y caja DESPUÉS de tener la sede correcta
         cargarMetodosYCaja();
       }
     );
-    return; // métodos se cargarán en el callback
+    return;
   }
 
   cargarMetodosYCaja();
