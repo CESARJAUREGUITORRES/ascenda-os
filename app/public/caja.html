@@ -997,7 +997,16 @@ function cambiarFechaInline(fecha) {
   var hoy = fechaLima();
   var label = fecha === hoy ? 'Hoy' : fecha;
   document.getElementById('label-fecha-filtro').textContent = label;
-  cargarCaja();
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
 }
 
 function abrirFiltroFecha() {
@@ -1034,7 +1043,18 @@ function confirmarIngresoExtra() {
     if (!d || !d.ok) { toast('Error al registrar', 'err'); return; }
     toast('✅ Ingreso registrado', 'ok');
     cerrarOv('ov-ingreso-extra');
-    cargarCaja();
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1067,7 +1087,18 @@ function confirmarGasto() {
     if (!d || !d.ok) { toast('Error al registrar gasto', 'err'); return; }
     toast('💸 Gasto registrado', 'ok');
     cerrarOv('ov-gasto');
-    cargarCaja();
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1173,7 +1204,16 @@ function cambiarSede(sede) {
   CAJA.sede = sede;
   CAJA.fechaActual = fechaLima();
   actualizarTabsSede();
-  cargarCaja();
+  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
 }
 // ===== MOD-03B-END: TABS POR ROL =====
 
@@ -1254,7 +1294,18 @@ function confirmarApertura() {
       toast('✅ Caja abierta correctamente', 'ok');
     }
     cerrarOv('ov-apertura');
-    cargarCaja();
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
     notificarVenta('🔓 Caja abierta — ' + CAJA.sede);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -1319,7 +1370,18 @@ function confirmarCierre() {
     var msg = d.cuadra ? '✅ Caja cerrada. ¡Cuadre perfecto!' : '⚠️ Caja cerrada con diferencia: S/ ' + parseFloat(d.diferencia_soles || 0).toFixed(2);
     toast(msg, d.cuadra ? 'ok' : 'warn');
     cerrarOv('ov-cierre');
-    cargarCaja();
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
     notificarVenta('🔒 Caja cerrada — ' + CAJA.sede + ' · Saldo mañana: S/ ' + parseFloat(d.saldo_manana_soles || 0).toFixed(2));
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -2300,9 +2362,21 @@ function confirmarEdicion() {
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al editar', 'err'); return; }
-    toast('✅ Venta actualizada — ecosistema sincronizado', 'ok');
+    toast('✅ Venta actualizada', 'ok');
     cerrarOv('ov-editar');
-    cargarCaja();
+    // Recarga explícita del panel (más confiable que cargarCaja)
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
 
@@ -2320,7 +2394,19 @@ function eliminarVenta() {
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al eliminar', 'err'); return; }
     toast('🗑 Venta eliminada', 'warn');
     cerrarOv('ov-editar');
-    cargarCaja();
+    // Recarga explícita del panel (más confiable que cargarCaja)
+    setTimeout(function() {
+      rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
+    }, 400);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
 // ===== MOD-08-END: EDITAR VENTA =====
@@ -2428,7 +2514,16 @@ function cargarMetodosYCaja() {
         'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
         'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
     }
-    cargarCaja();
+    rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(d) {
+        if (d && d.ok) {
+          CAJA.sesion  = d.sesion  || CAJA.sesion;
+          CAJA.ventas  = d.ventas  || [];
+          CAJA.metodos = d.metodos || [];
+          CAJA.kpis    = d.kpis    || {};
+          CAJA.gastos  = d.gastos  || [];
+          renderCaja();
+        }
+      });
   });
   setInterval(function(){ cargarCaja(true); }, 60000);
   setInterval(cargarTC, 300000);
