@@ -999,7 +999,7 @@ function cambiarFechaInline(fecha) {
   var hoy = fechaLima();
   var label = fecha === hoy ? 'Hoy' : fecha;
   document.getElementById('label-fecha-filtro').textContent = label;
-  recargarPanel();
+  cargarCaja();
 }
 
 function abrirFiltroFecha() {
@@ -1036,7 +1036,7 @@ function confirmarIngresoExtra() {
     if (!d || !d.ok) { toast('Error al registrar', 'err'); return; }
     toast('✅ Ingreso registrado', 'ok');
     cerrarOv('ov-ingreso-extra');
-    recargarPanel();
+    cargarCaja();
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1069,7 +1069,7 @@ function confirmarGasto() {
     if (!d || !d.ok) { toast('Error al registrar gasto', 'err'); return; }
     toast('💸 Gasto registrado', 'ok');
     cerrarOv('ov-gasto');
-    recargarPanel();
+    cargarCaja();
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1149,21 +1149,6 @@ function renderLog() {
       '</div>';
   }).join('');
 }
-// ===== FUNCIÓN CENTRALIZADA DE RECARGA =====
-function recargarPanel(callback) {
-  if (!CAJA.sede) return;
-  rpc('aos_caja_ventas_dia', { p_sede: CAJA.sede, p_fecha: CAJA.fechaActual || fechaLima() }, function(res) {
-    if (res && res.ok) {
-      CAJA.sesion  = res.sesion  || CAJA.sesion;
-      CAJA.ventas  = res.ventas  || [];
-      CAJA.metodos = res.metodos || [];
-      CAJA.kpis    = res.kpis    || {};
-      CAJA.gastos  = res.gastos  || [];
-      renderCaja();
-      if (callback) callback();
-    }
-  });
-}
 // ===== MOD-03-END: SEDE Y CARGA PRINCIPAL =====
 
 // ===== MOD-03B-START: TABS POR ROL =====
@@ -1190,7 +1175,7 @@ function cambiarSede(sede) {
   CAJA.sede = sede;
   CAJA.fechaActual = fechaLima();
   actualizarTabsSede();
-  recargarPanel();
+  cargarCaja();
 }
 // ===== MOD-03B-END: TABS POR ROL =====
 
@@ -1271,7 +1256,7 @@ function confirmarApertura() {
       toast('✅ Caja abierta correctamente', 'ok');
     }
     cerrarOv('ov-apertura');
-    recargarPanel();
+    cargarCaja();
     notificarVenta('🔓 Caja abierta — ' + CAJA.sede);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -1336,7 +1321,7 @@ function confirmarCierre() {
     var msg = d.cuadra ? '✅ Caja cerrada. ¡Cuadre perfecto!' : '⚠️ Caja cerrada con diferencia: S/ ' + parseFloat(d.diferencia_soles || 0).toFixed(2);
     toast(msg, d.cuadra ? 'ok' : 'warn');
     cerrarOv('ov-cierre');
-    recargarPanel();
+    cargarCaja();
     notificarVenta('🔒 Caja cerrada — ' + CAJA.sede + ' · Saldo mañana: S/ ' + parseFloat(d.saldo_manana_soles || 0).toFixed(2));
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -2085,44 +2070,9 @@ function grabarCotizacion() {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar','err'); return; }
     cerrarOv('ov-venta');
-    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
-    // Agregar venta al DOM local inmediatamente (optimista)
-    var ahora = new Date();
-    var horaStr = ahora.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit', hour12:true});
-    var pac = VT.pac || {};
-    var nomPac = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
-    // Agregar cada ítem pagado como venta local
-    VT.items.forEach(function(it) {
-      if (!it.pagado) return;
-      CAJA.ventas = CAJA.ventas || [];
-      CAJA.ventas.push({
-        venta_id: d.ventas_ids && d.ventas_ids[0] ? d.ventas_ids[0] : 'nuevo-'+Date.now(),
-        hora: horaStr,
-        nombres: pac.nombres || pac.Nombres || 'CLIENTE',
-        apellidos: pac.apellidos || pac.Apellidos || '',
-        celular: pac.numero || pac.celular || '',
-        tratamiento: it.nombre,
-        descripcion: it.nombre,
-        metodo_pago: it.metodoPago || '',
-        monto: it.monto1 || it.subtotal,
-        moneda: it.divisa === 'USD' ? 'USD' : 'PEN',
-        estado_pago: it.estadoPago || 'PAGO COMPLETO',
-        tipo_comprobante: it.comprobante || '',
-        asesor: it.asesorComision || '',
-        atendio: it.atendio || '',
-        tipo: it.tipo || 'SERVICIO'
-      });
-    });
-    // Recalcular KPIs locales
-    if (CAJA.kpis) {
-      CAJA.kpis.total_soles = CAJA.ventas.reduce(function(s,v){ return s+parseFloat(v.monto||0); }, 0);
-      CAJA.kpis.total_ventas = CAJA.ventas.length;
-      CAJA.kpis.total_pagados = CAJA.ventas.filter(function(v){ return v.estado_pago==='PAGO COMPLETO'; }).length;
-    }
     VT.items = []; VT.pac = null;
-    renderCaja(); // render inmediato con datos locales
-    // Sincronizar con Supabase en segundo plano
-    recargarPanel();
+    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
+    cargarCaja();
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
@@ -2341,7 +2291,7 @@ function confirmarEdicion() {
     toast('✅ Venta actualizada', 'ok');
     cerrarOv('ov-editar');
     // Recarga explícita del panel (más confiable que cargarCaja)
-    recargarPanel();
+    cargarCaja();
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
 
@@ -2349,31 +2299,18 @@ function eliminarVenta() {
   var vid = document.getElementById('edit-venta-id').value;
   if (!vid) return;
   if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
-
-  // OPTIMISTA: quitar del array local y renderizar inmediatamente
-  CAJA.ventas = (CAJA.ventas || []).filter(function(v) { return v.venta_id !== vid; });
-  if (CAJA.kpis) {
-    CAJA.kpis.total_soles = CAJA.ventas.reduce(function(s,v){ return s+parseFloat(v.monto||0); },0);
-    CAJA.kpis.total_ventas = CAJA.ventas.length;
-    CAJA.kpis.total_pagados = CAJA.ventas.filter(function(v){ return v.estado_pago==='PAGO COMPLETO'; }).length;
-  }
-  cerrarOv('ov-editar');
-  toast('🗑 Venta eliminada', 'warn');
-  renderCaja();
-
-  // CONFIRMAR en Supabase en segundo plano
+  loading(true);
   rpc('aos_caja_eliminar_venta', {
     p_venta_id: vid,
     p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
     p_usuario: CAJA.usuario || 'ADMIN'
   }, function(d) {
-    if (d && d.ok) {
-      recargarPanel(); // sincronizar con datos reales del servidor
-    } else {
-      toast((d && d.error) || 'Error al eliminar en servidor', 'err');
-      recargarPanel(); // restaurar estado correcto
-    }
-  }, function() { recargarPanel(); });
+    loading(false);
+    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al eliminar', 'err'); return; }
+    toast('🗑 Venta eliminada', 'warn');
+    cerrarOv('ov-editar');
+    cargarCaja();
+  }, function() { loading(false); toast('Error al eliminar', 'err'); });
 }
 // ===== MOD-08-END: EDITAR VENTA =====
 
@@ -2480,7 +2417,7 @@ function cargarMetodosYCaja() {
         'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
         'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
     }
-    recargarPanel();
+    cargarCaja();
   });
   setInterval(function(){ cargarCaja(true); }, 60000);
   setInterval(cargarTC, 300000);
