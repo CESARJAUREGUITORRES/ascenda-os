@@ -724,15 +724,37 @@ var CAJA = {
 };
 
 function rpc(fn, params, ok, fail) {
-  fetch(SB_URL + '/rest/v1/rpc/' + fn, {
-    method: 'POST',
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(params || {})
-  }).then(function(r) { return r.json(); }).then(function(d) {
-    // Supabase puede devolver array — normalizar a objeto
-    var result = Array.isArray(d) ? d[0] : d;
-    if (ok) ok(result);
-  }).catch(fail || function(e) { console.error('[CAJA RPC]', fn, e); });
+  var _ok = ok || function() {};
+  var _fail = fail || function() {};
+  function doFetch(attempt) {
+    fetch(SB_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(params || {})
+    }).then(function(r) {
+      if (!r.ok && r.status !== 200) {
+        // HTTP error — reintentar una vez si es 5xx o 429
+        if (attempt < 2 && (r.status >= 500 || r.status === 429)) {
+          setTimeout(function() { doFetch(attempt + 1); }, 800);
+          return null;
+        }
+      }
+      return r.json();
+    }).then(function(d) {
+      if (d === null) return; // reintentando
+      var result = Array.isArray(d) ? d[0] : d;
+      _ok(result);
+    }).catch(function(e) {
+      if (attempt < 2) {
+        // Reintentar una vez en caso de fallo de red
+        setTimeout(function() { doFetch(attempt + 1); }, 800);
+      } else {
+        console.error('[CAJA RPC]', fn, e);
+        _fail(e);
+      }
+    });
+  }
+  doFetch(1);
 }
 
 function sbGet(tabla, qs, ok) {
