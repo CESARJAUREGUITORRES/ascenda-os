@@ -1036,7 +1036,7 @@ function confirmarIngresoExtra() {
     if (!d || !d.ok) { toast('Error al registrar', 'err'); return; }
     toast('✅ Ingreso registrado', 'ok');
     cerrarOv('ov-ingreso-extra');
-    cargarCaja();
+    cargarCaja(true);
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1069,7 +1069,7 @@ function confirmarGasto() {
     if (!d || !d.ok) { toast('Error al registrar gasto', 'err'); return; }
     toast('💸 Gasto registrado', 'ok');
     cerrarOv('ov-gasto');
-    cargarCaja();
+    cargarCaja(true);
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
 
@@ -1256,7 +1256,7 @@ function confirmarApertura() {
       toast('✅ Caja abierta correctamente', 'ok');
     }
     cerrarOv('ov-apertura');
-    cargarCaja();
+    cargarCaja(true);
     notificarVenta('🔓 Caja abierta — ' + CAJA.sede);
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -1321,7 +1321,7 @@ function confirmarCierre() {
     var msg = d.cuadra ? '✅ Caja cerrada. ¡Cuadre perfecto!' : '⚠️ Caja cerrada con diferencia: S/ ' + parseFloat(d.diferencia_soles || 0).toFixed(2);
     toast(msg, d.cuadra ? 'ok' : 'warn');
     cerrarOv('ov-cierre');
-    cargarCaja();
+    cargarCaja(true);
     notificarVenta('🔒 Caja cerrada — ' + CAJA.sede + ' · Saldo mañana: S/ ' + parseFloat(d.saldo_manana_soles || 0).toFixed(2));
   }, function() { loading(false); toast('Error de conexión', 'err'); });
 }
@@ -2072,7 +2072,7 @@ function grabarCotizacion() {
     cerrarOv('ov-venta');
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
-    cargarCaja();
+    cargarCaja(true);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
@@ -2309,7 +2309,7 @@ function eliminarVenta() {
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al eliminar', 'err'); return; }
     toast('🗑 Venta eliminada', 'warn');
     cerrarOv('ov-editar');
-    cargarCaja();
+    cargarCaja(true);
   }, function() { loading(false); toast('Error al eliminar', 'err'); });
 }
 // ===== MOD-08-END: EDITAR VENTA =====
