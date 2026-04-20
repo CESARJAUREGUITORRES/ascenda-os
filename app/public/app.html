@@ -406,7 +406,7 @@ setTimeout(function() {
   if (AOS.role === 'ADMIN') {
     navigateTo('admin-home');
   } else {
-    navigateTo('advisor-home');
+    verificarTurnoHoy();
   }
 }, 0);
 
@@ -498,7 +498,6 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-attendance', ico:'star',     lbl:'Mis atenciones'},
   {type:'sep',bot:true},
   {type:'item',id:'__profile',          ico:'profile',  lbl:'Mi perfil'},
-  {type:'item',id:'__cierre_turno',     ico:'clockend', lbl:'Cerrar turno', special:'cierre'},
   {type:'item',id:'__logout',           ico:'logout',   lbl:'Salir',        danger:true}
 ];
 
@@ -559,7 +558,6 @@ function buildSidebar() {
       var v = this.getAttribute('data-view');
       if (v === '__logout')      { openLogoutModal(); return; }
       if (v === '__profile')     { return; }
-      if (v === '__cierre_turno'){ openCierreTurnoModal(); return; }
       if (v === 'advisor-leads') { if(window.AOS_openLeads)AOS_openLeads(); return; }
       navigateTo(v);
     });
@@ -727,8 +725,25 @@ function startClock() {
    S3: TURNO
 --------------------------------------------------- */
 function verificarTurnoHoy() {
-  // turno verificado (Supabase pendiente)
-  AOS.turnoId = null; navigateTo('advisor-calls');
+  var hoy = new Date().toISOString().slice(0,10);
+  var idAsesor = AOS.ctx ? AOS.ctx.idAsesor : '';
+  // Consultar si ya registró INICIO_TURNO hoy
+  _q('aos_log_personal',
+    'asesor=eq.' + encodeURIComponent(idAsesor) +
+    '&tipo=eq.INICIO_TURNO' +
+    '&inicio=gte.' + hoy + 'T00:00:00' +
+    '&limit=1',
+    function(rows) {
+      if (rows && rows.length > 0) {
+        // Ya tiene turno iniciado hoy — ir directo al home
+        navigateTo('advisor-home');
+      } else {
+        // Primer login del día — mostrar pantalla azul
+        navigateTo('advisor-home');
+        setTimeout(function() { mostrarPantallaTurno(); }, 300);
+      }
+    }
+  );
 }
 
 function mostrarPantallaTurno() {
@@ -956,7 +971,11 @@ function closeLogoutModal() { document.getElementById('modal-logout').classList.
 function doLogout() {
   clearInterval(AOS.pollTimer); clearInterval(AOS.pollAdminTimer);
   if (AOS.bloqueoTimer) clearInterval(AOS.bloqueoTimer);
-  localStorage.removeItem('aos_session'); redirectLogin();
+  localStorage.removeItem('aos_session');
+  // Animación de salida suave
+  document.body.style.transition = 'opacity 0.4s ease';
+  document.body.style.opacity = '0';
+  setTimeout(function() { redirectLogin(); }, 400);
 }
 function redirectLogin() {
   try {
