@@ -182,7 +182,7 @@
 // ═══════════════════════════════════════════════════════════════
 var _S='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1,llam:0,fact:0},firstLoad:true,chartRaw:null,chartAsesor:null};
+var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null};
 
 function _r(fn,p,cb){function go(a){fetch(_S+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){if(!r.ok&&a<2&&(r.status>=500||r.status===429)){setTimeout(function(){go(a+1);},800);return null;}return r.json();}).then(function(d){if(d===null)return;cb(Array.isArray(d)?d[0]:d);}).catch(function(e){if(a<2)setTimeout(function(){go(a+1);},800);else console.error(fn,e);});}go(1);}
 function _q(t,f,cb){fetch(_S+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_K,'Authorization':'Bearer '+_K}}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});}
@@ -226,7 +226,8 @@ function ahLoad(){
     _s('ah-pl','S/'+parseFloat(k.factHoyPL||0).toFixed(0));
     _s('ah-mu','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
     // Delta ventas — con detalle
-    if(!_D.firstLoad&&_D.prev.ventas>=0&&nv>_D.prev.ventas){
+    // Delta ventas — only after 2+ loads (avoids false trigger on async first load)
+    if(_D.loadCount>=2&&_D.prev.ventas>=0&&nv>_D.prev.ventas){
       _q('aos_ventas','select=asesor,tratamiento,monto,sede&fecha=eq.'+_hoy()+'&order=created_at.desc&limit=1',function(vr){
         var v=(vr&&vr[0])||{};
         ahN('money','💰 Nueva venta · S/'+parseFloat(v.monto||0).toFixed(0),
@@ -238,7 +239,7 @@ function ahLoad(){
     ahVDet(res.ventasHoy||[]);
   });
   ahTicker();ahRank();ahPagos();ahAlertas();ahChart();
-  _D.firstLoad=false;
+  _D.loadCount++;
 }
 
 // ═══════ TICKER (RPC) ═══════
@@ -260,7 +261,7 @@ function ahAlertas(){
         if(inicio){var hP=new Date(inicio.getTime()-5*3600000);var hh=hP.getUTCHours(),mm=hP.getUTCMinutes();var ap=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ap;}
         var ico=est==='BREAK'?'☕':est==='BAÑO'?'🚻':est==='ATENCIÓN'?'🙋':est==='LIMPIEZA'?'🧹':est==='CAPACITACIÓN'?'📚':'⚠️';
         alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio});
-        if(!_D.firstLoad&&!_D['al_'+a+'_'+est]){ahN('alert',ico+' '+a+' en '+est,'Desde '+horaInicio);_D['al_'+a+'_'+est]=true;}
+        if(_D.loadCount>=2&&!_D['al_'+a+'_'+est]){ahN('alert',ico+' '+a+' en '+est,'Desde '+horaInicio);_D['al_'+a+'_'+est]=true;}
       }
     });
     if(!alertas.length){el.innerHTML='<div class="ah-alok">✓ Sin alertas activas</div>';return;}
@@ -286,8 +287,23 @@ function ahSem(sem){
           var log=ll[n];
           if(log&&!log.fin){var le=(log.estado||'').toUpperCase();
             if(le&&le!=='ACTIVO'&&le!=='EN LLAMADA'&&le!=='CIERRE_TURNO'){est=le;cls='bg-w';}
-            else{est=m<30?'ACTIVO':m<120?'INACTIVO':'SIN ACTIV.';cls=m<30?'bg-ok':m<120?'bg-w':'bg-i';}
-          }else{est=m<30?'ACTIVO':m<120?'INACTIVO':'SIN ACTIV.';cls=m<30?'bg-ok':m<120?'bg-w':'bg-i';}
+            else if(m<=3){est='ACTIVO';cls='bg-ok';}
+            else if(m<=5){est='EN LLAMADA';cls='bg-w';}
+            else{est='INACTIVO';cls='bg-w';}
+          }else{
+            if(m<=3){est='ACTIVO';cls='bg-ok';}
+            else if(m<=5){est='EN LLAMADA';cls='bg-w';}
+            else if(m<=120){est='INACTIVO';cls='bg-w';}
+            else{est='SIN ACTIV.';cls='bg-i';}
+          }
+          // Inactivity alert: >5min without tipificación
+          if(m>5&&s.llamadas>0&&est==='INACTIVO'){
+            var alertKey='inact_'+n+'_'+Math.floor(m/5);
+            if(_D.loadCount>=2&&!_D[alertKey]){
+              ahN('alert','⏱ '+_e(s.asesor)+' inactivo '+m+' min','Última tipificación: '+_e(s.ult_hora||'—'));
+              _D[alertKey]=true;
+            }
+          }
           var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
           totalCitas+=parseInt(s.citas||0);
           return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
@@ -298,7 +314,7 @@ function ahSem(sem){
         return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td>0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td><td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
       }).join('');
       // Notif citas — con detalle del asesor
-      if(!_D.firstLoad&&_D.prev.citas>=0&&totalCitas>_D.prev.citas){
+      if(_D.loadCount>=2&&_D.prev.citas>=0&&totalCitas>_D.prev.citas){
         // Fetch latest cita-generating call
         _q('aos_llamadas','select=asesor,tratamiento,numero_limpio&fecha=eq.'+_hoy()+'&estado=like.*CITA*&order=hora_llamada.desc&limit=1',function(lr){
           var l=(lr&&lr[0])||{};
@@ -395,7 +411,7 @@ function ahRenderChart(){
     if(d.citas>0){svg+='<circle cx="'+citaPts[i][0]+'" cy="'+citaPts[i][1]+'" r="3.5" fill="#00C9A7" stroke="#fff" stroke-width="2"/>';svg+='<text x="'+citaPts[i][0]+'" y="'+(citaPts[i][1]-8)+'" fill="#00C9A7" font-size="9" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.citas+'</text>';}
   });
   // AHORA marker
-  var nowH=new Date(Date.now()-5*3600000).getHours();
+  var nowH=new Date().getHours();
   var nowIdx=-1;data.forEach(function(d,i){if(d.h===nowH)nowIdx=i;});
   if(nowIdx>=0){var nx=pL+nowIdx*sX;svg+='<line x1="'+nx+'" y1="'+pT+'" x2="'+nx+'" y2="'+(pT+cH)+'" stroke="#DC2626" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>';svg+='<text x="'+nx+'" y="'+(pT-3)+'" fill="#DC2626" font-size="7" font-weight="800" text-anchor="middle" font-family="Exo 2">AHORA</text>';}
   svg+='</svg>';
