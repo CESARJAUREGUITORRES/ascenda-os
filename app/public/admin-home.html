@@ -56,19 +56,20 @@
 .ah-ld{display:flex;align-items:center;gap:8px;padding:14px;color:#6B7BA8;font-size:11px;}
 .ah-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:ahsp .7s linear infinite;flex-shrink:0;}
 @keyframes ahsp{to{transform:rotate(360deg)}}
-/* ── Notificaciones push (iPhone style, desde arriba) ── */
-.ah-notif-wrap{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none;width:min(380px,90vw);}
-.ah-notif{pointer-events:all;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;background:#fff;box-shadow:0 8px 30px rgba(7,29,74,0.18),0 2px 8px rgba(0,0,0,0.08);animation:ahSlideIn .35s ease-out;border-left:4px solid #0A4FBF;font-size:12px;}
-.ah-notif.money{border-left-color:#16A34A;background:linear-gradient(135deg,#F0FDF4,#fff);}
-.ah-notif.cita{border-left-color:#0A4FBF;background:linear-gradient(135deg,#EBF2FF,#fff);}
-.ah-notif.alert{border-left-color:#D97706;background:linear-gradient(135deg,#FFFBEB,#fff);}
-.ah-notif-ico{font-size:22px;flex-shrink:0;}
+/* ── Notificaciones push (bottom-right, slide from right) ── */
+.ah-notif-wrap{position:fixed;bottom:20px;right:20px;z-index:600;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(340px,85vw);}
+.ah-notif{pointer-events:all;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(7,29,74,0.22),0 4px 12px rgba(0,0,0,0.1);animation:ahSlideR .4s cubic-bezier(.22,1,.36,1);border-left:none;border-bottom:3px solid #0A4FBF;font-size:12px;backdrop-filter:blur(8px);}
+.ah-notif.money{border-bottom-color:#16A34A;background:linear-gradient(135deg,#F0FDF4 0%,#fff 60%);}
+.ah-notif.cita{border-bottom-color:#0A4FBF;background:linear-gradient(135deg,#EBF2FF 0%,#fff 60%);}
+.ah-notif.alert{border-bottom-color:#D97706;background:linear-gradient(135deg,#FFFBEB 0%,#fff 60%);}
+.ah-notif-ico{font-size:24px;flex-shrink:0;}
 .ah-notif-body{flex:1;min-width:0;}
-.ah-notif-ttl{font-weight:800;font-size:12px;font-family:'Exo 2',sans-serif;}
-.ah-notif-msg{font-size:10px;color:#6B7BA8;margin-top:1px;}
-.ah-notif-x{background:none;border:none;font-size:14px;color:#9AAAC8;cursor:pointer;padding:4px;flex-shrink:0;}
-@keyframes ahSlideIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
-@keyframes ahSlideOut{from{opacity:1}to{transform:translateY(-100%);opacity:0}}
+.ah-notif-ttl{font-weight:800;font-size:13px;font-family:'Exo 2',sans-serif;color:#0D1B3E;}
+.ah-notif-msg{font-size:10px;color:#6B7BA8;margin-top:2px;}
+.ah-notif-x{background:none;border:none;font-size:14px;color:#9AAAC8;cursor:pointer;padding:4px;flex-shrink:0;transition:color .15s;}
+.ah-notif-x:hover{color:#DC2626;}
+@keyframes ahSlideR{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ahSlideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(120%)}}
 /* ── Chart ── */
 .ah-chart-wrap{position:relative;}
 .ah-chart-legend{display:flex;gap:14px;justify-content:center;margin-top:6px;}
@@ -349,11 +350,12 @@ function ahVDet(v){var el=document.getElementById('ah-vdet');if(!el)return;if(!v
 
 // ═══════ GRÁFICO ACTIVIDAD POR HORA (SVG) ═══════
 function ahChart(){
-  _r('aos_actividad_hora',{p_fecha:_hoy()},function(res){
+  // Direct fetch — _r() normalizes Array→d[0] which breaks flat array results
+  fetch(_S+'/rest/v1/rpc/aos_actividad_hora',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_fecha:_hoy()})})
+  .then(function(r){return r.json();})
+  .then(function(raw){
     var el=document.getElementById('ah-chart');if(!el)return;
-    // RPC returns flat array: [{hora, asesor, llamadas, citas}, ...]
-    var raw=Array.isArray(res)?res:(res||[]);
-    if(!raw.length){el.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:20px">Sin actividad hoy</div>';return;}
+    if(!raw||!raw.length){el.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:20px">Sin actividad hoy</div>';return;}
     // Aggregate by hour
     var byH={};
     raw.forEach(function(r){
@@ -430,7 +432,7 @@ function ahChart(){
     }
     svg+='</svg>';
     el.innerHTML=svg;
-  });
+  }).catch(function(e){console.error('chart',e);});
 }
 
 // ═══════ RANKING ═══════
