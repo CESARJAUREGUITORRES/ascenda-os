@@ -157,6 +157,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .vl-spinner{width:36px;height:36px;border:3px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 .vl-txt{font-size:12px;color:var(--muted);font-weight:600;}
 @keyframes spin{to{transform:rotate(360deg);}}
+@keyframes brpulse{0%,100%{opacity:1}50%{opacity:.3}}
 .view-error{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;}
 .ve-ico{font-size:36px;}
 .ve-txt{font-size:13px;color:var(--red);font-weight:600;}
@@ -287,6 +288,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         <div class="edo-opt" data-edo="CAPACITACIÓN" data-color="#7C3AED" data-block="true" data-ico="📚"><div class="edo-opt-dot" style="background:#7C3AED"></div>Capacitación</div>
         <div class="edo-opt" data-edo="CIERRE_TURNO" data-color="#DC2626" data-block="false" data-ico="🏁" style="border-top:1px solid #DDE4F5;margin-top:4px;padding-top:6px;"><div class="edo-opt-dot" style="background:#DC2626"></div>Cierre de turno</div>
       </div>
+    </div>
+    <!-- Brain button (cerebro) -->
+    <div class="tb-ico" id="btn-brain" title="Brain · AscendaOS" onclick="window.open('/cerebro.html','_blank','noopener')" style="cursor:pointer;position:relative;">
+      <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><circle cx="10" cy="10" r="7" stroke="#00C9A7" stroke-width="1.5" fill="none"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3" stroke="#00C9A7" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="12" r="1.2" fill="#00C9A7"/></svg>
+      <div style="position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#00C9A7;box-shadow:0 0 4px #00C9A7;animation:brpulse 2s infinite;"></div>
     </div>
     <!-- G2: Iconos SVG modernos -->
     <div class="tb-ico" id="btn-notif" title="Notificaciones">
@@ -635,7 +641,9 @@ function navigateTo(viewId) {
     'ViewAdminTeam':          '/admin-team.html',
     'ViewAdminMarketing':     '/admin-marketing.html',
     'ViewAdminCaja':          '/caja.html',
-    'ViewAdminBilling':       '/admin-billing.html'
+    'ViewAdminBilling':       '/admin-billing.html',
+    'ViewAdminConfig':        '/admin-ops.html',
+    'ViewAdminChats':         '/admin-calls.html'
   };
   var route = PANEL_ROUTES[hf];
   if (route) {
