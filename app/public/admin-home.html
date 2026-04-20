@@ -38,7 +38,7 @@
 .ah-t tr[data-asesor]{cursor:pointer;transition:background .12s;}.ah-t tr[data-asesor]:hover{background:#F0F4FC;}
 .ah-t tr[data-asesor].sel{background:rgba(0,201,167,0.08);}
 .ah-bg{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.5px;}
-.bg-ok{background:#F0FDF4;color:#16A34A;}.bg-w{background:#FFFBEB;color:#D97706;}.bg-i{background:#F0F4FC;color:#9AAAC8;}
+.bg-ok{background:#F0FDF4;color:#16A34A;}.bg-w{background:#FFFBEB;color:#D97706;}.bg-i{background:#F0F4FC;color:#9AAAC8;}.bg-r{background:#FEF2F2;color:#DC2626;}
 /* Ranking — CYAN instead of green */
 .ah-rkt{display:flex;gap:4px;margin-bottom:10px;}
 .ah-rkb{flex:1;padding:5px;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid #DDE4F5;background:#F0F4FC;color:#6B7BA8;text-align:center;transition:all .15s;}
@@ -288,7 +288,9 @@ function ahAlertas(sem){
     if(!alertas.length){el.innerHTML='<div class="ah-alok">✓ Sin alertas activas</div>';return;}
     el.innerHTML=alertas.map(function(a){
       var timeText=a.type==='inactivo'?'última llam. '+a.hora+' · '+a.mins+' min':'desde '+a.hora+' · '+a.mins+' min';
-      return '<div class="ah-al-item"><span>'+a.ico+'</span><span class="ah-al-name">'+_e(a.asesor)+'</span><span class="ah-bg bg-w">'+_e(a.estado)+'</span><span class="ah-al-time">'+timeText+'</span></div>';
+      var bgCls=a.type==='inactivo'?'bg-r':'bg-w';
+      var itemStyle=a.type==='inactivo'?'background:#FEF2F2;color:#DC2626':'';
+      return '<div class="ah-al-item" style="'+itemStyle+'"><span>'+a.ico+'</span><span class="ah-al-name">'+_e(a.asesor)+'</span><span class="ah-bg '+bgCls+'">'+_e(a.estado)+'</span><span class="ah-al-time">'+timeText+'</span></div>';
     }).join('');
   });
 }
@@ -313,16 +315,18 @@ function ahSem(sem){
             if(le&&le!=='ACTIVO'&&le!=='EN LLAMADA'&&le!=='CIERRE_TURNO'){est=le;cls='bg-w';}
             else if(m<=3){est='ACTIVO';cls='bg-ok';}
             else if(m<=5){est='EN LLAMADA';cls='bg-w';}
-            else{est='INACTIVO';cls='bg-w';}
+            else{est='INACTIVO';cls='bg-r';}
           }else{
             if(m<=3){est='ACTIVO';cls='bg-ok';}
             else if(m<=5){est='EN LLAMADA';cls='bg-w';}
-            else if(m<=120){est='INACTIVO';cls='bg-w';}
+            else if(m<=120){est='INACTIVO';cls='bg-r';}
             else{est='SIN ACTIV.';cls='bg-i';}
           }
           // Inactivity alert: >5min without tipificación
           if(m>5&&s.llamadas>0&&est==='INACTIVO'){
-            var alertKey='inact_'+n+'_'+Math.floor(m/5);
+            // Notify only at 5min intervals: 5,10,15,20...
+            var interval=Math.floor(m/5);
+            var alertKey='inact_'+n+'_'+interval;
             if(_D.loadCount>=2&&!_D[alertKey]){
               ahN('alert','⏱ '+_e(s.asesor)+' inactivo '+m+' min','Última tipificación: '+_e(s.ult_hora||'—'));
               _D[alertKey]=true;
@@ -387,6 +391,13 @@ function ahRenderChart(){
   // Aggregate by hour
   var byH={};
   filtered.forEach(function(r){var h=parseInt(r.hora);if(!byH[h])byH[h]={h:h,llam:0,citas:0};byH[h].llam+=parseInt(r.llamadas||0);byH[h].citas+=parseInt(r.citas||0);});
+  // Add +1 hour after current hour so AHORA doesn't sit at the edge
+  var nowH=new Date().getHours();
+  var maxHour=Math.max.apply(null,Object.keys(byH).map(Number));
+  if(nowH>=maxHour){
+    var nextH=nowH+1;
+    if(!byH[nextH])byH[nextH]={h:nextH,llam:0,citas:0};
+  }
   var data=Object.values(byH).sort(function(a,b){return a.h-b.h;});
   // Update subtitle
   _s('ah-chu',_D.chartAsesor||'Equipo');
