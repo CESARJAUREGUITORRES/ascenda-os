@@ -237,8 +237,9 @@ function ahLoad(){
     _D.prev.ventas=nv;_D.prev.fact=fh;
     ahSem(res.semaforo||[]);
     ahVDet(res.ventasHoy||[]);
+    ahAlertas(res.semaforo||[]);
   });
-  ahTicker();ahRank();ahPagos();ahAlertas();ahChart();
+  ahTicker();ahRank();ahPagos();ahChart();
   _D.loadCount++;
 }
 
@@ -246,11 +247,17 @@ function ahLoad(){
 function ahTicker(){_r('aos_ticker_mkt',{p_mes_inicio:_mi()},function(r){if(!r)return;_s('tk-leads',r.leads||0);_s('tk-llam',r.contactados||0);if(r.leads>0)_s('tk-pct',(r.pct_contacto||0)+'%');_s('tk-citas',r.con_cita||0);_s('tk-asist',r.asistio||0);_s('tk-vtas',r.con_venta||0);_s('tk-fact',parseFloat(r.facturacion||0).toFixed(0));var inv=parseFloat(r.inversion||0),fac=parseFloat(r.facturacion||0);_s('tk-roas',inv>0?(fac/inv).toFixed(1)+'x':'—');});}
 
 // ═══════ ALERTAS ═══════
-function ahAlertas(){
+// Store semaforo data for alertas
+var _semData=null;
+
+function ahAlertas(sem){
+  if(sem)_semData=sem;
   _q('aos_log_personal','select=asesor,estado,detalle,inicio,fin&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(rows){
     var el=document.getElementById('ah-alerts');if(!el)return;
     var last={};(rows||[]).forEach(function(r){var a=r.asesor;if(a&&!last[a])last[a]=r;});
     var alertas=[];
+
+    // 1) Log personal alerts (BREAK, BAÑO, etc.)
     Object.keys(last).forEach(function(a){
       var r=last[a];var est=(r.estado||'').toUpperCase();
       if(r.fin)return;
@@ -258,14 +265,31 @@ function ahAlertas(){
         var inicio=r.inicio?new Date(r.inicio):null;
         var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
         var horaInicio='';
-        if(inicio){var hP=new Date(inicio.getTime()-5*3600000);var hh=hP.getUTCHours(),mm=hP.getUTCMinutes();var ap=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ap;}
+        if(inicio){var hh=inicio.getHours(),mm=inicio.getMinutes();var ap=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ap;}
         var ico=est==='BREAK'?'☕':est==='BAÑO'?'🚻':est==='ATENCIÓN'?'🙋':est==='LIMPIEZA'?'🧹':est==='CAPACITACIÓN'?'📚':'⚠️';
-        alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio});
+        alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio,type:'estado'});
         if(_D.loadCount>=2&&!_D['al_'+a+'_'+est]){ahN('alert',ico+' '+a+' en '+est,'Desde '+horaInicio);_D['al_'+a+'_'+est]=true;}
       }
     });
+
+    // 2) Inactivity alerts from semáforo (>5 min sin tipificar)
+    if(_semData){
+      (_semData).forEach(function(s){
+        var m=parseInt(s.mins_sin||0);
+        var a=s.asesor;
+        // Skip if already has a log_personal alert (BREAK etc takes priority)
+        var hasLogAlert=alertas.some(function(al){return al.asesor===a;});
+        if(!hasLogAlert&&m>5&&s.llamadas>0){
+          alertas.push({asesor:a,estado:'INACTIVO',ico:'⏱',mins:m,hora:s.ult_hora||'—',type:'inactivo'});
+        }
+      });
+    }
+
     if(!alertas.length){el.innerHTML='<div class="ah-alok">✓ Sin alertas activas</div>';return;}
-    el.innerHTML=alertas.map(function(a){return '<div class="ah-al-item"><span>'+a.ico+'</span><span class="ah-al-name">'+_e(a.asesor)+'</span><span class="ah-bg bg-w">'+_e(a.estado)+'</span><span class="ah-al-time">desde '+a.hora+' · '+a.mins+' min</span></div>';}).join('');
+    el.innerHTML=alertas.map(function(a){
+      var timeText=a.type==='inactivo'?'última llam. '+a.hora+' · '+a.mins+' min':'desde '+a.hora+' · '+a.mins+' min';
+      return '<div class="ah-al-item"><span>'+a.ico+'</span><span class="ah-al-name">'+_e(a.asesor)+'</span><span class="ah-bg bg-w">'+_e(a.estado)+'</span><span class="ah-al-time">'+timeText+'</span></div>';
+    }).join('');
   });
 }
 
