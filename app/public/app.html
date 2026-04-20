@@ -665,6 +665,7 @@ function navigateTo(viewId) {
         function loadNext() {
           if (extSrcs.length) {
             var url = extSrcs.shift();
+            if (document.querySelector('script[src="' + url + '"]')) { loadNext(); return; }
             var s = document.createElement('script');
             s.src = url;
             s.onload = function() { loadNext(); };
