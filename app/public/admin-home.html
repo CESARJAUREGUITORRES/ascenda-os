@@ -297,8 +297,9 @@ function ahAlertas(sem){
 
 // ═══════ SEMÁFORO ═══════
 function ahSem(sem){
-  _q('aos_rrhh','select=nombre,sede&estado=eq.ACTIVO&puesto=in.(ENFERMERIA,ASESOR)',function(rrhh){
-    var sm={};(rrhh||[]).forEach(function(r){if(r.nombre)sm[r.nombre.toUpperCase()]=r.sede||'—';});
+  // Sede REAL del día desde aos_horarios_personal (turnos reales, no RRHH genérico)
+  _r('aos_sede_personal_hoy',{p_fecha:_hoy()},function(sedes){
+    var sm=sedes||{};
     _q('aos_log_personal','select=asesor,estado,inicio,fin&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(logs){
       var ll={};(logs||[]).forEach(function(l){var a=l.asesor;if(a&&!ll[a])ll[a]=l;});
       var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
@@ -306,8 +307,9 @@ function ahSem(sem){
       var tb=document.getElementById('ah-mtb');if(!tb)return;
       var totalCitas=0;
       tb.innerHTML=todos.map(function(n){
-        var s=map[n];var sede=sm[n]||'SAN ISIDRO, PUEBLO LIBRE';
-        if(n==='SRA CARMEN'&&!sm[n])sede=sm['CARMEN']||sede;
+        var s=map[n];
+        // Sede real del turno de hoy
+        var sede=sm[n]||sm[n.replace('SRA ','')]||'—';
         if(s){
           var m=parseInt(s.mins_sin||0);var est,cls;
           var log=ll[n];
