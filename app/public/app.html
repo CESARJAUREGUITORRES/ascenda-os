@@ -730,8 +730,8 @@ function verificarTurnoHoy() {
   // Consultar si ya registró INICIO_TURNO hoy
   _q('aos_log_personal',
     'asesor=eq.' + encodeURIComponent(idAsesor) +
-    '&tipo=eq.INICIO_TURNO' +
-    '&inicio=gte.' + hoy + 'T00:00:00' +
+    '&evento=eq.INICIO_TURNO' +
+    '&fecha=eq.' + hoy +
     '&limit=1',
     function(rows) {
       if (rows && rows.length > 0) {
