@@ -30,10 +30,7 @@
 .ah-vg{background:#F0F4FC;border-radius:9px;padding:8px 10px;margin-bottom:6px;}
 /* Alertas */
 .ah-alok{text-align:center;color:#16A34A;font-size:11px;padding:8px;font-weight:600;}
-.ah-al-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:4px;font-size:11px;font-weight:600;}
-.ah-al-item.warn{background:#FFFBEB;color:#D97706;}
-.ah-al-item.idle{background:#F0F4FC;color:#9AAAC8;}
-.ah-al-item.brk{background:#F5F3FF;color:#7C3AED;}
+.ah-al-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:4px;font-size:11px;font-weight:600;background:#FFFBEB;color:#D97706;}
 .ah-al-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .ah-al-name{flex:1;}
 .ah-al-time{font-size:9px;opacity:.7;}
@@ -213,91 +210,44 @@ function ahLoad(){
   ahAlertas();
 }
 
-// ═══════ TICKER CRUZADO POR NUMERO_LIMPIO ═══════
-// Lógica: leads del mes → cuántos fueron llamados → cuántos lograron cita →
-// cuántos asistieron → cuántos compraron → cuánto facturaron
+// ═══════ TICKER CRUZADO VIA RPC (evita límite 1000 rows) ═══════
 function ahTicker(){
-  var mi=_mi();
-  // 1) Obtener TODOS los leads del mes (números únicos)
-  _q('aos_leads','select=numero_limpio&fecha=gte.'+mi+'&limit=50000',function(leads){
-    var leadNums={};
-    (leads||[]).forEach(function(l){var n=l.numero_limpio;if(n)leadNums[n]=1;});
-    var nLeads=Object.keys(leadNums).length;
-    _s('tk-leads',nLeads);
-
-    // 2) Llamadas: cuántos de esos leads fueron contactados
-    _q('aos_llamadas','select=numero_limpio&fecha=gte.'+mi+'&limit=50000',function(llams){
-      var llamNums={};
-      (llams||[]).forEach(function(l){var n=l.numero_limpio;if(n)llamNums[n]=1;});
-      var contactados=0;
-      Object.keys(leadNums).forEach(function(n){if(llamNums[n])contactados++;});
-      _s('tk-llam',contactados);
-      if(nLeads>0)_s('tk-pct',Math.round(contactados/nLeads*100)+'%');
-    });
-
-    // 3) Citas de esos leads
-    _q('aos_agenda_citas','select=numero_limpio,estado_cita&fecha_cita=gte.'+mi+'&limit=50000',function(citas){
-      var citaNums={},asistNums={};
-      (citas||[]).forEach(function(c){
-        var n=c.numero_limpio;
-        if(n&&leadNums[n]){
-          citaNums[n]=1;
-          var e=(c.estado_cita||'').toUpperCase();
-          if(e==='ASISTIO'||e==='ATENDIDO'||e==='CITA CONFIRMADA')asistNums[n]=1;
-        }
-      });
-      _s('tk-citas',Object.keys(citaNums).length);
-      _s('tk-asist',Object.keys(asistNums).length);
-    });
-
-    // 4) Ventas de esos leads
-    _q('aos_ventas','select=numero_limpio,monto&fecha=gte.'+mi+'&estado_pago=neq.ADELANTO&asesor=neq.NO APLICA&limit=50000',function(ventas){
-      var vtaNums={},factLead=0;
-      (ventas||[]).forEach(function(v){
-        var n=v.numero_limpio;
-        if(n&&leadNums[n]){vtaNums[n]=1;factLead+=parseFloat(v.monto||0);}
-      });
-      _s('tk-vtas',Object.keys(vtaNums).length);
-      _s('tk-fact',factLead>0?factLead.toFixed(0):'0');
-
-      // 5) ROAS
-      _q('aos_inversion_campanas','select=inversion&mes_num=eq.'+_mn()+'&anio=eq.'+_ay(),function(inv){
-        var ti=(inv||[]).reduce(function(s,v){return s+parseFloat(v.inversion||0);},0);
-        _s('tk-roas',ti>0?(factLead/ti).toFixed(1)+'x':'—');
-      });
-    });
+  _r('aos_ticker_mkt',{p_mes_inicio:_mi()},function(res){
+    if(!res)return;
+    _s('tk-leads',res.leads||0);
+    _s('tk-llam',res.contactados||0);
+    if(res.leads>0)_s('tk-pct',(res.pct_contacto||0)+'%');
+    _s('tk-citas',res.con_cita||0);
+    _s('tk-asist',res.asistio||0);
+    _s('tk-vtas',res.con_venta||0);
+    _s('tk-fact',parseFloat(res.facturacion||0).toFixed(0));
+    var inv=parseFloat(res.inversion||0),fac=parseFloat(res.facturacion||0);
+    _s('tk-roas',inv>0?(fac/inv).toFixed(1)+'x':'—');
   });
 }
 
-// ═══════ ALERTAS: estados no-activos de asesores ═══════
+// ═══════ ALERTAS: estados no-activos + inactividad ═══════
 function ahAlertas(){
   _q('aos_log_personal','select=asesor,estado,detalle,inicio&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(rows){
     var el=document.getElementById('ah-alerts');if(!el)return;
-    // Obtener último estado por asesor
     var last={};
-    (rows||[]).forEach(function(r){
-      var a=r.asesor;
-      if(a&&!last[a])last[a]=r;
-    });
-    // Filtrar solo estados no-activos (BREAK, BAÑO, ATENCIÓN, LIMPIEZA, CAPACITACIÓN, etc.)
+    (rows||[]).forEach(function(r){var a=r.asesor;if(a&&!last[a])last[a]=r;});
     var alertas=[];
     Object.keys(last).forEach(function(a){
       var r=last[a];
       var est=(r.estado||'').toUpperCase();
+      // Solo mostrar si el estado NO es activo/en llamada/cierre
       if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='CIERRE_TURNO'){
         var inicio=r.inicio?new Date(r.inicio):null;
         var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
-        var cls='warn';
-        if(est==='BREAK'||est==='BAÑO')cls='brk';
-        if(mins>60)cls='idle';
-        alertas.push({asesor:a,estado:est,detalle:r.detalle||'',mins:mins,cls:cls});
+        var ico=est==='BREAK'?'☕':est==='BAÑO'?'🚻':est==='ATENCIÓN'?'🙋':est==='LIMPIEZA'?'🧹':est==='CAPACITACIÓN'?'📚':'⚠️';
+        alertas.push({asesor:a,estado:est,ico:ico,mins:mins});
       }
     });
     if(!alertas.length){el.innerHTML='<div class="ah-alok">✓ Sin alertas activas</div>';return;}
     el.innerHTML=alertas.map(function(a){
-      var ico=a.estado==='BREAK'?'☕':a.estado==='BAÑO'?'🚻':a.estado==='ATENCIÓN'?'🙋':a.estado==='LIMPIEZA'?'🧹':a.estado==='CAPACITACIÓN'?'📚':'⚠️';
-      return '<div class="ah-al-item '+a.cls+'">'+
-        '<span>'+ico+'</span>'+
+      return '<div class="ah-al-item">'+
+        '<span>'+a.ico+'</span>'+
         '<span class="ah-al-name">'+_e(a.asesor)+'</span>'+
         '<span class="ah-bg bg-w">'+_e(a.estado)+'</span>'+
         '<span class="ah-al-time">'+a.mins+' min</span>'+
@@ -306,28 +256,56 @@ function ahAlertas(){
   });
 }
 
-// ═══════ SEMÁFORO ═══════
+// ═══════ SEMÁFORO — cruza con log_personal para estado real ═══════
 function ahSem(sem){
-  var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'];
-  var map={};(sem||[]).forEach(function(s){map[s.asesor]=s;});
-  var tb=document.getElementById('ah-mtb');if(!tb)return;
-  tb.innerHTML=todos.map(function(n){
-    var s=map[n];
-    if(s){
-      var m=parseInt(s.mins_sin||0);
-      // Check log_personal para estado real (no solo inactividad)
-      var est=m<30?'ACTIVO':m<120?'INACTIVO':'SIN ACTIV.';
-      var cls=m<30?'bg-ok':m<120?'bg-w':'bg-i';
-      var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
-      return '<tr><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">SAN ISIDRO, PUEBLO LIBRE</span></td>'+
-        '<td>'+_e(s.llamadas||0)+'</td><td>+'+_e(s.citas||0)+'</td><td>'+cv+'%</td>'+
-        '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
-        '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
-    }
-    return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">SAN ISIDRO, PUEBLO LIBRE</span></td>'+
-      '<td>0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td>'+
-      '<td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
-  }).join('');
+  // Cargar RRHH para sedes y log_personal para estado real
+  _q('aos_rrhh','select=nombre,sede&estado=eq.ACTIVO&puesto=in.(ENFERMERIA,ASESOR)',function(rrhh){
+    var sedeMap={};
+    (rrhh||[]).forEach(function(r){if(r.nombre)sedeMap[r.nombre.toUpperCase()]=r.sede||'—';});
+
+    _q('aos_log_personal','select=asesor,estado,inicio&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(logs){
+      var logLast={};
+      (logs||[]).forEach(function(l){var a=l.asesor;if(a&&!logLast[a])logLast[a]=l;});
+
+      var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'];
+      var map={};(sem||[]).forEach(function(s){map[s.asesor]=s;});
+      var tb=document.getElementById('ah-mtb');if(!tb)return;
+
+      tb.innerHTML=todos.map(function(n){
+        var s=map[n];
+        var sede=sedeMap[n]||'SAN ISIDRO, PUEBLO LIBRE';
+        // Nombre display para SRA CARMEN en RRHH es CARMEN
+        if(n==='SRA CARMEN'&&!sedeMap[n])sede=sedeMap['CARMEN']||sede;
+
+        if(s){
+          var m=parseInt(s.mins_sin||0);
+          // Determinar estado real: primero log_personal, luego mins_sin
+          var est,cls;
+          var log=logLast[n];
+          if(log){
+            var logEst=(log.estado||'').toUpperCase();
+            if(logEst&&logEst!=='ACTIVO'&&logEst!=='EN LLAMADA'&&logEst!=='CIERRE_TURNO'){
+              est=logEst;cls='bg-w';
+            }else{
+              est=m<30?'ACTIVO':m<120?'INACTIVO':'SIN ACTIV.';
+              cls=m<30?'bg-ok':m<120?'bg-w':'bg-i';
+            }
+          }else{
+            est=m<30?'ACTIVO':m<120?'INACTIVO':'SIN ACTIV.';
+            cls=m<30?'bg-ok':m<120?'bg-w':'bg-i';
+          }
+          var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
+          return '<tr><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
+            '<td>'+_e(s.llamadas||0)+'</td><td>+'+_e(s.citas||0)+'</td><td>'+cv+'%</td>'+
+            '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
+            '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
+        }
+        return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
+          '<td>0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td>'+
+          '<td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
+      }).join('');
+    });
+  });
 }
 
 // ═══════ VENTAS DETALLE ═══════
