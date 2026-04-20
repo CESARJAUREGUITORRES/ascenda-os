@@ -1097,238 +1097,171 @@ function escHtml(s) {
 }
 </script>
 
-<!-- MODAL AGREGAR LEADS -->
-<div id="leads-modal" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px)" onclick="if(event.target===this)this.style.display='none'">
-<div style="background:#fff;border-radius:14px;max-width:860px;width:95%;max-height:90vh;display:flex;flex-direction:column;border:1px solid #E2E8F0">
-<div style="padding:14px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between">
-<div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:#071D4A">📥 Agregar Leads</div><div style="font-size:9px;color:#7A869A">Pega datos desde tu Excel con la misma estructura de columnas</div></div>
-<button onclick="document.getElementById('leads-modal').style.display='none'" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#7A869A">✕</button>
-</div>
-<div style="padding:14px 18px;flex:1;overflow-y:auto">
-<div style="overflow-x:auto;border:1px solid #E2E8F0;border-radius:8px">
-<table id="leads-table" style="width:100%;border-collapse:collapse;font-size:11px;font-family:'Outfit',sans-serif">
-<thead style="background:#F0F4FC;position:sticky;top:0"><tr>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">DÍA INGRESO</th>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">NÚMERO</th>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">TRATAMIENTO</th>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">ANUNCIO</th>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">PREGUNTA</th>
-<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#0A4FBF;border-bottom:2px solid #E2E8F0;white-space:nowrap">HORA INGRESO</th>
-</tr></thead>
-<tbody id="leads-tbody"></tbody>
-</table>
-</div>
-<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
-<textarea id="leads-paste" placeholder="Pega aquí las filas de tu Excel (Ctrl+V)... cada fila será una línea, las columnas separadas por TAB" style="flex:1;height:60px;padding:8px;border-radius:6px;border:1px solid #E2E8F0;font-size:10px;font-family:'Outfit',sans-serif;outline:none;resize:none"></textarea>
-</div>
-<div id="leads-info" style="font-size:9px;color:#7A869A;margin-top:4px"></div>
-</div>
-<div style="padding:12px 18px;border-top:1px solid #E2E8F0;display:flex;gap:6px;justify-content:flex-end">
-<button onclick="leadsClear()" style="padding:7px 16px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #E2E8F0;background:#F4F6FB;color:#7A869A;cursor:pointer;font-family:'Outfit'">🗑 Limpiar</button>
-<button onclick="leadsSave()" style="padding:7px 20px;border-radius:6px;font-size:12px;font-weight:800;border:none;background:#0A4FBF;color:#fff;cursor:pointer;font-family:'Outfit'">📥 Agregar leads</button>
-</div>
-</div>
-</div>
-
-<script>
-// ===== LEADS MODAL =====
-var _leadsRows=[];
-document.getElementById('leads-paste').addEventListener('paste',function(e){
-  e.preventDefault();
-  var txt=(e.clipboardData||window.clipboardData).getData('text');
-  var lines=txt.split('\n').filter(function(l){return l.trim();});
-  lines.forEach(function(line){
-    var cols=line.split('\t');
-    if(cols.length<2)cols=line.split(',');
-    _leadsRows.push({
-      fecha:(cols[0]||'').trim(),
-      celular:(cols[1]||'').trim().replace(/\D/g,''),
-      tratamiento:(cols[2]||'').trim().toUpperCase(),
-      anuncio:(cols[3]||'').trim(),
-      preguntas:(cols[4]||'').trim(),
-      hora_ingreso:(cols[5]||'').trim()
-    });
-  });
-  leadsRender();
-  document.getElementById('leads-paste').value='';
-});
-
-function leadsRender(){
-  var tb=document.getElementById('leads-tbody');
-  if(!_leadsRows.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:#7A869A;font-style:italic">Pega datos desde tu Excel en el campo de abajo</td></tr>';document.getElementById('leads-info').textContent='';return;}
-  tb.innerHTML=_leadsRows.map(function(r,i){
-    return '<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px"><input value="'+escH(r.fecha)+'" onchange="_leadsRows['+i+'].fecha=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.celular)+'" onchange="_leadsRows['+i+'].celular=this.value.replace(/\\D/g,\'\')" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none;font-weight:700"></td><td style="padding:4px 8px"><input value="'+escH(r.tratamiento)+'" onchange="_leadsRows['+i+'].tratamiento=this.value" style="width:100px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.anuncio)+'" onchange="_leadsRows['+i+'].anuncio=this.value" style="width:110px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px"><input value="'+escH(r.preguntas)+'" onchange="_leadsRows['+i+'].preguntas=this.value" style="width:140px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"></td><td style="padding:4px 8px;display:flex;align-items:center;gap:3px"><input value="'+escH(r.hora_ingreso)+'" onchange="_leadsRows['+i+'].hora_ingreso=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:Outfit;outline:none"><button onclick="_leadsRows.splice('+i+',1);leadsRender()" style="border:none;background:#FEE2E2;color:#DC2626;width:16px;height:16px;border-radius:3px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button></td></tr>';
-  }).join('');
-  document.getElementById('leads-info').textContent=_leadsRows.length+' leads listos para agregar';
-}
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
-function leadsClear(){_leadsRows=[];leadsRender();}
-function leadsSave(){
-  if(!_leadsRows.length){showToast('Pega leads primero','','toast-alerta');return;}
-  var valid=_leadsRows.filter(function(r){return r.celular&&r.celular.length>=7;});
-  if(!valid.length){showToast('No hay números válidos','','toast-alerta');return;}
-  var SBU='https://ituyqwstonmhnfshnaqz.supabase.co';
-  var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-  fetch(SBU+'/rest/v1/rpc/aos_agregar_leads',{method:'POST',headers:{'apikey':SBK,'Authorization':'Bearer '+SBK,'Content-Type':'application/json'},body:JSON.stringify({p_leads:valid})}).then(function(r){return r.json();}).then(function(d){
-    if(d&&d.insertados!==undefined){showToast('✅ '+d.insertados+' leads agregados'+(d.duplicados?' ('+d.duplicados+' duplicados)':''),'','');leadsClear();document.getElementById('leads-modal').style.display='none';}else{showToast('Error','','toast-alerta');}
-  }).catch(function(e){showToast('Error: '+e.message,'','toast-alerta');});
-}
-window.AOS_openLeads=function(){document.getElementById('leads-modal').style.display='flex';leadsRender();};
-leadsRender();
-</script>
-
-<!-- ═══════ MODAL IMPORTAR VENTAS ═══════ -->
-<div id="ventas-modal" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px)" onclick="if(event.target===this)this.style.display='none'">
+<!-- ═══════ MODAL UNIFICADO: IMPORTAR LEADS + VENTAS ═══════ -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px)" onclick="if(event.target===this)this.style.display='none'">
 <div style="background:#fff;border-radius:18px;width:min(960px,96vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(7,29,74,.25);overflow:hidden">
-<div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #DDE4F5">
-  <div>
-    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px">💰 Importar Ventas</div>
-    <div style="font-size:11px;color:#6B7BA8;margin-top:2px">Pega datos desde tu Excel de Caja (columnas A-K)</div>
+<!-- Header con tabs -->
+<div style="padding:14px 24px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;gap:4px;background:#F0F4FC;border-radius:10px;padding:3px" id="imp-tabs">
+      <button onclick="impTab('leads')" id="imp-tab-leads" style="padding:6px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;background:#0A4FBF;color:#fff;transition:all .15s">📥 Leads</button>
+      <button onclick="impTab('ventas')" id="imp-tab-ventas" style="padding:6px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#6B7BA8;transition:all .15s">💰 Ventas</button>
+    </div>
+    <span id="imp-subtitle" style="font-size:10px;color:#9AAAC8">Pega datos desde tu Excel</span>
   </div>
-  <div style="display:flex;align-items:center;gap:10px">
-    <select id="vt-sede" style="padding:5px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-weight:600;font-family:'DM Sans';outline:none;color:#0D1B3E">
-      <option value="SAN ISIDRO">SAN ISIDRO</option>
-      <option value="PUEBLO LIBRE">PUEBLO LIBRE</option>
+  <div style="display:flex;align-items:center;gap:8px">
+    <!-- Ventas-only controls -->
+    <select id="imp-sede" style="display:none;padding:5px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-weight:600;font-family:'DM Sans';outline:none;color:#0D1B3E">
+      <option value="SAN ISIDRO">SAN ISIDRO</option><option value="PUEBLO LIBRE">PUEBLO LIBRE</option>
     </select>
-    <input type="date" id="vt-fecha" style="padding:5px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans';outline:none;color:#0D1B3E">
-    <button onclick="document.getElementById('ventas-modal').style.display='none'" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#7A869A">✕</button>
+    <input type="date" id="imp-fecha" style="display:none;padding:5px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans';outline:none;color:#0D1B3E">
+    <button onclick="document.getElementById('import-modal').style.display='none'" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#7A869A">✕</button>
   </div>
 </div>
+<!-- Table area -->
 <div style="flex:1;overflow-y:auto;padding:0">
-  <table style="width:100%;border-collapse:collapse;font-size:10px;font-family:'DM Sans',sans-serif">
-    <thead>
-      <tr style="background:#F0F4FC;position:sticky;top:0;z-index:2">
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Nombres</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Apellidos</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">DNI/CE</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Celular</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Tratamiento</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Descripción</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Pago con</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Caja S/</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Estado pago</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Cita de</th>
-        <th style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap">Atendió</th>
-      </tr>
-    </thead>
-    <tbody id="vt-tbody">
-      <tr><td colspan="11" style="padding:20px;text-align:center;color:#9AAAC8;font-size:11px">Pega datos desde tu Excel en el campo de abajo</td></tr>
-    </tbody>
-  </table>
+  <div id="imp-table-wrap" style="overflow-x:auto"></div>
 </div>
+<!-- Paste area -->
 <div style="padding:12px 24px;border-top:1px solid #DDE4F5">
   <div style="display:flex;gap:8px;align-items:flex-end">
-    <textarea id="vt-paste" placeholder="Pega aquí las filas de tu Excel (Ctrl+V)... cada fila será una línea, las columnas separadas por TAB" rows="3" style="flex:1;padding:8px 12px;border:1px solid #DDE4F5;border-radius:10px;font-size:10px;font-family:'DM Sans',sans-serif;resize:none;outline:none"></textarea>
-    <button onclick="vtParsePaste()" style="padding:8px 14px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center">↑</button>
+    <textarea id="imp-paste" placeholder="Pega aquí las filas de tu Excel (Ctrl+V)... cada fila será una línea, columnas separadas por TAB" rows="3" style="flex:1;padding:8px 12px;border:1px solid #DDE4F5;border-radius:10px;font-size:10px;font-family:'DM Sans',sans-serif;resize:none;outline:none"></textarea>
+    <button onclick="impParse()" style="padding:8px 14px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center">↑</button>
   </div>
 </div>
+<!-- Footer -->
 <div style="display:flex;gap:10px;justify-content:flex-end;padding:12px 24px;border-top:1px solid #DDE4F5">
-  <span id="vt-count" style="flex:1;font-size:11px;color:#6B7BA8;align-self:center"></span>
-  <button onclick="vtClear()" style="padding:8px 18px;border-radius:10px;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans'">🗑 Limpiar</button>
-  <button onclick="vtSubmit()" style="padding:8px 18px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans';display:flex;align-items:center;gap:6px">💰 Importar ventas</button>
+  <span id="imp-count" style="flex:1;font-size:11px;color:#6B7BA8;align-self:center"></span>
+  <button onclick="impClear()" style="padding:8px 18px;border-radius:10px;border:1px solid #DDE4F5;background:#fff;color:#0D1B3E;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans'">🗑 Limpiar</button>
+  <button onclick="impSave()" id="imp-save-btn" style="padding:8px 18px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans';display:flex;align-items:center;gap:6px">📥 Agregar leads</button>
 </div>
 </div>
 </div>
 
 <script>
-// ═══════ IMPORT VENTAS LOGIC ═══════
-var _vtRows=[];
+// ═══════ UNIFIED IMPORT MODAL (Leads + Ventas) ═══════
+var _impMode='leads';
+var _impLeads=[];
+var _impVentas=[];
+var _SBU='https://ituyqwstonmhnfshnaqz.supabase.co';
+var _SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
-(function(){
-  // Set default date to today Peru time
-  var d=new Date(Date.now()-5*3600000);
-  var ds=d.toISOString().slice(0,10);
-  var fd=document.getElementById('vt-fecha');
-  if(fd)fd.value=ds;
-})();
+(function(){var d=new Date(Date.now()-5*3600000);var el=document.getElementById('imp-fecha');if(el)el.value=d.toISOString().slice(0,10);})();
 
-function vtParsePaste(){
-  var ta=document.getElementById('vt-paste');if(!ta||!ta.value.trim())return;
-  var lines=ta.value.trim().split('\n');
-  lines.forEach(function(line){
-    var cols=line.split('\t');
-    if(cols.length<4)return;// Need at least nombre, apellido, dni, celular
-    _vtRows.push({
-      nombres:   (cols[0]||'').trim(),
-      apellidos: (cols[1]||'').trim(),
-      dni:       (cols[2]||'').trim(),
-      celular:   (cols[3]||'').trim(),
-      tratamiento:(cols[4]||'').trim(),
-      descripcion:(cols[5]||'').trim(),
-      pago:      (cols[6]||'').trim(),
-      monto:     (cols[7]||'').trim(),
-      estado_pago:(cols[8]||'').trim(),
-      asesor:    (cols[9]||'').trim(),
-      atendio:   (cols[10]||'').trim()
+function impTab(mode){
+  _impMode=mode;
+  var tl=document.getElementById('imp-tab-leads'),tv=document.getElementById('imp-tab-ventas');
+  tl.style.background=mode==='leads'?'#0A4FBF':'transparent';tl.style.color=mode==='leads'?'#fff':'#6B7BA8';
+  tv.style.background=mode==='ventas'?'#0A4FBF':'transparent';tv.style.color=mode==='ventas'?'#fff':'#6B7BA8';
+  document.getElementById('imp-sede').style.display=mode==='ventas'?'':'none';
+  document.getElementById('imp-fecha').style.display=mode==='ventas'?'':'none';
+  document.getElementById('imp-subtitle').textContent=mode==='leads'?'Pega datos desde tu Excel de Leads':'Pega datos desde tu Excel de Caja (columnas A-K)';
+  var btn=document.getElementById('imp-save-btn');
+  btn.innerHTML=mode==='leads'?'📥 Agregar leads':'💰 Importar ventas';
+  impRender();
+}
+
+function impParse(){
+  var ta=document.getElementById('imp-paste');if(!ta||!ta.value.trim())return;
+  var lines=ta.value.trim().split('\n').filter(function(l){return l.trim();});
+  if(_impMode==='leads'){
+    lines.forEach(function(line){
+      var c=line.split('\t');if(c.length<2)c=line.split(',');
+      _impLeads.push({fecha:(c[0]||'').trim(),celular:(c[1]||'').trim().replace(/\D/g,''),tratamiento:(c[2]||'').trim().toUpperCase(),anuncio:(c[3]||'').trim(),preguntas:(c[4]||'').trim(),hora_ingreso:(c[5]||'').trim()});
     });
-  });
-  ta.value='';
-  vtRender();
-}
-
-function vtRender(){
-  var tb=document.getElementById('vt-tbody');
-  var cnt=document.getElementById('vt-count');
-  if(!tb)return;
-  if(!_vtRows.length){
-    tb.innerHTML='<tr><td colspan="11" style="padding:20px;text-align:center;color:#9AAAC8;font-size:11px">Pega datos desde tu Excel en el campo de abajo</td></tr>';
-    if(cnt)cnt.textContent='';
-    return;
+  }else{
+    lines.forEach(function(line){
+      var c=line.split('\t');if(c.length<4)return;
+      _impVentas.push({nombres:(c[0]||'').trim(),apellidos:(c[1]||'').trim(),dni:(c[2]||'').trim(),celular:(c[3]||'').trim(),tratamiento:(c[4]||'').trim(),descripcion:(c[5]||'').trim(),pago:(c[6]||'').trim(),monto:(c[7]||'').trim(),estado_pago:(c[8]||'').trim(),asesor:(c[9]||'').trim(),atendio:(c[10]||'').trim()});
+    });
   }
-  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-  var inpS='style="width:100%;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;box-sizing:border-box"';
-  tb.innerHTML=_vtRows.map(function(r,i){
-    return '<tr style="border-bottom:1px solid #F1F5F9">'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.nombres)+'" onchange="_vtRows['+i+'].nombres=this.value" '+inpS+'></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.apellidos)+'" onchange="_vtRows['+i+'].apellidos=this.value" '+inpS+'></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.dni)+'" onchange="_vtRows['+i+'].dni=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.celular)+'" onchange="_vtRows['+i+'].celular=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700"></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.tratamiento)+'" onchange="_vtRows['+i+'].tratamiento=this.value" '+inpS+'></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.descripcion)+'" onchange="_vtRows['+i+'].descripcion=this.value" '+inpS+'></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.pago)+'" onchange="_vtRows['+i+'].pago=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.monto)+'" onchange="_vtRows['+i+'].monto=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700;color:#0A4FBF"></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.estado_pago)+'" onchange="_vtRows['+i+'].estado_pago=this.value" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
-      '<td style="padding:3px 4px"><input value="'+esc(r.asesor)+'" onchange="_vtRows['+i+'].asesor=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
-      '<td style="padding:3px 4px;display:flex;align-items:center;gap:3px"><input value="'+esc(r.atendio)+'" onchange="_vtRows['+i+'].atendio=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"><button onclick="_vtRows.splice('+i+',1);vtRender()" style="border:none;background:#FEE2E2;color:#DC2626;width:16px;height:16px;border-radius:3px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button></td>'+
-    '</tr>';
-  }).join('');
-  // Calculate totals
-  var total=0;_vtRows.forEach(function(r){var m=parseFloat((r.monto||'0').replace(/[^0-9.]/g,''));if(!isNaN(m))total+=m;});
-  if(cnt)cnt.textContent=_vtRows.length+' ventas · S/'+total.toFixed(2)+' total';
+  ta.value='';impRender();
 }
 
-function vtClear(){_vtRows=[];vtRender();}
+function impRender(){
+  var wrap=document.getElementById('imp-table-wrap'),cnt=document.getElementById('imp-count');
+  if(!wrap)return;
+  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+  var inpS='style="width:100%;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans,sans-serif;outline:none;box-sizing:border-box"';
+  var thS='style="padding:6px 8px;text-align:left;font-size:8px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid #DDE4F5"';
 
-function vtSubmit(){
-  if(!_vtRows.length){if(window.AOS_showToast)AOS_showToast('Importar','No hay ventas para importar','warning');return;}
-  var fecha=document.getElementById('vt-fecha').value;
-  var sede=document.getElementById('vt-sede').value;
-  var valid=_vtRows.map(function(r){
-    // Parse monto: remove S/, spaces, commas
-    var montoStr=(r.monto||'0').replace(/S\/\s*/gi,'').replace(/,/g,'').replace(/\s/g,'');
-    return {
-      fecha:fecha, sede:sede,
-      nombres:r.nombres, apellidos:r.apellidos, dni:r.dni,
-      celular:r.celular, tratamiento:r.tratamiento,
-      descripcion:r.descripcion, pago:r.pago,
-      monto:montoStr, estado_pago:r.estado_pago||'PAGO COMPLETO',
-      asesor:r.asesor, atendio:r.atendio
-    };
-  });
-  var SBU='https://ituyqwstonmhnfshnaqz.supabase.co';
-  var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-  fetch(SBU+'/rest/v1/rpc/aos_importar_ventas',{method:'POST',headers:{'apikey':SBK,'Authorization':'Bearer '+SBK,'Content-Type':'application/json'},body:JSON.stringify({p_ventas:valid})}).then(function(r){return r.json();}).then(function(d){
-    var res=Array.isArray(d)?d[0]:d;
-    if(res&&res.insertados!==undefined){
-      if(window.AOS_showToast)AOS_showToast('✅ '+res.insertados+' ventas importadas'+(res.errores?' ('+res.errores+' errores)':''),'','');
-      vtClear();document.getElementById('ventas-modal').style.display='none';
-    }else{
-      if(window.AOS_showToast)AOS_showToast('Error al importar','','toast-alerta');
-    }
-  }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');});
+  if(_impMode==='leads'){
+    var rows=_impLeads;
+    if(!rows.length){wrap.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC"><th '+thS+'>Día ingreso</th><th '+thS+'>Número</th><th '+thS+'>Tratamiento</th><th '+thS+'>Anuncio</th><th '+thS+'>Pregunta</th><th '+thS+'>Hora ingreso</th></tr></thead><tbody><tr><td colspan="6" style="padding:20px;text-align:center;color:#9AAAC8;font-size:11px">Pega datos desde tu Excel en el campo de abajo</td></tr></tbody></table>';if(cnt)cnt.textContent='';return;}
+    var html='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC;position:sticky;top:0;z-index:2"><th '+thS+'>Día ingreso</th><th '+thS+'>Número</th><th '+thS+'>Tratamiento</th><th '+thS+'>Anuncio</th><th '+thS+'>Pregunta</th><th '+thS+'>Hora ingreso</th></tr></thead><tbody>';
+    html+=rows.map(function(r,i){
+      return '<tr style="border-bottom:1px solid #F1F5F9">'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.fecha)+'" onchange="_impLeads['+i+'].fecha=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.celular)+'" onchange="_impLeads['+i+'].celular=this.value.replace(/\\D/g,\'\')" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700"></td>'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.tratamiento)+'" onchange="_impLeads['+i+'].tratamiento=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.anuncio)+'" onchange="_impLeads['+i+'].anuncio=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.preguntas)+'" onchange="_impLeads['+i+'].preguntas=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 6px;display:flex;align-items:center;gap:3px"><input value="'+esc(r.hora_ingreso)+'" onchange="_impLeads['+i+'].hora_ingreso=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"><button onclick="_impLeads.splice('+i+',1);impRender()" style="border:none;background:#FEE2E2;color:#DC2626;width:16px;height:16px;border-radius:3px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button></td></tr>';
+    }).join('');
+    html+='</tbody></table>';wrap.innerHTML=html;
+    if(cnt)cnt.textContent=rows.length+' leads listos';
+  }else{
+    var rows=_impVentas;
+    if(!rows.length){wrap.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC"><th '+thS+'>Nombres</th><th '+thS+'>Apellidos</th><th '+thS+'>DNI/CE</th><th '+thS+'>Celular</th><th '+thS+'>Tratamiento</th><th '+thS+'>Descripción</th><th '+thS+'>Pago con</th><th '+thS+'>Caja S/</th><th '+thS+'>Estado pago</th><th '+thS+'>Cita de</th><th '+thS+'>Atendió</th></tr></thead><tbody><tr><td colspan="11" style="padding:20px;text-align:center;color:#9AAAC8;font-size:11px">Pega datos desde tu Excel en el campo de abajo</td></tr></tbody></table>';if(cnt)cnt.textContent='';return;}
+    var html='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC;position:sticky;top:0;z-index:2"><th '+thS+'>Nombres</th><th '+thS+'>Apellidos</th><th '+thS+'>DNI/CE</th><th '+thS+'>Celular</th><th '+thS+'>Tratamiento</th><th '+thS+'>Descripción</th><th '+thS+'>Pago con</th><th '+thS+'>Caja S/</th><th '+thS+'>Estado pago</th><th '+thS+'>Cita de</th><th '+thS+'>Atendió</th></tr></thead><tbody>';
+    html+=rows.map(function(r,i){
+      return '<tr style="border-bottom:1px solid #F1F5F9">'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.nombres)+'" onchange="_impVentas['+i+'].nombres=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.apellidos)+'" onchange="_impVentas['+i+'].apellidos=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.dni)+'" onchange="_impVentas['+i+'].dni=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.celular)+'" onchange="_impVentas['+i+'].celular=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700"></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.tratamiento)+'" onchange="_impVentas['+i+'].tratamiento=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.descripcion)+'" onchange="_impVentas['+i+'].descripcion=this.value" '+inpS+'></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.pago)+'" onchange="_impVentas['+i+'].pago=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.monto)+'" onchange="_impVentas['+i+'].monto=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700;color:#0A4FBF"></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.estado_pago)+'" onchange="_impVentas['+i+'].estado_pago=this.value" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 4px"><input value="'+esc(r.asesor)+'" onchange="_impVentas['+i+'].asesor=this.value" style="width:70px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 4px;display:flex;align-items:center;gap:3px"><input value="'+esc(r.atendio)+'" onchange="_impVentas['+i+'].atendio=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"><button onclick="_impVentas.splice('+i+',1);impRender()" style="border:none;background:#FEE2E2;color:#DC2626;width:16px;height:16px;border-radius:3px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button></td></tr>';
+    }).join('');
+    html+='</tbody></table>';wrap.innerHTML=html;
+    var total=0;rows.forEach(function(r){var m=parseFloat((r.monto||'0').replace(/[^0-9.]/g,''));if(!isNaN(m))total+=m;});
+    if(cnt)cnt.textContent=rows.length+' ventas · S/'+total.toFixed(2);
+  }
 }
 
-window.AOS_openImportVentas=function(){document.getElementById('ventas-modal').style.display='flex';vtRender();};
+function impClear(){if(_impMode==='leads')_impLeads=[];else _impVentas=[];impRender();}
+
+function impSave(){
+  if(_impMode==='leads'){
+    if(!_impLeads.length){if(window.AOS_showToast)AOS_showToast('Pega leads primero','','toast-alerta');return;}
+    var valid=_impLeads.filter(function(r){return r.celular&&r.celular.length>=7;});
+    if(!valid.length){if(window.AOS_showToast)AOS_showToast('No hay números válidos','','toast-alerta');return;}
+    fetch(_SBU+'/rest/v1/rpc/aos_agregar_leads',{method:'POST',headers:{'apikey':_SBK,'Authorization':'Bearer '+_SBK,'Content-Type':'application/json'},body:JSON.stringify({p_leads:valid})}).then(function(r){return r.json();}).then(function(d){
+      if(d&&d.insertados!==undefined){if(window.AOS_showToast)AOS_showToast('✅ '+d.insertados+' leads agregados'+(d.duplicados?' ('+d.duplicados+' duplicados)':''),'','');_impLeads=[];impRender();document.getElementById('import-modal').style.display='none';}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');});
+  }else{
+    if(!_impVentas.length){if(window.AOS_showToast)AOS_showToast('Pega ventas primero','','toast-alerta');return;}
+    var fecha=document.getElementById('imp-fecha').value;
+    var sede=document.getElementById('imp-sede').value;
+    var valid=_impVentas.map(function(r){
+      var montoStr=(r.monto||'0').replace(/S\/\s*/gi,'').replace(/,/g,'').replace(/\s/g,'');
+      return {fecha:fecha,sede:sede,nombres:r.nombres,apellidos:r.apellidos,dni:r.dni,celular:r.celular,tratamiento:r.tratamiento,descripcion:r.descripcion,pago:r.pago,monto:montoStr,estado_pago:r.estado_pago||'PAGO COMPLETO',asesor:r.asesor,atendio:r.atendio};
+    });
+    fetch(_SBU+'/rest/v1/rpc/aos_importar_ventas',{method:'POST',headers:{'apikey':_SBK,'Authorization':'Bearer '+_SBK,'Content-Type':'application/json'},body:JSON.stringify({p_ventas:valid})}).then(function(r){return r.json();}).then(function(d){
+      var res=Array.isArray(d)?d[0]:d;
+      if(res&&res.insertados!==undefined){if(window.AOS_showToast)AOS_showToast('✅ '+res.insertados+' ventas importadas'+(res.errores?' ('+res.errores+' errores)':''),'','');_impVentas=[];impRender();document.getElementById('import-modal').style.display='none';}
+      else{if(window.AOS_showToast)AOS_showToast('Error al importar','','toast-alerta');}
+    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');});
+  }
+}
+
+// Paste event on textarea
+document.getElementById('imp-paste').addEventListener('paste',function(e){
+  e.preventDefault();
+  var txt=(e.clipboardData||window.clipboardData).getData('text');
+  document.getElementById('imp-paste').value=txt;
+  setTimeout(impParse,50);
+});
+
+// Global openers
+window.AOS_openLeads=function(){_impMode='leads';document.getElementById('import-modal').style.display='flex';impTab('leads');};
+window.AOS_openImportVentas=function(){_impMode='ventas';document.getElementById('import-modal').style.display='flex';impTab('ventas');};
+impRender();
 </script>
 </body>
 </html>
