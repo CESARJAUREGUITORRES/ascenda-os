@@ -350,9 +350,19 @@ function ahVDet(v){var el=document.getElementById('ah-vdet');if(!el)return;if(!v
 // ═══════ GRÁFICO ACTIVIDAD POR HORA (SVG) ═══════
 function ahChart(){
   _r('aos_actividad_hora',{p_fecha:_hoy()},function(res){
-    if(!res||!res.horas)return;
     var el=document.getElementById('ah-chart');if(!el)return;
-    var data=res.horas;
+    // RPC returns flat array: [{hora, asesor, llamadas, citas}, ...]
+    var raw=Array.isArray(res)?res:(res||[]);
+    if(!raw.length){el.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:20px">Sin actividad hoy</div>';return;}
+    // Aggregate by hour
+    var byH={};
+    raw.forEach(function(r){
+      var h=parseInt(r.hora);
+      if(!byH[h])byH[h]={h:h,llam:0,citas:0};
+      byH[h].llam+=parseInt(r.llamadas||0);
+      byH[h].citas+=parseInt(r.citas||0);
+    });
+    var data=Object.values(byH).sort(function(a,b){return a.h-b.h;});
     var W=580,H=160,padL=30,padR=10,padT=10,padB=25;
     var cW=W-padL-padR,cH=H-padT-padB;
     var maxL=0,maxC=0;
