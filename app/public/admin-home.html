@@ -226,9 +226,9 @@ function ahTicker(){
   });
 }
 
-// ═══════ ALERTAS: estados no-activos + inactividad ═══════
+// ═══════ ALERTAS: estados no-activos (solo si siguen abiertos) ═══════
 function ahAlertas(){
-  _q('aos_log_personal','select=asesor,estado,detalle,inicio&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(rows){
+  _q('aos_log_personal','select=asesor,estado,detalle,inicio,fin&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(rows){
     var el=document.getElementById('ah-alerts');if(!el)return;
     var last={};
     (rows||[]).forEach(function(r){var a=r.asesor;if(a&&!last[a])last[a]=r;});
@@ -236,12 +236,21 @@ function ahAlertas(){
     Object.keys(last).forEach(function(a){
       var r=last[a];
       var est=(r.estado||'').toUpperCase();
-      // Solo mostrar si el estado NO es activo/en llamada/cierre
+      // Si tiene fin → ya volvió a activo → no mostrar
+      if(r.fin)return;
       if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='CIERRE_TURNO'){
         var inicio=r.inicio?new Date(r.inicio):null;
         var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
+        // Hora inicio en formato Peru (UTC-5)
+        var horaInicio='';
+        if(inicio){
+          var hPeru=new Date(inicio.getTime()-5*3600000);
+          var hh=hPeru.getUTCHours(),mm=hPeru.getUTCMinutes();
+          var ampm=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;
+          horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ampm;
+        }
         var ico=est==='BREAK'?'☕':est==='BAÑO'?'🚻':est==='ATENCIÓN'?'🙋':est==='LIMPIEZA'?'🧹':est==='CAPACITACIÓN'?'📚':'⚠️';
-        alertas.push({asesor:a,estado:est,ico:ico,mins:mins});
+        alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio});
       }
     });
     if(!alertas.length){el.innerHTML='<div class="ah-alok">✓ Sin alertas activas</div>';return;}
@@ -250,7 +259,7 @@ function ahAlertas(){
         '<span>'+a.ico+'</span>'+
         '<span class="ah-al-name">'+_e(a.asesor)+'</span>'+
         '<span class="ah-bg bg-w">'+_e(a.estado)+'</span>'+
-        '<span class="ah-al-time">'+a.mins+' min</span>'+
+        '<span class="ah-al-time">desde '+a.hora+' · '+a.mins+' min</span>'+
       '</div>';
     }).join('');
   });
@@ -258,12 +267,11 @@ function ahAlertas(){
 
 // ═══════ SEMÁFORO — cruza con log_personal para estado real ═══════
 function ahSem(sem){
-  // Cargar RRHH para sedes y log_personal para estado real
   _q('aos_rrhh','select=nombre,sede&estado=eq.ACTIVO&puesto=in.(ENFERMERIA,ASESOR)',function(rrhh){
     var sedeMap={};
     (rrhh||[]).forEach(function(r){if(r.nombre)sedeMap[r.nombre.toUpperCase()]=r.sede||'—';});
 
-    _q('aos_log_personal','select=asesor,estado,inicio&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(logs){
+    _q('aos_log_personal','select=asesor,estado,inicio,fin&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(logs){
       var logLast={};
       (logs||[]).forEach(function(l){var a=l.asesor;if(a&&!logLast[a])logLast[a]=l;});
 
@@ -274,15 +282,14 @@ function ahSem(sem){
       tb.innerHTML=todos.map(function(n){
         var s=map[n];
         var sede=sedeMap[n]||'SAN ISIDRO, PUEBLO LIBRE';
-        // Nombre display para SRA CARMEN en RRHH es CARMEN
         if(n==='SRA CARMEN'&&!sedeMap[n])sede=sedeMap['CARMEN']||sede;
 
         if(s){
           var m=parseInt(s.mins_sin||0);
-          // Determinar estado real: primero log_personal, luego mins_sin
           var est,cls;
           var log=logLast[n];
-          if(log){
+          // Solo mostrar estado del log si NO tiene fin (sigue abierto)
+          if(log&&!log.fin){
             var logEst=(log.estado||'').toUpperCase();
             if(logEst&&logEst!=='ACTIVO'&&logEst!=='EN LLAMADA'&&logEst!=='CIERRE_TURNO'){
               est=logEst;cls='bg-w';
