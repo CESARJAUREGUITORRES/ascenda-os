@@ -296,7 +296,7 @@ function ctxMsg(ev,id,isMe){
 function hideCtx(){var c=document.getElementById('zCtx');if(c)c.classList.remove('show');}
 function copyM(id){var m=D.ms.find(function(x){return x.id===id;});if(m)navigator.clipboard.writeText(m.mensaje).catch(function(){});hideCtx();}
 function edM(id){hideCtx();var m=D.ms.find(function(x){return x.id===id;});if(!m)return;var n=prompt('Editar mensaje:',m.mensaje);if(!n||n===m.mensaje)return;rpc('aos_editar_mensaje',{p_id:id,p_mensaje:n},function(){lMs(D.ac);});}
-function dlM(id){hideCtx();if(!confirm('¿Eliminar mensaje?'))return;rpc('aos_eliminar_mensaje',{p_id:id},function(){lMs(D.ac);lCh();});}
+function dlM(id){hideCtx();aosConfirm('¿Eliminar este mensaje?',function(){rpc('aos_eliminar_mensaje',{p_id:id},function(){lMs(D.ac);lCh();});});}
 // Image preview before send
 var _prevFile=null;
 function showPrev(file){
@@ -326,7 +326,7 @@ function upBlob(file,name){
   .then(function(){rpc('aos_registrar_archivo',{p_nombre:name,p_tipo_mime:file.type,p_tamano:file.size,p_url:SB+'/storage/v1/object/public/coordinacion/'+name,p_storage_path:name,p_subido_por:'ADMIN',p_canal_id:D.ac},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});})
   .catch(function(e){console.error('Upload',e);alert('Error subiendo');});
 }
-function cChat(id){if(!confirm('¿Cerrar chat?'))return;rest('aos_canales?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({cerrado:true,updated_at:new Date().toISOString()})}).then(function(){D.ac=null;lCh();rChat();});}
+function cChat(id){aosConfirm('¿Cerrar este chat?',function(){rest('aos_canales?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({cerrado:true,updated_at:new Date().toISOString()})}).then(function(){D.ac=null;lCh();rChat();});});}
 function newBcast(){var m=prompt('Mensaje para todo el equipo:');if(!m)return;rpc('aos_enviar_mensaje',{p_canal:'CH-GENERAL',p_de:'ADMIN',p_mensaje:m},function(){D.ac='CH-GENERAL';lCh();lMs('CH-GENERAL');});}
 
 // ═══ CONTEXTUAL PANEL (right) ═══
@@ -431,7 +431,7 @@ function rTaskItem(t){
   return h;
 }
 function togTask(id){var el=document.getElementById('zt-'+id);if(el)el.classList.toggle('open');}
-function dTbyId(id){if(!confirm('¿Eliminar tarea?'))return;rest('aos_tareas?id=eq.'+id,{method:'DELETE'}).then(function(){lPanel();});}
+function dTbyId(id){aosConfirm('¿Eliminar esta tarea?',function(){rest('aos_tareas?id=eq.'+id,{method:'DELETE'}).then(function(){lPanel();});});}
 
 // Notas
 function lNotas(target){
@@ -468,18 +468,33 @@ function zRT(){}
 function lAll(){lCh();lNo();}
 function lTa(){}
 function editGrp(gid,acc,miembro){
-  if(acc==='QUITAR'&&!confirm('¿Quitar a '+miembro+' del grupo?'))return;
-  rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r)lInfo();lCh();});
+  if(acc==='QUITAR'){aosConfirm('¿Quitar a '+miembro+' del grupo?',function(){rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r){lPanel();lCh();}});});return;}
+  rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r){lPanel();lCh();}});
 }
 function addToGrp(gid){
   var opts=D.st.map(function(s){return s.nombre;});
-  var sel=prompt('Nombre del miembro a agregar:\\n'+opts.join(', '));
-  if(!sel)return;
-  sel=sel.toUpperCase().trim();
-  if(!opts.map(function(o){return o.toUpperCase();}).includes(sel)){alert('Miembro no encontrado');return;}
-  rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:'AGREGAR',p_miembro:sel},function(r){if(r)lInfo();lCh();});
+  aosSelect('Agregar miembro al grupo',opts,function(sel){
+    rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:'AGREGAR',p_miembro:sel},function(r){if(r){lPanel();lCh();}});
+  });
 }
 setInterval(function(){lCh();if(D.ac)lMs(D.ac);},15000);
+
+// ═══ CUSTOM MODALS (AscendaOS style) ═══
+function aosConfirm(msg,onOk){
+  var o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.25);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
+  o.innerHTML='<div style="background:#fff;border-radius:20px;padding:24px 28px;max-width:380px;box-shadow:0 20px 60px rgba(7,29,74,.18);text-align:center"><div style="width:48px;height:48px;border-radius:50%;background:rgba(220,38,38,.06);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px">⚠️</div><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:15px;color:#0f172a;margin-bottom:6px">Confirmar acción</div><div style="font-size:12px;color:#64748b;margin-bottom:20px;line-height:1.5">'+E(msg)+'</div><div style="display:flex;gap:8px"><button style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans;color:#64748b" onclick="this.closest(\'div[style]\').parentNode.remove()">Cancelar</button><button style="flex:1;padding:10px;border-radius:12px;border:none;background:#dc2626;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans" id="_aosOk">Confirmar</button></div></div>';
+  document.body.appendChild(o);
+  document.getElementById('_aosOk').onclick=function(){o.remove();if(onOk)onOk();};
+  o.onclick=function(e){if(e.target===o)o.remove();};
+}
+function aosSelect(title,opts,onSel){
+  var o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.25);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
+  var optH=opts.map(function(n){return '<div style="padding:10px 14px;cursor:pointer;border-radius:10px;font-size:12px;color:#0f172a;display:flex;align-items:center;gap:10px;transition:background .1s" onmouseover="this.style.background=\'#f0f4fc\'" onmouseout="this.style.background=\'transparent\'" onclick="document.getElementById(\'_aosSel\').value=\''+E(n)+'\';document.getElementById(\'_aosSelOk\').click()"><div style="width:28px;height:28px;border-radius:50%;background:'+(CL[n]||'#6B7BA8')+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:10px">'+I(n)+'</div>'+E(n)+'</div>';}).join('');
+  o.innerHTML='<div style="background:#fff;border-radius:20px;padding:20px 24px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(7,29,74,.18);max-height:70vh;overflow-y:auto"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:15px;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">'+E(title)+'<button style="width:28px;height:28px;border-radius:8px;background:#f0f4fc;border:none;cursor:pointer;font-size:14px;color:#64748b" onclick="this.closest(\'div[style]\').parentNode.remove()">✕</button></div><input type="hidden" id="_aosSel"><button id="_aosSelOk" style="display:none"></button>'+optH+'</div>';
+  document.body.appendChild(o);
+  document.getElementById('_aosSelOk').onclick=function(){var v=document.getElementById('_aosSel').value;o.remove();if(v&&onSel)onSel(v);};
+  o.onclick=function(e){if(e.target===o)o.remove();};
+}
 init();
 </script>
 <style>@keyframes cosp{to{transform:rotate(360deg)}}</style>
