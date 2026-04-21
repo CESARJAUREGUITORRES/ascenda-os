@@ -804,6 +804,8 @@ function comenzarTurno() {
     if(sc._ci) clearInterval(sc._ci);
     sc.classList.remove('open');
     setEstadoUI('ACTIVO');
+    // Also update estado in DB so monitoreo shows ACTIVO
+    _rpc('aos_set_estado_asesor',{p_id_asesor:idAsesor, p_estado:'ACTIVO'},function(){});
     showToast('🟢 Turno iniciado', 'Hora de entrada registrada', '');
   });
 }
