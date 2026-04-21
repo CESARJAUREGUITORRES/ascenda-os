@@ -1,0 +1,291 @@
+<!-- ===== ASESOR COORDINACIÓN v1 — MI PANEL ===== -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.ac{display:flex;flex-direction:column;height:calc(100vh - 52px);font-family:'DM Sans',sans-serif;overflow:hidden;}
+.ac-hdr{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #DDE4F5;flex-shrink:0;min-height:36px;}
+.ac-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#071D4A;}
+.ac-badges{display:flex;gap:4px;}
+.ac-bg{padding:3px 8px;border-radius:10px;font-size:8px;font-weight:700;}
+.ac-bg-r{background:rgba(220,38,38,.08);color:#DC2626;}.ac-bg-y{background:rgba(217,119,6,.08);color:#D97706;}.ac-bg-b{background:rgba(10,79,191,.08);color:#0A4FBF;}
+.ac-body{display:flex;flex:1;overflow:hidden;}
+/* CHAT */
+.ac-chat{width:50%;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;}
+.ac-ch{padding:6px 10px;border-bottom:1px solid #F0F4FC;display:flex;align-items:center;justify-content:space-between;}
+.ac-cht{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:#071D4A;}
+.ac-btn{padding:3px 8px;border-radius:5px;border:none;font-size:8px;font-weight:700;cursor:pointer;font-family:'DM Sans';}
+.ac-bp{background:#00C9A7;color:#fff;}.ac-bs{background:#F0F4FC;color:#071D4A;border:1px solid #DDE4F5;}.ac-bw{background:#0A4FBF;color:#fff;}
+.ac-chat-body{display:flex;flex:1;overflow:hidden;}
+.ac-threads{width:150px;border-right:1px solid #F0F4FC;overflow-y:auto;flex-shrink:0;}
+.ac-th{padding:8px;cursor:pointer;border-bottom:1px solid #F8F9FC;display:flex;align-items:center;gap:7px;transition:background .1s;}
+.ac-th:hover{background:rgba(10,79,191,.02);}.ac-th.act{background:rgba(10,79,191,.04);border-left:3px solid #0A4FBF;}
+.ac-th-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex-shrink:0;color:#fff;}
+.ac-th-info{flex:1;min-width:0;}
+.ac-th-n{font-weight:700;font-size:10px;color:#071D4A;}
+.ac-th-m{font-size:8px;color:#6B7BA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.ac-th-t{font-size:7px;color:#9AAAC8;}
+.ac-th-badge{background:#DC2626;color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:8px;min-width:14px;text-align:center;}
+/* Conv */
+.ac-conv{flex:1;display:flex;flex-direction:column;}
+.ac-conv-hdr{padding:6px 10px;border-bottom:1px solid #F0F4FC;display:flex;align-items:center;gap:6px;}
+.ac-conv-name{font-weight:700;font-size:11px;color:#071D4A;}
+.ac-msgs{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:5px;background:rgba(240,244,252,.3);}
+.ac-msg{max-width:78%;display:flex;flex-direction:column;}
+.ac-msg.me{align-self:flex-end;}.ac-msg.them{align-self:flex-start;}
+.ac-msg-b{padding:6px 9px;font-size:10px;line-height:1.4;word-wrap:break-word;}
+.ac-msg.me .ac-msg-b{background:#00C9A7;color:#fff;border-radius:10px 10px 0 10px;}
+.ac-msg.them .ac-msg-b{background:#fff;color:#071D4A;border-radius:10px 10px 10px 0;border:1px solid #F0F4FC;}
+.ac-msg-meta{font-size:7px;color:#9AAAC8;margin-top:1px;}.ac-msg.me .ac-msg-meta{text-align:right;}
+.ac-input{padding:6px 8px;border-top:1px solid #F0F4FC;display:flex;gap:4px;background:#fff;}
+.ac-input input{flex:1;padding:7px 10px;border-radius:20px;border:1px solid #DDE4F5;font-size:10px;font-family:'DM Sans';outline:none;color:#071D4A;}
+.ac-input input:focus{border-color:#00C9A7;}
+.ac-input button{border-radius:50%;width:30px;height:30px;border:none;background:#00C9A7;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ac-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#9AAAC8;font-size:11px;flex-direction:column;gap:4px;}
+/* RIGHT: TAREAS + NOTIFICACIONES */
+.ac-right{width:50%;display:flex;flex-direction:column;overflow:hidden;}
+.ac-rh{padding:6px 10px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;justify-content:space-between;}
+.ac-rtabs{display:flex;gap:2px;background:#F0F4FC;border-radius:6px;padding:2px;}
+.ac-rtab{padding:3px 10px;border-radius:5px;font-size:9px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans';}.ac-rtab.act{background:#071D4A;color:#fff;}
+/* Tareas list */
+.ac-tlist{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:5px;}
+.ac-tcard{background:#fff;border-radius:10px;padding:8px 10px;border:1px solid #F0F4FC;cursor:pointer;transition:box-shadow .1s;}
+.ac-tcard:hover{box-shadow:0 2px 8px rgba(7,29,74,.06);}
+.ac-tcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.ac-tcard-t{font-weight:700;font-size:11px;color:#071D4A;}
+.ac-est{padding:2px 6px;border-radius:10px;font-size:7px;font-weight:700;}
+.ac-est-p{background:rgba(217,119,6,.08);color:#D97706;}.ac-est-e{background:rgba(10,79,191,.08);color:#0A4FBF;}.ac-est-c{background:rgba(22,163,74,.08);color:#16A34A;}.ac-est-v{background:rgba(220,38,38,.08);color:#DC2626;}
+.ac-tcard-info{font-size:8px;color:#6B7BA8;display:flex;gap:8px;margin-bottom:4px;}
+.ac-tcard-bar{display:flex;gap:2px;}.ac-tcard-seg{height:4px;border-radius:2px;flex:1;}
+.ac-tcard-pct{font-size:7px;color:#9AAAC8;margin-top:1px;}
+/* Checklist inline */
+.ac-check{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
+.ac-check-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#071D4A;padding:2px 0;}
+.ac-check-item.done{text-decoration:line-through;opacity:.5;}
+.ac-check-item input{width:14px;height:14px;accent-color:#00C9A7;cursor:pointer;}
+/* Notifs */
+.ac-nlist{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
+.ac-ncard{padding:8px 10px;border-radius:8px;border:1px solid #F0F4FC;display:flex;gap:8px;align-items:flex-start;}
+.ac-ncard.unread{background:rgba(10,79,191,.02);border-color:rgba(10,79,191,.1);}
+.ac-nicon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.ac-ni-info{background:rgba(10,79,191,.06);color:#0A4FBF;}.ac-ni-warn{background:rgba(217,119,6,.06);color:#D97706;}.ac-ni-alert{background:rgba(220,38,38,.06);color:#DC2626;}
+.ac-ntit{font-weight:700;font-size:10px;color:#071D4A;}.ac-ntxt{font-size:9px;color:#6B7BA8;margin-top:1px;}.ac-ntime{font-size:7px;color:#9AAAC8;margin-top:2px;}
+.ac-ld{display:flex;align-items:center;gap:6px;padding:24px;color:#6B7BA8;font-size:10px;justify-content:center;}
+.ac-sp{width:12px;height:12px;border:2px solid #EBF2FF;border-top-color:#00C9A7;border-radius:50%;animation:acs .7s linear infinite;}@keyframes acs{to{transform:rotate(360deg)}}
+</style>
+
+<div class="ac">
+  <div class="ac-hdr"><span class="ac-title">Mi panel</span><div class="ac-badges" id="ac-badges"></div></div>
+  <div class="ac-body">
+    <!-- CHAT -->
+    <div class="ac-chat">
+      <div class="ac-ch"><span class="ac-cht">Mensajes</span></div>
+      <div class="ac-chat-body">
+        <div class="ac-threads" id="ac-threads"><div class="ac-ld"><div class="ac-sp"></div></div></div>
+        <div class="ac-conv" id="ac-conv"><div class="ac-empty"><div style="font-size:24px;opacity:.3">💬</div>Selecciona un chat</div></div>
+      </div>
+    </div>
+    <!-- TAREAS + NOTIFICACIONES -->
+    <div class="ac-right">
+      <div class="ac-rh">
+        <div class="ac-rtabs">
+          <button class="ac-rtab act" id="ac-rt-t" onclick="acTab('t')">Mis tareas</button>
+          <button class="ac-rtab" id="ac-rt-n" onclick="acTab('n')">Notificaciones</button>
+        </div>
+      </div>
+      <div id="ac-tareas" class="ac-tlist"><div class="ac-ld"><div class="ac-sp"></div></div></div>
+      <div id="ac-notifs" class="ac-nlist" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+var ME='';
+var AD={canales:[],msgs:[],tareas:[],notifs:[],actCh:null,rtab:'t'};
+function rpc(f,p,c){fetch(SB+'/rest/v1/rpc/'+f,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(function(d){if(c)c(Array.isArray(d)?d[0]:d);}).catch(function(x){console.error(f,x);});}
+function q(t,f,c){fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(c).catch(function(x){console.error(t,x);});}
+function rest(p,o){return fetch(SB+'/rest/v1/'+p,Object.assign({headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}},o||{}));}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function ago(d){if(!d)return '';var ms=Date.now()-new Date(d).getTime();var m=Math.floor(ms/60000);if(m<1)return 'ahora';if(m<60)return m+'min';var h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d';}
+
+function acInit(){
+  // Get current user from parent AOS context
+  if(window.parent&&window.parent.AOS&&window.parent.AOS.ctx){ME=window.parent.AOS.ctx.nombre||'';}
+  if(!ME){
+    // Fallback: try to get from AOS global
+    if(window.AOS&&window.AOS.ctx)ME=window.AOS.ctx.nombre||'';
+  }
+  if(!ME){
+    // Last resort: check for name in DOM
+    try{var pill=document.querySelector('.role-pill');if(pill)ME=pill.textContent;}catch(e){}
+  }
+  if(!ME)ME='MIREYA'; // Fallback for testing
+  console.log('[AsesorCoord] User:',ME);
+  acLoad();
+}
+
+function acLoad(){
+  // Use the RPC that gets everything for this user
+  rpc('aos_mis_mensajes',{p_usuario:ME},function(d){
+    if(!d)return;
+    AD.canales=d.canales||[];
+    AD.tareas=d.tareas||[];
+    AD.notifs=d.notificaciones||[];
+    acRenderThreads();
+    acRenderTareas();
+    acRenderNotifs();
+    acUpdateBadges();
+    if(AD.actCh)acLoadMsgs(AD.actCh);
+  });
+}
+
+function acUpdateBadges(){
+  var unreadCh=AD.canales.reduce(function(s,c){return s+(c.no_leidos||0);},0);
+  var pendT=AD.tareas.filter(function(t){return t.estado==='PENDIENTE';}).length;
+  var vencT=AD.tareas.filter(function(t){return t.vencida;}).length;
+  var unreadN=AD.notifs.filter(function(n){return !n.leido;}).length;
+  var h='';
+  if(unreadCh)h+='<span class="ac-bg ac-bg-b">'+unreadCh+' mensaje'+(unreadCh>1?'s':'')+'</span>';
+  if(vencT)h+='<span class="ac-bg ac-bg-r">'+vencT+' vencida'+(vencT>1?'s':'')+'</span>';
+  if(pendT)h+='<span class="ac-bg ac-bg-y">'+pendT+' pendiente'+(pendT>1?'s':'')+'</span>';
+  if(unreadN)h+='<span class="ac-bg ac-bg-b">'+unreadN+' notif</span>';
+  document.getElementById('ac-badges').innerHTML=h;
+}
+
+// ═══ CHAT ═══
+function acRenderThreads(){
+  var el=document.getElementById('ac-threads');
+  if(!AD.canales.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:9px;color:#9AAAC8">Sin conversaciones</div>';return;}
+  el.innerHTML=AD.canales.map(function(c){
+    var isAct=AD.actCh===c.id;
+    var isBroadcast=c.tipo==='BROADCAST';
+    var bgCol=isBroadcast?'#0A4FBF':'#7C3AED';
+    var ini=isBroadcast?'ALL':'AD';
+    var name=isBroadcast?'Equipo':'Admin';
+    return '<div class="ac-th'+(isAct?' act':'')+'" onclick="acSelCh(\''+esc(c.id)+'\')">'
+      +'<div class="ac-th-av" style="background:'+bgCol+'">'+ini+'</div>'
+      +'<div class="ac-th-info"><div class="ac-th-n">'+esc(name)+'</div>'
+      +'<div class="ac-th-m">'+esc(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="ac-th-t">'+ago(c.ultimo_mensaje_at)+'</div>'
+      +(c.no_leidos>0?'<div class="ac-th-badge">'+c.no_leidos+'</div>':'')
+      +'</div></div>';
+  }).join('');
+}
+
+function acSelCh(id){AD.actCh=id;acRenderThreads();acLoadMsgs(id);
+  // Mark as read
+  rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});
+}
+
+function acLoadMsgs(id){
+  q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=200',function(msgs){
+    AD.msgs=msgs||[];acRenderConv();
+  });
+}
+
+function acRenderConv(){
+  var conv=document.getElementById('ac-conv');
+  var canal=AD.canales.find(function(c){return c.id===AD.actCh;});
+  if(!canal){conv.innerHTML='<div class="ac-empty"><div style="font-size:24px;opacity:.3">💬</div>Selecciona un chat</div>';return;}
+  var isBroadcast=canal.tipo==='BROADCAST';
+  var name=isBroadcast?'Todo el equipo':'Admin';
+
+  var html='<div class="ac-conv-hdr"><div class="ac-th-av" style="background:'+(isBroadcast?'#0A4FBF':'#7C3AED')+';color:#fff;width:26px;height:26px;font-size:9px">'+(isBroadcast?'ALL':'AD')+'</div><span class="ac-conv-name">'+esc(name)+'</span></div>';
+  html+='<div class="ac-msgs" id="ac-msgs">';
+  if(!AD.msgs.length)html+='<div style="text-align:center;font-size:9px;color:#9AAAC8;padding:20px">Sin mensajes aun</div>';
+  AD.msgs.forEach(function(m){
+    var isMe=m.de===ME;
+    html+='<div class="ac-msg '+(isMe?'me':'them')+'"><div class="ac-msg-b">'+esc(m.mensaje)+'</div><div class="ac-msg-meta">'+esc(m.de)+' · '+ago(m.created_at)+'</div></div>';
+  });
+  html+='</div>';
+  html+='<div class="ac-input"><input id="ac-inp" placeholder="Escribe..." onkeydown="if(event.key===\'Enter\')acSendMsg()"><button onclick="acSendMsg()">&#10148;</button></div>';
+  conv.innerHTML=html;
+  var md=document.getElementById('ac-msgs');if(md)md.scrollTop=md.scrollHeight;
+}
+
+function acSendMsg(){
+  var inp=document.getElementById('ac-inp');if(!inp||!inp.value.trim()||!AD.actCh)return;
+  var msg=inp.value.trim();inp.value='';
+  rpc('aos_enviar_mensaje',{p_canal:AD.actCh,p_de:ME,p_mensaje:msg},function(r){
+    if(r&&r.ok){acLoadMsgs(AD.actCh);acLoad();}
+  });
+}
+
+// ═══ TAREAS ═══
+function acRenderTareas(){
+  var el=document.getElementById('ac-tareas');
+  if(!AD.tareas.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:10px;color:#9AAAC8">Sin tareas pendientes 🎉</div>';return;}
+  var html='';
+  AD.tareas.forEach(function(t){
+    var it=t.items||[];var tot=it.length;var dn=it.filter(function(i){return i.done;}).length;
+    var estCls=t.vencida?'ac-est-v':t.estado==='PENDIENTE'?'ac-est-p':t.estado==='EN PROGRESO'?'ac-est-e':'ac-est-c';
+    var estLbl=t.vencida?'VENCIDA':t.estado;
+    var priCol=t.prioridad==='URGENTE'?'#DC2626':t.prioridad==='ALTA'?'#D97706':'';
+
+    html+='<div class="ac-tcard" id="tc-'+t.id+'">';
+    html+='<div class="ac-tcard-top"><div class="ac-tcard-t">'+(priCol?'<span style="color:'+priCol+'">● </span>':'')+esc(t.titulo)+'</div><span class="ac-est '+estCls+'">'+estLbl+'</span></div>';
+    html+='<div class="ac-tcard-info">';
+    if(t.fecha_limite)html+='<span>Vence: '+t.fecha_limite+'</span>';
+    if(t.tiempo_estimado_min)html+='<span>'+t.tiempo_estimado_min+'min</span>';
+    html+='</div>';
+    if(tot>0){
+      html+='<div class="ac-tcard-bar">';for(var i=0;i<tot;i++)html+='<div class="ac-tcard-seg" style="background:'+(it[i].done?'#00C9A7':'#DDE4F5')+'"></div>';html+='</div>';
+      html+='<div class="ac-tcard-pct">'+dn+'/'+tot+' completados</div>';
+      // Inline checklist
+      html+='<div class="ac-check">';
+      it.forEach(function(item,idx){
+        html+='<label class="ac-check-item'+(item.done?' done':'')+'"><input type="checkbox" '+(item.done?'checked':'')+' onchange="acToggle(\''+t.id+'\','+idx+',this.checked)">'+esc(item.text)+'</label>';
+      });
+      html+='</div>';
+    }
+    // Action buttons
+    html+='<div style="display:flex;gap:4px;margin-top:6px">';
+    if(t.estado==='PENDIENTE')html+='<button class="ac-btn ac-bw" onclick="event.stopPropagation();acChState(\''+t.id+'\',\'EN PROGRESO\')">Iniciar</button>';
+    if(t.estado==='EN PROGRESO')html+='<button class="ac-btn ac-bp" onclick="event.stopPropagation();acChState(\''+t.id+'\',\'COMPLETADA\')">Completar</button>';
+    html+='</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+function acToggle(id,idx,chk){
+  rpc('aos_toggle_tarea_item',{p_tarea_id:id,p_item_idx:idx,p_completado:chk},function(){acLoad();});
+}
+
+function acChState(id,est){
+  rest('aos_tareas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({estado:est,completado_at:est==='COMPLETADA'?new Date().toISOString():null,iniciado_at:est==='EN PROGRESO'?new Date().toISOString():null,updated_at:new Date().toISOString()})}).then(function(){acLoad();});
+}
+
+// ═══ NOTIFICACIONES ═══
+function acRenderNotifs(){
+  var el=document.getElementById('ac-notifs');
+  if(!AD.notifs.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:10px;color:#9AAAC8">Sin notificaciones</div>';return;}
+  var html='';
+  AD.notifs.forEach(function(n){
+    var ic=n.tipo==='URGENTE'?'ac-ni-alert':n.tipo==='ALERTA'?'ac-ni-warn':'ac-ni-info';
+    var sym=n.tipo==='URGENTE'?'⚠':n.tipo==='ALERTA'?'⚡':'ℹ';
+    html+='<div class="ac-ncard'+(n.leido?'':' unread')+'" onclick="acReadNotif(\''+n.id+'\')">'
+      +'<div class="ac-nicon '+ic+'">'+sym+'</div><div style="flex:1">'
+      +'<div class="ac-ntit">'+esc(n.titulo)+'</div>';
+    if(n.contenido)html+='<div class="ac-ntxt">'+esc(n.contenido)+'</div>';
+    html+='<div class="ac-ntime">'+ago(n.created_at)+(n.leido?'':' · <b style="color:#0A4FBF">Nueva</b>')+'</div></div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function acReadNotif(id){
+  rpc('aos_marcar_notif_leida',{p_notif_id:id,p_usuario:ME},function(){acLoad();});
+}
+
+// ═══ TABS ═══
+function acTab(t){
+  AD.rtab=t;
+  document.getElementById('ac-rt-t').classList.toggle('act',t==='t');
+  document.getElementById('ac-rt-n').classList.toggle('act',t==='n');
+  document.getElementById('ac-tareas').style.display=t==='t'?'flex':'none';
+  document.getElementById('ac-notifs').style.display=t==='n'?'flex':'none';
+}
+
+// Auto-refresh
+setInterval(acLoad,15000);
+acInit();
+</script>

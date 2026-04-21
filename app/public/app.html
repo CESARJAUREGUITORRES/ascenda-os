@@ -510,6 +510,9 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-sales',      ico:'money',    lbl:'Ventas'},
   {type:'item',id:'advisor-commissions',ico:'chart',    lbl:'Comisiones'},
   {type:'item',id:'advisor-attendance', ico:'star',     lbl:'Mis atenciones'},
+  {type:'sep'},
+  {type:'section',label:'Comunicaciones'},
+  {type:'item',id:'advisor-coord',      ico:'chat',     lbl:'Mi panel',      badge:'',badgeColor:'#0A4FBF'},
   {type:'sep',bot:true},
   {type:'item',id:'__profile',          ico:'profile',  lbl:'Mi perfil'},
   {type:'item',id:'__logout',           ico:'logout',   lbl:'Salir',        danger:true}
@@ -596,6 +599,7 @@ var VIEW_MAP = {
   'advisor-sales':       'ViewAdvisorSales',
   'advisor-commissions': 'ViewAdvisorCommissions',
   'advisor-attendance':  'ViewAdvisorAttendance',
+  'advisor-coord':       'ViewAdvisorCoord',
   'admin-home':          'ViewAdminHome',
   'admin-operations':    'ViewAdminOperations',
   'admin-agenda':        'ViewAdminAgenda',
@@ -654,7 +658,8 @@ function navigateTo(viewId) {
     'ViewAdminAgenda':        '/admin-agenda.html',
     'ViewAdminBilling':       '/admin-billing.html',
     'ViewAdminConfig':        '/admin-ops.html',
-    'ViewAdminChats':         '/coordinacion.html'
+    'ViewAdminChats':         '/coordinacion.html',
+    'ViewAdvisorCoord':       '/asesor-coord.html'
   };
   var route = PANEL_ROUTES[hf];
   if (route) {
