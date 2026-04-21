@@ -313,7 +313,20 @@ function sendPrev(){
   upBlob(_prevFile,name);
   _prevFile=null;var el=document.getElementById('zPrev');if(el)el.style.display='none';
 }
-function sMsg(){var inp=document.getElementById('zInp');if(!inp||!inp.value.trim()||!D.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:msg},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});}
+function sMsg(){
+  // If there's a preview image pending, send image first, then text
+  if(_prevFile){
+    var name='screenshot_'+Date.now()+'.png';
+    var inp=document.getElementById('zInp');
+    var txt=inp?inp.value.trim():'';
+    upBlob(_prevFile,name);
+    if(txt){setTimeout(function(){rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:txt},function(){lMs(D.ac);lCh();});},600);}
+    _prevFile=null;if(inp)inp.value='';
+    var el=document.getElementById('zPrev');if(el)el.style.display='none';
+    return;
+  }
+  var inp=document.getElementById('zInp');if(!inp||!inp.value.trim()||!D.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:msg},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});
+}
 // File upload
 function upFile(input){var file=input.files[0];if(!file||!D.ac)return;upBlob(file,Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,''));input.value='';}
 function upBlob(file,name){
