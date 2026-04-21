@@ -133,16 +133,32 @@ function aRChat(){
   html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" placeholder="Escribe o pega imagen..." onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
   cv.innerHTML=html;
   var md=document.getElementById('aMsgs');if(md)md.scrollTop=md.scrollHeight;
-  // Paste listener for screenshots
+  // Paste → preview
   var inp=document.getElementById('aInp');
   if(inp)inp.addEventListener('paste',function(e){
     var items=e.clipboardData&&e.clipboardData.items;if(!items)return;
     for(var i=0;i<items.length;i++){
       if(items[i].type.indexOf('image')>=0){
-        e.preventDefault();var file=items[i].getAsFile();if(file)aUpBlob(file,'screenshot_'+Date.now()+'.png');break;
+        e.preventDefault();var file=items[i].getAsFile();if(file)aShowPrev(file);break;
       }
     }
   });
+}
+var _aPrevFile=null;
+function aShowPrev(file){
+  _aPrevFile=file;var url=URL.createObjectURL(file);
+  var el=document.getElementById('aPrev');
+  if(!el){el=document.createElement('div');el.id='aPrev';document.querySelector('.AMf').before(el);}
+  el.style.display='block';
+  el.innerHTML='<div style="padding:8px 20px;background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px"><img src="'+url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid #e5e7eb"><div style="flex:1;font-size:10px;color:#64748b">Captura · '+Math.round(file.size/1024)+'KB</div><input type="text" id="aPrevTxt" placeholder="Agregar texto..." style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;font-size:10px;font-family:DM Sans;outline:none"><button style="padding:6px 16px;border-radius:10px;border:none;background:#00C9A7;color:#fff;font-size:10px;font-weight:700;cursor:pointer" onclick="aSendPrev()">Enviar</button><button style="width:28px;height:28px;border-radius:8px;border:none;background:#f0f4fc;cursor:pointer;font-size:12px;color:#64748b" onclick="aCancelPrev()">✕</button></div>';
+}
+function aCancelPrev(){_aPrevFile=null;var el=document.getElementById('aPrev');if(el)el.style.display='none';}
+function aSendPrev(){
+  if(!_aPrevFile||!AD.ac)return;var name='screenshot_'+Date.now()+'.png';
+  var txtInp=document.getElementById('aPrevTxt');var txt=txtInp?txtInp.value.trim():'';
+  aUpBlob(_aPrevFile,name);
+  if(txt)setTimeout(function(){rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:txt},function(){aMs(AD.ac);});},500);
+  _aPrevFile=null;var el=document.getElementById('aPrev');if(el)el.style.display='none';
 }
 function aSend(){var inp=document.getElementById('aInp');if(!inp||!inp.value.trim()||!AD.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:msg},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});}
 function aUpFile(input){var file=input.files[0];if(!file||!AD.ac)return;aUpBlob(file,Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,''));input.value='';}
