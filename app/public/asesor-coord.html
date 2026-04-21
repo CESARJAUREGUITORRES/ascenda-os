@@ -94,10 +94,10 @@ function aLoad(){
     if(AD.ac)aMs(AD.ac);
     var unreadMsgs=AD.ch.reduce(function(s,c){return s+(c.no_leidos||0);},0);
     var unreadNotifs=AD.no.filter(function(n){return !n.leido;}).length;
-    var total=unreadMsgs+unreadNotifs+AD.ta.length;
+    var badgeCount=unreadMsgs+unreadNotifs;
     var hdr=document.querySelector('.ALh');
     if(hdr)hdr.innerHTML='Coordinación'+(unreadMsgs>0?' <span style="background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;margin-left:6px">'+unreadMsgs+'</span>':'');
-    try{var nav=document.getElementById('nav-advisor-coord');if(nav){var badge=nav.querySelector('.nav-badge');if(!badge){badge=document.createElement('span');badge.className='nav-badge';badge.style.cssText='background:#dc2626;color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto';nav.appendChild(badge);}badge.textContent=total;badge.style.display=total>0?'inline-flex':'none';}}catch(e){}
+    try{var nav=document.getElementById('nav-advisor-coord');if(nav){var badge=nav.querySelector('.nav-badge');if(!badge){badge=document.createElement('span');badge.className='nav-badge';badge.style.cssText='background:#dc2626;color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto';nav.appendChild(badge);}badge.textContent=badgeCount;badge.style.display=badgeCount>0?'inline-flex':'none';}}catch(e){}
   });
 }
 function aCL(){
