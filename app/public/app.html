@@ -752,18 +752,17 @@ function startClock() {
 function verificarTurnoHoy() {
   var hoy = new Date().toISOString().slice(0,10);
   var idAsesor = AOS.ctx ? AOS.ctx.idAsesor : '';
-  // Consultar si ya registró INICIO_TURNO hoy
+  var nombre = AOS.ctx ? (AOS.ctx.nombre || '').toUpperCase() : '';
+  // Consultar si ya registró INICIO_TURNO hoy (asesor=nombre OR session_id=codigo)
   _q('aos_log_personal',
-    'asesor=eq.' + encodeURIComponent(idAsesor) +
+    'or=(asesor.eq.' + encodeURIComponent(nombre) + ',session_id.eq.' + encodeURIComponent(idAsesor) + ')' +
     '&evento=eq.INICIO_TURNO' +
     '&fecha=eq.' + hoy +
     '&limit=1',
     function(rows) {
       if (rows && rows.length > 0) {
-        // Ya tiene turno iniciado hoy — ir directo al home
         navigateTo('advisor-home');
       } else {
-        // Primer login del día — mostrar pantalla azul
         navigateTo('advisor-home');
         setTimeout(function() { mostrarPantallaTurno(); }, 300);
       }
