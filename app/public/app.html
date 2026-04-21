@@ -1240,7 +1240,7 @@ function impSave(){
     var fecha=document.getElementById('imp-fecha').value;
     var sede=document.getElementById('imp-sede').value;
     var valid=_impVentas.map(function(r){
-      var montoStr=(r.monto||'0').replace(/S\/\s*/gi,'').replace(/,/g,'').replace(/\s/g,'');
+      var montoStr=(r.monto||'0').replace(/S\/\.?\s*/gi,'').replace(/\$/g,'').replace(/,/g,'').replace(/\s/g,'').replace(/^\.+/,'');
       return {fecha:fecha,sede:sede,nombres:r.nombres,apellidos:r.apellidos,dni:r.dni,celular:r.celular,tratamiento:r.tratamiento,descripcion:r.descripcion,pago:r.pago,monto:montoStr,estado_pago:r.estado_pago||'PAGO COMPLETO',asesor:r.asesor,atendio:r.atendio};
     });
     fetch(_SBU+'/rest/v1/rpc/aos_importar_ventas',{method:'POST',headers:{'apikey':_SBK,'Authorization':'Bearer '+_SBK,'Content-Type':'application/json'},body:JSON.stringify({p_ventas:valid})}).then(function(r){return r.json();}).then(function(d){
