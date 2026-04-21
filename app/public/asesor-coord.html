@@ -100,34 +100,20 @@ function aLoad(){
     try{var nav=document.getElementById('nav-advisor-coord');if(nav){var badge=nav.querySelector('.nav-badge');if(!badge){badge=document.createElement('span');badge.className='nav-badge';badge.style.cssText='background:#dc2626;color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto';nav.appendChild(badge);}badge.textContent=total;badge.style.display=total>0?'inline-flex':'none';}}catch(e){}
   });
 }
-// Get the other person's name in a direct channel
-function otherName(ch){
-  if(ch.tipo!=='DIRECTO')return ch.nombre;
-  var parts=ch.participantes;if(typeof parts==='string')try{parts=JSON.parse(parts);}catch(e){parts=[];}
-  if(!Array.isArray(parts))parts=[];
-  var other=parts.find(function(p){return p!==ME&&p!=='ADMIN';});
-  if(!other)other=parts.find(function(p){return p!==ME;});
-  return other||ch.nombre;
-}
 function aCL(){
   var el=document.getElementById('aCL');
-  // Separate: admin channel, groups, peer channels
-  var adminCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO'&&c.nombre===ME;});
   var grpCh=AD.ch.filter(function(c){return c.tipo==='GRUPO'||c.tipo==='BROADCAST';});
-  var peerCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO'&&c.nombre!==ME;});
+  var dirCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO';});
   var html='';
-  // Admin chats
-  if(adminCh.length){adminCh.forEach(function(c){html+=rACt(c);});}
-  // Peer chats
-  if(peerCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Compañeros</div>';peerCh.forEach(function(c){html+=rACt(c);});}
-  // Groups
+  if(dirCh.length){dirCh.forEach(function(c){html+=rACt(c);});}
   if(grpCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Grupos</div>';grpCh.forEach(function(c){html+=rACt(c);});}
   el.innerHTML=html||'<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin conversaciones</div>';
 }
 function rACt(c){
   var a=AD.ac===c.id;var ig=c.tipo!=='DIRECTO';
-  var nm=ig?c.nombre:otherName(c);
-  var bg=C(nm);
+  // Direct channels: show "Admin" for the admin channel, otherwise show channel name
+  var nm=ig?c.nombre:(c.nombre===ME?'Admin':c.nombre);
+  var bg=ig?C(c.nombre):(c.nombre===ME?'#8B5CF6':C(c.nombre));
   return'<div class="AC'+(a?' act':'')+'" onclick="aSel(\''+E(c.id)+'\')">'
     +'<div class="ACa'+(ig?' grp':'')+'" style="background:'+bg+'">'+I(nm)+'</div>'
     +'<div class="ACi"><div class="ACn">'+E(nm)+'</div><div class="ACr">'+(ig?'Grupo':'Chat directo')+'</div><div class="ACm">'+E(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
@@ -258,15 +244,13 @@ function chkN(){
   
   if(total>_prevTotal){
     playTone();
-    // Determine what's new: message or notification
     if(unreadMsgs>_prevMsgs){
       var lastCh=AD.ch.find(function(c){return c.no_leidos>0;});
-      var from=lastCh?otherName(lastCh):'Admin';
+      var from=lastCh?(lastCh.nombre===ME?'Admin':lastCh.nombre):'Admin';
       showPushNotif(from,lastCh?lastCh.ultimo_mensaje:'Nuevo mensaje','💬');
     }else{
       var lastN=AD.no.find(function(n){return!n.leido;});
-      var nFrom=lastN?(lastN.tipo==='URGENTE'?'⚠ Urgente':lastN.tipo==='ALERTA'?'⚡ Alerta':'ℹ Info'):'Notificación';
-      showPushNotif(nFrom,lastN?lastN.titulo:'Nueva notificación',lastN&&lastN.tipo==='URGENTE'?'🚨':'🔔');
+      showPushNotif(lastN?lastN.titulo:'Notificación',lastN?lastN.contenido:'Nueva notificación','🔔');
     }
   }
   _prevTotal=total;_prevMsgs=unreadMsgs;
@@ -274,11 +258,11 @@ function chkN(){
 function showPushNotif(from,preview,icon){
   var old=document.getElementById('_aosNotif');if(old)old.remove();
   var d=document.createElement('div');d.id='_aosNotif';
-    d.style.cssText='position:fixed;top:-100px;left:50%;transform:translateX(-50%);z-index:9999;width:min(420px,92vw);transition:top .4s cubic-bezier(.21,1.02,.73,1)';
-    d.innerHTML='<div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:20px;padding:14px 18px;box-shadow:0 12px 48px rgba(7,29,74,.4);display:flex;align-items:center;gap:14px;border:1px solid rgba(0,201,167,.15)"><div style="width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#00C9A7,#00E5A0);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,201,167,.3)"><span style="font-size:18px">'+(icon||'💬')+'</span></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:800;font-size:11px;color:#00C9A7;letter-spacing:.3px">ASCENDAOS</div><div style="font-size:9px;color:rgba(255,255,255,.35)">ahora</div></div><div style="font-weight:700;font-size:13px;color:#fff;margin-top:2px">'+E(from)+'</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'Tienes actualizaciones')+'</div></div></div>';
+    d.style.cssText='position:fixed;top:-80px;left:50%;transform:translateX(-50%);z-index:9999;width:min(360px,88vw);transition:top .5s cubic-bezier(.21,1.02,.73,1)';
+    d.innerHTML='<div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);border-radius:16px;padding:12px 16px;box-shadow:0 8px 32px rgba(7,29,74,.35);display:flex;align-items:center;gap:12px;border:1px solid rgba(0,201,167,.12)"><div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#00C9A7,#00E5A0);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:16px">'+(icon||'💬')+'</span></div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12px;color:#fff">'+E(from)+'</div><div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'')+'</div></div><div style="font-size:8px;color:rgba(255,255,255,.3)">ahora</div></div>';
     document.body.appendChild(d);
     setTimeout(function(){d.style.top='12px';},50);
-    setTimeout(function(){d.style.top='-100px';setTimeout(function(){d.remove();},500);},5000);
+    setTimeout(function(){d.style.top='-80px';setTimeout(function(){d.remove();},600);},6000);
 }
 
 setInterval(function(){aLoad();setTimeout(chkN,2000);},8000);
