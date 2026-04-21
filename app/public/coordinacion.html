@@ -183,15 +183,18 @@ function init(){
 function loadAll(){loadCanales();loadTareas();loadNotifs();}
 
 // ═══ CONTACTS + CHAT ═══
-function loadCanales(){q('aos_canales','select=*&cerrado=eq.false&order=ultimo_mensaje_at.desc.nullslast',function(ch){D.canales=ch||[];renderContacts();if(D.actCh)loadMsgs(D.actCh);});}
+function loadCanales(){q('aos_canales','select=*&or=(cerrado.eq.false,cerrado.is.null)&order=ultimo_mensaje_at.desc.nullslast',function(ch){D.canales=ch||[];renderContacts();if(D.actCh)loadMsgs(D.actCh);});}
 function renderContacts(){
   var el=document.getElementById('co-clist');
+  var puestoMap={};D.staff.forEach(function(s){puestoMap[s.nombre]=s.puesto;});
   el.innerHTML=D.canales.map(function(c){
     var isAct=D.actCh===c.id;var isBcast=c.tipo==='BROADCAST';
     var bgC=isBcast?'#071D4A':col(c.nombre);var initials=isBcast?'ALL':ini(c.nombre);
+    var puesto=puestoMap[c.nombre]||'';
+    var puestoLbl=puesto==='ENFERMERIA'?'Enfermería':puesto==='DOCTORA'?'Doctora':puesto==='ASESOR'?'Asesora':puesto==='ADMINISTRADOR'?'Admin':isBcast?D.staff.length+' miembros':'';
     return '<div class="co-contact'+(isAct?' act':'')+'" onclick="selCh(\''+esc(c.id)+'\')" data-name="'+esc(c.nombre.toLowerCase())+'">'
       +'<div class="co-avatar" style="background:'+bgC+'">'+initials+'<div class="co-online" style="background:#00C9A7"></div></div>'
-      +'<div class="co-cinfo"><div class="co-cname">'+esc(c.nombre)+'</div><div class="co-clast">'+esc(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
+      +'<div class="co-cinfo"><div class="co-cname">'+esc(c.nombre)+'</div><div style="font-size:8px;color:'+bgC+';font-weight:600;margin-top:1px">'+puestoLbl+'</div><div class="co-clast">'+esc(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
       +'<div class="co-cmeta"><div class="co-ctime">'+ago(c.ultimo_mensaje_at)+'</div></div></div>';
   }).join('');
 }

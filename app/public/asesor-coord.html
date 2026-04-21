@@ -209,7 +209,7 @@ function acRenderTareas(){
   if(!AD.tareas.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:10px;color:#9AAAC8">Sin tareas pendientes 🎉</div>';return;}
   var html='';
   AD.tareas.forEach(function(t){
-    var it=t.items||[];var tot=it.length;var dn=it.filter(function(i){return i.done;}).length;
+    var it=typeof t.items==='string'?JSON.parse(t.items||'[]'):(t.items||[]);var tot=it.length;var dn=it.filter(function(i){return i.done;}).length;
     var estCls=t.vencida?'ac-est-v':t.estado==='PENDIENTE'?'ac-est-p':t.estado==='EN PROGRESO'?'ac-est-e':'ac-est-c';
     var estLbl=t.vencida?'VENCIDA':t.estado;
     var priCol=t.prioridad==='URGENTE'?'#DC2626':t.prioridad==='ALTA'?'#D97706':'';
@@ -278,7 +278,14 @@ function acTab(t){
   document.getElementById('ac-notifs').style.display=t==='n'?'flex':'none';
 }
 
+// Notification sound
+var _prevCount=0;
+function playNotifSound(){try{var a=new AudioContext();var o=a.createOscillator();var g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;o.type='sine';g.gain.value=0.1;o.start();g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.3);o.stop(a.currentTime+0.3);}catch(e){}}
+function checkNewNotifs(){var total=(AD.tareas?AD.tareas.length:0)+(AD.notifs?AD.notifs.filter(function(n){return !n.leido;}).length:0)+(AD.canales?AD.canales.reduce(function(s,c){return s+(c.no_leidos||0);},0):0);if(_prevCount>0&&total>_prevCount){playNotifSound();showGlassToast('Nueva actualización','Revisa tus mensajes o tareas');}if(total>0)_prevCount=total;}
+function showGlassToast(t,m){var d=document.createElement('div');d.style.cssText='position:fixed;top:16px;right:16px;z-index:9999;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border:1px solid rgba(10,79,191,.15);border-radius:14px;padding:12px 16px;box-shadow:0 8px 32px rgba(7,29,74,.12);max-width:280px;animation:slideIn .3s ease;font-family:DM Sans,sans-serif';d.innerHTML='<div style="font-weight:700;font-size:11px;color:#071D4A">'+esc(t)+'</div><div style="font-size:9px;color:#6B7BA8;margin-top:2px">'+esc(m)+'</div>';document.body.appendChild(d);setTimeout(function(){d.style.opacity='0';d.style.transition='opacity .3s';setTimeout(function(){d.remove();},300);},4000);}
+
 // Auto-refresh
-setInterval(acLoad,15000);
+setInterval(function(){acLoad();checkNewNotifs();},15000);
 acInit();
 </script>
+<style>@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}</style>
