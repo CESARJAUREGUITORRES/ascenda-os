@@ -108,17 +108,10 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function ago(d){if(!d)return '';var ms=Date.now()-new Date(d).getTime();var m=Math.floor(ms/60000);if(m<1)return 'ahora';if(m<60)return m+'min';var h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d';}
 
 function acInit(){
-  // Get current user from parent AOS context
-  if(window.parent&&window.parent.AOS&&window.parent.AOS.ctx){ME=window.parent.AOS.ctx.nombre||'';}
-  if(!ME){
-    // Fallback: try to get from AOS global
-    if(window.AOS&&window.AOS.ctx)ME=window.AOS.ctx.nombre||'';
-  }
-  if(!ME){
-    // Last resort: check for name in DOM
-    try{var pill=document.querySelector('.role-pill');if(pill)ME=pill.textContent;}catch(e){}
-  }
-  if(!ME)ME='MIREYA'; // Fallback for testing
+  // Get user identity from localStorage session (most reliable)
+  try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');ME=(s.nombre||'').toUpperCase();}catch(e){}
+  if(!ME&&window.AOS&&window.AOS.ctx)ME=(window.AOS.ctx.nombre||'').toUpperCase();
+  if(!ME)ME='ASESOR';
   console.log('[AsesorCoord] User:',ME);
   acLoad();
 }
