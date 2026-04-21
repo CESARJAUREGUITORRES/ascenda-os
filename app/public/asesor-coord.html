@@ -116,7 +116,7 @@ function aCL(){
       +(c.no_leidos>0?'<div class="ACu">'+c.no_leidos+'</div>':'')+'</div></div>';
   }).join('')||'<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin conversaciones</div>';
 }
-function aSel(id){AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});}
+function aSel(id){AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});rpc('aos_marcar_visto',{p_canal:id,p_usuario:ME},function(){});}
 function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){AD.ms=m||[];aRChat();});}
 function aRChat(){
   var cv=document.getElementById('aChat');var ch=AD.ch.find(function(c){return c.id===AD.ac;});
@@ -160,14 +160,12 @@ function aShowPrev(file){
   var el=document.getElementById('aPrev');
   if(!el){el=document.createElement('div');el.id='aPrev';document.querySelector('.AMf').before(el);}
   el.style.display='block';
-  el.innerHTML='<div style="padding:8px 20px;background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px"><img src="'+url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid #e5e7eb"><div style="flex:1;font-size:10px;color:#64748b">Captura · '+Math.round(file.size/1024)+'KB</div><input type="text" id="aPrevTxt" placeholder="Agregar texto..." style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;font-size:10px;font-family:DM Sans;outline:none"><button style="padding:6px 16px;border-radius:10px;border:none;background:#00C9A7;color:#fff;font-size:10px;font-weight:700;cursor:pointer" onclick="aSendPrev()">Enviar</button><button style="width:28px;height:28px;border-radius:8px;border:none;background:#f0f4fc;cursor:pointer;font-size:12px;color:#64748b" onclick="aCancelPrev()">✕</button></div>';
+  el.innerHTML='<div style="padding:8px 20px;background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px"><img src="'+url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid #e5e7eb"><div style="flex:1;font-size:10px;color:#64748b">Captura de pantalla · '+Math.round(file.size/1024)+'KB</div><button style="padding:6px 16px;border-radius:10px;border:none;background:#00C9A7;color:#fff;font-size:10px;font-weight:700;cursor:pointer" onclick="aSendPrev()">Enviar</button><button style="width:28px;height:28px;border-radius:8px;border:none;background:#f0f4fc;cursor:pointer;font-size:12px;color:#64748b" onclick="aCancelPrev()">✕</button></div>';
 }
 function aCancelPrev(){_aPrevFile=null;var el=document.getElementById('aPrev');if(el)el.style.display='none';}
 function aSendPrev(){
   if(!_aPrevFile||!AD.ac)return;var name='screenshot_'+Date.now()+'.png';
-  var txtInp=document.getElementById('aPrevTxt');var txt=txtInp?txtInp.value.trim():'';
   aUpBlob(_aPrevFile,name);
-  if(txt)setTimeout(function(){rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:txt},function(){aMs(AD.ac);});},500);
   _aPrevFile=null;var el=document.getElementById('aPrev');if(el)el.style.display='none';
 }
 function aSend(){var inp=document.getElementById('aInp');if(!inp||!inp.value.trim()||!AD.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:msg},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});}
@@ -208,11 +206,11 @@ function aRN(id){rpc('aos_marcar_notif_leida',{p_notif_id:id,p_usuario:ME},funct
 function aRT(t){document.getElementById('art-t').classList.toggle('act',t==='t');document.getElementById('art-n').classList.toggle('act',t==='n');document.getElementById('aTareas').style.display=t==='t'?'flex':'none';document.getElementById('aNotifs').style.display=t==='n'?'flex':'none';}
 
 // Notif sound — iPhone tri-tone style
-var _pc=0,_mc=0;
+var _pc=0;
 function playTone(){
   try{
     var a=new(window.AudioContext||window.webkitAudioContext)();
-    var notes=[1046.5,1318.5,1568];// C6, E6, G6 — iPhone tri-tone
+    var notes=[1046.5,1318.5,1568];
     notes.forEach(function(freq,i){
       var o=a.createOscillator(),g=a.createGain();
       o.connect(g);g.connect(a.destination);
@@ -230,13 +228,21 @@ function chkN(){
   var total=unreadMsgs+unreadNotifs+totalTasks;
   if(_pc>0&&total>_pc){
     playTone();
+    // Determine what's new
+    var newMsgs=unreadMsgs-((_pc_msgs||0));
+    var tipo=newMsgs>0?'mensaje':'notificación';
+    var lastCh=AD.ch.find(function(c){return c.no_leidos>0;});
+    var from=lastCh?lastCh.nombre:'Admin';
+    var preview=lastCh?lastCh.ultimo_mensaje:'Nueva actualización';
+    // iPhone-style notification from top
     var d=document.createElement('div');
-    d.style.cssText='position:fixed;top:16px;right:16px;z-index:9999;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border:1px solid rgba(0,201,167,.15);border-radius:16px;padding:14px 18px;box-shadow:0 8px 40px rgba(7,29,74,.15);max-width:300px;animation:sI .3s ease;font-family:DM Sans,sans-serif';
-    d.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:10px;background:rgba(0,201,167,.1);display:flex;align-items:center;justify-content:center;font-size:14px">💬</div><div><div style="font-weight:700;font-size:12px;color:#071D4A">Nuevo mensaje</div><div style="font-size:10px;color:#64748b;margin-top:1px">Tienes actualizaciones pendientes</div></div></div>';
+    d.style.cssText='position:fixed;top:-100px;left:50%;transform:translateX(-50%);z-index:9999;width:min(420px,92vw);transition:top .4s cubic-bezier(.21,1.02,.73,1)';
+    d.innerHTML='<div style="background:rgba(30,30,30,.88);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:18px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,.08)"><div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#00C9A7,#0A4FBF);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:18px;filter:brightness(2)">💬</span></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:700;font-size:12px;color:#fff">AscendaOS</div><div style="font-size:9px;color:rgba(255,255,255,.4)">ahora</div></div><div style="font-weight:600;font-size:11px;color:rgba(255,255,255,.9);margin-top:2px">'+E(from)+'</div><div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'Tienes actualizaciones')+'</div></div></div>';
     document.body.appendChild(d);
-    setTimeout(function(){d.style.opacity='0';d.style.transition='opacity .4s';setTimeout(function(){d.remove();},400);},5000);
+    setTimeout(function(){d.style.top='12px';},50);
+    setTimeout(function(){d.style.top='-100px';setTimeout(function(){d.remove();},500);},5000);
   }
-  _pc=total;
+  _pc=total;_pc_msgs=unreadMsgs;
 }
 
 setInterval(function(){aLoad();setTimeout(chkN,2000);},8000);

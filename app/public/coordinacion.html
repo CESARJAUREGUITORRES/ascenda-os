@@ -270,7 +270,7 @@ function rChat(){
     }else{
       html+='<div class="Zmc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
     }
-    html+='<div class="Zmt">'+tm+'</div></div></div>';
+    html+='<div class="Zmt">'+tm+(me?' '+(m.visto_por&&m.visto_por.length>0?'<span style="color:#00C9A7;font-weight:700">✓✓</span>':'<span style="opacity:.4">✓</span>'):'')+'</div></div></div>';
   });
   html+='</div><div id="zPrev" style="display:none"></div><div class="ZMf"><input type="file" id="zFile" style="display:none" onchange="upFile(this)"><button class="ZAttach" onclick="document.getElementById(\'zFile\').click()" title="Adjuntar">📎</button><input type="text" id="zInp" placeholder="Escribe o pega imagen (Ctrl+V)..." onkeydown="if(event.key===\'Enter\')sMsg()"><button class="ZSend" onclick="sMsg()">&#10148;</button></div>';
   cv.innerHTML=html;var md=document.getElementById('zMsgs');if(md)md.scrollTop=md.scrollHeight;
@@ -297,24 +297,20 @@ function hideCtx(){var c=document.getElementById('zCtx');if(c)c.classList.remove
 function copyM(id){var m=D.ms.find(function(x){return x.id===id;});if(m)navigator.clipboard.writeText(m.mensaje).catch(function(){});hideCtx();}
 function edM(id){hideCtx();var m=D.ms.find(function(x){return x.id===id;});if(!m)return;var n=prompt('Editar mensaje:',m.mensaje);if(!n||n===m.mensaje)return;rpc('aos_editar_mensaje',{p_id:id,p_mensaje:n},function(){lMs(D.ac);});}
 function dlM(id){hideCtx();aosConfirm('¿Eliminar este mensaje?',function(){rpc('aos_eliminar_mensaje',{p_id:id},function(){lMs(D.ac);lCh();});});}
-// Image preview before send
+// Image preview — clean, no duplicate text field
 var _prevFile=null;
 function showPrev(file){
   _prevFile=file;
   var url=URL.createObjectURL(file);
   var el=document.getElementById('zPrev');
   el.style.display='block';
-  el.innerHTML='<div class="Zprev"><img src="'+url+'"><div class="Zprev-info">Captura de pantalla<br><b>'+Math.round(file.size/1024)+'KB</b></div><input type="text" id="zPrevTxt" placeholder="Agregar texto..." style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;font-size:10px;font-family:DM Sans;outline:none"><button class="Zprev-send" onclick="sendPrev()">Enviar</button><button class="Zprev-close" onclick="cancelPrev()">✕</button></div>';
+  el.innerHTML='<div class="Zprev"><img src="'+url+'"><div class="Zprev-info">Captura de pantalla<br><b>'+Math.round(file.size/1024)+'KB</b></div><button class="Zprev-send" onclick="sendPrev()">Enviar</button><button class="Zprev-close" onclick="cancelPrev()">✕</button></div>';
 }
 function cancelPrev(){_prevFile=null;var el=document.getElementById('zPrev');if(el)el.style.display='none';}
 function sendPrev(){
   if(!_prevFile||!D.ac)return;
   var name='screenshot_'+Date.now()+'.png';
-  var txtInp=document.getElementById('zPrevTxt');
-  var txt=txtInp?txtInp.value.trim():'';
   upBlob(_prevFile,name);
-  // If there's text, send as separate message
-  if(txt)setTimeout(function(){rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:txt},function(){lMs(D.ac);});},500);
   _prevFile=null;var el=document.getElementById('zPrev');if(el)el.style.display='none';
 }
 function sMsg(){var inp=document.getElementById('zInp');if(!inp||!inp.value.trim()||!D.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:msg},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});}
