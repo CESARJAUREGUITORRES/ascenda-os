@@ -87,6 +87,23 @@ body,html{height:100%}
 .ZMm-stats{font-size:8px;color:#94a3b8}
 .ZMm-del{width:24px;height:24px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}.ZMm-del:hover{background:rgba(220,38,38,.12)}
 .ZMm-add{padding:6px 12px;border-radius:8px;border:1.5px dashed #e5e7eb;background:none;color:#64748b;font-size:9px;cursor:pointer;font-family:'DM Sans';width:100%;margin-top:4px}.ZMm-add:hover{border-color:#0A4FBF;color:#0A4FBF}
+/* Collapsible task */
+.ZTitem{border:1px solid #f0f4fc;border-radius:12px;margin-bottom:6px;overflow:hidden;background:#fff}
+.ZThead{padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s}.ZThead:hover{background:#f8fafc}
+.ZTchev{font-size:10px;color:#94a3b8;transition:transform .2s;flex-shrink:0}.ZTitem.open .ZTchev{transform:rotate(90deg)}
+.ZTtitle{flex:1;font-weight:700;font-size:11px;color:#0f172a}
+.ZTbody{display:none;padding:0 12px 12px;border-top:1px solid #f0f4fc}.ZTitem.open .ZTbody{display:block}
+.ZTci{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11px;color:#0f172a;border-bottom:1px solid #fafbfc;cursor:pointer}.ZTci.dn{text-decoration:line-through;opacity:.4}
+.ZTci input{width:16px;height:16px;accent-color:#00C9A7;cursor:pointer;flex-shrink:0}
+.ZTprog{display:flex;align-items:center;gap:6px;margin-top:6px}
+.ZTpbar{flex:1;background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden}.ZTpfill{height:100%;border-radius:4px;background:linear-gradient(90deg,#00C9A7,#0A4FBF);transition:width .3s}
+.ZTppct{font-size:9px;font-weight:700;color:#64748b}
+/* Notes */
+.ZNt{border:1px solid #f0f4fc;border-radius:10px;padding:10px 12px;margin-bottom:6px;background:#fff}
+.ZNt-t{font-size:10px;color:#0f172a;line-height:1.5}.ZNt-d{font-size:8px;color:#94a3b8;margin-top:4px}
+.ZNt-inp{display:flex;gap:6px;margin-top:6px}
+.ZNt-inp textarea{flex:1;padding:8px 10px;border-radius:10px;border:1.5px solid #e5e7eb;font-size:10px;font-family:'DM Sans';outline:none;resize:none;height:36px;transition:border .15s}.ZNt-inp textarea:focus{border-color:#0A4FBF}
+.ZNt-inp button{padding:0 12px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans'}
 /* Kanban */
 .ZK{flex:1;overflow-x:auto;padding:10px;display:flex;gap:10px}
 .ZKc{min-width:150px;flex:1;border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
@@ -143,12 +160,11 @@ body,html{height:100%}
   </div>
   <div class="ZR">
     <div class="ZRh">
-      <div class="ZRtabs"><button class="ZRt act" id="zt-t" onclick="zRT('t')">Tareas</button><button class="ZRt" id="zt-n" onclick="zRT('n')">Notifs</button><button class="ZRt" id="zt-i" onclick="zRT('i')">Info</button></div>
-      <div class="ZRc" id="zRC"><button class="ZB Zp" onclick="newTarea()">+ Tarea</button></div>
+      <div style="display:flex;align-items:center;gap:6px"><button class="ZB Zp" onclick="newTarea()">+ Tarea</button><button class="ZB Zs" onclick="newNotif()">🔔 Notif</button></div>
     </div>
-    <div id="zTareas" style="flex:1;overflow:hidden;display:flex;flex-direction:column"></div>
-    <div id="zNotifs" style="flex:1;overflow:hidden;display:none;flex-direction:column"><div style="padding:8px 12px;display:flex;justify-content:flex-end"><button class="ZB Zp" onclick="newNotif()">+ Notif</button></div><div class="ZNl" id="zNL"></div></div>
-    <div id="zInfo" class="ZMet" style="display:none"></div>
+    <div id="zPanel" class="ZMet" style="flex:1;overflow-y:auto">
+      <div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Selecciona un contacto para ver su panel</div>
+    </div>
   </div>
 </div>
 
@@ -214,7 +230,7 @@ function rCt(c,ig){
     +'<div class="ZCmeta"><div class="ZCt">'+A(c.ultimo_mensaje_at)+'</div></div></div>';
 }
 function fCL(v){var s=v.toLowerCase();document.querySelectorAll('.ZC').forEach(function(c){c.style.display=(c.getAttribute('data-n')||'').indexOf(s)>=0?'':'none';});}
-function sCh(id){D.ac=id;rCL();lMs(id);}
+function sCh(id){D.ac=id;rCL();lMs(id);lPanel();}
 function lMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){D.ms=m||[];rChat();});}
 
 // ═══ CHAT ═══
@@ -262,29 +278,126 @@ function upFile(input){
 function cChat(id){if(!confirm('¿Cerrar chat?'))return;rest('aos_canales?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({cerrado:true,updated_at:new Date().toISOString()})}).then(function(){D.ac=null;lCh();rChat();});}
 function newBcast(){var m=prompt('Mensaje para todo el equipo:');if(!m)return;rpc('aos_enviar_mensaje',{p_canal:'CH-GENERAL',p_de:'ADMIN',p_mensaje:m},function(){D.ac='CH-GENERAL';lCh();lMs('CH-GENERAL');});}
 
-// ═══ TAREAS ═══
-function lTa(){q('aos_tareas','select=*&order=created_at.desc&limit=200',function(t){D.ta=t||[];rTa();});}
-function rTa(){var el=document.getElementById('zTareas');var p=D.ta.filter(function(t){return t.estado==='PENDIENTE';}),r=D.ta.filter(function(t){return t.estado==='EN PROGRESO';}),d=D.ta.filter(function(t){return t.estado==='COMPLETADA';});
-  el.innerHTML='<div class="ZK">'+rKC('PENDIENTE',p,'kp','#d97706')+rKC('EN PROGRESO',r,'ke','#0A4FBF')+rKC('COMPLETADA',d,'kd','#16a34a')+'</div>';}
-function rKC(l,items,cls,cl){var h='<div class="ZKc '+cls+'"><div class="ZKh">'+l+' <span class="ZKn" style="background:'+cl+'">'+items.length+'</span></div>';items.forEach(function(t){h+=rKK(t,cls==='kd');});return h+'</div>';}
-function rKK(t,dn){var it=typeof t.items==='string'?JSON.parse(t.items||'[]'):(t.items||[]);var tot=it.length;var done=it.filter(function(i){return i.done;}).length;var v=t.fecha_limite&&new Date(t.fecha_limite+'T23:59:59')<new Date()&&t.estado!=='COMPLETADA';var pc=t.prioridad==='URGENTE'?'#dc2626':t.prioridad==='ALTA'?'#d97706':'';
-  var h='<div class="ZKk'+(dn?' dn':'')+'" onclick="dTa(\''+t.id+'\')">';if(pc)h+='<div class="ZKkpr" style="color:'+pc+'">'+E(t.prioridad)+'</div>';
-  h+='<div class="ZKkt">'+E(t.titulo)+'</div><div class="ZKka"><div class="ZKkav" style="background:'+C(t.asignado_a)+'">'+I(t.asignado_a)+'</div><span class="ZKkan">'+E(t.asignado_a)+'</span></div>';
-  if(t.fecha_limite){var fl=new Date(t.fecha_limite+'T12:00:00');h+='<div class="ZKkd '+(v?'wn':'ok')+'">'+(v?'⚠ Vencida':'Vence')+': '+fl.getDate()+'/'+(fl.getMonth()+1)+'</div>';}
-  if(tot>0){h+='<div class="ZKkb">';for(var i=0;i<tot;i++)h+='<div class="ZKks" style="background:'+(it[i].done?'#00C9A7':'#e2e8f0')+'"></div>';h+='</div><div class="ZKkp">'+done+'/'+tot+'</div>';}return h+'</div>';}
-function dTa(id){var t=D.ta.find(function(x){return x.id===id;});if(!t)return;D.sT=t;document.getElementById('td-t').textContent=t.titulo;
-  var it=typeof t.items==='string'?JSON.parse(t.items||'[]'):(t.items||[]);var tot=it.length;var dn=it.filter(function(i){return i.done;}).length;
-  var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="ZCa" style="background:'+C(t.asignado_a)+';width:40px;height:40px;font-size:14px">'+I(t.asignado_a)+'</div><div><div style="font-weight:700;font-size:14px;color:#0f172a">'+E(t.asignado_a)+'</div><div style="font-size:10px;color:#64748b">'+E(t.estado)+'</div></div></div>';
-  if(t.descripcion)h+='<div style="font-size:11px;color:#475569;padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:12px;line-height:1.6">'+E(t.descripcion)+'</div>';
-  h+='<div style="display:flex;gap:12px;font-size:10px;color:#94a3b8;margin-bottom:14px;flex-wrap:wrap">';if(t.fecha_limite)h+='<span>Limite: <b style="color:#0f172a">'+t.fecha_limite+'</b></span>';if(t.tiempo_estimado_min)h+='<span>Tiempo: <b style="color:#0f172a">'+t.tiempo_estimado_min+'min</b></span>';if(t.prioridad!=='NORMAL')h+='<span style="color:'+(t.prioridad==='URGENTE'?'#dc2626':'#d97706')+'"><b>'+E(t.prioridad)+'</b></span>';h+='</div>';
-  if(tot){h+='<div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">Checklist <span style="color:#94a3b8;font-weight:500">('+dn+'/'+tot+')</span></div>';
-    it.forEach(function(item,idx){h+='<label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:12px;cursor:pointer;color:#0f172a;border-bottom:1px solid #f1f5f9'+(item.done?';text-decoration:line-through;opacity:.4':'')+'"><input type="checkbox" '+(item.done?'checked':'')+' onchange="tI(\''+id+'\','+idx+',this.checked)" style="width:18px;height:18px;accent-color:#0A4FBF">'+E(item.text)+'</label>';});}
-  document.getElementById('td-b').innerHTML=h;
-  var fh='';if(t.estado!=='COMPLETADA')fh+='<button class="ZB Zg" onclick="cSt(\''+id+'\',\'COMPLETADA\')">Completar</button>';if(t.estado==='PENDIENTE')fh+='<button class="ZB Zp" onclick="cSt(\''+id+'\',\'EN PROGRESO\')">Iniciar</button>';if(t.estado==='EN PROGRESO')fh+='<button class="ZB Zs" onclick="cSt(\''+id+'\',\'PENDIENTE\')">Pausar</button>';
-  document.getElementById('td-f').innerHTML=fh;document.getElementById('m-td').classList.add('open');}
-function tI(id,i,c){rpc('aos_toggle_tarea_item',{p_tarea_id:id,p_item_idx:i,p_completado:c},function(){lTa();dTa(id);});}
-function cSt(id,e){rest('aos_tareas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({estado:e,completado_at:e==='COMPLETADA'?new Date().toISOString():null,iniciado_at:e==='EN PROGRESO'?new Date().toISOString():null,updated_at:new Date().toISOString()})}).then(function(){document.getElementById('m-td').classList.remove('open');lTa();});}
-function dT(){if(!D.sT||!confirm('¿Eliminar?'))return;rest('aos_tareas?id=eq.'+D.sT.id,{method:'DELETE'}).then(function(){document.getElementById('m-td').classList.remove('open');lTa();});}
+// ═══ CONTEXTUAL PANEL (right) ═══
+function lPanel(){
+  var el=document.getElementById('zPanel');
+  var ch=D.ch.find(function(c){return c.id===D.ac;});
+  if(!ch){el.innerHTML='<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Selecciona un contacto</div>';return;}
+  var ig=ch.tipo!=='DIRECTO';
+  el.innerHTML='<div style="padding:20px;text-align:center;font-size:10px;color:#94a3b8">Cargando...</div>';
+  if(ig){lPanelGrupo(ch,el);}else{lPanelAsesor(ch,el);}
+}
+function lPanelAsesor(ch,el){
+  rpc('aos_metricas_asesor',{p_asesor:ch.nombre},function(m){
+    if(!m)m={};
+    var h='';
+    // CARD 1: Info asesor
+    h+='<div class="ZMcard" style="text-align:center"><div class="ZCa" style="background:'+C(ch.nombre)+';width:56px;height:56px;font-size:20px;margin:0 auto 8px">'+I(ch.nombre)+'</div><div style="font-weight:800;font-size:16px;color:#0f172a">'+E(ch.nombre)+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">'+R(ch.nombre)+'</div>';
+    h+='<div class="ZMgrid" style="margin-top:10px"><div class="ZMstat"><div class="ZMstat-n">'+m.mensajes_hoy+'</div><div class="ZMstat-l">Msgs hoy</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#d97706">'+m.tareas_pendientes+'</div><div class="ZMstat-l">Pendientes</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#16a34a">'+m.tareas_completadas+'</div><div class="ZMstat-l">Completadas</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#dc2626">'+m.tareas_vencidas+'</div><div class="ZMstat-l">Vencidas</div></div></div></div>';
+    // CARD 2: Tareas colapsables
+    h+='<div class="ZMcard"><div class="ZMcard-t">Tareas</div><div id="zTList"></div></div>';
+    // CARD 3: Notas
+    h+='<div class="ZMcard"><div class="ZMcard-t">Notas</div><div class="ZNt-inp"><textarea id="zNtInp" placeholder="Dejar nota..."></textarea><button onclick="addNota(\''+E(ch.nombre)+'\')">Enviar</button></div><div id="zNotes"></div></div>';
+    el.innerHTML=h;
+    lTareasList(ch.nombre);lNotas(ch.nombre);
+  });
+}
+function lPanelGrupo(ch,el){
+  var grpId=ch.id.replace('CH-','');
+  rpc('aos_metricas_grupo',{p_grupo_id:grpId},function(m){
+    if(!m||!m.total_miembros)m={total_miembros:0,tareas_total:0,tareas_pendientes:0,tareas_completadas:0,tareas_vencidas:0,pct_completadas:0,por_miembro:[]};
+    var h='';
+    // CARD 1: Info grupo
+    var g=D.gr.find(function(x){return x.id===grpId;});
+    h+='<div class="ZMcard"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div class="ZCa grp" style="background:'+(g?g.color:C(ch.nombre))+';width:44px;height:44px;font-size:15px">'+I(ch.nombre)+'</div><div><div style="font-weight:800;font-size:15px;color:#0f172a">'+E(ch.nombre)+'</div><div style="font-size:10px;color:#64748b">'+m.total_miembros+' integrantes</div></div></div>';
+    // Metrics grid
+    h+='<div class="ZMgrid"><div class="ZMstat"><div class="ZMstat-n">'+m.tareas_total+'</div><div class="ZMstat-l">Total</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#d97706">'+m.tareas_pendientes+'</div><div class="ZMstat-l">Pendientes</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#16a34a">'+m.tareas_completadas+'</div><div class="ZMstat-l">Completadas</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#0A4FBF">'+m.pct_completadas+'%</div><div class="ZMstat-l">Progreso</div></div></div>';
+    // Progress bar
+    h+='<div style="background:#e2e8f0;border-radius:6px;height:6px;overflow:hidden;margin-top:8px"><div style="background:linear-gradient(90deg,#00C9A7,#0A4FBF);height:100%;width:'+m.pct_completadas+'%;border-radius:6px"></div></div>';
+    // Members
+    h+='<div style="margin-top:12px">';
+    if(m.por_miembro)m.por_miembro.forEach(function(mb){
+      h+='<div class="ZMmember"><div class="ZCa" style="background:'+C(mb.nombre)+';width:30px;height:30px;font-size:10px">'+I(mb.nombre)+'</div><div class="ZMm-info"><div class="ZMm-n">'+E(mb.nombre)+'</div><div class="ZMm-r">'+R(mb.nombre)+'</div><div class="ZMm-stats">✅'+mb.completadas+' ⏳'+mb.pendientes+(mb.vencidas?' ⚠'+mb.vencidas:'')+'</div></div><button class="ZMm-del" onclick="editGrp(\''+grpId+'\',\'QUITAR\',\''+E(mb.nombre)+'\')" title="Quitar">✕</button></div>';
+    });
+    h+='<button class="ZMm-add" onclick="addToGrp(\''+grpId+'\')">+ Agregar miembro</button></div></div>';
+    // CARD 2: Tareas del grupo
+    h+='<div class="ZMcard"><div class="ZMcard-t">Tareas del grupo</div><div id="zTList"></div></div>';
+    // CARD 3: Notas
+    h+='<div class="ZMcard"><div class="ZMcard-t">Notas</div><div class="ZNt-inp"><textarea id="zNtInp" placeholder="Dejar nota..."></textarea><button onclick="addNota(\''+E(grpId)+'\')">Enviar</button></div><div id="zNotes"></div></div>';
+    el.innerHTML=h;
+    lTareasListGrp(grpId,m.por_miembro||[]);lNotas(grpId);
+  });
+}
+// Tareas colapsables para asesor
+function lTareasList(asesor){
+  q('aos_tareas','select=*&asignado_a=eq.'+encodeURIComponent(asesor)+'&order=created_at.desc&limit=50',function(ta){
+    D.ta=ta||[];
+    var el=document.getElementById('zTList');if(!el)return;
+    if(!ta.length){el.innerHTML='<div style="padding:12px;text-align:center;font-size:10px;color:#94a3b8">Sin tareas</div>';return;}
+    el.innerHTML=ta.map(function(t){return rTaskItem(t);}).join('');
+  });
+}
+function lTareasListGrp(grpId,miembros){
+  var nombres=miembros.map(function(m){return m.nombre;});
+  // Get all tasks for group members
+  q('aos_tareas','select=*&order=created_at.desc&limit=100',function(allTa){
+    D.ta=allTa||[];
+    var ta=allTa.filter(function(t){return nombres.indexOf(t.asignado_a)>=0;});
+    var el=document.getElementById('zTList');if(!el)return;
+    if(!ta.length){el.innerHTML='<div style="padding:12px;text-align:center;font-size:10px;color:#94a3b8">Sin tareas</div>';return;}
+    el.innerHTML=ta.map(function(t){return rTaskItem(t);}).join('');
+  });
+}
+function rTaskItem(t){
+  var it=typeof t.items==='string'?JSON.parse(t.items||'[]'):(t.items||[]);
+  var tot=it.length;var dn=it.filter(function(i){return i.done;}).length;
+  var pct=tot?Math.round(dn/tot*100):0;
+  var v=t.fecha_limite&&new Date(t.fecha_limite+'T23:59:59')<new Date()&&t.estado!=='COMPLETADA';
+  var priC=t.prioridad==='URGENTE'?'#dc2626':t.prioridad==='ALTA'?'#d97706':'';
+  var estC=v?'#dc2626':t.estado==='COMPLETADA'?'#16a34a':t.estado==='EN PROGRESO'?'#0A4FBF':'#d97706';
+  var estL=v?'VENCIDA':t.estado;
+  var h='<div class="ZTitem" id="zt-'+t.id+'">';
+  h+='<div class="ZThead" onclick="togTask(\''+t.id+'\')">';
+  h+='<span class="ZTchev">▶</span>';
+  h+='<div class="ZTtitle">'+(priC?'<span style="color:'+priC+'">● </span>':'')+E(t.titulo)+'</div>';
+  h+='<span style="font-size:8px;font-weight:700;color:'+estC+'">'+estL+'</span>';
+  h+='</div>';
+  h+='<div class="ZTbody">';
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:9px;color:#64748b"><div class="ZKkav" style="background:'+C(t.asignado_a)+';width:18px;height:18px;font-size:7px">'+I(t.asignado_a)+'</div>'+E(t.asignado_a);
+  if(t.fecha_limite)h+=' · Vence: '+t.fecha_limite;
+  h+='</div>';
+  if(tot){
+    it.forEach(function(item,idx){
+      h+='<label class="ZTci'+(item.done?' dn':'')+'"><input type="checkbox" '+(item.done?'checked':'')+' onchange="tI(\''+t.id+'\','+idx+',this.checked)">'+E(item.text)+'</label>';
+    });
+    h+='<div class="ZTprog"><div class="ZTpbar"><div class="ZTpfill" style="width:'+pct+'%"></div></div><span class="ZTppct">'+pct+'%</span></div>';
+  }
+  h+='<div style="display:flex;gap:4px;margin-top:8px">';
+  if(t.estado==='PENDIENTE')h+='<button class="ZB Zp" style="font-size:9px;padding:4px 10px" onclick="cSt(\''+t.id+'\',\'EN PROGRESO\')">Iniciar</button>';
+  if(t.estado==='EN PROGRESO')h+='<button class="ZB Zg" style="font-size:9px;padding:4px 10px" onclick="cSt(\''+t.id+'\',\'COMPLETADA\')">Completar</button>';
+  h+='<button class="ZB Zs" style="font-size:9px;padding:4px 10px" onclick="dTbyId(\''+t.id+'\')">Eliminar</button>';
+  h+='</div></div></div>';
+  return h;
+}
+function togTask(id){var el=document.getElementById('zt-'+id);if(el)el.classList.toggle('open');}
+function dTbyId(id){if(!confirm('¿Eliminar tarea?'))return;rest('aos_tareas?id=eq.'+id,{method:'DELETE'}).then(function(){lPanel();});}
+
+// Notas
+function lNotas(target){
+  rpc('aos_notas_target',{p_target:target},function(notes){
+    var el=document.getElementById('zNotes');if(!el)return;
+    if(!notes||!notes.length){el.innerHTML='<div style="padding:8px;font-size:10px;color:#94a3b8">Sin notas aún</div>';return;}
+    el.innerHTML=notes.map(function(n){return '<div class="ZNt"><div class="ZNt-t">'+E(n.nota)+'</div><div class="ZNt-d">'+E(n.autor)+' · '+A(n.created_at)+'</div></div>';}).join('');
+  });
+}
+function addNota(target){
+  var inp=document.getElementById('zNtInp');if(!inp||!inp.value.trim())return;
+  var nota=inp.value.trim();inp.value='';
+  rest('aos_notas_coord',{method:'POST',body:JSON.stringify({target_id:target,nota:nota,autor:'ADMIN'})}).then(function(){lNotas(target);});
+}
+function tI(id,i,c){rpc('aos_toggle_tarea_item',{p_tarea_id:id,p_item_idx:i,p_completado:c},function(){lPanel();});}
+function cSt(id,e){rest('aos_tareas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({estado:e,completado_at:e==='COMPLETADA'?new Date().toISOString():null,iniciado_at:e==='EN PROGRESO'?new Date().toISOString():null,updated_at:new Date().toISOString()})}).then(function(){lPanel();});}
+function dT(){}
 function newTarea(){document.getElementById('nt-t').value='';document.getElementById('nt-desc').value='';document.getElementById('nt-fl').value='';document.getElementById('nt-tm').value='';document.getElementById('nt-g').value='';document.getElementById('nt-items').innerHTML='<div class="ZIr"><input type="text" placeholder="Item 1..."><button class="ZIx" onclick="this.parentNode.remove()">&#10005;</button></div>';document.getElementById('m-nt').classList.add('open');}
 function aI(){var c=document.getElementById('nt-items');var n=c.children.length+1;var r=document.createElement('div');r.className='ZIr';r.innerHTML='<input type="text" placeholder="Item '+n+'..."><button class="ZIx" onclick="this.parentNode.remove()">&#10005;</button>';c.appendChild(r);}
 function sT(){var t=document.getElementById('nt-t').value.trim();if(!t)return;var items=[];document.querySelectorAll('#nt-items .ZIr input[type=text]').forEach(function(i){if(i.value.trim())items.push({text:i.value.trim(),done:false});});
@@ -299,55 +412,10 @@ function rNo(){var el=document.getElementById('zNL');if(!D.no.length){el.innerHT
     return'<div class="ZNc"><div class="ZNi '+ic+'">'+sy+'</div><div style="flex:1"><div style="font-weight:700;font-size:12px;color:#0f172a">'+E(n.titulo)+'</div>'+(n.contenido?'<div style="font-size:10px;color:#64748b;margin-top:3px;line-height:1.5">'+E(n.contenido)+'</div>':'')+'<div style="font-size:9px;color:#94a3b8;margin-top:4px">'+(n.para?E(n.para):'Equipo')+' · '+A(n.created_at)+'</div></div></div>';}).join('');}
 function newNotif(){document.getElementById('nn-t').value='';document.getElementById('nn-c').value='';document.getElementById('m-nn').classList.add('open');}
 function sN(){var t=document.getElementById('nn-t').value.trim();if(!t)return;rpc('aos_enviar_notificacion',{p_titulo:t,p_contenido:document.getElementById('nn-c').value||null,p_para:document.getElementById('nn-to').value||null,p_tipo:document.getElementById('nn-tp').value},function(){document.getElementById('m-nn').classList.remove('open');lNo();if(window.AOS_showToast)AOS_showToast('Enviada','','success');});}
-// TABS
-function zRT(t){D.rpTab=t;document.getElementById('zt-t').classList.toggle('act',t==='t');document.getElementById('zt-n').classList.toggle('act',t==='n');document.getElementById('zt-i').classList.toggle('act',t==='i');document.getElementById('zTareas').style.display=t==='t'?'flex':'none';document.getElementById('zNotifs').style.display=t==='n'?'flex':'none';document.getElementById('zInfo').style.display=t==='i'?'flex':'none';document.getElementById('zRC').style.display=t==='t'?'flex':'none';if(t==='n')rNo();if(t==='i')lInfo();}
-
-// ═══ INFO / METRICS ═══
-function lInfo(){
-  var el=document.getElementById('zInfo');
-  var ch=D.ch.find(function(c){return c.id===D.ac;});
-  if(!ch){el.innerHTML='<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Selecciona un chat para ver info</div>';return;}
-  var ig=ch.tipo!=='DIRECTO';
-  if(ig){
-    // Group info: find matching group
-    var grpId=ch.id.replace('CH-','');
-    rpc('aos_metricas_grupo',{p_grupo_id:grpId},function(m){
-      if(!m||!m.total_miembros){el.innerHTML='<div style="padding:20px;color:#94a3b8;font-size:11px">Grupo no encontrado</div>';return;}
-      var h='<div class="ZMcard"><div class="ZMcard-t">Métricas del grupo</div><div class="ZMgrid">';
-      h+='<div class="ZMstat"><div class="ZMstat-n">'+m.tareas_total+'</div><div class="ZMstat-l">Total tareas</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#16a34a">'+m.tareas_completadas+'</div><div class="ZMstat-l">Completadas</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#d97706">'+m.tareas_pendientes+'</div><div class="ZMstat-l">Pendientes</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#dc2626">'+m.tareas_vencidas+'</div><div class="ZMstat-l">Vencidas</div></div>';
-      h+='</div></div>';
-      // Progress bar
-      var pct=m.pct_completadas||0;
-      h+='<div class="ZMcard"><div class="ZMcard-t">Progreso general</div><div style="background:#e2e8f0;border-radius:6px;height:8px;overflow:hidden"><div style="background:linear-gradient(90deg,#00C9A7,#0A4FBF);height:100%;width:'+pct+'%;border-radius:6px;transition:width .3s"></div></div><div style="font-size:10px;color:#64748b;margin-top:4px;text-align:center">'+pct+'% completado</div></div>';
-      // Members
-      h+='<div class="ZMcard"><div class="ZMcard-t">Integrantes ('+m.total_miembros+')</div>';
-      if(m.por_miembro)m.por_miembro.forEach(function(mb){
-        h+='<div class="ZMmember"><div class="ZCa" style="background:'+C(mb.nombre)+';width:32px;height:32px;font-size:11px">'+I(mb.nombre)+'</div><div class="ZMm-info"><div class="ZMm-n">'+E(mb.nombre)+'</div><div class="ZMm-r">'+R(mb.nombre)+'</div><div class="ZMm-stats">✅ '+mb.completadas+' · ⏳ '+mb.pendientes+(mb.vencidas?' · ⚠ '+mb.vencidas:'')+'</div></div><button class="ZMm-del" onclick="editGrp(\''+grpId+'\',\'QUITAR\',\''+E(mb.nombre)+'\')" title="Quitar">✕</button></div>';
-      });
-      h+='<button class="ZMm-add" onclick="addToGrp(\''+grpId+'\')">+ Agregar miembro</button></div>';
-      el.innerHTML=h;
-    });
-  }else{
-    // Individual: show asesor metrics
-    rpc('aos_metricas_asesor',{p_asesor:ch.nombre},function(m){
-      if(!m){el.innerHTML='<div style="padding:20px;color:#94a3b8;font-size:11px">Sin datos</div>';return;}
-      var h='<div class="ZMcard" style="text-align:center"><div class="ZCa" style="background:'+C(ch.nombre)+';width:56px;height:56px;font-size:20px;margin:0 auto 8px">'+I(ch.nombre)+'</div><div style="font-weight:800;font-size:16px;color:#0f172a">'+E(ch.nombre)+'</div><div style="font-size:10px;color:#64748b">'+R(ch.nombre)+'</div></div>';
-      h+='<div class="ZMcard"><div class="ZMcard-t">Métricas</div><div class="ZMgrid">';
-      h+='<div class="ZMstat"><div class="ZMstat-n">'+m.mensajes_hoy+'</div><div class="ZMstat-l">Msgs hoy</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n">'+m.mensajes_semana+'</div><div class="ZMstat-l">Msgs semana</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#d97706">'+m.tareas_pendientes+'</div><div class="ZMstat-l">Pendientes</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#16a34a">'+m.tareas_completadas+'</div><div class="ZMstat-l">Completadas</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n" style="color:#dc2626">'+m.tareas_vencidas+'</div><div class="ZMstat-l">Vencidas</div></div>';
-      h+='<div class="ZMstat"><div class="ZMstat-n">'+m.pct_completadas+'%</div><div class="ZMstat-l">% Completado</div></div>';
-      h+='</div></div>';
-      if(m.tiempo_promedio_min>0)h+='<div class="ZMcard"><div class="ZMcard-t">Tiempo promedio</div><div style="font-size:24px;font-weight:800;color:#0A4FBF;text-align:center">'+m.tiempo_promedio_min+' min</div></div>';
-      el.innerHTML=h;
-    });
-  }
-}
+// TABS (legacy - panel is now contextual)
+function zRT(){}
+function lAll(){lCh();lNo();}
+function lTa(){}
 function editGrp(gid,acc,miembro){
   if(acc==='QUITAR'&&!confirm('¿Quitar a '+miembro+' del grupo?'))return;
   rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r)lInfo();lCh();});
