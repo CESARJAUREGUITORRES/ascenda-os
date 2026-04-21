@@ -228,7 +228,7 @@ function vsLoad(){
     // Year mode: call year-level RPC
     rpc('aos_ventas_admin_anio',{p_anio:anio,p_sede:sede,p_asesor:asesor},function(d){
       if(!d)return;VS.data=d;
-      renderTop(d);renderKPIs(d);renderMetodos(d.porMetodoPago||[]);
+      renderTop(d);renderKPIs(d);renderMetodos(d);
       renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
       renderDet(d.detalle||[],'all');
     });
@@ -260,7 +260,7 @@ function vsLoad(){
     }
     
     VS.data=d;
-    renderTop(d);renderKPIs(d);renderMetodos(d.porMetodoPago||[]);
+    renderTop(d);renderKPIs(d);renderMetodos(d);
     renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
     renderDet(d.detalle||[],'all');
   });
@@ -303,19 +303,23 @@ function renderKPIs(d){
   el('k-ticket').textContent='S/'+Math.round(parseFloat(d.ticketProm||0));
 }
 
-function renderMetodos(mps){
-  // Get unique sedes
-  var sedes={};mps.forEach(function(m){sedes[m.sede||'SIN SEDE']=true;});
-  var sedeList=Object.keys(sedes).sort();
-  el('mp-tabs').innerHTML='<button class="mp-tab act" onclick="mpFilter(this,\'all\')">Todos</button>'+sedeList.map(function(s){return '<button class="mp-tab" onclick="mpFilter(this,\''+h(s)+'\')">'+h(s)+'</button>';}).join('');
-  renderMPList(mps,'all');
+function renderMetodos(d){
+  var sedes=['SAN ISIDRO','PUEBLO LIBRE'];
+  el('mp-tabs').innerHTML='<button class="mp-tab act" onclick="mpFilter(this,\'all\')">Todos</button>'+sedes.map(function(s){return '<button class="mp-tab" onclick="mpFilter(this,\''+h(s)+'\')">'+h(s)+'</button>';}).join('');
+  renderMPList('all');
 }
 function mpFilter(btn,sede){
   VS.mpSede=sede;document.querySelectorAll('.mp-tab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');
-  if(VS.data)renderMPList(VS.data.porMetodoPago||[],sede);
+  renderMPList(sede);
 }
-function renderMPList(mps,sede){
-  var f=sede==='all'?mps:mps.filter(function(m){return(m.sede||'SIN SEDE')===sede;});
+function renderMPList(sede){
+  var d=VS.data;if(!d)return;
+  var f;
+  if(sede==='all'){
+    f=d.porMetodoPago||[];
+  }else{
+    f=(d.porMetodoPagoSede||[]).filter(function(m){return m.sede===sede;});
+  }
   var box=el('vs-metodos');
   if(!f.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
   box.innerHTML=f.map(function(m){return '<div class="mp-row"><div class="mp-nm">'+h(m.metodo||'')+'</div><div class="mp-n">'+m.n+'</div><div class="mp-v">S/'+fmt(m.total)+'</div></div>';}).join('');
