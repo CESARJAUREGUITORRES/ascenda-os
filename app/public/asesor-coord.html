@@ -115,15 +115,43 @@ function aRChat(){
   var html='<div class="AMh"><div class="ACa" style="background:'+bg+';width:36px;height:36px;font-size:12px">'+(ig?I(ch.nombre):'AD')+'</div><div><div class="AMn">'+E(nm)+'</div><div class="AMs">'+(ig?'Grupo':'Admin')+'</div></div></div>';
   html+='<div class="AMb" id="aMsgs">';
   var ld='';
-  AD.ms.forEach(function(m){var d=new Date(m.created_at);var ds=d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});if(ds!==ld){html+='<div class="AMd">'+ds+'</div>';ld=ds;}
+  AD.ms.forEach(function(m){
+    if(m.eliminado)return;
+    var d=new Date(m.created_at);var ds=d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});if(ds!==ld){html+='<div class="AMd">'+ds+'</div>';ld=ds;}
     var me=m.de===ME;var tm=d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
     html+='<div class="Am '+(me?'me':'th')+'">';if(!me)html+='<div class="Ama" style="background:'+C(m.de)+'">'+I(m.de)+'</div>';
-    html+='<div><div class="Amc">'+E(m.mensaje)+'</div><div class="Amt">'+E(m.de)+' · '+tm+'</div></div></div>';
+    html+='<div>';
+    if(m.tipo_contenido==='imagen'&&m.archivo_id){
+      html+='<div class="Amc" style="padding:4px"><img style="max-width:200px;border-radius:10px;cursor:pointer" src="'+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'" onclick="window.open(this.src)"></div>';
+    }else if(m.tipo_contenido==='archivo'&&m.archivo_id){
+      html+='<div class="Amc"><div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(0,0,0,.04);border-radius:8px;font-size:10px;cursor:pointer" onclick="window.open(\''+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'\')">📎 '+E(m.mensaje)+'</div></div>';
+    }else{
+      html+='<div class="Amc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
+    }
+    html+='<div class="Amt">'+E(m.de)+' · '+tm+'</div></div></div>';
   });
-  html+='</div><div class="AMf"><input id="aInp" placeholder="Escribe..." onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
-  cv.innerHTML=html;var md=document.getElementById('aMsgs');if(md)md.scrollTop=md.scrollHeight;
+  html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" placeholder="Escribe o pega imagen..." onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
+  cv.innerHTML=html;
+  var md=document.getElementById('aMsgs');if(md)md.scrollTop=md.scrollHeight;
+  // Paste listener for screenshots
+  var inp=document.getElementById('aInp');
+  if(inp)inp.addEventListener('paste',function(e){
+    var items=e.clipboardData&&e.clipboardData.items;if(!items)return;
+    for(var i=0;i<items.length;i++){
+      if(items[i].type.indexOf('image')>=0){
+        e.preventDefault();var file=items[i].getAsFile();if(file)aUpBlob(file,'screenshot_'+Date.now()+'.png');break;
+      }
+    }
+  });
 }
 function aSend(){var inp=document.getElementById('aInp');if(!inp||!inp.value.trim()||!AD.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:msg},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});}
+function aUpFile(input){var file=input.files[0];if(!file||!AD.ac)return;aUpBlob(file,Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,''));input.value='';}
+function aUpBlob(file,name){
+  fetch(SB+'/storage/v1/object/coordinacion/'+name,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file})
+  .then(function(r){if(!r.ok)throw new Error('fail');return r.json();})
+  .then(function(){rpc('aos_registrar_archivo',{p_nombre:name,p_tipo_mime:file.type,p_tamano:file.size,p_url:SB+'/storage/v1/object/public/coordinacion/'+name,p_storage_path:name,p_subido_por:ME,p_canal_id:AD.ac},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});})
+  .catch(function(e){console.error('Upload',e);alert('Error subiendo archivo');});
+}
 
 function aTa(){
   var el=document.getElementById('aTareas');

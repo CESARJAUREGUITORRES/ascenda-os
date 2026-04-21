@@ -243,37 +243,39 @@ function rChat(){
   html+='<div class="ZMb" id="zMsgs">';
   if(!D.ms.length)html+='<div class="ZMd">Inicia la conversación</div>';
   var ld='';
-  D.ms.forEach(function(m){var d=new Date(m.created_at);var ds=d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});if(ds!==ld){html+='<div class="ZMd">'+ds+'</div>';ld=ds;}
+  D.ms.forEach(function(m){
+    if(m.eliminado)return;
+    var d=new Date(m.created_at);var ds=d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});if(ds!==ld){html+='<div class="ZMd">'+ds+'</div>';ld=ds;}
     var me=m.de==='ADMIN'||m.de==='CESAR';var tm=d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
     html+='<div class="Zm '+(me?'me':'th')+'">';
     if(!me)html+='<div class="Zma" style="background:'+C(m.de)+'">'+I(m.de)+'</div>';
     html+='<div class="Zmb">';if(!me&&ig)html+='<div class="Zms" style="color:'+C(m.de)+'">'+E(m.de)+'</div>';
-    // Render image or file if it's an attachment
     if(m.tipo_contenido==='imagen'&&m.archivo_id){
       html+='<div class="Zmc" style="padding:4px"><img class="Zmimg" src="'+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'" onclick="window.open(this.src)"></div>';
     }else if(m.tipo_contenido==='archivo'&&m.archivo_id){
       html+='<div class="Zmc"><div class="Zmfile" onclick="window.open(\''+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'\')">📎 '+E(m.mensaje)+'</div></div>';
     }else{
-      html+='<div class="Zmc">'+E(m.mensaje)+'</div>';
+      html+='<div class="Zmc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
     }
+    if(me&&!m.archivo_id)html+='<div style="display:flex;gap:6px;margin-top:2px;justify-content:flex-end"><button style="font-size:8px;background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer" onclick="edM(\''+m.id+'\')">editar</button><button style="font-size:8px;background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer" onclick="dlM(\''+m.id+'\')">eliminar</button></div>';
     html+='<div class="Zmt">'+tm+'</div></div></div>';
   });
-  html+='</div><div class="ZMf"><input type="file" id="zFile" onchange="upFile(this)"><button class="ZAttach" onclick="document.getElementById(\'zFile\').click()" title="Adjuntar archivo">📎</button><input type="text" id="zInp" placeholder="Escribe un mensaje..." onkeydown="if(event.key===\'Enter\')sMsg()"><button class="ZSend" onclick="sMsg()">&#10148;</button></div>';
+  html+='</div><div class="ZMf"><input type="file" id="zFile" style="display:none" onchange="upFile(this)"><button class="ZAttach" onclick="document.getElementById(\'zFile\').click()" title="Adjuntar">📎</button><input type="text" id="zInp" placeholder="Escribe o pega imagen (Ctrl+V)..." onkeydown="if(event.key===\'Enter\')sMsg()"><button class="ZSend" onclick="sMsg()">&#10148;</button></div>';
   cv.innerHTML=html;var md=document.getElementById('zMsgs');if(md)md.scrollTop=md.scrollHeight;
+  // Paste for screenshots
+  var zi=document.getElementById('zInp');
+  if(zi)zi.addEventListener('paste',function(ev){var it=ev.clipboardData&&ev.clipboardData.items;if(!it)return;for(var i=0;i<it.length;i++){if(it[i].type.indexOf('image')>=0){ev.preventDefault();var f=it[i].getAsFile();if(f)upBlob(f,'screenshot_'+Date.now()+'.png');break;}}});
 }
+function edM(id){var m=D.ms.find(function(x){return x.id===id;});if(!m)return;var n=prompt('Editar mensaje:',m.mensaje);if(!n||n===m.mensaje)return;rpc('aos_editar_mensaje',{p_id:id,p_mensaje:n},function(){lMs(D.ac);});}
+function dlM(id){if(!confirm('¿Eliminar mensaje?'))return;rpc('aos_eliminar_mensaje',{p_id:id},function(){lMs(D.ac);lCh();});}
 function sMsg(){var inp=document.getElementById('zInp');if(!inp||!inp.value.trim()||!D.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:D.ac,p_de:'ADMIN',p_mensaje:msg},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});}
 // File upload
-function upFile(input){
-  var file=input.files[0];if(!file||!D.ac)return;
-  var path=Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'');
-  fetch(SB+'/storage/v1/object/coordinacion/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file})
-  .then(function(r){if(!r.ok)throw new Error('Upload failed');return r.json();})
-  .then(function(){
-    rpc('aos_registrar_archivo',{p_nombre:path,p_tipo_mime:file.type,p_tamano:file.size,p_url:SB+'/storage/v1/object/public/coordinacion/'+path,p_storage_path:path,p_subido_por:'ADMIN',p_canal_id:D.ac},function(r){
-      if(r&&r.ok){lMs(D.ac);lCh();if(window.AOS_showToast)AOS_showToast('Archivo enviado',file.name,'success');}
-    });
-  }).catch(function(e){console.error('Upload error',e);alert('Error subiendo archivo');});
-  input.value='';
+function upFile(input){var file=input.files[0];if(!file||!D.ac)return;upBlob(file,Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,''));input.value='';}
+function upBlob(file,name){
+  fetch(SB+'/storage/v1/object/coordinacion/'+name,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file})
+  .then(function(r){if(!r.ok)throw new Error('fail');return r.json();})
+  .then(function(){rpc('aos_registrar_archivo',{p_nombre:name,p_tipo_mime:file.type,p_tamano:file.size,p_url:SB+'/storage/v1/object/public/coordinacion/'+name,p_storage_path:name,p_subido_por:'ADMIN',p_canal_id:D.ac},function(r){if(r&&r.ok){lMs(D.ac);lCh();}});})
+  .catch(function(e){console.error('Upload',e);alert('Error subiendo');});
 }
 function cChat(id){if(!confirm('¿Cerrar chat?'))return;rest('aos_canales?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({cerrado:true,updated_at:new Date().toISOString()})}).then(function(){D.ac=null;lCh();rChat();});}
 function newBcast(){var m=prompt('Mensaje para todo el equipo:');if(!m)return;rpc('aos_enviar_mensaje',{p_canal:'CH-GENERAL',p_de:'ADMIN',p_mensaje:m},function(){D.ac='CH-GENERAL';lCh();lMs('CH-GENERAL');});}
