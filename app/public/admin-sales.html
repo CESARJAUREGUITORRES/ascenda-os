@@ -1,14 +1,162 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- admin-sales.html — Ventas Admin | AscendaOS v1 | 100% Supabase -->
+<style>
+.vs-root{padding:13px;display:flex;flex-direction:column;gap:10px;min-height:100%;}
+.vs-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.vs-title{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;}
+.krow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.kcard{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px;}
+.kcard-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.kcard-val{font-family:Exo\ 2,sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1;}
+.kcard-sub{font-size:10px;color:#6B7BA8;margin-top:3px;}
+.kcard-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;}
+.kcard-main .kcard-lbl{color:rgba(255,255,255,.7);}.kcard-main .kcard-val{color:#fff;font-size:26px;}.kcard-main .kcard-sub{color:rgba(255,255,255,.6);}
+.main2{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:10px;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.ct{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:12px;letter-spacing:.6px;color:#0D1B3E;}
+.ftabs{display:flex;gap:4px;}
+.ftab{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:DM\ Sans,sans-serif;}
+.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.vtable{width:100%;border-collapse:collapse;}
+.vtable th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 8px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.vtable td{padding:8px;border-bottom:1px solid rgba(221,228,245,.4);font-size:11px;vertical-align:middle;}
+.vtable tr:last-child td{border-bottom:none;}.vtable tr:hover td{background:#F8FAFF;}
+.tipo-b{padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.tb-serv{background:#EBF2FF;color:#0A4FBF;}.tb-prod{background:#F5F3FF;color:#7C3AED;}
+.com-v{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:11px;color:#16A34A;}
+.sede-box{display:flex;gap:8px;}
+.sede-card{flex:1;padding:12px;border-radius:10px;border:1px solid #DDE4F5;text-align:center;}
+.sede-card-lbl{font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;}
+.sede-card-val{font-family:Exo\ 2,sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;}
+.asesor-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F4FC;}
+.asesor-row:last-child{border-bottom:none;}
+.asesor-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;flex-shrink:0;}
+.asesor-info{flex:1;min-width:0;}.asesor-nm{font-weight:700;font-size:12px;color:#0D1B3E;}.asesor-stats{font-size:9px;color:#6B7BA8;margin-top:2px;}
+.asesor-val{text-align:right;}.asesor-fac{font-family:Exo\ 2,sans-serif;font-weight:800;font-size:14px;color:#0D1B3E;}.asesor-com{font-size:9px;color:#16A34A;font-weight:700;}
+.trat-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #F0F4FC;}.trat-row:last-child{border-bottom:none;}
+.trat-bar{height:6px;background:#e2e8f0;border-radius:3px;flex:1;overflow:hidden;}.trat-fill{height:100%;background:linear-gradient(90deg,#0A4FBF,#00C9A7);border-radius:3px;}
+.hist-table{width:100%;border-collapse:collapse;}.hist-table th{font-size:9px;font-weight:700;color:#9AAAC8;padding:6px 8px;text-align:left;border-bottom:1px solid #DDE4F5;}.hist-table td{padding:6px 8px;font-size:11px;border-bottom:1px solid #F0F4FC;}.hist-table .cur td{background:#F0F4FC;font-weight:700;}
+.ld{text-align:center;padding:20px;color:#9AAAC8;font-size:11px;}
+@media(max-width:900px){.krow{grid-template-columns:repeat(3,1fr);}.main2{grid-template-columns:1fr;}}
+</style>
+<div class="vs-root">
+  <div class="vs-hdr">
+    <div class="vs-title">Ventas</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <select class="psel" id="vs-mes" onchange="vsReload()"><option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Abr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Ago</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option></select>
+      <select class="psel" id="vs-anio" onchange="vsReload()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <select class="psel" id="vs-sede" onchange="vsReload()"><option value="">Todas las sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
+      <select class="psel" id="vs-asesor" onchange="vsReload()"><option value="">Todos</option><option value="MIREYA">Mireya</option><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="SRA CARMEN">Sra Carmen</option><option value="DRA CAROLINA">Dra Carolina</option></select>
+    </div>
+  </div>
+  <div class="krow">
+    <div class="kcard kcard-main"><div class="kcard-lbl">FACTURADO</div><div class="kcard-val" id="vs-fact">--</div></div>
+    <div class="kcard"><div class="kcard-lbl">VENTAS</div><div class="kcard-val" id="vs-nv">--</div><div class="kcard-sub">Ticket prom: <b id="vs-ticket">--</b></div></div>
+    <div class="kcard"><div class="kcard-lbl">SERVICIOS</div><div class="kcard-val" id="vs-nserv">--</div><div class="kcard-sub">S/<span id="vs-fserv">0</span></div></div>
+    <div class="kcard"><div class="kcard-lbl">PRODUCTOS</div><div class="kcard-val" id="vs-nprod">--</div><div class="kcard-sub">S/<span id="vs-fprod">0</span></div></div>
+    <div class="kcard"><div class="kcard-lbl">POR SEDE</div><div class="sede-box" id="vs-sedes"></div></div>
+  </div>
+  <div class="main2">
+    <div class="crd">
+      <div class="chd"><div class="ct">DETALLE DE VENTAS</div>
+        <div class="ftabs"><button class="ftab act" data-f="all" onclick="vsFilter(this)">Todo</button><button class="ftab" data-f="SERVICIO" onclick="vsFilter(this)">Servicios</button><button class="ftab" data-f="PRODUCTO" onclick="vsFilter(this)">Productos</button></div>
+      </div>
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+      <table class="vtable"><thead><tr><th>Fecha</th><th>Cliente</th><th>Tratamiento</th><th>Asesor</th><th>Monto</th><th>Com</th><th>Tipo</th></tr></thead><tbody id="vs-tbody"><tr><td colspan="7" class="ld">Cargando...</td></tr></tbody>
+      <tfoot><tr style="border-top:2px solid #0A4FBF;"><td colspan="4" style="font-weight:700;font-size:11px;color:#0D1B3E;">TOTAL</td><td style="font-weight:800;font-family:Exo\ 2;color:#0D1B3E;" id="vs-tfact">--</td><td style="font-weight:800;font-family:Exo\ 2;color:#16A34A;" id="vs-tcom">--</td><td></td></tr></tfoot></table></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="crd"><div class="ct" style="margin-bottom:10px;">RANKING ASESORES</div><div id="vs-ranking"></div></div>
+      <div class="crd"><div class="ct" style="margin-bottom:10px;">TOP TRATAMIENTOS</div><div id="vs-trat"></div></div>
+      <div class="crd"><div class="ct" style="margin-bottom:8px;">HISTORIAL ANUAL</div>
+        <table class="hist-table"><thead><tr><th>Mes</th><th>Facturado</th><th>Ventas</th></tr></thead><tbody id="vs-hist"><tr><td colspan="3" class="ld">--</td></tr></tbody></table>
+      </div>
+    </div>
   </div>
 </div>
-</body>
-</html>
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(id){return document.getElementById(id);}
+var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+var CL={'MIREYA':'#3B82F6','WILMER':'#00C9A7','RUVILA':'#16A34A','SRA CARMEN':'#F59E0B','DRA CAROLINA':'#EF4444','DRA PAMELA':'#EC4899','CESAR':'#8B5CF6'};
+var VS={data:null,filtro:'all'};
+
+(function(){
+  var m=new Date().getMonth()+1;el('vs-mes').value=String(m);el('vs-anio').value=String(new Date().getFullYear());
+  vsReload();
+})();
+
+function vsReload(){
+  var mes=Number(el('vs-mes').value),anio=Number(el('vs-anio').value);
+  var sede=el('vs-sede').value,asesor=el('vs-asesor').value;
+  VS.filtro='all';
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.toggle('act',t.getAttribute('data-f')==='all');});
+  rpc('aos_ventas_admin',{p_mes:mes,p_anio:anio,p_sede:sede,p_asesor:asesor},function(d){
+    if(!d){el('vs-fact').textContent='Error';return;}
+    VS.data=d;
+    renderKPIs(d);renderDetalle(d.detalle||[],'all');renderSedes(d.porSede||[]);
+    renderRanking(d.porAsesor||[]);renderTratamientos(d.porTratamiento||[]);renderHist(d.anual||[]);
+  });
+}
+
+function renderKPIs(d){
+  el('vs-fact').textContent='S/'+parseFloat(d.factTotal||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  el('vs-nv').textContent=d.nVentas||0;
+  el('vs-ticket').textContent='S/'+parseFloat(d.ticketProm||0).toFixed(0);
+  el('vs-nserv').textContent=d.nServ||0;el('vs-fserv').textContent=parseFloat(d.factServ||0).toFixed(0);
+  el('vs-nprod').textContent=d.nProd||0;el('vs-fprod').textContent=parseFloat(d.factProd||0).toFixed(0);
+}
+function renderDetalle(rows,filtro){
+  var f=filtro==='all'?rows:rows.filter(function(r){return(r.tipo||'')===filtro;});
+  var tb=el('vs-tbody');
+  if(!f.length){tb.innerHTML='<tr><td colspan="7" class="ld">Sin ventas</td></tr>';el('vs-tfact').textContent='S/0';el('vs-tcom').textContent='S/0';return;}
+  var tF=0,tC=0;
+  tb.innerHTML=f.map(function(v){
+    var m=parseFloat(v.monto||0),c=parseFloat(v.comision||0);tF+=m;tC+=c;
+    var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();
+    return '<tr><td style="color:#6B7BA8;white-space:nowrap;">'+h(v.fecha||'')+'</td>'+
+      '<td><div style="font-weight:700;font-size:11px;">'+h((cli||v.numero_limpio||'--').substring(0,22))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(v.numero_limpio||'')+'</div></td>'+
+      '<td style="font-size:10px;color:#6B7BA8;">'+h((v.tratamiento||'').substring(0,18))+'</td>'+
+      '<td><span style="font-size:10px;font-weight:700;color:'+(CL[v.asesor]||'#6B7BA8')+'">'+h(v.asesor||'')+'</span></td>'+
+      '<td style="font-weight:700;color:#0D1B3E;">S/'+m.toFixed(2)+'</td>'+
+      '<td><span class="com-v">S/'+c.toFixed(2)+'</span></td>'+
+      '<td><span class="tipo-b '+(v.tipo==='PRODUCTO'?'tb-prod':'tb-serv')+'">'+((v.tipo||'')==='PRODUCTO'?'PROD':'SERV')+'</span></td></tr>';
+  }).join('');
+  el('vs-tfact').textContent='S/'+tF.toFixed(2);el('vs-tcom').textContent='S/'+tC.toFixed(2);
+}
+function vsFilter(btn){
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');
+  VS.filtro=btn.getAttribute('data-f');if(VS.data)renderDetalle(VS.data.detalle||[],VS.filtro);
+}
+function renderSedes(sedes){
+  var box=el('vs-sedes');if(!sedes.length){box.innerHTML='<div class="ld">--</div>';return;}
+  box.innerHTML=sedes.map(function(s){return '<div class="sede-card"><div class="sede-card-lbl">'+h(s.sede||'')+'</div><div class="sede-card-val">S/'+parseFloat(s.total||0).toFixed(0)+'</div></div>';}).join('');
+}
+function renderRanking(asesores){
+  var box=el('vs-ranking');if(!asesores.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','4','5'];
+  box.innerHTML=asesores.map(function(a,i){
+    return '<div class="asesor-row"><div style="font-size:14px;width:20px;text-align:center;">'+medals[i]+'</div><div class="asesor-av" style="background:'+(CL[a.asesor]||'#6B7BA8')+'">'+h((a.asesor||'?').substring(0,2))+'</div><div class="asesor-info"><div class="asesor-nm">'+h(a.asesor||'')+'</div><div class="asesor-stats">'+a.n+' ventas</div></div><div class="asesor-val"><div class="asesor-fac">S/'+parseFloat(a.total||0).toFixed(0)+'</div><div class="asesor-com">Com: S/'+parseFloat(a.comision||0).toFixed(2)+'</div></div></div>';
+  }).join('');
+}
+function renderTratamientos(trats){
+  var box=el('vs-trat');if(!trats.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var max=trats[0]?parseFloat(trats[0].total||1):1;
+  box.innerHTML=trats.map(function(t){
+    var pct=Math.round(parseFloat(t.total||0)/max*100);
+    return '<div class="trat-row"><div style="min-width:80px;font-size:10px;font-weight:700;color:#0D1B3E;">'+h((t.tratamiento||'').substring(0,15))+'</div><div class="trat-bar"><div class="trat-fill" style="width:'+pct+'%"></div></div><div style="font-size:10px;font-weight:700;color:#0D1B3E;min-width:55px;text-align:right;">S/'+parseFloat(t.total||0).toFixed(0)+'</div></div>';
+  }).join('');
+}
+function renderHist(anual){
+  var hb=el('vs-hist');if(!anual.length){hb.innerHTML='<tr><td colspan="3" class="ld">--</td></tr>';return;}
+  var curM=Number(el('vs-mes').value);
+  hb.innerHTML=anual.map(function(r){
+    var mn=parseInt(r.mes_num),cur=mn===curM;
+    return '<tr'+(cur?' class="cur"':'')+'><td style="font-weight:'+(cur?'700':'500')+';">'+h(MF[mn]||'')+'</td><td>S/'+parseFloat(r.facturado||0).toFixed(0)+'</td><td>'+r.n_ventas+'</td></tr>';
+  }).join('');
+}
+</script>
