@@ -111,6 +111,7 @@
           <div class="ag-legend-i">
             <span class="ag-legend-d"><span style="width:10px;height:10px;border-radius:3px;background:rgba(22,163,74,.15);display:inline-block"></span>San Isidro</span>
             <span class="ag-legend-d"><span style="width:10px;height:10px;border-radius:3px;background:rgba(217,119,6,.15);display:inline-block"></span>Pueblo Libre</span>
+            <span class="ag-legend-d"><span style="width:10px;height:10px;border-radius:3px;background:rgba(10,79,191,.1);display:inline-block"></span>Doctora</span>
             <span class="ag-legend-d"><span style="width:10px;height:10px;border-radius:3px;background:rgba(124,58,237,.15);display:inline-block"></span>Evento</span>
             <span class="ag-legend-d" style="margin-top:2px"><span class="ag-cd cp"></span>Pend <span class="ag-cd cc"></span>Conf <span class="ag-cd ca"></span>Asist <span class="ag-cd cn"></span>No</span>
           </div>
@@ -173,7 +174,10 @@ function RDH(s){var h=hoy(),html='<div style="border-right:1px solid #F0F4FC"></
 function RG(sem){
   var gw=document.getElementById('ag-gw');if(!gw)return;
   var h=hoy(),hrs=[];for(var i=HM;i<=HX;i++)hrs.push(i);
-  var tD={};(G.tu||[]).forEach(function(t){if(G.sp&&t.personal!==G.sp)return;if(!tD[t.fecha])tD[t.fecha]=[];tD[t.fecha].push(t);});
+  // Filter with partial match for doctoras (RRHH="DRA CAROLINA" vs HP="DRA. CAROLINA ZIMIC")
+  var tD={};(G.tu||[]).forEach(function(t){
+    if(G.sp){var sp=G.sp.replace('.','');var tp=t.personal.replace('.','');if(tp.indexOf(sp)<0&&sp.indexOf(tp)<0)return;}
+    if(!tD[t.fecha])tD[t.fecha]=[];tD[t.fecha].push(t);});
   var cD={};(G.ci||[]).forEach(function(c){if(!cD[c.fecha_cita])cD[c.fecha_cita]=[];cD[c.fecha_cita].push(c);});
   var eD={};(G.ev||[]).forEach(function(e){if(!eD[e.fecha])eD[e.fecha]=[];eD[e.fecha].push(e);});
 
@@ -186,46 +190,58 @@ function RG(sem){
     html+='<div style="position:relative;border-left:1px solid #F0F4FC;'+(isSun?'background:rgba(220,38,38,.015)':'')+'" data-f="'+f+'" data-di="'+di+'">';
     hrs.forEach(function(hr){html+='<div style="height:'+RH+'px;border-bottom:1px solid #F8F9FC;cursor:pointer" onmousedown="dragS(event,\''+f+'\','+hr+')" onmousemove="dragM(event,'+hr+')" onmouseup="dragE(event,\''+f+'\','+hr+')" onclick="clickC(\''+f+'\','+hr+')"></div>';});
 
-    // Turno blocks — GROUP BY SEDE
-    // Group turnos by sede
-    var bySede={};dt.forEach(function(t){var s=t.sede||'SAN ISIDRO';if(!bySede[s])bySede[s]=[];bySede[s].push(t);});
+    // Turno blocks — ENFERMEROS group by sede, DOCTORAS individual blocks
+    var enfTurnos=dt.filter(function(t){return t.rol!=='DOCTORA';});
+    var docTurnos=dt.filter(function(t){return t.rol==='DOCTORA';});
+
+    // ENFERMEROS: group by sede
+    var bySede={};enfTurnos.forEach(function(t){var s=t.sede||'SAN ISIDRO';if(!bySede[s])bySede[s]=[];bySede[s].push(t);});
     var sedes=Object.keys(bySede);var ns=sedes.length;
+    var totalBlocks=ns+docTurnos.length;
 
     sedes.forEach(function(sede,si2){
       var grp=bySede[sede];
-      // Find earliest start and latest end for this sede group
       var minStart=24,maxEnd=0;
-      grp.forEach(function(t){
-        var hi=parseInt(t.hora_inicio)||10,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;
-        var hf=parseInt(t.hora_fin)||20,mf=parseInt((t.hora_fin||'').split(':')[1])||0;
-        var s=hi+mi/60,e2=hf+mf/60;if(s<minStart)minStart=s;if(e2>maxEnd)maxEnd=e2;
-      });
+      grp.forEach(function(t){var hi=parseInt(t.hora_inicio)||10,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;var hf=parseInt(t.hora_fin)||20,mf=parseInt((t.hora_fin||'').split(':')[1])||0;var s=hi+mi/60,e2=hf+mf/60;if(s<minStart)minStart=s;if(e2>maxEnd)maxEnd=e2;});
       var top=((minStart-HM)*RH)+'px',height=((maxEnd-minStart)*RH)+'px';
       var sc=sede==='SAN ISIDRO'?'si':'pl';var sl=sede==='SAN ISIDRO'?'S. Isidro':'P. Libre';
-      // Width: if two sedes, split 50/50
-      var wStyle='';
-      if(ns===2)wStyle=si2===0?'left:1px;right:50%;':'left:50%;right:1px;';
-      else wStyle='left:1px;right:1px;';
+      // Width: share space with other sedes and doctoras
+      var wPct=100/Math.max(totalBlocks,1);var lPct=si2*wPct;
+      var wStyle='left:'+lPct+'%;width:'+wPct+'%;';
 
-      // All citas for people in this sede group
-      var allCitas=[];grp.forEach(function(t){
-        var pc=dc.filter(function(c){return c.asesor===t.personal||c.asesor===('SRA '+t.personal);});
-        allCitas=allCitas.concat(pc);
-      });
+      var allCitas=[];grp.forEach(function(t){var pc=dc.filter(function(c){return c.asesor===t.personal||c.asesor===('SRA '+t.personal);});allCitas=allCitas.concat(pc);});
 
-      html+='<div class="ag-bk '+sc+'" style="top:'+top+';height:'+height+';'+wStyle+'" onclick="event.stopPropagation();ET(\''+grp[0].id+'\',\''+esc(grp[0].personal)+'\',\''+esc(grp[0].rol)+'\',\''+grp[0].fecha+'\',\''+esc(sede)+'\',\''+(grp[0].hora_inicio||'').substring(0,5)+'\',\''+(grp[0].hora_fin||'').substring(0,5)+'\',\'\')">';
-      // Names of all people in this sede
-      html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:2px">';
-      grp.forEach(function(t){html+='<span class="ag-bk-n" style="font-size:9px">'+esc(t.personal)+'</span>';});
+      html+='<div class="ag-bk '+sc+'" style="top:'+top+';height:'+height+';'+wStyle+'padding:4px 3px" onclick="event.stopPropagation();ET(\''+grp[0].id+'\',\''+esc(grp[0].personal)+'\',\''+esc(grp[0].rol)+'\',\''+grp[0].fecha+'\',\''+esc(sede)+'\',\''+(grp[0].hora_inicio||'').substring(0,5)+'\',\''+(grp[0].hora_fin||'').substring(0,5)+'\',\'\')">';
+      grp.forEach(function(t){html+='<div class="ag-bk-n" style="font-size:8px">'+esc(t.personal)+'</div>';});
+      html+='<div class="ag-bk-s">'+sl+'</div><div class="ag-bk-h">'+(grp[0].hora_inicio||'').substring(0,5)+' - '+(grp[0].hora_fin||'').substring(0,5)+'</div>';
+      if(grp.length>1)html+='<div style="font-size:6px;color:#6B7BA8;font-style:italic">Dia completo</div>';
+      if(allCitas.length){html+='<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px">';
+        allCitas.slice(0,5).forEach(function(c){var es=(c.estado_cita||'').toUpperCase();var dotC=es==='PENDIENTE'?'cp':es==='CITA CONFIRMADA'?'cc':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ca':es==='NO ASISTIO'?'cn':'cx';
+          html+='<div class="ag-ci"><div class="ag-cd '+dotC+'"></div><b>'+(c.hora_cita||'').substring(0,5)+'</b> <span>'+esc(c.nombre||'')+'</span></div>';});
+        if(allCitas.length>5)html+='<div style="font-size:6px;color:#9AAAC8">+'+(allCitas.length-5)+' mas</div>';html+='</div>';}
       html+='</div>';
-      html+='<div class="ag-bk-s">'+sl+'</div>';
-      html+='<div class="ag-bk-h">'+(grp[0].hora_inicio||'').substring(0,5)+' - '+(grp[0].hora_fin||'').substring(0,5)+'</div>';
-      if(grp.length>1){html+='<div style="font-size:7px;color:#6B7BA8;margin-top:1px;font-style:italic">Dia completo</div>';}
-      // Citas
-      if(allCitas.length){html+='<div style="margin-top:3px;display:flex;flex-direction:column;gap:1px">';
-        allCitas.slice(0,6).forEach(function(c){var es=(c.estado_cita||'').toUpperCase();var dotC=es==='PENDIENTE'?'cp':es==='CITA CONFIRMADA'?'cc':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ca':es==='NO ASISTIO'?'cn':'cx';
-          html+='<div class="ag-ci"><div class="ag-cd '+dotC+'"></div><b>'+(c.hora_cita||'').substring(0,5)+'</b> <span>'+esc(c.asesor?c.asesor.substring(0,3)+': ':'')+esc(c.nombre||'')+'</span></div>';});
-        if(allCitas.length>6)html+='<div style="font-size:6px;color:#9AAAC8">+'+(allCitas.length-6)+' mas</div>';html+='</div>';}
+    });
+
+    // DOCTORAS: individual blocks with blue/purple color
+    docTurnos.forEach(function(t,di2){
+      var hi=parseInt(t.hora_inicio)||14,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;
+      var hf=parseInt(t.hora_fin)||19,mf=parseInt((t.hora_fin||'').split(':')[1])||0;
+      var sd=hi+mi/60,ed=hf+mf/60;var top=((sd-HM)*RH)+'px',height=((ed-sd)*RH)+'px';
+      var sc=t.sede==='SAN ISIDRO'?'si':'pl';var sl=t.sede==='SAN ISIDRO'?'S. Isidro':'P. Libre';
+      var wPct=100/Math.max(totalBlocks,1);var lPct=(ns+di2)*wPct;
+      var wStyle='left:'+lPct+'%;width:'+wPct+'%;';
+
+      // Doctora citas (match by doctora field in citas)
+      var shortName=t.personal.replace('DRA. ','DRA ').replace(' ZIMIC','').replace(' GONZALES','').replace(' PEREZ','');
+      var docCitas=dc.filter(function(c){return (c.tipo_atencion||'').toUpperCase()==='DOCTORA'&&((c.asesor&&dc.some(function(){return true;}))||true);});
+      // Better: match by doctora field if available, otherwise all doctora-type citas
+      var myCitas=dc.filter(function(c){var d=(c.tipo_atencion||'').toUpperCase();return d==='DOCTORA';});
+
+      html+='<div class="ag-bk" style="top:'+top+';height:'+height+';'+wStyle+'background:rgba(10,79,191,.08);padding:4px 3px" onclick="event.stopPropagation();ET(\''+t.id+'\',\''+esc(t.personal)+'\',\'DOCTORA\',\''+t.fecha+'\',\''+esc(t.sede)+'\',\''+(t.hora_inicio||'').substring(0,5)+'\',\''+(t.hora_fin||'').substring(0,5)+'\',\''+esc((t.notas||'').replace(/'/g,''))+'\')">';
+      html+='<div style="font-weight:800;font-size:9px;color:#0A4FBF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(shortName)+'</div>';
+      html+='<div style="font-size:7px;color:#0A4FBF;opacity:.7">'+sl+'</div>';
+      html+='<div style="font-size:7px;color:#6B7BA8">'+(t.hora_inicio||'').substring(0,5)+' - '+(t.hora_fin||'').substring(0,5)+'</div>';
+      if(t.notas)html+='<div style="font-size:6px;color:#9AAAC8;font-style:italic;margin-top:1px">'+esc(t.notas)+'</div>';
       html+='</div>';
     });
 
