@@ -2,10 +2,10 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 .ag{display:flex;flex-direction:column;height:calc(100vh - 52px);font-family:'DM Sans',sans-serif;overflow:hidden;}
-.ag-hdr{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #DDE4F5;flex-shrink:0;}
-.ag-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#071D4A;}
-.ag-tabs{display:flex;gap:2px;background:#F0F4FC;border-radius:10px;padding:3px;}
-.ag-tab{padding:6px 16px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans';}
+.ag-hdr{padding:6px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #DDE4F5;flex-shrink:0;gap:8px;flex-wrap:wrap;}
+.ag-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#071D4A;}
+.ag-tabs{display:flex;gap:2px;background:#F0F4FC;border-radius:8px;padding:2px;}
+.ag-tab{padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans';}
 .ag-tab.act{background:#0A4FBF;color:#fff;}
 .ag-nav{display:flex;align-items:center;gap:6px;}
 .ag-nb{width:26px;height:26px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6B7BA8;}.ag-nb:hover{background:#EBF2FF;}
@@ -95,7 +95,7 @@
 
 <div class="ag">
   <div class="ag-hdr">
-    <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px">
       <span class="ag-title">Agenda</span>
       <div class="ag-tabs">
         <button class="ag-tab act" id="at-a" onclick="T('a')">Citas</button>
@@ -107,7 +107,6 @@
       <button class="ag-nb" onclick="NS(1)">&#9654;</button>
       <button class="ag-td" onclick="TD()">Hoy</button>
       <span class="ag-wl" id="ag-wl"></span>
-      <span style="width:8px"></span>
       <button class="ag-btn ag-bp" onclick="OT(null,null,null,null)">+ Turno</button>
       <button class="ag-btn ag-bs" onclick="OE()">+ Evento</button>
     </div>
