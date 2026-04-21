@@ -165,7 +165,6 @@
       <div class="ah-c"><div class="ah-ct">RANKING COMISIONES</div>
         <div class="ah-rkt"><div class="ah-rkb act" id="rk-r" onclick="ahRkTab('ranking')">Ranking</div><div class="ah-rkb" id="rk-e" onclick="ahRkTab('equipo')">Equipo</div></div>
         <div id="ah-rklist"><div class="ah-ld"><div class="ah-sp"></div></div></div><div class="ah-rtot" id="ah-rktot" style="display:none"></div></div>
-      <div class="ah-c" id="ah-psec" style="display:none"><div class="ah-ct">PAGOS PENDIENTES<span class="ah-pbg" id="ah-pcnt"></span></div><div id="ah-plist"></div></div>
     </div>
   </div>
 </div>
@@ -239,7 +238,7 @@ function ahLoad(){
     ahVDet(res.ventasHoy||[]);
     ahAlertas(res.semaforo||[]);
   });
-  ahTicker();ahRank();ahPagos();ahChart();
+  ahTicker();ahRank();ahChart();
   _D.loadCount++;
 }
 
