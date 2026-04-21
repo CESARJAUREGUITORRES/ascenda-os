@@ -77,7 +77,7 @@ function rest(p,o){return fetch(SB+'/rest/v1/'+p,Object.assign({headers:{'apikey
 function E(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function A(d){if(!d)return'';var m=Math.floor((Date.now()-new Date(d).getTime())/60000);if(m<1)return'ahora';if(m<60)return m+'m';var h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d';}
 function I(n){return(n||'?').split(' ').map(function(w){return w[0];}).join('').substring(0,2);}
-var CL={'ADMIN':'#8B5CF6','CESAR':'#8B5CF6','Todo el equipo':'#071D4A','Enfermería':'#00C9A7','Doctoras':'#3B82F6','Comercial':'#F59E0B'};
+var CL={'ADMIN':'#8B5CF6','CESAR':'#8B5CF6','WILMER':'#00C9A7','RUVILA':'#16A34A','MIREYA':'#3B82F6','SRA CARMEN':'#F59E0B','DRA CAROLINA':'#EF4444','DRA PAMELA':'#EC4899','DRA YESSICA':'#06B6D4','Todo el equipo':'#071D4A','Enfermería':'#00C9A7','Doctoras':'#3B82F6','Comercial':'#F59E0B'};
 function C(n){return CL[n]||'#6B7BA8';}
 
 function aInit(){
@@ -92,29 +92,47 @@ function aLoad(){
     AD.ch=d.canales||[];AD.ta=d.tareas||[];AD.no=d.notificaciones||[];
     aCL();aTa();aNo();
     if(AD.ac)aMs(AD.ac);
-    // Update badges
     var unreadMsgs=AD.ch.reduce(function(s,c){return s+(c.no_leidos||0);},0);
     var unreadNotifs=AD.no.filter(function(n){return !n.leido;}).length;
-    var pendTasks=AD.ta.length;
-    var total=unreadMsgs+unreadNotifs+pendTasks;
-    // Update header badge
+    var total=unreadMsgs+unreadNotifs+AD.ta.length;
     var hdr=document.querySelector('.ALh');
-    if(hdr)hdr.innerHTML='Mensajes'+(unreadMsgs>0?' <span style="background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;margin-left:6px">'+unreadMsgs+'</span>':'');
-    // Try to update sidebar badge in parent app
-    try{var badge=document.querySelector('#nav-advisor-coord .nav-badge')||parent.document.querySelector('#nav-advisor-coord .nav-badge');if(!badge){var nav=document.getElementById('nav-advisor-coord')||parent.document.getElementById('nav-advisor-coord');if(nav){badge=document.createElement('span');badge.className='nav-badge';badge.style.cssText='background:#dc2626;color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto';nav.appendChild(badge);}}if(badge){badge.textContent=total;badge.style.display=total>0?'inline-flex':'none';}}catch(e){}
+    if(hdr)hdr.innerHTML='Coordinación'+(unreadMsgs>0?' <span style="background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;margin-left:6px">'+unreadMsgs+'</span>':'');
+    try{var nav=document.getElementById('nav-advisor-coord');if(nav){var badge=nav.querySelector('.nav-badge');if(!badge){badge=document.createElement('span');badge.className='nav-badge';badge.style.cssText='background:#dc2626;color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto';nav.appendChild(badge);}badge.textContent=total;badge.style.display=total>0?'inline-flex':'none';}}catch(e){}
   });
+}
+// Get the other person's name in a direct channel
+function otherName(ch){
+  if(ch.tipo!=='DIRECTO')return ch.nombre;
+  var parts=ch.participantes;if(typeof parts==='string')try{parts=JSON.parse(parts);}catch(e){parts=[];}
+  if(!Array.isArray(parts))parts=[];
+  var other=parts.find(function(p){return p!==ME&&p!=='ADMIN';});
+  if(!other)other=parts.find(function(p){return p!==ME;});
+  return other||ch.nombre;
 }
 function aCL(){
   var el=document.getElementById('aCL');
-  el.innerHTML=AD.ch.map(function(c){
-    var a=AD.ac===c.id;var ig=c.tipo!=='DIRECTO';
-    var nm=ig?c.nombre:'Admin';var bg=ig?C(c.nombre):'#8B5CF6';
-    return'<div class="AC'+(a?' act':'')+'" onclick="aSel(\''+E(c.id)+'\')">'
-      +'<div class="ACa" style="background:'+bg+'">'+(ig?I(c.nombre):'AD')+'</div>'
-      +'<div class="ACi"><div class="ACn">'+E(nm)+'</div><div class="ACr">'+(ig?'Grupo':'Chat directo')+'</div><div class="ACm">'+E(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><div class="ACt">'+A(c.ultimo_mensaje_at)+'</div>'
-      +(c.no_leidos>0?'<div class="ACu">'+c.no_leidos+'</div>':'')+'</div></div>';
-  }).join('')||'<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin conversaciones</div>';
+  // Separate: admin channel, groups, peer channels
+  var adminCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO'&&c.nombre===ME;});
+  var grpCh=AD.ch.filter(function(c){return c.tipo==='GRUPO'||c.tipo==='BROADCAST';});
+  var peerCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO'&&c.nombre!==ME;});
+  var html='';
+  // Admin chats
+  if(adminCh.length){adminCh.forEach(function(c){html+=rACt(c);});}
+  // Peer chats
+  if(peerCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Compañeros</div>';peerCh.forEach(function(c){html+=rACt(c);});}
+  // Groups
+  if(grpCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Grupos</div>';grpCh.forEach(function(c){html+=rACt(c);});}
+  el.innerHTML=html||'<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin conversaciones</div>';
+}
+function rACt(c){
+  var a=AD.ac===c.id;var ig=c.tipo!=='DIRECTO';
+  var nm=ig?c.nombre:otherName(c);
+  var bg=C(nm);
+  return'<div class="AC'+(a?' act':'')+'" onclick="aSel(\''+E(c.id)+'\')">'
+    +'<div class="ACa'+(ig?' grp':'')+'" style="background:'+bg+'">'+I(nm)+'</div>'
+    +'<div class="ACi"><div class="ACn">'+E(nm)+'</div><div class="ACr">'+(ig?'Grupo':'Chat directo')+'</div><div class="ACm">'+E(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
+    +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><div class="ACt">'+A(c.ultimo_mensaje_at)+'</div>'
+    +(c.no_leidos>0?'<div class="ACu">'+c.no_leidos+'</div>':'')+'</div></div>';
 }
 function aSel(id){AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});rpc('aos_marcar_visto',{p_canal:id,p_usuario:ME},function(){});}
 function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){AD.ms=m||[];aRChat();});}
@@ -236,25 +254,28 @@ function chkN(){
   var unreadNotifs=AD.no?AD.no.filter(function(n){return!n.leido;}).length:0;
   var total=unreadMsgs+unreadNotifs;
   
-  // First load: just save baseline
   if(_prevTotal<0){_prevTotal=total;_prevMsgs=unreadMsgs;return;}
   
-  // New content detected
   if(total>_prevTotal){
     playTone();
-    var lastCh=AD.ch.find(function(c){return c.no_leidos>0;});
-    var from=lastCh?(lastCh.tipo==='DIRECTO'?'Admin':lastCh.nombre):'Admin';
-    var preview=lastCh?lastCh.ultimo_mensaje:'Nueva actualización';
-    showPushNotif(from,preview);
+    // Determine what's new: message or notification
+    if(unreadMsgs>_prevMsgs){
+      var lastCh=AD.ch.find(function(c){return c.no_leidos>0;});
+      var from=lastCh?otherName(lastCh):'Admin';
+      showPushNotif(from,lastCh?lastCh.ultimo_mensaje:'Nuevo mensaje','💬');
+    }else{
+      var lastN=AD.no.find(function(n){return!n.leido;});
+      var nFrom=lastN?(lastN.tipo==='URGENTE'?'⚠ Urgente':lastN.tipo==='ALERTA'?'⚡ Alerta':'ℹ Info'):'Notificación';
+      showPushNotif(nFrom,lastN?lastN.titulo:'Nueva notificación',lastN&&lastN.tipo==='URGENTE'?'🚨':'🔔');
+    }
   }
   _prevTotal=total;_prevMsgs=unreadMsgs;
 }
-function showPushNotif(from,preview){
-  // Remove existing notification if any
+function showPushNotif(from,preview,icon){
   var old=document.getElementById('_aosNotif');if(old)old.remove();
   var d=document.createElement('div');d.id='_aosNotif';
     d.style.cssText='position:fixed;top:-100px;left:50%;transform:translateX(-50%);z-index:9999;width:min(420px,92vw);transition:top .4s cubic-bezier(.21,1.02,.73,1)';
-    d.innerHTML='<div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:20px;padding:14px 18px;box-shadow:0 12px 48px rgba(7,29,74,.4);display:flex;align-items:center;gap:14px;border:1px solid rgba(0,201,167,.15)"><div style="width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#00C9A7,#00E5A0);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,201,167,.3)"><span style="font-size:18px">💬</span></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:800;font-size:11px;color:#00C9A7;letter-spacing:.3px">ASCENDAOS</div><div style="font-size:9px;color:rgba(255,255,255,.35)">ahora</div></div><div style="font-weight:700;font-size:13px;color:#fff;margin-top:2px">'+E(from)+'</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'Tienes actualizaciones')+'</div></div></div>';
+    d.innerHTML='<div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:20px;padding:14px 18px;box-shadow:0 12px 48px rgba(7,29,74,.4);display:flex;align-items:center;gap:14px;border:1px solid rgba(0,201,167,.15)"><div style="width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#00C9A7,#00E5A0);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,201,167,.3)"><span style="font-size:18px">'+(icon||'💬')+'</span></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:800;font-size:11px;color:#00C9A7;letter-spacing:.3px">ASCENDAOS</div><div style="font-size:9px;color:rgba(255,255,255,.35)">ahora</div></div><div style="font-weight:700;font-size:13px;color:#fff;margin-top:2px">'+E(from)+'</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'Tienes actualizaciones')+'</div></div></div>';
     document.body.appendChild(d);
     setTimeout(function(){d.style.top='12px';},50);
     setTimeout(function(){d.style.top='-100px';setTimeout(function(){d.remove();},500);},5000);
