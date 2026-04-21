@@ -223,11 +223,36 @@ function vsLoad(){
   var sede=el('vs-sede').value,asesor=el('vs-asesor').value;
   VS.filtro='all';VS.mpSede='all';
   document.querySelectorAll('.ftab').forEach(function(t){t.classList.toggle('act',t.getAttribute('data-f')==='all');});
+  
+  if(VS.modo==='hoy'){
+    // Load current month, then filter to today
+    var hoy=new Date();mes=hoy.getMonth()+1;anio=hoy.getFullYear();
+    el('vs-mes').value=String(mes);el('vs-anio').value=String(anio);
+  }
+  
   rpc('aos_ventas_admin',{p_mes:mes,p_anio:anio,p_sede:sede,p_asesor:asesor},function(d){
     if(!d){el('vs-fact').textContent='Error';return;}
+    
+    if(VS.modo==='hoy'){
+      // Filter detalle to today only
+      var hoyStr=new Date().toISOString().slice(0,10);
+      var detHoy=(d.detalle||[]).filter(function(v){return v.fecha===hoyStr;});
+      var factHoy=detHoy.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+      d.detalle=detHoy;d.factTotal=factHoy;d.nVentas=detHoy.length;
+      d.ticketProm=detHoy.length?Math.round(factHoy/detHoy.length):0;
+      d.nServ=detHoy.filter(function(v){return v.tipo==='SERVICIO';}).length;
+      d.nProd=detHoy.filter(function(v){return v.tipo==='PRODUCTO';}).length;
+      d.factServ=detHoy.filter(function(v){return v.tipo==='SERVICIO';}).reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+      d.factProd=detHoy.filter(function(v){return v.tipo==='PRODUCTO';}).reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+      d.nPagoCompleto=detHoy.filter(function(v){return v.estado_pago==='PAGO COMPLETO';}).length;
+      d.nAdelanto=detHoy.filter(function(v){return v.estado_pago==='ADELANTO';}).length;
+      d.factAdelanto=detHoy.filter(function(v){return v.estado_pago==='ADELANTO';}).reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+      d.nSinDefinir=detHoy.filter(function(v){return !v.estado_pago||v.estado_pago==='PENDIENTE';}).length;
+    }
+    
     VS.data=d;
     renderTop(d);renderKPIs(d);renderMetodos(d.porMetodoPago||[]);
-    renderRank(d.porAsesor||[]);renderTrat(d.porTratamiento||[]);
+    renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
     renderDet(d.detalle||[],'all');
   });
 }
@@ -237,7 +262,9 @@ function renderTop(d){
   el('vs-fact').textContent='S/'+fmt(f);
   el('vs-resumen').textContent=n+' ventas · ticket S/'+Math.round(tk);
   var mes=Number(el('vs-mes').value),anio=el('vs-anio').value;
-  el('vs-periodo-lbl').textContent=MF[mes]+' '+anio;
+  if(VS.modo==='hoy'){el('vs-periodo-lbl').textContent='Hoy, '+new Date().toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'});}
+  else if(VS.modo==='anio'){el('vs-periodo-lbl').textContent='Año '+anio;}
+  else{el('vs-periodo-lbl').textContent=MF[mes]+' '+anio;}
   // Sedes
   var sedes=d.porSede||[];
   el('vs-sedes').innerHTML=sedes.length?sedes.map(function(s){
@@ -285,12 +312,17 @@ function renderMPList(mps,sede){
   box.innerHTML=f.map(function(m){return '<div class="mp-row"><div class="mp-nm">'+h(m.metodo||'')+'</div><div class="mp-n">'+m.n+'</div><div class="mp-v">S/'+fmt(m.total)+'</div></div>';}).join('');
 }
 
-function renderRank(asesores){
+function renderRank(asesores,noAplica){
   var box=el('vs-rank');if(!asesores.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
   var medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','4','5','6'];
-  box.innerHTML=asesores.map(function(a,i){
+  var html=asesores.map(function(a,i){
     return '<div class="ar"><div style="font-size:13px;width:18px;text-align:center;">'+medals[i]+'</div><div class="ar-av" style="background:'+(CL[a.asesor]||'#6B7BA8')+'">'+h((a.asesor||'?').substring(0,2))+'</div><div class="ar-info"><div class="ar-nm">'+h(a.asesor)+'</div><div class="ar-st">'+a.n+' ventas</div></div><div class="ar-val"><div class="ar-f">S/'+fmt(a.total)+'</div><div class="ar-c">Com: S/'+fmt(a.comision)+'</div></div></div>';
   }).join('');
+  // NO APLICA: small, below ranking, no medal
+  if(noAplica&&noAplica.n>0){
+    html+='<div style="margin-top:8px;padding:8px 10px;background:#F8FAFC;border-radius:8px;border:1px solid #F0F4FC;display:flex;align-items:center;gap:8px;"><div style="font-size:9px;color:#94a3b8;">ℹ</div><div style="flex:1;font-size:9px;color:#94a3b8;"><b>NO APLICA</b> · '+noAplica.n+' ventas · S/'+fmt(noAplica.total)+'</div><div style="font-size:8px;color:#94a3b8;">Sin comisión · No participa en ranking</div></div>';
+  }
+  box.innerHTML=html;
 }
 
 function renderTrat(trats){
@@ -368,12 +400,14 @@ function cfgDelMeta(btn,id){
 
 function renderCfgMet(){
   var mets=(VS.data&&VS.data.metodos)||[];
+  var sedeOpts='<option value="">Ambas</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option>';
   el('cfg-met-list').innerHTML=mets.map(function(m){
-    return '<div class="met-row" data-id="'+m.id+'"><input class="cfg-inp" value="'+h(m.nombre)+'" data-field="nombre"><input class="cfg-inp" value="'+h(m.sede||'')+'" placeholder="sede" data-field="sede"><input class="cfg-inp" value="'+h(m.moneda||'PEN')+'" data-field="moneda"><input class="cfg-inp" type="number" value="'+(m.orden||99)+'" data-field="orden" style="width:40px;"><button class="cfg-del" onclick="cfgDelMet(this,\''+m.id+'\')">✕</button></div>';
+    return '<div class="met-row" data-id="'+m.id+'"><input class="cfg-inp" value="'+h(m.nombre)+'" data-field="nombre"><select class="cfg-inp" data-field="sede">'+sedeOpts.replace('value="'+h(m.sede||'')+'"','value="'+h(m.sede||'')+'" selected')+'</select><select class="cfg-inp" data-field="moneda"><option value="PEN"'+(m.moneda==='PEN'?' selected':'')+'>PEN</option><option value="USD"'+(m.moneda==='USD'?' selected':'')+'>USD</option></select><input class="cfg-inp" type="number" value="'+(m.orden||99)+'" data-field="orden" style="width:40px;"><button class="cfg-del" onclick="cfgDelMet(this,\''+m.id+'\')">✕</button></div>';
   }).join('');
 }
 function cfgAddMet(){
-  var div=document.createElement('div');div.className='met-row';div.innerHTML='<input class="cfg-inp" placeholder="Nombre" data-field="nombre"><input class="cfg-inp" placeholder="Sede" data-field="sede"><input class="cfg-inp" value="PEN" data-field="moneda"><input class="cfg-inp" type="number" value="99" data-field="orden" style="width:40px;"><button class="cfg-del" onclick="this.parentNode.remove()">✕</button>';
+  var sedeOpts='<option value="">Ambas</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option>';
+  var div=document.createElement('div');div.className='met-row';div.innerHTML='<input class="cfg-inp" placeholder="Nombre" data-field="nombre"><select class="cfg-inp" data-field="sede">'+sedeOpts+'</select><select class="cfg-inp" data-field="moneda"><option value="PEN">PEN</option><option value="USD">USD</option></select><input class="cfg-inp" type="number" value="99" data-field="orden" style="width:40px;"><button class="cfg-del" onclick="this.parentNode.remove()">✕</button>';
   el('cfg-met-list').appendChild(div);
 }
 function cfgDelMet(btn,id){
