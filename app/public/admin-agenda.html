@@ -1,41 +1,69 @@
-<!-- ===== ADMIN AGENDA v1 — DOS PESTAÑAS: AGENDA + GESTIÓN ===== -->
+<!-- ===== ADMIN AGENDA v2 — TIMELINE SEMANAL + GESTIÓN ===== -->
 <style>
 .aa{padding:12px;display:flex;flex-direction:column;gap:10px;min-height:calc(100vh - 52px);font-family:'DM Sans',sans-serif;}
 .aa-tabs{display:flex;gap:3px;background:#F0F4FC;border-radius:10px;padding:3px;width:fit-content;}
 .aa-tab{padding:7px 20px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .aa-tab.act{background:#0A4FBF;color:#fff;box-shadow:0 2px 6px rgba(10,79,191,0.2);}
 .aa-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.aa-hdr-left{display:flex;align-items:center;gap:10px;}
 .aa-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
 .aa-c{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
 .aa-ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.5px;color:#0D1B3E;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.psel{padding:5px 9px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;}
-.aa-btn{padding:6px 14px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .12s;}
+.aa-btn{padding:6px 14px;border-radius:8px;border:none;background:#0A4FBF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .12s;}
 .aa-btn:hover{background:#071D4A;}
 .aa-btn.sec{background:#F0F4FC;color:#0D1B3E;border:1px solid #DDE4F5;}
 .aa-btn.cyan{background:#00C9A7;}.aa-btn.cyan:hover{background:#00A88A;}
-/* Person row */
-.aa-person{margin-bottom:14px;}
-.aa-person-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px;}
-.aa-person-name{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}
-.aa-person-rol{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;}
-.aa-rol-doc{background:rgba(10,79,191,0.08);color:#0A4FBF;}
-.aa-rol-enf{background:rgba(0,201,167,0.08);color:#00A88A;}
-.aa-rol-ase{background:rgba(217,119,6,0.08);color:#D97706;}
-/* 30-day calendar grid */
-.aa-cal{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;}
-@media(max-width:900px){.aa-cal{grid-template-columns:repeat(7,1fr);}}
-.aa-cal-cell{position:relative;border-radius:6px;padding:3px 2px;min-height:38px;border:1px solid #DDE4F5;text-align:center;cursor:pointer;transition:all .12s;font-size:9px;}
-.aa-cal-cell:hover{border-color:#0A4FBF;background:rgba(10,79,191,0.03);}
-.aa-cal-cell.today{border-color:#00C9A7;border-width:2px;}
-.aa-cal-cell.has-turn{background:rgba(0,201,167,0.06);}
-.aa-cal-day{font-weight:700;font-size:10px;color:#0D1B3E;line-height:1;}
-.aa-cal-dow{font-size:7px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.3px;}
-.aa-cal-sede{font-size:7px;font-weight:700;margin-top:2px;line-height:1.1;}
-.aa-cal-sede.si{color:#0A4FBF;}.aa-cal-sede.pl{color:#00C9A7;}
-.aa-cal-hrs{font-size:7px;color:#9AAAC8;margin-top:1px;}
-.aa-cal-empty{color:#DDE4F5;}
-/* Turn modal */
+/* Role filter pills */
+.aa-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.aa-pill{padding:5px 12px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;transition:all .12s;letter-spacing:.3px;}
+.aa-pill.act{border-color:transparent;}
+.aa-pill.enf.act{background:rgba(0,201,167,0.1);color:#00A88A;border-color:#00C9A7;}
+.aa-pill.doc.act{background:rgba(10,79,191,0.08);color:#0A4FBF;border-color:#0A4FBF;}
+.aa-pill.ase.act{background:rgba(217,119,6,0.08);color:#D97706;border-color:#D97706;}
+.aa-pill.adm.act{background:rgba(124,58,237,0.08);color:#7C3AED;border-color:#7C3AED;}
+.aa-pill.all.act{background:#0D1B3E;color:#fff;border-color:#0D1B3E;}
+/* Week nav */
+.aa-week-nav{display:flex;align-items:center;gap:8px;}
+.aa-week-lbl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;min-width:200px;text-align:center;}
+.aa-nav-btn{width:30px;height:30px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0D1B3E;transition:background .12s;}
+.aa-nav-btn:hover{background:#EBF2FF;}
+.aa-today-btn{padding:4px 12px;border-radius:6px;border:1px solid #00C9A7;font-size:10px;font-weight:700;cursor:pointer;color:#00C9A7;background:rgba(0,201,167,0.06);}
+/* Timeline grid */
+.aa-tl{width:100%;border-collapse:separate;border-spacing:0;font-size:11px;}
+.aa-tl th{padding:8px 4px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;text-transform:uppercase;border-bottom:2px solid #DDE4F5;position:sticky;top:0;background:#fff;z-index:2;}
+.aa-tl th.today{color:#00C9A7;border-bottom-color:#00C9A7;}
+.aa-tl td{padding:3px;vertical-align:top;border-bottom:1px solid #F0F4FC;min-width:90px;}
+.aa-tl td.name-col{padding:8px 6px;vertical-align:middle;font-weight:700;font-size:12px;white-space:nowrap;position:sticky;left:0;background:#fff;z-index:1;min-width:130px;border-right:1px solid #DDE4F5;}
+.aa-tl tr:last-child td{border-bottom:none;}
+/* Turn block inside cell */
+.aa-block{border-radius:8px;padding:5px 6px;min-height:44px;cursor:pointer;transition:all .12s;position:relative;overflow:hidden;}
+.aa-block:hover{transform:scale(1.02);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.aa-block.si{background:rgba(10,79,191,0.08);border-left:3px solid #0A4FBF;}
+.aa-block.pl{background:rgba(0,201,167,0.08);border-left:3px solid #00C9A7;}
+.aa-block-sede{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;}
+.aa-block.si .aa-block-sede{color:#0A4FBF;}
+.aa-block.pl .aa-block-sede{color:#00C9A7;}
+.aa-block-hrs{font-size:9px;color:#6B7BA8;margin-top:1px;}
+.aa-block-note{font-size:8px;color:#9AAAC8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aa-block-citas{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;}
+.aa-block-cita{width:6px;height:6px;border-radius:50%;}
+.aa-cita-pend{background:#D97706;}.aa-cita-conf{background:#0A4FBF;}.aa-cita-asist{background:#00C9A7;}.aa-cita-no{background:#DC2626;}.aa-cita-cancel{background:#9AAAC8;}
+/* Empty cell */
+.aa-empty{border-radius:8px;padding:10px;min-height:44px;cursor:pointer;border:1px dashed #DDE4F5;display:flex;align-items:center;justify-content:center;color:#DDE4F5;font-size:16px;transition:all .12s;}
+.aa-empty:hover{border-color:#0A4FBF;color:#0A4FBF;background:rgba(10,79,191,0.02);}
+/* Sunday */
+.aa-sun{border-radius:8px;padding:5px;min-height:44px;background:rgba(220,38,38,0.03);display:flex;align-items:center;justify-content:center;font-size:8px;color:#DC2626;font-weight:700;}
+/* Role badge */
+.aa-role{font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;letter-spacing:.3px;}
+.aa-role-enf{background:rgba(0,201,167,0.1);color:#00A88A;}
+.aa-role-doc{background:rgba(10,79,191,0.08);color:#0A4FBF;}
+.aa-role-ase{background:rgba(217,119,6,0.08);color:#D97706;}
+/* Agenda iframe */
+.aa-agenda-frame{min-height:600px;}
+/* Loading */
+.aa-ld{display:flex;align-items:center;gap:8px;padding:20px;color:#6B7BA8;font-size:11px;justify-content:center;}
+.aa-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:aasp .7s linear infinite;flex-shrink:0;}
+@keyframes aasp{to{transform:rotate(360deg)}}
+/* Modal */
 .aa-mo{display:none;position:fixed;inset:0;background:rgba(7,29,74,0.4);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
 .aa-mo.open{display:flex;}
 .aa-mm{background:#fff;border-radius:18px;width:min(420px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(7,29,74,0.18);overflow:hidden;}
@@ -49,23 +77,13 @@
 .aa-field textarea{resize:none;height:50px;}
 .aa-mf{display:flex;gap:8px;padding:14px 20px;border-top:1px solid #DDE4F5;}
 .aa-mf .aa-btn{flex:1;padding:10px;text-align:center;}
-/* Agenda iframe area */
-.aa-agenda-frame{min-height:600px;}
-/* Loading */
-.aa-ld{display:flex;align-items:center;gap:8px;padding:20px;color:#6B7BA8;font-size:11px;justify-content:center;}
-.aa-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:aasp .7s linear infinite;flex-shrink:0;}
-@keyframes aasp{to{transform:rotate(360deg)}}
-/* Event/bloqueo cards */
-.aa-ev-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#F0F4FC;margin-bottom:4px;font-size:11px;}
-.aa-ev-time{font-family:'Exo 2',sans-serif;font-weight:800;font-size:11px;color:#0A4FBF;min-width:80px;}
-.aa-ev-title{font-weight:700;flex:1;}
-.aa-ev-del{border:none;background:none;color:#DC2626;cursor:pointer;font-size:14px;padding:2px 4px;}
+.aa-del-btn{background:none;border:none;color:#DC2626;font-size:10px;font-weight:700;cursor:pointer;padding:4px 8px;}
+@media(max-width:900px){.aa-tl{font-size:9px;}.aa-tl td{min-width:70px;}.aa-tl td.name-col{min-width:80px;font-size:10px;}}
 </style>
 
 <div class="aa">
-  <!-- Header con tabs -->
   <div class="aa-hdr">
-    <div class="aa-hdr-left">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span class="aa-title">Agenda</span>
       <div class="aa-tabs">
         <button class="aa-tab act" id="aa-tab-agenda" onclick="aaTab('agenda')">📅 Agenda</button>
@@ -74,42 +92,40 @@
     </div>
   </div>
 
-  <!-- TAB 1: AGENDA (carga el panel existente) -->
+  <!-- TAB 1: AGENDA -->
   <div id="aa-panel-agenda" class="aa-agenda-frame">
     <div class="aa-ld"><div class="aa-sp"></div>Cargando agenda...</div>
   </div>
 
-  <!-- TAB 2: GESTIÓN (turnos calendar + eventos + config) -->
+  <!-- TAB 2: GESTIÓN TIMELINE -->
   <div id="aa-panel-gestion" style="display:none">
-    <!-- Controles de mes -->
-    <div class="aa-c" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="aa-btn sec" onclick="aaNavMes(-1)">◀</button>
-          <span id="aa-mes-label" style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;min-width:160px;text-align:center"></span>
-          <button class="aa-btn sec" onclick="aaNavMes(1)">▶</button>
+    <div class="aa-c">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <div class="aa-week-nav">
+          <button class="aa-nav-btn" onclick="aaNavSem(-1)">◀</button>
+          <span class="aa-week-lbl" id="aa-sem-lbl"></span>
+          <button class="aa-nav-btn" onclick="aaNavSem(1)">▶</button>
+          <button class="aa-today-btn" onclick="aaHoy()">Hoy</button>
         </div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <div class="aa-pills" id="aa-pills">
+            <span class="aa-pill all act" onclick="aaFilterRol(null,this)">Todos</span>
+            <span class="aa-pill enf" onclick="aaFilterRol('ENFERMERIA',this)">Enfermería</span>
+            <span class="aa-pill doc" onclick="aaFilterRol('DOCTORA',this)">Doctoras</span>
+            <span class="aa-pill ase" onclick="aaFilterRol('ASESOR',this)">Asesores</span>
+            <span class="aa-pill adm" onclick="aaFilterRol('ADMINISTRADOR',this)">Admin</span>
+          </div>
           <button class="aa-btn cyan" onclick="aaAbrirEvento()">+ Evento</button>
           <button class="aa-btn sec" onclick="aaAbrirBloqueo()">+ Bloqueo</button>
         </div>
       </div>
-    </div>
-
-    <!-- Calendario de personal -->
-    <div id="aa-gestion-body">
-      <div class="aa-ld"><div class="aa-sp"></div>Cargando turnos...</div>
-    </div>
-
-    <!-- Eventos y bloqueos del mes -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px" id="aa-ev-grid">
-      <div class="aa-c">
-        <div class="aa-ct">EVENTOS DEL MES</div>
-        <div id="aa-eventos-list"><div style="text-align:center;font-size:10px;color:#9AAAC8;padding:10px">Sin eventos</div></div>
-      </div>
-      <div class="aa-c">
-        <div class="aa-ct">BLOQUEOS</div>
-        <div id="aa-bloqueos-list"><div style="text-align:center;font-size:10px;color:#9AAAC8;padding:10px">Sin bloqueos</div></div>
+      <div style="overflow-x:auto">
+        <table class="aa-tl" id="aa-timeline">
+          <thead id="aa-tl-head"></thead>
+          <tbody id="aa-tl-body">
+            <tr><td colspan="8"><div class="aa-ld"><div class="aa-sp"></div>Cargando...</div></td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -118,11 +134,16 @@
 <!-- Modal Turno -->
 <div class="aa-mo" id="aa-mo-turno">
   <div class="aa-mm">
-    <div class="aa-mh"><span class="aa-mh-t" id="aa-mt-title">Asignar turno</span><button class="aa-mx" onclick="aaCerrarTurno()">✕</button></div>
+    <div class="aa-mh">
+      <span class="aa-mh-t" id="aa-mt-title">Asignar turno</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="aa-del-btn" id="aa-mt-del" style="display:none" onclick="aaEliminarTurno()">Eliminar</button>
+        <button class="aa-mx" onclick="aaCerrarTurno()">✕</button>
+      </div>
+    </div>
     <div class="aa-mb">
       <div class="aa-field"><label>Personal</label><input id="aa-mt-nombre" readonly style="font-weight:700;background:#F0F4FC"></div>
-      <input type="hidden" id="aa-mt-codigo">
-      <input type="hidden" id="aa-mt-puesto">
+      <input type="hidden" id="aa-mt-codigo"><input type="hidden" id="aa-mt-puesto"><input type="hidden" id="aa-mt-id">
       <div class="aa-field"><label>Fecha</label><input type="date" id="aa-mt-fecha"></div>
       <div class="aa-field"><label>Sede</label>
         <select id="aa-mt-sede"><option value="SAN ISIDRO">SAN ISIDRO</option><option value="PUEBLO LIBRE">PUEBLO LIBRE</option></select>
@@ -131,11 +152,11 @@
         <div class="aa-field"><label>Entrada</label><input type="time" id="aa-mt-entrada" value="10:30"></div>
         <div class="aa-field"><label>Salida</label><input type="time" id="aa-mt-salida" value="20:30"></div>
       </div>
-      <div class="aa-field"><label>Notas</label><textarea id="aa-mt-notas" placeholder="Opcional..."></textarea></div>
+      <div class="aa-field"><label>Notas</label><textarea id="aa-mt-notas" placeholder="Ej: Turno Enfermeria, PROCEDIMIENTO..."></textarea></div>
     </div>
     <div class="aa-mf">
       <button class="aa-btn sec" onclick="aaCerrarTurno()">Cancelar</button>
-      <button class="aa-btn" onclick="aaGuardarTurno()">Guardar turno</button>
+      <button class="aa-btn" onclick="aaGuardarTurno()">Guardar</button>
     </div>
   </div>
 </div>
@@ -148,21 +169,13 @@
       <div class="aa-field"><label>Título</label><input id="aa-ev-titulo" placeholder="Ej: Capacitación equipo"></div>
       <div class="aa-field"><label>Fecha</label><input type="date" id="aa-ev-fecha"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="aa-field"><label>Hora inicio</label><input type="time" id="aa-ev-inicio" value="09:00"></div>
-        <div class="aa-field"><label>Hora fin</label><input type="time" id="aa-ev-fin" value="10:00"></div>
+        <div class="aa-field"><label>Inicio</label><input type="time" id="aa-ev-inicio" value="09:00"></div>
+        <div class="aa-field"><label>Fin</label><input type="time" id="aa-ev-fin" value="10:00"></div>
       </div>
-      <div class="aa-field"><label>Tipo</label>
-        <select id="aa-ev-tipo"><option>REUNION</option><option>CAPACITACION</option><option>EVENTO</option><option>MANTENIMIENTO</option></select>
-      </div>
-      <div class="aa-field"><label>Sede (vacío=ambas)</label>
-        <select id="aa-ev-sede"><option value="">Ambas sedes</option><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select>
-      </div>
-      <div class="aa-field"><label>Descripción</label><textarea id="aa-ev-desc" placeholder="Opcional..."></textarea></div>
+      <div class="aa-field"><label>Tipo</label><select id="aa-ev-tipo"><option>REUNION</option><option>CAPACITACION</option><option>EVENTO</option></select></div>
+      <div class="aa-field"><label>Sede</label><select id="aa-ev-sede"><option value="">Ambas</option><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>
     </div>
-    <div class="aa-mf">
-      <button class="aa-btn sec" onclick="document.getElementById('aa-mo-evento').classList.remove('open')">Cancelar</button>
-      <button class="aa-btn cyan" onclick="aaGuardarEvento()">Crear evento</button>
-    </div>
+    <div class="aa-mf"><button class="aa-btn sec" onclick="document.getElementById('aa-mo-evento').classList.remove('open')">Cancelar</button><button class="aa-btn cyan" onclick="aaGuardarEvento()">Crear</button></div>
   </div>
 </div>
 
@@ -171,43 +184,32 @@
   <div class="aa-mm">
     <div class="aa-mh"><span class="aa-mh-t">Nuevo bloqueo</span><button class="aa-mx" onclick="document.getElementById('aa-mo-bloqueo').classList.remove('open')">✕</button></div>
     <div class="aa-mb">
-      <div class="aa-field"><label>Tipo</label>
-        <select id="aa-bl-tipo"><option>PERSONAL</option><option>FERIADO</option><option>MANTENIMIENTO</option><option>CAPACITACION</option></select>
-      </div>
+      <div class="aa-field"><label>Tipo</label><select id="aa-bl-tipo"><option>PERSONAL</option><option>FERIADO</option><option>MANTENIMIENTO</option></select></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="aa-field"><label>Fecha inicio</label><input type="date" id="aa-bl-inicio"></div>
-        <div class="aa-field"><label>Fecha fin</label><input type="date" id="aa-bl-fin"></div>
+        <div class="aa-field"><label>Desde</label><input type="date" id="aa-bl-inicio"></div>
+        <div class="aa-field"><label>Hasta</label><input type="date" id="aa-bl-fin"></div>
       </div>
-      <div class="aa-field"><label>Personal (vacío=todos)</label>
-        <select id="aa-bl-personal"><option value="">Todo el equipo</option></select>
-      </div>
-      <div class="aa-field"><label>Sede (vacío=ambas)</label>
-        <select id="aa-bl-sede"><option value="">Ambas sedes</option><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select>
-      </div>
+      <div class="aa-field"><label>Personal</label><select id="aa-bl-personal"><option value="">Todos</option></select></div>
       <div class="aa-field"><label>Motivo</label><textarea id="aa-bl-motivo" placeholder="Ej: Feriado nacional"></textarea></div>
     </div>
-    <div class="aa-mf">
-      <button class="aa-btn sec" onclick="document.getElementById('aa-mo-bloqueo').classList.remove('open')">Cancelar</button>
-      <button class="aa-btn" onclick="aaGuardarBloqueo()">Crear bloqueo</button>
-    </div>
+    <div class="aa-mf"><button class="aa-btn sec" onclick="document.getElementById('aa-mo-bloqueo').classList.remove('open')">Cancelar</button><button class="aa-btn" onclick="aaGuardarBloqueo()">Crear</button></div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// ADMIN AGENDA v1 — Agenda + Gestión de turnos
-// ═══════════════════════════════════════════════════════════════
 var _S='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var _AA={tab:'agenda',mesOffset:0,staff:null,turnos:null};
-var DIAS_S=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var _AA={tab:'agenda',semOff:0,staff:null,turnos:null,citas:null,rolFilter:null};
+var DS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+var DL=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+var MS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 function _r(fn,p,cb){fetch(_S+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(function(d){cb(Array.isArray(d)?d[0]:d);}).catch(function(e){console.error(fn,e);});}
 function _q(t,f,cb){fetch(_S+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_K,'Authorization':'Bearer '+_K}}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});}
 function _rest(path,opts){return fetch(_S+'/rest/v1/'+path,Object.assign({headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
 function _e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _hoy(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function _fmtDate(s){var d=new Date(s+'T12:00:00');return d.getDate()+' '+MS[d.getMonth()].substring(0,3);}
 
 // ═══════ TABS ═══════
 function aaTab(t){
@@ -220,167 +222,173 @@ function aaTab(t){
   if(t==='gestion')aaLoadGestion();
 }
 
-// ═══════ TAB AGENDA (carga agenda.html existente) ═══════
-var _agendaLoaded=false;
+// ═══════ AGENDA TAB ═══════
+var _agLoaded=false;
 function aaLoadAgenda(){
-  if(_agendaLoaded)return;
+  if(_agLoaded)return;
   var el=document.getElementById('aa-panel-agenda');
   fetch('/agenda.html').then(function(r){return r.text();}).then(function(html){
     el.innerHTML=html;
-    var scripts=el.querySelectorAll('script');
-    var ext=[],inl=[];
-    scripts.forEach(function(s){
-      if(s.src){var src=s.getAttribute('src');if(src.charAt(0)==='/')src=location.origin+src;ext.push(src);}
-      else if(s.textContent.trim())inl.push(s.textContent);
-      s.remove();
-    });
-    function loadNext(){
-      if(ext.length){var url=ext.shift();if(document.querySelector('script[src="'+url+'"]')){loadNext();return;}
-        var ns=document.createElement('script');ns.src=url;ns.onload=loadNext;ns.onerror=function(){console.error('err',url);loadNext();};document.head.appendChild(ns);}
-      else if(inl.length){var blob=new Blob([inl.join('\n;\n')],{type:'application/javascript'});var bu=URL.createObjectURL(blob);var ns=document.createElement('script');ns.src=bu;ns.onload=function(){URL.revokeObjectURL(bu);};document.head.appendChild(ns);}
-    }
-    loadNext();
-    _agendaLoaded=true;
-  }).catch(function(e){el.innerHTML='<div style="text-align:center;padding:40px;color:#DC2626">Error cargando agenda</div>';});
+    var scripts=el.querySelectorAll('script');var ext=[],inl=[];
+    scripts.forEach(function(s){if(s.src){var src=s.getAttribute('src');if(src.charAt(0)==='/')src=location.origin+src;ext.push(src);}else if(s.textContent.trim())inl.push(s.textContent);s.remove();});
+    function loadNext(){if(ext.length){var url=ext.shift();if(document.querySelector('script[src="'+url+'"]')){loadNext();return;}var ns=document.createElement('script');ns.src=url;ns.onload=loadNext;document.head.appendChild(ns);}else if(inl.length){var blob=new Blob([inl.join('\n;\n')],{type:'application/javascript'});var bu=URL.createObjectURL(blob);var ns=document.createElement('script');ns.src=bu;ns.onload=function(){URL.revokeObjectURL(bu);};document.head.appendChild(ns);}}
+    loadNext();_agLoaded=true;
+  }).catch(function(){el.innerHTML='<div style="text-align:center;padding:40px;color:#DC2626">Error cargando agenda</div>';});
 }
 
-// ═══════ TAB GESTIÓN ═══════
+// ═══════ GESTIÓN TAB ═══════
+function aaGetSemana(){
+  var d=new Date();
+  d.setDate(d.getDate()-d.getDay()+1+_AA.semOff*7); // Monday
+  var dias=[];
+  for(var i=0;i<7;i++){var dd=new Date(d);dd.setDate(d.getDate()+i);dias.push(dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'));}
+  return dias;
+}
+
 function aaLoadGestion(){
-  aaUpdateMesLabel();
+  var sem=aaGetSemana();
+  var d0=new Date(sem[0]+'T12:00:00'),d6=new Date(sem[6]+'T12:00:00');
+  document.getElementById('aa-sem-lbl').textContent=d0.getDate()+' '+MS[d0.getMonth()]+' — '+d6.getDate()+' '+MS[d6.getMonth()]+' '+d6.getFullYear();
+
   // Load staff
-  _q('aos_rrhh','select=codigo_asesor,nombre,puesto&estado=eq.ACTIVO&puesto=in.(ENFERMERIA,ASESOR,DOCTORA)&order=puesto,nombre',function(staff){
+  _q('aos_rrhh','select=codigo_asesor,nombre,puesto&estado=eq.ACTIVO&order=puesto,nombre',function(staff){
     _AA.staff=staff||[];
     // Populate bloqueo dropdown
     var sel=document.getElementById('aa-bl-personal');
-    sel.innerHTML='<option value="">Todo el equipo</option>';
-    (staff||[]).forEach(function(s){sel.innerHTML+='<option value="'+_e(s.nombre)+'">'+_e(s.nombre)+' ('+_e(s.puesto)+')</option>';});
-    aaLoadTurnos();
-  });
-  aaLoadEventos();
-  aaLoadBloqueos();
-}
+    sel.innerHTML='<option value="">Todos</option>';
+    (staff||[]).forEach(function(s){sel.innerHTML+='<option value="'+_e(s.nombre)+'">'+_e(s.nombre)+'</option>';});
 
-function aaGetMesRange(){
-  var d=new Date();d.setMonth(d.getMonth()+_AA.mesOffset);d.setDate(1);
-  var inicio=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
-  var fin=new Date(d.getFullYear(),d.getMonth()+1,0);
-  var finStr=fin.getFullYear()+'-'+String(fin.getMonth()+1).padStart(2,'0')+'-'+String(fin.getDate()).padStart(2,'0');
-  return {inicio:inicio,fin:finStr,mes:d.getMonth(),anio:d.getFullYear(),diasMes:fin.getDate()};
-}
+    // Load turnos for the week
+    _q('aos_horarios_personal','select=id,personal,rol,fecha,sede,hora_inicio,hora_fin,notas,activo&fecha=gte.'+sem[0]+'&fecha=lte.'+sem[6]+'&activo=eq.true&order=personal,fecha',function(turnos){
+      _AA.turnos=turnos||[];
 
-function aaUpdateMesLabel(){
-  var r=aaGetMesRange();
-  document.getElementById('aa-mes-label').textContent=MESES[r.mes]+' '+r.anio;
-}
-
-function aaNavMes(dir){_AA.mesOffset+=dir;aaLoadGestion();}
-
-function aaLoadTurnos(){
-  var r=aaGetMesRange();
-  _q('aos_horarios_personal','select=id,personal,rol,fecha,sede,hora_inicio,hora_fin,tipo_turno,notas,activo&fecha=gte.'+r.inicio+'&fecha=lte.'+r.fin+'&activo=eq.true&order=fecha',function(turnos){
-    _AA.turnos=turnos||[];
-    aaRenderCalendars(r);
+      // Load citas for the week
+      _q('aos_agenda_citas','select=fecha_cita,hora_cita,estado_cita,sede,asesor,tratamiento,nombre&fecha_cita=gte.'+sem[0]+'&fecha_cita=lte.'+sem[6]+'&limit=500',function(citas){
+        _AA.citas=citas||[];
+        aaRenderTimeline(sem);
+      });
+    });
   });
 }
 
-function aaRenderCalendars(rango){
-  var body=document.getElementById('aa-gestion-body');if(!body)return;
-  var staff=_AA.staff||[];
-  var turnos=_AA.turnos||[];
+function aaNavSem(dir){_AA.semOff+=dir;aaLoadGestion();}
+function aaHoy(){_AA.semOff=0;aaLoadGestion();}
+function aaFilterRol(rol,el){
+  _AA.rolFilter=rol;
+  document.querySelectorAll('.aa-pill').forEach(function(p){p.classList.remove('act');});
+  el.classList.add('act');
+  aaRenderTimeline(aaGetSemana());
+}
+
+function aaRenderTimeline(sem){
   var hoy=_hoy();
+  var head=document.getElementById('aa-tl-head');
+  var body=document.getElementById('aa-tl-body');
 
-  // Index turnos by personal+fecha
-  var turnoMap={};
-  turnos.forEach(function(t){
-    var key=t.personal+'|'+t.fecha;
-    turnoMap[key]=t;
+  // Header row: empty + 7 days
+  var hhtml='<tr><th style="min-width:130px;text-align:left">Personal</th>';
+  sem.forEach(function(fecha){
+    var d=new Date(fecha+'T12:00:00');
+    var isToday=fecha===hoy;
+    hhtml+='<th class="'+(isToday?'today':'')+'">'+DS[d.getDay()]+'<br><span style="font-size:12px;font-weight:800">'+(d.getDate())+'</span></th>';
+  });
+  hhtml+='</tr>';
+  head.innerHTML=hhtml;
+
+  // Index turnos and citas
+  var tMap={};(_AA.turnos||[]).forEach(function(t){tMap[t.personal+'|'+t.fecha]=t;});
+  var cMap={};(_AA.citas||[]).forEach(function(c){var key=c.fecha_cita;if(!cMap[key])cMap[key]=[];cMap[key].push(c);});
+
+  // Filter staff by role
+  var staff=(_AA.staff||[]).filter(function(s){
+    if(!_AA.rolFilter)return true;
+    return s.puesto===_AA.rolFilter;
   });
 
-  var html='';
-  // Group staff by role
-  var roles=[{lbl:'Enfermería',rol:'ENFERMERIA',cls:'aa-rol-enf'},{lbl:'Doctoras',rol:'DOCTORA',cls:'aa-rol-doc'},{lbl:'Asesores',rol:'ASESOR',cls:'aa-rol-ase'}];
+  // Group by role for section separators
+  var roles=['ENFERMERIA','DOCTORA','ASESOR','ADMINISTRADOR'];
+  var bhtml='';
 
-  roles.forEach(function(role){
-    var personas=staff.filter(function(s){return s.puesto===role.rol;});
+  roles.forEach(function(rol){
+    var personas=staff.filter(function(s){return s.puesto===rol;});
     if(!personas.length)return;
 
-    html+='<div class="aa-c" style="margin-bottom:10px"><div class="aa-ct">'+_e(role.lbl.toUpperCase())+'</div>';
+    personas.forEach(function(p,pi){
+      var rolCls=rol==='ENFERMERIA'?'aa-role-enf':rol==='DOCTORA'?'aa-role-doc':rol==='ASESOR'?'aa-role-ase':'';
+      bhtml+='<tr><td class="name-col">'+_e(p.nombre)+'<span class="aa-role '+rolCls+'">'+_e(rol.substring(0,3))+'</span></td>';
 
-    personas.forEach(function(p){
-      html+='<div class="aa-person">';
-      html+='<div class="aa-person-hdr"><span class="aa-person-name">'+_e(p.nombre)+'</span><span class="aa-person-rol '+role.cls+'">'+_e(p.puesto)+'</span></div>';
-      html+='<div class="aa-cal">';
-
-      // Generate 30 days from range
-      for(var d=1;d<=rango.diasMes;d++){
-        var fecha=rango.anio+'-'+String(rango.mes+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-        var dt=new Date(rango.anio,rango.mes,d);
-        var dow=DIAS_S[dt.getDay()];
-        var key=p.nombre+'|'+fecha;
-        var turno=turnoMap[key];
+      sem.forEach(function(fecha){
+        var d=new Date(fecha+'T12:00:00');
+        var isSun=d.getDay()===0;
         var isToday=fecha===hoy;
-        var isSunday=dt.getDay()===0;
+        var turno=tMap[p.nombre+'|'+fecha];
 
-        var cellCls='aa-cal-cell'+(isToday?' today':'')+(turno?' has-turn':'');
+        // Count citas for this person on this day
+        var dayCitas=(cMap[fecha]||[]).filter(function(c){
+          return c.asesor===p.nombre||c.asesor===('SRA '+p.nombre);
+        });
 
-        if(isSunday){
-          html+='<div class="'+cellCls+'" style="background:rgba(220,38,38,0.03);border-color:#FECACA">';
-          html+='<div class="aa-cal-day" style="color:#DC2626">'+d+'</div>';
-          html+='<div class="aa-cal-dow" style="color:#DC2626">'+dow+'</div>';
-          html+='<div class="aa-cal-sede" style="color:#DC2626;font-size:7px">DESC.</div>';
-          html+='</div>';
+        if(isSun){
+          bhtml+='<td><div class="aa-sun">DESC.</div></td>';
         }else if(turno){
-          var sedeShort=turno.sede==='SAN ISIDRO'?'S.I.':'P.L.';
           var sedeCls=turno.sede==='SAN ISIDRO'?'si':'pl';
+          var sedeLabel=turno.sede==='SAN ISIDRO'?'San Isidro':'Pueblo Libre';
           var hIni=(turno.hora_inicio||'').substring(0,5);
           var hFin=(turno.hora_fin||'').substring(0,5);
-          html+='<div class="'+cellCls+'" onclick="aaEditarTurno(\''+_e(p.codigo_asesor)+'\',\''+_e(p.nombre)+'\',\''+_e(p.puesto)+'\',\''+fecha+'\',\''+_e(turno.sede)+'\',\''+hIni+'\',\''+hFin+'\')">';
-          html+='<div class="aa-cal-day">'+d+'</div>';
-          html+='<div class="aa-cal-dow">'+dow+'</div>';
-          html+='<div class="aa-cal-sede '+sedeCls+'">'+sedeShort+'</div>';
-          html+='<div class="aa-cal-hrs">'+hIni+'</div>';
-          html+='</div>';
+          bhtml+='<td><div class="aa-block '+sedeCls+'" onclick="aaEditarTurno(\''+_e(turno.id)+'\',\''+_e(p.codigo_asesor)+'\',\''+_e(p.nombre)+'\',\''+_e(p.puesto)+'\',\''+fecha+'\',\''+_e(turno.sede)+'\',\''+hIni+'\',\''+hFin+'\',\''+_e((turno.notas||'').replace(/'/g,''))+'\')">'+
+            '<div class="aa-block-sede">'+sedeLabel+'</div>'+
+            '<div class="aa-block-hrs">'+hIni+' — '+hFin+'</div>';
+          if(turno.notas)bhtml+='<div class="aa-block-note">'+_e(turno.notas)+'</div>';
+          // Citas dots
+          if(dayCitas.length){
+            bhtml+='<div class="aa-block-citas">';
+            dayCitas.forEach(function(c){
+              var est=(c.estado_cita||'').toUpperCase();
+              var cls=est==='PENDIENTE'?'aa-cita-pend':est==='CITA CONFIRMADA'?'aa-cita-conf':(est.indexOf('ASIST')>=0&&est.indexOf('NO')<0)?'aa-cita-asist':est==='NO ASISTIO'?'aa-cita-no':'aa-cita-cancel';
+              bhtml+='<div class="aa-block-cita '+cls+'" title="'+_e(c.hora_cita)+' '+_e(c.tratamiento)+' - '+_e(c.nombre)+'"></div>';
+            });
+            bhtml+='</div>';
+          }
+          bhtml+='</div></td>';
         }else{
-          html+='<div class="'+cellCls+'" onclick="aaCrearTurno(\''+_e(p.codigo_asesor)+'\',\''+_e(p.nombre)+'\',\''+_e(p.puesto)+'\',\''+fecha+'\')" style="opacity:.6">';
-          html+='<div class="aa-cal-day">'+d+'</div>';
-          html+='<div class="aa-cal-dow">'+dow+'</div>';
-          html+='<div class="aa-cal-empty">—</div>';
-          html+='</div>';
+          bhtml+='<td><div class="aa-empty" onclick="aaCrearTurno(\''+_e(p.codigo_asesor)+'\',\''+_e(p.nombre)+'\',\''+_e(p.puesto)+'\',\''+fecha+'\')">+</div></td>';
         }
-      }
-      html+='</div></div>'; // close calendar + person
+      });
+      bhtml+='</tr>';
     });
-
-    html+='</div>'; // close card
   });
 
-  body.innerHTML=html;
+  body.innerHTML=bhtml;
 }
 
-// ═══════ MODAL TURNO ═══════
+// ═══════ TURNO CRUD ═══════
 function aaCrearTurno(codigo,nombre,puesto,fecha){
-  document.getElementById('aa-mt-title').textContent='Asignar turno';
+  document.getElementById('aa-mt-title').textContent='Nuevo turno';
   document.getElementById('aa-mt-nombre').value=nombre;
   document.getElementById('aa-mt-codigo').value=codigo;
   document.getElementById('aa-mt-puesto').value=puesto;
+  document.getElementById('aa-mt-id').value='';
   document.getElementById('aa-mt-fecha').value=fecha;
   document.getElementById('aa-mt-sede').value='SAN ISIDRO';
   document.getElementById('aa-mt-entrada').value=puesto==='DOCTORA'?'14:30':'10:30';
   document.getElementById('aa-mt-salida').value=puesto==='DOCTORA'?'19:30':'20:30';
   document.getElementById('aa-mt-notas').value=puesto==='DOCTORA'?'PROCEDIMIENTO':'Turno Enfermeria';
+  document.getElementById('aa-mt-del').style.display='none';
   document.getElementById('aa-mo-turno').classList.add('open');
 }
 
-function aaEditarTurno(codigo,nombre,puesto,fecha,sede,entrada,salida){
+function aaEditarTurno(id,codigo,nombre,puesto,fecha,sede,entrada,salida,notas){
   document.getElementById('aa-mt-title').textContent='Editar turno';
   document.getElementById('aa-mt-nombre').value=nombre;
   document.getElementById('aa-mt-codigo').value=codigo;
   document.getElementById('aa-mt-puesto').value=puesto;
+  document.getElementById('aa-mt-id').value=id;
   document.getElementById('aa-mt-fecha').value=fecha;
   document.getElementById('aa-mt-sede').value=sede;
   document.getElementById('aa-mt-entrada').value=entrada;
   document.getElementById('aa-mt-salida').value=salida;
-  document.getElementById('aa-mt-notas').value='';
+  document.getElementById('aa-mt-notas').value=notas;
+  document.getElementById('aa-mt-del').style.display='';
   document.getElementById('aa-mo-turno').classList.add('open');
 }
 
@@ -394,120 +402,53 @@ function aaGuardarTurno(){
   var salida=document.getElementById('aa-mt-salida').value;
   var notas=document.getElementById('aa-mt-notas').value;
   var puesto=document.getElementById('aa-mt-puesto').value;
+  var id=document.getElementById('aa-mt-id').value;
   if(!nombre||!fecha||!sede)return;
 
-  // Upsert in aos_horarios_personal (the REAL table)
-  _rest('aos_horarios_personal',{
-    method:'POST',
-    headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify({
-      personal:nombre,rol:puesto==='DOCTORA'?'DOCTORA':'ENFERMERIA',
-      fecha:fecha,sede:sede,hora_inicio:entrada,hora_fin:salida,
-      tipo_turno:'NORMAL',notas:notas||null,activo:true,creado_por:'ADMIN_PANEL'
-    })
-  }).then(function(r){
-    if(r.ok||r.status===201||r.status===409){
-      // If conflict, do PATCH
-      if(r.status===409){
-        _rest('aos_horarios_personal?personal=eq.'+encodeURIComponent(nombre)+'&fecha=eq.'+fecha,{
-          method:'PATCH',
-          body:JSON.stringify({sede:sede,hora_inicio:entrada,hora_fin:salida,notas:notas||null,ts_actualizado:new Date().toISOString()})
-        }).then(function(){aaCerrarTurno();aaLoadTurnos();});
-      }else{
-        aaCerrarTurno();aaLoadTurnos();
-      }
-      if(window.AOS_showToast)AOS_showToast('Turno guardado',''+nombre+' → '+sede+' el '+fecha,'success');
-    }
-  }).catch(function(e){console.error('guardar turno',e);});
+  if(id){
+    // Update existing
+    _rest('aos_horarios_personal?id=eq.'+id,{method:'PATCH',body:JSON.stringify({sede:sede,hora_inicio:entrada,hora_fin:salida,notas:notas||null,ts_actualizado:new Date().toISOString()})})
+    .then(function(){aaCerrarTurno();aaLoadGestion();if(window.AOS_showToast)AOS_showToast('Turno actualizado',nombre+' → '+sede,'success');});
+  }else{
+    // Create new
+    _rest('aos_horarios_personal',{method:'POST',body:JSON.stringify({personal:nombre,rol:puesto==='DOCTORA'?'DOCTORA':(puesto==='ASESOR'?'ASESOR':'ENFERMERIA'),fecha:fecha,sede:sede,hora_inicio:entrada,hora_fin:salida,tipo_turno:'NORMAL',notas:notas||null,activo:true,creado_por:'ADMIN_PANEL'})})
+    .then(function(r){
+      if(r.ok||r.status===201){aaCerrarTurno();aaLoadGestion();if(window.AOS_showToast)AOS_showToast('Turno creado',nombre+' → '+sede+' el '+fecha,'success');}
+      else{r.text().then(function(t){console.error('crear turno',t);});}
+    });
+  }
+}
+
+function aaEliminarTurno(){
+  var id=document.getElementById('aa-mt-id').value;
+  if(!id)return;
+  if(!confirm('¿Eliminar este turno?'))return;
+  _rest('aos_horarios_personal?id=eq.'+id,{method:'DELETE'})
+  .then(function(){aaCerrarTurno();aaLoadGestion();if(window.AOS_showToast)AOS_showToast('Turno eliminado','','');});
 }
 
 // ═══════ EVENTOS ═══════
-function aaLoadEventos(){
-  var r=aaGetMesRange();
-  _q('aos_eventos','select=*&fecha=gte.'+r.inicio+'&fecha=lte.'+r.fin+'&order=fecha,hora_inicio',function(evs){
-    var el=document.getElementById('aa-eventos-list');if(!el)return;
-    if(!evs||!evs.length){el.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:10px">Sin eventos este mes</div>';return;}
-    el.innerHTML=evs.map(function(e){
-      return '<div class="aa-ev-item"><span class="aa-ev-time">'+_e(e.fecha).substring(5)+' '+_e(e.hora_inicio).substring(0,5)+'</span><span class="aa-ev-title">'+_e(e.titulo)+'</span><span style="font-size:9px;color:#9AAAC8">'+_e(e.tipo)+'</span><button class="aa-ev-del" onclick="aaDelEvento(\''+e.id+'\')">×</button></div>';
-    }).join('');
-  });
-}
-
-function aaAbrirEvento(){
-  var r=aaGetMesRange();
-  document.getElementById('aa-ev-fecha').value=_hoy();
-  document.getElementById('aa-ev-titulo').value='';
-  document.getElementById('aa-ev-desc').value='';
-  document.getElementById('aa-mo-evento').classList.add('open');
-}
-
+function aaAbrirEvento(){document.getElementById('aa-ev-fecha').value=_hoy();document.getElementById('aa-ev-titulo').value='';document.getElementById('aa-mo-evento').classList.add('open');}
 function aaGuardarEvento(){
-  var titulo=document.getElementById('aa-ev-titulo').value;
-  var fecha=document.getElementById('aa-ev-fecha').value;
+  var titulo=document.getElementById('aa-ev-titulo').value;var fecha=document.getElementById('aa-ev-fecha').value;
   if(!titulo||!fecha)return;
-  _r('aos_guardar_evento',{
-    p_titulo:titulo,p_fecha:fecha,
-    p_hora_inicio:document.getElementById('aa-ev-inicio').value,
-    p_hora_fin:document.getElementById('aa-ev-fin').value,
-    p_tipo:document.getElementById('aa-ev-tipo').value,
-    p_sede:document.getElementById('aa-ev-sede').value||null,
-    p_descripcion:document.getElementById('aa-ev-desc').value||null
-  },function(d){
-    document.getElementById('aa-mo-evento').classList.remove('open');
-    aaLoadEventos();
-    if(window.AOS_showToast)AOS_showToast('Evento creado',titulo,'success');
+  _r('aos_guardar_evento',{p_titulo:titulo,p_fecha:fecha,p_hora_inicio:document.getElementById('aa-ev-inicio').value,p_hora_fin:document.getElementById('aa-ev-fin').value,p_tipo:document.getElementById('aa-ev-tipo').value,p_sede:document.getElementById('aa-ev-sede').value||null},function(){
+    document.getElementById('aa-mo-evento').classList.remove('open');aaLoadGestion();if(window.AOS_showToast)AOS_showToast('Evento creado',titulo,'success');
   });
-}
-
-function aaDelEvento(id){
-  _rest('aos_eventos?id=eq.'+id,{method:'DELETE'}).then(function(){aaLoadEventos();});
 }
 
 // ═══════ BLOQUEOS ═══════
-function aaLoadBloqueos(){
-  var r=aaGetMesRange();
-  _q('aos_bloqueos','select=*&fecha_inicio=lte.'+r.fin+'&fecha_fin=gte.'+r.inicio+'&order=fecha_inicio',function(bls){
-    var el=document.getElementById('aa-bloqueos-list');if(!el)return;
-    if(!bls||!bls.length){el.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:10px">Sin bloqueos</div>';return;}
-    el.innerHTML=bls.map(function(b){
-      return '<div class="aa-ev-item" style="background:#FEF2F2"><span class="aa-ev-time" style="color:#DC2626">'+_e(b.fecha_inicio).substring(5)+' → '+_e(b.fecha_fin).substring(5)+'</span><span class="aa-ev-title">'+_e(b.motivo||b.tipo)+'</span><span style="font-size:9px;color:#9AAAC8">'+_e(b.nombre_personal||'Todos')+'</span><button class="aa-ev-del" onclick="aaDelBloqueo(\''+b.id+'\')">×</button></div>';
-    }).join('');
-  });
-}
-
-function aaAbrirBloqueo(){
-  document.getElementById('aa-bl-inicio').value=_hoy();
-  document.getElementById('aa-bl-fin').value=_hoy();
-  document.getElementById('aa-bl-motivo').value='';
-  document.getElementById('aa-mo-bloqueo').classList.add('open');
-}
-
+function aaAbrirBloqueo(){document.getElementById('aa-bl-inicio').value=_hoy();document.getElementById('aa-bl-fin').value=_hoy();document.getElementById('aa-bl-motivo').value='';document.getElementById('aa-mo-bloqueo').classList.add('open');}
 function aaGuardarBloqueo(){
-  var inicio=document.getElementById('aa-bl-inicio').value;
-  var fin=document.getElementById('aa-bl-fin').value;
+  var inicio=document.getElementById('aa-bl-inicio').value;var fin=document.getElementById('aa-bl-fin').value;
   if(!inicio||!fin)return;
-  _r('aos_guardar_bloqueo',{
-    p_tipo:document.getElementById('aa-bl-tipo').value,
-    p_fecha_inicio:inicio,p_fecha_fin:fin,
-    p_nombre:document.getElementById('aa-bl-personal').value||null,
-    p_sede:document.getElementById('aa-bl-sede').value||null,
-    p_motivo:document.getElementById('aa-bl-motivo').value||null
-  },function(d){
-    document.getElementById('aa-mo-bloqueo').classList.remove('open');
-    aaLoadBloqueos();
-    if(window.AOS_showToast)AOS_showToast('Bloqueo creado','','success');
+  _r('aos_guardar_bloqueo',{p_tipo:document.getElementById('aa-bl-tipo').value,p_fecha_inicio:inicio,p_fecha_fin:fin,p_nombre:document.getElementById('aa-bl-personal').value||null,p_motivo:document.getElementById('aa-bl-motivo').value||null},function(){
+    document.getElementById('aa-mo-bloqueo').classList.remove('open');aaLoadGestion();if(window.AOS_showToast)AOS_showToast('Bloqueo creado','','success');
   });
 }
 
-function aaDelBloqueo(id){
-  _rest('aos_bloqueos?id=eq.'+id,{method:'DELETE'}).then(function(){aaLoadBloqueos();});
-}
-
-// ═══════ CLOSE MODALS ON OVERLAY CLICK ═══════
-['aa-mo-turno','aa-mo-evento','aa-mo-bloqueo'].forEach(function(id){
-  var m=document.getElementById(id);
-  if(m)m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});
-});
+// ═══════ MODALS CLOSE ON OVERLAY ═══════
+['aa-mo-turno','aa-mo-evento','aa-mo-bloqueo'].forEach(function(id){var m=document.getElementById(id);if(m)m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});});
 
 // ═══════ INIT ═══════
 aaLoadAgenda();
