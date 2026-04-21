@@ -217,12 +217,11 @@ function aRN(id){rpc('aos_marcar_notif_leida',{p_notif_id:id,p_usuario:ME},funct
 function aRT(t){document.getElementById('art-t').classList.toggle('act',t==='t');document.getElementById('art-n').classList.toggle('act',t==='n');document.getElementById('aTareas').style.display=t==='t'?'flex':'none';document.getElementById('aNotifs').style.display=t==='n'?'flex':'none';}
 
 // Notif sound — iPhone tri-tone style
-var _pc=0;
+var _prevTotal=-1,_prevMsgs=0;
 function playTone(){
   try{
     var a=new(window.AudioContext||window.webkitAudioContext)();
-    var notes=[1046.5,1318.5,1568];
-    notes.forEach(function(freq,i){
+    [1046.5,1318.5,1568].forEach(function(freq,i){
       var o=a.createOscillator(),g=a.createGain();
       o.connect(g);g.connect(a.destination);
       o.frequency.value=freq;o.type='sine';
@@ -235,25 +234,30 @@ function playTone(){
 function chkN(){
   var unreadMsgs=AD.ch?AD.ch.reduce(function(s,c){return s+(c.no_leidos||0);},0):0;
   var unreadNotifs=AD.no?AD.no.filter(function(n){return!n.leido;}).length:0;
-  var totalTasks=AD.ta?AD.ta.length:0;
-  var total=unreadMsgs+unreadNotifs+totalTasks;
-  if(_pc>0&&total>_pc){
+  var total=unreadMsgs+unreadNotifs;
+  
+  // First load: just save baseline
+  if(_prevTotal<0){_prevTotal=total;_prevMsgs=unreadMsgs;return;}
+  
+  // New content detected
+  if(total>_prevTotal){
     playTone();
-    // Determine what's new
-    var newMsgs=unreadMsgs-((_pc_msgs||0));
-    var tipo=newMsgs>0?'mensaje':'notificación';
     var lastCh=AD.ch.find(function(c){return c.no_leidos>0;});
-    var from=lastCh?lastCh.nombre:'Admin';
+    var from=lastCh?(lastCh.tipo==='DIRECTO'?'Admin':lastCh.nombre):'Admin';
     var preview=lastCh?lastCh.ultimo_mensaje:'Nueva actualización';
-    // iPhone-style notification — AscendaOS brand colors
-    var d=document.createElement('div');
+    showPushNotif(from,preview);
+  }
+  _prevTotal=total;_prevMsgs=unreadMsgs;
+}
+function showPushNotif(from,preview){
+  // Remove existing notification if any
+  var old=document.getElementById('_aosNotif');if(old)old.remove();
+  var d=document.createElement('div');d.id='_aosNotif';
     d.style.cssText='position:fixed;top:-100px;left:50%;transform:translateX(-50%);z-index:9999;width:min(420px,92vw);transition:top .4s cubic-bezier(.21,1.02,.73,1)';
     d.innerHTML='<div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:20px;padding:14px 18px;box-shadow:0 12px 48px rgba(7,29,74,.4);display:flex;align-items:center;gap:14px;border:1px solid rgba(0,201,167,.15)"><div style="width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#00C9A7,#00E5A0);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,201,167,.3)"><span style="font-size:18px">💬</span></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:800;font-size:11px;color:#00C9A7;letter-spacing:.3px">ASCENDAOS</div><div style="font-size:9px;color:rgba(255,255,255,.35)">ahora</div></div><div style="font-weight:700;font-size:13px;color:#fff;margin-top:2px">'+E(from)+'</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(preview||'Tienes actualizaciones')+'</div></div></div>';
     document.body.appendChild(d);
     setTimeout(function(){d.style.top='12px';},50);
     setTimeout(function(){d.style.top='-100px';setTimeout(function(){d.remove();},500);},5000);
-  }
-  _pc=total;_pc_msgs=unreadMsgs;
 }
 
 setInterval(function(){aLoad();setTimeout(chkN,2000);},8000);
