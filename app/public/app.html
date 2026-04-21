@@ -1006,8 +1006,6 @@ function redirectLogin() {
   try {
     sessionStorage.removeItem('aos_token');
     localStorage.removeItem('aos_session');
-    if (sessionStorage.getItem('_redir')) { sessionStorage.removeItem('_redir'); return; }
-    sessionStorage.setItem('_redir', '1');
   } catch(e) {}
   window.location.href = '/';
 }
@@ -1035,9 +1033,9 @@ window.AOS_showToast   = showToast;
    Tiempo: GAS intermediario = 1-3s overhead por request
            Supabase directo  = ~200-400ms total
 --------------------------------------------------- */
-var _SB = {
+var _SB2 = {
   url: 'https://ituyqwstonmhnfshnaqz.supabase.co',
-  key: 'sb_publishable_mz1j7bmlLulSqUposiKUCg_fka59fW_'
+  key: _SK
 };
 
 /**
@@ -1048,11 +1046,11 @@ var _SB = {
  */
 window.sb_fetch = function(path, opts) {
   opts = opts || {};
-  var url    = _SB.url + path;
+  var url    = _SB2.url + path;
   var method = opts.method || 'GET';
   var headers = {
-    'apikey':        _SB.key,
-    'Authorization': 'Bearer ' + _SB.key,
+    'apikey':        _SB2.key,
+    'Authorization': 'Bearer ' + _SB2.key,
     'Content-Type':  'application/json'
   };
   var init = { method: method, headers: headers };
