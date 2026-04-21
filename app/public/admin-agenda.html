@@ -1,191 +1,228 @@
-<!-- ===== ADMIN AGENDA v3 — GOOGLE CALENDAR STYLE ===== -->
+<!-- ===== ADMIN AGENDA v4 — APPROVED MOCKUP IMPLEMENTATION ===== -->
 <style>
-*{box-sizing:border-box;}
+*{box-sizing:border-box;margin:0;padding:0;}
 .ag{display:flex;flex-direction:column;height:calc(100vh - 52px);font-family:'DM Sans',sans-serif;overflow:hidden;}
-.ag-hdr{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #DDE4F5;flex-shrink:0;}
-.ag-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
-.ag-tabs{display:flex;gap:3px;background:#F0F4FC;border-radius:10px;padding:3px;}
-.ag-tab{padding:6px 18px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans',sans-serif;transition:all .12s;}
+.ag-hdr{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #DDE4F5;flex-shrink:0;}
+.ag-title{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#071D4A;}
+.ag-tabs{display:flex;gap:2px;background:#F0F4FC;border-radius:10px;padding:3px;}
+.ag-tab{padding:6px 16px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#6B7BA8;background:transparent;font-family:'DM Sans';}
 .ag-tab.act{background:#0A4FBF;color:#fff;}
-.ag-nav{padding:6px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid #F0F4FC;flex-shrink:0;flex-wrap:wrap;}
-.ag-nb{width:26px;height:26px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:#0D1B3E;}.ag-nb:hover{background:#EBF2FF;}
-.ag-td{padding:3px 10px;border-radius:6px;border:1px solid #00C9A7;font-size:9px;font-weight:700;cursor:pointer;color:#00C9A7;background:rgba(0,201,167,.05);font-family:'DM Sans';}
-.ag-wl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;min-width:180px;text-align:center;}
-.ag-pills{display:flex;gap:3px;}
-.ag-pill{padding:3px 9px;border-radius:14px;font-size:8px;font-weight:700;cursor:pointer;border:1.5px solid #DDE4F5;background:#fff;color:#6B7BA8;letter-spacing:.3px;text-transform:uppercase;transition:all .12s;}
-.ag-pill.act{border-color:transparent;}
-.ag-pill[data-r="all"].act{background:#0D1B3E;color:#fff;border-color:#0D1B3E;}
-.ag-pill[data-r="ENFERMERIA"].act{background:rgba(0,201,167,.1);color:#00A88A;border-color:#00C9A7;}
-.ag-pill[data-r="DOCTORA"].act{background:rgba(10,79,191,.08);color:#0A4FBF;border-color:#0A4FBF;}
-.ag-pill[data-r="ASESOR"].act{background:rgba(217,119,6,.08);color:#D97706;border-color:#D97706;}
-.ag-pill[data-r="ADMINISTRADOR"].act{background:rgba(124,58,237,.08);color:#7C3AED;border-color:#7C3AED;}
-.ag-btn{padding:4px 10px;border-radius:6px;border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans';}.ag-bp{background:#0A4FBF;color:#fff;}.ag-bc{background:#00C9A7;color:#fff;}.ag-bs{background:#F0F4FC;color:#0D1B3E;border:1px solid #DDE4F5;}
+.ag-nav{display:flex;align-items:center;gap:6px;}
+.ag-nb{width:26px;height:26px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6B7BA8;}.ag-nb:hover{background:#EBF2FF;}
+.ag-td{padding:4px 12px;border-radius:6px;border:1px solid #00C9A7;font-size:10px;font-weight:700;color:#00C9A7;cursor:pointer;background:rgba(0,201,167,.05);font-family:'DM Sans';}
+.ag-wl{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#071D4A;margin:0 4px;}
+.ag-btn{padding:5px 12px;border-radius:8px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans';}
+.ag-bp{background:#00C9A7;color:#fff;}.ag-bs{background:#F0F4FC;color:#071D4A;border:1px solid #DDE4F5;}
 .ag-body{display:flex;flex:1;overflow:hidden;}
-/* Sidebar */
-.ag-side{width:190px;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;background:#FAFBFE;}
-.ag-ss{padding:10px;border-bottom:1px solid #F0F4FC;}
-.ag-st{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#9AAAC8;margin-bottom:5px;}
-.ag-si{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:600;color:#0D1B3E;transition:background .1s;}
-.ag-si:hover{background:rgba(10,79,191,.04);}.ag-si.sel{background:rgba(10,79,191,.08);}
-.ag-sd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.de{background:#00C9A7;}.dd{background:#0A4FBF;}.da{background:#D97706;}.dm{background:#7C3AED;}
-.ag-ss-sede{font-size:7px;color:#9AAAC8;margin-left:auto;}
-/* Mini cal */
-.ag-mc{font-size:8px;text-align:center;}
-.ag-mc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.ag-mc-t{font-weight:800;font-size:10px;color:#0D1B3E;}
-.ag-mc-n{width:16px;height:16px;border-radius:3px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;}
-.ag-mc-g{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
-.ag-mc-dw{font-weight:700;color:#9AAAC8;padding:2px 0;font-size:7px;}
-.ag-mc-d{padding:2px 0;border-radius:3px;cursor:pointer;color:#0D1B3E;font-weight:500;}.ag-mc-d:hover{background:#EBF2FF;}
-.ag-mc-d.today{background:#00C9A7;color:#fff;font-weight:800;}.ag-mc-d.inw{background:rgba(10,79,191,.06);font-weight:700;}.ag-mc-d.oth{color:#D0D5E0;}
-/* Calendar */
-.ag-cal{flex:1;overflow:auto;position:relative;}
-.ag-dh{display:grid;position:sticky;top:0;z-index:3;background:#fff;border-bottom:2px solid #DDE4F5;}
-.ag-dc{padding:5px 3px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#9AAAC8;}
-.ag-dc.tod{color:#00C9A7;border-bottom:2px solid #00C9A7;margin-bottom:-2px;}
-.ag-dn{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:800;color:#0D1B3E;line-height:1;}.ag-dc.tod .ag-dn{color:#00C9A7;}
-.ag-hr{display:grid;min-height:48px;border-bottom:1px solid #F5F6FA;}
-.ag-hl{padding:1px 4px 0 0;text-align:right;font-size:8px;color:#9AAAC8;font-weight:600;width:38px;}
-.ag-hc{border-left:1px solid #F0F4FC;position:relative;min-height:48px;cursor:pointer;}.ag-hc:hover{background:rgba(10,79,191,.015);}
-/* Blocks */
-.ag-bk{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 4px;overflow:hidden;cursor:pointer;z-index:1;font-size:7px;line-height:1.2;transition:box-shadow .1s;}
-.ag-bk:hover{box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:2;}
-.ag-bk.si{background:rgba(10,79,191,.1);border-left:3px solid #0A4FBF;}
-.ag-bk.pl{background:rgba(0,201,167,.1);border-left:3px solid #00C9A7;}
-.ag-bn{font-weight:800;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ag-bk.si .ag-bn{color:#0A4FBF;}.ag-bk.pl .ag-bn{color:#00C9A7;}
-.ag-bi{color:#6B7BA8;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ag-ct{display:flex;align-items:center;gap:2px;padding:1px 3px;border-radius:2px;margin-top:1px;font-size:6px;font-weight:600;background:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ag-cd{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
-.cp{background:#D97706;}.cc{background:#0A4FBF;}.ca{background:#00C9A7;}.cn{background:#DC2626;}.cx{background:#9AAAC8;}
-.ag-now{position:absolute;left:38px;right:0;height:2px;background:#DC2626;z-index:4;pointer-events:none;}.ag-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#DC2626;}
+.ag-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+/* Day header row */
+.ag-dh{display:grid;grid-template-columns:42px repeat(7,1fr);border-bottom:1px solid #DDE4F5;flex-shrink:0;}
+.ag-dc{text-align:center;padding:8px 3px;border-right:1px solid #F0F4FC;}
+.ag-dc:last-child{border-right:none;}
+.ag-dow{font-size:10px;font-weight:700;letter-spacing:.5px;color:#9AAAC8;}
+.ag-dn{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#071D4A;line-height:1.1;}
+.ag-dc.today .ag-dow{color:#00C9A7;}
+.ag-dc.today .ag-dn{color:#00C9A7;}
+.ag-dc.sun{background:rgba(220,38,38,.02);}
+.ag-dc.sun .ag-dow,.ag-dc.sun .ag-dn{color:#DC2626;}
+/* Grid scroll area */
+.ag-grid-wrap{flex:1;overflow-y:auto;position:relative;}
+.ag-grid{display:grid;grid-template-columns:42px repeat(7,1fr);position:relative;}
+.ag-hl{text-align:right;padding:2px 4px 0 0;font-size:9px;color:#9AAAC8;font-weight:600;height:52px;}
+.ag-hc{border-left:1px solid #F0F4FC;border-bottom:1px solid #F5F7FB;height:52px;cursor:pointer;position:relative;}
+.ag-hc:hover{background:rgba(10,79,191,.01);}
+.ag-hc.sun{background:rgba(220,38,38,.015);}
+/* Turno blocks — rounded, NO border-left, soft bg */
+.ag-bk{position:absolute;border-radius:10px;padding:6px 7px;cursor:pointer;overflow:hidden;z-index:1;transition:box-shadow .12s;}
+.ag-bk:hover{box-shadow:0 3px 12px rgba(7,29,74,.1);z-index:2;}
+.ag-bk.si{background:rgba(10,79,191,.06);}
+.ag-bk.pl{background:rgba(0,201,167,.06);}
+.ag-bk-name{font-weight:800;font-size:11px;}
+.ag-bk.si .ag-bk-name{color:#0A4FBF;}
+.ag-bk.pl .ag-bk-name{color:#00A88A;}
+.ag-bk-sede{font-size:9px;opacity:.7;}
+.ag-bk.si .ag-bk-sede{color:#0A4FBF;}
+.ag-bk.pl .ag-bk-sede{color:#00A88A;}
+.ag-bk-hrs{font-size:8px;color:#6B7BA8;margin-top:1px;}
+/* Cita mini-cards — white rounded inside blocks */
+.ag-ci{background:#fff;border-radius:6px;padding:3px 5px;font-size:8px;display:flex;align-items:center;gap:3px;margin-top:2px;}
+.ag-ci-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.ci-pend{background:#D97706;}.ci-conf{background:#0A4FBF;}.ci-asist{background:#00C9A7;}.ci-no{background:#DC2626;}.ci-canc{background:#9AAAC8;}
+.ag-ci-h{color:#071D4A;font-weight:700;}
+.ag-ci-t{color:#6B7BA8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* NOW line */
+.ag-now{position:absolute;left:42px;right:0;height:2px;background:#DC2626;z-index:4;pointer-events:none;}
+.ag-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#DC2626;}
+/* SIDEBAR RIGHT */
+.ag-side{width:200px;border-left:1px solid #DDE4F5;flex-shrink:0;padding:12px 14px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:#FAFBFE;}
+.ag-mc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.ag-mc-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:#071D4A;}
+.ag-mc-n{font-size:9px;color:#9AAAC8;cursor:pointer;padding:2px 4px;}
+.ag-mc-g{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;line-height:2;}
+.ag-mc-dw{color:#9AAAC8;font-weight:700;font-size:8px;}
+.ag-mc-d{border-radius:4px;cursor:pointer;color:#071D4A;}.ag-mc-d:hover{background:#EBF2FF;}
+.ag-mc-d.today{background:#00C9A7;color:#fff;font-weight:800;}
+.ag-mc-d.inw{background:rgba(0,201,167,.1);color:#00A88A;font-weight:700;}
+.ag-mc-d.oth{opacity:.35;}
+.ag-sec-t{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9AAAC8;margin-bottom:6px;}
+.ag-si{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:8px;font-size:11px;font-weight:600;color:#071D4A;cursor:pointer;transition:background .1s;}
+.ag-si:hover{background:rgba(10,79,191,.04);}
+.ag-si.sel{background:rgba(10,79,191,.08);}
+.ag-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ag-si-sede{margin-left:auto;font-size:8px;font-weight:700;}
+.ag-legend{border-top:1px solid #F0F4FC;padding-top:8px;margin-top:auto;}
+.ag-legend-t{font-size:8px;font-weight:700;color:#9AAAC8;margin-bottom:5px;}
+.ag-legend-i{display:flex;flex-wrap:wrap;gap:6px;font-size:8px;color:#6B7BA8;}
+.ag-legend-d{display:flex;align-items:center;gap:3px;}
+/* Agenda frame */
 .ag-af{flex:1;overflow:auto;}
 /* Modal */
-.ag-mo{display:none;position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
-.ag-mo.open{display:flex;}
-.ag-mm{background:#fff;border-radius:14px;width:min(380px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.18);}
-.ag-mh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #DDE4F5;}
-.ag-mt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;}
-.ag-mx{width:24px;height:24px;border-radius:5px;background:#F0F4FC;border:none;cursor:pointer;font-size:14px;color:#6B7BA8;display:flex;align-items:center;justify-content:center;}
-.ag-mb{padding:12px 16px;display:flex;flex-direction:column;gap:7px;}
-.ag-f label{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:1px;}
-.ag-f input,.ag-f select,.ag-f textarea{width:100%;padding:6px 8px;border-radius:6px;border:1px solid #DDE4F5;font-size:10px;font-family:'DM Sans';outline:none;color:#0D1B3E;}
-.ag-f textarea{resize:none;height:38px;}
-.ag-mf{display:flex;gap:5px;padding:10px 16px;border-top:1px solid #DDE4F5;}
-.ag-mf .ag-btn{flex:1;padding:8px;text-align:center;}
-.ag-del{background:none;border:none;color:#DC2626;font-size:9px;font-weight:700;cursor:pointer;padding:2px 5px;}
-.ag-ld{display:flex;align-items:center;gap:8px;padding:20px;color:#6B7BA8;font-size:11px;justify-content:center;}
+.ag-mo{display:none;position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center;}.ag-mo.open{display:flex;}
+.ag-mm{background:#fff;border-radius:16px;width:min(400px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.18);}
+.ag-mh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #DDE4F5;}
+.ag-mt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#071D4A;}
+.ag-mx{width:26px;height:26px;border-radius:6px;background:#F0F4FC;border:none;cursor:pointer;font-size:14px;color:#6B7BA8;display:flex;align-items:center;justify-content:center;}
+.ag-mb{padding:14px 18px;display:flex;flex-direction:column;gap:8px;}
+.ag-f label{font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px;}
+.ag-f input,.ag-f select,.ag-f textarea{width:100%;padding:7px 9px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;color:#071D4A;}.ag-f input:focus,.ag-f select:focus{border-color:#0A4FBF;}
+.ag-f textarea{resize:none;height:44px;}
+.ag-mf{display:flex;gap:6px;padding:12px 18px;border-top:1px solid #DDE4F5;}
+.ag-mf .ag-btn{flex:1;padding:9px;text-align:center;font-size:11px;}
+.ag-del{background:none;border:none;color:#DC2626;font-size:10px;font-weight:700;cursor:pointer;}
+.ag-ld{display:flex;align-items:center;gap:8px;padding:30px;color:#6B7BA8;font-size:11px;justify-content:center;}
 .ag-sp{width:14px;height:14px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:agsp .7s linear infinite;}@keyframes agsp{to{transform:rotate(360deg)}}
 </style>
 
 <div class="ag">
   <div class="ag-hdr">
-    <span class="ag-title">Agenda</span>
-    <div class="ag-tabs">
-      <button class="ag-tab act" id="at-a" onclick="agTab('a')">📅 Citas</button>
-      <button class="ag-tab" id="at-g" onclick="agTab('g')">⚙️ Horarios</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="ag-title">Agenda</span>
+      <div class="ag-tabs">
+        <button class="ag-tab act" id="at-a" onclick="T('a')">Citas</button>
+        <button class="ag-tab" id="at-g" onclick="T('g')">Horarios</button>
+      </div>
     </div>
-  </div>
-  <div class="ag-nav" id="ag-nav" style="display:none">
-    <div style="display:flex;align-items:center;gap:5px">
-      <button class="ag-nb" onclick="agNS(-1)">◀</button>
-      <button class="ag-nb" onclick="agNS(1)">▶</button>
-      <button class="ag-td" onclick="agTD()">Hoy</button>
+    <div class="ag-nav" id="ag-nav" style="display:none">
+      <button class="ag-nb" onclick="NS(-1)">&#9664;</button>
+      <button class="ag-nb" onclick="NS(1)">&#9654;</button>
+      <button class="ag-td" onclick="TD()">Hoy</button>
       <span class="ag-wl" id="ag-wl"></span>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <div class="ag-pills" id="ag-pp"></div>
-      <button class="ag-btn ag-bc" onclick="agAE()">+ Evento</button>
-      <button class="ag-btn ag-bs" onclick="agAB()">+ Bloqueo</button>
+      <span style="width:8px"></span>
+      <button class="ag-btn ag-bp" onclick="OT(null,null,null,null)">+ Turno</button>
+      <button class="ag-btn ag-bs" onclick="OE()">+ Evento</button>
     </div>
   </div>
+
   <div id="ap-a" class="ag-af"><div class="ag-ld"><div class="ag-sp"></div>Cargando agenda...</div></div>
+
   <div id="ap-g" style="display:none;flex:1;overflow:hidden">
     <div class="ag-body">
-      <div class="ag-side"><div class="ag-ss"><div class="ag-mc" id="ag-mc"></div></div><div class="ag-ss" style="flex:1"><div class="ag-st">Personal</div><div id="ag-sl"></div></div></div>
-      <div class="ag-cal" id="ag-cl"><div class="ag-ld"><div class="ag-sp"></div>Cargando...</div></div>
+      <div class="ag-main">
+        <div class="ag-dh" id="ag-dh"></div>
+        <div class="ag-grid-wrap" id="ag-gw">
+          <div class="ag-ld"><div class="ag-sp"></div>Cargando horarios...</div>
+        </div>
+      </div>
+      <div class="ag-side">
+        <div id="ag-mc"></div>
+        <div id="ag-sl"></div>
+        <div class="ag-legend">
+          <div class="ag-legend-t">LEYENDA CITAS</div>
+          <div class="ag-legend-i">
+            <span class="ag-legend-d"><span style="width:6px;height:6px;border-radius:50%;background:#D97706;display:inline-block"></span>Pendiente</span>
+            <span class="ag-legend-d"><span style="width:6px;height:6px;border-radius:50%;background:#0A4FBF;display:inline-block"></span>Confirmada</span>
+            <span class="ag-legend-d"><span style="width:6px;height:6px;border-radius:50%;background:#00C9A7;display:inline-block"></span>Asistio</span>
+            <span class="ag-legend-d"><span style="width:6px;height:6px;border-radius:50%;background:#DC2626;display:inline-block"></span>No asistio</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="ag-mo" id="m-t" onclick="if(event.target===this)cT()"><div class="ag-mm"><div class="ag-mh"><span class="ag-mt" id="mt-t">Turno</span><div style="display:flex;gap:3px"><button class="ag-del" id="mt-d" style="display:none" onclick="dT()">Eliminar</button><button class="ag-mx" onclick="cT()">✕</button></div></div><div class="ag-mb"><div class="ag-f"><label>Personal</label><select id="mt-p"></select></div><input type="hidden" id="mt-id"><div class="ag-f"><label>Fecha</label><input type="date" id="mt-f"></div><div class="ag-f"><label>Sede</label><select id="mt-s"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><div class="ag-f"><label>Entrada</label><input type="time" id="mt-i" value="10:30"></div><div class="ag-f"><label>Salida</label><input type="time" id="mt-e" value="20:30"></div></div><div class="ag-f"><label>Notas</label><textarea id="mt-n"></textarea></div></div><div class="ag-mf"><button class="ag-btn ag-bs" onclick="cT()">Cancelar</button><button class="ag-btn ag-bp" onclick="sT()">Guardar</button></div></div></div>
-<div class="ag-mo" id="m-e" onclick="if(event.target===this)this.classList.remove('open')"><div class="ag-mm"><div class="ag-mh"><span class="ag-mt">Evento</span><button class="ag-mx" onclick="document.getElementById('m-e').classList.remove('open')">✕</button></div><div class="ag-mb"><div class="ag-f"><label>Título</label><input id="me-t" placeholder="Reunión, capacitación..."></div><div class="ag-f"><label>Fecha</label><input type="date" id="me-f"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><div class="ag-f"><label>Inicio</label><input type="time" id="me-i" value="09:00"></div><div class="ag-f"><label>Fin</label><input type="time" id="me-e" value="10:00"></div></div><div class="ag-f"><label>Tipo</label><select id="me-tp"><option>REUNION</option><option>CAPACITACION</option><option>EVENTO</option></select></div><div class="ag-f"><label>Sede</label><select id="me-sd"><option value="">Ambas</option><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div></div><div class="ag-mf"><button class="ag-btn ag-bs" onclick="document.getElementById('m-e').classList.remove('open')">Cancelar</button><button class="ag-btn ag-bc" onclick="sE()">Crear</button></div></div></div>
-<div class="ag-mo" id="m-b" onclick="if(event.target===this)this.classList.remove('open')"><div class="ag-mm"><div class="ag-mh"><span class="ag-mt">Bloqueo</span><button class="ag-mx" onclick="document.getElementById('m-b').classList.remove('open')">✕</button></div><div class="ag-mb"><div class="ag-f"><label>Tipo</label><select id="mb-tp"><option>PERSONAL</option><option>FERIADO</option><option>MANTENIMIENTO</option></select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><div class="ag-f"><label>Desde</label><input type="date" id="mb-i"></div><div class="ag-f"><label>Hasta</label><input type="date" id="mb-e"></div></div><div class="ag-f"><label>Personal</label><select id="mb-p"><option value="">Todos</option></select></div><div class="ag-f"><label>Motivo</label><textarea id="mb-m" placeholder="Feriado, ausencia..."></textarea></div></div><div class="ag-mf"><button class="ag-btn ag-bs" onclick="document.getElementById('m-b').classList.remove('open')">Cancelar</button><button class="ag-btn ag-bp" onclick="sB()">Crear</button></div></div></div>
+<!-- Modal Turno -->
+<div class="ag-mo" id="m-t" onclick="if(event.target===this)CT()"><div class="ag-mm"><div class="ag-mh"><span class="ag-mt" id="mt-t">Nuevo turno</span><div style="display:flex;gap:4px"><button class="ag-del" id="mt-d" style="display:none" onclick="DT()">Eliminar</button><button class="ag-mx" onclick="CT()">&#10005;</button></div></div><div class="ag-mb"><div class="ag-f"><label>Personal</label><select id="mt-p"></select></div><input type="hidden" id="mt-id"><div class="ag-f"><label>Fecha</label><input type="date" id="mt-f"></div><div class="ag-f"><label>Sede</label><select id="mt-s"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="ag-f"><label>Entrada</label><input type="time" id="mt-i" value="10:30"></div><div class="ag-f"><label>Salida</label><input type="time" id="mt-e" value="20:30"></div></div><div class="ag-f"><label>Notas</label><textarea id="mt-n" placeholder="Turno Enfermeria, Procedimiento..."></textarea></div></div><div class="ag-mf"><button class="ag-btn ag-bs" onclick="CT()">Cancelar</button><button class="ag-btn ag-bp" onclick="ST()">Guardar</button></div></div></div>
+<!-- Modal Evento -->
+<div class="ag-mo" id="m-e" onclick="if(event.target===this)this.classList.remove('open')"><div class="ag-mm"><div class="ag-mh"><span class="ag-mt">Nuevo evento</span><button class="ag-mx" onclick="document.getElementById('m-e').classList.remove('open')">&#10005;</button></div><div class="ag-mb"><div class="ag-f"><label>Titulo</label><input id="me-t"></div><div class="ag-f"><label>Fecha</label><input type="date" id="me-f"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="ag-f"><label>Inicio</label><input type="time" id="me-i" value="09:00"></div><div class="ag-f"><label>Fin</label><input type="time" id="me-e" value="10:00"></div></div><div class="ag-f"><label>Tipo</label><select id="me-tp"><option>REUNION</option><option>CAPACITACION</option><option>EVENTO</option></select></div><div class="ag-f"><label>Sede</label><select id="me-sd"><option value="">Ambas</option><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div></div><div class="ag-mf"><button class="ag-btn ag-bs" onclick="document.getElementById('m-e').classList.remove('open')">Cancelar</button><button class="ag-btn ag-bp" onclick="SE()">Crear</button></div></div></div>
 
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var G={so:0,mo:0,st:null,tu:null,ci:null,rf:null,sp:null},DS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],MS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],HM=8,HX=21,RH=48;
-function _r(f,p,c){fetch(SB+'/rest/v1/rpc/'+f,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(function(d){c(Array.isArray(d)?d[0]:d);}).catch(function(e){console.error(f,e);});}
-function _q(t,f,c){fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(c).catch(function(e){console.error(t,e);});}
-function _p(p,o){return fetch(SB+'/rest/v1/'+p,Object.assign({headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}},o||{}));}
-function _e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function _h(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+var G={so:0,mo:0,st:null,tu:null,ci:null,sp:null,sd:null},DS=['DOM','LUN','MAR','MIE','JUE','VIE','SAB'],MS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],HM=9,HX=21,RH=52;
+function rpc(f,p,c){fetch(SB+'/rest/v1/rpc/'+f,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(function(d){c(Array.isArray(d)?d[0]:d);}).catch(function(e){console.error(f,e);});}
+function q(t,f,c){fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(c).catch(function(e){console.error(t,e);});}
+function rest(p,o){return fetch(SB+'/rest/v1/'+p,Object.assign({headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}},o||{}));}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hoy(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
 // Tabs
-function agTab(t){document.getElementById('at-a').classList.toggle('act',t==='a');document.getElementById('at-g').classList.toggle('act',t==='g');document.getElementById('ap-a').style.display=t==='a'?'':'none';var gp=document.getElementById('ap-g');gp.style.display=t==='g'?'flex':'none';document.getElementById('ag-nav').style.display=t==='g'?'flex':'none';if(t==='a')lA();if(t==='g')lG();}
-// Agenda
-var _al=false;function lA(){if(_al)return;var el=document.getElementById('ap-a');fetch('/agenda.html').then(function(r){return r.text();}).then(function(h){el.innerHTML=h;var sc=el.querySelectorAll('script');var ex=[],il=[];sc.forEach(function(s){if(s.src){var u=s.getAttribute('src');if(u.charAt(0)==='/')u=location.origin+u;ex.push(u);}else if(s.textContent.trim())il.push(s.textContent);s.remove();});function ld(){if(ex.length){var u=ex.shift();if(document.querySelector('script[src="'+u+'"]')){ld();return;}var n=document.createElement('script');n.src=u;n.onload=ld;document.head.appendChild(n);}else if(il.length){var b=new Blob([il.join('\n;\n')],{type:'application/javascript'});var u=URL.createObjectURL(b);var n=document.createElement('script');n.src=u;n.onload=function(){URL.revokeObjectURL(u);};document.head.appendChild(n);}}ld();_al=true;}).catch(function(){el.innerHTML='<div style="text-align:center;padding:40px;color:#DC2626">Error</div>';});}
-// Week
+function T(t){document.getElementById('at-a').classList.toggle('act',t==='a');document.getElementById('at-g').classList.toggle('act',t==='g');document.getElementById('ap-a').style.display=t==='a'?'':'none';document.getElementById('ap-g').style.display=t==='g'?'flex':'none';document.getElementById('ag-nav').style.display=t==='g'?'flex':'none';if(t==='a')LA();if(t==='g')LG();}
+
+// Agenda tab
+var _al=false;function LA(){if(_al)return;var el=document.getElementById('ap-a');fetch('/agenda.html').then(function(r){return r.text();}).then(function(h){el.innerHTML=h;var sc=el.querySelectorAll('script');var ex=[],il=[];sc.forEach(function(s){if(s.src){var u=s.getAttribute('src');if(u.charAt(0)==='/')u=location.origin+u;ex.push(u);}else if(s.textContent.trim())il.push(s.textContent);s.remove();});function ld(){if(ex.length){var u=ex.shift();if(document.querySelector('script[src="'+u+'"]')){ld();return;}var n=document.createElement('script');n.src=u;n.onload=ld;document.head.appendChild(n);}else if(il.length){var b=new Blob([il.join('\n;\n')],{type:'application/javascript'});var u=URL.createObjectURL(b);var n=document.createElement('script');n.src=u;n.onload=function(){URL.revokeObjectURL(u);};document.head.appendChild(n);}}ld();_al=true;}).catch(function(){});}
+
+// Week calc
 function gS(){var d=new Date();d.setDate(d.getDate()-d.getDay()+1+G.so*7);var r=[];for(var i=0;i<7;i++){var dd=new Date(d);dd.setDate(d.getDate()+i);r.push(dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'));}return r;}
-function agNS(d){G.so+=d;lG();}function agTD(){G.so=0;lG();}
+function NS(d){G.so+=d;LG();}
+function TD(){G.so=0;LG();}
+
 // Load gestion
-function lG(){
+function LG(){
   var s=gS(),d0=new Date(s[0]+'T12:00:00'),d6=new Date(s[6]+'T12:00:00');
-  document.getElementById('ag-wl').textContent=d0.getDate()+' '+MS[d0.getMonth()]+' — '+d6.getDate()+' '+MS[d6.getMonth()]+' '+d6.getFullYear();
-  var pp=document.getElementById('ag-pp');
-  if(!pp.children.length)pp.innerHTML='<span class="ag-pill act" data-r="all" onclick="fR(null,this)">Todos</span><span class="ag-pill" data-r="ENFERMERIA" onclick="fR(\'ENFERMERIA\',this)">Enf</span><span class="ag-pill" data-r="DOCTORA" onclick="fR(\'DOCTORA\',this)">Doc</span><span class="ag-pill" data-r="ASESOR" onclick="fR(\'ASESOR\',this)">Ase</span><span class="ag-pill" data-r="ADMINISTRADOR" onclick="fR(\'ADMINISTRADOR\',this)">Adm</span>';
-  _q('aos_rrhh','select=codigo_asesor,nombre,puesto&estado=eq.ACTIVO&order=puesto,nombre',function(st){
-    G.st=st||[];bSL(s);bMC();
-    var sel=document.getElementById('mt-p');sel.innerHTML=st.map(function(x){return '<option value="'+_e(x.nombre)+'|'+_e(x.puesto)+'">'+_e(x.nombre)+'</option>';}).join('');
-    var bs=document.getElementById('mb-p');bs.innerHTML='<option value="">Todos</option>'+st.map(function(x){return '<option>'+_e(x.nombre)+'</option>';}).join('');
-    _q('aos_horarios_personal','select=id,personal,rol,fecha,sede,hora_inicio,hora_fin,notas,activo&fecha=gte.'+s[0]+'&fecha=lte.'+s[6]+'&activo=eq.true&order=personal,fecha',function(tu){
+  document.getElementById('ag-wl').textContent=d0.getDate()+' - '+d6.getDate()+' '+MS[d6.getMonth()]+' '+d6.getFullYear();
+  q('aos_rrhh','select=codigo_asesor,nombre,puesto&estado=eq.ACTIVO&order=puesto,nombre',function(st){
+    G.st=st||[];
+    var sel=document.getElementById('mt-p');sel.innerHTML=st.map(function(x){return '<option value="'+e(x.nombre)+'|'+e(x.puesto)+'">'+e(x.nombre)+' ('+e(x.puesto.substring(0,3))+')</option>';}).join('');
+    q('aos_horarios_personal','select=id,personal,rol,fecha,sede,hora_inicio,hora_fin,notas,activo&fecha=gte.'+s[0]+'&fecha=lte.'+s[6]+'&activo=eq.true&order=personal,fecha',function(tu){
       G.tu=tu||[];
-      _q('aos_agenda_citas','select=id,fecha_cita,hora_cita,estado_cita,sede,asesor,tratamiento,nombre,apellido,tipo_atencion&fecha_cita=gte.'+s[0]+'&fecha_cita=lte.'+s[6]+'&limit=500',function(ci){
-        G.ci=ci||[];rC(s);
+      q('aos_agenda_citas','select=id,fecha_cita,hora_cita,estado_cita,sede,asesor,tratamiento,nombre&fecha_cita=gte.'+s[0]+'&fecha_cita=lte.'+s[6]+'&limit=500',function(ci){
+        G.ci=ci||[];
+        rpc('aos_sede_personal_hoy',{p_fecha:hoy()},function(sd){
+          G.sd=sd||{};RDH(s);RG(s);RSL();RMC();
+        });
       });
     });
   });
 }
-function fR(r,e){G.rf=r;document.querySelectorAll('.ag-pill').forEach(function(p){p.classList.remove('act');});e.classList.add('act');rC(gS());}
-// Staff list
-function bSL(s){var el=document.getElementById('ag-sl');if(!el)return;
-  _r('aos_sede_personal_hoy',{p_fecha:_h()},function(sd){
-    el.innerHTML=(G.st||[]).filter(function(x){return !G.rf||x.puesto===G.rf;}).map(function(x){
-      var dc=x.puesto==='ENFERMERIA'?'de':x.puesto==='DOCTORA'?'dd':x.puesto==='ASESOR'?'da':'dm';
-      var se=sd[x.nombre]||'';var ss=se==='SAN ISIDRO'?'S.I.':se==='PUEBLO LIBRE'?'P.L.':'';
-      return '<div class="ag-si'+(G.sp===x.nombre?' sel':'')+'" onclick="sP(\''+_e(x.nombre)+'\')"><div class="ag-sd '+dc+'"></div>'+_e(x.nombre)+'<span class="ag-ss-sede">'+ss+'</span></div>';
-    }).join('');
-  });
-}
-function sP(n){G.sp=G.sp===n?null:n;bSL(gS());rC(gS());}
-// Mini cal
-function bMC(){var el=document.getElementById('ag-mc');if(!el)return;var now=new Date();now.setMonth(now.getMonth()+G.mo);var y=now.getFullYear(),m=now.getMonth();var f=new Date(y,m,1),l=new Date(y,m+1,0);var sw=f.getDay();var s=gS(),h=_h();
-  var html='<div class="ag-mc-h"><button class="ag-mc-n" onclick="G.mo--;bMC()">◀</button><span class="ag-mc-t">'+MS[m]+' '+y+'</span><button class="ag-mc-n" onclick="G.mo++;bMC()">▶</button></div><div class="ag-mc-g">';
-  ['D','L','M','M','J','V','S'].forEach(function(d){html+='<div class="ag-mc-dw">'+d+'</div>';});
-  for(var i=0;i<sw;i++)html+='<div class="ag-mc-d oth"></div>';
-  for(var d=1;d<=l.getDate();d++){var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var c='ag-mc-d';if(ds===h)c+=' today';else if(s.indexOf(ds)>=0)c+=' inw';html+='<div class="'+c+'" onclick="gD(\''+ds+'\')">'+d+'</div>';}
-  html+='</div>';el.innerHTML=html;}
-function gD(ds){var d=new Date(ds+'T12:00:00');var t=new Date();t.setHours(12,0,0,0);var mn=new Date(d);mn.setDate(mn.getDate()-mn.getDay()+1);var tm=new Date(t);tm.setDate(tm.getDate()-tm.getDay()+1);G.so=Math.round((mn-tm)/(7*86400000));lG();}
-// ═══════ RENDER CALENDAR ═══════
-function rC(sem){
-  var cl=document.getElementById('ag-cl');if(!cl)return;var hoy=_h();var hrs=[];for(var h=HM;h<=HX;h++)hrs.push(h);
-  var tD={};(G.tu||[]).forEach(function(t){if(G.rf&&t.rol!==G.rf)return;if(G.sp&&t.personal!==G.sp)return;if(!tD[t.fecha])tD[t.fecha]=[];tD[t.fecha].push(t);});
-  var cD={};(G.ci||[]).forEach(function(c){if(!cD[c.fecha_cita])cD[c.fecha_cita]=[];cD[c.fecha_cita].push(c);});
-  // Header
-  var html='<div class="ag-dh" style="grid-template-columns:38px repeat(7,1fr)">';
-  html+='<div></div>';
-  sem.forEach(function(f){var d=new Date(f+'T12:00:00');html+='<div class="ag-dc'+(f===hoy?' tod':'')+'">'+DS[d.getDay()]+'<div class="ag-dn">'+d.getDate()+'</div></div>';});
-  html+='</div><div style="position:relative">';
-  // Hour rows
-  hrs.forEach(function(h){
-    var hs=h>12?(h-12)+'p':(h===12?'12p':h+'a');
-    html+='<div class="ag-hr" style="display:grid;grid-template-columns:38px repeat(7,1fr);min-height:'+RH+'px"><div class="ag-hl">'+hs+'</div>';
-    sem.forEach(function(f){var d=new Date(f+'T12:00:00');html+='<div class="ag-hc" data-f="'+f+'" data-h="'+h+'" onclick="oT(\''+f+'\','+h+')"'+(d.getDay()===0?' style="background:rgba(220,38,38,.02)"':'')+'></div>';});
+
+// Render day headers
+function RDH(s){
+  var h=hoy(),html='<div style="border-right:1px solid #F0F4FC"></div>';
+  s.forEach(function(f){
+    var d=new Date(f+'T12:00:00'),isSun=d.getDay()===0,isToday=f===h;
+    var cls='ag-dc'+(isToday?' today':'')+(isSun?' sun':'');
+    html+='<div class="'+cls+'"><div class="ag-dow">'+DS[d.getDay()]+'</div><div class="ag-dn">'+d.getDate()+'</div>';
+    if(isToday)html+='<div style="font-size:7px;color:#00C9A7;margin-top:1px">HOY</div>';
     html+='</div>';
   });
-  // Turno blocks
+  document.getElementById('ag-dh').innerHTML=html;
+}
+
+// Render grid + blocks
+function RG(sem){
+  var gw=document.getElementById('ag-gw');if(!gw)return;
+  var h=hoy(),hrs=[];for(var i=HM;i<=HX;i++)hrs.push(i);
+
+  // Index data
+  var tD={};(G.tu||[]).forEach(function(t){if(G.sp&&t.personal!==G.sp)return;if(!tD[t.fecha])tD[t.fecha]=[];tD[t.fecha].push(t);});
+  var cD={};(G.ci||[]).forEach(function(c){if(!cD[c.fecha_cita])cD[c.fecha_cita]=[];cD[c.fecha_cita].push(c);});
+
+  // Grid lines
+  var html='<div class="ag-grid">';
+  hrs.forEach(function(hr){
+    var lbl=hr>12?(hr-12)+':00':(hr===12?'12:00':hr+':00');
+    html+='<div class="ag-hl">'+lbl+'</div>';
+    sem.forEach(function(f){
+      var d=new Date(f+'T12:00:00');
+      html+='<div class="ag-hc'+(d.getDay()===0?' sun':'')+'" onclick="OT(null,null,null,\''+f+'\','+hr+')"></div>';
+    });
+  });
+  html+='</div>';
+
+  // Turno blocks overlay
+  html+='<div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none">';
   sem.forEach(function(f,di){
-    var dt=tD[f]||[];var dc=cD[f]||[];var bc=dt.length;
+    var dt=tD[f]||[],dc=cD[f]||[];
+    var bc=dt.length;
     dt.forEach(function(t,ti){
       var hi=parseInt(t.hora_inicio)||10,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;
       var hf=parseInt(t.hora_fin)||20,mf=parseInt((t.hora_fin||'').split(':')[1])||0;
@@ -193,32 +230,110 @@ function rC(sem){
       var top=((sd-HM)*RH)+'px',height=((ed-sd)*RH)+'px';
       var sc=t.sede==='SAN ISIDRO'?'si':'pl';
       var sl=t.sede==='SAN ISIDRO'?'S. Isidro':'P. Libre';
-      var bw=bc>1?(100/bc)+'%':'100%',bl=bc>1?(ti*100/bc)+'%':'0';
+      var bw=bc>1?(1/bc):1;
+      var bl=bc>1?(ti/bc):0;
       var pc=dc.filter(function(c){return c.asesor===t.personal||c.asesor===('SRA '+t.personal);});
-      html+='<div class="ag-bk '+sc+'" style="top:'+top+';height:'+height+';left:calc(38px + '+di+' * ((100% - 38px)/7) + '+bl+');width:calc((100% - 38px)/7 * '+(1/bc)+' - 3px)" onclick="event.stopPropagation();eT(\''+t.id+'\',\''+_e(t.personal)+'\',\''+_e(t.rol)+'\',\''+t.fecha+'\',\''+_e(t.sede)+'\',\''+(t.hora_inicio||'').substring(0,5)+'\',\''+(t.hora_fin||'').substring(0,5)+'\',\''+_e((t.notas||'').replace(/'/g,''))+'\')"><div class="ag-bn">'+_e(t.personal)+'</div><div class="ag-bi">'+sl+' · '+(t.hora_inicio||'').substring(0,5)+'-'+(t.hora_fin||'').substring(0,5)+'</div>';
-      pc.slice(0,5).forEach(function(c){var es=(c.estado_cita||'').toUpperCase();var dc2=es==='PENDIENTE'?'cp':es==='CITA CONFIRMADA'?'cc':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ca':es==='NO ASISTIO'?'cn':'cx';html+='<div class="ag-ct"><div class="ag-cd '+dc2+'"></div>'+(c.hora_cita||'').substring(0,5)+' '+_e(c.nombre||'')+'</div>';});
-      if(pc.length>5)html+='<div class="ag-ct" style="color:#9AAAC8">+'+(pc.length-5)+' más</div>';
+
+      html+='<div class="ag-bk '+sc+'" style="pointer-events:all;top:'+top+';height:'+height+';left:calc(42px + (100% - 42px)/7 * '+di+' + (100% - 42px)/7 * '+bl*bw+' + 2px);width:calc((100% - 42px)/7 * '+bw+' - 4px)" onclick="ET(\''+t.id+'\',\''+e(t.personal)+'\',\''+e(t.rol)+'\',\''+t.fecha+'\',\''+e(t.sede)+'\',\''+(t.hora_inicio||'').substring(0,5)+'\',\''+(t.hora_fin||'').substring(0,5)+'\',\''+e((t.notas||'').replace(/'/g,''))+'\')">';
+      html+='<div class="ag-bk-name">'+e(t.personal)+'</div>';
+      html+='<div class="ag-bk-sede">'+sl+'</div>';
+      html+='<div class="ag-bk-hrs">'+(t.hora_inicio||'').substring(0,5)+' - '+(t.hora_fin||'').substring(0,5)+'</div>';
+      if(pc.length){
+        html+='<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">';
+        pc.slice(0,6).forEach(function(c){
+          var es=(c.estado_cita||'').toUpperCase();
+          var dc2=es==='PENDIENTE'?'ci-pend':es==='CITA CONFIRMADA'?'ci-conf':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ci-asist':es==='NO ASISTIO'?'ci-no':'ci-canc';
+          html+='<div class="ag-ci"><div class="ag-ci-dot '+dc2+'"></div><span class="ag-ci-h">'+(c.hora_cita||'').substring(0,5)+'</span><span class="ag-ci-t">'+e(c.nombre||c.tratamiento||'')+'</span></div>';
+        });
+        if(pc.length>6)html+='<div style="font-size:7px;color:#9AAAC8;margin-top:1px;pointer-events:all">+'+(pc.length-6)+' mas</div>';
+        html+='</div>';
+      }
       html+='</div>';
     });
   });
-  // Now marker
+
+  // NOW line
   var nH=new Date().getHours()+new Date().getMinutes()/60;
-  if(sem.indexOf(hoy)>=0&&nH>=HM&&nH<=HX+1)html+='<div class="ag-now" style="top:'+((nH-HM)*RH)+'px"></div>';
-  html+='</div>';cl.innerHTML=html;
+  if(sem.indexOf(h)>=0&&nH>=HM&&nH<=HX+1)html+='<div class="ag-now" style="top:'+((nH-HM)*RH)+'px"></div>';
+  html+='</div>';
+
+  gw.innerHTML=html;
+  // Scroll to ~10am
+  gw.scrollTop=RH*1.5;
 }
-// ═══════ TURNO CRUD ═══════
-function oT(f,h){var d=new Date(f+'T12:00:00');if(d.getDay()===0)return;document.getElementById('mt-t').textContent='Nuevo turno';document.getElementById('mt-id').value='';document.getElementById('mt-f').value=f;document.getElementById('mt-i').value=String(h).padStart(2,'0')+':00';document.getElementById('mt-e').value=String(Math.min(h+10,21)).padStart(2,'0')+':00';document.getElementById('mt-n').value='';document.getElementById('mt-d').style.display='none';document.getElementById('m-t').classList.add('open');}
-function eT(id,nm,rl,f,sd,i,e,nt){document.getElementById('mt-t').textContent='Editar turno';document.getElementById('mt-id').value=id;var sel=document.getElementById('mt-p');for(var x=0;x<sel.options.length;x++){if(sel.options[x].value.indexOf(nm)===0){sel.selectedIndex=x;break;}}document.getElementById('mt-f').value=f;document.getElementById('mt-s').value=sd;document.getElementById('mt-i').value=i;document.getElementById('mt-e').value=e;document.getElementById('mt-n').value=nt;document.getElementById('mt-d').style.display='';document.getElementById('m-t').classList.add('open');}
-function cT(){document.getElementById('m-t').classList.remove('open');}
-function sT(){var pv=document.getElementById('mt-p').value;var pts=pv.split('|');var nm=pts[0],pu=pts[1]||'ENFERMERIA';var f=document.getElementById('mt-f').value,sd=document.getElementById('mt-s').value,i=document.getElementById('mt-i').value,e=document.getElementById('mt-e').value,nt=document.getElementById('mt-n').value,id=document.getElementById('mt-id').value;if(!nm||!f)return;var rl=pu==='DOCTORA'?'DOCTORA':(pu==='ASESOR'?'ASESOR':'ENFERMERIA');
-  if(id){_p('aos_horarios_personal?id=eq.'+id,{method:'PATCH',body:JSON.stringify({personal:nm,rol:rl,sede:sd,hora_inicio:i,hora_fin:e,notas:nt||null,ts_actualizado:new Date().toISOString()})}).then(function(){cT();lG();if(window.AOS_showToast)AOS_showToast('Turno actualizado',nm,'success');});}
-  else{_p('aos_horarios_personal',{method:'POST',body:JSON.stringify({personal:nm,rol:rl,fecha:f,sede:sd,hora_inicio:i,hora_fin:e,tipo_turno:'NORMAL',notas:nt||null,activo:true,creado_por:'ADMIN_PANEL'})}).then(function(r){if(r.ok||r.status===201){cT();lG();if(window.AOS_showToast)AOS_showToast('Turno creado',nm+' → '+sd,'success');}});}}
-function dT(){var id=document.getElementById('mt-id').value;if(!id||!confirm('¿Eliminar turno?'))return;_p('aos_horarios_personal?id=eq.'+id,{method:'DELETE'}).then(function(){cT();lG();});}
-// Eventos/Bloqueos
-function agAE(){document.getElementById('me-f').value=_h();document.getElementById('me-t').value='';document.getElementById('m-e').classList.add('open');}
-function sE(){var t=document.getElementById('me-t').value,f=document.getElementById('me-f').value;if(!t||!f)return;_r('aos_guardar_evento',{p_titulo:t,p_fecha:f,p_hora_inicio:document.getElementById('me-i').value,p_hora_fin:document.getElementById('me-e').value,p_tipo:document.getElementById('me-tp').value,p_sede:document.getElementById('me-sd').value||null},function(){document.getElementById('m-e').classList.remove('open');lG();if(window.AOS_showToast)AOS_showToast('Evento creado',t,'success');});}
-function agAB(){document.getElementById('mb-i').value=_h();document.getElementById('mb-e').value=_h();document.getElementById('mb-m').value='';document.getElementById('m-b').classList.add('open');}
-function sB(){var i=document.getElementById('mb-i').value,e=document.getElementById('mb-e').value;if(!i||!e)return;_r('aos_guardar_bloqueo',{p_tipo:document.getElementById('mb-tp').value,p_fecha_inicio:i,p_fecha_fin:e,p_nombre:document.getElementById('mb-p').value||null,p_motivo:document.getElementById('mb-m').value||null},function(){document.getElementById('m-b').classList.remove('open');lG();if(window.AOS_showToast)AOS_showToast('Bloqueo creado','','success');});}
+
+// Render sidebar staff list
+function RSL(){
+  var el=document.getElementById('ag-sl');if(!el)return;
+  var roles=[{t:'ENFERMERIA',c:'#00C9A7'},{t:'DOCTORA',c:'#0A4FBF'},{t:'ASESOR',c:'#D97706'},{t:'ADMINISTRADOR',c:'#7C3AED'}];
+  var html='';
+  roles.forEach(function(r){
+    var people=(G.st||[]).filter(function(s){return s.puesto===r.t;});
+    if(!people.length)return;
+    html+='<div style="margin-bottom:10px"><div class="ag-sec-t">'+e(r.t==='ENFERMERIA'?'Enfermeria':r.t==='DOCTORA'?'Doctoras':r.t==='ASESOR'?'Asesores':'Admin')+'</div>';
+    people.forEach(function(p){
+      var sede=G.sd[p.nombre]||'';var ss=sede==='SAN ISIDRO'?'S.I.':sede==='PUEBLO LIBRE'?'P.L.':'';
+      var scol=sede==='SAN ISIDRO'?'#0A4FBF':'#00A88A';
+      var sel=G.sp===p.nombre?' sel':'';
+      html+='<div class="ag-si'+sel+'" onclick="SP(\''+e(p.nombre)+'\')"><div class="ag-dot" style="background:'+r.c+'"></div>'+e(p.nombre);
+      if(ss)html+='<span class="ag-si-sede" style="color:'+scol+'">'+ss+'</span>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+function SP(n){G.sp=G.sp===n?null:n;RSL();RG(gS());}
+
+// Render mini calendar
+function RMC(){
+  var el=document.getElementById('ag-mc');if(!el)return;
+  var now=new Date();now.setMonth(now.getMonth()+G.mo);
+  var y=now.getFullYear(),m=now.getMonth(),f=new Date(y,m,1),l=new Date(y,m+1,0),sw=f.getDay();
+  var sem=gS(),h=hoy();
+  var html='<div class="ag-mc-h"><span class="ag-mc-n" onclick="G.mo--;RMC()">&#9664;</span><span class="ag-mc-t">'+MS[m]+' '+y+'</span><span class="ag-mc-n" onclick="G.mo++;RMC()">&#9654;</span></div><div class="ag-mc-g">';
+  ['D','L','M','M','J','V','S'].forEach(function(d){html+='<div class="ag-mc-dw">'+d+'</div>';});
+  for(var i=0;i<sw;i++)html+='<div class="ag-mc-d oth"></div>';
+  for(var d=1;d<=l.getDate();d++){var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var c='ag-mc-d';if(ds===h)c+=' today';else if(sem.indexOf(ds)>=0)c+=' inw';html+='<div class="'+c+'" onclick="GD(\''+ds+'\')">'+d+'</div>';}
+  html+='</div>';el.innerHTML=html;
+}
+function GD(ds){var d=new Date(ds+'T12:00:00'),t=new Date();t.setHours(12,0,0,0);var mn=new Date(d);mn.setDate(mn.getDate()-mn.getDay()+1);var tm=new Date(t);tm.setDate(tm.getDate()-tm.getDay()+1);G.so=Math.round((mn-tm)/(7*86400000));LG();}
+
+// ═══ TURNO CRUD ═══
+function OT(id,nm,rl,f,hr){
+  document.getElementById('mt-t').textContent=id?'Editar turno':'Nuevo turno';
+  document.getElementById('mt-id').value=id||'';
+  document.getElementById('mt-f').value=f||hoy();
+  document.getElementById('mt-i').value=hr?String(hr).padStart(2,'0')+':00':'10:30';
+  document.getElementById('mt-e').value=hr?String(Math.min(hr+10,21)).padStart(2,'0')+':00':'20:30';
+  document.getElementById('mt-n').value='';
+  document.getElementById('mt-d').style.display=id?'':'none';
+  document.getElementById('m-t').classList.add('open');
+}
+function ET(id,nm,rl,f,sd,i,en,nt){
+  document.getElementById('mt-t').textContent='Editar turno';
+  document.getElementById('mt-id').value=id;
+  var sel=document.getElementById('mt-p');for(var x=0;x<sel.options.length;x++){if(sel.options[x].value.indexOf(nm)===0){sel.selectedIndex=x;break;}}
+  document.getElementById('mt-f').value=f;document.getElementById('mt-s').value=sd;
+  document.getElementById('mt-i').value=i;document.getElementById('mt-e').value=en;
+  document.getElementById('mt-n').value=nt;document.getElementById('mt-d').style.display='';
+  document.getElementById('m-t').classList.add('open');
+}
+function CT(){document.getElementById('m-t').classList.remove('open');}
+function ST(){
+  var pv=document.getElementById('mt-p').value,pts=pv.split('|'),nm=pts[0],pu=pts[1]||'ENFERMERIA';
+  var f=document.getElementById('mt-f').value,sd=document.getElementById('mt-s').value;
+  var i=document.getElementById('mt-i').value,en=document.getElementById('mt-e').value;
+  var nt=document.getElementById('mt-n').value,id=document.getElementById('mt-id').value;
+  if(!nm||!f)return;
+  var rl=pu==='DOCTORA'?'DOCTORA':(pu==='ASESOR'?'ASESOR':'ENFERMERIA');
+  if(id){rest('aos_horarios_personal?id=eq.'+id,{method:'PATCH',body:JSON.stringify({personal:nm,rol:rl,sede:sd,hora_inicio:i,hora_fin:en,notas:nt||null,ts_actualizado:new Date().toISOString()})}).then(function(){CT();LG();if(window.AOS_showToast)AOS_showToast('Turno actualizado',nm,'success');});}
+  else{rest('aos_horarios_personal',{method:'POST',body:JSON.stringify({personal:nm,rol:rl,fecha:f,sede:sd,hora_inicio:i,hora_fin:en,tipo_turno:'NORMAL',notas:nt||null,activo:true,creado_por:'ADMIN_PANEL'})}).then(function(r){if(r.ok||r.status===201){CT();LG();if(window.AOS_showToast)AOS_showToast('Turno creado',nm+' - '+sd,'success');}});}
+}
+function DT(){var id=document.getElementById('mt-id').value;if(!id||!confirm('Eliminar turno?'))return;rest('aos_horarios_personal?id=eq.'+id,{method:'DELETE'}).then(function(){CT();LG();});}
+// Eventos
+function OE(){document.getElementById('me-f').value=hoy();document.getElementById('me-t').value='';document.getElementById('m-e').classList.add('open');}
+function SE(){var t=document.getElementById('me-t').value,f=document.getElementById('me-f').value;if(!t||!f)return;rpc('aos_guardar_evento',{p_titulo:t,p_fecha:f,p_hora_inicio:document.getElementById('me-i').value,p_hora_fin:document.getElementById('me-e').value,p_tipo:document.getElementById('me-tp').value,p_sede:document.getElementById('me-sd').value||null},function(){document.getElementById('m-e').classList.remove('open');LG();if(window.AOS_showToast)AOS_showToast('Evento creado',t,'success');});}
 // Init
-lA();
+LA();
 </script>
