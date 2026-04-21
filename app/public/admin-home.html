@@ -260,7 +260,7 @@ function ahAlertas(sem){
     Object.keys(last).forEach(function(a){
       var r=last[a];var est=(r.estado||'').toUpperCase();
       if(r.fin)return;
-      if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='CIERRE_TURNO'){
+      if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='CIERRE_TURNO'&&est!=='INICIO_TURNO'){
         var inicio=r.inicio?new Date(r.inicio):null;
         var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
         var horaInicio='';
@@ -313,7 +313,7 @@ function ahSem(sem){
           var m=parseInt(s.mins_sin||0);var est,cls;
           var log=ll[n];
           if(log&&!log.fin){var le=(log.estado||'').toUpperCase();
-            if(le&&le!=='ACTIVO'&&le!=='EN LLAMADA'&&le!=='CIERRE_TURNO'){est=le;cls='bg-w';}
+            if(le&&le!=='ACTIVO'&&le!=='EN LLAMADA'&&le!=='CIERRE_TURNO'&&le!=='INICIO_TURNO'){est=le;cls='bg-w';}
             else if(m<=3){est='ACTIVO';cls='bg-ok';}
             else if(m<=5){est='EN LLAMADA';cls='bg-w';}
             else{est='INACTIVO';cls='bg-r';}
