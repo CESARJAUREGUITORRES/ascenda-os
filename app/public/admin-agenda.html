@@ -90,7 +90,6 @@
 <div class="ag">
   <div class="ag-hdr">
     <div style="display:flex;align-items:center;gap:6px">
-      <span class="ag-title">Agenda</span>
       <div class="ag-tabs"><button class="ag-tab act" id="at-a" onclick="TT('a')">Citas</button><button class="ag-tab" id="at-g" onclick="TT('g')">Horarios</button></div>
     </div>
     <div class="ag-nav" id="ag-nav" style="display:none">
@@ -187,20 +186,46 @@ function RG(sem){
     html+='<div style="position:relative;border-left:1px solid #F0F4FC;'+(isSun?'background:rgba(220,38,38,.015)':'')+'" data-f="'+f+'" data-di="'+di+'">';
     hrs.forEach(function(hr){html+='<div style="height:'+RH+'px;border-bottom:1px solid #F8F9FC;cursor:pointer" onmousedown="dragS(event,\''+f+'\','+hr+')" onmousemove="dragM(event,'+hr+')" onmouseup="dragE(event,\''+f+'\','+hr+')" onclick="clickC(\''+f+'\','+hr+')"></div>';});
 
-    // Turno blocks
-    dt.forEach(function(t,ti){
-      var hi=parseInt(t.hora_inicio)||10,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;
-      var hf=parseInt(t.hora_fin)||20,mf=parseInt((t.hora_fin||'').split(':')[1])||0;
-      var sd=hi+mi/60,ed=hf+mf/60;var top=((sd-HM)*RH)+'px',height=((ed-sd)*RH)+'px';
-      var sc=t.sede==='SAN ISIDRO'?'si':'pl';var sl=t.sede==='SAN ISIDRO'?'S. Isidro':'P. Libre';
-      var wC='';if(bc===2)wC=ti===0?' w2':' w2r';else if(bc>=3)wC=ti===0?' w3a':ti===1?' w3b':' w3c';
-      var pc=dc.filter(function(c){return c.asesor===t.personal||c.asesor===('SRA '+t.personal);});
-      html+='<div class="ag-bk '+sc+wC+'" style="top:'+top+';height:'+height+'" onclick="event.stopPropagation();ET(\''+t.id+'\',\''+esc(t.personal)+'\',\''+esc(t.rol)+'\',\''+t.fecha+'\',\''+esc(t.sede)+'\',\''+(t.hora_inicio||'').substring(0,5)+'\',\''+(t.hora_fin||'').substring(0,5)+'\',\''+esc((t.notas||'').replace(/'/g,''))+'\')">';
-      html+='<div class="ag-bk-n">'+esc(t.personal)+'</div><div class="ag-bk-s">'+sl+'</div><div class="ag-bk-h">'+(t.hora_inicio||'').substring(0,5)+' - '+(t.hora_fin||'').substring(0,5)+'</div>';
-      if(pc.length){html+='<div style="margin-top:3px;display:flex;flex-direction:column;gap:1px">';
-        pc.slice(0,5).forEach(function(c){var es=(c.estado_cita||'').toUpperCase();var dotC=es==='PENDIENTE'?'cp':es==='CITA CONFIRMADA'?'cc':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ca':es==='NO ASISTIO'?'cn':'cx';
-          html+='<div class="ag-ci"><div class="ag-cd '+dotC+'"></div><b>'+(c.hora_cita||'').substring(0,5)+'</b> <span>'+esc(c.nombre||'')+'</span></div>';});
-        if(pc.length>5)html+='<div style="font-size:6px;color:#9AAAC8">+'+(pc.length-5)+' mas</div>';html+='</div>';}
+    // Turno blocks — GROUP BY SEDE
+    // Group turnos by sede
+    var bySede={};dt.forEach(function(t){var s=t.sede||'SAN ISIDRO';if(!bySede[s])bySede[s]=[];bySede[s].push(t);});
+    var sedes=Object.keys(bySede);var ns=sedes.length;
+
+    sedes.forEach(function(sede,si2){
+      var grp=bySede[sede];
+      // Find earliest start and latest end for this sede group
+      var minStart=24,maxEnd=0;
+      grp.forEach(function(t){
+        var hi=parseInt(t.hora_inicio)||10,mi=parseInt((t.hora_inicio||'').split(':')[1])||0;
+        var hf=parseInt(t.hora_fin)||20,mf=parseInt((t.hora_fin||'').split(':')[1])||0;
+        var s=hi+mi/60,e2=hf+mf/60;if(s<minStart)minStart=s;if(e2>maxEnd)maxEnd=e2;
+      });
+      var top=((minStart-HM)*RH)+'px',height=((maxEnd-minStart)*RH)+'px';
+      var sc=sede==='SAN ISIDRO'?'si':'pl';var sl=sede==='SAN ISIDRO'?'S. Isidro':'P. Libre';
+      // Width: if two sedes, split 50/50
+      var wStyle='';
+      if(ns===2)wStyle=si2===0?'left:1px;right:50%;':'left:50%;right:1px;';
+      else wStyle='left:1px;right:1px;';
+
+      // All citas for people in this sede group
+      var allCitas=[];grp.forEach(function(t){
+        var pc=dc.filter(function(c){return c.asesor===t.personal||c.asesor===('SRA '+t.personal);});
+        allCitas=allCitas.concat(pc);
+      });
+
+      html+='<div class="ag-bk '+sc+'" style="top:'+top+';height:'+height+';'+wStyle+'" onclick="event.stopPropagation();ET(\''+grp[0].id+'\',\''+esc(grp[0].personal)+'\',\''+esc(grp[0].rol)+'\',\''+grp[0].fecha+'\',\''+esc(sede)+'\',\''+(grp[0].hora_inicio||'').substring(0,5)+'\',\''+(grp[0].hora_fin||'').substring(0,5)+'\',\'\')">';
+      // Names of all people in this sede
+      html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:2px">';
+      grp.forEach(function(t){html+='<span class="ag-bk-n" style="font-size:9px">'+esc(t.personal)+'</span>';});
+      html+='</div>';
+      html+='<div class="ag-bk-s">'+sl+'</div>';
+      html+='<div class="ag-bk-h">'+(grp[0].hora_inicio||'').substring(0,5)+' - '+(grp[0].hora_fin||'').substring(0,5)+'</div>';
+      if(grp.length>1){html+='<div style="font-size:7px;color:#6B7BA8;margin-top:1px;font-style:italic">Dia completo</div>';}
+      // Citas
+      if(allCitas.length){html+='<div style="margin-top:3px;display:flex;flex-direction:column;gap:1px">';
+        allCitas.slice(0,6).forEach(function(c){var es=(c.estado_cita||'').toUpperCase();var dotC=es==='PENDIENTE'?'cp':es==='CITA CONFIRMADA'?'cc':(es.indexOf('ASIST')>=0&&es.indexOf('NO')<0)?'ca':es==='NO ASISTIO'?'cn':'cx';
+          html+='<div class="ag-ci"><div class="ag-cd '+dotC+'"></div><b>'+(c.hora_cita||'').substring(0,5)+'</b> <span>'+esc(c.asesor?c.asesor.substring(0,3)+': ':'')+esc(c.nombre||'')+'</span></div>';});
+        if(allCitas.length>6)html+='<div style="font-size:6px;color:#9AAAC8">+'+(allCitas.length-6)+' mas</div>';html+='</div>';}
       html+='</div>';
     });
 
