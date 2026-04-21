@@ -5,7 +5,7 @@
 .vs-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;display:flex;align-items:center;gap:6px;}
 .vs-modes{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #DDE4F5;}
 .vs-mode{padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#6B7BA8;border:none;font-family:'DM Sans';}
-.vs-mode.act{background:#0A4FBF;color:#fff;}
+.vs-mode.act{background:#00C9A7;color:#fff;}
 .psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans';color:#0D1B3E;outline:none;}
 .vs-cfg{padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:'DM Sans';}
 .vs-cfg:hover{border-color:#0A4FBF;color:#0A4FBF;}
@@ -42,7 +42,7 @@
 /* Metodos */
 .mp-tabs{display:flex;gap:4px;margin-bottom:8px;}
 .mp-tab{padding:3px 10px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:'DM Sans';}
-.mp-tab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.mp-tab.act{background:#00C9A7;color:#fff;border-color:#00C9A7;}
 .mp-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #F0F4FC;font-size:11px;}
 .mp-row:last-child{border-bottom:none;}
 .mp-nm{flex:1;font-weight:600;color:#0D1B3E;}.mp-n{color:#9AAAC8;font-size:9px;min-width:30px;text-align:center;}
@@ -63,7 +63,7 @@
 .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
 .ftabs{display:flex;gap:4px;}
 .ftab{padding:4px 10px;border-radius:6px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:'DM Sans';}
-.ftab.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.ftab.act{background:#071D4A;color:#fff;border-color:#071D4A;}
 .vt{width:100%;border-collapse:collapse;}
 .vt th{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
 .vt td{padding:6px;border-bottom:1px solid rgba(221,228,245,.3);font-size:10px;vertical-align:middle;}
@@ -88,7 +88,7 @@
 .mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-p{background:#0A4FBF;color:#fff;}
 .cfg-tabs{display:flex;gap:0;border-bottom:2px solid #F0F4FC;margin-bottom:14px;}
 .cfg-tab{padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:none;color:#9AAAC8;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'DM Sans';}
-.cfg-tab.act{color:#0A4FBF;border-bottom-color:#0A4FBF;}
+.cfg-tab.act{color:#00C9A7;border-bottom-color:#00C9A7;}
 .cfg-row{display:grid;grid-template-columns:1fr 120px 28px;gap:8px;align-items:center;margin-bottom:6px;}
 .cfg-inp{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;width:100%;}
 .cfg-inp:focus{border-color:#0A4FBF;}
@@ -168,7 +168,7 @@
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
     <table class="vt"><thead><tr><th>Fecha</th><th>Cliente</th><th>Celular</th><th>Tratamiento</th><th>Método</th><th>Monto</th><th>Estado</th><th>Tipo</th><th>Asesor</th><th>Sede</th></tr></thead>
     <tbody id="vs-tb"><tr><td colspan="10" class="ld">Cargando...</td></tr></tbody>
-    <tfoot><tr style="border-top:2px solid #0A4FBF;"><td colspan="5" style="font-weight:700;font-size:11px;color:#0D1B3E;">TOTAL</td><td style="font-weight:800;font-family:'Exo 2';color:#0D1B3E;" id="vs-tft">--</td><td colspan="4"></td></tr></tfoot>
+    <tfoot><tr style="border-top:2px solid #00C9A7;"><td colspan="5" style="font-weight:700;font-size:11px;color:#0D1B3E;">TOTAL</td><td style="font-weight:800;font-family:'Exo 2';color:#0D1B3E;" id="vs-tft">--</td><td colspan="4"></td></tr></tfoot>
     </table></div>
   </div>
 </div>
@@ -224,8 +224,18 @@ function vsLoad(){
   VS.filtro='all';VS.mpSede='all';
   document.querySelectorAll('.ftab').forEach(function(t){t.classList.toggle('act',t.getAttribute('data-f')==='all');});
   
+  if(VS.modo==='anio'){
+    // Year mode: call year-level RPC
+    rpc('aos_ventas_admin_anio',{p_anio:anio,p_sede:sede,p_asesor:asesor},function(d){
+      if(!d)return;VS.data=d;
+      renderTop(d);renderKPIs(d);renderMetodos(d.porMetodoPago||[]);
+      renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
+      renderDet(d.detalle||[],'all');
+    });
+    return;
+  }
+  
   if(VS.modo==='hoy'){
-    // Load current month, then filter to today
     var hoy=new Date();mes=hoy.getMonth()+1;anio=hoy.getFullYear();
     el('vs-mes').value=String(mes);el('vs-anio').value=String(anio);
   }
@@ -234,7 +244,6 @@ function vsLoad(){
     if(!d){el('vs-fact').textContent='Error';return;}
     
     if(VS.modo==='hoy'){
-      // Filter detalle to today only
       var hoyStr=new Date().toISOString().slice(0,10);
       var detHoy=(d.detalle||[]).filter(function(v){return v.fecha===hoyStr;});
       var factHoy=detHoy.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
@@ -329,8 +338,9 @@ function renderTrat(trats){
   var box=el('vs-trat');if(!trats.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
   var mx=parseFloat(trats[0].total||1);
   box.innerHTML=trats.map(function(t){
-    var pct=Math.round(parseFloat(t.total||0)/mx*100);
-    return '<div class="tr-r"><div class="tr-n">'+h((t.tratamiento||'').substring(0,18))+'</div><div class="tr-bar"><div class="tr-fill" style="width:'+pct+'%"></div></div><div class="tr-v">S/'+Math.round(parseFloat(t.total||0))+'</div></div>';
+    var val=parseFloat(t.total||0);
+    var pct=Math.round(val/mx*100);
+    return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;"><div style="width:110px;font-size:9px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">'+h((t.tratamiento||'').substring(0,16))+'</div><div style="flex:1;background:#E2E8F0;border-radius:3px;height:8px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#00C9A7,#0A4FBF);border-radius:3px;"></div></div><div style="min-width:55px;text-align:right;font-size:9px;font-weight:800;color:#071D4A;">S/'+Math.round(val)+'</div></div>';
   }).join('');
 }
 
