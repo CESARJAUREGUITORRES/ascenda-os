@@ -134,8 +134,11 @@ function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&
 function aRChat(){
   var cv=document.getElementById('aChat');var ch=AD.ch.find(function(c){return c.id===AD.ac;});
   if(!ch){cv.innerHTML='<div class="AEmpty"><div style="font-size:14px;font-weight:700;color:#475569">Selecciona un chat</div></div>';return;}
-  var ig=ch.tipo!=='DIRECTO';var nm=ig?ch.nombre:'Admin';var bg=ig?C(ch.nombre):'#8B5CF6';
-  var html='<div class="AMh"><div class="ACa" style="background:'+bg+';width:36px;height:36px;font-size:12px">'+(ig?I(ch.nombre):'AD')+'</div><div><div class="AMn">'+E(nm)+'</div><div class="AMs">'+(ig?'Grupo':'Admin')+'</div></div></div>';
+  var isPeer=ch.tipo==='PEER';var ig=ch.tipo==='GRUPO'||ch.tipo==='BROADCAST';
+  var nm=ig?ch.nombre:(isPeer?peerName(ch):(ch.nombre===ME?'Admin':ch.nombre));
+  var bg=ig?C(ch.nombre):(ch.nombre===ME?'#8B5CF6':C(nm));
+  var sub=ig?'Grupo':(isPeer?'Compañero':'Admin');
+  var html='<div class="AMh"><div class="ACa'+(ig?' grp':'')+'" style="background:'+bg+';width:36px;height:36px;font-size:12px">'+I(nm)+'</div><div><div class="AMn">'+E(nm)+'</div><div class="AMs">'+sub+'</div></div></div>';
   html+='<div class="AMb" id="aMsgs">';
   var ld='';
   AD.ms.forEach(function(m){
