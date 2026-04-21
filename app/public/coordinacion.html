@@ -165,7 +165,7 @@ function init(){
 function lAll(){lCh();lTa();lNo();}
 
 // ═══ CONTACTS ═══
-function lCh(){q('aos_canales','select=*&or=(cerrado.eq.false,cerrado.is.null)&order=ultimo_mensaje_at.desc.nullslast',function(c){D.ch=c||[];rCL();if(D.ac)lMs(D.ac);});}
+function lCh(){q('aos_canales','select=*&order=ultimo_mensaje_at.desc.nullslast',function(c){D.ch=c||[];rCL();if(D.ac)lMs(D.ac);});}
 function rCL(){
   var el=document.getElementById('zCL');
   var bcast=D.ch.filter(function(c){return c.tipo==='BROADCAST';});
