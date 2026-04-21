@@ -102,21 +102,30 @@ function aLoad(){
 }
 function aCL(){
   var el=document.getElementById('aCL');
-  var grpCh=AD.ch.filter(function(c){return c.tipo==='GRUPO'||c.tipo==='BROADCAST';});
   var dirCh=AD.ch.filter(function(c){return c.tipo==='DIRECTO';});
+  var peerCh=AD.ch.filter(function(c){return c.tipo==='PEER';});
+  var grpCh=AD.ch.filter(function(c){return c.tipo==='GRUPO'||c.tipo==='BROADCAST';});
   var html='';
   if(dirCh.length){dirCh.forEach(function(c){html+=rACt(c);});}
+  if(peerCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Compañeros</div>';peerCh.forEach(function(c){html+=rACt(c);});}
   if(grpCh.length){html+='<div style="padding:6px 16px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-top:4px">Grupos</div>';grpCh.forEach(function(c){html+=rACt(c);});}
   el.innerHTML=html||'<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin conversaciones</div>';
 }
+function peerName(c){
+  // For PEER channels, show the OTHER person's name
+  var parts=c.participantes;if(typeof parts==='string')try{parts=JSON.parse(parts);}catch(e){parts=[];}
+  if(!Array.isArray(parts))return c.nombre;
+  var other=parts.find(function(p){return p!==ME;});
+  return other||c.nombre;
+}
 function rACt(c){
-  var a=AD.ac===c.id;var ig=c.tipo!=='DIRECTO';
-  // Direct channels: show "Admin" for the admin channel, otherwise show channel name
-  var nm=ig?c.nombre:(c.nombre===ME?'Admin':c.nombre);
-  var bg=ig?C(c.nombre):(c.nombre===ME?'#8B5CF6':C(c.nombre));
+  var a=AD.ac===c.id;var ig=c.tipo==='GRUPO'||c.tipo==='BROADCAST';
+  var isPeer=c.tipo==='PEER';
+  var nm=ig?c.nombre:(isPeer?peerName(c):(c.nombre===ME?'Admin':c.nombre));
+  var bg=ig?C(c.nombre):(c.nombre===ME?'#8B5CF6':C(nm));
   return'<div class="AC'+(a?' act':'')+'" onclick="aSel(\''+E(c.id)+'\')">'
     +'<div class="ACa'+(ig?' grp':'')+'" style="background:'+bg+'">'+I(nm)+'</div>'
-    +'<div class="ACi"><div class="ACn">'+E(nm)+'</div><div class="ACr">'+(ig?'Grupo':'Chat directo')+'</div><div class="ACm">'+E(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
+    +'<div class="ACi"><div class="ACn">'+E(nm)+'</div><div class="ACr">'+(ig?'Grupo':isPeer?'Compañero':'Admin')+'</div><div class="ACm">'+E(c.ultimo_mensaje||'Sin mensajes')+'</div></div>'
     +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><div class="ACt">'+A(c.ultimo_mensaje_at)+'</div>'
     +(c.no_leidos>0?'<div class="ACu">'+c.no_leidos+'</div>':'')+'</div></div>';
 }
@@ -214,10 +223,11 @@ function aNo(){
   var el=document.getElementById('aNotifs');
   if(!AD.no.length){el.innerHTML='<div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Sin notificaciones</div>';return;}
   el.innerHTML=AD.no.map(function(n){var ic=n.tipo==='URGENTE'?'Ana':n.tipo==='ALERTA'?'Anw':'Ani';var sy=n.tipo==='URGENTE'?'⚠':n.tipo==='ALERTA'?'⚡':'ℹ';
-    return'<div class="ANc'+(n.leido?'':' unr')+'" onclick="aRN(\''+n.id+'\')"><div class="ANi '+ic+'">'+sy+'</div><div style="flex:1"><div style="font-weight:700;font-size:12px;color:#0f172a">'+E(n.titulo)+'</div>'+(n.contenido?'<div style="font-size:10px;color:#64748b;margin-top:2px">'+E(n.contenido)+'</div>':'')+'<div style="font-size:9px;color:#94a3b8;margin-top:3px">'+A(n.created_at)+(n.leido?'':' · <b style="color:#00C9A7">Nueva</b>')+'</div></div></div>';
+    return'<div class="ANc'+(n.leido?'':' unr')+'" style="position:relative"><div class="ANi '+ic+'">'+sy+'</div><div style="flex:1" onclick="aRN(\''+n.id+'\')"><div style="font-weight:700;font-size:12px;color:#0f172a">'+E(n.titulo)+'</div>'+(n.contenido?'<div style="font-size:10px;color:#64748b;margin-top:2px">'+E(n.contenido)+'</div>':'')+'<div style="font-size:9px;color:#94a3b8;margin-top:3px">'+A(n.created_at)+(n.leido?'':' · <b style="color:#00C9A7">Nueva</b>')+'</div></div><button style="position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="aDelN(\''+n.id+'\')">✕</button></div>';
   }).join('');
 }
 function aRN(id){rpc('aos_marcar_notif_leida',{p_notif_id:id,p_usuario:ME},function(){aLoad();});}
+function aDelN(id){rest('aos_notificaciones?id=eq.'+id,{method:'DELETE'}).then(function(){aLoad();});}
 function aRT(t){document.getElementById('art-t').classList.toggle('act',t==='t');document.getElementById('art-n').classList.toggle('act',t==='n');document.getElementById('aTareas').style.display=t==='t'?'flex':'none';document.getElementById('aNotifs').style.display=t==='n'?'flex':'none';}
 
 // Notif sound — iPhone tri-tone style
