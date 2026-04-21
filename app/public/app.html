@@ -687,7 +687,13 @@ function navigateTo(viewId) {
         function loadNext() {
           if (extSrcs.length) {
             var url = extSrcs.shift();
-            if (document.querySelector('script[src="' + url + '"]')) { loadNext(); return; }
+            if (document.querySelector('script[src="' + url + '"]')) {
+              // Script already loaded — re-init if agenda or other panels
+              if (url.indexOf('agenda.js') >= 0 && typeof agLoad === 'function') { try { agLoad(); } catch(e){} }
+              if (url.indexOf('patients.js') >= 0 && typeof ptSearch === 'function') { /* patients self-inits */ }
+              if (url.indexOf('calls.js') >= 0 && typeof ccInit === 'function') { try { ccInit(); } catch(e){} }
+              loadNext(); return;
+            }
             var s = document.createElement('script');
             s.src = url;
             s.onload = function() { loadNext(); };
