@@ -153,7 +153,7 @@
         <table class="ah-t"><thead><tr><th>Asesor</th><th>Llam.</th><th>Citas</th><th>Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
         <tbody id="ah-mtb"><tr><td colspan="6"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
       </div>
-      <div class="ah-c">
+      <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
         <div class="ah-ct">Actividad
           <div style="display:flex;gap:6px;align-items:center">
             <span class="ah-chart-chip act" id="ch-eq" onclick="ahChartFilter(null)">Equipo</span>
@@ -250,6 +250,9 @@ function ahLoad(){
     ahAlertas(res.semaforo||[]);
   });
   ahTicker();ahRank();ahChart();
+  // Benchmark histórico (solo primera vez o cada 5 recargas)
+  if(_D.loadCount===1||_D.loadCount%5===0){ahBench();}
+  ahSparklines();
   _D.loadCount++;
 }
 
@@ -443,26 +446,8 @@ function ahRenderChart(){
   var n=data.length;
   if(!n)return;
 
-  // ── Alarma de bajada ──
-  var llArr=data.map(function(d){return d.ll;});
-  // Últimas 3 ventanas activas (sin contar la futura vacía)
-  var actVals=llArr.filter(function(v,i){return data[i].m<=nowM;});
-  var BASE=5;
-  var alrtEl=document.getElementById('ah-alrt');
-  if(actVals.length>=3){
-    var last3=actVals.slice(-3);
-    var promLast=last3.reduce(function(s,v){return s+v;},0)/3;
-    var prev3=actVals.slice(-6,-3);
-    var promPrev=prev3.length?prev3.reduce(function(s,v){return s+v;},0)/prev3.length:BASE;
-    var drop=promPrev>0&&promLast<promPrev*0.5&&promPrev>=BASE;
-    if(alrtEl){alrtEl.style.display=drop?'inline':'none';}
-    // Notif toast
-    if(drop&&!_D._alrtFired){
-      _D._alrtFired=true;
-      ahN('alert','📉 Bajada de actividad','Llamadas cayeron más del 50% en los últimos 15 min');
-    }
-    if(!drop)_D._alrtFired=false;
-  }else{if(alrtEl)alrtEl.style.display='none';}
+  // Alarma manejada por banda histórica (bench block)
+  var BASE=5; // fallback si no hay benchmark aún
 
   // ── SVG Wall Street ──
   var W=580,H=190,pL=22,pR=8,pT=18,pB=26;
@@ -496,24 +481,24 @@ function ahRenderChart(){
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">';
 
   // Fondo oscuro Wall Street
-  svg+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#071D4A" rx="0"/>';
 
   // Grid sutil
   for(var g=0;g<=4;g++){
     var gy=pT+cH-(g/4*cH),gv=Math.round(maxV*g/4);
-    svg+='<line x1="'+pL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>';
-    svg+='<text x="'+(pL-2)+'" y="'+(gy+3).toFixed(1)+'" fill="rgba(255,255,255,0.25)" font-size="7" text-anchor="end" font-family="DM Sans">'+gv+'</text>';
+    svg+='<line x1="'+pL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+gy.toFixed(1)+'" stroke="#EEF0F8" stroke-width="0.5"/>';
+    svg+='<text x="'+(pL-2)+'" y="'+(gy+3).toFixed(1)+'" fill="#B0BAD4" font-size="7" text-anchor="end" font-family="DM Sans">'+gv+'</text>';
   }
 
   // Línea base en 5 — el umbral
-  svg+='<line x1="'+pL+'" y1="'+yBase.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+yBase.toFixed(1)+'" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4,3"/>';
-  svg+='<text x="'+(pL-2)+'" y="'+(yBase-3).toFixed(1)+'" fill="rgba(255,255,255,0.3)" font-size="7" text-anchor="end" font-family="DM Sans">'+BASE+'</text>';
+  // Línea base umbral
+  svg+='<line x1="'+pL+'" y1="'+yBase.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+yBase.toFixed(1)+'" stroke="#0A4FBF" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>';
+  svg+='<text x="'+(pL-2)+'" y="'+(yBase-3).toFixed(1)+'" fill="#0A4FBF" font-size="7" text-anchor="end" font-family="DM Sans" opacity="0.5">umbral</text>';
 
   // X labels — solo horas enteras
   data.forEach(function(d,i){
     var parts=d.label.split(':');
-    if(parts[1]==='00'||parts[1]==='05'&&i===0){
-      svg+='<text x="'+xAt(i).toFixed(1)+'" y="'+(H-6)+'" fill="rgba(255,255,255,0.25)" font-size="7" text-anchor="middle" font-family="DM Sans">'+d.label+'</text>';
+    if(parts[1]==='00'){
+      svg+='<text x="'+xAt(i).toFixed(1)+'" y="'+(H-6)+'" fill="#9AAAC8" font-size="7" text-anchor="middle" font-family="DM Sans">'+parts[0]+':00</text>';
     }
   });
 
@@ -563,8 +548,8 @@ function ahRenderChart(){
   data.forEach(function(d,i){if(Math.abs(d.m-nowM)<=5)nowIdx=i;});
   if(nowIdx>=0){
     var nx=xAt(nowIdx);
-    svg+='<line x1="'+nx.toFixed(1)+'" y1="'+pT+'" x2="'+nx.toFixed(1)+'" y2="'+aBot+'" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="3,2"/>';
-    svg+='<text x="'+nx.toFixed(1)+'" y="'+(pT-4)+'" fill="rgba(255,255,255,0.4)" font-size="7" font-weight="700" text-anchor="middle" font-family="Exo 2">AHORA</text>';
+    svg+='<line x1="'+nx.toFixed(1)+'" y1="'+pT+'" x2="'+nx.toFixed(1)+'" y2="'+aBot+'" stroke="#0A4FBF" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.4"/>';
+    svg+='<text x="'+nx.toFixed(1)+'" y="'+(pT-4)+'" fill="#0A4FBF" font-size="7" font-weight="700" text-anchor="middle" font-family="Exo 2" opacity="0.6">AHORA</text>';
   }
 
   svg+='</svg>';
@@ -592,6 +577,66 @@ function ahMP(){if(!_D.pg||!_D.pg.v)return;ahPg(_D.pg.v);ahMC();}
 // ═══════ INIT ═══════
 ahLoad();
 ahChart();
+ahBench();
 _D.timer=setInterval(ahLoad,30000);
 _D.timerChart=setInterval(ahChart,30000);
+
+function ahBench(){
+  fetch(_S+'/rest/v1/rpc/aos_actividad_benchmark',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_asesor:_D.chartAsesor||null})})
+  .then(function(r){return r.json();})
+  .then(function(raw){
+    var arr=Array.isArray(raw)?raw:(raw&&raw[0]?raw[0]:[]);
+    _D.chartBench=arr||[];
+    ahRenderChart();
+  }).catch(function(e){console.error('bench',e);});
+}
+
+function ahSparklines(){
+  var hoy=_hoy();
+  fetch(_S+'/rest/v1/rpc/aos_actividad_reciente',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_fecha:hoy,p_minutos:40})})
+  .then(function(r){return r.json();})
+  .then(function(raw){
+    var arr=Array.isArray(raw)?raw:(raw&&raw[0]?raw[0]:[]);
+    _D.sparkRaw=arr||[];
+    ahRenderSparklines();
+  }).catch(function(e){console.error('spark',e);});
+}
+
+function ahRenderSparklines(){
+  var rows=document.querySelectorAll('.ah-t tr[data-asesor]');
+  if(!rows.length)return;
+  var raw=_D.sparkRaw||[];
+  var nowM=(new Date()).getHours()*60+(new Date()).getMinutes();
+  rows.forEach(function(tr){
+    var asesor=tr.getAttribute('data-asesor');
+    var mine=raw.filter(function(r){return r.asesor===asesor;}).sort(function(a,b){return a.minuto-b.minuto;});
+    // 8 buckets de 5 min = últimos 40 min
+    var pts=[];
+    for(var m=nowM-35;m<=nowM;m+=5){
+      var found=mine.find(function(r){return r.minuto===m;});
+      pts.push(found?parseInt(found.llamadas):0);
+    }
+    var max=Math.max.apply(null,pts)||1;
+    var W=56,H=20;
+    var trend=pts[pts.length-1]>pts[0]?'up':pts[pts.length-1]<pts[0]?'down':'flat';
+    var lc=trend==='up'?'#16A34A':trend==='down'?'#DC2626':'#6B7BA8';
+    var svgPts=pts.map(function(v,i){return (i/(pts.length-1)*W).toFixed(1)+','+(H-v/max*(H-2)-1).toFixed(1);}).join(' ');
+    var spark='<svg width="'+W+'" height="'+H+'" style="display:inline-block;vertical-align:middle">'+
+      '<polyline points="'+svgPts+'" fill="none" stroke="'+lc+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+      '</svg>';
+    // Insertar o actualizar columna sparkline
+    var td=tr.querySelector('.td-spark');
+    if(!td){
+      td=document.createElement('td');td.className='td-spark';
+      tr.appendChild(td);
+    }
+    td.innerHTML=spark;
+  });
+  // Agregar th si no existe
+  var thead=document.querySelector('.ah-t thead tr');
+  if(thead&&!thead.querySelector('.th-spark')){
+    var th=document.createElement('th');th.className='th-spark';th.textContent='40 min';
+    thead.appendChild(th);
+  }
+}
 </script>
