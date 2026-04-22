@@ -62,7 +62,10 @@
     <div class="crd"><div class="ct">▼ Embudo de Conversión <span class="tag tag-c">leads nuevos del mes</span></div><div id="mk-emb"></div></div>
     <div class="crd"><div class="ct">📅 Histórico mensual</div><div id="mk-hist"></div></div>
   </div>
-  <div class="crd"><div class="ct">📊 Valor del Lead (LTV) <span style="margin-left:auto;font-size:8px;font-weight:700;color:#7C3AED;background:#F5F3FF;padding:2px 8px;border-radius:5px;" id="mk-ltv-tag">cargando...</span></div><div id="mk-ltv"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="crd"><div class="ct">📊 Valor del Lead (LTV) <span style="margin-left:auto;font-size:8px;font-weight:700;color:#7C3AED;background:#F5F3FF;padding:2px 8px;border-radius:5px;" id="mk-ltv-tag">cargando...</span></div><div id="mk-ltv"></div></div>
+    <div class="crd"><div class="ct">📈 Rendimiento por Campaña <span class="tag tag-c">revenue por lead · tendencia</span></div><div id="mk-camp-perf"></div></div>
+  </div>
   <div class="mk-2t">
     <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
     <div class="crd"><div class="ct">🎯 Campañas <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th><th>Inv.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
@@ -104,6 +107,7 @@ function mkL(){
     rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:mes},function(ltv){
       rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
       rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+      rCampPerf(d.porTratamiento||[],d.kpis);
     });
   });
 }
@@ -322,6 +326,54 @@ function rVF(vf){
   var tot=vf.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
   el('mk-ffuera').textContent='Total: S/'+Math.round(tot);
   el('mk-vf').innerHTML=vf.length?vf.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#00C9A7">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas fuera del mes</td></tr>';
+}
+function rCampPerf(camps,kpis){
+  var box=el('mk-camp-perf');if(!camps||!camps.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var html='';
+  // Calculate rev per lead for each campaign
+  var items=camps.filter(function(c){return parseInt(c.leads)>0;}).map(function(c){
+    var leads=parseInt(c.leads);var fA=parseFloat(c.fact_acum||0);var fM=parseFloat(c.fact_mes||0);
+    var inv=parseFloat(c.inv||0);var cpl=inv>0?Math.round(inv/leads*100)/100:null;
+    var revPerLead=leads>0?Math.round(fA/leads*100)/100:0;
+    var roasLTV=inv>0&&fA>0?Math.round(fA/inv*10)/10:null;
+    return {name:c.nombre,leads:leads,clientes:parseInt(c.ventas||0),fact_mes:fM,fact_acum:fA,inv:inv,cpl:cpl,revPerLead:revPerLead,roasLTV:roasLTV,pctCita:parseFloat(c.pctCita||0)};
+  });
+  // Sort by fact_acum desc
+  items.sort(function(a,b){return b.fact_acum-a.fact_acum;});
+
+  // Top 3 metrics
+  var best=items[0];var bestConv=items.slice().sort(function(a,b){return b.pctCita-a.pctCita;})[0];
+  html+='<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">';
+  if(best&&best.roasLTV)html+='<div style="flex:1;min-width:90px;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:7px;font-weight:700;color:#059669;text-transform:uppercase;">Mejor ROAS</div><div style="font-family:Exo 2;font-weight:800;font-size:16px;color:#059669;">'+best.roasLTV+'x</div><div style="font-size:8px;color:#9AAAC8;">'+best.name+'</div></div>';
+  if(best)html+='<div style="flex:1;min-width:90px;background:#EBF2FF;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:7px;font-weight:700;color:#0A4FBF;text-transform:uppercase;">Rev/Lead</div><div style="font-family:Exo 2;font-weight:800;font-size:16px;color:#0A4FBF;">S/'+best.revPerLead.toFixed(0)+'</div><div style="font-size:8px;color:#9AAAC8;">'+best.name+'</div></div>';
+  if(bestConv&&bestConv.pctCita>0)html+='<div style="flex:1;min-width:90px;background:#F0FDFA;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:7px;font-weight:700;color:#0D9488;text-transform:uppercase;">Mejor conv.</div><div style="font-family:Exo 2;font-weight:800;font-size:16px;color:#0D9488;">'+bestConv.pctCita+'%</div><div style="font-size:8px;color:#9AAAC8;">'+bestConv.name+'</div></div>';
+  html+='</div>';
+
+  // Table
+  html+='<div style="overflow-x:auto;max-height:320px;overflow-y:auto;"><table class="vt"><thead><tr><th>Campaña</th><th>Leads</th><th>CPL</th><th>Clientes</th><th style="color:#0A4FBF;">Rev/Lead</th><th style="color:#059669;">Fact.Acum</th><th>ROAS LTV</th></tr></thead><tbody>';
+  items.forEach(function(c){
+    var roasColor=c.roasLTV?(c.roasLTV>=2?'#16A34A':c.roasLTV>=1?'#D97706':'#DC2626'):'#9AAAC8';
+    html+='<tr><td style="font-weight:700;">'+c.name+'</td>';
+    html+='<td>'+c.leads+'</td>';
+    html+='<td style="color:#6B7BA8;">'+(c.cpl?'S/'+c.cpl.toFixed(2):'—')+'</td>';
+    html+='<td style="font-weight:700;color:'+(c.clientes>0?'#059669':'#9AAAC8')+';">'+c.clientes+'</td>';
+    html+='<td style="font-weight:700;color:#0A4FBF;">S/'+c.revPerLead.toFixed(0)+'</td>';
+    html+='<td style="font-weight:700;color:'+(c.fact_acum>0?'#059669':'#9AAAC8')+';">'+(c.fact_acum>0?'S/'+Math.round(c.fact_acum):'S/0')+'</td>';
+    html+='<td style="font-weight:700;color:'+roasColor+';">'+(c.roasLTV?c.roasLTV+'x':'—')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Insight
+  var profitable=items.filter(function(c){return c.roasLTV&&c.roasLTV>=1;});
+  var losing=items.filter(function(c){return c.inv>0&&(!c.roasLTV||c.roasLTV<1);});
+  if(profitable.length||losing.length){
+    html+='<div style="margin-top:8px;padding:8px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:9px;color:#059669;line-height:1.5;">';
+    if(profitable.length)html+='<b>Rentables:</b> '+profitable.map(function(c){return c.name+' ('+c.roasLTV+'x)';}).join(', ')+'. ';
+    if(losing.length)html+='<span style="color:#DC2626;"><b>Evaluar:</b> '+losing.map(function(c){return c.name;}).join(', ')+'.</span>';
+    html+='</div>';
+  }
+  box.innerHTML=html;
 }
 var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA','PINK INTIMATE'];
 var PLATS=['META ADS','TIKTOK ADS','GOOGLE ADS'];
