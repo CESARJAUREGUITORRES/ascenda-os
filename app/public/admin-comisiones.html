@@ -1,14 +1,179 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- admin-comisiones.html v1 — Comisiones Admin | AscendaOS v1 | 100% Supabase -->
+<style>
+.cm{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:100%;font-family:'DM Sans',sans-serif;}
+.cm-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.cm-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;display:flex;align-items:center;gap:6px;}.cm-t span{color:#00C9A7;}
+.psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans';color:#0D1B3E;outline:none;}
+.cm-btn{padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;font-family:'DM Sans';}.cm-btn:hover{border-color:#0A4FBF;color:#0A4FBF;}
+.cm-modes{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #DDE4F5;}
+.cm-mode{padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#6B7BA8;border:none;font-family:'DM Sans';}.cm-mode.act{background:#00C9A7;color:#fff;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
+.kl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.kv{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#0D1B3E;line-height:1;}
+.ks{font-size:10px;color:#6B7BA8;margin-top:3px;}
+.cm-top{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rk-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F4FC;}.rk-item:last-child{border-bottom:none;}
+.rk-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;flex-shrink:0;}
+.rk-info{flex:1;min-width:0;}.rk-nm{font-weight:700;font-size:13px;color:#0D1B3E;}.rk-det{font-size:9px;color:#6B7BA8;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.rk-com{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#00C9A7;}
+.rk-sub{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;}
+.rk-sub-c{padding:4px 8px;border-radius:6px;background:#F8FAFC;text-align:center;}.rk-sub-l{font-size:7px;font-weight:700;color:#9AAAC8;text-transform:uppercase;}.rk-sub-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:#0D1B3E;}
+.fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.fact-c{padding:10px;border-radius:10px;border:1px solid #F0F4FC;}.fact-l{font-size:8px;font-weight:700;text-transform:uppercase;color:#9AAAC8;margin-bottom:3px;}.fact-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#0D1B3E;}.fact-s{font-size:9px;color:#6B7BA8;margin-top:2px;}
+.cm-bot{display:grid;grid-template-columns:2fr 1fr;gap:10px;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.4px;color:#0D1B3E;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.vt{width:100%;border-collapse:collapse;}.vt th{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.vt td{padding:6px;border-bottom:1px solid rgba(221,228,245,.3);font-size:10px;vertical-align:middle;}.vt tr:hover td{background:#F8FAFF;}
+.tb{padding:2px 6px;border-radius:5px;font-size:8px;font-weight:700;}.tb-s{background:#EBF2FF;color:#0A4FBF;}.tb-p{background:#F5F3FF;color:#7C3AED;}.tb-na{background:#F0F4FC;color:#9AAAC8;}
+.ep{padding:2px 6px;border-radius:5px;font-size:8px;font-weight:700;}.ep-ok{background:#F0FDF4;color:#16A34A;}.ep-ad{background:#FFFBEB;color:#D97706;}.ep-pen{background:#FEF2F2;color:#DC2626;}
+.com-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:10px;color:#00C9A7;}
+.edit-btn{width:24px;height:24px;border-radius:6px;border:none;background:#F0F4FC;cursor:pointer;font-size:10px;color:#6B7BA8;}.edit-btn:hover{background:#EBF2FF;color:#0A4FBF;}
+.ld{text-align:center;padding:16px;color:#9AAAC8;font-size:11px;}.cnt{font-size:10px;color:#6B7BA8;}
+.ht{width:100%;border-collapse:collapse;}.ht th{font-size:8px;font-weight:700;color:#9AAAC8;padding:5px;text-align:left;border-bottom:1px solid #DDE4F5;}.ht td{padding:5px;font-size:10px;border-bottom:1px solid #F0F4FC;}.ht .cur td{background:#F0F4FC;font-weight:700;}
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.2);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}.mov.open{display:flex;}
+.modal{background:#fff;border-radius:20px;width:90%;max-width:620px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.15);}
+.mhd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #F0F4FC;}.mtit{flex:1;font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.mx{width:28px;height:28px;border-radius:8px;border:none;background:#F0F4FC;cursor:pointer;font-size:14px;color:#6B7BA8;display:flex;align-items:center;justify-content:center;}.mx:hover{background:#e5e9f5;}
+.mbody{padding:16px 20px;}.mfoot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #F0F4FC;}
+.mbtn{padding:8px 20px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans';}.mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-p{background:#0A4FBF;color:#fff;}.mbtn-g{background:#00C9A7;color:#fff;}
+.mf{margin-bottom:10px;}.ml{font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:3px;}.mi{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;box-sizing:border-box;}.mi:focus{border-color:#0A4FBF;}
+.ms{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;box-sizing:border-box;}
+.rg-row{display:grid;grid-template-columns:1fr 1fr 28px;gap:6px;align-items:center;margin-bottom:4px;}
+.rg-del{width:24px;height:24px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;}
+.rg-add{padding:4px 10px;border-radius:6px;border:1px dashed #DDE4F5;background:none;color:#0A4FBF;font-size:9px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-family:'DM Sans';}.rg-add:hover{border-color:#0A4FBF;background:#F8FAFF;}
+.warn{font-size:9px;color:#D97706;background:#FFFBEB;padding:8px 12px;border-radius:8px;margin-top:10px;border:1px solid #FCD34D;}
+.met-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:4px;}.met-fill{height:100%;border-radius:4px;}
+@media(max-width:900px){.cm-top{grid-template-columns:1fr;}.cm-bot{grid-template-columns:1fr;}}
+</style>
+<div class="cm">
+  <div class="cm-hdr">
+    <div class="cm-t">💰 Comisiones <span>Admin</span></div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div class="cm-modes"><button class="cm-mode" data-m="dia" onclick="cmMode(this)">Día</button><button class="cm-mode act" data-m="mes" onclick="cmMode(this)">Mes</button><button class="cm-mode" data-m="anio" onclick="cmMode(this)">Año</button></div>
+      <select class="psel" id="cm-mes" onchange="cmLoad()"><option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Abr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Ago</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option></select>
+      <select class="psel" id="cm-anio" onchange="cmLoad()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <button class="cm-btn" onclick="openReglas()">⚙ Tabla de comisiones</button>
+      <button class="cm-btn" onclick="openAjuste()">+ Ajuste manual</button>
+    </div>
+  </div>
+  <div class="cm-top">
+    <div class="crd"><div class="ct">🏆 RANKING COMISIONES</div><div id="cm-rank"><div class="ld">Cargando...</div></div></div>
+    <div><div class="crd" style="margin-bottom:10px;"><div class="kl">COMISIONES TOTALES DEL EQUIPO</div><div class="kv" id="cm-total">S/0</div><div class="ks" id="cm-resumen">0 ventas</div></div>
+      <div class="crd"><div class="kl">FACTURACIÓN DEL EQUIPO (CON COMISIÓN)</div><div class="kv" id="cm-fact">S/0</div><div class="fact-grid"><div class="fact-c"><div class="fact-l">Servicios</div><div class="fact-v" id="cm-fserv">S/0</div><div class="fact-s" id="cm-fserv-d">0%</div></div><div class="fact-c"><div class="fact-l">Productos</div><div class="fact-v" id="cm-fprod">S/0</div><div class="fact-s" id="cm-fprod-d">0%</div></div></div></div></div>
+  </div>
+  <div class="cm-bot">
+    <div class="crd"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="ct" style="margin:0;">📋 VENTAS DEL PERÍODO</div><div class="cnt" id="cm-cnt">0</div></div>
+      <div style="overflow-x:auto;max-height:480px;overflow-y:auto;"><table class="vt"><thead><tr><th>Cliente / Nº</th><th>Tratamiento</th><th>Tipo</th><th>Monto</th><th>Comisión</th><th>Sede</th><th>Asesor</th><th>Origen</th><th>Pago</th><th></th></tr></thead><tbody id="cm-tb"><tr><td colspan="10" class="ld">Cargando...</td></tr></tbody></table></div></div>
+    <div><div class="crd" style="margin-bottom:10px;"><div class="ct">📊 RECORD ANUAL</div><table class="ht"><thead><tr><th>Mes</th><th>Facturado</th><th>Comisión</th></tr></thead><tbody id="cm-hist"><tr><td colspan="3" class="ld">--</td></tr></tbody></table></div>
+      <div class="crd"><div class="ct">📈 MÉTRICAS</div><div id="cm-metrics"><div class="ld">--</div></div></div></div>
   </div>
 </div>
-</body>
-</html>
+<!-- MODAL EDITAR -->
+<div class="mov" id="m-edit" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:500px;"><div class="mhd"><div class="mtit">✏ Editar venta</div><button class="mx" onclick="el('m-edit').classList.remove('open')">✕</button></div><div class="mbody"><div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;" id="ed-info"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;"><div><div class="ml">Fecha</div><div style="font-weight:700;font-size:12px;" id="ed-fecha">--</div></div><div><div class="ml">Tipo</div><div style="font-weight:700;font-size:12px;" id="ed-tipo">--</div></div><div><div class="ml">Com. actual</div><div style="font-weight:700;font-size:12px;color:#00C9A7;" id="ed-com">S/0</div></div></div><div style="font-size:9px;color:#9AAAC8;margin-bottom:8px;">ASESOR — "NO APLICA" = SIN COMISIÓN</div><div class="mf"><select class="ms" id="ed-asesor"><option value="WILMER">WILMER</option><option value="MIREYA">MIREYA</option><option value="RUVILA">RUVILA</option><option value="SRA CARMEN">SRA CARMEN</option><option value="CESAR">CESAR</option><option value="NO APLICA">NO APLICA</option></select></div><div class="mf"><div class="ml">MONTO S/</div><input class="mi" type="number" id="ed-monto" step="0.01"></div><div class="mf"><div class="ml">MOTIVO (AUDITORÍA)</div><input class="mi" id="ed-motivo" placeholder="Ej: Error asignación"></div><div style="font-size:8px;color:#9AAAC8;">Cambio registrado en auditoría</div></div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-edit').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-g" onclick="saveEdit()">Guardar cambio</button></div></div></div>
+<!-- MODAL REGLAS -->
+<div class="mov" id="m-reglas" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">⚙ Tabla de comisiones</div><button class="mx" onclick="el('m-reglas').classList.remove('open')">✕</button></div><div class="mbody"><div class="kl">SERVICIOS — COMISIÓN POR PORCENTAJE</div><div style="font-size:9px;color:#6B7BA8;margin-bottom:6px;">Porcentaje: 0.005 = 0.5%</div><div id="rg-serv"></div><div style="margin-top:14px;"><div class="kl">PRODUCTOS — COMISIÓN FIJA POR RANGO</div><div style="font-size:9px;color:#6B7BA8;margin-bottom:6px;">Monto fijo S/ por venta según precio</div><div id="rg-prod"></div><button class="rg-add" onclick="rgAdd()">+ Rango</button></div><div class="mf" style="margin-top:14px;"><div class="ml">APLICAR DESDE</div><input class="mi" type="date" id="rg-desde"></div><div class="warn">⚠ Las ventas anteriores mantienen las reglas vigentes al momento de la venta.</div></div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-reglas').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="saveReglas()">Guardar tabla</button></div></div></div>
+<!-- MODAL AJUSTE -->
+<div class="mov" id="m-ajuste" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:420px;"><div class="mhd"><div class="mtit">💰 Ajuste manual</div><button class="mx" onclick="el('m-ajuste').classList.remove('open')">✕</button></div><div class="mbody"><div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Suma (+) o descuenta (-) un monto fijo.</div><div class="mf"><div class="ml">ASESOR</div><select class="ms" id="aj-asesor"><option value="">Selecciona...</option><option value="WILMER">WILMER</option><option value="MIREYA">MIREYA</option><option value="RUVILA">RUVILA</option><option value="SRA CARMEN">SRA CARMEN</option></select></div><div class="mf"><div class="ml">AJUSTE S/</div><input class="mi" type="number" id="aj-monto" placeholder="50 o -20" step="0.01"></div><div class="mf"><div class="ml">MOTIVO</div><input class="mi" id="aj-motivo" placeholder="Ej: Bono puntualidad"></div></div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-ajuste').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-g" onclick="saveAjuste()">Guardar</button></div></div></div>
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(id){return document.getElementById(id);}
+function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+var CL={'WILMER':'#00C9A7','MIREYA':'#3B82F6','RUVILA':'#16A34A','SRA CARMEN':'#F59E0B','CESAR':'#8B5CF6'};
+var CM={data:null,modo:'mes',editId:null};
+(function(){var m=new Date().getMonth()+1;el('cm-mes').value=String(m);el('cm-anio').value=String(new Date().getFullYear());el('rg-desde').value=new Date().toISOString().slice(0,10);cmLoad();})();
+function cmMode(btn){document.querySelectorAll('.cm-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');CM.modo=btn.getAttribute('data-m');cmLoad();}
+function cmLoad(){
+  var mes=Number(el('cm-mes').value),anio=Number(el('cm-anio').value);
+  rpc('aos_comisiones_admin',{p_mes:mes,p_anio:anio},function(d){
+    if(!d)return;
+    if(CM.modo==='dia'){var hoy=new Date().toISOString().slice(0,10);d.detalle=(d.detalle||[]).filter(function(v){return v.fecha===hoy;});}
+    CM.data=d;renderRank(d);renderKPIs(d);renderDet(d.detalle||[]);renderHist(d.anual||[]);renderMetrics(d);
+  });
+}
+function renderRank(d){
+  var a=d.porAsesor||[];var box=el('cm-rank');if(!a.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','4','5'];var meta=parseFloat(d.meta||0);
+  box.innerHTML=a.map(function(x,i){
+    var comT=parseFloat(x.com_total||0)+parseFloat(x.ajuste_manual||0);
+    var pM=meta>0?Math.round(parseFloat(x.facturado||0)/meta*100):0;
+    return '<div class="rk-item"><div style="font-size:14px;width:18px;text-align:center;">'+medals[i]+'</div><div class="rk-av" style="background:'+(CL[x.asesor]||'#6B7BA8')+'">'+h((x.asesor||'?').substring(0,2))+'</div><div class="rk-info"><div class="rk-nm">'+h(x.asesor)+'</div><div class="rk-det"><span>Serv S/'+fmt(x.com_serv)+'</span><span>Prod S/'+fmt(x.com_prod)+'</span><span>Fact S/'+fmt(x.facturado)+'</span><span>'+x.n_ventas+'v ('+x.n_serv+'S/'+x.n_prod+'P)</span></div>'+(meta>0?'<div style="margin-top:4px"><div class="met-bar"><div class="met-fill" style="width:'+Math.min(pM,100)+'%;background:'+(pM>=100?'#16A34A':pM>=50?'#00C9A7':'#D97706')+'"></div></div><div style="font-size:8px;color:#6B7BA8;margin-top:2px">'+pM+'% meta</div></div>':'')+'</div><div style="text-align:right"><div class="rk-com">S/'+fmt(comT)+'</div><div class="rk-sub"><div class="rk-sub-c"><div class="rk-sub-l">Servicios</div><div class="rk-sub-v">S/'+fmt(x.com_serv)+'</div></div><div class="rk-sub-c"><div class="rk-sub-l">Productos</div><div class="rk-sub-v">S/'+fmt(x.com_prod)+'</div></div></div></div></div>';
+  }).join('');
+  var na=d.noAplica;if(na&&na.n>0)box.innerHTML+='<div style="margin-top:8px;padding:8px;background:#F8FAFC;border-radius:8px;font-size:9px;color:#94a3b8"><b>NO APLICA</b> · '+na.n+' ventas · S/'+fmt(na.total)+' · Sin comisión</div>';
+}
+function renderKPIs(d){
+  var a=d.porAsesor||[];var comT=a.reduce(function(s,x){return s+parseFloat(x.com_total||0)+parseFloat(x.ajuste_manual||0);},0);
+  var factT=a.reduce(function(s,x){return s+parseFloat(x.facturado||0);},0);var nV=a.reduce(function(s,x){return s+x.n_ventas;},0);
+  var fS=a.reduce(function(s,x){return s+parseFloat(x.fact_serv||0);},0);var fP=a.reduce(function(s,x){return s+parseFloat(x.fact_prod||0);},0);
+  var cS=a.reduce(function(s,x){return s+parseFloat(x.com_serv||0);},0);var cP=a.reduce(function(s,x){return s+parseFloat(x.com_prod||0);},0);
+  el('cm-total').textContent='S/'+fmt(comT);el('cm-resumen').textContent=nV+' ventas con comisión · '+a.length+' asesores';
+  el('cm-fact').textContent='S/'+fmt(factT);el('cm-fserv').textContent='S/'+fmt(fS);el('cm-fprod').textContent='S/'+fmt(fP);
+  el('cm-fserv-d').textContent=(factT>0?Math.round(fS/factT*100):0)+'% del total · Com: S/'+fmt(cS);
+  el('cm-fprod-d').textContent=(factT>0?Math.round(fP/factT*100):0)+'% del total · Com: S/'+fmt(cP);
+}
+function renderDet(rows){
+  var tb=el('cm-tb');el('cm-cnt').textContent=rows.length+' ventas';
+  if(!rows.length){tb.innerHTML='<tr><td colspan="10" class="ld">Sin ventas</td></tr>';return;}
+  tb.innerHTML=rows.map(function(v){
+    var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();var c=parseFloat(v.comision||0);
+    var epC=v.estado_pago==='PAGO COMPLETO'?'ep-ok':v.estado_pago==='ADELANTO'?'ep-ad':'ep-pen';
+    var tbC=v.asesor==='NO APLICA'?'tb-na':(v.tipo==='PRODUCTO'?'tb-p':'tb-s');
+    return '<tr><td><div style="font-weight:700;font-size:10px">'+h((cli||'--').substring(0,22))+'</div><div style="font-size:8px;color:#9AAAC8">'+h(v.numero_limpio||'')+'</div></td>'+
+      '<td style="font-size:9px;color:#6B7BA8">'+h((v.tratamiento||'').substring(0,16))+'</td>'+
+      '<td><span class="tb '+tbC+'">'+(v.asesor==='NO APLICA'?'N/A':v.tipo==='PRODUCTO'?'PROD':'SERV')+'</span></td>'+
+      '<td style="font-weight:700">S/'+parseFloat(v.monto||0).toFixed(2)+'</td>'+
+      '<td><span class="com-v">S/'+c.toFixed(2)+'</span></td>'+
+      '<td style="font-size:9px;color:#6B7BA8">'+h((v.sede||'').substring(0,8))+'</td>'+
+      '<td style="font-size:9px;font-weight:700;color:'+(CL[v.asesor]||'#9AAAC8')+'">'+h(v.asesor||'')+'</td>'+
+      '<td><span class="ep ep-ok" style="background:#EBF2FF;color:#0A4FBF">BASE</span></td>'+
+      '<td><span class="ep '+epC+'">'+h((v.estado_pago||'--').substring(0,10))+'</span></td>'+
+      '<td><button class="edit-btn" onclick="openEdit('+v.id+')">✏</button></td></tr>';
+  }).join('');
+}
+function renderHist(anual){
+  var hb=el('cm-hist');if(!anual.length){hb.innerHTML='<tr><td colspan="3" class="ld">--</td></tr>';return;}
+  var curM=Number(el('cm-mes').value);
+  hb.innerHTML=anual.map(function(r){var mn=parseInt(r.mes_num),cur=mn===curM;
+    return '<tr'+(cur?' class="cur"':'')+'><td style="font-weight:'+(cur?'700':'500')+'">'+h(MF[mn])+'</td><td>S/'+Math.round(parseFloat(r.facturado||0))+'</td><td style="color:#00C9A7;font-weight:700">S/'+fmt(r.comision_total)+'</td></tr>';
+  }).join('');
+}
+function renderMetrics(d){
+  var box=el('cm-metrics');var a=d.porAsesor||[];if(!a.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var maxF=Math.max.apply(null,a.map(function(x){return parseFloat(x.facturado||0);}));
+  box.innerHTML='<div style="font-size:9px;font-weight:700;color:#9AAAC8;margin-bottom:6px">FACTURACIÓN POR ASESOR</div>'+a.map(function(x){
+    var f=parseFloat(x.facturado||0);var pct=maxF>0?Math.round(f/maxF*100):0;
+    return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px"><span style="font-weight:700;color:'+(CL[x.asesor]||'#6B7BA8')+'">'+h(x.asesor)+'</span><span style="font-weight:800;color:#0D1B3E">S/'+Math.round(f)+'</span></div><div class="met-bar"><div class="met-fill" style="width:'+pct+'%;background:'+(CL[x.asesor]||'#6B7BA8')+'"></div></div></div>';
+  }).join('');
+}
+function openEdit(id){
+  var v=(CM.data.detalle||[]).find(function(x){return x.id===id;});if(!v)return;CM.editId=id;
+  var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();
+  el('ed-info').textContent=h(cli)+' · '+h(v.tratamiento)+' · '+h(v.sede);
+  el('ed-fecha').textContent=v.fecha;el('ed-tipo').textContent=v.tipo||'--';el('ed-com').textContent='S/'+parseFloat(v.comision||0).toFixed(2);
+  el('ed-asesor').value=v.asesor||'NO APLICA';el('ed-monto').value=v.monto;el('ed-motivo').value='';el('m-edit').classList.add('open');
+}
+function saveEdit(){
+  if(!CM.editId)return;rpc('aos_editar_venta_comision',{p_venta_id:CM.editId,p_asesor:el('ed-asesor').value,p_monto:Number(el('ed-monto').value),p_motivo:el('ed-motivo').value.trim()||'Corrección admin'},function(){el('m-edit').classList.remove('open');cmLoad();});
+}
+function openReglas(){
+  var reglas=(CM.data&&CM.data.reglas)||[];var serv=reglas.filter(function(r){return r.tipo==='SERVICIO';});var prod=reglas.filter(function(r){return r.tipo==='PRODUCTO';});
+  el('rg-serv').innerHTML=serv.map(function(r){return '<div class="rg-row"><div><div class="ml">Desde S/</div><input class="mi" value="'+r.monto_min+'" data-field="min"></div><div><div class="ml">% (0.005=0.5%)</div><input class="mi" value="'+(r.comision_pct||'0')+'" data-field="pct"></div><div></div></div>';}).join('')||'<div class="rg-row"><div><div class="ml">Desde S/</div><input class="mi" value="0" data-field="min"></div><div><div class="ml">%</div><input class="mi" value="0.005" data-field="pct"></div><div></div></div>';
+  el('rg-prod').innerHTML=prod.map(function(r){return '<div class="rg-row" data-tipo="PRODUCTO"><div><div class="ml">Desde S/</div><input class="mi" value="'+r.monto_min+'" data-field="min"></div><div><div class="ml">Com. fija S/</div><input class="mi" value="'+r.comision+'" data-field="com"></div><button class="rg-del" onclick="this.parentNode.remove()">✕</button></div>';}).join('');
+  el('m-reglas').classList.add('open');
+}
+function rgAdd(){var div=document.createElement('div');div.className='rg-row';div.setAttribute('data-tipo','PRODUCTO');div.innerHTML='<div><div class="ml">Desde S/</div><input class="mi" value="0" data-field="min"></div><div><div class="ml">Com. fija S/</div><input class="mi" value="0" data-field="com"></div><button class="rg-del" onclick="this.parentNode.remove()">✕</button>';el('rg-prod').appendChild(div);}
+function saveReglas(){
+  var reglas=[];var desde=el('rg-desde').value;
+  el('rg-serv').querySelectorAll('.rg-row').forEach(function(row){reglas.push({tipo:'SERVICIO',monto_min:row.querySelector('[data-field=min]').value,comision:'0',comision_pct:row.querySelector('[data-field=pct]').value,descripcion:'Porcentaje del monto'});});
+  el('rg-prod').querySelectorAll('.rg-row').forEach(function(row){reglas.push({tipo:'PRODUCTO',monto_min:row.querySelector('[data-field=min]').value,comision:row.querySelector('[data-field=com]').value,comision_pct:null,descripcion:'Desde S/'+row.querySelector('[data-field=min]').value});});
+  rpc('aos_guardar_reglas_comision',{p_reglas:reglas,p_aplicar_desde:desde},function(){el('m-reglas').classList.remove('open');cmLoad();});
+}
+function openAjuste(){el('aj-asesor').value='';el('aj-monto').value='';el('aj-motivo').value='';el('m-ajuste').classList.add('open');}
+function saveAjuste(){
+  var asesor=el('aj-asesor').value,monto=Number(el('aj-monto').value),motivo=el('aj-motivo').value.trim();
+  if(!asesor||!monto){alert('Completa asesor y monto');return;}
+  rpc('aos_ajuste_manual_comision',{p_asesor:asesor,p_mes:Number(el('cm-mes').value),p_anio:Number(el('cm-anio').value),p_ajuste:monto,p_motivo:motivo||'Ajuste admin'},function(){el('m-ajuste').classList.remove('open');cmLoad();});
+}
+</script>
