@@ -140,13 +140,34 @@
     <div style="display:flex;flex-direction:column;gap:10px">
       <div class="ah-tk">
         <span class="ah-tkl">MKT</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-leads">—</span><span class="ah-tkn">Leads</span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-llam">—</span><span class="ah-tkn">Llamados<span class="ah-tkp" id="tk-pct"></span></span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-citas">—</span><span class="ah-tkn">Citas</span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-asist">—</span><span class="ah-tkn">Asistió</span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-vtas">—</span><span class="ah-tkn">Ventas</span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-fact">—</span><span class="ah-tkn">Fact. S/</span></div><span class="ah-tka">›</span>
-        <div class="ah-tks"><span class="ah-tkv" id="tk-roas" style="color:#00C9A7">—</span><span class="ah-tkn">ROAS</span></div>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-leads">—</span>
+          <span class="ah-tkn">Leads<br><span style="color:rgba(255,255,255,.4);font-size:7px">del período</span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-llam">—</span>
+          <span class="ah-tkn">Llamados<br><span class="ah-tkp" id="tk-pct" style="font-size:7px"></span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-citas">—</span>
+          <span class="ah-tkn">Citas Tel.<br><span class="ah-tkp" id="tk-citas-pct" style="font-size:7px"></span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-asist">—</span>
+          <span class="ah-tkn">Asistieron<br><span class="ah-tkp" id="tk-asist-pct" style="font-size:7px"></span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-vtas">—</span>
+          <span class="ah-tkn">Clientes<br><span style="color:rgba(255,255,255,.4);font-size:7px" id="tk-vtas-sub">0 por cliente</span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-fact">—</span>
+          <span class="ah-tkn">Facturación<br><span style="color:rgba(255,255,255,.4);font-size:7px">campaña</span></span>
+        </div><span class="ah-tka">›</span>
+        <div class="ah-tks">
+          <span class="ah-tkv" id="tk-roas" style="color:#00C9A7">—</span>
+          <span class="ah-tkn">ROAS</span>
+        </div>
       </div>
       <div class="ah-c">
         <div class="ah-ct" style="flex-wrap:wrap;gap:6px">MONITOREO DE LLAMADAS
@@ -472,11 +493,11 @@ var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
           }
           var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
           totalCitas+=parseInt(s.citas||0);
-          var trBg=cls==='bg-ok'?'rgba(22,163,74,0.04)':cls==='bg-w'?'rgba(217,119,6,0.04)':cls==='bg-r'?'rgba(220,38,38,0.04)':'';
+          var trBg=(cls==='bg-r'||cls==='bg-i')?'#FAFAFA':'';
           return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'">"<td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
             '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#16A34A">+'+_e(s.citas||0)+'</td>'+
-            '<td style="text-align:center;color:'+(cv>=10?'#16A34A':cv>=5?'#D97706':'#DC2626')+'">'+cv+'%</td>'+
+            '<td style="text-align:center;color:#00C9A7;font-weight:600">'+cv+'%</td>'+
             '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
             '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
         }
@@ -775,34 +796,28 @@ function ahRenderSparklines(){
   rows.forEach(function(tr){
     var asesor=tr.getAttribute('data-asesor');
     var mine=raw.filter(function(r){return r.asesor===asesor;}).sort(function(a,b){return a.minuto-b.minuto;});
-    // 3 buckets de 5 min = últimos 15 min
     var pts=[];
     for(var m=nowM-10;m<=nowM;m+=5){
       var found=mine.find(function(r){return r.minuto===m;});
       pts.push(found?parseInt(found.llamadas):0);
     }
     var max=Math.max.apply(null,pts)||1;
-    var W=56,H=20;
+    var W=48,H=16;
     var trend=pts[pts.length-1]>pts[0]?'up':pts[pts.length-1]<pts[0]?'down':'flat';
-    var lc=trend==='up'?'#16A34A':trend==='down'?'#DC2626':'#6B7BA8';
+    var lc=trend==='up'?'#00C9A7':trend==='down'?'#DC2626':'#9AAAC8';
     var svgPts=pts.map(function(v,i){return (i/(pts.length-1)*W).toFixed(1)+','+(H-v/max*(H-2)-1).toFixed(1);}).join(' ');
     var spark='<svg width="'+W+'" height="'+H+'" style="display:inline-block;vertical-align:middle">'+
       '<polyline points="'+svgPts+'" fill="none" stroke="'+lc+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
       '</svg>';
-    // Insertar o actualizar columna sparkline
-    var td=tr.querySelector('.td-spark');
-    if(!td){
-      td=document.createElement('td');td.className='td-spark';
-      tr.appendChild(td);
+    // Meter el sparkline DENTRO de la celda de estado (no columna extra)
+    var tdEst=tr.querySelector('td:nth-child(6)');
+    if(tdEst){
+      var badge=tdEst.querySelector('.ah-bg');
+      var spEl=tdEst.querySelector('.spark-inline');
+      if(!spEl){spEl=document.createElement('div');spEl.className='spark-inline';spEl.style.cssText='margin-top:3px';tdEst.appendChild(spEl);}
+      spEl.innerHTML=spark;
     }
-    td.innerHTML=spark;
   });
-  // Agregar th si no existe
-  var thead=document.querySelector('.ah-t thead tr');
-  if(thead&&!thead.querySelector('.th-spark')){
-    var th=document.createElement('th');th.className='th-spark';th.style.cssText='text-align:center;font-size:8px;letter-spacing:.5px;color:#9AAAC8;font-weight:700;text-transform:uppercase';th.textContent='Progreso';
-    thead.appendChild(th);
-  }
 }
 
 function ahRank(){_q('aos_ventas','select=asesor,monto,tipo&fecha=gte.'+_mi()+'&asesor=neq.NO APLICA&limit=5000',function(rows){var m={};(rows||[]).forEach(function(r){if(!r.asesor)return;if(!m[r.asesor])m[r.asesor]={n:r.asesor,nS:0,fS:0,cS:0,nP:0,fP:0,cP:0,f:0,c:0};var v=parseFloat(r.monto||0);m[r.asesor].f+=v;if(r.tipo==='PRODUCTO'){m[r.asesor].nP++;m[r.asesor].fP+=v;var cp=v>=201?6:v>=149?5:v>=101?4:v>=51?3:v>=18?1:0.30;m[r.asesor].cP+=cp;m[r.asesor].c+=cp;}else{m[r.asesor].nS++;m[r.asesor].fS+=v;var cs=v*0.005;m[r.asesor].cS+=cs;m[r.asesor].c+=cs;}});_D.rkD=Object.values(m).sort(function(a,b){return b.c-a.c;});ahRkR();});}
