@@ -148,34 +148,47 @@ function rLTV(k,hi,ltvData){
   el('mk-ltv-tag').textContent='Promedio LTV '+(ltv||'—')+'x · '+cohortes.length+' cohortes';
 
 
-  // COHORT TABLE — uses AVERAGE ABSOLUTE amounts per period for reference
-  html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación por Período</div>';
-  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">GOTEO +4</th><th style="color:#059669;">TOTAL</th><th>ROAS</th></tr></thead><tbody>';
+  // COHORT TABLE — each cohort compared to PREVIOUS cohort's actual amounts
+  // First cohort has no benchmark — just shows data
+  // This is the most honest comparison: "did we match last month's performance?"
+  html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Seguimiento por Perído</div>';
+  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">GOTEO +4</th><th style="color:#059669;">TOTAL</th><th style="color:#9AAAC8;">ESP.</th><th>ROAS</th></tr></thead><tbody>';
 
-  // Calculate average absolute amounts per offset from all cohorts with data
-  var avgAmt={};
-  for(var off=0;off<=3;off++){var sum=0,cnt=0;cohortes.forEach(function(c){var key='m'+off;var val=c[key];if(val!==null&&val!==undefined){sum+=parseFloat(val);cnt++;}});if(cnt>0)avgAmt[off]=Math.round(sum/cnt);}
-
+  // Store each cohort's actual values for the next cohort to use as benchmark
+  var prevAmts=null;
   cohortes.forEach(function(c,idx){
     var mes=MF[c.lead_mes]?MF[c.lead_mes].slice(0,3).toUpperCase():'?';
     var ft=parseFloat(c.fact_total||0);
     var m0=parseFloat(c.m0||0);
     var inv=parseFloat(c.inversion||0);
     var roas=inv>0&&ft>0?Math.round(ft/inv*10)/10:null;
+    var myAmts={};
+
+    // Expected total = sum of previous cohort's actuals (as benchmark)
+    var expTotal=0;
+    if(prevAmts){for(var k in prevAmts)expTotal+=prevAmts[k];}
 
     function cellVal(val,offset){
       var colors=['#0A4FBF','#00C9A7','#7C3AED','#D97706','#6B7BA8'];
       var color=colors[Math.min(offset,4)];
-      var avg=avgAmt[offset]||0;
+      // Benchmark = previous cohort's actual for same offset
+      var bench=prevAmts?prevAmts[offset]:null;
+
       if(val===null){
-        if(avg>0)return '<span style="color:#9AAAC8;font-style:italic;">~S/'+avg+'</span>';
+        // Not yet reached — show previous cohort's amount as projection
+        if(bench&&bench>0)return '<span style="color:#9AAAC8;font-style:italic;">~S/'+Math.round(bench)+'</span>';
         return '<span style="color:#DDE4F5;">—</span>';
       }
       var v=parseFloat(val);
+      myAmts[offset]=v;
       if(v===0)return '<span style="color:#9AAAC8;">S/0</span>';
-      var isGood=avg<=0||v>=avg*0.7;
+
+      // Show real value + benchmark from previous cohort
+      var isGood=!bench||bench<=0||v>=bench;
       var out='<div style="font-weight:700;color:'+(isGood?color:'#DC2626')+';font-size:12px;">S/'+Math.round(v)+'</div>';
-      if(avg>0)out+='<div style="font-size:8px;color:#9AAAC8;">prom. S/'+avg+'</div>';
+      if(bench&&bench>0){
+        out+='<div style="font-size:8px;color:#9AAAC8;">ant. S/'+Math.round(bench)+'</div>';
+      }
       return out;
     }
 
@@ -187,19 +200,26 @@ function rLTV(k,hi,ltvData){
     html+='<td>'+cellVal(c.m1,1)+'</td>';
     html+='<td>'+cellVal(c.m2,2)+'</td>';
     html+='<td>'+cellVal(c.m3,3)+'</td>';
-    if(c.m4plus!==null&&c.m4plus!==undefined){var m4v=parseFloat(c.m4plus||0);html+='<td style="font-weight:700;color:#6B7BA8;">'+(m4v>0?'S/'+Math.round(m4v):'S/0')+'</td>';}
+    if(c.m4plus!==null&&c.m4plus!==undefined){var m4v=parseFloat(c.m4plus||0);myAmts[4]=m4v;html+='<td style="font-weight:700;color:#6B7BA8;">'+(m4v>0?'S/'+Math.round(m4v):'S/0')+'</td>';}
     else{html+='<td style="color:#9AAAC8;font-style:italic;">—</td>';}
+    // Total Real
     html+='<td style="font-weight:800;font-size:13px;color:#059669;">'+(ft>0?'S/'+Math.round(ft):'S/0')+'</td>';
+    // Total Esperado (from previous cohort total)
+    html+='<td style="font-size:10px;color:#9AAAC8;">'+(expTotal>0?'S/'+Math.round(expTotal):'—')+'</td>';
     html+='<td style="font-weight:700;color:'+(roas&&roas>=1?'#16A34A':'#DC2626')+';">'+(roas?roas+'x':'—')+'</td>';
     html+='</tr>';
+
+    // Store this cohort's actuals for next cohort's benchmark
+    if(m0>0)prevAmts=myAmts;
   });
 
   // TOTALS ROW
   var tL=0,tI=0,tM0=0,tM1=0,tM2=0,tM3=0,tFT=0;
   cohortes.forEach(function(c){tL+=parseInt(c.leads||0);tI+=parseFloat(c.inversion||0);tM0+=parseFloat(c.m0||0);if(c.m1!==null)tM1+=parseFloat(c.m1||0);if(c.m2!==null)tM2+=parseFloat(c.m2||0);if(c.m3!==null)tM3+=parseFloat(c.m3||0);tFT+=parseFloat(c.fact_total||0);});
   var tR=tI>0&&tFT>0?Math.round(tFT/tI*10)/10:null;
-  html+='<tr style="background:#F0F4FC;font-weight:800;"><td>TOTAL</td><td>'+tL+'</td><td style="color:#6B7BA8;">S/'+Math.round(tI)+'</td><td style="color:#0A4FBF;">S/'+Math.round(tM0)+'</td><td style="color:#00C9A7;">S/'+Math.round(tM1)+'</td><td style="color:#7C3AED;">S/'+Math.round(tM2)+'</td><td style="color:#D97706;">S/'+Math.round(tM3)+'</td><td>—</td><td style="color:#059669;font-size:13px;">S/'+Math.round(tFT)+'</td><td style="color:'+(tR&&tR>=1?'#16A34A':'#DC2626')+';">'+(tR?tR+'x':'—')+'</td></tr>';
+  html+='<tr style="background:#F0F4FC;font-weight:800;"><td>TOTAL</td><td>'+tL+'</td><td style="color:#6B7BA8;">S/'+Math.round(tI)+'</td><td style="color:#0A4FBF;">S/'+Math.round(tM0)+'</td><td style="color:#00C9A7;">S/'+Math.round(tM1)+'</td><td style="color:#7C3AED;">S/'+Math.round(tM2)+'</td><td style="color:#D97706;">S/'+Math.round(tM3)+'</td><td>—</td><td style="color:#059669;font-size:13px;">S/'+Math.round(tFT)+'</td><td></td><td style="color:'+(tR&&tR>=1?'#16A34A':'#DC2626')+';">'+(tR?tR+'x':'—')+'</td></tr>';
   html+='</tbody></table></div>';
+
 
 
   // Projection insight
