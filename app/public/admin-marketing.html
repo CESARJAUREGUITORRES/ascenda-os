@@ -69,6 +69,8 @@
     <div class="crd"><div class="ct">🛒 Ventas del Mes <span class="tag tag-b" id="mk-nvl">0</span><span style="margin-left:auto;font-size:9px;color:#6B7BA8;" id="mk-fmes">S/0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"></tbody></table></div></div>
     <div class="crd"><div class="ct">📦 Ventas Fuera del Mes <span class="tag" style="background:#FFFBEB;color:#D97706;" id="mk-nvf">0</span><span style="margin-left:auto;font-size:9px;color:#00C9A7;font-weight:700;" id="mk-ffuera">S/0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vf"></tbody></table></div></div>
   </div>
+  <!-- ALERTAS & INSIGHTS -->
+  <div class="crd"><div class="ct">🔔 Alertas & Insights</div><div id="mk-alerts"><div class="ld">Calculando...</div></div></div>
 </div>
 <div class="mov" id="m-iv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">💰 Gestión de Inversión</div><button class="mx" onclick="el('m-iv').classList.remove('open')">✕</button></div>
   <div class="mbody">
@@ -100,7 +102,7 @@ function mkL(){
   el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
   rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
     rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rGest(d.gestion);
-    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);rAlerts(d);
   });
 }
 function rKPI(k){
@@ -183,6 +185,36 @@ function rVF(vf){
   var tot=vf.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
   el('mk-ffuera').textContent='Total: S/'+Math.round(tot);
   el('mk-vf').innerHTML=vf.length?vf.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#00C9A7">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas fuera del mes</td></tr>';
+}
+function rAlerts(d){
+  var a=[];var k=d.kpis;var hi=d.historial||[];var g=d.gestion;
+  // ROI alerts
+  if(k.roas&&k.roas>=2)a.push({ico:'🚀',txt:'ROAS '+k.roas+'x — Excelente retorno de inversión',c:'#16A34A'});
+  else if(k.roas&&k.roas>=1)a.push({ico:'✅',txt:'ROAS '+k.roas+'x — Inversión recuperada',c:'#059669'});
+  else if(parseFloat(k.invTotal)>0&&k.roas)a.push({ico:'⚠️',txt:'ROAS '+k.roas+'x — Inversión NO recuperada aún (S/'+Math.round(k.invTotal)+' invertidos, S/'+Math.round(parseFloat(k.factTotal))+' facturado)',c:'#DC2626'});
+  else if(parseFloat(k.invTotal)>0&&!k.roas)a.push({ico:'🔴',txt:'Sin ventas este mes con S/'+Math.round(k.invTotal)+' invertidos — ROI negativo',c:'#DC2626'});
+  // Fact acumulado vs mes
+  var fA=parseFloat(k.factAcumulado||0),fM=parseFloat(k.factTotal||0);
+  if(fA>fM&&fM>0)a.push({ico:'📈',txt:'Los leads generan S/'+Math.round(fA-fM)+' adicionales fuera de su mes ('+Math.round(fA/fM)+'x del mes)',c:'#00C9A7'});
+  else if(fA>0&&fM===0)a.push({ico:'📈',txt:'Leads sin venta en su mes pero acumulan S/'+Math.round(fA)+' en otros meses',c:'#00C9A7'});
+  // Conversion trends (compare with previous month)
+  if(hi.length>=2){
+    var prev=hi[hi.length-2],curr=hi[hi.length-1];
+    var prevConv=parseFloat(prev.conv||0),currConv=parseFloat(curr.conv||0);
+    if(currConv>prevConv&&prevConv>0)a.push({ico:'📊',txt:'Conversión subió: '+currConv+'% vs '+prevConv+'% mes anterior',c:'#16A34A'});
+    else if(currConv<prevConv&&prevConv>0)a.push({ico:'📉',txt:'Conversión bajó: '+currConv+'% vs '+prevConv+'% mes anterior',c:'#D97706'});
+    var prevL=parseInt(prev.leads||0),currL=parseInt(curr.leads||0);
+    if(currL<prevL*0.7&&prevL>0)a.push({ico:'⬇️',txt:'Leads bajaron '+Math.round((1-currL/prevL)*100)+'%: '+currL+' vs '+prevL+' mes anterior',c:'#DC2626'});
+  }
+  // Gestión alerts
+  var pctTrab=parseInt(g.pcts.trabajados||0);
+  if(pctTrab<80)a.push({ico:'📞',txt:'Solo '+pctTrab+'% de leads trabajados — '+(g.sinLlamar||0)+' sin llamar',c:'#D97706'});
+  // Best campaigns
+  var camps=d.porTratamiento||[];var best=camps.find(function(c){return parseFloat(c.fact_acum||0)>0;});
+  if(best)a.push({ico:'🏆',txt:'Mejor campaña: '+best.nombre+' — S/'+Math.round(parseFloat(best.fact_acum))+' acumulado, '+best.leads+' leads',c:'#0A4FBF'});
+  // No investment warning
+  if(parseFloat(k.invTotal)===0)a.push({ico:'💰',txt:'Sin inversión registrada este mes — agrega la inversión para calcular ROAS y CAC',c:'#D97706'});
+  el('mk-alerts').innerHTML=a.length?a.map(function(x){return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F0F4FC;"><span style="font-size:14px;">'+x.ico+'</span><span style="font-size:10px;font-weight:600;color:'+x.c+';">'+x.txt+'</span></div>';}).join(''):'<div class="ld">✅ Sin alertas — todo normal</div>';
 }
 var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA','PINK INTIMATE'];
 var PLATS=['META ADS','TIKTOK ADS','GOOGLE ADS'];
