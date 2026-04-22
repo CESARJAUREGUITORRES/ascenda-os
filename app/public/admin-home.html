@@ -12,13 +12,13 @@
 .ah-sb.ld{background:#EBF2FF;color:#0A4FBF;border-color:#BFDBFE;}.ah-sb.er{background:#FEF2F2;color:#DC2626;border-color:#FECACA;}
 .ah-sbd{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
 /* Ticker */
-.ah-tk{background:linear-gradient(135deg,#071D4A,#0D2D6E);border-radius:13px;padding:10px 16px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.ah-tk{background:linear-gradient(135deg,#071D4A,#0D2D6E);border-radius:13px;padding:10px 14px;display:flex;align-items:center;gap:0;flex-wrap:nowrap;width:100%;justify-content:space-between;}
 .ah-tkl{font-size:11px;font-weight:900;color:#00C9A7;letter-spacing:1px;font-family:'Exo 2',sans-serif;}
-.ah-tks{display:flex;flex-direction:column;align-items:center;padding:0 5px;}
-.ah-tkv{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:#fff;line-height:1;}
+.ah-tks{display:flex;flex-direction:column;align-items:center;padding:0;flex:1;}
+.ah-tkv{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#fff;line-height:1;}
 .ah-tkn{font-size:8px;color:rgba(255,255,255,.55);letter-spacing:.5px;text-align:center;margin-top:1px;}
 .ah-tkp{font-size:8px;color:#00C9A7;margin-left:2px;font-weight:700;}
-.ah-tka{color:rgba(255,255,255,.25);font-size:14px;padding:0 1px;}
+.ah-tka{color:rgba(255,255,255,.15);font-size:10px;padding:0;align-self:stretch;display:flex;align-items:center;}
 /* Ventas */
 .ah-vt{font-family:'Exo 2',sans-serif;font-weight:800;font-size:26px;color:#0A4FBF;}
 .ah-vs{font-size:10px;color:#6B7BA8;margin:2px 0 10px;}
@@ -578,15 +578,16 @@ function ahRenderChart(){
   var nowM=new Date().getHours()*60+new Date().getMinutes();
   var endM=Math.min(19*60, nowM+15);
 
-  // Rellenar continuo SOLO hasta el último bucket con actividad real
-  // Los buckets futuros (sin datos) no se conectan — la línea termina donde termina
+  // El día completo: desde primer bucket hasta última llamada real
+  // + 3 buckets (15 min) de espacio visual al final
   var lastActiveM = allAct[allAct.length-1];
   for(var m=firstM;m<=lastActiveM;m+=5){
     if(!byM[m]){var h=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(h<10?'0':'')+h+':'+(mi<10?'0':'')+mi,ll:0,ci:0};}
   }
-  // Agregar solo algunos buckets vacíos al final como espacio visual (sin conectar la línea)
-  for(var m=lastActiveM+5;m<=endM;m+=5){
-    if(!byM[m]){var h=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(h<10?'0':'')+h+':'+(mi<10?'0':'')+mi,ll:-1,ci:-1};}  // -1 = espacio visual, no dato
+  // Espacio visual al final (15 min) — buckets marcados como -1 para no conectar línea
+  var spaceEnd=Math.min(19*60, lastActiveM+15);
+  for(var m=lastActiveM+5;m<=spaceEnd;m+=5){
+    if(!byM[m]){var h=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(h<10?'0':'')+h+':'+(mi<10?'0':'')+mi,ll:-1,ci:-1};}
   }
   var data=Object.values(byM).sort(function(a,b){return a.m-b.m;});
   var n=data.length;
@@ -625,7 +626,7 @@ function ahRenderChart(){
   }
 
   // ── SVG ──
-  var W=580,H=200,pL=28,pR=10,pT=22,pB=28;
+  var W=780,H=210,pL=28,pR=10,pT=22,pB=28;
   var cW=W-pL-pR,cH=H-pT-pB;
 
   // maxV = max entre hoy y benchmark para escalar bien
@@ -673,11 +674,15 @@ function ahRenderChart(){
   }
 
   // ── X labels cada 15 min ──
+  // Etiquetas X: cada hora completa + cada 30min si el rango es < 5 horas
+  var rangeMins=n*5;
+  var labelStep=rangeMins>300?60:30; // >5h → solo horas; ≤5h → cada 30min
   data.forEach(function(d,i){
     var mi=d.m%60;
-    if(mi===0||mi===15||mi===30||mi===45){
+    var showLabel=(mi===0)||(labelStep===30&&mi===30);
+    if(showLabel){
       var h=Math.floor(d.m/60);
-      var lbl=(h<10?'0':'')+h+':'+(mi===0?'00':mi);
+      var lbl=(h<10?'0':'')+h+':'+(mi===0?'00':'30');
       svg+='<text x="'+xAt(i).toFixed(1)+'" y="'+(H-8)+'" fill="#9AAAC8" font-size="7" text-anchor="middle" font-family="DM Sans">'+lbl+'</text>';
       if(mi===0){
         svg+='<line x1="'+xAt(i).toFixed(1)+'" y1="'+pT+'" x2="'+xAt(i).toFixed(1)+'" y2="'+(aBot+2)+'" stroke="#EEF0F8" stroke-width="0.8"/>';
