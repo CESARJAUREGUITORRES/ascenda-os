@@ -716,4 +716,11 @@ function ahRenderSparklines(){
     thead.appendChild(th);
   }
 }
+
+// ── INICIALIZACIÓN ──
+ahLoad();
+ahChart();
+ahBench();
+_D.timer = setInterval(ahLoad, 30000);
+_D.timerChart = setInterval(ahChart, 30000);
 </script>
