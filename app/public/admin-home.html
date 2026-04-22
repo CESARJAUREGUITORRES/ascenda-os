@@ -34,7 +34,7 @@
 /* Table */
 .ah-t{width:100%;border-collapse:collapse;font-size:11px;}
 .ah-t th{padding:5px 7px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.6px;color:#9AAAC8;text-transform:uppercase;border-bottom:1px solid #DDE4F5;}
-.ah-t td{padding:7px;border-bottom:1px solid #F0F4FC;vertical-align:middle;}.ah-t tr:last-child td{border-bottom:none;}
+.ah-t td{padding:7px;border-bottom:1px solid #F0F4FC;vertical-align:middle;}.ah-t tr:last-child td{border-bottom:none;}.ah-t td:nth-child(2),.ah-t td:nth-child(3),.ah-t td:nth-child(4){text-align:center;}
 .ah-t tr[data-asesor]{cursor:pointer;transition:background .12s;}.ah-t tr[data-asesor]:hover{background:#F0F4FC;}
 .ah-t tr[data-asesor].sel{background:rgba(0,201,167,0.08);}
 .ah-bg{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.5px;}
@@ -152,12 +152,32 @@
         <div class="ah-ct" style="flex-wrap:wrap;gap:6px">MONITOREO DE LLAMADAS
           <div style="display:flex;gap:5px;align-items:center;margin-left:auto;flex-wrap:wrap">
             <button class="ah-chart-chip act" id="btn-mon-hoy" onclick="ahMonFecha(null)">Hoy</button>
-            <button class="ah-chart-chip" id="btn-mon-ayer" onclick="ahMonFecha('ayer')">Ayer</button>
-            <input type="date" id="mon-fecha-custom" style="font-size:9px;padding:2px 5px;border:0.5px solid #DDE4F5;border-radius:6px;background:#F0F4FC;color:#6B7BA8" onchange="ahMonFecha('custom')"/>
+            <button id="btn-mon-cal" onclick="ahAbrirCal()" title="Seleccionar fecha" style="background:none;border:0.5px solid #DDE4F5;border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px;color:#6B7BA8;line-height:1" id="btn-mon-cal">📅</button>
+            <span id="mon-fecha-lbl" style="font-size:9px;color:#0A4FBF;font-weight:600;display:none"></span>
+            <!-- Modal calendario -->
+            <div id="cal-modal" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,0.3);z-index:999;align-items:center;justify-content:center" onclick="if(event.target===this)ahCerrarCal()">
+              <div style="background:#fff;border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,0.18);width:300px">
+                <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;color:#071D4A;margin-bottom:12px">Seleccionar día o rango</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div>
+                    <label style="font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px">Desde</label>
+                    <input type="date" id="cal-desde" style="width:100%;padding:7px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;margin-top:3px"/>
+                  </div>
+                  <div>
+                    <label style="font-size:9px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.4px">Hasta (opcional)</label>
+                    <input type="date" id="cal-hasta" style="width:100%;padding:7px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:12px;margin-top:3px"/>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:4px">
+                    <button onclick="ahMonFecha('ayer')" style="flex:1;padding:7px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;background:#F0F4FC;cursor:pointer;color:#6B7BA8">Ayer</button>
+                    <button onclick="ahCalAplicar()" style="flex:2;padding:7px;border:none;border-radius:8px;font-size:11px;background:#0A4FBF;color:#fff;font-weight:700;cursor:pointer">Ver resultados</button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <span class="ah-cu" id="ah-mu"></span>
           </div>
         </div>
-        <table class="ah-t"><thead><tr><th>Asesor</th><th>Llam.</th><th>Citas</th><th>Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
+        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th><th style="text-align:center">Progreso</th></tr></thead>
         <tbody id="ah-mtb"><tr><td colspan="6"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
       </div>
       <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
@@ -318,7 +338,34 @@ function ahAlertas(sem){
 // ═══════ SEMÁFORO ═══════
 // ── Filtro fecha monitoreo ────────────────────────────────────
 var _MON_FECHA = null; // null = hoy
+var _MON_FECHA_HASTA = null;
 
+function ahAbrirCal(){
+  var modal=document.getElementById('cal-modal');
+  if(modal){modal.style.display='flex';}
+  var d=document.getElementById('cal-desde');
+  if(d&&!d.value)d.value=_hoy();
+}
+function ahCerrarCal(){
+  var modal=document.getElementById('cal-modal');
+  if(modal)modal.style.display='none';
+}
+function ahCalAplicar(){
+  var desde=document.getElementById('cal-desde').value;
+  var hasta=document.getElementById('cal-hasta').value;
+  ahCerrarCal();
+  if(!desde)return;
+  _MON_FECHA=desde;
+  _MON_FECHA_HASTA=hasta||desde;
+  var lbl=document.getElementById('mon-fecha-lbl');
+  if(lbl){
+    lbl.style.display='inline';
+    lbl.textContent=desde===(hasta||desde)?desde:desde+' → '+(hasta||desde);
+  }
+  var hoyBtn=document.getElementById('btn-mon-hoy');
+  if(hoyBtn)hoyBtn.classList.remove('act');
+  ahMonLoad();
+}
 function ahMonFecha(tipo){
   if(tipo===null){
     _MON_FECHA=null;
@@ -331,10 +378,10 @@ function ahMonFecha(tipo){
   }
   // Actualizar chips
   var hoyBtn=document.getElementById('btn-mon-hoy');
-  var ayerBtn=document.getElementById('btn-mon-ayer');
   if(hoyBtn)hoyBtn.classList.toggle('act',!_MON_FECHA||_MON_FECHA===_hoy());
-  if(ayerBtn)ayerBtn.classList.toggle('act',tipo==='ayer');
-  // Recargar
+  var lbl=document.getElementById('mon-fecha-lbl');
+  if(lbl)lbl.style.display=(_MON_FECHA&&_MON_FECHA!==_hoy())?'inline':'none';
+  if(lbl&&tipo==='ayer')lbl.textContent='Ayer';
   ahMonLoad();
 }
 
@@ -484,9 +531,15 @@ function ahRenderChart(){
   var nowM=new Date().getHours()*60+new Date().getMinutes();
   var endM=Math.min(19*60, nowM+15);
 
-  // Rellenar continuo cada 5 min desde primer bucket hasta endM
-  for(var m=firstM;m<=endM;m+=5){
+  // Rellenar continuo SOLO hasta el último bucket con actividad real
+  // Los buckets futuros (sin datos) no se conectan — la línea termina donde termina
+  var lastActiveM = allAct[allAct.length-1];
+  for(var m=firstM;m<=lastActiveM;m+=5){
     if(!byM[m]){var h=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(h<10?'0':'')+h+':'+(mi<10?'0':'')+mi,ll:0,ci:0};}
+  }
+  // Agregar solo algunos buckets vacíos al final como espacio visual (sin conectar la línea)
+  for(var m=lastActiveM+5;m<=endM;m+=5){
+    if(!byM[m]){var h=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(h<10?'0':'')+h+':'+(mi<10?'0':'')+mi,ll:-1,ci:-1};}  // -1 = espacio visual, no dato
   }
   var data=Object.values(byM).sort(function(a,b){return a.m-b.m;});
   var n=data.length;
@@ -551,8 +604,17 @@ function ahRenderChart(){
     return p;
   }
 
-  var llamPts=data.map(function(d,i){return [xAt(i),yAt(d.ll)];});
-  var llamPath=buildPath(llamPts);
+  // llamPts solo incluye puntos hasta el último con dato real (ll>=0)
+  // Los puntos de espacio visual (ll=-1) se excluyen de la línea
+  var lastRealIdx=0;
+  data.forEach(function(d,i){if(d.ll>=0&&d.m<=nowM+5)lastRealIdx=i;});
+  var llamPts=[];
+  data.forEach(function(d,i){
+    if(i<=lastRealIdx&&d.ll>=0)llamPts.push([xAt(i),yAt(d.ll)]);
+    else llamPts.push(null); // placeholder para mantener el índice x
+  });
+  var llamPtsReal=llamPts.filter(function(p){return p!==null;});
+  var llamPath=buildPath(llamPtsReal);
 
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#fff" xmlns="http://www.w3.org/2000/svg">';
 
@@ -617,10 +679,10 @@ function ahRenderChart(){
       +'<clipPath id="'+cpL+'"><rect x="'+pL+'" y="'+yBase.toFixed(1)+'" width="'+cW+'" height="'+(aBot-yBase)+'" /></clipPath>'
       +'</defs>';
     // Zona verde (encima umbral)
-    svg+='<path d="'+llamPath+' L'+llamPts[n-1][0].toFixed(1)+','+aBot+' L'+llamPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(0,201,167,0.10)" clip-path="url(#'+cpH+')"/>';
+    var lpr=llamPtsReal;svg+='<path d="'+llamPath+' L'+lpr[lpr.length-1][0].toFixed(1)+','+aBot+' L'+lpr[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(0,201,167,0.10)" clip-path="url(#'+cpH+')"/>';
     svg+='<path d="'+llamPath+'" fill="none" stroke="#00C9A7" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpH+')"/>';
     // Zona roja (bajo umbral)
-    svg+='<path d="'+llamPath+' L'+llamPts[n-1][0].toFixed(1)+','+aBot+' L'+llamPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(220,38,38,0.10)" clip-path="url(#'+cpL+')"/>';
+    svg+='<path d="'+llamPath+' L'+lpr[lpr.length-1][0].toFixed(1)+','+aBot+' L'+lpr[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(220,38,38,0.10)" clip-path="url(#'+cpL+')"/>';
     svg+='<path d="'+llamPath+'" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpL+')"/>';
   }
 
@@ -632,7 +694,7 @@ function ahRenderChart(){
 
   // ── Puntos + valores (botón ojo) ──
   data.forEach(function(d,i){
-    if(d.m>nowM+5)return; // no mostrar puntos futuros
+    if(d.ll<0||d.m>nowM+5)return; // no mostrar espacio visual ni futuros
     if(d.ll>0){
       var cx=xAt(i),cy=yAt(d.ll);
       var dc=d.ll>=BASE?'#00C9A7':'#EF4444';
@@ -670,7 +732,7 @@ function ahBench(){
 
 function ahSparklines(){
   var hoy=_hoy();
-  fetch(_S+'/rest/v1/rpc/aos_actividad_reciente',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_fecha:hoy,p_minutos:40})})
+  fetch(_S+'/rest/v1/rpc/aos_actividad_reciente',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_fecha:hoy,p_minutos:15})})
   .then(function(r){return r.json();})
   .then(function(raw){
     var arr=Array.isArray(raw)?raw:(raw&&raw[0]?raw[0]:[]);
@@ -687,9 +749,9 @@ function ahRenderSparklines(){
   rows.forEach(function(tr){
     var asesor=tr.getAttribute('data-asesor');
     var mine=raw.filter(function(r){return r.asesor===asesor;}).sort(function(a,b){return a.minuto-b.minuto;});
-    // 8 buckets de 5 min = últimos 40 min
+    // 3 buckets de 5 min = últimos 15 min
     var pts=[];
-    for(var m=nowM-35;m<=nowM;m+=5){
+    for(var m=nowM-10;m<=nowM;m+=5){
       var found=mine.find(function(r){return r.minuto===m;});
       pts.push(found?parseInt(found.llamadas):0);
     }
@@ -712,7 +774,7 @@ function ahRenderSparklines(){
   // Agregar th si no existe
   var thead=document.querySelector('.ah-t thead tr');
   if(thead&&!thead.querySelector('.th-spark')){
-    var th=document.createElement('th');th.className='th-spark';th.textContent='40 min';
+    var th=document.createElement('th');th.className='th-spark';th.style.textAlign='center';th.textContent='Progreso';
     thead.appendChild(th);
   }
 }
