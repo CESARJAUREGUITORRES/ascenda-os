@@ -1,14 +1,170 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- admin-marketing.html v1 — Marketing Admin | AscendaOS v1 | 100% Supabase -->
+<style>
+.mk{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:100%;font-family:'DM Sans',sans-serif;}
+.mk-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.mk-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}
+.mk-modes{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #DDE4F5;}
+.mk-mode{padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#6B7BA8;border:none;font-family:'DM Sans';}.mk-mode.act{background:#00C9A7;color:#fff;}
+.psel{padding:6px 10px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;font-size:12px;font-family:'DM Sans';color:#0D1B3E;outline:none;}
+.mk-btn{padding:6px 14px;border-radius:8px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans';}
+.mk-btn-inv{background:linear-gradient(135deg,#DC2626,#B91C1C);color:#fff;}.mk-btn-inv:hover{opacity:.9;}
+.crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
+.kl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:5px;}
+.kv{font-family:'Exo 2',sans-serif;font-weight:800;line-height:1;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;color:#0D1B3E;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.ld{text-align:center;padding:16px;color:#9AAAC8;font-size:11px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.kpi-c{background:linear-gradient(135deg,#071D4A,#0A3A8F);border-radius:10px;padding:10px;text-align:center;color:#fff;}
+.kpi-c .kv{color:#fff;font-size:20px;}.kpi-c .kl{color:rgba(255,255,255,.5);}.kpi-c .ks{color:rgba(255,255,255,.4);font-size:9px;margin-top:3px;}
+.kpi-g{background:linear-gradient(135deg,#059669,#10B981);}
+.emb-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.emb-bar{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.emb-lbl{min-width:70px;font-size:11px;font-weight:700;color:#0D1B3E;text-align:right;}
+.emb-track{flex:1;height:28px;background:#E2E8F0;border-radius:6px;overflow:hidden;}
+.emb-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:800;color:#fff;}
+.emb-pct{text-align:right;min-width:50px;font-size:10px;color:#6B7BA8;}.emb-pct b{display:block;font-size:12px;color:#0D1B3E;}
+.emb-conv{font-size:9px;color:#6B7BA8;text-align:center;margin:-2px 0 4px 80px;}
+.gest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.gest-c{border-radius:10px;padding:12px;text-align:center;}
+.gest-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:20px;}.gest-l{font-size:8px;font-weight:700;text-transform:uppercase;color:#6B7BA8;margin-top:2px;}.gest-p{font-size:9px;color:#9AAAC8;}
+.gest-green{background:#F0FDF4;}.gest-green .gest-v{color:#16A34A;}.gest-red{background:#FEF2F2;}.gest-red .gest-v{color:#DC2626;}.gest-blue{background:#EBF2FF;}.gest-blue .gest-v{color:#0A4FBF;}.gest-yellow{background:#FFFBEB;}.gest-yellow .gest-v{color:#D97706;}.gest-purple{background:#F5F3FF;}.gest-purple .gest-v{color:#7C3AED;}.gest-cyan{background:#F0FDFA;}.gest-cyan .gest-v{color:#0D9488;}
+.vt{width:100%;border-collapse:collapse;}.vt th{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}.vt td{padding:5px 6px;border-bottom:1px solid rgba(221,228,245,.3);font-size:10px;}.vt tr:hover td{background:#F8FAFF;}
+.tb{padding:2px 6px;border-radius:5px;font-size:8px;font-weight:700;}.tb-cyan{background:#F0FDFA;color:#0D9488;}.tb-blue{background:#EBF2FF;color:#0A4FBF;}
+.mk-bot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.2);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}.mov.open{display:flex;}
+.modal{background:#fff;border-radius:20px;width:90%;max-width:620px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.15);}
+.mhd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #F0F4FC;}.mtit{flex:1;font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#0D1B3E;}
+.mx{width:28px;height:28px;border-radius:8px;border:none;background:#F0F4FC;cursor:pointer;font-size:14px;color:#6B7BA8;}.mx:hover{background:#e5e9f5;}
+.mbody{padding:16px 20px;}.mfoot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #F0F4FC;}
+.mbtn{padding:8px 20px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans';}.mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-p{background:#0A4FBF;color:#fff;}
+.mi{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;box-sizing:border-box;}.mi:focus{border-color:#0A4FBF;}
+.ms{padding:8px 10px;border-radius:8px;border:1px solid #DDE4F5;font-size:11px;font-family:'DM Sans';outline:none;box-sizing:border-box;}
+.ml{font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:3px;}
+.inv-row{display:grid;grid-template-columns:1fr 1fr 100px 28px;gap:6px;align-items:center;margin-bottom:4px;font-size:10px;}
+.inv-del{width:24px;height:24px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;cursor:pointer;font-size:9px;}
+.inv-add{padding:4px 10px;border-radius:6px;border:1px dashed #DDE4F5;background:none;color:#0A4FBF;font-size:9px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-family:'DM Sans';}
+.inv-total{padding:8px 12px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;color:#fff;font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;text-align:center;}
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(4,1fr);}.mk-bot{grid-template-columns:1fr;}.emb-row{grid-template-columns:1fr;}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.gest-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+<div class="mk">
+  <div class="mk-hdr"><div class="mk-t">📊 Marketing</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div class="mk-modes"><button class="mk-mode act" data-m="mes" onclick="mkMode(this)">Mes</button><button class="mk-mode" data-m="anio" onclick="mkMode(this)">Año</button></div>
+      <select class="psel" id="mk-mes" onchange="mkLoad()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <select class="psel" id="mk-anio" onchange="mkLoad()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <button class="mk-btn mk-btn-inv" onclick="openInv()">💰 Gestión de Inversión</button>
+    </div>
   </div>
+  <div class="crd" style="padding:10px;"><div class="kl" id="mk-per">📈 KPIs de Campaña</div>
+    <div class="kpi-strip">
+      <div class="kpi-c"><div class="kl">Leads</div><div class="kv" id="k-leads">0</div><div class="ks">del período</div></div>
+      <div class="kpi-c"><div class="kl">Llamados</div><div class="kv" id="k-llam">0</div><div class="ks" id="k-pllam">0%</div></div>
+      <div class="kpi-c"><div class="kl">Citas Tel.</div><div class="kv" id="k-citas">0</div><div class="ks" id="k-pcitas">0%</div></div>
+      <div class="kpi-c"><div class="kl">Asistieron</div><div class="kv" id="k-asist">0</div><div class="ks" id="k-pasist">0%</div></div>
+      <div class="kpi-c"><div class="kl">Ventas</div><div class="kv" id="k-ventas">0</div><div class="ks" id="k-pventas">0%</div></div>
+      <div class="kpi-c kpi-g"><div class="kl">Facturación</div><div class="kv" id="k-fact">S/0</div><div class="ks">campaña</div></div>
+      <div class="kpi-c"><div class="kl">ROAS</div><div class="kv" id="k-roas">0x</div><div class="ks">retorno</div></div>
+    </div>
+  </div>
+  <div class="emb-row">
+    <div class="crd"><div class="ct">▼ Embudo de Conversión <span class="tb tb-cyan">leads nuevos del mes</span></div><div id="mk-emb"><div class="ld">Cargando...</div></div></div>
+    <div class="crd"><div class="ct">📅 Histórico mensual</div><div id="mk-hist"><div class="ld">Cargando...</div></div></div>
+  </div>
+  <div class="crd"><div class="ct">📋 GESTIÓN DE LEADS DEL MES</div><div class="gest-grid" id="mk-gest"><div class="ld" style="grid-column:1/-1;">Cargando...</div></div></div>
+  <div class="mk-bot">
+    <div class="crd"><div class="ct">📢 Top Anuncios <span class="tb tb-cyan">leads del mes</span></div><div style="overflow-x:auto;max-height:340px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>Asist.</th><th>Ventas</th><th>Fact.</th></tr></thead><tbody id="mk-an"><tr><td colspan="6" class="ld">--</td></tr></tbody></table></div></div>
+    <div class="crd"><div class="ct">🎯 Campañas <span class="tb tb-cyan">leads del mes</span></div><div style="overflow-x:auto;max-height:340px;overflow-y:auto;"><table class="vt"><thead><tr><th>Tratamiento</th><th>Leads</th><th>Citas</th><th>%Cita</th><th>Asist.</th><th>Ventas</th><th>Fact.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"><tr><td colspan="8" class="ld">--</td></tr></tbody></table></div></div>
+    <div class="crd"><div class="ct">🛒 Ventas de Leads <span class="tb tb-blue" id="mk-nvl">0</span></div><div style="overflow-x:auto;max-height:340px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Trat.</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"><tr><td colspan="6" class="ld">--</td></tr></tbody></table></div></div>
+  </div>
+  <div class="crd"><div class="ct">⚙ Operación por Tratamiento <span class="tb tb-blue" id="mk-optot">0</span></div><div style="overflow-x:auto;"><table class="vt"><thead><tr><th>Tratamiento</th><th>Llam.</th><th>Citas</th><th>%Cita</th><th>Asist.</th><th>Ventas</th><th>Fact.</th></tr></thead><tbody id="mk-op"><tr><td colspan="7" class="ld">--</td></tr></tbody></table></div></div>
 </div>
-</body>
-</html>
+<div class="mov" id="m-inv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">💰 Gestión de Inversión de Campañas</div><button class="mx" onclick="el('m-inv').classList.remove('open')">✕</button></div>
+  <div class="mbody">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div class="ml" style="margin:0;">Mes:</div><select class="ms" id="iv-m" style="width:120px;" onchange="ivLd()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <div class="ml" style="margin:0;">Año:</div><select class="ms" id="iv-a" style="width:80px;" onchange="ivLd()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <button class="mk-btn mk-btn-inv" style="padding:6px 12px;" onclick="ivLd()">Cargar →</button>
+      <div class="inv-total" id="iv-tot">S/ 0 total</div>
+    </div>
+    <div class="inv-row" style="font-weight:700;color:#9AAAC8;font-size:8px;text-transform:uppercase;letter-spacing:.5px;"><div>Tratamiento</div><div>Red Social</div><div>Inversión (S/)</div><div></div></div>
+    <div id="iv-list"></div>
+    <button class="inv-add" onclick="ivAddRow()">+ Agregar fila</button>
+  </div>
+  <div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-inv').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="ivSave()">💾 Guardar cambios</button></div>
+</div></div>
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
+function rest(p,o){return fetch(SB+'/rest/v1/'+p,Object.assign({headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}},o||{}));}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(id){return document.getElementById(id);}
+function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+var MF=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var MK={data:null};
+(function(){var m=new Date().getMonth()+1;el('mk-mes').value=String(m);el('mk-anio').value=String(new Date().getFullYear());mkLoad();})();
+function mkMode(btn){document.querySelectorAll('.mk-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');mkLoad();}
+function mkLoad(){
+  var mes=Number(el('mk-mes').value),anio=Number(el('mk-anio').value);
+  el('mk-per').innerHTML='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
+  rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){
+    if(!d||d.error)return;MK.data=d;var k=d.kpis,e=d.embudo,g=d.gestion;
+    el('k-leads').textContent=k.leads;el('k-llam').textContent=k.llamados;el('k-citas').textContent=k.citas;el('k-asist').textContent=k.asistieron;el('k-ventas').textContent=k.ventas;
+    el('k-fact').textContent='S/ '+Math.round(parseFloat(k.factTotal||0));el('k-roas').textContent=(k.roas||0)+'x';
+    el('k-pllam').textContent=k.pctLlamados+'% leads';el('k-pcitas').textContent=(k.llamados>0?Math.round(k.citas/k.llamados*100):0)+'% llam.';
+    el('k-pasist').textContent=(k.citas>0?Math.round(k.asistieron/k.citas*100):0)+'% citas';el('k-pventas').textContent=(k.leads>0?Math.round(k.ventas/k.leads*100):0)+'% leads';
+    // Embudo
+    var mx=e.leads||1,t=e.tasas;
+    var rows=[{l:'Leads',v:e.leads,c:'#0A4FBF',p:100,s:'base'},{l:'Llamados',v:e.llamados,c:'#0A4FBF',p:Math.round(e.llamados/mx*100),s:t.llamados+'% de leads'},{l:'Citas telef.',v:e.citas,c:'#00C9A7',p:Math.round(e.citas/mx*100),s:t.citas+'% de llamados'},{l:'Asistieron',v:e.asistieron,c:'#16A34A',p:Math.max(Math.round(e.asistieron/mx*100),1),s:t.asist+'% de citas'},{l:'Ventas',v:e.ventas,c:'#059669',p:Math.max(Math.round(e.ventas/mx*100),1),s:t.ventas+'% de asistidos'}];
+    var convs=['','▼ '+t.llamados+'% conv.','▼ '+t.citas+'% conv.','▼ '+t.asist+'% conv.','▼ '+t.ventas+'% conv.'];
+    el('mk-emb').innerHTML=rows.map(function(r,i){return(i>0?'<div class="emb-conv">'+convs[i]+'</div>':'')+
+      '<div class="emb-bar"><div class="emb-lbl">'+r.l+'</div><div class="emb-track"><div class="emb-fill" style="width:'+r.p+'%;background:'+r.c+'">'+r.v+'</div></div><div class="emb-pct"><b>'+r.p+'%</b>'+r.s+'</div></div>';}).join('')+
+      '<div style="margin-top:8px;font-size:11px;color:#6B7BA8;">Facturado del periodo <b style="font-size:16px;color:#0D1B3E;font-family:Exo 2;float:right;">S/ '+Math.round(parseFloat(e.factTotal||0))+'</b></div>';
+    // Historial
+    var hi=d.historial||[];var mxF=Math.max.apply(null,hi.map(function(x){return parseFloat(x.fact||0);})||[1]);
+    el('mk-hist').innerHTML=(hi.length?'<div style="display:flex;gap:6px;align-items:flex-end;justify-content:space-around;height:80px;margin-bottom:10px;">'+hi.map(function(x){var hF=mxF>0?Math.round(parseFloat(x.fact||0)/mxF*60):0;return '<div style="text-align:center;flex:1;"><div style="height:65px;display:flex;align-items:flex-end;justify-content:center;"><div style="width:20px;height:'+hF+'px;background:#0A4FBF;border-radius:3px 3px 0 0;"></div></div><div style="font-size:7px;color:#9AAAC8;">S/'+Math.round(parseFloat(x.fact||0)/1000)+'k</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;">'+MF[x.mes].slice(0,3).toUpperCase()+'</div></div>';}).join('')+'</div>':'')+
+      '<table class="vt"><thead><tr><th>Mes</th><th>Leads</th><th>Llam.</th><th>Citas</th><th>Asist.</th><th>Ventas</th><th>Fact.</th><th>Conv%</th></tr></thead><tbody>'+(hi.length?hi.map(function(x){return '<tr><td style="font-weight:700">'+MF[x.mes].slice(0,3)+' '+x.anio+'</td><td>'+x.leads+'</td><td>'+x.llamados+'</td><td>'+x.citas+'</td><td>'+x.asistieron+'</td><td>'+x.ventas+'</td><td style="font-weight:700;color:#0A4FBF">S/'+Math.round(parseFloat(x.fact))+'</td><td>'+x.conv+'%</td></tr>';}).join(''):'<tr><td colspan="8" class="ld">--</td></tr>')+'</tbody></table>';
+    // Gestion
+    var p=g.pcts||{};el('mk-gest').innerHTML=[
+      {v:g.nc,l:'NO CONTESTA',p:p.nc+'%',cls:'gest-red'},{v:g.descartado,l:'DESCARTADOS',p:p.descartado+'%',cls:'gest-red'},{v:g.seguimiento,l:'SEGUIMIENTO',p:p.seguimiento+'%',cls:'gest-yellow'},
+      {v:g.provincia,l:'PROVINCIA',p:p.provincia+'%',cls:'gest-purple'},{v:g.avgIntentos,l:'INTENTOS/LEAD',p:'',cls:'gest-blue'},{v:g.horaPico,l:'HORA PICO',p:'',cls:'gest-cyan'}
+    ].map(function(c){return '<div class="gest-c '+c.cls+'"><div class="gest-v">'+c.v+'</div><div class="gest-l">'+c.l+'</div>'+(c.p?'<div class="gest-p">'+c.p+'</div>':'')+'</div>';}).join('')+
+      '<div class="gest-c gest-blue" style="grid-column:1/3;text-align:left;display:flex;gap:20px;align-items:center;"><div><div class="gest-l">SIN LLAMAR DEL MES</div><div class="gest-v">'+g.sinLlamar+'</div><div class="gest-p">'+(p.sinLlamar||0)+'% de leads</div></div></div>';
+    // Anuncios
+    var an=d.porAnuncio||[];el('mk-an').innerHTML=an.length?an.map(function(a){return '<tr><td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h((a.nombre||'(sin)').substring(0,30))+'</td><td>'+a.leads+'</td><td>'+a.citas+'</td><td>'+a.asistieron+'</td><td>'+a.ventas+'</td><td style="font-weight:700;color:'+(parseFloat(a.fact)>0?'#0A4FBF':'#9AAAC8')+';">'+(parseFloat(a.fact)>0?'S/'+Math.round(parseFloat(a.fact)):'—')+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">--</td></tr>';
+    // Campañas
+    var tr=d.porTratamiento||[];el('mk-camp').innerHTML=tr.length?tr.map(function(t){return '<tr><td style="font-weight:700">'+h(t.nombre)+'</td><td>'+t.leads+'</td><td>'+t.citas+'</td><td style="color:#00C9A7;font-weight:700">'+(t.pctCita||0)+'%</td><td>'+t.asistieron+'</td><td>'+t.ventas+'</td><td style="font-weight:700;color:'+(parseFloat(t.fact)>0?'#0A4FBF':'#9AAAC8')+';">'+(parseFloat(t.fact)>0?'S/'+Math.round(parseFloat(t.fact)):'S/0')+'</td><td style="font-weight:700;color:'+(t.roas&&t.roas>=1?'#16A34A':'#DC2626')+';">'+(t.roas?t.roas+'x':'—')+'</td></tr>';}).join(''):'<tr><td colspan="8" class="ld">--</td></tr>';
+    // Ventas leads
+    var vl=d.ventasLeads||[];el('mk-nvl').textContent=vl.length+' ventas';
+    el('mk-vl').innerHTML=vl.length?vl.map(function(v){return '<tr><td style="white-space:nowrap;font-size:9px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,20))+'</td><td style="font-size:9px">'+h(v.celular||'')+'</td><td style="font-size:9px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#0A4FBF">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:9px">'+h((v.sede||'').substring(0,6))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">--</td></tr>';
+    // Operación
+    var op=d.operacion||[];el('mk-optot').textContent=(g.total||0)+' llamadas';
+    el('mk-op').innerHTML=op.length?op.map(function(o){return '<tr><td style="font-weight:700">'+h(o.nombre)+'</td><td>'+o.llamadas+'</td><td>'+o.citas+'</td><td style="color:#00C9A7;font-weight:700">'+o.pctCita+'%</td><td>'+o.asistieron+'</td><td>'+o.ventas+'</td><td style="font-weight:700;color:'+(parseFloat(o.fact)>0?'#0A4FBF':'#9AAAC8')+';">'+(parseFloat(o.fact)>0?'S/'+Math.round(parseFloat(o.fact)):'S/0')+'</td></tr>';}).join(''):'<tr><td colspan="7" class="ld">--</td></tr>';
+  });
+}
+// ═══ INVERSIÓN ═══
+var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA'];
+var PLATS=['META ADS','TIKTOK ADS','GOOGLE ADS'];
+function openInv(){el('iv-m').value=el('mk-mes').value;el('iv-a').value=el('mk-anio').value;ivLd();el('m-inv').classList.add('open');}
+function ivLd(){
+  var mes=Number(el('iv-m').value),anio=Number(el('iv-a').value);
+  fetch(SB+'/rest/v1/aos_inversion_campanas?mes_num=eq.'+mes+'&anio=eq.'+anio+'&order=tratamiento',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    var box=el('iv-list');
+    box.innerHTML=(rows||[]).map(function(r){return '<div class="inv-row" data-id="'+r.id+'"><select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option'+(t===r.tratamiento?' selected':'')+'>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option'+(p===r.plataforma?' selected':'')+'>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="'+r.inversion+'" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="inv-del" onclick="ivDel(this,\''+r.id+'\')">✕</button></div>';}).join('');
+    ivCalc();
+  });
+}
+function ivAddRow(){var div=document.createElement('div');div.className='inv-row';div.innerHTML='<select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="0" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="inv-del" onclick="this.parentNode.remove();ivCalc()">✕</button>';el('iv-list').appendChild(div);ivCalc();}
+function ivDel(btn,id){if(id)rest('aos_inversion_campanas?id=eq.'+id,{method:'DELETE'}).then(function(){btn.parentNode.remove();ivCalc();});else{btn.parentNode.remove();ivCalc();}}
+function ivCalc(){var t=0;el('iv-list').querySelectorAll('[data-field=inversion]').forEach(function(i){t+=Number(i.value)||0;});el('iv-tot').textContent='S/ '+fmt(t)+' total';}
+function ivSave(){
+  var mes=Number(el('iv-m').value),anio=Number(el('iv-a').value),mesN=MF[mes].toUpperCase();
+  rest('aos_inversion_campanas?mes_num=eq.'+mes+'&anio=eq.'+anio,{method:'DELETE'}).then(function(){
+    var ins=[];el('iv-list').querySelectorAll('.inv-row').forEach(function(row){
+      var t=row.querySelector('[data-field=tratamiento]').value,p=row.querySelector('[data-field=plataforma]').value,v=Number(row.querySelector('[data-field=inversion]').value)||0;
+      if(v>0)ins.push({tratamiento:t,mes:mesN,anio:anio,inversion:v,mes_num:mes,plataforma:p});
+    });
+    if(ins.length)return fetch(SB+'/rest/v1/aos_inversion_campanas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(ins)});
+  }).then(function(){el('m-inv').classList.remove('open');mkLoad();}).catch(function(e){console.error(e);});
+}
+</script>
