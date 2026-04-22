@@ -56,6 +56,8 @@
     </div>
   </div>
   <div class="crd" style="padding:8px 14px;"><div class="kl" id="mk-per"></div><div class="kpi-line" id="mk-kpis"></div></div>
+  <!-- NEW: Advanced metrics row -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mk-advanced"></div>
   <div class="emb-2">
     <div class="crd"><div class="ct">▼ Embudo de Conversión <span class="tag tag-c">leads nuevos del mes</span></div><div id="mk-emb"></div></div>
     <div class="crd"><div class="ct">📅 Histórico mensual</div><div id="mk-hist"></div></div>
@@ -101,7 +103,7 @@ function mkL(){
   var mes=Number(el('mk-mes').value),anio=Number(el('mk-anio').value);
   el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
   rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
-    rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rGest(d.gestion);
+    rKPI(d.kpis);rAdv(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rGest(d.gestion);
     rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);rAlerts(d);
   });
 }
@@ -117,6 +119,20 @@ function rKPI(k){
     {l:'ROAS',v:(k.roas||0)+'x',s:'retorno'},
     {l:'CAC',v:k.cac?'S/'+Math.round(k.cac):'—',s:'costo/cliente',c:k.cac?'kpi-red':''}
   ].map(function(x){return '<div class="kpi-item '+(x.c||'')+'"><div class="kpi-l">'+x.l+'</div><div class="kpi-v">'+x.v+'</div><div class="kpi-s">'+x.s+'</div></div>';}).join('');
+}
+function rAdv(k){
+  var cpl=k.cpl?'S/'+parseFloat(k.cpl).toFixed(2):null;
+  var dias=k.avgDiasConversion?parseFloat(k.avgDiasConversion).toFixed(1)+' días':null;
+  var ltv=k.ltvMultiplier?parseFloat(k.ltvMultiplier).toFixed(1)+'x':null;
+  var items=[];
+  if(cpl)items.push({ico:'💵',l:'CPL',v:cpl,s:'Costo por Lead',c:'#0A4FBF',bg:'#EBF2FF'});
+  if(dias)items.push({ico:'⏱',l:'CONVERSIÓN',v:dias,s:'Promedio lead → compra',c:'#7C3AED',bg:'#F5F3FF'});
+  if(ltv)items.push({ico:'📊',l:'LTV',v:ltv,s:'Valor de vida del lead',c:'#059669',bg:'#F0FDF4'});
+  items.push({ico:'📱',l:'PLATAFORMA',v:'Meta Ads',s:'Fuente principal',c:'#0A4FBF',bg:'#EBF2FF'});
+  // Projected revenue
+  var fA=parseFloat(k.factAcumulado||0),fM=parseFloat(k.factTotal||0);
+  if(ltv&&fM>0){var proj=Math.round(fM*parseFloat(k.ltvMultiplier));items.push({ico:'🔮',l:'PROY. FACT.',v:'S/'+proj,s:'Proyección por LTV',c:'#00C9A7',bg:'#F0FDFA'});}
+  el('mk-advanced').innerHTML=items.map(function(x){return '<div style="flex:1;min-width:120px;background:'+x.bg+';border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;"><div style="font-size:18px;">'+x.ico+'</div><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:'+x.c+';">'+x.l+'</div><div style="font-family:Exo 2;font-weight:800;font-size:16px;color:'+x.c+';">'+x.v+'</div><div style="font-size:8px;color:#6B7BA8;">'+x.s+'</div></div></div>';}).join('');
 }
 function rEmb(e){
   var mx=e.leads||1,t=e.tasas;
@@ -214,6 +230,15 @@ function rAlerts(d){
   if(best)a.push({ico:'🏆',txt:'Mejor campaña: '+best.nombre+' — S/'+Math.round(parseFloat(best.fact_acum))+' acumulado, '+best.leads+' leads',c:'#0A4FBF'});
   // No investment warning
   if(parseFloat(k.invTotal)===0)a.push({ico:'💰',txt:'Sin inversión registrada este mes — agrega la inversión para calcular ROAS y CAC',c:'#D97706'});
+  // CPL alert
+  if(k.cpl&&parseFloat(k.cpl)>0){
+    if(parseFloat(k.cpl)>10)a.push({ico:'💵',txt:'CPL alto: S/'+parseFloat(k.cpl).toFixed(2)+' por lead — evalúa optimizar campañas',c:'#D97706'});
+    else a.push({ico:'💵',txt:'CPL: S/'+parseFloat(k.cpl).toFixed(2)+' por lead',c:'#059669'});
+  }
+  // LTV alert
+  if(k.ltvMultiplier&&parseFloat(k.ltvMultiplier)>1)a.push({ico:'📊',txt:'LTV '+parseFloat(k.ltvMultiplier).toFixed(1)+'x — los leads generan '+parseFloat(k.ltvMultiplier).toFixed(1)+' veces lo facturado en su mes',c:'#059669'});
+  // Conversion time
+  if(k.avgDiasConversion)a.push({ico:'⏱',txt:'Tiempo promedio de conversión: '+parseFloat(k.avgDiasConversion).toFixed(1)+' días desde ingreso a primera compra',c:'#0A4FBF'});
   el('mk-alerts').innerHTML=a.length?a.map(function(x){return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F0F4FC;"><span style="font-size:14px;">'+x.ico+'</span><span style="font-size:10px;font-weight:600;color:'+x.c+';">'+x.txt+'</span></div>';}).join(''):'<div class="ld">✅ Sin alertas — todo normal</div>';
 }
 var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA','PINK INTIMATE'];
