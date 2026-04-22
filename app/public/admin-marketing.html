@@ -96,16 +96,37 @@ function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionD
 var MF=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var MK={modo:'mes'};
 (function(){var m=new Date().getMonth()+1;el('mk-mes').value=String(m);el('mk-anio').value=String(new Date().getFullYear());mkL();})();
-function mkMd(btn){document.querySelectorAll('.mk-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MK.modo=btn.getAttribute('data-m');mkL();}
+function mkMd(btn){
+  document.querySelectorAll('.mk-mode').forEach(function(b){b.classList.remove('act');});
+  btn.classList.add('act');MK.modo=btn.getAttribute('data-m');
+  if(MK.modo==='mes'){
+    el('mk-mes').style.display='';
+    var m=new Date().getMonth()+1;el('mk-mes').value=String(m);
+  } else {
+    el('mk-mes').style.display='none';
+  }
+  mkL();
+}
 function mkL(){
-  var mes=Number(el('mk-mes').value),anio=Number(el('mk-anio').value);
-  el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
-  rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
-    rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:mes},function(ltv){
-      rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
-      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+  var anio=Number(el('mk-anio').value);
+  if(MK.modo==='anio'){
+    el('mk-per').textContent='📈 KPIs de Campaña — Año '+anio;
+    rpc('aos_marketing_dashboard_anio',{p_anio:anio},function(d){if(!d||d.error)return;
+      rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:12},function(ltv){
+        rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
+        rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+      });
     });
-  });
+  } else {
+    var mes=Number(el('mk-mes').value);
+    el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
+    rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
+      rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:mes},function(ltv){
+        rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
+        rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+      });
+    });
+  }
 }
 function rKPI(k){
   el('mk-kpis').innerHTML=[
