@@ -158,7 +158,7 @@ function rLTV(k,hi,ltvData){
   var pct3=parseFloat(avgP['3']||1.3)/100;
 
   html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Seguimiento Trimestral</div>';
-  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">GOTEO +4</th><th style="color:#059669;">TOTAL</th><th style="color:#9AAAC8;">ESP. TRIM.</th><th>% META</th><th>ROAS</th></tr></thead><tbody>';
+  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">MES +4 A MÁS</th><th style="color:#059669;">TOTAL</th><th style="color:#9AAAC8;">ESP. TRIM.</th><th>% META</th><th>ROAS</th></tr></thead><tbody>';
 
   cohortes.forEach(function(c){
     var mes=MF[c.lead_mes]?MF[c.lead_mes].slice(0,3).toUpperCase():'?';
@@ -196,7 +196,9 @@ function rLTV(k,hi,ltvData){
     html+='<td style="font-weight:700;">'+mes+'</td>';
     html+='<td>'+c.leads+'</td>';
     html+='<td style="color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td>';
-    html+='<td>'+cellVal(c.m0,0)+'</td>';
+    // MES 0 — no projection, just the real value
+    if(m0>0){html+='<td><div style="font-weight:700;color:#0A4FBF;font-size:12px;">S/'+Math.round(m0)+'</div></td>';}
+    else{html+='<td style="color:#9AAAC8;">S/0</td>';}
     html+='<td>'+cellVal(c.m1,1)+'</td>';
     html+='<td>'+cellVal(c.m2,2)+'</td>';
     html+='<td>'+cellVal(c.m3,3)+'</td>';
@@ -218,38 +220,23 @@ function rLTV(k,hi,ltvData){
     html+='</tr>';
   });
 
-  // TOTALS ROW
-  var tL=0,tI=0,tM0=0,tM1=0,tM2=0,tM3=0,tFT=0,tEsp=0;
-  cohortes.forEach(function(c){
-    tL+=parseInt(c.leads||0);tI+=parseFloat(c.inversion||0);tM0+=parseFloat(c.m0||0);
-    if(c.m1!==null)tM1+=parseFloat(c.m1||0);if(c.m2!==null)tM2+=parseFloat(c.m2||0);
-    if(c.m3!==null)tM3+=parseFloat(c.m3||0);tFT+=parseFloat(c.fact_total||0);
-    var m0v=parseFloat(c.m0||0);if(m0v>0&&pct0>0)tEsp+=Math.round(m0v/pct0);
-  });
-  var tR=tI>0&&tFT>0?Math.round(tFT/tI*10)/10:null;
-  var tPct=tEsp>0?Math.round(tFT/tEsp*100):0;
-  html+='<tr style="background:#F0F4FC;font-weight:800;"><td>TOTAL</td><td>'+tL+'</td><td style="color:#6B7BA8;">S/'+Math.round(tI)+'</td><td style="color:#0A4FBF;">S/'+Math.round(tM0)+'</td><td style="color:#00C9A7;">S/'+Math.round(tM1)+'</td><td style="color:#7C3AED;">S/'+Math.round(tM2)+'</td><td style="color:#D97706;">S/'+Math.round(tM3)+'</td><td>—</td><td style="color:#059669;font-size:13px;">S/'+Math.round(tFT)+'</td><td style="color:#9AAAC8;">S/'+Math.round(tEsp)+'</td><td style="color:'+(tPct>=100?'#16A34A':tPct>=80?'#D97706':'#DC2626')+';">'+tPct+'%</td><td style="color:'+(tR&&tR>=1?'#16A34A':'#DC2626')+';">'+(tR?tR+'x':'—')+'</td></tr>';
   html+='</tbody></table></div>';
 
 
 
 
-  // Projection insight
-  var lastWithSales=null;
-  cohortes.forEach(function(c){if(parseFloat(c.m0||0)>0)lastWithSales=c;});
-  if(lastWithSales){
-    var lastLTV=parseFloat(lastWithSales.fact_total||0)/parseFloat(lastWithSales.m0||1);
-    html+='<div style="margin-top:8px;padding:10px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:10px;color:#059669;">';
-    html+='<b>🔮 Proyección:</b> El <b>'+( avgP['1']||70)+'%</b> del revenue se genera en el <b>mes +1</b> por seguimiento. ';
-    html+='Cada S/1 facturado genera <b>S/'+lastLTV.toFixed(1)+'</b> en total. ';
-    var currentM0=parseFloat(cohortes[cohortes.length-1].m0||0);
-    if(currentM0>0){
-      html+='Leads actuales proyectan <b>S/'+Math.round(currentM0*lastLTV)+'</b> total.';
-    } else {
-      html+='Leads actuales aún sin ventas — mayor revenue esperado el próximo mes.';
-    }
-    html+='</div>';
-  }
+  // Explanation of how projections are calculated
+  html+='<div style="margin-top:8px;padding:12px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:10px;color:#059669;line-height:1.6;">';
+  html+='<b>📐 ¿Cómo se calcula la proyección de cada mes?</b><br>';
+  html+='<span style="color:#6B7BA8;">Basado en el patrón histórico de todas las cohortes, el revenue de cada grupo de leads se distribuye así:</span><br>';
+  html+='<span style="color:#0A4FBF;font-weight:700;">Mes 0</span> = <b>'+(avgP['0']||25.6)+'%</b> del total · ';
+  html+='<span style="color:#00C9A7;font-weight:700;">Mes +1</span> = <b>'+(avgP['1']||70.6)+'%</b> · ';
+  html+='<span style="color:#7C3AED;font-weight:700;">Mes +2</span> = <b>'+(avgP['2']||5.1)+'%</b> · ';
+  html+='<span style="color:#D97706;font-weight:700;">Mes +3</span> = <b>'+(avgP['3']||1.3)+'%</b><br>';
+  html+='<span style="color:#6B7BA8;">Fórmula: si el Mes 0 facturó <b>S/X</b>, el total esperado = S/X ÷ '+(avgP['0']||25.6)+'%. Luego cada mes esperado = total × su porcentaje.</span><br>';
+  html+='<span style="color:#6B7BA8;">Ejemplo: Mes 0 = S/1,553 → total esperado = S/1,553 ÷ 0.256 = <b>S/6,066</b> → Mes +1 esperado = S/6,066 × 70.6% = <b>S/4,283</b></span><br>';
+  html+='<span style="color:#059669;">Estos porcentajes se recalculan automáticamente conforme se acumulan más meses de datos reales.</span>';
+  html+='</div>';
 
   box.innerHTML=html;
 }
