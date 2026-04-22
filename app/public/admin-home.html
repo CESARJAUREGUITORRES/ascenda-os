@@ -252,7 +252,7 @@ function ahLoad(){
       });
     }
     _D.prev.ventas=nv;_D.prev.fact=fh;
-    ahSem(res.semaforo||[]);
+    ahSem(res.semaforo||[], _hoy());
     ahVDet(res.ventasHoy||[]);
     ahAlertas(res.semaforo||[]);
   });
@@ -359,7 +359,7 @@ function ahMonLoad(){
 }
 
 function ahSem(sem,fecha){
-  fecha=fecha||_hoy();
+  fecha=fecha||_hoy()||new Date().toISOString().slice(0,10);
   // Sede REAL del día desde aos_horarios_personal (turnos reales, no RRHH genérico)
   _r('aos_sede_personal_hoy',{p_fecha:fecha},function(sedes){
     var sm=sedes||{};
