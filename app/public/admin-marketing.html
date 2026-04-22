@@ -56,13 +56,13 @@
     </div>
   </div>
   <div class="crd" style="padding:8px 14px;"><div class="kl" id="mk-per"></div><div class="kpi-line" id="mk-kpis"></div></div>
+  <!-- Gestión compact line -->
+  <div style="background:linear-gradient(135deg,#071D4A,#0A3A8F);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:0;flex-wrap:wrap;" id="mk-gest"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <div class="crd"><div class="ct">▼ Embudo de Conversión <span class="tag tag-c">leads nuevos del mes</span></div><div id="mk-emb"></div></div>
     <div class="crd"><div class="ct">📅 Histórico mensual</div><div id="mk-hist"></div></div>
   </div>
-  <!-- LTV Card — full width with cohort matrix -->
   <div class="crd"><div class="ct">📊 Valor del Lead (LTV) <span style="margin-left:auto;font-size:8px;font-weight:700;color:#7C3AED;background:#F5F3FF;padding:2px 8px;border-radius:5px;" id="mk-ltv-tag">cargando...</span></div><div id="mk-ltv"></div></div>
-  <div class="crd"><div class="ct">📋 Gestión de Leads del Mes <span class="tag tag-c" style="margin-left:auto;" id="mk-gest-tag"></span></div><div class="g-row" id="mk-gest"></div></div>
   <div class="mk-2t">
     <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
     <div class="crd"><div class="ct">🎯 Campañas <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th><th>Inv.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
@@ -147,9 +147,9 @@ function rLTV(k,hi,ltvData){
   // Tag
   el('mk-ltv-tag').textContent='Promedio LTV '+(ltv||'—')+'x · '+cohortes.length+' cohortes';
 
-  // COHORT MATRIX TABLE — the main table
+  // COHORT MATRIX TABLE with deltas and m4+
   html+='<div style="font-size:9px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación Real vs Proyectada</div>';
-  html+='<table class="vt" style="font-size:9px;"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#059669;">TOTAL</th><th>LTV</th><th>ROAS</th></tr></thead><tbody>';
+  html+='<div style="overflow-x:auto;"><table class="vt" style="font-size:9px;"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">+4 MÁS</th><th style="color:#059669;">TOTAL</th><th>LTV</th><th>ROAS</th></tr></thead><tbody>';
 
   cohortes.forEach(function(c){
     var mes=MF[c.lead_mes]?MF[c.lead_mes].slice(0,3).toUpperCase():'?';
@@ -159,36 +159,60 @@ function rLTV(k,hi,ltvData){
     var inv=parseFloat(c.inversion||0);
     var roas=inv>0&&ft>0?Math.round(ft/inv*10)/10:null;
 
-    // For each month offset, show real value or projected
+    // Calculate projected value for each offset using avgPcts
+    function getProjected(offset){
+      var p0=parseFloat(avgP['0']||25);
+      var pN=parseFloat(avgP[String(offset)]||0);
+      if(m0>0&&p0>0&&pN>0)return Math.round(m0*(pN/p0));
+      return null;
+    }
+
+    // Render cell: real value with delta vs projected, or just projected
     function cellVal(val,offset){
+      var colors=['#0A4FBF','#00C9A7','#7C3AED','#D97706','#6B7BA8'];
+      var proj=getProjected(offset);
       if(val===null){
-        // Not yet reached — show projection
-        var pct=avgP[String(offset)]||0;
-        if(m0>0&&pct>0){var proj=Math.round(ft>0?(ft/(parseFloat(avgP['0']||25)/100))*(pct/100):m0*(pct/(parseFloat(avgP['0']||25)/100))*(pct/100));
-          return '<span style="color:#9AAAC8;font-style:italic;font-size:8px;">~S/'+Math.round(m0*(parseFloat(avgP[String(offset)]||0)/parseFloat(avgP['0']||25)))+'</span>';
-        }
+        // Not yet reached — show projection only
+        if(proj)return '<span style="color:#9AAAC8;font-style:italic;font-size:8px;">~S/'+proj+'</span>';
         return '<span style="color:#DDE4F5;">—</span>';
       }
       var v=parseFloat(val);
+      if(v===0&&proj){
+        // Month reached but S/0 — show delta down
+        return '<span style="color:#9AAAC8;">S/0</span><span style="font-size:7px;color:#DC2626;"> ▼-100%</span>';
+      }
       if(v===0)return '<span style="color:#9AAAC8;">S/0</span>';
-      var colors=['#0A4FBF','#00C9A7','#7C3AED','#D97706'];
-      return '<span style="font-weight:700;color:'+colors[offset]+';">S/'+Math.round(v)+'</span>';
+      // Has real value — show with delta
+      var out='<span style="font-weight:700;color:'+colors[Math.min(offset,4)]+';">S/'+Math.round(v)+'</span>';
+      if(proj&&proj>0){
+        var pct=Math.round(v/proj*100);
+        if(pct>=100)out+='<span style="font-size:7px;color:#16A34A;"> ▲'+( pct-100)+'%</span>';
+        else out+='<span style="font-size:7px;color:#DC2626;"> ▼-'+(100-pct)+'%</span>';
+      }
+      return out;
     }
 
     html+='<tr>';
-    html+='<td style="font-weight:700;">'+mes+' '+2026+'</td>';
+    html+='<td style="font-weight:700;">'+mes+'</td>';
     html+='<td>'+c.leads+'</td>';
     html+='<td style="font-size:8px;color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td>';
     html+='<td>'+cellVal(c.m0,0)+'</td>';
     html+='<td>'+cellVal(c.m1,1)+'</td>';
     html+='<td>'+cellVal(c.m2,2)+'</td>';
     html+='<td>'+cellVal(c.m3,3)+'</td>';
+    // M4+
+    if(c.m4plus!==null&&c.m4plus!==undefined){
+      var m4v=parseFloat(c.m4plus||0);
+      html+='<td style="font-weight:700;color:#6B7BA8;">'+(m4v>0?'S/'+Math.round(m4v):'S/0')+'</td>';
+    } else {
+      html+='<td style="color:#DDE4F5;">—</td>';
+    }
     html+='<td style="font-weight:800;color:#059669;">'+(ft>0?'S/'+Math.round(ft):'S/0')+'</td>';
     html+='<td style="font-weight:700;color:#7C3AED;">'+(myLTV?myLTV+'x':'—')+'</td>';
     html+='<td style="font-weight:700;color:'+(roas&&roas>=1?'#16A34A':'#DC2626')+';">'+(roas?roas+'x':'—')+'</td>';
     html+='</tr>';
   });
-  html+='</tbody></table>';
+  html+='</tbody></table></div>';
 
   // Projection insight
   var lastWithSales=null;
@@ -196,13 +220,13 @@ function rLTV(k,hi,ltvData){
   if(lastWithSales){
     var lastLTV=parseFloat(lastWithSales.fact_total||0)/parseFloat(lastWithSales.m0||1);
     html+='<div style="margin-top:8px;padding:10px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:10px;color:#059669;">';
-    html+='<b>🔮 Proyección:</b> Basado en el patrón histórico, el <b>70.6%</b> del revenue se genera en el <b>mes +1</b> por seguimiento del call center. ';
-    html+='Cada S/1 facturado en el mes de entrada genera <b>S/'+lastLTV.toFixed(1)+'</b> en total. ';
+    html+='<b>🔮 Proyección:</b> El <b>'+( avgP['1']||70)+'%</b> del revenue se genera en el <b>mes +1</b> por seguimiento. ';
+    html+='Cada S/1 facturado genera <b>S/'+lastLTV.toFixed(1)+'</b> en total. ';
     var currentM0=parseFloat(cohortes[cohortes.length-1].m0||0);
     if(currentM0>0){
-      html+='Los leads del mes actual proyectan <b>S/'+Math.round(currentM0*lastLTV)+'</b> de facturación total.';
+      html+='Leads actuales proyectan <b>S/'+Math.round(currentM0*lastLTV)+'</b> total.';
     } else {
-      html+='Los leads del mes actual aún no tienen ventas — el mayor revenue se esperaría en el próximo mes.';
+      html+='Leads actuales aún sin ventas — mayor revenue esperado el próximo mes.';
     }
     html+='</div>';
   }
@@ -241,17 +265,11 @@ function rHist(hi){
   }).join('')+'</tbody></table>';
 }
 function rGest(g){
-  var p=g.pcts||{};el('mk-gest-tag').textContent='de '+(g.totalLeads||0)+' llamadas a leads del mes';
-  el('mk-gest').innerHTML=[
-    {v:g.nc,l:'NO CONTESTA',p:p.nc+'%',cls:'g-red'},
-    {v:g.descartado,l:'DESCARTADOS',p:p.descartado+'%',cls:'g-red'},
-    {v:g.seguimiento,l:'SEGUIMIENTO',p:p.seguimiento+'%',cls:'g-yellow'},
-    {v:g.provincia,l:'PROVINCIA',p:p.provincia+'%',cls:'g-purple'},
-    {v:g.avgIntentos||0,l:'INTENTOS/LEAD',p:'',cls:'g-blue'},
-    {v:g.horaPico||'—',l:'HORA PICO',p:'',cls:'g-cyan'},
-    {v:g.sinLlamar,l:'SIN LLAMAR',p:(p.sinLlamar||0)+'% leads',cls:'g-blue'},
-    {v:g.leadsTrabajados,l:'TRABAJADOS',p:(p.trabajados||0)+'%',cls:'g-green'}
-  ].map(function(c){return '<div class="g-c '+c.cls+'"><div class="g-v">'+c.v+'</div><div class="g-l">'+c.l+'</div>'+(c.p?'<div class="g-p">'+c.p+'</div>':'')+'</div>';}).join('');
+  var p=g.pcts||{};var tl=g.totalLeads||0;
+  el('mk-gest').innerHTML='<div style="font-size:7px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.4px;margin-right:8px;">📋 GESTIÓN</div>'+
+  [{v:g.nc,l:'NO CONTESTA',p:p.nc},{v:g.descartado,l:'DESCARTADOS',p:p.descartado},{v:g.seguimiento,l:'SEGUIMIENTO',p:p.seguimiento},{v:g.provincia,l:'PROVINCIA',p:p.provincia},{v:g.avgIntentos||0,l:'INT/LEAD',p:null},{v:g.horaPico||'—',l:'HORA PICO',p:null},{v:g.sinLlamar,l:'SIN LLAMAR',p:p.sinLlamar},{v:g.leadsTrabajados,l:'TRABAJADOS',p:p.trabajados}].map(function(c){
+    return '<div style="flex:1;min-width:65px;text-align:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.08);"><div style="font-family:Exo 2;font-weight:800;font-size:14px;color:#00C9A7;">'+c.v+(c.p!==null&&c.p!==undefined?'<span style="font-size:8px;color:rgba(255,255,255,.35);margin-left:2px;">'+c.p+'%</span>':'')+'</div><div style="font-size:6px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.3px;">'+c.l+'</div></div>';
+  }).join('')+'<div style="font-size:7px;color:rgba(255,255,255,.3);margin-left:8px;">de '+tl+' llamadas</div>';
 }
 function rAn(an){
   el('mk-an').innerHTML=an.length?an.map(function(a){
