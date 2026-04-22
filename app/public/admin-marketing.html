@@ -147,69 +147,91 @@ function rLTV(k,hi,ltvData){
   // Tag
   el('mk-ltv-tag').textContent='Promedio LTV '+(ltv||'—')+'x · '+cohortes.length+' cohortes';
 
-  // COHORT MATRIX TABLE — cumulative progress deltas
-  html+='<div style="font-size:10px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación Real vs Proyectada</div>';
-  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">+4 MÁS</th><th style="color:#059669;">TOTAL</th><th>META</th><th>% META</th><th>ROAS</th></tr></thead><tbody>';
+  // COHORT TABLE — each month compared to PREVIOUS cohort's actual performance
+  html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación Real vs Proyectada</div>';
+  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">+4 MÁS</th><th style="color:#059669;">TOTAL ACUM.</th><th>ROAS</th></tr></thead><tbody>';
 
-  // Calculate avg LTV for target
-  var sumLTV=0,cntLTV=0;
-  cohortes.forEach(function(c){var m0v=parseFloat(c.m0||0);var ftv=parseFloat(c.fact_total||0);if(m0v>0){sumLTV+=ftv/m0v;cntLTV++;}});
-  var avgLTV=cntLTV>0?Math.round(sumLTV/cntLTV*10)/10:3;
+  // Build ratios from previous cohort for projections
+  var prevRatios={};
+  cohortes.forEach(function(c,i){
+    var m0v=parseFloat(c.m0||0);
+    if(m0v>0&&i>0){
+      // This cohort can use previous cohort's ratios for projection
+    }
+    // Store this cohort's ratios for the NEXT cohort to use
+    if(m0v>0){
+      var ratios={};
+      if(c.m1!==null)ratios['1']=parseFloat(c.m1||0)/m0v;
+      if(c.m2!==null)ratios['2']=parseFloat(c.m2||0)/m0v;
+      if(c.m3!==null)ratios['3']=parseFloat(c.m3||0)/m0v;
+      prevRatios[c.lead_mes]=ratios;
+    }
+  });
 
-  cohortes.forEach(function(c){
+  var prevCohort=null;
+  cohortes.forEach(function(c,idx){
     var mes=MF[c.lead_mes]?MF[c.lead_mes].slice(0,3).toUpperCase():'?';
     var ft=parseFloat(c.fact_total||0);
     var m0=parseFloat(c.m0||0);
     var inv=parseFloat(c.inversion||0);
     var roas=inv>0&&ft>0?Math.round(ft/inv*10)/10:null;
-    // LTV target for this cohort
-    var ltvTarget=m0>0?Math.round(m0*avgLTV):0;
-    // Cumulative acum tracking
-    var acum=0;
+
+    // Get projection ratios from previous cohort
+    var pRatios=prevCohort?prevRatios[prevCohort.lead_mes]||{}:{};
 
     function cellVal(val,offset){
       var colors=['#0A4FBF','#00C9A7','#7C3AED','#D97706','#6B7BA8'];
+      var color=colors[Math.min(offset,4)];
+
+      // Calculate projected from previous cohort
+      var proj=null;
+      if(offset>0&&m0>0&&pRatios[String(offset)]!==undefined){
+        proj=Math.round(m0*pRatios[String(offset)]);
+      }
+
       if(val===null){
-        // Not yet reached — show projection based on avgPcts
-        var p0=parseFloat(avgP['0']||25);var pN=parseFloat(avgP[String(offset)]||0);
-        if(m0>0&&p0>0&&pN>0){var proj=Math.round(m0*(pN/p0));return '<span style="color:#9AAAC8;font-style:italic;">~S/'+proj+'</span>';}
+        // Not yet reached
+        if(proj&&proj>0)return '<div><span style="color:#9AAAC8;font-style:italic;">~S/'+proj+'</span></div>';
+        if(offset>0&&m0>0){
+          // Use avgPcts as fallback
+          var p0=parseFloat(avgP['0']||25);var pN=parseFloat(avgP[String(offset)]||0);
+          if(p0>0&&pN>0){var fp=Math.round(m0*(pN/p0));return '<div><span style="color:#9AAAC8;font-style:italic;">~S/'+fp+'</span></div>';}
+        }
         return '<span style="color:#DDE4F5;">—</span>';
       }
-      var v=parseFloat(val);acum+=v;
+      var v=parseFloat(val);
       if(v===0)return '<span style="color:#9AAAC8;">S/0</span>';
-      // Show real value — delta shows cumulative progress toward LTV target
-      var out='<span style="font-weight:700;color:'+colors[Math.min(offset,4)]+';">S/'+Math.round(v)+'</span>';
-      if(ltvTarget>0){
-        var cumPct=Math.round(acum/ltvTarget*100);
-        if(cumPct>=100)out+='<br><span style="font-size:8px;color:#16A34A;">✓ '+cumPct+'%</span>';
-        else out+='<br><span style="font-size:8px;color:#D97706;">'+cumPct+'%</span>';
+
+      // Real value — big number + small projected comparison
+      var html='<div style="font-weight:700;color:'+color+';font-size:12px;">S/'+Math.round(v)+'</div>';
+      if(proj&&proj>0){
+        var passed=v>=proj;
+        html+='<div style="font-size:8px;color:'+(passed?'#16A34A':'#DC2626')+';">'+(passed?'✅':'🔻')+' <span style="color:#9AAAC8;">esp.</span> S/'+proj+'</div>';
+      } else if(offset===0&&idx===0){
+        html+='<div style="font-size:8px;color:#9AAAC8;">primer mes</div>';
       }
-      return out;
+      return html;
     }
 
     html+='<tr>';
     html+='<td style="font-weight:700;">'+mes+'</td>';
     html+='<td>'+c.leads+'</td>';
     html+='<td style="color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td>';
-    acum=0;
     html+='<td>'+cellVal(c.m0,0)+'</td>';
     html+='<td>'+cellVal(c.m1,1)+'</td>';
     html+='<td>'+cellVal(c.m2,2)+'</td>';
     html+='<td>'+cellVal(c.m3,3)+'</td>';
     // M4+
     if(c.m4plus!==null&&c.m4plus!==undefined){
-      var m4v=parseFloat(c.m4plus||0);acum+=m4v;
+      var m4v=parseFloat(c.m4plus||0);
       html+='<td style="font-weight:700;color:#6B7BA8;">'+(m4v>0?'S/'+Math.round(m4v):'S/0')+'</td>';
     } else {html+='<td style="color:#DDE4F5;">—</td>';}
     // Total
-    html+='<td style="font-weight:800;color:#059669;">'+(ft>0?'S/'+Math.round(ft):'S/0')+'</td>';
-    // META (LTV target)
-    html+='<td style="color:#7C3AED;font-weight:700;">'+(ltvTarget>0?'S/'+ltvTarget:'—')+'</td>';
-    // % META
-    var metaPct=ltvTarget>0&&ft>0?Math.round(ft/ltvTarget*100):0;
-    html+='<td style="font-weight:800;color:'+(metaPct>=100?'#16A34A':metaPct>=70?'#D97706':'#DC2626')+';">'+(metaPct>0?metaPct+'%'+(metaPct>=100?' ✓':''):'—')+'</td>';
+    html+='<td style="font-weight:800;font-size:13px;color:#059669;">'+(ft>0?'S/'+Math.round(ft):'S/0')+'</td>';
     html+='<td style="font-weight:700;color:'+(roas&&roas>=1?'#16A34A':'#DC2626')+';">'+(roas?roas+'x':'—')+'</td>';
     html+='</tr>';
+
+    if(m0>0)prevCohort=c;
   });
   html+='</tbody></table></div>';
 
