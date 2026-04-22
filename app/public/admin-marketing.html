@@ -225,18 +225,39 @@ function rLTV(k,hi,ltvData){
 
 
 
-  // Explanation of how projections are calculated
-  html+='<div style="margin-top:8px;padding:12px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:10px;color:#059669;line-height:1.6;">';
-  html+='<b>📐 ¿Cómo se calcula la proyección de cada mes?</b><br>';
-  html+='<span style="color:#6B7BA8;">Basado en el patrón histórico de todas las cohortes, el revenue de cada grupo de leads se distribuye así:</span><br>';
-  html+='<span style="color:#0A4FBF;font-weight:700;">Mes 0</span> = <b>'+(avgP['0']||25.6)+'%</b> del total · ';
-  html+='<span style="color:#00C9A7;font-weight:700;">Mes +1</span> = <b>'+(avgP['1']||70.6)+'%</b> · ';
-  html+='<span style="color:#7C3AED;font-weight:700;">Mes +2</span> = <b>'+(avgP['2']||5.1)+'%</b> · ';
-  html+='<span style="color:#D97706;font-weight:700;">Mes +3</span> = <b>'+(avgP['3']||1.3)+'%</b><br>';
-  html+='<span style="color:#6B7BA8;">Fórmula: si el Mes 0 facturó <b>S/X</b>, el total esperado = S/X ÷ '+(avgP['0']||25.6)+'%. Luego cada mes esperado = total × su porcentaje.</span><br>';
-  html+='<span style="color:#6B7BA8;">Ejemplo: Mes 0 = S/1,553 → total esperado = S/1,553 ÷ 0.256 = <b>S/6,066</b> → Mes +1 esperado = S/6,066 × 70.6% = <b>S/4,283</b></span><br>';
-  html+='<span style="color:#059669;">Estos porcentajes se recalculan automáticamente conforme se acumulan más meses de datos reales.</span>';
-  html+='</div>';
+  // Projection insight (RESTORED)
+  var lastWithSales=null;
+  cohortes.forEach(function(c){if(parseFloat(c.m0||0)>0)lastWithSales=c;});
+  if(lastWithSales){
+    var lastLTV=parseFloat(lastWithSales.fact_total||0)/parseFloat(lastWithSales.m0||1);
+    html+='<div style="margin-top:8px;padding:10px;background:linear-gradient(135deg,#F0FDF4,#F0FDFA);border-radius:8px;font-size:10px;color:#059669;">';
+    html+='<b>🔮 Proyección:</b> El <b>'+(avgP['1']||70)+'%</b> del revenue se genera en el <b>mes +1</b> por seguimiento del call center. ';
+    html+='Cada S/1 facturado en el mes de entrada genera <b>S/'+lastLTV.toFixed(1)+'</b> en total. ';
+    var currentM0=parseFloat(cohortes[cohortes.length-1].m0||0);
+    if(currentM0>0){
+      html+='Los leads del mes actual proyectan <b>S/'+Math.round(currentM0*lastLTV)+'</b> de facturación total.';
+    } else {
+      html+='Los leads del mes actual aún no tienen ventas — el mayor revenue se esperaría en el próximo mes.';
+    }
+    if(parseFloat(cohortes[cohortes.length-1].inversion||0)>0&&currentM0>0){
+      var projRoas=Math.round(currentM0*lastLTV/parseFloat(cohortes[cohortes.length-1].inversion)*10)/10;
+      html+=' ROAS proyectado: <b>'+projRoas+'x</b>';
+    }
+    html+='</div>';
+  }
+
+  // Collapsible explanation
+  html+='<details style="margin-top:6px;"><summary style="cursor:pointer;font-size:9px;font-weight:700;color:#7C3AED;padding:6px 0;">📐 ¿Cómo se calcula la proyección? (ver fórmula)</summary>';
+  html+='<div style="padding:8px 12px;background:#F5F3FF;border-radius:8px;font-size:9px;color:#6B7BA8;line-height:1.7;margin-top:4px;">';
+  html+='Basado en el patrón histórico, el revenue se distribuye así:<br>';
+  html+='<span style="color:#0A4FBF;font-weight:700;">Mes 0</span> = <b style="color:#0D1B3E;">'+(avgP['0']||25.6)+'%</b> · ';
+  html+='<span style="color:#00C9A7;font-weight:700;">Mes +1</span> = <b style="color:#0D1B3E;">'+(avgP['1']||70.6)+'%</b> · ';
+  html+='<span style="color:#7C3AED;font-weight:700;">Mes +2</span> = <b style="color:#0D1B3E;">'+(avgP['2']||5.1)+'%</b> · ';
+  html+='<span style="color:#D97706;font-weight:700;">Mes +3</span> = <b style="color:#0D1B3E;">'+(avgP['3']||1.3)+'%</b><br>';
+  html+='<b style="color:#0D1B3E;">Fórmula:</b> Total esperado = Facturado Mes 0 ÷ '+(avgP['0']||25.6)+'%. Luego cada mes = Total × su %.<br>';
+  html+='<b style="color:#0D1B3E;">Ejemplo:</b> Mes 0 = S/1,553 → Total esp. = S/1,553 ÷ 0.256 = <b style="color:#059669;">S/6,066</b> → Mes +1 esp. = S/6,066 × 70.6% = <b style="color:#00C9A7;">S/4,283</b><br>';
+  html+='Los porcentajes se recalculan automáticamente con cada mes de datos nuevos.';
+  html+='</div></details>';
 
   box.innerHTML=html;
 }
