@@ -212,7 +212,7 @@ function rLTV(k,hi,ltvData){
     // Esperado Trimestral
     html+='<td style="font-size:10px;color:#9AAAC8;">'+(totalEsp>0?'S/'+totalEsp:'—')+'</td>';
     // % Meta
-    html+='<td style="font-weight:800;color:'+(metaPct>=100?'#16A34A':metaPct>=80?'#D97706':'#DC2626')+';">'+(metaPct>0?metaPct+'%'+(metaPct>=100?' ✓':'')+'—')+'</td>';
+    html+='<td style="font-weight:800;color:'+(metaPct>=100?'#16A34A':metaPct>=80?'#D97706':'#DC2626')+';">'+(metaPct>0?metaPct+'%'+(metaPct>=100?' ✓':''):'—')+'</td>';
     // ROAS
     html+='<td style="font-weight:700;color:'+(roas&&roas>=1?'#16A34A':'#DC2626')+';">'+(roas?roas+'x':'—')+'</td>';
     html+='</tr>';
