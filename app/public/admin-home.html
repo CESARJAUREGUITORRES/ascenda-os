@@ -177,7 +177,7 @@
             <span class="ah-cu" id="ah-mu"></span>
           </div>
         </div>
-        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th><th style="text-align:center">Progreso</th></tr></thead>
+        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
         <tbody id="ah-mtb"><tr><td colspan="6"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
       </div>
       <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
@@ -284,7 +284,30 @@ function ahLoad(){
 }
 
 // ═══════ TICKER (RPC) ═══════
-function ahTicker(){_r('aos_ticker_mkt',{p_mes_inicio:_mi()},function(r){if(!r)return;_s('tk-leads',r.leads||0);_s('tk-llam',r.contactados||0);if(r.leads>0)_s('tk-pct',(r.pct_contacto||0)+'%');_s('tk-citas',r.con_cita||0);_s('tk-asist',r.asistio||0);_s('tk-vtas',r.con_venta||0);_s('tk-fact',parseFloat(r.facturacion||0).toFixed(0));var inv=parseFloat(r.inversion||0),fac=parseFloat(r.facturacion||0);_s('tk-roas',inv>0?(fac/inv).toFixed(1)+'x':'—');});}
+function ahTicker(){_r('aos_ticker_mkt',{p_mes_inicio:_mi()},function(r){
+  if(!r)return;
+  var leads=parseInt(r.leads||0);
+  var llam=parseInt(r.contactados||0);
+  var citas=parseInt(r.con_cita||0);
+  var asist=parseInt(r.asistio||0);
+  var vtas=parseInt(r.con_venta||0);
+  var fac=parseFloat(r.facturacion||0);
+  var inv=parseFloat(r.inversion||0);
+  // Valores
+  _s('tk-leads', leads);
+  _s('tk-llam',  llam);
+  _s('tk-citas', citas);
+  _s('tk-asist', asist);
+  _s('tk-vtas',  vtas);
+  _s('tk-fact',  fac>0?'S/'+fac.toFixed(0):'S/0');
+  _s('tk-roas',  inv>0?(fac/inv).toFixed(1)+'x':'0.0x');
+  // Porcentajes
+  if(leads>0)_s('tk-pct', (r.pct_contacto||0)+'% leads');
+  if(leads>0)_s('tk-citas-pct', (citas/leads*100).toFixed(2)+'%');
+  if(citas>0)_s('tk-asist-pct', (asist/citas*100).toFixed(2)+'%');
+  if(vtas>0)_s('tk-vtas-sub', vtas+' por cliente');
+  else _s('tk-vtas-sub','0 por cliente');
+});}
 
 // ═══════ ALERTAS ═══════
 // Store semaforo data for alertas
@@ -449,8 +472,11 @@ var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
           }
           var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
           totalCitas+=parseInt(s.citas||0);
-          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
-            '<td>'+_e(s.llamadas||0)+'</td><td>+'+_e(s.citas||0)+'</td><td>'+cv+'%</td>'+
+          var trBg=cls==='bg-ok'?'rgba(22,163,74,0.04)':cls==='bg-w'?'rgba(217,119,6,0.04)':cls==='bg-r'?'rgba(220,38,38,0.04)':'';
+          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'">"<td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
+            '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
+            '<td style="text-align:center;font-weight:700;color:#16A34A">+'+_e(s.citas||0)+'</td>'+
+            '<td style="text-align:center;color:'+(cv>=10?'#16A34A':cv>=5?'#D97706':'#DC2626')+'">'+cv+'%</td>'+
             '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
             '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
         }
@@ -774,7 +800,7 @@ function ahRenderSparklines(){
   // Agregar th si no existe
   var thead=document.querySelector('.ah-t thead tr');
   if(thead&&!thead.querySelector('.th-spark')){
-    var th=document.createElement('th');th.className='th-spark';th.style.textAlign='center';th.textContent='Progreso';
+    var th=document.createElement('th');th.className='th-spark';th.style.cssText='text-align:center;font-size:8px;letter-spacing:.5px;color:#9AAAC8;font-weight:700;text-transform:uppercase';th.textContent='Progreso';
     thead.appendChild(th);
   }
 }
