@@ -14,7 +14,7 @@
 .ld{text-align:center;padding:14px;color:#9AAAC8;font-size:11px;}
 .kpi-line{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:6px 0;}
 .kpi-item{flex:1;min-width:72px;text-align:center;padding:5px 2px;border-right:1px solid #F0F4FC;}.kpi-item:last-child{border-right:none;}
-.kpi-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}.kpi-l{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#00C9A7;}.kpi-s{font-size:8px;color:#00C9A7;font-weight:600;}
+.kpi-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:20px;color:#0D1B3E;}.kpi-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#00C9A7;}.kpi-s{font-size:9px;color:#00C9A7;font-weight:600;}
 .kpi-acc .kpi-v{color:#00C9A7;}.kpi-red .kpi-v{color:#DC2626;}.kpi-red .kpi-s{color:#DC2626;}
 .emb-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .emb-bar{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
@@ -28,8 +28,8 @@
 .g-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;}.g-l{font-size:7px;font-weight:700;text-transform:uppercase;color:#6B7BA8;}.g-p{font-size:7px;color:#9AAAC8;}
 .g-green{background:#F0FDF4;}.g-green .g-v{color:#16A34A;}.g-red{background:#FEF2F2;}.g-red .g-v{color:#DC2626;}
 .g-blue{background:#EBF2FF;}.g-blue .g-v{color:#0A4FBF;}.g-yellow{background:#FFFBEB;}.g-yellow .g-v{color:#D97706;}.g-purple{background:#F5F3FF;}.g-purple .g-v{color:#7C3AED;}.g-cyan{background:#F0FDFA;}.g-cyan .g-v{color:#0D9488;}
-.vt{width:100%;border-collapse:collapse;}.vt th{font-size:7px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#9AAAC8;padding:4px 4px;border-bottom:1px solid #DDE4F5;text-align:left;}
-.vt td{padding:4px;border-bottom:1px solid #F0F4FC;font-size:9px;}.vt tr:hover td{background:#F8FAFF;}
+.vt{width:100%;border-collapse:collapse;}.vt th{font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#9AAAC8;padding:5px 6px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.vt td{padding:5px 6px;border-bottom:1px solid #F0F4FC;font-size:11px;}.vt tr:hover td{background:#F8FAFF;}
 .vt .hi{font-weight:700;}.hi-b{color:#0A4FBF;}.hi-c{color:#00C9A7;}.hi-g{color:#059669;}.hi-r{color:#DC2626;}.hi-y{color:#D97706;}
 .mk-2t{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .mov{position:fixed;inset:0;background:rgba(7,29,74,.15);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}.mov.open{display:flex;}
@@ -132,8 +132,8 @@ function rLTV(k,hi,ltvData){
 
   // Top metrics row
   html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
-  html+='<div style="flex:1;min-width:100px;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:7px;font-weight:700;color:#7C3AED;text-transform:uppercase;">Conversión</div><div style="font-family:Exo 2;font-weight:800;font-size:22px;color:#7C3AED;">'+(dias?parseFloat(dias).toFixed(1)+'d':'—')+'</div><div style="font-size:8px;color:#9AAAC8;">promedio lead → compra</div></div>';
-  html+='<div style="flex:1;min-width:100px;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:7px;font-weight:700;color:#059669;text-transform:uppercase;">LTV</div><div style="font-family:Exo 2;font-weight:800;font-size:22px;color:#059669;">'+(ltv?ltv+'x':'—')+'</div><div style="font-size:8px;color:#9AAAC8;">valor de vida del lead</div></div>';
+  html+='<div style="flex:1;min-width:100px;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:8px;font-weight:700;color:#7C3AED;text-transform:uppercase;">Conversión</div><div style="font-family:Exo 2;font-weight:800;font-size:24px;color:#7C3AED;">'+(dias?parseFloat(dias).toFixed(1)+'d':'—')+'</div><div style="font-size:9px;color:#9AAAC8;">promedio lead → compra</div></div>';
+  html+='<div style="flex:1;min-width:100px;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:8px;font-weight:700;color:#059669;text-transform:uppercase;">LTV</div><div style="font-family:Exo 2;font-weight:800;font-size:24px;color:#059669;">'+(ltv?ltv+'x':'—')+'</div><div style="font-size:9px;color:#9AAAC8;">valor de vida del lead</div></div>';
   // Distribution: how revenue spreads
   html+='<div style="flex:2;min-width:200px;background:#F8FAFF;border-radius:8px;padding:10px;"><div style="font-size:7px;font-weight:700;color:#0A4FBF;text-transform:uppercase;margin-bottom:4px;">Distribución del Revenue</div>';
   var distColors=['#0A4FBF','#00C9A7','#7C3AED','#D97706'];
@@ -147,47 +147,42 @@ function rLTV(k,hi,ltvData){
   // Tag
   el('mk-ltv-tag').textContent='Promedio LTV '+(ltv||'—')+'x · '+cohortes.length+' cohortes';
 
-  // COHORT MATRIX TABLE with deltas and m4+
-  html+='<div style="font-size:9px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación Real vs Proyectada</div>';
-  html+='<div style="overflow-x:auto;"><table class="vt" style="font-size:9px;"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">+4 MÁS</th><th style="color:#059669;">TOTAL</th><th>LTV</th><th>ROAS</th></tr></thead><tbody>';
+  // COHORT MATRIX TABLE — cumulative progress deltas
+  html+='<div style="font-size:10px;font-weight:700;color:#0D1B3E;margin:8px 0 6px;">Matriz de Cohortes — Facturación Real vs Proyectada</div>';
+  html+='<div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>LEADS</th><th>INV.</th><th style="color:#0A4FBF;">MES 0</th><th style="color:#00C9A7;">MES +1</th><th style="color:#7C3AED;">MES +2</th><th style="color:#D97706;">MES +3</th><th style="color:#6B7BA8;">+4 MÁS</th><th style="color:#059669;">TOTAL</th><th>META</th><th>% META</th><th>ROAS</th></tr></thead><tbody>';
+
+  // Calculate avg LTV for target
+  var sumLTV=0,cntLTV=0;
+  cohortes.forEach(function(c){var m0v=parseFloat(c.m0||0);var ftv=parseFloat(c.fact_total||0);if(m0v>0){sumLTV+=ftv/m0v;cntLTV++;}});
+  var avgLTV=cntLTV>0?Math.round(sumLTV/cntLTV*10)/10:3;
 
   cohortes.forEach(function(c){
     var mes=MF[c.lead_mes]?MF[c.lead_mes].slice(0,3).toUpperCase():'?';
     var ft=parseFloat(c.fact_total||0);
     var m0=parseFloat(c.m0||0);
-    var myLTV=m0>0?Math.round(ft/m0*10)/10:null;
     var inv=parseFloat(c.inversion||0);
     var roas=inv>0&&ft>0?Math.round(ft/inv*10)/10:null;
+    // LTV target for this cohort
+    var ltvTarget=m0>0?Math.round(m0*avgLTV):0;
+    // Cumulative acum tracking
+    var acum=0;
 
-    // Calculate projected value for each offset using avgPcts
-    function getProjected(offset){
-      var p0=parseFloat(avgP['0']||25);
-      var pN=parseFloat(avgP[String(offset)]||0);
-      if(m0>0&&p0>0&&pN>0)return Math.round(m0*(pN/p0));
-      return null;
-    }
-
-    // Render cell: real value with delta vs projected, or just projected
     function cellVal(val,offset){
       var colors=['#0A4FBF','#00C9A7','#7C3AED','#D97706','#6B7BA8'];
-      var proj=getProjected(offset);
       if(val===null){
-        // Not yet reached — show projection only
-        if(proj)return '<span style="color:#9AAAC8;font-style:italic;font-size:8px;">~S/'+proj+'</span>';
+        // Not yet reached — show projection based on avgPcts
+        var p0=parseFloat(avgP['0']||25);var pN=parseFloat(avgP[String(offset)]||0);
+        if(m0>0&&p0>0&&pN>0){var proj=Math.round(m0*(pN/p0));return '<span style="color:#9AAAC8;font-style:italic;">~S/'+proj+'</span>';}
         return '<span style="color:#DDE4F5;">—</span>';
       }
-      var v=parseFloat(val);
-      if(v===0&&proj){
-        // Month reached but S/0 — show delta down
-        return '<span style="color:#9AAAC8;">S/0</span><span style="font-size:7px;color:#DC2626;"> ▼-100%</span>';
-      }
+      var v=parseFloat(val);acum+=v;
       if(v===0)return '<span style="color:#9AAAC8;">S/0</span>';
-      // Has real value — show with delta
+      // Show real value — delta shows cumulative progress toward LTV target
       var out='<span style="font-weight:700;color:'+colors[Math.min(offset,4)]+';">S/'+Math.round(v)+'</span>';
-      if(proj&&proj>0){
-        var pct=Math.round(v/proj*100);
-        if(pct>=100)out+='<span style="font-size:7px;color:#16A34A;"> ▲'+( pct-100)+'%</span>';
-        else out+='<span style="font-size:7px;color:#DC2626;"> ▼-'+(100-pct)+'%</span>';
+      if(ltvTarget>0){
+        var cumPct=Math.round(acum/ltvTarget*100);
+        if(cumPct>=100)out+='<br><span style="font-size:8px;color:#16A34A;">✓ '+cumPct+'%</span>';
+        else out+='<br><span style="font-size:8px;color:#D97706;">'+cumPct+'%</span>';
       }
       return out;
     }
@@ -195,20 +190,24 @@ function rLTV(k,hi,ltvData){
     html+='<tr>';
     html+='<td style="font-weight:700;">'+mes+'</td>';
     html+='<td>'+c.leads+'</td>';
-    html+='<td style="font-size:8px;color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td>';
+    html+='<td style="color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td>';
+    acum=0;
     html+='<td>'+cellVal(c.m0,0)+'</td>';
     html+='<td>'+cellVal(c.m1,1)+'</td>';
     html+='<td>'+cellVal(c.m2,2)+'</td>';
     html+='<td>'+cellVal(c.m3,3)+'</td>';
     // M4+
     if(c.m4plus!==null&&c.m4plus!==undefined){
-      var m4v=parseFloat(c.m4plus||0);
+      var m4v=parseFloat(c.m4plus||0);acum+=m4v;
       html+='<td style="font-weight:700;color:#6B7BA8;">'+(m4v>0?'S/'+Math.round(m4v):'S/0')+'</td>';
-    } else {
-      html+='<td style="color:#DDE4F5;">—</td>';
-    }
+    } else {html+='<td style="color:#DDE4F5;">—</td>';}
+    // Total
     html+='<td style="font-weight:800;color:#059669;">'+(ft>0?'S/'+Math.round(ft):'S/0')+'</td>';
-    html+='<td style="font-weight:700;color:#7C3AED;">'+(myLTV?myLTV+'x':'—')+'</td>';
+    // META (LTV target)
+    html+='<td style="color:#7C3AED;font-weight:700;">'+(ltvTarget>0?'S/'+ltvTarget:'—')+'</td>';
+    // % META
+    var metaPct=ltvTarget>0&&ft>0?Math.round(ft/ltvTarget*100):0;
+    html+='<td style="font-weight:800;color:'+(metaPct>=100?'#16A34A':metaPct>=70?'#D97706':'#DC2626')+';">'+(metaPct>0?metaPct+'%'+(metaPct>=100?' ✓':''):'—')+'</td>';
     html+='<td style="font-weight:700;color:'+(roas&&roas>=1?'#16A34A':'#DC2626')+';">'+(roas?roas+'x':'—')+'</td>';
     html+='</tr>';
   });
