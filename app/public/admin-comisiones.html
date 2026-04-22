@@ -57,15 +57,16 @@
     </div>
   </div>
   <div class="cm-top">
-    <div class="crd"><div class="ct">🏆 RANKING COMISIONES</div><div id="cm-rank"><div class="ld">Cargando...</div></div></div>
-    <div><div class="crd" style="margin-bottom:10px;"><div class="kl">COMISIONES TOTALES DEL EQUIPO</div><div class="kv" id="cm-total">S/0</div><div class="ks" id="cm-resumen">0 ventas</div><div class="fact-grid"><div class="fact-c"><div class="fact-l">Servicios</div><div class="fact-v" id="cm-cserv">S/0</div><div class="fact-s" id="cm-cserv-d">0 ventas</div></div><div class="fact-c"><div class="fact-l">Productos</div><div class="fact-v" id="cm-cprod">S/0</div><div class="fact-s" id="cm-cprod-d">0 ventas</div></div></div></div>
-      <div class="crd"><div class="kl">FACTURACIÓN DEL EQUIPO (CON COMISIÓN)</div><div class="kv" id="cm-fact">S/0</div><div class="fact-grid"><div class="fact-c"><div class="fact-l">Servicios</div><div class="fact-v" id="cm-fserv">S/0</div><div class="fact-s" id="cm-fserv-d">0%</div></div><div class="fact-c"><div class="fact-l">Productos</div><div class="fact-v" id="cm-fprod">S/0</div><div class="fact-s" id="cm-fprod-d">0%</div></div></div></div></div>
+    <div class="crd"><div class="ct">🏆 RANKING COMISIONES <span id="cm-filtro-pill" style="display:none;margin-left:auto;padding:3px 10px;border-radius:6px;background:#00C9A7;color:#fff;font-size:9px;cursor:pointer;" onclick="cmClearFilter()">✕ Equipo</span></div><div id="cm-rank"><div class="ld">Cargando...</div></div></div>
+    <div><div class="crd" style="margin-bottom:10px;background:linear-gradient(135deg,#071D4A,#0A3A8F);color:#fff;"><div class="kl" style="color:rgba(255,255,255,.6);">COMISIONES TOTALES DEL EQUIPO</div><div class="kv" style="color:#00C9A7;font-size:28px;" id="cm-total">S/0</div><div class="ks" style="color:rgba(255,255,255,.5);" id="cm-resumen">0 ventas</div><div class="fact-grid"><div class="fact-c" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08);"><div class="fact-l" style="color:rgba(255,255,255,.5);">Servicios</div><div class="fact-v" style="color:#fff;" id="cm-cserv">S/0</div><div class="fact-s" style="color:rgba(255,255,255,.4);" id="cm-cserv-d">0 ventas</div></div><div class="fact-c" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08);"><div class="fact-l" style="color:rgba(255,255,255,.5);">Productos</div><div class="fact-v" style="color:#fff;" id="cm-cprod">S/0</div><div class="fact-s" style="color:rgba(255,255,255,.4);" id="cm-cprod-d">0 ventas</div></div></div></div>
+      <div class="crd"><div class="kl">FACTURACIÓN DEL EQUIPO (CON COMISIÓN)</div><div class="kv" style="color:#071D4A;" id="cm-fact">S/0</div><div class="fact-grid"><div class="fact-c"><div class="fact-l">Servicios</div><div class="fact-v" style="color:#0A4FBF;" id="cm-fserv">S/0</div><div class="fact-s" id="cm-fserv-d">0%</div></div><div class="fact-c"><div class="fact-l">Productos</div><div class="fact-v" style="color:#7C3AED;" id="cm-fprod">S/0</div><div class="fact-s" id="cm-fprod-d">0%</div></div></div></div></div>
   </div>
   <div class="cm-bot">
     <div class="crd"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="ct" style="margin:0;">📋 VENTAS DEL PERÍODO</div><div class="cnt" id="cm-cnt">0</div></div>
       <div style="overflow-x:auto;max-height:480px;overflow-y:auto;"><table class="vt"><thead><tr><th>Cliente / Nº</th><th>Tratamiento</th><th>Tipo</th><th>Monto</th><th>Comisión</th><th>Sede</th><th>Asesor</th><th>Origen</th><th>Pago</th><th></th></tr></thead><tbody id="cm-tb"><tr><td colspan="10" class="ld">Cargando...</td></tr></tbody></table></div></div>
-    <div><div class="crd" style="margin-bottom:10px;"><div class="ct">📊 RECORD ANUAL</div><table class="ht"><thead><tr><th>Mes</th><th>Facturado</th><th>Comisión</th></tr></thead><tbody id="cm-hist"><tr><td colspan="3" class="ld">--</td></tr></tbody></table></div>
-      <div class="crd"><div class="ct">📈 MÉTRICAS</div><div id="cm-metrics"><div class="ld">--</div></div></div></div>
+    <div><div class="crd" style="margin-bottom:10px;"><div class="ct">📊 RECORD ANUAL</div><table class="ht"><thead><tr><th>Mes</th><th>Facturado</th><th>Comisión</th><th>Δ</th></tr></thead><tbody id="cm-hist"><tr><td colspan="4" class="ld">--</td></tr></tbody></table></div>
+      <div class="crd"><div class="ct">📈 TENDENCIA COMISIONES</div><canvas id="cm-chart" width="100%" height="160" style="width:100%;"></canvas></div>
+      <div class="crd" style="margin-top:10px;"><div class="ct">🔔 ALERTAS</div><div id="cm-alerts"><div class="ld">--</div></div></div></div>
   </div>
 </div>
 <!-- MODAL EDITAR -->
@@ -82,20 +83,24 @@ function el(id){return document.getElementById(id);}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var CL={'WILMER':'#00C9A7','MIREYA':'#3B82F6','RUVILA':'#16A34A','SRA CARMEN':'#F59E0B','CESAR':'#8B5CF6'};
-var CM={data:null,modo:'mes',editId:null};
+var CM={data:null,modo:'mes',editId:null,filtroAsesor:''};
 (function(){var m=new Date().getMonth()+1;el('cm-mes').value=String(m);el('cm-anio').value=String(new Date().getFullYear());el('rg-desde').value=new Date().toISOString().slice(0,10);cmLoad();})();
 function cmMode(btn){document.querySelectorAll('.cm-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');CM.modo=btn.getAttribute('data-m');cmLoad();}
+function cmFilterAsesor(asesor){CM.filtroAsesor=asesor;el('cm-filtro-pill').style.display='inline-block';el('cm-filtro-pill').innerHTML='✕ '+asesor;applyFilter();}
+function cmClearFilter(){CM.filtroAsesor='';el('cm-filtro-pill').style.display='none';applyFilter();}
+function applyFilter(){if(!CM.data)return;var d=CM.data;renderDet(filterDet(d.detalle||[]));renderKPIs(d);renderHist(d.anual||[]);renderChart(d.anual||[]);renderAlerts(d);}
+function filterDet(rows){if(!CM.filtroAsesor)return rows;return rows.filter(function(v){return v.asesor===CM.filtroAsesor;});}
 function cmLoad(){
   var mes=Number(el('cm-mes').value),anio=Number(el('cm-anio').value);
   if(CM.modo==='anio'){
     rpc('aos_comisiones_admin_anio',{p_anio:anio},function(d){
-      if(!d)return;CM.data=d;renderRank(d);renderKPIs(d);renderDet(d.detalle||[]);renderHist(d.anual||[]);renderMetrics(d);
+      if(!d)return;CM.data=d;renderRank(d);renderKPIs(d);renderDet(filterDet(d.detalle||[]));renderHist(d.anual||[]);renderChart(d.anual||[]);renderAlerts(d);
     });return;
   }
   rpc('aos_comisiones_admin',{p_mes:mes,p_anio:anio},function(d){
     if(!d)return;
     if(CM.modo==='dia'){var hoy=new Date().toISOString().slice(0,10);d.detalle=(d.detalle||[]).filter(function(v){return v.fecha===hoy;});}
-    CM.data=d;renderRank(d);renderKPIs(d);renderDet(d.detalle||[]);renderHist(d.anual||[]);renderMetrics(d);
+    CM.data=d;renderRank(d);renderKPIs(d);renderDet(filterDet(d.detalle||[]));renderHist(d.anual||[]);renderChart(d.anual||[]);renderAlerts(d);
   });
 }
 function renderRank(d){
@@ -104,12 +109,14 @@ function renderRank(d){
   box.innerHTML=a.map(function(x,i){
     var comT=parseFloat(x.com_total||0)+parseFloat(x.ajuste_manual||0);
     var pM=meta>0?Math.round(parseFloat(x.facturado||0)/meta*100):0;
-    return '<div class="rk-item"><div style="font-size:14px;width:18px;text-align:center;">'+medals[i]+'</div><div class="rk-av" style="background:'+(CL[x.asesor]||'#6B7BA8')+'">'+h((x.asesor||'?').substring(0,2))+'</div><div class="rk-info"><div class="rk-nm">'+h(x.asesor)+'</div><div class="rk-det"><span>Serv S/'+fmt(x.com_serv)+'</span><span>Prod S/'+fmt(x.com_prod)+'</span><span>Fact S/'+fmt(x.facturado)+'</span><span>'+x.n_ventas+'v ('+x.n_serv+'S/'+x.n_prod+'P)</span></div>'+(meta>0?'<div style="margin-top:4px"><div class="met-bar"><div class="met-fill" style="width:'+Math.min(pM,100)+'%;background:'+(pM>=100?'#16A34A':pM>=50?'#00C9A7':'#D97706')+'"></div></div><div style="font-size:8px;color:#6B7BA8;margin-top:2px">'+pM+'% meta</div></div>':'')+'</div><div style="text-align:right"><div class="rk-com">S/'+fmt(comT)+'</div><div class="rk-sub"><div class="rk-sub-c"><div class="rk-sub-l">Servicios</div><div class="rk-sub-v">S/'+fmt(x.com_serv)+'</div></div><div class="rk-sub-c"><div class="rk-sub-l">Productos</div><div class="rk-sub-v">S/'+fmt(x.com_prod)+'</div></div></div></div></div>';
+    return '<div class="rk-item" style="cursor:pointer;'+(CM.filtroAsesor===x.asesor?'background:#F0F4FC;border-radius:10px;padding:10px 8px;':'')+'" onclick="cmFilterAsesor(''+h(x.asesor)+'')"><div style="font-size:14px;width:18px;text-align:center;">'+medals[i]+'</div><div class="rk-av" style="background:'+(CL[x.asesor]||'#6B7BA8')+'">'+h((x.asesor||'?').substring(0,2))+'</div><div class="rk-info"><div class="rk-nm">'+h(x.asesor)+'</div><div class="rk-det"><span>Serv S/'+fmt(x.com_serv)+'</span><span>Prod S/'+fmt(x.com_prod)+'</span><span>Fact S/'+fmt(x.facturado)+'</span><span>'+x.n_ventas+'v ('+x.n_serv+'S/'+x.n_prod+'P)</span></div>'+(meta>0?'<div style="margin-top:4px"><div class="met-bar"><div class="met-fill" style="width:'+Math.min(pM,100)+'%;background:'+(pM>=100?'#16A34A':pM>=50?'#00C9A7':'#D97706')+'"></div></div><div style="font-size:8px;color:#6B7BA8;margin-top:2px">'+pM+'% meta</div></div>':'')+'</div><div style="text-align:right"><div class="rk-com">S/'+fmt(comT)+'</div><div class="rk-sub"><div class="rk-sub-c"><div class="rk-sub-l">Servicios</div><div class="rk-sub-v">S/'+fmt(x.com_serv)+'</div></div><div class="rk-sub-c"><div class="rk-sub-l">Productos</div><div class="rk-sub-v">S/'+fmt(x.com_prod)+'</div></div></div></div></div>';
   }).join('');
   var na=d.noAplica;if(na&&na.n>0)box.innerHTML+='<div style="margin-top:8px;padding:8px;background:#F8FAFC;border-radius:8px;font-size:9px;color:#94a3b8"><b>NO APLICA</b> · '+na.n+' ventas · S/'+fmt(na.total)+' · Sin comisión</div>';
 }
 function renderKPIs(d){
-  var a=d.porAsesor||[];var comT=a.reduce(function(s,x){return s+parseFloat(x.com_total||0)+parseFloat(x.ajuste_manual||0);},0);
+  var a=d.porAsesor||[];
+  if(CM.filtroAsesor)a=a.filter(function(x){return x.asesor===CM.filtroAsesor;});
+  var comT=a.reduce(function(s,x){return s+parseFloat(x.com_total||0)+parseFloat(x.ajuste_manual||0);},0);
   var factT=a.reduce(function(s,x){return s+parseFloat(x.facturado||0);},0);var nV=a.reduce(function(s,x){return s+x.n_ventas;},0);
   var fS=a.reduce(function(s,x){return s+parseFloat(x.fact_serv||0);},0);var fP=a.reduce(function(s,x){return s+parseFloat(x.fact_prod||0);},0);
   var cS=a.reduce(function(s,x){return s+parseFloat(x.com_serv||0);},0);var cP=a.reduce(function(s,x){return s+parseFloat(x.com_prod||0);},0);
@@ -141,19 +148,62 @@ function renderDet(rows){
   }).join('');
 }
 function renderHist(anual){
-  var hb=el('cm-hist');if(!anual.length){hb.innerHTML='<tr><td colspan="3" class="ld">--</td></tr>';return;}
+  var hb=el('cm-hist');if(!anual.length){hb.innerHTML='<tr><td colspan="4" class="ld">--</td></tr>';return;}
   var curM=Number(el('cm-mes').value);
-  hb.innerHTML=anual.map(function(r){var mn=parseInt(r.mes_num),cur=mn===curM;
-    return '<tr'+(cur?' class="cur"':'')+'><td style="font-weight:'+(cur?'700':'500')+'">'+h(MF[mn])+'</td><td>S/'+Math.round(parseFloat(r.facturado||0))+'</td><td style="color:#00C9A7;font-weight:700">S/'+fmt(r.comision_total)+'</td></tr>';
+  hb.innerHTML=anual.map(function(r,i){var mn=parseInt(r.mes_num),cur=mn===curM;
+    var prev=i>0?parseFloat(anual[i-1].comision_total||0):0;
+    var curr=parseFloat(r.comision_total||0);
+    var delta=i>0?(curr-prev):0;var deltaP=prev>0?Math.round((delta/prev)*100):0;
+    var dC=delta>0?'#16A34A':delta<0?'#DC2626':'#9AAAC8';
+    var dS=delta>0?'↑':delta<0?'↓':'—';
+    return '<tr'+(cur?' class="cur"':'')+'><td style="font-weight:'+(cur?'700':'500')+'">'+h(MF[mn])+'</td><td>S/'+Math.round(parseFloat(r.facturado||0))+'</td><td style="color:#00C9A7;font-weight:700">S/'+fmt(r.comision_total)+'</td><td style="color:'+dC+';font-size:9px;font-weight:700;">'+dS+(i>0?Math.abs(deltaP)+'%':'')+'</td></tr>';
   }).join('');
 }
-function renderMetrics(d){
-  var box=el('cm-metrics');var a=d.porAsesor||[];if(!a.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
-  var maxF=Math.max.apply(null,a.map(function(x){return parseFloat(x.facturado||0);}));
-  box.innerHTML='<div style="font-size:9px;font-weight:700;color:#9AAAC8;margin-bottom:6px">FACTURACIÓN POR ASESOR</div>'+a.map(function(x){
-    var f=parseFloat(x.facturado||0);var pct=maxF>0?Math.round(f/maxF*100):0;
-    return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px"><span style="font-weight:700;color:'+(CL[x.asesor]||'#6B7BA8')+'">'+h(x.asesor)+'</span><span style="font-weight:800;color:#0D1B3E">S/'+Math.round(f)+'</span></div><div class="met-bar"><div class="met-fill" style="width:'+pct+'%;background:'+(CL[x.asesor]||'#6B7BA8')+'"></div></div></div>';
-  }).join('');
+function renderChart(anual){
+  var canvas=el('cm-chart');if(!canvas)return;var ctx=canvas.getContext('2d');
+  var w=canvas.parentElement.clientWidth-28;canvas.width=w;canvas.height=160;
+  ctx.clearRect(0,0,w,160);
+  if(!anual.length)return;
+  var data=anual.map(function(r){return parseFloat(r.comision_total||0);});
+  // Add one empty month ahead
+  data.push(0);
+  var maxV=Math.max.apply(null,data)||1;
+  var padL=40,padR=20,padT=20,padB=30;
+  var gw=w-padL-padR,gh=160-padT-padB;
+  var step=gw/(data.length-1||1);
+  // Grid lines
+  ctx.strokeStyle='#E2E8F0';ctx.lineWidth=0.5;
+  for(var g=0;g<4;g++){var gy=padT+gh*(g/3);ctx.beginPath();ctx.moveTo(padL,gy);ctx.lineTo(w-padR,gy);ctx.stroke();ctx.fillStyle='#9AAAC8';ctx.font='8px DM Sans';ctx.textAlign='right';ctx.fillText('S/'+Math.round(maxV*(1-g/3)),padL-4,gy+3);}
+  // Month labels
+  ctx.fillStyle='#9AAAC8';ctx.font='8px DM Sans';ctx.textAlign='center';
+  for(var m=0;m<data.length;m++){var lx=padL+m*step;ctx.fillText(MF[anual[m]?anual[m].mes_num:0]||'',lx,160-8);}
+  // Line
+  ctx.beginPath();ctx.strokeStyle='#00C9A7';ctx.lineWidth=2.5;ctx.lineJoin='round';
+  data.forEach(function(v,i){var x=padL+i*step,y=padT+gh*(1-v/maxV);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+  ctx.stroke();
+  // Fill
+  ctx.lineTo(padL+(data.length-1)*step,padT+gh);ctx.lineTo(padL,padT+gh);ctx.closePath();
+  ctx.fillStyle='rgba(0,201,167,0.08)';ctx.fill();
+  // Dots
+  data.forEach(function(v,i){if(v<=0)return;var x=padL+i*step,y=padT+gh*(1-v/maxV);ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle='#00C9A7';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#071D4A';ctx.font='bold 8px Exo 2';ctx.textAlign='center';ctx.fillText('S/'+Math.round(v),x,y-8);});
+}
+function renderAlerts(d){
+  var box=el('cm-alerts');var a=d.porAsesor||[];
+  if(!a.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var alerts=[];var curM=Number(el('cm-mes').value);
+  // Check who has 0 comisiones
+  a.forEach(function(x){if(parseFloat(x.com_total||0)===0)alerts.push({ico:'⚠',text:h(x.asesor)+' tiene S/0 comisiones este período',color:'#DC2626'});});
+  // Check who is declining (compare with previous months if available)
+  var anual=d.anual||[];if(anual.length>=2){
+    var prev=anual[anual.length-2];var curr=anual[anual.length-1];
+    if(prev&&curr&&parseFloat(curr.comision_total||0)<parseFloat(prev.comision_total||0)*0.7){
+      alerts.push({ico:'📉',text:'Comisiones bajaron '+Math.round((1-parseFloat(curr.comision_total)/parseFloat(prev.comision_total))*100)+'% vs mes anterior',color:'#D97706'});
+    }
+  }
+  // Who has most ventas
+  if(a.length>0){var top=a[0];alerts.push({ico:'🏆',text:h(top.asesor)+' lidera con S/'+fmt(top.com_total)+' ('+top.n_ventas+' ventas)',color:'#00C9A7'});}
+  if(!alerts.length){box.innerHTML='<div class="ld">Sin alertas</div>';return;}
+  box.innerHTML=alerts.map(function(al){return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F0F4FC;font-size:10px;"><span style="font-size:14px;">'+al.ico+'</span><span style="color:'+al.color+';font-weight:600;">'+al.text+'</span></div>';}).join('');
 }
 function openEdit(id){
   var v=(CM.data.detalle||[]).find(function(x){return x.id===id;});if(!v)return;CM.editId=id;
