@@ -65,7 +65,10 @@
     <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
     <div class="crd"><div class="ct">🎯 Campañas <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th><th>Inv.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
   </div>
-  <div class="crd"><div class="ct">🛒 Ventas de Leads del Mes <span class="tag tag-b" id="mk-nvl">0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"></tbody></table></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="crd"><div class="ct">🛒 Ventas del Mes <span class="tag tag-b" id="mk-nvl">0</span><span style="margin-left:auto;font-size:9px;color:#6B7BA8;" id="mk-fmes">S/0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"></tbody></table></div></div>
+    <div class="crd"><div class="ct">📦 Ventas Fuera del Mes <span class="tag" style="background:#FFFBEB;color:#D97706;" id="mk-nvf">0</span><span style="margin-left:auto;font-size:9px;color:#00C9A7;font-weight:700;" id="mk-ffuera">S/0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vf"></tbody></table></div></div>
+  </div>
 </div>
 <div class="mov" id="m-iv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">💰 Gestión de Inversión</div><button class="mx" onclick="el('m-iv').classList.remove('open')">✕</button></div>
   <div class="mbody">
@@ -97,7 +100,7 @@ function mkL(){
   el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
   rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
     rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rGest(d.gestion);
-    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);
+    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
   });
 }
 function rKPI(k){
@@ -169,7 +172,18 @@ function rCamp(tr){
     return '<tr><td style="font-weight:700">'+h(t.nombre)+'</td><td>'+t.leads+'</td><td>'+t.citas+'</td><td style="color:#00C9A7;font-weight:700">'+(t.pctCita||0)+'%</td><td>'+(t.asistieron||0)+'</td><td class="hi hi-g">'+(t.clientes||0)+'</td><td>'+(t.ventas||0)+'</td><td class="hi hi-b">'+(fm>0?'S/'+Math.round(fm):'—')+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'—')+'</td><td style="font-size:8px;color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'—')+'</td><td class="hi" style="color:'+(t.roas&&t.roas>=1?'#16A34A':'#DC2626')+';">'+(t.roas?t.roas+'x':'—')+'</td></tr>';
   }).join(''):'<tr><td colspan="11" class="ld">Sin datos</td></tr>';
 }
-function rVL(vl){el('mk-nvl').textContent=vl.length+' ventas';el('mk-vl').innerHTML=vl.length?vl.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#0A4FBF">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas de leads este mes</td></tr>';}
+function rVL(vl){
+  el('mk-nvl').textContent=vl.length+' ventas';
+  var tot=vl.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+  el('mk-fmes').textContent='Total: S/'+Math.round(tot);
+  el('mk-vl').innerHTML=vl.length?vl.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#0A4FBF">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas de leads este mes</td></tr>';
+}
+function rVF(vf){
+  el('mk-nvf').textContent=vf.length+' ventas';
+  var tot=vf.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+  el('mk-ffuera').textContent='Total: S/'+Math.round(tot);
+  el('mk-vf').innerHTML=vf.length?vf.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#00C9A7">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas fuera del mes</td></tr>';
+}
 var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA','PINK INTIMATE'];
 var PLATS=['META ADS','TIKTOK ADS','GOOGLE ADS'];
 function openIv(){el('iv-m').value=el('mk-mes').value;el('iv-a').value=el('mk-anio').value;ivLd();el('m-iv').classList.add('open');}
