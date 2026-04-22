@@ -1,4 +1,4 @@
-<!-- admin-marketing.html v4 — Marketing Admin | AscendaOS v1 | 100% Supabase -->
+<!-- admin-marketing.html v5 — Marketing Admin | AscendaOS v1 | 100% Supabase -->
 <style>
 .mk{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:100%;font-family:'DM Sans',sans-serif;color:#0D1B3E;}
 .mk-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
@@ -10,36 +10,28 @@
 .crd{background:#fff;border:1px solid #DDE4F5;border-radius:14px;padding:14px;overflow:hidden;}
 .kl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8;margin-bottom:4px;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.tag{padding:2px 8px;border-radius:5px;font-size:8px;font-weight:700;}.tag-c{background:#F0FDFA;color:#0D9488;}.tag-b{background:#EBF2FF;color:#0A4FBF;}.tag-r{background:#FEF2F2;color:#DC2626;}
+.tag{padding:2px 8px;border-radius:5px;font-size:8px;font-weight:700;}.tag-c{background:#F0FDFA;color:#0D9488;}.tag-b{background:#EBF2FF;color:#0A4FBF;}
 .ld{text-align:center;padding:14px;color:#9AAAC8;font-size:11px;}
-/* KPI line */
 .kpi-line{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:6px 0;}
-.kpi-item{flex:1;min-width:75px;text-align:center;padding:6px 2px;border-right:1px solid #F0F4FC;}.kpi-item:last-child{border-right:none;}
+.kpi-item{flex:1;min-width:72px;text-align:center;padding:5px 2px;border-right:1px solid #F0F4FC;}.kpi-item:last-child{border-right:none;}
 .kpi-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:#0D1B3E;}.kpi-l{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#00C9A7;}.kpi-s{font-size:8px;color:#00C9A7;font-weight:600;}
 .kpi-acc .kpi-v{color:#00C9A7;}.kpi-red .kpi-v{color:#DC2626;}.kpi-red .kpi-s{color:#DC2626;}
-/* Embudo */
 .emb-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .emb-bar{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-.emb-lbl{min-width:62px;font-size:10px;font-weight:700;text-align:right;}
+.emb-lbl{min-width:58px;font-size:10px;font-weight:700;text-align:right;}
 .emb-trk{flex:1;height:22px;background:#E2E8F0;border-radius:5px;overflow:hidden;}
 .emb-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:6px;font-size:10px;font-weight:800;color:#fff;min-width:16px;}
-.emb-pct{min-width:55px;text-align:right;}.emb-pct b{display:block;font-size:12px;font-weight:800;color:#0D1B3E;}.emb-pct span{font-size:8px;color:#6B7BA8;}
-.emb-conv{font-size:7px;color:#9AAAC8;text-align:center;margin:0 0 1px 70px;}
-/* Gestion compact */
+.emb-pct{min-width:45px;text-align:right;font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:#0D1B3E;}
+.emb-conv{font-size:7px;color:#9AAAC8;text-align:center;margin:0 0 1px 66px;}
 .g-row{display:flex;flex-wrap:wrap;gap:6px;}
-.g-c{border-radius:8px;padding:8px 10px;text-align:center;flex:1;min-width:80px;}
-.g-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;}.g-l{font-size:7px;font-weight:700;text-transform:uppercase;color:#6B7BA8;letter-spacing:.3px;}.g-p{font-size:8px;color:#9AAAC8;}
+.g-c{border-radius:8px;padding:7px 10px;text-align:center;flex:1;min-width:75px;}
+.g-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;}.g-l{font-size:7px;font-weight:700;text-transform:uppercase;color:#6B7BA8;}.g-p{font-size:7px;color:#9AAAC8;}
 .g-green{background:#F0FDF4;}.g-green .g-v{color:#16A34A;}.g-red{background:#FEF2F2;}.g-red .g-v{color:#DC2626;}
-.g-blue{background:#EBF2FF;}.g-blue .g-v{color:#0A4FBF;}.g-yellow{background:#FFFBEB;}.g-yellow .g-v{color:#D97706;}
-.g-purple{background:#F5F3FF;}.g-purple .g-v{color:#7C3AED;}.g-cyan{background:#F0FDFA;}.g-cyan .g-v{color:#0D9488;}
-/* Tables */
-.vt{width:100%;border-collapse:collapse;}.vt th{font-size:7px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#9AAAC8;padding:4px 5px;border-bottom:1px solid #DDE4F5;text-align:left;}
-.vt td{padding:4px 5px;border-bottom:1px solid #F0F4FC;font-size:9px;}.vt tr:hover td{background:#F8FAFF;}
-.hi-v{color:#0A4FBF;font-weight:700;}.hi-a{color:#00C9A7;font-weight:700;}.hi-c{color:#059669;font-weight:700;}
-.mk-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-.op-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.op-big{font-family:'Exo 2',sans-serif;font-weight:800;font-size:30px;text-align:center;}.op-sub{font-size:8px;color:#6B7BA8;text-transform:uppercase;text-align:center;letter-spacing:.4px;}
-/* Modal */
+.g-blue{background:#EBF2FF;}.g-blue .g-v{color:#0A4FBF;}.g-yellow{background:#FFFBEB;}.g-yellow .g-v{color:#D97706;}.g-purple{background:#F5F3FF;}.g-purple .g-v{color:#7C3AED;}.g-cyan{background:#F0FDFA;}.g-cyan .g-v{color:#0D9488;}
+.vt{width:100%;border-collapse:collapse;}.vt th{font-size:7px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#9AAAC8;padding:4px 4px;border-bottom:1px solid #DDE4F5;text-align:left;}
+.vt td{padding:4px;border-bottom:1px solid #F0F4FC;font-size:9px;}.vt tr:hover td{background:#F8FAFF;}
+.vt .hi{font-weight:700;}.hi-b{color:#0A4FBF;}.hi-c{color:#00C9A7;}.hi-g{color:#059669;}.hi-r{color:#DC2626;}.hi-y{color:#D97706;}
+.mk-2t{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .mov{position:fixed;inset:0;background:rgba(7,29,74,.15);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}.mov.open{display:flex;}
 .modal{background:#fff;border-radius:20px;width:92%;max-width:640px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.15);}
 .mhd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #F0F4FC;}.mtit{flex:1;font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;}
@@ -52,51 +44,42 @@
 .iv-del{width:24px;height:24px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;cursor:pointer;font-size:9px;}
 .iv-add{padding:5px;border-radius:6px;border:1px dashed #DDE4F5;background:none;color:#0A4FBF;font-size:9px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-family:'DM Sans';}
 .iv-tot{padding:6px 12px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;color:#fff;font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;}
-@media(max-width:1100px){.mk-3{grid-template-columns:1fr;}.emb-2{grid-template-columns:1fr;}.op-2{grid-template-columns:1fr;}}
+@media(max-width:1100px){.mk-2t{grid-template-columns:1fr;}.emb-2{grid-template-columns:1fr;}}
 </style>
 <div class="mk">
-  <div class="mk-hdr"><div class="mk-t">📊 Marketing</div>
+  <div class="mk-hdr"><div class="mk-t">\u{1F4CA} Marketing</div>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-      <div class="mk-modes"><button class="mk-mode act" data-m="mes" onclick="mkMd(this)">Mes</button><button class="mk-mode" data-m="anio" onclick="mkMd(this)">Año</button></div>
+      <div class="mk-modes"><button class="mk-mode act" data-m="mes" onclick="mkMd(this)">Mes</button><button class="mk-mode" data-m="anio" onclick="mkMd(this)">A\u00f1o</button></div>
       <select class="ps" id="mk-mes" onchange="mkL()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       <select class="ps" id="mk-anio" onchange="mkL()"><option value="2026">2026</option><option value="2025">2025</option></select>
-      <button class="mk-inv" onclick="openIv()">💰 Gestión de Inversión</button>
+      <button class="mk-inv" onclick="openIv()">\u{1F4B0} Gesti\u00f3n de Inversi\u00f3n</button>
     </div>
   </div>
-  <div class="crd" style="padding:8px 14px;"><div class="kl" id="mk-per">📈 KPIs de Campaña</div><div class="kpi-line" id="mk-kpis"></div></div>
+  <div class="crd" style="padding:8px 14px;"><div class="kl" id="mk-per"></div><div class="kpi-line" id="mk-kpis"></div></div>
   <div class="emb-2">
-    <div class="crd"><div class="ct">▼ Embudo de Conversión <span class="tag tag-c">leads nuevos del mes</span></div><div id="mk-emb"></div></div>
-    <div class="crd"><div class="ct">📅 Histórico mensual</div><div id="mk-hist"></div></div>
+    <div class="crd"><div class="ct">\u25BC Embudo de Conversi\u00f3n <span class="tag tag-c">leads nuevos del mes</span></div><div id="mk-emb"></div></div>
+    <div class="crd"><div class="ct">\u{1F4C5} Hist\u00f3rico mensual</div><div id="mk-hist"></div></div>
   </div>
-  <div class="crd"><div class="ct">📋 Gestión de Leads del Mes <span class="tag tag-c" style="margin-left:auto;">de las 485 llamadas a leads del mes</span></div><div class="g-row" id="mk-gest"></div></div>
-  <div class="mk-3">
-    <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:380px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>Asist.</th><th>Ventas</th><th>Fact.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
-    <div class="crd"><div class="ct">🎯 Campañas <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:380px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%Cita</th><th>Asist.</th><th>Clientes</th><th>Fact.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
-    <div class="crd"><div class="ct">🛒 Ventas de Leads <span class="tag tag-b" id="mk-nvl">0</span></div><div style="overflow-x:auto;max-height:380px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Trat.</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"></tbody></table></div></div>
+  <div class="crd"><div class="ct">\u{1F4CB} Gesti\u00f3n de Leads del Mes <span class="tag tag-c" style="margin-left:auto;" id="mk-gest-tag"></span></div><div class="g-row" id="mk-gest"></div></div>
+  <div class="mk-2t">
+    <div class="crd"><div class="ct">\u{1F4E2} Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
+    <div class="crd"><div class="ct">\u{1F3AF} Campa\u00f1as <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th><th>Inv.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
   </div>
-  <div class="op-2">
-    <div class="crd"><div class="ct">⚙ Gestión Operacional Total <span class="tag tag-r">toda la base del período</span></div>
-      <div class="op-big" id="mk-op-big">0</div><div class="op-sub">LLAMADAS TOTALES DEL PERÍODO</div>
-      <div class="g-row" style="margin-top:10px;" id="mk-op-cards"></div>
-      <div style="display:flex;justify-content:space-around;margin-top:8px;" id="mk-op-stats"></div>
-    </div>
-    <div class="crd"><div class="ct">⚙ Operación por Tratamiento <span class="tag tag-r">toda la gestión</span></div>
-      <div style="overflow-x:auto;max-height:440px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Llam.</th><th>Citas</th><th>%Cita</th><th>Asist.</th><th>Ventas</th><th>Fact.</th></tr></thead><tbody id="mk-op-tbl"></tbody></table></div></div>
-  </div>
+  <div class="crd"><div class="ct">\u{1F6D2} Ventas de Leads del Mes <span class="tag tag-b" id="mk-nvl">0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Celular</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vl"></tbody></table></div></div>
 </div>
-<div class="mov" id="m-iv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">💰 Gestión de Inversión</div><button class="mx" onclick="el('m-iv').classList.remove('open')">✕</button></div>
+<div class="mov" id="m-iv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">\u{1F4B0} Gesti\u00f3n de Inversi\u00f3n</div><button class="mx" onclick="el('m-iv').classList.remove('open')">\u2715</button></div>
   <div class="mbody">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
       <span style="font-size:10px;font-weight:700;color:#6B7BA8;">Mes:</span><select class="ms" id="iv-m" style="width:110px;" onchange="ivLd()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-      <span style="font-size:10px;font-weight:700;color:#6B7BA8;">Año:</span><select class="ms" id="iv-a" style="width:70px;" onchange="ivLd()"><option value="2026">2026</option><option value="2025">2025</option></select>
-      <button class="mk-inv" style="padding:6px 12px;" onclick="ivLd()">Cargar →</button>
+      <span style="font-size:10px;font-weight:700;color:#6B7BA8;">A\u00f1o:</span><select class="ms" id="iv-a" style="width:70px;" onchange="ivLd()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <button class="mk-inv" style="padding:6px 12px;" onclick="ivLd()">Cargar \u2192</button>
       <div class="iv-tot" id="iv-tot">S/ 0 total</div>
     </div>
-    <div class="iv-row" style="font-weight:700;color:#9AAAC8;font-size:7px;text-transform:uppercase;letter-spacing:.4px;"><div>Tratamiento</div><div>Red Social</div><div>Inversión (S/)</div><div></div></div>
+    <div class="iv-row" style="font-weight:700;color:#9AAAC8;font-size:7px;text-transform:uppercase;"><div>Tratamiento</div><div>Red Social</div><div>Inversi\u00f3n (S/)</div><div></div></div>
     <div id="iv-list"></div>
     <button class="iv-add" onclick="ivAdd()">+ Agregar fila</button>
   </div>
-  <div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-iv').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="ivSave()">💾 Guardar cambios</button></div>
+  <div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-iv').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="ivSave()">\u{1F4BE} Guardar</button></div>
 </div></div>
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
@@ -106,70 +89,63 @@ function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function el(id){return document.getElementById(id);}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var MF=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var MK={data:null,modo:'mes'};
+var MK={modo:'mes'};
 (function(){var m=new Date().getMonth()+1;el('mk-mes').value=String(m);el('mk-anio').value=String(new Date().getFullYear());mkL();})();
 function mkMd(btn){document.querySelectorAll('.mk-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MK.modo=btn.getAttribute('data-m');mkL();}
-
 function mkL(){
   var mes=Number(el('mk-mes').value),anio=Number(el('mk-anio').value);
-  el('mk-per').textContent='\u{1F4C8} KPIs de Campaña — '+MF[mes]+' '+anio;
-  rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;MK.data=d;
+  el('mk-per').textContent='\u{1F4C8} KPIs de Campa\u00f1a \u2014 '+MF[mes]+' '+anio;
+  rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
     rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rGest(d.gestion);
-    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rOp(d.operacional||d.gestion,d.operacion||[]);
+    rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);
   });
 }
-
 function rKPI(k){
   el('mk-kpis').innerHTML=[
-    {l:'LEADS',v:k.leads,s:'del período'},
+    {l:'LEADS',v:k.leads,s:'del per\u00edodo'},
     {l:'LLAMADOS',v:k.llamados,s:k.pctLlamados+'% leads'},
-    {l:'CITAS TEL.',v:k.citas,s:(k.llamados>0?(k.citas/k.llamados*100).toFixed(1):0)+'% llam.'},
-    {l:'ASISTIERON',v:k.asistieron,s:(k.citas>0?(k.asistieron/k.citas*100).toFixed(1):0)+'% citas'},
-    {l:'CLIENTES',v:k.clientes,s:(k.asistieron>0?(k.clientes/k.asistieron*100).toFixed(1):0)+'% asist.'},
+    {l:'CITAS TEL.',v:k.citas,s:(k.llamados>0?(k.citas/k.llamados*100).toFixed(2):0)+'%'},
+    {l:'ASISTIERON',v:k.asistieron,s:(k.citas>0?(k.asistieron/k.citas*100).toFixed(2):0)+'%'},
+    {l:'CLIENTES',v:k.clientes,s:(k.asistieron>0?(k.clientes/k.asistieron*100).toFixed(2):0)+'%'},
     {l:'VENTAS',v:k.nVentas,s:(k.clientes>0?Math.round(k.nVentas/k.clientes):0)+' por cliente'},
-    {l:'FACTURACIÓN',v:'S/'+Math.round(parseFloat(k.factTotal||0)),s:'campaña',c:'kpi-acc'},
+    {l:'FACTURACI\u00d3N',v:'S/'+Math.round(parseFloat(k.factTotal||0)),s:'campa\u00f1a',c:'kpi-acc'},
     {l:'ROAS',v:(k.roas||0)+'x',s:'retorno'},
     {l:'CAC',v:k.cac?'S/'+Math.round(k.cac):'\u2014',s:'costo/cliente',c:k.cac?'kpi-red':''}
   ].map(function(x){return '<div class="kpi-item '+(x.c||'')+'"><div class="kpi-l">'+x.l+'</div><div class="kpi-v">'+x.v+'</div><div class="kpi-s">'+x.s+'</div></div>';}).join('');
 }
-
 function rEmb(e){
   var mx=e.leads||1,t=e.tasas;
-  var colors=['#0A4FBF','#2563EB','#00C9A7','#16A34A','#059669','#0D9488'];
+  var CL=['#0A4FBF','#7C3AED','#00C9A7','#F59E0B','#059669','#DC2626'];
   var rows=[
-    {l:'Leads',v:e.leads,p:100,s:'base',tp:0},
-    {l:'Llamados',v:e.llamados,p:Math.round(e.llamados/mx*100),s:t.llamados+'% de leads',tp:t.llamados},
-    {l:'Citas telef.',v:e.citas,p:Math.max(Math.round(e.citas/mx*100),1),s:t.citas+'% de llamados',tp:t.citas},
-    {l:'Asistieron',v:e.asistieron,p:Math.max(Math.round(e.asistieron/mx*100),1),s:t.asist+'% de citas',tp:t.asist},
-    {l:'Clientes',v:e.clientes,p:Math.max(Math.round(e.clientes/mx*100),1),s:t.clientes+'% de asistidos',tp:t.clientes},
-    {l:'Ventas',v:e.ventas,p:Math.max(Math.round(e.ventas/mx*100),1),s:t.ventas+'% de clientes',tp:t.ventas}
+    {l:'Leads',v:e.leads,p:100,tp:0},
+    {l:'Llamados',v:e.llamados,p:Math.round(e.llamados/mx*100),tp:t.llamados},
+    {l:'Citas',v:e.citas,p:Math.max(Math.round(e.citas/mx*100),1),tp:t.citas},
+    {l:'Asistieron',v:e.asistieron,p:Math.max(Math.round(e.asistieron/mx*100),1),tp:t.asist},
+    {l:'Clientes',v:e.clientes,p:Math.max(Math.round(e.clientes/mx*100),1),tp:t.clientes},
+    {l:'Ventas',v:e.ventas,p:Math.max(Math.round(e.ventas/mx*100),1),tp:t.ventas}
   ];
   el('mk-emb').innerHTML=rows.map(function(r,i){
+    var pctD=i===0?'100%':r.tp+'%';
     return(i>0?'<div class="emb-conv">\u25BC '+r.tp+'% conv.</div>':'')+
-    '<div class="emb-bar"><div class="emb-lbl">'+r.l+'</div><div class="emb-trk"><div class="emb-fill" style="width:'+r.p+'%;background:'+colors[i]+'">'+r.v+'</div></div><div class="emb-pct"><b>'+r.p+'%</b><span>'+r.s+'</span></div></div>';
+    '<div class="emb-bar"><div class="emb-lbl">'+r.l+'</div><div class="emb-trk"><div class="emb-fill" style="width:'+r.p+'%;background:'+CL[i]+'">'+r.v+'</div></div><div class="emb-pct">'+pctD+'</div></div>';
   }).join('')+
   '<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:10px;color:#6B7BA8;">Facturado del periodo</span><span style="font-family:Exo 2;font-weight:800;font-size:16px;color:#00C9A7;">S/ '+Math.round(parseFloat(e.factTotal||0))+'</span></div>';
 }
-
 function rHist(hi){
   var box=el('mk-hist');if(!hi.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
   var mxF=Math.max.apply(null,hi.map(function(x){return parseFloat(x.fact_acumulado||x.fact||0);}));
   var mxL=Math.max.apply(null,hi.map(function(x){return parseInt(x.leads||0);}));
-  box.innerHTML='<div style="display:flex;gap:3px;align-items:flex-end;justify-content:space-around;height:65px;margin-bottom:6px;">'+hi.map(function(x){
-    var hF=mxF>0?Math.round(parseFloat(x.fact_acumulado||x.fact||0)/mxF*50):0;var hL=mxL>0?Math.round(parseInt(x.leads||0)/mxL*50):0;
-    return '<div style="text-align:center;flex:1;"><div style="display:flex;gap:1px;align-items:flex-end;justify-content:center;height:52px;"><div style="width:10px;height:'+hF+'px;background:#0A4FBF;border-radius:2px 2px 0 0;"></div><div style="width:10px;height:'+hL+'px;background:#00C9A7;border-radius:2px 2px 0 0;"></div></div><div style="font-size:6px;font-weight:700;color:#6B7BA8;">'+MF[x.mes].slice(0,3).toUpperCase()+'</div></div>';
+  box.innerHTML='<div style="display:flex;gap:3px;align-items:flex-end;justify-content:space-around;height:60px;margin-bottom:6px;">'+hi.map(function(x){
+    var hF=mxF>0?Math.round(parseFloat(x.fact_acumulado||x.fact||0)/mxF*45):0;var hL=mxL>0?Math.round(parseInt(x.leads||0)/mxL*45):0;
+    return '<div style="text-align:center;flex:1;"><div style="display:flex;gap:1px;align-items:flex-end;justify-content:center;height:48px;"><div style="width:9px;height:'+hF+'px;background:#0A4FBF;border-radius:2px 2px 0 0;"></div><div style="width:9px;height:'+hL+'px;background:#00C9A7;border-radius:2px 2px 0 0;"></div></div><div style="font-size:6px;font-weight:700;color:#6B7BA8;">'+MF[x.mes].slice(0,3).toUpperCase()+'</div></div>';
   }).join('')+'</div>'+
-  '<table class="vt"><thead><tr><th>MES</th><th>LEADS</th><th>LLAM.</th><th>CITAS</th><th>ASIST.</th><th>CLIENTES</th><th>VENTAS</th><th style="color:#0A4FBF;">FACT. MES</th><th style="color:#00C9A7;">FACT. ACUM.</th><th>CONV%</th></tr></thead><tbody>'+
-  hi.map(function(x){
-    var fa=parseFloat(x.fact_acumulado||0),fm=parseFloat(x.fact||0);
-    return '<tr><td style="font-weight:700;font-size:8px;">'+MF[x.mes].slice(0,3).toUpperCase()+' '+x.anio+'</td><td>'+x.leads+'</td><td>'+x.llamados+'</td><td>'+x.citas+'</td><td>'+x.asistieron+'</td><td style="color:#059669;font-weight:700;">'+(x.clientes||0)+'</td><td>'+x.ventas+'</td><td class="hi-v">S/'+Math.round(fm)+'</td><td class="hi-a">'+(fa>0?'S/'+Math.round(fa):'\u2014')+'</td><td style="font-weight:700;color:'+(parseFloat(x.conv)>0?'#059669':'#9AAAC8')+';">'+x.conv+'%</td></tr>';
+  '<table class="vt"><thead><tr><th>MES</th><th>LEADS</th><th>LLAM.</th><th>CITAS</th><th>ASIST.</th><th style="color:#059669;">CLIENTES</th><th>VENTAS</th><th style="color:#0A4FBF;">FACT.MES</th><th style="color:#00C9A7;">FACT.ACUM.</th><th>CONV%</th></tr></thead><tbody>'+
+  hi.map(function(x){var fa=parseFloat(x.fact_acumulado||0),fm=parseFloat(x.fact||0);
+    return '<tr><td style="font-weight:700;font-size:8px;">'+MF[x.mes].slice(0,3).toUpperCase()+' '+x.anio+'</td><td>'+x.leads+'</td><td>'+x.llamados+'</td><td>'+x.citas+'</td><td>'+x.asistieron+'</td><td class="hi hi-g">'+(x.clientes||0)+'</td><td>'+x.ventas+'</td><td class="hi hi-b">S/'+Math.round(fm)+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'\u2014')+'</td><td class="hi" style="color:'+(parseFloat(x.conv)>0?'#059669':'#9AAAC8')+';">'+x.conv+'%</td></tr>';
   }).join('')+'</tbody></table>';
 }
-
 function rGest(g){
-  var p=g.pcts||{};var tl=g.totalLeads||0;
-  // Update the tag with actual number
-  document.querySelectorAll('.ct .tag-c').forEach(function(t){if(t.textContent.indexOf('llamadas')>=0)t.textContent='de '+tl+' llamadas a leads del mes';});
+  var p=g.pcts||{};el('mk-gest-tag').textContent='de '+(g.totalLeads||0)+' llamadas a leads del mes';
   el('mk-gest').innerHTML=[
     {v:g.nc,l:'NO CONTESTA',p:p.nc+'%',cls:'g-red'},
     {v:g.descartado,l:'DESCARTADOS',p:p.descartado+'%',cls:'g-red'},
@@ -181,34 +157,24 @@ function rGest(g){
     {v:g.leadsTrabajados,l:'TRABAJADOS',p:(p.trabajados||0)+'%',cls:'g-green'}
   ].map(function(c){return '<div class="g-c '+c.cls+'"><div class="g-v">'+c.v+'</div><div class="g-l">'+c.l+'</div>'+(c.p?'<div class="g-p">'+c.p+'</div>':'')+'</div>';}).join('');
 }
-
-function rAn(an){el('mk-an').innerHTML=an.length?an.map(function(a){var hasF=parseFloat(a.fact)>0;return '<tr><td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h((a.nombre||'(sin)').substring(0,30))+'</td><td>'+a.leads+'</td><td style="color:#00C9A7;font-weight:700;">'+a.citas+'</td><td>'+(a.asistieron||0)+'</td><td style="font-weight:700;">'+(a.ventas||0)+'</td><td style="font-weight:700;color:'+(hasF?'#0A4FBF':'#9AAAC8')+';">'+(hasF?'S/'+Math.round(parseFloat(a.fact)):'\u2014')+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin datos</td></tr>';}
-
-function rCamp(tr){el('mk-camp').innerHTML=tr.length?tr.map(function(t){var hasF=parseFloat(t.fact)>0;return '<tr><td style="font-weight:700">'+h(t.nombre)+'</td><td>'+t.leads+'</td><td>'+t.citas+'</td><td style="color:#00C9A7;font-weight:700">'+(t.pctCita||0)+'%</td><td>'+(t.asistieron||0)+'</td><td style="color:#059669;font-weight:700;">'+(t.ventas||0)+'</td><td style="font-weight:700;color:'+(hasF?'#0A4FBF':'#9AAAC8')+';">'+(hasF?'S/'+Math.round(parseFloat(t.fact)):'S/0')+'</td><td style="font-weight:700;color:'+(t.roas&&t.roas>=1?'#16A34A':'#DC2626')+';">'+(t.roas?t.roas+'x':'\u2014')+'</td></tr>';}).join(''):'<tr><td colspan="8" class="ld">Sin datos</td></tr>';}
-
-function rVL(vl){el('mk-nvl').textContent=vl.length+' ventas';el('mk-vl').innerHTML=vl.length?vl.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,20))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,12))+'</td><td style="font-weight:700;color:#0A4FBF">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas de leads este mes</td></tr>';}
-
-function rOp(g,op){
-  var opData=g||{};
-  el('mk-op-big').textContent=opData.total||0;
-  var p=opData.pcts||{};
-  el('mk-op-cards').innerHTML=[
-    {v:opData.sinLlamar||0,l:'SIN LLAMAR',p:(p.sinLlamar||0)+'%',cls:'g-blue',ico:'\u{1F4DE}'},
-    {v:opData.nc||0,l:'NO CONTESTA',p:(p.nc||0)+'%',cls:'g-red',ico:'\u{1F515}'},
-    {v:opData.descartado||0,l:'DESCARTADO',p:(p.descartado||0)+'%',cls:'g-red',ico:'\u{1F5D1}'},
-    {v:opData.leadsTrabajados||0,l:'TRABAJADOS',p:(p.trabajados||0)+'%',cls:'g-green',ico:'\u2705'},
-    {v:opData.seguimiento||0,l:'SEGUIMIENTO',p:(p.seguimiento||0)+'%',cls:'g-yellow',ico:'\u{1F4CB}'},
-    {v:opData.provincia||0,l:'PROVINCIA',p:(p.provincia||0)+'%',cls:'g-purple',ico:'\u{1F3D4}'}
-  ].map(function(c){return '<div class="g-c '+c.cls+'" style="min-width:75px;"><div style="font-size:12px;">'+c.ico+'</div><div class="g-v">'+c.v+'</div><div class="g-l">'+c.l+'</div><div class="g-p">'+c.p+'</div></div>';}).join('');
-  el('mk-op-stats').innerHTML='';
-  el('mk-op-tbl').innerHTML=op.length?op.map(function(o){var hasF=parseFloat(o.fact)>0;return '<tr><td style="font-weight:700">'+h(o.nombre)+'</td><td>'+o.llamadas+'</td><td>'+o.citas+'</td><td style="color:#00C9A7;font-weight:700">'+o.pctCita+'%</td><td>'+(o.asistieron||0)+'</td><td>'+(o.ventas||0)+'</td><td style="font-weight:700;color:'+(hasF?'#0A4FBF':'#9AAAC8')+';">'+(hasF?'S/'+Math.round(parseFloat(o.fact)):'S/0')+'</td></tr>';}).join(''):'<tr><td colspan="7" class="ld">Sin datos</td></tr>';
+function rAn(an){
+  el('mk-an').innerHTML=an.length?an.map(function(a){
+    var fm=parseFloat(a.fact_mes||0),fa=parseFloat(a.fact_acum||0);var pC=a.leads>0?((a.citas||0)/a.leads*100).toFixed(1):'0';
+    return '<tr><td style="font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h((a.nombre||'').substring(0,28))+'</td><td>'+a.leads+'</td><td style="color:#00C9A7;font-weight:700;">'+a.citas+'</td><td style="color:#00C9A7;font-size:8px;">'+pC+'%</td><td>'+(a.asistieron||0)+'</td><td class="hi hi-g">'+(a.clientes||0)+'</td><td>'+(a.ventas||0)+'</td><td class="hi hi-b">'+(fm>0?'S/'+Math.round(fm):'\u2014')+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'\u2014')+'</td></tr>';
+  }).join(''):'<tr><td colspan="9" class="ld">Sin datos</td></tr>';
 }
-
+function rCamp(tr){
+  el('mk-camp').innerHTML=tr.length?tr.map(function(t){
+    var fm=parseFloat(t.fact_mes||0),fa=parseFloat(t.fact_acum||0),inv=parseFloat(t.inv||0);
+    return '<tr><td style="font-weight:700">'+h(t.nombre)+'</td><td>'+t.leads+'</td><td>'+t.citas+'</td><td style="color:#00C9A7;font-weight:700">'+(t.pctCita||0)+'%</td><td>'+(t.asistieron||0)+'</td><td class="hi hi-g">'+(t.clientes||0)+'</td><td>'+(t.ventas||0)+'</td><td class="hi hi-b">'+(fm>0?'S/'+Math.round(fm):'\u2014')+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'\u2014')+'</td><td style="font-size:8px;color:#6B7BA8;">'+(inv>0?'S/'+Math.round(inv):'\u2014')+'</td><td class="hi" style="color:'+(t.roas&&t.roas>=1?'#16A34A':'#DC2626')+';">'+(t.roas?t.roas+'x':'\u2014')+'</td></tr>';
+  }).join(''):'<tr><td colspan="11" class="ld">Sin datos</td></tr>';
+}
+function rVL(vl){el('mk-nvl').textContent=vl.length+' ventas';el('mk-vl').innerHTML=vl.length?vl.map(function(v){return '<tr><td style="white-space:nowrap;font-size:8px;color:#6B7BA8">'+h(v.fecha)+'</td><td style="font-weight:600">'+h((v.nombre||'').substring(0,22))+'</td><td style="font-size:8px">'+h(v.celular||'')+'</td><td style="font-size:8px;color:#6B7BA8">'+h((v.trat||'').substring(0,14))+'</td><td style="font-weight:700;color:#0A4FBF">S/'+parseFloat(v.monto||0).toFixed(0)+'</td><td style="font-size:8px">'+h((v.sede||'').substring(0,4))+'</td></tr>';}).join(''):'<tr><td colspan="6" class="ld">Sin ventas de leads este mes</td></tr>';}
 var TRATS=['ENZIMAS FACIALES','CAPILAR','RADIOFRECUENCIA FRACCIONADA','HIDROFACIAL','HIFU','CRIOLIPOLISIS','TOXINA','PINK INTIMATE'];
 var PLATS=['META ADS','TIKTOK ADS','GOOGLE ADS'];
 function openIv(){el('iv-m').value=el('mk-mes').value;el('iv-a').value=el('mk-anio').value;ivLd();el('m-iv').classList.add('open');}
-function ivLd(){var m=Number(el('iv-m').value),a=Number(el('iv-a').value);fetch(SB+'/rest/v1/aos_inversion_campanas?mes_num=eq.'+m+'&anio=eq.'+a+'&order=tratamiento',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){el('iv-list').innerHTML=(rows||[]).map(function(r){return '<div class="iv-row" data-id="'+r.id+'"><select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option'+(t===r.tratamiento?' selected':'')+'>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option'+(p===r.plataforma?' selected':'')+'>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="'+r.inversion+'" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="iv-del" onclick="ivDel(this,\''+r.id+'\')">✕</button></div>';}).join('');ivCalc();});}
-function ivAdd(){var d=document.createElement('div');d.className='iv-row';d.innerHTML='<select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="0" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="iv-del" onclick="this.parentNode.remove();ivCalc()">✕</button>';el('iv-list').appendChild(d);ivCalc();}
+function ivLd(){var m=Number(el('iv-m').value),a=Number(el('iv-a').value);fetch(SB+'/rest/v1/aos_inversion_campanas?mes_num=eq.'+m+'&anio=eq.'+a+'&order=tratamiento',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){el('iv-list').innerHTML=(rows||[]).map(function(r){return '<div class="iv-row" data-id="'+r.id+'"><select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option'+(t===r.tratamiento?' selected':'')+'>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option'+(p===r.plataforma?' selected':'')+'>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="'+r.inversion+'" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="iv-del" onclick="ivDel(this,\''+r.id+'\')">x</button></div>';}).join('');ivCalc();});}
+function ivAdd(){var d=document.createElement('div');d.className='iv-row';d.innerHTML='<select class="mi" data-field="tratamiento">'+TRATS.map(function(t){return '<option>'+t+'</option>';}).join('')+'</select><select class="mi" data-field="plataforma">'+PLATS.map(function(p){return '<option>'+p+'</option>';}).join('')+'</select><input class="mi" type="number" value="0" data-field="inversion" step="0.01" style="text-align:right" onchange="ivCalc()"><button class="iv-del" onclick="this.parentNode.remove();ivCalc()">x</button>';el('iv-list').appendChild(d);ivCalc();}
 function ivDel(btn,id){if(id)rest('aos_inversion_campanas?id=eq.'+id,{method:'DELETE'}).then(function(){btn.parentNode.remove();ivCalc();});else{btn.parentNode.remove();ivCalc();}}
 function ivCalc(){var t=0;el('iv-list').querySelectorAll('[data-field=inversion]').forEach(function(i){t+=Number(i.value)||0;});el('iv-tot').textContent='S/ '+fmt(t)+' total';}
 function ivSave(){var m=Number(el('iv-m').value),a=Number(el('iv-a').value),mn=MF[m].toUpperCase();rest('aos_inversion_campanas?mes_num=eq.'+m+'&anio=eq.'+a,{method:'DELETE'}).then(function(){var ins=[];el('iv-list').querySelectorAll('.iv-row').forEach(function(row){var t=row.querySelector('[data-field=tratamiento]').value,p=row.querySelector('[data-field=plataforma]').value,v=Number(row.querySelector('[data-field=inversion]').value)||0;if(v>0)ins.push({tratamiento:t,mes:mn,anio:a,inversion:v,mes_num:m,plataforma:p});});if(ins.length)return fetch(SB+'/rest/v1/aos_inversion_campanas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(ins)});}).then(function(){el('m-iv').classList.remove('open');mkL();}).catch(function(e){console.error(e);});}
