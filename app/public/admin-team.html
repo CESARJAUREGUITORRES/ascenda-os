@@ -181,6 +181,7 @@ function editUser(idx){
     if(!res||!res.ok)return;var d=(res.diario||[]).slice(0,5);
     el('eu-asistencia').innerHTML=d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #F5F6FA;font-size:8px;"><span>'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+'</span>'+(x.llego_tarde?'<span style="color:#DC2626;">Tarde</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'Sin datos';
   }).catch(function(){});
+}
 function togglePerm(e){e.classList.toggle('on');e.querySelector('.perm-check').textContent=e.classList.contains('on')?'✓':'';}
 function saveUser(id){
   var perms=[];document.querySelectorAll('.perm-item.on').forEach(function(p){perms.push(p.getAttribute('data-panel'));});
