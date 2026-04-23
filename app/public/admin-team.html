@@ -83,7 +83,8 @@ function editUser(idx){
   var html='<div style="display:grid;grid-template-columns:220px 1fr;gap:16px;">';
   // Left: Photo + basic
   html+='<div style="text-align:center;"><div style="width:180px;height:180px;border-radius:20px;margin:0 auto 10px;overflow:hidden;border:3px solid '+col+';background:'+col+';display:flex;align-items:center;justify-content:center;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:64px;font-weight:800;color:#fff;">'+h((u.nombre||'?')[0])+'</div>')+'</div>';
-  html+='<div class="fg"><div class="fg-l">Foto (URL)</div><input class="mi" id="eu-avatar" value="'+h(u.avatar_url||'')+'" placeholder="https://..."></div>';
+  html+='<div class="fg"><div class="fg-l">Foto</div><div style="display:flex;gap:6px;align-items:center;"><input type="file" id="eu-avatar-file" accept="image/jpeg,image/png,image/webp" style="font-size:9px;width:160px;" onchange="uploadAvatar(this,\''+u.id+'\')"><span id="eu-avatar-status" style="font-size:8px;color:#9AAAC8;"></span></div></div>';
+  html+='<input type="hidden" id="eu-avatar" value="'+h(u.avatar_url||'')+'">';
   html+='<div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;margin-top:6px;">'+h(u.nombre)+'</div>';
   html+='<div style="font-size:10px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.codigo_asesor||'')+'</div>';
   html+='<div style="margin-top:8px;"><span class="tag tag-b">Nivel '+u.nivel_jerarquia+'</span> '+(u.cuenta_activada?'<span class="tag tag-g">Activo</span>':'<span class="tag tag-y">Pendiente</span>')+'</div>';
@@ -211,5 +212,16 @@ function sendInvite(id,email,nombre){fetch('https://ascenda-os-production.up.rai
 function forceLogout(nombre){showToast('Sesión Cerrada',nombre+' — se cerrará al recargar');}
 function forcePassChange(nombre){showToast('Cambio Forzado',nombre+' — deberá cambiar contraseña al siguiente login');}
 function deactivateUser(id){if(!confirm('¿Desactivar?'))return;fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({activo:false})}).then(function(){showToast('Desactivado','');el('m-user').classList.remove('open');loadTeam();});}
+function uploadFile(file,bucket,path,cb){
+  var st=el('eu-avatar-status');if(st){st.textContent='Subiendo...';st.style.color='#D97706';}
+  fetch(SB+'/storage/v1/object/'+bucket+'/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type,'x-upsert':'true'},body:file}).then(function(r){return r.json();}).then(function(res){
+    if(res&&(res.Key||res.Id)){var url=SB+'/storage/v1/object/public/'+bucket+'/'+path;if(st){st.textContent='✓ Foto subida';st.style.color='#059669';}if(cb)cb(url);}
+    else{if(st){st.textContent='Error';st.style.color='#DC2626';}}
+  }).catch(function(){if(st){st.textContent='Error conexión';st.style.color='#DC2626';}});
+}
+function uploadAvatar(input,uid){
+  var file=input.files[0];if(!file)return;if(file.size>5*1024*1024){el('eu-avatar-status').textContent='Máx 5MB';return;}
+  var ext=file.name.split('.').pop().toLowerCase();uploadFile(file,'avatars',uid+'.'+ext,function(url){el('eu-avatar').value=url;});
+}
 loadTeam();
 </script>
