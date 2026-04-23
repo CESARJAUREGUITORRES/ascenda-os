@@ -738,11 +738,27 @@ function ahRenderChart(){
     svg+='<path d="'+llamPath+'" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpL+')"/>';
   }
 
-  // ── Citas: línea fina ──
-  var citaPts=data.map(function(d,i){return [xAt(i),yAt(d.ci)];});
+  // ── Citas: marcadores prominentes (escala independiente) ──
+  var maxCi=1;data.forEach(function(d){if(d.ci>maxCi)maxCi=d.ci;});
+  var citaScale=Math.max(maxCi*2, 4); // escala propia para citas
+  function yCi(v){return pT+cH-((Math.max(0,v)/citaScale)*cH);}
+  var citaPts=data.filter(function(d){return d.ci>=0&&d.m<=nowM+5;}).map(function(d,i,arr){
+    var idx=data.indexOf(d);return [xAt(idx),yCi(d.ci)];
+  });
+  // Área de citas
   if(citaPts.length>1){
-    svg+='<path d="'+buildPath(citaPts)+'" fill="none" stroke="#00E5A0" stroke-width="1" stroke-dasharray="4,3" opacity="0.7"/>';
+    var cpA=buildPath(citaPts);
+    svg+='<path d="'+cpA+' L'+citaPts[citaPts.length-1][0].toFixed(1)+','+aBot+' L'+citaPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(0,229,160,0.08)"/>';
+    svg+='<path d="'+cpA+'" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round"/>';
   }
+  // Puntos de citas con etiqueta
+  data.forEach(function(d,i){
+    if(d.ci>0&&d.m<=nowM+5){
+      var cx=xAt(i),cy=yCi(d.ci);
+      svg+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5" fill="#00E5A0" stroke="#fff" stroke-width="2"/>';
+      svg+='<text x="'+cx.toFixed(1)+'" y="'+(cy-8).toFixed(1)+'" fill="#059669" font-size="9" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.ci+'</text>';
+    }
+  });
 
   // ── Puntos + valores (botón ojo) ──
   data.forEach(function(d,i){
@@ -754,9 +770,6 @@ function ahRenderChart(){
       if(showPicos&&d.ll>=1){
         svg+='<text x="'+cx.toFixed(1)+'" y="'+(cy-6).toFixed(1)+'" fill="'+dc+'" font-size="8" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.ll+'</text>';
       }
-    }
-    if(d.ci>0){
-      svg+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(d.ci).toFixed(1)+'" r="2" fill="#00E5A0" stroke="#fff" stroke-width="1" opacity="0.8"/>';
     }
   });
 
