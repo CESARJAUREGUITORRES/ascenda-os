@@ -187,6 +187,54 @@ setTimeout(function() {
 }, 3000);
 
 var _2FA_DATA = null;
+var SEDES_GEO = [
+  {nombre:'SAN_ISIDRO', lat:-12.09352, lng:-77.02721, radio:500},
+  {nombre:'PUEBLO_LIBRE', lat:-12.07809, lng:-77.06838, radio:500}
+];
+function haversine(lat1,lon1,lat2,lon2){
+  var R=6371000;var dLat=(lat2-lat1)*Math.PI/180;var dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function checkGeoAccess(loginRes, callback){
+  // Buscar si el usuario tiene acceso limitado
+  fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_usuarios?select=acceso_geo,sedes_permitidas&nombre=eq.'+encodeURIComponent(loginRes.usuario),{
+    headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'}
+  }).then(function(r){return r.json();}).then(function(users){
+    var usr=users&&users[0];
+    if(!usr||usr.acceso_geo==='libre'){
+      // Acceso libre — permitir sin verificar ubicación, pero registrar
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var best={sede:'LIBRE',dist:0};
+          SEDES_GEO.forEach(function(s){var d=haversine(pos.coords.latitude,pos.coords.longitude,s.lat,s.lng);if(!best.dist||d<best.dist){best={sede:s.nombre,dist:d};}});
+          callback(true,{lat:pos.coords.latitude,lng:pos.coords.longitude,sede:best.sede,dist:best.dist});
+        },function(){callback(true,{lat:0,lng:0,sede:'GPS_DENIED',dist:0});},{timeout:5000});
+      } else {callback(true,{lat:0,lng:0,sede:'NO_GPS',dist:0});}
+      return;
+    }
+    // Acceso limitado — verificar ubicación obligatoria
+    var permitidas=usr.sedes_permitidas||[];
+    if(!navigator.geolocation){callback(false,{lat:0,lng:0,sede:'NO_GPS',dist:99999});return;}
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat=pos.coords.latitude,lng=pos.coords.longitude;
+      var best={sede:'FUERA_RANGO',dist:99999};
+      SEDES_GEO.forEach(function(s){
+        if(permitidas.indexOf(s.nombre)>=0){
+          var d=haversine(lat,lng,s.lat,s.lng);
+          if(d<best.dist){best={sede:s.nombre,dist:d};}
+        }
+      });
+      callback(best.dist<=500,{lat:lat,lng:lng,sede:best.sede,dist:best.dist});
+    },function(){
+      // GPS denegado — bloquear si acceso limitado
+      callback(false,{lat:0,lng:0,sede:'GPS_DENIED',dist:99999});
+    },{timeout:8000,enableHighAccuracy:true});
+  }).catch(function(){
+    // Error de red — permitir para no bloquear
+    callback(true,{lat:0,lng:0,sede:'ERROR',dist:0});
+  });
+}
 function doLogin() {
   var user  = document.getElementById('inp-user').value.trim();
   var pass  = document.getElementById('inp-pass').value.trim();
@@ -239,18 +287,29 @@ function doLoginAuth(user, pass) {
   .then(function(res) {
     setLoading(false);
     if (res && res.ok) {
-      if (res.require_2fa) {
-        _2FA_DATA = res;
-        // Enviar código por email — no bloqueante
-        fetch('https://ascenda-os-production.up.railway.app/api/send-2fa', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: res.email_real, code: res.code, nombre: res.usuario })
-        }).catch(function(e) { console.log('2fa email error:', e); });
-        show2FAForm(res.email_masked);
-      } else {
-        completeLogin(res);
-      }
+      // Verificar geolocalización antes de continuar
+      checkGeoAccess(res, function(geoOk, geoData) {
+        // Registrar acceso con ubicación
+        var logData = {usuario: res.usuario, rol: res.puesto || '', sede_detectada: geoData.sede || '', lat: geoData.lat, lng: geoData.lng, distancia_m: geoData.dist, permitido: geoOk, user_agent: navigator.userAgent, ip: ''};
+        fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_sesiones_acceso', {method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0','Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(logData)}).catch(function(){});
+        
+        if (!geoOk) {
+          errEl.textContent = '⚠️ Acceso denegado — Ubicación fuera del rango de la sede. Distancia: ' + Math.round(geoData.dist) + 'm';
+          return;
+        }
+        // Continuar con 2FA o login directo
+        if (res.require_2fa) {
+          _2FA_DATA = res;
+          fetch('https://ascenda-os-production.up.railway.app/api/send-2fa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: res.email_real, code: res.code, nombre: res.usuario })
+          }).catch(function(e) { console.log('2fa email error:', e); });
+          show2FAForm(res.email_masked);
+        } else {
+          completeLogin(res);
+        }
+      });
     } else {
       errEl.textContent = (res && res.error) ? res.error : 'Credenciales incorrectas.';
       document.getElementById('inp-pass').value = '';
