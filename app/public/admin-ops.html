@@ -42,18 +42,24 @@
   <!-- PRODUCTIVIDAD HOME -->
   <div id="ops-productividad">
     <div id="op-cards" class="g3"></div>
-    <div id="op-detail" style="display:none;margin-top:10px;"></div>
   </div>
-  <!-- HORARIOS -->
+  <!-- HORARIOS (usa el mismo panel de agenda en vista horarios) -->
   <div id="ops-horarios" style="display:none;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-      <span style="font-size:10px;color:#6B7BA8;">Semana del:</span>
-      <input type="date" class="mi" id="hor-fecha" style="width:160px;" onchange="loadHorarios()">
-      <button class="mbtn mbtn-p" onclick="openAddHor()" style="margin-left:auto;">+ Asignar Horario</button>
+    <div class="crd" style="padding:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div class="ct" style="margin:0;">📅 Horarios del Equipo</div>
+        <span style="font-size:9px;color:#6B7BA8;">Misma vista que Agenda → Horarios. Edita desde aquí o desde Agenda.</span>
+        <button class="mbtn mbtn-p" onclick="openAddHor()" style="margin-left:auto;">+ Asignar Horario</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+        <span style="font-size:10px;color:#6B7BA8;">Semana:</span>
+        <input type="date" class="mi" id="hor-fecha" style="width:150px;" onchange="loadHorarios()">
+        <button class="mbtn mbtn-c" onclick="horNav(-7)">◄</button>
+        <button class="mbtn mbtn-c" onclick="horNav(0)">Hoy</button>
+        <button class="mbtn mbtn-c" onclick="horNav(7)">►</button>
+      </div>
+      <div id="hor-calendar" style="overflow-x:auto;"></div>
     </div>
-    <div class="crd"><div class="ct">📅 Horarios Programados</div>
-    <table class="vt"><thead><tr><th>Fecha</th><th>Personal</th><th>Sede</th><th>Entrada</th><th>Salida</th><th>Turno</th><th></th></tr></thead>
-    <tbody id="hor-list"></tbody></table></div>
   </div>
   <!-- SEGURIDAD -->
   <div id="ops-seguridad" style="display:none;">
@@ -91,27 +97,93 @@ function showDetail(idx){
   var p=D[idx];if(!p)return;
   var col={'ENFERMERIA':'#059669','ASESOR':'#D97706'}[p.puesto]||'#0A4FBF';
   var diasOk=p.dias_trabajados-(p.tardanzas||0);var pctPunt=p.dias_trabajados>0?Math.round(diasOk/p.dias_trabajados*100):0;
-  var det=el('op-detail');det.style.display='block';
-  det.innerHTML='<div class="crd"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><div class="tc-av" style="background:'+col+';width:52px;height:52px;font-size:22px;">'+p.nombre[0]+'</div><div><div style="font-family:\'Exo 2\';font-weight:800;font-size:18px;">'+h(p.nombre)+'</div><div style="font-size:10px;color:#6B7BA8;">'+h(p.puesto)+' · '+h(p.sede)+' · '+h(p.codigo_asesor)+'</div></div><button class="mbtn mbtn-c" style="margin-left:auto;" onclick="el(\'op-detail\').style.display=\'none\'">✕ Cerrar</button></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;">'+
-    [{l:'Llamadas',v:fmt(p.llamadas),c:'#0A4FBF'},{l:'Llam/Día',v:p.llam_por_dia,c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conversión',v:p.conv_pct+'%',c:'#059669'},{l:'Ventas',v:p.ventas,c:'#D97706'},{l:'Facturado',v:'S/'+fmt(p.facturado),c:'#059669'},{l:'Días Trabajados',v:p.dias_trabajados,c:'#0A4FBF'},{l:'Días Programados',v:p.dias_programados,c:'#6B7BA8'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>0?'#DC2626':'#059669'},{l:'Faltas',v:p.faltas,c:p.faltas>0?'#DC2626':'#059669'}].map(function(s){
-      return '<div style="background:#F8FAFF;border-radius:8px;padding:8px;text-align:center;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;color:'+s.c+';">'+s.v+'</div><div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9AAAC8;">'+s.l+'</div></div>';
-    }).join('')+'</div>'+
-    '<div style="display:flex;gap:10px;"><div style="flex:1;background:#F8FAFF;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;">PUNTUALIDAD</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:24px;color:'+(pctPunt>=90?'#059669':pctPunt>=70?'#D97706':'#DC2626')+';">'+pctPunt+'%</div><div style="height:6px;background:#EEF0F8;border-radius:3px;margin-top:4px;"><div style="height:6px;border-radius:3px;background:'+(pctPunt>=90?'#059669':'#D97706')+';width:'+pctPunt+'%;"></div></div></div>'+
-    '<div style="flex:1;background:#F8FAFF;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;">HORARIO HOY</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:18px;color:#0A4FBF;">'+(p.hora_entrada_hoy||'—')+' - '+(p.hora_salida_hoy||'—')+'</div><div style="font-size:9px;color:#6B7BA8;margin-top:2px;">Llamadas hoy: <b style="color:#00C9A7;">'+p.llamadas_hoy+'</b></div></div></div></div>';
-  det.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-// HORARIOS
-function loadHorarios(){
-  var f=el('hor-fecha').value;if(!f)return;var hD=new Date(f+'T12:00:00');var h2=new Date(hD);h2.setDate(h2.getDate()+7);
-  q('aos_horarios_personal','select=*&fecha=gte.'+f+'&fecha=lte.'+h2.toISOString().slice(0,10)+'&order=fecha,personal',function(rows){
-    var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    el('hor-list').innerHTML=(rows&&rows.length)?rows.map(function(r){var d=new Date(r.fecha+'T12:00:00');return '<tr><td style="font-weight:700;">'+dias[d.getDay()]+' '+r.fecha+'</td><td style="font-weight:700;">'+r.personal+'</td><td style="font-size:9px;">'+r.sede+'</td><td style="color:#059669;font-weight:700;">'+r.hora_inicio+'</td><td style="color:#DC2626;font-weight:700;">'+r.hora_fin+'</td><td><span class="tag tag-b">'+r.tipo_turno+'</span></td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delHor(\''+r.id+'\')">✕</button></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;color:#9AAAC8;">Sin horarios</td></tr>';
+  // Create modal overlay
+  var overlay=document.createElement('div');overlay.id='modal-asesor';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.35);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+  var modal=document.createElement('div');
+  modal.style.cssText='background:#fff;border-radius:20px;width:min(750px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(7,29,74,.2);';
+  // Header
+  var html='<div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #EEF0F8;position:sticky;top:0;background:#fff;z-index:1;border-radius:20px 20px 0 0;"><div class="tc-av" style="background:'+col+';width:44px;height:44px;font-size:18px;">'+p.nombre[0]+'</div><div><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;">'+h(p.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(p.puesto)+' · '+h(p.sede)+'</div></div><button style="margin-left:auto;background:none;border:none;font-size:20px;color:#9AAAC8;cursor:pointer;" onclick="this.closest(\'#modal-asesor\').remove()">✕</button></div>';
+  // Stats grid
+  html+='<div style="padding:16px 20px;"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;">'+
+    [{l:'Llamadas',v:fmt(p.llamadas),c:'#0A4FBF'},{l:'Llam/Día',v:p.llam_por_dia,c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conversión',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Ventas',v:p.ventas,c:'#D97706'},{l:'Facturado',v:'S/'+fmt(p.facturado),c:'#059669'},{l:'Días Trabajados',v:p.dias_trabajados,c:'#0A4FBF'},{l:'Programados',v:p.dias_programados,c:'#6B7BA8'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>2?'#DC2626':p.tardanzas>0?'#D97706':'#059669'},{l:'Faltas',v:p.faltas,c:p.faltas>0?'#DC2626':'#059669'}].map(function(s){
+      return '<div style="background:#F8FAFF;border-radius:8px;padding:8px;text-align:center;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:15px;color:'+s.c+';">'+s.v+'</div><div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9AAAC8;">'+s.l+'</div></div>';
+    }).join('')+'</div>';
+  // Puntualidad + Horario hoy
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;"><div style="background:linear-gradient(135deg,rgba(10,79,191,.04),#fff);border:1px solid #EEF0F8;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;text-transform:uppercase;">Puntualidad del Mes</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:28px;color:'+(pctPunt>=90?'#059669':pctPunt>=70?'#D97706':'#DC2626')+';">'+pctPunt+'%</div><div style="height:6px;background:#EEF0F8;border-radius:3px;margin-top:4px;"><div style="height:6px;border-radius:3px;background:'+(pctPunt>=90?'#059669':'#D97706')+';width:'+Math.min(pctPunt,100)+'%;transition:width .5s;"></div></div></div><div style="background:linear-gradient(135deg,rgba(0,201,167,.04),#fff);border:1px solid #EEF0F8;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;text-transform:uppercase;">Horario Hoy</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:20px;color:#0A4FBF;">'+(p.hora_entrada_hoy||'—')+' → '+(p.hora_salida_hoy||'—')+'</div><div style="font-size:10px;color:#6B7BA8;margin-top:4px;">Llamadas hoy: <b style="color:#00C9A7;">'+p.llamadas_hoy+'</b></div></div></div>';
+  // Detalle diario - loading
+  html+='<div style="font-family:\'Exo 2\';font-weight:800;font-size:13px;margin-bottom:6px;">📋 Detalle Diario</div><div id="modal-diario" style="font-size:10px;color:#9AAAC8;">Cargando...</div></div>';
+  modal.innerHTML=html;overlay.appendChild(modal);document.body.appendChild(overlay);
+  // Load daily detail
+  rpc('aos_detalle_asesor',{p_nombre:p.nombre},function(res){
+    if(!res||!res.ok)return;var diario=res.diario||[];var horarios=res.horarios||[];
+    var detHtml='<table class="vt"><thead><tr><th>Fecha</th><th>Prog.</th><th>1ra Llam</th><th>Última</th><th>Min Activo</th><th>Llamadas</th><th>Citas</th><th>Conv%</th><th>Puntual</th></tr></thead><tbody>';
+    diario.forEach(function(d){
+      var puntual=!d.llego_tarde?'<span style="color:#059669;font-weight:700;">✓</span>':'<span style="color:#DC2626;font-weight:700;">✕ Tarde</span>';
+      if(!d.hora_programada)puntual='<span style="color:#9AAAC8;">—</span>';
+      detHtml+='<tr><td style="font-weight:700;">'+d.fecha+'</td><td style="font-size:9px;color:#6B7BA8;">'+(d.hora_programada||'—')+'</td><td style="color:#0A4FBF;font-weight:700;">'+(d.primera_llamada?d.primera_llamada.slice(0,5):'—')+'</td><td style="font-size:9px;">'+(d.ultima_llamada?d.ultima_llamada.slice(0,5):'—')+'</td><td style="font-size:9px;">'+(d.minutos_activo||0)+' min</td><td style="font-weight:700;color:#0A4FBF;">'+d.llamadas+'</td><td style="font-weight:700;color:#00C9A7;">'+d.citas+'</td><td style="color:'+(d.conv_pct>=5?'#059669':'#D97706')+';">'+d.conv_pct+'%</td><td>'+puntual+'</td></tr>';
+    });
+    // Días programados sin trabajar (faltas)
+    horarios.forEach(function(hr){
+      if(!hr.trabajo&&hr.fecha<=new Date().toISOString().slice(0,10)){
+        detHtml+='<tr style="background:#FEF2F2;"><td style="font-weight:700;color:#DC2626;">'+hr.fecha+'</td><td style="font-size:9px;">'+hr.hora_inicio+'</td><td colspan="6" style="color:#DC2626;font-weight:700;">FALTA — No registró actividad</td><td><span style="color:#DC2626;">✕</span></td></tr>';
+      }
+    });
+    detHtml+='</tbody></table>';
+    var md=document.getElementById('modal-diario');if(md)md.innerHTML=detHtml;
   });
 }
+
+// HORARIOS - Vista calendario semanal
+function horNav(offset){
+  var d=new Date(el('hor-fecha').value+'T12:00:00');
+  if(offset===0)d=new Date();else d.setDate(d.getDate()+offset);
+  // Ir al lunes de esa semana
+  var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);
+  el('hor-fecha').value=d.toISOString().slice(0,10);loadHorarios();
+}
+function loadHorarios(){
+  var f=el('hor-fecha').value;if(!f)return;
+  var startD=new Date(f+'T12:00:00');var day=startD.getDay();var diff=startD.getDate()-day+(day===0?-6:1);startD.setDate(diff);
+  var dates=[];for(var i=0;i<7;i++){var dd=new Date(startD);dd.setDate(dd.getDate()+i);dates.push(dd.toISOString().slice(0,10));}
+  var desde=dates[0],hasta=dates[6];
+  q('aos_horarios_personal','select=*&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&order=personal,fecha',function(rows){
+    var personal=[];(rows||[]).forEach(function(r){if(personal.indexOf(r.personal)<0)personal.push(r.personal);});
+    if(!personal.length)personal=['WILMER','RUVILA','MIREYA'];
+    var dias=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+    var hoy=new Date().toISOString().slice(0,10);
+    var html='<table style="width:100%;border-collapse:collapse;font-size:10px;"><thead><tr><th style="padding:8px;background:#F8FAFF;border:1px solid #EEF0F8;width:100px;"></th>';
+    dates.forEach(function(d,i){
+      var isHoy=d===hoy;
+      html+='<th style="padding:8px;background:'+(isHoy?'#0A4FBF':'#F8FAFF')+';color:'+(isHoy?'#fff':'#0D1B3E')+';border:1px solid #EEF0F8;text-align:center;font-size:9px;"><div style="font-weight:800;">'+dias[i]+'</div><div style="font-size:16px;font-weight:800;">'+d.slice(8)+'</div></th>';
+    });
+    html+='</tr></thead><tbody>';
+    personal.forEach(function(name){
+      html+='<tr><td style="padding:8px;font-weight:700;background:#F8FAFF;border:1px solid #EEF0F8;font-size:11px;">'+h(name)+'</td>';
+      dates.forEach(function(d){
+        var horario=(rows||[]).filter(function(r){return r.personal===name&&r.fecha===d;});
+        var isHoy=d===hoy;
+        if(horario.length){
+          var hr=horario[0];
+          html+='<td style="padding:6px;border:1px solid #EEF0F8;background:'+(isHoy?'rgba(10,79,191,.04)':'#fff')+';vertical-align:top;"><div style="background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border-radius:8px;padding:6px;font-size:9px;"><div style="font-weight:700;">'+hr.hora_inicio+' - '+hr.hora_fin+'</div><div style="font-size:7px;opacity:.8;">'+hr.sede+'</div></div></td>';
+        } else {
+          html+='<td style="padding:6px;border:1px solid #EEF0F8;background:'+(isHoy?'rgba(10,79,191,.04)':'#FAFBFE')+';text-align:center;color:#DDE4F5;font-size:16px;cursor:pointer;" onclick="quickAddHor(\''+name+'\',\''+d+'\')">+</td>';
+        }
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+    el('hor-calendar').innerHTML=html;
+  });
+}
+function quickAddHor(name,fecha){
+  var sede=prompt(name+' — Sede para '+fecha+':','SAN ISIDRO');if(!sede)return;
+  var inicio=prompt('Hora entrada:','09:30');if(!inicio)return;
+  var fin=prompt('Hora salida:','18:00');if(!fin)return;
+  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:fecha,personal:name,sede:sede.toUpperCase(),hora_inicio:inicio,hora_fin:fin,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'})}).then(function(){loadHorarios();});
+}
 function openAddHor(){var f=el('hor-fecha').value||new Date().toISOString().slice(0,10);var p=prompt('Personal:');if(!p)return;var s=prompt('Sede:');if(!s)return;var i=prompt('Entrada (09:30):');if(!i)return;var o=prompt('Salida (18:00):');if(!o)return;fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:f,personal:p.toUpperCase(),sede:s.toUpperCase(),hora_inicio:i,hora_fin:o,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'})}).then(function(){loadHorarios();});}
-function delHor(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadHorarios();});}
 
 // SEGURIDAD
 function loadSecurity(){
