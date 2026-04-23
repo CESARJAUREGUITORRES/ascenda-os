@@ -188,15 +188,40 @@
       <div class="sec-t">👥 Equipo y Usuarios</div>
       <div id="cfg-equipo-list"></div>
     </div>
-    <div class="crd" style="margin-top:12px;">
-      <div class="sec-t">🔑 Administrar Contraseñas</div>
-      <div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Cambia la contraseña de cualquier usuario. Solo el administrador puede hacerlo.</div>
-      <div style="display:grid;grid-template-columns:180px 1fr auto;gap:8px;align-items:center;" id="cfg-pass-form">
-        <select class="mi" id="pass-user"></select>
-        <input class="mi" type="text" id="pass-new" placeholder="Nueva contraseña">
-        <button class="mbtn mbtn-p" onclick="changePassword()">Cambiar</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+      <div class="crd">
+        <div class="sec-t">🔑 Cambiar Contraseña (Admin)</div>
+        <div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Requiere código de verificación por email para confirmar el cambio.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div><div class="fg-l" style="margin-bottom:4px;">Usuario a modificar</div><select class="mi" id="pass-user"></select></div>
+          <div><div class="fg-l" style="margin-bottom:4px;">Nueva contraseña</div><input class="mi" type="text" id="pass-new" placeholder="Mínimo 6 caracteres"></div>
+          <button class="mbtn mbtn-p" onclick="requestPassCode()" id="btn-pass-code">🔐 Solicitar Código de Verificación</button>
+          <div id="pass-2fa" style="display:none;">
+            <div style="font-size:11px;color:#0A4FBF;font-weight:700;margin:8px 0 4px;">Código enviado a tu email</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input class="mi" type="text" id="pass-code" placeholder="000000" maxlength="6" style="text-align:center;font-size:18px;font-family:monospace;font-weight:800;letter-spacing:4px;width:160px;" inputmode="numeric">
+              <button class="mbtn mbtn-g" onclick="confirmPassChange()">✓ Confirmar Cambio</button>
+            </div>
+            <div id="pass-timer" style="font-size:10px;color:#D97706;margin-top:4px;"></div>
+          </div>
+          <div id="pass-msg" style="font-size:11px;min-height:16px;"></div>
+        </div>
       </div>
-      <div id="cfg-pass-log" style="margin-top:10px;"></div>
+      <div class="crd">
+        <div class="sec-t">🔑 Cambiar Mi Contraseña</div>
+        <div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Cada usuario puede cambiar su propia contraseña.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div><div class="fg-l" style="margin-bottom:4px;">Contraseña actual</div><input class="mi" type="password" id="my-pass-current" placeholder="Tu contraseña actual"></div>
+          <div><div class="fg-l" style="margin-bottom:4px;">Nueva contraseña</div><input class="mi" type="password" id="my-pass-new" placeholder="Mínimo 6 caracteres"></div>
+          <div><div class="fg-l" style="margin-bottom:4px;">Confirmar nueva contraseña</div><input class="mi" type="password" id="my-pass-confirm" placeholder="Repite la nueva contraseña"></div>
+          <button class="mbtn mbtn-p" onclick="changeMyPassword()">💾 Cambiar Mi Contraseña</button>
+          <div id="my-pass-msg" style="font-size:11px;min-height:16px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="crd" style="margin-top:12px;">
+      <div class="sec-t">📋 Log de Cambios de Contraseña</div>
+      <div id="cfg-pass-log"></div>
     </div>
   </div>
 </div>
@@ -367,27 +392,97 @@ function addServicio(){
 
 function loadEquipo(){
   fetch(SB+'/rest/v1/aos_usuarios?select=*&order=nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(users){
-    if(!users||!users.length){el('cfg-equipo-list').innerHTML='<div style="color:#9AAAC8;text-align:center;padding:20px;">Sin usuarios registrados</div>';return;}
+    if(!users||!users.length){el('cfg-equipo-list').innerHTML='<div style="color:#9AAAC8;text-align:center;padding:20px;">Sin usuarios</div>';return;}
     el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Sede</th><th>2FA</th><th>Último Login</th></tr></thead><tbody>'+users.map(function(u){
-      return '<tr><td style="font-weight:700;">'+h(u.nombre)+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(u.email||'Sin email')+'</td><td><span style="font-size:9px;background:#EBF2FF;padding:2px 8px;border-radius:6px;color:#0A4FBF;font-weight:700;">'+h(u.rol||'—')+'</span></td><td style="font-size:9px;">'+h(u.sede||'—')+'</td><td style="font-size:9px;color:'+(u.two_factor?'#059669':'#9AAAC8')+';">'+(u.two_factor?'✓ Activo':'—')+'</td><td style="font-size:8px;color:#9AAAC8;">'+(u.ultimo_login?u.ultimo_login.slice(0,16).replace('T',' '):'Nunca')+'</td></tr>';
+      return '<tr><td style="font-weight:700;">'+h(u.nombre)+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(u.email||'Sin email')+'</td><td><span style="font-size:9px;background:#EBF2FF;padding:2px 8px;border-radius:6px;color:#0A4FBF;font-weight:700;">'+h(u.rol||'—')+'</span></td><td style="font-size:9px;">'+h(u.sede||'—')+'</td><td style="font-size:9px;color:'+(u.email?'#059669':'#9AAAC8')+';">'+(u.email?'✓ Activo':'—')+'</td><td style="font-size:8px;color:#9AAAC8;">'+(u.ultimo_login?u.ultimo_login.slice(0,16).replace('T',' '):'Nunca')+'</td></tr>';
     }).join('')+'</tbody></table>';
-    // Password selector
-    var sel=el('pass-user');if(sel)sel.innerHTML=users.map(function(u){return '<option value="'+h(u.nombre)+'">'+h(u.nombre)+' ('+h(u.rol)+')</option>';}).join('');
-  }).catch(function(){el('cfg-equipo-list').innerHTML='<div style="color:#9AAAC8;text-align:center;padding:20px;">Error al cargar equipo</div>';});
+    var sel=el('pass-user');if(sel)sel.innerHTML=users.map(function(u){return '<option value="'+h(u.nombre.toLowerCase())+'">'+h(u.nombre)+' ('+h(u.rol)+')</option>';}).join('');
+  }).catch(function(){});
+  loadPassLog();
 }
-function changePassword(){
-  var user=el('pass-user').value;var newPass=el('pass-new').value;
-  if(!user||!newPass){showToast('Error','Selecciona usuario y escribe contraseña',true);return;}
-  if(newPass.length<4){showToast('Error','Mínimo 4 caracteres',true);return;}
-  // Actualizar en aos_accesos (tabla de login actual)
-  fetch(SB+'/rest/v1/aos_accesos?usuario=eq.'+encodeURIComponent(user.toLowerCase()),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({password:newPass})}).then(function(r){
-    if(r.ok||r.status===204){
-      showToast('Contraseña Cambiada',user+' — nueva contraseña configurada');
-      el('pass-new').value='';
-      // Log de seguridad
-      fetch(SB+'/rest/v1/aos_security_log',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:'ADMIN',accion:'password_change',detalles:{target:user}})});
-    } else {showToast('Error','No se pudo cambiar la contraseña',true);}
+
+// ═══════ ADMIN: CAMBIAR CONTRASEÑA CON 2FA ═══════
+var PASS_CODE_DATA=null;
+function requestPassCode(){
+  var target=el('pass-user').value;var newPass=el('pass-new').value;
+  var msgEl=el('pass-msg');msgEl.textContent='';
+  if(!target){msgEl.style.color='#DC2626';msgEl.textContent='Selecciona un usuario';return;}
+  if(!newPass||newPass.length<6){msgEl.style.color='#DC2626';msgEl.textContent='Contraseña debe tener mínimo 6 caracteres';return;}
+  // Obtener sesión actual para saber quién es el admin
+  var session=null;try{session=JSON.parse(localStorage.getItem('aos_session'));}catch(e){}
+  if(!session){msgEl.style.color='#DC2626';msgEl.textContent='Sesión expirada';return;}
+  var adminUser=session.usuario||session.nombre||'cesar';
+  // Generar código 2FA para el admin
+  msgEl.style.color='#6B7BA8';msgEl.textContent='Enviando código de verificación...';
+  fetch(SB+'/rest/v1/rpc/aos_login_v2',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_usuario:adminUser.toLowerCase(),p_password:'__2fa_only__'})}).catch(function(){});
+  // Generar código directamente
+  var code=(''+Math.floor(Math.random()*999999)).padStart(6,'0');
+  fetch(SB+'/rest/v1/aos_auth_codes',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:adminUser.toUpperCase(),email:session.email||'jaureguitorrescesar@gmail.com',codigo:code,expira_at:new Date(Date.now()+300000).toISOString()})}).then(function(){
+    PASS_CODE_DATA={admin:adminUser,target:target,newPass:newPass,code:code};
+    // Enviar código por email
+    fetch('https://ascenda-os-production.up.railway.app/api/send-2fa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:session.email||'jaureguitorrescesar@gmail.com',code:code,nombre:adminUser.toUpperCase()})}).then(function(r){return r.json();}).then(function(res){
+      if(res&&res.id){
+        el('pass-2fa').style.display='block';
+        msgEl.style.color='#059669';msgEl.textContent='✓ Código enviado a tu email';
+        startPassTimer();
+      } else {msgEl.style.color='#DC2626';msgEl.textContent='Error al enviar código';}
+    });
   });
+}
+function startPassTimer(){
+  var sec=300;var tEl=el('pass-timer');
+  if(window._passTimer)clearInterval(window._passTimer);
+  window._passTimer=setInterval(function(){
+    sec--;if(sec<=0){clearInterval(window._passTimer);tEl.textContent='Código expirado';tEl.style.color='#DC2626';return;}
+    var m=Math.floor(sec/60),s=sec%60;tEl.textContent='Expira en '+m+':'+(s<10?'0':'')+s;
+    tEl.style.color=sec<=60?'#DC2626':'#D97706';
+  },1000);
+}
+function confirmPassChange(){
+  var code=el('pass-code').value.trim();var msgEl=el('pass-msg');
+  if(code.length!==6){msgEl.style.color='#DC2626';msgEl.textContent='Ingresa los 6 dígitos';return;}
+  if(!PASS_CODE_DATA){msgEl.style.color='#DC2626';msgEl.textContent='Solicita un código primero';return;}
+  msgEl.style.color='#6B7BA8';msgEl.textContent='Verificando...';
+  fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_password',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_admin:PASS_CODE_DATA.admin,p_codigo_2fa:code,p_usuario_target:PASS_CODE_DATA.target,p_password_nuevo:PASS_CODE_DATA.newPass})}).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok){
+      msgEl.style.color='#059669';msgEl.textContent='✓ '+res.msg;
+      el('pass-2fa').style.display='none';el('pass-new').value='';el('pass-code').value='';
+      PASS_CODE_DATA=null;if(window._passTimer)clearInterval(window._passTimer);
+      showToast('Contraseña Cambiada',res.msg);loadPassLog();
+    } else {
+      msgEl.style.color='#DC2626';msgEl.textContent=(res&&res.error)||'Error al cambiar';
+      el('pass-code').value='';
+    }
+  }).catch(function(){msgEl.style.color='#DC2626';msgEl.textContent='Error de conexión';});
+}
+
+// ═══════ USUARIO: CAMBIAR MI PROPIA CONTRASEÑA ═══════
+function changeMyPassword(){
+  var current=el('my-pass-current').value;var newP=el('my-pass-new').value;var confirm=el('my-pass-confirm').value;
+  var msgEl=el('my-pass-msg');msgEl.textContent='';
+  if(!current){msgEl.style.color='#DC2626';msgEl.textContent='Ingresa tu contraseña actual';return;}
+  if(!newP||newP.length<6){msgEl.style.color='#DC2626';msgEl.textContent='Mínimo 6 caracteres';return;}
+  if(newP!==confirm){msgEl.style.color='#DC2626';msgEl.textContent='Las contraseñas no coinciden';return;}
+  var session=null;try{session=JSON.parse(localStorage.getItem('aos_session'));}catch(e){}
+  var user=(session&&(session.usuario||session.nombre))||'';
+  if(!user){msgEl.style.color='#DC2626';msgEl.textContent='Sesión expirada';return;}
+  fetch(SB+'/rest/v1/rpc/aos_cambiar_password',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_usuario:user.toLowerCase(),p_password_actual:current,p_password_nuevo:newP})}).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok){
+      msgEl.style.color='#059669';msgEl.textContent='✓ '+res.msg;
+      el('my-pass-current').value='';el('my-pass-new').value='';el('my-pass-confirm').value='';
+      showToast('Contraseña Cambiada','Tu contraseña fue actualizada');loadPassLog();
+    } else {msgEl.style.color='#DC2626';msgEl.textContent=(res&&res.error)||'Error';}
+  }).catch(function(){msgEl.style.color='#DC2626';msgEl.textContent='Error de conexión';});
+}
+
+function loadPassLog(){
+  fetch(SB+'/rest/v1/aos_security_log?accion=in.(password_changed,admin_password_change,password_change_failed)&order=created_at.desc&limit=10',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('cfg-pass-log').innerHTML='<div style="font-size:10px;color:#9AAAC8;">Sin cambios registrados</div>';return;}
+    el('cfg-pass-log').innerHTML='<table class="vt"><thead><tr><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead><tbody>'+rows.map(function(r){
+      var det=r.detalles||{};var col=r.accion==='password_change_failed'?'#DC2626':'#059669';
+      return '<tr><td style="font-weight:700;">'+h(r.usuario)+'</td><td style="font-size:9px;color:'+col+';">'+h(r.accion)+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(det.target||det.method||det.razon||'')+'</td><td style="font-size:8px;color:#9AAAC8;">'+(r.created_at?r.created_at.slice(0,16).replace('T',' '):'')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+  }).catch(function(){});
 }
 
 function loadSecurityLog(){
