@@ -113,12 +113,11 @@ function editUser(idx){
   html+='<div class="fg"><div class="fg-l">Dirección</div><input class="mi" id="eu-dir" value="'+h(u.direccion||'')+'"></div>';
   html+='<div class="sec-t">💼 Datos Laborales</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
-  html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo"><option>DIRECTOR GENERAL</option><option>JEFE DE ÁREA</option><option>COORDINADOR</option><option>DIRECTORA MÉDICA</option><option>STAFF MÉDICO</option><option>STAFF ENFERMERÍA</option><option>ASESORA COMERCIAL</option><option>ASESOR</option><option>COMMUNITY MANAGER</option><option>TRAFFICKER</option><option>RECEPCIONISTA</option><option>CONTADOR</option></select></div>';
-  html+='<div class="fg"><div class="fg-l">Área</div><select class="mi" id="eu-area"><option value="administración">Administración</option><option value="enfermería">Enfermería</option><option value="médica">Médica</option><option value="ventas">Ventas</option><option value="marketing">Marketing</option><option value="recepción">Recepción</option><option value="contabilidad">Contabilidad</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Área</div><select class="mi" id="eu-area" onchange="updateCargos()"><option value="administración">Administración</option><option value="enfermería">Enfermería</option><option value="médica">Médica</option><option value="ventas">Ventas</option><option value="marketing">Marketing</option><option value="recepción">Recepción</option><option value="contabilidad">Contabilidad</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo"></select></div>';
   html+='<div class="fg"><div class="fg-l">Sede</div><input class="mi" id="eu-sede" value="'+h(u.sede||'')+'"></div>';
   html+='<div class="fg"><div class="fg-l">Ingreso</div><input class="mi" type="date" id="eu-fing" value="'+h(u.fecha_ingreso||'')+'"></div>';
   html+='<div class="fg"><div class="fg-l">Contrato</div><select class="mi" id="eu-ctr"><option value="prueba">Prueba</option><option value="contrato">Contrato</option><option value="indefinido">Indefinido</option><option value="honorarios">Honorarios</option></select></div>';
-  html+='<div class="fg"><div class="fg-l">Rol sistema</div><select class="mi" id="eu-niv"><option value="1">Super Admin</option><option value="2">Administrador</option><option value="3">Asesor</option><option value="4">Operativo</option><option value="5">Externo (solo lectura)</option></select></div>';
   html+='<div class="fg"><div class="fg-l">Sueldo S/</div><input class="mi" type="number" id="eu-sue" value="'+(u.sueldo||0)+'"></div>';
   html+='<div class="fg"><div class="fg-l">Bono</div><input class="mi" type="number" id="eu-bon" value="'+(u.bono_metas||0)+'"></div>';
   html+='</div>';
@@ -131,6 +130,11 @@ function editUser(idx){
   html+='<div><div id="eu-pb2" style="width:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:3px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:64px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div>';
   html+='<div style="text-align:center;margin-top:6px;font-family:Exo 2;font-weight:800;font-size:14px;">'+h(u.nombre)+'</div></div>';
   html+='<div>';
+  html+='<div class="sec-t">👑 Rol en el Sistema</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
+  html+='<div class="fg"><div class="fg-l">Rol</div><select class="mi" id="eu-niv"><option value="1">Super Admin</option><option value="2">Administrador</option><option value="3">Asesor</option><option value="4">Operativo</option><option value="5">Externo (lectura)</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Sedes</div><input class="mi" id="eu-sede2" value="'+h(u.sede||'')+'" placeholder="SAN ISIDRO, PUEBLO LIBRE"></div>';
+  html+='</div>';
   html+='<div class="sec-t" style="color:#7C3AED;">🔐 Paneles de Administración</div>';
   html+='<div class="pm">';P.filter(function(p){return p.categoria==='admin';}).forEach(function(p){var on=ps.indexOf(p.id)>=0;html+='<div class="pi'+(on?' on':'')+'" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k">'+(on?'✓':'')+'</div>'+p.icono+' '+h(p.nombre)+'</div>';});
   html+='</div>';
@@ -144,17 +148,44 @@ function editUser(idx){
   html+='<button class="mbtn mbtn-c" style="font-size:8px;">🚪 Forzar cierre sesión</button>';
   html+='</div></div></div></div>';
   // TAB HORARIOS
-  html+='<div id="tab-horarios" style="display:none;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-  html+='<div style="background:#F8FAFF;border-radius:12px;padding:12px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📅 Próximos Turnos</div><div id="eu-hor">Cargando...</div></div>';
-  html+='<div style="background:#F8FAFF;border-radius:12px;padding:12px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📋 Asistencia Reciente</div><div id="eu-asis">Cargando...</div></div>';
+  html+='<div id="tab-horarios" style="display:none;">';
+  html+='<div style="display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:10px;">';
+  // Photo + info
+  html+='<div style="text-align:center;"><div style="width:160px;height:160px;border-radius:14px;overflow:hidden;border:2px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;margin:0 auto;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:48px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div><div style="font-family:Exo 2;font-weight:800;font-size:14px;margin-top:6px;">'+h(u.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+'</div></div>';
+  // Calendar 30 days
+  html+='<div><div class="sec-t" style="margin-top:0;">📅 Calendario del Mes</div><div id="eu-cal30" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:8px;text-align:center;">Cargando...</div>';
+  html+='<div style="margin-top:6px;display:flex;gap:8px;font-size:8px;color:#6B7BA8;"><span>🟢 Puntual</span><span>🔴 Tarde</span><span>⬜ Sin horario</span><span>🔵 Programado</span></div></div>';
+  html+='</div>';
+  // Programar horarios
+  html+='<div style="background:#EBF2FF;border-radius:10px;padding:10px;margin-bottom:10px;">';
+  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-family:Exo 2;font-weight:800;font-size:11px;">⚙ Programar Horarios</span></div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:9px;">';
+  html+='<div><div class="fg-l">Desde</div><input class="mi" type="date" id="ph-desde" style="font-size:9px;padding:4px 6px;"></div>';
+  html+='<div><div class="fg-l">Hasta</div><input class="mi" type="date" id="ph-hasta" style="font-size:9px;padding:4px 6px;"></div>';
+  html+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede" style="font-size:9px;padding:4px;"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+  html+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini" value="09:30" style="font-size:9px;padding:4px 6px;"></div>';
+  html+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin" value="18:00" style="font-size:9px;padding:4px 6px;"></div>';
+  html+='</div>';
+  html+='<div style="display:flex;gap:4px;margin-top:4px;align-items:center;"><span style="font-size:8px;color:#6B7BA8;">Días:</span>';
+  ['Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(function(d,i){
+    html+='<label style="font-size:8px;display:flex;align-items:center;gap:2px;"><input type="checkbox" class="ph-dia" value="'+(i+1)+'"'+(i<5?' checked':'')+'> '+d+'</label>';
+  });
+  html+='<button class="mbtn mbtn-p" style="margin-left:auto;font-size:8px;padding:4px 10px;" onclick="progHorarios(\''+h(u.nombre)+'\')">Programar</button></div>';
+  html+='</div>';
+  // Tables
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📅 Próximos Turnos</div><div id="eu-hor">Cargando...</div></div>';
+  html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📋 Asistencia <span style="font-size:7px;color:#6B7BA8;">(click fila para editar)</span></div><div id="eu-asis">Cargando...</div></div>';
   html+='</div></div>';
   // Footer
   html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn mbtn-r" style="margin-left:auto;">Desactivar</button>':'')+'</div>';
   el('mu-body').innerHTML=html;
-  el('eu-cargo').value=u.cargo||'ASESOR';el('eu-niv').value=u.nivel_jerarquia||4;el('eu-ctr').value=u.tipo_contrato||'prueba';
+  el('eu-area').value=u.area||'enfermería';updateCargos();el('eu-cargo').value=u.cargo||'ASESOR';
+  el('eu-ctr').value=u.tipo_contrato||'prueba';
   el('m-user').classList.add('open');
   // Load data
-  loadEst(u.id);
+  loadEst(u.id);loadCal30(u.nombre);
+  setTimeout(function(){var nv=el('eu-niv');if(nv)nv.value=u.nivel_jerarquia||4;},100);
   rpc('aos_productividad_equipo',{},function(r){if(!r||!r.ok)return;var p=(r.equipo||[]).filter(function(e){return e.nombre===u.nombre;})[0];if(!p){el('eu-met').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:9px;color:#9AAAC8;">Sin datos de productividad</div>';return;}var pp=p.dias_trabajados>0?Math.round((p.dias_trabajados-(p.tardanzas||0))/p.dias_trabajados*100):0;el('eu-met').innerHTML=[{l:'Llamadas',v:Number(p.llamadas||0).toLocaleString(),c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conv%',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Facturado',v:'S/'+Number(p.facturado||0).toLocaleString(),c:'#059669'},{l:'Puntualidad',v:pp+'%',c:pp>=80?'#059669':'#DC2626'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>2?'#DC2626':'#0A4FBF'}].map(function(s){return '<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:15px;color:'+s.c+';">'+s.v+'</div><div style="font-size:6px;font-weight:700;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div></div>';}).join('');});
   q('aos_horarios_personal','select=fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(u.nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=7',function(r){var ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];el('eu-hor').innerHTML=(r&&r.length)?r.map(function(h){var d=new Date(h.fecha+'T12:00:00');return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #EEF0F8;font-size:9px;"><b>'+ds[d.getDay()]+' '+h.fecha.slice(5)+'</b><span style="color:#0A4FBF;">'+h.hora_inicio+' - '+h.hora_fin+'</span><span style="font-size:7px;color:#6B7BA8;">'+h.sede+'</span></div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin turnos programados</div>';});
   rpc('aos_detalle_asesor',{p_nombre:u.nombre},function(r){if(!r||!r.ok)return;var d=(r.diario||[]).slice(0,7);el('eu-asis').innerHTML=d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #EEF0F8;font-size:9px;"><span style="font-weight:700;">'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+' llam</span><span style="color:#00C9A7;">'+x.citas+' cit</span>'+(x.llego_tarde?'<span style="color:#DC2626;font-weight:700;">✕</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin datos</div>';});
@@ -168,7 +199,51 @@ function saveU(id){
 }
 function loadEst(uid){q('aos_estudios','select=*&usuario_id=eq.'+uid+'&order=created_at.desc',function(r){var c=el('eu-est');if(!c)return;c.innerHTML=(r&&r.length)?r.map(function(e){return '<div style="padding:3px 0;border-bottom:1px solid #EEF0F8;"><b>'+h(e.titulo)+'</b> <span style="color:#6B7BA8;">'+h(e.grado)+' · '+h(e.institucion)+'</span></div>';}).join(''):'Sin estudios';});}
 function addEst(uid){var t=prompt('Título/certificado:');if(!t)return;var g=prompt('Grado:','Certificado');var i=prompt('Institución:');fetch(SB+'/rest/v1/aos_estudios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario_id:uid,titulo:t,grado:g||'',institucion:i||''})}).then(function(){loadEst(uid);showToast('Estudio agregado');});}
-function upAv(inp,uid){var f=inp.files[0];if(!f)return;if(f.size>5*1024*1024){el('eu-as').textContent='❌ Máx 5MB';return;}el('eu-as').textContent='⏳ Subiendo...';el('eu-as').style.color='#D97706';var ext=f.name.split('.').pop();var reader=new FileReader();reader.onload=function(e){el('eu-pb').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';};reader.readAsDataURL(f);fetch(SB+'/storage/v1/object/avatars/'+uid+'.'+ext,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type,'x-upsert':'true'},body:f}).then(function(r){return r.json();}).then(function(r){if(r&&(r.Key||r.Id)){var url=SB+'/storage/v1/object/public/avatars/'+uid+'.'+ext;el('eu-avatar').value=url;el('eu-as').textContent='✅ Foto subida';el('eu-as').style.color='#059669';showToast('Foto actualizada');}else{el('eu-as').textContent='❌ Error';el('eu-as').style.color='#DC2626';}}).catch(function(){el('eu-as').textContent='❌ Error conexión';});}
+var CARGOS_POR_AREA={'administración':['DIRECTOR GENERAL','GERENTE','JEFE DE ÁREA','COORDINADOR','ASISTENTE'],'enfermería':['JEFE DE ENFERMERÍA','STAFF ENFERMERÍA','TÉCNICO ENFERMERÍA'],'médica':['DIRECTORA MÉDICA','STAFF MÉDICO','MÉDICO GENERAL'],'ventas':['JEFE COMERCIAL','ASESORA COMERCIAL','ASESOR'],'marketing':['JEFE DE MARKETING','COMMUNITY MANAGER','TRAFFICKER','DISEÑADOR'],'recepción':['JEFA DE RECEPCIÓN','RECEPCIONISTA'],'contabilidad':['JEFE DE CONTABILIDAD','CONTADOR','ASISTENTE CONTABLE']};
+function updateCargos(){var area=el('eu-area').value;var sel=el('eu-cargo');var cargos=CARGOS_POR_AREA[area]||['ASESOR'];sel.innerHTML=cargos.map(function(c){return '<option>'+c+'</option>';}).join('');}
+function loadCal30(nombre){
+  var hoy=new Date();var y=hoy.getFullYear(),m=hoy.getMonth();
+  var primerDia=new Date(y,m,1).getDay();var diasMes=new Date(y,m+1,0).getDate();
+  // Get horarios + asistencia del mes
+  var desde=y+'-'+String(m+1).padStart(2,'0')+'-01';var hasta=y+'-'+String(m+1).padStart(2,'0')+'-'+diasMes;
+  Promise.all([
+    fetch(SB+'/rest/v1/aos_horarios_personal?select=fecha&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+desde+'&fecha=lte.'+hasta,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
+    fetch(SB+'/rest/v1/rpc/aos_detalle_asesor',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_nombre:nombre,p_desde:desde,p_hasta:hasta})}).then(function(r){return r.json();})
+  ]).then(function(res){
+    var horDias={};(res[0]||[]).forEach(function(h){horDias[h.fecha]=true;});
+    var asisDias={};((res[1]&&res[1].diario)||[]).forEach(function(d){asisDias[d.fecha]={tarde:d.llego_tarde,llam:d.llamadas};});
+    var cal=el('eu-cal30');if(!cal)return;
+    var html='<div style="font-weight:700;color:#9AAAC8;">L</div><div style="font-weight:700;color:#9AAAC8;">M</div><div style="font-weight:700;color:#9AAAC8;">M</div><div style="font-weight:700;color:#9AAAC8;">J</div><div style="font-weight:700;color:#9AAAC8;">V</div><div style="font-weight:700;color:#9AAAC8;">S</div><div style="font-weight:700;color:#9AAAC8;">D</div>';
+    var ajuste=(primerDia===0?6:primerDia-1);
+    for(var i=0;i<ajuste;i++)html+='<div></div>';
+    for(var d=1;d<=diasMes;d++){
+      var fStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var esHoy=d===hoy.getDate()&&m===hoy.getMonth();
+      var color='#F0F4FC';var dot='';
+      if(asisDias[fStr]){color=asisDias[fStr].tarde?'#FEF2F2':'#F0FDF4';dot=asisDias[fStr].tarde?'🔴':'🟢';}
+      else if(horDias[fStr]&&fStr>hoy.toISOString().slice(0,10)){color='#EBF2FF';dot='🔵';}
+      html+='<div style="padding:3px;border-radius:4px;background:'+color+';'+(esHoy?'border:2px solid #0A4FBF;font-weight:800;':'')+'cursor:pointer;" title="'+fStr+'">'+d+(dot?'<div style="font-size:5px;line-height:1;">'+dot+'</div>':'')+'</div>';
+    }
+    cal.innerHTML=html;
+  });
+}
+function progHorarios(nombre){
+  var desde=el('ph-desde').value,hasta=el('ph-hasta').value;
+  if(!desde||!hasta){showToast('Selecciona fechas');return;}
+  var sede=el('ph-sede').value,ini=el('ph-ini').value,fin=el('ph-fin').value;
+  var diasSel=[];document.querySelectorAll('.ph-dia:checked').forEach(function(c){diasSel.push(Number(c.value));});
+  if(!diasSel.length){showToast('Selecciona días');return;}
+  var d=new Date(desde+'T12:00:00');var end=new Date(hasta+'T12:00:00');var inserts=[];
+  while(d<=end){
+    var dow=d.getDay();var isoDay=dow===0?7:dow;
+    if(diasSel.indexOf(isoDay)>=0){
+      inserts.push({fecha:d.toISOString().slice(0,10),personal:nombre,sede:sede,hora_inicio:ini,hora_fin:fin,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'});
+    }
+    d.setDate(d.getDate()+1);
+  }
+  if(!inserts.length){showToast('No hay días que programar');return;}
+  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(inserts)}).then(function(){showToast(inserts.length+' turnos programados para '+nombre);loadCal30(nombre);});
+}function upAv(inp,uid){var f=inp.files[0];if(!f)return;if(f.size>5*1024*1024){el('eu-as').textContent='❌ Máx 5MB';return;}el('eu-as').textContent='⏳ Subiendo...';el('eu-as').style.color='#D97706';var ext=f.name.split('.').pop();var reader=new FileReader();reader.onload=function(e){el('eu-pb').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';};reader.readAsDataURL(f);fetch(SB+'/storage/v1/object/avatars/'+uid+'.'+ext,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type,'x-upsert':'true'},body:f}).then(function(r){return r.json();}).then(function(r){if(r&&(r.Key||r.Id)){var url=SB+'/storage/v1/object/public/avatars/'+uid+'.'+ext;el('eu-avatar').value=url;el('eu-as').textContent='✅ Foto subida';el('eu-as').style.color='#059669';showToast('Foto actualizada');}else{el('eu-as').textContent='❌ Error';el('eu-as').style.color='#DC2626';}}).catch(function(){el('eu-as').textContent='❌ Error conexión';});}
 function sendInv(id,email,nombre){fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'🔑 Activa tu cuenta AscendaOS',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;text-align:center;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;color:#fff;font-size:20px;font-weight:800;">Bienvenido al equipo</div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>, tu cuenta está lista.</p><a href="https://ascenda-os-production.up.railway.app" style="display:inline-block;background:#0A4FBF;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;">Activar cuenta →</a></div></div>'})}).then(function(){showToast('Invitación enviada a '+email);});}
 function openNewUser(){el('mu-title').textContent='+ Nuevo Usuario';var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">';html+='<div class="fg"><div class="fg-l">Nombres</div><input class="mi" id="eu-nombre"></div>';html+='<div class="fg"><div class="fg-l">Apellidos</div><input class="mi" id="eu-apellidos"></div>';html+='<div class="fg"><div class="fg-l">Email</div><input class="mi" id="eu-email" type="email"></div>';html+='<div class="fg"><div class="fg-l">Usuario</div><input class="mi" id="eu-user" placeholder="nombre.apellido"></div>';html+='<div class="fg"><div class="fg-l">Contraseña</div><input class="mi" id="eu-pass" placeholder="min 6 chars"></div>';html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo"><option>STAFF ENFERMERÍA</option><option>ASESOR</option><option>STAFF MÉDICO</option><option>RECEPCIONISTA</option><option>COMMUNITY MANAGER</option><option>JEFE DE ÁREA</option><option>DIRECTOR GENERAL</option></select></div>';html+='<div class="fg"><div class="fg-l">Sede</div><input class="mi" id="eu-sede"></div>';html+='</div>';html+='<div class="sec-t">🔐 Paneles</div><div class="pm">';P.forEach(function(p){html+='<div class="pi" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k"></div>'+p.icono+' '+h(p.nombre)+'</div>';});html+='</div>';html+='<div style="display:flex;gap:6px;margin-top:10px;"><button class="mbtn mbtn-g" onclick="createU()">✓ Crear</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cancelar</button></div>';el('mu-body').innerHTML=html;el('m-user').classList.add('open');}
 function createU(){var n=(el('eu-nombre').value||'').toUpperCase(),a=(el('eu-apellidos')?el('eu-apellidos').value:'').toUpperCase(),em=el('eu-email').value,us=el('eu-user')?el('eu-user').value.toLowerCase():'',pw=el('eu-pass')?el('eu-pass').value:'',cg=el('eu-cargo').value,sd=el('eu-sede')?el('eu-sede').value:'';if(!n||!us||!pw||pw.length<6){showToast('Completa campos');return;}var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});var nc='ZIV-'+String(100+U.length+1).padStart(3,'0');fetch(SB+'/rest/v1/aos_rrhh',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,usuario:us,password_hash:pw,puesto:cg,sede:sd,estado:'ACTIVO',codigo_asesor:nc})}).then(function(){return fetch(SB+'/rest/v1/aos_usuarios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,apellidos:a,email:em,cargo:cg,sede:sd,nivel_jerarquia:4,paneles_acceso:ps,codigo_asesor:nc,cuenta_activada:false})});}).then(function(){showToast(n+' creado');el('m-user').classList.remove('open');loadTeam();});}
