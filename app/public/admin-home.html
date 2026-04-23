@@ -206,16 +206,21 @@
           <div style="display:flex;gap:6px;align-items:center">
             <span class="ah-chart-chip act" id="ch-eq" onclick="ahChartFilter(null)">Equipo</span>
             <span id="ch-fil" style="font-size:9px;color:#6B7BA8;font-style:italic;display:none"></span>
-            <span class="ah-cu" id="ah-chu"></span>
-            <button id="btn-eye" onclick="ahTogglePicos()" title="Mostrar/ocultar picos" style="background:none;border:0.5px solid #DDE4F5;border-radius:6px;padding:2px 6px;cursor:pointer;font-size:10px;color:#6B7BA8;margin-left:4px">👁</button>
-            <span id="ah-alrt" style="display:none;font-size:9px;font-weight:700;color:#DC2626;background:#FECACA;padding:2px 7px;border-radius:10px;margin-left:4px">⚠ Bajada</span>
+            <div style="margin-left:auto;display:flex;gap:4px;align-items:center;">
+              <span class="ah-chart-chip act" id="ch-ll" onclick="ahChartMode('llamadas')" style="font-size:9px;background:#071D4A;color:#fff;border-color:#071D4A;">Llamadas</span>
+              <span class="ah-chart-chip" id="ch-ci" onclick="ahChartMode('citas')" style="font-size:9px;">Citas</span>
+              <button id="btn-eye" onclick="ahTogglePicos()" title="Mostrar/ocultar valores" style="background:none;border:0.5px solid #DDE4F5;border-radius:6px;padding:2px 6px;cursor:pointer;font-size:10px;color:#6B7BA8">👁</button>
+              <span id="ah-alrt" style="display:none;font-size:9px;font-weight:700;color:#DC2626;background:#FECACA;padding:2px 7px;border-radius:10px">⚠ Bajada</span>
+            </div>
           </div>
         </div>
         <div class="ah-chart-wrap" id="ah-chart"></div>
-        <div class="ah-chart-legend">
-          <div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#00C9A7"></div>Sobre umbral (≥5)</div>
-          <div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#EF4444"></div>Bajo umbral</div>
-          <div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#00E5A0;opacity:.7"></div>Citas</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px;">
+          <div class="ah-chart-legend" id="ah-chart-legend">
+            <div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#00C9A7"></div>Sobre umbral (≥5)</div>
+            <div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#EF4444"></div>Bajo umbral</div>
+          </div>
+          <span class="ah-cu" id="ah-chu"></span>
         </div>
       </div>
     </div>
@@ -240,7 +245,7 @@
 // ═══════════════════════════════════════════════════════════════
 var _S='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null};
+var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas'};
 
 function _r(fn,p,cb){function go(a){fetch(_S+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){if(!r.ok&&a<2&&(r.status>=500||r.status===429)){setTimeout(function(){go(a+1);},800);return null;}return r.json();}).then(function(d){if(d===null)return;cb(Array.isArray(d)?d[0]:d);}).catch(function(e){if(a<2)setTimeout(function(){go(a+1);},800);else console.error(fn,e);});}go(1);}
 function _q(t,f,cb){fetch(_S+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_K,'Authorization':'Bearer '+_K}}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});}
@@ -533,6 +538,16 @@ function ahChartFilter(asesor){
   ahRenderChart();
 }
 
+function ahChartMode(mode){
+  _D.chartMode=mode;
+  var ll=document.getElementById('ch-ll'),ci=document.getElementById('ch-ci');
+  if(ll){ll.classList.toggle('act',mode==='llamadas');ll.style.background=mode==='llamadas'?'#071D4A':'';ll.style.color=mode==='llamadas'?'#fff':'';ll.style.borderColor=mode==='llamadas'?'#071D4A':'';}
+  if(ci){ci.classList.toggle('act',mode==='citas');ci.style.background=mode==='citas'?'#059669':'';ci.style.color=mode==='citas'?'#fff':'';ci.style.borderColor=mode==='citas'?'#059669':'';}
+  var leg=document.getElementById('ah-chart-legend');
+  if(leg){leg.innerHTML=mode==='citas'?'<div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#059669"></div>Citas agendadas</div>':'<div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#00C9A7"></div>Sobre umbral (≥5)</div><div class="ah-chart-leg"><div class="ah-chart-dot" style="background:#EF4444"></div>Bajo umbral</div>';}
+  ahRenderChart();
+}
+
 function ahTogglePicos(){
   _D.showPicos=!_D.showPicos;
   var btn=document.getElementById('btn-eye');
@@ -628,6 +643,34 @@ function ahRenderChart(){
   // ── SVG ──
   var W=780,H=210,pL=28,pR=10,pT=22,pB=28;
   var cW=W-pL-pR,cH=H-pT-pB;
+  var chartMode=_D.chartMode||'llamadas';
+
+  // ════════ MODO CITAS — Gráfico de barras limpio ════════
+  if(chartMode==='citas'){
+    var maxCi=1;data.forEach(function(d){if(d.ci>maxCi)maxCi=d.ci;});maxCi=Math.max(maxCi,2);
+    var sX=cW/(n>1?n-1:1);function xAt(i){return pL+i*sX;}function yCi(v){return pT+cH-((Math.max(0,v)/maxCi)*cH);}
+    var aBot=pT+cH;var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#fff" xmlns="http://www.w3.org/2000/svg">';
+    // Grid
+    for(var g=0;g<=maxCi;g++){var gy=yCi(g);svg+='<line x1="'+pL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+gy.toFixed(1)+'" stroke="#EEF0F8" stroke-width="0.5"/>';svg+='<text x="'+(pL-3)+'" y="'+(gy+3).toFixed(1)+'" fill="#B0BAD4" font-size="7" text-anchor="end" font-family="DM Sans">'+g+'</text>';}
+    // X labels
+    data.forEach(function(d,i){var mi=d.m%60;if(mi===0){svg+='<text x="'+xAt(i).toFixed(1)+'" y="'+(H-8)+'" fill="#9AAAC8" font-size="7" text-anchor="middle" font-family="DM Sans">'+d.label+'</text>';svg+='<line x1="'+xAt(i).toFixed(1)+'" y1="'+pT+'" x2="'+xAt(i).toFixed(1)+'" y2="'+(aBot+2)+'" stroke="#EEF0F8" stroke-width="0.8"/>';}});
+    // Bars
+    var bW=Math.min(sX*0.6,12);
+    data.forEach(function(d,i){
+      if(d.ci>0&&d.m<=nowM+5){
+        var cx=xAt(i),cy=yCi(d.ci),bH=aBot-cy;
+        svg+='<rect x="'+(cx-bW/2).toFixed(1)+'" y="'+cy.toFixed(1)+'" width="'+bW.toFixed(1)+'" height="'+bH.toFixed(1)+'" rx="3" fill="url(#citaGrad)" opacity="0.85"/>';
+        svg+='<text x="'+cx.toFixed(1)+'" y="'+(cy-4).toFixed(1)+'" fill="#059669" font-size="9" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.ci+'</text>';
+      }
+    });
+    // Total citas counter
+    var totalCi=0;data.forEach(function(d){if(d.ci>0&&d.m<=nowM+5)totalCi+=d.ci;});
+    svg+='<defs><linearGradient id="citaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#059669"/><stop offset="100%" stop-color="#00E5A0"/></linearGradient></defs>';
+    svg+='<text x="'+(W-pR-4)+'" y="'+(pT+14)+'" fill="#059669" font-size="11" font-weight="800" text-anchor="end" font-family="Exo 2">'+totalCi+' citas hoy</text>';
+    svg+='</svg>';el.innerHTML=svg;return;
+  }
+
+  // ════════ MODO LLAMADAS (original) ════════
 
   // maxV = max entre hoy y benchmark para escalar bien
   var maxV=BASE+2;
@@ -737,28 +780,6 @@ function ahRenderChart(){
     svg+='<path d="'+llamPath+' L'+lpr[lpr.length-1][0].toFixed(1)+','+aBot+' L'+lpr[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(220,38,38,0.10)" clip-path="url(#'+cpL+')"/>';
     svg+='<path d="'+llamPath+'" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpL+')"/>';
   }
-
-  // ── Citas: marcadores prominentes (escala independiente) ──
-  var maxCi=1;data.forEach(function(d){if(d.ci>maxCi)maxCi=d.ci;});
-  var citaScale=Math.max(maxCi*2, 4); // escala propia para citas
-  function yCi(v){return pT+cH-((Math.max(0,v)/citaScale)*cH);}
-  var citaPts=data.filter(function(d){return d.ci>=0&&d.m<=nowM+5;}).map(function(d,i,arr){
-    var idx=data.indexOf(d);return [xAt(idx),yCi(d.ci)];
-  });
-  // Área de citas
-  if(citaPts.length>1){
-    var cpA=buildPath(citaPts);
-    svg+='<path d="'+cpA+' L'+citaPts[citaPts.length-1][0].toFixed(1)+','+aBot+' L'+citaPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(0,229,160,0.08)"/>';
-    svg+='<path d="'+cpA+'" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round"/>';
-  }
-  // Puntos de citas con etiqueta
-  data.forEach(function(d,i){
-    if(d.ci>0&&d.m<=nowM+5){
-      var cx=xAt(i),cy=yCi(d.ci);
-      svg+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5" fill="#00E5A0" stroke="#fff" stroke-width="2"/>';
-      svg+='<text x="'+cx.toFixed(1)+'" y="'+(cy-8).toFixed(1)+'" fill="#059669" font-size="9" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.ci+'</text>';
-    }
-  });
 
   // ── Puntos + valores (botón ojo) ──
   data.forEach(function(d,i){
