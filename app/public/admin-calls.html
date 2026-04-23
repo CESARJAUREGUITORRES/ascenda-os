@@ -341,7 +341,32 @@ function showAsesor(nombre){
     el('ac-cumpl').innerHTML=html;
   });
 }
-function assignBase(tab,valor,asesor){showToast('Base Asignada',h(valor)+' → '+h(asesor||'pendiente'));}
+function assignBase(tab,valor,asesor){
+  if(!asesor){
+    // Mostrar mini-selector de asesores
+    var sel='<div style="position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="assign-overlay"><div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:320px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px;">Asignar Base</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">'+h(valor)+' → ¿A quién?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+ASESORES.map(function(a){return '<button style="padding:10px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:12px;color:#0D1B3E;transition:all .15s;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'#F8FAFF\';this.style.borderColor=\'#DDE4F5\'" onclick="doAssignBase(\''+tab+'\',\''+h(valor)+'\',\''+a+'\')">'+a+'</button>';}).join('')+'</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend',sel);
+    return;
+  }
+  doAssignBase(tab,valor,asesor);
+}
+function doAssignBase(tab,valor,asesor){
+  // Determinar tipo_cola y filtro según el tab
+  var tipo='global',filtro='';
+  if(tab==='campana'){tipo='campana';filtro=valor;}
+  else if(tab==='tipificacion'){tipo='tipificacion';filtro=valor;}
+  else if(tab==='cita'&&valor==='NO ASISTIO'){tipo='no_asistio';}
+  else if(tab==='provincia'){tipo='provincia';}
+  else if(tab==='compra'||tab==='pago'||tab==='servicio'){tipo='campana';filtro=valor;}
+  // Persistir en Supabase
+  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(asesor),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro,configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
+    if(r.ok){
+      showToast('Cola Actualizada',asesor+' ahora trabaja: '+h(valor));
+      var ov=document.getElementById('assign-overlay');if(ov)ov.remove();
+      rColas(D.productividad);
+    } else {r.text().then(function(t){showToast('Error',t,true);});}
+  });
+}
 
 /* COLAS (dentro de modal bases) */
 function rColas(prod){
@@ -412,8 +437,9 @@ function rBases(){
   el('ac-bases-summary').innerHTML='<div style="display:flex;gap:10px;align-items:center;"><span style="font-size:10px;color:#6B7BA8;"><b>'+data.length+'</b> bases · <b>'+fmt(totalNums)+'</b> números</span></div>';
   box.innerHTML=data.length?data.map(function(d){
     var statsHtml='';
-    if(d.stats){statsHtml='<div style="display:grid;grid-template-columns:repeat('+Math.min(d.stats.length,4)+',1fr);gap:4px;margin-top:6px;">'+d.stats.map(function(s){return '<div style="text-align:center;background:rgba(255,255,255,.6);border-radius:4px;padding:3px;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div><div style="font-size:11px;font-weight:800;color:'+s.c+';">'+s.v+'</div></div>';}).join('')+'</div>';}
-    return '<div style="background:'+d.bg+';border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:12px;position:relative;overflow:hidden;"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:'+d.col+';margin-bottom:2px;">● '+h(d.n)+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:22px;color:'+d.col+';">'+fmt(d.total)+'</div><div style="font-size:8px;color:#9AAAC8;">contactos</div>'+(d.v2?'<div style="font-family:\'Exo 2\';font-weight:800;font-size:13px;color:'+d.col+';margin-top:2px;">'+d.v2+'</div>':'')+statsHtml+'<div style="margin-top:8px;display:flex;gap:4px;">'+ASESORES.slice(0,3).map(function(a){return '<button style="flex:1;padding:3px;border-radius:6px;border:1px solid '+d.col+';background:rgba(255,255,255,.7);color:'+d.col+';font-size:7px;font-weight:700;cursor:pointer;font-family:DM Sans;" onclick="assignBase(\''+TAB_ACT+'\',\''+h(d.n)+'\',\''+a+'\')">'+a.slice(0,3)+'</button>';}).join('')+'</div></div>';
+    if(d.stats){statsHtml='<div style="display:grid;grid-template-columns:repeat('+Math.min(d.stats.length,4)+',1fr);gap:3px;margin-top:6px;">'+d.stats.map(function(s){return '<div style="text-align:center;background:rgba(255,255,255,.7);border-radius:6px;padding:4px 2px;backdrop-filter:blur(4px);"><div style="font-size:6px;color:#6B7BA8;text-transform:uppercase;font-weight:700;letter-spacing:.3px;">'+s.l+'</div><div style="font-size:12px;font-weight:800;color:'+s.c+';">'+s.v+'</div></div>';}).join('')+'</div>';}
+    var pctBar=d.stats&&d.stats.length>=4?d.stats[3].v:'';
+    return '<div onclick="assignBase(\''+TAB_ACT+'\',\''+h(d.n)+'\')" style="background:'+d.bg+';border:1px solid rgba(0,0,0,.04);border-radius:14px;padding:14px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04);" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 8px 24px rgba(10,79,191,.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.04)\'"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+d.col+';border-radius:14px 14px 0 0;"></div><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:'+d.col+';margin-bottom:4px;">'+h(d.n)+'</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:26px;color:'+d.col+';line-height:1;">'+fmt(d.total)+'</div><div style="font-size:8px;color:#9AAAC8;">contactos</div></div>'+(d.v2?'<div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;color:'+d.col+';margin-top:4px;">'+d.v2+'</div>':'')+statsHtml+'<div style="margin-top:8px;text-align:center;padding:5px;background:rgba(10,79,191,.06);border-radius:8px;font-size:9px;font-weight:700;color:#0A4FBF;">Click para asignar a asesor</div></div>';
   }).join(''):'<div class="ld" style="grid-column:1/-1;">Sin datos para esta dimensión</div>';
 }
 
