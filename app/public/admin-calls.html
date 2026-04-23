@@ -115,13 +115,10 @@
       </div>
     </div>
     <div class="crd">
-      <div class="ct">🏆 Productividad por Asesor <span class="tag tag-g">ranking</span></div>
+      <div class="ct">🏆 Productividad por Asesor <span class="tag tag-g">ranking</span> <span style="font-size:9px;color:#9AAAC8;margin-left:auto;">Click en asesor →</span></div>
       <div style="overflow-x:auto;"><table class="vt"><thead><tr><th>Asesor</th><th>Llamadas</th><th>Llam/Día</th><th>Leads</th><th>Citas</th><th>Conv%</th><th>Meta L.</th><th>Meta C.</th></tr></thead><tbody id="ac-prod"></tbody></table></div>
+      <div id="ac-prod-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #DDE4F5;"></div>
     </div>
-  </div>
-  <!-- Detalle asesor (se despliega abajo al hacer click) -->
-  <div id="ac-prod-detail-wrap" style="display:none;">
-    <div class="crd" id="ac-prod-detail"></div>
   </div>
 </div>
 <!-- MODALES -->
@@ -146,7 +143,17 @@ function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{maximumFractionDigits:0});}
 (function(){var hoy=new Date();el('ac-d1').value=hoy.getFullYear()+'-'+(''+(hoy.getMonth()+1)).padStart(2,'0')+'-01';el('ac-d2').value=hoy.toISOString().slice(0,10);el('meta-per').value=hoy.getFullYear()+'-'+(''+(hoy.getMonth()+1)).padStart(2,'0');el('ac-mon-date').value=hoy.toISOString().slice(0,10);acLoad();})();
 function acMd(btn){document.querySelectorAll('.ac-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MODO=btn.getAttribute('data-m');var isR=MODO==='rango';el('ac-d1').style.display=isR?'':'none';el('ac-d2').style.display=isR?'':'none';el('ac-al').style.display=isR?'':'none';acLoad();}
-function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok)return;D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);rColas(d.productividad);rMon(d.monitoreo);loadActiv(el('ac-mon-date').value||new Date().toISOString().slice(0,10));});}
+function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok)return;D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);rColas(d.productividad);
+    var monDate=el('ac-mon-date').value;
+    if(d.monitoreo&&d.monitoreo.length>0){rMon(d.monitoreo);loadActiv(monDate);}
+    else{findLastDay(monDate);}
+  });}
+function findLastDay(fallback){
+  fetch(SB+'/rest/v1/aos_llamadas?select=fecha&order=fecha.desc&limit=1',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    var lastDate=rows&&rows[0]?rows[0].fecha:fallback;
+    el('ac-mon-date').value=lastDate;loadMonDate(lastDate);
+  });
+}
 var MON_DATE='';
 function monFecha(tipo){if(tipo==='hoy'){var h=new Date().toISOString().slice(0,10);el('ac-mon-date').value=h;loadMonDate(h);}else{loadMonDate(el('ac-mon-date').value);}}
 function loadMonDate(fecha){MON_DATE=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows);});loadActiv(fecha);}
@@ -160,27 +167,28 @@ function rMon(mon){
   }).join('');
 }
 function rActiv(data,fecha){
-  if(!data||!data.length){el('ac-activ').innerHTML='';return;}
+  var wrap=el('ac-activ-wrap');var svgEl=el('ac-activ');
+  if(!data||!data.length){svgEl.innerHTML='<text x="50%" y="50%" text-anchor="middle" font-size="11" fill="#9AAAC8" font-family="DM Sans">Sin actividad para '+fecha+'</text>';return;}
   var byHour={};data.forEach(function(d){var k=d.bucket;if(!byHour[k])byHour[k]={llamadas:0,citas:0};byHour[k].llamadas+=d.llamadas;byHour[k].citas+=d.citas;});
-  var hours=Object.keys(byHour).sort();if(!hours.length)return;
+  var hours=Object.keys(byHour).sort();if(!hours.length){svgEl.innerHTML='';return;}
   var maxL=Math.max.apply(null,hours.map(function(k){return byHour[k].llamadas;}));
-  var W=el('ac-activ-wrap').offsetWidth||600;var H=130;var PX=25;var PY=15;
+  var W=wrap.offsetWidth||500;var H=130;var PX=30;var PY=15;
   var stepX=(W-PX*2)/(hours.length-1||1);
-  var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
-  var llamPts=[];var citaPts=[];
+  svgEl.setAttribute('viewBox','0 0 '+W+' '+H);
+  var svg='';var llamPts=[];var citaPts=[];
   hours.forEach(function(k,i){
     var x=PX+i*stepX;var y=H-PY-(maxL>0?(byHour[k].llamadas/maxL)*(H-PY*2):0);
     var yC=H-PY-(maxL>0?(byHour[k].citas/maxL)*(H-PY*2):0);
     llamPts.push(x+','+y);citaPts.push(x+','+yC);
     var col=byHour[k].llamadas>=5?'#059669':'#DC2626';
-    svg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+col+'"/>';
+    svg+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="'+col+'"/>';
     svg+='<circle cx="'+x+'" cy="'+yC+'" r="2" fill="#00C9A7"/>';
     if(i%2===0||hours.length<=12)svg+='<text x="'+x+'" y="'+(H-2)+'" font-size="7" fill="#9AAAC8" text-anchor="middle" font-family="DM Sans">'+k+'</text>';
   });
   svg+='<polyline points="'+llamPts.join(' ')+'" fill="none" stroke="#0A4FBF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>';
   svg+='<polyline points="'+citaPts.join(' ')+'" fill="none" stroke="#00C9A7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
-  svg+='</svg>';
-  el('ac-activ').outerHTML='<svg id="ac-activ" width="100%" height="130">'+svg.replace(/<\/?svg[^>]*>/g,'')+'</svg>';
+  svgEl.innerHTML=svg;
+  el('ac-mon-tag').textContent=fecha;
 }
 
 function openChip(id){
@@ -257,18 +265,18 @@ function rProd(prod){if(!prod||!prod.length){el('ac-prod').innerHTML='<tr><td co
 function showAsesor(nombre){
   var p=(D.productividad||[]).find(function(x){return x.asesor===nombre;});if(!p)return;
   document.querySelectorAll('#ac-prod tr').forEach(function(r){r.classList.remove('sel');});
-  var rows=document.querySelectorAll('#ac-prod tr');rows.forEach(function(r){if(r.textContent.indexOf(nombre)>=0)r.classList.add('sel');});
+  document.querySelectorAll('#ac-prod tr').forEach(function(r){if(r.textContent.indexOf(nombre)>=0)r.classList.add('sel');});
   var metaL=p.meta_llamadas||0,metaC=p.meta_citas||0;
   var pctL=metaL>0?Math.round(p.llamadas/metaL*100):0;
   var pctC=metaC>0?Math.round(p.citas/metaC*100):0;
-  el('ac-prod-detail-wrap').style.display='block';
-  el('ac-prod-detail').innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;">'+h(nombre)+'</div><span style="font-size:10px;color:#9AAAC8;">Detalle del período</span><button class="chip" style="margin-left:auto;" onclick="el(\'ac-prod-detail-wrap\').style.display=\'none\'">Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">'+[
+  var det=el('ac-prod-detail');det.style.display='block';
+  det.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;">'+h(nombre)+'</div><span style="font-size:9px;color:#9AAAC8;">Detalle del período</span><button class="chip" style="margin-left:auto;" onclick="el(\'ac-prod-detail\').style.display=\'none\'">✕ Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">'+[
     {l:'Llamadas',v:fmt(p.llamadas),c:'#0A4FBF'},{l:'Llam/Día',v:p.llamadas_dia,c:'#0A4FBF'},
     {l:'Leads Únicos',v:p.leads,c:'#6B7BA8'},{l:'Citas',v:p.citas,c:'#00C9A7'},
     {l:'Conversión',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Días Activos',v:p.dias_activos,c:'#6B7BA8'},
     {l:'Seguimientos',v:p.seguimientos,c:'#D97706'},{l:'Sin Contacto',v:p.sin_contacto,c:'#6B7BA8'},
     {l:'No Interesa',v:p.no_interesa,c:'#DC2626'},{l:'Citas/Día',v:p.citas_dia||0,c:'#00C9A7'}
-  ].map(function(x){return '<div style="background:#F0F4FC;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;font-weight:700;">'+x.l+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;color:'+x.c+';">'+x.v+'</div></div>';}).join('')+'</div>'+(metaL>0?'<div style="margin-top:8px;display:flex;gap:10px;"><div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;margin-bottom:2px;">Meta llamadas: '+p.llamadas+'/'+metaL+' ('+pctL+'%)</div><div class="pb" style="height:8px;"><div class="pb-f" style="width:'+Math.min(pctL,100)+'%;background:'+(pctL>=100?'#059669':'#D97706')+';height:8px;border-radius:3px;"></div></div></div>'+(metaC>0?'<div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;margin-bottom:2px;">Meta citas: '+p.citas+'/'+metaC+' ('+pctC+'%)</div><div class="pb" style="height:8px;"><div class="pb-f" style="width:'+Math.min(pctC,100)+'%;background:'+(pctC>=100?'#059669':'#D97706')+';height:8px;border-radius:3px;"></div></div></div>':'')+'</div>':'');
+  ].map(function(x){return '<div style="background:#F0F4FC;border-radius:8px;padding:6px;text-align:center;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;font-weight:700;">'+x.l+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;color:'+x.c+';">'+x.v+'</div></div>';}).join('')+'</div>'+(metaL>0||metaC>0?'<div style="display:flex;gap:10px;margin-top:6px;">'+(metaL>0?'<div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;">Meta llamadas: '+p.llamadas+'/'+metaL+' ('+pctL+'%)</div><div class="pb" style="height:6px;"><div class="pb-f" style="width:'+Math.min(pctL,100)+'%;background:'+(pctL>=100?'#059669':'#D97706')+';height:6px;border-radius:3px;"></div></div></div>':'')+(metaC>0?'<div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;">Meta citas: '+p.citas+'/'+metaC+' ('+pctC+'%)</div><div class="pb" style="height:6px;"><div class="pb-f" style="width:'+Math.min(pctC,100)+'%;background:'+(pctC>=100?'#059669':'#D97706')+';height:6px;border-radius:3px;"></div></div></div>':'')+'</div>':'');
 }
 
 /* COLAS (dentro de modal bases) */
