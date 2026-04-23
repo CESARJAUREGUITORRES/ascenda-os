@@ -177,6 +177,38 @@ http.createServer(function(req, res) {
     res.end(); return
   }
   // ===== FIN RESEND =====
+  // ===== 2FA CODE EMAIL =====
+  if (p === '/api/send-2fa' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        if (!d.email || !d.code || !d.nombre) { res.writeHead(400); res.end('{"error":"missing fields"}'); return }
+        var RESEND_KEY = process.env.RESEND_API_KEY || 're_hMwhSNXd_4EobZ8KLvwWFQSg1P7SCpXtP'
+        var emailData = JSON.stringify({
+          from: 'AscendaOS <onboarding@resend.dev>',
+          to: [d.email],
+          subject: '🔐 Código de verificación — AscendaOS',
+          html: '<div style="font-family:Arial;max-width:400px;margin:0 auto;text-align:center;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">ASCENDA OS</div><div style="color:#fff;font-size:18px;font-weight:800;margin-top:6px;">Código de Verificación</div></div><div style="background:#fff;padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>' + d.nombre + '</b>,</p><p style="font-size:13px;color:#6B7BA8;">Tu código de acceso es:</p><div style="background:#F0F4FC;border-radius:12px;padding:20px;margin:16px 0;"><div style="font-family:monospace;font-size:36px;font-weight:800;letter-spacing:8px;color:#0A4FBF;">' + d.code + '</div></div><p style="font-size:11px;color:#9AAAC8;">Este código expira en 5 minutos. Si no solicitaste este código, ignora este mensaje.</p></div></div>'
+        })
+        var rReq = https.request({
+          hostname: 'api.resend.com', path: '/emails', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
+        }, function(rRes) {
+          var rData = ''; rRes.on('data', function(c) { rData += c }); rRes.on('end', function() {
+            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(rData)
+          })
+        })
+        rReq.on('error', function(e) { res.writeHead(500); res.end('{"error":"' + e.message + '"}') })
+        rReq.write(emailData); rReq.end()
+      } catch(e) { res.writeHead(400); res.end('{"error":"Invalid JSON"}') }
+    }); return
+  }
+  if (p === '/api/send-2fa' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN 2FA =====
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   var f = path.join(PUB, p.slice(1))
