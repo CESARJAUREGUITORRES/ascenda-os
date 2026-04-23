@@ -26,6 +26,7 @@
     <div class="ops-t">⚙ Operaciones</div>
     <div class="ops-tabs">
       <button class="ops-tab act" onclick="opsTab('personal')">👥 Personal</button>
+      <button class="ops-tab" onclick="opsTab('horarios')">📅 Horarios</button>
       <button class="ops-tab" onclick="opsTab('asistencia')">📋 Asistencia</button>
       <button class="ops-tab" onclick="opsTab('seguridad')">🔒 Seguridad</button>
     </div>
@@ -43,7 +44,25 @@
       <tbody id="op-personal-list"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Cargando...</td></tr></tbody></table>
     </div>
   </div>
-  <div id="ops-asistencia" style="display:none;">
+  <!-- HORARIOS -->
+  <div id="ops-horarios" style="display:none;">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <span style="font-size:10px;color:#6B7BA8;">Semana del:</span>
+      <input type="date" class="mi" id="hor-fecha" style="width:160px;padding:6px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;" onchange="loadHorarios()">
+      <button class="mbtn mbtn-p" onclick="openAddHorario()" style="margin-left:auto;">+ Asignar Horario</button>
+    </div>
+    <div class="crd">
+      <div class="ct">📅 Horarios Programados</div>
+      <table class="vt"><thead><tr><th>Fecha</th><th>Personal</th><th>Sede</th><th>Entrada</th><th>Salida</th><th>Turno</th><th></th></tr></thead>
+      <tbody id="hor-list"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Cargando...</td></tr></tbody></table>
+    </div>
+    <div class="crd" style="margin-top:10px;">
+      <div class="ct">⚙ Horarios de Sede (Config Global)</div>
+      <table class="vt"><thead><tr><th>Sede</th><th>Día</th><th>Apertura</th><th>Cierre</th><th>Intervalo Cita</th><th>Máx Citas/Hora</th></tr></thead>
+      <tbody id="hor-config"></tbody></table>
+    </div>
+  </div>
+  <!-- ASISTENCIA -->
     <div class="crd">
       <div class="ct">📋 Registro Semanal de Asistencia</div>
       <table class="vt"><thead><tr><th>Nombre</th><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Logins</th><th>Eventos</th></tr></thead>
@@ -72,7 +91,39 @@ function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('es-PE');}
 function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
-function opsTab(tab){['personal','asistencia','seguridad'].forEach(function(t){var e=el('ops-'+t);if(e)e.style.display=t===tab?'block':'none';});document.querySelectorAll('.ops-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');}
+function opsTab(tab){['personal','horarios','asistencia','seguridad'].forEach(function(t){var e=el('ops-'+t);if(e)e.style.display=t===tab?'block':'none';});document.querySelectorAll('.ops-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');if(tab==='horarios')loadHorarios();}
+
+function loadHorarios(){
+  var fecha=el('hor-fecha').value;if(!fecha)fecha=new Date().toISOString().slice(0,10);
+  // Cargar horarios del personal para la semana
+  var desde=fecha;var hastaD=new Date(fecha);hastaD.setDate(hastaD.getDate()+7);var hasta=hastaD.toISOString().slice(0,10);
+  fetch(SB+'/rest/v1/aos_horarios_personal?select=*&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&order=fecha,personal',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    el('hor-list').innerHTML=(rows&&rows.length)?rows.map(function(h){
+      var d=new Date(h.fecha+'T12:00:00');var diaN=dias[d.getDay()];
+      return '<tr><td style="font-weight:700;">'+diaN+' '+h.fecha+'</td><td style="font-weight:700;">'+h.personal+'</td><td style="font-size:9px;">'+h.sede+'</td><td style="color:#059669;font-weight:700;">'+h.hora_inicio+'</td><td style="color:#DC2626;font-weight:700;">'+h.hora_fin+'</td><td><span class="tag tag-b">'+h.tipo_turno+'</span></td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delHorario(\''+h.id+'\')">✕</button></td></tr>';
+    }).join(''):'<tr><td colspan="7" style="text-align:center;color:#9AAAC8;">Sin horarios programados para esta semana</td></tr>';
+  });
+  // Config global
+  fetch(SB+'/rest/v1/aos_config_horarios?select=*&order=sede,dia_semana',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    var dias=['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    el('hor-config').innerHTML=(rows||[]).map(function(c){
+      return '<tr><td style="font-weight:700;">'+c.sede+'</td><td>'+dias[c.dia_semana]+'</td><td style="color:#059669;">'+c.hora_apertura+'</td><td style="color:#DC2626;">'+c.hora_cierre+'</td><td>'+c.intervalo_cita_min+' min</td><td>'+c.max_citas_hora+'</td></tr>';
+    }).join('');
+  });
+}
+function openAddHorario(){
+  var fecha=el('hor-fecha').value||new Date().toISOString().slice(0,10);
+  var personal=prompt('Nombre del personal (ej: WILMER):');if(!personal)return;
+  var sede=prompt('Sede (SAN ISIDRO o PUEBLO LIBRE):');if(!sede)return;
+  var inicio=prompt('Hora entrada (ej: 09:30):');if(!inicio)return;
+  var fin=prompt('Hora salida (ej: 18:00):');if(!fin)return;
+  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:fecha,personal:personal.toUpperCase(),sede:sede.toUpperCase(),hora_inicio:inicio,hora_fin:fin,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'})}).then(function(){loadHorarios();});
+}
+function delHorario(id){
+  if(!confirm('¿Eliminar este horario?'))return;
+  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadHorarios();});
+}
 function loadOps(){
   rpc('aos_operaciones_dashboard',{},function(d){
     if(!d||!d.ok)return;var personal=d.personal||[];
@@ -107,4 +158,5 @@ function loadOps(){
   });
 }
 loadOps();
+var hoy=new Date();el('hor-fecha').value=hoy.toISOString().slice(0,10);
 </script>
