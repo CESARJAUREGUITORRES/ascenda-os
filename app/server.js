@@ -237,6 +237,7 @@ http.createServer(function(req, res) {
   // ===== FIN TURNSTILE =====
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
+  if (p === '/agents') { serve(path.join(PUB, 'agents.html'), res); return }
   var f = path.join(PUB, p.slice(1))
   if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
   serve(path.join(PUB, 'login.html'), res)
