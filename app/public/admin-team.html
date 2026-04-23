@@ -177,8 +177,32 @@ function editUser(idx){
   loadEst(u.id);loadCal30(u.nombre);
   setTimeout(function(){var nv=el('eu-niv');if(nv)nv.value=u.nivel_jerarquia||4;},100);
   rpc('aos_productividad_equipo',{},function(r){if(!r||!r.ok)return;var p=(r.equipo||[]).filter(function(e){return e.nombre===u.nombre;})[0];if(!p){el('eu-met').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:9px;color:#9AAAC8;">Sin datos de productividad</div>';return;}var pp=p.dias_trabajados>0?Math.round((p.dias_trabajados-(p.tardanzas||0))/p.dias_trabajados*100):0;el('eu-met').innerHTML=[{l:'Llamadas',v:Number(p.llamadas||0).toLocaleString(),c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conv%',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Facturado',v:'S/'+Number(p.facturado||0).toLocaleString(),c:'#059669'},{l:'Puntualidad',v:pp+'%',c:pp>=80?'#059669':'#DC2626'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>2?'#DC2626':'#0A4FBF'}].map(function(s){return '<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:15px;color:'+s.c+';">'+s.v+'</div><div style="font-size:6px;font-weight:700;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div></div>';}).join('');});
-  q('aos_horarios_personal','select=fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(u.nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=7',function(r){var ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];el('eu-hor').innerHTML=(r&&r.length)?r.map(function(h){var d=new Date(h.fecha+'T12:00:00');return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #EEF0F8;font-size:9px;"><b>'+ds[d.getDay()]+' '+h.fecha.slice(5)+'</b><span style="color:#0A4FBF;">'+h.hora_inicio+' - '+h.hora_fin+'</span><span style="font-size:7px;color:#6B7BA8;">'+h.sede+'</span></div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin turnos programados</div>';});
-  rpc('aos_detalle_asesor',{p_nombre:u.nombre},function(r){if(!r||!r.ok)return;var d=(r.diario||[]).slice(0,7);el('eu-asis').innerHTML=d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #EEF0F8;font-size:9px;"><span style="font-weight:700;">'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+' llam</span><span style="color:#00C9A7;">'+x.citas+' cit</span>'+(x.llego_tarde?'<span style="color:#DC2626;font-weight:700;">✕</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin datos</div>';});
+  q('aos_horarios_personal','select=id,fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(u.nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=7',function(r){var ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];el('eu-hor').innerHTML=(r&&r.length)?r.map(function(h){var d=new Date(h.fecha+'T12:00:00');return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editTurno(\''+h.id+'\',\''+h.fecha+'\',\''+h.hora_inicio+'\',\''+h.hora_fin+'\',\''+h.sede+'\',\''+u.nombre+'\')"><b>'+ds[d.getDay()]+' '+h.fecha.slice(5)+'</b><span style="color:#0A4FBF;font-weight:700;">'+h.hora_inicio+' - '+h.hora_fin+'</span><span style="font-size:7px;color:#6B7BA8;">'+h.sede+'</span></div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin turnos</div>';});
+  rpc('aos_detalle_asesor',{p_nombre:u.nombre},function(r){if(!r||!r.ok)return;var d=(r.diario||[]).slice(0,10);el('eu-asis').innerHTML=d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editAsistencia(\''+x.fecha+'\',\''+u.nombre+'\',\''+x.primera_llamada+'\',\''+x.ultima_llamada+'\')"><span style="font-weight:700;">'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+' llam</span><span style="color:#00C9A7;">'+x.citas+' cit</span><span style="font-size:8px;color:#6B7BA8;">'+(x.primera_llamada||'').slice(0,5)+'</span>'+(x.llego_tarde?'<span style="color:#DC2626;font-weight:700;">✕</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin datos</div>';});
+}
+function editAsistencia(fecha,nombre,primera,ultima){
+  var msg='Asistencia '+fecha+' — '+nombre+'\n1ra llamada: '+(primera||'N/A')+'\nÚltima: '+(ultima||'N/A')+'\n\n¿Editar hora de entrada registrada?';
+  var newHora=prompt(msg,primera||'09:30');
+  if(!newHora)return;
+  q('aos_horarios_personal','select=id&personal=eq.'+encodeURIComponent(nombre)+'&fecha=eq.'+fecha+'&limit=1',function(rows){
+    if(rows&&rows[0]){
+      fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+rows[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:newHora,notas:'Editado por admin'})}).then(function(){showToast('Horario editado para '+fecha);});
+    } else {showToast('Sin horario programado para editar');}
+  });
+}
+function progHorarios(nombre){
+  var desde=el('ph-desde').value,hasta=el('ph-hasta').value;
+  if(!desde||!hasta){showToast('Selecciona fechas');return;}
+  var sede=el('ph-sede').value,ini=el('ph-ini').value,fin=el('ph-fin').value,tipo=(el('ph-tipo')?el('ph-tipo').value:'NORMAL');
+  var diasSel=[];document.querySelectorAll('.ph-dia:checked').forEach(function(c){diasSel.push(Number(c.value));});
+  if(!diasSel.length){showToast('Selecciona días');return;}
+  var d=new Date(desde+'T12:00:00');var end=new Date(hasta+'T12:00:00');var inserts=[];
+  while(d<=end){var dow=d.getDay();var isoDay=dow===0?7:dow;if(diasSel.indexOf(isoDay)>=0){inserts.push({fecha:d.toISOString().slice(0,10),personal:nombre,sede:sede,hora_inicio:ini,hora_fin:fin,tipo_turno:tipo,activo:true,creado_por:'ADMIN'});}d.setDate(d.getDate()+1);}
+  if(!inserts.length){showToast('No hay días que programar');return;}
+  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(inserts)}).then(function(){
+    showToast(inserts.length+' turnos programados');loadCal30(nombre);
+    var res=document.getElementById('ph-result');if(res)res.textContent='✓ '+inserts.length+' turnos creados. Agrega otra tanda si necesitas otra sede u horario.';
+  });
 }
 function showTab(t){['datos','roles','horarios'].forEach(function(x){var e=el('tab-'+x);if(e)e.style.display=x===t?'block':'none';});document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('act');});event.target.classList.add('act');}
 function tp(e){e.classList.toggle('on');var k=e.querySelector('.pc-k');k.textContent=e.classList.contains('on')?'✓':'';}
@@ -238,37 +262,82 @@ function showDayInfo(fecha,nombre){
   });
 }
 function openProgModal(nombre,editMode){
-  var modalHTML='<div id="prog-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(550px,94vw);padding:20px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
+  var modalHTML='<div id="prog-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(580px,94vw);max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
   modalHTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-family:Exo 2;font-weight:800;font-size:15px;">'+(editMode?'📋 Editar Turnos':'📅 Programar Horarios')+'</span><span style="font-size:10px;color:#6B7BA8;">'+nombre+'</span><button style="margin-left:auto;background:none;border:none;font-size:18px;color:#9AAAC8;cursor:pointer;" onclick="this.closest(\'#prog-modal\').remove()">✕</button></div>';
   if(!editMode){
-    modalHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-    modalHTML+='<div><div class="fg-l">Desde</div><input class="mi" type="date" id="ph-desde"></div>';
-    modalHTML+='<div><div class="fg-l">Hasta</div><input class="mi" type="date" id="ph-hasta"></div>';
-    modalHTML+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
-    modalHTML+='<div><div class="fg-l">Tipo</div><select class="mi" id="ph-tipo"><option value="NORMAL">Turno Normal</option><option value="CITAS">Recibir Citas (Doctora)</option></select></div>';
-    modalHTML+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini" value="09:30"></div>';
-    modalHTML+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin" value="18:00"></div>';
+    // Modo selector
+    modalHTML+='<div style="display:flex;gap:6px;margin-bottom:12px;">';
+    modalHTML+='<button class="mbtn mbtn-p" id="ph-mode-single" onclick="phMode(\'single\')" style="font-size:9px;">📌 Día Único</button>';
+    modalHTML+='<button class="mbtn mbtn-c" id="ph-mode-batch" onclick="phMode(\'batch\')" style="font-size:9px;">📅 Varios Días (Tanda)</button>';
     modalHTML+='</div>';
-    modalHTML+='<div style="display:flex;gap:6px;margin:10px 0;align-items:center;flex-wrap:wrap;"><span style="font-size:9px;font-weight:700;color:#6B7BA8;">Días:</span>';
+    // Single day
+    modalHTML+='<div id="ph-single" style="display:none;margin-bottom:10px;padding:10px;background:#F8FAFF;border-radius:10px;">';
+    modalHTML+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">';
+    modalHTML+='<div><div class="fg-l">Fecha</div><input class="mi" type="date" id="ph-fecha1" style="font-size:10px;"></div>';
+    modalHTML+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini1" value="09:30" style="font-size:10px;"></div>';
+    modalHTML+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin1" value="18:00" style="font-size:10px;"></div>';
+    modalHTML+='</div>';
+    modalHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">';
+    modalHTML+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede1" style="font-size:10px;"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+    modalHTML+='<div><div class="fg-l">Tipo</div><select class="mi" id="ph-tipo1" style="font-size:10px;"><option value="NORMAL">Turno Normal</option><option value="CITAS">Recibir Citas</option></select></div>';
+    modalHTML+='</div>';
+    modalHTML+='<button class="mbtn mbtn-g" style="margin-top:8px;" onclick="progSingle(\''+nombre+'\')">✓ Agregar Turno</button>';
+    modalHTML+='</div>';
+    // Batch mode
+    modalHTML+='<div id="ph-batch" style="margin-bottom:10px;padding:10px;background:#EBF2FF;border-radius:10px;">';
+    modalHTML+='<div style="font-size:9px;color:#0A4FBF;font-weight:700;margin-bottom:6px;">Programa una tanda de horarios. Repite el proceso para distintas sedes u horarios.</div>';
+    modalHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+    modalHTML+='<div><div class="fg-l">Desde</div><input class="mi" type="date" id="ph-desde" style="font-size:10px;"></div>';
+    modalHTML+='<div><div class="fg-l">Hasta</div><input class="mi" type="date" id="ph-hasta" style="font-size:10px;"></div>';
+    modalHTML+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede" style="font-size:10px;"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+    modalHTML+='<div><div class="fg-l">Tipo</div><select class="mi" id="ph-tipo" style="font-size:10px;"><option value="NORMAL">Turno Normal</option><option value="CITAS">Recibir Citas</option></select></div>';
+    modalHTML+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini" value="09:30" style="font-size:10px;"></div>';
+    modalHTML+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin" value="18:00" style="font-size:10px;"></div>';
+    modalHTML+='</div>';
+    modalHTML+='<div style="display:flex;gap:6px;margin:8px 0;align-items:center;flex-wrap:wrap;"><span style="font-size:9px;font-weight:700;color:#6B7BA8;">Días:</span>';
     ['Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(function(d,i){
-      modalHTML+='<label style="font-size:9px;display:flex;align-items:center;gap:3px;padding:3px 6px;background:#F8FAFF;border-radius:6px;cursor:pointer;"><input type="checkbox" class="ph-dia" value="'+(i+1)+'"'+(i<5?' checked':'')+'> '+d+'</label>';
+      modalHTML+='<label style="font-size:9px;display:flex;align-items:center;gap:3px;padding:3px 8px;background:#fff;border-radius:6px;border:1px solid #DDE4F5;cursor:pointer;"><input type="checkbox" class="ph-dia" value="'+(i+1)+'"'+(i<5?' checked':'')+'> '+d+'</label>';
     });
     modalHTML+='</div>';
-    modalHTML+='<div style="display:flex;gap:6px;"><button class="mbtn mbtn-g" onclick="progHorarios(\''+nombre+'\')">✓ Programar Turnos</button><button class="mbtn mbtn-c" onclick="this.closest(\'#prog-modal\').remove()">Cancelar</button></div>';
+    modalHTML+='<button class="mbtn mbtn-g" onclick="progHorarios(\''+nombre+'\')">✓ Programar Tanda</button>';
+    modalHTML+='<div id="ph-result" style="font-size:9px;margin-top:4px;color:#059669;"></div>';
+    modalHTML+='</div>';
   } else {
     modalHTML+='<div id="ph-edit-list" style="font-size:9px;color:#9AAAC8;">Cargando turnos...</div>';
   }
   modalHTML+='</div></div>';
   document.body.insertAdjacentHTML('beforeend',modalHTML);
+  if(!editMode){phMode('batch');}
   if(editMode){
-    q('aos_horarios_personal','select=*&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=20',function(rows){
+    q('aos_horarios_personal','select=*&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=30',function(rows){
       var el2=document.getElementById('ph-edit-list');if(!el2)return;
       el2.innerHTML=(rows&&rows.length)?'<table style="width:100%;font-size:9px;border-collapse:collapse;">'+rows.map(function(r){
         var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];var d=new Date(r.fecha+'T12:00:00');
-        return '<tr style="border-bottom:1px solid #EEF0F8;"><td style="padding:4px;font-weight:700;">'+dias[d.getDay()]+' '+r.fecha+'</td><td style="color:#0A4FBF;">'+r.hora_inicio+' - '+r.hora_fin+'</td><td style="font-size:8px;color:#6B7BA8;">'+r.sede+'</td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delTurno(\''+r.id+'\',\''+nombre+'\')">✕ Borrar</button></td></tr>';
+        return '<tr style="border-bottom:1px solid #EEF0F8;cursor:pointer;" onclick="editTurno(\''+r.id+'\',\''+r.fecha+'\',\''+r.hora_inicio+'\',\''+r.hora_fin+'\',\''+r.sede+'\',\''+nombre+'\')"><td style="padding:5px;font-weight:700;">'+dias[d.getDay()]+' '+r.fecha+'</td><td style="color:#0A4FBF;font-weight:700;">'+r.hora_inicio+' - '+r.hora_fin+'</td><td style="font-size:8px;color:#6B7BA8;">'+r.sede+'</td><td style="text-align:right;"><span style="color:#DC2626;font-size:8px;">✕</span></td></tr>';
       }).join('')+'</table>':'<div>Sin turnos futuros</div>';
     });
   }
+}
+function phMode(mode){
+  var s=document.getElementById('ph-single'),b=document.getElementById('ph-batch');
+  var bs=document.getElementById('ph-mode-single'),bb=document.getElementById('ph-mode-batch');
+  if(mode==='single'){s.style.display='block';b.style.display='none';bs.className='mbtn mbtn-p';bb.className='mbtn mbtn-c';}
+  else{s.style.display='none';b.style.display='block';bs.className='mbtn mbtn-c';bb.className='mbtn mbtn-p';}
+}
+function progSingle(nombre){
+  var f=el('ph-fecha1').value;if(!f){showToast('Selecciona fecha');return;}
+  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:f,personal:nombre,sede:el('ph-sede1').value,hora_inicio:el('ph-ini1').value,hora_fin:el('ph-fin1').value,tipo_turno:el('ph-tipo1').value,activo:true,creado_por:'ADMIN'})}).then(function(){
+    showToast('Turno agregado: '+f);loadCal30(nombre);el('ph-fecha1').value='';
+  });
+}
+function editTurno(id,fecha,ini,fin,sede,nombre){
+  var r=prompt('Editar turno '+fecha+'\nEntrada (actual: '+ini+'):',ini);if(!r)return;
+  var r2=prompt('Salida (actual: '+fin+'):',fin);if(!r2)return;
+  var r3=prompt('Sede (actual: '+sede+'):',sede);
+  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:r,hora_fin:r2,sede:r3||sede})}).then(function(){
+    showToast('Turno actualizado');loadCal30(nombre);
+    var pm=document.getElementById('prog-modal');if(pm)pm.remove();openProgModal(nombre,true);
+  });
 }
 function delTurno(id,nombre){
   fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){showToast('Turno eliminado');loadCal30(nombre);openProgModal(nombre,true);});
