@@ -66,9 +66,10 @@
     <div class="em-t">✉️ Email Marketing</div>
     <div class="em-tabs">
       <button class="em-tab act" onclick="emTab('dashboard')">📊 Dashboard</button>
+      <button class="em-tab" onclick="emTab('bandeja')">📥 Bandeja</button>
       <button class="em-tab" onclick="emTab('flujos')">🔄 Flujos</button>
       <button class="em-tab" onclick="emTab('plantillas')">📝 Plantillas</button>
-      <button class="em-tab" onclick="emTab('enviados')">📬 Enviados</button>
+      <button class="em-tab" onclick="emTab('enviados')">📬 Log</button>
     </div>
     <div style="display:flex;gap:6px;">
       <button class="mbtn mbtn-p" onclick="openNewCampania()">+ Nueva Campaña</button>
@@ -88,6 +89,31 @@
       <div class="ct">📋 Campañas Recientes</div>
       <table class="vt"><thead><tr><th>Campaña</th><th>Plantilla</th><th>Estado</th><th>Enviados</th><th>Entregados</th><th>Errores</th><th>Fecha</th></tr></thead>
       <tbody id="em-campanias"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin campañas aún. Crea tu primera campaña →</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- BANDEJA DE CORREO -->
+  <div id="em-bandeja" style="display:none;">
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:center;">
+      <div style="flex:1;position:relative;">
+        <input class="mi" type="text" id="em-search" placeholder="🔍 Buscar por nombre, email, teléfono o DNI..." style="padding-left:12px;font-size:12px;" oninput="debounceSearch()">
+      </div>
+      <div style="font-size:10px;color:#6B7BA8;" id="em-search-count"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:320px 1fr;gap:10px;min-height:400px;" id="em-bandeja-grid">
+      <!-- Lista de contactos -->
+      <div class="crd" style="padding:0;overflow:hidden;">
+        <div style="background:#F8FAFF;padding:10px 14px;font-size:10px;font-weight:700;color:#6B7BA8;border-bottom:1px solid #EEF0F8;">CONTACTOS CON EMAIL · <span id="em-contactos-n">0</span></div>
+        <div id="em-contactos" style="max-height:500px;overflow-y:auto;"></div>
+      </div>
+      <!-- Detalle / Historial del paciente seleccionado -->
+      <div class="crd" id="em-detalle">
+        <div style="text-align:center;padding:60px 20px;color:#9AAAC8;">
+          <div style="font-size:40px;margin-bottom:8px;">📬</div>
+          <div style="font-size:13px;font-weight:700;">Selecciona un contacto</div>
+          <div style="font-size:10px;">para ver su historial de correos</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -148,16 +174,84 @@ function showToast(t,m,err){var tw=el('em-toast');var d=document.createElement('
 var D={};var TAB='dashboard';
 function emTab(tab){
   TAB=tab;
-  ['dashboard','flujos','plantillas','enviados'].forEach(function(t){el('em-'+t).style.display=t===tab?'block':'none';});
+  ['dashboard','bandeja','flujos','plantillas','enviados'].forEach(function(t){var e=el('em-'+t);if(e)e.style.display=t===tab?'block':'none';});
   document.querySelectorAll('.em-tab').forEach(function(b){b.classList.remove('act');});
   event.target.classList.add('act');
   loadTab();
 }
 function loadTab(){
   if(TAB==='dashboard')loadDashboard();
+  if(TAB==='bandeja')loadBandeja();
   if(TAB==='flujos')loadFlujos();
   if(TAB==='plantillas')loadPlantillas();
   if(TAB==='enviados')loadEnviados();
+}
+
+// ═══════ BANDEJA DE CORREO ═══════
+var SEARCH_TIMER=null;
+function debounceSearch(){clearTimeout(SEARCH_TIMER);SEARCH_TIMER=setTimeout(loadBandeja,300);}
+function loadBandeja(){
+  var buscar=(el('em-search')?el('em-search').value:'').trim();
+  rpc('aos_email_buscar_paciente',{p_buscar:buscar,p_limite:30},function(res){
+    if(!res||!res.ok)return;
+    var list=res.resultados||[];
+    el('em-contactos-n').textContent=list.length;
+    el('em-search-count').textContent=list.length+' contactos encontrados';
+    if(!list.length){el('em-contactos').innerHTML='<div style="padding:20px;text-align:center;color:#9AAAC8;font-size:10px;">Sin resultados</div>';return;}
+    el('em-contactos').innerHTML=list.map(function(p){
+      var initials=((p.nombre||'')[0]||'')+((p.apellido||'')[0]||'');
+      var envBadge=p.emails_enviados>0?'<span style="background:#059669;color:#fff;font-size:7px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:auto;">'+p.emails_enviados+'</span>':'';
+      return '<div style="padding:10px 14px;border-bottom:1px solid #F5F6FA;cursor:pointer;transition:background .1s;" onmouseover="this.style.background=\'#F0FDFA\'" onmouseout="this.style.background=\'#fff\'" onclick="verContacto(\''+h(p.numero_limpio)+'\')"><div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;flex-shrink:0;">'+initials+'</div><div style="min-width:0;flex:1;"><div style="font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+h(p.nombre||'')+' '+h(p.apellido||'')+'</div><div style="font-size:9px;color:#6B7BA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+h(p.email)+'</div></div>'+envBadge+'</div></div>';
+    }).join('');
+  });
+}
+
+function verContacto(numero){
+  // Cargar datos del paciente + historial
+  rpc('aos_email_buscar_paciente',{p_buscar:numero,p_limite:1},function(res){
+    var p=(res&&res.resultados&&res.resultados[0])||{};
+    rpc('aos_email_historial_paciente',{p_numero:numero},function(hist){
+      var emails=(hist&&hist.emails)||[];
+      var det=el('em-detalle');
+      var html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #EEF0F8;">';
+      var initials=((p.nombre||'')[0]||'')+((p.apellido||'')[0]||'');
+      html+='<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;">'+initials+'</div>';
+      html+='<div><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;">'+h(p.nombre||'')+' '+h(p.apellido||'')+'</div>';
+      html+='<div style="font-size:10px;color:#6B7BA8;">'+h(p.email||'Sin email')+' · '+h(p.numero_limpio||'')+'</div></div>';
+      html+='<button class="mbtn mbtn-p" style="margin-left:auto;" onclick="enviarEmailA(\''+h(p.email)+'\',\''+h(p.nombre||'')+'\',\''+h(numero)+'\')">✉️ Enviar Email</button></div>';
+
+      // Stats rápidos
+      html+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
+      html+='<div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#059669;">'+emails.filter(function(e){return e.estado==='enviado'||e.estado==='entregado';}).length+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Entregados</div></div>';
+      html+='<div style="flex:1;background:#FEF2F2;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#DC2626;">'+emails.filter(function(e){return e.estado==='error'||e.estado==='rebotado';}).length+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Errores</div></div>';
+      html+='<div style="flex:1;background:#FFFBEB;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#D97706;">'+emails.filter(function(e){return e.estado==='pendiente';}).length+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Pendientes</div></div>';
+      html+='<div style="flex:1;background:#F0F4FC;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#0A4FBF;">'+emails.length+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Total</div></div>';
+      html+='</div>';
+
+      // Email list (tipo bandeja Gmail)
+      if(!emails.length){
+        html+='<div style="text-align:center;padding:30px;color:#9AAAC8;"><div style="font-size:30px;margin-bottom:6px;">📭</div><div style="font-size:11px;">No se han enviado correos a este paciente</div></div>';
+      } else {
+        html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin-bottom:8px;">📬 Historial de correos</div>';
+        emails.forEach(function(e){
+          var estIco={'enviado':'✅','entregado':'✅','pendiente':'⏳','error':'❌','rebotado':'↩️'};
+          var estCol={'enviado':'#059669','entregado':'#059669','pendiente':'#D97706','error':'#DC2626','rebotado':'#DC2626'};
+          var fecha=e.created_at?e.created_at.slice(0,16).replace('T',' '):'';
+          html+='<div style="display:flex;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:4px;border:1px solid #F0F4FC;background:#FAFBFE;transition:all .1s;cursor:pointer;" onmouseover="this.style.background=\'#F0FDFA\'" onmouseout="this.style.background=\'#FAFBFE\'">';
+          html+='<div style="font-size:16px;flex-shrink:0;">'+(estIco[e.estado]||'📧')+'</div>';
+          html+='<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><div style="font-weight:700;font-size:11px;">'+h(e.asunto||e.plantilla_nombre||'Sin asunto')+'</div><span class="tag" style="background:'+(estCol[e.estado]||'#6B7BA8')+'1a;color:'+(estCol[e.estado]||'#6B7BA8')+';">'+h(e.estado)+'</span></div>';
+          html+='<div style="font-size:9px;color:#6B7BA8;margin-top:2px;">'+(e.plantilla_nombre?'Plantilla: '+h(e.plantilla_nombre)+' · ':'')+''+fecha+'</div>';
+          if(e.error_msg)html+='<div style="font-size:9px;color:#DC2626;margin-top:2px;">Error: '+h(e.error_msg)+'</div>';
+          html+='</div></div>';
+        });
+      }
+      det.innerHTML=html;
+    });
+  });
+}
+
+function enviarEmailA(email,nombre,numero){
+  showToast('Enviar Email','Función de envío en integración con Resend');
 }
 
 function loadDashboard(){
