@@ -371,3 +371,4 @@ function saveMetas(){
   fetch(SB+'/rest/v1/aos_metas_llamadas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ins)}).then(function(){el('m-metas').classList.remove('open');acLoad();});
 }
 </script>
+<!-- v6.1 fix -->
