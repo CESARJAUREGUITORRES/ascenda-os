@@ -240,7 +240,358 @@ http.createServer(function(req, res) {
   var f = path.join(PUB, p.slice(1))
   if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
   serve(path.join(PUB, 'login.html'), res)
+  // ===== AGENTS THINK-LOOP API =====
+  if (p === '/api/agents/tick' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    agentTick(req, res); return
+  }
+  if (p === '/api/agents/status' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    agentStatus(res); return
+  }
+  if (p === '/api/agents/run' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    agentRunSingle(req, res); return
+  }
+  if ((p === '/api/agents/tick' || p === '/api/agents/status' || p === '/api/agents/run') && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,GET', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN AGENTS =====
 }).listen(PORT, '0.0.0.0', function() {
   console.log('AscendaOS http://0.0.0.0:' + PORT)
   console.log('Webhook: https://ascenda-os-production.up.railway.app/webhook')
+  console.log('Agents: Think-loop ready on /api/agents/tick')
+  // Auto-tick every 60 seconds for cron agents
+  setInterval(function() { autoTick() }, 60000)
+  console.log('Agents: Auto-tick every 60s started')
 })
+
+// ═══════════════════════════════════════════════
+// AGENTS THINK-LOOP ENGINE
+// ═══════════════════════════════════════════════
+
+var GROQ_KEY = ''
+var GEMINI_KEY = ''
+
+// Load AI keys from Supabase on startup
+function loadAIKeys() {
+  sbFetch('/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)').then(function(rows) {
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].tipo === 'groq') GROQ_KEY = rows[i].api_key || ''
+      if (rows[i].tipo === 'gemini') GEMINI_KEY = rows[i].api_key || ''
+    }
+    console.log('[AGENTS] Keys loaded — Groq:', GROQ_KEY ? 'YES' : 'NO', '| Gemini:', GEMINI_KEY ? 'YES' : 'NO')
+  }).catch(function(e) { console.error('[AGENTS] Key load error:', e.message) })
+}
+
+function sbFetch(endpoint) {
+  return new Promise(function(resolve, reject) {
+    var url = new URL(SB_URL + endpoint)
+    https.get({
+      hostname: url.hostname, path: url.pathname + url.search,
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    }, function(res) {
+      var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+        try { resolve(JSON.parse(d)) } catch(e) { reject(e) }
+      })
+    }).on('error', reject)
+  })
+}
+
+function sbPatchAgent(agentId, data) {
+  return new Promise(function(resolve, reject) {
+    var url = new URL(SB_URL + '/rest/v1/aos_agentes?id=eq.' + agentId)
+    var body = JSON.stringify(data)
+    var req = https.request({
+      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
+    }, function(res) { var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() { resolve(res.statusCode) }) })
+    req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+function sbRpc(rpcName, params) {
+  return new Promise(function(resolve, reject) {
+    var url = new URL(SB_URL + '/rest/v1/rpc/' + rpcName)
+    var body = JSON.stringify(params || {})
+    var req = https.request({
+      hostname: url.hostname, path: url.pathname, method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, function(res) {
+      var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+        try { resolve(JSON.parse(d)) } catch(e) { resolve(d) }
+      })
+    })
+    req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+function logAgent(agentId, tareaId, accion, input, output, motor, modelo, tokIn, tokOut, costo, durMs, ok, err) {
+  var body = JSON.stringify({
+    agente_id: agentId, tarea_id: tareaId || null, accion: accion,
+    input_resumen: (input || '').substring(0, 500),
+    output_resumen: (output || '').substring(0, 2000),
+    resultado: typeof output === 'object' ? output : {},
+    motor_usado: motor || 'script', modelo_usado: modelo || '',
+    tokens_input: tokIn || 0, tokens_output: tokOut || 0,
+    costo_usd: costo || 0, duracion_ms: durMs || 0,
+    exitoso: ok !== false, error: err || ''
+  })
+  var url = new URL(SB_URL + '/rest/v1/aos_agente_logs')
+  var req = https.request({
+    hostname: url.hostname, path: url.pathname, method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
+  }, function() {})
+  req.on('error', function() {})
+  req.write(body); req.end()
+}
+
+// Call Groq API
+function callGroq(systemPrompt, userPrompt, model) {
+  return new Promise(function(resolve, reject) {
+    if (!GROQ_KEY) { reject(new Error('No Groq key')); return }
+    var body = JSON.stringify({
+      model: model || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7, max_tokens: 1024
+    })
+    var req = https.request({
+      hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, function(res) {
+      var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+        try {
+          var r = JSON.parse(d)
+          if (r.choices && r.choices[0]) {
+            resolve({
+              text: r.choices[0].message.content,
+              tokens_in: r.usage ? r.usage.prompt_tokens : 0,
+              tokens_out: r.usage ? r.usage.completion_tokens : 0
+            })
+          } else { reject(new Error(d.substring(0, 200))) }
+        } catch(e) { reject(e) }
+      })
+    })
+    req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+// Call Gemini API
+function callGemini(systemPrompt, userPrompt, model) {
+  return new Promise(function(resolve, reject) {
+    if (!GEMINI_KEY) { reject(new Error('No Gemini key')); return }
+    var body = JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+    })
+    var mdl = model || 'gemini-2.0-flash'
+    var req = https.request({
+      hostname: 'generativelanguage.googleapis.com',
+      path: '/v1beta/models/' + mdl + ':generateContent?key=' + GEMINI_KEY,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, function(res) {
+      var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+        try {
+          var r = JSON.parse(d)
+          if (r.candidates && r.candidates[0] && r.candidates[0].content) {
+            var text = r.candidates[0].content.parts.map(function(p) { return p.text || '' }).join('')
+            resolve({
+              text: text,
+              tokens_in: r.usageMetadata ? r.usageMetadata.promptTokenCount : 0,
+              tokens_out: r.usageMetadata ? r.usageMetadata.candidatesTokenCount : 0
+            })
+          } else { reject(new Error(d.substring(0, 200))) }
+        } catch(e) { reject(e) }
+      })
+    })
+    req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+// Execute a single task
+function executeTask(agent, task) {
+  var start = Date.now()
+  var tipo = task.tipo
+  var config = task.input_config || {}
+
+  // Update agent status to working
+  sbPatchAgent(agent.id, { estado: 'working', bubble_text: task.nombre, bubble_type: 'thought', ultima_actividad: new Date().toISOString() })
+
+  if (tipo === 'rpc_call') {
+    var rpcName = config.rpc
+    var params = config.params || {}
+    // Replace dynamic params
+    var paramStr = JSON.stringify(params)
+    paramStr = paramStr.replace(/"CURRENT_DATE"/g, '"' + new Date().toISOString().split('T')[0] + '"')
+    paramStr = paramStr.replace(/"CURRENT_DATE-1"/g, '"' + new Date(Date.now() - 86400000).toISOString().split('T')[0] + '"')
+    paramStr = paramStr.replace(/"FIRST_OF_MONTH"/g, '"' + new Date().toISOString().slice(0, 8) + '01"')
+    paramStr = paramStr.replace(/"CURRENT_MONTH"/g, '' + (new Date().getMonth() + 1))
+    try { params = JSON.parse(paramStr) } catch(e) {}
+
+    return sbRpc(rpcName, params).then(function(result) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'execute', rpcName, JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: '', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      return { ok: true, result: result, dur: dur }
+    }).catch(function(e) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'error', rpcName, '', 'script', '', 0, 0, 0, dur, false, e.message)
+      sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'Error: ' + e.message.substring(0, 50), bubble_type: 'speech' })
+      return { ok: false, error: e.message }
+    })
+  }
+
+  if (tipo === 'sql_query') {
+    var query = config.query || ''
+    return sbRpc('aos_execute_agent_query', { p_query: query }).then(function(result) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'execute', query.substring(0, 100), JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: '', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      return { ok: true, result: result, dur: dur }
+    }).catch(function(e) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'error', query.substring(0, 100), '', 'script', '', 0, 0, 0, dur, false, e.message)
+      sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'Error SQL', bubble_type: 'speech' })
+      return { ok: false, error: e.message }
+    })
+  }
+
+  if (tipo === 'ai_prompt') {
+    var promptTemplate = config.prompt_template || ''
+    var motor = agent.motor_ai || 'groq'
+    var modelo = agent.modelo || ''
+    var sysPrompt = agent.system_prompt || ''
+    var callFn = motor === 'gemini' ? callGemini : callGroq
+
+    return callFn(sysPrompt, promptTemplate, modelo).then(function(aiResult) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'think', promptTemplate.substring(0, 200), aiResult.text.substring(0, 2000), motor, modelo, aiResult.tokens_in, aiResult.tokens_out, 0, dur, true, '')
+      sbPatchAgent(agent.id, {
+        estado: 'idle', bubble_text: '', 
+        total_ejecuciones: (agent.total_ejecuciones || 0) + 1,
+        total_tokens_usados: (agent.total_tokens_usados || 0) + (aiResult.tokens_in || 0) + (aiResult.tokens_out || 0),
+        ultima_actividad: new Date().toISOString()
+      })
+
+      // Chain: if task has siguiente_agente_id, pass output
+      if (task.siguiente_agente_id) {
+        console.log('[CHAIN] ' + agent.nombre + ' → ' + task.siguiente_agente_id + ' | ' + aiResult.text.substring(0, 80))
+        // Create a message between agents
+        sbPost('/rest/v1/aos_agente_mensajes', {
+          de_agente_id: agent.id, para_agente_id: task.siguiente_agente_id,
+          mensaje: aiResult.text.substring(0, 4000), tipo: 'handoff',
+          metadata: { from_task: task.nombre, from_agent: agent.nombre }
+        }).catch(function() {})
+      }
+      return { ok: true, text: aiResult.text, tokens: aiResult.tokens_in + aiResult.tokens_out, dur: dur }
+    }).catch(function(e) {
+      var dur = Date.now() - start
+      logAgent(agent.id, task.id, 'error', promptTemplate.substring(0, 200), '', motor, modelo, 0, 0, 0, dur, false, e.message)
+      sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'Error AI: ' + e.message.substring(0, 40), bubble_type: 'speech' })
+      return { ok: false, error: e.message }
+    })
+  }
+
+  // Unknown type
+  sbPatchAgent(agent.id, { estado: 'idle', bubble_text: '' })
+  return Promise.resolve({ ok: false, error: 'Unknown task type: ' + tipo })
+}
+
+// Auto-tick: check which cron agents need to run
+function autoTick() {
+  sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron').then(function(agents) {
+    if (!agents || !agents.length) return
+    var now = new Date()
+    agents.forEach(function(agent) {
+      if (!shouldRunCron(agent.cron_intervalo, now, agent.ultima_actividad)) return
+      console.log('[TICK] ' + agent.emoji + ' ' + agent.nombre + ' (' + agent.id + ') — running cron')
+      // Get tasks for this agent
+      sbFetch('/rest/v1/aos_agente_tareas?agente_id=eq.' + agent.id + '&activa=eq.true&order=prioridad').then(function(tasks) {
+        if (!tasks || !tasks.length) return
+        // Execute first pending task
+        executeTask(agent, tasks[0])
+      })
+    })
+  }).catch(function(e) { console.error('[TICK] Error:', e.message) })
+}
+
+function shouldRunCron(cronStr, now, lastRun) {
+  if (!cronStr) return false
+  var last = lastRun ? new Date(lastRun) : new Date(0)
+  var diffMin = (now - last) / 60000
+
+  // Simple cron parser for common patterns
+  if (cronStr === '*/30 * * * *') return diffMin >= 30
+  if (cronStr === '0 * * * *') return diffMin >= 60 && now.getMinutes() < 5
+  if (cronStr === '0 */2 * * *') return diffMin >= 120 && now.getMinutes() < 5
+  if (cronStr.match(/^0 \d+,\d+ \* \* \*/)) {
+    var hours = cronStr.split(' ')[1].split(',').map(Number)
+    return hours.indexOf(now.getHours()) >= 0 && now.getMinutes() < 5 && diffMin >= 60
+  }
+  if (cronStr.match(/^0 \d+ \* \* \d$/)) {
+    var hour = parseInt(cronStr.split(' ')[1])
+    var dow = parseInt(cronStr.split(' ')[4])
+    return now.getDay() === dow && now.getHours() === hour && now.getMinutes() < 5 && diffMin >= 1440
+  }
+  if (cronStr.match(/^0 \d+ \* \* \*/)) {
+    var hour = parseInt(cronStr.split(' ')[1])
+    return now.getHours() === hour && now.getMinutes() < 5 && diffMin >= 1440
+  }
+  return false
+}
+
+// Manual tick endpoint (POST /api/agents/tick)
+function agentTick(req, res) {
+  var body = ''
+  req.on('data', function(c) { body += c })
+  req.on('end', function() {
+    autoTick()
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ ok: true, msg: 'Tick executed' }))
+  })
+}
+
+// Run single agent (POST /api/agents/run {agent_id, task_id?})
+function agentRunSingle(req, res) {
+  var body = ''
+  req.on('data', function(c) { body += c })
+  req.on('end', function() {
+    try {
+      var d = JSON.parse(body)
+      if (!d.agent_id) { res.writeHead(400); res.end('{"error":"agent_id required"}'); return }
+      sbFetch('/rest/v1/aos_agentes?id=eq.' + d.agent_id).then(function(agents) {
+        if (!agents || !agents[0]) { res.writeHead(404); res.end('{"error":"Agent not found"}'); return }
+        var agent = agents[0]
+        var taskFilter = d.task_id ? '&id=eq.' + d.task_id : '&order=prioridad&limit=1'
+        sbFetch('/rest/v1/aos_agente_tareas?agente_id=eq.' + agent.id + '&activa=eq.true' + taskFilter).then(function(tasks) {
+          if (!tasks || !tasks[0]) { res.writeHead(404); res.end('{"error":"No active tasks"}'); return }
+          console.log('[RUN] ' + agent.emoji + ' ' + agent.nombre + ' → ' + tasks[0].nombre)
+          executeTask(agent, tasks[0]).then(function(result) {
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ ok: true, agent: agent.nombre, task: tasks[0].nombre, result: result }))
+          })
+        })
+      })
+    } catch(e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })) }
+  })
+}
+
+// Agent status endpoint
+function agentStatus(res) {
+  sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,area,cargo,motor_ai,estado,bubble_text,ultima_actividad,total_ejecuciones,total_tokens_usados,activo&order=area,nombre').then(function(agents) {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ ok: true, agents: agents, timestamp: new Date().toISOString() }))
+  }).catch(function(e) {
+    res.writeHead(500, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: e.message }))
+  })
+}
+
+// Load keys on startup
+setTimeout(loadAIKeys, 2000)
