@@ -132,8 +132,13 @@ function editUser(idx){
   html+='<div>';
   html+='<div class="sec-t">👑 Rol en el Sistema</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
-  html+='<div class="fg"><div class="fg-l">Rol</div><select class="mi" id="eu-niv"><option value="1">Super Admin</option><option value="2">Administrador</option><option value="3">Asesor</option><option value="4">Operativo</option><option value="5">Externo (lectura)</option></select></div>';
-  html+='<div class="fg"><div class="fg-l">Sedes</div><input class="mi" id="eu-sede2" value="'+h(u.sede||'')+'" placeholder="SAN ISIDRO, PUEBLO LIBRE"></div>';
+  html+='<div class="fg"><div class="fg-l">Rol</div><select class="mi" id="eu-niv"><option value="1">Super Admin</option><option value="2">Administrador</option><option value="3">Operativo</option><option value="4">Externo (lectura)</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Acceso</div><select class="mi" id="eu-acceso" onchange="toggleSedes()"><option value="libre">Uso libre (cualquier lugar)</option><option value="limitado">Limitado a sedes</option></select></div>';
+  html+='</div>';
+  html+='<div id="eu-sedes-box" style="display:none;margin-bottom:8px;padding:8px;background:#F8FAFF;border-radius:8px;">';
+  html+='<div style="font-size:8px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">Sedes habilitadas:</div>';
+  html+='<label style="font-size:9px;display:flex;align-items:center;gap:4px;margin-bottom:3px;"><input type="checkbox" class="sede-chk" value="SAN ISIDRO"'+(u.sede&&u.sede.indexOf('SAN ISIDRO')>=0?' checked':'')+'>📍 San Isidro (Av. Javier Prado Este 996)</label>';
+  html+='<label style="font-size:9px;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="sede-chk" value="PUEBLO LIBRE"'+(u.sede&&u.sede.indexOf('PUEBLO LIBRE')>=0?' checked':'')+'>📍 Pueblo Libre (Av. Brasil 1170)</label>';
   html+='</div>';
   html+='<div class="sec-t" style="color:#7C3AED;">🔐 Paneles de Administración</div>';
   html+='<div class="pm">';P.filter(function(p){return p.categoria==='admin';}).forEach(function(p){var on=ps.indexOf(p.id)>=0;html+='<div class="pi'+(on?' on':'')+'" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k">'+(on?'✓':'')+'</div>'+p.icono+' '+h(p.nombre)+'</div>';});
@@ -150,32 +155,17 @@ function editUser(idx){
   // TAB HORARIOS
   html+='<div id="tab-horarios" style="display:none;">';
   html+='<div style="display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:10px;">';
-  // Photo + info
-  html+='<div style="text-align:center;"><div style="width:160px;height:160px;border-radius:14px;overflow:hidden;border:2px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;margin:0 auto;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:48px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div><div style="font-family:Exo 2;font-weight:800;font-size:14px;margin-top:6px;">'+h(u.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+'</div></div>';
-  // Calendar 30 days
-  html+='<div><div class="sec-t" style="margin-top:0;">📅 Calendario del Mes</div><div id="eu-cal30" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:8px;text-align:center;">Cargando...</div>';
-  html+='<div style="margin-top:6px;display:flex;gap:8px;font-size:8px;color:#6B7BA8;"><span>🟢 Puntual</span><span>🔴 Tarde</span><span>⬜ Sin horario</span><span>🔵 Programado</span></div></div>';
-  html+='</div>';
-  // Programar horarios
-  html+='<div style="background:#EBF2FF;border-radius:10px;padding:10px;margin-bottom:10px;">';
-  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-family:Exo 2;font-weight:800;font-size:11px;">⚙ Programar Horarios</span></div>';
-  html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:9px;">';
-  html+='<div><div class="fg-l">Desde</div><input class="mi" type="date" id="ph-desde" style="font-size:9px;padding:4px 6px;"></div>';
-  html+='<div><div class="fg-l">Hasta</div><input class="mi" type="date" id="ph-hasta" style="font-size:9px;padding:4px 6px;"></div>';
-  html+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede" style="font-size:9px;padding:4px;"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
-  html+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini" value="09:30" style="font-size:9px;padding:4px 6px;"></div>';
-  html+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin" value="18:00" style="font-size:9px;padding:4px 6px;"></div>';
-  html+='</div>';
-  html+='<div style="display:flex;gap:4px;margin-top:4px;align-items:center;"><span style="font-size:8px;color:#6B7BA8;">Días:</span>';
-  ['Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(function(d,i){
-    html+='<label style="font-size:8px;display:flex;align-items:center;gap:2px;"><input type="checkbox" class="ph-dia" value="'+(i+1)+'"'+(i<5?' checked':'')+'> '+d+'</label>';
-  });
-  html+='<button class="mbtn mbtn-p" style="margin-left:auto;font-size:8px;padding:4px 10px;" onclick="progHorarios(\''+h(u.nombre)+'\')">Programar</button></div>';
-  html+='</div>';
+  html+='<div style="text-align:center;"><div style="width:150px;height:150px;border-radius:14px;overflow:hidden;border:2px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;margin:0 auto;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:48px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div><div style="font-family:Exo 2;font-weight:800;font-size:14px;margin-top:4px;">'+h(u.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+'</div></div>';
+  html+='<div><div class="sec-t" style="margin-top:0;">📅 Calendario — Abril 2026</div><div id="eu-cal30" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:9px;text-align:center;">Cargando...</div>';
+  html+='<div style="margin-top:4px;display:flex;gap:10px;font-size:8px;color:#6B7BA8;"><span>🟢 Puntual</span><span>🔴 Tarde</span><span>⬜ Sin horario</span><span>🔵 Programado</span></div>';
+  html+='<div id="eu-day-detail" style="display:none;margin-top:6px;padding:8px;background:#F8FAFF;border-radius:8px;font-size:9px;"></div>';
+  html+='</div></div>';
+  // Botón programar que abre modal
+  html+='<div style="display:flex;gap:6px;margin-bottom:10px;"><button class="mbtn mbtn-p" onclick="openProgModal(\''+h(u.nombre)+'\')">📅 Programar Horarios</button><button class="mbtn mbtn-c" onclick="openProgModal(\''+h(u.nombre)+'\',true)">📋 Editar Turnos Existentes</button></div>';
   // Tables
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
   html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📅 Próximos Turnos</div><div id="eu-hor">Cargando...</div></div>';
-  html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📋 Asistencia <span style="font-size:7px;color:#6B7BA8;">(click fila para editar)</span></div><div id="eu-asis">Cargando...</div></div>';
+  html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📋 Asistencia <span style="font-size:7px;color:#0A4FBF;cursor:pointer;">(click fila para editar)</span></div><div id="eu-asis">Cargando...</div></div>';
   html+='</div></div>';
   // Footer
   html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn mbtn-r" style="margin-left:auto;">Desactivar</button>':'')+'</div>';
@@ -194,55 +184,94 @@ function showTab(t){['datos','roles','horarios'].forEach(function(x){var e=el('t
 function tp(e){e.classList.toggle('on');var k=e.querySelector('.pc-k');k.textContent=e.classList.contains('on')?'✓':'';}
 function saveU(id){
   var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});
-  var d={nombre:(el('eu-nombre').value||'').toUpperCase(),apellidos:(el('eu-apellidos').value||'').toUpperCase(),email:el('eu-email').value,dni:el('eu-dni').value,telefono_personal:el('eu-tel').value,contacto_emergencia:el('eu-emg').value,fecha_nacimiento:el('eu-nac').value||null,lugar_nacimiento:el('eu-lnac').value,rh:el('eu-rh').value,departamento:el('eu-dep').value,provincia:el('eu-prov').value,distrito:el('eu-dist').value,direccion:el('eu-dir').value,cargo:el('eu-cargo').value,area:el('eu-area').value,sede:el('eu-sede').value,fecha_ingreso:el('eu-fing').value||null,tipo_contrato:el('eu-ctr').value,nivel_jerarquia:Number(el('eu-niv').value)||4,sueldo:Number(el('eu-sue').value)||0,bono_metas:Number(el('eu-bon').value)||0,avatar_url:el('eu-avatar').value,paneles_acceso:ps,updated_at:new Date().toISOString()};
+  var sedes=[];document.querySelectorAll('.sede-chk:checked').forEach(function(c){sedes.push(c.value);});
+  var sedeStr=el('eu-acceso')&&el('eu-acceso').value==='libre'?'TODAS':sedes.join(', ');
+  var d={nombre:(el('eu-nombre').value||'').toUpperCase(),apellidos:(el('eu-apellidos').value||'').toUpperCase(),email:el('eu-email').value,dni:el('eu-dni').value,telefono_personal:el('eu-tel').value,contacto_emergencia:el('eu-emg').value,fecha_nacimiento:el('eu-nac').value||null,lugar_nacimiento:el('eu-lnac').value,rh:el('eu-rh').value,departamento:el('eu-dep').value,provincia:el('eu-prov').value,distrito:el('eu-dist').value,direccion:el('eu-dir').value,cargo:el('eu-cargo').value,area:el('eu-area').value,sede:sedeStr||el('eu-sede').value,fecha_ingreso:el('eu-fing').value||null,tipo_contrato:el('eu-ctr').value,nivel_jerarquia:Number(el('eu-niv')?el('eu-niv').value:4)||4,sueldo:Number(el('eu-sue').value)||0,bono_metas:Number(el('eu-bon').value)||0,avatar_url:el('eu-avatar').value,paneles_acceso:ps,updated_at:new Date().toISOString()};
   fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(){showToast(d.nombre+' guardado — '+ps.length+' paneles');el('m-user').classList.remove('open');loadTeam();});
 }
 function loadEst(uid){q('aos_estudios','select=*&usuario_id=eq.'+uid+'&order=created_at.desc',function(r){var c=el('eu-est');if(!c)return;c.innerHTML=(r&&r.length)?r.map(function(e){return '<div style="padding:3px 0;border-bottom:1px solid #EEF0F8;"><b>'+h(e.titulo)+'</b> <span style="color:#6B7BA8;">'+h(e.grado)+' · '+h(e.institucion)+'</span></div>';}).join(''):'Sin estudios';});}
 function addEst(uid){var t=prompt('Título/certificado:');if(!t)return;var g=prompt('Grado:','Certificado');var i=prompt('Institución:');fetch(SB+'/rest/v1/aos_estudios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario_id:uid,titulo:t,grado:g||'',institucion:i||''})}).then(function(){loadEst(uid);showToast('Estudio agregado');});}
 var CARGOS_POR_AREA={'administración':['DIRECTOR GENERAL','GERENTE','JEFE DE ÁREA','COORDINADOR','ASISTENTE'],'enfermería':['JEFE DE ENFERMERÍA','STAFF ENFERMERÍA','TÉCNICO ENFERMERÍA'],'médica':['DIRECTORA MÉDICA','STAFF MÉDICO','MÉDICO GENERAL'],'ventas':['JEFE COMERCIAL','ASESORA COMERCIAL','ASESOR'],'marketing':['JEFE DE MARKETING','COMMUNITY MANAGER','TRAFFICKER','DISEÑADOR'],'recepción':['JEFA DE RECEPCIÓN','RECEPCIONISTA'],'contabilidad':['JEFE DE CONTABILIDAD','CONTADOR','ASISTENTE CONTABLE']};
 function updateCargos(){var area=el('eu-area').value;var sel=el('eu-cargo');var cargos=CARGOS_POR_AREA[area]||['ASESOR'];sel.innerHTML=cargos.map(function(c){return '<option>'+c+'</option>';}).join('');}
+function toggleSedes(){var acc=el('eu-acceso');var box=el('eu-sedes-box');if(box)box.style.display=acc&&acc.value==='limitado'?'block':'none';}
 function loadCal30(nombre){
   var hoy=new Date();var y=hoy.getFullYear(),m=hoy.getMonth();
   var primerDia=new Date(y,m,1).getDay();var diasMes=new Date(y,m+1,0).getDate();
-  // Get horarios + asistencia del mes
   var desde=y+'-'+String(m+1).padStart(2,'0')+'-01';var hasta=y+'-'+String(m+1).padStart(2,'0')+'-'+diasMes;
   Promise.all([
-    fetch(SB+'/rest/v1/aos_horarios_personal?select=fecha&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+desde+'&fecha=lte.'+hasta,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
+    fetch(SB+'/rest/v1/aos_horarios_personal?select=fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+desde+'&fecha=lte.'+hasta,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
     fetch(SB+'/rest/v1/rpc/aos_detalle_asesor',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_nombre:nombre,p_desde:desde,p_hasta:hasta})}).then(function(r){return r.json();})
   ]).then(function(res){
-    var horDias={};(res[0]||[]).forEach(function(h){horDias[h.fecha]=true;});
-    var asisDias={};((res[1]&&res[1].diario)||[]).forEach(function(d){asisDias[d.fecha]={tarde:d.llego_tarde,llam:d.llamadas};});
+    var horMap={};(res[0]||[]).forEach(function(h){horMap[h.fecha]=h;});
+    var asisMap={};((res[1]&&res[1].diario)||[]).forEach(function(d){asisMap[d.fecha]=d;});
     var cal=el('eu-cal30');if(!cal)return;
-    var html='<div style="font-weight:700;color:#9AAAC8;">L</div><div style="font-weight:700;color:#9AAAC8;">M</div><div style="font-weight:700;color:#9AAAC8;">M</div><div style="font-weight:700;color:#9AAAC8;">J</div><div style="font-weight:700;color:#9AAAC8;">V</div><div style="font-weight:700;color:#9AAAC8;">S</div><div style="font-weight:700;color:#9AAAC8;">D</div>';
+    var dNames=['L','M','M','J','V','S','D'];
+    var html=dNames.map(function(d){return '<div style="font-weight:800;color:#071D4A;font-size:8px;padding:2px;">'+d+'</div>';}).join('');
     var ajuste=(primerDia===0?6:primerDia-1);
     for(var i=0;i<ajuste;i++)html+='<div></div>';
     for(var d=1;d<=diasMes;d++){
       var fStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       var esHoy=d===hoy.getDate()&&m===hoy.getMonth();
-      var color='#F0F4FC';var dot='';
-      if(asisDias[fStr]){color=asisDias[fStr].tarde?'#FEF2F2':'#F0FDF4';dot=asisDias[fStr].tarde?'🔴':'🟢';}
-      else if(horDias[fStr]&&fStr>hoy.toISOString().slice(0,10)){color='#EBF2FF';dot='🔵';}
-      html+='<div style="padding:3px;border-radius:4px;background:'+color+';'+(esHoy?'border:2px solid #0A4FBF;font-weight:800;':'')+'cursor:pointer;" title="'+fStr+'">'+d+(dot?'<div style="font-size:5px;line-height:1;">'+dot+'</div>':'')+'</div>';
+      var bg='#fff';var border='1px solid #EEF0F8';var dot='';var cursor='default';
+      if(asisMap[fStr]){bg=asisMap[fStr].llego_tarde?'#FEF2F2':'#F0FDF4';dot=asisMap[fStr].llego_tarde?'<div style="width:5px;height:5px;border-radius:50%;background:#DC2626;margin:1px auto;"></div>':'<div style="width:5px;height:5px;border-radius:50%;background:#059669;margin:1px auto;"></div>';cursor='pointer';}
+      else if(horMap[fStr]&&fStr>hoy.toISOString().slice(0,10)){bg='#EBF2FF';dot='<div style="width:5px;height:5px;border-radius:50%;background:#0A4FBF;margin:1px auto;"></div>';cursor='pointer';}
+      if(esHoy)border='2px solid #0A4FBF';
+      html+='<div style="padding:4px 2px;border-radius:6px;background:'+bg+';border:'+border+';cursor:'+cursor+';transition:all .1s;" onclick="showDayInfo(\''+fStr+'\',\''+nombre+'\')" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'"><div style="font-weight:'+(esHoy?'800':'600')+';font-size:10px;">'+d+'</div>'+dot+'</div>';
     }
     cal.innerHTML=html;
   });
 }
-function progHorarios(nombre){
-  var desde=el('ph-desde').value,hasta=el('ph-hasta').value;
-  if(!desde||!hasta){showToast('Selecciona fechas');return;}
-  var sede=el('ph-sede').value,ini=el('ph-ini').value,fin=el('ph-fin').value;
-  var diasSel=[];document.querySelectorAll('.ph-dia:checked').forEach(function(c){diasSel.push(Number(c.value));});
-  if(!diasSel.length){showToast('Selecciona días');return;}
-  var d=new Date(desde+'T12:00:00');var end=new Date(hasta+'T12:00:00');var inserts=[];
-  while(d<=end){
-    var dow=d.getDay();var isoDay=dow===0?7:dow;
-    if(diasSel.indexOf(isoDay)>=0){
-      inserts.push({fecha:d.toISOString().slice(0,10),personal:nombre,sede:sede,hora_inicio:ini,hora_fin:fin,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'});
-    }
-    d.setDate(d.getDate()+1);
+function showDayInfo(fecha,nombre){
+  var det=el('eu-day-detail');if(!det)return;
+  det.style.display='block';det.innerHTML='<b>'+fecha+'</b> — Cargando...';
+  Promise.all([
+    fetch(SB+'/rest/v1/aos_horarios_personal?select=*&personal=eq.'+encodeURIComponent(nombre)+'&fecha=eq.'+fecha,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
+    fetch(SB+'/rest/v1/aos_llamadas?select=hora_llamada,estado&asesor=eq.'+encodeURIComponent(nombre)+'&fecha=eq.'+fecha+'&order=hora_llamada&limit=5',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();})
+  ]).then(function(res){
+    var hor=res[0]&&res[0][0];var llams=res[1]||[];
+    var html='<div style="display:flex;justify-content:space-between;align-items:center;"><b style="color:#071D4A;">'+fecha+'</b>';
+    if(hor)html+='<span style="color:#0A4FBF;font-weight:700;">'+hor.hora_inicio+' → '+hor.hora_fin+' ('+hor.sede+')</span>';
+    else html+='<span style="color:#9AAAC8;">Sin horario programado</span>';
+    html+='</div>';
+    if(llams.length){html+='<div style="margin-top:4px;">1ra llamada: <b style="color:#0A4FBF;">'+llams[0].hora_llamada+'</b> · Total: <b>'+llams.length+'</b>+ llamadas</div>';}
+    det.innerHTML=html;
+  });
+}
+function openProgModal(nombre,editMode){
+  var modalHTML='<div id="prog-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(550px,94vw);padding:20px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
+  modalHTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-family:Exo 2;font-weight:800;font-size:15px;">'+(editMode?'📋 Editar Turnos':'📅 Programar Horarios')+'</span><span style="font-size:10px;color:#6B7BA8;">'+nombre+'</span><button style="margin-left:auto;background:none;border:none;font-size:18px;color:#9AAAC8;cursor:pointer;" onclick="this.closest(\'#prog-modal\').remove()">✕</button></div>';
+  if(!editMode){
+    modalHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+    modalHTML+='<div><div class="fg-l">Desde</div><input class="mi" type="date" id="ph-desde"></div>';
+    modalHTML+='<div><div class="fg-l">Hasta</div><input class="mi" type="date" id="ph-hasta"></div>';
+    modalHTML+='<div><div class="fg-l">Sede</div><select class="mi" id="ph-sede"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+    modalHTML+='<div><div class="fg-l">Tipo</div><select class="mi" id="ph-tipo"><option value="NORMAL">Turno Normal</option><option value="CITAS">Recibir Citas (Doctora)</option></select></div>';
+    modalHTML+='<div><div class="fg-l">Entrada</div><input class="mi" type="time" id="ph-ini" value="09:30"></div>';
+    modalHTML+='<div><div class="fg-l">Salida</div><input class="mi" type="time" id="ph-fin" value="18:00"></div>';
+    modalHTML+='</div>';
+    modalHTML+='<div style="display:flex;gap:6px;margin:10px 0;align-items:center;flex-wrap:wrap;"><span style="font-size:9px;font-weight:700;color:#6B7BA8;">Días:</span>';
+    ['Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(function(d,i){
+      modalHTML+='<label style="font-size:9px;display:flex;align-items:center;gap:3px;padding:3px 6px;background:#F8FAFF;border-radius:6px;cursor:pointer;"><input type="checkbox" class="ph-dia" value="'+(i+1)+'"'+(i<5?' checked':'')+'> '+d+'</label>';
+    });
+    modalHTML+='</div>';
+    modalHTML+='<div style="display:flex;gap:6px;"><button class="mbtn mbtn-g" onclick="progHorarios(\''+nombre+'\')">✓ Programar Turnos</button><button class="mbtn mbtn-c" onclick="this.closest(\'#prog-modal\').remove()">Cancelar</button></div>';
+  } else {
+    modalHTML+='<div id="ph-edit-list" style="font-size:9px;color:#9AAAC8;">Cargando turnos...</div>';
   }
-  if(!inserts.length){showToast('No hay días que programar');return;}
-  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(inserts)}).then(function(){showToast(inserts.length+' turnos programados para '+nombre);loadCal30(nombre);});
+  modalHTML+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',modalHTML);
+  if(editMode){
+    q('aos_horarios_personal','select=*&personal=eq.'+encodeURIComponent(nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=20',function(rows){
+      var el2=document.getElementById('ph-edit-list');if(!el2)return;
+      el2.innerHTML=(rows&&rows.length)?'<table style="width:100%;font-size:9px;border-collapse:collapse;">'+rows.map(function(r){
+        var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];var d=new Date(r.fecha+'T12:00:00');
+        return '<tr style="border-bottom:1px solid #EEF0F8;"><td style="padding:4px;font-weight:700;">'+dias[d.getDay()]+' '+r.fecha+'</td><td style="color:#0A4FBF;">'+r.hora_inicio+' - '+r.hora_fin+'</td><td style="font-size:8px;color:#6B7BA8;">'+r.sede+'</td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delTurno(\''+r.id+'\',\''+nombre+'\')">✕ Borrar</button></td></tr>';
+      }).join('')+'</table>':'<div>Sin turnos futuros</div>';
+    });
+  }
+}
+function delTurno(id,nombre){
+  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){showToast('Turno eliminado');loadCal30(nombre);openProgModal(nombre,true);});
 }function upAv(inp,uid){var f=inp.files[0];if(!f)return;if(f.size>5*1024*1024){el('eu-as').textContent='❌ Máx 5MB';return;}el('eu-as').textContent='⏳ Subiendo...';el('eu-as').style.color='#D97706';var ext=f.name.split('.').pop();var reader=new FileReader();reader.onload=function(e){el('eu-pb').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';};reader.readAsDataURL(f);fetch(SB+'/storage/v1/object/avatars/'+uid+'.'+ext,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type,'x-upsert':'true'},body:f}).then(function(r){return r.json();}).then(function(r){if(r&&(r.Key||r.Id)){var url=SB+'/storage/v1/object/public/avatars/'+uid+'.'+ext;el('eu-avatar').value=url;el('eu-as').textContent='✅ Foto subida';el('eu-as').style.color='#059669';showToast('Foto actualizada');}else{el('eu-as').textContent='❌ Error';el('eu-as').style.color='#DC2626';}}).catch(function(){el('eu-as').textContent='❌ Error conexión';});}
 function sendInv(id,email,nombre){fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'🔑 Activa tu cuenta AscendaOS',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;text-align:center;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;color:#fff;font-size:20px;font-weight:800;">Bienvenido al equipo</div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>, tu cuenta está lista.</p><a href="https://ascenda-os-production.up.railway.app" style="display:inline-block;background:#0A4FBF;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;">Activar cuenta →</a></div></div>'})}).then(function(){showToast('Invitación enviada a '+email);});}
 function openNewUser(){el('mu-title').textContent='+ Nuevo Usuario';var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">';html+='<div class="fg"><div class="fg-l">Nombres</div><input class="mi" id="eu-nombre"></div>';html+='<div class="fg"><div class="fg-l">Apellidos</div><input class="mi" id="eu-apellidos"></div>';html+='<div class="fg"><div class="fg-l">Email</div><input class="mi" id="eu-email" type="email"></div>';html+='<div class="fg"><div class="fg-l">Usuario</div><input class="mi" id="eu-user" placeholder="nombre.apellido"></div>';html+='<div class="fg"><div class="fg-l">Contraseña</div><input class="mi" id="eu-pass" placeholder="min 6 chars"></div>';html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo"><option>STAFF ENFERMERÍA</option><option>ASESOR</option><option>STAFF MÉDICO</option><option>RECEPCIONISTA</option><option>COMMUNITY MANAGER</option><option>JEFE DE ÁREA</option><option>DIRECTOR GENERAL</option></select></div>';html+='<div class="fg"><div class="fg-l">Sede</div><input class="mi" id="eu-sede"></div>';html+='</div>';html+='<div class="sec-t">🔐 Paneles</div><div class="pm">';P.forEach(function(p){html+='<div class="pi" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k"></div>'+p.icono+' '+h(p.nombre)+'</div>';});html+='</div>';html+='<div style="display:flex;gap:6px;margin-top:10px;"><button class="mbtn mbtn-g" onclick="createU()">✓ Crear</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cancelar</button></div>';el('mu-body').innerHTML=html;el('m-user').classList.add('open');}
