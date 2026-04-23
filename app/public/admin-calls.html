@@ -130,7 +130,11 @@
 <!-- MODALES -->
 <div class="mov" id="m-stl" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">🚀 Speed-to-Lead</div><button class="mx" onclick="el('m-stl').classList.remove('open')">✕</button></div><div class="mbody" id="stl-body"></div></div></div>
 <div class="mov" id="m-curva" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">🎯 Conversión por Intento</div><button class="mx" onclick="el('m-curva').classList.remove('open')">✕</button></div><div class="mbody" id="curva-body"></div></div></div>
-<div class="mov" id="m-metas" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">⚙ Metas Mensuales</div><button class="mx" onclick="el('m-metas').classList.remove('open')">✕</button></div><div class="mbody"><div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;"><span style="font-size:10px;font-weight:700;color:#6B7BA8;">Período:</span><input type="month" class="mi" id="meta-per" style="width:160px;"></div><div id="meta-list"></div></div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-metas').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="saveMetas()">💾 Guardar</button></div></div></div>
+<div class="mov" id="m-metas" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">⚙ Metas Diarias de Llamadas</div><button class="mx" onclick="el('m-metas').classList.remove('open')">✕</button></div><div class="mbody">
+<div class="ins" style="margin-bottom:12px;">Las metas son <b>por día</b>. El sistema calcula el mensual multiplicando por días trabajados. Si cambias la meta, elige desde qué fecha aplica para no afectar días pasados.</div>
+<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;"><span style="font-size:10px;font-weight:700;color:#6B7BA8;">Vigente desde:</span><input type="date" class="mi" id="meta-desde" style="width:160px;"></div>
+<div id="meta-list"></div>
+</div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-metas').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="saveMetas()">💾 Guardar</button></div></div></div>
 <div class="mov" id="m-bases" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">🗂 Gestión de Bases</div><div style="flex:1;"></div><input class="mi" type="text" placeholder="Buscar..." style="width:180px;font-size:10px;" id="bases-search" oninput="rBases()"><button class="mx" onclick="el('m-bases').classList.remove('open')">✕</button></div><div class="mbody">
   <div class="btabs" id="ac-btabs"><button class="btab act" data-t="campana" onclick="bTab(this)">Campaña</button><button class="btab" data-t="tipificacion" onclick="bTab(this)">Tipificación</button><button class="btab" data-t="cita" onclick="bTab(this)">Estado cita</button><button class="btab" data-t="compra" onclick="bTab(this)">Tipo compra</button><button class="btab" data-t="pago" onclick="bTab(this)">Método pago</button><button class="btab" data-t="servicio" onclick="bTab(this)">Servicio</button><button class="btab" data-t="mes" onclick="bTab(this)">Mes ingreso</button><button class="btab" data-t="provincia" onclick="bTab(this)">Provincia</button><button class="btab" data-t="cola" onclick="bTab(this)">📋 Colas Asesor</button></div>
   <div id="ac-bases-summary" style="margin-bottom:10px;"></div>
@@ -148,7 +152,7 @@ function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{maximumFractionDigits:0});}
 function hoyLima(){var d=new Date();var lima=new Date(d.toLocaleString('en-US',{timeZone:'America/Lima'}));return lima.getFullYear()+'-'+(''+(lima.getMonth()+1)).padStart(2,'0')+'-'+(''+(lima.getDate())).padStart(2,'0');}
-(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-per').value=hoy.slice(0,7);el('ac-mon-date').value=hoy;acLoad();})();
+(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-desde').value=hoy;el('ac-mon-date').value=hoy;acLoad();})();
 function acMd(btn){document.querySelectorAll('.ac-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MODO=btn.getAttribute('data-m');var isR=MODO==='rango';el('ac-d1').style.display=isR?'':'none';el('ac-d2').style.display=isR?'':'none';el('ac-al').style.display=isR?'':'none';acLoad();}
 function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok)return;D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);rColas(d.productividad);
     var monDate=el('ac-mon-date').value||hoyLima();
@@ -278,9 +282,6 @@ function showAsesor(nombre){
   var p=(D.productividad||[]).find(function(x){return x.asesor===nombre;});if(!p)return;
   document.querySelectorAll('#ac-prod tr').forEach(function(r){r.classList.remove('sel');});
   document.querySelectorAll('#ac-prod tr').forEach(function(r){if(r.textContent.indexOf(nombre)>=0)r.classList.add('sel');});
-  var metaL=p.meta_llamadas||0,metaC=p.meta_citas||0;
-  var pctL=metaL>0?Math.round(p.llamadas/metaL*100):0;
-  var pctC=metaC>0?Math.round(p.citas/metaC*100):0;
   var det=el('ac-prod-detail');det.style.display='block';
   det.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;">'+h(nombre)+'</div><span style="font-size:9px;color:#9AAAC8;">Detalle del período</span><button class="chip" style="margin-left:auto;" onclick="el(\'ac-prod-detail\').style.display=\'none\'">✕ Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">'+[
     {l:'Llamadas',v:fmt(p.llamadas),c:'#0A4FBF'},{l:'Llam/Día',v:p.llamadas_dia,c:'#0A4FBF'},
@@ -288,7 +289,35 @@ function showAsesor(nombre){
     {l:'Conversión',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Días Activos',v:p.dias_activos,c:'#6B7BA8'},
     {l:'Seguimientos',v:p.seguimientos,c:'#D97706'},{l:'Sin Contacto',v:p.sin_contacto,c:'#6B7BA8'},
     {l:'No Interesa',v:p.no_interesa,c:'#DC2626'},{l:'Citas/Día',v:p.citas_dia||0,c:'#00C9A7'}
-  ].map(function(x){return '<div style="background:#F0F4FC;border-radius:8px;padding:6px;text-align:center;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;font-weight:700;">'+x.l+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;color:'+x.c+';">'+x.v+'</div></div>';}).join('')+'</div>'+(metaL>0||metaC>0?'<div style="display:flex;gap:10px;margin-top:6px;">'+(metaL>0?'<div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;">Meta llamadas: '+p.llamadas+'/'+metaL+' ('+pctL+'%)</div><div class="pb" style="height:6px;"><div class="pb-f" style="width:'+Math.min(pctL,100)+'%;background:'+(pctL>=100?'#059669':'#D97706')+';height:6px;border-radius:3px;"></div></div></div>':'')+(metaC>0?'<div style="flex:1;"><div style="font-size:9px;color:#6B7BA8;">Meta citas: '+p.citas+'/'+metaC+' ('+pctC+'%)</div><div class="pb" style="height:6px;"><div class="pb-f" style="width:'+Math.min(pctC,100)+'%;background:'+(pctC>=100?'#059669':'#D97706')+';height:6px;border-radius:3px;"></div></div></div>':'')+'</div>':'');
+  ].map(function(x){return '<div style="background:#F0F4FC;border-radius:8px;padding:6px;text-align:center;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;font-weight:700;">'+x.l+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;color:'+x.c+';">'+x.v+'</div></div>';}).join('')+'</div><div id="ac-cumpl" style="margin-top:8px;"><div class="ld">Cargando histórico de metas...</div></div>';
+  rpc('aos_cumplimiento_asesor',{p_asesor:nombre},function(c){
+    if(!c||!c.ok){el('ac-cumpl').innerHTML='';return;}
+    var mens=c.mensual||[];var diar=c.diario||[];
+    var html='';
+    if(mens.length){
+      html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin-bottom:4px;">📅 Cumplimiento Mensual</div>';
+      html+='<table class="vt"><thead><tr><th>Mes</th><th>Días</th><th>Llamadas</th><th>Meta LL</th><th>% LL</th><th>Citas</th><th>Meta CI</th><th>% CI</th></tr></thead><tbody>';
+      mens.forEach(function(m){
+        var colL=m.pct_ll>=100?'#059669':m.pct_ll>=80?'#D97706':'#DC2626';
+        var colC=m.pct_ci>=100?'#059669':m.pct_ci>=80?'#D97706':'#DC2626';
+        html+='<tr><td style="font-weight:700;">'+m.mes+'</td><td>'+m.dias_trabajados+'</td><td>'+fmt(m.llamadas)+'</td><td style="color:#6B7BA8;">'+fmt(m.meta_ll_total)+'</td><td style="color:'+colL+';font-weight:700;">'+(m.meta_ll_total>0?m.pct_ll+'%':'—')+'</td><td class="hi hi-c">'+m.citas+'</td><td style="color:#6B7BA8;">'+m.meta_ci_total+'</td><td style="color:'+colC+';font-weight:700;">'+(m.meta_ci_total>0?m.pct_ci+'%':'—')+'</td></tr>';
+      });
+      html+='</tbody></table>';
+    }
+    if(diar.length){
+      html+='<div style="font-size:11px;font-weight:700;color:#0D1B3E;margin:8px 0 4px;">📊 Últimos 30 Días (detalle diario)</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+      diar.forEach(function(d){
+        var ok=d.ok_ll||d.meta_ll===0;
+        var bg=d.meta_ll>0?(ok?'#F0FDF4':'#FEF2F2'):'#F8FAFF';
+        var col=d.meta_ll>0?(ok?'#059669':'#DC2626'):'#6B7BA8';
+        html+='<div style="background:'+bg+';border-radius:6px;padding:4px 6px;text-align:center;min-width:36px;" title="'+d.fecha+': '+d.llamadas+' llam (meta '+d.meta_ll+'), '+d.citas+' citas (meta '+d.meta_ci+')"><div style="font-size:7px;color:#9AAAC8;">'+d.dia+'</div><div style="font-size:10px;font-weight:800;color:'+col+';">'+d.llamadas+'</div><div style="font-size:7px;color:#00C9A7;">'+d.citas+'c</div></div>';
+      });
+      html+='</div>';
+    }
+    if(!mens.length&&!diar.length)html='<div style="font-size:10px;color:#9AAAC8;">Sin metas configuradas aún. Configura metas diarias con el chip ⚙ Metas.</div>';
+    el('ac-cumpl').innerHTML=html;
+  });
 }
 
 /* COLAS (dentro de modal bases) */
@@ -325,6 +354,20 @@ function rSTL(){var stl=D.speed_to_lead||[];if(!stl.length){el('stl-body').inner
 function rCurva(){var ci=D.curva_intentos||[];if(!ci.length){el('curva-body').innerHTML='<div class="ld">Sin datos</div>';return;}var tot=ci.reduce(function(s,c){return s+c.citas;},0);var acum=0;var p1=ci[0]?Math.round(ci[0].citas/tot*100):0;el('curva-body').innerHTML='<div style="text-align:center;margin-bottom:12px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:32px;color:#059669;">'+p1+'%</div><div style="font-size:11px;color:#6B7BA8;">de citas en el 1er intento</div></div><table class="vt"><thead><tr><th>Intento</th><th>Citas</th><th>% Acum.</th><th></th></tr></thead><tbody>'+ci.map(function(c){acum+=c.citas;var pct=tot>0?Math.round(acum/tot*100):0;var tag=c.intento<=2?'<span class="tag tag-g">Zona oro</span>':c.intento<=3?'<span class="tag tag-y">Decreciente</span>':'<span class="tag tag-r">Bajo</span>';return '<tr><td style="font-weight:700;">'+c.intento+'°</td><td class="hi hi-c">'+c.citas+'</td><td style="font-weight:700;">'+pct+'%</td><td>'+tag+'</td></tr>';}).join('')+'</tbody></table><div class="ins" style="margin-top:10px;">Después del 3er intento el rendimiento cae drásticamente.</div>';}
 
 /* MODAL METAS */
-function rMetas(){el('meta-list').innerHTML=ASESORES.map(function(a){var m=(D.metas||[]).find(function(x){return x.asesor.toUpperCase()===a.toUpperCase();});return '<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px;"><div style="font-weight:700;font-size:11px;">'+a+'</div><div><div style="font-size:8px;color:#9AAAC8;">Meta llamadas</div><input class="mi" type="number" data-a="'+a+'" data-f="llamadas" value="'+(m?m.meta_llamadas:0)+'"></div><div><div style="font-size:8px;color:#9AAAC8;">Meta citas</div><input class="mi" type="number" data-a="'+a+'" data-f="citas" value="'+(m?m.meta_citas:0)+'"></div></div>';}).join('');}
-function saveMetas(){var per=el('meta-per').value;var ins=[];ASESORES.forEach(function(a){var ml=Number(document.querySelector('[data-a="'+a+'"][data-f="llamadas"]').value)||0;var mc=Number(document.querySelector('[data-a="'+a+'"][data-f="citas"]').value)||0;ins.push({asesor:a,periodo:per,meta_llamadas:ml,meta_citas:mc,updated_at:new Date().toISOString()});});fetch(SB+'/rest/v1/aos_metas_llamadas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ins)}).then(function(){el('m-metas').classList.remove('open');acLoad();});}
+function rMetas(){
+  el('meta-list').innerHTML=ASESORES.map(function(a){
+    var m=(D.metas||[]).find(function(x){return x.asesor.toUpperCase()===a.toUpperCase();});
+    var mld=m?m.meta_llamadas_dia:0;var mcd=m?m.meta_citas_dia:0;
+    return '<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px;border-bottom:1px solid #F0F4FC;padding-bottom:8px;"><div style="font-weight:700;font-size:11px;">'+a+(m?'<div style="font-size:7px;color:#9AAAC8;">Vigente: '+m.vigente_desde+'</div>':'')+'</div><div><div style="font-size:8px;color:#9AAAC8;">Llamadas/día</div><input class="mi" type="number" data-a="'+a+'" data-f="llamadas" value="'+mld+'"></div><div><div style="font-size:8px;color:#9AAAC8;">Citas/día</div><input class="mi" type="number" data-a="'+a+'" data-f="citas" value="'+mcd+'"></div></div>';
+  }).join('');
+}
+function saveMetas(){
+  var desde=el('meta-desde').value;if(!desde){alert('Selecciona desde qué fecha aplica');return;}
+  var ins=[];ASESORES.forEach(function(a){
+    var ml=Number(document.querySelector('[data-a="'+a+'"][data-f="llamadas"]').value)||0;
+    var mc=Number(document.querySelector('[data-a="'+a+'"][data-f="citas"]').value)||0;
+    ins.push({asesor:a,meta_llamadas_dia:ml,meta_citas_dia:mc,vigente_desde:desde});
+  });
+  fetch(SB+'/rest/v1/aos_metas_llamadas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ins)}).then(function(){el('m-metas').classList.remove('open');acLoad();});
+}
 </script>
