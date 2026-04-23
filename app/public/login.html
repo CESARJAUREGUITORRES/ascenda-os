@@ -476,6 +476,10 @@ function completeLogin(res) {
       puesto: res.puesto || res.rol, sede: res.sede || '',
       usuario: res.usuario || res.nombre,
       permisos: res.permisos || {},
+      paneles_acceso: res.paneles_acceso || [],
+      avatar_url: res.avatar_url || '',
+      nivel: res.nivel || 4,
+      area: res.area || '',
       email: res.email || '',
       expires: Date.now() + (12 * 60 * 60 * 1000)
     }));

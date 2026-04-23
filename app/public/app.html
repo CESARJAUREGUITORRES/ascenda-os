@@ -411,8 +411,9 @@ setTimeout(function() {
     if (!s || !s.codigo_asesor || s.expires < Date.now()) { redirectLogin(); return; }
     AOS.token = s.codigo_asesor;
     AOS.ctx = { nombre:s.nombre, apellido:s.apellido,
-      role:(s.puesto==='ADMINISTRADOR'?'ADMIN':'ASESOR'),
-      puesto:s.puesto, sede:s.sede, idAsesor:s.codigo_asesor, asesor:s.nombre };
+      role:(s.puesto==='ADMINISTRADOR'||s.puesto==='DIRECTOR GENERAL'||s.puesto==='JEFE DE ÁREA'||(s.nivel&&s.nivel<=2)?'ADMIN':'ASESOR'),
+      puesto:s.puesto, sede:s.sede, idAsesor:s.codigo_asesor, asesor:s.nombre,
+      paneles_acceso:s.paneles_acceso||[], avatar_url:s.avatar_url||'', nivel:s.nivel||4 };
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
   buildTopbar(); buildSidebar(); startClock();
@@ -548,8 +549,14 @@ var SIDEBAR_ADMIN = [
 function buildSidebar() {
   var items  = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
   var actCls = AOS.role === 'ADMIN' ? 'act-admin'   : 'act-asesor';
+  var perms  = AOS.ctx.paneles_acceso || [];
   var el = document.getElementById('sb-content');
   var html = '', inBot = false;
+  items.forEach(function(it) {
+    // Filter items by permissions (sections/seps always show, items only if permitted or no perms set)
+    if (it.type === 'item' && perms.length > 0 && !it.bot && !it.special) {
+      if (perms.indexOf(it.id) < 0) return; // Skip items not in paneles_acceso
+    }
   items.forEach(function(it) {
     if (it.bot && !inBot) { html += '<div class="sb-bot">'; inBot = true; }
     if (it.type === 'section') {
