@@ -1,0 +1,268 @@
+<!-- admin-email.html v1 — Panel Email Marketing | AscendaOS v1 | 100% Supabase + Resend -->
+<style>
+.em{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:100%;font-family:'DM Sans',sans-serif;color:#0D1B3E;}
+.em-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.em-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;display:flex;align-items:center;gap:8px;}
+.em-tabs{display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;}
+.em-tab{padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer;color:#6B7BA8;transition:all .15s;border:none;background:none;}
+.em-tab.act{background:#071D4A;color:#fff;}
+.em-tab:hover:not(.act){background:#EBF2FF;}
+.crd{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
+.ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.vt{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
+.vt th{background:#F8FAFF;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:#9AAAC8;padding:8px 10px;text-align:left;border-bottom:1px solid #EEF0F8;}
+.vt td{padding:8px 10px;border-bottom:1px solid #F5F6FA;}
+.vt tr:hover{background:#FAFBFE;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid #DDE4F5;background:#F8FAFF;color:#0D1B3E;transition:all .15s;}
+.chip:hover{background:#EBF2FF;border-color:#0A4FBF;}
+.chip.pri{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
+.chip.grn{background:#059669;color:#fff;border-color:#059669;}
+.chip.red{background:#DC2626;color:#fff;border-color:#DC2626;}
+.mi{padding:7px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;}
+.mi:focus{outline:none;border-color:#0A4FBF;box-shadow:0 0 0 3px rgba(10,79,191,.1);}
+.mbtn{padding:8px 16px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.mbtn-p{background:#0A4FBF;color:#fff;}.mbtn-p:hover{background:#0D2D6E;}
+.mbtn-g{background:#059669;color:#fff;}.mbtn-g:hover{background:#047857;}
+.mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-c:hover{background:#DDE4F5;}
+/* Stats cards */
+.st{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+.st-c{background:#F8FAFF;border-radius:12px;padding:14px;text-align:center;border:1px solid #EEF0F8;}
+.st-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:22px;color:#0A4FBF;}
+.st-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#9AAAC8;margin-top:2px;}
+/* Flow builder */
+.flow-canvas{display:flex;flex-direction:column;gap:0;align-items:center;padding:20px 0;}
+.flow-node{width:320px;background:#fff;border-radius:14px;padding:16px;border:1px solid #DDE4F5;box-shadow:0 2px 8px rgba(7,29,74,.06);position:relative;transition:all .2s;}
+.flow-node:hover{box-shadow:0 6px 20px rgba(7,29,74,.1);transform:translateY(-2px);}
+.flow-node.trigger{border-left:4px solid #0A4FBF;background:linear-gradient(135deg,rgba(10,79,191,.03),#fff 60%);}
+.flow-node.email{border-left:4px solid #059669;background:linear-gradient(135deg,rgba(0,201,167,.03),#fff 60%);}
+.flow-node.wait{border-left:4px solid #D97706;background:linear-gradient(135deg,rgba(217,119,6,.03),#fff 60%);}
+.flow-node.condition{border-left:4px solid #7C3AED;background:linear-gradient(135deg,rgba(124,58,237,.03),#fff 60%);}
+.flow-arrow{width:2px;height:20px;background:#DDE4F5;position:relative;}
+.flow-arrow::after{content:'▼';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font-size:8px;color:#9AAAC8;}
+.fn-ico{font-size:20px;}.fn-type{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9AAAC8;}.fn-title{font-weight:700;font-size:13px;margin-top:2px;}.fn-desc{font-size:10px;color:#6B7BA8;margin-top:2px;}
+/* Plantilla preview */
+.tpl-card{background:#fff;border:1px solid #EEF0F8;border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;}
+.tpl-card:hover{box-shadow:0 6px 20px rgba(7,29,74,.1);transform:translateY(-2px);}
+.tpl-hdr{padding:12px 16px;font-weight:700;font-size:12px;display:flex;align-items:center;gap:8px;}
+.tpl-body{padding:0 16px 12px;font-size:10px;color:#6B7BA8;}
+/* Tags */
+.tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:8px;font-weight:700;}.tag-b{background:#EBF2FF;color:#0A4FBF;}.tag-g{background:#F0FDF4;color:#059669;}.tag-y{background:#FFFBEB;color:#D97706;}.tag-r{background:#FEF2F2;color:#DC2626;}.tag-p{background:#F5F3FF;color:#7C3AED;}
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;z-index:700;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(360px,88vw);}
+.toast-item{pointer-events:all;display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(7,29,74,.22);animation:toastIn .4s cubic-bezier(.22,1,.36,1);border-bottom:3px solid #00C9A7;font-size:12px;}
+@keyframes toastIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(120%)}}
+/* Modal */
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.35);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:20px;width:min(700px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(7,29,74,.2);}
+.mhd{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #EEF0F8;position:sticky;top:0;background:#fff;z-index:1;border-radius:20px 20px 0 0;}
+.mtit{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;}.mx{background:none;border:none;font-size:18px;color:#9AAAC8;cursor:pointer;margin-left:auto;}
+.mbody{padding:20px;}
+@media(max-width:768px){.st{grid-template-columns:1fr 1fr;}}
+</style>
+<div class="em">
+  <div class="em-hdr">
+    <div class="em-t">✉️ Email Marketing</div>
+    <div class="em-tabs">
+      <button class="em-tab act" onclick="emTab('dashboard')">📊 Dashboard</button>
+      <button class="em-tab" onclick="emTab('flujos')">🔄 Flujos</button>
+      <button class="em-tab" onclick="emTab('plantillas')">📝 Plantillas</button>
+      <button class="em-tab" onclick="emTab('enviados')">📬 Enviados</button>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="mbtn mbtn-p" onclick="openNewCampania()">+ Nueva Campaña</button>
+      <button class="chip" onclick="openConfig()">⚙ Config</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="em-dashboard">
+    <div class="st">
+      <div class="st-c"><div class="st-v" id="em-s-total">0</div><div class="st-l">Correos Enviados</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-entregados" style="color:#059669;">0</div><div class="st-l">Entregados</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-flujos" style="color:#D97706;">0</div><div class="st-l">Flujos Activos</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-plantillas" style="color:#7C3AED;">0</div><div class="st-l">Plantillas</div></div>
+    </div>
+    <div class="crd">
+      <div class="ct">📋 Campañas Recientes</div>
+      <table class="vt"><thead><tr><th>Campaña</th><th>Plantilla</th><th>Estado</th><th>Enviados</th><th>Entregados</th><th>Errores</th><th>Fecha</th></tr></thead>
+      <tbody id="em-campanias"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin campañas aún. Crea tu primera campaña →</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- FLUJOS -->
+  <div id="em-flujos" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:11px;color:#6B7BA8;" id="em-flujos-count"></div>
+      <button class="mbtn mbtn-p" onclick="openNewFlujo()">+ Nuevo Flujo</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;" id="em-flujos-list"></div>
+  </div>
+
+  <!-- PLANTILLAS -->
+  <div id="em-plantillas" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:11px;color:#6B7BA8;" id="em-tpl-count"></div>
+      <button class="mbtn mbtn-p" onclick="openNewPlantilla()">+ Nueva Plantilla</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="em-tpl-list"></div>
+  </div>
+
+  <!-- ENVIADOS -->
+  <div id="em-enviados" style="display:none;">
+    <div class="crd">
+      <div class="ct">📬 Historial de Envíos</div>
+      <table class="vt"><thead><tr><th>Destinatario</th><th>Email</th><th>Plantilla</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody id="em-log"><tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos registrados</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ver flujo detalle -->
+<div class="mov" id="m-flujo" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal" style="max-width:500px;">
+  <div class="mhd"><div class="mtit" id="mf-title">Flujo</div><button class="mx" onclick="el('m-flujo').classList.remove('open')">✕</button></div>
+  <div class="mbody" id="mf-body"></div>
+</div></div>
+
+<!-- Modal: Preview plantilla -->
+<div class="mov" id="m-tpl" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal" style="max-width:650px;">
+  <div class="mhd"><div class="mtit" id="mt-title">Plantilla</div><button class="mx" onclick="el('m-tpl').classList.remove('open')">✕</button></div>
+  <div class="mbody" id="mt-body"></div>
+</div></div>
+
+<div class="toast" id="em-toast"></div>
+
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function el(id){return document.getElementById(id);}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(n){return Number(n||0).toLocaleString('es-PE');}
+function rpc(fn,params,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(params)}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
+function q(table,query,cb){fetch(SB+'/rest/v1/'+table+'?'+query,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb);}
+function showToast(t,m,err){var tw=el('em-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
+
+var D={};var TAB='dashboard';
+function emTab(tab){
+  TAB=tab;
+  ['dashboard','flujos','plantillas','enviados'].forEach(function(t){el('em-'+t).style.display=t===tab?'block':'none';});
+  document.querySelectorAll('.em-tab').forEach(function(b){b.classList.remove('act');});
+  event.target.classList.add('act');
+  loadTab();
+}
+function loadTab(){
+  if(TAB==='dashboard')loadDashboard();
+  if(TAB==='flujos')loadFlujos();
+  if(TAB==='plantillas')loadPlantillas();
+  if(TAB==='enviados')loadEnviados();
+}
+
+function loadDashboard(){
+  q('aos_email_envios','select=estado&limit=1000',function(envios){
+    var total=envios?envios.length:0;
+    var entregados=envios?envios.filter(function(e){return e.estado==='enviado'||e.estado==='entregado';}).length:0;
+    el('em-s-total').textContent=fmt(total);
+    el('em-s-entregados').textContent=fmt(entregados);
+  });
+  q('aos_email_flujos','select=id,activo',function(f){el('em-s-flujos').textContent=f?f.filter(function(x){return x.activo;}).length:0;});
+  q('aos_email_plantillas','select=id,activo',function(p){el('em-s-plantillas').textContent=p?p.filter(function(x){return x.activo;}).length:0;});
+  q('aos_email_campanias','select=*&order=created_at.desc&limit=10',function(camps){
+    if(!camps||!camps.length){el('em-campanias').innerHTML='<tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin campañas aún</td></tr>';return;}
+    el('em-campanias').innerHTML=camps.map(function(c){
+      var estCol={'borrador':'tag-y','programado':'tag-b','enviando':'tag-p','completado':'tag-g','cancelado':'tag-r'};
+      return '<tr><td style="font-weight:700;">'+h(c.nombre)+'</td><td style="font-size:9px;color:#6B7BA8;">'+(c.plantilla_id?c.plantilla_id.slice(0,8):'—')+'</td><td><span class="tag '+(estCol[c.estado]||'tag-y')+'">'+h(c.estado)+'</span></td><td>'+c.total_enviados+'</td><td style="color:#059669;font-weight:700;">'+c.total_entregados+'</td><td style="color:#DC2626;">'+(c.total_errores||0)+'</td><td style="font-size:9px;color:#6B7BA8;">'+(c.created_at?c.created_at.slice(0,10):'')+'</td></tr>';
+    }).join('');
+  });
+}
+
+function loadFlujos(){
+  q('aos_email_flujos','select=*&order=created_at.desc',function(flujos){
+    if(!flujos||!flujos.length){el('em-flujos-list').innerHTML='<div style="text-align:center;color:#9AAAC8;padding:40px;">Sin flujos configurados</div>';return;}
+    el('em-flujos-count').textContent=flujos.length+' flujos';
+    el('em-flujos-list').innerHTML=flujos.map(function(f){
+      var pasos=f.pasos||[];var emailCount=pasos.filter(function(p){return p.tipo==='email';}).length;
+      var trigIco={'cita_confirmada':'📅','post_compra':'💳','paciente_inactivo':'😴','recordatorio_diario':'⏰','bienvenida':'🌟','cotizacion_sin_respuesta':'📋'};
+      var ico=trigIco[f.trigger_tipo]||'🔄';
+      return '<div class="crd" style="cursor:pointer;" onclick="verFlujo(\''+f.id+'\')"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div style="font-size:28px;">'+ico+'</div><div><div style="font-weight:800;font-size:14px;">'+h(f.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(f.descripcion)+'</div></div><div style="margin-left:auto;"><span class="tag '+(f.activo?'tag-g':'tag-r')+'">'+(f.activo?'Activo':'Inactivo')+'</span></div></div><div style="display:flex;gap:12px;font-size:10px;color:#6B7BA8;"><div><b style="color:#0A4FBF;">'+pasos.length+'</b> pasos</div><div><b style="color:#059669;">'+emailCount+'</b> emails</div><div><b style="color:#D97706;">'+f.total_ejecutados+'</b> ejecutados</div></div></div>';
+    }).join('');
+  });
+}
+
+function verFlujo(id){
+  q('aos_email_flujos','select=*&id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var f=rows[0];var pasos=f.pasos||[];
+    el('mf-title').textContent=f.nombre;
+    var trigIco={'cita_confirmada':'📅','post_compra':'💳','paciente_inactivo':'😴','recordatorio_diario':'⏰','bienvenida':'🌟'};
+    var html='<div class="flow-canvas">';
+    // Trigger node
+    html+='<div class="flow-node trigger"><div style="display:flex;align-items:center;gap:8px;"><div class="fn-ico">'+(trigIco[f.trigger_tipo]||'🔄')+'</div><div><div class="fn-type">TRIGGER</div><div class="fn-title">'+h(f.trigger_tipo.replace(/_/g,' '))+'</div></div></div></div>';
+    // Steps
+    pasos.forEach(function(p,i){
+      html+='<div class="flow-arrow"></div>';
+      var cls=p.tipo==='email'?'email':p.tipo==='esperar'?'wait':p.tipo==='condicion'?'condition':'email';
+      var ico=p.tipo==='email'?'✉️':p.tipo==='esperar'?'⏳':p.tipo==='condicion'?'🔀':'📧';
+      var delay='';
+      if(p.tipo==='esperar'){
+        var mins=p.delay_minutos||0;
+        delay=mins>=1440?Math.round(mins/1440)+' días':mins>=60?Math.round(mins/60)+' horas':mins+' min';
+      }
+      html+='<div class="flow-node '+cls+'"><div style="display:flex;align-items:center;gap:8px;"><div class="fn-ico">'+ico+'</div><div><div class="fn-type">PASO '+(i+1)+' · '+h(p.tipo)+'</div><div class="fn-title">'+h(p.descripcion||p.tipo)+'</div>'+(delay?'<div class="fn-desc">Esperar '+delay+'</div>':'')+'</div></div></div>';
+    });
+    html+='<div class="flow-arrow"></div><div style="text-align:center;font-size:10px;color:#059669;font-weight:700;padding:8px;">✓ FIN DEL FLUJO</div>';
+    html+='</div>';
+    html+='<div style="display:flex;gap:8px;margin-top:12px;"><button class="mbtn '+(f.activo?'mbtn-c':'mbtn-g')+'" onclick="toggleFlujo(\''+f.id+'\','+!f.activo+')">'+(f.activo?'Desactivar':'Activar')+'</button><button class="mbtn mbtn-c" onclick="el(\'m-flujo\').classList.remove(\'open\')">Cerrar</button></div>';
+    el('mf-body').innerHTML=html;
+    el('m-flujo').classList.add('open');
+  });
+}
+
+function toggleFlujo(id,activo){
+  fetch(SB+'/rest/v1/aos_email_flujos?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({activo:activo,updated_at:new Date().toISOString()})}).then(function(){
+    showToast('Flujo '+(activo?'Activado':'Desactivado'),'');
+    el('m-flujo').classList.remove('open');loadFlujos();loadDashboard();
+  });
+}
+
+function loadPlantillas(){
+  q('aos_email_plantillas','select=*&order=tipo,nombre',function(tpls){
+    if(!tpls||!tpls.length){el('em-tpl-list').innerHTML='<div>Sin plantillas</div>';return;}
+    el('em-tpl-count').textContent=tpls.length+' plantillas';
+    var tipoIco={'recordatorio':'📅','catalogo':'📦','comprobante':'🧾','reactivacion':'💚','bienvenida':'🌟','general':'📧'};
+    var tipoBg={'recordatorio':'#EBF2FF','catalogo':'#F5F3FF','comprobante':'#F0FDF4','reactivacion':'#F0FDFA','bienvenida':'#FFFBEB','general':'#F8FAFF'};
+    el('em-tpl-list').innerHTML=tpls.map(function(t){
+      return '<div class="tpl-card" onclick="verPlantilla(\''+t.id+'\')"><div class="tpl-hdr" style="background:'+(tipoBg[t.tipo]||'#F8FAFF')+';"><span style="font-size:20px;">'+(tipoIco[t.tipo]||'📧')+'</span>'+h(t.nombre)+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;">'+(t.activo?'Activa':'Inactiva')+'</span></div><div class="tpl-body"><div style="margin-bottom:4px;"><b>Asunto:</b> '+h(t.asunto)+'</div><div><b>Variables:</b> '+(t.variables||[]).map(function(v){return '<span style="background:#EBF2FF;padding:1px 6px;border-radius:4px;font-size:8px;margin-right:3px;">{{'+v+'}}</span>';}).join('')+'</div></div></div>';
+    }).join('');
+  });
+}
+
+function verPlantilla(id){
+  q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var t=rows[0];
+    el('mt-title').textContent=t.nombre;
+    var preview=t.html_body.replace(/\{\{(\w+)\}\}/g,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;font-size:11px;">{{$1}}</span>');
+    el('mt-body').innerHTML='<div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Asunto:</span><div style="font-weight:700;font-size:14px;">'+h(t.asunto)+'</div></div><div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Variables:</span><div style="margin-top:4px;">'+(t.variables||[]).map(function(v){return '<span class="tag tag-b" style="margin-right:4px;">{{'+v+'}}</span>';}).join('')+'</div></div><div style="border:1px solid #DDE4F5;border-radius:12px;overflow:hidden;"><div style="background:#F8FAFF;padding:8px 12px;font-size:9px;color:#6B7BA8;font-weight:700;">PREVIEW</div><div style="padding:12px;">'+preview+'</div></div>';
+    el('m-tpl').classList.add('open');
+  });
+}
+
+function loadEnviados(){
+  q('aos_email_envios','select=*&order=created_at.desc&limit=50',function(envios){
+    if(!envios||!envios.length){el('em-log').innerHTML='<tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos registrados</td></tr>';return;}
+    var estCol={'pendiente':'tag-y','enviado':'tag-g','entregado':'tag-g','rebotado':'tag-r','error':'tag-r'};
+    el('em-log').innerHTML=envios.map(function(e){
+      return '<tr><td style="font-weight:700;">'+h(e.destinatario_nombre||'—')+'</td><td style="font-size:9px;">'+h(e.destinatario_email)+'</td><td style="font-size:9px;color:#6B7BA8;">'+(e.plantilla_id?e.plantilla_id.slice(0,8):'—')+'</td><td><span class="tag '+(estCol[e.estado]||'tag-y')+'">'+h(e.estado)+'</span></td><td style="font-size:9px;color:#6B7BA8;">'+(e.created_at?e.created_at.slice(0,16).replace('T',' '):'')+'</td></tr>';
+    }).join('');
+  });
+}
+
+function openNewCampania(){showToast('Próximamente','Editor de campañas en construcción');}
+function openNewFlujo(){showToast('Próximamente','Builder de flujos en construcción');}
+function openNewPlantilla(){showToast('Próximamente','Editor de plantillas en construcción');}
+function openConfig(){showToast('Configuración','Configura tu API Key de Resend en Railway → Variables de entorno → RESEND_API_KEY');}
+
+// Init
+loadDashboard();
+</script>
