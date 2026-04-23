@@ -554,11 +554,10 @@ function buildSidebar() {
   var el = document.getElementById('sb-content');
   var html = '', inBot = false;
   items.forEach(function(it) {
-    // Filter items by permissions (sections/seps always show, items only if permitted or no perms set)
+    // Filter items by permissions
     if (it.type === 'item' && perms.length > 0 && !it.bot && !it.special) {
-      if (perms.indexOf(it.id) < 0) return; // Skip items not in paneles_acceso
+      if (perms.indexOf(it.id) < 0) return;
     }
-  items.forEach(function(it) {
     if (it.bot && !inBot) { html += '<div class="sb-bot">'; inBot = true; }
     if (it.type === 'section') {
       html += '<div class="ns">' + it.label + '</div>';
