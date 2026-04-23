@@ -299,7 +299,9 @@ function verify2FA() {
   var errEl = document.getElementById('tfa-error');
   errEl.style.color = '#DC2626';
   if (code.length !== 6) { errEl.textContent = 'Ingresa los 6 dígitos'; return; }
-  setLoading(true);
+  var btn = document.getElementById('btn-verify');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span>Verificando...</span>'; }
+  errEl.textContent = '';
   fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/aos_verificar_2fa', {
     method: 'POST',
     headers: {
@@ -311,11 +313,22 @@ function verify2FA() {
   })
   .then(function(r) { return r.json(); })
   .then(function(res) {
-    setLoading(false);
-    if (res && res.ok) { completeLogin(res); }
-    else { errEl.textContent = (res && res.error) || 'Código incorrecto'; document.getElementById('inp-code').value = ''; document.getElementById('inp-code').focus(); }
+    if (res && res.ok) {
+      errEl.style.color = '#059669';
+      errEl.textContent = '✓ Código verificado. Ingresando...';
+      setTimeout(function() { completeLogin(res); }, 500);
+    } else {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>✓ Verificar e Ingresar</span>'; }
+      errEl.textContent = (res && res.error) || 'Código incorrecto o expirado';
+      digits.forEach(function(d) { d.value = ''; });
+      digits[0].focus();
+    }
   })
-  .catch(function() { setLoading(false); errEl.textContent = 'Error de conexión'; });
+  .catch(function(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span>✓ Verificar e Ingresar</span>'; }
+    errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+    console.error('2FA verify error:', e);
+  });
 }
 
 function completeLogin(res) {
