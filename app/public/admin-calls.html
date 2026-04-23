@@ -344,9 +344,51 @@ function showAsesor(nombre){
 function assignBase(tab,valor,asesor){showToast('Base Asignada',h(valor)+' → '+h(asesor||'pendiente'));}
 
 /* COLAS (dentro de modal bases) */
-function rColas(prod){el('ac-colas').innerHTML=ASESORES.map(function(a){var p=(prod||[]).find(function(x){return x.asesor===a;});return '<div class="cola-card" onclick="selCola(this,\''+a+'\')"><div class="cola-name">'+a+'</div><div class="cola-cnt">'+fmt(p?p.llamadas:0)+' llam</div><div style="font-size:9px;color:#0A4FBF;font-weight:700;">'+(p?p.citas:0)+' citas</div><div class="cola-lbl">Lógica activa</div></div>';}).join('');el('ac-cola-detail').style.display='none';}
+function rColas(prod){
+  fetch(SB+'/rest/v1/aos_cola_config?order=asesor',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(cfgs){
+    el('ac-colas').innerHTML=ASESORES.map(function(a){
+      var p=(prod||[]).find(function(x){return x.asesor===a;});
+      var cfg=(cfgs||[]).find(function(x){return x.asesor===a;});
+      var tipo=cfg?cfg.tipo_cola:'global';var filtro=cfg?cfg.filtro_valor:'';
+      var tipoLabel=tipo==='global'?'Lógica global':tipo==='campana'?'Campaña: '+filtro:tipo==='no_asistio'?'No asistió':tipo==='pacientes_activos'?'Pac. activos':tipo==='tipificacion'?'Tipif: '+filtro:tipo==='provincia'?'Provincia':tipo;
+      return '<div class="cola-card" onclick="selCola(this,\''+a+'\')"><div class="cola-name">'+a+'</div><div class="cola-cnt">'+fmt(p?p.llamadas:0)+' llam · '+(p?p.citas:0)+' citas</div><div style="font-size:9px;color:#0A4FBF;font-weight:700;margin-top:2px;">'+h(tipoLabel)+'</div></div>';
+    }).join('');
+    el('ac-cola-detail').style.display='none';
+  });
+}
 var COLA_SEL='';
-function selCola(card,asesor){COLA_SEL=asesor;document.querySelectorAll('.cola-card').forEach(function(c){c.classList.remove('sel');});card.classList.add('sel');var det=el('ac-cola-detail');det.style.display='block';det.innerHTML='<div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:6px;">'+h(asesor)+' — Tipo de cola</div><div class="qt">'+[{i:'⚙',t:'Lógica global',d:'Vírgenes → sin llamar → react.'},{i:'🎯',t:'Campaña',d:'Solo un tratamiento'},{i:'⭐',t:'Pacientes activos',d:'Últimos 90 días'},{i:'💰',t:'Adelanto pend.',d:'Pago incompleto'},{i:'📅',t:'No asistió',d:'Cita sin asistir'},{i:'📞',t:'Sin contacto',d:'Nunca contestaron'},{i:'🏷',t:'Tipificación',d:'Estado específico'},{i:'📆',t:'Mes ingreso',d:'Leads de un mes'},{i:'📍',t:'Provincia',d:'Fuera de Lima'}].map(function(q){return '<div class="qt-o" onclick="alert(\'Cola '+q.t+' → '+COLA_SEL+'\')"><div class="qt-i">'+q.i+'</div><div class="qt-t">'+q.t+'</div><div class="qt-d">'+q.d+'</div></div>';}).join('')+'</div>';}
+var COLA_TIPOS=[
+  {k:'global',i:'⚙',t:'Lógica global',d:'Tiers 1-8 automáticos'},
+  {k:'campana',i:'🎯',t:'Campaña',d:'Solo un tratamiento',needFilter:true,ph:'Ej: ENZIMAS FACIALES'},
+  {k:'pacientes_activos',i:'⭐',t:'Pacientes activos',d:'Compraron últimos 90 días'},
+  {k:'no_asistio',i:'📅',t:'No asistió a cita',d:'Tenían cita, no llegaron'},
+  {k:'tipificacion',i:'🏷',t:'Por tipificación',d:'Estado específico',needFilter:true,ph:'Ej: SEGUIMIENTO'},
+  {k:'provincia',i:'📍',t:'Solo provincia',d:'Fuera de Lima'}
+];
+function selCola(card,asesor){
+  COLA_SEL=asesor;document.querySelectorAll('.cola-card').forEach(function(c){c.classList.remove('sel');});card.classList.add('sel');
+  // Leer config actual
+  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(asesor),{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    var cfg=rows&&rows[0]?rows[0]:{tipo_cola:'global',filtro_valor:''};
+    var det=el('ac-cola-detail');det.style.display='block';
+    det.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;">'+h(asesor)+'</div><span style="font-size:9px;color:#9AAAC8;">Cola actual: <b style="color:#0A4FBF;">'+h(cfg.tipo_cola)+'</b>'+(cfg.filtro_valor?' · '+h(cfg.filtro_valor):'')+'</span></div><div class="qt">'+COLA_TIPOS.map(function(q){
+      var isSel=cfg.tipo_cola===q.k;
+      return '<div class="qt-o" style="'+(isSel?'border-color:#0A4FBF;background:#EBF2FF;':'')+'" onclick="asignarCola(\''+q.k+'\','+(q.needFilter?'true':'false')+')"><div class="qt-i">'+q.i+'</div><div class="qt-t">'+q.t+(isSel?' ✓':'')+'</div><div class="qt-d">'+q.d+'</div></div>';
+    }).join('')+'</div>';
+  });
+}
+function asignarCola(tipo,needFilter){
+  var filtro='';
+  if(needFilter){
+    filtro=prompt('Ingresa el filtro para "'+tipo+'" (ej: ENZIMAS FACIALES):');
+    if(!filtro)return;
+    filtro=filtro.toUpperCase().trim();
+  }
+  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(COLA_SEL),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro,configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
+    if(r.ok){showToast('Cola Actualizada',COLA_SEL+' → '+tipo+(filtro?' · '+filtro:''));rColas(D.productividad);selCola(document.querySelector('.cola-card.sel'),COLA_SEL);}
+    else{r.text().then(function(t){showToast('Error',t,true);});}
+  });
+}
 
 /* BASES */
 function bTab(btn){document.querySelectorAll('.btab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');TAB_ACT=btn.getAttribute('data-t');rBases();}
