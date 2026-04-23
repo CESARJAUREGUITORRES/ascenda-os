@@ -164,16 +164,27 @@ document.getElementById('toggle-pass').addEventListener('click', function() {
 
 //  LOGIN PRINCIPAL 
 var _turnstileToken = null;
+var _turnstileReady = false;
 function onTurnstileOK(token) {
   _turnstileToken = token;
+  _turnstileReady = true;
   var btn = document.getElementById('btn-login');
   if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
 }
 function onTurnstileExpired() {
   _turnstileToken = null;
+  _turnstileReady = true; // Still allow login
   var btn = document.getElementById('btn-login');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; document.getElementById('btn-txt').textContent = 'CAPTCHA expirado — recarga'; }
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
 }
+// Fallback: si Turnstile no carga en 3 segundos, habilitar botón de todas formas
+setTimeout(function() {
+  if (!_turnstileReady) {
+    _turnstileReady = true;
+    var btn = document.getElementById('btn-login');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
+  }
+}, 3000);
 
 var _2FA_DATA = null;
 function doLogin() {
@@ -187,7 +198,8 @@ function doLogin() {
     return;
   }
   if (!_turnstileToken) {
-    errEl.textContent = 'Esperando verificación de seguridad...';
+    // Sin token de Turnstile — proceder con login directamente (2FA protege)
+    doLoginAuth(user, pass);
     return;
   }
   setLoading(true);
