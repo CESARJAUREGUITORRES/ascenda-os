@@ -55,6 +55,7 @@
     <div class="cfg-tabs">
       <button class="cfg-tab act" onclick="cfgTab('empresa')">🏢 Empresa</button>
       <button class="cfg-tab" onclick="cfgTab('integraciones')">🔗 Integraciones</button>
+      <button class="cfg-tab" onclick="cfgTab('facturacion')">💳 Facturación</button>
       <button class="cfg-tab" onclick="cfgTab('sistema')">🛠 Sistema</button>
       <button class="cfg-tab" onclick="cfgTab('equipo')">👥 Equipo</button>
     </div>
@@ -96,7 +97,32 @@
 
   <!-- INTEGRACIONES -->
   <div id="cfg-integraciones" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:11px;color:#6B7BA8;">Conecta tus servicios externos para automatizar todo el sistema</div>
+      <button class="mbtn mbtn-p" onclick="addIntegracion()">+ Agregar Integración</button>
+    </div>
     <div class="ig" id="cfg-ig-list"></div>
+  </div>
+
+  <!-- FACTURACIÓN -->
+  <div id="cfg-facturacion" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="crd">
+        <div class="sec-t">🏢 Razones Sociales / RUCs</div>
+        <div id="cfg-rucs"></div>
+        <button class="mbtn mbtn-c" style="margin-top:8px;" onclick="addRuc()">+ Agregar RUC</button>
+      </div>
+      <div class="crd">
+        <div class="sec-t">💳 Métodos de Pago</div>
+        <div id="cfg-pagos"></div>
+        <button class="mbtn mbtn-c" style="margin-top:8px;" onclick="addMetodo()">+ Agregar Método</button>
+      </div>
+    </div>
+    <div class="crd" style="margin-top:12px;">
+      <div class="sec-t">🏥 Servicios y Tratamientos</div>
+      <div id="cfg-servicios"></div>
+      <button class="mbtn mbtn-c" style="margin-top:8px;" onclick="addServicio()">+ Agregar Servicio</button>
+    </div>
   </div>
 
   <!-- SISTEMA -->
@@ -149,10 +175,11 @@ function showToast(t,m,err){var tw=el('cfg-toast');var d=document.createElement(
 
 var CFG={};
 function cfgTab(tab){
-  ['empresa','integraciones','sistema','equipo'].forEach(function(t){var e=el('cfg-'+t);if(e)e.style.display=t===tab?'block':'none';});
+  ['empresa','integraciones','facturacion','sistema','equipo'].forEach(function(t){var e=el('cfg-'+t);if(e)e.style.display=t===tab?'block':'none';});
   document.querySelectorAll('.cfg-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');
   if(tab==='integraciones')loadIntegraciones();
   if(tab==='equipo')loadEquipo();
+  if(tab==='facturacion')loadFacturacion();
 }
 
 function loadConfig(){
@@ -196,57 +223,103 @@ function updateBrandPreview(){
 }
 
 function loadIntegraciones(){
-  var integ=[
-    {id:'resend',ico:'✉️',bg:'#F0FDF4',name:'Resend (Email)',desc:'Envío de emails transaccionales y marketing',fields:[{k:'email_resend_key',l:'API Key',type:'password'},{k:'integ_resend_dominio',l:'Dominio verificado'},{k:'email_from',l:'Email de salida'},{k:'email_reply_to',l:'Reply-To'}],
-    status:CFG.integ_resend_status||'pendiente',
-    guide:{title:'Configurar Resend',steps:[
-      {n:1,txt:'<b>Crear cuenta</b> en <a href="https://resend.com" target="_blank" style="color:#0A4FBF;">resend.com</a> (gratis, 3,000 emails/mes)'},
-      {n:2,txt:'<b>Crear API Key</b> en resend.com/api-keys → copiar la key que empieza con <code>re_</code>'},
-      {n:3,txt:'<b>Pegar la API Key</b> en el campo de arriba'},
-      {n:4,txt:'<b>Verificar dominio</b> (opcional): en resend.com/domains → agregar tu dominio → copiar los registros DNS'},
-      {n:5,txt:'<b>Agregar registros DNS</b> en tu proveedor (GoDaddy, Namecheap, etc.): 1 registro MX, 1 TXT (SPF), 1 CNAME (DKIM)'},
-      {n:6,txt:'<b>Cambiar Email de salida</b> al email de tu dominio verificado (ej: citas@zivital.com)'}
-    ]}},
-    {id:'google',ico:'📅',bg:'#EBF2FF',name:'Google (Calendar + Contacts)',desc:'Sincronizar citas con Google Calendar y contactos',fields:[{k:'integ_google_email',l:'Cuenta Gmail'},{k:'integ_google_calendar_id',l:'Calendar ID'}],
-    status:CFG.integ_google_status||'pendiente',
-    guide:{title:'Vincular Google Calendar',steps:[
-      {n:1,txt:'<b>Abrir Google Calendar</b> → Configuración → seleccionar el calendario'},
-      {n:2,txt:'<b>Copiar el ID del calendario</b> (aparece como email: xxxx@group.calendar.google.com)'},
-      {n:3,txt:'<b>Pegar el Calendar ID</b> en el campo de configuración'},
-      {n:4,txt:'<b>Compartir calendario</b> con la cuenta de servicio (se proporcionará al activar)'},
-      {n:5,txt:'En el futuro: <b>Google Auth</b> permitirá login con cuenta Google'}
-    ]}},
-    {id:'whatsapp',ico:'💬',bg:'#F0FDF4',name:'WhatsApp Business',desc:'Plantillas y envío rápido via WhatsApp Web',fields:[{k:'integ_whatsapp_numero',l:'Número WhatsApp'}],
-    status:CFG.integ_whatsapp_status||'pendiente',
-    guide:{title:'Configurar WhatsApp',steps:[
-      {n:1,txt:'<b>Ingresar el número</b> de WhatsApp Business de la clínica'},
-      {n:2,txt:'<b>Las plantillas</b> se envían abriendo WhatsApp Web con el mensaje pre-cargado'},
-      {n:3,txt:'Futuro: <b>Meta Cloud API</b> para envío automático y chatbot con AI'}
-    ]}},
-    {id:'supabase',ico:'🗄️',bg:'#F0FDFA',name:'Supabase (Base de datos)',desc:'Base de datos PostgreSQL en la nube — ya conectado',fields:[],
-    status:'conectado',
-    guide:{title:'Supabase',steps:[{n:1,txt:'<b>Ya conectado.</b> Project ID: ituyqwstonmhnfshnaqz. 55+ tablas aos_*. RLS deshabilitado.'}]}}
-  ];
-  el('cfg-ig-list').innerHTML=integ.map(function(ig){
-    var stCls=ig.status==='conectado'?'ok':ig.status==='configurando'?'warn':'off';
-    var stTxt=ig.status==='conectado'?'✓ Conectado':ig.status==='configurando'?'⚙ Configurando':'○ Pendiente';
-    var fieldsHtml=ig.fields.map(function(f){
-      var val=CFG[f.k]||'';var masked=f.type==='password'&&val?val.slice(0,8)+'...':'';
-      return '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;"><div style="font-size:9px;color:#6B7BA8;min-width:100px;">'+f.l+'</div><input class="mi mi-sm" style="flex:1;" type="'+(f.type||'text')+'" value="'+(masked||h(val))+'" data-k="'+f.k+'" placeholder="No configurado"></div>';
+  fetch(SB+'/rest/v1/aos_integraciones?select=*&order=tipo,nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('cfg-ig-list').innerHTML='<div style="color:#9AAAC8;padding:20px;">Sin integraciones</div>';return;}
+    var tipoIco={'supabase':'🗄️','resend':'✉️','railway':'🚂','github':'💻','google':'📅','whatsapp':'💬','facebook':'📱','anthropic':'🤖','elevenlabs':'🔊'};
+    var tipoBg={'supabase':'#F0FDFA','resend':'#F0FDF4','railway':'#F5F3FF','github':'#F8FAFF','google':'#EBF2FF','whatsapp':'#F0FDF4','facebook':'#EBF2FF','anthropic':'#FFFBEB','elevenlabs':'#F5F3FF'};
+    el('cfg-ig-list').innerHTML=rows.map(function(ig){
+      var stCls=ig.estado==='conectado'?'ok':ig.estado==='configurando'?'warn':'off';
+      var stTxt=ig.estado==='conectado'?'✓ Conectado':ig.estado==='error'?'✕ Error':'○ Pendiente';
+      return '<div class="ig-c"><div class="ig-badge '+stCls+'">'+stTxt+'</div><div class="ig-hdr"><div class="ig-ico" style="background:'+(tipoBg[ig.tipo]||'#F8FAFF')+';">'+(tipoIco[ig.tipo]||'🔗')+'</div><div><div class="ig-name">'+h(ig.nombre)+'</div><div class="ig-desc">'+h(ig.cuenta||'Sin configurar')+'</div></div></div><div style="display:flex;gap:6px;"><button class="mbtn mbtn-p" onclick="editInteg(\''+ig.id+'\')">Configurar</button><button class="mbtn mbtn-c" onclick="showGuideFor(\''+ig.tipo+'\')">📖 Guía</button></div></div>';
     }).join('');
-    return '<div class="ig-c"><div class="ig-badge '+stCls+'">'+stTxt+'</div><div class="ig-hdr"><div class="ig-ico" style="background:'+ig.bg+';">'+ig.ico+'</div><div><div class="ig-name">'+ig.name+'</div><div class="ig-desc">'+ig.desc+'</div></div></div>'+fieldsHtml+'<div style="display:flex;gap:6px;margin-top:10px;"><button class="mbtn mbtn-p" onclick="saveConfig()">Guardar</button><button class="mbtn mbtn-c" onclick="showGuide(\''+ig.id+'\')">📖 Guía paso a paso</button></div></div>';
-  }).join('');
-  // Store guides
-  window._guides=integ.reduce(function(a,ig){a[ig.id]=ig.guide;return a;},{});
+  });
 }
 
-function showGuide(id){
-  var g=window._guides[id];if(!g)return;
+function editInteg(id){
+  fetch(SB+'/rest/v1/aos_integraciones?id=eq.'+id,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows[0])return;var ig=rows[0];
+    var html='<div style="margin-bottom:14px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;">'+h(ig.nombre)+'</div><div style="font-size:10px;color:#6B7BA8;">Tipo: '+h(ig.tipo)+'</div></div>';
+    html+='<div class="fg"><div class="fg-l">Cuenta / Email</div><input class="mi" id="ig-cuenta" value="'+h(ig.cuenta)+'"></div>';
+    html+='<div class="fg"><div class="fg-l">Estado</div><select class="mi" id="ig-estado"><option value="pendiente">Pendiente</option><option value="configurando">Configurando</option><option value="conectado">Conectado</option><option value="error">Error</option></select></div>';
+    var cfg=ig.config||{};
+    Object.keys(cfg).forEach(function(k){
+      html+='<div class="fg"><div class="fg-l">'+h(k)+'</div><input class="mi" id="ig-cfg-'+k+'" value="'+h(cfg[k])+'"></div>';
+    });
+    html+='<div class="fg"><div class="fg-l">Agregar campo</div><div style="display:flex;gap:4px;"><input class="mi mi-sm" id="ig-new-key" placeholder="clave" style="width:100px;"><input class="mi mi-sm" id="ig-new-val" placeholder="valor" style="flex:1;"><button class="mbtn mbtn-c" onclick="addIgField()">+</button></div></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:14px;"><button class="mbtn mbtn-g" onclick="saveInteg(\''+ig.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-guide\').classList.remove(\'open\')">Cerrar</button></div>';
+    el('mg-title').textContent='⚙ Configurar: '+ig.nombre;
+    el('mg-body').innerHTML=html;
+    el('ig-estado').value=ig.estado;
+    el('m-guide').classList.add('open');
+  });
+}
+
+function saveInteg(id){
+  var cuenta=el('ig-cuenta').value;var estado=el('ig-estado').value;
+  var config={};document.querySelectorAll('[id^="ig-cfg-"]').forEach(function(inp){var k=inp.id.replace('ig-cfg-','');config[k]=inp.value;});
+  var nk=el('ig-new-key'),nv=el('ig-new-val');if(nk&&nk.value&&nv)config[nk.value]=nv.value;
+  fetch(SB+'/rest/v1/aos_integraciones?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cuenta:cuenta,estado:estado,config:config,updated_at:new Date().toISOString()})}).then(function(){
+    showToast('Integración Guardada','Configuración actualizada');
+    el('m-guide').classList.remove('open');loadIntegraciones();
+  });
+}
+
+function addIntegracion(){
+  var tipo=prompt('Tipo de integración (google, whatsapp, anthropic, elevenlabs, otro):');if(!tipo)return;
+  var nombre=prompt('Nombre descriptivo:');if(!nombre)return;
+  fetch(SB+'/rest/v1/aos_integraciones',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo:tipo,nombre:nombre,estado:'pendiente'})}).then(function(){showToast('Integración Agregada','');loadIntegraciones();});
+}
+
+function showGuideFor(tipo){
+  var guides={
+    'resend':{title:'Configurar Resend (Email)',steps:['<b>Crear cuenta</b> en resend.com (gratis, 3,000 emails/mes)','<b>Crear API Key</b> en resend.com/api-keys','<b>Pegar la API Key</b> en la configuración de la integración','<b>Verificar dominio</b> (opcional): resend.com/domains → agregar dominio → copiar registros DNS','<b>Agregar registros DNS</b> en tu proveedor: MX, TXT (SPF), CNAME (DKIM)','<b>Cambiar Email de salida</b> al email de tu dominio verificado']},
+    'google':{title:'Vincular Google Calendar + Contacts',steps:['<b>Abrir Google Calendar</b> → Configuración → seleccionar calendario','<b>Copiar Calendar ID</b> (formato: xxxx@group.calendar.google.com)','<b>Pegar el Calendar ID</b> en la configuración','<b>Compartir calendario</b> con la cuenta de servicio del sistema','<b>Google Contacts:</b> al guardar un paciente, se creará contacto automáticamente en la cuenta Google vinculada','Futuro: <b>Google Auth</b> para login con cuenta Google']},
+    'whatsapp':{title:'WhatsApp Business API (Meta Cloud)',steps:['<b>Crear app</b> en developers.facebook.com','<b>Agregar producto</b> WhatsApp Business','<b>Verificar número</b> de teléfono','<b>Copiar el token</b> de acceso permanente','<b>Configurar webhook</b> apuntando a ascenda-os-production.up.railway.app/webhook','Con esto: chatbot Cronia + envío automático + recepción de mensajes']},
+    'anthropic':{title:'Claude AI (Chatbot Brain)',steps:['<b>Crear cuenta</b> en console.anthropic.com','<b>Crear API Key</b> en Settings → API Keys','<b>Pegar la key</b> en la configuración (empieza con sk-ant-)','Claude procesará mensajes del chatbot y generará respuestas inteligentes','Se usará para: Cronia (chatbot), análisis de datos, respuestas automáticas']},
+    'facebook':{title:'Facebook/Instagram Ads Webhook',steps:['<b>Configurar formulario de leads</b> en Facebook Ads Manager','<b>Ir a</b> developers.facebook.com → Webhooks','<b>Suscribirse</b> al evento leadgen de tu página','<b>URL del webhook:</b> ascenda-os-production.up.railway.app/webhook','Los leads llegarán automáticamente a AscendaOS sin importar Excel']},
+    'elevenlabs':{title:'ElevenLabs (Voz para Cronia)',steps:['<b>Crear cuenta</b> en elevenlabs.io','<b>Crear API Key</b> en Profile → API Keys','<b>Clonar voz</b> o seleccionar voz prediseñada','<b>Pegar la key</b> en configuración','Cronia podrá hablar con voz natural en llamadas o mensajes de voz']}
+  };
+  var g=guides[tipo];if(!g){showToast('Sin guía','Guía no disponible para '+tipo);return;}
   el('mg-title').textContent='📖 '+g.title;
-  el('mg-body').innerHTML='<div class="wiz">'+g.steps.map(function(s){
-    return '<div class="wiz-step"><div class="wiz-num">'+s.n+'</div><div class="wiz-txt">'+s.txt+'</div></div>';
-  }).join('')+'</div><div style="margin-top:14px;padding:12px;background:#F0FDF4;border-radius:10px;font-size:10px;color:#059669;">💡 Si necesitas ayuda con algún paso, contacta al equipo de soporte de AscendaOS.</div>';
+  el('mg-body').innerHTML='<div class="wiz">'+g.steps.map(function(s,i){return '<div class="wiz-step"><div class="wiz-num">'+(i+1)+'</div><div class="wiz-txt">'+s+'</div></div>';}).join('')+'</div>';
   el('m-guide').classList.add('open');
+}
+
+// ═══════ FACTURACIÓN ═══════
+function loadFacturacion(){
+  // RUCs
+  fetch(SB+'/rest/v1/aos_razones_sociales?select=*&order=tipo',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('cfg-rucs').innerHTML='<div style="color:#9AAAC8;font-size:10px;padding:10px;">Sin razones sociales</div>';return;}
+    el('cfg-rucs').innerHTML=rows.map(function(r){
+      return '<div style="padding:8px;border:1px solid #EEF0F8;border-radius:8px;margin-bottom:6px;"><div style="font-weight:700;font-size:12px;">'+h(r.razon_social)+'</div><div style="font-size:10px;color:#6B7BA8;">RUC: '+h(r.ruc)+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(r.direccion_fiscal||'')+'</div></div>';
+    }).join('');
+  });
+  // Métodos de pago
+  fetch(SB+'/rest/v1/aos_metodos_pago?select=*&order=orden',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('cfg-pagos').innerHTML='<div style="color:#9AAAC8;font-size:10px;padding:10px;">Sin métodos de pago</div>';return;}
+    el('cfg-pagos').innerHTML=rows.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #EEF0F8;border-radius:8px;margin-bottom:4px;"><div style="width:8px;height:8px;border-radius:50%;background:'+(r.activo?'#059669':'#9AAAC8')+';"></div><div style="font-weight:700;font-size:11px;">'+h(r.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;margin-left:auto;">'+h(r.tipo||'general')+'</div></div>';
+    }).join('');
+  });
+  // Servicios
+  fetch(SB+'/rest/v1/aos_servicios_catalogo?select=*&order=orden,nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('cfg-servicios').innerHTML='<div style="color:#9AAAC8;font-size:10px;padding:10px;">Sin servicios configurados. Agrega los tratamientos de la clínica.</div>';return;}
+    el('cfg-servicios').innerHTML='<table class="vt"><thead><tr><th>Servicio</th><th>Categoría</th><th>Precio Base</th><th>Duración</th><th>Estado</th></tr></thead><tbody>'+rows.map(function(r){
+      return '<tr><td style="font-weight:700;">'+h(r.nombre)+'</td><td style="font-size:9px;">'+h(r.categoria)+'</td><td style="font-family:Exo 2;font-weight:700;color:#059669;">S/'+Number(r.precio_base||0).toFixed(0)+'</td><td style="font-size:9px;">'+r.duracion_min+' min</td><td style="font-size:9px;color:'+(r.activo?'#059669':'#DC2626')+';">'+(r.activo?'Activo':'Inactivo')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+  });
+}
+function addRuc(){
+  var ruc=prompt('RUC:');if(!ruc)return;var rs=prompt('Razón social:');if(!rs)return;var dir=prompt('Dirección fiscal (opcional):')||'';
+  fetch(SB+'/rest/v1/aos_razones_sociales',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ruc:ruc,razon_social:rs,direccion_fiscal:dir})}).then(function(){showToast('RUC Agregado','');loadFacturacion();});
+}
+function addMetodo(){
+  var nombre=prompt('Nombre del método de pago:');if(!nombre)return;
+  fetch(SB+'/rest/v1/aos_metodos_pago',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:nombre.toUpperCase()})}).then(function(){showToast('Método Agregado','');loadFacturacion();});
+}
+function addServicio(){
+  var nombre=prompt('Nombre del servicio/tratamiento:');if(!nombre)return;var precio=prompt('Precio base (S/):');var dur=prompt('Duración (minutos):');
+  fetch(SB+'/rest/v1/aos_servicios_catalogo',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:nombre,precio_base:Number(precio)||0,duracion_min:Number(dur)||30})}).then(function(){showToast('Servicio Agregado','');loadFacturacion();});
 }
 
 function loadEquipo(){
