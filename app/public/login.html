@@ -66,6 +66,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .loading-ov.show{display:flex;}
 .load-spinner{width:40px;height:40px;border:3px solid var(--blue-xl);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
 .load-txt{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </style>
 </head>
 <body>
@@ -129,9 +130,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
           <span class="inp-ico" id="toggle-pass" title="Mostrar/ocultar">👁</span>
         </div>
       </div>
-      <button class="btn-login" id="btn-login">
+      <div style="display:flex;justify-content:center;margin-top:14px;">
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADBlrdXnMyDkipRg" data-theme="light" data-size="normal" data-callback="onTurnstileOK" data-expired-callback="onTurnstileExpired"></div>
+      </div>
+      <button class="btn-login" id="btn-login" disabled style="opacity:0.5;">
         <div class="spinner" id="spinner"></div>
-        <span id="btn-txt">Ingresar al sistema</span>
+        <span id="btn-txt">Verificando seguridad...</span>
       </button>
       <div class="error-msg" id="error-msg"></div>
       <div class="form-footer">AscendaOS v1.0 &nbsp;·&nbsp; by CREACTIVE</div>
@@ -159,6 +163,18 @@ document.getElementById('toggle-pass').addEventListener('click', function() {
 });
 
 //  LOGIN PRINCIPAL 
+var _turnstileToken = null;
+function onTurnstileOK(token) {
+  _turnstileToken = token;
+  var btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
+}
+function onTurnstileExpired() {
+  _turnstileToken = null;
+  var btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; document.getElementById('btn-txt').textContent = 'CAPTCHA expirado — recarga'; }
+}
+
 var _2FA_DATA = null;
 function doLogin() {
   var user  = document.getElementById('inp-user').value.trim();
@@ -170,7 +186,33 @@ function doLogin() {
     errEl.textContent = 'Completa usuario y contrasena.';
     return;
   }
+  if (!_turnstileToken) {
+    errEl.textContent = 'Esperando verificación de seguridad...';
+    return;
+  }
   setLoading(true);
+
+  // Verificar Turnstile token en servidor antes de login
+  fetch('https://ascenda-os-production.up.railway.app/api/verify-turnstile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: _turnstileToken })
+  }).then(function(r) { return r.json(); }).then(function(tr) {
+    if (!tr || !tr.success) {
+      setLoading(false);
+      errEl.textContent = 'Verificación de seguridad fallida. Recarga la página.';
+      return;
+    }
+    // Turnstile OK — proceder con login
+    doLoginAuth(user, pass);
+  }).catch(function() {
+    // Si falla la verificación de Turnstile, permitir login de todas formas (fallback)
+    doLoginAuth(user, pass);
+  });
+}
+
+function doLoginAuth(user, pass) {
+  var errEl = document.getElementById('error-msg');
 
   fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/aos_login_v2', {
     method: 'POST',
