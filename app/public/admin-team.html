@@ -6,8 +6,8 @@
 .mi:focus{outline:none;border-color:#0A4FBF;box-shadow:0 0 0 3px rgba(10,79,191,.08);}
 .mbtn{padding:8px 16px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
 .mbtn-p{background:#0A4FBF;color:#fff;}.mbtn-g{background:#059669;color:#fff;}.mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-r{background:#FEF2F2;color:#DC2626;}
-.fg{display:grid;grid-template-columns:120px 1fr;gap:4px;align-items:center;margin-bottom:6px;}
-.fg-l{font-size:9px;font-weight:600;color:#6B7BA8;}
+.fg{display:grid;grid-template-columns:90px 1fr;gap:3px;align-items:center;margin-bottom:4px;}
+.fg-l{font-size:8px;font-weight:600;color:#6B7BA8;}
 .tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:8px;font-weight:700;}
 .tag-g{background:#F0FDF4;color:#059669;}.tag-b{background:#EBF2FF;color:#0A4FBF;}.tag-y{background:#FFFBEB;color:#D97706;}.tag-r{background:#FEF2F2;color:#DC2626;}.tag-p{background:#F5F3FF;color:#7C3AED;}
 .g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
@@ -82,8 +82,8 @@ function editUser(idx){
   el('mu-title').textContent=u.nombre+(u.apellidos?' '+u.apellidos:'');
   var html='<div style="display:grid;grid-template-columns:240px 1fr 220px;gap:14px;">';
   // Left: Photo + basic
-  html+='<div style="text-align:center;"><div style="width:180px;height:180px;border-radius:20px;margin:0 auto 10px;overflow:hidden;border:3px solid '+col+';background:'+col+';display:flex;align-items:center;justify-content:center;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:64px;font-weight:800;color:#fff;">'+h((u.nombre||'?')[0])+'</div>')+'</div>';
-  html+='<div class="fg"><div class="fg-l">Foto</div><div style="display:flex;gap:6px;align-items:center;"><input type="file" id="eu-avatar-file" accept="image/jpeg,image/png,image/webp" style="font-size:9px;width:160px;" onchange="uploadAvatar(this,\''+u.id+'\')"><span id="eu-avatar-status" style="font-size:8px;color:#9AAAC8;"></span></div></div>';
+  html+='<div style="text-align:center;"><div id="eu-photo-box" style="width:200px;height:200px;border-radius:20px;margin:0 auto 8px;overflow:hidden;border:3px solid '+col+';background:'+col+';display:flex;align-items:center;justify-content:center;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:64px;font-weight:800;color:#fff;">'+h((u.nombre||'?')[0])+'</div>')+'</div>';
+  html+='<div style="text-align:center;margin:6px 0;"><label style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:#EBF2FF;border-radius:8px;cursor:pointer;font-size:9px;font-weight:700;color:#0A4FBF;">📷 Cambiar foto<input type="file" id="eu-avatar-file" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="uploadAvatar(this,\''+u.id+'\')"></label><div id="eu-avatar-status" style="font-size:8px;margin-top:3px;min-height:12px;"></div></div>';
   html+='<input type="hidden" id="eu-avatar" value="'+h(u.avatar_url||'')+'">';
   html+='<div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;margin-top:6px;">'+h(u.nombre)+'</div>';
   html+='<div style="font-size:10px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.codigo_asesor||'')+'</div>';
@@ -254,8 +254,22 @@ function uploadFile(file,bucket,path,cb){
   }).catch(function(){if(st){st.textContent='Error conexión';st.style.color='#DC2626';}});
 }
 function uploadAvatar(input,uid){
-  var file=input.files[0];if(!file)return;if(file.size>5*1024*1024){el('eu-avatar-status').textContent='Máx 5MB';return;}
-  var ext=file.name.split('.').pop().toLowerCase();uploadFile(file,'avatars',uid+'.'+ext,function(url){el('eu-avatar').value=url;});
+  var file=input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){el('eu-avatar-status').textContent='❌ Máx 5MB';el('eu-avatar-status').style.color='#DC2626';return;}
+  var st=el('eu-avatar-status');st.textContent='⏳ Subiendo foto...';st.style.color='#D97706';
+  var ext=file.name.split('.').pop().toLowerCase();
+  var path=uid+'_'+Date.now()+'.'+ext;
+  // Preview inmediata
+  var reader=new FileReader();reader.onload=function(e){
+    var box=document.getElementById('eu-photo-box');
+    if(box)box.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';
+  };reader.readAsDataURL(file);
+  // Upload
+  uploadFile(file,'avatars',path,function(url){
+    el('eu-avatar').value=url;
+    st.textContent='✅ Foto subida exitosamente';st.style.color='#059669';
+    showToast('Foto Actualizada','La imagen se verá en todo el ecosistema');
+  });
 }
 loadTeam();
 </script>
