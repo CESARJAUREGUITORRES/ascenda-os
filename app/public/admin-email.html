@@ -159,6 +159,13 @@
   <div class="mbody" id="mt-body"></div>
 </div></div>
 
+<!-- Modal: Enviar email -->
+<div class="mov" id="m-send" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal" style="max-width:550px;">
+  <div class="mhd" style="background:linear-gradient(135deg,#071D4A,#0D2D6E);border-radius:20px 20px 0 0;"><div class="mtit" style="color:#fff;">✉️ Enviar Email</div><button class="mx" style="color:#fff;" onclick="el('m-send').classList.remove('open')">✕</button></div>
+  <div class="mbody" id="ms-body"></div>
+</div></div>
+
 <div class="toast" id="em-toast"></div>
 
 <script>
@@ -251,7 +258,54 @@ function verContacto(numero){
 }
 
 function enviarEmailA(email,nombre,numero){
-  showToast('Enviar Email','Función de envío en integración con Resend');
+  if(!email){showToast('Error','Este paciente no tiene email',true);return;}
+  // Modal para seleccionar plantilla y enviar
+  q('aos_email_plantillas','select=id,nombre,tipo,asunto&activo=eq.true&order=nombre',function(tpls){
+    var html='<div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;margin-bottom:4px;">Enviar Email</div>';
+    html+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:14px;">Para: <b>'+h(nombre)+'</b> ('+h(email)+')</div>';
+    html+='<div style="margin-bottom:10px;"><label style="font-size:9px;font-weight:700;color:#6B7BA8;">Plantilla:</label><select class="mi" id="send-tpl" onchange="previewSendTpl()" style="margin-top:4px;">'+(tpls||[]).map(function(t){return '<option value="'+t.id+'" data-asunto="'+h(t.asunto)+'">'+h(t.nombre)+' ('+t.tipo+')</option>';}).join('')+'</select></div>';
+    html+='<div style="margin-bottom:10px;"><label style="font-size:9px;font-weight:700;color:#6B7BA8;">Asunto:</label><input class="mi" id="send-asunto" style="margin-top:4px;" value="'+(tpls&&tpls[0]?h(tpls[0].asunto.replace(/\{\{nombre\}\}/g,nombre)):'')+'"></div>';
+    html+='<div id="send-preview" style="border:1px solid #DDE4F5;border-radius:8px;max-height:200px;overflow-y:auto;padding:10px;margin-bottom:10px;font-size:10px;background:#FAFBFE;">Selecciona una plantilla</div>';
+    html+='<div style="display:flex;gap:8px;"><button class="mbtn mbtn-g" onclick="doSendEmail(\''+h(email)+'\',\''+h(nombre)+'\',\''+h(numero)+'\')">✉️ Enviar Ahora</button><button class="mbtn mbtn-c" onclick="el(\'m-send\').classList.remove(\'open\')">Cancelar</button></div>';
+    el('ms-body').innerHTML=html;
+    el('m-send').classList.add('open');
+    // Load first template preview
+    if(tpls&&tpls[0])loadTplPreview(tpls[0].id,nombre);
+  });
+}
+function previewSendTpl(){
+  var sel=el('send-tpl');var opt=sel.options[sel.selectedIndex];
+  el('send-asunto').value=(opt.getAttribute('data-asunto')||'').replace(/\{\{nombre\}\}/g,'Paciente');
+  loadTplPreview(sel.value,'Paciente');
+}
+function loadTplPreview(id,nombre){
+  q('aos_email_plantillas','select=html_body&id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;
+    var preview=rows[0].html_body.replace(/\{\{(\w+)\}\}/g,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;font-size:9px;">{{$1}}</span>');
+    el('send-preview').innerHTML=preview;
+  });
+}
+function doSendEmail(email,nombre,numero){
+  var tplId=el('send-tpl').value;var asunto=el('send-asunto').value;
+  if(!asunto){showToast('Error','Escribe un asunto',true);return;}
+  // Get template HTML
+  q('aos_email_plantillas','select=html_body,variables&id=eq.'+tplId,function(rows){
+    if(!rows||!rows[0])return;
+    var htmlBody=rows[0].html_body.replace(/\{\{nombre\}\}/g,nombre).replace(/\{\{tratamiento\}\}/g,'').replace(/\{\{fecha_cita\}\}/g,'').replace(/\{\{hora_cita\}\}/g,'').replace(/\{\{sede\}\}/g,'').replace(/\{\{monto\}\}/g,'').replace(/\{\{fecha\}\}/g,'');
+    fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      to:email,subject:asunto.replace(/\{\{nombre\}\}/g,nombre),html:htmlBody,
+      nombre:nombre,numero:numero,plantilla_id:tplId,
+      variables:{nombre:nombre}
+    })}).then(function(r){return r.json();}).then(function(res){
+      if(res.id){
+        showToast('Email Enviado','Correo enviado exitosamente a '+email);
+        el('m-send').classList.remove('open');
+        if(numero)verContacto(numero);
+      } else {
+        showToast('Error al enviar',res.message||res.error||'Error desconocido',true);
+      }
+    }).catch(function(e){showToast('Error',e.message,true);});
+  });
 }
 
 function loadDashboard(){

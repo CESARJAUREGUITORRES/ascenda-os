@@ -117,6 +117,66 @@ http.createServer(function(req, res) {
     }).on('error', function() { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }); return
   }
   // ===== FIN TIPO DE CAMBIO =====
+  // ===== RESEND EMAIL API =====
+  if (p === '/api/send-email' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        if (!d.to || !d.subject || !d.html) { res.writeHead(400); res.end(JSON.stringify({error:'Missing to, subject, or html'})); return }
+        var RESEND_KEY = process.env.RESEND_API_KEY || 're_hMwhSNXd_4EobZ8KLvwWFQSg1P7SCpXtP'
+        var emailData = JSON.stringify({
+          from: d.from || 'Clínica Zi Vital <onboarding@resend.dev>',
+          to: Array.isArray(d.to) ? d.to : [d.to],
+          subject: d.subject,
+          html: d.html,
+          reply_to: d.reply_to || 'jaureguitorrescesar@gmail.com'
+        })
+        var rReq = https.request({
+          hostname: 'api.resend.com', path: '/emails', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
+        }, function(rRes) {
+          var rData = ''; rRes.on('data', function(c) { rData += c }); rRes.on('end', function() {
+            try {
+              var result = JSON.parse(rData)
+              // Log to Supabase
+              var logData = JSON.stringify({
+                destinatario_email: Array.isArray(d.to) ? d.to[0] : d.to,
+                destinatario_nombre: d.nombre || '',
+                destinatario_numero: d.numero || '',
+                plantilla_id: d.plantilla_id || null,
+                campania_id: d.campania_id || null,
+                flujo_id: d.flujo_id || null,
+                flujo_paso: d.flujo_paso || null,
+                asunto: d.subject,
+                variables_usadas: d.variables || {},
+                estado: result.id ? 'enviado' : 'error',
+                resend_id: result.id || null,
+                error_msg: result.message || null,
+                enviado_at: result.id ? new Date().toISOString() : null
+              })
+              var logReq = https.request({
+                hostname: 'ituyqwstonmhnfshnaqz.supabase.co', path: '/rest/v1/aos_email_envios', method: 'POST',
+                headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(logData) }
+              }, function() {})
+              logReq.on('error', function() {})
+              logReq.write(logData); logReq.end()
+
+              res.writeHead(result.id ? 200 : 400, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify(result))
+            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: ' + rData})) }
+          })
+        })
+        rReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        rReq.write(emailData); rReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  if (p === '/api/send-email' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN RESEND =====
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   var f = path.join(PUB, p.slice(1))
