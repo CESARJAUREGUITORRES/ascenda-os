@@ -410,8 +410,9 @@ setTimeout(function() {
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
     if (!s || !s.codigo_asesor || s.expires < Date.now()) { redirectLogin(); return; }
     AOS.token = s.codigo_asesor;
+    var isAdmin = s.puesto==='ADMINISTRADOR' || s.puesto==='DIRECTOR GENERAL' || s.puesto==='JEFE DE ÁREA' || (s.nivel && s.nivel <= 2);
     AOS.ctx = { nombre:s.nombre, apellido:s.apellido,
-      role:(s.puesto==='ADMINISTRADOR'||s.puesto==='DIRECTOR GENERAL'||s.puesto==='JEFE DE ÁREA'||(s.nivel&&s.nivel<=2)?'ADMIN':'ASESOR'),
+      role: isAdmin ? 'ADMIN' : 'ASESOR',
       puesto:s.puesto, sede:s.sede, idAsesor:s.codigo_asesor, asesor:s.nombre,
       paneles_acceso:s.paneles_acceso||[], avatar_url:s.avatar_url||'', nivel:s.nivel||4 };
     AOS.role = AOS.ctx.role;
