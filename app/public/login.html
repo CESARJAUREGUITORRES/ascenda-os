@@ -210,18 +210,66 @@ function doLogin() {
 }
 
 function show2FAForm(emailMasked) {
-  var form = document.querySelector('.form-wrap');
-  var codeHTML = '<div id="tfa-section" style="margin-top:16px;text-align:center;"><div style="font-size:13px;font-weight:700;margin-bottom:6px;">🔐 Verificación en 2 pasos</div><div style="font-size:11px;color:#6B7BA8;margin-bottom:12px;">Se envió un código de 6 dígitos a<br><b>' + emailMasked + '</b></div><input class="inp" id="inp-code" type="text" maxlength="6" placeholder="000000" style="text-align:center;font-size:24px;letter-spacing:8px;font-family:monospace;font-weight:800;" autocomplete="one-time-code" inputmode="numeric"><div id="tfa-error" style="color:#DC2626;font-size:11px;margin-top:6px;"></div><button class="btn" style="margin-top:10px;width:100%;" onclick="verify2FA()">Verificar Código</button><div style="margin-top:8px;font-size:10px;color:#9AAAC8;cursor:pointer;" onclick="doLogin()">Reenviar código</div></div>';
-  var existing = document.getElementById('tfa-section');
-  if (existing) existing.remove();
-  form.insertAdjacentHTML('beforeend', codeHTML);
-  document.getElementById('inp-code').focus();
-  document.getElementById('inp-code').addEventListener('keyup', function(e) { if (e.key === 'Enter') verify2FA(); });
+  var wrap = document.querySelector('.form-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+    '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="font-size:28px;">🔐</span></div>' +
+    '<h2 style="font-size:20px;font-weight:800;margin:0 0 6px;">Verificación en 2 pasos</h2>' +
+    '<p style="font-size:13px;color:#6B7BA8;margin:0 0 20px;">Se envió un código de 6 dígitos a<br><b style="color:#0A4FBF;">' + emailMasked + '</b></p>' +
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;" id="code-boxes">' +
+    [0,1,2,3,4,5].map(function(i) {
+      return '<input type="text" maxlength="1" inputmode="numeric" style="width:44px;height:54px;text-align:center;font-size:24px;font-weight:800;font-family:\'Exo 2\',monospace;border:2px solid #DDE4F5;border-radius:12px;outline:none;transition:all .15s;" onfocus="this.style.borderColor=\'#0A4FBF\';this.style.boxShadow=\'0 0 0 3px rgba(10,79,191,0.1)\'" onblur="this.style.borderColor=\'#DDE4F5\';this.style.boxShadow=\'none\'" oninput="codeInput(this,' + i + ')" onkeydown="codeKey(event,this,' + i + ')" class="code-digit" data-idx="' + i + '">';
+    }).join('') +
+    '</div>' +
+    '<div id="tfa-error" style="color:#DC2626;font-size:12px;min-height:18px;margin-bottom:10px;"></div>' +
+    '<button class="btn-login" onclick="verify2FA()" style="width:100%;margin-bottom:10px;"><span>Verificar Código</span></button>' +
+    '<div style="font-size:11px;color:#9AAAC8;cursor:pointer;" onclick="location.reload()">← Volver al login</div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#0A4FBF;cursor:pointer;font-weight:600;" onclick="resend2FA()">Reenviar código</div>' +
+    '<div class="form-footer" style="margin-top:20px;">AscendaOS v1.0 · by CREACTIVE</div>' +
+    '</div>';
+  document.querySelector('.code-digit').focus();
+}
+
+function codeInput(el, idx) {
+  el.value = el.value.replace(/[^0-9]/g, '');
+  if (el.value && idx < 5) {
+    var next = document.querySelectorAll('.code-digit')[idx + 1];
+    if (next) next.focus();
+  }
+  // Auto-verify when all 6 digits filled
+  var digits = document.querySelectorAll('.code-digit');
+  var full = true;
+  digits.forEach(function(d) { if (!d.value) full = false; });
+  if (full) verify2FA();
+}
+
+function codeKey(e, el, idx) {
+  if (e.key === 'Backspace' && !el.value && idx > 0) {
+    var prev = document.querySelectorAll('.code-digit')[idx - 1];
+    if (prev) { prev.focus(); prev.value = ''; }
+  }
+}
+
+function resend2FA() {
+  if (!_2FA_DATA) return;
+  document.getElementById('tfa-error').textContent = '';
+  fetch('https://ascenda-os-production.up.railway.app/api/send-2fa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: _2FA_DATA.email_real, code: _2FA_DATA.code, nombre: _2FA_DATA.usuario })
+  }).then(function() {
+    document.getElementById('tfa-error').style.color = '#059669';
+    document.getElementById('tfa-error').textContent = '✓ Código reenviado a ' + _2FA_DATA.email_masked;
+  }).catch(function() {
+    document.getElementById('tfa-error').textContent = 'Error al reenviar';
+  });
 }
 
 function verify2FA() {
-  var code = document.getElementById('inp-code').value.trim();
+  var digits = document.querySelectorAll('.code-digit');
+  var code = '';
+  digits.forEach(function(d) { code += d.value; });
   var errEl = document.getElementById('tfa-error');
+  errEl.style.color = '#DC2626';
   if (code.length !== 6) { errEl.textContent = 'Ingresa los 6 dígitos'; return; }
   setLoading(true);
   fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/aos_verificar_2fa', {
