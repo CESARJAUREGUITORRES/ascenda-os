@@ -1,0 +1,267 @@
+<!-- admin-config.html v1 — Panel de Configuración | AscendaOS v1 | 100% Supabase -->
+<style>
+.cfg{padding:14px;display:flex;flex-direction:column;gap:12px;min-height:100%;font-family:'DM Sans',sans-serif;color:#0D1B3E;}
+.cfg-hdr{display:flex;align-items:center;gap:10px;}
+.cfg-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;}
+.cfg-tabs{display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;margin-left:auto;}
+.cfg-tab{padding:8px 14px;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;border:none;background:none;transition:all .15s;}
+.cfg-tab.act{background:#071D4A;color:#fff;}
+.cfg-tab:hover:not(.act){background:#EBF2FF;}
+.crd{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
+.sec{margin-bottom:20px;}
+.sec-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #F0F4FC;}
+.fg{display:grid;grid-template-columns:180px 1fr;gap:8px;align-items:center;margin-bottom:10px;}
+.fg-l{font-size:11px;font-weight:600;color:#6B7BA8;}
+.fg-h{font-size:8px;color:#9AAAC8;margin-top:2px;}
+.mi{padding:8px 12px;border:1px solid #DDE4F5;border-radius:10px;font-size:12px;font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;transition:all .15s;}
+.mi:focus{outline:none;border-color:#0A4FBF;box-shadow:0 0 0 3px rgba(10,79,191,.08);}
+.mi-sm{padding:6px 10px;font-size:11px;}
+.mbtn{padding:8px 16px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.mbtn-p{background:#0A4FBF;color:#fff;}.mbtn-p:hover{background:#0D2D6E;}
+.mbtn-g{background:#059669;color:#fff;}.mbtn-g:hover{background:#047857;}
+.mbtn-c{background:#F0F4FC;color:#6B7BA8;}.mbtn-c:hover{background:#DDE4F5;}
+/* Integration cards */
+.ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.ig-c{border-radius:14px;padding:18px;border:1px solid #EEF0F8;background:#fff;position:relative;overflow:hidden;transition:all .2s;}
+.ig-c:hover{box-shadow:0 6px 20px rgba(7,29,74,.08);}
+.ig-hdr{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.ig-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.ig-name{font-weight:800;font-size:14px;}.ig-desc{font-size:9px;color:#6B7BA8;margin-top:2px;}
+.ig-badge{position:absolute;top:12px;right:12px;padding:3px 10px;border-radius:8px;font-size:8px;font-weight:700;}
+.ig-badge.ok{background:#F0FDF4;color:#059669;}.ig-badge.warn{background:#FFFBEB;color:#D97706;}.ig-badge.off{background:#F0F4FC;color:#9AAAC8;}
+/* Steps wizard */
+.wiz{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.wiz-step{display:flex;gap:10px;align-items:flex-start;padding:12px;background:#F8FAFF;border-radius:10px;border:1px solid #EEF0F8;}
+.wiz-num{width:28px;height:28px;border-radius:50%;background:#0A4FBF;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Exo 2';font-weight:800;font-size:12px;flex-shrink:0;}
+.wiz-txt{font-size:11px;line-height:1.5;}.wiz-txt b{color:#0D1B3E;}
+/* Color preview */
+.clr-prev{width:32px;height:32px;border-radius:8px;border:2px solid #DDE4F5;cursor:pointer;}
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;z-index:700;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(360px,88vw);}
+.toast-item{pointer-events:all;display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(7,29,74,.22);animation:toastIn .4s cubic-bezier(.22,1,.36,1);font-size:12px;}
+@keyframes toastIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(120%)}}
+/* Modal */
+.mov{position:fixed;inset:0;background:rgba(7,29,74,.35);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.mov.open{display:flex;}
+.modal{background:#fff;border-radius:20px;width:min(700px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(7,29,74,.2);}
+.mhd{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #EEF0F8;}.mtit{font-family:'Exo 2';font-weight:800;font-size:15px;}.mx{background:none;border:none;font-size:18px;color:#9AAAC8;cursor:pointer;margin-left:auto;}
+.mbody{padding:20px;}
+@media(max-width:768px){.fg{grid-template-columns:1fr;}.ig{grid-template-columns:1fr;}.wiz{grid-template-columns:1fr;}}
+</style>
+<div class="cfg">
+  <div class="cfg-hdr">
+    <div class="cfg-t">⚙ Configuración</div>
+    <div class="cfg-tabs">
+      <button class="cfg-tab act" onclick="cfgTab('empresa')">🏢 Empresa</button>
+      <button class="cfg-tab" onclick="cfgTab('integraciones')">🔗 Integraciones</button>
+      <button class="cfg-tab" onclick="cfgTab('sistema')">🛠 Sistema</button>
+      <button class="cfg-tab" onclick="cfgTab('equipo')">👥 Equipo</button>
+    </div>
+  </div>
+
+  <!-- EMPRESA -->
+  <div id="cfg-empresa">
+    <div class="crd">
+      <div class="sec-t">🏢 Datos de la Empresa</div>
+      <div class="fg"><div><div class="fg-l">Nombre de la empresa</div></div><input class="mi" id="c-empresa_nombre" data-k="empresa_nombre"></div>
+      <div class="fg"><div><div class="fg-l">Nombre en la app</div><div class="fg-h">Aparece en el header del sistema</div></div><input class="mi" id="c-empresa_nombre_app" data-k="empresa_nombre_app"></div>
+      <div class="fg"><div><div class="fg-l">Slogan</div></div><input class="mi" id="c-empresa_slogan" data-k="empresa_slogan"></div>
+      <div class="fg"><div><div class="fg-l">RUC Principal</div></div><input class="mi" id="c-empresa_ruc" data-k="empresa_ruc"></div>
+      <div class="fg"><div><div class="fg-l">RUC Secundario</div><div class="fg-h">Si tiene segunda razón social</div></div><input class="mi" id="c-empresa_ruc_2" data-k="empresa_ruc_2"></div>
+      <div class="fg"><div><div class="fg-l">Teléfono</div></div><input class="mi" id="c-empresa_telefono" data-k="empresa_telefono"></div>
+      <div class="fg"><div><div class="fg-l">Email corporativo</div></div><input class="mi" id="c-empresa_email" data-k="empresa_email" type="email"></div>
+      <div class="fg"><div><div class="fg-l">Dirección</div></div><input class="mi" id="c-empresa_direccion" data-k="empresa_direccion"></div>
+      <div class="fg"><div><div class="fg-l">WhatsApp</div></div><input class="mi" id="c-empresa_whatsapp" data-k="empresa_whatsapp" placeholder="51999999999"></div>
+      <div class="fg"><div><div class="fg-l">Sitio web</div></div><input class="mi" id="c-empresa_website" data-k="empresa_website" type="url"></div>
+      <div class="fg"><div><div class="fg-l">Instagram</div></div><input class="mi" id="c-empresa_instagram" data-k="empresa_instagram" placeholder="@clinicazivital"></div>
+      <div class="fg"><div><div class="fg-l">Facebook</div></div><input class="mi" id="c-empresa_facebook" data-k="empresa_facebook" type="url"></div>
+      <div class="fg"><div><div class="fg-l">Sedes activas</div><div class="fg-h">Separadas por coma</div></div><input class="mi" id="c-sedes_activas" data-k="sedes_activas"></div>
+      <div class="fg"><div><div class="fg-l">URL del Logo</div><div class="fg-h">URL de imagen para emails y PDFs</div></div><input class="mi" id="c-empresa_logo_url" data-k="empresa_logo_url" type="url"></div>
+    </div>
+    <div class="crd" style="margin-top:12px;">
+      <div class="sec-t">🎨 Branding y Colores</div>
+      <div class="fg"><div><div class="fg-l">Color primario</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-sistema_color_primario" data-k="sistema_color_primario"><input class="mi mi-sm" style="width:100px;" id="c-sistema_color_primario_txt" placeholder="#0A4FBF" oninput="el('c-sistema_color_primario').value=this.value"></div></div>
+      <div class="fg"><div><div class="fg-l">Color de acento</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-sistema_color_acento" data-k="sistema_color_acento"><input class="mi mi-sm" style="width:100px;" id="c-sistema_color_acento_txt" placeholder="#00C9A7" oninput="el('c-sistema_color_acento').value=this.value"></div></div>
+      <div class="fg"><div><div class="fg-l">Color dark</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-empresa_color_secundario" data-k="empresa_color_secundario"><input class="mi mi-sm" style="width:100px;" id="c-empresa_color_secundario_txt" placeholder="#071D4A" oninput="el('c-empresa_color_secundario').value=this.value"></div></div>
+      <div style="margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;text-align:center;" id="brand-preview">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#00C9A7;">PREVIEW</div>
+        <div style="font-family:'Exo 2';font-weight:800;font-size:20px;margin-top:4px;">AscendaOS</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+
+  <!-- INTEGRACIONES -->
+  <div id="cfg-integraciones" style="display:none;">
+    <div class="ig" id="cfg-ig-list"></div>
+  </div>
+
+  <!-- SISTEMA -->
+  <div id="cfg-sistema" style="display:none;">
+    <div class="crd">
+      <div class="sec-t">🛠 Configuración del Sistema</div>
+      <div class="fg"><div><div class="fg-l">Zona horaria</div></div><input class="mi" id="c-sistema_tz" data-k="sistema_tz" readonly></div>
+      <div class="fg"><div><div class="fg-l">Idioma</div></div><input class="mi" id="c-sistema_idioma" data-k="sistema_idioma" readonly></div>
+      <div class="fg"><div><div class="fg-l">Versión</div></div><input class="mi" id="c-sistema_version" data-k="sistema_version" readonly></div>
+    </div>
+    <div class="crd" style="margin-top:12px;">
+      <div class="sec-t">⏰ Horarios de Trabajo</div>
+      <div class="fg"><div><div class="fg-l">Hora inicio L-V</div></div><input class="mi" type="time" id="c-horario_lv_inicio" data-k="horario_lv_inicio"></div>
+      <div class="fg"><div><div class="fg-l">Hora fin L-V</div></div><input class="mi" type="time" id="c-horario_lv_fin" data-k="horario_lv_fin"></div>
+      <div class="fg"><div><div class="fg-l">Hora inicio Sábado</div></div><input class="mi" type="time" id="c-horario_sab_inicio" data-k="horario_sab_inicio"></div>
+      <div class="fg"><div><div class="fg-l">Hora fin Sábado</div></div><input class="mi" type="time" id="c-horario_sab_fin" data-k="horario_sab_fin"></div>
+      <div class="fg"><div><div class="fg-l">Tolerancia tardanza (min)</div></div><input class="mi" type="number" id="c-horario_tolerancia_min" data-k="horario_tolerancia_min"></div>
+      <div class="fg"><div><div class="fg-l">Máx. break acumulado (min)</div></div><input class="mi" type="number" id="c-horario_max_break_min" data-k="horario_max_break_min"></div>
+    </div>
+    <div class="crd" style="margin-top:12px;">
+      <div class="sec-t">💰 Comisiones</div>
+      <div class="fg"><div><div class="fg-l">% Comisión servicios</div></div><input class="mi" type="number" step="0.0001" id="c-comisiones_serv_base" data-k="comisiones_serv_base"></div>
+      <div class="fg"><div><div class="fg-l">Tipo comisión productos</div></div><select class="mi" id="c-comisiones_prod_tipo" data-k="comisiones_prod_tipo"><option value="fijo">Fijo</option><option value="pct">Porcentaje</option></select></div>
+    </div>
+    <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
+  </div>
+
+  <!-- EQUIPO -->
+  <div id="cfg-equipo" style="display:none;">
+    <div class="crd">
+      <div class="sec-t">👥 Equipo y Usuarios</div>
+      <div id="cfg-equipo-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Guía de integración -->
+<div class="mov" id="m-guide" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal"><div class="mhd"><div class="mtit" id="mg-title">Guía</div><button class="mx" onclick="el('m-guide').classList.remove('open')">✕</button></div>
+<div class="mbody" id="mg-body"></div></div></div>
+
+<div class="toast" id="cfg-toast"></div>
+
+<script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function el(id){return document.getElementById(id);}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showToast(t,m,err){var tw=el('cfg-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
+
+var CFG={};
+function cfgTab(tab){
+  ['empresa','integraciones','sistema','equipo'].forEach(function(t){var e=el('cfg-'+t);if(e)e.style.display=t===tab?'block':'none';});
+  document.querySelectorAll('.cfg-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');
+  if(tab==='integraciones')loadIntegraciones();
+  if(tab==='equipo')loadEquipo();
+}
+
+function loadConfig(){
+  fetch(SB+'/rest/v1/aos_configuracion?select=clave,valor&limit=100',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    (rows||[]).forEach(function(r){CFG[r.clave]=r.valor;});
+    // Fill inputs
+    document.querySelectorAll('[data-k]').forEach(function(inp){
+      var k=inp.getAttribute('data-k');
+      if(CFG[k]!==undefined){
+        if(inp.type==='color'){inp.value=CFG[k]||'#000000';var txt=el(inp.id+'_txt');if(txt)txt.value=CFG[k];}
+        else if(inp.tagName==='SELECT'){inp.value=CFG[k];}
+        else{inp.value=CFG[k];}
+      }
+    });
+    updateBrandPreview();
+  });
+}
+
+function saveConfig(){
+  var updates=[];
+  document.querySelectorAll('[data-k]').forEach(function(inp){
+    var k=inp.getAttribute('data-k');var v=inp.value;
+    if(CFG[k]!==v){updates.push({clave:k,valor:v,updated_at:new Date().toISOString()});}
+  });
+  if(!updates.length){showToast('Sin cambios','No se detectaron cambios');return;}
+  var done=0;
+  updates.forEach(function(u){
+    fetch(SB+'/rest/v1/aos_configuracion?clave=eq.'+encodeURIComponent(u.clave),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({valor:u.valor,updated_at:u.updated_at})}).then(function(){
+      done++;CFG[u.clave]=u.valor;
+      if(done===updates.length){showToast('Guardado','Se actualizaron '+updates.length+' configuraciones');updateBrandPreview();}
+    });
+  });
+}
+
+function updateBrandPreview(){
+  var prev=el('brand-preview');if(!prev)return;
+  var cp=el('c-sistema_color_primario').value||'#0A4FBF';var cd=el('c-empresa_color_secundario').value||'#071D4A';var ca=el('c-sistema_color_acento').value||'#00C9A7';
+  var nombre=el('c-empresa_nombre_app').value||'AscendaOS';
+  prev.style.background='linear-gradient(135deg,'+cd+','+cp+')';
+  prev.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:'+ca+';">PREVIEW</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:20px;margin-top:4px;">'+h(nombre)+'</div>';
+}
+
+function loadIntegraciones(){
+  var integ=[
+    {id:'resend',ico:'✉️',bg:'#F0FDF4',name:'Resend (Email)',desc:'Envío de emails transaccionales y marketing',fields:[{k:'email_resend_key',l:'API Key',type:'password'},{k:'integ_resend_dominio',l:'Dominio verificado'},{k:'email_from',l:'Email de salida'},{k:'email_reply_to',l:'Reply-To'}],
+    status:CFG.integ_resend_status||'pendiente',
+    guide:{title:'Configurar Resend',steps:[
+      {n:1,txt:'<b>Crear cuenta</b> en <a href="https://resend.com" target="_blank" style="color:#0A4FBF;">resend.com</a> (gratis, 3,000 emails/mes)'},
+      {n:2,txt:'<b>Crear API Key</b> en resend.com/api-keys → copiar la key que empieza con <code>re_</code>'},
+      {n:3,txt:'<b>Pegar la API Key</b> en el campo de arriba'},
+      {n:4,txt:'<b>Verificar dominio</b> (opcional): en resend.com/domains → agregar tu dominio → copiar los registros DNS'},
+      {n:5,txt:'<b>Agregar registros DNS</b> en tu proveedor (GoDaddy, Namecheap, etc.): 1 registro MX, 1 TXT (SPF), 1 CNAME (DKIM)'},
+      {n:6,txt:'<b>Cambiar Email de salida</b> al email de tu dominio verificado (ej: citas@zivital.com)'}
+    ]}},
+    {id:'google',ico:'📅',bg:'#EBF2FF',name:'Google (Calendar + Contacts)',desc:'Sincronizar citas con Google Calendar y contactos',fields:[{k:'integ_google_email',l:'Cuenta Gmail'},{k:'integ_google_calendar_id',l:'Calendar ID'}],
+    status:CFG.integ_google_status||'pendiente',
+    guide:{title:'Vincular Google Calendar',steps:[
+      {n:1,txt:'<b>Abrir Google Calendar</b> → Configuración → seleccionar el calendario'},
+      {n:2,txt:'<b>Copiar el ID del calendario</b> (aparece como email: xxxx@group.calendar.google.com)'},
+      {n:3,txt:'<b>Pegar el Calendar ID</b> en el campo de configuración'},
+      {n:4,txt:'<b>Compartir calendario</b> con la cuenta de servicio (se proporcionará al activar)'},
+      {n:5,txt:'En el futuro: <b>Google Auth</b> permitirá login con cuenta Google'}
+    ]}},
+    {id:'whatsapp',ico:'💬',bg:'#F0FDF4',name:'WhatsApp Business',desc:'Plantillas y envío rápido via WhatsApp Web',fields:[{k:'integ_whatsapp_numero',l:'Número WhatsApp'}],
+    status:CFG.integ_whatsapp_status||'pendiente',
+    guide:{title:'Configurar WhatsApp',steps:[
+      {n:1,txt:'<b>Ingresar el número</b> de WhatsApp Business de la clínica'},
+      {n:2,txt:'<b>Las plantillas</b> se envían abriendo WhatsApp Web con el mensaje pre-cargado'},
+      {n:3,txt:'Futuro: <b>Meta Cloud API</b> para envío automático y chatbot con AI'}
+    ]}},
+    {id:'supabase',ico:'🗄️',bg:'#F0FDFA',name:'Supabase (Base de datos)',desc:'Base de datos PostgreSQL en la nube — ya conectado',fields:[],
+    status:'conectado',
+    guide:{title:'Supabase',steps:[{n:1,txt:'<b>Ya conectado.</b> Project ID: ituyqwstonmhnfshnaqz. 55+ tablas aos_*. RLS deshabilitado.'}]}}
+  ];
+  el('cfg-ig-list').innerHTML=integ.map(function(ig){
+    var stCls=ig.status==='conectado'?'ok':ig.status==='configurando'?'warn':'off';
+    var stTxt=ig.status==='conectado'?'✓ Conectado':ig.status==='configurando'?'⚙ Configurando':'○ Pendiente';
+    var fieldsHtml=ig.fields.map(function(f){
+      var val=CFG[f.k]||'';var masked=f.type==='password'&&val?val.slice(0,8)+'...':'';
+      return '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;"><div style="font-size:9px;color:#6B7BA8;min-width:100px;">'+f.l+'</div><input class="mi mi-sm" style="flex:1;" type="'+(f.type||'text')+'" value="'+(masked||h(val))+'" data-k="'+f.k+'" placeholder="No configurado"></div>';
+    }).join('');
+    return '<div class="ig-c"><div class="ig-badge '+stCls+'">'+stTxt+'</div><div class="ig-hdr"><div class="ig-ico" style="background:'+ig.bg+';">'+ig.ico+'</div><div><div class="ig-name">'+ig.name+'</div><div class="ig-desc">'+ig.desc+'</div></div></div>'+fieldsHtml+'<div style="display:flex;gap:6px;margin-top:10px;"><button class="mbtn mbtn-p" onclick="saveConfig()">Guardar</button><button class="mbtn mbtn-c" onclick="showGuide(\''+ig.id+'\')">📖 Guía paso a paso</button></div></div>';
+  }).join('');
+  // Store guides
+  window._guides=integ.reduce(function(a,ig){a[ig.id]=ig.guide;return a;},{});
+}
+
+function showGuide(id){
+  var g=window._guides[id];if(!g)return;
+  el('mg-title').textContent='📖 '+g.title;
+  el('mg-body').innerHTML='<div class="wiz">'+g.steps.map(function(s){
+    return '<div class="wiz-step"><div class="wiz-num">'+s.n+'</div><div class="wiz-txt">'+s.txt+'</div></div>';
+  }).join('')+'</div><div style="margin-top:14px;padding:12px;background:#F0FDF4;border-radius:10px;font-size:10px;color:#059669;">💡 Si necesitas ayuda con algún paso, contacta al equipo de soporte de AscendaOS.</div>';
+  el('m-guide').classList.add('open');
+}
+
+function loadEquipo(){
+  fetch(SB+'/rest/v1/aos_usuarios?select=*&order=nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(users){
+    if(!users||!users.length){el('cfg-equipo-list').innerHTML='<div style="color:#9AAAC8;text-align:center;padding:20px;">Sin usuarios registrados</div>';return;}
+    el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th>Nombre</th><th>Rol</th><th>Email</th><th>Sede</th><th>Estado</th></tr></thead><tbody>'+users.map(function(u){
+      return '<tr><td style="font-weight:700;">'+h(u.nombre)+'</td><td><span style="font-size:9px;background:#EBF2FF;padding:2px 8px;border-radius:6px;color:#0A4FBF;font-weight:700;">'+h(u.rol||'—')+'</span></td><td style="font-size:9px;color:#6B7BA8;">'+h(u.email||'—')+'</td><td style="font-size:9px;">'+h(u.sede||'—')+'</td><td style="font-size:9px;color:#059669;font-weight:700;">Activo</td></tr>';
+    }).join('')+'</tbody></table>';
+  }).catch(function(){el('cfg-equipo-list').innerHTML='<div style="color:#9AAAC8;text-align:center;padding:20px;">Error al cargar equipo</div>';});
+}
+
+// Color input sync
+document.querySelectorAll('input[type="color"]').forEach(function(c){
+  c.addEventListener('input',function(){var txt=el(c.id+'_txt');if(txt)txt.value=c.value;updateBrandPreview();});
+});
+
+loadConfig();
+</script>
