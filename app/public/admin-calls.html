@@ -97,21 +97,27 @@
   <!-- MONITOREO + ACTIVIDAD + PRODUCTIVIDAD -->
   <div class="g2">
     <div class="crd">
-      <div class="ct">📡 Monitoreo de Llamadas <span class="tag tag-b" id="ac-mon-tag">hoy</span>
-        <span style="margin-left:auto;display:flex;gap:4px;align-items:center;">
-          <span class="chip" id="ac-mon-hoy" onclick="monFecha('hoy')" style="background:#0A4FBF;color:#fff;border-color:#0A4FBF;">Hoy</span>
+      <div class="ct" style="flex-wrap:wrap;gap:6px;">MONITOREO DE LLAMADAS
+        <div style="display:flex;gap:5px;align-items:center;margin-left:auto">
+          <span class="chip" onclick="monFecha('hoy')" style="background:#00C9A7;color:#fff;border-color:#00C9A7;">Hoy</span>
           <input type="date" class="ps" id="ac-mon-date" style="font-size:10px;padding:4px 6px;" onchange="monFecha('custom')">
-        </span>
+          <span style="font-size:9px;color:#9AAAC8;" id="ac-mon-tag"></span>
+        </div>
       </div>
-      <div style="overflow-x:auto;"><table class="vt"><thead><tr><th>Asesor</th><th>Llam.</th><th>Citas</th><th>Conv%</th><th>Últ. Contacto</th><th>Estado</th></tr></thead><tbody id="ac-mon"></tbody></table></div>
-      <div class="ct" style="margin-top:10px;">📊 Actividad por Hora <span class="tag tag-c">30 min</span></div>
-      <div style="overflow:hidden;border-radius:10px;background:#F8FAFF;height:130px;position:relative;" id="ac-activ-wrap">
-        <svg id="ac-activ" width="100%" height="130" preserveAspectRatio="none"></svg>
+      <table class="vt"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th></tr></thead>
+      <tbody id="ac-mon"><tr><td colspan="5" class="ld">Cargando...</td></tr></tbody></table>
+      <div class="ct" style="margin-top:12px;">Actividad
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="chip act" id="ch-eq" onclick="acChartFilter(null)">Equipo</span>
+          <span id="ch-fil" style="font-size:9px;color:#6B7BA8;font-style:italic;display:none"></span>
+          <button id="btn-eye" onclick="acTogglePicos()" title="Mostrar/ocultar valores" style="background:none;border:0.5px solid #DDE4F5;border-radius:6px;padding:2px 6px;cursor:pointer;font-size:10px;color:#6B7BA8">👁</button>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;margin-top:4px;">
-        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#059669;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#059669;"></div>Sobre umbral (≥5)</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#DC2626;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#DC2626;"></div>Bajo umbral</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#00C9A7;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#00C9A7;"></div>Citas</div>
+      <div style="background:#fff;border-radius:10px;min-height:180px;" id="ac-activ-wrap"></div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#00C9A7;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#00C9A7;"></div>Sobre umbral (≥5)</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#EF4444;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div>Bajo umbral</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#00E5A0;font-weight:700;"><div style="width:8px;height:8px;border-radius:50%;background:#00E5A0;opacity:.7;"></div>Citas</div>
       </div>
     </div>
     <div class="crd">
@@ -153,36 +159,48 @@ function monFecha(tipo){if(tipo==='hoy'){var h=hoyLima();el('ac-mon-date').value
 function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);});loadActiv(fecha);}
 function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);});}
 function rMon(mon){
-  if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="6" class="ld">Sin actividad</td></tr>';return;}
+  if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="5" class="ld">Sin actividad</td></tr>';return;}
   el('ac-mon').innerHTML=mon.map(function(m){
-    var estado=m.mins_sin!==null?(m.mins_sin<15?'<span style="color:#059669;font-weight:700;">ACTIVO</span>':'<span style="color:#DC2626;font-weight:700;">INACTIVO</span>'):'<span style="color:#9AAAC8;">SIN ACTIV.</span>';
-    var color=m.conv_pct>=5?'#059669':m.conv_pct>=3?'#D97706':'#DC2626';
-    return '<tr><td style="font-weight:700;">'+h(m.nombre)+'</td><td>'+m.llamadas+'</td><td class="hi hi-c">'+m.citas+'</td><td style="color:'+color+';font-weight:700;">'+m.conv_pct+'%</td><td style="font-size:9px;color:#6B7BA8;">'+(m.ult_hora?m.ult_hora.substring(0,5)+' '+h((m.ult_num||'').slice(-4)):'—')+'</td><td>'+estado+'</td></tr>';
+    var cv=m.llamadas>0?Math.round((m.citas||0)/m.llamadas*100):0;
+    return '<tr data-asesor="'+h(m.nombre)+'" onclick="acChartFilter(\''+h(m.nombre)+'\')" style="cursor:pointer;'+(AC_CHART_ASESOR===m.nombre?'background:#F0FDFA;':'')+'"><td><b>'+h(m.nombre)+'</b></td><td style="text-align:center;font-family:\'Exo 2\';font-weight:800;color:#0A4FBF;">'+m.llamadas+'</td><td style="text-align:center;font-weight:700;color:#16A34A;">+'+m.citas+'</td><td style="text-align:center;color:#00C9A7;font-weight:600;">'+cv+'%</td><td style="font-size:9px;color:#6B7BA8;">'+h(m.ult_hora||'—')+'<br>'+h(m.ult_num||'')+'</td></tr>';
   }).join('');
 }
+var AC_CHART_ASESOR=null;var AC_SHOW_PICOS=false;var AC_CHART_RAW=[];
+function acChartFilter(asesor){AC_CHART_ASESOR=asesor;var eq=el('ch-eq');if(eq)eq.classList.toggle('act',!asesor);var fil=el('ch-fil');if(fil){fil.style.display=asesor?'inline':'none';fil.textContent=asesor||'';}document.querySelectorAll('#ac-mon tr[data-asesor]').forEach(function(tr){tr.style.background=(asesor&&tr.getAttribute('data-asesor')===asesor)?'#F0FDFA':'';});acRenderActiv();}
+function acTogglePicos(){AC_SHOW_PICOS=!AC_SHOW_PICOS;var btn=el('btn-eye');if(btn)btn.style.color=AC_SHOW_PICOS?'#0A4FBF':'#6B7BA8';acRenderActiv();}
 function rActiv(data,fecha){
-  var wrap=el('ac-activ-wrap');var svgEl=el('ac-activ');
-  if(!data||!data.length){svgEl.innerHTML='<text x="50%" y="50%" text-anchor="middle" font-size="11" fill="#9AAAC8" font-family="DM Sans">Sin actividad para '+fecha+'</text>';return;}
-  var byHour={};data.forEach(function(d){var k=d.bucket;if(!byHour[k])byHour[k]={llamadas:0,citas:0};byHour[k].llamadas+=d.llamadas;byHour[k].citas+=d.citas;});
-  var hours=Object.keys(byHour).sort();if(!hours.length){svgEl.innerHTML='';return;}
-  var maxL=Math.max.apply(null,hours.map(function(k){return byHour[k].llamadas;}));
-  var W=wrap.offsetWidth||500;var H=130;var PX=30;var PY=15;
-  var stepX=(W-PX*2)/(hours.length-1||1);
-  svgEl.setAttribute('viewBox','0 0 '+W+' '+H);
-  var svg='';var llamPts=[];var citaPts=[];
-  hours.forEach(function(k,i){
-    var x=PX+i*stepX;var y=H-PY-(maxL>0?(byHour[k].llamadas/maxL)*(H-PY*2):0);
-    var yC=H-PY-(maxL>0?(byHour[k].citas/maxL)*(H-PY*2):0);
-    llamPts.push(x+','+y);citaPts.push(x+','+yC);
-    var col=byHour[k].llamadas>=5?'#059669':'#DC2626';
-    svg+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="'+col+'"/>';
-    svg+='<circle cx="'+x+'" cy="'+yC+'" r="2" fill="#00C9A7"/>';
-    if(i%2===0||hours.length<=12)svg+='<text x="'+x+'" y="'+(H-2)+'" font-size="7" fill="#9AAAC8" text-anchor="middle" font-family="DM Sans">'+k+'</text>';
-  });
-  svg+='<polyline points="'+llamPts.join(' ')+'" fill="none" stroke="#0A4FBF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>';
-  svg+='<polyline points="'+citaPts.join(' ')+'" fill="none" stroke="#00C9A7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
-  svgEl.innerHTML=svg;
-  el('ac-mon-tag').textContent=fecha;
+  AC_CHART_RAW=Array.isArray(data)?data:[];
+  el('ac-mon-tag').textContent='Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+  acRenderActiv();
+}
+function acRenderActiv(){
+  var wrap=el('ac-activ-wrap');if(!wrap)return;
+  var raw=AC_CHART_RAW;var asesor=AC_CHART_ASESOR;var showP=AC_SHOW_PICOS;
+  if(!raw.length){wrap.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:30px">Sin actividad</div>';return;}
+  var filtered=asesor?raw.filter(function(r){return r.asesor===asesor;}):raw;
+  var byM={};filtered.forEach(function(r){var k=r.minuto;if(!byM[k])byM[k]={m:k,label:r.bucket,ll:0,ci:0};byM[k].ll+=parseInt(r.llamadas||0);byM[k].ci+=parseInt(r.citas||0);});
+  var allAct=Object.keys(byM).map(Number).sort(function(a,b){return a-b;});
+  if(!allAct.length){wrap.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:30px">Sin actividad</div>';return;}
+  var firstM=allAct[0],lastM=allAct[allAct.length-1];
+  for(var m=firstM;m<=lastM;m+=5){if(!byM[m]){var hh=Math.floor(m/60),mi=m%60;byM[m]={m:m,label:(hh<10?'0':'')+hh+':'+(mi<10?'0':'')+mi,ll:0,ci:0};}}
+  var data2=Object.values(byM).sort(function(a,b){return a.m-b.m;});
+  var n=data2.length;if(!n)return;
+  var BASE=5;var W=700,H=200,pL=28,pR=10,pT=20,pB=28;var cW=W-pL-pR,cH=H-pT-pB;
+  var maxV=BASE+2;data2.forEach(function(d){if(d.ll>maxV)maxV=d.ll;});maxV=Math.ceil(maxV*1.2);
+  var sX=cW/(n>1?n-1:1);
+  function xAt(i){return pL+i*sX;}function yAt(v){return pT+cH-(Math.max(0,v)/maxV*cH);}
+  var yBase=yAt(BASE),aBot=pT+cH;
+  function buildPath(pts){if(!pts.length)return '';var p='M'+pts[0][0].toFixed(1)+','+pts[0][1].toFixed(1);for(var i=0;i<pts.length-1;i++){var cp=(pts[i+1][0]-pts[i][0])*.4;p+=' C'+(pts[i][0]+cp).toFixed(1)+','+pts[i][1].toFixed(1)+' '+(pts[i+1][0]-cp).toFixed(1)+','+pts[i+1][1].toFixed(1)+' '+pts[i+1][0].toFixed(1)+','+pts[i+1][1].toFixed(1);}return p;}
+  var llamPts=data2.map(function(d,i){return [xAt(i),yAt(d.ll)];});var llamPath=buildPath(llamPts);
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#fff" xmlns="http://www.w3.org/2000/svg">';
+  for(var g=0;g<=4;g++){var gy=pT+cH-(g/4*cH),gv=Math.round(maxV*g/4);svg+='<line x1="'+pL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+gy.toFixed(1)+'" stroke="#EEF0F8" stroke-width="0.5"/>';if(gv>0)svg+='<text x="'+(pL-3)+'" y="'+(gy+3).toFixed(1)+'" fill="#B0BAD4" font-size="7" text-anchor="end" font-family="DM Sans">'+gv+'</text>';}
+  data2.forEach(function(d,i){var mi=d.m%60;if(mi===0||mi===30){svg+='<text x="'+xAt(i).toFixed(1)+'" y="'+(H-8)+'" fill="#9AAAC8" font-size="7" text-anchor="middle" font-family="DM Sans">'+d.label+'</text>';if(mi===0)svg+='<line x1="'+xAt(i).toFixed(1)+'" y1="'+pT+'" x2="'+xAt(i).toFixed(1)+'" y2="'+(aBot+2)+'" stroke="#EEF0F8" stroke-width="0.8"/>';}});
+  svg+='<line x1="'+pL+'" y1="'+yBase.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+yBase.toFixed(1)+'" stroke="#0A4FBF" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4"/>';
+  svg+='<text x="'+pL+'" y="'+(yBase-2).toFixed(1)+'" fill="#0A4FBF" font-size="7" font-family="DM Sans" opacity="0.7">↓'+BASE+'</text>';
+  if(llamPts.length>1){var cpH='ch'+Date.now(),cpL='cl'+Date.now();svg+='<defs><clipPath id="'+cpH+'"><rect x="'+pL+'" y="'+pT+'" width="'+cW+'" height="'+(yBase-pT)+'"/></clipPath><clipPath id="'+cpL+'"><rect x="'+pL+'" y="'+yBase.toFixed(1)+'" width="'+cW+'" height="'+(aBot-yBase)+'"/></clipPath></defs>';svg+='<path d="'+llamPath+' L'+llamPts[n-1][0].toFixed(1)+','+aBot+' L'+llamPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(0,201,167,0.10)" clip-path="url(#'+cpH+')"/>';svg+='<path d="'+llamPath+'" fill="none" stroke="#00C9A7" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpH+')"/>';svg+='<path d="'+llamPath+' L'+llamPts[n-1][0].toFixed(1)+','+aBot+' L'+llamPts[0][0].toFixed(1)+','+aBot+' Z" fill="rgba(220,38,38,0.10)" clip-path="url(#'+cpL+')"/>';svg+='<path d="'+llamPath+'" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" clip-path="url(#'+cpL+')"/>';}
+  var citaPts=data2.map(function(d,i){return [xAt(i),yAt(d.ci)];});if(citaPts.length>1)svg+='<path d="'+buildPath(citaPts)+'" fill="none" stroke="#00E5A0" stroke-width="1" stroke-dasharray="4,3" opacity="0.7"/>';
+  data2.forEach(function(d,i){if(d.ll>0){var cx=xAt(i),cy=yAt(d.ll),dc=d.ll>=BASE?'#00C9A7':'#EF4444';svg+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="2.5" fill="'+dc+'" stroke="#fff" stroke-width="1"/>';if(showP)svg+='<text x="'+cx.toFixed(1)+'" y="'+(cy-6).toFixed(1)+'" fill="'+dc+'" font-size="8" font-weight="800" text-anchor="middle" font-family="Exo 2">'+d.ll+'</text>';}if(d.ci>0)svg+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(d.ci).toFixed(1)+'" r="2" fill="#00E5A0" stroke="#fff" stroke-width="1" opacity="0.8"/>';});
+  svg+='</svg>';wrap.innerHTML=svg;
 }
 
 function openChip(id){
