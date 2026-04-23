@@ -130,11 +130,20 @@
 <!-- MODALES -->
 <div class="mov" id="m-stl" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">🚀 Speed-to-Lead</div><button class="mx" onclick="el('m-stl').classList.remove('open')">✕</button></div><div class="mbody" id="stl-body"></div></div></div>
 <div class="mov" id="m-curva" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">🎯 Conversión por Intento</div><button class="mx" onclick="el('m-curva').classList.remove('open')">✕</button></div><div class="mbody" id="curva-body"></div></div></div>
-<div class="mov" id="m-metas" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal modal-sm"><div class="mhd"><div class="mtit">⚙ Metas Diarias de Llamadas</div><button class="mx" onclick="el('m-metas').classList.remove('open')">✕</button></div><div class="mbody">
-<div class="ins" style="margin-bottom:12px;">Las metas son <b>por día</b>. El sistema calcula el mensual multiplicando por días trabajados. Si cambias la meta, elige desde qué fecha aplica para no afectar días pasados.</div>
-<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;"><span style="font-size:10px;font-weight:700;color:#6B7BA8;">Vigente desde:</span><input type="date" class="mi" id="meta-desde" style="width:160px;"></div>
-<div id="meta-list"></div>
-</div><div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-metas').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="saveMetas()">💾 Guardar</button></div></div></div>
+<div class="mov" id="m-metas" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">⚙ Metas Diarias de Llamadas</div><button class="mx" onclick="el('m-metas').classList.remove('open')">✕</button></div><div class="mbody">
+<div class="ins" style="margin-bottom:12px;">Metas <b>por día</b>. El mensual se calcula × días trabajados. Cambia la fecha de vigencia para no afectar días pasados.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;"><span style="font-size:10px;font-weight:700;color:#6B7BA8;">Vigente desde:</span><input type="date" class="mi" id="meta-desde" style="width:160px;"></div>
+    <div id="meta-list"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;"><button class="mbtn mbtn-p" onclick="saveMetas()">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el('m-metas').classList.remove('open')">Cancelar</button></div>
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:700;color:#0D1B3E;margin-bottom:6px;">📅 Historial de Metas</div>
+    <div id="meta-hist" style="max-height:400px;overflow-y:auto;"></div>
+  </div>
+</div>
+</div></div></div>
 <div class="mov" id="m-bases" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">🗂 Gestión de Bases</div><div style="flex:1;"></div><input class="mi" type="text" placeholder="Buscar..." style="width:180px;font-size:10px;" id="bases-search" oninput="rBases()"><button class="mx" onclick="el('m-bases').classList.remove('open')">✕</button></div><div class="mbody">
   <div class="btabs" id="ac-btabs"><button class="btab act" data-t="campana" onclick="bTab(this)">Campaña</button><button class="btab" data-t="tipificacion" onclick="bTab(this)">Tipificación</button><button class="btab" data-t="cita" onclick="bTab(this)">Estado cita</button><button class="btab" data-t="compra" onclick="bTab(this)">Tipo compra</button><button class="btab" data-t="pago" onclick="bTab(this)">Método pago</button><button class="btab" data-t="servicio" onclick="bTab(this)">Servicio</button><button class="btab" data-t="mes" onclick="bTab(this)">Mes ingreso</button><button class="btab" data-t="provincia" onclick="bTab(this)">Provincia</button><button class="btab" data-t="cola" onclick="bTab(this)">📋 Colas Asesor</button></div>
   <div id="ac-bases-summary" style="margin-bottom:10px;"></div>
@@ -356,19 +365,38 @@ function rCurva(){var ci=D.curva_intentos||[];if(!ci.length){el('curva-body').in
 /* MODAL METAS */
 function rMetas(){
   el('meta-list').innerHTML=ASESORES.map(function(a){
-    var m=(D.metas||[]).find(function(x){return x.asesor.toUpperCase()===a.toUpperCase();});
+    var m=(D.metas||[]).find(function(x){return x&&x.asesor&&x.asesor.toUpperCase()===a.toUpperCase();});
     var mld=m?m.meta_llamadas_dia:0;var mcd=m?m.meta_citas_dia:0;
     return '<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px;border-bottom:1px solid #F0F4FC;padding-bottom:8px;"><div style="font-weight:700;font-size:11px;">'+a+(m?'<div style="font-size:7px;color:#9AAAC8;">Vigente: '+m.vigente_desde+'</div>':'')+'</div><div><div style="font-size:8px;color:#9AAAC8;">Llamadas/día</div><input class="mi" type="number" data-a="'+a+'" data-f="llamadas" value="'+mld+'"></div><div><div style="font-size:8px;color:#9AAAC8;">Citas/día</div><input class="mi" type="number" data-a="'+a+'" data-f="citas" value="'+mcd+'"></div></div>';
   }).join('');
+  loadMetaHist();
+}
+function loadMetaHist(){
+  fetch(SB+'/rest/v1/aos_metas_llamadas?order=vigente_desde.desc,asesor&limit=50',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length){el('meta-hist').innerHTML='<div class="ld">Sin metas registradas</div>';return;}
+    el('meta-hist').innerHTML='<table class="vt"><thead><tr><th>Asesor</th><th>Llam/día</th><th>Citas/día</th><th>Vigente</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+      return '<tr><td style="font-weight:700;font-size:10px;">'+h(r.asesor)+'</td><td>'+r.meta_llamadas_dia+'</td><td>'+r.meta_citas_dia+'</td><td style="font-size:9px;color:#6B7BA8;">'+r.vigente_desde+'</td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delMeta(\''+r.id+'\')">✕</button></td></tr>';
+    }).join('')+'</tbody></table>';
+  });
+}
+function delMeta(id){
+  if(!confirm('¿Eliminar esta meta?'))return;
+  fetch(SB+'/rest/v1/aos_metas_llamadas?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadMetaHist();acLoad();});
 }
 function saveMetas(){
   var desde=el('meta-desde').value;if(!desde){alert('Selecciona desde qué fecha aplica');return;}
   var ins=[];ASESORES.forEach(function(a){
     var ml=Number(document.querySelector('[data-a="'+a+'"][data-f="llamadas"]').value)||0;
     var mc=Number(document.querySelector('[data-a="'+a+'"][data-f="citas"]').value)||0;
-    ins.push({asesor:a,meta_llamadas_dia:ml,meta_citas_dia:mc,vigente_desde:desde});
+    if(ml>0||mc>0)ins.push({asesor:a,meta_llamadas_dia:ml,meta_citas_dia:mc,vigente_desde:desde});
   });
-  fetch(SB+'/rest/v1/aos_metas_llamadas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ins)}).then(function(){el('m-metas').classList.remove('open');acLoad();});
+  if(!ins.length){alert('Ingresa al menos una meta');return;}
+  fetch(SB+'/rest/v1/aos_metas_llamadas?on_conflict=asesor,vigente_desde',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ins)}).then(function(r){
+    if(r.ok||r.status===201||r.status===200){
+      alert('Metas guardadas correctamente para '+ins.length+' asesores desde '+desde);
+      loadMetaHist();acLoad();
+    } else {r.text().then(function(t){alert('Error: '+t);});}
+  }).catch(function(e){alert('Error: '+e);});
 }
 </script>
 <!-- v6.1 fix -->
