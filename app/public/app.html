@@ -302,6 +302,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
       <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><circle cx="10" cy="10" r="7" stroke="#00C9A7" stroke-width="1.5" fill="none"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3" stroke="#00C9A7" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="12" r="1.2" fill="#00C9A7"/></svg>
       <div style="position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#00C9A7;box-shadow:0 0 4px #00C9A7;animation:brpulse 2s infinite;"></div>
     </div>
+    <!-- Agentes AI button (solo admin) -->
+    <div class="tb-ico admin-only" id="btn-agents" title="Oficina Virtual · Agentes AI" onclick="window.open('/agents','AscendaOS_Agents','width=1400,height=850,resizable=yes')" style="cursor:pointer;position:relative;">
+      <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><rect x="3" y="5" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="1.3" fill="none"/><circle cx="8" cy="10" r="1.5" fill="#FFD700"/><circle cx="12" cy="10" r="1.5" fill="#FFD700"/><path d="M6 14h8" stroke="#FFD700" stroke-width="1" stroke-linecap="round"/></svg>
+      <div style="position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#FFD700;box-shadow:0 0 4px #FFD700;animation:brpulse 2s infinite;"></div>
+    </div>
     <!-- G2: Iconos SVG modernos -->
     <div class="tb-ico" id="btn-notif" title="Notificaciones">
       <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5A.5.5 0 003 15h14a.5.5 0 00.43-.74L16 12V8a6 6 0 00-6-6z" fill="#6B7BA8"/><path d="M8 15a2 2 0 004 0" fill="#6B7BA8"/></svg>
@@ -446,6 +451,10 @@ function buildTopbar() {
   if (AOS.role !== 'ADMIN') {
     document.getElementById('edo-btn').style.display = 'flex';
     initEstadoDropdown();
+    var agBtn = document.getElementById('btn-agents');
+    if (agBtn) agBtn.style.display = 'none';
+    var brBtn = document.getElementById('btn-brain');
+    if (brBtn) brBtn.style.display = 'none';
   }
 }
 
@@ -522,7 +531,6 @@ var SIDEBAR_ADMIN = [
   {type:'section',label:'Supervision'},
   {type:'item',id:'admin-home',         ico:'grid',      lbl:'Home admin'},
   {type:'item',id:'admin-chats',        ico:'chat',      lbl:'Coordinacion',  badge:'',badgeColor:'#0A4FBF'},
-  {type:'item',id:'admin-agents',       ico:'cpu',       lbl:'Agentes AI',    badge:'',badgeColor:'#10B981'},
   {type:'sep'},
   {type:'section',label:'Gestion clinica'},
   {type:'item',id:'admin-agenda',       ico:'calendar',  lbl:'Agenda'},
@@ -619,7 +627,6 @@ var VIEW_MAP = {
   'admin-team':          'ViewAdminTeam',
   'admin-config':        'ViewAdminConfig',
   'admin-chats':         'ViewAdminChats',
-  'admin-agents':        'ViewAdminAgents',
 };
 
 function navigateTo(viewId) {
@@ -666,7 +673,6 @@ function navigateTo(viewId) {
     'ViewAdminBilling':       '/admin-billing.html',
     'ViewAdminConfig':        '/admin-config.html',
     'ViewAdminChats':         '/coordinacion.html',
-    'ViewAdminAgents':        '/admin-agents.html',
     'ViewAdvisorCoord':       '/asesor-coord.html'
   };
   var route = PANEL_ROUTES[hf];
