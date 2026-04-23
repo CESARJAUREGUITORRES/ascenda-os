@@ -34,7 +34,7 @@
 .pi:hover{border-color:#0A4FBF;}.pi.on{background:#EBF2FF;border-color:#0A4FBF;}
 .pi.on .pc-k{background:#0A4FBF;color:#fff;border-color:#0A4FBF;}
 .pc-k{width:12px;height:12px;border-radius:3px;border:1.5px solid #DDE4F5;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;flex-shrink:0;}
-.toast{position:fixed;bottom:20px;right:20px;z-index:700;pointer-events:none;}
+.toast{position:fixed;bottom:20px;right:20px;z-index:700;pointer-events:none;display:none;}
 .toast-item{pointer-events:all;padding:10px 14px;border-radius:12px;background:#fff;box-shadow:0 8px 30px rgba(7,29,74,.2);animation:ti .3s;font-size:11px;border-left:3px solid #0A4FBF;margin-top:6px;}
 @keyframes ti{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @media(max-width:768px){.g4{grid-template-columns:1fr 1fr;}}
@@ -58,7 +58,7 @@ function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function q(t,qs,cb){fetch(SB+'/rest/v1/'+t+'?'+qs,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb).catch(function(){});}
 function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(){});}
-function showToast(m){var tw=el('tm-toast');var d=document.createElement('div');d.className='toast-item';d.textContent='✓ '+m;tw.appendChild(d);setTimeout(function(){d.remove();},3500);}
+function showToast(m){var tw=el('tm-toast');tw.style.display='block';var d=document.createElement('div');d.className='toast-item';d.textContent='✓ '+m;tw.appendChild(d);setTimeout(function(){d.remove();if(!tw.children.length)tw.style.display='none';},3500);}
 var P=[],U=[],UB=[];
 function loadTeam(){
   var f=el('tm-filter').value;var qs='select=*&order=nivel_jerarquia,nombre&activo=eq.true'+(f?'&cargo=eq.'+f:'');
@@ -243,9 +243,11 @@ function loadProvs(){
     var sel=el('eu-prov');if(!sel)return;
     sel.innerHTML='<option>—</option>'+Object.keys(provs).sort().map(function(p){return '<option>'+p+'</option>';}).join('');
     sel.onchange=function(){loadDists(dep,sel.value);};
+    el('eu-dist').innerHTML='<option>—</option>';
   });
 }
 function loadDists(dep,prov){
+  if(!prov||prov==='—')return;
   fetch(SB+'/rest/v1/aos_ubigeo?select=distrito&departamento=eq.'+encodeURIComponent(dep)+'&provincia=eq.'+encodeURIComponent(prov)+'&order=distrito',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
     var sel=el('eu-dist');if(!sel)return;
     sel.innerHTML='<option>—</option>'+(rows||[]).map(function(r){return '<option>'+r.distrito+'</option>';}).join('');
@@ -390,20 +392,27 @@ function delTurno(id,nombre){
 }function upAv(inp,uid){var f=inp.files[0];if(!f)return;if(f.size>5*1024*1024){el('eu-as').textContent='❌ Máx 5MB';return;}el('eu-as').textContent='⏳ Subiendo...';el('eu-as').style.color='#D97706';var ext=f.name.split('.').pop();var reader=new FileReader();reader.onload=function(e){el('eu-pb').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';};reader.readAsDataURL(f);fetch(SB+'/storage/v1/object/avatars/'+uid+'.'+ext,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type,'x-upsert':'true'},body:f}).then(function(r){return r.json();}).then(function(r){if(r&&(r.Key||r.Id)){var url=SB+'/storage/v1/object/public/avatars/'+uid+'.'+ext;el('eu-avatar').value=url;el('eu-as').textContent='✅ Foto subida';el('eu-as').style.color='#059669';showToast('Foto actualizada');}else{el('eu-as').textContent='❌ Error';el('eu-as').style.color='#DC2626';}}).catch(function(){el('eu-as').textContent='❌ Error conexión';});}
 function sendInv(id,email,nombre){/* deprecated */}
 function activarCuenta(id,email,nombre){
-  if(!email){showToast('Agrega un email primero');return;}
-  var pw=prompt('Contraseña inicial para '+nombre+':',nombre.toLowerCase().slice(0,4)+'123');
-  if(!pw||pw.length<6){showToast('Contraseña mínimo 6 caracteres');return;}
-  // Actualizar contraseña en rrhh y activar cuenta
+  if(!email){showToast('Agrega un email primero en la pestaña Datos');return;}
+  var mHTML='<div id="act-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(400px,92vw);padding:24px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
+  mHTML+='<div style="font-family:Exo 2;font-weight:800;font-size:16px;margin-bottom:4px;">🚀 Activar Cuenta</div>';
+  mHTML+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">Se enviará email con credenciales a <b>'+email+'</b></div>';
+  mHTML+='<div class="fg" style="grid-template-columns:1fr;margin-bottom:8px;"><div class="fg-l">Contraseña inicial para '+nombre+'</div><input class="mi" id="act-pw" type="text" value="'+nombre.toLowerCase().slice(0,4)+'123" style="font-size:14px;font-weight:700;letter-spacing:1px;"></div>';
+  mHTML+='<div style="font-size:8px;color:#6B7BA8;margin-bottom:12px;">El usuario deberá cambiar esta contraseña después del primer login.</div>';
+  mHTML+='<div style="display:flex;gap:6px;"><button class="mbtn mbtn-g" onclick="doActivar(\''+id+'\',\''+email+'\',\''+nombre+'\')">✓ Activar y Enviar Email</button><button class="mbtn mbtn-c" onclick="document.getElementById(\'act-modal\').remove()">Cancelar</button></div>';
+  mHTML+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',mHTML);
+}
+function doActivar(id,email,nombre){
+  var pw=el('act-pw').value;if(!pw||pw.length<6){showToast('Contraseña mínimo 6 caracteres');return;}
   fetch(SB+'/rest/v1/aos_rrhh?nombre=eq.'+encodeURIComponent(nombre),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({password_hash:pw})}).then(function(){
     return fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cuenta_activada:true})});
   }).then(function(){
-    // Buscar username
     return fetch(SB+'/rest/v1/aos_rrhh?select=usuario&nombre=eq.'+encodeURIComponent(nombre),{headers:{'apikey':SK,'Authorization':'Bearer '+SK}});
   }).then(function(r){return r.json();}).then(function(rows){
     var us=(rows&&rows[0])?rows[0].usuario:nombre.toLowerCase();
-    // Enviar email
-    fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'🔑 Tu cuenta AscendaOS está activa',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;text-align:center;border-radius:12px 12px 0 0;color:#fff;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">CLÍNICA ZI VITAL</div><div style="font-size:22px;font-weight:800;margin-top:6px;">¡Tu cuenta está lista!</div></div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>,</p><p>Tu cuenta en AscendaOS ha sido activada por el administrador.</p><div style="background:#F0F4FC;padding:16px;border-radius:10px;margin:12px 0;"><p style="margin:4px 0;"><b>Usuario:</b> '+us+'</p><p style="margin:4px 0;"><b>Contraseña:</b> '+pw+'</p></div><p style="color:#DC2626;font-size:11px;margin:8px 0;">Cambia tu contraseña después del primer login.</p><a href="https://ascenda-os-production.up.railway.app" style="display:block;text-align:center;background:#0A4FBF;color:#fff;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:12px;">Ingresar a AscendaOS →</a></div><div style="text-align:center;padding:12px;font-size:9px;color:#9AAAC8;">Clínica Zi Vital · Lima, Perú · Powered by AscendaOS</div></div>'})});
+    fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'🔑 Tu cuenta AscendaOS está activa',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;text-align:center;border-radius:12px 12px 0 0;color:#fff;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">CLÍNICA ZI VITAL</div><div style="font-size:22px;font-weight:800;margin-top:6px;">¡Tu cuenta está lista!</div></div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>,</p><p>Tu cuenta ha sido activada.</p><div style="background:#F0F4FC;padding:16px;border-radius:10px;margin:12px 0;"><p style="margin:4px 0;"><b>Usuario:</b> '+us+'</p><p style="margin:4px 0;"><b>Contraseña:</b> '+pw+'</p></div><p style="color:#DC2626;font-size:11px;">Cambia tu contraseña después del primer login.</p><a href="https://ascenda-os-production.up.railway.app" style="display:block;text-align:center;background:#0A4FBF;color:#fff;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:12px;">Ingresar →</a></div></div>'})});
     showToast('✓ Cuenta activada — email enviado a '+email);
+    var m=document.getElementById('act-modal');if(m)m.remove();
     el('m-user').classList.remove('open');loadTeam();
   });
 }
