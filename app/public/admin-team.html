@@ -178,16 +178,31 @@ function editUser(idx){
   setTimeout(function(){var nv=el('eu-niv');if(nv)nv.value=u.nivel_jerarquia||4;},100);
   rpc('aos_productividad_equipo',{},function(r){if(!r||!r.ok)return;var p=(r.equipo||[]).filter(function(e){return e.nombre===u.nombre;})[0];if(!p){el('eu-met').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:9px;color:#9AAAC8;">Sin datos de productividad</div>';return;}var pp=p.dias_trabajados>0?Math.round((p.dias_trabajados-(p.tardanzas||0))/p.dias_trabajados*100):0;el('eu-met').innerHTML=[{l:'Llamadas',v:Number(p.llamadas||0).toLocaleString(),c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conv%',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Facturado',v:'S/'+Number(p.facturado||0).toLocaleString(),c:'#059669'},{l:'Puntualidad',v:pp+'%',c:pp>=80?'#059669':'#DC2626'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>2?'#DC2626':'#0A4FBF'}].map(function(s){return '<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:15px;color:'+s.c+';">'+s.v+'</div><div style="font-size:6px;font-weight:700;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div></div>';}).join('');});
   q('aos_horarios_personal','select=id,fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(u.nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=7',function(r){var ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];el('eu-hor').innerHTML=(r&&r.length)?r.map(function(h){var d=new Date(h.fecha+'T12:00:00');return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editTurno(\''+h.id+'\',\''+h.fecha+'\',\''+h.hora_inicio+'\',\''+h.hora_fin+'\',\''+h.sede+'\',\''+u.nombre+'\')"><b>'+ds[d.getDay()]+' '+h.fecha.slice(5)+'</b><span style="color:#0A4FBF;font-weight:700;">'+h.hora_inicio+' - '+h.hora_fin+'</span><span style="font-size:7px;color:#6B7BA8;">'+h.sede+'</span></div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin turnos</div>';});
-  rpc('aos_detalle_asesor',{p_nombre:u.nombre},function(r){if(!r||!r.ok)return;var d=(r.diario||[]).slice(0,10);el('eu-asis').innerHTML=d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editAsistencia(\''+x.fecha+'\',\''+u.nombre+'\',\''+x.primera_llamada+'\',\''+x.ultima_llamada+'\')"><span style="font-weight:700;">'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+' llam</span><span style="color:#00C9A7;">'+x.citas+' cit</span><span style="font-size:8px;color:#6B7BA8;">'+(x.primera_llamada||'').slice(0,5)+'</span>'+(x.llego_tarde?'<span style="color:#DC2626;font-weight:700;">✕</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin datos</div>';});
+  rpc('aos_detalle_asesor',{p_nombre:u.nombre},function(r){if(!r||!r.ok)return;var d=(r.diario||[]).slice(0,10);
+    var totalTarde=0,totalMin=0;d.forEach(function(x){if(x.llego_tarde)totalTarde++;totalMin+=(x.minutos_activo||0);});
+    el('eu-asis').innerHTML=(d.length?d.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editAsistencia(\''+x.fecha+'\',\''+u.nombre+'\',\''+x.primera_llamada+'\',\''+x.ultima_llamada+'\')"><span style="font-weight:700;">'+x.fecha.slice(5)+'</span><span style="color:#0A4FBF;">'+x.llamadas+'</span><span style="color:#00C9A7;">'+x.citas+'</span><span style="font-size:7px;color:#6B7BA8;">'+(x.primera_llamada||'').slice(0,5)+'→'+(x.ultima_llamada||'').slice(0,5)+'</span>'+(x.llego_tarde?'<span style="color:#DC2626;font-weight:700;">✕</span>':'<span style="color:#059669;">✓</span>')+'</div>';}).join(''):'Sin datos')+
+    '<div style="margin-top:6px;padding:6px;background:#F8FAFF;border-radius:6px;font-size:7px;color:#6B7BA8;display:flex;gap:8px;flex-wrap:wrap;"><span>📊 Tardanzas: <b style="color:#DC2626;">'+totalTarde+'</b></span><span>⏱ Min activo prom: <b style="color:#0A4FBF;">'+Math.round(totalMin/(d.length||1))+'</b></span><span>📅 Días: <b>'+d.length+'</b></span></div>';
+  });
 }
 function editAsistencia(fecha,nombre,primera,ultima){
-  var msg='Asistencia '+fecha+' — '+nombre+'\n1ra llamada: '+(primera||'N/A')+'\nÚltima: '+(ultima||'N/A')+'\n\n¿Editar hora de entrada registrada?';
-  var newHora=prompt(msg,primera||'09:30');
-  if(!newHora)return;
+  var mHTML='<div id="edit-asis-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(420px,92vw);padding:20px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
+  mHTML+='<div style="font-family:Exo 2;font-weight:800;font-size:15px;margin-bottom:4px;">📋 Editar Asistencia</div>';
+  mHTML+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">'+fecha+' — '+nombre+'</div>';
+  mHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  mHTML+='<div><div class="fg-l">1ra llamada registrada</div><div style="font-size:13px;font-weight:700;color:#0A4FBF;padding:4px 0;">'+(primera||'Sin registro')+'</div></div>';
+  mHTML+='<div><div class="fg-l">Última llamada</div><div style="font-size:13px;font-weight:700;color:#6B7BA8;padding:4px 0;">'+(ultima||'Sin registro')+'</div></div>';
+  mHTML+='<div><div class="fg-l">Corregir entrada</div><input class="mi" type="time" id="ea-ini" value="'+(primera?primera.slice(0,5):'09:30')+'"></div>';
+  mHTML+='<div><div class="fg-l">Corregir salida</div><input class="mi" type="time" id="ea-fin" value="'+(ultima?ultima.slice(0,5):'18:00')+'"></div>';
+  mHTML+='</div>';
+  mHTML+='<div style="display:flex;gap:6px;margin-top:12px;"><button class="mbtn mbtn-g" onclick="saveEditAsis(\''+fecha+'\',\''+nombre+'\')">✓ Guardar Corrección</button><button class="mbtn mbtn-c" onclick="document.getElementById(\'edit-asis-modal\').remove()">Cancelar</button></div>';
+  mHTML+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',mHTML);
+}
+function saveEditAsis(fecha,nombre){
   q('aos_horarios_personal','select=id&personal=eq.'+encodeURIComponent(nombre)+'&fecha=eq.'+fecha+'&limit=1',function(rows){
     if(rows&&rows[0]){
-      fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+rows[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:newHora,notas:'Editado por admin'})}).then(function(){showToast('Horario editado para '+fecha);});
-    } else {showToast('Sin horario programado para editar');}
+      fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+rows[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:el('ea-ini').value,hora_fin:el('ea-fin').value,notas:'Asistencia corregida por admin'})}).then(function(){showToast('Asistencia corregida');var m=document.getElementById('edit-asis-modal');if(m)m.remove();loadCal30(nombre);});
+    } else {showToast('Sin horario para editar');var m=document.getElementById('edit-asis-modal');if(m)m.remove();}
   });
 }
 function progHorarios(nombre){
@@ -331,19 +346,64 @@ function progSingle(nombre){
   });
 }
 function editTurno(id,fecha,ini,fin,sede,nombre){
-  var r=prompt('Editar turno '+fecha+'\nEntrada (actual: '+ini+'):',ini);if(!r)return;
-  var r2=prompt('Salida (actual: '+fin+'):',fin);if(!r2)return;
-  var r3=prompt('Sede (actual: '+sede+'):',sede);
-  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:r,hora_fin:r2,sede:r3||sede})}).then(function(){
+  var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];var d=new Date(fecha+'T12:00:00');
+  var mHTML='<div id="edit-turno-modal" style="position:fixed;inset:0;background:rgba(7,29,74,.4);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;width:min(420px,92vw);padding:20px;box-shadow:0 20px 50px rgba(7,29,74,.25);">';
+  mHTML+='<div style="font-family:Exo 2;font-weight:800;font-size:15px;margin-bottom:4px;">📅 Editar Turno</div>';
+  mHTML+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">'+dias[d.getDay()]+' '+fecha+' — '+nombre+'</div>';
+  mHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  mHTML+='<div><div class="fg-l">Entrada actual</div><div style="font-size:12px;color:#9AAAC8;padding:4px 0;">'+ini+'</div></div>';
+  mHTML+='<div><div class="fg-l">Salida actual</div><div style="font-size:12px;color:#9AAAC8;padding:4px 0;">'+fin+'</div></div>';
+  mHTML+='<div><div class="fg-l">Nueva entrada</div><input class="mi" type="time" id="et-ini" value="'+ini+'"></div>';
+  mHTML+='<div><div class="fg-l">Nueva salida</div><input class="mi" type="time" id="et-fin" value="'+fin+'"></div>';
+  mHTML+='<div><div class="fg-l">Sede</div><select class="mi" id="et-sede"><option'+(sede==='SAN ISIDRO'?' selected':'')+'>SAN ISIDRO</option><option'+(sede==='PUEBLO LIBRE'?' selected':'')+'>PUEBLO LIBRE</option></select></div>';
+  mHTML+='</div>';
+  mHTML+='<div style="display:flex;gap:6px;margin-top:12px;"><button class="mbtn mbtn-g" onclick="saveEditTurno(\''+id+'\',\''+nombre+'\')">✓ Guardar Cambios</button><button class="mbtn mbtn-r" onclick="delTurno(\''+id+'\',\''+nombre+'\');document.getElementById(\'edit-turno-modal\').remove()">🗑 Eliminar</button><button class="mbtn mbtn-c" onclick="document.getElementById(\'edit-turno-modal\').remove()">Cancelar</button></div>';
+  mHTML+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',mHTML);
+}
+function saveEditTurno(id,nombre){
+  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({hora_inicio:el('et-ini').value,hora_fin:el('et-fin').value,sede:el('et-sede').value,notas:'Editado admin'})}).then(function(){
     showToast('Turno actualizado');loadCal30(nombre);
-    var pm=document.getElementById('prog-modal');if(pm)pm.remove();openProgModal(nombre,true);
+    var m=document.getElementById('edit-turno-modal');if(m)m.remove();
   });
 }
 function delTurno(id,nombre){
   fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){showToast('Turno eliminado');loadCal30(nombre);openProgModal(nombre,true);});
 }function upAv(inp,uid){var f=inp.files[0];if(!f)return;if(f.size>5*1024*1024){el('eu-as').textContent='❌ Máx 5MB';return;}el('eu-as').textContent='⏳ Subiendo...';el('eu-as').style.color='#D97706';var ext=f.name.split('.').pop();var reader=new FileReader();reader.onload=function(e){el('eu-pb').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">';};reader.readAsDataURL(f);fetch(SB+'/storage/v1/object/avatars/'+uid+'.'+ext,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type,'x-upsert':'true'},body:f}).then(function(r){return r.json();}).then(function(r){if(r&&(r.Key||r.Id)){var url=SB+'/storage/v1/object/public/avatars/'+uid+'.'+ext;el('eu-avatar').value=url;el('eu-as').textContent='✅ Foto subida';el('eu-as').style.color='#059669';showToast('Foto actualizada');}else{el('eu-as').textContent='❌ Error';el('eu-as').style.color='#DC2626';}}).catch(function(){el('eu-as').textContent='❌ Error conexión';});}
 function sendInv(id,email,nombre){fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'🔑 Activa tu cuenta AscendaOS',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;text-align:center;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;color:#fff;font-size:20px;font-weight:800;">Bienvenido al equipo</div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>, tu cuenta está lista.</p><a href="https://ascenda-os-production.up.railway.app" style="display:inline-block;background:#0A4FBF;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;">Activar cuenta →</a></div></div>'})}).then(function(){showToast('Invitación enviada a '+email);});}
-function openNewUser(){el('mu-title').textContent='+ Nuevo Usuario';var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">';html+='<div class="fg"><div class="fg-l">Nombres</div><input class="mi" id="eu-nombre"></div>';html+='<div class="fg"><div class="fg-l">Apellidos</div><input class="mi" id="eu-apellidos"></div>';html+='<div class="fg"><div class="fg-l">Email</div><input class="mi" id="eu-email" type="email"></div>';html+='<div class="fg"><div class="fg-l">Usuario</div><input class="mi" id="eu-user" placeholder="nombre.apellido"></div>';html+='<div class="fg"><div class="fg-l">Contraseña</div><input class="mi" id="eu-pass" placeholder="min 6 chars"></div>';html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo"><option>STAFF ENFERMERÍA</option><option>ASESOR</option><option>STAFF MÉDICO</option><option>RECEPCIONISTA</option><option>COMMUNITY MANAGER</option><option>JEFE DE ÁREA</option><option>DIRECTOR GENERAL</option></select></div>';html+='<div class="fg"><div class="fg-l">Sede</div><input class="mi" id="eu-sede"></div>';html+='</div>';html+='<div class="sec-t">🔐 Paneles</div><div class="pm">';P.forEach(function(p){html+='<div class="pi" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k"></div>'+p.icono+' '+h(p.nombre)+'</div>';});html+='</div>';html+='<div style="display:flex;gap:6px;margin-top:10px;"><button class="mbtn mbtn-g" onclick="createU()">✓ Crear</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cancelar</button></div>';el('mu-body').innerHTML=html;el('m-user').classList.add('open');}
-function createU(){var n=(el('eu-nombre').value||'').toUpperCase(),a=(el('eu-apellidos')?el('eu-apellidos').value:'').toUpperCase(),em=el('eu-email').value,us=el('eu-user')?el('eu-user').value.toLowerCase():'',pw=el('eu-pass')?el('eu-pass').value:'',cg=el('eu-cargo').value,sd=el('eu-sede')?el('eu-sede').value:'';if(!n||!us||!pw||pw.length<6){showToast('Completa campos');return;}var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});var nc='ZIV-'+String(100+U.length+1).padStart(3,'0');fetch(SB+'/rest/v1/aos_rrhh',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,usuario:us,password_hash:pw,puesto:cg,sede:sd,estado:'ACTIVO',codigo_asesor:nc})}).then(function(){return fetch(SB+'/rest/v1/aos_usuarios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,apellidos:a,email:em,cargo:cg,sede:sd,nivel_jerarquia:4,paneles_acceso:ps,codigo_asesor:nc,cuenta_activada:false})});}).then(function(){showToast(n+' creado');el('m-user').classList.remove('open');loadTeam();});}
+function openNewUser(){el('mu-title').textContent='+ Nuevo Usuario';
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;">';
+  html+='<div class="fg"><div class="fg-l">Nombres</div><input class="mi" id="eu-nombre" placeholder="NOMBRE"></div>';
+  html+='<div class="fg"><div class="fg-l">Apellidos</div><input class="mi" id="eu-apellidos" placeholder="APELLIDO"></div>';
+  html+='<div class="fg"><div class="fg-l">Email</div><input class="mi" id="eu-email" type="email" placeholder="correo@gmail.com"></div>';
+  html+='<div class="fg"><div class="fg-l">Teléfono</div><input class="mi" id="eu-tel" placeholder="999999999"></div>';
+  html+='<div class="fg"><div class="fg-l">Área</div><select class="mi" id="eu-area2" onchange="updateCargos2()"><option value="enfermería">Enfermería</option><option value="médica">Médica</option><option value="ventas">Ventas</option><option value="marketing">Marketing</option><option value="recepción">Recepción</option><option value="contabilidad">Contabilidad</option><option value="administración">Administración</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Cargo</div><select class="mi" id="eu-cargo2"></select></div>';
+  html+='<div class="fg"><div class="fg-l">Rol sistema</div><select class="mi" id="eu-rol2"><option value="3">Operativo</option><option value="2">Administrador</option><option value="4">Externo</option></select></div>';
+  html+='<div class="fg"><div class="fg-l">Acceso</div><select class="mi" id="eu-acc2"><option value="limitado">Limitado a sedes</option><option value="libre">Uso libre</option></select></div>';
+  html+='</div>';
+  html+='<div style="font-size:9px;color:#6B7BA8;margin:8px 0;padding:8px;background:#F8FAFF;border-radius:8px;">Se generará usuario y contraseña automáticamente. El correo de activación se enviará al email ingresado.</div>';
+  html+='<div style="display:flex;gap:6px;margin-top:8px;"><button class="mbtn mbtn-g" onclick="createU()">✓ Crear Usuario</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cancelar</button></div>';
+  el('mu-body').innerHTML=html;el('m-user').classList.add('open');updateCargos2();
+}
+function updateCargos2(){var area=el('eu-area2').value;var sel=el('eu-cargo2');var cargos=CARGOS_POR_AREA[area]||['ASESOR'];sel.innerHTML=cargos.map(function(c){return '<option>'+c+'</option>';}).join('');}
+function createU(){
+  var n=(el('eu-nombre').value||'').toUpperCase(),a=(el('eu-apellidos')?el('eu-apellidos').value:'').toUpperCase();
+  var em=el('eu-email').value,tel=el('eu-tel')?el('eu-tel').value:'';
+  var cg=el('eu-cargo2')?el('eu-cargo2').value:'ASESOR',area=el('eu-area2')?el('eu-area2').value:'enfermería';
+  var rol=el('eu-rol2')?Number(el('eu-rol2').value):3,acc=el('eu-acc2')?el('eu-acc2').value:'limitado';
+  if(!n||!a){showToast('Completa nombre y apellidos');return;}
+  // Auto-generar usuario y contraseña
+  var us=n.toLowerCase().replace(/\s+/g,'.')+'.'+a.toLowerCase().split(' ')[0];
+  var pw=n.toLowerCase().slice(0,4)+String(Math.floor(Math.random()*9000)+1000);
+  var nc='ZIV-'+String(100+U.length+1).padStart(3,'0');
+  var sedes=acc==='libre'?'TODAS':'SAN ISIDRO, PUEBLO LIBRE';
+  fetch(SB+'/rest/v1/aos_rrhh',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,usuario:us,password_hash:pw,puesto:cg,sede:sedes,estado:'ACTIVO',codigo_asesor:nc})}).then(function(){
+    return fetch(SB+'/rest/v1/aos_usuarios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,apellidos:a,email:em,telefono_personal:tel,cargo:cg,area:area,sede:sedes,nivel_jerarquia:rol,acceso_geo:acc,sedes_permitidas:acc==='limitado'?['SAN_ISIDRO','PUEBLO_LIBRE']:[],codigo_asesor:nc,cuenta_activada:false,paneles_acceso:[]})});
+  }).then(function(){
+    if(em){fetch('https://ascenda-os-production.up.railway.app/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:em,subject:'🔑 Tu cuenta AscendaOS',html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;text-align:center;border-radius:12px 12px 0 0;color:#fff;font-size:20px;font-weight:800;">Bienvenido al equipo</div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+n+'</b>,</p><div style="background:#F0F4FC;padding:16px;border-radius:10px;margin:12px 0;"><p><b>Usuario:</b> '+us+'</p><p><b>Contraseña:</b> '+pw+'</p></div><p style="color:#DC2626;font-size:11px;">Cambia tu contraseña en el primer login.</p><a href="https://ascenda-os-production.up.railway.app" style="display:block;text-align:center;background:#0A4FBF;color:#fff;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;">Activar cuenta →</a></div></div>'})}).catch(function(){});}
+    showToast(n+' creado — usuario: '+us);el('m-user').classList.remove('open');loadTeam();
+  });
+}
 loadTeam();
 </script>
