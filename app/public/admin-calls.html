@@ -493,9 +493,12 @@ function delMeta(id){
   fetch(SB+'/rest/v1/aos_metas_llamadas?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadMetaHist();acLoad();});
 }
 function showToast(title,msg,isErr){
-  var tw=el('ac-toast');var d=document.createElement('div');d.className='toast-item'+(isErr?' err':'');
-  d.innerHTML='<div class="toast-ico">'+(isErr?'❌':'✅')+'</div><div class="toast-body"><div class="toast-ttl">'+title+'</div><div class="toast-msg">'+msg+'</div></div><button class="toast-x" onclick="this.parentNode.style.animation=\'toastOut .3s\';setTimeout(function(){d.remove();},300)">✕</button>';
-  tw.appendChild(d);var ref=d;setTimeout(function(){ref.style.animation='toastOut .3s forwards';setTimeout(function(){ref.remove();},300);},4000);
+  var tw=el('ac-toast');
+  var d=document.createElement('div');d.className='toast-item'+(isErr?' err':'');
+  d.innerHTML='<div class="toast-ico">'+(isErr?'❌':'✅')+'</div><div class="toast-body"><div class="toast-ttl">'+title+'</div><div class="toast-msg">'+msg+'</div></div><button class="toast-x" onclick="this.parentNode.remove()">✕</button>';
+  d.style.borderBottom='3px solid '+(isErr?'#DC2626':'#00C9A7');
+  if(!isErr)d.style.background='linear-gradient(135deg,rgba(0,201,167,0.06),#fff 60%)';
+  tw.appendChild(d);var ref=d;setTimeout(function(){if(ref.parentNode){ref.style.animation='toastOut .3s forwards';setTimeout(function(){if(ref.parentNode)ref.remove();},300);}},5000);
 }
 function saveMetas(){
   var desde=el('meta-desde').value;if(!desde){showToast('Error','Selecciona desde qué fecha aplica',true);return;}
