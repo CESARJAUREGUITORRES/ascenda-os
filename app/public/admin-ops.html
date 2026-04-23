@@ -1,9 +1,8 @@
-<!-- admin-ops.html v1 — Panel de Operaciones | AscendaOS v1 | 100% Supabase -->
+<!-- admin-ops.html v2 — Panel de Operaciones + Productividad | AscendaOS v1 -->
 <style>
 .ops{padding:14px;display:flex;flex-direction:column;gap:10px;font-family:'DM Sans',sans-serif;color:#0D1B3E;}
-.ops-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .ops-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;}
-.ops-tabs{display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;margin-left:auto;}
+.ops-tabs{display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;}
 .ops-tab{padding:8px 14px;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;border:none;background:none;transition:all .15s;}
 .ops-tab.act{background:#071D4A;color:#fff;}
 .crd{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
@@ -11,76 +10,56 @@
 .vt{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
 .vt th{background:#F8FAFF;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:#9AAAC8;padding:8px 10px;text-align:left;border-bottom:1px solid #EEF0F8;}
 .vt td{padding:8px 10px;border-bottom:1px solid #F5F6FA;}
-.vt tr:hover{background:#FAFBFE;}
-.st{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
-.st-c{background:#F8FAFF;border-radius:12px;padding:14px;text-align:center;border:1px solid #EEF0F8;}
-.st-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:22px;color:#0A4FBF;}
-.st-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#9AAAC8;margin-top:2px;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:8px;font-weight:700;}
 .tag-g{background:#F0FDF4;color:#059669;}.tag-b{background:#EBF2FF;color:#0A4FBF;}.tag-y{background:#FFFBEB;color:#D97706;}.tag-r{background:#FEF2F2;color:#DC2626;}.tag-p{background:#F5F3FF;color:#7C3AED;}
-@media(max-width:768px){.st{grid-template-columns:1fr 1fr;}.g2{grid-template-columns:1fr;}}
+.mi{padding:6px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;}
+.mbtn{padding:8px 16px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;}
+.mbtn-p{background:#0A4FBF;color:#fff;}.mbtn-c{background:#F0F4FC;color:#6B7BA8;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;}
+/* Team card */
+.tc{border-radius:16px;padding:16px;border:1px solid #EEF0F8;background:#fff;transition:all .2s;cursor:pointer;}
+.tc:hover{box-shadow:0 6px 20px rgba(7,29,74,.08);transform:translateY(-2px);}
+.tc-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.tc-av{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;}
+.tc-name{font-weight:800;font-size:15px;}.tc-role{font-size:9px;color:#6B7BA8;}
+.tc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.tc-st{background:#F8FAFF;border-radius:8px;padding:6px;text-align:center;}
+.tc-sv{font-family:'Exo 2';font-weight:800;font-size:14px;}.tc-sl{font-size:6px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#9AAAC8;}
+.tc-row{display:flex;gap:6px;margin-top:6px;font-size:9px;}
+.tc-chip{padding:2px 6px;border-radius:6px;font-weight:700;font-size:8px;}
+@media(max-width:768px){.g2,.g3{grid-template-columns:1fr;}}
 </style>
 <div class="ops">
-  <div class="ops-hdr">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <div class="ops-t">⚙ Operaciones</div>
-    <div class="ops-tabs">
-      <button class="ops-tab act" onclick="opsTab('personal')">👥 Personal</button>
+    <div class="ops-tabs" style="margin-left:auto;">
+      <button class="ops-tab act" onclick="opsTab('productividad')">📊 Productividad</button>
       <button class="ops-tab" onclick="opsTab('horarios')">📅 Horarios</button>
-      <button class="ops-tab" onclick="opsTab('asistencia')">📋 Asistencia</button>
       <button class="ops-tab" onclick="opsTab('seguridad')">🔒 Seguridad</button>
     </div>
   </div>
-  <div id="ops-personal">
-    <div class="st">
-      <div class="st-c"><div class="st-v" id="op-total">0</div><div class="st-l">Personal Activo</div></div>
-      <div class="st-c"><div class="st-v" id="op-online" style="color:#059669;">0</div><div class="st-l">Conectados Hoy</div></div>
-      <div class="st-c"><div class="st-v" id="op-llamadas" style="color:#00C9A7;">0</div><div class="st-l">Llamadas Hoy</div></div>
-      <div class="st-c"><div class="st-v" id="op-accesos" style="color:#D97706;">0</div><div class="st-l">Accesos Hoy</div></div>
-    </div>
-    <div class="crd">
-      <div class="ct">👥 Estado del Personal — Hoy</div>
-      <table class="vt"><thead><tr><th>Nombre</th><th>Puesto</th><th>Sede</th><th>Entrada</th><th>Última Actividad</th><th>Llamadas</th><th>Estado</th></tr></thead>
-      <tbody id="op-personal-list"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Cargando...</td></tr></tbody></table>
-    </div>
+  <!-- PRODUCTIVIDAD HOME -->
+  <div id="ops-productividad">
+    <div id="op-cards" class="g3"></div>
+    <div id="op-detail" style="display:none;margin-top:10px;"></div>
   </div>
   <!-- HORARIOS -->
   <div id="ops-horarios" style="display:none;">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
       <span style="font-size:10px;color:#6B7BA8;">Semana del:</span>
-      <input type="date" class="mi" id="hor-fecha" style="width:160px;padding:6px 10px;border:1px solid #DDE4F5;border-radius:8px;font-size:11px;" onchange="loadHorarios()">
-      <button class="mbtn mbtn-p" onclick="openAddHorario()" style="margin-left:auto;">+ Asignar Horario</button>
+      <input type="date" class="mi" id="hor-fecha" style="width:160px;" onchange="loadHorarios()">
+      <button class="mbtn mbtn-p" onclick="openAddHor()" style="margin-left:auto;">+ Asignar Horario</button>
     </div>
-    <div class="crd">
-      <div class="ct">📅 Horarios Programados</div>
-      <table class="vt"><thead><tr><th>Fecha</th><th>Personal</th><th>Sede</th><th>Entrada</th><th>Salida</th><th>Turno</th><th></th></tr></thead>
-      <tbody id="hor-list"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Cargando...</td></tr></tbody></table>
-    </div>
-    <div class="crd" style="margin-top:10px;">
-      <div class="ct">⚙ Horarios de Sede (Config Global)</div>
-      <table class="vt"><thead><tr><th>Sede</th><th>Día</th><th>Apertura</th><th>Cierre</th><th>Intervalo Cita</th><th>Máx Citas/Hora</th></tr></thead>
-      <tbody id="hor-config"></tbody></table>
-    </div>
+    <div class="crd"><div class="ct">📅 Horarios Programados</div>
+    <table class="vt"><thead><tr><th>Fecha</th><th>Personal</th><th>Sede</th><th>Entrada</th><th>Salida</th><th>Turno</th><th></th></tr></thead>
+    <tbody id="hor-list"></tbody></table></div>
   </div>
-  <!-- ASISTENCIA -->
-    <div class="crd">
-      <div class="ct">📋 Registro Semanal de Asistencia</div>
-      <table class="vt"><thead><tr><th>Nombre</th><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Logins</th><th>Eventos</th></tr></thead>
-      <tbody id="op-asistencia-list"></tbody></table>
-    </div>
-  </div>
+  <!-- SEGURIDAD -->
   <div id="ops-seguridad" style="display:none;">
     <div class="g2">
-      <div class="crd">
-        <div class="ct">🔐 Accesos del Día</div>
-        <table class="vt"><thead><tr><th>Usuario</th><th>Rol</th><th>Sede</th><th>OK</th><th>IP</th><th>Hora</th></tr></thead>
-        <tbody id="op-accesos-list"></tbody></table>
-      </div>
-      <div class="crd">
-        <div class="ct">📊 Log de Seguridad</div>
-        <table class="vt"><thead><tr><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead>
-        <tbody id="op-security-list"></tbody></table>
-      </div>
+      <div class="crd"><div class="ct">🔐 Accesos Recientes</div><div id="op-accesos"></div></div>
+      <div class="crd"><div class="ct">📊 Log de Seguridad</div><div id="op-seclog"></div></div>
     </div>
   </div>
 </div>
@@ -90,73 +69,61 @@ var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml
 function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('es-PE');}
-function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
-function opsTab(tab){['personal','horarios','asistencia','seguridad'].forEach(function(t){var e=el('ops-'+t);if(e)e.style.display=t===tab?'block':'none';});document.querySelectorAll('.ops-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');if(tab==='horarios')loadHorarios();}
+function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb);}
+function q(t,qs,cb){fetch(SB+'/rest/v1/'+t+'?'+qs,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb);}
 
-function loadHorarios(){
-  var fecha=el('hor-fecha').value;if(!fecha)fecha=new Date().toISOString().slice(0,10);
-  // Cargar horarios del personal para la semana
-  var desde=fecha;var hastaD=new Date(fecha);hastaD.setDate(hastaD.getDate()+7);var hasta=hastaD.toISOString().slice(0,10);
-  fetch(SB+'/rest/v1/aos_horarios_personal?select=*&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&order=fecha,personal',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
-    var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    el('hor-list').innerHTML=(rows&&rows.length)?rows.map(function(h){
-      var d=new Date(h.fecha+'T12:00:00');var diaN=dias[d.getDay()];
-      return '<tr><td style="font-weight:700;">'+diaN+' '+h.fecha+'</td><td style="font-weight:700;">'+h.personal+'</td><td style="font-size:9px;">'+h.sede+'</td><td style="color:#059669;font-weight:700;">'+h.hora_inicio+'</td><td style="color:#DC2626;font-weight:700;">'+h.hora_fin+'</td><td><span class="tag tag-b">'+h.tipo_turno+'</span></td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delHorario(\''+h.id+'\')">✕</button></td></tr>';
-    }).join(''):'<tr><td colspan="7" style="text-align:center;color:#9AAAC8;">Sin horarios programados para esta semana</td></tr>';
-  });
-  // Config global
-  fetch(SB+'/rest/v1/aos_config_horarios?select=*&order=sede,dia_semana',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
-    var dias=['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-    el('hor-config').innerHTML=(rows||[]).map(function(c){
-      return '<tr><td style="font-weight:700;">'+c.sede+'</td><td>'+dias[c.dia_semana]+'</td><td style="color:#059669;">'+c.hora_apertura+'</td><td style="color:#DC2626;">'+c.hora_cierre+'</td><td>'+c.intervalo_cita_min+' min</td><td>'+c.max_citas_hora+'</td></tr>';
+var D=[];
+function opsTab(tab){['productividad','horarios','seguridad'].forEach(function(t){var e=el('ops-'+t);if(e)e.style.display=t===tab?'block':'none';});document.querySelectorAll('.ops-tab').forEach(function(b){b.classList.remove('act');});event.target.classList.add('act');if(tab==='horarios')loadHorarios();if(tab==='seguridad')loadSecurity();}
+
+function loadProd(){
+  rpc('aos_productividad_equipo',{},function(res){
+    if(!res||!res.ok)return;D=res.equipo||[];
+    var cols={'ENFERMERIA':'#059669','ASESOR':'#D97706','ADMINISTRADOR':'#7C3AED','DOCTORA':'#0A4FBF'};
+    el('op-cards').innerHTML=D.map(function(p,i){
+      var col=cols[p.puesto]||'#0A4FBF';
+      var statusHoy=p.llamadas_hoy>0?'<span class="tc-chip" style="background:#F0FDF4;color:#059669;">● Activo</span>':p.logins_hoy>0?'<span class="tc-chip" style="background:#FFFBEB;color:#D97706;">○ Login</span>':'<span class="tc-chip" style="background:#F0F4FC;color:#9AAAC8;">— Offline</span>';
+      return '<div class="tc" style="border-top:3px solid '+col+';" onclick="showDetail('+i+')"><div class="tc-hdr"><div class="tc-av" style="background:'+col+';">'+p.nombre[0]+'</div><div><div class="tc-name">'+h(p.nombre)+'</div><div class="tc-role">'+h(p.puesto)+' · '+h(p.sede)+'</div></div><div style="margin-left:auto;">'+statusHoy+'</div></div><div class="tc-stats"><div class="tc-st"><div class="tc-sv" style="color:#0A4FBF;">'+fmt(p.llamadas)+'</div><div class="tc-sl">Llamadas</div></div><div class="tc-st"><div class="tc-sv" style="color:#00C9A7;">'+p.citas+'</div><div class="tc-sl">Citas</div></div><div class="tc-st"><div class="tc-sv" style="color:#059669;">S/'+fmt(p.facturado)+'</div><div class="tc-sl">Facturado</div></div></div><div class="tc-row"><div class="tc-chip" style="background:#EBF2FF;color:#0A4FBF;">'+p.llam_por_dia+' llam/día</div><div class="tc-chip" style="background:#F0FDF4;color:#059669;">'+p.conv_pct+'% conv</div><div class="tc-chip" style="background:'+(p.tardanzas>0?'#FEF2F2':'#F0FDF4')+';color:'+(p.tardanzas>0?'#DC2626':'#059669')+';">'+p.tardanzas+' tard.</div><div class="tc-chip" style="background:'+(p.faltas>0?'#FEF2F2':'#F0FDF4')+';color:'+(p.faltas>0?'#DC2626':'#059669')+';">'+p.faltas+' faltas</div></div></div>';
     }).join('');
   });
 }
-function openAddHorario(){
-  var fecha=el('hor-fecha').value||new Date().toISOString().slice(0,10);
-  var personal=prompt('Nombre del personal (ej: WILMER):');if(!personal)return;
-  var sede=prompt('Sede (SAN ISIDRO o PUEBLO LIBRE):');if(!sede)return;
-  var inicio=prompt('Hora entrada (ej: 09:30):');if(!inicio)return;
-  var fin=prompt('Hora salida (ej: 18:00):');if(!fin)return;
-  fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:fecha,personal:personal.toUpperCase(),sede:sede.toUpperCase(),hora_inicio:inicio,hora_fin:fin,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'})}).then(function(){loadHorarios();});
+
+function showDetail(idx){
+  var p=D[idx];if(!p)return;
+  var col={'ENFERMERIA':'#059669','ASESOR':'#D97706'}[p.puesto]||'#0A4FBF';
+  var diasOk=p.dias_trabajados-(p.tardanzas||0);var pctPunt=p.dias_trabajados>0?Math.round(diasOk/p.dias_trabajados*100):0;
+  var det=el('op-detail');det.style.display='block';
+  det.innerHTML='<div class="crd"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><div class="tc-av" style="background:'+col+';width:52px;height:52px;font-size:22px;">'+p.nombre[0]+'</div><div><div style="font-family:\'Exo 2\';font-weight:800;font-size:18px;">'+h(p.nombre)+'</div><div style="font-size:10px;color:#6B7BA8;">'+h(p.puesto)+' · '+h(p.sede)+' · '+h(p.codigo_asesor)+'</div></div><button class="mbtn mbtn-c" style="margin-left:auto;" onclick="el(\'op-detail\').style.display=\'none\'">✕ Cerrar</button></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;">'+
+    [{l:'Llamadas',v:fmt(p.llamadas),c:'#0A4FBF'},{l:'Llam/Día',v:p.llam_por_dia,c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conversión',v:p.conv_pct+'%',c:'#059669'},{l:'Ventas',v:p.ventas,c:'#D97706'},{l:'Facturado',v:'S/'+fmt(p.facturado),c:'#059669'},{l:'Días Trabajados',v:p.dias_trabajados,c:'#0A4FBF'},{l:'Días Programados',v:p.dias_programados,c:'#6B7BA8'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>0?'#DC2626':'#059669'},{l:'Faltas',v:p.faltas,c:p.faltas>0?'#DC2626':'#059669'}].map(function(s){
+      return '<div style="background:#F8FAFF;border-radius:8px;padding:8px;text-align:center;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;color:'+s.c+';">'+s.v+'</div><div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9AAAC8;">'+s.l+'</div></div>';
+    }).join('')+'</div>'+
+    '<div style="display:flex;gap:10px;"><div style="flex:1;background:#F8FAFF;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;">PUNTUALIDAD</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:24px;color:'+(pctPunt>=90?'#059669':pctPunt>=70?'#D97706':'#DC2626')+';">'+pctPunt+'%</div><div style="height:6px;background:#EEF0F8;border-radius:3px;margin-top:4px;"><div style="height:6px;border-radius:3px;background:'+(pctPunt>=90?'#059669':'#D97706')+';width:'+pctPunt+'%;"></div></div></div>'+
+    '<div style="flex:1;background:#F8FAFF;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:8px;color:#9AAAC8;font-weight:700;">HORARIO HOY</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:18px;color:#0A4FBF;">'+(p.hora_entrada_hoy||'—')+' - '+(p.hora_salida_hoy||'—')+'</div><div style="font-size:9px;color:#6B7BA8;margin-top:2px;">Llamadas hoy: <b style="color:#00C9A7;">'+p.llamadas_hoy+'</b></div></div></div></div>';
+  det.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function delHorario(id){
-  if(!confirm('¿Eliminar este horario?'))return;
-  fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadHorarios();});
-}
-function loadOps(){
-  rpc('aos_operaciones_dashboard',{},function(d){
-    if(!d||!d.ok)return;var personal=d.personal||[];
-    var conectados=personal.filter(function(p){return p.logins_hoy>0;}).length;
-    var totalLlam=personal.reduce(function(s,p){return s+(p.llamadas_hoy||0);},0);
-    el('op-total').textContent=personal.length;el('op-online').textContent=conectados;
-    el('op-llamadas').textContent=fmt(totalLlam);el('op-accesos').textContent=(d.accesos_hoy||[]).length;
-    var puestoTag={'ADMINISTRADOR':'tag-p','DOCTORA':'tag-b','ENFERMERIA':'tag-g','ASESOR':'tag-y'};
-    el('op-personal-list').innerHTML=personal.length?personal.map(function(p){
-      var entrada='—';if(p.primera_entrada){var t=new Date(p.primera_entrada);entrada=t.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});}
-      var ultima='—';if(p.ultima_actividad){var u=new Date(p.ultima_actividad);ultima=u.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});}
-      var estado=p.logins_hoy>0?'<span class="tag tag-g">Conectado</span>':'<span class="tag" style="background:#F0F4FC;color:#9AAAC8;">Sin conexión</span>';
-      return '<tr><td style="font-weight:700;">'+h(p.nombre)+'</td><td><span class="tag '+(puestoTag[p.puesto]||'tag-b')+'">'+h(p.puesto)+'</span></td><td style="font-size:9px;">'+h(p.sede)+'</td><td style="font-family:\'Exo 2\';font-weight:700;color:#0A4FBF;">'+entrada+'</td><td style="font-size:9px;color:#6B7BA8;">'+ultima+'</td><td style="font-weight:700;color:#00C9A7;">'+p.llamadas_hoy+'</td><td>'+estado+'</td></tr>';
-    }).join(''):'<tr><td colspan="7" style="text-align:center;color:#9AAAC8;">Sin datos</td></tr>';
-    var semana=d.resumen_semana||[];
-    el('op-asistencia-list').innerHTML=semana.length?semana.map(function(s){
-      var ent='—';if(s.entrada){ent=new Date(s.entrada).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});}
-      var sal='—';if(s.salida){sal=new Date(s.salida).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});}
-      return '<tr><td style="font-weight:700;">'+h(s.asesor)+'</td><td>'+h(s.fecha)+'</td><td style="color:#059669;font-weight:700;">'+ent+'</td><td style="color:#DC2626;">'+sal+'</td><td>'+s.logins+'</td><td>'+s.eventos+'</td></tr>';
-    }).join(''):'<tr><td colspan="6" style="text-align:center;color:#9AAAC8;">Sin registros</td></tr>';
-    var accesos=d.accesos_hoy||[];
-    el('op-accesos-list').innerHTML=accesos.length?accesos.map(function(a){
-      var hora=a.ts?new Date(a.ts).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
-      return '<tr><td style="font-weight:700;">'+h(a.usuario)+'</td><td style="font-size:9px;">'+h(a.rol||'')+'</td><td style="font-size:9px;">'+h(a.sede_detectada||'')+'</td><td style="color:'+(a.permitido?'#059669':'#DC2626')+';font-weight:700;">'+(a.permitido?'✓':'✕')+'</td><td style="font-size:8px;color:#9AAAC8;">'+h(a.ip||'')+'</td><td style="font-size:9px;">'+hora+'</td></tr>';
-    }).join(''):'<tr><td colspan="6" style="text-align:center;color:#9AAAC8;">Sin accesos hoy</td></tr>';
-    var seclog=d.security_log||[];
-    var col={'login':'#059669','login_failed':'#DC2626','password_changed':'#D97706','admin_password_change':'#D97706','2fa_failed':'#DC2626'};
-    el('op-security-list').innerHTML=seclog.length?seclog.map(function(s){
-      var det=s.detalles||{};var fecha=s.created_at?s.created_at.slice(0,16).replace('T',' '):'';
-      return '<tr><td style="font-weight:700;">'+h(s.usuario)+'</td><td style="font-size:9px;color:'+(col[s.accion]||'#6B7BA8')+';font-weight:700;">'+h(s.accion)+'</td><td style="font-size:8px;color:#6B7BA8;">'+h(det.razon||det.method||det.target||'')+'</td><td style="font-size:8px;color:#9AAAC8;">'+fecha+'</td></tr>';
-    }).join(''):'<tr><td colspan="4" style="text-align:center;color:#9AAAC8;">Sin registros</td></tr>';
+
+// HORARIOS
+function loadHorarios(){
+  var f=el('hor-fecha').value;if(!f)return;var hD=new Date(f+'T12:00:00');var h2=new Date(hD);h2.setDate(h2.getDate()+7);
+  q('aos_horarios_personal','select=*&fecha=gte.'+f+'&fecha=lte.'+h2.toISOString().slice(0,10)+'&order=fecha,personal',function(rows){
+    var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    el('hor-list').innerHTML=(rows&&rows.length)?rows.map(function(r){var d=new Date(r.fecha+'T12:00:00');return '<tr><td style="font-weight:700;">'+dias[d.getDay()]+' '+r.fecha+'</td><td style="font-weight:700;">'+r.personal+'</td><td style="font-size:9px;">'+r.sede+'</td><td style="color:#059669;font-weight:700;">'+r.hora_inicio+'</td><td style="color:#DC2626;font-weight:700;">'+r.hora_fin+'</td><td><span class="tag tag-b">'+r.tipo_turno+'</span></td><td><button style="font-size:8px;color:#DC2626;background:none;border:none;cursor:pointer;" onclick="delHor(\''+r.id+'\')">✕</button></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;color:#9AAAC8;">Sin horarios</td></tr>';
   });
 }
-loadOps();
-var hoy=new Date();el('hor-fecha').value=hoy.toISOString().slice(0,10);
+function openAddHor(){var f=el('hor-fecha').value||new Date().toISOString().slice(0,10);var p=prompt('Personal:');if(!p)return;var s=prompt('Sede:');if(!s)return;var i=prompt('Entrada (09:30):');if(!i)return;var o=prompt('Salida (18:00):');if(!o)return;fetch(SB+'/rest/v1/aos_horarios_personal',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({fecha:f,personal:p.toUpperCase(),sede:s.toUpperCase(),hora_inicio:i,hora_fin:o,tipo_turno:'NORMAL',activo:true,creado_por:'ADMIN'})}).then(function(){loadHorarios();});}
+function delHor(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_horarios_personal?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}}).then(function(){loadHorarios();});}
+
+// SEGURIDAD
+function loadSecurity(){
+  q('aos_sesiones_acceso','select=*&order=ts.desc&limit=15',function(rows){
+    el('op-accesos').innerHTML=(rows&&rows.length)?'<table class="vt"><thead><tr><th>Usuario</th><th>Rol</th><th>OK</th><th>IP</th><th>Hora</th></tr></thead><tbody>'+rows.map(function(a){var hr=a.ts?new Date(a.ts).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';return '<tr><td style="font-weight:700;">'+h(a.usuario)+'</td><td style="font-size:9px;">'+h(a.rol||'')+'</td><td style="color:'+(a.permitido?'#059669':'#DC2626')+';font-weight:700;">'+(a.permitido?'✓':'✕')+'</td><td style="font-size:8px;color:#9AAAC8;">'+h(a.ip||'')+'</td><td style="font-size:9px;">'+hr+'</td></tr>';}).join('')+'</tbody></table>':'<div style="color:#9AAAC8;font-size:10px;">Sin accesos</div>';
+  });
+  q('aos_security_log','select=*&order=created_at.desc&limit=15',function(rows){
+    var col={'login':'#059669','login_failed':'#DC2626','password_changed':'#D97706','admin_password_change':'#D97706','2fa_failed':'#DC2626'};
+    el('op-seclog').innerHTML=(rows&&rows.length)?'<table class="vt"><thead><tr><th>Usuario</th><th>Acción</th><th>Fecha</th></tr></thead><tbody>'+rows.map(function(s){var f=s.created_at?s.created_at.slice(0,16).replace('T',' '):'';return '<tr><td style="font-weight:700;">'+h(s.usuario)+'</td><td style="font-size:9px;color:'+(col[s.accion]||'#6B7BA8')+';font-weight:700;">'+h(s.accion)+'</td><td style="font-size:8px;color:#9AAAC8;">'+f+'</td></tr>';}).join('')+'</tbody></table>':'<div style="color:#9AAAC8;font-size:10px;">Sin registros</div>';
+  });
+}
+
+el('hor-fecha').value=new Date().toISOString().slice(0,10);
+loadProd();
 </script>
