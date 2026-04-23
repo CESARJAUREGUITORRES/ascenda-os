@@ -234,10 +234,33 @@ function show2FAForm(emailMasked) {
     '<div style="font-size:11px;color:#0A4FBF;cursor:pointer;font-weight:600;" onclick="resend2FA()">↻ Reenviar código</div>' +
     '<div style="font-size:11px;color:#9AAAC8;cursor:pointer;" onclick="location.reload()">← Volver</div>' +
     '</div>' +
-    '<div style="margin-top:16px;font-size:9px;color:#9AAAC8;">El código expira en 5 minutos</div>' +
+    '<div style="margin-top:12px;"><span style="font-size:11px;color:#9AAAC8;">Expira en </span><span id="tfa-timer" style="font-size:13px;font-weight:800;color:#D97706;font-family:\'Exo 2\',monospace;">5:00</span></div>' +
     '<div class="form-footer" style="margin-top:12px;">AscendaOS v1.0 · by CREACTIVE</div>' +
     '</div>';
   setTimeout(function() { document.querySelector('.code-digit').focus(); }, 100);
+  startTimer();
+}
+
+function startTimer() {
+  var seconds = 300;
+  var timerEl = document.getElementById('tfa-timer');
+  if (window._tfaInterval) clearInterval(window._tfaInterval);
+  window._tfaInterval = setInterval(function() {
+    seconds--;
+    if (seconds <= 0) {
+      clearInterval(window._tfaInterval);
+      timerEl.textContent = '0:00';
+      timerEl.style.color = '#DC2626';
+      var errEl = document.getElementById('tfa-error');
+      if (errEl) { errEl.style.color = '#DC2626'; errEl.textContent = 'Código expirado. Reenvía uno nuevo.'; }
+      return;
+    }
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    if (seconds <= 60) timerEl.style.color = '#DC2626';
+    else if (seconds <= 120) timerEl.style.color = '#D97706';
+  }, 1000);
 }
 
 function codeInput(el, idx) {
@@ -282,6 +305,7 @@ function resend2FA() {
     if (res && res.id) {
       errEl.style.color = '#059669';
       errEl.textContent = '✓ Código reenviado exitosamente';
+      startTimer();
     } else {
       errEl.style.color = '#DC2626';
       errEl.textContent = 'Error al reenviar. Intenta de nuevo.';
