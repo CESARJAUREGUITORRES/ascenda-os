@@ -102,7 +102,10 @@
   .legend-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#0F172A;font-weight:500;font-family:'JetBrains Mono',monospace}
   .legend-chip .sq{width:9px;height:9px;border-radius:2px}
 
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(7,29,74,0.95);backdrop-filter:blur(10px);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;border:1px solid rgba(0,201,167,0.4);box-shadow:0 8px 24px rgba(7,29,74,0.4);z-index:1000;font-family:'JetBrains Mono',monospace}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);min-width:220px;max-width:420px;background:rgba(7,29,74,0.95);backdrop-filter:blur(10px);color:#fff;padding:11px 18px;border-radius:10px;font-size:12px;border:1px solid rgba(0,201,167,0.4);box-shadow:0 8px 24px rgba(7,29,74,0.4);z-index:1000;font-family:'JetBrains Mono',monospace;animation:toastIn .2s ease;text-align:center}
+  .toast.toast-alert{background:rgba(127,29,29,0.97);border-color:rgba(239,68,68,0.6);box-shadow:0 8px 24px rgba(239,68,68,0.3)}
+  .toast.toast-success{background:rgba(6,78,59,0.97);border-color:rgba(0,229,160,0.5);box-shadow:0 8px 24px rgba(0,201,167,0.2)}
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
   .tooltip{position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.85);box-shadow:0 8px 20px rgba(7,29,74,0.15);font-size:12px;pointer-events:none;max-width:240px}
 
@@ -119,6 +122,47 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
 
+<script>
+// ===== MOD-SOUND: Motor de sonido Web Audio API =====
+window.AOS_SOUND = (function() {
+  var ctx = null;
+  function getCtx() {
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
+    return ctx;
+  }
+  function chime(type) {
+    if (window._aosSoundMuted) return;
+    try {
+      var c = getCtx(); if (!c) return;
+      var osc = c.createOscillator(); var gain = c.createGain();
+      osc.connect(gain); gain.connect(c.destination);
+      var now = c.currentTime;
+      if (type === 'notify') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(784, now + 0.12);
+        gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now); osc.stop(now + 0.36);
+      } else if (type === 'alert') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(330, now + 0.1); osc.frequency.setValueAtTime(440, now + 0.22);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now); osc.stop(now + 0.41);
+      } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.10); osc.frequency.setValueAtTime(784, now + 0.20);
+        gain.gain.setValueAtTime(0.14, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.start(now); osc.stop(now + 0.46);
+      } else if (type === 'tick') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(1100, now);
+        gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now); osc.stop(now + 0.06);
+      }
+    } catch(e) {}
+  }
+  return { chime: chime };
+})();
+// ===== FIN MOD-SOUND =====
+</script>
 <script>
 // Ascenda OS — Data layer with Supabase live + fallback seed.
 // All 13 real agents, 8 departments, work chains.
@@ -1287,6 +1331,26 @@ function btn(color, variant='solid') {
     : { padding:'7px 12px', fontSize:12, fontWeight:600, background:color, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', boxShadow:`0 2px 8px ${color}40` };
 }
 
+// ===== MOD-SOUND-TOGGLE: Botón mute/unmute en el sidebar =====
+function SoundToggle() {
+  const [muted, setMuted] = useSPS(() => {
+    try { return localStorage.getItem('aos_sound_muted') === '1'; } catch(e) { return false; }
+  });
+  const toggle = () => {
+    const next = !muted;
+    setMuted(next);
+    try { localStorage.setItem('aos_sound_muted', next ? '1' : '0'); } catch(e) {}
+    if (!next && window.AOS_SOUND) window.AOS_SOUND.chime('notify');
+    // Parchar AOS_SOUND.chime para respetar mute
+    window._aosSoundMuted = next;
+  };
+  return (
+    <button onClick={toggle} title={muted ? 'Activar sonido' : 'Silenciar'} style={{ padding:'5px 8px', background: muted ? 'rgba(100,116,139,0.12)' : 'rgba(0,201,167,0.12)', border:'1px solid ' + (muted ? 'rgba(100,116,139,0.3)' : 'rgba(0,201,167,0.3)'), borderRadius:6, color: muted ? '#64748B' : '#00C9A7', fontFamily:'JetBrains Mono, monospace', fontSize:10, cursor:'pointer' }}>
+      {muted ? '🔇 mute' : '🔊 on'}
+    </button>
+  );
+}
+
 function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeeting, onRunTick }) {
   return <div style={{ display:'flex', flexDirection:'column', height:'100%', minHeight: 0 }}>
     <div style={{ padding:14, borderBottom:'1px solid rgba(15,23,42,0.06)' }}>
@@ -1314,6 +1378,7 @@ function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeetin
       <div style={{ display:'flex', gap:6, marginTop:10 }}>
         <button style={btn('#0A4FBF')} onClick={onOpenMeeting}>🤝 Reunión</button>
         <button style={btn('#00C9A7')} onClick={onRunTick}>⚡ Tick global</button>
+        <SoundToggle/>
       </div>
     </div>
 
@@ -1724,7 +1789,12 @@ function App(){
   const [messages, setMessages] = useState({});
   const [mode, setMode] = useState('normal');
   const [meetingOpen, setMeetingOpen] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState(null); // { msg, type } o string legacy
+  // Helper: disparar toast con tipo
+  const showToast = useCallback((msg, type, ms) => {
+    setToast({ msg, type: type || 'info' });
+    setTimeout(() => setToast(null), ms || (type === 'alert' ? 5000 : 2200));
+  }, []);
   const [viewport, setViewport] = useState({ x: 16, y: 16, zoom: 1 });
   const fittedRef = useRef(false);
 
@@ -1766,24 +1836,79 @@ function App(){
   // Supabase refresh (best-effort). Local sim is the source of truth for `estado` —
   // Supabase only overrides for explicit, meaningful states (paused, blocked, meeting).
   // Idle/null from DB never flattens a live agent to idle.
+  const showToastRef = useRef(showToast); // ref estable para el closure del useEffect
+  useEffect(() => { showToastRef.current = showToast; }, [showToast]);
+  const prevStatesRef = useRef({});    // tracking de estados anteriores para detectar cambios
+  const prevExecRef   = useRef({});    // tracking de ejecuciones para detectar completions
+  const firstPullRef  = useRef(true);  // skip notificaciones en el primer pull
+
+  useEffect(() => {
+    // Solicitar permisos de Notification al montar
+    if (window.Notification && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   useEffect(() => {
     const pull = async () => {
-      const live = await window.sbGet('/rest/v1/aos_agentes?select=id,estado,activo,eficiencia,total_ejecuciones');
+      const live = await window.sbGet('/rest/v1/aos_agentes?select=id,estado,activo,eficiencia,total_ejecuciones,bubble_text');
       if (!live || !Array.isArray(live) || live.length === 0) return;
-      setAgents(prev => prev.map(a => {
-        const row = live.find(r => r.id === a.id);
-        if (!row) return a;
-        const dbState = row.estado;
-        // Only honor DB state if it's an override signal (paused by user, blocked by error, or in meeting).
-        const shouldOverride = dbState === 'paused' || dbState === 'blocked' || dbState === 'meeting';
-        return {
-          ...a,
-          estado: shouldOverride ? dbState : a.estado,
-          // eficiencia + total_ejecuciones are DB-authoritative if present and non-zero
-          eficiencia: (typeof row.eficiencia === 'number' && row.eficiencia > 0) ? row.eficiencia : a.eficiencia,
-          total_ejecuciones: (typeof row.total_ejecuciones === 'number' && row.total_ejecuciones >= a.total_ejecuciones) ? row.total_ejecuciones : a.total_ejecuciones,
-        };
-      }));
+
+      const isFirst = firstPullRef.current;
+      if (isFirst) firstPullRef.current = false;
+
+      setAgents(prev => {
+        const next = prev.map(a => {
+          const row = live.find(r => r.id === a.id);
+          if (!row) return a;
+          const dbState = row.estado;
+          const shouldOverride = dbState === 'paused' || dbState === 'blocked' || dbState === 'meeting';
+
+          // ─── Detección de cambios para sonidos/notificaciones ───
+          if (!isFirst) {
+            const prevState = prevStatesRef.current[a.id];
+            const prevExec  = prevExecRef.current[a.id] || 0;
+            const newExec   = row.total_ejecuciones || 0;
+
+            // Agente se bloqueó → alerta roja + sonido urgente
+            if (shouldOverride && dbState === 'blocked' && prevState !== 'blocked') {
+              window.AOS_SOUND && window.AOS_SOUND.chime('alert');
+              showToastRef.current(`⚠ ${a.nombre} bloqueado: ${(row.bubble_text || 'error').substring(0, 60)}`, 'alert', 5000);
+              if (window.Notification && Notification.permission === 'granted') {
+                new Notification('AscendaOS — Agente bloqueado', {
+                  body: `${a.emoji} ${a.nombre}: ${(row.bubble_text || 'error').substring(0, 80)}`,
+                  icon: '/favicon.ico'
+                });
+              }
+            }
+            // Agente completó una ejecución nueva → success sutil
+            if (newExec > prevExec && prevState !== 'blocked') {
+              window.AOS_SOUND && window.AOS_SOUND.chime('success');
+            }
+            // Agente fue reactivado (blocked → working)
+            if (prevState === 'blocked' && (dbState === 'idle' || dbState === 'working')) {
+              window.AOS_SOUND && window.AOS_SOUND.chime('notify');
+              showToastRef.current(`✅ ${a.nombre} retomó actividad`, 'success', 2500);
+            }
+
+            prevStatesRef.current[a.id] = shouldOverride ? dbState : prevState;
+            prevExecRef.current[a.id]   = newExec;
+          } else {
+            // Primer pull — solo guardar estado base
+            prevStatesRef.current[a.id] = dbState;
+            prevExecRef.current[a.id]   = row.total_ejecuciones || 0;
+          }
+          // ─────────────────────────────────────────────────────────
+
+          return {
+            ...a,
+            estado: shouldOverride ? dbState : a.estado,
+            eficiencia: (typeof row.eficiencia === 'number' && row.eficiencia > 0) ? row.eficiencia : a.eficiencia,
+            total_ejecuciones: (typeof row.total_ejecuciones === 'number' && row.total_ejecuciones >= a.total_ejecuciones) ? row.total_ejecuciones : a.total_ejecuciones,
+          };
+        });
+        return next;
+      });
     };
     pull();
     const iv = setInterval(pull, 12000);
@@ -1827,8 +1952,7 @@ function App(){
       const newStatus = selected.estado === 'paused' ? 'working' : 'paused';
       setAgents(prev => prev.map(a => a.id === selected.id ? { ...a, estado: newStatus } : a));
       window.sbPatch(`/rest/v1/aos_agentes?id=eq.${selected.id}`, { estado: newStatus, activo: newStatus !== 'paused' });
-      setToast(newStatus === 'paused' ? `⏸ ${selected.nombre} pausado` : `▶ ${selected.nombre} reanudado`);
-      setTimeout(() => setToast(null), 1800);
+      showToast(newStatus === 'paused' ? `⏸ ${selected.nombre} pausado` : `▶ ${selected.nombre} reanudado`, 'info', 1800);
     }
   };
   const handleSend = async (text) => {
@@ -1863,13 +1987,11 @@ function App(){
   };
   const runAgent = (id) => {
     window.rwPost('/api/agents/run', { agent_id: id });
-    setToast(`⚡ Ejecutando ${id}...`);
-    setTimeout(() => setToast(null), 2000);
+    showToast(`⚡ Ejecutando ${id}...`, 'info', 2000);
   };
   const runTick = () => {
     window.rwPost('/api/agents/tick');
-    setToast('⚡ Tick global disparado');
-    setTimeout(() => setToast(null), 2000);
+    showToast('⚡ Tick global disparado', 'info', 2000);
   };
 
   const pingAgent = (id) => {
@@ -1977,7 +2099,7 @@ function App(){
     </div>
 
     {meetingOpen && <window.Panel.MeetingModal agents={agents} onClose={()=>setMeetingOpen(false)} pingAgent={pingAgent}/>}
-    {toast && <div className="toast">{toast}</div>}
+    {toast && <div className={['toast', toast.type === 'alert' ? 'toast-alert' : toast.type === 'success' ? 'toast-success' : ''].filter(Boolean).join(' ')}>{typeof toast === 'string' ? toast : toast.msg}</div>}
   </React.Fragment>;
 }
 
