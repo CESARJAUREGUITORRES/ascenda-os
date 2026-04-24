@@ -321,14 +321,20 @@ function loadDashboard(){
   rpc('aos_email_dashboard',{},function(d){
     if(!d||!d.ok)return;
     el('em-s-total').textContent=fmt(d.total_enviados||0);
-    el('em-s-entregados').textContent=fmt(d.total_entregados||0);
+    el('em-s-entregados').textContent=fmt(d.total_enviados||0);
     el('em-s-flujos').textContent=d.flujos_activos||0;
     el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);
-    // Email counter
+    // Counter
     var used=d.total_enviados||0;
-    el('em-plan-used').textContent=fmt(used);
+    el('em-plan-used').textContent=used+' emails';
     el('em-plan-pct').textContent=used;
-    el('em-plan-fill').style.width=Math.min(used/10*100,100)+'%';
+    el('em-plan-fill').style.width=Math.min(used*5,100)+'%';
+    // Info de próximos envíos automáticos
+    var autoInfo='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
+    autoInfo+='<div style="padding:8px 12px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;font-size:10px;"><b style="color:#059669;">⏰ 6:00 AM</b> — Recordatorio mañana: <b>'+d.citas_manana+'</b> citas ('+d.citas_manana_con_email+' con email)</div>';
+    autoInfo+='<div style="padding:8px 12px;background:#EBF5FF;border-radius:8px;border:1px solid #BFDBFE;font-size:10px;"><b style="color:#0A4FBF;">☀️ 7:00 AM</b> — Recordatorio hoy: <b>'+d.citas_hoy+'</b> citas</div>';
+    autoInfo+='<div style="padding:8px 12px;background:#F5F3FF;border-radius:8px;border:1px solid #DDD6FE;font-size:10px;"><b style="color:#7C3AED;">🤖 Elena</b> — Agente: '+d.total_agente+' enviados · Panel: '+d.total_panel+' enviados</div>';
+    autoInfo+='</div>';
     // Chips por tipo
     var pt=d.por_tipo||{};
     var chipHtml='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;">';
@@ -337,27 +343,33 @@ function loadDashboard(){
     if(pt.recordatorio_hoy) chipHtml+='<span class="tag tag-g" style="cursor:pointer;" onclick="filterEmailLog(\'recordatorio_hoy\')">☀️ Rec. hoy ('+pt.recordatorio_hoy+')</span>';
     if(pt.bienvenida) chipHtml+='<span class="tag tag-p" style="cursor:pointer;" onclick="filterEmailLog(\'bienvenida\')">🌟 Bienvenida ('+pt.bienvenida+')</span>';
     if(pt.confirmacion_cita) chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'confirmacion_cita\')">📅 Conf. cita ('+pt.confirmacion_cita+')</span>';
-    if(pt.recibo_venta) chipHtml+='<span class="tag tag-y" style="cursor:pointer;" onclick="filterEmailLog(\'recibo_venta\')">🧾 Recibo ('+pt.recibo_venta+')</span>';
-    if(pt.manual) chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'panel\')">📧 Manual ('+pt.manual+')</span>';
+    if(pt.manual) chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'manual\')">📧 Manual ('+pt.manual+')</span>';
     chipHtml+='</div>';
-    _allEnvios=d.envios_recientes||[];
-    if(!_allEnvios.length){el('em-campanias').innerHTML='<tr><td colspan="7" style="padding:0;">'+chipHtml+'</td></tr><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos aún</td></tr>';return;}
-    renderEmailLog(_allEnvios, chipHtml);
+    _allEnvios=d.envios||[];
+    var content=autoInfo+chipHtml;
+    if(!_allEnvios.length){el('em-campanias').innerHTML='<tr><td colspan="7" style="padding:6px;">'+content+'</td></tr><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos registrados aún. Las automatizaciones enviarán a las 6:00 AM y 7:00 AM.</td></tr>';return;}
+    renderEmailLog(_allEnvios, content);
   });
 }
 var _allEnvios=[];
 function filterEmailLog(tipo){
-  var filtered=tipo?_allEnvios.filter(function(e){return (e.tipo_plantilla||e.origen||'')==tipo;}):_allEnvios;
+  var filtered=tipo?_allEnvios.filter(function(e){return e.tipo===tipo||e.origen===tipo;}):_allEnvios;
   renderEmailLog(filtered,'');
 }
-function renderEmailLog(recientes, chipHtml){
+function renderEmailLog(recientes, headerHtml){
     var rows=recientes.map(function(e){
       var estCol={'enviado':'tag-g','entregado':'tag-g','pendiente':'tag-y','error':'tag-r'};
-      var fecha=e.created_at?e.created_at.slice(0,16).replace('T',' '):'';
+      var fecha=e.ts?new Date(e.ts).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
       var origen=e.origen==='agente'?'<span class="tag tag-p">🤖 Elena</span>':'<span class="tag tag-b">📧 Panel</span>';
-      return '<tr><td style="font-weight:700;font-size:10px;">'+h(e.destinatario_nombre||e.destinatario_email)+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(e.destinatario_email)+'</td><td style="font-size:9px;">'+h(e.plantilla||e.tipo_plantilla||'Manual')+'</td><td><span class="tag '+(estCol[e.estado]||'tag-y')+'">'+h(e.estado)+'</span></td><td style="font-size:9px;color:#6B7BA8;">'+h(e.asunto||'').slice(0,30)+'</td><td>'+origen+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
+      var tipoTag='';
+      if(e.tipo==='recordatorio_hoy') tipoTag='<span class="tag tag-g">☀️ Hoy</span>';
+      else if(e.tipo==='recordatorio_manana') tipoTag='<span class="tag tag-g">⏰ Mañana</span>';
+      else if(e.tipo==='bienvenida') tipoTag='<span class="tag tag-p">🌟 Bienvenida</span>';
+      else if(e.tipo==='confirmacion_cita') tipoTag='<span class="tag tag-b">📅 Cita</span>';
+      else tipoTag='<span class="tag tag-b">📧 '+(e.plantilla||'Manual')+'</span>';
+      return '<tr><td style="font-weight:700;font-size:10px;">'+h(e.nombre||e.email||'—')+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(e.email||'')+'</td><td>'+tipoTag+'</td><td><span class="tag '+(estCol[e.estado]||'tag-y')+'">'+h(e.estado)+'</span></td><td style="font-size:9px;color:#6B7BA8;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(e.asunto||'')+'</td><td>'+origen+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
     }).join('');
-    el('em-campanias').innerHTML=(chipHtml?'<tr><td colspan="7" style="padding:0;">'+chipHtml+'</td></tr>':'')+rows;
+    el('em-campanias').innerHTML=(headerHtml?'<tr><td colspan="7" style="padding:6px;">'+headerHtml+'</td></tr>':'')+rows;
 }
 
 function loadFlujos(){
