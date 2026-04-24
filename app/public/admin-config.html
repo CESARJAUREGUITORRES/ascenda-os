@@ -715,7 +715,14 @@ function loadConfig(){
 }
 function saveConfig(){
   var inputs=document.querySelectorAll('[data-k]');var promises=[];
-  inputs.forEach(function(inp){var k=inp.getAttribute('data-k');var v=inp.type==='color'?inp.value:inp.value;if(!k)return;
+  inputs.forEach(function(inp){var k=inp.getAttribute('data-k');
+    var v;
+    if(inp.type==='checkbox') v=inp.checked?'true':'false';
+    else if(inp.tagName==='SELECT') v=inp.value;
+    else if(inp.tagName==='TEXTAREA') v=inp.value;
+    else if(inp.type==='color') v=inp.value;
+    else v=inp.value;
+    if(!k)return;
     promises.push(fetch(SB+'/rest/v1/aos_configuracion?clave=eq.'+k,{method:'GET',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(ex){
       if(ex&&ex.length>0){return sbPatch('/rest/v1/aos_configuracion?clave=eq.'+k,{valor:v});}
       else{return fetch(SB+'/rest/v1/aos_configuracion',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({clave:k,valor:v})});}
@@ -730,7 +737,7 @@ function updatePreview(){
   var ctv = el('c-color_texto') ? el('c-color_texto').value : '#0F172A';
   var clv = el('c-color_enlace') ? el('c-color_enlace').value : '#0A4FBF';
   var cd2 = el('c-color_degradado2') ? el('c-color_degradado2').value : '#00E5A0';
-  var nombre = el('c-empresa_nombre_app') ? el('c-empresa_nombre_app').value : '';
+  var nombre = el('c-empresa_nombre') ? el('c-empresa_nombre').value : '';
   var slogan = el('c-empresa_slogan') ? el('c-empresa_slogan').value : '';
   var displayName = nombre || 'Mi Empresa';
   var logoUrl = el('prev-logo-sin') && el('prev-logo-sin').style.display !== 'none' ? el('prev-logo-sin').src : '';
