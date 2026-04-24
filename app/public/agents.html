@@ -1375,6 +1375,20 @@ function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeetin
 function Profile({ agent, onAction, messages, onSend, onClose, onRunAgent }) {
   const [tab, setTab] = useSPS('activity');
   const [draft, setDraft] = useSPS('');
+  const [realLogs, setRealLogs] = useSPS(null); // null = no cargado, [] = vacío
+  const [logsLoading, setLogsLoading] = useSPS(false);
+
+  // Cargar logs reales cuando se abre tab logs
+  useSPE(() => {
+    if (tab !== 'logs') return;
+    setLogsLoading(true);
+    window.sbGet('/rest/v1/aos_agente_logs?agente_id=eq.' + agent.id + '&order=created_at.desc&limit=20')
+      .then(data => {
+        setRealLogs(Array.isArray(data) ? data : []);
+        setLogsLoading(false);
+      })
+      .catch(() => { setRealLogs([]); setLogsLoading(false); });
+  }, [tab, agent.id]);
   const d = window.DEPARTMENTS[agent.area];
   const spark = useSPM(() => Array.from({ length: 24 }, (_, i) =>
     Math.max(2, Math.floor(agent.eficiencia / 3 + Math.sin(i / 2 + agent.id.charCodeAt(0)) * 10 + Math.random() * 8))
@@ -1433,16 +1447,26 @@ function Profile({ agent, onAction, messages, onSend, onClose, onRunAgent }) {
         </div>
       </div>}
       {tab === 'logs' && <div style={{ padding:'4px 0' }}>
-        {agent.log.map((l,i) => (
-          <div key={i} style={{ padding:'10px 14px', borderBottom:'1px solid rgba(15,23,42,0.04)', display:'flex', gap:10 }}>
-            <div style={{ width:16, height:16, borderRadius:4, flexShrink:0, background: l.status==='done' ? '#00C9A720' : '#94A3B820', color: l.status==='done' ? '#00C9A7' : '#94A3B8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{l.status==='done'?'✓':'×'}</div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:12, fontWeight:500, color:'#0F172A' }}>{l.label}</div>
-              <div style={{ fontSize:11, color:'#64748B', marginTop:1 }}>{l.detail}</div>
+        {logsLoading && <div style={{ padding:24, textAlign:'center', color:'#94A3B8', fontSize:12 }}>Cargando logs...</div>}
+        {!logsLoading && realLogs !== null && realLogs.length === 0 && (
+          <div style={{ padding:24, textAlign:'center', color:'#94A3B8', fontSize:12 }}>Sin ejecuciones registradas aún.</div>
+        )}
+        {!logsLoading && realLogs !== null && realLogs.map((l,i) => {
+          const tsMs = new Date(l.created_at).getTime();
+          const errShort = l.error ? (typeof l.error === 'string' ? l.error : JSON.stringify(l.error)).substring(0,80) : null;
+          return (
+            <div key={i} style={{ padding:'10px 14px', borderBottom:'1px solid rgba(15,23,42,0.04)', display:'flex', gap:10 }}>
+              <div style={{ width:16, height:16, borderRadius:4, flexShrink:0, background: l.exitoso ? '#00C9A720' : '#EF444420', color: l.exitoso ? '#00C9A7' : '#EF4444', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{l.exitoso?'✓':'×'}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, fontWeight:500, color:'#0F172A' }}>{l.accion} — {(l.input_resumen||'').substring(0,50)}</div>
+                {l.output_resumen && <div style={{ fontSize:11, color:'#64748B', marginTop:1 }}>{(l.output_resumen||'').substring(0,80)}</div>}
+                {errShort && <div style={{ fontSize:11, color:'#EF4444', marginTop:1 }}>⚠ {errShort}</div>}
+                {l.duracion_ms && <div style={{ fontSize:10, color:'#94A3B8', marginTop:1 }}>{l.duracion_ms}ms {l.motor_usado ? '· '+l.motor_usado : ''}</div>}
+              </div>
+              <div style={{ fontSize:10, color:'#94A3B8', fontFamily:'JetBrains Mono, monospace', whiteSpace:'nowrap' }}>{fmtAgo(tsMs)}</div>
             </div>
-            <div style={{ fontSize:10, color:'#94A3B8', fontFamily:'JetBrains Mono, monospace' }}>{fmtAgo(l.t)}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>}
       {tab === 'chat' && <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
         <div style={{ flex:1, overflow:'auto', padding:12 }}>
@@ -1807,13 +1831,35 @@ function App(){
       setTimeout(() => setToast(null), 1800);
     }
   };
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     if (!selected) return;
+    // Agregar mensaje del usuario
     setMessages(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] || []), { from: 'me', text }] }));
-    setTimeout(() => {
-      const reply = window.Panel.replyFor ? window.Panel.replyFor(selected, text) : `Recibido.`;
-      setMessages(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] || []), { from: 'agent', text: reply }] }));
-    }, 1100 + Math.random() * 900);
+    // Indicador de escritura
+    setMessages(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] || []), { from: 'agent', text: '...', typing: true }] }));
+    try {
+      const history = (messages[selected.id] || []).filter(m => !m.typing).map(m => ({
+        role: m.from === 'me' ? 'user' : 'assistant',
+        content: m.text
+      }));
+      history.push({ role: 'user', content: text });
+      const res = await fetch(window.RAILWAY_URL + '/api/agents/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: selected.id, messages: history })
+      });
+      const data = await res.json();
+      const reply = data.reply || 'Sin respuesta.';
+      setMessages(prev => {
+        const prev2 = (prev[selected.id] || []).filter(m => !m.typing);
+        return { ...prev, [selected.id]: [...prev2, { from: 'agent', text: reply }] };
+      });
+    } catch(e) {
+      setMessages(prev => {
+        const prev2 = (prev[selected.id] || []).filter(m => !m.typing);
+        return { ...prev, [selected.id]: [...prev2, { from: 'agent', text: '⚠ Error de conexión.' }] };
+      });
+    }
   };
   const runAgent = (id) => {
     window.rwPost('/api/agents/run', { agent_id: id });

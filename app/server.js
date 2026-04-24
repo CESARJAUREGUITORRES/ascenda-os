@@ -255,6 +255,40 @@ http.createServer(function(req, res) {
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,GET', 'Access-Control-Allow-Headers': 'Content-Type' })
     res.end(); return
   }
+  if (p === '/api/agents/chat' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body2 = ''
+    req.on('data', function(c) { body2 += c })
+    req.on('end', function() {
+      try {
+        var payload = JSON.parse(body2)
+        var agentId  = payload.agent_id || 'kronia'
+        var msgs     = Array.isArray(payload.messages) ? payload.messages : []
+        // Fetch system_prompt from Supabase
+        sbFetch('/rest/v1/aos_agentes?select=id,system_prompt,modelo&id=eq.' + agentId).then(function(rows) {
+          var sysPrompt = (rows && rows[0] && rows[0].system_prompt)
+            ? rows[0].system_prompt
+            : 'Eres un agente AI de la clinica Zi Vital. Responde de forma concisa y util.'
+          var modelo = (rows && rows[0] && rows[0].modelo) ? rows[0].modelo : 'llama-3.3-70b-versatile'
+          return callGroqChat(sysPrompt, msgs, modelo)
+        }).then(function(reply) {
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ ok: true, reply: reply }))
+        }).catch(function(e) {
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ ok: false, reply: '⚠ ' + (e.message || 'error'), error: e.message }))
+        })
+      } catch(e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, error: 'Bad JSON' }))
+      }
+    })
+    return
+  }
+  if (p === '/api/agents/chat' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
   // ===== FIN AGENTS =====
   var f = path.join(PUB, p.slice(1))
   if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
@@ -374,6 +408,28 @@ function callGroq(systemPrompt, userPrompt, model) {
               tokens_out: r.usage ? r.usage.completion_tokens : 0
             })
           } else { reject(new Error(d.substring(0, 200))) }
+        } catch(e) { reject(e) }
+      })
+    })
+    req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+// Call Groq with full message history (multi-turn DM chat from panel)
+function callGroqChat(systemPrompt, messages, model) {
+  return new Promise(function(resolve, reject) {
+    if (!GROQ_KEY) { reject(new Error('No Groq key')); return }
+    var msgs = [{ role: 'system', content: systemPrompt }].concat(messages)
+    var body = JSON.stringify({ model: model || 'llama-3.3-70b-versatile', messages: msgs, temperature: 0.72, max_tokens: 512 })
+    var req = https.request({
+      hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, function(res) {
+      var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+        try {
+          var r = JSON.parse(d)
+          if (r.choices && r.choices[0]) { resolve(r.choices[0].message.content) }
+          else { reject(new Error(d.substring(0, 200))) }
         } catch(e) { reject(e) }
       })
     })
