@@ -1162,6 +1162,15 @@ function executeTask(agent, task) {
   var tipo = task.tipo
   var config = task.input_config || {}
 
+  // Filtro por hora: si la tarea tiene hora_ejecucion, solo correr en esa hora Lima
+  if (config.hora_ejecucion) {
+    var _lh = new Date(Date.now() + (-5 * 60) * 60000)
+    var limaHH = ('0' + _lh.getHours()).slice(-2) + ':00'
+    if (limaHH !== config.hora_ejecucion) {
+      return Promise.resolve() // No es la hora, skip silencioso
+    }
+  }
+
   // Update agent status to working
   sbPatchAgent(agent.id, { estado: 'working', bubble_text: task.nombre, bubble_type: 'thought', ultima_actividad: new Date().toISOString() })
 
