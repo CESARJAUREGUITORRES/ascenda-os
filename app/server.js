@@ -218,8 +218,8 @@ http.createServer(function(req, res) {
         if (!d.to || !d.template) { res.writeHead(400); res.end('{"error":"missing to/template"}'); return }
         var html = '', subject = '', tipo = d.template
         if (tipo === 'confirmacion_cita') {
-          subject = '✅ Cita confirmada — ' + (d.hora || '') + ' · ' + BRAND.nombre_empresa
-          html = buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'')
+          subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
+          html = buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono})
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
           html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'')
@@ -502,23 +502,43 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
   }).catch(function(){})
 }
 
-// Template email recordatorio de cita (branding dinámico)
+// Template email recordatorio de cita — COMPLETO con dirección y estacionamiento
 function buildEmailRecordatorio(nombre, tratamiento, hora, sede, fecha, esManana) {
-  var titulo = esManana ? 'Te esperamos mañana' : 'Tu cita es hoy'
+  var titulo = esManana ? 'Te esperamos mañana' : '¡Tu cita es hoy!'
   var cuando = esManana ? 'mañana' : 'hoy'
-  var sedeDir = sede && sede.includes('PUEBLO') ? 'Av. Brasil 1170, Pueblo Libre' : 'Av. Javier Prado Este 996, San Isidro'
+  var esPL = sede && sede.toUpperCase().indexOf('PUEBLO') > -1
+  var sedeNombre = esPL ? 'PUEBLO LIBRE' : 'SAN ISIDRO'
+  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio'
+  var sedeMaps = esPL ? 'https://goo.gl/maps/Cw36T6YPudyRNmVe6' : 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
+
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">' + titulo + ', ' + nombre.split(' ')[0] + ' 👋</div>',
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">' + titulo + ', ' + (nombre || '').split(' ')[0] + ' 👋</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Te recordamos que tienes una cita programada para <b>' + cuando + '</b>:</p>' +
+
     emailCard(
-      '<div style="font-size:13px;color:#64748B;margin-bottom:4px">Tratamiento</div>' +
-      '<div style="font-size:17px;font-weight:700;color:' + BRAND.color_secundario + ';margin-bottom:12px">' + tratamiento + '</div>' +
-      '<div style="display:flex;gap:20px;flex-wrap:wrap">' +
-      emailInfoBox('Hora', hora) + emailInfoBox('Sede', sede) +
-      '</div>'
+      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">📌 TU CITA DE ' + cuando.toUpperCase() + '</div>' +
+      '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
+      '<tr><td style="padding:5px 0;color:#64748B;width:100px">Servicio:</td><td style="padding:5px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (tratamiento || '') + '</td></tr>' +
+      (fecha ? '<tr><td style="padding:5px 0;color:#64748B">Día:</td><td style="padding:5px 0;font-weight:600;color:#071D4A">' + fecha + '</td></tr>' : '') +
+      '<tr><td style="padding:5px 0;color:#64748B">Hora:</td><td style="padding:5px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (hora || '') + '</td></tr>' +
+      '<tr><td style="padding:5px 0;color:#64748B">Sede:</td><td style="padding:5px 0;font-weight:800;color:' + BRAND.color_secundario + '">' + sedeNombre + '</td></tr>' +
+      '</table>'
     ) +
-    '<p style="color:#64748B;font-size:13px">📍 ' + sedeDir + '</p>' +
-    '<p style="color:#94A3B8;font-size:12px;margin-top:24px">Si necesitas reprogramar, llámanos o escríbenos por WhatsApp. ¡Te esperamos!</p>'
+
+    // Dirección
+    '<div style="margin-top:12px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0">' +
+    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">📍 Sede ' + sedeNombre + '</div>' +
+    '<div style="font-size:13px;color:#475569">' + sedeDir + '</div>' +
+    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:6px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">Ver en Google Maps →</a>' +
+    '</div>' +
+
+    // Recomendaciones
+    '<div style="margin-top:10px;padding:12px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
+    '<p style="color:#92400E;font-size:12px;margin:0">⏱️ Llegar <b>15 minutos antes</b> y presentar tu DNI en recepción.</p>' +
+    '</div>' +
+
+    '<p style="color:#94A3B8;font-size:12px;margin-top:20px">Si necesitas reprogramar, llámanos o escríbenos por WhatsApp.</p>' +
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:12px">¡TE ESPERAMOS! 🤗</p>'
   )
 }
 
@@ -534,23 +554,85 @@ function buildEmailBienvenida(nombre) {
   )
 }
 
-// Template email confirmación de cita (nueva — branding dinámico)
-function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha) {
-  var sedeDir = sede && sede.includes('PUEBLO') ? 'Av. Brasil 1170, Pueblo Libre' : 'Av. Javier Prado Este 996, San Isidro'
-  return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Tu cita ha sido agendada! ✅</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, te confirmamos que tu cita ha sido registrada exitosamente.</p>' +
-    emailCard(
-      '<div style="font-size:13px;color:#64748B;margin-bottom:4px">Tratamiento</div>' +
-      '<div style="font-size:17px;font-weight:700;color:' + BRAND.color_secundario + ';margin-bottom:12px">' + tratamiento + '</div>' +
-      '<div style="display:flex;gap:20px;flex-wrap:wrap">' +
-      emailInfoBox('Fecha', fecha) + emailInfoBox('Hora', hora) + emailInfoBox('Sede', sede) +
+// Template email confirmación de cita — COMPLETO con datos del paciente, dirección, estacionamiento
+function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha, datos) {
+  var d = datos || {}
+  var esPL = sede && sede.toUpperCase().indexOf('PUEBLO') > -1
+  var sedeNombre = esPL ? 'PUEBLO LIBRE' : 'SAN ISIDRO'
+  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio'
+  var sedeMaps = esPL ? 'https://goo.gl/maps/Cw36T6YPudyRNmVe6' : 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
+  var sedeRef = esPL ? 'A 4 cuadras de la Rambla (en la misma recta)' : ''
+
+  // Estacionamiento por sede
+  var estacionamiento = ''
+  if (esPL) {
+    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">🚗 Estacionamiento</div>' +
+      '<div style="font-size:11px;color:#475569;line-height:1.6">' +
+      '✅ Frente a nuestra fachada (depende de la hora)<br>' +
+      '✅ <a href="https://maps.app.goo.gl/6uVF3qf4MVbYjGkn9" style="color:' + BRAND.color_secundario + '">Univ. Alas Peruanas</a> — Jr. Pedro Ruiz Gallo 251<br>' +
+      '✅ <a href="https://maps.app.goo.gl/aLcsQ2Pg1fmfZU3h6" style="color:' + BRAND.color_secundario + '">C.E.P. Santa María</a> — Jr. Pedro Ruiz Gallo 137<br>' +
+      '✅ <a href="https://goo.gl/maps/yhwvXKMothFwQJoH6" style="color:' + BRAND.color_secundario + '">Playa Otorcuna</a> — Juan Pablo Fernandini 1255' +
       '</div>'
+  } else {
+    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">🚗 Estacionamiento</div>' +
+      '<div style="font-size:11px;color:#475569;line-height:1.6">' +
+      '✅ Frente al Edificio Capricornio (según disponibilidad)<br>' +
+      '✅ <a href="https://maps.app.goo.gl/omT3RWCxVnrvg4MNA" style="color:' + BRAND.color_secundario + '">Gratuito (máx. 3h)</a> — Av. Aux. Rep. de Panamá<br>' +
+      '✅ <a href="https://maps.app.goo.gl/bM6xMzotahK5BQPJ8" style="color:' + BRAND.color_secundario + '">Los Portales</a> — C. Ricardo Angulo 197<br>' +
+      '✅ <a href="https://maps.app.goo.gl/YEfCyNqVS5imdkL89" style="color:' + BRAND.color_secundario + '">C.C. Santa Catalina</a> — Av. Carlos Villarán 500' +
+      '</div>'
+  }
+
+  // Taxi info para San Isidro
+  var taxiInfo = esPL ? '' :
+    '<div style="margin-top:10px;padding:10px;background:#EBF5FF;border-radius:8px;border:1px solid #BFDBFE">' +
+    '<div style="font-size:11px;font-weight:700;color:#1E40AF">🚖 Si vienes en taxi con app</div>' +
+    '<div style="font-size:10px;color:#475569;margin-top:4px">Buscar: <b>Av. Javier Prado Este 996, San Isidro</b> o <b>ZI VITAL SAN ISIDRO</b><br>' +
+    '⚠️ YANGO: usar <i>Av Pablo Carriquiry 106, San Isidro</i> (esquina del edificio)</div></div>'
+
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Aquí te envío tu confirmación de cita ♥</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 6px">Hola <b>' + (nombre || '').split(' ')[0] + '</b>, tu cita ha sido registrada exitosamente.</p>' +
+    '<p style="color:#475569;font-size:12px;margin:0 0 20px">Te saluda tu Asesora de salud de la Clínica Estética Zi Vital 🏥👩‍⚕️</p>' +
+
+    // Card de datos de la cita
+    emailCard(
+      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">📌 CITA CONFIRMADA</div>' +
+      '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
+      '<tr><td style="padding:6px 0;color:#64748B;width:130px">Nombre:</td><td style="padding:6px 0;font-weight:600;color:#071D4A">' + (nombre || '') + '</td></tr>' +
+      (d.dni ? '<tr><td style="padding:6px 0;color:#64748B">DNI / C.E:</td><td style="padding:6px 0;font-weight:600;color:#071D4A">' + d.dni + '</td></tr>' : '') +
+      (d.email ? '<tr><td style="padding:6px 0;color:#64748B">E-mail:</td><td style="padding:6px 0;color:#071D4A">' + d.email + '</td></tr>' : '') +
+      (d.telefono ? '<tr><td style="padding:6px 0;color:#64748B">Teléfono:</td><td style="padding:6px 0;color:#071D4A">' + d.telefono + '</td></tr>' : '') +
+      '<tr><td style="padding:6px 0;color:#64748B">Día:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (fecha || '') + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#64748B">Horario:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (hora || '') + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#64748B">Servicio:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (tratamiento || '') + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#64748B">Sede:</td><td style="padding:6px 0;font-weight:800;color:' + BRAND.color_secundario + '">' + sedeNombre + '</td></tr>' +
+      '</table>'
     ) +
-    '<p style="color:#64748B;font-size:13px">📍 ' + sedeDir + '</p>' +
-    '<div style="margin-top:20px;padding:14px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
-    '<p style="color:#92400E;font-size:12px;margin:0"><b>Recomendaciones:</b> Llega 10 minutos antes. Si necesitas reprogramar, avísanos con al menos 24 horas de anticipación.</p>' +
-    '</div>'
+
+    // Dirección con mapa
+    '<div style="margin-top:16px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0">' +
+    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">📍 Sede ' + sedeNombre + '</div>' +
+    '<div style="font-size:13px;color:#475569">' + sedeDir + '</div>' +
+    (sedeRef ? '<div style="font-size:11px;color:#94A3B8;margin-top:2px">' + sedeRef + '</div>' : '') +
+    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:8px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">📍 Ver en Google Maps →</a>' +
+    '</div>' +
+
+    // Recomendaciones
+    '<div style="margin-top:12px;padding:14px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
+    '<p style="color:#92400E;font-size:12px;margin:0">⏱️ Llegar <b>15 minutos antes</b> y presentar su DNI en recepción.</p>' +
+    '<p style="color:#92400E;font-size:11px;margin:6px 0 0">✔️ La consulta/tratamiento es personalizado. Puede haber tiempo de espera según la afluencia. Agradecemos su comprensión.</p>' +
+    '</div>' +
+
+    // Estacionamiento
+    '<div style="margin-top:12px;padding:14px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0">' +
+    estacionamiento +
+    '</div>' +
+
+    taxiInfo +
+
+    '<p style="color:#94A3B8;font-size:11px;margin-top:20px;text-align:center">📱 Agréganos a tus contactos como <b>ZI VITAL</b> para recibir recordatorios y cupones de descuento.</p>' +
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:16px">¡TE ESPERAMOS! 🤗</p>'
   )
 }
 
