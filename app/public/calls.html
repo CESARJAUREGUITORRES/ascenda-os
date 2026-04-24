@@ -483,6 +483,54 @@
 <script>
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+// ===== ENVÍO AUTOMÁTICO DE EMAIL AL CREAR CITA =====
+function enviarEmailConfirmacionCita(datosCita) {
+  var correo = (datosCita.correo || '').trim();
+  if (!correo || correo.indexOf('@') < 0) {
+    console.log('[EMAIL-CITA] Sin correo válido, skip email');
+    return;
+  }
+  var nombre = ((datosCita.nombre || '') + ' ' + (datosCita.apellido || '')).trim();
+  var fechaRaw = datosCita.fecha_cita || datosCita.fechaCita || '';
+  // Formatear fecha legible
+  var fechaLabel = fechaRaw;
+  try {
+    var dp = new Date(fechaRaw + 'T12:00:00');
+    var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
+  } catch(e) {}
+
+  console.log('[EMAIL-CITA] Enviando confirmación a ' + correo + ' — ' + nombre);
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: correo,
+      template: 'confirmacion_cita',
+      nombre: nombre,
+      tratamiento: datosCita.tratamiento || 'Consulta',
+      hora: datosCita.hora_cita || datosCita.horaCita || '',
+      sede: datosCita.sede || '',
+      fecha: fechaLabel,
+      dni: datosCita.dni || '',
+      telefono: datosCita.numero_limpio || datosCita.numero || '',
+      email: correo,
+      destinatario_id: (datosCita.numero_limpio || correo) + '_cita_' + fechaRaw
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d && (d.ok || d.id)) {
+      console.log('[EMAIL-CITA] ✅ Email enviado a ' + correo);
+      if (window.AOS_showToast) AOS_showToast('📧 Email de cita enviado', correo, '');
+    } else {
+      console.log('[EMAIL-CITA] ⚠ Error:', JSON.stringify(d));
+      if (window.AOS_showToast) AOS_showToast('⚠ Email no enviado', d && d.error ? d.error : 'Error desconocido', 'toast-alerta');
+    }
+  }).catch(function(e) {
+    console.log('[EMAIL-CITA] ✕ Error:', e.message);
+  });
+}
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Date();var hh=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
 
@@ -611,7 +659,10 @@ function ccConfirmarCita(){
   console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
     if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":new Date().toISOString()})});}
-    closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+    closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');
+    // Enviar email de confirmación automáticamente
+    enviarEmailConfirmacionCita(rowC);
+    loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarSeguimiento(){
@@ -1121,6 +1172,8 @@ function guardarCitaManual(){
     closeCCModal('cc-m-cita-manual');
     if(window.AOS_playSound)AOS_playSound('venta');
     if(window.AOS_showToast)AOS_showToast('Cita agendada','Cita + llamada registradas','toast-venta');
+    // Enviar email de confirmación automáticamente
+    enviarEmailConfirmacionCita(rowC);
     loadMetrics();loadHistorial();
   }).catch(function(e){
     console.error('[AOS] Error citaManual:',e);
