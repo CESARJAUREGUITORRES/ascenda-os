@@ -80,6 +80,9 @@
 .sede-c-t{font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;}
 .logo-box{width:120px;height:120px;border:2px dashed #DDE4F5;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:all .2s;background:#FAFBFE;}
 .logo-box:hover{border-color:#0A4FBF;background:#EBF2FF;}
+.assets-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+.assets-upload{width:100%;height:40px;border:2px dashed #DDE4F5;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;background:#FAFBFE;}
+.assets-upload:hover{border-color:#0A4FBF;background:#EBF2FF;}
 .logo-box img{width:100%;height:100%;object-fit:contain;}
 @media(max-width:768px){.fg{grid-template-columns:1fr;}.ig{grid-template-columns:1fr;}.m2c{grid-template-columns:1fr;}.m2c-left{border-right:none;border-bottom:1px solid #EEF0F8;}}
 </style>
@@ -425,6 +428,45 @@
         <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
       </div>
 
+      <!-- ASSETS DE MARCA — para Ascenda Studio -->
+      <div class="crd" style="margin-top:14px;">
+        <div class="sec-t">📸 Assets de Marca <span style="font-size:9px;font-weight:400;color:#94A3B8;margin-left:6px;">Para Ascenda Studio</span></div>
+        <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Sube fotos de trabajos previos, diseños y material de referencia. Ascenda Studio usará estos assets para crear contenido con tu identidad.</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <!-- Fotos antes/después -->
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">📷 Fotos antes/después</div>
+            <div id="assets-fotos" class="assets-grid"></div>
+            <div class="assets-upload" onclick="document.getElementById('file-assets-fotos').click()">
+              <span style="font-size:18px;">+</span>
+              <span style="font-size:9px;color:#9AAAC8;">Subir fotos</span>
+            </div>
+            <input type="file" id="file-assets-fotos" accept="image/*" multiple style="display:none;" onchange="uploadAssets(this.files,'fotos')">
+          </div>
+          <!-- Diseños previos -->
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">🎨 Diseños previos / Posts</div>
+            <div id="assets-disenos" class="assets-grid"></div>
+            <div class="assets-upload" onclick="document.getElementById('file-assets-disenos').click()">
+              <span style="font-size:18px;">+</span>
+              <span style="font-size:9px;color:#9AAAC8;">Subir diseños</span>
+            </div>
+            <input type="file" id="file-assets-disenos" accept="image/*" multiple style="display:none;" onchange="uploadAssets(this.files,'disenos')">
+          </div>
+        </div>
+        
+        <div style="margin-top:14px;">
+          <div class="fg-l" style="margin-bottom:6px;">📝 Notas de estilo</div>
+          <textarea id="c-notas_estilo" data-k="notas_estilo" placeholder="Describe el estilo visual de tu marca: tono, colores preferidos, tipografía, referencias..." style="width:100%;height:60px;border:1.5px solid #DDE4F5;border-radius:8px;padding:8px 10px;font-size:11px;font-family:Outfit;resize:none;outline:none;box-sizing:border-box;"></textarea>
+        </div>
+        
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+          <span id="assets-count" style="font-size:10px;color:#94A3B8;">0 assets guardados</span>
+          <button class="mbtn mbtn-p" onclick="saveConfig()" style="margin-left:auto;">💾 Guardar</button>
+        </div>
+      </div>
+
       <!-- 3 PREVIEWS EN VIVO -->
       <div style="margin-top:16px;font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Vista previa en vivo</div>
       <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Los colores y logos se aplican en tiempo real</div>
@@ -724,7 +766,7 @@ function empChip(chip){
   if(chip==='sedes')loadSedes();
   if(chip==='facturacion')loadFacturacion();
   if(chip==='datos'){loadConfig();loadEmails();}
-  if(chip==='diseno')loadLogos();
+  if(chip==='diseno'){loadLogos();loadAssets();}
   if(chip==='redes')loadRedes();
 }
 
@@ -1114,6 +1156,47 @@ function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_
 function uploadLogo(tipo){el('file-'+(tipo==='logo_con_fondo'?'logo-fondo':'logo-sin')).click();}
 function handleLogoUpload(inp,tipo){var file=inp.files[0];if(!file)return;var ext=file.name.split('.').pop().toLowerCase();var path='logos/'+tipo+'_'+Date.now()+'.'+ext;
   fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file}).then(function(r){if(r.ok){var url=SB+'/storage/v1/object/public/logos/'+path;var pId=tipo==='logo_con_fondo'?'prev-logo-fondo':'prev-logo-sin';var phId=tipo==='logo_con_fondo'?'ph-logo-fondo':'ph-logo-sin';el(pId).src=url;el(pId).style.display='block';el(phId).style.display='none';var clave=tipo+'_url';fetch(SB+'/rest/v1/aos_configuracion?clave=eq.'+clave,{method:'GET',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(ex){if(ex&&ex.length>0){sbPatch('/rest/v1/aos_configuracion?clave=eq.'+clave,{valor:url});}else{fetch(SB+'/rest/v1/aos_configuracion',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({clave:clave,valor:url})});}});showToast('Logo Subido','Imagen actualizada');}else{showToast('Error','No se pudo subir',true);}});}
+
+// ═══ ASSETS DE MARCA ═══
+function uploadAssets(files,categoria){
+  if(!files||!files.length)return;
+  var promises=[];
+  for(var i=0;i<files.length;i++){
+    (function(f){
+      var ext=f.name.split('.').pop().toLowerCase();
+      var path='assets/'+categoria+'_'+Date.now()+'_'+Math.random().toString(36).substring(2,6)+'.'+ext;
+      promises.push(
+        fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type},body:f}).then(function(r){
+          if(r.ok){
+            var url=SB+'/storage/v1/object/public/logos/'+path;
+            return fetch(SB+'/rest/v1/aos_brand_assets',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({categoria:categoria,url:url,nombre:f.name,tipo:f.type})});
+          }
+        })
+      );
+    })(files[i]);
+  }
+  Promise.all(promises).then(function(){showToast('Assets subidos',files.length+' archivo(s)');loadAssets();});
+}
+function loadAssets(){
+  sbGet('/rest/v1/aos_brand_assets?select=*&activo=eq.true&order=created_at.desc').then(function(rows){
+    if(!rows)rows=[];
+    var fotos=rows.filter(function(r){return r.categoria==='fotos';});
+    var disenos=rows.filter(function(r){return r.categoria==='disenos';});
+    renderAssetGrid('assets-fotos',fotos);
+    renderAssetGrid('assets-disenos',disenos);
+    var cnt=el('assets-count');if(cnt)cnt.textContent=rows.length+' assets guardados';
+  });
+}
+function renderAssetGrid(containerId,items){
+  var c=document.getElementById(containerId);if(!c)return;
+  if(!items.length){c.innerHTML='';return;}
+  c.innerHTML=items.map(function(a){
+    return '<div class="asset-thumb" style="position:relative"><img src="'+h(a.url)+'" style="width:100%;height:60px;object-fit:cover;border-radius:6px;"><div onclick="deleteAsset(\''+h(a.id)+'\')" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(220,38,38,.8);border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</div></div>';
+  }).join('');
+}
+function deleteAsset(id){
+  fetch(SB+'/rest/v1/aos_brand_assets?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({activo:false})}).then(function(){loadAssets();showToast('Asset eliminado','');});
+}
 
 // ═══ SEDES ═══
 function loadSedes(){sbGet('/rest/v1/aos_sedes_geo?select=*&order=nombre').then(function(rows){if(!rows||!rows.length){el('cfg-sedes-list').innerHTML='<div style="font-size:11px;color:#9AAAC8;padding:10px;">No hay sedes registradas</div>';return;}
