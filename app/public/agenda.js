@@ -69,13 +69,15 @@ function renderView(){
 
 function renderList(citas){
   var box=el('ag-content');
-  box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci\u00f3n</th></tr></thead><tbody id="ag-tbody"></tbody></table>';
+  box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci\u00f3n</th><th style="width:36px;"></th></tr></thead><tbody id="ag-tbody"></tbody></table>';
   var tb=el('ag-tbody');
-  if(!citas.length){tb.innerHTML='<tr><td colspan="7" class="ld">Sin citas</td></tr>';return;}
+  if(!citas.length){tb.innerHTML='<tr><td colspan="8" class="ld">Sin citas</td></tr>';return;}
   tb.innerHTML=citas.map(function(c){
     var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
     var hora=(c.hora_cita||'').toString().substring(0,5);
-    return '<tr onclick="agDetalle(\''+h(c.id)+'\')">'+'<td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td>'+'<td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td>'+'<td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+'</td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td>'+'<td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td>'+'<td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td>'+'<td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td></tr>';
+    var num=(c.numero_limpio||c.numero||'').replace(/\D/g,'');
+    var waBtn=num?'<div onclick="event.stopPropagation();AG.sel=AG.data.citas.find(function(x){return x.id===\''+c.id+'\'});agWhatsApp()" style="cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;" title="WhatsApp">💬</div>':'';
+    return '<tr onclick="agDetalle(\''+h(c.id)+'\')"><td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td><td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td><td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+'</td><td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td><td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td><td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td><td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td><td style="text-align:center;" onclick="event.stopPropagation()">'+waBtn+'</td></tr>';
   }).join('');
 }
 
