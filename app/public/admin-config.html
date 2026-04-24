@@ -732,7 +732,7 @@ function empChip(chip){
 function loadConfig(){
   sbGet('/rest/v1/aos_configuracion?select=clave,valor').then(function(rows){
     if(!rows||!rows.length)return;
-    rows.forEach(function(r){var inp=el('c-'+r.clave);if(inp){if(inp.type==='color'){inp.value=r.valor||'#000000';var txt=el('c-'+r.clave+'_txt');if(txt)txt.value=r.valor;}else if(inp.tagName==='SELECT'){inp.value=r.valor;}else{inp.value=r.valor||'';}}});
+    rows.forEach(function(r){var inp=el('c-'+r.clave);if(inp){if(inp.type==='checkbox'){inp.checked=(r.valor==='true');}else if(inp.type==='color'){inp.value=r.valor||'#000000';var txt=el('c-'+r.clave+'_txt');if(txt)txt.value=r.valor;}else if(inp.tagName==='SELECT'){inp.value=r.valor;}else{inp.value=r.valor||'';}}});
     updatePreview();
   });
 }
