@@ -515,19 +515,26 @@
 
   <!-- ═══ INTEGRACIONES ═══ -->
   <div id="cfg-integraciones" style="display:none;">
-    <!-- Conectados -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Conectores activos</div>
-      <div style="font-size:10px;color:#9AAAC8;margin-bottom:8px;">Servicios conectados y funcionando en el sistema</div>
-      <div id="cfg-ig-activos" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <!-- Sub-chips: Activos vs Catálogo -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;width:fit-content;">
+      <button class="em-tab act" id="ig-tab-activos" onclick="igTab('activos')" style="padding:8px 20px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:#071D4A;color:#fff;transition:all .15s;">✓ Activos</button>
+      <button class="em-tab" id="ig-tab-catalogo" onclick="igTab('catalogo')" style="padding:8px 20px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:none;color:#6B7BA8;transition:all .15s;">📦 Catálogo</button>
     </div>
-    <!-- Buscador -->
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
-      <input class="mi" id="ig-search" placeholder="🔍 Buscar integración..." style="flex:1;padding:10px;font-size:12px;" oninput="filterInteg(this.value)">
-      <div style="display:flex;gap:4px;" id="ig-cat-pills"></div>
+
+    <!-- VISTA ACTIVOS -->
+    <div id="ig-view-activos">
+      <div style="font-size:10px;color:#9AAAC8;margin-bottom:10px;">Conectores activos — click en cualquiera para editar, actualizar o desactivar</div>
+      <div id="cfg-ig-activos-cards"></div>
     </div>
-    <!-- Catálogo -->
-    <div id="cfg-ig-list"></div>
+
+    <!-- VISTA CATÁLOGO -->
+    <div id="ig-view-catalogo" style="display:none;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input class="mi" id="ig-search" placeholder="🔍 Buscar integración..." style="flex:1;padding:10px;font-size:12px;" oninput="filterInteg(this.value)">
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;" id="ig-cat-pills"></div>
+      <div id="cfg-ig-list"></div>
+    </div>
   </div>
 
   <!-- ═══ SEGURIDAD ═══ -->
@@ -1243,10 +1250,32 @@ var INTEG_DATA=[];
 var CAT_LABELS={infraestructura:'🏗️ Infraestructura',ai:'🤖 AI Texto/Chat',ai_imagen:'🖼️ AI Imagen',ai_video:'🎬 AI Video',ai_audio:'🔊 AI Audio/Voz',google:'📅 Google',redes:'📱 Redes y Ads',chatbot:'💬 Chatbot',pagos:'💳 Pagos',automatizacion:'🔄 Automatización',ambiente:'🎧 Ambiente/IoT',web:'🌐 Web/Tracking',diseno:'🎨 Diseño'};
 var CAT_COLORS={infraestructura:'infra',ai:'ai',google:'google',redes:'redes',chatbot:'chatbot',pagos:'pagos'};
 var CAT_ORDER=['infraestructura','ai','ai_imagen','ai_video','ai_audio','automatizacion','redes','google','web','diseno','ambiente','chatbot','pagos'];
+function igTab(t){
+  el('ig-view-activos').style.display=t==='activos'?'block':'none';
+  el('ig-view-catalogo').style.display=t==='catalogo'?'block':'none';
+  el('ig-tab-activos').style.background=t==='activos'?'#071D4A':'none';
+  el('ig-tab-activos').style.color=t==='activos'?'#fff':'#6B7BA8';
+  el('ig-tab-catalogo').style.background=t==='catalogo'?'#071D4A':'none';
+  el('ig-tab-catalogo').style.color=t==='catalogo'?'#fff':'#6B7BA8';
+}
 function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
   // Activos arriba
   var activos=rows.filter(function(r){return r.estado==='conectado';});
-  el('cfg-ig-activos').innerHTML=activos.length?activos.map(function(r){return '<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;cursor:pointer;" onclick="openIntegModal(\''+r.id+'\')"><span style="font-size:14px;">'+h(r.icono)+'</span><span style="font-size:11px;font-weight:600;color:#065F46;">'+h(r.nombre)+'</span><span style="font-size:8px;color:#059669;">✓</span></div>';}).join(''):'<div style="font-size:11px;color:#CBD5E1;">Ningún conector activo aún</div>';
+  el('cfg-ig-activos-cards').innerHTML=activos.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;">'+activos.map(function(r){
+    return '<div style="background:#fff;border-radius:14px;padding:14px;border:1px solid #BBF7D0;cursor:pointer;transition:all .15s;" onclick="openIntegModal(\''+r.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+      '<div style="display:flex;gap:10px;align-items:center;">'+
+      '<div style="width:36px;height:36px;border-radius:10px;background:#F0FDF4;display:flex;align-items:center;justify-content:center;font-size:18px;">'+h(r.icono)+'</div>'+
+      '<div><div style="font-weight:700;font-size:12px;color:#071D4A;">'+h(r.nombre)+'</div>'+
+      '<div style="font-size:9px;color:#9AAAC8;">'+h(r.descripcion||'').substring(0,40)+'</div></div></div>'+
+      '<span style="font-size:9px;padding:3px 8px;border-radius:6px;background:#F0FDF4;color:#059669;font-weight:700;">✓ Activo</span>'+
+      '</div>'+
+      (r.cuenta?'<div style="font-size:10px;color:#475569;margin-top:8px;padding-top:8px;border-top:1px solid #F1F5F9;">Cuenta: '+h(r.cuenta)+'</div>':'')+
+      '<div style="display:flex;gap:8px;margin-top:8px;">'+
+      '<button class="mbtn mbtn-c" style="font-size:9px;padding:4px 10px;" onclick="event.stopPropagation();openIntegModal(\''+r.id+'\')">✏️ Editar</button>'+
+      '<button style="border:none;background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:8px;font-size:9px;cursor:pointer;font-weight:600;" onclick="event.stopPropagation();desactivarInteg(\''+r.id+'\')">Desactivar</button>'+
+      '</div></div>';
+  }).join('')+'</div>':'<div style="text-align:center;padding:30px;color:#CBD5E1;font-size:12px;">Ningún conector activo — ve al Catálogo para activar</div>';
   // Pills de categoría
   el('ig-cat-pills').innerHTML='<button class="chip" style="font-size:9px;" onclick="filterInteg(\'\')">Todos</button>'+CAT_ORDER.map(function(c){return '<button class="chip" style="font-size:9px;" onclick="filterIntegCat(\''+c+'\')">'+(CAT_LABELS[c]||c)+'</button>';}).join('');
   // Catálogo completo
@@ -1270,4 +1299,5 @@ function renderIntegCatalog(items){var html='';CAT_ORDER.forEach(function(cat){v
     if(r.multi_cuenta)html+='<div style="font-size:8px;color:#7C3AED;margin-top:3px;">🔄 Soporta múltiples cuentas</div>';
     html+='</div>';
   });html+='</div></div>';});el('cfg-ig-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#CBD5E1;">Sin resultados</div>';}
+function desactivarInteg(id){if(!confirm('¿Desactivar este conector?'))return;sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});}
 f
