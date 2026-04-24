@@ -2311,6 +2311,8 @@ function cotPDFCaja(tipo) {
 }
 
 function cotEmailCaja() {
+  try {
+  console.log('[CAJA-EMAIL] Inicio, items:', VT.items.length);
   if (!VT.items.length) { toast('Agrega ítems primero','warn'); return; }
   var pac = VT.pac || {};
   var email = pac.Email || pac.email || pac.correo || '';
@@ -2331,8 +2333,10 @@ function cotEmailCaja() {
     else { o.style.borderColor='var(--border)'; o.style.background='var(--surface)'; }
   });
   
+  console.log('[CAJA-EMAIL] Abriendo modal...');
   abrirOv('ov-email-caja');
   window._emCajaData = { nombre: nombre, items: items, total: total, pac: pac };
+  } catch(e) { console.error('[CAJA-EMAIL] Error:', e); toast('Error: ' + e.message, 'warn'); }
 }
 
 
