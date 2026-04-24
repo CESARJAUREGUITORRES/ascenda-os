@@ -1744,7 +1744,9 @@ function DeptFocus({ zone, agents, onBack, onSelectAgent, onOpenMeeting }) {
     // Agents respond
     list.forEach((a, i) => {
       setTimeout(() => {
-        setChat(c => [...c, { from: a.id, agent: a, text: replyFor(a, q), t: Date.now() }]);
+        replyForAsync(a, q).then(reply => {
+          setChat(c => [...c, { from: a.id, agent: a, text: reply, t: Date.now() }]);
+        });
       }, 800 + i * 900 + Math.random() * 500);
     });
   };
@@ -1794,24 +1796,26 @@ function DeptFocus({ zone, agents, onBack, onSelectAgent, onOpenMeeting }) {
   </div>;
 }
 
+// replyFor ahora llama a Groq con datos reales (async)
+async function replyForAsync(agent, q) {
+  try {
+    const res = await fetch(window.RAILWAY_URL + '/api/agents/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agent_id: agent.id,
+        messages: [{ role: 'user', content: 'Contexto: estás en una reunión de equipo con otros agentes. El director pregunta: "' + q + '". Responde en máximo 2 oraciones con datos reales de tu área. No inventes datos.' }]
+      })
+    });
+    const data = await res.json();
+    return data.reply || 'Sin respuesta disponible.';
+  } catch(e) {
+    return 'Error de conexión con el sistema.';
+  }
+}
+// Fallback síncrono por si se necesita
 function replyFor(agent, q) {
-  const d = window.DEPARTMENTS[agent.area];
-  const base = {
-    kronia: `Como coordinadora: lo priorizo. ${q.length > 30 ? 'Requiere delegar en 2 equipos.' : 'Asigno recursos.'}`,
-    centinela: 'Acabo de escanear — 14 leads nuevos en cola.',
-    clasificador: 'Clasifico lead por lead — PYME y enterprise separados.',
-    analista_mkt: 'Desde Marketing: CTR +18% esta semana, CPC bajó a $2.10.',
-    planificador: 'Puedo calendarizar 12 posts para el mes.',
-    creador: 'Escribo 3 variantes A/B para testing.',
-    monitor: 'Revisé KPIs hace 10min — inventario SKU-221 crítico.',
-    analista: 'Cohort análisis: retention D30 en 42%, +5pt.',
-    archivista: 'Archivo indexado: 2.4k docs disponibles.',
-    resumidor: 'TL;DR listo — 3 action items extraídos.',
-    recepcion: '⚠ Sin conexión WhatsApp — esperando credenciales.',
-    guardian: 'Inventario: 42 SKUs normales, 1 crítico.',
-    cartero: 'Digest enviado a 8 stakeholders esta mañana.',
-  };
-  return base[agent.id] || `Desde ${d.name}: recibido.`;
+  return '...';  // placeholder — se reemplaza con replyForAsync
 }
 
 function MeetingModal({ agents, onClose, pingAgent }) {
@@ -1825,21 +1829,25 @@ function MeetingModal({ agents, onClose, pingAgent }) {
 
   useSPE(() => { if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight; }, [msgs, thinking]);
 
-  const respond = (aid, q, opening) => {
+  const respond = async (aid, q, opening) => {
     setThinking(t => [...t, aid]);
     pingAgent && pingAgent(aid);
-    setTimeout(() => {
+    const a = agents.find(x => x.id === aid);
+    try {
+      const reply = await replyForAsync(a, q || topic);
       setThinking(t => t.filter(x => x !== aid));
-      const a = agents.find(x => x.id === aid);
-      setMsgs(m => [...m, { id: Math.random()+'', from: aid, agent: a, text: replyFor(a, q || topic), t: Date.now() }]);
-    }, 1200 + Math.random() * 1600);
+      setMsgs(m => [...m, { id: Math.random()+'', from: aid, agent: a, text: reply, t: Date.now() }]);
+    } catch(e) {
+      setThinking(t => t.filter(x => x !== aid));
+      setMsgs(m => [...m, { id: Math.random()+'', from: aid, agent: a, text: '⚠ Error al consultar.', t: Date.now() }]);
+    }
   };
 
   const start = () => {
     if (!selected.length || !topic.trim()) return;
     setPhase('live');
     setMsgs([{ id:'sys-'+Date.now(), from:'system', text:`Reunión iniciada · ${selected.length} participantes · "${topic}"` }]);
-    selected.forEach((id, i) => setTimeout(() => respond(id, topic, true), 500 + i * 700));
+    selected.forEach((id, i) => setTimeout(() => { respond(id, topic, true); }, 500 + i * 1500));
   };
 
   const send = () => {
@@ -1848,7 +1856,7 @@ function MeetingModal({ agents, onClose, pingAgent }) {
     setMsgs(m => [...m, { id:'u-'+Date.now(), from:'me', text:q, t:Date.now() }]);
     setDraft('');
     const responders = selected.filter(() => Math.random() > 0.3);
-    responders.forEach((id, i) => setTimeout(() => respond(id, q), 600 + i * 800));
+    responders.forEach((id, i) => setTimeout(() => { respond(id, q); }, 600 + i * 1500));
   };
 
   const toggleAgent = id => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
