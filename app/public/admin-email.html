@@ -48,8 +48,8 @@
 /* Tags */
 .tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:8px;font-weight:700;}.tag-b{background:#EBF2FF;color:#0A4FBF;}.tag-g{background:#F0FDF4;color:#059669;}.tag-y{background:#FFFBEB;color:#D97706;}.tag-r{background:#FEF2F2;color:#DC2626;}.tag-p{background:#F5F3FF;color:#7C3AED;}
 /* Toast */
-.toast{position:fixed;bottom:20px;right:20px;z-index:700;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(360px,88vw);}
-.toast-item{pointer-events:all;display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(7,29,74,.22);animation:toastIn .4s cubic-bezier(.22,1,.36,1);border-bottom:3px solid #00C9A7;font-size:12px;}
+.inner-toast{position:fixed;bottom:20px;right:20px;z-index:700;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(360px,88vw);}
+.inner-toast-item{pointer-events:all;display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(7,29,74,.22);animation:toastIn .4s cubic-bezier(.22,1,.36,1);border-bottom:3px solid #00C9A7;font-size:12px;}
 @keyframes toastIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(120%)}}
 /* Modal */
@@ -182,7 +182,7 @@
   <div class="mbody" id="ms-body"></div>
 </div></div>
 
-<div class="toast" id="em-toast"></div>
+<div class="inner-toast" id="em-toast"></div>
 
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co';

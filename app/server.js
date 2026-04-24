@@ -249,62 +249,55 @@ http.createServer(function(req, res) {
   // ===== RESEND STATS — datos reales de emails enviados =====
   if (p === '/api/resend-stats' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
-    // Node 18+ tiene fetch nativo
+    // Consultar TODAS las fuentes de emails en Supabase
+    var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
+    var mesActual = hoy.slice(0, 7)
     Promise.all([
-      // Últimos 100 emails de Resend
-      fetch('https://api.resend.com/emails', {
-        headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG }
-      }).then(function(r) { return r.json() }).catch(function() { return { data: [] } })
+      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,fecha_envio,resend_id,created_at&order=created_at.desc&limit=200'),
+      sbFetch('/rest/v1/aos_email_envios?select=id,asunto,estado,destinatario_email,destinatario_nombre,enviado_at,created_at&order=created_at.desc&limit=50'),
+      sbFetch('/rest/v1/aos_security_log?select=id,usuario,accion,created_at&accion=in.(login,2fa_verified)&order=created_at.desc&limit=50')
     ]).then(function(results) {
-      var resendData = results[0]
-      var emails = resendData.data || []
+      var agente = results[0] || []
+      var panel = results[1] || []
+      var seguridad = results[2] || []
+      // Unificar todos los emails
+      var allEmails = []
+      agente.forEach(function(e) {
+        var email = (e.destinatario || '').split('_')[0] // quitar _fecha del anti-duplicado
+        allEmails.push({ to: email, subject: e.tipo, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: e.tipo, origen: 'agente' })
+      })
+      panel.forEach(function(e) {
+        allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
+      })
+      seguridad.forEach(function(e) {
+        allEmails.push({ to: e.usuario, subject: '🔑 Código 2FA — Login', status: 'delivered', created_at: e.created_at, tipo: 'sistema', origen: 'sistema' })
+      })
+      // Ordenar por fecha desc
+      allEmails.sort(function(a, b) { return (b.created_at || '') > (a.created_at || '') ? 1 : -1 })
       // Calcular métricas
-      var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
-      var mesActual = hoy.slice(0, 7)
-      var totalMes = 0, totalHoy = 0, entregados = 0, rebotados = 0, abiertos = 0
-      var porTipo = {}
-      emails.forEach(function(e) {
+      var totalHoy = 0, totalMes = 0, entregados = 0, porTipo = {}
+      allEmails.forEach(function(e) {
         var fecha = (e.created_at || '').slice(0, 10)
         var mes = (e.created_at || '').slice(0, 7)
-        if (mes === mesActual) totalMes++
         if (fecha === hoy) totalHoy++
-        if (e.last_event === 'delivered') entregados++
-        if (e.last_event === 'bounced') rebotados++
-        if (e.last_event === 'opened') { entregados++; abiertos++ }
-        // Clasificar por tipo
-        var subj = e.subject || ''
-        var tipo = 'otro'
-        if (subj.indexOf('cita es hoy') > -1 || subj.indexOf('cita es HOY') > -1) tipo = 'recordatorio_hoy'
-        else if (subj.indexOf('mañana') > -1 || subj.indexOf('esperamos mañana') > -1) tipo = 'recordatorio_manana'
-        else if (subj.indexOf('confirmada') > -1 || subj.indexOf('agendada') > -1) tipo = 'confirmacion_cita'
-        else if (subj.indexOf('Bienvenid') > -1) tipo = 'bienvenida'
-        else if (subj.indexOf('Recibo') > -1 || subj.indexOf('recibo') > -1) tipo = 'recibo'
-        else if (subj.indexOf('código') > -1 || subj.indexOf('2FA') > -1 || subj.indexOf('activa') > -1) tipo = 'sistema'
-        else if (subj.indexOf('Reporte') > -1 || subj.indexOf('Elena') > -1) tipo = 'reporte'
-        porTipo[tipo] = (porTipo[tipo] || 0) + 1
+        if (mes === mesActual) totalMes++
+        if (e.status === 'delivered' || e.status === 'enviado') entregados++
+        var t = e.tipo || 'otro'
+        porTipo[t] = (porTipo[t] || 0) + 1
       })
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
         ok: true,
-        total_resend: emails.length,
+        total_resend: allEmails.length,
         total_mes: totalMes,
         total_hoy: totalHoy,
         entregados: entregados,
-        rebotados: rebotados,
-        abiertos: abiertos,
+        rebotados: 0,
+        abiertos: 0,
         por_tipo: porTipo,
         limite_free: 3000,
         usado_pct: Math.round(totalMes / 3000 * 100),
-        emails: emails.map(function(e) {
-          return {
-            id: e.id,
-            to: (e.to || [])[0] || '',
-            subject: e.subject || '',
-            status: e.last_event || 'sent',
-            created_at: e.created_at || '',
-            from: e.from || ''
-          }
-        })
+        emails: allEmails.slice(0, 100)
       }))
     }).catch(function(err) {
       res.writeHead(500, { 'Content-Type': 'application/json' })
