@@ -166,18 +166,33 @@
             <input type="file" id="file-logo-sin" accept="image/png" style="display:none;" onchange="handleLogoUpload(this,'logo_sin_fondo')">
           </div>
         </div>
-        <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-          <div>
-            <div class="fg-l" style="margin-bottom:6px;">Color primario</div>
-            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_primario" data-k="color_primario" value="#0A4FBF"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_primario_txt" value="#0A4FBF" oninput="el('c-color_primario').value=this.value;updatePreview()"></div>
-          </div>
-          <div>
-            <div class="fg-l" style="margin-bottom:6px;">Color acento</div>
-            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_secundario" data-k="color_secundario" value="#00C9A7"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_secundario_txt" value="#00C9A7" oninput="el('c-color_secundario').value=this.value;updatePreview()"></div>
-          </div>
-          <div>
-            <div class="fg-l" style="margin-bottom:6px;">Color dark</div>
-            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_dark" data-k="color_dark" value="#071D4A"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_dark_txt" value="#071D4A" oninput="el('c-color_dark').value=this.value;updatePreview()"></div>
+        <div style="margin-top:16px;">
+          <div style="font-size:10px;font-weight:600;color:#64748B;margin-bottom:8px;font-family:'JetBrains Mono',monospace;letter-spacing:.06em;">PALETA DE COLORES</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Primario (botones, barras)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_primario" data-k="color_primario" value="#0A4FBF"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_primario_txt" value="#0A4FBF" oninput="el('c-color_primario').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Acento (highlights, iconos)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_secundario" data-k="color_secundario" value="#00C9A7"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_secundario_txt" value="#00C9A7" oninput="el('c-color_secundario').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Dark (fondos oscuros)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_dark" data-k="color_dark" value="#071D4A"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_dark_txt" value="#071D4A" oninput="el('c-color_dark').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Texto (títulos, cuerpo)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_texto" data-k="color_texto" value="#0F172A"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_texto_txt" value="#0F172A" oninput="el('c-color_texto').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Enlaces (links, CTAs)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_enlace" data-k="color_enlace" value="#0A4FBF"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_enlace_txt" value="#0A4FBF" oninput="el('c-color_enlace').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Degradado 2° tono (barras)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_degradado2" data-k="color_degradado2" value="#00E5A0"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_degradado2_txt" value="#00E5A0" oninput="el('c-color_degradado2').value=this.value;updatePreview()"></div>
+            </div>
           </div>
         </div>
         <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
@@ -430,6 +445,9 @@ function updatePreview(){
   var c1v = el('c-color_primario') ? el('c-color_primario').value : '#0A4FBF';
   var c2v = el('c-color_secundario') ? el('c-color_secundario').value : '#00C9A7';
   var cdv = el('c-color_dark') ? el('c-color_dark').value : '#071D4A';
+  var ctv = el('c-color_texto') ? el('c-color_texto').value : '#0F172A';
+  var clv = el('c-color_enlace') ? el('c-color_enlace').value : '#0A4FBF';
+  var cd2 = el('c-color_degradado2') ? el('c-color_degradado2').value : '#00E5A0';
   var nombre = el('c-empresa_nombre_app') ? el('c-empresa_nombre_app').value : '';
   var slogan = el('c-empresa_slogan') ? el('c-empresa_slogan').value : '';
   var displayName = nombre || 'Mi Empresa';
@@ -438,7 +456,7 @@ function updatePreview(){
 
   // ─── PREVIEW MARCA ───
   var pm = el('prev-marca');
-  if(pm) pm.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ')';
+  if(pm) pm.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ',' + cd2 + ')';
   var pml = el('prev-marca-label');
   if(pml) pml.style.color = c2v;
   var pmn = el('prev-marca-name');
@@ -450,7 +468,7 @@ function updatePreview(){
 
   // ─── PREVIEW EMAIL ───
   var peh = el('prev-email-header');
-  if(peh) peh.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ')';
+  if(peh) peh.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ',' + cd2 + ')';
   var pec = el('prev-email-company');
   if(pec) { pec.textContent = displayName.toUpperCase(); pec.style.color = c2v; }
   var pea = el('prev-email-accent');
@@ -463,6 +481,16 @@ function updatePreview(){
   if(pef) pef.textContent = displayName + ' · info@empresa.com';
   var pel = el('prev-email-logo');
   if(pel && logoUrl) { pel.src = logoUrl; pel.style.display = 'block'; }
+
+  // Aplicar color texto y enlaces en email
+  var emailBody = el('prev-email');
+  if(emailBody) {
+    emailBody.querySelectorAll('div').forEach(function(d) {
+      if(d.style.color === 'rgb(71, 85, 105)' || d.id === '') { /* solo texto de cuerpo */ }
+    });
+  }
+  if(pea) pea.style.color = clv;
+  if(pea2) pea2.style.color = clv;
 
   // ─── PREVIEW PDF ───
   var pph = el('prev-pdf-header');
@@ -477,6 +505,10 @@ function updatePreview(){
   if(ppf) { ppf.style.background = cdv; ppf.textContent = displayName + ' · Av. Ejemplo 123'; }
   var ppl = el('prev-pdf-logo');
   if(ppl && (logoFondoUrl || logoUrl)) { ppl.src = logoFondoUrl || logoUrl; ppl.style.display = 'block'; }
+  // Color texto en PDF
+  if(ppc) ppc.style.color = ctv;
+  // Degradado del footer PDF
+  if(ppf) ppf.style.background = 'linear-gradient(90deg,' + cdv + ',' + c1v + ')';
 }
 
 // ═══ LOGOS ═══
