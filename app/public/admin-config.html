@@ -151,31 +151,116 @@
       </div>
     </div>
     <div id="emp-diseno" style="display:none;">
+      <!-- Logos + Colores -->
       <div class="crd">
         <div class="sec-t">🎨 Diseño y Branding</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
             <div class="fg-l" style="margin-bottom:8px;">Logo con fondo</div>
-            <div class="logo-box" onclick="uploadLogo('logo_con_fondo')"><img id="prev-logo-fondo" src="" style="display:none;"><span id="ph-logo-fondo" style="font-size:10px;color:#9AAAC8;text-align:center;">Click para<br>subir logo</span></div>
+            <div class="logo-box" onclick="uploadLogo('logo_con_fondo')"><img id="prev-logo-fondo" src="" style="display:none;max-width:100%;max-height:80px;"><span id="ph-logo-fondo" style="font-size:10px;color:#9AAAC8;text-align:center;">Click para<br>subir logo</span></div>
             <input type="file" id="file-logo-fondo" accept="image/*" style="display:none;" onchange="handleLogoUpload(this,'logo_con_fondo')">
           </div>
           <div>
             <div class="fg-l" style="margin-bottom:8px;">Logo sin fondo (PNG)</div>
-            <div class="logo-box" onclick="uploadLogo('logo_sin_fondo')"><img id="prev-logo-sin" src="" style="display:none;"><span id="ph-logo-sin" style="font-size:10px;color:#9AAAC8;text-align:center;">Click para<br>subir logo</span></div>
+            <div class="logo-box" onclick="uploadLogo('logo_sin_fondo')"><img id="prev-logo-sin" src="" style="display:none;max-width:100%;max-height:80px;"><span id="ph-logo-sin" style="font-size:10px;color:#9AAAC8;text-align:center;">Click para<br>subir logo</span></div>
             <input type="file" id="file-logo-sin" accept="image/png" style="display:none;" onchange="handleLogoUpload(this,'logo_sin_fondo')">
           </div>
         </div>
-        <div style="margin-top:16px;">
-          <div class="fg"><div><div class="fg-l">Color primario</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-color_primario" data-k="color_primario" value="#0A4FBF"><input class="mi mi-sm" style="width:100px;" id="c-color_primario_txt" placeholder="#0A4FBF" oninput="el('c-color_primario').value=this.value;updatePreview()"></div></div>
-          <div class="fg"><div><div class="fg-l">Color de acento</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-color_secundario" data-k="color_secundario" value="#00C9A7"><input class="mi mi-sm" style="width:100px;" id="c-color_secundario_txt" placeholder="#00C9A7" oninput="el('c-color_secundario').value=this.value;updatePreview()"></div></div>
-          <div class="fg"><div><div class="fg-l">Color dark</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="color" class="clr-prev" id="c-color_dark" data-k="color_dark" value="#071D4A"><input class="mi mi-sm" style="width:100px;" id="c-color_dark_txt" placeholder="#071D4A" oninput="el('c-color_dark').value=this.value;updatePreview()"></div></div>
-        </div>
-        <div style="margin-top:12px;padding:16px;border-radius:14px;text-align:center;transition:all .3s;" id="brand-preview">
-          <div style="font-size:10px;font-weight:700;letter-spacing:2px;">PREVIEW</div>
-          <div style="font-family:'Exo 2';font-weight:800;font-size:22px;margin-top:4px;" id="brand-name-prev">AscendaOS</div>
-          <div style="font-size:10px;margin-top:4px;opacity:.7;" id="brand-slogan-prev"></div>
+        <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">Color primario</div>
+            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_primario" data-k="color_primario" value="#0A4FBF"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_primario_txt" value="#0A4FBF" oninput="el('c-color_primario').value=this.value;updatePreview()"></div>
+          </div>
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">Color acento</div>
+            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_secundario" data-k="color_secundario" value="#00C9A7"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_secundario_txt" value="#00C9A7" oninput="el('c-color_secundario').value=this.value;updatePreview()"></div>
+          </div>
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">Color dark</div>
+            <div style="display:flex;gap:6px;align-items:center;"><input type="color" class="clr-prev" id="c-color_dark" data-k="color_dark" value="#071D4A"><input class="mi mi-sm" style="width:90px;font-size:11px;" id="c-color_dark_txt" value="#071D4A" oninput="el('c-color_dark').value=this.value;updatePreview()"></div>
+          </div>
         </div>
         <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
+      </div>
+
+      <!-- 3 PREVIEWS EN VIVO -->
+      <div style="margin-top:16px;font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Vista previa en vivo</div>
+      <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Los colores y logos se aplican automáticamente al cambiar</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:8px;">
+
+        <!-- PREVIEW 1: Marca -->
+        <div class="crd" style="padding:0;overflow:hidden;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">MARCA</div>
+          <div id="prev-marca" style="margin:8px 12px 12px;padding:20px 16px;border-radius:12px;text-align:center;transition:all .3s;background:linear-gradient(135deg,#071D4A,#0A4FBF);">
+            <img id="prev-marca-logo" src="" style="display:none;max-height:36px;margin-bottom:8px;">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#00C9A7;" id="prev-marca-label">PREVIEW</div>
+            <div style="font-family:'Exo 2';font-weight:800;font-size:18px;margin-top:4px;color:#fff;" id="prev-marca-name">Mi Empresa</div>
+            <div style="font-size:9px;margin-top:4px;opacity:.7;color:#fff;" id="prev-marca-slogan"></div>
+          </div>
+        </div>
+
+        <!-- PREVIEW 2: Email -->
+        <div class="crd" style="padding:0;overflow:hidden;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">EMAIL</div>
+          <div id="prev-email" style="margin:8px 12px 12px;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;font-size:10px;transition:all .3s;">
+            <div id="prev-email-header" style="padding:14px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);">
+              <img id="prev-email-logo" src="" style="display:none;max-height:20px;margin-bottom:6px;">
+              <div style="color:#00C9A7;font-size:8px;font-weight:700;letter-spacing:1px;" id="prev-email-company">MI EMPRESA</div>
+              <div style="color:#fff;font-size:13px;font-weight:700;margin-top:4px;">Recordatorio de cita ✨</div>
+            </div>
+            <div style="padding:12px 16px;background:#fff;">
+              <div style="color:#475569;font-size:10px;line-height:1.5;">Hola <b>María</b>, te recordamos tu cita para mañana:</div>
+              <div id="prev-email-body" style="margin:8px 0;padding:10px 12px;border-radius:8px;border-left:3px solid #00C9A7;background:#F8FAFF;">
+                <div style="font-size:9px;color:#94A3B8;">Tratamiento</div>
+                <div style="font-size:12px;font-weight:700;color:#071D4A;">HIDROFACIAL</div>
+                <div style="display:flex;gap:12px;margin-top:6px;">
+                  <div><div style="font-size:8px;color:#94A3B8;">Hora</div><div style="font-size:11px;font-weight:600;" id="prev-email-accent">10:00 AM</div></div>
+                  <div><div style="font-size:8px;color:#94A3B8;">Sede</div><div style="font-size:11px;font-weight:600;" id="prev-email-accent2">San Isidro</div></div>
+                </div>
+              </div>
+            </div>
+            <div id="prev-email-footer" style="padding:8px 16px;background:#F8FAFF;text-align:center;font-size:8px;color:#94A3B8;">Mi Empresa · info@empresa.com</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW 3: PDF / Cotización -->
+        <div class="crd" style="padding:0;overflow:hidden;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">PDF / COTIZACIÓN</div>
+          <div id="prev-pdf" style="margin:8px 12px 12px;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;font-size:10px;background:#fff;transition:all .3s;">
+            <div id="prev-pdf-header" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0A4FBF;">
+              <div>
+                <img id="prev-pdf-logo" src="" style="display:none;max-height:22px;margin-bottom:4px;">
+                <div style="font-weight:800;font-size:12px;color:#071D4A;" id="prev-pdf-company">MI EMPRESA</div>
+                <div style="font-size:8px;color:#94A3B8;">RUC: 20XXXXXXXXX</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;font-weight:700;color:#0A4FBF;" id="prev-pdf-type">COTIZACIÓN</div>
+                <div style="font-size:8px;color:#94A3B8;">N° COT-2026-0001</div>
+                <div style="font-size:8px;color:#94A3B8;">23/04/2026</div>
+              </div>
+            </div>
+            <div style="padding:10px 16px;">
+              <div style="font-size:8px;font-weight:600;color:#94A3B8;margin-bottom:4px;">DETALLE</div>
+              <table style="width:100%;font-size:9px;border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #F1F5F9;">
+                  <td style="padding:4px 0;color:#475569;">Hidrofacial Premium</td>
+                  <td style="text-align:right;color:#071D4A;font-weight:600;">S/ 189.00</td>
+                </tr>
+                <tr style="border-bottom:1px solid #F1F5F9;">
+                  <td style="padding:4px 0;color:#475569;">Limpieza profunda</td>
+                  <td style="text-align:right;color:#071D4A;font-weight:600;">S/ 99.00</td>
+                </tr>
+              </table>
+              <div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #E2E8F0;">
+                <span style="font-size:10px;font-weight:700;color:#071D4A;">TOTAL</span>
+                <span style="font-size:12px;font-weight:800;" id="prev-pdf-total-color">S/ 288.00</span>
+              </div>
+            </div>
+            <div id="prev-pdf-footer" style="padding:6px 16px;text-align:center;font-size:7px;color:#fff;background:#071D4A;">Mi Empresa · Av. Ejemplo 123</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -342,12 +427,56 @@ function saveConfig(){
   Promise.all(promises).then(function(){showToast('Guardado','Configuración actualizada');}).catch(function(){showToast('Error','No se pudo guardar',true);});
 }
 function updatePreview(){
-  var c1=el('c-color_primario'),c2=el('c-color_secundario'),cd=el('c-color_dark'),prev=el('brand-preview');
-  if(prev&&c1&&cd){prev.style.background='linear-gradient(135deg,'+(cd.value||'#071D4A')+','+(c1.value||'#0A4FBF')+')';prev.style.color='#fff';}
-  var n=el('c-empresa_nombre_app'),s=el('c-empresa_slogan');
-  if(n&&el('brand-name-prev'))el('brand-name-prev').textContent=n.value||'AscendaOS';
-  if(s&&el('brand-slogan-prev'))el('brand-slogan-prev').textContent=s.value||'';
-  if(c2&&prev){var lbl=prev.querySelector('div');if(lbl)lbl.style.color=c2.value||'#00C9A7';}
+  var c1v = el('c-color_primario') ? el('c-color_primario').value : '#0A4FBF';
+  var c2v = el('c-color_secundario') ? el('c-color_secundario').value : '#00C9A7';
+  var cdv = el('c-color_dark') ? el('c-color_dark').value : '#071D4A';
+  var nombre = el('c-empresa_nombre_app') ? el('c-empresa_nombre_app').value : '';
+  var slogan = el('c-empresa_slogan') ? el('c-empresa_slogan').value : '';
+  var displayName = nombre || 'Mi Empresa';
+  var logoUrl = el('prev-logo-sin') && el('prev-logo-sin').style.display !== 'none' ? el('prev-logo-sin').src : '';
+  var logoFondoUrl = el('prev-logo-fondo') && el('prev-logo-fondo').style.display !== 'none' ? el('prev-logo-fondo').src : '';
+
+  // ─── PREVIEW MARCA ───
+  var pm = el('prev-marca');
+  if(pm) pm.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ')';
+  var pml = el('prev-marca-label');
+  if(pml) pml.style.color = c2v;
+  var pmn = el('prev-marca-name');
+  if(pmn) pmn.textContent = displayName;
+  var pms = el('prev-marca-slogan');
+  if(pms) pms.textContent = slogan;
+  var pmlogo = el('prev-marca-logo');
+  if(pmlogo && logoUrl) { pmlogo.src = logoUrl; pmlogo.style.display = 'block'; }
+
+  // ─── PREVIEW EMAIL ───
+  var peh = el('prev-email-header');
+  if(peh) peh.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ')';
+  var pec = el('prev-email-company');
+  if(pec) { pec.textContent = displayName.toUpperCase(); pec.style.color = c2v; }
+  var pea = el('prev-email-accent');
+  if(pea) pea.style.color = c1v;
+  var pea2 = el('prev-email-accent2');
+  if(pea2) pea2.style.color = c1v;
+  var pebl = el('prev-email-body');
+  if(pebl) pebl.style.borderLeftColor = c2v;
+  var pef = el('prev-email-footer');
+  if(pef) pef.textContent = displayName + ' · info@empresa.com';
+  var pel = el('prev-email-logo');
+  if(pel && logoUrl) { pel.src = logoUrl; pel.style.display = 'block'; }
+
+  // ─── PREVIEW PDF ───
+  var pph = el('prev-pdf-header');
+  if(pph) pph.style.borderBottomColor = c1v;
+  var ppc = el('prev-pdf-company');
+  if(ppc) ppc.textContent = displayName.toUpperCase();
+  var ppt = el('prev-pdf-type');
+  if(ppt) ppt.style.color = c1v;
+  var pptc = el('prev-pdf-total-color');
+  if(pptc) pptc.style.color = c1v;
+  var ppf = el('prev-pdf-footer');
+  if(ppf) { ppf.style.background = cdv; ppf.textContent = displayName + ' · Av. Ejemplo 123'; }
+  var ppl = el('prev-pdf-logo');
+  if(ppl && (logoFondoUrl || logoUrl)) { ppl.src = logoFondoUrl || logoUrl; ppl.style.display = 'block'; }
 }
 
 // ═══ LOGOS ═══
