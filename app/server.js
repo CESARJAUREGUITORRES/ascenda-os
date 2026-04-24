@@ -752,7 +752,14 @@ function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, f
     '<td colspan="2" style="padding:12px;text-align:right;font-size:14px;font-weight:700;color:#334155">TOTAL</td>' +
     '<td style="padding:12px;text-align:right;font-size:16px;font-weight:800;color:' + BRAND.color_secundario + '">' + sym + parseFloat(total || 0).toFixed(2) + '</td>' +
     '</tr></tfoot></table>' +
-    '<p style="color:#94A3B8;font-size:11px;text-align:center">Este recibo es un comprobante interno de ' + BRAND.nombre_empresa + '. No constituye factura ni boleta fiscal.</p>'
+    '<div style="margin-top:20px;padding:14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">' +
+    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Términos y condiciones</div>' +
+    '<div style="font-size:8px;color:#94A3B8;line-height:1.5">' +
+    '• Algunas promociones aplican únicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de débito o crédito.<br>' +
+    '• No se realizan devoluciones post pago. En caso de requerir cambio, se emitirá un cupón por servicios del mismo monto o mayor. No aplica para productos.<br>' +
+    '• Las cotizaciones tienen validez de 7 días calendario. Posterior a ello, los precios están sujetos a cambios sin previo aviso.<br>' +
+    '• Este recibo es un comprobante interno de ' + BRAND.nombre_empresa + '. No constituye factura ni boleta fiscal.' +
+    '</div></div>'
   )
 }
 
@@ -856,20 +863,36 @@ function buildEmailNoAsistencia(nombre, tratamiento, fecha, hora, sede) {
 // ═══ TEMPLATE: Confirmación de pago ═══
 function buildEmailConfirmacionPago(nombre, tratamiento, monto, saldoActual, metodoPago) {
   var saldoHtml = parseFloat(saldoActual||0) > 0.01 ?
-    '<div style="margin-top:12px;padding:12px;background:#FEF3C7;border-radius:8px;border:1px solid #FDE68A"><div style="font-size:12px;color:#92400E"><b>Saldo actual:</b> S/ ' + parseFloat(saldoActual).toFixed(2) + '</div><div style="font-size:11px;color:#92400E;margin-top:2px">Puedes completar tu pago en tu próxima visita.</div></div>' :
-    '<div style="margin-top:12px;padding:12px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;text-align:center"><div style="font-size:14px;font-weight:700;color:#059669">✅ Pago completo — Sin saldo pendiente</div></div>'
+    '<div style="margin-top:16px;padding:14px;background:#FEF3C7;border-radius:10px;border:1px solid #FDE68A">' +
+    '<div style="font-size:13px;color:#92400E;font-weight:700">💰 Saldo pendiente: S/ ' + parseFloat(saldoActual).toFixed(2) + '</div>' +
+    '<div style="font-size:11px;color:#92400E;margin-top:4px">Puedes completar tu pago en tu próxima visita o comunicándote con nosotros.</div></div>' :
+    '<div style="margin-top:16px;padding:14px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;text-align:center">' +
+    '<div style="font-size:16px;margin-bottom:4px">🎉</div>' +
+    '<div style="font-size:14px;font-weight:700;color:#059669">Pago completo — Sin saldo pendiente</div></div>'
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Pago recibido! ✅</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, confirmamos que hemos recibido tu pago:</p>' +
-    emailCard(
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">' +
-      '<div>' + emailInfoBox('Tratamiento', tratamiento||'') + '</div>' +
-      '<div><div style="font-size:11px;color:#94A3B8">Monto recibido</div><div style="font-size:24px;font-weight:800;color:#059669">S/ ' + parseFloat(monto||0).toFixed(2) + '</div></div>' +
-      '</div>' +
-      (metodoPago ? '<div style="font-size:11px;color:#6B7BA8;margin-top:8px">Método: ' + metodoPago + '</div>' : '')
-    ) +
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Pago recibido con éxito! ✅</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, muchas gracias por tu confianza. Confirmamos que hemos recibido tu pago:</p>' +
+    // Card principal de pago
+    '<div style="background:linear-gradient(135deg,' + BRAND.color_primario + ',' + BRAND.color_degradado2 + ');border-radius:14px;padding:24px;margin-bottom:16px;text-align:center">' +
+    '<div style="font-size:11px;color:#6B7BA8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Monto recibido</div>' +
+    '<div style="font-size:36px;font-weight:800;color:#059669;font-family:Exo 2,sans-serif">S/ ' + parseFloat(monto||0).toFixed(2) + '</div>' +
+    '<div style="margin-top:12px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">' +
+    emailInfoBox('Servicio', tratamiento||'') +
+    (metodoPago ? emailInfoBox('Método', metodoPago) : '') +
+    '</div></div>' +
     saldoHtml +
-    '<p style="color:#94A3B8;font-size:11px;margin-top:16px;text-align:center">Comprobante interno de ' + BRAND.nombre_empresa + '.</p>'
+    // Agradecimiento
+    '<p style="color:#475569;font-size:13px;margin-top:20px;text-align:center">Agradecemos tu preferencia. Tu bienestar es nuestra prioridad. 💆‍♀️</p>' +
+    '<div style="text-align:center;margin-top:12px"><a href="https://wa.me/51960618468" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:13px">💬 ¿Consultas? Escríbenos</a></div>' +
+    // Términos y condiciones
+    '<div style="margin-top:24px;padding:14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">' +
+    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Términos y condiciones</div>' +
+    '<div style="font-size:8px;color:#94A3B8;line-height:1.5">' +
+    '• Algunas promociones aplican únicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de débito o crédito.<br>' +
+    '• No se realizan devoluciones post pago. En caso de requerir cambio, se emitirá un cupón por servicios del mismo monto o mayor. No aplica para productos.<br>' +
+    '• Las cotizaciones tienen validez de 7 días calendario. Posterior a ello, los precios están sujetos a cambios sin previo aviso.<br>' +
+    '• Este comprobante es un documento interno de ' + BRAND.nombre_empresa + ' y no constituye boleta ni factura fiscal.' +
+    '</div></div>'
   )
 }
 
