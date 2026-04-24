@@ -238,9 +238,6 @@ http.createServer(function(req, res) {
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   if (p === '/agents') { serve(path.join(PUB, 'agents.html'), res); return }
-  var f = path.join(PUB, p.slice(1))
-  if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
-  serve(path.join(PUB, 'login.html'), res)
   // ===== AGENTS THINK-LOOP API =====
   if (p === '/api/agents/tick' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -259,6 +256,9 @@ http.createServer(function(req, res) {
     res.end(); return
   }
   // ===== FIN AGENTS =====
+  var f = path.join(PUB, p.slice(1))
+  if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
+  serve(path.join(PUB, 'login.html'), res)
 }).listen(PORT, '0.0.0.0', function() {
   console.log('AscendaOS http://0.0.0.0:' + PORT)
   console.log('Webhook: https://ascenda-os-production.up.railway.app/webhook')
