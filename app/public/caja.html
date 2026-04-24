@@ -2167,12 +2167,15 @@ function grabarCotizacion() {
         body: JSON.stringify({ to:_pacEmail, template:'confirmacion_pago', nombre:_pacNombre, tratamiento:_tratList, monto:_totalPagado, saldo_actual:_saldoRest>0.01?_saldoRest:0, metodo_pago:_metodo })
       }).then(function(r){return r.json()}).then(function(res){
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
-      }).catch(function(){});
+      }).catch(function(e){toast('⚠ Email no enviado: '+e.message,'warn');});
     }
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
+    // Cerrar modal de venta
+    cerrarOv('ov-venta');
     // Recargar con delay para que Supabase refleje el INSERT
-    setTimeout(function() { cargarCaja(); }, 800);
+    setTimeout(function() { cargarCaja(); }, 1000);
+    setTimeout(function() { cargarCaja(); }, 3000); // segundo intento por si el primero falla
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
