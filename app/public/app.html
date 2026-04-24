@@ -809,7 +809,9 @@ function startClock() {
    S3: TURNO
 --------------------------------------------------- */
 function verificarTurnoHoy() {
-  var hoy = new Date().toISOString().slice(0,10);
+  // Usar fecha Lima (UTC-5) para evitar desfase nocturno
+  var limaDate = new Date(Date.now() + (-5 * 60) * 60000);
+  var hoy = limaDate.toISOString().slice(0,10);
   var idAsesor = AOS.ctx ? AOS.ctx.idAsesor : '';
   var nombre = AOS.ctx ? (AOS.ctx.nombre || '').toUpperCase() : '';
   // Consultar si ya registró INICIO_TURNO hoy (asesor=nombre OR session_id=codigo)
