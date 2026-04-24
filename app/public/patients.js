@@ -34,11 +34,49 @@ function ptEditarDatos(){if(!PT.sel)return;var p=PT.sel;el('ep-nom').value=p.nom
 function ptGuardarDatos(){if(!PT.sel)return;var upd={"Nombres":el('ep-nom').value.trim(),"Apellidos":el('ep-ape').value.trim(),"N\u00b0 documento":el('ep-dni').value.trim(),"Email":el('ep-correo').value.trim(),"Sexo":el('ep-sexo').value,"Fecha de nacimiento":el('ep-nac').value,estado_civil:el('ep-ecivil').value,"Ocupaci\u00f3n":el('ep-ocup').value,pais:el('ep-pais').value,departamento:el('ep-depto').value,ciudad:el('ep-ciudad').value,distrito:el('ep-dist').value,"Direcci\u00f3n":el('ep-dir').value.trim(),contacto_emergencia:el('ep-emerg').value.trim()};var tel=PT.sel.telefono;_rest('aos_pacientes?numero_limpio=eq.'+tel,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);el('pt-m-edit').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Datos actualizados','','');ptSel(tel);}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});}
 
 // ===== NOTAS =====
-function renderNotas(notas){var list=el('pt-nl');if(!notas||!notas.length){list.innerHTML='<div class="ld">Sin notas</div>';return;}var tm={'RECEPCION':'nc-t-rec','INFORMATIVA':'nc-t-inf','ENFERMERIA':'nc-t-enf','DOCTORA':'nc-t-doc'};list.innerHTML=notas.map(function(n){var cls=tm[(n.tipo_nota||'').toUpperCase()]||'nc-t-inf';var txt=n.contenido||'';if(n.evolucion)txt+='\n\u25B6 Evoluci\u00f3n: '+n.evolucion;if(n.resultado_estudios)txt+='\n\u25B6 Estudios: '+n.resultado_estudios;if(n.diagnostico)txt+='\n\u25B6 Dx: '+n.diagnostico;if(n.pronostico)txt+='\n\u25B6 Pron\u00f3stico: '+n.pronostico;if(n.plan_trabajo)txt+='\n\u25B6 Plan: '+n.plan_trabajo;if(n.triaje)txt+='\n\u25B6 Triaje: '+n.triaje;if(n.nota_adicional)txt+='\n\u25B6 Adicional: '+n.nota_adicional;return '<div class="nc"><div class="nc-h"><span><span class="nc-tipo '+cls+'">'+h(n.tipo_nota||'')+'</span><span class="nc-a">'+h(n.autor||'')+(n.sede?' \u00b7 '+h(n.sede):'')+'</span></span><span class="nc-d">'+h((n.created_at||'').substring(0,16).replace('T',' '))+'</span></div><div class="nc-txt">'+h(txt)+'</div></div>';}).join('');}
-function ptAbrirNota(){if(!PT.sel)return;el('nt-contenido').value='';el('nt-tipo').value='RECEPCION';['nt-evolucion','nt-diagnostico','nt-pronostico','nt-plan','nt-resultados','nt-adicional','nt-talla','nt-peso','nt-pa','nt-fc','nt-motivo','nt-evol-enf','nt-plan-enf'].forEach(function(id){var e=el(id);if(e)e.value='';});el('nt-imc').value='';el('nt-imc-pill').innerHTML='';ptTipoNota();el('pt-m-nota').classList.add('open');}
+function renderNotas(notas){var list=el('pt-nl');if(!notas||!notas.length){list.innerHTML='<div class="ld">Sin notas</div>';return;}var tm={'RECEPCION':'nc-t-rec','INFORMATIVA':'nc-t-inf','ENFERMERIA':'nc-t-enf','DOCTORA':'nc-t-doc'};list.innerHTML=notas.map(function(n){var cls=tm[(n.tipo_nota||'').toUpperCase()]||'nc-t-inf';var txt=n.contenido||'';if(n.evolucion)txt+='\n\u25B6 Evoluci\u00f3n: '+n.evolucion;if(n.resultado_estudios)txt+='\n\u25B6 Estudios: '+n.resultado_estudios;if(n.diagnostico)txt+='\n\u25B6 Dx: '+n.diagnostico;if(n.pronostico)txt+='\n\u25B6 Pron\u00f3stico: '+n.pronostico;if(n.plan_trabajo)txt+='\n\u25B6 Plan: '+n.plan_trabajo;if(n.triaje)txt+='\n\u25B6 Triaje: '+n.triaje;if(n.nota_adicional)txt+='\n\u25B6 Adicional: '+n.nota_adicional;return '<div class="nc"><div class="nc-h"><span><span class="nc-tipo '+cls+'">'+h(n.tipo_nota||'')+'</span><span class="nc-a">'+h(n.autor||'')+(n.sede?' \u00b7 '+h(n.sede):'')+'</span></span><span style="display:flex;align-items:center;gap:6px;"><span class="nc-d">'+h((n.created_at||'').substring(0,16).replace('T',' '))+'</span><span onclick="ptEditarNota(\''+h(n.id)+'\',\''+h(n.tipo_nota||'')+'\',event)" style="cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px;background:#EBF2FF;color:#0A4FBF;" title="Editar nota">\u270f</span></span></div><div class="nc-txt" id="nc-txt-'+h(n.id)+'">'+h(txt)+'</div></div>';}).join('');}
+function ptAbrirNota(){if(!PT.sel)return;_editNotaId=null;el('nt-contenido').value='';el('nt-tipo').value='RECEPCION';['nt-evolucion','nt-diagnostico','nt-pronostico','nt-plan','nt-resultados','nt-adicional','nt-talla','nt-peso','nt-pa','nt-fc','nt-motivo','nt-evol-enf','nt-plan-enf'].forEach(function(id){var e=el(id);if(e)e.value='';});el('nt-imc').value='';el('nt-imc-pill').innerHTML='';ptTipoNota();el('pt-m-nota').classList.add('open');}
 function ptCloseNota(){el('pt-m-nota').classList.remove('open');}
 function ptTipoNota(){var t=el('nt-tipo').value;el('nt-clinico').style.display=t==='DOCTORA'?'block':'none';el('nt-enf').style.display=t==='ENFERMERIA'?'block':'none';}
-function ptGuardarNota(){if(!PT.sel)return;var tipo=el('nt-tipo').value;var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:localDate(),hora:new Date().toTimeString().slice(0,8)};if(tipo==='DOCTORA'){row.evolucion=el('nt-evolucion').value.trim();row.diagnostico=el('nt-diagnostico').value.trim();row.pronostico=el('nt-pronostico').value.trim();row.plan_trabajo=el('nt-plan').value.trim();row.resultado_estudios=el('nt-resultados').value.trim();row.nota_adicional=el('nt-adicional').value.trim();}else if(tipo==='ENFERMERIA'){row.triaje='Talla:'+el('nt-talla').value+' Peso:'+el('nt-peso').value+' IMC:'+el('nt-imc').value+' P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value+' Motivo:'+el('nt-motivo').value;row.signos_vitales='P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value;row.evolucion=el('nt-evol-enf').value.trim();row.plan_trabajo=el('nt-plan-enf').value.trim();}_rest('aos_notas_pacientes',{method:'POST',body:JSON.stringify(row)}).then(function(r){if(!r.ok)throw new Error('Error');ptCloseNota();if(window.AOS_showToast)AOS_showToast('Nota guardada','','');ptSel(PT.sel.telefono);}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});}
+function ptGuardarNota(){if(!PT.sel)return;var tipo=el('nt-tipo').value;var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};var row={numero:PT.sel.telefono,tipo_nota:tipo,texto:el('nt-contenido').value.trim(),usuario:(ctx.asesor||'').toUpperCase(),rol:ctx.puesto||'',rol_autor:ctx.puesto||'',sede:el('nt-sede').value,fecha:localDate(),hora:new Date().toTimeString().slice(0,8)};if(tipo==='DOCTORA'){row.evolucion=el('nt-evolucion').value.trim();row.diagnostico=el('nt-diagnostico').value.trim();row.pronostico=el('nt-pronostico').value.trim();row.plan_trabajo=el('nt-plan').value.trim();row.resultado_estudios=el('nt-resultados').value.trim();row.nota_adicional=el('nt-adicional').value.trim();}else if(tipo==='ENFERMERIA'){row.triaje='Talla:'+el('nt-talla').value+' Peso:'+el('nt-peso').value+' IMC:'+el('nt-imc').value+' P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value+' Motivo:'+el('nt-motivo').value;row.signos_vitales='P/A:'+el('nt-pa').value+' FC:'+el('nt-fc').value;row.evolucion=el('nt-evol-enf').value.trim();row.plan_trabajo=el('nt-plan-enf').value.trim();}(_editNotaId ? _rest('aos_notas_pacientes?id=eq.'+_editNotaId,{method:'PATCH',body:JSON.stringify(row)}) : _rest('aos_notas_pacientes',{method:'POST',body:JSON.stringify(row)})).then(function(r){if(!r.ok)throw new Error('Error');ptCloseNota();_editNotaId=null;if(window.AOS_showToast)AOS_showToast('Nota guardada','','');ptSel(PT.sel.telefono);}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});}
+
+// ===== EDITAR NOTA EXISTENTE =====
+var _editNotaId = null;
+function ptEditarNota(notaId, tipo, evt) {
+  if(evt) evt.stopPropagation();
+  var notas = PT.data && PT.data.notas || [];
+  var n = notas.find(function(x) { return x.id === notaId; });
+  if (!n) return;
+  _editNotaId = notaId;
+  el('nt-contenido').value = n.contenido || '';
+  el('nt-tipo').value = n.tipo_nota || 'RECEPCION';
+  ptTipoNota();
+  // Cargar campos según tipo
+  if (tipo === 'DOCTORA') {
+    if(el('nt-evolucion')) el('nt-evolucion').value = n.evolucion || '';
+    if(el('nt-diagnostico')) el('nt-diagnostico').value = n.diagnostico || '';
+    if(el('nt-pronostico')) el('nt-pronostico').value = n.pronostico || '';
+    if(el('nt-plan')) el('nt-plan').value = n.plan_trabajo || '';
+    if(el('nt-resultados')) el('nt-resultados').value = n.resultado_estudios || '';
+    if(el('nt-adicional')) el('nt-adicional').value = n.nota_adicional || '';
+  } else if (tipo === 'ENFERMERIA') {
+    // Parsear triaje
+    var triaje = n.triaje || '';
+    var parseTr = function(k) { var m = triaje.match(new RegExp(k + ':([^ ]*)')); return m ? m[1] : ''; };
+    if(el('nt-talla')) el('nt-talla').value = parseTr('Talla');
+    if(el('nt-peso')) el('nt-peso').value = parseTr('Peso');
+    if(el('nt-imc')) el('nt-imc').value = parseTr('IMC');
+    if(el('nt-pa')) el('nt-pa').value = parseTr('P/A');
+    if(el('nt-fc')) el('nt-fc').value = parseTr('FC');
+    if(el('nt-motivo')) el('nt-motivo').value = parseTr('Motivo');
+    if(el('nt-evol-enf')) el('nt-evol-enf').value = n.evolucion || '';
+    if(el('nt-plan-enf')) el('nt-plan-enf').value = n.plan_trabajo || '';
+  }
+  // Cambiar título del modal
+  var tit = document.querySelector('#pt-m-nota .mtit');
+  if(tit) tit.textContent = '\u270f Editar Nota';
+  el('pt-m-nota').classList.add('open');
+}
 function ptAbrirDoc(){if(!PT.sel)return;el('doc-url').value='';el('doc-nombre').value='';el('doc-trat').value='';el('doc-tipo').value='CONSENTIMIENTO';el('pt-m-doc').classList.add('open');}
 function ptGuardarDoc(){if(!PT.sel)return;var url=el('doc-url').value.trim();if(!url){alert('Ingresa la URL');return;}var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};_rest('aos_documentos_pacientes',{method:'POST',body:JSON.stringify({numero:PT.sel.telefono,tipo:el('doc-tipo').value,nombre_archivo:el('doc-nombre').value.trim()||url.split('/').pop(),url_drive:url,usuario:(ctx.asesor||'').toUpperCase(),fecha:localDate()})}).then(function(r){if(!r.ok)throw new Error('Error');el('pt-m-doc').classList.remove('open');if(window.AOS_showToast)AOS_showToast('Documento guardado','','');ptSel(PT.sel.telefono);}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});}
 function ptNuevoPac(){['np-nom','np-ape','np-tel','np-dni','np-correo','np-fuente'].forEach(function(id){el(id).value='';});el('np-sexo').value='';el('np-sede').value='SAN ISIDRO';el('pt-m-nuevo').classList.add('open');}
