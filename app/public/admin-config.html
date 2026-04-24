@@ -126,16 +126,106 @@
       </div>
     </div>
     <div id="emp-facturacion" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="crd">
-          <div class="sec-t">🏢 Razones Sociales / RUCs</div>
-          <div id="cfg-rucs"></div>
-          <button class="mbtn mbtn-c" style="margin-top:8px;" onclick="addRuc()">+ Agregar RUC</button>
+      <!-- SECCIÓN 1: Razones Sociales / Entidades Fiscales -->
+      <div class="crd" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="sec-t" style="margin:0;">🏢 Entidades Fiscales (RUC / RH)</div>
+            <div style="font-size:10px;color:#9AAAC8;">RUC 10, RUC 20, Recibos por Honorarios — con régimen tributario</div>
+          </div>
+          <button class="mbtn mbtn-p" style="font-size:11px;" onclick="openAddRuc()">+ Agregar entidad</button>
         </div>
-        <div class="crd">
-          <div class="sec-t">💳 Métodos de Pago</div>
-          <div id="cfg-pagos"></div>
-          <button class="mbtn mbtn-c" style="margin-top:8px;" onclick="addMetodo()">+ Agregar Método</button>
+        <div id="cfg-rucs" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- SECCIÓN 2: Métodos de Pago -->
+      <div class="crd" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="sec-t" style="margin:0;">💳 Métodos de Pago</div>
+            <div style="font-size:10px;color:#9AAAC8;">Vinculados a sedes, comprobantes y entidades fiscales</div>
+          </div>
+          <button class="mbtn mbtn-p" style="font-size:11px;" onclick="openAddMetodo()">+ Agregar método</button>
+        </div>
+        <div id="cfg-pagos" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- SECCIÓN 3: Reglas Fiscales (solo lectura) -->
+      <div class="crd">
+        <div class="sec-t">📊 Reglas Fiscales por Régimen</div>
+        <div style="font-size:10px;color:#9AAAC8;margin-bottom:10px;">Impuestos y deducciones según SUNAT — se aplican automáticamente</div>
+        <div id="cfg-reglas-fiscales"></div>
+      </div>
+
+      <!-- MODAL RUC -->
+      <div id="modal-ruc" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:#fff;border-radius:20px;padding:28px;width:560px;max-width:92vw;box-shadow:0 24px 80px rgba(7,29,74,.25);">
+          <div style="font-size:18px;font-weight:800;color:#071D4A;font-family:'Exo 2',sans-serif;margin-bottom:16px;" id="modal-ruc-title">Agregar entidad fiscal</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <div class="fg-l" style="margin-bottom:6px;">Tipo</div>
+              <select class="mi" id="ruc-tipo" style="padding:10px;font-size:13px;">
+                <option value="RUC10">RUC 10 — Persona Natural</option>
+                <option value="RUC20">RUC 20 — Empresa</option>
+                <option value="RH">RH — Recibo por Honorarios</option>
+              </select>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:6px;">Régimen tributario</div>
+              <select class="mi" id="ruc-regimen" style="padding:10px;font-size:13px;">
+                <option value="NRUS">NRUS (Nuevo RUS)</option>
+                <option value="RER">RER (Régimen Especial)</option>
+                <option value="MYPE">MYPE Tributario</option>
+                <option value="GENERAL">Régimen General</option>
+                <option value="RH">Recibo por Honorarios</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+            <div><div class="fg-l" style="margin-bottom:6px;">Número RUC</div><input class="mi" id="ruc-numero" style="padding:10px;font-size:13px;" placeholder="20XXXXXXXXX" maxlength="11"></div>
+            <div><div class="fg-l" style="margin-bottom:6px;">Razón Social</div><input class="mi" id="ruc-razon" style="padding:10px;font-size:13px;" placeholder="Nombre legal"></div>
+          </div>
+          <div style="margin-top:14px;"><div class="fg-l" style="margin-bottom:6px;">Dirección fiscal</div><input class="mi" id="ruc-direccion" style="padding:10px;font-size:13px;" placeholder="Av. Javier Prado Este 996, San Isidro"></div>
+          <div style="margin-top:14px;"><div class="fg-l" style="margin-bottom:6px;">Representante legal</div><input class="mi" id="ruc-representante" style="padding:10px;font-size:13px;" placeholder="Nombre del representante"></div>
+          <input type="hidden" id="ruc-edit-id" value="">
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="mbtn mbtn-p" style="flex:1;padding:12px;font-size:14px;" onclick="saveRuc()">💾 Guardar</button>
+            <button class="mbtn mbtn-c" style="padding:12px 20px;" onclick="el('modal-ruc').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL MÉTODO DE PAGO -->
+      <div id="modal-metodo" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:#fff;border-radius:20px;padding:28px;width:600px;max-width:92vw;box-shadow:0 24px 80px rgba(7,29,74,.25);">
+          <div style="font-size:18px;font-weight:800;color:#071D4A;font-family:'Exo 2',sans-serif;margin-bottom:16px;" id="modal-metodo-title">Agregar método de pago</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><div class="fg-l" style="margin-bottom:6px;">Nombre del método</div><input class="mi" id="met-nombre" style="padding:10px;font-size:13px;" placeholder="Ej: BCP Empresa"></div>
+            <div><div class="fg-l" style="margin-bottom:6px;">Banco</div><input class="mi" id="met-banco" style="padding:10px;font-size:13px;" placeholder="BCP, BBVA, Interbank..."></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+            <div><div class="fg-l" style="margin-bottom:6px;">N° de cuenta</div><input class="mi" id="met-cuenta" style="padding:10px;font-size:13px;"></div>
+            <div><div class="fg-l" style="margin-bottom:6px;">CCI</div><input class="mi" id="met-cci" style="padding:10px;font-size:13px;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+            <div><div class="fg-l" style="margin-bottom:6px;">Titular</div><input class="mi" id="met-titular" style="padding:10px;font-size:13px;"></div>
+            <div><div class="fg-l" style="margin-bottom:6px;">Tipo de cuenta</div><select class="mi" id="met-tipo" style="padding:10px;font-size:13px;">
+              <option value="corriente">Corriente</option><option value="ahorro">Ahorros</option><option value="digital">Digital</option><option value="qr">QR / Yape / Plin</option><option value="efectivo">Efectivo</option>
+            </select></div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="fg-l" style="margin-bottom:6px;">Sedes donde aplica</div>
+            <div style="display:flex;gap:8px;" id="met-sedes-checks"></div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="fg-l" style="margin-bottom:6px;">Comprobantes vinculados</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;" id="met-comp-checks"></div>
+          </div>
+          <input type="hidden" id="met-edit-id" value="">
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="mbtn mbtn-p" style="flex:1;padding:12px;font-size:14px;" onclick="saveMetodo()">💾 Guardar</button>
+            <button class="mbtn mbtn-c" style="padding:12px 20px;" onclick="el('modal-metodo').style.display='none'">Cancelar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -830,10 +920,88 @@ function saveSede(id){var d={nombre:el('sede-nombre').value,direccion:el('sede-d
 function deleteSede(id){if(!confirm('¿Eliminar esta sede?'))return;fetch(SB+'/rest/v1/aos_sedes_geo?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){showToast('Sede Eliminada','');el('m-sede').classList.remove('open');loadSedes();});}
 
 // ═══ FACTURACIÓN ═══
-function loadFacturacion(){sbGet('/rest/v1/aos_razones_sociales?select=*&order=created_at').then(function(rows){if(!rows||!rows.length){el('cfg-rucs').innerHTML='<div style="font-size:10px;color:#9AAAC8;">Sin razones sociales</div>';return;}el('cfg-rucs').innerHTML=rows.map(function(r){return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #F8FAFF;"><div style="flex:1;"><div style="font-weight:700;font-size:12px;">'+h(r.ruc)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(r.razon_social)+'</div></div><button class="mbtn mbtn-o" style="font-size:8px;padding:3px 8px;" onclick="deleteRuc(\''+r.id+'\')">✕</button></div>';}).join('');});sbGet('/rest/v1/aos_metodos_pago?select=*&order=nombre').then(function(rows){if(!rows||!rows.length){el('cfg-pagos').innerHTML='<div style="font-size:10px;color:#9AAAC8;">Sin métodos</div>';return;}el('cfg-pagos').innerHTML=rows.map(function(r){return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #F8FAFF;"><div style="font-size:11px;font-weight:600;flex:1;">'+h(r.nombre)+'</div><span style="font-size:8px;padding:2px 8px;border-radius:6px;background:'+(r.activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-weight:700;">'+(r.activo?'Activo':'Inactivo')+'</span></div>';}).join('');});}
-function addRuc(){var ruc=prompt('Número de RUC:');if(!ruc)return;var razon=prompt('Razón social:');if(!razon)return;fetch(SB+'/rest/v1/aos_razones_sociales',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({ruc:ruc,razon_social:razon})}).then(function(){showToast('RUC Agregado','');loadFacturacion();});}
-function deleteRuc(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_razones_sociales?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){showToast('Eliminado','');loadFacturacion();});}
-function addMetodo(){var n=prompt('Método de pago:');if(!n)return;fetch(SB+'/rest/v1/aos_metodos_pago',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,activo:true})}).then(function(){showToast('Método Agregado','');loadFacturacion();});}
+function loadFacturacion(){
+  // Cargar RUCs
+  sbGet('/rest/v1/aos_razones_sociales?select=*&order=created_at').then(function(rows){
+    if(!rows||!rows.length){el('cfg-rucs').innerHTML='<div style="padding:16px;text-align:center;color:#CBD5E1;font-size:11px;">Sin entidades fiscales. Click + Agregar entidad.</div>';return;}
+    el('cfg-rucs').innerHTML='<table class="vt"><thead><tr><th>Tipo</th><th>RUC</th><th>Razón Social</th><th>Régimen</th><th>Dirección</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+      var tc={RUC10:{bg:'#DBEAFE',c:'#1E40AF',t:'RUC 10'},RUC20:{bg:'#D1FAE5',c:'#065F46',t:'RUC 20'},RH:{bg:'#FEF3C7',c:'#92400E',t:'R.H.'}};
+      var tp=tc[r.tipo_ruc]||tc.RUC20;
+      return '<tr onclick="editRuc(\''+r.id+'\');" style="cursor:pointer;"><td><span style="padding:3px 8px;border-radius:6px;background:'+tp.bg+';color:'+tp.c+';font-size:9px;font-weight:700;">'+tp.t+'</span></td><td style="font-weight:700;">'+h(r.ruc)+'</td><td>'+h(r.razon_social)+'</td><td style="font-size:10px;color:#6B7BA8;">'+(r.regimen||'—')+'</td><td style="font-size:10px;color:#6B7BA8;">'+(r.direccion_fiscal?h(r.direccion_fiscal).substring(0,30):'—')+'</td><td><button class="mbtn mbtn-c" style="font-size:9px;padding:3px 8px;" onclick="event.stopPropagation();deleteRuc(\''+r.id+'\')">🗑️</button></td></tr>';
+    }).join('')+'</tbody></table>';
+  });
+  // Cargar métodos de pago
+  sbGet('/rest/v1/aos_metodos_pago?select=*&order=nombre').then(function(rows){
+    if(!rows||!rows.length){el('cfg-pagos').innerHTML='<div style="padding:16px;text-align:center;color:#CBD5E1;font-size:11px;">Sin métodos de pago</div>';return;}
+    el('cfg-pagos').innerHTML='<table class="vt"><thead><tr><th>Método</th><th>Banco</th><th>Tipo</th><th>Sedes</th><th>Comprobantes</th><th>Estado</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+      var sedes=(r.sedes_aplica||[]).join(', ');
+      var comps=(r.comprobantes_vinculados||[]).join(', ');
+      return '<tr onclick="editMetodo(\''+r.id+'\');" style="cursor:pointer;"><td style="font-weight:600;">'+h(r.nombre)+'</td><td style="font-size:10px;">'+h(r.banco||'—')+'</td><td style="font-size:10px;color:#6B7BA8;">'+h(r.tipo_cuenta||'—')+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(sedes||'Todas')+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(comps||'—')+'</td><td><span style="font-size:9px;padding:2px 8px;border-radius:6px;background:'+(r.activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-weight:700;">'+(r.activo?'Activo':'Inactivo')+'</span></td><td><button class="mbtn mbtn-c" style="font-size:9px;padding:3px 8px;" onclick="event.stopPropagation();deleteMetodo(\''+r.id+'\')">🗑️</button></td></tr>';
+    }).join('')+'</tbody></table>';
+  });
+  // Cargar reglas fiscales
+  sbGet('/rest/v1/aos_reglas_fiscales?select=*&order=tipo_ruc,regimen').then(function(rows){
+    if(!rows||!rows.length){el('cfg-reglas-fiscales').innerHTML='Sin reglas';return;}
+    var byRegimen={};rows.forEach(function(r){var k=r.tipo_ruc+' · '+r.regimen;if(!byRegimen[k])byRegimen[k]=[];byRegimen[k].push(r);});
+    el('cfg-reglas-fiscales').innerHTML=Object.entries(byRegimen).map(function(e){return '<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px;">'+h(e[0])+'</div>'+e[1].map(function(r){return '<div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:10px;border-bottom:1px solid #FAFBFC;"><span style="color:#475569;">'+h(r.concepto)+'</span><span style="font-weight:600;color:#071D4A;">'+(r.porcentaje>0?r.porcentaje+'%':'Cuota fija')+(r.tope_mensual?' · Tope S/'+r.tope_mensual:'')+'</span></div>';}).join('')+'</div>';}).join('');
+  });
+}
+
+function openAddRuc(){
+  el('modal-ruc-title').textContent='Agregar entidad fiscal';
+  el('ruc-tipo').value='RUC20';el('ruc-regimen').value='NRUS';el('ruc-numero').value='';el('ruc-razon').value='';el('ruc-direccion').value='';el('ruc-representante').value='';el('ruc-edit-id').value='';
+  el('modal-ruc').style.display='flex';
+}
+function editRuc(id){
+  sbGet('/rest/v1/aos_razones_sociales?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];
+    el('modal-ruc-title').textContent='Editar entidad fiscal';
+    el('ruc-tipo').value=r.tipo_ruc||'RUC20';el('ruc-regimen').value=r.regimen||'NRUS';el('ruc-numero').value=r.ruc||'';el('ruc-razon').value=r.razon_social||'';el('ruc-direccion').value=r.direccion_fiscal||'';el('ruc-representante').value=r.representante||'';el('ruc-edit-id').value=r.id;
+    el('modal-ruc').style.display='flex';
+  });
+}
+function saveRuc(){
+  var data={ruc:el('ruc-numero').value.trim(),razon_social:el('ruc-razon').value.trim(),tipo_ruc:el('ruc-tipo').value,regimen:el('ruc-regimen').value,direccion_fiscal:el('ruc-direccion').value.trim(),representante:el('ruc-representante').value.trim()};
+  if(!data.ruc||!data.razon_social){alert('RUC y razón social son obligatorios');return;}
+  var editId=el('ruc-edit-id').value;
+  if(editId){sbPatch('/rest/v1/aos_razones_sociales?id=eq.'+editId,data).then(function(){el('modal-ruc').style.display='none';loadFacturacion();showToast('Entidad actualizada','');});}
+  else{fetch(SB+'/rest/v1/aos_razones_sociales',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-ruc').style.display='none';loadFacturacion();showToast('Entidad creada','');});}
+}
+function deleteRuc(id){if(!confirm('¿Eliminar esta entidad fiscal?'))return;fetch(SB+'/rest/v1/aos_razones_sociales?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadFacturacion();showToast('Eliminado','');});}
+
+// Métodos de pago
+var SEDES_LIST=['SAN ISIDRO','PUEBLO LIBRE'];
+var COMPROBANTES_LIST=['BOLETA FISICA','BOLETA VIRTUAL','R.H.','FACTURA','OTROS'];
+
+function renderMetodoChecks(sedes,comps){
+  el('met-sedes-checks').innerHTML=SEDES_LIST.map(function(s){var ck=sedes&&sedes.indexOf(s)>=0?'checked':'';return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#F8FAFF;"><input type="checkbox" class="met-sede-ck" value="'+s+'" '+ck+'> '+s+'</label>';}).join('');
+  el('met-comp-checks').innerHTML=COMPROBANTES_LIST.map(function(c){var ck=comps&&comps.indexOf(c)>=0?'checked':'';return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#F8FAFF;"><input type="checkbox" class="met-comp-ck" value="'+c+'" '+ck+'> '+c+'</label>';}).join('');
+}
+function openAddMetodo(){
+  el('modal-metodo-title').textContent='Agregar método de pago';
+  el('met-nombre').value='';el('met-banco').value='';el('met-cuenta').value='';el('met-cci').value='';el('met-titular').value='';el('met-tipo').value='corriente';el('met-edit-id').value='';
+  renderMetodoChecks(SEDES_LIST,[]);
+  el('modal-metodo').style.display='flex';
+}
+function editMetodo(id){
+  sbGet('/rest/v1/aos_metodos_pago?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];
+    el('modal-metodo-title').textContent='Editar método de pago';
+    el('met-nombre').value=r.nombre||'';el('met-banco').value=r.banco||'';el('met-cuenta').value=r.numero_cuenta||'';el('met-cci').value=r.cci||'';el('met-titular').value=r.titular||'';el('met-tipo').value=r.tipo_cuenta||'corriente';el('met-edit-id').value=r.id;
+    renderMetodoChecks(r.sedes_aplica||[],r.comprobantes_vinculados||[]);
+    el('modal-metodo').style.display='flex';
+  });
+}
+function saveMetodo(){
+  var sedes=[];document.querySelectorAll('.met-sede-ck:checked').forEach(function(c){sedes.push(c.value);});
+  var comps=[];document.querySelectorAll('.met-comp-ck:checked').forEach(function(c){comps.push(c.value);});
+  var data={nombre:el('met-nombre').value.trim(),banco:el('met-banco').value.trim(),numero_cuenta:el('met-cuenta').value.trim(),cci:el('met-cci').value.trim(),titular:el('met-titular').value.trim(),tipo_cuenta:el('met-tipo').value,sedes_aplica:sedes,comprobantes_vinculados:comps,activo:true};
+  if(!data.nombre){alert('Nombre del método obligatorio');return;}
+  var editId=el('met-edit-id').value;
+  if(editId){sbPatch('/rest/v1/aos_metodos_pago?id=eq.'+editId,data).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método actualizado','');});}
+  else{fetch(SB+'/rest/v1/aos_metodos_pago',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método agregado','');});}
+}
+function deleteMetodo(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_metodos_pago?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadFacturacion();});}
+
+
 
 // ═══ INTEGRACIONES ═══
 var INTEG_DATA=[];
