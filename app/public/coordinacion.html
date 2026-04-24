@@ -214,8 +214,11 @@ function A(d){if(!d)return'';var m=Math.floor((Date.now()-new Date(d).getTime())
 function I(n){return(n||'?').split(' ').map(function(w){return w[0];}).join('').substring(0,2);}
 function C(n){return CL[n]||'#6B7BA8';}
 function R(n){var r=RL[n];return r==='ENFERMERIA'?'Enfermería':r==='DOCTORA'?'Doctora':r==='ASESOR'?'Asesora':r==='ADMINISTRADOR'?'Admin':'';}
-
+var AVT={};
 function init(){
+  q('aos_usuarios','select=nombre,avatar_url&activo=eq.true',function(u){
+    (u||[]).forEach(function(x){if(x.avatar_url)AVT[x.nombre]=x.avatar_url;});
+  });
   q('aos_rrhh','select=nombre,puesto&estado=eq.ACTIVO&order=puesto,nombre',function(s){
     D.st=s||[];s.forEach(function(x){RL[x.nombre]=x.puesto;});
     var o=s.map(function(x){return'<option value="'+E(x.nombre)+'">'+E(x.nombre)+'</option>';}).join('');
@@ -368,7 +371,7 @@ function lPanelAsesor(ch,el){
     if(!m)m={};
     var h='';
     // CARD 1: Info asesor
-    h+='<div class="ZMcard" style="text-align:center"><div class="ZCa" style="background:'+C(ch.nombre)+';width:56px;height:56px;font-size:20px;margin:0 auto 8px">'+I(ch.nombre)+'</div><div style="font-weight:800;font-size:16px;color:#0f172a">'+E(ch.nombre)+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">'+R(ch.nombre)+'</div>';
+    h+='<div class="ZMcard" style="text-align:center">'+(AVT[ch.nombre]?'<img src="'+E(AVT[ch.nombre])+'" style="width:100%;height:140px;object-fit:cover;border-radius:12px;margin-bottom:10px">':'<div class="ZCa" style="background:'+C(ch.nombre)+';width:80px;height:100px;border-radius:12px;font-size:24px;margin:0 auto 10px">'+I(ch.nombre)+'</div>')+'<div style="font-weight:800;font-size:16px;color:#0f172a">'+E(ch.nombre)+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">'+R(ch.nombre)+'</div>';
     h+='<div class="ZMgrid" style="margin-top:10px"><div class="ZMstat"><div class="ZMstat-n">'+m.mensajes_hoy+'</div><div class="ZMstat-l">Msgs hoy</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#d97706">'+m.tareas_pendientes+'</div><div class="ZMstat-l">Pendientes</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#16a34a">'+m.tareas_completadas+'</div><div class="ZMstat-l">Completadas</div></div><div class="ZMstat"><div class="ZMstat-n" style="color:#dc2626">'+m.tareas_vencidas+'</div><div class="ZMstat-l">Vencidas</div></div></div></div>';
     // CARD 2: Tareas colapsables
     h+='<div class="ZMcard"><div class="ZMcard-t">Tareas</div><div id="zTList"></div></div>';
@@ -529,29 +532,39 @@ function rKanban(){
   if(!el)return;
   var r=D.ta||{pendientes:[],en_progreso:[],completadas:[]};
   
-  function col(titulo,icon,color,items,estado){
-    var h='<div class="Kcol"><div class="Kcol-h" style="border-color:'+color+'"><span>'+icon+' '+titulo+'</span><span class="Kcol-c" style="background:'+color+'">'+items.length+'</span></div>';
-    if(!items.length) h+='<div style="padding:20px;text-align:center;font-size:10px;color:#94a3b8">Sin tareas</div>';
+  function seccion(titulo,icon,color,bgColor,items){
+    var cnt=items.length;
+    var h='<div style="margin-bottom:6px">';
+    h+='<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.tArr\').textContent=this.nextElementSibling.style.display===\'none\'?\'▶\':\'▼\'" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:'+bgColor+';border-radius:10px;cursor:pointer;border-left:3px solid '+color+'">';
+    h+='<span class="tArr" style="font-size:8px;color:'+color+'">▼</span>';
+    h+='<span style="font-size:12px">'+icon+'</span>';
+    h+='<span style="font-size:11px;font-weight:800;color:#0f172a;flex:1">'+titulo+'</span>';
+    h+='<span style="font-size:9px;font-weight:800;color:#fff;background:'+color+';border-radius:20px;padding:2px 8px;min-width:18px;text-align:center">'+cnt+'</span></div>';
+    h+='<div style="padding:4px 0">';
+    if(!cnt) h+='<div style="padding:16px;text-align:center;font-size:10px;color:#94a3b8">Sin tareas</div>';
     items.forEach(function(t){
       var pr=t.prioridad==='URGENTE'?'🔴':t.prioridad==='ALTA'?'🟠':t.prioridad==='MEDIA'?'🟡':'⚪';
-      var venc=t.vencida?'<span style="font-size:8px;color:#dc2626;font-weight:700;margin-left:4px">VENCIDA</span>':'';
+      var venc=t.vencida?' <span style="font-size:8px;color:#dc2626;font-weight:700">VENCIDA</span>':'';
       var items_done=0,items_total=0;
       if(t.items&&t.items.length){items_total=t.items.length;t.items.forEach(function(it){if(it.done)items_done++;});}
-      var prog=items_total?'<div style="display:flex;align-items:center;gap:4px;margin-top:4px"><div style="flex:1;height:3px;background:#EEF0F8;border-radius:2px;overflow:hidden"><div style="height:100%;background:'+color+';width:'+(items_done/items_total*100)+'%;border-radius:2px"></div></div><span style="font-size:8px;color:#94a3b8">'+items_done+'/'+items_total+'</span></div>':'';
-      h+='<div class="Kcard" onclick="verTarea(\''+E(t.id)+'\')">';
-      h+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:700;color:#0f172a">'+E(t.titulo)+'</span>'+pr+'</div>';
-      h+='<div style="display:flex;align-items:center;gap:4px;margin-top:6px"><div class="Kav" style="background:'+C(t.asignado_a||'')+'">'+I(t.asignado_a||'?')+'</div><span style="font-size:9px;color:#64748b">'+E(t.asignado_a||'Sin asignar')+'</span>'+venc+'</div>';
-      if(t.fecha_limite)h+='<div style="font-size:9px;color:#94a3b8;margin-top:4px">📅 '+E(t.fecha_limite.substring(0,10))+'</div>';
-      h+=prog;
-      h+='</div>';
+      var progPct=items_total?Math.round(items_done/items_total*100):0;
+      var progBar=items_total?'<div style="display:flex;align-items:center;gap:4px"><div style="flex:1;height:3px;background:#EEF0F8;border-radius:2px;overflow:hidden"><div style="height:100%;background:'+color+';width:'+progPct+'%"></div></div><span style="font-size:8px;color:#94a3b8">'+progPct+'%</span></div>':'';
+      h+='<div onclick="verTarea(\''+E(t.id)+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f0f4fc;cursor:pointer;transition:background .1s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">';
+      h+='<div style="width:28px;height:28px;border-radius:50%;background:'+C(t.asignado_a||'')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0">'+I(t.asignado_a||'?')+'</div>';
+      h+='<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+E(t.titulo)+'</span>'+pr+venc+'</div>';
+      h+='<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="font-size:9px;color:#64748b">'+E(t.asignado_a||'Sin asignar')+'</span>';
+      if(t.fecha_limite)h+='<span style="font-size:8px;color:#94a3b8">📅 '+E(t.fecha_limite.substring(0,10))+'</span>';
+      h+='</div>'+progBar+'</div></div>';
     });
-    h+='</div>';
+    h+='</div></div>';
     return h;
   }
   
-  el.innerHTML=col('Pendientes','⬜','#EA580C',r.pendientes||[],'PENDIENTE')+
-    col('En progreso','🔵','#0A4FBF',r.en_progreso||[],'EN_PROGRESO')+
-    col('Completadas','✅','#16A34A',(r.completadas||[]).slice(0,10),'COMPLETADA');
+  el.style.display='block';
+  el.style.flexDirection='column';
+  el.innerHTML=seccion('Pendientes','⬜','#EA580C','rgba(234,88,12,.04)',r.pendientes||[])+
+    seccion('En progreso','🔵','#0A4FBF','rgba(10,79,191,.04)',r.en_progreso||[])+
+    seccion('Completadas','✅','#16A34A','rgba(22,163,74,.04)',(r.completadas||[]).slice(0,10));
 }
 
 function toggleTa(id){
