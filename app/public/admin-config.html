@@ -539,26 +539,49 @@
 
   <!-- ═══ SEGURIDAD ═══ -->
   <div id="cfg-seguridad" style="display:none;">
+    <!-- KPIs de seguridad -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;" id="sec-kpis"></div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="crd">
         <div class="sec-t">🔐 Autenticación</div>
         <div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">Configura cómo los usuarios ingresan al sistema.</div>
         <div class="fg"><div><div class="fg-l">Verificación 2FA (Email)</div></div><select class="mi" id="c-seg_2fa_habilitado" data-k="seg_2fa_habilitado"><option value="false">Desactivado</option><option value="true">Activado</option></select></div>
-        <div class="fg"><div><div class="fg-l">CAPTCHA en login</div></div><select class="mi" id="c-seg_captcha_habilitado" data-k="seg_captcha_habilitado"><option value="false">Desactivado</option><option value="true">Activado</option></select></div>
+        <div class="fg"><div><div class="fg-l">CAPTCHA en login (Turnstile)</div></div><select class="mi" id="c-seg_captcha_habilitado" data-k="seg_captcha_habilitado"><option value="false">Desactivado</option><option value="true">Activado</option></select></div>
         <div class="fg"><div><div class="fg-l">Geofencing GPS</div></div><select class="mi" id="c-seg_geofencing" data-k="seg_geofencing"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
         <div class="fg"><div><div class="fg-l">Longitud mín. contraseña</div></div><input class="mi" type="number" id="c-seg_password_min_length" data-k="seg_password_min_length" min="4" max="20" value="6"></div>
         <div class="fg"><div><div class="fg-l">Intentos máx. bloqueo</div></div><input class="mi" type="number" id="c-seg_intentos_max" data-k="seg_intentos_max" min="3" max="10" value="5"></div>
         <div class="fg"><div><div class="fg-l">Tiempo bloqueo (min)</div></div><input class="mi" type="number" id="c-seg_bloqueo_min" data-k="seg_bloqueo_min" min="5" max="60" value="15"></div>
+        <div class="fg"><div><div class="fg-l">Duración sesión (horas)</div></div><input class="mi" type="number" id="c-seg_sesion_max_horas" data-k="seg_sesion_max_horas" min="1" max="48" value="12"></div>
         <button class="mbtn mbtn-p" style="margin-top:10px;" onclick="saveConfig()">💾 Guardar</button>
       </div>
       <div class="crd">
         <div class="sec-t">🛡️ Capas de Seguridad</div>
+        <div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Estado en tiempo real del flujo de autenticación.</div>
         <div id="sec-layers"></div>
+        <div style="margin-top:14px;padding:12px;background:#F8FAFF;border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:#071D4A;margin-bottom:6px;">🔄 Flujo de Login</div>
+          <div id="sec-flow" style="display:flex;flex-direction:column;gap:0;"></div>
+        </div>
       </div>
     </div>
+
+    <!-- Alertas activas -->
+    <div id="sec-alerts" style="margin-top:12px;"></div>
+
+    <!-- Log unificado con tabs -->
     <div class="crd" style="margin-top:12px;">
-      <div class="sec-t">📊 Log de Accesos (últimos 20)</div>
-      <div id="cfg-security-log"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="sec-t">📊 Registro de Seguridad</div>
+        <div style="display:flex;gap:4px;">
+          <button class="chip act" id="sec-tab-events" onclick="secTabLog('events')">🔑 Eventos</button>
+          <button class="chip" id="sec-tab-accesos" onclick="secTabLog('accesos')">📍 Accesos GPS</button>
+          <button class="chip" id="sec-tab-audit" onclick="secTabLog('audit')">📝 Auditoría</button>
+        </div>
+      </div>
+      <div id="sec-log-events" style="max-height:400px;overflow-y:auto;"></div>
+      <div id="sec-log-accesos" style="display:none;max-height:400px;overflow-y:auto;"></div>
+      <div id="sec-log-audit" style="display:none;max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -692,7 +715,7 @@ function cfgTab(tab){
   document.querySelectorAll('.cfg-tab').forEach(function(b,i){b.classList.toggle('act',TABS[i]===tab);});
   if(tab==='integraciones')loadIntegraciones();
   if(tab==='equipo'){loadEquipo();}
-  if(tab==='seguridad'){loadSecurityLog();renderSecLayers();}
+  if(tab==='seguridad'){loadSecurityDashboard();}
 }
 var EMP_CHIPS=['datos','sedes','facturacion','redes','diseno'];
 function empChip(chip){
@@ -1249,6 +1272,160 @@ function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_
 function uploadLogo(tipo){el('file-'+(tipo==='logo_con_fondo'?'logo-fondo':'logo-sin')).click();}
 function handleLogoUpload(inp,tipo){var file=inp.files[0];if(!file)return;var ext=file.name.split('.').pop().toLowerCase();var path='logos/'+tipo+'_'+Date.now()+'.'+ext;
   fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file}).then(function(r){if(r.ok){var url=SB+'/storage/v1/object/public/logos/'+path;var pId=tipo==='logo_con_fondo'?'prev-logo-fondo':'prev-logo-sin';var phId=tipo==='logo_con_fondo'?'ph-logo-fondo':'ph-logo-sin';el(pId).src=url;el(pId).style.display='block';el(phId).style.display='none';var clave=tipo+'_url';fetch(SB+'/rest/v1/aos_configuracion?clave=eq.'+clave,{method:'GET',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(ex){if(ex&&ex.length>0){sbPatch('/rest/v1/aos_configuracion?clave=eq.'+clave,{valor:url});}else{fetch(SB+'/rest/v1/aos_configuracion',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({clave:clave,valor:url})});}});showToast('Logo Subido','Imagen actualizada');}else{showToast('Error','No se pudo subir',true);}});}
+
+// ═══ SEGURIDAD — DASHBOARD REAL ═══
+var _secData = {};
+function loadSecurityDashboard(){
+  loadConfig(); // Cargar valores de config en los selects
+  sbGet('/rest/v1/rpc/aos_security_dashboard').then(function(d){
+    if(Array.isArray(d)) d = d[0];
+    if(!d||!d.ok) return;
+    _secData = d;
+    renderSecKPIs(d);
+    renderSecLayers(d.capas);
+    renderSecFlow(d.capas);
+    renderSecAlerts(d);
+    renderSecEvents(d.events||[]);
+    renderSecAccesos(d.accesos||[]);
+  });
+  // Cargar auditoría por separado (tabla diferente)
+  sbGet('/rest/v1/aos_log_auditoria?order=ts.desc.nullsfirst,timestamp_reg.desc.nullsfirst&limit=30').then(function(rows){
+    renderSecAudit(rows||[]);
+  });
+}
+function renderSecKPIs(d){
+  var cards = [
+    {icon:'🔑',label:'Logins hoy',val:d.logins_hoy,sub:'7d: '+d.logins_7d,c:'#059669'},
+    {icon:'❌',label:'Login fallido hoy',val:d.login_failed_hoy,sub:'7d: '+d.login_failed_7d,c:d.login_failed_hoy>0?'#DC2626':'#059669'},
+    {icon:'🔢',label:'2FA fallido hoy',val:d['2fa_failed_hoy'],sub:'7d: '+d['2fa_failed_7d'],c:d['2fa_failed_hoy']>0?'#D97706':'#059669'},
+    {icon:'📍',label:'Geo denegado hoy',val:d.geo_denied_hoy,sub:'7d: '+d.geo_denied_7d,c:d.geo_denied_hoy>0?'#DC2626':'#059669'},
+    {icon:'👥',label:'Usuarios 24h',val:(d.usuarios_activos_24h||[]).length,sub:(d.usuarios_activos_24h||[]).join(', '),c:'#0A4FBF'},
+    {icon:'📋',label:'Total auditoría',val:d.total_auditoria>1000?(d.total_auditoria/1000).toFixed(1)+'k':d.total_auditoria,sub:d.total_sesiones+' sesiones',c:'#6B7BA8'}
+  ];
+  el('sec-kpis').innerHTML = cards.map(function(k){
+    return '<div class="crd" style="padding:12px;text-align:center;position:relative;overflow:hidden;">'+
+      '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+k.c+';"></div>'+
+      '<div style="font-size:18px;margin-bottom:4px;">'+k.icon+'</div>'+
+      '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:20px;color:'+k.c+';">'+k.val+'</div>'+
+      '<div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#6B7BA8;margin-top:2px;">'+k.label+'</div>'+
+      '<div style="font-size:8px;color:#9AAAC8;margin-top:3px;">'+k.sub+'</div>'+
+      '</div>';
+  }).join('');
+}
+function renderSecLayers(c){
+  if(!c){el('sec-layers').innerHTML='';return;}
+  var layers=[
+    {name:'Cloudflare Turnstile (CAPTCHA)',on:c.turnstile==='true',icon:'🤖',detail:c.turnstile_key?'Key: ...'+c.turnstile_key.slice(-6):'Sin key'},
+    {name:'Verificación 2FA por Email',on:c['2fa']==='true',icon:'📧',detail:'Código 6 dígitos, expira 5min'},
+    {name:'Geofencing GPS por Sede',on:c.geofencing==='true',icon:'📍',detail:'Radio por sede configurado'},
+    {name:'Bloqueo por intentos',on:true,icon:'🔒',detail:c.intentos_max+' intentos → bloqueo '+c.bloqueo_min+' min'},
+    {name:'Password mínimo',on:true,icon:'🔑',detail:'Mín. '+c.password_min+' caracteres'},
+    {name:'Sesión con expiración',on:true,icon:'⏱️',detail:'Máx. '+c.sesion_max_h+' horas'}
+  ];
+  el('sec-layers').innerHTML = layers.map(function(l){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:4px;background:'+(l.on?'#F0FDF4':'#FEF2F2')+';border:1px solid '+(l.on?'#BBF7D0':'#FECACA')+';">'+
+      '<span style="font-size:14px;">'+l.icon+'</span>'+
+      '<div style="flex:1;min-width:0;">'+
+      '<div style="font-size:11px;font-weight:600;color:'+(l.on?'#065F46':'#991B1B')+';">'+l.name+'</div>'+
+      '<div style="font-size:9px;color:#6B7BA8;">'+l.detail+'</div>'+
+      '</div>'+
+      '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+(l.on?'#059669':'#DC2626')+';color:#fff;">'+(l.on?'ON':'OFF')+'</span>'+
+      '</div>';
+  }).join('');
+}
+function renderSecFlow(c){
+  if(!c) return;
+  var steps=[
+    {label:'Usuario + Contraseña',desc:'Autenticación básica',always:true},
+    {label:'Turnstile CAPTCHA',desc:'Anti-bot Cloudflare',on:c.turnstile==='true'},
+    {label:'Código 2FA por Email',desc:'Verificación doble',on:c['2fa']==='true'},
+    {label:'Geofencing GPS',desc:'Validación por ubicación',on:c.geofencing==='true'},
+    {label:'Acceso al CRM',desc:'Dashboard según rol',always:true}
+  ];
+  el('sec-flow').innerHTML = steps.map(function(s,i){
+    var active = s.always || s.on;
+    var skip = !s.always && !s.on;
+    return (i>0?'<div style="width:2px;height:12px;background:'+(active?'#0A4FBF':'#E2E8F0')+';margin:0 auto;"></div>':'')+
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:'+(skip?'#F8FAFC':'#fff')+';border:1px solid '+(active?'#0A4FBF20':'#E2E8F0')+';opacity:'+(skip?'.4':'1')+';">'+
+      '<div style="width:20px;height:20px;border-radius:50%;background:'+(active?'#0A4FBF':'#E2E8F0')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">'+(i+1)+'</div>'+
+      '<div style="flex:1;"><div style="font-size:10px;font-weight:700;color:'+(skip?'#94A3B8':'#071D4A')+';">'+s.label+(skip?' <span style="color:#DC2626;font-weight:400;">(desactivado)</span>':'')+'</div>'+
+      '<div style="font-size:8px;color:#9AAAC8;">'+s.desc+'</div></div></div>';
+  }).join('');
+}
+function renderSecAlerts(d){
+  var alerts = [];
+  if(d.login_failed_hoy > 3) alerts.push({t:'⚠️ Alto número de logins fallidos hoy',d:d.login_failed_hoy+' intentos fallidos en las últimas horas',c:'#DC2626'});
+  if(d.geo_denied_7d > 5) alerts.push({t:'📍 Múltiples accesos GPS denegados',d:d.geo_denied_7d+' denegados en 7 días — verificar configuración de sedes',c:'#D97706'});
+  if(d.capas.turnstile==='false') alerts.push({t:'🤖 CAPTCHA desactivado',d:'El login no tiene protección anti-bot. Recomendado activar.',c:'#D97706'});
+  if(d.capas['2fa']==='false') alerts.push({t:'📧 2FA desactivado',d:'Los usuarios acceden solo con contraseña. Recomendado activar.',c:'#D97706'});
+  if((d.intentos_por_usuario||[]).length > 0){
+    d.intentos_por_usuario.forEach(function(u){
+      if(u.intentos >= 3) alerts.push({t:'🔒 '+u.usuario+' — '+u.intentos+' intentos fallidos',d:'Últimas 24h. Posible ataque o contraseña olvidada.',c:'#DC2626'});
+    });
+  }
+  if(!alerts.length){el('sec-alerts').innerHTML='<div class="crd" style="padding:12px;text-align:center;"><span style="font-size:18px;">✅</span><div style="font-size:12px;font-weight:700;color:#059669;margin-top:4px;">Todo en orden</div><div style="font-size:10px;color:#6B7BA8;">No hay alertas de seguridad activas</div></div>';return;}
+  el('sec-alerts').innerHTML = alerts.map(function(a){
+    return '<div class="crd" style="padding:10px 14px;margin-bottom:6px;border-left:4px solid '+a.c+';background:'+a.c+'08;">'+
+      '<div style="font-size:12px;font-weight:700;color:'+a.c+';">'+a.t+'</div>'+
+      '<div style="font-size:10px;color:#6B7BA8;margin-top:2px;">'+a.d+'</div></div>';
+  }).join('');
+}
+function secTabLog(tab){
+  ['events','accesos','audit'].forEach(function(t){
+    el('sec-log-'+t).style.display = t===tab?'block':'none';
+    var btn=el('sec-tab-'+t);if(btn)btn.classList.toggle('act',t===tab);
+  });
+}
+function renderSecEvents(events){
+  if(!events.length){el('sec-log-events').innerHTML='<div style="padding:20px;text-align:center;color:#CBD5E1;font-size:11px;">Sin eventos</div>';return;}
+  var accionColors={login:'#059669',login_failed:'#DC2626','2fa_failed':'#D97706','2fa_verified':'#0A4FBF'};
+  el('sec-log-events').innerHTML='<table class="vt"><thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Acción</th><th>Detalles</th><th>IP</th><th>Dispositivo</th></tr></thead><tbody>'+
+    events.map(function(e){
+      var ac=accionColors[e.accion]||'#6B7BA8';
+      var ts=e.created_at?new Date(e.created_at).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      var det='';try{var dj=typeof e.detalles==='string'?JSON.parse(e.detalles):e.detalles;det=dj&&dj.razon?dj.razon:(dj&&dj.method?dj.method:'');}catch(x){det='';}
+      var ua=(e.user_agent||'').indexOf('Mobile')>-1?'📱 Móvil':'💻 Desktop';
+      return '<tr><td style="font-size:9px;color:#6B7BA8;white-space:nowrap;">'+ts+'</td>'+
+        '<td style="font-weight:600;">'+h(e.usuario||'—')+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;background:'+ac+'15;color:'+ac+';">'+h(e.accion)+'</span></td>'+
+        '<td style="font-size:9px;color:#475569;">'+h(det)+'</td>'+
+        '<td style="font-size:9px;color:#9AAAC8;">'+h(e.ip||'—')+'</td>'+
+        '<td style="font-size:9px;">'+ua+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function renderSecAccesos(accesos){
+  if(!accesos.length){el('sec-log-accesos').innerHTML='<div style="padding:20px;text-align:center;color:#CBD5E1;font-size:11px;">Sin accesos GPS registrados</div>';return;}
+  el('sec-log-accesos').innerHTML='<table class="vt"><thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Rol</th><th>Sede Detectada</th><th>Distancia</th><th>Resultado</th><th>Dispositivo</th></tr></thead><tbody>'+
+    accesos.map(function(a){
+      var ts=a.ts?new Date(a.ts).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      var dist=a.distancia_m>=99999?'Sin GPS':a.distancia_m+'m';
+      var res=a.permitido?'<span style="padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;">✓ Permitido</span>':'<span style="padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;background:#FEE2E2;color:#991B1B;">✕ Denegado</span>';
+      var ua=(a.user_agent||'').indexOf('Mobile')>-1?'📱':'💻';
+      return '<tr style="background:'+(a.permitido?'':'#FEF2F2')+';"><td style="font-size:9px;color:#6B7BA8;white-space:nowrap;">'+ts+'</td>'+
+        '<td style="font-weight:600;">'+h(a.usuario||'')+'</td>'+
+        '<td style="font-size:9px;color:#6B7BA8;">'+h(a.rol||'')+'</td>'+
+        '<td style="font-size:10px;">'+h(a.sede_detectada||'—')+'</td>'+
+        '<td style="font-size:10px;font-weight:600;color:'+(a.distancia_m>=99999?'#DC2626':'#059669')+';">'+dist+'</td>'+
+        '<td>'+res+'</td>'+
+        '<td style="font-size:12px;text-align:center;">'+ua+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function renderSecAudit(rows){
+  if(!rows.length){el('sec-log-audit').innerHTML='<div style="padding:20px;text-align:center;color:#CBD5E1;font-size:11px;">Sin registros</div>';return;}
+  var acColors={INSERT:'#059669',UPDATE:'#0A4FBF',DELETE:'#DC2626'};
+  el('sec-log-audit').innerHTML='<table class="vt"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Tabla</th><th>Registro</th><th>Detalle</th></tr></thead><tbody>'+
+    rows.slice(0,50).map(function(r){
+      var ts=(r.ts||r.timestamp_reg)?new Date(r.ts||r.timestamp_reg).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      var ac=acColors[r.accion]||'#6B7BA8';
+      var det=r.detalle||r.referencia||'';if(det.length>60)det=det.substring(0,60)+'...';
+      return '<tr><td style="font-size:9px;color:#6B7BA8;white-space:nowrap;">'+ts+'</td>'+
+        '<td style="font-weight:600;font-size:10px;">'+h(r.usuario||r.asesor||'—')+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;background:'+ac+'15;color:'+ac+';">'+h(r.accion)+'</span></td>'+
+        '<td style="font-size:9px;color:#475569;">'+h(r.tabla||'—')+'</td>'+
+        '<td style="font-size:8px;color:#9AAAC8;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(r.registro_id||'—')+'</td>'+
+        '<td style="font-size:9px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(det)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
 
 // ═══ INTEGRACIONES ═══
 var INTEG_DATA=[];
