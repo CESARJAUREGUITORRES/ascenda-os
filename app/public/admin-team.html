@@ -88,6 +88,7 @@ function editUser(idx){
   html+='<div><div id="eu-pb" style="width:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:3px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:64px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div>';
   html+='<div style="text-align:center;margin:6px 0;"><label style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#EBF2FF;border-radius:8px;cursor:pointer;font-size:9px;font-weight:700;color:#0A4FBF;">📷 Cambiar foto<input type="file" id="eu-af" accept="image/*" style="display:none;" onchange="upAv(this,\''+u.id+'\')"></label><div id="eu-as" style="font-size:8px;margin-top:2px;"></div></div>';
   html+='<input type="hidden" id="eu-avatar" value="'+h(u.avatar_url||'')+'">';
+  html+='<input type="hidden" id="eu-codigo" value="'+h(u.codigo_asesor||'')+'">';
   html+='<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:16px;">'+h(u.nombre)+(u.apellidos?' '+h(u.apellidos):'')+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.codigo_asesor||'')+'</div></div></div>';
   // Right: datos
   html+='<div>';
@@ -229,7 +230,14 @@ function saveU(id){
   var sedes=[];document.querySelectorAll('.sede-chk:checked').forEach(function(c){sedes.push(c.value);});
   var sedeStr=el('eu-acceso')&&el('eu-acceso').value==='libre'?'TODAS':sedes.join(', ');
   var d={nombre:(el('eu-nombre').value||'').toUpperCase(),apellidos:(el('eu-apellidos').value||'').toUpperCase(),email:el('eu-email').value,dni:el('eu-dni').value,telefono_personal:el('eu-tel').value,contacto_emergencia:el('eu-emg').value,fecha_nacimiento:el('eu-nac').value||null,lugar_nacimiento:el('eu-lnac').value,rh:el('eu-rh').value,departamento:el('eu-dep').value,provincia:el('eu-prov').value,distrito:el('eu-dist').value,direccion:el('eu-dir').value,cargo:el('eu-cargo').value,area:el('eu-area').value,sede:sedeStr||el('eu-sede').value,fecha_ingreso:el('eu-fing').value||null,tipo_contrato:el('eu-ctr').value,nivel_jerarquia:Number(el('eu-niv')?el('eu-niv').value:4)||4,acceso_geo:el('eu-acceso')?el('eu-acceso').value:'libre',sueldo:Number(el('eu-sue').value)||0,bono_metas:Number(el('eu-bon').value)||0,avatar_url:el('eu-avatar').value,paneles_acceso:ps,updated_at:new Date().toISOString()};
-  fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(){showToast(d.nombre+' guardado — '+ps.length+' paneles');el('m-user').classList.remove('open');loadTeam();});
+  fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(){
+    // Sincronizar nombre, cargo y sede con aos_rrhh
+    var codigo = el('eu-codigo') ? el('eu-codigo').value : '';
+    if(codigo){
+      fetch(SB+'/rest/v1/aos_rrhh?codigo_asesor=eq.'+encodeURIComponent(codigo),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:d.nombre,puesto:d.cargo,sede:d.sede})}).catch(function(){});
+    }
+    showToast(d.nombre+' guardado — '+ps.length+' paneles');el('m-user').classList.remove('open');loadTeam();
+  });
 }
 function loadEst(uid){q('aos_estudios','select=*&usuario_id=eq.'+uid+'&order=created_at.desc',function(r){var c=el('eu-est');if(!c)return;c.innerHTML=(r&&r.length)?r.map(function(e){return '<div style="padding:3px 0;border-bottom:1px solid #EEF0F8;"><b>'+h(e.titulo)+'</b> <span style="color:#6B7BA8;">'+h(e.grado)+' · '+h(e.institucion)+'</span></div>';}).join(''):'Sin estudios';});}
 function addEst(uid){var t=prompt('Título/certificado:');if(!t)return;var g=prompt('Grado:','Certificado');var i=prompt('Institución:');fetch(SB+'/rest/v1/aos_estudios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario_id:uid,titulo:t,grado:g||'',institucion:i||''})}).then(function(){loadEst(uid);showToast('Estudio agregado');});}
