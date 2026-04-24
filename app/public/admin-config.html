@@ -515,7 +515,18 @@
 
   <!-- ═══ INTEGRACIONES ═══ -->
   <div id="cfg-integraciones" style="display:none;">
-    <div style="font-size:11px;color:#6B7BA8;margin-bottom:10px;">Conecta tus servicios externos. Haz click en cualquier tarjeta para configurar.</div>
+    <!-- Conectados -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Conectores activos</div>
+      <div style="font-size:10px;color:#9AAAC8;margin-bottom:8px;">Servicios conectados y funcionando en el sistema</div>
+      <div id="cfg-ig-activos" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+    <!-- Buscador -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      <input class="mi" id="ig-search" placeholder="🔍 Buscar integración..." style="flex:1;padding:10px;font-size:12px;" oninput="filterInteg(this.value)">
+      <div style="display:flex;gap:4px;" id="ig-cat-pills"></div>
+    </div>
+    <!-- Catálogo -->
     <div id="cfg-ig-list"></div>
   </div>
 
@@ -1229,84 +1240,34 @@ function deleteMetodo(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/a
 
 // ═══ INTEGRACIONES ═══
 var INTEG_DATA=[];
-var CAT_LABELS={infraestructura:'🏗️ Infraestructura',ai:'🤖 Inteligencia Artificial',google:'📅 Google Workspace',redes:'📱 Redes Sociales',chatbot:'💬 Chatbot',pagos:'💳 Pagos y Servicios'};
+var CAT_LABELS={infraestructura:'🏗️ Infraestructura',ai:'🤖 Inteligencia Artificial',google:'📅 Google',redes:'📱 Redes y Ads',chatbot:'💬 Chatbot',pagos:'💳 Pagos',automatizacion:'🔄 Automatización',ambiente:'🎧 Ambiente/IoT',web:'🌐 Web/Tracking'};
 var CAT_COLORS={infraestructura:'infra',ai:'ai',google:'google',redes:'redes',chatbot:'chatbot',pagos:'pagos'};
-var CAT_ORDER=['infraestructura','ai','google','redes','chatbot','pagos'];
-function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;var html='';CAT_ORDER.forEach(function(cat){var items=rows.filter(function(r){return r.categoria===cat;});if(!items.length)return;html+='<div class="ig-cat"><div class="ig-cat-t">'+CAT_LABELS[cat]+'</div><div class="ig">';items.forEach(function(r){var bc=r.estado==='conectado'?'ok':(r.estado==='error'?'warn':'off');var bt=r.estado==='conectado'?'Conectado':(r.estado==='error'?'Error':'Pendiente');html+='<div class="ig-c" onclick="openIntegModal(\''+r.id+'\')"><div class="ig-badge '+bc+'">'+bt+'</div><div class="ig-hdr"><div class="ig-ico '+CAT_COLORS[cat]+'">'+h(r.icono||'🔗')+'</div><div><div class="ig-name">'+h(r.nombre)+'</div><div class="ig-desc">'+h(r.descripcion||'')+'</div></div></div><div class="ig-foot"><div class="ig-acct">'+(r.cuenta?h(r.cuenta):'<span style="color:#D97706;">Sin configurar</span>')+'</div></div></div>';});html+='</div></div>';});el('cfg-ig-list').innerHTML=html;});}
-
-// ═══ MODAL ONBOARDING ═══
-var CUR_INTEG=null,CUR_STEP=0;
-function openIntegModal(id){var integ=INTEG_DATA.find(function(r){return r.id===id;});if(!integ)return;CUR_INTEG=integ;CUR_STEP=0;
-  el('mi-ico').className='mhd-ico '+(CAT_COLORS[integ.categoria]||'infra');el('mi-ico').textContent=integ.icono||'🔗';el('mi-title').textContent=integ.nombre;el('mi-desc').textContent=integ.descripcion||'';
-  var bc=integ.estado==='conectado'?'ok':(integ.estado==='error'?'warn':'off');var bt=integ.estado==='conectado'?'✓ Conectado':(integ.estado==='error'?'⚠ Error':'○ Pendiente');el('mi-badge').innerHTML='<span class="ig-badge '+bc+'" style="position:static;">'+bt+'</span>';
-  var pasos=integ.pasos_guia||[];var sh='',dh='';pasos.forEach(function(p,i){sh+='<div class="guide-step'+(i===0?' act':'')+'" data-step="'+i+'"><div class="gs-num">'+(i+1)+'</div><div class="gs-title">'+h(p.titulo)+'</div><div class="gs-text">'+h(p.texto)+'</div></div>';dh+='<div class="guide-dot'+(i===0?' act':'')+'"></div>';});
-  if(!pasos.length){sh='<div class="guide-step act"><div class="gs-text" style="color:#9AAAC8;">Sin guía configurada.</div></div>';dh='';}
-  el('mi-steps').innerHTML=sh;el('mi-dots').innerHTML=dh;updateGuideNav();renderIntegFields(integ);el('mi-status').textContent='';el('m-integ').classList.add('open');}
-function closeIntegModal(){el('m-integ').classList.remove('open');CUR_INTEG=null;}
-function guideNav(dir){var pasos=(CUR_INTEG&&CUR_INTEG.pasos_guia)||[];if(!pasos.length)return;CUR_STEP=Math.max(0,Math.min(pasos.length-1,CUR_STEP+dir));el('mi-steps').querySelectorAll('.guide-step').forEach(function(s,i){s.classList.toggle('act',i===CUR_STEP);});el('mi-dots').querySelectorAll('.guide-dot').forEach(function(d,i){d.classList.toggle('act',i===CUR_STEP);});updateGuideNav();}
-function updateGuideNav(){var pasos=(CUR_INTEG&&CUR_INTEG.pasos_guia)||[];el('mi-prev').style.visibility=CUR_STEP>0?'visible':'hidden';el('mi-next').textContent=CUR_STEP>=pasos.length-1?'Listo ✓':'Siguiente →';}
-
-// ═══ CAMPOS DINÁMICOS ═══
-var FD={
-  supabase:[{k:'project_url',l:'URL del Proyecto',ph:'https://xxxx.supabase.co'},{k:'anon_key',l:'Anon Key',ph:'eyJhbGci...',type:'password'},{k:'service_key',l:'Service Role Key',ph:'eyJhbGci...',type:'password'}],
-  railway:[{k:'app_url',l:'URL de la App',ph:'https://xxx.up.railway.app'},{k:'project_id',l:'Project ID',ph:'xxxxx'}],
-  resend:[{k:'api_key',l:'API Key',ph:'re_xxxx...',type:'password'},{k:'from_email',l:'Email de envío',ph:'info@tudominio.com'},{k:'from_name',l:'Nombre remitente',ph:'Clínica Zi Vital'}],
-  github:[{k:'token',l:'Personal Access Token',ph:'ghp_xxxx...',type:'password'},{k:'repo',l:'Repositorio',ph:'usuario/repo'}],
-  anthropic:[{k:'api_key',l:'API Key',ph:'sk-ant-...',type:'password'},{k:'modelo',l:'Modelo',type:'select',opts:['claude-sonnet-4-20250514','claude-haiku-4-5-20251001','claude-opus-4-6']},{k:'uso',l:'Usar para',type:'multicheck',opts:['Chatbot','Análisis clínico','Contenido','Resúmenes']}],
-  gemini:[{k:'api_key',l:'API Key',ph:'AIza...',type:'password'},{k:'modelo',l:'Modelo',type:'select',opts:['gemini-2.0-flash','gemini-2.5-pro','gemini-2.5-flash']},{k:'uso',l:'Usar para',type:'multicheck',opts:['Contenido','Clasificación','Transcripción','Imágenes']}],
-  groq:[{k:'api_key',l:'API Key',ph:'gsk_...',type:'password'},{k:'modelo',l:'Modelo',type:'select',opts:['llama-3.3-70b-versatile','llama-4-scout-17b-16e-instruct','llama-4-maverick-17b-128e-instruct']},{k:'uso',l:'Usar para',type:'multicheck',opts:['Respuestas rápidas','Clasificación','Chat interno']}],
-  elevenlabs:[{k:'api_key',l:'API Key',ph:'sk_...',type:'password'},{k:'voice_id',l:'Voice ID',ph:'ID de voz'}],
-  google:[{k:'client_id',l:'Client ID (OAuth)',ph:'xxxx.apps.googleusercontent.com',type:'password'},{k:'client_secret',l:'Client Secret',ph:'GOCSPX-...',type:'password'},{k:'gmail_citas',l:'Gmail para Citas',ph:'citas@clinica.com'},{k:'gmail_marketing',l:'Gmail para Marketing',ph:'mkt@clinica.com'}],
-  facebook:[{k:'app_id',l:'App ID',ph:'123456789'},{k:'app_secret',l:'App Secret',ph:'xxxx...',type:'password'},{k:'page_token',l:'Page Token',ph:'EAAGx...',type:'password'},{k:'pixel_id',l:'Pixel ID',ph:'123456789'}],
-  tiktok:[{k:'app_id',l:'App ID',ph:'xxxx'},{k:'app_secret',l:'App Secret',ph:'xxxx...',type:'password'},{k:'pixel_id',l:'Pixel ID',ph:'xxxx'}],
-  youtube:[{k:'api_key',l:'API Key',ph:'AIza...',type:'password'},{k:'channel_id',l:'Channel ID',ph:'UCxxxx'}],
-  google_business:[{k:'location_id',l:'Location ID',ph:'accounts/xxx/locations/xxx'},{k:'api_key',l:'API Key',ph:'AIza...',type:'password'}],
-  whatsapp:[{k:'phone_number_id',l:'Phone Number ID',ph:'123456789'},{k:'business_account_id',l:'Business Account ID',ph:'123456789'},{k:'access_token',l:'Access Token',ph:'EAAGx...',type:'password'}],
-  chatbot:[{k:'nombre_bot',l:'Nombre del Bot',ph:'KronIA'},{k:'tono',l:'Tono',type:'select',opts:['Profesional','Amigable','Formal','Casual']},{k:'idioma',l:'Idioma',type:'select',opts:['Español','Inglés','Portugués']},{k:'horario_activo',l:'Horario activo',ph:'09:00-18:00'},{k:'mensaje_fuera',l:'Mensaje fuera de horario',type:'textarea',ph:'Gracias por escribirnos...'}],
-  stripe:[{k:'publishable_key',l:'Publishable Key',ph:'pk_live_...',type:'password'},{k:'secret_key',l:'Secret Key',ph:'sk_live_...',type:'password'},{k:'webhook_secret',l:'Webhook Secret',ph:'whsec_...',type:'password'}],
-  reniec:[{k:'token',l:'Token',ph:'xxxx...',type:'password'},{k:'proveedor',l:'Proveedor',type:'select',opts:['apiperu.dev','dniruc.com','apis.net.pe','Otro']}],
-  google_maps:[{k:'api_key',l:'API Key',ph:'AIza...',type:'password'}]
-};
-function renderIntegFields(integ){var fields=FD[integ.tipo]||[{k:'api_key',l:'API Key',ph:'...',type:'password'}];var cfg=integ.config||{};var html='';
-  fields.forEach(function(f){var val=cfg[f.k]!==undefined?cfg[f.k]:(f.k==='api_key'&&integ.api_key?integ.api_key:(f.k==='api_secret'&&integ.api_secret?integ.api_secret:((f.k==='repo'||f.k==='from_email'||f.k==='app_url'||f.k==='project_url')&&integ.cuenta?integ.cuenta:'')));
-    if(f.type==='select'){html+='<div class="rc-field"><label>'+h(f.l)+'</label><select id="ig-f-'+f.k+'">';(f.opts||[]).forEach(function(o){html+='<option'+(val===o?' selected':'')+'>'+h(o)+'</option>';});html+='</select></div>';}
-    else if(f.type==='multicheck'){var sel=val||[];if(typeof sel==='string'){try{sel=JSON.parse(sel);}catch(e){sel=[];}}html+='<div class="rc-field"><label>'+h(f.l)+'</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">';(f.opts||[]).forEach(function(o){var ck=sel.indexOf(o)>=0;html+='<label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid '+(ck?'#0A4FBF':'#DDE4F5')+';background:'+(ck?'#EBF2FF':'#fff')+';"><input type="checkbox" class="ig-mc-'+f.k+'" value="'+h(o)+'"'+(ck?' checked':'')+' style="width:12px;height:12px;">'+h(o)+'</label>';});html+='</div></div>';}
-    else if(f.type==='textarea'){html+='<div class="rc-field"><label>'+h(f.l)+'</label><textarea id="ig-f-'+f.k+'" placeholder="'+h(f.ph||'')+'">'+h(val)+'</textarea></div>';}
-    else{html+='<div class="rc-field"><label>'+h(f.l)+'</label><input id="ig-f-'+f.k+'" type="'+(f.type||'text')+'" placeholder="'+h(f.ph||'')+'" value="'+h(val)+'"></div>';}
-  });el('mi-fields').innerHTML=html;}
-
-function saveInteg(){if(!CUR_INTEG)return;var fields=FD[CUR_INTEG.tipo]||[];var cfg=CUR_INTEG.config||{};var apiKey='',apiSecret='',cuenta='';
-  fields.forEach(function(f){var val='';if(f.type==='multicheck'){var cks=document.querySelectorAll('.ig-mc-'+f.k+':checked');val=[];cks.forEach(function(c){val.push(c.value);});}else{var inp=el('ig-f-'+f.k);val=inp?inp.value:'';}
-    if(f.k==='api_key')apiKey=val;else if(f.k==='api_secret'||f.k==='app_secret'||f.k==='client_secret'||f.k==='secret_key')apiSecret=val;else if(f.k==='repo'||f.k==='from_email'||f.k==='app_url'||f.k==='project_url')cuenta=val;else cfg[f.k]=val;});
-  var estado=(apiKey||apiSecret||cuenta)?'conectado':'pendiente';el('mi-status').textContent='Guardando...';el('mi-status').style.color='#6B7BA8';
-  sbPatch('/rest/v1/aos_integraciones?id=eq.'+CUR_INTEG.id,{api_key:apiKey,api_secret:apiSecret,cuenta:cuenta,config:cfg,estado:estado,updated_at:new Date().toISOString()}).then(function(r){if(r.ok){el('mi-status').textContent='✓ Guardado';el('mi-status').style.color='#059669';showToast('Integración Guardada',CUR_INTEG.nombre);var bc=estado==='conectado'?'ok':'off';el('mi-badge').innerHTML='<span class="ig-badge '+bc+'" style="position:static;">'+(estado==='conectado'?'✓ Conectado':'○ Pendiente')+'</span>';loadIntegraciones();}else{el('mi-status').textContent='Error';el('mi-status').style.color='#DC2626';}});}
-
-function testInteg(){if(!CUR_INTEG)return;el('mi-status').textContent='Probando...';el('mi-status').style.color='#D97706';var t=CUR_INTEG.tipo;
-  if(t==='supabase'){var u=el('ig-f-project_url'),k=el('ig-f-anon_key');if(!u||!u.value||!k||!k.value){el('mi-status').textContent='Ingresa URL y Key';el('mi-status').style.color='#DC2626';return;}fetch(u.value+'/rest/v1/',{headers:{'apikey':k.value}}).then(function(r){el('mi-status').textContent=r.ok?'✓ Conexión exitosa':'✕ Error: '+r.status;el('mi-status').style.color=r.ok?'#059669':'#DC2626';}).catch(function(){el('mi-status').textContent='✕ No conecta';el('mi-status').style.color='#DC2626';});}
-  else if(t==='railway'){var a=el('ig-f-app_url');if(!a||!a.value){el('mi-status').textContent='Ingresa URL';el('mi-status').style.color='#DC2626';return;}fetch(a.value+'/health').then(function(r){el('mi-status').textContent=r.ok?'✓ Servidor activo':'✕ Error: '+r.status;el('mi-status').style.color=r.ok?'#059669':'#DC2626';}).catch(function(){el('mi-status').textContent='✕ No conecta';el('mi-status').style.color='#DC2626';});}
-  else{setTimeout(function(){el('mi-status').textContent='ℹ Guarda las credenciales. El sistema las verificará al usarlas.';el('mi-status').style.color='#6B7BA8';},500);}}
-
-// ═══ SEGURIDAD ═══
-function renderSecLayers(){var layers=[{n:'Cloudflare Turnstile',d:'CAPTCHA anti-bots',k:'seg_captcha_habilitado',ico:'🛡️'},{n:'Contraseña',d:'Usuario + password + bloqueo',k:null,ico:'🔑',always:true},{n:'Geofencing GPS',d:'Solo desde sedes (500m)',k:'seg_geofencing',ico:'📍'},{n:'2FA por Email',d:'Código 6 dígitos',k:'seg_2fa_habilitado',ico:'📧'},{n:'Log Completo',d:'Registro de cada acceso',k:null,ico:'📊',always:true}];
-  var html='';layers.forEach(function(l,i){var act=l.always;if(!act&&l.k){var inp=el('c-'+l.k);act=inp&&inp.value==='true';}html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px;background:'+(act?'#F0FDF4':'#F8FAFF')+';border:1px solid '+(act?'#BBF7D0':'#EEF0F8')+';"><div style="font-size:18px;">'+l.ico+'</div><div style="flex:1;"><div style="font-weight:700;font-size:12px;color:'+(act?'#059669':'#9AAAC8')+';">Capa '+(i+1)+': '+h(l.n)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(l.d)+'</div></div><div style="font-size:10px;font-weight:700;color:'+(act?'#059669':'#9AAAC8')+';">'+(act?'✓ ACTIVA':'○')+'</div></div>';});el('sec-layers').innerHTML=html;}
-function loadSecurityLog(){sbGet('/rest/v1/aos_sesiones_acceso?select=*&order=ts.desc&limit=20').then(function(rows){if(!rows||!rows.length){el('cfg-security-log').innerHTML='<div style="color:#9AAAC8;font-size:10px;padding:10px;">Sin registros</div>';return;}el('cfg-security-log').innerHTML='<table class="vt"><thead><tr><th>Usuario</th><th>Rol</th><th>Sede</th><th>OK</th><th>Dist.</th><th>Fecha</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td style="font-weight:700;">'+h(r.usuario)+'</td><td style="font-size:9px;">'+h(r.rol||'')+'</td><td style="font-size:9px;">'+h(r.sede_detectada||'')+'</td><td style="font-size:9px;color:'+(r.permitido?'#059669':'#DC2626')+';font-weight:700;">'+(r.permitido?'✓':'✕')+'</td><td style="font-size:9px;color:#6B7BA8;">'+(r.distancia_m?r.distancia_m.toFixed(0)+'m':'—')+'</td><td style="font-size:9px;color:#6B7BA8;">'+(r.ts?r.ts.slice(0,16).replace('T',' '):'')+'</td></tr>';}).join('')+'</tbody></table>';});}
-
-// ═══ EQUIPO ═══
-function loadEquipo(){sbGet('/rest/v1/aos_usuarios?select=nombre,area,cargo,nivel_jerarquia,acceso_geo,avatar_url&order=nivel_jerarquia,nombre').then(function(rows){if(!rows||!rows.length)return;el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th></th><th>Nombre</th><th>Área</th><th>Cargo</th><th>Nivel</th><th>Acceso</th></tr></thead><tbody>'+rows.map(function(r){var av=r.avatar_url?'<img src="'+h(r.avatar_url)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">':'<div style="width:28px;height:28px;border-radius:50%;background:#EBF2FF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A4FBF;">'+h((r.nombre||'?')[0])+'</div>';var nt=['','Super Admin','Admin','Supervisor','Operativo','Externo'][r.nivel_jerarquia||4]||'';return '<tr><td>'+av+'</td><td style="font-weight:700;">'+h(r.nombre)+'</td><td style="font-size:10px;">'+h(r.area||'')+'</td><td style="font-size:10px;color:#6B7BA8;">'+h(r.cargo||'')+'</td><td style="font-size:9px;"><span style="padding:2px 8px;border-radius:6px;background:'+(r.nivel_jerarquia<=2?'#EBF2FF;color:#0A4FBF':'#F8FAFF;color:#6B7BA8')+';font-weight:700;">'+nt+'</span></td><td style="font-size:9px;color:'+(r.acceso_geo==='libre'?'#059669':'#D97706')+';">'+h(r.acceso_geo||'limitado')+'</td></tr>';}).join('')+'</tbody></table>';
-  var sel=el('pass-user');if(sel){sel.innerHTML=rows.map(function(r){return '<option>'+h(r.nombre)+'</option>';}).join('');}});}
-
-// ═══ CONTRASEÑAS ═══
-var PASS_CODE_DATA=null;
-function requestPassCode(){var target=el('pass-user').value,np=el('pass-new').value,msg=el('pass-msg');if(!target){msg.style.color='#DC2626';msg.textContent='Selecciona usuario';return;}if(!np||np.length<6){msg.style.color='#DC2626';msg.textContent='Mínimo 6 caracteres';return;}msg.style.color='#6B7BA8';msg.textContent='Enviando...';var sess=null;try{sess=JSON.parse(localStorage.getItem('aos_session'));}catch(e){}var admin=(sess&&(sess.usuario||sess.nombre))||'CESAR';var code=(''+Math.floor(Math.random()*999999)).padStart(6,'0');
-  fetch(SB+'/rest/v1/aos_auth_codes',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:admin.toUpperCase(),email:sess&&sess.email||'jaureguitorrescesar@gmail.com',codigo:code,expira_at:new Date(Date.now()+300000).toISOString()})}).then(function(){PASS_CODE_DATA={admin:admin,target:target,newPass:np,code:code};fetch(RW+'/api/send-2fa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:sess&&sess.email||'jaureguitorrescesar@gmail.com',code:code,nombre:admin.toUpperCase()})}).then(function(r){return r.json();}).then(function(res){if(res&&res.id){el('pass-2fa').style.display='block';msg.style.color='#059669';msg.textContent='✓ Código enviado';startPassTimer();}else{msg.style.color='#DC2626';msg.textContent='Error al enviar';}});});}
-function startPassTimer(){var sec=300,tEl=el('pass-timer');if(window._pt)clearInterval(window._pt);window._pt=setInterval(function(){sec--;if(sec<=0){clearInterval(window._pt);tEl.textContent='Expirado';tEl.style.color='#DC2626';return;}var m=Math.floor(sec/60),s=sec%60;tEl.textContent='Expira en '+m+':'+(s<10?'0':'')+s;tEl.style.color=sec<=60?'#DC2626':'#D97706';},1000);}
-function confirmPassChange(){var code=el('pass-code').value.trim(),msg=el('pass-msg');if(code.length!==6){msg.style.color='#DC2626';msg.textContent='6 dígitos';return;}if(!PASS_CODE_DATA){msg.style.color='#DC2626';msg.textContent='Solicita código primero';return;}msg.style.color='#6B7BA8';msg.textContent='Verificando...';
-  sbPost('/rest/v1/rpc/aos_admin_cambiar_password',{p_admin:PASS_CODE_DATA.admin,p_codigo_2fa:code,p_usuario_target:PASS_CODE_DATA.target,p_password_nuevo:PASS_CODE_DATA.newPass}).then(function(res){if(res&&res.ok){msg.style.color='#059669';msg.textContent='✓ '+res.msg;el('pass-2fa').style.display='none';el('pass-new').value='';el('pass-code').value='';PASS_CODE_DATA=null;if(window._pt)clearInterval(window._pt);showToast('Contraseña Cambiada',res.msg);loadPassLog();}else{msg.style.color='#DC2626';msg.textContent=(res&&res.error)||'Error';el('pass-code').value='';}});}
-function changeMyPassword(){var cur=el('my-pass-current').value,np=el('my-pass-new').value,cf=el('my-pass-confirm').value,msg=el('my-pass-msg');msg.textContent='';if(!cur){msg.style.color='#DC2626';msg.textContent='Ingresa actual';return;}if(!np||np.length<6){msg.style.color='#DC2626';msg.textContent='Mínimo 6';return;}if(np!==cf){msg.style.color='#DC2626';msg.textContent='No coinciden';return;}var sess=null;try{sess=JSON.parse(localStorage.getItem('aos_session'));}catch(e){}var user=(sess&&(sess.usuario||sess.nombre))||'';if(!user){msg.style.color='#DC2626';msg.textContent='Sesión expirada';return;}
-  sbPost('/rest/v1/rpc/aos_cambiar_password',{p_usuario:user.toLowerCase(),p_password_actual:cur,p_password_nuevo:np}).then(function(res){if(res&&res.ok){msg.style.color='#059669';msg.textContent='✓ '+res.msg;el('my-pass-current').value='';el('my-pass-new').value='';el('my-pass-confirm').value='';showToast('Contraseña Cambiada','');loadPassLog();}else{msg.style.color='#DC2626';msg.textContent=(res&&res.error)||'Error';}});}
-function loadPassLog(){sbGet('/rest/v1/aos_security_log?accion=in.(password_changed,admin_password_change,password_change_failed)&order=created_at.desc&limit=10').then(function(rows){if(!rows||!rows.length){el('cfg-pass-log').innerHTML='<div style="font-size:10px;color:#9AAAC8;">Sin cambios</div>';return;}el('cfg-pass-log').innerHTML='<table class="vt"><thead><tr><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead><tbody>'+rows.map(function(r){var d=r.detalles||{};return '<tr><td style="font-weight:700;">'+h(r.usuario)+'</td><td style="font-size:9px;color:'+(r.accion==='password_change_failed'?'#DC2626':'#059669')+';">'+h(r.accion)+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(d.target||d.method||'')+'</td><td style="font-size:8px;color:#9AAAC8;">'+(r.created_at?r.created_at.slice(0,16).replace('T',' '):'')+'</td></tr>';}).join('')+'</tbody></table>';});}
-
-// ═══ INIT ═══
-document.querySelectorAll('input[type="color"]').forEach(function(c){c.addEventListener('input',function(){var txt=el(c.id+'_txt');if(txt)txt.value=c.value;updatePreview();});});
-loadConfig();
-</script>
+var CAT_ORDER=['infraestructura','ai','automatizacion','redes','google','web','ambiente','chatbot','pagos'];
+function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
+  // Activos arriba
+  var activos=rows.filter(function(r){return r.estado==='conectado';});
+  el('cfg-ig-activos').innerHTML=activos.length?activos.map(function(r){return '<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;cursor:pointer;" onclick="openIntegModal(\''+r.id+'\')"><span style="font-size:14px;">'+h(r.icono)+'</span><span style="font-size:11px;font-weight:600;color:#065F46;">'+h(r.nombre)+'</span><span style="font-size:8px;color:#059669;">✓</span></div>';}).join(''):'<div style="font-size:11px;color:#CBD5E1;">Ningún conector activo aún</div>';
+  // Pills de categoría
+  el('ig-cat-pills').innerHTML='<button class="chip" style="font-size:9px;" onclick="filterInteg(\'\')">Todos</button>'+CAT_ORDER.map(function(c){return '<button class="chip" style="font-size:9px;" onclick="filterIntegCat(\''+c+'\')">'+(CAT_LABELS[c]||c)+'</button>';}).join('');
+  // Catálogo completo
+  renderIntegCatalog(rows);
+});}
+var _intCatFilter='';
+function filterInteg(q){var f=INTEG_DATA.filter(function(r){return !q||r.nombre.toLowerCase().indexOf(q.toLowerCase())>=0||r.descripcion.toLowerCase().indexOf(q.toLowerCase())>=0||(r.categoria||'').indexOf(q.toLowerCase())>=0;});renderIntegCatalog(f);}
+function filterIntegCat(cat){_intCatFilter=cat;var f=INTEG_DATA.filter(function(r){return r.categoria===cat;});renderIntegCatalog(f);el('ig-search').value='';}
+function renderIntegCatalog(items){var html='';CAT_ORDER.forEach(function(cat){var its=items.filter(function(r){return r.categoria===cat;});if(!its.length)return;
+  html+='<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:#64748B;letter-spacing:.5px;margin-bottom:6px;">'+(CAT_LABELS[cat]||cat).toUpperCase()+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;">';
+  its.forEach(function(r){
+    var bc=r.estado==='conectado'?'#059669':(r.estado==='error'?'#DC2626':'#D97706');
+    var bt=r.estado==='conectado'?'✓ Conectado':(r.estado==='error'?'⚠ Error':'○ Pendiente');
+    html+='<div style="background:#fff;border-radius:12px;padding:12px;border:1px solid '+(r.estado==='conectado'?'#BBF7D0':'#EEF0F8')+';cursor:pointer;transition:all .15s;" onclick="openIntegModal(\''+r.id+'\')"><div style="display:flex;justify-content:space-between;align-items:start;"><div style="display:flex;gap:8px;align-items:center;"><div style="width:32px;height:32px;border-radius:8px;background:#F8FAFF;display:flex;align-items:center;justify-content:center;font-size:16px;">'+h(r.icono)+'</div><div><div style="font-weight:700;font-size:11px;color:#071D4A;">'+h(r.nombre)+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(r.descripcion||'').substring(0,45)+'</div></div></div><span style="font-size:8px;padding:2px 6px;border-radius:4px;background:'+bc+'20;color:'+bc+';font-weight:700;white-space:nowrap;">'+bt+'</span></div>';
+    // Links rápidos
+    var links=[];
+    if(r.url_signup)links.push('<a href="'+h(r.url_signup)+'" target="_blank" onclick="event.stopPropagation();" style="font-size:8px;color:#0A4FBF;text-decoration:none;">📝 Registrarse</a>');
+    if(r.url_api)links.push('<a href="'+h(r.url_api)+'" target="_blank" onclick="event.stopPropagation();" style="font-size:8px;color:#0A4FBF;text-decoration:none;">🔑 API Key</a>');
+    if(r.url_docs)links.push('<a href="'+h(r.url_docs)+'" target="_blank" onclick="event.stopPropagation();" style="font-size:8px;color:#0A4FBF;text-decoration:none;">📚 Docs</a>');
+    if(links.length)html+='<div style="display:flex;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid #F5F6FA;">'+links.join('')+'</div>';
+    if(r.multi_cuenta)html+='<div style="font-size:8px;color:#7C3AED;margin-top:3px;">🔄 Soporta múltiples cuentas</div>';
+    html+='</div>';
+  });html+='</div></div>';});el('cfg-ig-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#CBD5E1;">Sin resultados</div>';}
+f
