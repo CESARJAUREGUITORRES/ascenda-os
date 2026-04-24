@@ -128,7 +128,6 @@ window.AOS_SOUND = (function() {
     return ctx;
   }
   function chime(type) {
-    if (window._aosSoundMuted) return;
     try {
       var c = getCtx(); if (!c) return;
       var osc = c.createOscillator(); var gain = c.createGain();
@@ -338,9 +337,19 @@ function loadRealActivity() {
         if (!l.exitoso) {
           // Error real
           var errMsg = typeof l.error === 'string' ? l.error : JSON.stringify(l.error || '');
-          var shortErr = errMsg.replace(/\{.*?"message":\s*"([^"]+)".*\}/, '$1').substring(0, 55);
-          label   = '⚠ Error en tarea';
-          thought = shortErr || 'Error desconocido';
+          // Extraer solo el mensaje legible del JSON de error
+          var shortErr = 'Error desconocido';
+          try {
+            var parsed = typeof l.error === 'string' ? JSON.parse(l.error) : l.error;
+            if (parsed && parsed.error && parsed.error.message) shortErr = parsed.error.message;
+            else if (parsed && parsed.message) shortErr = parsed.message;
+            else shortErr = errMsg.substring(0, 50);
+          } catch(e) { shortErr = errMsg.replace(/[{}"]/g, '').substring(0, 50); }
+          // Simplificar mensajes conocidos
+          if (shortErr.indexOf('429') >= 0 || shortErr.indexOf('quota') >= 0) shortErr = 'Cuota agotada — usando Groq';
+          if (shortErr.indexOf('column') >= 0) shortErr = 'Error en query SQL';
+          label   = '⚠ Error';
+          thought = shortErr;
         } else {
           // Extraer dato clave del output
           label = (l.input_resumen || l.accion || 'Tarea ejecutada').substring(0, 40);
@@ -1354,6 +1363,87 @@ function btn(color, variant='solid') {
     : { padding:'7px 12px', fontSize:12, fontWeight:600, background:color, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', boxShadow:`0 2px 8px ${color}40` };
 }
 
+// ===== REAL FEED: Actividad real desde aos_agente_logs =====
+function RealFeed({ agents, onSelectAgent }) {
+  const [logs, setLogs] = useSPS([]);
+  const [schedules, setSchedules] = useSPS([]);
+
+  useSPE(() => {
+    const load = () => {
+      // Últimos 20 logs reales
+      window.sbGet('/rest/v1/aos_agente_logs?order=created_at.desc&limit=20&select=agente_id,accion,input_resumen,exitoso,error,duracion_ms,created_at')
+        .then(data => { if (Array.isArray(data)) setLogs(data); });
+      // Horarios de cada agente
+      window.sbGet('/rest/v1/aos_agentes?select=id,nombre,emoji,tipo_ejecucion,cron_intervalo,ultima_actividad,estado&activo=eq.true')
+        .then(data => { if (Array.isArray(data)) setSchedules(data); });
+    };
+    load();
+    const iv = setInterval(load, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Calcular próxima ejecución estimada
+  const cronLabel = (cron) => {
+    if (!cron) return '';
+    if (cron === '*/30 * * * *') return 'cada 30min';
+    if (cron === '0 * * * *') return 'cada 1h';
+    if (cron === '0 */2 * * *') return 'cada 2h';
+    if (cron === '0 */4 * * *') return 'cada 4h';
+    if (cron.match(/^0 \d+,/)) return 'diario ' + cron.split(' ')[1].replace(',','h y ') + 'h';
+    if (cron.match(/^0 \d+ \* \* \*/)) return 'diario ' + cron.split(' ')[1] + ':00';
+    if (cron.match(/^0 \d+ \* \* \d/)) return 'semanal';
+    return cron;
+  };
+
+  return (
+    <div style={{ flex:1, overflow:'auto', background:'rgba(255,255,255,0.3)' }}>
+      {/* Próximas ejecuciones */}
+      {schedules.length > 0 && (
+        <div style={{ padding:'6px 14px', borderBottom:'1px solid rgba(15,23,42,0.06)' }}>
+          <div style={{ fontSize:9, color:'#94A3B8', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.08em', marginBottom:4 }}>AGENTES PROGRAMADOS</div>
+          {schedules.filter(s => s.tipo_ejecucion === 'cron').map(s => {
+            const a = agents.find(x => x.id === s.id);
+            const lastAgo = s.ultima_actividad ? fmtAgo(new Date(s.ultima_actividad).getTime()) : 'nunca';
+            return (
+              <div key={s.id} onClick={() => onSelectAgent(s.id)} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 0', cursor:'pointer', fontSize:10 }}>
+                <span style={{ width:6, height:6, borderRadius:'50%', background: s.estado === 'working' ? '#00C9A7' : s.estado === 'blocked' ? '#EF4444' : '#CBD5E1', flexShrink:0 }}/>
+                <span style={{ fontWeight:600, color:'#0F172A', flex:1, minWidth:0 }}>{s.emoji||'🤖'} {s.nombre}</span>
+                <span style={{ color:'#94A3B8', fontSize:9, fontFamily:'JetBrains Mono,monospace' }}>{cronLabel(s.cron_intervalo)}</span>
+                <span style={{ color:'#64748B', fontSize:9 }}>· {lastAgo}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Logs reales */}
+      {logs.length === 0 && <div style={{ padding:20, textAlign:'center', color:'#94A3B8', fontSize:11 }}>Sin actividad registrada hoy.</div>}
+      {logs.map((l, i) => {
+        const a = agents.find(x => x.id === l.agente_id);
+        const d = a ? window.DEPARTMENTS[a.area] : null;
+        const tsMs = new Date(l.created_at).getTime();
+        const errShort = l.error ? (typeof l.error === 'string' ? l.error : '').substring(0, 50) : null;
+        return (
+          <div key={i} onClick={() => a && onSelectAgent(a.id)} style={{ padding:'7px 14px', display:'flex', gap:8, borderBottom:'1px solid rgba(15,23,42,0.04)', cursor:'pointer' }}>
+            <div style={{ width:3, background: l.exitoso ? (d ? d.color : '#00C9A7') : '#EF4444', borderRadius:2, flexShrink:0 }}/>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:11, fontWeight:600, color:'#0F172A' }}>{a ? a.emoji + ' ' + a.nombre : l.agente_id}</span>
+                <span style={{ fontSize:9, color:'#94A3B8', fontFamily:'JetBrains Mono,monospace' }}>{fmtAgo(tsMs)}</span>
+              </div>
+              <div style={{ fontSize:10, color:'#475569', marginTop:1 }}>
+                {l.exitoso ? '✓ ' : '✗ '}{(l.input_resumen || l.accion || '').substring(0, 45)}
+              </div>
+              {errShort && <div style={{ fontSize:9, color:'#EF4444', marginTop:1 }}>⚠ {errShort}</div>}
+              {l.duracion_ms && <div style={{ fontSize:9, color:'#CBD5E1', marginTop:1 }}>{l.duracion_ms}ms</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ===== COST TRACKER: Tokens y costos en tiempo real =====
 function CostTracker() {
   const [data, setData] = useSPS(null);
@@ -1452,7 +1542,7 @@ function LiveFeed({ agents, events, metrics, tasksDoneReal, alerts, onSelectAgen
         <Metric label="Activos" value={`${metrics.working}/${agents.length}`} tone="mint"/>
         <Metric label="Reuniones" value={metrics.meeting} tone="amber"/>
         <Metric label="Bloqueados" value={metrics.blocked} tone={metrics.blocked > 0 ? "red" : "ink"}/>
-        <Metric label="Tareas hoy" value={tasksDoneReal !== null ? tasksDoneReal : '…'} tone="blue"/>
+        <div style={{cursor:'pointer'}} onClick={() => { var el = document.querySelector('[data-feed]'); if(el) el.scrollIntoView({behavior:'smooth'}); }} title="Click para ver detalle"><Metric label="Tareas hoy" value={tasksDoneReal !== null ? tasksDoneReal : '…'} tone="blue"/></div>
       </div>
 
       {/* Eficiencia */}
@@ -1519,24 +1609,10 @@ function LiveFeed({ agents, events, metrics, tasksDoneReal, alerts, onSelectAgen
       })}
     </div>
 
-    {/* Feed */}
-    <div style={{ padding:'8px 14px 4px', fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'#64748B', letterSpacing:'0.08em', background:'rgba(255,255,255,0.4)' }}>FEED EN VIVO</div>
-    <div style={{ flex:1, overflow:'auto', background:'rgba(255,255,255,0.5)' }}>
-      {events.map(e => {
-        const a = agents.find(x => x.id === e.agentId); if (!a) return null;
-        const d = window.DEPARTMENTS[a.area];
-        return <div key={e.id} onClick={() => onSelectAgent(a.id)} style={{ padding:'8px 14px', display:'flex', gap:8, borderBottom:'1px solid rgba(15,23,42,0.04)', cursor:'pointer' }}>
-          <div style={{ width:3, background:d.color, borderRadius:2 }}/>
-          <div style={{ flex:1 }}>
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <span style={{ fontSize:11, fontWeight:700, color:'#0F172A' }}>{a.emoji} {a.nombre}</span>
-              <span style={{ fontSize:10, color:'#94A3B8', fontFamily:'JetBrains Mono, monospace' }}>{fmtAgo(e.t)}</span>
-            </div>
-            <div style={{ fontSize:11, color:'#475569', marginTop:1 }}>{e.text}</div>
-          </div>
-        </div>;
-      })}
-    </div>
+    {/* Feed en vivo — datos reales de aos_agente_logs */}
+    <div style={{ padding:'8px 14px 4px', fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'#64748B', letterSpacing:'0.08em', background:'rgba(255,255,255,0.3)' }}>ACTIVIDAD REAL</div>
+    <div data-feed="true"/>
+    <RealFeed agents={agents} onSelectAgent={onSelectAgent}/>
   </div>;
 }
 
@@ -2193,14 +2269,14 @@ function App(){
             <span style={{width:6,height:6,borderRadius:'50%',background:'#00C9A7',boxShadow:'0 0 6px #00C9A7'}}/>
             <span style={{color:'#00C9A7',fontWeight:700}}>LIVE</span>
             <span>·</span>
-            <span>{metrics.working}/{agents.length} activos</span>
+            <span>{agents.length} agentes</span>
             {alerts.length>0 && <><span>·</span><span style={{color:'#EF4444',fontWeight:700}}>⚠ {alerts.length}</span></>}
           </div>
           <button className={`tb-btn ${mode==='normal'?'active':''}`} onClick={()=>setMode('normal')}>▦ Normal</button>
           <button className={`tb-btn ${mode==='heatmap'?'active':''}`} onClick={()=>setMode('heatmap')}>☀ Heatmap</button>
           <button className="tb-btn" onClick={()=>setMeetingOpen(true)}>🤝 Reunión</button>
           <button className="tb-btn" onClick={runTick}>⚡ Tick</button>
-          <SoundToggle/>
+
           <button className="tb-btn tb-collapse" title="Panel" onClick={()=>setSidePanelOpen(v=>!v)}>{sidePanelOpen?'▶':'◀'}</button>
         </div>
 
