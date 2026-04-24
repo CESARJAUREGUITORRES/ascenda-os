@@ -868,7 +868,7 @@ var _snapshotAge = 0
 function getSnapshot() {
   // Cache local de 60s para no hammear Supabase
   if (_cachedSnapshot && (Date.now() - _snapshotAge) < 60000) return Promise.resolve(_cachedSnapshot)
-  return sbFetch('/rest/v1/rpc/aos_generar_snapshot', { method: 'POST', body: '{}' })
+  return sbRpc('aos_generar_snapshot', {})
     .then(function(snap) {
       _cachedSnapshot = snap
       _snapshotAge = Date.now()
@@ -955,7 +955,7 @@ function buildChatContext(agentId) {
 
 // Regenerar snapshot cada 5 min en Railway
 setInterval(function() {
-  sbFetch('/rest/v1/rpc/aos_generar_snapshot', { method: 'POST', body: '{}' })
+  sbRpc('aos_generar_snapshot', {})
     .then(function(snap) { _cachedSnapshot = snap; _snapshotAge = Date.now(); console.log('[SNAPSHOT] Regenerado OK') })
     .catch(function(e) { console.error('[SNAPSHOT] Error:', e.message) })
 }, 300000) // 5 min
