@@ -219,6 +219,7 @@ function lAll(){lCh();lTa();lNo();}
 function lCh(){q('aos_canales','select=*&order=ultimo_mensaje_at.desc.nullslast',function(c){D.ch=c||[];rCL();if(D.ac)lMs(D.ac);});}
 function rCL(){
   var el=document.getElementById('zCL');
+  if(!el) return;
   var bcast=D.ch.filter(function(c){return c.tipo==='BROADCAST';});
   var grps=D.ch.filter(function(c){return c.tipo==='GRUPO';});
   var dirs=D.ch.filter(function(c){return c.tipo==='DIRECTO';});
