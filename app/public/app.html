@@ -465,6 +465,29 @@ setTimeout(function() {
     }
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
+  
+  // Revalidar permisos desde Supabase (no depender de localStorage viejo)
+  if (AOS.role !== 'ADMIN') {
+    fetch(_SB+'/rest/v1/aos_usuarios?select=paneles_acceso,nivel_jerarquia&codigo_asesor=eq.'+AOS.ctx.idAsesor,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json()}).then(function(rows){
+      if(rows&&rows[0]){
+        var fresh = rows[0].paneles_acceso||[];
+        if(typeof fresh==='string'){try{fresh=JSON.parse(fresh)}catch(e){fresh=[]}}
+        AOS.ctx.paneles_acceso = fresh;
+        // Actualizar localStorage
+        var ss = JSON.parse(localStorage.getItem('aos_session')||'{}');
+        ss.paneles_acceso = fresh;
+        localStorage.setItem('aos_session',JSON.stringify(ss));
+        // Rebuild sidebar con permisos frescos
+        buildSidebar();
+        // Si tiene permisos restringidos, navegar al correcto
+        if(fresh.length>0 && AOS.activeView && fresh.indexOf(AOS.activeView)<0){
+          navigateTo(fresh[0]);
+        }
+      }
+    }).catch(function(){});
+  }
+  
   buildTopbar(); buildSidebar(); startClock();
   // Cargar panel inicial DENTRO del workspace
   var _perms = AOS.ctx.paneles_acceso || [];
