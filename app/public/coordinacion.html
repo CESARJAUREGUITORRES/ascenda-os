@@ -133,6 +133,14 @@ body,html{height:100%}
 .ZKkd{font-size:8px;padding:3px 8px;border-radius:6px;display:inline-block}.ZKkd.ok{background:#f0f4fc;color:#64748b}.ZKkd.wn{background:rgba(220,38,38,.06);color:#dc2626;font-weight:700}
 .ZKkb{display:flex;gap:2px;margin-top:4px}.ZKks{height:4px;border-radius:2px;flex:1}
 .ZKkp{font-size:7px;color:#94a3b8;margin-top:2px}
+/* Tabs panel derecho */
+.ZRtab{padding:5px 10px;border:none;background:transparent;font-size:10px;font-weight:600;color:#94a3b8;cursor:pointer;border-radius:6px;font-family:'DM Sans';transition:all .15s}
+.ZRtab.act{background:#EBF2FF;color:#0A4FBF;font-weight:700}
+.Kcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.Kcol-h{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;font-size:11px;font-weight:800;color:#0f172a;border-bottom:3px solid #ccc;margin-bottom:4px}
+.Kcol-c{font-size:9px;font-weight:800;color:#fff;border-radius:20px;padding:1px 8px;min-width:18px;text-align:center}
+.Kcard{padding:10px 12px;background:#fff;border-radius:10px;border:1px solid #EEF0F8;cursor:pointer;transition:all .15s}.Kcard:hover{border-color:#0A4FBF;box-shadow:0 2px 8px rgba(10,79,191,.08)}
+.Kav{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff}
 .ZKk.dn{opacity:.4}.ZKk.dn .ZKkt{text-decoration:line-through}
 .ZKkpr{font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 /* List */
@@ -173,11 +181,18 @@ body,html{height:100%}
   </div>
   <div class="ZR">
     <div class="ZRh">
-      <div style="display:flex;align-items:center;gap:6px"><button class="ZB Zp" onclick="newTarea()">+ Tarea</button><button class="ZB Zs" onclick="newNotif()">🔔 Notif</button></div>
+      <div style="display:flex;align-items:center;gap:4px;flex:1">
+        <button class="ZRtab act" data-rt="p" onclick="switchRP('p')">👤 Panel</button>
+        <button class="ZRtab" data-rt="t" onclick="switchRP('t')">📋 Tareas</button>
+        <button class="ZRtab" data-rt="n" onclick="switchRP('n')">🔔 Notif</button>
+      </div>
+      <div style="display:flex;gap:4px"><button class="ZB Zp" onclick="newTarea()">+ Tarea</button><button class="ZB Zs" onclick="newNotif()">🔔</button></div>
     </div>
     <div id="zPanel" class="ZMet" style="flex:1;overflow-y:auto">
       <div style="padding:30px;text-align:center;font-size:11px;color:#94a3b8">Selecciona un contacto para ver su panel</div>
     </div>
+    <div id="zKanban" class="ZMet" style="flex:1;overflow-y:auto;display:none;flex-direction:row;gap:8px;padding:8px"></div>
+    <div id="zNL" class="ZMet" style="flex:1;overflow-y:auto;display:none"></div>
   </div>
 </div>
 
@@ -475,8 +490,109 @@ function newNotif(){document.getElementById('nn-t').value='';document.getElement
 function sN(){var t=document.getElementById('nn-t').value.trim();if(!t)return;rpc('aos_enviar_notificacion',{p_titulo:t,p_contenido:document.getElementById('nn-c').value||null,p_para:document.getElementById('nn-to').value||null,p_tipo:document.getElementById('nn-tp').value},function(){document.getElementById('m-nn').classList.remove('open');lNo();if(window.AOS_showToast)AOS_showToast('Enviada','','success');});}
 // TABS (legacy - panel is now contextual)
 function zRT(){}
-function lAll(){lCh();lNo();}
-function lTa(){}
+function switchRP(tab){
+  D.rpTab=tab;
+  document.querySelectorAll('.ZRtab').forEach(function(b){b.classList.toggle('act',b.getAttribute('data-rt')===tab);});
+  document.getElementById('zPanel').style.display=tab==='p'?'':'none';
+  document.getElementById('zKanban').style.display=tab==='t'?'flex':'none';
+  document.getElementById('zNL').style.display=tab==='n'?'':'none';
+  if(tab==='t')rKanban();
+  if(tab==='n')rNo();
+  if(tab==='p')lPanel();
+}
+function lTa(){
+  rpc('aos_tareas_dashboard',{p_usuario:D.me||'ADMIN'},function(r){
+    if(!r)r={pendientes:[],en_progreso:[],completadas:[]};
+    D.ta=r;
+    if(D.rpTab==='t')rKanban();
+    // También cargar las tareas del asesor en el panel lateral
+    if(D.ac){
+      var ch=D.ch.find(function(c){return c.id===D.ac;});
+      if(ch&&ch.tipo==='DIRECTO'){
+        var tl=document.getElementById('zTList');
+        if(tl){
+          var all=(r.pendientes||[]).concat(r.en_progreso||[]).filter(function(t){return t.asignado_a===(ch.nombre||'');});
+          if(!all.length){tl.innerHTML='<div style="padding:12px;font-size:10px;color:#94a3b8;text-align:center">Sin tareas asignadas</div>';return;}
+          tl.innerHTML=all.map(function(t){
+            var pr=t.prioridad==='URGENTE'?'#dc2626':t.prioridad==='ALTA'?'#ea580c':'#6B7BA8';
+            var est=t.estado==='EN_PROGRESO'?'🔵':'⬜';
+            return '<div style="padding:8px 10px;border-bottom:1px solid #f0f4fc;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleTa(\''+E(t.id)+'\')">'+est+' <span style="flex:1">'+E(t.titulo)+'</span><span style="font-size:9px;color:'+pr+';font-weight:700">'+E(t.prioridad||'')+'</span></div>';
+          }).join('');
+        }
+      }
+    }
+  });
+}
+
+function rKanban(){
+  var el=document.getElementById('zKanban');
+  if(!el)return;
+  var r=D.ta||{pendientes:[],en_progreso:[],completadas:[]};
+  
+  function col(titulo,icon,color,items,estado){
+    var h='<div class="Kcol"><div class="Kcol-h" style="border-color:'+color+'"><span>'+icon+' '+titulo+'</span><span class="Kcol-c" style="background:'+color+'">'+items.length+'</span></div>';
+    if(!items.length) h+='<div style="padding:20px;text-align:center;font-size:10px;color:#94a3b8">Sin tareas</div>';
+    items.forEach(function(t){
+      var pr=t.prioridad==='URGENTE'?'🔴':t.prioridad==='ALTA'?'🟠':t.prioridad==='MEDIA'?'🟡':'⚪';
+      var venc=t.vencida?'<span style="font-size:8px;color:#dc2626;font-weight:700;margin-left:4px">VENCIDA</span>':'';
+      var items_done=0,items_total=0;
+      if(t.items&&t.items.length){items_total=t.items.length;t.items.forEach(function(it){if(it.done)items_done++;});}
+      var prog=items_total?'<div style="display:flex;align-items:center;gap:4px;margin-top:4px"><div style="flex:1;height:3px;background:#EEF0F8;border-radius:2px;overflow:hidden"><div style="height:100%;background:'+color+';width:'+(items_done/items_total*100)+'%;border-radius:2px"></div></div><span style="font-size:8px;color:#94a3b8">'+items_done+'/'+items_total+'</span></div>':'';
+      h+='<div class="Kcard" onclick="verTarea(\''+E(t.id)+'\')">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:700;color:#0f172a">'+E(t.titulo)+'</span>'+pr+'</div>';
+      h+='<div style="display:flex;align-items:center;gap:4px;margin-top:6px"><div class="Kav" style="background:'+C(t.asignado_a||'')+'">'+I(t.asignado_a||'?')+'</div><span style="font-size:9px;color:#64748b">'+E(t.asignado_a||'Sin asignar')+'</span>'+venc+'</div>';
+      if(t.fecha_limite)h+='<div style="font-size:9px;color:#94a3b8;margin-top:4px">📅 '+E(t.fecha_limite.substring(0,10))+'</div>';
+      h+=prog;
+      h+='</div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  
+  el.innerHTML=col('Pendientes','⬜','#EA580C',r.pendientes||[],'PENDIENTE')+
+    col('En progreso','🔵','#0A4FBF',r.en_progreso||[],'EN_PROGRESO')+
+    col('Completadas','✅','#16A34A',(r.completadas||[]).slice(0,10),'COMPLETADA');
+}
+
+function toggleTa(id){
+  rpc('aos_toggle_tarea_item',{p_tarea_id:id},function(r){
+    if(r&&r.ok)lTa();
+  });
+}
+
+function verTarea(id){
+  var all=(D.ta.pendientes||[]).concat(D.ta.en_progreso||[]).concat(D.ta.completadas||[]);
+  var t=all.find(function(x){return x.id===id;});
+  if(!t)return;
+  
+  var items_h='';
+  if(t.items&&t.items.length){
+    items_h=t.items.map(function(it,i){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f4fc;font-size:11px;cursor:pointer" onclick="toggleItem(\''+E(id)+'\','+i+')">'+(it.done?'☑':'☐')+' <span style="'+(it.done?'text-decoration:line-through;color:#94a3b8':'color:#0f172a')+'">'+E(it.text||it.titulo||'')+'</span></div>';
+    }).join('');
+  }
+  
+  var pr=t.prioridad==='URGENTE'?'🔴 Urgente':t.prioridad==='ALTA'?'🟠 Alta':t.prioridad==='MEDIA'?'🟡 Media':'⚪ Normal';
+  var est=t.estado==='COMPLETADA'?'✅ Completada':t.estado==='EN_PROGRESO'?'🔵 En progreso':'⬜ Pendiente';
+  
+  aosConfirm(
+    '<div style="text-align:left">'+
+    '<div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px">'+E(t.titulo)+'</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:8px"><span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#EBF2FF;color:#0A4FBF">'+est+'</span><span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#FFF7ED;color:#EA580C">'+pr+'</span></div>'+
+    '<div style="font-size:11px;color:#64748b;margin-bottom:4px">👤 '+E(t.asignado_a||'Sin asignar')+'</div>'+
+    (t.fecha_limite?'<div style="font-size:11px;color:#64748b;margin-bottom:8px">📅 '+E(t.fecha_limite.substring(0,10))+'</div>':'')+
+    (t.descripcion?'<div style="font-size:11px;color:#475569;margin-bottom:10px;padding:8px;background:#f8fafc;border-radius:6px">'+E(t.descripcion)+'</div>':'')+
+    (items_h?'<div style="margin-top:8px;font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:4px">Checklist</div>'+items_h:'')+
+    '</div>',
+    function(){}
+  );
+}
+
+function toggleItem(tareaId, itemIdx){
+  rpc('aos_toggle_tarea_item',{p_tarea_id:tareaId,p_item_idx:itemIdx},function(r){
+    if(r&&r.ok){lTa();}
+  });
+}
 function editGrp(gid,acc,miembro){
   if(acc==='QUITAR'){aosConfirm('¿Quitar a '+miembro+' del grupo?',function(){rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r){lPanel();lCh();}});});return;}
   rpc('aos_editar_grupo',{p_grupo_id:gid,p_accion:acc,p_miembro:miembro},function(r){if(r){lPanel();lCh();}});
