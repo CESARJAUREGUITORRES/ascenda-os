@@ -2311,32 +2311,58 @@ function cotPDFCaja(tipo) {
 }
 
 function cotEmailCaja() {
-  try {
-  console.log('[CAJA-EMAIL] Inicio, items:', VT.items.length);
-  if (!VT.items.length) { toast('Agrega ítems primero','warn'); return; }
+  if (!VT.items.length) { toast('Agrega items primero','warn'); return; }
   var pac = VT.pac || {};
   var email = pac.Email || pac.email || pac.correo || '';
   var nombre = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
-  var items = VT.items.map(function(it) {
-    return { nombre: it.nombre || '', cantidad: it.cantidad || 1, subtotal: parseFloat(it.subtotal || 0) };
-  });
-  var total = items.reduce(function(s, it) { return s + it.subtotal; }, 0);
+  var items = VT.items.map(function(it) { return { nombre: it.nombre||'', cantidad: it.cantidad||1, subtotal: parseFloat(it.subtotal||0) }; });
+  var total = items.reduce(function(s,it){return s+it.subtotal;},0);
+  var preview = items.map(function(it){return it.nombre+' x'+it.cantidad+' = S/'+it.subtotal.toFixed(2);}).join(', ');
+  window._emCajaData = { nombre:nombre, items:items, total:total, pac:pac };
 
-  document.getElementById('em-caja-pac').textContent = nombre + ' · ' + VT.items.length + ' item(s) · S/ ' + total.toFixed(2);
-  document.getElementById('em-caja-email').value = email;
-  var preview = items.map(function(it) { return it.nombre + ' (x' + it.cantidad + ') — S/' + it.subtotal.toFixed(2); }).join('\n');
-  document.getElementById('em-caja-preview').textContent = preview;
+  // Mostrar modal directamente con estilos inline absolutos
+  var existing = document.getElementById('email-modal-inline');
+  if (existing) existing.remove();
   
-  // Reset tipo seleccionado
-  document.querySelectorAll('.em-tipo-opt').forEach(function(o,i) {
-    if(i===0) { o.style.borderColor='var(--blue)'; o.style.background='var(--blue-xl)'; }
-    else { o.style.borderColor='var(--border)'; o.style.background='var(--surface)'; }
-  });
-  
-  console.log('[CAJA-EMAIL] Abriendo modal...');
-  abrirOv('ov-email-caja');
-  window._emCajaData = { nombre: nombre, items: items, total: total, pac: pac };
-  } catch(e) { console.error('[CAJA-EMAIL] Error:', e); toast('Error: ' + e.message, 'warn'); }
+  var m = document.createElement('div');
+  m.id = 'email-modal-inline';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
+  m.innerHTML = '<div style="background:#fff;border-radius:16px;width:400px;max-width:92vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:18px 22px;display:flex;align-items:center;gap:10px;">' +
+    '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="white" stroke-width="1.4"/><path d="M2 8l8 5 8-5" stroke="white" stroke-width="1.3" stroke-linecap="round"/></svg>' +
+    '<div><div style="font-size:14px;font-weight:800;color:#fff;">Enviar por Email</div>' +
+    '<div style="font-size:10px;color:#00E5A0;">' + escH(nombre) + ' - S/' + total.toFixed(2) + '</div></div>' +
+    '<div onclick="document.getElementById(\'email-modal-inline\').remove()" style="margin-left:auto;color:#fff;font-size:20px;cursor:pointer;padding:4px;">&times;</div></div>' +
+    '<div style="padding:20px 22px;">' +
+    '<label style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Correo del paciente</label>' +
+    '<input type="email" id="em-inline-email" value="' + escH(email) + '" placeholder="correo@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:13px;margin-top:4px;outline:none;font-family:Outfit;box-sizing:border-box;">' +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+    '<div id="em-opt-comp" onclick="document.getElementById(\'em-opt-comp\').style.borderColor=\'#0A4FBF\';document.getElementById(\'em-opt-comp\').style.background=\'#EBF2FF\';document.getElementById(\'em-opt-cot\').style.borderColor=\'#DDE4F5\';document.getElementById(\'em-opt-cot\').style.background=\'#fff\';window._emTipo=\'recibo_venta\'" style="flex:1;padding:14px;border-radius:12px;border:2px solid #0A4FBF;background:#EBF2FF;cursor:pointer;text-align:center;">' +
+    '<div style="font-size:20px;">&#x1f9fe;</div><div style="font-size:11px;font-weight:700;color:#0A4FBF;margin-top:4px;">Comprobante</div><div style="font-size:9px;color:#6B7BA8;">Con detalle de pago</div></div>' +
+    '<div id="em-opt-cot" onclick="document.getElementById(\'em-opt-cot\').style.borderColor=\'#0A4FBF\';document.getElementById(\'em-opt-cot\').style.background=\'#EBF2FF\';document.getElementById(\'em-opt-comp\').style.borderColor=\'#DDE4F5\';document.getElementById(\'em-opt-comp\').style.background=\'#fff\';window._emTipo=\'cotizacion\'" style="flex:1;padding:14px;border-radius:12px;border:2px solid #DDE4F5;background:#fff;cursor:pointer;text-align:center;">' +
+    '<div style="font-size:20px;">&#x1f4cb;</div><div style="font-size:11px;font-weight:700;color:#475569;margin-top:4px;">Cotizaci\u00f3n</div><div style="font-size:9px;color:#6B7BA8;">Solo presupuesto</div></div></div>' +
+    '<div style="margin-top:12px;padding:8px 12px;background:#F8FAFF;border-radius:8px;font-size:10px;color:#6B7BA8;border:1px solid #EEF0F8;">' + escH(preview) + '</div></div>' +
+    '<div style="display:flex;gap:8px;padding:14px 22px;border-top:1px solid #EEF0F8;">' +
+    '<button onclick="document.getElementById(\'email-modal-inline\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:Outfit;">Cancelar</button>' +
+    '<button onclick="emCajaEnviarInline()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:Outfit;">\u2709 Enviar</button></div></div>';
+  document.body.appendChild(m);
+  window._emTipo = 'recibo_venta';
+}
+
+function emCajaEnviarInline() {
+  var email = document.getElementById('em-inline-email').value.trim();
+  if (!email || email.indexOf('@') < 0) { toast('Email inv\u00e1lido','warn'); return; }
+  var d = window._emCajaData || {};
+  var template = window._emTipo || 'recibo_venta';
+  if (d.pac && !d.pac.Email && !d.pac.email && d.pac.numero) {
+    fetch(_SB+'/rest/v1/aos_pacientes?numero_limpio=eq.'+d.pac.numero,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"Email":email})}).catch(function(){});
+  }
+  toast('Enviando...','');
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,template:template,nombre:d.nombre,items:d.items,total:d.total,moneda:'PEN',metodo:'',sede:CAJA.sede||'',fecha:fechaLima(),venta_id:''})}).then(function(r){return r.json()}).then(function(res){
+    var m = document.getElementById('email-modal-inline'); if(m) m.remove();
+    if(res&&(res.ok||res.id)) toast('\u2705 Email enviado a '+email,'ok');
+    else toast('Error: '+(res.error||''),'warn');
+  }).catch(function(e){toast('Error: '+e.message,'warn');});
 }
 
 
