@@ -1171,20 +1171,31 @@ function deleteRuc(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_
 
 // ═══ COMPROBANTES ═══
 var _compData = [];
+var _metodosData = [];
 function loadComprobantes(){
-  sbGet('/rest/v1/aos_tipos_comprobante?select=*&order=orden').then(function(rows){
-    _compData = rows || [];
-    if(!rows||!rows.length){el('cfg-comprobantes').innerHTML='<div style="padding:20px;text-align:center;color:#CBD5E1;font-size:11px;">Sin comprobantes</div>';return;}
-    el('cfg-comprobantes').innerHTML=rows.map(function(c){
-      var vinc = (c.rucs_vinculados||[]).map(function(rid){var r=_rucsData.find(function(x){return x.id===rid;});return r?(r.tipo_ruc+': '+r.ruc):'?';}).join(', ');
-      return '<div class="crd" style="padding:10px;margin-bottom:8px;cursor:pointer;" onclick="editComprobante(\''+c.id+'\')">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-        '<div style="font-weight:700;font-size:12px;color:#071D4A;">🧾 '+h(c.nombre)+'</div>'+
-        '<button style="border:none;background:#FEE2E2;color:#DC2626;width:20px;height:20px;border-radius:6px;font-size:9px;cursor:pointer;" onclick="event.stopPropagation();deleteComprobante(\''+c.id+'\')">×</button>'+
-        '</div>'+
-        '<div style="font-size:9px;color:#9AAAC8;margin-top:4px;">Vinculado a: '+(vinc||'<span style=color:#F59E0B>Sin vincular</span>')+'</div>'+
-        '</div>';
-    }).join('');
+  // Cargar métodos también para mostrar vinculación inversa
+  sbGet('/rest/v1/aos_metodos_pago?select=nombre,comprobantes_vinculados,activo&activo=eq.true&order=nombre').then(function(met){
+    _metodosData = met || [];
+    sbGet('/rest/v1/aos_tipos_comprobante?select=*&order=orden').then(function(rows){
+      _compData = rows || [];
+      if(!rows||!rows.length){el('cfg-comprobantes').innerHTML='<div style="padding:20px;text-align:center;color:#CBD5E1;font-size:11px;">Sin comprobantes</div>';return;}
+      el('cfg-comprobantes').innerHTML=rows.map(function(c){
+        // Vinculación RUCs
+        var vincRucs = (c.rucs_vinculados||[]).map(function(rid){var r=_rucsData.find(function(x){return x.id===rid;});return r?(r.tipo_ruc+': '+r.ruc):'?';}).join(', ');
+        // Vinculación inversa: qué métodos usan este comprobante
+        var metodos = _metodosData.filter(function(m){return (m.comprobantes_vinculados||[]).indexOf(c.nombre)>=0;}).map(function(m){return m.nombre;});
+        var metTxt = metodos.length ? metodos.join(', ') : '<span style="color:#F59E0B">Ningún método</span>';
+        var rucTxt = vincRucs || '<span style="color:#9AAAC8">Sin RUC asignado</span>';
+        return '<div class="crd" style="padding:10px;margin-bottom:8px;cursor:pointer;" onclick="editComprobante(\''+c.id+'\')">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+          '<div style="font-weight:700;font-size:12px;color:#071D4A;">🧾 '+h(c.nombre)+'</div>'+
+          '<button style="border:none;background:#FEE2E2;color:#DC2626;width:20px;height:20px;border-radius:6px;font-size:9px;cursor:pointer;" onclick="event.stopPropagation();deleteComprobante(\''+c.id+'\')">×</button>'+
+          '</div>'+
+          '<div style="font-size:9px;color:#475569;margin-top:4px;">Métodos: '+metTxt+'</div>'+
+          '<div style="font-size:9px;color:#9AAAC8;margin-top:2px;">RUC: '+rucTxt+'</div>'+
+          '</div>';
+      }).join('');
+    });
   });
 }
 function openAddComprobante(){el('modal-comp-title').textContent='Agregar comprobante';el('comp-nombre').value='';el('comp-edit-id').value='';renderCompRucsChecks([]);el('modal-comprobante').style.display='flex';}
