@@ -140,14 +140,45 @@
       </div>
     </div>
     <div id="emp-redes" style="display:none;">
-      <div class="crd">
-        <div class="sec-t">🌐 Redes Sociales</div>
-        <div class="fg"><div><div class="fg-l">Instagram</div></div><input class="mi" id="c-empresa_instagram" data-k="empresa_instagram" placeholder="@clinicazivital"></div>
-        <div class="fg"><div><div class="fg-l">Facebook</div></div><input class="mi" id="c-empresa_facebook" data-k="empresa_facebook" type="url"></div>
-        <div class="fg"><div><div class="fg-l">TikTok</div></div><input class="mi" id="c-empresa_tiktok" data-k="empresa_tiktok" placeholder="@clinicazivital"></div>
-        <div class="fg"><div><div class="fg-l">YouTube</div></div><input class="mi" id="c-empresa_youtube" data-k="empresa_youtube" type="url"></div>
-        <div class="fg"><div><div class="fg-l">Google Business</div></div><input class="mi" id="c-empresa_google_business" data-k="empresa_google_business" type="url"></div>
-        <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div class="sec-t" style="margin:0;">🌐 Redes Sociales</div>
+          <div style="font-size:10px;color:#9AAAC8;">Organiza por perfil: empresa, profesional o sede</div>
+        </div>
+        <button class="mbtn mbtn-p" style="font-size:11px;" onclick="openAddRed()">+ Agregar red</button>
+      </div>
+      <div id="redes-list" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="text-align:center;padding:20px;color:#9AAAC8;font-size:11px;">Cargando...</div>
+      </div>
+
+      <!-- Modal agregar/editar red -->
+      <div id="modal-red" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.5);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:#fff;border-radius:16px;padding:20px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(7,29,74,.2);">
+          <div style="font-size:14px;font-weight:700;color:#071D4A;margin-bottom:14px;" id="modal-red-title">Agregar red social</div>
+          <div class="fg"><div class="fg-l">Tipo de perfil</div><select class="mi" id="red-perfil-tipo">
+            <option value="empresa">🏢 Empresa</option>
+            <option value="profesional">👩‍⚕️ Profesional / Doctora</option>
+            <option value="sede">📍 Sede</option>
+          </select></div>
+          <div class="fg"><div class="fg-l">Nombre del perfil</div><input class="mi" id="red-perfil-nombre" placeholder="Ej: Zi Vital, Dra. Pamela, San Isidro"></div>
+          <div class="fg"><div class="fg-l">Red social</div><select class="mi" id="red-tipo">
+            <option value="instagram">📸 Instagram</option>
+            <option value="facebook">📘 Facebook</option>
+            <option value="tiktok">🎵 TikTok</option>
+            <option value="youtube">▶️ YouTube</option>
+            <option value="linkedin">💼 LinkedIn</option>
+            <option value="google_business">📍 Google Business</option>
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="web">🌐 Sitio Web</option>
+          </select></div>
+          <div class="fg"><div class="fg-l">Usuario / Handle</div><input class="mi" id="red-usuario" placeholder="@clinicazivital"></div>
+          <div class="fg"><div class="fg-l">URL completa</div><input class="mi" id="red-url" type="url" placeholder="https://instagram.com/clinicazivital"></div>
+          <input type="hidden" id="red-edit-id" value="">
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <button class="mbtn mbtn-p" style="flex:1;" onclick="saveRed()">💾 Guardar</button>
+            <button class="mbtn mbtn-o" onclick="el('modal-red').style.display='none'">Cancelar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div id="emp-diseno" style="display:none;">
@@ -427,6 +458,7 @@ function empChip(chip){
   if(chip==='sedes')loadSedes();
   if(chip==='facturacion')loadFacturacion();
   if(chip==='diseno')loadLogos();
+  if(chip==='redes')loadRedes();
 }
 
 // ═══ CONFIG KEY/VALUE ═══
@@ -525,6 +557,104 @@ function updatePreview(){
   var pet = el('prev-email-trat'); if(pet) pet.style.color = ctv;
   // Email company color en header = acento
   if(pec) pec.style.color = c2v;
+}
+
+// ═══ REDES SOCIALES ═══
+var REDES_ICONS = {instagram:'📸',facebook:'📘',tiktok:'🎵',youtube:'▶️',linkedin:'💼',google_business:'📍',whatsapp:'💬',web:'🌐'};
+var PERFIL_ICONS = {empresa:'🏢',profesional:'👩‍⚕️',sede:'📍'};
+
+function loadRedes() {
+  sbGet('/rest/v1/aos_redes_sociales?select=*&order=perfil_tipo,perfil_nombre,orden').then(function(rows) {
+    var list = el('redes-list');
+    if (!rows || !rows.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:#9AAAC8;font-size:11px;">Sin redes configuradas. Click + Agregar red.</div>'; return; }
+    // Agrupar por perfil
+    var groups = {};
+    rows.forEach(function(r) {
+      var key = r.perfil_tipo + '|' + r.perfil_nombre;
+      if (!groups[key]) groups[key] = { tipo: r.perfil_tipo, nombre: r.perfil_nombre, redes: [] };
+      groups[key].redes.push(r);
+    });
+    list.innerHTML = Object.values(groups).map(function(g) {
+      return '<div class="crd" style="padding:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<div style="font-size:12px;font-weight:700;color:#071D4A;">' + (PERFIL_ICONS[g.tipo]||'') + ' ' + h(g.nombre) + '</div>' +
+        '<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:' + (g.tipo==='empresa'?'#EEF2FA':g.tipo==='profesional'?'#FFF7ED':'#F0FDF4') + ';color:' + (g.tipo==='empresa'?'#0A4FBF':g.tipo==='profesional'?'#C2410C':'#16A34A') + ';font-weight:600;">' + g.tipo + '</span>' +
+        '</div>' +
+        g.redes.map(function(r) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F8FAFC;">' +
+            '<span style="font-size:14px;">' + (REDES_ICONS[r.red]||'🔗') + '</span>' +
+            '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:11px;font-weight:600;color:#071D4A;">' + h(r.red.replace('_',' ')) + (r.usuario ? ' · ' + h(r.usuario) : '') + '</div>' +
+            (r.url ? '<div style="font-size:10px;color:#0A4FBF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="' + h(r.url) + '" target="_blank" style="color:#0A4FBF;text-decoration:none;">' + h(r.url).substring(0,50) + '</a></div>' : '') +
+            '</div>' +
+            '<button class="mbtn mbtn-o" style="font-size:9px;padding:3px 8px;" onclick="editRed(\'' + r.id + '\')">✏️</button>' +
+            '<button style="border:none;background:#FEE2E2;color:#DC2626;width:22px;height:22px;border-radius:6px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="deleteRed(\'' + r.id + '\')">×</button>' +
+            '</div>';
+        }).join('') +
+        '</div>';
+    }).join('');
+  });
+}
+
+function openAddRed() {
+  el('modal-red-title').textContent = 'Agregar red social';
+  el('red-perfil-tipo').value = 'empresa';
+  el('red-perfil-nombre').value = '';
+  el('red-tipo').value = 'instagram';
+  el('red-usuario').value = '';
+  el('red-url').value = '';
+  el('red-edit-id').value = '';
+  el('modal-red').style.display = 'flex';
+}
+
+function editRed(id) {
+  sbGet('/rest/v1/aos_redes_sociales?id=eq.' + id).then(function(rows) {
+    if (!rows || !rows[0]) return;
+    var r = rows[0];
+    el('modal-red-title').textContent = 'Editar red social';
+    el('red-perfil-tipo').value = r.perfil_tipo;
+    el('red-perfil-nombre').value = r.perfil_nombre;
+    el('red-tipo').value = r.red;
+    el('red-usuario').value = r.usuario || '';
+    el('red-url').value = r.url || '';
+    el('red-edit-id').value = r.id;
+    el('modal-red').style.display = 'flex';
+  });
+}
+
+function saveRed() {
+  var data = {
+    perfil_tipo: el('red-perfil-tipo').value,
+    perfil_nombre: el('red-perfil-nombre').value.trim(),
+    red: el('red-tipo').value,
+    usuario: el('red-usuario').value.trim(),
+    url: el('red-url').value.trim()
+  };
+  if (!data.perfil_nombre) { alert('Ingresa el nombre del perfil'); return; }
+  var editId = el('red-edit-id').value;
+  if (editId) {
+    sbPatch('/rest/v1/aos_redes_sociales?id=eq.' + editId, data).then(function() {
+      el('modal-red').style.display = 'none';
+      loadRedes();
+      showToast('Red actualizada', data.red);
+    });
+  } else {
+    fetch(SB + '/rest/v1/aos_redes_sociales', {
+      method: 'POST', headers: { 'apikey': SK, 'Authorization': 'Bearer ' + SK, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(data)
+    }).then(function() {
+      el('modal-red').style.display = 'none';
+      loadRedes();
+      showToast('Red agregada', data.red);
+    });
+  }
+}
+
+function deleteRed(id) {
+  if (!confirm('¿Eliminar esta red social?')) return;
+  fetch(SB + '/rest/v1/aos_redes_sociales?id=eq.' + id, {
+    method: 'DELETE', headers: { 'apikey': SK, 'Authorization': 'Bearer ' + SK }
+  }).then(function() { loadRedes(); showToast('Red eliminada', ''); });
 }
 
 // ═══ LOGOS ═══
