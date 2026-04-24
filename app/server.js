@@ -893,6 +893,16 @@ function buildChatContext(agentId) {
           return 'EMAILS ENVIADOS HOY: ' + rows.length + '. Últimos: ' + rows.slice(0,3).map(function(r) { return r.descripcion }).join('; ') + '.'
         }).catch(function() { return '' })
     )
+    // Total pacientes con email en la BD
+    promises.push(
+      sbFetch('/rest/v1/aos_pacientes?select=numero_limpio&Email=neq.&Email=not.is.null&limit=1', { method: 'HEAD' })
+        .then(function() {
+          return sbFetch('/rest/v1/aos_pacientes?select=numero_limpio,"Email"&"Email"=neq.&"Email"=not.is.null&limit=5000')
+        })
+        .then(function(rows) {
+          return 'BASE DE PACIENTES: ' + (rows ? rows.length : 0) + ' pacientes tienen email registrado en el sistema.'
+        }).catch(function() { return 'BASE DE PACIENTES: dato no disponible en este momento.' })
+    )
   }
 
   if (agentId === 'centinela') {
@@ -908,6 +918,12 @@ function buildChatContext(agentId) {
         .then(function(rows) {
           return 'SEGUIMIENTOS PENDIENTES: ' + (rows ? rows.length : 0) + '.'
         }).catch(function() { return '' })
+    )
+    // Total leads en BD
+    promises.push(
+      sbFetch('/rest/v1/aos_leads?select=id&limit=5000')
+        .then(function(rows) { return 'TOTAL LEADS EN BD: ' + (rows ? rows.length : 0) + '.' })
+        .catch(function() { return '' })
     )
   }
 
