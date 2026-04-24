@@ -1,6 +1,27 @@
 // agenda.js v2 — Agenda Global | AscendaOS v1 | 100% Supabase
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+// ===== EMAIL AUTOMÁTICO AL CREAR/REAGENDAR CITA =====
+function enviarEmailConfirmacionCita(d) {
+  var correo = (d.correo || '').trim();
+  if (!correo || correo.indexOf('@') < 0) return;
+  var nombre = ((d.nombre || '') + ' ' + (d.apellido || '')).trim();
+  var fechaRaw = d.fecha_cita || '';
+  var fechaLabel = fechaRaw;
+  try {
+    var dp = new Date(fechaRaw + 'T12:00:00');
+    var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
+  } catch(e) {}
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
+  }).then(function(r) { return r.json(); }).then(function(res) {
+    if (res && (res.ok || res.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
+  }).catch(function() {});
+}
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _rest(path,opts){return fetch(_SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
 function h(s){var o=String(s||'');o=o.split('&').join('&amp;');o=o.split(String.fromCharCode(60)).join('&lt;');o=o.split('>').join('&gt;');o=o.split('"').join('&quot;');return o;}
@@ -286,6 +307,7 @@ function agGuardarEdit(){
       var allOk=results.every(function(r){return r.ok;});
       if(!allOk)throw new Error('Error al reagendar');
       AG.reagendando=false;AG.reagendaOrigId=null;
+      enviarEmailConfirmacionCita(row);
       if(window.AOS_showToast)AOS_showToast('Cita reagendada','Original marcada + nueva creada en '+fecha,'toast-venta');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   } else if(AG.editId){
@@ -297,6 +319,7 @@ function agGuardarEdit(){
     row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
     _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
+      enviarEmailConfirmacionCita(row);
       if(window.AOS_showToast)AOS_showToast('Cita creada','','toast-venta');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   }
