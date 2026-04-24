@@ -565,42 +565,71 @@
   <!-- ═══ EQUIPO ═══ -->
   <div id="cfg-equipo" style="display:none;">
     <div class="crd">
-      <div class="sec-t">👥 Equipo y Usuarios</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div class="sec-t" style="margin:0;">👥 Equipo y Usuarios</div>
+          <div style="font-size:10px;color:#9AAAC8;">Click en cualquier usuario para administrar su cuenta</div>
+        </div>
+      </div>
       <div id="cfg-equipo-list"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-      <div class="crd">
-        <div class="sec-t">🔑 Cambiar Contraseña (Admin)</div>
-        <div style="font-size:10px;color:#6B7BA8;margin-bottom:10px;">Requiere verificación 2FA por email.</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div><div class="fg-l" style="margin-bottom:4px;">Usuario</div><select class="mi" id="pass-user"></select></div>
-          <div><div class="fg-l" style="margin-bottom:4px;">Nueva contraseña</div><input class="mi" type="text" id="pass-new" placeholder="Mínimo 6 caracteres"></div>
-          <button class="mbtn mbtn-p" onclick="requestPassCode()">🔐 Solicitar Código</button>
-          <div id="pass-2fa" style="display:none;">
-            <div style="font-size:11px;color:#0A4FBF;font-weight:700;margin:8px 0 4px;">Código enviado a tu email</div>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <input class="mi" type="text" id="pass-code" placeholder="000000" maxlength="6" style="text-align:center;font-size:18px;font-family:monospace;font-weight:800;letter-spacing:4px;width:160px;" inputmode="numeric">
-              <button class="mbtn mbtn-g" onclick="confirmPassChange()">✓ Confirmar</button>
-            </div>
-            <div id="pass-timer" style="font-size:10px;color:#D97706;margin-top:4px;"></div>
+
+    <!-- Modal de administración de usuario -->
+    <div id="modal-user-admin" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+      <div style="background:#fff;border-radius:20px;padding:28px;width:520px;max-width:92vw;box-shadow:0 24px 80px rgba(7,29,74,.25);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:#071D4A;font-family:'Exo 2',sans-serif;" id="ua-name">Usuario</div>
+            <div style="font-size:11px;color:#9AAAC8;" id="ua-cargo">Cargo</div>
           </div>
-          <div id="pass-msg" style="font-size:11px;min-height:16px;"></div>
+          <span id="ua-status-badge"></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div style="padding:12px;border-radius:10px;background:#F8FAFF;border:1px solid #EEF0F8;">
+            <div style="font-size:9px;color:#9AAAC8;font-weight:700;letter-spacing:.5px;">ÁREA</div>
+            <div style="font-size:12px;font-weight:600;color:#071D4A;margin-top:2px;" id="ua-area">—</div>
+          </div>
+          <div style="padding:12px;border-radius:10px;background:#F8FAFF;border:1px solid #EEF0F8;">
+            <div style="font-size:9px;color:#9AAAC8;font-weight:700;letter-spacing:.5px;">NIVEL</div>
+            <div style="font-size:12px;font-weight:600;color:#071D4A;margin-top:2px;" id="ua-nivel">—</div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #F1F5F9;padding-top:14px;">
+          <div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:10px;">⚡ Acciones rápidas</div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="flex:1;"><div class="fg-l" style="margin-bottom:4px;">Nueva contraseña</div><input class="mi" id="ua-new-pass" type="text" placeholder="Mínimo 6 caracteres" style="padding:10px;font-size:12px;"></div>
+              <button class="mbtn mbtn-p" style="margin-top:18px;padding:10px 16px;" onclick="adminChangePass()">🔑 Cambiar</button>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="mbtn mbtn-c" style="flex:1;padding:10px;" id="ua-btn-toggle" onclick="toggleUserActive()">⏸️ Desactivar cuenta</button>
+              <button class="mbtn" style="flex:1;padding:10px;background:#FEF2F2;color:#DC2626;font-weight:700;border:none;border-radius:10px;cursor:pointer;" onclick="forceLogout()">🚪 Forzar cierre de sesión</button>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <div style="flex:1;"><div class="fg-l" style="margin-bottom:4px;">Acceso geográfico</div>
+                <select class="mi" id="ua-geo" style="padding:10px;font-size:12px;">
+                  <option value="libre">🌍 Libre (sin restricción GPS)</option>
+                  <option value="limitado">📍 Limitado (solo dentro de sedes)</option>
+                </select>
+              </div>
+              <button class="mbtn mbtn-p" style="margin-top:18px;padding:10px 14px;" onclick="saveUserGeo()">💾</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="ua-user-id" value="">
+        <input type="hidden" id="ua-user-nombre" value="">
+        <div id="ua-msg" style="font-size:11px;margin-top:8px;min-height:16px;"></div>
+
+        <div style="margin-top:14px;text-align:right;">
+          <button class="mbtn mbtn-c" onclick="el('modal-user-admin').style.display='none'">Cerrar</button>
         </div>
       </div>
-      <div class="crd">
-        <div class="sec-t">🔑 Cambiar Mi Contraseña</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div><div class="fg-l" style="margin-bottom:4px;">Contraseña actual</div><input class="mi" type="password" id="my-pass-current"></div>
-          <div><div class="fg-l" style="margin-bottom:4px;">Nueva contraseña</div><input class="mi" type="password" id="my-pass-new" placeholder="Mínimo 6 caracteres"></div>
-          <div><div class="fg-l" style="margin-bottom:4px;">Confirmar</div><input class="mi" type="password" id="my-pass-confirm"></div>
-          <button class="mbtn mbtn-p" onclick="changeMyPassword()">💾 Cambiar Mi Contraseña</button>
-          <div id="my-pass-msg" style="font-size:11px;min-height:16px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="crd" style="margin-top:12px;">
-      <div class="sec-t">📋 Log de Cambios de Contraseña</div>
-      <div id="cfg-pass-log"></div>
     </div>
   </div>
 </div>
@@ -662,7 +691,7 @@ function cfgTab(tab){
   TABS.forEach(function(t){var e=el('cfg-'+t);if(e)e.style.display=t===tab?'block':'none';});
   document.querySelectorAll('.cfg-tab').forEach(function(b,i){b.classList.toggle('act',TABS[i]===tab);});
   if(tab==='integraciones')loadIntegraciones();
-  if(tab==='equipo'){loadEquipo();loadPassLog();}
+  if(tab==='equipo'){loadEquipo();}
   if(tab==='seguridad'){loadSecurityLog();renderSecLayers();}
 }
 var EMP_CHIPS=['datos','sedes','facturacion','redes','diseno'];
@@ -1011,6 +1040,45 @@ function editEmail(id){sbGet('/rest/v1/aos_emails_empresa?id=eq.'+id).then(funct
 function saveEmailCfg(){var data={email:el('em-email').value.trim(),nombre:el('em-nombre').value.trim(),funcion:el('em-funcion').value};if(!data.email){alert('Email obligatorio');return;}var eid=el('em-edit-id').value;if(eid){sbPatch('/rest/v1/aos_emails_empresa?id=eq.'+eid,data).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email actualizado','');});}else{fetch(SB+'/rest/v1/aos_emails_empresa',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email agregado','');});}}
 function deleteEmail(id){if(!confirm('¿Eliminar este correo?'))return;fetch(SB+'/rest/v1/aos_emails_empresa?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadEmails();});}
 
+// ═══ EQUIPO Y ADMINISTRACIÓN DE USUARIOS ═══
+function loadEquipo(){sbGet('/rest/v1/aos_usuarios?select=id,nombre,area,cargo,nivel_jerarquia,acceso_geo,avatar_url,activo&order=nivel_jerarquia,nombre').then(function(rows){if(!rows||!rows.length){el('cfg-equipo-list').innerHTML='<div style="color:#CBD5E1;padding:20px;text-align:center;">Sin usuarios</div>';return;}
+  el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th></th><th>Nombre</th><th>Área</th><th>Cargo</th><th>Nivel</th><th>Acceso</th><th>Estado</th></tr></thead><tbody>'+rows.map(function(r){
+    var av=r.avatar_url?'<img src="'+h(r.avatar_url)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">':'<div style="width:28px;height:28px;border-radius:50%;background:#EBF2FF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A4FBF;">'+h((r.nombre||'?')[0])+'</div>';
+    var nt=['','Super Admin','Admin','Supervisor','Operativo','Externo'][r.nivel_jerarquia||4]||'Operativo';
+    var activo=r.activo!==false;
+    return '<tr style="cursor:pointer;" onclick="openUserAdmin(\''+r.id+'\')">' +
+      '<td>'+av+'</td><td style="font-weight:700;">'+h(r.nombre)+'</td>' +
+      '<td style="font-size:10px;">'+h(r.area||'')+'</td>' +
+      '<td style="font-size:10px;color:#6B7BA8;">'+h(r.cargo||'')+'</td>' +
+      '<td><span style="padding:2px 8px;border-radius:6px;background:'+(r.nivel_jerarquia<=2?'#EBF2FF;color:#0A4FBF':'#F8FAFF;color:#6B7BA8')+';font-size:9px;font-weight:700;">'+nt+'</span></td>' +
+      '<td style="font-size:9px;color:'+(r.acceso_geo==='libre'?'#059669':'#D97706')+';">'+h(r.acceso_geo||'limitado')+'</td>' +
+      '<td><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:'+(activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-weight:700;">'+(activo?'Activo':'Off')+'</span></td></tr>';
+  }).join('')+'</tbody></table>';
+});}
+
+function openUserAdmin(id){
+  sbGet('/rest/v1/aos_usuarios?id=eq.'+id).then(function(rows){
+    if(!rows||!rows[0])return; var u=rows[0];
+    el('ua-user-id').value=u.id;
+    el('ua-user-nombre').value=u.nombre;
+    el('ua-name').textContent=u.nombre;
+    el('ua-cargo').textContent=(u.cargo||'—')+' · '+(u.area||'—');
+    el('ua-area').textContent=u.area||'—';
+    var nt=['','Super Admin','Admin','Supervisor','Operativo','Externo'][u.nivel_jerarquia||4]||'';
+    el('ua-nivel').textContent=nt;
+    var activo=u.activo!==false;
+    el('ua-status-badge').innerHTML='<span style="padding:3px 10px;border-radius:8px;background:'+(activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-size:10px;font-weight:700;">'+(activo?'✓ Activo':'✗ Inactivo')+'</span>';
+    el('ua-btn-toggle').textContent=activo?'⏸️ Desactivar cuenta':'▶️ Activar cuenta';
+    el('ua-geo').value=u.acceso_geo||'limitado';
+    el('ua-new-pass').value='';el('ua-msg').textContent='';
+    el('modal-user-admin').style.display='flex';
+  });
+}
+function adminChangePass(){var id=el('ua-user-id').value,pass=el('ua-new-pass').value.trim();if(!pass||pass.length<6){el('ua-msg').textContent='Mínimo 6 caracteres';el('ua-msg').style.color='#DC2626';return;}sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{password:pass}).then(function(){el('ua-msg').textContent='✓ Contraseña actualizada';el('ua-msg').style.color='#059669';el('ua-new-pass').value='';showToast('Contraseña cambiada','');});}
+function toggleUserActive(){var id=el('ua-user-id').value,nombre=el('ua-user-nombre').value;var isActive=el('ua-btn-toggle').textContent.indexOf('Desactivar')>=0;if(isActive&&!confirm('¿Desactivar '+nombre+'?'))return;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{activo:!isActive}).then(function(){showToast(isActive?'Desactivado':'Activado',nombre);el('modal-user-admin').style.display='none';loadEquipo();});}
+function forceLogout(){var id=el('ua-user-id').value,nombre=el('ua-user-nombre').value;if(!confirm('¿Forzar cierre de sesión de '+nombre+'?'))return;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{session_token:null}).then(function(){showToast('Sesión cerrada',nombre);el('ua-msg').textContent='✓ Sesión cerrada';el('ua-msg').style.color='#059669';});}
+function saveUserGeo(){var id=el('ua-user-id').value;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{acceso_geo:el('ua-geo').value}).then(function(){showToast('Acceso actualizado','');loadEquipo();el('ua-msg').textContent='✓ Guardado';el('ua-msg').style.color='#059669';});}
+
 // ═══ LOGOS ═══
 function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_url,logo_sin_fondo_url)').then(function(rows){if(!rows)return;rows.forEach(function(r){if(r.clave==='logo_con_fondo_url'&&r.valor){el('prev-logo-fondo').src=r.valor;el('prev-logo-fondo').style.display='block';el('ph-logo-fondo').style.display='none';}if(r.clave==='logo_sin_fondo_url'&&r.valor){el('prev-logo-sin').src=r.valor;el('prev-logo-sin').style.display='block';el('ph-logo-sin').style.display='none';}});});}
 function uploadLogo(tipo){el('file-'+(tipo==='logo_con_fondo'?'logo-fondo':'logo-sin')).click();}
@@ -1152,6 +1220,45 @@ function openAddEmail(){el('modal-email-title').textContent='Agregar correo';el(
 function editEmail(id){sbGet('/rest/v1/aos_emails_empresa?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];el('modal-email-title').textContent='Editar correo';el('em-email').value=r.email;el('em-nombre').value=r.nombre||'';el('em-funcion').value=r.funcion;el('em-edit-id').value=r.id;el('modal-email-cfg').style.display='flex';});}
 function saveEmailCfg(){var data={email:el('em-email').value.trim(),nombre:el('em-nombre').value.trim(),funcion:el('em-funcion').value};if(!data.email){alert('Email obligatorio');return;}var eid=el('em-edit-id').value;if(eid){sbPatch('/rest/v1/aos_emails_empresa?id=eq.'+eid,data).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email actualizado','');});}else{fetch(SB+'/rest/v1/aos_emails_empresa',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email agregado','');});}}
 function deleteEmail(id){if(!confirm('¿Eliminar este correo?'))return;fetch(SB+'/rest/v1/aos_emails_empresa?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadEmails();});}
+
+// ═══ EQUIPO Y ADMINISTRACIÓN DE USUARIOS ═══
+function loadEquipo(){sbGet('/rest/v1/aos_usuarios?select=id,nombre,area,cargo,nivel_jerarquia,acceso_geo,avatar_url,activo&order=nivel_jerarquia,nombre').then(function(rows){if(!rows||!rows.length){el('cfg-equipo-list').innerHTML='<div style="color:#CBD5E1;padding:20px;text-align:center;">Sin usuarios</div>';return;}
+  el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th></th><th>Nombre</th><th>Área</th><th>Cargo</th><th>Nivel</th><th>Acceso</th><th>Estado</th></tr></thead><tbody>'+rows.map(function(r){
+    var av=r.avatar_url?'<img src="'+h(r.avatar_url)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">':'<div style="width:28px;height:28px;border-radius:50%;background:#EBF2FF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A4FBF;">'+h((r.nombre||'?')[0])+'</div>';
+    var nt=['','Super Admin','Admin','Supervisor','Operativo','Externo'][r.nivel_jerarquia||4]||'Operativo';
+    var activo=r.activo!==false;
+    return '<tr style="cursor:pointer;" onclick="openUserAdmin(\''+r.id+'\')">' +
+      '<td>'+av+'</td><td style="font-weight:700;">'+h(r.nombre)+'</td>' +
+      '<td style="font-size:10px;">'+h(r.area||'')+'</td>' +
+      '<td style="font-size:10px;color:#6B7BA8;">'+h(r.cargo||'')+'</td>' +
+      '<td><span style="padding:2px 8px;border-radius:6px;background:'+(r.nivel_jerarquia<=2?'#EBF2FF;color:#0A4FBF':'#F8FAFF;color:#6B7BA8')+';font-size:9px;font-weight:700;">'+nt+'</span></td>' +
+      '<td style="font-size:9px;color:'+(r.acceso_geo==='libre'?'#059669':'#D97706')+';">'+h(r.acceso_geo||'limitado')+'</td>' +
+      '<td><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:'+(activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-weight:700;">'+(activo?'Activo':'Off')+'</span></td></tr>';
+  }).join('')+'</tbody></table>';
+});}
+
+function openUserAdmin(id){
+  sbGet('/rest/v1/aos_usuarios?id=eq.'+id).then(function(rows){
+    if(!rows||!rows[0])return; var u=rows[0];
+    el('ua-user-id').value=u.id;
+    el('ua-user-nombre').value=u.nombre;
+    el('ua-name').textContent=u.nombre;
+    el('ua-cargo').textContent=(u.cargo||'—')+' · '+(u.area||'—');
+    el('ua-area').textContent=u.area||'—';
+    var nt=['','Super Admin','Admin','Supervisor','Operativo','Externo'][u.nivel_jerarquia||4]||'';
+    el('ua-nivel').textContent=nt;
+    var activo=u.activo!==false;
+    el('ua-status-badge').innerHTML='<span style="padding:3px 10px;border-radius:8px;background:'+(activo?'#F0FDF4;color:#059669':'#FEF2F2;color:#DC2626')+';font-size:10px;font-weight:700;">'+(activo?'✓ Activo':'✗ Inactivo')+'</span>';
+    el('ua-btn-toggle').textContent=activo?'⏸️ Desactivar cuenta':'▶️ Activar cuenta';
+    el('ua-geo').value=u.acceso_geo||'limitado';
+    el('ua-new-pass').value='';el('ua-msg').textContent='';
+    el('modal-user-admin').style.display='flex';
+  });
+}
+function adminChangePass(){var id=el('ua-user-id').value,pass=el('ua-new-pass').value.trim();if(!pass||pass.length<6){el('ua-msg').textContent='Mínimo 6 caracteres';el('ua-msg').style.color='#DC2626';return;}sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{password:pass}).then(function(){el('ua-msg').textContent='✓ Contraseña actualizada';el('ua-msg').style.color='#059669';el('ua-new-pass').value='';showToast('Contraseña cambiada','');});}
+function toggleUserActive(){var id=el('ua-user-id').value,nombre=el('ua-user-nombre').value;var isActive=el('ua-btn-toggle').textContent.indexOf('Desactivar')>=0;if(isActive&&!confirm('¿Desactivar '+nombre+'?'))return;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{activo:!isActive}).then(function(){showToast(isActive?'Desactivado':'Activado',nombre);el('modal-user-admin').style.display='none';loadEquipo();});}
+function forceLogout(){var id=el('ua-user-id').value,nombre=el('ua-user-nombre').value;if(!confirm('¿Forzar cierre de sesión de '+nombre+'?'))return;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{session_token:null}).then(function(){showToast('Sesión cerrada',nombre);el('ua-msg').textContent='✓ Sesión cerrada';el('ua-msg').style.color='#059669';});}
+function saveUserGeo(){var id=el('ua-user-id').value;sbPatch('/rest/v1/aos_usuarios?id=eq.'+id,{acceso_geo:el('ua-geo').value}).then(function(){showToast('Acceso actualizado','');loadEquipo();el('ua-msg').textContent='✓ Guardado';el('ua-msg').style.color='#059669';});}
 
 // ═══ LOGOS ═══
 function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_url,logo_sin_fondo_url)').then(function(rows){if(!rows)return;rows.forEach(function(r){if(r.clave==='logo_con_fondo_url'&&r.valor){el('prev-logo-fondo').src=r.valor;el('prev-logo-fondo').style.display='block';el('ph-logo-fondo').style.display='none';}if(r.clave==='logo_sin_fondo_url'&&r.valor){el('prev-logo-sin').src=r.valor;el('prev-logo-sin').style.display='block';el('ph-logo-sin').style.display='none';}});});}
