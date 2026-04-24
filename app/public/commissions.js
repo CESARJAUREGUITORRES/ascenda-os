@@ -105,7 +105,7 @@ function renderData(d){
   if(tops.length){
     tcEl.innerHTML=tops.map(function(cl,i){
       var medal=i===0?'\uD83E\uDD47':i===1?'\uD83E\uDD48':i===2?'\uD83E\uDD49':String(i+1);
-      var wa='https://wa.me/51'+(cl.num||'').replace(/[^0-9]/g,'');
+      var wa='https://api.whatsapp.com/send?phone=51'+(cl.num||'').replace(/[^0-9]/g,'');
       var nom=h(((cl.cliente||cl.num||'--')).substring(0,25));
       var f=parseFloat(cl.total||0);
       return '<div class="top-row">'+'<div class="top-rank">'+medal+'</div>'+'<div class="top-info"><div class="top-nom">'+nom+'</div>'+'<div class="top-met">'+h(cl.num||'')+' - '+(cl.compras||0)+' compras - ult: '+(cl.ult_fecha||'')+'</div></div>'+'<div class="top-fact">S/'+f.toFixed(2)+'</div>'+'<div class="wa-sm" onclick="window.open(\''+wa+'\',\'_blank\')">WA</div>'+'</div>';

@@ -557,7 +557,7 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   if(window._pendingLead && window._pendingLead.num){
     var pl = window._pendingLead;
     window._pendingLead = null;
-    CC.lead = {num:pl.num, trat:pl.trat||'', wa:'https://wa.me/51'+pl.num, rowNum:0, segId:pl.segId||'', fromSeg:true, intento:0, anuncio:''};
+    CC.lead = {num:pl.num, trat:pl.trat||'', wa:'https://api.whatsapp.com/send?phone=51'+pl.num, rowNum:0, segId:pl.segId||'', fromSeg:true, intento:0, anuncio:''};
     document.getElementById('cc-num').textContent = pl.num;
     document.getElementById('cc-trat').textContent = pl.trat||'';
     document.getElementById('cc-meta').textContent = 'SEGUIMIENTO';
@@ -599,7 +599,7 @@ function loadLead(){
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://wa.me/51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.lead&&res.lead.contexto||null};
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.lead&&res.lead.contexto||null};
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
@@ -844,7 +844,7 @@ function loadSegsPanel(){
   var x=_ctx();_rpc('aos_get_seguimientos',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(rows){
     if(!rows){if(sp)sp.innerHTML='<div style="text-align:center;color:#16A34A;padding:10px;font-size:10px;">✓ Sin seguimientos</div>';return;}
     var arr=Array.isArray(rows)?rows:[];
-    var items=arr.map(function(s){var fecha=String(s.fecha_prog||'').slice(0,10),hora=String(s.hora_prog||'').slice(0,5);var venc=fecha&&fecha<x.hoy,esHoy=fecha===x.hoy;return{segId:s.id||'',num:s.numero||'',trat:s.tratamiento||'',obs:s.obs||'',fecha:fecha,hora:hora,fechaHora:fecha?(fecha+(hora?' '+hora:'')):'' ,vencido:venc&&!esHoy,esHoy:esHoy,whatsapp:s.whatsapp||('https://wa.me/51'+(s.numero||'').replace(/\D/g,''))};});
+    var items=arr.map(function(s){var fecha=String(s.fecha_prog||'').slice(0,10),hora=String(s.hora_prog||'').slice(0,5);var venc=fecha&&fecha<x.hoy,esHoy=fecha===x.hoy;return{segId:s.id||'',num:s.numero||'',trat:s.tratamiento||'',obs:s.obs||'',fecha:fecha,hora:hora,fechaHora:fecha?(fecha+(hora?' '+hora:'')):'' ,vencido:venc&&!esHoy,esHoy:esHoy,whatsapp:s.whatsapp||('https://api.whatsapp.com/send?phone=51'+(s.numero||'').replace(/\D/g,''))};});
     var tot={vencido:items.filter(function(i){return i.vencido;}).length,hoy:items.filter(function(i){return i.esHoy;}).length,proximo:items.filter(function(i){return !i.vencido&&!i.esHoy;}).length,total:items.length};
     _segsData=items;
     var sv=document.getElementById('seg-v');if(sv)sv.textContent=tot.vencido||0;
@@ -862,13 +862,13 @@ function renderSegs(items,filtro){
   if(!f.length){sp.innerHTML='<div style="text-align:center;color:#16A34A;padding:10px;font-size:10px;">✓ Sin seguimientos</div>';return;}
   sp.innerHTML=f.slice(0,25).map(function(s){
     var bg=s.vencido?'#FEF2F2':(s.esHoy?'#FFFBEB':'#F0F4FC'),bc=s.vencido?'#FECACA':(s.esHoy?'#FDE68A':'#DDE4F5'),cf=s.vencido?'#DC2626':(s.esHoy?'#D97706':'#6B7BA8');
-    var sid=escH(s.segId||''),snum=escH(s.num||'—'),wa=escH(s.whatsapp||('https://wa.me/51'+(s.num||'').replace(/[^0-9]/g,'')));
+    var sid=escH(s.segId||''),snum=escH(s.num||'—'),wa=escH(s.whatsapp||('https://api.whatsapp.com/send?phone=51'+(s.num||'').replace(/[^0-9]/g,'')));
     return '<div style="padding:7px;background:'+bg+';border:1px solid '+bc+';border-radius:7px;margin-bottom:4px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;cursor:pointer;" onclick="abrirFichaPorNum(\''+snum+'\')"><div style="font-size:10px;font-weight:700;color:#0A4FBF;text-decoration:underline;">'+snum+'</div><div style="font-size:9px;color:#6B7BA8;">'+escH((s.trat||'').slice(0,22))+'</div>'+(s.obs?'<div style="font-size:8px;color:#9AAAC8;font-style:italic;">'+escH(s.obs.slice(0,38))+'</div>':'')+'</div><div style="font-size:9px;font-weight:700;color:'+cf+';margin-left:5px;white-space:nowrap;">'+escH(s.fechaHora||'—')+'</div></div><div style="display:flex;gap:3px;margin-top:4px;"><button data-wa="'+wa+'" onclick="segWa(this)" style="padding:2px 6px;border-radius:4px;background:#25D366;color:#fff;border:none;font-size:8px;font-weight:700;cursor:pointer;">WA</button><button data-num="'+snum+'" onclick="segLlamar(this)" style="padding:2px 6px;border-radius:4px;background:#0A4FBF;color:#fff;border:none;font-size:8px;font-weight:700;cursor:pointer;">Llamar</button><button data-id="'+sid+'" onclick="segCerrar(this)" style="padding:2px 6px;border-radius:4px;background:#F0F4FC;color:#6B7BA8;border:1px solid #DDE4F5;font-size:8px;font-weight:700;cursor:pointer;">✓</button></div></div>';
   }).join('');
 }
 
 function segWa(b){window.open(b.getAttribute('data-wa'),'_blank');}
-function segLlamar(b){var num=b.getAttribute('data-num');if(!num)return;CC.lead={num:num,trat:'',wa:'https://wa.me/51'+num.replace(/[^0-9]/g,''),rowNum:0};document.getElementById('cc-num').textContent=num;document.getElementById('cc-tier').textContent='SEGUIM.';document.getElementById('cc-no-lead').style.display='none';document.getElementById('cc-lead-panel').style.display='block';document.getElementById('cc-tipif').value='';cargarNombrePaciente(num);}
+function segLlamar(b){var num=b.getAttribute('data-num');if(!num)return;CC.lead={num:num,trat:'',wa:'https://api.whatsapp.com/send?phone=51'+num.replace(/[^0-9]/g,''),rowNum:0};document.getElementById('cc-num').textContent=num;document.getElementById('cc-tier').textContent='SEGUIM.';document.getElementById('cc-no-lead').style.display='none';document.getElementById('cc-lead-panel').style.display='block';document.getElementById('cc-tipif').value='';cargarNombrePaciente(num);}
 function segCerrar(b){var sid=b.getAttribute('data-id');if(!sid)return;b.disabled=true;b.textContent='...';(function(){var x=_ctx();_rpc('aos_cerrar_seguimiento',{p_id:String(sid)},function(){loadSegsPanel();});})();}
 
 // ══════════════════════════════════════════════════════════════
@@ -883,7 +883,7 @@ function loadTopPanel(){
       var nom=escH(c.nombre||c.num||'—'),num=escH(c.num||'');
       var fact='S/'+(parseFloat(c.total_historico||c.fact)||0).toFixed(0);
       var compras=Number(c.compras||c.nVentas)||0,ultV=c.ult_compra||c.ultVisita||'';
-      var wa=escH('https://wa.me/51'+(c.num||'').replace(/[^0-9]/g,''));
+      var wa=escH('https://api.whatsapp.com/send?phone=51'+(c.num||'').replace(/[^0-9]/g,''));
       return '<div class="top-item" data-num="'+num+'" style="cursor:pointer;">'+
         '<div class="top-item-hd"><span style="font-size:11px;">'+(em[i]||('#'+(i+1)))+'</span><div class="top-nombre">'+nom+'</div><div style="text-align:right;"><div class="top-fact">'+fact+'</div><div class="top-meta">'+compras+' compras</div></div></div>'+
         (ultV?'<div class="top-meta" style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">Últ: <b style="color:#6B7BA8;">'+escH(ultV)+'</b><button data-wa="'+wa+'" onclick="event.stopPropagation();segWa(this)" style="padding:1px 5px;border-radius:3px;background:#25D366;color:#fff;border:none;font-size:8px;cursor:pointer;">WA</button></div>':'')+
@@ -906,7 +906,7 @@ function abrirFichaPorNum(num){
   document.getElementById('ficha-tab-content').innerHTML='<div class="ld"><span class="sp-sm"></span>Cargando...</div>';
   _rpc('aos_get_historial_paciente',{p_numero:String(num).replace(/\D/g,'')},function(res){
     if(!res){document.getElementById('ficha-nombre').textContent='Sin datos';document.getElementById('ficha-tab-content').innerHTML='<div class="ld">Sin información.</div>';return;}
-    var r={ok:true,num:num,paciente:res.paciente||{},compras:res.ventas||[],citas:res.citas||[],llamadas:res.llamadas||[],totalFact:parseFloat(res.totalFact)||0,totalCompras:Number(res.totalCompras)||0,totalCitas:Number(res.totalCitas)||0,totalContactos:Number(res.totalContactos)||0,whatsapp:'https://wa.me/51'+String(num).replace(/\D/g,'')};
+    var r={ok:true,num:num,paciente:res.paciente||{},compras:res.ventas||[],citas:res.citas||[],llamadas:res.llamadas||[],totalFact:parseFloat(res.totalFact)||0,totalCompras:Number(res.totalCompras)||0,totalCitas:Number(res.totalCitas)||0,totalContactos:Number(res.totalContactos)||0,whatsapp:'https://api.whatsapp.com/send?phone=51'+String(num).replace(/\D/g,'')};
     CC.ficha360=r;renderFicha360(r);
   });
 }
@@ -928,7 +928,7 @@ function renderFicha360(res){
   document.getElementById('fd-sede').textContent=p.sede||'—';
   document.getElementById('fd-ult').textContent=p.ultimaVisita?String(p.ultimaVisita).slice(0,10):'—';
   document.getElementById('ficha-360')._num=res.num||(p.telefono||'');
-  document.getElementById('ficha-360')._wa=res.whatsapp||('https://wa.me/51'+(res.num||'').replace(/\D/g,''));
+  document.getElementById('ficha-360')._wa=res.whatsapp||('https://api.whatsapp.com/send?phone=51'+(res.num||'').replace(/\D/g,''));
   setFichaTab(CC.fichaTab,res);
 }
 
@@ -1103,7 +1103,9 @@ function waEnviarMsg() {
   var msg = document.getElementById('wa-msg-edit').value;
   var num = CC.lead ? CC.lead.num : '';
   if(!num) return;
-  var url = 'https://wa.me/51' + num.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg);
+  var cleanNum = '51' + num.replace(/\D/g,'');
+  // Usa protocolo whatsapp:// para abrir directo en Desktop (más rápido que wa.me)
+  var url = 'https://api.whatsapp.com/send?phone=' + cleanNum + '&text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
   var m = document.getElementById('wa-modal-cc');
   if(m) m.remove();
@@ -1111,7 +1113,7 @@ function waEnviarMsg() {
 function copyNumCC(){if(!CC.lead)return;navigator.clipboard.writeText(CC.lead.num).catch(function(){});if(window.AOS_showToast)AOS_showToast('⧉ Copiado',CC.lead.num,'');}
 function closeCCModal(id){document.getElementById(id).classList.remove('open');document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');}
 function abrirModalManual(){var inp=document.getElementById('manual-buscar'),res2=document.getElementById('manual-resultados'),nd=document.getElementById('manual-num-directo');if(inp)inp.value='';if(res2)res2.innerHTML='';if(nd)nd.value='';document.getElementById('cc-m-manual').classList.add('open');}
-function usarNumManual(){var nd=document.getElementById('manual-num-directo'),num=(nd?nd.value:'').trim().replace(/[^0-9]/g,'');if(!num||num.length<7){if(window.AOS_showToast)AOS_showToast('Ingresa un número válido','','');return;}closeCCModal('cc-m-manual');CC.lead={num:num,trat:'',wa:'https://wa.me/51'+num,rowNum:0,manual:true};document.getElementById('cc-num').textContent=num;document.getElementById('cc-trat').textContent='';document.getElementById('cc-meta').textContent='LLAMADA MANUAL';document.getElementById('cc-tier').textContent='MANUAL';document.getElementById('cc-no-lead').style.display='none';document.getElementById('cc-lead-panel').style.display='block';document.getElementById('cc-tipif').value='';document.getElementById('cc-m-cita-num').textContent='Número: '+num;document.getElementById('cc-m-seg-num').textContent='Número: '+num;cargarNombrePaciente(num);}
+function usarNumManual(){var nd=document.getElementById('manual-num-directo'),num=(nd?nd.value:'').trim().replace(/[^0-9]/g,'');if(!num||num.length<7){if(window.AOS_showToast)AOS_showToast('Ingresa un número válido','','');return;}closeCCModal('cc-m-manual');CC.lead={num:num,trat:'',wa:'https://api.whatsapp.com/send?phone=51'+num,rowNum:0,manual:true};document.getElementById('cc-num').textContent=num;document.getElementById('cc-trat').textContent='';document.getElementById('cc-meta').textContent='LLAMADA MANUAL';document.getElementById('cc-tier').textContent='MANUAL';document.getElementById('cc-no-lead').style.display='none';document.getElementById('cc-lead-panel').style.display='block';document.getElementById('cc-tipif').value='';document.getElementById('cc-m-cita-num').textContent='Número: '+num;document.getElementById('cc-m-seg-num').textContent='Número: '+num;cargarNombrePaciente(num);}
 
 var _tmr=null;
 function buscarPacLive(q){

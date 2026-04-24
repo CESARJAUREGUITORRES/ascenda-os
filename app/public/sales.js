@@ -101,7 +101,7 @@ function renderTop(tops){
   if(!tops.length){box.innerHTML='<div class="ld">Sin clientes</div>';return;}
   var medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','4','5'];
   box.innerHTML=tops.map(function(cl,i){
-    var wa='https://wa.me/51'+(cl.num||'').replace(/[^0-9]/g,'');
+    var wa='https://api.whatsapp.com/send?phone=51'+(cl.num||'').replace(/[^0-9]/g,'');
     return '<div class="top-row"><div class="top-rank">'+(medals[i]||String(i+1))+'</div>'+
       '<div class="top-info"><div class="top-nom">'+h((cl.cliente||'').substring(0,22))+'</div>'+
       '<div class="top-met">'+h(cl.num||'')+' &middot; '+h(cl.ult_fecha||'')+'</div></div>'+
