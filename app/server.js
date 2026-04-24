@@ -336,21 +336,29 @@ var TOKEN_COSTS = {
 function trackCost(agentId, motor, modelo, tokensIn, tokensOut, tareaNombre) {
   var costs = TOKEN_COSTS[modelo] || TOKEN_COSTS['llama-3.3-70b-versatile'] || { input: 0, output: 0 }
   var costoUsd = (tokensIn * costs.input / 1000000) + (tokensOut * costs.output / 1000000)
-  sbPost('/rest/v1/aos_agente_costos', {
-    agente_id: agentId, motor: motor || 'groq', modelo: modelo || '',
-    tokens_in: tokensIn || 0, tokens_out: tokensOut || 0,
-    costo_usd: costoUsd, tarea_nombre: tareaNombre || ''
-  }).catch(function(e) { console.error('[COST] Error tracking:', e.message) })
+  var payload = {
+    agente_id: String(agentId), motor: String(motor || 'groq'), modelo: String(modelo || ''),
+    tokens_in: parseInt(tokensIn) || 0, tokens_out: parseInt(tokensOut) || 0,
+    costo_usd: parseFloat(costoUsd.toFixed(6)), tarea_nombre: String(tareaNombre || '')
+  }
+  console.log('[COST] Tracking:', agentId, parseInt(tokensIn)+parseInt(tokensOut), 'tokens, $'+costoUsd.toFixed(6))
+  sbPost('/rest/v1/aos_agente_costos', payload)
+    .then(function(status) { if (status >= 400) console.error('[COST] HTTP', status, JSON.stringify(payload).substring(0,100)) })
+    .catch(function(e) { console.error('[COST] Error:', e.message) })
   return costoUsd
 }
 
 // Guardar contenido generado por AI (insights, copys, reportes)
 function saveContent(agentId, tipo, titulo, contenido, metadata) {
-  return sbPost('/rest/v1/aos_agente_contenido', {
-    agente_id: agentId, tipo: tipo, titulo: titulo,
-    contenido: (contenido || '').substring(0, 8000),
+  var payload = {
+    agente_id: String(agentId), tipo: String(tipo), titulo: String(titulo || ''),
+    contenido: String(contenido || '').substring(0, 8000),
     metadata: metadata || {}
-  }).catch(function(e) { console.error('[CONTENT] Error saving:', e.message) })
+  }
+  console.log('[CONTENT] Saving:', agentId, tipo, (titulo||'').substring(0,40))
+  return sbPost('/rest/v1/aos_agente_contenido', payload)
+    .then(function(status) { if (status >= 400) console.error('[CONTENT] HTTP', status) })
+    .catch(function(e) { console.error('[CONTENT] Error:', e.message) })
 }
 
 // ═══════════════════════════════════════════════════════════════
