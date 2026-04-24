@@ -1400,9 +1400,9 @@ function shouldRunCron(cronStr, now, lastRun) {
   if (cronStr === '0 */2 * * *')  return diffMin >= 120 && limaMin < 5
   if (cronStr === '0 */4 * * *')  return diffMin >= 240 && limaMin < 5
   if (cronStr === '0 */3 * * *')  return diffMin >= 180 && limaMin < 5
-  if (cronStr.match(/^0 \d+,\d+ \* \* \*/)) {
+  if (cronStr.match(/^0 [\d,]+ \* \* \*/)) {
     var hours = cronStr.split(' ')[1].split(',').map(Number)
-    return hours.indexOf(limaHour) >= 0 && limaMin < 5 && diffMin >= 60
+    return hours.indexOf(limaHour) >= 0 && limaMin < 5 && diffMin >= 55
   }
   if (cronStr.match(/^0 \d+ \* \* \d$/)) {
     var hour2 = parseInt(cronStr.split(' ')[1])
