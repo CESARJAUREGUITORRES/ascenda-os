@@ -170,10 +170,32 @@
     </div>
     <div class="mfoot">
       <button class="mcanc" onclick="agCloseDet()">Cerrar</button>
+      <button class="mconf" style="background:#25D366;flex:.7;" onclick="agWhatsApp()">💬 WhatsApp</button>
       <button class="mconf red" onclick="agEliminar()" style="flex:.6;">Eliminar</button>
       <button class="mconf amber" onclick="agReagendar()">Reagendar</button>
       <button class="mconf" onclick="agAbrirEditar()">Editar</button>
       <button class="mconf gr" onclick="agGuardarEstado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANTILLAS WHATSAPP -->
+<div class="mov" id="ag-m-wa">
+  <div class="modal" style="max-width:520px;">
+    <div class="mhd"><span style="font-size:18px;">💬</span><div><div class="mtit">Enviar WhatsApp</div><div class="msub" id="wa-paciente">—</div></div><div class="mclose" onclick="el('ag-m-wa').classList.remove('open')">&times;</div></div>
+    <div class="mbody">
+      <div id="wa-recomendado" style="margin-bottom:12px;"></div>
+      <div id="wa-saldos" style="margin-bottom:12px;"></div>
+      <div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;">Otras plantillas</div>
+      <div id="wa-otras"></div>
+      <div style="margin-top:12px;padding:10px;background:#F8FAFF;border-radius:8px;">
+        <div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:6px;">Vista previa</div>
+        <div id="wa-preview" style="font-size:11px;color:#475569;white-space:pre-wrap;max-height:200px;overflow-y:auto;line-height:1.5;">Selecciona una plantilla...</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mcanc" onclick="el('ag-m-wa').classList.remove('open')">Cancelar</button>
+      <button class="mconf gr" id="wa-btn-send" onclick="waEnviar()" disabled>📲 Abrir WhatsApp</button>
     </div>
   </div>
 </div>

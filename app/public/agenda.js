@@ -207,6 +207,132 @@ function showDetalle(c){
   el('ag-m-det').classList.add('open');
 }
 function agCloseDet(){el('ag-m-det').classList.remove('open');}
+
+// ═══ WHATSAPP — PLANTILLAS INTELIGENTES ═══
+var _waMsg = '';
+var _waNum = '';
+
+var WA_SEDES = {
+  'SAN ISIDRO': { dir: 'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio', maps: 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5', ref: '',
+    estac: '🚗 Estacionamiento:\n✅ Frente al Edificio Capricornio\n✅ Gratuito (máx 3h) — Av. Aux. Rep. de Panamá\n✅ Los Portales — C. Ricardo Angulo 197\n✅ C.C. Santa Catalina — Av. Carlos Villarán 500',
+    taxi: '🚖 Taxi: Buscar Av. Javier Prado Este 996, San Isidro\n⚠️ YANGO: usar Av Pablo Carriquiry 106, San Isidro' },
+  'PUEBLO LIBRE': { dir: 'Av. Brasil 1170, Pueblo Libre - Lima', maps: 'https://goo.gl/maps/Cw36T6YPudyRNmVe6', ref: 'A 4 cuadras de la Rambla',
+    estac: '🚗 Estacionamiento:\n✅ Frente a fachada (según hora)\n✅ Univ. Alas Peruanas — Jr. Pedro Ruiz Gallo 251\n✅ C.E.P. Santa María — Jr. Pedro Ruiz Gallo 137\n✅ Playa Otorcuna — JP Fernandini 1255',
+    taxi: '🚖 Taxi: Buscar Av. Brasil 1170 - Pueblo Libre o ZI VITAL' }
+};
+
+function fmtFechaWA(fechaStr) {
+  try {
+    var d = new Date(fechaStr + 'T12:00:00');
+    var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + meses[d.getMonth()];
+  } catch(e) { return fechaStr; }
+}
+
+function agWhatsApp() {
+  var c = AG.sel;
+  if (!c) return;
+  var num = (c.numero_limpio || c.numero || '').replace(/\D/g, '');
+  if (!num) { if(window.AOS_showToast) AOS_showToast('Sin número', '', 'toast-alerta'); return; }
+  _waNum = num;
+  var cli = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+  var sede = WA_SEDES[(c.sede || '').toUpperCase()] || WA_SEDES['SAN ISIDRO'];
+  var fechaLabel = fmtFechaWA(c.fecha_cita);
+  var hora = (c.hora_cita || '').toString().substring(0, 5);
+  var trat = c.tratamiento || 'Consulta';
+
+  el('wa-paciente').textContent = cli + ' · ' + num;
+
+  // Detectar contexto: ¿es cita de hoy, mañana, o futuro?
+  var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0];
+  var manana = new Date(Date.now() + (-5*60)*60000 + 86400000).toISOString().split('T')[0];
+  var esSab = new Date(Date.now() + (-5*60)*60000).getDay() === 6;
+  var lunes = new Date(Date.now() + (-5*60)*60000 + 2*86400000).toISOString().split('T')[0];
+
+  var esHoy = c.fecha_cita === hoy;
+  var esManana = c.fecha_cita === manana || (esSab && c.fecha_cita === lunes);
+
+  // Plantillas con datos del paciente
+  var plantillas = [];
+
+  // RECOMENDADA según contexto
+  var recomendada = null;
+  if (esManana) {
+    recomendada = { nombre: '⏰ Confirmación de cita MAÑANA', recomendado: true,
+      msg: '¡Hola! Te saluda tu Asesora de salud de Zi Vital 🏥👩‍⚕️\n\nTe recordamos que mañana tienes tu cita:\n\n📌 *CITA CONFIRMADA*\nNombre: ' + cli + '\nDía: ' + fechaLabel + '\nHora: ' + hora + '\nServicio: ' + trat + '\nSede: *' + (c.sede || '') + '*\n\n📍 ' + sede.dir + '\n' + sede.maps + '\n\nLlegar 15 minutos antes ⏱️ con DNI\n\n' + sede.estac + '\n\n' + sede.taxi + '\n\n¡TE ESPERAMOS! 🤗' };
+  } else if (esHoy) {
+    recomendada = { nombre: '☀️ Recordatorio cita HOY', recomendado: true,
+      msg: '¡Buenos días! ☀️ Te recordamos que HOY tienes tu cita en Zi Vital\n\n📌 *TU CITA DE HOY*\nServicio: ' + trat + '\nHora: ' + hora + '\nSede: *' + (c.sede || '') + '*\n\n📍 ' + sede.dir + '\n' + sede.maps + '\n\nLlegar 15 min antes ⏱️ con DNI\n\n¡Te esperamos! 🤗' };
+  } else {
+    recomendada = { nombre: '✅ Confirmación de cita', recomendado: true,
+      msg: '¡Hola! Te saluda tu Asesora de salud de Zi Vital 🏥👩‍⚕️\nAquí te envío tu confirmación de cita ♥\n\n📌 *CITA CONFIRMADA*\nNombre: ' + cli + '\nDNI: ' + (c.dni || '') + '\nDía: ' + fechaLabel + '\nHora: ' + hora + '\nServicio: ' + trat + '\nSede: *' + (c.sede || '') + '*\n\n📍 ' + sede.dir + '\n' + (sede.ref ? sede.ref + '\n' : '') + sede.maps + '\n\nLlegar 15 minutos antes ⏱️ con DNI\n\n' + sede.estac + '\n\n' + sede.taxi + '\n\n📱 Agréganos como ZI VITAL para recordatorios\n\n✔️ La consulta es personalizada. Puede haber tiempo de espera.\n\n¡TE ESPERAMOS! 🤗' };
+  }
+
+  // Otras plantillas
+  var otrasPlantillas = [
+    { nombre: '🔄 Reprogramación', msg: '¡Hola ' + (c.nombre || '').split(' ')[0] + '! Tu cita de ' + trat + ' ha sido reprogramada para el ' + fechaLabel + ' a las ' + hora + ' en ' + (c.sede || '') + '.\n\n📍 ' + sede.dir + '\n' + sede.maps + '\n\nSi necesitas cambiar, avísanos. ¡Te esperamos! 🤗' },
+    { nombre: '📍 Solo dirección y estacionamiento', msg: '📍 Sede ' + (c.sede || '') + '\n' + sede.dir + '\n' + sede.maps + '\n\n' + sede.estac + '\n\n' + sede.taxi },
+    { nombre: '💬 Mensaje libre', msg: '¡Hola ' + (c.nombre || '').split(' ')[0] + '! ' }
+  ];
+
+  // Render recomendada
+  el('wa-recomendado').innerHTML = '<div style="font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;margin-bottom:6px;">⭐ Recomendado</div>' +
+    '<div style="padding:12px;background:#F0FDF4;border-radius:10px;border:2px solid #059669;cursor:pointer;" onclick="waSelect(0)">' +
+    '<div style="font-weight:700;font-size:12px;color:#059669;">' + recomendada.nombre + '</div>' +
+    '<div style="font-size:9px;color:#6B7BA8;margin-top:2px;">Click para seleccionar y previsualizar</div></div>';
+
+  // Render saldos/pendientes
+  _rpc('aos_get_historial_paciente', { p_numero: num }, function(hist) {
+    var saldoHtml = '';
+    if (hist && hist.compras && hist.compras.length) {
+      var pendientes = hist.compras.filter(function(v) { return parseFloat(v.saldo || 0) > 0; });
+      if (pendientes.length) {
+        var saldoTotal = pendientes.reduce(function(s, v) { return s + parseFloat(v.saldo || 0); }, 0);
+        var detalle = pendientes.map(function(v) { return '• ' + (v.trat || '') + ' — Saldo: S/' + parseFloat(v.saldo).toFixed(2); }).join('\n');
+        otrasPlantillas.splice(1, 0, {
+          nombre: '💰 Recordatorio saldos pendientes (S/' + saldoTotal.toFixed(0) + ')',
+          msg: '¡Hola ' + (c.nombre || '').split(' ')[0] + '! Te recordamos que tienes saldos pendientes:\n\n' + detalle + '\n\nTotal pendiente: *S/' + saldoTotal.toFixed(2) + '*\n\nPuedes acercarte a cualquiera de nuestras sedes para completar tu pago. ¡Te esperamos! 🤗'
+        });
+      }
+    }
+    // Render otras
+    el('wa-otras').innerHTML = otrasPlantillas.map(function(p, i) {
+      return '<div style="padding:8px 12px;border:1px solid #EEF0F8;border-radius:8px;margin-bottom:4px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'#F8FAFF\'" onmouseout="this.style.background=\'#fff\'" onclick="waSelect(' + (i + 1) + ')">' +
+        '<div style="font-weight:600;font-size:11px;">' + p.nombre + '</div></div>';
+    }).join('');
+    // Guardar todas
+    window._waPlantillas = [recomendada].concat(otrasPlantillas);
+  });
+
+  // Abrir modal
+  _waMsg = '';
+  el('wa-preview').textContent = 'Selecciona una plantilla...';
+  el('wa-btn-send').disabled = true;
+  el('ag-m-wa').classList.add('open');
+}
+
+function waSelect(idx) {
+  var p = window._waPlantillas && window._waPlantillas[idx];
+  if (!p) return;
+  _waMsg = p.msg;
+  el('wa-preview').textContent = p.msg;
+  el('wa-btn-send').disabled = false;
+  // Highlight seleccionada
+  var cards = el('wa-otras').querySelectorAll('div[onclick]');
+  cards.forEach(function(c) { c.style.borderColor = '#EEF0F8'; c.style.background = '#fff'; });
+  if (idx > 0 && cards[idx - 1]) { cards[idx - 1].style.borderColor = '#0A4FBF'; cards[idx - 1].style.background = '#F0F4FC'; }
+  if (idx === 0) el('wa-recomendado').querySelector('div[onclick]').style.borderColor = '#059669';
+}
+
+function waEnviar() {
+  if (!_waMsg || !_waNum) return;
+  var encoded = encodeURIComponent(_waMsg);
+  var waUrl = 'https://wa.me/51' + _waNum + '?text=' + encoded;
+  window.open(waUrl, '_blank');
+  el('ag-m-wa').classList.remove('open');
+  if (window.AOS_showToast) AOS_showToast('WhatsApp abierto', 'Envía el mensaje en la ventana', '');
+}
 function agSelEstado(btn){el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');}
 
 function agGuardarEstado(){
