@@ -195,6 +195,32 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .np-empty{text-align:center;padding:24px;color:var(--label);font-size:12px;}
 
 /* ═══════════════════════════════════════════════════
+   AGENT FEED PANEL (alertas de agentes en CRM)
+═══════════════════════════════════════════════════ */
+.agent-feed-panel{
+  display:none;position:fixed;top:calc(var(--th) + 6px);right:10px;
+  width:340px;max-height:520px;background:var(--surface);border:1px solid rgba(255,215,0,0.25);
+  border-radius:16px;z-index:500;box-shadow:0 10px 32px rgba(255,215,0,0.1);
+  overflow:hidden;flex-direction:column;
+}
+.agent-feed-panel.open{display:flex;}
+.afp-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:linear-gradient(90deg,rgba(255,215,0,0.06),transparent);}
+.afp-title{font-family:Exo 2,sans-serif;font-weight:800;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;}
+.afp-live{width:6px;height:6px;border-radius:50%;background:#FFD700;box-shadow:0 0 6px #FFD700;animation:brpulse 2s infinite;flex-shrink:0;}
+.afp-clear{font-size:10px;color:var(--blue);cursor:pointer;font-weight:600;}
+.afp-list{flex:1;overflow-y:auto;padding:6px;}
+.afp-list::-webkit-scrollbar{width:2px;}
+.afp-item{padding:10px 11px;border-radius:10px;margin-bottom:4px;border:1px solid transparent;transition:background .12s;}
+.afp-item.afp-blocked{background:rgba(239,68,68,0.07);border-color:rgba(239,68,68,0.2);}
+.afp-item.afp-success{background:rgba(0,201,167,0.07);border-color:rgba(0,201,167,0.15);}
+.afp-item.afp-info{background:var(--bg);border-color:var(--border);}
+.afp-agent{font-size:12px;font-weight:700;color:var(--text);}
+.afp-msg{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.afp-ts{font-size:9px;color:var(--label);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.afp-empty{text-align:center;padding:24px;color:var(--label);font-size:12px;}
+.afp-badge{position:absolute;top:2px;right:2px;min-width:14px;height:14px;border-radius:7px;background:#EF4444;color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px;display:none;font-family:'JetBrains Mono',monospace;}
+
+/* ═══════════════════════════════════════════════════
    TOASTS
 ═══════════════════════════════════════════════════ */
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
@@ -303,9 +329,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
       <div style="position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#00C9A7;box-shadow:0 0 4px #00C9A7;animation:brpulse 2s infinite;"></div>
     </div>
     <!-- Agentes AI button (solo admin) -->
-    <div class="tb-ico admin-only" id="btn-agents" title="Oficina Virtual · Agentes AI" onclick="window.open('/agents','AscendaOS_Agents','width=1400,height=850,resizable=yes')" style="cursor:pointer;position:relative;">
+    <div class="tb-ico admin-only" id="btn-agents" title="Agentes AI — ver alertas" style="cursor:pointer;position:relative;">
       <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><rect x="3" y="5" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="1.3" fill="none"/><circle cx="8" cy="10" r="1.5" fill="#FFD700"/><circle cx="12" cy="10" r="1.5" fill="#FFD700"/><path d="M6 14h8" stroke="#FFD700" stroke-width="1" stroke-linecap="round"/></svg>
       <div style="position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#FFD700;box-shadow:0 0 4px #FFD700;animation:brpulse 2s infinite;"></div>
+      <div class="afp-badge" id="badge-agents">0</div>
     </div>
     <!-- G2: Iconos SVG modernos -->
     <div class="tb-ico" id="btn-notif" title="Notificaciones">
@@ -327,6 +354,18 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
     <div class="np-clear" id="np-clear">Marcar todas leídas</div>
   </div>
   <div class="np-list" id="np-list"><div class="np-empty">Sin notificaciones</div></div>
+</div>
+
+<!-- AGENT FEED PANEL — alertas de agentes AI (solo admin) -->
+<div class="agent-feed-panel admin-only" id="agent-feed-panel">
+  <div class="afp-hd">
+    <div class="afp-title"><span class="afp-live"></span>🤖 Agentes AI</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="font-size:10px;color:var(--blue);cursor:pointer;font-weight:600;" id="afp-open-panel" onclick="window.open('/agents','AscendaOS_Agents','width=1400,height=850,resizable=yes')">Abrir oficina ↗</div>
+      <div style="font-size:10px;color:var(--muted);cursor:pointer;font-weight:600;" id="afp-clear">Limpiar</div>
+    </div>
+  </div>
+  <div class="afp-list" id="afp-list"><div class="afp-empty">Sin actividad reciente de agentes.</div></div>
 </div>
 
 <!-- SHELL -->
@@ -910,6 +949,10 @@ function doCierreTurno() {
 --------------------------------------------------- */
 function startPolling() {
   pollNotifications();
+  if (AOS.role === 'ADMIN') {
+    pollAgentFeed();
+    AOS.agentFeedTimer = setInterval(pollAgentFeed, 15000);
+  }
   AOS.pollTimer = setInterval(pollNotifications, 30000);
   if (AOS.role === 'ADMIN') {
     AOS.pollAdminTimer = setInterval(function() {
@@ -981,6 +1024,146 @@ document.getElementById('np-clear').addEventListener('click', function() {
 });
 
 /* ---------------------------------------------------
+   AGENT FEED — alertas de agentes AI en CRM (solo admin)
+--------------------------------------------------- */
+var _afpItems      = [];      // historial local de eventos de agentes
+var _afpPrevStates = {};      // estados anteriores para detectar cambios
+var _afpPrevExec   = {};      // ejecuciones anteriores
+var _afpFirstPoll  = true;    // skip sonidos en primer poll
+var _afpUnread     = 0;
+
+function pollAgentFeed() {
+  if (AOS.role !== 'ADMIN') return;
+  fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_agentes?select=id,nombre,emoji,estado,total_ejecuciones,bubble_text,ultima_actividad', {
+    headers: { 'apikey': _SK, 'Authorization': 'Bearer ' + _SK }
+  }).then(function(r) { return r.json(); }).then(function(rows) {
+    if (!Array.isArray(rows)) return;
+    var isFirst = _afpFirstPoll;
+    if (isFirst) _afpFirstPoll = false;
+
+    rows.forEach(function(ag) {
+      var prevState = _afpPrevStates[ag.id];
+      var prevExec  = _afpPrevExec[ag.id] || 0;
+      var newExec   = ag.total_ejecuciones || 0;
+      var now       = new Date();
+
+      if (!isFirst) {
+        // Agente se bloqueó
+        if (ag.estado === 'blocked' && prevState !== 'blocked') {
+          var msg = (ag.bubble_text || 'Error desconocido').substring(0, 100);
+          _afpAddItem(ag, 'blocked', '⚠ Bloqueado: ' + msg, now);
+          if (window.AOS_playSound) AOS_playSound('alerta');
+          if (window.AOS_showToast) AOS_showToast('⚠ ' + ag.emoji + ' ' + ag.nombre + ' bloqueado', msg.substring(0,60), 'toast-alerta');
+          // Notificación OS si permisos
+          if (window.Notification && Notification.permission === 'granted') {
+            new Notification('AscendaOS — Agente bloqueado', {
+              body: ag.emoji + ' ' + ag.nombre + ': ' + msg.substring(0, 80),
+              icon: '/favicon.ico'
+            });
+          }
+        }
+        // Agente completó ejecución nueva
+        if (newExec > prevExec && ag.estado !== 'blocked') {
+          _afpAddItem(ag, 'success', '✓ Tarea completada (#' + newExec + ')', now);
+          if (window.AOS_playSound) AOS_playSound('notif');
+        }
+        // Agente se reactivó (blocked → working/idle)
+        if (prevState === 'blocked' && ag.estado !== 'blocked') {
+          _afpAddItem(ag, 'info', '✅ Retomó actividad', now);
+          if (window.AOS_playSound) AOS_playSound('mensaje');
+          if (window.AOS_showToast) AOS_showToast('✅ ' + ag.emoji + ' ' + ag.nombre, 'Retomó actividad', '');
+        }
+      }
+
+      _afpPrevStates[ag.id] = ag.estado;
+      _afpPrevExec[ag.id]   = newExec;
+    });
+
+    // Obtener últimos logs reales de Supabase (últimos 5 de cualquier agente)
+    if (isFirst) {
+      fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_agente_logs?order=created_at.desc&limit=8&select=agente_id,accion,input_resumen,exitoso,error,created_at', {
+        headers: { 'apikey': _SK, 'Authorization': 'Bearer ' + _SK }
+      }).then(function(r) { return r.json(); }).then(function(logs) {
+        if (!Array.isArray(logs)) return;
+        logs.forEach(function(l) {
+          var ag = rows.find(function(a) { return a.id === l.agente_id; });
+          var tipo = l.exitoso ? 'success' : 'blocked';
+          var msg  = l.exitoso
+            ? ('✓ ' + (l.accion||'') + ': ' + (l.input_resumen||'').substring(0,60))
+            : ('⚠ Error: ' + (typeof l.error==='string' ? l.error : JSON.stringify(l.error||'')).substring(0,60));
+          _afpItems.push({
+            id: l.agente_id,
+            nombre: ag ? ag.nombre : l.agente_id,
+            emoji: ag ? (ag.emoji||'🤖') : '🤖',
+            tipo: tipo,
+            msg: msg,
+            ts: new Date(l.created_at)
+          });
+        });
+        _afpItems.sort(function(a,b) { return b.ts - a.ts; });
+        _afpRender();
+      }).catch(function(){});
+    }
+  }).catch(function(){});
+}
+
+function _afpAddItem(ag, tipo, msg, ts) {
+  _afpItems.unshift({ id: ag.id, nombre: ag.nombre, emoji: ag.emoji||'🤖', tipo: tipo, msg: msg, ts: ts });
+  if (_afpItems.length > 50) _afpItems.pop();
+  if (tipo === 'blocked') { _afpUnread++; _afpUpdateBadge(); }
+  _afpRender();
+}
+
+function _afpUpdateBadge() {
+  var badge = document.getElementById('badge-agents');
+  if (!badge) return;
+  if (_afpUnread > 0) {
+    badge.textContent = _afpUnread > 99 ? '99+' : _afpUnread;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function _afpRender() {
+  var list = document.getElementById('afp-list');
+  if (!list) return;
+  if (!_afpItems.length) { list.innerHTML = '<div class="afp-empty">Sin actividad reciente de agentes.</div>'; return; }
+  list.innerHTML = _afpItems.slice(0, 30).map(function(item) {
+    var hm = item.ts ? (item.ts.getHours().toString().padStart(2,'0') + ':' + item.ts.getMinutes().toString().padStart(2,'0')) : '';
+    return '<div class="afp-item afp-' + item.tipo + '">' +
+      '<div class="afp-agent">' + (item.emoji||'🤖') + ' ' + (item.nombre||item.id) + '</div>' +
+      '<div class="afp-msg">' + escHtml(item.msg) + '</div>' +
+      '<div class="afp-ts">' + hm + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// Toggle del panel
+document.getElementById('btn-agents').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var p = document.getElementById('agent-feed-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) {
+    _afpUnread = 0;
+    _afpUpdateBadge();
+  }
+});
+document.addEventListener('click', function() {
+  var p = document.getElementById('agent-feed-panel');
+  if (p) p.classList.remove('open');
+});
+document.getElementById('agent-feed-panel').addEventListener('click', function(e) { e.stopPropagation(); });
+document.getElementById('afp-clear').addEventListener('click', function() {
+  _afpItems = []; _afpUnread = 0;
+  _afpUpdateBadge(); _afpRender();
+});
+// Solicitar permisos de notificación
+if (window.Notification && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+/* ---------------------------------------------------
    SONIDOS
 --------------------------------------------------- */
 function getAudioCtx() {
@@ -1043,6 +1226,7 @@ window.AOS_pollNow     = function() { pollNotifications(); };
 window.AOS_setEstado   = function(e,c) { setEstadoUI(e,c); };
 window.AOS_playSound   = playSound;
 window.AOS_showToast   = showToast;
+window.AOS_pollAgentFeed = pollAgentFeed;
 
 
 /* ---------------------------------------------------

@@ -238,6 +238,7 @@ http.createServer(function(req, res) {
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   if (p === '/agents') { serve(path.join(PUB, 'agents.html'), res); return }
+  if (p === '/cerebro.html' || p === '/cerebro') { serve(path.join(PUB, 'cerebro.html'), res); return }
   // ===== AGENTS THINK-LOOP API =====
   if (p === '/api/agents/tick' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
