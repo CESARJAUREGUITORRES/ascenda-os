@@ -427,12 +427,19 @@ function executeTask(agent, task) {
   if (tipo === 'rpc_call') {
     var rpcName = config.rpc
     var params = config.params || {}
-    // Replace dynamic params
+    // Replace dynamic params — FIX: usar timezone Lima (UTC-5) para evitar desfase nocturno
+    var _limaOff = -5 * 60
+    var _limaDate = new Date(Date.now() + _limaOff * 60000)
+    var _limaYest = new Date(Date.now() + _limaOff * 60000 - 86400000)
+    var _limaStr  = _limaDate.toISOString().split('T')[0]
+    var _limaYStr = _limaYest.toISOString().split('T')[0]
+    var _limaFMon = _limaStr.slice(0, 8) + '01'
+    var _limaMon  = parseInt(_limaStr.split('-')[1], 10)
     var paramStr = JSON.stringify(params)
-    paramStr = paramStr.replace(/"CURRENT_DATE"/g, '"' + new Date().toISOString().split('T')[0] + '"')
-    paramStr = paramStr.replace(/"CURRENT_DATE-1"/g, '"' + new Date(Date.now() - 86400000).toISOString().split('T')[0] + '"')
-    paramStr = paramStr.replace(/"FIRST_OF_MONTH"/g, '"' + new Date().toISOString().slice(0, 8) + '01"')
-    paramStr = paramStr.replace(/"CURRENT_MONTH"/g, '' + (new Date().getMonth() + 1))
+    paramStr = paramStr.replace(/\"CURRENT_DATE\"/g, '\"' + _limaStr + '\"')
+    paramStr = paramStr.replace(/\"CURRENT_DATE-1\"/g, '\"' + _limaYStr + '\"')
+    paramStr = paramStr.replace(/\"FIRST_OF_MONTH\"/g, '\"' + _limaFMon + '\"')
+    paramStr = paramStr.replace(/\"CURRENT_MONTH\"/g, '' + _limaMon)
     try { params = JSON.parse(paramStr) } catch(e) {}
 
     return sbRpc(rpcName, params).then(function(result) {
@@ -458,7 +465,7 @@ function executeTask(agent, task) {
     }).catch(function(e) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'error', query.substring(0, 100), '', 'script', '', 0, 0, 0, dur, false, e.message)
-      sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'Error SQL', bubble_type: 'speech' })
+      sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'SQL: ' + (e.message || 'error').substring(0, 60), bubble_type: 'speech', ultimo_error: e.message || '' })
       return { ok: false, error: e.message }
     })
   }
