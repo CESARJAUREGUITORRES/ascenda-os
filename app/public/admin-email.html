@@ -148,7 +148,14 @@
       <div style="font-size:11px;color:#6B7BA8;" id="em-tpl-count"></div>
       <button class="mbtn mbtn-p" onclick="openNewPlantilla()">+ Nueva Plantilla</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="em-tpl-list"></div>
+    <!-- Filtros por categoría -->
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;" id="tpl-filtros"></div>
+    <!-- Plantillas Email -->
+    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📧 Plantillas Email</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px;" id="em-tpl-list"></div>
+    <!-- Plantillas WhatsApp -->
+    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">💬 Plantillas WhatsApp</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="em-wa-list"></div>
   </div>
 
   <!-- ENVIADOS -->
@@ -444,14 +451,54 @@ function toggleFlujo(id,activo){
 }
 
 function loadPlantillas(){
+  // Cargar plantillas email
   q('aos_email_plantillas','select=*&order=tipo,nombre',function(tpls){
-    if(!tpls||!tpls.length){el('em-tpl-list').innerHTML='<div>Sin plantillas</div>';return;}
-    el('em-tpl-count').textContent=tpls.length+' plantillas';
-    var tipoIco={'recordatorio':'📅','catalogo':'📦','comprobante':'🧾','reactivacion':'💚','bienvenida':'🌟','general':'📧'};
-    var tipoBg={'recordatorio':'#EBF2FF','catalogo':'#F5F3FF','comprobante':'#F0FDF4','reactivacion':'#F0FDFA','bienvenida':'#FFFBEB','general':'#F8FAFF'};
-    el('em-tpl-list').innerHTML=tpls.map(function(t){
-      return '<div class="tpl-card" onclick="verPlantilla(\''+t.id+'\')"><div class="tpl-hdr" style="background:'+(tipoBg[t.tipo]||'#F8FAFF')+';"><span style="font-size:20px;">'+(tipoIco[t.tipo]||'📧')+'</span>'+h(t.nombre)+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;">'+(t.activo?'Activa':'Inactiva')+'</span></div><div class="tpl-body"><div style="margin-bottom:4px;"><b>Asunto:</b> '+h(t.asunto)+'</div><div><b>Variables:</b> '+(t.variables||[]).map(function(v){return '<span style="background:#EBF2FF;padding:1px 6px;border-radius:4px;font-size:8px;margin-right:3px;">{{'+v+'}}</span>';}).join('')+'</div></div></div>';
-    }).join('');
+    if(!tpls) tpls=[];
+    // Cargar también plantillas WhatsApp
+    q('aos_plantillas_mensajes','select=*&order=orden',function(waTpls){
+      if(!waTpls) waTpls=[];
+      var total = tpls.length + (waTpls||[]).length;
+      el('em-tpl-count').textContent=total+' plantillas ('+tpls.length+' email + '+(waTpls||[]).length+' WhatsApp)';
+      // Filtros por categoría
+      var cats={};
+      tpls.forEach(function(t){cats[t.tipo]=(cats[t.tipo]||0)+1;});
+      var filtHtml='<span class="tag tag-b" style="cursor:pointer;font-weight:700;" onclick="filtrarTpl(\'\')">Todas ('+tpls.length+')</span>';
+      var catLabels={recordatorio:'📅 Recordatorio',recordatorio_hoy:'☀️ Rec. Hoy',confirmacion_cita:'📅 Conf. Cita',bienvenida:'🌟 Bienvenida',comprobante:'🧾 Comprobante',recibo_venta:'🧾 Recibo',catalogo:'📦 Catálogo',reactivacion:'💚 Reactivación',agradecimiento:'🌟 Agradecimiento',agradecimiento_visita:'🌟 Post-Visita',saldo_pendiente:'💳 Saldos',cumpleanos:'🎂 Cumpleaños',no_asistencia:'😔 No Asistió',confirmacion_pago:'✅ Conf. Pago',seguimiento:'💆 Seguimiento',reprogramacion:'🔄 Reprog.'};
+      Object.keys(cats).forEach(function(k){
+        filtHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filtrarTpl(\''+k+'\')">'+( catLabels[k]||k)+' ('+cats[k]+')</span>';
+      });
+      el('tpl-filtros').innerHTML=filtHtml;
+      window._allTpls=tpls;
+      renderTplGrid(tpls);
+      // WhatsApp
+      if(!waTpls.length){el('em-wa-list').innerHTML='<div style="color:#9AAAC8;font-size:11px;">Sin plantillas WhatsApp</div>';return;}
+      var canalIco={whatsapp:'💬',email:'📧',sms:'📱'};
+      el('em-wa-list').innerHTML=waTpls.map(function(t){
+        var sedeTag=t.sede?'<span class="tag tag-b" style="font-size:7px;">'+t.sede+'</span>':'<span class="tag tag-g" style="font-size:7px;">Todas</span>';
+        return '<div class="tpl-card" onclick="verPlantillaWA(\''+t.id+'\')" style="cursor:pointer;"><div class="tpl-hdr" style="background:#F0FDFA;"><span style="font-size:18px;">'+(canalIco[t.canal]||'💬')+'</span>'+h(t.nombre)+sedeTag+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;font-size:7px;">'+(t.activo?'ON':'OFF')+'</span></div><div class="tpl-body"><div style="font-size:9px;color:#6B7BA8;">Tipo: '+h(t.tipo)+'</div><div style="font-size:9px;color:#475569;margin-top:4px;white-space:pre-wrap;max-height:50px;overflow:hidden;">'+h((t.cuerpo||'').substring(0,120))+'...</div>'+(t.variables_disponibles&&t.variables_disponibles.length?'<div style="margin-top:4px;">'+ t.variables_disponibles.map(function(v){return '<span style="background:#F0FDFA;padding:1px 5px;border-radius:3px;font-size:7px;margin-right:2px;">{{'+v+'}}</span>';}).join('')+'</div>':'')+'</div></div>';
+      }).join('');
+    });
+  });
+}
+function filtrarTpl(tipo){
+  if(!tipo){renderTplGrid(window._allTpls||[]);return;}
+  renderTplGrid((window._allTpls||[]).filter(function(t){return t.tipo===tipo;}));
+}
+function renderTplGrid(tpls){
+  var tipoIco={recordatorio:'📅',recordatorio_hoy:'☀️',catalogo:'📦',comprobante:'🧾',recibo_venta:'🧾',reactivacion:'💚',bienvenida:'🌟',agradecimiento:'🌟',agradecimiento_visita:'🌟',saldo_pendiente:'💳',cumpleanos:'🎂',no_asistencia:'😔',confirmacion_cita:'📅',confirmacion_pago:'✅',seguimiento:'💆',reprogramacion:'🔄'};
+  var tipoBg={recordatorio:'#EBF2FF',recordatorio_hoy:'#F0FDF4',catalogo:'#F5F3FF',comprobante:'#F0FDF4',recibo_venta:'#F0FDF4',reactivacion:'#F0FDFA',bienvenida:'#FFFBEB',agradecimiento:'#FFFBEB',agradecimiento_visita:'#FFFBEB',saldo_pendiente:'#FEF3C7',cumpleanos:'#FFF1F2',no_asistencia:'#F8FAFF',confirmacion_cita:'#EBF2FF',confirmacion_pago:'#F0FDF4',seguimiento:'#F5F3FF',reprogramacion:'#FEF3C7'};
+  if(!tpls.length){el('em-tpl-list').innerHTML='<div style="color:#9AAAC8;font-size:11px;">Sin plantillas en esta categoría</div>';return;}
+  el('em-tpl-list').innerHTML=tpls.map(function(t){
+    return '<div class="tpl-card" onclick="verPlantilla(\''+t.id+'\')" style="cursor:pointer;"><div class="tpl-hdr" style="background:'+(tipoBg[t.tipo]||'#F8FAFF')+';"><span style="font-size:18px;">'+(tipoIco[t.tipo]||'📧')+'</span>'+h(t.nombre)+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;font-size:7px;">'+(t.activo?'Activa':'Off')+'</span></div><div class="tpl-body"><div style="margin-bottom:4px;font-size:10px;"><b>Asunto:</b> '+h(t.asunto)+'</div><div style="font-size:9px;"><b>Variables:</b> '+(t.variables||[]).map(function(v){return '<span style="background:#EBF2FF;padding:1px 5px;border-radius:3px;font-size:7px;margin-right:2px;">{{'+v+'}}</span>';}).join('')+'</div></div></div>';
+  }).join('');
+}
+function verPlantillaWA(id){
+  q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var t=rows[0];
+    el('mt-title').textContent='💬 '+t.nombre;
+    var preview=t.cuerpo.replace(/\{\{(\w+)\}\}/g,'<span style="background:#F0FDFA;padding:1px 4px;border-radius:3px;color:#059669;font-weight:700;font-size:11px;">{{$1}}</span>');
+    el('mt-body').innerHTML='<div style="margin-bottom:12px;display:flex;gap:8px;"><span class="tag tag-g">'+h(t.canal)+'</span><span class="tag tag-b">'+h(t.tipo)+'</span>'+(t.sede?'<span class="tag tag-b">'+h(t.sede)+'</span>':'<span class="tag tag-g">Todas las sedes</span>')+'</div>'+(t.variables_disponibles&&t.variables_disponibles.length?'<div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Variables:</span><div style="margin-top:4px;">'+ t.variables_disponibles.map(function(v){return '<span class="tag tag-b" style="margin-right:4px;">{{'+v+'}}</span>';}).join('')+'</div></div>':'')+'<div style="border:1px solid #BBF7D0;border-radius:12px;overflow:hidden;"><div style="background:#F0FDFA;padding:8px 12px;font-size:9px;color:#059669;font-weight:700;">VISTA PREVIA WHATSAPP</div><div style="padding:16px;white-space:pre-wrap;font-size:12px;line-height:1.6;background:#E7F5EC;font-family:sans-serif;">'+preview+'</div></div>';
+    el('m-tpl').classList.add('open');
   });
 }
 

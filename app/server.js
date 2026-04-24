@@ -1143,11 +1143,51 @@ function executeAction(agent, task, queryResult) {
     })
   }
 
+  // ─── CARTERO: reintentar emails fallidos del día ───────────
+  if (accion === 'reintentar_fallidos') {
+    if (!data.length) { console.log('[CARTERO] Sin errores que reintentar'); return Promise.resolve() }
+    console.log('[CARTERO] Reintentando ' + data.length + ' emails fallidos...')
+    var retries = data.map(function(err) {
+      // Extraer email del destinatario de los datos de la alerta
+      var email = (err.destinatario || '').split('_')[0]
+      if (!email || email.indexOf('@') < 0) return Promise.resolve()
+      return new Promise(function(resolve) {
+        // Buscar el template original y los datos del paciente
+        var tipo = err.template || 'recordatorio_hoy'
+        // Marcar alerta como leída (procesada)
+        sbPost('/rest/v1/aos_email_alertas?id=eq.' + err.id, { leido: true }, 'PATCH').catch(function(){})
+        // Reenviar usando el endpoint send-template con datos mínimos
+        var body = JSON.stringify({ to: email, template: tipo, nombre: 'Paciente', tratamiento: '', hora: '', sede: '', fecha: '' })
+        var url = new URL(SB_URL.replace('supabase.co', '') + '') // dummy
+        // Usar el endpoint local
+        var reqData = JSON.stringify({ to: email, template: tipo, nombre: 'Paciente' })
+        fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: reqData
+        }).then(function(r) { return r.json() }).then(function(d) {
+          if (d && (d.ok || d.id)) {
+            console.log('[CARTERO] ✓ Reintento exitoso: ' + email)
+            logAction(agent.id, 'email_reintento', 'Reintento exitoso → ' + email, { template: tipo })
+          } else {
+            console.log('[CARTERO] ✕ Reintento fallido: ' + email)
+          }
+          resolve()
+        }).catch(function() { resolve() })
+      })
+    })
+    // Secuencial con delay
+    var chain = Promise.resolve()
+    retries.forEach(function(r, i) {
+      chain = chain.then(function() { return r }).then(function() {
+        if (i < retries.length - 1) return new Promise(function(res) { setTimeout(res, 2000) })
+      })
+    })
+    return chain.then(function() {
+      sbPatchAgent(agent.id, { bubble_text: '🔄 ' + data.length + ' reintentos procesados' })
+    })
+  }
+
   return Promise.resolve()
 }
-
-
-// Acciones reales después de RPCs según agente y resultado
 function executeRpcAction(agent, rpcName, result) {
   if (!result) return Promise.resolve()
 
