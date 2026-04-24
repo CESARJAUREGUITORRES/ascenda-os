@@ -428,46 +428,8 @@
         <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
       </div>
 
-      <!-- ASSETS DE MARCA — para Ascenda Studio -->
-      <div class="crd" style="margin-top:14px;">
-        <div class="sec-t">📸 Assets de Marca <span style="font-size:9px;font-weight:400;color:#94A3B8;margin-left:6px;">Para Ascenda Studio</span></div>
-        <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Sube fotos de trabajos previos, diseños y material de referencia. Ascenda Studio usará estos assets para crear contenido con tu identidad.</div>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-          <!-- Fotos antes/después -->
-          <div>
-            <div class="fg-l" style="margin-bottom:6px;">📷 Fotos antes/después</div>
-            <div id="assets-fotos" class="assets-grid"></div>
-            <div class="assets-upload" onclick="document.getElementById('file-assets-fotos').click()">
-              <span style="font-size:18px;">+</span>
-              <span style="font-size:9px;color:#9AAAC8;">Subir fotos</span>
-            </div>
-            <input type="file" id="file-assets-fotos" accept="image/*" multiple style="display:none;" onchange="uploadAssets(this.files,'fotos')">
-          </div>
-          <!-- Diseños previos -->
-          <div>
-            <div class="fg-l" style="margin-bottom:6px;">🎨 Diseños previos / Posts</div>
-            <div id="assets-disenos" class="assets-grid"></div>
-            <div class="assets-upload" onclick="document.getElementById('file-assets-disenos').click()">
-              <span style="font-size:18px;">+</span>
-              <span style="font-size:9px;color:#9AAAC8;">Subir diseños</span>
-            </div>
-            <input type="file" id="file-assets-disenos" accept="image/*" multiple style="display:none;" onchange="uploadAssets(this.files,'disenos')">
-          </div>
-        </div>
-        
-        <div style="margin-top:14px;">
-          <div class="fg-l" style="margin-bottom:6px;">📝 Notas de estilo</div>
-          <textarea id="c-notas_estilo" data-k="notas_estilo" placeholder="Describe el estilo visual de tu marca: tono, colores preferidos, tipografía, referencias..." style="width:100%;height:60px;border:1.5px solid #DDE4F5;border-radius:8px;padding:8px 10px;font-size:11px;font-family:Outfit;resize:none;outline:none;box-sizing:border-box;"></textarea>
-        </div>
-        
-        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-          <span id="assets-count" style="font-size:10px;color:#94A3B8;">0 assets guardados</span>
-          <button class="mbtn mbtn-p" onclick="saveConfig()" style="margin-left:auto;">💾 Guardar</button>
-        </div>
-      </div>
 
-      <!-- 3 PREVIEWS EN VIVO -->
+            <!-- 3 PREVIEWS EN VIVO -->
       <div style="margin-top:16px;font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Vista previa en vivo</div>
       <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Los colores y logos se aplican en tiempo real</div>
 
@@ -551,6 +513,57 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- ASSETS DE MARCA — para Ascenda Studio -->
+      <div class="crd" style="margin-top:14px;">
+        <div class="sec-t">📸 Assets de Marca <span style="font-size:9px;font-weight:400;color:#94A3B8;margin-left:6px;">Para Ascenda Studio</span></div>
+        <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Material de referencia para crear contenido con tu identidad de marca.</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <!-- Col izq: Formulario de upload -->
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">Agregar nuevo asset</div>
+            <div style="padding:14px;background:#FAFBFE;border-radius:10px;border:1px solid #EEF0F8;">
+              <div style="margin-bottom:8px;">
+                <label style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Nombre</label>
+                <input type="text" id="asset-nombre" placeholder="Ej: Antes/Después HIFU paciente 1" style="width:100%;padding:7px 10px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;font-family:Outfit;outline:none;margin-top:3px;box-sizing:border-box;">
+              </div>
+              <div style="margin-bottom:8px;">
+                <label style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Categoría</label>
+                <select id="asset-cat" style="width:100%;padding:7px 10px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;font-family:Outfit;outline:none;margin-top:3px;">
+                  <option value="fotos">📷 Fotos antes/después</option>
+                  <option value="disenos">🎨 Diseños / Posts</option>
+                  <option value="logos">🏷 Logos / Variantes</option>
+                  <option value="videos">🎬 Capturas de video</option>
+                  <option value="referencia">📌 Material de referencia</option>
+                </select>
+              </div>
+              <div style="margin-bottom:10px;">
+                <label style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Concepto / Descripción</label>
+                <input type="text" id="asset-concepto" placeholder="Ej: Resultado a los 30 días, zona facial" style="width:100%;padding:7px 10px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;font-family:Outfit;outline:none;margin-top:3px;box-sizing:border-box;">
+              </div>
+              <div class="assets-upload" onclick="document.getElementById('file-asset-new').click()" style="height:50px;">
+                <span style="font-size:18px;">📁</span>
+                <span style="font-size:10px;color:#6B7BA8;">Seleccionar imagen</span>
+              </div>
+              <input type="file" id="file-asset-new" accept="image/*" style="display:none;" onchange="uploadSingleAsset(this)">
+              <div id="asset-preview-new" style="margin-top:6px;display:none;"></div>
+            </div>
+            <div style="margin-top:10px;">
+              <div class="fg-l" style="margin-bottom:4px;">📝 Notas de estilo</div>
+              <textarea id="c-notas_estilo" data-k="notas_estilo" placeholder="Tono visual, colores preferidos, tipografía, referencias..." style="width:100%;height:50px;border:1.5px solid #DDE4F5;border-radius:8px;padding:8px 10px;font-size:11px;font-family:Outfit;resize:none;outline:none;box-sizing:border-box;"></textarea>
+              <button class="mbtn mbtn-p" onclick="saveConfig()" style="margin-top:6px;">💾 Guardar notas</button>
+            </div>
+          </div>
+          <!-- Col der: Tabla de assets guardados -->
+          <div>
+            <div class="fg-l" style="margin-bottom:6px;">Assets guardados · <span id="assets-count" style="color:#0A4FBF;">0</span></div>
+            <div id="assets-table" style="max-height:340px;overflow-y:auto;border:1px solid #EEF0F8;border-radius:10px;">
+              <div style="padding:20px;text-align:center;font-size:10px;color:#94a3b8">Cargando assets...</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1158,43 +1171,53 @@ function handleLogoUpload(inp,tipo){var file=inp.files[0];if(!file)return;var ex
   fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file}).then(function(r){if(r.ok){var url=SB+'/storage/v1/object/public/logos/'+path;var pId=tipo==='logo_con_fondo'?'prev-logo-fondo':'prev-logo-sin';var phId=tipo==='logo_con_fondo'?'ph-logo-fondo':'ph-logo-sin';el(pId).src=url;el(pId).style.display='block';el(phId).style.display='none';var clave=tipo+'_url';fetch(SB+'/rest/v1/aos_configuracion?clave=eq.'+clave,{method:'GET',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(ex){if(ex&&ex.length>0){sbPatch('/rest/v1/aos_configuracion?clave=eq.'+clave,{valor:url});}else{fetch(SB+'/rest/v1/aos_configuracion',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({clave:clave,valor:url})});}});showToast('Logo Subido','Imagen actualizada');}else{showToast('Error','No se pudo subir',true);}});}
 
 // ═══ ASSETS DE MARCA ═══
-function uploadAssets(files,categoria){
-  if(!files||!files.length)return;
-  var promises=[];
-  for(var i=0;i<files.length;i++){
-    (function(f){
-      var ext=f.name.split('.').pop().toLowerCase();
-      var path='assets/'+categoria+'_'+Date.now()+'_'+Math.random().toString(36).substring(2,6)+'.'+ext;
-      promises.push(
-        fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':f.type},body:f}).then(function(r){
-          if(r.ok){
-            var url=SB+'/storage/v1/object/public/logos/'+path;
-            return fetch(SB+'/rest/v1/aos_brand_assets',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({categoria:categoria,url:url,nombre:f.name,tipo:f.type})});
-          }
-        })
-      );
-    })(files[i]);
-  }
-  Promise.all(promises).then(function(){showToast('Assets subidos',files.length+' archivo(s)');loadAssets();});
+function uploadSingleAsset(inp){
+  var file=inp.files[0];if(!file)return;
+  var nombre=el('asset-nombre').value.trim()||file.name;
+  var cat=el('asset-cat').value;
+  var concepto=el('asset-concepto').value.trim();
+  var ext=file.name.split('.').pop().toLowerCase();
+  var path='assets/'+cat+'_'+Date.now()+'_'+Math.random().toString(36).substring(2,6)+'.'+ext;
+  
+  showToast('Subiendo...','');
+  fetch(SB+'/storage/v1/object/logos/'+path,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':file.type},body:file}).then(function(r){
+    if(r.ok){
+      var url=SB+'/storage/v1/object/public/logos/'+path;
+      return fetch(SB+'/rest/v1/aos_brand_assets',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({categoria:cat,url:url,nombre:nombre,tipo:file.type,concepto:concepto})});
+    }
+  }).then(function(){
+    showToast('Asset guardado',nombre);
+    el('asset-nombre').value='';el('asset-concepto').value='';inp.value='';
+    loadAssets();
+  });
 }
+
 function loadAssets(){
   sbGet('/rest/v1/aos_brand_assets?select=*&activo=eq.true&order=created_at.desc').then(function(rows){
     if(!rows)rows=[];
-    var fotos=rows.filter(function(r){return r.categoria==='fotos';});
-    var disenos=rows.filter(function(r){return r.categoria==='disenos';});
-    renderAssetGrid('assets-fotos',fotos);
-    renderAssetGrid('assets-disenos',disenos);
-    var cnt=el('assets-count');if(cnt)cnt.textContent=rows.length+' assets guardados';
+    var cnt=el('assets-count');if(cnt)cnt.textContent=rows.length;
+    var tbl=document.getElementById('assets-table');
+    if(!tbl)return;
+    if(!rows.length){tbl.innerHTML='<div style="padding:20px;text-align:center;font-size:10px;color:#94a3b8">Sin assets guardados</div>';return;}
+    var html='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+    html+='<tr style="background:#F8FAFC;"><th style="padding:6px 8px;text-align:left;font-weight:700;color:#6B7BA8;border-bottom:1px solid #EEF0F8;">Imagen</th><th style="padding:6px 8px;text-align:left;font-weight:700;color:#6B7BA8;border-bottom:1px solid #EEF0F8;">Nombre</th><th style="padding:6px 8px;text-align:left;font-weight:700;color:#6B7BA8;border-bottom:1px solid #EEF0F8;">Cat.</th><th style="padding:6px 8px;text-align:center;font-weight:700;color:#6B7BA8;border-bottom:1px solid #EEF0F8;">🗑</th></tr>';
+    rows.forEach(function(a){
+      var catIcon=a.categoria==='fotos'?'📷':a.categoria==='disenos'?'🎨':a.categoria==='logos'?'🏷':a.categoria==='videos'?'🎬':'📌';
+      html+='<tr style="border-bottom:1px solid #f0f4fc;">';
+      html+='<td style="padding:4px 8px;"><img src="'+h(a.url)+'" style="width:40px;height:30px;object-fit:cover;border-radius:4px;"></td>';
+      html+='<td style="padding:4px 8px;"><div style="font-weight:600;color:#0f172a;">'+h(a.nombre||'Sin nombre')+'</div>'+(a.concepto?'<div style="font-size:9px;color:#94a3b8;">'+h(a.concepto)+'</div>':'')+'</td>';
+      html+='<td style="padding:4px 8px;">'+catIcon+'</td>';
+      html+='<td style="padding:4px 8px;text-align:center;"><span onclick="deleteAsset(\''+h(a.id)+'\',\''+h(a.nombre||'')+'\',event)" style="cursor:pointer;color:#dc2626;font-size:12px;" title="Eliminar">✕</span></td>';
+      html+='</tr>';
+    });
+    html+='</table>';
+    tbl.innerHTML=html;
   });
 }
-function renderAssetGrid(containerId,items){
-  var c=document.getElementById(containerId);if(!c)return;
-  if(!items.length){c.innerHTML='';return;}
-  c.innerHTML=items.map(function(a){
-    return '<div class="asset-thumb" style="position:relative"><img src="'+h(a.url)+'" style="width:100%;height:60px;object-fit:cover;border-radius:6px;"><div onclick="deleteAsset(\''+h(a.id)+'\')" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(220,38,38,.8);border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</div></div>';
-  }).join('');
-}
-function deleteAsset(id){
+
+function deleteAsset(id,nombre,evt){
+  if(evt)evt.stopPropagation();
+  if(!confirm('¿Eliminar "'+nombre+'"?'))return;
   fetch(SB+'/rest/v1/aos_brand_assets?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({activo:false})}).then(function(){loadAssets();showToast('Asset eliminado','');});
 }
 

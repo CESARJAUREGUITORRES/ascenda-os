@@ -223,6 +223,9 @@ http.createServer(function(req, res) {
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
           html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'')
+        } else if (tipo === 'cotizacion') {
+          subject = '📋 Tu cotización — ' + BRAND.nombre_empresa
+          html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', '', d.sede||'', d.fecha||'', '')
         } else if (tipo === 'seguimiento') {
           subject = '💆‍♀️ ¿Cómo te fue con tu tratamiento? — ' + BRAND.nombre_empresa
           html = buildEmailSeguimiento(d.nombre||'Paciente', d.tratamiento||'', d.dias||7)
