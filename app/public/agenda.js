@@ -351,7 +351,35 @@ function agGuardarEstado(){
   if(nota!==(AG.sel.obs||''))upd.obs=nota;
   _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
-    if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');agCloseDet();agLoad();
+    if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');
+    
+    // Si marcó NO ASISTIÓ → buscar email del paciente y enviar reagendamiento
+    if(est==='NO ASISTIO'){
+      var numPac = (AG.sel.numero||AG.sel.telefono||'').replace(/\D/g,'');
+      if(numPac){
+        fetch(_SB+'/rest/v1/aos_pacientes?select=Email,nombres&numero_limpio=eq.'+numPac,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+        .then(function(r){return r.json()}).then(function(pacs){
+          var pac=pacs&&pacs[0];
+          if(pac&&pac.Email){
+            fetch('https://ascenda-os-production.up.railway.app/api/send-template',{
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({
+                to:pac.Email,
+                template:'no_asistencia',
+                nombre:pac.nombres||AG.sel.paciente||'',
+                tratamiento:AG.sel.tratamiento||'',
+                sede:AG.sel.sede||'',
+                fecha:AG.sel.fecha||''
+              })
+            }).then(function(r){return r.json()}).then(function(res){
+              if(res&&(res.ok||res.id)){if(window.AOS_showToast)AOS_showToast('📧 Email de reagendamiento enviado','','');}
+            }).catch(function(){});
+          }
+        }).catch(function(){});
+      }
+    }
+    
+    agCloseDet();agLoad();
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 
