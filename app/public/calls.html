@@ -995,71 +995,71 @@ function doCallCC(){if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF'
 function openWaCC(){
   if(!CC.lead||!CC.lead.num) return;
   var num = CC.lead.num;
-  var trat = CC.lead.trat || document.getElementById('cc-trat').textContent || '';
+  var trat = CC.lead.trat || (document.getElementById('cc-trat')?document.getElementById('cc-trat').textContent:'') || '';
   var tipif = document.getElementById('cc-tipif') ? document.getElementById('cc-tipif').value : '';
-  var nombre = document.getElementById('cc-paciente-nombre') ? document.getElementById('cc-paciente-nombre').textContent : '';
+  var nombreEl = document.getElementById('cc-paciente-nombre');
+  var nombre = nombreEl ? nombreEl.textContent : '';
   if(!nombre||nombre==='—'||nombre.indexOf('No encontrado')>=0) nombre = '';
-  var saludo = nombre ? ('Hola '+nombre.split(' ')[0]+',') : 'Hola,';
-  var sede_si = 'Av. Javier Prado Este 996, San Isidro';
-  var sede_pl = 'Av. Brasil 1170, Pueblo Libre';
 
-  // Info de tratamientos para las plantillas
-  var tratInfo = {
-    'HIFU': 'HIFU es un tratamiento no invasivo de rejuvenecimiento facial y corporal con ultrasonido micro-focalizado. Resultados desde la primera sesión, sin cirugía ni tiempo de recuperación.',
-    'ENZIMAS FACIALES': 'Las Enzimas Faciales son un tratamiento de biorevitalización que mejora textura, luminosidad y firmeza de la piel de forma natural.',
-    'CAPILAR': 'Nuestro tratamiento capilar combina tecnología avanzada para fortalecer, nutrir y estimular el crecimiento del cabello.',
-    'HIDROFACIAL': 'El Hidrofacial es una limpieza profunda con tecnología de hidrodermabrasión que limpia, exfolia, extrae e hidrata la piel en una sola sesión.',
-    'TOXINA': 'La aplicación de toxina botulínica es un tratamiento rápido y seguro para reducir líneas de expresión, con resultados naturales.',
-    'EXOSOMAS': 'Los Exosomas son la última tecnología en regeneración celular, ideales para rejuvenecimiento profundo y reparación de tejidos.'
-  };
-  var infoTrat = '';
-  Object.keys(tratInfo).forEach(function(k) { if(trat.toUpperCase().indexOf(k)>=0) infoTrat = tratInfo[k]; });
-  if(!infoTrat && trat) infoTrat = 'Te queríamos contar sobre nuestro tratamiento de '+trat+' que tenemos disponible para ti.';
+  // Cargar plantillas e info del tratamiento desde Supabase
+  var _sk = typeof _SK!=='undefined'?_SK:(window.AOS_SB_KEY||'');
+  var _sb = typeof _SB!=='undefined'?_SB:'https://ituyqwstonmhnfshnaqz.supabase.co';
+  var headers = {'apikey':_sk,'Authorization':'Bearer '+_sk};
 
-  // Generar plantillas según contexto
-  var plantillas = [];
+  Promise.all([
+    fetch(_sb+'/rest/v1/aos_plantillas_whatsapp?activo=eq.true&order=orden',{headers:headers}).then(function(r){return r.json()}),
+    fetch(_sb+'/rest/v1/aos_info_tratamientos?activo=eq.true',{headers:headers}).then(function(r){return r.json()})
+  ]).then(function(results) {
+    var plantillasDB = results[0] || [];
+    var tratamientosDB = results[1] || [];
 
-  // 1. SIEMPRE — No contestó / primer contacto
-  plantillas.push({
-    icon:'📞', label:'No contestó · Primer contacto', color:'#DC2626',
-    msg: saludo + ' soy de *Zi Vital* 🌿 Clínica Estética.\n\nTe estuvimos llamando porque mostraste interés en nuestro servicio de *'+trat+'*.\n\n'+infoTrat+'\n\n¿Te gustaría recibir más información o agendar una evaluación gratuita? 😊\n\n📍 '+sede_si+'\n📍 '+sede_pl
-  });
-
-  // 2. No contestó — segundo intento
-  plantillas.push({
-    icon:'🔄', label:'No contestó · Segundo intento', color:'#EA580C',
-    msg: saludo + ' te escribimos de *Zi Vital* 🌿\n\nIntentamos contactarte sobre *'+trat+'* y no pudimos comunicarnos. Nos encantaría ayudarte.\n\n¿Tienes alguna consulta sobre el tratamiento o prefieres que te llamemos en otro horario? 🕐'
-  });
-
-  // 3. Cita confirmada
-  if(tipif==='CITA CONFIRMADA' || tipif==='CITA_CONFIRMADA') {
-    plantillas.unshift({
-      icon:'✅', label:'Cita Confirmada', color:'#059669',
-      msg: saludo + ' tu cita en *Zi Vital* ha sido confirmada 🎉\n\n📋 *Tratamiento:* '+trat+'\n📍 *Dirección:* '+sede_si+'\n\n*Recomendaciones:*\n• Llegar 10 min antes\n• Traer DNI\n• Venir sin maquillaje (tratamiento facial)\n\nSi necesitas reprogramar, escríbenos con anticipación.\n\n¡Te esperamos! 💚'
+    // Buscar info del tratamiento
+    var infoTrat = '';
+    var tratUp = trat.toUpperCase();
+    tratamientosDB.forEach(function(t) {
+      if(tratUp.indexOf(t.campana.toUpperCase()) >= 0) {
+        infoTrat = t.descripcion_corta;
+      }
     });
-  }
+    if(!infoTrat && trat) infoTrat = 'Te contactamos sobre nuestro servicio de *'+trat+'* que tenemos disponible para ti.';
 
-  // 4. Seguimiento programado
-  if(tipif==='SEGUIMIENTO') {
-    plantillas.unshift({
-      icon:'📋', label:'Seguimiento programado', color:'#0A4FBF',
-      msg: saludo + ' te escribimos de *Zi Vital* 🌿\n\nComo conversamos, te estaremos contactando para darte seguimiento sobre *'+trat+'*.\n\nRecuerda que la constancia en el tratamiento es clave para los mejores resultados. 💪\n\n¿Tienes alguna consulta o quieres agendar tu próxima sesión?'
+    // Preparar nombre para plantilla
+    var nombreTag = nombre ? (' ' + nombre.split(' ')[0]) : '';
+
+    // Filtrar plantillas por contexto
+    var plantillas = [];
+    plantillasDB.forEach(function(p) {
+      // Si tiene contexto específico, solo mostrar si la tipificación coincide
+      if(p.contexto && tipif.toUpperCase().replace(/ /g,'_') !== p.contexto.toUpperCase()) return;
+      
+      // Reemplazar variables en mensaje
+      var msg = p.mensaje
+        .replace(/\{nombre\}/g, nombreTag)
+        .replace(/\{tratamiento\}/g, trat || 'nuestros tratamientos')
+        .replace(/\{info_tratamiento\}/g, infoTrat)
+        .replace(/\{sede\}/g, 'San Isidro');
+      
+      plantillas.push({ icon: p.icono, label: p.nombre, color: p.color, msg: msg });
     });
-  }
 
-  // 5. Invitación a promo/evento
-  plantillas.push({
-    icon:'🎁', label:'Invitación a promoción', color:'#7C3AED',
-    msg: saludo + ' en *Zi Vital* tenemos una promoción especial este mes 🎉\n\n💫 *Aprovecha precios exclusivos* en '+trat+' y otros tratamientos.\n\n¿Te gustaría conocer los detalles? Te puedo enviar toda la información.\n\n📍 San Isidro | Pueblo Libre'
+    // Si no hay plantillas del DB, usar fallback
+    if(!plantillas.length) {
+      plantillas.push({icon:'💬',label:'Mensaje rápido',color:'#475569',
+        msg:'Hola'+nombreTag+', te escribimos de *Zi Vital* 🌿\n\nTe contactamos sobre *'+(trat||'nuestros servicios')+'*.\n\n¿Te gustaría más información?'});
+    }
+
+    renderWaModal(num, trat, plantillas);
+  }).catch(function() {
+    // Fallback si falla Supabase
+    var nombreTag = nombre ? (' '+nombre.split(' ')[0]) : '';
+    renderWaModal(num, trat, [
+      {icon:'📞',label:'Contacto rápido',color:'#DC2626',msg:'Hola'+nombreTag+', te llamamos de *Zi Vital* 🌿 sobre *'+(trat||'nuestros servicios')+'*.\n\n¿Te gustaría más información o agendar una evaluación? 😊'},
+      {icon:'✏️',label:'Mensaje libre',color:'#475569',msg:'Hola'+nombreTag+', te escribimos de *Zi Vital* 🌿\n\n'}
+    ]);
   });
+}
 
-  // 6. Mensaje libre
-  plantillas.push({
-    icon:'✏️', label:'Mensaje personalizado', color:'#475569',
-    msg: saludo + ' te escribimos de *Zi Vital* 🌿\n\n'
-  });
-
-  // Crear modal
+function renderWaModal(num, trat, plantillas) {
   var existing = document.getElementById('wa-modal-cc');
   if (existing) existing.remove();
 
@@ -1068,25 +1068,25 @@ function openWaCC(){
   m.style.cssText = 'position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
 
   var cardsHtml = plantillas.map(function(p, i) {
-    return '<div onclick="waSeleccionarPlantilla('+i+')" style="padding:12px 14px;border:2px solid #EEF0F8;border-radius:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;" onmouseover="this.style.borderColor=\'#0A4FBF\';this.style.background=\'#EBF2FF\'" onmouseout="this.style.borderColor=\'#EEF0F8\';this.style.background=\'#fff\'">' +
+    return '<div onclick="waSeleccionarPlantilla('+i+')" style="padding:12px 14px;border:2px solid #EEF0F8;border-radius:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;" onmouseover="this.style.borderColor=\'#128C7E\';this.style.background=\'#F0FFF4\'" onmouseout="this.style.borderColor=\'#EEF0F8\';this.style.background=\'#fff\'">' +
       '<span style="font-size:18px;">'+p.icon+'</span>' +
-      '<div><div style="font-size:11px;font-weight:700;color:'+p.color+';">'+escH(p.label)+'</div>' +
-      '<div style="font-size:9px;color:#94A3B8;margin-top:1px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(p.msg.substring(0,80))+'...</div></div></div>';
+      '<div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;color:'+p.color+';">'+escH(p.label)+'</div>' +
+      '<div style="font-size:9px;color:#94A3B8;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(p.msg.substring(0,80).replace(/\n/g,' '))+'...</div></div></div>';
   }).join('');
 
   m.innerHTML = '<div style="background:#fff;border-radius:16px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
     '<div style="background:linear-gradient(135deg,#075E54,#128C7E);padding:16px 20px;display:flex;align-items:center;gap:10px;">' +
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>' +
     '<div><div style="font-size:14px;font-weight:800;color:#fff;">WhatsApp · Plantillas</div>' +
-    '<div style="font-size:10px;color:#25D366;">'+escH(num)+' · '+escH(trat||'Sin tratamiento')+'</div></div>' +
-    '<div onclick="document.getElementById(\'wa-modal-cc\').remove()" style="margin-left:auto;color:#fff;font-size:20px;cursor:pointer;padding:4px;">&times;</div></div>' +
+    '<div style="font-size:10px;color:#25D366;">'+escH(num)+' · '+escH(trat||'Sin campaña')+'</div></div>' +
+    '<div onclick="document.getElementById(\'wa-modal-cc\').remove()" style="margin-left:auto;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</div></div>' +
     '<div style="padding:14px 18px;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">'+cardsHtml+'</div>' +
     '<div id="wa-preview-area" style="display:none;padding:14px 18px;border-top:1px solid #EEF0F8;">' +
-    '<div style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;">Vista previa del mensaje</div>' +
+    '<div style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;">Vista previa · puedes editar antes de enviar</div>' +
     '<textarea id="wa-msg-edit" style="width:100%;height:120px;border:1.5px solid #DDE4F5;border-radius:8px;padding:10px;font-size:11px;font-family:Outfit;resize:none;outline:none;box-sizing:border-box;"></textarea>' +
     '<div style="display:flex;gap:8px;margin-top:10px;">' +
-    '<button onclick="document.getElementById(\'wa-preview-area\').style.display=\'none\'" style="flex:1;padding:9px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:Outfit;">← Volver</button>' +
-    '<button onclick="waEnviarMsg()" style="flex:1;padding:9px;border:none;border-radius:8px;background:#25D366;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:Outfit;">💬 Enviar WhatsApp</button></div></div></div>';
+    '<button onclick="document.getElementById(\'wa-preview-area\').style.display=\'none\'" style="flex:1;padding:9px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:Outfit;">\u2190 Volver</button>' +
+    '<button onclick="waEnviarMsg()" style="flex:1;padding:9px;border:none;border-radius:8px;background:#25D366;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:Outfit;">\ud83d\udcac Enviar WhatsApp</button></div></div></div>';
 
   document.body.appendChild(m);
   window._waPlantillas = plantillas;
