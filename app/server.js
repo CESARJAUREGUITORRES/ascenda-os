@@ -299,7 +299,7 @@ http.createServer(function(req, res) {
   console.log('Webhook: https://ascenda-os-production.up.railway.app/webhook')
   console.log('Agents: Think-loop ready on /api/agents/tick')
   // Auto-tick every 60 seconds for cron agents
-  setInterval(function() { autoTick() }, 60000)
+  setInterval(function() { autoTick() }, 30000) // cada 30s — más visible
   console.log('Agents: Auto-tick every 60s started')
 })
 
@@ -626,7 +626,7 @@ function executeTask(agent, task) {
     return sbRpc(rpcName, params).then(function(result) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'execute', rpcName, JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
-      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: '', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' ✓', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
       return { ok: true, result: result, dur: dur }
     }).catch(function(e) {
       var dur = Date.now() - start
@@ -641,7 +641,7 @@ function executeTask(agent, task) {
     return sbRpc('aos_execute_agent_query', { p_query: query }).then(function(result) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'execute', query.substring(0, 100), JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
-      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: '', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' ✓', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
       return { ok: true, result: result, dur: dur }
     }).catch(function(e) {
       var dur = Date.now() - start

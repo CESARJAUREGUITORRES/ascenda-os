@@ -415,14 +415,14 @@ function initAgents() {
     return {
       ...a,
       px: p.x, py: p.y, tx: p.x, ty: p.y, walking: false,
-      estado: a.estado || 'working',
+      estado: a.estado || 'idle',  // estado real viene de Supabase pull
       bubble_text: act.thought,
       bubble_type: 'thought',
       bubbleUntil: Date.now() + 5000,
       activity: act,
       nextDecision: 1500 + Math.random() * 4000,
-      total_ejecuciones: Math.floor(Math.random() * 40 + 5),
-      tasks_queue: Math.floor(Math.random() * 5),
+      total_ejecuciones: 0,  // se sobreescribe con dato real de Supabase
+      tasks_queue: 0,
       log: seedLog(a.id),
     };
   });
@@ -506,34 +506,17 @@ function simTick(agents, dt, now, activeChains, setChains) {
         a.bubble_type = 'thought';
         a.bubbleUntil = now + 5000;
       }
-    } else if (roll < 0.31 && a.id !== 'recepcion') {
-      // temporary blocked
-      a.estado = 'blocked';
-      a.bubble_text = '⚠ bloqueado';
-      a.bubble_type = 'speech';
-      a.bubbleUntil = now + 3500;
-      setTimeout(() => { if (a.estado === 'blocked' && a.id !== 'recepcion') a.estado = 'working'; }, 4500);
-    } else if (roll < 0.40) {
-      // travel to cafe for break
+    } else if (roll < 0.35) {
+      // viaje al café — solo visual, no cambia estado real
       const spot = spotCenter(pickRandom(window.CAFE_SPOTS));
       a.tx = spot.x; a.ty = spot.y;
-      a.estado = 'traveling';
-      setTimeout(() => { if (a.estado === 'traveling' && a.id !== 'recepcion') a.estado = 'working'; }, 5000);
-    } else if (roll < 0.48) {
-      // return to desk
+    } else if (roll < 0.50) {
+      // volver al escritorio — solo visual
       const desk = window.DESKS.find(d => d.id === a.home);
-      if (desk) { const p = deskCenter(desk); a.tx = p.x; a.ty = p.y; a.estado = 'traveling'; }
-      setTimeout(() => { if (a.estado === 'traveling' && a.id !== 'recepcion') a.estado = 'working'; }, 3500);
-    } else {
-      // log a task done
-      const pool = window.ACTIVITY[a.id] || [];
-      const act = pickRandom(pool);
-      if (act) {
-        a.log.unshift({ t: now, label: act.label, detail: act.thought, status: 'done' });
-        if (a.log.length > 30) a.log.pop();
-        a.total_ejecuciones++;
-      }
+      if (desk) { const p = deskCenter(desk); a.tx = p.x; a.ty = p.y; }
     }
+    // ELIMINADO: blocked falso, incremento falso de total_ejecuciones
+    // Estado y métricas vienen SOLO de Supabase (pull cada 12s)
   });
   // expire chains
   const next = activeChains.filter(c => c.until > now);
@@ -943,6 +926,7 @@ function drawAgent(ctx, a, tile, now) {
   let orbColor = '#94A3B8';
   let pulse = false;
   if (a.estado === 'working') { orbColor = '#00E5A0'; pulse = true; }
+  else if (a.estado === 'idle') { orbColor = '#94A3B8'; pulse = false; } // en reposo — sin actividad real
   else if (a.estado === 'meeting') { orbColor = '#F59E0B'; pulse = true; }
   else if (a.estado === 'blocked') { orbColor = '#EF4444'; pulse = true; }
   else if (a.estado === 'traveling') { orbColor = '#0EA5E9'; }
@@ -987,7 +971,7 @@ function drawAgent(ctx, a, tile, now) {
 }
 
 function drawBubble(ctx, a, now) {
-  if (!a.bubble_text) return;
+  if (!a.bubble_text || a.bubble_text.length === 0) return;  // sin globo si no hay texto real
   const text = a.bubble_text;
   const isThought = a.bubble_type !== 'speech';
   ctx.font = '500 10px "DM Sans", system-ui';
@@ -1398,7 +1382,7 @@ function SoundToggle() {
   );
 }
 
-function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeeting, onRunTick }) {
+function LiveFeed({ agents, events, metrics, tasksDoneReal, alerts, onSelectAgent, onOpenMeeting, onRunTick }) {
   return <div style={{ display:'flex', flexDirection:'column', height:'100%', minHeight: 0 }}>
     <div style={{ padding:14, borderBottom:'1px solid rgba(15,23,42,0.06)' }}>
       <div style={{ fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'#64748B', letterSpacing:'0.1em' }}>ORGANIZACIÓN · LIVE</div>
@@ -1407,7 +1391,7 @@ function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeetin
         <Metric label="Activos" value={`${metrics.working}/${agents.length}`} tone="mint"/>
         <Metric label="Reuniones" value={metrics.meeting} tone="amber"/>
         <Metric label="Bloqueados" value={metrics.blocked} tone={metrics.blocked > 0 ? "red" : "ink"}/>
-        <Metric label="Tareas hoy" value={metrics.tasksDone} tone="blue"/>
+        <Metric label="Tareas hoy" value={tasksDoneReal !== null ? tasksDoneReal : '…'} tone="blue"/>
       </div>
 
       {/* Eficiencia */}
@@ -1854,6 +1838,7 @@ function App(){
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [toast, setToast] = useState(null); // { msg, type } o string legacy
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
+  const [tasksDoneReal, setTasksDoneReal] = useState(null); // null = cargando
   // Helper: disparar toast con tipo
   const showToast = useCallback((msg, type, ms) => {
     setToast({ msg, type: type || 'info' });
@@ -1964,18 +1949,32 @@ function App(){
           }
           // ─────────────────────────────────────────────────────────
 
+          // Estado: si la BD tiene 'working' es real (agente ejecutando ahora)
+          // idle/null de BD = agente en reposo (no sobreescribir con sim working)
+          const realState = (dbState === 'working' || dbState === 'blocked' || dbState === 'paused' || dbState === 'meeting')
+            ? dbState
+            : 'idle';
           return {
             ...a,
-            estado: shouldOverride ? dbState : a.estado,
+            estado: realState,
+            // bubble_text real de BD solo si tiene contenido
+            bubble_text: (row.bubble_text && row.bubble_text.length > 0) ? row.bubble_text : '',
             eficiencia: (typeof row.eficiencia === 'number' && row.eficiencia > 0) ? row.eficiencia : a.eficiencia,
-            total_ejecuciones: (typeof row.total_ejecuciones === 'number' && row.total_ejecuciones >= a.total_ejecuciones) ? row.total_ejecuciones : a.total_ejecuciones,
+            total_ejecuciones: (typeof row.total_ejecuciones === 'number') ? row.total_ejecuciones : a.total_ejecuciones,
           };
         });
         return next;
       });
     };
     pull();
-    const iv = setInterval(pull, 12000);
+    // También cargar conteo real de tareas del día
+    const pullTaskCount = async () => {
+      const limaDate = new Date(Date.now() + (-5 * 60) * 60000).toISOString().split('T')[0];
+      const res = await window.sbGet('/rest/v1/aos_agente_logs?created_at=gte.' + limaDate + 'T05:00:00Z&select=id');
+      if (res && Array.isArray(res)) setTasksDoneReal(res.length);
+    };
+    pullTaskCount();
+    const iv = setInterval(() => { pull(); pullTaskCount(); }, 8000); // 8s para ver ejecuciones en tiempo quasi-real
     return () => clearInterval(iv);
   }, []);
 
@@ -1998,7 +1997,7 @@ function App(){
   const metrics = useMemo(() => {
     let working = 0, meeting = 0, blocked = 0, tasksDone = 0, eff = 0;
     agents.forEach(a => {
-      if (a.estado === 'working' || a.estado === 'traveling') working++;
+      if (a.estado === 'working') working++;  // solo working real — no traveling ni idle
       if (a.estado === 'meeting') meeting++;
       if (a.estado === 'blocked') blocked++;
       tasksDone += a.total_ejecuciones;
@@ -2149,6 +2148,7 @@ function App(){
             agents={agents}
             events={events}
             metrics={metrics}
+            tasksDoneReal={tasksDoneReal}
             alerts={alerts}
             onSelectAgent={setSelectedId}
             onOpenMeeting={()=>setMeetingOpen(true)}
