@@ -83,21 +83,28 @@
     <div class="crd" style="padding:12px 16px;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(7,29,74,.03),rgba(0,201,167,.03));" id="em-plan-bar">
       <div style="font-size:20px;">📧</div>
       <div style="flex:1;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;"><div style="font-size:11px;font-weight:700;">Emails Enviados este Mes</div><div style="font-size:10px;color:#6B7BA8;"><b id="em-plan-used">0</b> emails</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;"><div style="font-size:11px;font-weight:700;">Uso del Plan Resend</div><div style="font-size:10px;color:#6B7BA8;"><b id="em-plan-used">0</b> / 3,000 emails este mes</div></div>
         <div style="height:6px;background:#EEF0F8;border-radius:3px;overflow:hidden;"><div id="em-plan-fill" style="height:6px;border-radius:3px;background:linear-gradient(90deg,#00C9A7,#059669);width:0%;transition:width .5s;"></div></div>
       </div>
       <div style="font-family:'Exo 2';font-weight:800;font-size:18px;color:#059669;" id="em-plan-pct">—</div>
     </div>
     <div class="st">
-      <div class="st-c"><div class="st-v" id="em-s-total">0</div><div class="st-l">Correos Enviados</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-total">0</div><div class="st-l">Total Resend</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-hoy" style="color:#0A4FBF;">0</div><div class="st-l">Hoy</div></div>
       <div class="st-c"><div class="st-v" id="em-s-entregados" style="color:#059669;">0</div><div class="st-l">Entregados</div></div>
-      <div class="st-c"><div class="st-v" id="em-s-flujos" style="color:#D97706;">0</div><div class="st-l">Flujos Activos</div></div>
-      <div class="st-c"><div class="st-v" id="em-s-pacientes" style="color:#7C3AED;">0</div><div class="st-l">Pacientes con Email</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-abiertos" style="color:#7C3AED;">0</div><div class="st-l">Abiertos</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-rebotados" style="color:#DC2626;">0</div><div class="st-l">Rebotados</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-pacientes" style="color:#D97706;">0</div><div class="st-l">Pacientes c/Email</div></div>
     </div>
+    <!-- Tipo chips -->
+    <div id="em-tipo-chips" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;"></div>
+    <!-- Tabla unificada de emails Resend -->
     <div class="crd">
-      <div class="ct">📬 Envíos Recientes</div>
-      <table class="vt"><thead><tr><th>Destinatario</th><th>Email</th><th>Plantilla</th><th>Estado</th><th>Asunto</th><th>Flujo</th><th>Fecha</th></tr></thead>
-      <tbody id="em-campanias"><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin campañas aún. Crea tu primera campaña →</td></tr></tbody></table>
+      <div class="ct">📬 Todos los Emails (Resend)</div>
+      <div style="max-height:500px;overflow-y:auto;">
+      <table class="vt"><thead><tr><th>Destinatario</th><th>Asunto</th><th>Estado</th><th>Tipo</th><th>Fecha</th></tr></thead>
+      <tbody id="em-campanias"><tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Cargando datos de Resend...</td></tr></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -318,59 +325,55 @@ function doSendEmail(email,nombre,numero){
 }
 
 function loadDashboard(){
-  rpc('aos_email_dashboard',{},function(d){
-    if(!d||!d.ok)return;
-    el('em-s-total').textContent=fmt(d.total_enviados||0);
-    el('em-s-entregados').textContent=fmt(d.total_enviados||0);
-    el('em-s-flujos').textContent=d.flujos_activos||0;
-    el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);
-    // Counter
-    var used=d.total_enviados||0;
-    el('em-plan-used').textContent=used+' emails';
-    el('em-plan-pct').textContent=used;
-    el('em-plan-fill').style.width=Math.min(used*5,100)+'%';
-    // Info de próximos envíos automáticos
-    var autoInfo='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
-    autoInfo+='<div style="padding:8px 12px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;font-size:10px;"><b style="color:#059669;">⏰ 6:00 AM</b> — Recordatorio mañana: <b>'+d.citas_manana+'</b> citas ('+d.citas_manana_con_email+' con email)</div>';
-    autoInfo+='<div style="padding:8px 12px;background:#EBF5FF;border-radius:8px;border:1px solid #BFDBFE;font-size:10px;"><b style="color:#0A4FBF;">☀️ 7:00 AM</b> — Recordatorio hoy: <b>'+d.citas_hoy+'</b> citas</div>';
-    autoInfo+='<div style="padding:8px 12px;background:#F5F3FF;border-radius:8px;border:1px solid #DDD6FE;font-size:10px;"><b style="color:#7C3AED;">🤖 Elena</b> — Agente: '+d.total_agente+' enviados · Panel: '+d.total_panel+' enviados</div>';
-    autoInfo+='</div>';
-    // Chips por tipo
-    var pt=d.por_tipo||{};
-    var chipHtml='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;">';
-    chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'\')">Todos ('+used+')</span>';
-    if(pt.recordatorio_manana) chipHtml+='<span class="tag tag-g" style="cursor:pointer;" onclick="filterEmailLog(\'recordatorio_manana\')">⏰ Rec. mañana ('+pt.recordatorio_manana+')</span>';
-    if(pt.recordatorio_hoy) chipHtml+='<span class="tag tag-g" style="cursor:pointer;" onclick="filterEmailLog(\'recordatorio_hoy\')">☀️ Rec. hoy ('+pt.recordatorio_hoy+')</span>';
-    if(pt.bienvenida) chipHtml+='<span class="tag tag-p" style="cursor:pointer;" onclick="filterEmailLog(\'bienvenida\')">🌟 Bienvenida ('+pt.bienvenida+')</span>';
-    if(pt.confirmacion_cita) chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'confirmacion_cita\')">📅 Conf. cita ('+pt.confirmacion_cita+')</span>';
-    if(pt.manual) chipHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filterEmailLog(\'manual\')">📧 Manual ('+pt.manual+')</span>';
-    chipHtml+='</div>';
-    _allEnvios=d.envios||[];
-    var content=autoInfo+chipHtml;
-    if(!_allEnvios.length){el('em-campanias').innerHTML='<tr><td colspan="7" style="padding:6px;">'+content+'</td></tr><tr><td colspan="7" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos registrados aún. Las automatizaciones enviarán a las 6:00 AM y 7:00 AM.</td></tr>';return;}
-    renderEmailLog(_allEnvios, content);
-  });
+  fetch('/api/resend-stats').then(function(r){return r.json()}).then(function(rs){
+    if(!rs||!rs.ok){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#DC2626;padding:20px;">Error cargando Resend</td></tr>';return;}
+    el('em-s-total').textContent=rs.total_resend||0;
+    el('em-s-hoy').textContent=rs.total_hoy||0;
+    el('em-s-entregados').textContent=rs.entregados||0;
+    el('em-s-abiertos').textContent=rs.abiertos||0;
+    el('em-s-rebotados').textContent=rs.rebotados||0;
+    el('em-plan-used').textContent=rs.total_mes||0;
+    el('em-plan-pct').textContent=rs.usado_pct+'%';
+    el('em-plan-fill').style.width=Math.min(rs.usado_pct,100)+'%';
+    if(rs.usado_pct>=80){el('em-plan-fill').style.background='linear-gradient(90deg,#D97706,#DC2626)';el('em-plan-pct').style.color='#DC2626';}
+    var pt=rs.por_tipo||{};
+    var tipoLabels={recordatorio_hoy:'☀️ Rec. Hoy',recordatorio_manana:'⏰ Rec. Mañana',confirmacion_cita:'📅 Cita',bienvenida:'🌟 Bienvenida',recibo:'🧾 Recibo',sistema:'🔑 Sistema',reporte:'📊 Reporte',otro:'📧 Otro'};
+    var tipoColors={recordatorio_hoy:'tag-g',recordatorio_manana:'tag-g',confirmacion_cita:'tag-b',bienvenida:'tag-p',recibo:'tag-y',sistema:'tag-b',reporte:'tag-p',otro:'tag-b'};
+    var chipHtml='<span class="tag tag-b" style="cursor:pointer;font-weight:700;" onclick="filterResend(\'\')">Todos ('+rs.total_resend+')</span>';
+    Object.keys(pt).forEach(function(k){chipHtml+='<span class="tag '+(tipoColors[k]||'tag-b')+'" style="cursor:pointer;" onclick="filterResend(\''+k+'\')">'+(tipoLabels[k]||k)+' ('+pt[k]+')</span>';});
+    el('em-tipo-chips').innerHTML=chipHtml;
+    _resendEmails=rs.emails||[];
+    renderResendTable(_resendEmails);
+  }).catch(function(e){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#DC2626;padding:20px;">'+e.message+'</td></tr>';});
+  rpc('aos_email_dashboard',{},function(d){if(d&&d.ok)el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);});
 }
-var _allEnvios=[];
-function filterEmailLog(tipo){
-  var filtered=tipo?_allEnvios.filter(function(e){return e.tipo===tipo||e.origen===tipo;}):_allEnvios;
-  renderEmailLog(filtered,'');
+var _resendEmails=[];
+function filterResend(tipo){
+  if(!tipo){renderResendTable(_resendEmails);return;}
+  var map={recordatorio_hoy:'cita es hoy',recordatorio_manana:'mañana',confirmacion_cita:'confirmad',bienvenida:'Bienvenid',recibo:'ecibo',sistema:'código',reporte:'Reporte'};
+  var kw=(map[tipo]||tipo).toLowerCase();
+  renderResendTable(_resendEmails.filter(function(e){return(e.subject||'').toLowerCase().indexOf(kw)>-1;}));
 }
-function renderEmailLog(recientes, headerHtml){
-    var rows=recientes.map(function(e){
-      var estCol={'enviado':'tag-g','entregado':'tag-g','pendiente':'tag-y','error':'tag-r'};
-      var fecha=e.ts?new Date(e.ts).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-      var origen=e.origen==='agente'?'<span class="tag tag-p">🤖 Elena</span>':'<span class="tag tag-b">📧 Panel</span>';
-      var tipoTag='';
-      if(e.tipo==='recordatorio_hoy') tipoTag='<span class="tag tag-g">☀️ Hoy</span>';
-      else if(e.tipo==='recordatorio_manana') tipoTag='<span class="tag tag-g">⏰ Mañana</span>';
-      else if(e.tipo==='bienvenida') tipoTag='<span class="tag tag-p">🌟 Bienvenida</span>';
-      else if(e.tipo==='confirmacion_cita') tipoTag='<span class="tag tag-b">📅 Cita</span>';
-      else tipoTag='<span class="tag tag-b">📧 '+(e.plantilla||'Manual')+'</span>';
-      return '<tr><td style="font-weight:700;font-size:10px;">'+h(e.nombre||e.email||'—')+'</td><td style="font-size:9px;color:#6B7BA8;">'+h(e.email||'')+'</td><td>'+tipoTag+'</td><td><span class="tag '+(estCol[e.estado]||'tag-y')+'">'+h(e.estado)+'</span></td><td style="font-size:9px;color:#6B7BA8;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(e.asunto||'')+'</td><td>'+origen+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
-    }).join('');
-    el('em-campanias').innerHTML=(headerHtml?'<tr><td colspan="7" style="padding:6px;">'+headerHtml+'</td></tr>':'')+rows;
+function renderResendTable(emails){
+  if(!emails.length){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Sin emails</td></tr>';return;}
+  var stC={delivered:'tag-g',opened:'tag-p',bounced:'tag-r',complained:'tag-r',sent:'tag-y'};
+  var stL={delivered:'✓ Entregado',opened:'👁 Abierto',bounced:'✕ Rebotado',complained:'⚠ Queja',sent:'📤 Enviado'};
+  el('em-campanias').innerHTML=emails.map(function(e){
+    var fecha=e.created_at?new Date(e.created_at).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    var st=e.status||'sent';
+    var subj=(e.subject||'').toLowerCase();
+    var tt='<span class="tag tag-b">📧</span>';
+    if(subj.indexOf('hoy')>-1)tt='<span class="tag tag-g">☀️ Hoy</span>';
+    else if(subj.indexOf('mañana')>-1)tt='<span class="tag tag-g">⏰ Mañana</span>';
+    else if(subj.indexOf('confirmad')>-1)tt='<span class="tag tag-b">📅 Cita</span>';
+    else if(subj.indexOf('bienvenid')>-1)tt='<span class="tag tag-p">🌟</span>';
+    else if(subj.indexOf('ecibo')>-1)tt='<span class="tag tag-y">🧾</span>';
+    else if(subj.indexOf('código')>-1||subj.indexOf('activa')>-1)tt='<span class="tag tag-b">🔑</span>';
+    else if(subj.indexOf('reporte')>-1)tt='<span class="tag tag-p">📊</span>';
+    return '<tr><td style="font-size:10px;font-weight:600;">'+h(e.to)+'</td><td style="font-size:9px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(e.subject)+'</td><td><span class="tag '+(stC[st]||'tag-y')+'">'+(stL[st]||st)+'</span></td><td>'+tt+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
+  }).join('');
 }
+
 
 function loadFlujos(){
   q('aos_email_flujos','select=*&order=created_at.desc',function(flujos){
