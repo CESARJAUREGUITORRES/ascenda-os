@@ -700,7 +700,7 @@ function empChip(chip){
   document.querySelectorAll('.chip').forEach(function(b,i){b.classList.toggle('act',EMP_CHIPS[i]===chip);});
   if(chip==='sedes')loadSedes();
   if(chip==='facturacion')loadFacturacion();
-  if(chip==='datos')loadEmails();
+  if(chip==='datos'){loadConfig();loadEmails();}
   if(chip==='diseno')loadLogos();
   if(chip==='redes')loadRedes();
 }
@@ -1206,29 +1206,6 @@ function editMetodo(id){sbGet('/rest/v1/aos_metodos_pago?id=eq.'+id).then(functi
 function saveMetodo(){var sedes=[];document.querySelectorAll('.met-sede-ck:checked').forEach(function(c){sedes.push(c.value);});var comps=[];document.querySelectorAll('.met-comp-ck:checked').forEach(function(c){comps.push(c.value);});var data={nombre:el('met-nombre').value.trim(),banco:el('met-banco').value.trim(),numero_cuenta:el('met-cuenta').value.trim(),cci:el('met-cci').value.trim(),titular:el('met-titular').value.trim(),tipo_cuenta:el('met-tipo').value,sedes_aplica:sedes,comprobantes_vinculados:comps,activo:true};if(!data.nombre){alert('Nombre obligatorio');return;}var eid=el('met-edit-id').value;if(eid){sbPatch('/rest/v1/aos_metodos_pago?id=eq.'+eid,data).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método actualizado','');});}else{fetch(SB+'/rest/v1/aos_metodos_pago',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método creado','');});}}
 function deleteMetodo(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_metodos_pago?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadFacturacion();});}
 
-// ═══ EMAILS EMPRESA ═══
-var FUNC_ICONS = {corporativo:'📧',citas:'📅',marketing:'📢',soporte:'🛟',facturacion:'🧾',rrhh:'👥',otro:'📌'};
-function loadEmails(){
-  sbGet('/rest/v1/aos_emails_empresa?select=*&order=created_at').then(function(rows){
-    if(!rows||!rows.length){el('cfg-emails-list').innerHTML='<div style="padding:12px;text-align:center;color:#CBD5E1;font-size:11px;">Sin correos configurados</div>';return;}
-    el('cfg-emails-list').innerHTML=rows.map(function(r){
-      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F8FAFC;cursor:pointer;" onclick="editEmail(\''+r.id+'\')">'+
-        '<span style="font-size:14px;">'+(FUNC_ICONS[r.funcion]||'📧')+'</span>'+
-        '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:11px;font-weight:600;color:#071D4A;">'+h(r.email)+'</div>'+
-        '<div style="font-size:9px;color:#9AAAC8;">'+h(r.nombre||'—')+' · '+h(r.funcion)+'</div>'+
-        '</div>'+
-        '<button style="border:none;background:#FEE2E2;color:#DC2626;width:20px;height:20px;border-radius:6px;font-size:9px;cursor:pointer;" onclick="event.stopPropagation();deleteEmail(\''+r.id+'\')">×</button>'+
-        '</div>';
-    }).join('');
-  });
-}
-function openAddEmail(){el('modal-email-title').textContent='Agregar correo';el('em-email').value='';el('em-nombre').value='';el('em-funcion').value='corporativo';el('em-edit-id').value='';el('modal-email-cfg').style.display='flex';}
-function editEmail(id){sbGet('/rest/v1/aos_emails_empresa?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];el('modal-email-title').textContent='Editar correo';el('em-email').value=r.email;el('em-nombre').value=r.nombre||'';el('em-funcion').value=r.funcion;el('em-edit-id').value=r.id;el('modal-email-cfg').style.display='flex';});}
-function saveEmailCfg(){var data={email:el('em-email').value.trim(),nombre:el('em-nombre').value.trim(),funcion:el('em-funcion').value};if(!data.email){alert('Email obligatorio');return;}var eid=el('em-edit-id').value;if(eid){sbPatch('/rest/v1/aos_emails_empresa?id=eq.'+eid,data).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email actualizado','');});}else{fetch(SB+'/rest/v1/aos_emails_empresa',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email agregado','');});}}
-function deleteEmail(id){if(!confirm('¿Eliminar este correo?'))return;fetch(SB+'/rest/v1/aos_emails_empresa?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadEmails();});}
-
-// ═══ EQUIPO Y ADMINISTRACIÓN DE USUARIOS ═══
 function loadEquipo(){sbGet('/rest/v1/aos_usuarios?select=id,nombre,area,cargo,nivel_jerarquia,acceso_geo,avatar_url,activo&order=nivel_jerarquia,nombre').then(function(rows){if(!rows||!rows.length){el('cfg-equipo-list').innerHTML='<div style="color:#CBD5E1;padding:20px;text-align:center;">Sin usuarios</div>';return;}
   el('cfg-equipo-list').innerHTML='<table class="vt"><thead><tr><th></th><th>Nombre</th><th>Área</th><th>Cargo</th><th>Nivel</th><th>Acceso</th><th>Estado</th></tr></thead><tbody>'+rows.map(function(r){
     var av=r.avatar_url?'<img src="'+h(r.avatar_url)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">':'<div style="width:28px;height:28px;border-radius:50%;background:#EBF2FF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A4FBF;">'+h((r.nombre||'?')[0])+'</div>';
@@ -1328,4 +1305,7 @@ function renderIntegCatalog(items){var html='';CAT_ORDER.forEach(function(cat){v
     html+='</div>';
   });html+='</div></div>';});el('cfg-ig-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#CBD5E1;">Sin resultados</div>';}
 function desactivarInteg(id){if(!confirm('¿Desactivar este conector?'))return;sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});}
-f
+
+// ═══ AUTO-INIT: cargar datos al abrir el panel ═══
+loadConfig();loadEmails();
+</script>
