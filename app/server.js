@@ -704,36 +704,101 @@ function executeAction(agent, task, queryResult) {
     return Promise.resolve()
   }
 
-  // ─── CARTERO: enviar emails reales ───────────────────────────
-  if (accion === 'send_email' && template === 'recordatorio_manana') {
-    var sends = data.map(function(cita) {
-      if (!cita.correo) return Promise.resolve()
-      var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, true)
-      return sendAgentEmail(cita.correo, 'Tu cita de mañana en Zi Vital — ' + cita.hora_cita, html, 'recordatorio_manana', cita.correo + '_' + cita.fecha_cita)
-        .then(function(r) {
-          if (r.skip) console.log('[CARTERO] Skip ' + cita.correo + ' — ya enviado')
-          else if (r.ok) {
-            console.log('[CARTERO] ✓ Recordatorio enviado a ' + cita.correo)
-            logAction(agent.id, 'email_enviado', 'Recordatorio cita mañana → ' + cita.nombre, { correo: cita.correo, tratamiento: cita.tratamiento })
+  // ═══ ENVÍO EN LOTES — evitar rate limiting de Resend ═══
+  // Envía de a 3 emails, espera 2 segundos entre lotes
+  // Al final envía reporte al admin (César)
+  function sendInBatches(emails, batchSize, delayMs) {
+    var results = { ok: 0, skip: 0, fail: 0, errors: [] }
+    var batches = []
+    for (var i = 0; i < emails.length; i += batchSize) {
+      batches.push(emails.slice(i, i + batchSize))
+    }
+    var chain = Promise.resolve()
+    batches.forEach(function(batch, bIdx) {
+      chain = chain.then(function() {
+        return Promise.all(batch.map(function(e) {
+          return e.sendFn().then(function(r) {
+            if (r && r.skip) { results.skip++; console.log('[CARTERO] Skip ' + e.email + ' — ya enviado') }
+            else if (r && r.ok) { results.ok++; console.log('[CARTERO] ✓ ' + e.email) }
+            else { results.fail++; results.errors.push(e.email + ': respuesta inesperada'); console.log('[CARTERO] ⚠ ' + e.email + ' — sin confirmación') }
+          }).catch(function(err) {
+            results.fail++; results.errors.push(e.email + ': ' + (err.message || err))
+            console.log('[CARTERO] ✕ ' + e.email + ' — ' + (err.message || err))
+          })
+        })).then(function() {
+          if (bIdx < batches.length - 1) {
+            return new Promise(function(res) { setTimeout(res, delayMs) })
           }
         })
+      })
     })
-    return Promise.all(sends).then(function() {
-      var count = data.filter(function(c){ return c.correo }).length
-      sbPatchAgent(agent.id, { bubble_text: '📧 ' + count + ' recordatorios enviados ✓' })
+    return chain.then(function() { return results })
+  }
+
+  function sendAdminReport(agent, template, results, totalData) {
+    var adminEmail = 'jaureguitorrescesar@gmail.com'
+    var status = results.fail > 0 ? '⚠️ CON ERRORES' : '✅ COMPLETO'
+    var subject = status + ' — Elena: ' + template + ' — ' + results.ok + '/' + totalData + ' enviados'
+    var errorList = results.errors.length ? '<div style="margin-top:12px;padding:12px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA"><div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:6px">Errores (' + results.fail + '):</div><div style="font-size:10px;color:#991B1B">' + results.errors.join('<br>') + '</div></div>' : ''
+    var html = emailShell(
+      '<div style="color:' + BRAND.color_dark + ';font-size:20px;font-weight:800">📊 Reporte de envío — Elena</div>',
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
+      '<div style="flex:1;min-width:80px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#059669">' + results.ok + '</div><div style="font-size:9px;color:#6B7BA8">Enviados</div></div>' +
+      '<div style="flex:1;min-width:80px;padding:12px;background:#F0F4FC;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0A4FBF">' + results.skip + '</div><div style="font-size:9px;color:#6B7BA8">Ya enviados</div></div>' +
+      '<div style="flex:1;min-width:80px;padding:12px;background:' + (results.fail > 0 ? '#FEF2F2' : '#F0FDF4') + ';border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:' + (results.fail > 0 ? '#DC2626' : '#059669') + '">' + results.fail + '</div><div style="font-size:9px;color:#6B7BA8">Fallidos</div></div>' +
+      '<div style="flex:1;min-width:80px;padding:12px;background:#F8FAFF;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#071D4A">' + totalData + '</div><div style="font-size:9px;color:#6B7BA8">Citas encontradas</div></div>' +
+      '</div>' +
+      '<p style="font-size:13px;color:#475569"><b>Tipo:</b> ' + template + '</p>' +
+      '<p style="font-size:13px;color:#475569"><b>Fecha ejecución:</b> ' + new Date(Date.now() + (-5*60)*60000).toISOString().replace('T', ' ').slice(0,19) + ' (Lima)</p>' +
+      errorList
+    )
+    // Enviar sin anti-duplicado (reporte siempre se envía)
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Clínica Zi Vital <info@zivital.pe>', to: [adminEmail], subject: subject, html: html })
+    }).catch(function(e) { console.log('[CARTERO] Error enviando reporte admin: ' + e.message) })
+  }
+
+  // ─── CARTERO: enviar emails reales ───────────────────────────
+  if (accion === 'send_email' && template === 'recordatorio_manana') {
+    var emails = data.filter(function(c) { return c.correo }).map(function(cita) {
+      return {
+        email: cita.correo,
+        sendFn: function() {
+          var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, true)
+          return sendAgentEmail(cita.correo, 'Tu cita de mañana en Zi Vital — ' + cita.hora_cita, html, 'recordatorio_manana', cita.correo + '_' + cita.fecha_cita)
+            .then(function(r) {
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio mañana → ' + cita.nombre, { correo: cita.correo, tratamiento: cita.tratamiento })
+              return r
+            })
+        }
+      }
+    })
+    return sendInBatches(emails, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '📧 ' + results.ok + '/' + emails.length + ' recordatorios mañana ✓' })
+      sendAdminReport(agent, 'recordatorio_manana', results, data.length)
     })
   }
 
   if (accion === 'send_email' && template === 'recordatorio_hoy') {
-    var sends2 = data.map(function(cita) {
-      if (!cita.correo) return Promise.resolve()
-      var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, false)
-      return sendAgentEmail(cita.correo, '¡Tu cita es hoy! ' + cita.hora_cita + ' — Zi Vital', html, 'recordatorio_hoy', cita.correo + '_' + cita.fecha_cita)
-        .then(function(r) {
-          if (r.ok) logAction(agent.id, 'email_enviado', 'Recordatorio cita hoy → ' + cita.nombre, { correo: cita.correo })
-        })
+    var emails2 = data.filter(function(c) { return c.correo }).map(function(cita) {
+      return {
+        email: cita.correo,
+        sendFn: function() {
+          var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, false)
+          return sendAgentEmail(cita.correo, '¡Tu cita es hoy! ' + cita.hora_cita + ' — Zi Vital', html, 'recordatorio_hoy', cita.correo + '_' + cita.fecha_cita)
+            .then(function(r) {
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio hoy → ' + cita.nombre, { correo: cita.correo })
+              return r
+            })
+        }
+      }
     })
-    return Promise.all(sends2)
+    return sendInBatches(emails2, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '📧 ' + results.ok + '/' + emails2.length + ' recordatorios hoy ✓' })
+      sendAdminReport(agent, 'recordatorio_hoy', results, data.length)
+    })
   }
 
   if (accion === 'send_email' && template === 'bienvenida') {
