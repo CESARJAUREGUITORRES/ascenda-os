@@ -290,6 +290,25 @@ http.createServer(function(req, res) {
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
     res.end(); return
   }
+  if (p === '/api/agents/costs' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var limaToday = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
+    sbFetch('/rest/v1/aos_agente_costos?fecha_lima=eq.' + limaToday + '&select=agente_id,motor,tokens_in,tokens_out,costo_usd,tarea_nombre,created_at&order=created_at.desc')
+      .then(function(rows) {
+        var totalTokens = 0, totalCost = 0
+        ;(rows || []).forEach(function(r) { totalTokens += (r.tokens_in||0) + (r.tokens_out||0); totalCost += parseFloat(r.costo_usd||0) })
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ ok: true, fecha: limaToday, totalTokens: totalTokens, totalCost: totalCost, detalle: (rows||[]).slice(0,50) }))
+      }).catch(function(e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, error: e.message }))
+      })
+    return
+  }
+  if (p === '/api/agents/costs' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
   // ===== FIN AGENTS =====
   var f = path.join(PUB, p.slice(1))
   if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
@@ -303,6 +322,36 @@ http.createServer(function(req, res) {
   console.log('Agents: Auto-tick every 60s started')
 })
 
+
+
+// ═══ TRACKING DE COSTOS Y CONTENIDO ═══
+var TOKEN_COSTS = {
+  'llama-3.3-70b-versatile':   { input: 0, output: 0, motor: 'groq' },      // Groq gratis
+  'llama3-70b-8192':           { input: 0, output: 0, motor: 'groq' },
+  'gemini-1.5-flash':          { input: 0.075, output: 0.30, motor: 'gemini' }, // por 1M tokens
+  'gemini-2.5-flash':          { input: 0.30,  output: 2.50, motor: 'gemini' },
+  'gemini-2.0-flash':          { input: 0.10,  output: 0.40, motor: 'gemini' },
+}
+
+function trackCost(agentId, motor, modelo, tokensIn, tokensOut, tareaNombre) {
+  var costs = TOKEN_COSTS[modelo] || TOKEN_COSTS['llama-3.3-70b-versatile'] || { input: 0, output: 0 }
+  var costoUsd = (tokensIn * costs.input / 1000000) + (tokensOut * costs.output / 1000000)
+  sbPost('/rest/v1/aos_agente_costos', {
+    agente_id: agentId, motor: motor || 'groq', modelo: modelo || '',
+    tokens_in: tokensIn || 0, tokens_out: tokensOut || 0,
+    costo_usd: costoUsd, tarea_nombre: tareaNombre || ''
+  }).catch(function(e) { console.error('[COST] Error tracking:', e.message) })
+  return costoUsd
+}
+
+// Guardar contenido generado por AI (insights, copys, reportes)
+function saveContent(agentId, tipo, titulo, contenido, metadata) {
+  return sbPost('/rest/v1/aos_agente_contenido', {
+    agente_id: agentId, tipo: tipo, titulo: titulo,
+    contenido: (contenido || '').substring(0, 8000),
+    metadata: metadata || {}
+  }).catch(function(e) { console.error('[CONTENT] Error saving:', e.message) })
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MOTOR DE ACCIONES — agentes actúan, no solo analizan
@@ -931,6 +980,11 @@ function executeTask(agent, task) {
     }).then(function(aiResult) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'think', promptTemplate.substring(0, 200), aiResult.text.substring(0, 2000), motor, modelo, aiResult.tokens_in, aiResult.tokens_out, 0, dur, true, '')
+      // Track costos reales
+      trackCost(agent.id, motor, modelo, aiResult.tokens_in, aiResult.tokens_out, task.nombre)
+      // Guardar contenido generado según agente
+      var contentType = agent.id === 'analista' ? 'insight' : agent.id === 'creador' ? 'copy_ig' : agent.id === 'clasificador' ? 'clasificacion' : agent.id === 'resumidor' ? 'reporte' : agent.id === 'planificador' ? 'calendario' : agent.id === 'kronia' ? 'dispatch' : 'analisis'
+      saveContent(agent.id, contentType, task.nombre, aiResult.text, { tokens: aiResult.tokens_in + aiResult.tokens_out, motor: motor, modelo: modelo })
       sbPatchAgent(agent.id, {
         estado: 'idle', bubble_text: '', 
         total_ejecuciones: (agent.total_ejecuciones || 0) + 1,

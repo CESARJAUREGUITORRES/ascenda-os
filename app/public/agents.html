@@ -68,15 +68,7 @@
   ::-webkit-scrollbar-track{background:transparent}
   canvas{image-rendering:pixelated;image-rendering:crisp-edges}
 
-  /* ─── HEADER MINIMALISTA ─── */
-  .titlebar{
-    display:flex;align-items:center;gap:8px;
-    height:40px;flex-shrink:0;padding:0 12px;
-    background:rgba(240,244,252,0.7);
-    backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);
-    border-bottom:1px solid rgba(15,23,42,0.07);
-    position:relative;z-index:10;
-  }
+  /* ─── SIN BARRA SUPERIOR — chips flotantes en el mapa ─── */
   /* chips de control */
   .tb-btn{
     display:inline-flex;align-items:center;gap:5px;
@@ -114,7 +106,7 @@
 
   .tooltip{position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.85);box-shadow:0 8px 20px rgba(7,29,74,0.15);font-size:12px;pointer-events:none;max-width:240px}
 
-  .side{width:380px;flex-shrink:0;background:rgba(245,248,255,0.55);backdrop-filter:blur(32px) saturate(1.8) brightness(1.04);-webkit-backdrop-filter:blur(32px) saturate(1.8) brightness(1.04);border-left:1px solid rgba(255,255,255,0.55);display:flex;flex-direction:column;box-shadow:-6px 0 32px rgba(7,29,74,0.08), inset 1px 0 0 rgba(255,255,255,0.6);transition:width .25s ease}
+  .side{width:380px;flex-shrink:0;background:rgba(248,250,255,0.45);backdrop-filter:blur(40px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(40px) saturate(1.9) brightness(1.06);border-left:1px solid rgba(255,255,255,0.65);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(7,29,74,0.06), inset 1px 0 0 rgba(255,255,255,0.7);transition:width .25s ease}
 </style>
 <script type="application/json" id="__edit_mode_defaults">{}</script>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1362,6 +1354,56 @@ function btn(color, variant='solid') {
     : { padding:'7px 12px', fontSize:12, fontWeight:600, background:color, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', boxShadow:`0 2px 8px ${color}40` };
 }
 
+// ===== COST TRACKER: Tokens y costos en tiempo real =====
+function CostTracker() {
+  const [data, setData] = useSPS(null);
+  useSPE(() => {
+    const load = () => {
+      fetch(window.RAILWAY_URL + '/api/agents/costs')
+        .then(r => r.json())
+        .then(d => { if (d.ok) setData(d); })
+        .catch(() => {});
+    };
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, []);
+
+  if (!data) return null;
+  return (
+    <div style={{
+      position:'absolute', bottom:12, left:12, zIndex:15,
+      padding:'8px 12px', borderRadius:12,
+      background:'rgba(7,29,74,0.85)', backdropFilter:'blur(16px)',
+      border:'1px solid rgba(0,201,167,0.25)',
+      boxShadow:'0 4px 16px rgba(7,29,74,0.3)',
+      fontFamily:'JetBrains Mono, monospace', fontSize:10, color:'#94A3B8',
+      minWidth: 180
+    }}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+        <span style={{color:'#00C9A7',fontWeight:700,letterSpacing:'0.08em',fontSize:9}}>TOKENS HOY</span>
+        <span style={{color:'#fff',fontWeight:700,fontSize:13}}>{(data.totalTokens||0).toLocaleString()}</span>
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{color:'#64748B',fontSize:9}}>COSTO</span>
+        <span style={{color: data.totalCost > 0.01 ? '#F59E0B' : '#00C9A7', fontWeight:700, fontSize:12}}>
+          ${(data.totalCost||0).toFixed(4)}
+        </span>
+      </div>
+      {data.detalle && data.detalle.length > 0 && (
+        <div style={{marginTop:6,borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:5}}>
+          {data.detalle.slice(0,3).map((d,i) => (
+            <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:9,marginTop:2,color:'#64748B'}}>
+              <span>{d.agente_id}</span>
+              <span>{((d.tokens_in||0)+(d.tokens_out||0)).toLocaleString()} tk</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ===== MOD-SOUND-TOGGLE: Botón mute/unmute en el sidebar =====
 function SoundToggle() {
   const [muted, setMuted] = useSPS(() => {
@@ -1405,12 +1447,7 @@ function LiveFeed({ agents, events, metrics, tasksDoneReal, alerts, onSelectAgen
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display:'flex', gap:6, marginTop:10 }}>
-        <button style={btn('#0A4FBF')} onClick={onOpenMeeting}>🤝 Reunión</button>
-        <button style={btn('#00C9A7')} onClick={onRunTick}>⚡ Tick global</button>
-        <SoundToggle/>
-      </div>
+      {/* Botones movidos al header — aquí solo queda el estado */}
     </div>
 
     {/* Alerts */}
@@ -1900,14 +1937,14 @@ function App(){
 
   useEffect(() => {
     const pull = async () => {
-      const live = await window.sbGet('/rest/v1/aos_agentes?select=id,estado,activo,eficiencia,total_ejecuciones,bubble_text');
+      const live = await window.sbGet('/rest/v1/aos_agentes?select=id,nombre,emoji,area,cargo,estado,activo,eficiencia,total_ejecuciones,bubble_text,motor_ai,modelo,system_prompt');
       if (!live || !Array.isArray(live) || live.length === 0) return;
 
       const isFirst = firstPullRef.current;
       if (isFirst) firstPullRef.current = false;
 
       setAgents(prev => {
-        const next = prev.map(a => {
+        let next = prev.map(a => {
           const row = live.find(r => r.id === a.id);
           if (!row) return a;
           const dbState = row.estado;
@@ -1962,6 +1999,35 @@ function App(){
             eficiencia: (typeof row.eficiencia === 'number' && row.eficiencia > 0) ? row.eficiencia : a.eficiencia,
             total_ejecuciones: (typeof row.total_ejecuciones === 'number') ? row.total_ejecuciones : a.total_ejecuciones,
           };
+        });
+        // Auto-detectar agentes nuevos en BD que no están en el panel
+        live.forEach(function(row) {
+          if (!next.find(a => a.id === row.id) && row.activo) {
+            var depts = window.DEPARTMENTS;
+            var area = row.area || 'datos';
+            var deptKeys = Object.keys(depts).filter(k => k !== 'cafe' && k !== 'reunion');
+            if (!depts[area]) area = deptKeys[0];
+            next.push({
+              id: row.id, nombre: row.nombre || row.id, emoji: row.emoji || '🤖',
+              area: area, cargo: row.cargo || 'Agente AI', motor_ai: row.motor_ai || 'groq',
+              modelo: row.modelo || 'llama-3.3-70b-versatile',
+              shirt: '#6366F1', skin: '#F1C27D', hair: '#1F2937',
+              home: window.DESKS[0] ? window.DESKS[0].id : 'd-dat-1',
+              eficiencia: row.eficiencia || 75,
+              px: 200 + Math.random()*200, py: 200 + Math.random()*200,
+              tx: 200, ty: 200, walking: false,
+              estado: row.estado || 'idle',
+              bubble_text: row.bubble_text || '',
+              bubble_type: 'thought', bubbleUntil: 0,
+              activity: { label: 'Nuevo agente', thought: row.nombre + ' detectado en BD' },
+              nextDecision: 5000 + Math.random()*5000,
+              total_ejecuciones: row.total_ejecuciones || 0,
+              tasks_queue: 0,
+              log: [],
+              _autoDetected: true
+            });
+            console.log('[AUTO-DETECT] Nuevo agente detectado:', row.id, row.nombre);
+          }
         });
         return next;
       });
@@ -2071,19 +2137,7 @@ function App(){
   const zoomBy = f => setViewport(v => ({ ...v, zoom: Math.max(0.35, Math.min(2.8, v.zoom * f)) }));
 
   return <React.Fragment>
-    <div className="titlebar">
-      {/* LIVE indicator */}
-      <div className="live"><span className="dot"/><span style={{color:'#00C9A7',fontWeight:700,fontSize:10}}>LIVE</span><span style={{color:'#94A3B8'}}>·</span><span>{metrics.working+metrics.meeting}/{agents.length}</span>{alerts.length>0 && <><span style={{color:'#94A3B8'}}>·</span><span style={{color:'#EF4444',fontWeight:700}}>⚠{alerts.length}</span></>}</div>
-      <div style={{flex:1}}/>
-      {/* Chips de control — sin branding */}
-      <button className={`tb-btn ${mode==='normal'?'active':''}`} onClick={()=>setMode('normal')}>▦ Normal</button>
-      <button className={`tb-btn ${mode==='heatmap'?'active':''}`} onClick={()=>setMode('heatmap')}>☀ Heatmap</button>
-      <div className="tb-sep"/>
-      <button className="tb-btn" onClick={()=>setMeetingOpen(true)}>🤝 Reunión</button>
-      <SoundToggle/>
-      {/* Colapsar panel derecho */}
-      <button className="tb-btn tb-collapse" title="Ocultar/mostrar panel" onClick={()=>setSidePanelOpen(v=>!v)}>{sidePanelOpen?'▶':'◀'}</button>
-    </div>
+    {/* Sin barra superior — chips flotantes dentro del mapa */}
 
     <div style={{flex:1,display:'flex',minHeight:0,background:'#EEF2FA'}}>
       <div id="stage" style={{flex:1,position:'relative',overflow:'hidden'}}>
@@ -2117,6 +2171,26 @@ function App(){
             <div key={k} className="legend-chip"><span className="sq" style={{background:d.color}}/>{d.icon} {d.name}</div>
           )}
         </div>
+
+        {/* ─── CHIPS FLOTANTES esquina superior izquierda ─── */}
+        <div style={{position:'absolute',top:12,left:12,display:'flex',gap:6,zIndex:15,flexWrap:'wrap',maxWidth:'calc(100% - 420px)'}}>
+          <div style={{display:'inline-flex',gap:5,alignItems:'center',padding:'5px 12px',borderRadius:20,background:'rgba(255,255,255,0.75)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,0.6)',boxShadow:'0 2px 12px rgba(7,29,74,0.08)',fontSize:10,fontFamily:'JetBrains Mono,monospace',color:'#64748B'}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:'#00C9A7',boxShadow:'0 0 6px #00C9A7'}}/>
+            <span style={{color:'#00C9A7',fontWeight:700}}>LIVE</span>
+            <span>·</span>
+            <span>{metrics.working}/{agents.length} activos</span>
+            {alerts.length>0 && <><span>·</span><span style={{color:'#EF4444',fontWeight:700}}>⚠ {alerts.length}</span></>}
+          </div>
+          <button className={`tb-btn ${mode==='normal'?'active':''}`} onClick={()=>setMode('normal')}>▦ Normal</button>
+          <button className={`tb-btn ${mode==='heatmap'?'active':''}`} onClick={()=>setMode('heatmap')}>☀ Heatmap</button>
+          <button className="tb-btn" onClick={()=>setMeetingOpen(true)}>🤝 Reunión</button>
+          <button className="tb-btn" onClick={runTick}>⚡ Tick</button>
+          <SoundToggle/>
+          <button className="tb-btn tb-collapse" title="Panel" onClick={()=>setSidePanelOpen(v=>!v)}>{sidePanelOpen?'▶':'◀'}</button>
+        </div>
+
+        {/* ─── COSTOS en tiempo real — esquina inferior izquierda ─── */}
+        <CostTracker/>
 
         <div className="zoom-ctrl">
           <button className="zbtn" onClick={()=>zoomBy(1.2)}>+</button>
