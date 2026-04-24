@@ -860,109 +860,105 @@ function callGroq(systemPrompt, userPrompt, model) {
   })
 }
 
-// ═══ CONTEXTO REAL PARA CHAT DE AGENTES ═══
+// ═══ CONTEXTO REAL PARA CHAT — SNAPSHOT CENTRALIZADO ═══
+// Todos los agentes leen del mismo snapshot (se genera cada 5min)
+var _cachedSnapshot = null
+var _snapshotAge = 0
+
+function getSnapshot() {
+  // Cache local de 60s para no hammear Supabase
+  if (_cachedSnapshot && (Date.now() - _snapshotAge) < 60000) return Promise.resolve(_cachedSnapshot)
+  return sbFetch('/rest/v1/rpc/aos_generar_snapshot', { method: 'POST', body: '{}' })
+    .then(function(snap) {
+      _cachedSnapshot = snap
+      _snapshotAge = Date.now()
+      return snap
+    }).catch(function() { return _cachedSnapshot || {} })
+}
+
 function buildChatContext(agentId) {
-  var promises = []
+  return getSnapshot().then(function(s) {
+    if (!s || !s.kpis) return ''
+    var k = s.kpis || {}
+    var t = s.totales || {}
+    var parts = []
 
-  // 1. KPIs del día (para todos)
-  promises.push(
-    sbFetch('/rest/v1/rpc/aos_kpis_dashboard', {
-      method: 'POST',
-      body: JSON.stringify({ p_hoy: limaDateStr(), p_ayer: new Date(Date.now()+(-5*60)*60000-86400000).toISOString().split('T')[0], p_mes_inicio: limaFirstOfMonth() })
-    }).then(function(r) {
-      if (!r) return ''
-      return 'DATOS REALES HOY: Llamadas=' + (r.llamHoy||0) + ', Citas=' + (r.citasHoy||0) + ', Ventas=$' + (r.factHoy||0) + ', Leads mes=' + (r.leadsMes||0) + '.'
-    }).catch(function() { return '' })
-  )
+    // Contexto base para TODOS los agentes
+    parts.push('DATOS REALES DEL SISTEMA (actualizados cada 5 min):')
+    parts.push('KPIs HOY: ' + (k.llamadas_hoy||0) + ' llamadas, ' + (k.citas_hoy||0) + ' citas, S/' + (k.ventas_hoy||0) + ' facturado, ' + (k.leads_hoy||0) + ' leads nuevos.')
+    parts.push('MES ACTUAL: S/' + (k.ventas_mes||0) + ' facturado, ' + (k.n_ventas_mes||0) + ' ventas, ' + (k.leads_mes||0) + ' leads, ' + (k.llamadas_mes||0) + ' llamadas.')
+    parts.push('BASE TOTAL: ' + (t.pacientes||0) + ' pacientes (' + (t.pacientes_email||0) + ' con email), ' + (t.leads||0) + ' leads, ' + (t.ventas||0) + ' ventas.')
 
-  // 2. Datos específicos según agente
-  if (agentId === 'cartero') {
-    promises.push(
-      sbFetch('/rest/v1/aos_agenda_citas?fecha_cita=eq.' + new Date(Date.now()+(-5*60)*60000+86400000).toISOString().split('T')[0] + '&estado_cita=in.(PENDIENTE,CITA CONFIRMADA)&select=nombre,correo,tratamiento,hora_cita,sede&limit=20')
-        .then(function(rows) {
-          if (!rows || !rows.length) return 'CITAS MAÑANA: Sin citas programadas.'
-          var conEmail = rows.filter(function(r) { return r.correo })
-          return 'CITAS MAÑANA: ' + rows.length + ' total, ' + conEmail.length + ' con email. Detalle: ' +
-            rows.slice(0,5).map(function(r) { return r.nombre + ' (' + r.tratamiento + ' ' + r.hora_cita + ' ' + r.sede + ')' + (r.correo ? ' ✓email' : ' ✗sin email') }).join('; ') + '.'
-        }).catch(function() { return '' })
-    )
-    promises.push(
-      sbFetch('/rest/v1/aos_agente_acciones?agente_id=eq.cartero&tipo_accion=eq.email_enviado&created_at=gte.' + limaDateStr() + 'T00:00:00-05:00&select=descripcion&order=created_at.desc&limit=10')
-        .then(function(rows) {
-          if (!rows || !rows.length) return 'EMAILS HOY: Ninguno enviado aún.'
-          return 'EMAILS ENVIADOS HOY: ' + rows.length + '. Últimos: ' + rows.slice(0,3).map(function(r) { return r.descripcion }).join('; ') + '.'
-        }).catch(function() { return '' })
-    )
-    // Total pacientes con email — usar execute_sql via RPC
-    promises.push(
-      sbFetch('/rest/v1/rpc/aos_execute_agent_query', {
-        method: 'POST',
-        body: JSON.stringify({ p_query: "SELECT COUNT(*) as total FROM aos_pacientes WHERE \"Email\" IS NOT NULL AND \"Email\" != ''" })
-      }).then(function(r) {
-        var total = (r && r.data && r.data[0]) ? r.data[0].total : '?'
-        return 'BASE DE PACIENTES: ' + total + ' pacientes tienen email registrado en el sistema. Total pacientes: 7114.'
-      }).catch(function() { return 'BASE DE PACIENTES: ~1400 pacientes con email (dato aproximado).' })
-    )
-  }
+    // Contexto específico por agente
+    if (agentId === 'cartero') {
+      var citasM = s.citas_manana_detalle || []
+      var conEmail = citasM.filter(function(c) { return c.correo })
+      var sinEmail = citasM.filter(function(c) { return !c.correo })
+      parts.push('CITAS MAÑANA: ' + citasM.length + ' total, ' + conEmail.length + ' con email, ' + sinEmail.length + ' sin email.')
+      parts.push('DETALLE CITAS MAÑANA:')
+      citasM.forEach(function(c) {
+        parts.push('  • ' + c.nombre + ' — ' + c.tratamiento + ' ' + c.hora + ' ' + c.sede + (c.correo ? ' ✓' + c.correo : ' ✗SIN EMAIL'))
+      })
+      var emailsHoy = s.emails_hoy || []
+      parts.push('EMAILS ENVIADOS HOY: ' + emailsHoy.length + '.')
+      emailsHoy.forEach(function(e) { parts.push('  • ' + e.desc) })
+    }
 
-  if (agentId === 'centinela') {
-    promises.push(
-      sbFetch('/rest/v1/aos_leads?fecha=gte.' + new Date(Date.now()-3*86400000).toISOString().split('T')[0] + '&select=celular,tratamiento,fecha&order=fecha.desc&limit=15')
-        .then(function(rows) {
-          if (!rows || !rows.length) return 'LEADS RECIENTES: Sin leads nuevos en 3 días.'
-          return 'LEADS ÚLTIMOS 3 DÍAS: ' + rows.length + '. Tratamientos: ' + rows.map(function(r){return r.tratamiento}).join(', ') + '.'
-        }).catch(function() { return '' })
-    )
-    promises.push(
-      sbFetch('/rest/v1/aos_seguimientos?select="NUMERO","TRATAMIENTO","FECHA_PROGRAMADA","ESTADO"&"ESTADO"=eq.PENDIENTE&limit=10')
-        .then(function(rows) {
-          return 'SEGUIMIENTOS PENDIENTES: ' + (rows ? rows.length : 0) + '.'
-        }).catch(function() { return '' })
-    )
-    // Total leads en BD
-    promises.push(
-      sbFetch('/rest/v1/aos_leads?select=id&limit=5000')
-        .then(function(rows) { return 'TOTAL LEADS EN BD: ' + (rows ? rows.length : 0) + '.' })
-        .catch(function() { return '' })
-    )
-  }
+    if (agentId === 'centinela') {
+      var lsc = s.leads_sin_contactar || []
+      parts.push('LEADS SIN CONTACTAR (3 días): ' + lsc.length + '.')
+      lsc.slice(0,10).forEach(function(l) {
+        parts.push('  • ' + l.celular + ' — ' + l.tratamiento + ' (' + l.fecha + ')')
+      })
+      var seg = s.seguimientos_pendientes || []
+      parts.push('SEGUIMIENTOS PENDIENTES: ' + seg.length + '.')
+      seg.slice(0,5).forEach(function(s2) {
+        parts.push('  • ' + s2.numero + ' — ' + s2.tratamiento + ' prog: ' + s2.fecha + ' asesor: ' + s2.asesor)
+      })
+    }
 
-  if (agentId === 'guardian') {
-    promises.push(
-      sbFetch('/rest/v1/rpc/aos_inventario_alertas', { method: 'POST', body: '{}' })
-        .then(function(r) {
-          if (!r || !r.agotados) return 'INVENTARIO: Sin alertas.'
-          return 'INVENTARIO: ' + r.agotados.length + ' productos agotados. ' + r.agotados.slice(0,5).map(function(p) { return p.nombre_producto + ' (' + p.sede + ')' }).join('; ') + '.'
-        }).catch(function() { return '' })
-    )
-  }
+    if (agentId === 'guardian') {
+      var inv = s.inventario_agotados || []
+      parts.push('INVENTARIO AGOTADO: ' + inv.length + ' productos.')
+      inv.slice(0,10).forEach(function(p) {
+        parts.push('  • ' + p.producto + ' (' + p.sede + ', ' + p.categoria + ')')
+      })
+    }
 
-  if (agentId === 'analista' || agentId === 'analista_mkt') {
-    promises.push(
-      sbFetch('/rest/v1/aos_ventas?fecha=gte.' + limaFirstOfMonth() + '&select=tratamiento,monto&limit=100')
-        .then(function(rows) {
-          if (!rows || !rows.length) return 'VENTAS MES: Sin datos.'
-          var total = rows.reduce(function(s,r){ return s + parseFloat(r.monto||0) }, 0)
-          return 'VENTAS ESTE MES: ' + rows.length + ' operaciones, S/' + total.toFixed(0) + ' facturado.'
-        }).catch(function() { return '' })
-    )
-  }
+    if (agentId === 'monitor' || agentId === 'analista' || agentId === 'analista_mkt') {
+      var eq = s.equipo_hoy || []
+      parts.push('EQUIPO HOY:')
+      eq.forEach(function(e) {
+        parts.push('  • ' + e.asesor + ': ' + e.llamadas + ' llamadas, ' + e.citas + ' citas')
+      })
+      var top = s.top_tratamientos || []
+      parts.push('TOP TRATAMIENTOS MES:')
+      top.forEach(function(t2) {
+        parts.push('  • ' + t2.t + ': ' + t2.n + ' ventas, S/' + t2.m)
+      })
+    }
 
-  if (agentId === 'monitor') {
-    promises.push(
-      sbFetch('/rest/v1/rpc/aos_semaforo_equipo', { method: 'POST', body: JSON.stringify({p_hoy: limaDateStr()}) })
-        .then(function(rows) {
-          if (!rows || !Array.isArray(rows)) return ''
-          return 'EQUIPO HOY: ' + rows.map(function(r){ return r.nombre + '=' + r.llamadas + ' llam/' + r.estado_final }).join(', ') + '.'
-        }).catch(function() { return '' })
-    )
-  }
+    if (agentId === 'kronia') {
+      // KronIA ve todo
+      var lsc2 = s.leads_sin_contactar || []
+      var seg2 = s.seguimientos_pendientes || []
+      var inv2 = s.inventario_agotados || []
+      parts.push('ESTADO GLOBAL: ' + lsc2.length + ' leads sin contactar, ' + seg2.length + ' seguimientos vencidos, ' + inv2.length + ' productos agotados.')
+    }
 
-  return Promise.all(promises).then(function(parts) {
-    var ctx = parts.filter(Boolean).join('\n')
-    return ctx ? ('CONTEXTO DEL SISTEMA (datos reales de Supabase, puedes usarlos para responder):\n' + ctx + '\n\nIMPORTANTE: SÍ tienes acceso a datos reales del sistema. Cuando te pregunten datos, usa la información de arriba. Cuando te pidan ejecutar acciones (enviar emails, revisar inventario), confirma que el sistema lo hace automáticamente via tus tareas programadas y da los datos que tienes.') : ''
+    parts.push('')
+    parts.push('IMPORTANTE: Estos son datos reales de Supabase. Responde usando SOLO estos datos. Si te preguntan algo que no está arriba, di que necesitas que se actualice el snapshot o que ese dato específico no está en tu contexto actual.')
+
+    return parts.join('\n')
   })
 }
+
+// Regenerar snapshot cada 5 min en Railway
+setInterval(function() {
+  sbFetch('/rest/v1/rpc/aos_generar_snapshot', { method: 'POST', body: '{}' })
+    .then(function(snap) { _cachedSnapshot = snap; _snapshotAge = Date.now(); console.log('[SNAPSHOT] Regenerado OK') })
+    .catch(function(e) { console.error('[SNAPSHOT] Error:', e.message) })
+}, 300000) // 5 min
 
 // Call Groq with full message history (multi-turn DM chat from panel)
 function callGroqChat(systemPrompt, messages, model) {
