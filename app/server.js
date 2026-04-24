@@ -554,6 +554,21 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
                   tipo: tipo, destinatario: destinatario_id,
                   fecha_envio: limaDateStr(), resend_id: r.id
                 }).catch(function(){})
+                // Alerta en panel
+                sbPost('/rest/v1/aos_email_alertas', {
+                  tipo: 'exito', template: tipo,
+                  titulo: '✅ ' + tipo + ' enviado',
+                  detalle: subject,
+                  destinatario: to, resend_id: r.id
+                }).catch(function(){})
+              } else {
+                // Alerta de error en panel
+                sbPost('/rest/v1/aos_email_alertas', {
+                  tipo: 'error', template: tipo,
+                  titulo: '❌ Error enviando ' + tipo,
+                  detalle: r.message || 'Sin respuesta de Resend',
+                  destinatario: to
+                }).catch(function(){})
               }
               resolve({ ok: !!r.id, id: r.id, error: r.message })
             } catch(e) { resolve({ ok: false, error: e.message }) }
@@ -941,10 +956,35 @@ function executeAction(agent, task, queryResult) {
     return chain.then(function() { return results })
   }
 
+  // Guardar alerta en panel (siempre)
+  function saveEmailAlerta(tipo, template, titulo, detalle, destinatario, resendId) {
+    sbFetch('/rest/v1/aos_email_alertas').catch(function(){}) // ensure table exists
+    var body = JSON.stringify({ tipo: tipo, template: template, titulo: titulo, detalle: detalle || '', destinatario: destinatario || '', resend_id: resendId || '' })
+    var url = new URL(SB_URL + '/rest/v1/aos_email_alertas')
+    var req = https.request({ hostname: url.hostname, path: url.pathname, method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
+    }, function(){})
+    req.on('error', function(){})
+    req.write(body); req.end()
+  }
+
   function sendAdminReport(agent, template, results, totalData) {
+    var status = results.fail > 0 ? '⚠️' : '✅'
+    var titulo = status + ' ' + template + ' — ' + results.ok + '/' + totalData + ' enviados'
+    var detalle = 'OK:' + results.ok + ' Skip:' + results.skip + ' Fail:' + results.fail
+    if (results.errors.length) detalle += ' | Errores: ' + results.errors.join(', ')
+
+    // SIEMPRE guardar alerta en panel
+    saveEmailAlerta(results.fail > 0 ? 'error' : 'exito', template, titulo, detalle)
+
+    // Solo enviar reporte por email si son 3+ envíos
+    if (totalData < 3) {
+      console.log('[CARTERO] Reporte unitario, solo alerta panel: ' + titulo)
+      return
+    }
+
     var adminEmail = 'jaureguitorrescesar@gmail.com'
-    var status = results.fail > 0 ? '⚠️ CON ERRORES' : '✅ COMPLETO'
-    var subject = status + ' — Elena: ' + template + ' — ' + results.ok + '/' + totalData + ' enviados'
+    var subject = status + ' Elena: ' + template + ' — ' + results.ok + '/' + totalData
     var errorList = results.errors.length ? '<div style="margin-top:12px;padding:12px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA"><div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:6px">Errores (' + results.fail + '):</div><div style="font-size:10px;color:#991B1B">' + results.errors.join('<br>') + '</div></div>' : ''
     var html = emailShell(
       '<div style="color:' + BRAND.color_dark + ';font-size:20px;font-weight:800">📊 Reporte de envío — Elena</div>',
@@ -952,18 +992,16 @@ function executeAction(agent, task, queryResult) {
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#059669">' + results.ok + '</div><div style="font-size:9px;color:#6B7BA8">Enviados</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0F4FC;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0A4FBF">' + results.skip + '</div><div style="font-size:9px;color:#6B7BA8">Ya enviados</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:' + (results.fail > 0 ? '#FEF2F2' : '#F0FDF4') + ';border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:' + (results.fail > 0 ? '#DC2626' : '#059669') + '">' + results.fail + '</div><div style="font-size:9px;color:#6B7BA8">Fallidos</div></div>' +
-      '<div style="flex:1;min-width:80px;padding:12px;background:#F8FAFF;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#071D4A">' + totalData + '</div><div style="font-size:9px;color:#6B7BA8">Citas encontradas</div></div>' +
+      '<div style="flex:1;min-width:80px;padding:12px;background:#F8FAFF;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#071D4A">' + totalData + '</div><div style="font-size:9px;color:#6B7BA8">Total</div></div>' +
       '</div>' +
-      '<p style="font-size:13px;color:#475569"><b>Tipo:</b> ' + template + '</p>' +
-      '<p style="font-size:13px;color:#475569"><b>Fecha ejecución:</b> ' + new Date(Date.now() + (-5*60)*60000).toISOString().replace('T', ' ').slice(0,19) + ' (Lima)</p>' +
+      '<p style="font-size:13px;color:#475569"><b>Tipo:</b> ' + template + ' · <b>Hora:</b> ' + new Date(Date.now() + (-5*60)*60000).toISOString().replace('T', ' ').slice(11,19) + ' Lima</p>' +
       errorList
     )
-    // Enviar sin anti-duplicado (reporte siempre se envía)
     fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: 'Clínica Zi Vital <info@zivital.pe>', to: [adminEmail], subject: subject, html: html })
-    }).catch(function(e) { console.log('[CARTERO] Error enviando reporte admin: ' + e.message) })
+    }).catch(function(e) { console.log('[CARTERO] Error reporte admin: ' + e.message) })
   }
 
   // ─── CARTERO: enviar emails reales ───────────────────────────
