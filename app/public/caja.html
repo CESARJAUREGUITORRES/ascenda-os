@@ -2224,7 +2224,43 @@ function cotPDFCaja(tipo) {
 }
 
 function cotEmailCaja() {
-  toast('Función de email próximamente','warn');
+  if (!VT.items.length) { toast('Agrega ítems primero','warn'); return; }
+  var pac = VT.pac || {};
+  var email = pac.Email || pac.email || pac.correo || '';
+  var nombre = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
+  if (!email) {
+    // Pedir email manual
+    email = prompt('El paciente no tiene email registrado.\nIngresa el email para enviar:');
+    if (!email || email.indexOf('@') < 0) { toast('Email inválido o cancelado','warn'); return; }
+  }
+  // Construir resumen de ítems
+  var items = VT.items.map(function(it) {
+    return { nombre: it.nombre || '', cantidad: it.cantidad || 1, subtotal: parseFloat(it.subtotal || 0) };
+  });
+  var total = items.reduce(function(s, it) { return s + it.subtotal; }, 0);
+  var sede = VT.items[0] && VT.items[0].sede ? VT.items[0].sede : '';
+  var fecha = fechaLima();
+
+  toast('Enviando email a ' + email + '...', '');
+  fetch('/api/send-template', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: email,
+      template: 'recibo_venta',
+      nombre: nombre,
+      items: items,
+      total: total,
+      moneda: 'PEN',
+      metodo: (VT.items[0] && VT.items[0].metodoPago) || '',
+      sede: sede,
+      fecha: fecha,
+      venta_id: ''
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d && d.ok) toast('✅ Email enviado a ' + email, '');
+    else toast('Error: ' + (d.error || 'desconocido'), 'warn');
+  }).catch(function(e) { toast('Error: ' + e.message, 'warn'); });
 }
 
 // ===== MOD-07-END: NUEVA VENTA =====

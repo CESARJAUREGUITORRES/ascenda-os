@@ -325,8 +325,28 @@ function doSendEmail(email,nombre,numero){
 }
 
 function loadDashboard(){
-  fetch('/api/resend-stats').then(function(r){return r.json()}).then(function(rs){
-    if(!rs||!rs.ok){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#DC2626;padding:20px;">Error cargando Resend</td></tr>';return;}
+  fetch('https://ascenda-os-production.up.railway.app/api/resend-stats').then(function(r){
+    console.log('[EMAIL-MKT] Status:', r.status); return r.json();
+  }).then(function(rs){
+    console.log('[EMAIL-MKT] Data:', rs);
+    if(!rs||!rs.ok){
+      // Fallback: cargar desde Supabase RPC directo
+      console.log('[EMAIL-MKT] Fallback a RPC...');
+      rpc('aos_email_dashboard',{},function(d){
+        if(!d||!d.ok)return;
+        el('em-s-total').textContent=fmt(d.total_enviados||0);
+        el('em-s-hoy').textContent='—';
+        el('em-s-entregados').textContent=fmt(d.total_enviados||0);
+        el('em-s-abiertos').textContent='—';
+        el('em-s-rebotados').textContent='0';
+        el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);
+        el('em-plan-used').textContent=d.total_enviados||0;
+        el('em-plan-pct').textContent='—';
+        _resendEmails=(d.envios||[]).map(function(e){return{to:e.email||'',subject:e.asunto||e.tipo||'',status:'delivered',created_at:e.ts||'',tipo:e.tipo||'otro'};});
+        renderResendTable(_resendEmails);
+      });
+      return;
+    }
     el('em-s-total').textContent=rs.total_resend||0;
     el('em-s-hoy').textContent=rs.total_hoy||0;
     el('em-s-entregados').textContent=rs.entregados||0;
