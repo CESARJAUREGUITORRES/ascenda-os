@@ -304,6 +304,130 @@ http.createServer(function(req, res) {
 })
 
 // ═══════════════════════════════════════════════
+// RESOLVER DE PLACEHOLDERS — inyecta datos reales en prompts AI
+// ═══════════════════════════════════════════════
+
+// Utilidades de fecha Lima
+function limaDateStr() {
+  var d = new Date(Date.now() + (-5 * 60) * 60000)
+  return d.toISOString().split('T')[0]
+}
+function limaFirstOfMonth() {
+  return limaDateStr().slice(0, 8) + '01'
+}
+
+// Resumen de ventas de la semana para Sofía (analista)
+function fetchVentasData() {
+  var lunes = new Date(Date.now() + (-5 * 60) * 60000)
+  lunes.setDate(lunes.getDate() - lunes.getDay() + 1)
+  var lunesStr = lunes.toISOString().split('T')[0]
+  return sbFetch('/rest/v1/aos_ventas?fecha=gte.' + lunesStr + '&select=tratamiento,monto,numero_limpio,fecha,asesor&order=fecha.desc&limit=200')
+    .then(function(rows) {
+      if (!rows || !rows.length) return 'Sin ventas registradas esta semana.'
+      var totalMonto = rows.reduce(function(s, r) { return s + parseFloat(r.monto || 0) }, 0)
+      var byTrat = {}
+      rows.forEach(function(r) {
+        byTrat[r.tratamiento] = (byTrat[r.tratamiento] || 0) + 1
+      })
+      var top = Object.entries(byTrat).sort(function(a,b){return b[1]-a[1]}).slice(0,5)
+        .map(function(e){ return e[0] + '(' + e[1] + ')' }).join(', ')
+      var unicos = new Set(rows.map(function(r){return r.numero_limpio})).size
+      return 'Semana del ' + lunesStr + '. Ventas: ' + rows.length + '. Facturado: S/' + totalMonto.toFixed(0) + '. Ticket promedio: S/' + (totalMonto/rows.length).toFixed(0) + '. Pacientes únicos: ' + unicos + '. Top tratamientos: ' + top + '.'
+    }).catch(function(){ return 'Error al cargar ventas.' })
+}
+
+// Leads recientes sin contactar para Nico (clasificador)
+function fetchLeadsData() {
+  return sbFetch('/rest/v1/aos_leads?fecha=gte.' + new Date(Date.now() - 3*86400000).toISOString().split('T')[0] + '&select=celular,tratamiento,anuncio,fecha,hora_ingreso,numero_limpio&order=fecha.desc&limit=20')
+    .then(function(leads) {
+      if (!leads || !leads.length) return 'Sin leads nuevos en los últimos 3 días.'
+      // Enriquecer con estado de contacto
+      var nums = leads.map(function(l){ return l.numero_limpio }).filter(Boolean).join(',')
+      return sbFetch('/rest/v1/aos_llamadas?numero_limpio=in.(' + nums + ')&select=numero_limpio,estado&order=fecha.desc')
+        .then(function(llams) {
+          var llamSet = {}
+          ;(llams||[]).forEach(function(l){ llamSet[l.numero_limpio] = l.estado })
+          return leads.map(function(l) {
+            return 'Tratamiento:' + l.tratamiento + '|Anuncio:' + (l.anuncio||'orgánico') + '|Fecha:' + l.fecha + '|Estado:' + (llamSet[l.numero_limpio] || 'SIN CONTACTAR')
+          }).join('\n')
+        })
+    }).catch(function(){ return 'Error al cargar leads.' })
+}
+
+// Mensajes pendientes de agentes predecesores (cadenas)
+function fetchPendingMessages(agentId) {
+  return sbFetch('/rest/v1/aos_agente_mensajes?para_agente_id=eq.' + agentId + '&leido=eq.false&order=created_at.desc&limit=3')
+    .then(function(msgs) {
+      if (!msgs || !msgs.length) return null
+      // Marcar como leídos
+      msgs.forEach(function(m) {
+        sbPatch('/rest/v1/aos_agente_mensajes?id=eq.' + m.id, { leido: true }).catch(function(){})
+      })
+      return msgs.map(function(m){ return m.de_agente_id + ': ' + m.mensaje.substring(0, 1000) }).join('\n\n---\n\n')
+    }).catch(function(){ return null })
+}
+
+// Función principal: resuelve todos los placeholders del template
+function resolvePlaceholders(agent, task, template) {
+  var promises = []
+  var keys = []
+
+  // Detectar qué placeholders hay en el template
+  if (template.indexOf('{ventas_data}') >= 0) {
+    keys.push('ventas_data')
+    promises.push(fetchVentasData())
+  }
+  if (template.indexOf('{leads_data}') >= 0) {
+    keys.push('leads_data')
+    promises.push(fetchLeadsData())
+  }
+  if (template.indexOf('{insights}') >= 0) {
+    // Camila (creador) recibe de Sofía (analista) vía mensajes
+    keys.push('insights')
+    promises.push(fetchPendingMessages(agent.id).then(function(msg) {
+      if (msg) return msg
+      // Fallback: últimos KPIs reales si no hay mensaje de Sofía
+      return sbFetch('/rest/v1/aos_agente_logs?agente_id=eq.analista&exitoso=eq.true&order=created_at.desc&limit=1&select=output_resumen')
+        .then(function(rows) {
+          if (!rows || !rows[0]) return 'Sin insights disponibles aún.'
+          return rows[0].output_resumen ? rows[0].output_resumen.substring(0, 800) : 'Sin insights disponibles.'
+        }).catch(function(){ return 'Sin insights disponibles.' })
+    }))
+  }
+  if (template.indexOf('{tarea}') >= 0) {
+    // KronIA — revisar si hay mensajes pendientes de agentes o usar cola de leads como contexto
+    keys.push('tarea')
+    promises.push(
+      sbFetch('/rest/v1/aos_agente_mensajes?para_agente_id=eq.kronia&leido=eq.false&order=created_at.desc&limit=1')
+        .then(function(msgs) {
+          if (msgs && msgs[0]) {
+            sbPatch('/rest/v1/aos_agente_mensajes?id=eq.' + msgs[0].id, { leido: true }).catch(function(){})
+            return 'Mensaje de ' + msgs[0].de_agente_id + ': ' + msgs[0].mensaje.substring(0, 400)
+          }
+          // Sin mensajes — KronIA hace revisión del estado global
+          return 'Revisión diaria del estado del equipo: verificar agentes bloqueados, leads sin contactar, y próximas citas del día.'
+        }).catch(function(){ return 'Revisión general del equipo.' })
+    )
+  }
+  if (template.indexOf('{chat_history}') >= 0) {
+    // Luna (resumidor) — sin WA API aún, usar simulación básica o skip
+    keys.push('chat_history')
+    promises.push(Promise.resolve('Sin conversaciones de WhatsApp disponibles — API pendiente de configuración.'))
+  }
+
+  if (promises.length === 0) return Promise.resolve(template)
+
+  return Promise.all(promises).then(function(values) {
+    var resolved = template
+    keys.forEach(function(key, i) {
+      resolved = resolved.replace(new RegExp('\{' + key + '\}', 'g'), values[i] || '[sin datos]')
+    })
+    console.log('[RESOLVE] ' + agent.nombre + ' — placeholders: ' + keys.join(', ') + ' | chars: ' + resolved.length)
+    return resolved
+  })
+}
+
+// ═══════════════════════════════════════════════
 // AGENTS THINK-LOOP ENGINE
 // ═══════════════════════════════════════════════
 
@@ -534,7 +658,9 @@ function executeTask(agent, task) {
     var sysPrompt = agent.system_prompt || ''
     var callFn = motor === 'gemini' ? callGemini : callGroq
 
-    return callFn(sysPrompt, promptTemplate, modelo).then(function(aiResult) {
+    // ===== RESOLVER PLACEHOLDERS con datos reales =====
+    return resolvePlaceholders(agent, task, promptTemplate).then(function(resolvedPrompt) {
+    return callFn(sysPrompt, resolvedPrompt, modelo).then(function(aiResult) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'think', promptTemplate.substring(0, 200), aiResult.text.substring(0, 2000), motor, modelo, aiResult.tokens_in, aiResult.tokens_out, 0, dur, true, '')
       sbPatchAgent(agent.id, {
@@ -561,6 +687,7 @@ function executeTask(agent, task) {
       sbPatchAgent(agent.id, { estado: 'blocked', bubble_text: 'Error AI: ' + e.message.substring(0, 40), bubble_type: 'speech' })
       return { ok: false, error: e.message }
     })
+    }) // fin resolvePlaceholders
   }
 
   // Unknown type
@@ -579,8 +706,13 @@ function autoTick() {
       // Get tasks for this agent
       sbFetch('/rest/v1/aos_agente_tareas?agente_id=eq.' + agent.id + '&activa=eq.true&order=prioridad').then(function(tasks) {
         if (!tasks || !tasks.length) return
-        // Execute first pending task
-        executeTask(agent, tasks[0])
+        // Ejecutar todas las tareas en secuencia con 2s de delay entre ellas
+        tasks.reduce(function(chain, task, idx) {
+          return chain.then(function() {
+            return new Promise(function(res) { setTimeout(res, idx === 0 ? 0 : 2000) })
+              .then(function() { return executeTask(agent, task) })
+          })
+        }, Promise.resolve())
       })
     })
   }).catch(function(e) { console.error('[TICK] Error:', e.message) })
@@ -591,22 +723,28 @@ function shouldRunCron(cronStr, now, lastRun) {
   var last = lastRun ? new Date(lastRun) : new Date(0)
   var diffMin = (now - last) / 60000
 
-  // Simple cron parser for common patterns
+  // Usar hora Lima para crons diarios (Railway corre en UTC)
+  var limaHour = new Date(Date.now() + (-5 * 60) * 60000).getHours()
+  var limaMin  = new Date(Date.now() + (-5 * 60) * 60000).getMinutes()
+  var limaDay  = new Date(Date.now() + (-5 * 60) * 60000).getDay()
+
   if (cronStr === '*/30 * * * *') return diffMin >= 30
-  if (cronStr === '0 * * * *') return diffMin >= 60 && now.getMinutes() < 5
-  if (cronStr === '0 */2 * * *') return diffMin >= 120 && now.getMinutes() < 5
+  if (cronStr === '0 * * * *')    return diffMin >= 60 && limaMin < 5
+  if (cronStr === '0 */2 * * *')  return diffMin >= 120 && limaMin < 5
+  if (cronStr === '0 */4 * * *')  return diffMin >= 240 && limaMin < 5
+  if (cronStr === '0 */3 * * *')  return diffMin >= 180 && limaMin < 5
   if (cronStr.match(/^0 \d+,\d+ \* \* \*/)) {
     var hours = cronStr.split(' ')[1].split(',').map(Number)
-    return hours.indexOf(now.getHours()) >= 0 && now.getMinutes() < 5 && diffMin >= 60
+    return hours.indexOf(limaHour) >= 0 && limaMin < 5 && diffMin >= 60
   }
   if (cronStr.match(/^0 \d+ \* \* \d$/)) {
-    var hour = parseInt(cronStr.split(' ')[1])
-    var dow = parseInt(cronStr.split(' ')[4])
-    return now.getDay() === dow && now.getHours() === hour && now.getMinutes() < 5 && diffMin >= 1440
+    var hour2 = parseInt(cronStr.split(' ')[1])
+    var dow   = parseInt(cronStr.split(' ')[4])
+    return limaDay === dow && limaHour === hour2 && limaMin < 5 && diffMin >= 1440
   }
   if (cronStr.match(/^0 \d+ \* \* \*/)) {
-    var hour = parseInt(cronStr.split(' ')[1])
-    return now.getHours() === hour && now.getMinutes() < 5 && diffMin >= 1440
+    var hour3 = parseInt(cronStr.split(' ')[1])
+    return limaHour === hour3 && limaMin < 5 && diffMin >= 60
   }
   return false
 }
