@@ -459,12 +459,20 @@ setTimeout(function() {
       role: isAdmin ? 'ADMIN' : 'ASESOR',
       puesto:s.puesto, sede:s.sede, idAsesor:s.codigo_asesor, asesor:s.nombre,
       paneles_acceso:s.paneles_acceso||[], avatar_url:s.avatar_url||'', nivel:s.nivel||4 };
+    // Asegurar que paneles_acceso sea array
+    if (typeof AOS.ctx.paneles_acceso === 'string') {
+      try { AOS.ctx.paneles_acceso = JSON.parse(AOS.ctx.paneles_acceso); } catch(e) { AOS.ctx.paneles_acceso = []; }
+    }
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
   buildTopbar(); buildSidebar(); startClock();
   // Cargar panel inicial DENTRO del workspace
+  var _perms = AOS.ctx.paneles_acceso || [];
   if (AOS.role === 'ADMIN') {
     navigateTo('admin-home');
+  } else if (_perms.length > 0) {
+    // Usuario con permisos restringidos — ir al primer panel permitido
+    navigateTo(_perms[0]);
   } else {
     verificarTurnoHoy();
   }
@@ -595,16 +603,52 @@ var SIDEBAR_ADMIN = [
 ];
 
 function buildSidebar() {
-  var items  = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
-  var actCls = AOS.role === 'ADMIN' ? 'act-admin'   : 'act-asesor';
   var perms  = AOS.ctx.paneles_acceso || [];
+  var actCls = AOS.role === 'ADMIN' ? 'act-admin' : 'act-asesor';
+  
+  // Si tiene permisos específicos y NO es admin, construir sidebar mixto
+  var items;
+  if (AOS.role === 'ADMIN') {
+    items = SIDEBAR_ADMIN;
+  } else if (perms.length > 0) {
+    // Construir sidebar solo con los paneles permitidos
+    // Combinar ambos sidebars y filtrar
+    var allItems = SIDEBAR_ASESOR.concat(SIDEBAR_ADMIN);
+    var allowedIds = {};
+    perms.forEach(function(p) { allowedIds[p] = true; });
+    
+    items = [];
+    var lastSection = null;
+    var sectionHasItems = false;
+    
+    allItems.forEach(function(it) {
+      if (it.type === 'section') {
+        // Guardar sección, la agregaremos solo si tiene items
+        if (lastSection && sectionHasItems) {
+          items.push(lastSection);
+        }
+        lastSection = it;
+        sectionHasItems = false;
+      } else if (it.type === 'item') {
+        if (it.bot || it.special || allowedIds[it.id]) {
+          if (lastSection && !sectionHasItems) {
+            items.push(lastSection);
+            sectionHasItems = true;
+          }
+          items.push(it);
+        }
+      }
+    });
+    // Agregar logout al final
+    items.push({type:'sep',bot:true});
+    items.push({type:'item',id:'__logout',ico:'logout',lbl:'Salir',danger:true,bot:true});
+  } else {
+    items = SIDEBAR_ASESOR;
+  }
+  
   var el = document.getElementById('sb-content');
   var html = '', inBot = false;
   items.forEach(function(it) {
-    // Filter items by permissions
-    if (it.type === 'item' && perms.length > 0 && !it.bot && !it.special) {
-      if (perms.indexOf(it.id) < 0) return;
-    }
     if (it.bot && !inBot) { html += '<div class="sb-bot">'; inBot = true; }
     if (it.type === 'section') {
       html += '<div class="ns">' + it.label + '</div>';
