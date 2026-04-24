@@ -194,7 +194,8 @@
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-function el(id){return document.getElementById(id);}
+function el(id){var e=document.getElementById(id);return e||{textContent:'',innerHTML:'',style:{},value:'',classList:{add:function(){},remove:function(){},toggle:function(){}},querySelectorAll:function(){return[];},setAttribute:function(){}};}
+function fmt(n){return typeof n==='number'?n.toLocaleString('es-PE'):n;}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('es-PE');}
 function rpc(fn,params,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(params)}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
