@@ -1240,9 +1240,9 @@ function deleteMetodo(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/a
 
 // ═══ INTEGRACIONES ═══
 var INTEG_DATA=[];
-var CAT_LABELS={infraestructura:'🏗️ Infraestructura',ai:'🤖 Inteligencia Artificial',google:'📅 Google',redes:'📱 Redes y Ads',chatbot:'💬 Chatbot',pagos:'💳 Pagos',automatizacion:'🔄 Automatización',ambiente:'🎧 Ambiente/IoT',web:'🌐 Web/Tracking'};
+var CAT_LABELS={infraestructura:'🏗️ Infraestructura',ai:'🤖 AI Texto/Chat',ai_imagen:'🖼️ AI Imagen',ai_video:'🎬 AI Video',ai_audio:'🔊 AI Audio/Voz',google:'📅 Google',redes:'📱 Redes y Ads',chatbot:'💬 Chatbot',pagos:'💳 Pagos',automatizacion:'🔄 Automatización',ambiente:'🎧 Ambiente/IoT',web:'🌐 Web/Tracking',diseno:'🎨 Diseño'};
 var CAT_COLORS={infraestructura:'infra',ai:'ai',google:'google',redes:'redes',chatbot:'chatbot',pagos:'pagos'};
-var CAT_ORDER=['infraestructura','ai','automatizacion','redes','google','web','ambiente','chatbot','pagos'];
+var CAT_ORDER=['infraestructura','ai','ai_imagen','ai_video','ai_audio','automatizacion','redes','google','web','diseno','ambiente','chatbot','pagos'];
 function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
   // Activos arriba
   var activos=rows.filter(function(r){return r.estado==='conectado';});
