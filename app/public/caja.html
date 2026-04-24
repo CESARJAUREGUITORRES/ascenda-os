@@ -2171,11 +2171,9 @@ function grabarCotizacion() {
     }
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
-    // Cerrar modal de venta
     cerrarOv('ov-venta');
-    // Recargar con delay para que Supabase refleje el INSERT
-    setTimeout(function() { cargarCaja(); }, 1000);
-    setTimeout(function() { cargarCaja(); }, 3000); // segundo intento por si el primero falla
+    // Recargar datos reales del servidor
+    cargarCaja();
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
