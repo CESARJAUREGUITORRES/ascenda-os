@@ -469,34 +469,37 @@ setTimeout(function() {
   buildTopbar(); startClock();
   
   if (AOS.role === 'ADMIN') {
-    // Admin: sidebar completo inmediato
     buildSidebar();
     navigateTo('admin-home');
   } else {
-    // No-admin: esperar a validar permisos reales desde Supabase
-    document.getElementById('sb-content').innerHTML = '<div style="padding:20px;text-align:center;color:#6B7BA8;font-size:11px;">Cargando...</div>';
-    fetch(_SB+'/rest/v1/aos_usuarios?select=paneles_acceso,nivel_jerarquia&codigo_asesor=eq.'+AOS.ctx.idAsesor,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    // Renderizar sidebar INMEDIATO con permisos del localStorage
+    buildSidebar();
+    var _perms = AOS.ctx.paneles_acceso || [];
+    if (_perms.length > 0) {
+      navigateTo(_perms[0]);
+    } else {
+      verificarTurnoHoy();
+    }
+    // Revalidar en background (corrige si los permisos cambiaron)
+    fetch(_SB+'/rest/v1/aos_usuarios?select=paneles_acceso&codigo_asesor=eq.'+AOS.ctx.idAsesor,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
     .then(function(r){return r.json()}).then(function(rows){
       if(rows&&rows[0]){
         var fresh = rows[0].paneles_acceso||[];
         if(typeof fresh==='string'){try{fresh=JSON.parse(fresh)}catch(e){fresh=[]}}
-        AOS.ctx.paneles_acceso = fresh;
-        var ss = JSON.parse(localStorage.getItem('aos_session')||'{}');
-        ss.paneles_acceso = fresh;
-        localStorage.setItem('aos_session',JSON.stringify(ss));
+        var old = JSON.stringify(AOS.ctx.paneles_acceso||[]);
+        var nw = JSON.stringify(fresh);
+        if(old !== nw) {
+          AOS.ctx.paneles_acceso = fresh;
+          var ss = JSON.parse(localStorage.getItem('aos_session')||'{}');
+          ss.paneles_acceso = fresh;
+          localStorage.setItem('aos_session',JSON.stringify(ss));
+          buildSidebar();
+          if(fresh.length>0 && AOS.activeView && fresh.indexOf(AOS.activeView)<0){
+            navigateTo(fresh[0]);
+          }
+        }
       }
-      buildSidebar();
-      var _perms = AOS.ctx.paneles_acceso || [];
-      if (_perms.length > 0) {
-        navigateTo(_perms[0]);
-      } else {
-        verificarTurnoHoy();
-      }
-    }).catch(function(){
-      // Si falla la validación, usar permisos del localStorage
-      buildSidebar();
-      verificarTurnoHoy();
-    });
+    }).catch(function(){});
   }
   }
 }, 0);
