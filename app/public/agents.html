@@ -68,31 +68,36 @@
   ::-webkit-scrollbar-track{background:transparent}
   canvas{image-rendering:pixelated;image-rendering:crisp-edges}
 
-  /* macOS-style titlebar */
+  /* ─── HEADER MINIMALISTA ─── */
   .titlebar{
-    display:flex;align-items:center;gap:14px;
-    height:44px;flex-shrink:0;padding:0 14px;
-    background:linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.78));
-    backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);
-    border-bottom:1px solid rgba(15,23,42,0.08);
-    box-shadow:0 1px 0 rgba(255,255,255,0.4) inset, 0 1px 2px rgba(7,29,74,0.04);
+    display:flex;align-items:center;gap:8px;
+    height:40px;flex-shrink:0;padding:0 12px;
+    background:rgba(240,244,252,0.7);
+    backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);
+    border-bottom:1px solid rgba(15,23,42,0.07);
     position:relative;z-index:10;
   }
-  .traffic{display:flex;gap:7px}
-  .traffic span{width:12px;height:12px;border-radius:50%;display:block}
-  .traffic .r{background:#FF5F56;box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.15)}
-  .traffic .y{background:#FFBD2E;box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.15)}
-  .traffic .g{background:#27C93F;box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.15)}
-  .brand{display:flex;align-items:center;gap:8px;font-family:'Exo 2',sans-serif;font-weight:800;letter-spacing:-0.01em;color:#071D4A;font-size:14px}
-  .brand-pill{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.1em;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,#0A4FBF,#00C9A7);color:#fff}
-  .tb-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:7px;background:rgba(255,255,255,0.5);border:1px solid rgba(15,23,42,0.08);color:#475569;font-size:11px;font-weight:600;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:0.02em;transition:all .15s}
-  .tb-btn:hover{background:#fff;color:#071D4A;border-color:rgba(15,23,42,0.15)}
-  .tb-btn.active{background:linear-gradient(135deg,#0A4FBF,#00C9A7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(10,79,191,0.3)}
-  .tb-sep{width:1px;background:rgba(15,23,42,0.08);height:22px;margin:0 4px}
-  .live{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:#64748B;font-family:'JetBrains Mono',monospace}
-  .live .dot{width:7px;height:7px;border-radius:50%;background:#00C9A7;box-shadow:0 0 0 0 rgba(0,201,167,0.6);animation:pulse 2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,201,167,0.6)}70%{box-shadow:0 0 0 7px rgba(0,201,167,0)}100%{box-shadow:0 0 0 0 rgba(0,201,167,0)}}
+  /* chips de control */
+  .tb-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:5px 12px;border-radius:20px;
+    background:rgba(255,255,255,0.55);
+    border:1px solid rgba(15,23,42,0.10);
+    color:#475569;font-size:11px;font-weight:600;
+    cursor:pointer;font-family:'JetBrains Mono',monospace;
+    letter-spacing:0.02em;transition:all .15s;
+    backdrop-filter:blur(8px);
+  }
+  .tb-btn:hover{background:rgba(255,255,255,0.85);color:#071D4A;border-color:rgba(15,23,42,0.18);box-shadow:0 2px 8px rgba(7,29,74,0.07)}
+  .tb-btn.active{background:linear-gradient(135deg,#0A4FBF,#00C9A7);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(10,79,191,0.25)}
+  .tb-btn.tb-collapse{padding:5px 9px;min-width:28px;justify-content:center}
+  .tb-sep{width:1px;background:rgba(15,23,42,0.08);height:18px;margin:0 2px}
+  .live{display:inline-flex;gap:5px;align-items:center;font-size:10px;color:#64748B;font-family:'JetBrains Mono',monospace}
+  .live .dot{width:6px;height:6px;border-radius:50%;background:#00C9A7;box-shadow:0 0 0 0 rgba(0,201,167,0.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,201,167,0.6)}70%{box-shadow:0 0 0 6px rgba(0,201,167,0)}100%{box-shadow:0 0 0 0 rgba(0,201,167,0)}}
   @keyframes pulseRed{0%,100%{opacity:1}50%{opacity:0.3}}
+
+  /* ─── PANEL LATERAL — GLASS MATE ─── */
 
   .zoom-ctrl{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:5px}
   .zbtn{width:34px;height:34px;background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);color:#071D4A;border:1px solid rgba(255,255,255,0.8);border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(7,29,74,0.12);transition:all .15s}
@@ -109,7 +114,7 @@
 
   .tooltip{position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.85);box-shadow:0 8px 20px rgba(7,29,74,0.15);font-size:12px;pointer-events:none;max-width:240px}
 
-  .side{width:380px;flex-shrink:0;background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(238,242,250,0.7));backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);border-left:1px solid rgba(15,23,42,0.06);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(7,29,74,0.06)}
+  .side{width:380px;flex-shrink:0;background:rgba(245,248,255,0.55);backdrop-filter:blur(32px) saturate(1.8) brightness(1.04);-webkit-backdrop-filter:blur(32px) saturate(1.8) brightness(1.04);border-left:1px solid rgba(255,255,255,0.55);display:flex;flex-direction:column;box-shadow:-6px 0 32px rgba(7,29,74,0.08), inset 1px 0 0 rgba(255,255,255,0.6);transition:width .25s ease}
 </style>
 <script type="application/json" id="__edit_mode_defaults">{}</script>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -308,22 +313,64 @@ const CHAINS = [
   ['clasificador', 'centinela',   'lead → cola'],
 ];
 
-// Activity templates (for thought bubbles + logs)
+// ===== MOD-ACTIVITY: Textos de globos desde datos REALES de Supabase =====
+// Se actualiza cada 30s desde aos_agente_logs — nunca datos inventados
 const ACTIVITY = {
-  kronia:       [{ label: 'Priorizando cola global', thought: 'KronIA orquestando 13 tareas' }, { label: 'Review semanal', thought: '78% de KPIs en verde' }],
-  centinela:    [{ label: 'Escaneando leads', thought: '14 leads nuevos detectados' }, { label: 'Filtrando duplicados', thought: '3 descartados' }],
-  clasificador: [{ label: 'Clasificando lead #L-482', thought: 'Segment: PYME · Hot' }, { label: 'Scoring cola', thought: '7/10 alta conversión' }],
-  analista_mkt: [{ label: 'Análisis campaña GA', thought: 'CPC bajó $2.10' }, { label: 'Reporte Q semanal', thought: 'CTR +18%' }],
-  planificador: [{ label: 'Calendario editorial', thought: '12 posts para Mayo' }, { label: 'Sync con Camila', thought: 'Brief listo' }],
-  creador:      [{ label: 'Escribiendo copy hero', thought: '3 variantes A/B' }, { label: 'Email nurture', thought: 'Open rate target 30%' }],
-  monitor:      [{ label: 'Polling KPIs', thought: 'Todos los targets OK' }, { label: 'Alerta inventario', thought: 'Stock crítico SKU-221' }],
-  analista:     [{ label: 'Deep-dive retention', thought: 'D30 = 42%, ↑5pt' }, { label: 'Cohort análisis', thought: 'Segment premium converge' }],
-  archivista:   [{ label: 'Indexando docs', thought: '2.4k archivos procesados' }, { label: 'Backup semanal', thought: 'Compresión 68%' }],
-  resumidor:    [{ label: 'Resumen chat #4821', thought: 'Cliente pide descuento' }, { label: 'TL;DR reunión', thought: '3 action items' }],
-  recepcion:    [{ label: '⚠️ Esperando WhatsApp API', thought: 'Credenciales pendientes' }],
-  guardian:     [{ label: 'Check inventario', thought: 'Stock normal en 42 SKUs' }, { label: 'Alerta reposición', thought: 'SKU-221 crítico' }],
-  cartero:      [{ label: 'Envío digest diario', thought: '12 emails programados' }, { label: 'Reporte semanal', thought: 'Entregado a 8 stakeholders' }],
+  kronia:       [{ label: 'Coordinando equipo', thought: 'Sin tarea activa' }],
+  centinela:    [{ label: 'Escaneando leads', thought: 'Sin leads nuevos hoy' }],
+  clasificador: [{ label: 'Esperando leads', thought: 'Sin leads para clasificar' }],
+  analista_mkt: [{ label: 'Sin datos aún', thought: 'Esperando próximo tick' }],
+  planificador: [{ label: 'Sin ejecuciones', thought: 'Esperando datos de Valentina' }],
+  creador:      [{ label: '⚠ Gemini sin cuota', thought: 'Error 429 — cuota agotada' }],
+  monitor:      [{ label: 'Polling KPIs', thought: 'Cargando...' }],
+  analista:     [{ label: 'Sin datos reales', thought: 'Esperando próximo tick' }],
+  archivista:   [{ label: 'En espera', thought: 'Sin ejecuciones aún' }],
+  resumidor:    [{ label: 'Sin chats WA', thought: 'Esperando WhatsApp API' }],
+  recepcion:    [{ label: '⚠ Sin WhatsApp API', thought: 'Credenciales pendientes' }],
+  guardian:     [{ label: 'Check inventario', thought: 'Cargando...' }],
+  cartero:      [{ label: 'Revisando citas', thought: 'Cargando...' }],
 };
+
+// Actualizar ACTIVITY desde logs reales de Supabase
+window._activityLoaded = false;
+function loadRealActivity() {
+  window.sbGet('/rest/v1/aos_agente_logs?order=created_at.desc&limit=40&select=agente_id,accion,input_resumen,output_resumen,exitoso,error')
+    .then(function(logs) {
+      if (!Array.isArray(logs)) return;
+      // Tomar el log más reciente exitoso por agente y extraer resumen útil
+      var seen = {};
+      logs.forEach(function(l) {
+        if (seen[l.agente_id]) return;
+        seen[l.agente_id] = true;
+        var label, thought;
+        if (!l.exitoso) {
+          // Error real
+          var errMsg = typeof l.error === 'string' ? l.error : JSON.stringify(l.error || '');
+          var shortErr = errMsg.replace(/\{.*?"message":\s*"([^"]+)".*\}/, '$1').substring(0, 55);
+          label   = '⚠ Error en tarea';
+          thought = shortErr || 'Error desconocido';
+        } else {
+          // Extraer dato clave del output
+          label = (l.input_resumen || l.accion || 'Tarea ejecutada').substring(0, 40);
+          try {
+            var out = typeof l.output_resumen === 'string' ? JSON.parse(l.output_resumen) : l.output_resumen;
+            if (out && out.citasHoy !== undefined)   thought = 'Citas hoy: ' + out.citasHoy + ' · Llamadas: ' + (out.llamHoy||0);
+            else if (out && out.count !== undefined) thought = out.count > 0 ? out.count + ' registros procesados' : 'Sin registros activos';
+            else if (out && out.ok && out.data)      thought = out.data.length > 0 ? out.data.length + ' resultados obtenidos' : 'Sin datos en este momento';
+            else if (out && out.agotados)            thought = out.agotados.length + ' productos agotados en stock';
+            else if (out && out.kpis)                thought = 'CPL: S/' + (out.kpis.cpl||0) + ' · Leads mes: ' + (out.kpis.leads||0);
+            else                                     thought = 'Ejecutado correctamente';
+          } catch(e) { thought = 'Ejecutado correctamente'; }
+        }
+        ACTIVITY[l.agente_id] = [{ label: label.substring(0, 40), thought: thought.substring(0, 60) }];
+      });
+      window._activityLoaded = true;
+    }).catch(function(){});
+}
+// Cargar al inicio y cada 30s
+loadRealActivity();
+setInterval(loadRealActivity, 30000);
+// ===== FIN MOD-ACTIVITY =====
 
 window.ASCENDA = ASCENDA;
 window.DEPARTMENTS = DEPARTMENTS;
@@ -1387,8 +1434,24 @@ function LiveFeed({ agents, events, metrics, alerts, onSelectAgent, onOpenMeetin
       <div style={{ padding:'10px 14px', background:'rgba(239,68,68,0.08)', borderBottom:'1px solid rgba(239,68,68,0.25)' }}>
         <div style={{ fontSize:10, color:'#B91C1C', fontFamily:'JetBrains Mono, monospace', letterSpacing:'0.1em', marginBottom:6 }}>⚠ ALERTAS ({alerts.length})</div>
         {alerts.map(a => (
-          <div key={a.id} onClick={() => onSelectAgent(a.id)} style={{ cursor:'pointer', fontSize:11, color:'#7F1D1D', padding:'4px 0', display:'flex', justifyContent:'space-between' }}>
-            <span>{a.emoji} <b>{a.nombre}</b> · {a.bubble_text || 'bloqueado'}</span>
+          <div key={a.id} onClick={() => onSelectAgent(a.id)} style={{ cursor:'pointer', fontSize:11, color:'#7F1D1D', padding:'7px 9px', marginBottom:4, borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span style={{ fontWeight:700 }}>{a.emoji} {a.nombre}</span>
+              <span style={{ fontSize:9, fontFamily:'JetBrains Mono,monospace', background:'#FEE2E2', color:'#B91C1C', padding:'1px 5px', borderRadius:4 }}>BLOQUEADO</span>
+            </div>
+            {a.bubble_text && a.bubble_text !== '⚠ bloqueado' && (
+              <div style={{ fontSize:10, color:'#991B1B', marginTop:4, lineHeight:1.4 }}>
+                ⚠ {a.bubble_text.replace(/^(SQL:|Error:|⚠\s*)/,'').substring(0,80)}
+              </div>
+            )}
+            <div style={{ fontSize:10, color:'#64748B', marginTop:4, fontStyle:'italic' }}>
+              {a.id==='creador' ? '→ Agregar créditos en Google AI Studio' :
+               a.id==='recepcion' ? '→ Configurar WhatsApp Business API' :
+               a.bubble_text && a.bubble_text.includes('key') ? '→ Verificar API key en aos_integraciones' :
+               a.bubble_text && a.bubble_text.includes('column') ? '→ Error de columna en query — revisar tarea' :
+               a.bubble_text && a.bubble_text.includes('429') ? '→ Cuota de API agotada — esperar o ampliar plan' :
+               '→ Click para ver detalle y logs completos'}
+            </div>
           </div>
         ))}
       </div>
@@ -1790,6 +1853,7 @@ function App(){
   const [mode, setMode] = useState('normal');
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [toast, setToast] = useState(null); // { msg, type } o string legacy
+  const [sidePanelOpen, setSidePanelOpen] = useState(true);
   // Helper: disparar toast con tipo
   const showToast = useCallback((msg, type, ms) => {
     setToast({ msg, type: type || 'info' });
@@ -2009,21 +2073,17 @@ function App(){
 
   return <React.Fragment>
     <div className="titlebar">
-      <div className="traffic"><span className="r"/><span className="y"/><span className="g"/></div>
-      <div className="brand">
-        <svg width="18" height="18" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#0A4FBF"/><stop offset="1" stopColor="#00C9A7"/></linearGradient></defs><rect x="3" y="3" width="26" height="26" rx="6" fill="url(#lg)"/><path d="M10 21 L16 9 L22 21 M12.5 17 H19.5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
-        AscendaOS
-        <span className="brand-pill">OFICINA VIRTUAL</span>
-      </div>
-      <div className="live"><span className="dot"/><span style={{color:'#00C9A7',fontWeight:700}}>LIVE</span><span>·</span><span>{metrics.working+metrics.meeting}/{agents.length} activos</span>{alerts.length>0 && <><span>·</span><span style={{color:'#EF4444',fontWeight:700}}>⚠ {alerts.length} alertas</span></>}</div>
+      {/* LIVE indicator */}
+      <div className="live"><span className="dot"/><span style={{color:'#00C9A7',fontWeight:700,fontSize:10}}>LIVE</span><span style={{color:'#94A3B8'}}>·</span><span>{metrics.working+metrics.meeting}/{agents.length}</span>{alerts.length>0 && <><span style={{color:'#94A3B8'}}>·</span><span style={{color:'#EF4444',fontWeight:700}}>⚠{alerts.length}</span></>}</div>
       <div style={{flex:1}}/>
-      <div style={{display:'flex',gap:3}}>
-        <button className={`tb-btn ${mode==='normal'?'active':''}`} onClick={()=>setMode('normal')}>▦ Normal</button>
-        <button className={`tb-btn ${mode==='heatmap'?'active':''}`} onClick={()=>setMode('heatmap')}>☀ Heatmap</button>
-      </div>
+      {/* Chips de control — sin branding */}
+      <button className={`tb-btn ${mode==='normal'?'active':''}`} onClick={()=>setMode('normal')}>▦ Normal</button>
+      <button className={`tb-btn ${mode==='heatmap'?'active':''}`} onClick={()=>setMode('heatmap')}>☀ Heatmap</button>
       <div className="tb-sep"/>
       <button className="tb-btn" onClick={()=>setMeetingOpen(true)}>🤝 Reunión</button>
-      <button className="tb-btn" onClick={runTick}>⚡ Tick</button>
+      <SoundToggle/>
+      {/* Colapsar panel derecho */}
+      <button className="tb-btn tb-collapse" title="Ocultar/mostrar panel" onClick={()=>setSidePanelOpen(v=>!v)}>{sidePanelOpen?'▶':'◀'}</button>
     </div>
 
     <div style={{flex:1,display:'flex',minHeight:0,background:'#EEF2FA'}}>
@@ -2066,7 +2126,7 @@ function App(){
         </div>
       </div>
 
-      <div className="side">
+      <div className="side" style={{width: sidePanelOpen ? 380 : 0, overflow: sidePanelOpen ? undefined : 'hidden', flexShrink: 0}}>
         {focusedZone ? (
           <window.Panel.DeptFocus
             zone={focusedZone}
