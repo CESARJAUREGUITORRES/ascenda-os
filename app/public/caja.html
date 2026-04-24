@@ -629,11 +629,6 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <div class="mfield">
           <label>Comprobante</label>
           <select id="edit-comprobante" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:Outfit;font-size:12px;outline:none;">
-            <option value="BOLETA VIRTUAL">Boleta virtual</option>
-            <option value="BOLETA FISICA">Boleta física</option>
-            <option value="RH">R.H. (Honorarios)</option>
-            <option value="FACTURA">Factura</option>
-            <option value="OTROS">Otros</option>
           </select>
         </div>
         <div class="mfield">
@@ -1703,8 +1698,13 @@ function _mkMetodosOpts(selVal) {
       return '<option value="'+escH(m)+'"'+(m===selVal?' selected':'')+'>'+escH(m)+'</option>';
     }).join('');
 }
-function _mkCompOpts(selVal) {
-  return _COMPROBANTES.map(function(c){
+function _mkCompOpts(selVal, metodo) {
+  // Si hay método y tiene vinculación → solo mostrar los permitidos
+  var lista = _COMPROBANTES;
+  if (metodo && CAJA.metodoComprobantes && CAJA.metodoComprobantes[metodo]) {
+    lista = CAJA.metodoComprobantes[metodo];
+  }
+  return lista.map(function(c){
     return '<option value="'+escH(c)+'"'+(c===selVal?' selected':'')+'>'+escH(c)+'</option>';
   }).join('');
 }
@@ -1739,6 +1739,10 @@ function _mkAsesorOpts(selVal) {
   return opts;
 }
 function _sugerirComp(metodo) {
+  // Dinámico: usar comprobantes_vinculados de la BD
+  var vinc = CAJA.metodoComprobantes && CAJA.metodoComprobantes[metodo];
+  if (vinc && vinc.length) return vinc[0]; // primer comprobante vinculado = default
+  // Fallback legacy si no hay vinculación
   var m = (metodo||'').toUpperCase();
   if (m==='EFECTIVO'||m==='DOLARES EFECTIVO') return 'BOLETA FISICA';
   if (m.indexOf('QR DOCTORA')>-1||m.indexOf('INTERBANK DRA')>-1||m.indexOf('BBVA DRA')>-1||m.indexOf('BCP DRA')>-1||m.indexOf('IBK DRA')>-1) return 'R.H.';
@@ -1782,8 +1786,8 @@ function abrirPagoItem(idx) {
     // Pre-cargar monto (si ya pagado usar monto1, si no usar subtotal)
     var montoActual = it.pagado ? parseFloat(it.monto1||it.subtotal) : it.subtotal;
     document.getElementById('pago-monto-simple').value = montoActual.toFixed(2);
-    // Pre-cargar comprobante
-    document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(it.comprobante || 'BOLETA VIRTUAL');
+    // Pre-cargar comprobante (filtrado por método)
+    document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(it.comprobante || 'BOLETA VIRTUAL', it.metodoPago);
   }
 
   // Cargar personal con pre-selección
@@ -1816,7 +1820,8 @@ function abrirPagoItem(idx) {
 // Modo simple: auto-sugerir comprobante al cambiar método
 function autoCompSimple(metodo) {
   var comp = _sugerirComp(metodo);
-  document.getElementById('pago-comp-simple').value = comp;
+  // Refrescar opciones de comprobante filtradas por método seleccionado
+  document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(comp, metodo);
   recalcSimple();
 }
 
@@ -1859,7 +1864,7 @@ function renderTablaLineas() {
       '</td>' +
       '<td style="padding:5px 5px;">' +
         '<select onchange="VT.lineasPago['+i+'].comprobante=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:Outfit;outline:none;">' +
-          _mkCompOpts(ln.comprobante||'BOLETA VIRTUAL') +
+          _mkCompOpts(ln.comprobante||'BOLETA VIRTUAL', ln.metodo) +
         '</select>' +
       '</td>' +
       '<td style="padding:5px 5px;">' +
@@ -2259,11 +2264,12 @@ function abrirEdicionCompleta(ventaId) {
   document.getElementById('edit-moneda').value = v.moneda || 'PEN';
   document.getElementById('edit-estado').value = v.estado_pago || 'PAGO COMPLETO';
 
-  // Comprobante
+  // Comprobante — dinámico desde _COMPROBANTES (cargado de BD)
   var selComp = document.getElementById('edit-comprobante');
   if (selComp) {
     var comp = v.tipo_comprobante || 'BOLETA VIRTUAL';
-    Array.prototype.forEach.call(selComp.options, function(o){ o.selected = o.value === comp; });
+    var metPago = v.pago || '';
+    selComp.innerHTML = _mkCompOpts(comp, metPago);
   }
 
   // Personal — cargar y pre-seleccionar
@@ -2431,15 +2437,33 @@ function cargarMetodosYCaja() {
   // Pre-cargar personal para que los selects de pago funcionen inmediatamente
   sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(r){ if(r&&r.length) _PERSONAL_CAJA=r; });
   sbGet('aos_rrhh','order=puesto.asc,nombre.asc', function(r){ if(r&&r.length) _PERSONAL_TODO=r; });
-  sbGet('aos_metodos_pago', 'order=nombre.asc', function(rows) {
+  // ===== CARGA DINÁMICA: MÉTODOS + COMPROBANTES VINCULADOS =====
+  sbGet('aos_metodos_pago', 'activo=eq.true&order=orden.asc', function(rows) {
     if (rows && rows.length) {
       CAJA.metodosDisponibles = rows.map(function(r) { return r.nombre; });
+      // Mapa método→comprobantes permitidos (dinámico desde BD)
+      CAJA.metodoComprobantes = {};
+      rows.forEach(function(r) {
+        CAJA.metodoComprobantes[r.nombre] = (r.comprobantes_vinculados && r.comprobantes_vinculados.length) ? r.comprobantes_vinculados : null;
+      });
     } else {
       CAJA.metodosDisponibles = ['EFECTIVO','DOLARES EFECTIVO','BCP DRA','BBVA DRA',
         'INTERBANK DRA','IBK DRA DOLARES','TRANSFERENCIA BCP','TRANSFERENCIA IBK',
         'NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','MERCADO PAGO','QR CARMEN','QR DOCTORA'];
+      CAJA.metodoComprobantes = {};
     }
-    cargarCaja();
+    // Cargar tipos de comprobante activos desde BD
+    sbGet('aos_tipos_comprobante', 'activo=eq.true&order=orden.asc', function(tc) {
+      if (tc && tc.length) {
+        _COMPROBANTES = tc.map(function(c) { return c.nombre; });
+        // Mapa comprobante→rucs para auto-selección futura
+        CAJA.comprobanteRucs = {};
+        tc.forEach(function(c) {
+          CAJA.comprobanteRucs[c.nombre] = (c.rucs_vinculados && c.rucs_vinculados.length) ? c.rucs_vinculados : null;
+        });
+      }
+      cargarCaja();
+    });
   });
   setInterval(function(){ cargarCaja(true); }, 60000);
   setInterval(cargarTC, 300000);

@@ -209,6 +209,43 @@ http.createServer(function(req, res) {
     res.end(); return
   }
   // ===== FIN 2FA =====
+  // ===== TEMPLATE EMAILS (confirmación cita, recibo venta, seguimiento) =====
+  if (p === '/api/send-template' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        if (!d.to || !d.template) { res.writeHead(400); res.end('{"error":"missing to/template"}'); return }
+        var html = '', subject = '', tipo = d.template
+        if (tipo === 'confirmacion_cita') {
+          subject = '✅ Cita confirmada — ' + (d.hora || '') + ' · ' + BRAND.nombre_empresa
+          html = buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'')
+        } else if (tipo === 'recibo_venta') {
+          subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
+          html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'')
+        } else if (tipo === 'seguimiento') {
+          subject = '💆‍♀️ ¿Cómo te fue con tu tratamiento? — ' + BRAND.nombre_empresa
+          html = buildEmailSeguimiento(d.nombre||'Paciente', d.tratamiento||'', d.dias||7)
+        } else if (tipo === 'recordatorio') {
+          subject = d.es_manana ? 'Tu cita de mañana — ' + (d.hora||'') : '¡Tu cita es hoy! ' + (d.hora||'')
+          html = buildEmailRecordatorio(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'', !!d.es_manana)
+        } else if (tipo === 'bienvenida') {
+          subject = '¡Bienvenida a ' + BRAND.nombre_empresa + '! ✨'
+          html = buildEmailBienvenida(d.nombre||'Paciente')
+        } else {
+          res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
+        }
+        sendAgentEmail(d.to, subject, html, tipo, d.destinatario_id || d.to)
+          .then(function(r) { res.writeHead(200, {'Content-Type':'application/json'}); res.end(JSON.stringify(r)) })
+          .catch(function(e) { res.writeHead(500); res.end('{"error":"' + e.message + '"}') })
+      } catch(e) { res.writeHead(400); res.end('{"error":"Invalid JSON"}') }
+    }); return
+  }
+  if (p === '/api/send-template' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN TEMPLATE EMAILS =====
   // ===== TURNSTILE CAPTCHA VERIFICATION =====
   if (p === '/api/verify-turnstile' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -372,6 +409,45 @@ function saveContent(agentId, tipo, titulo, contenido, metadata) {
 
 var RESEND_KEY_AG = process.env.RESEND_API_KEY || 're_hMwhSNXd_4EobZ8KLvwWFQSg1P7SCpXtP'
 
+// ═══ BRANDING CACHE (se carga al inicio y refresca cada 30min) ═══
+var BRAND = {
+  color_primario: '#f0ebe0', color_secundario: '#cea14a', color_dark: '#e1ded1',
+  color_texto: '#b89447', color_enlace: '#a28444', color_degradado2: '#f1eee4',
+  logo_con_fondo_url: '', logo_sin_fondo_url: '', nombre_empresa: 'Zi Vital',
+  telefono: '', whatsapp: ''
+}
+function loadBrand() {
+  sbFetch('/rest/v1/aos_configuracion?select=clave,valor').then(function(rows) {
+    if (!rows || !rows.length) return
+    rows.forEach(function(r) { if (BRAND.hasOwnProperty(r.clave)) BRAND[r.clave] = r.valor })
+    console.log('[BRAND] Branding cargado: ' + BRAND.color_secundario)
+  }).catch(function(e) { console.error('[BRAND] Error:', e.message) })
+}
+// Cargar al arrancar (con delay para que sbFetch esté listo)
+setTimeout(loadBrand, 3000)
+setInterval(loadBrand, 1800000) // refresh cada 30 min
+
+// ═══ EMAIL TEMPLATE ENGINE — branding dinámico desde aos_configuracion ═══
+function emailShell(headerHtml, bodyHtml) {
+  var logo = BRAND.logo_sin_fondo_url || BRAND.logo_con_fondo_url
+  var logoBlock = logo ? '<img src="' + logo + '" alt="' + BRAND.nombre_empresa + '" style="height:36px;margin-bottom:10px;display:block;" />' : ''
+  return '<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">' +
+    '<div style="background:linear-gradient(135deg,' + BRAND.color_primario + ',' + BRAND.color_degradado2 + ');padding:28px 32px">' +
+    logoBlock +
+    '<div style="color:' + BRAND.color_secundario + ';font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">' + BRAND.nombre_empresa + '</div>' +
+    headerHtml +
+    '</div>' +
+    '<div style="padding:28px 32px">' + bodyHtml + '</div>' +
+    '<div style="background:' + BRAND.color_primario + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_texto + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
+    '</div>'
+}
+function emailInfoBox(label, value) {
+  return '<div style="margin-bottom:8px"><div style="font-size:11px;color:#94A3B8">' + label + '</div><div style="font-size:15px;font-weight:600;color:' + BRAND.color_secundario + '">' + value + '</div></div>'
+}
+function emailCard(content) {
+  return '<div style="background:' + BRAND.color_primario + ';border-radius:10px;padding:18px 20px;border-left:4px solid ' + BRAND.color_secundario + ';margin-bottom:20px">' + content + '</div>'
+}
+
 // Enviar email vía Resend (reutiliza la misma clave y from)
 function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
   return new Promise(function(resolve) {
@@ -426,46 +502,110 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
   }).catch(function(){})
 }
 
-// Template email recordatorio de cita
+// Template email recordatorio de cita (branding dinámico)
 function buildEmailRecordatorio(nombre, tratamiento, hora, sede, fecha, esManana) {
   var titulo = esManana ? 'Te esperamos mañana' : 'Tu cita es hoy'
   var cuando = esManana ? 'mañana' : 'hoy'
   var sedeDir = sede && sede.includes('PUEBLO') ? 'Av. Brasil 1170, Pueblo Libre' : 'Av. Javier Prado Este 996, San Isidro'
-  return '<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">' +
-    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:28px 32px">' +
-    '<div style="color:#00C9A7;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Clínica Zi Vital</div>' +
-    '<div style="color:#fff;font-size:22px;font-weight:800">' + titulo + ', ' + nombre.split(' ')[0] + ' 👋</div>' +
-    '</div>' +
-    '<div style="padding:28px 32px">' +
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">' + titulo + ', ' + nombre.split(' ')[0] + ' 👋</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Te recordamos que tienes una cita programada para <b>' + cuando + '</b>:</p>' +
-    '<div style="background:#F8FAFF;border-radius:10px;padding:18px 20px;border-left:4px solid #00C9A7;margin-bottom:20px">' +
-    '<div style="font-size:13px;color:#64748B;margin-bottom:4px">Tratamiento</div>' +
-    '<div style="font-size:17px;font-weight:700;color:#071D4A;margin-bottom:12px">' + tratamiento + '</div>' +
-    '<div style="display:flex;gap:20px;flex-wrap:wrap">' +
-    '<div><div style="font-size:11px;color:#94A3B8">Hora</div><div style="font-size:15px;font-weight:600;color:#0A4FBF">' + hora + '</div></div>' +
-    '<div><div style="font-size:11px;color:#94A3B8">Sede</div><div style="font-size:15px;font-weight:600;color:#0A4FBF">' + sede + '</div></div>' +
-    '</div></div>' +
-    '<p style="color:#64748B;font-size:13px">' + sedeDir + '</p>' +
-    '<p style="color:#94A3B8;font-size:12px;margin-top:24px">Si necesitas reprogramar, llámanos o escríbenos por WhatsApp. ¡Te esperamos!</p>' +
-    '</div>' +
-    '<div style="background:#F8FAFF;padding:14px 32px;text-align:center;font-size:11px;color:#94A3B8">Zi Vital · info@zivital.pe</div>' +
-    '</div>'
+    emailCard(
+      '<div style="font-size:13px;color:#64748B;margin-bottom:4px">Tratamiento</div>' +
+      '<div style="font-size:17px;font-weight:700;color:' + BRAND.color_secundario + ';margin-bottom:12px">' + tratamiento + '</div>' +
+      '<div style="display:flex;gap:20px;flex-wrap:wrap">' +
+      emailInfoBox('Hora', hora) + emailInfoBox('Sede', sede) +
+      '</div>'
+    ) +
+    '<p style="color:#64748B;font-size:13px">📍 ' + sedeDir + '</p>' +
+    '<p style="color:#94A3B8;font-size:12px;margin-top:24px">Si necesitas reprogramar, llámanos o escríbenos por WhatsApp. ¡Te esperamos!</p>'
+  )
 }
 
-// Template email bienvenida paciente nuevo
+// Template email bienvenida paciente nuevo (branding dinámico)
 function buildEmailBienvenida(nombre) {
-  return '<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">' +
-    '<div style="background:linear-gradient(135deg,#071D4A,#00C9A7);padding:28px 32px">' +
-    '<div style="color:#fff;font-size:22px;font-weight:800">Bienvenida a Zi Vital, ' + nombre.split(' ')[0] + ' ✨</div>' +
-    '</div>' +
-    '<div style="padding:28px 32px">' +
-    '<p style="color:#475569;font-size:15px">Nos alegra tenerte como parte de nuestra comunidad. En Zi Vital estamos comprometidos con tu bienestar y belleza.</p>' +
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Bienvenida a ' + BRAND.nombre_empresa + ', ' + nombre.split(' ')[0] + ' ✨</div>',
+    '<p style="color:#475569;font-size:15px">Nos alegra tenerte como parte de nuestra comunidad. En ' + BRAND.nombre_empresa + ' estamos comprometidos con tu bienestar y belleza.</p>' +
     '<p style="color:#475569;font-size:15px">Ante cualquier consulta sobre tus tratamientos o para agendar tu próxima cita, no dudes en escribirnos.</p>' +
     '<div style="margin-top:24px;text-align:center">' +
-    '<a href="mailto:info@zivital.pe" style="display:inline-block;background:linear-gradient(135deg,#0A4FBF,#00C9A7);color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Contáctanos</a>' +
-    '</div></div>' +
-    '<div style="background:#F8FAFF;padding:14px 32px;text-align:center;font-size:11px;color:#94A3B8">Zi Vital · info@zivital.pe</div>' +
+    '<a href="mailto:info@zivital.pe" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Contáctanos</a>' +
     '</div>'
+  )
+}
+
+// Template email confirmación de cita (nueva — branding dinámico)
+function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha) {
+  var sedeDir = sede && sede.includes('PUEBLO') ? 'Av. Brasil 1170, Pueblo Libre' : 'Av. Javier Prado Este 996, San Isidro'
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Tu cita ha sido agendada! ✅</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, te confirmamos que tu cita ha sido registrada exitosamente.</p>' +
+    emailCard(
+      '<div style="font-size:13px;color:#64748B;margin-bottom:4px">Tratamiento</div>' +
+      '<div style="font-size:17px;font-weight:700;color:' + BRAND.color_secundario + ';margin-bottom:12px">' + tratamiento + '</div>' +
+      '<div style="display:flex;gap:20px;flex-wrap:wrap">' +
+      emailInfoBox('Fecha', fecha) + emailInfoBox('Hora', hora) + emailInfoBox('Sede', sede) +
+      '</div>'
+    ) +
+    '<p style="color:#64748B;font-size:13px">📍 ' + sedeDir + '</p>' +
+    '<div style="margin-top:20px;padding:14px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
+    '<p style="color:#92400E;font-size:12px;margin:0"><b>Recomendaciones:</b> Llega 10 minutos antes. Si necesitas reprogramar, avísanos con al menos 24 horas de anticipación.</p>' +
+    '</div>'
+  )
+}
+
+// Template email recibo de venta (nueva — branding dinámico)
+function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, fecha, ventaId) {
+  var sym = moneda === 'USD' ? '$ ' : 'S/ '
+  var itemsHtml = ''
+  if (items && items.length) {
+    items.forEach(function(it) {
+      itemsHtml += '<tr style="border-bottom:1px solid #F1F5F9">' +
+        '<td style="padding:10px 12px;font-size:13px;color:#334155">' + (it.nombre || it.tratamiento || '') + '</td>' +
+        '<td style="padding:10px 12px;font-size:13px;text-align:center;color:#64748B">' + (it.cantidad || 1) + '</td>' +
+        '<td style="padding:10px 12px;font-size:13px;text-align:right;font-weight:600;color:#334155">' + sym + parseFloat(it.subtotal || it.monto || 0).toFixed(2) + '</td>' +
+        '</tr>'
+    })
+  }
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Recibo de pago 🧾</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, aquí tienes el detalle de tu compra.</p>' +
+    emailCard(
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<span style="font-size:11px;color:#94A3B8">Nro. Operación</span>' +
+      '<span style="font-size:13px;font-weight:700;color:' + BRAND.color_secundario + '">' + (ventaId || '—') + '</span>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
+      emailInfoBox('Fecha', fecha || '') + emailInfoBox('Sede', sede || '') + emailInfoBox('Método', metodoPago || '') +
+      '</div>'
+    ) +
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
+    '<thead><tr style="background:' + BRAND.color_primario + '">' +
+    '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.3px">Servicio / Producto</th>' +
+    '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Cant.</th>' +
+    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Subtotal</th>' +
+    '</tr></thead><tbody>' + itemsHtml + '</tbody>' +
+    '<tfoot><tr style="background:' + BRAND.color_primario + '">' +
+    '<td colspan="2" style="padding:12px;text-align:right;font-size:14px;font-weight:700;color:#334155">TOTAL</td>' +
+    '<td style="padding:12px;text-align:right;font-size:16px;font-weight:800;color:' + BRAND.color_secundario + '">' + sym + parseFloat(total || 0).toFixed(2) + '</td>' +
+    '</tr></tfoot></table>' +
+    '<p style="color:#94A3B8;font-size:11px;text-align:center">Este recibo es un comprobante interno de ' + BRAND.nombre_empresa + '. No constituye factura ni boleta fiscal.</p>'
+  )
+}
+
+// Template email seguimiento post-tratamiento (nueva — branding dinámico)
+function buildEmailSeguimiento(nombre, tratamiento, diasDesde) {
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¿Cómo te fue con tu tratamiento? 💆‍♀️</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, hace ' + diasDesde + ' días realizaste tu tratamiento de <b>' + tratamiento + '</b> y queremos saber cómo te sientes.</p>' +
+    emailCard(
+      '<div style="font-size:14px;color:#475569">Tu bienestar es nuestra prioridad. Si tienes alguna consulta sobre los resultados o cuidados posteriores, estamos aquí para ayudarte.</div>'
+    ) +
+    '<div style="margin-top:20px;text-align:center">' +
+    '<a href="https://wa.me/51999999999?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento%20de%20' + encodeURIComponent(tratamiento) + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Escríbenos por WhatsApp</a>' +
+    '</div>' +
+    '<p style="color:#94A3B8;font-size:12px;margin-top:20px;text-align:center">¿Lista para tu próxima sesión? Agenda tu cita respondiendo a este correo.</p>'
+  )
 }
 
 // ═══════════════════════════════════════════════════════════════
