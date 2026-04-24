@@ -330,10 +330,16 @@ function waSelect(idx) {
 function waEnviar() {
   if (!_waMsg || !_waNum) return;
   var encoded = encodeURIComponent(_waMsg);
-  var waUrl = 'https://wa.me/51' + _waNum + '?text=' + encoded;
-  window.open(waUrl, '_blank');
+  var waUrl = 'https://api.whatsapp.com/send?phone=51' + _waNum + '&text=' + encoded;
+  // En móvil usar location para que abra la app de WhatsApp
+  var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = waUrl;
+  } else {
+    window.open(waUrl, '_blank');
+  }
   el('ag-m-wa').classList.remove('open');
-  if (window.AOS_showToast) AOS_showToast('WhatsApp abierto', 'Envía el mensaje en la ventana', '');
+  if (window.AOS_showToast) AOS_showToast('WhatsApp abierto', 'Envía el mensaje', '');
 }
 function agSelEstado(btn){el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');}
 

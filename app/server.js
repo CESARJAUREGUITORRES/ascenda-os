@@ -232,6 +232,24 @@ http.createServer(function(req, res) {
         } else if (tipo === 'bienvenida') {
           subject = '¡Bienvenida a ' + BRAND.nombre_empresa + '! ✨'
           html = buildEmailBienvenida(d.nombre||'Paciente')
+        } else if (tipo === 'agradecimiento_visita') {
+          subject = '🌟 ¡Gracias por tu visita! — ' + BRAND.nombre_empresa
+          html = buildEmailAgradecimiento(d.nombre||'Paciente', d.tratamiento||'', d.sede||'', d.fecha||'')
+        } else if (tipo === 'saldo_pendiente') {
+          subject = '💳 Tienes un saldo pendiente — ' + BRAND.nombre_empresa
+          html = buildEmailSaldoPendiente(d.nombre||'Paciente', d.items||[])
+        } else if (tipo === 'cumpleanos') {
+          subject = '🎂 ¡Feliz cumpleaños, ' + (d.nombre||'').split(' ')[0] + '! — ' + BRAND.nombre_empresa
+          html = buildEmailCumpleanos(d.nombre||'Paciente')
+        } else if (tipo === 'reactivacion') {
+          subject = '💚 Te extrañamos, ' + (d.nombre||'').split(' ')[0] + ' — ' + BRAND.nombre_empresa
+          html = buildEmailReactivacion(d.nombre||'Paciente', d.ultimo_tratamiento||'', d.dias||60)
+        } else if (tipo === 'no_asistencia') {
+          subject = '😔 Lamentamos que no hayas podido asistir — ' + BRAND.nombre_empresa
+          html = buildEmailNoAsistencia(d.nombre||'Paciente', d.tratamiento||'', d.fecha||'', d.hora||'', d.sede||'')
+        } else if (tipo === 'confirmacion_pago') {
+          subject = '✅ Pago recibido — S/' + parseFloat(d.monto||0).toFixed(2) + ' — ' + BRAND.nombre_empresa
+          html = buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
         }
@@ -753,6 +771,108 @@ function buildEmailSeguimiento(nombre, tratamiento, diasDesde) {
   )
 }
 
+// ═══ TEMPLATE: Agradecimiento post-visita ═══
+function buildEmailAgradecimiento(nombre, tratamiento, sede, fecha) {
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Gracias por tu visita! 🌟</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, fue un placer atenderte en tu tratamiento de <b>' + (tratamiento||'') + '</b>' + (sede ? ' en nuestra sede de <b>' + sede + '</b>' : '') + '.</p>' +
+    emailCard(
+      '<div style="font-size:14px;color:#475569;line-height:1.6">Tu bienestar y satisfacción son nuestra prioridad. Esperamos que los resultados superen tus expectativas. 💆‍♀️</div>' +
+      '<div style="font-size:12px;color:#6B7BA8;margin-top:8px">Si tienes alguna consulta sobre los cuidados posteriores de tu tratamiento, no dudes en escribirnos.</div>'
+    ) +
+    '<div style="text-align:center;margin-top:20px">' +
+    '<a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">💬 Escríbenos por WhatsApp</a>' +
+    '</div>' +
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:20px">¡Nos vemos pronto! 🤗</p>'
+  )
+}
+
+// ═══ TEMPLATE: Recordatorio saldo pendiente ═══
+function buildEmailSaldoPendiente(nombre, items) {
+  var detalleHtml = (items||[]).map(function(it) {
+    return '<tr><td style="padding:8px 12px;font-size:13px;font-weight:600;color:#334155">' + (it.tratamiento||'') + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-size:13px;color:#059669;font-weight:600">S/ ' + parseFloat(it.pagado||0).toFixed(2) + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-size:13px;color:#DC2626;font-weight:700">S/ ' + parseFloat(it.saldo||0).toFixed(2) + '</td></tr>'
+  }).join('')
+  var totalSaldo = (items||[]).reduce(function(s,it){return s+parseFloat(it.saldo||0)},0)
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Tienes un saldo pendiente 💳</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, te recordamos que tienes pagos pendientes por completar:</p>' +
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
+    '<thead><tr style="background:' + BRAND.color_primario + '"><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase">Tratamiento</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pagado</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pendiente</th></tr></thead>' +
+    '<tbody>' + detalleHtml + '</tbody>' +
+    '<tfoot><tr style="background:' + BRAND.color_primario + '"><td style="padding:10px 12px;font-weight:700">TOTAL PENDIENTE</td><td></td><td style="padding:10px 12px;text-align:right;font-size:16px;font-weight:800;color:#DC2626">S/ ' + totalSaldo.toFixed(2) + '</td></tr></tfoot></table>' +
+    '<p style="color:#475569;font-size:13px">Puedes acercarte a cualquiera de nuestras sedes para completar tu pago, o comunícate con nosotros para coordinar.</p>' +
+    '<div style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20coordinar%20mi%20pago%20pendiente" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Coordinar pago</a></div>'
+  )
+}
+
+// ═══ TEMPLATE: Cumpleaños ═══
+function buildEmailCumpleanos(nombre) {
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Feliz cumpleaños, ' + (nombre||'').split(' ')[0] + '! 🎂🎉</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">En <b>' + BRAND.nombre_empresa + '</b> queremos celebrar contigo este día tan especial.</p>' +
+    emailCard(
+      '<div style="text-align:center">' +
+      '<div style="font-size:40px;margin-bottom:8px">🎁</div>' +
+      '<div style="font-size:18px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:4px">¡Te regalamos un 10% de descuento!</div>' +
+      '<div style="font-size:13px;color:#6B7BA8">En tu próximo tratamiento este mes. Solo menciona este correo al momento de tu visita.</div>' +
+      '</div>'
+    ) +
+    '<p style="color:#475569;font-size:13px;text-align:center">Agenda tu cita y disfruta de tu regalo de cumpleaños. 🥳</p>' +
+    '<div style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20agendar%20mi%20cita%20de%20cumplea%C3%B1os" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">🎂 Agendar mi cita</a></div>'
+  )
+}
+
+// ═══ TEMPLATE: Reactivación paciente inactivo ═══
+function buildEmailReactivacion(nombre, ultimoTrat, diasSinVisita) {
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Te extrañamos, ' + (nombre||'').split(' ')[0] + ' 💚</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Han pasado <b>' + (diasSinVisita||'') + ' días</b> desde tu último tratamiento' + (ultimoTrat ? ' de <b>' + ultimoTrat + '</b>' : '') + ' en ' + BRAND.nombre_empresa + '.</p>' +
+    emailCard(
+      '<div style="font-size:14px;color:#475569;line-height:1.6">Tu piel y tu bienestar nos importan. Queremos que sigas disfrutando de los beneficios de nuestros tratamientos con las mejores condiciones.</div>'
+    ) +
+    '<div style="margin-top:16px;padding:16px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;text-align:center">' +
+    '<div style="font-size:16px;font-weight:800;color:#059669;margin-bottom:4px">🌿 Condiciones especiales para tu regreso</div>' +
+    '<div style="font-size:13px;color:#475569">Agenda tu cita esta semana y recibe atención preferencial.</div>' +
+    '</div>' +
+    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reagendar%20mi%20tratamiento" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">💬 Quiero volver</a></div>'
+  )
+}
+
+// ═══ TEMPLATE: No asistencia ═══
+function buildEmailNoAsistencia(nombre, tratamiento, fecha, hora, sede) {
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Lamentamos que no hayas podido asistir 😔</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, notamos que no pudiste asistir a tu cita de <b>' + (tratamiento||'') + '</b> programada para el ' + (fecha||'') + ' a las ' + (hora||'') + '.</p>' +
+    emailCard(
+      '<div style="font-size:14px;color:#475569">Entendemos que pueden surgir imprevistos. Tu salud y bienestar siguen siendo nuestra prioridad, y queremos ayudarte a reprogramar tu cita sin ningún inconveniente.</div>'
+    ) +
+    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reprogramar%20mi%20cita%20de%20' + encodeURIComponent(tratamiento||'') + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">🔄 Reprogramar mi cita</a></div>' +
+    '<p style="color:#94A3B8;font-size:12px;margin-top:16px;text-align:center">También puedes llamarnos o escribirnos por WhatsApp para coordinar una nueva fecha.</p>'
+  )
+}
+
+// ═══ TEMPLATE: Confirmación de pago ═══
+function buildEmailConfirmacionPago(nombre, tratamiento, monto, saldoActual, metodoPago) {
+  var saldoHtml = parseFloat(saldoActual||0) > 0.01 ?
+    '<div style="margin-top:12px;padding:12px;background:#FEF3C7;border-radius:8px;border:1px solid #FDE68A"><div style="font-size:12px;color:#92400E"><b>Saldo actual:</b> S/ ' + parseFloat(saldoActual).toFixed(2) + '</div><div style="font-size:11px;color:#92400E;margin-top:2px">Puedes completar tu pago en tu próxima visita.</div></div>' :
+    '<div style="margin-top:12px;padding:12px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;text-align:center"><div style="font-size:14px;font-weight:700;color:#059669">✅ Pago completo — Sin saldo pendiente</div></div>'
+  return emailShell(
+    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Pago recibido! ✅</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, confirmamos que hemos recibido tu pago:</p>' +
+    emailCard(
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">' +
+      '<div>' + emailInfoBox('Tratamiento', tratamiento||'') + '</div>' +
+      '<div><div style="font-size:11px;color:#94A3B8">Monto recibido</div><div style="font-size:24px;font-weight:800;color:#059669">S/ ' + parseFloat(monto||0).toFixed(2) + '</div></div>' +
+      '</div>' +
+      (metodoPago ? '<div style="font-size:11px;color:#6B7BA8;margin-top:8px">Método: ' + metodoPago + '</div>' : '')
+    ) +
+    saldoHtml +
+    '<p style="color:#94A3B8;font-size:11px;margin-top:16px;text-align:center">Comprobante interno de ' + BRAND.nombre_empresa + '.</p>'
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════
 // EJECUTOR DE ACCIONES — se llama después de sql_query si hay accion
 // ═══════════════════════════════════════════════════════════════
@@ -898,6 +1018,67 @@ function executeAction(agent, task, queryResult) {
     return sendInBatches(emails4, 3, 2000).then(function(results) {
       sbPatchAgent(agent.id, { bubble_text: '🧾 ' + results.ok + '/' + emails4.length + ' comprobantes ✓' })
       sendAdminReport(agent, 'recibo_venta', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: agradecimiento post-visita ───────────
+  if (accion === 'send_email' && template === 'agradecimiento_visita') {
+    var emails5 = data.filter(function(v) { return v.correo }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = buildEmailAgradecimiento(p.nombre, p.tratamiento, p.sede, p.fecha)
+        return sendAgentEmail(p.correo, '🌟 ¡Gracias por tu visita! — Zi Vital', html, 'agradecimiento_visita', p.correo + '_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Agradecimiento → ' + p.nombre, { correo: p.correo }); return r })
+      }}
+    })
+    return sendInBatches(emails5, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '🌟 ' + results.ok + ' agradecimientos ✓' })
+      sendAdminReport(agent, 'agradecimiento_visita', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: saldos pendientes ───────────
+  if (accion === 'send_email' && template === 'saldo_pendiente') {
+    var emails6 = data.filter(function(v) { return v.correo }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var items = [{ tratamiento: p.tratamiento || '', pagado: p.pagado || 0, saldo: p.saldo || 0 }]
+        var html = buildEmailSaldoPendiente(p.nombre, items)
+        return sendAgentEmail(p.correo, '💳 Saldo pendiente — Zi Vital', html, 'saldo_pendiente', p.correo + '_saldo_semanal')
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Saldo pendiente → ' + p.nombre, { correo: p.correo, saldo: p.saldo }); return r })
+      }}
+    })
+    return sendInBatches(emails6, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '💳 ' + results.ok + ' recordatorios saldo ✓' })
+      sendAdminReport(agent, 'saldo_pendiente', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: cumpleaños ───────────
+  if (accion === 'send_email' && template === 'cumpleanos') {
+    var emails7 = data.filter(function(v) { return v.correo }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = buildEmailCumpleanos(p.nombre)
+        return sendAgentEmail(p.correo, '🎂 ¡Feliz cumpleaños! — Zi Vital', html, 'cumpleanos', p.correo + '_cumple_' + new Date().getFullYear())
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Cumpleaños → ' + p.nombre, { correo: p.correo }); return r })
+      }}
+    })
+    return sendInBatches(emails7, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '🎂 ' + results.ok + ' cumpleaños ✓' })
+      sendAdminReport(agent, 'cumpleanos', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: reactivación ───────────
+  if (accion === 'send_email' && template === 'reactivacion') {
+    var emails8 = data.filter(function(v) { return v.correo }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = buildEmailReactivacion(p.nombre, p.ultimo_tratamiento, p.dias_sin_visita)
+        return sendAgentEmail(p.correo, '💚 Te extrañamos — Zi Vital', html, 'reactivacion', p.correo + '_reactiv_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Reactivación → ' + p.nombre, { correo: p.correo, dias: p.dias_sin_visita }); return r })
+      }}
+    })
+    return sendInBatches(emails8, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '💚 ' + results.ok + ' reactivaciones ✓' })
+      sendAdminReport(agent, 'reactivacion', results, data.length)
     })
   }
 
@@ -1401,6 +1582,12 @@ function executeTask(agent, task) {
     var limaHH = ('0' + _lh.getHours()).slice(-2) + ':00'
     if (limaHH !== config.hora_ejecucion) {
       return Promise.resolve() // No es la hora, skip silencioso
+    }
+    // Filtro por día de semana (0=dom, 1=lun, 2=mar...)
+    if (config.dia_semana !== undefined && config.dia_semana !== null) {
+      if (_lh.getDay() !== parseInt(config.dia_semana)) {
+        return Promise.resolve() // No es el día, skip
+      }
     }
   }
 
