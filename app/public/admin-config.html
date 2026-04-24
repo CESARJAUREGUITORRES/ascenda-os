@@ -200,79 +200,85 @@
 
       <!-- 3 PREVIEWS EN VIVO -->
       <div style="margin-top:16px;font-size:13px;font-weight:700;color:#071D4A;font-family:'Exo 2',sans-serif;">Vista previa en vivo</div>
-      <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Los colores y logos se aplican automáticamente al cambiar</div>
+      <div style="font-size:10px;color:#9AAAC8;margin-bottom:12px;">Los colores y logos se aplican en tiempo real</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:8px;">
 
-        <!-- PREVIEW 1: Marca -->
+        <!-- MARCA -->
         <div class="crd" style="padding:0;overflow:hidden;">
           <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">MARCA</div>
-          <div id="prev-marca" style="margin:8px 12px 12px;padding:20px 16px;border-radius:12px;text-align:center;transition:all .3s;background:linear-gradient(135deg,#071D4A,#0A4FBF);">
-            <img id="prev-marca-logo" src="" style="display:none;max-height:36px;margin-bottom:8px;">
-            <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#00C9A7;" id="prev-marca-label">PREVIEW</div>
-            <div style="font-family:'Exo 2';font-weight:800;font-size:18px;margin-top:4px;color:#fff;" id="prev-marca-name">Mi Empresa</div>
-            <div style="font-size:9px;margin-top:4px;opacity:.7;color:#fff;" id="prev-marca-slogan"></div>
+          <div id="prev-marca" style="margin:8px 12px 12px;padding:20px 16px;border-radius:12px;transition:all .3s;background:linear-gradient(135deg,#071D4A,#0A4FBF);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:2px;" id="prev-marca-label">PREVIEW</div>
+                <div style="font-family:'Exo 2';font-weight:800;font-size:18px;margin-top:4px;color:#fff;" id="prev-marca-name">Mi Empresa</div>
+                <div style="font-size:9px;margin-top:4px;opacity:.8;color:#fff;" id="prev-marca-slogan"></div>
+              </div>
+              <img id="prev-marca-logo" src="" style="display:none;max-height:48px;border-radius:6px;">
+            </div>
           </div>
         </div>
 
-        <!-- PREVIEW 2: Email -->
+        <!-- EMAIL -->
         <div class="crd" style="padding:0;overflow:hidden;">
           <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">EMAIL</div>
           <div id="prev-email" style="margin:8px 12px 12px;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;font-size:10px;transition:all .3s;">
-            <div id="prev-email-header" style="padding:14px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);">
-              <img id="prev-email-logo" src="" style="display:none;max-height:20px;margin-bottom:6px;">
-              <div style="color:#00C9A7;font-size:8px;font-weight:700;letter-spacing:1px;" id="prev-email-company">MI EMPRESA</div>
-              <div style="color:#fff;font-size:13px;font-weight:700;margin-top:4px;">Recordatorio de cita ✨</div>
+            <div id="prev-email-header" style="padding:14px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:8px;font-weight:700;letter-spacing:1px;" id="prev-email-company">MI EMPRESA</div>
+                <div style="color:#fff;font-size:13px;font-weight:700;margin-top:4px;">Recordatorio de cita</div>
+              </div>
+              <img id="prev-email-logo" src="" style="display:none;max-height:28px;border-radius:4px;">
             </div>
             <div style="padding:12px 16px;background:#fff;">
-              <div style="color:#475569;font-size:10px;line-height:1.5;">Hola <b>María</b>, te recordamos tu cita para mañana:</div>
+              <div id="prev-email-body-text" style="font-size:10px;line-height:1.5;">Hola <b>María</b>, te recordamos tu cita:</div>
               <div id="prev-email-body" style="margin:8px 0;padding:10px 12px;border-radius:8px;border-left:3px solid #00C9A7;background:#F8FAFF;">
                 <div style="font-size:9px;color:#94A3B8;">Tratamiento</div>
-                <div style="font-size:12px;font-weight:700;color:#071D4A;">HIDROFACIAL</div>
+                <div id="prev-email-trat" style="font-size:12px;font-weight:700;">HIDROFACIAL</div>
                 <div style="display:flex;gap:12px;margin-top:6px;">
                   <div><div style="font-size:8px;color:#94A3B8;">Hora</div><div style="font-size:11px;font-weight:600;" id="prev-email-accent">10:00 AM</div></div>
                   <div><div style="font-size:8px;color:#94A3B8;">Sede</div><div style="font-size:11px;font-weight:600;" id="prev-email-accent2">San Isidro</div></div>
                 </div>
               </div>
             </div>
-            <div id="prev-email-footer" style="padding:8px 16px;background:#F8FAFF;text-align:center;font-size:8px;color:#94A3B8;">Mi Empresa · info@empresa.com</div>
+            <div id="prev-email-footer" style="padding:8px 16px;background:#F8FAFF;text-align:center;font-size:8px;color:#94A3B8;">Mi Empresa</div>
           </div>
         </div>
 
-        <!-- PREVIEW 3: PDF / Cotización -->
+        <!-- PDF -->
         <div class="crd" style="padding:0;overflow:hidden;">
           <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">PDF / COTIZACIÓN</div>
           <div id="prev-pdf" style="margin:8px 12px 12px;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;font-size:10px;background:#fff;transition:all .3s;">
-            <div id="prev-pdf-header" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0A4FBF;">
-              <div>
-                <img id="prev-pdf-logo" src="" style="display:none;max-height:22px;margin-bottom:4px;">
-                <div style="font-weight:800;font-size:12px;color:#071D4A;" id="prev-pdf-company">MI EMPRESA</div>
-                <div style="font-size:8px;color:#94A3B8;">RUC: 20XXXXXXXXX</div>
+            <div id="prev-pdf-header" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0A4FBF;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <img id="prev-pdf-logo" src="" style="display:none;max-height:32px;border-radius:4px;">
+                <div>
+                  <div style="font-weight:800;font-size:12px;" id="prev-pdf-company">MI EMPRESA</div>
+                  <div style="font-size:8px;color:#94A3B8;">RUC: 20XXXXXXXXX</div>
+                </div>
               </div>
               <div style="text-align:right;">
-                <div style="font-size:11px;font-weight:700;color:#0A4FBF;" id="prev-pdf-type">COTIZACIÓN</div>
+                <div style="font-size:11px;font-weight:700;" id="prev-pdf-type">COTIZACIÓN</div>
                 <div style="font-size:8px;color:#94A3B8;">N° COT-2026-0001</div>
-                <div style="font-size:8px;color:#94A3B8;">23/04/2026</div>
               </div>
             </div>
             <div style="padding:10px 16px;">
-              <div style="font-size:8px;font-weight:600;color:#94A3B8;margin-bottom:4px;">DETALLE</div>
               <table style="width:100%;font-size:9px;border-collapse:collapse;">
                 <tr style="border-bottom:1px solid #F1F5F9;">
-                  <td style="padding:4px 0;color:#475569;">Hidrofacial Premium</td>
-                  <td style="text-align:right;color:#071D4A;font-weight:600;">S/ 189.00</td>
+                  <td id="prev-pdf-item1" style="padding:4px 0;">Hidrofacial Premium</td>
+                  <td id="prev-pdf-price1" style="text-align:right;font-weight:600;">S/ 189.00</td>
                 </tr>
                 <tr style="border-bottom:1px solid #F1F5F9;">
-                  <td style="padding:4px 0;color:#475569;">Limpieza profunda</td>
-                  <td style="text-align:right;color:#071D4A;font-weight:600;">S/ 99.00</td>
+                  <td id="prev-pdf-item2" style="padding:4px 0;">Limpieza profunda</td>
+                  <td id="prev-pdf-price2" style="text-align:right;font-weight:600;">S/ 99.00</td>
                 </tr>
               </table>
               <div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #E2E8F0;">
-                <span style="font-size:10px;font-weight:700;color:#071D4A;">TOTAL</span>
+                <span style="font-size:10px;font-weight:700;" id="prev-pdf-total-label">TOTAL</span>
                 <span style="font-size:12px;font-weight:800;" id="prev-pdf-total-color">S/ 288.00</span>
               </div>
             </div>
-            <div id="prev-pdf-footer" style="padding:6px 16px;text-align:center;font-size:7px;color:#fff;background:#071D4A;">Mi Empresa · Av. Ejemplo 123</div>
+            <div id="prev-pdf-footer" style="padding:6px 16px;text-align:center;font-size:7px;color:#fff;background:#071D4A;">Mi Empresa</div>
           </div>
         </div>
 
@@ -505,10 +511,20 @@ function updatePreview(){
   if(ppf) { ppf.style.background = cdv; ppf.textContent = displayName + ' · Av. Ejemplo 123'; }
   var ppl = el('prev-pdf-logo');
   if(ppl && (logoFondoUrl || logoUrl)) { ppl.src = logoFondoUrl || logoUrl; ppl.style.display = 'block'; }
-  // Color texto en PDF
+  // ─── Aplicar color texto en TODAS las previews ───
+  // PDF
   if(ppc) ppc.style.color = ctv;
-  // Degradado del footer PDF
   if(ppf) ppf.style.background = 'linear-gradient(90deg,' + cdv + ',' + c1v + ')';
+  var ppi1 = el('prev-pdf-item1'); if(ppi1) ppi1.style.color = ctv;
+  var ppi2 = el('prev-pdf-item2'); if(ppi2) ppi2.style.color = ctv;
+  var ppp1 = el('prev-pdf-price1'); if(ppp1) ppp1.style.color = ctv;
+  var ppp2 = el('prev-pdf-price2'); if(ppp2) ppp2.style.color = ctv;
+  var pptl = el('prev-pdf-total-label'); if(pptl) pptl.style.color = ctv;
+  // Email body text
+  var pebt = el('prev-email-body-text'); if(pebt) pebt.style.color = ctv;
+  var pet = el('prev-email-trat'); if(pet) pet.style.color = ctv;
+  // Email company color en header = acento
+  if(pec) pec.style.color = c2v;
 }
 
 // ═══ LOGOS ═══
