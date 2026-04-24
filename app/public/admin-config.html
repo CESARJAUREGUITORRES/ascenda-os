@@ -105,18 +105,77 @@
       <button class="chip" onclick="empChip('diseno')">🎨 Diseño</button>
     </div>
     <div id="emp-datos">
-      <div class="crd">
-        <div class="sec-t">📋 Datos de la Empresa</div>
-        <div class="fg"><div><div class="fg-l">Nombre comercial</div></div><input class="mi" id="c-empresa_nombre" data-k="empresa_nombre"></div>
-        <div class="fg"><div><div class="fg-l">Marca / nombre en app</div><div class="fg-h">Aparece en el header del sistema</div></div><input class="mi" id="c-empresa_nombre_app" data-k="empresa_nombre_app"></div>
-        <div class="fg"><div><div class="fg-l">Slogan</div></div><input class="mi" id="c-empresa_slogan" data-k="empresa_slogan"></div>
-        <div class="fg"><div><div class="fg-l">Teléfono principal</div></div><input class="mi" id="c-empresa_telefono" data-k="empresa_telefono"></div>
-        <div class="fg"><div><div class="fg-l">Email corporativo</div></div><input class="mi" id="c-empresa_email" data-k="empresa_email" type="email"></div>
-        <div class="fg"><div><div class="fg-l">Email para citas</div><div class="fg-h">Notificaciones de citas al paciente</div></div><input class="mi" id="c-email_citas" data-k="email_citas" type="email"></div>
-        <div class="fg"><div><div class="fg-l">Email para marketing</div><div class="fg-h">Campañas y newsletters</div></div><input class="mi" id="c-email_marketing" data-k="email_marketing" type="email"></div>
-        <div class="fg"><div><div class="fg-l">WhatsApp</div></div><input class="mi" id="c-empresa_whatsapp" data-k="empresa_whatsapp" placeholder="51999999999"></div>
-        <div class="fg"><div><div class="fg-l">Sitio web</div></div><input class="mi" id="c-empresa_website" data-k="empresa_website" type="url"></div>
-        <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="crd">
+          <div class="sec-t">🏢 Identidad de la Empresa</div>
+          <div class="fg"><div><div class="fg-l">Nombre comercial / Marca</div><div class="fg-h">Aparece en documentos, emails, PDFs del cliente</div></div><input class="mi" id="c-empresa_nombre" data-k="empresa_nombre" placeholder="Ej: Clínica Zi Vital"></div>
+          <div class="fg"><div><div class="fg-l">Slogan</div></div><input class="mi" id="c-empresa_slogan" data-k="empresa_slogan" placeholder="Ej: Bienestar y Salud"></div>
+          <div class="fg"><div><div class="fg-l">Rubro / Industria</div></div><select class="mi" id="c-empresa_rubro" data-k="empresa_rubro">
+            <option value="">— Seleccionar —</option>
+            <option value="clinica_estetica">Clínica Estética</option><option value="clinica_medica">Clínica Médica</option><option value="clinica_dental">Clínica Dental</option>
+            <option value="spa_belleza">Spa / Centro de Belleza</option><option value="consultorio">Consultorio Médico</option><option value="laboratorio">Laboratorio</option>
+            <option value="farmacia">Farmacia</option><option value="veterinaria">Veterinaria</option><option value="psicologia">Psicología / Terapia</option>
+            <option value="nutricion">Nutrición</option><option value="fisioterapia">Fisioterapia</option><option value="optica">Óptica</option>
+            <option value="legal">Legal / Abogados</option><option value="contabilidad">Contabilidad</option><option value="educacion">Educación</option>
+            <option value="restaurante">Restaurante</option><option value="retail">Retail / Tienda</option><option value="tecnologia">Tecnología</option><option value="otro">Otro</option>
+          </select></div>
+          <div class="fg"><div><div class="fg-l">Descripción de la empresa</div><div class="fg-h">Los agentes AI usan esto para generar contenido</div></div><textarea class="mi" id="c-empresa_descripcion" data-k="empresa_descripcion" rows="3" style="resize:vertical;" placeholder="Clínica especializada en medicina estética..."></textarea></div>
+          <div class="fg"><div><div class="fg-l">Sitio web</div></div><input class="mi" id="c-empresa_website" data-k="empresa_website" type="url" placeholder="https://zivital.pe"></div>
+          <div class="fg"><div><div class="fg-l">WhatsApp principal</div></div><input class="mi" id="c-empresa_whatsapp" data-k="empresa_whatsapp" placeholder="51960618468"></div>
+        </div>
+        <div>
+          <div class="crd" style="margin-bottom:12px;">
+            <div class="sec-t">🌍 Configuración Regional</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="fg"><div class="fg-l">País</div><select class="mi" id="c-empresa_pais" data-k="empresa_pais">
+                <option value="PE">🇵🇪 Perú</option><option value="CO">🇨🇴 Colombia</option><option value="MX">🇲🇽 México</option><option value="CL">🇨🇱 Chile</option><option value="AR">🇦🇷 Argentina</option><option value="EC">🇪🇨 Ecuador</option><option value="US">🇺🇸 EE.UU.</option><option value="ES">🇪🇸 España</option>
+              </select></div>
+              <div class="fg"><div class="fg-l">Zona horaria</div><select class="mi" id="c-empresa_timezone" data-k="empresa_timezone">
+                <option value="America/Lima">Lima (UTC-5)</option><option value="America/Bogota">Bogotá (UTC-5)</option><option value="America/Mexico_City">CDMX (UTC-6)</option><option value="America/Santiago">Santiago (UTC-4)</option><option value="America/Buenos_Aires">Buenos Aires (UTC-3)</option>
+              </select></div>
+              <div class="fg"><div class="fg-l">Idioma</div><select class="mi" id="c-empresa_idioma" data-k="empresa_idioma">
+                <option value="es">🇪🇸 Español</option><option value="en">🇬🇧 English</option><option value="pt">🇧🇷 Português</option>
+              </select></div>
+              <div class="fg"><div class="fg-l">Moneda principal</div><select class="mi" id="c-empresa_moneda" data-k="empresa_moneda">
+                <option value="PEN">S/ Sol (PEN)</option><option value="USD">$ Dólar (USD)</option><option value="COP">$ Peso (COP)</option><option value="MXN">$ Peso (MXN)</option><option value="EUR">€ Euro</option>
+              </select></div>
+            </div>
+            <div class="fg" style="margin-top:8px;"><div class="fg-l">Divisas adicionales aceptadas</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#F8FAFF;cursor:pointer;"><input type="checkbox" id="c-divisa_usd" data-k="divisa_usd"> 💵 USD Dólar</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#F8FAFF;cursor:pointer;"><input type="checkbox" id="c-divisa_eur" data-k="divisa_eur"> 💶 EUR Euro</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#F8FAFF;cursor:pointer;"><input type="checkbox" id="c-divisa_cop" data-k="divisa_cop"> 🇨🇴 COP Peso</label>
+              </div>
+            </div>
+          </div>
+          <div class="crd">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div class="sec-t" style="margin:0;">📧 Correos Electrónicos</div>
+              <button class="mbtn mbtn-p" style="font-size:10px;padding:5px 10px;" onclick="openAddEmail()">+ Email</button>
+            </div>
+            <div style="font-size:10px;color:#9AAAC8;margin-bottom:8px;">Registra correos y asigna su función en el sistema</div>
+            <div id="cfg-emails-list"></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
+
+      <!-- MODAL EMAIL -->
+      <div id="modal-email-cfg" style="display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:#fff;border-radius:20px;padding:28px;width:520px;max-width:92vw;box-shadow:0 24px 80px rgba(7,29,74,.25);">
+          <div style="font-size:16px;font-weight:800;color:#071D4A;font-family:'Exo 2',sans-serif;margin-bottom:16px;" id="modal-email-title">Agregar correo</div>
+          <div><div class="fg-l" style="margin-bottom:4px;">Dirección de email</div><input class="mi" id="em-email" style="padding:10px;font-size:13px;" type="email" placeholder="info@zivital.pe"></div>
+          <div style="margin-top:12px;"><div class="fg-l" style="margin-bottom:4px;">Nombre visible (remitente)</div><input class="mi" id="em-nombre" style="padding:10px;font-size:13px;" placeholder="Clínica Zi Vital"></div>
+          <div style="margin-top:12px;"><div class="fg-l" style="margin-bottom:4px;">Función</div><select class="mi" id="em-funcion" style="padding:10px;font-size:13px;">
+            <option value="corporativo">📧 Corporativo</option><option value="citas">📅 Recordatorios de citas</option><option value="marketing">📢 Marketing / Campañas</option>
+            <option value="soporte">🛟 Soporte</option><option value="facturacion">🧾 Facturación</option><option value="rrhh">👥 RRHH</option><option value="otro">📌 Otro</option>
+          </select></div>
+          <input type="hidden" id="em-edit-id" value="">
+          <div style="display:flex;gap:8px;margin-top:18px;">
+            <button class="mbtn mbtn-p" style="flex:1;padding:11px;font-size:13px;" onclick="saveEmailCfg()">💾 Guardar</button>
+            <button class="mbtn mbtn-c" style="padding:11px 18px;" onclick="el('modal-email-cfg').style.display='none'">Cancelar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div id="emp-sedes" style="display:none;">
@@ -594,6 +653,7 @@ function empChip(chip){
   document.querySelectorAll('.chip').forEach(function(b,i){b.classList.toggle('act',EMP_CHIPS[i]===chip);});
   if(chip==='sedes')loadSedes();
   if(chip==='facturacion')loadFacturacion();
+  if(chip==='datos')loadEmails();
   if(chip==='diseno')loadLogos();
   if(chip==='redes')loadRedes();
 }
@@ -911,6 +971,28 @@ function deleteRed(id) {
   }).then(function() { loadRedes(); showToast('Red eliminada',''); });
 }
 
+// ═══ EMAILS EMPRESA ═══
+var FUNC_ICONS = {corporativo:'📧',citas:'📅',marketing:'📢',soporte:'🛟',facturacion:'🧾',rrhh:'👥',otro:'📌'};
+function loadEmails(){
+  sbGet('/rest/v1/aos_emails_empresa?select=*&order=created_at').then(function(rows){
+    if(!rows||!rows.length){el('cfg-emails-list').innerHTML='<div style="padding:12px;text-align:center;color:#CBD5E1;font-size:11px;">Sin correos configurados</div>';return;}
+    el('cfg-emails-list').innerHTML=rows.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F8FAFC;cursor:pointer;" onclick="editEmail(\''+r.id+'\')">'+
+        '<span style="font-size:14px;">'+(FUNC_ICONS[r.funcion]||'📧')+'</span>'+
+        '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:11px;font-weight:600;color:#071D4A;">'+h(r.email)+'</div>'+
+        '<div style="font-size:9px;color:#9AAAC8;">'+h(r.nombre||'—')+' · '+h(r.funcion)+'</div>'+
+        '</div>'+
+        '<button style="border:none;background:#FEE2E2;color:#DC2626;width:20px;height:20px;border-radius:6px;font-size:9px;cursor:pointer;" onclick="event.stopPropagation();deleteEmail(\''+r.id+'\')">×</button>'+
+        '</div>';
+    }).join('');
+  });
+}
+function openAddEmail(){el('modal-email-title').textContent='Agregar correo';el('em-email').value='';el('em-nombre').value='';el('em-funcion').value='corporativo';el('em-edit-id').value='';el('modal-email-cfg').style.display='flex';}
+function editEmail(id){sbGet('/rest/v1/aos_emails_empresa?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];el('modal-email-title').textContent='Editar correo';el('em-email').value=r.email;el('em-nombre').value=r.nombre||'';el('em-funcion').value=r.funcion;el('em-edit-id').value=r.id;el('modal-email-cfg').style.display='flex';});}
+function saveEmailCfg(){var data={email:el('em-email').value.trim(),nombre:el('em-nombre').value.trim(),funcion:el('em-funcion').value};if(!data.email){alert('Email obligatorio');return;}var eid=el('em-edit-id').value;if(eid){sbPatch('/rest/v1/aos_emails_empresa?id=eq.'+eid,data).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email actualizado','');});}else{fetch(SB+'/rest/v1/aos_emails_empresa',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email agregado','');});}}
+function deleteEmail(id){if(!confirm('¿Eliminar este correo?'))return;fetch(SB+'/rest/v1/aos_emails_empresa?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadEmails();});}
+
 // ═══ LOGOS ═══
 function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_url,logo_sin_fondo_url)').then(function(rows){if(!rows)return;rows.forEach(function(r){if(r.clave==='logo_con_fondo_url'&&r.valor){el('prev-logo-fondo').src=r.valor;el('prev-logo-fondo').style.display='block';el('ph-logo-fondo').style.display='none';}if(r.clave==='logo_sin_fondo_url'&&r.valor){el('prev-logo-sin').src=r.valor;el('prev-logo-sin').style.display='block';el('ph-logo-sin').style.display='none';}});});}
 function uploadLogo(tipo){el('file-'+(tipo==='logo_con_fondo'?'logo-fondo':'logo-sin')).click();}
@@ -1030,6 +1112,28 @@ function openAddMetodo(){el('modal-metodo-title').textContent='Agregar método';
 function editMetodo(id){sbGet('/rest/v1/aos_metodos_pago?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];el('modal-metodo-title').textContent='Editar método';el('met-nombre').value=r.nombre||'';el('met-banco').value=r.banco||'';el('met-cuenta').value=r.numero_cuenta||'';el('met-cci').value=r.cci||'';el('met-titular').value=r.titular||'';el('met-tipo').value=r.tipo_cuenta||'corriente';el('met-edit-id').value=r.id;renderMetodoChecks(r.sedes_aplica||[],r.comprobantes_vinculados||[]);el('modal-metodo').style.display='flex';});}
 function saveMetodo(){var sedes=[];document.querySelectorAll('.met-sede-ck:checked').forEach(function(c){sedes.push(c.value);});var comps=[];document.querySelectorAll('.met-comp-ck:checked').forEach(function(c){comps.push(c.value);});var data={nombre:el('met-nombre').value.trim(),banco:el('met-banco').value.trim(),numero_cuenta:el('met-cuenta').value.trim(),cci:el('met-cci').value.trim(),titular:el('met-titular').value.trim(),tipo_cuenta:el('met-tipo').value,sedes_aplica:sedes,comprobantes_vinculados:comps,activo:true};if(!data.nombre){alert('Nombre obligatorio');return;}var eid=el('met-edit-id').value;if(eid){sbPatch('/rest/v1/aos_metodos_pago?id=eq.'+eid,data).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método actualizado','');});}else{fetch(SB+'/rest/v1/aos_metodos_pago',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-metodo').style.display='none';loadFacturacion();showToast('Método creado','');});}}
 function deleteMetodo(id){if(!confirm('¿Eliminar?'))return;fetch(SB+'/rest/v1/aos_metodos_pago?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadFacturacion();});}
+
+// ═══ EMAILS EMPRESA ═══
+var FUNC_ICONS = {corporativo:'📧',citas:'📅',marketing:'📢',soporte:'🛟',facturacion:'🧾',rrhh:'👥',otro:'📌'};
+function loadEmails(){
+  sbGet('/rest/v1/aos_emails_empresa?select=*&order=created_at').then(function(rows){
+    if(!rows||!rows.length){el('cfg-emails-list').innerHTML='<div style="padding:12px;text-align:center;color:#CBD5E1;font-size:11px;">Sin correos configurados</div>';return;}
+    el('cfg-emails-list').innerHTML=rows.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F8FAFC;cursor:pointer;" onclick="editEmail(\''+r.id+'\')">'+
+        '<span style="font-size:14px;">'+(FUNC_ICONS[r.funcion]||'📧')+'</span>'+
+        '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:11px;font-weight:600;color:#071D4A;">'+h(r.email)+'</div>'+
+        '<div style="font-size:9px;color:#9AAAC8;">'+h(r.nombre||'—')+' · '+h(r.funcion)+'</div>'+
+        '</div>'+
+        '<button style="border:none;background:#FEE2E2;color:#DC2626;width:20px;height:20px;border-radius:6px;font-size:9px;cursor:pointer;" onclick="event.stopPropagation();deleteEmail(\''+r.id+'\')">×</button>'+
+        '</div>';
+    }).join('');
+  });
+}
+function openAddEmail(){el('modal-email-title').textContent='Agregar correo';el('em-email').value='';el('em-nombre').value='';el('em-funcion').value='corporativo';el('em-edit-id').value='';el('modal-email-cfg').style.display='flex';}
+function editEmail(id){sbGet('/rest/v1/aos_emails_empresa?id=eq.'+id).then(function(rows){if(!rows||!rows[0])return;var r=rows[0];el('modal-email-title').textContent='Editar correo';el('em-email').value=r.email;el('em-nombre').value=r.nombre||'';el('em-funcion').value=r.funcion;el('em-edit-id').value=r.id;el('modal-email-cfg').style.display='flex';});}
+function saveEmailCfg(){var data={email:el('em-email').value.trim(),nombre:el('em-nombre').value.trim(),funcion:el('em-funcion').value};if(!data.email){alert('Email obligatorio');return;}var eid=el('em-edit-id').value;if(eid){sbPatch('/rest/v1/aos_emails_empresa?id=eq.'+eid,data).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email actualizado','');});}else{fetch(SB+'/rest/v1/aos_emails_empresa',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(){el('modal-email-cfg').style.display='none';loadEmails();showToast('Email agregado','');});}}
+function deleteEmail(id){if(!confirm('¿Eliminar este correo?'))return;fetch(SB+'/rest/v1/aos_emails_empresa?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){loadEmails();});}
 
 // ═══ LOGOS ═══
 function loadLogos(){sbGet('/rest/v1/aos_configuracion?clave=in.(logo_con_fondo_url,logo_sin_fondo_url)').then(function(rows){if(!rows)return;rows.forEach(function(r){if(r.clave==='logo_con_fondo_url'&&r.valor){el('prev-logo-fondo').src=r.valor;el('prev-logo-fondo').style.display='block';el('ph-logo-fondo').style.display='none';}if(r.clave==='logo_sin_fondo_url'&&r.valor){el('prev-logo-sin').src=r.valor;el('prev-logo-sin').style.display='block';el('ph-logo-sin').style.display='none';}});});}
