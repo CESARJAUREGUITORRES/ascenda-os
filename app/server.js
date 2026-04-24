@@ -878,6 +878,29 @@ function executeAction(agent, task, queryResult) {
     return Promise.all(sends3)
   }
 
+  // ─── CARTERO: comprobante de ventas del día (11pm) ───────────
+  if (accion === 'send_email' && template === 'recibo_venta') {
+    var emails4 = data.filter(function(v) { return v.correo }).map(function(venta) {
+      return {
+        email: venta.correo,
+        sendFn: function() {
+          var nombre = (venta.nombres || '') + ' ' + (venta.apellidos || '')
+          var items = [{ nombre: venta.detalle_items || 'Servicios del día', cantidad: 1, subtotal: venta.total }]
+          var html = buildEmailReciboVenta(nombre, items, venta.total, 'PEN', '', venta.sede || '', venta.fecha || '', '')
+          return sendAgentEmail(venta.correo, '🧾 Tu comprobante de hoy — Zi Vital', html, 'recibo_venta', venta.correo + '_' + venta.fecha)
+            .then(function(r) {
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Comprobante venta → ' + nombre.trim(), { correo: venta.correo, total: venta.total })
+              return r
+            })
+        }
+      }
+    })
+    return sendInBatches(emails4, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '🧾 ' + results.ok + '/' + emails4.length + ' comprobantes ✓' })
+      sendAdminReport(agent, 'recibo_venta', results, data.length)
+    })
+  }
+
   return Promise.resolve()
 }
 
