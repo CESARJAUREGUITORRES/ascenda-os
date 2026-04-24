@@ -1,14 +1,632 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
+<!-- admin-billing.html v2 — Panel Comprobantes & Facturación | AscendaOS v1 | 100% Supabase -->
+<style>
+:root{--pri:#cea14a;--pri-l:#f0ebe0;--pri-d:#b89447;--bg:#F8FAFC;--card:#fff;--border:#EEF0F8;--text:#0D1B3E;--muted:#6B7BA8;--green:#059669;--red:#DC2626;--amber:#D97706;--blue:#0A4FBF;}
+*{box-sizing:border-box;}
+.bl{padding:14px;font-family:'DM Sans',sans-serif;color:var(--text);min-height:100%;display:flex;flex-direction:column;gap:12px;}
+.bl-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.bl-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;display:flex;align-items:center;gap:8px;}
+.bl-sub{font-size:11px;color:var(--muted);font-weight:500;}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;}
+.kpi{background:var(--card);border-radius:12px;padding:12px 14px;border:1px solid var(--border);text-align:center;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi.bv::before{background:var(--blue)}.kpi.bf::before{background:var(--green)}.kpi.rh::before{background:var(--amber)}.kpi.fa::before{background:#7C3AED}.kpi.ot::before{background:#94A3B8}.kpi.pend::before{background:var(--red)}
+.kpi-v{font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:var(--text);}
+.kpi-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-top:2px;}
+.kpi-bar{height:4px;background:#F1F5F9;border-radius:2px;margin-top:6px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+
+/* Filtros */
+.filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.filtro-sel{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;background:var(--card);cursor:pointer;outline:none;}
+.filtro-sel:focus{border-color:var(--pri);}
+.chip-f{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--card);transition:all .15s;}
+.chip-f:hover{background:var(--pri-l);border-color:var(--pri);}
+.chip-f.act{background:var(--pri);color:#fff;border-color:var(--pri);}
+.btn-acc{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:var(--pri);color:#fff;transition:all .15s;}
+.btn-acc:hover{background:var(--pri-d);}
+.btn-acc:disabled{opacity:.4;cursor:not-allowed;}
+.btn-sec{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s;}
+.btn-sec:hover{background:var(--pri-l);}
+
+/* Tabla ventas */
+.tbl-wrap{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;flex:1;}
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
+.tbl th{background:#F8FAFF;font-weight:700;font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;}
+.tbl td{padding:7px 8px;border-bottom:1px solid #F5F6FA;vertical-align:middle;}
+.tbl tr:hover{background:#FAFBFE;}
+.tbl tr.checked{background:rgba(206,161,74,.08);}
+.tbl tr.grupo-hdr{background:var(--pri-l);cursor:pointer;}
+.tbl tr.grupo-hdr td{font-weight:700;font-size:11px;padding:10px 8px;border-bottom:2px solid var(--pri);}
+.badge{display:inline-flex;padding:3px 8px;border-radius:6px;font-size:8px;font-weight:700;white-space:nowrap;}
+.badge-pend{background:#FEF3C7;color:#92400E;}
+.badge-emit{background:#D1FAE5;color:#065F46;}
+.badge-anul{background:#FEE2E2;color:#991B1B;}
+.badge-sin{background:#F1F5F9;color:#64748B;}
+.check-cell{width:28px;text-align:center;}
+.check-cell input{width:14px;height:14px;accent-color:var(--pri);cursor:pointer;}
+
+/* Scroll tabla */
+.tbl-scroll{max-height:calc(100vh - 320px);overflow-y:auto;}
+
+/* Modal */
+.ov{position:fixed;inset:0;background:rgba(7,29,74,.35);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.ov.open{display:flex;}
+.modal{background:#fff;border-radius:18px;width:min(520px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(7,29,74,.2);}
+.mhd{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;border-radius:18px 18px 0 0;}
+.mhd-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;flex:1;}
+.mx{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;}
+.mbody{padding:20px;display:flex;flex-direction:column;gap:14px;}
+.mfield label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;}
+.mfield input,.mfield select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;}
+.mfield input:focus,.mfield select:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(206,161,74,.12);}
+.mfooter{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* Resumen selección */
+.sel-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,var(--pri-l),#fff);border-radius:12px;border:1px solid var(--pri);}
+.sel-bar.show{display:flex;}
+.sel-count{font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;color:var(--pri-d);}
+.sel-monto{font-size:12px;color:var(--text);font-weight:600;}
+
+/* Toast */
+.toast-zone{position:fixed;bottom:16px;right:16px;z-index:800;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;width:min(340px,88vw);}
+.toast-item{pointer-events:all;padding:12px 16px;border-radius:12px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.15);font-size:12px;animation:tIn .3s ease;border-left:4px solid var(--green);}
+.toast-item.err{border-left-color:var(--red);}
+@keyframes tIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Loading */
+.ld-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--pri-l);overflow:hidden;display:none;}
+.ld-bar.on{display:block;}
+.ld-bar::after{content:'';position:absolute;top:0;left:-30%;width:30%;height:100%;background:var(--pri);animation:ldSlide 1.2s ease-in-out infinite;}
+@keyframes ldSlide{0%{left:-30%}100%{left:100%}}
+
+@media(max-width:768px){.kpi-row{grid-template-columns:repeat(3,1fr);}.filtros{flex-direction:column;align-items:stretch;}}
+</style>
+
+<div class="bl" id="billing-root">
+  <div class="ld-bar" id="bl-loading"></div>
+
+  <!-- HEADER -->
+  <div class="bl-hdr">
+    <div>
+      <div class="bl-t">🧾 Comprobantes & Facturación</div>
+      <div class="bl-sub">Agrupa ventas por tipo de comprobante · Control fiscal por RUC</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn-sec" onclick="BL.exportar()">📥 Exportar</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="bl-kpis">
+    <div class="kpi bv"><div class="kpi-v" id="k-bv">—</div><div class="kpi-l">Boleta Virtual</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-bv" style="width:0;background:var(--blue)"></div></div></div>
+    <div class="kpi bf"><div class="kpi-v" id="k-bf">—</div><div class="kpi-l">Boleta Física</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-bf" style="width:0;background:var(--green)"></div></div></div>
+    <div class="kpi rh"><div class="kpi-v" id="k-rh">—</div><div class="kpi-l">R.H.</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-rh" style="width:0;background:var(--amber)"></div></div></div>
+    <div class="kpi fa"><div class="kpi-v" id="k-fa">—</div><div class="kpi-l">Factura</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-fa" style="width:0;background:#7C3AED"></div></div></div>
+    <div class="kpi ot"><div class="kpi-v" id="k-ot">—</div><div class="kpi-l">Otros</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-ot" style="width:0;background:#94A3B8"></div></div></div>
+    <div class="kpi pend"><div class="kpi-v" id="k-pend">—</div><div class="kpi-l">Sin Asignar</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kb-pend" style="width:0;background:var(--red)"></div></div></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros">
+    <select class="filtro-sel" id="bl-mes" onchange="BL.aplicarFiltro()"></select>
+    <select class="filtro-sel" id="bl-sede" onchange="BL.aplicarFiltro()">
+      <option value="">Todas las sedes</option>
+      <option value="SAN ISIDRO">San Isidro</option>
+      <option value="PUEBLO LIBRE">Pueblo Libre</option>
+    </select>
+    <div style="display:flex;gap:4px;">
+      <span class="chip-f act" data-est="TODOS" onclick="BL.filtroEstado(this)">Todos</span>
+      <span class="chip-f" data-est="PENDIENTE" onclick="BL.filtroEstado(this)">⏳ Pendientes</span>
+      <span class="chip-f" data-est="EMITIDO" onclick="BL.filtroEstado(this)">✅ Emitidos</span>
+    </div>
+    <div style="flex:1"></div>
+    <input type="text" placeholder="🔍 Buscar cliente, tratamiento..." id="bl-search" oninput="BL.buscar()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;width:180px;outline:none;">
+  </div>
+
+  <!-- BARRA DE SELECCIÓN -->
+  <div class="sel-bar" id="bl-sel-bar">
+    <span class="sel-count" id="bl-sel-count">0</span>
+    <span class="sel-monto">ventas · S/ <span id="bl-sel-monto">0.00</span></span>
+    <div style="flex:1"></div>
+    <button class="btn-acc" onclick="BL.abrirModalDocumento()">📄 Crear comprobante</button>
+    <button class="btn-sec" onclick="BL.deseleccionarTodo()">✕ Limpiar</button>
+  </div>
+
+  <!-- TABLA DE VENTAS -->
+  <div class="tbl-wrap">
+    <div class="tbl-scroll" id="bl-tbl-scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="check-cell"><input type="checkbox" id="bl-check-all" onchange="BL.toggleAll(this.checked)"></th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Tratamiento</th>
+            <th>Método</th>
+            <th style="text-align:right">Monto</th>
+            <th>Comprobante</th>
+            <th>Nro Doc</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="bl-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DOCUMENTOS FISCALES EMITIDOS -->
+  <div class="tbl-wrap" id="bl-docs-wrap" style="display:none;">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;">📋 Documentos Fiscales Emitidos</div>
+    <div class="tbl-scroll" style="max-height:200px;">
+      <table class="tbl">
+        <thead><tr><th>Tipo</th><th>Nro</th><th>RUC</th><th>Razón Social</th><th>Fecha</th><th style="text-align:right">Monto</th><th>Items</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="bl-docs-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
-</body>
-</html>
+
+<!-- MODAL CREAR DOCUMENTO FISCAL -->
+<div class="ov" id="ov-crear-doc">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mhd-t">📄 Crear Documento Fiscal</div>
+      <button class="mx" onclick="BL.cerrarModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div style="background:var(--pri-l);border-radius:10px;padding:12px;border-left:4px solid var(--pri);">
+        <div style="font-size:11px;color:var(--muted)">Ventas seleccionadas</div>
+        <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:16px;" id="doc-resumen">0 ventas · S/ 0.00</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="doc-cliente"></div>
+      </div>
+      <div class="mfield">
+        <label>Tipo de comprobante</label>
+        <select id="doc-tipo" onchange="BL.onTipoChange()">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+      <div class="mfield" id="doc-rs-wrap" style="display:none;">
+        <label>Razón social / RUC</label>
+        <select id="doc-razon-social">
+          <option value="">— Sin razón social —</option>
+        </select>
+      </div>
+      <div class="mfield">
+        <label>Número de comprobante <span style="font-weight:400;color:var(--muted)">(opcional — puede completarse después)</span></label>
+        <input type="text" id="doc-numero" placeholder="Ej: B001-00001234">
+      </div>
+      <div class="mfield">
+        <label>Nota interna</label>
+        <input type="text" id="doc-nota" placeholder="Observaciones...">
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn-sec" onclick="BL.cerrarModal()">Cancelar</button>
+      <button class="btn-acc" id="doc-btn-crear" onclick="BL.crearDocumento()">✓ Crear Documento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR DOCUMENTO -->
+<div class="ov" id="ov-editar-doc">
+  <div class="modal" style="width:min(420px,94vw);">
+    <div class="mhd">
+      <div class="mhd-t">✏️ Completar Comprobante</div>
+      <button class="mx" onclick="cerrarOv('ov-editar-doc')">✕</button>
+    </div>
+    <div class="mbody">
+      <div style="font-size:12px;color:var(--muted);" id="edit-doc-info"></div>
+      <div class="mfield">
+        <label>Número de comprobante</label>
+        <input type="text" id="edit-doc-numero" placeholder="Ej: B001-00001234">
+      </div>
+      <div class="mfield">
+        <label>Estado</label>
+        <select id="edit-doc-estado">
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="EMITIDO">Emitido</option>
+          <option value="ANULADO">Anulado</option>
+        </select>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn-sec" onclick="cerrarOv('ov-editar-doc')">Cancelar</button>
+      <button class="btn-acc" onclick="BL.guardarEdicionDoc()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-zone" id="bl-toast"></div>
+
+<script>
+// ===== PANEL COMPROBANTES — BILLING v2 =====
+var SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+var BL = {
+  ventas: [],
+  documentos: [],
+  kpis: {},
+  selected: {},
+  filtroEst: 'TODOS',
+  tiposComp: [],
+  razonesSociales: [],
+  editDocId: null,
+  searchTerm: ''
+};
+
+// ===== HELPERS =====
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(n){return 'S/ ' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function rpc(fn,params,cb){
+  fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(params||{})})
+  .then(function(r){return r.json()}).then(function(d){var r=Array.isArray(d)?d[0]:d;if(cb)cb(r);}).catch(function(e){toast('Error: '+e.message,'err');});
+}
+function sbGet(table,qs,cb){
+  fetch(SB_URL+'/rest/v1/'+table+'?'+qs,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+  .then(function(r){return r.json()}).then(cb).catch(function(){cb([]);});
+}
+function loading(on){var el=document.getElementById('bl-loading');if(el)el.classList.toggle('on',!!on);}
+function toast(msg,tipo){
+  var z=document.getElementById('bl-toast');if(!z)return;
+  var d=document.createElement('div');d.className='toast-item'+(tipo==='err'?' err':'');d.textContent=msg;z.appendChild(d);
+  setTimeout(function(){d.style.opacity='0';d.style.transform='translateX(100%)';setTimeout(function(){d.remove();},300);},3500);
+}
+function abrirOv(id){document.getElementById(id).classList.add('open');}
+function cerrarOv(id){document.getElementById(id).classList.remove('open');}
+
+// ===== INIT =====
+function initBilling() {
+  cargarMeses();
+  cargarTiposComprobante();
+  cargarRazonesSociales();
+  cargarData();
+}
+
+function cargarMeses(){
+  var sel = document.getElementById('bl-mes');
+  var now = new Date();
+  sel.innerHTML = '';
+  for(var i=0;i<12;i++){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    var label = d.toLocaleString('es-PE',{month:'long',year:'numeric'});
+    var val = d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1);
+    sel.innerHTML += '<option value="'+val+'"'+(i===0?' selected':'')+'>'+label.charAt(0).toUpperCase()+label.slice(1)+'</option>';
+  }
+}
+
+function cargarTiposComprobante(){
+  sbGet('aos_tipos_comprobante','activo=eq.true&order=orden.asc',function(rows){
+    BL.tiposComp = rows || [];
+    var sel = document.getElementById('doc-tipo');
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    (rows||[]).forEach(function(c){
+      sel.innerHTML += '<option value="'+escH(c.nombre)+'">'+escH(c.nombre)+'</option>';
+    });
+  });
+}
+
+function cargarRazonesSociales(){
+  sbGet('aos_razones_sociales','activo=eq.true&order=razon_social.asc',function(rows){
+    BL.razonesSociales = rows || [];
+    var sel = document.getElementById('doc-razon-social');
+    sel.innerHTML = '<option value="">— Sin razón social —</option>';
+    (rows||[]).forEach(function(r){
+      sel.innerHTML += '<option value="'+r.id+'">'+escH(r.ruc)+' — '+escH(r.razon_social)+'</option>';
+    });
+  });
+}
+
+// ===== CARGAR DATA =====
+function cargarData(){
+  loading(true);
+  var mesVal = document.getElementById('bl-mes').value;
+  var parts = mesVal.split('-');
+  var y = parseInt(parts[0]), m = parseInt(parts[1]);
+  var desde = y+'-'+(m<10?'0':'')+m+'-01';
+  var hasta = new Date(y, m, 0);
+  var hastaStr = y+'-'+(m<10?'0':'')+m+'-'+(hasta.getDate()<10?'0':'')+hasta.getDate();
+  var sede = document.getElementById('bl-sede').value || null;
+
+  rpc('aos_ventas_para_comprobantes',{
+    p_fecha_desde: desde,
+    p_fecha_hasta: hastaStr,
+    p_sede: sede,
+    p_estado: BL.filtroEst === 'TODOS' ? null : BL.filtroEst
+  }, function(d){
+    loading(false);
+    if(!d||!d.ok){toast('Error cargando datos','err');return;}
+    BL.ventas = d.ventas || [];
+    BL.documentos = d.documentos || [];
+    BL.kpis = d.kpis || {};
+    BL.selected = {};
+    renderKPIs();
+    renderTabla();
+    renderDocumentos();
+    actualizarSelBar();
+  });
+}
+
+// ===== RENDER KPIs =====
+function renderKPIs(){
+  var k = BL.kpis;
+  var total = parseFloat(k.boleta_virtual||0)+parseFloat(k.boleta_fisica||0)+parseFloat(k.rh||0)+parseFloat(k.factura||0)+parseFloat(k.otros||0)+parseFloat(k.sin_comprobante||0);
+  if(total<1) total=1;
+
+  document.getElementById('k-bv').textContent = fmt(k.boleta_virtual);
+  document.getElementById('k-bf').textContent = fmt(k.boleta_fisica);
+  document.getElementById('k-rh').textContent = fmt(k.rh);
+  document.getElementById('k-fa').textContent = fmt(k.factura);
+  document.getElementById('k-ot').textContent = fmt(k.otros);
+  document.getElementById('k-pend').textContent = (k.total_pendientes||0) + ' ventas';
+
+  document.getElementById('kb-bv').style.width = (parseFloat(k.boleta_virtual||0)/total*100)+'%';
+  document.getElementById('kb-bf').style.width = (parseFloat(k.boleta_fisica||0)/total*100)+'%';
+  document.getElementById('kb-rh').style.width = (parseFloat(k.rh||0)/total*100)+'%';
+  document.getElementById('kb-fa').style.width = (parseFloat(k.factura||0)/total*100)+'%';
+  document.getElementById('kb-ot').style.width = (parseFloat(k.otros||0)/total*100)+'%';
+  document.getElementById('kb-pend').style.width = (parseInt(k.total_pendientes||0)/(parseInt(k.total_pendientes||0)+parseInt(k.total_emitidos||1))*100)+'%';
+}
+
+// ===== RENDER TABLA AGRUPADA POR FECHA+CLIENTE =====
+function renderTabla(){
+  var tbody = document.getElementById('bl-tbody');
+  var search = BL.searchTerm.toUpperCase();
+  var grupos = {};
+  BL.ventas.forEach(function(v){
+    var key = v.fecha + '|' + (v.numero_limpio||'SIN');
+    if(!grupos[key]) grupos[key]={fecha:v.fecha, cliente:(v.nombres||'')+(v.apellidos?' '+v.apellidos:''), numero:v.numero_limpio, items:[]};
+    if(search){
+      var hayMatch = (v.nombres||'').toUpperCase().indexOf(search)>-1 || (v.apellidos||'').toUpperCase().indexOf(search)>-1 ||
+        (v.tratamiento||'').toUpperCase().indexOf(search)>-1 || (v.numero_limpio||'').indexOf(search)>-1;
+      if(!hayMatch) return;
+    }
+    grupos[key].items.push(v);
+  });
+
+  var html = '';
+  var keys = Object.keys(grupos).sort().reverse();
+  keys.forEach(function(key){
+    var g = grupos[key];
+    if(!g.items.length) return;
+    var totalGrupo = g.items.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+    var todoAsignado = g.items.every(function(v){return v.documento_fiscal_id;});
+    var estadoBadge = todoAsignado ? '<span class="badge badge-emit">✓ Completo</span>' : '<span class="badge badge-pend">Pendiente</span>';
+
+    html += '<tr class="grupo-hdr" onclick="BL.toggleGrupo(this)">' +
+      '<td class="check-cell"><input type="checkbox" onchange="BL.toggleGrupoCheck(this,\''+escH(key)+'\')" onclick="event.stopPropagation()"></td>' +
+      '<td>'+escH(g.fecha)+'</td>' +
+      '<td colspan="2"><b>'+escH(g.cliente)+'</b> <span style="color:var(--muted);font-weight:400;font-size:9px;">('+g.items.length+' items)</span></td>' +
+      '<td></td><td style="text-align:right;font-weight:800;">'+fmt(totalGrupo)+'</td>' +
+      '<td colspan="2">'+estadoBadge+'</td>' +
+      '<td style="font-size:9px;color:var(--muted);">▼</td></tr>';
+
+    g.items.forEach(function(v){
+      var isChecked = BL.selected[v.venta_id] ? ' checked' : '';
+      var rowClass = BL.selected[v.venta_id] ? ' checked' : '';
+      var estadoDoc = '';
+      if(v.documento_fiscal_id) estadoDoc = '<span class="badge badge-emit">Emitido</span>';
+      else if(v.tipo_comprobante) estadoDoc = '<span class="badge badge-pend">Pendiente</span>';
+      else estadoDoc = '<span class="badge badge-sin">Sin asignar</span>';
+
+      html += '<tr class="item-row'+rowClass+'" data-grupo="'+escH(key)+'" style="display:none;">' +
+        '<td class="check-cell"><input type="checkbox" value="'+escH(v.venta_id)+'"'+isChecked+' onchange="BL.toggleCheck(this)"></td>' +
+        '<td style="font-size:9px;color:var(--muted);">'+escH(v.fecha)+'</td>' +
+        '<td>'+escH(v.nombres||'')+'</td>' +
+        '<td>'+escH(v.tratamiento||'')+'</td>' +
+        '<td><span style="font-size:9px;background:var(--pri-l);padding:2px 6px;border-radius:4px;">'+escH(v.pago||'')+'</span></td>' +
+        '<td style="text-align:right;font-weight:600;">'+fmt(v.monto)+'</td>' +
+        '<td>'+escH(v.tipo_comprobante||'—')+'</td>' +
+        '<td style="font-size:9px;">'+escH(v.nro_doc||'—')+'</td>' +
+        '<td>'+estadoDoc+'</td>' +
+        '</tr>';
+    });
+  });
+
+  if(!html) html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">No hay ventas en este período</td></tr>';
+  tbody.innerHTML = html;
+}
+
+// ===== TOGGLE GRUPO =====
+BL.toggleGrupo = function(tr){
+  var next = tr.nextElementSibling;
+  while(next && next.classList.contains('item-row')){
+    next.style.display = next.style.display === 'none' ? '' : 'none';
+    next = next.nextElementSibling;
+  }
+  var arrow = tr.querySelector('td:last-child');
+  if(arrow) arrow.textContent = arrow.textContent === '▼' ? '▲' : '▼';
+};
+
+BL.toggleGrupoCheck = function(cb, key){
+  var rows = document.querySelectorAll('tr[data-grupo="'+key+'"]');
+  rows.forEach(function(r){
+    var input = r.querySelector('input[type=checkbox]');
+    if(input){
+      input.checked = cb.checked;
+      if(cb.checked) BL.selected[input.value] = true;
+      else delete BL.selected[input.value];
+      r.classList.toggle('checked', cb.checked);
+    }
+  });
+  actualizarSelBar();
+};
+
+// ===== SELECCIÓN =====
+BL.toggleCheck = function(cb){
+  if(cb.checked) BL.selected[cb.value] = true;
+  else delete BL.selected[cb.value];
+  cb.closest('tr').classList.toggle('checked', cb.checked);
+  actualizarSelBar();
+};
+
+BL.toggleAll = function(checked){
+  BL.ventas.forEach(function(v){
+    if(checked) BL.selected[v.venta_id] = true;
+    else delete BL.selected[v.venta_id];
+  });
+  renderTabla();
+  actualizarSelBar();
+};
+
+BL.deseleccionarTodo = function(){
+  BL.selected = {};
+  document.getElementById('bl-check-all').checked = false;
+  renderTabla();
+  actualizarSelBar();
+};
+
+function actualizarSelBar(){
+  var ids = Object.keys(BL.selected);
+  var bar = document.getElementById('bl-sel-bar');
+  if(!ids.length){bar.classList.remove('show');return;}
+  bar.classList.add('show');
+  document.getElementById('bl-sel-count').textContent = ids.length;
+  var total = 0;
+  BL.ventas.forEach(function(v){if(BL.selected[v.venta_id]) total += parseFloat(v.monto||0);});
+  document.getElementById('bl-sel-monto').textContent = total.toFixed(2);
+}
+
+// ===== FILTROS =====
+BL.aplicarFiltro = function(){ cargarData(); };
+BL.filtroEstado = function(el){
+  document.querySelectorAll('.chip-f[data-est]').forEach(function(c){c.classList.remove('act');});
+  el.classList.add('act');
+  BL.filtroEst = el.dataset.est;
+  cargarData();
+};
+BL.buscar = function(){
+  BL.searchTerm = document.getElementById('bl-search').value || '';
+  renderTabla();
+};
+
+// ===== MODAL CREAR DOCUMENTO =====
+BL.abrirModalDocumento = function(){
+  var ids = Object.keys(BL.selected);
+  if(!ids.length){toast('Selecciona al menos una venta','err');return;}
+  var total = 0, cliente = '';
+  BL.ventas.forEach(function(v){
+    if(BL.selected[v.venta_id]){
+      total += parseFloat(v.monto||0);
+      if(!cliente) cliente = (v.nombres||'')+(v.apellidos?' '+v.apellidos:'');
+    }
+  });
+  document.getElementById('doc-resumen').textContent = ids.length + ' ventas · S/ ' + total.toFixed(2);
+  document.getElementById('doc-cliente').textContent = cliente;
+  document.getElementById('doc-tipo').value = '';
+  document.getElementById('doc-numero').value = '';
+  document.getElementById('doc-nota').value = '';
+  document.getElementById('doc-rs-wrap').style.display = 'none';
+  abrirOv('ov-crear-doc');
+};
+
+BL.onTipoChange = function(){
+  var tipo = document.getElementById('doc-tipo').value;
+  document.getElementById('doc-rs-wrap').style.display = tipo ? 'block' : 'none';
+};
+
+BL.cerrarModal = function(){ cerrarOv('ov-crear-doc'); };
+
+BL.crearDocumento = function(){
+  var tipo = document.getElementById('doc-tipo').value;
+  if(!tipo){toast('Selecciona un tipo de comprobante','err');return;}
+  var ids = Object.keys(BL.selected);
+  if(!ids.length){toast('No hay ventas seleccionadas','err');return;}
+
+  var rsId = document.getElementById('doc-razon-social').value || null;
+  var numero = document.getElementById('doc-numero').value.trim();
+  var nota = document.getElementById('doc-nota').value.trim();
+  var sede = '';
+  BL.ventas.forEach(function(v){if(BL.selected[v.venta_id] && v.sede) sede = v.sede;});
+
+  document.getElementById('doc-btn-crear').disabled = true;
+  loading(true);
+
+  rpc('aos_crear_documento_fiscal',{
+    p_tipo_comprobante: tipo,
+    p_venta_ids: ids,
+    p_numero_comprobante: numero,
+    p_razon_social_id: rsId || null,
+    p_sede: sede,
+    p_registrado_por: 'ADMIN',
+    p_nota: nota
+  }, function(d){
+    loading(false);
+    document.getElementById('doc-btn-crear').disabled = false;
+    if(!d||!d.ok){toast(d&&d.error?d.error:'Error al crear documento','err');return;}
+    toast('✅ Documento creado — '+d.items_vinculados+' ventas vinculadas');
+    BL.cerrarModal();
+    BL.selected = {};
+    cargarData();
+  });
+};
+
+// ===== RENDER DOCUMENTOS FISCALES =====
+function renderDocumentos(){
+  var docs = BL.documentos || [];
+  var wrap = document.getElementById('bl-docs-wrap');
+  if(!docs.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var tbody = document.getElementById('bl-docs-tbody');
+  tbody.innerHTML = docs.map(function(d){
+    var est = d.estado==='EMITIDO'?'<span class="badge badge-emit">Emitido</span>':
+              d.estado==='ANULADO'?'<span class="badge badge-anul">Anulado</span>':
+              '<span class="badge badge-pend">Pendiente</span>';
+    return '<tr>'+
+      '<td>'+escH(d.tipo_comprobante)+'</td>'+
+      '<td style="font-weight:600;">'+escH(d.numero_comprobante||'—')+'</td>'+
+      '<td style="font-size:9px;">'+escH(d.ruc||'—')+'</td>'+
+      '<td style="font-size:9px;">'+escH(d.razon_social||'—')+'</td>'+
+      '<td>'+escH(d.fecha_emision)+'</td>'+
+      '<td style="text-align:right;font-weight:600;">'+fmt(d.monto_total)+'</td>'+
+      '<td style="text-align:center;">'+d.cantidad_items+'</td>'+
+      '<td>'+est+'</td>'+
+      '<td><span style="cursor:pointer;color:var(--pri);font-size:10px;font-weight:700;" onclick="BL.editarDoc(\''+d.id+'\')">✏️</span></td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ===== EDITAR DOCUMENTO =====
+BL.editarDoc = function(docId){
+  BL.editDocId = docId;
+  var doc = BL.documentos.find(function(d){return d.id===docId;});
+  if(!doc) return;
+  document.getElementById('edit-doc-info').textContent = doc.tipo_comprobante+' — '+(doc.cliente_nombre||'')+' — '+fmt(doc.monto_total);
+  document.getElementById('edit-doc-numero').value = doc.numero_comprobante||'';
+  document.getElementById('edit-doc-estado').value = doc.estado||'PENDIENTE';
+  abrirOv('ov-editar-doc');
+};
+
+BL.guardarEdicionDoc = function(){
+  if(!BL.editDocId) return;
+  loading(true);
+  rpc('aos_actualizar_documento_fiscal',{
+    p_documento_id: BL.editDocId,
+    p_numero_comprobante: document.getElementById('edit-doc-numero').value.trim() || null,
+    p_estado: document.getElementById('edit-doc-estado').value
+  }, function(d){
+    loading(false);
+    if(!d||!d.ok){toast('Error al actualizar','err');return;}
+    toast('✅ Documento actualizado');
+    cerrarOv('ov-editar-doc');
+    cargarData();
+  });
+};
+
+// ===== EXPORTAR CSV =====
+BL.exportar = function(){
+  var rows = [['Fecha','Cliente','Tratamiento','Método Pago','Monto','Tipo Comprobante','Nro Doc','Estado']];
+  BL.ventas.forEach(function(v){
+    rows.push([v.fecha, v.nombres, v.tratamiento, v.pago, v.monto, v.tipo_comprobante||'', v.nro_doc||'', v.documento_fiscal_id?'EMITIDO':'PENDIENTE']);
+  });
+  var csv = rows.map(function(r){return r.map(function(c){return '"'+(c||'').toString().replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');a.href=URL.createObjectURL(blob);a.download='comprobantes_'+document.getElementById('bl-mes').value+'.csv';a.click();
+  toast('📥 CSV descargado');
+};
+
+// ===== INIT =====
+initBilling();
+</script>
