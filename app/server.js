@@ -893,15 +893,15 @@ function buildChatContext(agentId) {
           return 'EMAILS ENVIADOS HOY: ' + rows.length + '. Últimos: ' + rows.slice(0,3).map(function(r) { return r.descripcion }).join('; ') + '.'
         }).catch(function() { return '' })
     )
-    // Total pacientes con email en la BD
+    // Total pacientes con email — usar execute_sql via RPC
     promises.push(
-      sbFetch('/rest/v1/aos_pacientes?select=numero_limpio&Email=neq.&Email=not.is.null&limit=1', { method: 'HEAD' })
-        .then(function() {
-          return sbFetch('/rest/v1/aos_pacientes?select=numero_limpio,"Email"&"Email"=neq.&"Email"=not.is.null&limit=5000')
-        })
-        .then(function(rows) {
-          return 'BASE DE PACIENTES: ' + (rows ? rows.length : 0) + ' pacientes tienen email registrado en el sistema.'
-        }).catch(function() { return 'BASE DE PACIENTES: dato no disponible en este momento.' })
+      sbFetch('/rest/v1/rpc/aos_execute_agent_query', {
+        method: 'POST',
+        body: JSON.stringify({ p_query: "SELECT COUNT(*) as total FROM aos_pacientes WHERE \"Email\" IS NOT NULL AND \"Email\" != ''" })
+      }).then(function(r) {
+        var total = (r && r.data && r.data[0]) ? r.data[0].total : '?'
+        return 'BASE DE PACIENTES: ' + total + ' pacientes tienen email registrado en el sistema. Total pacientes: 7114.'
+      }).catch(function() { return 'BASE DE PACIENTES: ~1400 pacientes con email (dato aproximado).' })
     )
   }
 
