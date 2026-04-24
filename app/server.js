@@ -265,13 +265,18 @@ http.createServer(function(req, res) {
         var payload = JSON.parse(body2)
         var agentId  = payload.agent_id || 'kronia'
         var msgs     = Array.isArray(payload.messages) ? payload.messages : []
-        // Fetch system_prompt from Supabase
+        // Fetch system_prompt + contexto real del sistema
         sbFetch('/rest/v1/aos_agentes?select=id,system_prompt,modelo&id=eq.' + agentId).then(function(rows) {
-          var sysPrompt = (rows && rows[0] && rows[0].system_prompt)
+          var baseSysPrompt = (rows && rows[0] && rows[0].system_prompt)
             ? rows[0].system_prompt
             : 'Eres un agente AI de la clinica Zi Vital. Responde de forma concisa y util.'
           var modelo = (rows && rows[0] && rows[0].modelo) ? rows[0].modelo : 'llama-3.3-70b-versatile'
-          return callGroqChat(sysPrompt, msgs, modelo)
+
+          // Cargar contexto real para que el agente sepa qué puede hacer
+          return buildChatContext(agentId).then(function(ctx) {
+            var sysPrompt = baseSysPrompt + '\n\n' + ctx
+            return callGroqChat(sysPrompt, msgs, modelo)
+          })
         }).then(function(reply) {
           res.writeHead(200, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ ok: true, reply: reply }))
@@ -852,6 +857,94 @@ function callGroq(systemPrompt, userPrompt, model) {
       })
     })
     req.on('error', reject); req.write(body); req.end()
+  })
+}
+
+// ═══ CONTEXTO REAL PARA CHAT DE AGENTES ═══
+function buildChatContext(agentId) {
+  var promises = []
+
+  // 1. KPIs del día (para todos)
+  promises.push(
+    sbFetch('/rest/v1/rpc/aos_kpis_dashboard', {
+      method: 'POST',
+      body: JSON.stringify({ p_hoy: limaDateStr(), p_ayer: new Date(Date.now()+(-5*60)*60000-86400000).toISOString().split('T')[0], p_mes_inicio: limaFirstOfMonth() })
+    }).then(function(r) {
+      if (!r) return ''
+      return 'DATOS REALES HOY: Llamadas=' + (r.llamHoy||0) + ', Citas=' + (r.citasHoy||0) + ', Ventas=$' + (r.factHoy||0) + ', Leads mes=' + (r.leadsMes||0) + '.'
+    }).catch(function() { return '' })
+  )
+
+  // 2. Datos específicos según agente
+  if (agentId === 'cartero') {
+    promises.push(
+      sbFetch('/rest/v1/aos_agenda_citas?fecha_cita=eq.' + new Date(Date.now()+(-5*60)*60000+86400000).toISOString().split('T')[0] + '&estado_cita=in.(PENDIENTE,CITA CONFIRMADA)&select=nombre,correo,tratamiento,hora_cita,sede&limit=20')
+        .then(function(rows) {
+          if (!rows || !rows.length) return 'CITAS MAÑANA: Sin citas programadas.'
+          var conEmail = rows.filter(function(r) { return r.correo })
+          return 'CITAS MAÑANA: ' + rows.length + ' total, ' + conEmail.length + ' con email. Detalle: ' +
+            rows.slice(0,5).map(function(r) { return r.nombre + ' (' + r.tratamiento + ' ' + r.hora_cita + ' ' + r.sede + ')' + (r.correo ? ' ✓email' : ' ✗sin email') }).join('; ') + '.'
+        }).catch(function() { return '' })
+    )
+    promises.push(
+      sbFetch('/rest/v1/aos_agente_acciones?agente_id=eq.cartero&tipo_accion=eq.email_enviado&created_at=gte.' + limaDateStr() + 'T00:00:00-05:00&select=descripcion&order=created_at.desc&limit=10')
+        .then(function(rows) {
+          if (!rows || !rows.length) return 'EMAILS HOY: Ninguno enviado aún.'
+          return 'EMAILS ENVIADOS HOY: ' + rows.length + '. Últimos: ' + rows.slice(0,3).map(function(r) { return r.descripcion }).join('; ') + '.'
+        }).catch(function() { return '' })
+    )
+  }
+
+  if (agentId === 'centinela') {
+    promises.push(
+      sbFetch('/rest/v1/aos_leads?fecha=gte.' + new Date(Date.now()-3*86400000).toISOString().split('T')[0] + '&select=celular,tratamiento,fecha&order=fecha.desc&limit=15')
+        .then(function(rows) {
+          if (!rows || !rows.length) return 'LEADS RECIENTES: Sin leads nuevos en 3 días.'
+          return 'LEADS ÚLTIMOS 3 DÍAS: ' + rows.length + '. Tratamientos: ' + rows.map(function(r){return r.tratamiento}).join(', ') + '.'
+        }).catch(function() { return '' })
+    )
+    promises.push(
+      sbFetch('/rest/v1/aos_seguimientos?select="NUMERO","TRATAMIENTO","FECHA_PROGRAMADA","ESTADO"&"ESTADO"=eq.PENDIENTE&limit=10')
+        .then(function(rows) {
+          return 'SEGUIMIENTOS PENDIENTES: ' + (rows ? rows.length : 0) + '.'
+        }).catch(function() { return '' })
+    )
+  }
+
+  if (agentId === 'guardian') {
+    promises.push(
+      sbFetch('/rest/v1/rpc/aos_inventario_alertas', { method: 'POST', body: '{}' })
+        .then(function(r) {
+          if (!r || !r.agotados) return 'INVENTARIO: Sin alertas.'
+          return 'INVENTARIO: ' + r.agotados.length + ' productos agotados. ' + r.agotados.slice(0,5).map(function(p) { return p.nombre_producto + ' (' + p.sede + ')' }).join('; ') + '.'
+        }).catch(function() { return '' })
+    )
+  }
+
+  if (agentId === 'analista' || agentId === 'analista_mkt') {
+    promises.push(
+      sbFetch('/rest/v1/aos_ventas?fecha=gte.' + limaFirstOfMonth() + '&select=tratamiento,monto&limit=100')
+        .then(function(rows) {
+          if (!rows || !rows.length) return 'VENTAS MES: Sin datos.'
+          var total = rows.reduce(function(s,r){ return s + parseFloat(r.monto||0) }, 0)
+          return 'VENTAS ESTE MES: ' + rows.length + ' operaciones, S/' + total.toFixed(0) + ' facturado.'
+        }).catch(function() { return '' })
+    )
+  }
+
+  if (agentId === 'monitor') {
+    promises.push(
+      sbFetch('/rest/v1/rpc/aos_semaforo_equipo', { method: 'POST', body: JSON.stringify({p_hoy: limaDateStr()}) })
+        .then(function(rows) {
+          if (!rows || !Array.isArray(rows)) return ''
+          return 'EQUIPO HOY: ' + rows.map(function(r){ return r.nombre + '=' + r.llamadas + ' llam/' + r.estado_final }).join(', ') + '.'
+        }).catch(function() { return '' })
+    )
+  }
+
+  return Promise.all(promises).then(function(parts) {
+    var ctx = parts.filter(Boolean).join('\n')
+    return ctx ? ('CONTEXTO DEL SISTEMA (datos reales de Supabase, puedes usarlos para responder):\n' + ctx + '\n\nIMPORTANTE: SÍ tienes acceso a datos reales del sistema. Cuando te pregunten datos, usa la información de arriba. Cuando te pidan ejecutar acciones (enviar emails, revisar inventario), confirma que el sistema lo hace automáticamente via tus tareas programadas y da los datos que tienes.') : ''
   })
 }
 
