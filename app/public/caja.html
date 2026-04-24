@@ -835,6 +835,7 @@ function cargarCaja(silencioso) {
     CAJA.kpis    = d.kpis    || {};
     CAJA.log     = d.log     || [];
     CAJA.gastos  = d.gastos  || [];
+    CAJA._loaded = true;
     // Rerenderizar siempre (el modal de venta tiene su propio estado VT)
     renderCaja();
   }, function(e) {
@@ -845,7 +846,12 @@ function cargarCaja(silencioso) {
 
 function renderCaja() {
   var bodyCheck = document.getElementById('caja-body');
-  if (!bodyCheck) return; // Panel no visible, skip silencioso
+  if (!bodyCheck) return;
+  // Si aún no cargó la sesión y es primera carga, mostrar loading
+  if (!CAJA._loaded) {
+    bodyCheck.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:60px;gap:8px;"><span class="sp-sm"></span><span style="color:#6B7BA8;font-size:12px;">Cargando caja...</span></div>';
+    return;
+  }
   actualizarHeader();
   var body = document.getElementById('caja-body');
   var noSesion = document.getElementById('no-sesion-msg');
@@ -2114,7 +2120,8 @@ function grabarCotizacion() {
     }
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
-    cargarCaja(true);
+    // Recargar con delay para que Supabase refleje el INSERT
+    setTimeout(function() { cargarCaja(); }, 800);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }, function(){ loading(false); toast('Error de conexión','err'); });
 }
@@ -2386,9 +2393,13 @@ function eliminarVenta() {
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al eliminar', 'err'); return; }
+    // Eliminar de la lista LOCAL inmediatamente para que la UI se actualice al instante
+    CAJA.ventas = (CAJA.ventas || []).filter(function(v) { return v.venta_id !== vid; });
+    renderCaja();
     toast('🗑 Venta eliminada', 'warn');
     cerrarOv('ov-editar');
-    cargarCaja(true);
+    // Recargar del servidor para sincronizar KPIs
+    setTimeout(function() { cargarCaja(true); }, 500);
   }, function() { loading(false); toast('Error al eliminar', 'err'); });
 }
 // ===== MOD-08-END: EDITAR VENTA =====
