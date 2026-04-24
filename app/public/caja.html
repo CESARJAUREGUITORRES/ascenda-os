@@ -1484,6 +1484,19 @@ function agregarItemDesdeCatalogo(r) {
 }
 
 // ===== RENDER TABLA ÍTEMS =====
+// Actualizar cálculos sin re-renderizar inputs (evita perder cursor)
+function updateVTCalc() {
+  VT.items.forEach(function(it, i) {
+    it.subtotal = calcSubtotal(it);
+    var subEl = document.getElementById('vt-sub-' + i);
+    if (subEl) {
+      var divSym = it.divisa === 'USD' ? '$' : 'S/';
+      subEl.textContent = divSym + ' ' + it.subtotal.toFixed(2);
+    }
+  });
+  actualizarResumen();
+}
+
 function renderItemsTbl() {
   var tbody = document.getElementById('items-tbody');
   if (!tbody) return;
@@ -1544,7 +1557,7 @@ function renderItemsTbl() {
       '</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;">' +
         (it.pagado ? divSym+' '+parseFloat(it.precio).toFixed(2) :
-          '<input type="number" value="'+it.precio+'" min="0" step="0.01" oninput="VT.items['+i+'].precio=parseFloat(this.value)||0;renderItemsTbl()" style="width:58px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">') +
+          '<input type="number" value="'+it.precio+'" min="0" step="0.01" oninput="VT.items['+i+'].precio=parseFloat(this.value)||0;updateVTCalc()" style="width:58px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">') +
       '</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">' +
         (it.pagado ?
@@ -1554,10 +1567,10 @@ function renderItemsTbl() {
           '<option value="PCT"'+(it.descTipo==='PCT'?' selected':'')+'>%</option>' +
           '<option value="FIX" '+(it.descTipo==='FIX'?' selected':'')+'>'+(it.divisa==='USD'?'$':'S/')+'</option>' +
           '</select>' +
-          '<input type="number" value="'+it.descVal+'" min="0" step="0.01" oninput="VT.items['+i+'].descVal=parseFloat(this.value)||0;renderItemsTbl()" style="width:42px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">' +
+          '<input type="number" value="'+it.descVal+'" min="0" step="0.01" oninput="VT.items['+i+'].descVal=parseFloat(this.value)||0;updateVTCalc()" style="width:42px;text-align:right;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;outline:none;">' +
           '</div>') +
       '</td>' +
-      '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;font-size:11px;">' + divSym + ' ' + sub.toFixed(2) + '</td>' +
+      '<td id="vt-sub-'+i+'" style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;font-size:11px;">' + divSym + ' ' + sub.toFixed(2) + '</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">'+metodoBadge+'</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);">'+compBadge+'</td>' +
       '<td style="padding:6px 5px;border-bottom:1px solid var(--border);text-align:center;">'+accionBtn+'</td>' +
@@ -2191,8 +2204,8 @@ function cotPDFCaja(tipo) {
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + tituloDoc + ' — ' + escH(nom) + '</title>' +
     '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">' +
     '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Outfit,sans-serif;color:#0D1B3E;padding:28px 36px;max-width:680px;margin:auto;}' +
-    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0A4FBF;margin-bottom:18px;}' +
-    '.brand{font-size:20px;font-weight:800;color:#0A4FBF;font-family:"Source Serif 4",serif;}' +
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #cea14a;margin-bottom:18px;}' +
+    '.brand{font-size:20px;font-weight:800;color:#cea14a;font-family:"Source Serif 4",serif;}' +
     '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;font-family:Outfit,sans-serif;}' +
     '.brand .empresa-datos{font-size:9px;color:#9AAAC8;margin-top:4px;line-height:1.5;}' +
     '.doc-title{font-size:16px;font-weight:800;color:#071D4A;text-align:right;}' +
@@ -2202,7 +2215,7 @@ function cotPDFCaja(tipo) {
     '.pac-box strong{font-size:14px;display:block;margin-bottom:4px;}' +
     '.pac-box span{font-size:11px;color:#6B7BA8;}' +
     'table{width:100%;border-collapse:collapse;margin-bottom:14px;}' +
-    'thead th{padding:7px 10px;background:#0A4FBF;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left;}' +
+    'thead th{padding:7px 10px;background:#cea14a;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left;}' +
     'tbody td{padding:7px 10px;border-bottom:1px solid #F0F4FC;font-size:11px;}' +
     'tbody tr:hover td{background:#F8FAFF;}' +
     '.totals{display:flex;justify-content:flex-end;margin-bottom:16px;}' +
@@ -2237,6 +2250,9 @@ function cotPDFCaja(tipo) {
       '<div class="tot-row tot-main"><span>TOTAL</span><span style="color:#0A4FBF;">S/ '+total.toFixed(2)+'</span></div>' +
     '</div></div>' +
     pagosSection +
+    '<div style="margin-top:24px;padding:12px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;">' +
+    '<div style="font-size:7px;font-weight:700;color:#94A3B8;text-transform:uppercase;margin-bottom:4px;">Términos y condiciones</div>' +
+    '<div style="font-size:7px;color:#94A3B8;line-height:1.5;">• Promos solo efectivo/transferencia/Yape/Plin. • No devoluciones, sí cupón por servicios. • Cotizaciones válidas 7 días. • Comprobante interno, no fiscal.</div></div>' +
     '<div class="footer">Zi Vital · Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre<br>Documento generado por AscendaOS · CREACTIVE OS</div>' +
     '</body></html>';
 
@@ -2250,38 +2266,81 @@ function cotEmailCaja() {
   var pac = VT.pac || {};
   var email = pac.Email || pac.email || pac.correo || '';
   var nombre = ((pac.nombres||pac.Nombres||'CLIENTE')+' '+(pac.apellidos||pac.Apellidos||'')).trim();
-  if (!email) {
-    // Pedir email manual
-    email = prompt('El paciente no tiene email registrado.\nIngresa el email para enviar:');
-    if (!email || email.indexOf('@') < 0) { toast('Email inválido o cancelado','warn'); return; }
-  }
-  // Construir resumen de ítems
   var items = VT.items.map(function(it) {
     return { nombre: it.nombre || '', cantidad: it.cantidad || 1, subtotal: parseFloat(it.subtotal || 0) };
   });
   var total = items.reduce(function(s, it) { return s + it.subtotal; }, 0);
-  var sede = VT.items[0] && VT.items[0].sede ? VT.items[0].sede : '';
-  var fecha = fechaLima();
 
-  toast('Enviando email a ' + email + '...', '');
-  fetch('/api/send-template', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      to: email,
-      template: 'recibo_venta',
-      nombre: nombre,
-      items: items,
-      total: total,
-      moneda: 'PEN',
-      metodo: (VT.items[0] && VT.items[0].metodoPago) || '',
-      sede: sede,
-      fecha: fecha,
-      venta_id: ''
-    })
-  }).then(function(r) { return r.json(); }).then(function(d) {
-    if (d && d.ok) toast('✅ Email enviado a ' + email, '');
-    else toast('Error: ' + (d.error || 'desconocido'), 'warn');
+  // Modal bonito AscendaOS
+  var ov = document.getElementById('ov-email-caja');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'ov-email-caja';
+    ov.className = 'ov';
+    ov.innerHTML = '<div class="modal" style="max-width:420px;">' +
+      '<div class="mhd" style="background:linear-gradient(135deg,#f0ebe0,#f1eee4);border-radius:16px 16px 0 0;padding:20px 24px;">' +
+      '<div><div style="font-size:16px;font-weight:800;color:#b89447;">📧 Enviar por Email</div>' +
+      '<div style="font-size:11px;color:#6B7BA8;margin-top:2px;" id="em-caja-pac"></div></div>' +
+      '<div class="mclose" onclick="cerrarOv(\'ov-email-caja\')">&times;</div></div>' +
+      '<div class="mbody" style="padding:20px 24px;">' +
+      '<div style="margin-bottom:14px;">' +
+      '<label style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Correo del paciente</label>' +
+      '<input type="email" id="em-caja-email" class="mi" placeholder="correo@gmail.com" style="margin-top:4px;"></div>' +
+      '<div style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:8px;">Tipo de documento</div>' +
+      '<div style="display:flex;gap:8px;" id="em-caja-tipo">' +
+      '<div class="em-tipo-opt act" data-tipo="recibo_venta" onclick="emCajaTipo(this)" style="flex:1;padding:14px;border-radius:10px;border:2px solid #cea14a;background:#f0ebe0;cursor:pointer;text-align:center;">' +
+      '<div style="font-size:20px;">🧾</div><div style="font-size:11px;font-weight:700;color:#b89447;margin-top:4px;">Comprobante</div>' +
+      '<div style="font-size:9px;color:#6B7BA8;">Con detalle de pago</div></div>' +
+      '<div class="em-tipo-opt" data-tipo="cotizacion" onclick="emCajaTipo(this)" style="flex:1;padding:14px;border-radius:10px;border:2px solid #E2E8F0;background:#fff;cursor:pointer;text-align:center;">' +
+      '<div style="font-size:20px;">📋</div><div style="font-size:11px;font-weight:700;color:#475569;margin-top:4px;">Cotización</div>' +
+      '<div style="font-size:9px;color:#6B7BA8;">Solo presupuesto</div></div></div>' +
+      '<div style="margin-top:14px;padding:10px;background:#F8FAFF;border-radius:8px;font-size:10px;color:#6B7BA8;" id="em-caja-preview"></div></div>' +
+      '<div class="mfoot" style="padding:14px 24px;">' +
+      '<button class="mcanc" onclick="cerrarOv(\'ov-email-caja\')">Cancelar</button>' +
+      '<button class="mconf gr" onclick="emCajaEnviar()">📧 Enviar</button></div></div>';
+    document.body.appendChild(ov);
+  }
+
+  document.getElementById('em-caja-pac').textContent = nombre + ' · ' + VT.items.length + ' item(s) · S/ ' + total.toFixed(2);
+  document.getElementById('em-caja-email').value = email;
+  var preview = items.map(function(it) { return it.nombre + ' (x' + it.cantidad + ') — S/' + it.subtotal.toFixed(2); }).join('\n');
+  document.getElementById('em-caja-preview').textContent = preview;
+  ov.classList.add('open');
+
+  // Guardar datos para enviar
+  window._emCajaData = { nombre: nombre, items: items, total: total, pac: pac };
+}
+
+function emCajaTipo(el) {
+  document.querySelectorAll('.em-tipo-opt').forEach(function(o) {
+    o.style.borderColor = '#E2E8F0'; o.style.background = '#fff';
+  });
+  el.style.borderColor = '#cea14a'; el.style.background = '#f0ebe0';
+}
+
+function emCajaEnviar() {
+  var email = document.getElementById('em-caja-email').value.trim();
+  if (!email || email.indexOf('@') < 0) { toast('Ingresa un email válido', 'warn'); return; }
+  var d = window._emCajaData || {};
+  var tipoEl = document.querySelector('.em-tipo-opt[style*="cea14a"]');
+  var template = tipoEl ? tipoEl.getAttribute('data-tipo') : 'recibo_venta';
+
+  // Si el paciente no tenía email, guardar para próximas veces
+  if (d.pac && !d.pac.Email && !d.pac.email && d.pac.numero) {
+    fetch(_SB + '/rest/v1/aos_pacientes?numero_limpio=eq.' + d.pac.numero, {
+      method: 'PATCH', headers: { 'apikey': _SK, 'Authorization': 'Bearer ' + _SK, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ "Email": email })
+    }).catch(function() {});
+  }
+
+  toast('Enviando...', '');
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: email, template: template, nombre: d.nombre, items: d.items, total: d.total, moneda: 'PEN', metodo: '', sede: CAJA.sede || '', fecha: fechaLima(), venta_id: '' })
+  }).then(function(r) { return r.json(); }).then(function(res) {
+    cerrarOv('ov-email-caja');
+    if (res && (res.ok || res.id)) toast('✅ Email enviado a ' + email, '');
+    else toast('Error: ' + (res.error || ''), 'warn');
   }).catch(function(e) { toast('Error: ' + e.message, 'warn'); });
 }
 
