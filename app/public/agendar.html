@@ -55,6 +55,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .slot{padding:8px 0;text-align:center;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text)}
 .slot:hover{border-color:var(--gold);background:var(--gold-light)}
 .slot.sel{background:linear-gradient(135deg,#00C9A7,#00A88A);color:#fff;border-color:#00C9A7}
+.slot.sel div{color:#fff !important}
 /* Form */
 .ag-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;transition:border .15s}
 .ag-input:focus{border-color:var(--gold)}
@@ -488,8 +489,8 @@ function showSuccess(nombre,apellido){
   if(email){
     fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       to:email,template:'confirmacion_cita',nombre:nombre+' '+apellido,
-      tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha_cita:AG.selFecha
-    })}).catch(function(){});
+      tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha
+    })}).catch(function(e){console.error('Email error:',e)});
   }
 }
 </script>
