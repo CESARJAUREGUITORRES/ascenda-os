@@ -530,22 +530,20 @@ function enviarEmailConfirmacionCita(datosCita) {
     console.log('[EMAIL-CITA] ✕ Error:', e.message);
   });
 }
-// ===== _rpc CON RETRY Y MANEJO DE ERROR 503 =====
-function _rpc(fn,p,ok,fail,_retry){
-  var intento=_retry||0;
-  fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})})
+// ===== _rpc — llamada a Supabase con timeout 15s =====
+function _rpc(fn,p,ok,fail){
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var tid=ctrl?setTimeout(function(){ctrl.abort();},15000):null;
+  fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{}),signal:ctrl?ctrl.signal:undefined})
   .then(function(r){
-    if(r.status===503||r.status===502||r.status===504){
-      if(intento<2){console.warn('[SB] '+fn+' → '+r.status+', reintentando ('+(intento+1)+'/2)...');setTimeout(function(){_rpc(fn,p,ok,fail,intento+1);},1500*(intento+1));return;}
-      throw new Error('Supabase no disponible ('+r.status+')');
-    }
+    if(tid)clearTimeout(tid);
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r.json();
   })
-  .then(function(d){if(d!==undefined&&ok)ok(d);})
-  .catch(fail||function(e){
-    console.error('[SB]',fn,e);
-    if(window.AOS_showToast)AOS_showToast('⚠ Error de conexión',fn+': '+(e.message||'Sin respuesta'),'toast-alerta');
+  .then(function(d){if(ok)ok(d);})
+  .catch(function(e){
+    if(tid)clearTimeout(tid);
+    if(fail){fail(e);}else{console.error('[SB]',fn,e);}
   });
 }
 function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Date();var hh=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
@@ -606,20 +604,22 @@ function loadMetrics(){
 // ══════════════════════════════════════════════════════════════
 // SIGUIENTE LEAD
 // ══════════════════════════════════════════════════════════════
-function loadLead(){
+function loadLead(_retried){
   document.getElementById('cc-num').textContent='Cargando...';
+  document.getElementById('cc-no-lead').style.display='none';
+  document.getElementById('cc-lead-panel').style.display='none';
   var x=_ctx();
-  if(!x.a||!x.id){document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-lead-panel').style.display='none';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío:',JSON.stringify(x));return;}
+  if(!x.a||!x.id){document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío:',JSON.stringify(x));return;}
   _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
     if(!res||!res.ok||!res.lead){
       document.getElementById('cc-no-lead').style.display='block';
-      document.getElementById('cc-lead-panel').style.display='none';
-      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads.'):'Sin leads.';
+      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.';
+      document.getElementById('cc-num').textContent='—';
       document.getElementById('cc-tier').textContent='BASE OK'; return;
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.lead&&res.lead.contexto||null};
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
@@ -632,11 +632,11 @@ function loadLead(){
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
   },function(e){
-    document.getElementById('cc-num').textContent='Error';
-    document.getElementById('cc-no-lead').style.display='block';
-    document.getElementById('cc-lead-panel').style.display='none';
-    document.getElementById('cc-no-txt').textContent='Error de conexión. Reintenta en unos segundos.';
     console.error('[CC] loadLead error:',e);
+    if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
+    document.getElementById('cc-num').textContent='—';
+    document.getElementById('cc-no-lead').style.display='block';
+    document.getElementById('cc-no-txt').textContent='Error cargando lead. Usa los botones de abajo.';
   });
 }
 
