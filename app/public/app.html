@@ -1317,7 +1317,7 @@ function openAgendarModal() {
     '<input id="agendar-link-url" readonly style="width:100%;padding:8px;border:1px solid #BBF7D0;border-radius:6px;font-size:11px;font-family:DM Sans;background:#fff;color:#0f172a;" onclick="this.select()">' +
     '<div style="display:flex;gap:6px;margin-top:8px;">' +
     '<button onclick="copiarLinkCita()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#0A4FBF;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">📋 Copiar</button>' +
-    '<button onclick="enviarLinkWA()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#25D366;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">💬 WhatsApp</button>' +
+    '<button id="agendar-wa-btn" onclick="enviarLinkWA()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#25D366;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">💬 WhatsApp</button>' +
     '</div></div></div>' +
     '<div style="padding:12px 24px;border-top:1px solid #E2E8F0;text-align:center;">' +
     '<button onclick="document.getElementById(\'modal-agendar-link\').remove()" style="padding:8px 20px;border:none;background:transparent;color:#64748B;font-weight:600;font-size:12px;cursor:pointer;font-family:DM Sans;">Cerrar</button></div></div>';
@@ -1332,7 +1332,7 @@ function generarLinkCita(tipo) {
   .then(function(r){return r.json()}).then(function(rows){
     var token = rows && rows[0] ? rows[0].token : '';
     var url = window.location.origin + '/agendar?t=' + token;
-    mostrarLinkGenerado(url);
+    mostrarLinkGenerado(url, true); // con WA
   });
 }
 
@@ -1359,12 +1359,24 @@ function generarLinkCitaAntiguo() {
 
 function buscarPacLink(q) {
   if (!q || q.length < 2) { document.getElementById('pac-search-results').innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">Escribe al menos 2 caracteres</div>'; return; }
-  var encoded = encodeURIComponent(q);
-  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,Nombres,Apellidos,Email&or=(Nombres.ilike.*'+encoded+'*,Apellidos.ilike.*'+encoded+'*,numero_limpio.ilike.*'+encoded+'*)&limit=8&order=Nombres',{
+  // Buscar por primera palabra para evitar problemas con espacios
+  var palabras = q.trim().split(/\s+/);
+  var primera = encodeURIComponent(palabras[0]);
+  var filtro = 'or=(Nombres.ilike.*'+primera+'*,Apellidos.ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
+  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,Nombres,Apellidos,Email&'+filtro+'&limit=12&order=Nombres',{
     headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
   }).then(function(r){return r.json()}).then(function(pacs){
     var el = document.getElementById('pac-search-results');
     if (!pacs || !pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
+    // Si hay segunda palabra, filtrar localmente
+    if (palabras.length > 1) {
+      var seg = palabras[1].toLowerCase();
+      pacs = pacs.filter(function(p) {
+        var full = ((p.Nombres||'')+' '+(p.Apellidos||'')).toLowerCase();
+        return full.indexOf(seg) >= 0;
+      });
+      if (!pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
+    }
     el.innerHTML = pacs.map(function(p) {
       var nombre = ((p.Nombres||'')+ ' '+(p.Apellidos||'')).trim();
       var ini = ((p.Nombres||'')[0]||'')+((p.Apellidos||'')[0]||'');
@@ -1379,24 +1391,27 @@ function buscarPacLink(q) {
 
 function selPacLink(num) {
   document.getElementById('modal-buscar-pac').remove();
+  window._agPacNum = num;
   var body = {tipo:'paciente_especifico', paciente_numero:num, asesor_codigo:window._agLinkAsesor, expira_at:new Date(Date.now()+48*60*60*1000).toISOString()};
   fetch(_SB+'/rest/v1/aos_links_agenda',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)})
   .then(function(r){return r.json()}).then(function(rows){
     var token = rows && rows[0] ? rows[0].token : '';
     var url = window.location.origin + '/agendar?t=' + token;
-    mostrarLinkGenerado(url);
+    mostrarLinkGenerado(url, true); // con WA al número del paciente
   });
 }
 
 function generarLinkPermanente() {
   var url = window.location.origin + '/agendar';
-  mostrarLinkGenerado(url);
+  mostrarLinkGenerado(url, false); // sin WA
 }
 
-function mostrarLinkGenerado(url) {
+function mostrarLinkGenerado(url, conWA) {
   document.getElementById('agendar-link-result').style.display = 'block';
   document.getElementById('agendar-link-url').value = url;
   window._agLinkUrl = url;
+  var waBtn = document.getElementById('agendar-wa-btn');
+  if (waBtn) waBtn.style.display = conWA ? '' : 'none';
 }
 
 function copiarLinkCita() {
@@ -1407,8 +1422,10 @@ function copiarLinkCita() {
 
 function enviarLinkWA() {
   var url = window._agLinkUrl || '';
-  var msg = '¡Hola! 🌟\nTe enviamos tu link para *agendar tu cita* en Zi Vital:\n\n📅 ' + url + '\n\nSelecciona tu doctora, el día y horario que prefieras. ¡Te esperamos! 💚';
-  window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+  var num = window._agPacNum || '';
+  var msg = '¡Hola! 🌟\nTe saludamos de *Zi Vital* 🏥 Clínica Estética & Regenerativa.\n\nTe enviamos tu link personalizado para *agendar tu cita*:\n\n📅 '+url+'\n\n✨ *¿Qué podrás hacer?*\n👩‍⚕️ Ver nuestro staff de doctoras y personal especializado\n📋 Conocer los servicios que ofrecemos\n🗓 Elegir el día y horario que más te convenga\n✅ Reservar tu cita al instante\n\n¡Tu horario quedará reservado automáticamente! 💚\n\n📍 San Isidro | Pueblo Libre\n🌐 www.zivital.pe';
+  var waUrl = 'https://api.whatsapp.com/send?' + (num ? 'phone=51'+num+'&' : '') + 'text=' + encodeURIComponent(msg);
+  window.open(waUrl, '_blank');
 }
 
 function toggleHistorialLinks() {
