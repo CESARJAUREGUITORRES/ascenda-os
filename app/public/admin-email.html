@@ -597,6 +597,24 @@ function saveWaTpl(id){
 function filtrarTpl(){}
 function renderTplGrid(){}
 
+var _htmlMode=false;
+function toggleHtmlMode(){_htmlMode=!_htmlMode;var ed=el('tpl-editor'),raw=el('tpl-html-raw'),btn=el('btn-html-mode');if(_htmlMode){raw.value=ed.innerHTML;ed.style.display='none';raw.style.display='block';btn.style.background='#0A4FBF';btn.style.color='#fff';}else{ed.innerHTML=raw.value;raw.style.display='none';ed.style.display='block';btn.style.background='';btn.style.color='';}}
+function execCmd(cmd,val){document.execCommand(cmd,false,val||null);el('tpl-editor').focus();updateTplPreview();}
+function insertVar(v){document.execCommand('insertHTML',false,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;">{{'+v+'}}</span>&nbsp;');updateTplPreview();}
+function insertLink(){var url=prompt('URL del enlace:','https://');if(!url)return;var txt=prompt('Texto del enlace:','Click aquí');document.execCommand('insertHTML',false,'<a href="'+url+'" style="color:'+(_BRAND.color_secundario||'#cea14a')+';font-weight:700;">'+h(txt||url)+'</a>');updateTplPreview();}
+function insertImg(){var url=prompt('URL de la imagen:','https://');if(!url)return;document.execCommand('insertHTML',false,'<img src="'+url+'" style="max-width:100%;border-radius:8px;margin:8px 0;" />');updateTplPreview();}
+function insertBtn(){var txt=prompt('Texto del botón:','Agendar cita');var url=prompt('URL del botón:','https://wa.me/51960618468');if(!txt||!url)return;document.execCommand('insertHTML',false,'<div style="text-align:center;margin:12px 0;"><a href="'+url+'" style="display:inline-block;background:'+(_BRAND.color_secundario||'#cea14a')+';color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">'+h(txt)+'</a></div>');updateTplPreview();}
+function updateTplPreview(){
+  var body=_htmlMode?(el('tpl-html-raw')?el('tpl-html-raw').value:''):(el('tpl-editor')?el('tpl-editor').innerHTML:'');
+  var subj=el('tpl-asunto')?el('tpl-asunto').value:'';
+  var hdr=_BRAND.color_header||'#f0ebe0';var htxt=_BRAND.color_header_texto||'#b89447';var sec=_BRAND.color_secundario||'#cea14a';var logo=_BRAND.logo_sin_fondo_url||'';var empresa=_BRAND.nombre_empresa||'Zi Vital';
+  var shell='<div style="font-family:DM Sans,Arial,sans-serif;max-width:100%;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">';
+  shell+='<div style="background:'+hdr+';padding:20px 24px;">'+(logo?'<img src="'+logo+'" style="height:30px;margin-bottom:8px;display:block;">':'')+'<div style="color:'+sec+';font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">'+empresa+'</div><div style="color:'+htxt+';font-size:16px;font-weight:800;margin-top:4px;">'+h(subj)+'</div></div>';
+  shell+='<div style="padding:20px 24px;font-size:13px;line-height:1.6;">'+body+'</div>';
+  shell+='<div style="background:'+hdr+';padding:10px 24px;text-align:center;font-size:9px;color:'+sec+';">'+empresa+' · info@zivital.pe</div>';
+  shell+='</div>';
+  var prev=el('tpl-preview');if(prev)prev.innerHTML=shell;
+}
 function savePlantilla(id){
   var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
   // Clean the variable spans back to {{var}} format
