@@ -227,12 +227,15 @@ function q(t,f){return fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Autho
       return;
     }
     AG.link=rows[0];
-    // Si tiene paciente prellenado
+    // Si tiene paciente prellenado — usar RPC (campos MAYÚSCULA no funcionan con REST)
     if(AG.link.paciente_numero){
-      q('aos_pacientes','numero_limpio=eq.'+AG.link.paciente_numero+'&select=numero_limpio,"Nombres","Apellidos","Email","N° documento"&limit=1').then(function(p){
-        if(p&&p[0])AG.paciente=p[0];
+      rpc('aos_buscar_por_numero',{p_numero:AG.link.paciente_numero}).then(function(res){
+        if(res&&res[0]){
+          var r=res[0];
+          AG.paciente={numero_limpio:r.numero||AG.link.paciente_numero,Nombres:r.nombre||'',Apellidos:r.apellido||'',Email:r.email||'','N° documento':r.documento||''};
+        }
         loadProfesionales();
-      });
+      }).catch(function(){loadProfesionales();});
     } else {
       loadProfesionales();
     }
@@ -457,20 +460,19 @@ function autoDetectPaciente(val){
   var num=val.replace(/\D/g,'');
   if(num.length<7){document.getElementById('ag-pac-detected').style.display='none';return;}
   _autoDetectTimer=setTimeout(function(){
-    fetch(SB+'/rest/v1/aos_pacientes?select="Nombres","Apellidos","Email","N° documento",numero_limpio&numero_limpio=eq.'+num+'&limit=1',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
-    .then(function(r){return r.json()}).then(function(pacs){
-      if(pacs&&pacs[0]){
-        var p=pacs[0];
-        document.getElementById('ag-nombre').value=p.Nombres||'';
-        document.getElementById('ag-apellido').value=p.Apellidos||'';
-        document.getElementById('ag-dni').value=p['N° documento']||'';
-        document.getElementById('ag-email').value=p.Email||'';
+    rpc('aos_buscar_por_numero',{p_numero:num}).then(function(res){
+      if(res&&res[0]){
+        var p=res[0];
+        document.getElementById('ag-nombre').value=p.nombre||'';
+        document.getElementById('ag-apellido').value=p.apellido||'';
+        document.getElementById('ag-dni').value=p.documento||'';
+        document.getElementById('ag-email').value=p.email||'';
         document.getElementById('ag-pac-detected').style.display='block';
-        document.getElementById('ag-pac-detected').textContent='✅ Paciente encontrado: '+(p.Nombres||'')+' '+(p.Apellidos||'');
+        document.getElementById('ag-pac-detected').textContent='✅ Paciente encontrado: '+(p.nombre||'')+' '+(p.apellido||'');
       } else {
         document.getElementById('ag-pac-detected').style.display='none';
       }
-    });
+    }).catch(function(){document.getElementById('ag-pac-detected').style.display='none';});
   },500);
 }
 
