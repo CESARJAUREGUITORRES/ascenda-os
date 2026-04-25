@@ -1,7 +1,70 @@
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
-function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var hh=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
+
+// ===== ENVÍO AUTOMÁTICO DE EMAIL AL CREAR CITA =====
+function enviarEmailConfirmacionCita(datosCita) {
+  var correo = (datosCita.correo || '').trim();
+  if (!correo || correo.indexOf('@') < 0) {
+    console.log('[EMAIL-CITA] Sin correo válido, skip email');
+    return;
+  }
+  var nombre = ((datosCita.nombre || '') + ' ' + (datosCita.apellido || '')).trim();
+  var fechaRaw = datosCita.fecha_cita || datosCita.fechaCita || '';
+  // Formatear fecha legible
+  var fechaLabel = fechaRaw;
+  try {
+    var dp = new Date(fechaRaw + 'T12:00:00');
+    var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
+  } catch(e) {}
+
+  console.log('[EMAIL-CITA] Enviando confirmación a ' + correo + ' — ' + nombre);
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: correo,
+      template: 'confirmacion_cita',
+      nombre: nombre,
+      tratamiento: datosCita.tratamiento || 'Consulta',
+      hora: datosCita.hora_cita || datosCita.horaCita || '',
+      sede: datosCita.sede || '',
+      fecha: fechaLabel,
+      dni: datosCita.dni || '',
+      telefono: datosCita.numero_limpio || datosCita.numero || '',
+      email: correo,
+      destinatario_id: (datosCita.numero_limpio || correo) + '_cita_' + fechaRaw
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d && (d.ok || d.id)) {
+      console.log('[EMAIL-CITA] ✅ Email enviado a ' + correo);
+      if (window.AOS_showToast) AOS_showToast('📧 Email de cita enviado', correo, '');
+    } else {
+      console.log('[EMAIL-CITA] ⚠ Error:', JSON.stringify(d));
+      if (window.AOS_showToast) AOS_showToast('⚠ Email no enviado', d && d.error ? d.error : 'Error desconocido', 'toast-alerta');
+    }
+  }).catch(function(e) {
+    console.log('[EMAIL-CITA] ✕ Error:', e.message);
+  });
+}
+// ===== _rpc — llamada a Supabase con timeout 15s =====
+function _rpc(fn,p,ok,fail){
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var tid=ctrl?setTimeout(function(){ctrl.abort();},15000):null;
+  fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{}),signal:ctrl?ctrl.signal:undefined})
+  .then(function(r){
+    if(tid)clearTimeout(tid);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  })
+  .then(function(d){if(ok)ok(d);})
+  .catch(function(e){
+    if(tid)clearTimeout(tid);
+    if(fail){fail(e);}else{console.error('[SB]',fn,e);}
+  });
+}
+function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Date();var hh=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
 
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL
@@ -12,13 +75,13 @@ var _segsData = [], _segFiltro = 'todos';
 var MES_NOM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-// ── INIT ──────────────────────────────────────────────────────
-(function(){
+// ── INIT (global para re-inicialización desde app.html) ──────
+function ccInit(){
+  CC.lead=null;CC.guardando=false;CC.ficha360=null;CC.fichaTab='compras';
   CC.token = window.AOS_getToken ? window.AOS_getToken() : '';
   var hoy = (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
-  document.getElementById('cc-c-fecha').min = hoy;
-  document.getElementById('cc-s-fecha').min = hoy;
-  document.getElementById('cc-s-fecha').value = hoy;
+  var fe=document.getElementById('cc-c-fecha');if(fe)fe.min=hoy;
+  var fs=document.getElementById('cc-s-fecha');if(fs){fs.min=hoy;fs.value=hoy;}
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
   poblarMeses();
   loadMetrics();
@@ -26,10 +89,10 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   if(window._pendingLead && window._pendingLead.num){
     var pl = window._pendingLead;
     window._pendingLead = null;
-    CC.lead = {num:pl.num, trat:pl.trat||'', wa:'https://api.whatsapp.com/send?phone=51'+pl.num, rowNum:0, segId:pl.segId||'', fromSeg:true};
+    CC.lead = {num:pl.num, trat:pl.trat||'', wa:'https://api.whatsapp.com/send?phone=51'+pl.num, rowNum:0, segId:pl.segId||'', fromSeg:true, intento:0, anuncio:''};
     document.getElementById('cc-num').textContent = pl.num;
     document.getElementById('cc-trat').textContent = pl.trat||'';
-    document.getElementById('cc-meta').textContent = 'SEGUIMIENTO' + (pl.segId?' · '+pl.segId.slice(0,8):'');
+    document.getElementById('cc-meta').textContent = 'SEGUIMIENTO';
     document.getElementById('cc-tier').textContent = 'SEGUIMIENTO';
     document.getElementById('cc-no-lead').style.display = 'none';
     document.getElementById('cc-lead-panel').style.display = 'block';
@@ -41,40 +104,40 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
     loadLead();
   }
   loadHistorial();
-  loadTrats();
   recargarCalendario();
-  // Score: cargar con delay para asegurar que AOS_getCtx esté disponible
   setTimeout(function(){loadScorePanel();}, 300);
-  // Retry si aún no cargó (contexto tardío)
-  setTimeout(function(){
-    var sc=document.getElementById('sc-llam');
-    if(sc&&(sc.textContent==='—'||sc.textContent===''))loadScorePanel();
-  }, 1500);
-})();
+  setTimeout(function(){var sc=document.getElementById('sc-llam');if(sc&&(sc.textContent==='—'||sc.textContent===''))loadScorePanel();}, 1500);
+}
+ccInit();
 
 // ══════════════════════════════════════════════════════════════
 // KPI CARDS
 // ══════════════════════════════════════════════════════════════
 function loadMetrics(){
-  (function(){var x=_ctx();_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){if(!d)return;var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};var its=(d.llamadasHoy||[]).map(function(l){return{hora:String(l.hora||'').slice(0,5),num:l.num||'',trat:l.trat||'',estado:l.estado||''};});set('m-llam',Number(d.llamHoy)||0);set('m-citas',Number(d.citasHoy)||0);var tot=Number(d.llamHoy)||0;set('m-conv',tot>0?Math.round((Number(d.citasHoy)||0)/tot*100)+'%':'0%');var sc=its.filter(function(x){return x.estado==='SIN CONTACTO'||x.estado==='NO CONTESTA';}).length;set('m-nc',sc);set('m-nc-sub',(Number(d.llamMes)||0)+' llam. mes');if(its.length)renderTipifDist(its);});})();
-  (function(){var x=_ctx();_rpc('aos_monitoreo_equipo',{p_hoy:x.hoy},function(d){if(!d)return;var ctx=window.AOS_getCtx?window.AOS_getCtx():{};var filas=d.filas||[];var miId=(ctx.idAsesor||'');var idx=filas.findIndex(function(r){return (r.id_asesor||'')===(miId);});var pos=idx>=0?idx+1:1;var em=['🥇','🥈','🥉'];var el=document.getElementById('m-rank');if(el)el.textContent=(em[pos-1]||'')+'#'+pos;});})();
+  var x=_ctx();if(!x.a)return;
+  _rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){if(!d)return;var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};var its=(d.llamadasHoy||[]).map(function(l){return{hora:String(l.hora||'').slice(0,5),num:l.num||'',trat:l.trat||'',estado:l.estado||''};});set('m-llam',Number(d.llamHoy)||0);set('m-citas',Number(d.citasHoy)||0);var tot=Number(d.llamHoy)||0;set('m-conv',tot>0?Math.round((Number(d.citasHoy)||0)/tot*100)+'%':'0%');var sc=its.filter(function(x){return x.estado==='SIN CONTACTO'||x.estado==='NO CONTESTA';}).length;set('m-nc',sc);set('m-nc-sub',(Number(d.llamMes)||0)+' llam. mes');if(its.length)renderTipifDist(its);});
+  _rpc('aos_monitoreo_equipo',{p_hoy:x.hoy},function(d){if(!d)return;var ctx=window.AOS_getCtx?window.AOS_getCtx():{};var filas=d.filas||[];var miId=(ctx.idAsesor||'');var idx=filas.findIndex(function(r){return (r.id_asesor||'')===(miId);});var pos=idx>=0?idx+1:1;var em=['🥇','🥈','🥉'];var el=document.getElementById('m-rank');if(el)el.textContent=(em[pos-1]||'')+'#'+pos;});
 }
 
 // ══════════════════════════════════════════════════════════════
 // SIGUIENTE LEAD
 // ══════════════════════════════════════════════════════════════
-function loadLead(){
+function loadLead(_retried){
   document.getElementById('cc-num').textContent='Cargando...';
-  (function(){var x=_ctx();_rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
+  document.getElementById('cc-no-lead').style.display='none';
+  document.getElementById('cc-lead-panel').style.display='none';
+  var x=_ctx();
+  if(!x.a||!x.id){document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío:',JSON.stringify(x));return;}
+  _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
     if(!res||!res.ok||!res.lead){
       document.getElementById('cc-no-lead').style.display='block';
-      document.getElementById('cc-lead-panel').style.display='none';
-      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads.'):'Sin leads.';
+      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.';
+      document.getElementById('cc-num').textContent='—';
       document.getElementById('cc-tier').textContent='BASE OK'; return;
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.lead&&res.lead.contexto||null};
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
@@ -86,21 +149,32 @@ function loadLead(){
     document.getElementById('cc-m-seg-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
-  });})();
+  },function(e){
+    console.error('[CC] loadLead error:',e);
+    if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
+    document.getElementById('cc-num').textContent='—';
+    document.getElementById('cc-no-lead').style.display='block';
+    document.getElementById('cc-no-txt').textContent='Error cargando lead. Usa los botones de abajo.';
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
 // HISTORIAL
 // ══════════════════════════════════════════════════════════════
 function loadHistorial(){
-  (function(){var x=_ctx();_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){
+  var x=_ctx();
+  if(!x.a)return;
+  _rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){
     if(!d)return;
     var tbody=document.getElementById('cc-historial');
     var items=(d.llamadasHoy||[]).map(function(l){return{hora:String(l.hora||'').slice(0,5),num:l.num||'',trat:l.trat||'',estado:l.estado||''};});
     if(!items.length){tbody.innerHTML='<tr><td colspan="4" class="ld">Sin llamadas hoy</td></tr>';return;}
     var chipMap={'CITA CONFIRMADA':'est-cita','SIN CONTACTO':'est-sc','NO CONTESTA':'est-sc','NO LE INTERESA':'est-ni','SEGUIMIENTO':'est-seg','PROVINCIA':'est-base','SACAR DE LA BASE':'est-base'};
     tbody.innerHTML=items.slice(0,30).map(function(r){var est=r.estado==='NO CONTESTA'?'SIN CONTACTO':(r.estado||'—'),cls=chipMap[r.estado]||chipMap[est]||'est-base';return '<tr data-num="'+escH(r.num||'')+'" style="cursor:pointer;"><td style="white-space:nowrap;">'+escH(r.hora||'—')+'</td><td style="font-family:Exo\\ 2,sans-serif;font-weight:700;font-size:11px;">'+escH(r.num||'—')+'</td><td style="font-size:9px;color:#6B7BA8;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH((r.trat||'—').slice(0,14))+'</td><td><span class="est-chip '+cls+'">'+est+'</span></td></tr>';}).join('');
-  });})();
+  },function(e){
+    var tbody=document.getElementById('cc-historial');
+    if(tbody)tbody.innerHTML='<tr><td colspan="4" class="ld">Error cargando historial</td></tr>';
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -117,11 +191,11 @@ function ccGuardar(){
   var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',created_at:now.toISOString()};
   fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
     CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('\u2713 Guardado','Llamada registrada.','');
     loadLead();loadHistorial();loadMetrics();
-  }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';console.error('[AOS] Error guardando llamada:',e);if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarCita(){
@@ -130,13 +204,14 @@ function ccConfirmarCita(){
   var p={numero:CC.lead?CC.lead.num:'',estado:'CITA CONFIRMADA',nombre:document.getElementById('cc-c-nombre').value.trim(),apellido:document.getElementById('cc-c-apellido').value.trim(),dni:document.getElementById('cc-c-dni').value.trim(),correo:document.getElementById('cc-c-correo').value.trim(),tipoAtencion:document.getElementById('cc-c-tipo-at').value,sede:document.getElementById('cc-c-sede').value,fechaCita:document.getElementById('cc-c-fecha').value,horaCita:document.getElementById('cc-c-hora').value,tratamiento:document.getElementById('cc-c-trat').value,tipoCita:tipoCita||'CONSULTA NUEVA',obs:document.getElementById('cc-c-obs').value.trim(),rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,created_at:now.toISOString()};
-  var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'CONFIRMADA',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
+  var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
+  console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
-    // Si venía de un seguimiento, cerrarlo automáticamente
-    if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){
-      fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":now.toISOString()})});
-    }
-    closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+    if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":new Date().toISOString()})});}
+    closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');
+    // Enviar email de confirmación automáticamente
+    enviarEmailConfirmacionCita(rowC);
+    loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarSeguimiento(){
@@ -146,20 +221,14 @@ function ccConfirmarSeguimiento(){
   var p={numero:CC.lead?CC.lead.num:'',estado:'SEGUIMIENTO',obs:document.getElementById('cc-s-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',proxReintentoTs:proxTs,rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:p.tratamiento||'',estado:'SEGUIMIENTO',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,prox_rein:p.proxReintentoTs,created_at:now.toISOString()};
-
-  // Si viene de un seguimiento existente, actualizar en vez de crear nuevo
   var segPromise;
   if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){
-    var histEntry=now.toISOString().slice(0,10)+' reprog→'+fecha;
-    segPromise=fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE","TS_ACTUALIZADO":now.toISOString(),"reprogramaciones":1,"historial":histEntry})});
+    segPromise=fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE","TS_ACTUALIZADO":now.toISOString()})});
   } else {
     var rowS={"NUMERO":numL,"TRATAMIENTO":p.tratamiento||'',"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE"};
     segPromise=fetch(_SB+'/rest/v1/aos_seguimientos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowS)});
   }
-  Promise.all([
-    fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),
-    segPromise
-  ]).then(function(){closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),segPromise]).then(function(){closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -433,28 +502,163 @@ function fichaEditar(){if(window.AOS_showToast)AOS_showToast('ℹ️ Próximamen
 // ══════════════════════════════════════════════════════════════
 function cargarNombrePaciente(num){
   _rpc('aos_get_historial_paciente',{p_numero:String(num||'').replace(/\D/g,'')},function(res){
-    var w=document.getElementById('pac-nombre-wrap');if(!w)return;
-    if(!res||!res.paciente){w.style.display='none';return;}
+    var w=document.getElementById('pac-nombre-wrap');
+    if(!res||!res.paciente){if(w)w.style.display='none';renderContexto(null);return;}
     var p=res.paciente,nombre=((p.nombres||'')+' '+(p.apellidos||'')).trim();
-    if(nombre){document.getElementById('pac-nombre-txt').textContent=nombre;w.style.display='block';}else w.style.display='none';
+    if(w){
+      if(nombre){document.getElementById('pac-nombre-txt').textContent=nombre;w.style.display='block';}
+      else w.style.display='none';
+    }
+    // Renderizar contexto completo
+    renderContexto({
+      intentosPrevios:res.intentosPrevios||0,
+      ultContacto:res.ultContacto||null,
+      ultCita:res.ultCita||null,
+      ultCompra:res.ultCompra||null,
+      accionSugerida:generarSugerencia(res)
+    });
   });
+}
+
+function generarSugerencia(res){
+  if(!res)return '';
+  var uc=res.ultContacto,uv=res.ultCompra,ucit=res.ultCita;
+  if(uv&&uv.monto>500)return 'Cliente de alto valor (S/'+uv.monto+'). Ofrecer tratamiento complementario.';
+  if(ucit&&ucit.estado==='PENDIENTE')return 'Tiene cita pendiente: '+ucit.trat+' en '+ucit.sede+'. Confirmar asistencia.';
+  if(uc&&(uc.estado==='SIN CONTACTO'||uc.estado==='NO CONTESTA'))return 'Intentar contacto nuevamente. '+res.intentosPrevios+' intentos previos.';
+  if(uv)return 'Paciente activo. Ult. compra: '+uv.trat+' ('+uv.fecha+')';
+  return '';
 }
 
 function loadTrats(){
-  try{var c=sessionStorage.getItem('aos_trats');if(c){var items=JSON.parse(c);var sel=document.getElementById('cc-c-trat');if(sel&&items.length){sel.innerHTML=items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');return;}}}catch(e){}
-  _rpc('aos_get_tratamientos',{},function(rows){
-    if(!rows)return;
-    var sel=document.getElementById('cc-c-trat');
-    var items=(Array.isArray(rows)?rows:[]).map(function(r){return r.nombre||'';}).filter(Boolean);
-    if(sel)sel.innerHTML=items.map(function(t){return '<option value="'+escH(t)+'">'+escH(t)+'</option>';}).join('');
-    try{sessionStorage.setItem('aos_trats',JSON.stringify(items));}catch(e){}
+  // Tratamientos ya hardcodeados en el HTML — no sobrescribir
+}
+
+function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){
+    document.getElementById('cc-m-cita').classList.add('open');
+    document.getElementById('cc-m-cita-num').textContent='Número: '+(CC.lead?CC.lead.num:'—');
+    if(CC.lead&&CC.lead.num){buscarPacParaCita(CC.lead.num);}
+  }else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
+function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
+function doCallCC(){if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');}
+function openWaCC(){
+  if(!CC.lead||!CC.lead.num) return;
+  var num = CC.lead.num;
+  var trat = CC.lead.trat || (document.getElementById('cc-trat')?document.getElementById('cc-trat').textContent:'') || '';
+  var tipif = document.getElementById('cc-tipif') ? document.getElementById('cc-tipif').value : '';
+  var nombreEl = document.getElementById('cc-paciente-nombre');
+  var nombre = nombreEl ? nombreEl.textContent : '';
+  if(!nombre||nombre==='—'||nombre.indexOf('No encontrado')>=0) nombre = '';
+
+  // Cargar plantillas e info del tratamiento desde Supabase
+  var _sk = typeof _SK!=='undefined'?_SK:(window.AOS_SB_KEY||'');
+  var _sb = typeof _SB!=='undefined'?_SB:'https://ituyqwstonmhnfshnaqz.supabase.co';
+  var headers = {'apikey':_sk,'Authorization':'Bearer '+_sk};
+
+  Promise.all([
+    fetch(_sb+'/rest/v1/aos_plantillas_whatsapp?activo=eq.true&order=orden',{headers:headers}).then(function(r){return r.json()}),
+    fetch(_sb+'/rest/v1/aos_info_tratamientos?activo=eq.true',{headers:headers}).then(function(r){return r.json()})
+  ]).then(function(results) {
+    var plantillasDB = results[0] || [];
+    var tratamientosDB = results[1] || [];
+
+    // Buscar info del tratamiento
+    var infoTrat = '';
+    var tratUp = trat.toUpperCase();
+    tratamientosDB.forEach(function(t) {
+      if(tratUp.indexOf(t.campana.toUpperCase()) >= 0) {
+        infoTrat = t.descripcion_corta;
+      }
+    });
+    if(!infoTrat && trat) infoTrat = 'Te contactamos sobre nuestro servicio de *'+trat+'* que tenemos disponible para ti.';
+
+    // Preparar nombre para plantilla
+    var nombreTag = nombre ? (' ' + nombre.split(' ')[0]) : '';
+
+    // Filtrar plantillas por contexto
+    var plantillas = [];
+    plantillasDB.forEach(function(p) {
+      // Si tiene contexto específico, solo mostrar si la tipificación coincide
+      if(p.contexto && tipif.toUpperCase().replace(/ /g,'_') !== p.contexto.toUpperCase()) return;
+      
+      // Reemplazar variables en mensaje
+      var msg = p.mensaje
+        .replace(/\{nombre\}/g, nombreTag)
+        .replace(/\{tratamiento\}/g, trat || 'nuestros tratamientos')
+        .replace(/\{info_tratamiento\}/g, infoTrat)
+        .replace(/\{sede\}/g, 'San Isidro');
+      
+      plantillas.push({ icon: p.icono, label: p.nombre, color: p.color, msg: msg });
+    });
+
+    // Si no hay plantillas del DB, usar fallback
+    if(!plantillas.length) {
+      plantillas.push({icon:'💬',label:'Mensaje rápido',color:'#475569',
+        msg:'Hola'+nombreTag+', te escribimos de *Zi Vital* 🌿\n\nTe contactamos sobre *'+(trat||'nuestros servicios')+'*.\n\n¿Te gustaría más información?'});
+    }
+
+    renderWaModal(num, trat, plantillas);
+  }).catch(function() {
+    // Fallback si falla Supabase
+    var nombreTag = nombre ? (' '+nombre.split(' ')[0]) : '';
+    renderWaModal(num, trat, [
+      {icon:'📞',label:'Contacto rápido',color:'#DC2626',msg:'Hola'+nombreTag+', te llamamos de *Zi Vital* 🌿 sobre *'+(trat||'nuestros servicios')+'*.\n\n¿Te gustaría más información o agendar una evaluación? 😊'},
+      {icon:'✏️',label:'Mensaje libre',color:'#475569',msg:'Hola'+nombreTag+', te escribimos de *Zi Vital* 🌿\n\n'}
+    ]);
   });
 }
 
-function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){document.getElementById('cc-m-cita').classList.add('open');}else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
-function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
-function doCallCC(){if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');}
-function openWaCC(){if(!CC.lead||!CC.lead.wa)return;window.open(CC.lead.wa,'_blank');}
+function renderWaModal(num, trat, plantillas) {
+  var existing = document.getElementById('wa-modal-cc');
+  if (existing) existing.remove();
+
+  var m = document.createElement('div');
+  m.id = 'wa-modal-cc';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
+
+  var cardsHtml = plantillas.map(function(p, i) {
+    return '<div onclick="waSeleccionarPlantilla('+i+')" style="padding:12px 14px;border:2px solid #EEF0F8;border-radius:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;" onmouseover="this.style.borderColor=\'#128C7E\';this.style.background=\'#F0FFF4\'" onmouseout="this.style.borderColor=\'#EEF0F8\';this.style.background=\'#fff\'">' +
+      '<span style="font-size:18px;">'+p.icon+'</span>' +
+      '<div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;color:'+p.color+';">'+escH(p.label)+'</div>' +
+      '<div style="font-size:9px;color:#94A3B8;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(p.msg.substring(0,80).replace(/\n/g,' '))+'...</div></div></div>';
+  }).join('');
+
+  m.innerHTML = '<div style="background:#fff;border-radius:16px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+    '<div style="background:linear-gradient(135deg,#075E54,#128C7E);padding:16px 20px;display:flex;align-items:center;gap:10px;">' +
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>' +
+    '<div><div style="font-size:14px;font-weight:800;color:#fff;">WhatsApp · Plantillas</div>' +
+    '<div style="font-size:10px;color:#25D366;">'+escH(num)+' · '+escH(trat||'Sin campaña')+'</div></div>' +
+    '<div onclick="document.getElementById(\'wa-modal-cc\').remove()" style="margin-left:auto;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</div></div>' +
+    '<div style="padding:14px 18px;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">'+cardsHtml+'</div>' +
+    '<div id="wa-preview-area" style="display:none;padding:14px 18px;border-top:1px solid #EEF0F8;">' +
+    '<div style="font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;">Vista previa · puedes editar antes de enviar</div>' +
+    '<textarea id="wa-msg-edit" style="width:100%;height:120px;border:1.5px solid #DDE4F5;border-radius:8px;padding:10px;font-size:11px;font-family:DM Sans,sans-serif;resize:none;outline:none;box-sizing:border-box;"></textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;">' +
+    '<button onclick="document.getElementById(\'wa-preview-area\').style.display=\'none\'" style="flex:1;padding:9px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">\u2190 Volver</button>' +
+    '<button onclick="waEnviarMsg()" style="flex:1;padding:9px;border:none;border-radius:8px;background:#25D366;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">\ud83d\udcac Enviar WhatsApp</button></div></div></div>';
+
+  document.body.appendChild(m);
+  window._waPlantillas = plantillas;
+}
+
+function waSeleccionarPlantilla(idx) {
+  var p = window._waPlantillas[idx];
+  if(!p) return;
+  document.getElementById('wa-msg-edit').value = p.msg;
+  document.getElementById('wa-preview-area').style.display = 'block';
+}
+
+function waEnviarMsg() {
+  var msg = document.getElementById('wa-msg-edit').value;
+  var num = CC.lead ? CC.lead.num : '';
+  if(!num) return;
+  var cleanNum = '51' + num.replace(/\D/g,'');
+  // Usa protocolo whatsapp:// para abrir directo en Desktop (más rápido que wa.me)
+  var url = 'https://api.whatsapp.com/send?phone=' + cleanNum + '&text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  var m = document.getElementById('wa-modal-cc');
+  if(m) m.remove();
+}
 function copyNumCC(){if(!CC.lead)return;navigator.clipboard.writeText(CC.lead.num).catch(function(){});if(window.AOS_showToast)AOS_showToast('⧉ Copiado',CC.lead.num,'');}
 function closeCCModal(id){document.getElementById(id).classList.remove('open');document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');}
 function abrirModalManual(){var inp=document.getElementById('manual-buscar'),res2=document.getElementById('manual-resultados'),nd=document.getElementById('manual-num-directo');if(inp)inp.value='';if(res2)res2.innerHTML='';if(nd)nd.value='';document.getElementById('cc-m-manual').classList.add('open');}
@@ -482,3 +686,200 @@ function selPacManual(el){var tel=el.getAttribute('data-tel'),nd=document.getEle
 function renderContexto(ctx){var el=document.getElementById('cc-contexto');if(!el)return;if(!ctx){el.style.display='none';el.innerHTML='';return;}var html='<div class="ctx-bloque"><div class="ctx-tit">📋 Contexto</div>';if(ctx.intentosPrevios>0)html+='<div class="ctx-row"><span class="ctx-lbl">Intentos prev.:</span><span class="ctx-val">'+ctx.intentosPrevios+'</span></div>';if(ctx.ultContacto){var est=(ctx.ultContacto.estado||'').toUpperCase(),badge=est==='SIN CONTACTO'||est==='NO CONTESTA'?'<span style="background:#FEF2F2;color:#B91C1C;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;">'+escH(est)+'</span>':est==='CITA CONFIRMADA'?'<span style="background:#EBF2FF;color:#0A4FBF;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;">CITA CONF.</span>':'<span style="color:#6B7BA8;font-weight:600;">'+escH(ctx.ultContacto.estado)+'</span>';html+='<div class="ctx-row"><span class="ctx-lbl">Últ. contacto:</span><span class="ctx-val">'+escH(ctx.ultContacto.fecha||'')+' · '+badge+'</span></div>';}if(ctx.ultCita)html+='<div class="ctx-row"><span class="ctx-lbl">Últ. cita:</span><span class="ctx-val">'+escH(ctx.ultCita.fecha||'')+' · '+escH(ctx.ultCita.trat||'')+'</span></div>';if(ctx.ultCompra)html+='<div class="ctx-row"><span class="ctx-lbl">Últ. compra:</span><span class="ctx-val">'+escH(ctx.ultCompra.trat||'')+' · S/'+(parseFloat(ctx.ultCompra.monto)||0).toFixed(0)+'</span></div>';if(ctx.accionSugerida)html+='<div class="ctx-acc"><span>💡</span><span>'+escH(ctx.accionSugerida)+'</span></div>';html+='</div>';el.innerHTML=html;el.style.display='block';}
 
 function escH(s){return String(s||'').replace(/&/g,'&amp;').split('<').join('&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+
+// ══════════════════════════════════════════════════════════════
+// DETECCIÓN AUTOMÁTICA DE DOCTORA POR SEDE + DÍA + HORA
+// ══════════════════════════════════════════════════════════════
+function detectarDoctora(fechaStr,horaStr,sede,targetId){
+  var el=document.getElementById(targetId);if(!el)return;
+  if(!fechaStr||!sede){el.value='';return;}
+  el.value='Buscando...';
+  var hora=(horaStr||'10:00').slice(0,5);
+  // Calcular lunes de la semana del fechaStr
+  var dd=new Date(fechaStr+'T12:00:00');
+  var day=dd.getDay();var diff=dd.getDate()-day+(day===0?-6:1);
+  var lunes=new Date(dd.getFullYear(),dd.getMonth(),diff);
+  var lunesStr=lunes.toISOString().slice(0,10);
+  // Usar MISMA RPC que el calendario
+  _rpc('aos_horarios_semana',{p_fecha_lunes:lunesStr,p_sede:sede,p_rol:''},function(res){
+    if(!res||!res.dias){el.value='Sin datos';el.style.color='#D97706';return;}
+    // Encontrar el día correcto en res.dias[]
+    var diaObj=null;
+    (res.dias||[]).forEach(function(d){if(d.fecha===fechaStr||d.fecha_date===fechaStr)diaObj=d;});
+    if(!diaObj||!diaObj.turnos){el.value='Sin turnos ese dia';el.style.color='#D97706';return;}
+    // Filtrar solo doctoras
+    var docs=diaObj.turnos.filter(function(t){return(t.rol||'').toUpperCase()==='DOCTORA';});
+    if(!docs.length){el.value='Sin doctora ese dia';el.style.color='#D97706';return;}
+    // Filtrar por hora
+    var matches=docs.filter(function(t){
+      var hi=(t.hora_inicio||'').slice(0,5);var hf=(t.hora_fin||'').slice(0,5);
+      return hora>=hi&&hora<=hf;
+    });
+    if(matches.length>0){
+      el.value=matches[0].personal;
+      el.style.color='#16A34A';
+    } else {
+      var allDocs=docs.map(function(t){return t.personal+' ('+t.hora_inicio.slice(0,5)+'-'+t.hora_fin.slice(0,5)+')';}).join(', ');
+      el.value='Fuera de horario. '+allDocs;
+      el.style.color='#D97706';
+    }
+  });
+}
+
+// Event listeners para auto-detectar doctora en modal de cita
+(function(){
+  // Detectar doctora en modal cita CC
+  ['cc-c-fecha','cc-c-hora','cc-c-sede','cc-c-tipo-at'].forEach(function(id){
+    var e=document.getElementById(id);
+    if(e){e.addEventListener('change',_triggerDocCC);e.addEventListener('input',_triggerDocCC);}
+  });
+  function _triggerDocCC(){
+    var f=document.getElementById('cc-c-fecha').value;
+    var h=document.getElementById('cc-c-hora').value;
+    var s=document.getElementById('cc-c-sede').value;
+    if(f&&s)detectarDoctora(f,h,s,'cc-c-doctora');
+  }
+  // Detectar doctora en modal cita manual
+  ['cm-fecha','cm-hora','cm-sede','cm-tipo-at'].forEach(function(id){
+    var e=document.getElementById(id);
+    if(e){e.addEventListener('change',_triggerDocCM);e.addEventListener('input',_triggerDocCM);}
+  });
+  function _triggerDocCM(){
+    var f=document.getElementById('cm-fecha').value;
+    var h=document.getElementById('cm-hora').value;
+    var s=document.getElementById('cm-sede').value;
+    if(f&&s)detectarDoctora(f,h,s,'cm-doctora');
+  }
+  // Tipo cita tabs en modal manual
+  var grp=document.getElementById('cm-tipo-cita-grp');
+  if(grp)grp.querySelectorAll('.tb').forEach(function(t){t.addEventListener('click',function(){grp.querySelectorAll('.tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
+})();
+
+// ══════════════════════════════════════════════════════════════
+// MODAL CITA MANUAL (con número)
+// ══════════════════════════════════════════════════════════════
+function abrirCitaManual(){
+  var hoy=(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
+  var el=document.getElementById('cm-fecha');if(el){el.min=hoy;el.value='';}
+  document.getElementById('cm-num').value='';
+  document.getElementById('cm-nombre').value='';
+  document.getElementById('cm-apellido').value='';
+  document.getElementById('cm-dni').value='';
+  document.getElementById('cm-correo').value='';
+  document.getElementById('cm-doctora').value='';
+  document.getElementById('cm-obs').value='';
+  var info=document.getElementById('cm-pac-info');if(info){info.style.display='none';info.innerHTML='';}
+  document.getElementById('cc-m-cita-manual').classList.add('open');
+}
+
+var _cmTimer=null;
+function buscarPacCitaManual(q){
+  clearTimeout(_cmTimer);
+  var info=document.getElementById('cm-pac-info');
+  if(!q||q.length<3){if(info)info.style.display='none';return;}
+  _cmTimer=setTimeout(function(){
+    _rpc('aos_search_pacientes',{p_query:q,p_limit:5},function(rows){
+      if(!rows||!rows.length){if(info)info.style.display='none';return;}
+      var num=(document.getElementById('cm-num').value||'').replace(/\D/g,'');
+      var match=rows.find(function(p){return (p.telefono||'').replace(/\D/g,'')===num;});
+      if(match){
+        info.style.display='block';
+        info.innerHTML='<div style="font-size:11px;font-weight:700;color:#0A4FBF;">\u2713 Paciente encontrado: '+(match.nombres||'')+' '+(match.apellidos||'')+'</div><div style="font-size:9px;color:#6B7BA8;">DNI: '+(match.dni||'—')+' | Tel: '+(match.telefono||'')+'</div>';
+        if(match.nombres)document.getElementById('cm-nombre').value=match.nombres;
+        if(match.apellidos)document.getElementById('cm-apellido').value=match.apellidos;
+        if(match.dni)document.getElementById('cm-dni').value=match.dni;
+        if(match.correo)document.getElementById('cm-correo').value=match.correo;
+      }
+    });
+  },400);
+}
+
+function guardarCitaManual(){
+  var num=(document.getElementById('cm-num').value||'').trim().replace(/\D/g,'');
+  if(!num||num.length<7){alert('Ingresa un número válido.');return;}
+  var fecha=document.getElementById('cm-fecha').value;
+  if(!fecha){alert('Selecciona la fecha de la cita.');return;}
+  var x=_ctx();var now=new Date();
+  var tipoCita='CONSULTA NUEVA';
+  var grp=document.getElementById('cm-tipo-cita-grp');
+  if(grp)grp.querySelectorAll('.tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
+  var doctora=document.getElementById('cm-doctora').value||'';
+  var rowC={
+    numero_limpio:num,numero:num,
+    nombre:document.getElementById('cm-nombre').value.trim(),
+    apellido:document.getElementById('cm-apellido').value.trim(),
+    dni:document.getElementById('cm-dni').value.trim(),
+    correo:document.getElementById('cm-correo').value.trim(),
+    tipo_atencion:document.getElementById('cm-tipo-at').value,
+    sede:document.getElementById('cm-sede').value,
+    fecha_cita:fecha,
+    hora_cita:document.getElementById('cm-hora').value||'10:00',
+    tratamiento:document.getElementById('cm-trat').value,
+    tipo_cita:tipoCita,
+    doctora:doctora,
+    asesor:x.a,id_asesor:x.id,
+    estado_cita:'PENDIENTE',
+    origen_cita:'CITA_MANUAL',
+    obs:document.getElementById('cm-obs').value.trim(),
+    ts_creado:now.toISOString()
+  };
+  rowC.estado_cita='PENDIENTE';
+  var rowLM={fecha:x.hoy,numero:num,numero_limpio:num,tratamiento:rowC.tratamiento||'',estado:'CITA CONFIRMADA',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:1,created_at:now.toISOString()};
+  console.log('[AOS] citaManual cita:',JSON.stringify(rowC));
+  console.log('[AOS] citaManual llamada:',JSON.stringify(rowLM));
+  Promise.all([
+    fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)}),
+    fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowLM)})
+  ]).then(function(results){
+    var allOk=results.every(function(r){return r.ok;});
+    if(!allOk)throw new Error('Error guardando');
+    closeCCModal('cc-m-cita-manual');
+    if(window.AOS_playSound)AOS_playSound('venta');
+    if(window.AOS_showToast)AOS_showToast('Cita agendada','Cita + llamada registradas','toast-venta');
+    // Enviar email de confirmación automáticamente
+    enviarEmailConfirmacionCita(rowC);
+    loadMetrics();loadHistorial();
+  }).catch(function(e){
+    console.error('[AOS] Error citaManual:',e);
+    if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error al guardar','toast-alerta');
+  });
+}
+
+// Incluir doctora en ccConfirmarCita
+var _origCCConfirmarCita = ccConfirmarCita;
+ccConfirmarCita = function(){
+  // Inyectar doctora al payload antes de guardar
+  var docEl=document.getElementById('cc-c-doctora');
+  if(docEl&&docEl.value){
+    var _origFetch=window.fetch;
+    window.fetch=function(url,opts){
+      if(url.indexOf('aos_agenda_citas')>=0&&opts&&opts.body){
+        try{var b=JSON.parse(opts.body);b.doctora=docEl.value;opts.body=JSON.stringify(b);}catch(e){}
+      }
+      return _origFetch.call(this,url,opts);
+    };
+    _origCCConfirmarCita();
+    setTimeout(function(){window.fetch=_origFetch;},3000);
+  } else {
+    _origCCConfirmarCita();
+  }
+};
+
+
+// Buscar paciente existente y autocompletar campos del modal de cita
+function buscarPacParaCita(num){
+  var numL=String(num||'').replace(/\D/g,'');
+  if(!numL||numL.length<7)return;
+  _rpc('aos_search_pacientes',{p_query:numL,p_limit:3},function(rows){
+    if(!rows||!rows.length)return;
+    var match=rows.find(function(p){return(p.telefono||'').replace(/\D/g,'')===numL;});
+    if(!match)match=rows[0];
+    if(match.nombres){var e=document.getElementById('cc-c-nombre');if(e&&!e.value)e.value=match.nombres;}
+    if(match.apellidos){var e=document.getElementById('cc-c-apellido');if(e&&!e.value)e.value=match.apellidos;}
+    if(match.dni){var e=document.getElementById('cc-c-dni');if(e&&!e.value)e.value=match.dni;}
+    if(match.correo){var e=document.getElementById('cc-c-correo');if(e&&!e.value)e.value=match.correo;}
+  });
+}
+
