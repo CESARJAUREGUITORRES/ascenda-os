@@ -56,6 +56,7 @@
 .cot-hdr-right{display:flex;align-items:center;gap:4px;}
 .cot-btn{width:30px;height:30px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6B7BA8;transition:all .15s;}.cot-btn:hover{background:#F0F4FC;border-color:#0A4FBF;color:#0A4FBF;}
 .cot-btn.pay{border-color:#16A34A;color:#16A34A;font-weight:800;}.cot-btn.pay:hover{background:#F0FDF4;}
+.cot-btn.del{border-color:#FCA5A5;color:#DC2626;}.cot-btn.del:hover{background:#FEF2F2;border-color:#DC2626;}
 .cot-body{border-top:1px solid #DDE4F5;}
 .cot-tbl{width:100%;border-collapse:collapse;}
 .cot-tbl th{font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#fff;padding:7px 8px;text-align:left;background:#0A4FBF;}
@@ -101,8 +102,9 @@
 </div>
 <div class="mg" style="margin-top:12px;">
 <div class="mf"><div class="ml">Sede</div><select class="ms2" id="pago-sede"><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-<div class="mf"><div class="ml">Comprobante</div><select class="ms2" id="pago-comprobante"><option value="BOLETA VIRTUAL">Boleta virtual</option><option value="BOLETA FISICA">Boleta f&iacute;sica</option><option value="R.H.">R.H.</option><option value="FACTURA">Factura</option><option value="OTROS">Otros</option></select></div>
-<div class="mf"><div class="ml">Asesor</div><select class="ms2" id="pago-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option><option value="CESAR">C&eacute;sar</option></select></div>
+<div class="mf"><div class="ml">Comprobante</div><select class="ms2" id="pago-comprobante" onchange="ptAutoRazon(this.value)"><option value="BOLETA VIRTUAL">Boleta virtual</option><option value="BOLETA FISICA">Boleta física</option><option value="R.H.">R.H.</option><option value="FACTURA">Factura</option><option value="OTROS">Otros</option></select></div>
+<div class="mf"><div class="ml">Entidad fiscal (RUC/RH)</div><select class="ms2" id="pago-razon"><option value="">— Sin entidad —</option></select></div>
+<div class="mf"><div class="ml">Asesor</div><select class="ms2" id="pago-asesor"><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option><option value="CESAR">César</option></select></div>
 <div class="mf"><div class="ml">Fecha</div><div style="display:flex;gap:4px;align-items:center;"><input class="mi" id="pago-fecha" type="date" style="flex:1;"/></div></div>
 <div class="mf full"><div class="ml">Nota</div><input class="mi" id="pago-nota" placeholder="Nota del pago..."/></div>
 </div>

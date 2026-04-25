@@ -98,7 +98,10 @@ function loadCotizaciones(){
       var showPay=saldo>0.01&&c.estado!=='CANCELADO';
       var card='<div class="cot-card"><div class="cot-hdr" onclick="cotToggle(this)"><div class="cot-hdr-left"><div class="cot-chevron">\u25BC</div><span class="cot-est '+estCls2+'">'+estLbl+'</span><span class="cot-num">#'+h(c.numero_cotizacion)+'</span><span class="cot-fecha">'+h(c.fecha||'')+'</span></div><div class="cot-hdr-right" onclick="event.stopPropagation()">';
       if(showPay)card+='<button class="cot-btn pay" title="Pagar" onclick="pagoAbrir(\''+h(c.id)+'\')">$</button>';
-      card+='<button class="cot-btn" title="Editar" onclick="ecAbrir(\''+h(c.id)+'\')">&#9999;</button><button class="cot-btn" title="Enviar email" onclick="cotEmail(\''+h(c.id)+'\')">&#9993;</button><button class="cot-btn" title="PDF" onclick="cotPDF(\''+h(c.id)+'\')">&#8681;</button></div></div>';
+      card+='<button class="cot-btn" title="Editar" onclick="ecAbrir(\''+h(c.id)+'\')">&#9999;</button><button class="cot-btn" title="Enviar email" onclick="cotEmail(\''+h(c.id)+'\')">&#9993;</button><button class="cot-btn" title="PDF" onclick="cotPDF(\''+h(c.id)+'\')">&#8681;</button>';
+      // Botón eliminar — solo si no tiene pagos registrados
+      if(!pagos.length){card+='<button class="cot-btn del" title="Eliminar cotización" onclick="cotEliminar(\''+h(c.id)+'\',\'#'+h(c.numero_cotizacion)+'\')">&#128465;</button>';}
+      card+='</div></div>';
       // BODY
       card+='<div class="cot-body"><table class="cot-tbl"><thead><tr><th>Item</th><th>Cant.</th><th>Subtotal</th><th>Pagado</th><th>Por pagar</th><th>Estado</th></tr></thead><tbody>';
       items.forEach(function(it){
@@ -133,6 +136,84 @@ function loadCotizaciones(){
   });
 }
 function cotToggle(hdr){hdr.parentElement.classList.toggle('collapsed');}
+
+// ===== ELIMINAR COTIZACIÓN =====
+function cotEliminar(cotId, num) {
+  if (!confirm('¿Eliminar cotización ' + num + '?\nEsta acción no se puede deshacer.')) return;
+  // Borrar items primero, luego la cotización
+  _rest('aos_cotizacion_items?cotizacion_id=eq.'+cotId, {method:'DELETE'}).then(function() {
+    return _rest('aos_cotizaciones?id=eq.'+cotId, {method:'DELETE'});
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Error al eliminar');
+    if (window.AOS_showToast) AOS_showToast('Cotización eliminada', num, 'toast-alerta');
+    loadCotizaciones();
+  }).catch(function(e) {
+    if (window.AOS_showToast) AOS_showToast('Error', e.message||'', 'toast-alerta');
+  });
+}
+
+// ===== COMPROBANTES Y MÉTODOS DINÁMICOS =====
+var _PT_METODOS = []; // se carga desde aos_metodos_pago
+var _PT_COMPROBANTES = []; // se carga desde aos_tipos_comprobante
+var _PT_RAZONES = []; // se carga desde aos_razones_sociales
+var _PT_COMP_RUCS = {}; // mapa comprobante→rucs
+var _PT_MET_COMPS = {}; // mapa método→comprobantes
+
+function ptLoadCatalogos() {
+  // Cargar métodos de pago dinámicos
+  fetch(_SB+'/rest/v1/aos_metodos_pago?activo=eq.true&order=orden.asc', {headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json();}).then(function(rows) {
+      if (rows && rows.length) {
+        _PT_METODOS = rows.map(function(r){return r.nombre;});
+        rows.forEach(function(r){_PT_MET_COMPS[r.nombre]=(r.comprobantes_vinculados&&r.comprobantes_vinculados.length)?r.comprobantes_vinculados:null;});
+      }
+    }).catch(function(){});
+  // Cargar tipos de comprobante dinámicos
+  fetch(_SB+'/rest/v1/aos_tipos_comprobante?activo=eq.true&order=orden.asc', {headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json();}).then(function(rows) {
+      if (rows && rows.length) {
+        _PT_COMPROBANTES = rows.map(function(r){return r.nombre;});
+        rows.forEach(function(r){_PT_COMP_RUCS[r.nombre]=(r.rucs_vinculados&&r.rucs_vinculados.length)?r.rucs_vinculados:null;});
+      }
+    }).catch(function(){});
+  // Cargar razones sociales
+  fetch(_SB+'/rest/v1/aos_razones_sociales?activo=eq.true&order=tipo_ruc.asc', {headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json();}).then(function(rows){if(rows&&rows.length)_PT_RAZONES=rows;}).catch(function(){});
+}
+ptLoadCatalogos();
+
+function ptSugerirComp(metodo) {
+  var vinc = _PT_MET_COMPS[metodo];
+  if (vinc && vinc.length) return vinc[0];
+  var m = (metodo||'').toUpperCase();
+  if (m.indexOf('QR DOCTORA')>-1||m.indexOf('INTERBANK DRA')>-1||m.indexOf('BBVA DRA')>-1||m.indexOf('BCP DRA')>-1||m.indexOf('IBK DRA')>-1) return 'R.H.';
+  if (m==='EFECTIVO'||m.indexOf('DOLAR')>-1) return 'BOLETA FISICA';
+  return 'BOLETA VIRTUAL';
+}
+function ptRenderCompOpts(selVal, metodo) {
+  var lista = (_PT_COMPROBANTES.length ? _PT_COMPROBANTES : ['BOLETA VIRTUAL','BOLETA FISICA','R.H.','FACTURA','OTROS']);
+  var vinc = metodo && _PT_MET_COMPS[metodo];
+  if (vinc && vinc.length) lista = lista.filter(function(c){return vinc.indexOf(c)>-1;});
+  return lista.map(function(c){return '<option value="'+c+'"'+(c===selVal?' selected':'')+'>'+c+'</option>';}).join('');
+}
+function ptRenderRazonOpts(selId, comprobante) {
+  var vinc = _PT_COMP_RUCS[comprobante];
+  var lista = _PT_RAZONES;
+  if (vinc && vinc.length) lista = lista.filter(function(r){return vinc.indexOf(r.id)>-1;});
+  var opts = '<option value="">— Sin entidad —</option>';
+  lista.forEach(function(r){var lbl=r.tipo_ruc+' — '+r.razon_social+(r.ruc?' ('+r.ruc+')':'');opts+='<option value="'+r.id+'"'+(r.id===selId?' selected':'')+'>'+lbl+'</option>';});
+  return opts;
+}
+function ptAutoComp(metodo) {
+  var comp = ptSugerirComp(metodo);
+  var selC = el('pago-comprobante'); if(selC) selC.innerHTML = ptRenderCompOpts(comp, metodo);
+  var selR = el('pago-razon'); if(selR){selR.innerHTML = ptRenderRazonOpts('', comp);if(selR.options.length===2)selR.selectedIndex=1;}
+}
+function ptAutoRazon(comprobante) {
+  var selR = el('pago-razon'); if(!selR)return;
+  selR.innerHTML = ptRenderRazonOpts('', comprobante);
+  if(selR.options.length===2)selR.selectedIndex=1;
+}
 
 // ===== ESTADO ENTREGA — CICLO =====
 function cotCicloEstado(itemId,tipo,elem){
@@ -176,6 +257,14 @@ function pagoAbrir(cotId){
   var ctx=(window.AOS_getCtx&&window.AOS_getCtx())||{};
   el('pago-asesor').value=(ctx.asesor||c.asesor||'WILMER').toUpperCase();
   el('pago-cobrar').textContent=fmtMoney(saldo);
+  // Poblar métodos dinámicos
+  var metodosOpts='<option value="">-- Seleccionar --</option>'+(_PT_METODOS.length?_PT_METODOS:['EFECTIVO','NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY YA','TRANSFERENCIA BCP','TRANSFERENCIA IBK','INTERBANK DRA','BBVA DRA','BCP DRA','QR DOCTORA','QR CARMEN','MERCADO PAGO','DOLARES EFECTIVO','IBK DRA DOLARES']).map(function(m){return '<option value="'+m+'">'+m+'</option>';}).join('');
+  var selM=el('pago-metodo-single');if(selM)selM.innerHTML=metodosOpts;
+  // Poblar comprobantes dinámicos
+  var selC=el('pago-comprobante');if(selC)selC.innerHTML=ptRenderCompOpts('BOLETA VIRTUAL','');
+  // Agregar select razón social si no existe
+  var selR=el('pago-razon');
+  if(selR){selR.innerHTML=ptRenderRazonOpts('','BOLETA VIRTUAL');if(selR.options.length===2)selR.selectedIndex=1;}
   // Reset dividir
   el('pago-dividir-zone').style.display='none';
   var btn=el('pago-dividir-btn');if(btn)btn.classList.remove('active');
@@ -202,8 +291,9 @@ var _METODOS_PAGO=['EFECTIVO','NIUBIZ SAN ISIDRO','NIUBIZ PUEBLO LIBRE','IZIPAY 
 function pagoAddLine(){_pagoLines.push({metodo:'',monto:0});pagoRenderLines();}
 function pagoRenderLines(){
   var box=el('pago-lines');if(!box)return;
+  var lista=_PT_METODOS.length?_PT_METODOS:_METODOS_PAGO;
   box.innerHTML=_pagoLines.map(function(ln,i){
-    var opts='<option value="">-- Seleccionar --</option>'+_METODOS_PAGO.map(function(m){var isDol=m.indexOf('DOLAR')>=0;return '<option value="'+h(m)+'"'+(ln.metodo===m?' selected':'')+'>'+h(m)+(isDol?' ($)':'')+'</option>';}).join('');
+    var opts='<option value="">-- Seleccionar --</option>'+lista.map(function(m){var isDol=m.indexOf('DOLAR')>=0;return '<option value="'+h(m)+'"'+(ln.metodo===m?' selected':'')+'>'+h(m)+(isDol?' ($)':'')+'</option>';}).join('');
     return '<div class="pago-line"><select class="ms2" onchange="_pagoLines['+i+'].metodo=this.value">'+opts+'</select><input class="mi" type="number" step="0.01" value="'+(ln.monto||'')+'" placeholder="S/" oninput="_pagoLines['+i+'].monto=parseFloat(this.value)||0;pagoCalcDividido()"/>'+(i>0?'<div style="cursor:pointer;color:#DC2626;font-size:14px;text-align:center;" onclick="_pagoLines.splice('+i+',1);pagoRenderLines();pagoCalcDividido();">&times;</div>':'<div></div>')+'</div>';
   }).join('');
   pagoCalcDividido();
@@ -218,37 +308,46 @@ function pagoGuardar(){
   var asesorCom=el('pago-asesor').value;var fecha=el('pago-fecha').value;
   var comprobante=el('pago-comprobante').value;var sede=el('pago-sede').value;
   var nota=el('pago-nota').value.trim();var registradoPor=(ctx.asesor||asesorCom||'').toUpperCase();
+  var razonSocialId=(el('pago-razon')&&el('pago-razon').value)||null;
   if(!fecha){alert('Selecciona una fecha');return;}
-  var pagos=[];
+  var pagos=[];var metodo1='',monto1=0,metodo2='',monto2=0;
   if(PT.isDividido){
     var lineasValidas=_pagoLines.filter(function(ln){return ln.monto>0;});
-    // Validar que todas las líneas tengan método seleccionado
     for(var i=0;i<lineasValidas.length;i++){
-      if(!lineasValidas[i].metodo){alert('Selecciona un m\u00e9todo de pago en todas las l\u00edneas');return;}
+      if(!lineasValidas[i].metodo){alert('Selecciona un método de pago en todas las líneas');return;}
     }
     pagos=lineasValidas.map(function(ln){return{cotizacion_id:PT.payCotId,monto:ln.monto,moneda:ln.metodo.indexOf('DOLAR')>=0?'USD':'PEN',metodo_pago:ln.metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota};});
+    metodo1=lineasValidas[0]?lineasValidas[0].metodo:'';monto1=lineasValidas[0]?lineasValidas[0].monto:0;
+    metodo2=lineasValidas[1]?lineasValidas[1].metodo:'';monto2=lineasValidas[1]?lineasValidas[1].monto:0;
   }else{
     var metodo=el('pago-metodo-single').value;
-    if(!metodo){alert('Selecciona un m\u00e9todo de pago');return;}
+    if(!metodo){alert('Selecciona un método de pago');return;}
     pagos=[{cotizacion_id:PT.payCotId,monto:saldo,moneda:metodo.indexOf('DOLAR')>=0?'USD':'PEN',metodo_pago:metodo,tipo_comprobante:comprobante,sede:sede,registrado_por:registradoPor,asesor_comision:asesorCom,fecha_pago:fecha,nota:nota}];
+    metodo1=metodo;monto1=saldo;
   }
   var totalPago=pagos.reduce(function(s,p){return s+p.monto;},0);
   if(totalPago<=0){alert('El monto total debe ser mayor a 0');return;}
+  var pac=PT.sel||{};
   // Guardar pagos en aos_pagos
   fetch(_SB+'/rest/v1/aos_pagos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(pagos)}).then(function(r){
     if(!r.ok)return r.text().then(function(t){throw new Error('Error: '+t);});
     return r.json();
   }).then(function(saved){
-    console.log('[PAGO] Guardados '+saved.length+' pagos en aos_pagos:', saved);
     // Actualizar cotización
     var nuevoPagado=parseFloat(c.total_pagado||0)+totalPago;
     var nuevoSaldo=parseFloat(c.subtotal||0)-nuevoPagado;if(nuevoSaldo<0)nuevoSaldo=0;
     var nuevoEstado=nuevoSaldo<=0.01?'PAGADO_COMPLETO':'PAGADO_PARCIAL';
     return _rest('aos_cotizaciones?id=eq.'+PT.payCotId,{method:'PATCH',body:JSON.stringify({total_pagado:nuevoPagado,saldo_pendiente:nuevoSaldo,estado:nuevoEstado,fecha_pago_completo:nuevoEstado==='PAGADO_COMPLETO'?localDate():null})});
   }).then(function(r){
-    if(!r.ok)throw new Error('Error actualizando cotizaci\u00f3n');
+    if(!r.ok)throw new Error('Error actualizando cotización');
+    // ===== CONECTAR CON CAJA: crear venta en aos_ventas =====
+    var items=c.items||[];
+    var rpcItems=items.map(function(it){return{tipo:it.tipo||'SERVICIO',nombre:it.descripcion||it.nombre,cantidad:it.cantidad||1,precio:parseFloat(it.precio_unitario||0),subtotal:parseFloat(it.subtotal||0),metodo1:metodo1,monto1:items.length===1?monto1:parseFloat(it.subtotal||0),metodo2:metodo2,monto2:items.length===1?monto2:0,comprobante:comprobante,asesor:asesorCom,atendio:c.doctor_responsable||''};});
+    var nuevoPagadoFinal=Math.min(parseFloat(c.total_pagado||0)+totalPago, parseFloat(c.subtotal||0));
+    var estadoPago=nuevoSaldo<=0.01?'PAGO COMPLETO':'ADELANTO';
+    fetch(_SB+'/rest/v1/rpc/aos_grabar_venta_caja',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify({p_sede:sede,p_usuario:registradoPor,p_sesion_id:'',p_numero_limpio:pac.telefono||'',p_nombres:pac.nombres||c.nombre_paciente||'',p_apellidos:pac.apellidos||'',p_celular:pac.telefono||'',p_dni:pac.dni||c.dni_paciente||'',p_asesor:asesorCom,p_doctor:c.doctor_responsable||'',p_items:rpcItems,p_metodo_pago:metodo1,p_monto_total:totalPago,p_moneda:metodo1.indexOf('DOLAR')>=0?'USD':'PEN',p_tipo_comprobante:comprobante,p_nro_doc:'',p_estado_pago:estadoPago,p_nota:nota,p_tipo:'SERVICIO',p_fecha:fecha,p_razon_social_id:razonSocialId||null})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok)console.log('[CAJA] Venta creada desde Pacientes:',d.cotizacion_id);else console.warn('[CAJA] No se pudo crear venta:',d);}).catch(function(e){console.warn('[CAJA] Error venta pacientes:',e.message);});
     el('pt-m-pago').classList.remove('open');
-    if(window.AOS_showToast)AOS_showToast('Pago registrado correctamente','S/'+fmtMoney(totalPago)+' - '+pagos[0].metodo_pago,'toast-venta');
+    if(window.AOS_showToast)AOS_showToast('Pago registrado','S/'+fmtMoney(totalPago)+' - '+pagos[0].metodo_pago,'toast-venta');
     loadCotizaciones();
   }).catch(function(e){
     console.error('[PAGO] Error:',e);
