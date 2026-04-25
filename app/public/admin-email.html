@@ -12,6 +12,8 @@
 .em-preview-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEF0F8;flex-shrink:0;}
 .em-preview-body{flex:1;overflow-y:auto;padding:0;}
 .em-preview-body iframe{width:100%;border:none;min-height:500px;}
+.tb-btn{width:30px;height:28px;border:1px solid #DDE4F5;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.tb-btn:hover{background:#EBF2FF;border-color:#0A4FBF;}
 .crd{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:10px;}
 .vt{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
@@ -180,11 +182,11 @@
   <div class="mbody" id="mf-body"></div>
 </div></div>
 
-<!-- Modal: Preview plantilla -->
+<!-- Modal: Editor de plantilla (grande, con preview en vivo) -->
 <div class="mov" id="m-tpl" onclick="if(event.target===this)this.classList.remove('open')">
-<div class="modal" style="max-width:650px;">
-  <div class="mhd"><div class="mtit" id="mt-title">Plantilla</div><button class="mx" onclick="el('m-tpl').classList.remove('open')">✕</button></div>
-  <div class="mbody" id="mt-body"></div>
+<div class="modal" style="max-width:95vw;width:1100px;max-height:92vh;display:flex;flex-direction:column;">
+  <div class="mhd" style="flex-shrink:0;"><div class="mtit" id="mt-title">Plantilla</div><div style="display:flex;gap:6px;margin-left:auto;align-items:center;" id="mt-actions"></div><button class="mx" onclick="el('m-tpl').classList.remove('open')">✕</button></div>
+  <div class="mbody" id="mt-body" style="flex:1;overflow-y:auto;padding:0;"></div>
 </div></div>
 
 <!-- Modal: Enviar email -->
@@ -208,6 +210,11 @@ function q(table,query,cb){fetch(SB+'/rest/v1/'+table+'?'+query,{headers:{'apike
 function showToast(t,m,err){var tw=el('em-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
 
 var D={};var TAB='dashboard';
+var _BRAND={};
+// Cargar branding para preview de plantillas
+q('aos_configuracion','select=clave,valor&clave=in.(nombre_empresa,logo_sin_fondo_url,color_header,color_header_texto,color_secundario,color_primario)',function(rows){
+  (rows||[]).forEach(function(r){_BRAND[r.clave]=r.valor;});
+});
 function emTab(tab){
   TAB=tab;
   ['dashboard','bandeja','flujos','plantillas','enviados'].forEach(function(t){var e=el('em-'+t);if(e)e.style.display=t===tab?'block':'none';});
@@ -514,11 +521,18 @@ function filtrarTpl(tipo){
 }
 function renderTplGrid(tpls){
   var tipoIco={recordatorio:'📅',recordatorio_hoy:'☀️',catalogo:'📦',comprobante:'🧾',recibo_venta:'🧾',reactivacion:'💚',bienvenida:'🌟',agradecimiento:'🌟',agradecimiento_visita:'🌟',saldo_pendiente:'💳',cumpleanos:'🎂',no_asistencia:'😔',confirmacion_cita:'📅',confirmacion_pago:'✅',seguimiento:'💆',reprogramacion:'🔄'};
-  var tipoBg={recordatorio:'#EBF2FF',recordatorio_hoy:'#F0FDF4',catalogo:'#F5F3FF',comprobante:'#F0FDF4',recibo_venta:'#F0FDF4',reactivacion:'#F0FDFA',bienvenida:'#FFFBEB',agradecimiento:'#FFFBEB',agradecimiento_visita:'#FFFBEB',saldo_pendiente:'#FEF3C7',cumpleanos:'#FFF1F2',no_asistencia:'#F8FAFF',confirmacion_cita:'#EBF2FF',confirmacion_pago:'#F0FDF4',seguimiento:'#F5F3FF',reprogramacion:'#FEF3C7'};
   if(!tpls.length){el('em-tpl-list').innerHTML='<div style="color:#9AAAC8;font-size:11px;">Sin plantillas en esta categoría</div>';return;}
-  el('em-tpl-list').innerHTML=tpls.map(function(t){
-    return '<div class="tpl-card" onclick="verPlantilla(\''+t.id+'\')" style="cursor:pointer;"><div class="tpl-hdr" style="background:'+(tipoBg[t.tipo]||'#F8FAFF')+';"><span style="font-size:18px;">'+(tipoIco[t.tipo]||'📧')+'</span>'+h(t.nombre)+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;font-size:7px;">'+(t.activo?'Activa':'Off')+'</span></div><div class="tpl-body"><div style="margin-bottom:4px;font-size:10px;"><b>Asunto:</b> '+h(t.asunto)+'</div><div style="font-size:9px;"><b>Variables:</b> '+(t.variables||[]).map(function(v){return '<span style="background:#EBF2FF;padding:1px 5px;border-radius:3px;font-size:7px;margin-right:2px;">{{'+v+'}}</span>';}).join('')+'</div></div></div>';
+  var html='<table class="vt" style="width:100%;"><thead><tr><th style="width:30px;"></th><th>Nombre</th><th>Asunto</th><th>Variables</th><th>Estado</th></tr></thead><tbody>';
+  html+=tpls.map(function(t){
+    return '<tr style="cursor:pointer;" onclick="verPlantilla(\''+t.id+'\')">' +
+      '<td style="font-size:18px;text-align:center;">'+(tipoIco[t.tipo]||'📧')+'</td>' +
+      '<td style="font-weight:700;font-size:11px;">'+h(t.nombre)+'<div style="font-size:8px;color:#6B7BA8;margin-top:1px;">'+h(t.tipo)+'</div></td>' +
+      '<td style="font-size:10px;color:#475569;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(t.asunto)+'</td>' +
+      '<td style="font-size:8px;">'+(t.variables||[]).slice(0,4).map(function(v){return '<span style="background:#EBF2FF;padding:1px 4px;border-radius:3px;margin-right:2px;">'+v+'</span>';}).join('')+(t.variables&&t.variables.length>4?'<span style="color:#6B7BA8;">+'+( t.variables.length-4)+'</span>':'')+'</td>' +
+      '<td><span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:8px;">'+(t.activo?'Activa':'Off')+'</span></td></tr>';
   }).join('');
+  html+='</tbody></table>';
+  el('em-tpl-list').innerHTML=html;
 }
 function verPlantillaWA(id){
   q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
@@ -533,10 +547,87 @@ function verPlantillaWA(id){
 function verPlantilla(id){
   q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
     if(!rows||!rows[0])return;var t=rows[0];
-    el('mt-title').textContent=t.nombre;
-    var preview=t.html_body.replace(/\{\{(\w+)\}\}/g,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;font-size:11px;">{{$1}}</span>');
-    el('mt-body').innerHTML='<div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Asunto:</span><div style="font-weight:700;font-size:14px;">'+h(t.asunto)+'</div></div><div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Variables:</span><div style="margin-top:4px;">'+(t.variables||[]).map(function(v){return '<span class="tag tag-b" style="margin-right:4px;">{{'+v+'}}</span>';}).join('')+'</div></div><div style="border:1px solid #DDE4F5;border-radius:12px;overflow:hidden;"><div style="background:#F8FAFF;padding:8px 12px;font-size:9px;color:#6B7BA8;font-weight:700;">PREVIEW</div><div style="padding:12px;">'+preview+'</div></div>';
+    el('mt-title').textContent='✏️ '+t.nombre;
+    el('mt-actions').innerHTML='<button class="mbtn mbtn-g" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:8px;">'+(t.activo?'Activa':'Inactiva')+'</span>';
+    var vars=(t.variables||[]);
+    var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:calc(92vh - 80px);min-height:500px;">';
+    // LEFT: Editor
+    html+='<div style="padding:16px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:12px;">';
+    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">NOMBRE</div><input class="mi" id="tpl-nombre" value="'+h(t.nombre)+'" style="font-weight:700;"></div>';
+    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()"></div>';
+    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">TIPO</div><input class="mi" id="tpl-tipo" value="'+h(t.tipo)+'" readonly style="background:#F8FAFF;color:#6B7BA8;"></div>';
+    // Variables como chips insertables
+    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">VARIABLES <span style="font-weight:400;">(click para insertar)</span></div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:9px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
+    // Toolbar
+    html+='<div style="display:flex;gap:2px;flex-wrap:wrap;padding:6px;background:#F8FAFF;border-radius:8px;border:1px solid #EEF0F8;">';
+    html+='<button class="tb-btn" onclick="execCmd(\'bold\')" title="Negrita"><b>B</b></button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'italic\')" title="Cursiva"><i>I</i></button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'underline\')" title="Subrayado"><u>U</u></button>';
+    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
+    html+='<button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')" title="Título">T+</button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')" title="Normal">T</button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#0A4FBF\')" title="Color azul" style="color:#0A4FBF;">A</button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" title="Color verde" style="color:#059669;">A</button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#DC2626\')" title="Color rojo" style="color:#DC2626;">A</button>';
+    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
+    html+='<button class="tb-btn" onclick="execCmd(\'justifyLeft\')" title="Izquierda">≡</button>';
+    html+='<button class="tb-btn" onclick="execCmd(\'justifyCenter\')" title="Centro">☰</button>';
+    html+='<button class="tb-btn" onclick="insertLink()" title="Enlace">🔗</button>';
+    html+='<button class="tb-btn" onclick="insertImg()" title="Imagen">🖼️</button>';
+    html+='<button class="tb-btn" onclick="insertBtn()" title="Botón CTA">🔘</button>';
+    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
+    html+='<button class="tb-btn" onclick="toggleHtmlMode()" title="Ver HTML" id="btn-html-mode">{ }</button>';
+    html+='</div>';
+    // Content editable area
+    var body=t.html_body||'<p>Escribe aquí el contenido de tu email...</p>';
+    html+='<div id="tpl-editor" contenteditable="true" style="flex:1;min-height:250px;padding:14px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:13px;line-height:1.6;outline:none;overflow-y:auto;font-family:DM Sans,sans-serif;background:#fff;" oninput="updateTplPreview()">'+body+'</div>';
+    html+='<textarea id="tpl-html-raw" style="display:none;flex:1;min-height:250px;padding:14px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:11px;font-family:monospace;resize:none;" oninput="updateTplPreview()">'+h(body)+'</textarea>';
+    html+='</div>';
+    // RIGHT: Live Preview
+    html+='<div style="padding:16px;overflow-y:auto;background:#E2E8F0;">';
+    html+='<div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:8px;">📱 VISTA PREVIA EN VIVO</div>';
+    html+='<div style="font-size:9px;color:#6B7BA8;margin-bottom:4px;">Asunto: <b id="tpl-prev-subj">'+h(t.asunto)+'</b></div>';
+    html+='<div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;"></div>';
+    html+='</div>';
+    html+='</div>';
+    el('mt-body').innerHTML=html;
     el('m-tpl').classList.add('open');
+    setTimeout(updateTplPreview,200);
+  });
+}
+var _htmlMode=false;
+function toggleHtmlMode(){
+  _htmlMode=!_htmlMode;
+  var ed=el('tpl-editor'),raw=el('tpl-html-raw'),btn=el('btn-html-mode');
+  if(_htmlMode){raw.value=ed.innerHTML;ed.style.display='none';raw.style.display='block';btn.style.background='#0A4FBF';btn.style.color='#fff';}
+  else{ed.innerHTML=raw.value;raw.style.display='none';ed.style.display='block';btn.style.background='';btn.style.color='';}
+}
+function execCmd(cmd,val){document.execCommand(cmd,false,val||null);el('tpl-editor').focus();updateTplPreview();}
+function insertVar(v){document.execCommand('insertHTML',false,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;">{{'+v+'}}</span>&nbsp;');updateTplPreview();}
+function insertLink(){var url=prompt('URL del enlace:','https://');if(!url)return;var txt=prompt('Texto del enlace:','Click aquí');document.execCommand('insertHTML',false,'<a href="'+url+'" style="color:#0A4FBF;font-weight:700;">'+h(txt||url)+'</a>');updateTplPreview();}
+function insertImg(){var url=prompt('URL de la imagen:','https://');if(!url)return;document.execCommand('insertHTML',false,'<img src="'+url+'" style="max-width:100%;border-radius:8px;margin:8px 0;" />');updateTplPreview();}
+function insertBtn(){var txt=prompt('Texto del botón:','Agendar cita');var url=prompt('URL del botón:','https://wa.me/51960618468');if(!txt||!url)return;document.execCommand('insertHTML',false,'<div style="text-align:center;margin:12px 0;"><a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">'+h(txt)+'</a></div>');updateTplPreview();}
+function updateTplPreview(){
+  var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
+  var subj=el('tpl-asunto').value;
+  el('tpl-prev-subj').textContent=subj;
+  // Wrap in email shell with branding colors
+  var hdr=_BRAND.color_header||'#4a3728',htxt=_BRAND.color_header_texto||'#fff',sec=_BRAND.color_secundario||'#B8860B',logo=_BRAND.logo_sin_fondo_url||'';
+  var shell='<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">';
+  shell+='<div style="background:'+hdr+';padding:20px 24px;">'+(logo?'<img src="'+logo+'" style="height:30px;margin-bottom:8px;display:block;">':'')+'<div style="color:'+sec+';font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">'+(_BRAND.nombre_empresa||'')+'</div><div style="color:'+htxt+';font-size:16px;font-weight:800;margin-top:4px;">'+h(subj)+'</div></div>';
+  shell+='<div style="padding:20px 24px;font-size:13px;line-height:1.6;">'+body+'</div>';
+  shell+='<div style="background:'+hdr+';padding:10px 24px;text-align:center;font-size:9px;color:'+sec+';">'+(_BRAND.nombre_empresa||'')+' · info@zivital.pe</div>';
+  shell+='</div>';
+  el('tpl-preview').innerHTML=shell;
+}
+function savePlantilla(id){
+  var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
+  // Clean the variable spans back to {{var}} format
+  body=body.replace(/<span[^>]*>\{\{(\w+)\}\}<\/span>/g,'{{$1}}');
+  var data={nombre:el('tpl-nombre').value,asunto:el('tpl-asunto').value,html_body:body,updated_at:new Date().toISOString()};
+  fetch(SB+'/rest/v1/aos_email_plantillas?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(r){
+    if(r.ok){showToast('Plantilla guardada',''+data.nombre);loadPlantillas();}else{showToast('Error al guardar');}
   });
 }
 
