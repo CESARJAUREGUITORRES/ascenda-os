@@ -81,7 +81,7 @@ function editUser(idx){
   // Métricas top
   var html='<div id="eu-met" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:10px;padding:8px;background:linear-gradient(135deg,#071D4A08,#0A4FBF06);border-radius:10px;"></div>';
   // Chips
-  html+='<div class="chips"><button class="chip act" onclick="showTab(\'datos\')">📋 Datos</button><button class="chip" onclick="showTab(\'roles\')">🔐 Roles y Permisos</button><button class="chip" onclick="showTab(\'horarios\')">📅 Horarios</button></div>';
+  html+='<div class="chips"><button class="chip act" onclick="showTab(\'datos\')">📋 Datos</button><button class="chip" onclick="showTab(\'roles\')">🔐 Roles y Permisos</button><button class="chip" onclick="showTab(\'horarios\')">📅 Horarios</button><button class="chip" onclick="showTab(\'servicios\')">💉 Servicios</button></div>';
   // TAB DATOS
   html+='<div id="tab-datos"><div style="display:grid;grid-template-columns:220px 1fr;gap:14px;">';
   // Left: foto
@@ -169,6 +169,22 @@ function editUser(idx){
   html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📅 Próximos Turnos</div><div id="eu-hor">Cargando...</div></div>';
   html+='<div style="background:#F8FAFF;border-radius:10px;padding:10px;border:1px solid #EEF0F8;"><div class="sec-t" style="margin-top:0;">📋 Asistencia <span style="font-size:7px;color:#0A4FBF;cursor:pointer;">(click fila para editar)</span></div><div id="eu-asis">Cargando...</div></div>';
   html+='</div></div>';
+  // TAB SERVICIOS
+  html+='<div id="tab-servicios" style="display:none;">';
+  html+='<div style="display:grid;grid-template-columns:180px 1fr;gap:12px;">';
+  html+='<div style="text-align:center;"><div style="width:150px;height:150px;border-radius:14px;overflow:hidden;border:2px solid '+c+';background:'+c+';display:flex;align-items:center;justify-content:center;margin:0 auto;">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:48px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0])+'</div>')+'</div><div style="font-family:Exo 2;font-weight:800;font-size:14px;margin-top:4px;">'+h(u.nombre)+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+'</div></div>';
+  html+='<div>';
+  // CMP field — solo visible para doctoras
+  var isDoctora=(u.area||'').toLowerCase()==='médica'||(u.cargo||'').toUpperCase().indexOf('DOCTOR')>=0||(u.nombre||'').toUpperCase().indexOf('DRA')>=0;
+  if(isDoctora){
+    html+='<div class="sec-t" style="margin-top:0;">🩺 Datos Médicos</div>';
+    html+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;"><label style="font-size:10px;font-weight:700;color:#6B7BA8;min-width:80px;">CMP</label><input class="mi" id="eu-cmp" value="'+h(u.cmp||'')+'" placeholder="Ej: 078542" style="max-width:180px;font-family:Exo 2;font-weight:700;letter-spacing:1px;"></div>';
+  }
+  html+='<div class="sec-t"'+(isDoctora?'':'style="margin-top:0;"')+'>💉 Servicios y Tratamientos</div>';
+  html+='<div style="font-size:9px;color:#6B7BA8;margin-bottom:8px;">Selecciona los tratamientos que realiza este profesional. Se vincula con agenda, auto-agendamiento y panel de atención.</div>';
+  html+='<div id="eu-servicios-grid">Cargando tratamientos...</div>';
+  html+='<div style="margin-top:8px;display:flex;gap:6px;"><button class="mbtn mbtn-p" onclick="saveServicios(\''+u.id+'\')">💾 Guardar Servicios</button><button class="mbtn mbtn-c" onclick="selAllSvc(true)">✅ Todos</button><button class="mbtn mbtn-c" onclick="selAllSvc(false)">❌ Ninguno</button></div>';
+  html+='</div></div></div>';
   // Footer
   html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn mbtn-r" style="margin-left:auto;">Desactivar</button>':'')+'</div>';
   el('mu-body').innerHTML=html;
@@ -178,7 +194,7 @@ function editUser(idx){
   el('m-user').classList.add('open');
   setTimeout(function(){var nv=el('eu-niv');if(nv)nv.value=u.nivel_jerarquia||3;var ac=el('eu-acceso');if(ac){ac.value=u.acceso_geo||'libre';toggleSedes();}},150);
   // Load data
-  loadEst(u.id);loadCal30(u.nombre);
+  loadEst(u.id);loadCal30(u.nombre);loadSvcGrid(u.servicios||[]);
   setTimeout(function(){var nv=el('eu-niv');if(nv)nv.value=u.nivel_jerarquia||4;},100);
   rpc('aos_productividad_equipo',{},function(r){if(!r||!r.ok)return;var p=(r.equipo||[]).filter(function(e){return e.nombre===u.nombre;})[0];if(!p){el('eu-met').innerHTML='<div style="grid-column:1/-1;text-align:center;font-size:9px;color:#9AAAC8;">Sin datos de productividad</div>';return;}var pp=p.dias_trabajados>0?Math.round((p.dias_trabajados-(p.tardanzas||0))/p.dias_trabajados*100):0;el('eu-met').innerHTML=[{l:'Llamadas',v:Number(p.llamadas||0).toLocaleString(),c:'#0A4FBF'},{l:'Citas',v:p.citas,c:'#00C9A7'},{l:'Conv%',v:p.conv_pct+'%',c:p.conv_pct>=5?'#059669':'#D97706'},{l:'Facturado',v:'S/'+Number(p.facturado||0).toLocaleString(),c:'#059669'},{l:'Puntualidad',v:pp+'%',c:pp>=80?'#059669':'#DC2626'},{l:'Tardanzas',v:p.tardanzas,c:p.tardanzas>2?'#DC2626':'#0A4FBF'}].map(function(s){return '<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:15px;color:'+s.c+';">'+s.v+'</div><div style="font-size:6px;font-weight:700;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div></div>';}).join('');});
   q('aos_horarios_personal','select=id,fecha,hora_inicio,hora_fin,sede&personal=eq.'+encodeURIComponent(u.nombre)+'&fecha=gte.'+new Date().toISOString().slice(0,10)+'&order=fecha&limit=7',function(r){var ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];el('eu-hor').innerHTML=(r&&r.length)?r.map(function(h){var d=new Date(h.fecha+'T12:00:00');return '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #EEF0F8;font-size:9px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#F0F4FC\'" onmouseout="this.style.background=\'transparent\'" onclick="editTurno(\''+h.id+'\',\''+h.fecha+'\',\''+h.hora_inicio+'\',\''+h.hora_fin+'\',\''+h.sede+'\',\''+u.nombre+'\')"><b>'+ds[d.getDay()]+' '+h.fecha.slice(5)+'</b><span style="color:#0A4FBF;font-weight:700;">'+h.hora_inicio+' - '+h.hora_fin+'</span><span style="font-size:7px;color:#6B7BA8;">'+h.sede+'</span></div>';}).join(''):'<div style="font-size:9px;color:#9AAAC8;">Sin turnos</div>';});
@@ -223,7 +239,7 @@ function progHorarios(nombre){
     var res=document.getElementById('ph-result');if(res)res.textContent='✓ '+inserts.length+' turnos creados. Agrega otra tanda si necesitas otra sede u horario.';
   });
 }
-function showTab(t){['datos','roles','horarios'].forEach(function(x){var e=el('tab-'+x);if(e)e.style.display=x===t?'block':'none';});document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('act');});event.target.classList.add('act');}
+function showTab(t){['datos','roles','horarios','servicios'].forEach(function(x){var e=el('tab-'+x);if(e)e.style.display=x===t?'block':'none';});document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('act');});event.target.classList.add('act');}
 function tp(e){e.classList.toggle('on');var k=e.querySelector('.pc-k');k.textContent=e.classList.contains('on')?'✓':'';}
 function saveU(id){
   var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});
@@ -462,6 +478,50 @@ function createU(){
       var idx=-1;U.forEach(function(x,i){if(x.nombre===n)idx=i;});
       if(idx>=0)editUser(idx);
     },1000);},500);
+  });
+}
+// ═══ SERVICIOS — Cargar y guardar tratamientos por profesional ═══
+var _svcCats={};
+function loadSvcGrid(userServicios){
+  q('aos_cat_tratamientos','select=tratamiento,categoria&estado=eq.ACTIVO&order=categoria,tratamiento',function(rows){
+    if(!rows||!rows.length){el('eu-servicios-grid').innerHTML='<div style="font-size:9px;color:#9AAAC8;">Sin tratamientos en catálogo</div>';return;}
+    var cats={};rows.forEach(function(r){var c=r.categoria||'GENERAL';if(!cats[c])cats[c]=[];cats[c].push(r.tratamiento);});
+    _svcCats=cats;
+    var uSvc=(userServicios||[]).map(function(s){return s.toUpperCase();});
+    var html='';var orden=['FACIAL','INYECTABLES','APARATOLOGÍA','CORPORAL','CAPILAR','CONSULTA','COMBO','OTROS','GENERAL'];
+    orden.forEach(function(cat){
+      if(!cats[cat])return;
+      var icon={'FACIAL':'🧖','INYECTABLES':'💉','APARATOLOGÍA':'⚡','CORPORAL':'🏋️','CAPILAR':'💇','CONSULTA':'🩺','COMBO':'📦','OTROS':'📋','GENERAL':'📋'}[cat]||'📋';
+      html+='<div style="margin-bottom:10px;"><div style="font-size:9px;font-weight:800;color:#0A4FBF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+icon+' '+cat+'</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+      cats[cat].forEach(function(t){
+        var checked=uSvc.indexOf(t.toUpperCase())>=0;
+        html+='<label style="display:flex;align-items:center;gap:3px;padding:4px 8px;border-radius:6px;border:1.5px solid '+(checked?'#00C9A7':'#DDE4F5')+';background:'+(checked?'rgba(0,201,167,.08)':'#fff')+';cursor:pointer;font-size:9px;font-weight:600;color:'+(checked?'#059669':'#6B7BA8')+';transition:all .15s;">';
+        html+='<input type="checkbox" class="eu-svc" value="'+h(t)+'" '+(checked?'checked':'')+' onchange="toggleSvcStyle(this)" style="accent-color:#00C9A7;">';
+        html+=h(t)+'</label>';
+      });
+      html+='</div></div>';
+    });
+    el('eu-servicios-grid').innerHTML=html;
+  });
+}
+function toggleSvcStyle(cb){var lbl=cb.closest('label');if(cb.checked){lbl.style.borderColor='#00C9A7';lbl.style.background='rgba(0,201,167,.08)';lbl.style.color='#059669';}else{lbl.style.borderColor='#DDE4F5';lbl.style.background='#fff';lbl.style.color='#6B7BA8';}}
+function selAllSvc(val){document.querySelectorAll('.eu-svc').forEach(function(cb){cb.checked=val;toggleSvcStyle(cb);});}
+function saveServicios(uid){
+  var svc=[];document.querySelectorAll('.eu-svc:checked').forEach(function(cb){svc.push(cb.value);});
+  var cmpEl=el('eu-cmp');var cmp=cmpEl?cmpEl.value.trim():'';
+  var body={servicios:svc};if(cmpEl)body.cmp=cmp;
+  fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+uid,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){
+    if(r.ok){
+      showToast('Servicios guardados — '+svc.length+' tratamientos');
+      // Sync con perfiles_profesional
+      var u=U.find(function(x){return x.id===uid;});
+      if(u){var nm=(u.nombre||'').split(' ');var search=nm.length>1?nm[1]:nm[0];
+        fetch(SB+'/rest/v1/aos_perfiles_profesional?nombre_publico=ilike.*'+encodeURIComponent(search)+'*',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(profs){
+          if(profs&&profs[0]){fetch(SB+'/rest/v1/aos_perfiles_profesional?id=eq.'+profs[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({servicios:svc})}).then(function(){console.log('[TEAM] Servicios synced to perfiles_profesional');});}
+        });
+      }
+    }else{showToast('Error al guardar');}
   });
 }
 loadTeam();
