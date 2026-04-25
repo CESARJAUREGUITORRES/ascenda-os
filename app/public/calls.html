@@ -530,7 +530,24 @@ function enviarEmailConfirmacionCita(datosCita) {
     console.log('[EMAIL-CITA] ✕ Error:', e.message);
   });
 }
-function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
+// ===== _rpc CON RETRY Y MANEJO DE ERROR 503 =====
+function _rpc(fn,p,ok,fail,_retry){
+  var intento=_retry||0;
+  fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})})
+  .then(function(r){
+    if(r.status===503||r.status===502||r.status===504){
+      if(intento<2){console.warn('[SB] '+fn+' → '+r.status+', reintentando ('+(intento+1)+'/2)...');setTimeout(function(){_rpc(fn,p,ok,fail,intento+1);},1500*(intento+1));return;}
+      throw new Error('Supabase no disponible ('+r.status+')');
+    }
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  })
+  .then(function(d){if(d!==undefined&&ok)ok(d);})
+  .catch(fail||function(e){
+    console.error('[SB]',fn,e);
+    if(window.AOS_showToast)AOS_showToast('⚠ Error de conexión',fn+': '+(e.message||'Sin respuesta'),'toast-alerta');
+  });
+}
 function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Date();var hh=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');return{a:(c.asesor||'').toUpperCase(),id:c.idAsesor||'',hoy:hh,mes:hh.slice(0,7)+'-01'};}
 
 // ══════════════════════════════════════════════════════════════
@@ -542,13 +559,13 @@ var _segsData = [], _segFiltro = 'todos';
 var MES_NOM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-// ── INIT ──────────────────────────────────────────────────────
-(function(){
+// ── INIT (global para re-inicialización desde app.html) ──────
+function ccInit(){
+  CC.lead=null;CC.guardando=false;CC.ficha360=null;CC.fichaTab='compras';
   CC.token = window.AOS_getToken ? window.AOS_getToken() : '';
   var hoy = (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
-  document.getElementById('cc-c-fecha').min = hoy;
-  document.getElementById('cc-s-fecha').min = hoy;
-  document.getElementById('cc-s-fecha').value = hoy;
+  var fe=document.getElementById('cc-c-fecha');if(fe)fe.min=hoy;
+  var fs=document.getElementById('cc-s-fecha');if(fs){fs.min=hoy;fs.value=hoy;}
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
   poblarMeses();
   loadMetrics();
@@ -574,7 +591,8 @@ var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
   recargarCalendario();
   setTimeout(function(){loadScorePanel();}, 300);
   setTimeout(function(){var sc=document.getElementById('sc-llam');if(sc&&(sc.textContent==='—'||sc.textContent===''))loadScorePanel();}, 1500);
-})();
+}
+ccInit();
 
 // ══════════════════════════════════════════════════════════════
 // KPI CARDS
