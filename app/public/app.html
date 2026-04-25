@@ -1286,7 +1286,7 @@ function openAgendarModal() {
     '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:20px 24px;">' +
     '<div style="display:flex;align-items:center;gap:10px;">' +
     '<svg width="22" height="22" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="white" stroke-width="1.3" fill="none"/><path d="M3 8h14" stroke="white" stroke-width="1.3"/><circle cx="10" cy="12" r="1.5" fill="white"/></svg>' +
-    '<div><div style="font-size:15px;font-weight:800;color:#fff;">Generar Link de Cita</div>' +
+    '<div><div style="font-size:15px;font-weight:800;color:#fff;">Agendar Cita</div>' +
     '<div style="font-size:10px;color:#00E5A0;">El paciente agenda desde su celular</div></div></div></div>' +
     '<div style="padding:20px 24px;">' +
     '<div style="display:flex;flex-direction:column;gap:8px;">' +
@@ -1355,18 +1355,18 @@ function generarLinkCitaAntiguo() {
 function buscarPacLink(q) {
   if (!q || q.length < 2) { document.getElementById('pac-search-results').innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">Escribe al menos 2 caracteres</div>'; return; }
   var encoded = encodeURIComponent(q);
-  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,nombres,apellidos,telefono,dni,Email&or=(nombres.ilike.*'+encoded+'*,apellidos.ilike.*'+encoded+'*,numero_limpio.ilike.*'+encoded+'*,dni.ilike.*'+encoded+'*)&limit=8&order=nombres',{
+  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,Nombres,Apellidos,Email&or=(Nombres.ilike.*'+encoded+'*,Apellidos.ilike.*'+encoded+'*,numero_limpio.ilike.*'+encoded+'*)&limit=8&order=Nombres',{
     headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
   }).then(function(r){return r.json()}).then(function(pacs){
     var el = document.getElementById('pac-search-results');
     if (!pacs || !pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
     el.innerHTML = pacs.map(function(p) {
-      var nombre = ((p.nombres||'')+ ' '+(p.apellidos||'')).trim();
-      var ini = ((p.nombres||'')[0]||'')+((p.apellidos||'')[0]||'');
+      var nombre = ((p.Nombres||'')+ ' '+(p.Apellidos||'')).trim();
+      var ini = ((p.Nombres||'')[0]||'')+((p.Apellidos||'')[0]||'');
       return '<div onclick="selPacLink(\''+escH(p.numero_limpio||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
         '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+escH(ini.toUpperCase())+'</div>' +
         '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#0f172a;">'+escH(nombre)+'</div>' +
-        '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.telefono||p.numero_limpio||'')+(p.dni?' · DNI: '+escH(p.dni):'')+'</div></div>' +
+        '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.numero_limpio||'')+'</div></div>' +
         '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8 5l5 5-5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg></div>';
     }).join('');
   });

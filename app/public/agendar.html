@@ -224,7 +224,7 @@ function q(t,f){return fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Autho
 })();
 
 function loadProfesionales(){
-  q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(profs){
+  q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(profs){console.log('[AGENDAR] Profs cargados:', (profs||[]).length);
     AG.profs=profs||[];
     document.getElementById('ag-loading').style.display='none';
     renderProfesionales();
