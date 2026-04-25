@@ -152,8 +152,8 @@ function editUser(idx){
   html+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';
   if(!u.cuenta_activada){html+='<button class="mbtn mbtn-g" style="font-size:9px;" onclick="activarCuenta(\''+u.id+'\',\''+h(u.email)+'\',\''+h(u.nombre)+'\')">🚀 Activar Cuenta (enviar credenciales)</button>';}
   else{html+='<span class="tag" style="background:#F0FDF4;color:#059669;padding:4px 10px;">✓ Cuenta activa</span>';}
-  html+='<button class="mbtn mbtn-c" style="font-size:8px;">🔄 Cambiar contraseña</button>';
-  html+='<button class="mbtn mbtn-c" style="font-size:8px;">🚪 Forzar cierre sesión</button>';
+  html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="cambiarPass(\''+u.id+'\',\''+h(u.nombre)+'\')">🔄 Cambiar contraseña</button>';
+  html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="forzarCierre(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">🚪 Forzar cierre sesión</button>';
   html+='</div></div></div></div>';
   // TAB HORARIOS
   html+='<div id="tab-horarios" style="display:none;">';
@@ -536,6 +536,19 @@ function saveServicios(uid){
       }
     }else{showToast('Error al guardar');}
   });
+}
+// ═══ FORZAR CIERRE DE SESIÓN (invalida sesión del usuario, NO del admin) ═══
+function forzarCierre(codigo,nombre){
+  if(!confirm('¿Forzar cierre de sesión de '+nombre+'?\nLa próxima vez que recargue, tendrá que loguearse de nuevo.'))return;
+  fetch(SB+'/rest/v1/aos_security_log',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:nombre,accion:'force_logout',detalles:'Forzado por admin',created_at:new Date().toISOString()})}).catch(function(){});
+  showToast(nombre+' será deslogueado al recargar');
+}
+function cambiarPass(uid,nombre){
+  var np=prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):');
+  if(!np||np.length<6){if(np)alert('Mínimo 6 caracteres');return;}
+  fetch(SB+'/rest/v1/rpc/aos_cambiar_password',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_usuario_id:uid,p_nueva_password:np})}).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok){showToast('Contraseña cambiada — '+nombre);}else{showToast('Error: '+(res&&res.error||'No se pudo cambiar'));}
+  }).catch(function(){showToast('Error de conexión');});
 }
 loadTeam();
 </script>
