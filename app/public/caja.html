@@ -534,17 +534,17 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
             <input type="number" id="pago-monto-simple" step="0.01" oninput="recalcSimple()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:right;">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div class="mfield" style="margin:0;">
             <label>Comprobante</label>
-            <select id="pago-comp-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;">
-              <option value="BOLETA VIRTUAL">Boleta virtual</option>
-              <option value="BOLETA FISICA">Boleta física</option>
-              <option value="RH">R.H. (Honorarios)</option>
-              <option value="FACTURA">Factura</option>
-              <option value="OTROS">Otros</option>
-            </select>
+            <select id="pago-comp-simple" onchange="autoRazonSimple(this.value)" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
           </div>
+          <div class="mfield" style="margin:0;">
+            <label>Entidad fiscal (RUC / R.H.)</label>
+            <select id="pago-razon-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div class="mfield" style="margin:0;">
             <label>Asesor comisión</label>
             <select id="pago-asesor-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
@@ -628,8 +628,12 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         </div>
         <div class="mfield">
           <label>Comprobante</label>
-          <select id="edit-comprobante" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+          <select id="edit-comprobante" onchange="autoRazonEdit(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
           </select>
+        </div>
+        <div class="mfield">
+          <label>Entidad fiscal (RUC / R.H.)</label>
+          <select id="edit-razon" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
         </div>
         <div class="mfield">
           <label>Asesor comisión</label>
@@ -1401,8 +1405,9 @@ var VT = {
   isDividido: false
 };
 
-var _METODOS_CAJA = [];  // se carga desde aos_metodos_pago
-var _PERSONAL_CAJA = []; // se carga desde aos_rrhh
+var _METODOS_CAJA = [];   // se carga desde aos_metodos_pago
+var _PERSONAL_CAJA = [];  // se carga desde aos_rrhh
+var _RAZONES_CAJA = [];   // se carga desde aos_razones_sociales
 
 function abrirModalVenta() {
   if (!CAJA.sesion || CAJA.sesion.estado !== 'ABIERTA') { toast('Abre la caja primero','warn'); return; }
@@ -1808,6 +1813,35 @@ function _sugerirComp(metodo) {
   if (m.indexOf('NIUBIZ')>-1||m.indexOf('IZIPAY')>-1||m.indexOf('MERCADO')>-1||m.indexOf('TRANSFER')>-1||m.indexOf('QR CARMEN')>-1) return 'BOLETA VIRTUAL';
   return 'BOLETA VIRTUAL';
 }
+
+// ===== RAZÓN SOCIAL: auto-selección por comprobante =====
+function _mkRazonOpts(selId, comprobante) {
+  // Filtrar razones vinculadas a este comprobante
+  var tc = CAJA.comprobanteRucs && CAJA.comprobanteRucs[comprobante]; // array de UUIDs
+  var lista = _RAZONES_CAJA;
+  if (tc && tc.length) {
+    lista = _RAZONES_CAJA.filter(function(r) { return tc.indexOf(r.id) > -1; });
+  }
+  var opts = '<option value="">— Sin entidad —</option>';
+  lista.forEach(function(r) {
+    var label = r.tipo_ruc + ' — ' + r.razon_social + (r.ruc ? ' (' + r.ruc + ')' : '');
+    opts += '<option value="' + escH(r.id) + '"' + (r.id === selId ? ' selected' : '') + '>' + escH(label) + '</option>';
+  });
+  return opts;
+}
+function autoRazonSimple(comprobante) {
+  var el = document.getElementById('pago-razon-simple');
+  if (!el) return;
+  el.innerHTML = _mkRazonOpts('', comprobante);
+  // Auto-seleccionar si solo hay una opción válida
+  if (el.options.length === 2) el.selectedIndex = 1;
+}
+function autoRazonEdit(comprobante) {
+  var el = document.getElementById('edit-razon');
+  if (!el) return;
+  el.innerHTML = _mkRazonOpts('', comprobante);
+  if (el.options.length === 2) el.selectedIndex = 1;
+}
 function _divFromMetodo(metodo) {
   return (metodo||'').toUpperCase().indexOf('DOLAR')>-1 ? 'USD' : 'PEN';
 }
@@ -1847,6 +1881,12 @@ function abrirPagoItem(idx) {
     document.getElementById('pago-monto-simple').value = montoActual.toFixed(2);
     // Pre-cargar comprobante (filtrado por método)
     document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(it.comprobante || 'BOLETA VIRTUAL', it.metodoPago);
+    // Pre-cargar razón social (filtrada por comprobante)
+    var elRazon = document.getElementById('pago-razon-simple');
+    if (elRazon) {
+      elRazon.innerHTML = _mkRazonOpts(it.razonSocialId || '', it.comprobante || 'BOLETA VIRTUAL');
+      if (elRazon.options.length === 2) elRazon.selectedIndex = 1;
+    }
   }
 
   // Cargar personal con pre-selección
@@ -1881,6 +1921,8 @@ function autoCompSimple(metodo) {
   var comp = _sugerirComp(metodo);
   // Refrescar opciones de comprobante filtradas por método seleccionado
   document.getElementById('pago-comp-simple').innerHTML = _mkCompOpts(comp, metodo);
+  // Refrescar razón social según comprobante sugerido
+  autoRazonSimple(comp);
   recalcSimple();
 }
 
@@ -2030,6 +2072,7 @@ function confirmarPagoItem() {
     it.metodoPago     = metodoS;
     it.monto1         = totalCubierto;
     it.comprobante    = document.getElementById('pago-comp-simple').value;
+    it.razonSocialId  = document.getElementById('pago-razon-simple').value || null;
     it.asesorComision = document.getElementById('pago-asesor-simple').value;
     it.metodoPago2    = '';
     it.monto2         = 0;
@@ -2151,7 +2194,8 @@ function grabarCotizacion() {
     p_estado_pago: itemsConPago.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
     p_nota: nota,
     p_tipo: VT.items[0] ? VT.items[0].tipo : 'SERVICIO',
-    p_fecha: fechaLima()
+    p_fecha: fechaLima(),
+    p_razon_social_id: (VT.items[0] && VT.items[0].razonSocialId) ? VT.items[0].razonSocialId : null
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar','err'); return; }
@@ -2446,6 +2490,12 @@ function abrirEdicionCompleta(ventaId) {
     var metPago = v.pago || '';
     selComp.innerHTML = _mkCompOpts(comp, metPago);
   }
+  // Razón social — dinámico desde _RAZONES_CAJA
+  var selRazon = document.getElementById('edit-razon');
+  if (selRazon) {
+    selRazon.innerHTML = _mkRazonOpts(v.razon_social_id || '', v.tipo_comprobante || 'BOLETA VIRTUAL');
+    if (selRazon.options.length === 2) selRazon.selectedIndex = 1;
+  }
 
   // Personal — cargar y pre-seleccionar
   sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
@@ -2487,7 +2537,8 @@ function confirmarEdicion() {
     p_nueva_moneda: document.getElementById('edit-moneda').value,
     p_nuevo_comprobante: document.getElementById('edit-comprobante').value,
     p_nuevo_asesor: document.getElementById('edit-asesor').value,
-    p_nuevo_atendio: document.getElementById('edit-atendio').value
+    p_nuevo_atendio: document.getElementById('edit-atendio').value,
+    p_razon_social_id: document.getElementById('edit-razon') ? (document.getElementById('edit-razon').value || null) : null
   }, function(d) {
     loading(false);
     if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al editar', 'err'); return; }
@@ -2616,6 +2667,8 @@ function cargarMetodosYCaja() {
   // Pre-cargar personal para que los selects de pago funcionen inmediatamente
   sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(r){ if(r&&r.length) _PERSONAL_CAJA=r; });
   sbGet('aos_rrhh','order=puesto.asc,nombre.asc', function(r){ if(r&&r.length) _PERSONAL_TODO=r; });
+  // Pre-cargar razones sociales (entidades fiscales)
+  sbGet('aos_razones_sociales','activo=eq.true&order=tipo_ruc.asc', function(r){ if(r&&r.length) _RAZONES_CAJA=r; });
   // ===== CARGA DINÁMICA: MÉTODOS + COMPROBANTES VINCULADOS =====
   sbGet('aos_metodos_pago', 'activo=eq.true&order=orden.asc', function(rows) {
     if (rows && rows.length) {
