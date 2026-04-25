@@ -1332,9 +1332,48 @@ function generarLinkCita(tipo) {
 }
 
 function generarLinkCitaAntiguo() {
-  var num = prompt('Número del paciente (celular):');
-  if(!num) return;
-  num = num.replace(/\D/g,'');
+  // Crear modal buscador de pacientes
+  var existing = document.getElementById('modal-buscar-pac');
+  if (existing) existing.remove();
+  
+  var mb = document.createElement('div');
+  mb.id = 'modal-buscar-pac';
+  mb.style.cssText = 'position:fixed;inset:0;background:rgba(7,29,74,.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
+  mb.innerHTML = '<div style="background:#fff;border-radius:16px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:16px 20px;display:flex;align-items:center;gap:10px;">' +
+    '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="white" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+    '<div style="font-size:14px;font-weight:800;color:#fff;">Buscar paciente</div></div>' +
+    '<div style="padding:16px 20px;">' +
+    '<input id="pac-search-input" type="text" placeholder="Nombre, teléfono o DNI..." autofocus style="width:100%;padding:12px 14px;border:2px solid #DDE4F5;border-radius:10px;font-size:14px;font-family:DM Sans;outline:none;box-sizing:border-box;" oninput="buscarPacLink(this.value)">' +
+    '<div id="pac-search-results" style="max-height:280px;overflow-y:auto;margin-top:8px;"></div></div>' +
+    '<div style="padding:10px 20px;border-top:1px solid #E2E8F0;text-align:center;">' +
+    '<button onclick="document.getElementById(\'modal-buscar-pac\').remove()" style="padding:8px 20px;border:none;background:transparent;color:#64748B;font-weight:600;font-size:12px;cursor:pointer;font-family:DM Sans;">Cancelar</button></div></div>';
+  document.body.appendChild(mb);
+  setTimeout(function(){document.getElementById('pac-search-input').focus()},100);
+}
+
+function buscarPacLink(q) {
+  if (!q || q.length < 2) { document.getElementById('pac-search-results').innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">Escribe al menos 2 caracteres</div>'; return; }
+  var encoded = encodeURIComponent(q);
+  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,nombres,apellidos,telefono,dni,Email&or=(nombres.ilike.*'+encoded+'*,apellidos.ilike.*'+encoded+'*,numero_limpio.ilike.*'+encoded+'*,dni.ilike.*'+encoded+'*)&limit=8&order=nombres',{
+    headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
+  }).then(function(r){return r.json()}).then(function(pacs){
+    var el = document.getElementById('pac-search-results');
+    if (!pacs || !pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
+    el.innerHTML = pacs.map(function(p) {
+      var nombre = ((p.nombres||'')+ ' '+(p.apellidos||'')).trim();
+      var ini = ((p.nombres||'')[0]||'')+((p.apellidos||'')[0]||'');
+      return '<div onclick="selPacLink(\''+escH(p.numero_limpio||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+escH(ini.toUpperCase())+'</div>' +
+        '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#0f172a;">'+escH(nombre)+'</div>' +
+        '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.telefono||p.numero_limpio||'')+(p.dni?' · DNI: '+escH(p.dni):'')+'</div></div>' +
+        '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8 5l5 5-5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg></div>';
+    }).join('');
+  });
+}
+
+function selPacLink(num) {
+  document.getElementById('modal-buscar-pac').remove();
   var body = {tipo:'paciente_especifico', paciente_numero:num, asesor_codigo:window._agLinkAsesor, expira_at:new Date(Date.now()+48*60*60*1000).toISOString()};
   fetch(_SB+'/rest/v1/aos_links_agenda',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)})
   .then(function(r){return r.json()}).then(function(rows){
