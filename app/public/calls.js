@@ -724,11 +724,35 @@ function detectarDoctora(fechaStr,horaStr,sede,targetId){
     if(matches.length>0){
       el.value=matches[0].personal;
       el.style.color='#16A34A';
+      // Filtrar tratamientos por servicios del profesional detectado
+      filtrarTratsPorProfesional(matches[0].personal);
     } else {
       var allDocs=docs.map(function(t){return t.personal+' ('+t.hora_inicio.slice(0,5)+'-'+t.hora_fin.slice(0,5)+')';}).join(', ');
       el.value='Fuera de horario. '+allDocs;
       el.style.color='#D97706';
+      resetTratsFull();
     }
+  });
+}
+function filtrarTratsPorProfesional(nombre){
+  fetch(_SB+'/rest/v1/aos_usuarios?nombre=eq.'+encodeURIComponent(nombre)+'&select=servicios',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+  .then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows[0]||!rows[0].servicios||!rows[0].servicios.length){resetTratsFull();return;}
+    var svcMap={};rows[0].servicios.forEach(function(s){svcMap[s.toUpperCase()]=true;});
+    _rpc('aos_catalogo_tratamientos',{},function(items){
+      if(!items||!items.length)return;
+      var filtered=items.filter(function(i){return svcMap[i.t.toUpperCase()];});
+      if(!filtered.length)filtered=items;
+      var opts='<option value="">— Seleccionar —</option>'+filtered.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+      var s1=document.getElementById('cc-c-trat');if(s1)s1.innerHTML=opts;
+    });
+  }).catch(function(){});
+}
+function resetTratsFull(){
+  _rpc('aos_catalogo_tratamientos',{},function(items){
+    if(!items||!items.length)return;
+    var opts='<option value="">— Seleccionar —</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+    var s1=document.getElementById('cc-c-trat');if(s1)s1.innerHTML=opts;
   });
 }
 
