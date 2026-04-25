@@ -1324,6 +1324,8 @@ function openAgendarModal() {
   
   document.body.appendChild(m);
   window._agLinkAsesor = asesorCode;
+  // Auto-cargar historial
+  setTimeout(function(){toggleHistorialLinks();},300);
 }
 
 function generarLinkCita(tipo) {
@@ -1523,7 +1525,9 @@ function cargarHistorialLinks() {
       var expira = new Date(l.expira_at);
       var vencido = expira < ahora;
       var usado = l.usado;
-      var estado = usado ? '<span style="color:#059669;font-weight:700;">✅ Usado</span>' : vencido ? '<span style="color:#DC2626;font-weight:700;">⏰ Vencido</span>' : '<span style="color:#0A4FBF;font-weight:700;">🟢 Activo</span>';
+      var horasRest = Math.max(0, Math.round((expira - ahora) / 3600000));
+      var tiempoStr = horasRest > 0 ? horasRest + 'h' : '';
+      var estado = usado ? '<span style="color:#059669;font-weight:700;">✅ Usado</span>' : vencido ? '<span style="color:#DC2626;font-weight:700;">⏰ Vencido</span>' : '<span style="color:#0A4FBF;font-weight:700;">🟢 '+tiempoStr+'</span>';
       var tipo = l.tipo === 'paciente_especifico' ? '👤' : l.tipo === 'asesor' ? '🆕' : '🌐';
       var url = window.location.origin + '/agendar?t=' + l.token;
       html += '<tr style="border-bottom:1px solid #f0f4fc;">';
