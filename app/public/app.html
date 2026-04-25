@@ -439,6 +439,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', estadoBloqueo:'', bloqueoInicio:0 };
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _q(tabla,filtro,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
 function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){r.ok&&ok&&ok();});}
@@ -1274,11 +1275,12 @@ function openAgendarModal() {
   var asesorName = AOS.ctx ? AOS.ctx.nombre : '';
   
   m.innerHTML = '<div style="background:#fff;border-radius:18px;width:720px;max-width:96vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;display:flex;flex-direction:column;">' +
-    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:14px 20px;display:flex;align-items:center;gap:10px;">' +
-    '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="white" stroke-width="1.3" fill="none"/><path d="M3 8h14" stroke="white" stroke-width="1.3"/><circle cx="10" cy="12" r="1.5" fill="white"/></svg>' +
-    '<div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Agendar Cita</div>' +
-    '<div style="font-size:9px;color:#00E5A0;">Genera un link para que el paciente agende desde su celular</div></div>' +
-    '<button onclick="document.getElementById(\'modal-agendar-link\').remove()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;">✕</button></div>' +
+    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:16px 20px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;">' +
+    '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(0,201,167,.1);"></div>' +
+    '<svg width="24" height="24" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="white" stroke-width="1.3" fill="none"/><path d="M3 8h14" stroke="white" stroke-width="1.3"/><circle cx="10" cy="12" r="1.5" fill="#00E5A0"/></svg>' +
+    '<div style="flex:1;"><div style="font-family:Exo 2,sans-serif;font-size:16px;font-weight:800;color:#fff;">Agendar Cita</div>' +
+    '<div style="font-size:9px;color:rgba(255,255,255,.6);margin-top:2px;">Genera un link personalizado para cada paciente</div></div>' +
+    '<button onclick="document.getElementById(\'modal-agendar-link\').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;">✕</button></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;">' +
     
     '<!-- LEFT: Generar link -->' +
@@ -1315,7 +1317,7 @@ function openAgendarModal() {
     '<!-- RIGHT: Historial -->' +
     '<div style="padding:16px;overflow-y:auto;background:#F8FAFF;">' +
     '<div style="font-size:8px;font-weight:800;color:#0A4FBF;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Historial de links</div>' +
-    '<div id="historial-links"><div style="text-align:center;padding:20px;"><div class="sp" style="width:18px;height:18px;border:2px solid #DDE4F5;border-top-color:#0A4FBF;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto;"></div></div></div>' +
+    '<div id="historial-links"><div style="text-align:center;padding:20px;color:#6B7BA8;font-size:9px;">Cargando historial...</div></div>' +
     '</div>' +
     
     '</div></div>';
@@ -1694,7 +1696,6 @@ window.AOS_sbGet   = window.sb_get;
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-var escH = escHtml;
 </script>
 
 <!-- ═══════ MODAL UNIFICADO: IMPORTAR LEADS + VENTAS ═══════ -->
