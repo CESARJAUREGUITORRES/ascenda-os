@@ -81,7 +81,8 @@ function editUser(idx){
   // Métricas top
   var html='<div id="eu-met" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:10px;padding:8px;background:linear-gradient(135deg,#071D4A08,#0A4FBF06);border-radius:10px;"></div>';
   // Chips
-  html+='<div class="chips"><button class="chip act" onclick="showTab(\'datos\')">📋 Datos</button><button class="chip" onclick="showTab(\'roles\')">🔐 Roles y Permisos</button><button class="chip" onclick="showTab(\'horarios\')">📅 Horarios</button><button class="chip" onclick="showTab(\'servicios\')">💉 Servicios</button></div>';
+  var esClinico=(u.area||'').toLowerCase()==='médica'||(u.area||'').toLowerCase()==='enfermería'||(u.cargo||'').toUpperCase().indexOf('DOCTOR')>=0||(u.nombre||'').toUpperCase().indexOf('DRA')>=0||(u.cargo||'').toUpperCase().indexOf('ENFERMER')>=0||(u.cargo||'').toUpperCase().indexOf('TÉCNIC')>=0;
+  html+='<div class="chips"><button class="chip act" onclick="showTab(\'datos\')">📋 Datos</button><button class="chip" onclick="showTab(\'roles\')">🔐 Roles y Permisos</button><button class="chip" onclick="showTab(\'horarios\')">📅 Horarios</button>'+(esClinico?'<button class="chip" onclick="showTab(\'servicios\')">💉 Servicios</button>':'')+'</div>';
   // TAB DATOS
   html+='<div id="tab-datos"><div style="display:grid;grid-template-columns:220px 1fr;gap:14px;">';
   // Left: foto
