@@ -20,8 +20,8 @@
 .edt-content:focus{border-color:#0A4FBF;}
 .edt-raw{display:none;flex:1;min-height:200px;padding:12px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:11px;font-family:monospace;resize:none;}
 .edt-toolbar{display:flex;gap:2px;flex-wrap:wrap;padding:6px;background:#F8FAFF;border-radius:8px;border:1px solid #EEF0F8;}
-.tpl-cat-hdr{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:10px;cursor:pointer;color:#0D1B3E;border-radius:6px;user-select:none;}
-.tpl-cat-hdr:hover{background:#EBF2FF;}
+.tpl-cat-hdr{display:flex;align-items:center;gap:6px;padding:7px 10px;font-size:10px;cursor:pointer;color:#0D1B3E;border-radius:6px;user-select:none;background:#EBF2FF;margin:3px 0;border:1px solid #DDE4F5;}
+.tpl-cat-hdr:hover{background:#DBEAFE;}
 .tpl-item{position:relative;padding:8px 10px;margin:1px 0;border-radius:8px;cursor:pointer;border:1.5px solid transparent;transition:all .12s;}
 .tpl-item:hover{background:#EBF2FF;border-color:#DDE4F5;}
 .tpl-sel{background:#EBF2FF;border-color:#0A4FBF !important;}
@@ -558,29 +558,31 @@ function openTplEditor(id){
   if(_tplMode==='email'){
     q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
       if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables||[]);
-      var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:100%;">';
-      html+='<div style="padding:14px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:10px;">';
-      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">'+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button></div>';
+      var hdrBg=_BRAND.color_header||'#4a3728';var sec=_BRAND.color_secundario||'#B8860B';
+      var html='<div style="padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">';
+      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">'+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" style="font-size:10px;" onclick="showVarsModal()">📋 Variables</button></div>';
       html+='<div><div class="edt-lbl">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()"></div>';
       html+='<input type="hidden" id="tpl-nombre" value="'+h(t.nombre)+'">';
-      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
-      html+='<div class="edt-toolbar"><button class="tb-btn" onclick="execCmd(\'bold\')"><b>B</b></button><button class="tb-btn" onclick="execCmd(\'italic\')"><i>I</i></button><button class="tb-btn" onclick="execCmd(\'underline\')"><u>U</u></button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')">T+</button><button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')">T</button><button class="tb-btn" onclick="execCmd(\'foreColor\',(_BRAND.color_secundario||\'#B8860B\'))" style="color:'+(_BRAND.color_secundario||'#B8860B')+';">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" style="color:#059669;">A</button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'justifyCenter\')">☰</button><button class="tb-btn" onclick="insertLink()">🔗</button><button class="tb-btn" onclick="insertImg()">🖼</button><button class="tb-btn" onclick="insertBtn()">🔘</button><button class="tb-btn" onclick="toggleHtmlMode()" id="btn-html-mode">{ }</button></div>';
+      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar en el editor)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
+      html+='<div class="edt-toolbar"><button class="tb-btn" onclick="execCmd(\'bold\')"><b>B</b></button><button class="tb-btn" onclick="execCmd(\'italic\')"><i>I</i></button><button class="tb-btn" onclick="execCmd(\'underline\')"><u>U</u></button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')">T+</button><button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')">T</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\''+sec+'\')" style="color:'+sec+';" title="Color marca">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\''+hdrBg+'\')" style="color:'+hdrBg+';" title="Color header">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" style="color:#059669;">A</button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'justifyCenter\')">☰</button><button class="tb-btn" onclick="insertLink()">🔗</button><button class="tb-btn" onclick="insertImg()">🖼</button><button class="tb-btn" onclick="insertBtn()">🔘</button><button class="tb-btn" onclick="toggleHtmlMode()" id="btn-html-mode">{ }</button></div>';
       var body=t.html_body||'<p>Escribe aquí...</p>';
       html+='<div id="tpl-editor" contenteditable="true" class="edt-content" oninput="updateTplPreview()">'+body+'</div>';
       html+='<textarea id="tpl-html-raw" class="edt-raw" oninput="updateTplPreview()">'+h(body)+'</textarea>';
-      html+='</div><div style="padding:14px;overflow-y:auto;background:#E2E8F0;"><div class="edt-lbl">📱 VISTA PREVIA</div><div style="font-size:9px;color:#6B7BA8;margin-bottom:6px;">Asunto: <b id="tpl-prev-subj">'+h(t.asunto)+'</b></div><div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;"></div></div></div>';
+      html+='<div class="edt-lbl" style="margin-top:8px;">📱 VISTA PREVIA <span style="font-weight:400;color:#9AAAC8;">— así se ve el email que recibe el paciente</span></div>';
+      html+='<div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;border:1px solid #EEF0F8;"></div>';
+      html+='</div>';
       el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(updateTplPreview,150);
     });
   } else {
     q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
       if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables_disponibles||[]);
       var html='<div style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">';
-      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">💬 '+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="saveWaTpl(\''+t.id+'\')">💾 Guardar</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'">'+(t.activo?'ON':'OFF')+'</span></div>';
-      html+='<div style="display:flex;gap:8px;"><div style="flex:1;"><div class="edt-lbl">NOMBRE</div><input class="mi" id="wa-nombre" value="'+h(t.nombre)+'"></div><div style="width:120px;"><div class="edt-lbl">SEDE</div><select class="mi" id="wa-sede"><option value="">Todas</option><option value="SAN ISIDRO"'+(t.sede==='SAN ISIDRO'?' selected':'')+'>San Isidro</option><option value="PUEBLO LIBRE"'+(t.sede==='PUEBLO LIBRE'?' selected':'')+'>Pueblo Libre</option></select></div></div>';
+      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">💬 '+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="saveWaTpl(\''+t.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" style="font-size:10px;" onclick="showVarsModal()">📋 Variables</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'">'+(t.activo?'ON':'OFF')+'</span></div>';
+      html+='<div style="display:flex;gap:8px;"><div style="flex:1;"><div class="edt-lbl">NOMBRE</div><input class="mi" id="wa-nombre" value="'+h(t.nombre)+'"></div><div style="width:140px;"><div class="edt-lbl">SEDE</div><select class="mi" id="wa-sede"><option value="">Todas</option><option value="SAN ISIDRO"'+(t.sede==='SAN ISIDRO'?' selected':'')+'>San Isidro</option><option value="PUEBLO LIBRE"'+(t.sede==='PUEBLO LIBRE'?' selected':'')+'>Pueblo Libre</option></select></div></div>';
       html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertWaVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
-      html+='<div><div class="edt-lbl">MENSAJE</div><textarea class="mi" id="wa-body" style="min-height:200px;white-space:pre-wrap;font-size:12px;line-height:1.6;resize:vertical;" oninput="updateWaPreview()">'+h(t.cuerpo||'')+'</textarea></div>';
+      html+='<div><div class="edt-lbl">MENSAJE</div><textarea class="mi" id="wa-body" style="min-height:250px;white-space:pre-wrap;font-size:12px;line-height:1.6;resize:vertical;" oninput="updateWaPreview()">'+h(t.cuerpo||'')+'</textarea></div>';
       html+='<div class="edt-lbl">📱 VISTA PREVIA WHATSAPP</div>';
-      html+='<div style="background:#E7F5EC;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #BBF7D0;max-width:400px;" id="wa-preview"></div>';
+      html+='<div style="background:#E7F5EC;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #BBF7D0;max-width:450px;" id="wa-preview"></div>';
       html+='</div>';
       el('tpl-editor-area').innerHTML=html;updateWaPreview();
     });
@@ -618,6 +620,18 @@ function loadEnviados(){
 function openNewCampania(){showToast('Próximamente','Editor de campañas en construcción');}
 function openNewFlujo(){showToast('Próximamente','Builder de flujos en construcción');}
 function openNewPlantilla(){showToast('Próximamente','Editor de plantillas en construcción');}
+function showVarsModal(){
+  var allVars={nombre:'Nombre del paciente',apellido:'Apellido del paciente',tratamiento:'Tratamiento/servicio',fecha:'Fecha de la cita',hora:'Hora de la cita',fecha_cita:'Fecha de cita',hora_cita:'Hora de cita',sede:'Sede (San Isidro / Pueblo Libre)',dni:'DNI del paciente',email:'Email del paciente',telefono:'Teléfono del paciente',monto:'Monto pagado',saldo_actual:'Saldo pendiente',metodo_pago:'Método de pago',total:'Total de la compra',venta_id:'ID de la venta',dias:'Días desde tratamiento',dias_sin_visita:'Días sin visitar',ultimo_tratamiento:'Último tratamiento',ultima_fecha:'Última fecha de visita',catalogo_items:'Lista de productos/servicios',pagados:'Detalle de pagos',doctora:'Nombre de la doctora',cmp:'CMP de la doctora'};
+  var html='<div class="em-preview-overlay" onclick="if(event.target===this)this.remove()"><div style="background:#fff;border-radius:16px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.3);">';
+  html+='<div style="display:flex;align-items:center;margin-bottom:12px;"><div style="font-family:Exo 2;font-weight:800;font-size:16px;">📋 Variables disponibles</div><button onclick="this.closest(\'.em-preview-overlay\').remove()" style="margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:#9AAAC8;">✕</button></div>';
+  html+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">Copia y pega estas variables en tus plantillas. Se reemplazan automáticamente con los datos reales del paciente al enviar.</div>';
+  html+='<table style="width:100%;border-collapse:collapse;">';
+  Object.keys(allVars).sort().forEach(function(k){
+    html+='<tr style="border-bottom:1px solid #EEF0F8;"><td style="padding:6px 8px;"><code style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;color:#0A4FBF;cursor:pointer;" onclick="navigator.clipboard.writeText(\'{{'+k+'}}\');this.style.background=\'#F0FDF4\';this.textContent=\'✓ copiado\';var s=this;setTimeout(function(){s.textContent=\'{{'+k+'}}\';s.style.background=\'#EBF2FF\';},1500)">{{'+k+'}}</code></td><td style="padding:6px 8px;font-size:10px;color:#6B7BA8;">'+allVars[k]+'</td></tr>';
+  });
+  html+='</table></div></div>';
+  var d=document.createElement('div');d.innerHTML=html;document.body.appendChild(d.firstElementChild);
+}
 function openConfig(){showToast('Configuración','Configura tu API Key de Resend en Railway → Variables de entorno → RESEND_API_KEY');}
 
 // Init
