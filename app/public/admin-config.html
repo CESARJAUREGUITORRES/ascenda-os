@@ -423,6 +423,14 @@
               <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Degradado 2° tono (barras)</div>
               <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_degradado2" data-k="color_degradado2" value="#00E5A0"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_degradado2_txt" value="#00E5A0" oninput="el('c-color_degradado2').value=this.value;updatePreview()"></div>
             </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Header emails/PDF (fondo)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_header" data-k="color_header" value="#4a3728"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_header_txt" value="#4a3728" oninput="el('c-color_header').value=this.value;updatePreview()"></div>
+            </div>
+            <div>
+              <div class="fg-l" style="margin-bottom:4px;font-size:10px;">Header emails/PDF (texto)</div>
+              <div style="display:flex;gap:5px;align-items:center;"><input type="color" class="clr-prev" id="c-color_header_texto" data-k="color_header_texto" value="#FFFFFF"><input class="mi mi-sm" style="width:82px;font-size:10px;" id="c-color_header_texto_txt" value="#FFFFFF" oninput="el('c-color_header_texto').value=this.value;updatePreview()"></div>
+            </div>
           </div>
         </div>
         <div style="margin-top:12px;"><button class="mbtn mbtn-p" onclick="saveConfig()">💾 Guardar Cambios</button></div>
@@ -457,7 +465,7 @@
             <div id="prev-email-header" style="padding:14px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;justify-content:space-between;align-items:center;">
               <div>
                 <div style="font-size:8px;font-weight:700;letter-spacing:1px;" id="prev-email-company">MI EMPRESA</div>
-                <div style="color:#fff;font-size:13px;font-weight:700;margin-top:4px;">Recordatorio de cita</div>
+                <div style="color:#fff;font-size:13px;font-weight:700;margin-top:4px;" id="prev-email-title">Recordatorio de cita</div>
               </div>
               <img id="prev-email-logo" src="" style="display:none;max-height:28px;border-radius:4px;">
             </div>
@@ -834,10 +842,14 @@ function updatePreview(){
   if(pmlogo && logoUrl) { pmlogo.src = logoUrl; pmlogo.style.display = 'block'; }
 
   // ─── PREVIEW EMAIL ───
+  var chv = el('c-color_header') ? el('c-color_header').value : '#4a3728';
+  var chtv = el('c-color_header_texto') ? el('c-color_header_texto').value : '#FFFFFF';
   var peh = el('prev-email-header');
-  if(peh) peh.style.background = 'linear-gradient(135deg,' + cdv + ',' + c1v + ',' + cd2 + ')';
+  if(peh) peh.style.background = chv;
   var pec = el('prev-email-company');
   if(pec) { pec.textContent = displayName.toUpperCase(); pec.style.color = c2v; }
+  var pet = el('prev-email-title');
+  if(pet) pet.style.color = chtv;
   var pea = el('prev-email-accent');
   if(pea) pea.style.color = c1v;
   var pea2 = el('prev-email-accent2');
@@ -845,7 +857,7 @@ function updatePreview(){
   var pebl = el('prev-email-body');
   if(pebl) pebl.style.borderLeftColor = c2v;
   var pef = el('prev-email-footer');
-  if(pef) pef.textContent = displayName + ' · info@empresa.com';
+  if(pef) { pef.textContent = displayName + ' · info@empresa.com'; pef.style.background = chv; pef.style.color = c2v; }
   var pel = el('prev-email-logo');
   if(pel && logoUrl) { pel.src = logoUrl; pel.style.display = 'block'; }
 

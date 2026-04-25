@@ -498,6 +498,7 @@ var RESEND_KEY_AG = process.env.RESEND_API_KEY || 're_hMwhSNXd_4EobZ8KLvwWFQSg1P
 var BRAND = {
   color_primario: '#f0ebe0', color_secundario: '#cea14a', color_dark: '#e1ded1',
   color_texto: '#b89447', color_enlace: '#a28444', color_degradado2: '#f1eee4',
+  color_header: '#4a3728', color_header_texto: '#FFFFFF',
   logo_con_fondo_url: '', logo_sin_fondo_url: '', nombre_empresa: 'Zi Vital',
   telefono: '', whatsapp: ''
 }
@@ -505,7 +506,7 @@ function loadBrand() {
   sbFetch('/rest/v1/aos_configuracion?select=clave,valor').then(function(rows) {
     if (!rows || !rows.length) return
     rows.forEach(function(r) { if (BRAND.hasOwnProperty(r.clave)) BRAND[r.clave] = r.valor })
-    console.log('[BRAND] Branding cargado: ' + BRAND.color_secundario)
+    console.log('[BRAND] Branding cargado: header=' + BRAND.color_header + ' sec=' + BRAND.color_secundario)
   }).catch(function(e) { console.error('[BRAND] Error:', e.message) })
 }
 // Cargar al arrancar (con delay para que sbFetch esté listo)
@@ -516,14 +517,16 @@ setInterval(loadBrand, 1800000) // refresh cada 30 min
 function emailShell(headerHtml, bodyHtml) {
   var logo = BRAND.logo_sin_fondo_url || BRAND.logo_con_fondo_url
   var logoBlock = logo ? '<img src="' + logo + '" alt="' + BRAND.nombre_empresa + '" style="height:36px;margin-bottom:10px;display:block;" />' : ''
+  var hdrBg = BRAND.color_header || BRAND.color_dark || '#4a3728'
+  var hdrTxt = BRAND.color_header_texto || '#FFFFFF'
   return '<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">' +
-    '<div style="background:linear-gradient(135deg,' + BRAND.color_primario + ',' + BRAND.color_degradado2 + ');padding:28px 32px">' +
+    '<div style="background:' + hdrBg + ';padding:28px 32px">' +
     logoBlock +
     '<div style="color:' + BRAND.color_secundario + ';font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">' + BRAND.nombre_empresa + '</div>' +
-    headerHtml +
+    '<div style="color:' + hdrTxt + '">' + headerHtml + '</div>' +
     '</div>' +
     '<div style="padding:28px 32px">' + bodyHtml + '</div>' +
-    '<div style="background:' + BRAND.color_primario + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_texto + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
+    '<div style="background:' + hdrBg + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_secundario + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
     '</div>'
 }
 function emailInfoBox(label, value) {
@@ -612,7 +615,7 @@ function buildEmailRecordatorio(nombre, tratamiento, hora, sede, fecha, esManana
   var sedeMaps = esPL ? 'https://goo.gl/maps/Cw36T6YPudyRNmVe6' : 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
 
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">' + titulo + ', ' + (nombre || '').split(' ')[0] + ' 👋</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + titulo + ', ' + (nombre || '').split(' ')[0] + ' 👋</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Te recordamos que tienes una cita programada para <b>' + cuando + '</b>:</p>' +
 
     emailCard(
@@ -645,7 +648,7 @@ function buildEmailRecordatorio(nombre, tratamiento, hora, sede, fecha, esManana
 // Template email bienvenida paciente nuevo (branding dinámico)
 function buildEmailBienvenida(nombre) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Bienvenida a ' + BRAND.nombre_empresa + ', ' + nombre.split(' ')[0] + ' ✨</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Bienvenida a ' + BRAND.nombre_empresa + ', ' + nombre.split(' ')[0] + ' ✨</div>',
     '<p style="color:#475569;font-size:15px">Nos alegra tenerte como parte de nuestra comunidad. En ' + BRAND.nombre_empresa + ' estamos comprometidos con tu bienestar y belleza.</p>' +
     '<p style="color:#475569;font-size:15px">Ante cualquier consulta sobre tus tratamientos o para agendar tu próxima cita, no dudes en escribirnos.</p>' +
     '<div style="margin-top:24px;text-align:center">' +
@@ -691,7 +694,7 @@ function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha, dato
     '⚠️ YANGO: usar <i>Av Pablo Carriquiry 106, San Isidro</i> (esquina del edificio)</div></div>'
 
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Aquí te envío tu confirmación de cita ♥</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Aquí te envío tu confirmación de cita ♥</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 6px">Hola <b>' + (nombre || '').split(' ')[0] + '</b>, tu cita ha sido registrada exitosamente.</p>' +
     '<p style="color:#475569;font-size:12px;margin:0 0 20px">Te saluda tu Asesora de salud de la Clínica Estética Zi Vital 🏥👩‍⚕️</p>' +
 
@@ -750,7 +753,7 @@ function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, f
     })
   }
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Recibo de pago 🧾</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Recibo de pago 🧾</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, aquí tienes el detalle de tu compra.</p>' +
     emailCard(
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
@@ -785,7 +788,7 @@ function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, f
 // Template email seguimiento post-tratamiento (nueva — branding dinámico)
 function buildEmailSeguimiento(nombre, tratamiento, diasDesde) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¿Cómo te fue con tu tratamiento? 💆‍♀️</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¿Cómo te fue con tu tratamiento? 💆‍♀️</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, hace ' + diasDesde + ' días realizaste tu tratamiento de <b>' + tratamiento + '</b> y queremos saber cómo te sientes.</p>' +
     emailCard(
       '<div style="font-size:14px;color:#475569">Tu bienestar es nuestra prioridad. Si tienes alguna consulta sobre los resultados o cuidados posteriores, estamos aquí para ayudarte.</div>'
@@ -800,7 +803,7 @@ function buildEmailSeguimiento(nombre, tratamiento, diasDesde) {
 // ═══ TEMPLATE: Agradecimiento post-visita ═══
 function buildEmailAgradecimiento(nombre, tratamiento, sede, fecha) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Gracias por tu visita! 🌟</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Gracias por tu visita! 🌟</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, fue un placer atenderte en tu tratamiento de <b>' + (tratamiento||'') + '</b>' + (sede ? ' en nuestra sede de <b>' + sede + '</b>' : '') + '.</p>' +
     emailCard(
       '<div style="font-size:14px;color:#475569;line-height:1.6">Tu bienestar y satisfacción son nuestra prioridad. Esperamos que los resultados superen tus expectativas. 💆‍♀️</div>' +
@@ -822,7 +825,7 @@ function buildEmailSaldoPendiente(nombre, items) {
   }).join('')
   var totalSaldo = (items||[]).reduce(function(s,it){return s+parseFloat(it.saldo||0)},0)
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Tienes un saldo pendiente 💳</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Tienes un saldo pendiente 💳</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, te recordamos que tienes pagos pendientes por completar:</p>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
     '<thead><tr style="background:' + BRAND.color_primario + '"><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase">Tratamiento</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pagado</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pendiente</th></tr></thead>' +
@@ -836,7 +839,7 @@ function buildEmailSaldoPendiente(nombre, items) {
 // ═══ TEMPLATE: Cumpleaños ═══
 function buildEmailCumpleanos(nombre) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Feliz cumpleaños, ' + (nombre||'').split(' ')[0] + '! 🎂🎉</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Feliz cumpleaños, ' + (nombre||'').split(' ')[0] + '! 🎂🎉</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">En <b>' + BRAND.nombre_empresa + '</b> queremos celebrar contigo este día tan especial.</p>' +
     emailCard(
       '<div style="text-align:center">' +
@@ -853,7 +856,7 @@ function buildEmailCumpleanos(nombre) {
 // ═══ TEMPLATE: Reactivación paciente inactivo ═══
 function buildEmailReactivacion(nombre, ultimoTrat, diasSinVisita) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Te extrañamos, ' + (nombre||'').split(' ')[0] + ' 💚</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Te extrañamos, ' + (nombre||'').split(' ')[0] + ' 💚</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Han pasado <b>' + (diasSinVisita||'') + ' días</b> desde tu último tratamiento' + (ultimoTrat ? ' de <b>' + ultimoTrat + '</b>' : '') + ' en ' + BRAND.nombre_empresa + '.</p>' +
     emailCard(
       '<div style="font-size:14px;color:#475569;line-height:1.6">Tu piel y tu bienestar nos importan. Queremos que sigas disfrutando de los beneficios de nuestros tratamientos con las mejores condiciones.</div>'
@@ -869,7 +872,7 @@ function buildEmailReactivacion(nombre, ultimoTrat, diasSinVisita) {
 // ═══ TEMPLATE: No asistencia ═══
 function buildEmailNoAsistencia(nombre, tratamiento, fecha, hora, sede) {
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">Lamentamos que no hayas podido asistir 😔</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Lamentamos que no hayas podido asistir 😔</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, notamos que no pudiste asistir a tu cita de <b>' + (tratamiento||'') + '</b> programada para el ' + (fecha||'') + ' a las ' + (hora||'') + '.</p>' +
     emailCard(
       '<div style="font-size:14px;color:#475569">Entendemos que pueden surgir imprevistos. Tu salud y bienestar siguen siendo nuestra prioridad, y queremos ayudarte a reprogramar tu cita sin ningún inconveniente.</div>'
@@ -889,7 +892,7 @@ function buildEmailConfirmacionPago(nombre, tratamiento, monto, saldoActual, met
     '<div style="font-size:16px;margin-bottom:4px">🎉</div>' +
     '<div style="font-size:14px;font-weight:700;color:#059669">Pago completo — Sin saldo pendiente</div></div>'
   return emailShell(
-    '<div style="color:' + BRAND.color_dark + ';font-size:22px;font-weight:800">¡Pago recibido con éxito! ✅</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Pago recibido con éxito! ✅</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, muchas gracias por tu confianza. Confirmamos que hemos recibido tu pago:</p>' +
     // Card principal de pago
     '<div style="background:linear-gradient(135deg,' + BRAND.color_primario + ',' + BRAND.color_degradado2 + ');border-radius:14px;padding:24px;margin-bottom:16px;text-align:center">' +
@@ -991,7 +994,7 @@ function executeAction(agent, task, queryResult) {
     var subject = status + ' Elena: ' + template + ' — ' + results.ok + '/' + totalData
     var errorList = results.errors.length ? '<div style="margin-top:12px;padding:12px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA"><div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:6px">Errores (' + results.fail + '):</div><div style="font-size:10px;color:#991B1B">' + results.errors.join('<br>') + '</div></div>' : ''
     var html = emailShell(
-      '<div style="color:' + BRAND.color_dark + ';font-size:20px;font-weight:800">📊 Reporte de envío — Elena</div>',
+      '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:20px;font-weight:800">📊 Reporte de envío — Elena</div>',
       '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#059669">' + results.ok + '</div><div style="font-size:9px;color:#6B7BA8">Enviados</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0F4FC;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0A4FBF">' + results.skip + '</div><div style="font-size:9px;color:#6B7BA8">Ya enviados</div></div>' +
