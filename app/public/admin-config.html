@@ -770,7 +770,7 @@ function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function sbGet(p){return fetch(SB+p,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();});}
 function sbPost(p,b){return fetch(SB+p,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function sbPatch(p,b){return fetch(SB+p,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});}
-function showToast(t,m,err){var tw=el('cfg-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
+function showToast(t,m,err){var tw=el('cfg-toast');var d=document.createElement('div');d.className='inner-toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
 
 var TABS=['empresa','integraciones','seguridad','equipo'];
 function cfgTab(tab){
@@ -1614,4 +1614,13 @@ function desactivarInteg(id){if(!confirm('¿Desactivar este conector?'))return;s
 
 // ═══ AUTO-INIT: cargar datos al abrir el panel ═══
 loadConfig();loadEmails();
+
+// ═══ Color pickers: sincronizar con text input + preview en vivo ═══
+document.querySelectorAll('input[type="color"].clr-prev').forEach(function(cp){
+  cp.addEventListener('input',function(){
+    var txt=document.getElementById(cp.id+'_txt');
+    if(txt)txt.value=cp.value;
+    updatePreview();
+  });
+});
 </script>
