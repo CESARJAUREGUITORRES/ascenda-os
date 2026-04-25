@@ -288,8 +288,18 @@ http.createServer(function(req, res) {
       // Unificar todos los emails
       var allEmails = []
       agente.forEach(function(e) {
-        var email = (e.destinatario || '').split('_')[0] // quitar _fecha del anti-duplicado
-        allEmails.push({ to: email, subject: e.tipo, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: e.tipo, origen: 'agente' })
+        var dest = e.destinatario || ''
+        // Si el tipo incluye email destino (formato tipo_email_fecha), extraer email
+        var email = dest.indexOf('@') > -1 ? dest : ''
+        if (!email && e.tipo) {
+          // Clasificar tipo mejor
+          var t = (e.tipo || '').toLowerCase()
+          if (t.indexOf('confirmacion_cita') > -1) email = dest
+          else if (t.indexOf('recibo') > -1) email = dest
+          else if (t.indexOf('recordatorio') > -1) email = dest
+        }
+        var tipoClean = (e.tipo || 'otro').replace(/_/g, '_')
+        allEmails.push({ to: email || dest, subject: e.tipo, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente' })
       })
       panel.forEach(function(e) {
         allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
