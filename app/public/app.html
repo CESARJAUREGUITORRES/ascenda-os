@@ -1307,6 +1307,11 @@ function openAgendarModal() {
     '<div style="font-size:10px;color:#64748B;margin-top:2px;">Sin expiración. Para páginas web y botones. Citas orgánicas.</div></div></div>' : '') +
     
     '</div>' +
+    '<div style="margin-top:14px;border-top:1px solid #E2E8F0;padding-top:12px;">' +
+    '<div onclick="toggleHistorialLinks()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0;">' +
+    '<span style="font-size:11px;font-weight:700;color:#0A4FBF;">📋 Historial de mis links</span>' +
+    '<span id="hist-arrow" style="font-size:10px;color:#94A3B8;">▼</span></div>' +
+    '<div id="historial-links" style="display:none;max-height:200px;overflow-y:auto;"></div></div>' +
     '<div id="agendar-link-result" style="display:none;margin-top:14px;padding:14px;background:#F0FFF4;border-radius:10px;border:1px solid #BBF7D0;">' +
     '<div style="font-size:10px;font-weight:700;color:#059669;margin-bottom:6px;">✅ Link generado</div>' +
     '<input id="agendar-link-url" readonly style="width:100%;padding:8px;border:1px solid #BBF7D0;border-radius:6px;font-size:11px;font-family:DM Sans;background:#fff;color:#0f172a;" onclick="this.select()">' +
@@ -1404,6 +1409,85 @@ function enviarLinkWA() {
   var url = window._agLinkUrl || '';
   var msg = '¡Hola! 🌟\nTe enviamos tu link para *agendar tu cita* en Zi Vital:\n\n📅 ' + url + '\n\nSelecciona tu doctora, el día y horario que prefieras. ¡Te esperamos! 💚';
   window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function toggleHistorialLinks() {
+  var el = document.getElementById('historial-links');
+  var arrow = document.getElementById('hist-arrow');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    arrow.textContent = '▲';
+    cargarHistorialLinks();
+  } else {
+    el.style.display = 'none';
+    arrow.textContent = '▼';
+  }
+}
+
+function cargarHistorialLinks() {
+  var asesor = window._agLinkAsesor || '';
+  var filtro = AOS.role === 'ADMIN' ? '' : '&asesor_codigo=eq.' + encodeURIComponent(asesor);
+  fetch(_SB + '/rest/v1/aos_links_agenda?select=*&order=created_at.desc&limit=20' + filtro, {
+    headers: {'apikey': _SK, 'Authorization': 'Bearer ' + _SK}
+  }).then(function(r) { return r.json() }).then(function(links) {
+    var el = document.getElementById('historial-links');
+    if (!links || !links.length) { el.innerHTML = '<div style="padding:12px;text-align:center;font-size:10px;color:#94A3B8;">Sin links generados</div>'; return; }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+    html += '<tr style="background:#F8FAFC;"><th style="padding:5px 6px;text-align:left;font-weight:700;color:#6B7BA8;">Tipo</th><th style="padding:5px 6px;text-align:left;font-weight:700;color:#6B7BA8;">Paciente</th><th style="padding:5px 6px;text-align:left;font-weight:700;color:#6B7BA8;">Estado</th><th style="padding:5px 6px;text-align:center;font-weight:700;color:#6B7BA8;">Acc.</th></tr>';
+    links.forEach(function(l) {
+      var ahora = new Date();
+      var expira = new Date(l.expira_at);
+      var vencido = expira < ahora;
+      var usado = l.usado;
+      var estado = usado ? '<span style="color:#059669;font-weight:700;">✅ Usado</span>' : vencido ? '<span style="color:#DC2626;font-weight:700;">⏰ Vencido</span>' : '<span style="color:#0A4FBF;font-weight:700;">🟢 Activo</span>';
+      var tipo = l.tipo === 'paciente_especifico' ? '👤' : l.tipo === 'asesor' ? '🆕' : '🌐';
+      var url = window.location.origin + '/agendar?t=' + l.token;
+      html += '<tr style="border-bottom:1px solid #f0f4fc;">';
+      html += '<td style="padding:5px 6px;">' + tipo + '</td>';
+      html += '<td style="padding:5px 6px;">' + escH(l.paciente_numero || 'Nuevo') + '</td>';
+      html += '<td style="padding:5px 6px;">' + estado + '</td>';
+      html += '<td style="padding:5px 6px;text-align:center;">';
+      if (!vencido && !usado) {
+        html += '<span onclick="copiarLink(\'' + escH(url) + '\')" style="cursor:pointer;margin-right:4px;" title="Copiar">📋</span>';
+        html += '<span onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="cursor:pointer;" title="WhatsApp">💬</span>';
+      } else if (vencido || usado) {
+        html += '<span onclick="renovarLink(\'' + escH(l.id) + '\')" style="cursor:pointer;font-size:9px;color:#0A4FBF;font-weight:700;" title="Generar nuevo">🔄</span>';
+      }
+      html += '</td></tr>';
+    });
+    html += '</table>';
+    el.innerHTML = html;
+  });
+}
+
+function copiarLink(url) {
+  navigator.clipboard.writeText(url).then(function() {
+    if (window.AOS_showToast) AOS_showToast('📋 Link copiado', '', '');
+  });
+}
+
+function reenviarLinkWA(url) {
+  var msg = '¡Hola! 🌟\nTe reenvío tu link para *agendar tu cita* en Zi Vital:\n\n📅 ' + url + '\n\nSelecciona tu doctora, el día y horario que prefieras. ¡Te esperamos! 💚';
+  window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function renovarLink(oldId) {
+  // Buscar datos del link viejo y crear uno nuevo
+  fetch(_SB + '/rest/v1/aos_links_agenda?id=eq.' + oldId + '&select=*', {
+    headers: {'apikey': _SK, 'Authorization': 'Bearer ' + _SK}
+  }).then(function(r) { return r.json() }).then(function(rows) {
+    if (!rows || !rows[0]) return;
+    var old = rows[0];
+    var body = {tipo: old.tipo, paciente_numero: old.paciente_numero, asesor_codigo: old.asesor_codigo || window._agLinkAsesor, expira_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()};
+    fetch(_SB + '/rest/v1/aos_links_agenda', {method: 'POST', headers: {'apikey': _SK, 'Authorization': 'Bearer ' + _SK, 'Content-Type': 'application/json', 'Prefer': 'return=representation'}, body: JSON.stringify(body)})
+    .then(function(r) { return r.json() }).then(function(newRows) {
+      var token = newRows && newRows[0] ? newRows[0].token : '';
+      var url = window.location.origin + '/agendar?t=' + token;
+      mostrarLinkGenerado(url);
+      cargarHistorialLinks();
+      if (window.AOS_showToast) AOS_showToast('🔄 Link renovado', '', '');
+    });
+  });
 }
 
 function openLogoutModal()  { document.getElementById('modal-logout').classList.add('open'); }
