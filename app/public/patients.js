@@ -99,9 +99,8 @@ function loadCotizaciones(){
       var card='<div class="cot-card"><div class="cot-hdr" onclick="cotToggle(this)"><div class="cot-hdr-left"><div class="cot-chevron">\u25BC</div><span class="cot-est '+estCls2+'">'+estLbl+'</span><span class="cot-num">#'+h(c.numero_cotizacion)+'</span><span class="cot-fecha">'+h(c.fecha||'')+'</span></div><div class="cot-hdr-right" onclick="event.stopPropagation()">';
       if(showPay)card+='<button class="cot-btn pay" title="Pagar" onclick="pagoAbrir(\''+h(c.id)+'\')">$</button>';
       card+='<button class="cot-btn" title="Editar" onclick="ecAbrir(\''+h(c.id)+'\')">&#9999;</button><button class="cot-btn" title="Enviar email" onclick="cotEmail(\''+h(c.id)+'\')">&#9993;</button><button class="cot-btn" title="PDF" onclick="cotPDF(\''+h(c.id)+'\')">&#8681;</button>';
-      // Botón eliminar — solo si no tiene pagos registrados
-      if(!pagos.length){card+='<button class="cot-btn del" title="Eliminar cotización" onclick="cotEliminar(\''+h(c.id)+'\',\'#'+h(c.numero_cotizacion)+'\')">&#128465;</button>';}
-      card+='</div></div>';
+      // Botón eliminar — siempre visible para admin, doble confirmación si tiene pagos
+      card+='<button class="cot-btn del" title="Eliminar cotización" onclick="cotEliminar(\''+h(c.id)+'\',\'#'+h(c.numero_cotizacion)+'\','+pagos.length+')">&#128465;</button>';
       // BODY
       card+='<div class="cot-body"><table class="cot-tbl"><thead><tr><th>Item</th><th>Cant.</th><th>Subtotal</th><th>Pagado</th><th>Por pagar</th><th>Estado</th></tr></thead><tbody>';
       items.forEach(function(it){
@@ -138,10 +137,16 @@ function loadCotizaciones(){
 function cotToggle(hdr){hdr.parentElement.classList.toggle('collapsed');}
 
 // ===== ELIMINAR COTIZACIÓN =====
-function cotEliminar(cotId, num) {
-  if (!confirm('¿Eliminar cotización ' + num + '?\nEsta acción no se puede deshacer.')) return;
-  // Borrar items primero, luego la cotización
-  _rest('aos_cotizacion_items?cotizacion_id=eq.'+cotId, {method:'DELETE'}).then(function() {
+function cotEliminar(cotId, num, numPagos) {
+  var msg = numPagos > 0
+    ? '⚠️ La cotización ' + num + ' tiene ' + numPagos + ' pago(s) registrado(s).\n\nEsto eliminará los pagos y la cotización. ¿Estás seguro?'
+    : '¿Eliminar cotización ' + num + '?\nEsta acción no se puede deshacer.';
+  if (!confirm(msg)) return;
+  if (numPagos > 0 && !confirm('Confirma una vez más: se eliminarán ' + numPagos + ' pago(s) vinculado(s).')) return;
+  // Borrar en cascade: pagos → items → cotización
+  _rest('aos_pagos?cotizacion_id=eq.'+cotId, {method:'DELETE'}).then(function() {
+    return _rest('aos_cotizacion_items?cotizacion_id=eq.'+cotId, {method:'DELETE'});
+  }).then(function() {
     return _rest('aos_cotizaciones?id=eq.'+cotId, {method:'DELETE'});
   }).then(function(r) {
     if (!r.ok) throw new Error('Error al eliminar');
