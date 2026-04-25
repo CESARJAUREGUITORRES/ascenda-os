@@ -217,45 +217,53 @@ http.createServer(function(req, res) {
         var d = JSON.parse(body)
         if (!d.to || !d.template) { res.writeHead(400); res.end('{"error":"missing to/template"}'); return }
         var html = '', subject = '', tipo = d.template
+        // Construir variables para la plantilla
+        var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
+        
         if (tipo === 'confirmacion_cita') {
           subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
-          html = buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono})
+          html = buildFromTemplate('confirmacion_cita', vars, function() { return buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono}) })
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
-          html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'')
+          html = buildFromTemplate('recibo_venta', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'') })
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'cotizacion') {
           subject = '📋 Tu cotización — ' + BRAND.nombre_empresa
-          html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', '', d.sede||'', d.fecha||'', '')
+          html = buildFromTemplate('catalogo', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', '', d.sede||'', d.fecha||'', '') })
         } else if (tipo === 'seguimiento') {
           subject = '💆‍♀️ ¿Cómo te fue con tu tratamiento? — ' + BRAND.nombre_empresa
-          html = buildEmailSeguimiento(d.nombre||'Paciente', d.tratamiento||'', d.dias||7)
+          html = buildFromTemplate('seguimiento', vars, function() { return buildEmailSeguimiento(d.nombre||'Paciente', d.tratamiento||'', d.dias||7) })
         } else if (tipo === 'recordatorio') {
           subject = d.es_manana ? 'Tu cita de mañana — ' + (d.hora||'') : '¡Tu cita es hoy! ' + (d.hora||'')
-          html = buildEmailRecordatorio(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'', !!d.es_manana)
+          var recTipo = d.es_manana ? 'recordatorio' : 'recordatorio_hoy'
+          html = buildFromTemplate(recTipo, vars, function() { return buildEmailRecordatorio(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'', !!d.es_manana) })
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'bienvenida') {
           subject = '¡Bienvenida a ' + BRAND.nombre_empresa + '! ✨'
-          html = buildEmailBienvenida(d.nombre||'Paciente')
+          html = buildFromTemplate('bienvenida', vars, function() { return buildEmailBienvenida(d.nombre||'Paciente') })
         } else if (tipo === 'agradecimiento_visita') {
           subject = '🌟 ¡Gracias por tu visita! — ' + BRAND.nombre_empresa
-          html = buildEmailAgradecimiento(d.nombre||'Paciente', d.tratamiento||'', d.sede||'', d.fecha||'')
+          html = buildFromTemplate('agradecimiento_visita', vars, function() { return buildEmailAgradecimiento(d.nombre||'Paciente', d.tratamiento||'', d.sede||'', d.fecha||'') })
         } else if (tipo === 'saldo_pendiente') {
           subject = '💳 Tienes un saldo pendiente — ' + BRAND.nombre_empresa
-          html = buildEmailSaldoPendiente(d.nombre||'Paciente', d.items||[])
+          html = buildFromTemplate('saldo_pendiente', vars, function() { return buildEmailSaldoPendiente(d.nombre||'Paciente', d.items||[]) })
         } else if (tipo === 'cumpleanos') {
           subject = '🎂 ¡Feliz cumpleaños, ' + (d.nombre||'').split(' ')[0] + '! — ' + BRAND.nombre_empresa
-          html = buildEmailCumpleanos(d.nombre||'Paciente')
+          html = buildFromTemplate('cumpleanos', vars, function() { return buildEmailCumpleanos(d.nombre||'Paciente') })
         } else if (tipo === 'reactivacion') {
           subject = '💚 Te extrañamos, ' + (d.nombre||'').split(' ')[0] + ' — ' + BRAND.nombre_empresa
-          html = buildEmailReactivacion(d.nombre||'Paciente', d.ultimo_tratamiento||'', d.dias||60)
+          html = buildFromTemplate('reactivacion', vars, function() { return buildEmailReactivacion(d.nombre||'Paciente', d.ultimo_tratamiento||'', d.dias||60) })
         } else if (tipo === 'no_asistencia') {
           subject = '😔 Lamentamos que no hayas podido asistir — ' + BRAND.nombre_empresa
-          html = buildEmailNoAsistencia(d.nombre||'Paciente', d.tratamiento||'', d.fecha||'', d.hora||'', d.sede||'')
+          html = buildFromTemplate('no_asistencia', vars, function() { return buildEmailNoAsistencia(d.nombre||'Paciente', d.tratamiento||'', d.fecha||'', d.hora||'', d.sede||'') })
         } else if (tipo === 'confirmacion_pago') {
           subject = '✅ Pago recibido — S/' + parseFloat(d.monto||0).toFixed(2) + ' — ' + BRAND.nombre_empresa
-          html = buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'')
+          html = buildFromTemplate('confirmacion_pago', vars, function() { return buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'') })
+          html += emailFirmaMedica(d.doctora || d.atendio || '')
+        } else if (tipo === 'reprogramacion') {
+          subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
+          html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') })
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
@@ -640,6 +648,41 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
     agente_id: agentId, tipo_accion: tipoAccion,
     descripcion: descripcion, metadata: metadata || {}
   }).catch(function(){})
+}
+
+// ═══ CACHE DE PLANTILLAS — Lee de aos_email_plantillas para usar en emails reales ═══
+var _tplCache = {} // tipo → html_body
+function loadTplCache() {
+  sbFetch('/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto&activo=eq.true').then(function(rows) {
+    if (!rows) return
+    _tplCache = {}
+    rows.forEach(function(r) { if (r.html_body && r.html_body.length > 10) _tplCache[r.tipo] = { body: r.html_body, asunto: r.asunto }; })
+    console.log('[TPL] Cache cargado:', Object.keys(_tplCache).length, 'plantillas')
+  }).catch(function(e) { console.log('[TPL] Error cargando cache:', e.message) })
+}
+setTimeout(loadTplCache, 4000)
+setInterval(loadTplCache, 600000) // Recargar cada 10 min
+
+// Construir email desde plantilla BD o fallback a función hardcodeada
+function buildFromTemplate(tipo, vars, fallbackFn) {
+  var tpl = _tplCache[tipo]
+  if (tpl && tpl.body) {
+    var body = tpl.body
+    // Reemplazar variables {{var}} con valores reales
+    Object.keys(vars).forEach(function(k) {
+      body = body.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+    })
+    var asunto = tpl.asunto || ''
+    Object.keys(vars).forEach(function(k) {
+      asunto = asunto.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+    })
+    return emailShell(
+      '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + asunto + '</div>',
+      body
+    )
+  }
+  // Fallback a función hardcodeada
+  return fallbackFn()
 }
 
 // Template email recordatorio de cita — COMPLETO con dirección y estacionamiento
