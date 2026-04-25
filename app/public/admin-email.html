@@ -549,31 +549,42 @@ function openTplEditor(id){
     q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
       if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables||[]);
       var hdrBg=_BRAND.color_header||'#4a3728';var sec=_BRAND.color_secundario||'#B8860B';
-      var html='<div style="padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">';
-      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">'+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" style="font-size:10px;" onclick="showVarsModal()">📋 Variables</button></div>';
-      html+='<div><div class="edt-lbl">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()"></div>';
+      var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:100%;overflow:hidden;">';
+      // LEFT: Editor
+      html+='<div style="padding:12px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:8px;">';
+      html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="font-family:Exo 2;font-weight:800;font-size:13px;flex:1;">'+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:9px;padding:5px 12px;" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" style="font-size:9px;padding:5px 10px;" onclick="showVarsModal()">📋</button></div>';
+      html+='<div><div class="edt-lbl">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()" style="font-size:11px;padding:6px 8px;"></div>';
       html+='<input type="hidden" id="tpl-nombre" value="'+h(t.nombre)+'">';
-      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar en el editor)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
-      html+='<div class="edt-toolbar"><button class="tb-btn" onclick="execCmd(\'bold\')"><b>B</b></button><button class="tb-btn" onclick="execCmd(\'italic\')"><i>I</i></button><button class="tb-btn" onclick="execCmd(\'underline\')"><u>U</u></button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')">T+</button><button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')">T</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\''+sec+'\')" style="color:'+sec+';" title="Color marca">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\''+hdrBg+'\')" style="color:'+hdrBg+';" title="Color header">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" style="color:#059669;">A</button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'justifyCenter\')">☰</button><button class="tb-btn" onclick="insertLink()">🔗</button><button class="tb-btn" onclick="insertImg()">🖼</button><button class="tb-btn" onclick="insertBtn()">🔘</button><button class="tb-btn" onclick="toggleHtmlMode()" id="btn-html-mode">{ }</button></div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;"><span style="font-size:8px;color:#9AAAC8;margin-right:4px;">Variables:</span>'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:7px;padding:1px 4px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div>';
+      html+='<div class="edt-toolbar" style="padding:4px;"><button class="tb-btn" onclick="execCmd(\'bold\')"><b>B</b></button><button class="tb-btn" onclick="execCmd(\'italic\')"><i>I</i></button><button class="tb-btn" onclick="execCmd(\'underline\')"><u>U</u></button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')">T+</button><button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')">T</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\''+sec+'\')" style="color:'+sec+';">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" style="color:#059669;">A</button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'justifyCenter\')">☰</button><button class="tb-btn" onclick="insertLink()">🔗</button><button class="tb-btn" onclick="insertImg()">🖼</button><button class="tb-btn" onclick="insertBtn()">🔘</button><button class="tb-btn" onclick="toggleHtmlMode()" id="btn-html-mode">{ }</button></div>';
       var body=t.html_body||'<p>Escribe aquí...</p>';
-      html+='<div id="tpl-editor" contenteditable="true" class="edt-content" oninput="updateTplPreview()">'+body+'</div>';
-      html+='<textarea id="tpl-html-raw" class="edt-raw" oninput="updateTplPreview()">'+h(body)+'</textarea>';
-      html+='<div class="edt-lbl" style="margin-top:8px;">📱 VISTA PREVIA <span style="font-weight:400;color:#9AAAC8;">— así se ve el email que recibe el paciente</span></div>';
-      html+='<div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;border:1px solid #EEF0F8;"></div>';
+      html+='<div id="tpl-editor" contenteditable="true" class="edt-content" style="flex:1;min-height:0;" oninput="updateTplPreview()">'+body+'</div>';
+      html+='<textarea id="tpl-html-raw" class="edt-raw" style="flex:1;min-height:0;" oninput="updateTplPreview()">'+h(body)+'</textarea>';
       html+='</div>';
-      el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(function(){updateTplPreview();el('tpl-editor-area').scrollTop=0;},150);
+      // RIGHT: Preview
+      html+='<div style="padding:12px;overflow-y:auto;background:#E8E8E8;">';
+      html+='<div style="font-size:9px;font-weight:700;color:#6B7BA8;margin-bottom:6px;">📱 VISTA PREVIA</div>';
+      html+='<div id="tpl-preview" style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden;"></div>';
+      html+='</div></div>';
+      el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(function(){updateTplPreview();},100);
     });
   } else {
     q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
       if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables_disponibles||[]);
-      var html='<div style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">';
-      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">💬 '+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="saveWaTpl(\''+t.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" style="font-size:10px;" onclick="showVarsModal()">📋 Variables</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'">'+(t.activo?'ON':'OFF')+'</span></div>';
-      html+='<div style="display:flex;gap:8px;"><div style="flex:1;"><div class="edt-lbl">NOMBRE</div><input class="mi" id="wa-nombre" value="'+h(t.nombre)+'"></div><div style="width:140px;"><div class="edt-lbl">SEDE</div><select class="mi" id="wa-sede"><option value="">Todas</option><option value="SAN ISIDRO"'+(t.sede==='SAN ISIDRO'?' selected':'')+'>San Isidro</option><option value="PUEBLO LIBRE"'+(t.sede==='PUEBLO LIBRE'?' selected':'')+'>Pueblo Libre</option></select></div></div>';
-      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertWaVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
-      html+='<div><div class="edt-lbl">MENSAJE</div><textarea class="mi" id="wa-body" style="min-height:250px;white-space:pre-wrap;font-size:12px;line-height:1.6;resize:vertical;" oninput="updateWaPreview()">'+h(t.cuerpo||'')+'</textarea></div>';
-      html+='<div class="edt-lbl">📱 VISTA PREVIA WHATSAPP</div>';
-      html+='<div style="background:#E7F5EC;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #BBF7D0;max-width:450px;" id="wa-preview"></div>';
+      var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:100%;overflow:hidden;">';
+      // LEFT: WA Editor
+      html+='<div style="padding:12px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:8px;">';
+      html+='<div style="display:flex;align-items:center;gap:6px;"><div style="font-family:Exo 2;font-weight:800;font-size:13px;flex:1;">💬 '+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:9px;padding:5px 12px;" onclick="saveWaTpl(\''+t.id+'\')">💾 Guardar</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:7px;">'+(t.activo?'ON':'OFF')+'</span></div>';
+      html+='<div style="display:flex;gap:6px;"><div style="flex:1;"><div class="edt-lbl">NOMBRE</div><input class="mi" id="wa-nombre" value="'+h(t.nombre)+'" style="font-size:11px;padding:6px 8px;"></div><div style="width:110px;"><div class="edt-lbl">SEDE</div><select class="mi" id="wa-sede" style="font-size:11px;padding:6px 4px;"><option value="">Todas</option><option value="SAN ISIDRO"'+(t.sede==='SAN ISIDRO'?' selected':'')+'>San Isidro</option><option value="PUEBLO LIBRE"'+(t.sede==='PUEBLO LIBRE'?' selected':'')+'>Pueblo Libre</option></select></div></div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;"><span style="font-size:8px;color:#9AAAC8;margin-right:4px;">Variables:</span>'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:7px;padding:1px 4px;" onclick="insertWaVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div>';
+      html+='<div class="edt-lbl">MENSAJE</div>';
+      html+='<textarea class="mi" id="wa-body" style="flex:1;min-height:0;white-space:pre-wrap;font-size:11px;line-height:1.5;resize:none;" oninput="updateWaPreview()">'+h(t.cuerpo||'')+'</textarea>';
       html+='</div>';
+      // RIGHT: WA Preview
+      html+='<div style="padding:12px;overflow-y:auto;background:#E8E8E8;">';
+      html+='<div style="font-size:9px;font-weight:700;color:#6B7BA8;margin-bottom:6px;">📱 VISTA PREVIA WHATSAPP</div>';
+      html+='<div style="background:#E7F5EC;border-radius:12px;padding:14px;font-size:11px;line-height:1.5;white-space:pre-wrap;border:1px solid #BBF7D0;" id="wa-preview"></div>';
+      html+='</div></div>';
       el('tpl-editor-area').innerHTML=html;updateWaPreview();el('tpl-editor-area').scrollTop=0;
     });
   }
