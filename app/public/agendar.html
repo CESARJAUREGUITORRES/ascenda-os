@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#0A4FBF;--gold-light:#EBF2FF;--gold-dark:#0839A0;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#059669;--red:#DC2626}
+:root{--gold:#0A4FBF;--gold-light:#EBF2FF;--gold-dark:#0839A0;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#00C9A7;--mint:#00E5A0;--red:#DC2626}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 .ag-hero{background:linear-gradient(135deg,var(--deep) 0%,var(--blue) 100%);padding:28px 20px 20px;text-align:center;position:relative;overflow:hidden}
 .ag-hero::after{content:'';position:absolute;bottom:-40px;left:0;right:0;height:80px;background:var(--bg);border-radius:50% 50% 0 0}
@@ -92,9 +92,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </head>
 <body>
 <div class="ag-hero">
-  <img src="https://ituyqwstonmhnfshnaqz.supabase.co/storage/v1/object/public/logos/logos/logo_sin_fondo_1776998822498.png" class="ag-logo" alt="Zi Vital">
   <h1>Agenda tu cita</h1>
-  <p>Clínica Estética & Regenerativa</p>
 </div>
 
 <div class="ag-wrap">
@@ -122,7 +120,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="step-2" class="ag-step">
     <div id="prof-selected-card" class="ag-card" style="display:flex;align-items:center;gap:14px;"></div>
     <div class="ag-card">
-      <div class="ag-section">Servicio o tratamiento</div>
+      <div class="ag-section">Tratamiento</div>
       <div id="svc-list" class="svc-chips"></div>
     </div>
     <div class="ag-card">
@@ -148,10 +146,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="ag-section">Tus datos</div>
       <div id="ag-datos-prellenados" style="display:none;padding:10px;background:var(--gold-light);border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--gold-dark)"></div>
       <div id="ag-form-datos">
+        <div class="ag-row"><label class="ag-label">Teléfono / Celular *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
+        <div id="ag-pac-detected" style="display:none;padding:8px 12px;background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;margin-bottom:10px;font-size:11px;color:#059669;font-weight:600;"></div>
         <div class="ag-row"><label class="ag-label">Nombre *</label><input class="ag-input" id="ag-nombre" placeholder="Tu nombre"></div>
         <div class="ag-row"><label class="ag-label">Apellido *</label><input class="ag-input" id="ag-apellido" placeholder="Tu apellido"></div>
-        <div class="ag-row"><label class="ag-label">Teléfono / Celular *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel"></div>
-        <div class="ag-row"><label class="ag-label">DNI</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
+        <div class="ag-row"><label class="ag-label">N° Documento</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
         <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
       </div>
       <div class="ag-row"><label class="ag-label">Tipo de cita</label>
@@ -443,6 +442,29 @@ function doAgendarDirecto(nombre,apellido,tel,btn){
       showSuccess(nombre,apellido);
     } else {alert('Error al agendar');btn.textContent='✅ Confirmar cita';btn.disabled=false}
   }).catch(function(){alert('Error de conexión');btn.textContent='✅ Confirmar cita';btn.disabled=false});
+}
+
+var _autoDetectTimer=null;
+function autoDetectPaciente(val){
+  clearTimeout(_autoDetectTimer);
+  var num=val.replace(/\D/g,'');
+  if(num.length<7){document.getElementById('ag-pac-detected').style.display='none';return;}
+  _autoDetectTimer=setTimeout(function(){
+    fetch(SB+'/rest/v1/aos_pacientes?select="Nombres","Apellidos","Email","N° documento",numero_limpio&numero_limpio=eq.'+num+'&limit=1',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
+    .then(function(r){return r.json()}).then(function(pacs){
+      if(pacs&&pacs[0]){
+        var p=pacs[0];
+        document.getElementById('ag-nombre').value=p.Nombres||'';
+        document.getElementById('ag-apellido').value=p.Apellidos||'';
+        document.getElementById('ag-dni').value=p['N° documento']||'';
+        document.getElementById('ag-email').value=p.Email||'';
+        document.getElementById('ag-pac-detected').style.display='block';
+        document.getElementById('ag-pac-detected').textContent='✅ Paciente encontrado: '+(p.Nombres||'')+' '+(p.Apellidos||'');
+      } else {
+        document.getElementById('ag-pac-detected').style.display='none';
+      }
+    });
+  },500);
 }
 
 function showSuccess(nombre,apellido){
