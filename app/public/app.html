@@ -1415,36 +1415,45 @@ function generarLinkCitaAntiguo() {
   setTimeout(function(){document.getElementById('pac-search-input').focus()},100);
 }
 
+var _bpTimer=null;
 function buscarPacLink(q) {
+  clearTimeout(_bpTimer);
   if (!q || q.length < 2) { document.getElementById('pac-search-results').innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">Escribe al menos 2 caracteres</div>'; return; }
-  // Buscar por primera palabra para evitar problemas con espacios
-  var palabras = q.trim().split(/\s+/);
-  var primera = encodeURIComponent(palabras[0]);
-  var filtro = 'or=(%22Nombres%22.ilike.*'+primera+'*,%22Apellidos%22.ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
-  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,%22Nombres%22,%22Apellidos%22,%22Email%22&'+filtro+'&limit=12&order=%22Nombres%22',{
-    headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
-  }).then(function(r){return r.json()}).then(function(pacs){
-    var el = document.getElementById('pac-search-results');
-    if (!pacs || !pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
-    // Si hay segunda palabra, filtrar localmente
-    if (palabras.length > 1) {
-      var seg = palabras[1].toLowerCase();
-      pacs = pacs.filter(function(p) {
-        var full = ((p.Nombres||'')+' '+(p.Apellidos||'')).toLowerCase();
-        return full.indexOf(seg) >= 0;
-      });
+  _bpTimer = setTimeout(function(){
+    var palabras = q.trim().split(/\s+/);
+    var primera = palabras[0];
+    // Buscar en Supabase con campos correctos
+    var url = _SB + '/rest/v1/aos_pacientes?select=numero_limpio,%22Nombres%22,%22Apellidos%22,%22Email%22&or=(%22Nombres%22.ilike.*' + encodeURIComponent(primera) + '*,%22Apellidos%22.ilike.*' + encodeURIComponent(primera) + '*,numero_limpio.ilike.*' + encodeURIComponent(primera) + '*)&limit=10&order=%22Nombres%22';
+    fetch(url, {headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json()})
+    .then(function(pacs){
+      var el = document.getElementById('pac-search-results');
+      if (!pacs || pacs.message || !pacs.length) { 
+        el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; 
+        return; 
+      }
+      // Filtro local por segunda palabra
+      if (palabras.length > 1) {
+        var seg = palabras[1].toLowerCase();
+        pacs = pacs.filter(function(p) {
+          return ((p.Nombres||'')+ ' '+(p.Apellidos||'')).toLowerCase().indexOf(seg) >= 0;
+        });
+      }
       if (!pacs.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#94A3B8;">No se encontraron pacientes</div>'; return; }
-    }
-    el.innerHTML = pacs.map(function(p) {
-      var nombre = ((p.Nombres||'')+ ' '+(p.Apellidos||'')).trim();
-      var ini = ((p.Nombres||'')[0]||'')+((p.Apellidos||'')[0]||'');
-      return '<div onclick="selPacLink(\''+escH(p.numero_limpio||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
-        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+escH(ini.toUpperCase())+'</div>' +
-        '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#0f172a;">'+escH(nombre)+'</div>' +
-        '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.numero_limpio||'')+'</div></div>' +
-        '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8 5l5 5-5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg></div>';
-    }).join('');
-  });
+      el.innerHTML = pacs.map(function(p) {
+        var nombre = ((p.Nombres||'')+ ' '+(p.Apellidos||'')).trim();
+        var ini = ((p.Nombres||'')[0]||'')+((p.Apellidos||'')[0]||'');
+        return '<div onclick="selPacLink(\''+escH(p.numero_limpio||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+escH(ini.toUpperCase())+'</div>' +
+          '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#0f172a;">'+escH(nombre)+'</div>' +
+          '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.numero_limpio||'')+'</div></div>' +
+          '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8 5l5 5-5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg></div>';
+      }).join('');
+    }).catch(function(e){
+      console.error('Buscar error:', e);
+      document.getElementById('pac-search-results').innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#DC2626;">Error de búsqueda</div>';
+    });
+  }, 300);
 }
 
 function selPacLink(num) {
