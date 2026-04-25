@@ -133,7 +133,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
       <div style="display:flex;justify-content:center;margin-top:14px;">
         <div class="cf-turnstile" data-sitekey="0x4AAAAAADBlrdXnMyDkipRg" data-theme="light" data-size="normal" data-callback="onTurnstileOK" data-expired-callback="onTurnstileExpired"></div>
       </div>
-      <button class="btn-login" id="btn-login" disabled style="opacity:0.5;">
+      <button class="btn-login" id="btn-login" onclick="if(!this.disabled)doLogin()" disabled style="opacity:0.5;">
         <div class="spinner" id="spinner"></div>
         <span id="btn-txt">Verificando seguridad...</span>
       </button>
@@ -177,14 +177,17 @@ function onTurnstileExpired() {
   var btn = document.getElementById('btn-login');
   if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
 }
-// Fallback: si Turnstile no carga en 3 segundos, habilitar botón de todas formas
+// Fallback: si Turnstile no carga en 1.5 segundos, habilitar botón de todas formas
 setTimeout(function() {
   if (!_turnstileReady) {
     _turnstileReady = true;
     var btn = document.getElementById('btn-login');
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; document.getElementById('btn-txt').textContent = 'Ingresar al sistema'; }
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    var txt = document.getElementById('btn-txt');
+    if (txt) txt.textContent = 'Ingresar al sistema';
+    console.log('[LOGIN] Turnstile fallback — botón habilitado sin verificación');
   }
-}, 3000);
+}, 1500);
 
 var _2FA_DATA = null;
 var SEDES_GEO = [
