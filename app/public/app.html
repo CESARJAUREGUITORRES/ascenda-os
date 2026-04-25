@@ -1420,8 +1420,8 @@ function buscarPacLink(q) {
   // Buscar por primera palabra para evitar problemas con espacios
   var palabras = q.trim().split(/\s+/);
   var primera = encodeURIComponent(palabras[0]);
-  var filtro = 'or=("Nombres".ilike.*'+primera+'*,"Apellidos".ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
-  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,"Nombres","Apellidos","Email"&'+filtro+'&limit=12&order="Nombres"',{
+  var filtro = 'or=(%22Nombres%22.ilike.*'+primera+'*,%22Apellidos%22.ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
+  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,%22Nombres%22,%22Apellidos%22,%22Email%22&'+filtro+'&limit=12&order=%22Nombres%22',{
     headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
   }).then(function(r){return r.json()}).then(function(pacs){
     var el = document.getElementById('pac-search-results');
