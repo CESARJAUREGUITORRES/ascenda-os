@@ -10,25 +10,26 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--gold:#0A4FBF;--gold-light:#EBF2FF;--gold-dark:#0839A0;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#00C9A7;--mint:#00E5A0;--red:#DC2626}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.ag-hero{background:linear-gradient(135deg,var(--deep) 0%,var(--blue) 100%);padding:28px 20px 20px;text-align:center;position:relative;overflow:hidden}
-.ag-hero::after{content:'';position:absolute;bottom:-40px;left:0;right:0;height:80px;background:var(--bg);border-radius:50% 50% 0 0}
+.ag-hero{background:linear-gradient(135deg,#071D4A 0%,#0A4FBF 50%,#00C9A7 100%);padding:24px 20px 32px;text-align:center;position:relative;overflow:hidden}
+.ag-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(0,201,167,.15) 0%,transparent 60%)}
+.ag-hero::after{content:'';position:absolute;bottom:-30px;left:0;right:0;height:60px;background:var(--bg);border-radius:50% 50% 0 0}
 .ag-logo{height:36px;margin-bottom:8px}
 .ag-hero h1{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
 .ag-hero p{font-size:12px;color:rgba(255,255,255,.7)}
 .ag-wrap{max-width:480px;margin:0 auto;padding:0 16px 40px;position:relative;z-index:1}
 .ag-step{display:none;animation:fadeUp .3s ease}.ag-step.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.ag-card{background:var(--card);border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 2px 12px rgba(7,29,74,.06);border:1px solid var(--border)}
+.ag-card{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 4px 20px rgba(7,29,74,.06);border:1px solid rgba(226,232,240,.6)}
 .ag-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
 .ag-tabs{display:flex;gap:6px;margin-bottom:14px}
 .ag-tab{flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;background:var(--card);cursor:pointer;text-align:center;transition:all .15s;font-size:11px;font-weight:700;color:var(--muted)}
-.ag-tab.act{border-color:var(--gold);background:var(--gold-light);color:var(--gold-dark)}
+.ag-tab.act{border-color:#00C9A7;background:rgba(0,201,167,.08);color:#00A88A;font-weight:800}
 .ag-tab:hover{border-color:var(--gold)}
 /* Profesional cards */
 .prof-grid{display:flex;flex-direction:column;gap:8px}
 .prof-card{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s}
 .prof-card:hover{border-color:var(--blue);box-shadow:0 4px 16px rgba(10,79,191,.08)}
-.prof-card.sel{border-color:var(--gold);background:var(--gold-light)}
+.prof-card.sel{border-color:#00C9A7;background:rgba(0,201,167,.06)}
 .prof-img{width:56px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0}
 .prof-info{flex:1;min-width:0}
 .prof-name{font-size:14px;font-weight:800;color:var(--text)}
@@ -45,15 +46,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cal-day{padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
 .cal-day:hover:not(.disabled){background:var(--gold-light);border-color:var(--gold)}
 .cal-day.today{border-color:var(--blue);color:var(--blue);font-weight:800}
-.cal-day.sel{background:var(--gold);color:#fff;font-weight:800}
-.cal-day.has-turno{background:var(--gold-light);color:var(--gold-dark);font-weight:700;border-color:var(--gold)}
+.cal-day.sel{background:#0A4FBF;color:#fff;font-weight:800}
+.cal-day.has-turno{background:rgba(0,201,167,.08);color:#00A88A;font-weight:700;border-color:#00C9A7}
 .cal-day.disabled{color:#ccc;cursor:default}
 .cal-day.empty{cursor:default}
 /* Slots */
 .slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .slot{padding:8px 0;text-align:center;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text)}
 .slot:hover{border-color:var(--gold);background:var(--gold-light)}
-.slot.sel{background:var(--gold);color:#fff;border-color:var(--gold)}
+.slot.sel{background:linear-gradient(135deg,#00C9A7,#00A88A);color:#fff;border-color:#00C9A7}
 /* Form */
 .ag-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;transition:border .15s}
 .ag-input:focus{border-color:var(--gold)}
@@ -62,7 +63,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ag-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;background:var(--card);appearance:none}
 /* Buttons */
 .ag-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .2s}
-.ag-btn-primary{background:linear-gradient(135deg,#0A4FBF,#0839A0);color:#fff;box-shadow:0 4px 16px rgba(10,79,191,.3)}
+.ag-btn-primary{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;box-shadow:0 4px 16px rgba(7,29,74,.25)}
 .ag-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(10,79,191,.4)}
 .ag-btn-back{background:transparent;color:var(--muted);font-size:12px;font-weight:600;padding:8px;margin-top:6px}
 /* Success */
@@ -70,7 +71,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ag-success-ico{font-size:56px;margin-bottom:12px}
 .ag-success h2{font-family:'Exo 2';font-size:22px;font-weight:800;color:var(--green);margin-bottom:6px}
 .ag-success p{font-size:13px;color:var(--muted);line-height:1.6}
-.ag-success-detail{background:var(--gold-light);border-radius:12px;padding:16px;margin-top:16px;text-align:left}
+.ag-success-detail{background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:12px;padding:16px;margin-top:16px;text-align:left}
 .ag-success-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(10,79,191,.15)}
 .ag-success-row:last-child{border:none}
 .ag-success-row span:first-child{color:var(--muted)}
@@ -119,10 +120,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <!-- STEP 2: Servicio + Fecha -->
   <div id="step-2" class="ag-step">
     <div id="prof-selected-card" class="ag-card" style="display:flex;align-items:center;gap:14px;"></div>
-    <div class="ag-card">
-      <div class="ag-section">Tratamiento</div>
-      <div id="svc-list" class="svc-chips"></div>
-    </div>
+
     <div class="ag-card">
       <div class="ag-section">Selecciona fecha</div>
       <div class="cal-nav">
@@ -146,13 +144,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="ag-section">Tus datos</div>
       <div id="ag-datos-prellenados" style="display:none;padding:10px;background:var(--gold-light);border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--gold-dark)"></div>
       <div id="ag-form-datos">
-        <div class="ag-row"><label class="ag-label">Teléfono / Celular *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
-        <div id="ag-pac-detected" style="display:none;padding:8px 12px;background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;margin-bottom:10px;font-size:11px;color:#059669;font-weight:600;"></div>
+        <div style="padding:8px 12px;background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:8px;margin-bottom:12px;font-size:11px;color:#00A88A;font-weight:600;">💡 Si eres paciente, ingresa primero tu número para autocompletar tus datos</div>
         <div class="ag-row"><label class="ag-label">Nombre *</label><input class="ag-input" id="ag-nombre" placeholder="Tu nombre"></div>
         <div class="ag-row"><label class="ag-label">Apellido *</label><input class="ag-input" id="ag-apellido" placeholder="Tu apellido"></div>
+        <div class="ag-row"><label class="ag-label">Teléfono / Celular *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
+        <div id="ag-pac-detected" style="display:none;padding:8px 12px;background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.3);border-radius:8px;margin-bottom:10px;font-size:11px;color:#00A88A;font-weight:600;"></div>
         <div class="ag-row"><label class="ag-label">N° Documento</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
         <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
       </div>
+      <div class="ag-row"><label class="ag-label">Tratamiento *</label>
+        <select class="ag-input" id="ag-servicio" style="appearance:auto;" onchange="AG.selSvc=this.value">
+          <option value="">-- Seleccionar tratamiento --</option>
+          <option>Acido Hialuronico</option><option>Bioestimulador</option><option>Biorevitalizacion</option>
+          <option>Capilar</option><option>Compra de Producto</option><option>Consulta Medica</option>
+          <option>Criolipolisis</option><option>Detox</option><option>Enzimas Faciales</option>
+          <option>Exosomas Capilares</option><option>Exosomas Facial</option><option>Hidrofacial</option>
+          <option>HIFU</option><option>Mesoterapia Capilar</option><option>Mesoterapia Facial</option>
+          <option>Peptonas</option><option>PQ Age</option><option>Radiofrecuencia Capilar</option>
+          <option>Radiofrecuencia Facial</option><option>Toxina</option><option>Vitaminas</option>
+        </select></div>
       <div class="ag-row"><label class="ag-label">Tipo de cita</label>
         <select class="ag-input" id="ag-tipo-cita" style="appearance:auto;">
           <option value="CONSULTA NUEVA">Consulta nueva</option>
@@ -162,8 +172,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </select></div>
       <div class="ag-row"><label class="ag-label">Notas adicionales</label><textarea class="ag-input" id="ag-nota" rows="2" placeholder="¿Alguna indicación especial?"></textarea></div>
     </div>
-    <div id="ag-resumen" class="ag-card" style="background:var(--gold-light);border-color:var(--gold)">
-      <div class="ag-section" style="color:var(--gold-dark)">Resumen de tu cita</div>
+    <div id="ag-resumen" class="ag-card" style="background:rgba(0,201,167,.06);border-color:#00C9A7;">
+      <div class="ag-section" style="color:#00A88A">Resumen de tu cita</div>
       <div id="ag-resumen-body" style="font-size:12px"></div>
     </div>
     <button class="ag-btn ag-btn-primary" style="margin-top:14px" onclick="agConfirmar()">✅ Confirmar cita</button>
@@ -174,7 +184,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="step-4" class="ag-step">
     <div class="ag-card"><div class="ag-success">
       <div class="ag-success-ico">🎉</div>
-      <h2>¡Cita agendada!</h2>
+      <h2 style="color:#00C9A7;">¡Cita agendada!</h2>
       <p>Tu cita ha sido registrada exitosamente. Recibirás un correo de confirmación.</p>
       <div class="ag-success-detail" id="ag-success-detail"></div>
       <div style="margin-top:16px">
