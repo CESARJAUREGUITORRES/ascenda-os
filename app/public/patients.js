@@ -465,24 +465,32 @@ function selectMergePrincipal(newPrincipal, newAbsorbido) {
 function ejecutarFusion() {
   var md = window._mergeData;
   if (!md) return;
-  if (!confirm('¿Estás seguro? Esta acción moverá todos los datos de ' + md.absorbido + ' hacia ' + md.principal + '. Esta acción NO se puede deshacer fácilmente.')) return;
-
+  
   var btn = document.getElementById('merge-btn');
+  // First click: show confirmation state
+  if (btn && btn.getAttribute('data-confirmed') !== 'yes') {
+    btn.setAttribute('data-confirmed', 'yes');
+    btn.textContent = '⚠️ CONFIRMAR — Esta acción es irreversible';
+    btn.style.background = '#DC2626';
+    setTimeout(function() { if (btn.getAttribute('data-confirmed') === 'yes') { btn.setAttribute('data-confirmed', ''); btn.textContent = '🔀 Confirmar Fusión'; btn.style.background = ''; } }, 5000);
+    return;
+  }
+
   if (btn) { btn.textContent = '⏳ Fusionando...'; btn.disabled = true; }
 
   var usuario = (window.AOS && AOS.ctx) ? AOS.ctx.nombre : 'admin';
   _rpc('aos_fusionar_pacientes', { p_numero_principal: md.principal, p_numero_absorbido: md.absorbido, p_usuario: usuario }, function(res) {
+    // Close modal FIRST so toast appears on top
+    var overlay = document.querySelector('.merge-overlay');
+    if (overlay) overlay.remove();
+    
     if (res && res.ok) {
       var moved = res.registros_movidos || {};
       var detail = Object.keys(moved).map(function(k) { return k + ': ' + moved[k]; }).join(', ');
       if (window.AOS_showToast) AOS_showToast('✅ Fusión completada', detail, '');
-      // Cerrar modal y recargar paciente principal
-      var overlay = document.querySelector('.merge-overlay');
-      if (overlay) overlay.remove();
       ptSel(md.principal);
     } else {
       if (window.AOS_showToast) AOS_showToast('Error', (res && res.error) || 'Error desconocido', 'toast-alerta');
-      if (btn) { btn.textContent = '🔀 Confirmar Fusión'; btn.disabled = false; }
     }
   });
 }
