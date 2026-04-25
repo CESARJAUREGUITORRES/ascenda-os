@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#cea14a;--gold-light:#f0ebe0;--gold-dark:#b89447;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#059669;--red:#DC2626}
+:root{--gold:#0A4FBF;--gold-light:#EBF2FF;--gold-dark:#0839A0;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#059669;--red:#DC2626}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 .ag-hero{background:linear-gradient(135deg,var(--deep) 0%,var(--blue) 100%);padding:28px 20px 20px;text-align:center;position:relative;overflow:hidden}
 .ag-hero::after{content:'';position:absolute;bottom:-40px;left:0;right:0;height:80px;background:var(--bg);border-radius:50% 50% 0 0}
@@ -38,7 +38,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .prof-badge{font-size:9px;background:var(--gold-light);color:var(--gold-dark);padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
 /* Calendario */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.cal-nav button{width:32px;height:32px;border:none;background:var(--gold-light);border-radius:50%;font-size:14px;cursor:pointer;color:var(--gold-dark);font-weight:700}
+.cal-nav button{width:32px;height:32px;border:none;background:#EBF2FF;border-radius:50%;font-size:14px;cursor:pointer;color:#0A4FBF;font-weight:700}
 .cal-title{font-size:14px;font-weight:800;color:var(--text)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
 .cal-head{font-size:9px;font-weight:700;color:var(--muted);padding:6px 0}
@@ -62,8 +62,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ag-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;background:var(--card);appearance:none}
 /* Buttons */
 .ag-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .2s}
-.ag-btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;box-shadow:0 4px 16px rgba(206,161,74,.3)}
-.ag-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(206,161,74,.4)}
+.ag-btn-primary{background:linear-gradient(135deg,#0A4FBF,#0839A0);color:#fff;box-shadow:0 4px 16px rgba(10,79,191,.3)}
+.ag-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(10,79,191,.4)}
 .ag-btn-back{background:transparent;color:var(--muted);font-size:12px;font-weight:600;padding:8px;margin-top:6px}
 /* Success */
 .ag-success{text-align:center;padding:30px 20px}
@@ -71,7 +71,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ag-success h2{font-family:'Exo 2';font-size:22px;font-weight:800;color:var(--green);margin-bottom:6px}
 .ag-success p{font-size:13px;color:var(--muted);line-height:1.6}
 .ag-success-detail{background:var(--gold-light);border-radius:12px;padding:16px;margin-top:16px;text-align:left}
-.ag-success-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(206,161,74,.15)}
+.ag-success-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(10,79,191,.15)}
 .ag-success-row:last-child{border:none}
 .ag-success-row span:first-child{color:var(--muted)}
 .ag-success-row span:last-child{font-weight:700;color:var(--text)}
@@ -377,10 +377,10 @@ function renderDatos(){
 
 function renderResumen(){
   var html='';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(206,161,74,.2)"><span style="color:var(--muted)">Profesional</span><span style="font-weight:700">'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(206,161,74,.2)"><span style="color:var(--muted)">Servicio</span><span style="font-weight:700">'+esc(AG.selSvc||'General')+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(206,161,74,.2)"><span style="color:var(--muted)">Fecha</span><span style="font-weight:700">'+esc(AG.selFecha)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(206,161,74,.2)"><span style="color:var(--muted)">Hora</span><span style="font-weight:700">'+esc(AG.selHora)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Profesional</span><span style="font-weight:700">'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Servicio</span><span style="font-weight:700">'+esc(AG.selSvc||'General')+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Fecha</span><span style="font-weight:700">'+esc(AG.selFecha)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Hora</span><span style="font-weight:700">'+esc(AG.selHora)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Sede</span><span style="font-weight:700">'+esc(AG.selSede)+'</span></div>';
   document.getElementById('ag-resumen-body').innerHTML=html;
 }
