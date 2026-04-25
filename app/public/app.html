@@ -1524,9 +1524,16 @@ function cargarHistorialLinks() {
         html += '<tr style="border-bottom:1px solid #EEF0F8;">';
         html += '<td style="padding:4px;">' + fecha + '</td>';
         html += '<td style="padding:4px;font-weight:600;">' + escH(num) + '</td>';
-        html += '<td style="padding:4px;text-align:center;">' + (!vencido && !usado ? '<span onclick="copiarLink(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="Copiar link">📋</span>' : '<span style="color:#ccc;">—</span>') + '</td>';
-        html += '<td style="padding:4px;text-align:center;">' + (!vencido && !usado ? '<span onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="Enviar por WhatsApp">💬</span>' : '<span style="color:#ccc;">—</span>') + '</td>';
-        html += '<td style="padding:4px;text-align:center;">' + estadoHtml + '</td>';
+        if (usado) {
+          html += '<td style="padding:4px;text-align:center;" colspan="3"><span style="color:#059669;font-weight:700;">✅ Confirmada</span></td>';
+        } else if (vencido) {
+          html += '<td style="padding:4px;text-align:center;color:#ccc;">—</td><td style="padding:4px;text-align:center;color:#ccc;">—</td>';
+          html += '<td style="padding:4px;text-align:center;"><span style="color:#DC2626;font-weight:700;">Expirado</span></td>';
+        } else {
+          html += '<td style="padding:4px;text-align:center;"><span onclick="copiarLink(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="Copiar">📋</span></td>';
+          html += '<td style="padding:4px;text-align:center;"><span onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="WhatsApp">💬</span></td>';
+          html += '<td style="padding:4px;text-align:center;">' + estadoHtml + '</td>';
+        }
         html += '<td style="padding:4px;text-align:center;"><span onclick="eliminarLink(\'' + escH(l.id) + '\')" style="cursor:pointer;color:#DC2626;font-weight:700;font-size:11px;" title="Eliminar">✕</span></td>';
         html += '</tr>';
       });
