@@ -8,508 +8,126 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#0A4FBF;--gold-light:#EBF2FF;--gold-dark:#0839A0;--deep:#071D4A;--blue:#0A4FBF;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#00C9A7;--mint:#00E5A0;--red:#DC2626}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.ag-hero{background:linear-gradient(135deg,#071D4A 0%,#0A4FBF 100%);padding:20px 20px 28px;text-align:center;position:relative;overflow:hidden}
-.ag-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,201,167,.12)}
-.ag-hero::after{content:'';position:absolute;bottom:-24px;left:0;right:0;height:50px;background:var(--bg);border-radius:50% 50% 0 0}
-.ag-logo{height:36px;margin-bottom:8px}
-.ag-hero h1{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
-.ag-hero p{font-size:12px;color:rgba(255,255,255,.7)}
-.ag-wrap{max-width:480px;margin:0 auto;padding:0 16px 40px;position:relative;z-index:1}
-.ag-step{display:none;animation:fadeUp .3s ease}.ag-step.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.ag-card{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 4px 20px rgba(7,29,74,.06);border:1px solid rgba(226,232,240,.6)}
-.ag-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.ag-tabs{display:flex;gap:6px;margin-bottom:14px}
-.ag-tab{flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;background:var(--card);cursor:pointer;text-align:center;transition:all .15s;font-size:11px;font-weight:700;color:var(--muted)}
-.ag-tab.act{border-color:#00C9A7;background:rgba(0,201,167,.08);color:#00A88A;font-weight:800}
-.ag-tab:hover{border-color:var(--gold)}
-/* Profesional cards */
-.prof-grid{display:flex;flex-direction:column;gap:8px}
-.prof-card{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s}
-.prof-card:hover{border-color:var(--blue);box-shadow:0 4px 16px rgba(10,79,191,.08)}
-.prof-card.sel{border-color:#00C9A7;background:rgba(0,201,167,.06)}
-.prof-img{width:56px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0}
-.prof-info{flex:1;min-width:0}
-.prof-name{font-size:14px;font-weight:800;color:var(--text)}
-.prof-title{font-size:10px;color:var(--muted);margin-top:1px}
-.prof-spec{font-size:10px;color:var(--gold-dark);font-weight:600;margin-top:2px}
-.prof-sede{font-size:9px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:3px}
-.prof-badge{font-size:9px;background:var(--gold-light);color:var(--gold-dark);padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
-/* Calendario */
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.cal-nav button{width:32px;height:32px;border:none;background:#EBF2FF;border-radius:50%;font-size:14px;cursor:pointer;color:#0A4FBF;font-weight:700}
-.cal-title{font-size:14px;font-weight:800;color:var(--text)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-.cal-head{font-size:9px;font-weight:700;color:var(--muted);padding:6px 0}
-.cal-day{padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+:root{--gold:#cea14a;--gold-light:#f0ebe0;--gold-dark:#4a3728;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#059669;--red:#DC2626}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
+.ag-header{background:linear-gradient(135deg,var(--gold-dark),#5d3f1e);padding:12px 24px;display:flex;align-items:center;gap:12px}
+.ag-header h1{font-family:'Exo 2';font-size:17px;font-weight:800;color:#fff;flex:1}
+.ag-header .ag-badge{font-size:9px;background:rgba(206,161,74,.3);color:#f0ebe0;padding:3px 10px;border-radius:20px;font-weight:600}
+.ag-main{display:grid;grid-template-columns:260px 1fr 300px;height:calc(100vh - 46px);overflow:hidden}
+.ag-col{display:flex;flex-direction:column;overflow:hidden}
+.ag-col1{background:#fff;border-right:1px solid var(--border)}
+.ag-col2{background:var(--bg)}
+.ag-col3{background:#fff;border-left:1px solid var(--border)}
+.ag-col-hdr{padding:10px 12px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.ag-col-body{flex:1;overflow-y:auto;padding:10px}
+.ag-tabs{display:flex;gap:4px;margin-bottom:8px}
+.ag-tab{flex:1;padding:7px;border:2px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;text-align:center;font-size:10px;font-weight:700;color:var(--muted);transition:all .12s}
+.ag-tab.act{border-color:var(--gold);background:var(--gold-light);color:var(--gold-dark);font-weight:800}
+.prof-card{display:flex;align-items:center;gap:8px;padding:8px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:5px}
+.prof-card:hover{border-color:var(--gold);background:rgba(206,161,74,.03)}
+.prof-card.sel{border-color:var(--gold);background:var(--gold-light)}
+.prof-img{width:42px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.prof-name{font-size:11px;font-weight:800;color:var(--text)}
+.prof-sub{font-size:8px;color:var(--muted);margin-top:1px}
+.prof-badge{font-size:7px;background:var(--gold-light);color:var(--gold-dark);padding:2px 5px;border-radius:10px;font-weight:700;margin-left:auto;white-space:nowrap}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-nav button{width:28px;height:28px;border:none;background:var(--gold-light);border-radius:50%;font-size:12px;cursor:pointer;color:var(--gold-dark);font-weight:700}
+.cal-title{font-size:12px;font-weight:800;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-head{font-size:8px;font-weight:700;color:var(--muted);padding:4px 0}
+.cal-day{padding:6px 0;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;border:1.5px solid transparent}
 .cal-day:hover:not(.disabled){background:var(--gold-light);border-color:var(--gold)}
-.cal-day.today{border-color:var(--blue);color:var(--blue);font-weight:800}
-.cal-day.sel{background:#0A4FBF;color:#fff;font-weight:800}
-.cal-day.has-turno{background:rgba(0,201,167,.08);color:#00A88A;font-weight:700;border-color:#00C9A7}
-.cal-day.disabled{color:#ccc;cursor:default}
-.cal-day.empty{cursor:default}
-/* Slots */
-.slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.slot{padding:8px 0;text-align:center;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text)}
+.cal-day.today{border-color:var(--gold);color:var(--gold-dark);font-weight:800}
+.cal-day.sel{background:var(--gold);color:#fff;font-weight:800}
+.cal-day.has-turno{background:rgba(5,150,105,.08);color:var(--green);font-weight:700;border-color:rgba(5,150,105,.3)}
+.cal-day.disabled{color:#ccc;cursor:default}.cal-day.empty{cursor:default}
+.slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.slot{padding:6px 0;text-align:center;border:1.5px solid var(--border);border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
 .slot:hover{border-color:var(--gold);background:var(--gold-light)}
-.slot.sel{background:linear-gradient(135deg,#00C9A7,#00A88A);color:#fff;border-color:#00C9A7}
+.slot.sel{background:var(--gold);color:#fff;border-color:var(--gold)}
 .slot.sel div{color:#fff !important}
-/* Form */
-.ag-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;transition:border .15s}
+.ag-input{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:'DM Sans';outline:none;transition:border .12s}
 .ag-input:focus{border-color:var(--gold)}
-.ag-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px}
-.ag-row{margin-bottom:12px}
-.ag-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans';outline:none;background:var(--card);appearance:none}
-/* Buttons */
-.ag-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .2s}
-.ag-btn-primary{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;box-shadow:0 4px 16px rgba(7,29,74,.25)}
-.ag-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(10,79,191,.4)}
-.ag-btn-back{background:transparent;color:var(--muted);font-size:12px;font-weight:600;padding:8px;margin-top:6px}
-/* Success */
-.ag-success{text-align:center;padding:30px 20px}
-.ag-success-ico{font-size:56px;margin-bottom:12px}
-.ag-success h2{font-family:'Exo 2';font-size:22px;font-weight:800;color:var(--green);margin-bottom:6px}
-.ag-success p{font-size:13px;color:var(--muted);line-height:1.6}
-.ag-success-detail{background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:12px;padding:16px;margin-top:16px;text-align:left}
-.ag-success-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(10,79,191,.15)}
-.ag-success-row:last-child{border:none}
-.ag-success-row span:first-child{color:var(--muted)}
-.ag-success-row span:last-child{font-weight:700;color:var(--text)}
-/* Expired */
-.ag-expired{text-align:center;padding:60px 20px}
-.ag-expired-ico{font-size:56px;margin-bottom:12px}
-.ag-expired h2{font-size:20px;font-weight:800;color:var(--red)}
-.ag-expired p{font-size:13px;color:var(--muted);margin-top:6px}
-/* Loading */
-.ag-loading{text-align:center;padding:40px}.ag-sp{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .6s linear infinite;margin:0 auto 8px}
-@keyframes sp{to{transform:rotate(360deg)}}
-/* Service chips */
-.svc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.svc-chip{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted)}
-.svc-chip:hover{border-color:var(--gold);color:var(--gold-dark)}
-.svc-chip.sel{background:var(--gold);color:#fff;border-color:var(--gold)}
+.ag-label{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px}
+.ag-row{margin-bottom:8px}
+.ag-btn{width:100%;padding:11px;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .15s}
+.ag-btn-primary{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:#fff;box-shadow:0 4px 12px rgba(206,161,74,.25)}
+.ag-btn-primary:hover{transform:translateY(-1px)}.ag-btn-primary:disabled{opacity:.4;cursor:default;transform:none}
+.ag-resumen{background:var(--gold-light);border:1px solid rgba(206,161,74,.2);border-radius:8px;padding:10px;margin-bottom:10px}
+.ag-rr{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(206,161,74,.12)}
+.ag-rr:last-child{border:none}
+.ag-rr span:first-child{color:var(--muted)}.ag-rr span:last-child{font-weight:700;color:var(--gold-dark)}
+.ag-detected{padding:5px 8px;background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:5px;margin-bottom:6px;font-size:9px;color:var(--green);font-weight:600}
+.ag-success-ov{position:fixed;inset:0;background:rgba(74,55,40,.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.ag-success-c{background:#fff;border-radius:18px;max-width:400px;width:90%;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.ag-loading-s{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.ag-expired-s{position:fixed;inset:0;background:#fff;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px}
+.ag-sp{width:24px;height:24px;border:3px solid var(--gold-light);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:900px){.ag-main{grid-template-columns:1fr;height:auto;overflow:auto}.ag-col{overflow:visible;border:none !important}}
 </style>
 </head>
 <body>
-<div class="ag-hero">
-  <h1>Agenda tu cita</h1>
-</div>
-
-<div class="ag-wrap">
-  <!-- LOADING -->
-  <div id="ag-loading" class="ag-card"><div class="ag-loading"><div class="ag-sp"></div><span style="font-size:12px;color:var(--muted)">Cargando disponibilidad...</span></div></div>
-
-  <!-- EXPIRED -->
-  <div id="ag-expired" style="display:none" class="ag-card"><div class="ag-expired"><div class="ag-expired-ico">⏰</div><h2>Link expirado</h2><p>Este enlace ya no es válido. Solicita uno nuevo a tu asesora de Zi Vital.</p><div style="margin-top:16px"><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, quisiera agendar una cita" style="display:inline-block;padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px">💬 Escribir por WhatsApp</a></div></div></div>
-
-  <!-- STEP 1: Tipo de atención -->
-  <div id="step-1" class="ag-step">
-    <div class="ag-card">
-      <div class="ag-section">Tipo de atención</div>
-      <div class="ag-tabs">
-        <div class="ag-tab act" onclick="agTipo('DOCTORA',this)">👩‍⚕️ Doctora</div>
-        <div class="ag-tab" onclick="agTipo('ENFERMERIA',this)">💆 Enfermería</div>
-      </div>
-      <div class="ag-section" style="margin-top:8px">Selecciona profesional</div>
-      <div id="prof-list" class="prof-grid"></div>
+<div class="ag-loading-s" id="ag-loading"><div class="ag-sp"></div><span style="font-size:11px;color:var(--muted)">Cargando...</span></div>
+<div class="ag-expired-s" id="ag-expired"><div style="font-size:48px">⏰</div><h2 style="font-family:Exo 2;font-size:20px;color:var(--red);">Link expirado</h2><p style="font-size:12px;color:var(--muted);max-width:280px;">Solicita uno nuevo a tu asesora.</p><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, quisiera agendar una cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:12px">💬 WhatsApp</a></div>
+<div class="ag-header" id="ag-app" style="display:none"><h1>Agenda tu cita</h1><div class="ag-badge">Zi Vital · Clínica Estética</div></div>
+<div class="ag-main" id="ag-app-main" style="display:none">
+  <div class="ag-col ag-col1">
+    <div class="ag-col-hdr">Profesional</div>
+    <div class="ag-col-body">
+      <div class="ag-tabs"><div class="ag-tab act" onclick="agTipo('DOCTORA',this)">👩‍⚕️ Doctora</div><div class="ag-tab" onclick="agTipo('ENFERMERIA',this)">💆 Enfermería</div></div>
+      <div id="prof-list"></div>
     </div>
-    <button class="ag-btn ag-btn-primary" style="margin-top:14px" onclick="agNext(2)" id="btn-next-1" disabled>Continuar →</button>
   </div>
-
-  <!-- STEP 2: Servicio + Fecha -->
-  <div id="step-2" class="ag-step">
-    <div id="prof-selected-card" class="ag-card" style="display:flex;align-items:center;gap:14px;"></div>
-
-    <div class="ag-card">
-      <div class="ag-section">Selecciona fecha</div>
-      <div class="cal-nav">
-        <button onclick="agCalNav(-1)">‹</button>
-        <div class="cal-title" id="cal-title">Abril 2026</div>
-        <button onclick="agCalNav(1)">›</button>
-      </div>
+  <div class="ag-col ag-col2">
+    <div class="ag-col-hdr" id="prof-selected-card">← Selecciona profesional</div>
+    <div class="ag-col-body">
+      <div class="cal-nav"><button onclick="agCalNav(-1)">‹</button><div class="cal-title" id="cal-title"></div><button onclick="agCalNav(1)">›</button></div>
       <div class="cal-grid" id="cal-grid"></div>
+      <div id="slots-card" style="display:none;margin-top:12px;"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Horarios · <span id="slots-fecha"></span></div><div id="slots-grid" class="slots-grid"></div></div>
     </div>
-    <div class="ag-card" id="slots-card" style="display:none">
-      <div class="ag-section">Horarios disponibles · <span id="slots-fecha"></span></div>
-      <div id="slots-grid" class="slots-grid"></div>
-    </div>
-    <button class="ag-btn ag-btn-primary" style="margin-top:14px" onclick="agNext(3)" id="btn-next-2" disabled>Continuar →</button>
-    <button class="ag-btn ag-btn-back" onclick="agBack(1)">← Cambiar profesional</button>
   </div>
-
-  <!-- STEP 3: Datos del paciente -->
-  <div id="step-3" class="ag-step">
-    <div class="ag-card">
-      <div class="ag-section">Tus datos</div>
-      <div id="ag-datos-prellenados" style="display:none;padding:10px;background:var(--gold-light);border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--gold-dark)"></div>
-      <div id="ag-form-datos">
-        <div style="padding:8px 12px;background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:8px;margin-bottom:12px;font-size:11px;color:#00A88A;font-weight:600;">💡 Si eres paciente, ingresa primero tu número para autocompletar tus datos</div>
-        <div class="ag-row"><label class="ag-label">Nombre *</label><input class="ag-input" id="ag-nombre" placeholder="Tu nombre"></div>
-        <div class="ag-row"><label class="ag-label">Apellido *</label><input class="ag-input" id="ag-apellido" placeholder="Tu apellido"></div>
-        <div class="ag-row"><label class="ag-label">Teléfono / Celular *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
-        <div id="ag-pac-detected" style="display:none;padding:8px 12px;background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.3);border-radius:8px;margin-bottom:10px;font-size:11px;color:#00A88A;font-weight:600;"></div>
-        <div class="ag-row"><label class="ag-label">N° Documento</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
-        <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
-      </div>
-      <div class="ag-row"><label class="ag-label">Tratamiento *</label>
-        <select class="ag-input" id="ag-servicio" style="appearance:auto;" onchange="AG.selSvc=this.value">
-          <option value="">-- Cargando tratamientos... --</option>
-        </select></div>
-      <div class="ag-row"><label class="ag-label">Tipo de cita</label>
-        <select class="ag-input" id="ag-tipo-cita" style="appearance:auto;">
-          <option value="CONSULTA NUEVA">Consulta nueva</option>
-          <option value="CONTROL">Control</option>
-          <option value="APLICACIÓN">Aplicación</option>
-          <option value="PROCEDIMIENTO">Procedimiento</option>
-        </select></div>
-      <div class="ag-row"><label class="ag-label">Notas adicionales</label><textarea class="ag-input" id="ag-nota" rows="2" placeholder="¿Alguna indicación especial?"></textarea></div>
+  <div class="ag-col ag-col3">
+    <div class="ag-col-hdr">📋 Registro</div>
+    <div class="ag-col-body">
+      <div id="ag-datos-prellenados" class="ag-detected" style="display:none"></div>
+      <div style="padding:5px 8px;background:var(--gold-light);border-radius:5px;margin-bottom:8px;font-size:9px;color:var(--gold-dark);font-weight:600;">💡 Ingresa tu número para autocompletar</div>
+      <div class="ag-row"><label class="ag-label">Nombre *</label><input class="ag-input" id="ag-nombre" placeholder="Tu nombre"></div>
+      <div class="ag-row"><label class="ag-label">Apellido *</label><input class="ag-input" id="ag-apellido" placeholder="Tu apellido"></div>
+      <div class="ag-row"><label class="ag-label">Teléfono *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
+      <div id="ag-pac-detected" class="ag-detected" style="display:none"></div>
+      <div class="ag-row"><label class="ag-label">DNI</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
+      <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
+      <div class="ag-row"><label class="ag-label">Tratamiento *</label><select class="ag-input" id="ag-servicio" style="appearance:auto;" onchange="AG.selSvc=this.value"><option value="">-- Cargando --</option></select></div>
+      <div class="ag-row"><label class="ag-label">Tipo cita</label><select class="ag-input" id="ag-tipo-cita" style="appearance:auto;"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="CONTROL">Control</option><option value="APLICACIÓN">Aplicación</option><option value="PROCEDIMIENTO">Procedimiento</option></select></div>
+      <div class="ag-row"><label class="ag-label">Notas</label><textarea class="ag-input" id="ag-nota" rows="2" placeholder="¿Indicación especial?"></textarea></div>
+      <div class="ag-resumen"><div style="font-size:8px;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-bottom:4px;">Resumen</div><div id="ag-resumen-body" style="font-size:10px;color:var(--muted);">Selecciona profesional, fecha y hora</div></div>
+      <button class="ag-btn ag-btn-primary" onclick="agConfirmar()" id="btn-confirmar" disabled>✅ Confirmar cita</button>
     </div>
-    <div id="ag-resumen" class="ag-card" style="background:rgba(0,201,167,.06);border-color:#00C9A7;">
-      <div class="ag-section" style="color:#00A88A">Resumen de tu cita</div>
-      <div id="ag-resumen-body" style="font-size:12px"></div>
-    </div>
-    <button class="ag-btn ag-btn-primary" style="margin-top:14px" onclick="agConfirmar()">✅ Confirmar cita</button>
-    <button class="ag-btn ag-btn-back" onclick="agBack(2)">← Cambiar horario</button>
-  </div>
-
-  <!-- STEP 4: Success -->
-  <div id="step-4" class="ag-step">
-    <div class="ag-card"><div class="ag-success">
-      <div class="ag-success-ico">🎉</div>
-      <h2 style="color:#00C9A7;">¡Cita agendada!</h2>
-      <p>Tu cita ha sido registrada exitosamente. Recibirás un correo de confirmación.</p>
-      <div class="ag-success-detail" id="ag-success-detail"></div>
-      <div style="margin-top:16px">
-        <a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, acabo de agendar una cita" style="display:inline-block;padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px">💬 ¿Consultas? Escríbenos</a>
-      </div>
-    </div></div>
   </div>
 </div>
-
 <script>
-var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
-var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
-
-var AG={token:'',link:null,tipo:'DOCTORA',profs:[],selProf:null,selSvc:'',selFecha:'',selHora:'',selSede:'',calYear:0,calMonth:0,paciente:null};
-
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0',H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
+var AG={token:'',link:null,tipo:'DOCTORA',profs:[],selProf:null,selSvc:'',selFecha:'',selHora:'',selSede:'',calYear:0,calMonth:0,paciente:null,diasTurno:[]};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function rpc(fn,params){return fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:H,body:JSON.stringify(params)}).then(function(r){return r.json()})}
+function rpc(fn,p){return fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:H,body:JSON.stringify(p)}).then(function(r){return r.json()})}
 function q(t,f){return fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json()})}
-
-// Init
-(function(){
-  var params=new URLSearchParams(window.location.search);
-  AG.token=params.get('t')||params.get('token')||'';
-  var hoy=new Date();AG.calYear=hoy.getFullYear();AG.calMonth=hoy.getMonth();
-
-  if(!AG.token){
-    // Link permanente (sin token) = orgánico
-    AG.link={tipo:'general',asesor_codigo:null};
-    loadProfesionales();
-    return;
-  }
-
-  // Validar token
-  q('aos_links_agenda','token=eq.'+AG.token+'&select=*').then(function(rows){
-    if(!rows||!rows.length||new Date(rows[0].expira_at)<new Date()){
-      document.getElementById('ag-loading').style.display='none';
-      document.getElementById('ag-expired').style.display='block';
-      return;
-    }
-    AG.link=rows[0];
-    // Si tiene paciente prellenado — usar RPC (campos MAYÚSCULA no funcionan con REST)
-    if(AG.link.paciente_numero){
-      rpc('aos_buscar_por_numero',{p_numero:AG.link.paciente_numero}).then(function(res){
-        if(res&&res[0]){
-          var r=res[0];
-          AG.paciente={numero_limpio:r.numero||AG.link.paciente_numero,Nombres:r.nombre||'',Apellidos:r.apellido||'',Email:r.email||'','N° documento':r.documento||''};
-        }
-        loadProfesionales();
-      }).catch(function(){loadProfesionales();});
-    } else {
-      loadProfesionales();
-    }
-  }).catch(function(){
-    document.getElementById('ag-loading').style.display='none';
-    document.getElementById('ag-expired').style.display='block';
-  });
-})();
-
-function loadProfesionales(){
-  q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(profs){console.log('[AGENDAR] Profs cargados:', (profs||[]).length);
-    AG.profs=profs||[];
-    document.getElementById('ag-loading').style.display='none';
-    renderProfesionales();
-    document.getElementById('step-1').classList.add('active');
-  });
-  // Cargar tratamientos del catálogo
-  rpc('aos_catalogo_tratamientos',{}).then(function(items){
-    if(!items||!items.length)return;
-    var sel=document.getElementById('ag-servicio');
-    if(sel)sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
-  }).catch(function(){});
-}
-
-function agTipo(tipo,btn){
-  AG.tipo=tipo;AG.selProf=null;
-  document.querySelectorAll('.ag-tab').forEach(function(t){t.classList.remove('act')});
-  btn.classList.add('act');
-  renderProfesionales();
-  document.getElementById('btn-next-1').disabled=true;
-}
-
-function renderProfesionales(){
-  var list=AG.profs.filter(function(p){return p.tipo===AG.tipo});
-  var html=list.map(function(p){
-    return '<div class="prof-card'+(AG.selProf&&AG.selProf.id===p.id?' sel':'')+'" onclick="selProf(\''+esc(p.id)+'\')">'
-      +(p.foto_url?'<img class="prof-img" src="'+esc(p.foto_url)+'" alt="'+esc(p.nombre_publico)+'">':'<div class="prof-img" style="background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--gold-dark)">'+esc((p.nombre_publico||'?')[0])+'</div>')
-      +'<div class="prof-info"><div class="prof-name">'+esc(p.nombre_publico)+'</div>'
-      +'<div class="prof-title">'+esc(p.titulo)+'</div>'
-      +'<div class="prof-spec">'+esc(p.especialidad)+'</div>'
-      +'<div class="prof-sede">📍 '+esc(p.sede==='TODAS'?'San Isidro · Pueblo Libre':p.sede)+'</div></div>'
-      +'<div class="prof-badge">'+p.servicios.length+' servicios</div></div>';
-  }).join('');
-  document.getElementById('prof-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No hay profesionales disponibles</div>';
-}
-
-function selProf(id){
-  AG.selProf=AG.profs.find(function(p){return p.id===id});
-  renderProfesionales();
-  document.getElementById('btn-next-1').disabled=false;
-}
-
-function agNext(step){
-  document.querySelectorAll('.ag-step').forEach(function(s){s.classList.remove('active')});
-  document.getElementById('step-'+step).classList.add('active');
-  if(step===2){
-    // Mostrar card del profesional seleccionado
-    var p=AG.selProf;
-    if(p){
-      var card=document.getElementById('prof-selected-card');
-      card.innerHTML=(p.foto_url?'<img src="'+esc(p.foto_url)+'" style="width:60px;height:80px;object-fit:cover;border-radius:10px;flex-shrink:0;">':'')+
-        '<div><div style="font-size:16px;font-weight:800;color:var(--text);">'+esc(p.nombre_publico)+'</div>'+
-        '<div style="font-size:11px;color:var(--gold-dark);font-weight:600;">'+esc(p.especialidad)+'</div>'+
-        '<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+esc(p.titulo)+' · 📍 '+esc(p.sede==='TODAS'?'San Isidro · Pueblo Libre':p.sede)+'</div></div>';
-    }
-    renderServicios();cargarDiasConTurno();
-  }
-  if(step===3){renderResumen();renderDatos();}
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-function agBack(step){agNext(step)}
-
-function renderServicios(){
-  var sel=document.getElementById('ag-servicio');if(!sel)return;
-  if(!AG.selProf||!AG.selProf.servicios||!AG.selProf.servicios.length){
-    // Sin profesional o sin servicios asignados → mostrar todos del catálogo
-    rpc('aos_catalogo_tratamientos',{}).then(function(items){
-      if(!items||!items.length)return;
-      sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
-    }).catch(function(){});
-    return;
-  }
-  // Filtrar por servicios del profesional seleccionado
-  var svcMap={};AG.selProf.servicios.forEach(function(s){svcMap[s.toUpperCase()]=true;});
-  rpc('aos_catalogo_tratamientos',{}).then(function(items){
-    if(!items||!items.length)return;
-    var filtered=items.filter(function(i){return svcMap[i.t.toUpperCase()];});
-    if(!filtered.length)filtered=items; // fallback si no hay match
-    sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+filtered.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
-  }).catch(function(){});
-}
-function selSvc(el,svc){
-  AG.selSvc=svc;
-  document.querySelectorAll('.svc-chip').forEach(function(c){c.classList.remove('sel')});
-  el.classList.add('sel');
-}
-
-function cargarDiasConTurno(){
-  if(!AG.selProf)return;
-  rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:AG.calYear,p_mes:AG.calMonth+1}).then(function(dias){
-    AG.diasTurno=dias||[];
-    renderCalendario();
-  });
-}
-function renderCalendario(){
-  var y=AG.calYear,m=AG.calMonth;
-  var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('cal-title').textContent=meses[m]+' '+y;
-  var first=new Date(y,m,1).getDay();
-  var days=new Date(y,m+1,0).getDate();
-  var hoy=new Date();hoy.setHours(0,0,0,0);
-  var html='';
-  ['Lu','Ma','Mi','Ju','Vi','Sá','Do'].forEach(function(d){html+='<div class="cal-head">'+d+'</div>'});
-  var adj=first===0?6:first-1;
-  for(var i=0;i<adj;i++)html+='<div class="cal-day empty"></div>';
-  for(var d=1;d<=days;d++){
-    var dt=new Date(y,m,d);
-    var isPast=dt<hoy;
-    var isToday=dt.getTime()===hoy.getTime();
-    var isSel=AG.selFecha===(y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'));
-    var isDom=dt.getDay()===0;
-    var fechaStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var hasTurno=AG.diasTurno&&AG.diasTurno.indexOf(fechaStr)>=0;
-    var cls='cal-day'+(isPast||isDom?' disabled':'')+(isToday?' today':'')+(isSel?' sel':'')+(hasTurno&&!isPast&&!isDom?' has-turno':'');
-    html+='<div class="'+cls+'" onclick="'+(isPast||isDom?'':'selFecha('+y+','+m+','+d+')')+'">'+d+'</div>';
-  }
-  document.getElementById('cal-grid').innerHTML=html;
-}
-function agCalNav(dir){AG.calMonth+=dir;if(AG.calMonth>11){AG.calMonth=0;AG.calYear++}if(AG.calMonth<0){AG.calMonth=11;AG.calYear--}renderCalendario()}
-
-function selFecha(y,m,d){
-  AG.selFecha=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-  AG.selHora='';
-  renderCalendario();
-  document.getElementById('slots-card').style.display='block';
-  document.getElementById('slots-fecha').textContent=d+'/'+(m+1)+'/'+y;
-  document.getElementById('slots-grid').innerHTML='<div class="ag-loading"><div class="ag-sp"></div></div>';
-  // Cargar slots
-  rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf.id,p_fecha:AG.selFecha,p_sede:AG.selProf.sede==='TODAS'?null:AG.selProf.sede}).then(function(r){
-    if(!r||!r.ok||!r.slots||!r.slots.length){
-      document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;font-size:12px;color:var(--muted)">No hay horarios disponibles este día</div>';
-      return;
-    }
-    document.getElementById('slots-grid').innerHTML=r.slots.map(function(s){
-      return '<div class="slot" onclick="selSlot(this,\''+s.hora+'\',\''+s.sede+'\')"><div style="font-weight:700;">'+s.hora+'</div><div style="font-size:8px;color:var(--muted);">'+s.sede+'</div><div style="font-size:8px;color:var(--green);">'+s.libres+' libres</div></div>';
-    }).join('');
-  });
-  document.getElementById('btn-next-2').disabled=true;
-}
-
-function selSlot(el,hora,sede){
-  AG.selHora=hora;AG.selSede=sede;
-  document.querySelectorAll('.slot').forEach(function(s){s.classList.remove('sel')});
-  el.classList.add('sel');
-  document.getElementById('btn-next-2').disabled=false;
-}
-
-function renderDatos(){
-  if(AG.paciente){
-    var p=AG.paciente;
-    document.getElementById('ag-datos-prellenados').style.display='block';
-    document.getElementById('ag-datos-prellenados').textContent='✅ '+(p.Nombres||p.nombres||'')+' '+(p.Apellidos||p.apellidos||'');
-    document.getElementById('ag-nombre').value=p.Nombres||p.nombres||'';
-    document.getElementById('ag-apellido').value=p.Apellidos||p.apellidos||'';
-    document.getElementById('ag-telefono').value=AG.link.paciente_numero||p.numero_limpio||'';
-    document.getElementById('ag-dni').value=p['N° documento']||p.dni||'';
-    document.getElementById('ag-email').value=p.Email||'';
-  }
-}
-
-function renderResumen(){
-  var html='';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Profesional</span><span style="font-weight:700">'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Servicio</span><span style="font-weight:700">'+esc(AG.selSvc||'General')+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Fecha</span><span style="font-weight:700">'+esc(AG.selFecha)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(10,79,191,.2)"><span style="color:var(--muted)">Hora</span><span style="font-weight:700">'+esc(AG.selHora)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Sede</span><span style="font-weight:700">'+esc(AG.selSede)+'</span></div>';
-  document.getElementById('ag-resumen-body').innerHTML=html;
-}
-
-function agConfirmar(){
-  var nombre=document.getElementById('ag-nombre').value.trim();
-  var apellido=document.getElementById('ag-apellido').value.trim();
-  var tel=document.getElementById('ag-telefono').value.trim();
-  if(!nombre||!apellido||!tel){alert('Completa nombre, apellido y teléfono');return;}
-
-  var btn=document.querySelector('#step-3 .ag-btn-primary');
-  btn.textContent='Agendando...';btn.disabled=true;
-
-  var token=AG.token||'__permanent__';
-  doAgendar(token,nombre,apellido,tel,btn);
-}
-
-function doAgendar(token,nombre,apellido,tel,btn){
-  rpc('aos_agendar_publica',{
-    p_token:token,p_nombre:nombre,p_apellido:apellido,p_telefono:tel,
-    p_dni:document.getElementById('ag-dni').value.trim(),
-    p_email:document.getElementById('ag-email').value.trim(),
-    p_profesional_id:AG.selProf?AG.selProf.id:null,
-    p_tratamiento:AG.selSvc||'CONSULTA',p_tipo_cita:document.getElementById('ag-tipo-cita').value,
-    p_fecha:AG.selFecha,p_hora:AG.selHora,
-    p_sede:AG.selSede,p_nota:document.getElementById('ag-nota').value.trim()
-  }).then(function(r){
-    if(r&&r.ok){showSuccess(nombre,apellido)}
-    else{alert(r&&r.error||'Error al agendar');btn.textContent='✅ Confirmar cita';btn.disabled=false}
-  }).catch(function(){alert('Error de conexión');btn.textContent='✅ Confirmar cita';btn.disabled=false});
-}
-
-function doAgendarDirecto(nombre,apellido,tel,btn){
-  // Para links permanentes sin token, insertar directamente
-  var citaId='AG-'+Date.now();
-  fetch(SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({
-    id:citaId,fecha_cita:AG.selFecha,hora_cita:AG.selHora,
-    paciente:(nombre+' '+apellido).toUpperCase(),
-    numero:tel.replace(/\D/g,''),
-    tratamiento:AG.selSvc||'CONSULTA',
-    sede:AG.selSede,
-    doctora:AG.selProf?AG.selProf.nombre_publico:'',
-    asesor:'ORGANICO',
-    estado_cita:'PENDIENTE',tipo_cita:'CITA',origen_cita:'WEB-PUBLICA',
-    created_at:new Date().toISOString()
-  })}).then(function(r){
-    if(r.ok){
-      // Registrar paciente si no existe
-      var numLimpio=tel.replace(/\D/g,'');
-      fetch(SB+'/rest/v1/aos_pacientes?numero_limpio=eq.'+numLimpio,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json()}).then(function(pacs){
-        if(!pacs||!pacs.length){
-          fetch(SB+'/rest/v1/aos_pacientes',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({
-            numero_limpio:numLimpio,nombres:nombre.toUpperCase(),apellidos:apellido.toUpperCase(),
-            telefono:tel,dni:document.getElementById('ag-dni').value.trim(),
-            Email:document.getElementById('ag-email').value.trim(),
-            estado:'PROSPECTO',fecha_registro:AG.selFecha,fuente:'WEB-PUBLICA'
-          })});
-        }
-      });
-      showSuccess(nombre,apellido);
-    } else {alert('Error al agendar');btn.textContent='✅ Confirmar cita';btn.disabled=false}
-  }).catch(function(){alert('Error de conexión');btn.textContent='✅ Confirmar cita';btn.disabled=false});
-}
-
-var _autoDetectTimer=null;
-function autoDetectPaciente(val){
-  clearTimeout(_autoDetectTimer);
-  var num=val.replace(/\D/g,'');
-  if(num.length<7){document.getElementById('ag-pac-detected').style.display='none';return;}
-  _autoDetectTimer=setTimeout(function(){
-    rpc('aos_buscar_por_numero',{p_numero:num}).then(function(res){
-      if(res&&res[0]){
-        var p=res[0];
-        document.getElementById('ag-nombre').value=p.nombre||'';
-        document.getElementById('ag-apellido').value=p.apellido||'';
-        document.getElementById('ag-dni').value=p.documento||'';
-        document.getElementById('ag-email').value=p.email||'';
-        document.getElementById('ag-pac-detected').style.display='block';
-        document.getElementById('ag-pac-detected').textContent='✅ Paciente encontrado: '+(p.nombre||'')+' '+(p.apellido||'');
-      } else {
-        document.getElementById('ag-pac-detected').style.display='none';
-      }
-    }).catch(function(){document.getElementById('ag-pac-detected').style.display='none';});
-  },500);
-}
-
-function showSuccess(nombre,apellido){
-  agNext(4);
-  var html='';
-  html+='<div class="ag-success-row"><span>Paciente</span><span>'+esc(nombre)+' '+esc(apellido)+'</span></div>';
-  html+='<div class="ag-success-row"><span>Profesional</span><span>'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div>';
-  html+='<div class="ag-success-row"><span>Servicio</span><span>'+esc(AG.selSvc||'Consulta')+'</span></div>';
-  html+='<div class="ag-success-row"><span>Fecha</span><span>'+esc(AG.selFecha)+'</span></div>';
-  html+='<div class="ag-success-row"><span>Hora</span><span>'+esc(AG.selHora)+'</span></div>';
-  html+='<div class="ag-success-row"><span>Sede</span><span>'+esc(AG.selSede)+'</span></div>';
-  document.getElementById('ag-success-detail').innerHTML=html;
-  // Enviar email de confirmación
-  var email=document.getElementById('ag-email').value.trim();
-  if(email){
-    fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      to:email,template:'confirmacion_cita',nombre:nombre+' '+apellido,
-      tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha
-    })}).catch(function(e){console.error('Email error:',e)});
-  }
-}
+(function(){var p=new URLSearchParams(window.location.search);AG.token=p.get('t')||p.get('token')||'';var h=new Date();AG.calYear=h.getFullYear();AG.calMonth=h.getMonth();if(!AG.token){AG.link={tipo:'general'};loadProfs();return;}q('aos_links_agenda','token=eq.'+AG.token+'&select=*').then(function(r){if(!r||!r.length||new Date(r[0].expira_at)<new Date()){document.getElementById('ag-loading').style.display='none';document.getElementById('ag-expired').style.display='flex';return;}AG.link=r[0];if(AG.link.paciente_numero){rpc('aos_buscar_por_numero',{p_numero:AG.link.paciente_numero}).then(function(res){if(res&&res[0]){var r=res[0];AG.paciente={numero_limpio:r.numero||AG.link.paciente_numero,Nombres:r.nombre||'',Apellidos:r.apellido||'',Email:r.email||'','N° documento':r.documento||''};}loadProfs();}).catch(function(){loadProfs();});}else{loadProfs();}}).catch(function(){document.getElementById('ag-loading').style.display='none';document.getElementById('ag-expired').style.display='flex';});})();
+function loadProfs(){q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(p){AG.profs=p||[];document.getElementById('ag-loading').style.display='none';document.getElementById('ag-app').style.display='flex';document.getElementById('ag-app-main').style.display='grid';renderProfs();renderCal();renderDatos();});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i||!i.length)return;var s=document.getElementById('ag-servicio');if(s)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');}).catch(function(){});}
+function agTipo(t,b){AG.tipo=t;AG.selProf=null;document.querySelectorAll('.ag-tab').forEach(function(x){x.classList.remove('act')});b.classList.add('act');renderProfs();upRes();}
+function renderProfs(){var l=AG.profs.filter(function(p){return p.tipo===AG.tipo});document.getElementById('prof-list').innerHTML=l.map(function(p){return '<div class="prof-card'+(AG.selProf&&AG.selProf.id===p.id?' sel':'')+'" onclick="selProf(\''+esc(p.id)+'\')">'+(p.foto_url?'<img class="prof-img" src="'+esc(p.foto_url)+'">':'<div class="prof-img" style="background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--gold-dark)">'+esc((p.nombre_publico||'?')[0])+'</div>')+'<div style="flex:1;min-width:0"><div class="prof-name">'+esc(p.nombre_publico)+'</div><div class="prof-sub">'+esc(p.especialidad)+'</div><div class="prof-sub">📍 '+esc(p.sede==='TODAS'?'Ambas sedes':p.sede)+'</div></div><div class="prof-badge">'+((p.servicios||[]).length)+'</div></div>';}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted);font-size:10px">Sin profesionales</div>';}
+function selProf(id){AG.selProf=AG.profs.find(function(p){return p.id===id});renderProfs();var p=AG.selProf;if(p)document.getElementById('prof-selected-card').innerHTML='<div style="display:flex;align-items:center;gap:8px;">'+(p.foto_url?'<img src="'+esc(p.foto_url)+'" style="width:28px;height:36px;object-fit:cover;border-radius:6px;">':'')+'<span style="font-weight:800;color:var(--gold-dark);font-size:11px;">'+esc(p.nombre_publico)+'</span><span style="font-size:9px;color:var(--muted);">'+esc(p.especialidad)+'</span></div>';renderSvcs();loadTurnos();upRes();}
+function renderSvcs(){var s=document.getElementById('ag-servicio');if(!s||!AG.selProf)return;if(!AG.selProf.servicios||!AG.selProf.servicios.length){rpc('aos_catalogo_tratamientos',{}).then(function(i){if(i)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});return;}var m={};AG.selProf.servicios.forEach(function(x){m[x.toUpperCase()]=1;});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i)return;var f=i.filter(function(x){return m[x.t.toUpperCase()];});if(!f.length)f=i;s.innerHTML='<option value="">-- Seleccionar --</option>'+f.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});}
+function loadTurnos(){if(!AG.selProf)return;rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:AG.calYear,p_mes:AG.calMonth+1}).then(function(d){AG.diasTurno=d||[];renderCal();});}
+function renderCal(){var y=AG.calYear,m=AG.calMonth,ms=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];document.getElementById('cal-title').textContent=ms[m]+' '+y;var f=new Date(y,m,1).getDay(),ds=new Date(y,m+1,0).getDate(),h=new Date(),hs=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'),tm={};(AG.diasTurno||[]).forEach(function(d){tm[d.dia||d]=1;});var o='';['Do','Lu','Ma','Mi','Ju','Vi','Sá'].forEach(function(d){o+='<div class="cal-head">'+d+'</div>';});for(var i=0;i<f;i++)o+='<div class="cal-day empty"></div>';for(var d=1;d<=ds;d++){var s=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),pt=s<hs,it=s===hs,ht=tm[d],is=s===AG.selFecha,c='cal-day';if(pt)c+=' disabled';if(it)c+=' today';if(ht&&!pt)c+=' has-turno';if(is)c+=' sel';o+='<div class="'+c+'"'+(pt?'':' onclick="selFecha('+y+','+(m+1)+','+d+')"')+'>'+d+'</div>';}document.getElementById('cal-grid').innerHTML=o;}
+function agCalNav(d){AG.calMonth+=d;if(AG.calMonth>11){AG.calMonth=0;AG.calYear++}if(AG.calMonth<0){AG.calMonth=11;AG.calYear--}loadTurnos();}
+function selFecha(y,m,d){AG.selFecha=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');renderCal();document.getElementById('slots-card').style.display='block';document.getElementById('slots-fecha').textContent=AG.selFecha;document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:10px;"><div class="ag-sp" style="margin:0 auto;"></div></div>';rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf?AG.selProf.id:null,p_fecha:AG.selFecha,p_sede:AG.selProf&&AG.selProf.sede!=='TODAS'?AG.selProf.sede:null}).then(function(r){if(!r||!r.ok||!r.slots||!r.slots.length){document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:10px;font-size:10px;color:var(--muted)">Sin horarios</div>';return;}document.getElementById('slots-grid').innerHTML=r.slots.map(function(s){return '<div class="slot" onclick="selSlot(this,\''+s.hora+'\',\''+s.sede+'\')"><div style="font-weight:700;font-size:10px;">'+s.hora+'</div><div style="font-size:7px;color:var(--muted);">'+s.sede+'</div><div style="font-size:7px;color:var(--green);">'+s.libres+' libres</div></div>';}).join('');});upRes();}
+function selSlot(e,h,s){AG.selHora=h;AG.selSede=s;document.querySelectorAll('.slot').forEach(function(x){x.classList.remove('sel')});e.classList.add('sel');upRes();}
+function upRes(){var o='',ok=AG.selProf&&AG.selFecha&&AG.selHora;if(AG.selProf)o+='<div class="ag-rr"><span>Profesional</span><span>'+esc(AG.selProf.nombre_publico)+'</span></div>';if(AG.selFecha)o+='<div class="ag-rr"><span>Fecha</span><span>'+esc(AG.selFecha)+'</span></div>';if(AG.selHora)o+='<div class="ag-rr"><span>Hora</span><span>'+esc(AG.selHora)+'</span></div>';if(AG.selSede)o+='<div class="ag-rr"><span>Sede</span><span>'+esc(AG.selSede)+'</span></div>';document.getElementById('ag-resumen-body').innerHTML=o||'<span style="font-size:9px;">Selecciona profesional, fecha y hora</span>';document.getElementById('btn-confirmar').disabled=!ok;}
+function renderDatos(){if(!AG.paciente)return;var p=AG.paciente;document.getElementById('ag-datos-prellenados').style.display='block';document.getElementById('ag-datos-prellenados').textContent='✅ '+(p.Nombres||'')+' '+(p.Apellidos||'');document.getElementById('ag-nombre').value=p.Nombres||'';document.getElementById('ag-apellido').value=p.Apellidos||'';document.getElementById('ag-telefono').value=AG.link.paciente_numero||p.numero_limpio||'';document.getElementById('ag-dni').value=p['N° documento']||'';document.getElementById('ag-email').value=p.Email||'';}
+function agConfirmar(){var n=document.getElementById('ag-nombre').value.trim(),a=document.getElementById('ag-apellido').value.trim(),t=document.getElementById('ag-telefono').value.trim();if(!n||!a||!t){alert('Completa nombre, apellido y teléfono');return;}AG.selSvc=document.getElementById('ag-servicio').value||AG.selSvc;var b=document.getElementById('btn-confirmar');b.textContent='⏳ Agendando...';b.disabled=true;rpc('aos_agendar_publica',{p_token:AG.token||'__permanent__',p_nombre:n,p_apellido:a,p_telefono:t,p_dni:document.getElementById('ag-dni').value.trim(),p_email:document.getElementById('ag-email').value.trim(),p_profesional_id:AG.selProf?AG.selProf.id:null,p_tratamiento:AG.selSvc||'CONSULTA',p_tipo_cita:document.getElementById('ag-tipo-cita').value,p_fecha:AG.selFecha,p_hora:AG.selHora,p_sede:AG.selSede,p_nota:document.getElementById('ag-nota').value.trim()}).then(function(r){if(r&&r.ok)showOk(n,a);else{alert(r&&r.error||'Error');b.textContent='✅ Confirmar cita';b.disabled=false;}}).catch(function(){alert('Error de conexión');b.textContent='✅ Confirmar cita';b.disabled=false;});}
+var _adt=null;function autoDetectPaciente(v){clearTimeout(_adt);var n=v.replace(/\D/g,'');if(n.length<7){document.getElementById('ag-pac-detected').style.display='none';return;}_adt=setTimeout(function(){rpc('aos_buscar_por_numero',{p_numero:n}).then(function(r){if(r&&r[0]){var p=r[0];document.getElementById('ag-nombre').value=p.nombre||'';document.getElementById('ag-apellido').value=p.apellido||'';document.getElementById('ag-dni').value=p.documento||'';document.getElementById('ag-email').value=p.email||'';document.getElementById('ag-pac-detected').style.display='block';document.getElementById('ag-pac-detected').textContent='✅ '+p.nombre+' '+p.apellido;}else{document.getElementById('ag-pac-detected').style.display='none';}}).catch(function(){});},500);}
+function showOk(n,a){var h='<div class="ag-success-ov"><div class="ag-success-c"><div style="font-size:48px;margin-bottom:10px;">🎉</div><h2 style="font-family:Exo 2;font-size:20px;color:var(--green);">¡Cita agendada!</h2><p style="font-size:12px;color:var(--muted);margin-top:4px;">Recibirás un correo de confirmación.</p><div class="ag-resumen" style="margin-top:14px;text-align:left;"><div class="ag-rr"><span>Paciente</span><span>'+esc(n)+' '+esc(a)+'</span></div><div class="ag-rr"><span>Profesional</span><span>'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div><div class="ag-rr"><span>Servicio</span><span>'+esc(AG.selSvc||'Consulta')+'</span></div><div class="ag-rr"><span>Fecha</span><span>'+esc(AG.selFecha)+'</span></div><div class="ag-rr"><span>Hora</span><span>'+esc(AG.selHora)+'</span></div><div class="ag-rr"><span>Sede</span><span>'+esc(AG.selSede)+'</span></div></div><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, acabo de agendar mi cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:14px">💬 Escríbenos</a></div></div>';var d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d.firstElementChild);var e=document.getElementById('ag-email').value.trim();if(e)fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:e,template:'confirmacion_cita',nombre:n+' '+a,tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha})}).catch(function(){});}
 </script>
 </body>
 </html>
