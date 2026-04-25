@@ -1308,7 +1308,9 @@ function openAgendarModal() {
     '<div style="display:flex;gap:4px;margin-top:6px;">' +
     '<button onclick="copiarLinkCita()" style="flex:1;padding:7px;border:none;border-radius:5px;background:#0A4FBF;color:#fff;font-weight:700;font-size:10px;cursor:pointer;font-family:DM Sans;">📋 Copiar</button>' +
     '<button id="agendar-wa-btn" onclick="enviarLinkWA()" style="flex:1;padding:7px;border:none;border-radius:5px;background:#25D366;color:#fff;font-weight:700;font-size:10px;cursor:pointer;font-family:DM Sans;">💬 WhatsApp</button>' +
-    '</div></div></div>' +
+    '</div>' +
+    '<button onclick="document.getElementById(\'agendar-link-result\').style.display=\'none\'" style="width:100%;padding:8px;border:1.5px solid #DDE4F5;border-radius:5px;background:#fff;color:#0A4FBF;font-weight:700;font-size:10px;cursor:pointer;font-family:DM Sans;margin-top:6px;">✅ Listo</button>' +
+    '</div></div>' +
     
     '<!-- RIGHT: Historial -->' +
     '<div style="padding:16px;overflow-y:auto;background:#F8FAFF;">' +
@@ -1468,6 +1470,8 @@ function mostrarLinkGenerado(url, conWA) {
   window._agLinkUrl = url;
   var waBtn = document.getElementById('agendar-wa-btn');
   if (waBtn) waBtn.style.display = conWA ? '' : 'none';
+  // Refresh historial
+  setTimeout(cargarHistorialLinks, 500);
 }
 
 function copiarLinkCita() {
@@ -1690,6 +1694,7 @@ window.AOS_sbGet   = window.sb_get;
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+var escH = escHtml;
 </script>
 
 <!-- ═══════ MODAL UNIFICADO: IMPORTAR LEADS + VENTAS ═══════ -->
