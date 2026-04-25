@@ -488,16 +488,16 @@
         <div class="crd" style="padding:0;overflow:hidden;">
           <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#9AAAC8;padding:10px 12px 0;font-family:'JetBrains Mono',monospace;">PDF / COTIZACIÓN</div>
           <div id="prev-pdf" style="margin:8px 12px 12px;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;font-size:10px;background:#fff;transition:all .3s;">
-            <div id="prev-pdf-header" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0A4FBF;">
+            <div id="prev-pdf-header" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;background:#4a3728;border-radius:10px 10px 0 0;">
               <div style="display:flex;gap:10px;align-items:center;">
                 <img id="prev-pdf-logo" src="" style="display:none;max-height:32px;border-radius:4px;">
                 <div>
-                  <div style="font-weight:800;font-size:12px;" id="prev-pdf-company">MI EMPRESA</div>
+                  <div style="font-weight:800;font-size:12px;color:#fff;" id="prev-pdf-company">MI EMPRESA</div>
                   <div style="font-size:8px;color:#94A3B8;">RUC: 20XXXXXXXXX</div>
                 </div>
               </div>
               <div style="text-align:right;">
-                <div style="font-size:11px;font-weight:700;" id="prev-pdf-type">COTIZACIÓN</div>
+                <div style="font-size:11px;font-weight:700;color:#fff;" id="prev-pdf-type">COTIZACIÓN</div>
                 <div style="font-size:8px;color:#94A3B8;">N° COT-2026-0001</div>
               </div>
             </div>
@@ -873,21 +873,19 @@ function updatePreview(){
 
   // ─── PREVIEW PDF ───
   var pph = el('prev-pdf-header');
-  if(pph) pph.style.borderBottomColor = c1v;
+  if(pph) { pph.style.background = chv; pph.style.borderBottom = 'none'; }
   var ppc = el('prev-pdf-company');
-  if(ppc) ppc.textContent = displayName.toUpperCase();
+  if(ppc) { ppc.textContent = displayName.toUpperCase(); ppc.style.color = chtv; }
   var ppt = el('prev-pdf-type');
-  if(ppt) ppt.style.color = c1v;
+  if(ppt) ppt.style.color = chtv;
   var pptc = el('prev-pdf-total-color');
   if(pptc) pptc.style.color = c1v;
   var ppf = el('prev-pdf-footer');
-  if(ppf) { ppf.style.background = cdv; ppf.textContent = displayName + ' · Av. Ejemplo 123'; }
+  if(ppf) { ppf.style.background = chv; ppf.style.color = c2v; ppf.textContent = displayName + ' · Av. Ejemplo 123'; }
   var ppl = el('prev-pdf-logo');
   if(ppl && (logoFondoUrl || logoUrl)) { ppl.src = logoFondoUrl || logoUrl; ppl.style.display = 'block'; }
   // ─── Aplicar color texto en TODAS las previews ───
-  // PDF
-  if(ppc) ppc.style.color = ctv;
-  if(ppf) ppf.style.background = 'linear-gradient(90deg,' + cdv + ',' + c1v + ')';
+  // PDF body items (no header — header usa color_header_texto)
   var ppi1 = el('prev-pdf-item1'); if(ppi1) ppi1.style.color = ctv;
   var ppi2 = el('prev-pdf-item2'); if(ppi2) ppi2.style.color = ctv;
   var ppp1 = el('prev-pdf-price1'); if(ppp1) ppp1.style.color = ctv;
@@ -895,8 +893,8 @@ function updatePreview(){
   var pptl = el('prev-pdf-total-label'); if(pptl) pptl.style.color = ctv;
   // Email body text
   var pebt = el('prev-email-body-text'); if(pebt) pebt.style.color = ctv;
-  var pet = el('prev-email-trat'); if(pet) pet.style.color = ctv;
-  // Email company color en header = acento
+  var pet2 = el('prev-email-trat'); if(pet2) pet2.style.color = ctv;
+  // Email company en header = acento (dorado sobre oscuro)
   if(pec) pec.style.color = c2v;
 }
 
