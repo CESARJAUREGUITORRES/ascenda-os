@@ -278,7 +278,7 @@ http.createServer(function(req, res) {
     var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
     var mesActual = hoy.slice(0, 7)
     Promise.all([
-      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,fecha_envio,resend_id,created_at&order=created_at.desc&limit=200'),
+      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,email_destino,asunto,fecha_envio,resend_id,created_at&order=created_at.desc&limit=200'),
       sbFetch('/rest/v1/aos_email_envios?select=id,asunto,estado,destinatario_email,destinatario_nombre,enviado_at,created_at&order=created_at.desc&limit=50'),
       sbFetch('/rest/v1/aos_security_log?select=id,usuario,accion,created_at&accion=in.(login,2fa_verified)&order=created_at.desc&limit=50')
     ]).then(function(results) {
@@ -288,18 +288,10 @@ http.createServer(function(req, res) {
       // Unificar todos los emails
       var allEmails = []
       agente.forEach(function(e) {
-        var dest = e.destinatario || ''
-        // Si el tipo incluye email destino (formato tipo_email_fecha), extraer email
-        var email = dest.indexOf('@') > -1 ? dest : ''
-        if (!email && e.tipo) {
-          // Clasificar tipo mejor
-          var t = (e.tipo || '').toLowerCase()
-          if (t.indexOf('confirmacion_cita') > -1) email = dest
-          else if (t.indexOf('recibo') > -1) email = dest
-          else if (t.indexOf('recordatorio') > -1) email = dest
-        }
-        var tipoClean = (e.tipo || 'otro').replace(/_/g, '_')
-        allEmails.push({ to: email || dest, subject: e.tipo, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente' })
+        var dest = e.email_destino || e.destinatario || ''
+        var tipoClean = (e.tipo || 'otro')
+        var subj = e.asunto || e.tipo || ''
+        allEmails.push({ to: dest, subject: subj, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente' })
       })
       panel.forEach(function(e) {
         allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
@@ -602,7 +594,8 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
                 // Registrar envío para anti-duplicado
                 sbPost('/rest/v1/aos_emails_enviados', {
                   tipo: tipo, destinatario: destinatario_id,
-                  fecha_envio: limaDateStr(), resend_id: r.id
+                  fecha_envio: limaDateStr(), resend_id: r.id,
+                  email_destino: to, asunto: subject
                 }).catch(function(){})
                 // Alerta en panel
                 sbPost('/rest/v1/aos_email_alertas', {
