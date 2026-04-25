@@ -1327,12 +1327,38 @@ function openAgendarModal() {
 }
 
 function generarLinkCita(tipo) {
+  // Crear modal para pedir número del paciente nuevo
+  var existing = document.getElementById('modal-nuevo-pac');
+  if (existing) existing.remove();
+  
+  var mn = document.createElement('div');
+  mn.id = 'modal-nuevo-pac';
+  mn.style.cssText = 'position:fixed;inset:0;background:rgba(7,29,74,.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
+  mn.innerHTML = '<div style="background:#fff;border-radius:16px;width:380px;max-width:94vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+    '<div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:16px 20px;">' +
+    '<div style="font-size:14px;font-weight:800;color:#fff;">🆕 Link para paciente nuevo</div>' +
+    '<div style="font-size:10px;color:#00E5A0;">Ingresa el número para enviar el link</div></div>' +
+    '<div style="padding:20px;">' +
+    '<label style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;display:block;margin-bottom:4px;">Número de celular del paciente</label>' +
+    '<input id="nuevo-pac-num" type="tel" placeholder="987654321" style="width:100%;padding:12px;border:2px solid #DDE4F5;border-radius:10px;font-size:14px;font-family:DM Sans;outline:none;box-sizing:border-box;" autofocus>' +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+    '<button onclick="document.getElementById(\'modal-nuevo-pac\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans;">Cancelar</button>' +
+    '<button onclick="crearLinkNuevo()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">Generar link</button></div></div></div>';
+  document.body.appendChild(mn);
+  setTimeout(function(){document.getElementById('nuevo-pac-num').focus()},100);
+}
+
+function crearLinkNuevo() {
+  var num = (document.getElementById('nuevo-pac-num').value||'').replace(/\D/g,'');
+  if (!num || num.length < 7) { alert('Ingresa un número válido'); return; }
+  document.getElementById('modal-nuevo-pac').remove();
+  window._agPacNum = num;
   var body = {tipo: 'asesor', asesor_codigo: window._agLinkAsesor, expira_at: new Date(Date.now() + 48*60*60*1000).toISOString()};
   fetch(_SB+'/rest/v1/aos_links_agenda',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)})
   .then(function(r){return r.json()}).then(function(rows){
     var token = rows && rows[0] ? rows[0].token : '';
     var url = window.location.origin + '/agendar?t=' + token;
-    mostrarLinkGenerado(url, true); // con WA
+    mostrarLinkGenerado(url, true);
   });
 }
 
@@ -1362,8 +1388,8 @@ function buscarPacLink(q) {
   // Buscar por primera palabra para evitar problemas con espacios
   var palabras = q.trim().split(/\s+/);
   var primera = encodeURIComponent(palabras[0]);
-  var filtro = 'or=(Nombres.ilike.*'+primera+'*,Apellidos.ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
-  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,Nombres,Apellidos,Email&'+filtro+'&limit=12&order=Nombres',{
+  var filtro = 'or=("Nombres".ilike.*'+primera+'*,"Apellidos".ilike.*'+primera+'*,numero_limpio.ilike.*'+primera+'*)';
+  fetch(_SB+'/rest/v1/aos_pacientes?select=numero_limpio,"Nombres","Apellidos","Email"&'+filtro+'&limit=12&order="Nombres"',{
     headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
   }).then(function(r){return r.json()}).then(function(pacs){
     var el = document.getElementById('pac-search-results');
