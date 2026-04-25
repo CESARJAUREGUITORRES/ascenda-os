@@ -286,7 +286,10 @@ function doLoginAuth(user, pass) {
     },
     body: JSON.stringify({ p_usuario: user.toLowerCase(), p_password: pass })
   })
-  .then(function(r) { return r.json(); })
+  .then(function(r) {
+    if (!r.ok) { setLoading(false); errEl.textContent = 'Servidor no disponible ('+r.status+'). Espera unos segundos y reintenta.'; throw new Error('HTTP '+r.status); }
+    return r.json();
+  })
   .then(function(res) {
     setLoading(false);
     if (res && res.ok) {
