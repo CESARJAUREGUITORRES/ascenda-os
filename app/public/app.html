@@ -1359,7 +1359,18 @@ function crearLinkNuevo() {
     if(pacs && pacs.length){
       var pac = pacs[0];
       var nombre = ((pac.Nombres||'')+' '+(pac.Apellidos||'')).trim();
-      if(!confirm('⚠️ Este número ya pertenece a:\n\n'+nombre+' ('+num+')\n\n¿Deseas generar link como paciente antiguo con datos prellenados?')){return;}
+      // Mostrar modal de detección con branding
+      var dm=document.getElementById('modal-nuevo-pac');
+      dm.querySelector('div > div:last-child').innerHTML = 
+        '<div style="padding:20px;"><div style="padding:14px;background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:10px;margin-bottom:14px;">' +
+        '<div style="font-size:11px;font-weight:700;color:#00A88A;">✅ Paciente encontrado</div>' +
+        '<div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:4px;">'+escH(nombre)+'</div>' +
+        '<div style="font-size:11px;color:#64748B;margin-top:2px;">📱 '+escH(num)+'</div></div>' +
+        '<div style="font-size:11px;color:#64748B;margin-bottom:14px;">Este paciente ya está registrado. El link tendrá sus datos prellenados.</div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button onclick="document.getElementById(\'modal-nuevo-pac\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans;">Cancelar</button>' +
+        '<button onclick="confirmarLinkAntiguo(\''+escH(num)+'\')" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">Generar link</button></div></div>';
+      return;
       // Generar como paciente antiguo
       document.getElementById('modal-nuevo-pac').remove();
       window._agPacNum = num;
@@ -1521,6 +1532,17 @@ function cargarHistorialLinks() {
     });
     html += '</table>';
     el.innerHTML = html;
+  });
+}
+
+function confirmarLinkAntiguo(num) {
+  document.getElementById('modal-nuevo-pac').remove();
+  window._agPacNum = num;
+  var body = {tipo:'paciente_especifico', paciente_numero:num, asesor_codigo:window._agLinkAsesor, expira_at:new Date(Date.now()+48*60*60*1000).toISOString()};
+  fetch(_SB+'/rest/v1/aos_links_agenda',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(function(rows){
+    var token = rows && rows[0] ? rows[0].token : '';
+    mostrarLinkGenerado(window.location.origin + '/agendar?t=' + token, true);
   });
 }
 

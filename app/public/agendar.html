@@ -229,7 +229,7 @@ function q(t,f){return fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Autho
     AG.link=rows[0];
     // Si tiene paciente prellenado
     if(AG.link.paciente_numero){
-      q('aos_pacientes','numero_limpio=eq.'+AG.link.paciente_numero+'&select=nombres,apellidos,telefono,dni,Email&limit=1').then(function(p){
+      q('aos_pacientes','numero_limpio=eq.'+AG.link.paciente_numero+'&select=numero_limpio,"Nombres","Apellidos","Email","N° documento"&limit=1').then(function(p){
         if(p&&p[0])AG.paciente=p[0];
         loadProfesionales();
       });
@@ -372,11 +372,11 @@ function renderDatos(){
   if(AG.paciente){
     var p=AG.paciente;
     document.getElementById('ag-datos-prellenados').style.display='block';
-    document.getElementById('ag-datos-prellenados').textContent='✅ '+esc(p.nombres)+' '+esc(p.apellidos)+' · '+esc(p.telefono);
-    document.getElementById('ag-nombre').value=p.nombres||'';
-    document.getElementById('ag-apellido').value=p.apellidos||'';
-    document.getElementById('ag-telefono').value=p.telefono||AG.link.paciente_numero||'';
-    document.getElementById('ag-dni').value=p.dni||'';
+    document.getElementById('ag-datos-prellenados').textContent='✅ '+(p.Nombres||p.nombres||'')+' '+(p.Apellidos||p.apellidos||'');
+    document.getElementById('ag-nombre').value=p.Nombres||p.nombres||'';
+    document.getElementById('ag-apellido').value=p.Apellidos||p.apellidos||'';
+    document.getElementById('ag-telefono').value=AG.link.paciente_numero||p.numero_limpio||'';
+    document.getElementById('ag-dni').value=p['N° documento']||p.dni||'';
     document.getElementById('ag-email').value=p.Email||'';
   }
 }
