@@ -83,11 +83,10 @@
   <div class="em-hdr">
     <div class="em-t">✉️ Email Marketing</div>
     <div class="em-tabs">
-      <button class="em-tab act" onclick="emTab('dashboard')">📊 Dashboard</button>
+      <button class="em-tab act" onclick="emTab('dashboard')">📬 Enviados</button>
       <button class="em-tab" onclick="emTab('bandeja')">📥 Bandeja</button>
       <button class="em-tab" onclick="emTab('flujos')">🔄 Flujos</button>
       <button class="em-tab" onclick="emTab('plantillas')">📝 Plantillas</button>
-      <button class="em-tab" onclick="emTab('enviados')">📬 Log</button>
     </div>
     <div style="display:flex;gap:6px;">
       <button class="mbtn mbtn-p" onclick="openNewCampania()">+ Nueva Campaña</button>
@@ -191,15 +190,6 @@
     </div>
   </div>
   </div>
-
-  <!-- ENVIADOS -->
-  <div id="em-enviados" style="display:none;">
-    <div class="crd">
-      <div class="ct">📬 Historial de Envíos</div>
-      <table class="vt"><thead><tr><th>Destinatario</th><th>Email</th><th>Plantilla</th><th>Estado</th><th>Fecha</th></tr></thead>
-      <tbody id="em-log"><tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Sin envíos registrados</td></tr></tbody></table>
-    </div>
-  </div>
 </div>
 
 <!-- Modal: Ver flujo detalle -->
@@ -244,7 +234,7 @@ q('aos_configuracion','select=clave,valor&clave=in.(nombre_empresa,logo_sin_fond
 });
 function emTab(tab){
   TAB=tab;
-  ['dashboard','bandeja','flujos','plantillas','enviados'].forEach(function(t){var e=el('em-'+t);if(e)e.style.display=t===tab?'block':'none';});
+  ['dashboard','bandeja','flujos','plantillas'].forEach(function(t){var e=el('em-'+t);if(e)e.style.display=t===tab?'block':'none';});
   document.querySelectorAll('.em-tab').forEach(function(b){b.classList.remove('act');});
   event.target.classList.add('act');
   loadTab();
@@ -571,7 +561,7 @@ function openTplEditor(id){
       html+='<div class="edt-lbl" style="margin-top:8px;">📱 VISTA PREVIA <span style="font-weight:400;color:#9AAAC8;">— así se ve el email que recibe el paciente</span></div>';
       html+='<div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;border:1px solid #EEF0F8;"></div>';
       html+='</div>';
-      el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(updateTplPreview,150);
+      el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(function(){updateTplPreview();el('tpl-editor-area').scrollTop=0;},150);
     });
   } else {
     q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
@@ -584,7 +574,7 @@ function openTplEditor(id){
       html+='<div class="edt-lbl">📱 VISTA PREVIA WHATSAPP</div>';
       html+='<div style="background:#E7F5EC;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #BBF7D0;max-width:450px;" id="wa-preview"></div>';
       html+='</div>';
-      el('tpl-editor-area').innerHTML=html;updateWaPreview();
+      el('tpl-editor-area').innerHTML=html;updateWaPreview();el('tpl-editor-area').scrollTop=0;
     });
   }
 }
