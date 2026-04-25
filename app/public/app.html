@@ -1500,42 +1500,46 @@ function cargarHistorialLinks() {
   }).then(function(r) { return r.json() }).then(function(links) {
     var el = document.getElementById('historial-links');
     if (!el) return;
-    if (!links || !links.length) { el.innerHTML = '<div style="padding:20px;text-align:center;font-size:9px;color:#6B7BA8;">Sin links generados aún</div>'; return; }
-    var html = '';
-    links.forEach(function(l) {
-      var ahora = new Date();
-      var expira = new Date(l.expira_at);
-      var vencido = !l.expira_at ? false : expira < ahora;
-      var usado = l.usado;
-      var horasRest = l.expira_at ? Math.max(0, Math.round((expira - ahora) / 3600000)) : 999;
-      var tipo = l.tipo === 'paciente_especifico' ? '👤' : l.tipo === 'asesor' ? '🆕' : '🌐';
-      var tipoTxt = l.tipo === 'paciente_especifico' ? 'Antiguo' : l.tipo === 'asesor' ? 'Nuevo' : 'Web';
-      var paciente = l.paciente_nombre || l.paciente_numero || '—';
-      var url = l.expira_at ? window.location.origin + '/agendar?t=' + l.token : window.location.origin + '/agendar';
-      var estadoBg, estadoTxt;
-      if (usado) { estadoBg = '#F0FDF4'; estadoTxt = '<span style="color:#059669;font-weight:700;">✅ Confirmada</span>'; }
-      else if (vencido) { estadoBg = '#FEF2F2'; estadoTxt = '<span style="color:#DC2626;font-weight:700;">⏰ Vencido</span>'; }
-      else { estadoBg = '#EBF2FF'; estadoTxt = '<span style="color:#0A4FBF;font-weight:700;">🟢 ' + (horasRest < 999 ? horasRest + 'h' : '∞') + '</span>'; }
-      
-      html += '<div style="padding:8px;border:1px solid #DDE4F5;border-radius:8px;margin-bottom:4px;background:' + estadoBg + ';">';
-      html += '<div style="display:flex;align-items:center;gap:6px;">';
-      html += '<span style="font-size:14px;">' + tipo + '</span>';
-      html += '<div style="flex:1;min-width:0;"><div style="font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escH(paciente) + '</div>';
-      html += '<div style="font-size:8px;color:#6B7BA8;">' + tipoTxt + ' · ' + new Date(l.created_at).toLocaleDateString() + '</div></div>';
-      html += estadoTxt;
-      html += '</div>';
-      if (!vencido && !usado) {
-        html += '<div style="display:flex;gap:3px;margin-top:4px;">';
-        html += '<button onclick="copiarLink(\'' + escH(url) + '\')" style="flex:1;padding:4px;border:none;border-radius:4px;background:#0A4FBF;color:#fff;font-size:8px;font-weight:700;cursor:pointer;font-family:DM Sans;">📋 Copiar</button>';
-        html += '<button onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="flex:1;padding:4px;border:none;border-radius:4px;background:#25D366;color:#fff;font-size:8px;font-weight:700;cursor:pointer;font-family:DM Sans;">💬 WA</button>';
-        html += '</div>';
-      } else if (vencido) {
-        html += '<div style="margin-top:4px;"><button onclick="renovarLink(\'' + escH(l.id) + '\')" style="width:100%;padding:4px;border:none;border-radius:4px;background:#EBF2FF;color:#0A4FBF;font-size:8px;font-weight:700;cursor:pointer;font-family:DM Sans;">🔄 Renovar</button></div>';
-      }
-      html += '</div>';
-    });
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:9px;"><thead><tr style="background:#EBF2FF;"><th style="padding:5px 4px;text-align:left;font-weight:700;color:#0A4FBF;">Fecha</th><th style="padding:5px 4px;text-align:left;font-weight:700;color:#0A4FBF;">Número</th><th style="padding:5px 3px;text-align:center;font-weight:700;color:#0A4FBF;width:28px;">📋</th><th style="padding:5px 3px;text-align:center;font-weight:700;color:#0A4FBF;width:28px;">💬</th><th style="padding:5px 4px;text-align:center;font-weight:700;color:#0A4FBF;">Estado</th><th style="padding:5px 3px;text-align:center;font-weight:700;color:#0A4FBF;width:24px;">✕</th></tr></thead><tbody>';
+    if (!links || !links.length) {
+      html += '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6B7BA8;">Sin links generados</td></tr>';
+    } else {
+      links.forEach(function(l) {
+        var ahora = new Date();
+        var expira = l.expira_at ? new Date(l.expira_at) : null;
+        var vencido = expira ? expira < ahora : false;
+        var usado = l.usado;
+        var url = expira ? window.location.origin + '/agendar?t=' + l.token : window.location.origin + '/agendar';
+        var fecha = new Date(l.created_at).toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'});
+        var num = l.paciente_numero || '—';
+        var estadoHtml;
+        if (usado) { estadoHtml = '<span style="color:#059669;font-weight:700;">✅ Confirmada</span>'; }
+        else if (vencido) { estadoHtml = '<span style="color:#DC2626;font-weight:700;">Expirado</span>'; }
+        else if (!expira) { estadoHtml = '<span style="color:#0A4FBF;font-weight:700;">∞ Permanente</span>'; }
+        else {
+          var ms = expira - ahora;
+          var hrs = Math.floor(ms/3600000); var min = Math.floor((ms%3600000)/60000);
+          estadoHtml = '<span style="color:#059669;font-weight:700;">' + hrs + 'h ' + min + 'm</span>';
+        }
+        html += '<tr style="border-bottom:1px solid #EEF0F8;">';
+        html += '<td style="padding:4px;">' + fecha + '</td>';
+        html += '<td style="padding:4px;font-weight:600;">' + escH(num) + '</td>';
+        html += '<td style="padding:4px;text-align:center;">' + (!vencido && !usado ? '<span onclick="copiarLink(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="Copiar link">📋</span>' : '<span style="color:#ccc;">—</span>') + '</td>';
+        html += '<td style="padding:4px;text-align:center;">' + (!vencido && !usado ? '<span onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="cursor:pointer;font-size:12px;" title="Enviar por WhatsApp">💬</span>' : '<span style="color:#ccc;">—</span>') + '</td>';
+        html += '<td style="padding:4px;text-align:center;">' + estadoHtml + '</td>';
+        html += '<td style="padding:4px;text-align:center;"><span onclick="eliminarLink(\'' + escH(l.id) + '\')" style="cursor:pointer;color:#DC2626;font-weight:700;font-size:11px;" title="Eliminar">✕</span></td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table>';
     el.innerHTML = html;
   });
+}
+
+function eliminarLink(id) {
+  fetch(_SB + '/rest/v1/aos_links_agenda?id=eq.' + id, {
+    method: 'DELETE', headers: {'apikey': _SK, 'Authorization': 'Bearer ' + _SK}
+  }).then(function() { cargarHistorialLinks(); });
 }
 
 function confirmarLinkAntiguo(num) {
