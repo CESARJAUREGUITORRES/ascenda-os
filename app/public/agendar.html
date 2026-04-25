@@ -4,130 +4,163 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>Agendar Cita — Zi Vital</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#cea14a;--gold-light:#f0ebe0;--gold-dark:#4a3728;--bg:#FAFBFE;--card:#fff;--text:#0f172a;--muted:#64748B;--border:#E2E8F0;--green:#059669;--red:#DC2626}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
-.ag-header{background:linear-gradient(135deg,var(--gold-dark),#5d3f1e);padding:12px 24px;display:flex;align-items:center;gap:12px}
-.ag-header h1{font-family:'Exo 2';font-size:17px;font-weight:800;color:#fff;flex:1}
-.ag-header .ag-badge{font-size:9px;background:rgba(206,161,74,.3);color:#f0ebe0;padding:3px 10px;border-radius:20px;font-weight:600}
-.ag-main{display:grid;grid-template-columns:260px 1fr 300px;height:calc(100vh - 46px);overflow:hidden}
-.ag-col{display:flex;flex-direction:column;overflow:hidden}
-.ag-col1{background:#fff;border-right:1px solid var(--border)}
-.ag-col2{background:var(--bg)}
-.ag-col3{background:#fff;border-left:1px solid var(--border)}
-.ag-col-hdr{padding:10px 12px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-.ag-col-body{flex:1;overflow-y:auto;padding:10px}
-.ag-tabs{display:flex;gap:4px;margin-bottom:8px}
-.ag-tab{flex:1;padding:7px;border:2px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;text-align:center;font-size:10px;font-weight:700;color:var(--muted);transition:all .12s}
-.ag-tab.act{border-color:var(--gold);background:var(--gold-light);color:var(--gold-dark);font-weight:800}
-.prof-card{display:flex;align-items:center;gap:8px;padding:8px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:5px}
-.prof-card:hover{border-color:var(--gold);background:rgba(206,161,74,.03)}
-.prof-card.sel{border-color:var(--gold);background:var(--gold-light)}
-.prof-img{width:42px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.prof-name{font-size:11px;font-weight:800;color:var(--text)}
-.prof-sub{font-size:8px;color:var(--muted);margin-top:1px}
-.prof-badge{font-size:7px;background:var(--gold-light);color:var(--gold-dark);padding:2px 5px;border-radius:10px;font-weight:700;margin-left:auto;white-space:nowrap}
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cal-nav button{width:28px;height:28px;border:none;background:var(--gold-light);border-radius:50%;font-size:12px;cursor:pointer;color:var(--gold-dark);font-weight:700}
-.cal-title{font-size:12px;font-weight:800;color:var(--text)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
-.cal-head{font-size:8px;font-weight:700;color:var(--muted);padding:4px 0}
-.cal-day{padding:6px 0;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;border:1.5px solid transparent}
-.cal-day:hover:not(.disabled){background:var(--gold-light);border-color:var(--gold)}
-.cal-day.today{border-color:var(--gold);color:var(--gold-dark);font-weight:800}
-.cal-day.sel{background:var(--gold);color:#fff;font-weight:800}
-.cal-day.has-turno{background:rgba(5,150,105,.08);color:var(--green);font-weight:700;border-color:rgba(5,150,105,.3)}
-.cal-day.disabled{color:#ccc;cursor:default}.cal-day.empty{cursor:default}
-.slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.slot{padding:6px 0;text-align:center;border:1.5px solid var(--border);border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
-.slot:hover{border-color:var(--gold);background:var(--gold-light)}
-.slot.sel{background:var(--gold);color:#fff;border-color:var(--gold)}
-.slot.sel div{color:#fff !important}
-.ag-input{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:'DM Sans';outline:none;transition:border .12s}
-.ag-input:focus{border-color:var(--gold)}
-.ag-label{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px}
-.ag-row{margin-bottom:8px}
-.ag-btn{width:100%;padding:11px;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .15s}
-.ag-btn-primary{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:#fff;box-shadow:0 4px 12px rgba(206,161,74,.25)}
-.ag-btn-primary:hover{transform:translateY(-1px)}.ag-btn-primary:disabled{opacity:.4;cursor:default;transform:none}
-.ag-resumen{background:var(--gold-light);border:1px solid rgba(206,161,74,.2);border-radius:8px;padding:10px;margin-bottom:10px}
-.ag-rr{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(206,161,74,.12)}
-.ag-rr:last-child{border:none}
-.ag-rr span:first-child{color:var(--muted)}.ag-rr span:last-child{font-weight:700;color:var(--gold-dark)}
-.ag-detected{padding:5px 8px;background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:5px;margin-bottom:6px;font-size:9px;color:var(--green);font-weight:600}
-.ag-success-ov{position:fixed;inset:0;background:rgba(74,55,40,.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.ag-success-c{background:#fff;border-radius:18px;max-width:400px;width:90%;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.ag-loading-s{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
-.ag-expired-s{position:fixed;inset:0;background:#fff;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px}
-.ag-sp{width:24px;height:24px;border:3px solid var(--gold-light);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:900px){.ag-main{grid-template-columns:1fr;height:auto;overflow:auto}.ag-col{overflow:visible;border:none !important}}
+:root{--pri:#071D4A;--blue:#0A4FBF;--cyan:#00C9A7;--mint:#00E5A0;--bg:#F0F4FC;--card:#fff;--text:#0D1B3E;--muted:#6B7BA8;--border:#DDE4F5;--green:#00C9A7;--red:#DC2626}
+body{font-family:'DM Sans',sans-serif;background:var(--pri);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* Glass overlay background */
+.ag-bg{position:fixed;inset:0;background:linear-gradient(135deg,#071D4A 0%,#0A3A8F 40%,#071D4A 100%);z-index:0}
+.ag-bg::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:rgba(0,201,167,.08)}
+.ag-bg::after{content:'';position:absolute;bottom:-80px;left:-80px;width:300px;height:300px;border-radius:50%;background:rgba(10,79,191,.1)}
+/* Modal card */
+.ag-modal{position:relative;z-index:1;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:20px;width:96vw;max-width:1100px;height:88vh;max-height:680px;box-shadow:0 24px 80px rgba(7,29,74,.4);overflow:hidden;display:grid;grid-template-columns:220px 1fr 260px;border:1px solid rgba(255,255,255,.3)}
+/* Header strip */
+.ag-strip{grid-column:1/-1;background:linear-gradient(90deg,var(--pri),var(--blue));padding:10px 18px;display:flex;align-items:center;gap:10px}
+.ag-strip h1{font-family:'Exo 2';font-size:15px;font-weight:800;color:#fff;flex:1}
+.ag-strip .badge{font-size:8px;background:rgba(0,201,167,.2);color:var(--cyan);padding:3px 10px;border-radius:20px;font-weight:700}
+/* Columns */
+.ag-c{display:flex;flex-direction:column;overflow:hidden}
+.ag-c1{background:#F8FAFF;border-right:1px solid var(--border)}
+.ag-c2{background:var(--card)}
+.ag-c3{background:#F8FAFF;border-left:1px solid var(--border)}
+.ag-ch{padding:8px 12px;border-bottom:1px solid var(--border);font-size:8px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:1px}
+.ag-cb{flex:1;overflow-y:auto;padding:8px}
+/* Tabs */
+.ag-tabs{display:flex;gap:3px;margin-bottom:8px}
+.ag-tab{flex:1;padding:6px;border:1.5px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;text-align:center;font-size:9px;font-weight:700;color:var(--muted);transition:all .12s}
+.ag-tab.act{border-color:var(--cyan);background:rgba(0,201,167,.08);color:#00A88A;font-weight:800}
+/* Prof cards */
+.pc{display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:5px;background:var(--card)}
+.pc:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(10,79,191,.08)}
+.pc.sel{border-color:var(--cyan);background:rgba(0,201,167,.06)}
+.pc-img{width:40px;height:52px;border-radius:7px;object-fit:cover;flex-shrink:0}
+.pc-n{font-size:11px;font-weight:800;color:var(--text)}
+.pc-s{font-size:8px;color:var(--muted);margin-top:1px}
+.pc-cmp{font-size:7px;color:var(--blue);font-weight:700;margin-top:1px}
+.pc-b{font-size:7px;background:#EBF2FF;color:var(--blue);padding:1px 5px;border-radius:8px;font-weight:700;margin-left:auto}
+/* Calendar */
+.cn{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cn button{width:26px;height:26px;border:none;background:#EBF2FF;border-radius:50%;font-size:12px;cursor:pointer;color:var(--blue);font-weight:700}
+.cn-t{font-size:12px;font-weight:800;color:var(--text)}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.ch{font-size:7px;font-weight:700;color:var(--muted);padding:4px 0}
+.cd{padding:6px 0;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s;border:1.5px solid transparent}
+.cd:hover:not(.dis){background:#EBF2FF;border-color:var(--blue)}
+.cd.tod{border-color:var(--blue);color:var(--blue);font-weight:800}
+.cd.sel{background:var(--blue);color:#fff;font-weight:800}
+.cd.ht{background:rgba(0,201,167,.1);color:#00A88A;font-weight:700;border-color:rgba(0,201,167,.3)}
+.cd.dis{color:#ccc;cursor:default}.cd.emp{cursor:default}
+/* Slots */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px}
+.sl{padding:6px 4px;text-align:center;border:1.5px solid var(--border);border-radius:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;background:var(--card)}
+.sl:hover{border-color:var(--blue);background:#EBF2FF}
+.sl.sel{background:linear-gradient(135deg,var(--cyan),#00A88A);color:#fff;border-color:var(--cyan)}
+.sl.sel div{color:#fff !important}
+/* Form */
+.fi{width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:11px;font-family:'DM Sans';outline:none;transition:border .12s}
+.fi:focus{border-color:var(--blue)}
+.fl{font-size:7px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px;letter-spacing:.3px}
+.fr{margin-bottom:7px}
+.fb{width:100%;padding:10px;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Sans';transition:all .15s}
+.fb-p{background:linear-gradient(135deg,var(--pri),var(--blue));color:#fff;box-shadow:0 4px 12px rgba(10,79,191,.25)}
+.fb-p:hover{transform:translateY(-1px)}.fb-p:disabled{opacity:.4;cursor:default;transform:none}
+/* Resumen */
+.rs{background:#EBF2FF;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px}
+.rr{display:flex;justify-content:space-between;padding:2px 0;font-size:9px;border-bottom:1px solid rgba(10,79,191,.08)}.rr:last-child{border:none}
+.rr span:first-child{color:var(--muted)}.rr span:last-child{font-weight:700;color:var(--pri)}
+.det{padding:4px 7px;background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);border-radius:4px;margin-bottom:6px;font-size:8px;color:#00A88A;font-weight:600}
+/* Success */
+.sov{position:fixed;inset:0;background:rgba(7,29,74,.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.sc{background:#fff;border-radius:18px;max-width:380px;width:90%;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+/* Loading/Expired */
+.als{position:fixed;inset:0;background:var(--pri);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.aes{position:fixed;inset:0;background:var(--pri);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px}
+.asp{width:24px;height:24px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--cyan);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:900px){.ag-modal{grid-template-columns:1fr;height:auto;max-height:none;width:100%;border-radius:0;max-width:100%}.ag-c{overflow:visible;border:none !important}body{overflow:auto;align-items:flex-start}}
 </style>
 </head>
 <body>
-<div class="ag-loading-s" id="ag-loading"><div class="ag-sp"></div><span style="font-size:11px;color:var(--muted)">Cargando...</span></div>
-<div class="ag-expired-s" id="ag-expired"><div style="font-size:48px">⏰</div><h2 style="font-family:Exo 2;font-size:20px;color:var(--red);">Link expirado</h2><p style="font-size:12px;color:var(--muted);max-width:280px;">Solicita uno nuevo a tu asesora.</p><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, quisiera agendar una cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:12px">💬 WhatsApp</a></div>
-<div class="ag-header" id="ag-app" style="display:none"><h1>Agenda tu cita</h1><div class="ag-badge">Zi Vital · Clínica Estética</div></div>
-<div class="ag-main" id="ag-app-main" style="display:none">
-  <div class="ag-col ag-col1">
-    <div class="ag-col-hdr">Profesional</div>
-    <div class="ag-col-body">
-      <div class="ag-tabs"><div class="ag-tab act" onclick="agTipo('DOCTORA',this)">👩‍⚕️ Doctora</div><div class="ag-tab" onclick="agTipo('ENFERMERIA',this)">💆 Enfermería</div></div>
-      <div id="prof-list"></div>
+<div class="als" id="ag-ld"><div class="asp"></div><span style="font-size:11px;color:rgba(255,255,255,.6)">Cargando...</span></div>
+<div class="aes" id="ag-exp"><div style="font-size:48px">⏰</div><h2 style="font-family:Exo 2;font-size:20px;color:#fff;">Link expirado</h2><p style="font-size:12px;color:rgba(255,255,255,.5);max-width:280px;">Solicita uno nuevo a tu asesora.</p><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, quisiera agendar una cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:12px">💬 WhatsApp</a></div>
+<div class="ag-bg"></div>
+<div class="ag-modal" id="ag-app" style="display:none">
+  <div class="ag-strip"><h1>📅 Agenda tu cita</h1><div class="badge">Zi Vital · Clínica Estética</div></div>
+  <div class="ag-c ag-c1">
+    <div class="ag-ch">Profesional</div>
+    <div class="ag-cb">
+      <div class="ag-tabs"><div class="ag-tab act" onclick="agT('DOCTORA',this)">👩‍⚕️ Doctora</div><div class="ag-tab" onclick="agT('ENFERMERIA',this)">💆 Enfermería</div></div>
+      <div id="pl"></div>
     </div>
   </div>
-  <div class="ag-col ag-col2">
-    <div class="ag-col-hdr" id="prof-selected-card">← Selecciona profesional</div>
-    <div class="ag-col-body">
-      <div class="cal-nav"><button onclick="agCalNav(-1)">‹</button><div class="cal-title" id="cal-title"></div><button onclick="agCalNav(1)">›</button></div>
-      <div class="cal-grid" id="cal-grid"></div>
-      <div id="slots-card" style="display:none;margin-top:12px;"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Horarios · <span id="slots-fecha"></span></div><div id="slots-grid" class="slots-grid"></div></div>
+  <div class="ag-c ag-c2">
+    <div class="ag-ch" id="psc">← Selecciona profesional</div>
+    <div class="ag-cb">
+      <div class="cn"><button onclick="cN(-1)">‹</button><div class="cn-t" id="ct"></div><button onclick="cN(1)">›</button></div>
+      <div class="cg" id="cg"></div>
+      <div id="sc" style="display:none"><div style="font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Horarios · <span id="sf"></span></div><div id="sg" class="sg"></div></div>
     </div>
   </div>
-  <div class="ag-col ag-col3">
-    <div class="ag-col-hdr">📋 Registro</div>
-    <div class="ag-col-body">
-      <div id="ag-datos-prellenados" class="ag-detected" style="display:none"></div>
-      <div style="padding:5px 8px;background:var(--gold-light);border-radius:5px;margin-bottom:8px;font-size:9px;color:var(--gold-dark);font-weight:600;">💡 Ingresa tu número para autocompletar</div>
-      <div class="ag-row"><label class="ag-label">Nombre *</label><input class="ag-input" id="ag-nombre" placeholder="Tu nombre"></div>
-      <div class="ag-row"><label class="ag-label">Apellido *</label><input class="ag-input" id="ag-apellido" placeholder="Tu apellido"></div>
-      <div class="ag-row"><label class="ag-label">Teléfono *</label><input class="ag-input" id="ag-telefono" placeholder="987654321" type="tel" oninput="autoDetectPaciente(this.value)"></div>
-      <div id="ag-pac-detected" class="ag-detected" style="display:none"></div>
-      <div class="ag-row"><label class="ag-label">DNI</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
-      <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
-      <div class="ag-row"><label class="ag-label">Tratamiento *</label><select class="ag-input" id="ag-servicio" style="appearance:auto;" onchange="AG.selSvc=this.value"><option value="">-- Cargando --</option></select></div>
-      <div class="ag-row"><label class="ag-label">Tipo cita</label><select class="ag-input" id="ag-tipo-cita" style="appearance:auto;"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="CONTROL">Control</option><option value="APLICACIÓN">Aplicación</option><option value="PROCEDIMIENTO">Procedimiento</option></select></div>
-      <div class="ag-row"><label class="ag-label">Notas</label><textarea class="ag-input" id="ag-nota" rows="2" placeholder="¿Indicación especial?"></textarea></div>
-      <div class="ag-resumen"><div style="font-size:8px;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-bottom:4px;">Resumen</div><div id="ag-resumen-body" style="font-size:10px;color:var(--muted);">Selecciona profesional, fecha y hora</div></div>
-      <button class="ag-btn ag-btn-primary" onclick="agConfirmar()" id="btn-confirmar" disabled>✅ Confirmar cita</button>
+  <div class="ag-c ag-c3">
+    <div class="ag-ch">📋 Registro</div>
+    <div class="ag-cb">
+      <div id="dpre" class="det" style="display:none"></div>
+      <div style="padding:4px 7px;background:#EBF2FF;border-radius:4px;margin-bottom:6px;font-size:8px;color:var(--blue);font-weight:600;">💡 Ingresa tu número para autocompletar</div>
+      <div class="fr"><label class="fl">Nombre *</label><input class="fi" id="fn" placeholder="Tu nombre"></div>
+      <div class="fr"><label class="fl">Apellido *</label><input class="fi" id="fa" placeholder="Tu apellido"></div>
+      <div class="fr"><label class="fl">Teléfono *</label><input class="fi" id="ft" placeholder="987654321" type="tel" oninput="aDP(this.value)"></div>
+      <div id="pdet" class="det" style="display:none"></div>
+      <div class="fr"><label class="fl">DNI</label><input class="fi" id="fd" placeholder="12345678"></div>
+      <div class="fr"><label class="fl">Email</label><input class="fi" id="fe" placeholder="tu@correo.com" type="email"></div>
+      <div class="fr"><label class="fl">Tratamiento *</label><select class="fi" id="fsv" style="appearance:auto;" onchange="AG.selSvc=this.value"><option value="">-- Cargando --</option></select></div>
+      <div class="fr"><label class="fl">Tipo cita</label><select class="fi" id="ftc" style="appearance:auto;"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="CONTROL">Control</option><option value="APLICACIÓN">Aplicación</option><option value="PROCEDIMIENTO">Procedimiento</option></select></div>
+      <div class="fr"><label class="fl">Notas</label><textarea class="fi" id="fno" rows="2" placeholder="¿Indicación?"></textarea></div>
+      <div class="rs"><div style="font-size:7px;font-weight:800;color:var(--blue);text-transform:uppercase;margin-bottom:3px;">Resumen</div><div id="rb" style="font-size:9px;color:var(--muted);">Selecciona profesional, fecha y hora</div></div>
+      <button class="fb fb-p" onclick="agC()" id="bc" disabled>✅ Confirmar cita</button>
     </div>
   </div>
 </div>
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0',H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
 var AG={token:'',link:null,tipo:'DOCTORA',profs:[],selProf:null,selSvc:'',selFecha:'',selHora:'',selSede:'',calYear:0,calMonth:0,paciente:null,diasTurno:[]};
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function E(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function rpc(fn,p){return fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:H,body:JSON.stringify(p)}).then(function(r){return r.json()})}
 function q(t,f){return fetch(SB+'/rest/v1/'+t+'?'+f,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json()})}
-(function(){var p=new URLSearchParams(window.location.search);AG.token=p.get('t')||p.get('token')||'';var h=new Date();AG.calYear=h.getFullYear();AG.calMonth=h.getMonth();if(!AG.token){AG.link={tipo:'general'};loadProfs();return;}q('aos_links_agenda','token=eq.'+AG.token+'&select=*').then(function(r){if(!r||!r.length||new Date(r[0].expira_at)<new Date()){document.getElementById('ag-loading').style.display='none';document.getElementById('ag-expired').style.display='flex';return;}AG.link=r[0];if(AG.link.paciente_numero){rpc('aos_buscar_por_numero',{p_numero:AG.link.paciente_numero}).then(function(res){if(res&&res[0]){var r=res[0];AG.paciente={numero_limpio:r.numero||AG.link.paciente_numero,Nombres:r.nombre||'',Apellidos:r.apellido||'',Email:r.email||'','N° documento':r.documento||''};}loadProfs();}).catch(function(){loadProfs();});}else{loadProfs();}}).catch(function(){document.getElementById('ag-loading').style.display='none';document.getElementById('ag-expired').style.display='flex';});})();
-function loadProfs(){q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(p){AG.profs=p||[];document.getElementById('ag-loading').style.display='none';document.getElementById('ag-app').style.display='flex';document.getElementById('ag-app-main').style.display='grid';renderProfs();renderCal();renderDatos();});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i||!i.length)return;var s=document.getElementById('ag-servicio');if(s)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');}).catch(function(){});}
-function agTipo(t,b){AG.tipo=t;AG.selProf=null;document.querySelectorAll('.ag-tab').forEach(function(x){x.classList.remove('act')});b.classList.add('act');renderProfs();upRes();}
-function renderProfs(){var l=AG.profs.filter(function(p){return p.tipo===AG.tipo});document.getElementById('prof-list').innerHTML=l.map(function(p){return '<div class="prof-card'+(AG.selProf&&AG.selProf.id===p.id?' sel':'')+'" onclick="selProf(\''+esc(p.id)+'\')">'+(p.foto_url?'<img class="prof-img" src="'+esc(p.foto_url)+'">':'<div class="prof-img" style="background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--gold-dark)">'+esc((p.nombre_publico||'?')[0])+'</div>')+'<div style="flex:1;min-width:0"><div class="prof-name">'+esc(p.nombre_publico)+'</div><div class="prof-sub">'+esc(p.especialidad)+'</div><div class="prof-sub">📍 '+esc(p.sede==='TODAS'?'Ambas sedes':p.sede)+'</div></div><div class="prof-badge">'+((p.servicios||[]).length)+'</div></div>';}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted);font-size:10px">Sin profesionales</div>';}
-function selProf(id){AG.selProf=AG.profs.find(function(p){return p.id===id});renderProfs();var p=AG.selProf;if(p)document.getElementById('prof-selected-card').innerHTML='<div style="display:flex;align-items:center;gap:8px;">'+(p.foto_url?'<img src="'+esc(p.foto_url)+'" style="width:28px;height:36px;object-fit:cover;border-radius:6px;">':'')+'<span style="font-weight:800;color:var(--gold-dark);font-size:11px;">'+esc(p.nombre_publico)+'</span><span style="font-size:9px;color:var(--muted);">'+esc(p.especialidad)+'</span></div>';renderSvcs();loadTurnos();upRes();}
-function renderSvcs(){var s=document.getElementById('ag-servicio');if(!s||!AG.selProf)return;if(!AG.selProf.servicios||!AG.selProf.servicios.length){rpc('aos_catalogo_tratamientos',{}).then(function(i){if(i)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});return;}var m={};AG.selProf.servicios.forEach(function(x){m[x.toUpperCase()]=1;});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i)return;var f=i.filter(function(x){return m[x.t.toUpperCase()];});if(!f.length)f=i;s.innerHTML='<option value="">-- Seleccionar --</option>'+f.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});}
-function loadTurnos(){if(!AG.selProf)return;rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:AG.calYear,p_mes:AG.calMonth+1}).then(function(d){AG.diasTurno=d||[];renderCal();});}
-function renderCal(){var y=AG.calYear,m=AG.calMonth,ms=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];document.getElementById('cal-title').textContent=ms[m]+' '+y;var f=new Date(y,m,1).getDay(),ds=new Date(y,m+1,0).getDate(),h=new Date(),hs=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'),tm={};(AG.diasTurno||[]).forEach(function(d){tm[d.dia||d]=1;});var o='';['Do','Lu','Ma','Mi','Ju','Vi','Sá'].forEach(function(d){o+='<div class="cal-head">'+d+'</div>';});for(var i=0;i<f;i++)o+='<div class="cal-day empty"></div>';for(var d=1;d<=ds;d++){var s=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),pt=s<hs,it=s===hs,ht=tm[d],is=s===AG.selFecha,c='cal-day';if(pt)c+=' disabled';if(it)c+=' today';if(ht&&!pt)c+=' has-turno';if(is)c+=' sel';o+='<div class="'+c+'"'+(pt?'':' onclick="selFecha('+y+','+(m+1)+','+d+')"')+'>'+d+'</div>';}document.getElementById('cal-grid').innerHTML=o;}
-function agCalNav(d){AG.calMonth+=d;if(AG.calMonth>11){AG.calMonth=0;AG.calYear++}if(AG.calMonth<0){AG.calMonth=11;AG.calYear--}loadTurnos();}
-function selFecha(y,m,d){AG.selFecha=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');renderCal();document.getElementById('slots-card').style.display='block';document.getElementById('slots-fecha').textContent=AG.selFecha;document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:10px;"><div class="ag-sp" style="margin:0 auto;"></div></div>';rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf?AG.selProf.id:null,p_fecha:AG.selFecha,p_sede:AG.selProf&&AG.selProf.sede!=='TODAS'?AG.selProf.sede:null}).then(function(r){if(!r||!r.ok||!r.slots||!r.slots.length){document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:10px;font-size:10px;color:var(--muted)">Sin horarios</div>';return;}document.getElementById('slots-grid').innerHTML=r.slots.map(function(s){return '<div class="slot" onclick="selSlot(this,\''+s.hora+'\',\''+s.sede+'\')"><div style="font-weight:700;font-size:10px;">'+s.hora+'</div><div style="font-size:7px;color:var(--muted);">'+s.sede+'</div><div style="font-size:7px;color:var(--green);">'+s.libres+' libres</div></div>';}).join('');});upRes();}
-function selSlot(e,h,s){AG.selHora=h;AG.selSede=s;document.querySelectorAll('.slot').forEach(function(x){x.classList.remove('sel')});e.classList.add('sel');upRes();}
-function upRes(){var o='',ok=AG.selProf&&AG.selFecha&&AG.selHora;if(AG.selProf)o+='<div class="ag-rr"><span>Profesional</span><span>'+esc(AG.selProf.nombre_publico)+'</span></div>';if(AG.selFecha)o+='<div class="ag-rr"><span>Fecha</span><span>'+esc(AG.selFecha)+'</span></div>';if(AG.selHora)o+='<div class="ag-rr"><span>Hora</span><span>'+esc(AG.selHora)+'</span></div>';if(AG.selSede)o+='<div class="ag-rr"><span>Sede</span><span>'+esc(AG.selSede)+'</span></div>';document.getElementById('ag-resumen-body').innerHTML=o||'<span style="font-size:9px;">Selecciona profesional, fecha y hora</span>';document.getElementById('btn-confirmar').disabled=!ok;}
-function renderDatos(){if(!AG.paciente)return;var p=AG.paciente;document.getElementById('ag-datos-prellenados').style.display='block';document.getElementById('ag-datos-prellenados').textContent='✅ '+(p.Nombres||'')+' '+(p.Apellidos||'');document.getElementById('ag-nombre').value=p.Nombres||'';document.getElementById('ag-apellido').value=p.Apellidos||'';document.getElementById('ag-telefono').value=AG.link.paciente_numero||p.numero_limpio||'';document.getElementById('ag-dni').value=p['N° documento']||'';document.getElementById('ag-email').value=p.Email||'';}
-function agConfirmar(){var n=document.getElementById('ag-nombre').value.trim(),a=document.getElementById('ag-apellido').value.trim(),t=document.getElementById('ag-telefono').value.trim();if(!n||!a||!t){alert('Completa nombre, apellido y teléfono');return;}AG.selSvc=document.getElementById('ag-servicio').value||AG.selSvc;var b=document.getElementById('btn-confirmar');b.textContent='⏳ Agendando...';b.disabled=true;rpc('aos_agendar_publica',{p_token:AG.token||'__permanent__',p_nombre:n,p_apellido:a,p_telefono:t,p_dni:document.getElementById('ag-dni').value.trim(),p_email:document.getElementById('ag-email').value.trim(),p_profesional_id:AG.selProf?AG.selProf.id:null,p_tratamiento:AG.selSvc||'CONSULTA',p_tipo_cita:document.getElementById('ag-tipo-cita').value,p_fecha:AG.selFecha,p_hora:AG.selHora,p_sede:AG.selSede,p_nota:document.getElementById('ag-nota').value.trim()}).then(function(r){if(r&&r.ok)showOk(n,a);else{alert(r&&r.error||'Error');b.textContent='✅ Confirmar cita';b.disabled=false;}}).catch(function(){alert('Error de conexión');b.textContent='✅ Confirmar cita';b.disabled=false;});}
-var _adt=null;function autoDetectPaciente(v){clearTimeout(_adt);var n=v.replace(/\D/g,'');if(n.length<7){document.getElementById('ag-pac-detected').style.display='none';return;}_adt=setTimeout(function(){rpc('aos_buscar_por_numero',{p_numero:n}).then(function(r){if(r&&r[0]){var p=r[0];document.getElementById('ag-nombre').value=p.nombre||'';document.getElementById('ag-apellido').value=p.apellido||'';document.getElementById('ag-dni').value=p.documento||'';document.getElementById('ag-email').value=p.email||'';document.getElementById('ag-pac-detected').style.display='block';document.getElementById('ag-pac-detected').textContent='✅ '+p.nombre+' '+p.apellido;}else{document.getElementById('ag-pac-detected').style.display='none';}}).catch(function(){});},500);}
-function showOk(n,a){var h='<div class="ag-success-ov"><div class="ag-success-c"><div style="font-size:48px;margin-bottom:10px;">🎉</div><h2 style="font-family:Exo 2;font-size:20px;color:var(--green);">¡Cita agendada!</h2><p style="font-size:12px;color:var(--muted);margin-top:4px;">Recibirás un correo de confirmación.</p><div class="ag-resumen" style="margin-top:14px;text-align:left;"><div class="ag-rr"><span>Paciente</span><span>'+esc(n)+' '+esc(a)+'</span></div><div class="ag-rr"><span>Profesional</span><span>'+esc(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div><div class="ag-rr"><span>Servicio</span><span>'+esc(AG.selSvc||'Consulta')+'</span></div><div class="ag-rr"><span>Fecha</span><span>'+esc(AG.selFecha)+'</span></div><div class="ag-rr"><span>Hora</span><span>'+esc(AG.selHora)+'</span></div><div class="ag-rr"><span>Sede</span><span>'+esc(AG.selSede)+'</span></div></div><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, acabo de agendar mi cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:14px">💬 Escríbenos</a></div></div>';var d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d.firstElementChild);var e=document.getElementById('ag-email').value.trim();if(e)fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:e,template:'confirmacion_cita',nombre:n+' '+a,tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha})}).catch(function(){});}
+
+(function(){var p=new URLSearchParams(window.location.search);AG.token=p.get('t')||p.get('token')||'';var h=new Date();AG.calYear=h.getFullYear();AG.calMonth=h.getMonth();if(!AG.token){AG.link={tipo:'general'};lP();return;}q('aos_links_agenda','token=eq.'+AG.token+'&select=*').then(function(r){if(!r||!r.length||new Date(r[0].expira_at)<new Date()){document.getElementById('ag-ld').style.display='none';document.getElementById('ag-exp').style.display='flex';return;}AG.link=r[0];if(AG.link.paciente_numero){rpc('aos_buscar_por_numero',{p_numero:AG.link.paciente_numero}).then(function(res){if(res&&res[0]){var r=res[0];AG.paciente={numero_limpio:r.numero||AG.link.paciente_numero,Nombres:r.nombre||'',Apellidos:r.apellido||'',Email:r.email||'','N° documento':r.documento||''};}lP();}).catch(function(){lP();});}else{lP();}}).catch(function(){document.getElementById('ag-ld').style.display='none';document.getElementById('ag-exp').style.display='flex';});})();
+
+function lP(){q('aos_perfiles_profesional','visible=eq.true&order=orden&select=*').then(function(p){AG.profs=p||[];document.getElementById('ag-ld').style.display='none';document.getElementById('ag-app').style.display='grid';rP();rC();rD();});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i||!i.length)return;var s=document.getElementById('fsv');if(s)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');}).catch(function(){});}
+
+function agT(t,b){AG.tipo=t;AG.selProf=null;document.querySelectorAll('.ag-tab').forEach(function(x){x.classList.remove('act')});b.classList.add('act');rP();uR();}
+
+function rP(){var l=AG.profs.filter(function(p){return p.tipo===AG.tipo});document.getElementById('pl').innerHTML=l.map(function(p){
+  var cmp=p.cmp?'CMP '+E(p.cmp):'';
+  return '<div class="pc'+(AG.selProf&&AG.selProf.id===p.id?' sel':'')+'" onclick="sP(\''+E(p.id)+'\')">'+(p.foto_url?'<img class="pc-img" src="'+E(p.foto_url)+'">':'<div class="pc-img" style="background:#EBF2FF;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--blue)">'+E((p.nombre_publico||'?')[0])+'</div>')+'<div style="flex:1;min-width:0"><div class="pc-n">'+E(p.nombre_publico)+'</div><div class="pc-s">'+E(p.especialidad)+'</div>'+(cmp?'<div class="pc-cmp">'+cmp+'</div>':'')+'<div class="pc-s">📍 '+E(p.sede==='TODAS'?'Ambas sedes':p.sede)+'</div></div><div class="pc-b">'+((p.servicios||[]).length)+'</div></div>';}).join('')||'<div style="text-align:center;padding:16px;color:var(--muted);font-size:9px">Sin profesionales</div>';}
+
+function sP(id){AG.selProf=AG.profs.find(function(p){return p.id===id});rP();var p=AG.selProf;if(p){var cmp=p.cmp?' · CMP '+E(p.cmp):'';document.getElementById('psc').innerHTML='<div style="display:flex;align-items:center;gap:8px;">'+(p.foto_url?'<img src="'+E(p.foto_url)+'" style="width:24px;height:32px;object-fit:cover;border-radius:5px;">':'')+'<span style="font-weight:800;color:var(--blue);font-size:10px;">'+E(p.nombre_publico)+'</span><span style="font-size:8px;color:var(--muted);">'+E(p.especialidad)+cmp+'</span></div>';}rS();lT();uR();}
+
+function rS(){var s=document.getElementById('fsv');if(!s||!AG.selProf)return;if(!AG.selProf.servicios||!AG.selProf.servicios.length){rpc('aos_catalogo_tratamientos',{}).then(function(i){if(i)s.innerHTML='<option value="">-- Seleccionar --</option>'+i.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});return;}var m={};AG.selProf.servicios.forEach(function(x){m[x.toUpperCase()]=1;});rpc('aos_catalogo_tratamientos',{}).then(function(i){if(!i)return;var f=i.filter(function(x){return m[x.t.toUpperCase()];});if(!f.length)f=i;s.innerHTML='<option value="">-- Seleccionar --</option>'+f.map(function(x){return '<option value="'+x.t+'">'+x.t+'</option>';}).join('');});}
+
+function lT(){if(!AG.selProf)return;rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:AG.calYear,p_mes:AG.calMonth+1}).then(function(d){AG.diasTurno=d||[];rC();});}
+
+function rC(){var y=AG.calYear,m=AG.calMonth,ms=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];document.getElementById('ct').textContent=ms[m]+' '+y;var f=new Date(y,m,1).getDay(),ds=new Date(y,m+1,0).getDate(),h=new Date(),hs=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'),tm={};(AG.diasTurno||[]).forEach(function(d){tm[d.dia||d]=1;});var o='';['Do','Lu','Ma','Mi','Ju','Vi','Sá'].forEach(function(d){o+='<div class="ch">'+d+'</div>';});for(var i=0;i<f;i++)o+='<div class="cd emp"></div>';for(var d=1;d<=ds;d++){var s=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),pt=s<hs,it=s===hs,ht=tm[d],is=s===AG.selFecha,c='cd';if(pt)c+=' dis';if(it)c+=' tod';if(ht&&!pt)c+=' ht';if(is)c+=' sel';o+='<div class="'+c+'"'+(pt?'':' onclick="sF('+y+','+(m+1)+','+d+')"')+'>'+d+'</div>';}document.getElementById('cg').innerHTML=o;}
+
+function cN(d){AG.calMonth+=d;if(AG.calMonth>11){AG.calMonth=0;AG.calYear++}if(AG.calMonth<0){AG.calMonth=11;AG.calYear--}lT();}
+
+function sF(y,m,d){AG.selFecha=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');rC();document.getElementById('sc').style.display='block';document.getElementById('sf').textContent=AG.selFecha;document.getElementById('sg').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:8px;"><div class="asp" style="margin:0 auto;border-color:var(--border);border-top-color:var(--blue);"></div></div>';rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf?AG.selProf.id:null,p_fecha:AG.selFecha,p_sede:AG.selProf&&AG.selProf.sede!=='TODAS'?AG.selProf.sede:null}).then(function(r){if(!r||!r.ok||!r.slots||!r.slots.length){document.getElementById('sg').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:8px;font-size:9px;color:var(--muted)">Sin horarios disponibles</div>';return;}document.getElementById('sg').innerHTML=r.slots.map(function(s){return '<div class="sl" onclick="sS(this,\''+s.hora+'\',\''+s.sede+'\')"><div style="font-weight:700;">'+s.hora+'</div><div style="font-size:6px;color:var(--muted);">'+s.sede+'</div><div style="font-size:6px;color:var(--green);">'+s.libres+' libres</div></div>';}).join('');});uR();}
+
+function sS(e,h,s){AG.selHora=h;AG.selSede=s;document.querySelectorAll('.sl').forEach(function(x){x.classList.remove('sel')});e.classList.add('sel');uR();}
+
+function uR(){var o='',ok=AG.selProf&&AG.selFecha&&AG.selHora;if(AG.selProf)o+='<div class="rr"><span>Profesional</span><span>'+E(AG.selProf.nombre_publico)+'</span></div>';if(AG.selFecha)o+='<div class="rr"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div>';if(AG.selHora)o+='<div class="rr"><span>Hora</span><span>'+E(AG.selHora)+'</span></div>';if(AG.selSede)o+='<div class="rr"><span>Sede</span><span>'+E(AG.selSede)+'</span></div>';document.getElementById('rb').innerHTML=o||'Selecciona profesional, fecha y hora';document.getElementById('bc').disabled=!ok;}
+
+function rD(){if(!AG.paciente)return;var p=AG.paciente;document.getElementById('dpre').style.display='block';document.getElementById('dpre').textContent='✅ '+(p.Nombres||'')+' '+(p.Apellidos||'');document.getElementById('fn').value=p.Nombres||'';document.getElementById('fa').value=p.Apellidos||'';document.getElementById('ft').value=AG.link.paciente_numero||p.numero_limpio||'';document.getElementById('fd').value=p['N° documento']||'';document.getElementById('fe').value=p.Email||'';}
+
+function agC(){var n=document.getElementById('fn').value.trim(),a=document.getElementById('fa').value.trim(),t=document.getElementById('ft').value.trim();if(!n||!a||!t){alert('Completa nombre, apellido y teléfono');return;}AG.selSvc=document.getElementById('fsv').value||AG.selSvc;var b=document.getElementById('bc');b.textContent='⏳ Agendando...';b.disabled=true;rpc('aos_agendar_publica',{p_token:AG.token||'__permanent__',p_nombre:n,p_apellido:a,p_telefono:t,p_dni:document.getElementById('fd').value.trim(),p_email:document.getElementById('fe').value.trim(),p_profesional_id:AG.selProf?AG.selProf.id:null,p_tratamiento:AG.selSvc||'CONSULTA',p_tipo_cita:document.getElementById('ftc').value,p_fecha:AG.selFecha,p_hora:AG.selHora,p_sede:AG.selSede,p_nota:document.getElementById('fno').value.trim()}).then(function(r){if(r&&r.ok)sOk(n,a);else{alert(r&&r.error||'Error');b.textContent='✅ Confirmar cita';b.disabled=false;}}).catch(function(){alert('Error');b.textContent='✅ Confirmar cita';b.disabled=false;});}
+
+var _adt=null;function aDP(v){clearTimeout(_adt);var n=v.replace(/\D/g,'');if(n.length<7){document.getElementById('pdet').style.display='none';return;}_adt=setTimeout(function(){rpc('aos_buscar_por_numero',{p_numero:n}).then(function(r){if(r&&r[0]){var p=r[0];document.getElementById('fn').value=p.nombre||'';document.getElementById('fa').value=p.apellido||'';document.getElementById('fd').value=p.documento||'';document.getElementById('fe').value=p.email||'';document.getElementById('pdet').style.display='block';document.getElementById('pdet').textContent='✅ '+p.nombre+' '+p.apellido;}else{document.getElementById('pdet').style.display='none';}}).catch(function(){});},500);}
+
+function sOk(n,a){var h='<div class="sov"><div class="sc"><div style="font-size:48px;margin-bottom:8px;">🎉</div><h2 style="font-family:Exo 2;font-size:20px;color:var(--green);">¡Cita agendada!</h2><p style="font-size:11px;color:var(--muted);margin-top:4px;">Recibirás un correo de confirmación.</p><div class="rs" style="margin-top:12px;text-align:left;"><div class="rr"><span>Paciente</span><span>'+E(n)+' '+E(a)+'</span></div><div class="rr"><span>Profesional</span><span>'+E(AG.selProf?AG.selProf.nombre_publico:'')+'</span></div><div class="rr"><span>Servicio</span><span>'+E(AG.selSvc||'Consulta')+'</span></div><div class="rr"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div><div class="rr"><span>Hora</span><span>'+E(AG.selHora)+'</span></div><div class="rr"><span>Sede</span><span>'+E(AG.selSede)+'</span></div></div><a href="https://api.whatsapp.com/send?phone=51922028889&text=Hola, acabo de agendar mi cita" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:11px;margin-top:12px">💬 Escríbenos</a></div></div>';var d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d.firstElementChild);var e=document.getElementById('fe').value.trim();if(e)fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:e,template:'confirmacion_cita',nombre:n+' '+a,tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha})}).catch(function(){});}
 </script>
 </body>
 </html>
