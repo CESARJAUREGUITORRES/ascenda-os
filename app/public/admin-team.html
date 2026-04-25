@@ -184,7 +184,7 @@ function editUser(idx){
   html+='<div class="sec-t"'+(isDoctora?'':'style="margin-top:0;"')+'>💉 Servicios y Tratamientos</div>';
   html+='<div style="font-size:9px;color:#6B7BA8;margin-bottom:8px;">Selecciona los tratamientos que realiza este profesional. Se vincula con agenda, auto-agendamiento y panel de atención.</div>';
   html+='<div id="eu-servicios-grid">Cargando tratamientos...</div>';
-  html+='<div style="margin-top:8px;display:flex;gap:6px;"><button class="mbtn mbtn-p" onclick="saveServicios(\''+u.id+'\')">💾 Guardar Servicios</button><button class="mbtn mbtn-c" onclick="selAllSvc(true)">✅ Todos</button><button class="mbtn mbtn-c" onclick="selAllSvc(false)">❌ Ninguno</button></div>';
+  html+='<div style="margin-top:8px;display:flex;gap:6px;"><button class="mbtn mbtn-c" onclick="selAllSvc(true)">✅ Todos</button><button class="mbtn mbtn-c" onclick="selAllSvc(false)">❌ Ninguno</button></div>';
   html+='</div></div></div>';
   // Footer
   html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn mbtn-r" style="margin-left:auto;">Desactivar</button>':'')+'</div>';
@@ -246,14 +246,26 @@ function saveU(id){
   var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});
   var sedes=[];document.querySelectorAll('.sede-chk:checked').forEach(function(c){sedes.push(c.value);});
   var sedeStr=el('eu-acceso')&&el('eu-acceso').value==='libre'?'TODAS':sedes.join(', ');
+  // Recoger servicios si la pestaña existe
+  var svc=[];document.querySelectorAll('.eu-svc:checked').forEach(function(cb){svc.push(cb.value);});
+  var cmpEl=el('eu-cmp');
   var d={nombre:(el('eu-nombre').value||'').toUpperCase(),apellidos:(el('eu-apellidos').value||'').toUpperCase(),email:el('eu-email').value,dni:el('eu-dni').value,telefono_personal:el('eu-tel').value,contacto_emergencia:el('eu-emg').value,fecha_nacimiento:el('eu-nac').value||null,lugar_nacimiento:el('eu-lnac').value,rh:el('eu-rh').value,departamento:el('eu-dep').value,provincia:el('eu-prov').value,distrito:el('eu-dist').value,direccion:el('eu-dir').value,cargo:el('eu-cargo').value,area:el('eu-area').value,sede:sedeStr||el('eu-sede').value,fecha_ingreso:el('eu-fing').value||null,tipo_contrato:el('eu-ctr').value,nivel_jerarquia:Number(el('eu-niv')?el('eu-niv').value:4)||4,acceso_geo:el('eu-acceso')?el('eu-acceso').value:'libre',sueldo:Number(el('eu-sue').value)||0,bono_metas:Number(el('eu-bon').value)||0,avatar_url:el('eu-avatar').value,paneles_acceso:ps,updated_at:new Date().toISOString()};
+  if(svc.length)d.servicios=svc;
+  if(cmpEl)d.cmp=cmpEl.value.trim();
   fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(){
     // Sincronizar nombre, cargo y sede con aos_rrhh
     var codigo = el('eu-codigo') ? el('eu-codigo').value : '';
     if(codigo){
       fetch(SB+'/rest/v1/aos_rrhh?codigo_asesor=eq.'+encodeURIComponent(codigo),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:d.nombre,puesto:d.cargo,sede:d.sede})}).catch(function(){});
     }
-    showToast(d.nombre+' guardado — '+ps.length+' paneles');el('m-user').classList.remove('open');loadTeam();
+    // Sincronizar servicios con perfiles_profesional
+    if(svc.length){
+      var nm=d.nombre.split(' ');var search=nm.length>1?nm[1]:nm[0];
+      fetch(SB+'/rest/v1/aos_perfiles_profesional?nombre_publico=ilike.*'+encodeURIComponent(search)+'*',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(profs){
+        if(profs&&profs[0]){fetch(SB+'/rest/v1/aos_perfiles_profesional?id=eq.'+profs[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({servicios:svc})});}
+      }).catch(function(){});
+    }
+    showToast(d.nombre+' actualizado','Datos, permisos'+(svc.length?' y '+svc.length+' servicios':'')+' guardados');el('m-user').classList.remove('open');loadTeam();
   });
 }
 function loadEst(uid){q('aos_estudios','select=*&usuario_id=eq.'+uid+'&order=created_at.desc',function(r){var c=el('eu-est');if(!c)return;c.innerHTML=(r&&r.length)?r.map(function(e){return '<div style="padding:3px 0;border-bottom:1px solid #EEF0F8;"><b>'+h(e.titulo)+'</b> <span style="color:#6B7BA8;">'+h(e.grado)+' · '+h(e.institucion)+'</span></div>';}).join(''):'Sin estudios';});}
