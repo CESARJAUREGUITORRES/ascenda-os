@@ -220,9 +220,11 @@ http.createServer(function(req, res) {
         if (tipo === 'confirmacion_cita') {
           subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
           html = buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono})
+          html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
           html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'')
+          html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'cotizacion') {
           subject = '📋 Tu cotización — ' + BRAND.nombre_empresa
           html = buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', '', d.sede||'', d.fecha||'', '')
@@ -232,6 +234,7 @@ http.createServer(function(req, res) {
         } else if (tipo === 'recordatorio') {
           subject = d.es_manana ? 'Tu cita de mañana — ' + (d.hora||'') : '¡Tu cita es hoy! ' + (d.hora||'')
           html = buildEmailRecordatorio(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'', !!d.es_manana)
+          html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'bienvenida') {
           subject = '¡Bienvenida a ' + BRAND.nombre_empresa + '! ✨'
           html = buildEmailBienvenida(d.nombre||'Paciente')
@@ -253,6 +256,7 @@ http.createServer(function(req, res) {
         } else if (tipo === 'confirmacion_pago') {
           subject = '✅ Pago recibido — S/' + parseFloat(d.monto||0).toFixed(2) + ' — ' + BRAND.nombre_empresa
           html = buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'')
+          html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
         }
@@ -534,6 +538,35 @@ function emailInfoBox(label, value) {
 }
 function emailCard(content) {
   return '<div style="background:' + BRAND.color_primario + ';border-radius:10px;padding:18px 20px;border-left:4px solid ' + BRAND.color_secundario + ';margin-bottom:20px">' + content + '</div>'
+}
+
+// ═══ FIRMA MÉDICA CON CMP — se inyecta en recibos/confirmaciones cuando hay doctora ═══
+var _cmpCache = {} // nombre → {cmp, nombre_completo}
+function loadCmpCache() {
+  sbFetch('/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.médica&cmp=neq.').then(function(rows) {
+    if (!rows) return
+    rows.forEach(function(r) { if (r.cmp) _cmpCache[(r.nombre||'').toUpperCase()] = { cmp: r.cmp, full: (r.nombre||'') + ' ' + (r.apellidos||'') }; })
+    console.log('[CMP] Cache cargado:', Object.keys(_cmpCache).length, 'doctoras')
+  }).catch(function() {})
+}
+setTimeout(loadCmpCache, 5000)
+setInterval(loadCmpCache, 1800000)
+
+function emailFirmaMedica(doctoraNombre) {
+  if (!doctoraNombre) return ''
+  var key = doctoraNombre.toUpperCase().trim()
+  var doc = _cmpCache[key]
+  if (!doc && key.indexOf('DRA') >= 0) {
+    // Intentar buscar sin "DRA "
+    var sinDra = key.replace(/^DRA\.?\s*/i, '').trim()
+    Object.keys(_cmpCache).forEach(function(k) { if (k.indexOf(sinDra) >= 0) doc = _cmpCache[k]; })
+  }
+  if (!doc || !doc.cmp) return ''
+  return '<div style="margin-top:20px;padding:14px;background:#F0F4FC;border-radius:10px;border:1px solid #DBEAFE;text-align:center">' +
+    '<div style="font-size:11px;color:#6B7BA8;margin-bottom:4px">Profesional responsable</div>' +
+    '<div style="font-size:14px;font-weight:800;color:#0A4FBF">' + doc.full + '</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#0A4FBF;margin-top:2px">CMP ' + doc.cmp + '</div>' +
+    '</div>'
 }
 
 // Enviar email vía Resend (reutiliza la misma clave y from)
