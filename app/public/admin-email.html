@@ -14,6 +14,17 @@
 .em-preview-body iframe{width:100%;border:none;min-height:500px;}
 .tb-btn{width:30px;height:28px;border:1px solid #DDE4F5;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
 .tb-btn:hover{background:#EBF2FF;border-color:#0A4FBF;}
+.tb-sep{width:1px;background:#DDE4F5;margin:0 3px;}
+.edt-lbl{font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;}
+.edt-content{flex:1;min-height:200px;padding:12px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:13px;line-height:1.6;outline:none;overflow-y:auto;font-family:DM Sans,sans-serif;background:#fff;}
+.edt-content:focus{border-color:#0A4FBF;}
+.edt-raw{display:none;flex:1;min-height:200px;padding:12px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:11px;font-family:monospace;resize:none;}
+.edt-toolbar{display:flex;gap:2px;flex-wrap:wrap;padding:6px;background:#F8FAFF;border-radius:8px;border:1px solid #EEF0F8;}
+.tpl-cat-hdr{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:10px;cursor:pointer;color:#0D1B3E;border-radius:6px;user-select:none;}
+.tpl-cat-hdr:hover{background:#EBF2FF;}
+.tpl-item{position:relative;padding:8px 10px;margin:1px 0;border-radius:8px;cursor:pointer;border:1.5px solid transparent;transition:all .12s;}
+.tpl-item:hover{background:#EBF2FF;border-color:#DDE4F5;}
+.tpl-sel{background:#EBF2FF;border-color:#0A4FBF !important;}
 .crd{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:10px;}
 .vt{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
@@ -149,20 +160,36 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;" id="em-flujos-list"></div>
   </div>
 
-  <!-- PLANTILLAS -->
+  <!-- PLANTILLAS — Layout 2 columnas (lista + editor) -->
   <div id="em-plantillas" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div style="font-size:11px;color:#6B7BA8;" id="em-tpl-count"></div>
-      <button class="mbtn mbtn-p" onclick="openNewPlantilla()">+ Nueva Plantilla</button>
+    <!-- Sub-tabs: Email / WhatsApp -->
+    <div style="display:flex;gap:0;margin-bottom:10px;">
+      <button class="em-tab act" id="tpl-tab-email" onclick="tplTab('email')">📧 Email</button>
+      <button class="em-tab" id="tpl-tab-wa" onclick="tplTab('wa')">💬 WhatsApp</button>
+      <div style="margin-left:auto;font-size:10px;color:#6B7BA8;" id="em-tpl-count"></div>
     </div>
-    <!-- Filtros por categoría -->
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;" id="tpl-filtros"></div>
-    <!-- Plantillas Email -->
-    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📧 Plantillas Email</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px;" id="em-tpl-list"></div>
-    <!-- Plantillas WhatsApp -->
-    <div style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">💬 Plantillas WhatsApp</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="em-wa-list"></div>
+    <div style="display:grid;grid-template-columns:320px 1fr;gap:0;height:calc(100vh - 180px);min-height:500px;border:1px solid #EEF0F8;border-radius:14px;overflow:hidden;">
+      <!-- LEFT: Lista de plantillas -->
+      <div style="background:#F8FAFF;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:10px;border-bottom:1px solid #EEF0F8;">
+          <input class="mi" type="text" id="tpl-search" placeholder="🔍 Buscar plantilla..." style="font-size:11px;padding:8px 10px;" oninput="filterTplList()">
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:6px;" id="tpl-sidebar-list">
+          <div style="text-align:center;padding:30px;color:#9AAAC8;font-size:11px;">Cargando...</div>
+        </div>
+      </div>
+      <!-- RIGHT: Editor -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;background:#fff;">
+        <div id="tpl-editor-area" style="flex:1;overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;color:#9AAAC8;padding:40px;">
+            <div style="font-size:40px;margin-bottom:8px;">📧</div>
+            <div style="font-size:13px;font-weight:700;">Selecciona una plantilla</div>
+            <div style="font-size:10px;margin-top:4px;">Haz click en cualquier plantilla de la lista para editarla</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- ENVIADOS -->
@@ -485,142 +512,89 @@ function toggleFlujo(id,activo){
   });
 }
 
+var _tplMode='email';var _allEmailTpls=[];var _allWaTpls=[];var _selTplId='';
+function tplTab(mode){
+  _tplMode=mode;_selTplId='';
+  document.getElementById('tpl-tab-email').classList.toggle('act',mode==='email');
+  document.getElementById('tpl-tab-wa').classList.toggle('act',mode==='wa');
+  renderTplSidebar();
+  el('tpl-editor-area').innerHTML='<div style="text-align:center;color:#9AAAC8;padding:40px;"><div style="font-size:40px;margin-bottom:8px;">'+(mode==='email'?'📧':'💬')+'</div><div style="font-size:13px;font-weight:700;">Selecciona una plantilla</div></div>';
+}
 function loadPlantillas(){
-  // Cargar plantillas email
   q('aos_email_plantillas','select=*&order=tipo,nombre',function(tpls){
-    if(!tpls) tpls=[];
-    // Cargar también plantillas WhatsApp
-    q('aos_plantillas_mensajes','select=*&order=orden',function(waTpls){
-      if(!waTpls) waTpls=[];
-      var total = tpls.length + (waTpls||[]).length;
-      el('em-tpl-count').textContent=total+' plantillas ('+tpls.length+' email + '+(waTpls||[]).length+' WhatsApp)';
-      // Filtros por categoría
-      var cats={};
-      tpls.forEach(function(t){cats[t.tipo]=(cats[t.tipo]||0)+1;});
-      var filtHtml='<span class="tag tag-b" style="cursor:pointer;font-weight:700;" onclick="filtrarTpl(\'\')">Todas ('+tpls.length+')</span>';
-      var catLabels={recordatorio:'📅 Recordatorio',recordatorio_hoy:'☀️ Rec. Hoy',confirmacion_cita:'📅 Conf. Cita',bienvenida:'🌟 Bienvenida',comprobante:'🧾 Comprobante',recibo_venta:'🧾 Recibo',catalogo:'📦 Catálogo',reactivacion:'💚 Reactivación',agradecimiento:'🌟 Agradecimiento',agradecimiento_visita:'🌟 Post-Visita',saldo_pendiente:'💳 Saldos',cumpleanos:'🎂 Cumpleaños',no_asistencia:'😔 No Asistió',confirmacion_pago:'✅ Conf. Pago',seguimiento:'💆 Seguimiento',reprogramacion:'🔄 Reprog.'};
-      Object.keys(cats).forEach(function(k){
-        filtHtml+='<span class="tag tag-b" style="cursor:pointer;" onclick="filtrarTpl(\''+k+'\')">'+( catLabels[k]||k)+' ('+cats[k]+')</span>';
-      });
-      el('tpl-filtros').innerHTML=filtHtml;
-      window._allTpls=tpls;
-      renderTplGrid(tpls);
-      // WhatsApp
-      if(!waTpls.length){el('em-wa-list').innerHTML='<div style="color:#9AAAC8;font-size:11px;">Sin plantillas WhatsApp</div>';return;}
-      var canalIco={whatsapp:'💬',email:'📧',sms:'📱'};
-      el('em-wa-list').innerHTML=waTpls.map(function(t){
-        var sedeTag=t.sede?'<span class="tag tag-b" style="font-size:7px;">'+t.sede+'</span>':'<span class="tag tag-g" style="font-size:7px;">Todas</span>';
-        return '<div class="tpl-card" onclick="verPlantillaWA(\''+t.id+'\')" style="cursor:pointer;"><div class="tpl-hdr" style="background:#F0FDFA;"><span style="font-size:18px;">'+(canalIco[t.canal]||'💬')+'</span>'+h(t.nombre)+sedeTag+'<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="margin-left:auto;font-size:7px;">'+(t.activo?'ON':'OFF')+'</span></div><div class="tpl-body"><div style="font-size:9px;color:#6B7BA8;">Tipo: '+h(t.tipo)+'</div><div style="font-size:9px;color:#475569;margin-top:4px;white-space:pre-wrap;max-height:50px;overflow:hidden;">'+h((t.cuerpo||'').substring(0,120))+'...</div>'+(t.variables_disponibles&&t.variables_disponibles.length?'<div style="margin-top:4px;">'+ t.variables_disponibles.map(function(v){return '<span style="background:#F0FDFA;padding:1px 5px;border-radius:3px;font-size:7px;margin-right:2px;">{{'+v+'}}</span>';}).join('')+'</div>':'')+'</div></div>';
-      }).join('');
+    _allEmailTpls=tpls||[];
+    q('aos_plantillas_mensajes','select=*&order=tipo,nombre',function(wa){
+      _allWaTpls=wa||[];
+      el('em-tpl-count').textContent=(_allEmailTpls.length+_allWaTpls.length)+' plantillas';
+      renderTplSidebar();
     });
   });
 }
-function filtrarTpl(tipo){
-  if(!tipo){renderTplGrid(window._allTpls||[]);return;}
-  renderTplGrid((window._allTpls||[]).filter(function(t){return t.tipo===tipo;}));
-}
-function renderTplGrid(tpls){
-  var tipoIco={recordatorio:'📅',recordatorio_hoy:'☀️',catalogo:'📦',comprobante:'🧾',recibo_venta:'🧾',reactivacion:'💚',bienvenida:'🌟',agradecimiento:'🌟',agradecimiento_visita:'🌟',saldo_pendiente:'💳',cumpleanos:'🎂',no_asistencia:'😔',confirmacion_cita:'📅',confirmacion_pago:'✅',seguimiento:'💆',reprogramacion:'🔄'};
-  if(!tpls.length){el('em-tpl-list').innerHTML='<div style="color:#9AAAC8;font-size:11px;">Sin plantillas en esta categoría</div>';return;}
-  var html='<table class="vt" style="width:100%;"><thead><tr><th style="width:30px;"></th><th>Nombre</th><th>Asunto</th><th>Variables</th><th>Estado</th></tr></thead><tbody>';
-  html+=tpls.map(function(t){
-    return '<tr style="cursor:pointer;" onclick="verPlantilla(\''+t.id+'\')">' +
-      '<td style="font-size:18px;text-align:center;">'+(tipoIco[t.tipo]||'📧')+'</td>' +
-      '<td style="font-weight:700;font-size:11px;">'+h(t.nombre)+'<div style="font-size:8px;color:#6B7BA8;margin-top:1px;">'+h(t.tipo)+'</div></td>' +
-      '<td style="font-size:10px;color:#475569;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(t.asunto)+'</td>' +
-      '<td style="font-size:8px;">'+(t.variables||[]).slice(0,4).map(function(v){return '<span style="background:#EBF2FF;padding:1px 4px;border-radius:3px;margin-right:2px;">'+v+'</span>';}).join('')+(t.variables&&t.variables.length>4?'<span style="color:#6B7BA8;">+'+( t.variables.length-4)+'</span>':'')+'</td>' +
-      '<td><span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:8px;">'+(t.activo?'Activa':'Off')+'</span></td></tr>';
-  }).join('');
-  html+='</tbody></table>';
-  el('em-tpl-list').innerHTML=html;
-}
-function verPlantillaWA(id){
-  q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
-    if(!rows||!rows[0])return;var t=rows[0];
-    el('mt-title').textContent='💬 '+t.nombre;
-    var preview=t.cuerpo.replace(/\{\{(\w+)\}\}/g,'<span style="background:#F0FDFA;padding:1px 4px;border-radius:3px;color:#059669;font-weight:700;font-size:11px;">{{$1}}</span>');
-    el('mt-body').innerHTML='<div style="margin-bottom:12px;display:flex;gap:8px;"><span class="tag tag-g">'+h(t.canal)+'</span><span class="tag tag-b">'+h(t.tipo)+'</span>'+(t.sede?'<span class="tag tag-b">'+h(t.sede)+'</span>':'<span class="tag tag-g">Todas las sedes</span>')+'</div>'+(t.variables_disponibles&&t.variables_disponibles.length?'<div style="margin-bottom:12px;"><span style="font-size:10px;color:#6B7BA8;">Variables:</span><div style="margin-top:4px;">'+ t.variables_disponibles.map(function(v){return '<span class="tag tag-b" style="margin-right:4px;">{{'+v+'}}</span>';}).join('')+'</div></div>':'')+'<div style="border:1px solid #BBF7D0;border-radius:12px;overflow:hidden;"><div style="background:#F0FDFA;padding:8px 12px;font-size:9px;color:#059669;font-weight:700;">VISTA PREVIA WHATSAPP</div><div style="padding:16px;white-space:pre-wrap;font-size:12px;line-height:1.6;background:#E7F5EC;font-family:sans-serif;">'+preview+'</div></div>';
-    el('m-tpl').classList.add('open');
+function filterTplList(){renderTplSidebar();}
+function renderTplSidebar(){
+  var search=(el('tpl-search').value||'').toLowerCase();
+  var items=_tplMode==='email'?_allEmailTpls:_allWaTpls;
+  if(search)items=items.filter(function(t){return(t.nombre||'').toLowerCase().indexOf(search)>-1||(t.tipo||'').toLowerCase().indexOf(search)>-1||(t.asunto||t.cuerpo||'').toLowerCase().indexOf(search)>-1;});
+  var groups={};items.forEach(function(t){var g=t.tipo||'otro';if(!groups[g])groups[g]=[];groups[g].push(t);});
+  var tipoIco={recordatorio:'📅',recordatorio_hoy:'☀️',catalogo:'📦',comprobante:'🧾',recibo_venta:'🧾',reactivacion:'💚',bienvenida:'🌟',agradecimiento:'🌟',agradecimiento_visita:'🌟',saldo_pendiente:'💳',cumpleanos:'🎂',no_asistencia:'😔',confirmacion_cita:'📅',confirmacion_pago:'✅',seguimiento:'💆',reprogramacion:'🔄',cita_confirmada:'📅',estacionamiento:'🚗',recordatorio_manana:'⏰',compra_producto:'📦'};
+  var catNames={recordatorio:'Recordatorio',recordatorio_hoy:'Rec. Hoy',catalogo:'Catálogo',comprobante:'Comprobante',recibo_venta:'Recibo Venta',reactivacion:'Reactivación',bienvenida:'Bienvenida',agradecimiento:'Agradecimiento',agradecimiento_visita:'Post-Visita',saldo_pendiente:'Saldos',cumpleanos:'Cumpleaños',no_asistencia:'No Asistió',confirmacion_cita:'Conf. Cita',confirmacion_pago:'Conf. Pago',seguimiento:'Seguimiento',reprogramacion:'Reprogramación',cita_confirmada:'Conf. Cita',estacionamiento:'Estacionamiento',recordatorio_manana:'Rec. Mañana',compra_producto:'Envío'};
+  if(!items.length){el('tpl-sidebar-list').innerHTML='<div style="text-align:center;padding:30px;color:#9AAAC8;font-size:11px;">Sin resultados</div>';return;}
+  var html='';
+  Object.keys(groups).sort().forEach(function(g){
+    html+='<div style="margin-bottom:2px;"><div class="tpl-cat-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.tpl-arrow\').textContent=this.nextElementSibling.style.display===\'none\'?\'▸\':\'▾\'"><span class="tpl-arrow">▾</span> '+(tipoIco[g]||'📧')+' <b>'+(catNames[g]||g)+'</b> <span style="color:#9AAAC8;font-size:9px;margin-left:auto;">'+groups[g].length+'</span></div><div>';
+    groups[g].forEach(function(t){
+      var sel=t.id===_selTplId;
+      html+='<div class="tpl-item'+(sel?' tpl-sel':'')+'" onclick="openTplEditor(\''+t.id+'\')"><div style="font-weight:700;font-size:10px;">'+h(t.nombre)+'</div>';
+      if(_tplMode==='email'){html+='<div style="font-size:8px;color:#6B7BA8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(t.asunto||'')+'</div>';}
+      else{html+='<div style="font-size:8px;color:#6B7BA8;">'+h(t.sede||'Todas')+'</div>';}
+      html+='<span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:7px;position:absolute;top:6px;right:6px;">'+(t.activo?'ON':'OFF')+'</span></div>';
+    });
+    html+='</div></div>';
   });
+  el('tpl-sidebar-list').innerHTML=html;
 }
+function openTplEditor(id){
+  _selTplId=id;renderTplSidebar();
+  if(_tplMode==='email'){
+    q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
+      if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables||[]);
+      var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:100%;">';
+      html+='<div style="padding:14px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:10px;">';
+      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">'+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button></div>';
+      html+='<div><div class="edt-lbl">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()"></div>';
+      html+='<input type="hidden" id="tpl-nombre" value="'+h(t.nombre)+'">';
+      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
+      html+='<div class="edt-toolbar"><button class="tb-btn" onclick="execCmd(\'bold\')"><b>B</b></button><button class="tb-btn" onclick="execCmd(\'italic\')"><i>I</i></button><button class="tb-btn" onclick="execCmd(\'underline\')"><u>U</u></button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')">T+</button><button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')">T</button><button class="tb-btn" onclick="execCmd(\'foreColor\',(_BRAND.color_secundario||\'#B8860B\'))" style="color:'+(_BRAND.color_secundario||'#B8860B')+';">A</button><button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" style="color:#059669;">A</button><span class="tb-sep"></span><button class="tb-btn" onclick="execCmd(\'justifyCenter\')">☰</button><button class="tb-btn" onclick="insertLink()">🔗</button><button class="tb-btn" onclick="insertImg()">🖼</button><button class="tb-btn" onclick="insertBtn()">🔘</button><button class="tb-btn" onclick="toggleHtmlMode()" id="btn-html-mode">{ }</button></div>';
+      var body=t.html_body||'<p>Escribe aquí...</p>';
+      html+='<div id="tpl-editor" contenteditable="true" class="edt-content" oninput="updateTplPreview()">'+body+'</div>';
+      html+='<textarea id="tpl-html-raw" class="edt-raw" oninput="updateTplPreview()">'+h(body)+'</textarea>';
+      html+='</div><div style="padding:14px;overflow-y:auto;background:#E2E8F0;"><div class="edt-lbl">📱 VISTA PREVIA</div><div style="font-size:9px;color:#6B7BA8;margin-bottom:6px;">Asunto: <b id="tpl-prev-subj">'+h(t.asunto)+'</b></div><div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;"></div></div></div>';
+      el('tpl-editor-area').innerHTML=html;_htmlMode=false;setTimeout(updateTplPreview,150);
+    });
+  } else {
+    q('aos_plantillas_mensajes','select=*&id=eq.'+id,function(rows){
+      if(!rows||!rows[0])return;var t=rows[0];var vars=(t.variables_disponibles||[]);
+      var html='<div style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">';
+      html+='<div style="display:flex;align-items:center;gap:8px;"><div style="font-family:Exo 2;font-weight:800;font-size:14px;flex:1;">💬 '+h(t.nombre)+'</div><button class="mbtn mbtn-g" style="font-size:10px;" onclick="saveWaTpl(\''+t.id+'\')">💾 Guardar</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'">'+(t.activo?'ON':'OFF')+'</span></div>';
+      html+='<div style="display:flex;gap:8px;"><div style="flex:1;"><div class="edt-lbl">NOMBRE</div><input class="mi" id="wa-nombre" value="'+h(t.nombre)+'"></div><div style="width:120px;"><div class="edt-lbl">SEDE</div><select class="mi" id="wa-sede"><option value="">Todas</option><option value="SAN ISIDRO"'+(t.sede==='SAN ISIDRO'?' selected':'')+'>San Isidro</option><option value="PUEBLO LIBRE"'+(t.sede==='PUEBLO LIBRE'?' selected':'')+'>Pueblo Libre</option></select></div></div>';
+      html+='<div><div class="edt-lbl">VARIABLES <span style="font-weight:400;color:#9AAAC8;">(click para insertar)</span></div><div style="display:flex;flex-wrap:wrap;gap:3px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:8px;" onclick="insertWaVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
+      html+='<div><div class="edt-lbl">MENSAJE</div><textarea class="mi" id="wa-body" style="min-height:200px;white-space:pre-wrap;font-size:12px;line-height:1.6;resize:vertical;" oninput="updateWaPreview()">'+h(t.cuerpo||'')+'</textarea></div>';
+      html+='<div class="edt-lbl">📱 VISTA PREVIA WHATSAPP</div>';
+      html+='<div style="background:#E7F5EC;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #BBF7D0;max-width:400px;" id="wa-preview"></div>';
+      html+='</div>';
+      el('tpl-editor-area').innerHTML=html;updateWaPreview();
+    });
+  }
+}
+function insertWaVar(v){var ta=el('wa-body');if(!ta)return;var s=ta.selectionStart;var txt=ta.value;ta.value=txt.slice(0,s)+'{{'+v+'}}'+txt.slice(s);ta.focus();updateWaPreview();}
+function updateWaPreview(){var body=el('wa-body')?el('wa-body').value:'';el('wa-preview').innerHTML=body.replace(/\{\{(\w+)\}\}/g,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;">{{$1}}</span>');}
+function saveWaTpl(id){
+  var data={nombre:el('wa-nombre').value,cuerpo:el('wa-body').value,sede:el('wa-sede').value||null};
+  fetch(SB+'/rest/v1/aos_plantillas_mensajes?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(r){if(r.ok){showToast('Plantilla guardada',data.nombre);loadPlantillas();}else{showToast('Error','',true);}});
+}
+function filtrarTpl(){}
+function renderTplGrid(){}
 
-function verPlantilla(id){
-  q('aos_email_plantillas','select=*&id=eq.'+id,function(rows){
-    if(!rows||!rows[0])return;var t=rows[0];
-    el('mt-title').textContent='✏️ '+t.nombre;
-    el('mt-actions').innerHTML='<button class="mbtn mbtn-g" onclick="savePlantilla(\''+t.id+'\')">💾 Guardar</button><span class="tag '+(t.activo?'tag-g':'tag-r')+'" style="font-size:8px;">'+(t.activo?'Activa':'Inactiva')+'</span>';
-    var vars=(t.variables||[]);
-    var html='<div style="display:grid;grid-template-columns:1fr 1fr;height:calc(92vh - 80px);min-height:500px;">';
-    // LEFT: Editor
-    html+='<div style="padding:16px;overflow-y:auto;border-right:1px solid #EEF0F8;display:flex;flex-direction:column;gap:12px;">';
-    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">NOMBRE</div><input class="mi" id="tpl-nombre" value="'+h(t.nombre)+'" style="font-weight:700;"></div>';
-    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">ASUNTO</div><input class="mi" id="tpl-asunto" value="'+h(t.asunto)+'" oninput="updateTplPreview()"></div>';
-    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">TIPO</div><input class="mi" id="tpl-tipo" value="'+h(t.tipo)+'" readonly style="background:#F8FAFF;color:#6B7BA8;"></div>';
-    // Variables como chips insertables
-    html+='<div><div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:4px;">VARIABLES <span style="font-weight:400;">(click para insertar)</span></div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">'+vars.map(function(v){return '<span class="tag tag-b" style="cursor:pointer;font-size:9px;" onclick="insertVar(\''+v+'\')">{{'+v+'}}</span>';}).join('')+'</div></div>';
-    // Toolbar
-    html+='<div style="display:flex;gap:2px;flex-wrap:wrap;padding:6px;background:#F8FAFF;border-radius:8px;border:1px solid #EEF0F8;">';
-    html+='<button class="tb-btn" onclick="execCmd(\'bold\')" title="Negrita"><b>B</b></button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'italic\')" title="Cursiva"><i>I</i></button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'underline\')" title="Subrayado"><u>U</u></button>';
-    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
-    html+='<button class="tb-btn" onclick="execCmd(\'fontSize\',\'5\')" title="Título">T+</button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'fontSize\',\'3\')" title="Normal">T</button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#0A4FBF\')" title="Color azul" style="color:#0A4FBF;">A</button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#059669\')" title="Color verde" style="color:#059669;">A</button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'foreColor\',\'#DC2626\')" title="Color rojo" style="color:#DC2626;">A</button>';
-    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
-    html+='<button class="tb-btn" onclick="execCmd(\'justifyLeft\')" title="Izquierda">≡</button>';
-    html+='<button class="tb-btn" onclick="execCmd(\'justifyCenter\')" title="Centro">☰</button>';
-    html+='<button class="tb-btn" onclick="insertLink()" title="Enlace">🔗</button>';
-    html+='<button class="tb-btn" onclick="insertImg()" title="Imagen">🖼️</button>';
-    html+='<button class="tb-btn" onclick="insertBtn()" title="Botón CTA">🔘</button>';
-    html+='<span style="width:1px;background:#DDE4F5;margin:0 4px;"></span>';
-    html+='<button class="tb-btn" onclick="toggleHtmlMode()" title="Ver HTML" id="btn-html-mode">{ }</button>';
-    html+='</div>';
-    // Content editable area
-    var body=t.html_body||'<p>Escribe aquí el contenido de tu email...</p>';
-    html+='<div id="tpl-editor" contenteditable="true" style="flex:1;min-height:250px;padding:14px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:13px;line-height:1.6;outline:none;overflow-y:auto;font-family:DM Sans,sans-serif;background:#fff;" oninput="updateTplPreview()">'+body+'</div>';
-    html+='<textarea id="tpl-html-raw" style="display:none;flex:1;min-height:250px;padding:14px;border:1.5px solid #DDE4F5;border-radius:10px;font-size:11px;font-family:monospace;resize:none;" oninput="updateTplPreview()">'+h(body)+'</textarea>';
-    html+='</div>';
-    // RIGHT: Live Preview
-    html+='<div style="padding:16px;overflow-y:auto;background:#E2E8F0;">';
-    html+='<div style="font-size:10px;font-weight:700;color:#6B7BA8;margin-bottom:8px;">📱 VISTA PREVIA EN VIVO</div>';
-    html+='<div style="font-size:9px;color:#6B7BA8;margin-bottom:4px;">Asunto: <b id="tpl-prev-subj">'+h(t.asunto)+'</b></div>';
-    html+='<div id="tpl-preview" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;"></div>';
-    html+='</div>';
-    html+='</div>';
-    el('mt-body').innerHTML=html;
-    el('m-tpl').classList.add('open');
-    setTimeout(updateTplPreview,200);
-  });
-}
-var _htmlMode=false;
-function toggleHtmlMode(){
-  _htmlMode=!_htmlMode;
-  var ed=el('tpl-editor'),raw=el('tpl-html-raw'),btn=el('btn-html-mode');
-  if(_htmlMode){raw.value=ed.innerHTML;ed.style.display='none';raw.style.display='block';btn.style.background='#0A4FBF';btn.style.color='#fff';}
-  else{ed.innerHTML=raw.value;raw.style.display='none';ed.style.display='block';btn.style.background='';btn.style.color='';}
-}
-function execCmd(cmd,val){document.execCommand(cmd,false,val||null);el('tpl-editor').focus();updateTplPreview();}
-function insertVar(v){document.execCommand('insertHTML',false,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;">{{'+v+'}}</span>&nbsp;');updateTplPreview();}
-function insertLink(){var url=prompt('URL del enlace:','https://');if(!url)return;var txt=prompt('Texto del enlace:','Click aquí');document.execCommand('insertHTML',false,'<a href="'+url+'" style="color:#0A4FBF;font-weight:700;">'+h(txt||url)+'</a>');updateTplPreview();}
-function insertImg(){var url=prompt('URL de la imagen:','https://');if(!url)return;document.execCommand('insertHTML',false,'<img src="'+url+'" style="max-width:100%;border-radius:8px;margin:8px 0;" />');updateTplPreview();}
-function insertBtn(){var txt=prompt('Texto del botón:','Agendar cita');var url=prompt('URL del botón:','https://wa.me/51960618468');if(!txt||!url)return;document.execCommand('insertHTML',false,'<div style="text-align:center;margin:12px 0;"><a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">'+h(txt)+'</a></div>');updateTplPreview();}
-function updateTplPreview(){
-  var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
-  var subj=el('tpl-asunto').value;
-  el('tpl-prev-subj').textContent=subj;
-  // Wrap in email shell with branding colors
-  var hdr=_BRAND.color_header||'#4a3728',htxt=_BRAND.color_header_texto||'#fff',sec=_BRAND.color_secundario||'#B8860B',logo=_BRAND.logo_sin_fondo_url||'';
-  var shell='<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">';
-  shell+='<div style="background:'+hdr+';padding:20px 24px;">'+(logo?'<img src="'+logo+'" style="height:30px;margin-bottom:8px;display:block;">':'')+'<div style="color:'+sec+';font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">'+(_BRAND.nombre_empresa||'')+'</div><div style="color:'+htxt+';font-size:16px;font-weight:800;margin-top:4px;">'+h(subj)+'</div></div>';
-  shell+='<div style="padding:20px 24px;font-size:13px;line-height:1.6;">'+body+'</div>';
-  shell+='<div style="background:'+hdr+';padding:10px 24px;text-align:center;font-size:9px;color:'+sec+';">'+(_BRAND.nombre_empresa||'')+' · info@zivital.pe</div>';
-  shell+='</div>';
-  el('tpl-preview').innerHTML=shell;
-}
 function savePlantilla(id){
   var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
   // Clean the variable spans back to {{var}} format
