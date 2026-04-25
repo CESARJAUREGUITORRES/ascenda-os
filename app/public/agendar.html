@@ -46,6 +46,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cal-day:hover:not(.disabled){background:var(--gold-light);border-color:var(--gold)}
 .cal-day.today{border-color:var(--blue);color:var(--blue);font-weight:800}
 .cal-day.sel{background:var(--gold);color:#fff;font-weight:800}
+.cal-day.has-turno{background:var(--gold-light);color:var(--gold-dark);font-weight:700;border-color:var(--gold)}
 .cal-day.disabled{color:#ccc;cursor:default}
 .cal-day.empty{cursor:default}
 /* Slots */
@@ -153,6 +154,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="ag-row"><label class="ag-label">DNI</label><input class="ag-input" id="ag-dni" placeholder="12345678"></div>
         <div class="ag-row"><label class="ag-label">Email</label><input class="ag-input" id="ag-email" placeholder="tu@correo.com" type="email"></div>
       </div>
+      <div class="ag-row"><label class="ag-label">Tipo de cita</label>
+        <select class="ag-input" id="ag-tipo-cita" style="appearance:auto;">
+          <option value="CONSULTA NUEVA">Consulta nueva</option>
+          <option value="CONTROL">Control</option>
+          <option value="APLICACIÓN">Aplicación</option>
+          <option value="PROCEDIMIENTO">Procedimiento</option>
+        </select></div>
       <div class="ag-row"><label class="ag-label">Notas adicionales</label><textarea class="ag-input" id="ag-nota" rows="2" placeholder="¿Alguna indicación especial?"></textarea></div>
     </div>
     <div id="ag-resumen" class="ag-card" style="background:var(--gold-light);border-color:var(--gold)">
@@ -274,7 +282,7 @@ function agNext(step){
         '<div style="font-size:11px;color:var(--gold-dark);font-weight:600;">'+esc(p.especialidad)+'</div>'+
         '<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+esc(p.titulo)+' · 📍 '+esc(p.sede==='TODAS'?'San Isidro · Pueblo Libre':p.sede)+'</div></div>';
     }
-    renderServicios();renderCalendario();
+    renderServicios();cargarDiasConTurno();
   }
   if(step===3){renderResumen();renderDatos();}
   window.scrollTo({top:0,behavior:'smooth'});
@@ -294,6 +302,13 @@ function selSvc(el,svc){
   el.classList.add('sel');
 }
 
+function cargarDiasConTurno(){
+  if(!AG.selProf)return;
+  rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:AG.calYear,p_mes:AG.calMonth+1}).then(function(dias){
+    AG.diasTurno=dias||[];
+    renderCalendario();
+  });
+}
 function renderCalendario(){
   var y=AG.calYear,m=AG.calMonth;
   var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -311,7 +326,9 @@ function renderCalendario(){
     var isToday=dt.getTime()===hoy.getTime();
     var isSel=AG.selFecha===(y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'));
     var isDom=dt.getDay()===0;
-    var cls='cal-day'+(isPast||isDom?' disabled':'')+(isToday?' today':'')+(isSel?' sel':'');
+    var fechaStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var hasTurno=AG.diasTurno&&AG.diasTurno.indexOf(fechaStr)>=0;
+    var cls='cal-day'+(isPast||isDom?' disabled':'')+(isToday?' today':'')+(isSel?' sel':'')+(hasTurno&&!isPast&&!isDom?' has-turno':'');
     html+='<div class="'+cls+'" onclick="'+(isPast||isDom?'':'selFecha('+y+','+m+','+d+')')+'">'+d+'</div>';
   }
   document.getElementById('cal-grid').innerHTML=html;
@@ -332,7 +349,7 @@ function selFecha(y,m,d){
       return;
     }
     document.getElementById('slots-grid').innerHTML=r.slots.map(function(s){
-      return '<div class="slot" onclick="selSlot(this,\''+s.hora+'\',\''+s.sede+'\')">'+s.hora+'</div>';
+      return '<div class="slot" onclick="selSlot(this,\''+s.hora+'\',\''+s.sede+'\')"><div style="font-weight:700;">'+s.hora+'</div><div style="font-size:8px;color:var(--muted);">'+s.sede+'</div><div style="font-size:8px;color:var(--green);">'+s.libres+' libres</div></div>';
     }).join('');
   });
   document.getElementById('btn-next-2').disabled=true;
@@ -378,15 +395,6 @@ function agConfirmar(){
   btn.textContent='Agendando...';btn.disabled=true;
 
   var token=AG.token||'__permanent__';
-  // Si es link permanente, crear token temporal
-  if(!AG.token){
-    fetch(SB+'/rest/v1/aos_links_agenda',{method:'POST',headers:H,body:JSON.stringify({tipo:'general',expira_at:new Date(Date.now()+86400000*365).toISOString()})}).then(function(r){return r.json()}).then(function(){
-      doAgendar(token,nombre,apellido,tel,btn);
-    });
-    // Use direct insert instead
-    doAgendarDirecto(nombre,apellido,tel,btn);
-    return;
-  }
   doAgendar(token,nombre,apellido,tel,btn);
 }
 
@@ -396,7 +404,7 @@ function doAgendar(token,nombre,apellido,tel,btn){
     p_dni:document.getElementById('ag-dni').value.trim(),
     p_email:document.getElementById('ag-email').value.trim(),
     p_profesional_id:AG.selProf?AG.selProf.id:null,
-    p_tratamiento:AG.selSvc||'CONSULTA',
+    p_tratamiento:AG.selSvc||'CONSULTA',p_tipo_cita:document.getElementById('ag-tipo-cita').value,
     p_fecha:AG.selFecha,p_hora:AG.selHora,
     p_sede:AG.selSede,p_nota:document.getElementById('ag-nota').value.trim()
   }).then(function(r){
