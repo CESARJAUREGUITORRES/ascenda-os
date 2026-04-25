@@ -302,7 +302,23 @@ function agNext(step){
 function agBack(step){agNext(step)}
 
 function renderServicios(){
-  // Tratamientos movidos al formulario step 3 como select
+  var sel=document.getElementById('ag-servicio');if(!sel)return;
+  if(!AG.selProf||!AG.selProf.servicios||!AG.selProf.servicios.length){
+    // Sin profesional o sin servicios asignados → mostrar todos del catálogo
+    rpc('aos_catalogo_tratamientos',{}).then(function(items){
+      if(!items||!items.length)return;
+      sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+    }).catch(function(){});
+    return;
+  }
+  // Filtrar por servicios del profesional seleccionado
+  var svcMap={};AG.selProf.servicios.forEach(function(s){svcMap[s.toUpperCase()]=true;});
+  rpc('aos_catalogo_tratamientos',{}).then(function(items){
+    if(!items||!items.length)return;
+    var filtered=items.filter(function(i){return svcMap[i.t.toUpperCase()];});
+    if(!filtered.length)filtered=items; // fallback si no hay match
+    sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+filtered.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+  }).catch(function(){});
 }
 function selSvc(el,svc){
   AG.selSvc=svc;
