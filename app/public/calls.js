@@ -83,7 +83,7 @@ function ccInit(){
   var fe=document.getElementById('cc-c-fecha');if(fe)fe.min=hoy;
   var fs=document.getElementById('cc-s-fecha');if(fs){fs.min=hoy;fs.value=hoy;}
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
-  poblarMeses();
+  poblarMeses();loadTrats();
   loadMetrics();
   // Si viene de seguimientos con un número específico, cargarlo directo
   if(window._pendingLead && window._pendingLead.num){
@@ -531,7 +531,11 @@ function generarSugerencia(res){
 }
 
 function loadTrats(){
-  // Tratamientos ya hardcodeados en el HTML — no sobrescribir
+  _rpc('aos_catalogo_tratamientos',{},function(items){
+    if(!items||!items.length)return;
+    var opts='<option value="">— Seleccionar —</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+    ['cc-c-trat','cm-trat'].forEach(function(id){var s=document.getElementById(id);if(s)s.innerHTML=opts;});
+  });
 }
 
 function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){

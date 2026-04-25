@@ -155,14 +155,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div class="ag-row"><label class="ag-label">Tratamiento *</label>
         <select class="ag-input" id="ag-servicio" style="appearance:auto;" onchange="AG.selSvc=this.value">
-          <option value="">-- Seleccionar tratamiento --</option>
-          <option>Acido Hialuronico</option><option>Bioestimulador</option><option>Biorevitalizacion</option>
-          <option>Capilar</option><option>Compra de Producto</option><option>Consulta Medica</option>
-          <option>Criolipolisis</option><option>Detox</option><option>Enzimas Faciales</option>
-          <option>Exosomas Capilares</option><option>Exosomas Facial</option><option>Hidrofacial</option>
-          <option>HIFU</option><option>Mesoterapia Capilar</option><option>Mesoterapia Facial</option>
-          <option>Peptonas</option><option>PQ Age</option><option>Radiofrecuencia Capilar</option>
-          <option>Radiofrecuencia Facial</option><option>Toxina</option><option>Vitaminas</option>
+          <option value="">-- Cargando tratamientos... --</option>
         </select></div>
       <div class="ag-row"><label class="ag-label">Tipo de cita</label>
         <select class="ag-input" id="ag-tipo-cita" style="appearance:auto;">
@@ -252,6 +245,12 @@ function loadProfesionales(){
     renderProfesionales();
     document.getElementById('step-1').classList.add('active');
   });
+  // Cargar tratamientos del catálogo
+  rpc('aos_catalogo_tratamientos',{}).then(function(items){
+    if(!items||!items.length)return;
+    var sel=document.getElementById('ag-servicio');
+    if(sel)sel.innerHTML='<option value="">-- Seleccionar tratamiento --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+  }).catch(function(){});
 }
 
 function agTipo(tipo,btn){

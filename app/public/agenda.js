@@ -56,6 +56,14 @@ function agLoad(){
     if(!d)return;AG.data=d;
     renderKPIs(d.resumen||{});renderView();renderTurnos(d.turnos||[]);
   });
+  loadTrats();
+}
+function loadTrats(){
+  var sel=el('ed-trat');if(!sel||sel.options.length>2)return;
+  _rpc('aos_catalogo_tratamientos',{},function(items){
+    if(!items||!items.length)return;
+    sel.innerHTML='<option value="">-- Seleccionar --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+  });
 }
 
 function renderKPIs(r){el('ag-total').textContent=r.total||0;el('ag-pend').textContent=r.pendiente||0;el('ag-asist').textContent=r.asistio||0;el('ag-noasist').textContent=r.noAsistio||0;el('ag-cancel').textContent=r.cancelada||0;}
