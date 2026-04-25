@@ -1370,7 +1370,7 @@ function crearLinkNuevo() {
         '<div style="font-size:11px;color:#64748B;margin-bottom:14px;">Este paciente ya está registrado. El link tendrá sus datos prellenados.</div>' +
         '<div style="display:flex;gap:8px;">' +
         '<button onclick="document.getElementById(\'modal-nuevo-pac\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans;">Cancelar</button>' +
-        '<button onclick="confirmarLinkAntiguo(\''+escH(num)+'\') " style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">Generar link</button></div></div>';
+        '<button onclick="confirmarLinkAntiguo('"+escH(num)+"')" " style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans;">Generar link</button></div></div>';
       return;
     }
     // Es paciente nuevo
@@ -1439,7 +1439,7 @@ function buscarPacLink(q) {
       el.innerHTML = pacs.map(function(p) {
         var nombre = ((p.nombre||'')+' '+(p.apellido||'')).trim();
         var ini = ((p.nombre||'')[0]||'')+((p.apellido||'')[0]||'');
-        return '<div onclick="selPacLink(\''+escH(p.numero||'')+'\') " style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
+        return '<div onclick="selPacLink('"+escH(p.numero||"")+"')" " style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .12s;border:1px solid transparent;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'transparent\';this.style.borderColor=\'transparent\'">' +
           '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0A4FBF,#00C9A7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+escH(ini.toUpperCase())+'</div>' +
           '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#0f172a;">'+escH(nombre)+'</div>' +
           '<div style="font-size:10px;color:#64748B;">📱 '+escH(p.numero||'')+(p.email?' · '+escH(p.email):'')+'</div></div>' +
@@ -1491,6 +1491,7 @@ function enviarLinkWA() {
 function toggleHistorialLinks() {
   var el = document.getElementById('historial-links');
   var arrow = document.getElementById('hist-arrow');
+  if (!el || !arrow) return;
   if (el.style.display === 'none') {
     el.style.display = 'block';
     arrow.textContent = '▲';
@@ -1527,10 +1528,10 @@ function cargarHistorialLinks() {
       html += '<td style="padding:5px 6px;">' + estado + '</td>';
       html += '<td style="padding:5px 6px;text-align:center;">';
       if (!vencido && !usado) {
-        html += '<span onclick="copiarLink(\'' + escH(url) + '\')" style="cursor:pointer;margin-right:4px;" title="Copiar">📋</span>';
-        html += '<span onclick="reenviarLinkWA(\'' + escH(url) + '\')" style="cursor:pointer;" title="WhatsApp">💬</span>';
+        html += '<span onclick="copiarLink('" + escH(url) + "')" style="cursor:pointer;margin-right:4px;" title="Copiar">📋</span>';
+        html += '<span onclick="reenviarLinkWA('" + escH(url) + "')" style="cursor:pointer;" title="WhatsApp">💬</span>';
       } else if (vencido || usado) {
-        html += '<span onclick="renovarLink(\'' + escH(l.id) + '\')" style="cursor:pointer;font-size:9px;color:#0A4FBF;font-weight:700;" title="Generar nuevo">🔄</span>';
+        html += '<span onclick="renovarLink('" + escH(l.id) + "')" style="cursor:pointer;font-size:9px;color:#0A4FBF;font-weight:700;" title="Generar nuevo">🔄</span>';
       }
       html += '</td></tr>';
     });
