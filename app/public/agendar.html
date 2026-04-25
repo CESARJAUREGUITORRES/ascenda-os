@@ -314,7 +314,7 @@ function selFecha(y,m,d){
   document.getElementById('slots-fecha').textContent=d+'/'+(m+1)+'/'+y;
   document.getElementById('slots-grid').innerHTML='<div class="ag-loading"><div class="ag-sp"></div></div>';
   // Cargar slots
-  rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf.id,p_fecha:AG.selFecha,p_sede:AG.selProf.sede==='TODAS'?null:AG.selProf.sede}).then(function(r){
+  rpc('aos_slots_disponibles',{p_profesional_id:AG.selProf.id,p_fecha_cita:AG.selFecha,p_sede:AG.selProf.sede==='TODAS'?null:AG.selProf.sede}).then(function(r){
     if(!r||!r.ok||!r.slots||!r.slots.length){
       document.getElementById('slots-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;font-size:12px;color:var(--muted)">No hay horarios disponibles este día</div>';
       return;
@@ -385,7 +385,7 @@ function doAgendar(token,nombre,apellido,tel,btn){
     p_email:document.getElementById('ag-email').value.trim(),
     p_profesional_id:AG.selProf?AG.selProf.id:null,
     p_tratamiento:AG.selSvc||'CONSULTA',
-    p_fecha:AG.selFecha,p_hora:AG.selHora,
+    p_fecha_cita:AG.selFecha,p_hora:AG.selHora,
     p_sede:AG.selSede,p_nota:document.getElementById('ag-nota').value.trim()
   }).then(function(r){
     if(r&&r.ok){showSuccess(nombre,apellido)}
@@ -397,12 +397,12 @@ function doAgendarDirecto(nombre,apellido,tel,btn){
   // Para links permanentes sin token, insertar directamente
   var citaId='AG-'+Date.now();
   fetch(SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({
-    id:citaId,fecha:AG.selFecha,hora_cita:AG.selHora,
+    id:citaId,fecha_cita:AG.selFecha,hora_cita:AG.selHora,
     paciente:(nombre+' '+apellido).toUpperCase(),
     numero:tel.replace(/\D/g,''),
     tratamiento:AG.selSvc||'CONSULTA',
     sede:AG.selSede,
-    doctor:AG.selProf?AG.selProf.nombre_publico:'',
+    doctora:AG.selProf?AG.selProf.nombre_publico:'',
     asesor:'ORGANICO',
     estado_cita:'PENDIENTE',tipo_cita:'CITA',origen_cita:'WEB-PUBLICA',
     created_at:new Date().toISOString()
@@ -440,7 +440,7 @@ function showSuccess(nombre,apellido){
   if(email){
     fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       to:email,template:'confirmacion_cita',nombre:nombre+' '+apellido,
-      tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha
+      tratamiento:AG.selSvc||'Consulta',hora:AG.selHora,sede:AG.selSede,fecha_cita:AG.selFecha
     })}).catch(function(){});
   }
 }
