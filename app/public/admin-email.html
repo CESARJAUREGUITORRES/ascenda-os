@@ -7,6 +7,11 @@
 .em-tab{padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer;color:#6B7BA8;transition:all .15s;border:none;background:none;}
 .em-tab.act{background:#071D4A;color:#fff;}
 .em-tab:hover:not(.act){background:#EBF2FF;}
+.em-preview-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(7,29,74,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.em-preview-modal{background:#F8FAFF;border-radius:16px;max-width:620px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(7,29,74,.3);}
+.em-preview-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEF0F8;flex-shrink:0;}
+.em-preview-body{flex:1;overflow-y:auto;padding:0;}
+.em-preview-body iframe{width:100%;border:none;min-height:500px;}
 .crd{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(7,29,74,.06);border:1px solid #EEF0F8;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:10px;}
 .vt{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;}
@@ -382,22 +387,46 @@ function filterResend(tipo){
 }
 function renderResendTable(emails){
   if(!emails.length){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#9AAAC8;padding:20px;">Sin emails</td></tr>';return;}
+  _displayedEmails=emails;
   var stC={delivered:'tag-g',opened:'tag-p',bounced:'tag-r',complained:'tag-r',sent:'tag-y'};
   var stL={delivered:'✓ Entregado',opened:'👁 Abierto',bounced:'✕ Rebotado',complained:'⚠ Queja',sent:'📤 Enviado'};
-  el('em-campanias').innerHTML=emails.map(function(e){
+  el('em-campanias').innerHTML=emails.map(function(e,idx){
     var fecha=e.created_at?new Date(e.created_at).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     var st=e.status||'sent';
     var subj=(e.subject||'').toLowerCase();
     var tt='<span class="tag tag-b">📧</span>';
     if(subj.indexOf('hoy')>-1)tt='<span class="tag tag-g">☀️ Hoy</span>';
-    else if(subj.indexOf('mañana')>-1)tt='<span class="tag tag-g">⏰ Mañana</span>';
-    else if(subj.indexOf('confirmad')>-1)tt='<span class="tag tag-b">📅 Cita</span>';
+    else if(subj.indexOf('mañana')>-1||subj.indexOf('manana')>-1)tt='<span class="tag tag-g">⏰ Mañana</span>';
+    else if(subj.indexOf('confirmad')>-1||subj.indexOf('confirmacion')>-1)tt='<span class="tag tag-b">📅 Cita</span>';
     else if(subj.indexOf('bienvenid')>-1)tt='<span class="tag tag-p">🌟</span>';
     else if(subj.indexOf('ecibo')>-1)tt='<span class="tag tag-y">🧾</span>';
-    else if(subj.indexOf('código')>-1||subj.indexOf('activa')>-1)tt='<span class="tag tag-b">🔑</span>';
+    else if(subj.indexOf('código')>-1||subj.indexOf('2fa')>-1||subj.indexOf('login')>-1)tt='<span class="tag tag-b">🔑</span>';
     else if(subj.indexOf('reporte')>-1)tt='<span class="tag tag-p">📊</span>';
-    return '<tr><td style="font-size:10px;font-weight:600;">'+h(e.to)+'</td><td style="font-size:9px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(e.subject)+'</td><td><span class="tag '+(stC[st]||'tag-y')+'">'+(stL[st]||st)+'</span></td><td>'+tt+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
+    var hasHtml=e.html?'cursor:pointer;':'opacity:.7;';
+    return '<tr style="'+hasHtml+'" onclick="previewEmail('+idx+')" title="'+(e.html?'Click para ver contenido':'Sin preview disponible')+'"><td style="font-size:10px;font-weight:600;">'+h(e.to)+'</td><td style="font-size:9px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(e.subject)+'</td><td><span class="tag '+(stC[st]||'tag-y')+'">'+(stL[st]||st)+'</span></td><td>'+tt+'</td><td style="font-size:9px;color:#9AAAC8;">'+fecha+'</td></tr>';
   }).join('');
+}
+var _displayedEmails=[];
+function previewEmail(idx){
+  var e=_displayedEmails[idx];if(!e)return;
+  if(!e.html){showToast('Sin preview','Este email fue enviado antes de activar el registro de contenido');return;}
+  var overlay=document.createElement('div');
+  overlay.className='em-preview-overlay';
+  overlay.onclick=function(ev){if(ev.target===overlay)overlay.remove();};
+  var stL={delivered:'✓ Entregado',opened:'👁 Abierto',bounced:'✕ Rebotado',sent:'📤 Enviado'};
+  var fecha=e.created_at?new Date(e.created_at).toLocaleString('es-PE',{day:'2-digit',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  overlay.innerHTML='<div class="em-preview-modal">'+
+    '<div class="em-preview-header">'+
+      '<div style="flex:1;"><div style="font-weight:800;font-size:13px;">'+h(e.subject||'Email')+'</div>'+
+      '<div style="font-size:9px;color:#6B7BA8;margin-top:2px;">Para: <b>'+h(e.to)+'</b> · '+fecha+' · <span style="color:#059669;">'+(stL[e.status]||e.status)+'</span></div></div>'+
+      '<button onclick="this.closest(\'.em-preview-overlay\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9AAAC8;">✕</button>'+
+    '</div>'+
+    '<div class="em-preview-body"><iframe id="em-preview-frame"></iframe></div></div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){
+    var frame=document.getElementById('em-preview-frame');
+    if(frame){var doc=frame.contentDocument||frame.contentWindow.document;doc.open();doc.write(e.html);doc.close();frame.style.height=Math.max(doc.body.scrollHeight+40,500)+'px';}
+  },100);
 }
 
 

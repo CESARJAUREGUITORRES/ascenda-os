@@ -278,7 +278,7 @@ http.createServer(function(req, res) {
     var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
     var mesActual = hoy.slice(0, 7)
     Promise.all([
-      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,email_destino,asunto,fecha_envio,resend_id,created_at&order=created_at.desc&limit=200'),
+      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,email_destino,asunto,fecha_envio,resend_id,html_preview,created_at&order=created_at.desc&limit=200'),
       sbFetch('/rest/v1/aos_email_envios?select=id,asunto,estado,destinatario_email,destinatario_nombre,enviado_at,created_at&order=created_at.desc&limit=50'),
       sbFetch('/rest/v1/aos_security_log?select=id,usuario,accion,created_at&accion=in.(login,2fa_verified)&order=created_at.desc&limit=50')
     ]).then(function(results) {
@@ -291,7 +291,7 @@ http.createServer(function(req, res) {
         var dest = e.email_destino || e.destinatario || ''
         var tipoClean = (e.tipo || 'otro')
         var subj = e.asunto || e.tipo || ''
-        allEmails.push({ to: dest, subject: subj, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente' })
+        allEmails.push({ to: dest, subject: subj, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente', html: e.html_preview || '' })
       })
       panel.forEach(function(e) {
         allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
@@ -595,7 +595,8 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
                 sbPost('/rest/v1/aos_emails_enviados', {
                   tipo: tipo, destinatario: destinatario_id,
                   fecha_envio: limaDateStr(), resend_id: r.id,
-                  email_destino: to, asunto: subject
+                  email_destino: to, asunto: subject,
+                  html_preview: html.slice(0, 50000)
                 }).catch(function(){})
                 // Alerta en panel
                 sbPost('/rest/v1/aos_email_alertas', {
