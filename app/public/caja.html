@@ -902,9 +902,23 @@ function renderCaja() {
 
   if (!CAJA.sesion) {
     body.innerHTML = '';
-    if(noSesion){body.appendChild(noSesion);noSesion.style.display = 'flex';}
-    else{body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:12px;text-align:center;"><div style="font-size:44px;">🔒</div><h3 style="font-family:'Exo 2',sans-serif;font-size:18px;">Caja cerrada</h3><p style="font-size:12px;color:#6B7BA8;">Abre la caja para registrar ventas</p></div>';}
-    document.getElementById('btn-abrir').style.display = 'flex';
+    if(noSesion){
+      body.appendChild(noSesion);noSesion.style.display = 'flex';
+      // Agregar botón abrir dentro del mensaje si es admin
+      if(CAJA.esAdmin){
+        var existBtn = noSesion.querySelector('.btn-abrir-inline');
+        if(!existBtn){
+          var btn = document.createElement('button');
+          btn.className = 'btn-abrir-inline';
+          btn.style.cssText = 'margin-top:12px;padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:"DM Sans",sans-serif;display:flex;align-items:center;gap:6px;';
+          btn.innerHTML = '🔓 Abrir caja ahora';
+          btn.onclick = abrirModalApertura;
+          noSesion.appendChild(btn);
+        }
+      }
+    }
+    else{body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:12px;text-align:center;"><div style="font-size:44px;">🔒</div><h3 style="font-family:\'Exo 2\',sans-serif;font-size:18px;">Caja cerrada</h3><p style="font-size:12px;color:#6B7BA8;">La caja no está abierta.</p>'+(CAJA.esAdmin?'<button onclick="abrirModalApertura()" style="margin-top:12px;padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif;">🔓 Abrir caja ahora</button>':'<p style="font-size:11px;color:#D97706;">Solo administradores pueden abrir la caja</p>')+'</div>';}
+    document.getElementById('btn-abrir').style.display = CAJA.esAdmin ? 'flex' : 'none';
     document.getElementById('btn-cerrar-caja-btn').style.display = 'none';
     return;
   }
