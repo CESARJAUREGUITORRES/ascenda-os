@@ -2735,29 +2735,36 @@ init();
 // ===== MOD-11-START: PLANES Y COTIZACIONES EN CAJA =====
 function cargarPlanesPaciente(numero) {
   if (!numero) return;
-  rpc('aos_planes_paciente', {p_numero_limpio: numero}, function(result) {
-    // rpc() hace d[0] — resultado puede ser {aos_planes_paciente:[...]} o directamente el array
-    var planes = result;
-    if (result && result.aos_planes_paciente) planes = result.aos_planes_paciente;
-    if (!planes || !Array.isArray(planes) || !planes.length) return;
+  console.log('[PLANES] Buscando planes para:', numero);
+  fetch(SB_URL + '/rest/v1/rpc/aos_planes_paciente', {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({p_numero_limpio: numero})
+  }).then(function(r){ return r.json(); }).then(function(raw){
+    console.log('[PLANES] Raw response:', raw);
+    var planes = raw;
+    if (Array.isArray(raw) && raw[0] && raw[0].aos_planes_paciente) planes = raw[0].aos_planes_paciente;
+    if (!planes || !Array.isArray(planes) || !planes.length) { console.log('[PLANES] No hay planes'); return; }
     var pendientes = planes.filter(function(p) { return p.items_pendientes > 0; });
-    if (!pendientes.length) return;
+    if (!pendientes.length) { console.log('[PLANES] No hay pendientes'); return; }
+    console.log('[PLANES] Encontrados:', pendientes.length, 'planes pendientes');
     var pf = document.getElementById('pac-ficha');
+    console.log('[PLANES] pac-ficha element:', pf);
     if (!pf) return;
     var existing = document.getElementById('planes-badge');
     if (existing) existing.remove();
     var badge = document.createElement('div');
     badge.id = 'planes-badge';
-    badge.style.cssText = 'margin-top:6px;padding:8px;background:#EBF2FF;border:1.5px solid #0A4FBF;border-radius:8px;cursor:pointer;';
-    badge.innerHTML = '<div style="display:flex;align-items:center;gap:6px;font-size:11px;">' +
-      '<span style="font-size:16px;">📋</span>' +
-      '<div style="flex:1;"><b style="color:#071D4A;">Plan de trabajo</b><br>' +
-      '<span style="font-size:9px;color:#6B7BA8;">' + pendientes.length + ' plan(es) pendiente(s) - ' + pendientes[0].autor + '</span></div>' +
-      '<span style="background:#0A4FBF;color:#fff;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;">Ver</span></div>';
+    badge.style.cssText = 'margin-top:6px;padding:10px;background:#EBF2FF;border:2px solid #0A4FBF;border-radius:8px;cursor:pointer;';
+    badge.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:12px;">' +
+      '<span style="font-size:20px;">📋</span>' +
+      '<div style="flex:1;"><b style="color:#071D4A;font-size:12px;">Plan de trabajo disponible</b><br>' +
+      '<span style="font-size:10px;color:#6B7BA8;">' + pendientes.length + ' plan(es) - ' + pendientes[0].autor + ' - ' + pendientes[0].fecha + '</span></div>' +
+      '<span style="background:#0A4FBF;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;">Ver planes</span></div>';
     badge.onclick = function() { mostrarPlanes(pendientes); };
     pf.appendChild(badge);
     window._planesPac = pendientes;
-  });
+  }).catch(function(e){ console.error('[PLANES] Error:', e); });
 }
 
 function cargarCotizacionesPaciente(numero) {
