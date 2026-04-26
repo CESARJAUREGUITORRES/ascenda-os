@@ -135,7 +135,7 @@
 .ab-i{flex:1;font-size:8px}.ab-i b{display:block;font-size:9px;margin-bottom:1px}
 
 /* Drawers */
-.dw{position:absolute;top:0;right:-420px;width:380px;height:100%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--bd);box-shadow:-4px 0 24px rgba(7,29,74,.08);z-index:100;transition:right .25s ease;display:flex;flex-direction:column}
+.dw{position:absolute;top:0;right:-500px;width:460px;height:100%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--bd);box-shadow:-4px 0 24px rgba(7,29,74,.08);z-index:100;transition:right .25s ease;display:flex;flex-direction:column}
 .dw.open{right:0}
 .dw-h{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
 .dw-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;flex:1}
@@ -392,31 +392,36 @@ o+='<div class="fg"><label class="fl">Saturación %</label><input id="nt-sat" cl
 o+='<div class="at-sc">Observaciones de triaje</div>';
 }
 
+
 else if(tipo==='EVALUACION'){
-o+='<div class="fg"><label class="fl">Tipo de evaluación</label><select id="ev-tipo" class="fi fs" onchange="evTipoChange()"><option value="FACIAL">Facial</option><option value="CORPORAL">Corporal</option><option value="CAPILAR">Capilar</option></select></div>';
+o+='<div class="fg"><label class="fl">Tipo de evaluación</label><select id="ev-tipo" class="fi fs" onchange="evTipoChange()" style="font-weight:800;font-size:11px"><option value="FACIAL">🧑 Facial</option><option value="CORPORAL">🏋️ Corporal</option><option value="CAPILAR">💇 Capilar</option><option value="VITAMINAS">💊 Vitaminas / Salud general</option></select></div>';
 o+='<div id="ev-campos"></div>';
-o+='<div class="at-sc" style="margin-top:8px">Campos comunes</div>';
-o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+o+='<div class="at-sc" style="margin-top:10px">Hábitos y antecedentes</div>';
 o+='<div class="fg"><label class="fl">Nivel de estrés</label><select id="ev-estres" class="fi fs"><option>Bajo</option><option>Moderado</option><option>Alto</option><option>Muy alto</option></select></div>';
-o+='<div class="fg"><label class="fl">¿Usa productos?</label><select id="ev-productos" class="fi fs"><option>No</option><option>Sí</option></select></div>';
-o+='<div class="fg"><label class="fl">¿Procedimientos previos?</label><select id="ev-previos" class="fi fs"><option>No</option><option>Sí</option></select></div>';
-o+='<div class="fg"><label class="fl">Detalle previos</label><input id="ev-det-prev" class="fi" placeholder="Cuáles..."></div></div>';
-o+='<div class="fg"><label class="fl">Detalles del evaluador</label><textarea id="ev-evaluador" class="ta" rows="2" placeholder="Notas del evaluador..."></textarea></div>';
-o+='<div class="fg"><label class="fl">¿Qué busca mejorar el paciente?</label><textarea id="ev-objetivo" class="ta" rows="2" placeholder="Objetivos del paciente..."></textarea></div>';
-o+='<div class="at-sc" style="margin-top:8px">Nota clínica</div>';
+o+=siNo('¿Usa productos?','ev-productos','¿Cuáles?');
+o+=siNo('¿Procedimientos previos?','ev-previos','¿Cuáles?');
+o+=siNo('¿Usa fotoprotector?','ev-solar','¿Cuál y frecuencia?');
+o+='<div class="at-sc" style="margin-top:10px">Evaluación final</div>';
+o+='<div class="fg"><label class="fl">Detalles del evaluador</label><textarea id="ev-evaluador" class="ta" rows="2" placeholder="Notas profesionales..."></textarea></div>';
+o+='<div class="fg"><label class="fl">¿Qué busca mejorar?</label><textarea id="ev-objetivo" class="ta" rows="2" placeholder="Expectativas del paciente..."></textarea></div>';
+o+='<div class="at-sc" style="margin-top:8px">Conclusión</div>';
 }
 
-o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="4" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión de la evaluación...':'Nota clínica...')+'"></textarea></div>';
+o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="3" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión clínica...':'Nota clínica...')+'"></textarea></div>';
 o+='<button class="btn btn-p btn-f" style="padding:10px" onclick="saveNota(\''+tipo+'\')">💾 Guardar</button>';
 var map=getNotasMap();var ex=map[tipo]||[];
 if(ex.length){o+='<div class="at-sc" style="margin-top:14px">Anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||n.texto||'';o+='<div class="ne">'+E(txt.substring(0,200))+(txt.length>200?'...':'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});}
 b.innerHTML=o;openDw('nota');
 if(tipo==='EVALUACION')evTipoChange();}
 
+/* Helper: Sí/No con desplegable */
+function siNo(label,id,ph){return '<div style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><label class="fl" style="margin:0;flex:1">'+label+'</label><select id="'+id+'" class="fi fs" style="width:60px" onchange="togDet(\''+id+'\')"><option>No</option><option>Sí</option></select></div><div id="'+id+'-det" style="display:none"><input id="'+id+'-txt" class="fi" placeholder="'+E(ph)+'" style="font-size:9px"></div></div>';}
+function togDet(id){var s=document.getElementById(id);var d=document.getElementById(id+'-det');if(s&&d)d.style.display=s.value==='Sí'?'block':'none';}
+
 /* IMC auto calc */
 function calcIMC(){
-  var p=parseFloat((document.getElementById('nt-peso')||{}).value);
-  var t=parseFloat((document.getElementById('nt-talla')||{}).value);
+  var p=parseFloat((document.getElementById('nt-peso')||document.getElementById('ev-peso-k')||{}).value);
+  var t=parseFloat((document.getElementById('nt-talla')||document.getElementById('ev-talla-k')||{}).value);
   var box=document.getElementById('imc-box');
   if(!p||!t||t<0.5){if(box)box.style.display='none';return;}
   var imc=Math.round(p/(t*t)*10)/10;
@@ -431,59 +436,93 @@ function calcIMC(){
     le.textContent=imc+' — '+cat;le.style.color=col;le.style.background=bg;}
 }
 
-/* Evaluación: campos dinámicos por tipo */
+/* Zonas cosmiatría */
+var ZF=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpado superior','Párpado inferior','Pómulo derecho','Pómulo izquierdo','Nariz','Surco nasogeniano','Mejilla derecha','Mejilla izquierda','Labio superior','Labio inferior','Mentón','Línea mandibular','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
+var HF=['Arrugas finas','Arrugas profundas','Arrugas de expresión','Manchas/Hiperpigmentación','Melasma','Flacidez','Poros dilatados','Acné activo','Comedones','Cicatrices de acné','Rosácea','Cuperosis','Telangiectasias','Lunares','Verrugas','Cicatrices','Ojeras','Bolsas palpebrales','Queratosis','Pérdida de volumen','Surcos profundos','Ptosis facial','Doble mentón','Textura irregular'];
+var ZC=['Abdomen superior','Abdomen inferior','Flancos','Espalda baja','Espalda alta','Muslo interno','Muslo externo','Glúteos','Brazos','Papada','Rodillas','Pecho','Cintura'];
+
+/* Evaluación: campos dinámicos */
 function evTipoChange(){
   var tipo=(document.getElementById('ev-tipo')||{}).value||'FACIAL';
   var el=document.getElementById('ev-campos');if(!el)return;var o='';
+
   if(tipo==='FACIAL'){
-    o+='<div class="at-sc">Evaluación facial</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    o+='<div class="fg"><label class="fl">Zonas trabajadas</label><input id="ev-zonas" class="fi" placeholder="Frente, pómulos, mentón..."></div>';
+    o+='<div class="at-sc">Zonas evaluadas</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ZF.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="ev-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
+    o+='</div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
     o+='<div class="fg"><label class="fl">Tipo de piel</label><select id="ev-piel" class="fi fs"><option>Normal</option><option>Seca</option><option>Grasa</option><option>Mixta</option><option>Sensible</option></select></div>';
-    o+='<div class="fg"><label class="fl">Fototipo</label><select id="ev-foto" class="fi fs"><option>I</option><option>II</option><option selected>III</option><option>IV</option><option>V</option><option>VI</option></select></div>';
-    o+='<div class="fg"><label class="fl">Hallazgos</label><input id="ev-hallazgos" class="fi" placeholder="Arrugas, flacidez, manchas..."></div>';
-    o+='<div class="fg"><label class="fl">Lunares/marcas</label><input id="ev-lunares" class="fi" placeholder="Ubicación, cantidad..."></div>';
-    o+='<div class="fg"><label class="fl">Cicatrices/acné</label><input id="ev-cicatrices" class="fi" placeholder="Tipo, zona..."></div>';
-    o+='</div>';
-    /* Escala Glogau simplificada */
-    o+='<div class="fg"><label class="fl">Escala Glogau (fotoenvej.)</label><select id="ev-glogau" class="fi fs"><option value="I">I — Sin arrugas (20-30 años)</option><option value="II">II — Arrugas en movimiento (30-40)</option><option value="III">III — Arrugas en reposo (50-60)</option><option value="IV">IV — Arrugas severas (60+)</option></select></div>';
+    o+='<div class="fg"><label class="fl">Fototipo Fitzpatrick</label><select id="ev-foto" class="fi fs"><option>I — Muy clara</option><option>II — Clara</option><option selected>III — Intermedia</option><option>IV — Mate</option><option>V — Morena</option><option>VI — Oscura</option></select></div></div>';
+    o+=siNo('¿Tiene hallazgos clínicos?','ev-hall','');
+    o+='<div id="ev-hall-checks" style="display:none;margin-bottom:8px"><div class="at-sc">Hallazgos encontrados</div><div style="display:flex;flex-wrap:wrap;gap:3px">';
+    HF.forEach(function(h){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="ev-hall-chk" value="'+E(h)+'"><span>'+E(h)+'</span></label>';});
+    o+='</div><div class="fg" style="margin-top:6px"><label class="fl">Detalle por zona</label><textarea id="ev-hall-det" class="ta" rows="2" placeholder="Ej: Arrugas finas en frente, melasma en pómulos..."></textarea></div></div>';
+    o+='<div style="padding:10px;border:1.5px solid var(--bd);border-radius:var(--r);margin:8px 0;background:#F8FAFF">';
+    o+='<div class="fl" style="margin-bottom:4px">📊 Escala Glogau — Clasificación de fotoenvejecimiento</div>';
+    o+='<select id="ev-glogau" class="fi fs" style="margin-bottom:6px;font-size:10px"><option value="I">I — Sin arrugas · Fotodaño leve</option><option value="II">II — Arrugas en movimiento · Fotodaño moderado</option><option value="III">III — Arrugas en reposo · Fotodaño avanzado</option><option value="IV">IV — Arrugas severas · Fotodaño severo</option></select>';
+    o+='<div style="font-size:7px;color:var(--mt);line-height:1.5"><b>I (20-30):</b> Sin arrugas en reposo, mínimo fotodaño, sin queratosis.<br><b>II (30-40):</b> Arrugas solo al gesticular, léntigos incipientes, piel con textura visible.<br><b>III (50-60):</b> Arrugas visibles en reposo, decoloración, telangiectasias, queratosis palpable.<br><b>IV (60+):</b> Piel amarillenta-grisácea, arrugas generalizadas, antecedente de lesiones malignas.</div></div>';
   }else if(tipo==='CORPORAL'){
-    o+='<div class="at-sc">Evaluación corporal</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    o+='<div class="fg"><label class="fl">Zonas a trabajar</label><input id="ev-zonas" class="fi" placeholder="Abdomen, flancos, muslos..."></div>';
-    o+='<div class="fg"><label class="fl">Peso (kg)</label><input id="ev-peso" class="fi" placeholder="65"></div>';
-    o+='<div class="fg"><label class="fl">Brazos (cm)</label><input id="ev-brazos" class="fi" placeholder="30"></div>';
-    o+='<div class="fg"><label class="fl">Piernas (cm)</label><input id="ev-piernas" class="fi" placeholder="55"></div>';
-    o+='<div class="fg"><label class="fl">Cadera (cm)</label><input id="ev-cadera" class="fi" placeholder="95"></div>';
-    o+='<div class="fg"><label class="fl">Cintura (cm)</label><input id="ev-cintura" class="fi" placeholder="80"></div>';
-    o+='<div class="fg"><label class="fl">Pecho (cm)</label><input id="ev-pecho" class="fi" placeholder="90"></div>';
+    o+='<div class="at-sc">Zonas a trabajar</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ZC.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="ev-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
     o+='</div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="fg"><label class="fl">Peso (kg)</label><input id="ev-peso-k" class="fi" placeholder="65" oninput="calcIMC()"></div><div class="fg"><label class="fl">Talla (m)</label><input id="ev-talla-k" class="fi" placeholder="1.60" oninput="calcIMC()"></div></div>';
+    o+='<div id="imc-box" style="display:none;padding:6px;background:#F8FAFF;border:1px solid var(--bd2);border-radius:6px;margin-bottom:8px;text-align:center"><span style="font-size:7px;color:var(--mt)">IMC</span><div id="imc-val" style="font-size:18px;font-weight:800;color:var(--blue)">—</div><div id="imc-label" style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block">—</div></div>';
+    o+='<div class="at-sc">Medidas corporales</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+    o+='<div class="fg"><label class="fl">Brazos cm</label><input id="ev-brazos" class="fi" placeholder="30"></div>';
+    o+='<div class="fg"><label class="fl">Pecho cm</label><input id="ev-pecho" class="fi" placeholder="90"></div>';
+    o+='<div class="fg"><label class="fl">Cintura cm</label><input id="ev-cintura" class="fi" placeholder="80"></div>';
+    o+='<div class="fg"><label class="fl">Cadera cm</label><input id="ev-cadera" class="fi" placeholder="95"></div>';
+    o+='<div class="fg"><label class="fl">Piernas cm</label><input id="ev-piernas" class="fi" placeholder="55"></div></div>';
   }else if(tipo==='CAPILAR'){
     o+='<div class="at-sc">Evaluación capilar</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
     o+='<div class="fg"><label class="fl">Inicio caída</label><input id="ev-caida" class="fi" placeholder="Hace 6 meses..."></div>';
-    o+='<div class="fg"><label class="fl">Cantidad caída</label><select id="ev-cant-caida" class="fi fs"><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>';
-    o+='<div class="fg"><label class="fl">Tipo cuero cabelludo</label><select id="ev-cuero" class="fi fs"><option>Normal</option><option>Seco</option><option>Graso</option><option>Con caspa</option></select></div>';
-    o+='<div class="fg"><label class="fl">Tipo alopecia</label><select id="ev-alopecia" class="fi fs"><option>Androgenética</option><option>Areata</option><option>Difusa</option><option>Cicatricial</option><option>Por tracción</option><option>Otro</option></select></div>';
-    o+='</div>';
+    o+='<div class="fg"><label class="fl">Cantidad</label><select id="ev-cant-caida" class="fi fs"><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>';
+    o+='<div class="fg"><label class="fl">Cuero cabelludo</label><select id="ev-cuero" class="fi fs"><option>Normal</option><option>Seco</option><option>Graso</option><option>Con caspa</option><option>Con dermatitis</option></select></div>';
+    o+='<div class="fg"><label class="fl">Tipo alopecia</label><select id="ev-alopecia" class="fi fs"><option>Androgenética</option><option>Areata</option><option>Difusa</option><option>Cicatricial</option><option>Por tracción</option><option>Efluvio telógeno</option><option>Otro</option></select></div></div>';
+  }else if(tipo==='VITAMINAS'){
+    o+='<div class="at-sc">Salud general</div>';
+    o+='<div class="fg"><label class="fl">Tipo de trabajo</label><input id="ev-trabajo" class="fi" placeholder="Oficina, campo, etc."></div>';
+    o+=siNo('¿Enfermedades congénitas/crónicas?','ev-enferm','Diabetes, HTA, cáncer...');
+    o+=siNo('¿Dolores o males?','ev-dolores','¿Dónde?');
+    o+=siNo('¿Insomnio / mal sueño?','ev-insomnio','Detallar...');
+    o+='<div class="fg"><label class="fl">Alimentación</label><select id="ev-alim" class="fi fs"><option>Balanceada</option><option>Rica en procesados</option><option>Vegetariana</option><option>Vegana</option><option>Keto/Low carb</option><option>Irregular</option></select></div>';
+    o+=siNo('¿Hace deporte?','ev-deporte','¿Qué tipo?');
+    o+=siNo('¿Se hidrata bien?','ev-hidrata','¿Litros/día?');
+    o+=siNo('¿Toma vitaminas?','ev-vita','¿Cuáles?');
+    o+=siNo('¿Otros tratamientos?','ev-otros-trat','¿Cuáles?');
+    o+=siNo('¿Toma fármacos?','ev-farmacos','¿Cuáles?');
+    o+=siNo('¿Es alérgico?','ev-alergico','¿A qué?');
   }
   el.innerHTML=o;
+  if(tipo==='FACIAL'){var hs=document.getElementById('ev-hall');if(hs)hs.addEventListener('change',function(){var d=document.getElementById('ev-hall-checks');if(d)d.style.display=this.value==='Sí'?'block':'none';});}
 }
+
+function getChecked(cls){var r=[];document.querySelectorAll('.'+cls+':checked').forEach(function(c){r.push(c.value)});return r;}
+function getSiNo(id){var s=(document.getElementById(id)||{}).value||'No';var t=(document.getElementById(id+'-txt')||{}).value||'';return s==='Sí'?(t||'Sí'):'No';}
 
 function saveNota(tipo){var c=AT.sel;if(!c)return;
 var cont=(document.getElementById('nt-cont')||{}).value||'';
-/* Para evaluación, concatenar todos los campos en el contenido */
 if(tipo==='EVALUACION'){
-  var evTipo=(document.getElementById('ev-tipo')||{}).value||'';
-  var extra='[TIPO: '+evTipo+'] ';
-  var fields=['ev-zonas','ev-piel','ev-foto','ev-hallazgos','ev-lunares','ev-cicatrices','ev-glogau','ev-peso','ev-brazos','ev-piernas','ev-cadera','ev-cintura','ev-pecho','ev-caida','ev-cant-caida','ev-cuero','ev-alopecia','ev-estres','ev-productos','ev-previos','ev-det-prev'];
-  fields.forEach(function(f){var el=document.getElementById(f);if(el&&el.value)extra+=f.replace('ev-','')+': '+el.value+' | ';});
-  var evEval=(document.getElementById('ev-evaluador')||{}).value||'';
-  var evObj=(document.getElementById('ev-objetivo')||{}).value||'';
-  if(evEval)extra+='EVALUADOR: '+evEval+' | ';
-  if(evObj)extra+='OBJETIVO: '+evObj+' | ';
-  cont=extra+'\n'+cont;
+  var evTipo=(document.getElementById('ev-tipo')||{}).value||'FACIAL';
+  var ev={numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_evaluacion:evTipo,
+    nivel_estres:(document.getElementById('ev-estres')||{}).value||'',
+    usa_productos:getSiNo('ev-productos')!=='No',productos_detalle:getSiNo('ev-productos'),
+    procedimientos_previos:getSiNo('ev-previos')!=='No',procedimientos_detalle:getSiNo('ev-previos'),
+    usa_fotoprotector:getSiNo('ev-solar')!=='No',fotoprotector_detalle:getSiNo('ev-solar'),
+    detalles_evaluador:(document.getElementById('ev-evaluador')||{}).value||'',
+    objetivo_paciente:(document.getElementById('ev-objetivo')||{}).value||'',
+    nota_clinica:cont,zonas_faciales:JSON.stringify(getChecked('ev-zona-chk')),
+    autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''};
+  if(evTipo==='FACIAL'){ev.tipo_piel=(document.getElementById('ev-piel')||{}).value||'';ev.fototipo=(document.getElementById('ev-foto')||{}).value||'';ev.tiene_hallazgos=getSiNo('ev-hall')!=='No';ev.hallazgos=JSON.stringify(getChecked('ev-hall-chk'));ev.glogau=(document.getElementById('ev-glogau')||{}).value||'';}
+  if(evTipo==='CORPORAL'){ev.peso=parseFloat((document.getElementById('ev-peso-k')||{}).value)||null;ev.talla=parseFloat((document.getElementById('ev-talla-k')||{}).value)||null;if(ev.peso&&ev.talla){ev.imc=Math.round(ev.peso/(ev.talla*ev.talla)*10)/10;ev.imc_estado=ev.imc<18.5?'Bajo peso':ev.imc<25?'Normal':ev.imc<30?'Sobrepeso':'Obesidad';}ev.medida_brazos=parseFloat((document.getElementById('ev-brazos')||{}).value)||null;ev.medida_piernas=parseFloat((document.getElementById('ev-piernas')||{}).value)||null;ev.medida_cadera=parseFloat((document.getElementById('ev-cadera')||{}).value)||null;ev.medida_cintura=parseFloat((document.getElementById('ev-cintura')||{}).value)||null;ev.medida_pecho=parseFloat((document.getElementById('ev-pecho')||{}).value)||null;ev.zonas_corporales=JSON.stringify(getChecked('ev-zona-chk'));}
+  if(evTipo==='CAPILAR'){ev.inicio_caida=(document.getElementById('ev-caida')||{}).value||'';ev.cantidad_caida=(document.getElementById('ev-cant-caida')||{}).value||'';ev.tipo_cuero_cabelludo=(document.getElementById('ev-cuero')||{}).value||'';ev.tipo_alopecia=(document.getElementById('ev-alopecia')||{}).value||'';}
+  if(evTipo==='VITAMINAS'){ev.tipo_trabajo=(document.getElementById('ev-trabajo')||{}).value||'';ev.enfermedades_congenitas=getSiNo('ev-enferm')!=='No';ev.enfermedades_detalle=getSiNo('ev-enferm');ev.dolores_males=getSiNo('ev-dolores')!=='No';ev.dolores_detalle=getSiNo('ev-dolores');ev.insomnio=getSiNo('ev-insomnio')!=='No';ev.insomnio_detalle=getSiNo('ev-insomnio');ev.tipo_alimentacion=(document.getElementById('ev-alim')||{}).value||'';ev.hace_deporte=getSiNo('ev-deporte')!=='No';ev.se_hidrata=getSiNo('ev-hidrata')!=='No';ev.toma_vitaminas=getSiNo('ev-vita')!=='No';ev.vitaminas_detalle=getSiNo('ev-vita');ev.otros_tratamientos=getSiNo('ev-otros-trat')!=='No';ev.tratamientos_detalle=getSiNo('ev-otros-trat');ev.toma_farmacos=getSiNo('ev-farmacos')!=='No';ev.farmacos_detalle=getSiNo('ev-farmacos');ev.alergico=getSiNo('ev-alergico')!=='No';ev.alergias_detalle=getSiNo('ev-alergico');}
+  sbW('aos_evaluaciones_clinicas',ev);
+  cont='[EVAL '+evTipo+'] '+cont;
 }
 var d={numero_limpio:c.numero_limpio,tipo:tipo,fecha:c.fecha,contenido:cont,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''};
 if(tipo==='TRIAJE'){d.peso=parseFloat((document.getElementById('nt-peso')||{}).value)||null;d.talla=parseFloat((document.getElementById('nt-talla')||{}).value)||null;d.presion_arterial=(document.getElementById('nt-pa')||{}).value||null;d.frecuencia_cardiaca=parseInt((document.getElementById('nt-fc')||{}).value)||null;d.temperatura=parseFloat((document.getElementById('nt-temp')||{}).value)||null;d.saturacion=parseInt((document.getElementById('nt-sat')||{}).value)||null;if(d.peso&&d.talla)d.imc=Math.round(d.peso/(d.talla*d.talla)*10)/10;}
-sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Nota guardada','','');loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
+sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Guardado','','');loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
 
 /* ===== MOD-14: SUB PROGRAMAR ===== */
 function rProgramar(el){var c=AT.sel;if(!c)return;
