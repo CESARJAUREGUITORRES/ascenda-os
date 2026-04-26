@@ -16,7 +16,7 @@
   --green:#16A34A;--green-xl:#F0FDF4;--green-md:#BBF7D0;
   --purple:#7C3AED;--purple-xl:#F5F3FF;
 }
-body{font-family:'DM Sans',sans-serif,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
 /* ===== BANNER DIVISAS — AZUL PROFUNDO ===== */
 .ticker-wrap{background:var(--blue-deep);overflow:hidden;height:30px;display:flex;align-items:center;border-bottom:2px solid var(--blue);flex-shrink:0;}
@@ -42,9 +42,9 @@ body{font-family:'DM Sans',sans-serif,sans-serif;background:var(--bg);color:var(
 .edo-dot2{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .hdr-apertura{font-size:11px;color:var(--muted);}
 .hdr-apertura strong{color:var(--text);}
-.btn-abrir-caja{padding:7px 14px;border-radius:8px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
-.btn-cerrar-caja{padding:7px 14px;border-radius:8px;background:var(--red);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
-.btn-filtro-fecha{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.btn-abrir-caja{padding:7px 14px;border-radius:8px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;}
+.btn-cerrar-caja{padding:7px 14px;border-radius:8px;background:var(--red);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;}
+.btn-filtro-fecha{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--muted);display:flex;align-items:center;gap:5px;}
 .btn-filtro-fecha:hover{border-color:var(--blue);color:var(--blue);}
 
 /* ===== BODY ===== */
@@ -59,11 +59,11 @@ body{font-family:'DM Sans',sans-serif,sans-serif;background:var(--bg);color:var(
 .card-title{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
 
 /* ===== CARD TOTALES (izquierda) ===== */
-.total-main{font-family:'Exo 2',sans-serif;font-size:32px;font-weight:700;color:var(--text);line-height:1;}
-.total-usd{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:700;color:var(--green);margin-top:4px;}
+.total-main{font-family:Exo 2,sans-serif;font-size:32px;font-weight:700;color:var(--text);line-height:1;}
+.total-usd{font-family:Exo 2,sans-serif;font-size:18px;font-weight:700;color:var(--green);margin-top:4px;}
 .total-desglose{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .desglose-item{flex:1;text-align:center;}
-.desglose-val{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:700;color:var(--text);}
+.desglose-val{font-family:Exo 2,sans-serif;font-size:16px;font-weight:700;color:var(--text);}
 .desglose-lbl{font-size:9px;color:var(--label);font-weight:600;text-transform:uppercase;margin-top:2px;}
 .desglose-cnt{font-size:10px;color:var(--muted);margin-top:1px;}
 .desglose-div{width:1px;background:var(--border);align-self:stretch;}
@@ -72,20 +72,20 @@ body{font-family:'DM Sans',sans-serif,sans-serif;background:var(--bg);color:var(
 .metricas-row{display:flex;flex-direction:column;gap:8px;}
 .met-item{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;background:var(--bg);}
 .met-label{font-size:11px;color:var(--muted);font-weight:600;}
-.met-val{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
+.met-val{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;color:var(--text);}
 .met-val.green{color:var(--green);}
 .met-val.amber{color:var(--amber);}
 .filtro-fecha-wrap{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.input-fecha{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none;}
+.input-fecha{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);outline:none;}
 .input-fecha:focus{border-color:var(--blue);}
 
 /* ===== CARD CAJA/EFECTIVO (derecha) ===== */
 .caja-efectivo-vals{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
 .efect-row{display:flex;justify-content:space-between;align-items:center;}
 .efect-label{font-size:11px;color:var(--muted);}
-.efect-val{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;color:var(--text);}
+.efect-val{font-family:Exo 2,sans-serif;font-size:15px;font-weight:700;color:var(--text);}
 .btns-caja-extra{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.btn-extra{width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text);display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-extra{width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--text);display:flex;align-items:center;gap:6px;transition:all .15s;}
 .btn-extra:hover{background:var(--blue-xl);border-color:var(--blue);color:var(--blue);}
 .btn-extra.gasto:hover{background:var(--red-xl);border-color:var(--red);color:var(--red);}
 
@@ -102,19 +102,19 @@ body{font-family:'DM Sans',sans-serif,sans-serif;background:var(--bg);color:var(
 .metodo-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;min-width:100px;}
 .metodo-card.has-data{border-color:var(--blue-md);background:var(--blue-xl);}
 .mc-name{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
-.mc-val{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-top:2px;}
+.mc-val{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-top:2px;}
 .mc-val.has{color:var(--blue);}
 .mc-cnt{font-size:9px;color:var(--label);}
 .metodos-resumen{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;background:var(--bg);}
 .mr-item{display:flex;flex-direction:column;gap:2px;}
 .mr-label{font-size:9px;color:var(--label);font-weight:700;text-transform:uppercase;}
-.mr-val{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
+.mr-val{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;color:var(--text);}
 
 /* ===== TABLA VENTAS ===== */
 .tabla-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
 .tabla-hdr{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
 .tabla-hdr-title{font-size:11px;font-weight:700;color:var(--text);flex:1;}
-.btn-nueva-venta{padding:7px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
+.btn-nueva-venta{padding:7px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;}
 .tabla-wrap{overflow-x:auto;}
 table.ventas-tabla{width:100%;border-collapse:collapse;font-size:11px;}
 table.ventas-tabla thead tr{background:var(--bg);}
@@ -131,7 +131,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 .badge-efectivo{background:#FFF7ED;color:#EA580C;}
 .badge-qr{background:var(--purple-xl);color:var(--purple);}
 .badge-transferencia{background:var(--green-xl);color:var(--green);}
-.td-monto{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;white-space:nowrap;}
+.td-monto{font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;white-space:nowrap;}
 .td-monto.usd{color:var(--green);}
 .badge-estado{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;}
 .badge-pagado{background:var(--green-xl);color:var(--green);}
@@ -145,7 +145,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 /* ===== NO SESIÓN ===== */
 .no-sesion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;text-align:center;}
 .no-sesion-ico{font-size:44px;}
-.no-sesion h3{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:700;}
+.no-sesion h3{font-family:Exo 2,sans-serif;font-size:18px;font-weight:700;}
 .no-sesion p{font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;}
 
 /* ===== MODALES ===== */
@@ -153,32 +153,32 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 .ov.open{display:flex;}
 .modal-box{background:#fff;border-radius:14px;max-width:95vw;border:1px solid var(--border);overflow:hidden;}
 .modal-hdr{padding:14px 18px;color:#fff;}
-.modal-hdr h3{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;}
+.modal-hdr h3{font-family:Exo 2,sans-serif;font-size:15px;font-weight:700;}
 .modal-hdr p{font-size:10px;opacity:.8;margin-top:2px;}
 .modal-body{padding:18px;max-height:72vh;overflow-y:auto;}
 .modal-foot{padding:10px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
 .mfield{margin-bottom:12px;}
 .mfield label{display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
-.mfield input,.mfield select,.mfield textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;color:var(--text);}
+.mfield input,.mfield select,.mfield textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;color:var(--text);}
 .mfield input:focus,.mfield select:focus{border-color:var(--blue);}
 .mfield .hint{font-size:9px;color:var(--label);margin-top:3px;}
 .mfield .alerta-saldo{padding:7px 10px;background:var(--amber-xl);border:1px solid #FDE68A;border-radius:6px;font-size:10px;color:var(--amber);font-weight:600;margin-top:4px;display:none;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--muted);}
-.btn-primary{padding:8px 20px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
-.btn-danger{padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
-.btn-warning{padding:8px 20px;border-radius:7px;border:none;background:var(--amber);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--muted);}
+.btn-primary{padding:8px 20px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;}
+.btn-danger{padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;}
+.btn-warning{padding:8px 20px;border-radius:7px;border:none;background:var(--amber);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;}
 
 /* ===== MODAL VENTA ===== */
 .modal-venta{width:700px;}
 .items-tabla{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
 .items-tabla th{padding:5px 7px;background:var(--bg);font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;border-bottom:1px solid var(--border);}
 .items-tabla td{padding:5px 7px;border-bottom:1px solid var(--border);}
-.items-tabla td input,.items-tabla td select{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 5px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;}
-.btn-add-item{padding:5px 12px;border-radius:6px;border:1.5px dashed var(--blue);background:var(--blue-xl);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:7px;}
+.items-tabla td input,.items-tabla td select{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 5px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;}
+.btn-add-item{padding:5px 12px;border-radius:6px;border:1.5px dashed var(--blue);background:var(--blue-xl);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;margin-top:7px;}
 .total-line{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:7px 0;border-top:2px solid var(--border);margin-top:5px;}
 .total-lbl{font-size:11px;color:var(--muted);font-weight:600;}
-.total-val{font-family:'Exo 2',sans-serif;font-size:19px;font-weight:700;color:var(--text);}
+.total-val{font-family:Exo 2,sans-serif;font-size:19px;font-weight:700;color:var(--text);}
 .venta-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .comprobante-opts{display:flex;gap:6px;flex-wrap:wrap;}
 .comp-opt{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);}
@@ -239,7 +239,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
     <div class="no-sesion-ico">🔓</div>
     <h3>Caja cerrada</h3>
     <p>La caja de esta sede no está abierta.</p>
-    <button onclick="abrirModalApertura()" style="margin-top:16px;padding:14px 32px;border-radius:12px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 12px rgba(0,201,167,.3);display:flex;align-items:center;gap:8px;">🔓 Abrir caja ahora</button>
+    <button onclick="abrirModalApertura()" style="margin-top:16px;padding:14px 32px;border-radius:12px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;box-shadow:0 4px 12px rgba(0,201,167,.3);display:flex;align-items:center;gap:8px;">🔓 Abrir caja ahora</button>
   </div>
 </div>
 
@@ -350,8 +350,8 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <div>
           <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Agregar servicio o producto</div>
           <div style="display:flex;gap:6px;align-items:center;position:relative;">
-            <input type="text" id="cat-busq" placeholder="Buscar en catálogo..." autocomplete="off" oninput="buscarCatalogo(this.value)" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-            <select id="cat-tipo" style="padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;background:#fff;min-width:120px;" onchange="buscarCatalogo(document.getElementById('cat-busq').value)">
+            <input type="text" id="cat-busq" placeholder="Buscar en catálogo..." autocomplete="off" oninput="buscarCatalogo(this.value)" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;">
+            <select id="cat-tipo" style="padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;background:#fff;min-width:120px;" onchange="buscarCatalogo(document.getElementById('cat-busq').value)">
               <option value="todos">Todos</option>
               <optgroup label="— Servicios —">
               <option value="cat:ACIDO HIALURONICO">Ác. Hialurónico</option>
@@ -420,7 +420,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <div id="pac-search-zone">
           <div style="font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Paciente</div>
           <div style="position:relative;">
-            <input type="text" id="busq-pac-input" placeholder="Nombre, celular o DNI..." autocomplete="off" oninput="buscarPaciente(this.value)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;background:#fff;">
+            <input type="text" id="busq-pac-input" placeholder="Nombre, celular o DNI..." autocomplete="off" oninput="buscarPaciente(this.value)" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;background:#fff;">
             <div id="busq-pac-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:200;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(10,79,191,.1);margin-top:2px;"></div>
           </div>
         </div>
@@ -437,7 +437,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
             </div>
             <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
               <div id="pac-vip-wrap" style="display:none;"><span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 6px;border-radius:10px;font-weight:700;">VIP</span></div>
-              <button onclick="limpiarPaciente()" style="border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">× cambiar</button>
+              <button onclick="limpiarPaciente()" style="border:none;background:transparent;color:var(--red);font-size:10px;cursor:pointer;padding:0;font-family:DM Sans,sans-serif;">× cambiar</button>
             </div>
           </div>
         </div>
@@ -459,12 +459,12 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 
         <!-- 3 BOTONES ACCIÓN -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-          <button onclick="toggleNotas()" id="btn-notas" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;width:64px;">
+          <button onclick="toggleNotas()" id="btn-notas" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:DM Sans,sans-serif;transition:all .15s;width:64px;">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 3h10a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             Notas
           </button>
           <div style="position:relative;">
-            <button onclick="togglePDFMenu()" id="btn-pdf-main" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;width:64px;">
+            <button onclick="togglePDFMenu()" id="btn-pdf-main" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:DM Sans,sans-serif;transition:all .15s;width:64px;">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 16h12M10 3v10M6 10l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
               PDF ▾
             </button>
@@ -479,7 +479,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
               </div>
             </div>
           </div>
-          <button onclick="cotEmailCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;width:64px;">
+          <button onclick="cotEmailCaja()" style="padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);font-family:DM Sans,sans-serif;transition:all .15s;width:64px;">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8l8 5 8-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             Email
           </button>
@@ -488,13 +488,13 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <!-- NOTAS — colapsado por defecto -->
         <div id="notas-panel" style="display:none;background:#fff;border:1.5px solid var(--blue-md);border-radius:8px;padding:10px 12px;">
           <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Notas internas</div>
-          <textarea id="nota-venta" placeholder="Notas del equipo sobre esta atención..." style="width:100%;min-height:64px;font-size:11px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:6px 8px;background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"></textarea>
+          <textarea id="nota-venta" placeholder="Notas del equipo sobre esta atención..." style="width:100%;min-height:64px;font-size:11px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:6px 8px;background:transparent;color:var(--text);font-family:DM Sans,sans-serif;outline:none;"></textarea>
         </div>
 
         <!-- BOTONES PRINCIPALES -->
         <div style="display:flex;flex-direction:column;gap:5px;margin-top:auto;">
-          <button onclick="grabarCotizacion()" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Grabar cotización</button>
-          <button onclick="cerrarOv('ov-venta')" style="width:100%;padding:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+          <button onclick="grabarCotizacion()" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">💾 Grabar cotización</button>
+          <button onclick="cerrarOv('ov-venta')" style="width:100%;padding:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">Cancelar</button>
         </div>
 
       </div>
@@ -514,13 +514,13 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
       <!-- Monto del ítem -->
       <div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;padding:12px 16px;border-radius:10px;text-align:center;margin-bottom:14px;">
         <div style="font-size:10px;opacity:.7;margin-bottom:3px;">Monto del ítem</div>
-        <div style="font-size:24px;font-weight:800;font-family:'Exo 2',sans-serif;" id="pago-monto-display">S/ 0.00</div>
+        <div style="font-size:24px;font-weight:800;font-family:Exo 2,sans-serif;" id="pago-monto-display">S/ 0.00</div>
       </div>
 
       <!-- Toggle -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div style="font-size:11px;font-weight:700;color:var(--muted);">Método de pago</div>
-        <button onclick="toggleDividir()" id="btn-dividir" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--muted);">⇄ Dividir pago</button>
+        <button onclick="toggleDividir()" id="btn-dividir" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:DM Sans,sans-serif;color:var(--muted);">⇄ Dividir pago</button>
       </div>
 
       <!-- MODO SIMPLE — campos en línea, sin tabla -->
@@ -528,31 +528,31 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
           <div class="mfield" style="margin:0;">
             <label>Método de pago</label>
-            <select id="pago-metodo-single" onchange="autoCompSimple(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+            <select id="pago-metodo-single" onchange="autoCompSimple(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;"></select>
           </div>
           <div class="mfield" style="margin:0;">
             <label>Monto a pagar</label>
-            <input type="number" id="pago-monto-simple" step="0.01" oninput="recalcSimple()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:right;">
+            <input type="number" id="pago-monto-simple" step="0.01" oninput="recalcSimple()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;text-align:right;">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div class="mfield" style="margin:0;">
             <label>Comprobante</label>
-            <select id="pago-comp-simple" onchange="autoRazonSimple(this.value)" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
+            <select id="pago-comp-simple" onchange="autoRazonSimple(this.value)" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;"></select>
           </div>
           <div class="mfield" style="margin:0;">
             <label>Entidad fiscal (RUC / R.H.)</label>
-            <select id="pago-razon-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
+            <select id="pago-razon-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;"></select>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div class="mfield" style="margin:0;">
             <label>Asesor comisión</label>
-            <select id="pago-asesor-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
+            <select id="pago-asesor-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;"></select>
           </div>
           <div class="mfield" style="margin:0;">
             <label>Quién atendió</label>
-            <select id="pago-atendio-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none;"></select>
+            <select id="pago-atendio-simple" style="width:100%;padding:8px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:11px;outline:none;"></select>
           </div>
         </div>
         <div style="margin-top:10px;padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -579,7 +579,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
             <tbody id="pago-lines-tbody"></tbody>
           </table>
           <div style="padding:6px 10px;border-top:1px solid var(--border);">
-            <button onclick="agregarLineaPago()" style="font-size:11px;padding:3px 12px;border:1.5px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--muted);">+ agregar método</button>
+            <button onclick="agregarLineaPago()" style="font-size:11px;padding:3px 12px;border:1.5px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--muted);">+ agregar método</button>
           </div>
         </div>
         <div style="padding:8px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -613,15 +613,15 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
       <div class="grid2">
         <div class="mfield">
           <label>Método de pago</label>
-          <select id="edit-metodo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+          <select id="edit-metodo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;"></select>
         </div>
         <div class="mfield">
           <label>Monto</label>
-          <input type="number" id="edit-monto" step="0.01" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:right;">
+          <input type="number" id="edit-monto" step="0.01" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;text-align:right;">
         </div>
         <div class="mfield">
           <label>Estado del pago</label>
-          <select id="edit-estado" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+          <select id="edit-estado" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;">
             <option value="PAGO COMPLETO">Pago completo</option>
             <option value="ADELANTO">Adelanto</option>
             <option value="PENDIENTE">Pendiente</option>
@@ -629,24 +629,24 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         </div>
         <div class="mfield">
           <label>Comprobante</label>
-          <select id="edit-comprobante" onchange="autoRazonEdit(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+          <select id="edit-comprobante" onchange="autoRazonEdit(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;">
           </select>
         </div>
         <div class="mfield">
           <label>Entidad fiscal (RUC / R.H.)</label>
-          <select id="edit-razon" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+          <select id="edit-razon" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;"></select>
         </div>
         <div class="mfield">
           <label>Asesor comisión</label>
-          <select id="edit-asesor" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+          <select id="edit-asesor" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;"></select>
         </div>
         <div class="mfield">
           <label>Quién atendió</label>
-          <select id="edit-atendio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+          <select id="edit-atendio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;"></select>
         </div>
         <div class="mfield" style="grid-column:1/-1;">
           <label>Divisa</label>
-          <select id="edit-moneda" style="width:180px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+          <select id="edit-moneda" style="width:180px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;">
             <option value="PEN">S/ (Soles)</option>
             <option value="USD">$ (Dólares)</option>
           </select>
@@ -679,7 +679,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
     <div class="modal-body">
       <div style="margin-bottom:14px;">
         <label style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;display:block;margin-bottom:4px;">Correo del paciente</label>
-        <input type="email" id="em-caja-email" placeholder="correo@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--surface);color:var(--text);">
+        <input type="email" id="em-caja-email" placeholder="correo@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif;outline:none;background:var(--surface);color:var(--text);">
       </div>
       <div style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;margin-bottom:8px;">Tipo de documento</div>
       <div style="display:flex;gap:8px;" id="em-caja-tipo">
@@ -697,8 +697,8 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
       <div style="margin-top:14px;padding:10px 12px;background:var(--blue-xl);border-radius:8px;font-size:10px;color:var(--label);border:1px solid var(--border);" id="em-caja-preview">Selecciona items para ver preview</div>
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--border);">
-      <button onclick="cerrarOv('ov-email-caja')" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-weight:600;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text);">Cancelar</button>
-      <button onclick="emCajaEnviar()" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">📧 Enviar</button>
+      <button onclick="cerrarOv('ov-email-caja')" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--text);">Cancelar</button>
+      <button onclick="emCajaEnviar()" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">📧 Enviar</button>
     </div>
   </div>
 </div>
@@ -723,7 +723,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
         <tfoot>
           <tr style="background:var(--bg);">
             <td colspan="3" style="padding:10px 14px;font-weight:700;font-size:12px;border-top:2px solid var(--border);">Total</td>
-            <td id="desglose-total" style="padding:10px 14px;text-align:right;font-weight:800;font-size:14px;font-family:'Exo 2',sans-serif;border-top:2px solid var(--border);color:var(--blue);"></td>
+            <td id="desglose-total" style="padding:10px 14px;text-align:right;font-weight:800;font-size:14px;font-family:Exo 2,sans-serif;border-top:2px solid var(--border);color:var(--blue);"></td>
             <td style="border-top:2px solid var(--border);"></td>
           </tr>
         </tfoot>
@@ -951,8 +951,8 @@ function renderCaja() {
     '</div>' +
     // Montos
     '<div style="display:flex;align-items:baseline;gap:10px;">' +
-      '<div style="font-family:'Exo 2',sans-serif;font-size:28px;font-weight:700;color:var(--text);">S/ ' + parseFloat(k.total_soles||0).toFixed(2) + '</div>' +
-      '<div style="font-family:'Exo 2',sans-serif;font-size:16px;font-weight:700;color:var(--green);">$ ' + parseFloat(k.total_dolares||0).toFixed(2) + '</div>' +
+      '<div style="font-family:Exo 2,sans-serif;font-size:28px;font-weight:700;color:var(--text);">S/ ' + parseFloat(k.total_soles||0).toFixed(2) + '</div>' +
+      '<div style="font-family:Exo 2,sans-serif;font-size:16px;font-weight:700;color:var(--green);">$ ' + parseFloat(k.total_dolares||0).toFixed(2) + '</div>' +
     '</div>' +
     // Badges de estado en línea
     '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;">' +
@@ -962,13 +962,13 @@ function renderCaja() {
     // Servicios vs Productos
     '<div style="display:flex;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">' +
       '<div style="flex:1;text-align:center;">' +
-        '<div style="font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;">S/ ' + parseFloat(k.monto_servicios||0).toFixed(2) + '</div>' +
+        '<div style="font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;">S/ ' + parseFloat(k.monto_servicios||0).toFixed(2) + '</div>' +
         '<div style="font-size:9px;color:var(--label);font-weight:700;text-transform:uppercase;margin-top:1px;">Servicios</div>' +
         '<div style="font-size:9px;color:var(--muted);">' + (k.total_servicios||0) + ' ventas</div>' +
       '</div>' +
       '<div style="width:1px;background:var(--border);"></div>' +
       '<div style="flex:1;text-align:center;">' +
-        '<div style="font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;">S/ ' + parseFloat(k.monto_productos||0).toFixed(2) + '</div>' +
+        '<div style="font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;">S/ ' + parseFloat(k.monto_productos||0).toFixed(2) + '</div>' +
         '<div style="font-size:9px;color:var(--label);font-weight:700;text-transform:uppercase;margin-top:1px;">Productos</div>' +
         '<div style="font-size:9px;color:var(--muted);">' + (k.total_productos||0) + ' ventas</div>' +
       '</div>' +
@@ -1013,8 +1013,8 @@ function renderCaja() {
       html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);font-size:11px;">' +
         '<div style="font-weight:600;color:var(--text);">' + escH(m.metodo||'') + '</div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">' +
-          (tieneS ? '<span style="font-family:'Exo 2',sans-serif;font-weight:700;color:var(--blue);">S/ ' + parseFloat(m.total_soles).toFixed(2) + '</span>' : '') +
-          (tieneD ? '<span style="font-family:'Exo 2',sans-serif;font-weight:700;color:var(--green);">$ ' + parseFloat(m.total_dolares).toFixed(2) + '</span>' : '') +
+          (tieneS ? '<span style="font-family:Exo 2,sans-serif;font-weight:700;color:var(--blue);">S/ ' + parseFloat(m.total_soles).toFixed(2) + '</span>' : '') +
+          (tieneD ? '<span style="font-family:Exo 2,sans-serif;font-weight:700;color:var(--green);">$ ' + parseFloat(m.total_dolares).toFixed(2) + '</span>' : '') +
           '<span style="font-size:9px;color:var(--label);">' + m.cantidad + ' reg.</span>' +
         '</div>' +
       '</div>';
@@ -1589,7 +1589,7 @@ function renderItemsTbl() {
         '<span style="font-size:9px;background:var(--green-xl);color:var(--green);padding:2px 7px;border-radius:20px;white-space:nowrap;">✓ pagado</span>';
       accionBtn = estadoBadge; // Editar/eliminar ya están en el modal desglose (clic en método)
     } else {
-      accionBtn = '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Pagar</button>';
+      accionBtn = '<button onclick="abrirPagoItem('+i+')" style="font-size:10px;padding:3px 9px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap;">Pagar</button>';
     }
     var rowBg = it.pagado ? 'background:var(--green-xl);' : '';
     var rowClick = it.pagado ? 'onclick="verDesglosePago('+i+')" style="cursor:pointer;" title="Ver / editar pago"' : '';
@@ -1967,26 +1967,26 @@ function renderTablaLineas() {
   tbody.innerHTML = VT.lineasPago.map(function(ln, i) {
     return '<tr style="border-bottom:1px solid var(--border);">' +
       '<td style="padding:5px 8px;">' +
-        '<select onchange="VT.lineasPago['+i+'].metodo=this.value;autoFillLinea('+i+')" style="width:100%;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;outline:none;">' +
+        '<select onchange="VT.lineasPago['+i+'].metodo=this.value;autoFillLinea('+i+')" style="width:100%;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:DM Sans,sans-serif;outline:none;">' +
           _mkMetodosOpts(ln.metodo) +
         '</select>' +
       '</td>' +
       '<td style="padding:5px 5px;text-align:center;">' +
-        '<select onchange="VT.lineasPago['+i+'].divisa=this.value;recalcCubierto()" style="width:40px;font-size:10px;padding:3px 2px;border:1px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;outline:none;">' +
+        '<select onchange="VT.lineasPago['+i+'].divisa=this.value;recalcCubierto()" style="width:40px;font-size:10px;padding:3px 2px;border:1px solid var(--border);border-radius:5px;font-family:DM Sans,sans-serif;outline:none;">' +
           '<option value="PEN"'+(ln.divisa==='PEN'?' selected':'')+'>S/</option>' +
           '<option value="USD"'+(ln.divisa==='USD'?' selected':'')+'>$</option>' +
         '</select>' +
       '</td>' +
       '<td style="padding:5px 5px;">' +
-        '<input type="number" value="'+(ln.monto||0).toFixed(2)+'" min="0" step="0.01" oninput="VT.lineasPago['+i+'].monto=parseFloat(this.value)||0;recalcCubierto()" style="width:100%;text-align:right;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;outline:none;">' +
+        '<input type="number" value="'+(ln.monto||0).toFixed(2)+'" min="0" step="0.01" oninput="VT.lineasPago['+i+'].monto=parseFloat(this.value)||0;recalcCubierto()" style="width:100%;text-align:right;font-size:11px;padding:4px 5px;border:1px solid var(--border);border-radius:5px;font-family:DM Sans,sans-serif;outline:none;">' +
       '</td>' +
       '<td style="padding:5px 5px;">' +
-        '<select onchange="VT.lineasPago['+i+'].comprobante=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;outline:none;">' +
+        '<select onchange="VT.lineasPago['+i+'].comprobante=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:DM Sans,sans-serif;outline:none;">' +
           _mkCompOpts(ln.comprobante||'BOLETA VIRTUAL', ln.metodo) +
         '</select>' +
       '</td>' +
       '<td style="padding:5px 5px;">' +
-        '<select onchange="VT.lineasPago['+i+'].asesor=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;outline:none;">' +
+        '<select onchange="VT.lineasPago['+i+'].asesor=this.value" style="width:100%;font-size:10px;padding:4px 4px;border:1px solid var(--border);border-radius:5px;font-family:DM Sans,sans-serif;outline:none;">' +
           _mkAsesorOpts(ln.asesor||'') +
         '</select>' +
       '</td>' +
@@ -2133,7 +2133,7 @@ function verDesglosePago(idx) {
         '<td style="padding:9px 12px;font-weight:700;color:var(--muted);">'+(i+1)+'</td>' +
         '<td style="padding:9px 12px;"><span style="font-size:10px;background:'+bgc+';padding:2px 8px;border-radius:20px;font-weight:700;">'+escH(l.metodo)+'</span></td>' +
         '<td style="padding:9px 12px;color:var(--muted);font-size:10px;">'+(l.divisa==='USD'?'USD $':'PEN S/')+'</td>' +
-        '<td style="padding:9px 12px;text-align:right;font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;">'+divSym+' '+l.monto.toFixed(2)+'</td>' +
+        '<td style="padding:9px 12px;text-align:right;font-family:Exo 2,sans-serif;font-size:14px;font-weight:700;">'+divSym+' '+l.monto.toFixed(2)+'</td>' +
         '<td style="padding:9px 12px;font-size:10px;color:var(--muted);">'+escH(l.comp)+'</td>' +
       '</tr>';
     }).join('');
@@ -2316,10 +2316,10 @@ function cotPDFCaja(tipo) {
 
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + tituloDoc + ' — ' + escH(nom) + '</title>' +
     '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">' +
-    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif,sans-serif;color:#0D1B3E;padding:28px 36px;max-width:680px;margin:auto;}' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:DM Sans,sans-serif;color:#0D1B3E;padding:28px 36px;max-width:680px;margin:auto;}' +
     '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid '+cSec+';margin-bottom:18px;}' +
     '.brand{font-size:20px;font-weight:800;color:'+cSec+';font-family:"Source Serif 4",serif;}' +
-    '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;font-family:'DM Sans',sans-serif,sans-serif;}' +
+    '.brand small{display:block;font-size:10px;color:#6B7BA8;font-weight:400;font-family:DM Sans,sans-serif;}' +
     '.brand .empresa-datos{font-size:9px;color:#9AAAC8;margin-top:4px;line-height:1.5;}' +
     '.doc-title{font-size:16px;font-weight:800;color:'+cSec+';text-align:right;}' +
     '.doc-meta{font-size:11px;color:#6B7BA8;text-align:right;margin-top:3px;}' +
@@ -2399,7 +2399,7 @@ function cotEmailCaja() {
     '<div onclick="document.getElementById(\'email-modal-inline\').remove()" style="margin-left:auto;color:#fff;font-size:20px;cursor:pointer;padding:4px;">&times;</div></div>' +
     '<div style="padding:20px 22px;">' +
     '<label style="font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;">Correo del paciente</label>' +
-    '<input type="email" id="em-inline-email" value="' + escH(email) + '" placeholder="correo@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:13px;margin-top:4px;outline:none;font-family:'DM Sans',sans-serif;box-sizing:border-box;">' +
+    '<input type="email" id="em-inline-email" value="' + escH(email) + '" placeholder="correo@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:13px;margin-top:4px;outline:none;font-family:DM Sans,sans-serif;box-sizing:border-box;">' +
     '<div style="display:flex;gap:8px;margin-top:14px;">' +
     '<div id="em-opt-comp" onclick="document.getElementById(\'em-opt-comp\').style.borderColor=\'#0A4FBF\';document.getElementById(\'em-opt-comp\').style.background=\'#EBF2FF\';document.getElementById(\'em-opt-cot\').style.borderColor=\'#DDE4F5\';document.getElementById(\'em-opt-cot\').style.background=\'#fff\';window._emTipo=\'recibo_venta\'" style="flex:1;padding:14px;border-radius:12px;border:2px solid #0A4FBF;background:#EBF2FF;cursor:pointer;text-align:center;">' +
     '<div style="font-size:20px;">&#x1f9fe;</div><div style="font-size:11px;font-weight:700;color:#0A4FBF;margin-top:4px;">Comprobante</div><div style="font-size:9px;color:#6B7BA8;">Con detalle de pago</div></div>' +
@@ -2407,8 +2407,8 @@ function cotEmailCaja() {
     '<div style="font-size:20px;">&#x1f4cb;</div><div style="font-size:11px;font-weight:700;color:#475569;margin-top:4px;">Cotizaci\u00f3n</div><div style="font-size:9px;color:#6B7BA8;">Solo presupuesto</div></div></div>' +
     '<div style="margin-top:12px;padding:8px 12px;background:#F8FAFF;border-radius:8px;font-size:10px;color:#6B7BA8;border:1px solid #EEF0F8;">' + escH(preview) + '</div></div>' +
     '<div style="display:flex;gap:8px;padding:14px 22px;border-top:1px solid #EEF0F8;">' +
-    '<button onclick="document.getElementById(\'email-modal-inline\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>' +
-    '<button onclick="emCajaEnviarInline()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">\u2709 Enviar</button></div></div>';
+    '<button onclick="document.getElementById(\'email-modal-inline\').remove()" style="flex:1;padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;background:#fff;font-weight:600;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">Cancelar</button>' +
+    '<button onclick="emCajaEnviarInline()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;font-weight:700;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;">\u2709 Enviar</button></div></div>';
   document.body.appendChild(m);
   window._emTipo = 'recibo_venta';
 }
@@ -2810,8 +2810,8 @@ function mostrarPlanes(planes) {
   });
   
   o += '<div style="padding:14px 16px;display:flex;gap:8px;justify-content:flex-end;">';
-  o += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:8px 16px;border:1px solid #DDE4F5;border-radius:6px;background:#fff;cursor:pointer;font-family:\'DM Sans\';font-size:11px;font-weight:600;">Cancelar</button>';
-  o += '<button onclick="planACotizacion()" style="padding:8px 16px;border:none;border-radius:6px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;cursor:pointer;font-family:\'DM Sans\';font-size:11px;font-weight:700;">📋 Cargar en cotización</button>';
+  o += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:8px 16px;border:1px solid #DDE4F5;border-radius:6px;background:#fff;cursor:pointer;font-family:DM Sans;font-size:11px;font-weight:600;">Cancelar</button>';
+  o += '<button onclick="planACotizacion()" style="padding:8px 16px;border:none;border-radius:6px;background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;cursor:pointer;font-family:DM Sans;font-size:11px;font-weight:700;">📋 Cargar en cotización</button>';
   o += '</div></div></div>';
   
   document.body.insertAdjacentHTML('beforeend', o);
