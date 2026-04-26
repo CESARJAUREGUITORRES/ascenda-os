@@ -373,7 +373,9 @@ function togS(t){var e=document.getElementById('step-'+t);if(e)e.classList.toggl
 
 /* ===== MOD-13: DRAWER NOTA ===== */
 function openNota(tipo){var c=AT.sel;if(!c)return;_openTipo=tipo;
-var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',NOTA_PROCEDIMIENTO:'💉 Procedimiento',EVOLUCION_MEDICA:'📈 Evolución',PLAN_TRABAJO:'📅 Plan',PRESCRIPCION:'💊 Receta'};
+/* Interceptar Plan de Trabajo → drawer especial */
+if(tipo==='PLAN_TRABAJO'){openPlanTrabajo();return;}
+var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',NOTA_PROCEDIMIENTO:'💉 Procedimiento',EVOLUCION_MEDICA:'📈 Evolución',PRESCRIPCION:'💊 Receta'};
 document.getElementById('dw-nota-t').textContent=labels[tipo]||tipo;var b=document.getElementById('dw-nota-b');
 var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
 
@@ -712,6 +714,134 @@ function guardarNotaCliente(){
   sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_CLIENTE',fecha:c.fecha,contenido:txt,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(r){
     if(r.ok){if(window.AOS_showToast)AOS_showToast('✅ Nota guardada','','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
+
+/* ===== MOD-25: PLAN DE TRABAJO ===== */
+var PT={servicios:[],productos:[],items:[]};
+function openPlanTrabajo(){
+  var c=AT.sel;if(!c)return;
+  document.getElementById('dw-nota-t').textContent='📅 Plan de Trabajo';
+  var b=document.getElementById('dw-nota-b');
+  b.innerHTML='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div><div style="text-align:center;padding:20px;color:var(--mt);font-size:9px">Cargando servicios...</div>';
+  openDw('nota');PT.items=[];
+  /* Cargar servicios del profesional + productos */
+  var cod=AOS.ctx?AOS.ctx.idAsesor:'';
+  Promise.all([
+    sbR('aos_servicios_profesional',{p_codigo_asesor:cod}),
+    sbR('aos_productos_catalogo',{})
+  ]).then(function(res){
+    PT.servicios=res[0]||[];PT.productos=res[1]||[];
+    renderPlanTrabajo(b);
+  });
+}
+
+function renderPlanTrabajo(b){
+  var c=AT.sel;
+  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
+  /* Agregar servicio */
+  o+='<div class="at-sc">Agregar servicio al plan</div>';
+  o+='<div style="display:flex;gap:4px;margin-bottom:8px"><select id="pt-svc" class="fi fs" style="flex:1;font-size:9px"><option value="">Seleccionar servicio...</option>';
+  PT.servicios.forEach(function(s){if(s.tipo==='SERVICIO')o+='<option value="'+E(s.nombre)+'" data-precio="'+(s.precio_oferta||s.precio_base||0)+'" data-sesiones="'+(s.num_sesiones||1)+'">'+E(s.nombre)+' — S/'+(s.precio_oferta||s.precio_base||0)+'</option>';});
+  o+='</select><button class="btn btn-s btn-sm" onclick="ptAddSvc()">+</button></div>';
+  /* Agregar producto */
+  o+='<div class="at-sc">Agregar producto</div>';
+  o+='<div style="display:flex;gap:4px;margin-bottom:8px"><select id="pt-prod" class="fi fs" style="flex:1;font-size:9px"><option value="">Seleccionar producto...</option>';
+  PT.productos.forEach(function(p){o+='<option value="'+E(p.nombre)+'" data-precio="'+(p.precio_oferta||p.precio_base||0)+'">'+E(p.nombre)+' — S/'+(p.precio_oferta||p.precio_base||0)+'</option>';});
+  o+='</select><button class="btn btn-s btn-sm" onclick="ptAddProd()">+</button></div>';
+  /* Derivación */
+  o+='<div class="at-sc">Derivar a especialista</div>';
+  o+='<div style="display:flex;gap:4px;margin-bottom:10px"><input id="pt-deriv" class="fi" placeholder="Nombre del profesional..." style="flex:1;font-size:9px"><button class="btn btn-s btn-sm" onclick="ptAddDeriv()">+</button></div>';
+
+  /* Items agregados */
+  o+='<div class="at-sc">Plan actual ('+PT.items.length+' items)</div>';
+  if(!PT.items.length)o+='<div style="font-size:8px;color:var(--mt);padding:8px 0;text-align:center">Agrega servicios, productos o derivaciones</div>';
+  var totalEst=0;
+  PT.items.forEach(function(item,i){
+    var sub=item.precio_total||0;totalEst+=sub;
+    o+='<div style="padding:8px;border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:4px;background:var(--sf);font-size:8px">';
+    o+='<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px"><span style="font-size:12px">'+(item.tipo==='SERVICIO'?'💉':item.tipo==='PRODUCTO'?'💊':'👩‍⚕️')+'</span><b style="flex:1;color:var(--deep)">'+E(item.nombre)+'</b><button style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:10px" onclick="ptRemove('+i+')">✕</button></div>';
+    if(item.tipo==='SERVICIO'){
+      o+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
+      o+='<div class="fg"><label class="fl">Sesiones</label><input class="fi" type="number" value="'+item.num_sesiones+'" min="1" onchange="ptUpd('+i+',\'num_sesiones\',this.value)" style="font-size:9px"></div>';
+      o+='<div class="fg"><label class="fl">Frecuencia</label><select class="fi fs" onchange="ptUpd('+i+',\'frecuencia\',this.value)" style="font-size:9px"><option'+(item.frecuencia==='Semanal'?' selected':'')+'>Semanal</option><option'+(item.frecuencia==='Quincenal'?' selected':'')+'>Quincenal</option><option'+(item.frecuencia==='Mensual'?' selected':'')+'>Mensual</option><option'+(item.frecuencia==='Bimestral'?' selected':'')+'>Bimestral</option></select></div>';
+      o+='<div class="fg"><label class="fl">Precio/sesión</label><input class="fi" type="number" value="'+item.precio_unitario+'" onchange="ptUpd('+i+',\'precio_unitario\',this.value)" style="font-size:9px"></div>';
+      o+='</div>';
+      o+='<div style="text-align:right;font-weight:800;color:var(--blue);margin-top:2px">Subtotal: S/'+Math.round(item.num_sesiones*item.precio_unitario)+'</div>';
+    }else if(item.tipo==='PRODUCTO'){
+      o+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
+      o+='<div class="fg"><label class="fl">Dosis</label><input class="fi" value="'+(item.dosis||'')+'" placeholder="1 cap, 5ml..." onchange="ptUpd('+i+',\'dosis\',this.value)" style="font-size:9px"></div>';
+      o+='<div class="fg"><label class="fl">Momento</label><select class="fi fs" onchange="ptUpd('+i+',\'momento\',this.value)" style="font-size:9px"><option>Mañana</option><option>Tarde</option><option>Noche</option><option>Mañana y noche</option></select></div>';
+      o+='<div class="fg"><label class="fl">Modo</label><select class="fi fs" onchange="ptUpd('+i+',\'modo_uso\',this.value)" style="font-size:9px"><option>Tomar</option><option>Aplicar</option></select></div>';
+      o+='</div>';
+      o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">';
+      o+='<div class="fg"><label class="fl">Días</label><input class="fi" type="number" value="'+(item.duracion_dias||30)+'" onchange="ptUpd('+i+',\'duracion_dias\',this.value)" style="font-size:9px"></div>';
+      o+='<div class="fg"><label class="fl">Precio</label><input class="fi" type="number" value="'+item.precio_unitario+'" onchange="ptUpd('+i+',\'precio_unitario\',this.value)" style="font-size:9px"></div></div>';
+      o+='<div style="text-align:right;font-weight:800;color:var(--blue);margin-top:2px">S/'+Math.round(item.precio_unitario)+'</div>';
+    }else if(item.tipo==='DERIVACION'){
+      o+='<div class="fg"><label class="fl">Motivo</label><input class="fi" value="'+(item.motivo||'')+'" placeholder="Motivo de la derivación..." onchange="ptUpd('+i+',\'motivo\',this.value)" style="font-size:9px"></div>';
+    }
+    o+='<div class="fg" style="margin-top:4px"><label class="fl">Notas</label><input class="fi" value="'+(item.notas||'')+'" placeholder="Notas adicionales..." onchange="ptUpd('+i+',\'notas\',this.value)" style="font-size:9px"></div>';
+    o+='</div>';
+  });
+
+  /* Total estimado */
+  if(PT.items.length){
+    o+='<div style="padding:8px;background:#EBF2FF;border-radius:var(--r);margin-top:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:9px;font-weight:700;color:var(--deep)">Inversión estimada</span><span style="font-size:14px;font-weight:800;color:var(--blue)">S/'+Math.round(totalEst)+'</span></div>';
+  }
+
+  o+='<div class="fg" style="margin-top:10px"><label class="fl">Observaciones del plan</label><textarea id="pt-obs" class="ta" rows="2" placeholder="Notas generales del plan..."></textarea></div>';
+  o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:6px" onclick="ptGuardar()">💾 Guardar plan de trabajo</button>';
+  b.innerHTML=o;
+}
+
+function ptAddSvc(){
+  var sel=document.getElementById('pt-svc');if(!sel||!sel.value)return;
+  var opt=sel.options[sel.selectedIndex];
+  PT.items.push({tipo:'SERVICIO',nombre:sel.value,num_sesiones:parseInt(opt.dataset.sesiones)||1,frecuencia:'Mensual',precio_unitario:parseFloat(opt.dataset.precio)||0,precio_total:0});
+  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+}
+function ptAddProd(){
+  var sel=document.getElementById('pt-prod');if(!sel||!sel.value)return;
+  var opt=sel.options[sel.selectedIndex];
+  PT.items.push({tipo:'PRODUCTO',nombre:sel.value,precio_unitario:parseFloat(opt.dataset.precio)||0,dosis:'',momento:'Mañana',modo_uso:'Tomar',duracion_dias:30});
+  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+}
+function ptAddDeriv(){
+  var inp=document.getElementById('pt-deriv');if(!inp||!inp.value)return;
+  PT.items.push({tipo:'DERIVACION',nombre:'Derivación a '+inp.value,derivar_a:inp.value,motivo:''});
+  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+}
+function ptRemove(i){PT.items.splice(i,1);renderPlanTrabajo(document.getElementById('dw-nota-b'));}
+function ptUpd(i,field,val){
+  if(field==='num_sesiones'||field==='precio_unitario'||field==='duracion_dias')val=parseFloat(val)||0;
+  PT.items[i][field]=val;
+  if(field==='num_sesiones'||field==='precio_unitario')PT.items[i].precio_total=PT.items[i].num_sesiones*PT.items[i].precio_unitario;
+  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+}
+
+function ptGuardar(){
+  var c=AT.sel;if(!c||!PT.items.length){if(window.AOS_showToast)AOS_showToast('Agrega al menos 1 item','','toast-alerta');return;}
+  var planId='plan-'+Date.now();
+  var obs=(document.getElementById('pt-obs')||{}).value||'';
+  var promises=PT.items.map(function(item,i){
+    var d={plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
+      nombre_servicio:item.tipo==='SERVICIO'?item.nombre:null,
+      num_sesiones:item.num_sesiones||1,frecuencia:item.frecuencia||'',
+      precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
+      nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,
+      dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
+      derivar_a:item.derivar_a||null,motivo_derivacion:item.motivo||null,
+      notas:item.notas||(i===0?obs:null),
+      autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||''};
+    return sbW('aos_plan_trabajo_items',d);
+  });
+  /* También guardar como nota clínica resumen */
+  var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ')+' | Total est: S/'+Math.round(PT.items.reduce(function(s,it){return s+(it.num_sesiones||1)*(it.precio_unitario||0)},0));
+  promises.push(sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'PLAN_TRABAJO',fecha:c.fecha,contenido:resumen+(obs?'\n'+obs:''),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}));
+  Promise.all(promises).then(function(){
+    closeDw();_openTipo=null;PT.items=[];
+    if(window.AOS_showToast)AOS_showToast('✅ Plan guardado','','');loadDet();
   });
 }
 </script>
