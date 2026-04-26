@@ -228,7 +228,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   <div class="hdr-apertura" id="hdr-info"></div>
   <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
     <!-- filtro fecha movido a la card de facturación -->
-    <button id="btn-abrir" class="btn-abrir-caja" onclick="abrirModalApertura()" style="display:none;">🔓 Abrir caja</button>
+    <button id="btn-abrir" class="btn-abrir-caja" onclick="abrirModalApertura()">🔓 Abrir caja</button>
     <button id="btn-cerrar-caja-btn" class="btn-cerrar-caja" onclick="abrirModalCierre()" style="display:none;">🔒 Cerrar caja</button>
   </div>
 </div>
@@ -238,7 +238,8 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
   <div class="no-sesion" id="no-sesion-msg">
     <div class="no-sesion-ico">🔓</div>
     <h3>Caja cerrada</h3>
-    <p>La caja de esta sede no está abierta. Haz clic en "Abrir caja" para iniciar el día.</p>
+    <p>La caja de esta sede no está abierta.</p>
+    <button onclick="abrirModalApertura()" style="margin-top:16px;padding:14px 32px;border-radius:12px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 12px rgba(0,201,167,.3);display:flex;align-items:center;gap:8px;">🔓 Abrir caja ahora</button>
   </div>
 </div>
 
