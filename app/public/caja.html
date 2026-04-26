@@ -2900,12 +2900,6 @@ function mostrarCotizaciones(cots, numero) {
   document.body.insertAdjacentHTML('beforeend', o);
 }
 
-  actualizarResumen();
-  var modal = document.getElementById('modal-planes');
-  if (modal) modal.remove();
-  toast(checks.length + ' tratamiento(s) cargados del plan', 'ok');
-}
-
 function cargarCotEnVenta(cotId) {
   sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
     if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
