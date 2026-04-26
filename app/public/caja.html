@@ -2735,8 +2735,11 @@ init();
 // ===== MOD-11-START: PLANES Y COTIZACIONES EN CAJA =====
 function cargarPlanesPaciente(numero) {
   if (!numero) return;
-  rpc('aos_planes_paciente', {p_numero_limpio: numero}, function(planes) {
-    if (!planes || !planes.length) return;
+  rpc('aos_planes_paciente', {p_numero_limpio: numero}, function(result) {
+    // rpc() hace d[0] — resultado puede ser {aos_planes_paciente:[...]} o directamente el array
+    var planes = result;
+    if (result && result.aos_planes_paciente) planes = result.aos_planes_paciente;
+    if (!planes || !Array.isArray(planes) || !planes.length) return;
     var pendientes = planes.filter(function(p) { return p.items_pendientes > 0; });
     if (!pendientes.length) return;
     var pf = document.getElementById('pac-ficha');
