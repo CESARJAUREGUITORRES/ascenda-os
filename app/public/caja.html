@@ -2636,16 +2636,17 @@ function init() {
   try {
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
     CAJA.usuario = ((s.nombre || '') + (s.apellido ? ' ' + s.apellido : '')).trim() || 'ADMIN';
-    // Detectar admin igual que app.html: cargo O nivel jerárquico
-    CAJA.esAdmin = (s.puesto === 'ADMINISTRADOR' || s.puesto === 'DIRECTOR GENERAL' || s.puesto === 'JEFE DE ÁREA' || (s.nivel && s.nivel <= 2));
-    // Si viene de AOS global (impersonate), usar rol real
-    if (window.AOS && AOS.role === 'ADMIN') CAJA.esAdmin = true;
+    // Usar nivel jerárquico como fuente de verdad
+    var nivel = s.nivel || 4;
+    CAJA.esAdmin = (nivel <= 2);
+    // Si AOS global está disponible (impersonate o sesión activa), usar su nivel
     if (window.AOS && AOS.ctx) {
       CAJA.usuario = AOS.ctx.nombre || CAJA.usuario;
-      if (AOS.ctx.nivel && AOS.ctx.nivel <= 2) CAJA.esAdmin = true;
+      nivel = AOS.ctx.nivel || AOS.ctx.nivelReal || nivel;
+      CAJA.esAdmin = (nivel <= 2) || (AOS.role === 'ADMIN');
     }
     CAJA.sedeFija = !CAJA.esAdmin;
-    CAJA.nombrePersonal = s.nombre || '';
+    CAJA.nombrePersonal = s.nombre || (AOS && AOS.ctx ? AOS.ctx.nombre : '');
   } catch(e) { CAJA.usuario = 'CAJA'; CAJA.esAdmin = false; CAJA.sedeFija = false; CAJA.nombrePersonal = ''; }
 
   // Actualizar tabs (default: SAN ISIDRO hasta que carguemos horario)

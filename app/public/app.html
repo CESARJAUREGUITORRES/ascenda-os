@@ -451,17 +451,29 @@ setTimeout(function() {
     var urlParams = new URLSearchParams(window.location.search);
     var impUser = urlParams.get('impersonate');
     if (impUser) {
+      // Primero verificar quién es el usuario REAL (de la sesión original)
+      var realSession = JSON.parse(localStorage.getItem('aos_session') || '{}');
+      var realNivel = realSession.nivel || 4;
+      var esSuperAdmin = (realNivel <= 1);
+      var esAdminReal = (realNivel <= 2);
       // Load user data from DB and create temporary session
       fetch(_SB+'/rest/v1/aos_usuarios?codigo_asesor=eq.'+encodeURIComponent(impUser)+'&select=*', {
         headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
       }).then(function(r){return r.json()}).then(function(users){
         if(!users||!users[0]){alert('Usuario no encontrado: '+impUser);return;}
         var u=users[0];
-        var isAdm=u.cargo==='ADMINISTRADOR'||u.cargo==='DIRECTOR GENERAL'||u.cargo==='JEFE DE ÁREA'||(u.nivel_jerarquia&&u.nivel_jerarquia<=2);
         AOS.token=u.codigo_asesor;
-        AOS.ctx={nombre:u.nombre,apellido:u.apellidos||'',role:isAdm?'ADMIN':'ASESOR',puesto:u.cargo,sede:u.sede,idAsesor:u.codigo_asesor,asesor:u.nombre,paneles_acceso:u.paneles_acceso||[],avatar_url:u.avatar_url||'',nivel:u.nivel_jerarquia||4,area:u.area||''};
+        // Si el usuario REAL es Super Admin (nivel 1), mantener ADMIN y dar acceso total
+        var role = esAdminReal ? 'ADMIN' : (u.nivel_jerarquia && u.nivel_jerarquia <= 2 ? 'ADMIN' : 'ASESOR');
+        var paneles = u.paneles_acceso || [];
+        // Super Admin ve TODOS los paneles del usuario impersonado + los suyos
+        if (esSuperAdmin && realSession.paneles_acceso) {
+          var extras = realSession.paneles_acceso;
+          extras.forEach(function(p) { if (paneles.indexOf(p) < 0) paneles.push(p); });
+        }
+        AOS.ctx={nombre:u.nombre,apellido:u.apellidos||'',role:role,puesto:u.cargo,sede:u.sede,idAsesor:u.codigo_asesor,asesor:u.nombre,paneles_acceso:paneles,avatar_url:u.avatar_url||'',nivel:esSuperAdmin?1:(esAdminReal?2:(u.nivel_jerarquia||4)),area:u.area||'',impersonando:true,nivelReal:realNivel};
         if(typeof AOS.ctx.paneles_acceso==='string'){try{AOS.ctx.paneles_acceso=JSON.parse(AOS.ctx.paneles_acceso);}catch(e){AOS.ctx.paneles_acceso=[];}}
-        AOS.role=AOS.ctx.role;
+        AOS.role=role;
         document.title='👁 '+u.nombre+' — AscendaOS';
         buildTopbar();startClock();buildSidebar();
         navigateTo(AOS.ctx.paneles_acceso&&AOS.ctx.paneles_acceso[0]?AOS.ctx.paneles_acceso[0]:(AOS.role==='ADMIN'?'admin-home':'call-center'));
