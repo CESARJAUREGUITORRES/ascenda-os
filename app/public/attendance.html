@@ -154,7 +154,9 @@ function rProf(){var p=AT.prof;if(!p)return;var cmp=p.cmp&&p.cmp.length>2?'<div 
 
 function loadAt(){var hoy=new Date().toISOString().split('T')[0],f=hoy,t=hoy;if(AT.period==='semana'){var d=new Date();d.setDate(d.getDate()-d.getDay());f=d.toISOString().split('T')[0];d.setDate(d.getDate()+6);t=d.toISOString().split('T')[0];}if(AT.period==='mes'){f=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-01';var ld=new Date(AT.calY,AT.calM+1,0);t=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-'+ld.getDate();}if(AT.period==='anio'){f=AT.calY+'-01-01';t=AT.calY+'-12-31';}
 var pn=AT.prof?AT.prof.nombre_publico:'ALL';var isAdmin=window.AOS&&AOS.role==='ADMIN';
-sbR('aos_mis_atenciones',{p_profesional:isAdmin?'ALL':pn,p_fecha_desde:f,p_fecha_hasta:t}).then(function(r){if(!r||!r.ok){AT.all=[];AT.list=[];rKPIs();rCal();rList();return;}AT.all=r.atenciones||[];AT.list=AT.all;rKPIs();rCal();rList();loadHomeAlerts();
+// Extraer primer nombre para matchear con ventas (RUVILA, MIREYA, CAROLINA)
+var pnSearch=pn;if(pn&&pn!=='ALL'){var parts=pn.replace(/^Dra\.?\s*/i,'').replace(/^DRA\.?\s*/i,'').trim().split(' ');pnSearch=parts[0];}if(AT.prof&&AT.prof.tipo==='DOCTORA')pnSearch='DRA '+pnSearch;
+sbR('aos_mis_atenciones',{p_profesional:isAdmin?'ALL':pnSearch,p_fecha_desde:f,p_fecha_hasta:t}).then(function(r){if(!r||!r.ok){AT.all=[];AT.list=[];rKPIs();rCal();rList();return;}AT.all=r.atenciones||[];AT.list=AT.all;rKPIs();rCal();rList();loadHomeAlerts();
 // Si es "hoy" y no hay data, cambiar a mes automáticamente
 if(AT.period==='hoy'&&AT.all.length===0){var mesChip=document.querySelectorAll('.at-ch')[2];if(mesChip){atP('mes',mesChip);}}});}
 

@@ -457,14 +457,14 @@ setTimeout(function() {
       }).then(function(r){return r.json()}).then(function(users){
         if(!users||!users[0]){alert('Usuario no encontrado: '+impUser);return;}
         var u=users[0];
-        var isAdm=u.puesto==='ADMINISTRADOR'||u.puesto==='DIRECTOR GENERAL'||(u.nivel&&u.nivel<=2);
+        var isAdm=u.cargo==='ADMINISTRADOR'||u.cargo==='DIRECTOR GENERAL'||u.cargo==='JEFE DE ÁREA'||(u.nivel_jerarquia&&u.nivel_jerarquia<=2);
         AOS.token=u.codigo_asesor;
-        AOS.ctx={nombre:u.nombre,apellido:u.apellido||'',role:isAdm?'ADMIN':'ASESOR',puesto:u.puesto,sede:u.sede,idAsesor:u.codigo_asesor,asesor:u.nombre,paneles_acceso:u.paneles_acceso||[],avatar_url:u.avatar_url||'',nivel:u.nivel||4,area:u.area||''};
+        AOS.ctx={nombre:u.nombre,apellido:u.apellidos||'',role:isAdm?'ADMIN':'ASESOR',puesto:u.cargo,sede:u.sede,idAsesor:u.codigo_asesor,asesor:u.nombre,paneles_acceso:u.paneles_acceso||[],avatar_url:u.avatar_url||'',nivel:u.nivel_jerarquia||4,area:u.area||''};
         if(typeof AOS.ctx.paneles_acceso==='string'){try{AOS.ctx.paneles_acceso=JSON.parse(AOS.ctx.paneles_acceso);}catch(e){AOS.ctx.paneles_acceso=[];}}
         AOS.role=AOS.ctx.role;
         document.title='👁 '+u.nombre+' — AscendaOS';
-        buildTopbar();startClock();
-        if(AOS.role==='ADMIN'){buildSidebar();navigateTo('admin-home');}else{buildSidebar();navigateTo(AOS.ctx.paneles_acceso&&AOS.ctx.paneles_acceso[0]?AOS.ctx.paneles_acceso[0]:'call-center');}
+        buildTopbar();startClock();buildSidebar();
+        navigateTo(AOS.ctx.paneles_acceso&&AOS.ctx.paneles_acceso[0]?AOS.ctx.paneles_acceso[0]:(AOS.role==='ADMIN'?'admin-home':'call-center'));
       });
       return;
     }
