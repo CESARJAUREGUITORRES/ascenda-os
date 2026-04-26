@@ -2869,38 +2869,82 @@ function mostrarCotizaciones(cots, numero) {
 function cargarPlanEnVenta() {
   var checks = document.querySelectorAll('.plan-sel:checked');
   if (!checks.length) { toast('Selecciona al menos 1 opcion', 'warn'); return; }
-  // Buscar el campo de búsqueda de catálogo en la venta
-  var searchInput = document.querySelector('#venta-busq-input, [id*="busq"], input[placeholder*="Buscar en cat"]');
+
   checks.forEach(function(chk) {
     var nombre = chk.dataset.nombre;
     var precio = parseFloat(chk.dataset.precio) || 0;
-    // Simular agregar item al carrito de venta
-    if (typeof agregarItemDesdeExterno === 'function') {
-      agregarItemDesdeExterno(nombre, precio, 1);
-    } else if (typeof VT !== 'undefined' && VT.items) {
-      VT.items.push({nombre:nombre, precio:precio, cantidad:1, subtotal:precio, descuento:0, metodo:'', comprobante:'', divisa:'PEN', tipo:'SERVICIO', plan_item_id:chk.dataset.item});
-      if (typeof renderItems === 'function') renderItems();
-    }
+    var sesiones = parseInt(chk.dataset.sesiones) || 1;
+    // Agregar cada sesión como item individual para poder pagar por separado
+    // O agregar como 1 item con cantidad = sesiones
+    VT.items.push({
+      id: Date.now() + '' + Math.random().toString(36).substr(2,4),
+      nombre: nombre,
+      tipo: 'SERVICIO',
+      categoria: '',
+      cantidad: sesiones,
+      divisa: 'PEN',
+      precio: precio,
+      descTipo: 'PCT',
+      descVal: 0,
+      subtotal: precio * sesiones,
+      pagado: false,
+      metodoPago: '',
+      metodoPago2: '',
+      monto1: 0,
+      monto2: 0,
+      comprobante: 'BOLETA VIRTUAL',
+      estadoPago: 'PAGO COMPLETO',
+      asesorComision: '',
+      atendio: '',
+      plan_item_id: chk.dataset.item || ''
+    });
   });
+
+  renderItemsTbl();
+  actualizarResumen();
   var modal = document.getElementById('modal-planes');
   if (modal) modal.remove();
-  toast(checks.length + ' item(s) cargados del plan', 'ok');
+  toast(checks.length + ' tratamiento(s) cargados del plan', 'ok');
 }
 
 function cargarCotEnVenta(cotId) {
-  // Cargar items de la cotización y agregarlos a la venta
   sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
     if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
     items.forEach(function(it) {
-      if (typeof VT !== 'undefined') {
-        if (!VT.items) VT.items = [];
-        VT.items.push({nombre:it.nombre||it.descripcion, precio:parseFloat(it.precio_unitario)||0, cantidad:it.cantidad||1, subtotal:parseFloat(it.subtotal)||0, descuento:0, metodo:'', comprobante:'', divisa:'PEN', tipo:it.tipo||'SERVICIO', cotizacion_id:cotId, cotizacion_item_id:it.id});
-      }
+      var precio = parseFloat(it.precio_unitario) || 0;
+      var cant = it.cantidad || 1;
+      var pagado = parseFloat(it.monto_pagado || 0);
+      var pendiente = (precio * cant) - pagado;
+      if (pendiente <= 0) return; // ya pagado completo
+      VT.items.push({
+        id: Date.now() + '' + Math.random().toString(36).substr(2,4),
+        nombre: (it.nombre || it.descripcion || '') + (pagado > 0 ? ' (saldo)' : ''),
+        tipo: it.tipo || 'SERVICIO',
+        categoria: '',
+        cantidad: pagado > 0 ? 1 : cant,
+        divisa: it.moneda || 'PEN',
+        precio: pagado > 0 ? pendiente : precio,
+        descTipo: 'PCT',
+        descVal: 0,
+        subtotal: pagado > 0 ? pendiente : precio * cant,
+        pagado: false,
+        metodoPago: '',
+        metodoPago2: '',
+        monto1: 0,
+        monto2: 0,
+        comprobante: 'BOLETA VIRTUAL',
+        estadoPago: pagado > 0 ? 'SALDO' : 'PAGO COMPLETO',
+        asesorComision: '',
+        atendio: '',
+        cotizacion_id: cotId,
+        cotizacion_item_id: it.id
+      });
     });
-    if (typeof renderItems === 'function') renderItems();
+    renderItemsTbl();
+    actualizarResumen();
     var modal = document.getElementById('modal-cots');
     if (modal) modal.remove();
-    toast(items.length + ' items de cotizacion #' + cotId.substring(0,8) + ' cargados', 'ok');
+    toast('Items de cotizacion cargados', 'ok');
   });
 }
 // ===== MOD-11-END: PLANES Y COTIZACIONES EN CAJA =====
