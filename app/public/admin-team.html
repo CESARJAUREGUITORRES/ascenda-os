@@ -154,6 +154,7 @@ function editUser(idx){
   else{html+='<span class="tag" style="background:#F0FDF4;color:#059669;padding:4px 10px;">✓ Cuenta activa</span>';}
   html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="cambiarPass(\''+u.id+'\',\''+h(u.nombre)+'\')">🔄 Cambiar contraseña</button>';
   html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="forzarCierre(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">🚪 Forzar cierre sesión</button>';
+  html+='<button class="mbtn" style="font-size:8px;background:#0A4FBF;color:#fff;" onclick="abrirComo(\''+h(u.usuario)+'\',\''+h(u.nombre)+'\')">👁 Abrir como</button>';
   html+='</div></div></div></div>';
   // TAB HORARIOS
   html+='<div id="tab-horarios" style="display:none;">';
@@ -538,6 +539,12 @@ function saveServicios(uid){
   });
 }
 // ═══ FORZAR CIERRE DE SESIÓN (invalida sesión del usuario, NO del admin) ═══
+function abrirComo(usuario, nombre){
+  // Open app in new tab with impersonate token
+  var url = window.location.origin + '/app?impersonate=' + encodeURIComponent(usuario);
+  window.open(url, '_blank');
+  if(window.AOS_showToast) AOS_showToast('👁 Abriendo como', nombre);
+}
 function forzarCierre(codigo,nombre){
   if(!confirm('¿Forzar cierre de sesión de '+nombre+'?\nLa próxima vez que recargue, tendrá que loguearse de nuevo.'))return;
   fetch(SB+'/rest/v1/aos_security_log',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:nombre,accion:'force_logout',detalles:'Forzado por admin',created_at:new Date().toISOString()})}).catch(function(){});

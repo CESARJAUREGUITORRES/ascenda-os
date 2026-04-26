@@ -447,6 +447,27 @@ function _patch(tabla,filtro,body,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{me
 /* ===== INIT — se ejecuta al final del script via setTimeout para garantizar que todas las funciones estén definidas ===== */
 setTimeout(function() {
   try {
+    // Check impersonate mode (admin opens as another user)
+    var urlParams = new URLSearchParams(window.location.search);
+    var impUser = urlParams.get('impersonate');
+    if (impUser) {
+      // Load user data from DB and create temporary session
+      fetch(_SB+'/rest/v1/aos_usuarios?usuario=eq.'+encodeURIComponent(impUser)+'&select=*', {
+        headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
+      }).then(function(r){return r.json()}).then(function(users){
+        if(!users||!users[0]){alert('Usuario no encontrado: '+impUser);return;}
+        var u=users[0];
+        var isAdm=u.puesto==='ADMINISTRADOR'||u.puesto==='DIRECTOR GENERAL'||(u.nivel&&u.nivel<=2);
+        AOS.token=u.codigo_asesor;
+        AOS.ctx={nombre:u.nombre,apellido:u.apellido||'',role:isAdm?'ADMIN':'ASESOR',puesto:u.puesto,sede:u.sede,idAsesor:u.codigo_asesor,asesor:u.nombre,paneles_acceso:u.paneles_acceso||[],avatar_url:u.avatar_url||'',nivel:u.nivel||4,area:u.area||''};
+        if(typeof AOS.ctx.paneles_acceso==='string'){try{AOS.ctx.paneles_acceso=JSON.parse(AOS.ctx.paneles_acceso);}catch(e){AOS.ctx.paneles_acceso=[];}}
+        AOS.role=AOS.ctx.role;
+        document.title='👁 '+u.nombre+' — AscendaOS';
+        buildTopbar();startClock();
+        if(AOS.role==='ADMIN'){buildSidebar();navigateTo('admin-home');}else{buildSidebar();navigateTo(AOS.ctx.paneles_acceso&&AOS.ctx.paneles_acceso[0]?AOS.ctx.paneles_acceso[0]:'call-center');}
+      });
+      return;
+    }
     var s = JSON.parse(localStorage.getItem('aos_session') || '{}');
     if (!s || !s.codigo_asesor || s.expires < Date.now()) { redirectLogin(); return; }
     AOS.token = s.codigo_asesor;
