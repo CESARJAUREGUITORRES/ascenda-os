@@ -281,8 +281,22 @@ function rKPIs(){
     '<div class="at-kpi kpi-total"><b>'+tot+'</b><span>Total</span></div>'+
     '<div class="at-kpi kpi-comp"><b>'+comp+'</b><span>Complet.</span></div>'+
     '<div class="at-kpi kpi-pend"><b>'+pend+'</b><span>Pend.</span></div>'+
-    '<div class="at-kpi kpi-sent"><b>0</b><span>F.Enviad</span></div>'+
-    '<div class="at-kpi kpi-noresp"><b>0</b><span>Sin resp</span></div>';
+    '<div class="at-kpi kpi-sent"><b id="kpi-sent-v">—</b><span>F.Enviad</span></div>'+
+    '<div class="at-kpi kpi-noresp"><b id="kpi-noresp-v">—</b><span>Sin resp</span></div>';
+  loadKPIsEncuestas();
+}
+function loadKPIsEncuestas(){
+  var hoy=new Date().toISOString().split('T')[0],f=hoy,t=hoy;
+  if(AT.period==='semana'){var d=new Date();d.setDate(d.getDate()-d.getDay());f=d.toISOString().split('T')[0];d.setDate(d.getDate()+6);t=d.toISOString().split('T')[0];}
+  if(AT.period==='mes'){f=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-01';var ld=new Date(AT.calY,AT.calM+1,0);t=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-'+ld.getDate();}
+  if(AT.period==='anio'){f=AT.calY+'-01-01';t=AT.calY+'-12-31';}
+  var pn=AT.prof?AT.prof.nombre_publico:'ALL';var isAdmin=window.AOS&&AOS.role==='ADMIN';
+  sbR('aos_kpis_encuestas',{p_profesional:isAdmin?'ALL':pn,p_fecha_desde:f,p_fecha_hasta:t}).then(function(r){
+    if(r&&r.enviados!==undefined){
+      var se=document.getElementById('kpi-sent-v');if(se)se.textContent=r.enviados;
+      var nr=document.getElementById('kpi-noresp-v');if(nr)nr.textContent=r.sin_responder;
+    }
+  });
 }
 /* ===== MOD-06-END: KPIS ===== */
 
@@ -488,12 +502,50 @@ function atGuardarProg(){
 
 /* ===== MOD-15-START: TAB DESCUENTOS ===== */
 function rDescuentos(el){
-  var d=AT.det;var inv=d?d.insumos_usados:null;
+  var d=AT.det,c=AT.sel;var inv=d?d.insumos_usados:null;
+  var sede=c?c.sede||'SAN ISIDRO':'SAN ISIDRO';
   var o='<div class="at-sc">Insumos descontados</div>';
   if(inv&&inv.length){inv.forEach(function(i){o+='<div class="at-inv-item"><span style="font-size:12px">📦</span><div class="at-inv-name">'+E(i.nombre_producto)+'</div><div class="at-inv-qty">×'+i.cantidad+'</div><div class="at-inv-user">'+E(i.usuario||'')+'</div></div>';});}
   else{o+='<div style="font-size:9px;color:var(--muted);padding:12px 0;text-align:center">Sin insumos descontados</div>';}
-  o+='<button class="at-btn at-btn-s" style="margin-top:10px" onclick="if(window.AOS_showToast)AOS_showToast(\'Próximamente\',\'\',\'\')">+ Descontar insumo</button>';
+  o+='<div class="at-sc" style="margin-top:14px">Descontar insumo</div>';
+  o+='<div class="at-form-group"><label class="at-form-label">Buscar producto ('+E(sede)+')</label><input class="at-form-input" id="desc-search" placeholder="Escribir nombre..." oninput="atSearchInsumo()"></div>';
+  o+='<div id="desc-results" style="max-height:150px;overflow-y:auto;margin-bottom:8px"></div>';
+  o+='<div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end" id="desc-form" style="display:none"><div class="at-form-group"><label class="at-form-label">Producto seleccionado</label><input class="at-form-input" id="desc-prod" readonly placeholder="Selecciona arriba"></div><div class="at-form-group"><label class="at-form-label">Cant.</label><input class="at-form-input" id="desc-qty" type="number" value="1" min="1" style="width:60px"></div></div>';
+  o+='<input type="hidden" id="desc-inv-id"><button class="at-btn at-btn-p" style="margin-top:8px" onclick="atDescontar()">📦 Descontar</button>';
   el.innerHTML=o;
+}
+function atSearchInsumo(){
+  var q=(document.getElementById('desc-search')||{}).value||'';
+  if(q.length<2){document.getElementById('desc-results').innerHTML='';return;}
+  var sede=AT.sel?AT.sel.sede||'SAN ISIDRO':'SAN ISIDRO';
+  sbR('aos_buscar_insumos',{p_sede:sede,p_query:q}).then(function(items){
+    if(!items||!items.length){document.getElementById('desc-results').innerHTML='<div style="font-size:8px;color:var(--muted);padding:4px">Sin resultados</div>';return;}
+    document.getElementById('desc-results').innerHTML=items.map(function(i){
+      return '<div style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid var(--border2);border-radius:4px;margin-bottom:2px;cursor:pointer;font-size:8px" onclick="atSelInsumo(\''+i.id+'\',\''+E(i.nombre_producto)+'\','+i.cantidad+')"><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">Stock: '+i.cantidad+'</span><span style="color:var(--muted);font-size:7px">'+E(i.unidad||'')+'</span></div>';
+    }).join('');
+  });
+}
+function atSelInsumo(id,nombre,stock){
+  document.getElementById('desc-inv-id').value=id;
+  document.getElementById('desc-prod').value=nombre;
+  document.getElementById('desc-results').innerHTML='<div style="font-size:8px;color:var(--green);padding:4px">✅ '+nombre+' (stock: '+stock+')</div>';
+}
+function atDescontar(){
+  var c=AT.sel;if(!c)return;
+  var invId=document.getElementById('desc-inv-id').value;
+  var prodName=document.getElementById('desc-prod').value;
+  var qty=parseInt(document.getElementById('desc-qty').value)||1;
+  if(!invId||!prodName){if(window.AOS_showToast)AOS_showToast('Selecciona un producto','','toast-alerta');return;}
+  var data={
+    sede:c.sede||'SAN ISIDRO',usuario:AOS.ctx?AOS.ctx.nombre:'',
+    numero_limpio:c.numero_limpio,paciente_nombre:(c.nombre||'')+' '+(c.apellido||''),
+    tratamiento:(c.tratamientos||[])[0]||'',
+    items:[{inventario_id:invId,nombre:prodName,cantidad:qty,motivo:'Uso en atención'}]
+  };
+  sbR('aos_inventario_descontar',{p_data:data}).then(function(r){
+    if(r&&r.descontados){if(window.AOS_showToast)AOS_showToast('✅ '+r.descontados+' insumo(s) descontados','','');loadDetail();}
+    else{if(window.AOS_showToast)AOS_showToast('Error al descontar','','toast-alerta');}
+  });
 }
 /* ===== MOD-15-END: TAB DESCUENTOS ===== */
 
@@ -577,8 +629,32 @@ function rHomeAlerts(){
 
 /* ===== MOD-21-START: ACTIONS ===== */
 function atWA(){if(AT.sel&&AT.sel.numero_limpio)window.open('https://api.whatsapp.com/send?phone=51'+AT.sel.numero_limpio.replace(/\D/g,''),'_blank');}
-function atMarkComplete(){if(!AT.sel)return;if(window.AOS_showToast)AOS_showToast('✅ Completado','','');}
-function atCerrarFicha(){if(!AT.sel)return;if(window.AOS_showToast)AOS_showToast('✅ Ficha cerrada','','');}
+function atMarkComplete(){
+  if(!AT.sel)return;
+  if(!confirm('¿Marcar esta atención como COMPLETADA?'))return;
+  atCerrarFichaReal();
+}
+function atCerrarFicha(){
+  if(!AT.sel)return;
+  if(!confirm('¿Cerrar ficha de '+((AT.sel.nombre||'')+' '+(AT.sel.apellido||'')).trim()+'?'))return;
+  atCerrarFichaReal();
+}
+function atCerrarFichaReal(){
+  var c=AT.sel;if(!c)return;
+  sbR('aos_cerrar_ficha',{
+    p_numero_limpio:c.numero_limpio,
+    p_fecha:c.fecha,
+    p_profesional:c.profesional||'ALL',
+    p_cerrada_por:AOS.ctx?AOS.ctx.nombre:''
+  }).then(function(r){
+    if(r&&r.ok){
+      if(window.AOS_showToast)AOS_showToast('✅ Ficha cerrada','Atención marcada como COMPLETADA','');
+      c.estado='COMPLETADA';rList();rHdr();rKPIs();loadDetail();
+    }else{
+      if(window.AOS_showToast)AOS_showToast('Error al cerrar ficha','','toast-alerta');
+    }
+  });
+}
 function atGenEncuesta(){
   if(!AT.sel)return;var c=AT.sel;
   var token=Math.random().toString(36).substring(2,10)+Date.now().toString(36);
@@ -589,6 +665,7 @@ function atGenEncuesta(){
       var el=document.getElementById('enc-result');
       if(el)el.innerHTML='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;font-size:8px"><b>✅ Link generado</b><br><input value="'+url+'" style="width:100%;margin-top:4px;padding:4px;font-size:8px;border:1px solid var(--border);border-radius:4px" onclick="this.select()" readonly><div style="margin-top:4px;display:flex;gap:4px"><button class="at-btn at-btn-s at-btn-sm" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋 Copiar</button><button class="at-btn at-btn-w at-btn-sm" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! Califica tu atención en Zi Vital: '+url)+'\',\'_blank\')">💬 WA</button></div></div>';
       if(window.AOS_showToast)AOS_showToast('🔗 Link generado','48h','');
+      loadKPIsEncuestas();
     }else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
