@@ -1,14 +1,114 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body>
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;font-family:'DM Sans',sans-serif;">
-  <div style="font-size:48px;">🔧</div>
-  <div style="font-size:18px;font-weight:700;color:#071D4A;">Panel en migración</div>
-  <div style="font-size:13px;color:#6B7BA8;text-align:center;max-width:300px;">
-    Este módulo está siendo migrado de GAS a Supabase Direct.<br>
-    Estará disponible muy pronto.
-  </div>
+<!-- Panel: Mis Atenciones — AscendaOS -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+.at-wrap{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 52px);overflow:hidden;background:#F0F4FC;font-family:'DM Sans',sans-serif}
+.at-left{background:#fff;border-right:1px solid #DDE4F5;display:flex;flex-direction:column;overflow:hidden}
+.at-left-hdr{padding:14px;border-bottom:1px solid #DDE4F5}
+.at-prof-card{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.at-prof-img{width:48px;height:60px;border-radius:10px;object-fit:cover;border:2px solid #DDE4F5}
+.at-prof-name{font-family:'Exo 2';font-size:15px;font-weight:800;color:#0D1B3E}
+.at-prof-sub{font-size:9px;color:#6B7BA8;margin-top:1px}
+.at-prof-cmp{font-size:8px;color:#0A4FBF;font-weight:700;background:#EBF2FF;padding:1px 6px;border-radius:4px;margin-top:3px;display:inline-block}
+.at-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px}
+.at-kpi{text-align:center;padding:6px 2px;background:#F8FAFF;border-radius:8px;border:1px solid #EEF0F8}
+.at-kpi-n{font-family:'Exo 2';font-size:18px;font-weight:800;color:#0A4FBF}
+.at-kpi-l{font-size:7px;color:#6B7BA8;text-transform:uppercase;font-weight:700;letter-spacing:.3px}
+.at-chips{display:flex;gap:3px;margin-bottom:10px}
+.at-chip{flex:1;padding:5px;text-align:center;border:1.5px solid #DDE4F5;border-radius:6px;font-size:9px;font-weight:700;color:#6B7BA8;cursor:pointer;transition:all .12s;background:#fff}
+.at-chip.act{border-color:#00C9A7;background:rgba(0,201,167,.08);color:#00A88A}
+.at-cal{margin-bottom:8px}
+.at-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.at-cal-nav button{width:22px;height:22px;border:none;background:#EBF2FF;border-radius:50%;font-size:10px;cursor:pointer;color:#0A4FBF;font-weight:700}
+.at-cal-title{font-size:10px;font-weight:800;color:#0D1B3E}
+.at-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center}
+.at-cal-h{font-size:6px;font-weight:700;color:#6B7BA8;padding:2px 0}
+.at-cal-d{padding:3px 0;border-radius:4px;font-size:8px;font-weight:600;color:#CBD5E1;cursor:default;position:relative}
+.at-cal-d.has{color:#0D1B3E;cursor:pointer;font-weight:700}
+.at-cal-d.has::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#00C9A7}
+.at-cal-d.sel{background:#0A4FBF;color:#fff}.at-cal-d.sel::after{background:#fff}
+.at-cal-d.today{border:1px solid #0A4FBF}
+.at-left-body{flex:1;overflow-y:auto;padding:8px 14px}
+.at-search{width:100%;padding:7px 10px 7px 28px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans';outline:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236B7BA8' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7' stroke='%236B7BA8' stroke-width='2' fill='none'/%3E%3Cline x1='16' y1='16' x2='22' y2='22' stroke='%236B7BA8' stroke-width='2'/%3E%3C/svg%3E") 8px center no-repeat;margin-bottom:8px}
+.at-search:focus{border-color:#0A4FBF}
+.at-sec{font-size:7px;font-weight:800;color:#0A4FBF;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px}
+.at-pcard{display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid #EEF0F8;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:4px;background:#fff}
+.at-pcard:hover{border-color:#0A4FBF;box-shadow:0 2px 8px rgba(10,79,191,.06)}
+.at-pcard.sel{border-color:#00C9A7;background:rgba(0,201,167,.04)}
+.at-pcard-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.at-pcard-name{font-size:11px;font-weight:700;color:#0D1B3E}
+.at-pcard-trat{font-size:8px;color:#6B7BA8;margin-top:1px}
+.at-pcard-hora{font-size:9px;font-weight:800;color:#0A4FBF;white-space:nowrap}
+.at-pcard-estado{font-size:6px;font-weight:700;padding:2px 5px;border-radius:10px;text-transform:uppercase}
+.at-est-PENDIENTE{background:#FEF3C7;color:#D97706}.at-est-EN_ATENCION{background:#EBF2FF;color:#0A4FBF}.at-est-COMPLETADA,.at-est-ASISTIO{background:#F0FDF4;color:#059669}.at-est-CANCELADA,.at-est-NO_ASISTIO{background:#FEE2E2;color:#DC2626}.at-est-REAGENDADA{background:#EBF2FF;color:#6B7BA8}
+.at-act-btn{width:22px;height:22px;border:none;border-radius:5px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#F8FAFF;transition:all .1s}.at-act-btn:hover{background:#EBF2FF}
+.at-right{display:flex;flex-direction:column;overflow:hidden}
+.at-right-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#6B7BA8}
+.at-right-hdr{padding:12px 16px;border-bottom:1px solid #DDE4F5;background:#fff;display:flex;align-items:center;gap:10px}
+.at-right-body{flex:1;overflow-y:auto;padding:16px}
+.at-flow{position:relative;padding-left:24px}
+.at-flow::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:#DDE4F5}
+.at-flow-step{position:relative;margin-bottom:16px}
+.at-flow-dot{position:absolute;left:-20px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid #DDE4F5;background:#fff;z-index:1}
+.at-flow-dot.done{background:#00C9A7;border-color:#00C9A7}.at-flow-dot.active{background:#0A4FBF;border-color:#0A4FBF;box-shadow:0 0 0 3px rgba(10,79,191,.2)}.at-flow-dot.pending{background:#fff;border-color:#DDE4F5}
+.at-flow-card{background:#fff;border:1px solid #EEF0F8;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(7,29,74,.03)}
+.at-flow-card.active{border-color:#0A4FBF;box-shadow:0 2px 12px rgba(10,79,191,.08)}
+.at-flow-title{font-size:11px;font-weight:800;color:#0D1B3E;display:flex;align-items:center;gap:6px}
+.at-flow-meta{font-size:8px;color:#6B7BA8;margin-top:2px}
+.at-data-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.at-data-item{padding:6px;background:#F8FAFF;border-radius:6px;border:1px solid #EEF0F8}
+.at-data-label{font-size:7px;color:#6B7BA8;font-weight:700;text-transform:uppercase}
+.at-data-value{font-size:12px;font-weight:700;color:#0D1B3E;margin-top:1px}
+.at-note-area{width:100%;min-height:60px;padding:8px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:'DM Sans';outline:none;resize:vertical}.at-note-area:focus{border-color:#0A4FBF}
+.at-btn{padding:8px 16px;border:none;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans';transition:all .12s}
+.at-btn-p{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff}.at-btn-c{background:#F0FDF4;color:#059669;border:1px solid #BBF7D0}.at-btn-w{background:#25D366;color:#fff}.at-btn-s{background:#EBF2FF;color:#0A4FBF}
+.at-tabs{display:flex;gap:2px;border-bottom:2px solid #EEF0F8;padding:0 16px;background:#fff}
+.at-tab{padding:8px 14px;font-size:10px;font-weight:700;color:#6B7BA8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .12s}.at-tab.act{color:#0A4FBF;border-bottom-color:#0A4FBF}
+@media(max-width:768px){.at-wrap{grid-template-columns:1fr}.at-left{max-height:50vh}}
+</style>
+<div class="at-wrap">
+<div class="at-left">
+<div class="at-left-hdr">
+<div class="at-prof-card" id="at-prof"></div>
+<div class="at-kpis" id="at-kpis"></div>
+<div class="at-chips"><div class="at-chip act" onclick="atPeriod('hoy',this)">Hoy</div><div class="at-chip" onclick="atPeriod('semana',this)">Semana</div><div class="at-chip" onclick="atPeriod('mes',this)">Mes</div><div class="at-chip" onclick="atPeriod('anio',this)">Año</div></div>
+<div class="at-cal" id="at-cal"></div>
 </div>
-</body>
-</html>
+<div class="at-left-body">
+<input class="at-search" id="at-search" placeholder="Buscar paciente..." oninput="atFilter()">
+<div class="at-sec" id="at-list-title">Atenciones del día</div>
+<div id="at-list"><div style="text-align:center;padding:20px;color:#6B7BA8;font-size:10px;">Cargando...</div></div>
+</div>
+</div>
+<div class="at-right">
+<div class="at-right-empty" id="at-empty"><div style="font-size:48px;">🩺</div><div style="font-family:'Exo 2';font-size:16px;font-weight:800;color:#0D1B3E;">Mis Atenciones</div><div style="font-size:11px;max-width:280px;text-align:center;">Selecciona un paciente para ver el flujo completo de atención.</div></div>
+<div id="at-detail" style="display:none;flex-direction:column;overflow:hidden;flex:1;">
+<div class="at-right-hdr" id="at-det-hdr"></div>
+<div class="at-tabs"><div class="at-tab act" onclick="atTab('flujo',this)">📋 Flujo</div><div class="at-tab" onclick="atTab('notas',this)">📝 Notas</div><div class="at-tab" onclick="atTab('historial',this)">📊 Historial</div><div class="at-tab" onclick="atTab('filiacion',this)">🏥 Filiación</div><div class="at-tab" onclick="atTab('encuesta',this)">⭐ Encuesta</div></div>
+<div class="at-right-body" id="at-det-body"></div>
+</div>
+</div>
+</div>
+<script>
+var AT={period:'hoy',selPac:null,list:[],calYear:0,calMonth:0,prof:null,allList:[]};
+(function(){var h=new Date();AT.calYear=h.getFullYear();AT.calMonth=h.getMonth();if(window.AOS&&AOS.ctx){var code=AOS.ctx.idAsesor;sbFetch('/rest/v1/aos_perfiles_profesional?codigo_asesor=eq.'+encodeURIComponent(code)+'&select=*').then(function(r){if(r&&r[0])AT.prof=r[0];else AT.prof={nombre_publico:AOS.ctx.nombre,especialidad:AOS.ctx.area||'',cmp:'',foto_url:'',id:''};renderProf();loadAt();});}else{AT.prof={nombre_publico:'Profesional',especialidad:'',cmp:'',foto_url:'',id:''};renderProf();loadAt();}})();
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function sbFetch(p){return fetch(_SB+p,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();})}
+function renderProf(){var p=AT.prof;if(!p)return;var cmp=p.cmp&&p.cmp.length>2?'<div class="at-prof-cmp">CMP '+esc(p.cmp)+'</div>':'';document.getElementById('at-prof').innerHTML=(p.foto_url?'<img class="at-prof-img" src="'+esc(p.foto_url)+'">':'<div class="at-prof-img" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;">'+esc((p.nombre_publico||'?')[0])+'</div>')+'<div><div class="at-prof-name">'+esc(p.nombre_publico)+'</div><div class="at-prof-sub">'+esc(p.especialidad)+'</div>'+cmp+'</div>';}
+function loadAt(){var hoy=new Date().toISOString().split('T')[0];var from=hoy,to=hoy;if(AT.period==='semana'){var d=new Date();d.setDate(d.getDate()-d.getDay());from=d.toISOString().split('T')[0];d.setDate(d.getDate()+6);to=d.toISOString().split('T')[0];}if(AT.period==='mes'){from=AT.calYear+'-'+String(AT.calMonth+1).padStart(2,'0')+'-01';var ld=new Date(AT.calYear,AT.calMonth+1,0);to=AT.calYear+'-'+String(AT.calMonth+1).padStart(2,'0')+'-'+String(ld.getDate()).padStart(2,'0');}if(AT.period==='anio'){from=AT.calYear+'-01-01';to=AT.calYear+'-12-31';}sbFetch('/rest/v1/aos_agenda_citas?fecha_cita=gte.'+from+'&fecha_cita=lte.'+to+'&order=fecha_cita.desc,hora_cita&select=*&limit=200').then(function(c){AT.allList=c||[];AT.list=AT.allList;renderKPIs();renderCal();renderList();});}
+function atPeriod(p,el){AT.period=p;document.querySelectorAll('.at-chip').forEach(function(c){c.classList.remove('act')});el.classList.add('act');loadAt();}
+function renderKPIs(){var t=AT.list.length;var a=AT.list.filter(function(c){return c.estado_cita==='ASISTIO'}).length;var p=AT.list.filter(function(c){return c.estado_cita==='PENDIENTE'}).length;var x=AT.list.filter(function(c){return c.estado_cita==='CANCELADA'||c.estado_cita==='NO_ASISTIO'}).length;document.getElementById('at-kpis').innerHTML='<div class="at-kpi"><div class="at-kpi-n">'+t+'</div><div class="at-kpi-l">Total</div></div><div class="at-kpi"><div class="at-kpi-n" style="color:#059669;">'+a+'</div><div class="at-kpi-l">Atendidos</div></div><div class="at-kpi"><div class="at-kpi-n" style="color:#D97706;">'+p+'</div><div class="at-kpi-l">Pendientes</div></div><div class="at-kpi"><div class="at-kpi-n" style="color:#DC2626;">'+x+'</div><div class="at-kpi-l">Cancel.</div></div>';}
+function renderCal(){var y=AT.calYear,m=AT.calMonth,ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];var h=new Date(),hd=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0');var days={};AT.allList.forEach(function(c){var d=parseInt((c.fecha_cita||'').split('-')[2],10);if(d)days[d]=1;});var first=new Date(y,m,1).getDay(),total=new Date(y,m+1,0).getDate();var html='<div class="at-cal-nav"><button onclick="atCN(-1)">‹</button><div class="at-cal-title">'+ms[m]+' '+y+'</div><button onclick="atCN(1)">›</button></div><div class="at-cal-grid">';['D','L','M','M','J','V','S'].forEach(function(d){html+='<div class="at-cal-h">'+d+'</div>';});for(var i=0;i<first;i++)html+='<div class="at-cal-d"></div>';for(var d=1;d<=total;d++){var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var cls='at-cal-d';if(days[d])cls+=' has';if(ds===hd)cls+=' today';html+='<div class="'+cls+'" onclick="atCalDay(\''+ds+'\')">'+d+'</div>';}html+='</div>';document.getElementById('at-cal').innerHTML=html;}
+function atCN(dir){AT.calMonth+=dir;if(AT.calMonth>11){AT.calMonth=0;AT.calYear++;}if(AT.calMonth<0){AT.calMonth=11;AT.calYear--;}loadAt();}
+function atCalDay(ds){AT.list=AT.allList.filter(function(c){return c.fecha_cita===ds;});renderList();document.querySelectorAll('.at-cal-d.sel').forEach(function(e){e.classList.remove('sel')});event.target.classList.add('sel');document.getElementById('at-list-title').textContent='Atenciones del '+ds;}
+function atFilter(){var q=(document.getElementById('at-search').value||'').toLowerCase();AT.list=AT.allList.filter(function(c){return((c.nombre||'')+' '+(c.apellido||'')+' '+(c.tratamiento||'')).toLowerCase().indexOf(q)>-1;});renderList();}
+function renderList(){var items=AT.list;if(!items.length){document.getElementById('at-list').innerHTML='<div style="text-align:center;padding:20px;color:#6B7BA8;font-size:10px;">Sin atenciones</div>';return;}document.getElementById('at-list').innerHTML=items.map(function(c){var n=((c.nombre||'')+' '+(c.apellido||'')).trim();var ini=n?n[0].toUpperCase():'?';var isSel=AT.selPac&&AT.selPac.id===c.id;var e=c.estado_cita||'PENDIENTE';return '<div class="at-pcard'+(isSel?' sel':'')+'" onclick="atSelPac(\''+esc(c.id)+'\')"><div class="at-pcard-ava">'+ini+'</div><div style="flex:1;min-width:0;"><div class="at-pcard-name">'+esc(n)+'</div><div class="at-pcard-trat">'+esc(c.tratamiento||'Consulta')+' · '+esc(c.sede||'')+'</div></div><div style="text-align:right;"><div class="at-pcard-hora">'+esc(c.hora_cita||'')+'</div><div class="at-pcard-estado at-est-'+e+'">'+esc(e.replace(/_/g,' '))+'</div></div><div style="display:flex;gap:2px;margin-left:4px;"><div class="at-act-btn" title="WhatsApp" onclick="event.stopPropagation();atWA(\''+esc(c.numero||'')+'\')">💬</div></div></div>';}).join('');}
+function atSelPac(id){AT.selPac=AT.list.find(function(c){return c.id===id;});renderList();if(!AT.selPac)return;document.getElementById('at-empty').style.display='none';document.getElementById('at-detail').style.display='flex';renderDetHdr();atTab('flujo',document.querySelector('.at-tab'));}
+function renderDetHdr(){var c=AT.selPac;if(!c)return;var n=((c.nombre||'')+' '+(c.apellido||'')).trim();document.getElementById('at-det-hdr').innerHTML='<div class="at-pcard-ava" style="width:40px;height:40px;font-size:14px;">'+esc(n[0]||'?')+'</div><div style="flex:1;"><div style="font-weight:800;font-size:13px;">'+esc(n)+'</div><div style="font-size:9px;color:#6B7BA8;">📱 '+esc(c.numero||'')+' · '+esc(c.tratamiento||'')+' · '+esc(c.fecha_cita||'')+' '+esc(c.hora_cita||'')+'</div></div><div class="at-btn at-btn-c" onclick="atMarcar(\''+esc(c.id)+'\')">✅ Asistió</div><div class="at-btn at-btn-w" onclick="atWA(\''+esc(c.numero||'')+'\')">💬</div>';}
+function atTab(tab,el){document.querySelectorAll('.at-tab').forEach(function(t){t.classList.remove('act')});if(el)el.classList.add('act');var body=document.getElementById('at-det-body');if(tab==='flujo')renderFlujo(body);else body.innerHTML='<div style="text-align:center;padding:30px;color:#6B7BA8;font-size:10px;">Próximamente</div>';}
+function renderFlujo(el){var c=AT.selPac;if(!c)return;var steps=[{ico:'🩺',t:'Triaje',sub:'Enfermería · Signos vitales',tipo:'TRIAJE'},{ico:'📋',t:'Nota de enfermería',sub:'Observaciones pre-atención',tipo:'NOTA_ENFERMERIA'},{ico:'👩‍⚕️',t:'Evaluación médica',sub:'Diagnóstico y plan',tipo:'EVALUACION'},{ico:'💉',t:'Procedimiento',sub:'Detalle de la atención',tipo:'NOTA_PROCEDIMIENTO'},{ico:'📅',t:'Plan de trabajo',sub:'Próximas sesiones',tipo:'PLAN_TRABAJO'},{ico:'💊',t:'Prescripción',sub:'Productos y receta',tipo:'PRESCRIPCION'},{ico:'📈',t:'Evolución',sub:'Seguimiento post',tipo:'EVOLUCION_MEDICA'}];var html='<div class="at-flow">';steps.forEach(function(s){html+='<div class="at-flow-step"><div class="at-flow-dot pending"></div><div class="at-flow-card"><div class="at-flow-title">'+s.ico+' '+s.t+' <span class="at-btn at-btn-s" style="font-size:8px;padding:2px 8px;margin-left:auto;" onclick="openNota(\''+s.tipo+'\')">+ Registrar</span></div><div class="at-flow-meta">'+s.sub+'</div><div id="at-f-'+s.tipo+'"></div></div></div>';});html+='</div>';html+='<div style="margin-top:16px;padding:12px;background:#EBF2FF;border-radius:10px;border:1px solid #DDE4F5;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">⭐</span><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:#0A4FBF;">Enviar encuesta de satisfacción</div><div style="font-size:8px;color:#6B7BA8;">Link único 48h</div></div><div class="at-btn at-btn-w" onclick="atWA(AT.selPac.numero)">💬 WhatsApp</div></div>';el.innerHTML=html;loadNotas();}
+function loadNotas(){if(!AT.selPac)return;sbFetch('/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+encodeURIComponent(AT.selPac.numero||'')+'&fecha=eq.'+AT.selPac.fecha_cita+'&select=*&order=created_at').then(function(notas){if(!notas||!notas.length)return;notas.forEach(function(n){var t=document.getElementById('at-f-'+n.tipo);if(!t)return;var html='<div style="margin-top:6px;padding:6px;background:#F8FAFF;border-radius:6px;font-size:9px;">';if(n.tipo==='TRIAJE'&&n.peso){html+='<div class="at-data-grid">';if(n.peso)html+='<div class="at-data-item"><div class="at-data-label">Peso</div><div class="at-data-value">'+n.peso+'kg</div></div>';if(n.talla)html+='<div class="at-data-item"><div class="at-data-label">Talla</div><div class="at-data-value">'+n.talla+'m</div></div>';if(n.imc)html+='<div class="at-data-item"><div class="at-data-label">IMC</div><div class="at-data-value">'+n.imc+'</div></div>';if(n.presion_arterial)html+='<div class="at-data-item"><div class="at-data-label">P.A.</div><div class="at-data-value">'+esc(n.presion_arterial)+'</div></div>';if(n.frecuencia_cardiaca)html+='<div class="at-data-item"><div class="at-data-label">F.C.</div><div class="at-data-value">'+n.frecuencia_cardiaca+'</div></div>';if(n.temperatura)html+='<div class="at-data-item"><div class="at-data-label">Temp</div><div class="at-data-value">'+n.temperatura+'°</div></div>';html+='</div>';}if(n.contenido)html+='<div style="color:#475569;line-height:1.5;margin-top:4px;">'+esc(n.contenido)+'</div>';html+='<div style="margin-top:3px;font-size:7px;color:#6B7BA8;">'+esc(n.autor)+' · '+esc(n.autor_rol)+'</div></div>';t.innerHTML+=html;var dot=t.closest('.at-flow-card').previousElementSibling;if(dot)dot.classList.replace('pending','done');});});}
+function openNota(tipo){var c=AT.selPac;if(!c)return;var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px;';ov.onclick=function(e){if(e.target===ov)ov.remove();};var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',NOTA_PROCEDIMIENTO:'💉 Procedimiento',PLAN_TRABAJO:'📅 Plan de Trabajo',PRESCRIPCION:'💊 Prescripción',EVOLUCION_MEDICA:'📈 Evolución'};var h='<div style="background:#fff;border-radius:16px;max-width:500px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div style="font-family:Exo 2;font-size:15px;font-weight:800;">'+(labels[tipo]||tipo)+'</div><button onclick="this.closest(\'div[style*=position]\').remove()" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#6B7BA8;">✕</button></div><div style="font-size:9px;color:#6B7BA8;margin-bottom:10px;">'+esc((c.nombre||'')+' '+(c.apellido||''))+' · '+esc(c.fecha_cita)+'</div>';if(tipo==='TRIAJE'){h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">Peso(kg)</label><input id="nt-peso" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="65.5"></div><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">Talla(m)</label><input id="nt-talla" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="1.60"></div><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">P.Arterial</label><input id="nt-pa" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="120/80"></div><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">F.Cardíaca</label><input id="nt-fc" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="72"></div><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">Temp(°C)</label><input id="nt-temp" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="36.5"></div><div><label style="font-size:8px;font-weight:700;color:#6B7BA8;">Saturación</label><input id="nt-sat" style="width:100%;padding:6px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:11px;outline:none;" placeholder="98"></div></div>';}h+='<div style="margin-top:10px;"><label style="font-size:8px;font-weight:700;color:#6B7BA8;">Observaciones</label><textarea id="nt-cont" class="at-note-area" rows="4" placeholder="Escribir nota..."></textarea></div><button class="at-btn at-btn-p" style="width:100%;margin-top:12px;padding:12px;" onclick="saveNota(\''+tipo+'\')">💾 Guardar</button></div>';ov.innerHTML=h;document.body.appendChild(ov);}
+function saveNota(tipo){var c=AT.selPac;if(!c)return;var d={numero_limpio:c.numero||'',tipo:tipo,fecha:c.fecha_cita,contenido:(document.getElementById('nt-cont')||{}).value||'',autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''};if(tipo==='TRIAJE'){d.peso=parseFloat((document.getElementById('nt-peso')||{}).value)||null;d.talla=parseFloat((document.getElementById('nt-talla')||{}).value)||null;d.presion_arterial=(document.getElementById('nt-pa')||{}).value||null;d.frecuencia_cardiaca=parseInt((document.getElementById('nt-fc')||{}).value)||null;d.temperatura=parseFloat((document.getElementById('nt-temp')||{}).value)||null;d.saturacion=parseInt((document.getElementById('nt-sat')||{}).value)||null;if(d.peso&&d.talla)d.imc=Math.round(d.peso/(d.talla*d.talla)*10)/10;}fetch(_SB+'/rest/v1/aos_notas_clinicas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(r){if(r.ok){document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]').remove();if(window.AOS_showToast)AOS_showToast('✅ Nota guardada',tipo);atTab('flujo',document.querySelector('.at-tab'));}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
+function atWA(num){if(num)window.open('https://api.whatsapp.com/send?phone=51'+num.replace(/\D/g,''),'_blank');}
+function atMarcar(id){fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+id,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({estado_cita:'ASISTIO'})}).then(function(){if(window.AOS_showToast)AOS_showToast('✅ Asistió');loadAt();});}
+</script>
