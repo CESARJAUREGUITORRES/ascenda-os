@@ -135,7 +135,7 @@
 .ab-i{flex:1;font-size:8px}.ab-i b{display:block;font-size:9px;margin-bottom:1px}
 
 /* Drawers */
-.dw{position:absolute;top:0;right:-500px;width:460px;height:100%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--bd);box-shadow:-4px 0 24px rgba(7,29,74,.08);z-index:100;transition:right .25s ease;display:flex;flex-direction:column}
+.dw{position:absolute;top:0;right:-560px;width:520px;height:100%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--bd);box-shadow:-4px 0 24px rgba(7,29,74,.08);z-index:100;transition:right .25s ease;display:flex;flex-direction:column}
 .dw.open{right:0}
 .dw-h{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
 .dw-t{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;flex:1}
@@ -717,107 +717,164 @@ function guardarNotaCliente(){
   });
 }
 
-/* ===== MOD-25: PLAN DE TRABAJO ===== */
-var PT={servicios:[],productos:[],items:[]};
+/* ===== MOD-25: PLAN DE TRABAJO v2 ===== */
+var PT={items:[],searchCache:[]};
 function openPlanTrabajo(){
   var c=AT.sel;if(!c)return;
   document.getElementById('dw-nota-t').textContent='📅 Plan de Trabajo';
-  var b=document.getElementById('dw-nota-b');
-  b.innerHTML='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div><div style="text-align:center;padding:20px;color:var(--mt);font-size:9px">Cargando servicios...</div>';
-  openDw('nota');PT.items=[];
-  /* Cargar servicios del profesional + productos */
-  var cod=AOS.ctx?AOS.ctx.idAsesor:'';
-  Promise.all([
-    sbR('aos_servicios_profesional',{p_codigo_asesor:cod}),
-    sbR('aos_productos_catalogo',{})
-  ]).then(function(res){
-    PT.servicios=res[0]||[];PT.productos=res[1]||[];
-    renderPlanTrabajo(b);
-  });
+  var b=document.getElementById('dw-nota-b');PT.items=[];
+  rPT(b);openDw('nota');
 }
 
-function renderPlanTrabajo(b){
-  var c=AT.sel;
+function rPT(b){
+  var c=AT.sel;if(!c)return;
   var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
-  /* Agregar servicio */
-  o+='<div class="at-sc">Agregar servicio al plan</div>';
-  o+='<div style="display:flex;gap:4px;margin-bottom:8px"><select id="pt-svc" class="fi fs" style="flex:1;font-size:9px"><option value="">Seleccionar servicio...</option>';
-  PT.servicios.forEach(function(s){if(s.tipo==='SERVICIO')o+='<option value="'+E(s.nombre)+'" data-precio="'+(s.precio_oferta||s.precio_base||0)+'" data-sesiones="'+(s.num_sesiones||1)+'">'+E(s.nombre)+' — S/'+(s.precio_oferta||s.precio_base||0)+'</option>';});
-  o+='</select><button class="btn btn-s btn-sm" onclick="ptAddSvc()">+</button></div>';
-  /* Agregar producto */
-  o+='<div class="at-sc">Agregar producto</div>';
-  o+='<div style="display:flex;gap:4px;margin-bottom:8px"><select id="pt-prod" class="fi fs" style="flex:1;font-size:9px"><option value="">Seleccionar producto...</option>';
-  PT.productos.forEach(function(p){o+='<option value="'+E(p.nombre)+'" data-precio="'+(p.precio_oferta||p.precio_base||0)+'">'+E(p.nombre)+' — S/'+(p.precio_oferta||p.precio_base||0)+'</option>';});
-  o+='</select><button class="btn btn-s btn-sm" onclick="ptAddProd()">+</button></div>';
-  /* Derivación */
-  o+='<div class="at-sc">Derivar a especialista</div>';
-  o+='<div style="display:flex;gap:4px;margin-bottom:10px"><input id="pt-deriv" class="fi" placeholder="Nombre del profesional..." style="flex:1;font-size:9px"><button class="btn btn-s btn-sm" onclick="ptAddDeriv()">+</button></div>';
+  /* Buscador unificado */
+  o+='<div class="at-sc">Buscar servicio o producto</div>';
+  o+='<div style="position:relative;margin-bottom:8px"><input id="pt-q" class="fi" placeholder="Escribir: hidrofacial, detox, vitaminas, crema..." oninput="ptSearch()" style="font-size:10px;padding-right:40px"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--mt)">🔍</span></div>';
+  o+='<div id="pt-results" style="max-height:180px;overflow-y:auto;margin-bottom:10px"></div>';
 
-  /* Items agregados */
-  o+='<div class="at-sc">Plan actual ('+PT.items.length+' items)</div>';
-  if(!PT.items.length)o+='<div style="font-size:8px;color:var(--mt);padding:8px 0;text-align:center">Agrega servicios, productos o derivaciones</div>';
+  /* Items del plan */
+  o+='<div class="at-sc">Plan del paciente ('+PT.items.length+')</div>';
+  if(!PT.items.length)o+='<div style="font-size:8px;color:var(--mt);padding:8px 0;text-align:center">Busca y agrega servicios o productos arriba</div>';
+  
   var totalEst=0;
   PT.items.forEach(function(item,i){
-    var sub=item.precio_total||0;totalEst+=sub;
-    o+='<div style="padding:8px;border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:4px;background:var(--sf);font-size:8px">';
-    o+='<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px"><span style="font-size:12px">'+(item.tipo==='SERVICIO'?'💉':item.tipo==='PRODUCTO'?'💊':'👩‍⚕️')+'</span><b style="flex:1;color:var(--deep)">'+E(item.nombre)+'</b><button style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:10px" onclick="ptRemove('+i+')">✕</button></div>';
-    if(item.tipo==='SERVICIO'){
-      o+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
-      o+='<div class="fg"><label class="fl">Sesiones</label><input class="fi" type="number" value="'+item.num_sesiones+'" min="1" onchange="ptUpd('+i+',\'num_sesiones\',this.value)" style="font-size:9px"></div>';
-      o+='<div class="fg"><label class="fl">Frecuencia</label><select class="fi fs" onchange="ptUpd('+i+',\'frecuencia\',this.value)" style="font-size:9px"><option'+(item.frecuencia==='Semanal'?' selected':'')+'>Semanal</option><option'+(item.frecuencia==='Quincenal'?' selected':'')+'>Quincenal</option><option'+(item.frecuencia==='Mensual'?' selected':'')+'>Mensual</option><option'+(item.frecuencia==='Bimestral'?' selected':'')+'>Bimestral</option></select></div>';
-      o+='<div class="fg"><label class="fl">Precio/sesión</label><input class="fi" type="number" value="'+item.precio_unitario+'" onchange="ptUpd('+i+',\'precio_unitario\',this.value)" style="font-size:9px"></div>';
-      o+='</div>';
-      o+='<div style="text-align:right;font-weight:800;color:var(--blue);margin-top:2px">Subtotal: S/'+Math.round(item.num_sesiones*item.precio_unitario)+'</div>';
-    }else if(item.tipo==='PRODUCTO'){
-      o+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
-      o+='<div class="fg"><label class="fl">Dosis</label><input class="fi" value="'+(item.dosis||'')+'" placeholder="1 cap, 5ml..." onchange="ptUpd('+i+',\'dosis\',this.value)" style="font-size:9px"></div>';
-      o+='<div class="fg"><label class="fl">Momento</label><select class="fi fs" onchange="ptUpd('+i+',\'momento\',this.value)" style="font-size:9px"><option>Mañana</option><option>Tarde</option><option>Noche</option><option>Mañana y noche</option></select></div>';
-      o+='<div class="fg"><label class="fl">Modo</label><select class="fi fs" onchange="ptUpd('+i+',\'modo_uso\',this.value)" style="font-size:9px"><option>Tomar</option><option>Aplicar</option></select></div>';
-      o+='</div>';
-      o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">';
-      o+='<div class="fg"><label class="fl">Días</label><input class="fi" type="number" value="'+(item.duracion_dias||30)+'" onchange="ptUpd('+i+',\'duracion_dias\',this.value)" style="font-size:9px"></div>';
-      o+='<div class="fg"><label class="fl">Precio</label><input class="fi" type="number" value="'+item.precio_unitario+'" onchange="ptUpd('+i+',\'precio_unitario\',this.value)" style="font-size:9px"></div></div>';
-      o+='<div style="text-align:right;font-weight:800;color:var(--blue);margin-top:2px">S/'+Math.round(item.precio_unitario)+'</div>';
-    }else if(item.tipo==='DERIVACION'){
-      o+='<div class="fg"><label class="fl">Motivo</label><input class="fi" value="'+(item.motivo||'')+'" placeholder="Motivo de la derivación..." onchange="ptUpd('+i+',\'motivo\',this.value)" style="font-size:9px"></div>';
+    var isServ=item.tipo==='SERVICIO';
+    var headerBg=isServ?'linear-gradient(135deg,var(--deep),var(--blue))':'linear-gradient(135deg,#059669,#00C9A7)';
+    var headerColor='#fff';
+    o+='<div style="border:1.5px solid var(--bd);border-radius:var(--r);margin-bottom:6px;overflow:hidden;background:var(--sf)">';
+    /* Header */
+    o+='<div style="padding:6px 10px;background:'+headerBg+';display:flex;align-items:center;gap:6px">';
+    o+='<span style="font-size:12px">'+(isServ?'💉':'💊')+'</span>';
+    o+='<span style="flex:1;font-size:9px;font-weight:800;color:'+headerColor+'">'+E(item.nombre)+'</span>';
+    if(isServ){
+      o+='<span style="font-size:8px;color:rgba(255,255,255,.8)">Sesiones:</span><input type="number" value="'+item.num_sesiones+'" min="1" style="width:36px;padding:2px 4px;border:1px solid rgba(255,255,255,.3);border-radius:4px;font-size:9px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);text-align:center" onchange="ptUpd('+i+',\'num_sesiones\',this.value)">';
+      o+='<select style="padding:2px 4px;border:1px solid rgba(255,255,255,.3);border-radius:4px;font-size:8px;color:#fff;background:rgba(255,255,255,.15)" onchange="ptUpd('+i+',\'frecuencia\',this.value)">';
+      ['Semanal','Quincenal','Mensual','Bimestral','Trimestral','Semestral'].forEach(function(f){o+='<option'+(item.frecuencia===f?' selected':'')+' style="color:#000">'+f+'</option>';});
+      o+='</select>';
     }
-    o+='<div class="fg" style="margin-top:4px"><label class="fl">Notas</label><input class="fi" value="'+(item.notas||'')+'" placeholder="Notas adicionales..." onchange="ptUpd('+i+',\'notas\',this.value)" style="font-size:9px"></div>';
+    o+='<button style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:12px" onclick="ptRemove('+i+')">✕</button></div>';
+
+    /* Variantes/precios */
+    if(item.variantes&&item.variantes.length){
+      o+='<div style="padding:6px 10px;border-bottom:1px solid var(--bd2)">';
+      o+='<div style="font-size:7px;font-weight:700;color:var(--blue);margin-bottom:4px;text-transform:uppercase">Opciones de precio para el paciente</div>';
+      item.variantes.forEach(function(v,vi){
+        var checked=item.variantes_sel&&item.variantes_sel.indexOf(vi)>-1;
+        var precio=v.precio_oferta||v.precio_base||0;
+        o+='<label style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #F8FAFF;cursor:pointer;font-size:8px">';
+        o+='<input type="checkbox" '+(checked?'checked':'')+' onchange="ptToggleVar('+i+','+vi+',this.checked)">';
+        o+='<span style="flex:1;font-weight:600;color:var(--deep)">'+E(v.nombre)+'</span>';
+        if(v.precio_base&&v.precio_oferta&&v.precio_base!=v.precio_oferta)o+='<span style="text-decoration:line-through;color:var(--mt);font-size:7px">S/'+v.precio_base+'</span>';
+        o+='<span style="font-weight:800;color:var(--blue)">S/'+precio+'</span>';
+        o+='</label>';
+      });
+      o+='</div>';
+    }
+
+    /* Producto: dosis/momento */
+    if(!isServ){
+      o+='<div style="padding:6px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px">';
+      o+='<div class="fg"><label class="fl">Dosis</label><input class="fi" value="'+(item.dosis||'')+'" placeholder="1 cap" onchange="ptUpd('+i+',\'dosis\',this.value)" style="font-size:8px"></div>';
+      o+='<div class="fg"><label class="fl">Momento</label><select class="fi fs" onchange="ptUpd('+i+',\'momento\',this.value)" style="font-size:8px">';
+      ['Mañana','Tarde','Noche','Mañana y noche'].forEach(function(m){o+='<option'+(item.momento===m?' selected':'')+'>'+m+'</option>';});
+      o+='</select></div>';
+      o+='<div class="fg"><label class="fl">Modo</label><select class="fi fs" onchange="ptUpd('+i+',\'modo_uso\',this.value)" style="font-size:8px"><option'+(item.modo_uso==='Tomar'?' selected':'')+'>Tomar</option><option'+(item.modo_uso==='Aplicar'?' selected':'')+'>Aplicar</option></select></div>';
+      o+='<div class="fg"><label class="fl">Días</label><input class="fi" type="number" value="'+(item.duracion_dias||30)+'" onchange="ptUpd('+i+',\'duracion_dias\',this.value)" style="font-size:8px"></div>';
+      o+='</div>';
+    }
+
+    /* Notas */
+    o+='<div style="padding:4px 10px 6px"><input class="fi" value="'+(item.notas||'')+'" placeholder="Indicaciones..." onchange="ptUpd('+i+',\'notas\',this.value)" style="font-size:8px"></div>';
+
+    /* Subtotal */
+    var sub=0;
+    if(item.variantes_sel&&item.variantes_sel.length){item.variantes_sel.forEach(function(vi){var v=item.variantes[vi];sub+=parseFloat(v.precio_oferta||v.precio_base||0);});}
+    else{sub=parseFloat(item.precio_unitario||0);}
+    if(isServ)sub=sub*(item.num_sesiones||1);
+    totalEst+=sub;
     o+='</div>';
   });
 
-  /* Total estimado */
+  /* Total + condiciones */
   if(PT.items.length){
-    o+='<div style="padding:8px;background:#EBF2FF;border-radius:var(--r);margin-top:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:9px;font-weight:700;color:var(--deep)">Inversión estimada</span><span style="font-size:14px;font-weight:800;color:var(--blue)">S/'+Math.round(totalEst)+'</span></div>';
+    o+='<div style="padding:10px;background:linear-gradient(135deg,var(--deep),var(--blue));border-radius:var(--r);margin-top:6px;color:#fff">';
+    o+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;font-weight:700">Inversión estimada</span><span style="font-size:18px;font-weight:800">S/'+Math.round(totalEst)+'</span></div>';
+    o+='</div>';
+    
+    /* Condiciones de pago */
+    o+='<div style="padding:8px;border:1px solid var(--bd2);border-radius:var(--r);margin-top:6px;font-size:7px;color:var(--mt);line-height:1.5;background:#F8FAFF">';
+    o+='<b style="color:var(--deep);font-size:8px">💳 Condiciones de pago</b><br>';
+    o+='• Facilidades de pago: <b style="color:var(--deep)">60% en primera cita</b>, saldo en siguiente sesión<br>';
+    o+='• Promociones válidas con pago en efectivo, transferencia o Plin/Yape<br>';
+    o+='• Precios promocionales sujetos a disponibilidad y cambio sin previo aviso<br>';
+    o+='• No se realizan devoluciones. Crédito válido por 6 meses para otros servicios<br>';
+    o+='• Plan válido por 30 días desde su emisión';
+    o+='</div>';
   }
 
-  o+='<div class="fg" style="margin-top:10px"><label class="fl">Observaciones del plan</label><textarea id="pt-obs" class="ta" rows="2" placeholder="Notas generales del plan..."></textarea></div>';
+  o+='<div class="fg" style="margin-top:8px"><label class="fl">Observaciones del plan</label><textarea id="pt-obs" class="ta" rows="2" placeholder="Notas generales..."></textarea></div>';
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:6px" onclick="ptGuardar()">💾 Guardar plan de trabajo</button>';
   b.innerHTML=o;
 }
 
-function ptAddSvc(){
-  var sel=document.getElementById('pt-svc');if(!sel||!sel.value)return;
-  var opt=sel.options[sel.selectedIndex];
-  PT.items.push({tipo:'SERVICIO',nombre:sel.value,num_sesiones:parseInt(opt.dataset.sesiones)||1,frecuencia:'Mensual',precio_unitario:parseFloat(opt.dataset.precio)||0,precio_total:0});
-  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+/* Buscador tipo caja */
+function ptSearch(){
+  var q=(document.getElementById('pt-q')||{}).value||'';
+  var el=document.getElementById('pt-results');
+  if(q.length<2){el.innerHTML='';return;}
+  var cod=AOS.ctx?AOS.ctx.idAsesor:null;
+  sbR('aos_buscar_catalogo',{p_query:q,p_codigo_asesor:cod}).then(function(items){
+    PT.searchCache=items||[];
+    if(!items||!items.length){el.innerHTML='<div style="font-size:8px;color:var(--mt);padding:6px">Sin resultados para "'+E(q)+'"</div>';return;}
+    /* Agrupar por categoría */
+    var cats={};items.forEach(function(it){var cat=it.categoria||it.tipo||'OTRO';if(!cats[cat])cats[cat]=[];cats[cat].push(it);});
+    var o='';
+    Object.keys(cats).forEach(function(cat){
+      o+='<div style="font-size:6px;font-weight:800;color:var(--blue);text-transform:uppercase;padding:4px 0 2px;border-bottom:1px solid var(--bd2)">'+E(cat)+'</div>';
+      cats[cat].forEach(function(it){
+        var precio=it.precio_oferta||it.precio_base||0;
+        var badge=it.tipo==='PRODUCTO'?'<span style="font-size:5px;padding:1px 4px;background:#F0FDF4;color:var(--gn);border-radius:3px;font-weight:700">PRODUCTO</span>':'';
+        o+='<div style="display:flex;align-items:center;gap:6px;padding:5px 4px;cursor:pointer;border-bottom:1px solid #F8FAFF;font-size:8px" onclick="ptAddFromSearch(\''+E(it.id)+'\',\''+E(it.nombre)+'\',\''+E(it.tipo)+'\','+precio+',\''+E(it.categoria||'')+'\',\''+(it.num_sesiones||1)+'\')" onmouseover="this.style.background=\'#F8FAFF\'" onmouseout="this.style.background=\'\'">';
+        o+='<span style="font-size:10px">'+(it.tipo==='PRODUCTO'?'💊':'💉')+'</span>';
+        o+='<span style="flex:1;font-weight:600;color:var(--deep)">'+E(it.nombre)+'</span>';
+        o+=badge;
+        if(it.precio_base&&it.precio_oferta&&parseFloat(it.precio_base)>parseFloat(it.precio_oferta))o+='<span style="text-decoration:line-through;color:var(--mt);font-size:7px">S/'+it.precio_base+'</span>';
+        o+='<span style="font-weight:800;color:var(--blue)">S/'+precio+'</span>';
+        o+='<span style="color:var(--cyan);font-size:10px">+</span>';
+        o+='</div>';
+      });
+    });
+    el.innerHTML=o;
+  });
 }
-function ptAddProd(){
-  var sel=document.getElementById('pt-prod');if(!sel||!sel.value)return;
-  var opt=sel.options[sel.selectedIndex];
-  PT.items.push({tipo:'PRODUCTO',nombre:sel.value,precio_unitario:parseFloat(opt.dataset.precio)||0,dosis:'',momento:'Mañana',modo_uso:'Tomar',duracion_dias:30});
-  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+
+function ptAddFromSearch(id,nombre,tipo,precio,categoria,sesiones){
+  /* Buscar variantes (misma categoría) */
+  var variantes=PT.searchCache.filter(function(it){return it.categoria===categoria&&it.tipo===tipo});
+  var item={tipo:tipo,nombre:nombre,categoria:categoria,precio_unitario:precio,num_sesiones:tipo==='SERVICIO'?parseInt(sesiones)||1:1,frecuencia:'Mensual',
+    variantes:variantes.length>1?variantes:[],variantes_sel:[],
+    dosis:'',momento:'Mañana',modo_uso:'Tomar',duracion_dias:30,notas:''};
+  /* Preseleccionar la variante clickeada */
+  if(variantes.length>1){variantes.forEach(function(v,i){if(v.nombre===nombre)item.variantes_sel.push(i);});}
+  PT.items.push(item);
+  document.getElementById('pt-q').value='';
+  document.getElementById('pt-results').innerHTML='';
+  rPT(document.getElementById('dw-nota-b'));
 }
-function ptAddDeriv(){
-  var inp=document.getElementById('pt-deriv');if(!inp||!inp.value)return;
-  PT.items.push({tipo:'DERIVACION',nombre:'Derivación a '+inp.value,derivar_a:inp.value,motivo:''});
-  renderPlanTrabajo(document.getElementById('dw-nota-b'));
-}
-function ptRemove(i){PT.items.splice(i,1);renderPlanTrabajo(document.getElementById('dw-nota-b'));}
+
+function ptRemove(i){PT.items.splice(i,1);rPT(document.getElementById('dw-nota-b'));}
 function ptUpd(i,field,val){
   if(field==='num_sesiones'||field==='precio_unitario'||field==='duracion_dias')val=parseFloat(val)||0;
   PT.items[i][field]=val;
-  if(field==='num_sesiones'||field==='precio_unitario')PT.items[i].precio_total=PT.items[i].num_sesiones*PT.items[i].precio_unitario;
-  renderPlanTrabajo(document.getElementById('dw-nota-b'));
+  rPT(document.getElementById('dw-nota-b'));
+}
+function ptToggleVar(itemIdx,varIdx,checked){
+  var item=PT.items[itemIdx];if(!item.variantes_sel)item.variantes_sel=[];
+  if(checked){if(item.variantes_sel.indexOf(varIdx)<0)item.variantes_sel.push(varIdx);}
+  else{item.variantes_sel=item.variantes_sel.filter(function(v){return v!==varIdx});}
+  rPT(document.getElementById('dw-nota-b'));
 }
 
 function ptGuardar(){
@@ -825,19 +882,20 @@ function ptGuardar(){
   var planId='plan-'+Date.now();
   var obs=(document.getElementById('pt-obs')||{}).value||'';
   var promises=PT.items.map(function(item,i){
+    var selVars=[];if(item.variantes_sel)item.variantes_sel.forEach(function(vi){if(item.variantes[vi])selVars.push({nombre:item.variantes[vi].nombre,precio:item.variantes[vi].precio_oferta||item.variantes[vi].precio_base});});
     var d={plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
       nombre_servicio:item.tipo==='SERVICIO'?item.nombre:null,
       num_sesiones:item.num_sesiones||1,frecuencia:item.frecuencia||'',
-      precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
+      precio_unitario:item.precio_unitario||0,
+      precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
       nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,
       dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
-      derivar_a:item.derivar_a||null,motivo_derivacion:item.motivo||null,
+      variantes_precio:selVars.length?JSON.stringify(selVars):null,
       notas:item.notas||(i===0?obs:null),
       autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||''};
     return sbW('aos_plan_trabajo_items',d);
   });
-  /* También guardar como nota clínica resumen */
-  var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ')+' | Total est: S/'+Math.round(PT.items.reduce(function(s,it){return s+(it.num_sesiones||1)*(it.precio_unitario||0)},0));
+  var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ');
   promises.push(sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'PLAN_TRABAJO',fecha:c.fecha,contenido:resumen+(obs?'\n'+obs:''),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}));
   Promise.all(promises).then(function(){
     closeDw();_openTipo=null;PT.items=[];
