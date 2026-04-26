@@ -2779,7 +2779,7 @@ function cargarPlanesPaciente(numero) {
 
 function cargarCotizacionesPaciente(numero) {
   if (!numero) return;
-  sbGet('aos_cotizaciones', 'numero_limpio=eq.' + numero + '&estado=in.(PENDIENTE,PARCIAL,CREADO)&saldo_pendiente=gt.0&order=created_at.desc&limit=5', function(cots) {
+  sbGet('aos_cotizaciones', 'numero_limpio=eq.' + numero + '&estado=not.in.(ANULADO,PAGADO_COMPLETO)&saldo_pendiente=gt.0&order=created_at.desc&limit=10', function(cots) {
     if (!cots || !cots.length) return;
     var pf = document.getElementById('pac-ficha');
     if (!pf) return;
@@ -2812,7 +2812,8 @@ function mostrarPlanes(planes) {
     o += '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:2px 8px;border-radius:4px;">' + plan.autor + '</span>';
     o += '<span style="font-size:9px;color:#6B7BA8;">' + plan.fecha + '</span></div>';
     plan.items.forEach(function(item) {
-      if (item.estado !== 'PENDIENTE') return;
+      if (item.estado !== 'PENDIENTE' && item.estado !== 'PARCIAL' && item.estado !== 'COTIZADO') return;
+      var esParcial = (item.estado === 'PARCIAL');
       var variantes = [];
       try { variantes = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : (item.variantes || []); } catch(e) {}
       o += '<div style="padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;margin-bottom:6px;background:#F8FAFF;">';
