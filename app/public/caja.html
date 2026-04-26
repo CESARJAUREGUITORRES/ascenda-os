@@ -2229,6 +2229,16 @@ function grabarCotizacion() {
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
       }).catch(function(e){toast('⚠ Email no enviado: '+e.message,'warn');});
     }
+    // Actualizar plan de trabajo si hay items vinculados
+    VT.items.forEach(function(it) {
+      if (it.plan_item_id && it.pagado) {
+        rpc('aos_actualizar_plan_tras_pago', {
+          p_plan_item_id: it.plan_item_id,
+          p_sesiones_pagadas: it.cantidad || 1,
+          p_cotizacion_id: d.cotizacion_id || null
+        }, function(){}, function(){});
+      }
+    });
     VT.items = []; VT.pac = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     cerrarOv('ov-venta');
@@ -2769,7 +2779,7 @@ function cargarPlanesPaciente(numero) {
 
 function cargarCotizacionesPaciente(numero) {
   if (!numero) return;
-  sbGet('aos_cotizaciones', 'numero_limpio=eq.' + numero + '&estado=in.(PENDIENTE,PARCIAL)&order=created_at.desc&limit=5', function(cots) {
+  sbGet('aos_cotizaciones', 'numero_limpio=eq.' + numero + '&estado=in.(PENDIENTE,PARCIAL,CREADO)&saldo_pendiente=gt.0&order=created_at.desc&limit=5', function(cots) {
     if (!cots || !cots.length) return;
     var pf = document.getElementById('pac-ficha');
     if (!pf) return;
