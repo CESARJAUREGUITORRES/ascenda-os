@@ -255,7 +255,10 @@ document.getElementById('at-list').innerHTML=items.map(function(c){var n=((c.nom
 /* ===== MOD-09: SELECT ===== */
 function atSel(num,fecha,prof){AT.sel=AT.list.find(function(c){return c.numero_limpio===num&&c.fecha===fecha&&c.profesional===prof});rList();if(!AT.sel)return;document.getElementById('at-home').style.display='none';var d=document.getElementById('at-det');d.classList.remove('at-dhide');d.classList.add('at-dshow');rHdr();loadDet();}
 function hideDet(){document.getElementById('at-home').style.display='';document.getElementById('at-det').classList.add('at-dhide');document.getElementById('at-det').classList.remove('at-dshow');}
-function rHdr(){var c=AT.sel;if(!c)return;var n=((c.nombre||'')+' '+(c.apellido||'')).trim();var rt=isDra(c.profesional)?'<span class="rl rl-d">Doctora</span>':'<span class="rl rl-e">Enfermería</span>';document.getElementById('at-hdr').innerHTML='<div class="at-ava" style="width:32px;height:32px;font-size:12px">'+E(n[0]||'?')+'</div><div style="flex:1;min-width:0"><div style="font-family:\'Exo 2\',sans-serif;font-weight:800;font-size:13px">'+E(n)+' '+rt+'</div><div style="font-size:8px;color:var(--mt);margin-top:1px">📱 '+E(c.numero_limpio||'')+' · '+E((c.tratamientos||[]).join(', '))+' · '+E(c.fecha)+'</div></div><button class="btn btn-g btn-sm" onclick="cerrarFicha()">✅ Cerrar ficha</button><button class="btn btn-w btn-sm" onclick="atWA()">💬</button>';}
+function rHdr(){var c=AT.sel;if(!c)return;var n=((c.nombre||'')+' '+(c.apellido||'')).trim();var rt=isDra(c.profesional)?'<span class="rl rl-d">Doctora</span>':'<span class="rl rl-e">Enfermería</span>';
+var asist=c.asistente_nombre?'<span style="font-size:7px;color:var(--gn);margin-left:4px">👩‍⚕️ Asiste: '+E(c.asistente_nombre)+'</span>':'';
+var asistBtn=isDra(c.profesional)?'<button class="btn btn-s btn-sm" onclick="selAsistente()" title="Asignar enfermera asistente">👩‍⚕️ Asistente</button>':'';
+document.getElementById('at-hdr').innerHTML='<div class="at-ava" style="width:32px;height:32px;font-size:12px">'+E(n[0]||'?')+'</div><div style="flex:1;min-width:0"><div style="font-family:\'Exo 2\',sans-serif;font-weight:800;font-size:13px">'+E(n)+' '+rt+asist+'</div><div style="font-size:8px;color:var(--mt);margin-top:1px">📱 '+E(c.numero_limpio||'')+' · '+E((c.tratamientos||[]).join(', '))+' · '+E(c.fecha)+'</div></div>'+asistBtn+'<button class="btn btn-g btn-sm" onclick="cerrarFicha()">✅ Cerrar</button><button class="btn btn-w btn-sm" onclick="atWA()">💬</button>';}
 
 /* ===== MOD-10: TAB SYSTEM ===== */
 function loadDet(){if(!AT.sel)return;sbR('aos_detalle_atencion',{p_numero:AT.sel.numero_limpio,p_fecha:AT.sel.fecha}).then(function(r){AT.det=r;macroTab('atencion',document.querySelector('.at-tab'));});}
@@ -277,9 +280,23 @@ var b=document.getElementById('at-body');
 if(tab==='general')rGeneral(b);else if(tab==='notas')rNotas(b);else if(tab==='programar')rProgramar(b);else if(tab==='descuentos')rDescuentos(b);}
 
 /* Flow steps — dynamic by professional role */
-function getSteps(){var c=AT.sel;if(!c)return[];var dra=isDra(c.profesional);
-if(dra)return[{ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},{ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},{ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'}];
-return[{ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},{ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'},{ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'}];}
+/* Enfermería: todos los pasos disponibles, el enfermero elige cuáles aplican */
+var STEPS_ENF=[
+  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
+  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
+  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
+  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'}
+];
+var STEPS_DRA=[
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
+  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
+];
+function getSteps(){return isDra((AT.sel||{}).profesional)?STEPS_DRA:STEPS_ENF;}
 function getNotasMap(){var d=AT.det;if(!d)return{};var n=(d.notas_clinicas)||[];var np=(d.notas_pacientes)||[];var m={};n.forEach(function(x){if(!m[x.tipo])m[x.tipo]=[];m[x.tipo].push(x);});np.forEach(function(x){var t=x.tipo_clinico||x.tipo_nota;if(t){if(!m[t])m[t]=[];m[t].push(x);}});return m;}
 function iR(l,v){return '<div class="ir"><span class="ir-l">'+l+'</span><span class="ir-v">'+v+'</span></div>';}
 
@@ -318,16 +335,31 @@ el.innerHTML='<div class="at-gen"><div>'+c1+'</div><div>'+c2+'</div></div>';}
 /* ===== MOD-12: TAB NOTAS/FLUJO ===== */
 function rNotas(el){var c=AT.sel;if(!c)return;var map=getNotasMap();var steps=getSteps();
 var rolLabel=isDra(c.profesional)?'Flujo Doctora':'Flujo Enfermería';
-var o='<div class="at-sc">'+rolLabel+' — '+E(c.fecha)+'</div>';
+var o='<div class="at-gen"><div>';
+o+='<div class="at-sc">'+rolLabel+' — '+E(c.fecha)+'</div>';
 steps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
 o+='<div class="ns'+(has?' open':'')+'" id="step-'+s.tipo+'"><div class="ns-h" onclick="togS(\''+s.tipo+'\')"><span style="font-size:14px">'+s.ico+'</span><div class="ns-t">'+s.t+' '+(has?'<span style="color:var(--gn);font-size:8px">✅</span>':'<span style="color:var(--am);font-size:8px">⏳</span>')+'</div><span class="chv">›</span><button class="btn btn-s btn-sm" onclick="event.stopPropagation();openNota(\''+s.tipo+'\')" style="margin-left:4px">'+(has?'+ Agregar':'Registrar')+'</button></div><div class="ns-b">';
 if(has){map[s.tipo].forEach(function(n){
-if(s.tipo==='TRIAJE'&&(n.peso||n.talla)){o+='<div class="tg">';if(n.peso)o+='<div class="tg-i"><div class="tg-l">Peso</div><div class="tg-v">'+n.peso+'<span style="font-size:8px;color:var(--mt)">kg</span></div></div>';if(n.talla)o+='<div class="tg-i"><div class="tg-l">Talla</div><div class="tg-v">'+n.talla+'<span style="font-size:8px;color:var(--mt)">m</span></div></div>';if(n.imc)o+='<div class="tg-i"><div class="tg-l">IMC</div><div class="tg-v">'+n.imc+'</div></div>';if(n.presion_arterial)o+='<div class="tg-i"><div class="tg-l">PA</div><div class="tg-v">'+E(n.presion_arterial)+'</div></div>';if(n.frecuencia_cardiaca)o+='<div class="tg-i"><div class="tg-l">FC</div><div class="tg-v">'+n.frecuencia_cardiaca+'</div></div>';if(n.temperatura)o+='<div class="tg-i"><div class="tg-l">Temp</div><div class="tg-v">'+n.temperatura+'°</div></div>';if(n.saturacion)o+='<div class="tg-i"><div class="tg-l">SpO₂</div><div class="tg-v">'+n.saturacion+'%</div></div>';o+='</div>';}
+if(s.tipo==='TRIAJE'&&(n.peso||n.talla)){o+='<div class="tg">';if(n.peso)o+='<div class="tg-i"><div class="tg-l">Peso</div><div class="tg-v">'+n.peso+'kg</div></div>';if(n.talla)o+='<div class="tg-i"><div class="tg-l">Talla</div><div class="tg-v">'+n.talla+'m</div></div>';if(n.imc)o+='<div class="tg-i"><div class="tg-l">IMC</div><div class="tg-v">'+n.imc+'</div></div>';if(n.presion_arterial)o+='<div class="tg-i"><div class="tg-l">PA</div><div class="tg-v">'+E(n.presion_arterial)+'</div></div>';if(n.frecuencia_cardiaca)o+='<div class="tg-i"><div class="tg-l">FC</div><div class="tg-v">'+n.frecuencia_cardiaca+'</div></div>';if(n.temperatura)o+='<div class="tg-i"><div class="tg-l">Temp</div><div class="tg-v">'+n.temperatura+'°</div></div>';if(n.saturacion)o+='<div class="tg-i"><div class="tg-l">SpO₂</div><div class="tg-v">'+n.saturacion+'%</div></div>';o+='</div>';}
 var txt=n.contenido||n.texto||'';if(txt)o+='<div class="ne">'+E(txt.substring(0,300))+(txt.length>300?'...':'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});}
 else o+='<div style="font-size:8px;color:var(--mt);padding:4px 0">Sin registros</div>';
 o+='</div></div>';});
+/* Cerrar ficha bar */
 var allDone=steps.every(function(s){return map[s.tipo]&&map[s.tipo].length>0});
 o+='<div class="ab" style="margin-top:12px"><span style="font-size:16px">📋</span><div class="ab-i"><b>Cerrar ficha</b>'+(allDone?'Todo completo':'Completa los pasos')+'</div><button class="btn '+(allDone?'btn-p':'btn-s')+' btn-sm" onclick="cerrarFicha()">✅ Cerrar</button></div>';
+o+='</div>';
+/* COL 2: Historial de notas de atenciones anteriores */
+o+='<div><div class="at-sc">📋 Historial notas — atenciones previas</div>';
+var hist=(AT.det&&AT.det.historial_atenciones)||[];
+if(hist.length){hist.slice(0,8).forEach(function(h){
+o+='<div class="ic" style="margin-bottom:4px;cursor:pointer" onclick="loadFicha(\''+E(h.fecha)+'\')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:9px;font-weight:800">'+E(h.fecha)+'</span><span style="font-size:7px;color:var(--blue)">'+E((h.tratamientos||[]).join(', '))+'</span></div><div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(h.atendio||'')+' · S/'+Math.round(h.total_pagado||0)+' · '+E(h.sede||'')+'</div></div>';});}
+else o+='<div style="font-size:8px;color:var(--mt);padding:8px 0">Sin atenciones previas</div>';
+/* Si es asistencia, mostrar flujo de la doctora */
+if(c.origen==='ASISTENCIA'||c.asistente_nombre){
+o+='<div class="at-sc" style="margin-top:10px">👩‍⚕️ Flujo doctora ('+E(c.profesional)+')</div>';
+var draSteps=STEPS_DRA;draSteps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
+o+='<div style="display:flex;align-items:center;gap:4px;padding:4px;border-bottom:1px solid var(--bd2);font-size:8px"><span>'+s.ico+'</span><span style="flex:1;font-weight:600">'+s.t+'</span><span>'+(has?'✅':'⏳')+'</span></div>';});}
+o+='</div></div>';
 el.innerHTML=o;}
 function togS(t){var e=document.getElementById('step-'+t);if(e)e.classList.toggle('open');}
 
@@ -435,4 +467,28 @@ sbW('aos_links_encuesta',{id:'enc-'+Date.now(),token:tk,numero_limpio:c.numero_l
 if(r.ok){var url=window.location.origin+'/encuesta?t='+tk;var el=document.getElementById('enc-result');
 if(el)el.innerHTML='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;font-size:8px"><b>✅ Link generado</b><br><input value="'+url+'" style="width:100%;margin-top:4px;padding:4px;font-size:8px;border:1px solid var(--bd);border-radius:4px" onclick="this.select()" readonly><div style="margin-top:4px;display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋</button><button class="btn btn-w btn-sm" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! Califica tu atención en Zi Vital: '+url)+'\',\'_blank\')">💬 WA</button></div></div>';
 if(window.AOS_showToast)AOS_showToast('🔗 Generado','48h','');loadKE();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
+
+/* ===== MOD-22: ASIGNAR ASISTENTE ===== */
+function selAsistente(){
+  var c=AT.sel;if(!c)return;
+  var sede=c.sede||'SAN ISIDRO';
+  document.getElementById('dw-nota-t').textContent='👩‍⚕️ Asignar asistente';
+  var b=document.getElementById('dw-nota-b');
+  b.innerHTML='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">Selecciona la enfermera que asiste en esta atención</div><div id="asist-list" style="font-size:9px;color:var(--mt)">Cargando...</div>';
+  openDw('nota');
+  sbR('aos_enfermeras_turno',{p_sede:sede}).then(function(enfs){
+    if(!enfs||!enfs.length){document.getElementById('asist-list').innerHTML='<div style="color:var(--am)">Sin enfermeras disponibles</div>';return;}
+    document.getElementById('asist-list').innerHTML=enfs.map(function(e){
+      var sel=c.asistente_nombre&&c.asistente_nombre===e.nombre;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid '+(sel?'var(--cyan)':'var(--bd2)')+';border-radius:var(--r);margin-bottom:4px;cursor:pointer;background:'+(sel?'rgba(0,201,167,.04)':'var(--sf)')+'" onclick="asignarAsist(\''+E(e.codigo_asesor)+'\',\''+E(e.nombre)+'\')"><div class="at-ava" style="width:28px;height:28px;font-size:10px">'+E((e.nombre||'?')[0])+'</div><div style="flex:1"><div style="font-size:10px;font-weight:700">'+E(e.nombre)+' '+E(e.apellidos||'')+'</div><div style="font-size:7px;color:var(--mt)">'+E(e.sede||'')+'</div></div>'+(sel?'<span style="color:var(--gn)">✅</span>':'')+'</div>';
+    }).join('');
+  });
+}
+function asignarAsist(cod,nom){
+  var c=AT.sel;if(!c)return;
+  sbR('aos_asignar_asistente',{p_numero_limpio:c.numero_limpio,p_fecha:c.fecha,p_profesional:c.profesional,p_asistente_codigo:cod,p_asistente_nombre:nom}).then(function(r){
+    if(r&&r.ok){c.asistente_nombre=nom;closeDw();rHdr();if(window.AOS_showToast)AOS_showToast('✅ '+nom+' asignada','','');}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
 </script>
