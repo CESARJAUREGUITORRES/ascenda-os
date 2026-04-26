@@ -452,7 +452,7 @@ setTimeout(function() {
     var impUser = urlParams.get('impersonate');
     if (impUser) {
       // Load user data from DB and create temporary session
-      fetch(_SB+'/rest/v1/aos_usuarios?usuario=eq.'+encodeURIComponent(impUser)+'&select=*', {
+      fetch(_SB+'/rest/v1/aos_usuarios?codigo_asesor=eq.'+encodeURIComponent(impUser)+'&select=*', {
         headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}
       }).then(function(r){return r.json()}).then(function(users){
         if(!users||!users[0]){alert('Usuario no encontrado: '+impUser);return;}
