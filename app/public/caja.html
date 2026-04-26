@@ -2739,7 +2739,7 @@ init();
 function cargarPlanesPaciente(numero) {
   if (!numero) return;
   var num = numero.replace(/\D/g, '');
-  _rpc('aos_planes_paciente', {p_numero_limpio: num}, function(planes) {
+  rpc('aos_planes_paciente', {p_numero_limpio: num}, function(planes) {
     if (!planes || !planes.length) return;
     var pendientes = planes.filter(function(p) { return p.items_pendientes > 0; });
     if (!pendientes.length) return;
