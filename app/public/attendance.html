@@ -65,7 +65,7 @@
 .at-tab:hover:not(.a){background:#F8FAFF}
 
 /* SUB-PILLS — inside Atención tab */
-.at-sub{display:flex;gap:2px;padding:4px 14px;border-bottom:1px solid var(--bd2);background:#F8FAFF}
+.at-sub{display:flex;gap:2px;padding:4px 14px;border-bottom:1px solid var(--bd2);background:#F8FAFF;align-items:center}
 .at-sp{padding:3px 8px;font-size:7px;font-weight:700;color:var(--mt);cursor:pointer;border-radius:4px;transition:all .1s;border:1px solid transparent}
 .at-sp.a{color:var(--blue);background:#EBF2FF;border-color:var(--bd)}
 .at-sp:hover:not(.a){background:var(--sf)}
@@ -84,7 +84,7 @@
 .ic{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--r);padding:10px;margin-bottom:8px}
 .ic-t{font-size:8px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
 .ir{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F8FAFF;font-size:9px}.ir:last-child{border:none}
-.ir-l{color:var(--mt);font-weight:600}.ir-v{font-weight:700;text-align:right;max-width:60%}
+.ir-l{color:var(--mt);font-weight:600}.ir-v{font-weight:700;text-align:right;max-width:60%;color:var(--deep)}
 .al{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;margin:1px}
 .al-w{background:#FEF3C7;color:var(--am)}.al-g{background:#F0FDF4;color:var(--gn)}
 
@@ -181,12 +181,16 @@
     <div class="at-tab" onclick="macroTab('calif',this)">⭐ Calificaciones</div>
     <div class="at-tab" onclick="macroTab('docs',this)">📄 Documentos</div>
   </div>
-  <!-- SUB-PILLS (only for Atención) -->
+  <!-- SUB-PILLS (only for Atención) + action buttons right -->
   <div class="at-sub" id="at-sub">
     <div class="at-sp a" onclick="subTab('general',this)">🏠 General</div>
     <div class="at-sp" onclick="subTab('notas',this)">📝 Notas/Flujo</div>
     <div class="at-sp" onclick="subTab('programar',this)">🗓 Programar</div>
     <div class="at-sp" onclick="subTab('descuentos',this)">📦 Insumos</div>
+    <div style="flex:1"></div>
+    <button class="btn btn-w btn-sm" onclick="atWA()" title="Enviar link encuesta por WhatsApp">💬</button>
+    <button class="btn btn-s btn-sm" onclick="genEnc()" title="Enviar link encuesta por email">📧</button>
+    <button class="btn btn-p btn-sm" onclick="cerrarFicha()" title="Guardar y cerrar ficha">💾 Guardar</button>
   </div>
   <div class="at-rbody" id="at-body"></div>
 </div>
@@ -304,31 +308,54 @@ function iR(l,v){return '<div class="ir"><span class="ir-l">'+l+'</span><span cl
 function rGeneral(el){
 var c=AT.sel,d=AT.det;if(!c)return;var map=getNotasMap();var steps=getSteps();var pac=d?d.paciente:null;var fil=d?d.filiacion:null;
 var rolLabel=isDra(c.profesional)?'👩‍⚕️ Flujo Doctora':'🩺 Flujo Enfermería';
-/* COL1 */
+/* COL1 — Flujo + vinculación */
 var c1='<div class="ic-t">'+rolLabel+'</div><div class="at-flow">';
 steps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
 c1+='<div class="at-fc'+(has?' done':'')+'" onclick="openNota(\''+s.tipo+'\')"><span class="at-fc-ico">'+s.ico+'</span><span class="at-fc-t">'+s.t+'</span><span class="at-fc-st">'+(has?'✅':'⏳')+'</span></div>';});
 c1+='</div>';
-/* Action bars */
-c1+='<div class="ab"><span style="font-size:14px">📋</span><div class="ab-i"><b>Cerrar ficha</b>Completa el flujo</div><button class="btn btn-g btn-sm" onclick="cerrarFicha()">✅ Cerrar</button></div>';
-c1+='<div class="ab" style="margin-top:6px"><span style="font-size:14px">⭐</span><div class="ab-i"><b>Encuesta</b>Link 48h</div><button class="btn btn-w btn-sm" onclick="atWA()">💬</button><button class="btn btn-s btn-sm" onclick="genEnc()">🔗</button></div>';
+/* Doctora vinculada (si es asistencia o tiene asistente) */
+if(c.asistente_nombre&&isDra(c.profesional)){c1+='<div style="padding:6px;background:#EBF2FF;border-radius:6px;margin-top:8px;font-size:8px;display:flex;align-items:center;gap:4px"><span class="rl rl-e">Asiste</span><b style="color:var(--deep)">'+E(c.asistente_nombre)+'</b></div>';}
+if(!isDra(c.profesional)&&c.origen==='ASISTENCIA'){c1+='<div style="padding:6px;background:#EBF2FF;border-radius:6px;margin-top:8px;font-size:8px;display:flex;align-items:center;gap:4px"><span class="rl rl-d">Doctora</span><b style="color:var(--deep)">'+E(c.profesional)+'</b></div>';}
 
-/* COL2 */
+/* COL2 — Paciente + Filiación + Notas cliente */
 var c2='<div class="ic"><div class="ic-t">👤 Paciente</div>';
-if(pac){c2+=iR('Nombre',E((pac.Nombres||'')+' '+(pac.Apellidos||'')));c2+=iR('DNI',E(pac.dni||'—'));c2+=iR('Tel',E(c.numero_limpio||''));c2+=iR('Email',E(pac.email||'—'));}
-else{c2+=iR('Nombre',E((c.nombre||'')+' '+(c.apellido||'')));c2+=iR('Tel',E(c.numero_limpio||''));}
+if(pac){
+c2+=iR('Nombre','<span style="color:var(--deep)">'+E((pac.Nombres||'')+' '+(pac.Apellidos||''))+'</span>');
+c2+=iR('HC','<span style="color:var(--blue)">'+E(pac.codigo_hc||'Sin HC')+'</span>');
+c2+=iR('DNI',E(pac.dni||'—'));c2+=iR('Tel',E(c.numero_limpio||''));c2+=iR('Email',E(pac.email||'—'));
+c2+=iR('Sexo',E(pac.sexo||'—'));c2+=iR('Distrito',E(pac.distrito||'—'));
+}else{c2+=iR('Nombre',E((c.nombre||'')+' '+(c.apellido||'')));c2+=iR('Tel',E(c.numero_limpio||''));}
 c2+='</div>';
-c2+='<div class="ic"><div class="ic-t">🏥 Filiación</div>';
-if(fil){if(fil.alergias)c2+='<div class="al al-w">⚠️ '+E(fil.alergias_detalle||fil.alergias)+'</div>';
-if(fil.queloides)c2+='<div class="al al-w">⚠️ Queloides</div>';if(fil.embarazo)c2+='<div class="al al-w">⚠️ Embarazo</div>';
-if(fil.lactancia)c2+='<div class="al al-w">⚠️ Lactancia</div>';if(fil.marcapasos)c2+='<div class="al al-w">⚠️ Marcapasos</div>';
-c2+=iR('Tipo piel',E(fil.tipo_piel||'—'));c2+=iR('Fototipo',E(fil.fototipo||'—'));c2+=iR('Enf. crónicas',E(fil.enfermedades_cronicas||'—'));c2+=iR('Medicamentos',E(fil.medicamentos_actuales||'—'));}
-else c2+='<div style="font-size:8px;color:var(--mt)">Sin filiación</div>';
+
+/* Filiación editable */
+c2+='<div class="ic"><div class="ic-t" style="justify-content:space-between">🏥 Filiación médica <button class="btn btn-s btn-sm" onclick="editFiliacion()" style="font-size:6px">✏️ Editar</button></div>';
+if(fil){
+if(fil.alergias)c2+='<div class="al al-w">⚠️ Alergias: '+E(fil.alergias_detalle||fil.alergias)+'</div>';
+if(fil.queloides)c2+='<div class="al al-w">⚠️ Queloides</div>';
+if(fil.embarazo)c2+='<div class="al al-w">⚠️ Embarazo</div>';
+if(fil.lactancia)c2+='<div class="al al-w">⚠️ Lactancia</div>';
+if(fil.marcapasos)c2+='<div class="al al-w">⚠️ Marcapasos</div>';
+if(fil.implantes)c2+='<div class="al al-w">⚠️ Implantes</div>';
+c2+=iR('Tipo piel',E(fil.tipo_piel||'—'));
+c2+=iR('Fototipo',E(fil.fototipo||'—'));
+c2+=iR('Grupo sang.',E(fil.grupo_sanguineo||'—'));
+c2+=iR('Enf. crónicas',E(fil.enfermedades_cronicas||'—'));
+c2+=iR('Medicamentos',E(fil.medicamentos_actuales||'—'));
+c2+=iR('Cirugías prev.',E(fil.cirugias_previas||'—'));
+c2+=iR('Trat. estéticos',E(fil.tratamientos_esteticos_previos||'—'));
+if(fil.fuma)c2+=iR('Fuma',E(fil.fuma));
+if(fil.alcohol)c2+=iR('Alcohol',E(fil.alcohol));
+if(fil.protector_solar)c2+=iR('Protector solar',E(fil.protector_solar));
+}else{c2+='<div style="font-size:8px;color:var(--am);padding:4px 0">⚠️ Sin filiación — <a href="#" onclick="editFiliacion();return false" style="color:var(--blue);font-weight:700">Completar ahora</a></div>';}
 c2+='</div>';
-/* Notas para cliente */
+
+/* Notas para el cliente */
 c2+='<div class="ic"><div class="ic-t">📝 Notas para el cliente</div>';
-var nc=map['NOTA_CLIENTE']||[];if(nc.length){nc.forEach(function(n){c2+='<div class="ne">'+E(n.contenido||n.texto||'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+'</div></div>';});}
-else c2+='<div style="font-size:8px;color:var(--mt)">Sin notas</div>';
+c2+='<div style="font-size:7px;color:var(--am);margin-bottom:4px">⚠️ El paciente verá estas notas en su portal</div>';
+var nc=map['NOTA_CLIENTE']||[];
+if(nc.length){nc.forEach(function(n){c2+='<div class="ne" style="border-left:3px solid var(--cyan);padding-left:8px">'+E(n.contenido||n.texto||'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+'</div></div>';});}
+c2+='<textarea id="nota-cliente" class="ta" rows="2" placeholder="Escribir nota para el paciente..." style="margin-top:4px;min-height:40px;font-size:9px"></textarea>';
+c2+='<button class="btn btn-s btn-sm" style="margin-top:4px" onclick="guardarNotaCliente()">💾 Guardar nota</button>';
 c2+='</div>';
 el.innerHTML='<div class="at-gen"><div>'+c1+'</div><div>'+c2+'</div></div>';}
 
@@ -488,6 +515,85 @@ function asignarAsist(cod,nom){
   var c=AT.sel;if(!c)return;
   sbR('aos_asignar_asistente',{p_numero_limpio:c.numero_limpio,p_fecha:c.fecha,p_profesional:c.profesional,p_asistente_codigo:cod,p_asistente_nombre:nom}).then(function(r){
     if(r&&r.ok){c.asistente_nombre=nom;closeDw();rHdr();if(window.AOS_showToast)AOS_showToast('✅ '+nom+' asignada','','');}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
+
+/* ===== MOD-23: EDITAR FILIACIÓN ===== */
+function editFiliacion(){
+  var c=AT.sel;if(!c)return;var d=AT.det;var fil=d?d.filiacion:null;
+  document.getElementById('dw-nota-t').textContent='🏥 Filiación médica';
+  var b=document.getElementById('dw-nota-b');
+  var f=fil||{};
+  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+'</div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  o+=fg('Alergias','fil-alergias',f.alergias||'','¿Tiene alergias?','select',['No','Sí']);
+  o+=fg('Detalle alergias','fil-alergias-det',f.alergias_detalle||'','Detallar...');
+  o+=fg('Tipo piel','fil-tipo-piel',f.tipo_piel||'','','select',['Normal','Seca','Grasa','Mixta','Sensible']);
+  o+=fg('Fototipo','fil-fototipo',f.fototipo||'','','select',['I','II','III','IV','V','VI']);
+  o+=fg('Grupo sanguíneo','fil-sangre',f.grupo_sanguineo||'','','select',['O+','O-','A+','A-','B+','B-','AB+','AB-']);
+  o+=fg('Enf. crónicas','fil-cronicas',f.enfermedades_cronicas||'','Diabetes, HTA...');
+  o+=fg('Medicamentos','fil-medicamentos',f.medicamentos_actuales||'','Listar...');
+  o+=fg('Vitaminas/Suplem.','fil-vitaminas',f.vitaminas_suplementos||'','');
+  o+=fg('Cirugías previas','fil-cirugias',f.cirugias_previas||'','');
+  o+=fg('Trat. estéticos prev.','fil-esteticos',f.tratamientos_esteticos_previos||'','');
+  o+='</div>';
+  o+='<div class="at-sc" style="margin-top:8px">Condiciones especiales</div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px">';
+  o+=chk('Queloides','fil-queloides',f.queloides);o+=chk('Implantes','fil-implantes',f.implantes);o+=chk('Marcapasos','fil-marcapasos',f.marcapasos);
+  o+=chk('Embarazo','fil-embarazo',f.embarazo);o+=chk('Lactancia','fil-lactancia',f.lactancia);
+  o+='</div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  o+=fg('Fuma','fil-fuma',f.fuma||'','','select',['No','Ocasional','Sí']);
+  o+=fg('Alcohol','fil-alcohol',f.alcohol||'','','select',['No','Ocasional','Sí']);
+  o+=fg('Protector solar','fil-solar',f.protector_solar||'','','select',['No','A veces','Diario']);
+  o+=fg('Horas sueño','fil-sueno',f.horas_sueno||'','6-8h');
+  o+='</div>';
+  o+='<button class="btn btn-p btn-f" style="margin-top:10px;padding:10px" onclick="guardarFiliacion()">💾 Guardar filiación</button>';
+  b.innerHTML=o;openDw('nota');
+}
+function fg(label,id,val,ph,type,opts){
+  if(type==='select'){var o='<div class="fg"><label class="fl">'+label+'</label><select id="'+id+'" class="fi fs">';opts.forEach(function(op){o+='<option value="'+E(op)+'"'+(val===op?' selected':'')+'>'+E(op)+'</option>';});return o+'</select></div>';}
+  return '<div class="fg"><label class="fl">'+label+'</label><input id="'+id+'" class="fi" value="'+E(val)+'" placeholder="'+(ph||'')+'"></div>';
+}
+function chk(label,id,val){return '<label style="font-size:8px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="'+id+'"'+(val?' checked':'')+'>'+label+'</label>';}
+function guardarFiliacion(){
+  var c=AT.sel;if(!c)return;
+  var d={numero_limpio:c.numero_limpio,
+    alergias:(document.getElementById('fil-alergias')||{}).value||'No',
+    alergias_detalle:(document.getElementById('fil-alergias-det')||{}).value||'',
+    tipo_piel:(document.getElementById('fil-tipo-piel')||{}).value||'',
+    fototipo:(document.getElementById('fil-fototipo')||{}).value||'',
+    grupo_sanguineo:(document.getElementById('fil-sangre')||{}).value||'',
+    enfermedades_cronicas:(document.getElementById('fil-cronicas')||{}).value||'',
+    medicamentos_actuales:(document.getElementById('fil-medicamentos')||{}).value||'',
+    vitaminas_suplementos:(document.getElementById('fil-vitaminas')||{}).value||'',
+    cirugias_previas:(document.getElementById('fil-cirugias')||{}).value||'',
+    tratamientos_esteticos_previos:(document.getElementById('fil-esteticos')||{}).value||'',
+    queloides:(document.getElementById('fil-queloides')||{}).checked||false,
+    implantes:(document.getElementById('fil-implantes')||{}).checked||false,
+    marcapasos:(document.getElementById('fil-marcapasos')||{}).checked||false,
+    embarazo:(document.getElementById('fil-embarazo')||{}).checked||false,
+    lactancia:(document.getElementById('fil-lactancia')||{}).checked||false,
+    fuma:(document.getElementById('fil-fuma')||{}).value||'',
+    alcohol:(document.getElementById('fil-alcohol')||{}).value||'',
+    protector_solar:(document.getElementById('fil-solar')||{}).value||'',
+    horas_sueno:(document.getElementById('fil-sueno')||{}).value||'',
+    actualizado_por:AOS.ctx?AOS.ctx.nombre:'',ultima_actualizacion:new Date().toISOString()
+  };
+  /* Upsert */
+  fetch(_SB+'/rest/v1/aos_filiacion_medica?numero_limpio=eq.'+c.numero_limpio,{method:'GET',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(ex){
+    if(ex&&ex.length){fetch(_SB+'/rest/v1/aos_filiacion_medica?numero_limpio=eq.'+c.numero_limpio,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación actualizada','','');loadDet();}});}
+    else{sbW('aos_filiacion_medica',d).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación creada','','');loadDet();}});}
+  });
+}
+
+/* ===== MOD-24: NOTA CLIENTE ===== */
+function guardarNotaCliente(){
+  var c=AT.sel;if(!c)return;
+  var txt=(document.getElementById('nota-cliente')||{}).value||'';if(!txt.trim()){if(window.AOS_showToast)AOS_showToast('Escribe una nota','','toast-alerta');return;}
+  sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_CLIENTE',fecha:c.fecha,contenido:txt,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(r){
+    if(r.ok){if(window.AOS_showToast)AOS_showToast('✅ Nota guardada','','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
