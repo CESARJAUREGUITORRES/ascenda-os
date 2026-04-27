@@ -1457,11 +1457,9 @@ function openProcedimiento(){
     o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
   }
 
-  /* Check de programar PRIMERO — si marca, bloquea formulario */
-  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"> 📅 Este tratamiento se programará para otro día (no se realiza hoy)</label>';
   o+='<div id="proc-form">';
 
-  /* Tratamientos */
+  /* Tratamientos — chip encabezado */
   o+='<div class="at-sc" style="margin-bottom:4px">Tratamiento</div>';
   if(trats.length>1){
     o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">';
@@ -1475,6 +1473,9 @@ function openProcedimiento(){
   }else{
     o+='<div class="fg"><input id="proc-trat-libre" class="fi" placeholder="Ej: Hidrofacial rostro, PQ Age..."></div>';
   }
+
+  /* Check de programar DEBAJO del tratamiento */
+  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"> 📅 Este tratamiento se programará para otro día (no se realiza hoy)</label>';
 
   o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
   o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
@@ -1830,17 +1831,36 @@ function ptToggleVar(ii,vi,checked){
 function ptGuardar(){
   var c=AT.sel;if(!c||!PT.items.length){if(window.AOS_showToast)AOS_showToast('Agrega items','','toast-alerta');return;}
   var planId='plan-'+Date.now();var obs=(document.getElementById('pt-obs')||{}).value||'';
-  var promises=PT.items.map(function(item,i){
+  var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ');
+  var serviciosJson=PT.items.filter(function(it){return it.tipo==='SERVICIO'}).map(function(it){return{nombre:it.nombre,sesiones:it.num_sesiones,frecuencia:it.frecuencia,precio:it.precio_unitario}});
+  var productosJson=PT.items.filter(function(it){return it.tipo==='PRODUCTO'}).map(function(it){return{nombre:it.nombre,dosis:it.dosis,momento:it.momento,duracion_dias:it.duracion_dias,precio:it.precio_unitario}});
+  
+  /* 1. Insertar plan padre en aos_planes_trabajo */
+  var atencionId=c.id||'';
+  var planPadre={id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,
+    autor:AOS.ctx?AOS.ctx.nombre:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',
+    autor_tipo:AOS.ctx?AOS.ctx.area:'',descripcion:resumen.replace('[PLAN] ',''),
+    servicios_programados:JSON.stringify(serviciosJson),
+    productos_recomendados:JSON.stringify(productosJson),
+    estado:'ACTIVO'};
+  if(atencionId)planPadre.atencion_id=atencionId;
+  
+  var promises=[sbW('aos_planes_trabajo',planPadre)];
+  
+  /* 2. Insertar items individuales */
+  PT.items.forEach(function(item,i){
     var selVars=[];if(item.variantes_sel)item.variantes_sel.forEach(function(vi){if(item.variantes[vi])selVars.push({nombre:item.variantes[vi].nombre,precio:item.variantes[vi].precio_oferta||item.variantes[vi].precio_base});});
-    return sbW('aos_plan_trabajo_items',{plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
+    promises.push(sbW('aos_plan_trabajo_items',{plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
       nombre_servicio:item.tipo==='SERVICIO'?item.nombre:null,num_sesiones:item.num_sesiones||1,frecuencia:item.frecuencia||'',
       precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
       nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
       variantes_precio:selVars.length?JSON.stringify(selVars):null,variante_seleccionada:selVars.length?selVars[0].nombre:null,
-      notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE'});
+      notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE'}));
   });
-  var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ');
+  
+  /* 3. Nota clínica resumen */
   promises.push(sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'PLAN_TRABAJO',fecha:c.fecha,contenido:resumen+(obs?'\n'+obs:''),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}));
+  
   Promise.all(promises).then(function(){
     closeDw();_openTipo=null;PT.items=[];
     if(window.AOS_showToast)AOS_showToast('✅ Plan de trabajo guardado','Se puede convertir en cotización desde Caja','');
