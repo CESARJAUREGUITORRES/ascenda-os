@@ -341,16 +341,15 @@ var _semData=null;
 
 function ahAlertas(sem){
   if(sem)_semData=sem;
-  _q('aos_log_personal','select=asesor,estado,detalle,inicio,fin&fecha=eq.'+_hoy()+'&order=inicio.desc&limit=50',function(rows){
+  /* Leer estado REAL TIME de la tabla aos_estado_equipo */
+  _q('aos_estado_equipo','select=asesor,estado,inicio,updated_at,codigo_asesor&order=asesor',function(rows){
     var el=document.getElementById('ah-alerts');if(!el)return;
-    var last={};(rows||[]).forEach(function(r){var a=r.asesor;if(a&&!last[a])last[a]=r;});
     var alertas=[];
 
-    // 1) Log personal alerts (BREAK, BAÑO, etc.)
-    Object.keys(last).forEach(function(a){
-      var r=last[a];var est=(r.estado||'').toUpperCase();
-      if(r.fin)return;
-      if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='CIERRE_TURNO'&&est!=='INICIO_TURNO'){
+    // 1) Estados en tiempo real desde tabla
+    (rows||[]).forEach(function(r){
+      var a=r.asesor;var est=(r.estado||'').toUpperCase();
+      if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='DESCONECTADO'&&est!=='CIERRE_TURNO'&&est!=='INICIO_TURNO'){
         var inicio=r.inicio?new Date(r.inicio):null;
         var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
         var horaInicio='';
