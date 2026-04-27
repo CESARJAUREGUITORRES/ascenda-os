@@ -748,7 +748,11 @@ function openProcedimiento(){
     o+='<div class="fg"><input id="proc-trat-libre" class="fi" placeholder="Ej: Hidrofacial rostro, PQ Age..."></div>';
   }
 
-  o+='<div class="fg"><label class="fl">Zona trabajada</label><input id="proc-zona" class="fi" placeholder="Rostro, cuello, abdomen..."></div>';
+  o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
+  o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+  var zonasProc=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpados','Pómulos','Nariz','Surco nasogeniano','Mejillas','Labios','Mentón','Mandíbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
+  zonasProc.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
+  o+='</div>';
 
   o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado..."></textarea></div>';
 
@@ -773,7 +777,8 @@ function saveProcedimiento(){
   var trats=(c.tratamientos||[]);
   var tratSel=document.querySelector('input[name="proc-trat-sel"]:checked');
   var tratTexto=tratSel?tratSel.value:((document.getElementById('proc-trat-libre')||{}).value||trats.join(', '));
-  var zona=(document.getElementById('proc-zona')||{}).value||'';
+  var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(c){zonas.push(c.value)});
+  var zona=zonas.join(', ');
   var desc=(document.getElementById('proc-desc')||{}).value||'';
   var obs=(document.getElementById('proc-obs')||{}).value||'';
   var resultado=(document.getElementById('proc-resultado')||{}).value||'';
