@@ -149,7 +149,8 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 .no-sesion p{font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;}
 
 /* ===== MODALES ===== */
-.ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.ov{display:none;position:fixed;inset:0;background:rgba(7,29,74,.55);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px);cursor:pointer;}
+.ov>*{cursor:default;}
 .ov.open{display:flex;}
 .modal-box{background:#fff;border-radius:14px;max-width:95vw;border:1px solid var(--border);overflow:hidden;}
 .modal-hdr{padding:14px 18px;color:#fff;}
@@ -336,7 +337,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 </div>
 
 <!-- ===== MODAL NUEVA VENTA v3 — layout 2col ===== -->
-<div class="ov" id="ov-venta">
+<div class="ov" id="ov-venta" onclick="if(event.target===this)cerrarOv('ov-venta')">
   <div class="modal-box" style="width:98vw;max-width:1300px;max-height:96vh;display:flex;flex-direction:column;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);flex-shrink:0;">
       <h3>💰 Nueva venta</h3><p id="venta-sede-label"></p>
@@ -503,7 +504,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 </div>
 
 <!-- ===== MINI-MODAL PAGO POR ÍTEM v3 — simple/dividido ===== -->
-<div class="ov" id="ov-pago-item" style="z-index:1100;">
+<div class="ov" id="ov-pago-item" style="z-index:1100;" onclick="if(event.target===this)cerrarOv('ov-pago-item')">
   <div class="modal-box" style="width:720px;max-width:97vw;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
       <h3>💳 Registrar pago</h3>
@@ -598,7 +599,7 @@ table.ventas-tabla tr:hover td{background:#F8FAFF;}
 </div>
 
 <!-- ===== MODAL EDITAR VENTA COMPLETO ===== -->
-<div class="ov" id="ov-editar" style="z-index:1100;">
+<div class="ov" id="ov-editar" style="z-index:1100;" onclick="if(event.target===this)cerrarOv('ov-editar')">
   <div class="modal-box" style="width:580px;max-width:97vw;">
     <div class="modal-hdr" style="background:linear-gradient(135deg,#071D4A,#0A4FBF);">
       <h3>✏️ Editar venta</h3>
@@ -2525,6 +2526,7 @@ function emCajaEnviar() {
 // ===== MOD-08-START: EDITAR VENTA =====
 
 function abrirEdicionCompleta(ventaId) {
+  try{
   // Buscar la venta en CAJA.ventas
   var v = null;
   if (CAJA.ventas) {
@@ -2534,8 +2536,9 @@ function abrirEdicionCompleta(ventaId) {
   }
   if (!v) { toast('Venta no encontrada','warn'); return; }
 
-  document.getElementById('edit-venta-id').value = ventaId;
-  document.getElementById('edit-venta-id-label').textContent = (v.nombres||'') + ' ' + (v.apellidos||'');
+  var elId=document.getElementById('edit-venta-id');if(!elId){toast('Error: panel no disponible','warn');return;}
+  elId.value = ventaId;
+  var elLabel=document.getElementById('edit-venta-id-label');if(elLabel)elLabel.textContent = (v.nombres||'') + ' ' + (v.apellidos||'');
 
   // Info card
   var infoEl = document.getElementById('edit-info-venta');
@@ -2588,6 +2591,7 @@ function abrirEdicionCompleta(ventaId) {
   });
 
   abrirOv('ov-editar');
+  }catch(e){console.error('[CAJA] Error abriendo edición:',e);toast('Error al abrir detalle','err');cerrarOv('ov-editar');}
 }
 
 // Mantener compatibilidad con llamada antigua
@@ -2647,8 +2651,8 @@ function eliminarVenta() {
 // ===== MOD-08-END: EDITAR VENTA =====
 
 // ===== MOD-09-START: UTILS UI =====
-function abrirOv(id) { document.getElementById(id).classList.add('open'); }
-function cerrarOv(id) { document.getElementById(id).classList.remove('open'); }
+function abrirOv(id) { var e=document.getElementById(id);if(e)e.classList.add('open'); }
+function cerrarOv(id) { var e=document.getElementById(id);if(e)e.classList.remove('open'); }
 function loading(show) { document.getElementById('loading-ov').classList.toggle('open', show); }
 
 function toast(msg, tipo) {
