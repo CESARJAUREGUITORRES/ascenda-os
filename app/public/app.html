@@ -439,6 +439,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', estadoBloqueo:'', bloqueoInicio:0 };
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+/* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
+var _APP_VERSION = 20260427;
+if(!localStorage.getItem('aos_v') || parseInt(localStorage.getItem('aos_v')) < _APP_VERSION){
+  localStorage.setItem('aos_v', _APP_VERSION);
+  location.reload(true);
+}
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _q(tabla,filtro,ok){fetch(_SB+'/rest/v1/'+tabla+'?'+filtro,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json();}).then(ok||function(){});}
