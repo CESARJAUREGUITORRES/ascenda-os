@@ -2871,40 +2871,45 @@ function cargarRecetasPaciente(numero) {
   });
 }
 function mostrarRecetas(recetas) {
-  var o = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-recetas">';
-  o += '<div style="background:#fff;border-radius:12px;max-width:540px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15);" onclick="event.stopPropagation()">';
-  o += '<div style="padding:14px 16px;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#5B21B6,#7C3AED);border-radius:12px 12px 0 0;color:#fff;">';
-  o += '<span style="font-size:20px;">💊</span><div style="flex:1;"><b style="font-size:14px;">Recetas prescritas</b><br><span style="font-size:10px;opacity:.8;">Productos propios — click para agregar a venta</span></div>';
-  o += '<button onclick="document.getElementById(\'modal-recetas\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#fff;">✕</button></div>';
+  var allItems = [];
   recetas.forEach(function(rec) {
     var items = [];
     try { items = typeof rec.receta_items === 'string' ? JSON.parse(rec.receta_items) : (rec.receta_items || []); } catch(e) {}
-    var nuestros = items.filter(function(it){ return it.esNuestro && it.precio > 0; });
-    o += '<div style="padding:10px 16px;border-bottom:1px solid #EEF0F8;">';
-    o += '<div style="font-size:8px;color:#6B7BA8;margin-bottom:4px;">' + (rec.autor||'') + ' · ' + (rec.fecha||'') + '</div>';
-    nuestros.forEach(function(it) {
-      o += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1.5px solid #EBF2FF;border-radius:8px;margin-bottom:3px;cursor:pointer;background:#F8FAFF;" onclick="cargarRecetaEnVenta(\'' + (it.nombre||'').replace(/'/g,"\\'") + '\',' + (it.precio||0) + ');document.getElementById(\'modal-recetas\').remove()">';
-      o += '<span style="font-size:12px;">💊</span>';
-      o += '<div style="flex:1;"><b style="font-size:11px;color:#071D4A;">' + (it.nombre||'') + '</b><br>';
-      o += '<span style="font-size:8px;color:#6B7BA8;">' + (it.modo||'Tomar') + ' · ' + (it.momento||'') + ' · ' + (it.dias||30) + ' días</span></div>';
-      o += '<span style="font-weight:800;color:#7C3AED;font-size:12px;">S/' + (it.precio||0) + '</span>';
-      o += '<span style="color:#7C3AED;font-size:14px;">+</span></div>';
-    });
+    items.forEach(function(it) { if (it.esNuestro && it.precio > 0) allItems.push({nombre:it.nombre,precio:it.precio,modo:it.modo||'',momento:it.momento||'',dias:it.dias||30,autor:rec.autor||'',fecha:rec.fecha||''}); });
+  });
+  window._rxItems = allItems;
+  var o = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-recetas">';
+  o += '<div style="background:#fff;border-radius:12px;max-width:540px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15);" onclick="event.stopPropagation()">';
+  o += '<div style="padding:14px 16px;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#5B21B6,#7C3AED);border-radius:12px 12px 0 0;color:#fff;">';
+  o += '<span style="font-size:20px;">💊</span><div style="flex:1;"><b style="font-size:14px;">Recetas prescritas</b><br><span style="font-size:10px;opacity:.8;">Click + para agregar a la venta</span></div>';
+  o += '<button onclick="document.getElementById(\'modal-recetas\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#fff;">✕</button></div>';
+  allItems.forEach(function(it, i) {
+    o += '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #EEF0F8;">';
+    o += '<span style="font-size:14px;">💊</span>';
+    o += '<div style="flex:1;"><b style="font-size:11px;color:#071D4A;">' + escH(it.nombre) + '</b><br>';
+    o += '<span style="font-size:8px;color:#6B7BA8;">' + escH(it.modo) + ' · ' + escH(it.momento) + ' · ' + it.dias + ' días · ' + escH(it.autor) + '</span></div>';
+    o += '<input type="number" id="rxq' + i + '" value="1" min="1" max="10" style="width:40px;padding:4px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:12px;font-weight:800;text-align:center;">';
+    o += '<span style="font-weight:800;color:#7C3AED;font-size:13px;">S/' + it.precio + '</span>';
+    o += '<button onclick="rxAgregarCaja(' + i + ')" style="background:#7C3AED;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;">+ Agregar</button>';
     o += '</div>';
   });
   o += '</div></div>';
   document.body.insertAdjacentHTML('beforeend', o);
 }
-function cargarRecetaEnVenta(nombre, precio) {
-  if (!VT.pac) return;
+function rxAgregarCaja(idx) {
+  var it = window._rxItems[idx];
+  if (!it || !VT.pac) return;
+  var qty = parseInt((document.getElementById('rxq' + idx) || {}).value) || 1;
   VT.items.push({
-    id: 'rx-' + Date.now(), nombre: nombre, tipo: 'PRODUCTO', cantidad: 1, divisa: 'S/',
-    precio: precio, descTipo: '', descVal: 0, subtotal: precio, pagado: false,
-    metodoPago: '', metodoPago2: '', monto1: precio, monto2: 0,
+    id: 'rx-' + Date.now(), nombre: it.nombre, tipo: 'PRODUCTO', cantidad: qty, divisa: 'S/',
+    precio: it.precio, descTipo: '', descVal: 0, subtotal: it.precio * qty, pagado: false,
+    metodoPago: '', metodoPago2: '', monto1: it.precio * qty, monto2: 0,
     comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: '', atendio: ''
   });
   _renderVentaItems();
-  toast('💊 ' + nombre + ' agregado a la venta', 'ok');
+  toast('💊 ' + it.nombre + ' x' + qty + ' agregado', 'ok');
+  var modal = document.getElementById('modal-recetas');
+  if (modal) modal.remove();
 }
 
 function mostrarPlanes(planes) {
