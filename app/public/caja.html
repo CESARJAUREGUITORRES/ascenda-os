@@ -2175,8 +2175,10 @@ function editarPagoItem(idx) {
 // ===== GRABAR COTIZACIÓN =====
 function grabarCotizacion() {
   if (!VT.items.length) { toast('Agrega al menos un ítem','warn'); return; }
+  if (VT._guardando) { toast('Ya se está grabando...','warn'); return; }
+  VT._guardando = true;
   var itemsConPago = VT.items.filter(function(it){ return it.pagado; });
-  if (!itemsConPago.length) { toast('Registra el pago de al menos un ítem','warn'); return; }
+  if (!itemsConPago.length) { VT._guardando = false; toast('Registra el pago de al menos un ítem','warn'); return; }
 
   var pac = VT.pac || {};
   var nota = (document.getElementById('nota-venta') && document.getElementById('nota-venta').value) || '';
@@ -2258,7 +2260,7 @@ function grabarCotizacion() {
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
       }).catch(function(){});
     }
-    VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
+    VT.items = []; VT.pac = null; VT.cotizacion_existente = null; VT._guardando = false;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
     toast('✅ ' + msg, 'ok');
     // Recargar caja inmediatamente — overlay ya está cerrado con display:none
@@ -2943,15 +2945,15 @@ function mostrarPlanes(planes) {
           o += '<span style="font-weight:800;color:#0A4FBF;font-size:12px;">S/' + (v.precio||0) + '</span></label>';
           o += '<div id="' + uid + 'S" style="display:none;padding:2px 0 6px 36px;align-items:center;gap:6px;">';
           o += '<span style="font-size:9px;color:#6B7BA8;font-weight:700;">Sesiones a cobrar:</span>';
-          o += '<input type="number" id="' + uid + 'Q" value="' + item.num_sesiones + '" min="1" max="' + item.num_sesiones + '" style="width:50px;padding:4px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:13px;font-weight:800;text-align:center;">';
-          o += '<span style="font-size:8px;color:#6B7BA8;">de ' + item.num_sesiones + '</span></div>';
+          o += '<input type="number" id="' + uid + 'Q" value="' + (item.sesiones||item.num_sesiones||1) + '" min="1" max="' + (item.sesiones||item.num_sesiones||1) + '" style="width:50px;padding:4px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:13px;font-weight:800;text-align:center;">';
+          o += '<span style="font-size:8px;color:#6B7BA8;">de ' + (item.sesiones||item.num_sesiones||1) + '</span></div>';
         });
       } else {
         var uid = 'pv' + idx++;
         o += '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:11px;border:1.5px solid #EEF0F8;border-radius:8px;background:#fff;" for="' + uid + '">';
-        o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + item.id + '" data-nombre="' + (item.nombre||'').replace(/"/g,'') + '" data-precio="' + (item.precio_unitario||0) + '" data-sesiones="' + item.num_sesiones + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
+        o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + item.id + '" data-nombre="' + (item.nombre||'').replace(/"/g,'') + '" data-precio="' + (item.precio||item.precio_unitario||0) + '" data-sesiones="' + (item.sesiones||item.num_sesiones||1) + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
         o += '<span style="flex:1;font-weight:600;color:#071D4A;">' + item.nombre + '</span>';
-        o += '<span style="font-weight:800;color:#0A4FBF;font-size:12px;">S/' + (item.precio_unitario||0) + '</span></label>';
+        o += '<span style="font-weight:800;color:#0A4FBF;font-size:12px;">S/' + (item.precio||item.precio_unitario||0) + '</span></label>';
         o += '<div id="' + uid + 'S" style="display:none;padding:2px 0 6px 36px;align-items:center;gap:6px;">';
         o += '<span style="font-size:9px;color:#6B7BA8;font-weight:700;">Sesiones a cobrar:</span>';
         o += '<input type="number" id="' + uid + 'Q" value="' + item.num_sesiones + '" min="1" max="' + item.num_sesiones + '" style="width:50px;padding:4px;border:1.5px solid #DDE4F5;border-radius:6px;font-size:13px;font-weight:800;text-align:center;">';
