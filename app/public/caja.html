@@ -1738,6 +1738,7 @@ function selPaciente(p) {
   var num = (p.numero||p.celular||p.Telefono||p.numero_limpio||'').replace(/\D/g,'');
   cargarPlanesPaciente(num);
   cargarCotizacionesPaciente(num);
+  cargarRecetasPaciente(num);
 }
 
 function limpiarPaciente() {
@@ -2841,6 +2842,69 @@ function cargarCotizacionesPaciente(numero) {
     badge.onclick = function() { mostrarCotizaciones(cots, numero); };
     pf.appendChild(badge);
   });
+}
+
+function cargarRecetasPaciente(numero) {
+  if (!numero) return;
+  sbGet('aos_notas_clinicas', 'numero_limpio=eq.' + numero + '&tipo=eq.PRESCRIPCION&order=created_at.desc&limit=5', function(notas) {
+    if (!notas || !notas.length) return;
+    // Filtrar solo recetas con productos nuestros (receta_items con esNuestro=true)
+    var recetasConProductos = notas.filter(function(n) {
+      try { var items = typeof n.receta_items === 'string' ? JSON.parse(n.receta_items) : (n.receta_items || []);
+        return items.some(function(it){ return it.esNuestro && it.precio > 0; }); } catch(e) { return false; }
+    });
+    if (!recetasConProductos.length) return;
+    var pf = document.getElementById('pac-ficha');
+    if (!pf) return;
+    var existing = document.getElementById('recetas-badge');
+    if (existing) existing.remove();
+    var badge = document.createElement('div');
+    badge.id = 'recetas-badge';
+    badge.style.cssText = 'margin-top:6px;padding:8px;background:#F5F3FF;border:1.5px solid #7C3AED;border-radius:8px;cursor:pointer;';
+    badge.innerHTML = '<div style="display:flex;align-items:center;gap:6px;font-size:11px;">' +
+      '<span style="font-size:16px;">💊</span>' +
+      '<div style="flex:1;"><b style="color:#071D4A;">' + recetasConProductos.length + ' receta(s) con productos</b><br>' +
+      '<span style="font-size:9px;color:#6B7BA8;">Productos propios prescritos</span></div>' +
+      '<span style="background:#7C3AED;color:#fff;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;">Ver</span></div>';
+    badge.onclick = function() { mostrarRecetas(recetasConProductos); };
+    pf.appendChild(badge);
+  });
+}
+function mostrarRecetas(recetas) {
+  var o = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-recetas">';
+  o += '<div style="background:#fff;border-radius:12px;max-width:540px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15);" onclick="event.stopPropagation()">';
+  o += '<div style="padding:14px 16px;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#5B21B6,#7C3AED);border-radius:12px 12px 0 0;color:#fff;">';
+  o += '<span style="font-size:20px;">💊</span><div style="flex:1;"><b style="font-size:14px;">Recetas prescritas</b><br><span style="font-size:10px;opacity:.8;">Productos propios — click para agregar a venta</span></div>';
+  o += '<button onclick="document.getElementById(\'modal-recetas\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#fff;">✕</button></div>';
+  recetas.forEach(function(rec) {
+    var items = [];
+    try { items = typeof rec.receta_items === 'string' ? JSON.parse(rec.receta_items) : (rec.receta_items || []); } catch(e) {}
+    var nuestros = items.filter(function(it){ return it.esNuestro && it.precio > 0; });
+    o += '<div style="padding:10px 16px;border-bottom:1px solid #EEF0F8;">';
+    o += '<div style="font-size:8px;color:#6B7BA8;margin-bottom:4px;">' + (rec.autor||'') + ' · ' + (rec.fecha||'') + '</div>';
+    nuestros.forEach(function(it) {
+      o += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1.5px solid #EBF2FF;border-radius:8px;margin-bottom:3px;cursor:pointer;background:#F8FAFF;" onclick="cargarRecetaEnVenta(\'' + (it.nombre||'').replace(/'/g,"\\'") + '\',' + (it.precio||0) + ');document.getElementById(\'modal-recetas\').remove()">';
+      o += '<span style="font-size:12px;">💊</span>';
+      o += '<div style="flex:1;"><b style="font-size:11px;color:#071D4A;">' + (it.nombre||'') + '</b><br>';
+      o += '<span style="font-size:8px;color:#6B7BA8;">' + (it.modo||'Tomar') + ' · ' + (it.momento||'') + ' · ' + (it.dias||30) + ' días</span></div>';
+      o += '<span style="font-weight:800;color:#7C3AED;font-size:12px;">S/' + (it.precio||0) + '</span>';
+      o += '<span style="color:#7C3AED;font-size:14px;">+</span></div>';
+    });
+    o += '</div>';
+  });
+  o += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', o);
+}
+function cargarRecetaEnVenta(nombre, precio) {
+  if (!VT.pac) return;
+  VT.items.push({
+    id: 'rx-' + Date.now(), nombre: nombre, tipo: 'PRODUCTO', cantidad: 1, divisa: 'S/',
+    precio: precio, descTipo: '', descVal: 0, subtotal: precio, pagado: false,
+    metodoPago: '', metodoPago2: '', monto1: precio, monto2: 0,
+    comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: '', atendio: ''
+  });
+  _renderVentaItems();
+  toast('💊 ' + nombre + ' agregado a la venta', 'ok');
 }
 
 function mostrarPlanes(planes) {
