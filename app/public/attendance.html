@@ -557,19 +557,23 @@ function calcVitales(){
   /* P. Arterial */
   var paVal=(document.getElementById('nt-pa')||{}).value||'';
   var paTag=document.getElementById('pa-tag');
-  if(paVal&&paVal.indexOf('/')>-1&&paTag){
-    var parts=paVal.split('/');var sys=parseInt(parts[0]);var dia=parseInt(parts[1]);
-    if(sys&&dia){
+  if(paVal&&paTag){
+    var sys=0,dia=0;
+    if(paVal.indexOf('/')>-1){
+      var parts=paVal.split('/');sys=parseInt(parts[0])||0;dia=parseInt(parts[1])||0;
+    }else{sys=parseInt(paVal)||0;}
+    if(sys>0){
       var lbl='',col='',bg='',pts=0;
-      if(sys>180||dia>120){lbl='⚠ Crisis hipertensiva';col='#fff';bg='#7F1D1D';pts=3;}
-      else if(sys>=140||dia>=90){lbl='Hipertensión N2';col='#DC2626';bg='#FEE2E2';pts=3;}
-      else if(sys>=130||dia>=80){lbl='Hipertensión N1';col='#EA580C';bg='#FFF7ED';pts=2;}
-      else if(sys>=120){lbl='Elevada';col='#D97706';bg='#FEF3C7';pts=1;}
+      if(sys>180||(dia&&dia>120)){lbl='⚠ Crisis hipertensiva';col='#fff';bg='#7F1D1D';pts=3;}
+      else if(sys>=140||(dia&&dia>=90)){lbl='Hipertensión N2';col='#DC2626';bg='#FEE2E2';pts=3;}
+      else if(sys>=130||(dia&&dia>=80)){lbl='Hipertensión N1';col='#EA580C';bg='#FFF7ED';pts=2;}
+      else if(sys>=120&&(!dia||dia<80)){lbl='Elevada';col='#D97706';bg='#FEF3C7';pts=1;}
       else if(sys>=90){lbl='Normal';col='#059669';bg='#F0FDF4';pts=0;}
       else{lbl='Hipotensión';col='#DC2626';bg='#FEE2E2';pts=3;}
-      paTag.textContent=lbl;paTag.style.color=col;paTag.style.background=bg;paTag.style.display='inline-block';
+      var display=sys+(dia?'/'+dia:'')+' — '+lbl;
+      paTag.textContent=display;paTag.style.color=col;paTag.style.background=bg;paTag.style.display='inline-block';
       score+=pts;
-    }
+    }else{paTag.style.display='none';}
   }else if(paTag){paTag.style.display='none';}
 
   /* F. Cardíaca */
@@ -711,7 +715,15 @@ if(tipo==='EVALUACION'){
   cont='[EVAL '+evTipo+'] '+cont;
 }
 var d={numero_limpio:c.numero_limpio,tipo:tipo,fecha:c.fecha,contenido:cont,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''};
-if(tipo==='TRIAJE'){d.peso=parseFloat((document.getElementById('nt-peso')||{}).value)||null;d.talla=parseFloat((document.getElementById('nt-talla')||{}).value)||null;d.presion_arterial=(document.getElementById('nt-pa')||{}).value||null;d.frecuencia_cardiaca=parseInt((document.getElementById('nt-fc')||{}).value)||null;d.temperatura=parseFloat((document.getElementById('nt-temp')||{}).value)||null;d.saturacion=parseInt((document.getElementById('nt-sat')||{}).value)||null;if(d.peso&&d.talla)d.imc=Math.round(d.peso/(d.talla*d.talla)*10)/10;}
+if(tipo==='TRIAJE'){d.peso=parseFloat((document.getElementById('nt-peso')||{}).value)||null;d.talla=parseFloat((document.getElementById('nt-talla')||{}).value)||null;d.presion_arterial=(document.getElementById('nt-pa')||{}).value||null;d.frecuencia_cardiaca=parseInt((document.getElementById('nt-fc')||{}).value)||null;d.temperatura=parseFloat((document.getElementById('nt-temp')||{}).value)||null;d.saturacion=parseInt((document.getElementById('nt-sat')||{}).value)||null;if(d.peso&&d.talla){d.imc=Math.round(d.peso/(d.talla*d.talla)*10)/10;d.imc_label=d.imc<18.5?'Bajo peso':d.imc<25?'Normal':d.imc<30?'Sobrepeso':'Obesidad';}
+/* Guardar labels y NEWS2 */
+var paT=document.getElementById('pa-tag');if(paT&&paT.style.display!=='none')d.pa_label=paT.textContent;
+var fcT=document.getElementById('fc-tag');if(fcT&&fcT.style.display!=='none')d.fc_label=fcT.textContent;
+var tpT=document.getElementById('temp-tag');if(tpT&&tpT.style.display!=='none')d.temp_label=tpT.textContent;
+var stT=document.getElementById('sat-tag');if(stT&&stT.style.display!=='none')d.sat_label=stT.textContent;
+var n2V=document.getElementById('news2-val');var n2L=document.getElementById('news2-label');
+if(n2V&&n2V.textContent!=='0'){d.news2_score=parseInt(n2V.textContent)||0;d.news2_nivel=n2L?n2L.textContent:'';}
+}
 sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Guardado','','');loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
 
 /* ===== MOD-14: SUB PROGRAMAR ===== */
