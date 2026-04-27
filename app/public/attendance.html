@@ -933,7 +933,7 @@ function rxGuardar(){
 
   sbW('aos_notas_clinicas',{
     numero_limpio:c.numero_limpio,tipo:'PRESCRIPCION',fecha:c.fecha,
-    contenido:contenido,receta_items:JSON.stringify(recetaJson),
+    contenido:contenido,receta_items:recetaJson,
     autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
     autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
   }).then(function(r){
