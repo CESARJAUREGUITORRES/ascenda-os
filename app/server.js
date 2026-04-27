@@ -91,7 +91,7 @@ function serve(f, res) {
   var mime = MIME[path.extname(f)] || 'text/plain'
   fs.stat(f, function(err, stat) {
     if (err) { res.writeHead(404); res.end('Not found'); return }
-    res.writeHead(200, { 'Content-Type': mime, 'Content-Length': stat.size, 'Cache-Control': 'no-cache, no-store, must-revalidate' })
+    res.writeHead(200, { 'Content-Type': mime, 'Content-Length': stat.size, 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0', 'ETag': stat.mtime.getTime().toString(36) })
     fs.createReadStream(f).pipe(res)
   })
 }
