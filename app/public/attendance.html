@@ -619,32 +619,32 @@ var procNotas=map['NOTA_PROCEDIMIENTO']||[];
 var tratHechos=[];var tratProgramar=[];
 procNotas.forEach(function(n){
   var txt=n.contenido||'';
-  var m=txt.match(/\[PROC\] (.+)/);if(m)tratHechos.push(m[1].trim());
-  if(txt.indexOf('[PROGRAMAR]')>-1){var m2=txt.match(/\[PROC\] (.+)/);if(m2)tratProgramar.push(m2[1].trim());}
+  var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
+  var nombre=m[1].trim();
+  if(txt.indexOf('[REALIZADO]')>-1)tratHechos.push(nombre);
+  if(txt.indexOf('[PROGRAMAR]')>-1)tratProgramar.push(nombre);
 });
 
 sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc').then(function(items){
   items=items||[];
 
-  /* Sección 1: Tratamientos REALIZADOS que piden programar siguiente */
-  if(tratProgramar.length){
-    o+='<div class="at-sc" style="color:var(--gn)">✅ Realizados — programar siguiente</div>';
-    tratProgramar.forEach(function(t,i){
-      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.04);cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'APLICACIÓN\')">';
+  /* Sección 1: Tratamientos REALIZADOS — programar control o siguiente sesión */
+  if(tratHechos.length){
+    o+='<div class="at-sc" style="color:var(--gn)">✅ Realizados — programar control/sesión</div>';
+    tratHechos.forEach(function(t){
+      o+='<div style="padding:8px;border:1.5px solid var(--gn);border-radius:var(--r);margin-bottom:4px;background:#F0FDF4;cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'Control\')">';
       o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">✅</span><b style="flex:1;font-size:10px">'+E(t)+'</b>';
-      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 8px;border-radius:4px">Programar →</span></div></div>';
+      o+='<span style="font-size:8px;background:var(--gn);color:#fff;padding:2px 8px;border-radius:4px">Programar control →</span></div></div>';
     });
   }
 
-  /* Sección 2: Pagados sin procedimiento registrado */
-  var pagados=items.filter(function(it){return(it.estado_item==='PAGADO'||it.estado_item==='PARCIAL')&&tratHechos.indexOf(it.nombre_servicio)<0;});
-  if(pagados.length){
-    o+='<div class="at-sc" style="color:var(--blue)">💰 Pagados — sin procedimiento</div>';
-    pagados.forEach(function(it){
-      o+='<div style="padding:6px 8px;border:1.5px solid var(--blue);border-radius:var(--r);margin-bottom:3px;background:#EBF2FF;cursor:pointer" onclick="abrirModalProg(\''+E(it.nombre_servicio)+'\',\'APLICACIÓN\')">';
-      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px">💰</span><span style="flex:1;font-size:9px;font-weight:700">'+E(it.nombre_servicio)+'</span>';
-      o+='<span style="font-size:7px;color:var(--blue)">'+it.num_sesiones+' ses</span>';
-      o+='<span style="font-size:8px;background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px">Programar</span></div></div>';
+  /* Sección 2: Marcados para PROGRAMAR APLICACIÓN (pagado pero no hecho hoy) */
+  if(tratProgramar.length){
+    o+='<div class="at-sc" style="color:var(--blue)">💰 Pagados — programar aplicación</div>';
+    tratProgramar.forEach(function(t){
+      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.04);cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'Aplicacion\')">';
+      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">💰</span><b style="flex:1;font-size:10px">'+E(t)+'</b>';
+      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 8px;border-radius:4px">Programar aplicación →</span></div></div>';
     });
   }
 
@@ -907,13 +907,7 @@ function openProcedimiento(){
   var trats=(c.tratamientos||[]);
   var esAsistente=c.es_asistente||false;
 
-  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
-
-  if(esAsistente){
-    o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
-  }
-
-  /* Cargar datos guardados si existen */
+  /* Cargar datos guardados */
   var map=getNotasMap();var exProc=map['NOTA_PROCEDIMIENTO']||[];
   var saved=exProc.length?exProc[exProc.length-1]:null;
   var savedZonas=[];var savedDesc='';var savedObs='';var savedRes='Satisfactorio';var savedTol='Buena';var savedPost='';
@@ -926,6 +920,16 @@ function openProcedimiento(){
     var tMatch=txt.match(/Tolerancia: (.+)/);if(tMatch)savedTol=tMatch[1].trim();
     var ppMatch=txt.match(/Post-procedimiento: (.+)/);if(ppMatch)savedPost=ppMatch[1];
   }
+
+  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
+
+  if(esAsistente){
+    o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
+  }
+
+  /* Check de programar PRIMERO — si marca, bloquea formulario */
+  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"> 📅 Este tratamiento se programará para otro día (no se realiza hoy)</label>';
+  o+='<div id="proc-form">';
 
   /* Tratamientos */
   o+='<div class="at-sc" style="margin-bottom:4px">Tratamiento</div>';
@@ -961,8 +965,7 @@ function openProcedimiento(){
   o+='</select></div></div>';
 
   o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h...">'+E(savedPost)+'</textarea></div>';
-
-  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#F0FDF4;border:1.5px solid var(--gn);border-radius:var(--r);margin-top:6px;cursor:pointer;font-size:9px;font-weight:700;color:var(--gn)"><input type="checkbox" id="proc-programar"> 📅 Programar siguiente aplicación/control de este tratamiento</label>';
+  o+='</div>'; /* cierre proc-form */
 
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
   b.innerHTML=o;openDw('nota');
@@ -973,20 +976,28 @@ function saveProcedimiento(){
   var trats=(c.tratamientos||[]);
   var tratSel=document.querySelector('input[name="proc-trat-sel"]:checked');
   var tratTexto=tratSel?tratSel.value:((document.getElementById('proc-trat-libre')||{}).value||trats.join(', '));
-  var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(c){zonas.push(c.value)});
-  var zona=zonas.join(', ');
-  var desc=(document.getElementById('proc-desc')||{}).value||'';
-  var obs=(document.getElementById('proc-obs')||{}).value||'';
-  var resultado=(document.getElementById('proc-resultado')||{}).value||'';
-  var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
-  var post=(document.getElementById('proc-post')||{}).value||'';
-
-  var contenido='[PROC] '+tratTexto+'\n';
-  if(zona)contenido+='Zona: '+zona+'\n';
-  if(desc)contenido+='Procedimiento: '+desc+'\n';
-  if(obs)contenido+='Observaciones: '+obs+'\n';
-  contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
-  if(post)contenido+='Post-procedimiento: '+post+'\n';
+  var programar=document.getElementById('proc-programar')&&document.getElementById('proc-programar').checked;
+  
+  var contenido;
+  if(programar){
+    /* Solo marca para programar — no se hizo hoy */
+    contenido='[PROC] '+tratTexto+'\n[PROGRAMAR] Tratamiento pagado — programar aplicación para otro día\n';
+  } else {
+    /* Se realizó hoy — formulario completo */
+    var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(c){zonas.push(c.value)});
+    var zona=zonas.join(', ');
+    var desc=(document.getElementById('proc-desc')||{}).value||'';
+    var obs=(document.getElementById('proc-obs')||{}).value||'';
+    var resultado=(document.getElementById('proc-resultado')||{}).value||'';
+    var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
+    var post=(document.getElementById('proc-post')||{}).value||'';
+    contenido='[PROC] '+tratTexto+'\n[REALIZADO]\n';
+    if(zona)contenido+='Zona: '+zona+'\n';
+    if(desc)contenido+='Procedimiento: '+desc+'\n';
+    if(obs)contenido+='Observaciones: '+obs+'\n';
+    contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
+    if(post)contenido+='Post-procedimiento: '+post+'\n';
+  }
 
   var programar=document.getElementById('proc-programar')&&document.getElementById('proc-programar').checked;
   if(programar)contenido+='[PROGRAMAR]\n';
@@ -1000,6 +1011,11 @@ function saveProcedimiento(){
     if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado'+(programar?' — aparecerá en Programar':''),'','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
+}
+function procToggleForm(){
+  var chk=document.getElementById('proc-programar');
+  var form=document.getElementById('proc-form');
+  if(chk&&form){form.style.display=chk.checked?'none':'block';}
 }
 
 /* ===== MOD-27: RECETA ===== */
