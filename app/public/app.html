@@ -501,6 +501,9 @@ setTimeout(function() {
     buildSidebar();
     navigateTo('admin-home');
   } else {
+    /* ===== REGISTRAR LOGIN EN ESTADO EQUIPO ===== */
+    _rpc('aos_set_estado_asesor',{p_id_asesor:AOS.ctx.idAsesor,p_estado:'LOGEADO'},function(){});
+    
     // Renderizar sidebar INMEDIATO con permisos del localStorage
     buildSidebar();
     var _perms = AOS.ctx.paneles_acceso || [];

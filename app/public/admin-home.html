@@ -345,29 +345,45 @@ function ahAlertas(sem){
   _q('aos_estado_equipo','select=asesor,estado,inicio,updated_at,codigo_asesor&order=asesor',function(rows){
     var el=document.getElementById('ah-alerts');if(!el)return;
     var alertas=[];
+    var estadosEquipo={};/* mapa para el monitoreo */
 
-    // 1) Estados en tiempo real desde tabla
+    // 1) Procesar TODOS los estados del equipo
     (rows||[]).forEach(function(r){
       var a=r.asesor;var est=(r.estado||'').toUpperCase();
-      if(est&&est!=='ACTIVO'&&est!=='EN LLAMADA'&&est!=='DESCONECTADO'&&est!=='CIERRE_TURNO'&&est!=='INICIO_TURNO'){
-        var inicio=r.inicio?new Date(r.inicio):null;
-        var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
-        var horaInicio='';
-        if(inicio){var hh=inicio.getHours(),mm=inicio.getMinutes();var ap=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ap;}
-        var ico=est==='BREAK'?'☕':est==='BAÑO'?'🚻':est==='ATENCIÓN'?'🙋':est==='LIMPIEZA'?'🧹':est==='CAPACITACIÓN'?'📚':'⚠️';
-        alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio,type:'estado'});
-        if(_D.loadCount>=2&&!_D['al_'+a+'_'+est]){ahN('alert',ico+' '+a+' en '+est,'Desde '+horaInicio);_D['al_'+a+'_'+est]=true;}
+      estadosEquipo[a]=est;
+      var inicio=r.inicio?new Date(r.inicio):null;
+      var mins=inicio?Math.round((Date.now()-inicio.getTime())/60000):0;
+      var horaInicio='';
+      if(inicio){var hh=inicio.getHours(),mm=inicio.getMinutes();var ap=hh>=12?'PM':'AM';if(hh>12)hh-=12;if(hh===0)hh=12;horaInicio=hh+':'+String(mm).padStart(2,'0')+' '+ap;}
+
+      if(est==='LOGEADO'){
+        /* Recién ingresó — mostrar como alerta info por 15 min */
+        if(mins<=15){
+          alertas.push({asesor:a,estado:'LOGEADO',ico:'🟢',mins:mins,hora:horaInicio,type:'logeado'});
+          if(!_D['al_'+a+'_LOGIN']){ahN('info','🟢 '+a+' ingresó al sistema','Hace '+mins+' min');_D['al_'+a+'_LOGIN']=true;}
+        }else{
+          /* Pasaron 15 min sin actividad → inactivo */
+          alertas.push({asesor:a,estado:'INACTIVO',ico:'⏱',mins:mins,hora:horaInicio,type:'inactivo'});
+        }
       }
+      else if(est==='BREAK'||est==='BAÑO'||est==='BANO'||est==='ATENCIÓN'||est==='ATENCION'||est==='LIMPIEZA'||est==='CAPACITACIÓN'||est==='CAPACITACION'){
+        /* Estados bloqueantes — SIEMPRE mostrar, no se vencen */
+        var ico=est==='BREAK'?'☕':(est==='BAÑO'||est==='BANO')?'🚻':(est==='ATENCIÓN'||est==='ATENCION')?'🙋':est==='LIMPIEZA'?'🧹':'📚';
+        alertas.push({asesor:a,estado:est,ico:ico,mins:mins,hora:horaInicio,type:'estado'});
+        if(_D.loadCount>=2&&!_D['al_'+a+'_'+est]){ahN('alert',ico+' '+a+' en '+est,'Desde '+horaInicio+' ('+mins+' min)');_D['al_'+a+'_'+est]=true;}
+      }
+      /* ACTIVO, EN LLAMADA, DESCONECTADO → no generan alerta */
     });
 
-    // 2) Inactivity alerts from semáforo (>5 min sin tipificar)
+    // 2) Inactivity alerts from semáforo (>5 min sin tipificar) — solo si no tiene estado bloqueante
     if(_semData){
       (_semData).forEach(function(s){
         var m=parseInt(s.mins_sin||0);
         var a=s.asesor;
-        // Skip if already has a log_personal alert (BREAK etc takes priority)
-        var hasLogAlert=alertas.some(function(al){return al.asesor===a;});
-        if(!hasLogAlert&&m>5&&s.llamadas>0){
+        var estActual=estadosEquipo[a]||'';
+        var tieneBloqueante=estActual==='BREAK'||estActual==='BAÑO'||estActual==='BANO'||estActual==='ATENCIÓN'||estActual==='ATENCION'||estActual==='LIMPIEZA'||estActual==='CAPACITACIÓN';
+        var hasAlert=alertas.some(function(al){return al.asesor===a;});
+        if(!hasAlert&&!tieneBloqueante&&m>5&&s.llamadas>0){
           alertas.push({asesor:a,estado:'INACTIVO',ico:'⏱',mins:m,hora:s.ult_hora||'—',type:'inactivo'});
         }
       });
@@ -458,8 +474,11 @@ function ahSem(sem,fecha){
   // Sede REAL del día desde aos_horarios_personal (turnos reales, no RRHH genérico)
   _r('aos_sede_personal_hoy',{p_fecha:fecha},function(sedes){
     var sm=sedes||{};
+    /* Cargar estado en tiempo real del equipo */
+    _q('aos_estado_equipo','select=asesor,estado,inicio&order=asesor',function(eqRows){
     _q('aos_log_personal','select=asesor,estado,inicio,fin&fecha=eq.'+fecha+'&order=inicio.desc&limit=50',function(logs){
       var ll={};(logs||[]).forEach(function(l){var a=l.asesor;if(a&&!ll[a])ll[a]=l;});
+      var rows=eqRows||[];/* disponible para el render */
       // Mostrar fecha seleccionada si no es hoy
 var muEl=document.getElementById('ah-mu');
 if(muEl&&fecha!==_hoy()){muEl.textContent='Fecha: '+fecha;}
@@ -473,21 +492,30 @@ var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
         var sede=sm[n]||sm[n.replace('SRA ','')]||'—';
         if(s){
           var m=parseInt(s.mins_sin||0);var est,cls;
-          var log=ll[n];
-          if(log&&!log.fin){var le=(log.estado||'').toUpperCase();
-            if(le&&le!=='ACTIVO'&&le!=='EN LLAMADA'&&le!=='CIERRE_TURNO'&&le!=='INICIO_TURNO'){est=le;cls='bg-w';}
-            else if(m<=3){est='ACTIVO';cls='bg-ok';}
-            else if(m<=5){est='EN LLAMADA';cls='bg-w';}
-            else{est='INACTIVO';cls='bg-r';}
+          
+          /* PRIORIDAD 1: Leer estado REAL de aos_estado_equipo */
+          var eqRow=null;(rows||[]).forEach(function(r){if(r.asesor===n)eqRow=r;});
+          var eqEst=eqRow?(eqRow.estado||'').toUpperCase():'';
+          var eqInicio=eqRow&&eqRow.inicio?new Date(eqRow.inicio):null;
+          var eqMins=eqInicio?Math.round((Date.now()-eqInicio.getTime())/60000):0;
+          
+          if(eqEst==='BREAK'||eqEst==='BAÑO'||eqEst==='BANO'||eqEst==='ATENCIÓN'||eqEst==='ATENCION'||eqEst==='LIMPIEZA'||eqEst==='CAPACITACIÓN'||eqEst==='CAPACITACION'){
+            /* Estado bloqueante — SIEMPRE mostrar, sin timeout */
+            var icoMap={'BREAK':'☕','BAÑO':'🚻','BANO':'🚻','ATENCIÓN':'🙋','ATENCION':'🙋','LIMPIEZA':'🧹','CAPACITACIÓN':'📚','CAPACITACION':'📚'};
+            est=(icoMap[eqEst]||'')+' '+eqEst+' ('+eqMins+'m)';cls='bg-w';
+          }else if(eqEst==='LOGEADO'){
+            est=eqMins<=15?'LOGEADO':'INACTIVO';cls=eqMins<=15?'bg-ok':'bg-r';
+          }else if(eqEst==='DESCONECTADO'){
+            est='SIN ACTIV.';cls='bg-i';
           }else{
+            /* ACTIVO o EN LLAMADA — usar semáforo de llamadas */
             if(m<=3){est='ACTIVO';cls='bg-ok';}
             else if(m<=5){est='EN LLAMADA';cls='bg-w';}
-            else if(m<=120){est='INACTIVO';cls='bg-r';}
-            else{est='SIN ACTIV.';cls='bg-i';}
+            else{est='INACTIVO';cls='bg-r';}
           }
-          // Inactivity alert: >5min without tipificación
+          
+          // Inactivity alert: >5min without tipificación (solo si no tiene estado bloqueante)
           if(m>5&&s.llamadas>0&&est==='INACTIVO'){
-            // Notify only at 5min intervals: 5,10,15,20...
             var interval=Math.floor(m/5);
             var alertKey='inact_'+n+'_'+interval;
             if(_D.loadCount>=2&&!_D[alertKey]){
@@ -518,6 +546,7 @@ var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
       }
       _D.prev.citas=totalCitas;
     });
+    }); /* close _q aos_estado_equipo */
   });
 }
 
