@@ -299,27 +299,34 @@ var STEPS_ENF_CONSULTA=[
   {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
+  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
   {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
 ];
 var STEPS_DRA_CONSULTA=[
+  {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
+  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
   {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
-  {ico:'📋',t:'Nota médica',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
 ];
 /* FASE 2: PROCEDIMIENTO — tratamiento pagado */
 var STEPS_ENF=[
   {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
-  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'},
-  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
-  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'}
+  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
+  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
 ];
 var STEPS_DRA=[
-  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'},
-  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'}
+  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
 ];
 function getSteps(){
   var c=AT.sel||{};
@@ -604,17 +611,92 @@ sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;i
 
 /* ===== MOD-14: SUB PROGRAMAR ===== */
 function rProgramar(el){var c=AT.sel;if(!c)return;
-var o='<div class="at-sc">Programar citas — '+E((c.nombre||'')+' '+(c.apellido||''))+'</div>';
-o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div class="fg"><label class="fl">Tratamiento</label><select class="fi fs" id="pg-t"><option value="">Seleccionar...</option></select></div><div class="fg"><label class="fl">Profesional</label><input class="fi" id="pg-p" value="'+E(c.profesional||'')+'"></div></div>';
-o+='<div class="at-sc">Sesiones</div><div id="pg-s"><div style="display:flex;gap:6px;margin-bottom:4px;align-items:center"><span style="font-size:8px;font-weight:800;color:var(--blue);width:20px;text-align:center">1</span><input type="date" class="fi" style="flex:1"><input type="time" class="fi" style="width:100px" value="10:00"></div></div>';
-o+='<button class="btn btn-s btn-sm" style="margin:6px 0" onclick="addS()">+ Sesión</button><br><button class="btn btn-p" style="margin-top:8px" onclick="guardarProg()">✅ Programar</button>';
-var cf=(AT.det&&AT.det.citas_futuras)||[];
-if(cf.length){o+='<div class="at-sc" style="margin-top:16px">Citas futuras</div>';cf.forEach(function(ci){o+='<div style="padding:6px;border-left:3px solid var(--blue);margin-bottom:4px;font-size:8px;background:#F8FAFF;border-radius:0 4px 4px 0"><b>'+E(ci.fecha_cita)+'</b> '+E(ci.hora_cita||'')+' · '+E(ci.tratamiento||'')+' · '+E(ci.doctora||'')+'</div>';});}
-el.innerHTML=o;
-sbR('aos_catalogo_tratamientos',{}).then(function(items){if(!items)return;var s=document.getElementById('pg-t');if(s)s.innerHTML='<option value="">Seleccionar...</option>'+items.map(function(x){return '<option value="'+E(x.t)+'">'+E(x.t)+'</option>'}).join('');});}
-var _pc=1;function addS(){_pc++;document.getElementById('pg-s').innerHTML+='<div style="display:flex;gap:6px;margin-bottom:4px;align-items:center"><span style="font-size:8px;font-weight:800;color:var(--blue);width:20px;text-align:center">'+_pc+'</span><input type="date" class="fi" style="flex:1"><input type="time" class="fi" style="width:100px" value="10:00"></div>';}
-function guardarProg(){var c=AT.sel;if(!c)return;var trat=document.getElementById('pg-t').value,prof=document.getElementById('pg-p').value;if(!trat){alert('Selecciona tratamiento');return;}var rows=document.getElementById('pg-s').querySelectorAll('div');var ses=[];rows.forEach(function(r){var inp=r.querySelectorAll('input');if(inp.length>=2&&inp[0].value)ses.push({fecha:inp[0].value,hora:inp[1].value||'10:00'});});if(!ses.length){alert('Agrega al menos 1 sesión');return;}
-sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre,p_apellido:c.apellido,p_tratamiento:trat,p_profesional:prof,p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify(ses),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ '+r.sesiones_creadas+' citas','','');_pc=1;loadDet();}else alert('Error');});}
+var o='<div class="at-sc">📅 Programar — '+E((c.nombre||'')+' '+(c.apellido||''))+'</div>';
+
+/* Cargar plan de trabajo del paciente */
+sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc').then(function(items){
+  items=items||[];
+  var pagados=items.filter(function(it){return it.estado_item==='PAGADO'||it.estado_item==='PARCIAL';});
+  var pendientes=items.filter(function(it){return it.estado_item==='PENDIENTE';});
+
+  /* Sección 1: Pagados — programar sesiones/control */
+  if(pagados.length){
+    o+='<div class="at-sc" style="color:var(--gn)">✅ Pagados — programar sesiones</div>';
+    pagados.forEach(function(it,i){
+      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.03)">';
+      o+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
+      o+='<span style="font-size:12px">💉</span><b style="flex:1;font-size:10px;color:var(--deep)">'+E(it.nombre_servicio)+'</b>';
+      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 6px;border-radius:4px">'+E(it.estado_item)+'</span>';
+      o+='<span style="font-size:8px;color:var(--blue);font-weight:700">'+it.num_sesiones+' ses</span></div>';
+      o+='<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:4px;align-items:center">';
+      o+='<select class="fi fs" id="pg-tipo-'+i+'" style="font-size:8px"><option>APLICACIÓN</option><option>CONTROL</option><option>SESIÓN</option></select>';
+      o+='<input type="date" class="fi" id="pg-fecha-'+i+'" style="font-size:9px">';
+      o+='<input type="time" class="fi" id="pg-hora-'+i+'" value="10:00" style="width:70px;font-size:9px">';
+      o+='<button class="btn btn-p btn-sm" onclick="progSesion(\''+E(it.nombre_servicio)+'\',\''+E(it.id)+'\','+i+')" style="font-size:8px">📅</button>';
+      o+='</div></div>';
+    });
+  }
+
+  /* Sección 2: Pendientes de pago — standby o programar */
+  if(pendientes.length){
+    o+='<div class="at-sc" style="margin-top:8px;color:#D97706">⏳ Pendientes de pago</div>';
+    pendientes.forEach(function(it,i){
+      var idx=pagados.length+i;
+      o+='<div style="padding:6px 8px;border:1px solid #FEF3C7;border-radius:var(--r);margin-bottom:3px;background:#FFFBEB;display:flex;align-items:center;gap:6px">';
+      o+='<span style="font-size:10px">📋</span><span style="flex:1;font-size:9px;font-weight:600;color:var(--deep)">'+E(it.nombre_servicio)+'</span>';
+      o+='<span style="font-size:7px;color:#D97706">'+it.num_sesiones+' ses — S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
+      o+='<button class="btn btn-s btn-sm" onclick="progSesion(\''+E(it.nombre_servicio)+'\',\''+E(it.id)+'\','+idx+')" style="font-size:7px">Programar</button>';
+      o+='</div>';
+    });
+  }
+
+  if(!items.length){
+    o+='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin plan de trabajo — crea uno desde el chip de Plan</div>';
+  }
+
+  /* Sección 3: Programar manual */
+  o+='<div class="at-sc" style="margin-top:10px">➕ Programar cita manual</div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  o+='<div class="fg"><label class="fl">Tratamiento</label><input class="fi" id="pg-m-trat" placeholder="Ej: Control, Hidrofacial..." value="'+E((c.tratamientos||[])[0]||'')+'"></div>';
+  o+='<div class="fg"><label class="fl">Tipo cita</label><select class="fi fs" id="pg-m-tipo"><option>APLICACIÓN</option><option>CONTROL</option><option>CONSULTA NUEVA</option><option>SESIÓN</option></select></div>';
+  o+='<div class="fg"><label class="fl">Fecha</label><input type="date" class="fi" id="pg-m-fecha"></div>';
+  o+='<div class="fg"><label class="fl">Hora</label><input type="time" class="fi" id="pg-m-hora" value="10:00"></div>';
+  o+='</div>';
+  o+='<div class="fg"><label class="fl">Profesional</label><input class="fi" id="pg-m-prof" value="'+E(c.profesional||'')+'"></div>';
+  o+='<button class="btn btn-p" style="margin-top:6px" onclick="progManual()">📅 Programar cita</button>';
+
+  /* Citas futuras */
+  var cf=(AT.det&&AT.det.citas_futuras)||[];
+  if(cf.length){o+='<div class="at-sc" style="margin-top:12px">📋 Citas futuras</div>';cf.forEach(function(ci){o+='<div style="padding:5px;border-left:3px solid var(--blue);margin-bottom:3px;font-size:8px;background:#F8FAFF;border-radius:0 4px 4px 0"><b>'+E(ci.fecha_cita)+'</b> '+E(ci.hora_cita||'')+' · '+E(ci.tratamiento||'')+' · '+E(ci.doctora||'')+'</div>';});}
+
+  el.innerHTML=o;
+});
+}
+var _pc=1;
+function progSesion(trat,planId,idx){
+  var c=AT.sel;if(!c)return;
+  var fecha=(document.getElementById('pg-fecha-'+idx)||{}).value;
+  var hora=(document.getElementById('pg-hora-'+idx)||{}).value||'10:00';
+  var tipo=(document.getElementById('pg-tipo-'+idx)||{}).value||'APLICACIÓN';
+  if(!fecha){if(window.AOS_showToast)AOS_showToast('Selecciona fecha','','toast-alerta');return;}
+  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:c.profesional||'',p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify([{fecha:fecha,hora:hora}]),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
+    if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Cita programada',trat+' — '+fecha,'');loadDet();}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
+function progManual(){
+  var c=AT.sel;if(!c)return;
+  var trat=(document.getElementById('pg-m-trat')||{}).value||'';
+  var tipo=(document.getElementById('pg-m-tipo')||{}).value||'CONTROL';
+  var fecha=(document.getElementById('pg-m-fecha')||{}).value||'';
+  var hora=(document.getElementById('pg-m-hora')||{}).value||'10:00';
+  var prof=(document.getElementById('pg-m-prof')||{}).value||c.profesional||'';
+  if(!fecha||!trat){if(window.AOS_showToast)AOS_showToast('Completa fecha y tratamiento','','toast-alerta');return;}
+  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:prof,p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify([{fecha:fecha,hora:hora}]),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
+    if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Cita programada',trat+' — '+fecha,'');loadDet();}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
 
 /* ===== MOD-15: SUB DESCUENTOS ===== */
 function rDescuentos(el){var d=AT.det,c=AT.sel;var inv=d?d.insumos_usados:null;var sede=c?c.sede||'SAN ISIDRO':'SAN ISIDRO';
