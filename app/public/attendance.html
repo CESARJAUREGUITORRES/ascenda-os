@@ -497,10 +497,11 @@ o+='</div>';
 /* IMC auto */
 o+='<div id="imc-box" style="display:none;padding:6px;background:#F8FAFF;border:1px solid var(--bd2);border-radius:6px;margin-bottom:8px;text-align:center"><span style="font-size:7px;color:var(--mt)">IMC</span><div id="imc-val" style="font-size:18px;font-weight:800;color:var(--blue)">—</div><div id="imc-label" style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block">—</div></div>';
 o+='<div class="at-sc">Signos vitales</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
-o+='<div class="fg"><label class="fl">P. Arterial</label><input id="nt-pa" class="fi" placeholder="120/80"></div>';
-o+='<div class="fg"><label class="fl">F. Cardíaca</label><input id="nt-fc" class="fi" placeholder="72 lpm"></div>';
-o+='<div class="fg"><label class="fl">Temp (°C)</label><input id="nt-temp" class="fi" placeholder="36.5"></div>';
-o+='<div class="fg"><label class="fl">Saturación %</label><input id="nt-sat" class="fi" placeholder="98"></div></div>';
+o+='<div class="fg"><label class="fl">P. Arterial</label><input id="nt-pa" class="fi" placeholder="120/80" oninput="calcVitales()"><div id="pa-tag" style="font-size:7px;font-weight:700;margin-top:2px;padding:1px 6px;border-radius:8px;display:none"></div></div>';
+o+='<div class="fg"><label class="fl">F. Cardíaca</label><input id="nt-fc" class="fi" placeholder="72" oninput="calcVitales()"><div id="fc-tag" style="font-size:7px;font-weight:700;margin-top:2px;padding:1px 6px;border-radius:8px;display:none"></div></div>';
+o+='<div class="fg"><label class="fl">Temp (°C)</label><input id="nt-temp" class="fi" placeholder="36.5" oninput="calcVitales()"><div id="temp-tag" style="font-size:7px;font-weight:700;margin-top:2px;padding:1px 6px;border-radius:8px;display:none"></div></div>';
+o+='<div class="fg"><label class="fl">Saturación %</label><input id="nt-sat" class="fi" placeholder="98" oninput="calcVitales()"><div id="sat-tag" style="font-size:7px;font-weight:700;margin-top:2px;padding:1px 6px;border-radius:8px;display:none"></div></div></div>';
+o+='<div id="news2-box" style="display:none;padding:8px;border-radius:8px;margin-bottom:8px;text-align:center"><div style="font-size:7px;font-weight:700;letter-spacing:.5px">SCORE NEWS2</div><div id="news2-val" style="font-size:22px;font-weight:800">0</div><div id="news2-label" style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block">—</div></div>';
 o+='<div class="at-sc">Observaciones de triaje</div>';
 }
 
@@ -550,7 +551,82 @@ function calcIMC(){
     le.textContent=imc+' — '+cat;le.style.color=col;le.style.background=bg;}
 }
 
-/* Zonas cosmiatría */
+/* ===== SIGNOS VITALES — Etiquetas inteligentes + NEWS2 ===== */
+function calcVitales(){
+  var score=0;
+  /* P. Arterial */
+  var paVal=(document.getElementById('nt-pa')||{}).value||'';
+  var paTag=document.getElementById('pa-tag');
+  if(paVal&&paVal.indexOf('/')>-1&&paTag){
+    var parts=paVal.split('/');var sys=parseInt(parts[0]);var dia=parseInt(parts[1]);
+    if(sys&&dia){
+      var lbl='',col='',bg='',pts=0;
+      if(sys>180||dia>120){lbl='⚠ Crisis hipertensiva';col='#fff';bg='#7F1D1D';pts=3;}
+      else if(sys>=140||dia>=90){lbl='Hipertensión N2';col='#DC2626';bg='#FEE2E2';pts=3;}
+      else if(sys>=130||dia>=80){lbl='Hipertensión N1';col='#EA580C';bg='#FFF7ED';pts=2;}
+      else if(sys>=120){lbl='Elevada';col='#D97706';bg='#FEF3C7';pts=1;}
+      else if(sys>=90){lbl='Normal';col='#059669';bg='#F0FDF4';pts=0;}
+      else{lbl='Hipotensión';col='#DC2626';bg='#FEE2E2';pts=3;}
+      paTag.textContent=lbl;paTag.style.color=col;paTag.style.background=bg;paTag.style.display='inline-block';
+      score+=pts;
+    }
+  }else if(paTag){paTag.style.display='none';}
+
+  /* F. Cardíaca */
+  var fcVal=parseInt((document.getElementById('nt-fc')||{}).value);
+  var fcTag=document.getElementById('fc-tag');
+  if(fcVal&&fcTag){
+    var lbl='',col='',bg='',pts=0;
+    if(fcVal<=40){lbl='Bradicardia severa';col='#DC2626';bg='#FEE2E2';pts=3;}
+    else if(fcVal<=50){lbl='Bradicardia';col='#EA580C';bg='#FFF7ED';pts=1;}
+    else if(fcVal<=90){lbl='Normal';col='#059669';bg='#F0FDF4';pts=0;}
+    else if(fcVal<=110){lbl='Elevada';col='#D97706';bg='#FEF3C7';pts=1;}
+    else if(fcVal<=130){lbl='Taquicardia';col='#EA580C';bg='#FFF7ED';pts=2;}
+    else{lbl='Taquicardia severa';col='#DC2626';bg='#FEE2E2';pts=3;}
+    fcTag.textContent=fcVal+' lpm — '+lbl;fcTag.style.color=col;fcTag.style.background=bg;fcTag.style.display='inline-block';
+    score+=pts;
+  }else if(fcTag){fcTag.style.display='none';}
+
+  /* Temperatura */
+  var tVal=parseFloat((document.getElementById('nt-temp')||{}).value);
+  var tTag=document.getElementById('temp-tag');
+  if(tVal&&tTag){
+    var lbl='',col='',bg='',pts=0;
+    if(tVal<35){lbl='Hipotermia';col='#1D4ED8';bg='#DBEAFE';pts=3;}
+    else if(tVal<=36){lbl='Normal baja';col='#059669';bg='#F0FDF4';pts=1;}
+    else if(tVal<=37.2){lbl='Normal';col='#059669';bg='#F0FDF4';pts=0;}
+    else if(tVal<=38){lbl='Febrícula';col='#D97706';bg='#FEF3C7';pts=1;}
+    else if(tVal<=39){lbl='Fiebre';col='#DC2626';bg='#FEE2E2';pts=2;}
+    else{lbl='Fiebre alta';col='#7F1D1D';bg='#FEE2E2';pts=3;}
+    tTag.textContent=tVal+'°C — '+lbl;tTag.style.color=col;tTag.style.background=bg;tTag.style.display='inline-block';
+    score+=pts;
+  }else if(tTag){tTag.style.display='none';}
+
+  /* Saturación */
+  var sVal=parseInt((document.getElementById('nt-sat')||{}).value);
+  var sTag=document.getElementById('sat-tag');
+  if(sVal&&sTag){
+    var lbl='',col='',bg='',pts=0;
+    if(sVal>=96){lbl='Normal';col='#059669';bg='#F0FDF4';pts=0;}
+    else if(sVal>=94){lbl='Normal baja';col='#059669';bg='#F0FDF4';pts=1;}
+    else if(sVal>=92){lbl='Hipoxia leve';col='#D97706';bg='#FEF3C7';pts=2;}
+    else{lbl='Hipoxia — ¡Atención!';col='#DC2626';bg='#FEE2E2';pts=3;}
+    sTag.textContent=sVal+'% — '+lbl;sTag.style.color=col;sTag.style.background=bg;sTag.style.display='inline-block';
+    score+=pts;
+  }else if(sTag){sTag.style.display='none';}
+
+  /* NEWS2 Score */
+  var n2Box=document.getElementById('news2-box');
+  var n2Val=document.getElementById('news2-val');
+  var n2Lbl=document.getElementById('news2-label');
+  var hasAny=paVal||fcVal||tVal||sVal;
+  if(n2Box&&hasAny){
+    n2Box.style.display='block';n2Val.textContent=score;
+    if(score<=4){n2Lbl.textContent='Riesgo bajo — Paciente estable';n2Lbl.style.color='#059669';n2Lbl.style.background='#F0FDF4';n2Box.style.background='#F0FDF4';n2Box.style.border='1px solid #BBF7D0';}
+    else if(score<=6){n2Lbl.textContent='⚠ Riesgo medio — Revisión médica requerida';n2Lbl.style.color='#D97706';n2Lbl.style.background='#FEF3C7';n2Box.style.background='#FEF3C7';n2Box.style.border='2px solid #D97706';}
+    else{n2Lbl.textContent='🚨 Riesgo alto — SUSPENDER procedimiento';n2Lbl.style.color='#fff';n2Lbl.style.background='#DC2626';n2Box.style.background='#FEE2E2';n2Box.style.border='2px solid #DC2626';}
+  }else if(n2Box){n2Box.style.display='none';}
+}
 var ZF=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpado superior','Párpado inferior','Pómulo derecho','Pómulo izquierdo','Nariz','Surco nasogeniano','Mejilla derecha','Mejilla izquierda','Labio superior','Labio inferior','Mentón','Línea mandibular','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
 var HF=['Arrugas finas','Arrugas profundas','Arrugas de expresión','Manchas/Hiperpigmentación','Melasma','Flacidez','Poros dilatados','Acné activo','Comedones','Cicatrices de acné','Rosácea','Cuperosis','Telangiectasias','Lunares','Verrugas','Cicatrices','Ojeras','Bolsas palpebrales','Queratosis','Pérdida de volumen','Surcos profundos','Ptosis facial','Doble mentón','Textura irregular'];
 var ZC=['Abdomen superior','Abdomen inferior','Flancos','Espalda baja','Espalda alta','Muslo interno','Muslo externo','Glúteos','Brazos','Papada','Rodillas','Pecho','Cintura'];
