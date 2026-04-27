@@ -1442,7 +1442,7 @@ function abrirModalVenta() {
   actualizarResumen();
   // Cargar personal para select
   sbGet('aos_rrhh','estado=eq.ACTIVO&order=nombre.asc', function(rows){
-    _PERSONAL_CAJA = rows && rows.length ? rows : [{nombre:'WILMER',apellido:'CIEZA'},{nombre:'RUVILA',apellido:'CUEVAS'},{nombre:'MIREYA',apellido:'X'},{nombre:'CARMEN',apellido:'ZIMIC'}];
+    _PERSONAL_CAJA = rows && rows.length ? rows : [];
   });
   abrirOv('ov-venta');
 }
@@ -2254,16 +2254,9 @@ function grabarCotizacion() {
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
     toast('✅ ' + msg, 'ok');
-    // Recargar caja completa para que aparezca la venta
-    setTimeout(function() { 
-      cargarCaja();
-      // Si no refresca, forzar navegación
-      setTimeout(function() {
-        if (window.parent && window.parent.navigateTo) {
-          window.parent.navigateTo('admin-caja');
-        }
-      }, 800);
-    }, 300);
+    // Recargar caja para que aparezca la venta
+    cargarCaja();
+    setTimeout(function() { cargarCaja(); }, 1000);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }
 
