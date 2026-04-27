@@ -375,7 +375,9 @@ function togS(t){var e=document.getElementById('step-'+t);if(e)e.classList.toggl
 function openNota(tipo){var c=AT.sel;if(!c)return;_openTipo=tipo;
 /* Interceptar Plan de Trabajo → drawer especial */
 if(tipo==='PLAN_TRABAJO'){openPlanTrabajo();return;}
-var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',NOTA_PROCEDIMIENTO:'💉 Procedimiento',EVOLUCION_MEDICA:'📈 Evolución',PRESCRIPCION:'💊 Receta'};
+/* Interceptar Procedimiento → drawer especial */
+if(tipo==='NOTA_PROCEDIMIENTO'){openProcedimiento();return;}
+var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',EVOLUCION_MEDICA:'📈 Evolución',PRESCRIPCION:'💊 Receta'};
 document.getElementById('dw-nota-t').textContent=labels[tipo]||tipo;var b=document.getElementById('dw-nota-b');
 var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
 
@@ -713,6 +715,103 @@ function guardarNotaCliente(){
   var txt=(document.getElementById('nota-cliente')||{}).value||'';if(!txt.trim()){if(window.AOS_showToast)AOS_showToast('Escribe una nota','','toast-alerta');return;}
   sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_CLIENTE',fecha:c.fecha,contenido:txt,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(r){
     if(r.ok){if(window.AOS_showToast)AOS_showToast('✅ Nota guardada','','');loadDet();}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
+
+/* ===== MOD-26: PROCEDIMIENTO ===== */
+function openProcedimiento(){
+  var c=AT.sel;if(!c)return;
+  document.getElementById('dw-nota-t').textContent='💉 Procedimiento';
+  var b=document.getElementById('dw-nota-b');
+  var trats=(c.tratamientos||[]);
+  var esDra=isDra(c.profesional);
+  var esAsistente=c.es_asistente||false;
+
+  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
+
+  /* Si es asistente, solo ver — no documentar */
+  if(esAsistente){
+    o+='<div style="padding:12px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
+  }
+
+  /* Tratamiento de la atención */
+  if(trats.length){
+    o+='<div class="at-sc">Tratamiento realizado</div>';
+    o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">';
+    trats.forEach(function(t){o+='<span style="padding:4px 10px;background:#EBF2FF;color:var(--blue);border-radius:8px;font-size:9px;font-weight:700">'+E(t)+'</span>';});
+    o+='</div>';
+  }else{
+    o+='<div class="fg"><label class="fl">Tratamiento realizado</label><input id="proc-trat" class="fi" placeholder="Ej: Hidrofacial rostro, PQ Age..."></div>';
+  }
+
+  /* Zona trabajada */
+  o+='<div class="fg"><label class="fl">Zona trabajada</label><input id="proc-zona" class="fi" placeholder="Rostro, cuello, abdomen..."></div>';
+
+  /* Productos/insumos utilizados */
+  o+='<div class="fg"><label class="fl">Productos/insumos utilizados</label><textarea id="proc-insumos" class="ta" rows="2" placeholder="Ej: Sérum vitamina C, ácido hialurónico 1ml, Nabota 50U..."></textarea></div>';
+
+  /* Descripción del procedimiento */
+  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado..."></textarea></div>';
+
+  /* Observaciones / incidencias */
+  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia..."></textarea></div>';
+
+  /* Resultado */
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs"><option>Satisfactorio</option><option>Parcial</option><option>Con observaciones</option><option>Complicación leve</option></select></div>';
+  o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs"><option>Buena</option><option>Regular</option><option>Mala — sensibilidad</option></select></div>';
+  o+='</div>';
+
+  /* Indicaciones post-procedimiento */
+  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h..."></textarea></div>';
+
+  /* Fotos antes/después */
+  o+='<div class="at-sc" style="margin-top:6px">Fotos (antes / después)</div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
+  o+='<div class="fg"><label class="fl">URL foto antes</label><input id="proc-foto-antes" class="fi" placeholder="https://..."></div>';
+  o+='<div class="fg"><label class="fl">URL foto después</label><input id="proc-foto-despues" class="fi" placeholder="https://..."></div>';
+  o+='</div>';
+
+  /* Notas anteriores */
+  var map=getNotasMap();var ex=map['NOTA_PROCEDIMIENTO']||[];
+  if(ex.length){o+='<div class="at-sc" style="margin-top:10px">Procedimientos anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||n.texto||'';o+='<div class="ne">'+E(txt.substring(0,200))+(txt.length>200?'...':'')+'<div class="ne-m">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});}
+
+  o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
+  b.innerHTML=o;openDw('nota');
+}
+
+function saveProcedimiento(){
+  var c=AT.sel;if(!c)return;
+  var trats=(c.tratamientos||[]);
+  var tratTexto=(document.getElementById('proc-trat')||{}).value||trats.join(', ');
+  var zona=(document.getElementById('proc-zona')||{}).value||'';
+  var insumos=(document.getElementById('proc-insumos')||{}).value||'';
+  var desc=(document.getElementById('proc-desc')||{}).value||'';
+  var obs=(document.getElementById('proc-obs')||{}).value||'';
+  var resultado=(document.getElementById('proc-resultado')||{}).value||'';
+  var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
+  var post=(document.getElementById('proc-post')||{}).value||'';
+  var fotoAntes=(document.getElementById('proc-foto-antes')||{}).value||'';
+  var fotoDespues=(document.getElementById('proc-foto-despues')||{}).value||'';
+
+  var contenido='[PROC] '+tratTexto+'\n';
+  if(zona)contenido+='Zona: '+zona+'\n';
+  if(insumos)contenido+='Insumos: '+insumos+'\n';
+  if(desc)contenido+='Procedimiento: '+desc+'\n';
+  if(obs)contenido+='Observaciones: '+obs+'\n';
+  contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
+  if(post)contenido+='Post-procedimiento: '+post+'\n';
+  if(fotoAntes)contenido+='Foto antes: '+fotoAntes+'\n';
+  if(fotoDespues)contenido+='Foto después: '+fotoDespues+'\n';
+
+  sbW('aos_notas_clinicas',{
+    numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,
+    contenido:contenido,
+    autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
+    autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
+  }).then(function(r){
+    if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado','','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
