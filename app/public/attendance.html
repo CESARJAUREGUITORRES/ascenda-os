@@ -1200,11 +1200,33 @@ el.innerHTML='<div style="font-size:8px;font-weight:800;color:var(--am);margin-b
 function atWA(){if(AT.sel&&AT.sel.numero_limpio)window.open('https://api.whatsapp.com/send?phone=51'+AT.sel.numero_limpio.replace(/\D/g,''),'_blank');}
 function cerrarFicha(){if(!AT.sel)return;if(!confirm('¿Cerrar ficha de '+((AT.sel.nombre||'')+' '+(AT.sel.apellido||'')).trim()+'?'))return;
 var c=AT.sel;sbR('aos_cerrar_ficha',{p_numero_limpio:c.numero_limpio,p_fecha:c.fecha,p_profesional:c.profesional||'ALL',p_cerrada_por:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Ficha cerrada','','');c.estado='COMPLETADA';rList();rHdr();rKPIs();loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
-function genEnc(){if(!AT.sel)return;var c=AT.sel;var tk=Math.random().toString(36).substring(2,10)+Date.now().toString(36);
-sbW('aos_links_encuesta',{id:'enc-'+Date.now(),token:tk,numero_limpio:c.numero_limpio,usado:false,expira_at:new Date(Date.now()+48*3600000).toISOString(),generado_por:AOS.ctx?AOS.ctx.nombre:'',canal:'MANUAL'}).then(function(r){
-if(r.ok){var url=window.location.origin+'/encuesta?t='+tk;var el=document.getElementById('enc-result');
-if(el)el.innerHTML='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;font-size:8px"><b>✅ Link generado</b><br><input value="'+url+'" style="width:100%;margin-top:4px;padding:4px;font-size:8px;border:1px solid var(--bd);border-radius:4px" onclick="this.select()" readonly><div style="margin-top:4px;display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋</button><button class="btn btn-w btn-sm" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! Califica tu atención en Zi Vital: '+url)+'\',\'_blank\')">💬 WA</button></div></div>';
-if(window.AOS_showToast)AOS_showToast('🔗 Generado','48h','');loadKE();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
+function genEnc(){if(!AT.sel)return;var c=AT.sel;
+/* Detectar profesionales protagonistas desde notas de procedimiento */
+var map=getNotasMap();var procNotas=map['NOTA_PROCEDIMIENTO']||[];
+var profsMap={};
+procNotas.forEach(function(n){
+  var txt=n.contenido||'';var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
+  if(txt.indexOf('[REALIZADO]')<0)return;
+  var trat=m[1].trim();var prof=n.autor||c.profesional||'';
+  if(!profsMap[prof])profsMap[prof]={nombre:prof,tipo:isDra(prof)?'DOCTORA':'ENFERMERIA',tratamiento:trat};
+});
+/* Si no hay procs, usar el profesional de la atención */
+if(!Object.keys(profsMap).length){
+  profsMap[c.profesional||'PROF']={nombre:c.profesional||'',tipo:isDra(c.profesional)?'DOCTORA':'ENFERMERIA',tratamiento:(c.tratamientos||[])[0]||''};
+}
+var profsList=[];Object.keys(profsMap).forEach(function(k){profsList.push(profsMap[k]);});
+var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+sbR('aos_generar_link_encuesta',{p_data:{
+  numero_limpio:c.numero_limpio,nombre_paciente:cli,
+  fecha_atencion:c.fecha,sede:c.sede||'',
+  generado_por:AOS.ctx?AOS.ctx.nombre:'',canal:'MANUAL',
+  profesionales:profsList
+}}).then(function(r){
+  if(r&&r.ok){var url=window.location.origin+'/encuesta?t='+r.token;var el=document.getElementById('enc-result');
+  if(el)el.innerHTML='<div style="padding:8px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:9px"><b>✅ Link generado</b> <span style="font-size:7px;color:var(--mt)">Expira en 48h</span><br><div style="font-size:7px;color:var(--mt);margin-top:4px">Profesionales: '+profsList.map(function(p){return E(p.nombre)+' ('+E(p.tratamiento)+')';}).join(', ')+'</div><input value="'+url+'" style="width:100%;margin-top:6px;padding:6px;font-size:9px;border:1px solid var(--bd);border-radius:6px" onclick="this.select()" readonly><div style="margin-top:6px;display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋 Copiar</button><button class="btn btn-w btn-sm" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! Califica tu atención en Zi Vital: '+url)+'\',\'_blank\')">💬 WA</button></div></div>';
+  if(window.AOS_showToast)AOS_showToast('🔗 Link generado','Para '+profsList.length+' profesional(es)','');loadKE();}
+  else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
+});}
 
 /* ===== MOD-22: ASIGNAR ASISTENTE ===== */
 function selAsistente(){

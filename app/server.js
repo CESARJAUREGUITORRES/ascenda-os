@@ -373,6 +373,7 @@ http.createServer(function(req, res) {
   if (p === '/' || p === '/login') { serve(path.join(PUB, 'login.html'), res); return }
   if (p === '/app') { serve(path.join(PUB, 'app.html'), res); return }
   if (p === '/agendar' || p.startsWith('/agendar?')) { serve(path.join(PUB, 'agendar.html'), res); return }
+  if (p === '/encuesta' || p.startsWith('/encuesta?')) { serve(path.join(PUB, 'encuesta.html'), res); return }
   if (p === '/agents') { serve(path.join(PUB, 'agents.html'), res); return }
   if (p === '/cerebro.html' || p === '/cerebro') { serve(path.join(PUB, 'cerebro.html'), res); return }
   // ===== AGENTS THINK-LOOP API =====

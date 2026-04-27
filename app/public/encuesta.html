@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tu opinión — Zi Vital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--deep:#071D4A;--blue:#0A4FBF;--cyan:#00C9A7;--mint:#00E5A0;--bg:#F0F4FC;--sf:#fff;--mt:#6B7BA8;--tx:#0D1B3E;--gn:#059669;--am:#D97706;--rd:#DC2626}
+body{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#071D4A 0%,#0A4FBF 50%,#00C9A7 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;color:var(--tx)}
+.card{background:var(--sf);border-radius:20px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(7,29,74,.25);overflow:hidden;position:relative}
+.card-hdr{background:linear-gradient(135deg,var(--deep),var(--blue));padding:24px;text-align:center;color:#fff}
+.logo{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+.logo span{color:var(--cyan)}
+.card-sub{font-size:12px;opacity:.7}
+.card-body{padding:24px}
+/* Steps */
+.step{display:none;animation:fadeIn .3s ease}
+.step.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+/* Progress */
+.progress{height:4px;background:#E8ECF4;border-radius:4px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--mint));border-radius:4px;transition:width .4s ease}
+.step-label{font-size:11px;color:var(--mt);text-align:center;margin-bottom:16px}
+/* Stars */
+.stars{display:flex;gap:6px;justify-content:center;margin:12px 0 20px}
+.star{font-size:32px;cursor:pointer;transition:transform .15s;filter:grayscale(1) opacity(.3);user-select:none}
+.star.on{filter:none;transform:scale(1.1)}
+.star:hover{transform:scale(1.2)}
+/* Questions */
+.q-title{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;text-align:center;color:var(--deep);margin-bottom:4px}
+.q-sub{font-size:11px;color:var(--mt);text-align:center;margin-bottom:8px}
+.q-prof{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg);border-radius:12px;font-size:12px;font-weight:700;color:var(--blue);margin:0 auto 16px;display:flex;justify-content:center}
+.q-trat{font-size:11px;color:var(--cyan);font-weight:600;text-align:center;margin-bottom:12px}
+/* Textarea */
+.ta{width:100%;min-height:80px;padding:12px;border:2px solid #E8ECF4;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;resize:vertical;line-height:1.5;transition:border-color .2s}
+.ta:focus{border-color:var(--blue)}
+/* Buttons */
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-p{background:linear-gradient(135deg,var(--deep),var(--blue));color:#fff}
+.btn-p:hover{box-shadow:0 6px 20px rgba(10,79,191,.3);transform:translateY(-2px)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-g{background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;margin-top:10px}
+.btn-g:hover{box-shadow:0 6px 20px rgba(0,201,167,.3)}
+.btn-o{background:var(--bg);color:var(--mt);font-size:12px;margin-top:8px}
+/* Welcome */
+.welcome-ico{font-size:48px;text-align:center;margin-bottom:12px}
+.welcome-name{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;text-align:center;color:var(--deep);margin-bottom:6px}
+.welcome-txt{font-size:13px;color:var(--mt);text-align:center;line-height:1.6;margin-bottom:16px}
+.trat-chip{display:inline-block;padding:5px 12px;background:var(--bg);border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);margin:3px}
+/* Thanks */
+.thanks-ico{font-size:56px;text-align:center;margin-bottom:12px}
+.thanks-title{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:800;text-align:center;color:var(--deep);margin-bottom:8px}
+.thanks-txt{font-size:13px;color:var(--mt);text-align:center;line-height:1.6;margin-bottom:20px}
+/* Error */
+.error-box{text-align:center;padding:40px 24px}
+.error-ico{font-size:48px;margin-bottom:12px}
+.error-txt{font-size:14px;color:var(--mt);line-height:1.6}
+/* Loading */
+.loading{text-align:center;padding:60px 24px;color:var(--mt);font-size:13px}
+.spinner{width:32px;height:32px;border:3px solid #E8ECF4;border-top:3px solid var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="card-hdr">
+  <div class="logo">ZI <span>VITAL</span></div>
+  <div class="card-sub">Clínica de Estética Avanzada</div>
+</div>
+<div class="card-body" id="body">
+  <div class="loading"><div class="spinner"></div>Cargando tu encuesta...</div>
+</div>
+</div>
+
+<script>
+var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function sbR(fn,p){return fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json()})}
+function E(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+/* ===== STATE ===== */
+var ENC={data:null,step:0,totalSteps:0,profs:[],answers:{},globalAmb:0,globalRec:0,obs:'',googleClicked:false};
+
+/* ===== INIT ===== */
+;(function(){
+  var params=new URLSearchParams(window.location.search);
+  var token=params.get('t');
+  if(!token){showError('Link no válido','No se encontró un token de encuesta.');return;}
+  sbR('aos_cargar_encuesta',{p_token:token}).then(function(r){
+    if(!r||!r.ok){showError('Encuesta no disponible',r&&r.error?r.error:'Link inválido o expirado.');return;}
+    ENC.data=r;
+    ENC.profs=(r.profesionales||[]);
+    if(!ENC.profs.length){showError('Sin datos','No se encontraron profesionales para evaluar.');return;}
+    /* totalSteps: welcome(1) + preguntas por prof(5 cada uno) + globales(2) + comentario(1) + gracias(1) */
+    ENC.totalSteps=1+(ENC.profs.length*5)+2+1+1;
+    ENC.profs.forEach(function(p){ENC.answers[p.nombre]={c:0,p:0,e:0,pr:0,r:0};});
+    showWelcome();
+  });
+})();
+
+function showError(title,msg){
+  document.getElementById('body').innerHTML='<div class="error-box"><div class="error-ico">😔</div><div style="font-family:Exo 2,sans-serif;font-size:18px;font-weight:800;color:var(--deep);margin-bottom:8px">'+E(title)+'</div><div class="error-txt">'+E(msg)+'</div></div>';
+}
+
+/* ===== WELCOME ===== */
+function showWelcome(){
+  var d=ENC.data;
+  var tratsHtml=ENC.profs.map(function(p){return '<span class="trat-chip">'+E(p.tratamiento||'Tratamiento')+'</span>';}).join('');
+  var profsHtml=ENC.profs.map(function(p){return '<span class="trat-chip" style="background:#EBF2FF">'+(p.tipo==='DOCTORA'?'👩‍⚕️':'🩺')+' '+E(p.nombre)+'</span>';}).join('');
+  document.getElementById('body').innerHTML='<div class="welcome-ico">✨</div><div class="welcome-name">¡Hola'+(d.nombre_paciente?', '+E(d.nombre_paciente):'')+'!</div><div class="welcome-txt">Cuéntanos cómo fue tu experiencia en <b>Zi Vital</b>. Tu opinión nos ayuda a mejorar cada día.</div><div style="text-align:center;margin-bottom:12px">'+tratsHtml+'</div><div style="text-align:center;margin-bottom:20px">'+profsHtml+'</div><div style="font-size:10px;color:var(--mt);text-align:center;margin-bottom:16px">Solo toma 1 minuto · '+ENC.profs.length+' profesional(es) · 7 preguntas</div><button class="btn btn-p" onclick="startQuestions()">Comenzar ✨</button>';
+  ENC.step=1;
+}
+
+/* ===== QUESTIONS ENGINE ===== */
+var QUESTIONS=[
+  {key:'c',label:'Comunicación',sub:'¿Se comunicó de forma clara y cercana?',ico:'💬'},
+  {key:'p',label:'Profesionalismo',sub:'¿Te transmitió confianza y conocimiento?',ico:'🎓'},
+  {key:'e',label:'Explicación',sub:'¿Te explicó bien el procedimiento y cuidados?',ico:'📋'},
+  {key:'pr',label:'Presentación',sub:'¿Cómo fue su presentación personal y trato?',ico:'👔'},
+  {key:'r',label:'Resultado',sub:'¿Estás satisfecho/a con el resultado?',ico:'⭐'}
+];
+
+function startQuestions(){ENC.step=2;ENC._profIdx=0;ENC._qIdx=0;renderQuestion();}
+
+function renderQuestion(){
+  var pi=ENC._profIdx;var qi=ENC._qIdx;
+  var prof=ENC.profs[pi];var q=QUESTIONS[qi];
+  var currentStep=2+(pi*5)+qi;
+  var pct=Math.round(currentStep/ENC.totalSteps*100);
+  var o='<div class="progress"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+  o+='<div class="step-label">Pregunta '+(qi+1)+' de 5 · Profesional '+(pi+1)+' de '+ENC.profs.length+'</div>';
+  o+='<div class="q-prof">'+(prof.tipo==='DOCTORA'?'👩‍⚕️':'🩺')+' '+E(prof.nombre)+'</div>';
+  o+='<div class="q-trat">'+E(prof.tratamiento||'')+'</div>';
+  o+='<div class="q-title">'+q.ico+' '+q.label+'</div>';
+  o+='<div class="q-sub">'+q.sub+'</div>';
+  o+='<div class="stars" id="stars">';
+  var cur=ENC.answers[prof.nombre][q.key]||0;
+  for(var i=1;i<=5;i++){o+='<span class="star'+(i<=cur?' on':'')+'" onclick="rate('+i+')" data-v="'+i+'">⭐</span>';}
+  o+='</div>';
+  o+='<button class="btn btn-p" id="btn-next" onclick="nextQuestion()"'+(cur?'':' disabled')+'>Siguiente →</button>';
+  document.getElementById('body').innerHTML=o;
+}
+
+function rate(v){
+  var pi=ENC._profIdx;var qi=ENC._qIdx;
+  var prof=ENC.profs[pi];var q=QUESTIONS[qi];
+  ENC.answers[prof.nombre][q.key]=v;
+  document.querySelectorAll('.star').forEach(function(s,i){s.classList.toggle('on',i<v);});
+  document.getElementById('btn-next').disabled=false;
+}
+
+function nextQuestion(){
+  ENC._qIdx++;
+  if(ENC._qIdx>=QUESTIONS.length){
+    ENC._qIdx=0;ENC._profIdx++;
+    if(ENC._profIdx>=ENC.profs.length){showGlobal1();return;}
+  }
+  renderQuestion();
+}
+
+/* ===== GLOBAL QUESTIONS ===== */
+function showGlobal1(){
+  var pct=Math.round((2+ENC.profs.length*5)/ENC.totalSteps*100);
+  var o='<div class="progress"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+  o+='<div class="step-label">Pregunta global 1 de 2</div>';
+  o+='<div class="q-title">🏥 Ambiente y limpieza</div>';
+  o+='<div class="q-sub">¿Cómo te pareció la limpieza y ambiente de la clínica?</div>';
+  o+='<div class="stars" id="stars">';
+  for(var i=1;i<=5;i++){o+='<span class="star'+(i<=ENC.globalAmb?' on':'')+'" onclick="rateAmb('+i+')" data-v="'+i+'">⭐</span>';}
+  o+='</div>';
+  o+='<button class="btn btn-p" id="btn-next" onclick="showGlobal2()"'+(ENC.globalAmb?'':' disabled')+'>Siguiente →</button>';
+  document.getElementById('body').innerHTML=o;
+}
+function rateAmb(v){ENC.globalAmb=v;document.querySelectorAll('.star').forEach(function(s,i){s.classList.toggle('on',i<v);});document.getElementById('btn-next').disabled=false;}
+
+function showGlobal2(){
+  var pct=Math.round((3+ENC.profs.length*5)/ENC.totalSteps*100);
+  var o='<div class="progress"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+  o+='<div class="step-label">Pregunta global 2 de 2</div>';
+  o+='<div class="q-title">💝 Recomendación</div>';
+  o+='<div class="q-sub">¿Nos recomendarías a un familiar o amigo?</div>';
+  o+='<div class="stars" id="stars">';
+  for(var i=1;i<=5;i++){o+='<span class="star'+(i<=ENC.globalRec?' on':'')+'" onclick="rateRec('+i+')" data-v="'+i+'">⭐</span>';}
+  o+='</div>';
+  o+='<button class="btn btn-p" id="btn-next" onclick="showComment()"'+(ENC.globalRec?'':' disabled')+'>Siguiente →</button>';
+  document.getElementById('body').innerHTML=o;
+}
+function rateRec(v){ENC.globalRec=v;document.querySelectorAll('.star').forEach(function(s,i){s.classList.toggle('on',i<v);});document.getElementById('btn-next').disabled=false;}
+
+/* ===== COMMENT ===== */
+function showComment(){
+  var pct=Math.round((4+ENC.profs.length*5)/ENC.totalSteps*100);
+  var o='<div class="progress"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+  o+='<div class="step-label">Última pregunta</div>';
+  o+='<div class="q-title">📝 ¿Algo más que quieras decirnos?</div>';
+  o+='<div class="q-sub">Tu comentario es opcional pero muy valioso</div>';
+  o+='<textarea class="ta" id="obs" placeholder="Cuéntanos tu experiencia..." style="margin:16px 0"></textarea>';
+  o+='<button class="btn btn-p" onclick="submitEncuesta()">Enviar mi opinión ✨</button>';
+  document.getElementById('body').innerHTML=o;
+}
+
+/* ===== SUBMIT ===== */
+function submitEncuesta(){
+  var obs=(document.getElementById('obs')||{}).value||'';
+  ENC.obs=obs;
+  var califs=ENC.profs.map(function(p){
+    var a=ENC.answers[p.nombre];
+    return{profesional:p.nombre,tipo:p.tipo,tratamiento:p.tratamiento,cal_comunicacion:a.c,cal_profesionalismo:a.p,cal_explicacion:a.e,cal_presentacion:a.pr,cal_resultado:a.r};
+  });
+  var payload={
+    link_id:ENC.data.link_id,
+    numero_limpio:ENC.data.numero_limpio,
+    nombre_paciente:ENC.data.nombre_paciente||'',
+    fecha_atencion:ENC.data.fecha_atencion,
+    sede:ENC.data.sede||'',
+    calificaciones:califs,
+    cal_ambiente:ENC.globalAmb,
+    cal_recomendacion:ENC.globalRec,
+    observacion:obs,
+    google_clicked:false
+  };
+  document.getElementById('body').innerHTML='<div class="loading"><div class="spinner"></div>Guardando tu opinión...</div>';
+  sbR('aos_guardar_encuesta',{p_data:payload}).then(function(r){
+    if(r&&r.ok){showThanks();}
+    else{showError('Error al guardar','Intenta de nuevo en unos momentos.');}
+  });
+}
+
+/* ===== THANKS ===== */
+function showThanks(){
+  var o='<div class="thanks-ico">🎉</div>';
+  o+='<div class="thanks-title">¡Gracias por tu tiempo!</div>';
+  o+='<div class="thanks-txt">Tu opinión nos ayuda a seguir mejorando.<br>Nos encantaría que compartas tu experiencia en Google.</div>';
+  /* Google Business link — TODO: César pasará el link real */
+  o+='<button class="btn btn-g" onclick="openGoogle()">⭐ Dejanos tu reseña en Google</button>';
+  o+='<button class="btn btn-o" onclick="window.close()">Cerrar</button>';
+  document.getElementById('body').innerHTML=o;
+}
+
+function openGoogle(){
+  ENC.googleClicked=true;
+  /* Actualizar en BD que hizo click en Google */
+  if(ENC.data&&ENC.data.link_id){
+    fetch(_SB+'/rest/v1/aos_calificaciones?link_id=eq.'+ENC.data.link_id,{
+      method:'PATCH',
+      headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({google_review_clicked:true})
+    });
+  }
+  /* TODO: Reemplazar con link real de Google Business de Zi Vital */
+  window.open('https://g.page/r/YOUR_GOOGLE_ID/review','_blank');
+}
+</script>
+</body>
+</html>
