@@ -422,6 +422,7 @@ function agGuardarEstado(){
       
       if(esDoctora){
         profNombre = c.doctora || '';
+        if(!profNombre || profNombre==='Sin asignar')profNombre='';
         profTipo = 'DOCTORA';
         asistNombre = asistente || '';
       } else {
@@ -429,6 +430,12 @@ function agGuardarEstado(){
         if(profNombre==='--'||profNombre==='No aplica')profNombre='';
         profTipo = 'ENFERMERIA';
         asistNombre = '';
+      }
+      
+      /* Si no hay profesional principal pero sí asistente, usar asistente */
+      if(!profNombre && asistNombre){
+        profNombre = asistNombre;
+        profTipo = 'ENFERMERIA';
       }
       
       if(!profNombre){
