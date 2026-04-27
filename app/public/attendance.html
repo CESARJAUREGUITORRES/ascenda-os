@@ -293,22 +293,38 @@ if(tab==='general')rGeneral(b);else if(tab==='notas')rNotas(b);else if(tab==='pr
 
 /* Flow steps — dynamic by professional role */
 /* Enfermería: todos los pasos disponibles, el enfermero elige cuáles aplican */
+/* ===== STEPS POR FASE Y ROL ===== */
+/* FASE 1: CONSULTA — evaluación + plan (sin pago) */
+var STEPS_ENF_CONSULTA=[
+  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
+  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
+];
+var STEPS_DRA_CONSULTA=[
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'}
+];
+/* FASE 2: PROCEDIMIENTO — tratamiento pagado */
 var STEPS_ENF=[
   {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
   {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'},
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
   {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'}
 ];
 var STEPS_DRA=[
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
-  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
+  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'}
 ];
-function getSteps(){return isDra((AT.sel||{}).profesional)?STEPS_DRA:STEPS_ENF;}
+function getSteps(){
+  var c=AT.sel||{};
+  var esConsulta=(c.tipo_atencion==='CONSULTA'||c.origen==='CITA');
+  var esDra=isDra(c.profesional);
+  if(esConsulta) return esDra?STEPS_DRA_CONSULTA:STEPS_ENF_CONSULTA;
+  return esDra?STEPS_DRA:STEPS_ENF;
+}
 function getNotasMap(){var d=AT.det;if(!d)return{};var n=(d.notas_clinicas)||[];var np=(d.notas_pacientes)||[];var m={};n.forEach(function(x){if(!m[x.tipo])m[x.tipo]=[];m[x.tipo].push(x);});np.forEach(function(x){var t=x.tipo_clinico||x.tipo_nota;if(t){if(!m[t])m[t]=[];m[t].push(x);}});return m;}
 function iR(l,v){return '<div class="ir"><span class="ir-l">'+l+'</span><span class="ir-v">'+v+'</span></div>';}
 
@@ -316,9 +332,11 @@ function iR(l,v){return '<div class="ir"><span class="ir-l">'+l+'</span><span cl
 function rGeneral(el){
 var c=AT.sel,d=AT.det;if(!c)return;var map=getNotasMap();var steps=getSteps();var pac=d?d.paciente:null;var fil=d?d.filiacion:null;
 var rolLabel=isDra(c.profesional)?'👩‍⚕️ Flujo Doctora':'🩺 Flujo Enfermería';
+var esConsulta=(c.tipo_atencion==='CONSULTA'||c.origen==='CITA');
+var faseLabel=esConsulta?'<span style="background:#FEF3C7;color:#D97706;padding:1px 6px;border-radius:4px;font-size:7px;font-weight:700;margin-left:4px">CONSULTA</span>':'<span style="background:#F0FDF4;color:#059669;padding:1px 6px;border-radius:4px;font-size:7px;font-weight:700;margin-left:4px">PROCEDIMIENTO</span>';
 var doneCount=steps.filter(function(s){return map[s.tipo]&&map[s.tipo].length>0}).length;
 /* COL1 — Flujo */
-var c1='<div class="ic-t" style="justify-content:space-between">'+rolLabel+'<span style="font-size:7px;color:var(--mt)">'+doneCount+'/'+steps.length+' completos</span></div>';
+var c1='<div class="ic-t" style="justify-content:space-between">'+rolLabel+faseLabel+'<span style="font-size:7px;color:var(--mt)">'+doneCount+'/'+steps.length+' completos</span></div>';
 /* Progress bar */
 c1+='<div style="height:3px;background:var(--bd2);border-radius:2px;margin-bottom:8px"><div style="height:100%;background:var(--cyan);border-radius:2px;width:'+(steps.length?Math.round(doneCount/steps.length*100):0)+'%;transition:width .3s"></div></div>';
 /* Chips en grid compacto */
