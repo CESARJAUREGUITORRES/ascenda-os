@@ -2175,104 +2175,108 @@ function grabarCotizacion() {
 
   var pac = VT.pac || {};
   var nota = (document.getElementById('nota-venta') && document.getElementById('nota-venta').value) || '';
-  var totalMonto = itemsConPago.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
 
-  // Si es abono a cotización existente, usar RPC de abono
-  var esAbono = VT.cotizacion_existente && itemsConPago.some(function(it){ return it.es_abono; });
-  if (esAbono) {
-    loading(true);
-    rpc('aos_abonar_cotizacion', {
-      p_cotizacion_id: VT.cotizacion_existente,
-      p_monto: totalMonto,
-      p_metodo_pago: (itemsConPago[0] && itemsConPago[0].metodoPago) || '',
-      p_tipo_comprobante: (itemsConPago[0] && itemsConPago[0].comprobante) || 'BOLETA VIRTUAL',
-      p_nro_doc: '',
-      p_sede: CAJA.sede,
-      p_usuario: CAJA.usuario || 'CAJA',
-      p_asesor: (itemsConPago[0] && itemsConPago[0].asesorComision) || CAJA.usuario || '',
-      p_nota: nota,
-      p_sesion_id: CAJA.sesion ? CAJA.sesion.id : ''
+  // Separar items: abono a cotización existente vs items nuevos (plan o catálogo)
+  var itemsAbono = itemsConPago.filter(function(it){ return it.es_abono && it.cotizacion_id; });
+  var itemsNuevos = itemsConPago.filter(function(it){ return !it.es_abono; });
+
+  var promesas = [];
+  var resultados = [];
+
+  // 1. Procesar ABONOS a cotizaciones existentes (cada cotización por separado)
+  var cotIds = {};
+  itemsAbono.forEach(function(it) {
+    if (!cotIds[it.cotizacion_id]) cotIds[it.cotizacion_id] = { monto: 0, items: [] };
+    cotIds[it.cotizacion_id].monto += parseFloat(it.subtotal || 0);
+    cotIds[it.cotizacion_id].items.push(it);
+  });
+
+  var cotKeys = Object.keys(cotIds);
+  
+  // 2. Procesar items nuevos (plan de trabajo + catálogo)
+  function procesarNuevos() {
+    if (!itemsNuevos.length) { finalizarGrabado(); return; }
+    var totalNuevo = itemsNuevos.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
+    rpc('aos_grabar_venta_caja', {
+      p_sede: CAJA.sede, p_usuario: CAJA.usuario || 'CAJA',
+      p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+      p_numero_limpio: pac.numero || pac.celular || pac.Telefono || '',
+      p_nombres: pac.nombres || pac.Nombres || 'CLIENTE',
+      p_apellidos: pac.apellidos || pac.Apellidos || 'DIRECTO',
+      p_celular: pac.numero || pac.celular || pac.Telefono || '',
+      p_dni: pac.dni || pac.DNI || '',
+      p_asesor: (itemsNuevos[0] && itemsNuevos[0].asesorComision) || CAJA.usuario || '',
+      p_doctor: '',
+      p_items: itemsNuevos.map(function(it){
+        return { tipo:it.tipo, nombre:it.nombre, cantidad:it.cantidad, precio:it.precio, subtotal:it.subtotal,
+          metodo1:it.metodoPago||'', monto1:parseFloat(it.monto1||it.subtotal),
+          metodo2:it.metodoPago2||'', monto2:parseFloat(it.monto2||0),
+          comprobante:it.comprobante||'BOLETA VIRTUAL', asesor:it.asesorComision||'', atendio:it.atendio||'' };
+      }),
+      p_metodo_pago: (itemsNuevos[0] && itemsNuevos[0].metodoPago) || '',
+      p_monto_total: totalNuevo, p_moneda: 'PEN',
+      p_tipo_comprobante: (itemsNuevos[0] && itemsNuevos[0].comprobante) || 'BOLETA VIRTUAL',
+      p_nro_doc: '', p_estado_pago: itemsNuevos.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
+      p_nota: nota, p_tipo: itemsNuevos[0] ? itemsNuevos[0].tipo : 'SERVICIO', p_fecha: fechaLima()
     }, function(d) {
-      loading(false);
-      if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al abonar','err'); return; }
-      cerrarOv('ov-venta');
-      VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
-      toast('✅ Abono registrado — #' + (d.numero||'') + ' Saldo: S/' + parseFloat(d.saldo||0).toFixed(0), 'ok');
-      cargarCaja();
-    }, function(){ loading(false); toast('Error de conexión','err'); });
-    return;
+      if (d && d.ok) {
+        resultados.push('Venta: ' + (d.lineas||1) + ' items');
+        // Actualizar plan de trabajo
+        itemsNuevos.forEach(function(it) {
+          if (it.plan_item_id && it.pagado) {
+            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null }, function(){}, function(){});
+          }
+        });
+      }
+      finalizarGrabado();
+    }, function(){ finalizarGrabado(); });
   }
 
-  // Flujo normal: crear nueva cotización
-  loading(true);
-  rpc('aos_grabar_venta_caja', {
-    p_sede: CAJA.sede,
-    p_usuario: CAJA.usuario || 'CAJA',
-    p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
-    p_numero_limpio: pac.numero || pac.celular || pac.Telefono || '',
-    p_nombres: pac.nombres || pac.Nombres || 'CLIENTE',
-    p_apellidos: pac.apellidos || pac.Apellidos || 'DIRECTO',
-    p_celular: pac.numero || pac.celular || pac.Telefono || '',
-    p_dni: pac.dni || pac.DNI || '',
-    p_asesor: (VT.items[0] && VT.items[0].asesorComision) || CAJA.usuario || '',
-    p_doctor: '',
-    p_items: VT.items.filter(function(it){ return it.pagado; }).map(function(it){
-      return {
-        tipo: it.tipo, nombre: it.nombre,
-        cantidad: it.cantidad, precio: it.precio, subtotal: it.subtotal,
-        metodo1: it.metodoPago||'', monto1: parseFloat(it.monto1||it.subtotal),
-        metodo2: it.metodoPago2||'', monto2: parseFloat(it.monto2||0),
-        comprobante: it.comprobante||'BOLETA VIRTUAL',
-        asesor: it.asesorComision||'',
-        atendio: it.atendio||''
-      };
-    }),
-    p_metodo_pago: (VT.items[0] && VT.items[0].metodoPago) || '',
-    p_monto_total: totalMonto,
-    p_moneda: 'PEN',
-    p_tipo_comprobante: (VT.items[0] && VT.items[0].comprobante) || 'BOLETA VIRTUAL',
-    p_nro_doc: (VT.items[0] && VT.items[0].nroDoc) || '',
-    p_estado_pago: itemsConPago.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
-    p_nota: nota,
-    p_tipo: VT.items[0] ? VT.items[0].tipo : 'SERVICIO',
-    p_fecha: fechaLima(),
-    p_razon_social_id: (VT.items[0] && VT.items[0].razonSocialId) ? VT.items[0].razonSocialId : null
-  }, function(d) {
+  function finalizarGrabado() {
     loading(false);
-    if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al grabar','err'); return; }
     cerrarOv('ov-venta');
-    // ===== EMAIL AUTOMÁTICO: Confirmación de pago =====
+    // Email de confirmación
     var _pacEmail = pac.Email || pac.email || pac.correo || '';
+    var totalPagado = itemsConPago.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
     if (_pacEmail && _pacEmail.indexOf('@') > -1) {
       var _pacNombre = ((pac.nombres||pac.Nombres||'')+ ' '+(pac.apellidos||pac.Apellidos||'')).trim();
-      var _tratList = VT.items.filter(function(it){return it.pagado;}).map(function(it){return it.nombre;}).join(', ');
-      var _totalPagado = VT.items.filter(function(it){return it.pagado;}).reduce(function(s,it){return s+parseFloat(it.subtotal||0);},0);
-      var _saldoRest = totalMonto - _totalPagado;
-      var _metodo = (VT.items[0] && VT.items[0].metodoPago) || '';
+      var _tratList = itemsConPago.map(function(it){return it.nombre;}).join(', ');
       fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ to:_pacEmail, template:'confirmacion_pago', nombre:_pacNombre, tratamiento:_tratList, monto:_totalPagado, saldo_actual:_saldoRest>0.01?_saldoRest:0, metodo_pago:_metodo })
+        body: JSON.stringify({ to:_pacEmail, template:'confirmacion_pago', nombre:_pacNombre, tratamiento:_tratList, monto:totalPagado, saldo_actual:0, metodo_pago:(itemsConPago[0]&&itemsConPago[0].metodoPago)||'' })
       }).then(function(r){return r.json()}).then(function(res){
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
-      }).catch(function(e){toast('⚠ Email no enviado: '+e.message,'warn');});
+      }).catch(function(){});
     }
-    // Actualizar plan de trabajo si hay items vinculados
-    VT.items.forEach(function(it) {
-      if (it.plan_item_id && it.pagado) {
-        rpc('aos_actualizar_plan_tras_pago', {
-          p_plan_item_id: it.plan_item_id,
-          p_sesiones_pagadas: it.cantidad || 1,
-          p_cotizacion_id: d.cotizacion_id || null
-        }, function(){}, function(){});
-      }
-    });
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
-    toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
-    cerrarOv('ov-venta');
-    // Recargar datos reales del servidor
+    toast('✅ ' + resultados.join(' + '), 'ok');
     cargarCaja();
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
-  }, function(){ loading(false); toast('Error de conexión','err'); });
+  }
+
+  // Ejecutar: primero abonos, luego nuevos
+  loading(true);
+  if (cotKeys.length) {
+    var processed = 0;
+    cotKeys.forEach(function(cotId) {
+      var info = cotIds[cotId];
+      rpc('aos_abonar_cotizacion', {
+        p_cotizacion_id: cotId, p_monto: info.monto,
+        p_metodo_pago: (info.items[0] && info.items[0].metodoPago) || '',
+        p_tipo_comprobante: (info.items[0] && info.items[0].comprobante) || 'BOLETA VIRTUAL',
+        p_sede: CAJA.sede, p_usuario: CAJA.usuario || 'CAJA',
+        p_asesor: (info.items[0] && info.items[0].asesorComision) || '',
+        p_nota: nota, p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
+        p_fecha: fechaLima()
+      }, function(d) {
+        if (d && d.ok) resultados.push('Abono #' + (d.numero||'') + ': S/' + info.monto + ' (saldo S/' + parseFloat(d.saldo||0).toFixed(0) + ')');
+        processed++;
+        if (processed >= cotKeys.length) procesarNuevos();
+      }, function() { processed++; if (processed >= cotKeys.length) procesarNuevos(); });
+    });
+  } else {
+    procesarNuevos();
+  }
 }
 
 // ===== PDF COTIZACIÓN DESDE CAJA — DOS TIPOS =====
