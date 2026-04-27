@@ -143,18 +143,18 @@
 .dw-b{flex:1;overflow-y:auto;padding:12px 14px}
 
 /* ===== INSUMOS V2 ===== */
-.ds-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ds-layout{display:grid;grid-template-columns:1fr 2fr;gap:12px}
 .ds-tcard{border:1.5px solid var(--bd2);border-radius:var(--r);overflow:hidden;margin-bottom:6px;background:var(--sf);transition:all .15s;cursor:pointer}
 .ds-tcard:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(10,79,191,.06)}
 .ds-tcard.sel{border-color:var(--cyan);background:rgba(0,201,167,.03)}
 .ds-tcard.done{border-color:var(--cyan)}
 .ds-tcard.pend{border-color:var(--am)}
 .ds-tcard.err{border-color:var(--rd)}
-.ds-th{display:flex;align-items:center;gap:6px;padding:8px 10px}
-.ds-th-ico{font-size:14px}
+.ds-th{display:flex;align-items:center;gap:4px;padding:5px 8px}
+.ds-th-ico{font-size:12px}
 .ds-th-info{flex:1;min-width:0}
-.ds-th-name{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ds-th-sub{font-size:7px;color:var(--mt);margin-top:1px}
+.ds-th-name{font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-th-sub{font-size:6px;color:var(--mt);margin-top:0px}
 .ds-th-st{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
 .ds-th-st.ok{background:#F0FDF4;color:var(--gn)}.ds-th-st.warn{background:#FEF3C7;color:var(--am)}.ds-th-st.err{background:#FEE2E2;color:var(--rd)}
 .ds-th-chv{font-size:9px;color:var(--mt);transition:transform .2s;flex-shrink:0}
@@ -786,14 +786,21 @@ function rDescuentos(el){var d=AT.det,c=AT.sel;if(!c)return;
 var sede=c.sede||'SAN ISIDRO';var prof=c.profesional||'';var asist=c.asistente_nombre||'';
 var esDra=isDra(prof);var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
 var map=getNotasMap();var procNotas=map['NOTA_PROCEDIMIENTO']||[];
-var tratCards=[];
+var tratCards=[];var _tcMap={};
 procNotas.forEach(function(n){
   var txt=n.contenido||'';var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
   var nombre=m[1].trim();
   var realizado=txt.indexOf('[REALIZADO]')>-1;
   var programar=txt.indexOf('[PROGRAMAR]')>-1;
-  tratCards.push({nombre:nombre,realizado:realizado,programar:programar,autor:n.autor||prof,asistente:asist});
+  /* Deduplicar: si ya existe, quedarse con el mejor estado */
+  if(_tcMap[nombre]){
+    if(realizado)_tcMap[nombre].realizado=true;
+    if(programar&&!_tcMap[nombre].realizado)_tcMap[nombre].programar=true;
+  }else{
+    _tcMap[nombre]={nombre:nombre,realizado:realizado,programar:programar,autor:n.autor||prof,asistente:asist};
+  }
 });
+Object.keys(_tcMap).forEach(function(k){tratCards.push(_tcMap[k]);});
 if(!tratCards.length&&c.tratamientos&&c.tratamientos.length){
   c.tratamientos.forEach(function(t){tratCards.push({nombre:t,realizado:false,programar:false,autor:prof,asistente:asist});});
 }
@@ -958,7 +965,8 @@ function dsSearch(){
     if(!items||!items.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados</div>';return;}
     box.innerHTML=items.map(function(i){
       var ya=DS.items.some(function(x){return x.id===i.id});
-      return '<div style="display:flex;align-items:center;gap:5px;padding:4px 6px;border:1px solid '+(ya?'var(--cyan)':'var(--bd2)')+';border-radius:5px;margin-bottom:2px;cursor:'+(ya?'default':'pointer')+';font-size:9px;background:'+(ya?'rgba(0,201,167,.04)':'#fff')+'" '+(ya?'':'onclick="dsAddItem(\''+i.id+'\',\''+E(i.nombre_producto).replace(/'/g,"\\\\'")+'\','+i.cantidad+',\''+E(i.unidad||'und')+'\')"')+'><span style="font-size:10px">'+(ya?'\u2705':'\u2795')+'</span><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';
+      var cat=i.categoria||'';var catBg=cat==='PRODUCTO'?'#F5F3FF':cat==='INSUMO'?'#FFF7ED':'#F0F4FC';var catCol=cat==='PRODUCTO'?'#7C3AED':cat==='INSUMO'?'#D97706':'#6B7BA8';
+      return '<div style="display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid '+(ya?'var(--cyan)':'var(--bd2)')+';border-radius:6px;margin-bottom:3px;cursor:'+(ya?'default':'pointer')+';font-size:9px;background:'+(ya?'rgba(0,201,167,.04)':'#fff')+'" '+(ya?'':'onclick="dsAddItem(\''+i.id+'\',\''+E(i.nombre_producto).replace(/'/g,"\\\\'")+'\','+i.cantidad+',\''+E(i.unidad||'und')+'\')"')+'><span style="font-size:10px">'+(ya?'\u2705':'\u2795')+'</span><span style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E(i.nombre_producto)+'</div>'+(cat?'<span style="font-size:6px;padding:1px 4px;border-radius:3px;font-weight:700;background:'+catBg+';color:'+catCol+'">'+E(cat)+'</span>':'')+'</span><span style="color:var(--blue);font-weight:800;font-size:10px">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';
     }).join('');
   });
 }
@@ -977,6 +985,7 @@ function dsExec(){
   var trat=DS.selTrat||(c.tratamientos||[])[0]||'';
   var data={
     sede:DS._sede||'SAN ISIDRO',
+    fecha:c.fecha,
     usuario:AOS.ctx?AOS.ctx.nombre:'',
     numero_limpio:c.numero_limpio,
     paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
