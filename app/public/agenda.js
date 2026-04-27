@@ -389,17 +389,28 @@ function agSelEstado(btn){
     var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
     var labelTxt=esDoctora?'Enfermera asistente':'Quién realizará la atención';
     zone.querySelector('.ml').textContent=labelTxt;
-    /* Cargar personal */
+    /* Cargar personal — solo enfermeros para asistente */
     var sel=el('det-asistente');
-    if(!sel.options.length||sel.options.length<=1){
-      sel.innerHTML='<option value="">— Sin asistente —</option>';
-      fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    /* Siempre recargar al cambiar estado */
+    sel.innerHTML='<option value="">— Seleccionar —</option>';
+    var filtro='puesto=ilike.%25ENFERMER%25&';
+      fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&'+filtro+'select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
       .then(function(r){return r.json()}).then(function(rows){
-        (rows||[]).forEach(function(r){
-          sel.innerHTML+='<option value="'+h(r.nombre)+'">'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
-        });
+        if(!rows||!rows.length){
+          /* Fallback: cargar todos si no hay enfermeros */
+          fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+          .then(function(r2){return r2.json()}).then(function(all){
+            (all||[]).forEach(function(r){
+              var esEnf=(r.puesto||'').toLowerCase().indexOf('enfermer')>=0;
+              sel.innerHTML+='<option value="'+h(r.nombre)+'"'+(esEnf?'':' style="color:#999"')+'>'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
+            });
+          });
+        }else{
+          (rows||[]).forEach(function(r){
+            sel.innerHTML+='<option value="'+h(r.nombre)+'">'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
+          });
+        }
       });
-    }
   }else{zone.style.display='none';}
 }
 
