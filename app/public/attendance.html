@@ -420,10 +420,17 @@ o+='<div class="fg"><label class="fl">¿Qué busca mejorar?</label><textarea id=
 o+='<div class="at-sc" style="margin-top:8px">Conclusión</div>';
 }
 
+/* Anteriores PRIMERO en todos los tipos */
+var map=getNotasMap();var ex=map[tipo]||[];
+if(ex.length){
+  o+='<div class="at-sc">Registros guardados ('+ex.length+')</div>';
+  ex.forEach(function(n){var txt=n.contenido||n.texto||'';
+    o+='<div style="padding:6px 8px;border:1px solid var(--cyan);border-radius:6px;margin-bottom:4px;background:#F0FDFA;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});
+  o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nuevo registro</div>';
+}
+
 o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="3" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión clínica...':'Nota clínica...')+'"></textarea></div>';
 o+='<button class="btn btn-p btn-f" style="padding:10px" onclick="saveNota(\''+tipo+'\')">💾 Guardar</button>';
-var map=getNotasMap();var ex=map[tipo]||[];
-if(ex.length){o+='<div class="at-sc" style="margin-top:14px">Anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||n.texto||'';o+='<div class="ne">'+E(txt.substring(0,200))+(txt.length>200?'...':'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});}
 b.innerHTML=o;openDw('nota');
 if(tipo==='EVALUACION')evTipoChange();}
 
@@ -742,7 +749,16 @@ function openProcedimiento(){
     o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
   }
 
-  /* Tratamientos — seleccionables si hay más de 1 */
+  /* Anteriores PRIMERO */
+  var map=getNotasMap();var ex=map['NOTA_PROCEDIMIENTO']||[];
+  if(ex.length){
+    o+='<div class="at-sc">Registros guardados ('+ex.length+')</div>';
+    ex.forEach(function(n){var txt=n.contenido||n.texto||'';
+      o+='<div style="padding:6px 8px;border:1px solid var(--cyan);border-radius:6px;margin-bottom:4px;background:#F0FDFA;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});
+    o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nuevo procedimiento</div>';
+  }
+
+  /* Tratamientos */
   o+='<div class="at-sc" style="margin-bottom:4px">Tratamiento</div>';
   if(trats.length>1){
     o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">';
@@ -772,10 +788,6 @@ function openProcedimiento(){
   o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs"><option>Buena</option><option>Regular</option><option>Mala — sensibilidad</option></select></div></div>';
 
   o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h..."></textarea></div>';
-
-  /* Anteriores */
-  var map=getNotasMap();var ex=map['NOTA_PROCEDIMIENTO']||[];
-  if(ex.length){o+='<div class="at-sc" style="margin-top:10px">Anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||n.texto||'';o+='<div class="ne">'+E(txt.substring(0,200))+(txt.length>200?'...':'')+'<div class="ne-m">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});}
 
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
   b.innerHTML=o;openDw('nota');
@@ -825,6 +837,15 @@ function rRX(b){
   var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
   o+='<div style="display:inline-block;padding:3px 8px;background:'+(esDra?'#FEF3C7':'#F0FDF4')+';color:'+(esDra?'#D97706':'#059669')+';border-radius:6px;font-size:8px;font-weight:700;margin-bottom:8px">'+(esDra?'Receta médica':'Receta enfermería')+'</div>';
 
+  /* Anteriores PRIMERO */
+  var map=getNotasMap();var exR=map['PRESCRIPCION']||[];
+  if(exR.length){
+    o+='<div class="at-sc">Recetas guardadas ('+exR.length+')</div>';
+    exR.forEach(function(n){var txt=n.contenido||'';
+      o+='<div style="padding:6px 8px;border:1px solid #7C3AED;border-radius:6px;margin-bottom:4px;background:#F5F3FF;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});
+    o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nueva receta</div>';
+  }
+
   /* Buscador */
   o+='<div style="position:relative;margin-bottom:6px"><input id="rx-q" class="fi" placeholder="Buscar producto: vitamina, crema, protector..." oninput="rxSearch()" style="font-size:10px"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--mt)">🔍</span></div>';
   o+='<div id="rx-results" style="max-height:140px;overflow-y:auto;margin-bottom:6px"></div>';
@@ -859,10 +880,6 @@ function rRX(b){
 
   /* Observaciones */
   o+='<div class="fg" style="margin-top:6px"><label class="fl">Observaciones generales</label><textarea id="rx-obs" class="ta" rows="2" placeholder="Notas de la receta..."></textarea></div>';
-
-  /* Anteriores */
-  var map=getNotasMap();var ex=map['PRESCRIPCION']||[];
-  if(ex.length){o+='<div class="at-sc" style="margin-top:8px">Anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||'';o+='<div class="ne">'+E(txt.substring(0,150))+(txt.length>150?'...':'')+'<div class="ne-m">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});}
 
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:6px" onclick="rxGuardar()">💾 Guardar receta</button>';
   b.innerHTML=o;
