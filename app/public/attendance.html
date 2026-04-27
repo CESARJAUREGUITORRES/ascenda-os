@@ -354,30 +354,72 @@ var rolLabel=isDra(c.profesional)?'Flujo Doctora':'Flujo Enfermería';
 var o='<div class="at-gen"><div>';
 o+='<div class="at-sc">'+rolLabel+' — '+E(c.fecha)+'</div>';
 steps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
-o+='<div class="ns'+(has?' open':'')+'" id="step-'+s.tipo+'"><div class="ns-h" onclick="togS(\''+s.tipo+'\')"><span style="font-size:14px">'+s.ico+'</span><div class="ns-t">'+s.t+' '+(has?'<span style="color:var(--gn);font-size:8px">✅</span>':'<span style="color:var(--am);font-size:8px">⏳</span>')+'</div><span class="chv">›</span><button class="btn btn-s btn-sm" onclick="event.stopPropagation();openNota(\''+s.tipo+'\')" style="margin-left:4px">'+(has?'+ Agregar':'Registrar')+'</button></div><div class="ns-b">';
-if(has){map[s.tipo].forEach(function(n){
+if(!has)return;/* Solo mostrar los que tienen datos */
+o+='<div class="ns open" id="step-'+s.tipo+'"><div class="ns-h" onclick="togS(\''+s.tipo+'\')"><span style="font-size:14px">'+s.ico+'</span><div class="ns-t">'+s.t+' <span style="color:var(--gn);font-size:8px">✅</span></div><span class="chv">›</span></div><div class="ns-b">';
+map[s.tipo].forEach(function(n){
 if(s.tipo==='TRIAJE'&&(n.peso||n.talla)){o+='<div class="tg">';if(n.peso)o+='<div class="tg-i"><div class="tg-l">Peso</div><div class="tg-v">'+n.peso+'kg</div></div>';if(n.talla)o+='<div class="tg-i"><div class="tg-l">Talla</div><div class="tg-v">'+n.talla+'m</div></div>';if(n.imc)o+='<div class="tg-i"><div class="tg-l">IMC</div><div class="tg-v">'+n.imc+'</div></div>';if(n.presion_arterial)o+='<div class="tg-i"><div class="tg-l">PA</div><div class="tg-v">'+E(n.presion_arterial)+'</div></div>';if(n.frecuencia_cardiaca)o+='<div class="tg-i"><div class="tg-l">FC</div><div class="tg-v">'+n.frecuencia_cardiaca+'</div></div>';if(n.temperatura)o+='<div class="tg-i"><div class="tg-l">Temp</div><div class="tg-v">'+n.temperatura+'°</div></div>';if(n.saturacion)o+='<div class="tg-i"><div class="tg-l">SpO₂</div><div class="tg-v">'+n.saturacion+'%</div></div>';o+='</div>';}
-var txt=n.contenido||n.texto||'';if(txt)o+='<div class="ne">'+E(txt.substring(0,300))+(txt.length>300?'...':'')+'<div class="ne-m">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});}
-else o+='<div style="font-size:8px;color:var(--mt);padding:4px 0">Sin registros</div>';
+var txt=n.contenido||n.texto||'';if(txt)o+='<div style="font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4;padding:4px 0">'+E(txt)+'</div><div style="font-size:7px;color:var(--mt);margin-bottom:4px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div>';});
 o+='</div></div>';});
-/* Cerrar ficha bar */
-var allDone=steps.every(function(s){return map[s.tipo]&&map[s.tipo].length>0});
-o+='<div class="ab" style="margin-top:12px"><span style="font-size:16px">📋</span><div class="ab-i"><b>Cerrar ficha</b>'+(allDone?'Todo completo':'Completa los pasos')+'</div><button class="btn '+(allDone?'btn-p':'btn-s')+' btn-sm" onclick="cerrarFicha()">✅ Cerrar</button></div>';
 o+='</div>';
-/* COL 2: Historial de notas de atenciones anteriores */
-o+='<div><div class="at-sc">📋 Historial notas — atenciones previas</div>';
+
+/* COL 2: Atenciones anteriores con detalle */
+o+='<div><div class="at-sc">📋 Atenciones anteriores</div>';
 var hist=(AT.det&&AT.det.historial_atenciones)||[];
-if(hist.length){hist.slice(0,8).forEach(function(h){
-o+='<div class="ic" style="margin-bottom:4px;cursor:pointer" onclick="loadFicha(\''+E(h.fecha)+'\')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:9px;font-weight:800">'+E(h.fecha)+'</span><span style="font-size:7px;color:var(--blue)">'+E((h.tratamientos||[]).join(', '))+'</span></div><div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(h.atendio||'')+' · S/'+Math.round(h.total_pagado||0)+' · '+E(h.sede||'')+'</div></div>';});}
-else o+='<div style="font-size:8px;color:var(--mt);padding:8px 0">Sin atenciones previas</div>';
-/* Si es asistencia, mostrar flujo de la doctora */
-if(c.origen==='ASISTENCIA'||c.asistente_nombre){
-o+='<div class="at-sc" style="margin-top:10px">👩‍⚕️ Flujo doctora ('+E(c.profesional)+')</div>';
-var draSteps=STEPS_DRA;draSteps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
-o+='<div style="display:flex;align-items:center;gap:4px;padding:4px;border-bottom:1px solid var(--bd2);font-size:8px"><span>'+s.ico+'</span><span style="flex:1;font-weight:600">'+s.t+'</span><span>'+(has?'✅':'⏳')+'</span></div>';});}
+if(hist.length){
+  o+='<div style="max-height:65vh;overflow-y:auto">';
+  hist.slice(0,10).forEach(function(h,i){
+    o+='<div style="border:1px solid var(--bd2);border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">';
+    o+='<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--sf);cursor:pointer" onclick="togHist('+i+')">';
+    o+='<span style="font-size:9px;font-weight:800;color:var(--blue)">'+E(h.fecha)+'</span>';
+    o+='<span style="font-size:7px;color:var(--mt);flex:1">'+E((h.tratamientos||[]).join(', '))+'</span>';
+    o+='<span style="font-size:7px;background:var(--blue);color:#fff;padding:1px 6px;border-radius:4px">'+E(h.atendio||'')+'</span>';
+    o+='<span class="chv" id="chv-h'+i+'">›</span></div>';
+    o+='<div id="hist-body-'+i+'" style="display:none;padding:6px 8px;font-size:8px;color:var(--deep)">';
+    o+='<div style="text-align:center;color:var(--mt)">Click para cargar detalle</div>';
+    o+='</div></div>';
+  });
+  o+='</div>';
+}else o+='<div style="font-size:8px;color:var(--mt);padding:8px 0">Sin atenciones previas</div>';
 o+='</div></div>';
 el.innerHTML=o;}
+
 function togS(t){var e=document.getElementById('step-'+t);if(e)e.classList.toggle('open');}
+function togHist(i){
+  var body=document.getElementById('hist-body-'+i);
+  var chv=document.getElementById('chv-h'+i);
+  if(!body)return;
+  var isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  if(chv)chv.style.transform=isOpen?'':'rotate(90deg)';
+  /* Cargar detalle si está vacío */
+  if(!isOpen&&body.innerHTML.indexOf('Click para cargar')>-1){
+    var c=AT.sel;if(!c)return;
+    var hist=(AT.det&&AT.det.historial_atenciones)||[];
+    var h=hist[i];if(!h)return;
+    body.innerHTML='<div style="text-align:center;color:var(--mt)">⏳ Cargando...</div>';
+    sbR('aos_detalle_atencion',{p_numero:c.numero_limpio,p_fecha:h.fecha}).then(function(r){
+      if(!r)return;
+      var notas=r.notas_clinicas||[];
+      if(!notas.length){body.innerHTML='<div style="color:var(--mt)">Sin notas registradas</div>';return;}
+      var html='';
+      notas.forEach(function(n){
+        var tipo=n.tipo||'';
+        var icons={TRIAJE:'🩺',NOTA_ENFERMERIA:'📋',EVALUACION:'👩‍⚕️',NOTA_PROCEDIMIENTO:'💉',PLAN_TRABAJO:'📅',PRESCRIPCION:'💊'};
+        var labels={TRIAJE:'Triaje',NOTA_ENFERMERIA:'Nota enfermería',EVALUACION:'Evaluación',NOTA_PROCEDIMIENTO:'Procedimiento',PLAN_TRABAJO:'Plan de trabajo',PRESCRIPCION:'Receta'};
+        html+='<div style="margin-bottom:4px;border-left:2px solid var(--cyan);padding-left:6px">';
+        html+='<div style="font-size:7px;font-weight:800;color:var(--blue)">'+(icons[tipo]||'📝')+' '+(labels[tipo]||tipo)+'</div>';
+        var txt=n.contenido||'';
+        if(n.peso)html+='<span style="font-size:7px;background:var(--sf);padding:1px 4px;border-radius:3px;margin-right:3px">Peso:'+n.peso+'kg</span>';
+        if(n.talla)html+='<span style="font-size:7px;background:var(--sf);padding:1px 4px;border-radius:3px;margin-right:3px">Talla:'+n.talla+'m</span>';
+        if(n.imc)html+='<span style="font-size:7px;background:var(--sf);padding:1px 4px;border-radius:3px;margin-right:3px">IMC:'+n.imc+'</span>';
+        if(txt)html+='<div style="white-space:pre-wrap;line-height:1.3;margin-top:2px">'+E(txt.substring(0,250))+(txt.length>250?'...':'')+'</div>';
+        html+='<div style="font-size:6px;color:var(--mt);margin-top:1px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div>';
+        html+='</div>';
+      });
+      body.innerHTML=html;
+    });
+  }
+}
 
 /* ===== MOD-13: DRAWER NOTA ===== */
 function openNota(tipo){var c=AT.sel;if(!c)return;_openTipo=tipo;
