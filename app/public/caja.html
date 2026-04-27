@@ -2207,10 +2207,10 @@ function grabarCotizacion() {
     rpc('aos_grabar_venta_caja', {
       p_sede: CAJA.sede, p_usuario: CAJA.usuario || 'CAJA',
       p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
-      p_numero_limpio: pac.numero || pac.celular || pac.Telefono || '',
-      p_nombres: pac.nombres || pac.Nombres || 'CLIENTE',
-      p_apellidos: pac.apellidos || pac.Apellidos || 'DIRECTO',
-      p_celular: pac.numero || pac.celular || pac.Telefono || '',
+      p_numero_limpio: pac.numero || pac.celular || pac.Telefono || pac.numero_limpio || '',
+      p_nombres: pac.nombres || pac.Nombres || pac.nombre || 'CLIENTE',
+      p_apellidos: pac.apellidos || pac.Apellidos || pac.apellido || 'DIRECTO',
+      p_celular: pac.numero || pac.celular || pac.Telefono || pac.numero_limpio || '',
       p_dni: pac.dni || pac.DNI || '',
       p_asesor: (itemsNuevos[0] && itemsNuevos[0].asesorComision) || CAJA.usuario || '',
       p_doctor: '',
@@ -2218,12 +2218,15 @@ function grabarCotizacion() {
         return { tipo:it.tipo, nombre:it.nombre, cantidad:it.cantidad, precio:it.precio, subtotal:it.subtotal,
           metodo1:it.metodoPago||'', monto1:parseFloat(it.monto1||it.subtotal),
           metodo2:it.metodoPago2||'', monto2:parseFloat(it.monto2||0),
-          comprobante:it.comprobante||'BOLETA VIRTUAL', asesor:it.asesorComision||'', atendio:it.atendio||'' };
+          comprobante:it.comprobante||'BOLETA VIRTUAL', asesor:it.asesorComision||'', atendio:it.atendio||'',
+          estado_pago:it.estadoPago||'PAGO COMPLETO' };
       }),
       p_metodo_pago: (itemsNuevos[0] && itemsNuevos[0].metodoPago) || '',
       p_monto_total: totalNuevo, p_moneda: 'PEN',
       p_tipo_comprobante: (itemsNuevos[0] && itemsNuevos[0].comprobante) || 'BOLETA VIRTUAL',
-      p_nro_doc: '', p_estado_pago: itemsNuevos.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
+      p_nro_doc: '',
+      p_estado_pago: itemsNuevos.some(function(it){return it.estadoPago==='ADELANTO'}) ? 'ADELANTO' : 'PAGO COMPLETO',
+      p_monto_pagado: itemsNuevos.reduce(function(s,it){return s+parseFloat(it.monto1||0)+parseFloat(it.monto2||0)},0),
       p_nota: nota, p_tipo: itemsNuevos[0] ? itemsNuevos[0].tipo : 'SERVICIO', p_fecha: fechaLima(),
       p_razon_social_id: (itemsNuevos[0] && itemsNuevos[0].razonSocialId) ? itemsNuevos[0].razonSocialId : null
     }, function(d) {
