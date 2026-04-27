@@ -2225,8 +2225,9 @@ function grabarCotizacion() {
         resultados.push('Venta: ' + (d.lineas||1) + ' items');
         // Actualizar plan de trabajo
         itemsNuevos.forEach(function(it) {
-          if (it.plan_item_id && it.pagado) {
-            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null }, function(){}, function(){});
+          if (it.plan_item_id) {
+            console.log('[CAJA] Actualizando plan item:', it.plan_item_id, 'sesiones:', it.cantidad);
+            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null }, function(r){console.log('[CAJA] Plan update result:', r);}, function(e){console.error('[CAJA] Plan update error:', e);});
           }
         });
       }
@@ -2251,8 +2252,10 @@ function grabarCotizacion() {
       }).catch(function(){});
     }
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
-    toast('✅ ' + resultados.join(' + '), 'ok');
-    cargarCaja();
+    var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
+    toast('✅ ' + msg, 'ok');
+    // Delay para que el overlay se cierre antes de recargar
+    setTimeout(function() { cargarCaja(); }, 500);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }
 
