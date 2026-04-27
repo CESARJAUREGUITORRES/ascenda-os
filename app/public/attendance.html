@@ -385,7 +385,8 @@ function openNota(tipo){var c=AT.sel;if(!c)return;_openTipo=tipo;
 if(tipo==='PLAN_TRABAJO'){openPlanTrabajo();return;}
 /* Interceptar Procedimiento → drawer especial */
 if(tipo==='NOTA_PROCEDIMIENTO'){openProcedimiento();return;}
-var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',EVOLUCION_MEDICA:'📈 Evolución',PRESCRIPCION:'💊 Receta'};
+if(tipo==='PRESCRIPCION'){openReceta();return;}
+var labels={TRIAJE:'🩺 Triaje',NOTA_ENFERMERIA:'📋 Nota Enfermería',EVALUACION:'👩‍⚕️ Evaluación',EVOLUCION_MEDICA:'📈 Evolución'};
 document.getElementById('dw-nota-t').textContent=labels[tipo]||tipo;var b=document.getElementById('dw-nota-b');
 var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
 
@@ -808,6 +809,115 @@ function saveProcedimiento(){
   }).then(function(r){
     if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado','','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  });
+}
+
+/* ===== MOD-27: RECETA ===== */
+var RX={items:[],cache:[]};
+function openReceta(){
+  var c=AT.sel;if(!c)return;
+  document.getElementById('dw-nota-t').textContent='💊 Receta';
+  RX.items=[];rRX(document.getElementById('dw-nota-b'));openDw('nota');
+}
+function rRX(b){
+  var c=AT.sel;if(!c)return;
+  var esDra=isDra(c.profesional);
+  var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
+  o+='<div style="display:inline-block;padding:3px 8px;background:'+(esDra?'#FEF3C7':'#F0FDF4')+';color:'+(esDra?'#D97706':'#059669')+';border-radius:6px;font-size:8px;font-weight:700;margin-bottom:8px">'+(esDra?'Receta médica':'Receta enfermería')+'</div>';
+
+  /* Buscador */
+  o+='<div style="position:relative;margin-bottom:6px"><input id="rx-q" class="fi" placeholder="Buscar producto: vitamina, crema, protector..." oninput="rxSearch()" style="font-size:10px"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--mt)">🔍</span></div>';
+  o+='<div id="rx-results" style="max-height:140px;overflow-y:auto;margin-bottom:6px"></div>';
+
+  /* Agregar producto nuevo */
+  o+='<div style="margin-bottom:8px"><button class="btn btn-s btn-sm" onclick="rxAddManual()" style="font-size:8px">+ Agregar producto externo</button></div>';
+
+  /* Items */
+  o+='<div class="at-sc">Receta ('+RX.items.length+')</div>';
+  if(!RX.items.length)o+='<div style="font-size:8px;color:var(--mt);padding:6px 0;text-align:center">Busca y agrega productos</div>';
+
+  RX.items.forEach(function(item,i){
+    var esNuestro=item.esNuestro;
+    o+='<div style="border:1.5px solid '+(esNuestro?'var(--blue)':'var(--bd)')+';border-radius:var(--r);margin-bottom:4px;overflow:hidden;background:var(--sf)">';
+    o+='<div style="padding:6px 10px;display:flex;align-items:center;gap:6px;background:'+(esNuestro?'#EBF2FF':'#F8FAFF')+'">';
+    o+='<span style="font-size:12px">💊</span>';
+    o+='<span style="flex:1;font-size:10px;font-weight:800;color:var(--deep)">'+E(item.nombre)+'</span>';
+    if(esNuestro)o+='<span style="font-size:7px;padding:2px 6px;background:var(--blue);color:#fff;border-radius:4px;font-weight:700">Nuestro</span>';
+    if(item.precio>0)o+='<span style="font-size:9px;font-weight:800;color:var(--blue)">S/'+item.precio+'</span>';
+    o+='<button style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:10px" onclick="RX.items.splice('+i+',1);rRX(document.getElementById(\'dw-nota-b\'))">✕</button></div>';
+
+    o+='<div style="padding:6px 10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
+    o+='<div class="fg"><label class="fl">Aplicación</label><select class="fi fs" onchange="RX.items['+i+'].momento=this.value" style="font-size:8px">';
+    ['Mañana','Tarde','Noche','Mañana y noche','Mañana, tarde y noche'].forEach(function(m){o+='<option'+(item.momento===m?' selected':'')+'>'+m+'</option>';});
+    o+='</select></div>';
+    o+='<div class="fg"><label class="fl">Modo</label><select class="fi fs" onchange="RX.items['+i+'].modo=this.value" style="font-size:8px"><option'+(item.modo==='Tomar'?' selected':'')+'>Tomar</option><option'+(item.modo==='Aplicar'?' selected':'')+'>Aplicar</option></select></div>';
+    o+='<div class="fg"><label class="fl">Días</label><input class="fi" type="number" value="'+(item.dias||30)+'" onchange="RX.items['+i+'].dias=parseInt(this.value)||30" style="font-size:9px;text-align:center"></div>';
+    o+='</div>';
+    o+='<div style="padding:2px 10px 6px"><input class="fi" value="'+(item.indicacion||'')+'" placeholder="Indicaciones adicionales..." onchange="RX.items['+i+'].indicacion=this.value" style="font-size:8px"></div>';
+    o+='</div>';
+  });
+
+  /* Observaciones */
+  o+='<div class="fg" style="margin-top:6px"><label class="fl">Observaciones generales</label><textarea id="rx-obs" class="ta" rows="2" placeholder="Notas de la receta..."></textarea></div>';
+
+  /* Anteriores */
+  var map=getNotasMap();var ex=map['PRESCRIPCION']||[];
+  if(ex.length){o+='<div class="at-sc" style="margin-top:8px">Anteriores ('+ex.length+')</div>';ex.forEach(function(n){var txt=n.contenido||'';o+='<div class="ne">'+E(txt.substring(0,150))+(txt.length>150?'...':'')+'<div class="ne-m">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});}
+
+  o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:6px" onclick="rxGuardar()">💾 Guardar receta</button>';
+  b.innerHTML=o;
+}
+
+function rxSearch(){
+  var q=(document.getElementById('rx-q')||{}).value||'';
+  var el=document.getElementById('rx-results');
+  if(q.length<2){el.innerHTML='';return;}
+  sbR('aos_buscar_catalogo',{p_query:q}).then(function(items){
+    RX.cache=items||[];
+    var prods=(items||[]).filter(function(it){return it.tipo==='PRODUCTO'});
+    if(!prods.length){el.innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados</div>';return;}
+    el.innerHTML=prods.map(function(p){
+      var precio=p.precio_oferta||p.precio_base||0;
+      return '<div style="display:flex;align-items:center;gap:6px;padding:4px;cursor:pointer;border-bottom:1px solid #F8FAFF;font-size:8px" onclick="rxAdd(\''+E(p.nombre).replace(/'/g,"\\'")+'\','+precio+',true)" onmouseover="this.style.background=\'#F8FAFF\'" onmouseout="this.style.background=\'\'">'+'<span style="font-size:10px">💊</span><span style="flex:1;font-weight:600;color:var(--deep)">'+E(p.nombre)+'</span><span style="font-weight:800;color:var(--blue)">S/'+precio+'</span><span style="color:var(--cyan);font-size:12px">+</span></div>';
+    }).join('');
+  });
+}
+
+function rxAdd(nombre,precio,esNuestro){
+  RX.items.push({nombre:nombre,precio:precio,esNuestro:esNuestro,momento:'Mañana',modo:'Tomar',dias:30,indicacion:''});
+  document.getElementById('rx-q').value='';document.getElementById('rx-results').innerHTML='';
+  rRX(document.getElementById('dw-nota-b'));
+}
+function rxAddManual(){
+  var nombre=prompt('Nombre del producto externo:');
+  if(!nombre)return;
+  RX.items.push({nombre:nombre.toUpperCase(),precio:0,esNuestro:false,momento:'Mañana',modo:'Tomar',dias:30,indicacion:''});
+  rRX(document.getElementById('dw-nota-b'));
+}
+
+function rxGuardar(){
+  var c=AT.sel;if(!c||!RX.items.length){if(window.AOS_showToast)AOS_showToast('Agrega al menos 1 producto','','toast-alerta');return;}
+  var obs=(document.getElementById('rx-obs')||{}).value||'';
+  var esDra=isDra(c.profesional);
+  var contenido='[RECETA '+(esDra?'MÉDICA':'ENFERMERÍA')+']\n';
+  RX.items.forEach(function(it,i){
+    contenido+=(i+1)+'. '+it.nombre+' — '+it.modo+' '+it.momento+' x'+it.dias+' días';
+    if(it.precio>0)contenido+=' (S/'+it.precio+')';
+    if(it.indicacion)contenido+=' — '+it.indicacion;
+    contenido+='\n';
+  });
+  if(obs)contenido+='Obs: '+obs+'\n';
+
+  var recetaJson=RX.items.map(function(it){return{nombre:it.nombre,precio:it.precio,esNuestro:it.esNuestro,momento:it.momento,modo:it.modo,dias:it.dias,indicacion:it.indicacion}});
+
+  sbW('aos_notas_clinicas',{
+    numero_limpio:c.numero_limpio,tipo:'PRESCRIPCION',fecha:c.fecha,
+    contenido:contenido,receta_items:JSON.stringify(recetaJson),
+    autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
+    autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
+  }).then(function(r){
+    if(r.ok){closeDw();_openTipo=null;RX.items=[];if(window.AOS_showToast)AOS_showToast('✅ Receta guardada','','');loadDet();}
+    else{if(window.AOS_showToast)AOS_showToast('Error al guardar','','toast-alerta');}
   });
 }
 
