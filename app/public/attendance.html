@@ -613,88 +613,112 @@ sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;i
 function rProgramar(el){var c=AT.sel;if(!c)return;
 var o='<div class="at-sc">📅 Programar — '+E((c.nombre||'')+' '+(c.apellido||''))+'</div>';
 
-/* Cargar plan de trabajo del paciente */
+/* Cargar plan + notas de procedimiento para detectar qué se hizo */
+var map=getNotasMap();
+var procNotas=map['NOTA_PROCEDIMIENTO']||[];
+var tratHechos=[];var tratProgramar=[];
+procNotas.forEach(function(n){
+  var txt=n.contenido||'';
+  var m=txt.match(/\[PROC\] (.+)/);if(m)tratHechos.push(m[1].trim());
+  if(txt.indexOf('[PROGRAMAR]')>-1){var m2=txt.match(/\[PROC\] (.+)/);if(m2)tratProgramar.push(m2[1].trim());}
+});
+
 sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc').then(function(items){
   items=items||[];
-  var pagados=items.filter(function(it){return it.estado_item==='PAGADO'||it.estado_item==='PARCIAL';});
-  var pendientes=items.filter(function(it){return it.estado_item==='PENDIENTE';});
 
-  /* Sección 1: Pagados — programar sesiones/control */
+  /* Sección 1: Tratamientos REALIZADOS que piden programar siguiente */
+  if(tratProgramar.length){
+    o+='<div class="at-sc" style="color:var(--gn)">✅ Realizados — programar siguiente</div>';
+    tratProgramar.forEach(function(t,i){
+      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.04);cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'APLICACIÓN\')">';
+      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">✅</span><b style="flex:1;font-size:10px">'+E(t)+'</b>';
+      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 8px;border-radius:4px">Programar →</span></div></div>';
+    });
+  }
+
+  /* Sección 2: Pagados sin procedimiento registrado */
+  var pagados=items.filter(function(it){return(it.estado_item==='PAGADO'||it.estado_item==='PARCIAL')&&tratHechos.indexOf(it.nombre_servicio)<0;});
   if(pagados.length){
-    o+='<div class="at-sc" style="color:var(--gn)">✅ Pagados — programar sesiones</div>';
-    pagados.forEach(function(it,i){
-      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.03)">';
-      o+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
-      o+='<span style="font-size:12px">💉</span><b style="flex:1;font-size:10px;color:var(--deep)">'+E(it.nombre_servicio)+'</b>';
-      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 6px;border-radius:4px">'+E(it.estado_item)+'</span>';
-      o+='<span style="font-size:8px;color:var(--blue);font-weight:700">'+it.num_sesiones+' ses</span></div>';
-      o+='<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:4px;align-items:center">';
-      o+='<select class="fi fs" id="pg-tipo-'+i+'" style="font-size:8px"><option>APLICACIÓN</option><option>CONTROL</option><option>SESIÓN</option></select>';
-      o+='<input type="date" class="fi" id="pg-fecha-'+i+'" style="font-size:9px">';
-      o+='<input type="time" class="fi" id="pg-hora-'+i+'" value="10:00" style="width:70px;font-size:9px">';
-      o+='<button class="btn btn-p btn-sm" onclick="progSesion(\''+E(it.nombre_servicio)+'\',\''+E(it.id)+'\','+i+')" style="font-size:8px">📅</button>';
-      o+='</div></div>';
+    o+='<div class="at-sc" style="color:var(--blue)">💰 Pagados — sin procedimiento</div>';
+    pagados.forEach(function(it){
+      o+='<div style="padding:6px 8px;border:1.5px solid var(--blue);border-radius:var(--r);margin-bottom:3px;background:#EBF2FF;cursor:pointer" onclick="abrirModalProg(\''+E(it.nombre_servicio)+'\',\'APLICACIÓN\')">';
+      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px">💰</span><span style="flex:1;font-size:9px;font-weight:700">'+E(it.nombre_servicio)+'</span>';
+      o+='<span style="font-size:7px;color:var(--blue)">'+it.num_sesiones+' ses</span>';
+      o+='<span style="font-size:8px;background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px">Programar</span></div></div>';
     });
   }
 
-  /* Sección 2: Pendientes de pago — standby o programar */
+  /* Sección 3: Pendientes de pago — standby */
+  var pendientes=items.filter(function(it){return it.estado_item==='PENDIENTE';});
   if(pendientes.length){
-    o+='<div class="at-sc" style="margin-top:8px;color:#D97706">⏳ Pendientes de pago</div>';
-    pendientes.forEach(function(it,i){
-      var idx=pagados.length+i;
-      o+='<div style="padding:6px 8px;border:1px solid #FEF3C7;border-radius:var(--r);margin-bottom:3px;background:#FFFBEB;display:flex;align-items:center;gap:6px">';
-      o+='<span style="font-size:10px">📋</span><span style="flex:1;font-size:9px;font-weight:600;color:var(--deep)">'+E(it.nombre_servicio)+'</span>';
+    o+='<div class="at-sc" style="color:#D97706">⏳ Pendientes de pago</div>';
+    pendientes.forEach(function(it){
+      o+='<div style="padding:5px 8px;border:1px solid #FEF3C7;border-radius:var(--r);margin-bottom:2px;background:#FFFBEB;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="abrirModalProg(\''+E(it.nombre_servicio)+'\',\'CONSULTA NUEVA\')">';
+      o+='<span style="font-size:10px">📋</span><span style="flex:1;font-size:8px;font-weight:600">'+E(it.nombre_servicio)+'</span>';
       o+='<span style="font-size:7px;color:#D97706">'+it.num_sesiones+' ses — S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
-      o+='<button class="btn btn-s btn-sm" onclick="progSesion(\''+E(it.nombre_servicio)+'\',\''+E(it.id)+'\','+idx+')" style="font-size:7px">Programar</button>';
-      o+='</div>';
+      o+='<span style="font-size:7px;background:#D97706;color:#fff;padding:1px 5px;border-radius:3px">Programar</span></div>';
     });
   }
 
-  if(!items.length){
-    o+='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin plan de trabajo — crea uno desde el chip de Plan</div>';
+  if(!tratProgramar.length&&!items.length){
+    o+='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin tratamientos para programar</div>';
   }
-
-  /* Sección 3: Programar manual */
-  o+='<div class="at-sc" style="margin-top:10px">➕ Programar cita manual</div>';
-  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-  o+='<div class="fg"><label class="fl">Tratamiento</label><input class="fi" id="pg-m-trat" placeholder="Ej: Control, Hidrofacial..." value="'+E((c.tratamientos||[])[0]||'')+'"></div>';
-  o+='<div class="fg"><label class="fl">Tipo cita</label><select class="fi fs" id="pg-m-tipo"><option>APLICACIÓN</option><option>CONTROL</option><option>CONSULTA NUEVA</option><option>SESIÓN</option></select></div>';
-  o+='<div class="fg"><label class="fl">Fecha</label><input type="date" class="fi" id="pg-m-fecha"></div>';
-  o+='<div class="fg"><label class="fl">Hora</label><input type="time" class="fi" id="pg-m-hora" value="10:00"></div>';
-  o+='</div>';
-  o+='<div class="fg"><label class="fl">Profesional</label><input class="fi" id="pg-m-prof" value="'+E(c.profesional||'')+'"></div>';
-  o+='<button class="btn btn-p" style="margin-top:6px" onclick="progManual()">📅 Programar cita</button>';
 
   /* Citas futuras */
   var cf=(AT.det&&AT.det.citas_futuras)||[];
-  if(cf.length){o+='<div class="at-sc" style="margin-top:12px">📋 Citas futuras</div>';cf.forEach(function(ci){o+='<div style="padding:5px;border-left:3px solid var(--blue);margin-bottom:3px;font-size:8px;background:#F8FAFF;border-radius:0 4px 4px 0"><b>'+E(ci.fecha_cita)+'</b> '+E(ci.hora_cita||'')+' · '+E(ci.tratamiento||'')+' · '+E(ci.doctora||'')+'</div>';});}
+  if(cf.length){o+='<div class="at-sc" style="margin-top:10px">📋 Citas futuras</div>';cf.forEach(function(ci){o+='<div style="padding:5px;border-left:3px solid var(--blue);margin-bottom:3px;font-size:8px;background:#F8FAFF;border-radius:0 4px 4px 0"><b>'+E(ci.fecha_cita)+'</b> '+E(ci.hora_cita||'')+' · '+E(ci.tratamiento||'')+' · '+E(ci.doctora||'')+'</div>';});}
 
   el.innerHTML=o;
 });
 }
-var _pc=1;
-function progSesion(trat,planId,idx){
+
+function abrirModalProg(trat,tipoCita){
   var c=AT.sel;if(!c)return;
-  var fecha=(document.getElementById('pg-fecha-'+idx)||{}).value;
-  var hora=(document.getElementById('pg-hora-'+idx)||{}).value||'10:00';
-  var tipo=(document.getElementById('pg-tipo-'+idx)||{}).value||'APLICACIÓN';
-  if(!fecha){if(window.AOS_showToast)AOS_showToast('Selecciona fecha','','toast-alerta');return;}
-  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:c.profesional||'',p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify([{fecha:fecha,hora:hora}]),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
-    if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Cita programada',trat+' — '+fecha,'');loadDet();}
-    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
-  });
+  var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+  var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-prog">';
+  o+='<div style="background:#fff;border-radius:12px;max-width:480px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
+  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar cita</b><br><span style="font-size:9px;opacity:.7">'+E(cli)+' — '+E(trat)+'</span></div>';
+  o+='<div style="padding:14px 16px">';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  o+='<div class="fg"><label class="fl">Tratamiento</label><input class="fi" id="mp-trat" value="'+E(trat)+'" readonly style="background:#F0F4FC"></div>';
+  o+='<div class="fg"><label class="fl">Tipo cita</label><select class="fi fs" id="mp-tipo"><option'+(tipoCita==='APLICACIÓN'?' selected':'')+'>Aplicacion</option><option'+(tipoCita==='CONTROL'?' selected':'')+'>Control</option><option'+(tipoCita==='CONSULTA NUEVA'?' selected':'')+'>Consulta nueva</option><option>Reprogramacion</option></select></div>';
+  o+='<div class="fg"><label class="fl">Sede</label><select class="fi fs" id="mp-sede"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+  o+='<div class="fg"><label class="fl">Sesiones a programar</label><input type="number" class="fi" id="mp-ses" value="1" min="1" max="12"></div>';
+  o+='</div>';
+  o+='<div id="mp-fechas" style="margin-top:8px"></div>';
+  o+='<button class="btn btn-s btn-sm" style="margin-top:4px" onclick="mpAddFecha()">+ Agregar fecha</button>';
+  o+='</div>';
+  o+='<div style="display:flex;gap:6px;padding:10px 16px;border-top:1px solid #DDE4F5">';
+  o+='<button style="flex:1;padding:8px;border:1px solid #DDE4F5;border-radius:8px;background:#fff;cursor:pointer;font-size:10px;font-weight:700" onclick="document.getElementById(\'modal-prog\').remove()">Cancelar</button>';
+  o+='<button style="flex:1;padding:8px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;cursor:pointer;font-size:10px;font-weight:700" onclick="mpGuardar()">📅 Programar</button>';
+  o+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',o);
+  mpAddFecha();
 }
-function progManual(){
+function mpAddFecha(){
+  var box=document.getElementById('mp-fechas');if(!box)return;
+  var n=box.children.length+1;
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;margin-bottom:4px;align-items:center';
+  row.innerHTML='<span style="font-size:8px;font-weight:800;color:var(--blue);width:16px">'+n+'</span><input type="date" class="fi mp-f" style="flex:1;font-size:9px"><input type="time" class="fi mp-h" value="10:00" style="width:70px;font-size:9px">';
+  box.appendChild(row);
+}
+function mpGuardar(){
   var c=AT.sel;if(!c)return;
-  var trat=(document.getElementById('pg-m-trat')||{}).value||'';
-  var tipo=(document.getElementById('pg-m-tipo')||{}).value||'CONTROL';
-  var fecha=(document.getElementById('pg-m-fecha')||{}).value||'';
-  var hora=(document.getElementById('pg-m-hora')||{}).value||'10:00';
-  var prof=(document.getElementById('pg-m-prof')||{}).value||c.profesional||'';
-  if(!fecha||!trat){if(window.AOS_showToast)AOS_showToast('Completa fecha y tratamiento','','toast-alerta');return;}
-  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:prof,p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify([{fecha:fecha,hora:hora}]),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
-    if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Cita programada',trat+' — '+fecha,'');loadDet();}
-    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+  var trat=(document.getElementById('mp-trat')||{}).value||'';
+  var tipo=(document.getElementById('mp-tipo')||{}).value||'Aplicacion';
+  var sede=(document.getElementById('mp-sede')||{}).value||'SAN ISIDRO';
+  var fechas=document.querySelectorAll('.mp-f');
+  var horas=document.querySelectorAll('.mp-h');
+  var ses=[];
+  fechas.forEach(function(f,i){if(f.value)ses.push({fecha:f.value,hora:horas[i]?horas[i].value:'10:00'});});
+  if(!ses.length){if(window.AOS_showToast)AOS_showToast('Selecciona al menos 1 fecha','','toast-alerta');return;}
+  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:c.profesional||'',p_sede:sede,p_sesiones:JSON.stringify(ses),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
+    if(r&&r.ok){
+      document.getElementById('modal-prog').remove();
+      if(window.AOS_showToast)AOS_showToast('✅ '+ses.length+' cita(s) programada(s)',trat,'');
+      loadDet();
+    }else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
 
@@ -938,6 +962,8 @@ function openProcedimiento(){
 
   o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h...">'+E(savedPost)+'</textarea></div>';
 
+  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#F0FDF4;border:1.5px solid var(--gn);border-radius:var(--r);margin-top:6px;cursor:pointer;font-size:9px;font-weight:700;color:var(--gn)"><input type="checkbox" id="proc-programar"> 📅 Programar siguiente aplicación/control de este tratamiento</label>';
+
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
   b.innerHTML=o;openDw('nota');
 }
@@ -962,13 +988,16 @@ function saveProcedimiento(){
   contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
   if(post)contenido+='Post-procedimiento: '+post+'\n';
 
+  var programar=document.getElementById('proc-programar')&&document.getElementById('proc-programar').checked;
+  if(programar)contenido+='[PROGRAMAR]\n';
+
   sbW('aos_notas_clinicas',{
     numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,
     contenido:contenido,
     autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
     autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
   }).then(function(r){
-    if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado','','');loadDet();}
+    if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado'+(programar?' — aparecerá en Programar':''),'','');loadDet();}
     else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
