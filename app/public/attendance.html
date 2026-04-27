@@ -752,22 +752,142 @@ function mpGuardar(){
 }
 
 /* ===== MOD-15: SUB DESCUENTOS ===== */
-function rDescuentos(el){var d=AT.det,c=AT.sel;var inv=d?d.insumos_usados:null;var sede=c?c.sede||'SAN ISIDRO':'SAN ISIDRO';
-var o='<div class="at-sc">Insumos descontados</div>';
-if(inv&&inv.length){inv.forEach(function(i){o+='<div class="ii"><span style="font-size:12px">📦</span><div style="flex:1;font-weight:600;font-size:9px">'+E(i.nombre_producto)+'</div><div style="font-weight:800;color:var(--blue);font-size:9px">×'+i.cantidad+'</div><div style="font-size:7px;color:var(--mt)">'+E(i.usuario||'')+'</div></div>';});}
-else o+='<div style="font-size:9px;color:var(--mt);padding:12px 0;text-align:center">Sin insumos</div>';
-o+='<div class="at-sc" style="margin-top:14px">Descontar insumo ('+E(sede)+')</div>';
-o+='<div class="fg"><label class="fl">Buscar producto</label><input class="fi" id="ds-q" placeholder="Escribir nombre..." oninput="dsSearch()"></div>';
-o+='<div id="ds-r" style="max-height:150px;overflow-y:auto;margin-bottom:8px"></div>';
-o+='<div style="display:grid;grid-template-columns:1fr auto;gap:6px"><div class="fg"><label class="fl">Seleccionado</label><input class="fi" id="ds-p" readonly placeholder="Selecciona arriba"></div><div class="fg"><label class="fl">Cant.</label><input class="fi" id="ds-c" type="number" value="1" min="1" style="width:60px"></div></div>';
-o+='<input type="hidden" id="ds-id"><button class="btn btn-p" style="margin-top:8px" onclick="dsDesc()">📦 Descontar</button>';
-el.innerHTML=o;}
-function dsSearch(){var q=(document.getElementById('ds-q')||{}).value||'';if(q.length<2){document.getElementById('ds-r').innerHTML='';return;}var sede=AT.sel?AT.sel.sede||'SAN ISIDRO':'SAN ISIDRO';
-sbR('aos_buscar_insumos',{p_sede:sede,p_query:q}).then(function(items){if(!items||!items.length){document.getElementById('ds-r').innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados</div>';return;}
-document.getElementById('ds-r').innerHTML=items.map(function(i){return '<div style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid var(--bd2);border-radius:4px;margin-bottom:2px;cursor:pointer;font-size:8px" onclick="dsSel(\''+i.id+'\',\''+E(i.nombre_producto)+'\','+i.cantidad+')"><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';}).join('');});}
-function dsSel(id,n,s){document.getElementById('ds-id').value=id;document.getElementById('ds-p').value=n;document.getElementById('ds-r').innerHTML='<div style="font-size:8px;color:var(--gn);padding:4px">✅ '+n+' (stock: '+s+')</div>';}
-function dsDesc(){var c=AT.sel;if(!c)return;var id=document.getElementById('ds-id').value,pn=document.getElementById('ds-p').value,qty=parseInt(document.getElementById('ds-c').value)||1;if(!id||!pn){if(window.AOS_showToast)AOS_showToast('Selecciona producto','','toast-alerta');return;}
-sbR('aos_inventario_descontar',{p_data:{sede:c.sede||'SAN ISIDRO',usuario:AOS.ctx?AOS.ctx.nombre:'',numero_limpio:c.numero_limpio,paciente_nombre:(c.nombre||'')+' '+(c.apellido||''),tratamiento:(c.tratamientos||[])[0]||'',items:[{inventario_id:id,nombre:pn,cantidad:qty,motivo:'Uso en atención'}]}}).then(function(r){if(r&&r.descontados){if(window.AOS_showToast)AOS_showToast('✅ Descontado','','');loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
+function rDescuentos(el){var d=AT.det,c=AT.sel;if(!c)return;
+var sede=c.sede||'SAN ISIDRO';
+var prof=c.profesional||'';
+var asist=c.asistente_nombre||'';
+var esDra=isDra(prof);
+var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+
+/* Detectar tratamientos realizados y pagados */
+var map=getNotasMap();
+var procNotas=map['NOTA_PROCEDIMIENTO']||[];
+var tratRealizados=[];var tratProgramados=[];
+procNotas.forEach(function(n){
+  var txt=n.contenido||'';var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
+  if(txt.indexOf('[REALIZADO]')>-1)tratRealizados.push(m[1].trim());
+  if(txt.indexOf('[PROGRAMAR]')>-1)tratProgramados.push(m[1].trim());
+});
+
+var o='<div class="at-sc">📦 Descuento de insumos — '+E(cli)+'</div>';
+
+/* Info de trazabilidad */
+o+='<div style="background:#F0F4FC;border-radius:var(--r);padding:6px 8px;margin-bottom:8px;font-size:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px">';
+o+='<div><span style="color:var(--mt)">Profesional:</span> <b>'+E(prof)+'</b> <span style="font-size:7px;color:var(--blue)">'+E(esDra?'DOCTORA':'ENFERMERÍA')+'</span></div>';
+if(asist)o+='<div><span style="color:var(--mt)">Asistente:</span> <b>'+E(asist)+'</b></div>';
+o+='<div><span style="color:var(--mt)">Sede:</span> <b>'+E(sede)+'</b></div>';
+o+='<div><span style="color:var(--mt)">Fecha:</span> <b>'+E(c.fecha)+'</b></div>';
+o+='</div>';
+
+/* Selector de tratamiento */
+var allTrats=tratRealizados.concat(c.tratamientos||[]);
+var uniqTrats=[];allTrats.forEach(function(t){if(uniqTrats.indexOf(t)<0)uniqTrats.push(t)});
+if(uniqTrats.length){
+  o+='<div class="fg" style="margin-bottom:6px"><label class="fl">Tratamiento para este descuento</label><select class="fi fs" id="ds-trat" style="font-size:9px">';
+  if(uniqTrats.length>1)o+='<option value="">— Todos los tratamientos —</option>';
+  uniqTrats.forEach(function(t){o+='<option value="'+E(t)+'">'+E(t)+'</option>';});
+  o+='</select></div>';
+}
+
+/* Insumos ya descontados en esta atención */
+o+='<div class="at-sc" style="margin-top:4px">Insumos descontados hoy</div>';
+o+='<div id="ds-hist"><div style="font-size:8px;color:var(--mt);text-align:center;padding:6px">Cargando...</div></div>';
+
+/* Buscador de insumos */
+o+='<div class="at-sc" style="margin-top:8px">Agregar insumo</div>';
+o+='<div class="fg"><input class="fi" id="ds-q" placeholder="🔍 Buscar insumo del stock de '+E(sede)+'..." oninput="dsSearch()" style="font-size:9px"></div>';
+o+='<div id="ds-r" style="max-height:120px;overflow-y:auto;margin-bottom:4px"></div>';
+
+/* Items seleccionados para descontar */
+o+='<div id="ds-items"></div>';
+o+='<button class="btn btn-p" style="margin-top:6px;display:none" id="ds-btn" onclick="dsExec()">🔻 Descontar insumos</button>';
+
+el.innerHTML=o;
+dsLoadHist();
+}
+
+/* ===== DESCUENTO: Variables globales ===== */
+var DS={items:[]};
+
+function dsLoadHist(){
+  var c=AT.sel;if(!c)return;
+  /* Buscar movimientos de esta atención */
+  sbF('/rest/v1/aos_movimientos_inv?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&tipo_movimiento=eq.EGRESO&order=created_at.desc').then(function(movs){
+    var box=document.getElementById('ds-hist');if(!box)return;
+    if(!movs||!movs.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);text-align:center;padding:6px">Sin descuentos registrados</div>';return;}
+    var h='<table style="width:100%;border-collapse:collapse;font-size:8px"><thead><tr style="background:#F0F4FC"><th style="padding:3px 4px;text-align:left;font-size:7px;color:var(--blue)">Producto</th><th style="padding:3px 4px;text-align:center">Cant.</th><th style="padding:3px 4px;text-align:left">Tratamiento</th><th style="padding:3px 4px;text-align:left">Profesional</th><th style="padding:3px 4px;text-align:left;font-size:7px">Hora</th></tr></thead><tbody>';
+    movs.forEach(function(m){
+      h+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:3px 4px;font-weight:600">'+E(m.nombre_producto)+'</td><td style="padding:3px 4px;text-align:center;font-weight:700;color:var(--blue)">×'+m.cantidad+'</td><td style="padding:3px 4px;font-size:7px">'+E(m.tratamiento||'')+'</td><td style="padding:3px 4px;font-size:7px">'+E(m.profesional_nombre||m.usuario||'')+'</td><td style="padding:3px 4px;font-size:6px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    h+='<div style="font-size:7px;color:var(--mt);text-align:right;margin-top:2px">Total: '+movs.length+' insumos descontados</div>';
+    box.innerHTML=h;
+  });
+}
+
+function dsSearch(){
+  var q=(document.getElementById('ds-q')||{}).value||'';
+  if(q.length<2){document.getElementById('ds-r').innerHTML='';return;}
+  var c=AT.sel;var sede=c?c.sede||'SAN ISIDRO':'SAN ISIDRO';
+  sbR('aos_buscar_insumos',{p_sede:sede,p_query:q}).then(function(items){
+    var box=document.getElementById('ds-r');if(!box)return;
+    if(!items||!items.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados para "'+E(q)+'"</div>';return;}
+    box.innerHTML=items.map(function(i){
+      var yaAgregado=DS.items.some(function(x){return x.id===i.id});
+      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid '+(yaAgregado?'var(--cyan)':'var(--bd2)')+';border-radius:4px;margin-bottom:2px;cursor:'+(yaAgregado?'default':'pointer')+';font-size:8px;background:'+(yaAgregado?'rgba(0,201,167,.05)':'#fff')+'" '+(yaAgregado?'':'onclick="dsAdd(\''+i.id+'\',\''+E(i.nombre_producto).replace(/'/g,"\\'")+'\','+i.cantidad+',\''+E(i.unidad||'und')+'\')"')+'><span style="font-size:10px">'+(yaAgregado?'✅':'➕')+'</span><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';
+    }).join('');
+  });
+}
+
+function dsAdd(id,nom,maxQty,und){
+  if(DS.items.some(function(x){return x.id===id}))return;
+  DS.items.push({id:id,nombre:nom,cantidad:1,max:maxQty,unidad:und});
+  dsRender();
+  document.getElementById('ds-q').value='';
+  document.getElementById('ds-r').innerHTML='';
+}
+
+function dsRm(i){DS.items.splice(i,1);dsRender();}
+
+function dsRender(){
+  var box=document.getElementById('ds-items');if(!box)return;
+  var btn=document.getElementById('ds-btn');
+  if(!DS.items.length){box.innerHTML='';if(btn)btn.style.display='none';return;}
+  if(btn)btn.style.display='block';
+  box.innerHTML=DS.items.map(function(it,i){
+    return '<div style="display:grid;grid-template-columns:1fr 50px 30px 24px;gap:4px;padding:4px 0;border-bottom:1px solid #F1F5F9;align-items:center;font-size:9px"><div><div style="font-weight:600">'+E(it.nombre)+'</div><div style="font-size:7px;color:var(--mt)">Stock: '+it.max+' '+E(it.unidad)+'</div></div><input type="number" value="'+it.cantidad+'" min="1" max="'+it.max+'" style="width:50px;padding:2px 4px;border:1px solid var(--bd2);border-radius:4px;font-size:9px;text-align:center" onchange="DS.items['+i+'].cantidad=parseInt(this.value)||1"><span style="font-size:7px;color:var(--mt)">'+E(it.unidad)+'</span><span style="cursor:pointer;color:var(--rd);font-size:12px;text-align:center" onclick="dsRm('+i+')">✕</span></div>';
+  }).join('');
+}
+
+function dsExec(){
+  var c=AT.sel;if(!c||!DS.items.length)return;
+  var trat=(document.getElementById('ds-trat')||{}).value||(c.tratamientos||[])[0]||'';
+  var esDra=isDra(c.profesional);
+  
+  var data={
+    sede:c.sede||'SAN ISIDRO',
+    usuario:AOS.ctx?AOS.ctx.nombre:'',
+    numero_limpio:c.numero_limpio,
+    paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
+    tratamiento:trat,
+    atencion_id:c.atencion_id||'',
+    profesional_nombre:c.profesional||'',
+    profesional_tipo:esDra?'DOCTORA':'ENFERMERIA',
+    asistente_nombre:c.asistente_nombre||'',
+    items:DS.items.map(function(x){return{inventario_id:x.id,nombre:x.nombre,cantidad:x.cantidad,tratamiento:trat}})
+  };
+  
+  sbR('aos_inventario_descontar',{p_data:data}).then(function(r){
+    if(r&&r.descontados){
+      if(window.AOS_showToast)AOS_showToast('✅ '+r.descontados+' insumo(s) descontados','Para '+trat+' — '+c.profesional,'');
+      DS.items=[];
+      dsRender();
+      dsLoadHist();
+    }else{
+      if(window.AOS_showToast)AOS_showToast('Error al descontar','','toast-alerta');
+    }
+  });
+}
 
 /* ===== MOD-16: MACRO PLAN ===== */
 function rPlan(el){var d=AT.det;if(!d){el.innerHTML='';return;}var planes=d.planes||[];
