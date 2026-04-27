@@ -947,7 +947,17 @@ var PT={items:[],searchCache:[]};
 function openPlanTrabajo(){
   var c=AT.sel;if(!c)return;
   document.getElementById('dw-nota-t').textContent='📅 Plan de Trabajo';
-  PT.items=[];rPT(document.getElementById('dw-nota-b'));openDw('nota');
+  PT.items=[];
+  /* Pre-cargar items del plan guardado */
+  sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&order=created_at.desc').then(function(items){
+    if(items&&items.length){
+      items.forEach(function(it){
+        var vars=[];try{vars=typeof it.variantes_precio==='string'?JSON.parse(it.variantes_precio):(it.variantes_precio||[]);}catch(e){}
+        PT.items.push({nombre:it.nombre_servicio||'',tipo:it.tipo_item||'SERVICIO',sesiones:it.num_sesiones||1,frecuencia:it.frecuencia||'Mensual',precio:it.precio_unitario||0,condicion:it.condiciones_pago||'',obs:'',variantes:vars,_collapsed:true});
+      });
+    }
+    rPT(document.getElementById('dw-nota-b'));openDw('nota');
+  });
 }
 
 function rPT(b){
