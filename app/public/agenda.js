@@ -215,11 +215,32 @@ function showDetalle(c){
     });
   } else {el('det-historial').innerHTML='<div class="ld">Sin n\u00famero</div>';}
   el('ag-m-det').classList.add('open');
-  /* Si ya está ASISTIÓ, mostrar selector de asistente */
+  /* Si ya está ASISTIÓ, mostrar selector de asistente y pre-seleccionar */
   var estActual=(c.estado_cita||'').toUpperCase();
   if(estActual==='ASISTIO'||estActual==='EFECTIVA'){
-    var fakeBtn={getAttribute:function(){return estActual;}};
-    agSelEstado(fakeBtn);
+    var zone=el('det-asistente-zone');
+    zone.style.display='block';
+    var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
+    zone.querySelector('.ml').textContent=esDoctora?'Enfermera asistente':'Quién realizará la atención';
+    var sel=el('det-asistente');
+    sel.innerHTML='<option value="">— Sin asistente —</option>';
+    fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    .then(function(r){return r.json()}).then(function(rows){
+      (rows||[]).forEach(function(r){
+        sel.innerHTML+='<option value="'+h(r.nombre)+'">'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
+      });
+      /* Pre-seleccionar el profesional guardado en la atención */
+      var numP=c.numero_limpio||c.numero||'';
+      if(numP){
+        fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+c.fecha_cita+'&select=profesional_nombre,asistente_nombre&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+        .then(function(r2){return r2.json()}).then(function(at){
+          if(at&&at[0]){
+            var guardado=esDoctora?(at[0].asistente_nombre||''):(at[0].profesional_nombre||'');
+            if(guardado){for(var i=0;i<sel.options.length;i++){if(sel.options[i].value===guardado){sel.selectedIndex=i;break;}}}
+          }
+        });
+      }
+    });
   } else {
     var zone=el('det-asistente-zone');if(zone)zone.style.display='none';
   }
