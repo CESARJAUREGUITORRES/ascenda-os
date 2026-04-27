@@ -440,7 +440,7 @@ var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', est
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260428;
+var _APP_VERSION = 20260429;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -849,15 +849,12 @@ function navigateTo(viewId) {
         function loadNext() {
           if (extSrcs.length) {
             var url = extSrcs.shift();
-            if (document.querySelector('script[src="' + url + '"]')) {
-              // Script already loaded — re-init if agenda or other panels
-              if (url.indexOf('agenda.js') >= 0 && typeof agLoad === 'function') { try { agLoad(); } catch(e){} }
-              if (url.indexOf('patients.js') >= 0 && typeof ptSearch === 'function') { /* patients self-inits */ }
-              if (url.indexOf('calls.js') >= 0 && typeof ccInit === 'function') { try { ccInit(); } catch(e){} }
-              loadNext(); return;
-            }
+            /* Siempre recargar scripts externos — eliminar versión vieja */
+            var oldScript = document.querySelector('script[data-panel-src="' + url.split('?')[0] + '"]');
+            if(oldScript) oldScript.remove();
             var s = document.createElement('script');
-            s.src = url;
+            s.src = url + (url.indexOf('?')>-1?'&':'?') + 'v=' + _APP_VERSION;
+            s.setAttribute('data-panel-src', url.split('?')[0]);
             s.onload = function() { loadNext(); };
             s.onerror = function() { console.error('[AOS] Script load error:', url); loadNext(); };
             document.head.appendChild(s);
