@@ -677,63 +677,77 @@ function abrirModalProg(trat,tipoCita){
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
   var esDra=isDra(c.profesional);
   var tipoAt=esDra?'DOCTORA':'ENFERMERIA';
+  window._mpTrat=trat;window._mpTipoCita=tipoCita;window._mpTipoAt=tipoAt;
   var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-prog">';
-  o+='<div style="background:#fff;border-radius:12px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
-  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar cita</b><br><span style="font-size:9px;opacity:.7">'+E(cli)+' — '+E(trat)+'</span></div>';
+  o+='<div style="background:#fff;border-radius:12px;max-width:750px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
+  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar cita</b><br><span style="font-size:9px;opacity:.7">'+E(cli)+'</span></div>';
   o+='<div style="padding:14px 16px">';
-
-  /* Tratamiento + cantidad */
   o+='<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px">';
-  o+='<div style="flex:1"><div class="fl">Tratamiento</div><div style="font-size:13px;font-weight:800;color:var(--deep);padding:6px 0">'+E(trat)+'</div></div>';
-  o+='<div><div class="fl">Citas</div><input type="number" class="fi" id="mp-ses" value="1" min="1" max="12" style="width:50px;text-align:center;font-weight:800"></div>';
+  o+='<div style="flex:1"><div class="fl">Tratamiento</div><div style="font-size:14px;font-weight:800;color:var(--deep)">'+E(trat)+'</div></div>';
+  o+='<div><div class="fl">Citas</div><input type="number" class="fi" id="mp-ses" value="1" min="1" max="12" style="width:50px;text-align:center;font-weight:800" onchange="mpSyncQty()"></div>';
   o+='</div>';
-
-  /* Filas de programación */
-  o+='<div class="fl" style="margin-bottom:4px">Sesiones a programar</div>';
+  /* Encabezados */
+  o+='<div style="display:grid;grid-template-columns:24px 1fr 65px 1fr 1fr 90px 24px;gap:3px;margin-bottom:2px;font-size:7px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.3px">';
+  o+='<span>#</span><span>Fecha</span><span>Hora</span><span>Tipo cita</span><span>Atención</span><span>Sede</span><span></span></div>';
   o+='<div id="mp-fechas"></div>';
-  o+='<button class="btn btn-s btn-sm" style="margin-top:4px;font-size:8px" onclick="mpAddFecha()">+ Agregar fecha</button>';
-
+  o+='<button class="btn btn-s btn-sm" style="margin-top:4px;font-size:8px" onclick="mpAddFecha();mpUpdateQty()">+ Agregar fecha</button>';
   o+='</div>';
   o+='<div style="display:flex;gap:6px;padding:10px 16px;border-top:1px solid #DDE4F5">';
   o+='<button style="flex:1;padding:8px;border:1px solid #DDE4F5;border-radius:8px;background:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="document.getElementById(\'modal-prog\').remove()">Cancelar</button>';
   o+='<button style="flex:1;padding:8px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="mpGuardar()">📅 Programar</button>';
   o+='</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',o);
-  window._mpTrat=trat;window._mpTipoCita=tipoCita;window._mpTipoAt=tipoAt;
   mpAddFecha();
 }
 function mpAddFecha(){
   var box=document.getElementById('mp-fechas');if(!box)return;
   var n=box.children.length+1;
-  var tipoCita=window._mpTipoCita||'Aplicacion';
-  var tipoAt=window._mpTipoAt||'ENFERMERIA';
+  var tc=window._mpTipoCita||'Aplicacion';
+  var ta=window._mpTipoAt||'ENFERMERIA';
   var row=document.createElement('div');
-  row.style.cssText='display:grid;grid-template-columns:30px 1fr 70px 1fr 1fr;gap:4px;margin-bottom:4px;align-items:center;font-size:9px';
-  row.innerHTML='<span style="font-weight:800;color:var(--blue);text-align:center">'+n+'</span>'
-    +'<input type="date" class="fi mp-f" style="font-size:9px">'
-    +'<input type="time" class="fi mp-h" value="10:00" style="font-size:9px">'
-    +'<select class="fi fs mp-tc" style="font-size:8px"><option'+(tipoCita==='Aplicacion'?' selected':'')+'>Aplicacion</option><option'+(tipoCita==='Control'?' selected':'')+'>Control</option><option>Mantenimiento</option><option'+(tipoCita==='Consulta nueva'?' selected':'')+'>Consulta nueva</option><option>Reprogramacion</option></select>'
-    +'<select class="fi fs mp-ta" style="font-size:8px"><option'+(tipoAt==='ENFERMERIA'?' selected':'')+'>ENFERMERIA</option><option'+(tipoAt==='DOCTORA'?' selected':'')+'>DOCTORA</option></select>';
+  row.style.cssText='display:grid;grid-template-columns:24px 1fr 65px 1fr 1fr 90px 24px;gap:3px;margin-bottom:3px;align-items:center';
+  row.innerHTML='<span style="font-size:8px;font-weight:800;color:var(--blue);text-align:center">'+n+'</span>'
+    +'<input type="date" class="fi mp-f" style="font-size:9px;padding:5px">'
+    +'<input type="time" class="fi mp-h" value="10:00" style="font-size:9px;padding:5px">'
+    +'<select class="fi fs mp-tc" style="font-size:8px;padding:4px"><option'+(tc==='Aplicacion'?' selected':'')+'>Aplicacion</option><option'+(tc==='Control'?' selected':'')+'>Control</option><option>Mantenimiento</option><option'+(tc==='Consulta nueva'?' selected':'')+'>Consulta nueva</option><option>Reprogramacion</option></select>'
+    +'<select class="fi fs mp-ta" style="font-size:8px;padding:4px"><option'+(ta==='ENFERMERIA'?' selected':'')+'>ENFERMERIA</option><option'+(ta==='DOCTORA'?' selected':'')+'>DOCTORA</option></select>'
+    +'<select class="fi fs mp-sd" style="font-size:8px;padding:4px"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select>'
+    +'<span style="cursor:pointer;color:var(--rd);font-size:12px;text-align:center" onclick="this.parentElement.remove();mpRenum();mpUpdateQty()">✕</span>';
   box.appendChild(row);
 }
+function mpRenum(){var rows=document.getElementById('mp-fechas').children;for(var i=0;i<rows.length;i++){rows[i].querySelector('span').textContent=i+1;}}
+function mpUpdateQty(){var el=document.getElementById('mp-ses');if(el)el.value=document.getElementById('mp-fechas').children.length;}
+function mpSyncQty(){var qty=parseInt((document.getElementById('mp-ses')||{}).value)||1;var box=document.getElementById('mp-fechas');if(!box)return;var cur=box.children.length;if(qty>cur){for(var i=0;i<qty-cur;i++)mpAddFecha();}else if(qty<cur){while(box.children.length>qty)box.removeChild(box.lastChild);mpRenum();}}
 function mpGuardar(){
   var c=AT.sel;if(!c)return;
   var trat=window._mpTrat||'';
-  var fechas=document.querySelectorAll('.mp-f');
-  var horas=document.querySelectorAll('.mp-h');
-  var tipos=document.querySelectorAll('.mp-tc');
-  var ats=document.querySelectorAll('.mp-ta');
+  var rows=document.getElementById('mp-fechas').children;
   var ses=[];
-  fechas.forEach(function(f,i){
-    if(f.value)ses.push({fecha:f.value,hora:horas[i]?horas[i].value:'10:00',tipo_cita:tipos[i]?tipos[i].value:'Aplicacion',tipo_atencion:ats[i]?ats[i].value:'ENFERMERIA'});
-  });
+  for(var i=0;i<rows.length;i++){
+    var f=rows[i].querySelector('.mp-f');
+    var h=rows[i].querySelector('.mp-h');
+    var tc=rows[i].querySelector('.mp-tc');
+    var sd=rows[i].querySelector('.mp-sd');
+    if(f&&f.value)ses.push({fecha:f.value,hora:h?h.value:'10:00',tipo_cita:tc?tc.value:'Aplicacion',sede:sd?sd.value:'SAN ISIDRO'});
+  }
   if(!ses.length){if(window.AOS_showToast)AOS_showToast('Selecciona al menos 1 fecha','','toast-alerta');return;}
-  sbR('aos_programar_sesiones',{p_numero_limpio:c.numero_limpio,p_nombre:c.nombre||'',p_apellido:c.apellido||'',p_tratamiento:trat,p_profesional:c.profesional||'',p_sede:c.sede||'SAN ISIDRO',p_sesiones:JSON.stringify(ses),p_asesor:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){
+  sbR('aos_programar_sesiones',{
+    p_numero_limpio:c.numero_limpio,
+    p_nombre:c.nombre||'',p_apellido:c.apellido||'',
+    p_tratamiento:trat,
+    p_profesional:c.profesional||'',
+    p_sede:ses[0].sede||'SAN ISIDRO',
+    p_tipo_cita:ses[0].tipo_cita||'Aplicacion',
+    p_sesiones:JSON.stringify(ses),
+    p_asesor:AOS.ctx?AOS.ctx.nombre:'',
+    p_atencion_id:'',
+    p_plan_trabajo_id:''
+  }).then(function(r){
     if(r&&r.ok){
       document.getElementById('modal-prog').remove();
       if(window.AOS_showToast)AOS_showToast('✅ '+ses.length+' cita(s) programada(s)',trat,'');
       loadDet();
-    }else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+    }else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error?r.error:''),'','toast-alerta');}
   });
 }
 
