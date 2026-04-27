@@ -207,6 +207,14 @@
 var AT={period:'hoy',sel:null,list:[],all:[],calY:0,calM:0,prof:null,det:null,macro:'atencion',sub:'general'};
 function E(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function isDra(p){return(p||'').indexOf('DRA')>-1}
+/* Toast notification */
+window.AOS_showToast=function(msg,sub,cls){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;top:16px;right:16px;z-index:9999;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:'+(cls==='toast-alerta'?'#DC2626':'#059669')+';box-shadow:0 4px 12px rgba(0,0,0,.15);animation:slideIn .3s;max-width:300px';
+  t.innerHTML=msg+(sub?'<div style="font-size:9px;font-weight:400;margin-top:2px;opacity:.85">'+sub+'</div>':'');
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(function(){t.remove()},300)},3000);
+};
 
 /* ===== MOD-02: SB HELPERS ===== */
 function sbF(p){return fetch(_SB+p,{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()})}
