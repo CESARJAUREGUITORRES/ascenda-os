@@ -142,8 +142,37 @@
 .dw-x{background:none;border:none;font-size:16px;cursor:pointer;color:var(--mt);padding:4px}
 .dw-b{flex:1;overflow-y:auto;padding:12px 14px}
 
+/* ===== INSUMOS V2 ===== */
+.ds-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ds-tcard{border:1.5px solid var(--bd2);border-radius:var(--r);overflow:hidden;margin-bottom:6px;background:var(--sf);transition:all .15s;cursor:pointer}
+.ds-tcard:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(10,79,191,.06)}
+.ds-tcard.sel{border-color:var(--cyan);background:rgba(0,201,167,.03)}
+.ds-tcard.done{border-color:var(--cyan)}
+.ds-tcard.pend{border-color:var(--am)}
+.ds-tcard.err{border-color:var(--rd)}
+.ds-th{display:flex;align-items:center;gap:6px;padding:8px 10px}
+.ds-th-ico{font-size:14px}
+.ds-th-info{flex:1;min-width:0}
+.ds-th-name{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-th-sub{font-size:7px;color:var(--mt);margin-top:1px}
+.ds-th-st{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ds-th-st.ok{background:#F0FDF4;color:var(--gn)}.ds-th-st.warn{background:#FEF3C7;color:var(--am)}.ds-th-st.err{background:#FEE2E2;color:var(--rd)}
+.ds-th-chv{font-size:9px;color:var(--mt);transition:transform .2s;flex-shrink:0}
+.ds-tcard.open .ds-th-chv{transform:rotate(180deg)}
+.ds-tbody{display:none;padding:6px 10px 10px;border-top:1px solid var(--bd2)}
+.ds-tcard.open .ds-tbody{display:block}
+.ds-item{display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #F8FAFF;font-size:8px}
+.ds-item:last-child{border:none}
+.ds-rchips{display:flex;gap:3px;margin-bottom:8px}
+.ds-rchip{flex:1;padding:5px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;font-size:8px;font-weight:700;color:var(--mt);cursor:pointer;background:var(--sf);transition:all .12s}
+.ds-rchip.a{border-color:var(--cyan);background:rgba(0,201,167,.06);color:#00A88A}
+.ds-sel-items{max-height:160px;overflow-y:auto;margin-bottom:6px}
+.ds-sel-row{display:grid;grid-template-columns:1fr 45px 26px 20px;gap:4px;padding:4px 0;border-bottom:1px solid #F1F5F9;align-items:center;font-size:9px}
+.ds-hist-card{border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:6px;overflow:hidden;background:var(--sf)}
+.ds-hist-hdr{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#F8FAFF;cursor:pointer;font-size:9px}
+
 /* Responsive */
-@media(max-width:768px){.at{grid-template-columns:1fr}.at-l{max-height:40vh;border-right:none;border-bottom:1px solid var(--bd)}.at-gen{grid-template-columns:1fr}.dw{width:100%;right:-100%}}
+@media(max-width:768px){.at{grid-template-columns:1fr}.at-l{max-height:40vh;border-right:none;border-bottom:1px solid var(--bd)}.at-gen{grid-template-columns:1fr}.dw{width:100%;right:-100%}.ds-layout{grid-template-columns:1fr}}
 </style>
 
 <div class="at">
@@ -751,138 +780,218 @@ function mpGuardar(){
   });
 }
 
-/* ===== MOD-15: SUB DESCUENTOS ===== */
+/* ===== MOD-15: SUB DESCUENTOS v2 — 2 col cards ===== */
+var DS={items:[],selTrat:'',rView:'buscar'};
 function rDescuentos(el){var d=AT.det,c=AT.sel;if(!c)return;
-var sede=c.sede||'SAN ISIDRO';
-var prof=c.profesional||'';
-var asist=c.asistente_nombre||'';
-var esDra=isDra(prof);
-var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
-
-/* Detectar tratamientos realizados y pagados */
-var map=getNotasMap();
-var procNotas=map['NOTA_PROCEDIMIENTO']||[];
-var tratRealizados=[];var tratProgramados=[];
+var sede=c.sede||'SAN ISIDRO';var prof=c.profesional||'';var asist=c.asistente_nombre||'';
+var esDra=isDra(prof);var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+var map=getNotasMap();var procNotas=map['NOTA_PROCEDIMIENTO']||[];
+var tratCards=[];
 procNotas.forEach(function(n){
   var txt=n.contenido||'';var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
-  if(txt.indexOf('[REALIZADO]')>-1)tratRealizados.push(m[1].trim());
-  if(txt.indexOf('[PROGRAMAR]')>-1)tratProgramados.push(m[1].trim());
+  var nombre=m[1].trim();
+  var realizado=txt.indexOf('[REALIZADO]')>-1;
+  var programar=txt.indexOf('[PROGRAMAR]')>-1;
+  tratCards.push({nombre:nombre,realizado:realizado,programar:programar,autor:n.autor||prof,asistente:asist});
 });
+if(!tratCards.length&&c.tratamientos&&c.tratamientos.length){
+  c.tratamientos.forEach(function(t){tratCards.push({nombre:t,realizado:false,programar:false,autor:prof,asistente:asist});});
+}
+DS._tratCards=tratCards;DS._sede=sede;DS._prof=prof;DS._esDra=esDra;DS._asist=asist;
+if(!DS.selTrat&&tratCards.length)DS.selTrat=tratCards[0].nombre;
 
-var o='<div class="at-sc">📦 Descuento de insumos — '+E(cli)+'</div>';
+var o='<div class="at-sc">\u{1F4E6} Descuento de insumos \u2014 '+E(cli)+'</div>';
+o+='<div style="display:flex;gap:8px;margin-bottom:8px;font-size:8px;color:var(--mt)">';
+o+='<span>\u{1F464} <b style="color:var(--deep)">'+E(prof)+'</b> <span class="rl '+(esDra?'rl-d':'rl-e')+'">'+(esDra?'Dra':'Enf')+'</span></span>';
+if(asist)o+='<span>\u{1F469}\u200D\u2695\uFE0F <b>'+E(asist)+'</b></span>';
+o+='<span>\u{1F4CD} '+E(sede)+'</span><span>\u{1F4C5} '+E(c.fecha)+'</span></div>';
 
-/* Info de trazabilidad */
-o+='<div style="background:#F0F4FC;border-radius:var(--r);padding:6px 8px;margin-bottom:8px;font-size:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px">';
-o+='<div><span style="color:var(--mt)">Profesional:</span> <b>'+E(prof)+'</b> <span style="font-size:7px;color:var(--blue)">'+E(esDra?'DOCTORA':'ENFERMERÍA')+'</span></div>';
-if(asist)o+='<div><span style="color:var(--mt)">Asistente:</span> <b>'+E(asist)+'</b></div>';
-o+='<div><span style="color:var(--mt)">Sede:</span> <b>'+E(sede)+'</b></div>';
-o+='<div><span style="color:var(--mt)">Fecha:</span> <b>'+E(c.fecha)+'</b></div>';
+o+='<div class="ds-layout">';
+/* COL IZQ: Cards tratamientos */
+o+='<div><div class="at-sc" style="margin-bottom:6px">Tratamientos detectados</div>';
+if(!tratCards.length){o+='<div style="font-size:9px;color:var(--mt);padding:10px;text-align:center">Sin tratamientos</div>';}
+tratCards.forEach(function(tc,i){
+  var isSel=DS.selTrat===tc.nombre;
+  var stClass=tc.realizado?'ok':(tc.programar?'warn':'warn');
+  var stIco=tc.realizado?'\u2705':(tc.programar?'\u{1F4C5}':'\u231B');
+  var cardCls='ds-tcard'+(isSel?' sel':'')+(tc.realizado?' done':' pend');
+  o+='<div class="'+cardCls+'" id="ds-tc-'+i+'">';
+  o+='<div class="ds-th" onclick="dsSelTrat(\''+E(tc.nombre).replace(/'/g,"\\'")+'\','+i+')">';
+  o+='<span class="ds-th-ico">'+(tc.realizado?'\u{1F489}':'\u{1F4CB}')+'</span>';
+  o+='<div class="ds-th-info"><div class="ds-th-name">'+E(tc.nombre)+'</div>';
+  o+='<div class="ds-th-sub">'+E(tc.autor)+(tc.asistente?' \xB7 Asiste: '+E(tc.asistente):'')+'</div></div>';
+  o+='<span class="ds-th-st '+stClass+'">'+stIco+'</span>';
+  o+='<span class="ds-th-chv" onclick="event.stopPropagation();dsTogCard('+i+')">\u25BC</span>';
+  o+='</div>';
+  o+='<div class="ds-tbody" id="ds-tb-'+i+'"><div id="ds-tb-items-'+i+'" style="font-size:8px;color:var(--mt)">Cargando...</div></div>';
+  o+='</div>';
+});
 o+='</div>';
 
-/* Selector de tratamiento */
-var allTrats=tratRealizados.concat(c.tratamientos||[]);
-var uniqTrats=[];allTrats.forEach(function(t){if(uniqTrats.indexOf(t)<0)uniqTrats.push(t)});
-if(uniqTrats.length){
-  o+='<div class="fg" style="margin-bottom:6px"><label class="fl">Tratamiento para este descuento</label><select class="fi fs" id="ds-trat" style="font-size:9px">';
-  if(uniqTrats.length>1)o+='<option value="">— Todos los tratamientos —</option>';
-  uniqTrats.forEach(function(t){o+='<option value="'+E(t)+'">'+E(t)+'</option>';});
-  o+='</select></div>';
-}
-
-/* Insumos ya descontados en esta atención */
-o+='<div class="at-sc" style="margin-top:4px">Insumos descontados hoy</div>';
-o+='<div id="ds-hist"><div style="font-size:8px;color:var(--mt);text-align:center;padding:6px">Cargando...</div></div>';
-
-/* Buscador de insumos */
-o+='<div class="at-sc" style="margin-top:8px">Agregar insumo</div>';
-o+='<div class="fg"><input class="fi" id="ds-q" placeholder="🔍 Buscar insumo del stock de '+E(sede)+'..." oninput="dsSearch()" style="font-size:9px"></div>';
-o+='<div id="ds-r" style="max-height:120px;overflow-y:auto;margin-bottom:4px"></div>';
-
-/* Items seleccionados para descontar */
-o+='<div id="ds-items"></div>';
-o+='<button class="btn btn-p" style="margin-top:6px;display:none" id="ds-btn" onclick="dsExec()">🔻 Descontar insumos</button>';
-
+/* COL DER: Chips + contenido */
+o+='<div>';
+o+='<div class="ds-rchips">';
+o+='<div class="ds-rchip'+(DS.rView==='buscar'?' a':'')+'" onclick="dsChipView(\'buscar\',this)">\u{1F50D} Buscar</div>';
+o+='<div class="ds-rchip'+(DS.rView==='historial'?' a':'')+'" onclick="dsChipView(\'historial\',this)">\u{1F4CB} Historial</div>';
+o+='</div>';
+o+='<div id="ds-right-body"></div>';
+o+='</div>';
+o+='</div>';
 el.innerHTML=o;
-dsLoadHist();
+dsRenderRight();
+dsLoadAllCardItems();
 }
 
-/* ===== DESCUENTO: Variables globales ===== */
-var DS={items:[]};
+function dsSelTrat(nombre,idx){
+  DS.selTrat=nombre;DS.items=[];
+  document.querySelectorAll('.ds-tcard').forEach(function(c,i){c.classList.toggle('sel',i===idx);});
+  dsRenderRight();
+}
+function dsTogCard(idx){var card=document.getElementById('ds-tc-'+idx);if(card)card.classList.toggle('open');}
+function dsChipView(view,el){
+  DS.rView=view;
+  document.querySelectorAll('.ds-rchip').forEach(function(c){c.classList.remove('a')});
+  if(el)el.classList.add('a');
+  dsRenderRight();
+}
 
-function dsLoadHist(){
+function dsLoadAllCardItems(){
   var c=AT.sel;if(!c)return;
-  /* Buscar movimientos de esta atención */
   sbF('/rest/v1/aos_movimientos_inv?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&tipo_movimiento=eq.EGRESO&order=created_at.desc').then(function(movs){
-    var box=document.getElementById('ds-hist');if(!box)return;
-    if(!movs||!movs.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);text-align:center;padding:6px">Sin descuentos registrados</div>';return;}
-    var h='<table style="width:100%;border-collapse:collapse;font-size:8px"><thead><tr style="background:#F0F4FC"><th style="padding:3px 4px;text-align:left;font-size:7px;color:var(--blue)">Producto</th><th style="padding:3px 4px;text-align:center">Cant.</th><th style="padding:3px 4px;text-align:left">Tratamiento</th><th style="padding:3px 4px;text-align:left">Profesional</th><th style="padding:3px 4px;text-align:left;font-size:7px">Hora</th></tr></thead><tbody>';
-    movs.forEach(function(m){
-      h+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:3px 4px;font-weight:600">'+E(m.nombre_producto)+'</td><td style="padding:3px 4px;text-align:center;font-weight:700;color:var(--blue)">×'+m.cantidad+'</td><td style="padding:3px 4px;font-size:7px">'+E(m.tratamiento||'')+'</td><td style="padding:3px 4px;font-size:7px">'+E(m.profesional_nombre||m.usuario||'')+'</td><td style="padding:3px 4px;font-size:6px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</td></tr>';
+    if(!movs||!movs.length){
+      DS._tratCards.forEach(function(tc,i){
+        var el=document.getElementById('ds-tb-items-'+i);
+        if(el)el.innerHTML='<div style="font-size:8px;color:var(--am);padding:4px 0">Sin descuentos</div>';
+      });
+      return;
+    }
+    DS._allMovs=movs;
+    DS._tratCards.forEach(function(tc,i){
+      var el=document.getElementById('ds-tb-items-'+i);if(!el)return;
+      var filtered=movs.filter(function(m){return(m.tratamiento||'')===(tc.nombre||'');});
+      if(!filtered.length){el.innerHTML='<div style="font-size:8px;color:var(--am);padding:4px 0">Sin descuentos</div>';return;}
+      var h='';
+      filtered.forEach(function(m){
+        h+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</span></div>';
+      });
+      h+='<div style="font-size:7px;color:var(--gn);margin-top:3px;font-weight:700">\u2705 '+filtered.length+' insumo(s)</div>';
+      el.innerHTML=h;
+      var card=document.getElementById('ds-tc-'+i);
+      if(card){card.classList.remove('pend','err');card.classList.add('done');}
+      var st=document.querySelector('#ds-tc-'+i+' .ds-th-st');
+      if(st){st.className='ds-th-st ok';st.textContent='\u2705';}
     });
-    h+='</tbody></table>';
-    h+='<div style="font-size:7px;color:var(--mt);text-align:right;margin-top:2px">Total: '+movs.length+' insumos descontados</div>';
-    box.innerHTML=h;
+  });
+}
+
+function dsRenderRight(){
+  var box=document.getElementById('ds-right-body');if(!box)return;
+  if(DS.rView==='buscar')dsRenderBuscar(box);
+  else dsRenderHistorial(box);
+}
+
+function dsRenderBuscar(box){
+  var c=AT.sel;if(!c)return;
+  var trat=DS.selTrat||'';
+  var o='';
+  if(trat){o+='<div style="padding:5px 8px;background:#EBF2FF;border-radius:6px;margin-bottom:8px;font-size:9px;display:flex;align-items:center;gap:6px"><span style="font-size:11px">\u{1F489}</span><b style="color:var(--deep)">'+E(trat)+'</b></div>';}
+  o+='<div class="fg" style="margin-bottom:6px"><input class="fi" id="ds-q" placeholder="\u{1F50D} Buscar insumo del stock de '+E(DS._sede||'')+'..." oninput="dsSearch()" style="font-size:10px"></div>';
+  o+='<div id="ds-r" style="max-height:120px;overflow-y:auto;margin-bottom:6px"></div>';
+  o+='<div id="ds-sel-box">';
+  if(DS.items.length){
+    o+='<div class="at-sc" style="margin-bottom:3px">Seleccionados ('+DS.items.length+')</div>';
+    o+='<div class="ds-sel-items">';
+    DS.items.forEach(function(it,i){
+      o+='<div class="ds-sel-row"><div><div style="font-weight:600">'+E(it.nombre)+'</div><div style="font-size:7px;color:var(--mt)">Stock: '+it.max+' '+E(it.unidad)+'</div></div>';
+      o+='<input type="number" value="'+it.cantidad+'" min="1" max="'+it.max+'" style="width:45px;padding:3px;border:1px solid var(--bd2);border-radius:4px;font-size:9px;text-align:center" onchange="DS.items['+i+'].cantidad=parseInt(this.value)||1">';
+      o+='<span style="font-size:7px;color:var(--mt)">'+E(it.unidad)+'</span>';
+      o+='<span style="cursor:pointer;color:var(--rd);font-size:12px;text-align:center" onclick="dsRmItem('+i+')">\u2715</span></div>';
+    });
+    o+='</div>';
+    o+='<div style="padding:6px 8px;background:#F8FAFF;border-radius:6px;margin-top:6px;font-size:8px">';
+    o+='<div style="display:flex;justify-content:space-between"><span style="color:var(--mt)">Total items</span><b>'+DS.items.length+'</b></div>';
+    var totalQty=0;DS.items.forEach(function(it){totalQty+=it.cantidad;});
+    o+='<div style="display:flex;justify-content:space-between"><span style="color:var(--mt)">Total unidades</span><b style="color:var(--blue)">'+totalQty+'</b></div></div>';
+    o+='<button class="btn btn-p btn-f" style="margin-top:8px;padding:8px" onclick="dsExec()">\u{1F53B} Descontar '+DS.items.length+' insumo(s)</button>';
+  }else{
+    o+='<div style="font-size:8px;color:var(--mt);text-align:center;padding:8px">Busca y selecciona insumos arriba</div>';
+  }
+  o+='</div>';
+  box.innerHTML=o;
+}
+
+function dsRenderHistorial(box){
+  var c=AT.sel;if(!c)return;
+  box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:8px">Cargando historial...</div>';
+  sbF('/rest/v1/aos_movimientos_inv?numero_limpio=eq.'+c.numero_limpio+'&tipo_movimiento=eq.EGRESO&order=fecha.desc,created_at.desc&limit=50').then(function(movs){
+    if(!movs||!movs.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:10px">Sin historial</div>';return;}
+    var byDate={};movs.forEach(function(m){var f=m.fecha||'';if(!byDate[f])byDate[f]=[];byDate[f].push(m);});
+    var o='<div class="at-sc" style="margin-bottom:4px">\u{1F4CB} Historial por d\u00EDa</div>';
+    Object.keys(byDate).forEach(function(fecha){
+      var items=byDate[fecha];
+      var byTrat={};items.forEach(function(m){var t=m.tratamiento||'Sin tratamiento';if(!byTrat[t])byTrat[t]=[];byTrat[t].push(m);});
+      o+='<div class="ds-hist-card">';
+      o+='<div class="ds-hist-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">';
+      o+='<span style="font-weight:800;color:var(--blue)">'+E(fecha)+'</span>';
+      o+='<span style="flex:1;color:var(--mt)">'+items.length+' insumos</span>';
+      o+='<span style="font-size:8px;color:var(--mt)">\u25BC</span></div>';
+      o+='<div style="display:none;padding:6px 8px">';
+      Object.keys(byTrat).forEach(function(trat){
+        o+='<div style="margin-bottom:6px"><div style="font-size:8px;font-weight:700;color:var(--deep);padding:2px 0;border-bottom:1px solid var(--bd2)">\u{1F489} '+E(trat)+'</div>';
+        byTrat[trat].forEach(function(m){
+          o+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span>';
+          o+='<span style="font-size:7px;color:var(--mt)">'+E(m.profesional_nombre||m.usuario||'')+'</span></div>';
+        });
+        o+='</div>';
+      });
+      o+='</div></div>';
+    });
+    box.innerHTML=o;
   });
 }
 
 function dsSearch(){
   var q=(document.getElementById('ds-q')||{}).value||'';
   if(q.length<2){document.getElementById('ds-r').innerHTML='';return;}
-  var c=AT.sel;var sede=c?c.sede||'SAN ISIDRO':'SAN ISIDRO';
-  sbR('aos_buscar_insumos',{p_sede:sede,p_query:q}).then(function(items){
+  sbR('aos_buscar_insumos',{p_sede:DS._sede||'SAN ISIDRO',p_query:q}).then(function(items){
     var box=document.getElementById('ds-r');if(!box)return;
-    if(!items||!items.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados para "'+E(q)+'"</div>';return;}
+    if(!items||!items.length){box.innerHTML='<div style="font-size:8px;color:var(--mt);padding:4px">Sin resultados</div>';return;}
     box.innerHTML=items.map(function(i){
-      var yaAgregado=DS.items.some(function(x){return x.id===i.id});
-      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid '+(yaAgregado?'var(--cyan)':'var(--bd2)')+';border-radius:4px;margin-bottom:2px;cursor:'+(yaAgregado?'default':'pointer')+';font-size:8px;background:'+(yaAgregado?'rgba(0,201,167,.05)':'#fff')+'" '+(yaAgregado?'':'onclick="dsAdd(\''+i.id+'\',\''+E(i.nombre_producto).replace(/'/g,"\\'")+'\','+i.cantidad+',\''+E(i.unidad||'und')+'\')"')+'><span style="font-size:10px">'+(yaAgregado?'✅':'➕')+'</span><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';
+      var ya=DS.items.some(function(x){return x.id===i.id});
+      return '<div style="display:flex;align-items:center;gap:5px;padding:4px 6px;border:1px solid '+(ya?'var(--cyan)':'var(--bd2)')+';border-radius:5px;margin-bottom:2px;cursor:'+(ya?'default':'pointer')+';font-size:9px;background:'+(ya?'rgba(0,201,167,.04)':'#fff')+'" '+(ya?'':'onclick="dsAddItem(\''+i.id+'\',\''+E(i.nombre_producto).replace(/'/g,"\\\\'")+'\','+i.cantidad+',\''+E(i.unidad||'und')+'\')"')+'><span style="font-size:10px">'+(ya?'\u2705':'\u2795')+'</span><span style="flex:1;font-weight:600">'+E(i.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">'+i.cantidad+'</span><span style="color:var(--mt);font-size:7px">'+E(i.unidad||'')+'</span></div>';
     }).join('');
   });
 }
 
-function dsAdd(id,nom,maxQty,und){
+function dsAddItem(id,nom,maxQty,und){
   if(DS.items.some(function(x){return x.id===id}))return;
   DS.items.push({id:id,nombre:nom,cantidad:1,max:maxQty,unidad:und});
-  dsRender();
   document.getElementById('ds-q').value='';
   document.getElementById('ds-r').innerHTML='';
+  dsRenderBuscar(document.getElementById('ds-right-body'));
 }
-
-function dsRm(i){DS.items.splice(i,1);dsRender();}
-
-function dsRender(){
-  var box=document.getElementById('ds-items');if(!box)return;
-  var btn=document.getElementById('ds-btn');
-  if(!DS.items.length){box.innerHTML='';if(btn)btn.style.display='none';return;}
-  if(btn)btn.style.display='block';
-  box.innerHTML=DS.items.map(function(it,i){
-    return '<div style="display:grid;grid-template-columns:1fr 50px 30px 24px;gap:4px;padding:4px 0;border-bottom:1px solid #F1F5F9;align-items:center;font-size:9px"><div><div style="font-weight:600">'+E(it.nombre)+'</div><div style="font-size:7px;color:var(--mt)">Stock: '+it.max+' '+E(it.unidad)+'</div></div><input type="number" value="'+it.cantidad+'" min="1" max="'+it.max+'" style="width:50px;padding:2px 4px;border:1px solid var(--bd2);border-radius:4px;font-size:9px;text-align:center" onchange="DS.items['+i+'].cantidad=parseInt(this.value)||1"><span style="font-size:7px;color:var(--mt)">'+E(it.unidad)+'</span><span style="cursor:pointer;color:var(--rd);font-size:12px;text-align:center" onclick="dsRm('+i+')">✕</span></div>';
-  }).join('');
-}
+function dsRmItem(i){DS.items.splice(i,1);dsRenderBuscar(document.getElementById('ds-right-body'));}
 
 function dsExec(){
   var c=AT.sel;if(!c||!DS.items.length)return;
-  var trat=(document.getElementById('ds-trat')||{}).value||(c.tratamientos||[])[0]||'';
-  var esDra=isDra(c.profesional);
-  
+  var trat=DS.selTrat||(c.tratamientos||[])[0]||'';
   var data={
-    sede:c.sede||'SAN ISIDRO',
+    sede:DS._sede||'SAN ISIDRO',
     usuario:AOS.ctx?AOS.ctx.nombre:'',
     numero_limpio:c.numero_limpio,
     paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
     tratamiento:trat,
     atencion_id:c.atencion_id||'',
-    profesional_nombre:c.profesional||'',
-    profesional_tipo:esDra?'DOCTORA':'ENFERMERIA',
-    asistente_nombre:c.asistente_nombre||'',
+    profesional_nombre:DS._prof||'',
+    profesional_tipo:DS._esDra?'DOCTORA':'ENFERMERIA',
+    asistente_nombre:DS._asist||'',
     items:DS.items.map(function(x){return{inventario_id:x.id,nombre:x.nombre,cantidad:x.cantidad,tratamiento:trat}})
   };
-  
   sbR('aos_inventario_descontar',{p_data:data}).then(function(r){
     if(r&&r.descontados){
-      if(window.AOS_showToast)AOS_showToast('✅ '+r.descontados+' insumo(s) descontados','Para '+trat+' — '+c.profesional,'');
+      if(window.AOS_showToast)AOS_showToast('\u2705 '+r.descontados+' insumo(s) descontados','Para '+trat+' \u2014 '+DS._prof,'');
       DS.items=[];
-      dsRender();
-      dsLoadHist();
+      rDescuentos(document.getElementById('at-body'));
     }else{
       if(window.AOS_showToast)AOS_showToast('Error al descontar','','toast-alerta');
     }
