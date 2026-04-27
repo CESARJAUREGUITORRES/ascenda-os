@@ -349,19 +349,83 @@ function waEnviar() {
   el('ag-m-wa').classList.remove('open');
   if (window.AOS_showToast) AOS_showToast('WhatsApp abierto', 'Envía el mensaje', '');
 }
-function agSelEstado(btn){el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');}
+function agSelEstado(btn){
+  el('det-estados').querySelectorAll('.est-btn').forEach(function(b){b.classList.remove('act');});
+  btn.classList.add('act');
+  var est=btn.getAttribute('data-val');
+  var zone=el('det-asistente-zone');
+  if(est==='ASISTIO'||est==='EFECTIVA'){
+    zone.style.display='block';
+    /* Cargar enfermeras */
+    var sel=el('det-asistente');
+    if(!sel.options.length||sel.options.length<=1){
+      sel.innerHTML='<option value="">— Sin asistente —</option>';
+      fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+      .then(function(r){return r.json()}).then(function(rows){
+        (rows||[]).forEach(function(r){
+          sel.innerHTML+='<option value="'+h(r.nombre)+'">'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
+        });
+      });
+    }
+  }else{zone.style.display='none';}
+}
 
 function agGuardarEstado(){
   if(!AG.sel)return;
   var est='';el('det-estados').querySelectorAll('.est-btn.act').forEach(function(b){est=b.getAttribute('data-val');});
   var nota=el('det-nota').value.trim();
+  var asistente=(el('det-asistente')||{}).value||'';
   var upd={estado_cita:est,ts_actualizado:new Date().toISOString()};
   if(nota!==(AG.sel.obs||''))upd.obs=nota;
   _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
     if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');
     
-    // Si marcó NO ASISTIÓ → buscar email del paciente y enviar reagendamiento
+    /* ===== CREAR ATENCIÓN al marcar ASISTIÓ o EFECTIVA ===== */
+    if(est==='ASISTIO'||est==='EFECTIVA'){
+      var c=AG.sel;
+      var profNombre=c.doctora||c.asesor||'';
+      var profTipo=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0?'DOCTORA':'ENFERMERIA';
+      if(!profNombre&&profTipo==='DOCTORA')profNombre='DRA CAROLINA';
+      
+      var atencion={
+        numero_limpio:c.numero_limpio||c.numero||'',
+        fecha:c.fecha_cita,
+        sede:c.sede||'SAN ISIDRO',
+        profesional_id:'',
+        profesional_nombre:profNombre,
+        profesional_tipo:profTipo,
+        asistente_id:'',
+        asistente_nombre:asistente||'',
+        estado:'PENDIENTE',
+        paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
+        paciente_telefono:c.numero_limpio||c.numero||'',
+        cita_id:c.id,
+        tratamiento_principal:c.tratamiento||'',
+        tipo_atencion:'CONSULTA',
+        observaciones:nota
+      };
+      
+      /* Verificar si ya existe atención para este paciente/fecha/profesional */
+      fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+atencion.numero_limpio+'&fecha=eq.'+atencion.fecha+'&profesional_nombre=ilike.*'+encodeURIComponent(profNombre.split(' ')[0])+'*&select=id',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+      .then(function(r){return r.json()}).then(function(existing){
+        if(existing&&existing.length>0){
+          if(window.AOS_showToast)AOS_showToast('Atención ya existe','El profesional ya tiene esta atención','');
+          return;
+        }
+        /* Crear atención nueva */
+        fetch(_SB+'/rest/v1/aos_atenciones',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(atencion)})
+        .then(function(r2){
+          if(r2.ok){
+            if(window.AOS_showToast)AOS_showToast('✅ Atención creada','Aparecerá en el panel de '+profNombre+(asistente?' (asiste: '+asistente+')':''),'');
+          }else{
+            r2.text().then(function(t){console.error('[AGENDA] Error creando atención:',t);});
+          }
+        });
+      });
+    }
+    
+    // Si marcó NO ASISTIÓ → enviar email reagendamiento
     if(est==='NO ASISTIO'){
       var numPac = (AG.sel.numero||AG.sel.telefono||'').replace(/\D/g,'');
       if(numPac){
