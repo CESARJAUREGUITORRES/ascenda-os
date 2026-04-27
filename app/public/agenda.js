@@ -388,10 +388,20 @@ function agGuardarEstado(){
     /* ===== CREAR ATENCIÓN al marcar ASISTIÓ o EFECTIVA ===== */
     if(est==='ASISTIO'||est==='EFECTIVA'){
       var c=AG.sel;
-      var profNombre=c.doctora||c.asesor||'';
-      var profTipo=(profNombre.toUpperCase().indexOf('DRA')>=0)?'DOCTORA':'ENFERMERIA';
-      /* Si tipo_atencion de la cita dice DOCTORA, usar eso */
-      if((c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0)profTipo='DOCTORA';
+      var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
+      var profNombre, profTipo, asistNombre;
+      
+      if(esDoctora){
+        /* Cita de doctora: profesional = doctora, asistente = selector */
+        profNombre = c.doctora || '';
+        profTipo = 'DOCTORA';
+        asistNombre = asistente || '';
+      } else {
+        /* Cita de enfermería: profesional = selector (quién atiende), sin asistente */
+        profNombre = asistente || c.asesor || '';
+        profTipo = 'ENFERMERIA';
+        asistNombre = '';
+      }
       
       var atencion={
         numero_limpio:c.numero_limpio||c.numero||'',
@@ -401,7 +411,7 @@ function agGuardarEstado(){
         profesional_nombre:profNombre,
         profesional_tipo:profTipo,
         asistente_id:'',
-        asistente_nombre:asistente||'',
+        asistente_nombre:asistNombre,
         estado:'PENDIENTE',
         paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
         paciente_telefono:c.numero_limpio||c.numero||'',
