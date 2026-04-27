@@ -426,8 +426,14 @@ function agGuardarEstado(){
         asistNombre = asistente || '';
       } else {
         profNombre = asistente || c.asesor || '';
+        if(profNombre==='--'||profNombre==='No aplica')profNombre='';
         profTipo = 'ENFERMERIA';
         asistNombre = '';
+      }
+      
+      if(!profNombre){
+        if(window.AOS_showToast)AOS_showToast('⚠️ Selecciona quién atenderá','Elige un profesional del selector','toast-alerta');
+        return;
       }
       
       var atencion={
@@ -562,8 +568,19 @@ function agEliminar(){
     'S\u00ed, eliminar',
     'red',
     function(){
+      var numP=AG.sel.numero_limpio||AG.sel.numero||'';
+      var fechaC=AG.sel.fecha_cita;
       _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
         if(!r.ok)throw new Error('HTTP '+r.status);
+        /* También eliminar la atención asociada (si no tiene notas clínicas) */
+        if(numP&&fechaC){
+          fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC+'&select=id&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+          .then(function(r2){return r2.json()}).then(function(notas){
+            if(!notas||!notas.length){
+              fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
+            }
+          });
+        }
         if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');agCloseDet();agLoad();
       }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
     }
