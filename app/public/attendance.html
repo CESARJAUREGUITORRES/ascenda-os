@@ -879,7 +879,7 @@ function dsLoadAllCardItems(){
       if(!filtered.length){el.innerHTML='<div style="font-size:8px;color:var(--am);padding:4px 0">Sin descuentos</div>';return;}
       var h='';
       filtered.forEach(function(m){
-        h+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</span></div>';
+        h+='<div class="ds-item" style="cursor:pointer" onclick="dsOpenDetail(\''+m.id+'\',\''+E(m.nombre_producto).replace(/'/g,"\\\\'")+'\','+m.cantidad+',\''+E(m.tratamiento||'').replace(/'/g,"\\\\'")+'\')" title="Click para editar/eliminar"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</span><span style="font-size:8px;color:var(--mt)">\u270E</span></div>';
       });
       h+='<div style="font-size:7px;color:var(--gn);margin-top:3px;font-weight:700">\u2705 '+filtered.length+' insumo(s)</div>';
       el.innerHTML=h;
@@ -1007,16 +1007,57 @@ function dsExec(){
   });
 }
 
-/* ===== MOD-16: MACRO PLAN ===== */
-function rPlan(el){var d=AT.det;if(!d){el.innerHTML='';return;}var planes=d.planes||[];
-var o='<div class="at-sc">Planes de trabajo</div>';
-if(!planes.length)o+='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin planes</div>';
-planes.forEach(function(p){o+='<div class="ic"><div class="ic-t">📅 '+E(p.autor||'')+'</div><div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E(p.descripcion||'')+'</div>';var svcs=p.servicios_programados||[];if(typeof svcs==='string'){try{svcs=JSON.parse(svcs)}catch(e){svcs=[];}}
-svcs.forEach(function(s){o+='<div style="display:flex;align-items:center;gap:6px;padding:4px;border-bottom:1px solid var(--bg);font-size:8px"><input type="checkbox" '+(s.completado?'checked':'')+' disabled><span>'+E(s.tratamiento||s.nombre||'')+' — '+(s.cantidad_sesiones||1)+' ses</span></div>';});o+='</div>';});
-o+='<button class="btn btn-s" style="margin-top:8px" onclick="openNota(\'PLAN_TRABAJO\')">+ Plan</button>';
-var hist=(d.historial_atenciones)||[];
-if(hist.length){o+='<div class="at-sc" style="margin-top:16px">Historial</div>';hist.forEach(function(h){o+='<div style="padding:6px;border-left:3px solid var(--cyan);margin-bottom:4px;font-size:8px;background:#F8FAFF;border-radius:0 4px 4px 0"><b>'+E(h.fecha)+'</b> · '+E((h.tratamientos||[]).join(', '))+' · S/'+Math.round(h.total_pagado||0)+' · '+E(h.atendio||'')+'</div>';});}
-el.innerHTML=o;}
+/* ===== MOD-16: MACRO PLAN v2 — Global + drawer expandible ===== */
+function rPlan(el){var c=AT.sel;if(!c){el.innerHTML='';return;}
+var profName=AT.prof?AT.prof.nombre_publico:'';
+el.innerHTML='<div class="at-sc">\U0001F4CB Planes de trabajo globales</div><div id="plan-list" style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando planes...</div><div id="plan-detail" style="margin-top:10px"></div><button class="btn btn-s" style="margin-top:10px" onclick="openNota(\'PLAN_TRABAJO\')">+ Nuevo plan</button>';
+sbR('aos_planes_paciente',{p_numero:c.numero_limpio}).then(function(planes){
+  var box=document.getElementById('plan-list');if(!box)return;
+  if(!planes||!planes.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Sin planes registrados</div>';return;}
+  var o='';
+  planes.forEach(function(p,i){
+    var esMio=profName&&(p.autor||'').indexOf(profName.split(' ')[0])>-1;
+    var stBrd=p.completado?'var(--cyan)':(p.en_proceso?'var(--blue)':'var(--am)');
+    var stBg=p.completado?'rgba(0,201,167,.03)':(p.en_proceso?'rgba(10,79,191,.03)':'rgba(217,119,6,.03)');
+    var stLabel=p.completado?'\u2705 Completado':(p.en_proceso?'\U0001F504 En proceso':'\u231B Pendiente');
+    var stCol=p.completado?'var(--gn)':(p.en_proceso?'var(--blue)':'var(--am)');
+    o+='<div style="border:1.5px solid '+stBrd+';border-radius:var(--r);padding:10px;margin-bottom:6px;background:'+stBg+';cursor:pointer;transition:all .15s'+(esMio?';box-shadow:inset 3px 0 0 var(--blue)':'')+'" onclick="planDetail('+i+')">';
+    o+='<div style="display:flex;align-items:center;gap:6px">';
+    o+='<span style="font-size:13px">'+(p.completado?'\u2705':(p.en_proceso?'\U0001F504':'\U0001F4CB'))+'</span>';
+    o+='<div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:var(--deep)">'+E((p.items_nombres||[]).join(', '))+'</div>';
+    o+='<div style="font-size:7px;color:var(--mt);margin-top:1px">'+E(p.autor||'')+' \u00B7 '+E(p.fecha)+' \u00B7 '+E(p.sede||'')+' \u00B7 S/'+Math.round(p.total_plan||0)+'</div></div>';
+    o+='<span style="font-size:8px;font-weight:700;color:'+stCol+'">'+stLabel+'</span>';
+    if(esMio)o+='<span style="font-size:6px;padding:2px 5px;background:var(--blue);color:#fff;border-radius:4px;font-weight:700">MI PLAN</span>';
+    o+='</div></div>';
+  });
+  box.innerHTML=o;
+  window._planesData=planes;
+});
+}
+
+function planDetail(idx){
+  var p=window._planesData?window._planesData[idx]:null;if(!p)return;
+  var c=AT.sel;if(!c)return;
+  var box=document.getElementById('plan-detail');if(!box)return;
+  sbF('/rest/v1/aos_plan_trabajo_items?plan_id=eq.'+encodeURIComponent(p.plan_id)+'&order=orden').then(function(items){
+    items=items||[];
+    var o='<div class="ic"><div class="ic-t" style="justify-content:space-between">\U0001F4CB '+E((p.items_nombres||[]).join(', '))+'<span style="font-size:7px;color:var(--mt)">'+E(p.fecha)+'</span></div>';
+    if(!items.length){o+='<div style="font-size:9px;color:var(--mt)">Sin items detallados</div>';}
+    items.forEach(function(it){
+      var isServ=it.tipo_item==='SERVICIO';
+      o+='<div style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--bg);font-size:9px">';
+      o+='<span style="font-size:12px">'+(isServ?'\U0001F489':'\U0001F48A')+'</span>';
+      o+='<div style="flex:1"><div style="font-weight:700">'+E(it.nombre_servicio||it.nombre_producto||'')+'</div>';
+      o+='<div style="font-size:7px;color:var(--mt)">'+(isServ?it.num_sesiones+' ses \u00B7 '+E(it.frecuencia||''):'Dosis: '+E(it.dosis||'')+' \u00B7 '+E(it.momento||''))+'</div></div>';
+      o+='<span style="font-weight:800;color:var(--blue)">S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
+      o+='<span style="font-size:7px;padding:2px 5px;border-radius:4px;font-weight:700;background:'+(it.estado_item==='COMPLETADO'?'#F0FDF4;color:var(--gn)':it.estado_item==='EN_PROCESO'?'#EBF2FF;color:var(--blue)':'#FEF3C7;color:var(--am)')+'">'+E(it.estado_item||'PENDIENTE')+'</span>';
+      o+='</div>';
+    });
+    o+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:9px;border-top:1px solid var(--bd2);margin-top:4px"><span style="font-weight:700">Total</span><span style="font-weight:800;color:var(--deep)">S/'+Math.round(p.total_plan||0)+'</span></div>';
+    o+='</div>';
+    box.innerHTML=o;
+  });
+}
 
 /* ===== MOD-17: MACRO CALIFICACIONES ===== */
 function rCalif(el){var d=AT.det,c=AT.sel;
@@ -1045,9 +1086,63 @@ el.innerHTML=o;}
 /* ===== MOD-19: DRAWERS ===== */
 function openDw(id){document.querySelectorAll('.dw').forEach(function(d){d.classList.remove('open')});var dw=document.getElementById('dw-'+id);if(dw)dw.classList.add('open');}
 function closeDw(){document.querySelectorAll('.dw').forEach(function(d){d.classList.remove('open')});_openTipo=null;}
-function loadFichas(){var d=AT.det;if(!d)return;var b=document.getElementById('dw-fichas-b');var hist=d.historial_atenciones||[];
-b.innerHTML='<div class="at-sc">Fichas anteriores</div>'+(hist.length?hist.map(function(h){return '<div class="ic" style="cursor:pointer;margin-bottom:6px" onclick="loadFicha(\''+E(h.fecha)+'\')"><div style="font-size:10px;font-weight:700">'+E(h.fecha)+'</div><div style="font-size:8px;color:var(--mt);margin-top:2px">'+E((h.tratamientos||[]).join(', '))+' · S/'+Math.round(h.total_pagado||0)+'</div><div style="font-size:7px;color:var(--mt)">'+E(h.atendio||'')+' · '+E(h.sede||'')+'</div></div>';}).join(''):'<div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Sin fichas</div>');}
-function loadFicha(f){closeDw();var c=AT.sel;if(!c)return;sbR('aos_detalle_atencion',{p_numero:c.numero_limpio,p_fecha:f}).then(function(r){AT.det=r;macroTab(AT.macro,document.querySelector('.at-tab.a'));});}
+function loadFichas(){var c=AT.sel;if(!c)return;var b=document.getElementById('dw-fichas-b');
+var profName=AT.prof?AT.prof.nombre_publico:'';
+b.innerHTML='<div class="at-sc">\U0001F5C2 Fichas del paciente</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando fichas...</div>';
+sbR('aos_fichas_paciente',{p_numero:c.numero_limpio}).then(function(fichas){
+  if(!fichas||!fichas.length){b.innerHTML='<div class="at-sc">\U0001F5C2 Fichas</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Sin fichas anteriores</div>';return;}
+  var o='<div class="at-sc" style="margin-bottom:6px">\U0001F5C2 Fichas del paciente ('+fichas.length+')</div>';
+  o+='<div style="display:flex;gap:8px"><div id="fichas-list" style="flex:1;max-height:70vh;overflow-y:auto"></div><div id="fichas-detail" style="flex:1;display:none;max-height:70vh;overflow-y:auto"></div></div>';
+  b.innerHTML=o;
+  var listBox=document.getElementById('fichas-list');
+  window._fichasData=fichas;
+  var cards='';
+  fichas.forEach(function(f,i){
+    var esMio=profName&&(f.profesional||'').indexOf(profName.split(' ')[0])>-1;
+    var esHoy=f.fecha===c.fecha;
+    var stBrd=f.estado==='COMPLETADA'?'var(--cyan)':(esHoy?'var(--blue)':'var(--bd2)');
+    var stBg=f.estado==='COMPLETADA'?'rgba(0,201,167,.03)':(esHoy?'rgba(10,79,191,.03)':'var(--sf)');
+    var stIco=f.estado==='COMPLETADA'?'\u2705':(esHoy?'\U0001F504':'\U0001F4CB');
+    cards+='<div class="ic" style="cursor:pointer;margin-bottom:6px;border-color:'+stBrd+';background:'+stBg+'" onclick="fichaDetail('+i+')">';
+    cards+='<div style="display:flex;align-items:center;gap:6px">';
+    cards+='<span style="font-size:13px">'+stIco+'</span>';
+    cards+='<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--deep)">'+E(f.fecha)+'</div>';
+    cards+='<div style="font-size:8px;color:var(--mt)">'+E((f.tratamientos||[]).join(', '))+'</div>';
+    cards+='<div style="font-size:7px;color:var(--mt)">'+E(f.profesional||'')+' \u00B7 '+E(f.sede||'')+(f.num_insumos>0?' \u00B7 '+f.num_insumos+' insumos':'')+'</div></div>';
+    if(esMio)cards+='<span style="font-size:6px;padding:2px 5px;background:var(--blue);color:#fff;border-radius:4px;font-weight:700">MI FICHA</span>';
+    if(esHoy)cards+='<span style="font-size:6px;padding:2px 5px;background:var(--am);color:#fff;border-radius:4px;font-weight:700">HOY</span>';
+    cards+='</div></div>';
+  });
+  listBox.innerHTML=cards;
+});
+}
+
+function fichaDetail(idx){
+  var f=window._fichasData?window._fichasData[idx]:null;if(!f)return;
+  var detBox=document.getElementById('fichas-detail');if(!detBox)return;
+  detBox.style.display='block';
+  var icons={TRIAJE:'\U0001FA7A',NOTA_ENFERMERIA:'\U0001F4CB',EVALUACION:'\U0001F469\u200D\u2695\uFE0F',NOTA_PROCEDIMIENTO:'\U0001F489',PLAN_TRABAJO:'\U0001F4C5',PRESCRIPCION:'\U0001F48A',EVOLUCION_MEDICA:'\U0001F4C8'};
+  var o='<div class="ic"><div class="ic-t">\U0001F5C2 '+E(f.fecha)+' \u00B7 '+E(f.profesional||'')+'</div>';
+  var notas=f.notas||[];
+  if(notas.length){
+    notas.forEach(function(n){
+      o+='<div style="margin-bottom:6px;border-left:3px solid var(--cyan);padding-left:8px">';
+      o+='<div style="font-size:8px;font-weight:800;color:var(--blue)">'+(icons[n.tipo]||'\U0001F4DD')+' '+E(n.tipo||'')+'</div>';
+      if(n.peso)o+='<span style="font-size:7px;background:var(--sf);padding:2px 5px;border-radius:4px;border:1px solid var(--bd2)">Peso:'+n.peso+'kg</span>';
+      if(n.contenido)o+='<div style="font-size:8px;white-space:pre-wrap;line-height:1.4;margin-top:2px">'+E(n.contenido)+'</div>';
+      o+='<div style="font-size:6px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' \u00B7 '+E(n.autor_rol||'')+'</div></div>';
+    });
+  }else{o+='<div style="font-size:8px;color:var(--mt)">Sin notas cl\u00EDnicas</div>';}
+  var ins=f.insumos||[];
+  if(ins.length){
+    o+='<div class="at-sc" style="margin-top:8px">\U0001F4E6 Insumos ('+ins.length+')</div>';
+    ins.forEach(function(m){o+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre)+'</span><span style="color:var(--blue);font-weight:800">\u00D7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E(m.tratamiento||'')+'</span></div>';});
+  }
+  o+='</div>';
+  detBox.innerHTML=o;
+}
+
+function loadFicha(f){closeDw();var c=AT.sel;if(!c)return;sbR('aos_detalle_atencion',{p_numero:c.numero_limpio,p_fecha:f}).then(function(r){AT.det=r;mTab(AT.tab,document.querySelector('.at-tab.a'));});}
 
 /* ===== MOD-20: HOME ALERTS ===== */
 function rHomeAl(){var pen=AT.all.filter(function(x){return x.estado!=='COMPLETADA'});var el=document.getElementById('at-home-al');if(!pen.length){el.innerHTML='';return;}
@@ -1584,4 +1679,44 @@ function ptGuardar(){
     loadDet();
   });
 }
+
+/* ===== MOD-28: MODAL DETALLE DESCUENTO (editar/eliminar) ===== */
+function dsOpenDetail(movId,nombre,cantidad,trat){
+  var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(7,29,74,.4);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.remove()" id="modal-ds-det">';
+  o+='<div style="background:#fff;border-radius:16px;max-width:420px;width:95%;box-shadow:0 12px 48px rgba(7,29,74,.2)" onclick="event.stopPropagation()">';
+  o+='<div style="padding:14px 18px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:16px 16px 0 0;color:#fff"><b style="font-size:14px">\U0001F4E6 Detalle de descuento</b></div>';
+  o+='<div style="padding:16px 18px">';
+  o+='<div style="font-size:12px;font-weight:700;color:var(--deep);margin-bottom:4px">'+E(nombre)+'</div>';
+  o+='<div style="font-size:9px;color:var(--mt);margin-bottom:12px">Tratamiento: '+E(trat)+'</div>';
+  o+='<div class="fg"><label class="fl">Cantidad actual</label><input type="number" id="ds-det-qty" class="fi" value="'+cantidad+'" min="0" style="font-size:14px;font-weight:800;text-align:center"></div>';
+  o+='<div style="display:flex;gap:8px;margin-top:12px">';
+  o+='<button class="btn btn-p" style="flex:1" onclick="dsEditMov(\''+movId+'\',document.getElementById(\'ds-det-qty\').value)">\U0001F4BE Guardar</button>';
+  o+='<button class="btn" style="flex:1;background:#FEE2E2;color:var(--rd);border:1px solid #FCA5A5" onclick="dsDeleteMov(\''+movId+'\')">\U0001F5D1 Eliminar</button>';
+  o+='</div></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',o);
+}
+
+function dsEditMov(movId,newQty){
+  var usr=AOS.ctx?AOS.ctx.nombre:'';
+  sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'editar',cantidad_nueva:parseFloat(newQty)||1,usuario:usr}}).then(function(r){
+    if(r&&r.ok){
+      document.getElementById('modal-ds-det').remove();
+      if(window.AOS_showToast)AOS_showToast('\u2705 Cantidad actualizada',r.cantidad_anterior+'\u2192'+r.cantidad_nueva,'');
+      rDescuentos(document.getElementById('at-body'));
+    }else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
+  });
+}
+
+function dsDeleteMov(movId){
+  if(!confirm('\u00BFEliminar este descuento? El stock se devolver\u00E1 al inventario.'))return;
+  var usr=AOS.ctx?AOS.ctx.nombre:'';
+  sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'eliminar',usuario:usr,motivo:'Correcci\u00F3n manual'}}).then(function(r){
+    if(r&&r.ok){
+      document.getElementById('modal-ds-det').remove();
+      if(window.AOS_showToast)AOS_showToast('\u2705 Descuento eliminado','Stock devuelto: '+r.devueltos+' unidades','');
+      rDescuentos(document.getElementById('at-body'));
+    }else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
+  });
+}
+
 </script>
