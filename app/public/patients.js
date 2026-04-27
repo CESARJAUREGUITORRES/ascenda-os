@@ -134,7 +134,7 @@ function loadCotizaciones(){
     b.innerHTML=html;
   });
 }
-function cotToggle(hdr){hdr.parentElement.classList.toggle('collapsed');}
+function cotToggle(hdr){hdr.parentElement.classList.toggle('expanded');}
 
 // ===== ELIMINAR COTIZACIÓN =====
 function cotEliminar(cotId, num, numPagos) {
