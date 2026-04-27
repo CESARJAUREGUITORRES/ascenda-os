@@ -215,6 +215,14 @@ function showDetalle(c){
     });
   } else {el('det-historial').innerHTML='<div class="ld">Sin n\u00famero</div>';}
   el('ag-m-det').classList.add('open');
+  /* Si ya está ASISTIÓ, mostrar selector de asistente */
+  var estActual=(c.estado_cita||'').toUpperCase();
+  if(estActual==='ASISTIO'||estActual==='EFECTIVA'){
+    var fakeBtn={getAttribute:function(){return estActual;}};
+    agSelEstado(fakeBtn);
+  } else {
+    var zone=el('det-asistente-zone');if(zone)zone.style.display='none';
+  }
 }
 function agCloseDet(){el('ag-m-det').classList.remove('open');}
 
