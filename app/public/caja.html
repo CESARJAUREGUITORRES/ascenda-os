@@ -2217,8 +2217,10 @@ function grabarCotizacion() {
       p_monto_total: totalNuevo, p_moneda: 'PEN',
       p_tipo_comprobante: (itemsNuevos[0] && itemsNuevos[0].comprobante) || 'BOLETA VIRTUAL',
       p_nro_doc: '', p_estado_pago: itemsNuevos.length === VT.items.length ? 'PAGO COMPLETO' : 'ADELANTO',
-      p_nota: nota, p_tipo: itemsNuevos[0] ? itemsNuevos[0].tipo : 'SERVICIO', p_fecha: fechaLima()
+      p_nota: nota, p_tipo: itemsNuevos[0] ? itemsNuevos[0].tipo : 'SERVICIO', p_fecha: fechaLima(),
+      p_razon_social_id: (itemsNuevos[0] && itemsNuevos[0].razonSocialId) ? itemsNuevos[0].razonSocialId : null
     }, function(d) {
+      console.log('[CAJA] grabar resultado:', d);
       if (d && d.ok) {
         resultados.push('Venta: ' + (d.lineas||1) + ' items');
         // Actualizar plan de trabajo
@@ -2229,7 +2231,7 @@ function grabarCotizacion() {
         });
       }
       finalizarGrabado();
-    }, function(){ finalizarGrabado(); });
+    }, function(e){ console.error('[CAJA] Error grabando:', e); toast('Error al grabar venta','err'); loading(false); });
   }
 
   function finalizarGrabado() {
@@ -2269,10 +2271,12 @@ function grabarCotizacion() {
         p_nota: nota, p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
         p_fecha: fechaLima()
       }, function(d) {
+        console.log('[CAJA] Abono resultado:', d);
         if (d && d.ok) resultados.push('Abono #' + (d.numero||'') + ': S/' + info.monto + ' (saldo S/' + parseFloat(d.saldo||0).toFixed(0) + ')');
+        else if (d) { console.error('[CAJA] Abono error:', d); toast('Error abono: ' + (d.error||''), 'err'); }
         processed++;
         if (processed >= cotKeys.length) procesarNuevos();
-      }, function() { processed++; if (processed >= cotKeys.length) procesarNuevos(); });
+      }, function(e) { console.error('[CAJA] Abono fail:', e); processed++; if (processed >= cotKeys.length) procesarNuevos(); });
     });
   } else {
     procesarNuevos();
