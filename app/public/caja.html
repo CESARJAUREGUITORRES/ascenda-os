@@ -2906,7 +2906,7 @@ function rxAgregarCaja(idx) {
     metodoPago: '', metodoPago2: '', monto1: it.precio * qty, monto2: 0,
     comprobante: 'BOLETA VIRTUAL', estadoPago: 'PAGO COMPLETO', asesorComision: '', atendio: ''
   });
-  _renderVentaItems();
+  renderItemsTbl();
   toast('💊 ' + it.nombre + ' x' + qty + ' agregado', 'ok');
   var modal = document.getElementById('modal-recetas');
   if (modal) modal.remove();
