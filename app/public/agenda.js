@@ -416,122 +416,85 @@ function agSelEstado(btn){
 
 function agGuardarEstado(){
   if(!AG.sel)return;
+  if(AG._guardando){return;}AG._guardando=true;
   var est='';el('det-estados').querySelectorAll('.est-btn.act').forEach(function(b){est=b.getAttribute('data-val');});
   var nota=el('det-nota').value.trim();
   var asistente=(el('det-asistente')||{}).value||'';
+  var c=AG.sel;
+  var numP=c.numero_limpio||c.numero||'';
+  var fechaC=c.fecha_cita;
+
+  /* Validar profesional ANTES de guardar si es ASISTIO */
+  if(est==='ASISTIO'||est==='EFECTIVA'){
+    var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
+    var profNombre='',profTipo='',asistNombre='';
+    if(esDoctora){
+      profNombre=c.doctora||'';
+      if(!profNombre||profNombre==='Sin asignar')profNombre='';
+      profTipo='DOCTORA';asistNombre=asistente||'';
+    }else{
+      profNombre=asistente||'';
+      if(profNombre==='--'||profNombre==='No aplica')profNombre='';
+      profTipo='ENFERMERIA';asistNombre='';
+    }
+    if(!profNombre&&asistNombre){profNombre=asistNombre;profTipo='ENFERMERIA';}
+    if(!profNombre){AG._guardando=false;if(window.AOS_showToast)AOS_showToast('⚠️ Selecciona quién atenderá','Elige un profesional del selector','toast-alerta');return;}
+  }
+
   var upd={estado_cita:est,ts_actualizado:new Date().toISOString()};
   if(nota!==(AG.sel.obs||''))upd.obs=nota;
   _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){AG._guardando=false;throw new Error('HTTP '+r.status);}
     if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');
-    
-    /* ===== CREAR/ACTUALIZAR ATENCIÓN al marcar ASISTIÓ o EFECTIVA ===== */
+
+    /* ===== ASISTIÓ / EFECTIVA: eliminar vieja + crear nueva ===== */
     if(est==='ASISTIO'||est==='EFECTIVA'){
-      var c=AG.sel;
-      var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
-      var profNombre, profTipo, asistNombre;
-      
-      if(esDoctora){
-        profNombre = c.doctora || '';
-        if(!profNombre || profNombre==='Sin asignar')profNombre='';
-        profTipo = 'DOCTORA';
-        asistNombre = asistente || '';
-      } else {
-        profNombre = asistente || c.asesor || '';
-        if(profNombre==='--'||profNombre==='No aplica')profNombre='';
-        profTipo = 'ENFERMERIA';
-        asistNombre = '';
-      }
-      
-      /* Si no hay profesional principal pero sí asistente, usar asistente */
-      if(!profNombre && asistNombre){
-        profNombre = asistNombre;
-        profTipo = 'ENFERMERIA';
-      }
-      
-      if(!profNombre){
-        if(window.AOS_showToast)AOS_showToast('⚠️ Selecciona quién atenderá','Elige un profesional del selector','toast-alerta');
-        return;
-      }
-      
-      var atencion={
-        numero_limpio:c.numero_limpio||c.numero||'',
-        fecha:c.fecha_cita,
-        sede:c.sede||'SAN ISIDRO',
-        profesional_id:'',
-        profesional_nombre:profNombre,
-        profesional_tipo:profTipo,
-        asistente_id:'',
-        asistente_nombre:asistNombre,
-        estado:'PENDIENTE',
-        paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
-        paciente_telefono:c.numero_limpio||c.numero||'',
-        cita_id:c.id,
-        tratamiento_principal:c.tratamiento||'',
-        tipo_atencion:'CONSULTA',
-        observaciones:nota
-      };
-      
-      /* Buscar por numero_limpio + fecha (SIN filtrar por profesional) */
-      fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+atencion.numero_limpio+'&fecha=eq.'+atencion.fecha+'&select=id,profesional_nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
-      .then(function(r){return r.json()}).then(function(existing){
+      /* Paso 1: Eliminar atenciones viejas SIN notas */
+      fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC+'&select=id',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+      .then(function(r2){return r2.json()}).then(function(existing){
+        var deletePromises=[];
         if(existing&&existing.length>0){
-          /* Ya existe → ACTUALIZAR profesional y datos (no crear nueva) */
-          var existId=existing[0].id;
-          fetch(_SB+'/rest/v1/aos_atenciones?id=eq.'+existId,{
-            method:'PATCH',
-            headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},
-            body:JSON.stringify({
-              profesional_nombre:profNombre,
-              profesional_tipo:profTipo,
-              asistente_nombre:asistNombre,
-              estado:'PENDIENTE',
-              updated_at:new Date().toISOString()
-            })
-          }).then(function(r2){
-            if(r2.ok){
-              if(window.AOS_showToast)AOS_showToast('✅ Atención actualizada','Profesional: '+profNombre+(asistNombre?' · Asiste: '+asistNombre:''),'');
-            }
+          existing.forEach(function(ex){
+            deletePromises.push(fetch(_SB+'/rest/v1/aos_atenciones?id=eq.'+ex.id,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}));
           });
-          return;
         }
-        /* No existe → Crear nueva */
-        fetch(_SB+'/rest/v1/aos_atenciones',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(atencion)})
-        .then(function(r2){
-          if(r2.ok){
-            if(window.AOS_showToast)AOS_showToast('✅ Atención creada','Profesional: '+profNombre+(asistNombre?' · Asiste: '+asistNombre:''),'');
-          }else{
-            r2.text().then(function(t){console.error('[AGENDA] Error creando atención:',t);});
-          }
+        /* Paso 2: Después de eliminar, crear nueva limpia */
+        Promise.all(deletePromises).then(function(){
+          var atencion={
+            numero_limpio:numP,fecha:fechaC,sede:c.sede||'SAN ISIDRO',
+            profesional_nombre:profNombre,profesional_tipo:profTipo,
+            asistente_nombre:asistNombre,estado:'PENDIENTE',
+            paciente_nombre:((c.nombre||'')+' '+(c.apellido||'')).trim(),
+            paciente_telefono:numP,cita_id:c.id,
+            tratamiento_principal:c.tratamiento||'',tipo_atencion:'CONSULTA',
+            observaciones:nota
+          };
+          fetch(_SB+'/rest/v1/aos_atenciones',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(atencion)})
+          .then(function(r3){
+            AG._guardando=false;
+            if(r3.ok){if(window.AOS_showToast)AOS_showToast('✅ Atención creada','Profesional: '+profNombre+(asistNombre?' · Asiste: '+asistNombre:''),'');}
+            else{r3.text().then(function(t){console.error('[AGENDA] Error:',t);if(window.AOS_showToast)AOS_showToast('Error creando atención','','toast-alerta');});}
+          });
         });
       });
     }
-    
-    /* ===== ELIMINAR ATENCIÓN al volver a PENDIENTE o CONFIRMADA ===== */
-    if(est==='PENDIENTE'||est==='CITA CONFIRMADA'){
-      var cSel=AG.sel;
-      var numLimpio=cSel.numero_limpio||cSel.numero||'';
-      if(numLimpio){
-        fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numLimpio+'&fecha=eq.'+cSel.fecha_cita+'&select=id',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
-        .then(function(r){return r.json()}).then(function(existing){
-          if(existing&&existing.length>0){
-            /* Verificar que no tenga notas clínicas (si ya se registró algo, no eliminar) */
-            fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+numLimpio+'&fecha=eq.'+cSel.fecha_cita+'&select=id&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
-            .then(function(r2){return r2.json()}).then(function(notas){
-              if(notas&&notas.length>0){
-                if(window.AOS_showToast)AOS_showToast('⚠️ Atención conservada','Ya tiene notas clínicas registradas','toast-alerta');
-              }else{
-                /* Sin notas → eliminar atención */
-                existing.forEach(function(ex){
-                  fetch(_SB+'/rest/v1/aos_atenciones?id=eq.'+ex.id,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
-                });
-                if(window.AOS_showToast)AOS_showToast('🗑 Atención eliminada','Se eliminó la atención pendiente','');
-              }
-            });
+
+    /* ===== PENDIENTE / CONFIRMADA: eliminar atención ===== */
+    else if(est==='PENDIENTE'||est==='CITA CONFIRMADA'){
+      if(numP){
+        fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC+'&select=id&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+        .then(function(r2){return r2.json()}).then(function(notas){
+          if(notas&&notas.length>0){
+            AG._guardando=false;
+            if(window.AOS_showToast)AOS_showToast('⚠️ Atención conservada','Ya tiene notas clínicas','toast-alerta');
+          }else{
+            fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+            .then(function(){AG._guardando=false;if(window.AOS_showToast)AOS_showToast('🗑 Atención eliminada','','');});
           }
         });
-      }
+      }else{AG._guardando=false;}
     }
+    else{AG._guardando=false;}
     
     // Si marcó NO ASISTIÓ → enviar email reagendamiento
     if(est==='NO ASISTIO'){
