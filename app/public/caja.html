@@ -2254,8 +2254,16 @@ function grabarCotizacion() {
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
     toast('✅ ' + msg, 'ok');
-    // Delay para que el overlay se cierre antes de recargar
-    setTimeout(function() { cargarCaja(); }, 500);
+    // Recargar caja completa para que aparezca la venta
+    setTimeout(function() { 
+      cargarCaja();
+      // Si no refresca, forzar navegación
+      setTimeout(function() {
+        if (window.parent && window.parent.navigateTo) {
+          window.parent.navigateTo('admin-caja');
+        }
+      }, 800);
+    }, 300);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }
 
