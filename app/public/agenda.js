@@ -356,7 +356,11 @@ function agSelEstado(btn){
   var zone=el('det-asistente-zone');
   if(est==='ASISTIO'||est==='EFECTIVA'){
     zone.style.display='block';
-    /* Cargar enfermeras */
+    var c=AG.sel||{};
+    var esDoctora=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0;
+    var labelTxt=esDoctora?'Enfermera asistente':'Quién realizará la atención';
+    zone.querySelector('.ml').textContent=labelTxt;
+    /* Cargar personal */
     var sel=el('det-asistente');
     if(!sel.options.length||sel.options.length<=1){
       sel.innerHTML='<option value="">— Sin asistente —</option>';
