@@ -231,6 +231,7 @@ function rProf(){var p=AT.prof;if(!p)return;var cmp=p.cmp&&p.cmp.length>2?'<div 
 
 /* ===== MOD-05: LOAD DATA ===== */
 function loadAt(){var hoy=new Date().toISOString().split('T')[0],f=hoy,t=hoy;
+if(AT.period==='hoy'){/* Hoy = último mes para incluir pendientes anteriores */f=new Date(Date.now()-30*86400000).toISOString().split('T')[0];}
 if(AT.period==='semana'){var d=new Date();d.setDate(d.getDate()-d.getDay());f=d.toISOString().split('T')[0];d.setDate(d.getDate()+6);t=d.toISOString().split('T')[0];}
 if(AT.period==='mes'){f=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-01';var ld=new Date(AT.calY,AT.calM+1,0);t=AT.calY+'-'+String(AT.calM+1).padStart(2,'0')+'-'+ld.getDate();}
 if(AT.period==='anio'){f=AT.calY+'-01-01';t=AT.calY+'-12-31';}
