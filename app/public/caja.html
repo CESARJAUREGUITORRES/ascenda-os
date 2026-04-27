@@ -2175,8 +2175,35 @@ function grabarCotizacion() {
 
   var pac = VT.pac || {};
   var nota = (document.getElementById('nota-venta') && document.getElementById('nota-venta').value) || '';
-  var totalMonto = VT.items.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
+  var totalMonto = itemsConPago.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
 
+  // Si es abono a cotización existente, usar RPC de abono
+  var esAbono = VT.cotizacion_existente && itemsConPago.some(function(it){ return it.es_abono; });
+  if (esAbono) {
+    loading(true);
+    rpc('aos_abonar_cotizacion', {
+      p_cotizacion_id: VT.cotizacion_existente,
+      p_monto: totalMonto,
+      p_metodo_pago: (itemsConPago[0] && itemsConPago[0].metodoPago) || '',
+      p_tipo_comprobante: (itemsConPago[0] && itemsConPago[0].comprobante) || 'BOLETA VIRTUAL',
+      p_nro_doc: '',
+      p_sede: CAJA.sede,
+      p_usuario: CAJA.usuario || 'CAJA',
+      p_asesor: (itemsConPago[0] && itemsConPago[0].asesorComision) || CAJA.usuario || '',
+      p_nota: nota,
+      p_sesion_id: CAJA.sesion ? CAJA.sesion.id : ''
+    }, function(d) {
+      loading(false);
+      if (!d || !d.ok) { toast(d && d.error ? d.error : 'Error al abonar','err'); return; }
+      cerrarOv('ov-venta');
+      VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
+      toast('✅ Abono registrado — #' + (d.numero||'') + ' Saldo: S/' + parseFloat(d.saldo||0).toFixed(0), 'ok');
+      cargarCaja();
+    }, function(){ loading(false); toast('Error de conexión','err'); });
+    return;
+  }
+
+  // Flujo normal: crear nueva cotización
   loading(true);
   rpc('aos_grabar_venta_caja', {
     p_sede: CAJA.sede,
@@ -2239,7 +2266,7 @@ function grabarCotizacion() {
         }, function(){}, function(){});
       }
     });
-    VT.items = []; VT.pac = null;
+    VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
     toast('✅ Cotización grabada — ' + (d.lineas||1) + ' líneas de venta', 'ok');
     cerrarOv('ov-venta');
     // Recargar datos reales del servidor
@@ -2912,43 +2939,37 @@ function mostrarCotizaciones(cots, numero) {
 }
 
 function cargarCotEnVenta(cotId) {
-  sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
-    if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
-    items.forEach(function(it) {
-      var precio = parseFloat(it.precio_unitario) || 0;
-      var cant = it.cantidad || 1;
-      var pagado = parseFloat(it.monto_pagado || 0);
-      var pendiente = (precio * cant) - pagado;
-      if (pendiente <= 0) return; // ya pagado completo
-      VT.items.push({
-        id: Date.now() + '' + Math.random().toString(36).substr(2,4),
-        nombre: (it.nombre || it.descripcion || '') + (pagado > 0 ? ' (saldo)' : ''),
-        tipo: it.tipo || 'SERVICIO',
-        categoria: '',
-        cantidad: pagado > 0 ? 1 : cant,
-        divisa: it.moneda || 'PEN',
-        precio: pagado > 0 ? pendiente : precio,
-        descTipo: 'PCT',
-        descVal: 0,
-        subtotal: pagado > 0 ? pendiente : precio * cant,
-        pagado: false,
-        metodoPago: '',
-        metodoPago2: '',
-        monto1: 0,
-        monto2: 0,
-        comprobante: 'BOLETA VIRTUAL',
-        estadoPago: pagado > 0 ? 'SALDO' : 'PAGO COMPLETO',
-        asesorComision: '',
-        atendio: '',
-        cotizacion_id: cotId,
-        cotizacion_item_id: it.id
+  // Guardar referencia a la cotización existente para abonar
+  VT.cotizacion_existente = cotId;
+  sbGet('aos_cotizaciones', 'id=eq.' + cotId + '&limit=1', function(cots) {
+    var cot = (cots && cots[0]) || {};
+    var saldoCot = parseFloat(cot.saldo_pendiente || 0);
+    sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
+      if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
+      items.forEach(function(it) {
+        var precio = parseFloat(it.precio_unitario) || 0;
+        var cant = it.cantidad || 1;
+        var pagado = parseFloat(it.monto_pagado || 0);
+        var pendiente = (precio * cant) - pagado;
+        if (pendiente <= 0) return;
+        VT.items.push({
+          id: Date.now() + '' + Math.random().toString(36).substr(2,4),
+          nombre: (it.nombre || it.descripcion || '') + ' (saldo #' + (cot.numero_cotizacion||'') + ')',
+          tipo: it.tipo || 'SERVICIO', categoria: '',
+          cantidad: 1, divisa: it.moneda || 'PEN',
+          precio: pendiente, descTipo: 'PCT', descVal: 0, subtotal: pendiente,
+          pagado: false, metodoPago: '', metodoPago2: '', monto1: 0, monto2: 0,
+          comprobante: 'BOLETA VIRTUAL', estadoPago: 'SALDO',
+          asesorComision: '', atendio: '',
+          cotizacion_id: cotId, cotizacion_item_id: it.id, es_abono: true
+        });
       });
+      renderItemsTbl();
+      actualizarResumen();
+      var modal = document.getElementById('modal-cots');
+      if (modal) modal.remove();
+      toast('Saldo de cotizacion #' + (cot.numero_cotizacion||'') + ' cargado — S/' + saldoCot.toFixed(0), 'ok');
     });
-    renderItemsTbl();
-    actualizarResumen();
-    var modal = document.getElementById('modal-cots');
-    if (modal) modal.remove();
-    toast('Items de cotizacion cargados', 'ok');
   });
 }
 // ===== MOD-11-END: PLANES Y COTIZACIONES EN CAJA =====
