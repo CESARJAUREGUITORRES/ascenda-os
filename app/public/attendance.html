@@ -1987,42 +1987,69 @@ function ptToggleVar(ii,vi,checked){
 
 function ptGuardar(){
   var c=AT.sel;if(!c||!PT.items.length){if(window.AOS_showToast)AOS_showToast('Agrega items','','toast-alerta');return;}
-  var planId='plan-'+Date.now();var obs=(document.getElementById('pt-obs')||{}).value||'';
+  if(PT._guardando){if(window.AOS_showToast)AOS_showToast('Ya se está guardando...','','toast-alerta');return;}
+  PT._guardando=true;
+  var obs=(document.getElementById('pt-obs')||{}).value||'';
   var resumen='[PLAN] '+PT.items.map(function(it){return it.nombre+(it.num_sesiones>1?' x'+it.num_sesiones:'')}).join(' | ');
   var serviciosJson=PT.items.filter(function(it){return it.tipo==='SERVICIO'}).map(function(it){return{nombre:it.nombre,sesiones:it.num_sesiones,frecuencia:it.frecuencia,precio:it.precio_unitario}});
   var productosJson=PT.items.filter(function(it){return it.tipo==='PRODUCTO'}).map(function(it){return{nombre:it.nombre,dosis:it.dosis,momento:it.momento,duracion_dias:it.duracion_dias,precio:it.precio_unitario}});
-  
-  /* 1. Insertar plan padre en aos_planes_trabajo */
-  var atencionId=c.id||'';
-  var planPadre={id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,
-    autor:AOS.ctx?AOS.ctx.nombre:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',
-    autor_tipo:AOS.ctx?AOS.ctx.area:'',descripcion:resumen.replace('[PLAN] ',''),
-    servicios_programados:JSON.stringify(serviciosJson),
-    productos_recomendados:JSON.stringify(productosJson),
-    estado:'ACTIVO'};
-  if(atencionId)planPadre.atencion_id=atencionId;
-  
-  var promises=[sbW('aos_planes_trabajo',planPadre)];
-  
-  /* 2. Insertar items individuales */
-  PT.items.forEach(function(item,i){
-    var selVars=[];if(item.variantes_sel)item.variantes_sel.forEach(function(vi){if(item.variantes[vi])selVars.push({nombre:item.variantes[vi].nombre,precio:item.variantes[vi].precio_oferta||item.variantes[vi].precio_base});});
-    promises.push(sbW('aos_plan_trabajo_items',{plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
-      nombre_servicio:item.tipo==='SERVICIO'?item.nombre:null,num_sesiones:item.num_sesiones||1,frecuencia:item.frecuencia||'',
-      precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
-      nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
-      variantes_precio:selVars.length?JSON.stringify(selVars):null,variante_seleccionada:selVars.length?selVars[0].nombre:null,
-      notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE'}));
-  });
-  
-  /* 3. Nota clínica resumen */
-  promises.push(sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'PLAN_TRABAJO',fecha:c.fecha,contenido:resumen+(obs?'\n'+obs:''),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}));
-  
-  Promise.all(promises).then(function(){
-    closeDw();_openTipo=null;PT.items=[];
-    if(window.AOS_showToast)AOS_showToast('✅ Plan de trabajo guardado','Se puede convertir en cotización desde Caja','');
-    loadDet();
-  });
+
+  /* Buscar si ya existe un plan para este paciente+fecha */
+  sbF('/rest/v1/aos_planes_trabajo?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&estado=eq.ACTIVO&select=id&limit=1').then(function(existing){
+    var planId=(existing&&existing.length)?existing[0].id:'plan-'+Date.now();
+    var isUpdate=(existing&&existing.length>0);
+
+    var deletePromises=[];
+    if(isUpdate){
+      /* Borrar items viejos y nota vieja antes de recrear */
+      deletePromises.push(fetch(_SB+'/rest/v1/aos_plan_trabajo_items?plan_id=eq.'+planId,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}));
+      deletePromises.push(fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&tipo=eq.PLAN_TRABAJO',{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}));
+    }
+
+    Promise.all(deletePromises).then(function(){
+      var promises=[];
+      var atencionId=c.id||'';
+      if(isUpdate){
+        /* Actualizar plan existente */
+        promises.push(sbPatch('aos_planes_trabajo','id=eq.'+planId,{
+          descripcion:resumen.replace('[PLAN] ',''),
+          servicios_programados:JSON.stringify(serviciosJson),
+          productos_recomendados:JSON.stringify(productosJson),
+          autor:AOS.ctx?AOS.ctx.nombre:'',updated_at:new Date().toISOString()
+        }));
+      }else{
+        /* Crear plan nuevo */
+        var planPadre={id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,
+          autor:AOS.ctx?AOS.ctx.nombre:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',
+          autor_tipo:AOS.ctx?AOS.ctx.area:'',descripcion:resumen.replace('[PLAN] ',''),
+          servicios_programados:JSON.stringify(serviciosJson),
+          productos_recomendados:JSON.stringify(productosJson),
+          estado:'ACTIVO'};
+        if(atencionId)planPadre.atencion_id=atencionId;
+        promises.push(sbW('aos_planes_trabajo',planPadre));
+      }
+
+      /* Insertar items nuevos */
+      PT.items.forEach(function(item,i){
+        var selVars=[];if(item.variantes_sel)item.variantes_sel.forEach(function(vi){if(item.variantes[vi])selVars.push({nombre:item.variantes[vi].nombre,precio:item.variantes[vi].precio_oferta||item.variantes[vi].precio_base});});
+        promises.push(sbW('aos_plan_trabajo_items',{plan_id:planId,numero_limpio:c.numero_limpio,fecha:c.fecha,tipo_item:item.tipo,orden:i,
+          nombre_servicio:item.tipo==='SERVICIO'?item.nombre:null,num_sesiones:item.num_sesiones||1,frecuencia:item.frecuencia||'',
+          precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
+          nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
+          variantes_precio:selVars.length?JSON.stringify(selVars):null,variante_seleccionada:selVars.length?selVars[0].nombre:null,
+          notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE'}));
+      });
+
+      /* Nota clínica resumen */
+      promises.push(sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'PLAN_TRABAJO',fecha:c.fecha,contenido:resumen+(obs?'\n'+obs:''),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}));
+
+      Promise.all(promises).then(function(){
+        PT._guardando=false;closeDw();_openTipo=null;PT.items=[];
+        if(window.AOS_showToast)AOS_showToast('✅ Plan '+(isUpdate?'actualizado':'guardado'),'Se puede convertir en cotización desde Caja','');
+        loadDet();
+      });
+    });
+  }).catch(function(e){PT._guardando=false;console.error('[PT]',e);});
 }
 
 /* ===== MOD-28: MODAL EDITAR DESCUENTOS POR CARD ===== */
