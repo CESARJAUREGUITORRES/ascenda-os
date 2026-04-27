@@ -830,7 +830,7 @@ function buildTicker() {
       '<span class="ticker-label">' + escH(d.label) + '</span>' +
       '</div>';
   }).join('');
-  document.getElementById('ticker-inner').innerHTML = html;
+  var el=document.getElementById('ticker-inner');if(el)el.innerHTML = html;
 }
 
 function cargarTC() {
@@ -919,7 +919,7 @@ function renderCaja() {
       }
     }
     else{body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:12px;text-align:center;"><div style="font-size:44px;">🔒</div><h3>Caja cerrada</h3><p style="font-size:12px;color:#6B7BA8;">La caja no está abierta.</p><button onclick="abrirModalApertura()" style="margin-top:12px;padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#059669,#00C9A7);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;">🔓 Abrir caja ahora</button></div>';}
-    document.getElementById('btn-abrir').style.display = CAJA.esAdmin ? 'flex' : 'none';
+    var bA=document.getElementById('btn-abrir');if(bA)bA.style.display = CAJA.esAdmin ? 'flex' : 'none';
     var cBtn=document.getElementById('btn-cerrar-caja-btn');if(cBtn)cBtn.style.display = 'none';
     return;
   }
