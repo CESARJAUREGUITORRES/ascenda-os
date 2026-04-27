@@ -1222,11 +1222,48 @@ sbR('aos_generar_link_encuesta',{p_data:{
   generado_por:AOS.ctx?AOS.ctx.nombre:'',canal:'MANUAL',
   profesionales:profsList
 }}).then(function(r){
-  if(r&&r.ok){var url=window.location.origin+'/encuesta?t='+r.token;var el=document.getElementById('enc-result');
-  if(el)el.innerHTML='<div style="padding:8px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:9px"><b>✅ Link generado</b> <span style="font-size:7px;color:var(--mt)">Expira en 48h</span><br><div style="font-size:7px;color:var(--mt);margin-top:4px">Profesionales: '+profsList.map(function(p){return E(p.nombre)+' ('+E(p.tratamiento)+')';}).join(', ')+'</div><input value="'+url+'" style="width:100%;margin-top:6px;padding:6px;font-size:9px;border:1px solid var(--bd);border-radius:6px" onclick="this.select()" readonly><div style="margin-top:6px;display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋 Copiar</button><button class="btn btn-w btn-sm" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! Califica tu atención en Zi Vital: '+url)+'\',\'_blank\')">💬 WA</button></div></div>';
-  if(window.AOS_showToast)AOS_showToast('🔗 Link generado','Para '+profsList.length+' profesional(es)','');loadKE();}
+  if(r&&r.ok){var url=window.location.origin+'/encuesta?t='+r.token;
+  var qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(url);
+  var el=document.getElementById('enc-result');
+  if(el)el.innerHTML='<div style="padding:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><b style="font-size:10px;color:var(--gn)">✅ Link generado</b><span style="font-size:7px;color:var(--mt)">Expira en 48h · Uso único</span></div>'
+    +'<div style="font-size:7px;color:var(--mt);margin-bottom:6px">'+profsList.map(function(p){return E(p.nombre)+' ('+E(p.tratamiento)+')';}).join(' · ')+'</div>'
+    /* QR + Link */
+    +'<div style="display:flex;gap:10px;align-items:flex-start">'
+    +'<div style="flex-shrink:0;text-align:center"><img src="'+qrUrl+'" style="width:100px;height:100px;border-radius:8px;border:2px solid var(--bd)" alt="QR"><div style="font-size:6px;color:var(--mt);margin-top:2px">Mostrar al paciente</div></div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<input value="'+url+'" style="width:100%;padding:5px 8px;font-size:8px;border:1px solid var(--bd);border-radius:6px;margin-bottom:6px" onclick="this.select()" readonly>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
+    +'<button class="btn btn-s btn-sm" style="font-size:7px" onclick="navigator.clipboard.writeText(\''+url+'\');if(window.AOS_showToast)AOS_showToast(\'📋 Copiado\',\'\',\'\')">📋 Copiar</button>'
+    +'<button class="btn btn-w btn-sm" style="font-size:7px" onclick="window.open(\'https://api.whatsapp.com/send?phone=51'+c.numero_limpio.replace(/\D/g,'')+'&text='+encodeURIComponent('Hola! 😊 Nos encantaría saber tu opinión sobre tu atención en Zi Vital. Toma solo 1 minuto: '+url)+'\',\'_blank\')">💬 WA</button>'
+    +'<button class="btn btn-s btn-sm" style="font-size:7px" onclick="encEmail(\''+c.numero_limpio+'\',\''+E(cli).replace(/'/g,"\\\\'")+'\')">📧 Email</button>'
+    +'</div></div></div></div>';
+  if(window.AOS_showToast)AOS_showToast('🔗 Link + QR generados','Para '+profsList.length+' profesional(es)','');loadKE();}
   else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
 });}
+
+/* Enviar email de invitación (SIN link — solo invita a que le muestren el QR o espere WA) */
+function encEmail(num,nombre){
+  fetch(window.location.origin+'/api/send-email',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      to:'',numero:num,
+      subject:'¿Cómo fue tu experiencia en Zi Vital? 💜',
+      html:'<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px">'
+        +'<div style="text-align:center;padding:20px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:16px 16px 0 0">'
+        +'<h1 style="color:#fff;margin:0;font-size:22px">ZI <span style="color:#00C9A7">VITAL</span></h1>'
+        +'<p style="color:rgba(255,255,255,.7);margin:4px 0 0;font-size:12px">Clínica de Estética Avanzada</p></div>'
+        +'<div style="padding:24px;background:#fff;border:1px solid #E8ECF4;border-radius:0 0 16px 16px">'
+        +'<p style="font-size:16px;color:#071D4A"><b>¡Hola'+(nombre?', '+nombre:'')+'!</b></p>'
+        +'<p style="font-size:14px;color:#6B7BA8;line-height:1.6">Gracias por confiar en nosotros. Tu opinión es muy importante para seguir mejorando nuestro servicio.</p>'
+        +'<p style="font-size:14px;color:#6B7BA8;line-height:1.6">En tu próxima visita o por WhatsApp te compartiremos una breve encuesta de satisfacción. ¡Solo toma 1 minuto! 😊</p>'
+        +'<p style="font-size:12px;color:#94A3B8;margin-top:20px;text-align:center">Con cariño, el equipo de Zi Vital 💜</p>'
+        +'</div></div>'
+    })
+  }).then(function(r){
+    if(window.AOS_showToast)AOS_showToast('📧 Email enviado','Invitación sin link — seguro','');
+  });
+}
 
 /* ===== MOD-22: ASIGNAR ASISTENTE ===== */
 function selAsistente(){

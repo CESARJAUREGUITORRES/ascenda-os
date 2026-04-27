@@ -250,8 +250,9 @@ function openGoogle(){
       body:JSON.stringify({google_review_clicked:true})
     });
   }
-  /* TODO: Reemplazar con link real de Google Business de Zi Vital */
-  window.open('https://g.page/r/YOUR_GOOGLE_ID/review','_blank');
+  var sede=(ENC.data&&ENC.data.sede||'').toUpperCase();
+  var gLink=sede.indexOf('SAN ISIDRO')>-1?'https://g.page/r/CTWU3mIlG4kWEAE/review':'https://g.page/r/CbSKGAdObZ_WEAE/review';
+  window.open(gLink,'_blank');
 }
 </script>
 </body>
