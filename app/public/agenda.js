@@ -389,8 +389,9 @@ function agGuardarEstado(){
     if(est==='ASISTIO'||est==='EFECTIVA'){
       var c=AG.sel;
       var profNombre=c.doctora||c.asesor||'';
-      var profTipo=(c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0?'DOCTORA':'ENFERMERIA';
-      if(!profNombre&&profTipo==='DOCTORA')profNombre='DRA CAROLINA';
+      var profTipo=(profNombre.toUpperCase().indexOf('DRA')>=0)?'DOCTORA':'ENFERMERIA';
+      /* Si tipo_atencion de la cita dice DOCTORA, usar eso */
+      if((c.tipo_atencion||'').toUpperCase().indexOf('DOCTOR')>=0)profTipo='DOCTORA';
       
       var atencion={
         numero_limpio:c.numero_limpio||c.numero||'',
