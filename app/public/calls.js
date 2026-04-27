@@ -127,7 +127,14 @@ function loadLead(_retried){
   document.getElementById('cc-no-lead').style.display='none';
   document.getElementById('cc-lead-panel').style.display='none';
   var x=_ctx();
-  if(!x.a||!x.id){document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío:',JSON.stringify(x));return;}
+  if(!x.a||!x.id){
+    /* Retry after 500ms — AOS.ctx might not be ready yet */
+    if(!CC._retries)CC._retries=0;
+    CC._retries++;
+    if(CC._retries<=5){console.log('[CC] _ctx vacío, retry '+CC._retries+'/5...');setTimeout(loadLead,500);return;}
+    document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío después de 5 reintentos:',JSON.stringify(x));return;
+  }
+  CC._retries=0;
   _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
     if(!res||!res.ok||!res.lead){
       document.getElementById('cc-no-lead').style.display='block';

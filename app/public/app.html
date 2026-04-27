@@ -1110,11 +1110,16 @@ function renderNotifPanel(items) {
   });
 }
 
+if(document.getElementById('btn-notif')){
 document.getElementById('btn-notif').addEventListener('click', function(e) {
   e.stopPropagation(); document.getElementById('notif-panel').classList.toggle('open');
 });
-document.addEventListener('click', function() { document.getElementById('notif-panel').classList.remove('open'); });
+}
+document.addEventListener('click', function() { var np=document.getElementById('notif-panel');if(np)np.classList.remove('open'); });
+if(document.getElementById('notif-panel')){
 document.getElementById('notif-panel').addEventListener('click', function(e) { e.stopPropagation(); });
+}
+if(document.getElementById('np-clear')){
 document.getElementById('np-clear').addEventListener('click', function() {
   document.querySelectorAll('.np-item.unread').forEach(function(el) {
     _rpc('aos_mark_notif_read',{p_id:el.getAttribute('data-id')},function(){});
@@ -1122,6 +1127,7 @@ document.getElementById('np-clear').addEventListener('click', function() {
   });
   updateNotifBadges(0,0);
 });
+}
 
 /* ---------------------------------------------------
    AGENT FEED — alertas de agentes AI en CRM (solo admin)
