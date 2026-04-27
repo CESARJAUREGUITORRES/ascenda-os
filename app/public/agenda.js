@@ -562,26 +562,24 @@ function agShowConfirm(titulo,msg,btnText,btnCls,cb){
 function agEliminar(){
   if(!AG.sel)return;
   var cli=((AG.sel.nombre||'')+' '+(AG.sel.apellido||'')).trim();
+  var numP=AG.sel.numero_limpio||AG.sel.numero||'';
+  var fechaC=AG.sel.fecha_cita;
   agShowConfirm(
     'Eliminar cita',
-    'Se eliminar\u00e1 la cita de '+cli+' del '+(AG.sel.fecha_cita||'')+'. Esta acci\u00f3n no se puede deshacer.',
-    'S\u00ed, eliminar',
+    'Se eliminar\u00e1 la cita de '+cli+' del '+(fechaC||'')+'. También se eliminará la atención, notas clínicas y planes de trabajo asociados a esta fecha.',
+    'S\u00ed, eliminar todo',
     'red',
     function(){
-      var numP=AG.sel.numero_limpio||AG.sel.numero||'';
-      var fechaC=AG.sel.fecha_cita;
       _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
         if(!r.ok)throw new Error('HTTP '+r.status);
-        /* También eliminar la atención asociada (si no tiene notas clínicas) */
+        /* Limpiar todo lo asociado a este paciente+fecha */
         if(numP&&fechaC){
-          fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC+'&select=id&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
-          .then(function(r2){return r2.json()}).then(function(notas){
-            if(!notas||!notas.length){
-              fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
-            }
-          });
+          fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
+          fetch(_SB+'/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
+          fetch(_SB+'/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
+          fetch(_SB+'/rest/v1/aos_planes_trabajo?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
         }
-        if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');agCloseDet();agLoad();
+        if(window.AOS_showToast)AOS_showToast('Cita eliminada','Atención y notas también eliminadas','');agCloseDet();agLoad();
       }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
     }
   );
