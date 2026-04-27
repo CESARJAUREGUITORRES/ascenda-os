@@ -879,9 +879,9 @@ function dsLoadAllCardItems(){
       if(!filtered.length){el.innerHTML='<div style="font-size:8px;color:var(--am);padding:4px 0">Sin descuentos</div>';return;}
       var h='';
       filtered.forEach(function(m){
-        h+='<div class="ds-item" style="cursor:pointer" onclick="dsOpenDetail(\''+m.id+'\',\''+E(m.nombre_producto).replace(/'/g,"\\\\'")+'\','+m.cantidad+',\''+E(m.tratamiento||'').replace(/'/g,"\\\\'")+'\')" title="Click para editar/eliminar"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</span><span style="font-size:8px;color:var(--mt)">\u270E</span></div>';
+        h+='<div class="ds-item" style="cursor:pointer" data-old-onclick="dsOpenDetail(\''+m.id+'\',\''+E(m.nombre_producto).replace(/'/g,"\\\\'")+'\','+m.cantidad+',\''+E(m.tratamiento||'').replace(/'/g,"\\\\'")+'\')"><span style="flex:1;font-weight:600">'+E(m.nombre_producto)+'</span><span style="color:var(--blue);font-weight:800">\xD7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E((m.created_at||'').substring(11,16))+'</span></div>';
       });
-      h+='<div style="font-size:7px;color:var(--gn);margin-top:3px;font-weight:700">\u2705 '+filtered.length+' insumo(s)</div>';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:7px;color:var(--gn);font-weight:700">\u2705 '+filtered.length+' insumo(s)</span><button class="btn btn-s btn-sm" style="font-size:7px;padding:2px 6px" onclick="event.stopPropagation();dsOpenCardEdit(\''+E(tc.nombre).replace(/'/g,"\\\\'")+'\')">\u270E Editar</button></div>';
       el.innerHTML=h;
       var card=document.getElementById('ds-tc-'+i);
       if(card){card.classList.remove('pend','err');card.classList.add('done');}
@@ -1007,54 +1007,57 @@ function dsExec(){
   });
 }
 
-/* ===== MOD-16: MACRO PLAN v2 — Global + drawer expandible ===== */
+/* ===== MOD-16: PLAN v3 — 2 columnas 1/3 + 2/3 ===== */
 function rPlan(el){var c=AT.sel;if(!c){el.innerHTML='';return;}
 var profName=AT.prof?AT.prof.nombre_publico:'';
-el.innerHTML='<div class="at-sc">\U0001F4CB Planes de trabajo globales</div><div id="plan-list" style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando planes...</div><div id="plan-detail" style="margin-top:10px"></div><button class="btn btn-s" style="margin-top:10px" onclick="openNota(\'PLAN_TRABAJO\')">+ Nuevo plan</button>';
+el.innerHTML='<div class="at-sc">📋 Planes de trabajo del paciente</div><div class="ds-layout"><div id="plan-cards"><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando...</div></div><div id="plan-det"><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Selecciona un plan</div></div></div><button class="btn btn-s" style="margin-top:10px" onclick="openNota(&apos;PLAN_TRABAJO&apos;)">+ Nuevo plan</button>';
 sbR('aos_planes_paciente',{p_numero:c.numero_limpio}).then(function(planes){
-  var box=document.getElementById('plan-list');if(!box)return;
-  if(!planes||!planes.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Sin planes registrados</div>';return;}
+  var box=document.getElementById('plan-cards');if(!box)return;
+  if(!planes||!planes.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Sin planes</div>';return;}
+  window._planesData=planes;
   var o='';
   planes.forEach(function(p,i){
     var esMio=profName&&(p.autor||'').indexOf(profName.split(' ')[0])>-1;
     var stBrd=p.completado?'var(--cyan)':(p.en_proceso?'var(--blue)':'var(--am)');
     var stBg=p.completado?'rgba(0,201,167,.03)':(p.en_proceso?'rgba(10,79,191,.03)':'rgba(217,119,6,.03)');
-    var stLabel=p.completado?'\u2705 Completado':(p.en_proceso?'\U0001F504 En proceso':'\u231B Pendiente');
-    var stCol=p.completado?'var(--gn)':(p.en_proceso?'var(--blue)':'var(--am)');
-    o+='<div style="border:1.5px solid '+stBrd+';border-radius:var(--r);padding:10px;margin-bottom:6px;background:'+stBg+';cursor:pointer;transition:all .15s'+(esMio?';box-shadow:inset 3px 0 0 var(--blue)':'')+'" onclick="planDetail('+i+')">';
-    o+='<div style="display:flex;align-items:center;gap:6px">';
-    o+='<span style="font-size:13px">'+(p.completado?'\u2705':(p.en_proceso?'\U0001F504':'\U0001F4CB'))+'</span>';
-    o+='<div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:var(--deep)">'+E((p.items_nombres||[]).join(', '))+'</div>';
-    o+='<div style="font-size:7px;color:var(--mt);margin-top:1px">'+E(p.autor||'')+' \u00B7 '+E(p.fecha)+' \u00B7 '+E(p.sede||'')+' \u00B7 S/'+Math.round(p.total_plan||0)+'</div></div>';
-    o+='<span style="font-size:8px;font-weight:700;color:'+stCol+'">'+stLabel+'</span>';
-    if(esMio)o+='<span style="font-size:6px;padding:2px 5px;background:var(--blue);color:#fff;border-radius:4px;font-weight:700">MI PLAN</span>';
+    var stIco=p.completado?'✅':(p.en_proceso?'🔄':'⏳');
+    o+='<div style="border:1.5px solid '+stBrd+';border-radius:var(--r);padding:8px;margin-bottom:5px;background:'+stBg+';cursor:pointer'+(esMio?';box-shadow:inset 3px 0 0 var(--blue)':'')+'" onclick="planDetail('+i+')">';
+    o+='<div style="display:flex;align-items:center;gap:5px">';
+    o+='<span style="font-size:11px">'+stIco+'</span>';
+    o+='<div style="flex:1;min-width:0"><div style="font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E((p.items_nombres||[]).join(', '))+'</div>';
+    o+='<div style="font-size:6px;color:var(--mt)">'+E(p.autor||'')+' · '+E(p.fecha)+'</div></div>';
+    if(esMio)o+='<span style="font-size:5px;padding:1px 4px;background:var(--blue);color:#fff;border-radius:3px;font-weight:700">MIO</span>';
     o+='</div></div>';
   });
   box.innerHTML=o;
-  window._planesData=planes;
 });
 }
 
 function planDetail(idx){
   var p=window._planesData?window._planesData[idx]:null;if(!p)return;
-  var c=AT.sel;if(!c)return;
-  var box=document.getElementById('plan-detail');if(!box)return;
+  var box=document.getElementById('plan-det');if(!box)return;
+  box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:8px">Cargando...</div>';
   sbF('/rest/v1/aos_plan_trabajo_items?plan_id=eq.'+encodeURIComponent(p.plan_id)+'&order=orden').then(function(items){
     items=items||[];
-    var o='<div class="ic"><div class="ic-t" style="justify-content:space-between">\U0001F4CB '+E((p.items_nombres||[]).join(', '))+'<span style="font-size:7px;color:var(--mt)">'+E(p.fecha)+'</span></div>';
-    if(!items.length){o+='<div style="font-size:9px;color:var(--mt)">Sin items detallados</div>';}
+    var o='<div class="ic"><div class="ic-t" style="justify-content:space-between">📋 '+E(p.fecha)+' · '+E(p.autor||'')+'<span style="font-size:7px;color:var(--mt)">S/'+Math.round(p.total_plan||0)+'</span></div>';
+    if(!items.length){o+='<div style="font-size:9px;color:var(--mt)">Sin items</div>';}
     items.forEach(function(it){
       var isServ=it.tipo_item==='SERVICIO';
-      o+='<div style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--bg);font-size:9px">';
-      o+='<span style="font-size:12px">'+(isServ?'\U0001F489':'\U0001F48A')+'</span>';
-      o+='<div style="flex:1"><div style="font-weight:700">'+E(it.nombre_servicio||it.nombre_producto||'')+'</div>';
-      o+='<div style="font-size:7px;color:var(--mt)">'+(isServ?it.num_sesiones+' ses \u00B7 '+E(it.frecuencia||''):'Dosis: '+E(it.dosis||'')+' \u00B7 '+E(it.momento||''))+'</div></div>';
-      o+='<span style="font-weight:800;color:var(--blue)">S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
-      o+='<span style="font-size:7px;padding:2px 5px;border-radius:4px;font-weight:700;background:'+(it.estado_item==='COMPLETADO'?'#F0FDF4;color:var(--gn)':it.estado_item==='EN_PROCESO'?'#EBF2FF;color:var(--blue)':'#FEF3C7;color:var(--am)')+'">'+E(it.estado_item||'PENDIENTE')+'</span>';
+      var isDone=it.estado_item==='COMPLETADO';
+      var isProc=it.estado_item==='EN_PROCESO';
+      o+='<div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--bg);font-size:9px">';
+      o+='<span style="font-size:14px">'+(isDone?'✅':(isProc?'🔄':'⬜'))+'</span>';
+      o+='<span style="font-size:11px">'+(isServ?'💉':'💊')+'</span>';
+      o+='<div style="flex:1"><div style="font-weight:700'+(isDone?';text-decoration:line-through;opacity:.6':'')+'">'+E(it.nombre_servicio||it.nombre_producto||'')+'</div>';
+      o+='<div style="font-size:7px;color:var(--mt)">'+(isServ?it.num_sesiones+' ses · '+E(it.frecuencia||''):E(it.dosis||'')+' · '+E(it.momento||''))+'</div></div>';
+      o+='<span style="font-weight:800;color:var(--blue);font-size:10px">S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
+      o+='<span style="font-size:7px;padding:2px 5px;border-radius:4px;font-weight:700;background:'+(isDone?'#F0FDF4;color:var(--gn)':isProc?'#EBF2FF;color:var(--blue)':'#FEF3C7;color:var(--am)')+'">'+E(it.estado_item||'PENDIENTE')+'</span>';
       o+='</div>';
     });
-    o+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:9px;border-top:1px solid var(--bd2);margin-top:4px"><span style="font-weight:700">Total</span><span style="font-weight:800;color:var(--deep)">S/'+Math.round(p.total_plan||0)+'</span></div>';
-    o+='</div>';
+    var done=items.filter(function(it){return it.estado_item==='COMPLETADO'}).length;
+    o+='<div style="display:flex;justify-content:space-between;padding:8px 4px;border-top:1px solid var(--bd2);margin-top:4px;font-size:9px">';
+    o+='<span>'+done+'/'+items.length+' completados</span>';
+    o+='<span style="font-weight:800;color:var(--deep)">Total S/'+Math.round(p.total_plan||0)+'</span></div></div>';
     box.innerHTML=o;
   });
 }
@@ -1086,12 +1089,57 @@ el.innerHTML=o;}
 /* ===== MOD-19: DRAWERS ===== */
 function openDw(id){document.querySelectorAll('.dw').forEach(function(d){d.classList.remove('open')});var dw=document.getElementById('dw-'+id);if(dw)dw.classList.add('open');}
 function closeDw(){document.querySelectorAll('.dw').forEach(function(d){d.classList.remove('open')});_openTipo=null;}
+/* ===== FICHAS v3 — 2 columnas en body ===== */
+function rFichas(el){var c=AT.sel;if(!c){el.innerHTML='';return;}
+var profName=AT.prof?AT.prof.nombre_publico:'';
+el.innerHTML='<div class="at-sc">🗂 Fichas / Atenciones</div><div class="ds-layout"><div id="fichas-cards"><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando...</div></div><div id="fichas-det"><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Selecciona una ficha</div></div></div>';
+sbR('aos_fichas_paciente',{p_numero:c.numero_limpio}).then(function(fichas){
+  var box=document.getElementById('fichas-cards');if(!box)return;
+  if(!fichas||!fichas.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Sin fichas</div>';return;}
+  window._fichasData=fichas;var o='';
+  fichas.forEach(function(f,i){
+    var esMio=profName&&(f.profesional||'').indexOf(profName.split(' ')[0])>-1;
+    var esHoy=f.fecha===c.fecha;var isDone=f.estado==='COMPLETADA';
+    var stBrd=isDone?'var(--cyan)':(esHoy?'var(--blue)':'var(--bd2)');
+    var stBg=isDone?'rgba(0,201,167,.03)':(esHoy?'rgba(10,79,191,.03)':'var(--sf)');
+    var stIco=isDone?'✅':(esHoy?'🔄':'📋');
+    o+='<div style="border:1.5px solid '+stBrd+';border-radius:var(--r);padding:8px;margin-bottom:5px;background:'+stBg+';cursor:pointer'+(esMio?';box-shadow:inset 3px 0 0 var(--blue)':'')+'" onclick="fichaInlineDetail('+i+')">';
+    o+='<div style="display:flex;align-items:center;gap:5px">';
+    o+='<span style="font-size:11px">'+stIco+'</span>';
+    o+='<div style="flex:1;min-width:0"><div style="font-size:9px;font-weight:700">'+E(f.fecha)+'</div>';
+    o+='<div style="font-size:7px;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+E((f.tratamientos||[]).join(', '))+'</div>';
+    o+='<div style="font-size:6px;color:var(--mt)">'+E(f.profesional||'')+(f.num_insumos>0?' · '+f.num_insumos+' ins':'')+'</div></div>';
+    if(esMio)o+='<span style="font-size:5px;padding:1px 4px;background:var(--blue);color:#fff;border-radius:3px;font-weight:700">MIO</span>';
+    if(esHoy)o+='<span style="font-size:5px;padding:1px 4px;background:var(--am);color:#fff;border-radius:3px;font-weight:700">HOY</span>';
+    o+='</div></div>';
+  });
+  box.innerHTML=o;
+});
+}
+function fichaInlineDetail(idx){
+  var f=window._fichasData?window._fichasData[idx]:null;if(!f)return;
+  var box=document.getElementById('fichas-det');if(!box)return;
+  var o='<div class="ic"><div class="ic-t">🗂 '+E(f.fecha)+' · '+E(f.profesional||'')+'</div>';
+  var notas=f.notas||[];
+  if(notas.length){notas.forEach(function(n){
+    o+='<div style="margin-bottom:8px;border-left:3px solid var(--cyan);padding-left:8px">';
+    o+='<div style="font-size:8px;font-weight:800;color:var(--blue)">'+E((n.tipo||'').replace(/_/g,' '))+'</div>';
+    if(n.peso)o+='<span style="font-size:7px;background:#F8FAFF;padding:2px 5px;border-radius:4px;border:1px solid var(--bd2);margin-right:3px">'+n.peso+'kg</span>';
+    if(n.contenido)o+='<div style="font-size:8px;white-space:pre-wrap;line-height:1.4;margin-top:3px;max-height:120px;overflow-y:auto">'+E(n.contenido)+'</div>';
+    o+='<div style="font-size:6px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';
+  });}else{o+='<div style="font-size:8px;color:var(--mt)">Sin notas</div>';}
+  var ins=f.insumos||[];
+  if(ins.length){o+='<div class="at-sc" style="margin-top:8px">📦 Insumos ('+ins.length+')</div>';
+    ins.forEach(function(m){o+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre)+'</span><span style="color:var(--blue);font-weight:800">×'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E(m.tratamiento||'')+'</span></div>';});}
+  o+='</div>';box.innerHTML=o;
+}
+
 function loadFichas(){var c=AT.sel;if(!c)return;var b=document.getElementById('dw-fichas-b');
 var profName=AT.prof?AT.prof.nombre_publico:'';
-b.innerHTML='<div class="at-sc">\U0001F5C2 Fichas del paciente</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando fichas...</div>';
+b.innerHTML='<div class="at-sc">\🗂 Fichas del paciente</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando fichas...</div>';
 sbR('aos_fichas_paciente',{p_numero:c.numero_limpio}).then(function(fichas){
-  if(!fichas||!fichas.length){b.innerHTML='<div class="at-sc">\U0001F5C2 Fichas</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Sin fichas anteriores</div>';return;}
-  var o='<div class="at-sc" style="margin-bottom:6px">\U0001F5C2 Fichas del paciente ('+fichas.length+')</div>';
+  if(!fichas||!fichas.length){b.innerHTML='<div class="at-sc">\🗂 Fichas</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Sin fichas anteriores</div>';return;}
+  var o='<div class="at-sc" style="margin-bottom:6px">\🗂 Fichas del paciente ('+fichas.length+')</div>';
   o+='<div style="display:flex;gap:8px"><div id="fichas-list" style="flex:1;max-height:70vh;overflow-y:auto"></div><div id="fichas-detail" style="flex:1;display:none;max-height:70vh;overflow-y:auto"></div></div>';
   b.innerHTML=o;
   var listBox=document.getElementById('fichas-list');
@@ -1102,7 +1150,7 @@ sbR('aos_fichas_paciente',{p_numero:c.numero_limpio}).then(function(fichas){
     var esHoy=f.fecha===c.fecha;
     var stBrd=f.estado==='COMPLETADA'?'var(--cyan)':(esHoy?'var(--blue)':'var(--bd2)');
     var stBg=f.estado==='COMPLETADA'?'rgba(0,201,167,.03)':(esHoy?'rgba(10,79,191,.03)':'var(--sf)');
-    var stIco=f.estado==='COMPLETADA'?'\u2705':(esHoy?'\U0001F504':'\U0001F4CB');
+    var stIco=f.estado==='COMPLETADA'?'\u2705':(esHoy?'\🔄':'\📋');
     cards+='<div class="ic" style="cursor:pointer;margin-bottom:6px;border-color:'+stBrd+';background:'+stBg+'" onclick="fichaDetail('+i+')">';
     cards+='<div style="display:flex;align-items:center;gap:6px">';
     cards+='<span style="font-size:13px">'+stIco+'</span>';
@@ -1121,13 +1169,13 @@ function fichaDetail(idx){
   var f=window._fichasData?window._fichasData[idx]:null;if(!f)return;
   var detBox=document.getElementById('fichas-detail');if(!detBox)return;
   detBox.style.display='block';
-  var icons={TRIAJE:'\U0001FA7A',NOTA_ENFERMERIA:'\U0001F4CB',EVALUACION:'\U0001F469\u200D\u2695\uFE0F',NOTA_PROCEDIMIENTO:'\U0001F489',PLAN_TRABAJO:'\U0001F4C5',PRESCRIPCION:'\U0001F48A',EVOLUCION_MEDICA:'\U0001F4C8'};
-  var o='<div class="ic"><div class="ic-t">\U0001F5C2 '+E(f.fecha)+' \u00B7 '+E(f.profesional||'')+'</div>';
+  var icons={TRIAJE:'\🩺',NOTA_ENFERMERIA:'\📋',EVALUACION:'\👩\u200D\u2695\uFE0F',NOTA_PROCEDIMIENTO:'\💉',PLAN_TRABAJO:'\📅',PRESCRIPCION:'\💊',EVOLUCION_MEDICA:'\📈'};
+  var o='<div class="ic"><div class="ic-t">\🗂 '+E(f.fecha)+' \u00B7 '+E(f.profesional||'')+'</div>';
   var notas=f.notas||[];
   if(notas.length){
     notas.forEach(function(n){
       o+='<div style="margin-bottom:6px;border-left:3px solid var(--cyan);padding-left:8px">';
-      o+='<div style="font-size:8px;font-weight:800;color:var(--blue)">'+(icons[n.tipo]||'\U0001F4DD')+' '+E(n.tipo||'')+'</div>';
+      o+='<div style="font-size:8px;font-weight:800;color:var(--blue)">'+(icons[n.tipo]||'\📝')+' '+E(n.tipo||'')+'</div>';
       if(n.peso)o+='<span style="font-size:7px;background:var(--sf);padding:2px 5px;border-radius:4px;border:1px solid var(--bd2)">Peso:'+n.peso+'kg</span>';
       if(n.contenido)o+='<div style="font-size:8px;white-space:pre-wrap;line-height:1.4;margin-top:2px">'+E(n.contenido)+'</div>';
       o+='<div style="font-size:6px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' \u00B7 '+E(n.autor_rol||'')+'</div></div>';
@@ -1135,7 +1183,7 @@ function fichaDetail(idx){
   }else{o+='<div style="font-size:8px;color:var(--mt)">Sin notas cl\u00EDnicas</div>';}
   var ins=f.insumos||[];
   if(ins.length){
-    o+='<div class="at-sc" style="margin-top:8px">\U0001F4E6 Insumos ('+ins.length+')</div>';
+    o+='<div class="at-sc" style="margin-top:8px">\📦 Insumos ('+ins.length+')</div>';
     ins.forEach(function(m){o+='<div class="ds-item"><span style="flex:1;font-weight:600">'+E(m.nombre)+'</span><span style="color:var(--blue);font-weight:800">\u00D7'+m.cantidad+'</span><span style="font-size:7px;color:var(--mt)">'+E(m.tratamiento||'')+'</span></div>';});
   }
   o+='</div>';
@@ -1680,42 +1728,80 @@ function ptGuardar(){
   });
 }
 
-/* ===== MOD-28: MODAL DETALLE DESCUENTO (editar/eliminar) ===== */
-function dsOpenDetail(movId,nombre,cantidad,trat){
-  var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(7,29,74,.4);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.remove()" id="modal-ds-det">';
-  o+='<div style="background:#fff;border-radius:16px;max-width:420px;width:95%;box-shadow:0 12px 48px rgba(7,29,74,.2)" onclick="event.stopPropagation()">';
-  o+='<div style="padding:14px 18px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:16px 16px 0 0;color:#fff"><b style="font-size:14px">\U0001F4E6 Detalle de descuento</b></div>';
-  o+='<div style="padding:16px 18px">';
-  o+='<div style="font-size:12px;font-weight:700;color:var(--deep);margin-bottom:4px">'+E(nombre)+'</div>';
-  o+='<div style="font-size:9px;color:var(--mt);margin-bottom:12px">Tratamiento: '+E(trat)+'</div>';
-  o+='<div class="fg"><label class="fl">Cantidad actual</label><input type="number" id="ds-det-qty" class="fi" value="'+cantidad+'" min="0" style="font-size:14px;font-weight:800;text-align:center"></div>';
-  o+='<div style="display:flex;gap:8px;margin-top:12px">';
-  o+='<button class="btn btn-p" style="flex:1" onclick="dsEditMov(\''+movId+'\',document.getElementById(\'ds-det-qty\').value)">\U0001F4BE Guardar</button>';
-  o+='<button class="btn" style="flex:1;background:#FEE2E2;color:var(--rd);border:1px solid #FCA5A5" onclick="dsDeleteMov(\''+movId+'\')">\U0001F5D1 Eliminar</button>';
-  o+='</div></div></div></div>';
-  document.body.insertAdjacentHTML('beforeend',o);
-}
-
-function dsEditMov(movId,newQty){
-  var usr=AOS.ctx?AOS.ctx.nombre:'';
-  sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'editar',cantidad_nueva:parseFloat(newQty)||1,usuario:usr}}).then(function(r){
-    if(r&&r.ok){
-      document.getElementById('modal-ds-det').remove();
-      if(window.AOS_showToast)AOS_showToast('\u2705 Cantidad actualizada',r.cantidad_anterior+'\u2192'+r.cantidad_nueva,'');
-      rDescuentos(document.getElementById('at-body'));
-    }else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
+/* ===== MOD-28: MODAL EDITAR DESCUENTOS POR CARD ===== */
+function dsOpenCardEdit(tratNombre){
+  var c=AT.sel;if(!c)return;
+  /* Cargar todos los movimientos de este tratamiento en esta fecha */
+  sbF('/rest/v1/aos_movimientos_inv?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&tipo_movimiento=eq.EGRESO&tratamiento=eq.'+encodeURIComponent(tratNombre)+'&order=created_at.desc&select=id,nombre_producto,cantidad,tratamiento,profesional_nombre,created_at').then(function(movs){
+    if(!movs||!movs.length){if(window.AOS_showToast)AOS_showToast('Sin insumos para editar','','toast-alerta');return;}
+    var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(7,29,74,.4);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.remove()" id="modal-ds-det">';
+    o+='<div style="background:#fff;border-radius:16px;max-width:520px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(7,29,74,.2)" onclick="event.stopPropagation()">';
+    o+='<div style="padding:12px 18px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:16px 16px 0 0;color:#fff;display:flex;align-items:center">';
+    o+='<b style="font-size:13px;flex:1">\u{1F4E6} Editar descuentos \u2014 '+E(tratNombre)+'</b>';
+    o+='<button style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px" onclick="document.getElementById(\'modal-ds-det\').remove()">\u2715</button>';
+    o+='</div>';
+    o+='<div style="padding:14px 18px">';
+    o+='<div style="font-size:8px;color:var(--mt);margin-bottom:10px">'+E(c.fecha)+' \u00B7 '+E(movs[0].profesional_nombre||'')+' \u00B7 '+movs.length+' insumo(s)</div>';
+    /* Tabla editable */
+    o+='<div style="margin-bottom:10px">';
+    movs.forEach(function(m,i){
+      o+='<div style="display:grid;grid-template-columns:1fr 60px 30px;gap:6px;padding:6px 0;border-bottom:1px solid #F1F5F9;align-items:center" id="ds-edit-row-'+i+'">';
+      o+='<div style="font-size:10px;font-weight:600">'+E(m.nombre_producto)+'</div>';
+      o+='<input type="number" value="'+parseFloat(m.cantidad)+'" min="0" max="999" class="fi" style="font-size:11px;font-weight:800;text-align:center;padding:4px" id="ds-eq-'+i+'" data-id="'+m.id+'" data-orig="'+parseFloat(m.cantidad)+'">';
+      o+='<button style="background:#FEE2E2;color:var(--rd);border:1px solid #FCA5A5;border-radius:6px;padding:4px;cursor:pointer;font-size:10px" onclick="document.getElementById(\'ds-eq-'+i+'\').value=0;document.getElementById(\'ds-edit-row-'+i+'\').style.opacity=0.4" title="Marcar para eliminar">\u2715</button>';
+      o+='</div>';
+    });
+    o+='</div>';
+    o+='<div style="display:flex;gap:8px">';
+    o+='<button class="btn btn-p" style="flex:1" onclick="dsCardSave('+movs.length+')">\u{1F4BE} Guardar cambios</button>';
+    o+='<button class="btn" style="background:#FEE2E2;color:var(--rd);border:1px solid #FCA5A5" onclick="dsCardDeleteAll('+movs.length+')">\u{1F5D1} Eliminar todo</button>';
+    o+='<button class="btn btn-s" onclick="document.getElementById(\'modal-ds-det\').remove()">Cancelar</button>';
+    o+='</div>';
+    o+='</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend',o);
   });
 }
 
-function dsDeleteMov(movId){
-  if(!confirm('\u00BFEliminar este descuento? El stock se devolver\u00E1 al inventario.'))return;
+function dsCardSave(count){
   var usr=AOS.ctx?AOS.ctx.nombre:'';
-  sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'eliminar',usuario:usr,motivo:'Correcci\u00F3n manual'}}).then(function(r){
-    if(r&&r.ok){
-      document.getElementById('modal-ds-det').remove();
-      if(window.AOS_showToast)AOS_showToast('\u2705 Descuento eliminado','Stock devuelto: '+r.devueltos+' unidades','');
-      rDescuentos(document.getElementById('at-body'));
-    }else{if(window.AOS_showToast)AOS_showToast('Error: '+(r&&r.error||''),'','toast-alerta');}
+  var promises=[];
+  for(var i=0;i<count;i++){
+    var el=document.getElementById('ds-eq-'+i);if(!el)continue;
+    var movId=el.getAttribute('data-id');
+    var orig=parseFloat(el.getAttribute('data-orig'));
+    var newQ=parseFloat(el.value)||0;
+    if(newQ===orig)continue;/* sin cambio */
+    if(newQ===0){
+      /* Eliminar */
+      promises.push(sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'eliminar',usuario:usr,motivo:'Edici\u00F3n masiva'}}));
+    }else{
+      /* Editar cantidad */
+      promises.push(sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'editar',cantidad_nueva:newQ,usuario:usr}}));
+    }
+  }
+  if(!promises.length){document.getElementById('modal-ds-det').remove();return;}
+  Promise.all(promises).then(function(results){
+    document.getElementById('modal-ds-det').remove();
+    var ok=results.filter(function(r){return r&&r.ok}).length;
+    if(window.AOS_showToast)AOS_showToast('\u2705 '+ok+' cambio(s) aplicados','Stock actualizado','');
+    rDescuentos(document.getElementById('at-body'));
+  });
+}
+
+function dsCardDeleteAll(count){
+  if(!confirm('\u00BFEliminar TODOS los insumos de este tratamiento? El stock se devolver\u00E1.'))return;
+  var usr=AOS.ctx?AOS.ctx.nombre:'';
+  var promises=[];
+  for(var i=0;i<count;i++){
+    var el=document.getElementById('ds-eq-'+i);if(!el)continue;
+    var movId=el.getAttribute('data-id');
+    promises.push(sbR('aos_corregir_descuento',{p_data:{movimiento_id:movId,accion:'eliminar',usuario:usr,motivo:'Eliminaci\u00F3n masiva'}}));
+  }
+  Promise.all(promises).then(function(results){
+    document.getElementById('modal-ds-det').remove();
+    var ok=results.filter(function(r){return r&&r.ok}).length;
+    if(window.AOS_showToast)AOS_showToast('\u2705 '+ok+' insumo(s) eliminados','Stock devuelto al inventario','');
+    rDescuentos(document.getElementById('at-body'));
   });
 }
 
