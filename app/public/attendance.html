@@ -420,16 +420,11 @@ o+='<div class="fg"><label class="fl">¿Qué busca mejorar?</label><textarea id=
 o+='<div class="at-sc" style="margin-top:8px">Conclusión</div>';
 }
 
-/* Anteriores PRIMERO en todos los tipos */
-var map=getNotasMap();var ex=map[tipo]||[];
-if(ex.length){
-  o+='<div class="at-sc">Registros guardados ('+ex.length+')</div>';
-  ex.forEach(function(n){var txt=n.contenido||n.texto||'';
-    o+='<div style="padding:6px 8px;border:1px solid var(--cyan);border-radius:6px;margin-bottom:4px;background:#F0FDFA;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||n.usuario||'')+' · '+E(n.autor_rol||n.rol||'')+'</div></div>';});
-  o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nuevo registro</div>';
-}
+/* Pre-llenar con nota guardada si existe */
+var map=getNotasMap();var exN=map[tipo]||[];
+var savedTxt=exN.length?(exN[exN.length-1].contenido||exN[exN.length-1].texto||''):'';
 
-o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="3" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión clínica...':'Nota clínica...')+'"></textarea></div>';
+o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="3" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión clínica...':'Nota clínica...')+'">'+E(savedTxt)+'</textarea></div>';
 o+='<button class="btn btn-p btn-f" style="padding:10px" onclick="saveNota(\''+tipo+'\')">💾 Guardar</button>';
 b.innerHTML=o;openDw('nota');
 if(tipo==='EVALUACION')evTipoChange();}
@@ -749,13 +744,18 @@ function openProcedimiento(){
     o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
   }
 
-  /* Anteriores PRIMERO */
-  var map=getNotasMap();var ex=map['NOTA_PROCEDIMIENTO']||[];
-  if(ex.length){
-    o+='<div class="at-sc">Registros guardados ('+ex.length+')</div>';
-    ex.forEach(function(n){var txt=n.contenido||n.texto||'';
-      o+='<div style="padding:6px 8px;border:1px solid var(--cyan);border-radius:6px;margin-bottom:4px;background:#F0FDFA;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});
-    o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nuevo procedimiento</div>';
+  /* Cargar datos guardados si existen */
+  var map=getNotasMap();var exProc=map['NOTA_PROCEDIMIENTO']||[];
+  var saved=exProc.length?exProc[exProc.length-1]:null;
+  var savedZonas=[];var savedDesc='';var savedObs='';var savedRes='Satisfactorio';var savedTol='Buena';var savedPost='';
+  if(saved){
+    var txt=saved.contenido||'';
+    var zMatch=txt.match(/Zona: (.+)/);if(zMatch)savedZonas=zMatch[1].split(', ');
+    var pMatch=txt.match(/Procedimiento: (.+)/);if(pMatch)savedDesc=pMatch[1];
+    var oMatch=txt.match(/Observaciones: (.+)/);if(oMatch)savedObs=oMatch[1];
+    var rMatch=txt.match(/Resultado: (\w+)/);if(rMatch)savedRes=rMatch[1];
+    var tMatch=txt.match(/Tolerancia: (.+)/);if(tMatch)savedTol=tMatch[1].trim();
+    var ppMatch=txt.match(/Post-procedimiento: (.+)/);if(ppMatch)savedPost=ppMatch[1];
   }
 
   /* Tratamientos */
@@ -776,18 +776,22 @@ function openProcedimiento(){
   o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
   o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
   var zonasProc=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpados','Pómulos','Nariz','Surco nasogeniano','Mejillas','Labios','Mentón','Mandíbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
-  zonasProc.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
+  zonasProc.forEach(function(z){var chk=savedZonas.indexOf(z)>-1?' checked':'';o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"'+chk+'><span>'+E(z)+'</span></label>';});
   o+='</div>';
 
-  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado...">'+E(savedDesc)+'</textarea></div>';
 
-  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia del paciente..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia del paciente...">'+E(savedObs)+'</textarea></div>';
 
   o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-  o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs"><option>Satisfactorio</option><option>Parcial</option><option>Con observaciones</option><option>Complicación leve</option></select></div>';
-  o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs"><option>Buena</option><option>Regular</option><option>Mala — sensibilidad</option></select></div></div>';
+  o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs">';
+  ['Satisfactorio','Parcial','Con observaciones','Complicación leve'].forEach(function(r){o+='<option'+(savedRes===r?' selected':'')+'>'+r+'</option>';});
+  o+='</select></div>';
+  o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs">';
+  ['Buena','Regular','Mala — sensibilidad'].forEach(function(t){o+='<option'+(savedTol===t?' selected':'')+'>'+t+'</option>';});
+  o+='</select></div></div>';
 
-  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h...">'+E(savedPost)+'</textarea></div>';
 
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
   b.innerHTML=o;openDw('nota');
@@ -829,22 +833,22 @@ var RX={items:[],cache:[]};
 function openReceta(){
   var c=AT.sel;if(!c)return;
   document.getElementById('dw-nota-t').textContent='💊 Receta';
-  RX.items=[];rRX(document.getElementById('dw-nota-b'));openDw('nota');
+  /* Pre-cargar items guardados si existen */
+  var map=getNotasMap();var exRx=map['PRESCRIPCION']||[];
+  RX.items=[];
+  if(exRx.length){
+    var last=exRx[exRx.length-1];
+    try{var saved=typeof last.receta_items==='string'?JSON.parse(last.receta_items):(last.receta_items||[]);
+      saved.forEach(function(it){RX.items.push({nombre:it.nombre||'',precio:it.precio||0,esNuestro:it.esNuestro||false,momento:it.momento||'Mañana',modo:it.modo||'Tomar',dias:it.dias||30,indicacion:it.indicacion||''});});
+    }catch(e){}
+  }
+  rRX(document.getElementById('dw-nota-b'));openDw('nota');
 }
 function rRX(b){
   var c=AT.sel;if(!c)return;
   var esDra=isDra(c.profesional);
   var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
   o+='<div style="display:inline-block;padding:3px 8px;background:'+(esDra?'#FEF3C7':'#F0FDF4')+';color:'+(esDra?'#D97706':'#059669')+';border-radius:6px;font-size:8px;font-weight:700;margin-bottom:8px">'+(esDra?'Receta médica':'Receta enfermería')+'</div>';
-
-  /* Anteriores PRIMERO */
-  var map=getNotasMap();var exR=map['PRESCRIPCION']||[];
-  if(exR.length){
-    o+='<div class="at-sc">Recetas guardadas ('+exR.length+')</div>';
-    exR.forEach(function(n){var txt=n.contenido||'';
-      o+='<div style="padding:6px 8px;border:1px solid #7C3AED;border-radius:6px;margin-bottom:4px;background:#F5F3FF;font-size:8px;color:var(--deep);white-space:pre-wrap;line-height:1.4">'+E(txt)+'<div style="font-size:7px;color:var(--mt);margin-top:2px">'+E(n.autor||'')+' · '+E(n.autor_rol||'')+'</div></div>';});
-    o+='<div style="border-top:1px dashed var(--bd);margin:8px 0;padding-top:6px;font-size:8px;font-weight:700;color:var(--mt)">➕ Agregar nueva receta</div>';
-  }
 
   /* Buscador */
   o+='<div style="position:relative;margin-bottom:6px"><input id="rx-q" class="fi" placeholder="Buscar producto: vitamina, crema, protector..." oninput="rxSearch()" style="font-size:10px"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--mt)">🔍</span></div>';
