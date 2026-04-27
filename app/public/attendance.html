@@ -205,10 +205,10 @@
   <div class="at-tabs" id="at-tabs">
     <div class="at-tab a" onclick="macroTab('atencion',this)">🩺 Atención</div>
     <div class="at-tab" onclick="macroTab('plan',this)">📋 Plan</div>
-    <div class="at-tab" onclick="macroTab('chat',this)">💬 Chat</div>
     <div class="at-tab" onclick="macroTab('fichas',this)">🗂 Fichas</div>
     <div class="at-tab" onclick="macroTab('calif',this)">⭐ Calificaciones</div>
     <div class="at-tab" onclick="macroTab('docs',this)">📄 Documentos</div>
+    <div class="at-tab" onclick="macroTab('chat',this)">💬 Chat</div>
   </div>
   <!-- SUB-PILLS (only for Atención) + action buttons right -->
   <div class="at-sub" id="at-sub">
@@ -310,10 +310,10 @@ var subEl=document.getElementById('at-sub');subEl.style.display=tab==='atencion'
 var b=document.getElementById('at-body');
 if(tab==='atencion'){subTab(AT.sub,document.querySelector('.at-sp.a')||document.querySelector('.at-sp'));}
 else if(tab==='plan')rPlan(b);
-else if(tab==='chat'){openDw('chat');}
-else if(tab==='fichas'){loadFichas();openDw('fichas');}
+else if(tab==='fichas')rFichas(b);
 else if(tab==='calif')rCalif(b);
-else if(tab==='docs')rDocs(b);}
+else if(tab==='docs')rDocs(b);
+else if(tab==='chat'){var dw=document.getElementById('dw-chat');if(dw.classList.contains('open')){closeDw();}else{b.innerHTML='';openDw('chat');}}}
 
 /* Sub tabs (within Atención) */
 function subTab(tab,el){AT.sub=tab;document.querySelectorAll('.at-sp').forEach(function(t){t.classList.remove('a')});if(el)el.classList.add('a');
@@ -1047,7 +1047,7 @@ function planDetail(idx){
       var isProc=it.estado_item==='EN_PROCESO';
       o+='<div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--bg);font-size:9px">';
       o+='<span style="font-size:14px">'+(isDone?'✅':(isProc?'🔄':'⬜'))+'</span>';
-      o+='<span style="font-size:11px">'+(isServ?'💉':'💊')+'</span>';
+      /* no emoji icons */
       o+='<div style="flex:1"><div style="font-weight:700'+(isDone?';text-decoration:line-through;opacity:.6':'')+'">'+E(it.nombre_servicio||it.nombre_producto||'')+'</div>';
       o+='<div style="font-size:7px;color:var(--mt)">'+(isServ?it.num_sesiones+' ses · '+E(it.frecuencia||''):E(it.dosis||'')+' · '+E(it.momento||''))+'</div></div>';
       o+='<span style="font-weight:800;color:var(--blue);font-size:10px">S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
@@ -1063,17 +1063,78 @@ function planDetail(idx){
 }
 
 /* ===== MOD-17: MACRO CALIFICACIONES ===== */
-function rCalif(el){var d=AT.det,c=AT.sel;
-var o='<div class="at-sc">Encuesta de satisfacción</div>';
-o+='<div class="ic"><div class="ic-t">🔗 Generar link</div><div style="font-size:8px;color:var(--mt);margin-bottom:8px">Link único válido 48h</div>';
-o+='<div style="display:flex;gap:6px"><button class="btn btn-p btn-sm" onclick="genEnc()">🔗 Generar</button><button class="btn btn-w btn-sm" onclick="atWA()">💬 WA</button><button class="btn btn-s btn-sm" onclick="if(window.AOS_showToast)AOS_showToast(\'📧 Próximamente\',\'\',\'\')">📧 Email</button></div>';
-o+='<div id="enc-result" style="margin-top:6px"></div></div>';
-var enc=d?d.encuestas:null;
-if(enc&&enc.length){o+='<div class="at-sc" style="margin-top:12px">Calificaciones</div>';
-enc.forEach(function(e){o+='<div class="ec"><div class="ec-s">⭐ '+Number(e.promedio||0).toFixed(1)+'/5</div><div class="ec-d">';if(e.cal_comunicacion)o+='<div class="ec-i"><span>Comunicación</span><b>'+e.cal_comunicacion+'/5</b></div>';if(e.cal_atencion)o+='<div class="ec-i"><span>Atención</span><b>'+e.cal_atencion+'/5</b></div>';if(e.cal_explicacion)o+='<div class="ec-i"><span>Explicación</span><b>'+e.cal_explicacion+'/5</b></div>';if(e.cal_resultado)o+='<div class="ec-i"><span>Resultado</span><b>'+e.cal_resultado+'/5</b></div>';if(e.cal_recomendaria)o+='<div class="ec-i"><span>Recomendaría</span><b>'+e.cal_recomendaria+'/5</b></div>';if(e.cal_volveria)o+='<div class="ec-i"><span>Volvería</span><b>'+e.cal_volveria+'/5</b></div>';o+='</div>';
-if(e.observacion)o+='<div style="font-size:8px;margin-top:6px;padding:6px;background:#F8FAFF;border-radius:4px;font-style:italic">"'+E(e.observacion)+'"</div>';o+='</div>';});}
-else{o+='<div class="at-sc" style="margin-top:12px">Calificaciones</div><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin encuestas respondidas</div>';}
-el.innerHTML=o;}
+function rCalif(el){var d=AT.det,c=AT.sel;if(!c)return;
+el.innerHTML='<div class="at-sc">⭐ Calificaciones</div><div class="ds-layout"><div id="calif-cards"><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando...</div></div><div id="calif-det"><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Genera un link o selecciona una calificación</div></div></div>';
+/* Left: cards de atenciones con botones de envío */
+var map=getNotasMap();var procNotas=map['NOTA_PROCEDIMIENTO']||[];
+var profsMap={};
+procNotas.forEach(function(n){var txt=n.contenido||'';var m=txt.match(/\[PROC\] (.+)/);if(!m)return;if(txt.indexOf('[REALIZADO]')<0)return;var trat=m[1].trim();var prof=n.autor||c.profesional||'';if(!profsMap[prof])profsMap[prof]={nombre:prof,tipo:isDra(prof)?'DOCTORA':'ENFERMERIA',tratamiento:trat};});
+if(!Object.keys(profsMap).length&&c.profesional){profsMap[c.profesional]={nombre:c.profesional,tipo:isDra(c.profesional)?'DOCTORA':'ENFERMERIA',tratamiento:(c.tratamientos||[])[0]||''};}
+var profsList=[];Object.keys(profsMap).forEach(function(k){profsList.push(profsMap[k]);});
+var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
+
+var box=document.getElementById('calif-cards');
+var o='<div class="ic"><div class="ic-t">🔗 Generar link de encuesta</div>';
+o+='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">Link único · Uso único · Expira 48h</div>';
+o+='<div style="font-size:7px;color:var(--mt);margin-bottom:6px">Profesionales: '+profsList.map(function(p){return E(p.nombre)+' ('+E(p.tratamiento)+')';}).join(' · ')+'</div>';
+o+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+o+='<button class="btn btn-p btn-sm" onclick="genEnc()">🔗 Generar</button>';
+o+='<button class="btn btn-w btn-sm" onclick="atWA()">💬 WA</button>';
+o+='<button class="btn btn-s btn-sm" onclick="encEmail(\''+c.numero_limpio+'\',\''+E(cli).replace(/'/g,'').replace(/"/g,'')+'\')">📧 Email</button>';
+o+='</div>';
+o+='<div id="enc-result" style="margin-top:8px"></div>';
+o+='</div>';
+
+/* Links ya generados */
+sbF('/rest/v1/aos_links_encuesta?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc&limit=10').then(function(links){
+  links=links||[];
+  if(links.length){
+    o+='<div class="at-sc" style="margin-top:8px">📋 Links generados</div>';
+    links.forEach(function(lk,i){
+      var estado=lk.usado?'✅ Respondida':(new Date(lk.expira_at)<new Date()?'⏰ Expirada':'🟡 Pendiente');
+      var stCol=lk.usado?'var(--gn)':(new Date(lk.expira_at)<new Date()?'var(--mt)':'var(--am)');
+      var stBrd=lk.usado?'var(--cyan)':(new Date(lk.expira_at)<new Date()?'var(--bd2)':'var(--am)');
+      o+='<div style="border:1px solid '+stBrd+';border-radius:var(--r);padding:6px 8px;margin-bottom:4px;font-size:8px;cursor:pointer" onclick="loadCalifResult(\''+lk.id+'\')"><div style="display:flex;align-items:center;gap:4px"><span style="color:'+stCol+';font-weight:700">'+estado+'</span><span style="flex:1;color:var(--mt)">'+E(lk.generado_por||'')+'</span><span style="color:var(--mt);font-size:7px">'+E((lk.created_at||'').substring(0,10))+'</span></div></div>';
+    });
+  }
+  if(box)box.innerHTML=o;
+});
+}
+
+function loadCalifResult(linkId){
+  var box=document.getElementById('calif-det');if(!box)return;
+  box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:8px">Cargando...</div>';
+  sbF('/rest/v1/aos_calificaciones?link_id=eq.'+encodeURIComponent(linkId)+'&order=created_at.desc').then(function(califs){
+    if(!califs||!califs.length){
+      box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Sin respuestas aún</div>';return;}
+    var o='';
+    califs.forEach(function(cal){
+      o+='<div class="ic" style="margin-bottom:8px"><div class="ic-t">'+(cal.profesional_tipo==='DOCTORA'?'👩‍⚕️':'🩺')+' '+E(cal.profesional_nombre)+' · '+E(cal.tratamiento||'')+'</div>';
+      o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
+      var cats=[{l:'Comunicación',v:cal.cal_comunicacion},{l:'Profesionalismo',v:cal.cal_profesionalismo},{l:'Explicación',v:cal.cal_explicacion},{l:'Presentación',v:cal.cal_presentacion},{l:'Resultado',v:cal.cal_resultado}];
+      cats.forEach(function(cat){
+        o+='<div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;border-bottom:1px solid #F8FAFF"><span style="color:var(--mt)">'+cat.l+'</span><span style="font-weight:800;color:var(--blue)">'+repeat('⭐',cat.v||0)+' '+cat.v+'/5</span></div>';
+      });
+      o+='</div>';
+      if(cal.promedio_profesional)o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px;margin-bottom:6px"><div style="font-size:24px;font-weight:800;color:var(--blue)">'+Number(cal.promedio_profesional).toFixed(1)+'</div><div style="font-size:8px;color:var(--mt)">Promedio profesional</div></div>';
+      o+='</div>';
+    });
+    /* Globales (del primer registro) */
+    var first=califs[0];
+    if(first.cal_ambiente||first.cal_recomendacion){
+      o+='<div class="ic"><div class="ic-t">🏥 Evaluación global</div>';
+      o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      if(first.cal_ambiente)o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px"><div style="font-size:18px;font-weight:800;color:var(--gn)">'+first.cal_ambiente+'/5</div><div style="font-size:7px;color:var(--mt)">Ambiente</div></div>';
+      if(first.cal_recomendacion)o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px"><div style="font-size:18px;font-weight:800;color:var(--cyan)">'+first.cal_recomendacion+'/5</div><div style="font-size:7px;color:var(--mt)">Recomendación</div></div>';
+      o+='</div>';
+      if(first.observacion)o+='<div style="font-size:9px;margin-top:8px;padding:8px;background:#F8FAFF;border-radius:6px;font-style:italic;border-left:3px solid var(--cyan)">"'+E(first.observacion)+'"</div>';
+      if(first.promedio_global)o+='<div style="text-align:center;margin-top:8px;padding:10px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:10px;color:#fff"><div style="font-size:28px;font-weight:800">'+Number(first.promedio_global).toFixed(1)+'</div><div style="font-size:9px;opacity:.7">Promedio general</div></div>';
+      o+='</div>';
+    }
+    box.innerHTML=o;
+  });
+}
+function repeat(s,n){var r='';for(var i=0;i<n;i++)r+=s;return r;}
 
 /* ===== MOD-18: MACRO DOCUMENTOS ===== */
 function rDocs(el){var d=AT.det;
