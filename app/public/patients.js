@@ -101,6 +101,7 @@ function loadCotizaciones(){
       card+='<button class="cot-btn" title="Editar" onclick="ecAbrir(\''+h(c.id)+'\')">&#9999;</button><button class="cot-btn" title="Enviar email" onclick="cotEmail(\''+h(c.id)+'\')">&#9993;</button><button class="cot-btn" title="PDF" onclick="cotPDF(\''+h(c.id)+'\')">&#8681;</button>';
       // Botón eliminar — siempre visible para admin, doble confirmación si tiene pagos
       card+='<button class="cot-btn del" title="Eliminar cotización" onclick="cotEliminar(\''+h(c.id)+'\',\'#'+h(c.numero_cotizacion)+'\','+pagos.length+')">&#128465;</button>';
+      card+='</div></div>'; /* cierre cot-hdr-right + cot-hdr */
       // BODY
       card+='<div class="cot-body"><table class="cot-tbl"><thead><tr><th>Item</th><th>Cant.</th><th>Subtotal</th><th>Pagado</th><th>Por pagar</th><th>Estado</th></tr></thead><tbody>';
       items.forEach(function(it){
