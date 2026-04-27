@@ -1428,6 +1428,10 @@ function abrirModalVenta() {
   if (!CAJA.sesion || CAJA.sesion.estado !== 'ABIERTA') { toast('Abre la caja primero','warn'); return; }
   VT.items = [];
   VT.pac = null;
+  VT.cotizacion_existente = null;
+  // Resetear display por si finalizarGrabado lo ocultó
+  var ov = document.getElementById('ov-venta');
+  if (ov) ov.style.display = '';
   document.getElementById('busq-pac-input').value = '';
   document.getElementById('pac-ficha').style.display = 'none';
   document.getElementById('pac-search-zone').style.display = 'block';
@@ -2237,8 +2241,10 @@ function grabarCotizacion() {
 
   function finalizarGrabado() {
     loading(false);
-    cerrarOv('ov-venta');
-    // Email de confirmación
+    // Forzar cierre completo del overlay
+    var ov = document.getElementById('ov-venta');
+    if (ov) { ov.classList.remove('open'); ov.style.display = 'none'; }
+    // Email
     var _pacEmail = pac.Email || pac.email || pac.correo || '';
     var totalPagado = itemsConPago.reduce(function(s,it){ return s+parseFloat(it.subtotal||0); },0);
     if (_pacEmail && _pacEmail.indexOf('@') > -1) {
@@ -2254,9 +2260,8 @@ function grabarCotizacion() {
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
     toast('✅ ' + msg, 'ok');
-    // Recargar caja para que aparezca la venta
+    // Recargar caja inmediatamente — overlay ya está cerrado con display:none
     cargarCaja();
-    setTimeout(function() { cargarCaja(); }, 1000);
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
   }
 
