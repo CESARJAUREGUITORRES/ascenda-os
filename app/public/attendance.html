@@ -524,10 +524,23 @@ o+='<div class="at-sc" style="margin-top:8px">Conclusión</div>';
 /* Pre-llenar con nota guardada si existe */
 var map=getNotasMap();var exN=map[tipo]||[];
 var savedTxt=exN.length?(exN[exN.length-1].contenido||exN[exN.length-1].texto||''):'';
+var savedNote=exN.length?exN[exN.length-1]:null;
 
 o+='<div class="fg"><textarea id="nt-cont" class="ta" rows="3" placeholder="'+(tipo==='TRIAJE'?'Observaciones del triaje...':tipo==='EVALUACION'?'Conclusión clínica...':'Nota clínica...')+'">'+E(savedTxt)+'</textarea></div>';
 o+='<button class="btn btn-p btn-f" style="padding:10px" onclick="saveNota(\''+tipo+'\')">💾 Guardar</button>';
 b.innerHTML=o;openDw('nota');
+
+/* Pre-llenar campos de triaje si hay datos guardados */
+if(tipo==='TRIAJE'&&savedNote){
+  if(savedNote.peso){var el=document.getElementById('nt-peso');if(el)el.value=savedNote.peso;}
+  if(savedNote.talla){var el=document.getElementById('nt-talla');if(el)el.value=savedNote.talla;}
+  if(savedNote.presion_arterial){var el=document.getElementById('nt-pa');if(el)el.value=savedNote.presion_arterial;}
+  if(savedNote.frecuencia_cardiaca){var el=document.getElementById('nt-fc');if(el)el.value=savedNote.frecuencia_cardiaca;}
+  if(savedNote.temperatura){var el=document.getElementById('nt-temp');if(el)el.value=savedNote.temperatura;}
+  if(savedNote.saturacion){var el=document.getElementById('nt-sat');if(el)el.value=savedNote.saturacion;}
+  if(savedNote.peso&&savedNote.talla){try{calcIMC();}catch(e){}}
+  try{calcVitales();}catch(e){}
+}
 if(tipo==='EVALUACION')evTipoChange();}
 
 /* Helper: Sí/No con desplegable */
