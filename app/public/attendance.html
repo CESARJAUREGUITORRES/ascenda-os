@@ -541,7 +541,30 @@ if(tipo==='TRIAJE'&&savedNote){
   if(savedNote.peso&&savedNote.talla){try{calcIMC();}catch(e){}}
   try{calcVitales();}catch(e){}
 }
-if(tipo==='EVALUACION')evTipoChange();}
+if(tipo==='EVALUACION'){
+  evTipoChange();
+  /* Pre-cargar datos guardados de evaluación */
+  sbF('/rest/v1/aos_evaluaciones_clinicas?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&order=created_at.desc&limit=1').then(function(rows){
+    if(!rows||!rows.length)return;
+    var ev=rows[0];
+    var sel=document.getElementById('ev-tipo');
+    if(sel&&ev.tipo_evaluacion){sel.value=ev.tipo_evaluacion;evTipoChange();}
+    setTimeout(function(){
+      if(ev.nivel_estres){var e=document.getElementById('ev-estres');if(e)e.value=ev.nivel_estres;}
+      if(ev.detalles_evaluador){var e=document.getElementById('ev-evaluador');if(e)e.value=ev.detalles_evaluador;}
+      if(ev.objetivo_paciente){var e=document.getElementById('ev-objetivo');if(e)e.value=ev.objetivo_paciente;}
+      if(ev.productos_detalle&&ev.productos_detalle!=='No'){var e=document.getElementById('ev-productos');if(e){e.value='Sí';togDet('ev-productos');}var t=document.getElementById('ev-productos-txt');if(t)t.value=ev.productos_detalle;}
+      if(ev.procedimientos_detalle&&ev.procedimientos_detalle!=='No'){var e=document.getElementById('ev-previos');if(e){e.value='Sí';togDet('ev-previos');}var t=document.getElementById('ev-previos-txt');if(t)t.value=ev.procedimientos_detalle;}
+      if(ev.fotoprotector_detalle&&ev.fotoprotector_detalle!=='No'){var e=document.getElementById('ev-solar');if(e){e.value='Sí';togDet('ev-solar');}var t=document.getElementById('ev-solar-txt');if(t)t.value=ev.fotoprotector_detalle;}
+      if(ev.tipo_evaluacion==='FACIAL'){
+        if(ev.tipo_piel){var e=document.getElementById('ev-piel');if(e)e.value=ev.tipo_piel;}
+        if(ev.fototipo){var e=document.getElementById('ev-foto');if(e)e.value=ev.fototipo;}
+        if(ev.glogau){var e=document.getElementById('ev-glogau');if(e)e.value=ev.glogau;}
+        if(ev.zonas_faciales){try{var z=typeof ev.zonas_faciales==='string'?JSON.parse(ev.zonas_faciales):ev.zonas_faciales;z.forEach(function(v){document.querySelectorAll('.ev-zona-chk').forEach(function(ch){if(ch.value===v)ch.checked=true;});});}catch(e){}}
+      }
+    },100);
+  });
+}}
 
 /* Helper: Sí/No con desplegable */
 function siNo(label,id,ph){return '<div style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><label class="fl" style="margin:0;flex:1">'+label+'</label><select id="'+id+'" class="fi fs" style="width:60px" onchange="togDet(\''+id+'\')"><option>No</option><option>Sí</option></select></div><div id="'+id+'-det" style="display:none"><input id="'+id+'-txt" class="fi" placeholder="'+E(ph)+'" style="font-size:9px"></div></div>';}

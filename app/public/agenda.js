@@ -393,7 +393,7 @@ function agSelEstado(btn){
     var sel=el('det-asistente');
     /* Siempre recargar al cambiar estado */
     sel.innerHTML='<option value="">— Seleccionar —</option>';
-    fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&puesto=ilike.*ENFERMER*&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&puesto=ilike.%2AENFERMER%2A&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
       .then(function(r){return r.json()}).then(function(rows){
         if(!rows||!rows.length){
           /* Fallback: cargar todos si no hay enfermeros */
