@@ -2177,6 +2177,10 @@ function editarPagoItem(idx) {
 function grabarCotizacion() {
   if (!VT.items.length) { toast('Agrega al menos un ítem','warn'); return; }
   if (VT._guardando) { toast('Ya se está grabando...','warn'); return; }
+  /* FIX: Bloquear si no hay paciente seleccionado — evita "CLIENTE DIRECTO" */
+  if (!VT.pac || !(VT.pac.numero || VT.pac.celular || VT.pac.numero_limpio)) {
+    toast('⚠️ Selecciona un paciente antes de grabar','warn'); return;
+  }
   VT._guardando = true;
   var itemsConPago = VT.items.filter(function(it){ return it.pagado; });
   if (!itemsConPago.length) { VT._guardando = false; toast('Registra el pago de al menos un ítem','warn'); return; }
@@ -2238,12 +2242,18 @@ function grabarCotizacion() {
         itemsNuevos.forEach(function(it) {
           if (it.plan_item_id) {
             console.log('[CAJA] Actualizando plan item:', it.plan_item_id, 'sesiones:', it.cantidad);
-            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null }, function(r){console.log('[CAJA] Plan update result:', r);}, function(e){console.error('[CAJA] Plan update error:', e);});
+            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null, p_venta_id:d.venta_id||null }, function(r){console.log('[CAJA] Plan update result:', r);}, function(e){console.error('[CAJA] Plan update error:', e);});
           }
         });
+        finalizarGrabado();
+      } else {
+        /* FIX: Si la RPC no devolvió ok, mostrar error real */
+        VT._guardando = false; loading(false);
+        var errMsg = (d && d.error) ? d.error : (d && d.message) ? d.message : 'Error desconocido al grabar';
+        toast('❌ Error: ' + errMsg, 'err');
+        console.error('[CAJA] Venta NO grabada:', d);
       }
-      finalizarGrabado();
-    }, function(e){ console.error('[CAJA] Error grabando:', e); toast('Error al grabar venta','err'); loading(false); });
+    }, function(e){ VT._guardando = false; console.error('[CAJA] Error grabando:', e); toast('Error al grabar venta','err'); loading(false); });
   }
 
   function finalizarGrabado() {
