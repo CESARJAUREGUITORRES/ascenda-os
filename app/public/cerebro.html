@@ -923,63 +923,6 @@ navigator.mediaDevices.addEventListener('devicechange', async()=>{
   availableDevices = devs.filter(d=>d.kind==='audioinput');
 });
 
-// ── Supabase Realtime ────────────────────────────────────────────
-function checkSB(){
-  fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H}).then(r=>{
-    const on=r.ok;
-    document.getElementById('sb-dot').className='bc-dot'+(on?' on':'');
-    const lbl=document.getElementById('sb-lbl'); lbl.className=on?'on':''; lbl.textContent=on?'Live · Supabase':'Sin conexión';
-    if(!on)pushAlert('Supabase desconectado');
-  }).catch(()=>{
-    document.getElementById('sb-dot').className='bc-dot';
-    document.getElementById('sb-lbl').className='';
-    document.getElementById('sb-lbl').textContent='Sin conexión';
-  });
-}
-checkSB(); setInterval(checkSB, 30000);
-
-let ws=null, wsR=0;
-function connectRT(){
-  ws=new WebSocket('wss://ituyqwstonmhnfshnaqz.supabase.co/realtime/v1/websocket?apikey='+SK+'&vsn=1.0.0');
-  ws.onopen=()=>{ wsR=0; ws.send(JSON.stringify({topic:'realtime:public:aos_log_auditoria',event:'phx_join',payload:{config:{postgres_changes:[{event:'INSERT',schema:'public',table:'aos_log_auditoria'}]}},ref:'1'})); };
-  ws.onmessage=e=>{ try{ const msg=JSON.parse(e.data),rec=msg.payload?.data?.record||msg.payload?.record; if(rec&&rec.tabla&&rec.tabla!=='sistema'){activateTable(rec.tabla,rec.accion||'INSERT');} }catch(_){} };
-  ws.onclose=()=>{ wsR++; setTimeout(connectRT,Math.min(30000,2000*wsR)); };
-  ws.onerror=()=>ws.close();
-}
-setInterval(()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'})); }, 25000);
-connectRT();
-
-let lastId=0;
-async function poll(){
-  try{ const r=await fetch(SB+'/rest/v1/aos_log_auditoria?select=id,tabla,accion&id=gt.'+lastId+'&order=id.asc&limit=10',{headers:H}); const rows=await r.json(); if(Array.isArray(rows)&&rows.length){rows.forEach(row=>{if(row.tabla&&row.tabla!=='sistema')activateTable(row.tabla,row.accion);lastId=Math.max(lastId,row.id);});} }catch(_){}
-}
-fetch(SB+'/rest/v1/aos_log_auditoria?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).then(d=>{ if(d&&d[0])lastId=d[0].id; });
-setInterval(poll, 8000);
-
-async function rqWake(){ try{ if('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }catch(_){} }
-rqWake(); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')rqWake(); });
-
-// ── Draw loop ────────────────────────────────────────────────────
-let paused = false;
-document.addEventListener('visibilitychange', ()=>{ paused = document.hidden; });
-
-function draw(){
-  ctx.fillStyle='rgba(248,250,254,0.13)';ctx.fillRect(0,0,W,H2);
-  cam.z+=(cam.tz-cam.z)*0.07;
-  document.getElementById('zpill').textContent='zoom '+cam.z.toFixed(1)+'×';
-  if(!paused&&nodes.some(n=>n.pulse>0.05))phys(.985);
-  ctx.save();ctx.translate(W/2+cam.x,H2/2+cam.y);ctx.scale(cam.z,cam.z);ctx.translate(-W/2,-H2/2);
-  edges.forEach(e=>{const p=Math.max(e.a.pulse,e.b.pulse),ci=e.cross?lR(e.a.idle,e.b.idle,.5):e.a.idle,ca=e.cross?lR(e.a.live,e.b.live,.5):e.a.live,c=lR(ci,ca,p);ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.strokeStyle='rgba('+c+','+(e.cross?0.05+p*.6:0.16+p*.45).toFixed(2)+')';ctx.lineWidth=(e.cross?.38:.26)/cam.z;ctx.stroke();});
-  nodes.forEach(n=>{n.phase+=n.pspd;if(n.pulse>0)n.pulse=Math.max(0,n.pulse-0.016);const p=n.pulse,c=lR(n.idle,n.live,p),isH=n===hovered,r=n.r+(isH?1.2:0);if(p>0.05||isH){ctx.beginPath();ctx.arc(n.x,n.y,r*(2.6+p*2.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.08+(isH?.05:0)).toFixed(2)+')';ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,r*(1.4+p*.8),0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(p*.18+(isH?.12:0)).toFixed(2)+')';ctx.fill();}ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle='rgba('+c+','+(0.68+p*.32).toFixed(2)+')';ctx.fill();if(r>1.0){ctx.beginPath();ctx.arc(n.x,n.y,r*.28,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+(0.48+p*.45).toFixed(2)+')';ctx.fill();}if(n.label&&cam.z>.55){const sz=Math.max(6.5,9/cam.z);ctx.font='600 '+sz+'px \'SF Pro Display\',\'Segoe UI\',sans-serif';ctx.textAlign='center';const cc=lR(n.idle,n.live,Math.max(.25,p));ctx.fillStyle='rgba('+cc+','+Math.min(.7,.15+cam.z*.32)+')';ctx.fillText(n.label,n.x,n.y-r-2.5/cam.z);}});
-  for(let i=travelers.length-1;i>=0;i--){const tv=travelers[i];tv.t+=tv.speed;if(tv.t>=1){travelers.splice(i,1);continue;}const x=tv.a.x+(tv.b.x-tv.a.x)*tv.t,y=tv.a.y+(tv.b.y-tv.a.y)*tv.t,xt=tv.a.x+(tv.b.x-tv.a.x)*Math.max(0,tv.t-.18),yt=tv.a.y+(tv.b.y-tv.a.y)*Math.max(0,tv.t-.18);const g2=ctx.createLinearGradient(xt,yt,x,y);g2.addColorStop(0,'rgba('+tv.color+',0)');g2.addColorStop(1,'rgba('+tv.color+',.95)');ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(x,y);ctx.strokeStyle=g2;ctx.lineWidth=1.8/cam.z;ctx.stroke();const hr=2.4/cam.z;ctx.beginPath();ctx.arc(x,y,hr*2.2,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.12)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr,0,Math.PI*2);ctx.fillStyle='rgba('+tv.color+',.95)';ctx.fill();ctx.beginPath();ctx.arc(x,y,hr*.32,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.9)';ctx.fill();}
-  ctx.restore();
-  requestAnimationFrame(draw);
-}
-
-// ── Init ─────────────────────────────────────────────────────────
-initG();
-setTimeout(()=>{ pushInsight('KronIA v4 lista','Toca 🧠 KronIA → acepta el micrófono → presiona el botón y habla.'); }, 800);
-draw();
 </script>
 </body>
 </html>
