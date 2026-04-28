@@ -2224,7 +2224,9 @@ function grabarCotizacion() {
           metodo1:it.metodoPago||'', monto1:parseFloat(it.monto1||it.subtotal),
           metodo2:it.metodoPago2||'', monto2:parseFloat(it.monto2||0),
           comprobante:it.comprobante||'BOLETA VIRTUAL', asesor:it.asesorComision||'', atendio:it.atendio||'',
-          estado_pago:it.estadoPago||'PAGO COMPLETO' };
+          estado_pago:it.estadoPago||'PAGO COMPLETO',
+          plan_item_id:it.plan_item_id||'',
+          nombre_limpio:it.nombre.replace(/\s*\(\d+\/\d+\s*ses\)\s*$/i,'') };
       }),
       p_metodo_pago: (itemsNuevos[0] && itemsNuevos[0].metodoPago) || '',
       p_monto_total: totalNuevo, p_moneda: 'PEN',
@@ -2237,14 +2239,8 @@ function grabarCotizacion() {
     }, function(d) {
       console.log('[CAJA] grabar resultado:', d);
       if (d && d.ok) {
-        resultados.push('Venta: ' + (d.lineas||1) + ' items');
-        // Actualizar plan de trabajo
-        itemsNuevos.forEach(function(it) {
-          if (it.plan_item_id) {
-            console.log('[CAJA] Actualizando plan item:', it.plan_item_id, 'sesiones:', it.cantidad);
-            rpc('aos_actualizar_plan_tras_pago', { p_plan_item_id:it.plan_item_id, p_sesiones_pagadas:it.cantidad||1, p_cotizacion_id:d.cotizacion_id||null, p_venta_id:d.venta_id||null }, function(r){console.log('[CAJA] Plan update result:', r);}, function(e){console.error('[CAJA] Plan update error:', e);});
-          }
-        });
+        resultados.push('Venta: ' + (d.lineas||1) + ' items, ' + (d.sesiones_creadas||0) + ' sesiones');
+        /* Plan items ya se actualizan dentro de la RPC (atómico) */
         finalizarGrabado();
       } else {
         /* FIX: Si la RPC no devolvió ok, mostrar error real */

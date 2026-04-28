@@ -1523,153 +1523,106 @@ function openProcedimiento(){
   var c=AT.sel;if(!c)return;
   document.getElementById('dw-nota-t').textContent='💉 Procedimiento';
   var b=document.getElementById('dw-nota-b');
-  var esAsistente=c.es_asistente||false;
 
   b.innerHTML='<div style="text-align:center;padding:20px;color:var(--mt);font-size:9px">Buscando tratamientos pagados...</div>';
   openDw('nota');
 
-  /* Buscar tratamientos pagados via RPC */
+  /* Buscar sesiones individuales via RPC */
   sbR('aos_tratamientos_procedimiento',{p_numero:c.numero_limpio,p_fecha:c.fecha,p_profesional:AOS.ctx?AOS.ctx.nombre:''}).then(function(res){
     if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar tratamientos</div>';return;}
-    var trats=res.tratamientos||[];
+    var sesiones=res.tratamientos||[];
 
     var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
 
-    if(esAsistente){
-      o+='<div style="padding:10px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;font-size:9px;color:#D97706;margin-bottom:8px">⚠️ Asististe en esta atención. Solo la doctora documenta el procedimiento.</div>';
-    }
-
-    if(!trats.length){
+    if(!sesiones.length){
       o+='<div style="padding:16px;background:#F8FAFF;border:1.5px solid var(--bd2);border-radius:10px;text-align:center">';
       o+='<div style="font-size:24px;margin-bottom:6px">📋</div>';
-      o+='<div style="font-size:10px;font-weight:700;color:var(--deep);margin-bottom:4px">Sin tratamientos pagados pendientes</div>';
-      o+='<div style="font-size:8px;color:var(--mt)">Los tratamientos aparecen aquí después de que el paciente pague en Caja.<br>Si ya pagó, verifica que el plan de trabajo esté vinculado a la venta.</div>';
+      o+='<div style="font-size:10px;font-weight:700;color:var(--deep);margin-bottom:4px">Sin sesiones pagadas pendientes</div>';
+      o+='<div style="font-size:8px;color:var(--mt)">Las sesiones aparecen aquí después de pagar en Caja.</div>';
       o+='</div>';
       b.innerHTML=o;return;
     }
 
-    /* Guardar tratamientos en estado global */
-    window._procTrats=trats;
+    window._procSesiones=sesiones;
 
-    /* Chips de tratamientos pagados */
-    o+='<div class="at-sc" style="margin-bottom:4px">Tratamientos pagados ('+trats.length+')</div>';
+    /* Chips de sesiones — cada uno es clickeable */
+    o+='<div class="at-sc" style="margin-bottom:4px">Sesiones pagadas ('+sesiones.length+')</div>';
     o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
-    trats.forEach(function(t,i){
-      var est=t.estado_procedimiento==='PROGRAMADO'?'📅 Programado':'⏳ Pendiente';
-      var bg=t.estado_procedimiento==='PROGRAMADO'?'#FEF3C7':'#EBF2FF';
-      var brd=t.estado_procedimiento==='PROGRAMADO'?'#D97706':'var(--blue)';
-      var col=t.estado_procedimiento==='PROGRAMADO'?'#D97706':'var(--blue)';
-      o+='<div style="padding:5px 12px;background:'+bg+';color:'+col+';border:1.5px solid '+brd+';border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="procSelectTrat('+i+')">';
-      o+=E(t.tratamiento)+' <span style="font-size:7px;opacity:.7">S/'+parseFloat(t.monto||0).toFixed(0)+'</span>';
+    sesiones.forEach(function(s,i){
+      var isProg=s.estado==='PROGRAMADO';
+      var bg=isProg?'#FEF3C7':'#EBF2FF';
+      var brd=isProg?'#D97706':'var(--blue)';
+      var col=isProg?'#D97706':'var(--blue)';
+      var label=s.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')';
+      var badge=isProg?'📅':'⏳';
+      o+='<div style="padding:5px 12px;background:'+bg+';color:'+col+';border:1.5px solid '+brd+';border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="procSelectSesion('+i+')">';
+      o+=badge+' '+E(label)+' <span style="font-size:7px;opacity:.7">S/'+parseFloat(s.monto||0).toFixed(0)+'</span>';
       o+='</div>';
     });
     o+='</div>';
 
-    /* Área de formulario dinámico — se carga al hacer click en un chip */
-    o+='<div id="proc-form-area"><div style="text-align:center;padding:12px;color:var(--mt);font-size:9px">Selecciona un tratamiento para rellenar el procedimiento</div></div>';
-
+    o+='<div id="proc-form-area"><div style="text-align:center;padding:12px;color:var(--mt);font-size:9px">Selecciona una sesión para registrar el procedimiento</div></div>';
     b.innerHTML=o;
   });
 }
 
-/* Seleccionar un tratamiento y mostrar su formulario */
-function procSelectTrat(idx){
-  var t=window._procTrats[idx];if(!t)return;
+/* Seleccionar una sesión individual */
+function procSelectSesion(idx){
+  var s=window._procSesiones[idx];if(!s)return;
   var c=AT.sel;if(!c)return;
   window._procSelIdx=idx;
 
-  var map=getNotasMap();var exProc=map['NOTA_PROCEDIMIENTO']||[];
-  /* Buscar nota guardada para ESTE tratamiento específico */
-  var saved=null;
-  exProc.forEach(function(n){if((n.contenido||'').indexOf('[PROC] '+t.tratamiento)>-1)saved=n;});
-  var savedZonas=[];var savedDesc='';var savedObs='';var savedRes='Satisfactorio';var savedTol='Buena';var savedPost='';
-  if(saved){
-    var txt=saved.contenido||'';
-    var zMatch=txt.match(/Zona: (.+)/);if(zMatch)savedZonas=zMatch[1].split(', ');
-    var pMatch=txt.match(/Procedimiento: (.+)/);if(pMatch)savedDesc=pMatch[1];
-    var oMatch=txt.match(/Observaciones: (.+)/);if(oMatch)savedObs=oMatch[1];
-    var rMatch=txt.match(/Resultado: (\w+)/);if(rMatch)savedRes=rMatch[1];
-    var tMatch=txt.match(/Tolerancia: (.+)/);if(tMatch)savedTol=tMatch[1].trim();
-    var ppMatch=txt.match(/Post-procedimiento: (.+)/);if(ppMatch)savedPost=ppMatch[1];
-  }
+  var isProg=s.estado==='PROGRAMADO';
+  var label=s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')';
 
   var o='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">';
-  o+='<div style="padding:5px 14px;background:var(--blue);color:#fff;border-radius:8px;font-size:11px;font-weight:800">'+E(t.tratamiento)+'</div>';
-  o+='<span style="font-size:8px;color:var(--mt)">S/'+parseFloat(t.monto||0).toFixed(0)+' · '+E(t.estado_pago||'')+'</span>';
-  if(t.plan_id)o+='<span style="font-size:7px;padding:2px 6px;background:#F0FDF4;color:var(--gn);border-radius:8px;font-weight:700">📋 Plan</span>';
+  o+='<div style="padding:5px 14px;background:var(--blue);color:#fff;border-radius:8px;font-size:11px;font-weight:800">'+E(label)+'</div>';
+  o+='<span style="font-size:8px;color:var(--mt)">S/'+parseFloat(s.monto||0).toFixed(0)+' · '+E(s.estado_pago||'PAGADO')+'</span>';
+  if(s.plan_item_id)o+='<span style="font-size:7px;padding:2px 6px;background:#F0FDF4;color:var(--gn);border-radius:8px;font-weight:700">📋 Plan</span>';
   o+='</div>';
 
-  /* Checkbox programar */
-  var isProg=t.estado_procedimiento==='PROGRAMADO';
-  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"'+(isProg?' checked':'')+'>📅 Este tratamiento se programará para otro día (no se realiza hoy)</label>';
+  /* Checkbox programar — solo marca estado, NO pide fecha aquí */
+  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"'+(isProg?' checked':'')+'>📅 Programar para otro día (no se realiza hoy)</label>';
 
-  /* Zona de programar (oculta por defecto) */
-  o+='<div id="proc-prog-zone" style="display:'+(isProg?'block':'none')+';padding:10px;background:#FFFBEB;border:1px solid #D97706;border-radius:8px;margin-bottom:8px">';
-  o+='<div class="fg"><label class="fl">Fecha programada</label><input id="proc-prog-fecha" type="date" class="fi" min="'+new Date(Date.now()+86400000).toISOString().slice(0,10)+'"></div>';
-  o+='<div class="fg"><label class="fl">Profesional asignado</label><select id="proc-prog-prof" class="fi fs"><option value="">— Seleccionar —</option></select></div>';
-  o+='<div style="font-size:7px;color:var(--mt);margin-top:4px">Se creará una cita automáticamente en la agenda para esa fecha.</div>';
-  o+='</div>';
-
-  /* Formulario de procedimiento (visible si no está programado) */
+  /* Formulario de procedimiento (visible si NO está programado) */
   o+='<div id="proc-form" style="display:'+(isProg?'none':'block')+'">';
   o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
   o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
   var zonasProc=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpados','Pómulos','Nariz','Surco nasogeniano','Mejillas','Labios','Mentón','Mandíbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
-  zonasProc.forEach(function(z){var chk=savedZonas.indexOf(z)>-1?' checked':'';o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"'+chk+'><span>'+E(z)+'</span></label>';});
+  zonasProc.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
   o+='</div>';
-  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado...">'+E(savedDesc)+'</textarea></div>';
-  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia del paciente...">'+E(savedObs)+'</textarea></div>';
+  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia del paciente..."></textarea></div>';
   o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
   o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs">';
-  ['Satisfactorio','Parcial','Con observaciones','Complicación leve'].forEach(function(r){o+='<option'+(savedRes===r?' selected':'')+'>'+r+'</option>';});
+  ['Satisfactorio','Parcial','Con observaciones','Complicación leve'].forEach(function(r){o+='<option>'+r+'</option>';});
   o+='</select></div>';
   o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs">';
-  ['Buena','Regular','Mala — sensibilidad'].forEach(function(t2){o+='<option'+(savedTol===t2?' selected':'')+'>'+t2+'</option>';});
+  ['Buena','Regular','Mala — sensibilidad'].forEach(function(t2){o+='<option>'+t2+'</option>';});
   o+='</select></div></div>';
-  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h...">'+E(savedPost)+'</textarea></div>';
+  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h..."></textarea></div>';
   o+='</div>';
 
   o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
 
   document.getElementById('proc-form-area').innerHTML=o;
-
-  /* Cargar profesionales en selector de programar */
-  var selProf=document.getElementById('proc-prog-prof');
-  if(selProf){
-    sbF('/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre').then(function(rows){
-      (rows||[]).forEach(function(r){
-        selProf.innerHTML+='<option value="'+E(r.nombre)+'">'+E(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+E(r.puesto||'')+')</option>';
-      });
-    });
-  }
 }
 
 function saveProcedimiento(){
   var c=AT.sel;if(!c)return;
   var idx=window._procSelIdx;
-  var t=window._procTrats&&window._procTrats[idx];
-  if(!t){if(window.AOS_showToast)AOS_showToast('Selecciona un tratamiento','','toast-alerta');return;}
+  var s=window._procSesiones&&window._procSesiones[idx];
+  if(!s){if(window.AOS_showToast)AOS_showToast('Selecciona una sesión','','toast-alerta');return;}
 
-  var tratTexto=t.tratamiento;
   var programar=document.getElementById('proc-programar')&&document.getElementById('proc-programar').checked;
   var contenido;
+  var nuevoEstado;
 
   if(programar){
-    var fechaProg=(document.getElementById('proc-prog-fecha')||{}).value||'';
-    var profProg=(document.getElementById('proc-prog-prof')||{}).value||'';
-    if(!fechaProg){if(window.AOS_showToast)AOS_showToast('Selecciona fecha para programar','','toast-alerta');return;}
-    contenido='[PROC] '+tratTexto+'\n[PROGRAMADO] para '+fechaProg+(profProg?' con '+profProg:'')+'\n';
-
-    /* Crear cita automática en la agenda */
-    sbW('aos_agenda_citas',{
-      numero_limpio:c.numero_limpio,nombre:c.nombre||'',apellido:c.apellido||'',
-      fecha_cita:fechaProg,hora_cita:'10:00',sede:c.sede||'SAN ISIDRO',
-      tipo_cita:'Control recurrente',tipo_atencion:'ENFERMERIA',
-      tratamiento:tratTexto,asesor:profProg||'',
-      estado_cita:'PENDIENTE',
-      obs:'Programado desde procedimiento del '+c.fecha+' | Plan: '+(t.plan_id||'sin plan')
-    });
+    nuevoEstado='PROGRAMADO';
+    contenido='[PROC] '+s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')\n[PROGRAMADO]\n';
   } else {
+    nuevoEstado='REALIZADO';
     var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(ch){zonas.push(ch.value)});
     var zona=zonas.join(', ');
     var desc=(document.getElementById('proc-desc')||{}).value||'';
@@ -1677,29 +1630,37 @@ function saveProcedimiento(){
     var resultado=(document.getElementById('proc-resultado')||{}).value||'';
     var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
     var post=(document.getElementById('proc-post')||{}).value||'';
-    contenido='[PROC] '+tratTexto+'\n[REALIZADO]\n';
+    contenido='[PROC] '+s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')\n[REALIZADO]\n';
     if(zona)contenido+='Zona: '+zona+'\n';
     if(desc)contenido+='Procedimiento: '+desc+'\n';
     if(obs)contenido+='Observaciones: '+obs+'\n';
     contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
     if(post)contenido+='Post-procedimiento: '+post+'\n';
-
-    /* Actualizar estado del item del plan si existe */
-    if(t.plan_item_id){
-      sbPatch('aos_plan_trabajo_items','id=eq.'+t.plan_item_id,{estado_item:'COMPLETADO',venta_id:t.venta_id||null,updated_at:new Date().toISOString()});
-    }
   }
 
+  /* Guardar nota clínica */
   sbW('aos_notas_clinicas',{
     numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,
     contenido:contenido,
     autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
     autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
   }).then(function(r){
-    if(r.ok){closeDw();_openTipo=null;if(window.AOS_showToast)AOS_showToast('✅ Procedimiento guardado'+(programar?' — Cita programada para '+((document.getElementById('proc-prog-fecha')||{}).value||''):''),'','');loadDet();}
-    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
+    if(!r.ok){if(window.AOS_showToast)AOS_showToast('Error guardando nota','','toast-alerta');return;}
+
+    /* Actualizar estado de la sesión en aos_sesiones_tratamiento */
+    var updateData={estado:nuevoEstado,updated_at:new Date().toISOString()};
+    if(nuevoEstado==='REALIZADO'){
+      updateData.fecha_realizado=c.fecha;
+      updateData.profesional_realizado=AOS.ctx?AOS.ctx.nombre:'';
+    }
+    sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,updateData).then(function(){
+      closeDw();_openTipo=null;
+      if(window.AOS_showToast)AOS_showToast('✅ Sesión '+(programar?'marcada para programar':'realizada'),''+s.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
+      loadDet();
+    });
   });
 }
+
 function procToggleForm(){
   var chk=document.getElementById('proc-programar');
   var form=document.getElementById('proc-form');
