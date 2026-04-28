@@ -731,55 +731,77 @@ sbW('aos_notas_clinicas',d).then(function(r){if(r.ok){closeDw();_openTipo=null;i
 function rProgramar(el){var c=AT.sel;if(!c)return;
 var o='<div class="at-sc">📅 Programar — '+E((c.nombre||'')+' '+(c.apellido||''))+'</div>';
 
-/* Cargar plan + notas de procedimiento para detectar qué se hizo */
-var map=getNotasMap();
-var procNotas=map['NOTA_PROCEDIMIENTO']||[];
-var tratHechos=[];var tratProgramar=[];
-procNotas.forEach(function(n){
-  var txt=n.contenido||'';
-  var m=txt.match(/\[PROC\] (.+)/);if(!m)return;
-  var nombre=m[1].trim();
-  if(txt.indexOf('[REALIZADO]')>-1)tratHechos.push(nombre);
-  if(txt.indexOf('[PROGRAMAR]')>-1)tratProgramar.push(nombre);
-});
+sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
+  if(!res||!res.ok){el.innerHTML=o+'<div style="font-size:9px;color:var(--rd)">Error al cargar</div>';return;}
+  var grupos=res.grupos||[];
+  var planPend=res.plan_pendientes||[];
 
-sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc').then(function(items){
-  items=items||[];
+  if(!grupos.length&&!planPend.length){
+    el.innerHTML=o+'<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin tratamientos para programar</div>';return;
+  }
 
-  /* Sección 1: Tratamientos REALIZADOS — programar control o siguiente sesión */
-  if(tratHechos.length){
+  /* Sección: Sesiones realizadas hoy → programar control */
+  var realizadas=[];var programadas=[];var pendientes=[];
+  grupos.forEach(function(g){
+    (g.sesiones||[]).forEach(function(s){
+      s._grupo=g.tratamiento;
+      if(s.estado==='REALIZADO')realizadas.push(s);
+      else if(s.estado==='PROGRAMADO')programadas.push(s);
+      else pendientes.push(s);
+    });
+  });
+
+  if(realizadas.length){
     o+='<div class="at-sc" style="color:var(--gn)">✅ Realizados — programar control/sesión</div>';
-    tratHechos.forEach(function(t){
-      o+='<div style="padding:8px;border:1.5px solid var(--gn);border-radius:var(--r);margin-bottom:4px;background:#F0FDF4;cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'Control\')">';
-      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">✅</span><b style="flex:1;font-size:10px">'+E(t)+'</b>';
-      o+='<span style="font-size:8px;background:var(--gn);color:#fff;padding:2px 8px;border-radius:4px">Programar control →</span></div></div>';
+    realizadas.forEach(function(s){
+      o+='<div style="padding:6px 8px;border:1.5px solid #BBF7D0;border-radius:var(--r);margin-bottom:3px;background:#F0FDF4;display:flex;align-items:center;gap:6px">';
+      o+='<span style="font-size:10px">✅</span><div style="flex:1"><div style="font-size:9px;font-weight:700">'+E(s._grupo)+' ('+s.sesion_numero+'/'+s.total_sesiones+')</div>';
+      if(s.resumen_procedimiento)o+='<div style="font-size:7px;color:var(--mt)">'+E(s.resumen_procedimiento)+'</div>';
+      o+='</div>';
+      if(s.sesion_numero<s.total_sesiones){o+='<span style="font-size:7px;background:var(--gn);color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="abrirModalProg(\''+E(s._grupo)+'\',\'Control\')">Programar control →</span>';}
+      o+='</div>';
     });
   }
 
-  /* Sección 2: Marcados para PROGRAMAR APLICACIÓN (pagado pero no hecho hoy) */
-  if(tratProgramar.length){
-    o+='<div class="at-sc" style="color:var(--blue)">💰 Pagados — programar aplicación</div>';
-    tratProgramar.forEach(function(t){
-      o+='<div style="padding:8px;border:1.5px solid var(--cyan);border-radius:var(--r);margin-bottom:4px;background:rgba(0,201,167,.04);cursor:pointer" onclick="abrirModalProg(\''+E(t)+'\',\'Aplicacion\')">';
-      o+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">💰</span><b style="flex:1;font-size:10px">'+E(t)+'</b>';
-      o+='<span style="font-size:8px;background:var(--cyan);color:#fff;padding:2px 8px;border-radius:4px">Programar aplicación →</span></div></div>';
+  /* Sección: Sesiones PROGRAMADAS — con fecha o sin fecha */
+  if(programadas.length){
+    o+='<div class="at-sc" style="color:#D97706">📅 Programadas</div>';
+    programadas.forEach(function(s){
+      var pagoBadge=s.estado_pago==='PAGADO'?'<span style="font-size:6px;background:#F0FDF4;color:var(--gn);padding:1px 4px;border-radius:3px">PAGADO</span>':
+        s.estado_pago==='ADELANTO'?'<span style="font-size:6px;background:#FEF3C7;color:#D97706;padding:1px 4px;border-radius:3px">ADELANTO S/'+s.monto_pagado+' | Saldo S/'+s.saldo_sesion+'</span>':
+        '<span style="font-size:6px;background:#FEE2E2;color:var(--rd);padding:1px 4px;border-radius:3px">PEND. PAGO</span>';
+      o+='<div style="padding:6px 8px;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:3px;background:#FFFBEB;display:flex;align-items:center;gap:6px">';
+      o+='<span style="font-size:10px">📅</span><div style="flex:1"><div style="font-size:9px;font-weight:700">'+E(s._grupo)+' ('+s.sesion_numero+'/'+s.total_sesiones+')</div>';
+      o+='<div style="display:flex;gap:3px;margin-top:1px">'+pagoBadge+'</div>';
+      if(s.fecha_programado)o+='<div style="font-size:7px;color:#D97706">Fecha: '+E(s.fecha_programado)+'</div>';
+      o+='</div>';
+      o+='<span style="font-size:8px;font-weight:700;color:var(--deep)">S/'+parseFloat(s.precio_sesion||0).toFixed(0)+'</span>';
+      o+='<span style="font-size:7px;background:#D97706;color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="abrirModalProgSesion(\''+s.sesion_id+'\',\''+E(s._grupo)+'\')">📅 Agendar</span>';
+      o+='</div>';
     });
   }
 
-  /* Sección 3: Pendientes de pago — standby */
-  var pendientes=items.filter(function(it){return it.estado_item==='PENDIENTE';});
+  /* Sección: Sesiones PENDIENTES pagadas pero no gestionadas */
   if(pendientes.length){
-    o+='<div class="at-sc" style="color:#D97706">⏳ Pendientes de pago</div>';
-    pendientes.forEach(function(it){
-      o+='<div style="padding:5px 8px;border:1px solid #FEF3C7;border-radius:var(--r);margin-bottom:2px;background:#FFFBEB;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="abrirModalProg(\''+E(it.nombre_servicio)+'\',\'CONSULTA NUEVA\')">';
-      o+='<span style="font-size:10px">📋</span><span style="flex:1;font-size:8px;font-weight:600">'+E(it.nombre_servicio)+'</span>';
-      o+='<span style="font-size:7px;color:#D97706">'+it.num_sesiones+' ses — S/'+parseFloat(it.precio_unitario||0).toFixed(0)+'</span>';
-      o+='<span style="font-size:7px;background:#D97706;color:#fff;padding:1px 5px;border-radius:3px">Programar</span></div>';
+    o+='<div class="at-sc" style="color:var(--blue)">⏳ Pendientes de gestión</div>';
+    pendientes.forEach(function(s){
+      var pagoBadge=s.estado_pago==='PAGADO'?'PAGADO':s.estado_pago==='ADELANTO'?'ADELANTO S/'+s.monto_pagado:'PEND. PAGO';
+      o+='<div style="padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:2px;background:#F8FAFF;display:flex;align-items:center;gap:6px">';
+      o+='<span style="font-size:10px">⏳</span><span style="flex:1;font-size:8px;font-weight:600">'+E(s._grupo)+' ('+s.sesion_numero+'/'+s.total_sesiones+')</span>';
+      o+='<span style="font-size:7px;color:var(--mt)">'+pagoBadge+' — S/'+parseFloat(s.precio_sesion||0).toFixed(0)+'</span>';
+      o+='<span style="font-size:7px;background:var(--blue);color:#fff;padding:1px 5px;border-radius:3px;cursor:pointer" onclick="abrirModalProgSesion(\''+s.sesion_id+'\',\''+E(s._grupo)+'\')">Programar</span>';
+      o+='</div>';
     });
   }
 
-  if(!tratProgramar.length&&!items.length){
-    o+='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin tratamientos para programar</div>';
+  /* Sección: Items del plan NO pagados */
+  if(planPend.length){
+    o+='<div class="at-sc" style="color:#D97706">💰 Plan — pendientes de pago</div>';
+    planPend.forEach(function(it){
+      o+='<div style="padding:5px 8px;border:1px solid #FEF3C7;border-radius:var(--r);margin-bottom:2px;background:#FFFBEB;display:flex;align-items:center;gap:6px">';
+      o+='<span style="font-size:10px">📋</span><span style="flex:1;font-size:8px;font-weight:600">'+E(it.nombre)+'</span>';
+      o+='<span style="font-size:7px;color:#D97706">'+it.sesiones+' ses — S/'+parseFloat(it.precio||0).toFixed(0)+'</span></div>';
+    });
   }
 
   /* Citas futuras */
@@ -788,6 +810,50 @@ sbF('/rest/v1/aos_plan_trabajo_items?numero_limpio=eq.'+c.numero_limpio+'&order=
 
   el.innerHTML=o;
 });
+}
+
+function abrirModalProgSesion(sesionId,tratNombre){
+  var c=AT.sel;if(!c)return;
+  var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)this.remove()" id="modal-prog-ses">';
+  o+='<div style="background:#fff;border-radius:12px;max-width:400px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
+  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar sesión</b><br><span style="font-size:9px;opacity:.7">'+E(tratNombre)+'</span></div>';
+  o+='<div style="padding:14px 16px">';
+  o+='<div class="fg"><label class="fl">Fecha</label><input type="date" id="mps-fecha" class="fi" min="'+new Date(Date.now()+86400000).toISOString().slice(0,10)+'"></div>';
+  o+='<div class="fg"><label class="fl">Hora</label><input type="time" id="mps-hora" class="fi" value="10:00"></div>';
+  o+='<div class="fg"><label class="fl">Sede</label><select id="mps-sede" class="fi fs"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
+  o+='</div>';
+  o+='<div style="display:flex;gap:6px;padding:10px 16px;border-top:1px solid #DDE4F5">';
+  o+='<button style="flex:1;padding:8px;border:1px solid #DDE4F5;border-radius:8px;background:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="document.getElementById(\'modal-prog-ses\').remove()">Cancelar</button>';
+  o+='<button style="flex:1;padding:8px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="guardarProgSesion(\''+sesionId+'\',\''+E(tratNombre)+'\')">📅 Programar</button>';
+  o+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',o);
+}
+function guardarProgSesion(sesionId,tratNombre){
+  var c=AT.sel;if(!c)return;
+  var fecha=(document.getElementById('mps-fecha')||{}).value;
+  var hora=(document.getElementById('mps-hora')||{}).value||'10:00';
+  var sede=(document.getElementById('mps-sede')||{}).value||'SAN ISIDRO';
+  if(!fecha){if(window.AOS_showToast)AOS_showToast('Selecciona fecha','','toast-alerta');return;}
+  /* Crear cita en agenda */
+  sbW('aos_agenda_citas',{
+    numero_limpio:c.numero_limpio,nombre:c.nombre||'',apellido:c.apellido||'',
+    fecha_cita:fecha,hora_cita:hora,sede:sede,
+    tipo_cita:'Control recurrente',tipo_atencion:'ENFERMERIA',
+    tratamiento:tratNombre,asesor:AOS.ctx?AOS.ctx.nombre:'',
+    estado_cita:'PENDIENTE',origen_cita:'PROGRAMACION',
+    obs:'Programado desde atención del '+c.fecha
+  }).then(function(r){
+    /* Actualizar sesión con fecha programada y cita_id */
+    sbPatch('aos_sesiones_tratamiento','id=eq.'+sesionId,{
+      estado:'PROGRAMADO',fecha_programado:fecha,hora_programado:hora,
+      profesional_programado:AOS.ctx?AOS.ctx.nombre:'',
+      updated_at:new Date().toISOString()
+    }).then(function(){
+      var m=document.getElementById('modal-prog-ses');if(m)m.remove();
+      if(window.AOS_showToast)AOS_showToast('✅ Cita programada para '+fecha,tratNombre,'');
+      subTab('programar',document.querySelector('.at-sp[onclick*="programar"]'));
+    });
+  });
 }
 
 function abrirModalProg(trat,tipoCita){
@@ -1521,150 +1587,175 @@ function guardarNotaCliente(){
 /* ===== MOD-26: PROCEDIMIENTO ===== */
 function openProcedimiento(){
   var c=AT.sel;if(!c)return;
-  document.getElementById('dw-nota-t').textContent='💉 Procedimiento';
+  document.getElementById('dw-nota-t').textContent='\u{1F489} Procedimiento';
   var b=document.getElementById('dw-nota-b');
-
-  b.innerHTML='<div style="text-align:center;padding:20px;color:var(--mt);font-size:9px">Buscando tratamientos pagados...</div>';
+  b.innerHTML='<div style="text-align:center;padding:20px;color:var(--mt);font-size:9px">Buscando sesiones...</div>';
   openDw('nota');
 
-  /* Buscar sesiones individuales via RPC */
   sbR('aos_tratamientos_procedimiento',{p_numero:c.numero_limpio,p_fecha:c.fecha,p_profesional:AOS.ctx?AOS.ctx.nombre:''}).then(function(res){
-    if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar tratamientos</div>';return;}
-    var sesiones=res.tratamientos||[];
-
-    var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
-
-    if(!sesiones.length){
+    if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar</div>';return;}
+    var grupos=res.grupos||[];
+    window._procGrupos=grupos;
+    var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' \u00B7 '+E(c.fecha)+'</div>';
+    if(!grupos.length){
       o+='<div style="padding:16px;background:#F8FAFF;border:1.5px solid var(--bd2);border-radius:10px;text-align:center">';
-      o+='<div style="font-size:24px;margin-bottom:6px">📋</div>';
-      o+='<div style="font-size:10px;font-weight:700;color:var(--deep);margin-bottom:4px">Sin sesiones pagadas pendientes</div>';
-      o+='<div style="font-size:8px;color:var(--mt)">Las sesiones aparecen aquí después de pagar en Caja.</div>';
-      o+='</div>';
+      o+='<div style="font-size:24px;margin-bottom:6px">\u{1F4CB}</div>';
+      o+='<div style="font-size:10px;font-weight:700;color:var(--deep)">Sin sesiones pagadas</div>';
+      o+='<div style="font-size:8px;color:var(--mt)">Las sesiones aparecen despu\u00E9s de pagar en Caja.</div></div>';
       b.innerHTML=o;return;
     }
-
-    window._procSesiones=sesiones;
-
-    /* Chips de sesiones — cada uno es clickeable */
-    o+='<div class="at-sc" style="margin-bottom:4px">Sesiones pagadas ('+sesiones.length+')</div>';
-    o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
-    sesiones.forEach(function(s,i){
-      var isProg=s.estado==='PROGRAMADO';
-      var bg=isProg?'#FEF3C7':'#EBF2FF';
-      var brd=isProg?'#D97706':'var(--blue)';
-      var col=isProg?'#D97706':'var(--blue)';
-      var label=s.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')';
-      var badge=isProg?'📅':'⏳';
-      o+='<div style="padding:5px 12px;background:'+bg+';color:'+col+';border:1.5px solid '+brd+';border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="procSelectSesion('+i+')">';
-      o+=badge+' '+E(label)+' <span style="font-size:7px;opacity:.7">S/'+parseFloat(s.monto||0).toFixed(0)+'</span>';
+    o+='<div class="at-sc">Tratamientos ('+grupos.length+')</div>';
+    grupos.forEach(function(g,gi){
+      var r=g.resumen||{};var sesiones=g.sesiones||[];
+      var tieneSaldo=(r.total_saldo||0)>0;
+      var borderCol=tieneSaldo?'#D97706':'var(--blue)';
+      var bgCol=tieneSaldo?'#FFFBEB':'#EBF2FF';
+      o+='<div style="border:1.5px solid '+borderCol+';border-radius:var(--r);margin-bottom:8px;overflow:hidden;background:var(--sf)">';
+      o+='<div style="padding:8px 10px;background:'+bgCol+';display:flex;align-items:center;gap:6px;cursor:pointer" onclick="procToggleGrupo('+gi+')">';
+      o+='<span style="font-size:14px">\u{1F489}</span>';
+      o+='<div style="flex:1"><div style="font-size:10px;font-weight:800;color:var(--deep)">'+E(g.tratamiento)+'</div>';
+      o+='<div style="font-size:7px;color:var(--mt)">'+(r.total||0)+' ses \u00B7 \u2705'+(r.realizadas||0)+' \u00B7 \u23F3'+(r.pendientes||0)+' \u00B7 \u{1F4C5}'+(r.programadas||0)+'</div></div>';
+      if(tieneSaldo){
+        o+='<div style="text-align:right"><div style="font-size:8px;font-weight:700;color:#D97706">Saldo: S/'+(r.total_saldo||0)+'</div>';
+        o+='<div style="font-size:6px;color:var(--mt)">Pagado: S/'+(r.total_pagado||0)+'</div></div>';
+      } else {
+        o+='<div style="font-size:8px;font-weight:700;color:var(--gn)">\u2705 Pagado</div>';
+      }
+      o+='<span style="font-size:9px;color:var(--mt);transition:transform .2s" id="proc-chv-'+gi+'">\u25BC</span>';
       o+='</div>';
+      o+='<div id="proc-body-'+gi+'" style="display:none;padding:8px 10px">';
+      sesiones.forEach(function(s,si){
+        var estBg=s.estado==='REALIZADO'?'#F0FDF4':s.estado==='PROGRAMADO'?'#FEF3C7':'#F8FAFF';
+        var estCol=s.estado==='REALIZADO'?'var(--gn)':s.estado==='PROGRAMADO'?'#D97706':'var(--blue)';
+        var estIco=s.estado==='REALIZADO'?'\u2705':s.estado==='PROGRAMADO'?'\u{1F4C5}':'\u23F3';
+        var pagoBadge=s.estado_pago==='PAGADO'?'<span style="font-size:6px;background:#F0FDF4;color:var(--gn);padding:1px 4px;border-radius:3px">PAGADO</span>':
+          s.estado_pago==='ADELANTO'?'<span style="font-size:6px;background:#FEF3C7;color:#D97706;padding:1px 4px;border-radius:3px">ADELANTO S/'+s.monto_pagado+' | Saldo S/'+s.saldo_sesion+'</span>':
+          '<span style="font-size:6px;background:#FEE2E2;color:var(--rd);padding:1px 4px;border-radius:3px">PEND. PAGO</span>';
+        o+='<div style="display:flex;align-items:center;gap:6px;padding:5px 4px;background:'+estBg+';border-radius:6px;margin-bottom:3px;border:1px solid '+(s.estado==='REALIZADO'?'#BBF7D0':'var(--bd2)')+'">';
+        o+='<span style="font-size:10px">'+estIco+'</span>';
+        o+='<div style="flex:1"><div style="font-size:9px;font-weight:700;color:'+estCol+'">Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+'</div>';
+        o+='<div style="display:flex;gap:3px;margin-top:1px">'+pagoBadge+'</div>';
+        if(s.resumen_procedimiento)o+='<div style="font-size:7px;color:var(--mt);margin-top:1px">'+E(s.resumen_procedimiento)+'</div>';
+        if(s.fecha_programado)o+='<div style="font-size:7px;color:#D97706;margin-top:1px">\u{1F4C5} '+E(s.fecha_programado)+'</div>';
+        o+='</div>';
+        o+='<span style="font-size:8px;font-weight:700;color:var(--deep)">S/'+parseFloat(s.precio_sesion||0).toFixed(0)+'</span>';
+        if(s.estado!=='REALIZADO'){
+          o+='<button class="btn btn-s btn-sm" onclick="event.stopPropagation();procAccion('+gi+','+si+',\'realizar\')" title="Realizar hoy" style="font-size:7px;padding:3px 6px">\u25B6</button>';
+          o+='<button class="btn btn-sm" onclick="event.stopPropagation();procAccion('+gi+','+si+',\'programar\')" title="Programar" style="font-size:7px;padding:3px 6px;background:#FEF3C7;color:#D97706;border:1px solid #D97706">\u{1F4C5}</button>';
+        }
+        o+='</div>';
+      });
+      var pendientes=sesiones.filter(function(s){return s.estado==='PENDIENTE'});
+      if(pendientes.length>1){
+        o+='<div style="display:flex;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd2)">';
+        o+='<button class="btn btn-p btn-sm" onclick="procAccionGrupo('+gi+',\'realizar_todas\')" style="flex:1;font-size:7px">\u25B6 Realizar todas ('+pendientes.length+')</button>';
+        o+='<button class="btn btn-sm" onclick="procAccionGrupo('+gi+',\'programar_todas\')" style="flex:1;font-size:7px;background:#FEF3C7;color:#D97706;border:1px solid #D97706">\u{1F4C5} Programar todas</button>';
+        o+='</div>';
+      }
+      o+='</div></div>';
     });
-    o+='</div>';
-
-    o+='<div id="proc-form-area"><div style="text-align:center;padding:12px;color:var(--mt);font-size:9px">Selecciona una sesión para registrar el procedimiento</div></div>';
+    o+='<div id="proc-form-area"></div>';
     b.innerHTML=o;
   });
 }
-
-/* Seleccionar una sesión individual */
-function procSelectSesion(idx){
-  var s=window._procSesiones[idx];if(!s)return;
-  var c=AT.sel;if(!c)return;
-  window._procSelIdx=idx;
-
-  var isProg=s.estado==='PROGRAMADO';
-  var label=s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')';
-
-  var o='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">';
-  o+='<div style="padding:5px 14px;background:var(--blue);color:#fff;border-radius:8px;font-size:11px;font-weight:800">'+E(label)+'</div>';
-  o+='<span style="font-size:8px;color:var(--mt)">S/'+parseFloat(s.monto||0).toFixed(0)+' · '+E(s.estado_pago||'PAGADO')+'</span>';
-  if(s.plan_item_id)o+='<span style="font-size:7px;padding:2px 6px;background:#F0FDF4;color:var(--gn);border-radius:8px;font-weight:700">📋 Plan</span>';
-  o+='</div>';
-
-  /* Checkbox programar — solo marca estado, NO pide fecha aquí */
-  o+='<label style="display:flex;align-items:center;gap:6px;padding:8px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:var(--r);margin-bottom:8px;cursor:pointer;font-size:9px;font-weight:700;color:#D97706"><input type="checkbox" id="proc-programar" onchange="procToggleForm()"'+(isProg?' checked':'')+'>📅 Programar para otro día (no se realiza hoy)</label>';
-
-  /* Formulario de procedimiento (visible si NO está programado) */
-  o+='<div id="proc-form" style="display:'+(isProg?'none':'block')+'">';
+function procToggleGrupo(gi){var body=document.getElementById('proc-body-'+gi);var chv=document.getElementById('proc-chv-'+gi);if(!body)return;var open=body.style.display!=='none';body.style.display=open?'none':'block';if(chv)chv.style.transform=open?'':'rotate(180deg)';}
+function procAccion(gi,si,accion){
+  var g=window._procGrupos[gi];if(!g)return;var s=g.sesiones[si];if(!s)return;var c=AT.sel;if(!c)return;
+  window._procSelSesion={gi:gi,si:si,s:s,g:g};
+  if(accion==='programar'){
+    sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'PROGRAMADO',updated_at:new Date().toISOString()}).then(function(){
+      if(window.AOS_showToast)AOS_showToast('\u{1F4C5} Sesi\u00F3n marcada para programar',g.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
+      openProcedimiento();
+    });return;
+  }
+  var area=document.getElementById('proc-form-area');
+  var label=g.tratamiento+' (Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+')';
+  var o='<div style="border:2px solid var(--cyan);border-radius:var(--r);padding:10px;margin-top:8px;background:rgba(0,201,167,.03)">';
+  o+='<div style="font-size:11px;font-weight:800;color:var(--deep);margin-bottom:6px">\u25B6 Registrar: '+E(label)+'</div>';
   o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
   o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
-  var zonasProc=['Frente','Entrecejo','Sien derecha','Sien izquierda','Párpados','Pómulos','Nariz','Surco nasogeniano','Mejillas','Labios','Mentón','Mandíbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'];
-  zonasProc.forEach(function(z){o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';});
+  ['Frente','Entrecejo','Sien derecha','Sien izquierda','P\u00E1rpados','P\u00F3mulos','Nariz','Surco nasogeniano','Mejillas','Labios','Ment\u00F3n','Mand\u00EDbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'].forEach(function(z){
+    o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
+  });
   o+='</div>';
-  o+='<div class="fg"><label class="fl">Descripción del procedimiento</label><textarea id="proc-desc" class="ta" rows="3" placeholder="Detalle paso a paso de lo realizado..."></textarea></div>';
-  o+='<div class="fg"><label class="fl">Observaciones / Incidencias</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, sensibilidad, tolerancia del paciente..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Descripci\u00F3n</label><textarea id="proc-desc" class="ta" rows="2" placeholder="Detalle del procedimiento..."></textarea></div>';
+  o+='<div class="fg"><label class="fl">Observaciones</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, tolerancia..."></textarea></div>';
   o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-  o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs">';
-  ['Satisfactorio','Parcial','Con observaciones','Complicación leve'].forEach(function(r){o+='<option>'+r+'</option>';});
-  o+='</select></div>';
-  o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs">';
-  ['Buena','Regular','Mala — sensibilidad'].forEach(function(t2){o+='<option>'+t2+'</option>';});
-  o+='</select></div></div>';
-  o+='<div class="fg"><label class="fl">Indicaciones post-procedimiento</label><textarea id="proc-post" class="ta" rows="2" placeholder="Evitar sol, aplicar protector, no maquillaje 24h..."></textarea></div>';
-  o+='</div>';
-
-  o+='<button class="btn btn-p btn-f" style="padding:10px;margin-top:8px" onclick="saveProcedimiento()">💾 Guardar procedimiento</button>';
-
-  document.getElementById('proc-form-area').innerHTML=o;
+  o+='<div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs"><option>Satisfactorio</option><option>Parcial</option><option>Con observaciones</option><option>Complicaci\u00F3n leve</option></select></div>';
+  o+='<div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs"><option>Buena</option><option>Regular</option><option>Mala</option></select></div></div>';
+  o+='<div class="fg"><label class="fl">Post-procedimiento</label><textarea id="proc-post" class="ta" rows="1" placeholder="Indicaciones..."></textarea></div>';
+  o+='<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-p" style="flex:1" onclick="procGuardarSesion()">\u{1F4BE} Guardar</button><button class="btn btn-s" onclick="document.getElementById(\'proc-form-area\').innerHTML=\'\'">Cancelar</button></div></div>';
+  area.innerHTML=o;area.scrollIntoView({behavior:'smooth'});
 }
-
-function saveProcedimiento(){
-  var c=AT.sel;if(!c)return;
-  var idx=window._procSelIdx;
-  var s=window._procSesiones&&window._procSesiones[idx];
-  if(!s){if(window.AOS_showToast)AOS_showToast('Selecciona una sesión','','toast-alerta');return;}
-
-  var programar=document.getElementById('proc-programar')&&document.getElementById('proc-programar').checked;
-  var contenido;
-  var nuevoEstado;
-
-  if(programar){
-    nuevoEstado='PROGRAMADO';
-    contenido='[PROC] '+s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')\n[PROGRAMADO]\n';
-  } else {
-    nuevoEstado='REALIZADO';
-    var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(ch){zonas.push(ch.value)});
-    var zona=zonas.join(', ');
-    var desc=(document.getElementById('proc-desc')||{}).value||'';
-    var obs=(document.getElementById('proc-obs')||{}).value||'';
-    var resultado=(document.getElementById('proc-resultado')||{}).value||'';
-    var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
-    var post=(document.getElementById('proc-post')||{}).value||'';
-    contenido='[PROC] '+s.tratamiento+' (Sesión '+s.sesion_numero+'/'+s.total_sesiones+')\n[REALIZADO]\n';
-    if(zona)contenido+='Zona: '+zona+'\n';
-    if(desc)contenido+='Procedimiento: '+desc+'\n';
-    if(obs)contenido+='Observaciones: '+obs+'\n';
-    contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
-    if(post)contenido+='Post-procedimiento: '+post+'\n';
-  }
-
-  /* Guardar nota clínica */
-  sbW('aos_notas_clinicas',{
-    numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,
-    contenido:contenido,
-    autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',
-    autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''
-  }).then(function(r){
-    if(!r.ok){if(window.AOS_showToast)AOS_showToast('Error guardando nota','','toast-alerta');return;}
-
-    /* Actualizar estado de la sesión en aos_sesiones_tratamiento */
-    var updateData={estado:nuevoEstado,updated_at:new Date().toISOString()};
-    if(nuevoEstado==='REALIZADO'){
-      updateData.fecha_realizado=c.fecha;
-      updateData.profesional_realizado=AOS.ctx?AOS.ctx.nombre:'';
-    }
-    sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,updateData).then(function(){
-      closeDw();_openTipo=null;
-      if(window.AOS_showToast)AOS_showToast('✅ Sesión '+(programar?'marcada para programar':'realizada'),''+s.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
-      loadDet();
+function procGuardarSesion(){
+  var sel=window._procSelSesion;if(!sel)return;var c=AT.sel;if(!c)return;var s=sel.s,g=sel.g;
+  var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(ch){zonas.push(ch.value)});
+  var desc=(document.getElementById('proc-desc')||{}).value||'';
+  var obs=(document.getElementById('proc-obs')||{}).value||'';
+  var resultado=(document.getElementById('proc-resultado')||{}).value||'';
+  var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
+  var post=(document.getElementById('proc-post')||{}).value||'';
+  var resumen=zonas.length?zonas.join(', '):(desc?desc.substring(0,50):'Realizado');
+  var contenido='[PROC] '+g.tratamiento+' (Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+')\n[REALIZADO]\n';
+  if(zonas.length)contenido+='Zona: '+zonas.join(', ')+'\n';
+  if(desc)contenido+='Procedimiento: '+desc+'\n';
+  if(obs)contenido+='Observaciones: '+obs+'\n';
+  contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
+  if(post)contenido+='Post-procedimiento: '+post+'\n';
+  sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,contenido:contenido,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(){
+    sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'REALIZADO',fecha_realizado:c.fecha,profesional_realizado:AOS.ctx?AOS.ctx.nombre:'',resumen_procedimiento:resumen,updated_at:new Date().toISOString()}).then(function(){
+      if(window.AOS_showToast)AOS_showToast('\u2705 Sesi\u00F3n realizada',g.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
+      document.getElementById('proc-form-area').innerHTML='';openProcedimiento();
     });
   });
 }
-
-function procToggleForm(){
-  var chk=document.getElementById('proc-programar');
-  var form=document.getElementById('proc-form');
-  if(chk&&form){form.style.display=chk.checked?'none':'block';}
+function procAccionGrupo(gi,accion){
+  var g=window._procGrupos[gi];if(!g)return;var c=AT.sel;if(!c)return;
+  var pendientes=(g.sesiones||[]).filter(function(s){return s.estado==='PENDIENTE'});
+  if(!pendientes.length)return;
+  if(accion==='programar_todas'){
+    var promises=pendientes.map(function(s){return sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'PROGRAMADO',updated_at:new Date().toISOString()});});
+    Promise.all(promises).then(function(){if(window.AOS_showToast)AOS_showToast('\u{1F4C5} '+pendientes.length+' sesiones para programar',g.tratamiento,'');openProcedimiento();});return;
+  }
+  if(accion==='realizar_todas'){
+    window._procSelSesion={gi:gi,si:0,s:pendientes[0],g:g,todas:pendientes};
+    var area=document.getElementById('proc-form-area');
+    var o='<div style="border:2px solid var(--cyan);border-radius:var(--r);padding:10px;margin-top:8px;background:rgba(0,201,167,.03)">';
+    o+='<div style="font-size:11px;font-weight:800;color:var(--deep);margin-bottom:2px">\u25B6 Registrar: '+E(g.tratamiento)+' \u2014 '+pendientes.length+' sesiones juntas</div>';
+    o+='<div style="font-size:7px;color:var(--mt);margin-bottom:6px">Se registrar\u00E1 un solo procedimiento para las '+pendientes.length+' sesiones</div>';
+    o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ['Frente','Entrecejo','Sien derecha','Sien izquierda','P\u00E1rpados','P\u00F3mulos','Nariz','Surco nasogeniano','Mejillas','Labios','Ment\u00F3n','Mand\u00EDbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'].forEach(function(z){
+      o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
+    });
+    o+='</div>';
+    o+='<div class="fg"><label class="fl">Descripci\u00F3n</label><textarea id="proc-desc" class="ta" rows="2" placeholder="Detalle..."></textarea></div>';
+    o+='<div class="fg"><label class="fl">Observaciones</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones..."></textarea></div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="fg"><label class="fl">Resultado</label><select id="proc-resultado" class="fi fs"><option>Satisfactorio</option><option>Parcial</option><option>Con observaciones</option></select></div><div class="fg"><label class="fl">Tolerancia</label><select id="proc-tolerancia" class="fi fs"><option>Buena</option><option>Regular</option><option>Mala</option></select></div></div>';
+    o+='<div class="fg"><label class="fl">Post-procedimiento</label><textarea id="proc-post" class="ta" rows="1" placeholder="Indicaciones..."></textarea></div>';
+    o+='<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-p" style="flex:1" onclick="procGuardarGrupo()">\u{1F4BE} Guardar '+pendientes.length+' sesiones</button><button class="btn btn-s" onclick="document.getElementById(\'proc-form-area\').innerHTML=\'\'">Cancelar</button></div></div>';
+    area.innerHTML=o;area.scrollIntoView({behavior:'smooth'});
+  }
+}
+function procGuardarGrupo(){
+  var sel=window._procSelSesion;if(!sel||!sel.todas)return;var c=AT.sel;if(!c)return;var g=sel.g,todas=sel.todas;
+  var zonas=[];document.querySelectorAll('.proc-zona-chk:checked').forEach(function(ch){zonas.push(ch.value)});
+  var desc=(document.getElementById('proc-desc')||{}).value||'';var obs=(document.getElementById('proc-obs')||{}).value||'';
+  var resultado=(document.getElementById('proc-resultado')||{}).value||'';var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
+  var post=(document.getElementById('proc-post')||{}).value||'';
+  var resumen=zonas.length?zonas.join(', '):(desc?desc.substring(0,50):'Realizado');
+  var sesLabels=todas.map(function(s){return s.sesion_numero+'/'+s.total_sesiones}).join(', ');
+  var contenido='[PROC] '+g.tratamiento+' (Sesiones '+sesLabels+')\n[REALIZADO]\n';
+  if(zonas.length)contenido+='Zona: '+zonas.join(', ')+'\n';
+  if(desc)contenido+='Procedimiento: '+desc+'\n';if(obs)contenido+='Observaciones: '+obs+'\n';
+  contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
+  if(post)contenido+='Post-procedimiento: '+post+'\n';
+  sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,contenido:contenido,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(){
+    var promises=todas.map(function(s){return sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'REALIZADO',fecha_realizado:c.fecha,profesional_realizado:AOS.ctx?AOS.ctx.nombre:'',resumen_procedimiento:resumen,updated_at:new Date().toISOString()});});
+    Promise.all(promises).then(function(){
+      if(window.AOS_showToast)AOS_showToast('\u2705 '+todas.length+' sesiones realizadas',g.tratamiento,'');
+      document.getElementById('proc-form-area').innerHTML='';openProcedimiento();
+    });
+  });
 }
 
 /* ===== MOD-27: RECETA ===== */
