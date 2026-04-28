@@ -224,7 +224,7 @@ function showDetalle(c){
     zone.querySelector('.ml').textContent=esDoctora?'Enfermera asistente':'Quién realizará la atención';
     var sel=el('det-asistente');
     sel.innerHTML='<option value="">— Sin asistente —</option>';
-    fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+    fetch(_SB+'/rest/v1/aos_rrhh?estado=eq.ACTIVO&puesto=ilike.%2AENFERMER%2A&select=nombre,apellido,puesto&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
     .then(function(r){return r.json()}).then(function(rows){
       (rows||[]).forEach(function(r){
         sel.innerHTML+='<option value="'+h(r.nombre)+'">'+h(r.nombre+(r.apellido?' '+r.apellido:''))+' ('+h(r.puesto||'')+')</option>';
