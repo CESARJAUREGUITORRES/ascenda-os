@@ -85,7 +85,8 @@ function renderList(citas){
     var hora=(c.hora_cita||'').toString().substring(0,5);
     var num=(c.numero_limpio||c.numero||'').replace(/\D/g,'');
     var waBtn=num?'<div onclick="event.stopPropagation();AG.sel=AG.data.citas.find(function(x){return x.id===\''+c.id+'\'});agWhatsApp()" style="cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;" title="WhatsApp">💬</div>':'';
-    return '<tr onclick="agDetalle(\''+h(c.id)+'\')"><td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td><td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td><td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+'</td><td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td><td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td><td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td><td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td><td style="text-align:center;" onclick="event.stopPropagation()">'+waBtn+'</td></tr>';
+    var origenBadge=(c.origen_cita==='PROGRAMACION')?'<span style="font-size:6px;background:#EBF2FF;color:#0A4FBF;padding:1px 3px;border-radius:3px;margin-left:2px">PROG</span>':'';
+    return '<tr onclick="agDetalle(\''+h(c.id)+'\')"><td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td><td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td><td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+origenBadge+'</td><td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td><td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td><td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td><td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td><td style="text-align:center;" onclick="event.stopPropagation()">'+waBtn+'</td></tr>';
   }).join('');
 }
 
@@ -186,7 +187,18 @@ function showDetalle(c){
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
   el('det-nombre').textContent=cli||'--';
   el('det-sub').textContent=(c.numero_limpio||c.numero||'')+' \u00b7 '+(c.tratamiento||'');
-  el('det-info').innerHTML=[['Fecha',c.fecha_cita],['Hora',(c.hora_cita||'').toString().substring(0,5)],['Sede',c.sede],['Tipo',c.tipo_cita],['Tratamiento',c.tratamiento],['Asesor',c.asesor],['Atenci\u00f3n',c.tipo_atencion||''],['Doctora',c.doctora||'Sin asignar']].map(function(r){return '<div class="det-row"><div class="det-lbl">'+r[0]+'</div><div class="det-val">'+h(r[1]||'--')+'</div></div>';}).join('');
+  var infoRows=[['Fecha',c.fecha_cita],['Hora',(c.hora_cita||'').toString().substring(0,5)],['Sede',c.sede],['Tipo',c.tipo_cita],['Tratamiento',c.tratamiento],['Asesor',c.asesor],['Atenci\u00f3n',c.tipo_atencion||''],['Doctora',c.doctora||'Sin asignar']];
+  if(c.origen_cita==='PROGRAMACION'){infoRows.push(['Origen','<span style="background:#EBF2FF;color:#0A4FBF;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700">📅 PROGRAMACIÓN</span>']);}
+  if(c.sesion_numero){infoRows.push(['Sesión','Sesión '+c.sesion_numero]);}
+  el('det-info').innerHTML=infoRows.map(function(r){return '<div class="det-row"><div class="det-lbl">'+r[0]+'</div><div class="det-val">'+h(r[1]||'--')+'</div></div>';}).join('');
+  /* Badge financiero si viene de programación */
+  if(c.origen_cita==='PROGRAMACION'&&c.obs){
+    var obsUp=(c.obs||'').toUpperCase();
+    var finBadge='';
+    if(obsUp.indexOf('SALDO')>-1){finBadge='<div style="padding:6px;background:#FEF3C7;border:1px solid #D97706;border-radius:6px;margin-bottom:6px;font-size:9px;color:#D97706;font-weight:700">⚠️ '+h(c.obs.split('|').pop().trim())+'</div>';}
+    else if(obsUp.indexOf('PAGADO')>-1){finBadge='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;margin-bottom:6px;font-size:9px;color:#059669;font-weight:700">✅ Tratamiento PAGADO — listo para aplicar</div>';}
+    if(finBadge){el('det-info').insertAdjacentHTML('afterend',finBadge);}
+  }
   el('det-nota').value=c.obs||'';
   el('det-estados').innerHTML=ESTADOS.map(function(e){return '<div class="est-btn '+e.cls+' '+((c.estado_cita||'').toUpperCase()===e.val?'act':'')+'" data-val="'+e.val+'" onclick="agSelEstado(this)">'+e.lbl+'</div>';}).join('');
   // Cargar historial del paciente

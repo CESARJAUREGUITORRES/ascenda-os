@@ -850,14 +850,31 @@ sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
 
 function abrirModalProgSesion(sesionId,tratNombre){
   var c=AT.sel;if(!c)return;
+  /* Buscar datos de la sesión para mostrar info financiera */
+  var sesData=null;
+  if(window._procGrupos){window._procGrupos.forEach(function(g){(g.sesiones||[]).forEach(function(s){if(s.sesion_id===sesionId)sesData=s;});});}
+  /* Si no está en procGrupos, buscar en los datos de programar */
+  var pagoBadge='';
+  if(sesData){
+    if(sesData.estado_pago==='PAGADO')pagoBadge='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;margin-bottom:8px;font-size:9px;color:var(--gn);font-weight:700">✅ PAGADO — S/'+parseFloat(sesData.precio_sesion||0).toFixed(0)+'</div>';
+    else if(sesData.estado_pago==='ADELANTO')pagoBadge='<div style="padding:6px;background:#FEF3C7;border:1px solid #D97706;border-radius:6px;margin-bottom:8px;font-size:9px;color:#D97706;font-weight:700">⚠️ ADELANTO S/'+parseFloat(sesData.monto_pagado||0).toFixed(0)+' — Saldo: S/'+parseFloat(sesData.saldo_sesion||0).toFixed(0)+'</div>';
+    else pagoBadge='<div style="padding:6px;background:#FEE2E2;border:1px solid #DC2626;border-radius:6px;margin-bottom:8px;font-size:9px;color:#DC2626;font-weight:700">💰 PENDIENTE DE PAGO — S/'+parseFloat(sesData.precio_sesion||0).toFixed(0)+'</div>';
+  }
+  var sesNum=sesData?sesData.sesion_numero:'';
+  var totalSes=sesData?sesData.total_sesiones:'';
+  var labelSes=sesNum?' (Sesión '+sesNum+'/'+totalSes+')':'';
+
   var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)this.remove()" id="modal-prog-ses">';
-  o+='<div style="background:#fff;border-radius:12px;max-width:400px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
-  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar sesión</b><br><span style="font-size:9px;opacity:.7">'+E(tratNombre)+'</span></div>';
+  o+='<div style="background:#fff;border-radius:12px;max-width:420px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.15)" onclick="event.stopPropagation()">';
+  o+='<div style="padding:12px 16px;background:linear-gradient(135deg,#071D4A,#0A4FBF);border-radius:12px 12px 0 0;color:#fff"><b style="font-size:13px">📅 Programar sesión</b><br><span style="font-size:10px;opacity:.8">'+E(tratNombre)+E(labelSes)+'</span></div>';
   o+='<div style="padding:14px 16px">';
+  o+=pagoBadge;
   o+='<div class="fg"><label class="fl">Fecha</label><input type="date" id="mps-fecha" class="fi" min="'+new Date(Date.now()+86400000).toISOString().slice(0,10)+'"></div>';
   o+='<div class="fg"><label class="fl">Hora</label><input type="time" id="mps-hora" class="fi" value="10:00"></div>';
+  o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
   o+='<div class="fg"><label class="fl">Sede</label><select id="mps-sede" class="fi fs"><option>SAN ISIDRO</option><option>PUEBLO LIBRE</option></select></div>';
-  o+='</div>';
+  o+='<div class="fg"><label class="fl">Tipo cita</label><select id="mps-tipo" class="fi fs"><option>Aplicacion</option><option>Control</option><option>Mantenimiento</option></select></div>';
+  o+='</div></div>';
   o+='<div style="display:flex;gap:6px;padding:10px 16px;border-top:1px solid #DDE4F5">';
   o+='<button style="flex:1;padding:8px;border:1px solid #DDE4F5;border-radius:8px;background:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="document.getElementById(\'modal-prog-ses\').remove()">Cancelar</button>';
   o+='<button style="flex:1;padding:8px;border:none;border-radius:8px;background:#0A4FBF;color:#fff;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif" onclick="guardarProgSesion(\''+sesionId+'\',\''+E(tratNombre)+'\')">📅 Programar</button>';
@@ -869,24 +886,35 @@ function guardarProgSesion(sesionId,tratNombre){
   var fecha=(document.getElementById('mps-fecha')||{}).value;
   var hora=(document.getElementById('mps-hora')||{}).value||'10:00';
   var sede=(document.getElementById('mps-sede')||{}).value||'SAN ISIDRO';
+  var tipoCita=(document.getElementById('mps-tipo')||{}).value||'Aplicacion';
   if(!fecha){if(window.AOS_showToast)AOS_showToast('Selecciona fecha','','toast-alerta');return;}
-  /* Crear cita en agenda */
+
+  /* Buscar datos financieros de la sesión */
+  var sesData=null;
+  if(window._procGrupos){window._procGrupos.forEach(function(g){(g.sesiones||[]).forEach(function(s){if(s.sesion_id===sesionId)sesData=s;});});}
+  var estadoPago=sesData?sesData.estado_pago:'PAGADO';
+  var saldo=sesData?parseFloat(sesData.saldo_sesion||0):0;
+  var obsText='Programado desde atención del '+c.fecha+' | '+estadoPago;
+  if(saldo>0)obsText+=' | Saldo: S/'+saldo.toFixed(0);
+
+  /* Crear cita en agenda con info financiera */
   sbW('aos_agenda_citas',{
     numero_limpio:c.numero_limpio,nombre:c.nombre||'',apellido:c.apellido||'',
     fecha_cita:fecha,hora_cita:hora,sede:sede,
-    tipo_cita:'Control recurrente',tipo_atencion:'ENFERMERIA',
+    tipo_cita:tipoCita,tipo_atencion:'ENFERMERIA',
     tratamiento:tratNombre,asesor:AOS.ctx?AOS.ctx.nombre:'',
     estado_cita:'PENDIENTE',origen_cita:'PROGRAMACION',
-    obs:'Programado desde atención del '+c.fecha
+    sesion_numero:sesData?sesData.sesion_numero:null,
+    obs:obsText
   }).then(function(r){
-    /* Actualizar sesión con fecha programada y cita_id */
+    /* Actualizar sesión con fecha programada */
     sbPatch('aos_sesiones_tratamiento','id=eq.'+sesionId,{
       estado:'PROGRAMADO',fecha_programado:fecha,hora_programado:hora,
       profesional_programado:AOS.ctx?AOS.ctx.nombre:'',
       updated_at:new Date().toISOString()
     }).then(function(){
       var m=document.getElementById('modal-prog-ses');if(m)m.remove();
-      if(window.AOS_showToast)AOS_showToast('✅ Cita programada para '+fecha,tratNombre,'');
+      if(window.AOS_showToast)AOS_showToast('✅ Cita programada para '+fecha,tratNombre+' — '+estadoPago,'');
       subTab('programar',document.querySelector('.at-sp[onclick*="programar"]'));
     });
   });
