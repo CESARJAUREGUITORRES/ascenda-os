@@ -281,6 +281,59 @@ http.createServer(function(req, res) {
     res.end(); return
   }
   // ===== FIN TEMPLATE EMAILS =====
+  // ===== RESEND WEBHOOK — open/click/bounce tracking =====
+  if (p === '/api/resend-webhook' && req.method === 'POST') {
+    var wBody = ''; req.on('data', function(c) { wBody += c }); req.on('end', function() {
+      try {
+        var evt = JSON.parse(wBody)
+        var evtType = evt.type || ''
+        var evtData = evt.data || {}
+        var emailId = evtData.email_id || ''
+        var emailTo = evtData.to ? (Array.isArray(evtData.to) ? evtData.to[0] : evtData.to) : ''
+
+        console.log('[WEBHOOK] Resend event: ' + evtType + ' — ' + emailTo)
+
+        // Guardar evento raw
+        sbPost('/rest/v1/aos_email_eventos', {
+          resend_id: emailId, tipo_evento: evtType,
+          email_destino: emailTo, metadata: evtData
+        }).catch(function(){})
+
+        // Actualizar tracking en email enviado
+        if (evtType === 'email.opened' && emailId) {
+          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+            abierto: true, ultimo_evento: new Date().toISOString()
+          }, 'PATCH').catch(function(){})
+        }
+        if (evtType === 'email.clicked' && emailId) {
+          // Incrementar clicks
+          sbFetch('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId + '&select=clicks').then(function(rows) {
+            if (rows && rows[0]) {
+              sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+                clicks: (rows[0].clicks || 0) + 1, abierto: true, ultimo_evento: new Date().toISOString()
+              }, 'PATCH').catch(function(){})
+            }
+          }).catch(function(){})
+        }
+        if ((evtType === 'email.bounced' || evtType === 'email.complained') && emailId) {
+          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+            rebotado: true, ultimo_evento: new Date().toISOString()
+          }, 'PATCH').catch(function(){})
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end('{"ok":true}')
+      } catch(e) {
+        console.error('[WEBHOOK] Error:', e.message)
+        res.writeHead(400); res.end('{"error":"invalid payload"}')
+      }
+    }); return
+  }
+  if (p === '/api/resend-webhook' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+
   // ===== RESEND STATS — datos reales de emails enviados =====
   if (p === '/api/resend-stats' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
