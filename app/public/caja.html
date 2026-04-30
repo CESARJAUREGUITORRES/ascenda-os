@@ -2959,12 +2959,13 @@ function mostrarPlanes(planes) {
     plan.items.forEach(function(item) {
       if (item.estado !== 'PENDIENTE' && item.estado !== 'PARCIAL' && item.estado !== 'COTIZADO') return;
       var esParcial = (item.estado === 'PARCIAL');
+      var badgeEstado = esParcial ? '<span style="font-size:8px;font-weight:800;color:#D97706;background:#FEF3C7;padding:1px 6px;border-radius:4px;margin-left:4px;">PARCIAL</span>' : '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:1px 6px;border-radius:4px;margin-left:4px;">PENDIENTE</span>';
       var variantes = [];
       try { variantes = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : (item.variantes || []); } catch(e) {}
       o += '<div style="padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;margin-bottom:6px;background:#F8FAFF;">';
       o += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
       o += '<span style="font-size:14px;">' + (item.tipo==='SERVICIO'?'💉':'💊') + '</span>';
-      o += '<b style="flex:1;font-size:12px;color:#071D4A;">' + item.nombre + '</b>';
+      o += '<b style="flex:1;font-size:12px;color:#071D4A;">' + item.nombre + badgeEstado + '</b>';
       o += '<span style="font-size:9px;color:#0A4FBF;font-weight:700;background:#EBF2FF;padding:2px 8px;border-radius:10px;">' + (item.sesiones||item.num_sesiones||1) + ' ses</span></div>';
       if (variantes.length) {
         variantes.forEach(function(v) {
@@ -3057,36 +3058,59 @@ function mostrarCotizaciones(cots, numero) {
 }
 
 function cargarCotEnVenta(cotId) {
-  // Guardar referencia a la cotización existente para abonar
   VT.cotizacion_existente = cotId;
   sbGet('aos_cotizaciones', 'id=eq.' + cotId + '&limit=1', function(cots) {
     var cot = (cots && cots[0]) || {};
     var saldoCot = parseFloat(cot.saldo_pendiente || 0);
+    if (saldoCot <= 0) { toast('Cotización sin saldo pendiente', 'warn'); return; }
     sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
       if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
-      items.forEach(function(it) {
-        var precio = parseFloat(it.precio_unitario) || 0;
-        var cant = it.cantidad || 1;
-        var pagado = parseFloat(it.monto_pagado || 0);
-        var pendiente = (precio * cant) - pagado;
-        if (pendiente <= 0) return;
-        VT.items.push({
-          id: Date.now() + '' + Math.random().toString(36).substr(2,4),
-          nombre: (it.nombre || it.descripcion || '') + ' (saldo #' + (cot.numero_cotizacion||'') + ')',
-          tipo: it.tipo || 'SERVICIO', categoria: '',
-          cantidad: 1, divisa: it.moneda || 'PEN',
-          precio: pendiente, descTipo: 'PCT', descVal: 0, subtotal: pendiente,
-          pagado: false, metodoPago: '', metodoPago2: '', monto1: 0, monto2: 0,
-          comprobante: 'BOLETA VIRTUAL', estadoPago: 'SALDO',
-          asesorComision: '', atendio: '',
-          cotizacion_id: cotId, cotizacion_item_id: it.id, es_abono: true
+      // Cruzar con ventas ya realizadas para saber qué items tienen saldo real
+      var numPac = VT.pac ? (VT.pac.telefono || VT.pac.numero_limpio || '') : '';
+      sbGet('aos_ventas', 'numero_limpio=eq.' + numPac + '&venta_id=eq.' + (cot.venta_id_origen || '') + '&select=tratamiento,monto,estado_pago', function(ventasExist) {
+        // Calcular cuánto se pagó por cada tratamiento
+        var pagadoPorTrat = {};
+        (ventasExist || []).forEach(function(v) {
+          var key = (v.tratamiento || '').toUpperCase();
+          if (v.estado_pago === 'PAGO COMPLETO') pagadoPorTrat[key] = 'COMPLETO';
+          else if (v.estado_pago === 'ADELANTO' && pagadoPorTrat[key] !== 'COMPLETO') pagadoPorTrat[key] = parseFloat(v.monto || 0);
         });
+
+        var itemsConSaldo = 0;
+        items.forEach(function(it) {
+          var precio = parseFloat(it.precio_unitario) || 0;
+          var cant = it.cantidad || 1;
+          var totalItem = precio * cant;
+          var nombreUpper = (it.nombre || '').toUpperCase();
+
+          // Si ya está pagado completo → skip
+          if (pagadoPorTrat[nombreUpper] === 'COMPLETO') return;
+
+          // Si tiene adelanto → calcular saldo
+          var pagadoItem = typeof pagadoPorTrat[nombreUpper] === 'number' ? pagadoPorTrat[nombreUpper] : 0;
+          var pendiente = totalItem - pagadoItem;
+          if (pendiente <= 0) return;
+
+          itemsConSaldo++;
+          VT.items.push({
+            id: Date.now() + '' + Math.random().toString(36).substr(2,4),
+            nombre: (it.nombre || it.descripcion || '') + ' (saldo #' + (cot.numero_cotizacion||'') + ')',
+            tipo: it.tipo || 'SERVICIO', categoria: '',
+            cantidad: 1, divisa: it.moneda || 'PEN',
+            precio: pendiente, descTipo: 'PCT', descVal: 0, subtotal: pendiente,
+            pagado: false, metodoPago: '', metodoPago2: '', monto1: 0, monto2: 0,
+            comprobante: 'BOLETA VIRTUAL', estadoPago: 'SALDO',
+            asesorComision: '', atendio: '',
+            cotizacion_id: cotId, cotizacion_item_id: it.id, es_abono: true
+          });
+        });
+        renderItemsTbl();
+        actualizarResumen();
+        var modal = document.getElementById('modal-cots');
+        if (modal) modal.remove();
+        if (itemsConSaldo > 0) toast('Saldo de cotizacion #' + (cot.numero_cotizacion||'') + ' cargado — S/' + saldoCot.toFixed(0), 'ok');
+        else toast('Todos los items de esta cotización ya están pagados', 'warn');
       });
-      renderItemsTbl();
-      actualizarResumen();
-      var modal = document.getElementById('modal-cots');
-      if (modal) modal.remove();
-      toast('Saldo de cotizacion #' + (cot.numero_cotizacion||'') + ' cargado — S/' + saldoCot.toFixed(0), 'ok');
     });
   });
 }
