@@ -1402,6 +1402,32 @@ function executeAction(agent, task, queryResult) {
     })
   }
 
+  // ─── CARTERO: Motor flujos multi-paso ───────────
+  if (accion === 'procesar_flujos') {
+    // Buscar ejecuciones activas cuyo proximo_envio ya pasó
+    return sbFetch('/rest/v1/aos_email_flujo_ejecuciones?estado=eq.activo&proximo_envio=lte.' + new Date().toISOString() + '&select=*&limit=20')
+      .then(function(ejecuciones) {
+        if (!ejecuciones || !ejecuciones.length) {
+          console.log('[FLUJOS] Sin ejecuciones pendientes')
+          return
+        }
+        console.log('[FLUJOS] Procesando ' + ejecuciones.length + ' ejecuciones pendientes')
+        var chain = Promise.resolve()
+        ejecuciones.forEach(function(ej) {
+          chain = chain.then(function() {
+            return _procesarPasoFlujo(agent, ej)
+          }).then(function() {
+            return new Promise(function(res) { setTimeout(res, 1000) })
+          })
+        })
+        return chain.then(function() {
+          sbPatchAgent(agent.id, { bubble_text: '🔄 ' + ejecuciones.length + ' flujos procesados ✓' })
+        })
+      }).catch(function(e) {
+        console.error('[FLUJOS] Error:', e.message)
+      })
+  }
+
   // ─── CARTERO: reintentar emails fallidos del día ───────────
   if (accion === 'reintentar_fallidos') {
     if (!data.length) { console.log('[CARTERO] Sin errores que reintentar'); return Promise.resolve() }
@@ -1447,6 +1473,103 @@ function executeAction(agent, task, queryResult) {
 
   return Promise.resolve()
 }
+// ═══ MOTOR FLUJOS MULTI-PASO — procesa un paso de un flujo activo ═══
+function _procesarPasoFlujo(agent, ej) {
+  // Cargar flujo padre para obtener pasos
+  return sbFetch('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id + '&select=nombre,pasos')
+    .then(function(flujos) {
+      if (!flujos || !flujos.length) {
+        // Flujo eliminado — cancelar ejecución
+        return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, { estado: 'cancelado', updated_at: new Date().toISOString() }, 'PATCH')
+      }
+      var flujo = flujos[0]
+      var pasos = flujo.pasos || []
+      var pasoActual = pasos.find(function(p) { return p.paso === ej.paso_actual })
+      if (!pasoActual) {
+        // Paso no existe — completar
+        return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, { estado: 'completado', updated_at: new Date().toISOString() }, 'PATCH')
+      }
+
+      console.log('[FLUJOS] ' + flujo.nombre + ' — paso ' + ej.paso_actual + '/' + pasos.length + ' para ' + (ej.email || ej.numero_limpio))
+
+      if (pasoActual.tipo === 'esperar') {
+        // Paso de espera: avanzar al siguiente paso con delay
+        return _avanzarPasoFlujo(ej, pasos, pasoActual)
+      }
+
+      if (pasoActual.tipo === 'condicion') {
+        // Por ahora skip condiciones complejas — avanzar
+        return _avanzarPasoFlujo(ej, pasos, pasoActual)
+      }
+
+      if (pasoActual.tipo === 'email') {
+        // Buscar plantilla por ID
+        var tplId = pasoActual.plantilla_id
+        if (!tplId) return _avanzarPasoFlujo(ej, pasos, pasoActual)
+        return sbFetch('/rest/v1/aos_email_plantillas?id=eq.' + tplId + '&select=tipo,asunto,html_body&activo=eq.true')
+          .then(function(tpls) {
+            if (!tpls || !tpls.length) {
+              console.log('[FLUJOS] Plantilla ' + tplId + ' no encontrada, skip')
+              return _avanzarPasoFlujo(ej, pasos, pasoActual)
+            }
+            var tpl = tpls[0]
+            var emailTo = ej.email || ''
+            if (!emailTo || !validarEmail(emailTo)) {
+              console.log('[FLUJOS] Email inválido: ' + emailTo)
+              return _avanzarPasoFlujo(ej, pasos, pasoActual)
+            }
+            // Reemplazar variables
+            var vars = ej.variables || {}
+            var body = tpl.html_body || ''
+            var asunto = tpl.asunto || ''
+            Object.keys(vars).forEach(function(k) {
+              body = body.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+              asunto = asunto.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+            })
+            var html = emailShell(
+              '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + asunto + '</div>',
+              body
+            )
+            var tipoFlujo = 'flujo_' + (tpl.tipo || 'email') + '_p' + ej.paso_actual
+            return sendAgentEmail(emailTo, asunto, html, tipoFlujo, (ej.paciente_id || ej.numero_limpio || emailTo) + '_flujo_' + ej.flujo_id)
+              .then(function(r) {
+                if (r && r.ok) {
+                  logAction(agent.id, 'flujo_email', flujo.nombre + ' paso ' + ej.paso_actual + ' → ' + emailTo, { flujo: flujo.nombre, paso: ej.paso_actual })
+                }
+                return _avanzarPasoFlujo(ej, pasos, pasoActual)
+              })
+          })
+      }
+
+      // Tipo desconocido — avanzar
+      return _avanzarPasoFlujo(ej, pasos, pasoActual)
+    })
+}
+
+function _avanzarPasoFlujo(ej, pasos, pasoActual) {
+  var siguientePasoNum = ej.paso_actual + 1
+  var siguientePaso = pasos.find(function(p) { return p.paso === siguientePasoNum })
+  if (!siguientePaso) {
+    // Flujo completado
+    return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, {
+      estado: 'completado', paso_actual: ej.paso_actual,
+      ultimo_envio: new Date().toISOString(), updated_at: new Date().toISOString()
+    }, 'PATCH').then(function() {
+      // Incrementar contador del flujo
+      sbFetch('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id + '&select=total_completados').then(function(f) {
+        if (f && f[0]) sbPost('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id, { total_completados: (f[0].total_completados || 0) + 1 }, 'PATCH').catch(function(){})
+      }).catch(function(){})
+    })
+  }
+  // Calcular próximo envío basado en delay del siguiente paso
+  var delayMs = (siguientePaso.delay_minutos || 0) * 60000
+  var proximoEnvio = new Date(Date.now() + delayMs).toISOString()
+  return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, {
+    paso_actual: siguientePasoNum, proximo_envio: proximoEnvio,
+    ultimo_envio: new Date().toISOString(), updated_at: new Date().toISOString()
+  }, 'PATCH')
+}
+
 function executeRpcAction(agent, rpcName, result) {
   if (!result) return Promise.resolve()
 
