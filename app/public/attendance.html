@@ -2057,7 +2057,7 @@ function openPlanTrabajo(){
     if(items&&items.length){
       items.forEach(function(it){
         var vars=[];try{vars=typeof it.variantes_precio==='string'?JSON.parse(it.variantes_precio):(it.variantes_precio||[]);}catch(e){}
-        PT.items.push({nombre:it.nombre_servicio||'',tipo:it.tipo_item||'SERVICIO',sesiones:it.num_sesiones||1,frecuencia:it.frecuencia||'Mensual',precio:it.precio_unitario||0,condicion:it.condiciones_pago||'',obs:'',variantes:vars,_collapsed:true});
+        PT.items.push({nombre:it.nombre_servicio||it.nombre_producto||'',tipo:it.tipo_item||'SERVICIO',num_sesiones:it.num_sesiones||1,frecuencia:it.frecuencia||'Mensual',precio_unitario:it.precio_unitario||0,condicion:it.condiciones_pago||'',obs:'',variantes:vars,_collapsed:true,fase:it.fase||'1',prioridad:it.prioridad||'MEDIA'});
       });
     }
     rPT(document.getElementById('dw-nota-b'));openDw('nota');
@@ -2134,6 +2134,18 @@ function rPT(b){
         ['Semanal','Quincenal','Mensual','Bimestral','Trimestral','Semestral'].forEach(function(f){o+='<option'+(item.frecuencia===f?' selected':'')+'>'+f+'</option>';});
         o+='</select></div>';
       }
+
+      /* C1: Fase/prioridad del tratamiento */
+      o+='<div style="padding:4px 10px;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--bd2)">';
+      o+='<label style="font-size:7px;font-weight:700;color:var(--mt)">Fase</label>';
+      o+='<select class="fi fs" style="font-size:9px;flex:1" onchange="ptUpd('+i+',\'fase\',this.value)">';
+      var fases=[{v:'1',l:'Fase 1 — Inmediato'},{v:'2',l:'Fase 2 — 1 mes'},{v:'3',l:'Fase 3 — 3 meses'},{v:'4',l:'Fase 4 — Mantenimiento'}];
+      fases.forEach(function(f){o+='<option value="'+f.v+'"'+((item.fase||'1')===f.v?' selected':'')+'>'+f.l+'</option>';});
+      o+='</select>';
+      o+='<label style="font-size:7px;font-weight:700;color:var(--mt)">Prioridad</label>';
+      o+='<select class="fi fs" style="font-size:9px;width:80px" onchange="ptUpd('+i+',\'prioridad\',this.value)">';
+      [{v:'ALTA',l:'🔴 Alta'},{v:'MEDIA',l:'🟡 Media'},{v:'BAJA',l:'🟢 Baja'}].forEach(function(p){o+='<option value="'+p.v+'"'+((item.prioridad||'MEDIA')===p.v?' selected':'')+'>'+p.l+'</option>';});
+      o+='</select></div>';
 
       /* Variantes/precios */
       if(item.variantes&&item.variantes.length>1){
@@ -2218,7 +2230,8 @@ function ptAdd(id,nombre,tipo,precio,categoria,sesiones){
   var item={tipo:tipo,nombre:nombre,categoria:categoria,precio_unitario:precio,
     num_sesiones:tipo==='SERVICIO'?parseInt(sesiones)||1:1,frecuencia:'Mensual',
     variantes:variantes.length>1?variantes:[],variantes_sel:[],
-    dosis:'',momento:'Mañana',modo_uso:'Tomar',duracion_dias:30,notas:'',_collapsed:false};
+    dosis:'',momento:'Mañana',modo_uso:'Tomar',duracion_dias:30,notas:'',_collapsed:false,
+    fase:'1',prioridad:'MEDIA'};
   if(variantes.length>1){variantes.forEach(function(v,i){if(v.nombre===nombre)item.variantes_sel.push(i);});}
   PT.items.push(item);
   document.getElementById('pt-q').value='';document.getElementById('pt-results').innerHTML='';
@@ -2290,7 +2303,8 @@ function ptGuardar(){
           precio_unitario:item.precio_unitario||0,precio_total:(item.num_sesiones||1)*(item.precio_unitario||0),
           nombre_producto:item.tipo==='PRODUCTO'?item.nombre:null,dosis:item.dosis||null,momento:item.momento||null,modo_uso:item.modo_uso||null,duracion_dias:item.duracion_dias||null,
           variantes_precio:selVars.length?JSON.stringify(selVars):null,variante_seleccionada:selVars.length?selVars[0].nombre:null,
-          notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE'}));
+          notas:item.notas||(i===0?obs:null),autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',sede:c.sede||'',estado_item:'PENDIENTE',
+          fase:item.fase||'1',prioridad:item.prioridad||'MEDIA'}));
       });
 
       /* Nota clínica resumen */
