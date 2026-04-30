@@ -597,56 +597,93 @@ function validarEmail(email) {
   return true
 }
 
+// Tipos transaccionales: NO se limitan por cadencia (son respuestas a acciones del paciente)
+var EMAILS_TRANSACCIONALES = ['confirmacion_cita', 'recibo_venta', 'recordatorio_hoy', 'recordatorio_manana', 'bienvenida', 'confirmacion_pago']
+
 function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
   return new Promise(function(resolve) {
     // Anti-duplicado: verificar si ya se envió hoy
     sbFetch('/rest/v1/aos_emails_enviados?tipo=eq.' + encodeURIComponent(tipo) + '&destinatario=eq.' + encodeURIComponent(destinatario_id) + '&fecha_envio=eq.' + limaDateStr())
       .then(function(rows) {
         if (rows && rows.length > 0) { resolve({ skip: true, reason: 'ya enviado hoy' }); return }
-        var emailData = JSON.stringify({
-          from: 'Clínica Zi Vital <info@zivital.pe>',
-          to: [to], subject: subject, html: html,
-          reply_to: 'jaureguitorrescesar@gmail.com'
-        })
-        var req = https.request({
-          hostname: 'api.resend.com', path: '/emails', method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
-        }, function(res) {
-          var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
-            try {
-              var r = JSON.parse(d)
-              if (r.id) {
-                // Registrar envío para anti-duplicado
-                sbPost('/rest/v1/aos_emails_enviados', {
-                  tipo: tipo, destinatario: destinatario_id,
-                  fecha_envio: limaDateStr(), resend_id: r.id,
-                  email_destino: to, asunto: subject,
-                  html_preview: html.slice(0, 50000)
-                }).catch(function(){})
-                // Alerta en panel
-                sbPost('/rest/v1/aos_email_alertas', {
-                  tipo: 'exito', template: tipo,
-                  titulo: '✅ ' + tipo + ' enviado',
-                  detalle: subject,
-                  destinatario: to, resend_id: r.id
-                }).catch(function(){})
-              } else {
-                // Alerta de error en panel
-                sbPost('/rest/v1/aos_email_alertas', {
-                  tipo: 'error', template: tipo,
-                  titulo: '❌ Error enviando ' + tipo,
-                  detalle: r.message || 'Sin respuesta de Resend',
-                  destinatario: to
-                }).catch(function(){})
+
+        // ═══ GUARD CADENCIA: máx 2 emails marketing/semana por paciente ═══
+        if (EMAILS_TRANSACCIONALES.indexOf(tipo) === -1) {
+          // Es marketing/engagement — verificar cadencia semanal
+          var _limaD = new Date(Date.now() + (-5 * 60) * 60000)
+          var _dow = _limaD.getDay() // 0=dom
+          var _inicioSemana = new Date(_limaD.getTime() - _dow * 86400000)
+          var _isoInicio = _inicioSemana.toISOString().split('T')[0]
+          return sbFetch('/rest/v1/aos_email_cadencia?email_destino=eq.' + encodeURIComponent(to) + '&fecha_envio=gte.' + _isoInicio + '&select=id')
+            .then(function(cadRows) {
+              if (cadRows && cadRows.length >= 2) {
+                console.log('[CADENCIA] Skip ' + to + ' — ya recibió ' + cadRows.length + ' emails esta semana (tipo: ' + tipo + ')')
+                resolve({ skip: true, reason: 'cadencia_semanal: ' + cadRows.length + '/2' })
+                return
               }
-              resolve({ ok: !!r.id, id: r.id, error: r.message })
-            } catch(e) { resolve({ ok: false, error: e.message }) }
-          })
-        })
-        req.on('error', function(e) { resolve({ ok: false, error: e.message }) })
-        req.write(emailData); req.end()
+              // Pasar al envío real
+              _doSendEmail(to, subject, html, tipo, destinatario_id, resolve)
+            }).catch(function() {
+              // Si falla la consulta de cadencia, enviar de todos modos (fail-open)
+              _doSendEmail(to, subject, html, tipo, destinatario_id, resolve)
+            })
+        }
+
+        // Transaccional — enviar sin límite de cadencia
+        _doSendEmail(to, subject, html, tipo, destinatario_id, resolve)
       }).catch(function(e) { resolve({ ok: false, error: e.message }) })
   })
+}
+
+// ═══ ENVÍO REAL de email vía Resend + registro en cadencia ═══
+function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
+  var emailData = JSON.stringify({
+    from: 'Clínica Zi Vital <info@zivital.pe>',
+    to: [to], subject: subject, html: html,
+    reply_to: 'jaureguitorrescesar@gmail.com'
+  })
+  var req = https.request({
+    hostname: 'api.resend.com', path: '/emails', method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
+  }, function(res) {
+    var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
+      try {
+        var r = JSON.parse(d)
+        if (r.id) {
+          // Registrar envío para anti-duplicado
+          sbPost('/rest/v1/aos_emails_enviados', {
+            tipo: tipo, destinatario: destinatario_id,
+            fecha_envio: limaDateStr(), resend_id: r.id,
+            email_destino: to, asunto: subject,
+            html_preview: html.slice(0, 50000)
+          }).catch(function(){})
+          // Registrar en cadencia semanal
+          sbPost('/rest/v1/aos_email_cadencia', {
+            paciente_id: destinatario_id, email_destino: to,
+            tipo: tipo, fecha_envio: limaDateStr()
+          }).catch(function(){})
+          // Alerta en panel
+          sbPost('/rest/v1/aos_email_alertas', {
+            tipo: 'exito', template: tipo,
+            titulo: '✅ ' + tipo + ' enviado',
+            detalle: subject,
+            destinatario: to, resend_id: r.id
+          }).catch(function(){})
+        } else {
+          // Alerta de error en panel
+          sbPost('/rest/v1/aos_email_alertas', {
+            tipo: 'error', template: tipo,
+            titulo: '❌ Error enviando ' + tipo,
+            detalle: r.message || 'Sin respuesta de Resend',
+            destinatario: to
+          }).catch(function(){})
+        }
+        resolve({ ok: !!r.id, id: r.id, error: r.message })
+      } catch(e) { resolve({ ok: false, error: e.message }) }
+    })
+  })
+  req.on('error', function(e) { resolve({ ok: false, error: e.message }) })
+  req.write(emailData); req.end()
 }
 
 // Insertar notificación en el CRM (aparece en el panel de notificaciones)
