@@ -1741,14 +1741,57 @@ function procAccion(gi,si,accion){
   }
   var area=document.getElementById('proc-form-area');
   var label=g.tratamiento+' (Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+')';
+  var tipoForm=s.tipo_formulario||g.tipo_formulario||'GENERAL';
   var o='<div style="border:2px solid var(--cyan);border-radius:var(--r);padding:10px;margin-top:8px;background:rgba(0,201,167,.03)">';
   o+='<div style="font-size:11px;font-weight:800;color:var(--deep);margin-bottom:6px">\u25B6 Registrar: '+E(label)+'</div>';
-  o+='<div class="at-sc" style="margin-bottom:4px">Zonas trabajadas</div>';
-  o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
-  ['Frente','Entrecejo','Sien derecha','Sien izquierda','P\u00E1rpados','P\u00F3mulos','Nariz','Surco nasogeniano','Mejillas','Labios','Ment\u00F3n','Mand\u00EDbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'].forEach(function(z){
-    o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
-  });
-  o+='</div>';
+
+  /* ===== ALERTAS TRIAJE ===== */
+  var det=AT.det;if(det){
+    var notas=(det.notas_clinicas||[]).filter(function(n){return n.tipo==='TRIAJE'});
+    if(notas.length){var tr=notas[notas.length-1];
+      var alertas=[];
+      if(tr.presion_arterial){var pa=tr.presion_arterial.split('/');if(pa.length===2&&(parseInt(pa[0])>=140||parseInt(pa[1])>=90))alertas.push('PA elevada: '+tr.presion_arterial+' — verificar antes de procedimiento invasivo');}
+      if(tr.imc&&tr.imc>=30)alertas.push('IMC '+tr.imc+' ('+tr.imc_label+') — considerar para procedimiento corporal');
+      if(tr.saturacion&&tr.saturacion<95)alertas.push('SpO2: '+tr.saturacion+'% — vigilar durante procedimiento');
+      if(alertas.length){o+='<div style="padding:6px;background:#FEF3C7;border:1.5px solid #D97706;border-radius:6px;margin-bottom:8px;font-size:8px;color:#D97706">';alertas.forEach(function(a){o+='<div style="margin-bottom:2px">\u26A0\uFE0F '+E(a)+'</div>';});o+='</div>';}
+    }
+  }
+
+  /* ===== FORMULARIO CONTEXTUAL ===== */
+  if(tipoForm==='FACIAL'){
+    o+='<div class="at-sc" style="margin-bottom:4px">Zonas faciales</div>';
+    o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ['Frente','Entrecejo','Sien derecha','Sien izquierda','P\u00E1rpados','P\u00F3mulos','Nariz','Surco nasogeniano','Mejillas','Labios','Ment\u00F3n','Mand\u00EDbula','Papada','Platisma/Cuello','Escote','Tercio superior','Tercio medio','Tercio inferior'].forEach(function(z){
+      o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
+    });o+='</div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
+    o+='<div class="fg"><label class="fl">Producto/Marca</label><input id="proc-producto" class="fi" placeholder="Ej: Nabota 50U, Profhilo..." style="font-size:9px"></div>';
+    o+='<div class="fg"><label class="fl">Lote</label><input id="proc-lote" class="fi" placeholder="N\u00BA lote" style="font-size:9px"></div></div>';
+    o+='<div class="fg"><label class="fl">Cantidad/Dosis aplicada</label><input id="proc-dosis" class="fi" placeholder="Ej: 50U, 1ml, 2 jeringas..." style="font-size:9px"></div>';
+  } else if(tipoForm==='CORPORAL'){
+    o+='<div class="at-sc" style="margin-bottom:4px">Zonas corporales</div>';
+    o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ['Abdomen alto','Abdomen bajo','Flancos','Espalda baja','Brazos','Muslos internos','Muslos externos','Gl\u00FAteos','Papada','Entrepiernas','Rodillas','Pantorrillas'].forEach(function(z){
+      o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
+    });o+='</div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
+    o+='<div class="fg"><label class="fl">Protocolo</label><input id="proc-protocolo" class="fi" placeholder="Ej: Criolipolisis 45min, RF 3 pasadas..." style="font-size:9px"></div>';
+    o+='<div class="fg"><label class="fl">N\u00BA disparos/pasadas</label><input id="proc-disparos" class="fi" placeholder="Cantidad" style="font-size:9px"></div></div>';
+  } else if(tipoForm==='CAPILAR'){
+    o+='<div class="at-sc" style="margin-bottom:4px">Zona capilar</div>';
+    o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
+    ['Corona/V\u00E9rtex','Frontal','Temporal derecho','Temporal izquierdo','Occipital','L\u00EDnea frontal','Difuso general'].forEach(function(z){
+      o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
+    });o+='</div>';
+    o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
+    o+='<div class="fg"><label class="fl">Escala Ludwig</label><select id="proc-ludwig" class="fi fs" style="font-size:9px"><option value="">—</option><option>I - Leve</option><option>II - Moderado</option><option>III - Avanzado</option></select></div>';
+    o+='<div class="fg"><label class="fl">Escala Savin</label><select id="proc-savin" class="fi fs" style="font-size:9px"><option value="">—</option><option>I-1 Muy leve</option><option>I-2 Leve</option><option>I-3 Leve-moderado</option><option>I-4 Moderado inicial</option><option>II-1 Moderado</option><option>II-2 Moderado-avanzado</option><option>III Severo</option><option>Avanzado</option><option>Frontal</option></select></div></div>';
+    o+='<div class="fg"><label class="fl">T\u00E9cnica/Producto</label><input id="proc-tecnica" class="fi" placeholder="Ej: PRP 10ml, Dutasteride 0.5ml, Dermapen..." style="font-size:9px"></div>';
+  } else {
+    /* GENERAL — vitaminas, detox: formulario m\u00EDnimo */
+    o+='<div style="padding:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;margin-bottom:8px;font-size:8px;color:var(--gn)">Tratamiento general — solo descripci\u00F3n y observaciones</div>';
+  }
+
   o+='<div class="fg"><label class="fl">Descripci\u00F3n</label><textarea id="proc-desc" class="ta" rows="2" placeholder="Detalle del procedimiento..."></textarea></div>';
   o+='<div class="fg"><label class="fl">Observaciones</label><textarea id="proc-obs" class="ta" rows="2" placeholder="Reacciones, tolerancia..."></textarea></div>';
   o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
@@ -1766,9 +1809,31 @@ function procGuardarSesion(){
   var resultado=(document.getElementById('proc-resultado')||{}).value||'';
   var tolerancia=(document.getElementById('proc-tolerancia')||{}).value||'';
   var post=(document.getElementById('proc-post')||{}).value||'';
+  var tipoForm=s.tipo_formulario||g.tipo_formulario||'GENERAL';
   var resumen=zonas.length?zonas.join(', '):(desc?desc.substring(0,50):'Realizado');
-  var contenido='[PROC] '+g.tratamiento+' (Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+')\n[REALIZADO]\n';
+  var contenido='[PROC] '+g.tratamiento+' (Sesi\u00F3n '+s.sesion_numero+'/'+s.total_sesiones+')\n[REALIZADO] Tipo: '+tipoForm+'\n';
   if(zonas.length)contenido+='Zona: '+zonas.join(', ')+'\n';
+  /* Campos contextuales */
+  if(tipoForm==='FACIAL'){
+    var prod=(document.getElementById('proc-producto')||{}).value||'';
+    var lote=(document.getElementById('proc-lote')||{}).value||'';
+    var dosis=(document.getElementById('proc-dosis')||{}).value||'';
+    if(prod)contenido+='Producto: '+prod+'\n';
+    if(lote)contenido+='Lote: '+lote+'\n';
+    if(dosis)contenido+='Dosis: '+dosis+'\n';
+  } else if(tipoForm==='CORPORAL'){
+    var proto=(document.getElementById('proc-protocolo')||{}).value||'';
+    var disp=(document.getElementById('proc-disparos')||{}).value||'';
+    if(proto)contenido+='Protocolo: '+proto+'\n';
+    if(disp)contenido+='Disparos/Pasadas: '+disp+'\n';
+  } else if(tipoForm==='CAPILAR'){
+    var ludwig=(document.getElementById('proc-ludwig')||{}).value||'';
+    var savin=(document.getElementById('proc-savin')||{}).value||'';
+    var tecnica=(document.getElementById('proc-tecnica')||{}).value||'';
+    if(ludwig)contenido+='Ludwig: '+ludwig+'\n';
+    if(savin)contenido+='Savin: '+savin+'\n';
+    if(tecnica)contenido+='T\u00E9cnica: '+tecnica+'\n';
+  }
   if(desc)contenido+='Procedimiento: '+desc+'\n';
   if(obs)contenido+='Observaciones: '+obs+'\n';
   contenido+='Resultado: '+resultado+' | Tolerancia: '+tolerancia+'\n';
