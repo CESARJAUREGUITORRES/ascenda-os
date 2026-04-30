@@ -303,7 +303,7 @@ var asistBtn=isDra(c.profesional)?'<button class="btn btn-s btn-sm" onclick="sel
 document.getElementById('at-hdr').innerHTML='<div class="at-ava" style="width:32px;height:32px;font-size:12px">'+E(n[0]||'?')+'</div><div style="flex:1;min-width:0"><div style="font-family:\'Exo 2\',sans-serif;font-weight:800;font-size:13px">'+E(n)+' '+rt+asist+'</div><div style="font-size:8px;color:var(--mt);margin-top:1px">📱 '+E(c.numero_limpio||'')+' · '+E((c.tratamientos||[]).join(', '))+' · '+E(c.fecha)+'</div></div>'+asistBtn+'<button class="btn btn-g btn-sm" onclick="cerrarFicha()">✅ Cerrar</button><button class="btn btn-w btn-sm" onclick="atWA()">💬</button>';}
 
 /* ===== MOD-10: TAB SYSTEM ===== */
-function loadDet(){if(!AT.sel)return;sbR('aos_detalle_atencion',{p_numero:AT.sel.numero_limpio,p_fecha:AT.sel.fecha}).then(function(r){AT.det=r;macroTab('atencion',document.querySelector('.at-tab'));});}
+function loadDet(cb){if(!AT.sel)return;sbR('aos_detalle_atencion',{p_numero:AT.sel.numero_limpio,p_fecha:AT.sel.fecha}).then(function(r){AT.det=r;macroTab('atencion',document.querySelector('.at-tab'));if(cb)cb();});}
 
 /* Macro tabs */
 function macroTab(tab,el){AT.macro=tab;document.querySelectorAll('.at-tab').forEach(function(t){t.classList.remove('a')});if(el)el.classList.add('a');
@@ -1729,7 +1729,14 @@ function procAccion(gi,si,accion){
   if(accion==='programar'){
     sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'PROGRAMADO',updated_at:new Date().toISOString()}).then(function(){
       if(window.AOS_showToast)AOS_showToast('\u{1F4C5} Sesi\u00F3n marcada para programar',g.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
+      /* Actualizar datos locales sin recargar drawer */
+      s.estado='PROGRAMADO';
+      g.sesiones[si]=s;
+      window._procGrupos[gi]=g;
+      /* Re-abrir procedimiento manteniendo el grupo expandido */
+      var openGroups=[];for(var k=0;k<window._procGrupos.length;k++){var bd=document.getElementById('proc-body-'+k);if(bd&&bd.style.display!=='none')openGroups.push(k);}
       openProcedimiento();
+      setTimeout(function(){openGroups.forEach(function(k){procToggleGrupo(k);});},200);
     });return;
   }
   var area=document.getElementById('proc-form-area');
@@ -1769,7 +1776,7 @@ function procGuardarSesion(){
   sbW('aos_notas_clinicas',{numero_limpio:c.numero_limpio,tipo:'NOTA_PROCEDIMIENTO',fecha:c.fecha,contenido:contenido,autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''}).then(function(){
     sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'REALIZADO',fecha_realizado:c.fecha,profesional_realizado:AOS.ctx?AOS.ctx.nombre:'',resumen_procedimiento:resumen,updated_at:new Date().toISOString()}).then(function(){
       if(window.AOS_showToast)AOS_showToast('\u2705 Sesi\u00F3n realizada',g.tratamiento+' ('+s.sesion_numero+'/'+s.total_sesiones+')','');
-      document.getElementById('proc-form-area').innerHTML='';openProcedimiento();
+      document.getElementById('proc-form-area').innerHTML='';loadDet();openProcedimiento();
     });
   });
 }
@@ -1817,7 +1824,7 @@ function procGuardarGrupo(){
     var promises=todas.map(function(s){return sbPatch('aos_sesiones_tratamiento','id=eq.'+s.sesion_id,{estado:'REALIZADO',fecha_realizado:c.fecha,profesional_realizado:AOS.ctx?AOS.ctx.nombre:'',resumen_procedimiento:resumen,updated_at:new Date().toISOString()});});
     Promise.all(promises).then(function(){
       if(window.AOS_showToast)AOS_showToast('\u2705 '+todas.length+' sesiones realizadas',g.tratamiento,'');
-      document.getElementById('proc-form-area').innerHTML='';openProcedimiento();
+      document.getElementById('proc-form-area').innerHTML='';loadDet();openProcedimiento();
     });
   });
 }
@@ -1827,16 +1834,18 @@ var RX={items:[],cache:[]};
 function openReceta(){
   var c=AT.sel;if(!c)return;
   document.getElementById('dw-nota-t').textContent='💊 Receta';
-  /* Pre-cargar items guardados si existen */
-  var map=getNotasMap();var exRx=map['PRESCRIPCION']||[];
-  RX.items=[];
-  if(exRx.length){
-    var last=exRx[exRx.length-1];
-    try{var saved=typeof last.receta_items==='string'?JSON.parse(last.receta_items):(last.receta_items||[]);
-      saved.forEach(function(it){RX.items.push({nombre:it.nombre||'',precio:it.precio||0,esNuestro:it.esNuestro||false,momento:it.momento||'Mañana',modo:it.modo||'Tomar',dias:it.dias||30,indicacion:it.indicacion||''});});
-    }catch(e){}
-  }
-  rRX(document.getElementById('dw-nota-b'));openDw('nota');
+  /* Force refresh detalle para tener notas actualizadas */
+  loadDet(function(){
+    var map=getNotasMap();var exRx=map['PRESCRIPCION']||[];
+    RX.items=[];
+    if(exRx.length){
+      var last=exRx[exRx.length-1];
+      try{var saved=typeof last.receta_items==='string'?JSON.parse(last.receta_items):(last.receta_items||[]);
+        saved.forEach(function(it){RX.items.push({nombre:it.nombre||'',precio:it.precio||0,esNuestro:it.esNuestro||false,momento:it.momento||'Mañana',modo:it.modo||'Tomar',dias:it.dias||30,indicacion:it.indicacion||''});});
+      }catch(e){}
+    }
+    rRX(document.getElementById('dw-nota-b'));openDw('nota');
+  });
 }
 function rRX(b){
   var c=AT.sel;if(!c)return;

@@ -188,9 +188,9 @@ function showDetalle(c){
   el('det-nombre').textContent=cli||'--';
   el('det-sub').textContent=(c.numero_limpio||c.numero||'')+' \u00b7 '+(c.tratamiento||'');
   var infoRows=[['Fecha',c.fecha_cita],['Hora',(c.hora_cita||'').toString().substring(0,5)],['Sede',c.sede],['Tipo',c.tipo_cita],['Tratamiento',c.tratamiento],['Asesor',c.asesor],['Atenci\u00f3n',c.tipo_atencion||''],['Doctora',c.doctora||'Sin asignar']];
-  if(c.origen_cita==='PROGRAMACION'){infoRows.push(['Origen','<span style="background:#EBF2FF;color:#0A4FBF;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700">📅 PROGRAMACIÓN</span>']);}
+  if(c.origen_cita==='PROGRAMACION'){infoRows.push(['Origen','<span style="background:#EBF2FF;color:#0A4FBF;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700">📅 PROGRAMACIÓN</span>',true]);}
   if(c.sesion_numero){infoRows.push(['Sesión','Sesión '+c.sesion_numero]);}
-  el('det-info').innerHTML=infoRows.map(function(r){return '<div class="det-row"><div class="det-lbl">'+r[0]+'</div><div class="det-val">'+h(r[1]||'--')+'</div></div>';}).join('');
+  el('det-info').innerHTML=infoRows.map(function(r){return '<div class="det-row"><div class="det-lbl">'+r[0]+'</div><div class="det-val">'+(r[2]?r[1]:h(r[1]||'--'))+'</div></div>';}).join('');
   /* Badge financiero si viene de programación */
   if(c.origen_cita==='PROGRAMACION'&&c.obs){
     var obsUp=(c.obs||'').toUpperCase();
