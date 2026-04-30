@@ -334,35 +334,103 @@ http.createServer(function(req, res) {
         var evtData = evt.data || {}
         var emailId = evtData.email_id || ''
         var emailTo = evtData.to ? (Array.isArray(evtData.to) ? evtData.to[0] : evtData.to) : ''
+        var clickUrl = evtData.click && evtData.click.link ? evtData.click.link : ''
 
-        console.log('[WEBHOOK] Resend event: ' + evtType + ' — ' + emailTo)
+        console.log('[WEBHOOK] ' + evtType + ' — ' + emailTo + (clickUrl ? ' → ' + clickUrl : ''))
 
-        // Guardar evento raw
+        // ═══ 1. GUARDAR EVENTO RAW ═══
         sbPost('/rest/v1/aos_email_eventos', {
           resend_id: emailId, tipo_evento: evtType,
           email_destino: emailTo, metadata: evtData
         }).catch(function(){})
 
-        // Actualizar tracking en email enviado
+        // ═══ 2. ACTUALIZAR TRACKING en email enviado ═══
+        if (evtType === 'email.delivered' && emailId) {
+          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+            ultimo_evento: new Date().toISOString()
+          }, 'PATCH').catch(function(){})
+        }
+
         if (evtType === 'email.opened' && emailId) {
           sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
             abierto: true, ultimo_evento: new Date().toISOString()
           }, 'PATCH').catch(function(){})
+
+          // ═══ 3. SCORE DE ENGAGEMENT: incrementar score del paciente ═══
+          if (emailTo) {
+            sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select=numero_limpio,"SCORE_ESTADO"&limit=1')
+              .then(function(pacs) {
+                if (pacs && pacs[0]) {
+                  var newScore = Math.min((parseInt(pacs[0].SCORE_ESTADO) || 0) + 1, 100)
+                  sbPost('/rest/v1/aos_pacientes?numero_limpio=eq.' + pacs[0].numero_limpio, {
+                    "SCORE_ESTADO": newScore.toString()
+                  }, 'PATCH').catch(function(){})
+                }
+              }).catch(function(){})
+          }
         }
+
         if (evtType === 'email.clicked' && emailId) {
           // Incrementar clicks
-          sbFetch('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId + '&select=clicks').then(function(rows) {
+          sbFetch('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId + '&select=clicks,tipo,destinatario').then(function(rows) {
             if (rows && rows[0]) {
               sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
                 clicks: (rows[0].clicks || 0) + 1, abierto: true, ultimo_evento: new Date().toISOString()
               }, 'PATCH').catch(function(){})
+
+              // ═══ 4. ALERTA AL ASESOR: si clickeó link de agendar/WhatsApp ═══
+              var isActionClick = clickUrl && (clickUrl.indexOf('wa.me') > -1 || clickUrl.indexOf('agendar') > -1 || clickUrl.indexOf('whatsapp') > -1)
+              if (isActionClick) {
+                var tipoEmail = rows[0].tipo || 'email'
+                // Buscar nombre del paciente
+                sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select="Nombres","Apellidos",numero_limpio,tratamiento_principal&limit=1')
+                  .then(function(pacs) {
+                    var pacNombre = pacs && pacs[0] ? (pacs[0].Nombres || '') + ' ' + (pacs[0].Apellidos || '') : emailTo
+                    var pacNum = pacs && pacs[0] ? pacs[0].numero_limpio : ''
+                    // Notificación interna al CRM
+                    notifyAdmin(
+                      '🔥 ' + pacNombre.trim() + ' quiere agendar',
+                      'Hizo click en "Agendar" desde email ' + tipoEmail + '. Llamar ahora. Tel: ' + pacNum,
+                      'LEAD_CALIENTE', 'ALTA'
+                    )
+                    // Log de acción
+                    logAction('cartero', 'click_agendar', pacNombre.trim() + ' clickeó agendar desde ' + tipoEmail, {
+                      email: emailTo, tipo_email: tipoEmail, url: clickUrl, numero: pacNum
+                    })
+                    console.log('[WEBHOOK] 🔥 LEAD CALIENTE: ' + pacNombre.trim() + ' clickeó agendar desde ' + tipoEmail)
+                  }).catch(function(){})
+              }
             }
           }).catch(function(){})
         }
-        if ((evtType === 'email.bounced' || evtType === 'email.complained') && emailId) {
-          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
-            rebotado: true, ultimo_evento: new Date().toISOString()
-          }, 'PATCH').catch(function(){})
+
+        if (evtType === 'email.bounced' || evtType === 'email.complained') {
+          if (emailId) {
+            sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+              rebotado: true, ultimo_evento: new Date().toISOString()
+            }, 'PATCH').catch(function(){})
+          }
+
+          // ═══ 5. AUTO-LIMPIAR EMAILS INVÁLIDOS ═══
+          if (emailTo) {
+            // Marcar email como inválido en el paciente para que Elena no le envíe más
+            sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select=numero_limpio,"Nombres","Email"&limit=1')
+              .then(function(pacs) {
+                if (pacs && pacs[0]) {
+                  var motivo = evtType === 'email.complained' ? 'SPAM' : 'REBOTADO'
+                  sbPost('/rest/v1/aos_pacientes?numero_limpio=eq.' + pacs[0].numero_limpio, {
+                    "Email": pacs[0].Email + ' [' + motivo + ']'
+                  }, 'PATCH').catch(function(){})
+                  console.log('[WEBHOOK] ⚠ Email invalidado: ' + emailTo + ' (' + motivo + ') — ' + (pacs[0].Nombres || ''))
+                  // Alerta para que César sepa
+                  notifyAdmin(
+                    '⚠ Email ' + motivo + ': ' + (pacs[0].Nombres || ''),
+                    'El email ' + emailTo + ' fue marcado como ' + motivo + '. Se desactivó para futuros envíos.',
+                    'EMAIL', 'MEDIA'
+                  )
+                }
+              }).catch(function(){})
+          }
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
