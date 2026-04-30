@@ -626,55 +626,37 @@ function agCheckDisp(){
   var infoBar=el('ed-hora-info');
   var horaInput=el('ed-hora');
   var docSel=el('ed-doctora');
-  // Mostrar/ocultar campo doctora
+  // Doctora: mostrar campo select + info-bar | Enfermería: ocultar todo
   if(docWrap)docWrap.style.display=tipo==='DOCTORA'?'':'none';
-  // Necesitamos sede+fecha+tipo para consultar
-  if(!sede||!fecha||!tipo){if(infoBar)infoBar.style.display='none';return;}
+  if(tipo==='ENFERMERIA'){if(infoBar)infoBar.style.display='none';return;}
+  if(!sede||!fecha||tipo!=='DOCTORA'){if(infoBar)infoBar.style.display='none';return;}
   _agDispTmr=setTimeout(function(){
-    var hora=(horaInput||{}).value||'10:00';
-    _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:hora,p_sede:sede},function(cob){
+    // Buscar SIN filtrar hora — queremos todas las doctoras del día en esa sede
+    _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:sede},function(cob){
       if(!cob)return;
       var docs=cob.doctoras_disponibles||[];
-      var enfs=cob.enfermeras_disponibles||[];
       // Actualizar select doctora
-      if(docSel&&tipo==='DOCTORA'){
+      if(docSel){
         var prev=docSel.value;
         docSel.innerHTML='<option value="">-- Seleccionar --</option>';
         docs.forEach(function(d){docSel.innerHTML+='<option value="'+d+'">'+d+'</option>';});
         if(docs.length===1)docSel.value=docs[0];
         else if(prev&&docs.indexOf(prev)>=0)docSel.value=prev;
       }
-      // Info bar
       if(!infoBar)return;
-      if(tipo==='DOCTORA'){
-        if(docs.length>0){
-          // Buscar horario de la doctora para mostrar rango
-          _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:sede},function(full){
-            var allDocs=(full&&full.doctoras_disponibles)||docs;
-            infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#F0FDF4;border:1px solid #BBF7D0;color:#059669;';
-            infoBar.textContent='✅ '+docs.join(', ')+' disponible(s) en '+sede;
-            // Pre-llenar hora con inicio del turno si la hora actual está fuera de rango
-            _fetchHorarioTurno(fecha,sede,docs[0],horaInput);
-          });
-        }else{
-          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;';
-          infoBar.textContent='❌ No hay doctora con turno el '+fecha+' en '+sede;
-          // Buscar si hay en la otra sede
-          var otraSede=sede==='SAN ISIDRO'?'PUEBLO LIBRE':'SAN ISIDRO';
-          _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:otraSede},function(alt){
-            if(alt&&alt.doctoras_disponibles&&alt.doctoras_disponibles.length>0){
-              infoBar.textContent+=' — Disponible en '+otraSede+': '+alt.doctoras_disponibles.join(', ');
-            }
-          });
-        }
-      }else if(tipo==='ENFERMERIA'){
-        if(enfs.length>0){
-          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#F0FDF4;border:1px solid #BBF7D0;color:#059669;';
-          infoBar.textContent='✅ Enfermería: '+enfs.join(', ')+' disponible(s)';
-        }else{
-          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;';
-          infoBar.textContent='⚠️ Sin enfermería registrada para '+fecha+' en '+sede;
-        }
+      if(docs.length>0){
+        infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#F0FDF4;border:1px solid #BBF7D0;color:#059669;';
+        infoBar.textContent='✅ '+docs.join(', ')+' disponible(s) en '+sede;
+        _fetchHorarioTurno(fecha,sede,docs[0],horaInput);
+      }else{
+        infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;';
+        infoBar.textContent='❌ No hay doctora con turno el '+fecha+' en '+sede;
+        var otraSede=sede==='SAN ISIDRO'?'PUEBLO LIBRE':'SAN ISIDRO';
+        _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:otraSede},function(alt){
+          if(alt&&alt.doctoras_disponibles&&alt.doctoras_disponibles.length>0){
+            infoBar.textContent+=' — Disponible en '+otraSede+': '+alt.doctoras_disponibles.join(', ');
+          }
+        });
       }
     });
   },300);
