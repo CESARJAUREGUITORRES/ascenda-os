@@ -231,9 +231,11 @@
         <div class="mf"><div class="ml">Correo</div><input class="mi" id="ed-correo" placeholder="correo@..."/></div>
         <div class="mf"><div class="ml">Asesor</div><select class="ms2" id="ed-asesor"><option value="">No aplica</option><option value="WILMER">Wilmer</option><option value="RUVILA">Ruvila</option><option value="MIREYA">Mireya</option><option value="SRA CARMEN">Sra Carmen</option></select></div>
         <div class="mf"><div class="ml">Sede</div><select class="ms2" id="ed-sede"><option value="">-- Sede --</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div>
-        <div class="mf"><div class="ml">Tipo atenci&oacute;n</div><select class="ms2" id="ed-tipo-at"><option value="">-- Tipo --</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermer&iacute;a</option></select></div>
-        <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="ed-fecha" type="date"/></div>
+        <div class="mf"><div class="ml">Tipo atenci&oacute;n</div><select class="ms2" id="ed-tipo-at" onchange="agCheckDisp()"><option value="">-- Tipo --</option><option value="DOCTORA">Doctora</option><option value="ENFERMERIA">Enfermer&iacute;a</option></select></div>
+        <div class="mf" id="ed-doctora-wrap" style="display:none"><div class="ml">Doctora</div><select class="ms2" id="ed-doctora"><option value="">-- Seleccionar --</option></select></div>
+        <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="ed-fecha" type="date" onchange="agCheckDisp()"/></div>
         <div class="mf"><div class="ml">Hora</div><input class="mi" id="ed-hora" type="time" value="10:00"/></div>
+        <div id="ed-hora-info" style="display:none;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;"></div>
         <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="ed-trat"><option value="">-- Cargando tratamientos... --</option></select></div>
         <div class="mf"><div class="ml">Tipo cita</div><select class="ms2" id="ed-tipo-cita"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="APLICACION">Aplicacion</option><option value="CONTROL">Control</option><option value="MANTENIMIENTO">Mantenimiento</option><option value="REPROGRAMACION">Reprogramacion</option></select></div>
         <div class="mf"><div class="ml">Estado</div><select class="ms2" id="ed-estado"><option value="PENDIENTE">Pendiente</option><option value="CITA CONFIRMADA">Confirmada</option><option value="ASISTIO">Asistio</option><option value="EFECTIVA">Efectiva</option><option value="NO ASISTIO">No Asistio</option><option value="CANCELADA">Cancelada</option></select></div>

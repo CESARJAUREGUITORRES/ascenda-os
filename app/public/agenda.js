@@ -615,6 +615,95 @@ function agAbrirNueva(){
 }
 function agCloseEdit(){el('ag-m-edit').classList.remove('open');AG.reagendando=false;AG.reagendaOrigId=null;}
 
+// ═══ VALIDACIÓN REACTIVA DE HORARIOS ═══
+var _agDispTmr=null;
+function agCheckDisp(){
+  clearTimeout(_agDispTmr);
+  var tipo=(el('ed-tipo-at')||{}).value||'';
+  var sede=(el('ed-sede')||{}).value||'';
+  var fecha=(el('ed-fecha')||{}).value||'';
+  var docWrap=el('ed-doctora-wrap');
+  var infoBar=el('ed-hora-info');
+  var horaInput=el('ed-hora');
+  var docSel=el('ed-doctora');
+  // Mostrar/ocultar campo doctora
+  if(docWrap)docWrap.style.display=tipo==='DOCTORA'?'':'none';
+  // Necesitamos sede+fecha+tipo para consultar
+  if(!sede||!fecha||!tipo){if(infoBar)infoBar.style.display='none';return;}
+  _agDispTmr=setTimeout(function(){
+    var hora=(horaInput||{}).value||'10:00';
+    _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:hora,p_sede:sede},function(cob){
+      if(!cob)return;
+      var docs=cob.doctoras_disponibles||[];
+      var enfs=cob.enfermeras_disponibles||[];
+      // Actualizar select doctora
+      if(docSel&&tipo==='DOCTORA'){
+        var prev=docSel.value;
+        docSel.innerHTML='<option value="">-- Seleccionar --</option>';
+        docs.forEach(function(d){docSel.innerHTML+='<option value="'+d+'">'+d+'</option>';});
+        if(docs.length===1)docSel.value=docs[0];
+        else if(prev&&docs.indexOf(prev)>=0)docSel.value=prev;
+      }
+      // Info bar
+      if(!infoBar)return;
+      if(tipo==='DOCTORA'){
+        if(docs.length>0){
+          // Buscar horario de la doctora para mostrar rango
+          _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:sede},function(full){
+            var allDocs=(full&&full.doctoras_disponibles)||docs;
+            infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#F0FDF4;border:1px solid #BBF7D0;color:#059669;';
+            infoBar.textContent='✅ '+docs.join(', ')+' disponible(s) en '+sede;
+            // Pre-llenar hora con inicio del turno si la hora actual está fuera de rango
+            _fetchHorarioTurno(fecha,sede,docs[0],horaInput);
+          });
+        }else{
+          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;';
+          infoBar.textContent='❌ No hay doctora con turno el '+fecha+' en '+sede;
+          // Buscar si hay en la otra sede
+          var otraSede=sede==='SAN ISIDRO'?'PUEBLO LIBRE':'SAN ISIDRO';
+          _rpc('aos_verificar_cobertura_cita',{p_fecha:fecha,p_hora:'00:00',p_sede:otraSede},function(alt){
+            if(alt&&alt.doctoras_disponibles&&alt.doctoras_disponibles.length>0){
+              infoBar.textContent+=' — Disponible en '+otraSede+': '+alt.doctoras_disponibles.join(', ');
+            }
+          });
+        }
+      }else if(tipo==='ENFERMERIA'){
+        if(enfs.length>0){
+          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#F0FDF4;border:1px solid #BBF7D0;color:#059669;';
+          infoBar.textContent='✅ Enfermería: '+enfs.join(', ')+' disponible(s)';
+        }else{
+          infoBar.style.cssText='display:block;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;';
+          infoBar.textContent='⚠️ Sin enfermería registrada para '+fecha+' en '+sede;
+        }
+      }
+    });
+  },300);
+}
+
+function _fetchHorarioTurno(fecha,sede,doctora,horaInput){
+  if(!doctora||!horaInput)return;
+  fetch(_SB+'/rest/v1/aos_horarios_personal?fecha=eq.'+fecha+'&sede=eq.'+encodeURIComponent(sede)+'&personal=eq.'+encodeURIComponent(doctora)+'&activo=eq.true&select=hora_inicio,hora_fin&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+  .then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows[0])return;
+    var turno=rows[0];
+    var infoBar=el('ed-hora-info');
+    if(infoBar)infoBar.textContent+=' ('+turno.hora_inicio+' — '+turno.hora_fin+')';
+    // Si la hora actual está fuera del rango, sugerir hora_inicio
+    var horaActual=horaInput.value||'10:00';
+    if(horaActual<turno.hora_inicio||horaActual>turno.hora_fin){
+      horaInput.value=turno.hora_inicio;
+    }
+  }).catch(function(){});
+}
+
+// Listener en sede para re-verificar
+(function(){
+  var sedeEl=document.getElementById('ed-sede');
+  if(sedeEl)sedeEl.addEventListener('change',agCheckDisp);
+  var horaEl=document.getElementById('ed-hora');
+  if(horaEl)horaEl.addEventListener('change',agCheckDisp);
+})();
+
 function agGuardarEdit(){
   var num=(el('ed-num').value||'').trim().replace(/\D/g,'');
   var fecha=el('ed-fecha').value;
