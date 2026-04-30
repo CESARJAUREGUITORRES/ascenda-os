@@ -271,7 +271,16 @@ http.createServer(function(req, res) {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
         }
         sendAgentEmail(d.to, subject, html, tipo, d.destinatario_id || d.to)
-          .then(function(r) { res.writeHead(200, {'Content-Type':'application/json'}); res.end(JSON.stringify(r)) })
+          .then(function(r) {
+            // Disparar flujo multi-paso si aplica
+            if (r && r.ok && !r.skip && FLUJO_TRIGGERS[tipo]) {
+              _dispararFlujo(FLUJO_TRIGGERS[tipo], d.to, d.destinatario_id || d.numero_limpio || '', {
+                nombre: d.nombre || '', tratamiento: d.tratamiento || '', sede: d.sede || '',
+                fecha: d.fecha || '', hora: d.hora || ''
+              })
+            }
+            res.writeHead(200, {'Content-Type':'application/json'}); res.end(JSON.stringify(r))
+          })
           .catch(function(e) { res.writeHead(500); res.end('{"error":"' + e.message + '"}') })
       } catch(e) { res.writeHead(400); res.end('{"error":"Invalid JSON"}') }
     }); return
@@ -341,7 +350,7 @@ http.createServer(function(req, res) {
     var hoy = new Date(Date.now() + (-5*60)*60000).toISOString().split('T')[0]
     var mesActual = hoy.slice(0, 7)
     Promise.all([
-      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,email_destino,asunto,fecha_envio,resend_id,html_preview,created_at&order=created_at.desc&limit=200'),
+      sbFetch('/rest/v1/aos_emails_enviados?select=id,tipo,destinatario,email_destino,asunto,fecha_envio,resend_id,html_preview,created_at,abierto,clicks,rebotado&order=created_at.desc&limit=200'),
       sbFetch('/rest/v1/aos_email_envios?select=id,asunto,estado,destinatario_email,destinatario_nombre,enviado_at,created_at&order=created_at.desc&limit=50'),
       sbFetch('/rest/v1/aos_security_log?select=id,usuario,accion,created_at&accion=in.(login,2fa_verified)&order=created_at.desc&limit=50')
     ]).then(function(results) {
@@ -354,7 +363,7 @@ http.createServer(function(req, res) {
         var dest = e.email_destino || e.destinatario || ''
         var tipoClean = (e.tipo || 'otro')
         var subj = e.asunto || e.tipo || ''
-        allEmails.push({ to: dest, subject: subj, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente', html: e.html_preview || '' })
+        allEmails.push({ to: dest, subject: subj, status: e.resend_id ? 'delivered' : 'sent', created_at: e.created_at, tipo: tipoClean, origen: 'agente', html: e.html_preview || '', abierto: e.abierto || false, clicks: e.clicks || 0, rebotado: e.rebotado || false })
       })
       panel.forEach(function(e) {
         allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
@@ -366,12 +375,16 @@ http.createServer(function(req, res) {
       allEmails.sort(function(a, b) { return (b.created_at || '') > (a.created_at || '') ? 1 : -1 })
       // Calcular métricas
       var totalHoy = 0, totalMes = 0, entregados = 0, porTipo = {}
+      var totalAbiertos = 0, totalRebotados = 0, totalClicks = 0
       allEmails.forEach(function(e) {
         var fecha = (e.created_at || '').slice(0, 10)
         var mes = (e.created_at || '').slice(0, 7)
         if (fecha === hoy) totalHoy++
         if (mes === mesActual) totalMes++
         if (e.status === 'delivered' || e.status === 'enviado') entregados++
+        if (e.abierto) totalAbiertos++
+        if (e.rebotado) totalRebotados++
+        totalClicks += (e.clicks || 0)
         var t = e.tipo || 'otro'
         porTipo[t] = (porTipo[t] || 0) + 1
       })
@@ -382,8 +395,11 @@ http.createServer(function(req, res) {
         total_mes: totalMes,
         total_hoy: totalHoy,
         entregados: entregados,
-        rebotados: 0,
-        abiertos: 0,
+        rebotados: totalRebotados,
+        abiertos: totalAbiertos,
+        clicks: totalClicks,
+        open_rate: entregados > 0 ? Math.round(totalAbiertos / entregados * 100) : 0,
+        click_rate: totalAbiertos > 0 ? Math.round(totalClicks / totalAbiertos * 100) : 0,
         por_tipo: porTipo,
         limite_free: 3000,
         usado_pct: Math.round(totalMes / 3000 * 100),
@@ -1598,6 +1614,58 @@ function executeAction(agent, task, queryResult) {
   return Promise.resolve()
 }
 // ═══ MOTOR FLUJOS MULTI-PASO — procesa un paso de un flujo activo ═══
+// ═══ DISPARAR FLUJO — crea ejecución cuando se cumple un trigger ═══
+// Mapeo: template de email → trigger_tipo del flujo
+var FLUJO_TRIGGERS = {
+  'confirmacion_cita': 'cita_confirmada',
+  'recibo_venta': 'post_compra',
+  'confirmacion_pago': 'post_compra',
+  'bienvenida': 'bienvenida'
+}
+
+function _dispararFlujo(triggerTipo, email, pacienteId, variables) {
+  if (!email || !validarEmail(email)) return
+  // Buscar flujo activo con ese trigger
+  sbFetch('/rest/v1/aos_email_flujos?trigger_tipo=eq.' + triggerTipo + '&activo=eq.true&select=id,pasos&limit=1')
+    .then(function(flujos) {
+      if (!flujos || !flujos.length) return
+      var flujo = flujos[0]
+      var pasos = flujo.pasos || []
+      if (!pasos.length) return
+      // Verificar que no exista ya una ejecución activa de este flujo para este paciente
+      sbFetch('/rest/v1/aos_email_flujo_ejecuciones?flujo_id=eq.' + flujo.id + '&email=eq.' + encodeURIComponent(email) + '&estado=eq.activo&select=id&limit=1')
+        .then(function(existing) {
+          if (existing && existing.length > 0) {
+            console.log('[FLUJOS] Ya existe ejecución activa de ' + triggerTipo + ' para ' + email)
+            return
+          }
+          // El paso 1 se ejecuta inmediato (delay 0), así que avanzamos a paso 2
+          // El paso 1 ya se envió como el email que disparó este trigger
+          var paso2 = pasos.find(function(p) { return p.paso === 2 })
+          if (!paso2) return // Flujo de 1 solo paso, ya se ejecutó
+          var delayMs = (paso2.delay_minutos || 0) * 60000
+          var proximoEnvio = new Date(Date.now() + delayMs).toISOString()
+          sbPost('/rest/v1/aos_email_flujo_ejecuciones', {
+            flujo_id: flujo.id,
+            email: email,
+            paciente_id: pacienteId || email,
+            numero_limpio: pacienteId || '',
+            paso_actual: 2,
+            total_pasos: pasos.length,
+            proximo_envio: proximoEnvio,
+            estado: 'activo',
+            variables: variables || {}
+          }).then(function() {
+            console.log('[FLUJOS] ✓ Disparado ' + triggerTipo + ' → paso 2 en ' + (paso2.delay_minutos || 0) + 'min para ' + email)
+            // Incrementar total_ejecutados
+            sbFetch('/rest/v1/aos_email_flujos?id=eq.' + flujo.id + '&select=total_ejecutados').then(function(f) {
+              if (f && f[0]) sbPost('/rest/v1/aos_email_flujos?id=eq.' + flujo.id, { total_ejecutados: (f[0].total_ejecutados || 0) + 1 }, 'PATCH').catch(function(){})
+            }).catch(function(){})
+          }).catch(function(e) { console.error('[FLUJOS] Error disparando:', e.message) })
+        }).catch(function(){})
+    }).catch(function(e) { console.error('[FLUJOS] Error buscando flujo:', e.message) })
+}
+
 function _procesarPasoFlujo(agent, ej) {
   // Cargar flujo padre para obtener pasos
   return sbFetch('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id + '&select=nombre,pasos')

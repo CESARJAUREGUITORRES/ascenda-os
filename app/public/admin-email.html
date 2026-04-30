@@ -105,12 +105,16 @@
       </div>
       <div style="font-family:'Exo 2';font-weight:800;font-size:18px;color:#059669;" id="em-plan-pct">—</div>
     </div>
-    <div class="st" style="grid-template-columns:repeat(6,1fr);">
+    <div class="st" style="grid-template-columns:repeat(4,1fr);">
       <div class="st-c"><div class="st-v" id="em-s-total">0</div><div class="st-l">Total</div></div>
       <div class="st-c"><div class="st-v" id="em-s-hoy" style="color:#0A4FBF;">0</div><div class="st-l">Hoy</div></div>
       <div class="st-c"><div class="st-v" id="em-s-entregados" style="color:#059669;">0</div><div class="st-l">Entregados</div></div>
-      <div class="st-c"><div class="st-v" id="em-s-abiertos" style="color:#7C3AED;">0</div><div class="st-l">Abiertos</div></div>
       <div class="st-c"><div class="st-v" id="em-s-rebotados" style="color:#DC2626;">0</div><div class="st-l">Rebotados</div></div>
+    </div>
+    <div class="st" style="grid-template-columns:repeat(4,1fr);margin-top:8px;">
+      <div class="st-c"><div class="st-v" id="em-s-abiertos" style="color:#7C3AED;">0</div><div class="st-l">Abiertos</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-openrate" style="color:#7C3AED;">0%</div><div class="st-l">Open Rate</div></div>
+      <div class="st-c"><div class="st-v" id="em-s-clicks" style="color:#0A4FBF;">0</div><div class="st-l">Clicks</div></div>
       <div class="st-c"><div class="st-v" id="em-s-pacientes" style="color:#D97706;">0</div><div class="st-l">Pac. c/Email</div></div>
     </div>
     <!-- Tipo chips -->
@@ -376,6 +380,8 @@ function loadDashboard(){
         el('em-s-entregados').textContent=fmt(d.total_enviados||0);
         el('em-s-abiertos').textContent='—';
         el('em-s-rebotados').textContent='0';
+        el('em-s-clicks').textContent='0';
+        el('em-s-openrate').textContent='—';
         el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);
         el('em-plan-used').textContent=d.total_enviados||0;
         el('em-plan-pct').textContent='—';
@@ -389,6 +395,8 @@ function loadDashboard(){
     el('em-s-entregados').textContent=rs.entregados||0;
     el('em-s-abiertos').textContent=rs.abiertos||0;
     el('em-s-rebotados').textContent=rs.rebotados||0;
+    el('em-s-clicks').textContent=rs.clicks||0;
+    el('em-s-openrate').textContent=(rs.open_rate||0)+'%';
     el('em-plan-used').textContent=rs.total_mes||0;
     el('em-plan-pct').textContent=rs.usado_pct+'%';
     el('em-plan-fill').style.width=Math.min(rs.usado_pct,100)+'%';
