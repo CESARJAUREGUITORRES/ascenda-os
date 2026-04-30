@@ -581,6 +581,22 @@ function emailFirmaMedica(doctoraNombre) {
 }
 
 // Enviar email vía Resend (reutiliza la misma clave y from)
+// ===== VALIDAR EMAIL — evitar errores recurrentes con emails inválidos =====
+function validarEmail(email) {
+  if (!email || typeof email !== 'string') return false
+  email = email.trim()
+  if (email.length < 5) return false
+  // Regex básico pero efectivo
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false
+  // Detectar caracteres non-ASCII (ñ, acentos en email)
+  if (/[^\x00-\x7F]/.test(email)) return false
+  // Detectar emails vacíos como @gmail.com
+  if (email.indexOf('@') === 0) return false
+  // Detectar punto antes de @
+  if (email.indexOf('.@') >= 0) return false
+  return true
+}
+
 function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
   return new Promise(function(resolve) {
     // Anti-duplicado: verificar si ya se envió hoy
@@ -1228,6 +1244,86 @@ function executeAction(agent, task, queryResult) {
     return sendInBatches(emails8, 3, 2000).then(function(results) {
       sbPatchAgent(agent.id, { bubble_text: '💚 ' + results.ok + ' reactivaciones ✓' })
       sendAdminReport(agent, 'reactivacion', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: no asistió — reprogramar ───────────
+  if (accion === 'send_email' && template === 'no_asistencia') {
+    var emails9 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = buildEmailNoAsistencia(p.nombre, p.tratamiento, p.fecha, p.hora, p.sede)
+        return sendAgentEmail(p.correo, '😔 Lamentamos que no hayas podido asistir — Zi Vital', html, 'no_asistencia', p.correo + '_noasist_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'No asistió → ' + p.nombre, { correo: p.correo }); return r })
+      }}
+    })
+    return sendInBatches(emails9, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '😔 ' + results.ok + ' no asistencia ✓' })
+      sendAdminReport(agent, 'no_asistencia', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: seguimiento 7d post-procedimiento ───────────
+  if (accion === 'send_email' && template === 'seguimiento') {
+    var emails10 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = buildEmailSeguimiento(p.nombre, p.tratamiento, 7)
+        return sendAgentEmail(p.correo, '💆‍♀️ ¿Cómo te fue con tu ' + (p.tratamiento || 'tratamiento') + '? — Zi Vital', html, 'seguimiento', p.correo + '_seg_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Seguimiento 7d → ' + p.nombre, { correo: p.correo, tratamiento: p.tratamiento }); return r })
+      }}
+    })
+    return sendInBatches(emails10, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '💆 ' + results.ok + ' seguimientos ✓' })
+      sendAdminReport(agent, 'seguimiento', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: reposición de productos de receta ───────────
+  if (accion === 'send_email' && template === 'reposicion_producto') {
+    var emails11 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      // Verificar qué productos están por acabarse
+      var items = []
+      try {
+        var receta = typeof p.receta_items === 'string' ? JSON.parse(p.receta_items) : (p.receta_items || [])
+        var fechaReceta = new Date(p.fecha_receta)
+        receta.forEach(function(it) {
+          var diasRestantes = (it.dias || 30) - Math.floor((Date.now() - fechaReceta.getTime()) / 86400000)
+          if (diasRestantes <= 5 && diasRestantes >= -5) items.push(it)
+        })
+      } catch(e) {}
+      if (!items.length) return null
+      return { email: p.correo, sendFn: function() {
+        var prods = items.map(function(it) { return it.nombre }).join(', ')
+        var html = emailShell('Tu producto está por terminarse',
+          '<p>Hola <b>' + p.nombre + '</b>,</p>' +
+          '<p>Tu tratamiento con <b>' + prods + '</b> está por completarse.</p>' +
+          '<p>Para continuar con los resultados, te recomendamos renovar a tiempo. Puedes pedirlo en tu próxima visita o contactarnos por WhatsApp.</p>' +
+          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#00C9A7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📱 Pedir por WhatsApp</a></p>')
+        return sendAgentEmail(p.correo, '💊 Tu ' + items[0].nombre + ' está por terminarse — Zi Vital', html, 'reposicion_producto', p.correo + '_repos_' + p.fecha_receta)
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Reposición → ' + p.nombre + ': ' + prods, { correo: p.correo }); return r })
+      }}
+    }).filter(Boolean)
+    return sendInBatches(emails11, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '💊 ' + results.ok + ' reposiciones ✓' })
+      sendAdminReport(agent, 'reposicion_producto', results, data.length)
+    })
+  }
+
+  // ─── CARTERO: sesiones por vencer (>90 días sin usar) ───────────
+  if (accion === 'send_email' && template === 'sesion_por_vencer') {
+    var emails12 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var html = emailShell('Tienes una sesión pendiente',
+          '<p>Hola <b>' + p.nombre + '</b>,</p>' +
+          '<p>Tienes una sesión de <b>' + (p.tratamiento || '') + '</b> (' + (p.sesion || '') + ') pagada hace ' + (p.dias || 90) + ' días que aún no has utilizado.</p>' +
+          '<p>No queremos que pierdas tu inversión. Agenda tu sesión lo antes posible.</p>' +
+          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#0A4FBF;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📅 Agendar mi sesión</a></p>')
+        return sendAgentEmail(p.correo, '⏰ Tu sesión de ' + (p.tratamiento || 'tratamiento') + ' está por vencer — Zi Vital', html, 'sesion_por_vencer', p.correo + '_vencer_' + p.fecha_compra)
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Sesión por vencer → ' + p.nombre + ': ' + p.tratamiento, { correo: p.correo, dias: p.dias }); return r })
+      }}
+    })
+    return sendInBatches(emails12, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '⏰ ' + results.ok + ' sesiones vencer ✓' })
+      sendAdminReport(agent, 'sesion_por_vencer', results, data.length)
     })
   }
 
