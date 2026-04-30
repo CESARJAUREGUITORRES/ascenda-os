@@ -219,6 +219,41 @@ http.createServer(function(req, res) {
         var html = '', subject = '', tipo = d.template
         // Construir variables para la plantilla
         var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
+
+        // Construir tabla de items dinámica para recibo/cotización
+        if (d.items && d.items.length) {
+          var sym = (d.moneda === 'USD') ? '$ ' : 'S/ '
+          var itemsHtml = ''
+          var totalCalc = 0
+          d.items.forEach(function(it) {
+            var sub = parseFloat(it.subtotal || it.monto || 0)
+            totalCalc += sub
+            itemsHtml += '<tr style="border-bottom:1px solid #F1F5F9">' +
+              '<td style="padding:10px 12px;font-size:13px;color:#334155">' + (it.nombre || it.tratamiento || '') + '</td>' +
+              '<td style="padding:10px 12px;font-size:13px;text-align:center;color:#64748B">' + (it.cantidad || 1) + '</td>' +
+              '<td style="padding:10px 12px;font-size:13px;text-align:right;font-weight:600;color:#334155">' + sym + sub.toFixed(2) + '</td></tr>'
+          })
+          vars.items_tabla = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
+            '<thead><tr style="background:' + BRAND.color_primario + '">' +
+            '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Servicio / Producto</th>' +
+            '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Cant.</th>' +
+            '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Subtotal</th>' +
+            '</tr></thead><tbody>' + itemsHtml + '</tbody>' +
+            '<tfoot><tr style="background:' + BRAND.color_primario + '">' +
+            '<td colspan="2" style="padding:12px;text-align:right;font-size:14px;font-weight:700;color:#334155">TOTAL</td>' +
+            '<td style="padding:12px;text-align:right;font-size:16px;font-weight:800;color:' + BRAND.color_secundario + '">' + sym + (parseFloat(d.total || totalCalc)).toFixed(2) + '</td>' +
+            '</tr></tfoot></table>'
+          // Si no hay tratamiento individual, usar lista de nombres
+          if (!vars.tratamiento) {
+            vars.tratamiento = d.items.map(function(it) { return it.nombre || it.tratamiento || '' }).join(', ')
+          }
+          if (!vars.monto) {
+            vars.monto = (parseFloat(d.total || totalCalc)).toFixed(2)
+          }
+        } else {
+          vars.items_tabla = ''
+        }
+
         // Contexto de segmentación para plantillas inteligentes
         var tplCtx = { segmento: d.segmento || '', tipo_tratamiento: d.tipo_tratamiento || '' }
         
