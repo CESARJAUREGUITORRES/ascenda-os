@@ -619,8 +619,34 @@ function agGuardarEdit(){
   var num=(el('ed-num').value||'').trim().replace(/\D/g,'');
   var fecha=el('ed-fecha').value;
   if(!fecha){alert('Selecciona fecha');return;}
+  var hora=el('ed-hora').value||'10:00';
+  var sede=el('ed-sede').value;
   var asesor=el('ed-asesor').value;var now=new Date();
-  var row={nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),correo:el('ed-correo').value.trim(),asesor:asesor,id_asesor:AMAP[asesor]||'',sede:el('ed-sede').value,tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,hora_cita:el('ed-hora').value||'10:00',tratamiento:el('ed-trat').value,tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()};
+
+  // ═══ Validación suave: verificar horario de doctora ═══
+  var doctoraSel = el('ed-doctora') ? el('ed-doctora').value : '';
+  if (!AG.editId && !AG.reagendando) {
+    // Solo en citas nuevas: verificar cobertura
+    _rpc('aos_verificar_cobertura_cita', {p_fecha: fecha, p_hora: hora, p_sede: sede}, function(cob) {
+      if (cob && cob.doctoras_disponibles && cob.doctoras_disponibles.length > 0) {
+        // Auto-asignar si solo hay 1 doctora y no se seleccionó
+        if (!doctoraSel && cob.doctoras_disponibles.length === 1) {
+          doctoraSel = cob.doctoras_disponibles[0];
+        }
+      }
+      if (cob && !cob.hay_cobertura && !confirm('⚠️ No hay doctora con turno el ' + fecha + ' a las ' + hora + ' en ' + sede + '.\n\n¿Deseas agendar de todos modos?')) {
+        return;
+      }
+      _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now);
+    });
+    return;
+  }
+  _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now);
+}
+
+function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
+  var row={nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),correo:el('ed-correo').value.trim(),asesor:asesor,id_asesor:AMAP[asesor]||'',sede:sede,tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,hora_cita:hora,tratamiento:el('ed-trat').value,tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()};
+  if (doctoraSel) row.doctora = doctoraSel;
   if(AG.reagendando && AG.reagendaOrigId){
     // REAGENDAR: marcar original como REAGENDADA + crear nueva cita
     var origPatch={estado_cita:'REAGENDADA',obs:(el('ed-obs').value.trim()?el('ed-obs').value.trim()+' | ':'')+'Reagendada a '+fecha,ts_actualizado:now.toISOString()};
