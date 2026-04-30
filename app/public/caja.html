@@ -1739,6 +1739,24 @@ function selPaciente(p) {
   cargarPlanesPaciente(num);
   cargarCotizacionesPaciente(num);
   cargarRecetasPaciente(num);
+  // Alerta suave: verificar si tiene atención abierta sin triaje
+  var alertEl = document.getElementById('pac-alerta-clinica');
+  if (alertEl) alertEl.style.display = 'none';
+  sbR('aos_check_atencion_abierta', {p_numero: num}, function(r) {
+    if (r && r.tiene_atencion && !r.triaje_hecho) {
+      if (!alertEl) {
+        alertEl = document.createElement('div');
+        alertEl.id = 'pac-alerta-clinica';
+        var pf2 = document.getElementById('pac-ficha');
+        if (pf2) pf2.insertBefore(alertEl, pf2.firstChild);
+      }
+      if (alertEl) {
+        alertEl.style.cssText = 'padding:8px 12px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;margin-bottom:8px;font-size:10px;color:#92400E;';
+        alertEl.innerHTML = 'Este paciente tiene atención abierta sin triaje completado. Coordinar con enfermería.';
+        alertEl.style.display = 'block';
+      }
+    }
+  });
 }
 
 function limpiarPaciente() {

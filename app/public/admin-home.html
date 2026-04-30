@@ -306,6 +306,21 @@ function ahLoad(){
   // Benchmark histórico (solo primera vez o cada 5 recargas)
   if(_D.loadCount===1||_D.loadCount%5===0){ahBench();}
   ahSparklines();
+  // KPI Flujo clínico (solo primera carga)
+  if(_D.loadCount===0){_r('aos_kpi_flujo_clinico',{},function(fc){
+    if(!fc)return;
+    var el=document.getElementById('ah-flujo-clinico');
+    if(!el){el=document.createElement('div');el.id='ah-flujo-clinico';el.style.cssText='margin:12px 0;padding:14px;background:linear-gradient(135deg,#F0F4FC,#EBF5FF);border-radius:12px;border:1px solid #DBEAFE;';var ct=document.querySelector('.ah-main')||document.querySelector('[id^="ah-"]');if(ct&&ct.parentNode)ct.parentNode.insertBefore(el,ct.nextSibling);}
+    if(el){var pct=fc.pct_adopcion||0;var pctColor=pct>=50?'#059669':pct>=20?'#D97706':'#DC2626';
+    el.innerHTML='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:12px;color:#071D4A;margin-bottom:8px;">Flujo cl\u00ednico este mes</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+    '<div style="flex:1;min-width:70px;text-align:center;padding:8px;background:#fff;border-radius:8px;"><div style="font-size:18px;font-weight:800;color:'+pctColor+';">'+pct+'%</div><div style="font-size:8px;color:#6B7BA8;">Adopci\u00f3n triaje</div></div>'+
+    '<div style="flex:1;min-width:70px;text-align:center;padding:8px;background:#fff;border-radius:8px;"><div style="font-size:18px;font-weight:800;color:#0A4FBF;">'+(fc.atenciones_con_triaje||0)+'/'+(fc.atenciones_total||0)+'</div><div style="font-size:8px;color:#6B7BA8;">Con triaje</div></div>'+
+    '<div style="flex:1;min-width:70px;text-align:center;padding:8px;background:#fff;border-radius:8px;"><div style="font-size:18px;font-weight:800;color:#7C3AED;">'+(fc.evaluaciones||0)+'</div><div style="font-size:8px;color:#6B7BA8;">Evaluaciones</div></div>'+
+    '<div style="flex:1;min-width:70px;text-align:center;padding:8px;background:#fff;border-radius:8px;"><div style="font-size:18px;font-weight:800;color:#059669;">'+(fc.sesiones_realizadas||0)+'</div><div style="font-size:8px;color:#6B7BA8;">Sesiones</div></div>'+
+    '<div style="flex:1;min-width:70px;text-align:center;padding:8px;background:#fff;border-radius:8px;"><div style="font-size:18px;font-weight:800;color:#D97706;">'+(fc.duplicados_pendientes||0)+'</div><div style="font-size:8px;color:#6B7BA8;">Duplicados</div></div>'+
+    '</div>';}
+  });}
   _D.loadCount++;
 }
 
