@@ -393,105 +393,119 @@ function cotEmail(cotId) {
 
 function cotPDF(cotId){var c=(PT.cots||[]).find(function(x){return x.id===cotId;});if(!c)return;var items=c.items||[];var pagos=c.pagos||[];var pacNom=c.nombre_paciente||((PT.sel&&PT.sel.nombres||'')+' '+(PT.sel&&PT.sel.apellidos||'')).trim();var pacDni=c.dni_paciente||(PT.sel&&PT.sel.dni)||'';var estLbl=c.estado==='PAGADO_COMPLETO'?'PAGADO':c.estado==='PAGADO_PARCIAL'?'ADELANTO':c.estado==='CANCELADO'?'CANCELADO':'PRESUPUESTO';var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cotizaci\u00f3n #'+c.numero_cotizacion+'</title><link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:"DM Sans",sans-serif;color:#0D1B3E;background:#fff;}.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm 18mm;position:relative;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #0A4FBF;}.logo-text{font-family:"Exo 2",sans-serif;font-weight:800;font-size:22px;color:#0A4FBF;}.logo-sub{font-size:10px;color:#6B7BA8;}.invoice-info{text-align:right;}.invoice-title{font-family:"Exo 2",sans-serif;font-weight:800;font-size:18px;color:#071D4A;}.invoice-num{font-size:13px;color:#0A4FBF;font-weight:700;}.invoice-date{font-size:11px;color:#6B7BA8;}.status-badge{display:inline-block;padding:4px 14px;border-radius:6px;font-size:10px;font-weight:800;margin-top:4px;}.st-pagado{background:#F0FDF4;color:#16A34A;}.st-adelanto{background:#FEF3C7;color:#D97706;}.st-presupuesto{background:#EBF2FF;color:#0A4FBF;}.st-cancelado{background:#F0F4FC;color:#6B7BA8;}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #DDE4F5;}.info-label{font-size:9px;font-weight:700;color:#6B7BA8;text-transform:uppercase;}.info-value{font-size:12px;font-weight:600;}table{width:100%;border-collapse:collapse;margin-bottom:16px;}thead th{background:#0A4FBF;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;padding:8px 10px;text-align:left;}thead th:first-child{border-radius:8px 0 0 0;}thead th:last-child{border-radius:0 8px 0 0;}tbody td{padding:8px 10px;border-bottom:1px solid #F0F4FC;font-size:11px;}.totals-box{display:flex;justify-content:flex-end;margin-bottom:16px;}.totals-inner{width:220px;}.total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}.total-row.main{font-family:"Exo 2",sans-serif;font-weight:800;font-size:15px;color:#0A4FBF;border-top:2px solid #0A4FBF;padding-top:8px;margin-top:4px;}.total-row .label{color:#6B7BA8;}.total-row .val{font-weight:700;}.pay-section{margin-bottom:16px;padding:12px;background:#F8FAFF;border-radius:8px;border:1px solid #DDE4F5;}.pay-title{font-size:10px;font-weight:700;color:#6B7BA8;text-transform:uppercase;margin-bottom:6px;}.pay-line{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;}.footer{position:absolute;bottom:15mm;left:18mm;right:18mm;text-align:center;padding-top:12px;border-top:2px solid #0A4FBF;}.footer-text{font-size:9px;color:#6B7BA8;}.footer-brand{font-family:"Exo 2",sans-serif;font-weight:800;font-size:11px;color:#0A4FBF;margin-top:3px;}.thanks{text-align:center;font-family:"Exo 2",sans-serif;font-weight:800;font-size:14px;color:#00C9A7;margin-top:20px;}@media print{.page{padding:10mm 12mm;}.footer{bottom:8mm;left:12mm;right:12mm;}}</style></head><body><div class="page"><div class="header"><div><div class="logo-text">Zi Vital</div><div class="logo-sub">Cl\u00ednica Est\u00e9tica</div></div><div class="invoice-info"><div class="invoice-title">COTIZACI\u00d3N</div><div class="invoice-num">N\u00b0 '+String(c.numero_cotizacion).padStart(6,'0')+'</div><div class="invoice-date">Fecha: '+h(c.fecha||localDate())+'</div><div class="status-badge '+(estLbl==='PAGADO'?'st-pagado':estLbl==='ADELANTO'?'st-adelanto':estLbl==='CANCELADO'?'st-cancelado':'st-presupuesto')+'">'+estLbl+'</div></div></div><div class="info-grid"><div><div class="info-label">Paciente</div><div class="info-value">'+h(pacNom)+'</div></div><div><div class="info-label">DNI</div><div class="info-value">'+h(pacDni||'-')+'</div></div><div><div class="info-label">Sede</div><div class="info-value">'+h(c.sede||'')+'</div></div><div><div class="info-label">Asesor</div><div class="info-value">'+h(c.asesor||'')+'</div></div>'+(c.doctor_responsable?'<div><div class="info-label">Doctor</div><div class="info-value">'+h(c.doctor_responsable)+'</div></div>':'')+'</div><table><thead><tr><th>Descripci\u00f3n</th><th>Tipo</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead><tbody>'+items.map(function(it){return '<tr><td style="font-weight:600;">'+h(it.descripcion)+'</td><td>'+h(it.tipo)+'</td><td style="text-align:center;">'+it.cantidad+'</td><td>S/ '+fmtMoney(it.precio_unitario)+'</td><td style="font-weight:700;">S/ '+fmtMoney(it.subtotal)+'</td></tr>';}).join('')+'</tbody></table><div class="totals-box"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="val">S/ '+fmtMoney(c.subtotal)+'</span></div>'+(parseFloat(c.total_pagado||0)>0?'<div class="total-row"><span class="label">Pagado</span><span class="val" style="color:#16A34A;">S/ '+fmtMoney(c.total_pagado)+'</span></div>':'')+(parseFloat(c.saldo_pendiente||0)>0?'<div class="total-row"><span class="label">Por pagar</span><span class="val" style="color:#DC2626;">S/ '+fmtMoney(c.saldo_pendiente)+'</span></div>':'')+'<div class="total-row main"><span>TOTAL</span><span>S/ '+fmtMoney(c.subtotal)+'</span></div></div></div>'+(pagos.length?'<div class="pay-section"><div class="pay-title">Historial de pagos</div>'+pagos.map(function(pg){return '<div class="pay-line"><span>'+h(pg.fecha||'')+' \u2014 '+h(pg.metodo_pago)+'</span><span style="font-weight:700;">S/ '+fmtMoney(pg.monto)+'</span></div>';}).join('')+'</div>':'')+'<div class="thanks">\u00a1Gracias por su confianza!</div><div class="footer"><div class="footer-text">Av. Javier Prado Este 996, San Isidro | Av. Brasil 1170, Pueblo Libre</div><div class="footer-brand">AscendaOS \u2014 Powered by CREACTIVE OS</div></div></div></body></html>';var w=window.open('','_blank','width=800,height=1100');w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);}
 
-// ═══ FUSIÓN DE PACIENTES ═══
-function ptFusionarModal(numPrincipal, numAbsorbido) {
-  // Cargar datos de ambos pacientes para mostrar comparación
-  Promise.all([
-    new Promise(function(res) { _rpc('aos_paciente_360', {p_numero: numPrincipal}, res); }),
-    new Promise(function(res) { _rpc('aos_paciente_360', {p_numero: numAbsorbido}, res); })
-  ]).then(function(results) {
-    var d1 = results[0], d2 = results[1];
-    if (!d1 || !d1.paciente || !d2 || !d2.paciente) { if (window.AOS_showToast) AOS_showToast('Error cargando datos', '', 'toast-alerta'); return; }
-    var p1 = d1.paciente, p2 = d2.paciente;
-    var n1 = ((p1.nombres||'')+' '+(p1.apellidos||'')).trim();
-    var n2 = ((p2.nombres||'')+' '+(p2.apellidos||'')).trim();
+// ═══ FUSIÓN DE PACIENTES — Multi-hijo con diseño profesional ═══
+function ptFusionarModal(numPrincipal) {
+  // Cargar padre + todos sus duplicados
+  _rpc('aos_duplicados_paciente', {p_numero: numPrincipal}, function(data) {
+    if (!data || !data.found) { if (window.AOS_showToast) AOS_showToast('Error cargando duplicados', '', 'toast-alerta'); return; }
+    var padre = data.principal;
+    var dups = data.duplicados || [];
+    if (!dups.length) { if (window.AOS_showToast) AOS_showToast('No se encontraron duplicados', '', ''); return; }
 
     var overlay = document.createElement('div');
-    overlay.className = 'merge-overlay';
+    overlay.id = 'merge-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
     overlay.onclick = function(ev) { if (ev.target === overlay) overlay.remove(); };
 
-    var html = '<div class="merge-modal">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div style="font-family:Exo 2;font-weight:800;font-size:16px;">🔀 Fusionar Pacientes</div><button onclick="this.closest(\'.merge-overlay\').remove()" style="margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:#9AAAC8;">✕</button></div>';
-    html += '<div style="font-size:11px;color:#6B7BA8;margin-bottom:12px;">El paciente <b>secundario</b> será absorbido por el <b>principal</b>. Todos sus datos (citas, ventas, llamadas, cotizaciones) se moverán al principal.</div>';
+    var html = '<div style="background:#fff;border-radius:16px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:DM Sans,sans-serif;">';
 
-    // Comparación lado a lado
-    html += '<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;margin-bottom:14px;">';
-    // Principal (izquierda)
-    html += '<div class="merge-card merge-sel" id="merge-card-1" onclick="selectMergePrincipal(\''+numPrincipal+'\',\''+numAbsorbido+'\')">';
-    html += '<div style="font-size:8px;font-weight:700;color:#059669;text-transform:uppercase;margin-bottom:4px;">👑 PRINCIPAL</div>';
-    html += '<div style="font-weight:800;font-size:13px;">'+h(n1)+'</div>';
-    html += '<div style="font-size:10px;color:#6B7BA8;">📱 '+h(p1.telefono||'')+'</div>';
-    html += '<div style="font-size:9px;color:#475569;margin-top:6px;">DNI: '+h(p1.dni||'—')+' · Email: '+h(p1.correo||'—')+'</div>';
-    html += '<div style="font-size:9px;color:#475569;">Ventas: <b>'+d1.totalCompras+'</b> · Facturado: <b>S/'+parseFloat(d1.totalFacturado||0).toFixed(0)+'</b></div>';
-    html += '<div style="font-size:9px;color:#475569;">Citas: <b>'+(d1.citas||[]).length+'</b> · Llamadas: <b>'+(d1.llamadas||[]).length+'</b></div>';
-    html += '</div>';
-    // Flechas centro
-    html += '<div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#cea14a;">⬅</div>';
-    // Absorbido (derecha)
-    html += '<div class="merge-card" id="merge-card-2" onclick="selectMergePrincipal(\''+numAbsorbido+'\',\''+numPrincipal+'\')">';
-    html += '<div style="font-size:8px;font-weight:700;color:#DC2626;text-transform:uppercase;margin-bottom:4px;">SECUNDARIO (se absorbe)</div>';
-    html += '<div style="font-weight:800;font-size:13px;">'+h(n2)+'</div>';
-    html += '<div style="font-size:10px;color:#6B7BA8;">📱 '+h(p2.telefono||'')+'</div>';
-    html += '<div style="font-size:9px;color:#475569;margin-top:6px;">DNI: '+h(p2.dni||'—')+' · Email: '+h(p2.correo||'—')+'</div>';
-    html += '<div style="font-size:9px;color:#475569;">Ventas: <b>'+d2.totalCompras+'</b> · Facturado: <b>S/'+parseFloat(d2.totalFacturado||0).toFixed(0)+'</b></div>';
-    html += '<div style="font-size:9px;color:#475569;">Citas: <b>'+(d2.citas||[]).length+'</b> · Llamadas: <b>'+(d2.llamadas||[]).length+'</b></div>';
+    // Header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+    html += '<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:16px;color:#071D4A;">Fusionar pacientes</div>';
+    html += '<button onclick="document.getElementById(\'merge-overlay\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9AAAC8;line-height:1;">✕</button></div>';
+
+    // Padre card
+    html += '<div style="background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:2px solid #059669;border-radius:12px;padding:14px;margin-bottom:12px;">';
+    html += '<div style="font-size:9px;font-weight:800;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">PRINCIPAL — se conserva</div>';
+    html += '<div style="font-weight:800;font-size:14px;color:#071D4A;">' + h((padre.nombres||'') + ' ' + (padre.apellidos||'')) + '</div>';
+    html += '<div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;">';
+    html += '<span style="font-size:10px;color:#475569;">Tel: <b>' + h(padre.telefono||'') + '</b></span>';
+    html += '<span style="font-size:10px;color:#475569;">DNI: <b>' + h(padre.dni||'—') + '</b></span>';
+    html += '<span style="font-size:10px;color:#059669;font-weight:700;">S/' + parseFloat(padre.total_fact||0).toFixed(0) + '</span>';
+    html += '<span style="font-size:10px;color:#475569;">' + (padre.total_compras||0) + ' compras</span>';
+    if (padre.etiqueta_vip && padre.etiqueta_vip !== 'NORMAL') html += '<span style="font-size:9px;font-weight:800;color:#B8860B;background:#FFF7ED;padding:1px 6px;border-radius:4px;">' + h(padre.etiqueta_vip) + '</span>';
     html += '</div></div>';
 
-    html += '<div style="font-size:10px;color:#6B7BA8;margin-bottom:8px;">💡 Click en una tarjeta para cambiar cuál es el principal. Los datos faltantes del principal se auto-completan con los del secundario.</div>';
+    // Hijos — seleccionables
+    html += '<div style="font-size:11px;color:#6B7BA8;margin-bottom:8px;">Selecciona los duplicados a absorber. Sus datos se moverán al principal.</div>';
+    dups.forEach(function(dup, i) {
+      var hasData = (dup.n_ventas||0) > 0 || (dup.n_citas||0) > 0 || (dup.n_notas_cli||0) > 0;
+      html += '<label style="display:block;background:#FAFBFF;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#DC2626\'" onmouseout="this.style.borderColor=\'#E2E8F0\'">';
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+      html += '<input type="checkbox" name="merge-hijo" value="' + h(dup.telefono||'') + '" checked style="margin-top:2px;accent-color:#DC2626;width:16px;height:16px;">';
+      html += '<div style="flex:1;">';
+      html += '<div style="font-weight:700;font-size:12px;color:#334155;">' + h((dup.nombres||'') + ' ' + (dup.apellidos||'')) + '</div>';
+      html += '<div style="font-size:10px;color:#6B7BA8;margin-top:2px;">Tel: ' + h(dup.telefono||'') + (dup.dni ? ' · DNI: ' + h(dup.dni) : '') + '</div>';
+      html += '<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">';
+      if (dup.n_ventas > 0) html += '<span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:4px;">' + dup.n_ventas + ' ventas</span>';
+      if (dup.n_citas > 0) html += '<span style="font-size:9px;background:#EBF5FF;color:#1E40AF;padding:1px 6px;border-radius:4px;">' + dup.n_citas + ' citas</span>';
+      if (dup.n_llamadas > 0) html += '<span style="font-size:9px;background:#F0F4FC;color:#0A4FBF;padding:1px 6px;border-radius:4px;">' + dup.n_llamadas + ' llamadas</span>';
+      if (dup.n_notas_cli > 0) html += '<span style="font-size:9px;background:#FDF4FF;color:#7E22CE;padding:1px 6px;border-radius:4px;">' + dup.n_notas_cli + ' notas clínicas</span>';
+      if (dup.n_sesiones > 0) html += '<span style="font-size:9px;background:#F0FDF4;color:#059669;padding:1px 6px;border-radius:4px;">' + dup.n_sesiones + ' sesiones</span>';
+      if (dup.total_fact > 0) html += '<span style="font-size:9px;font-weight:700;color:#059669;">S/' + parseFloat(dup.total_fact).toFixed(0) + '</span>';
+      if (!hasData) html += '<span style="font-size:9px;color:#94A3B8;">Sin datos asociados</span>';
+      html += '</div></div></div></label>';
+    });
 
-    html += '<div style="display:flex;gap:8px;"><button class="mbtn mbtn-g" style="flex:1;padding:12px;" id="merge-btn" onclick="ejecutarFusion()">🔀 Confirmar Fusión</button><button class="mbtn mbtn-c" style="padding:12px;" onclick="this.closest(\'.merge-overlay\').remove()">Cancelar</button></div>';
-    html += '</div>';
+    // Botones
+    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+    html += '<button id="merge-btn" onclick="ejecutarFusionMultiple(\'' + h(padre.telefono||'') + '\')" style="flex:1;padding:12px 16px;border:none;border-radius:10px;background:#DC2626;color:#fff;font-weight:800;font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;">Fusionar seleccionados</button>';
+    html += '<button onclick="document.getElementById(\'merge-overlay\').remove()" style="padding:12px 20px;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;color:#6B7BA8;font-weight:600;font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;">Cancelar</button>';
+    html += '</div></div>';
+
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
-
-    window._mergeData = { principal: numPrincipal, absorbido: numAbsorbido };
   });
 }
 
-function selectMergePrincipal(newPrincipal, newAbsorbido) {
-  window._mergeData = { principal: newPrincipal, absorbido: newAbsorbido };
-  var c1 = document.getElementById('merge-card-1');
-  var c2 = document.getElementById('merge-card-2');
-  if (c1 && c2) {
-    var isPrincipal1 = c1.textContent.indexOf(newPrincipal) > -1;
-    c1.classList.toggle('merge-sel', isPrincipal1);
-    c2.classList.toggle('merge-sel', !isPrincipal1);
-    c1.querySelector('div').textContent = isPrincipal1 ? '👑 PRINCIPAL' : 'SECUNDARIO (se absorbe)';
-    c1.querySelector('div').style.color = isPrincipal1 ? '#059669' : '#DC2626';
-    c2.querySelector('div').textContent = !isPrincipal1 ? '👑 PRINCIPAL' : 'SECUNDARIO (se absorbe)';
-    c2.querySelector('div').style.color = !isPrincipal1 ? '#059669' : '#DC2626';
-  }
-}
+function ejecutarFusionMultiple(numPrincipal) {
+  var checkboxes = document.querySelectorAll('input[name="merge-hijo"]:checked');
+  if (!checkboxes.length) { if (window.AOS_showToast) AOS_showToast('Selecciona al menos un duplicado', '', 'toast-alerta'); return; }
 
-function ejecutarFusion() {
-  var md = window._mergeData;
-  if (!md) return;
-  
   var btn = document.getElementById('merge-btn');
-  // First click: show confirmation state
+  // Doble confirmación
   if (btn && btn.getAttribute('data-confirmed') !== 'yes') {
     btn.setAttribute('data-confirmed', 'yes');
-    btn.textContent = '⚠️ CONFIRMAR — Esta acción es irreversible';
-    btn.style.background = '#DC2626';
-    setTimeout(function() { if (btn.getAttribute('data-confirmed') === 'yes') { btn.setAttribute('data-confirmed', ''); btn.textContent = '🔀 Confirmar Fusión'; btn.style.background = ''; } }, 5000);
+    btn.textContent = 'CONFIRMAR — ' + checkboxes.length + ' duplicado' + (checkboxes.length > 1 ? 's' : '') + ' se absorberán';
+    btn.style.background = '#991B1B';
+    setTimeout(function() { if (btn && btn.getAttribute('data-confirmed') === 'yes') { btn.setAttribute('data-confirmed', ''); btn.textContent = 'Fusionar seleccionados'; btn.style.background = '#DC2626'; } }, 6000);
     return;
   }
 
-  if (btn) { btn.textContent = '⏳ Fusionando...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Fusionando...'; btn.disabled = true; btn.style.opacity = '0.6'; }
+
+  var hijos = [];
+  checkboxes.forEach(function(cb) { hijos.push(cb.value); });
 
   var usuario = (window.AOS && AOS.ctx) ? AOS.ctx.nombre : 'admin';
-  _rpc('aos_fusionar_pacientes', { p_numero_principal: md.principal, p_numero_absorbido: md.absorbido, p_usuario: usuario }, function(res) {
-    // Close modal FIRST so toast appears on top
-    var overlay = document.querySelector('.merge-overlay');
-    if (overlay) overlay.remove();
-    
-    if (res && res.ok) {
-      var moved = res.registros_movidos || {};
-      var detail = Object.keys(moved).map(function(k) { return k + ': ' + moved[k]; }).join(', ');
-      if (window.AOS_showToast) AOS_showToast('✅ Fusión completada', detail, '');
-      ptSel(md.principal);
-    } else {
-      if (window.AOS_showToast) AOS_showToast('Error', (res && res.error) || 'Error desconocido', 'toast-alerta');
+
+  // Fusionar uno por uno en secuencia
+  var idx = 0;
+  var totalMovidos = {};
+  function fusionarSiguiente() {
+    if (idx >= hijos.length) {
+      // Todas las fusiones completadas
+      var ov = document.getElementById('merge-overlay');
+      if (ov) ov.remove();
+      var detail = Object.keys(totalMovidos).filter(function(k) { return totalMovidos[k] > 0; }).map(function(k) { return k + ': ' + totalMovidos[k]; }).join(', ');
+      if (window.AOS_showToast) AOS_showToast('Fusión completada — ' + hijos.length + ' absorbido' + (hijos.length > 1 ? 's' : ''), detail, '');
+      ptSel(numPrincipal); // Recargar ficha
+      // Refrescar búsqueda si hay texto
+      var searchEl = document.getElementById('pt-search');
+      if (searchEl && searchEl.value) ptSearch(searchEl.value);
+      return;
     }
-  });
+    if (btn) btn.textContent = 'Fusionando ' + (idx+1) + '/' + hijos.length + '...';
+    _rpc('aos_fusionar_pacientes', { p_numero_principal: numPrincipal, p_numero_absorbido: hijos[idx], p_usuario: usuario }, function(res) {
+      if (res && res.ok && res.registros_movidos) {
+        Object.keys(res.registros_movidos).forEach(function(k) {
+          totalMovidos[k] = (totalMovidos[k] || 0) + res.registros_movidos[k];
+        });
+      }
+      idx++;
+      fusionarSiguiente();
+    });
+  }
+  fusionarSiguiente();
 }
+
