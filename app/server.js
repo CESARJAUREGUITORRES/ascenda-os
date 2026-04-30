@@ -1402,6 +1402,77 @@ function executeAction(agent, task, queryResult) {
     })
   }
 
+  // ─── CARTERO: predicción de recompra ───────────
+  if (accion === 'send_email' && template === 'prediccion_recompra') {
+    var emails13 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var vars = { nombre: p.nombre || '', tratamiento: p.tratamiento || 'tratamiento', ciclo: p.ciclo || '45' }
+        var html = buildFromTemplate('prediccion_recompra', vars, function() {
+          return emailShell('Es hora de tu próxima sesión',
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, basándonos en tu historial, es buen momento para tu próxima sesión de <b>' + (p.tratamiento||'') + '</b>.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📅 Agendar</a></p>')
+        })
+        return sendAgentEmail(p.correo, '💆 ' + (p.nombre||'').split(' ')[0] + ', es hora de tu próxima sesión — Zi Vital', html, 'prediccion_recompra', p.correo + '_recompra_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recompra → ' + p.nombre, { correo: p.correo }); return r })
+      }}
+    })
+    return sendInBatches(emails13, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '🔄 ' + results.ok + ' recompra ✓' })
+      sendAdminReport(agent, 'prediccion_recompra', results, data.length)
+      // Marcar predicciones como procesadas
+      sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'recompra' }) }).catch(function(){})
+    })
+  }
+
+  // ─── CARTERO: riesgo de abandono ───────────
+  if (accion === 'send_email' && template === 'riesgo_abandono') {
+    var emails14 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var vars = { nombre: p.nombre || '' }
+        var html = buildFromTemplate('riesgo_abandono', vars, function() {
+          return emailShell('Queremos escucharte',
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, notamos que no has podido asistir últimamente. Estamos aquí para ayudarte a reprogramar.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">💬 Conversemos</a></p>')
+        })
+        return sendAgentEmail(p.correo, (p.nombre||'').split(' ')[0] + ', queremos escucharte — Zi Vital', html, 'riesgo_abandono', p.correo + '_abandono_' + new Date().toISOString().slice(0,7))
+          .then(function(r) {
+            if (r && r.ok && !r.skip) {
+              logAction(agent.id, 'email_enviado', 'Abandono → ' + p.nombre, { correo: p.correo, cancelaciones: p.cancelaciones })
+              // Alerta interna a César
+              notifyAdmin('⚠️ Riesgo de abandono: ' + p.nombre, p.cancelaciones + ' cancelaciones recientes. Email enviado.', 'PACIENTE', 'ALTA')
+            }
+            return r
+          })
+      }}
+    })
+    return sendInBatches(emails14, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '⚠️ ' + results.ok + ' abandono ✓' })
+      sendAdminReport(agent, 'riesgo_abandono', results, data.length)
+      sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'abandono' }) }).catch(function(){})
+    })
+  }
+
+  // ─── CARTERO: cross-sell inteligente ───────────
+  if (accion === 'send_email' && template === 'crosssell') {
+    var emails15 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
+      return { email: p.correo, sendFn: function() {
+        var vars = { nombre: p.nombre || '', tratamientos_actuales: p.tratamientos_actuales || '', sugerencia: p.sugerencia || 'nuevo tratamiento' }
+        var html = buildFromTemplate('crosssell', vars, function() {
+          return emailShell('Descubre un nuevo tratamiento',
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, basándonos en tu experiencia, te recomendamos conocer nuestro tratamiento de <b>' + (p.sugerencia||'') + '</b>.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📋 Más info</a></p>')
+        })
+        return sendAgentEmail(p.correo, '✨ ' + (p.nombre||'').split(' ')[0] + ', descubre un tratamiento complementario — Zi Vital', html, 'crosssell', p.correo + '_crosssell_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Cross-sell → ' + p.nombre + ': ' + p.sugerencia, { correo: p.correo }); return r })
+      }}
+    })
+    return sendInBatches(emails15, 3, 2000).then(function(results) {
+      sbPatchAgent(agent.id, { bubble_text: '✨ ' + results.ok + ' cross-sell ✓' })
+      sendAdminReport(agent, 'crosssell', results, data.length)
+      sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'crosssell' }) }).catch(function(){})
+    })
+  }
+
   // ─── CARTERO: Motor flujos multi-paso ───────────
   if (accion === 'procesar_flujos') {
     // Buscar ejecuciones activas cuyo proximo_envio ya pasó
