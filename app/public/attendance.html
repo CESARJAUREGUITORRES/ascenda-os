@@ -508,6 +508,8 @@ o+='<div class="at-sc">Observaciones de triaje</div>';
 
 
 else if(tipo==='EVALUACION'){
+/* B1: Resumen de última evaluación anterior */
+o+='<div id="ev-prev-box"></div>';
 o+='<div class="fg"><label class="fl">Tipo de evaluación</label><select id="ev-tipo" class="fi fs" onchange="evTipoChange()" style="font-weight:800;font-size:11px"><option value="FACIAL">🧑 Facial</option><option value="CORPORAL">🏋️ Corporal</option><option value="CAPILAR">💇 Capilar</option><option value="VITAMINAS">💊 Vitaminas / Salud general</option></select></div>';
 o+='<div id="ev-campos"></div>';
 o+='<div class="at-sc" style="margin-top:10px">Hábitos y antecedentes</div>';
@@ -543,7 +545,27 @@ if(tipo==='TRIAJE'&&savedNote){
 }
 if(tipo==='EVALUACION'){
   evTipoChange();
-  /* Pre-cargar datos guardados de evaluación */
+  /* B1: Buscar evaluación ANTERIOR (otra fecha) para mostrar comparación */
+  sbF('/rest/v1/aos_evaluaciones_clinicas?numero_limpio=eq.'+c.numero_limpio+'&fecha=neq.'+c.fecha+'&order=created_at.desc&limit=1').then(function(prev){
+    var box=document.getElementById('ev-prev-box');if(!box)return;
+    if(!prev||!prev.length){box.innerHTML='';return;}
+    var p=prev[0];
+    var h='<div style="padding:8px;background:#F0F4FC;border:1.5px solid var(--bd2);border-radius:8px;margin-bottom:8px">';
+    h+='<div style="font-size:8px;font-weight:800;color:var(--blue);margin-bottom:4px">📋 Última evaluación: '+E(p.fecha||'')+' — '+(p.tipo_evaluacion||'')+'</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:4px;font-size:7px">';
+    if(p.tipo_piel)h+='<span style="background:#EBF2FF;color:var(--blue);padding:2px 6px;border-radius:4px">Piel: '+E(p.tipo_piel)+'</span>';
+    if(p.fototipo)h+='<span style="background:#EBF2FF;color:var(--blue);padding:2px 6px;border-radius:4px">Foto: '+E(p.fototipo)+'</span>';
+    if(p.glogau)h+='<span style="background:#FEF3C7;color:#D97706;padding:2px 6px;border-radius:4px">Glogau: '+E(p.glogau)+'</span>';
+    if(p.ludwig)h+='<span style="background:#FEF3C7;color:#D97706;padding:2px 6px;border-radius:4px">Ludwig: '+E(p.ludwig)+'</span>';
+    if(p.savin)h+='<span style="background:#FEF3C7;color:#D97706;padding:2px 6px;border-radius:4px">Savin: '+E(p.savin)+'</span>';
+    if(p.nivel_estres)h+='<span style="background:var(--sf);color:var(--mt);padding:2px 6px;border-radius:4px">Estrés: '+E(p.nivel_estres)+'</span>';
+    h+='</div>';
+    if(p.zonas_faciales){try{var z=typeof p.zonas_faciales==='string'?JSON.parse(p.zonas_faciales):p.zonas_faciales;if(z.length)h+='<div style="font-size:7px;color:var(--mt);margin-top:3px">Zonas: '+z.join(', ')+'</div>';}catch(e){}}
+    if(p.objetivo_paciente)h+='<div style="font-size:7px;color:var(--mt);margin-top:2px">Objetivo: '+E(p.objetivo_paciente.substring(0,80))+'</div>';
+    h+='</div>';
+    box.innerHTML=h;
+  });
+  /* Pre-cargar datos guardados de evaluación actual */
   sbF('/rest/v1/aos_evaluaciones_clinicas?numero_limpio=eq.'+c.numero_limpio+'&fecha=eq.'+c.fecha+'&order=created_at.desc&limit=1').then(function(rows){
     if(!rows||!rows.length)return;
     var ev=rows[0];
@@ -1758,6 +1780,20 @@ function procAccion(gi,si,accion){
   }
 
   /* ===== FORMULARIO CONTEXTUAL ===== */
+  /* B2: Resumen de sesión anterior del mismo tratamiento */
+  if(s.sesion_numero>1){
+    var prevSesiones=(g.sesiones||[]).filter(function(ps){return ps.estado==='REALIZADO'&&ps.sesion_numero<s.sesion_numero});
+    if(prevSesiones.length){
+      var prev=prevSesiones[prevSesiones.length-1];
+      o+='<div style="padding:6px;background:#F0F4FC;border:1.5px solid var(--bd2);border-radius:6px;margin-bottom:8px">';
+      o+='<div style="font-size:8px;font-weight:800;color:var(--blue);margin-bottom:2px">\u{1F4CB} Sesi\u00F3n anterior ('+prev.sesion_numero+'/'+prev.total_sesiones+')</div>';
+      if(prev.fecha_realizado)o+='<span style="font-size:7px;color:var(--mt)">Fecha: '+E(prev.fecha_realizado)+'</span> ';
+      if(prev.profesional_realizado)o+='<span style="font-size:7px;color:var(--mt)">\u00B7 '+E(prev.profesional_realizado)+'</span>';
+      if(prev.resumen_procedimiento)o+='<div style="font-size:7px;color:var(--deep);margin-top:2px">'+E(prev.resumen_procedimiento)+'</div>';
+      o+='</div>';
+    }
+  }
+
   if(tipoForm==='FACIAL'){
     o+='<div class="at-sc" style="margin-bottom:4px">Zonas faciales</div>';
     o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
@@ -2031,6 +2067,33 @@ function openPlanTrabajo(){
 function rPT(b){
   var c=AT.sel;if(!c)return;
   var o='<div style="font-size:8px;color:var(--mt);margin-bottom:6px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
+
+  /* B3: Sugerencias basadas en evaluación */
+  var det=AT.det;var evNotas=det?(det.notas_clinicas||[]).filter(function(n){return n.tipo==='EVALUACION';}):[];
+  if(evNotas.length&&!PT.items.length){
+    var evTxt=(evNotas[evNotas.length-1].contenido||'').toUpperCase();
+    var sugerencias=[];
+    if(evTxt.indexOf('GLOGAU')>-1){
+      if(evTxt.indexOf('III')>-1||evTxt.indexOf('IV')>-1)sugerencias.push({q:'toxina',label:'Toxina botulínica',razon:'Glogau III-IV: arrugas profundas'},{q:'acido hialuronico',label:'Ácido hialurónico',razon:'Relleno para surcos/volumen'},{q:'hifu',label:'HIFU',razon:'Reafirmación facial'});
+      else sugerencias.push({q:'hidrofacial',label:'Hidrofacial',razon:'Glogau I-II: mantenimiento'},{q:'pq age',label:'Peeling PQ AGE',razon:'Renovación celular'},{q:'biorevitalizacion',label:'Biorevitalización',razon:'Hidratación profunda'});
+    }
+    if(evTxt.indexOf('CAPILAR')>-1||evTxt.indexOf('LUDWIG')>-1){
+      sugerencias.push({q:'prp capilar',label:'PRP Capilar',razon:'Estimulación folicular'},{q:'meso capilar',label:'Mesoterapia Capilar',razon:'Nutrición del cuero cabelludo'},{q:'dutasteride',label:'Dutasteride',razon:'Anti-DHT capilar'});
+    }
+    if(evTxt.indexOf('CORPORAL')>-1){
+      sugerencias.push({q:'criolipólisis',label:'Criolipólisis',razon:'Reducción localizada'},{q:'enzimas corp',label:'Enzimas corporales',razon:'Lipólisis enzimática'},{q:'mesoterapia corporal',label:'Mesoterapia corporal',razon:'Reafirmación'});
+    }
+    if(sugerencias.length){
+      o+='<div style="padding:6px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:8px;margin-bottom:8px">';
+      o+='<div style="font-size:8px;font-weight:800;color:var(--gn);margin-bottom:4px">💡 Sugerencias según evaluación</div>';
+      o+='<div style="display:flex;flex-wrap:wrap;gap:3px">';
+      sugerencias.forEach(function(s){
+        o+='<span style="font-size:7px;padding:3px 8px;background:#EBF2FF;color:var(--blue);border-radius:12px;cursor:pointer;border:1px solid var(--bd2)" onclick="document.getElementById(\'pt-q\').value=\''+s.q+'\';ptSearch()" title="'+E(s.razon)+'">'+E(s.label)+'</span>';
+      });
+      o+='</div></div>';
+    }
+  }
+
   /* Buscador */
   o+='<div style="position:relative;margin-bottom:6px"><input id="pt-q" class="fi" placeholder="Buscar: hidrofacial, detox, vitaminas, crema..." oninput="ptSearch()" style="font-size:10px"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--mt)">🔍</span></div>';
   o+='<div id="pt-results" style="max-height:160px;overflow-y:auto;margin-bottom:8px"></div>';
