@@ -1500,7 +1500,11 @@ el.innerHTML='<div style="font-size:8px;font-weight:800;color:var(--am);margin-b
 
 /* ===== MOD-21: ACTIONS ===== */
 function atWA(){if(AT.sel&&AT.sel.numero_limpio)window.open('https://api.whatsapp.com/send?phone=51'+AT.sel.numero_limpio.replace(/\D/g,''),'_blank');}
-function cerrarFicha(){if(!AT.sel)return;if(!confirm('¿Cerrar ficha de '+((AT.sel.nombre||'')+' '+(AT.sel.apellido||'')).trim()+'?'))return;
+function cerrarFicha(){if(!AT.sel)return;var nombre=((AT.sel.nombre||'')+' '+(AT.sel.apellido||'')).trim();
+var ov=document.createElement('div');ov.id='modal-cerrar-ficha';ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';ov.onclick=function(e){if(e.target===ov)ov.remove();};
+ov.innerHTML='<div style="background:#fff;border-radius:16px;width:90%;max-width:400px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;font-family:DM Sans,sans-serif;"><div style="font-size:40px;margin-bottom:12px;">✅</div><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:16px;color:#071D4A;margin-bottom:8px;">Cerrar ficha de atención</div><div style="font-size:12px;color:#6B7BA8;margin-bottom:20px;">Se guardará la ficha de <b>'+E(nombre)+'</b> como completada. Esta acción marcará todos los registros clínicos como finalizados.</div><div style="display:flex;gap:8px;"><button onclick="document.getElementById(\'modal-cerrar-ficha\').remove()" style="flex:1;padding:12px;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;color:#6B7BA8;font-weight:600;font-size:12px;cursor:pointer;">Cancelar</button><button onclick="_ejecutarCerrarFicha()" style="flex:1;padding:12px;border:none;border-radius:10px;background:#059669;color:#fff;font-weight:800;font-size:12px;cursor:pointer;">✅ Confirmar cierre</button></div></div>';
+document.body.appendChild(ov);}
+function _ejecutarCerrarFicha(){var m=document.getElementById('modal-cerrar-ficha');if(m)m.remove();
 var c=AT.sel;sbR('aos_cerrar_ficha',{p_numero_limpio:c.numero_limpio,p_fecha:c.fecha,p_profesional:c.profesional||'ALL',p_cerrada_por:AOS.ctx?AOS.ctx.nombre:''}).then(function(r){if(r&&r.ok){if(window.AOS_showToast)AOS_showToast('✅ Ficha cerrada','','');c.estado='COMPLETADA';rList();rHdr();rKPIs();loadDet();}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}});}
 function genEnc(){if(!AT.sel)return;var c=AT.sel;
 /* Detectar profesionales protagonistas desde notas de procedimiento */
@@ -1801,9 +1805,9 @@ function procAccion(gi,si,accion){
       o+='<label style="font-size:7px;display:flex;align-items:center;gap:2px;padding:3px 6px;border:1px solid var(--bd2);border-radius:12px;cursor:pointer;background:var(--sf)"><input type="checkbox" class="proc-zona-chk" value="'+E(z)+'"><span>'+E(z)+'</span></label>';
     });o+='</div>';
     o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
-    o+='<div class="fg"><label class="fl">Producto/Marca</label><input id="proc-producto" class="fi" placeholder="Ej: Nabota 50U, Profhilo..." style="font-size:9px"></div>';
-    o+='<div class="fg"><label class="fl">Lote</label><input id="proc-lote" class="fi" placeholder="N\u00BA lote" style="font-size:9px"></div></div>';
-    o+='<div class="fg"><label class="fl">Cantidad/Dosis aplicada</label><input id="proc-dosis" class="fi" placeholder="Ej: 50U, 1ml, 2 jeringas..." style="font-size:9px"></div>';
+    o+='<div class="fg" style="display:none"><label class="fl">Producto/Marca</label><input id="proc-producto" class="fi" placeholder="Ej: Nabota 50U, Profhilo..." style="font-size:9px"></div>';
+    o+='<div class="fg" style="display:none"><label class="fl">Lote</label><input id="proc-lote" class="fi" placeholder="N\u00BA lote" style="font-size:9px"></div></div>';
+    o+='<div class="fg" style="display:none"><label class="fl">Cantidad/Dosis aplicada</label><input id="proc-dosis" class="fi" placeholder="Ej: 50U, 1ml, 2 jeringas..." style="font-size:9px"></div>';
   } else if(tipoForm==='CORPORAL'){
     o+='<div class="at-sc" style="margin-bottom:4px">Zonas corporales</div>';
     o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">';
