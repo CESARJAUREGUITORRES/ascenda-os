@@ -704,39 +704,75 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
   }).catch(function(){})
 }
 
-// ═══ CACHE DE PLANTILLAS — Lee de aos_email_plantillas para usar en emails reales ═══
-var _tplCache = {} // tipo → html_body
+// ═══ CACHE DE PLANTILLAS — Lee de aos_email_plantillas con segmentación ═══
+var _tplCache = {} // tipo → array de {body, asunto, segmento, tipo_tratamiento, prioridad}
 function loadTplCache() {
-  sbFetch('/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto&activo=eq.true').then(function(rows) {
+  sbFetch('/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto,segmento,tipo_tratamiento,prioridad&activo=eq.true').then(function(rows) {
     if (!rows) return
     _tplCache = {}
-    rows.forEach(function(r) { if (r.html_body && r.html_body.length > 10) _tplCache[r.tipo] = { body: r.html_body, asunto: r.asunto }; })
-    console.log('[TPL] Cache cargado:', Object.keys(_tplCache).length, 'plantillas')
+    rows.forEach(function(r) {
+      if (!r.html_body || r.html_body.length < 10) return
+      if (!_tplCache[r.tipo]) _tplCache[r.tipo] = []
+      _tplCache[r.tipo].push({
+        body: r.html_body, asunto: r.asunto || '',
+        segmento: (r.segmento || '').toUpperCase() || null,
+        tipo_tratamiento: (r.tipo_tratamiento || '').toUpperCase() || null,
+        prioridad: r.prioridad || 0
+      })
+    })
+    // Ordenar cada tipo por prioridad DESC (más específica primero)
+    Object.keys(_tplCache).forEach(function(k) {
+      _tplCache[k].sort(function(a, b) { return (b.prioridad || 0) - (a.prioridad || 0) })
+    })
+    var total = Object.keys(_tplCache).reduce(function(s, k) { return s + _tplCache[k].length }, 0)
+    console.log('[TPL] Cache cargado:', total, 'plantillas en', Object.keys(_tplCache).length, 'tipos')
   }).catch(function(e) { console.log('[TPL] Error cargando cache:', e.message) })
 }
 setTimeout(loadTplCache, 4000)
 setInterval(loadTplCache, 600000) // Recargar cada 10 min
 
-// Construir email desde plantilla BD o fallback a función hardcodeada
-function buildFromTemplate(tipo, vars, fallbackFn) {
-  var tpl = _tplCache[tipo]
-  if (tpl && tpl.body) {
-    var body = tpl.body
-    // Reemplazar variables {{var}} con valores reales
-    Object.keys(vars).forEach(function(k) {
-      body = body.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
-    })
-    var asunto = tpl.asunto || ''
-    Object.keys(vars).forEach(function(k) {
-      asunto = asunto.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
-    })
-    return emailShell(
-      '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + asunto + '</div>',
-      body
-    )
+// Construir email desde plantilla BD con segmentación inteligente
+// ctx = { segmento: 'VIP', tipo_tratamiento: 'TOXINA' } — opcional
+function buildFromTemplate(tipo, vars, fallbackFn, ctx) {
+  var candidates = _tplCache[tipo]
+  if (!candidates || !candidates.length) return fallbackFn()
+
+  var seg = (ctx && ctx.segmento || '').toUpperCase() || null
+  var trat = (ctx && ctx.tipo_tratamiento || '').toUpperCase() || null
+
+  // Buscar mejor match: segmento+tratamiento → segmento → tratamiento → genérica
+  var best = null
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i]
+    var matchSeg = !c.segmento || c.segmento === seg
+    var matchTrat = !c.tipo_tratamiento || c.tipo_tratamiento === trat
+    if (matchSeg && matchTrat) {
+      // Calcular score: +2 si match segmento específico, +2 si match tratamiento específico
+      var score = (c.segmento && c.segmento === seg ? 2 : 0) + (c.tipo_tratamiento && c.tipo_tratamiento === trat ? 2 : 0)
+      if (!best || score > best.score) best = { tpl: c, score: score }
+    }
   }
-  // Fallback a función hardcodeada
-  return fallbackFn()
+  if (!best) {
+    // Fallback: buscar genérica (sin segmento ni tratamiento)
+    for (var j = 0; j < candidates.length; j++) {
+      if (!candidates[j].segmento && !candidates[j].tipo_tratamiento) { best = { tpl: candidates[j], score: 0 }; break }
+    }
+  }
+  if (!best) return fallbackFn()
+
+  var tpl = best.tpl
+  var body = tpl.body
+  Object.keys(vars).forEach(function(k) {
+    body = body.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+  })
+  var asunto = tpl.asunto || ''
+  Object.keys(vars).forEach(function(k) {
+    asunto = asunto.replace(new RegExp('\\{\\{' + k + '\\}\\}', 'g'), vars[k] || '')
+  })
+  return emailShell(
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + asunto + '</div>',
+    body
+  )
 }
 
 // Template email recordatorio de cita — COMPLETO con dirección y estacionamiento
