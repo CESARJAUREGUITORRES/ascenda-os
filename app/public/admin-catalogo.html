@@ -1,363 +1,80 @@
-<!-- admin-catalogo.html v1 — Panel Admin Catálogo | AscendaOS -->
+<!-- admin-catalogo.html v2 — Catálogo por Categorías | AscendaOS -->
 <style>
 .ac{padding:10px;min-height:100vh;font-family:'DM Sans',sans-serif;color:#1E293B;background:#F0F4FC}
 .ac-h{background:#071D4A;border-radius:12px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
 .ac-t{font-family:"Exo 2",sans-serif;font-weight:800;font-size:16px;color:#fff}
 .ac-pills{display:flex;gap:3px}.ac-pill{padding:6px 14px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transition:all .2s}.ac-pill:hover{background:rgba(255,255,255,.15);color:#fff}.ac-pill.act{background:#fff;color:#0A4FBF}
-.ac-bar{display:flex;gap:6px;align-items:center;padding:8px;background:#fff;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:6px;flex-wrap:wrap}
-.ac-q{flex:1;min-width:160px;padding:6px 10px;border:1px solid #E2E8F0;border-radius:6px;font-size:11px;outline:none;font-family:"DM Sans",sans-serif}.ac-q:focus{border-color:#0A4FBF}
-.ac-f{padding:4px 10px;border-radius:5px;font-size:9px;font-weight:700;border:1px solid #E2E8F0;background:#fff;color:#6B7BA8;cursor:pointer}.ac-f:hover,.ac-f.act{background:#0A4FBF;color:#fff;border-color:#0A4FBF}
-.ac-sp{display:grid;grid-template-columns:1fr 420px;gap:8px;height:calc(100vh - 155px)}
-.ac-list{background:#fff;border-radius:10px;border:1px solid #E2E8F0;overflow-y:auto}
-.ac-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #F1F5F9;cursor:pointer;transition:background .1s}.ac-row:hover{background:#F0F4FF}.ac-row.sel{background:#EEF2FF;border-left:3px solid #0A4FBF}
-.ac-row-img{width:36px;height:36px;border-radius:6px;background:#F0F4FC;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden}
-.ac-row-img img{width:100%;height:100%;object-fit:cover}
-.ac-row-info{flex:1;min-width:0}
-.ac-row-name{font-weight:700;font-size:11px;color:#1E293B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ac-row-cat{font-size:8px;color:#6B7BA8}
-.ac-row-price{font-family:"Exo 2",sans-serif;font-weight:800;font-size:12px;color:#0A4FBF}
-.ac-row-tags{display:flex;gap:2px;flex-shrink:0}
-.ac-tag{font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px}
-.ac-det{background:#fff;border-radius:10px;border:1px solid #E2E8F0;overflow-y:auto;padding:14px}
+.ac-sp{display:grid;grid-template-columns:220px 1fr;gap:8px;height:calc(100vh - 120px)}
+.ac-cats{background:#fff;border-radius:10px;border:1px solid #E2E8F0;overflow-y:auto;padding:6px}
+.ac-ci{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:7px;cursor:pointer;transition:all .1s;font-size:10px;font-weight:600;color:#475569}.ac-ci:hover{background:#F0F4FC}.ac-ci.sel{background:#EEF2FF;color:#0A4FBF;border-left:3px solid #0A4FBF;font-weight:800}
+.ac-ci-icon{font-size:14px;flex-shrink:0}.ac-ci-cnt{font-size:8px;color:#9AAAC8;margin-left:auto}
+.ac-ci-rol{font-size:6px;font-weight:800;padding:1px 4px;border-radius:3px;margin-left:2px}
+.ac-main{background:#fff;border-radius:10px;border:1px solid #E2E8F0;overflow-y:auto;padding:14px}
+.ac-tabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:2px solid #E2E8F0;padding-bottom:6px}
+.ac-tab{padding:5px 14px;border-radius:6px 6px 0 0;font-size:10px;font-weight:700;cursor:pointer;color:#6B7BA8;background:transparent;border:none;transition:all .15s}.ac-tab:hover{color:#0A4FBF}.ac-tab.act{color:#0A4FBF;background:#EEF2FF;border-bottom:2px solid #0A4FBF;margin-bottom:-8px}
 .ac-sec{font-family:"Exo 2",sans-serif;font-weight:800;font-size:10px;color:#071D4A;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #E2E8F0}
 .ac-fg{margin-bottom:6px}.ac-fl{font-size:8px;font-weight:700;color:#6B7BA8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
 .ac-fi{width:100%;padding:5px 8px;border:1px solid #E2E8F0;border-radius:5px;font-size:10px;font-family:"DM Sans",sans-serif;outline:none;box-sizing:border-box}.ac-fi:focus{border-color:#0A4FBF}
-.ac-ta{width:100%;padding:5px 8px;border:1px solid #E2E8F0;border-radius:5px;font-size:10px;font-family:"DM Sans",sans-serif;outline:none;resize:vertical;min-height:50px;box-sizing:border-box}.ac-ta:focus{border-color:#0A4FBF}
-.ac-sel{width:100%;padding:5px 8px;border:1px solid #E2E8F0;border-radius:5px;font-size:10px;outline:none;font-family:"DM Sans",sans-serif;box-sizing:border-box}
+.ac-ta{width:100%;padding:5px 8px;border:1px solid #E2E8F0;border-radius:5px;font-size:10px;font-family:"DM Sans",sans-serif;outline:none;resize:vertical;min-height:60px;box-sizing:border-box}.ac-ta:focus{border-color:#0A4FBF}
+.ac-sel{padding:5px 8px;border:1px solid #E2E8F0;border-radius:5px;font-size:10px;outline:none;font-family:"DM Sans",sans-serif;box-sizing:border-box}
 .ac-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ac-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.ac-btn{padding:8px 16px;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .15s}
+.ac-btn{padding:6px 14px;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .15s}
 .ac-btn-p{background:#0A4FBF;color:#fff}.ac-btn-p:hover{background:#083DA0}
 .ac-btn-s{background:#F0F4FC;color:#6B7BA8;border:1px solid #E2E8F0}.ac-btn-s:hover{background:#E2E8F0}
-.ac-btn-d{background:#DC2626;color:#fff}.ac-btn-d:hover{background:#B91C1C}
-.ac-chk{display:flex;align-items:center;gap:4px;font-size:9px;cursor:pointer}
+.ac-btn-d{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.ac-btn-d:hover{background:#DC2626;color:#fff}
+.ac-item-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #E2E8F0;border-radius:6px;margin-bottom:4px;font-size:10px;transition:all .1s}.ac-item-row:hover{border-color:#0A4FBF;background:#FAFBFF}
+.ac-item-name{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ac-faq{padding:6px;background:#FAFBFF;border:1px solid #E2E8F0;border-radius:6px;margin-bottom:4px}
-.ac-cnt{font-size:8px;color:#6B7BA8;padding:4px 0}
+.ac-top-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #FDE68A;border-radius:6px;margin-bottom:4px;background:#FFFBEB;font-size:10px}
 </style>
 <div class="ac" id="ac-root">
   <div class="ac-h">
-    <div><div class="ac-t">Catálogo & Repositorio</div><div style="font-size:8px;color:rgba(255,255,255,.4)">Administración de servicios, productos y precios</div></div>
+    <div><div class="ac-t">Catálogo & Repositorio</div><div style="font-size:8px;color:rgba(255,255,255,.4)">Gestión por categorías · Servicios · Productos · Toppings</div></div>
     <div class="ac-pills">
-      <button class="ac-pill act" onclick="acTab(0,this)">Servicios</button>
-      <button class="ac-pill" onclick="acTab(1,this)">Productos</button>
-      <button class="ac-pill" onclick="acTabAnalytics(this)">📊 Analytics</button>
+      <button class="ac-pill act" onclick="acMode('SERVICIO',this)">Servicios</button>
+      <button class="ac-pill" onclick="acMode('PRODUCTO',this)">Productos</button>
+      <button class="ac-pill" onclick="acAnalytics(this)">📊 Analytics</button>
     </div>
   </div>
-  <div class="ac-bar" id="ac-bar">
-    <input class="ac-q" id="ac-search" placeholder="Buscar servicio o producto..." oninput="acFilter()">
-    <select class="ac-sel" id="ac-cat-filter" style="width:140px" onchange="acFilter()"><option value="">Todas las categorías</option></select>
-    <span class="ac-cnt" id="ac-count"></span>
-  </div>
   <div class="ac-sp">
-    <div class="ac-list" id="ac-list"></div>
-    <div class="ac-det" id="ac-det"><div style="text-align:center;padding:40px;color:#9AAAC8;font-size:11px">Selecciona un item del catálogo</div></div>
+    <div class="ac-cats" id="ac-cats"></div>
+    <div class="ac-main" id="ac-main"><div style="text-align:center;padding:40px;color:#9AAAC8;font-size:11px">Selecciona una categoría</div></div>
   </div>
 </div>
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-function rpc(f,p,cb){fetch(SB+'/rest/v1/rpc/'+f,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json()}).then(cb).catch(function(e){console.error(f,e)})}
+function sbF(u,o){return fetch(SB+u,Object.assign({headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'}},o||{})).then(function(r){return r.json()})}
+function rpc(f,p,cb){sbF('/rest/v1/rpc/'+f,{method:'POST',body:JSON.stringify(p||{})}).then(cb).catch(function(e){console.error(f,e)})}
 function sbPatch(tbl,filter,body,cb){fetch(SB+'/rest/v1/'+tbl+'?'+filter,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)}).then(function(r){if(cb)cb(r.ok)}).catch(function(){if(cb)cb(false)})}
+function sbPost(tbl,body,cb){fetch(SB+'/rest/v1/'+tbl,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(d){if(cb)cb(d)}).catch(function(){if(cb)cb(null)})}
+function sbDel(tbl,filter,cb){fetch(SB+'/rest/v1/'+tbl+'?'+filter,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(){if(cb)cb()}).catch(function(){if(cb)cb()})}
 function H(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function $(s){return document.getElementById(s)}
-
-var AC={items:[],tipo:'SERVICIO',sel:null,selIdx:-1};
-
-function acTab(n,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
-  $('ac-bar').style.display='flex';
-  AC.tipo=n===0?'SERVICIO':'PRODUCTO';acLoad()
-}
-
-function acLoad(){
-  fetch(SB+'/rest/v1/aos_catalogo_servicios?tipo=eq.'+AC.tipo+'&order=categoria,nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json()}).then(function(items){
-    AC.items=items||[];
-    // Populate category filter
-    var cats={};AC.items.forEach(function(i){if(i.categoria)cats[i.categoria]=1});
-    var cf=$('ac-cat-filter');cf.innerHTML='<option value="">Todas ('+AC.items.length+')</option>'+Object.keys(cats).sort().map(function(c){return '<option>'+H(c)+'</option>'}).join('');
-    acFilter();
-  });
-}
-
-function acFilter(){
-  var q=($('ac-search').value||'').toLowerCase();
-  var cat=($('ac-cat-filter').value||'');
-  var filtered=AC.items.filter(function(i){
-    if(cat&&i.categoria!==cat)return false;
-    if(q&&(i.nombre||'').toLowerCase().indexOf(q)<0&&(i.categoria||'').toLowerCase().indexOf(q)<0)return false;
-    return true;
-  });
-  $('ac-count').textContent=filtered.length+' items';
-  var html='';
-  filtered.forEach(function(it,idx){
-    var isActive=it.estado==='ACTIVO';
-    var hasDra=it.requiere_doctora;var hasEnf=it.requiere_enfermeria;
-    var tags='';
-    if(hasDra)tags+='<span class="ac-tag" style="background:#EBF2FF;color:#0A4FBF">DRA</span>';
-    if(hasEnf)tags+='<span class="ac-tag" style="background:#F0FDF4;color:#059669">ENF</span>';
-    if(it.requiere_control)tags+='<span class="ac-tag" style="background:#FEF3C7;color:#92400E">CTRL</span>';
-    if(!isActive)tags+='<span class="ac-tag" style="background:#FEF2F2;color:#DC2626">OFF</span>';
-    var imgHtml=it.imagen_url?'<img src="'+H(it.imagen_url)+'">':'<span style="font-size:14px">'+getCatIcon(it.categoria)+'</span>';
-    html+='<div class="ac-row'+(AC.selIdx===idx?' sel':'')+'" onclick="acSel('+idx+',this)" data-id="'+it.id+'">';
-    html+='<div class="ac-row-img">'+imgHtml+'</div>';
-    html+='<div class="ac-row-info"><div class="ac-row-name">'+H(it.nombre)+'</div><div class="ac-row-cat">'+H(it.categoria||'')+'</div></div>';
-    html+='<div class="ac-row-price">S/'+(it.precio_oferta||0)+'</div>';
-    html+='<div class="ac-row-tags">'+tags+'</div></div>';
-  });
-  $('ac-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#9AAAC8;font-size:10px">Sin resultados</div>';
-  AC._filtered=filtered;
-}
-
-function acSel(idx){
-  AC.selIdx=idx;AC.sel=AC._filtered[idx];
-  acFilter();// re-render to highlight
-  acRenderDet();
-}
-
-function acRenderDet(){
-  var it=AC.sel;if(!it){$('ac-det').innerHTML='';return;}
-  var o='';
-  // Header
-  o+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
-  o+='<div style="width:48px;height:48px;border-radius:8px;background:#F0F4FC;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">'+(it.imagen_url?'<img src="'+H(it.imagen_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':getCatIcon(it.categoria))+'</div>';
-  o+='<div><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:#071D4A">'+H(it.nombre)+'</div>';
-  o+='<div style="font-size:8px;color:#6B7BA8">'+H(it.categoria)+' | '+H(it.tipo)+' | ID: '+H(it.id).substring(0,8)+'</div></div></div>';
-
-  // Precios
-  o+='<div class="ac-sec">Precios</div><div class="ac-grid">';
-  o+=fg('Precio oferta','det-precio',it.precio_oferta||'','number');
-  o+=fg('Precio base','det-pbase',it.precio_base||'','number');
-  o+='</div>';
-
-  // Roles
-  o+='<div class="ac-sec">Roles profesionales</div><div class="ac-grid">';
-  o+='<label class="ac-chk"><input type="checkbox" id="det-dra"'+(it.requiere_doctora?' checked':'')+'> Requiere Doctora</label>';
-  o+='<label class="ac-chk"><input type="checkbox" id="det-enf"'+(it.requiere_enfermeria?' checked':'')+'> Enfermería puede hacer</label>';
-  o+='</div>';
-
-  // Control
-  o+='<div class="ac-sec">Control post-tratamiento</div><div class="ac-grid3">';
-  o+='<label class="ac-chk"><input type="checkbox" id="det-ctrl"'+(it.requiere_control?' checked':'')+'> Requiere control</label>';
-  o+=fg('Días control','det-dctrl',it.dias_control||'','number');
-  o+=fg('Tipo','det-tctrl',it.tipo_control||'');
-  o+='</div>';
-
-  // Sesiones
-  o+='<div class="ac-sec">Sesiones y duración</div><div class="ac-grid">';
-  o+=fg('N° sesiones','det-nses',it.num_sesiones||'');
-  o+=fg('Duración sesión','det-durses',it.duracion_sesion||'');
-  o+=fg('Frecuencia','det-freq',it.frecuencia||'');
-  o+=fg('Formulario','det-form',it.tipo_formulario||'');
-  o+='</div>';
-
-  // Producto (solo si tipo=PRODUCTO)
-  if(it.tipo==='PRODUCTO'){
-    o+='<div class="ac-sec">Info de producto</div><div class="ac-grid">';
-    o+=fg('Unidades/envase','det-unid',it.unidades_envase||'','number');
-    o+=fg('Dosis diaria','det-dosis',it.dosis_diaria||'','number');
-    o+=fg('Duración (días)','det-dur',it.duracion_estimada_dias||'','number');
-    o+=fg('Contenido (ml)','det-ml',it.contenido_ml||'','number');
-    o+=fg('Modo de uso','det-modo',it.modo_uso_corto||'');
-    o+='</div>';
-  }
-
-  // Estado
-  o+='<div class="ac-sec">Estado</div><div class="ac-grid">';
-  o+='<select class="ac-sel" id="det-estado"><option'+(it.estado==='ACTIVO'?' selected':'')+'>ACTIVO</option><option'+(it.estado==='INACTIVO'?' selected':'')+'>INACTIVO</option></select>';
-  o+=fg('Imagen URL','det-img',it.imagen_url||'');
-  o+='</div>';
-
-  // Repositorio
-  o+='<div class="ac-sec">Repositorio clínico</div>';
-  o+=fgta('Descripción clínica','det-desclin',it.descripcion_clinica||'');
-  o+=fgta('Descripción comercial','det-descom',it.descripcion_comercial||'');
-  o+=fgta('Composición','det-comp',it.composicion||'');
-  o+=fgta('Beneficios','det-benef',it.beneficios||'');
-  o+=fgta('Contraindicaciones','det-contra',it.contraindicaciones||'');
-  o+=fgta('Perfil paciente','det-perfil',it.perfil_paciente||'');
-  o+=fgta('Indicaciones','det-indic',it.indicaciones||'');
-
-  // FAQs
-  o+='<div class="ac-sec">Preguntas frecuentes</div>';
-  o+='<div id="det-faqs"></div>';
-  o+='<button class="ac-btn ac-btn-s" style="font-size:9px;padding:4px 10px;margin-top:4px" onclick="acAddFaq()">+ Agregar FAQ</button>';
-
-  // Botones
-  o+='<div style="display:flex;gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid #E2E8F0">';
-  o+='<button class="ac-btn ac-btn-p" onclick="acSave()" style="flex:1">Guardar cambios</button>';
-  o+='<button class="ac-btn ac-btn-s" onclick="acRenderDet()">Cancelar</button>';
-  o+='</div>';
-
-  $('ac-det').innerHTML=o;
-  $('ac-det').scrollTop=0;
-  acRenderFaqs();
-}
-
+var AC={cats:[],items:[],toppings:[],tipo:'SERVICIO',selCat:null,tab:'items'};
+function acMode(tipo,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');AC.tipo=tipo;AC.selCat=null;$('ac-main').innerHTML='<div style="text-align:center;padding:40px;color:#9AAAC8;font-size:11px">Selecciona una categoría</div>';acLoadCats()}
+function acLoadCats(){sbF('/rest/v1/aos_catalogo_categorias?order=nombre&tipo=eq.'+AC.tipo).then(function(cats){AC.cats=cats||[];sbF('/rest/v1/aos_catalogo_servicios?tipo=eq.'+AC.tipo+'&estado=eq.ACTIVO&select=categoria').then(function(items){var cnt={};(items||[]).forEach(function(i){cnt[i.categoria]=(cnt[i.categoria]||0)+1});var h='<div style="font-size:8px;font-weight:800;color:#6B7BA8;padding:4px 10px;text-transform:uppercase">Categorías</div>';AC.cats.forEach(function(c){var rc=c.rol_profesional==='DOCTORA'?'background:#EBF2FF;color:#0A4FBF':c.rol_profesional==='ENFERMERIA'?'background:#F0FDF4;color:#059669':'background:#F5F3FF;color:#7C3AED';h+='<div class="ac-ci'+(AC.selCat&&AC.selCat.nombre===c.nombre?' sel':'')+'" onclick="acSelCat(\''+H(c.nombre)+'\')"><span class="ac-ci-icon">'+getCatIcon(c.nombre)+'</span><span>'+H(c.nombre)+'</span><span class="ac-ci-rol" style="'+rc+'">'+c.rol_profesional.substring(0,3)+'</span><span class="ac-ci-cnt">'+(cnt[c.nombre]||0)+'</span></div>'});$('ac-cats').innerHTML=h})})}
+function acSelCat(nombre){AC.selCat=AC.cats.find(function(c){return c.nombre===nombre});if(!AC.selCat)return;AC.tab='items';acLoadCats();acLoadItems()}
+function acLoadItems(){var cat=AC.selCat;if(!cat)return;sbF('/rest/v1/aos_catalogo_servicios?categoria=eq.'+encodeURIComponent(cat.nombre)+'&tipo=eq.'+AC.tipo+'&order=nombre').then(function(items){AC.items=items||[];sbF('/rest/v1/aos_catalogo_toppings?categoria_vinculada=eq.'+encodeURIComponent(cat.nombre)+'&estado=eq.ACTIVO&order=nombre').then(function(tops){AC.toppings=tops||[];acRenderMain()})})}
+function acRenderMain(){var cat=AC.selCat;if(!cat)return;var o='';o+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:28px">'+getCatIcon(cat.nombre)+'</span><div><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:16px;color:#071D4A">'+H(cat.nombre)+'</div>';var rl=cat.rol_profesional==='DOCTORA'?'👩‍⚕️ Solo Doctora':cat.rol_profesional==='ENFERMERIA'?'🩺 Enfermería':'🔄 Ambos';o+='<div style="font-size:9px;color:#6B7BA8">'+AC.items.length+' items | '+rl+(cat.requiere_control?' | ⏰ Control '+cat.dias_control+'d':'')+'</div></div></div>';o+='<div class="ac-tabs">';['items','repositorio','config','toppings'].forEach(function(t){var lb={items:'📋 Items ('+AC.items.length+')',repositorio:'📚 Repositorio',config:'⚙️ Config',toppings:'🎁 Toppings ('+AC.toppings.length+')'};o+='<button class="ac-tab'+(AC.tab===t?' act':'')+'" onclick="AC.tab=\''+t+'\';acRenderMain()">'+lb[t]+'</button>'});o+='</div>';if(AC.tab==='items')o+=acRenderItems();else if(AC.tab==='repositorio')o+=acRenderRepo();else if(AC.tab==='config')o+=acRenderConfig();else if(AC.tab==='toppings')o+=acRenderToppings();$('ac-main').innerHTML=o;$('ac-main').scrollTop=0}
+function acRenderItems(){var o='<div class="ac-sec">Servicios / Productos</div>';if(!AC.items.length)return o+'<div style="text-align:center;padding:20px;color:#9AAAC8;font-size:10px">Sin items</div>';AC.items.forEach(function(it,i){var a=it.estado==='ACTIVO';o+='<div class="ac-item-row" style="'+(a?'':'opacity:.5')+'"><span class="ac-item-name" title="'+H(it.nombre)+'">'+H(it.nombre)+'</span><input style="width:70px;text-align:right;padding:3px 6px;border:1px solid #E2E8F0;border-radius:4px;font-size:10px;font-weight:700;color:#0A4FBF" value="'+(it.precio_oferta||0)+'" onchange="acUpdItem(\''+it.id+'\',\'precio_oferta\',this.value)"><span style="font-size:8px;color:#6B7BA8;width:30px;text-align:center">'+(it.num_sesiones||1)+' ses</span><span style="font-size:8px;color:#6B7BA8;width:40px;text-align:center">'+(it.duracion_sesion||'—')+'</span><button class="ac-btn ac-btn-s" style="padding:2px 6px;font-size:8px" onclick="acEditItem('+i+')">✏️</button></div>'});return o}
+function acUpdItem(id,field,val){var body={};body[field]=parseFloat(val)||0;body.updated_at=new Date().toISOString();sbPatch('aos_catalogo_servicios','id=eq.'+id,body,function(ok){if(ok&&window.AOS_showToast)AOS_showToast('Precio actualizado','','')})}
+function acEditItem(idx){var it=AC.items[idx];if(!it)return;var o='<div class="ac-sec">Editar: '+H(it.nombre)+'</div><div class="ac-grid">';o+=fg('Precio oferta','ei-precio',it.precio_oferta||'','number');o+=fg('Precio base','ei-pbase',it.precio_base||'','number');o+=fg('N sesiones','ei-nses',it.num_sesiones||'');o+=fg('Duración sesión','ei-dur',it.duracion_sesion||'');o+=fg('Formulario','ei-form',it.tipo_formulario||'');o+='<div class="ac-fg"><div class="ac-fl">Estado</div><select class="ac-sel" id="ei-estado" style="width:100%"><option'+(it.estado==='ACTIVO'?' selected':'')+'>ACTIVO</option><option'+(it.estado==='INACTIVO'?' selected':'')+'>INACTIVO</option></select></div>';o+=fg('Imagen URL','ei-img',it.imagen_url||'');o+='</div>';if(AC.tipo==='PRODUCTO'){o+='<div class="ac-sec">Info producto</div><div class="ac-grid">';o+=fg('Unidades/envase','ei-unid',it.unidades_envase||'','number');o+=fg('Dosis diaria','ei-dosis',it.dosis_diaria||'','number');o+=fg('Duración (días)','ei-ddias',it.duracion_estimada_dias||'','number');o+=fg('Contenido (ml)','ei-ml',it.contenido_ml||'','number');o+=fg('Modo de uso','ei-modo',it.modo_uso_corto||'');o+='</div>'}o+='<div style="display:flex;gap:6px;margin-top:10px"><button class="ac-btn ac-btn-p" onclick="acSaveItem('+idx+')">Guardar</button><button class="ac-btn ac-btn-s" onclick="acRenderMain()">Cancelar</button></div>';$('ac-main').innerHTML=o}
+function acSaveItem(idx){var it=AC.items[idx];if(!it)return;var body={precio_oferta:parseFloat(($('ei-precio')||{}).value)||null,precio_base:parseFloat(($('ei-pbase')||{}).value)||null,num_sesiones:($('ei-nses')||{}).value||null,duracion_sesion:($('ei-dur')||{}).value||null,tipo_formulario:($('ei-form')||{}).value||null,estado:($('ei-estado')||{}).value||'ACTIVO',imagen_url:($('ei-img')||{}).value||null,updated_at:new Date().toISOString()};if(AC.tipo==='PRODUCTO'){body.unidades_envase=parseInt(($('ei-unid')||{}).value)||null;body.dosis_diaria=parseFloat(($('ei-dosis')||{}).value)||null;body.duracion_estimada_dias=parseInt(($('ei-ddias')||{}).value)||null;body.contenido_ml=parseFloat(($('ei-ml')||{}).value)||null;body.modo_uso_corto=($('ei-modo')||{}).value||null}sbPatch('aos_catalogo_servicios','id=eq.'+it.id,body,function(ok){if(ok){Object.keys(body).forEach(function(k){it[k]=body[k]});if(window.AOS_showToast)AOS_showToast('Guardado','','');acRenderMain()}})}
+function acRenderRepo(){var c=AC.selCat;var o='<div class="ac-sec">Repositorio — '+H(c.nombre)+'</div><div style="font-size:8px;color:#6B7BA8;margin-bottom:8px">Esta información aplica a TODOS los items de la categoría</div>';o+=fgta('Descripción clínica','rp-desclin',c.descripcion_clinica||'');o+=fgta('Descripción comercial (qué decir)','rp-descom',c.descripcion_comercial||'');o+=fgta('Composición','rp-comp',c.composicion||'');o+=fgta('Beneficios','rp-benef',c.beneficios||'');o+=fgta('Contraindicaciones','rp-contra',c.contraindicaciones||'');o+=fgta('Perfil paciente ideal','rp-perfil',c.perfil_paciente||'');o+=fgta('Indicaciones post-tratamiento','rp-indic',c.indicaciones||'');o+='<div class="ac-sec">Preguntas frecuentes</div><div id="rp-faqs"></div>';o+='<button class="ac-btn ac-btn-s" style="font-size:9px;padding:4px 10px;margin-top:4px" onclick="acAddFaq()">+ FAQ</button>';o+='<div style="margin-top:12px"><button class="ac-btn ac-btn-p" onclick="acSaveRepo()">Guardar repositorio</button></div>';setTimeout(acRenderFaqs,50);return o}
+var _acFaqs=[];function acRenderFaqs(){var c=AC.selCat;if(!c)return;try{_acFaqs=c.faqs?JSON.parse(JSON.stringify(typeof c.faqs==='string'?JSON.parse(c.faqs):c.faqs)):[]}catch(e){_acFaqs=[]}var el=$('rp-faqs');if(!el)return;el.innerHTML=_acFaqs.map(function(f,i){return '<div class="ac-faq"><div style="display:flex;gap:4px;margin-bottom:3px"><input class="ac-fi" value="'+H(f.q)+'" onchange="_acFaqs['+i+'].q=this.value" style="font-weight:700;flex:1" placeholder="Pregunta"><button class="ac-btn ac-btn-d" style="padding:2px 6px;font-size:8px" onclick="_acFaqs.splice('+i+',1);acRenderFaqs()">x</button></div><textarea class="ac-ta" rows="2" onchange="_acFaqs['+i+'].a=this.value" placeholder="Respuesta">'+H(f.a)+'</textarea></div>'}).join('')||'<div style="font-size:9px;color:#9AAAC8;padding:8px">Sin FAQs</div>'}
+function acAddFaq(){_acFaqs.push({q:'',a:''});acRenderFaqs()}
+function acSaveRepo(){var c=AC.selCat;if(!c)return;var body={descripcion_clinica:($('rp-desclin')||{}).value||null,descripcion_comercial:($('rp-descom')||{}).value||null,composicion:($('rp-comp')||{}).value||null,beneficios:($('rp-benef')||{}).value||null,contraindicaciones:($('rp-contra')||{}).value||null,perfil_paciente:($('rp-perfil')||{}).value||null,indicaciones:($('rp-indic')||{}).value||null,faqs:_acFaqs.length?JSON.stringify(_acFaqs):null,updated_at:new Date().toISOString()};sbPatch('aos_catalogo_categorias','id=eq.'+c.id,body,function(ok){if(ok){Object.keys(body).forEach(function(k){c[k]=body[k]});if(body.faqs)c.faqs=_acFaqs;if(window.AOS_showToast)AOS_showToast('Repositorio guardado','','')}});if(body.contraindicaciones)sbPatch('aos_catalogo_servicios','categoria=eq.'+encodeURIComponent(c.nombre)+'&tipo=eq.'+AC.tipo,{contraindicaciones:body.contraindicaciones},{})}
+function acRenderConfig(){var c=AC.selCat;var o='<div class="ac-sec">Config — '+H(c.nombre)+'</div><div style="font-size:8px;color:#6B7BA8;margin-bottom:8px">Aplica a TODOS los items</div><div class="ac-grid">';o+='<div class="ac-fg"><div class="ac-fl">Rol profesional</div><select class="ac-sel" id="cfg-rol" style="width:100%"><option value="DOCTORA"'+(c.rol_profesional==='DOCTORA'?' selected':'')+'>👩‍⚕️ Solo Doctora</option><option value="ENFERMERIA"'+(c.rol_profesional==='ENFERMERIA'?' selected':'')+'>🩺 Solo Enfermería</option><option value="AMBOS"'+(c.rol_profesional==='AMBOS'?' selected':'')+'>🔄 Ambos</option></select></div>';o+='<div class="ac-fg"><div class="ac-fl">Estado</div><select class="ac-sel" id="cfg-estado" style="width:100%"><option'+(c.estado==='ACTIVO'?' selected':'')+'>ACTIVO</option><option'+(c.estado==='INACTIVO'?' selected':'')+'>INACTIVO</option></select></div></div>';o+='<div class="ac-sec">Control post-tratamiento</div><div class="ac-grid3"><label style="display:flex;align-items:center;gap:4px;font-size:9px;cursor:pointer"><input type="checkbox" id="cfg-ctrl"'+(c.requiere_control?' checked':'')+'> Requiere control</label>';o+=fg('Días control','cfg-dctrl',c.dias_control||'','number');o+='</div><div style="margin-top:12px"><button class="ac-btn ac-btn-p" onclick="acSaveConfig()">Guardar config</button></div>';return o}
+function acSaveConfig(){var c=AC.selCat;if(!c)return;var rol=($('cfg-rol')||{}).value||'AMBOS';var ctrl=($('cfg-ctrl')||{}).checked||false;var dctrl=parseInt(($('cfg-dctrl')||{}).value)||0;var est=($('cfg-estado')||{}).value||'ACTIVO';sbPatch('aos_catalogo_categorias','id=eq.'+c.id,{rol_profesional:rol,requiere_control:ctrl,dias_control:dctrl,estado:est,updated_at:new Date().toISOString()},function(ok){if(!ok)return;var ib={requiere_doctora:rol==='DOCTORA'||rol==='AMBOS',requiere_enfermeria:rol==='ENFERMERIA'||rol==='AMBOS',requiere_control:ctrl,dias_control:dctrl};sbPatch('aos_catalogo_servicios','categoria=eq.'+encodeURIComponent(c.nombre)+'&tipo=eq.'+AC.tipo,ib,function(){c.rol_profesional=rol;c.requiere_control=ctrl;c.dias_control=dctrl;c.estado=est;if(window.AOS_showToast)AOS_showToast('Config propagada a '+AC.items.length+' items','','');acLoadCats()})})}
+function acRenderToppings(){var c=AC.selCat;var o='<div class="ac-sec">Toppings / Upselling — '+H(c.nombre)+'</div><div style="font-size:8px;color:#6B7BA8;margin-bottom:8px">Ofertas que se ofrecen SOLO junto con un servicio de esta categoría</div>';if(!AC.toppings.length)o+='<div style="text-align:center;padding:16px;color:#9AAAC8;font-size:10px;background:#FFFBEB;border-radius:8px;margin-bottom:8px">Sin toppings</div>';AC.toppings.forEach(function(t,i){o+='<div class="ac-top-row"><span style="font-size:14px">🎁</span><span style="font-weight:700;flex:1">'+H(t.nombre)+'</span><span style="font-size:8px;color:#6B7BA8">'+(t.sesiones||'—')+'</span><input style="width:60px;text-align:right;padding:3px 6px;border:1px solid #FDE68A;border-radius:4px;font-size:10px;font-weight:700;color:#D97706;background:#FFFBEB" value="'+(t.precio||0)+'" onchange="acUpdTop(\''+t.id+'\',this.value)"><button class="ac-btn ac-btn-d" style="padding:2px 6px;font-size:8px" onclick="acDelTop(\''+t.id+'\','+i+')">x</button></div>'});o+='<div class="ac-sec" style="margin-top:12px">Agregar topping</div><div class="ac-grid3">';o+=fg('Nombre','tp-nombre','');o+=fg('Precio','tp-precio','','number');o+=fg('Detalle','tp-ses','');o+='</div><button class="ac-btn ac-btn-p" style="margin-top:6px" onclick="acAddTop()">+ Agregar</button>';return o}
+function acUpdTop(id,val){sbPatch('aos_catalogo_toppings','id=eq.'+id,{precio:parseFloat(val)||0},function(ok){if(ok&&window.AOS_showToast)AOS_showToast('Actualizado','','')})}
+function acDelTop(id,i){if(!confirm('Eliminar?'))return;sbDel('aos_catalogo_toppings','id=eq.'+id,function(){AC.toppings.splice(i,1);acRenderMain()})}
+function acAddTop(){var n=($('tp-nombre')||{}).value||'';if(!n){alert('Nombre requerido');return}sbPost('aos_catalogo_toppings',{nombre:n,categoria_vinculada:AC.selCat.nombre,precio:parseFloat(($('tp-precio')||{}).value)||0,sesiones:($('tp-ses')||{}).value||'',estado:'ACTIVO'},function(d){if(d&&d[0]){AC.toppings.push(d[0]);acRenderMain();if(window.AOS_showToast)AOS_showToast('Agregado','','')}})}
+function acAnalytics(el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');$('ac-cats').innerHTML='<div style="padding:20px;text-align:center;color:#9AAAC8;font-size:9px">Analytics</div>';$('ac-main').innerHTML='<div style="text-align:center;padding:20px;color:#9AAAC8">Cargando...</div>';rpc('aos_catalogo_analytics',{},function(d){if(!d){$('ac-main').innerHTML='Error';return}var o='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:#071D4A;margin-bottom:12px">Estado del catálogo</div>';o+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">';[{l:'Servicios',v:d.servicios_activos,c:'#0A4FBF'},{l:'Productos',v:d.productos_activos,c:'#059669'},{l:'Sin repositorio',v:d.sin_descripcion,c:'#D97706'},{l:'Sin precio base',v:d.sin_precio_base,c:'#D97706'},{l:'Sin roles',v:d.sin_roles,c:d.sin_roles>0?'#DC2626':'#059669'},{l:'Con control',v:d.con_control,c:'#7C3AED'},{l:'Con FAQs',v:d.con_faqs,c:'#0A4FBF'}].forEach(function(k){o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px;border:1px solid #E2E8F0"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:'+k.c+'">'+k.v+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase">'+k.l+'</div></div>'});o+='</div>';var top=d.top_vendidos_mes||[];if(top.length){o+='<div class="ac-sec">Top 10 vendidos (mes)</div><table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px"><thead><tr style="background:#F8FAFF"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">#</th><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">Tratamiento</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Ventas</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Facturado</th></tr></thead><tbody>';top.forEach(function(t,i){o+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px;font-weight:700;color:#0A4FBF">'+(i+1)+'</td><td style="padding:4px 8px;font-weight:600">'+H(t.nombre)+'</td><td style="padding:4px 8px;text-align:right;font-weight:700">'+t.ventas+'</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:#059669">S/'+parseFloat(t.facturado||0).toLocaleString()+'</td></tr>'});o+='</tbody></table>'}var sinV=d.sin_ventas_por_cat||[];if(sinV.length){o+='<div class="ac-sec" style="color:#DC2626">Sin ventas (por categoría)</div>';sinV.forEach(function(c){o+='<details style="margin-bottom:4px;border:1px solid #FECACA;border-radius:6px;padding:4px 8px"><summary style="font-size:10px;font-weight:700;cursor:pointer;color:#DC2626">'+H(c.categoria||'SIN CAT')+' — '+c.total+' items</summary><div style="font-size:9px;color:#6B7BA8;padding:4px 0">'+(c.items||[]).map(function(n){return H(n)}).join(', ')+'</div></details>'})}$('ac-main').innerHTML=o})}
 function fg(l,id,v,type){return '<div class="ac-fg"><div class="ac-fl">'+l+'</div><input class="ac-fi" id="'+id+'" value="'+H(v)+'"'+(type==='number'?' type="number" step="0.01"':'')+' placeholder="—"></div>'}
 function fgta(l,id,v){return '<div class="ac-fg"><div class="ac-fl">'+l+'</div><textarea class="ac-ta" id="'+id+'" rows="3">'+H(v)+'</textarea></div>'}
-
-var _acFaqs=[];
-function acRenderFaqs(){
-  var it=AC.sel;if(!it)return;
-  try{_acFaqs=it.faqs?JSON.parse(JSON.stringify(typeof it.faqs==='string'?JSON.parse(it.faqs):it.faqs)):[]}catch(e){_acFaqs=[]}
-  var el=$('det-faqs');if(!el)return;
-  el.innerHTML=_acFaqs.map(function(f,i){
-    return '<div class="ac-faq"><div style="display:flex;align-items:center;gap:4px;margin-bottom:3px"><input class="ac-fi" value="'+H(f.q)+'" onchange="_acFaqs['+i+'].q=this.value" style="font-weight:700;flex:1" placeholder="Pregunta"><button class="ac-btn ac-btn-d" style="padding:2px 6px;font-size:8px" onclick="_acFaqs.splice('+i+',1);acRenderFaqs()">X</button></div><textarea class="ac-ta" rows="2" onchange="_acFaqs['+i+'].a=this.value" placeholder="Respuesta">'+H(f.a)+'</textarea></div>';
-  }).join('')||'<div style="font-size:9px;color:#9AAAC8;padding:8px">Sin FAQs configuradas</div>';
-}
-function acAddFaq(){_acFaqs.push({q:'',a:''});acRenderFaqs()}
-
-function acSave(){
-  var it=AC.sel;if(!it)return;
-  var body={
-    precio_oferta:parseFloat(($('det-precio')||{}).value)||null,
-    precio_base:parseFloat(($('det-pbase')||{}).value)||null,
-    requiere_doctora:($('det-dra')||{}).checked||false,
-    requiere_enfermeria:($('det-enf')||{}).checked||false,
-    requiere_control:($('det-ctrl')||{}).checked||false,
-    dias_control:parseInt(($('det-dctrl')||{}).value)||0,
-    tipo_control:($('det-tctrl')||{}).value||'',
-    num_sesiones:($('det-nses')||{}).value||null,
-    duracion_sesion:($('det-durses')||{}).value||null,
-    frecuencia:($('det-freq')||{}).value||null,
-    tipo_formulario:($('det-form')||{}).value||null,
-    estado:($('det-estado')||{}).value||'ACTIVO',
-    imagen_url:($('det-img')||{}).value||null,
-    descripcion_clinica:($('det-desclin')||{}).value||null,
-    descripcion_comercial:($('det-descom')||{}).value||null,
-    composicion:($('det-comp')||{}).value||null,
-    beneficios:($('det-benef')||{}).value||null,
-    contraindicaciones:($('det-contra')||{}).value||null,
-    perfil_paciente:($('det-perfil')||{}).value||null,
-    indicaciones:($('det-indic')||{}).value||null,
-    faqs:_acFaqs.length?JSON.stringify(_acFaqs):null,
-    updated_at:new Date().toISOString()
-  };
-  // Producto fields
-  if(it.tipo==='PRODUCTO'){
-    body.unidades_envase=parseInt(($('det-unid')||{}).value)||null;
-    body.dosis_diaria=parseFloat(($('det-dosis')||{}).value)||null;
-    body.duracion_estimada_dias=parseInt(($('det-dur')||{}).value)||null;
-    body.contenido_ml=parseFloat(($('det-ml')||{}).value)||null;
-    body.modo_uso_corto=($('det-modo')||{}).value||null;
-  }
-  sbPatch('aos_catalogo_servicios','id=eq.'+it.id,body,function(ok){
-    if(ok){
-      if(window.AOS_showToast)AOS_showToast('Guardado','','');
-      // Update local
-      Object.keys(body).forEach(function(k){it[k]=body[k]});
-      if(body.faqs)it.faqs=_acFaqs;
-      acFilter();
-    }else{
-      if(window.AOS_showToast)AOS_showToast('Error al guardar','','toast-alerta');
-    }
-  });
-}
-
-var CM={
-  'ACIDO HIALURONICO':{i:'💧',c:'#0EA5E9'},'APARATOLOGÍA':{i:'🔌',c:'#6366F1'},'BIOESTIMULADOR':{i:'⚡',c:'#8B5CF6'},
-  'BIOREVITALIZACIÓN':{i:'🧬',c:'#10B981'},'CAPILAR':{i:'💇',c:'#F59E0B'},'CONSULTA':{i:'👩‍⚕',c:'#6B7280'},
-  'CORPORAL':{i:'🏋',c:'#EC4899'},'CRIOLIPÓLISIS':{i:'❄',c:'#06B6D4'},'DETOX':{i:'🫧',c:'#14B8A6'},
-  'ENZIMAS':{i:'🧪',c:'#F97316'},'EXOSOMAS':{i:'🔬',c:'#8B5CF6'},'FACIALES':{i:'🧑',c:'#F472B6'},
-  'GLÚTEOS':{i:'🍑',c:'#FB923C'},'HIFU':{i:'📡',c:'#A855F7'},'MESOTERAPIA':{i:'💉',c:'#3B82F6'},
-  'PEELINGS':{i:'✨',c:'#FBBF24'},'PEPTONAS':{i:'💊',c:'#34D399'},'RF FRACCIONADA':{i:'⚡',c:'#EF4444'},
-  'TOXINA':{i:'💎',c:'#7C3AED'},'VITAMINAS':{i:'💊',c:'#22C55E'},
-  'CREMAS':{i:'🧴',c:'#F472B6'},'SUPLEMENTOS':{i:'💊',c:'#10B981'},'CUIDADO PERSONAL':{i:'🧴',c:'#EC4899'}
-};
-function getCatIcon(c){return(CM[c]||{i:'📋'}).i}
-
-// Init
-acLoad();
-
-function acTabAnalytics(el){
-  document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
-  $('ac-list').innerHTML='<div style="padding:20px;text-align:center;color:#9AAAC8">Cargando analytics...</div>';
-  $('ac-det').innerHTML='';
-  $('ac-bar').style.display='none';
-  rpc('aos_catalogo_analytics',{},function(d){
-    if(!d){$('ac-list').innerHTML='Error';return;}
-    var o='<div style="padding:14px">';
-    o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:#071D4A;margin-bottom:12px">Estado del catálogo</div>';
-    o+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">';
-    var kpis=[
-      {l:'Servicios',v:d.servicios_activos,c:'#0A4FBF'},
-      {l:'Productos',v:d.productos_activos,c:'#059669'},
-      {l:'Sin descripción',v:d.sin_descripcion,c:d.sin_descripcion>50?'#DC2626':'#D97706'},
-      {l:'Sin precio base',v:d.sin_precio_base,c:d.sin_precio_base>20?'#DC2626':'#D97706'},
-      {l:'Sin roles',v:d.sin_roles,c:d.sin_roles>0?'#DC2626':'#059669'},
-      {l:'Con control',v:d.con_control,c:'#7C3AED'},
-      {l:'Con FAQs',v:d.con_faqs,c:'#0A4FBF'},
-    ];
-    kpis.forEach(function(k){
-      o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px;border:1px solid #E2E8F0">';
-      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:'+k.c+'">'+k.v+'</div>';
-      o+='<div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase">'+k.l+'</div></div>';
-    });
-    o+='</div>';
-    // Top vendidos
-    o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#071D4A;margin-bottom:6px">Top 10 vendidos (último mes)</div>';
-    var top=d.top_vendidos_mes||[];
-    if(top.length){
-      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
-      o+='<thead><tr style="background:#F8FAFF"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">#</th><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">Tratamiento</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Ventas</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Facturado</th></tr></thead><tbody>';
-      top.forEach(function(t,i){
-        o+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px;font-weight:700;color:#0A4FBF">'+(i+1)+'</td><td style="padding:4px 8px;font-weight:600">'+H(t.nombre)+'</td><td style="padding:4px 8px;text-align:right;font-weight:700">'+t.ventas+'</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:#059669">S/'+parseFloat(t.facturado||0).toLocaleString()+'</td></tr>';
-      });
-      o+='</tbody></table>';
-    }else{o+='<div style="font-size:9px;color:#9AAAC8;margin-bottom:14px">Sin datos de ventas</div>';}
-    // Sin ventas agrupado por categoría
-    var sinV=d.sin_ventas_por_cat||[];
-    if(sinV.length){
-      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#DC2626;margin-bottom:6px">Sin ventas este mes (por categoría)</div>';
-      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
-      o+='<thead><tr style="background:#FEF2F2"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#DC2626">Categoría</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#DC2626">Items</th></tr></thead><tbody>';
-      sinV.forEach(function(c){
-        var items=c.items||[];
-        o+='<tr style="border-bottom:1px solid #F1F5F9;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'table-row\':\'none\'">';
-        o+='<td style="padding:4px 8px;font-weight:700">'+H(c.categoria||'SIN CAT')+' ▸</td>';
-        o+='<td style="padding:4px 8px;text-align:right;font-weight:700;color:#DC2626">'+c.total+'</td></tr>';
-        o+='<tr style="display:none"><td colspan="2" style="padding:4px 8px 8px;font-size:9px;color:#6B7BA8">'+items.map(function(n){return H(n)}).join(', ')+'</td></tr>';
-      });
-      o+='</tbody></table>';
-    }
-    // Roles por categoría
-    var roles=d.roles_por_cat||[];
-    if(roles.length){
-      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#071D4A;margin-bottom:6px">Roles por categoría</div>';
-      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
-      o+='<thead><tr style="background:#F8FAFF"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">Categoría</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#0A4FBF">Solo DRA</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#059669">Solo ENF</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#7C3AED">Ambos</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Total</th></tr></thead><tbody>';
-      roles.forEach(function(r){
-        o+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px;font-weight:700">'+H(r.categoria||'')+'</td>';
-        o+='<td style="text-align:center;padding:4px 8px;color:#0A4FBF;font-weight:700">'+(r.solo_dra||0)+'</td>';
-        o+='<td style="text-align:center;padding:4px 8px;color:#059669;font-weight:700">'+(r.solo_enf||0)+'</td>';
-        o+='<td style="text-align:center;padding:4px 8px;color:#7C3AED;font-weight:700">'+(r.ambos||0)+'</td>';
-        o+='<td style="text-align:right;padding:4px 8px;font-weight:700">'+r.total+'</td></tr>';
-      });
-      o+='</tbody></table>';
-      o+='<div style="font-size:8px;color:#6B7BA8;margin-bottom:6px">Click en categoría para cambiar rol masivamente:</div>';
-      o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
-      roles.forEach(function(r){
-        var cat=r.categoria||'';
-        var badge=r.solo_dra>r.solo_enf?'DRA':(r.solo_enf>r.solo_dra?'ENF':'MIX');
-        var bg=badge==='DRA'?'#EBF2FF':badge==='ENF'?'#F0FDF4':'#F5F3FF';
-        var cl=badge==='DRA'?'#0A4FBF':badge==='ENF'?'#059669':'#7C3AED';
-        o+='<div style="padding:4px 8px;background:'+bg+';border:1px solid '+cl+'33;border-radius:6px;font-size:8px;font-weight:700;color:'+cl+';cursor:pointer" onclick="acCambiarRolCat(\''+H(cat)+'\')">'+H(cat)+' ('+badge+')</div>';
-      });
-      o+='</div>';
-    }
-    o+='</div>';
-    $('ac-list').innerHTML=o;
-  });
-}
-
-function acCambiarRolCat(cat){
-  var opt=prompt('Cambiar TODA la categoría '+cat+' a:\n\n1 = Solo DOCTORA\n2 = Solo ENFERMERÍA\n3 = AMBOS\n\nEscribe 1, 2 o 3:');
-  if(!opt||!['1','2','3'].includes(opt))return;
-  var body={};
-  if(opt==='1'){body={requiere_doctora:true,requiere_enfermeria:false}}
-  else if(opt==='2'){body={requiere_doctora:false,requiere_enfermeria:true}}
-  else{body={requiere_doctora:true,requiere_enfermeria:true}}
-  sbPatch('aos_catalogo_servicios','categoria=eq.'+encodeURIComponent(cat)+'&tipo=eq.SERVICIO&estado=eq.ACTIVO',body,function(ok){
-    if(ok){if(window.AOS_showToast)AOS_showToast(cat+' actualizado','','');document.querySelector('.ac-pill:last-child').click();}
-    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
-  });
-}
+var CM={'ACIDO HIALURONICO':'💧','APARATOLOGÍA':'🔌','BIOESTIMULADOR':'⚡','BIOREVITALIZACIÓN':'🧬','CAPILAR':'💇','CONSULTA':'👩‍⚕','CORPORAL':'🏋','CRIOLIPÓLISIS':'❄','DETOX':'🫧','ENZIMAS':'🧪','EXOSOMAS':'🔬','FACIALES':'🧑','GLÚTEOS':'🍑','HIFU':'📡','MESOTERAPIA':'✨','PEELINGS':'✨','PEPTONAS':'💊','RF FRACCIONADA':'⚡','TOXINA':'💎','VITAMINAS':'💊','CREMAS':'🧴','SUPLEMENTOS':'💊','CUIDADO PERSONAL':'🧴'};
+function getCatIcon(c){return CM[c]||'📋'}
+acLoadCats();
 </script>
