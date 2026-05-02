@@ -772,7 +772,7 @@ function validarEmail(email) {
 }
 
 // Tipos transaccionales: NO se limitan por cadencia (son respuestas a acciones del paciente)
-var EMAILS_TRANSACCIONALES = ['confirmacion_cita', 'recibo_venta', 'recordatorio_hoy', 'recordatorio_manana', 'bienvenida', 'confirmacion_pago']
+var EMAILS_TRANSACCIONALES = ['confirmacion_cita', 'recibo_venta', 'recordatorio_hoy', 'recordatorio_manana', 'bienvenida', 'confirmacion_pago', 'cotizacion']
 
 function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
   return new Promise(function(resolve) {

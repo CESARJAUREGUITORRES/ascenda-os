@@ -329,7 +329,7 @@ var STEPS_ENF_CONSULTA=[
   {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
-  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
   {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
   {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
 ];
@@ -337,7 +337,7 @@ var STEPS_DRA_CONSULTA=[
   {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'✨',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
   {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
   {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
 ];
@@ -346,7 +346,7 @@ var STEPS_ENF=[
   {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
-  {ico:'💉',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
   {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
   {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
 ];
@@ -354,7 +354,7 @@ var STEPS_DRA=[
   {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
   {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
   {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'💉',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
+  {ico:'✨',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
   {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
   {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
 ];
@@ -462,7 +462,7 @@ function togHist(i){
       var html='';
       notas.forEach(function(n){
         var tipo=n.tipo||'';
-        var icons={TRIAJE:'🩺',NOTA_ENFERMERIA:'📋',EVALUACION:'👩‍⚕️',NOTA_PROCEDIMIENTO:'💉',PLAN_TRABAJO:'📅',PRESCRIPCION:'💊'};
+        var icons={TRIAJE:'🩺',NOTA_ENFERMERIA:'📋',EVALUACION:'👩‍⚕️',NOTA_PROCEDIMIENTO:'✨',PLAN_TRABAJO:'📅',PRESCRIPCION:'💊'};
         var labels={TRIAJE:'Triaje',NOTA_ENFERMERIA:'Nota enfermería',EVALUACION:'Evaluación',NOTA_PROCEDIMIENTO:'Procedimiento',PLAN_TRABAJO:'Plan de trabajo',PRESCRIPCION:'Receta'};
         html+='<div style="margin-bottom:4px;border-left:2px solid var(--cyan);padding-left:6px">';
         html+='<div style="font-size:7px;font-weight:800;color:var(--blue)">'+(icons[tipo]||'📝')+' '+(labels[tipo]||tipo)+'</div>';
@@ -834,7 +834,8 @@ sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
       if(s.fecha_programado)o+='<div style="font-size:7px;color:#D97706">Fecha: '+E(s.fecha_programado)+'</div>';
       o+='</div>';
       o+='<span style="font-size:8px;font-weight:700;color:var(--deep)">S/'+parseFloat(s.precio_sesion||0).toFixed(0)+'</span>';
-      o+='<span style="font-size:7px;background:#D97706;color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="abrirModalProgSesion(\''+s.sesion_id+'\',\''+E(s._grupo)+'\')">📅 Agendar</span>';
+      o+='<span style="font-size:7px;background:#D97706;color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="abrirModalProgSesion(\''+s.sesion_id+'\',\''+E(s._grupo)+'\')">📅 Editar</span>';
+      o+='<span style="font-size:7px;background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer;margin-left:2px" onclick="cancelarProgramacion(\''+s.sesion_id+'\',\''+E(s._grupo)+'\')">✕</span>';
       o+='</div>';
     });
   }
@@ -903,6 +904,23 @@ function abrirModalProgSesion(sesionId,tratNombre){
   o+='</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',o);
 }
+function cancelarProgramacion(sesionId, tratNombre) {
+  if (!confirm('¿Cancelar programación de ' + tratNombre + '?\nLa sesión volverá a estado pendiente.')) return;
+  // Buscar y eliminar la cita vinculada
+  sbGet('aos_agenda_citas', 'sesion_id=eq.' + sesionId + '&estado_cita=eq.PENDIENTE&limit=1', function(citas) {
+    if (citas && citas[0]) {
+      sbDel('aos_agenda_citas', 'id=eq.' + citas[0].id);
+    }
+  });
+  // Revertir sesión a PENDIENTE
+  sbPatch('aos_sesiones_tratamiento', 'id=eq.' + sesionId, {
+    estado: 'PENDIENTE', fecha_programado: null
+  }, function() {
+    if (window.AOS_showToast) AOS_showToast('Programación cancelada', '', '');
+    loadDet();
+  });
+}
+
 function guardarProgSesion(sesionId,tratNombre){
   var c=AT.sel;if(!c)return;
   var fecha=(document.getElementById('mps-fecha')||{}).value;
@@ -1471,7 +1489,7 @@ function fichaDetail(idx){
   var f=window._fichasData?window._fichasData[idx]:null;if(!f)return;
   var detBox=document.getElementById('fichas-detail');if(!detBox)return;
   detBox.style.display='block';
-  var icons={TRIAJE:'\🩺',NOTA_ENFERMERIA:'\📋',EVALUACION:'\👩\u200D\u2695\uFE0F',NOTA_PROCEDIMIENTO:'\💉',PLAN_TRABAJO:'\📅',PRESCRIPCION:'\💊',EVOLUCION_MEDICA:'\📈'};
+  var icons={TRIAJE:'\🩺',NOTA_ENFERMERIA:'\📋',EVALUACION:'\👩\u200D\u2695\uFE0F',NOTA_PROCEDIMIENTO:'\✨',PLAN_TRABAJO:'\📅',PRESCRIPCION:'\💊',EVOLUCION_MEDICA:'\📈'};
   var o='<div class="ic"><div class="ic-t">\🗂 '+E(f.fecha)+' \u00B7 '+E(f.profesional||'')+'</div>';
   var notas=f.notas||[];
   if(notas.length){
@@ -2113,7 +2131,7 @@ function rPT(b){
     o+='<div style="border:1.5px solid '+(isServ?'var(--blue)':'var(--gn)');
     o+=';border-radius:var(--r);margin-bottom:6px;overflow:hidden;background:var(--sf)">';
     o+='<div style="padding:8px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;background:'+(isServ?'#EBF2FF':'#F0FDF4')+'" onclick="ptCollapse('+i+')">';
-    o+='<span style="font-size:14px">'+(isServ?'💉':'💊')+'</span>';
+    o+='<span style="font-size:14px">'+(isServ?'✨':'💊')+'</span>';
     o+='<span style="flex:1;font-size:10px;font-weight:800;color:var(--deep)">'+E(item.nombre)+'</span>';
     if(isServ){
       o+='<div style="display:flex;align-items:center;gap:4px;background:var(--sf);padding:2px 6px;border-radius:12px;border:1px solid var(--bd)">';
@@ -2217,7 +2235,7 @@ function ptSearch(){
       cats[cat].forEach(function(it){
         var precio=it.precio_oferta||it.precio_base||0;
         o+='<div style="display:flex;align-items:center;gap:6px;padding:4px;cursor:pointer;border-bottom:1px solid #F8FAFF;font-size:8px" onclick="ptAdd(\''+E(it.id)+'\',\''+E(it.nombre)+'\',\''+E(it.tipo)+'\','+precio+',\''+E(it.categoria||'')+'\',\''+(it.num_sesiones||1)+'\')" onmouseover="this.style.background=\'#F8FAFF\'" onmouseout="this.style.background=\'\'">';
-        o+='<span style="font-size:10px">'+(it.tipo==='PRODUCTO'?'💊':'💉')+'</span>';
+        o+='<span style="font-size:10px">'+(it.tipo==='PRODUCTO'?'💊':'✨')+'</span>';
         o+='<span style="flex:1;font-weight:600;color:var(--deep);font-size:8px">'+E(it.nombre)+'</span>';
         if(it.precio_base&&it.precio_oferta&&parseFloat(it.precio_base)>parseFloat(it.precio_oferta))o+='<span style="text-decoration:line-through;color:var(--mt);font-size:7px">S/'+it.precio_base+'</span>';
         o+='<span style="font-weight:800;color:var(--blue);font-size:9px">S/'+precio+'</span>';

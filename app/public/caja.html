@@ -2957,6 +2957,7 @@ function mostrarPlanes(planes) {
     o += '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:2px 8px;border-radius:4px;">' + plan.autor + '</span>';
     o += '<span style="font-size:9px;color:#6B7BA8;">' + plan.fecha + '</span></div>';
     plan.items.forEach(function(item) {
+      if (item.estado === 'PAGADO' || item.estado === 'COMPLETADO') return;
       if (item.estado !== 'PENDIENTE' && item.estado !== 'PARCIAL' && item.estado !== 'COTIZADO') return;
       var esParcial = (item.estado === 'PARCIAL');
       var badgeEstado = esParcial ? '<span style="font-size:8px;font-weight:800;color:#D97706;background:#FEF3C7;padding:1px 6px;border-radius:4px;margin-left:4px;">PARCIAL</span>' : '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:1px 6px;border-radius:4px;margin-left:4px;">PENDIENTE</span>';
@@ -2964,7 +2965,7 @@ function mostrarPlanes(planes) {
       try { variantes = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : (item.variantes || []); } catch(e) {}
       o += '<div style="padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;margin-bottom:6px;background:#F8FAFF;">';
       o += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
-      o += '<span style="font-size:14px;">' + (item.tipo==='SERVICIO'?'💉':'💊') + '</span>';
+      o += '<span style="font-size:14px;">' + (item.tipo==='SERVICIO'?'✨':'💊') + '</span>';
       o += '<b style="flex:1;font-size:12px;color:#071D4A;">' + item.nombre + badgeEstado + '</b>';
       o += '<span style="font-size:9px;color:#0A4FBF;font-weight:700;background:#EBF2FF;padding:2px 8px;border-radius:10px;">' + (item.sesiones||item.num_sesiones||1) + ' ses</span></div>';
       if (variantes.length) {
