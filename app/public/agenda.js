@@ -59,10 +59,13 @@ function agLoad(){
   loadTrats();
 }
 function loadTrats(){
-  var sel=el('ed-trat');if(!sel||sel.options.length>2)return;
-  _rpc('aos_catalogo_tratamientos',{},function(items){
-    if(!items||!items.length)return;
+  var sel=el('ed-trat');if(!sel)return;
+  var tipoAt=(el('ed-tipo-at')||{}).value||'';
+  _rpc('aos_catalogo_tratamientos',{p_tipo_atencion:tipoAt},function(items){
+    if(!items||!items.length){sel.innerHTML='<option value="">-- Sin tratamientos --</option>';return;}
+    var prev=sel.value;
     sel.innerHTML='<option value="">-- Seleccionar --</option>'+items.map(function(i){return '<option value="'+i.t+'">'+i.t+'</option>';}).join('');
+    if(prev){sel.value=prev;}
   });
 }
 
@@ -628,6 +631,8 @@ function agCheckDisp(){
   var docSel=el('ed-doctora');
   // Doctora: mostrar campo select + info-bar | Enfermería: ocultar todo
   if(docWrap)docWrap.style.display=tipo==='DOCTORA'?'':'none';
+  // Recargar tratamientos filtrados por tipo de atención
+  loadTrats();
   if(tipo==='ENFERMERIA'){if(infoBar)infoBar.style.display='none';return;}
   if(!sede||!fecha||tipo!=='DOCTORA'){if(infoBar)infoBar.style.display='none';return;}
   _agDispTmr=setTimeout(function(){
