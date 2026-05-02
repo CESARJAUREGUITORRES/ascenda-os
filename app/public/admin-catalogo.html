@@ -40,10 +40,11 @@
     <div class="ac-pills">
       <button class="ac-pill act" onclick="acTab(0,this)">Servicios</button>
       <button class="ac-pill" onclick="acTab(1,this)">Productos</button>
+      <button class="ac-pill" onclick="acTabAnalytics(this)">📊 Analytics</button>
       <button class="ac-pill" onclick="acTab(2,this)">📊 Analytics</button>
     </div>
   </div>
-  <div class="ac-bar">
+  <div class="ac-bar" id="ac-bar">
     <input class="ac-q" id="ac-search" placeholder="Buscar servicio o producto..." oninput="acFilter()">
     <select class="ac-sel" id="ac-cat-filter" style="width:140px" onchange="acFilter()"><option value="">Todas las categorías</option></select>
     <span class="ac-cnt" id="ac-count"></span>
@@ -63,6 +64,7 @@ function $(s){return document.getElementById(s)}
 var AC={items:[],tipo:'SERVICIO',sel:null,selIdx:-1};
 
 function acTab(n,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
+  $('ac-bar').style.display='flex';
   if(n===2){acAnalytics();return;}
   AC.tipo=n===0?'SERVICIO':'PRODUCTO';acLoad()
 }
@@ -291,4 +293,53 @@ function getCatIcon(c){return(CM[c]||{i:'📋'}).i}
 
 // Init
 acLoad();
+
+function acTabAnalytics(el){
+  document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
+  $('ac-list').innerHTML='<div style="padding:20px;text-align:center;color:#9AAAC8">Cargando analytics...</div>';
+  $('ac-det').innerHTML='';
+  $('ac-bar').style.display='none';
+  rpc('aos_catalogo_analytics',{},function(d){
+    if(!d){$('ac-list').innerHTML='Error';return;}
+    var o='<div style="padding:14px">';
+    o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:#071D4A;margin-bottom:12px">Estado del catálogo</div>';
+    o+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">';
+    var kpis=[
+      {l:'Servicios',v:d.servicios_activos,c:'#0A4FBF'},
+      {l:'Productos',v:d.productos_activos,c:'#059669'},
+      {l:'Sin descripción',v:d.sin_descripcion,c:d.sin_descripcion>50?'#DC2626':'#D97706'},
+      {l:'Sin precio base',v:d.sin_precio_base,c:d.sin_precio_base>20?'#DC2626':'#D97706'},
+      {l:'Sin roles',v:d.sin_roles,c:d.sin_roles>0?'#DC2626':'#059669'},
+      {l:'Con control',v:d.con_control,c:'#7C3AED'},
+      {l:'Con FAQs',v:d.con_faqs,c:'#0A4FBF'},
+    ];
+    kpis.forEach(function(k){
+      o+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px;border:1px solid #E2E8F0">';
+      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:'+k.c+'">'+k.v+'</div>';
+      o+='<div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase">'+k.l+'</div></div>';
+    });
+    o+='</div>';
+    // Top vendidos
+    o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#071D4A;margin-bottom:6px">Top 10 vendidos (último mes)</div>';
+    var top=d.top_vendidos_mes||[];
+    if(top.length){
+      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
+      o+='<thead><tr style="background:#F8FAFF"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">#</th><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">Tratamiento</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Ventas</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Facturado</th></tr></thead><tbody>';
+      top.forEach(function(t,i){
+        o+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px;font-weight:700;color:#0A4FBF">'+(i+1)+'</td><td style="padding:4px 8px;font-weight:600">'+H(t.nombre)+'</td><td style="padding:4px 8px;text-align:right;font-weight:700">'+t.ventas+'</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:#059669">S/'+parseFloat(t.facturado||0).toLocaleString()+'</td></tr>';
+      });
+      o+='</tbody></table>';
+    }else{o+='<div style="font-size:9px;color:#9AAAC8;margin-bottom:14px">Sin datos de ventas</div>';}
+    // Sin ventas
+    var sinV=d.sin_ventas_mes||[];
+    if(sinV.length){
+      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#DC2626;margin-bottom:6px">Sin ventas este mes ('+sinV.length+')</div>';
+      o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">';
+      sinV.forEach(function(n){o+='<span style="font-size:8px;padding:2px 6px;background:#FEF2F2;color:#DC2626;border-radius:4px;font-weight:600">'+H(n)+'</span>'});
+      o+='</div>';
+    }
+    o+='</div>';
+    $('ac-list').innerHTML=o;
+  });
+}
 </script>

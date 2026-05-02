@@ -1393,4 +1393,43 @@ function buscarPacParaCita(num){
   });
 }
 
+/* ═══ V5: REPOSITORIO RÁPIDO ═══ */
+function abrirRepo(){
+  var ov=document.createElement('div');ov.id='repo-modal';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(7,29,74,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  ov.onclick=function(e){if(e.target===ov)ov.remove()};
+  var h='<div style="background:#fff;border-radius:16px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-weight:800;font-size:14px;color:#071D4A">📚 Repositorio — Info para asesores</div><button onclick="document.getElementById(\'repo-modal\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9AAAC8">✕</button></div>';
+  h+='<input id="repo-q" oninput="buscarRepo()" placeholder="Buscar tratamiento o producto..." style="width:100%;padding:8px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;margin-bottom:10px;box-sizing:border-box;outline:none">';
+  h+='<div id="repo-results" style="font-size:10px;color:#6B7BA8">Escribe para buscar...</div>';
+  h+='</div>';
+  ov.innerHTML=h;document.body.appendChild(ov);
+  setTimeout(function(){var q=document.getElementById('repo-q');if(q)q.focus()},100);
+}
+function buscarRepo(){
+  var q=(document.getElementById('repo-q')||{}).value||'';
+  var res=document.getElementById('repo-results');if(!res)return;
+  if(q.length<2){res.innerHTML='<div style="color:#9AAAC8;padding:8px">Escribe al menos 2 letras...</div>';return;}
+  fetch(_SB+'/rest/v1/aos_catalogo_servicios?nombre=ilike.*'+encodeURIComponent(q)+'*&estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_clinica,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,indicaciones,composicion,faqs&limit=10&order=nombre',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(rows){
+    if(!rows||!rows.length){res.innerHTML='<div style="color:#9AAAC8;padding:8px">Sin resultados</div>';return;}
+    res.innerHTML=rows.map(function(r){
+      var o='<div style="padding:10px;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="this.querySelector(\'.repo-det\').style.display=this.querySelector(\'.repo-det\').style.display===\'none\'?\'block\':\'none\'">';
+      o+='<div style="display:flex;justify-content:space-between;align-items:center"><div><span style="font-weight:700;color:#1E293B">'+escH(r.nombre)+'</span> <span style="font-size:8px;color:#6B7BA8">'+escH(r.categoria||'')+'</span></div>';
+      o+='<span style="font-weight:800;color:#0A4FBF">S/'+(r.precio_oferta||0)+'</span></div>';
+      o+='<div class="repo-det" style="display:none;margin-top:8px;font-size:9px;color:#475569;line-height:1.5">';
+      if(r.descripcion_comercial)o+='<div style="margin-bottom:4px"><b style="color:#0A4FBF">Qué decir:</b> '+escH(r.descripcion_comercial)+'</div>';
+      if(r.beneficios)o+='<div style="margin-bottom:4px"><b style="color:#059669">Beneficios:</b> '+escH(r.beneficios)+'</div>';
+      if(r.perfil_paciente)o+='<div style="margin-bottom:4px"><b style="color:#D97706">Para quién:</b> '+escH(r.perfil_paciente)+'</div>';
+      if(r.contraindicaciones)o+='<div style="margin-bottom:4px"><b style="color:#DC2626">NO aplicar si:</b> '+escH(r.contraindicaciones)+'</div>';
+      if(r.indicaciones)o+='<div style="margin-bottom:4px"><b style="color:#6B7BA8">Incluye:</b> '+escH(r.indicaciones)+'</div>';
+      if(r.precio_base&&r.precio_base>r.precio_oferta)o+='<div style="margin-bottom:4px"><b>Precio regular:</b> S/'+r.precio_base+' → <b style="color:#059669">Ahorro: S/'+(r.precio_base-r.precio_oferta)+'</b></div>';
+      var faqs=[];try{faqs=typeof r.faqs==='string'?JSON.parse(r.faqs):(r.faqs||[])}catch(e){}
+      if(faqs.length){o+='<div style="margin-top:6px"><b>FAQs:</b></div>';faqs.forEach(function(f){o+='<div style="padding:3px 0"><b>P:</b> '+escH(f.q)+'<br><b>R:</b> '+escH(f.a)+'</div>'});}
+      o+='</div></div>';return o;
+    }).join('');
+  });
+}
+
 </script>
+<!-- Botón flotante repositorio -->
+<div onclick="abrirRepo()" style="position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;background:#0A4FBF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;box-shadow:0 4px 12px rgba(10,79,191,.4);z-index:100" title="Repositorio">📚</div>
