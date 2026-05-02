@@ -41,7 +41,6 @@
       <button class="ac-pill act" onclick="acTab(0,this)">Servicios</button>
       <button class="ac-pill" onclick="acTab(1,this)">Productos</button>
       <button class="ac-pill" onclick="acTabAnalytics(this)">📊 Analytics</button>
-      <button class="ac-pill" onclick="acTab(2,this)">📊 Analytics</button>
     </div>
   </div>
   <div class="ac-bar" id="ac-bar">
@@ -65,33 +64,7 @@ var AC={items:[],tipo:'SERVICIO',sel:null,selIdx:-1};
 
 function acTab(n,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
   $('ac-bar').style.display='flex';
-  if(n===2){acAnalytics();return;}
   AC.tipo=n===0?'SERVICIO':'PRODUCTO';acLoad()
-}
-
-function acAnalytics(){
-  var sp=document.querySelector('.ac-sp');if(!sp)return;
-  sp.style.display='block';sp.style.gridTemplateColumns='1fr';
-  rpc('aos_catalogo_analytics',{},function(d){
-    if(!d)return;
-    var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
-    [{l:'Servicios activos',v:d.servicios_activos||0,c:'#0A4FBF'},{l:'Productos activos',v:d.productos_activos||0,c:'#059669'},{l:'Sin repositorio',v:d.sin_descripcion||0,c:'#D97706'},{l:'Sin precio base',v:d.sin_precio_base||0,c:'#DC2626'}].forEach(function(k){
-      h+='<div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid #E2E8F0"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:22px;color:'+k.c+'">'+k.v+'</div><div style="font-size:8px;color:#6B7BA8">'+k.l+'</div></div>';
-    });
-    h+='</div>';
-    // Top vendidos
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-    h+='<div style="background:#fff;border-radius:8px;border:1px solid #E2E8F0;padding:12px"><div class="ac-sec">Top 10 más vendidos (mes)</div>';
-    if(d.top_vendidos&&d.top_vendidos.length){d.top_vendidos.forEach(function(t,i){h+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #F1F5F9;font-size:10px"><span style="font-weight:700">'+(i+1)+'. '+H(t.tratamiento)+'</span><span style="color:#0A4FBF;font-weight:700">'+t.ventas+' ventas · S/'+parseFloat(t.total||0).toFixed(0)+'</span></div>'});}
-    else h+='<div style="font-size:9px;color:#9AAAC8">Sin datos</div>';
-    h+='</div>';
-    // Sin ventas
-    h+='<div style="background:#fff;border-radius:8px;border:1px solid #E2E8F0;padding:12px"><div class="ac-sec">Sin ventas este mes</div>';
-    if(d.sin_ventas&&d.sin_ventas.length){d.sin_ventas.slice(0,15).forEach(function(t){h+='<div style="padding:3px 0;border-bottom:1px solid #F1F5F9;font-size:9px;color:#6B7BA8">'+H(t)+'</div>'});}
-    else h+='<div style="font-size:9px;color:#9AAAC8">Todos se vendieron</div>';
-    h+='</div></div>';
-    $('ac-list').innerHTML=h;$('ac-det').innerHTML='';
-  });
 }
 
 function acLoad(){
@@ -330,16 +303,61 @@ function acTabAnalytics(el){
       });
       o+='</tbody></table>';
     }else{o+='<div style="font-size:9px;color:#9AAAC8;margin-bottom:14px">Sin datos de ventas</div>';}
-    // Sin ventas
-    var sinV=d.sin_ventas_mes||[];
+    // Sin ventas agrupado por categoría
+    var sinV=d.sin_ventas_por_cat||[];
     if(sinV.length){
-      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#DC2626;margin-bottom:6px">Sin ventas este mes ('+sinV.length+')</div>';
-      o+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">';
-      sinV.forEach(function(n){o+='<span style="font-size:8px;padding:2px 6px;background:#FEF2F2;color:#DC2626;border-radius:4px;font-weight:600">'+H(n)+'</span>'});
+      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#DC2626;margin-bottom:6px">Sin ventas este mes (por categoría)</div>';
+      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
+      o+='<thead><tr style="background:#FEF2F2"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#DC2626">Categoría</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#DC2626">Items</th></tr></thead><tbody>';
+      sinV.forEach(function(c){
+        var items=c.items||[];
+        o+='<tr style="border-bottom:1px solid #F1F5F9;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'table-row\':\'none\'">';
+        o+='<td style="padding:4px 8px;font-weight:700">'+H(c.categoria||'SIN CAT')+' ▸</td>';
+        o+='<td style="padding:4px 8px;text-align:right;font-weight:700;color:#DC2626">'+c.total+'</td></tr>';
+        o+='<tr style="display:none"><td colspan="2" style="padding:4px 8px 8px;font-size:9px;color:#6B7BA8">'+items.map(function(n){return H(n)}).join(', ')+'</td></tr>';
+      });
+      o+='</tbody></table>';
+    }
+    // Roles por categoría
+    var roles=d.roles_por_cat||[];
+    if(roles.length){
+      o+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:11px;color:#071D4A;margin-bottom:6px">Roles por categoría</div>';
+      o+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px">';
+      o+='<thead><tr style="background:#F8FAFF"><th style="text-align:left;padding:4px 8px;font-size:8px;color:#6B7BA8">Categoría</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#0A4FBF">Solo DRA</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#059669">Solo ENF</th><th style="text-align:center;padding:4px 8px;font-size:8px;color:#7C3AED">Ambos</th><th style="text-align:right;padding:4px 8px;font-size:8px;color:#6B7BA8">Total</th></tr></thead><tbody>';
+      roles.forEach(function(r){
+        o+='<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:4px 8px;font-weight:700">'+H(r.categoria||'')+'</td>';
+        o+='<td style="text-align:center;padding:4px 8px;color:#0A4FBF;font-weight:700">'+(r.solo_dra||0)+'</td>';
+        o+='<td style="text-align:center;padding:4px 8px;color:#059669;font-weight:700">'+(r.solo_enf||0)+'</td>';
+        o+='<td style="text-align:center;padding:4px 8px;color:#7C3AED;font-weight:700">'+(r.ambos||0)+'</td>';
+        o+='<td style="text-align:right;padding:4px 8px;font-weight:700">'+r.total+'</td></tr>';
+      });
+      o+='</tbody></table>';
+      o+='<div style="font-size:8px;color:#6B7BA8;margin-bottom:6px">Click en categoría para cambiar rol masivamente:</div>';
+      o+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
+      roles.forEach(function(r){
+        var cat=r.categoria||'';
+        var badge=r.solo_dra>r.solo_enf?'DRA':(r.solo_enf>r.solo_dra?'ENF':'MIX');
+        var bg=badge==='DRA'?'#EBF2FF':badge==='ENF'?'#F0FDF4':'#F5F3FF';
+        var cl=badge==='DRA'?'#0A4FBF':badge==='ENF'?'#059669':'#7C3AED';
+        o+='<div style="padding:4px 8px;background:'+bg+';border:1px solid '+cl+'33;border-radius:6px;font-size:8px;font-weight:700;color:'+cl+';cursor:pointer" onclick="acCambiarRolCat(\''+H(cat)+'\')">'+H(cat)+' ('+badge+')</div>';
+      });
       o+='</div>';
     }
     o+='</div>';
     $('ac-list').innerHTML=o;
+  });
+}
+
+function acCambiarRolCat(cat){
+  var opt=prompt('Cambiar TODA la categoría '+cat+' a:\n\n1 = Solo DOCTORA\n2 = Solo ENFERMERÍA\n3 = AMBOS\n\nEscribe 1, 2 o 3:');
+  if(!opt||!['1','2','3'].includes(opt))return;
+  var body={};
+  if(opt==='1'){body={requiere_doctora:true,requiere_enfermeria:false}}
+  else if(opt==='2'){body={requiere_doctora:false,requiere_enfermeria:true}}
+  else{body={requiere_doctora:true,requiere_enfermeria:true}}
+  sbPatch('aos_catalogo_servicios','categoria=eq.'+encodeURIComponent(cat)+'&tipo=eq.SERVICIO&estado=eq.ACTIVO',body,function(ok){
+    if(ok){if(window.AOS_showToast)AOS_showToast(cat+' actualizado','','');document.querySelector('.ac-pill:last-child').click();}
+    else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
   });
 }
 </script>
