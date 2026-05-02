@@ -691,6 +691,25 @@ function _fetchHorarioTurno(fecha,sede,doctora,horaInput){
   if(horaEl)horaEl.addEventListener('change',agCheckDisp);
 })();
 
+function agTratInfo(){
+  var trat=(el('ed-trat')||{}).value||'';
+  var info=el('ed-trat-info');
+  if(!info||!trat){if(info)info.style.display='none';return;}
+  fetch(_SB+'/rest/v1/aos_catalogo_servicios?nombre=ilike.*'+encodeURIComponent(trat)+'*&estado=eq.ACTIVO&select=precio_oferta,precio_base,duracion_sesion,num_sesiones,requiere_doctora,requiere_enfermeria&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}})
+  .then(function(r){return r.json()}).then(function(rows){
+    if(!rows||!rows[0]){info.style.display='none';return;}
+    var c=rows[0];var parts=[];
+    if(c.precio_oferta)parts.push('S/'+parseFloat(c.precio_oferta).toFixed(0));
+    if(c.precio_base&&c.precio_base>c.precio_oferta)parts.push('<span style="text-decoration:line-through;opacity:.5">S/'+parseFloat(c.precio_base).toFixed(0)+'</span>');
+    if(c.duracion_sesion)parts.push(c.duracion_sesion);
+    if(c.num_sesiones&&c.num_sesiones!=='1')parts.push(c.num_sesiones+' ses');
+    if(c.requiere_doctora&&!c.requiere_enfermeria)parts.push('👩‍⚕️ Solo doctora');
+    if(c.requiere_enfermeria&&!c.requiere_doctora)parts.push('🩺 Enfermería');
+    info.innerHTML=parts.join(' · ');
+    info.style.display=parts.length?'block':'none';
+  }).catch(function(){info.style.display='none';});
+}
+
 function agGuardarEdit(){
   var num=(el('ed-num').value||'').trim().replace(/\D/g,'');
   var fecha=el('ed-fecha').value;

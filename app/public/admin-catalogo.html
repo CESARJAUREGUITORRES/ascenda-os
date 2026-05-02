@@ -40,6 +40,7 @@
     <div class="ac-pills">
       <button class="ac-pill act" onclick="acTab(0,this)">Servicios</button>
       <button class="ac-pill" onclick="acTab(1,this)">Productos</button>
+      <button class="ac-pill" onclick="acTab(2,this)">📊 Analytics</button>
     </div>
   </div>
   <div class="ac-bar">
@@ -61,7 +62,35 @@ function $(s){return document.getElementById(s)}
 
 var AC={items:[],tipo:'SERVICIO',sel:null,selIdx:-1};
 
-function acTab(n,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');AC.tipo=n===0?'SERVICIO':'PRODUCTO';acLoad()}
+function acTab(n,el){document.querySelectorAll('.ac-pill').forEach(function(p){p.classList.remove('act')});el.classList.add('act');
+  if(n===2){acAnalytics();return;}
+  AC.tipo=n===0?'SERVICIO':'PRODUCTO';acLoad()
+}
+
+function acAnalytics(){
+  var sp=document.querySelector('.ac-sp');if(!sp)return;
+  sp.style.display='block';sp.style.gridTemplateColumns='1fr';
+  rpc('aos_catalogo_analytics',{},function(d){
+    if(!d)return;
+    var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
+    [{l:'Servicios activos',v:d.servicios_activos||0,c:'#0A4FBF'},{l:'Productos activos',v:d.productos_activos||0,c:'#059669'},{l:'Sin repositorio',v:d.sin_descripcion||0,c:'#D97706'},{l:'Sin precio base',v:d.sin_precio_base||0,c:'#DC2626'}].forEach(function(k){
+      h+='<div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid #E2E8F0"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:22px;color:'+k.c+'">'+k.v+'</div><div style="font-size:8px;color:#6B7BA8">'+k.l+'</div></div>';
+    });
+    h+='</div>';
+    // Top vendidos
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    h+='<div style="background:#fff;border-radius:8px;border:1px solid #E2E8F0;padding:12px"><div class="ac-sec">Top 10 más vendidos (mes)</div>';
+    if(d.top_vendidos&&d.top_vendidos.length){d.top_vendidos.forEach(function(t,i){h+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #F1F5F9;font-size:10px"><span style="font-weight:700">'+(i+1)+'. '+H(t.tratamiento)+'</span><span style="color:#0A4FBF;font-weight:700">'+t.ventas+' ventas · S/'+parseFloat(t.total||0).toFixed(0)+'</span></div>'});}
+    else h+='<div style="font-size:9px;color:#9AAAC8">Sin datos</div>';
+    h+='</div>';
+    // Sin ventas
+    h+='<div style="background:#fff;border-radius:8px;border:1px solid #E2E8F0;padding:12px"><div class="ac-sec">Sin ventas este mes</div>';
+    if(d.sin_ventas&&d.sin_ventas.length){d.sin_ventas.slice(0,15).forEach(function(t){h+='<div style="padding:3px 0;border-bottom:1px solid #F1F5F9;font-size:9px;color:#6B7BA8">'+H(t)+'</div>'});}
+    else h+='<div style="font-size:9px;color:#9AAAC8">Todos se vendieron</div>';
+    h+='</div></div>';
+    $('ac-list').innerHTML=h;$('ac-det').innerHTML='';
+  });
+}
 
 function acLoad(){
   fetch(SB+'/rest/v1/aos_catalogo_servicios?tipo=eq.'+AC.tipo+'&order=categoria,nombre',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json()}).then(function(items){

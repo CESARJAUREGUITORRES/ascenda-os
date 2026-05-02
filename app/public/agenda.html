@@ -236,7 +236,8 @@
         <div class="mf"><div class="ml">Fecha cita</div><input class="mi" id="ed-fecha" type="date" onchange="agCheckDisp()"/></div>
         <div class="mf"><div class="ml">Hora</div><input class="mi" id="ed-hora" type="time" value="10:00"/></div>
         <div id="ed-hora-info" style="display:none;margin:-4px 0 8px;padding:8px 12px;border-radius:8px;font-size:10px;font-weight:600;"></div>
-        <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="ed-trat"><option value="">-- Cargando tratamientos... --</option></select></div>
+        <div class="mf full"><div class="ml">Tratamiento</div><select class="ms2" id="ed-trat" onchange="agTratInfo()"><option value="">-- Cargando tratamientos... --</option></select></div>
+        <div id="ed-trat-info" style="display:none;margin:-4px 0 8px;padding:6px 10px;border-radius:8px;font-size:9px;font-weight:600;background:#F0F4FC;border:1px solid #DBEAFE;color:#0A4FBF;"></div>
         <div class="mf"><div class="ml">Tipo cita</div><select class="ms2" id="ed-tipo-cita"><option value="CONSULTA NUEVA">Consulta nueva</option><option value="APLICACION">Aplicacion</option><option value="CONTROL">Control</option><option value="MANTENIMIENTO">Mantenimiento</option><option value="REPROGRAMACION">Reprogramacion</option></select></div>
         <div class="mf"><div class="ml">Estado</div><select class="ms2" id="ed-estado"><option value="PENDIENTE">Pendiente</option><option value="CITA CONFIRMADA">Confirmada</option><option value="ASISTIO">Asistio</option><option value="EFECTIVA">Efectiva</option><option value="NO ASISTIO">No Asistio</option><option value="CANCELADA">Cancelada</option></select></div>
         <div class="mf full"><div class="ml">Observaci&oacute;n</div><textarea class="mta2" id="ed-obs" placeholder="Notas..."></textarea></div>

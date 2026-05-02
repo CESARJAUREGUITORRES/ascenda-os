@@ -1781,6 +1781,25 @@ function openProcedimiento(){
     var grupos=res.grupos||[];
     window._procGrupos=grupos;
     var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' \u00B7 '+E(c.fecha)+'</div>';
+    /* Alerta contraindicaciones: cruzar catálogo con filiación */
+    var fil=AT.det?AT.det.filiacion:null;
+    if(fil){
+      var alertas=[];
+      grupos.forEach(function(g){
+        var trat=(g.tratamiento||'').toUpperCase();
+        fetch(_SB+'/rest/v1/aos_catalogo_servicios?nombre=ilike.*'+encodeURIComponent(g.tratamiento)+'*&estado=eq.ACTIVO&select=contraindicaciones&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(rows){
+          if(!rows||!rows[0]||!rows[0].contraindicaciones)return;
+          var ci=rows[0].contraindicaciones.toLowerCase();
+          if(fil.embarazo&&ci.indexOf('embarazo')>=0)alertas.push('⚠️ '+g.tratamiento+': CONTRAINDICADO en embarazo');
+          if(fil.lactancia&&ci.indexOf('lactancia')>=0)alertas.push('⚠️ '+g.tratamiento+': CONTRAINDICADO en lactancia');
+          if(fil.marcapasos&&ci.indexOf('marcapasos')>=0)alertas.push('⚠️ '+g.tratamiento+': CONTRAINDICADO con marcapasos');
+          if(fil.queloides&&ci.indexOf('queloides')>=0)alertas.push('⚠️ '+g.tratamiento+': CUIDADO con queloides');
+          var alDiv=document.getElementById('proc-alertas');
+          if(alDiv&&alertas.length){alDiv.innerHTML=alertas.map(function(a){return '<div style="padding:6px 10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;font-size:9px;font-weight:700;color:#DC2626;margin-bottom:4px">'+a+'</div>'}).join('');alDiv.style.display='block';}
+        }).catch(function(){});
+      });
+    }
+    o+='<div id="proc-alertas" style="display:none;margin-bottom:8px"></div>';
     if(!grupos.length){
       o+='<div style="padding:16px;background:#F8FAFF;border:1.5px solid var(--bd2);border-radius:10px;text-align:center">';
       o+='<div style="font-size:24px;margin-bottom:6px">\u{1F4CB}</div>';
