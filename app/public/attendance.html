@@ -566,7 +566,7 @@ if(tipo==='EVALUACION'){
       h+='<span onclick="verEvalAnterior('+i+')" style="background:#EBF2FF;color:var(--blue);padding:3px 8px;border-radius:6px;font-size:7px;font-weight:700;cursor:pointer;border:1px solid var(--bd2)">';
       h+=E(p.fecha||'')+' · '+(p.tipo_evaluacion||'');
       if(p.glogau)h+=' · Glogau:'+E(p.glogau);
-      if(p.escala_hamilton)h+=' · H-N:'+E(p.escala_hamilton);
+      if(p.escala_savin)h+=' · Savin:'+E(p.escala_savin);
       if(p.escala_ludwig)h+=' · Ludwig:'+E(p.escala_ludwig);
       h+='</span>';
     });
@@ -578,7 +578,7 @@ if(tipo==='EVALUACION'){
     if(last.tipo_piel){comparaciones.push({campo:'Tipo piel',antes:last.tipo_piel});}
     if(last.nivel_estres){comparaciones.push({campo:'Estrés',antes:last.nivel_estres});}
     if(last.imc){comparaciones.push({campo:'IMC',antes:last.imc});}
-    if(last.escala_hamilton){comparaciones.push({campo:'Hamilton-Norwood',antes:last.escala_hamilton});}
+    if(last.escala_savin){comparaciones.push({campo:'Savin',antes:last.escala_savin});}
     if(last.escala_ludwig){comparaciones.push({campo:'Ludwig',antes:last.escala_ludwig});}
     if(comparaciones.length){
       h+='<div style="margin-top:6px;font-size:7px;color:var(--mt)">Última evaluación ('+E(last.fecha)+'):</div>';
@@ -789,10 +789,10 @@ function evTipoChange(){
     o+='<div class="fg"><label class="fl">Tipo alopecia</label><select id="ev-alopecia" class="fi fs"><option>Androgenética</option><option>Areata</option><option>Difusa</option><option>Cicatricial</option><option>Por tracción</option><option>Efluvio telógeno</option><option>Otro</option></select></div></div>';
     o+='<div class="at-sc" style="margin-top:8px">Escalas de clasificación</div>';
     o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    o+='<div class="fg"><label class="fl">Hamilton-Norwood (Hombres)</label><select id="ev-hamilton" class="fi fs"><option value="">— No aplica —</option><option>I - Sin pérdida</option><option>II - Recesión frontal leve</option><option>IIa - Recesión frontal leve + vértex</option><option>III - Recesión frontal moderada</option><option>IIIa - Recesión frontal + vértex</option><option>III Vertex - Pérdida en coronilla</option><option>IV - Recesión frontal severa + vértex</option><option>IVa - Recesión anterior difusa</option><option>V - Pérdida extensa fronto-vertex</option><option>Va - Pérdida anterior extensa</option><option>VI - Puente fronto-vertex perdido</option><option>VII - Pérdida total superior</option></select></div>';
-    o+='<div class="fg"><label class="fl">Ludwig (Mujeres)</label><select id="ev-ludwig" class="fi fs"><option value="">— No aplica —</option><option>I - Adelgazamiento leve en coronilla</option><option>I-2 - Pérdida leve-moderada</option><option>I-3 - Pérdida moderada en coronilla</option><option>I-4 - Pérdida moderada extensa</option><option>II-1 - Rarefacción moderada</option><option>II-2 - Rarefacción marcada</option><option>III - Pérdida total en coronilla</option></select></div>';
+    o+='<div class="fg"><label class="fl">Escala Ludwig</label><select id="ev-ludwig" class="fi fs"><option value="">— Seleccionar —</option><option>I — Leve / inicial</option><option>II — Moderado</option><option>III — Avanzado</option></select></div>';
+    o+='<div class="fg"><label class="fl">Escala Savin</label><select id="ev-savin" class="fi fs"><option value="">— Seleccionar —</option><option>I-1 — Muy leve</option><option>I-2 — Leve</option><option>I-3 — Leve-moderado</option><option>I-4 — Moderado inicial</option><option>II-1 — Moderado</option><option>II-2 — Moderado-avanzado</option><option>III — Severo</option><option>Avanzado — Muy severo</option><option>Frontal — Línea frontal afectada</option></select></div>';
     o+='</div>';
-    o+='<div style="font-size:7px;color:var(--mt);padding:4px 0;line-height:1.4">Hamilton-Norwood: escala de 7 grados para alopecia androgenética masculina (I=sin pérdida → VII=pérdida total superior).<br>Ludwig: escala de 3 grados para alopecia femenina (I=adelgazamiento → III=pérdida total coronilla).</div>';
+    o+='<div style="font-size:7px;color:var(--mt);padding:4px 0;line-height:1.4"><b>Ludwig:</b> clasificación rápida (I=leve → III=avanzado). Ideal para comunicación con paciente.<br><b>Savin:</b> más detallada (I-1 a III+Avanzado+Frontal). Ideal para seguimiento y evolución entre controles.</div>';
   }else if(tipo==='VITAMINAS'){
     o+='<div class="at-sc">Salud general</div>';
     o+='<div class="fg"><label class="fl">Tipo de trabajo</label><input id="ev-trabajo" class="fi" placeholder="Oficina, campo, etc."></div>';
@@ -829,7 +829,7 @@ if(tipo==='EVALUACION'){
     autor:AOS.ctx?AOS.ctx.nombre:'',autor_rol:AOS.ctx?AOS.ctx.area:'',autor_codigo:AOS.ctx?AOS.ctx.idAsesor:'',sede:c.sede||''};
   if(evTipo==='FACIAL'){ev.tipo_piel=(document.getElementById('ev-piel')||{}).value||'';ev.fototipo=(document.getElementById('ev-foto')||{}).value||'';ev.tiene_hallazgos=getSiNo('ev-hall')!=='No';ev.hallazgos=JSON.stringify(getChecked('ev-hall-chk'));ev.glogau=(document.getElementById('ev-glogau')||{}).value||'';}
   if(evTipo==='CORPORAL'){ev.peso=parseFloat((document.getElementById('ev-peso-k')||{}).value)||null;ev.talla=parseFloat((document.getElementById('ev-talla-k')||{}).value)||null;if(ev.peso&&ev.talla){ev.imc=Math.round(ev.peso/(ev.talla*ev.talla)*10)/10;ev.imc_estado=ev.imc<18.5?'Bajo peso':ev.imc<25?'Normal':ev.imc<30?'Sobrepeso':'Obesidad';}ev.medida_brazos=parseFloat((document.getElementById('ev-brazos')||{}).value)||null;ev.medida_piernas=parseFloat((document.getElementById('ev-piernas')||{}).value)||null;ev.medida_cadera=parseFloat((document.getElementById('ev-cadera')||{}).value)||null;ev.medida_cintura=parseFloat((document.getElementById('ev-cintura')||{}).value)||null;ev.medida_pecho=parseFloat((document.getElementById('ev-pecho')||{}).value)||null;ev.zonas_corporales=JSON.stringify(getChecked('ev-zona-chk'));}
-  if(evTipo==='CAPILAR'){ev.inicio_caida=(document.getElementById('ev-caida')||{}).value||'';ev.cantidad_caida=(document.getElementById('ev-cant-caida')||{}).value||'';ev.tipo_cuero_cabelludo=(document.getElementById('ev-cuero')||{}).value||'';ev.tipo_alopecia=(document.getElementById('ev-alopecia')||{}).value||'';ev.escala_hamilton=(document.getElementById('ev-hamilton')||{}).value||'';ev.escala_ludwig=(document.getElementById('ev-ludwig')||{}).value||'';}
+  if(evTipo==='CAPILAR'){ev.inicio_caida=(document.getElementById('ev-caida')||{}).value||'';ev.cantidad_caida=(document.getElementById('ev-cant-caida')||{}).value||'';ev.tipo_cuero_cabelludo=(document.getElementById('ev-cuero')||{}).value||'';ev.tipo_alopecia=(document.getElementById('ev-alopecia')||{}).value||'';ev.escala_ludwig=(document.getElementById('ev-ludwig')||{}).value||'';ev.escala_savin=(document.getElementById('ev-savin')||{}).value||'';}
   if(evTipo==='VITAMINAS'){ev.tipo_trabajo=(document.getElementById('ev-trabajo')||{}).value||'';ev.enfermedades_congenitas=getSiNo('ev-enferm')!=='No';ev.enfermedades_detalle=getSiNo('ev-enferm');ev.dolores_males=getSiNo('ev-dolores')!=='No';ev.dolores_detalle=getSiNo('ev-dolores');ev.insomnio=getSiNo('ev-insomnio')!=='No';ev.insomnio_detalle=getSiNo('ev-insomnio');ev.tipo_alimentacion=(document.getElementById('ev-alim')||{}).value||'';ev.hace_deporte=getSiNo('ev-deporte')!=='No';ev.se_hidrata=getSiNo('ev-hidrata')!=='No';ev.toma_vitaminas=getSiNo('ev-vita')!=='No';ev.vitaminas_detalle=getSiNo('ev-vita');ev.otros_tratamientos=getSiNo('ev-otros-trat')!=='No';ev.tratamientos_detalle=getSiNo('ev-otros-trat');ev.toma_farmacos=getSiNo('ev-farmacos')!=='No';ev.farmacos_detalle=getSiNo('ev-farmacos');ev.alergico=getSiNo('ev-alergico')!=='No';ev.alergias_detalle=getSiNo('ev-alergico');}
   sbW('aos_evaluaciones_clinicas',ev);
   cont='[EVAL '+evTipo+'] '+cont;
