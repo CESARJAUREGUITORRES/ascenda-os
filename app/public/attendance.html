@@ -326,37 +326,37 @@ if(tab==='general')rGeneral(b);else if(tab==='notas')rNotas(b);else if(tab==='pr
 /* ===== STEPS POR FASE Y ROL ===== */
 /* FASE 1: CONSULTA — evaluación + plan (sin pago) */
 var STEPS_ENF_CONSULTA=[
-  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
-  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
-  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
+  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE',rol:'enfermería'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION',rol:'enfermería'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO',rol:'enfermería'},
+  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO',rol:'enfermería'},
+  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION',rol:'ambos'},
+  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA',rol:'enfermería'}
 ];
 var STEPS_DRA_CONSULTA=[
-  {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico y plan',tipo:'EVALUACION'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'✨',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
-  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
+  {ico:'🩺',t:'Triaje',sub:'Enfermería completa',tipo:'TRIAJE',rol:'enfermería'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico médico',tipo:'EVALUACION',rol:'médica'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO',rol:'médica'},
+  {ico:'✨',t:'Procedimiento',sub:'Aplicación médica',tipo:'NOTA_PROCEDIMIENTO',rol:'médica'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA',rol:'médica'},
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION',rol:'ambos'}
 ];
 /* FASE 2: PROCEDIMIENTO — tratamiento pagado */
 var STEPS_ENF=[
-  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE'},
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO'},
-  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION'},
-  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA'}
+  {ico:'🩺',t:'Triaje',sub:'Signos vitales',tipo:'TRIAJE',rol:'enfermería'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION',rol:'enfermería'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Sesiones futuras',tipo:'PLAN_TRABAJO',rol:'enfermería'},
+  {ico:'✨',t:'Procedimiento',sub:'Detalle atención',tipo:'NOTA_PROCEDIMIENTO',rol:'enfermería'},
+  {ico:'💊',t:'Receta',sub:'Prescripción',tipo:'PRESCRIPCION',rol:'ambos'},
+  {ico:'📋',t:'Nota enfermería',sub:'Observaciones',tipo:'NOTA_ENFERMERIA',rol:'enfermería'}
 ];
 var STEPS_DRA=[
-  {ico:'🩺',t:'Triaje',sub:'Ya completado por enfermería',tipo:'TRIAJE'},
-  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico',tipo:'EVALUACION'},
-  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO'},
-  {ico:'✨',t:'Procedimiento',sub:'Aplicación',tipo:'NOTA_PROCEDIMIENTO'},
-  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA'},
-  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION'}
+  {ico:'🩺',t:'Triaje',sub:'Enfermería completa',tipo:'TRIAJE',rol:'enfermería'},
+  {ico:'👩‍⚕️',t:'Evaluación',sub:'Diagnóstico médico',tipo:'EVALUACION',rol:'médica'},
+  {ico:'📅',t:'Plan de trabajo',sub:'Plan de servicios',tipo:'PLAN_TRABAJO',rol:'médica'},
+  {ico:'✨',t:'Procedimiento',sub:'Aplicación médica',tipo:'NOTA_PROCEDIMIENTO',rol:'médica'},
+  {ico:'📈',t:'Evolución',sub:'Seguimiento',tipo:'EVOLUCION_MEDICA',rol:'médica'},
+  {ico:'💊',t:'Receta',sub:'Prescripción médica',tipo:'PRESCRIPCION',rol:'ambos'}
 ];
 function getSteps(){
   var c=AT.sel||{};
@@ -381,8 +381,18 @@ var c1='<div class="ic-t" style="justify-content:space-between">'+rolLabel+faseL
 c1+='<div style="height:3px;background:var(--bd2);border-radius:2px;margin-bottom:8px"><div style="height:100%;background:var(--cyan);border-radius:2px;width:'+(steps.length?Math.round(doneCount/steps.length*100):0)+'%;transition:width .3s"></div></div>';
 /* Chips en grid compacto */
 c1+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';
+var userArea=(AOS.ctx&&AOS.ctx.area)||'';
+var userRol=userArea.toLowerCase();
+var esDraAtencion=isDra(c.profesional);
 steps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
-c1+='<div class="at-fc'+(has?' done':'')+'" onclick="toggleNota(\''+s.tipo+'\')" style="flex-direction:column;text-align:center;padding:6px 4px;gap:2px"><span style="font-size:16px">'+s.ico+'</span><span style="font-size:7px;font-weight:700;line-height:1.1">'+s.t+'</span><span style="font-size:10px">'+(has?'✅':'⏳')+'</span></div>';});
+var stepRol=s.rol||'ambos';
+var canEdit=(stepRol==='ambos')||(stepRol===userRol)||(userRol==='administración');
+var rolBadge='';
+if(esDraAtencion&&stepRol==='médica'&&userRol==='enfermería')rolBadge='<div style="font-size:6px;color:#7C3AED;font-weight:800;margin-top:1px">👩‍⚕️ DOCTORA</div>';
+else if(esDraAtencion&&stepRol==='enfermería'&&userRol!=='enfermería'&&userRol!=='administración')rolBadge='<div style="font-size:6px;color:#059669;font-weight:800;margin-top:1px">🩺 ENF</div>';
+var opacity=canEdit?'1':'0.5';
+var cursor=canEdit?'pointer':'not-allowed';
+c1+='<div class="at-fc'+(has?' done':'')+'" onclick="'+(canEdit?'toggleNota(\''+s.tipo+'\')':'AOS_showToast(\'Esta card es para '+(stepRol==='médica'?'la doctora':'enfermería')+'\',\'\',\'toast-alerta\')')+'" style="flex-direction:column;text-align:center;padding:6px 4px;gap:2px;opacity:'+opacity+';cursor:'+cursor+'"><span style="font-size:16px">'+s.ico+'</span><span style="font-size:7px;font-weight:700;line-height:1.1">'+s.t+'</span>'+rolBadge+'<span style="font-size:10px">'+(has?'✅':'⏳')+'</span></div>';});
 c1+='</div>';
 /* Doctora vinculada */
 if(c.asistente_nombre&&isDra(c.profesional)){c1+='<div style="padding:6px;background:#EBF2FF;border-radius:6px;margin-top:8px;font-size:8px;display:flex;align-items:center;gap:4px"><span class="rl rl-e">Asiste</span><b style="color:var(--deep)">'+E(c.asistente_nombre)+'</b></div>';}
@@ -803,6 +813,7 @@ sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
   grupos.forEach(function(g){
     (g.sesiones||[]).forEach(function(s){
       s._grupo=g.tratamiento;
+      s._catControl=s.cat_requiere_control?s.cat_dias_control:0;
       if(s.estado==='REALIZADO')realizadas.push(s);
       else if(s.estado==='PROGRAMADO')programadas.push(s);
       else pendientes.push(s);
@@ -817,6 +828,8 @@ sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
       if(s.resumen_procedimiento)o+='<div style="font-size:7px;color:var(--mt)">'+E(s.resumen_procedimiento)+'</div>';
       o+='</div>';
       if(s.sesion_numero<s.total_sesiones){o+='<span style="font-size:7px;background:var(--gn);color:#fff;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="abrirModalProg(\''+E(s._grupo)+'\',\'Control\')">Programar control →</span>';}
+      /* Sugerencia de control desde catálogo */
+      if(s.sesion_numero>=s.total_sesiones && s._catControl){o+='<div style="font-size:7px;color:#7C3AED;margin-top:2px">💡 Control sugerido: ~'+s._catControl+' días</div>';}
       o+='</div>';
     });
   }
