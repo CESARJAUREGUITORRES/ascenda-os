@@ -156,6 +156,8 @@ function loadLead(_retried){
     document.getElementById('cc-m-seg-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
+    /* Agente asesor: cargar info contextual del tratamiento */
+    if(CC.lead.trat)cargarRepoContextual(CC.lead.trat);
   },function(e){
     console.error('[CC] loadLead error:',e);
     if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
@@ -918,3 +920,37 @@ function buscarPacParaCita(num){
   });
 }
 
+
+/* ═══ AGENTE ASESOR: REPOSITORIO CONTEXTUAL ═══ */
+function cargarRepoContextual(trat){
+  if(!trat)return;
+  var box=document.getElementById("cc-repo-ctx");
+  if(!box){box=document.createElement("div");box.id="cc-repo-ctx";var ctx=document.getElementById("cc-contexto");if(ctx)ctx.parentNode.insertBefore(box,ctx.nextSibling);else{var panel=document.querySelector(".cc-panel");if(panel)panel.appendChild(box);}}
+  box.innerHTML="<div style=\"padding:6px;font-size:8px;color:#9AAAC8\">Cargando info...</div>";
+  fetch(_SB+"/rest/v1/aos_catalogo_categorias?select=nombre,descripcion_comercial,beneficios,perfil_paciente,contraindicaciones,complementarios,faqs&or=(nombre.ilike.*"+encodeURIComponent(trat)+"*)",{headers:{"apikey":_SK,"Authorization":"Bearer "+_SK}}).then(function(r){return r.json()}).then(function(cats){
+    if(!cats||!cats.length){
+      fetch(_SB+"/rest/v1/aos_catalogo_servicios?nombre=ilike.*"+encodeURIComponent(trat)+"*&estado=eq.ACTIVO&select=nombre,categoria,descripcion_comercial,beneficios,perfil_paciente,precio_oferta&limit=3",{headers:{"apikey":_SK,"Authorization":"Bearer "+_SK}}).then(function(r){return r.json()}).then(function(items){
+        if(!items||!items.length){box.innerHTML="";return;}
+        renderRepoCtx(box,items[0],false);
+      });return;
+    }
+    renderRepoCtx(box,cats[0],true);
+  });
+}
+function renderRepoCtx(box,data,isCat){
+  var h="<div style=\"background:#EEF2FF;border:1.5px solid #C7D2FE;border-radius:10px;padding:10px;margin:6px 0\">";
+  h+="<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px\"><div style=\"font-weight:800;font-size:11px;color:#0A4FBF\">🤖 Info para tu llamada — "+escH(data.nombre||"")+"</div><button onclick=\"this.parentNode.parentNode.remove()\" style=\"background:none;border:none;font-size:14px;cursor:pointer;color:#9AAAC8\">✕</button></div>";
+  if(data.descripcion_comercial){h+="<div style=\"font-size:9px;color:#1E293B;margin-bottom:6px;line-height:1.4;background:#fff;padding:6px;border-radius:6px\"><b style=\"color:#0A4FBF\">💬 Qué decir:</b> "+escH(data.descripcion_comercial.substring(0,300))+"</div>";}
+  if(data.beneficios){h+="<div style=\"font-size:8px;color:#059669;margin-bottom:4px\"><b>✅ Beneficios:</b> "+escH(data.beneficios.substring(0,200))+"</div>";}
+  if(data.perfil_paciente){h+="<div style=\"font-size:8px;color:#D97706;margin-bottom:4px\"><b>👤 Para quién:</b> "+escH(data.perfil_paciente.substring(0,150))+"</div>";}
+  if(data.contraindicaciones){h+="<div style=\"font-size:8px;color:#DC2626;margin-bottom:4px\"><b>⚠️ NO aplicar si:</b> "+escH(data.contraindicaciones.substring(0,150))+"</div>";}
+  if(data.complementarios&&data.complementarios.length){h+="<div style=\"font-size:8px;color:#7C3AED;margin-bottom:4px\"><b>💡 Sugiere también:</b> "+data.complementarios.join(", ")+"</div>";}
+  var faqs=[];try{faqs=typeof data.faqs==="string"?JSON.parse(data.faqs):(data.faqs||[])}catch(e){}
+  if(faqs.length>0){
+    h+="<details style=\"margin-top:4px\"><summary style=\"font-size:8px;font-weight:700;color:#0A4FBF;cursor:pointer\">❓ FAQs rápidas ("+faqs.length+")</summary><div style=\"max-height:200px;overflow-y:auto;padding:4px 0\">";
+    faqs.slice(0,10).forEach(function(f){h+="<div style=\"padding:3px 0;border-bottom:1px solid #E2E8F0;font-size:8px\"><b>P:</b> "+escH(f.q)+"<br><b style=\"color:#059669\">R:</b> "+escH((f.a||"").substring(0,200))+"</div>"});
+    if(faqs.length>10)h+="<div style=\"font-size:7px;color:#9AAAC8;padding:4px\">... y "+(faqs.length-10)+" más</div>";
+    h+="</div></details>";
+  }
+  h+="</div>";box.innerHTML=h;
+}
