@@ -1545,6 +1545,17 @@ function agregarItemDesdeCatalogo(r) {
   });
   renderItemsTbl();
   actualizarResumen();
+  /* Sugerencias complementarias */
+  if(r.categoria){
+    fetch(SB_URL+'/rest/v1/aos_catalogo_categorias?nombre=eq.'+encodeURIComponent(r.categoria)+'&select=complementarios,nombre',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(x){return x.json()}).then(function(cats){
+      if(!cats||!cats[0]||!cats[0].complementarios||!cats[0].complementarios.length)return;
+      var comps=cats[0].complementarios;
+      var box=document.getElementById('cj-sugerencias');
+      if(!box){box=document.createElement('div');box.id='cj-sugerencias';var catRes=document.getElementById('cat-results');if(catRes)catRes.parentNode.insertBefore(box,catRes.nextSibling);}
+      box.innerHTML='<div style="padding:6px 10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;margin:4px 0;font-size:9px"><span style="font-weight:700;color:#059669">💡 Complementa con: </span>'+comps.map(function(c){return '<span style="display:inline-block;padding:2px 8px;background:#fff;border:1px solid #BBF7D0;border-radius:4px;margin:1px;font-weight:600;color:#059669;cursor:pointer" onclick="document.getElementById(\'cat-busq\').value=\''+c+'\';buscarCatalogo(\''+c+'\');this.parentNode.parentNode.remove()">'+c+'</span>'}).join('')+'</div>';
+      setTimeout(function(){if(box)box.remove()},15000);
+    }).catch(function(){});
+  }
 }
 
 // ===== RENDER TABLA ÍTEMS =====
