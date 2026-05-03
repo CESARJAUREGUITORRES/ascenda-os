@@ -100,7 +100,7 @@ body,html{font-family:'DM Sans',sans-serif,sans-serif;color:#1E293B;background:v
 </style>
 
 <div class="P">
-<div class="hdr"><div><div class="h1">Inventario</div></div><div class="pills"><button class="pill a" onclick="iT(0,this)">📦 Stock</button><button class="pill" onclick="iT(1,this)">📋 Conteo</button><button class="pill" onclick="iT(2,this)">📊 Movimientos</button></div></div>
+<div class="hdr"><div><div class="h1">Inventario</div></div><div class="pills"><button class="pill a" onclick="iT(0,this)">📦 Stock</button><button class="pill" onclick="iT(1,this)">📋 Conteo</button><button class="pill" onclick="iT(2,this)">📊 Movimientos</button><button class="pill" onclick="iT(3,this)">📈 Métricas</button></div></div>
 
 <!-- TAB 0: STOCK -->
 <div class="pan a" id="p0">
@@ -133,6 +133,9 @@ body,html{font-family:'DM Sans',sans-serif,sans-serif;color:#1E293B;background:v
 <!-- TAB 2: MOVIMIENTOS -->
 <div class="pan" id="p2"><div id="mov-wrap"><div class="ld"><span class="spi"></span></div></div></div>
 
+<!-- TAB 3: MÉTRICAS -->
+<div class="pan" id="p3"><div id="met-wrap"><div class="ld"><span class="spi"></span></div></div></div>
+
 <!-- FIN TABS -->
 </div>
 
@@ -155,7 +158,7 @@ function $(s){return document.getElementById(s)}
 function tst(m){var t=$('tst');t.textContent=m;t.classList.add('sh');setTimeout(function(){t.classList.remove('sh')},2500)}
 var IV={sede:'SAN ISIDRO',cat:'',desc:[],dpac:null,dcot:null,ing:[]};
 
-function iT(n,el){document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('a')});el.classList.add('a');document.querySelectorAll('.pan').forEach(function(p,i){p.classList.toggle('a',i===n)});if(n===1)ldCnt();if(n===2)ldMov()}
+function iT(n,el){document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('a')});el.classList.add('a');document.querySelectorAll('.pan').forEach(function(p,i){p.classList.toggle('a',i===n)});if(n===1)ldCnt();if(n===2)ldMov();if(n===3)ldMet()}
 function sS(s,el){IV.sede=s;document.querySelectorAll('.sp').forEach(function(p){p.classList.remove('a')});el.classList.add('a');iL();ldAl()}
 function iC(el,c){IV.cat=c;document.querySelectorAll('.tf').forEach(function(f){f.classList.remove('a')});el.classList.add('a');iL()}
 
@@ -354,9 +357,21 @@ function ldMov(){rpc('aos_inventario_movimientos',{p_sede:IV.sede},function(d){i
 
 /* ═══ MÉTRICAS ═══ */
 function ldMet(){rpc('aos_inventario_metricas',{p_sede:IV.sede},function(d){if(!d){$('met-wrap').innerHTML='<div class="ld">Error</div>';return}
-  var h='<div class="mg"><div class="mc"><div class="mt">📊 Resumen '+H(IV.sede)+'</div>';
-  [['Total items',d.total_items],['Total unidades',Math.round(d.total_unidades)],['Disponibles',d.disponibles,'var(--grn)'],['Vencidos',d.vencidos,'var(--red)'],['Por vencer',d.por_vencer,'var(--orn)'],['Agotados',d.agotados,'var(--yel)'],['Último conteo',d.ultimo_conteo||'—'],['Incidencias abiertas',d.incidencias_abiertas,'var(--red)'],['Movimientos hoy',d.movimientos_hoy],['Egresos semana',d.egresos_semana]].forEach(function(r){h+='<div class="mr"><span>'+r[0]+'</span><span'+(r[2]?' style="color:'+r[2]+'"':'')+'>'+r[1]+'</span></div>'});h+='</div>';
-  if(d.por_categoria){h+='<div class="mc"><div class="mt">📦 Por categoría</div>';d.por_categoria.forEach(function(c){h+='<div class="mr"><span>'+H(c.categoria)+'</span><span>'+c.items+' ('+Math.round(c.unidades)+' und)</span></div>'});h+='</div>'}
+  var h='<div style="padding:10px"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:#071D4A;margin-bottom:10px">Métricas — '+H(IV.sede)+'</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px">';
+  [['Items',d.total_items,'#0A4FBF'],['Unidades',Math.round(d.total_unidades),'#0A4FBF'],['Disponibles',d.disponibles,'#16A34A'],['Vencidos',d.vencidos||0,'#DC2626'],['Agotados',d.agotados||0,'#F59E0B']].forEach(function(k){h+='<div style="text-align:center;padding:8px;background:#F8FAFF;border-radius:8px;border:1px solid #E2E8F0"><div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:18px;color:'+k[2]+'">'+k[1]+'</div><div style="font-size:7px;font-weight:700;color:#6B7BA8;text-transform:uppercase">'+k[0]+'</div></div>'});
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  // Por categoría
+  if(d.por_categoria&&d.por_categoria.length){h+='<div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:800;color:#071D4A;margin-bottom:6px">📦 Stock por categoría</div>';d.por_categoria.forEach(function(c){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F1F5F9;font-size:9px"><span style="font-weight:600">'+H(c.categoria)+'</span><span style="color:#0A4FBF;font-weight:700">'+c.items+' items · '+Math.round(c.unidades)+' und</span></div>'});h+='</div>'}
+  // Top egresos
+  var topE=d.top_egresos||[];
+  if(topE.length){h+='<div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:800;color:#DC2626;margin-bottom:6px">🔻 Más descontados (30 días)</div>';topE.forEach(function(t,i){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F1F5F9;font-size:9px"><span style="font-weight:600">'+(i+1)+'. '+H(t.nombre_producto)+'</span><span style="color:#DC2626;font-weight:700">'+t.unidades+' und ('+t.veces+'x)</span></div>'});h+='</div>'}
+  // Descuentos por asesor
+  var dpa=d.descuentos_por_asesor||[];
+  if(dpa.length){h+='<div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:800;color:#7C3AED;margin-bottom:6px">👤 Descuentos por profesional (30 días)</div>';dpa.forEach(function(a){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F1F5F9;font-size:9px"><span style="font-weight:600">'+H(a.asesor||'—')+'</span><span style="color:#7C3AED;font-weight:700">'+a.unidades+' und ('+a.operaciones+' ops)</span></div>'});h+='</div>'}
+  h+='</div>';
+  h+='<div style="font-size:8px;color:#6B7BA8;margin-top:8px">Mov. hoy: '+(d.movimientos_hoy||0)+' | Egresos semana: '+(d.egresos_semana||0)+'</div>';
   h+='</div>';$('met-wrap').innerHTML=h})}
 /* ═══ DETALLE PRODUCTO ═══ */
 var pdId='';
