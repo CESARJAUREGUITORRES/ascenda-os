@@ -186,16 +186,83 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <!-- ASSETS -->
+  <!-- ASSETS / MIS IMÁGENES -->
   <div id="tab-assets" class="st-tab-content">
     <div class="st-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="st-sec" style="margin:0">📸 Assets de marca</div>
-        <button class="st-btn st-btn-p" onclick="stAddAsset()">+ Subir asset</button>
+        <div class="st-sec" style="margin:0">📸 Mis imágenes</div>
+        <div style="display:flex;gap:4px">
+          <label class="st-btn st-btn-p" style="cursor:pointer">📤 Subir imágenes <input type="file" id="as-file" multiple accept="image/*" style="display:none" onchange="stUploadImages(this.files)"></label>
+        </div>
       </div>
-      <div id="as-lista">
-        <div class="st-empty"><div class="icon">📸</div>Sube fotos de tu equipo, clínica, tratamientos y logo.<br>La AI los usará para crear contenido con tu identidad.</div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:10px;background:var(--blue-xl);padding:6px 10px;border-radius:6px">
+        💡 Sube tus imágenes de ChatGPT o propias → Selecciona → La AI genera el copy → Agenda → Se publica solo
       </div>
+      <div id="as-loading" style="display:none;text-align:center;padding:20px;color:var(--label)">⏳ Subiendo imágenes...</div>
+      <div id="as-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
+      <div id="as-empty" class="st-empty"><div class="icon">📸</div>Sube fotos de ChatGPT, tu equipo, clínica o tratamientos.<br>Arrastra aquí o usa el botón "Subir".</div>
+    </div>
+
+    <!-- Panel de acción cuando se selecciona una imagen -->
+    <div id="as-action" style="display:none" class="st-card" style="border-color:var(--cyan)">
+      <div class="st-sec">✨ Preparar publicación</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div id="as-sel-preview" style="width:120px;height:150px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--border)"></div>
+        <div style="flex:1;min-width:200px">
+          <div class="st-fg"><div class="st-fl">Categoría tratamiento</div>
+            <select class="st-inp" id="as-cat"><option value="">— Auto-detectar —</option></select>
+          </div>
+          <div class="st-fg"><div class="st-fl">Descripción / instrucciones para el copy</div>
+            <textarea class="st-inp st-ta" id="as-desc" placeholder="Ej: Post educativo sobre los beneficios del HIFU. Tono cercano. Incluir datos científicos."></textarea>
+          </div>
+          <div class="st-grid">
+            <div class="st-fg"><div class="st-fl">Plataformas</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap" id="as-plats">
+                <label style="font-size:9px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" value="instagram" checked> IG</label>
+                <label style="font-size:9px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" value="facebook" checked> FB</label>
+                <label style="font-size:9px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" value="tiktok"> TikTok</label>
+              </div>
+            </div>
+            <div class="st-fg"><div class="st-fl">Fecha/hora</div><input class="st-inp" id="as-fecha" type="datetime-local" style="font-size:10px"></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <button class="st-btn st-btn-c" onclick="stGenerarCopyParaImagen()">🤖 Generar copy con AI</button>
+            <button class="st-btn st-btn-s" onclick="stProgramarDirecto()">📅 Solo programar</button>
+          </div>
+        </div>
+      </div>
+      <!-- Copy generado -->
+      <div id="as-copy-result" style="display:none;margin-top:10px">
+        <div class="st-fg"><div class="st-fl">Copy generado (editable)</div>
+          <textarea class="st-inp st-ta" id="as-copy-text" style="min-height:80px;font-size:10px"></textarea>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="st-btn st-btn-g" onclick="stAprobarYProgramar()">✅ Aprobar y programar</button>
+          <button class="st-btn st-btn-c" onclick="stGenerarCopyParaImagen()">🔄 Regenerar copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lote: múltiples imágenes a la vez -->
+    <div id="as-batch" style="display:none" class="st-card">
+      <div class="st-sec">📦 Programar lote (0 imágenes seleccionadas)</div>
+      <div class="st-grid">
+        <div class="st-fg"><div class="st-fl">Categoría para todas</div><select class="st-inp" id="as-batch-cat"><option value="">— Variada —</option></select></div>
+        <div class="st-fg"><div class="st-fl">Empezar desde</div><input class="st-inp" id="as-batch-start" type="date"></div>
+      </div>
+      <div class="st-fg"><div class="st-fl">Frecuencia</div>
+        <select class="st-inp" id="as-batch-freq">
+          <option value="1">1 post por día</option>
+          <option value="2">2 posts por día</option>
+          <option value="3" selected>3 posts por semana (L-Mi-V)</option>
+          <option value="4">Día de por medio</option>
+        </select>
+      </div>
+      <div class="st-fg"><div class="st-fl">Instrucciones para la AI</div>
+        <textarea class="st-inp st-ta" id="as-batch-desc" placeholder="Ej: Posts educativos sobre medicina estética. Alternar entre datos, testimonios y promos."></textarea>
+      </div>
+      <button class="st-btn st-btn-c" onclick="stProcesarLote()">🤖 Generar copys y programar todo</button>
+      <div id="as-batch-progress" style="margin-top:8px"></div>
     </div>
   </div>
 
@@ -749,8 +816,225 @@ function stUpdateContent(id,estado){
   },function(){alert('✅ '+estado);stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'))});
 }
 
+/* ═══ ASSETS — SUBIDA DE IMÁGENES ═══ */
+var STORAGE_URL=SB_URL+'/storage/v1/object';
+var ASSETS_BUCKET='studio-assets';
+ST.assets=[];ST.selectedAsset=null;ST.selectedBatch=[];
+
+function stUploadImages(files){
+  if(!files||!files.length)return;
+  $('as-loading').style.display='block';$('as-empty').style.display='none';
+  var total=files.length;var done=0;var uploaded=[];
+  
+  Array.from(files).forEach(function(file){
+    var ext=file.name.split('.').pop().toLowerCase();
+    var fname='img_'+Date.now()+'_'+Math.random().toString(36).substring(2,8)+'.'+ext;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var base64=e.target.result.split(',')[1];
+      var binary=atob(base64);var bytes=new Uint8Array(binary.length);
+      for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+      
+      fetch(STORAGE_URL+'/'+ASSETS_BUCKET+'/'+fname,{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type,'x-upsert':'true'},
+        body:bytes
+      }).then(function(r){return r.json()}).then(function(data){
+        var publicUrl=SB_URL+'/storage/v1/object/public/'+ASSETS_BUCKET+'/'+fname;
+        /* Guardar en tabla de assets */
+        sbPost('aos_studio_assets',{tipo:'DISEÑO_PREVIO',nombre:file.name,url:publicUrl,tags:['uploaded']},function(){
+          uploaded.push({nombre:file.name,url:publicUrl});
+          done++;
+          if(done===total){$('as-loading').style.display='none';stLoadAssets();alert('✅ '+total+' imagen(es) subida(s)');}
+        });
+      }).catch(function(){done++;if(done===total){$('as-loading').style.display='none';stLoadAssets();}});
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function stLoadAssets(){
+  sbGet('aos_studio_assets','order=created_at.desc&limit=50',function(rows){
+    ST.assets=rows||[];
+    if(!ST.assets.length){$('as-grid').innerHTML='';$('as-empty').style.display='block';return;}
+    $('as-empty').style.display='none';
+    var h='';ST.assets.forEach(function(a,i){
+      var isSel=ST.selectedBatch.indexOf(a.id)>=0;
+      h+='<div style="position:relative;border-radius:8px;overflow:hidden;border:2px solid '+(isSel?'var(--cyan)':'transparent')+';cursor:pointer;aspect-ratio:4/5;background:#1E293B" onclick="stSelectAsset(\''+a.id+'\',event)">';
+      h+='<img src="'+H(a.url)+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display=\'none\'">';
+      if(isSel){h+='<div style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800">✓</div>';}
+      h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:3px 6px;font-size:7px;color:#fff;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">'+H(a.nombre||'')+'</div>';
+      h+='</div>';
+    });
+    $('as-grid').innerHTML=h;
+    /* Cargar categorías en selectores de assets */
+    if(!ST.cats.length){
+      sbGet('aos_catalogo_categorias','tipo=eq.SERVICIO&order=nombre',function(c){
+        ST.cats=c||[];stFillAssetCats();
+      });
+    }else{stFillAssetCats();}
+  });
+}
+function stFillAssetCats(){
+  ['as-cat','as-batch-cat'].forEach(function(id){
+    var sel=$(id);if(!sel)return;
+    sel.innerHTML='<option value="">— Auto-detectar —</option>';
+    ST.cats.forEach(function(c){sel.innerHTML+='<option value="'+H(c.nombre)+'">'+H(c.nombre)+'</option>'});
+  });
+}
+
+function stSelectAsset(id,ev){
+  if(ev&&(ev.ctrlKey||ev.metaKey||ev.shiftKey)){
+    /* Multi-select */
+    var idx=ST.selectedBatch.indexOf(id);
+    if(idx>=0)ST.selectedBatch.splice(idx,1);else ST.selectedBatch.push(id);
+    $('as-batch').style.display=ST.selectedBatch.length>1?'block':'none';
+    $('as-action').style.display=ST.selectedBatch.length===1?'block':'none';
+    if(ST.selectedBatch.length>1){$('as-batch').querySelector('.st-sec').textContent='📦 Programar lote ('+ST.selectedBatch.length+' imágenes seleccionadas)'}
+    stLoadAssets();return;
+  }
+  /* Single select */
+  ST.selectedBatch=[id];
+  var asset=ST.assets.find(function(a){return a.id===id});
+  if(!asset)return;ST.selectedAsset=asset;
+  $('as-action').style.display='block';$('as-batch').style.display='none';
+  $('as-sel-preview').innerHTML='<img src="'+H(asset.url)+'" style="width:100%;height:100%;object-fit:cover">';
+  $('as-copy-result').style.display='none';
+  stLoadAssets();
+}
+
+/* ═══ GENERAR COPY PARA IMAGEN ═══ */
+function stGenerarCopyParaImagen(){
+  var asset=ST.selectedAsset;if(!asset)return;
+  var cat=($('as-cat')||{}).value;
+  var desc=($('as-desc')||{}).value;
+  
+  $('as-copy-result').style.display='block';
+  $('as-copy-text').value='🤖 Generando copy...';
+  
+  /* Cargar FAQs si hay categoría */
+  var faqPromise=cat?new Promise(function(resolve){rpc('aos_studio_faqs_categoria',{p_categoria:cat},resolve)}):Promise.resolve([]);
+  
+  faqPromise.then(function(faqs){
+    var faqText=(faqs||[]).slice(0,5).map(function(f){return 'P: '+f.q+'\nR: '+(f.a||'').substring(0,100)}).join('\n');
+    
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        system:'Eres el copywriter de Zi Vital, clínica de medicina estética en Lima. Tono: profesional, cercano, educativo. Generas captions de Instagram que enganchan: hook en primera línea, valor en el desarrollo, CTA al final. Siempre incluye hashtags relevantes. NUNCA inventes datos médicos.',
+        messages:[{role:'user',content:'Genera un caption de Instagram para esta imagen.\n\nDescripción de la imagen: '+(desc||'Imagen de contenido de medicina estética para clínica')+'\nCategoría: '+(cat||'medicina estética general')+'\n'+(faqText?'FAQs del repositorio para basar el contenido:\n'+faqText:'')+ '\n\nGenera el caption completo con emojis, saltos de línea, hashtags. Solo texto, sin JSON.'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      $('as-copy-text').value=text||'Error al generar. Escribe tu copy manualmente.';
+    }).catch(function(){
+      /* Fallback local */
+      var faq=(faqs||[])[0]||{q:'',a:''};
+      $('as-copy-text').value='✨ '+(desc||cat||'Descubre nuestros tratamientos')+'\n\n'+(faq.a?faq.a.substring(0,200)+'\n\n':'')+'📍 Agenda tu consulta gratuita\n📲 Link en bio\n\n#ZiVital #MedicinaEstetica #BellezaNatural #Lima #SanIsidro';
+    });
+  });
+}
+
+/* ═══ APROBAR Y PROGRAMAR ═══ */
+function stAprobarYProgramar(){
+  var asset=ST.selectedAsset;if(!asset)return;
+  var copy=($('as-copy-text')||{}).value||'';
+  var cat=($('as-cat')||{}).value||null;
+  var fecha=($('as-fecha')||{}).value;
+  var plats=[];document.querySelectorAll('#as-plats input:checked').forEach(function(c){plats.push(c.value)});
+  
+  sbPost('aos_studio_contenido',{
+    tipo_contenido:'POST',titulo:(copy.split('\n')[0]||'').substring(0,50),
+    copy_principal:copy,categoria_tratamiento:cat,
+    imagen_url:asset.url,asset_ids:[asset.id],
+    plataformas:plats,estado:fecha?'PROGRAMADO':'APROBADO',
+    fecha_programada:fecha?new Date(fecha).toISOString():null,
+    fuente:'MANUAL'
+  },function(d){
+    if(d&&d[0]){alert('✅ '+(fecha?'Programado para '+new Date(fecha).toLocaleDateString('es-PE'):'Aprobado y guardado'));
+      ST.selectedAsset=null;ST.selectedBatch=[];$('as-action').style.display='none';$('as-copy-result').style.display='none';
+    }
+  });
+}
+
+function stProgramarDirecto(){
+  var asset=ST.selectedAsset;if(!asset)return;
+  var fecha=($('as-fecha')||{}).value;
+  if(!fecha){alert('Selecciona fecha y hora para programar');return}
+  var plats=[];document.querySelectorAll('#as-plats input:checked').forEach(function(c){plats.push(c.value)});
+  sbPost('aos_studio_contenido',{
+    tipo_contenido:'POST',titulo:asset.nombre||'Imagen',
+    imagen_url:asset.url,asset_ids:[asset.id],
+    plataformas:plats,estado:'PROGRAMADO',
+    fecha_programada:new Date(fecha).toISOString(),fuente:'MANUAL'
+  },function(d){if(d&&d[0]){alert('📅 Programado');ST.selectedAsset=null;$('as-action').style.display='none';}});
+}
+
+/* ═══ LOTE — PROGRAMAR MÚLTIPLES IMÁGENES ═══ */
+function stProcesarLote(){
+  if(ST.selectedBatch.length<2){alert('Selecciona al menos 2 imágenes (Ctrl+click)');return}
+  var cat=($('as-batch-cat')||{}).value||'';
+  var startDate=$('as-batch-start').value;
+  if(!startDate){alert('Selecciona fecha de inicio');return}
+  var freq=$('as-batch-freq').value;
+  var desc=($('as-batch-desc')||{}).value;
+  
+  var assets=ST.selectedBatch.map(function(id){return ST.assets.find(function(a){return a.id===id})}).filter(Boolean);
+  var dates=generateScheduleDates(new Date(startDate),assets.length,freq);
+  
+  $('as-batch-progress').innerHTML='<div style="font-size:10px;color:var(--label)">🤖 Procesando '+assets.length+' imágenes...</div>';
+  
+  var processed=0;
+  assets.forEach(function(asset,i){
+    var fecha=dates[i];
+    /* Generar copy para cada una con AI */
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+        system:'Copywriter de Zi Vital (clínica estética Lima). Caption de Instagram. Hook+valor+CTA+hashtags. Sin JSON. Directo el texto.',
+        messages:[{role:'user',content:'Caption para post #'+(i+1)+' de '+assets.length+'.\nCategoría: '+(cat||'medicina estética')+'.\nInstrucciones: '+(desc||'Post educativo y atractivo')+'.\nGenera caption breve y potente.'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      return text||'✨ Descubre lo mejor de la medicina estética\n\n📍 @zivital\n#ZiVital #MedicinaEstetica #Lima';
+    }).catch(function(){return '✨ Contenido de Zi Vital\n\n📍 Agenda tu consulta\n#ZiVital #MedicinaEstetica'}).then(function(copy){
+      sbPost('aos_studio_contenido',{
+        tipo_contenido:'POST',titulo:(copy.split('\n')[0]||'').substring(0,50),
+        copy_principal:copy,categoria_tratamiento:cat||null,
+        imagen_url:asset.url,asset_ids:[asset.id],
+        plataformas:['instagram','facebook'],estado:'PROGRAMADO',
+        fecha_programada:fecha.toISOString(),fuente:'AGENTE_INVESTIGADOR'
+      },function(){
+        processed++;
+        $('as-batch-progress').innerHTML='<div style="font-size:10px;color:var(--green)">✅ '+processed+'/'+assets.length+' procesados</div>';
+        if(processed===assets.length){
+          $('as-batch-progress').innerHTML='<div style="font-size:10px;color:var(--green);font-weight:700">✅ ¡Lote completo! '+assets.length+' posts programados desde '+new Date(startDate).toLocaleDateString('es-PE')+'</div><button class="st-btn st-btn-s" style="margin-top:4px" onclick="stTab(\'calendario\',document.querySelector(\'.st-nav button:nth-child(4)\'))">📅 Ver en calendario</button>';
+          ST.selectedBatch=[];$('as-batch').style.display='none';stLoadAssets();
+        }
+      });
+    });
+  });
+}
+
+function generateScheduleDates(start,count,freq){
+  var dates=[];var d=new Date(start);
+  for(var i=0;i<count;i++){
+    if(freq==='1'){/* diario */dates.push(new Date(d));d.setDate(d.getDate()+1);}
+    else if(freq==='2'){/* 2/día */var h=i%2===0?10:15;var dd=new Date(d);dd.setHours(h,0,0);dates.push(dd);if(i%2===1)d.setDate(d.getDate()+1);}
+    else if(freq==='3'){/* L-Mi-V */var dow=d.getDay();while(dow!==1&&dow!==3&&dow!==5){d.setDate(d.getDate()+1);dow=d.getDay();}d.setHours(10,0,0);dates.push(new Date(d));d.setDate(d.getDate()+1);}
+    else if(freq==='4'){/* día de por medio */dates.push(new Date(d));d.setDate(d.getDate()+2);}
+  }
+  return dates;
+}
+
 /* ═══ INIT ═══ */
 stLoadDashboard();
+/* Cargar assets al abrir tab */
+var origTab=stTab;
+stTab=function(name,btn){
+  origTab(name,btn);
+  if(name==='assets')stLoadAssets();
+}
 </script>
 </body>
 </html>
