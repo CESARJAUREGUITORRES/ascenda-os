@@ -440,7 +440,7 @@ var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', est
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260502.10;
+var _APP_VERSION = 20260502.11;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -661,6 +661,7 @@ var SIDEBAR_ADMIN = [
   {type:'item',id:'admin-import-ventas',ico:'plus',      lbl:'Importar', action:'importVentas'},
   {type:'item',id:'admin-team',         ico:'users',     lbl:'Equipo'},
   {type:'item',id:'admin-catalogo',     ico:'book-open', lbl:'Catálogo Admin'},
+  {type:'item',id:'admin-inventario',   ico:'package',   lbl:'Inventario Admin'},
   {type:'item',id:'admin-config',       ico:'settings',  lbl:'Configuracion'},
   {type:'sep',bot:true},
   {type:'item',id:'__logout',           ico:'logout',    lbl:'Salir',        danger:true}
@@ -773,6 +774,7 @@ var VIEW_MAP = {
   'admin-billing':       'ViewAdminBilling',
   'admin-team':          'ViewAdminTeam',
   'admin-catalogo':      'ViewAdminCatalogo',
+  'admin-inventario':    'ViewAdminInventario',
   'admin-config':        'ViewAdminConfig',
   'admin-chats':         'ViewAdminChats',
 };
@@ -815,6 +817,7 @@ function navigateTo(viewId) {
     'ViewAdminComisiones':    '/admin-comisiones.html',
     'ViewAdminTeam':          '/admin-team.html',
     'ViewAdminCatalogo':      '/admin-catalogo.html',
+    'ViewAdminInventario':    '/inventario.html',
     'ViewAdminMarketing':     '/admin-marketing.html',
     'ViewAdminEmail':         '/admin-email.html',
     'ViewAdminCaja':          '/caja.html',
