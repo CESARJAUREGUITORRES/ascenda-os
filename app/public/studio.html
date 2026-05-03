@@ -91,7 +91,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="st-card"><div class="st-sec">📊 Estado del Studio</div><div id="st-dash-kpis">Cargando...</div></div>
     <div class="st-card"><div class="st-sec">⚡ Acciones rápidas</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="st-btn st-btn-c" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear contenido</button>
+        <button class="st-btn st-btn-c" onclick="window.open('/studio-creator.html','_blank')">🎨 Abrir Creator</button>
+        <button class="st-btn st-btn-c" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear con AI</button>
         <button class="st-btn st-btn-p" onclick="stTab('brief',document.querySelector('.st-nav button:nth-child(8)'))">🤖 Generar brief semanal</button>
         <button class="st-btn st-btn-s" onclick="stTab('calendario',document.querySelector('.st-nav button:nth-child(4)'))">📅 Ver calendario</button>
         <button class="st-btn st-btn-g" onclick="stTab('templates',document.querySelector('.st-nav button:nth-child(5)'))">🎯 Usar template</button>

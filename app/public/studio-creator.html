@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0D0D12;--card:#18181F;--card2:#1E1E28;--border:#2A2A3A;--text:#E8E8F0;--label:#8888A8;--blue:#0A4FBF;--cyan:#00C9A7;--mint:#00E5A0;--purple:#7C3AED;--orange:#F59E0B;--red:#EF4444;--green:#10B981}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden;height:100vh}
+/* ═══ LAYOUT ═══ */
+.cr-app{display:grid;grid-template-rows:48px 1fr;grid-template-columns:260px 1fr 240px;height:100vh}
+.cr-topbar{grid-column:1/-1;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
+.cr-topbar h1{font-family:'Exo 2',sans-serif;font-weight:900;font-size:15px;display:flex;align-items:center;gap:6px;color:var(--cyan)}
+.cr-sidebar{background:var(--card);border-right:1px solid var(--border);overflow-y:auto;padding:12px}
+.cr-canvas-area{background:#111118;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.cr-props{background:var(--card);border-left:1px solid var(--border);overflow-y:auto;padding:12px}
+/* ═══ BUTTONS ═══ */
+.cr-btn{padding:6px 12px;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:10px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.cr-btn-p{background:var(--cyan);color:var(--bg)}.cr-btn-p:hover{background:var(--mint)}
+.cr-btn-s{background:var(--card2);color:var(--text);border:1px solid var(--border)}.cr-btn-s:hover{background:var(--border)}
+.cr-btn-d{background:var(--purple);color:#fff}.cr-btn-d:hover{opacity:.9}
+/* ═══ SIDEBAR ═══ */
+.cr-sec{font-family:'Exo 2',sans-serif;font-weight:800;font-size:10px;color:var(--label);text-transform:uppercase;letter-spacing:.8px;margin:12px 0 6px}
+.cr-template-card{background:var(--card2);border:1.5px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.cr-template-card:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.cr-template-card.sel{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,201,167,.2)}
+.cr-template-card .name{font-weight:700;font-size:11px;margin-bottom:2px}
+.cr-template-card .desc{font-size:8px;color:var(--label)}
+/* Slide thumbnails */
+.cr-slides{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.cr-slide-thumb{background:var(--card2);border:1.5px solid var(--border);border-radius:6px;padding:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:9px;transition:all .15s}
+.cr-slide-thumb:hover{border-color:var(--cyan)}
+.cr-slide-thumb.sel{border-color:var(--cyan);background:rgba(0,201,167,.08)}
+.cr-slide-thumb .num{font-weight:800;color:var(--cyan);font-family:'Exo 2',sans-serif;min-width:16px}
+.cr-slide-thumb .title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ═══ CANVAS ═══ */
+.cr-canvas-wrap{position:relative}
+.cr-canvas-frame{border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+/* ═══ PROPERTIES ═══ */
+.cr-fg{margin-bottom:8px}
+.cr-fl{font-size:8px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.cr-inp{width:100%;padding:6px 8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px}
+.cr-inp:focus{border-color:var(--cyan);outline:none}
+.cr-ta{min-height:50px;resize:vertical}
+.cr-color-row{display:flex;gap:4px;flex-wrap:wrap}
+.cr-color-swatch{width:28px;height:28px;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:all .1s}
+.cr-color-swatch:hover,.cr-color-swatch.sel{border-color:var(--cyan);transform:scale(1.1)}
+.cr-font-opt{padding:3px 8px;border:1px solid var(--border);border-radius:4px;font-size:9px;cursor:pointer;background:var(--card2)}
+.cr-font-opt:hover,.cr-font-opt.sel{border-color:var(--cyan);color:var(--cyan)}
+/* ═══ TOPBAR ACTIONS ═══ */
+.cr-format-pills{display:flex;gap:3px}
+.cr-format-pill{padding:4px 10px;border:1px solid var(--border);border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;background:transparent;color:var(--label)}
+.cr-format-pill.sel{border-color:var(--cyan);color:var(--cyan);background:rgba(0,201,167,.08)}
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){.cr-app{grid-template-columns:1fr;grid-template-rows:48px auto 1fr auto}.cr-sidebar,.cr-props{max-height:200px}}
+</style>
+</head>
+<body>
+<div class="cr-app">
+  <!-- TOPBAR -->
+  <div class="cr-topbar">
+    <h1>🎨 Studio Creator</h1>
+    <div class="cr-format-pills">
+      <div class="cr-format-pill sel" onclick="crSetFormat('1080x1350',this)">4:5 Post</div>
+      <div class="cr-format-pill" onclick="crSetFormat('1080x1080',this)">1:1 Feed</div>
+      <div class="cr-format-pill" onclick="crSetFormat('1080x1920',this)">9:16 Story</div>
+      <div class="cr-format-pill" onclick="crSetFormat('1200x628',this)">FB Cover</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="cr-btn cr-btn-s" onclick="crAIGenerate()">🤖 AI</button>
+      <button class="cr-btn cr-btn-d" onclick="crExportPNG()">📥 Exportar PNG</button>
+      <button class="cr-btn cr-btn-p" onclick="crSaveToStudio()">💾 Guardar</button>
+    </div>
+  </div>
+  
+  <!-- SIDEBAR -->
+  <div class="cr-sidebar">
+    <div class="cr-sec">Templates</div>
+    <div id="cr-templates"></div>
+    <div class="cr-sec">Slides</div>
+    <div id="cr-slide-list" class="cr-slides"></div>
+    <div style="display:flex;gap:4px;margin-top:6px">
+      <button class="cr-btn cr-btn-s" style="flex:1" onclick="crAddSlide()">+ Slide</button>
+      <button class="cr-btn cr-btn-s" onclick="crDupSlide()">📋</button>
+      <button class="cr-btn cr-btn-s" style="color:var(--red)" onclick="crDelSlide()">🗑</button>
+    </div>
+  </div>
+  
+  <!-- CANVAS -->
+  <div class="cr-canvas-area">
+    <div class="cr-canvas-wrap">
+      <div id="cr-canvas" class="cr-canvas-frame"></div>
+    </div>
+  </div>
+  
+  <!-- PROPERTIES -->
+  <div class="cr-props">
+    <div class="cr-sec">Contenido</div>
+    <div class="cr-fg"><div class="cr-fl">Título</div><textarea class="cr-inp cr-ta" id="pr-titulo" oninput="crUpdateSlide()" style="font-size:13px;font-weight:700;min-height:40px"></textarea></div>
+    <div class="cr-fg"><div class="cr-fl">Subtítulo</div><textarea class="cr-inp cr-ta" id="pr-sub" oninput="crUpdateSlide()" style="min-height:30px"></textarea></div>
+    <div class="cr-fg"><div class="cr-fl">Acento / CTA</div><input class="cr-inp" id="pr-cta" oninput="crUpdateSlide()" placeholder="Ej: Agenda tu cita"></div>
+    
+    <div class="cr-sec">Fondo</div>
+    <div class="cr-color-row" id="pr-colors"></div>
+    <div class="cr-fg" style="margin-top:6px"><div class="cr-fl">Color custom</div><input type="color" class="cr-inp" id="pr-bg-custom" oninput="crSetBg(this.value)" style="height:32px;padding:2px"></div>
+    <div class="cr-fg"><div class="cr-fl">Gradiente</div>
+      <select class="cr-inp" id="pr-gradient" onchange="crSetGradient(this.value)">
+        <option value="">Sólido</option>
+        <option value="135">↘ Diagonal</option>
+        <option value="180">↓ Vertical</option>
+        <option value="90">→ Horizontal</option>
+        <option value="0">↑ Arriba</option>
+      </select>
+    </div>
+    <div class="cr-fg"><div class="cr-fl">Color gradiente 2</div><input type="color" class="cr-inp" id="pr-bg2" value="#0A4FBF" oninput="crUpdateSlide()" style="height:32px;padding:2px"></div>
+    
+    <div class="cr-sec">Tipografía</div>
+    <div class="cr-fg"><div class="cr-fl">Fuente título</div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">
+        <span class="cr-font-opt sel" onclick="crSetFont('titulo','Exo 2',this)" style="font-family:Exo 2">Exo 2</span>
+        <span class="cr-font-opt" onclick="crSetFont('titulo','Playfair Display',this)" style="font-family:Playfair Display">Playfair</span>
+        <span class="cr-font-opt" onclick="crSetFont('titulo','Space Grotesk',this)" style="font-family:Space Grotesk">Space</span>
+        <span class="cr-font-opt" onclick="crSetFont('titulo','DM Sans',this)" style="font-family:DM Sans">DM Sans</span>
+      </div>
+    </div>
+    <div class="cr-fg"><div class="cr-fl">Tamaño título</div><input type="range" id="pr-fsize" min="16" max="56" value="32" oninput="crUpdateSlide()" style="width:100%"></div>
+    <div class="cr-fg"><div class="cr-fl">Color texto</div>
+      <div style="display:flex;gap:4px">
+        <div class="cr-color-swatch sel" style="background:#fff" onclick="crSetTextColor('#FFFFFF',this)"></div>
+        <div class="cr-color-swatch" style="background:#071D4A" onclick="crSetTextColor('#071D4A',this)"></div>
+        <div class="cr-color-swatch" style="background:#00C9A7" onclick="crSetTextColor('#00C9A7',this)"></div>
+        <div class="cr-color-swatch" style="background:#F59E0B" onclick="crSetTextColor('#F59E0B',this)"></div>
+      </div>
+    </div>
+    
+    <div class="cr-sec">Decoración</div>
+    <div class="cr-fg"><div class="cr-fl">Forma decorativa</div>
+      <select class="cr-inp" id="pr-deco" onchange="crUpdateSlide()">
+        <option value="none">Ninguna</option>
+        <option value="circle">Círculo</option>
+        <option value="blob">Blob</option>
+        <option value="corner">Esquina</option>
+        <option value="stripe">Franja</option>
+        <option value="dots">Puntos</option>
+      </select>
+    </div>
+    <div class="cr-fg"><label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer"><input type="checkbox" id="pr-logo" checked onchange="crUpdateSlide()"> Mostrar logo/marca</label></div>
+    <div class="cr-fg"><label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer"><input type="checkbox" id="pr-number" checked onchange="crUpdateSlide()"> Número de slide</label></div>
+  </div>
+</div>
+
+<script>
+var SB_URL='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+var CR={
+  format:{w:1080,h:1350},
+  slides:[],
+  sel:0,
+  brand:{nombre:'Zi Vital',c1:'#071D4A',c2:'#0A4FBF',c3:'#00C9A7',c4:'#F0F4FC',font:'Exo 2'}
+};
+
+function $(id){return document.getElementById(id)}
+function H(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+/* ═══ INIT ═══ */
+function crInit(){
+  /* Load brand */
+  fetch(SB_URL+'/rest/v1/aos_studio_brand?limit=1',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json()}).then(function(b){
+    if(b&&b[0]){CR.brand={nombre:b[0].nombre_marca||'Zi Vital',c1:b[0].color_primario||'#071D4A',c2:b[0].color_secundario||'#0A4FBF',c3:b[0].color_acento||'#00C9A7',c4:b[0].color_fondo||'#F0F4FC',font:b[0].fuente_titulo||'Exo 2'};}
+    crBuildPalette();crLoadTemplates();crNewProject();
+  });
+}
+
+function crBuildPalette(){
+  var colors=[CR.brand.c1,CR.brand.c2,CR.brand.c3,'#1E1E2E','#FFFFFF','#F43F5E','#8B5CF6','#F59E0B','#10B981','#EC4899'];
+  var h='';colors.forEach(function(c){h+='<div class="cr-color-swatch" style="background:'+c+'" onclick="crSetBg(\''+c+'\',this)"></div>'});
+  $('pr-colors').innerHTML=h;
+}
+
+/* ═══ TEMPLATES ═══ */
+var TEMPLATES=[
+  {id:'faq',name:'❓ FAQ Educativa',desc:'Pregunta + respuesta',slides:[
+    {titulo:'¿Sabías que...?',sub:'Desliza para descubrir',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'circle',logo:true,num:true},
+    {titulo:'La respuesta es...',sub:'Dato científico respaldado',cta:'',bg:null,bg2:'#0A4FBF',grad:'135',font:'Exo 2',fsize:28,textColor:'#fff',deco:'none',logo:true,num:true},
+    {titulo:'¿Quieres saber más?',sub:'Agenda tu consulta gratuita',cta:'📲 Link en bio',bg:null,bg2:null,grad:'',font:'Exo 2',fsize:32,textColor:'#fff',deco:'corner',logo:true,num:true}
+  ]},
+  {id:'mito',name:'❌ Mito vs Realidad',desc:'Desmiente creencias falsas',slides:[
+    {titulo:'MITO vs REALIDAD',sub:'Sobre [tratamiento]',cta:'Desliza →',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'stripe',logo:true,num:true},
+    {titulo:'❌ MITO',sub:'"Creencia popular equivocada"',cta:'',bg:'#DC2626',bg2:'#991B1B',grad:'180',font:'Exo 2',fsize:28,textColor:'#fff',deco:'none',logo:true,num:true},
+    {titulo:'✅ REALIDAD',sub:'La verdad respaldada por ciencia',cta:'',bg:'#059669',bg2:'#047857',grad:'180',font:'Exo 2',fsize:28,textColor:'#fff',deco:'none',logo:true,num:true},
+    {titulo:'¿Dudas?',sub:'Consulta con nuestras especialistas',cta:'📍 Agenda gratis',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:32,textColor:'#fff',deco:'blob',logo:true,num:true}
+  ]},
+  {id:'tips',name:'💡 Tips / Consejos',desc:'Lista de consejos prácticos',slides:[
+    {titulo:'5 TIPS',sub:'Para [resultado deseado]',cta:'Guarda este post 📌',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'dots',logo:true,num:true},
+    {titulo:'1. Primer consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true},
+    {titulo:'2. Segundo consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true},
+    {titulo:'3. Tercer consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true}
+  ]},
+  {id:'promo',name:'🔥 Promoción',desc:'Oferta con urgencia',slides:[
+    {titulo:'🔥 PROMO MAYO',sub:'Solo por tiempo limitado',cta:'',bg:'#DC2626',bg2:'#991B1B',grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'stripe',logo:true,num:false},
+    {titulo:'TRATAMIENTO',sub:'Antes: S/XXX\nAhora: S/YYY',cta:'⏰ Hasta agotar stock',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:32,textColor:'#fff',deco:'corner',logo:true,num:false}
+  ]},
+  {id:'single',name:'📷 Post Individual',desc:'Una sola imagen',slides:[
+    {titulo:'Tu mensaje aquí',sub:'Subtítulo descriptivo',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'blob',logo:true,num:false}
+  ]},
+  {id:'antes',name:'✨ Antes / Después',desc:'Transformación',slides:[
+    {titulo:'TRANSFORMACIÓN',sub:'Resultado real con [tratamiento]',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'stripe',logo:true,num:false},
+    {titulo:'ANTES',sub:'Estado inicial del paciente',cta:'',bg:'#374151',bg2:'#1F2937',grad:'180',font:'Exo 2',fsize:40,textColor:'#fff',deco:'none',logo:false,num:false},
+    {titulo:'DESPUÉS',sub:'Resultado en X sesiones',cta:'📍 ¿Quieres resultados así?',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'corner',logo:true,num:false}
+  ]}
+];
+
+function crLoadTemplates(){
+  var h='';TEMPLATES.forEach(function(t){
+    h+='<div class="cr-template-card" onclick="crApplyTemplate(\''+t.id+'\')">';
+    h+='<div class="name">'+t.name+'</div><div class="desc">'+t.desc+' · '+t.slides.length+' slides</div></div>';
+  });
+  $('cr-templates').innerHTML=h;
+}
+
+function crApplyTemplate(id){
+  var t=TEMPLATES.find(function(x){return x.id===id});
+  if(!t)return;
+  CR.slides=t.slides.map(function(s){return JSON.parse(JSON.stringify(s))});
+  /* Apply brand colors where bg is null */
+  CR.slides.forEach(function(s){if(!s.bg)s.bg=CR.brand.c1;if(!s.bg2)s.bg2=CR.brand.c2;});
+  CR.sel=0;
+  crRenderSlideList();crRenderCanvas();crLoadProps();
+  document.querySelectorAll('.cr-template-card').forEach(function(c){c.classList.remove('sel')});
+  event.target.closest('.cr-template-card').classList.add('sel');
+}
+
+function crNewProject(){
+  CR.slides=[{titulo:'Tu título aquí',sub:'Subtítulo o descripción',cta:'',bg:CR.brand.c1,bg2:CR.brand.c2,grad:'135',font:'Exo 2',fsize:36,textColor:'#FFFFFF',deco:'circle',logo:true,num:false}];
+  CR.sel=0;crRenderSlideList();crRenderCanvas();crLoadProps();
+}
+
+/* ═══ SLIDE LIST ═══ */
+function crRenderSlideList(){
+  var h='';CR.slides.forEach(function(s,i){
+    h+='<div class="cr-slide-thumb'+(i===CR.sel?' sel':'')+'" onclick="crSelSlide('+i+')">';
+    h+='<div class="num">'+(i+1)+'</div>';
+    h+='<div class="title">'+H((s.titulo||'').substring(0,20))+'</div>';
+    h+='<div style="width:18px;height:18px;border-radius:3px;background:'+s.bg+';border:1px solid var(--border);flex-shrink:0"></div>';
+    h+='</div>';
+  });
+  $('cr-slide-list').innerHTML=h;
+}
+
+function crSelSlide(i){CR.sel=i;crRenderSlideList();crRenderCanvas();crLoadProps()}
+function crAddSlide(){
+  var base=CR.slides[CR.sel]||CR.slides[0];
+  var ns=JSON.parse(JSON.stringify(base));
+  ns.titulo='Nuevo slide';ns.sub='Edita este contenido';
+  CR.slides.push(ns);CR.sel=CR.slides.length-1;
+  crRenderSlideList();crRenderCanvas();crLoadProps();
+}
+function crDupSlide(){
+  var dup=JSON.parse(JSON.stringify(CR.slides[CR.sel]));
+  CR.slides.splice(CR.sel+1,0,dup);CR.sel++;
+  crRenderSlideList();crRenderCanvas();crLoadProps();
+}
+function crDelSlide(){
+  if(CR.slides.length<=1)return;
+  CR.slides.splice(CR.sel,1);
+  if(CR.sel>=CR.slides.length)CR.sel=CR.slides.length-1;
+  crRenderSlideList();crRenderCanvas();crLoadProps();
+}
+
+/* ═══ CANVAS RENDER ═══ */
+function crRenderCanvas(){
+  var s=CR.slides[CR.sel];if(!s)return;
+  var scale=Math.min(500/CR.format.w,600/CR.format.h);
+  var w=Math.round(CR.format.w*scale);var h=Math.round(CR.format.h*scale);
+  var fscale=scale;
+  
+  var bg=s.bg||CR.brand.c1;
+  var bg2=s.bg2||CR.brand.c2;
+  var bgStyle=s.grad?'linear-gradient('+s.grad+'deg,'+bg+' 0%,'+bg2+' 100%)':bg;
+  
+  var html='<div style="width:'+w+'px;height:'+h+'px;background:'+bgStyle+';position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:'+(32*fscale)+'px">';
+  
+  /* Decoración */
+  var deco=s.deco||'none';
+  var accentColor=CR.brand.c3;
+  if(deco==='circle'){
+    html+='<div style="position:absolute;top:-'+(60*fscale)+'px;right:-'+(60*fscale)+'px;width:'+(200*fscale)+'px;height:'+(200*fscale)+'px;border-radius:50%;background:'+accentColor+';opacity:.12"></div>';
+    html+='<div style="position:absolute;bottom:-'+(40*fscale)+'px;left:-'+(40*fscale)+'px;width:'+(120*fscale)+'px;height:'+(120*fscale)+'px;border-radius:50%;background:'+accentColor+';opacity:.08"></div>';
+  }else if(deco==='blob'){
+    html+='<div style="position:absolute;top:10%;right:-5%;width:50%;height:60%;background:'+accentColor+';opacity:.1;border-radius:30% 70% 70% 30%/30% 30% 70% 70%"></div>';
+  }else if(deco==='corner'){
+    html+='<div style="position:absolute;top:0;right:0;width:40%;height:35%;background:'+accentColor+';opacity:.15;border-radius:0 0 0 100%"></div>';
+  }else if(deco==='stripe'){
+    html+='<div style="position:absolute;bottom:0;left:0;width:100%;height:'+(8*fscale)+'px;background:'+accentColor+'"></div>';
+    html+='<div style="position:absolute;top:0;left:0;width:'+(4*fscale)+'px;height:100%;background:'+accentColor+';opacity:.3"></div>';
+  }else if(deco==='dots'){
+    for(var di=0;di<12;di++){html+='<div style="position:absolute;top:'+Math.random()*90+'%;left:'+Math.random()*90+'%;width:'+(4+Math.random()*8)*fscale+'px;height:'+(4+Math.random()*8)*fscale+'px;border-radius:50%;background:'+accentColor+';opacity:'+(0.04+Math.random()*0.08)+'"></div>';}
+  }
+  
+  /* Número de slide */
+  if(s.num&&CR.slides.length>1){
+    html+='<div style="position:absolute;top:'+(12*fscale)+'px;left:'+(16*fscale)+'px;font-family:Exo 2;font-weight:900;font-size:'+(12*fscale)+'px;color:'+(s.textColor||'#fff')+';opacity:.3">'+(CR.sel+1)+'/'+CR.slides.length+'</div>';
+  }
+  
+  /* Logo */
+  if(s.logo){
+    html+='<div style="position:absolute;bottom:'+(14*fscale)+'px;right:'+(16*fscale)+'px;font-family:Exo 2;font-weight:900;font-size:'+(11*fscale)+'px;color:'+(s.textColor||'#fff')+';opacity:.4;letter-spacing:.5px">'+H(CR.brand.nombre)+'</div>';
+  }
+  
+  /* Título */
+  var fsize=Math.round((s.fsize||32)*fscale);
+  html+='<div style="font-family:\''+H(s.font||'Exo 2')+'\',sans-serif;font-weight:900;font-size:'+fsize+'px;color:'+(s.textColor||'#fff')+';line-height:1.15;margin-bottom:'+(8*fscale)+'px;position:relative;z-index:1;white-space:pre-line">'+H(s.titulo||'')+'</div>';
+  
+  /* Subtítulo */
+  if(s.sub){
+    html+='<div style="font-family:DM Sans,sans-serif;font-weight:500;font-size:'+Math.round(14*fscale)+'px;color:'+(s.textColor||'#fff')+';opacity:.8;line-height:1.4;position:relative;z-index:1;white-space:pre-line">'+H(s.sub)+'</div>';
+  }
+  
+  /* CTA */
+  if(s.cta){
+    html+='<div style="margin-top:'+(16*fscale)+'px;display:inline-block;padding:'+(8*fscale)+'px '+(16*fscale)+'px;background:'+accentColor+';border-radius:'+(6*fscale)+'px;font-family:DM Sans;font-weight:700;font-size:'+Math.round(12*fscale)+'px;color:'+CR.brand.c1+';position:relative;z-index:1">'+H(s.cta)+'</div>';
+  }
+  
+  html+='</div>';
+  $('cr-canvas').innerHTML=html;
+}
+
+/* ═══ PROPERTIES ═══ */
+function crLoadProps(){
+  var s=CR.slides[CR.sel];if(!s)return;
+  $('pr-titulo').value=s.titulo||'';
+  $('pr-sub').value=s.sub||'';
+  $('pr-cta').value=s.cta||'';
+  $('pr-fsize').value=s.fsize||32;
+  $('pr-bg-custom').value=s.bg||'#071D4A';
+  $('pr-bg2').value=s.bg2||'#0A4FBF';
+  $('pr-gradient').value=s.grad||'';
+  $('pr-deco').value=s.deco||'none';
+  $('pr-logo').checked=s.logo!==false;
+  $('pr-number').checked=s.num!==false;
+}
+
+function crUpdateSlide(){
+  var s=CR.slides[CR.sel];if(!s)return;
+  s.titulo=$('pr-titulo').value;
+  s.sub=$('pr-sub').value;
+  s.cta=$('pr-cta').value;
+  s.fsize=parseInt($('pr-fsize').value)||32;
+  s.grad=$('pr-gradient').value;
+  s.bg2=$('pr-bg2').value;
+  s.deco=$('pr-deco').value;
+  s.logo=$('pr-logo').checked;
+  s.num=$('pr-number').checked;
+  crRenderCanvas();crRenderSlideList();
+}
+
+function crSetBg(color,el){
+  CR.slides[CR.sel].bg=color;
+  if(el){document.querySelectorAll('#pr-colors .cr-color-swatch').forEach(function(s){s.classList.remove('sel')});el.classList.add('sel')}
+  crRenderCanvas();
+}
+function crSetGradient(val){CR.slides[CR.sel].grad=val;crRenderCanvas()}
+function crSetTextColor(color,el){
+  CR.slides[CR.sel].textColor=color;
+  el.parentNode.querySelectorAll('.cr-color-swatch').forEach(function(s){s.classList.remove('sel')});el.classList.add('sel');
+  crRenderCanvas();
+}
+function crSetFont(target,font,el){
+  CR.slides[CR.sel].font=font;
+  el.parentNode.querySelectorAll('.cr-font-opt').forEach(function(s){s.classList.remove('sel')});el.classList.add('sel');
+  crRenderCanvas();
+}
+function crSetFormat(size,el){
+  var parts=size.split('x');CR.format={w:parseInt(parts[0]),h:parseInt(parts[1])};
+  document.querySelectorAll('.cr-format-pill').forEach(function(p){p.classList.remove('sel')});el.classList.add('sel');
+  crRenderCanvas();
+}
+
+/* ═══ EXPORT PNG ═══ */
+function crExportPNG(){
+  /* Use html2canvas approach: create full-res hidden div, render, convert to canvas */
+  var s=CR.slides[CR.sel];if(!s)return;
+  /* For now, open canvas in new window for screenshot */
+  var win=window.open('','_blank','width='+CR.format.w+',height='+CR.format.h);
+  if(!win){alert('Permite popups para exportar');return}
+  /* Render at full resolution */
+  var oldW=CR.format.w;var oldH=CR.format.h;
+  var bg=s.bg||CR.brand.c1;var bg2=s.bg2||CR.brand.c2;
+  var bgStyle=s.grad?'linear-gradient('+s.grad+'deg,'+bg+' 0%,'+bg2+' 100%)':bg;
+  var accentColor=CR.brand.c3;
+  
+  var html='<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}</style></head><body>';
+  html+='<div style="width:'+oldW+'px;height:'+oldH+'px;background:'+bgStyle+';position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:64px">';
+  
+  if(s.deco==='circle'){html+='<div style="position:absolute;top:-120px;right:-120px;width:400px;height:400px;border-radius:50%;background:'+accentColor+';opacity:.12"></div>';}
+  if(s.deco==='corner'){html+='<div style="position:absolute;top:0;right:0;width:40%;height:35%;background:'+accentColor+';opacity:.15;border-radius:0 0 0 100%"></div>';}
+  if(s.deco==='stripe'){html+='<div style="position:absolute;bottom:0;left:0;width:100%;height:16px;background:'+accentColor+'"></div>';}
+  if(s.logo){html+='<div style="position:absolute;bottom:28px;right:32px;font-family:Exo 2;font-weight:900;font-size:22px;color:'+(s.textColor||'#fff')+';opacity:.4">'+H(CR.brand.nombre)+'</div>';}
+  if(s.num&&CR.slides.length>1){html+='<div style="position:absolute;top:24px;left:32px;font-family:Exo 2;font-weight:900;font-size:24px;color:'+(s.textColor||'#fff')+';opacity:.3">'+(CR.sel+1)+'/'+CR.slides.length+'</div>';}
+  
+  html+='<div style="font-family:\''+H(s.font||'Exo 2')+'\';font-weight:900;font-size:'+(s.fsize||32)*2+'px;color:'+(s.textColor||'#fff')+';line-height:1.15;margin-bottom:16px;white-space:pre-line">'+H(s.titulo||'')+'</div>';
+  if(s.sub){html+='<div style="font-family:DM Sans;font-weight:500;font-size:28px;color:'+(s.textColor||'#fff')+';opacity:.8;line-height:1.4;white-space:pre-line">'+H(s.sub)+'</div>';}
+  if(s.cta){html+='<div style="margin-top:32px;display:inline-block;padding:16px 32px;background:'+accentColor+';border-radius:12px;font-family:DM Sans;font-weight:700;font-size:24px;color:'+CR.brand.c1+'">'+H(s.cta)+'</div>';}
+  
+  html+='</div><div style="padding:20px;text-align:center;font-family:DM Sans;font-size:14px;color:#888">Click derecho → Guardar imagen &nbsp;|&nbsp; O usa Cmd/Ctrl+Shift+S</div></body></html>';
+  win.document.write(html);win.document.close();
+}
+
+/* ═══ AI GENERATE ═══ */
+function crAIGenerate(){
+  var cat=prompt('¿Sobre qué tratamiento? (ej: TOXINA, HIFU, CAPILAR)');
+  if(!cat)return;
+  
+  $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:14px"><div style="text-align:center"><div style="font-size:32px;animation:spin 1s linear infinite">🤖</div>Generando con AI...</div></div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
+  
+  fetch(SB_URL+'/rest/v1/rpc/aos_studio_faqs_categoria',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({p_categoria:cat})})
+  .then(function(r){return r.json()}).then(function(faqs){
+    var faqText=(faqs||[]).slice(0,6).map(function(f){return f.q+': '+(f.a||'').substring(0,80)}).join('\n');
+    
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        system:'Genera contenido para carrusel de Instagram de una clínica de medicina estética. Responde SOLO JSON.',
+        messages:[{role:'user',content:'Crea un carrusel de 5 slides sobre '+cat+' basado en estas FAQs reales:\n'+faqText+'\n\nJSON sin markdown:\n{"slides":[{"titulo":"texto grande","sub":"texto pequeño"}]}'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      try{
+        var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+        var colors=[CR.brand.c1,CR.brand.c2,'#1E293B',CR.brand.c1,CR.brand.c3];
+        CR.slides=parsed.slides.map(function(s,i){return{titulo:s.titulo||'',sub:s.sub||'',cta:i===parsed.slides.length-1?'📍 Agenda tu consulta':'',bg:colors[i%colors.length],bg2:CR.brand.c2,grad:'135',font:'Exo 2',fsize:i===0?40:28,textColor:'#fff',deco:i===0?'stripe':'circle',logo:true,num:true}});
+        CR.sel=0;crRenderSlideList();crRenderCanvas();crLoadProps();
+      }catch(e){alert('Error al parsear AI. Intenta de nuevo.');crRenderCanvas();}
+    }).catch(function(){
+      /* Fallback local */
+      var localFaqs=(faqs||[]).slice(0,4);
+      CR.slides=[{titulo:'Lo que debes saber sobre\n'+cat,sub:'Desliza →',cta:'',bg:CR.brand.c1,bg2:CR.brand.c2,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'stripe',logo:true,num:true}];
+      localFaqs.forEach(function(f){CR.slides.push({titulo:f.q||'',sub:(f.a||'').substring(0,100),cta:'',bg:CR.brand.c2,bg2:CR.brand.c1,grad:'180',font:'DM Sans',fsize:24,textColor:'#fff',deco:'circle',logo:true,num:true})});
+      CR.slides.push({titulo:'¿Más dudas?',sub:'Consulta gratuita con nuestras especialistas',cta:'📲 Link en bio',bg:CR.brand.c3,bg2:CR.brand.c1,grad:'135',font:'Exo 2',fsize:32,textColor:'#fff',deco:'corner',logo:true,num:true});
+      CR.sel=0;crRenderSlideList();crRenderCanvas();crLoadProps();
+    });
+  });
+}
+
+/* ═══ SAVE TO STUDIO ═══ */
+function crSaveToStudio(){
+  var body={
+    tipo_contenido:CR.slides.length>1?'CARRUSEL':'POST',
+    titulo:CR.slides[0].titulo||'Sin título',
+    copy_principal:'Carrusel de '+CR.slides.length+' slides',
+    slides:CR.slides,
+    estado:'BORRADOR',
+    fuente:'MANUAL',
+    plataformas:['instagram']
+  };
+  fetch(SB_URL+'/rest/v1/aos_studio_contenido',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(function(d){
+    if(d&&d[0])alert('✅ Guardado en Studio');
+  });
+}
+
+crInit();
+</script>
+</body>
+</html>
