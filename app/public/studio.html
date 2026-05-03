@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ascenda Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F0F4FC;--card:#fff;--blue-d:#071D4A;--blue:#0A4FBF;--cyan:#00C9A7;--mint:#00E5A0;--border:#E2E8F0;--label:#6B7BA8;--text:#1E293B;--green:#059669;--orange:#D97706;--red:#DC2626;--purple:#7C3AED;--blue-xl:#EBF2FF;--green-xl:#ECFDF5;--purple-xl:#F5F3FF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+.st-header{background:linear-gradient(135deg,var(--blue-d) 0%,var(--blue) 50%,var(--cyan) 100%);padding:16px 20px;color:#fff;position:sticky;top:0;z-index:100}
+.st-header h1{font-family:'Exo 2',sans-serif;font-weight:900;font-size:18px;display:flex;align-items:center;gap:8px}
+.st-header h1 span{font-size:22px}
+.st-header .st-sub{font-size:10px;opacity:.7;margin-top:2px;font-weight:500}
+.st-nav{display:flex;gap:3px;margin-top:10px;overflow-x:auto;padding-bottom:4px}
+.st-nav button{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 14px;border-radius:20px;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s}
+.st-nav button.act{background:#fff;color:var(--blue-d)}
+.st-nav button:hover:not(.act){background:rgba(255,255,255,.25)}
+.st-body{padding:12px;max-width:900px;margin:0 auto}
+.st-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.st-sec{font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;color:var(--blue-d);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.st-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.st-kpi{text-align:center;padding:10px 6px;background:var(--blue-xl);border-radius:10px;border:1px solid var(--border)}
+.st-kpi .n{font-family:'Exo 2',sans-serif;font-weight:900;font-size:20px;color:var(--blue)}
+.st-kpi .l{font-size:7px;font-weight:700;color:var(--label);text-transform:uppercase;margin-top:2px;letter-spacing:.3px}
+.st-btn{padding:8px 16px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.st-btn-p{background:var(--blue);color:#fff}.st-btn-p:hover{background:var(--blue-d)}
+.st-btn-s{background:var(--blue-xl);color:var(--blue)}.st-btn-s:hover{background:#D6E4FF}
+.st-btn-g{background:var(--green-xl);color:var(--green)}.st-btn-g:hover{background:#D1FAE5}
+.st-btn-c{background:linear-gradient(135deg,var(--cyan),var(--mint));color:var(--blue-d)}.st-btn-c:hover{opacity:.9}
+.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.st-fg{margin-bottom:8px}
+.st-fl{font-size:9px;font-weight:700;color:var(--label);text-transform:uppercase;margin-bottom:3px;letter-spacing:.3px}
+.st-inp{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;transition:border .15s;background:#FAFBFF}
+.st-inp:focus{border-color:var(--blue);outline:none;background:#fff}
+.st-ta{min-height:60px;resize:vertical}
+.st-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:8px;font-weight:700}
+.st-pill-idea{background:#FEF3C7;color:#92400E}
+.st-pill-borrador{background:#E0E7FF;color:#3730A3}
+.st-pill-aprobado{background:var(--green-xl);color:var(--green)}
+.st-pill-programado{background:var(--purple-xl);color:var(--purple)}
+.st-pill-publicado{background:#D1FAE5;color:#065F46}
+.st-content-card{padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all .15s;cursor:pointer}
+.st-content-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(10,79,191,.1)}
+.st-content-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.st-content-title{font-weight:700;font-size:12px;color:var(--blue-d)}
+.st-content-meta{font-size:8px;color:var(--label);display:flex;gap:6px;align-items:center;margin-top:3px}
+.st-content-preview{font-size:10px;color:var(--text);line-height:1.4;margin-top:4px;max-height:40px;overflow:hidden}
+.st-tab-content{display:none}
+.st-tab-content.act{display:block}
+.st-empty{text-align:center;padding:30px;color:var(--label);font-size:11px}
+.st-empty .icon{font-size:32px;margin-bottom:8px}
+.st-template-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.st-template-card{padding:8px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+.st-template-card:hover{border-color:var(--cyan);background:#F0FDFA}
+.st-template-card .name{font-weight:700;font-size:11px;color:var(--blue-d)}
+.st-template-card .type{font-size:8px;color:var(--label);font-weight:600}
+.st-brand-preview{display:flex;gap:6px;align-items:center;margin:8px 0}
+.st-color-swatch{width:28px;height:28px;border-radius:6px;border:2px solid var(--border)}
+.st-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:9px}
+.st-cal-header{text-align:center;font-weight:700;color:var(--label);padding:4px;font-size:8px}
+.st-cal-day{text-align:center;padding:6px 2px;border-radius:6px;border:1px solid transparent;min-height:36px}
+.st-cal-day.has-content{background:var(--blue-xl);border-color:var(--blue);cursor:pointer}
+.st-cal-day.today{border-color:var(--cyan);font-weight:800}
+.st-cal-day .day-num{font-weight:700;font-size:10px}
+.st-cal-day .day-dots{margin-top:2px}
+.st-cal-day .dot{display:inline-block;width:4px;height:4px;border-radius:50%;margin:0 1px}
+@media(max-width:480px){.st-kpi-grid{grid-template-columns:repeat(2,1fr)}.st-grid,.st-template-grid{grid-template-columns:1fr}.st-cal-grid{font-size:8px}}
+</style>
+</head>
+<body>
+<div class="st-header">
+  <h1><span>🎨</span> Ascenda Studio</h1>
+  <div class="st-sub">Marketing AI · Contenido inteligente conectado a tu negocio</div>
+  <div class="st-nav">
+    <button class="act" onclick="stTab('dashboard',this)">📊 Dashboard</button>
+    <button onclick="stTab('crear',this)">✨ Crear</button>
+    <button onclick="stTab('contenidos',this)">📋 Contenidos</button>
+    <button onclick="stTab('calendario',this)">📅 Calendario</button>
+    <button onclick="stTab('templates',this)">🎯 Templates</button>
+    <button onclick="stTab('brand',this)">🎨 Marca</button>
+    <button onclick="stTab('assets',this)">📸 Assets</button>
+    <button onclick="stTab('brief',this)">🤖 Brief AI</button>
+  </div>
+</div>
+
+<div class="st-body">
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard" class="st-tab-content act">
+    <div class="st-card"><div class="st-sec">📊 Estado del Studio</div><div id="st-dash-kpis">Cargando...</div></div>
+    <div class="st-card"><div class="st-sec">⚡ Acciones rápidas</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="st-btn st-btn-c" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear contenido</button>
+        <button class="st-btn st-btn-p" onclick="stTab('brief',document.querySelector('.st-nav button:nth-child(8)'))">🤖 Generar brief semanal</button>
+        <button class="st-btn st-btn-s" onclick="stTab('calendario',document.querySelector('.st-nav button:nth-child(4)'))">📅 Ver calendario</button>
+        <button class="st-btn st-btn-g" onclick="stTab('templates',document.querySelector('.st-nav button:nth-child(5)'))">🎯 Usar template</button>
+      </div>
+    </div>
+    <div class="st-card"><div class="st-sec">📋 Próximos a publicar</div><div id="st-dash-prox">Cargando...</div></div>
+  </div>
+
+  <!-- CREAR CONTENIDO -->
+  <div id="tab-crear" class="st-tab-content">
+    <div class="st-card">
+      <div class="st-sec">✨ Crear nuevo contenido</div>
+      <div class="st-grid">
+        <div class="st-fg"><div class="st-fl">Tipo</div>
+          <select class="st-inp" id="cr-tipo"><option>POST</option><option>CARRUSEL</option><option>REEL</option><option>STORY</option><option>VIDEO</option><option>BLOG</option><option>INFOGRAFIA</option></select>
+        </div>
+        <div class="st-fg"><div class="st-fl">Categoría tratamiento</div>
+          <select class="st-inp" id="cr-cat"><option value="">— Seleccionar —</option></select>
+        </div>
+      </div>
+      <div class="st-fg"><div class="st-fl">Título / Tema</div><input class="st-inp" id="cr-titulo" placeholder="Ej: 5 beneficios del HIFU que no conocías"></div>
+      <div class="st-fg"><div class="st-fl">Descripción / Instrucciones para la AI</div><textarea class="st-inp st-ta" id="cr-desc" placeholder="Describe lo que quieres crear. La AI usará el repositorio de tratamientos y los datos de tu negocio para generar el contenido."></textarea></div>
+      <div class="st-grid">
+        <div class="st-fg"><div class="st-fl">Plataformas</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="cr-plats">
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="instagram" checked> Instagram</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="facebook"> Facebook</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="tiktok"> TikTok</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="linkedin"> LinkedIn</label>
+          </div>
+        </div>
+        <div class="st-fg"><div class="st-fl">Fecha programada</div><input class="st-inp" id="cr-fecha" type="datetime-local"></div>
+      </div>
+      <div class="st-fg"><div class="st-fl">Template (opcional)</div><select class="st-inp" id="cr-template"><option value="">— Sin template —</option></select></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar con AI</button>
+        <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Guardar borrador</button>
+      </div>
+    </div>
+    <!-- Preview del contenido generado -->
+    <div id="cr-preview" style="display:none" class="st-card">
+      <div class="st-sec">👁️ Preview</div>
+      <div id="cr-preview-content"></div>
+    </div>
+  </div>
+
+  <!-- CONTENIDOS -->
+  <div id="tab-contenidos" class="st-tab-content">
+    <div class="st-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="st-sec" style="margin:0">📋 Mis contenidos</div>
+        <div style="display:flex;gap:4px">
+          <select class="st-inp" id="ct-filtro" style="width:auto;font-size:10px" onchange="stLoadContenidos()">
+            <option value="">Todos</option><option value="IDEA">Ideas</option><option value="BORRADOR">Borradores</option><option value="APROBADO">Aprobados</option><option value="PROGRAMADO">Programados</option><option value="PUBLICADO">Publicados</option>
+          </select>
+        </div>
+      </div>
+      <div id="ct-lista">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- CALENDARIO -->
+  <div id="tab-calendario" class="st-tab-content">
+    <div class="st-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="st-sec" style="margin:0">📅 Calendario editorial</div>
+        <div style="display:flex;gap:4px">
+          <button class="st-btn st-btn-s" onclick="stCalMes(-1)">◀</button>
+          <span id="cal-mes" style="font-weight:800;font-size:12px;min-width:120px;text-align:center"></span>
+          <button class="st-btn st-btn-s" onclick="stCalMes(1)">▶</button>
+        </div>
+      </div>
+      <div id="cal-grid" class="st-cal-grid"></div>
+      <div id="cal-detalle" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div id="tab-templates" class="st-tab-content">
+    <div class="st-card">
+      <div class="st-sec">🎯 Templates de contenido</div>
+      <div class="st-template-grid" id="tp-lista">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- BRAND -->
+  <div id="tab-brand" class="st-tab-content">
+    <div class="st-card">
+      <div class="st-sec">🎨 Configuración de marca</div>
+      <div id="br-form">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ASSETS -->
+  <div id="tab-assets" class="st-tab-content">
+    <div class="st-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="st-sec" style="margin:0">📸 Assets de marca</div>
+        <button class="st-btn st-btn-p" onclick="stAddAsset()">+ Subir asset</button>
+      </div>
+      <div id="as-lista">
+        <div class="st-empty"><div class="icon">📸</div>Sube fotos de tu equipo, clínica, tratamientos y logo.<br>La AI los usará para crear contenido con tu identidad.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRIEF AI -->
+  <div id="tab-brief" class="st-tab-content">
+    <div class="st-card">
+      <div class="st-sec">🤖 Brief semanal — Agente Investigador</div>
+      <div style="font-size:10px;color:var(--label);margin-bottom:10px">El agente lee los datos de tu CRM (ventas, conversión, repositorio) y genera un plan de contenido semanal.</div>
+      <button class="st-btn st-btn-c" onclick="stGenerarBrief()" id="brief-btn">🤖 Generar brief semanal</button>
+      <div id="brief-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SB_URL='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+var ST={mes:new Date().getMonth(),anio:new Date().getFullYear(),cats:[],templates:[],brand:null};
+
+function $(id){return document.getElementById(id)}
+function H(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+function rpc(name,params,cb){
+  fetch(SB_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify(params||{})})
+  .then(function(r){return r.json()}).then(cb).catch(function(e){console.error(name,e);cb(null)});
+}
+function sbGet(table,filter,cb){
+  fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+  .then(function(r){return r.json()}).then(cb).catch(function(){cb([])});
+}
+function sbPost(table,body,cb){
+  fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(cb).catch(function(){cb(null)});
+}
+function sbPatch(table,filter,body,cb){
+  fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(cb).catch(function(){cb(null)});
+}
+
+/* ═══ TABS ═══ */
+function stTab(name,btn){
+  document.querySelectorAll('.st-tab-content').forEach(function(t){t.classList.remove('act')});
+  document.querySelectorAll('.st-nav button').forEach(function(b){b.classList.remove('act')});
+  $('tab-'+name).classList.add('act');
+  if(btn)btn.classList.add('act');
+  if(name==='dashboard')stLoadDashboard();
+  if(name==='contenidos')stLoadContenidos();
+  if(name==='calendario')stRenderCal();
+  if(name==='templates')stLoadTemplates();
+  if(name==='brand')stLoadBrand();
+  if(name==='crear')stLoadCrearForm();
+}
+
+/* ═══ DASHBOARD ═══ */
+function stLoadDashboard(){
+  rpc('aos_studio_dashboard',{},function(d){
+    if(!d){$('st-dash-kpis').innerHTML='Error';return}
+    var h='<div class="st-kpi-grid">';
+    [{l:'Contenidos',v:d.contenidos_total||0,c:'var(--blue)'},{l:'Publicados',v:d.publicados_mes||0,c:'var(--green)'},{l:'Programados',v:d.programados_pendientes||0,c:'var(--purple)'},{l:'Templates',v:d.templates||0,c:'var(--orange)'}].forEach(function(k){
+      h+='<div class="st-kpi"><div class="n" style="color:'+k.c+'">'+k.v+'</div><div class="l">'+k.l+'</div></div>';
+    });
+    h+='</div>';
+    if(d.brand){h+='<div style="font-size:10px;color:var(--label);display:flex;align-items:center;gap:6px">🎨 Marca: <b style="color:var(--blue-d)">'+H(d.brand.nombre||'')+'</b>';
+      if(d.brand.colores)d.brand.colores.forEach(function(c){h+='<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:'+c+';border:1px solid var(--border)"></span>'});
+      h+='</div>';
+    }
+    var cx=(d.conexiones||[]);if(cx.length){h+='<div style="margin-top:8px;font-size:9px;color:var(--label)">Conexiones: ';cx.forEach(function(c){h+='<span class="st-pill" style="background:'+(c.estado==='CONECTADO'?'var(--green-xl)':'#FEF2F2')+';color:'+(c.estado==='CONECTADO'?'var(--green)':'var(--red)')+'">'+H(c.plataforma)+' '+c.estado+'</span> '});h+='</div>';}
+    $('st-dash-kpis').innerHTML=h;
+  });
+  sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO)&order=fecha_programada.asc&limit=5',function(rows){
+    if(!rows||!rows.length){$('st-dash-prox').innerHTML='<div class="st-empty"><div class="icon">📭</div>No hay contenido programado.<br>Crea tu primer post o genera un brief con AI.</div>';return}
+    var h='';rows.forEach(function(r){h+=stContentCard(r)});
+    $('st-dash-prox').innerHTML=h;
+  });
+}
+
+/* ═══ CONTENIDOS ═══ */
+function stLoadContenidos(){
+  var filtro=$('ct-filtro').value;
+  var q='order=created_at.desc&limit=50';
+  if(filtro)q='estado=eq.'+filtro+'&'+q;
+  sbGet('aos_studio_contenido',q,function(rows){
+    if(!rows||!rows.length){$('ct-lista').innerHTML='<div class="st-empty"><div class="icon">📝</div>No hay contenidos aún.</div>';return}
+    var h='';rows.forEach(function(r){h+=stContentCard(r)});
+    $('ct-lista').innerHTML=h;
+  });
+}
+function stContentCard(r){
+  var estadoClass={'IDEA':'idea','BORRADOR':'borrador','LISTO':'borrador','APROBADO':'aprobado','PROGRAMADO':'programado','PUBLICADO':'publicado'};
+  var h='<div class="st-content-card" onclick="stEditContent(\''+r.id+'\')">';
+  h+='<div class="st-content-header"><div class="st-content-title">'+H(r.titulo||r.tipo_contenido||'Sin título')+'</div>';
+  h+='<span class="st-pill st-pill-'+(estadoClass[r.estado]||'idea')+'">'+H(r.estado)+'</span></div>';
+  h+='<div class="st-content-meta"><span>'+H(r.tipo_contenido)+'</span>';
+  if(r.categoria_tratamiento)h+='<span>·</span><span style="color:var(--blue)">'+H(r.categoria_tratamiento)+'</span>';
+  if(r.fecha_programada)h+='<span>·</span><span>📅 '+new Date(r.fecha_programada).toLocaleDateString('es-PE',{day:'numeric',month:'short'})+'</span>';
+  if(r.plataformas)r.plataformas.forEach(function(p){h+='<span style="font-size:7px">'+({'instagram':'📷','facebook':'📘','tiktok':'🎵','linkedin':'💼'}[p]||p)+'</span>'});
+  h+='</div>';
+  if(r.copy_principal)h+='<div class="st-content-preview">'+H(r.copy_principal.substring(0,100))+'</div>';
+  h+='</div>';return h;
+}
+
+/* ═══ CREAR ═══ */
+function stLoadCrearForm(){
+  if(!ST.cats.length){
+    sbGet('aos_catalogo_categorias','tipo=eq.SERVICIO&order=nombre',function(cats){
+      ST.cats=cats||[];
+      var sel=$('cr-cat');if(!sel)return;
+      sel.innerHTML='<option value="">— Seleccionar —</option>';
+      ST.cats.forEach(function(c){sel.innerHTML+='<option value="'+H(c.nombre)+'">'+H(c.nombre)+(c.es_estrella?' ⭐':'')+'</option>'});
+    });
+  }
+  if(!ST.templates.length){
+    sbGet('aos_studio_templates','activo=eq.true&order=nombre',function(tps){
+      ST.templates=tps||[];
+      var sel=$('cr-template');if(!sel)return;
+      sel.innerHTML='<option value="">— Sin template —</option>';
+      ST.templates.forEach(function(t){sel.innerHTML+='<option value="'+t.id+'">'+H(t.nombre)+' ('+t.tipo+')</option>'});
+    });
+  }
+}
+function stGuardarBorrador(){
+  var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
+  var body={
+    tipo_contenido:($('cr-tipo')||{}).value||'POST',
+    titulo:($('cr-titulo')||{}).value||'',
+    copy_principal:($('cr-desc')||{}).value||'',
+    categoria_tratamiento:($('cr-cat')||{}).value||null,
+    plataformas:plats,
+    fecha_programada:($('cr-fecha')||{}).value?new Date(($('cr-fecha')||{}).value).toISOString():null,
+    estado:'BORRADOR',
+    fuente:'MANUAL'
+  };
+  sbPost('aos_studio_contenido',body,function(d){
+    if(d&&d[0]){alert('✅ Borrador guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}
+  });
+}
+function stCrearContenido(){
+  var cat=($('cr-cat')||{}).value;
+  var titulo=($('cr-titulo')||{}).value;
+  var desc=($('cr-desc')||{}).value;
+  var tipo=($('cr-tipo')||{}).value;
+  if(!titulo&&!desc&&!cat){alert('Describe qué quieres crear o selecciona una categoría');return}
+  $('cr-preview').style.display='block';
+  $('cr-preview-content').innerHTML='<div style="text-align:center;padding:20px;color:var(--label)">🤖 Generando contenido con AI...<br><span style="font-size:9px">Leyendo repositorio + datos del CRM</span></div>';
+  
+  /* Cargar FAQs de la categoría para generar contenido basado en datos reales */
+  if(cat){
+    rpc('aos_studio_faqs_categoria',{p_categoria:cat},function(faqs){
+      var faqList=faqs||[];
+      var selectedFaqs=faqList.slice(0,5);
+      var faqText=selectedFaqs.map(function(f){return 'P: '+(f.q||'')+'\nR: '+(f.a||'')}).join('\n\n');
+      
+      var copy='';
+      if(tipo==='POST'){
+        var faq=selectedFaqs[0]||{q:'',a:''};
+        copy='❓ '+(titulo||faq.q)+'\n\n'+(desc||faq.a).substring(0,280)+'\n\n📍 Agenda tu consulta gratuita\n📲 Link en bio\n\n#ZiVital #MedicinaEstetica #'+cat.replace(/\s+/g,'').replace(/[^a-zA-Z]/g,'')+'  #BellezaNatural #Lima';
+      }else if(tipo==='CARRUSEL'){
+        copy='Slide 1: '+H(titulo||cat)+' — Lo que debes saber 👇\n\n';
+        selectedFaqs.forEach(function(f,i){copy+='Slide '+(i+2)+': '+H(f.q)+'\n→ '+H((f.a||'').substring(0,100))+'\n\n'});
+        copy+='Último slide: 📍 Agenda tu consulta gratuita en @zivital';
+      }else{
+        copy=(titulo?titulo+'\n\n':'')+(desc||'Contenido sobre '+cat)+'\n\n📍 @zivital\n\n#ZiVital #'+cat.replace(/\s+/g,'');
+      }
+      
+      var h='<div style="background:var(--blue-xl);border-radius:8px;padding:12px;margin-bottom:8px">';
+      h+='<div style="font-weight:800;font-size:11px;color:var(--blue-d);margin-bottom:6px">📝 Copy generado</div>';
+      h+='<textarea class="st-inp st-ta" id="cr-gen-copy" style="min-height:120px;font-size:10px">'+H(copy)+'</textarea>';
+      h+='</div>';
+      h+='<div style="font-size:9px;color:var(--label);margin-bottom:8px">📚 Basado en '+faqList.length+' FAQs del repositorio de '+H(cat)+'</div>';
+      h+='<div style="display:flex;gap:6px">';
+      h+='<button class="st-btn st-btn-g" onclick="stGuardarGenerado()">✅ Guardar y aprobar</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stGuardarBorradorGen()">💾 Guardar borrador</button>';
+      h+='</div>';
+      $('cr-preview-content').innerHTML=h;
+    });
+  }else{
+    $('cr-preview-content').innerHTML='<div style="padding:12px;background:#FEF2F2;border-radius:8px;font-size:10px;color:var(--red)">Selecciona una categoría de tratamiento para que la AI pueda usar el repositorio.</div>';
+  }
+}
+function stGuardarGenerado(){
+  var copy=($('cr-gen-copy')||{}).value||'';
+  var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
+  sbPost('aos_studio_contenido',{
+    tipo_contenido:($('cr-tipo')||{}).value||'POST',titulo:($('cr-titulo')||{}).value||'',
+    copy_principal:copy,categoria_tratamiento:($('cr-cat')||{}).value||null,
+    plataformas:plats,fecha_programada:($('cr-fecha')||{}).value?new Date($('cr-fecha').value).toISOString():null,
+    estado:'APROBADO',fuente:'AGENTE_INVESTIGADOR'
+  },function(d){if(d&&d[0]){alert('✅ Contenido aprobado y guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
+}
+function stGuardarBorradorGen(){
+  var copy=($('cr-gen-copy')||{}).value||'';
+  var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
+  sbPost('aos_studio_contenido',{
+    tipo_contenido:($('cr-tipo')||{}).value||'POST',titulo:($('cr-titulo')||{}).value||'',
+    copy_principal:copy,categoria_tratamiento:($('cr-cat')||{}).value||null,
+    plataformas:plats,estado:'BORRADOR',fuente:'AGENTE_INVESTIGADOR'
+  },function(d){if(d&&d[0]){alert('💾 Borrador guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
+}
+
+/* ═══ CALENDARIO ═══ */
+function stCalMes(dir){ST.mes+=dir;if(ST.mes>11){ST.mes=0;ST.anio++}if(ST.mes<0){ST.mes=11;ST.anio--}stRenderCal()}
+function stRenderCal(){
+  var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  $('cal-mes').textContent=meses[ST.mes]+' '+ST.anio;
+  var first=new Date(ST.anio,ST.mes,1);var lastDay=new Date(ST.anio,ST.mes+1,0).getDate();
+  var startDow=first.getDay();var today=new Date();
+  var h='';['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'].forEach(function(d){h+='<div class="st-cal-header">'+d+'</div>'});
+  for(var i=0;i<startDow;i++)h+='<div class="st-cal-day"></div>';
+  for(var d=1;d<=lastDay;d++){
+    var isToday=d===today.getDate()&&ST.mes===today.getMonth()&&ST.anio===today.getFullYear();
+    h+='<div class="st-cal-day'+(isToday?' today':'')+'"><div class="day-num">'+d+'</div></div>';
+  }
+  $('cal-grid').innerHTML=h;
+  /* cargar contenidos del mes y marcar días */
+  var desde=ST.anio+'-'+String(ST.mes+1).padStart(2,'0')+'-01';
+  var hasta=ST.anio+'-'+String(ST.mes+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  sbGet('aos_studio_contenido','fecha_programada=gte.'+desde+'T00:00:00&fecha_programada=lte.'+hasta+'T23:59:59&order=fecha_programada',function(rows){
+    if(!rows)return;
+    var byDay={};rows.forEach(function(r){if(!r.fecha_programada)return;var day=new Date(r.fecha_programada).getDate();if(!byDay[day])byDay[day]=[];byDay[day].push(r)});
+    var cells=document.querySelectorAll('#cal-grid .st-cal-day');
+    cells.forEach(function(cell){
+      var num=cell.querySelector('.day-num');if(!num)return;
+      var day=parseInt(num.textContent);if(byDay[day]){
+        cell.classList.add('has-content');
+        var dots='<div class="day-dots">';
+        byDay[day].forEach(function(r){var c=r.estado==='PUBLICADO'?'var(--green)':r.estado==='PROGRAMADO'?'var(--purple)':'var(--orange)';dots+='<span class="dot" style="background:'+c+'"></span>'});
+        dots+='</div>';cell.innerHTML+=dots;
+        cell.onclick=function(){stShowDayDetail(day,byDay[day])};
+      }
+    });
+  });
+}
+function stShowDayDetail(day,items){
+  var h='<div class="st-card" style="border-color:var(--cyan)"><div class="st-sec">📅 '+day+' '+['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][ST.mes]+'</div>';
+  items.forEach(function(r){h+=stContentCard(r)});h+='</div>';
+  $('cal-detalle').innerHTML=h;
+}
+
+/* ═══ TEMPLATES ═══ */
+function stLoadTemplates(){
+  sbGet('aos_studio_templates','activo=eq.true&order=veces_usado.desc',function(rows){
+    if(!rows||!rows.length){$('tp-lista').innerHTML='<div class="st-empty">No hay templates</div>';return}
+    var h='';rows.forEach(function(t){
+      h+='<div class="st-template-card" onclick="stUseTemplate(\''+t.id+'\')">';
+      h+='<div class="name">'+H(t.nombre)+'</div>';
+      h+='<div class="type">'+H(t.tipo)+' · '+H(t.estilo_visual||'')+'</div>';
+      if(t.copy_template)h+='<div style="font-size:8px;color:var(--label);margin-top:3px;max-height:24px;overflow:hidden">'+H(t.copy_template.substring(0,80))+'...</div>';
+      h+='</div>';
+    });
+    $('tp-lista').innerHTML=h;
+  });
+}
+function stUseTemplate(id){
+  var t=ST.templates.find(function(x){return x.id===id});
+  if(t){
+    stTab('crear',document.querySelector('.st-nav button:nth-child(2)'));
+    setTimeout(function(){
+      if(t.tipo){$('cr-tipo').value=t.tipo}
+      if(t.copy_template){$('cr-desc').value=t.copy_template}
+      $('cr-template').value=id;
+    },200);
+  }
+}
+
+/* ═══ BRAND ═══ */
+function stLoadBrand(){
+  sbGet('aos_studio_brand','limit=1',function(rows){
+    if(!rows||!rows.length){$('br-form').innerHTML='Sin configuración';return}
+    var b=rows[0];ST.brand=b;
+    var h='<div class="st-brand-preview">';
+    [b.color_primario,b.color_secundario,b.color_acento,b.color_fondo].forEach(function(c){h+='<div class="st-color-swatch" style="background:'+c+'" title="'+c+'"></div>'});
+    h+='<span style="font-weight:800;font-size:14px;color:'+b.color_primario+'">'+H(b.nombre_marca)+'</span></div>';
+    h+='<div class="st-grid">';
+    h+='<div class="st-fg"><div class="st-fl">Nombre</div><input class="st-inp" id="br-nombre" value="'+H(b.nombre_marca||'')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Slogan</div><input class="st-inp" id="br-slogan" value="'+H(b.slogan||'')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Color primario</div><input class="st-inp" id="br-c1" type="color" value="'+(b.color_primario||'#071D4A')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Color secundario</div><input class="st-inp" id="br-c2" type="color" value="'+(b.color_secundario||'#0A4FBF')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Color acento</div><input class="st-inp" id="br-c3" type="color" value="'+(b.color_acento||'#00C9A7')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Tono comunicación</div><input class="st-inp" id="br-tono" value="'+H(b.tono_comunicacion||'')+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Hashtags fijos</div><input class="st-inp" id="br-hash" value="'+H((b.hashtags_fijos||[]).join(', '))+'"></div>';
+    h+='<div class="st-fg"><div class="st-fl">Palabras clave</div><input class="st-inp" id="br-kw" value="'+H((b.palabras_clave||[]).join(', '))+'"></div>';
+    h+='</div>';
+    h+='<button class="st-btn st-btn-p" onclick="stSaveBrand()" style="margin-top:8px">💾 Guardar configuración</button>';
+    $('br-form').innerHTML=h;
+  });
+}
+function stSaveBrand(){
+  if(!ST.brand)return;
+  var body={
+    nombre_marca:($('br-nombre')||{}).value||'',slogan:($('br-slogan')||{}).value||'',
+    color_primario:($('br-c1')||{}).value||'#071D4A',color_secundario:($('br-c2')||{}).value||'#0A4FBF',
+    color_acento:($('br-c3')||{}).value||'#00C9A7',tono_comunicacion:($('br-tono')||{}).value||'',
+    hashtags_fijos:($('br-hash')||{}).value.split(',').map(function(s){return s.trim()}).filter(Boolean),
+    palabras_clave:($('br-kw')||{}).value.split(',').map(function(s){return s.trim()}).filter(Boolean),
+    updated_at:new Date().toISOString()
+  };
+  sbPatch('aos_studio_brand','id=eq.'+ST.brand.id,body,function(){alert('✅ Marca actualizada');stLoadBrand()});
+}
+
+/* ═══ BRIEF AI ═══ */
+function stGenerarBrief(){
+  $('brief-btn').disabled=true;$('brief-btn').textContent='⏳ Analizando CRM...';
+  rpc('aos_studio_brief_semanal',{},function(d){
+    $('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';
+    if(!d){$('brief-result').innerHTML='<div style="color:var(--red)">Error al generar brief</div>';return}
+    var h='<div class="st-card" style="border-color:var(--cyan)">';
+    h+='<div class="st-sec">📊 Brief basado en datos reales del CRM</div>';
+    
+    var tv=d.top_vendidos||[];
+    if(tv.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--blue-d);margin-bottom:4px">🏆 Top vendidos (30 días)</div>';
+      tv.forEach(function(t){h+='<div style="font-size:9px;padding:2px 0">• <b>'+H(t.tratamiento)+'</b> — '+t.ventas+' ventas · S/'+parseFloat(t.facturado||0).toLocaleString()+'</div>'});h+='</div>';}
+    
+    var est=d.estrellas||[];
+    if(est.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--orange);margin-bottom:4px">⭐ Tratamientos estrella</div><div style="font-size:9px">'+est.join(', ')+'</div></div>';}
+    
+    var fq=d.faqs_disponibles||[];
+    if(fq.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--purple);margin-bottom:4px">📚 Repositorio disponible para contenido</div>';
+      fq.slice(0,8).forEach(function(f){h+='<div style="font-size:9px;padding:1px 0">'+H(f.categoria)+': <b>'+f.n_faqs+' FAQs</b></div>'});h+='</div>';}
+    
+    var enf=d.enfoques||[];
+    if(enf.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--green);margin-bottom:4px">🎯 Enfoques de marca</div>';
+      enf.forEach(function(e){h+='<div style="font-size:9px;padding:1px 0"><b>'+H(e.enfoque)+'</b> ('+H(e.dominio)+') — '+H(e.subtitulo||'')+'</div>'});h+='</div>';}
+    
+    h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
+    h+='<div style="font-weight:800;font-size:11px;color:var(--blue-d);margin-bottom:6px">💡 Plan sugerido para esta semana</div>';
+    h+='<div style="font-size:9px;line-height:1.5;color:var(--text)">';
+    if(tv[0])h+='📅 <b>Lunes:</b> Carrusel educativo sobre <b>'+H(tv[0].tratamiento)+'</b> — usar FAQs del repositorio<br>';
+    if(tv[1])h+='📅 <b>Miércoles:</b> Post testimonial / antes-después de <b>'+H(tv[1].tratamiento)+'</b><br>';
+    if(est[0])h+='📅 <b>Viernes:</b> Reel educativo sobre <b>'+H(est[0])+'</b> — "5 cosas que no sabías"<br>';
+    h+='📅 <b>Domingo:</b> Story interactiva — Quiz sobre mitos y realidades<br>';
+    h+='</div>';
+    h+='<button class="st-btn st-btn-c" style="margin-top:8px" onclick="stCrearDesdeBrief()">✨ Crear estos contenidos</button>';
+    h+='</div></div>';
+    $('brief-result').innerHTML=h;
+  });
+}
+function stCrearDesdeBrief(){stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))}
+
+/* ═══ EDITAR CONTENIDO ═══ */
+function stEditContent(id){
+  sbGet('aos_studio_contenido','id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var r=rows[0];
+    stTab('crear',document.querySelector('.st-nav button:nth-child(2)'));
+    setTimeout(function(){
+      $('cr-tipo').value=r.tipo_contenido||'POST';
+      $('cr-titulo').value=r.titulo||'';
+      $('cr-desc').value=r.copy_principal||'';
+      if(r.categoria_tratamiento)$('cr-cat').value=r.categoria_tratamiento;
+      if(r.fecha_programada){var d=new Date(r.fecha_programada);$('cr-fecha').value=d.toISOString().slice(0,16)}
+      $('cr-preview').style.display='block';
+      var h='<div style="background:var(--blue-xl);border-radius:8px;padding:12px">';
+      h+='<div style="font-weight:800;font-size:11px;color:var(--blue-d);margin-bottom:6px">📝 Editando: '+H(r.titulo||'')+'</div>';
+      h+='<textarea class="st-inp st-ta" id="cr-gen-copy" style="min-height:120px;font-size:10px">'+H(r.copy_principal||'')+'</textarea></div>';
+      h+='<div style="display:flex;gap:6px;margin-top:8px">';
+      h+='<button class="st-btn st-btn-g" onclick="stUpdateContent(\''+id+'\',\'APROBADO\')">✅ Aprobar</button>';
+      h+='<button class="st-btn st-btn-p" onclick="stUpdateContent(\''+id+'\',\'PROGRAMADO\')">📅 Programar</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stUpdateContent(\''+id+'\',\'BORRADOR\')">💾 Guardar</button>';
+      h+='</div>';
+      $('cr-preview-content').innerHTML=h;
+    },300);
+  });
+}
+function stUpdateContent(id,estado){
+  var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
+  sbPatch('aos_studio_contenido','id=eq.'+id,{
+    titulo:($('cr-titulo')||{}).value||'',copy_principal:($('cr-gen-copy')||{}).value||($('cr-desc')||{}).value||'',
+    tipo_contenido:($('cr-tipo')||{}).value||'POST',categoria_tratamiento:($('cr-cat')||{}).value||null,
+    plataformas:plats,estado:estado,fecha_programada:($('cr-fecha')||{}).value?new Date($('cr-fecha').value).toISOString():null,
+    updated_at:new Date().toISOString()
+  },function(){alert('✅ '+estado);stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'))});
+}
+
+/* ═══ INIT ═══ */
+stLoadDashboard();
+</script>
+</body>
+</html>
