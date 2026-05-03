@@ -338,60 +338,193 @@ function stCrearContenido(){
   var tipo=($('cr-tipo')||{}).value;
   if(!titulo&&!desc&&!cat){alert('Describe qué quieres crear o selecciona una categoría');return}
   $('cr-preview').style.display='block';
-  $('cr-preview-content').innerHTML='<div style="text-align:center;padding:20px;color:var(--label)">🤖 Generando contenido con AI...<br><span style="font-size:9px">Leyendo repositorio + datos del CRM</span></div>';
+  $('cr-preview-content').innerHTML='<div style="text-align:center;padding:30px;color:var(--label)"><div style="font-size:28px;margin-bottom:8px;animation:spin 1s linear infinite">🤖</div>Generando contenido con AI...<br><span style="font-size:9px">Leyendo repositorio + datos del CRM + conectando con Claude</span></div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
   
-  /* Cargar FAQs de la categoría para generar contenido basado en datos reales */
-  if(cat){
-    rpc('aos_studio_faqs_categoria',{p_categoria:cat},function(faqs){
-      var faqList=faqs||[];
-      var selectedFaqs=faqList.slice(0,5);
-      var faqText=selectedFaqs.map(function(f){return 'P: '+(f.q||'')+'\nR: '+(f.a||'')}).join('\n\n');
+  /* Cargar FAQs + brand + generar con AI real */
+  rpc('aos_studio_faqs_categoria',{p_categoria:cat||'FACIALES'},function(faqs){
+    var faqList=faqs||[];
+    var faqText=faqList.slice(0,8).map(function(f){return 'P: '+(f.q||'')+'\nR: '+(f.a||'').substring(0,150)}).join('\n');
+    
+    /* Obtener brand para contexto */
+    sbGet('aos_studio_brand','limit=1',function(brands){
+      var brand=(brands&&brands[0])||{nombre_marca:'Zi Vital',tono_comunicacion:'profesional, cercano, educativo'};
       
-      var copy='';
+      var systemPrompt='Eres el copywriter experto de '+brand.nombre_marca+', una clínica de medicina estética en Lima, Perú. Tono: '+brand.tono_comunicacion+'. Hashtags fijos: '+(brand.hashtags_fijos||[]).join(' ')+'. Generas contenido que convierte: usa hooks de retención, preguntas que enganchan, datos que sorprenden, CTAs claros. Nunca inventes datos médicos falsos. Todo basado en las FAQs reales del repositorio clínico.';
+      
+      var userPrompt='';
       if(tipo==='POST'){
-        var faq=selectedFaqs[0]||{q:'',a:''};
-        copy='❓ '+(titulo||faq.q)+'\n\n'+(desc||faq.a).substring(0,280)+'\n\n📍 Agenda tu consulta gratuita\n📲 Link en bio\n\n#ZiVital #MedicinaEstetica #'+cat.replace(/\s+/g,'').replace(/[^a-zA-Z]/g,'')+'  #BellezaNatural #Lima';
+        userPrompt='Genera un POST para Instagram sobre '+(cat||'medicina estética')+'.\n\nTema: '+(titulo||'contenido educativo')+'\n\nInstrucciones del usuario: '+(desc||'crear post educativo atractivo')+'\n\nFAQs reales del repositorio para basar el contenido:\n'+faqText+'\n\nResponde SOLO con un JSON válido sin markdown:\n{"caption":"el texto del post con emojis y saltos de linea","hashtags":["lista","de","hashtags"],"hook":"la primera línea que engancha","cta":"call to action final","slide_text":"si fuera imagen, qué texto pondría encima"}';
       }else if(tipo==='CARRUSEL'){
-        copy='Slide 1: '+H(titulo||cat)+' — Lo que debes saber 👇\n\n';
-        selectedFaqs.forEach(function(f,i){copy+='Slide '+(i+2)+': '+H(f.q)+'\n→ '+H((f.a||'').substring(0,100))+'\n\n'});
-        copy+='Último slide: 📍 Agenda tu consulta gratuita en @zivital';
+        userPrompt='Genera un CARRUSEL de 5-6 slides para Instagram sobre '+(cat||'medicina estética')+'.\n\nTema: '+(titulo||'contenido educativo')+'\n\nInstrucciones: '+(desc||'carrusel educativo tipo mito vs realidad o tips')+'\n\nFAQs reales:\n'+faqText+'\n\nResponde SOLO con JSON válido sin markdown:\n{"caption":"texto del post","hashtags":["lista"],"slides":[{"titulo":"texto grande","subtitulo":"texto pequeño","color_fondo":"hex color"},{"titulo":"...","subtitulo":"...","color_fondo":"..."}],"cta":"call to action"}';
+      }else if(tipo==='REEL'){
+        userPrompt='Genera un guión de REEL de 30 segundos sobre '+(cat||'medicina estética')+'.\n\nTema: '+(titulo||'contenido educativo')+'\n\nFAQs:\n'+faqText+'\n\nResponde SOLO con JSON válido sin markdown:\n{"caption":"caption del reel","hashtags":["lista"],"hook_3seg":"lo que se dice en los primeros 3 segundos","guion":"guión completo del reel","texto_pantalla":"texto que aparece sobre el video","cta":"call to action"}';
       }else{
-        copy=(titulo?titulo+'\n\n':'')+(desc||'Contenido sobre '+cat)+'\n\n📍 @zivital\n\n#ZiVital #'+cat.replace(/\s+/g,'');
+        userPrompt='Genera contenido tipo '+tipo+' sobre '+(cat||'medicina estética')+'.\n\nTema: '+(titulo||'contenido')+'\nInstrucciones: '+(desc||'')+'\n\nFAQs:\n'+faqText+'\n\nResponde SOLO con JSON válido sin markdown:\n{"caption":"texto principal","hashtags":["lista"],"cta":"call to action"}';
       }
       
-      var h='<div style="background:var(--blue-xl);border-radius:8px;padding:12px;margin-bottom:8px">';
-      h+='<div style="font-weight:800;font-size:11px;color:var(--blue-d);margin-bottom:6px">📝 Copy generado</div>';
-      h+='<textarea class="st-inp st-ta" id="cr-gen-copy" style="min-height:120px;font-size:10px">'+H(copy)+'</textarea>';
-      h+='</div>';
-      h+='<div style="font-size:9px;color:var(--label);margin-bottom:8px">📚 Basado en '+faqList.length+' FAQs del repositorio de '+H(cat)+'</div>';
-      h+='<div style="display:flex;gap:6px">';
-      h+='<button class="st-btn st-btn-g" onclick="stGuardarGenerado()">✅ Guardar y aprobar</button>';
-      h+='<button class="st-btn st-btn-s" onclick="stGuardarBorradorGen()">💾 Guardar borrador</button>';
-      h+='</div>';
-      $('cr-preview-content').innerHTML=h;
+      /* Llamar a la API de Anthropic */
+      fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          system:systemPrompt,
+          messages:[{role:'user',content:userPrompt}]
+        })
+      }).then(function(r){return r.json()}).then(function(data){
+        var textContent='';
+        if(data&&data.content){data.content.forEach(function(b){if(b.type==='text')textContent+=b.text})}
+        
+        var parsed=null;
+        try{
+          var clean=textContent.replace(/```json|```/g,'').trim();
+          parsed=JSON.parse(clean);
+        }catch(e){
+          /* Fallback: usar contenido como texto plano */
+          parsed={caption:textContent||'Error al generar',hashtags:brand.hashtags_fijos||[],cta:'Agenda tu consulta'};
+        }
+        
+        renderAIPreview(parsed,tipo,cat,brand,faqList.length);
+      }).catch(function(err){
+        /* Fallback sin API: generar localmente con FAQs */
+        console.error('API error, usando fallback local',err);
+        var fallback=generateLocalContent(tipo,cat,titulo,desc,faqList,brand);
+        renderAIPreview(fallback,tipo,cat,brand,faqList.length);
+      });
     });
-  }else{
-    $('cr-preview-content').innerHTML='<div style="padding:12px;background:#FEF2F2;border-radius:8px;font-size:10px;color:var(--red)">Selecciona una categoría de tratamiento para que la AI pueda usar el repositorio.</div>';
-  }
+  });
 }
+
+/* Fallback local cuando la API no está disponible */
+function generateLocalContent(tipo,cat,titulo,desc,faqs,brand){
+  var selectedFaqs=faqs.slice(0,5);
+  if(tipo==='CARRUSEL'){
+    var slides=[{titulo:titulo||'Lo que debes saber sobre\n'+cat,subtitulo:'Desliza para descubrir →',color_fondo:brand.color_primario||'#071D4A'}];
+    selectedFaqs.forEach(function(f){slides.push({titulo:f.q||'',subtitulo:(f.a||'').substring(0,80)+'...',color_fondo:brand.color_secundario||'#0A4FBF'})});
+    slides.push({titulo:'¿Quieres saber más?',subtitulo:'Agenda tu consulta gratuita\n📲 Link en bio',color_fondo:brand.color_acento||'#00C9A7'});
+    return{caption:'Desliza para conocer todo sobre '+cat+' 👇\n\nGuarda este post para después 📌',hashtags:(brand.hashtags_fijos||[]).concat(['#'+cat.replace(/\s+/g,'')]),slides:slides,cta:'📍 Agenda tu consulta gratuita'};
+  }
+  var faq=selectedFaqs[0]||{q:'',a:''};
+  return{caption:'❓ '+(titulo||faq.q)+'\n\n'+(desc||faq.a||'').substring(0,250)+'\n\n📍 Agenda tu consulta gratuita\n📲 Link en bio',hashtags:(brand.hashtags_fijos||[]).concat(['#'+cat.replace(/\s+/g,'')]),hook:titulo||faq.q,cta:'Agenda tu consulta',slide_text:titulo||faq.q};
+}
+
+/* Renderizar preview con diseño visual real */
+function renderAIPreview(data,tipo,cat,brand,nFaqs){
+  var h='';
+  
+  /* ═══ COPY ═══ */
+  h+='<div style="background:var(--blue-xl);border-radius:10px;padding:14px;margin-bottom:10px">';
+  h+='<div style="font-weight:800;font-size:12px;color:var(--blue-d);margin-bottom:8px;display:flex;align-items:center;gap:6px">📝 Copy generado por AI <span style="font-size:8px;color:var(--label);font-weight:500">basado en '+nFaqs+' FAQs del repositorio</span></div>';
+  var fullCopy=(data.caption||'')+(data.hashtags?'\n\n'+data.hashtags.map(function(h){return h.startsWith('#')?h:'#'+h}).join(' '):'');
+  h+='<textarea class="st-inp st-ta" id="cr-gen-copy" style="min-height:100px;font-size:10px;line-height:1.5">'+H(fullCopy)+'</textarea>';
+  if(data.hook){h+='<div style="margin-top:6px;font-size:9px"><b style="color:var(--orange)">🪝 Hook:</b> '+H(data.hook)+'</div>';}
+  if(data.cta){h+='<div style="font-size:9px"><b style="color:var(--green)">📲 CTA:</b> '+H(data.cta)+'</div>';}
+  h+='</div>';
+  
+  /* ═══ REEL GUIÓN ═══ */
+  if(tipo==='REEL'&&(data.guion||data.hook_3seg)){
+    h+='<div style="background:#FDF4FF;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #E9D5FF">';
+    h+='<div style="font-weight:800;font-size:12px;color:var(--purple);margin-bottom:8px">🎬 Guión del Reel</div>';
+    if(data.hook_3seg){h+='<div style="background:#fff;padding:8px;border-radius:6px;margin-bottom:6px;font-size:10px"><b style="color:var(--red)">⏱️ Hook (3 seg):</b> '+H(data.hook_3seg)+'</div>';}
+    if(data.guion){h+='<div style="font-size:10px;line-height:1.5;padding:8px;background:#fff;border-radius:6px">'+H(data.guion)+'</div>';}
+    if(data.texto_pantalla){h+='<div style="margin-top:6px;font-size:9px"><b>📱 Texto en pantalla:</b> '+H(data.texto_pantalla)+'</div>';}
+    h+='</div>';
+  }
+  
+  /* ═══ CARRUSEL VISUAL ═══ */
+  if(tipo==='CARRUSEL'&&data.slides&&data.slides.length){
+    h+='<div style="margin-bottom:10px"><div style="font-weight:800;font-size:12px;color:var(--blue-d);margin-bottom:8px">🎨 Preview del carrusel ('+data.slides.length+' slides)</div>';
+    h+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory">';
+    data.slides.forEach(function(s,i){
+      var bg=s.color_fondo||(i===0?(brand.color_primario||'#071D4A'):(i===data.slides.length-1?(brand.color_acento||'#00C9A7'):(brand.color_secundario||'#0A4FBF')));
+      var textColor=isLightColor(bg)?'#071D4A':'#FFFFFF';
+      h+='<div style="min-width:180px;height:220px;background:'+bg+';border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center;scroll-snap-align:start;flex-shrink:0;position:relative;overflow:hidden">';
+      /* Logo watermark */
+      h+='<div style="position:absolute;top:8px;right:10px;font-size:8px;font-weight:800;color:'+textColor+';opacity:.5;font-family:Exo 2">'+(brand.nombre_marca||'Zi Vital')+'</div>';
+      /* Slide number */
+      h+='<div style="position:absolute;bottom:8px;left:10px;font-size:7px;color:'+textColor+';opacity:.4">'+(i+1)+'/'+data.slides.length+'</div>';
+      /* Content */
+      h+='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:14px;color:'+textColor+';line-height:1.3;margin-bottom:8px">'+H(s.titulo||'')+'</div>';
+      if(s.subtitulo){h+='<div style="font-size:10px;color:'+textColor+';opacity:.85;line-height:1.4">'+H(s.subtitulo)+'</div>';}
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='<div style="font-size:8px;color:var(--label);text-align:center">← Desliza para ver todos los slides →</div>';
+    h+='</div>';
+    /* Editor de slides */
+    h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:var(--blue);cursor:pointer">✏️ Editar slides</summary><div style="padding:8px 0">';
+    data.slides.forEach(function(s,i){
+      h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;padding:4px;background:#FAFBFF;border-radius:6px">';
+      h+='<span style="font-size:9px;font-weight:700;color:var(--label);min-width:14px">'+(i+1)+'</span>';
+      h+='<input class="st-inp" style="font-size:9px;padding:4px 6px" value="'+H(s.titulo||'')+'" data-slide="'+i+'" data-field="titulo">';
+      h+='<input class="st-inp" style="font-size:9px;padding:4px 6px" value="'+H(s.subtitulo||'')+'" data-slide="'+i+'" data-field="subtitulo">';
+      h+='<input type="color" value="'+(s.color_fondo||'#071D4A')+'" style="width:28px;height:24px;border:none;cursor:pointer" data-slide="'+i+'" data-field="color">';
+      h+='</div>';
+    });
+    h+='<button class="st-btn st-btn-s" style="margin-top:4px" onclick="stAddSlide()">+ Agregar slide</button>';
+    h+='</div></details>';
+  }
+  
+  /* ═══ PREVIEW DE POST (imagen simulada) ═══ */
+  if(tipo==='POST'){
+    var bgColor=brand.color_primario||'#071D4A';
+    var accentColor=brand.color_acento||'#00C9A7';
+    h+='<div style="margin-bottom:10px"><div style="font-weight:800;font-size:12px;color:var(--blue-d);margin-bottom:8px">🎨 Preview de imagen</div>';
+    h+='<div style="width:100%;max-width:300px;aspect-ratio:1;background:linear-gradient(135deg,'+bgColor+' 0%,'+brand.color_secundario+' 100%);border-radius:12px;padding:24px;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;overflow:hidden;margin:0 auto">';
+    h+='<div style="position:absolute;top:0;right:0;width:120px;height:120px;background:'+accentColor+';opacity:.15;border-radius:0 0 0 100%"></div>';
+    h+='<div style="font-family:Exo 2,sans-serif;font-weight:900;font-size:18px;color:#fff;text-align:center;line-height:1.3;z-index:1">'+H(data.slide_text||data.hook||titulo||cat)+'</div>';
+    h+='<div style="position:absolute;bottom:12px;font-size:9px;color:#fff;opacity:.6;font-family:Exo 2">'+H(brand.nombre_marca||'Zi Vital')+'</div>';
+    h+='</div></div>';
+  }
+  
+  /* ═══ ACCIONES ═══ */
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border)">';
+  h+='<button class="st-btn st-btn-g" onclick="stGuardarGenerado()">✅ Aprobar</button>';
+  h+='<button class="st-btn st-btn-p" onclick="stGuardarBorradorGen()">💾 Borrador</button>';
+  h+='<button class="st-btn st-btn-s" onclick="stCrearContenido()">🔄 Regenerar</button>';
+  h+='</div>';
+  
+  $('cr-preview-content').innerHTML=h;
+  /* Guardar slides en memoria para edición */
+  if(data.slides)ST.currentSlides=data.slides;
+}
+
+function isLightColor(hex){
+  hex=hex.replace('#','');
+  var r=parseInt(hex.substr(0,2),16);var g=parseInt(hex.substr(2,2),16);var b=parseInt(hex.substr(4,2),16);
+  return(r*299+g*587+b*114)/1000>128;
+}
+
+function stAddSlide(){
+  if(!ST.currentSlides)ST.currentSlides=[];
+  ST.currentSlides.push({titulo:'Nuevo slide',subtitulo:'Edita este contenido',color_fondo:ST.brand?ST.brand.color_secundario:'#0A4FBF'});
+  /* Re-render */
+  stCrearContenido();
+}
+
 function stGuardarGenerado(){
   var copy=($('cr-gen-copy')||{}).value||'';
   var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
-  sbPost('aos_studio_contenido',{
+  var body={
     tipo_contenido:($('cr-tipo')||{}).value||'POST',titulo:($('cr-titulo')||{}).value||'',
     copy_principal:copy,categoria_tratamiento:($('cr-cat')||{}).value||null,
     plataformas:plats,fecha_programada:($('cr-fecha')||{}).value?new Date($('cr-fecha').value).toISOString():null,
     estado:'APROBADO',fuente:'AGENTE_INVESTIGADOR'
-  },function(d){if(d&&d[0]){alert('✅ Contenido aprobado y guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
+  };
+  if(ST.currentSlides)body.slides=ST.currentSlides;
+  sbPost('aos_studio_contenido',body,function(d){if(d&&d[0]){alert('✅ Contenido aprobado y guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
 }
 function stGuardarBorradorGen(){
   var copy=($('cr-gen-copy')||{}).value||'';
   var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
-  sbPost('aos_studio_contenido',{
+  var body={
     tipo_contenido:($('cr-tipo')||{}).value||'POST',titulo:($('cr-titulo')||{}).value||'',
     copy_principal:copy,categoria_tratamiento:($('cr-cat')||{}).value||null,
     plataformas:plats,estado:'BORRADOR',fuente:'AGENTE_INVESTIGADOR'
-  },function(d){if(d&&d[0]){alert('💾 Borrador guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
+  };
+  if(ST.currentSlides)body.slides=ST.currentSlides;
+  sbPost('aos_studio_contenido',body,function(d){if(d&&d[0]){alert('💾 Borrador guardado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'));}});
 }
 
 /* ═══ CALENDARIO ═══ */
@@ -498,41 +631,89 @@ function stSaveBrand(){
 function stGenerarBrief(){
   $('brief-btn').disabled=true;$('brief-btn').textContent='⏳ Analizando CRM...';
   rpc('aos_studio_brief_semanal',{},function(d){
-    $('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';
-    if(!d){$('brief-result').innerHTML='<div style="color:var(--red)">Error al generar brief</div>';return}
+    if(!d){$('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';$('brief-result').innerHTML='<div style="color:var(--red)">Error</div>';return}
+    
+    /* Mostrar datos del CRM primero */
     var h='<div class="st-card" style="border-color:var(--cyan)">';
-    h+='<div class="st-sec">📊 Brief basado en datos reales del CRM</div>';
-    
+    h+='<div class="st-sec">📊 Datos del CRM analizados</div>';
     var tv=d.top_vendidos||[];
-    if(tv.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--blue-d);margin-bottom:4px">🏆 Top vendidos (30 días)</div>';
-      tv.forEach(function(t){h+='<div style="font-size:9px;padding:2px 0">• <b>'+H(t.tratamiento)+'</b> — '+t.ventas+' ventas · S/'+parseFloat(t.facturado||0).toLocaleString()+'</div>'});h+='</div>';}
-    
+    if(tv.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--blue-d);margin-bottom:3px">🏆 Top vendidos (30 días)</div>';tv.forEach(function(t){h+='<div style="font-size:9px;padding:1px 0">• <b>'+H(t.tratamiento)+'</b> — '+t.ventas+' ventas</div>'});h+='</div>';}
     var est=d.estrellas||[];
-    if(est.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--orange);margin-bottom:4px">⭐ Tratamientos estrella</div><div style="font-size:9px">'+est.join(', ')+'</div></div>';}
-    
+    if(est.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--orange)">⭐ Estrellas: </div><span style="font-size:9px">'+est.join(', ')+'</span></div>';}
     var fq=d.faqs_disponibles||[];
-    if(fq.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--purple);margin-bottom:4px">📚 Repositorio disponible para contenido</div>';
-      fq.slice(0,8).forEach(function(f){h+='<div style="font-size:9px;padding:1px 0">'+H(f.categoria)+': <b>'+f.n_faqs+' FAQs</b></div>'});h+='</div>';}
-    
-    var enf=d.enfoques||[];
-    if(enf.length){h+='<div style="margin-bottom:10px"><div style="font-weight:700;font-size:10px;color:var(--green);margin-bottom:4px">🎯 Enfoques de marca</div>';
-      enf.forEach(function(e){h+='<div style="font-size:9px;padding:1px 0"><b>'+H(e.enfoque)+'</b> ('+H(e.dominio)+') — '+H(e.subtitulo||'')+'</div>'});h+='</div>';}
-    
-    h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
-    h+='<div style="font-weight:800;font-size:11px;color:var(--blue-d);margin-bottom:6px">💡 Plan sugerido para esta semana</div>';
-    h+='<div style="font-size:9px;line-height:1.5;color:var(--text)">';
-    if(tv[0])h+='📅 <b>Lunes:</b> Carrusel educativo sobre <b>'+H(tv[0].tratamiento)+'</b> — usar FAQs del repositorio<br>';
-    if(tv[1])h+='📅 <b>Miércoles:</b> Post testimonial / antes-después de <b>'+H(tv[1].tratamiento)+'</b><br>';
-    if(est[0])h+='📅 <b>Viernes:</b> Reel educativo sobre <b>'+H(est[0])+'</b> — "5 cosas que no sabías"<br>';
-    h+='📅 <b>Domingo:</b> Story interactiva — Quiz sobre mitos y realidades<br>';
+    if(fq.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--purple)">📚 Repositorio: </div>';fq.slice(0,6).forEach(function(f){h+='<span style="font-size:8px;display:inline-block;padding:1px 6px;background:var(--purple-xl);border-radius:4px;margin:1px">'+H(f.categoria)+' ('+f.n_faqs+')</span> '});h+='</div>';}
     h+='</div>';
-    h+='<button class="st-btn st-btn-c" style="margin-top:8px" onclick="stCrearDesdeBrief()">✨ Crear estos contenidos</button>';
-    h+='</div></div>';
+    h+='<div class="st-card" style="border-color:var(--mint)"><div style="text-align:center;padding:12px;color:var(--label)"><div style="font-size:20px;animation:spin 1s linear infinite">🤖</div>Claude está generando tu plan semanal...</div></div>';
     $('brief-result').innerHTML=h;
+    
+    /* Generar plan con Claude AI */
+    var briefData='TOP VENDIDOS: '+tv.map(function(t){return t.tratamiento+' ('+t.ventas+' ventas)'}).join(', ')+'\nESTRELLAS: '+est.join(', ')+'\nFAQS DISPONIBLES: '+fq.map(function(f){return f.categoria+'('+f.n_faqs+')'}).join(', ')+'\nENFOQUES: '+(d.enfoques||[]).map(function(e){return e.enfoque+' ('+e.dominio+')'}).join(', ');
+    
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:'Eres el director de marketing de Zi Vital, clínica de medicina estética en Lima, Perú. Generas planes de contenido semanales basados en datos reales del negocio. Tono: profesional, educativo, cercano. Plataformas: Instagram, Facebook, TikTok.',
+        messages:[{role:'user',content:'Basándote en estos datos reales del CRM, genera un plan de contenido para los próximos 7 días.\n\n'+briefData+'\n\nResponde SOLO con JSON válido sin markdown:\n{"plan":[{"dia":"Lunes","tipo":"CARRUSEL","titulo":"titulo del contenido","categoria":"CATEGORIA_DEL_CATALOGO","plataformas":["instagram","facebook"],"descripcion":"que debe contener este post","razon":"por qué este contenido esta semana basado en los datos"},{"dia":"Martes",...}],"estrategia":"explicación breve de la estrategia de la semana","meta_semanal":"objetivo medible de la semana"}'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      $('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      var plan=null;
+      try{plan=JSON.parse(text.replace(/```json|```/g,'').trim())}catch(e){plan={plan:[{dia:'Lunes',tipo:'CARRUSEL',titulo:'Contenido educativo',categoria:est[0]||'FACIALES',plataformas:['instagram'],descripcion:'Carrusel educativo basado en FAQs',razon:'Datos del CRM'}],estrategia:'Contenido educativo basado en tratamientos estrella',meta_semanal:'3 posts de calidad'};}
+      
+      var ph='<div class="st-card" style="border-color:var(--mint);border-width:2px">';
+      ph+='<div class="st-sec">🤖 Plan semanal generado por AI</div>';
+      if(plan.estrategia){ph+='<div style="background:var(--green-xl);padding:8px;border-radius:8px;font-size:10px;line-height:1.4;margin-bottom:10px"><b style="color:var(--green)">📋 Estrategia:</b> '+H(plan.estrategia)+'</div>';}
+      if(plan.meta_semanal){ph+='<div style="font-size:9px;color:var(--label);margin-bottom:8px"><b>🎯 Meta:</b> '+H(plan.meta_semanal)+'</div>';}
+      
+      (plan.plan||[]).forEach(function(p,i){
+        var tipoIcon={'POST':'📷','CARRUSEL':'🎠','REEL':'🎬','STORY':'📱','VIDEO':'🎥','BLOG':'📝'}[p.tipo]||'📄';
+        ph+='<div style="padding:8px;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .15s" onmouseover="this.style.borderColor=\'var(--cyan)\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
+        ph+='<div style="display:flex;justify-content:space-between;align-items:center">';
+        ph+='<div><span style="font-weight:800;font-size:11px;color:var(--blue-d)">'+H(p.dia)+'</span> <span style="font-size:10px">'+tipoIcon+' '+H(p.tipo)+'</span></div>';
+        ph+='<button class="st-btn st-btn-c" style="padding:4px 10px;font-size:9px" onclick="stCrearDesdePlan(\''+H(p.tipo||'POST').replace(/'/g,'')+'\',\''+H(p.categoria||'').replace(/'/g,'')+'\',\''+H(p.titulo||'').replace(/'/g,'')+'\',\''+H(p.descripcion||'').replace(/'/g,'')+'\')">✨ Crear</button>';
+        ph+='</div>';
+        ph+='<div style="font-weight:700;font-size:10px;margin-top:3px;color:var(--text)">'+H(p.titulo)+'</div>';
+        if(p.descripcion){ph+='<div style="font-size:9px;color:var(--label);margin-top:2px">'+H(p.descripcion)+'</div>';}
+        if(p.razon){ph+='<div style="font-size:8px;color:var(--green);margin-top:2px">💡 '+H(p.razon)+'</div>';}
+        if(p.plataformas){ph+='<div style="margin-top:3px">'+p.plataformas.map(function(pl){return '<span style="font-size:7px;padding:1px 5px;background:var(--blue-xl);border-radius:3px;margin-right:2px">'+pl+'</span>'}).join('')+'</div>';}
+        ph+='</div>';
+      });
+      
+      ph+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">';
+      ph+='<button class="st-btn st-btn-p" onclick="stAprobarPlan()">✅ Aprobar plan completo</button>';
+      ph+='<button class="st-btn st-btn-s" onclick="stGenerarBrief()">🔄 Regenerar</button>';
+      ph+='</div></div>';
+      
+      /* Reemplazar solo el card del plan, mantener datos CRM */
+      var existing=$('brief-result');
+      var cards=existing.querySelectorAll('.st-card');
+      if(cards.length>=2){cards[1].outerHTML=ph}else{existing.innerHTML+=ph}
+    }).catch(function(err){
+      $('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';
+      /* Fallback local */
+      var ph='<div class="st-card" style="border-color:var(--mint)"><div class="st-sec">💡 Plan sugerido (local)</div><div style="font-size:9px;line-height:1.5">';
+      if(tv[0])ph+='📅 <b>Lunes:</b> Carrusel educativo sobre <b>'+H(tv[0].tratamiento)+'</b><br>';
+      if(tv[1])ph+='📅 <b>Miércoles:</b> Post testimonial de <b>'+H(tv[1].tratamiento)+'</b><br>';
+      if(est[0])ph+='📅 <b>Viernes:</b> Reel "5 cosas que no sabías" de <b>'+H(est[0])+'</b><br>';
+      ph+='📅 <b>Domingo:</b> Story quiz mitos y realidades</div></div>';
+      var existing=$('brief-result');
+      var cards=existing.querySelectorAll('.st-card');
+      if(cards.length>=2){cards[1].outerHTML=ph}else{existing.innerHTML+=ph}
+    });
   });
 }
-function stCrearDesdeBrief(){stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))}
-
+function stCrearDesdePlan(tipo,cat,titulo,desc){
+  stTab('crear',document.querySelector('.st-nav button:nth-child(2)'));
+  setTimeout(function(){
+    if(tipo)$('cr-tipo').value=tipo;
+    if(cat)$('cr-cat').value=cat;
+    if(titulo)$('cr-titulo').value=titulo;
+    if(desc)$('cr-desc').value=desc;
+  },300);
+}
+function stAprobarPlan(){alert('✅ Plan aprobado. Usa los botones "Crear" de cada día para generar los contenidos uno por uno.')}
 /* ═══ EDITAR CONTENIDO ═══ */
 function stEditContent(id){
   sbGet('aos_studio_contenido','id=eq.'+id,function(rows){
