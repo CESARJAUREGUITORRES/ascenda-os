@@ -968,6 +968,21 @@ function abrirModalProgSesion(sesionId,tratNombre){
   o+='</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',o);
 }
+function respAlerta(id, resp) {
+  var cant = null;
+  if (resp !== 'SI' && resp !== 'NO') {
+    cant = parseInt(prompt('¿Cuántos fueron realmente?'));
+    if (isNaN(cant)) return;
+    resp = 'AJUSTAR';
+  }
+  sbR('aos_inv_responder_alerta', {p_alerta_id: id, p_respuesta: resp, p_cantidad_corregida: cant}).then(function(r) {
+    if (r && r.ok) {
+      if (window.AOS_showToast) AOS_showToast('Alerta respondida', '', '');
+      loadDet();
+    }
+  });
+}
+
 function cancelarProgramacion(sesionId, tratNombre) {
   if (!confirm('¿Cancelar programación de ' + tratNombre + '?\nLa sesión volverá a estado pendiente.')) return;
   // Buscar y eliminar la cita vinculada
@@ -1106,6 +1121,22 @@ function mpGuardar(){
 /* ===== MOD-15: SUB DESCUENTOS v2 — 2 col cards ===== */
 var DS={items:[],selTrat:'',rView:'buscar'};
 function rDescuentos(el){var d=AT.det,c=AT.sel;if(!c)return;
+/* Cargar alertas del agente de inventario */
+sbF('/rest/v1/aos_inv_alertas_agente?profesional=eq.'+encodeURIComponent(c.profesional||'')+'&estado=eq.PENDIENTE&order=created_at.desc&limit=5').then(function(alertas){
+  var box=document.getElementById('inv-alertas-agente');
+  if(!box){box=document.createElement('div');box.id='inv-alertas-agente';box.style.cssText='margin-bottom:8px';el.insertBefore(box,el.firstChild);}
+  if(!alertas||!alertas.length){box.innerHTML='';return;}
+  var h='<div style="padding:8px;background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:8px;margin-bottom:6px">';
+  h+='<div style="font-size:9px;font-weight:800;color:#92400E;margin-bottom:4px">🤖 Agente de inventario — Alertas</div>';
+  alertas.forEach(function(a){
+    h+='<div style="padding:4px 0;border-bottom:1px solid #FDE68A;font-size:8px;display:flex;align-items:center;gap:4px">';
+    h+='<span style="flex:1;color:#78350F">'+E(a.mensaje)+'</span>';
+    h+='<button onclick="respAlerta(\''+a.id+'\',\'SI\')" style="padding:2px 6px;border-radius:3px;border:none;background:#059669;color:#fff;font-size:7px;font-weight:700;cursor:pointer">Sí, corregir</button>';
+    h+='<button onclick="respAlerta(\''+a.id+'\',\'NO\')" style="padding:2px 6px;border-radius:3px;border:none;background:#6B7BA8;color:#fff;font-size:7px;font-weight:700;cursor:pointer">No, está bien</button>';
+    h+='</div>';
+  });
+  h+='</div>';box.innerHTML=h;
+});
 var sede=c.sede||'SAN ISIDRO';var prof=c.profesional||'';var asist=c.asistente_nombre||'';
 var esDra=isDra(prof);var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
 var map=getNotasMap();var procNotas=map['NOTA_PROCEDIMIENTO']||[];
