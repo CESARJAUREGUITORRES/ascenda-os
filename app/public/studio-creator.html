@@ -69,8 +69,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div class="cr-format-pill" onclick="crSetFormat('1200x628',this)">FB Cover</div>
     </div>
     <div style="display:flex;gap:6px">
-      <button class="cr-btn cr-btn-s" onclick="crAIGenerate()">🤖 AI</button>
-      <button class="cr-btn cr-btn-d" onclick="crExportPNG()">📥 Exportar PNG</button>
+      <button class="cr-btn cr-btn-s" onclick="crAIGenerate()">🤖 AI Copy</button>
+      <button class="cr-btn cr-btn-s" onclick="crAIImage()">🖼️ AI Imagen</button>
+      <button class="cr-btn cr-btn-d" onclick="crExportPNG()">📥 Exportar</button>
+      <button class="cr-btn cr-btn-s" onclick="crPublishIG()">📷 Publicar IG</button>
       <button class="cr-btn cr-btn-p" onclick="crSaveToStudio()">💾 Guardar</button>
     </div>
   </div>
@@ -281,7 +283,14 @@ function crRenderCanvas(){
   var bg2=s.bg2||CR.brand.c2;
   var bgStyle=s.grad?'linear-gradient('+s.grad+'deg,'+bg+' 0%,'+bg2+' 100%)':bg;
   
-  var html='<div style="width:'+w+'px;height:'+h+'px;background:'+bgStyle+';position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:'+(32*fscale)+'px">';
+  /* Si hay imagen generada, usarla como fondo */
+  var bgImage=s.generatedImage||'';
+  var bgFinal=bgImage?'url('+bgImage+') center/cover no-repeat':bgStyle;
+  
+  var html='<div style="width:'+w+'px;height:'+h+'px;background:'+bgFinal+';position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:'+(32*fscale)+'px">';
+  
+  /* Overlay oscuro si hay imagen de fondo */
+  if(bgImage){html+='<div style="position:absolute;inset:0;background:rgba(0,0,0,0.45)"></div>'}
   
   /* Decoración */
   var deco=s.deco||'none';
@@ -463,6 +472,51 @@ function crSaveToStudio(){
 }
 
 crInit();
+
+/* ═══ AI IMAGE GENERATION ═══ */
+function crAIImage(){
+  var s=CR.slides[CR.sel];if(!s)return;
+  var desc=prompt('Describe la imagen que quieres generar:\n\nEj: "Mujer joven sonriendo después de tratamiento facial, clínica moderna, luz natural, estilo editorial"');
+  if(!desc)return;
+  
+  var brandPrompt='Professional medical aesthetics clinic. Brand: '+CR.brand.nombre+'. Colors: '+CR.brand.c1+', '+CR.brand.c3+'. Style: elegant, professional, warm lighting, clean clinic environment. ';
+  var fullPrompt=brandPrompt+desc+'. High quality, Instagram-ready, 1080x1350 aspect ratio.';
+  
+  $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:13px"><div style="text-align:center"><div style="font-size:32px;animation:spin 1s linear infinite">🖼️</div>Generando imagen con AI...<br><span style="font-size:9px;opacity:.6">Esto puede tomar 10-30 segundos</span></div></div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
+  
+  fetch('/api/studio/generate-image',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:fullPrompt,size:'1024x1024',quality:'medium',model:'gpt-image-1'})
+  }).then(function(r){return r.json()}).then(function(data){
+    if(data.success&&data.image_base64){
+      CR.generatedImage='data:image/png;base64,'+data.image_base64;
+      s.generatedImage=CR.generatedImage;
+      crRenderCanvas();
+      alert('✅ Imagen generada. Se muestra como fondo del slide actual.');
+    }else{
+      alert('Error: '+(data.error||'No se pudo generar la imagen')+'\n\nAsegúrate de configurar OPENAI_API_KEY en Railway.');
+      crRenderCanvas();
+    }
+  }).catch(function(err){
+    alert('Error de conexión: '+err.message+'\n\nConfigura OPENAI_API_KEY en las variables de Railway.');
+    crRenderCanvas();
+  });
+}
+
+/* ═══ PUBLISH TO INSTAGRAM ═══ */
+function crPublishIG(){
+  var caption=prompt('Caption para Instagram:','');
+  if(caption===null)return;
+  
+  if(!CR.generatedImage){
+    alert('Primero genera una imagen con AI (botón 🖼️) o exporta el diseño actual.');
+    return;
+  }
+  
+  /* La imagen necesita estar en una URL pública. Por ahora subimos a Supabase Storage */
+  alert('⚠️ Para publicar directamente a Instagram:\n\n1. Configura INSTAGRAM_ACCESS_TOKEN en Railway\n2. Configura INSTAGRAM_USER_ID en Railway\n3. La imagen debe estar en una URL pública\n\nPor ahora, exporta la imagen y súbela manualmente, o configura las credenciales de Meta.');
+}
 </script>
 </body>
 </html>

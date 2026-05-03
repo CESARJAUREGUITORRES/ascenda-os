@@ -117,6 +117,118 @@ http.createServer(function(req, res) {
     }).on('error', function() { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }); return
   }
   // ===== FIN TIPO DE CAMBIO =====
+  // ═══ STUDIO API — GENERACIÓN DE IMÁGENES CON OPENAI ═══
+  if (p === '/api/studio/generate-image' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var OPENAI_KEY = process.env.OPENAI_API_KEY
+        if (!OPENAI_KEY) { res.writeHead(500); res.end(JSON.stringify({error:'OPENAI_API_KEY not configured'})); return }
+        var prompt = d.prompt || 'Professional medical aesthetic clinic photo'
+        var size = d.size || '1024x1024'
+        var quality = d.quality || 'medium'
+        var model = d.model || 'gpt-image-1'
+        var imageData = JSON.stringify({ model: model, prompt: prompt, n: 1, size: size, quality: quality })
+        var imgReq = https.request({
+          hostname: 'api.openai.com', path: '/v1/images/generations', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + OPENAI_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(imageData) }
+        }, function(imgRes) {
+          var iData = ''; imgRes.on('data', function(c) { iData += c }); imgRes.on('end', function() {
+            try {
+              var result = JSON.parse(iData)
+              if (result.data && result.data[0]) {
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ success: true, image_base64: result.data[0].b64_json, revised_prompt: result.data[0].revised_prompt || '' }))
+              } else {
+                res.writeHead(400, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: 'No image generated', details: result }))
+              }
+            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error',raw:iData.substring(0,200)})) }
+          })
+        })
+        imgReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        imgReq.write(imageData); imgReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO API — PUBLICAR A INSTAGRAM ═══
+  if (p === '/api/studio/publish-instagram' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN
+        var IG_USER_ID = process.env.INSTAGRAM_USER_ID
+        if (!IG_TOKEN || !IG_USER_ID) { res.writeHead(500); res.end(JSON.stringify({error:'Instagram credentials not configured. Set INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_USER_ID in Railway.'})); return }
+        var image_url = d.image_url
+        var caption = d.caption || ''
+        if (!image_url) { res.writeHead(400); res.end(JSON.stringify({error:'image_url required (must be publicly accessible URL)'})); return }
+        /* Step 1: Create media container */
+        var containerData = 'image_url=' + encodeURIComponent(image_url) + '&caption=' + encodeURIComponent(caption) + '&access_token=' + encodeURIComponent(IG_TOKEN)
+        var containerReq = https.request({
+          hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media?' + containerData, method: 'POST',
+          headers: { 'Content-Length': 0 }
+        }, function(cRes) {
+          var cData = ''; cRes.on('data', function(c) { cData += c }); cRes.on('end', function() {
+            try {
+              var container = JSON.parse(cData)
+              if (!container.id) { res.writeHead(400); res.end(JSON.stringify({error:'Container creation failed',details:container})); return }
+              /* Step 2: Publish the container */
+              var publishData = 'creation_id=' + container.id + '&access_token=' + encodeURIComponent(IG_TOKEN)
+              var publishReq = https.request({
+                hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media_publish?' + publishData, method: 'POST',
+                headers: { 'Content-Length': 0 }
+              }, function(pRes) {
+                var pData = ''; pRes.on('data', function(c) { pData += c }); pRes.on('end', function() {
+                  try {
+                    var pub = JSON.parse(pData)
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ success: true, media_id: pub.id, container_id: container.id }))
+                  } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Publish parse error'})) }
+                })
+              })
+              publishReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+              publishReq.end()
+            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Container parse error'})) }
+          })
+        })
+        containerReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        containerReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO API — PUBLISH TO FACEBOOK ═══
+  if (p === '/api/studio/publish-facebook' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var FB_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN
+        var FB_PAGE_ID = process.env.FACEBOOK_PAGE_ID
+        if (!FB_TOKEN || !FB_PAGE_ID) { res.writeHead(500); res.end(JSON.stringify({error:'Facebook credentials not configured'})); return }
+        var postData = JSON.stringify({ message: d.caption || '', url: d.image_url || '', access_token: FB_TOKEN })
+        var endpoint = d.image_url ? '/' + FB_PAGE_ID + '/photos' : '/' + FB_PAGE_ID + '/feed'
+        var fbReq = https.request({
+          hostname: 'graph.facebook.com', path: '/v22.0' + endpoint, method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+        }, function(fbRes) {
+          var fbData = ''; fbRes.on('data', function(c) { fbData += c }); fbRes.on('end', function() {
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: true, result: JSON.parse(fbData) }))
+          })
+        })
+        fbReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        fbReq.write(postData); fbReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO CORS PREFLIGHT ═══
+  if (req.method === 'OPTIONS' && p.startsWith('/api/studio/')) {
+    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ═══ FIN STUDIO API ═══
   // ===== RESEND EMAIL API =====
   if (p === '/api/send-email' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
