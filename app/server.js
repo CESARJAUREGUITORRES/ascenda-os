@@ -249,7 +249,6 @@ http.createServer(function(req, res) {
     }).on('error', function(e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({error:e.message,configured:true})) })
     return
   }
-  // ═══ FIN STUDIO API ═══
   // ═══ STUDIO — PUBLICAR A LINKEDIN ═══
   if (p === '/api/studio/publish-linkedin' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
