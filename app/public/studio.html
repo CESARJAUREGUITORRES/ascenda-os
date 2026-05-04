@@ -79,13 +79,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <h1><span>🎨</span> Ascenda Studio</h1>
   <div class="st-sub">Marketing AI · Contenido inteligente conectado a tu negocio</div>
   <div class="st-nav">
-    <button class="act" onclick="stTab('dashboard',this)">📊 Dashboard</button>
+    <button class="act" onclick="stTab('dashboard',this)">🏠 Home</button>
     <button onclick="stTab('crear',this)">✨ Crear</button>
     <button onclick="stTab('contenido',this)">📋 Contenido</button>
     <button onclick="stTab('redes',this)">📱 Redes</button>
-    <button onclick="stTab('marca',this)">🎨 Marca</button>
-    <button onclick="stTab('aistudio',this)">🤖 AI Studio</button>
-    <button onclick="stTab('analytics',this)">📈 Analytics</button>
+    <button onclick="stTab('repo',this)">📦 Repo</button>
+    <button onclick="stTab('research',this)">🔍 Investigación</button>
+    <button onclick="stTab('agente',this)">🤖 Agente</button>
   </div>
 </div>
 
@@ -139,51 +139,62 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <!-- CREAR CONTENIDO -->
+  <!-- CREAR — Chat Creativo -->
   <div id="tab-crear" class="st-tab-content">
-    <div class="st-card">
-      <div class="st-sec">✨ Crear nuevo contenido</div>
-      <div class="st-grid">
-        <div class="st-fg"><div class="st-fl">Tipo</div>
-          <select class="st-inp" id="cr-tipo"><option>POST</option><option>CARRUSEL</option><option>REEL</option><option>STORY</option><option>VIDEO</option><option>BLOG</option><option>INFOGRAFIA</option></select>
-        </div>
-        <div class="st-fg"><div class="st-fl">Categoría tratamiento</div>
-          <select class="st-inp" id="cr-cat"><option value="">— Seleccionar —</option></select>
-        </div>
-      </div>
-      <div class="st-fg"><div class="st-fl">Título / Tema</div><input class="st-inp" id="cr-titulo" placeholder="Ej: 5 beneficios del HIFU que no conocías"></div>
-      <div class="st-fg">
-        <div style="display:flex;justify-content:space-between;align-items:center"><div class="st-fl">Descripción / Instrucciones</div><span id="cr-char-count" style="font-size:8px;color:var(--label)">0 chars</span></div>
-        <textarea class="st-inp st-ta" id="cr-desc" placeholder="Describe lo que quieres crear..." oninput="stUpdateCharCount()"></textarea>
-        <div id="cr-char-limits" style="display:flex;gap:6px;margin-top:3px;font-size:7px;color:var(--label)">
-          <span>📷 IG: 2,200</span><span>📘 FB: 63,206</span><span>💼 LI: 3,000</span><span>🎵 TT: 2,200</span>
-        </div>
-      </div>
-      <div class="st-grid">
-        <div class="st-fg"><div class="st-fl">Plataformas</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap" id="cr-plats">
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="instagram" checked> 📷 IG</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="facebook"> 📘 FB</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="tiktok"> 🎵 TT</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="linkedin"> 💼 LI</label>
+    <!-- Sub-tabs: Chat AI / Creator HTML -->
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <button class="st-btn st-btn-c" style="font-size:9px" id="crear-btn-chat" onclick="stCrearSub('chat')">💬 Chat AI</button>
+      <button class="st-btn st-btn-s" style="font-size:9px" id="crear-btn-creator" onclick="stCrearSub('creator')">🎨 Creator HTML</button>
+    </div>
+    <!-- Sub: Chat AI -->
+    <div id="crear-sub-chat">
+      <div class="st-card" style="padding:0;overflow:hidden;min-height:500px;display:flex;flex-direction:column">
+        <!-- Header con contexto -->
+        <div style="padding:8px 12px;background:var(--blue-xl);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;font-size:11px;color:var(--blue-d)">✨ Studio AI — Crea imágenes y contenido</div>
+          <div style="display:flex;gap:4px">
+            <button class="st-btn st-btn-s" style="padding:2px 8px;font-size:8px" onclick="stChatAdjuntarRef()">📎 Referencia</button>
+            <button class="st-btn st-btn-s" style="padding:2px 8px;font-size:8px" onclick="stChatLimpiar()">🗑️ Limpiar</button>
           </div>
         </div>
-        <div class="st-fg"><div class="st-fl">Fecha programada</div>
-          <div style="display:flex;gap:4px"><input class="st-inp" id="cr-fecha" type="datetime-local" style="flex:1"><button class="st-btn st-btn-s" style="padding:4px 8px;font-size:8px;white-space:nowrap" onclick="stSugerirHora()" title="Mejor hora según plataforma">🕐 Auto</button></div>
+        <!-- Referencia activa -->
+        <div id="chat-ref-bar" style="display:none;padding:4px 12px;background:#FEF3C7;font-size:8px;color:#92400E;display:flex;align-items:center;gap:4px">
+          <span>📎 Estilo activo:</span><span id="chat-ref-name" style="font-weight:700"></span>
+          <button style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:10px" onclick="stChatQuitarRef()">✕</button>
+        </div>
+        <!-- Mensajes del chat -->
+        <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:350px">
+          <div style="align-self:flex-start;max-width:85%;padding:8px 12px;background:var(--blue-xl);border-radius:12px 12px 12px 2px;font-size:10px;color:var(--blue-d)">
+            👋 ¡Hola! Soy tu asistente creativo. Puedo:<br><br>
+            🖼️ <b>Crear imágenes</b> — "Crea un post para Instagram sobre HIFU"<br>
+            ✍️ <b>Generar copys</b> — "Escribe un carrusel de 5 slides sobre toxina"<br>
+            📋 <b>Adaptar contenido</b> — "Adapta este copy para LinkedIn"<br>
+            🎨 <b>Seguir tu estilo</b> — Adjunta una referencia con 📎<br><br>
+            Las imágenes generadas puedes seleccionarlas para programar directamente.
+          </div>
+        </div>
+        <!-- Input del chat -->
+        <div style="padding:8px 12px;border-top:1px solid var(--border);background:#FAFBFF">
+          <div style="display:flex;gap:4px">
+            <input class="st-inp" id="chat-input" placeholder="Describe lo que quieres crear..." style="flex:1;font-size:11px;border-radius:20px;padding:8px 14px" onkeydown="if(event.key==='Enter')stChatEnviar()">
+            <button class="st-btn st-btn-c" style="border-radius:50%;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center" onclick="stChatEnviar()">▶</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:4px;font-size:7px;color:var(--label)">
+            <span>💡 "post premium sobre ácido hialurónico"</span>
+            <span>·</span>
+            <span>"carrusel 5 slides de mitos del botox"</span>
+          </div>
         </div>
       </div>
-      <div class="st-fg"><div class="st-fl">Template (opcional)</div><select class="st-inp" id="cr-template"><option value="">— Sin template —</option></select></div>
-      <div style="display:flex;gap:4px;margin-top:10px;flex-wrap:wrap">
-        <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar AI</button>
-        <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Borrador</button>
-        <button class="st-btn st-btn-s" onclick="stCrearMultiPlataforma()">🌐 Multi</button>
-        <button class="st-btn st-btn-s" onclick="stSugerirHashtags(($('cr-cat')||{}).value)">#️⃣</button>
-        <button class="st-btn st-btn-g" onclick="stGenerarIdeas()">💡 Ideas</button>
-      </div>
     </div>
-    <div id="cr-preview" style="display:none" class="st-card">
-      <div class="st-sec">👁️ Preview</div>
-      <div id="cr-preview-content"></div>
+    <!-- Sub: Creator HTML -->
+    <div id="crear-sub-creator" style="display:none">
+      <div class="st-card" style="text-align:center;padding:20px">
+        <div style="font-size:14px;margin-bottom:8px">🎨</div>
+        <div style="font-weight:700;font-size:12px;margin-bottom:4px">Studio Creator</div>
+        <div style="font-size:9px;color:var(--label);margin-bottom:10px">Editor visual HTML con templates de marca para crear slides y carruseles</div>
+        <button class="st-btn st-btn-c" onclick="window.open('/studio-creator.html','_blank')">Abrir Studio Creator ↗</button>
+      </div>
     </div>
   </div>
 
@@ -229,8 +240,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <!-- MARCA (Identidad + Templates + Assets + Modelos + Conexiones) -->
-  <div id="tab-marca" class="st-tab-content">
+  <!-- REPO (Marca + Templates + Assets + Modelos) -->
+  <div id="tab-repo" class="st-tab-content">
     <div style="display:flex;gap:4px;margin-bottom:10px;overflow-x:auto">
       <button class="st-btn st-btn-c" style="font-size:9px" id="marca-btn-brand" onclick="stMarcaTab('brand')">🎨 Identidad</button>
       <button class="st-btn st-btn-s" style="font-size:9px" id="marca-btn-templates" onclick="stMarcaTab('templates')">🎯 Templates</button>
@@ -353,8 +364,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="st-card"><div class="st-sec">📊 Publicaciones recientes</div><div id="redes-publicaciones">Cargando...</div></div>
   </div>
 
-  <!-- AI STUDIO (Brief + Competencia + Ideas) -->
-  <div id="tab-aistudio" class="st-tab-content">
+  <!-- INVESTIGACIÓN (Brief + Competencia + Analytics) -->
+  <div id="tab-research" class="st-tab-content">
     <div style="display:flex;gap:4px;margin-bottom:10px">
       <button class="st-btn st-btn-c" style="font-size:9px" id="ai-btn-brief" onclick="stAITab('brief')">🤖 Brief AI</button>
       <button class="st-btn st-btn-s" style="font-size:9px" id="ai-btn-comp" onclick="stAITab('comp')">🔍 Competencia</button>
@@ -391,15 +402,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   </div>
 
   <!-- ANALYTICS -->
-  <div id="tab-analytics" class="st-tab-content">
-    <div class="st-card"><div class="st-sec">📈 Rendimiento del contenido</div><div id="an-kpis">Cargando...</div></div>
-    <div class="st-card"><div class="st-sec">📊 Distribución por tipo</div><div id="an-tipos"></div></div>
-    <div class="st-card"><div class="st-sec">🏷️ Top categorías</div><div id="an-cats"></div></div>
-    <div class="st-card"><div class="st-sec">🤖 Aprendizaje del agente</div><div id="an-agente">Cargando...</div></div>
+  <div id="tab-analytics" style="display:none"><!-- fusionado en research --></div>
+  
+  <!-- AGENTE (Flujo de trabajo + Pendientes + Gasto AI) -->
+  <div id="tab-agente" class="st-tab-content">
     <div class="st-card">
-      <div class="st-sec">📱 Métricas de redes</div>
-      <div id="an-redes">Cargando...</div>
-      <button class="st-btn st-btn-s" style="margin-top:6px" onclick="stPullMetricsIG()">🔄 Actualizar métricas IG</button>
+      <div class="st-sec">🤖 Flujo del agente</div>
+      <div style="display:flex;gap:4px;margin-bottom:10px">
+        <button class="st-btn st-btn-c" style="font-size:9px" id="ag-btn-pendientes" onclick="stAgenteTab('pendientes')">📋 Pendientes</button>
+        <button class="st-btn st-btn-s" style="font-size:9px" id="ag-btn-listos" onclick="stAgenteTab('listos')">✅ Listos</button>
+        <button class="st-btn st-btn-s" style="font-size:9px" id="ag-btn-costos" onclick="stAgenteTab('costos')">💰 Gasto AI</button>
+      </div>
+      <div id="agente-content">Cargando...</div>
     </div>
   </div>
 </div>
@@ -448,9 +462,9 @@ function stTab(name,btn){
   if(name==='crear')stLoadCrearForm();
   if(name==='contenido'){stLoadContenidos();stRenderCal();}
   if(name==='redes'){stLoadRedes();}
-  if(name==='marca'){stLoadBrand();stLoadConnections();stLoadTemplates();stLoadAssets();}
-  if(name==='aistudio'){stLoadCompetencia();}
-  if(name==='analytics')stLoadAnalytics();
+  if(name==='repo'){stLoadBrand();stLoadConnections();stLoadTemplates();stLoadAssets();}
+  if(name==='research'){stLoadCompetencia();}
+  if(name==='agente')stLoadAgente();
 }
 
 /* Sub-tabs Contenido */
@@ -771,6 +785,106 @@ function stLoadDashboard(){
     el.innerHTML=h;
   });
 }
+
+/* ═══ SUB-TAB CREAR ═══ */
+function stCrearSub(sub){
+  ['chat','creator'].forEach(function(s){
+    var el=$('crear-sub-'+s);if(el)el.style.display=s===sub?'block':'none';
+    var btn=$('crear-btn-'+s);if(btn)btn.className='st-btn '+(s===sub?'st-btn-c':'st-btn-s');
+  });
+}
+
+/* ═══ CHAT CREATIVO AI ═══ */
+var CHAT_HISTORY=[];var CHAT_REF=null;var CHAT_IMGS=[];
+function stChatEnviar(){
+  var input=$('chat-input');if(!input||!input.value.trim())return;
+  var msg=input.value.trim();input.value='';
+  stChatAddMsg('user',msg);
+  CHAT_HISTORY.push({role:'user',content:msg});
+  var quiereImg=/imagen|post|diseño|crea.*visual|foto|slide|banner|story|reel|flyer/i.test(msg);
+  if(quiereImg){
+    stChatAddMsg('system','🎨 Generando imagen...');
+    var prompt=msg;if(CHAT_REF)prompt+=' Estilo: '+CHAT_REF.prompt;
+    fetch('/api/studio/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt,size:'1024x1024'})
+    }).then(function(r){return r.json()}).then(function(data){
+      stChatRemoveLast();
+      if(data&&data.url){CHAT_IMGS.push({url:data.url,prompt:msg});stChatAddImg(data.url,msg);stChatGenerarCopy(msg,data.url);}
+      else{stChatAddMsg('assistant','No pude generar la imagen. '+(data&&data.error||'Configura OPENAI_API_KEY en Railway.'));stChatGenerarCopy(msg,null);}
+    }).catch(function(){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error. Generando solo copy...');stChatGenerarCopy(msg,null);});
+  }else{
+    stChatAddMsg('system','✍️ Escribiendo...');stChatGenerarCopy(msg,null);
+  }
+}
+function stChatGenerarCopy(msg,imgUrl){
+  var sys='Eres el agente creativo de Zi Vital (clínica estética Lima, Perú). Copy para redes. Español. Carrusel=slides numerados. Post=copy+hashtags. Tono elegante y cercano.';
+  if(ST.brand)sys+=' Marca: '+ST.brand.nombre_marca+'. Colores: '+(ST.brand.colores||[]).join(',')+'.';
+  if(CHAT_REF)sys+=' Estilo ref: '+CHAT_REF.descripcion;
+  var messages=CHAT_HISTORY.slice(-6).map(function(m){return{role:m.role==='user'?'user':'assistant',content:m.content}});
+  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,messages:messages})
+  }).then(function(r){return r.json()}).then(function(data){
+    stChatRemoveLast();var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+    if(text){CHAT_HISTORY.push({role:'assistant',content:text});stChatAddMsg('assistant',text,imgUrl);}
+    else stChatAddMsg('assistant','Error al generar. Intenta de nuevo.');
+  }).catch(function(){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error de conexión.');});
+}
+function stChatAddMsg(role,text,imgUrl){
+  var msgs=$('chat-msgs');if(!msgs)return;
+  var d=document.createElement('div');var isUser=role==='user';var isSys=role==='system';
+  d.style.cssText='align-self:'+(isUser?'flex-end':'flex-start')+';max-width:85%;padding:8px 12px;border-radius:'+(isUser?'12px 12px 2px 12px':'12px 12px 12px 2px')+';font-size:10px;line-height:1.5;white-space:pre-wrap;'+(isUser?'background:var(--blue);color:#fff':'background:var(--blue-xl);color:var(--blue-d)')+(isSys?';opacity:.7;font-style:italic':'');
+  d.textContent=text;msgs.appendChild(d);
+  if(imgUrl){var id=document.createElement('div');id.style.cssText='align-self:flex-start;max-width:85%';
+    id.innerHTML='<img src="'+H(imgUrl)+'" style="width:100%;max-width:300px;border-radius:10px;border:2px solid var(--border);cursor:pointer" onclick="stChatSelImg(this.src)"><div style="display:flex;gap:4px;margin-top:4px"><button class="st-btn st-btn-g" style="padding:3px 8px;font-size:8px" onclick="stChatSelImg(\''+H(imgUrl)+'\')">✅ Seleccionar</button><button class="st-btn st-btn-s" style="padding:3px 8px;font-size:8px" onclick="stChatDlImg(\''+H(imgUrl)+'\')">💾 Descargar</button></div>';
+    msgs.appendChild(id);}
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function stChatAddImg(url,prompt){/* handled in stChatAddMsg */}
+function stChatRemoveLast(){var m=$('chat-msgs');if(m&&m.lastChild&&m.lastChild.style&&m.lastChild.style.opacity==='0.7')m.removeChild(m.lastChild);}
+function stChatSelImg(url){
+  if(!confirm('¿Guardar imagen como borrador para programar?'))return;
+  sbPost('aos_studio_contenido',{tipo_contenido:'POST',titulo:'Post desde Chat AI',imagen_url:url,plataformas:['instagram'],estado:'BORRADOR',fuente:'CHAT_AI'},function(d){
+    if(d&&d[0])stChatAddMsg('assistant','✅ Imagen guardada como borrador. Ve a Contenido para programar.');
+  });
+}
+function stChatDlImg(url){var a=document.createElement('a');a.href=url;a.download='studio-'+Date.now()+'.png';a.target='_blank';a.click();}
+function stChatAdjuntarRef(){
+  sbGet('aos_studio_assets','order=created_at.desc&limit=10',function(a){
+    if(!a||!a.length){alert('Sin assets. Sube imágenes en Repo → Assets.');return}
+    var msg='Referencia de estilo:\n\n';a.forEach(function(x,i){msg+=(i+1)+'. '+x.nombre+'\n'});
+    var s=prompt(msg+'\nNúmero:');if(!s)return;var i=parseInt(s)-1;
+    if(i>=0&&i<a.length){CHAT_REF={url:a[i].url,nombre:a[i].nombre,prompt:a[i].concepto||'',descripcion:a[i].concepto||a[i].nombre};
+      var bar=$('chat-ref-bar');if(bar)bar.style.display='flex';var nm=$('chat-ref-name');if(nm)nm.textContent=CHAT_REF.nombre;
+      stChatAddMsg('system','📎 Referencia: '+CHAT_REF.nombre);}
+  });
+}
+function stChatQuitarRef(){CHAT_REF=null;var b=$('chat-ref-bar');if(b)b.style.display='none';}
+function stChatLimpiar(){if(!confirm('¿Limpiar?'))return;CHAT_HISTORY=[];CHAT_IMGS=[];var m=$('chat-msgs');if(m)m.innerHTML='<div style="align-self:flex-start;max-width:85%;padding:8px 12px;background:var(--blue-xl);border-radius:12px 12px 12px 2px;font-size:10px;color:var(--blue-d)">👋 Chat limpiado. ¿Qué quieres crear?</div>';}
+
+/* ═══ TAB AGENTE ═══ */
+function stAgenteTab(sub){
+  ['pendientes','listos','costos'].forEach(function(s){var b=$('ag-btn-'+s);if(b)b.className='st-btn '+(s===sub?'st-btn-c':'st-btn-s');});
+  var el=$('agente-content');if(!el)return;
+  if(sub==='pendientes'){
+    sbGet('aos_studio_contenido','estado=in.(BORRADOR,APROBADO)&order=created_at.desc&limit=20',function(r){
+      if(!r||!r.length){el.innerHTML='<div style="font-size:10px;color:var(--label);text-align:center;padding:20px">✅ Sin pendientes</div>';return}
+      var h='<div style="font-size:9px;color:var(--label);margin-bottom:6px">'+r.length+' items pendientes</div>';
+      r.forEach(function(c){h+=stContentCard(c)});el.innerHTML=h;
+    });
+  }else if(sub==='listos'){
+    sbGet('aos_studio_contenido','estado=in.(PROGRAMADO,PUBLICADO)&order=updated_at.desc&limit=20',function(r){
+      if(!r||!r.length){el.innerHTML='<div style="font-size:10px;color:var(--label);text-align:center;padding:20px">Sin contenido listo</div>';return}
+      var h='';r.forEach(function(c){h+=stContentCard(c)});el.innerHTML=h;
+    });
+  }else if(sub==='costos'){
+    sbGet('aos_studio_agente_log','order=created_at.desc&limit=100',function(logs){
+      var ic=0,cc=0;if(logs)logs.forEach(function(l){if(l.tipo==='IMAGEN')ic++;else cc++});
+      var ci=ic*0.04,ct=ci+cc*0.003;
+      el.innerHTML='<div class="st-kpi-grid"><div class="st-kpi"><div class="n" style="color:var(--blue);font-size:18px">'+ic+'</div><div class="l">Imágenes AI</div></div><div class="st-kpi"><div class="n" style="color:var(--green);font-size:18px">'+cc+'</div><div class="l">Copys AI</div></div><div class="st-kpi"><div class="n" style="color:var(--orange);font-size:18px">$'+ci.toFixed(2)+'</div><div class="l">Costo imgs</div></div><div class="st-kpi"><div class="n" style="color:var(--cyan);font-size:18px">$'+ct.toFixed(2)+'</div><div class="l">Total est.</div></div></div><div style="margin-top:6px;font-size:8px;color:var(--label)">💡 ~$0.04/imagen · ~$0.003/copy</div>';
+    });
+  }
+}
+function stLoadAgente(){stAgenteTab('pendientes');}
 
 /* ═══ CONTADOR DE CARACTERES ═══ */
 function stUpdateCharCount(){
