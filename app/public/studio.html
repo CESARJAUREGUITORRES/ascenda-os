@@ -84,6 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <button onclick="stTab('templates',this)">🎯 Templates</button>
     <button onclick="stTab('brand',this)">🎨 Marca</button>
     <button onclick="stTab('assets',this)">📸 Imágenes</button>
+    <button onclick="stTab('modelos',this)">👤 Modelos</button>
     <button onclick="stTab('competencia',this)">🔍 Competencia</button>
     <button onclick="stTab('brief',this)">🤖 Brief AI</button>
   </div>
@@ -299,6 +300,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
+  <!-- MODELOS / AVATARES -->
+  <div id="tab-modelos" class="st-tab-content">
+    <div class="st-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="st-sec" style="margin:0">👤 Repositorio de modelos</div>
+        <label class="st-btn st-btn-p" style="cursor:pointer">📤 Subir modelo <input type="file" accept="image/*" style="display:none" onchange="stUploadModelo(this.files[0])"></label>
+      </div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:10px;background:var(--purple-xl);padding:6px 10px;border-radius:6px">
+        💡 Sube fotos de modelos, avatares o rostros. Se reusan automáticamente en diseños y catálogos. Para t-shirts: sube foto del modelo → elige diseño → AI viste al modelo con tu producto.
+      </div>
+      <div id="mod-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+      <div id="mod-empty" class="st-empty"><div class="icon">👤</div>Sube fotos de modelos que quieras reusar en tus diseños.<br>Pueden ser fotos reales o generadas con AI.</div>
+    </div>
+    <!-- Generar modelo con AI -->
+    <div class="st-card">
+      <div class="st-sec">🤖 Generar modelo con AI</div>
+      <div class="st-grid">
+        <div class="st-fg"><div class="st-fl">Género</div>
+          <select class="st-inp" id="mod-gen"><option value="F">Femenino</option><option value="M">Masculino</option><option value="NB">No binario</option></select>
+        </div>
+        <div class="st-fg"><div class="st-fl">Edad aprox</div>
+          <select class="st-inp" id="mod-edad"><option>Joven (20-30)</option><option>Adulto (30-45)</option><option>Maduro (45+)</option></select>
+        </div>
+      </div>
+      <div class="st-fg"><div class="st-fl">Descripción</div>
+        <input class="st-inp" id="mod-desc" placeholder="Ej: Mujer latina, piel morena, cabello rizado, sonrisa natural, ropa casual"></div>
+      <button class="st-btn st-btn-c" onclick="stGenerarModelo()">🤖 Generar modelo con AI</button>
+      <div id="mod-gen-result" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <!-- COMPETENCIA -->
   <div id="tab-competencia" class="st-tab-content">
     <div class="st-card">
@@ -367,6 +399,7 @@ function stTab(name,btn){
   if(name==='brand')stLoadBrand();
   if(name==='crear')stLoadCrearForm();
   if(name==='competencia')stLoadCompetencia();
+  if(name==='modelos')stLoadModelos();
   if(name==='assets')stLoadAssets();
 }
 
@@ -904,7 +937,8 @@ function stEditContent(id){
       h+='<button class="st-btn st-btn-g" onclick="stUpdateContent(\''+id+'\',\'APROBADO\')">✅ Aprobar</button>';
       h+='<button class="st-btn st-btn-p" onclick="stUpdateContent(\''+id+'\',\'PROGRAMADO\')">📅 Programar</button>';
       h+='<button class="st-btn st-btn-s" onclick="stUpdateContent(\''+id+'\',\'BORRADOR\')">💾 Guardar</button>';
-      h+='<button class="st-btn st-btn-s" onclick="stDeleteContent(\''+id+'\')" style="color:var(--red)">🗑 Eliminar</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stDeleteContent(\''+id+'\')" style="color:var(--red)">🗑</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stGenerarBlog(\''+id+'\')">📝 → Blog</button>';
       h+='</div>';
       $('cr-preview-content').innerHTML=h;
     },300);
@@ -1232,6 +1266,76 @@ function generateScheduleDates(start,count,freq){
     else if(freq==='4'){/* día de por medio */dates.push(new Date(d));d.setDate(d.getDate()+2);}
   }
   return dates;
+}
+
+/* ═══ MODELOS / AVATARES ═══ */
+function stLoadModelos(){
+  sbGet('aos_studio_modelos','activo=eq.true&order=favorito.desc,created_at.desc&limit=24',function(rows){
+    if(!rows||!rows.length){if($('mod-grid'))$('mod-grid').innerHTML='';if($('mod-empty'))$('mod-empty').style.display='block';return}
+    if($('mod-empty'))$('mod-empty').style.display='none';
+    var h='';rows.forEach(function(m){
+      h+='<div style="position:relative;border-radius:8px;overflow:hidden;border:2px solid '+(m.favorito?'var(--cyan)':'transparent')+';cursor:pointer;aspect-ratio:3/4;background:#1E293B">';
+      h+='<img src="'+H(m.foto_url)+'" style="width:100%;height:100%;object-fit:cover" loading="lazy">';
+      h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:4px 6px">';
+      h+='<div style="font-size:8px;color:#fff;font-weight:700">'+H(m.nombre)+'</div>';
+      h+='<div style="font-size:7px;color:rgba(255,255,255,.6)">'+(m.usos||0)+' usos</div></div></div>';
+    });
+    $('mod-grid').innerHTML=h;
+  });
+}
+function stUploadModelo(file){
+  if(!file)return;
+  var nombre=prompt('Nombre del modelo:');if(!nombre)return;
+  var fname='modelo_'+Date.now()+'.'+file.name.split('.').pop();
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var binary=atob(e.target.result.split(',')[1]);var bytes=new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    fetch(SB_URL+'/storage/v1/object/studio-assets/'+fname,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type,'x-upsert':'true'},body:bytes
+    }).then(function(){
+      sbPost('aos_studio_modelos',{nombre:nombre,foto_url:SB_URL+'/storage/v1/object/public/studio-assets/'+fname,tipo:'MODELO'},function(){stLoadModelos();alert('✅ Modelo guardado')});
+    });
+  };reader.readAsDataURL(file);
+}
+function stGenerarModelo(){
+  var desc=($('mod-desc')||{}).value;if(!desc){alert('Describe el modelo');return}
+  var gen=($('mod-gen')||{}).value||'F';var edad=($('mod-edad')||{}).value||'Adulto';
+  $('mod-gen-result').innerHTML='<div style="text-align:center;padding:12px;color:var(--label)"><div style="font-size:20px;animation:spin 1s linear infinite">🤖</div>Generando...</div>';
+  fetch('/api/studio/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:'Professional model photo. '+desc+'. Studio lighting, clean bg. '+(gen==='F'?'Female':'Male')+', '+edad,size:'1024x1536',quality:'high',model:'gpt-image-1'})
+  }).then(function(r){return r.json()}).then(function(data){
+    if(data.success&&data.image_base64){ST.tempModeloImg='data:image/png;base64,'+data.image_base64;
+      $('mod-gen-result').innerHTML='<img src="'+ST.tempModeloImg+'" style="max-width:150px;border-radius:8px"><br><button class="st-btn st-btn-g" style="margin-top:4px" onclick="stSaveGenModelo()">💾 Guardar</button>';
+    }else{$('mod-gen-result').innerHTML='<div style="color:var(--red);font-size:9px">Configura OPENAI_API_KEY en Railway</div>';}
+  }).catch(function(){$('mod-gen-result').innerHTML='<div style="color:var(--red);font-size:9px">Error</div>'});
+}
+function stSaveGenModelo(){
+  if(!ST.tempModeloImg)return;var nombre=prompt('Nombre:','Modelo AI');if(!nombre)return;
+  var binary=atob(ST.tempModeloImg.split(',')[1]);var bytes=new Uint8Array(binary.length);
+  for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  var fname='modelo_ai_'+Date.now()+'.png';
+  fetch(SB_URL+'/storage/v1/object/studio-assets/'+fname,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/png','x-upsert':'true'},body:bytes
+  }).then(function(){sbPost('aos_studio_modelos',{nombre:nombre,foto_url:SB_URL+'/storage/v1/object/public/studio-assets/'+fname,tipo:'AVATAR'},function(){stLoadModelos();$('mod-gen-result').innerHTML='✅ Guardado'})});
+}
+
+/* ═══ BLOG DESDE POST ═══ */
+function stGenerarBlog(contentId){
+  sbGet('aos_studio_contenido','id=eq.'+contentId,function(rows){
+    if(!rows||!rows[0])return;var r=rows[0];
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:'Redactor SEO. Conviertes posts de Instagram en blogs de 500+ palabras. H1+meta+3 secciones H2+CTA. JSON sin markdown.',
+        messages:[{role:'user',content:'Post: '+r.copy_principal+'\nCat: '+(r.categoria_tratamiento||'')+'\n\nJSON:\n{"titulo_seo":"...","meta_description":"max160","slug":"url-amigable","contenido_html":"<h2>...</h2><p>...</p>","palabras":500,"tags":["t1"]}'}]
+      })
+    }).then(function(r2){return r2.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      try{var blog=JSON.parse(text.replace(/```json|```/g,'').trim());
+        sbPost('aos_studio_blogs',{contenido_id:contentId,titulo_seo:blog.titulo_seo,slug:blog.slug,meta_description:blog.meta_description,contenido_html:blog.contenido_html,palabras:blog.palabras||0,categoria:r.categoria_tratamiento,tags:blog.tags||[]},function(d){
+          if(d&&d[0])alert('✅ Blog: '+blog.titulo_seo+' ('+blog.palabras+' palabras)');
+        });
+      }catch(e){alert('Error al generar blog')}
+    });
+  });
 }
 
 /* ═══ CREAR MULTI-PLATAFORMA ═══ */
