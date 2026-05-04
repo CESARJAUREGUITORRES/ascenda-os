@@ -62,11 +62,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <!-- TOPBAR -->
   <div class="cr-topbar">
     <h1>🎨 Studio Creator</h1>
-    <div class="cr-format-pills">
-      <div class="cr-format-pill sel" onclick="crSetFormat('1080x1350',this)">4:5 Post</div>
-      <div class="cr-format-pill" onclick="crSetFormat('1080x1080',this)">1:1 Feed</div>
-      <div class="cr-format-pill" onclick="crSetFormat('1080x1920',this)">9:16 Story</div>
-      <div class="cr-format-pill" onclick="crSetFormat('1200x628',this)">FB Cover</div>
+    <div class="cr-format-pills" id="cr-format-bar">
+      <select id="cr-plat-sel" onchange="crLoadFormats(this.value)" style="background:transparent;border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:9px;font-weight:700;padding:3px 6px;font-family:DM Sans">
+        <option value="instagram">📷 Instagram</option>
+        <option value="facebook">📘 Facebook</option>
+        <option value="tiktok">🎵 TikTok</option>
+        <option value="linkedin">💼 LinkedIn</option>
+        <option value="web">🌐 Web</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+        <option value="youtube">▶️ YouTube</option>
+      </select>
+      <select id="cr-fmt-sel" onchange="crApplyFormat()" style="background:transparent;border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:9px;font-weight:700;padding:3px 6px;font-family:DM Sans;max-width:160px">
+        <option value="1080x1350">4:5 Post Vertical</option>
+      </select>
     </div>
     <div style="display:flex;gap:6px">
       <button class="cr-btn cr-btn-s" onclick="crAIGenerate()">🤖 AI Copy</button>
@@ -129,10 +137,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
     <div class="cr-fg"><div class="cr-fl">Tamaño título</div><input type="range" id="pr-fsize" min="16" max="56" value="32" oninput="crUpdateSlide()" style="width:100%"></div>
     <div class="cr-fg"><div class="cr-fl">Color texto</div>
-      <div style="display:flex;gap:4px">
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
         <div class="cr-color-swatch sel" style="background:#fff" onclick="crSetTextColor('#FFFFFF',this)"></div>
         <div class="cr-color-swatch" style="background:#071D4A" onclick="crSetTextColor('#071D4A',this)"></div>
         <div class="cr-color-swatch" style="background:#00C9A7" onclick="crSetTextColor('#00C9A7',this)"></div>
+        <div class="cr-color-swatch" style="background:#C9A96E" onclick="crSetTextColor('#C9A96E',this)"></div>
+        <div class="cr-color-swatch" style="background:#8B7355" onclick="crSetTextColor('#8B7355',this)"></div>
+        <div class="cr-color-swatch" style="background:#111111" onclick="crSetTextColor('#111111',this)"></div>
+        <div class="cr-color-swatch" style="background:#C8FF00" onclick="crSetTextColor('#C8FF00',this)"></div>
         <div class="cr-color-swatch" style="background:#F59E0B" onclick="crSetTextColor('#F59E0B',this)"></div>
       </div>
     </div>
@@ -172,19 +184,32 @@ function crInit(){
   /* Load brand */
   fetch(SB_URL+'/rest/v1/aos_studio_brand?limit=1',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json()}).then(function(b){
     if(b&&b[0]){CR.brand={nombre:b[0].nombre_marca||'Zi Vital',c1:b[0].color_primario||'#071D4A',c2:b[0].color_secundario||'#0A4FBF',c3:b[0].color_acento||'#00C9A7',c4:b[0].color_fondo||'#F0F4FC',font:b[0].fuente_titulo||'Exo 2'};}
-    crBuildPalette();crLoadTemplates();crNewProject();
+    crBuildPalette();crLoadTemplates();crNewProject();crLoadFormats('instagram');
   });
 }
 
 function crBuildPalette(){
-  var colors=[CR.brand.c1,CR.brand.c2,CR.brand.c3,'#1E1E2E','#FFFFFF','#F43F5E','#8B5CF6','#F59E0B','#10B981','#EC4899'];
+  var colors=[CR.brand.c1,CR.brand.c2,CR.brand.c3,'#FFFFFF','#F5EDE4','#EDE3D6','#C9A96E','#8B7355','#1E1E2E','#111111','#F43F5E','#8B5CF6','#F59E0B','#10B981','#C8FF00','#000000'];
   var h='';colors.forEach(function(c){h+='<div class="cr-color-swatch" style="background:'+c+'" onclick="crSetBg(\''+c+'\',this)"></div>'});
   $('pr-colors').innerHTML=h;
 }
 
 /* ═══ TEMPLATES ═══ */
 var TEMPLATES=[
-  {id:'faq',name:'❓ FAQ Educativa',desc:'Pregunta + respuesta',slides:[
+  {id:'zi-elegant',name:'✨ Zi Vital Elegante',desc:'Estilo dorado premium como la marca',slides:[
+    {titulo:'TRATAMIENTO\nCORPORAL',sub:'',cta:'',bg:'#F5EDE4',bg2:'#EDE3D6',grad:'180',font:'Playfair Display',fsize:42,textColor:'#8B7355',deco:'none',logo:true,num:false},
+    {titulo:'ENZIMAS\nPARA\nGRASA\nLOCALIZADA',sub:'Tratamiento localizado\ny progresivo',cta:'Localiza  •  Define  •  Armoniza',bg:'#F5EDE4',bg2:'#EDE3D6',grad:'180',font:'Playfair Display',fsize:36,textColor:'#8B7355',deco:'dots',logo:true,num:false}
+  ]},
+  {id:'zi-dark',name:'🌙 Zi Vital Premium',desc:'Fondo oscuro, texto dorado',slides:[
+    {titulo:'SKIN\nSIGNATURE',sub:'Tu piel es la base de todo',cta:'Agenda tu consulta',bg:'#071D4A',bg2:'#0A1628',grad:'180',font:'Playfair Display',fsize:40,textColor:'#C9A96E',deco:'circle',logo:true,num:false}
+  ]},
+  {id:'zi-mint',name:'🍃 Zi Vital Fresh',desc:'Cyan/mint moderno',slides:[
+    {titulo:'HARMONY\nDESIGN',sub:'Restaura equilibrio facial\nsin alterar identidad',cta:'📍 Agenda gratis',bg:'#00C9A7',bg2:'#00E5A0',grad:'135',font:'Exo 2',fsize:36,textColor:'#071D4A',deco:'blob',logo:true,num:false}
+  ]},
+  {id:'bold-clean',name:'⚡ Bold & Clean',desc:'Fondo blanco, texto negro, acento verde',slides:[
+    {titulo:'Portafolio\nsocial media\ndesign.',sub:'Así se ven las redes sociales\nde mis clientes más recientes.',cta:'Desliza para seguir leyendo →',bg:'#FFFFFF',bg2:'#F5F5F5',grad:'180',font:'Space Grotesk',fsize:44,textColor:'#111111',deco:'none',logo:true,num:false,accentColor:'#C8FF00'}
+  ]},
+  {id:'faq',name:'❓ FAQ Educativa',desc:'Pregunta + respuesta en carrusel',slides:[
     {titulo:'¿Sabías que...?',sub:'Desliza para descubrir',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'circle',logo:true,num:true},
     {titulo:'La respuesta es...',sub:'Dato científico respaldado',cta:'',bg:null,bg2:'#0A4FBF',grad:'135',font:'Exo 2',fsize:28,textColor:'#fff',deco:'none',logo:true,num:true},
     {titulo:'¿Quieres saber más?',sub:'Agenda tu consulta gratuita',cta:'📲 Link en bio',bg:null,bg2:null,grad:'',font:'Exo 2',fsize:32,textColor:'#fff',deco:'corner',logo:true,num:true}
@@ -197,20 +222,17 @@ var TEMPLATES=[
   ]},
   {id:'tips',name:'💡 Tips / Consejos',desc:'Lista de consejos prácticos',slides:[
     {titulo:'5 TIPS',sub:'Para [resultado deseado]',cta:'Guarda este post 📌',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'dots',logo:true,num:true},
-    {titulo:'1. Primer consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true},
-    {titulo:'2. Segundo consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true},
-    {titulo:'3. Tercer consejo',sub:'Explicación breve y clara',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true}
+    {titulo:'1. Primer consejo',sub:'Explicación breve',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true},
+    {titulo:'2. Segundo consejo',sub:'Explicación breve',cta:'',bg:null,bg2:'#0A4FBF',grad:'180',font:'DM Sans',fsize:28,textColor:'#fff',deco:'circle',logo:true,num:true}
   ]},
   {id:'promo',name:'🔥 Promoción',desc:'Oferta con urgencia',slides:[
-    {titulo:'🔥 PROMO MAYO',sub:'Solo por tiempo limitado',cta:'',bg:'#DC2626',bg2:'#991B1B',grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'stripe',logo:true,num:false},
-    {titulo:'TRATAMIENTO',sub:'Antes: S/XXX\nAhora: S/YYY',cta:'⏰ Hasta agotar stock',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:32,textColor:'#fff',deco:'corner',logo:true,num:false}
+    {titulo:'🔥 PROMO MAYO',sub:'Solo por tiempo limitado',cta:'',bg:'#DC2626',bg2:'#991B1B',grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'stripe',logo:true,num:false}
   ]},
-  {id:'single',name:'📷 Post Individual',desc:'Una sola imagen',slides:[
+  {id:'single',name:'📷 Post Individual',desc:'Una sola imagen limpia',slides:[
     {titulo:'Tu mensaje aquí',sub:'Subtítulo descriptivo',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'blob',logo:true,num:false}
   ]},
   {id:'antes',name:'✨ Antes / Después',desc:'Transformación',slides:[
     {titulo:'TRANSFORMACIÓN',sub:'Resultado real con [tratamiento]',cta:'',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:36,textColor:'#fff',deco:'stripe',logo:true,num:false},
-    {titulo:'ANTES',sub:'Estado inicial del paciente',cta:'',bg:'#374151',bg2:'#1F2937',grad:'180',font:'Exo 2',fsize:40,textColor:'#fff',deco:'none',logo:false,num:false},
     {titulo:'DESPUÉS',sub:'Resultado en X sesiones',cta:'📍 ¿Quieres resultados así?',bg:null,bg2:null,grad:'135',font:'Exo 2',fsize:40,textColor:'#fff',deco:'corner',logo:true,num:false}
   ]}
 ];
@@ -384,8 +406,21 @@ function crSetFont(target,font,el){
 }
 function crSetFormat(size,el){
   var parts=size.split('x');CR.format={w:parseInt(parts[0]),h:parseInt(parts[1])};
-  document.querySelectorAll('.cr-format-pill').forEach(function(p){p.classList.remove('sel')});el.classList.add('sel');
   crRenderCanvas();
+}
+function crLoadFormats(plat){
+  fetch(SB_URL+'/rest/v1/aos_studio_formatos?plataforma=eq.'+plat+'&order=orden',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json()}).then(function(fmts){
+    var sel=$('cr-fmt-sel');if(!sel)return;
+    sel.innerHTML='';
+    (fmts||[]).forEach(function(f,i){
+      sel.innerHTML+='<option value="'+f.ancho+'x'+f.alto+'" '+(i===0?'selected':'')+'>'+H(f.nombre)+' ('+f.ancho+'x'+f.alto+')</option>';
+    });
+    if(fmts&&fmts[0])crSetFormat(fmts[0].ancho+'x'+fmts[0].alto);
+  });
+}
+function crApplyFormat(){
+  var sel=$('cr-fmt-sel');if(!sel)return;
+  crSetFormat(sel.value);
 }
 
 /* ═══ EXPORT PNG ═══ */
