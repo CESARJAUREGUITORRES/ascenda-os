@@ -66,7 +66,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .st-cal-header{text-align:center;font-weight:700;color:var(--label);padding:4px;font-size:8px}
 .st-cal-day{text-align:center;padding:6px 2px;border-radius:6px;border:1px solid transparent;min-height:36px}
 .st-cal-day.has-content{background:var(--blue-xl);border-color:var(--blue);cursor:pointer}
-.st-cal-day.today{border-color:var(--cyan);font-weight:800}
+.st-cal-day.today{border-color:var(--cyan);font-weight:800;background:var(--blue-xl)}
+.st-cal-day.past{opacity:.45}
 .st-cal-day .day-num{font-weight:700;font-size:10px}
 .st-cal-day .day-dots{margin-top:2px}
 .st-cal-day .dot{display:inline-block;width:4px;height:4px;border-radius:50%;margin:0 1px}
@@ -570,11 +571,11 @@ function stLoadDashboard(){
     var el=$('st-dash-conn');if(!el)return;
     var h='';
     [{k:'instagram',i:'📷'},{k:'facebook',i:'📘'},{k:'linkedin',i:'💼'},{k:'tiktok',i:'🎵'},{k:'openai',i:'🤖'}].forEach(function(p){
-      var ok=c[p.k]&&c[p.k].configured;
+      var ok=c&&c[p.k]&&c[p.k].configured;
       h+='<span style="font-size:9px;padding:3px 8px;border-radius:10px;border:1px solid '+(ok?'var(--green)':'var(--border)')+';background:'+(ok?'var(--green-xl)':'transparent')+';color:'+(ok?'var(--green)':'var(--label)')+'">'+p.i+(ok?' ✓':' ✕')+'</span>';
     });
     el.innerHTML=h;
-  }).catch(function(){});
+  }).catch(function(){var el=$('st-dash-conn');if(el)el.innerHTML='<span style="font-size:8px;color:var(--label)">No se pudo verificar</span>'});
   
   /* Próximos a publicar */
   rpc('aos_studio_dashboard',{},function(d){
@@ -939,10 +940,11 @@ function stRenderCal(){
   for(var i=0;i<startDow;i++)h+='<div class="st-cal-day"></div>';
   for(var d=1;d<=lastDay;d++){
     var isToday=d===today.getDate()&&ST.mes===today.getMonth()&&ST.anio===today.getFullYear();
-    h+='<div class="st-cal-day'+(isToday?' today':'')+'"><div class="day-num">'+d+'</div></div>';
+    var isPast=new Date(ST.anio,ST.mes,d)<new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    h+='<div class="st-cal-day'+(isToday?' today':'')+(isPast?' past':'')+'" onclick="stShowDayDetail('+d+',[])" style="cursor:pointer"><div class="day-num">'+d+'</div></div>';
   }
   $('cal-grid').innerHTML=h;
-  /* cargar contenidos del mes y marcar días */
+  /* Cargar contenidos del mes */
   var desde=ST.anio+'-'+String(ST.mes+1).padStart(2,'0')+'-01';
   var hasta=ST.anio+'-'+String(ST.mes+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
   sbGet('aos_studio_contenido','fecha_programada=gte.'+desde+'T00:00:00&fecha_programada=lte.'+hasta+'T23:59:59&order=fecha_programada',function(rows){
@@ -951,12 +953,19 @@ function stRenderCal(){
     var cells=document.querySelectorAll('#cal-grid .st-cal-day');
     cells.forEach(function(cell){
       var num=cell.querySelector('.day-num');if(!num)return;
-      var day=parseInt(num.textContent);if(byDay[day]){
+      var day=parseInt(num.textContent);
+      if(byDay[day]){
         cell.classList.add('has-content');
         var dots='<div class="day-dots">';
-        byDay[day].forEach(function(r){var c=r.estado==='PUBLICADO'?'var(--green)':r.estado==='PROGRAMADO'?'var(--purple)':'var(--orange)';dots+='<span class="dot" style="background:'+c+'"></span>'});
+        byDay[day].slice(0,4).forEach(function(r){
+          var c=r.estado==='PUBLICADO'?'var(--green)':r.estado==='PROGRAMADO'?'var(--purple)':r.estado==='ERROR_PUBLICACION'?'var(--red)':'var(--orange)';
+          dots+='<span class="dot" style="background:'+c+'"></span>';
+        });
+        if(byDay[day].length>4)dots+='<span style="font-size:6px;color:var(--label)">+'+( byDay[day].length-4)+'</span>';
         dots+='</div>';cell.innerHTML+=dots;
         cell.onclick=function(){stShowDayDetail(day,byDay[day])};
+      }else{
+        cell.onclick=function(){stShowDayDetail(day,[])};
       }
     });
   });
@@ -1214,7 +1223,7 @@ function stChatEdit(contentId){
 function stDeleteContent(id){
   if(!confirm('¿Eliminar este contenido?'))return;
   fetch(SB_URL+'/rest/v1/aos_studio_contenido?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
-  .then(function(){alert('Eliminado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'))});
+  .then(function(){alert('Eliminado');stTab('contenidos',document.querySelector('.st-nav button:nth-child(3)'))}).catch(function(e){alert('Error: '+e.message)});
 }
 function stUpdateContent(id,estado){
   var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
@@ -1430,7 +1439,7 @@ function stProgramarDirecto(){
 function stDeleteAsset(id){
   if(!confirm('¿Eliminar esta imagen?'))return;
   fetch(SB_URL+'/rest/v1/aos_studio_assets?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
-  .then(function(){stLoadAssets()});
+  .then(function(){stLoadAssets()}).catch(function(e){alert('Error: '+e.message)});
 }
 
 /* ═══ LOTE — PROGRAMAR MÚLTIPLES IMÁGENES ═══ */
@@ -1664,7 +1673,7 @@ function stAddCompetidor(){
 }
 function stDeleteCompetidor(id){
   if(!confirm('¿Eliminar?'))return;
-  fetch(SB_URL+'/rest/v1/aos_studio_competencia?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(){stLoadCompetencia()});
+  fetch(SB_URL+'/rest/v1/aos_studio_competencia?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(){stLoadCompetencia()}).catch(function(e){alert('Error: '+e.message)});
 }
 function stAnalizarCompetencia(){
   $('comp-analysis').innerHTML='<div style="text-align:center;padding:12px;color:var(--label)"><div style="font-size:20px;animation:spin 1s linear infinite">🤖</div>Analizando...</div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
