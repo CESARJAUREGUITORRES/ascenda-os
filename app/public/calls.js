@@ -174,13 +174,17 @@ function loadHistorial(){
   var x=_ctx();
   if(!x.a)return;
   _rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){
+    try{
     if(!d)return;
     var tbody=document.getElementById('cc-historial');
+    if(!tbody){console.warn('[CC] cc-historial no encontrado');return;}
     var items=(d.llamadasHoy||[]).map(function(l){return{hora:String(l.hora||'').slice(0,5),num:l.num||'',trat:l.trat||'',estado:l.estado||''};});
     if(!items.length){tbody.innerHTML='<tr><td colspan="4" class="ld">Sin llamadas hoy</td></tr>';return;}
     var chipMap={'CITA CONFIRMADA':'est-cita','SIN CONTACTO':'est-sc','NO CONTESTA':'est-sc','NO LE INTERESA':'est-ni','SEGUIMIENTO':'est-seg','PROVINCIA':'est-base','SACAR DE LA BASE':'est-base'};
     tbody.innerHTML=items.slice(0,30).map(function(r){var est=r.estado==='NO CONTESTA'?'SIN CONTACTO':(r.estado||'—'),cls=chipMap[r.estado]||chipMap[est]||'est-base';return '<tr data-num="'+escH(r.num||'')+'" style="cursor:pointer;"><td style="white-space:nowrap;">'+escH(r.hora||'—')+'</td><td style="font-family:Exo\\ 2,sans-serif;font-weight:700;font-size:11px;">'+escH(r.num||'—')+'</td><td style="font-size:9px;color:#6B7BA8;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH((r.trat||'—').slice(0,14))+'</td><td><span class="est-chip '+cls+'">'+est+'</span></td></tr>';}).join('');
+    }catch(ex){console.error('[CC] loadHistorial render error:',ex);}
   },function(e){
+    console.error('[CC] loadHistorial fetch error:',e);
     var tbody=document.getElementById('cc-historial');
     if(tbody)tbody.innerHTML='<tr><td colspan="4" class="ld">Error cargando historial</td></tr>';
   });
