@@ -146,7 +146,7 @@ http.createServer(function(req, res) {
           })
           var gemReq = https.request({
             hostname: 'generativelanguage.googleapis.com',
-            path: '/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + geminiKey,
+            path: '/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=' + geminiKey,
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(geminiBody) }
           }, function(gRes) {
