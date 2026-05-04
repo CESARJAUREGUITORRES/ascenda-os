@@ -98,8 +98,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <!-- DASHBOARD -->
   <div id="tab-dashboard" class="st-tab-content act">
     <div id="st-dash-alertas"></div>
+    <!-- Notificaciones del agente -->
+    <div id="st-dash-notifs"></div>
     <!-- KPIs principales -->
     <div class="st-card"><div class="st-sec">📊 Métricas del Studio</div><div id="st-dash-kpis">Cargando...</div></div>
+    <!-- Progreso vs meta -->
+    <div class="st-card"><div class="st-sec">🎯 Progreso vs Meta mensual</div><div id="st-dash-meta">Cargando...</div></div>
     <!-- Gráfica de producción -->
     <div class="st-card"><div class="st-sec">📈 Producción semanal</div><div id="st-dash-chart" style="height:120px;position:relative"></div></div>
     <!-- Best time to post -->
@@ -129,6 +133,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div class="st-sec">🤖 FAQs para WhatBot</div>
       <div style="font-size:9px;color:var(--label);margin-bottom:6px">FAQs más relevantes del repositorio — listas para el chatbot</div>
       <div id="st-dash-whatbot">Cargando...</div>
+    </div>
+    <!-- Repost sugerido -->
+    <div class="st-card">
+      <div class="st-sec">♻️ Contenido para reciclar</div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:6px">Posts exitosos de hace 30+ días que puedes republicar con copy fresco</div>
+      <div id="st-dash-repost">Cargando...</div>
     </div>
   </div>
 
@@ -479,6 +489,19 @@ function stTab(name,btn){
 
 /* ═══ DASHBOARD ═══ */
 function stLoadDashboard(){
+  /* Notificaciones del agente */
+  rpc('aos_studio_notificaciones',{},function(notifs){
+    var el=$('st-dash-notifs');if(!el)return;
+    if(!notifs||!notifs.length){el.innerHTML='';return}
+    var h='';notifs.forEach(function(n){
+      var bg=n.tipo==='ERROR'?'#FEF2F2':n.tipo==='WARNING'?'#FEF3C7':'var(--blue-xl)';
+      var border=n.tipo==='ERROR'?'#DC2626':n.tipo==='WARNING'?'#D97706':'var(--blue)';
+      h+='<div style="padding:8px 12px;background:'+bg+';border-left:3px solid '+border+';border-radius:6px;margin-bottom:4px;font-size:10px;display:flex;align-items:center;gap:6px">';
+      h+='<span style="font-size:14px">'+n.icono+'</span><span>'+H(n.mensaje)+'</span></div>';
+    });
+    el.innerHTML=h;
+  });
+  
   /* Alertas fechas clave */
   rpc('aos_studio_fechas_proximas',{p_dias:21},function(fechas){
     var ab=$('st-dash-alertas');if(!ab)return;
@@ -615,6 +638,39 @@ function stLoadDashboard(){
       h+='</div>';
     }
     if(r.tasa_aprobacion_semana>0){h+='<div style="font-size:9px;color:var(--label);margin-top:2px">🤖 Aprobación: <b style="color:'+(r.tasa_aprobacion_semana>=70?'var(--green)':'var(--orange)')+'">'+r.tasa_aprobacion_semana+'%</b></div>';}
+    el.innerHTML=h;
+  });
+  /* Progreso vs meta mensual */
+  rpc('aos_studio_progreso_meta',{},function(m){
+    var el=$('st-dash-meta');if(!el||!m)return;
+    var items=[
+      {l:'Posts',hecho:m.posts_hechos||0,meta:m.posts_meta||12,color:'var(--blue)'},
+      {l:'Stories',hecho:m.stories_hechos||0,meta:m.stories_meta||8,color:'var(--purple)'},
+      {l:'Reels',hecho:m.reels_hechos||0,meta:m.reels_meta||4,color:'var(--orange)'},
+      {l:'Blogs',hecho:m.blogs_hechos||0,meta:m.blogs_meta||2,color:'var(--green)'}
+    ];
+    var h='';items.forEach(function(it){
+      var pct=it.meta?Math.min(Math.round(it.hecho/it.meta*100),100):0;
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px">';
+      h+='<span style="font-weight:700;min-width:50px">'+it.l+'</span>';
+      h+='<div style="flex:1;height:12px;background:var(--border);border-radius:6px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+it.color+';border-radius:6px;transition:width .3s"></div></div>';
+      h+='<span style="min-width:55px;text-align:right;font-weight:700;font-size:9px;color:'+(pct>=100?'var(--green)':pct>=50?it.color:'var(--red)')+'">'+it.hecho+'/'+it.meta+' ('+pct+'%)</span>';
+      h+='</div>';
+    });
+    el.innerHTML=h;
+  });
+  /* Contenido para reciclar/repost */
+  rpc('aos_studio_candidatos_repost',{p_limite:3},function(rps){
+    var el=$('st-dash-repost');if(!el)return;
+    if(!rps||!rps.length){el.innerHTML='<div style="font-size:9px;color:var(--label)">No hay contenido antiguo para reciclar aún. Necesitas posts publicados de hace 30+ días.</div>';return}
+    var h='';rps.forEach(function(r){
+      h+='<div style="display:flex;gap:6px;padding:6px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;align-items:center">';
+      if(r.imagen){h+='<img src="'+H(r.imagen)+'" style="width:36px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">';}
+      h+='<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+H(r.titulo||'')+'</div>';
+      h+='<div style="font-size:8px;color:var(--label)">'+H(r.categoria||'')+' · hace '+r.dias_desde+' días</div></div>';
+      h+='<button class="st-btn st-btn-c" style="padding:3px 8px;font-size:8px;flex-shrink:0" onclick="stRepostContenido(\''+r.id+'\')">♻️ Repost</button>';
+      h+='</div>';
+    });
     el.innerHTML=h;
   });
 }
@@ -1905,6 +1961,36 @@ function stLoadAnalytics(){
       ch+='<span style="min-width:25px;text-align:right;font-weight:700">'+c.total+'</span></div>';
     });
     catEl.innerHTML=ch;
+  });
+}
+
+/* ═══ REPOST CONTENIDO ═══ */
+function stRepostContenido(id){
+  sbGet('aos_studio_contenido','id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var r=rows[0];
+    if(!confirm('¿Reciclar este contenido?\n\n'+r.titulo+'\n\nSe creará una copia como borrador con copy regenerado por AI.'))return;
+    /* Generar copy fresco basado en el original */
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+        system:'Reescribes copy de redes sociales. Mantén el tema pero cambia el enfoque, hook y estructura. Solo devuelves el copy nuevo.',
+        messages:[{role:'user',content:'Reescribe este post con un enfoque fresco. Mismo tema, diferente ángulo:\n\n'+r.copy_principal+'\n\nDevuelve solo el copy nuevo:'}]
+      })
+    }).then(function(resp){return resp.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      sbPost('aos_studio_contenido',{
+        tipo_contenido:r.tipo_contenido,titulo:r.titulo+' (repost)',
+        copy_principal:text||r.copy_principal,categoria_tratamiento:r.categoria_tratamiento,
+        imagen_url:r.imagen_url,plataformas:r.plataformas||['instagram'],
+        estado:'BORRADOR',fuente:'REPOST'
+      },function(d){if(d&&d[0])alert('✅ Contenido reciclado como borrador. Revísalo y prográmalo.');});
+    }).catch(function(){
+      sbPost('aos_studio_contenido',{
+        tipo_contenido:r.tipo_contenido,titulo:r.titulo+' (repost)',
+        copy_principal:r.copy_principal,categoria_tratamiento:r.categoria_tratamiento,
+        imagen_url:r.imagen_url,plataformas:r.plataformas||['instagram'],
+        estado:'BORRADOR',fuente:'REPOST'
+      },function(d){if(d&&d[0])alert('✅ Contenido duplicado (sin reescribir)');});
+    });
   });
 }
 
