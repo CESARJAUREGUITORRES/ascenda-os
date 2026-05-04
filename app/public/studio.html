@@ -156,6 +156,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar con AI</button>
         <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Guardar borrador</button>
         <button class="st-btn st-btn-s" onclick="stCrearMultiPlataforma()">🌐 Multi-plataforma</button>
+        <button class="st-btn st-btn-s" onclick="stSugerirHashtags(($('cr-cat')||{}).value)">#️⃣ Hashtags</button>
       </div>
     </div>
     <!-- Preview del contenido generado -->
@@ -304,13 +305,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div id="tab-feed" class="st-tab-content">
     <div class="st-card">
       <div class="st-sec">📱 Preview del Feed de Instagram</div>
-      <div style="font-size:9px;color:var(--label);margin-bottom:10px">Así se verá tu feed de Instagram con los posts programados y publicados</div>
-      <div style="max-width:360px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden">
-        <div style="padding:10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue-d),var(--cyan));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px">Zi</div>
-          <div><div style="font-weight:700;font-size:11px">zivital</div><div style="font-size:8px;color:var(--label)">Medicina Estética con Propósito</div></div>
+      <div style="max-width:375px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)">
+        <!-- IG Header -->
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EFEFEF">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;color:#071D4A">Zi</div></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:11px;color:#262626">zivital</div><div style="font-size:8px;color:#8E8E8E">Medicina Estética con Propósito</div></div>
+          <div style="font-size:14px;cursor:pointer">⋯</div>
         </div>
-        <div id="feed-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px"></div>
+        <!-- Stories bar -->
+        <div style="display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid #EFEFEF;overflow-x:auto">
+          <div style="text-align:center;flex-shrink:0"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div></div><div style="font-size:7px;color:#262626;margin-top:2px">Promos</div></div>
+          <div style="text-align:center;flex-shrink:0"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">💉</div></div><div style="font-size:7px;color:#262626;margin-top:2px">Toxina</div></div>
+          <div style="text-align:center;flex-shrink:0"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">🧴</div></div><div style="font-size:7px;color:#262626;margin-top:2px">Skincare</div></div>
+          <div style="text-align:center;flex-shrink:0"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">💆</div></div><div style="font-size:7px;color:#262626;margin-top:2px">Facial</div></div>
+        </div>
+        <!-- Grid tabs -->
+        <div style="display:flex;border-bottom:1px solid #EFEFEF">
+          <div style="flex:1;text-align:center;padding:8px;border-bottom:2px solid #262626;font-size:12px">⊞</div>
+          <div style="flex:1;text-align:center;padding:8px;font-size:12px;color:#8E8E8E">▶</div>
+          <div style="flex:1;text-align:center;padding:8px;font-size:12px;color:#8E8E8E">👤</div>
+        </div>
+        <!-- Posts grid -->
+        <div id="feed-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px"></div>
       </div>
     </div>
   </div>
@@ -368,8 +384,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="st-card">
       <div class="st-sec">🤖 Brief semanal — Agente Investigador</div>
       <div style="font-size:10px;color:var(--label);margin-bottom:10px">El agente lee los datos de tu CRM (ventas, conversión, repositorio) y genera un plan de contenido semanal.</div>
-      <button class="st-btn st-btn-c" onclick="stGenerarBrief()" id="brief-btn">🤖 Generar brief semanal</button>
-      <button class="st-btn st-btn-p" onclick="stGenerarPlan3Meses()">📅 Plan de 3 meses</button>
+      <button class="st-btn st-btn-c" onclick="stGenerarBrief()" id="brief-btn">🤖 Brief semanal</button>
+      <button class="st-btn st-btn-p" onclick="stGenerarPlan3Meses()">📅 Plan 3 meses</button>
+      <button class="st-btn st-btn-g" onclick="stGenerarIdeas()">💡 Ideas desde FAQs</button>
       <div id="brief-result" style="margin-top:12px"></div>
     </div>
   </div>
@@ -1078,7 +1095,9 @@ function stEditContent(id){
       h+='<button class="st-btn st-btn-p" onclick="stUpdateContent(\''+id+'\',\'PROGRAMADO\')">📅 Programar</button>';
       h+='<button class="st-btn st-btn-s" onclick="stUpdateContent(\''+id+'\',\'BORRADOR\')">💾 Guardar</button>';
       h+='<button class="st-btn st-btn-s" onclick="stDeleteContent(\''+id+'\')" style="color:var(--red)">🗑</button>';
-      h+='<button class="st-btn st-btn-s" onclick="stGenerarBlog(\''+id+'\')">📝 → Blog</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stGenerarBlog(\''+id+'\')">📝 Blog</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stDuplicarContenido(\''+id+'\')">📋 Duplicar</button>';
+      h+='<button class="st-btn st-btn-s" onclick="stVerHistorial(\''+id+'\')">🕐 Historial</button>';
       h+='<button class="st-btn st-btn-c" onclick="stPublicarContenido(\''+id+'\')" style="margin-left:auto">🚀 Publicar</button>';
       h+='</div>';
       $('cr-preview-content').innerHTML=h;
@@ -1112,6 +1131,8 @@ function stChatEdit(contentId){
       var lastMsg=chat.lastElementChild;if(lastMsg)lastMsg.innerHTML='<span style="display:inline-block;padding:4px 8px;background:var(--green-xl);color:var(--green);border-radius:8px 8px 8px 0;font-size:9px">✅ Copy actualizado</span>';
       /* Log del agente */
       sbPost('aos_studio_agente_log',{tipo:'CREACION',agente:'EDITOR',entrada:{copy_original:currentCopy,instruccion:msg},salida:{copy_editado:text}},function(){});
+      /* Guardar versión en historial */
+      stGuardarVersion(contentId,text,msg);
     }
     chat.scrollTop=chat.scrollHeight;
   }).catch(function(){
@@ -1805,6 +1826,92 @@ function stLoadAnalytics(){
       ch+='<span style="min-width:25px;text-align:right;font-weight:700">'+c.total+'</span></div>';
     });
     catEl.innerHTML=ch;
+  });
+}
+
+/* ═══ DUPLICAR CONTENIDO PARA OTRA PLATAFORMA ═══ */
+function stDuplicarContenido(id){
+  sbGet('aos_studio_contenido','id=eq.'+id,function(rows){
+    if(!rows||!rows[0])return;var r=rows[0];
+    var platOpts=['instagram','facebook','linkedin','tiktok'];
+    var currentPlats=r.plataformas||[];
+    var available=platOpts.filter(function(p){return currentPlats.indexOf(p)<0});
+    if(!available.length){alert('Este contenido ya está en todas las plataformas');return}
+    var target=prompt('Duplicar a cuál plataforma?\n\nDisponibles: '+available.join(', '));
+    if(!target||available.indexOf(target)<0)return;
+    
+    /* Generar copy adaptado */
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+        system:'Adaptas copy de redes sociales. Solo devuelves el copy adaptado, sin explicaciones.',
+        messages:[{role:'user',content:'Adapta este copy de '+currentPlats[0]+' a '+target+':\n\n'+r.copy_principal+'\n\nDevuelve solo el copy adaptado:'}]
+      })
+    }).then(function(resp){return resp.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      sbPost('aos_studio_contenido',{
+        tipo_contenido:r.tipo_contenido,titulo:r.titulo+' ('+target+')',
+        copy_principal:text||r.copy_principal,categoria_tratamiento:r.categoria_tratamiento,
+        imagen_url:r.imagen_url,plataformas:[target],estado:'BORRADOR',fuente:'DUPLICADO'
+      },function(d){if(d&&d[0])alert('✅ Duplicado a '+target);});
+    }).catch(function(){
+      sbPost('aos_studio_contenido',{
+        tipo_contenido:r.tipo_contenido,titulo:r.titulo+' ('+target+')',
+        copy_principal:r.copy_principal,categoria_tratamiento:r.categoria_tratamiento,
+        imagen_url:r.imagen_url,plataformas:[target],estado:'BORRADOR',fuente:'DUPLICADO'
+      },function(d){if(d&&d[0])alert('✅ Duplicado (sin adaptar)');});
+    });
+  });
+}
+
+/* ═══ HISTORIAL DE VERSIONES ═══ */
+function stGuardarVersion(contenidoId,copyTexto,instruccion){
+  sbGet('aos_studio_versiones','contenido_id=eq.'+contenidoId+'&order=version.desc&limit=1',function(rows){
+    var nextVersion=(rows&&rows[0])?rows[0].version+1:1;
+    sbPost('aos_studio_versiones',{contenido_id:contenidoId,version:nextVersion,copy_texto:copyTexto,instruccion:instruccion||null},function(){});
+  });
+}
+function stVerHistorial(contenidoId){
+  sbGet('aos_studio_versiones','contenido_id=eq.'+contenidoId+'&order=version.desc&limit=10',function(rows){
+    if(!rows||!rows.length){alert('Sin historial de versiones');return}
+    var msg='📋 Historial de versiones:\n\n';
+    rows.forEach(function(v){
+      msg+='v'+v.version+' ('+new Date(v.created_at).toLocaleString('es-PE')+')\n';
+      msg+=v.copy_texto.substring(0,100)+'...\n';
+      if(v.instruccion)msg+='→ '+v.instruccion+'\n';
+      msg+='\n';
+    });
+    alert(msg);
+  });
+}
+
+/* ═══ GENERADOR DE IDEAS DESDE FAQs ═══ */
+function stGenerarIdeas(){
+  rpc('aos_studio_ideas_contenido',{p_limite:8},function(ideas){
+    if(!ideas||!ideas.length){alert('No hay ideas nuevas — todas las FAQs ya se usaron en contenido');return}
+    var h='<div class="st-card" style="border-color:var(--mint);border-width:2px"><div class="st-sec">💡 Ideas de contenido (FAQs no utilizadas)</div>';
+    ideas.forEach(function(idea){
+      var tipoIcon={'POST':'📷','CARRUSEL':'🎠'}[idea.tipo_sugerido]||'📷';
+      h+='<div style="padding:6px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer" onclick="stCrearDesdePlan(\''+H(idea.tipo_sugerido).replace(/'/g,'')+'\',\''+H(idea.categoria||'').replace(/'/g,'')+'\',\''+H(idea.faq_pregunta||'').replace(/'/g,'')+'\',\''+H(idea.faq_respuesta||'').replace(/'/g,'')+'\')">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+      h+='<div style="font-weight:700;font-size:10px;color:var(--blue-d)">'+H(idea.hook_sugerido||'')+'</div>';
+      h+='<span style="font-size:8px;color:var(--label)">'+tipoIcon+' '+H(idea.tipo_sugerido)+'</span></div>';
+      h+='<div style="font-size:8px;color:var(--label);margin-top:2px">'+H(idea.categoria||'')+' — '+H((idea.faq_respuesta||'').substring(0,80))+'...</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    if($('brief-result'))$('brief-result').innerHTML=h+($('brief-result').innerHTML||'');
+    else alert('Abre el tab Brief AI para ver las ideas');
+  });
+}
+
+/* ═══ SUGERIR HASHTAGS ═══ */
+function stSugerirHashtags(cat){
+  rpc('aos_studio_sugerir_hashtags',{p_categoria:cat||null,p_limite:15},function(tags){
+    if(!tags||!tags.length)return;
+    var currentCopy=($('cr-gen-copy')||$('cr-desc')||{}).value||'';
+    var hashtags=tags.map(function(t){return t.hashtag}).join(' ');
+    if($('cr-gen-copy'))$('cr-gen-copy').value=currentCopy+'\n\n'+hashtags;
+    else if($('cr-desc'))$('cr-desc').value=currentCopy+'\n\n'+hashtags;
   });
 }
 
