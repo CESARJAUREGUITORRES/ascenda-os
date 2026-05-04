@@ -96,24 +96,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 <div class="st-body">
   <!-- DASHBOARD -->
   <div id="tab-dashboard" class="st-tab-content act">
-    <!-- Alertas de fechas clave -->
     <div id="st-dash-alertas"></div>
-    <div class="st-card"><div class="st-sec">📊 Estado del Studio</div><div id="st-dash-kpis">Cargando...</div></div>
+    <!-- KPIs principales -->
+    <div class="st-card"><div class="st-sec">📊 Métricas del Studio</div><div id="st-dash-kpis">Cargando...</div></div>
+    <!-- Gráfica de producción -->
+    <div class="st-card"><div class="st-sec">📈 Producción semanal</div><div id="st-dash-chart" style="height:120px;position:relative"></div></div>
+    <!-- Best time to post -->
+    <div class="st-card"><div class="st-sec">🕐 Mejor hora para publicar</div><div id="st-dash-besttime">Cargando...</div></div>
+    <!-- Acciones rápidas -->
     <div class="st-card"><div class="st-sec">⚡ Acciones rápidas</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
-        <button class="st-btn st-btn-c" style="justify-content:center" onclick="window.open('/studio-creator.html','_blank')">🎨 Editor Visual</button>
-        <button class="st-btn st-btn-c" style="justify-content:center" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear con AI</button>
-        <button class="st-btn st-btn-p" style="justify-content:center" onclick="stTab('brief',document.querySelector('.st-nav button:nth-child(10)'))">🤖 Brief Semanal</button>
-        <button class="st-btn st-btn-s" style="justify-content:center" onclick="stTab('assets',document.querySelector('.st-nav button:nth-child(8)'))">📸 Subir Imágenes</button>
-        <button class="st-btn st-btn-g" style="justify-content:center" onclick="stTab('feed',document.querySelector('.st-nav button:nth-child(5)'))">📱 Ver Feed IG</button>
-        <button class="st-btn st-btn-s" style="justify-content:center" onclick="stPullMetricsIG()">📊 Métricas IG</button>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <button class="st-btn st-btn-c" style="justify-content:center;font-size:9px" onclick="window.open('/studio-creator.html','_blank')">🎨 Creator</button>
+        <button class="st-btn st-btn-c" style="justify-content:center;font-size:9px" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear AI</button>
+        <button class="st-btn st-btn-p" style="justify-content:center;font-size:9px" onclick="stTab('brief',document.querySelector('.st-nav button:nth-child(11)'))">🤖 Brief</button>
+        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stTab('assets',document.querySelector('.st-nav button:nth-child(8)'))">📸 Subir</button>
+        <button class="st-btn st-btn-g" style="justify-content:center;font-size:9px" onclick="stTab('feed',document.querySelector('.st-nav button:nth-child(5)'))">📱 Feed</button>
+        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stPullMetricsIG()">📊 Métricas</button>
       </div>
     </div>
+    <!-- Estado de conexiones rápido -->
+    <div class="st-card"><div class="st-sec">🔌 Conexiones</div><div id="st-dash-conn" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+    <!-- Próximos -->
     <div class="st-card"><div class="st-sec">📋 Próximos a publicar</div><div id="st-dash-prox">Cargando...</div></div>
-    <!-- WhatBot / FAQ más populares -->
+    <!-- WhatBot -->
     <div class="st-card">
       <div class="st-sec">🤖 FAQs para WhatBot</div>
-      <div style="font-size:9px;color:var(--label);margin-bottom:6px">Las FAQs más relevantes del repositorio — listas para alimentar al chatbot</div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:6px">FAQs más relevantes del repositorio — listas para el chatbot</div>
       <div id="st-dash-whatbot">Cargando...</div>
     </div>
   </div>
@@ -430,7 +438,7 @@ function stTab(name,btn){
 
 /* ═══ DASHBOARD ═══ */
 function stLoadDashboard(){
-  /* Alertas de fechas clave */
+  /* Alertas fechas clave */
   rpc('aos_studio_fechas_proximas',{p_dias:21},function(fechas){
     var ab=$('st-dash-alertas');if(!ab)return;
     if(!fechas||!fechas.length){ab.innerHTML='';return}
@@ -441,26 +449,96 @@ function stLoadDashboard(){
       h+='<div style="display:flex;justify-content:space-between;align-items:center">';
       h+='<div><span style="font-weight:800;font-size:12px;color:'+urgencia+'">'+H(f.nombre)+'</span>';
       h+='<span style="font-size:9px;color:var(--label);margin-left:8px">'+new Date(f.fecha).toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long'})+'</span></div>';
-      h+='<span style="font-weight:900;font-size:14px;color:'+urgencia+'">'+f.dias_faltan+' días</span></div>';
+      h+='<span style="font-weight:900;font-size:14px;color:'+urgencia+'">'+f.dias_faltan+'d</span></div>';
       if(f.sugerencia){h+='<div style="font-size:9px;color:var(--text);margin-top:3px">💡 '+H(f.sugerencia)+'</div>';}
       h+='</div>';
     });
     ab.innerHTML=h;
   });
-  /* KPIs */
-  rpc('aos_studio_dashboard',{},function(d){
-    if(!d){$('st-dash-kpis').innerHTML='Error';return}
+  
+  /* KPIs con métricas reales */
+  rpc('aos_studio_dashboard_metricas',{},function(d){
+    if(!d){$('st-dash-kpis').innerHTML='Sin datos';return}
     var h='<div class="st-kpi-grid">';
-    [{l:'Contenidos',v:d.contenidos_total||0,c:'var(--blue)'},{l:'Publicados',v:d.publicados_mes||0,c:'var(--green)'},{l:'Programados',v:d.programados_pendientes||0,c:'var(--purple)'},{l:'Templates',v:d.templates||0,c:'var(--orange)'}].forEach(function(k){
-      h+='<div class="st-kpi"><div class="n" style="color:'+k.c+'">'+k.v+'</div><div class="l">'+k.l+'</div></div>';
+    var kpis=[
+      {l:'Este mes',v:d.contenidos_mes||0,c:'var(--blue)'},
+      {l:'Publicados',v:d.publicados_total||0,c:'var(--green)'},
+      {l:'Programados',v:d.programados_pendientes||0,c:'var(--purple)'},
+      {l:'Borradores',v:d.borradores||0,c:'var(--orange)'},
+      {l:'Assets',v:d.assets_total||0,c:'var(--cyan)'},
+      {l:'Modelos',v:d.modelos_total||0,c:'var(--label)'},
+      {l:'Blogs',v:d.blogs_total||0,c:'#059669'},
+      {l:'Errores',v:d.errores||0,c:d.errores?'var(--red)':'var(--label)'}
+    ];
+    kpis.forEach(function(k){h+='<div class="st-kpi"><div class="n" style="color:'+k.c+';font-size:18px">'+k.v+'</div><div class="l">'+k.l+'</div></div>'});
+    h+='</div>';
+    /* Barra de estados */
+    var estados=d.por_estado||{};var total=d.contenidos_total||1;
+    h+='<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:4px">';
+    var colors={PUBLICADO:'#059669',PROGRAMADO:'#7C3AED',APROBADO:'#D97706',BORRADOR:'#94A3B8',EN_PROCESO:'#F59E0B',ERROR_PUBLICACION:'#DC2626',IDEA:'#CBD5E1'};
+    Object.keys(estados).forEach(function(e){var pct=Math.max(estados[e]/total*100,2);h+='<div style="width:'+pct+'%;background:'+(colors[e]||'#CBD5E1')+'" title="'+e+': '+estados[e]+'"></div>'});
+    h+='</div>';
+    h+='<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">';
+    Object.keys(estados).forEach(function(e){h+='<span style="font-size:7px;display:flex;align-items:center;gap:2px"><span style="width:6px;height:6px;border-radius:50%;background:'+(colors[e]||'#CBD5E1')+'"></span>'+e+': '+estados[e]+'</span>'});
+    h+='</div>';
+    $('st-dash-kpis').innerHTML=h;
+    
+    /* Gráfica de producción semanal */
+    var chart=$('st-dash-chart');if(chart){
+      var prod=d.produccion_semanal||[];
+      if(prod.length<2){chart.innerHTML='<div style="font-size:9px;color:var(--label);text-align:center;padding:20px">Necesitas al menos 2 semanas de datos para ver la gráfica</div>';return}
+      var maxV=Math.max.apply(null,prod.map(function(p){return p.total}))||1;
+      var barW=Math.floor(90/prod.length);
+      var gh='<div style="display:flex;align-items:flex-end;gap:4px;height:100px;padding:0 4px">';
+      prod.forEach(function(p){
+        var h2=Math.max(Math.round(p.total/maxV*90),4);
+        var weekLabel=new Date(p.semana).toLocaleDateString('es-PE',{day:'numeric',month:'short'});
+        gh+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">';
+        gh+='<span style="font-size:8px;font-weight:800;color:var(--blue)">'+p.total+'</span>';
+        gh+='<div style="width:100%;height:'+h2+'px;background:linear-gradient(to top,var(--blue),var(--cyan));border-radius:4px 4px 0 0;min-width:20px"></div>';
+        gh+='<span style="font-size:6px;color:var(--label)">'+weekLabel+'</span>';
+        gh+='</div>';
+      });
+      gh+='</div>';
+      chart.innerHTML=gh;
+    }
+  });
+  
+  /* Best time to post */
+  rpc('aos_studio_best_time_post',{},function(bt){
+    var el=$('st-dash-besttime');if(!el)return;
+    if(!bt){el.innerHTML='Sin datos';return}
+    var rec=bt.recomendacion||{};
+    var platRec=bt.por_plataforma||{};
+    var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    var plats=[{k:'instagram',i:'📷',n:'Instagram'},{k:'facebook',i:'📘',n:'Facebook'},{k:'linkedin',i:'💼',n:'LinkedIn'},{k:'tiktok',i:'🎵',n:'TikTok'}];
+    plats.forEach(function(p){
+      var pr=platRec[p.k]||{};
+      h+='<div style="padding:6px 8px;background:#FAFBFF;border:1px solid var(--border);border-radius:6px">';
+      h+='<div style="font-weight:700;font-size:10px;margin-bottom:2px">'+p.i+' '+p.n+'</div>';
+      h+='<div style="font-size:8px;color:var(--label)">📅 '+(pr.mejores_dias||[]).join(', ')+'</div>';
+      h+='<div style="font-size:8px;color:var(--green);font-weight:700">🕐 '+(pr.mejores_horas||[]).join(' · ')+'</div>';
+      h+='</div>';
     });
     h+='</div>';
-    if(d.brand){h+='<div style="font-size:10px;color:var(--label);display:flex;align-items:center;gap:6px">🎨 Marca: <b style="color:var(--blue-d)">'+H(d.brand.nombre||'')+'</b>';
-      if(d.brand.colores)d.brand.colores.forEach(function(c){h+='<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:'+c+';border:1px solid var(--border)"></span>'});
-      h+='</div>';
-    }
-    var cx=(d.conexiones||[]);if(cx.length){h+='<div style="margin-top:8px;font-size:9px;color:var(--label)">Conexiones: ';cx.forEach(function(c){h+='<span class="st-pill" style="background:'+(c.estado==='CONECTADO'?'var(--green-xl)':'#FEF2F2')+';color:'+(c.estado==='CONECTADO'?'var(--green)':'var(--red)')+'">'+H(c.plataforma)+' '+c.estado+'</span> '});h+='</div>';}
-    $('st-dash-kpis').innerHTML=h;
+    if(rec.nota){h+='<div style="font-size:8px;color:var(--label);margin-top:6px;font-style:italic">'+H(rec.nota)+'</div>';}
+    el.innerHTML=h;
+  });
+  
+  /* Conexiones rápidas */
+  fetch('/api/studio/connections').then(function(r){return r.json()}).then(function(c){
+    var el=$('st-dash-conn');if(!el)return;
+    var h='';
+    [{k:'instagram',i:'📷'},{k:'facebook',i:'📘'},{k:'linkedin',i:'💼'},{k:'tiktok',i:'🎵'},{k:'openai',i:'🤖'}].forEach(function(p){
+      var ok=c[p.k]&&c[p.k].configured;
+      h+='<span style="font-size:9px;padding:3px 8px;border-radius:10px;border:1px solid '+(ok?'var(--green)':'var(--border)')+';background:'+(ok?'var(--green-xl)':'transparent')+';color:'+(ok?'var(--green)':'var(--label)')+'">'+p.i+(ok?' ✓':' ✕')+'</span>';
+    });
+    el.innerHTML=h;
+  }).catch(function(){});
+  
+  /* Próximos a publicar */
+  rpc('aos_studio_dashboard',{},function(d){
+    /* Dashboard data loaded - brand info used elsewhere */
   });
   sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO)&order=fecha_programada.asc&limit=5',function(rows){
     if(!rows||!rows.length){$('st-dash-prox').innerHTML='<div class="st-empty"><div class="icon">📭</div>No hay contenido programado.<br>Crea tu primer post o genera un brief con AI.</div>';return}
