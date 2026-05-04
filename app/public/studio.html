@@ -87,6 +87,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <button onclick="stTab('modelos',this)">👤 Modelos</button>
     <button onclick="stTab('competencia',this)">🔍 Competencia</button>
     <button onclick="stTab('brief',this)">🤖 Brief AI</button>
+    <button onclick="stTab('analytics',this)">📈 Analytics</button>
   </div>
 </div>
 
@@ -358,6 +359,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div id="brief-result" style="margin-top:12px"></div>
     </div>
   </div>
+
+  <!-- ANALYTICS -->
+  <div id="tab-analytics" class="st-tab-content">
+    <div class="st-card"><div class="st-sec">📈 Rendimiento del contenido</div><div id="an-kpis">Cargando...</div></div>
+    <div class="st-card"><div class="st-sec">🤖 Aprendizaje del agente</div><div id="an-agente">Cargando...</div></div>
+    <div class="st-card"><div class="st-sec">📊 Producción por tipo</div><div id="an-tipos"></div></div>
+  </div>
 </div>
 
 <script>
@@ -404,6 +412,7 @@ function stTab(name,btn){
   if(name==='modelos')stLoadModelos();
   if(name==='assets')stLoadAssets();
   if(name==='brief'){/* Brief se carga manualmente con botón */}
+  if(name==='analytics')stLoadAnalytics();
 }
 
 /* ═══ DASHBOARD ═══ */
@@ -1520,6 +1529,56 @@ function stGenerarPlan3Meses(){
         h+='</div>';$('brief-result').innerHTML+=h;
       }catch(e){$('brief-result').innerHTML+='<div style="color:var(--red);font-size:10px">Error al generar plan. Intenta de nuevo.</div>';}
     }).catch(function(){$('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';});
+  });
+}
+
+/* ═══ ANALYTICS ═══ */
+function stLoadAnalytics(){
+  rpc('aos_studio_rendimiento',{},function(d){
+    if(!d){$('an-kpis').innerHTML='Sin datos';return}
+    var h='<div class="st-kpi-grid">';
+    var total=0;var pub=0;
+    (d.por_tipo||[]).forEach(function(t){total+=t.total;pub+=t.publicados||0});
+    [{l:'Total contenidos',v:total,c:'var(--blue)'},{l:'Publicados',v:pub,c:'var(--green)'},{l:'Tasa publicación',v:total?Math.round(pub/total*100)+'%':'0%',c:'var(--purple)'},{l:'Fuentes AI',v:(d.por_fuente||{}).AGENTE_INVESTIGADOR||0,c:'var(--cyan)'}].forEach(function(k){
+      h+='<div class="st-kpi"><div class="n" style="color:'+k.c+'">'+k.v+'</div><div class="l">'+k.l+'</div></div>';
+    });
+    h+='</div>';
+    /* Por tipo */
+    if(d.por_tipo&&d.por_tipo.length){h+='<div style="margin-top:8px">';
+      d.por_tipo.forEach(function(t){
+        h+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px"><span style="font-weight:700;min-width:80px">'+H(t.tipo)+'</span>';
+        var pct=total?Math.round(t.total/total*100):0;
+        h+='<div style="flex:1;height:14px;background:var(--border);border-radius:7px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:var(--blue);border-radius:7px;transition:width .3s"></div></div>';
+        h+='<span style="min-width:30px;text-align:right;font-weight:700;color:var(--blue)">'+t.total+'</span></div>';
+      });h+='</div>';}
+    $('an-kpis').innerHTML=h;
+    
+    /* Por tipo tabla */
+    if(d.por_tipo&&d.por_tipo.length){
+      var th='<table style="width:100%;border-collapse:collapse;font-size:9px"><tr style="background:var(--blue-xl)"><th style="text-align:left;padding:4px 8px">Tipo</th><th style="text-align:right;padding:4px">Total</th><th style="text-align:right;padding:4px">Aprobados</th><th style="text-align:right;padding:4px">Programados</th><th style="text-align:right;padding:4px">Publicados</th></tr>';
+      d.por_tipo.forEach(function(t){
+        th+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-weight:700">'+H(t.tipo)+'</td><td style="text-align:right;padding:4px">'+t.total+'</td><td style="text-align:right;padding:4px">'+t.aprobados+'</td><td style="text-align:right;padding:4px">'+t.programados+'</td><td style="text-align:right;padding:4px;color:var(--green);font-weight:700">'+t.publicados+'</td></tr>';
+      });th+='</table>';$('an-tipos').innerHTML=th;
+    }
+  });
+  /* Aprendizaje del agente */
+  rpc('aos_studio_agente_aprendizajes',{},function(d){
+    if(!d){$('an-agente').innerHTML='Sin datos';return}
+    var h='<div class="st-kpi-grid">';
+    [{l:'Acciones total',v:d.total_acciones||0,c:'var(--blue)'},{l:'Aprobados',v:d.aprobados||0,c:'var(--green)'},{l:'Rechazados',v:d.rechazados||0,c:'var(--red)'},{l:'Editados',v:d.editados||0,c:'var(--orange)'}].forEach(function(k){
+      h+='<div class="st-kpi"><div class="n" style="color:'+k.c+'">'+k.v+'</div><div class="l">'+k.l+'</div></div>';
+    });
+    h+='</div>';
+    var total=d.total_acciones||1;var aprobRate=Math.round((d.aprobados||0)/total*100);
+    h+='<div style="font-size:9px;color:var(--label);margin-top:4px">Tasa de aprobación: <b style="color:'+(aprobRate>=70?'var(--green)':'var(--orange)')+'">'+aprobRate+'%</b></div>';
+    if(d.ultimas_acciones&&d.ultimas_acciones.length){
+      h+='<div style="margin-top:8px;font-size:9px;color:var(--label)"><b>Últimas acciones:</b></div>';
+      d.ultimas_acciones.forEach(function(a){
+        var color=a.accion==='APROBADO'?'var(--green)':a.accion==='RECHAZADO'?'var(--red)':'var(--orange)';
+        h+='<div style="font-size:8px;padding:2px 0;color:'+color+'">'+H(a.agente)+' → '+H(a.accion||'—')+' ('+H(a.tipo)+')</div>';
+      });
+    }
+    $('an-agente').innerHTML=h;
   });
 }
 
