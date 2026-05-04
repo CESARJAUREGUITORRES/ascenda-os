@@ -225,8 +225,29 @@ http.createServer(function(req, res) {
   }
   // ═══ STUDIO CORS PREFLIGHT ═══
   if (req.method === 'OPTIONS' && p.startsWith('/api/studio/')) {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,GET,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' })
     res.end(); return
+  }
+  // ═══ STUDIO API — PULL MÉTRICAS INSTAGRAM ═══
+  if (p === '/api/studio/metrics-instagram' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN
+    var IG_USER_ID = process.env.INSTAGRAM_USER_ID
+    if (!IG_TOKEN || !IG_USER_ID) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({error:'Instagram not configured',configured:false})); return }
+    /* Get recent media with insights */
+    https.get({
+      hostname: 'graph.facebook.com',
+      path: '/v22.0/' + IG_USER_ID + '/media?fields=id,caption,media_type,timestamp,like_count,comments_count,permalink&limit=25&access_token=' + encodeURIComponent(IG_TOKEN)
+    }, function(igRes) {
+      var data = ''; igRes.on('data', function(c) { data += c }); igRes.on('end', function() {
+        try {
+          var result = JSON.parse(data)
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ success: true, posts: result.data || [], configured: true }))
+        } catch(e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({error:'Parse error',configured:true})) }
+      })
+    }).on('error', function(e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({error:e.message,configured:true})) })
+    return
   }
   // ═══ FIN STUDIO API ═══
   // ===== RESEND EMAIL API =====
