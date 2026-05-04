@@ -367,6 +367,8 @@ var ST={mes:new Date().getMonth(),anio:new Date().getFullYear(),cats:[],template
 
 function $(id){return document.getElementById(id)}
 function H(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+/* Safe fetch wrapper */
+function safeFetch(url,opts){return fetch(url,opts).catch(function(e){console.error('Fetch error:',url,e);return{json:function(){return Promise.resolve(null)}}});}
 
 function rpc(name,params,cb){
   fetch(SB_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify(params||{})})
@@ -401,6 +403,7 @@ function stTab(name,btn){
   if(name==='competencia')stLoadCompetencia();
   if(name==='modelos')stLoadModelos();
   if(name==='assets')stLoadAssets();
+  if(name==='brief'){/* Brief se carga manualmente con botón */}
 }
 
 /* ═══ DASHBOARD ═══ */
@@ -460,26 +463,45 @@ function stLoadDashboard(){
 /* ═══ CONTENIDOS ═══ */
 function stLoadContenidos(){
   var filtro=$('ct-filtro').value;
-  var q='order=created_at.desc&limit=50';
+  var q='order=created_at.desc&limit=20';
   if(filtro)q='estado=eq.'+filtro+'&'+q;
   sbGet('aos_studio_contenido',q,function(rows){
-    if(!rows||!rows.length){$('ct-lista').innerHTML='<div class="st-empty"><div class="icon">📝</div>No hay contenidos aún.</div>';return}
+    if(!rows||!rows.length){$('ct-lista').innerHTML='<div class="st-empty"><div class="icon">📝</div>No hay contenidos aún. Crea tu primer post.</div>';return}
     var h='';rows.forEach(function(r){h+=stContentCard(r)});
+    if(rows.length>=20){h+='<div style="text-align:center;padding:8px"><button class="st-btn st-btn-s" onclick="stLoadMasContenidos('+rows.length+')">Cargar más...</button></div>';}
     $('ct-lista').innerHTML=h;
+  });
+}
+function stLoadMasContenidos(offset){
+  var filtro=$('ct-filtro').value;
+  var q='order=created_at.desc&limit=20&offset='+offset;
+  if(filtro)q='estado=eq.'+filtro+'&'+q;
+  sbGet('aos_studio_contenido',q,function(rows){
+    if(!rows||!rows.length){return}
+    var h='';rows.forEach(function(r){h+=stContentCard(r)});
+    /* Remove old "cargar más" button and append new content */
+    var lista=$('ct-lista');
+    var oldBtn=lista.querySelector('div:last-child button');
+    if(oldBtn)oldBtn.parentNode.remove();
+    lista.insertAdjacentHTML('beforeend',h);
+    if(rows.length>=20){lista.insertAdjacentHTML('beforeend','<div style="text-align:center;padding:8px"><button class="st-btn st-btn-s" onclick="stLoadMasContenidos('+(offset+rows.length)+')">Cargar más...</button></div>');}
   });
 }
 function stContentCard(r){
   var estadoClass={'IDEA':'idea','BORRADOR':'borrador','LISTO':'borrador','APROBADO':'aprobado','PROGRAMADO':'programado','PUBLICADO':'publicado'};
   var h='<div class="st-content-card" onclick="stEditContent(\''+r.id+'\')">';
+  h+='<div style="display:flex;gap:8px">';
+  if(r.imagen_url){h+='<img src="'+H(r.imagen_url)+'" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">';}
+  h+='<div style="flex:1;min-width:0">';
   h+='<div class="st-content-header"><div class="st-content-title">'+H(r.titulo||r.tipo_contenido||'Sin título')+'</div>';
   h+='<span class="st-pill st-pill-'+(estadoClass[r.estado]||'idea')+'">'+H(r.estado)+'</span></div>';
   h+='<div class="st-content-meta"><span>'+H(r.tipo_contenido)+'</span>';
-  if(r.categoria_tratamiento)h+='<span>·</span><span style="color:var(--blue)">'+H(r.categoria_tratamiento)+'</span>';
-  if(r.fecha_programada)h+='<span>·</span><span>📅 '+new Date(r.fecha_programada).toLocaleDateString('es-PE',{day:'numeric',month:'short'})+'</span>';
+  if(r.categoria_tratamiento)h+='<span style="color:var(--blue)">'+H(r.categoria_tratamiento)+'</span>';
+  if(r.fecha_programada)h+='<span>📅 '+new Date(r.fecha_programada).toLocaleDateString('es-PE',{day:'numeric',month:'short'})+'</span>';
   if(r.plataformas)r.plataformas.forEach(function(p){h+='<span style="font-size:7px">'+({'instagram':'📷','facebook':'📘','tiktok':'🎵','linkedin':'💼'}[p]||p)+'</span>'});
   h+='</div>';
-  if(r.copy_principal)h+='<div class="st-content-preview">'+H(r.copy_principal.substring(0,100))+'</div>';
-  h+='</div>';return h;
+  if(r.copy_principal)h+='<div class="st-content-preview">'+H(r.copy_principal.substring(0,80))+'</div>';
+  h+='</div></div></div>';return h;
 }
 
 /* ═══ CREAR ═══ */
@@ -1036,10 +1058,20 @@ ST.assets=[];ST.selectedAsset=null;ST.selectedBatch=[];
 
 function stUploadImages(files){
   if(!files||!files.length)return;
-  $('as-loading').style.display='block';$('as-empty').style.display='none';
-  var total=files.length;var done=0;var uploaded=[];
+  /* Validación */
+  var valid=[];var rejected=0;
+  Array.from(files).forEach(function(f){
+    if(!f.type.startsWith('image/')){rejected++;return}
+    if(f.size>10*1024*1024){rejected++;alert('⚠️ '+f.name+' supera 10MB. Saltado.');return}
+    valid.push(f);
+  });
+  if(rejected&&!valid.length){alert('Ningún archivo válido. Solo imágenes de hasta 10MB.');return}
+  if(rejected)alert(rejected+' archivo(s) rechazados (no son imagen o superan 10MB)');
   
-  Array.from(files).forEach(function(file){
+  $('as-loading').style.display='block';$('as-empty').style.display='none';
+  var total=valid.length;var done=0;var uploaded=[];
+  
+  valid.forEach(function(file){
     var ext=file.name.split('.').pop().toLowerCase();
     var fname='img_'+Date.now()+'_'+Math.random().toString(36).substring(2,8)+'.'+ext;
     var reader=new FileReader();
@@ -1379,12 +1411,8 @@ function stGuardarVersion(plat){
 
 /* ═══ FEED PREVIEW IG ═══ */
 function stLoadFeed(){
-  sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO,PUBLICADO)&order=fecha_programada.desc.nullslast,created_at.desc&limit=18&plataformas=cs.{instagram}',function(rows){
-    if(!rows)rows=[];
-    /* Si no hay suficientes con filtro IG, cargar todos */
-    if(rows.length<6){
-      sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO,PUBLICADO)&order=created_at.desc&limit=18',function(all){stRenderFeed(all||[])});
-    }else{stRenderFeed(rows)}
+  sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO,PUBLICADO)&order=fecha_programada.desc.nullslast,created_at.desc&limit=18',function(rows){
+    stRenderFeed(rows||[]);
   });
 }
 function stRenderFeed(rows){
