@@ -2819,3 +2819,127 @@ function agentStatus(res) {
 
 // Load keys on startup
 setTimeout(loadAIKeys, 2000)
+
+// ═══ STUDIO CRON SCHEDULER ═══
+// Revisa cada 60 segundos si hay contenido programado que deba publicarse
+function studioSchedulerRun() {
+  var now = new Date().toISOString()
+  // Buscar contenidos con estado PROGRAMADO y fecha_programada <= ahora
+  https.get({
+    hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+    path: '/rest/v1/aos_studio_contenido?estado=eq.PROGRAMADO&fecha_programada=lte.' + now + '&limit=5&order=fecha_programada.asc',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  }, function(res) {
+    var data = ''; res.on('data', function(c) { data += c }); res.on('end', function() {
+      try {
+        var items = JSON.parse(data)
+        if (!items || !items.length) return
+        console.log('[STUDIO-CRON] ' + items.length + ' contenidos para publicar')
+        items.forEach(function(item) {
+          var plats = item.plataformas || ['instagram']
+          plats.forEach(function(plat) {
+            studioPublishToNetwork(plat, item, function(success, result) {
+              // Registrar publicación
+              var pubBody = JSON.stringify({
+                contenido_id: item.id, plataforma: plat,
+                post_id_externo: (result && result.media_id) || (result && result.post_id) || '',
+                estado: success ? 'PUBLICADO' : 'ERROR',
+                error_detalle: success ? null : (result && result.error) || 'Unknown error',
+                publicado_at: success ? new Date().toISOString() : null
+              })
+              var pubReq = https.request({
+                hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+                path: '/rest/v1/aos_studio_publicaciones',
+                method: 'POST',
+                headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(pubBody) }
+              }, function() {})
+              pubReq.on('error', function() {})
+              pubReq.write(pubBody); pubReq.end()
+              console.log('[STUDIO-CRON] ' + plat + ': ' + (success ? 'OK' : 'FAIL') + ' - ' + (item.titulo || '').substring(0, 30))
+            })
+          })
+          // Actualizar estado a PUBLICADO
+          var updateBody = JSON.stringify({ estado: 'PUBLICADO', updated_at: new Date().toISOString() })
+          var updateReq = https.request({
+            hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+            path: '/rest/v1/aos_studio_contenido?id=eq.' + item.id,
+            method: 'PATCH',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(updateBody) }
+          }, function() {})
+          updateReq.on('error', function() {})
+          updateReq.write(updateBody); updateReq.end()
+        })
+      } catch(e) { /* silent */ }
+    })
+  }).on('error', function() {})
+}
+
+function studioPublishToNetwork(plat, item, callback) {
+  if (plat === 'instagram') {
+    var IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN
+    var IG_USER_ID = process.env.INSTAGRAM_USER_ID
+    if (!IG_TOKEN || !IG_USER_ID || !item.imagen_url) { callback(false, {error: 'Not configured or no image'}); return }
+    var containerData = 'image_url=' + encodeURIComponent(item.imagen_url) + '&caption=' + encodeURIComponent(item.copy_principal || '') + '&access_token=' + encodeURIComponent(IG_TOKEN)
+    var containerReq = https.request({
+      hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media?' + containerData, method: 'POST', headers: { 'Content-Length': 0 }
+    }, function(cRes) {
+      var cData = ''; cRes.on('data', function(c) { cData += c }); cRes.on('end', function() {
+        try {
+          var container = JSON.parse(cData)
+          if (!container.id) { callback(false, {error: 'Container failed'}); return }
+          var pubReq = https.request({
+            hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media_publish?creation_id=' + container.id + '&access_token=' + encodeURIComponent(IG_TOKEN), method: 'POST', headers: { 'Content-Length': 0 }
+          }, function(pRes) {
+            var pData = ''; pRes.on('data', function(c2) { pData += c2 }); pRes.on('end', function() {
+              try { var pub = JSON.parse(pData); callback(!!pub.id, {media_id: pub.id}) } catch(e) { callback(false, {error: 'Parse error'}) }
+            })
+          })
+          pubReq.on('error', function(e) { callback(false, {error: e.message}) })
+          pubReq.end()
+        } catch(e) { callback(false, {error: 'Container parse error'}) }
+      })
+    })
+    containerReq.on('error', function(e) { callback(false, {error: e.message}) })
+    containerReq.end()
+  } else if (plat === 'facebook') {
+    var FB_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN
+    var FB_PAGE_ID = process.env.FACEBOOK_PAGE_ID
+    if (!FB_TOKEN || !FB_PAGE_ID) { callback(false, {error: 'Not configured'}); return }
+    var postData = JSON.stringify({ message: item.copy_principal || '', url: item.imagen_url || '', access_token: FB_TOKEN })
+    var endpoint = item.imagen_url ? '/' + FB_PAGE_ID + '/photos' : '/' + FB_PAGE_ID + '/feed'
+    var fbReq = https.request({
+      hostname: 'graph.facebook.com', path: '/v22.0' + endpoint, method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, function(fbRes) {
+      var fbData = ''; fbRes.on('data', function(c) { fbData += c }); fbRes.on('end', function() {
+        try { var r = JSON.parse(fbData); callback(!!r.id, {post_id: r.id}) } catch(e) { callback(false, {error: 'Parse error'}) }
+      })
+    })
+    fbReq.on('error', function(e) { callback(false, {error: e.message}) })
+    fbReq.write(postData); fbReq.end()
+  } else if (plat === 'linkedin') {
+    var LI_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN
+    if (!LI_TOKEN) { callback(false, {error: 'Not configured'}); return }
+    var LI_ORG = process.env.LINKEDIN_ORG_ID
+    var author = LI_ORG ? 'urn:li:organization:' + LI_ORG : 'urn:li:person:me'
+    var liData = JSON.stringify({ author: author, commentary: item.copy_principal || '', visibility: 'PUBLIC', distribution: { feedDistribution: 'MAIN_FEED' }, lifecycleState: 'PUBLISHED' })
+    var liReq = https.request({
+      hostname: 'api.linkedin.com', path: '/rest/posts', method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + LI_TOKEN, 'Content-Type': 'application/json', 'X-Restli-Protocol-Version': '2.0.0', 'LinkedIn-Version': '202508', 'Content-Length': Buffer.byteLength(liData) }
+    }, function(liRes) {
+      var ld = ''; liRes.on('data', function(c) { ld += c }); liRes.on('end', function() {
+        callback(liRes.statusCode === 201, {post_id: liRes.headers['x-restli-id'] || ''})
+      })
+    })
+    liReq.on('error', function(e) { callback(false, {error: e.message}) })
+    liReq.write(liData); liReq.end()
+  } else {
+    callback(false, {error: 'Platform not supported: ' + plat})
+  }
+}
+
+// Ejecutar scheduler cada 60 segundos
+setInterval(studioSchedulerRun, 60000)
+// Primera ejecución 10 segundos después del boot
+setTimeout(studioSchedulerRun, 10000)
+console.log('[STUDIO-CRON] Scheduler iniciado — revisa contenido programado cada 60s')
