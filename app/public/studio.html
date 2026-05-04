@@ -108,12 +108,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
         <button class="st-btn st-btn-c" style="justify-content:center;font-size:9px" onclick="window.open('/studio-creator.html','_blank')">🎨 Creator</button>
         <button class="st-btn st-btn-c" style="justify-content:center;font-size:9px" onclick="stTab('crear',document.querySelector('.st-nav button:nth-child(2)'))">✨ Crear AI</button>
-        <button class="st-btn st-btn-p" style="justify-content:center;font-size:9px" onclick="stTab('brief',document.querySelector('.st-nav button:nth-child(11)'))">🤖 Brief</button>
-        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stTab('assets',document.querySelector('.st-nav button:nth-child(8)'))">📸 Subir</button>
-        <button class="st-btn st-btn-g" style="justify-content:center;font-size:9px" onclick="stTab('feed',document.querySelector('.st-nav button:nth-child(5)'))">📱 Feed</button>
-        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stPullMetricsIG()">📊 Métricas</button>
+        <button class="st-btn st-btn-p" style="justify-content:center;font-size:9px" onclick="stTab('aistudio',document.querySelector('.st-nav button:nth-child(6)'))">🤖 Brief</button>
+        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stTab('marca',document.querySelector('.st-nav button:nth-child(5)'));stMarcaTab('assets')">📸 Subir</button>
+        <button class="st-btn st-btn-g" style="justify-content:center;font-size:9px" onclick="stTab('redes',document.querySelector('.st-nav button:nth-child(4)'))">📱 Redes</button>
+        <button class="st-btn st-btn-s" style="justify-content:center;font-size:9px" onclick="stTab('analytics',document.querySelector('.st-nav button:nth-child(7)'))">📊 Analytics</button>
       </div>
     </div>
+    <!-- Referencias de marca (desde Configuración → Assets) -->
+    <div class="st-card"><div class="st-sec">🎨 Estilo de marca</div><div id="st-dash-brand-assets" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0"></div></div>
     <!-- Estado de conexiones rápido -->
     <div class="st-card"><div class="st-sec">🔌 Conexiones</div><div id="st-dash-conn" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
     <!-- Resumen semanal del agente -->
@@ -342,24 +344,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div id="tab-redes" class="st-tab-content">
     <div class="st-card">
       <div class="st-sec">📱 Redes conectadas</div>
-      <div style="display:flex;gap:4px;margin-bottom:10px" id="redes-subtabs">
-        <button class="st-btn st-btn-c" style="font-size:9px" onclick="stRedesTab('instagram')">📷 Instagram</button>
-        <button class="st-btn st-btn-s" style="font-size:9px" onclick="stRedesTab('facebook')">📘 Facebook</button>
-        <button class="st-btn st-btn-s" style="font-size:9px" onclick="stRedesTab('linkedin')">💼 LinkedIn</button>
-        <button class="st-btn st-btn-s" style="font-size:9px" onclick="stRedesTab('tiktok')">🎵 TikTok</button>
-      </div>
+      <div style="display:flex;gap:4px;margin-bottom:10px;overflow-x:auto" id="redes-subtabs"></div>
       <div id="redes-content">
-        <!-- Feed IG default -->
-        <div style="max-width:375px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)">
-          <div style="padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EFEFEF">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);padding:2px"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;color:#071D4A">Zi</div></div>
-            <div style="flex:1"><div style="font-weight:700;font-size:11px;color:#262626">zivital</div><div style="font-size:8px;color:#8E8E8E">Medicina Estética con Propósito</div></div>
-          </div>
-          <div style="display:flex;border-bottom:1px solid #EFEFEF"><div style="flex:1;text-align:center;padding:8px;border-bottom:2px solid #262626;font-size:12px">⊞</div><div style="flex:1;text-align:center;padding:8px;font-size:12px;color:#8E8E8E">▶</div><div style="flex:1;text-align:center;padding:8px;font-size:12px;color:#8E8E8E">👤</div></div>
-          <div id="feed-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px"></div>
-        </div>
+        <div style="text-align:center;padding:20px;color:var(--label);font-size:10px">Cargando redes...</div>
       </div>
     </div>
+    <!-- Publicaciones recientes por red -->
+    <div class="st-card"><div class="st-sec">📊 Publicaciones recientes</div><div id="redes-publicaciones">Cargando...</div></div>
   </div>
 
   <!-- AI STUDIO (Brief + Competencia + Ideas) -->
@@ -456,7 +447,7 @@ function stTab(name,btn){
   if(name==='dashboard')stLoadDashboard();
   if(name==='crear')stLoadCrearForm();
   if(name==='contenido'){stLoadContenidos();stRenderCal();}
-  if(name==='redes'){stLoadFeed();}
+  if(name==='redes'){stLoadRedes();}
   if(name==='marca'){stLoadBrand();stLoadConnections();stLoadTemplates();stLoadAssets();}
   if(name==='aistudio'){stLoadCompetencia();}
   if(name==='analytics')stLoadAnalytics();
@@ -512,12 +503,75 @@ function stAITab(sub){
 
 /* Redes sub-tabs */
 function stRedesTab(plat){
-  document.querySelectorAll('#redes-subtabs button').forEach(function(b,i){
-    b.className='st-btn '+(b.textContent.toLowerCase().includes(plat.substring(0,4))?'st-btn-c':'st-btn-s');
+  document.querySelectorAll('#redes-subtabs button').forEach(function(b){
+    b.className='st-btn '+(b.dataset.plat===plat?'st-btn-c':'st-btn-s');
   });
   var rc=$('redes-content');if(!rc)return;
-  if(plat==='instagram'){stLoadFeed();}
-  else{rc.innerHTML='<div style="padding:20px;text-align:center;color:var(--label);font-size:11px">'+({'facebook':'📘 Facebook','linkedin':'💼 LinkedIn','tiktok':'🎵 TikTok'}[plat]||plat)+' — Configura la conexión en Marca → Conexiones para ver el feed</div>';}
+  var icons={'instagram':'📷','facebook':'📘','linkedin':'💼','tiktok':'🎵','x':'𝕏','threads':'🧵'};
+  var colors={'instagram':'linear-gradient(135deg,#833AB4,#FD1D1D,#F77737)','facebook':'#1877F2','linkedin':'#0A66C2','tiktok':'#000','x':'#000','threads':'#000'};
+  
+  /* Feed visual por plataforma */
+  var h='<div style="max-width:375px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)">';
+  h+='<div style="padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EFEFEF">';
+  h+='<div style="width:36px;height:36px;border-radius:50%;background:'+colors[plat]+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:12px">Zi</div>';
+  h+='<div style="flex:1"><div style="font-weight:700;font-size:11px;color:#262626">zivital</div><div style="font-size:8px;color:#8E8E8E">'+(icons[plat]||'')+' '+plat+'</div></div></div>';
+  h+='<div id="feed-grid-'+plat+'" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px"></div>';
+  h+='</div>';
+  rc.innerHTML=h;
+  
+  /* Cargar contenido publicado en esta plataforma */
+  sbGet('aos_studio_contenido','plataformas=cs.{'+plat+'}&estado=eq.PUBLICADO&order=updated_at.desc&limit=12',function(rows){
+    var grid=$('feed-grid-'+plat);if(!grid)return;
+    if(!rows||!rows.length){grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#8E8E8E;font-size:10px">No hay posts aún. Crea contenido para ver tu feed.</div>';return}
+    var gh='';rows.forEach(function(r){
+      if(r.imagen_url){gh+='<div style="aspect-ratio:1;overflow:hidden;cursor:pointer" onclick="stEditContent(\''+r.id+'\')"><img src="'+H(r.imagen_url)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML=\'<div style=padding:10px;background:#F0F4FC;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#8E8E8E>'+H(r.tipo_contenido||'POST')+'</div>\'"></div>';}
+      else{
+        var bg=ST.brand?ST.brand.color_primario||'#071D4A':'#071D4A';
+        gh+='<div style="aspect-ratio:1;background:'+bg+';display:flex;align-items:center;justify-content:center;padding:6px;cursor:pointer" onclick="stEditContent(\''+r.id+'\')"><div style="color:#fff;font-size:8px;font-weight:700;text-align:center;line-height:1.3;overflow:hidden">'+H((r.titulo||r.copy_principal||'').substring(0,40))+'</div></div>';
+      }
+    });
+    grid.innerHTML=gh;
+  });
+  
+  /* Cargar publicaciones recientes de esta plataforma */
+  sbGet('aos_studio_publicaciones','plataforma=eq.'+plat+'&order=publicado_at.desc&limit=5',function(pubs){
+    var el=$('redes-publicaciones');if(!el)return;
+    if(!pubs||!pubs.length){el.innerHTML='<div style="font-size:9px;color:var(--label)">Sin publicaciones en '+plat+' aún</div>';return}
+    var ph='';pubs.forEach(function(p){
+      ph+='<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px;align-items:center">';
+      ph+='<span>'+(icons[plat]||'📄')+'</span>';
+      ph+='<span style="flex:1;color:var(--label)">'+(p.publicado_at?new Date(p.publicado_at).toLocaleDateString('es-PE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—')+'</span>';
+      ph+='<span style="font-weight:700;color:'+(p.estado==='PUBLICADO'?'var(--green)':'var(--red)')+'">'+p.estado+'</span>';
+      if(p.url_post){ph+='<a href="'+H(p.url_post)+'" target="_blank" style="font-size:8px;color:var(--blue)">Ver ↗</a>';}
+      ph+='</div>';
+    });
+    el.innerHTML=ph;
+  });
+}
+
+function stLoadRedes(){
+  /* Generar sub-tabs dinámicos basados en conexiones */
+  fetch('/api/studio/connections').then(function(r){return r.json()}).then(function(c){
+    var tabs=$('redes-subtabs');if(!tabs)return;
+    var allPlats=[
+      {k:'instagram',i:'📷',n:'Instagram'},
+      {k:'facebook',i:'📘',n:'Facebook'},
+      {k:'linkedin',i:'💼',n:'LinkedIn'},
+      {k:'tiktok',i:'🎵',n:'TikTok'}
+    ];
+    var h='';var first=null;
+    allPlats.forEach(function(p){
+      var connected=c&&c[p.k]&&c[p.k].configured;
+      if(!first)first=p.k;
+      h+='<button class="st-btn '+(first===p.k?'st-btn-c':'st-btn-s')+'" style="font-size:9px" data-plat="'+p.k+'" onclick="stRedesTab(\''+p.k+'\')">';
+      h+=p.i+' '+p.n+(connected?' ✓':'');
+      h+='</button>';
+    });
+    tabs.innerHTML=h;
+    if(first)stRedesTab(first);
+  }).catch(function(){
+    var tabs=$('redes-subtabs');if(tabs)tabs.innerHTML='<div style="font-size:9px;color:var(--label)">No se pudo verificar conexiones</div>';
+  });
 }
 
 /* ═══ DASHBOARD ═══ */
@@ -632,6 +686,16 @@ function stLoadDashboard(){
     });
     el.innerHTML=h;
   }).catch(function(){var el=$('st-dash-conn');if(el)el.innerHTML='<span style="font-size:8px;color:var(--label)">No se pudo verificar</span>'});
+  
+  /* Brand assets desde Configuración */
+  sbGet('aos_brand_assets','activo=eq.true&order=created_at.desc&limit=8',function(assets){
+    var el=$('st-dash-brand-assets');if(!el)return;
+    if(!assets||!assets.length){el.innerHTML='<div style="font-size:9px;color:var(--label)">Sube referencias de estilo en Configuración → Assets de Marca</div>';return}
+    var h='';assets.forEach(function(a){
+      if(a.url){h+='<div style="flex-shrink:0;width:64px;text-align:center"><img src="'+H(a.url)+'" style="width:60px;height:60px;border-radius:6px;object-fit:cover;border:1px solid var(--border)" onerror="this.style.display=\'none\'"><div style="font-size:7px;color:var(--label);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+H(a.nombre||'')+'</div></div>';}
+    });
+    el.innerHTML=h||'<div style="font-size:9px;color:var(--label)">Sin imágenes</div>';
+  });
   
   /* Próximos a publicar */
   rpc('aos_studio_dashboard',{},function(d){
