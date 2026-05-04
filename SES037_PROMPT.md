@@ -151,3 +151,31 @@ Validar: Agenda → Asistió → Atención → ENF/DRA → Plan trabajo → Desc
 - Optimizar polling
 - Notificaciones reales + sonidos
 - Turnos/horarios guardados en config
+
+---
+
+## OPTIMIZACIÓN DE TRABAJO (investigación mayo 2026)
+
+### Sistema de Memoria Jerárquica:
+- **NIVEL 1** — Claude Memory (30 slots): Solo conexiones + instrucción de leer Supabase + plan activo
+- **NIVEL 2** — Supabase aos_memory (157+ registros): TODO el contexto técnico, sesiones, reglas, estado
+- **NIVEL 3** — Archivos .md en repo: Documentación profunda
+- **NIVEL 4** — Transcripts: Historial completo de conversaciones
+
+### Ahorro de Tokens:
+- grep antes de view (no leer archivos completos)
+- str_replace quirúrgico (no regenerar archivos)
+- Syntax check INMEDIATO después de cada edición
+- UN commit = UN cambio conceptual
+- Guardar en Supabase INMEDIATAMENTE (no esperar al final)
+
+### Flujo de Sesión:
+- INICIO: Leer aos_memory + integraciones + últimos commits + Railway status (2 min)
+- DURANTE: Guardar decisiones inmediatamente, commit por feature, syntax check siempre
+- CIERRE: Actualizar estado en BD, commit final, verificar Railway
+
+### Repos de Referencia:
+- VILA-Lab/Dive-into-Claude-Code (98.4% es infraestructura, 1.6% es AI)
+- shanraisshan/claude-code-best-practice (vertical slices, recaps)
+- t0ddharris/claude-code-skills (brief→start pattern)
+- Anthropic cookbook: memory + context engineering
