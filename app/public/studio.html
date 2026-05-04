@@ -197,6 +197,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <!-- BRAND -->
   <div id="tab-brand" class="st-tab-content">
     <div class="st-card">
+      <div class="st-sec">🔌 Conexiones de redes sociales</div>
+      <div id="br-connections">Cargando...</div>
+    </div>
+    <div class="st-card">
       <div class="st-sec">🎨 Configuración de marca</div>
       <div id="br-form">Cargando...</div>
     </div>
@@ -406,7 +410,7 @@ function stTab(name,btn){
   if(name==='calendario')stRenderCal();
   if(name==='feed')stLoadFeed();
   if(name==='templates')stLoadTemplates();
-  if(name==='brand')stLoadBrand();
+  if(name==='brand'){stLoadBrand();stLoadConnections();}
   if(name==='crear')stLoadCrearForm();
   if(name==='competencia')stLoadCompetencia();
   if(name==='modelos')stLoadModelos();
@@ -970,6 +974,7 @@ function stEditContent(id){
       h+='<button class="st-btn st-btn-s" onclick="stUpdateContent(\''+id+'\',\'BORRADOR\')">💾 Guardar</button>';
       h+='<button class="st-btn st-btn-s" onclick="stDeleteContent(\''+id+'\')" style="color:var(--red)">🗑</button>';
       h+='<button class="st-btn st-btn-s" onclick="stGenerarBlog(\''+id+'\')">📝 → Blog</button>';
+      h+='<button class="st-btn st-btn-c" onclick="stPublicarContenido(\''+id+'\')" style="margin-left:auto">🚀 Publicar</button>';
       h+='</div>';
       $('cr-preview-content').innerHTML=h;
     },300);
@@ -1529,6 +1534,78 @@ function stGenerarPlan3Meses(){
         h+='</div>';$('brief-result').innerHTML+=h;
       }catch(e){$('brief-result').innerHTML+='<div style="color:var(--red);font-size:10px">Error al generar plan. Intenta de nuevo.</div>';}
     }).catch(function(){$('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';});
+  });
+}
+
+/* ═══ CONEXIONES DE REDES ═══ */
+function stLoadConnections(){
+  fetch('/api/studio/connections').then(function(r){return r.json()}).then(function(c){
+    var conn=$('br-connections');if(!conn)return;
+    var platforms=[
+      {key:'instagram',icon:'📷',name:'Instagram',color:'#E4405F'},
+      {key:'facebook',icon:'📘',name:'Facebook',color:'#1877F2'},
+      {key:'linkedin',icon:'💼',name:'LinkedIn',color:'#0A66C2'},
+      {key:'tiktok',icon:'🎵',name:'TikTok',color:'#000000'},
+      {key:'openai',icon:'🤖',name:'OpenAI (Imágenes)',color:'#10B981'}
+    ];
+    var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    platforms.forEach(function(p){
+      var status=c[p.key]||{};
+      var isConnected=status.configured;
+      h+='<div style="padding:10px;border:2px solid '+(isConnected?'var(--green)':'var(--border)')+';border-radius:10px;background:'+(isConnected?'var(--green-xl)':'#FAFBFF')+'">';
+      h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:16px">'+p.icon+'</span><span style="font-weight:700;font-size:11px">'+p.name+'</span></div>';
+      h+='<div style="font-size:9px;color:'+(isConnected?'var(--green)':'var(--label)')+';font-weight:700">'+(isConnected?'✅ Conectado':'⚪ No configurado')+'</div>';
+      if(!isConnected){h+='<div style="font-size:7px;color:var(--label);margin-top:2px">Configura en Railway → Variables</div>';}
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='<div style="margin-top:8px;padding:8px;background:var(--blue-xl);border-radius:6px;font-size:8px;color:var(--label)">';
+    h+='<b>Variables de Railway necesarias:</b><br>';
+    h+='📷 IG: INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_USER_ID<br>';
+    h+='📘 FB: FACEBOOK_ACCESS_TOKEN + FACEBOOK_PAGE_ID<br>';
+    h+='💼 LI: LINKEDIN_ACCESS_TOKEN + LINKEDIN_ORG_ID<br>';
+    h+='🎵 TT: TIKTOK_ACCESS_TOKEN<br>';
+    h+='🤖 AI: OPENAI_API_KEY</div>';
+    conn.innerHTML=h;
+  }).catch(function(){
+    var conn=$('br-connections');if(conn)conn.innerHTML='<div style="font-size:9px;color:var(--label)">No se pudo verificar conexiones</div>';
+  });
+}
+
+/* ═══ PUBLICAR A MÚLTIPLES REDES DESDE CONTENIDO ═══ */
+function stPublicarContenido(contentId){
+  sbGet('aos_studio_contenido','id=eq.'+contentId,function(rows){
+    if(!rows||!rows[0])return;var r=rows[0];
+    var plats=r.plataformas||['instagram'];
+    if(!r.imagen_url){alert('Este contenido no tiene imagen. Sube una imagen primero.');return}
+    if(!confirm('¿Publicar este contenido a: '+plats.join(', ')+'?'))return;
+    
+    var results=[];var done=0;var total=plats.length;
+    plats.forEach(function(plat){
+      var endpoint='/api/studio/publish-'+plat;
+      var body={caption:r.copy_principal||'',image_url:r.imagen_url};
+      
+      fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(resp){return resp.json()}).then(function(data){
+        results.push({plat:plat,success:data.success,error:data.error});
+        /* Registrar en publicaciones */
+        if(data.success){
+          sbPost('aos_studio_publicaciones',{contenido_id:contentId,plataforma:plat,post_id_externo:data.media_id||data.post_id||'',url_post:data.permalink||'',estado:'PUBLICADO',publicado_at:new Date().toISOString()},function(){});
+        }
+        done++;
+        if(done===total){
+          var msg=results.map(function(r2){return r2.plat+': '+(r2.success?'✅':'❌ '+r2.error)}).join('\n');
+          alert('Resultados:\n\n'+msg);
+          /* Actualizar estado del contenido */
+          if(results.some(function(r2){return r2.success})){
+            sbPatch('aos_studio_contenido','id=eq.'+contentId,{estado:'PUBLICADO',updated_at:new Date().toISOString()},function(){});
+          }
+        }
+      }).catch(function(err){
+        results.push({plat:plat,success:false,error:err.message});
+        done++;if(done===total){alert('Resultados:\n'+results.map(function(r2){return r2.plat+': ❌ '+r2.error}).join('\n'))}
+      });
+    });
   });
 }
 

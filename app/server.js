@@ -250,6 +250,112 @@ http.createServer(function(req, res) {
     return
   }
   // ═══ FIN STUDIO API ═══
+  // ═══ STUDIO — PUBLICAR A LINKEDIN ═══
+  if (p === '/api/studio/publish-linkedin' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var LI_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN
+        var LI_ORG = process.env.LINKEDIN_ORG_ID
+        if (!LI_TOKEN) { res.writeHead(500); res.end(JSON.stringify({error:'LINKEDIN_ACCESS_TOKEN not configured'})); return }
+        var author = LI_ORG ? 'urn:li:organization:' + LI_ORG : 'urn:li:person:me'
+        var postData = JSON.stringify({
+          author: author,
+          commentary: d.caption || d.copy || '',
+          visibility: 'PUBLIC',
+          distribution: { feedDistribution: 'MAIN_FEED' },
+          lifecycleState: 'PUBLISHED'
+        })
+        var liReq = https.request({
+          hostname: 'api.linkedin.com', path: '/rest/posts', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + LI_TOKEN, 'Content-Type': 'application/json', 'X-Restli-Protocol-Version': '2.0.0', 'LinkedIn-Version': '202508', 'Content-Length': Buffer.byteLength(postData) }
+        }, function(liRes) {
+          var liData = ''; liRes.on('data', function(c) { liData += c }); liRes.on('end', function() {
+            var postId = liRes.headers['x-restli-id'] || ''
+            res.writeHead(liRes.statusCode === 201 ? 200 : 400, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: liRes.statusCode === 201, post_id: postId, status: liRes.statusCode }))
+          })
+        })
+        liReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        liReq.write(postData); liReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO — PUBLICAR CARRUSEL A INSTAGRAM ═══
+  if (p === '/api/studio/publish-instagram-carousel' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN
+        var IG_USER_ID = process.env.INSTAGRAM_USER_ID
+        if (!IG_TOKEN || !IG_USER_ID) { res.writeHead(500); res.end(JSON.stringify({error:'Instagram not configured'})); return }
+        var images = d.image_urls || []
+        if (images.length < 2) { res.writeHead(400); res.end(JSON.stringify({error:'Carousel needs 2+ images'})); return }
+        /* Step 1: Create children containers */
+        var childIds = []; var childDone = 0
+        images.forEach(function(imgUrl) {
+          var childData = 'image_url=' + encodeURIComponent(imgUrl) + '&is_carousel_item=true&access_token=' + encodeURIComponent(IG_TOKEN)
+          var childReq = https.request({
+            hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media?' + childData, method: 'POST',
+            headers: { 'Content-Length': 0 }
+          }, function(cRes) {
+            var cData = ''; cRes.on('data', function(c2) { cData += c2 }); cRes.on('end', function() {
+              try { var r = JSON.parse(cData); if (r.id) childIds.push(r.id) } catch(e) {}
+              childDone++
+              if (childDone === images.length) {
+                /* Step 2: Create carousel container */
+                var carouselData = 'media_type=CAROUSEL&children=' + childIds.join(',') + '&caption=' + encodeURIComponent(d.caption || '') + '&access_token=' + encodeURIComponent(IG_TOKEN)
+                var carReq = https.request({
+                  hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media?' + carouselData, method: 'POST',
+                  headers: { 'Content-Length': 0 }
+                }, function(caRes) {
+                  var caData = ''; caRes.on('data', function(c3) { caData += c3 }); caRes.on('end', function() {
+                    try {
+                      var container = JSON.parse(caData)
+                      if (!container.id) { res.writeHead(400); res.end(JSON.stringify({error:'Carousel container failed',details:container})); return }
+                      /* Step 3: Publish */
+                      var pubData = 'creation_id=' + container.id + '&access_token=' + encodeURIComponent(IG_TOKEN)
+                      var pubReq = https.request({
+                        hostname: 'graph.facebook.com', path: '/v22.0/' + IG_USER_ID + '/media_publish?' + pubData, method: 'POST',
+                        headers: { 'Content-Length': 0 }
+                      }, function(pRes) {
+                        var pData = ''; pRes.on('data', function(c4) { pData += c4 }); pRes.on('end', function() {
+                          try { var pub = JSON.parse(pData); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: true, media_id: pub.id })) }
+                          catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Publish error'})) }
+                        })
+                      })
+                      pubReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+                      pubReq.end()
+                    } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Container error'})) }
+                  })
+                })
+                carReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+                carReq.end()
+              }
+            })
+          })
+          childReq.on('error', function() { childDone++; if(childDone===images.length) { res.writeHead(500); res.end(JSON.stringify({error:'Child upload failed'})) } })
+          childReq.end()
+        })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO — ESTADO DE CONEXIONES ═══
+  if (p === '/api/studio/connections' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var connData = JSON.stringify({
+      instagram: { configured: !!(process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_USER_ID), has_token: !!process.env.INSTAGRAM_ACCESS_TOKEN },
+      facebook: { configured: !!(process.env.FACEBOOK_ACCESS_TOKEN && process.env.FACEBOOK_PAGE_ID), has_token: !!process.env.FACEBOOK_ACCESS_TOKEN },
+      linkedin: { configured: !!process.env.LINKEDIN_ACCESS_TOKEN, has_token: !!process.env.LINKEDIN_ACCESS_TOKEN },
+      tiktok: { configured: !!process.env.TIKTOK_ACCESS_TOKEN, has_token: !!process.env.TIKTOK_ACCESS_TOKEN },
+      openai: { configured: !!process.env.OPENAI_API_KEY }
+    })
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(connData); return
+  }
+  // ═══ FIN STUDIO API ═══
   // ===== RESEND EMAIL API =====
   if (p === '/api/send-email' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
