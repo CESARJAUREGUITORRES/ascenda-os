@@ -377,8 +377,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <!-- ANALYTICS -->
   <div id="tab-analytics" class="st-tab-content">
     <div class="st-card"><div class="st-sec">📈 Rendimiento del contenido</div><div id="an-kpis">Cargando...</div></div>
+    <div class="st-card"><div class="st-sec">📊 Distribución por tipo</div><div id="an-tipos"></div></div>
+    <div class="st-card"><div class="st-sec">🏷️ Top categorías</div><div id="an-cats"></div></div>
     <div class="st-card"><div class="st-sec">🤖 Aprendizaje del agente</div><div id="an-agente">Cargando...</div></div>
-    <div class="st-card"><div class="st-sec">📊 Producción por tipo</div><div id="an-tipos"></div></div>
+    <div class="st-card">
+      <div class="st-sec">📱 Métricas de redes</div>
+      <div id="an-redes">Cargando...</div>
+      <button class="st-btn st-btn-s" style="margin-top:6px" onclick="stPullMetricsIG()">🔄 Actualizar métricas IG</button>
+    </div>
   </div>
 </div>
 
@@ -869,9 +875,21 @@ function stRenderCal(){
   });
 }
 function stShowDayDetail(day,items){
-  var h='<div class="st-card" style="border-color:var(--cyan)"><div class="st-sec">📅 '+day+' '+['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][ST.mes]+'</div>';
-  items.forEach(function(r){h+=stContentCard(r)});h+='</div>';
+  var dateStr=day+' '+['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][ST.mes]+' '+ST.anio;
+  var h='<div class="st-card" style="border-color:var(--cyan)"><div style="display:flex;justify-content:space-between;align-items:center"><div class="st-sec" style="margin:0">📅 '+dateStr+'</div>';
+  h+='<button class="st-btn st-btn-c" style="padding:4px 10px;font-size:9px" onclick="stCrearParaDia('+day+')">+ Crear para este día</button></div>';
+  if(items.length){items.forEach(function(r){h+=stContentCard(r)})}
+  else{h+='<div style="padding:12px;text-align:center;color:var(--label);font-size:10px">Sin contenido programado para este día</div>';}
+  h+='</div>';
   $('cal-detalle').innerHTML=h;
+}
+function stCrearParaDia(day){
+  stTab('crear',document.querySelector('.st-nav button:nth-child(2)'));
+  setTimeout(function(){
+    var fecha=new Date(ST.anio,ST.mes,day,10,0);
+    var iso=fecha.toISOString().slice(0,16);
+    if($('cr-fecha'))$('cr-fecha').value=iso;
+  },300);
 }
 
 /* ═══ TEMPLATES ═══ */
@@ -1756,6 +1774,37 @@ function stLoadAnalytics(){
       });
     }
     $('an-agente').innerHTML=h;
+  });
+  /* Métricas de redes */
+  rpc('aos_studio_metricas_redes',{},function(d){
+    var el=$('an-redes');if(!el)return;
+    if(!d||!d.total_publicaciones){el.innerHTML='<div style="font-size:9px;color:var(--label)">Sin publicaciones registradas. Configura conexiones y publica contenido.</div>';return}
+    var h='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    (d.por_plataforma||[]).forEach(function(p){
+      h+='<div style="padding:6px 10px;background:#FAFBFF;border:1px solid var(--border);border-radius:6px;text-align:center">';
+      h+='<div style="font-size:16px">'+({'instagram':'📷','facebook':'📘','linkedin':'💼','tiktok':'🎵'}[p.plataforma]||'📄')+'</div>';
+      h+='<div style="font-weight:800;font-size:13px;color:var(--blue)">'+p.total+'</div>';
+      h+='<div style="font-size:7px;color:var(--label)">posts</div>';
+      if(p.likes_total){h+='<div style="font-size:8px;color:var(--red)">❤️ '+p.likes_total+'</div>';}
+      h+='</div>';
+    });
+    h+='</div>';
+    el.innerHTML=h;
+  });
+  /* Top categorías */
+  rpc('aos_studio_rendimiento',{},function(d2){
+    var catEl=$('an-cats');if(!catEl)return;
+    if(!d2||!d2.por_categoria||!d2.por_categoria.length){catEl.innerHTML='<div style="font-size:9px;color:var(--label)">Sin datos por categoría</div>';return}
+    var total2=0;d2.por_categoria.forEach(function(c){total2+=c.total});
+    var ch='';d2.por_categoria.forEach(function(c,i){
+      var pct=total2?Math.round(c.total/total2*100):0;
+      ch+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px">';
+      ch+='<span style="font-weight:800;color:var(--cyan);min-width:16px">#'+(i+1)+'</span>';
+      ch+='<span style="font-weight:700;min-width:100px">'+H(c.cat||'Sin cat.')+'</span>';
+      ch+='<div style="flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:var(--cyan);border-radius:5px"></div></div>';
+      ch+='<span style="min-width:25px;text-align:right;font-weight:700">'+c.total+'</span></div>';
+    });
+    catEl.innerHTML=ch;
   });
 }
 
