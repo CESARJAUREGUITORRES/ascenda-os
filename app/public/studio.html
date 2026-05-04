@@ -139,27 +139,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         </div>
       </div>
       <div class="st-fg"><div class="st-fl">Título / Tema</div><input class="st-inp" id="cr-titulo" placeholder="Ej: 5 beneficios del HIFU que no conocías"></div>
-      <div class="st-fg"><div class="st-fl">Descripción / Instrucciones para la AI</div><textarea class="st-inp st-ta" id="cr-desc" placeholder="Describe lo que quieres crear. La AI usará el repositorio de tratamientos y los datos de tu negocio para generar el contenido."></textarea></div>
+      <div class="st-fg">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div class="st-fl">Descripción / Instrucciones</div><span id="cr-char-count" style="font-size:8px;color:var(--label)">0 chars</span></div>
+        <textarea class="st-inp st-ta" id="cr-desc" placeholder="Describe lo que quieres crear..." oninput="stUpdateCharCount()"></textarea>
+        <div id="cr-char-limits" style="display:flex;gap:6px;margin-top:3px;font-size:7px;color:var(--label)">
+          <span>📷 IG: 2,200</span><span>📘 FB: 63,206</span><span>💼 LI: 3,000</span><span>🎵 TT: 2,200</span>
+        </div>
+      </div>
       <div class="st-grid">
         <div class="st-fg"><div class="st-fl">Plataformas</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="cr-plats">
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="instagram" checked> Instagram</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="facebook"> Facebook</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="tiktok"> TikTok</label>
-            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="linkedin"> LinkedIn</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="instagram" checked> 📷 IG</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="facebook"> 📘 FB</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="tiktok"> 🎵 TT</label>
+            <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" value="linkedin"> 💼 LI</label>
           </div>
         </div>
-        <div class="st-fg"><div class="st-fl">Fecha programada</div><input class="st-inp" id="cr-fecha" type="datetime-local"></div>
+        <div class="st-fg"><div class="st-fl">Fecha programada</div>
+          <div style="display:flex;gap:4px"><input class="st-inp" id="cr-fecha" type="datetime-local" style="flex:1"><button class="st-btn st-btn-s" style="padding:4px 8px;font-size:8px;white-space:nowrap" onclick="stSugerirHora()" title="Mejor hora según plataforma">🕐 Auto</button></div>
+        </div>
       </div>
       <div class="st-fg"><div class="st-fl">Template (opcional)</div><select class="st-inp" id="cr-template"><option value="">— Sin template —</option></select></div>
-      <div style="display:flex;gap:6px;margin-top:10px">
-        <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar con AI</button>
-        <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Guardar borrador</button>
-        <button class="st-btn st-btn-s" onclick="stCrearMultiPlataforma()">🌐 Multi-plataforma</button>
-        <button class="st-btn st-btn-s" onclick="stSugerirHashtags(($('cr-cat')||{}).value)">#️⃣ Hashtags</button>
+      <div style="display:flex;gap:4px;margin-top:10px;flex-wrap:wrap">
+        <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar AI</button>
+        <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Borrador</button>
+        <button class="st-btn st-btn-s" onclick="stCrearMultiPlataforma()">🌐 Multi</button>
+        <button class="st-btn st-btn-s" onclick="stSugerirHashtags(($('cr-cat')||{}).value)">#️⃣</button>
+        <button class="st-btn st-btn-g" onclick="stGenerarIdeas()">💡 Ideas</button>
       </div>
     </div>
-    <!-- Preview del contenido generado -->
     <div id="cr-preview" style="display:none" class="st-card">
       <div class="st-sec">👁️ Preview</div>
       <div id="cr-preview-content"></div>
@@ -169,12 +177,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <!-- CONTENIDOS -->
   <div id="tab-contenidos" class="st-tab-content">
     <div class="st-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="st-sec" style="margin:0">📋 Mis contenidos</div>
-        <div style="display:flex;gap:4px">
-          <select class="st-inp" id="ct-filtro" style="width:auto;font-size:10px" onchange="stLoadContenidos()">
-            <option value="">Todos</option><option value="IDEA">Ideas</option><option value="BORRADOR">Borradores</option><option value="APROBADO">Aprobados</option><option value="PROGRAMADO">Programados</option><option value="PUBLICADO">Publicados</option>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px">
+        <div class="st-sec" style="margin:0">📋 Contenidos</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select class="st-inp" id="ct-filtro" style="width:auto;font-size:9px;padding:4px 6px" onchange="stLoadContenidos()">
+            <option value="">Todos</option><option value="IDEA">Ideas</option><option value="BORRADOR">Borradores</option><option value="APROBADO">Aprobados</option><option value="PROGRAMADO">Programados</option><option value="EN_PROCESO">En proceso</option><option value="PUBLICADO">Publicados</option><option value="ERROR_PUBLICACION">Errores</option>
           </select>
+          <select class="st-inp" id="ct-filtro-tipo" style="width:auto;font-size:9px;padding:4px 6px" onchange="stLoadContenidos()">
+            <option value="">Todo tipo</option><option value="POST">Post</option><option value="CARRUSEL">Carrusel</option><option value="REEL">Reel</option><option value="STORY">Story</option><option value="BLOG">Blog</option>
+          </select>
+          <input class="st-inp" id="ct-buscar" placeholder="🔍 Buscar..." style="width:120px;font-size:9px;padding:4px 6px" oninput="stLoadContenidos()">
         </div>
       </div>
       <div id="ct-lista">Cargando...</div>
@@ -583,11 +595,46 @@ function stLoadDashboard(){
   });
 }
 
-/* ═══ CONTENIDOS ═══ */
+/* ═══ CONTADOR DE CARACTERES ═══ */
+function stUpdateCharCount(){
+  var el=$('cr-desc')||$('cr-gen-copy');if(!el)return;
+  var len=el.value.length;
+  var countEl=$('cr-char-count');if(countEl){
+    var color=len>2200?'var(--red)':len>1500?'var(--orange)':'var(--label)';
+    countEl.innerHTML='<span style="color:'+color+';font-weight:'+(len>2200?'700':'400')+'">'+len+' chars</span>';
+  }
+}
+
+/* ═══ HORA SUGERIDA AUTOMÁTICA ═══ */
+function stSugerirHora(){
+  var plats=[];document.querySelectorAll('#cr-plats input:checked').forEach(function(c){plats.push(c.value)});
+  var mainPlat=plats[0]||'instagram';
+  var horasPorPlat={instagram:['10:00','13:00','19:00'],facebook:['09:00','13:00','16:00'],linkedin:['08:00','12:00','17:00'],tiktok:['12:00','19:00','21:00']};
+  var diasPorPlat={instagram:[2,4],facebook:[3,5],linkedin:[2,3],tiktok:[2,4,6]};
+  
+  var horas=horasPorPlat[mainPlat]||['10:00'];
+  var dias=diasPorPlat[mainPlat]||[2];
+  var hora=horas[Math.floor(Math.random()*horas.length)];
+  
+  /* Encontrar el próximo día válido */
+  var d=new Date();d.setDate(d.getDate()+1);
+  for(var i=0;i<7;i++){
+    if(dias.indexOf(d.getDay())>=0)break;
+    d.setDate(d.getDate()+1);
+  }
+  var parts=hora.split(':');d.setHours(parseInt(parts[0]),parseInt(parts[1]),0);
+  $('cr-fecha').value=d.toISOString().slice(0,16);
+}
+
+/* ═══ CONTENIDOS CON FILTROS MEJORADOS ═══ */
 function stLoadContenidos(){
-  var filtro=$('ct-filtro').value;
+  var filtroEstado=($('ct-filtro')||{}).value;
+  var filtroTipo=($('ct-filtro-tipo')||{}).value;
+  var buscar=($('ct-buscar')||{}).value;
   var q='order=created_at.desc&limit=20';
-  if(filtro)q='estado=eq.'+filtro+'&'+q;
+  if(filtroEstado)q='estado=eq.'+filtroEstado+'&'+q;
+  if(filtroTipo)q='tipo_contenido=eq.'+filtroTipo+'&'+q;
+  if(buscar&&buscar.length>=2)q='or=(titulo.ilike.*'+encodeURIComponent(buscar)+'*,copy_principal.ilike.*'+encodeURIComponent(buscar)+'*)&'+q;
   sbGet('aos_studio_contenido',q,function(rows){
     if(!rows||!rows.length){$('ct-lista').innerHTML='<div class="st-empty"><div class="icon">📝</div>No hay contenidos aún. Crea tu primer post.</div>';return}
     var h='';rows.forEach(function(r){h+=stContentCard(r)});
