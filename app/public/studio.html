@@ -801,33 +801,49 @@ function stChatEnviar(){
   var msg=input.value.trim();input.value='';
   stChatAddMsg('user',msg);
   CHAT_HISTORY.push({role:'user',content:msg});
-  var quiereImg=/imagen|post|diseño|crea.*visual|foto|slide|banner|story|reel|flyer/i.test(msg);
+  var quiereImg=/imagen|post|diseño|crea.*visual|foto|slide|banner|story|reel|flyer|carrusel|afiche|portada/i.test(msg);
   if(quiereImg){
-    stChatAddMsg('system','🎨 Generando imagen...');
-    var prompt=msg;if(CHAT_REF)prompt+=' Estilo: '+CHAT_REF.prompt;
+    stChatAddMsg('system','🎨 Generando imagen con AI (Gemini gratis)...');
+    var prompt=msg;if(CHAT_REF)prompt+=' Estilo de referencia: '+CHAT_REF.prompt;
     fetch('/api/studio/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,size:'1024x1024'})
+      body:JSON.stringify({prompt:prompt})
     }).then(function(r){return r.json()}).then(function(data){
       stChatRemoveLast();
-      if(data&&data.url){CHAT_IMGS.push({url:data.url,prompt:msg});stChatAddImg(data.url,msg);stChatGenerarCopy(msg,data.url);}
-      else{stChatAddMsg('assistant','No pude generar la imagen. '+(data&&data.error||'Configura OPENAI_API_KEY en Railway.'));stChatGenerarCopy(msg,null);}
-    }).catch(function(){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error. Generando solo copy...');stChatGenerarCopy(msg,null);});
+      if(data&&data.success&&data.url){
+        CHAT_IMGS.push({url:data.url,prompt:msg});
+        stChatAddMsg('assistant','🖼️ Imagen generada con '+data.provider+' (costo: $'+( data.cost||0)+'):',data.url);
+        /* Generar copy también */
+        stChatGenerarCopy(msg,data.url);
+      }else if(data&&data.success&&data.image_base64){
+        var url='data:image/png;base64,'+data.image_base64;
+        stChatAddMsg('assistant','🖼️ Imagen generada:',url);
+        stChatGenerarCopy(msg,url);
+      }else{
+        stChatAddMsg('assistant','⚠️ '+(data&&data.error||'No se pudo generar imagen.')+'\n\nGenerando solo el copy...');
+        stChatGenerarCopy(msg,null);
+      }
+    }).catch(function(e){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error: '+e.message);stChatGenerarCopy(msg,null);});
   }else{
-    stChatAddMsg('system','✍️ Escribiendo...');stChatGenerarCopy(msg,null);
+    stChatAddMsg('system','✍️ Generando copy con AI (Groq gratis)...');
+    stChatGenerarCopy(msg,null);
   }
 }
 function stChatGenerarCopy(msg,imgUrl){
-  var sys='Eres el agente creativo de Zi Vital (clínica estética Lima, Perú). Copy para redes. Español. Carrusel=slides numerados. Post=copy+hashtags. Tono elegante y cercano.';
+  var sys='Eres el agente creativo de Zi Vital (clínica estética Lima, Perú). Copy para redes sociales en español. Carrusel=slides numerados. Post=copy+hashtags. Tono elegante y cercano.';
   if(ST.brand)sys+=' Marca: '+ST.brand.nombre_marca+'. Colores: '+(ST.brand.colores||[]).join(',')+'.';
   if(CHAT_REF)sys+=' Estilo ref: '+CHAT_REF.descripcion;
-  var messages=CHAT_HISTORY.slice(-6).map(function(m){return{role:m.role==='user'?'user':'assistant',content:m.content}});
-  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,messages:messages})
+  
+  fetch('/api/studio/generate-copy',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:msg,system:sys})
   }).then(function(r){return r.json()}).then(function(data){
-    stChatRemoveLast();var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
-    if(text){CHAT_HISTORY.push({role:'assistant',content:text});stChatAddMsg('assistant',text,imgUrl);}
-    else stChatAddMsg('assistant','Error al generar. Intenta de nuevo.');
-  }).catch(function(){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error de conexión.');});
+    stChatRemoveLast();
+    if(data&&data.success&&data.text){
+      CHAT_HISTORY.push({role:'assistant',content:data.text});
+      stChatAddMsg('assistant',data.text+(data.provider?' ('+data.provider+' · $'+(data.cost||0)+')':''),imgUrl);
+    }else{
+      stChatAddMsg('assistant','⚠️ '+(data&&data.error||'Error generando copy'));
+    }
+  }).catch(function(){stChatRemoveLast();stChatAddMsg('assistant','⚠️ Error de conexión');});
 }
 function stChatAddMsg(role,text,imgUrl){
   var msgs=$('chat-msgs');if(!msgs)return;

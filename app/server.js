@@ -117,38 +117,170 @@ http.createServer(function(req, res) {
     }).on('error', function() { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }); return
   }
   // ===== FIN TIPO DE CAMBIO =====
-  // ═══ STUDIO API — GENERACIÓN DE IMÁGENES CON OPENAI ═══
+  // ═══ STUDIO API — GENERACIÓN DE IMÁGENES (Gemini GRATIS + OpenAI fallback) ═══
   if (p === '/api/studio/generate-image' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
       try {
         var d = JSON.parse(body)
-        var OPENAI_KEY = process.env.OPENAI_API_KEY
-        if (!OPENAI_KEY) { res.writeHead(500); res.end(JSON.stringify({error:'OPENAI_API_KEY not configured'})); return }
-        var prompt = d.prompt || 'Professional medical aesthetic clinic photo'
-        var size = d.size || '1024x1024'
-        var quality = d.quality || 'medium'
-        var model = d.model || 'gpt-image-1'
-        var imageData = JSON.stringify({ model: model, prompt: prompt, n: 1, size: size, quality: quality })
-        var imgReq = https.request({
-          hostname: 'api.openai.com', path: '/v1/images/generations', method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + OPENAI_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(imageData) }
-        }, function(imgRes) {
-          var iData = ''; imgRes.on('data', function(c) { iData += c }); imgRes.on('end', function() {
-            try {
-              var result = JSON.parse(iData)
-              if (result.data && result.data[0]) {
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ success: true, image_base64: result.data[0].b64_json, revised_prompt: result.data[0].revised_prompt || '' }))
-              } else {
-                res.writeHead(400, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ error: 'No image generated', details: result }))
-              }
-            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error',raw:iData.substring(0,200)})) }
+        var prompt = d.prompt || 'Professional medical aesthetic clinic Instagram post'
+        var provider = d.provider || 'auto' /* auto, gemini, openai */
+        
+        /* Leer keys de Supabase integraciones */
+        function getKey(tipo, cb) {
+          https.get({
+            hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+            path: '/rest/v1/aos_integraciones?tipo=eq.' + tipo + '&estado=eq.conectado&select=api_key&limit=1',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+          }, function(r) {
+            var data = ''; r.on('data', function(c) { data += c }); r.on('end', function() {
+              try { var rows = JSON.parse(data); cb(rows && rows[0] ? rows[0].api_key : null) } catch(e) { cb(null) }
+            })
+          }).on('error', function() { cb(null) })
+        }
+        
+        function tryGemini(geminiKey) {
+          var geminiBody = JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
           })
-        })
-        imgReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
-        imgReq.write(imageData); imgReq.end()
+          var gemReq = https.request({
+            hostname: 'generativelanguage.googleapis.com',
+            path: '/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + geminiKey,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(geminiBody) }
+          }, function(gRes) {
+            var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+              try {
+                var result = JSON.parse(gData)
+                if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                  var parts = result.candidates[0].content.parts || []
+                  var imgPart = parts.find(function(p) { return p.inlineData })
+                  var textPart = parts.find(function(p) { return p.text })
+                  if (imgPart && imgPart.inlineData) {
+                    /* Subir imagen a Supabase Storage */
+                    var imgBuffer = Buffer.from(imgPart.inlineData.data, 'base64')
+                    var fname = 'ai-' + Date.now() + '.png'
+                    var uploadReq = https.request({
+                      hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+                      path: '/storage/v1/object/studio-assets/' + fname,
+                      method: 'POST',
+                      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/png', 'Content-Length': imgBuffer.length }
+                    }, function(uRes) {
+                      var uData = ''; uRes.on('data', function(c) { uData += c }); uRes.on('end', function() {
+                        var url = 'https://ituyqwstonmhnfshnaqz.supabase.co/storage/v1/object/public/studio-assets/' + fname
+                        res.writeHead(200, { 'Content-Type': 'application/json' })
+                        res.end(JSON.stringify({ success: true, url: url, provider: 'gemini', text: textPart ? textPart.text : '', cost: 0 }))
+                      })
+                    })
+                    uploadReq.on('error', function() {
+                      /* Si falla upload, devolver base64 directamente */
+                      res.writeHead(200, { 'Content-Type': 'application/json' })
+                      res.end(JSON.stringify({ success: true, image_base64: imgPart.inlineData.data, provider: 'gemini', cost: 0 }))
+                    })
+                    uploadReq.write(imgBuffer); uploadReq.end()
+                  } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ success: false, error: 'Gemini no generó imagen. Respuesta: ' + (textPart ? textPart.text.substring(0, 200) : 'sin texto'), provider: 'gemini' }))
+                  }
+                } else {
+                  res.writeHead(400, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ error: 'Gemini error', details: gData.substring(0, 300) }))
+                }
+              } catch(e) { res.writeHead(500); res.end(JSON.stringify({error: 'Parse error: ' + e.message})) }
+            })
+          })
+          gemReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error: e.message})) })
+          gemReq.write(geminiBody); gemReq.end()
+        }
+        
+        function tryOpenAI(openaiKey) {
+          var imageData = JSON.stringify({ model: 'gpt-image-1', prompt: prompt, n: 1, size: '1024x1024', quality: 'medium' })
+          var imgReq = https.request({
+            hostname: 'api.openai.com', path: '/v1/images/generations', method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + openaiKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(imageData) }
+          }, function(imgRes) {
+            var iData = ''; imgRes.on('data', function(c) { iData += c }); imgRes.on('end', function() {
+              try {
+                var result = JSON.parse(iData)
+                if (result.data && result.data[0]) {
+                  res.writeHead(200, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ success: true, url: result.data[0].url || '', image_base64: result.data[0].b64_json || '', provider: 'openai', cost: 0.04 }))
+                } else {
+                  res.writeHead(400); res.end(JSON.stringify({ error: 'OpenAI no generó imagen', details: result }))
+                }
+              } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error'})) }
+            })
+          })
+          imgReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+          imgReq.write(imageData); imgReq.end()
+        }
+        
+        /* Auto: primero Gemini (gratis), luego OpenAI */
+        if (provider === 'openai') {
+          getKey('api', function(k) { /* OpenAI tipo es 'api' con nombre OpenAI */
+            var key = k || process.env.OPENAI_API_KEY
+            if (!key) { res.writeHead(400); res.end(JSON.stringify({error:'OpenAI API key no configurada'})); return }
+            tryOpenAI(key)
+          })
+        } else {
+          getKey('gemini', function(gemKey) {
+            if (gemKey) { tryGemini(gemKey); return }
+            /* Fallback a OpenAI */
+            getKey('api', function(oaiKey) {
+              var key = oaiKey || process.env.OPENAI_API_KEY
+              if (key) { tryOpenAI(key); return }
+              res.writeHead(400); res.end(JSON.stringify({error:'No hay API de imagen configurada. Configura Gemini o OpenAI en Configuración → Integraciones.'}))
+            })
+          })
+        }
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ STUDIO API — GENERAR COPY CON AI (Groq GRATIS + Claude fallback) ═══
+  if (p === '/api/studio/generate-copy' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var prompt = d.prompt || ''
+        var system = d.system || 'Eres el agente creativo de Zi Vital, clínica de medicina estética en Lima, Perú. Generas copy para redes sociales en español. Tono elegante y cercano.'
+        
+        /* Leer key de Groq */
+        https.get({
+          hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+          path: '/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1',
+          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+        }, function(r) {
+          var data = ''; r.on('data', function(c) { data += c }); r.on('end', function() {
+            try {
+              var rows = JSON.parse(data)
+              var groqKey = rows && rows[0] ? rows[0].api_key : null
+              if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+              
+              var groqBody = JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }],
+                max_tokens: 800, temperature: 0.7
+              })
+              var groqReq = https.request({
+                hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+              }, function(gRes) {
+                var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                  try {
+                    var result = JSON.parse(gData)
+                    var text = result.choices && result.choices[0] ? result.choices[0].message.content : ''
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ success: true, text: text, provider: 'groq', cost: 0 }))
+                  } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error'})) }
+                })
+              })
+              groqReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+              groqReq.write(groqBody); groqReq.end()
+            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Key lookup error'})) }
+          })
+        }).on('error', function() { res.writeHead(500); res.end(JSON.stringify({error:'DB connection error'})) })
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
