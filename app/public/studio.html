@@ -80,9 +80,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <button onclick="stTab('crear',this)">✨ Crear</button>
     <button onclick="stTab('contenidos',this)">📋 Contenidos</button>
     <button onclick="stTab('calendario',this)">📅 Calendario</button>
+    <button onclick="stTab('feed',this)">📱 Feed IG</button>
     <button onclick="stTab('templates',this)">🎯 Templates</button>
     <button onclick="stTab('brand',this)">🎨 Marca</button>
-    <button onclick="stTab('assets',this)">📸 Assets</button>
+    <button onclick="stTab('assets',this)">📸 Imágenes</button>
+    <button onclick="stTab('competencia',this)">🔍 Competencia</button>
     <button onclick="stTab('brief',this)">🤖 Brief AI</button>
   </div>
 </div>
@@ -132,6 +134,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div style="display:flex;gap:6px;margin-top:10px">
         <button class="st-btn st-btn-c" onclick="stCrearContenido()">🤖 Generar con AI</button>
         <button class="st-btn st-btn-p" onclick="stGuardarBorrador()">💾 Guardar borrador</button>
+        <button class="st-btn st-btn-s" onclick="stCrearMultiPlataforma()">🌐 Multi-plataforma</button>
       </div>
     </div>
     <!-- Preview del contenido generado -->
@@ -272,12 +275,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
+  <!-- FEED PREVIEW IG -->
+  <div id="tab-feed" class="st-tab-content">
+    <div class="st-card">
+      <div class="st-sec">📱 Preview del Feed de Instagram</div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:10px">Así se verá tu feed de Instagram con los posts programados y publicados</div>
+      <div style="max-width:360px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden">
+        <div style="padding:10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue-d),var(--cyan));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px">Zi</div>
+          <div><div style="font-weight:700;font-size:11px">zivital</div><div style="font-size:8px;color:var(--label)">Medicina Estética con Propósito</div></div>
+        </div>
+        <div id="feed-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPETENCIA -->
+  <div id="tab-competencia" class="st-tab-content">
+    <div class="st-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="st-sec" style="margin:0">🔍 Monitoreo de competencia</div>
+        <button class="st-btn st-btn-p" onclick="stAddCompetidor()">+ Agregar</button>
+      </div>
+      <div id="comp-lista">Cargando...</div>
+    </div>
+    <div class="st-card">
+      <div class="st-sec">💡 Insights de la competencia</div>
+      <div style="font-size:9px;color:var(--label);margin-bottom:8px">El agente analiza qué contenido funciona en la competencia y sugiere ideas para diferenciarse</div>
+      <button class="st-btn st-btn-c" onclick="stAnalizarCompetencia()">🤖 Analizar competencia con AI</button>
+      <div id="comp-analysis" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <!-- BRIEF AI -->
   <div id="tab-brief" class="st-tab-content">
     <div class="st-card">
       <div class="st-sec">🤖 Brief semanal — Agente Investigador</div>
       <div style="font-size:10px;color:var(--label);margin-bottom:10px">El agente lee los datos de tu CRM (ventas, conversión, repositorio) y genera un plan de contenido semanal.</div>
       <button class="st-btn st-btn-c" onclick="stGenerarBrief()" id="brief-btn">🤖 Generar brief semanal</button>
+      <button class="st-btn st-btn-p" onclick="stGenerarPlan3Meses()">📅 Plan de 3 meses</button>
       <div id="brief-result" style="margin-top:12px"></div>
     </div>
   </div>
@@ -317,9 +353,12 @@ function stTab(name,btn){
   if(name==='dashboard')stLoadDashboard();
   if(name==='contenidos')stLoadContenidos();
   if(name==='calendario')stRenderCal();
+  if(name==='feed')stLoadFeed();
   if(name==='templates')stLoadTemplates();
   if(name==='brand')stLoadBrand();
   if(name==='crear')stLoadCrearForm();
+  if(name==='competencia')stLoadCompetencia();
+  if(name==='assets')stLoadAssets();
 }
 
 /* ═══ DASHBOARD ═══ */
@@ -1069,14 +1108,165 @@ function generateScheduleDates(start,count,freq){
   return dates;
 }
 
+/* ═══ CREAR MULTI-PLATAFORMA ═══ */
+function stCrearMultiPlataforma(){
+  var cat=($('cr-cat')||{}).value;
+  var titulo=($('cr-titulo')||{}).value;
+  var desc=($('cr-desc')||{}).value;
+  if(!titulo&&!desc){alert('Escribe un título o descripción');return}
+  $('cr-preview').style.display='block';
+  $('cr-preview-content').innerHTML='<div style="text-align:center;padding:20px;color:var(--label)"><div style="font-size:24px;animation:spin 1s linear infinite">🌐</div>Generando versiones para 4 plataformas...</div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
+  stGenerarCopyMultiPlataforma(titulo+'\n'+desc,cat,function(result){
+    if(!result){$('cr-preview-content').innerHTML='<div style="color:var(--red);padding:12px">Error. Intenta de nuevo.</div>';return}
+    var h='';
+    var platforms=[
+      {key:'instagram',icon:'📷',name:'Instagram',color:'#E4405F'},
+      {key:'facebook',icon:'📘',name:'Facebook',color:'#1877F2'},
+      {key:'linkedin',icon:'💼',name:'LinkedIn',color:'#0A66C2'},
+      {key:'tiktok',icon:'🎵',name:'TikTok',color:'#000000'}
+    ];
+    platforms.forEach(function(p){
+      var d=result[p.key];if(!d)return;
+      h+='<div style="background:#FAFBFF;border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;border-left:4px solid '+p.color+'">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-weight:800;font-size:11px">'+p.icon+' '+p.name+'</div>';
+      h+='<button class="st-btn st-btn-g" style="padding:3px 8px;font-size:8px" onclick="stGuardarVersion(\''+p.key+'\')">💾 Guardar</button></div>';
+      h+='<textarea class="st-inp st-ta" id="mp-'+p.key+'" style="font-size:9px;min-height:60px">'+H(d.copy||'')+'</textarea>';
+      if(d.formato){h+='<div style="font-size:8px;color:var(--label);margin-top:2px">📐 Formato recomendado: '+H(d.formato)+'</div>';}
+      h+='</div>';
+    });
+    $('cr-preview-content').innerHTML=h;
+  });
+}
+function stGuardarVersion(plat){
+  var copy=($('mp-'+plat)||{}).value||'';
+  var cat=($('cr-cat')||{}).value||null;
+  sbPost('aos_studio_contenido',{
+    tipo_contenido:'POST',titulo:($('cr-titulo')||{}).value||'',
+    copy_principal:copy,categoria_tratamiento:cat,
+    plataformas:[plat],estado:'BORRADOR',fuente:'AGENTE_INVESTIGADOR'
+  },function(d){if(d&&d[0])alert('✅ Guardado para '+plat)});
+}
+
+/* ═══ FEED PREVIEW IG ═══ */
+function stLoadFeed(){
+  sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO,PUBLICADO)&order=fecha_programada.desc.nullslast,created_at.desc&limit=18&plataformas=cs.{instagram}',function(rows){
+    if(!rows)rows=[];
+    /* Si no hay suficientes con filtro IG, cargar todos */
+    if(rows.length<6){
+      sbGet('aos_studio_contenido','estado=in.(APROBADO,PROGRAMADO,PUBLICADO)&order=created_at.desc&limit=18',function(all){stRenderFeed(all||[])});
+    }else{stRenderFeed(rows)}
+  });
+}
+function stRenderFeed(rows){
+  var grid=$('feed-grid');if(!grid)return;
+  if(!rows.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--label);font-size:10px">No hay posts aún. Crea contenido para ver tu feed.</div>';return}
+  var h='';rows.forEach(function(r){
+    var bg=r.imagen_url?'url('+H(r.imagen_url)+') center/cover':'linear-gradient(135deg,var(--blue-d),var(--blue))';
+    var estadoColor=r.estado==='PUBLICADO'?'var(--green)':r.estado==='PROGRAMADO'?'var(--purple)':'var(--orange)';
+    h+='<div style="aspect-ratio:1;background:'+bg+';position:relative;cursor:pointer" onclick="stEditContent(\''+r.id+'\')">';
+    if(!r.imagen_url){h+='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;font-size:7px;color:#fff;text-align:center;line-height:1.3;font-weight:600">'+H((r.titulo||r.copy_principal||'').substring(0,40))+'</div>';}
+    h+='<div style="position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:'+estadoColor+'"></div>';
+    if(r.tipo_contenido==='CARRUSEL'){h+='<div style="position:absolute;top:2px;left:2px;font-size:7px">🎠</div>';}
+    h+='</div>';
+  });
+  grid.innerHTML=h;
+}
+
+/* ═══ COMPETENCIA ═══ */
+function stLoadCompetencia(){
+  sbGet('aos_studio_competencia','activo=eq.true&order=nombre_competidor',function(rows){
+    if(!rows||!rows.length){$('comp-lista').innerHTML='<div class="st-empty"><div class="icon">🔍</div>No hay competidores configurados</div>';return}
+    var h='';rows.forEach(function(c){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:4px">';
+      h+='<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🏢</div>';
+      h+='<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:11px">'+H(c.nombre_competidor)+'</div>';
+      h+='<div style="font-size:8px;color:var(--label)">'+H(c.plataforma)+' · '+(c.seguidores?c.seguidores.toLocaleString()+' seguidores':'sin datos')+'</div>';
+      if(c.notas){h+='<div style="font-size:8px;color:var(--label);margin-top:1px">'+H(c.notas)+'</div>';}
+      h+='</div>';
+      h+='<button class="st-btn st-btn-s" style="padding:4px 8px;font-size:8px" onclick="stDeleteCompetidor(\''+c.id+'\')">✕</button>';
+      h+='</div>';
+    });
+    $('comp-lista').innerHTML=h;
+  });
+}
+function stAddCompetidor(){
+  var nombre=prompt('Nombre del competidor:');if(!nombre)return;
+  var url=prompt('URL de Instagram (ej: https://instagram.com/clinica):','');
+  sbPost('aos_studio_competencia',{nombre_competidor:nombre,plataforma:'instagram',url_perfil:url||null},function(){stLoadCompetencia()});
+}
+function stDeleteCompetidor(id){
+  if(!confirm('¿Eliminar?'))return;
+  fetch(SB_URL+'/rest/v1/aos_studio_competencia?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(){stLoadCompetencia()});
+}
+function stAnalizarCompetencia(){
+  $('comp-analysis').innerHTML='<div style="text-align:center;padding:12px;color:var(--label)"><div style="font-size:20px;animation:spin 1s linear infinite">🤖</div>Analizando...</div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
+  sbGet('aos_studio_competencia','activo=eq.true',function(comps){
+    var compList=(comps||[]).map(function(c){return c.nombre_competidor}).join(', ');
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        system:'Eres analista de marketing digital especializado en medicina estética en Lima, Perú.',
+        messages:[{role:'user',content:'Analiza la competencia de Zi Vital (clínica de medicina estética en San Isidro y Pueblo Libre, Lima). Competidores: '+compList+'.\n\nDa insights accionables sobre:\n1. Qué tipo de contenido funciona en medicina estética en redes\n2. Diferenciadores que Zi Vital puede explotar\n3. Oportunidades de contenido que la competencia no está aprovechando\n4. Tendencias 2026 en contenido de estética\n5. Errores comunes que evitar\n\nSé concreto y práctico. Sin rodeos.'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      $('comp-analysis').innerHTML='<div style="background:var(--blue-xl);padding:12px;border-radius:8px;font-size:10px;line-height:1.6;white-space:pre-line">'+H(text)+'</div>';
+    }).catch(function(){$('comp-analysis').innerHTML='<div style="color:var(--red);font-size:10px">Error al analizar. Intenta de nuevo.</div>'});
+  });
+}
+
+/* ═══ COPY MULTI-PLATAFORMA (genera versiones adaptadas) ═══ */
+function stGenerarCopyMultiPlataforma(texto,cat,callback){
+  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+      system:'Copywriter de Zi Vital. Adaptas un mismo contenido a diferentes plataformas. Responde SOLO JSON.',
+      messages:[{role:'user',content:'Adapta este contenido a 4 plataformas:\n\nContenido original: '+texto+'\nCategoría: '+(cat||'medicina estética')+'\n\nJSON sin markdown:\n{"instagram":{"copy":"caption con emojis, hooks, hashtags, max 2200 chars","formato":"recomendado"},"facebook":{"copy":"más largo, informativo, sin muchos emojis","formato":"recomendado"},"linkedin":{"copy":"profesional, datos, credibilidad, sin emojis excesivos","formato":"recomendado"},"tiktok":{"copy":"gancho rápido, trending, casual, hashtags virales","formato":"recomendado"}}'}]
+    })
+  }).then(function(r){return r.json()}).then(function(data){
+    var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+    try{callback(JSON.parse(text.replace(/```json|```/g,'').trim()))}catch(e){callback(null)}
+  }).catch(function(){callback(null)});
+}
+
+/* ═══ PLAN DE 3 MESES BASADO EN FAQs ═══ */
+function stGenerarPlan3Meses(){
+  $('brief-btn').disabled=true;$('brief-btn').textContent='⏳ Generando plan de 3 meses...';
+  rpc('aos_studio_brief_semanal',{},function(d){
+    if(!d){$('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';return}
+    var faqTotal=0;(d.faqs_disponibles||[]).forEach(function(f){faqTotal+=f.n_faqs});
+    var fechas=(d.fechas_clave||[]).map(function(f){return f.nombre+' ('+f.fecha+')'}).join(', ');
+    
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:'Director de marketing de Zi Vital. Planificas contenido estratégico de 3 meses.',
+        messages:[{role:'user',content:'Genera un plan de contenido de 3 MESES para Zi Vital.\n\nDatos:\n- '+faqTotal+' FAQs en repositorio\n- Estrellas: '+(d.estrellas||[]).join(', ')+'\n- Top ventas: '+(d.top_vendidos||[]).map(function(t){return t.tratamiento}).join(', ')+'\n- Fechas clave: '+fechas+'\n\nGenera plan con 3 posts/semana (12/mes = 36 total). Responde JSON:\n{"meses":[{"mes":"Mayo 2026","tema_mes":"tema general","semanas":[{"semana":1,"posts":[{"dia":"Lunes","tipo":"CARRUSEL","titulo":"...","categoria":"...","objetivo":"..."}]}]}]}'}]
+      })
+    }).then(function(r){return r.json()}).then(function(data){
+      $('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';
+      var text='';if(data&&data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      try{
+        var plan=JSON.parse(text.replace(/```json|```/g,'').trim());
+        var h='<div class="st-card" style="border-color:var(--cyan);border-width:2px">';
+        h+='<div class="st-sec">📅 Plan de contenido — 3 meses</div>';
+        (plan.meses||[]).forEach(function(m){
+          h+='<details style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;padding:8px"><summary style="font-weight:800;font-size:12px;color:var(--blue-d);cursor:pointer">'+H(m.mes)+' — '+H(m.tema_mes||'')+'</summary>';
+          (m.semanas||[]).forEach(function(s){
+            h+='<div style="margin:6px 0;padding-left:8px;border-left:2px solid var(--cyan)"><div style="font-weight:700;font-size:10px;color:var(--label)">Semana '+s.semana+'</div>';
+            (s.posts||[]).forEach(function(p){
+              h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:9px">';
+              h+='<span><b>'+H(p.dia)+'</b> · '+H(p.tipo)+' · '+H(p.titulo)+'</span>';
+              h+='<button class="st-btn st-btn-c" style="padding:2px 8px;font-size:7px" onclick="stCrearDesdePlan(\''+H(p.tipo||'POST').replace(/'/g,'')+'\',\''+H(p.categoria||'').replace(/'/g,'')+'\',\''+H(p.titulo||'').replace(/'/g,'')+'\',\'\')">Crear</button>';
+              h+='</div>';
+            });h+='</div>';
+          });h+='</details>';
+        });
+        h+='</div>';$('brief-result').innerHTML+=h;
+      }catch(e){$('brief-result').innerHTML+='<div style="color:var(--red);font-size:10px">Error al generar plan. Intenta de nuevo.</div>';}
+    }).catch(function(){$('brief-btn').disabled=false;$('brief-btn').textContent='🤖 Generar brief semanal';});
+  });
+}
+
 /* ═══ INIT ═══ */
 stLoadDashboard();
-/* Cargar assets al abrir tab */
-var origTab=stTab;
-stTab=function(name,btn){
-  origTab(name,btn);
-  if(name==='assets')stLoadAssets();
-}
 </script>
 </body>
 </html>
