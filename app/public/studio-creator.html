@@ -478,58 +478,69 @@ function crDrawSlideText(ctx,s,w,h,idx,totalSlides,accentColor){
   
   /* Número de slide */
   if(s.num&&totalSlides>1){
-    ctx.font='900 24px "Exo 2"';ctx.fillStyle=tc;ctx.globalAlpha=0.3;
+    ctx.font='900 24px Exo 2, sans-serif';ctx.fillStyle=tc;ctx.globalAlpha=0.3;
     ctx.fillText((idx+1)+'/'+totalSlides,32,44);ctx.globalAlpha=1;
   }
   /* Logo */
   if(s.logo){
-    ctx.font='900 22px "Exo 2"';ctx.fillStyle=tc;ctx.globalAlpha=0.4;
+    ctx.font='900 22px Exo 2, sans-serif';ctx.fillStyle=tc;ctx.globalAlpha=0.4;
     ctx.textAlign='right';ctx.fillText(CR.brand.nombre,w-32,h-28);ctx.textAlign='left';ctx.globalAlpha=1;
   }
+  /* Calcular altura total del contenido para centrar verticalmente */
+  var fontName=(s.font||'Exo 2')+', sans-serif';
+  var fsize=Math.min((s.fsize||32)*2, w*0.12);
+  var lines=(s.titulo||'').split('\n');
+  var subLines=(s.sub||'').split('\n');
+  var totalHeight=lines.length*fsize*1.15 + (s.sub?subLines.length*34+16:0) + (s.cta?72:0);
+  var startY=Math.max(pad, (h-totalHeight)/2);
+  
   /* Título */
-  var fsize=(s.fsize||32)*2;ctx.font='900 '+fsize+'px "'+H(s.font||'Exo 2')+'"';ctx.fillStyle=tc;
-  var lines=(s.titulo||'').split('\n');var y=h*0.35;
-  lines.forEach(function(line){ctx.fillText(line,pad,y);y+=fsize*1.15});
+  ctx.font='900 '+Math.round(fsize)+'px '+fontName;ctx.fillStyle=tc;
+  var y=startY;
+  lines.forEach(function(line){ctx.fillText(line,pad,y+fsize*0.85);y+=fsize*1.15});
   /* Subtítulo */
   if(s.sub){
-    ctx.font='500 28px "DM Sans"';ctx.fillStyle=tc;ctx.globalAlpha=0.8;
-    var subLines=(s.sub||'').split('\n');
+    ctx.font='500 28px DM Sans, sans-serif';ctx.fillStyle=tc;ctx.globalAlpha=0.8;
     subLines.forEach(function(line){ctx.fillText(line,pad,y+16);y+=34});
     ctx.globalAlpha=1;
   }
   /* CTA */
   if(s.cta){
-    y+=24;var ctaW=ctx.measureText(s.cta).width+64;
+    y+=24;ctx.font='700 24px DM Sans, sans-serif';
+    var ctaW=ctx.measureText(s.cta).width+64;
     ctx.fillStyle=accentColor;
     crRoundRect(ctx,pad,y-6,ctaW,48,12);ctx.fill();
-    ctx.font='700 24px "DM Sans"';ctx.fillStyle=CR.brand.c1;
+    ctx.fillStyle=CR.brand.c1;
     ctx.fillText(s.cta,pad+32,y+26);
   }
 }
 function crRoundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
 function crExportPNG(){
-  if(CR.slides.length===1){
-    crRenderSlideToCanvas(CR.slides[0],0,1,function(canvas){
-      var link=document.createElement('a');link.download='zi-vital-post.png';
-      link.href=canvas.toDataURL('image/png');link.click();
-    });
-  }else{
-    /* Exportar carrusel completo — todos los slides */
-    var exported=0;var total=CR.slides.length;
-    $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888">📥 Exportando '+total+' slides...</div>';
-    CR.slides.forEach(function(slide,i){
-      setTimeout(function(){
-        crRenderSlideToCanvas(slide,i,total,function(canvas){
-          var link=document.createElement('a');
-          link.download='zi-vital-slide-'+(i+1)+'-de-'+total+'.png';
-          link.href=canvas.toDataURL('image/png');link.click();
-          exported++;
-          if(exported===total){setTimeout(function(){crRenderCanvas()},500)}
-        });
-      },i*300);
-    });
-  }
+  /* Esperar a que las fuentes estén cargadas */
+  var doExport=function(){
+    if(CR.slides.length===1){
+      crRenderSlideToCanvas(CR.slides[0],0,1,function(canvas){
+        var link=document.createElement('a');link.download='zi-vital-post.png';
+        link.href=canvas.toDataURL('image/png');link.click();
+      });
+    }else{
+      var exported=0;var total=CR.slides.length;
+      $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888">📥 Exportando '+total+' slides...</div>';
+      CR.slides.forEach(function(slide,i){
+        setTimeout(function(){
+          crRenderSlideToCanvas(slide,i,total,function(canvas){
+            var link=document.createElement('a');
+            link.download='zi-vital-slide-'+(i+1)+'-de-'+total+'.png';
+            link.href=canvas.toDataURL('image/png');link.click();
+            exported++;
+            if(exported===total){setTimeout(function(){crRenderCanvas()},500)}
+          });
+        },i*300);
+      });
+    }
+  };
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(doExport)}else{doExport()}
 }
 /* Exportar solo slide actual */
 function crExportCurrentSlide(){

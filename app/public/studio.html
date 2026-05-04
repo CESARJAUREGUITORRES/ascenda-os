@@ -809,6 +809,9 @@ function stGenerarBrief(){
     
     /* Generar plan con Claude AI */
     var briefData='TOP VENDIDOS: '+tv.map(function(t){return t.tratamiento+' ('+t.ventas+' ventas)'}).join(', ')+'\nESTRELLAS: '+est.join(', ')+'\nFAQS DISPONIBLES: '+fq.map(function(f){return f.categoria+'('+f.n_faqs+')'}).join(', ')+'\nENFOQUES: '+(d.enfoques||[]).map(function(e){return e.enfoque+' ('+e.dominio+')'}).join(', ');
+    /* Agregar fechas clave al briefData */
+    var fc=d.fechas_clave||[];
+    if(fc.length){briefData+='\nFECHAS CLAVE PRÓXIMAS: '+fc.map(function(f){return f.nombre+' en '+f.dias_faltan+' días ('+f.sugerencia+')'}).join('; ')}
     
     fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
