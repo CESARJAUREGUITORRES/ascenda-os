@@ -76,12 +76,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         <option value="1080x1350">4:5 Post Vertical</option>
       </select>
     </div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
       <button class="cr-btn cr-btn-s" onclick="crAIGenerate()">🤖 AI Copy</button>
-      <button class="cr-btn cr-btn-s" onclick="crAIImage()">🖼️ AI Imagen</button>
-      <button class="cr-btn cr-btn-d" onclick="crExportPNG()">📥 Exportar</button>
-      <button class="cr-btn cr-btn-s" onclick="crPublishIG()">📷 Publicar IG</button>
-      <button class="cr-btn cr-btn-p" onclick="crSaveToStudio()">💾 Guardar</button>
+      <button class="cr-btn cr-btn-s" onclick="crAIImage()">🖼️ AI Img</button>
+      <label class="cr-btn cr-btn-s" style="cursor:pointer">📸 Fondo<input type="file" accept="image/*" style="display:none" onchange="crSetBgImage(this.files[0])"></label>
+      <button class="cr-btn cr-btn-d" onclick="crExportPNG()" title="Exportar todo el carrusel">📥 Todo</button>
+      <button class="cr-btn cr-btn-s" onclick="crExportCurrentSlide()" title="Solo este slide">📥 1</button>
+      <button class="cr-btn cr-btn-p" onclick="crSaveToStudio()">💾</button>
     </div>
   </div>
   
@@ -423,34 +424,119 @@ function crApplyFormat(){
   crSetFormat(sel.value);
 }
 
-/* ═══ EXPORT PNG ═══ */
-function crExportPNG(){
-  /* Use html2canvas approach: create full-res hidden div, render, convert to canvas */
-  var s=CR.slides[CR.sel];if(!s)return;
-  /* For now, open canvas in new window for screenshot */
-  var win=window.open('','_blank','width='+CR.format.w+',height='+CR.format.h);
-  if(!win){alert('Permite popups para exportar');return}
-  /* Render at full resolution */
-  var oldW=CR.format.w;var oldH=CR.format.h;
+/* ═══ EXPORT PNG — REAL con Canvas API ═══ */
+function crRenderSlideToCanvas(slide,idx,totalSlides,callback){
+  var w=CR.format.w;var h=CR.format.h;
+  var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  var ctx=canvas.getContext('2d');
+  var s=slide;
   var bg=s.bg||CR.brand.c1;var bg2=s.bg2||CR.brand.c2;
-  var bgStyle=s.grad?'linear-gradient('+s.grad+'deg,'+bg+' 0%,'+bg2+' 100%)':bg;
-  var accentColor=CR.brand.c3;
+  var accentColor=s.accentColor||CR.brand.c3;
   
-  var html='<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}</style></head><body>';
-  html+='<div style="width:'+oldW+'px;height:'+oldH+'px;background:'+bgStyle+';position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:64px">';
+  /* Fondo */
+  if(s.grad){
+    var angle=parseInt(s.grad)||135;var rad=angle*Math.PI/180;
+    var grd=ctx.createLinearGradient(0,0,Math.cos(rad)*w,Math.sin(rad)*h);
+    grd.addColorStop(0,bg);grd.addColorStop(1,bg2);ctx.fillStyle=grd;
+  }else{ctx.fillStyle=bg;}
+  ctx.fillRect(0,0,w,h);
   
-  if(s.deco==='circle'){html+='<div style="position:absolute;top:-120px;right:-120px;width:400px;height:400px;border-radius:50%;background:'+accentColor+';opacity:.12"></div>';}
-  if(s.deco==='corner'){html+='<div style="position:absolute;top:0;right:0;width:40%;height:35%;background:'+accentColor+';opacity:.15;border-radius:0 0 0 100%"></div>';}
-  if(s.deco==='stripe'){html+='<div style="position:absolute;bottom:0;left:0;width:100%;height:16px;background:'+accentColor+'"></div>';}
-  if(s.logo){html+='<div style="position:absolute;bottom:28px;right:32px;font-family:Exo 2;font-weight:900;font-size:22px;color:'+(s.textColor||'#fff')+';opacity:.4">'+H(CR.brand.nombre)+'</div>';}
-  if(s.num&&CR.slides.length>1){html+='<div style="position:absolute;top:24px;left:32px;font-family:Exo 2;font-weight:900;font-size:24px;color:'+(s.textColor||'#fff')+';opacity:.3">'+(CR.sel+1)+'/'+CR.slides.length+'</div>';}
+  /* Si hay imagen de fondo */
+  if(s.generatedImage||s.bgImageUrl){
+    var img=new Image();img.crossOrigin='anonymous';
+    img.onload=function(){
+      ctx.drawImage(img,0,0,w,h);
+      ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,w,h);
+      crDrawSlideText(ctx,s,w,h,idx,totalSlides,accentColor);
+      callback(canvas);
+    };
+    img.onerror=function(){crDrawSlideText(ctx,s,w,h,idx,totalSlides,accentColor);callback(canvas)};
+    img.src=s.generatedImage||s.bgImageUrl;return;
+  }
   
-  html+='<div style="font-family:\''+H(s.font||'Exo 2')+'\';font-weight:900;font-size:'+(s.fsize||32)*2+'px;color:'+(s.textColor||'#fff')+';line-height:1.15;margin-bottom:16px;white-space:pre-line">'+H(s.titulo||'')+'</div>';
-  if(s.sub){html+='<div style="font-family:DM Sans;font-weight:500;font-size:28px;color:'+(s.textColor||'#fff')+';opacity:.8;line-height:1.4;white-space:pre-line">'+H(s.sub)+'</div>';}
-  if(s.cta){html+='<div style="margin-top:32px;display:inline-block;padding:16px 32px;background:'+accentColor+';border-radius:12px;font-family:DM Sans;font-weight:700;font-size:24px;color:'+CR.brand.c1+'">'+H(s.cta)+'</div>';}
+  /* Decoración */
+  if(s.deco==='circle'){
+    ctx.fillStyle=accentColor;ctx.globalAlpha=0.12;
+    ctx.beginPath();ctx.arc(w+60,0-60,200,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(-40,h+40,120,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }else if(s.deco==='corner'){
+    ctx.fillStyle=accentColor;ctx.globalAlpha=0.15;
+    ctx.beginPath();ctx.moveTo(w*0.6,0);ctx.lineTo(w,0);ctx.lineTo(w,h*0.35);ctx.quadraticCurveTo(w*0.6,0,w*0.6,0);ctx.fill();
+    ctx.globalAlpha=1;
+  }else if(s.deco==='stripe'){
+    ctx.fillStyle=accentColor;ctx.fillRect(0,h-16,w,16);
+    ctx.globalAlpha=0.3;ctx.fillRect(0,0,4,h);ctx.globalAlpha=1;
+  }
   
-  html+='</div><div style="padding:20px;text-align:center;font-family:DM Sans;font-size:14px;color:#888">Click derecho → Guardar imagen &nbsp;|&nbsp; O usa Cmd/Ctrl+Shift+S</div></body></html>';
-  win.document.write(html);win.document.close();
+  crDrawSlideText(ctx,s,w,h,idx,totalSlides,accentColor);
+  callback(canvas);
+}
+
+function crDrawSlideText(ctx,s,w,h,idx,totalSlides,accentColor){
+  var tc=s.textColor||'#fff';var pad=64;
+  
+  /* Número de slide */
+  if(s.num&&totalSlides>1){
+    ctx.font='900 24px "Exo 2"';ctx.fillStyle=tc;ctx.globalAlpha=0.3;
+    ctx.fillText((idx+1)+'/'+totalSlides,32,44);ctx.globalAlpha=1;
+  }
+  /* Logo */
+  if(s.logo){
+    ctx.font='900 22px "Exo 2"';ctx.fillStyle=tc;ctx.globalAlpha=0.4;
+    ctx.textAlign='right';ctx.fillText(CR.brand.nombre,w-32,h-28);ctx.textAlign='left';ctx.globalAlpha=1;
+  }
+  /* Título */
+  var fsize=(s.fsize||32)*2;ctx.font='900 '+fsize+'px "'+H(s.font||'Exo 2')+'"';ctx.fillStyle=tc;
+  var lines=(s.titulo||'').split('\n');var y=h*0.35;
+  lines.forEach(function(line){ctx.fillText(line,pad,y);y+=fsize*1.15});
+  /* Subtítulo */
+  if(s.sub){
+    ctx.font='500 28px "DM Sans"';ctx.fillStyle=tc;ctx.globalAlpha=0.8;
+    var subLines=(s.sub||'').split('\n');
+    subLines.forEach(function(line){ctx.fillText(line,pad,y+16);y+=34});
+    ctx.globalAlpha=1;
+  }
+  /* CTA */
+  if(s.cta){
+    y+=24;var ctaW=ctx.measureText(s.cta).width+64;
+    ctx.fillStyle=accentColor;
+    crRoundRect(ctx,pad,y-6,ctaW,48,12);ctx.fill();
+    ctx.font='700 24px "DM Sans"';ctx.fillStyle=CR.brand.c1;
+    ctx.fillText(s.cta,pad+32,y+26);
+  }
+}
+function crRoundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+function crExportPNG(){
+  if(CR.slides.length===1){
+    crRenderSlideToCanvas(CR.slides[0],0,1,function(canvas){
+      var link=document.createElement('a');link.download='zi-vital-post.png';
+      link.href=canvas.toDataURL('image/png');link.click();
+    });
+  }else{
+    /* Exportar carrusel completo — todos los slides */
+    var exported=0;var total=CR.slides.length;
+    $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888">📥 Exportando '+total+' slides...</div>';
+    CR.slides.forEach(function(slide,i){
+      setTimeout(function(){
+        crRenderSlideToCanvas(slide,i,total,function(canvas){
+          var link=document.createElement('a');
+          link.download='zi-vital-slide-'+(i+1)+'-de-'+total+'.png';
+          link.href=canvas.toDataURL('image/png');link.click();
+          exported++;
+          if(exported===total){setTimeout(function(){crRenderCanvas()},500)}
+        });
+      },i*300);
+    });
+  }
+}
+/* Exportar solo slide actual */
+function crExportCurrentSlide(){
+  crRenderSlideToCanvas(CR.slides[CR.sel],CR.sel,CR.slides.length,function(canvas){
+    var link=document.createElement('a');link.download='zi-vital-slide-'+(CR.sel+1)+'.png';
+    link.href=canvas.toDataURL('image/png');link.click();
+  });
 }
 
 /* ═══ AI GENERATE ═══ */
@@ -506,52 +592,42 @@ function crSaveToStudio(){
   });
 }
 
-crInit();
+/* ═══ SUBIR IMAGEN COMO FONDO ═══ */
+function crSetBgImage(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    CR.slides[CR.sel].generatedImage=e.target.result;
+    CR.slides[CR.sel].bgImageUrl=null;
+    crRenderCanvas();
+  };
+  reader.readAsDataURL(file);
+}
 
 /* ═══ AI IMAGE GENERATION ═══ */
 function crAIImage(){
   var s=CR.slides[CR.sel];if(!s)return;
-  var desc=prompt('Describe la imagen que quieres generar:\n\nEj: "Mujer joven sonriendo después de tratamiento facial, clínica moderna, luz natural, estilo editorial"');
+  var desc=prompt('Describe la imagen:\n\nEj: "Mujer joven sonriendo después de tratamiento facial, clínica moderna, luz natural"');
   if(!desc)return;
-  
-  var brandPrompt='Professional medical aesthetics clinic. Brand: '+CR.brand.nombre+'. Colors: '+CR.brand.c1+', '+CR.brand.c3+'. Style: elegant, professional, warm lighting, clean clinic environment. ';
-  var fullPrompt=brandPrompt+desc+'. High quality, Instagram-ready, 1080x1350 aspect ratio.';
-  
-  $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:13px"><div style="text-align:center"><div style="font-size:32px;animation:spin 1s linear infinite">🖼️</div>Generando imagen con AI...<br><span style="font-size:9px;opacity:.6">Esto puede tomar 10-30 segundos</span></div></div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
-  
-  fetch('/api/studio/generate-image',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:fullPrompt,size:'1024x1024',quality:'medium',model:'gpt-image-1'})
+  var brandPrompt='Professional medical aesthetics clinic. Brand: '+CR.brand.nombre+'. Style: elegant, professional, warm lighting. ';
+  var fullPrompt=brandPrompt+desc+'. High quality, Instagram-ready.';
+  $('cr-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:13px"><div style="text-align:center"><div style="font-size:32px;animation:spin 1s linear infinite">🖼️</div>Generando imagen con AI...</div></div><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>';
+  fetch('/api/studio/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:fullPrompt,size:'1024x1024',quality:'medium',model:'gpt-image-1'})
   }).then(function(r){return r.json()}).then(function(data){
-    if(data.success&&data.image_base64){
-      CR.generatedImage='data:image/png;base64,'+data.image_base64;
-      s.generatedImage=CR.generatedImage;
-      crRenderCanvas();
-      alert('✅ Imagen generada. Se muestra como fondo del slide actual.');
-    }else{
-      alert('Error: '+(data.error||'No se pudo generar la imagen')+'\n\nAsegúrate de configurar OPENAI_API_KEY en Railway.');
-      crRenderCanvas();
-    }
-  }).catch(function(err){
-    alert('Error de conexión: '+err.message+'\n\nConfigura OPENAI_API_KEY en las variables de Railway.');
-    crRenderCanvas();
-  });
+    if(data.success&&data.image_base64){s.generatedImage='data:image/png;base64,'+data.image_base64;crRenderCanvas();}
+    else{alert('Error: '+(data.error||'Configura OPENAI_API_KEY en Railway'));crRenderCanvas();}
+  }).catch(function(){alert('Configura OPENAI_API_KEY en Railway');crRenderCanvas();});
 }
 
-/* ═══ PUBLISH TO INSTAGRAM ═══ */
-function crPublishIG(){
-  var caption=prompt('Caption para Instagram:','');
-  if(caption===null)return;
-  
-  if(!CR.generatedImage){
-    alert('Primero genera una imagen con AI (botón 🖼️) o exporta el diseño actual.');
-    return;
-  }
-  
-  /* La imagen necesita estar en una URL pública. Por ahora subimos a Supabase Storage */
-  alert('⚠️ Para publicar directamente a Instagram:\n\n1. Configura INSTAGRAM_ACCESS_TOKEN en Railway\n2. Configura INSTAGRAM_USER_ID en Railway\n3. La imagen debe estar en una URL pública\n\nPor ahora, exporta la imagen y súbela manualmente, o configura las credenciales de Meta.');
+/* ═══ SUBIR IMAGEN COMO FONDO ═══ */
+function crSetBgImage(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){CR.slides[CR.sel].generatedImage=e.target.result;crRenderCanvas();};
+  reader.readAsDataURL(file);
 }
+
+crInit();
 </script>
 </body>
 </html>

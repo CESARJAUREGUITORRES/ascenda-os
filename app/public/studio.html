@@ -51,6 +51,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .st-tab-content.act{display:block}
 .st-empty{text-align:center;padding:30px;color:var(--label);font-size:11px}
 .st-empty .icon{font-size:32px;margin-bottom:8px}
+/* Asset hover - mostrar botón eliminar */
+#as-grid > div:hover .as-del-btn{display:flex !important;align-items:center;justify-content:center}
 .st-template-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .st-template-card{padding:8px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
 .st-template-card:hover{border-color:var(--cyan);background:#F0FDFA}
@@ -199,8 +201,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         💡 Sube tus imágenes de ChatGPT o propias → Selecciona → La AI genera el copy → Agenda → Se publica solo
       </div>
       <div id="as-loading" style="display:none;text-align:center;padding:20px;color:var(--label)">⏳ Subiendo imágenes...</div>
+      <div id="as-dropzone" style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;margin-bottom:8px;transition:all .2s;cursor:pointer" onclick="document.getElementById('as-file').click()" ondragover="event.preventDefault();this.style.borderColor='var(--cyan)';this.style.background='var(--blue-xl)'" ondragleave="this.style.borderColor='var(--border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='';stUploadImages(event.dataTransfer.files)">
+        <div style="font-size:24px;margin-bottom:4px">📸</div>
+        <div style="font-size:10px;color:var(--label)">Arrastra imágenes aquí o click para seleccionar</div>
+      </div>
       <div id="as-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
-      <div id="as-empty" class="st-empty"><div class="icon">📸</div>Sube fotos de ChatGPT, tu equipo, clínica o tratamientos.<br>Arrastra aquí o usa el botón "Subir".</div>
+      <div id="as-empty" style="display:none" class="st-empty"><div class="icon">📸</div>Sube fotos de ChatGPT, tu equipo, clínica o tratamientos.</div>
     </div>
 
     <!-- Panel de acción cuando se selecciona una imagen -->
@@ -710,6 +716,14 @@ function stGenerarBrief(){
     if(est.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--orange)">⭐ Estrellas: </div><span style="font-size:9px">'+est.join(', ')+'</span></div>';}
     var fq=d.faqs_disponibles||[];
     if(fq.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--purple)">📚 Repositorio: </div>';fq.slice(0,6).forEach(function(f){h+='<span style="font-size:8px;display:inline-block;padding:1px 6px;background:var(--purple-xl);border-radius:4px;margin:1px">'+H(f.categoria)+' ('+f.n_faqs+')</span> '});h+='</div>';}
+    /* OP5: Fechas clave próximas */
+    var fc=d.fechas_clave||[];
+    if(fc.length){h+='<div style="margin-bottom:8px;background:#FEF3C7;padding:6px 10px;border-radius:6px"><div style="font-weight:700;font-size:10px;color:#92400E;margin-bottom:3px">📅 Fechas clave próximas</div>';
+      fc.forEach(function(f){h+='<div style="font-size:9px;padding:1px 0"><b>'+H(f.nombre)+'</b> — '+new Date(f.fecha).toLocaleDateString('es-PE',{day:'numeric',month:'short'})+' ('+f.dias_faltan+' días) <span style="color:#059669;font-size:8px">→ '+H(f.sugerencia||'')+'</span></div>'});h+='</div>';}
+    /* OP6: Competencia */
+    var comp=d.competencia||[];
+    if(comp.length){h+='<div style="margin-bottom:8px"><div style="font-weight:700;font-size:10px;color:var(--red)">🔍 Competencia monitoreada</div>';
+      comp.forEach(function(c){h+='<span style="font-size:8px;display:inline-block;padding:1px 6px;background:#FEF2F2;border-radius:4px;margin:1px;color:var(--red)">'+H(c.nombre)+'</span> '});h+='</div>';}
     h+='</div>';
     h+='<div class="st-card" style="border-color:var(--mint)"><div style="text-align:center;padding:12px;color:var(--label)"><div style="font-size:20px;animation:spin 1s linear infinite">🤖</div>Claude está generando tu plan semanal...</div></div>';
     $('brief-result').innerHTML=h;
@@ -863,6 +877,7 @@ function stLoadAssets(){
       h+='<div style="position:relative;border-radius:8px;overflow:hidden;border:2px solid '+(isSel?'var(--cyan)':'transparent')+';cursor:pointer;aspect-ratio:4/5;background:#1E293B" onclick="stSelectAsset(\''+a.id+'\',event)">';
       h+='<img src="'+H(a.url)+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display=\'none\'">';
       if(isSel){h+='<div style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800">✓</div>';}
+      h+='<button onclick="event.stopPropagation();stDeleteAsset(\''+a.id+'\')" style="position:absolute;top:4px;left:4px;width:18px;height:18px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:#fff;font-size:9px;cursor:pointer;display:none" class="as-del-btn">✕</button>';
       h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:3px 6px;font-size:7px;color:#fff;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">'+H(a.nombre||'')+'</div>';
       h+='</div>';
     });
@@ -970,6 +985,13 @@ function stProgramarDirecto(){
   },function(d){if(d&&d[0]){alert('📅 Programado');ST.selectedAsset=null;$('as-action').style.display='none';}});
 }
 
+/* ═══ ELIMINAR ASSET ═══ */
+function stDeleteAsset(id){
+  if(!confirm('¿Eliminar esta imagen?'))return;
+  fetch(SB_URL+'/rest/v1/aos_studio_assets?id=eq.'+id,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+  .then(function(){stLoadAssets()});
+}
+
 /* ═══ LOTE — PROGRAMAR MÚLTIPLES IMÁGENES ═══ */
 function stProcesarLote(){
   if(ST.selectedBatch.length<2){alert('Selecciona al menos 2 imágenes (Ctrl+click)');return}
@@ -982,6 +1004,26 @@ function stProcesarLote(){
   var assets=ST.selectedBatch.map(function(id){return ST.assets.find(function(a){return a.id===id})}).filter(Boolean);
   var dates=generateScheduleDates(new Date(startDate),assets.length,freq);
   
+  /* PREVIEW antes de ejecutar */
+  var ph='<div style="margin-top:8px;background:var(--blue-xl);padding:10px;border-radius:8px"><div style="font-weight:700;font-size:10px;color:var(--blue-d);margin-bottom:6px">📋 Preview del plan ('+assets.length+' posts)</div>';
+  assets.forEach(function(a,i){
+    var d=dates[i];var dateStr=d?d.toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
+    ph+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:9px">';
+    ph+='<img src="'+H(a.url)+'" style="width:28px;height:28px;border-radius:4px;object-fit:cover">';
+    ph+='<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+H(a.nombre||'')+'</span>';
+    ph+='<span style="color:var(--blue);font-weight:700;white-space:nowrap">'+dateStr+'</span></div>';
+  });
+  ph+='<div style="display:flex;gap:4px;margin-top:8px"><button class="st-btn st-btn-c" onclick="stEjecutarLote()">✅ Confirmar y generar copys</button><button class="st-btn st-btn-s" onclick="$(\'as-batch-progress\').innerHTML=\'\'">✕ Cancelar</button></div></div>';
+  $('as-batch-progress').innerHTML=ph;
+  /* Guardar datos para ejecución */
+  ST.loteData={assets:assets,dates:dates,cat:cat,desc:desc};
+}
+
+function stEjecutarLote(){
+  var data=ST.loteData;if(!data)return;
+  var assets=data.assets;var dates=data.dates;
+  
+  var cat=data.cat;var desc=data.desc;
   $('as-batch-progress').innerHTML='<div style="font-size:10px;color:var(--label)">🤖 Procesando '+assets.length+' imágenes...</div>';
   
   var processed=0;
