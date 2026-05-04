@@ -116,6 +116,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
     <!-- Estado de conexiones rápido -->
     <div class="st-card"><div class="st-sec">🔌 Conexiones</div><div id="st-dash-conn" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+    <!-- Resumen semanal del agente -->
+    <div class="st-card">
+      <div class="st-sec">📊 Resumen de la semana</div>
+      <div id="st-dash-resumen">Cargando...</div>
+    </div>
     <!-- Próximos -->
     <div class="st-card"><div class="st-sec">📋 Próximos a publicar</div><div id="st-dash-prox">Cargando...</div></div>
     <!-- WhatBot -->
@@ -592,6 +597,24 @@ function stLoadDashboard(){
       h+='</details>';
     });
     wb.innerHTML=h;
+  });
+  /* Resumen semanal */
+  rpc('aos_studio_resumen_semanal',{},function(r){
+    var el=$('st-dash-resumen');if(!el)return;
+    if(!r){el.innerHTML='Sin datos';return}
+    var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px">';
+    [{l:'Creados',v:r.contenidos_creados||0,i:'✨'},{l:'Publicados',v:r.publicados||0,i:'✅'},{l:'Pendientes',v:r.programados_pendientes||0,i:'📅'},{l:'Errores',v:r.errores||0,i:'⚠️'}].forEach(function(k){
+      h+='<div style="text-align:center;padding:6px;background:#FAFBFF;border-radius:6px;border:1px solid var(--border)"><div style="font-size:14px">'+k.i+'</div><div style="font-weight:900;font-size:16px;color:var(--blue)">'+k.v+'</div><div style="font-size:7px;color:var(--label)">'+k.l+'</div></div>';
+    });
+    h+='</div>';
+    if(r.top_categoria_semana&&r.top_categoria_semana!=='N/A'){h+='<div style="font-size:9px;color:var(--label)">🏷️ Top categoría: <b style="color:var(--blue-d)">'+H(r.top_categoria_semana)+'</b></div>';}
+    if(r.proxima_publicacion&&r.proxima_publicacion.titulo){
+      h+='<div style="font-size:9px;color:var(--label);margin-top:2px">⏰ Próximo: <b style="color:var(--green)">'+H(r.proxima_publicacion.titulo)+'</b>';
+      if(r.proxima_publicacion.fecha)h+=' — '+new Date(r.proxima_publicacion.fecha).toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      h+='</div>';
+    }
+    if(r.tasa_aprobacion_semana>0){h+='<div style="font-size:9px;color:var(--label);margin-top:2px">🤖 Aprobación: <b style="color:'+(r.tasa_aprobacion_semana>=70?'var(--green)':'var(--orange)')+'">'+r.tasa_aprobacion_semana+'%</b></div>';}
+    el.innerHTML=h;
   });
 }
 
