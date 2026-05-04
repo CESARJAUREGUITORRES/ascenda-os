@@ -41,6 +41,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .st-pill-aprobado{background:var(--green-xl);color:var(--green)}
 .st-pill-programado{background:var(--purple-xl);color:var(--purple)}
 .st-pill-publicado{background:#D1FAE5;color:#065F46}
+.st-pill-en_proceso{background:#FEF3C7;color:#92400E}
+.st-pill-error_publicacion{background:#FEF2F2;color:#DC2626}
 .st-content-card{padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all .15s;cursor:pointer}
 .st-content-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(10,79,191,.1)}
 .st-content-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
@@ -379,8 +381,15 @@ var ST={mes:new Date().getMonth(),anio:new Date().getFullYear(),cats:[],template
 
 function $(id){return document.getElementById(id)}
 function H(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
-/* Safe fetch wrapper */
-function safeFetch(url,opts){return fetch(url,opts).catch(function(e){console.error('Fetch error:',url,e);return{json:function(){return Promise.resolve(null)}}});}
+/* Safe fetch wrapper — evita errores silenciosos */
+function safeFetch(url,opts){return fetch(url,opts).catch(function(e){console.error('Fetch error:',url,e);return{json:function(){return Promise.resolve(null)}};});}
+/* Global error handler para fetch sin catch */
+window.addEventListener('unhandledrejection',function(e){
+  if(e.reason&&e.reason.message&&e.reason.message.includes('fetch')){
+    console.warn('[Studio] Fetch error capturado globalmente:',e.reason.message);
+    e.preventDefault();
+  }
+});
 
 function rpc(name,params,cb){
   fetch(SB_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify(params||{})})
@@ -501,7 +510,7 @@ function stLoadMasContenidos(offset){
   });
 }
 function stContentCard(r){
-  var estadoClass={'IDEA':'idea','BORRADOR':'borrador','LISTO':'borrador','APROBADO':'aprobado','PROGRAMADO':'programado','PUBLICADO':'publicado'};
+  var estadoClass={'IDEA':'idea','BORRADOR':'borrador','LISTO':'borrador','APROBADO':'aprobado','PROGRAMADO':'programado','PUBLICADO':'publicado','EN_PROCESO':'en_proceso','ERROR_PUBLICACION':'error_publicacion'};
   var h='<div class="st-content-card" onclick="stEditContent(\''+r.id+'\')">';
   h+='<div style="display:flex;gap:8px">';
   if(r.imagen_url){h+='<img src="'+H(r.imagen_url)+'" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">';}
@@ -1559,13 +1568,26 @@ function stLoadConnections(){
       h+='</div>';
     });
     h+='</div>';
-    h+='<div style="margin-top:8px;padding:8px;background:var(--blue-xl);border-radius:6px;font-size:8px;color:var(--label)">';
-    h+='<b>Variables de Railway necesarias:</b><br>';
-    h+='📷 IG: INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_USER_ID<br>';
-    h+='📘 FB: FACEBOOK_ACCESS_TOKEN + FACEBOOK_PAGE_ID<br>';
-    h+='💼 LI: LINKEDIN_ACCESS_TOKEN + LINKEDIN_ORG_ID<br>';
-    h+='🎵 TT: TIKTOK_ACCESS_TOKEN<br>';
-    h+='🤖 AI: OPENAI_API_KEY</div>';
+    h+='<details style="margin-top:8px;border:1px solid var(--border);border-radius:6px;padding:6px"><summary style="font-size:10px;font-weight:700;cursor:pointer;color:var(--blue-d)">📋 Cómo configurar cada red (paso a paso)</summary>';
+    h+='<div style="font-size:8px;color:var(--label);padding:6px;line-height:1.6">';
+    h+='<b>📷 INSTAGRAM + 📘 FACEBOOK:</b><br>';
+    h+='1. Ir a <a href="https://developers.facebook.com" target="_blank" style="color:var(--blue)">developers.facebook.com</a><br>';
+    h+='2. Crear App tipo "Business" → agregar producto "Instagram Graph API"<br>';
+    h+='3. Conectar la Facebook Page de Zi Vital<br>';
+    h+='4. Graph API Explorer → generar token con permisos: instagram_basic, instagram_content_publish, pages_manage_posts<br>';
+    h+='5. Copiar token → Railway → Variables → INSTAGRAM_ACCESS_TOKEN<br>';
+    h+='6. Copiar IG User ID → Railway → INSTAGRAM_USER_ID<br>';
+    h+='7. Copiar FB Page ID → Railway → FACEBOOK_PAGE_ID, mismo token → FACEBOOK_ACCESS_TOKEN<br><br>';
+    h+='<b>💼 LINKEDIN:</b><br>';
+    h+='1. Ir a <a href="https://linkedin.com/developers" target="_blank" style="color:var(--blue)">linkedin.com/developers</a><br>';
+    h+='2. Crear App → verificar con Company Page<br>';
+    h+='3. Activar "Share on LinkedIn" + "Sign In with LinkedIn"<br>';
+    h+='4. OAuth → generar token → LINKEDIN_ACCESS_TOKEN<br>';
+    h+='5. Organization ID → LINKEDIN_ORG_ID<br><br>';
+    h+='<b>🤖 OPENAI:</b><br>';
+    h+='1. Ir a <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--blue)">platform.openai.com</a><br>';
+    h+='2. Crear API Key → copiar → Railway → OPENAI_API_KEY<br>';
+    h+='</div></details>';
     conn.innerHTML=h;
   }).catch(function(){
     var conn=$('br-connections');if(conn)conn.innerHTML='<div style="font-size:9px;color:var(--label)">No se pudo verificar conexiones</div>';

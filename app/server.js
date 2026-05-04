@@ -2824,10 +2824,9 @@ setTimeout(loadAIKeys, 2000)
 // Revisa cada 60 segundos si hay contenido programado que deba publicarse
 function studioSchedulerRun() {
   var now = new Date().toISOString()
-  // Buscar contenidos con estado PROGRAMADO y fecha_programada <= ahora
   https.get({
     hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
-    path: '/rest/v1/aos_studio_contenido?estado=eq.PROGRAMADO&fecha_programada=lte.' + now + '&limit=5&order=fecha_programada.asc',
+    path: '/rest/v1/aos_studio_contenido?estado=eq.PROGRAMADO&fecha_programada=lte.' + now + '&limit=3&order=fecha_programada.asc',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
   }, function(res) {
     var data = ''; res.on('data', function(c) { data += c }); res.on('end', function() {
@@ -2836,38 +2835,49 @@ function studioSchedulerRun() {
         if (!items || !items.length) return
         console.log('[STUDIO-CRON] ' + items.length + ' contenidos para publicar')
         items.forEach(function(item) {
-          var plats = item.plataformas || ['instagram']
-          plats.forEach(function(plat) {
-            studioPublishToNetwork(plat, item, function(success, result) {
-              // Registrar publicación
-              var pubBody = JSON.stringify({
-                contenido_id: item.id, plataforma: plat,
-                post_id_externo: (result && result.media_id) || (result && result.post_id) || '',
-                estado: success ? 'PUBLICADO' : 'ERROR',
-                error_detalle: success ? null : (result && result.error) || 'Unknown error',
-                publicado_at: success ? new Date().toISOString() : null
+          /* FIX: Marcar como EN_PROCESO primero para evitar duplicados */
+          var lockBody = JSON.stringify({ estado: 'EN_PROCESO', updated_at: new Date().toISOString() })
+          var lockReq = https.request({
+            hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+            path: '/rest/v1/aos_studio_contenido?id=eq.' + item.id + '&estado=eq.PROGRAMADO',
+            method: 'PATCH',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(lockBody) }
+          }, function(lockRes) {
+            /* Solo publicar si el lock tuvo éxito (estado era PROGRAMADO) */
+            var plats = item.plataformas || ['instagram']
+            var pubDone = 0; var pubSuccess = 0; var pubTotal = plats.length
+            plats.forEach(function(plat) {
+              studioPublishToNetwork(plat, item, function(success, result) {
+                if(success) pubSuccess++
+                pubDone++
+                /* Registrar publicación */
+                var pubBody = JSON.stringify({
+                  contenido_id: item.id, plataforma: plat,
+                  post_id_externo: (result && (result.media_id || result.post_id)) || '',
+                  estado: success ? 'PUBLICADO' : 'ERROR',
+                  error_detalle: success ? null : (result && result.error) || 'Unknown',
+                  publicado_at: success ? new Date().toISOString() : null
+                })
+                var pReq = https.request({
+                  hostname: 'ituyqwstonmhnfshnaqz.supabase.co', path: '/rest/v1/aos_studio_publicaciones', method: 'POST',
+                  headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(pubBody) }
+                }, function() {}); pReq.on('error', function() {}); pReq.write(pubBody); pReq.end()
+                console.log('[STUDIO-CRON] ' + plat + ': ' + (success ? 'OK' : 'FAIL') + ' - ' + (item.titulo || '').substring(0, 30))
+                
+                /* FIX: Solo marcar PUBLICADO cuando TODAS las redes terminaron */
+                if(pubDone === pubTotal) {
+                  var finalEstado = pubSuccess > 0 ? 'PUBLICADO' : 'ERROR_PUBLICACION'
+                  var upBody = JSON.stringify({ estado: finalEstado, updated_at: new Date().toISOString() })
+                  var uReq = https.request({
+                    hostname: 'ituyqwstonmhnfshnaqz.supabase.co', path: '/rest/v1/aos_studio_contenido?id=eq.' + item.id, method: 'PATCH',
+                    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(upBody) }
+                  }, function() {}); uReq.on('error', function() {}); uReq.write(upBody); uReq.end()
+                }
               })
-              var pubReq = https.request({
-                hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
-                path: '/rest/v1/aos_studio_publicaciones',
-                method: 'POST',
-                headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(pubBody) }
-              }, function() {})
-              pubReq.on('error', function() {})
-              pubReq.write(pubBody); pubReq.end()
-              console.log('[STUDIO-CRON] ' + plat + ': ' + (success ? 'OK' : 'FAIL') + ' - ' + (item.titulo || '').substring(0, 30))
             })
           })
-          // Actualizar estado a PUBLICADO
-          var updateBody = JSON.stringify({ estado: 'PUBLICADO', updated_at: new Date().toISOString() })
-          var updateReq = https.request({
-            hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
-            path: '/rest/v1/aos_studio_contenido?id=eq.' + item.id,
-            method: 'PATCH',
-            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(updateBody) }
-          }, function() {})
-          updateReq.on('error', function() {})
-          updateReq.write(updateBody); updateReq.end()
+          lockReq.on('error', function() {})
+          lockReq.write(lockBody); lockReq.end()
         })
       } catch(e) { /* silent */ }
     })
