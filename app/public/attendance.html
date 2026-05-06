@@ -387,12 +387,13 @@ var esDraAtencion=isDra(c.profesional);
 steps.forEach(function(s){var has=map[s.tipo]&&map[s.tipo].length>0;
 var stepRol=s.rol||'ambos';
 var canEdit=(stepRol==='ambos')||(stepRol===userRol)||(userRol==='administración');
+var canView=canEdit||has; /* Si ya tiene datos, cualquier rol puede VER */
 var rolBadge='';
 if(esDraAtencion&&stepRol==='médica'&&userRol==='enfermería')rolBadge='<div style="font-size:6px;color:#7C3AED;font-weight:800;margin-top:1px">👩‍⚕️ DOCTORA</div>';
 else if(esDraAtencion&&stepRol==='enfermería'&&userRol!=='enfermería'&&userRol!=='administración')rolBadge='<div style="font-size:6px;color:#059669;font-weight:800;margin-top:1px">🩺 ENF</div>';
-var opacity=canEdit?'1':'0.5';
-var cursor=canEdit?'pointer':'not-allowed';
-c1+='<div class="at-fc'+(has?' done':'')+'" onclick="'+(canEdit?'toggleNota(\''+s.tipo+'\')':'AOS_showToast(\'Esta card es para '+(stepRol==='médica'?'la doctora':'enfermería')+'\',\'\',\'toast-alerta\')')+'" style="flex-direction:column;text-align:center;padding:6px 4px;gap:2px;opacity:'+opacity+';cursor:'+cursor+'"><span style="font-size:16px">'+s.ico+'</span><span style="font-size:7px;font-weight:700;line-height:1.1">'+s.t+'</span>'+rolBadge+'<span style="font-size:10px">'+(has?'✅':'⏳')+'</span></div>';});
+var opacity=canView?'1':'0.5';
+var cursor=canView?'pointer':'not-allowed';
+c1+='<div class="at-fc'+(has?' done':'')+'" onclick="'+(canView?'toggleNota(\''+s.tipo+'\')':'AOS_showToast(\'Esta card es para '+(stepRol==='médica'?'la doctora':'enfermería')+'\',\'\',\'toast-alerta\')')+'" style="flex-direction:column;text-align:center;padding:6px 4px;gap:2px;opacity:'+opacity+';cursor:'+cursor+'"><span style="font-size:16px">'+s.ico+'</span><span style="font-size:7px;font-weight:700;line-height:1.1">'+s.t+'</span>'+rolBadge+'<span style="font-size:10px">'+(has?'✅':'⏳')+'</span></div>';});
 c1+='</div>';
 /* Doctora vinculada */
 if(c.asistente_nombre&&isDra(c.profesional)){c1+='<div style="padding:6px;background:#EBF2FF;border-radius:6px;margin-top:8px;font-size:8px;display:flex;align-items:center;gap:4px"><span class="rl rl-e">Asiste</span><b style="color:var(--deep)">'+E(c.asistente_nombre)+'</b></div>';}
@@ -501,6 +502,7 @@ document.getElementById('dw-nota-t').textContent=labels[tipo]||tipo;var b=docume
 var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' · '+E(c.fecha)+'</div>';
 
 if(tipo==='TRIAJE'){
+o+='<div id="triaje-prev-box"></div>';
 o+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
 o+='<div class="fg"><label class="fl">Peso (kg)</label><input id="nt-peso" class="fi" placeholder="65.5" oninput="calcIMC()"></div>';
 o+='<div class="fg"><label class="fl">Talla (m)</label><input id="nt-talla" class="fi" placeholder="1.60" oninput="calcIMC()"></div>';
@@ -552,6 +554,27 @@ if(tipo==='TRIAJE'&&savedNote){
   if(savedNote.saturacion){var el=document.getElementById('nt-sat');if(el)el.value=savedNote.saturacion;}
   if(savedNote.peso&&savedNote.talla){try{calcIMC();}catch(e){}}
   try{calcVitales();}catch(e){}
+}
+if(tipo==='TRIAJE'){
+  /* Buscar triajes anteriores para comparación */
+  sbF('/rest/v1/aos_notas_clinicas?numero_limpio=eq.'+c.numero_limpio+'&tipo=eq.TRIAJE&fecha=neq.'+c.fecha+'&order=created_at.desc&limit=5').then(function(prevs){
+    var box=document.getElementById('triaje-prev-box');if(!box||!prevs||!prevs.length)return;
+    var last=prevs[0];
+    var h='<div style="padding:8px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:8px;margin-bottom:8px">';
+    h+='<div style="font-size:8px;font-weight:800;color:#059669;margin-bottom:4px">🩺 Último triaje: '+E(last.fecha||'')+'</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    if(last.peso)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">Peso: '+last.peso+'kg</span>';
+    if(last.talla)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">Talla: '+last.talla+'m</span>';
+    if(last.imc)h+='<span style="background:#FEF3C7;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:#92400E">IMC: '+last.imc+'</span>';
+    if(last.presion_arterial)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">PA: '+E(last.presion_arterial)+'</span>';
+    if(last.frecuencia_cardiaca)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">FC: '+last.frecuencia_cardiaca+'</span>';
+    if(last.temperatura)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">T°: '+last.temperatura+'</span>';
+    if(last.saturacion)h+='<span style="background:#EBF2FF;padding:2px 6px;border-radius:4px;font-size:7px;font-weight:700;color:var(--blue)">SpO2: '+last.saturacion+'%</span>';
+    h+='</div>';
+    if(last.contenido)h+='<div style="font-size:7px;color:var(--mt);margin-top:4px">'+E(last.contenido)+'</div>';
+    h+='<div style="font-size:6px;color:var(--mt);margin-top:2px">'+E(last.autor||'')+' · '+E(last.fecha||'')+'</div></div>';
+    box.innerHTML=h;
+  });
 }
 if(tipo==='EVALUACION'){
   evTipoChange();
@@ -1858,7 +1881,15 @@ function openProcedimiento(){
 
   sbR('aos_tratamientos_procedimiento',{p_numero:c.numero_limpio,p_fecha:c.fecha,p_profesional:AOS.ctx?AOS.ctx.nombre:''}).then(function(res){
     if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar</div>';return;}
-    var grupos=res.grupos||[];
+    var gruposRaw=res.grupos||[];
+    /* Filtrar: solo sesiones vinculadas a la fecha de esta atención */
+    var grupos=gruposRaw.map(function(g){
+      var sesFiltered=(g.sesiones||[]).filter(function(s){return s.fecha_venta===c.fecha||s.fecha_realizado===c.fecha||s.fecha_programado===c.fecha;});
+      if(!sesFiltered.length)return null;
+      var gCopy=JSON.parse(JSON.stringify(g));gCopy.sesiones=sesFiltered;
+      gCopy.resumen={total:sesFiltered.length,pendientes:sesFiltered.filter(function(s){return s.estado==='PENDIENTE'}).length,programadas:sesFiltered.filter(function(s){return s.estado==='PROGRAMADO'}).length,realizadas:sesFiltered.filter(function(s){return s.estado==='REALIZADO'}).length,total_precio:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.precio_sesion)||0)},0),total_pagado:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.monto_pagado)||0)},0),total_saldo:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.saldo_sesion)||0)},0)};
+      return gCopy;
+    }).filter(Boolean);
     window._procGrupos=grupos;
     var o='<div style="font-size:8px;color:var(--mt);margin-bottom:8px">'+E((c.nombre||'')+' '+(c.apellido||''))+' \u00B7 '+E(c.fecha)+'</div>';
     /* Alerta contraindicaciones: cruzar catálogo con filiación */
