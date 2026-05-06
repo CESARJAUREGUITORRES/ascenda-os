@@ -1882,9 +1882,14 @@ function openProcedimiento(){
   sbR('aos_tratamientos_procedimiento',{p_numero:c.numero_limpio,p_fecha:c.fecha,p_profesional:AOS.ctx?AOS.ctx.nombre:''}).then(function(res){
     if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar</div>';return;}
     var gruposRaw=res.grupos||[];
-    /* Filtrar: solo sesiones vinculadas a la fecha de esta atención */
+    /* Filtrar: mostrar sesiones PENDIENTES + las realizadas/programadas en esta fecha.
+       Excluir solo las REALIZADAS en otra fecha (pertenecen a otra atención) */
     var grupos=gruposRaw.map(function(g){
-      var sesFiltered=(g.sesiones||[]).filter(function(s){return s.fecha_venta===c.fecha||s.fecha_realizado===c.fecha||s.fecha_programado===c.fecha;});
+      var sesFiltered=(g.sesiones||[]).filter(function(s){
+        if(s.estado==='PENDIENTE'||s.estado==='PROGRAMADO')return true;
+        if(s.estado==='REALIZADO'&&s.fecha_realizado===c.fecha)return true;
+        return false;
+      });
       if(!sesFiltered.length)return null;
       var gCopy=JSON.parse(JSON.stringify(g));gCopy.sesiones=sesFiltered;
       gCopy.resumen={total:sesFiltered.length,pendientes:sesFiltered.filter(function(s){return s.estado==='PENDIENTE'}).length,programadas:sesFiltered.filter(function(s){return s.estado==='PROGRAMADO'}).length,realizadas:sesFiltered.filter(function(s){return s.estado==='REALIZADO'}).length,total_precio:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.precio_sesion)||0)},0),total_pagado:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.monto_pagado)||0)},0),total_saldo:sesFiltered.reduce(function(a,s){return a+(parseFloat(s.saldo_sesion)||0)},0)};
