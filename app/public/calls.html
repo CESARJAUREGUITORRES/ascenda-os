@@ -551,7 +551,7 @@ function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Dat
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL
 // ══════════════════════════════════════════════════════════════
-var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras' };
+var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras', leadStartTs:null };
 var CAL_MES = new Date().getMonth(), CAL_ANIO = new Date().getFullYear(), CAL_DATA_MES = {};
 var _segsData = [], _segFiltro = 'todos';
 var MES_NOM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -619,7 +619,7 @@ function loadLead(_retried){
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};CC.leadStartTs=Date.now();
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
@@ -674,7 +674,8 @@ function ccGuardar(){
   CC.guardando=true;var btn=document.getElementById('cc-btn-guardar');btn.disabled=true;btn.innerHTML='<span class="sp-sm"></span> Guardando...';
   var payload={numero:CC.lead?CC.lead.num:'',estado:tipif,subEstado:tipif==='SIN CONTACTO'?CC.subTipif:'',obs:document.getElementById('cc-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();
-  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',created_at:now.toISOString()};
+  var durSeg=CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0;
+  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',duracion_seg:durSeg,created_at:now.toISOString()};
   fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
     CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';
     if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
@@ -685,11 +686,12 @@ function ccGuardar(){
 }
 
 function ccConfirmarCita(){
+  if(CC.guardando)return;CC.guardando=true;
   var tipoCita='';document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
   if(!document.getElementById('cc-c-fecha').value){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','Seleccioná la fecha.','');else alert('Falta la fecha');return;}
   var p={numero:CC.lead?CC.lead.num:'',estado:'CITA CONFIRMADA',nombre:document.getElementById('cc-c-nombre').value.trim(),apellido:document.getElementById('cc-c-apellido').value.trim(),dni:document.getElementById('cc-c-dni').value.trim(),correo:document.getElementById('cc-c-correo').value.trim(),tipoAtencion:document.getElementById('cc-c-tipo-at').value,sede:document.getElementById('cc-c-sede').value,fechaCita:document.getElementById('cc-c-fecha').value,horaCita:document.getElementById('cc-c-hora').value,tratamiento:document.getElementById('cc-c-trat').value,tipoCita:tipoCita||'CONSULTA NUEVA',obs:document.getElementById('cc-c-obs').value.trim(),rowNum:CC.lead?(CC.lead.rowNum||0):0};
-  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
-  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,created_at:now.toISOString()};
+  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');var durSeg=CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0;
+  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,duracion_seg:durSeg,created_at:now.toISOString()};
   var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
   console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
@@ -697,10 +699,11 @@ function ccConfirmarCita(){
     closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');
     // Enviar email de confirmación automáticamente
     enviarEmailConfirmacionCita(rowC);
-    loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+    CC.guardando=false;loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarSeguimiento(){
+  if(CC.guardando)return;CC.guardando=true;
   var fecha=document.getElementById('cc-s-fecha').value,hora=document.getElementById('cc-s-hora').value||'10:00';
   if(!fecha){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','','');else alert('Falta la fecha');return;}
   var proxTs=new Date(fecha+'T'+hora+':00').toISOString();
@@ -714,7 +717,7 @@ function ccConfirmarSeguimiento(){
     var rowS={"NUMERO":numL,"TRATAMIENTO":p.tratamiento||'',"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE"};
     segPromise=fetch(_SB+'/rest/v1/aos_seguimientos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowS)});
   }
-  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),segPromise]).then(function(){closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),segPromise]).then(function(){CC.guardando=false;closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 // ══════════════════════════════════════════════════════════════
