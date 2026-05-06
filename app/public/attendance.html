@@ -878,6 +878,18 @@ sbR('aos_sesiones_programar',{p_numero:c.numero_limpio}).then(function(res){
   var grupos=res.grupos||[];
   var planPend=res.plan_pendientes||[];
 
+  /* Filtrar sesiones: solo las del plan de ESTA atención */
+  var gruposFiltrados=grupos.map(function(g){
+    var sesF=(g.sesiones||[]).filter(function(s){
+      if(s.plan_fecha===c.fecha)return true;
+      if(s.estado==='REALIZADO'&&s.fecha_realizado===c.fecha)return true;
+      return false;
+    });
+    if(!sesF.length)return null;
+    var gC=JSON.parse(JSON.stringify(g));gC.sesiones=sesF;return gC;
+  }).filter(Boolean);
+  grupos=gruposFiltrados;
+
   if(!grupos.length&&!planPend.length){
     el.innerHTML=o+'<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px 0">Sin tratamientos para programar</div>';return;
   }
@@ -1882,11 +1894,13 @@ function openProcedimiento(){
   sbR('aos_tratamientos_procedimiento',{p_numero:c.numero_limpio,p_fecha:c.fecha,p_profesional:AOS.ctx?AOS.ctx.nombre:''}).then(function(res){
     if(!res||!res.ok){b.innerHTML='<div style="text-align:center;padding:20px;color:var(--rd);font-size:9px">Error al cargar</div>';return;}
     var gruposRaw=res.grupos||[];
-    /* Filtrar: mostrar sesiones PENDIENTES + las realizadas/programadas en esta fecha.
-       Excluir solo las REALIZADAS en otra fecha (pertenecen a otra atención) */
+    /* Filtrar: solo sesiones del plan de ESTA atención (plan_fecha === c.fecha)
+       + sesiones REALIZADAS hoy (de cualquier plan) */
     var grupos=gruposRaw.map(function(g){
       var sesFiltered=(g.sesiones||[]).filter(function(s){
-        if(s.estado==='PENDIENTE'||s.estado==='PROGRAMADO')return true;
+        /* Sesión de un plan creado en la fecha de esta atención */
+        if(s.plan_fecha===c.fecha)return true;
+        /* Sesión realizada hoy (puede ser de otro plan pero se hizo en esta atención) */
         if(s.estado==='REALIZADO'&&s.fecha_realizado===c.fecha)return true;
         return false;
       });
