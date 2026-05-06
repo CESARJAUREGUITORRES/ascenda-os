@@ -1377,7 +1377,7 @@ function dsExec(){
 function rPlan(el){var c=AT.sel;if(!c){el.innerHTML='';return;}
 var profName=AT.prof?AT.prof.nombre_publico:'';
 el.innerHTML='<div class="at-sc">📋 Planes de trabajo del paciente</div><div class="ds-layout"><div id="plan-cards"><div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Cargando...</div></div><div id="plan-det"><div style="font-size:9px;color:var(--mt);text-align:center;padding:20px">Selecciona un plan</div></div></div><button class="btn btn-s" style="margin-top:10px" onclick="openNota(&apos;PLAN_TRABAJO&apos;)">+ Nuevo plan</button>';
-sbR('aos_planes_paciente',{p_numero:c.numero_limpio}).then(function(planes){
+sbR('aos_planes_paciente',{p_numero_limpio:c.numero_limpio}).then(function(planes){
   var box=document.getElementById('plan-cards');if(!box)return;
   if(!planes||!planes.length){box.innerHTML='<div style="font-size:9px;color:var(--mt);text-align:center;padding:12px">Sin planes</div>';return;}
   window._planesData=planes;
