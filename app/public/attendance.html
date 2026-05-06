@@ -1503,15 +1503,47 @@ function loadCalifResult(linkId){
 function repeat(s,n){var r='';for(var i=0;i<n;i++)r+=s;return r;}
 
 /* ===== MOD-18: MACRO DOCUMENTOS ===== */
-function rDocs(el){var d=AT.det;
-var o='<div class="at-sc">Documentos</div>';
+function rDocs(el){var d=AT.det;var c=AT.sel;
+var o='<div class="at-sc">Documentos</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+/* Col 1: Consentimientos */
 o+='<div class="ic"><div class="ic-t">📄 Consentimientos</div>';
 var cons=d?d.consentimientos:null;
 if(cons&&cons.length){cons.forEach(function(co){o+='<div style="display:flex;align-items:center;gap:6px;padding:4px;border-bottom:1px solid var(--bg);font-size:8px"><span>'+(co.firmado?'✅':'⏳')+'</span><span style="flex:1">'+E(co.tratamiento||'')+'</span><span style="color:var(--mt);font-size:7px">'+E(co.profesional||'')+'</span></div>';});}
-else o+='<div style="font-size:8px;color:var(--mt)">Sin consentimientos</div>';
+else o+='<div style="font-size:8px;color:var(--mt);padding:8px">Sin consentimientos aún</div>';
 o+='</div>';
-o+='<div class="ic"><div class="ic-t">📸 Fotos antes/después</div><div style="font-size:8px;color:var(--mt)">Próximamente</div><button class="btn btn-s btn-sm" style="margin-top:6px" onclick="if(window.AOS_showToast)AOS_showToast(\'Próximamente\',\'\',\'\')">📸 Subir</button></div>';
-el.innerHTML=o;}
+/* Col 2: Fotos */
+o+='<div class="ic"><div class="ic-t">📸 Fotos antes/después</div>';
+o+='<div id="fotos-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 0"></div>';
+o+='<div style="display:flex;gap:6px;margin-top:6px">';
+o+='<select id="foto-fase" class="fi fs" style="width:100px;font-size:9px"><option value="ANTES">Antes</option><option value="DESPUES">Después</option><option value="DURANTE">Durante</option></select>';
+o+='<label class="btn btn-p btn-sm" style="cursor:pointer;display:flex;align-items:center;gap:4px"><input type="file" id="foto-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none" onchange="subirFoto(this)">📸 Subir foto</label>';
+o+='</div></div>';
+o+='</div>';
+el.innerHTML=o;
+/* Cargar fotos existentes */
+if(c&&c.numero_limpio){sbF('/rest/v1/aos_fotos_paciente?numero_limpio=eq.'+c.numero_limpio+'&order=created_at.desc&limit=20').then(function(fotos){
+  var grid=document.getElementById('fotos-grid');if(!grid||!fotos||!fotos.length){if(grid)grid.innerHTML='<div style="font-size:8px;color:var(--mt)">Sin fotos</div>';return;}
+  grid.innerHTML=fotos.map(function(f){return '<div style="position:relative;width:70px;height:70px;border-radius:6px;overflow:hidden;border:1.5px solid var(--bd2);cursor:pointer" onclick="verFoto(\''+E(f.url||'')+'\')"><img src="'+E(f.url||'')+'" style="width:100%;height:100%;object-fit:cover"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:6px;padding:1px 3px;text-align:center">'+E(f.fase||'')+' · '+E((f.fecha||'').slice(5))+'</div></div>';}).join('');
+});}
+}
+function verFoto(url){var o='<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="this.remove()"><img src="'+url+'" style="max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>';document.body.insertAdjacentHTML('beforeend',o);}
+function subirFoto(inp){var c=AT.sel;if(!c||!inp.files||!inp.files[0])return;
+var file=inp.files[0];if(file.size>5*1024*1024){if(window.AOS_showToast)AOS_showToast('Máximo 5MB','','toast-alerta');return;}
+var fase=(document.getElementById('foto-fase')||{}).value||'ANTES';
+var reader=new FileReader();reader.onload=function(e){
+  var base64=e.target.result;
+  /* Comprimir si es muy grande */
+  var img=new Image();img.onload=function(){
+    var canvas=document.createElement('canvas');var MAX=800;
+    var w=img.width,h=img.height;if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+    canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+    var compressed=canvas.toDataURL('image/jpeg',0.7);
+    sbW('aos_fotos_paciente',{numero_limpio:c.numero_limpio,fecha:c.fecha,fase:fase,url:compressed,nombre_archivo:file.name,tamano_bytes:file.size,tratamiento:(c.tratamientos||[])[0]||'',autor:AOS.ctx?AOS.ctx.nombre:'',sede:c.sede||'',atencion_id:c.id||''}).then(function(r){
+      if(r.ok){if(window.AOS_showToast)AOS_showToast('✅ Foto guardada','','');macroTab('docs',document.querySelector('.at-tab[onclick*="docs"]'));}
+      else{if(window.AOS_showToast)AOS_showToast('Error subiendo foto','','toast-alerta');}
+    });
+  };img.src=base64;
+};reader.readAsDataURL(file);inp.value='';}
 
 /* ===== MOD-19: DRAWERS ===== */
 function openDw(id){document.querySelectorAll('.dw').forEach(function(d){d.classList.remove('open')});var dw=document.getElementById('dw-'+id);if(dw)dw.classList.add('open');}
