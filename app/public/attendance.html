@@ -1756,37 +1756,42 @@ function fg(label,id,val,ph,type,opts){
 function chk(label,id,val){return '<label style="font-size:8px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="'+id+'"'+(val?' checked':'')+'>'+label+'</label>';}
 function guardarFiliacion(){
   var c=AT.sel;if(!c)return;
+  var gv=function(id){return (document.getElementById(id)||{}).value||'';};
+  var gc=function(id){return (document.getElementById(id)||{}).checked||false;};
+  var fumaVal=gv('fil-fuma');var solarVal=gv('fil-solar');
+  var alVal=gv('fil-alergias');var croVal=gv('fil-cronicas');
+  var suenoRaw=gv('fil-sueno');var suenoInt=parseInt(suenoRaw)||null;if(suenoRaw&&!suenoInt){var m=suenoRaw.match(/(\d+)/);suenoInt=m?parseInt(m[1]):null;}
   var d={numero_limpio:c.numero_limpio,
-    alergias:(document.getElementById('fil-alergias')||{}).value||'No',
-    alergias_detalle:(document.getElementById('fil-alergias-det')||{}).value||'',
-    tipo_piel:(document.getElementById('fil-tipo-piel')||{}).value||'',
-    fototipo:(document.getElementById('fil-fototipo')||{}).value||'',
-    grupo_sanguineo:(document.getElementById('fil-sangre')||{}).value||'',
-    enfermedades_cronicas:(document.getElementById('fil-cronicas')||{}).value||'',
-    medicamentos_actuales:(document.getElementById('fil-medicamentos')||{}).value||'',
-    vitaminas_suplementos:(document.getElementById('fil-vitaminas')||{}).value||'',
-    cirugias_previas:(document.getElementById('fil-cirugias')||{}).value||'',
-    tratamientos_esteticos_previos:(document.getElementById('fil-esteticos')||{}).value||'',
-    queloides:(document.getElementById('fil-queloides')||{}).checked||false,
-    implantes:(document.getElementById('fil-implantes')||{}).checked||false,
-    marcapasos:(document.getElementById('fil-marcapasos')||{}).checked||false,
-    embarazo:(document.getElementById('fil-embarazo')||{}).checked||false,
-    lactancia:(document.getElementById('fil-lactancia')||{}).checked||false,
-    fuma:(document.getElementById('fil-fuma')||{}).value||'',
-    alcohol:(document.getElementById('fil-alcohol')||{}).value||'',
-    protector_solar:(document.getElementById('fil-solar')||{}).value||'',
-    horas_sueno:(document.getElementById('fil-sueno')||{}).value||'',
-    contacto_emergencia_nombre:(document.getElementById('fil-emerg-nombre')||{}).value||'',
-    contacto_emergencia_tel:(document.getElementById('fil-emerg-tel')||{}).value||'',
-    contacto_emergencia_parentesco:(document.getElementById('fil-emerg-parent')||{}).value||'',
-    factor_anestesico:(document.getElementById('fil-asa')||{}).value||'ASA I',
+    alergias:alVal?[alVal]:[],
+    alergias_detalle:gv('fil-alergias-det'),
+    tipo_piel:gv('fil-tipo-piel'),
+    fototipo:gv('fil-fototipo'),
+    grupo_sanguineo:gv('fil-sangre'),
+    enfermedades_cronicas:croVal?[croVal]:[],
+    medicamentos_actuales:gv('fil-medicamentos'),
+    vitaminas_suplementos:gv('fil-vitaminas'),
+    cirugias_previas:gv('fil-cirugias'),
+    tratamientos_esteticos_previos:gv('fil-esteticos'),
+    queloides:gc('fil-queloides'),
+    implantes:gc('fil-implantes')?'Sí':'No',
+    marcapasos:gc('fil-marcapasos'),
+    embarazo:gc('fil-embarazo'),
+    lactancia:gc('fil-lactancia'),
+    fuma:fumaVal==='Sí'||fumaVal==='Si'||fumaVal==='yes',
+    alcohol:gv('fil-alcohol'),
+    protector_solar:solarVal==='Sí'||solarVal==='Si'||solarVal==='yes',
+    horas_sueno:suenoInt,
+    contacto_emergencia_nombre:gv('fil-emerg-nombre'),
+    contacto_emergencia_tel:gv('fil-emerg-tel'),
+    contacto_emergencia_parentesco:gv('fil-emerg-parent'),
+    factor_anestesico:gv('fil-asa')||'ASA I',
     actualizado_por:AOS.ctx?AOS.ctx.nombre:'',ultima_actualizacion:new Date().toISOString()
   };
   /* Upsert */
   fetch(_SB+'/rest/v1/aos_filiacion_medica?numero_limpio=eq.'+c.numero_limpio,{method:'GET',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(ex){
-    if(ex&&ex.length){fetch(_SB+'/rest/v1/aos_filiacion_medica?numero_limpio=eq.'+c.numero_limpio,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación actualizada','','');loadDet();}});}
-    else{sbW('aos_filiacion_medica',d).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación creada','','');loadDet();}});}
-  });
+    if(ex&&ex.length){fetch(_SB+'/rest/v1/aos_filiacion_medica?numero_limpio=eq.'+c.numero_limpio,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación actualizada','','');loadDet();}else{r.text().then(function(t){console.error('[FIL] PATCH error:',t);if(window.AOS_showToast)AOS_showToast('Error guardando filiación','','toast-alerta');});}});}
+    else{sbW('aos_filiacion_medica',d).then(function(r){if(r.ok){closeDw();if(window.AOS_showToast)AOS_showToast('✅ Filiación creada','','');loadDet();}else{r.text().then(function(t){console.error('[FIL] POST error:',t);if(window.AOS_showToast)AOS_showToast('Error creando filiación','','toast-alerta');});}});}
+  }).catch(function(e){console.error('[FIL] error:',e);if(window.AOS_showToast)AOS_showToast('Error de conexión','','toast-alerta');});
 }
 
 /* ===== MOD-24: NOTA CLIENTE ===== */
