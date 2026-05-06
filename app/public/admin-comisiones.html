@@ -83,7 +83,7 @@ function el(id){return document.getElementById(id);}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var CL={'WILMER':'#00C9A7','MIREYA':'#3B82F6','RUVILA':'#16A34A','SRA CARMEN':'#F59E0B','CESAR':'#8B5CF6'};
-var CM={data:null,modo:'mes',editId:null,filtroAsesor:'',filtroSede:'',busqueda:'',_lastRows:[]};
+var CM={data:null,modo:'mes',editId:null,filtroAsesor:'',filtroSede:'',busqueda:'',_lastRows:[],_searchActive:false};
 (function(){var m=new Date().getMonth()+1;el('cm-mes').value=String(m);el('cm-anio').value=String(new Date().getFullYear());el('rg-desde').value=new Date().toISOString().slice(0,10);cmLoad();})();
 function cmMode(btn){document.querySelectorAll('.cm-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');CM.modo=btn.getAttribute('data-m');cmLoad();}
 function cmFilterAsesor(asesor){CM.filtroAsesor=asesor;el('cm-filtro-pill').style.display='inline-block';el('cm-filtro-pill').innerHTML='✕ '+asesor;applyFilter();}
@@ -130,26 +130,35 @@ function renderKPIs(d){
 }
 function renderDet(rows){
   var tb=el('cm-tb');CM._lastRows=rows;
-  var sc='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
-  ['','SAN ISIDRO','PUEBLO LIBRE'].forEach(function(s){var lb=s||'Todas';var sel=CM.filtroSede===s;sc+='<button onclick="CM.filtroSede=\''+s+'\';renderDet(CM._lastRows)" style="padding:2px 8px;border-radius:6px;border:1px solid '+(sel?'#0A4FBF':'#DDE4F5')+';background:'+(sel?'#EBF2FF':'#F8FAFF')+';cursor:pointer;font-size:8px;font-weight:700;color:'+(sel?'#0A4FBF':'#6B7BA8')+'">'+lb+'</button>';});
-  sc+='<span style="flex:1"></span><button onclick="var sb=el(\'cm-search\');sb.style.display=sb.style.display===\'none\'?\'inline-block\':\'none\';if(sb.style.display!==\'none\')sb.focus();else{CM.busqueda=\'\';renderDet(CM._lastRows)}" style="padding:2px 6px;border-radius:6px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-size:10px" title="Buscar">🔍</button>';
-  sc+='<input id="cm-search" placeholder="Buscar..." style="display:'+(CM.busqueda?'inline-block':'none')+';padding:3px 8px;border:1px solid #DDE4F5;border-radius:6px;font-size:9px;width:120px" value="'+(CM.busqueda||'')+'" oninput="CM.busqueda=this.value.toUpperCase();renderDet(CM._lastRows)">';
+  /* Solo renderizar chips si no estamos buscando (evita perder foco del input) */
+  if(!CM._searchActive){
+    var sc='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
+    ['','SAN ISIDRO','PUEBLO LIBRE'].forEach(function(s){var lb=s||'Todas';var sel=CM.filtroSede===s;sc+='<button onclick="CM.filtroSede=\''+s+'\';CM._searchActive=false;renderDet(CM._lastRows)" style="padding:2px 8px;border-radius:6px;border:1px solid '+(sel?'#0A4FBF':'#DDE4F5')+';background:'+(sel?'#EBF2FF':'#F8FAFF')+';cursor:pointer;font-size:8px;font-weight:700;color:'+(sel?'#0A4FBF':'#6B7BA8')+'">'+lb+'</button>';});
+    sc+='<span style="flex:1"></span><button onclick="var sb=el(\'cm-search\');if(sb.style.display===\'none\'){sb.style.display=\'inline-block\';sb.focus()}else{sb.style.display=\'none\';CM.busqueda=\'\';CM._searchActive=false;renderDet(CM._lastRows)}" style="padding:2px 6px;border-radius:6px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-size:10px" title="Buscar">🔍</button>';
+    sc+='<input id="cm-search" placeholder="Buscar..." style="display:'+(CM.busqueda?'inline-block':'none')+';padding:3px 8px;border:1px solid #DDE4F5;border-radius:6px;font-size:9px;width:120px" value="'+(CM.busqueda||'')+'" oninput="CM.busqueda=this.value.toUpperCase();CM._searchActive=true;renderDet(CM._lastRows)">';
+    sc+='</div>';
+    el('cm-cnt').innerHTML=sc;
+  }
   var filtered=rows;
   if(CM.filtroSede)filtered=filtered.filter(function(v){return(v.sede||'').toUpperCase().indexOf(CM.filtroSede)>=0;});
   if(CM.busqueda){var q=CM.busqueda;filtered=filtered.filter(function(v){return((v.nombres||'')+' '+(v.apellidos||'')+' '+(v.numero_limpio||'')+' '+(v.tratamiento||'')).toUpperCase().indexOf(q)>=0;});}
-  sc+='</div>';
-  el('cm-cnt').innerHTML=sc+'<div style="font-size:9px;color:#6B7BA8;margin-top:4px">'+filtered.length+' ventas</div>';
+  /* Actualizar solo el conteo sin tocar el input */
+  var cntEl=document.getElementById('cm-det-count');
+  if(!cntEl){var d=document.createElement('div');d.id='cm-det-count';d.style.cssText='font-size:9px;color:#6B7BA8;margin-top:4px';el('cm-cnt').appendChild(d);cntEl=d;}
+  cntEl.textContent=filtered.length+' ventas';
+  CM._searchActive=false;
   if(!filtered.length){tb.innerHTML='<tr><td colspan="10" class="ld">Sin ventas</td></tr>';return;}
   tb.innerHTML=filtered.map(function(v){
     var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();var c=parseFloat(v.comision||0);
     var epC=v.estado_pago==='PAGO COMPLETO'?'ep-ok':v.estado_pago==='ADELANTO'?'ep-ad':'ep-pen';
     var tbC=v.asesor==='NO APLICA'?'tb-na':(v.tipo==='PRODUCTO'?'tb-p':'tb-s');
+    var sedeCol=(v.sede||'').indexOf('PUEBLO')>=0?'background:#FFFBEB;color:#D97706':'background:#F0FDF4;color:#059669';
     return '<tr><td><div style="font-weight:700;font-size:10px">'+h((cli||'--').substring(0,22))+'</div><div style="font-size:8px;color:#9AAAC8">'+h(v.numero_limpio||'')+'</div></td>'+
       '<td style="font-size:9px;color:#6B7BA8">'+h((v.tratamiento||'').substring(0,16))+'</td>'+
       '<td><span class="tb '+tbC+'">'+(v.asesor==='NO APLICA'?'N/A':v.tipo==='PRODUCTO'?'PROD':'SERV')+'</span></td>'+
       '<td style="font-weight:700">S/'+parseFloat(v.monto||0).toFixed(2)+'</td>'+
       '<td><span class="com-v">S/'+c.toFixed(2)+'</span></td>'+
-      '<td style="font-size:9px;color:#6B7BA8">'+h((v.sede||'').substring(0,8))+'</td>'+
+      '<td><span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;'+sedeCol+'">'+h((v.sede||'').substring(0,10))+'</span></td>'+
       '<td style="font-size:9px;font-weight:700;color:'+(CL[v.asesor]||'#9AAAC8')+'">'+h(v.asesor||'')+'</td>'+
       '<td><span class="ep ep-ok" style="background:#EBF2FF;color:#0A4FBF">BASE</span></td>'+
       '<td><span class="ep '+epC+'">'+h((v.estado_pago||'--').substring(0,10))+'</span></td>'+
