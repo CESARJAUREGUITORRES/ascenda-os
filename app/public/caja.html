@@ -2308,6 +2308,13 @@ function grabarCotizacion() {
     // Recargar caja inmediatamente — overlay ya está cerrado con display:none
     cargarCaja();
     if (window.parent && window.parent.AOS_playSound) window.parent.AOS_playSound('venta');
+    /* Notificar al asesor que se registró su comisión */
+    var asesorVenta=(itemsConPago[0]&&itemsConPago[0].asesorComision)||'';
+    if(asesorVenta&&asesorVenta!=='NO APLICA'){
+      var totalVenta=itemsConPago.reduce(function(s,it){return s+parseFloat(it.subtotal||0);},0);
+      var tratNombres=itemsConPago.map(function(it){return it.nombre;}).join(', ');
+      fetch(_SB+'/rest/v1/aos_notificaciones',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({titulo:'💰 Venta S/'+totalVenta.toFixed(0),contenido:tratNombres.substring(0,60),tipo:'VENTA',de:'CAJA',para:asesorVenta.toUpperCase(),prioridad:'NORMAL',expira_at:new Date(Date.now()+24*60*60*1000).toISOString()})}).catch(function(){});
+    }
   }
 
   // Ejecutar: primero abonos, luego nuevos
