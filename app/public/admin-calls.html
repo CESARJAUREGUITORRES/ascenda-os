@@ -186,9 +186,15 @@ function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rp
 function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);});}
 function rMon(mon){
   if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="5" class="ld">Sin actividad</td></tr>';return;}
+  /* Cargar metas para colorear */
+  var metas={};(D.productividad||[]).forEach(function(p){metas[p.asesor]={ml:p.meta_llamadas||0,mc:p.meta_citas||0};});
   el('ac-mon').innerHTML=mon.map(function(m){
     var cv=m.llamadas>0?Math.round((m.citas||0)/m.llamadas*100):0;
-    return '<tr data-asesor="'+h(m.nombre)+'" onclick="acChartFilter(\''+h(m.nombre)+'\')" style="cursor:pointer;'+(AC_CHART_ASESOR===m.nombre?'background:#F0FDFA;':'')+'"><td><b>'+h(m.nombre)+'</b></td><td style="text-align:center;font-family:\'Exo 2\';font-weight:800;color:#0A4FBF;">'+m.llamadas+'</td><td style="text-align:center;font-weight:700;color:#16A34A;">+'+m.citas+'</td><td style="text-align:center;color:#00C9A7;font-weight:600;">'+cv+'%</td><td style="font-size:9px;color:#6B7BA8;">'+h(m.ult_hora||'—')+'<br>'+h(m.ult_num||'')+'</td></tr>';
+    var mt=metas[m.nombre]||{ml:0,mc:0};
+    var colL='#0A4FBF';var colC='#16A34A';
+    if(mt.ml>0){var pL=m.llamadas/mt.ml*100;colL=pL>=100?'#059669':pL>=50?'#D97706':'#DC2626';}
+    if(mt.mc>0){var pC=(m.citas||0)/mt.mc*100;colC=pC>=100?'#059669':pC>=50?'#D97706':'#DC2626';}
+    return '<tr data-asesor="'+h(m.nombre)+'" onclick="acChartFilter(\''+h(m.nombre)+'\')" style="cursor:pointer;'+(AC_CHART_ASESOR===m.nombre?'background:#F0FDFA;':'')+'"><td><b>'+h(m.nombre)+'</b></td><td style="text-align:center;font-family:\'Exo 2\';font-weight:800;color:'+colL+';">'+m.llamadas+'</td><td style="text-align:center;font-weight:700;color:'+colC+';">+'+m.citas+'</td><td style="text-align:center;color:#00C9A7;font-weight:600;">'+cv+'%</td><td style="font-size:9px;color:#6B7BA8;">'+h(m.ult_hora||'—')+'<br>'+h(m.ult_num||'')+'</td></tr>';
   }).join('');
 }
 var AC_CHART_ASESOR=null;var AC_SHOW_PICOS=false;var AC_CHART_RAW=[];
@@ -405,11 +411,24 @@ function selCola(card,asesor){
 function asignarCola(tipo,needFilter){
   var filtro='';
   if(needFilter){
-    filtro=prompt('Ingresa el filtro para "'+tipo+'" (ej: ENZIMAS FACIALES):');
-    if(!filtro)return;
-    filtro=filtro.toUpperCase().trim();
+    /* Modal bonito para elegir filtro en vez de prompt() */
+    var bases=[];
+    if(tipo==='campana')bases=(D.bases_campana||[]).map(function(b){return b.campana;});
+    else if(tipo==='tipificacion')bases=(D.bases_tipificacion||[]).map(function(b){return b.estado;});
+    if(!bases.length){filtro=prompt('Ingresa el filtro para "'+tipo+'":');if(!filtro)return;filtro=filtro.toUpperCase().trim();}
+    else{
+      var ov=document.createElement('div');ov.id='cola-filter-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:999;display:flex;align-items:center;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
+      var md='<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:380px;max-height:70vh;overflow-y:auto"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px">Seleccionar base</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px">'+COLA_SEL+' → '+tipo+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+      bases.forEach(function(b){md+='<button style="padding:8px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:10px;color:#0D1B3E;transition:all .15s;text-align:left" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'#F8FAFF\';this.style.borderColor=\'#DDE4F5\'" onclick="doAsignarCola(\''+tipo+'\',\''+b.replace(/'/g,"\\'")+'\')">'+h(b)+'</button>';});
+      md+='</div><button style="margin-top:10px;padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:transparent;cursor:pointer;font-size:10px;color:#6B7BA8" onclick="document.getElementById(\'cola-filter-ov\').remove()">Cancelar</button></div>';
+      ov.innerHTML=md;document.body.appendChild(ov);return;
+    }
   }
-  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(COLA_SEL),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro,configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
+  doAsignarCola(tipo,filtro);
+}
+function doAsignarCola(tipo,filtro){
+  var ov=document.getElementById('cola-filter-ov');if(ov)ov.remove();
+  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(COLA_SEL),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro||'',configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
     if(r.ok){showToast('Cola Actualizada',COLA_SEL+' → '+tipo+(filtro?' · '+filtro:''));rColas(D.productividad);selCola(document.querySelector('.cola-card.sel'),COLA_SEL);}
     else{r.text().then(function(t){showToast('Error',t,true);});}
   });
