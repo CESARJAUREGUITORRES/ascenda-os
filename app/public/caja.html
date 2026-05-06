@@ -2299,7 +2299,8 @@ function grabarCotizacion() {
         body: JSON.stringify({ to:_pacEmail, template:'confirmacion_pago', nombre:_pacNombre, tratamiento:_tratList, monto:totalPagado, saldo_actual:0, metodo_pago:(itemsConPago[0]&&itemsConPago[0].metodoPago)||'' })
       }).then(function(r){return r.json()}).then(function(res){
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
-      }).catch(function(){});
+        else console.error('[CAJA-EMAIL] No enviado:',JSON.stringify(res));
+      }).catch(function(e){console.error('[CAJA-EMAIL] Error:',e);});
     }
     VT.items = []; VT.pac = null; VT.cotizacion_existente = null; VT._guardando = false;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';

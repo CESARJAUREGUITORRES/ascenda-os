@@ -1036,6 +1036,16 @@ function guardarProgSesion(sesionId,tratNombre){
     }).then(function(){
       var m=document.getElementById('modal-prog-ses');if(m)m.remove();
       if(window.AOS_showToast)AOS_showToast('✅ Cita programada para '+fecha,tratNombre+' — '+estadoPago,'');
+      /* Enviar email de confirmación */
+      var pacEmail=(AT.det&&AT.det.paciente)?(AT.det.paciente.email||AT.det.paciente.Email||AT.det.paciente.correo||''):'';
+      if(pacEmail&&pacEmail.indexOf('@')>-1){
+        var pacNom=((c.nombre||'')+' '+(c.apellido||'')).trim();
+        fetch(window.location.origin+'/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({to:pacEmail,template:'confirmacion_cita',nombre:pacNom,tratamiento:tratNombre,hora:hora,sede:sede,fecha:fecha,telefono:c.numero_limpio||''})
+        }).then(function(r){return r.json()}).then(function(d){
+          if(d&&(d.ok||d.id)&&window.AOS_showToast)AOS_showToast('📧 Email cita enviado',pacEmail,'');
+        }).catch(function(e){console.error('[PROG-EMAIL]',e);});
+      }
       subTab('programar',document.querySelector('.at-sp[onclick*="programar"]'));
     });
   });
