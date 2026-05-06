@@ -1002,6 +1002,8 @@ function cancelarProgramacion(sesionId, tratNombre) {
 
 function guardarProgSesion(sesionId,tratNombre){
   var c=AT.sel;if(!c)return;
+  if(window._progGuardando){return;}window._progGuardando=true;
+  setTimeout(function(){window._progGuardando=false;},5000);
   var fecha=(document.getElementById('mps-fecha')||{}).value;
   var hora=(document.getElementById('mps-hora')||{}).value||'10:00';
   var sede=(document.getElementById('mps-sede')||{}).value||'SAN ISIDRO';
