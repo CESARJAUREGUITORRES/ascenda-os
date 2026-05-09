@@ -43,6 +43,22 @@ function sbGet(endpoint) {
     }).on('error', function() { resolve([]) })
   })
 }
+function sbRpc(fnName, params) {
+  const url = new URL(SB_URL + '/rest/v1/rpc/' + fnName)
+  var data = JSON.stringify(params || {})
+  return new Promise(function(resolve) {
+    var req = https.request({
+      hostname: url.hostname, path: url.pathname, method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) }
+    }, function(r) {
+      var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() {
+        try { resolve(JSON.parse(d)) } catch(e) { resolve(null) }
+      })
+    })
+    req.on('error', function() { resolve(null) })
+    req.write(data); req.end()
+  })
+}
 
 // ═══ WEBHOOK VERIFY (GET) ═══
 function webhookVerify(req, res) {
@@ -334,6 +350,10 @@ http.createServer(function(req, res) {
           contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
           /* Últimos leads importados hoy (para verificar subida) */
           contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
+          /* Comisiones REALES calculadas por la RPC oficial */
+          var mesNum = new Date().getMonth() + 1
+          var anioNum = new Date().getFullYear()
+          contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: d.id_asesor || '', p_mes: mesNum, p_anio: anioNum}))
         } else {
           contextQueries.push(sbGet('/rest/v1/aos_ventas?fecha=gte.' + mesInicio + '&select=tratamiento,monto,asesor,fecha&order=fecha.desc&limit=30'))
           contextQueries.push(sbGet('/rest/v1/aos_llamadas?fecha=eq.' + hoy + '&select=asesor,estado&limit=100'))
@@ -351,6 +371,7 @@ http.createServer(function(req, res) {
           var citas = results[4] || []
           var inventario = results[5] || []
           var leadsHoy = results[6] || []
+          var comisionesData = results[7] || null
 
           var catResumen = catalogo.map(function(c) {
             var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
@@ -371,12 +392,26 @@ http.createServer(function(req, res) {
             /* Top clientes del asesor */
             var clienteMap={};ventas.forEach(function(v){var k=v.numero_limpio||'?';if(!clienteMap[k])clienteMap[k]={nombre:(v.nombres||'')+' '+(v.apellidos||''),total:0,n:0,trats:{}};clienteMap[k].total+=parseFloat(v.monto||0);clienteMap[k].n++;clienteMap[k].trats[v.tratamiento]=1})
             var topClientes=Object.keys(clienteMap).map(function(k){return{num:k,nombre:clienteMap[k].nombre.trim(),total:clienteMap[k].total,n:clienteMap[k].n,trats:Object.keys(clienteMap[k].trats).join(',')}}).sort(function(a,b){return b.total-a.total}).slice(0,8)
-            /* Comisiones estimadas (0.5% servicios) */
-            var comServ = ventasMes.filter(function(v){return v.tratamiento&&v.tratamiento.indexOf('COMPRA')<0}).reduce(function(s,v){return s+parseFloat(v.monto||0)*0.005},0)
+            /* Comisiones REALES del sistema */
+            var comReal = ''
+            if (comisionesData && comisionesData.comTotal !== undefined) {
+              comReal = '\nCOMISIONES REALES MES: S/' + comisionesData.comTotal + ' (Servicios: S/' + (comisionesData.comServ||0) + ' + Productos: S/' + (comisionesData.comProd||0) + ')'
+              comReal += '\nRanking comisiones: #' + (comisionesData.ranking||'?') + ' del equipo'
+              if (comisionesData.detalle && comisionesData.detalle.length) {
+                comReal += '\nDETALLE COMISIONES POR VENTA:'
+                comisionesData.detalle.forEach(function(v) {
+                  comReal += '\n  ' + v.fecha + ' ' + ((v.nombres||'')+' '+(v.apellidos||'')).trim().substring(0,20) + ' | ' + v.tratamiento + ' S/' + v.monto + ' -> Comision: S/' + v.comision_calculada + ' (' + v.tipo + ') asesor=' + (v.asesor_asignado || 'TU')
+                })
+              }
+              comReal += '\nIMPORTANTE: No todas las ventas de un cliente generan comision para ti. Solo las ventas donde TU eres el asesor asignado. Un mismo cliente puede tener ventas asignadas a diferentes asesores o a "NO APLICA".'
+              if (comisionesData.topClientes && comisionesData.topClientes.length) {
+                comReal += '\nTOP CLIENTES HISTORICOS: ' + comisionesData.topClientes.map(function(c,i){return(i+1)+'. '+c.cliente+' S/'+Math.round(c.total)+' ('+c.compras+' compras, ult:'+c.ult_fecha+')'}).join(' | ')
+              }
+            }
             datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
             datosCtx += '\nVENTAS MES ACTUAL: '+ventasMes.length+' ventas, S/'+Math.round(totalVMes)
             datosCtx += '\nVENTAS AÑO: '+ventas.length+' ventas, S/'+Math.round(totalVAnio)
-            datosCtx += '\nCOMISION ESTIMADA MES: S/'+comServ.toFixed(2)+' (servicios al 0.5%)'
+            datosCtx += comReal
             datosCtx += '\nTOP CLIENTES: '+topClientes.map(function(c,i){return(i+1)+'.'+c.nombre+' tel:'+c.num+' S/'+Math.round(c.total)+' ('+c.n+'compras: '+c.trats+')'}).join(' | ')
             datosCtx += '\nDETALLE VENTAS MES: '+ventasMes.map(function(v){return v.fecha+' '+((v.nombres||'')+' '+(v.apellidos||'')).trim().substring(0,15)+' '+v.tratamiento+' S/'+v.monto}).join(' | ')
             datosCtx += '\nLLAMADAS HOY: '+llamadas.length+' | Citas:'+citasConf+' | Sin contacto:'+sinContacto
