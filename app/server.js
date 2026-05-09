@@ -321,8 +321,9 @@ http.createServer(function(req, res) {
         contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
         
         if (!esAdmin) {
-          /* Ventas del asesor este mes */
-          contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + mesInicio + '&select=tratamiento,monto,estado_pago,fecha,numero_limpio&order=fecha.desc&limit=25'))
+          /* Ventas del asesor — mes actual + top clientes del año */
+          var anioInicio = hoy.slice(0,4) + '-01-01'
+          contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + anioInicio + '&select=tratamiento,monto,estado_pago,fecha,numero_limpio,nombres,apellidos&order=fecha.desc&limit=50'))
           /* Llamadas del asesor hoy */
           contextQueries.push(sbGet('/rest/v1/aos_llamadas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=eq.' + hoy + '&select=estado,tratamiento,numero_limpio&limit=60'))
           /* Seguimientos pendientes del asesor */
@@ -354,11 +355,18 @@ http.createServer(function(req, res) {
 
           var datosCtx = ''
           if (!esAdmin) {
-            var totalV = ventas.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
+            var ventasMes = ventas.filter(function(v){return v.fecha>=mesInicio})
+            var totalVMes = ventasMes.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
+            var totalVAnio = ventas.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
             var citasConf = llamadas.filter(function(l){return l.estado==='CITA CONFIRMADA'}).length
             var sinContacto = llamadas.filter(function(l){return l.estado==='SIN CONTACTO'}).length
+            /* Top clientes del asesor */
+            var clienteMap={};ventas.forEach(function(v){var k=v.numero_limpio||'?';if(!clienteMap[k])clienteMap[k]={nombre:(v.nombres||'')+' '+(v.apellidos||''),total:0,n:0};clienteMap[k].total+=parseFloat(v.monto||0);clienteMap[k].n++})
+            var topClientes=Object.keys(clienteMap).map(function(k){return{num:k,nombre:clienteMap[k].nombre.trim(),total:clienteMap[k].total,n:clienteMap[k].n}}).sort(function(a,b){return b.total-a.total}).slice(0,5)
             datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
-            datosCtx += '\nVENTAS MES: '+ventas.length+' ventas, S/'+Math.round(totalV)
+            datosCtx += '\nVENTAS MES ACTUAL: '+ventasMes.length+' ventas, S/'+Math.round(totalVMes)
+            datosCtx += '\nVENTAS AÑO: '+ventas.length+' ventas, S/'+Math.round(totalVAnio)
+            datosCtx += '\nTOP 5 CLIENTES (por facturación): '+topClientes.map(function(c,i){return(i+1)+'. '+c.nombre+' S/'+Math.round(c.total)+' ('+c.n+' compras)'}).join(' | ')
             datosCtx += '\nLLAMADAS HOY: '+llamadas.length+' total | Citas:'+citasConf+' | Sin contacto:'+sinContacto
             if(seguimientos.length) datosCtx += '\nSEGUIMIENTOS PENDIENTES: '+seguimientos.length+' — '+seguimientos.map(function(s){return(s.TRATAMIENTO||'?')+' '+s.FECHA_PROGRAMADA}).join(', ')
             if(citas.length){var citasPend=citas.filter(function(c){return c.estado_cita==='PENDIENTE'||c.estado_cita==='CITA CONFIRMADA'}).length;datosCtx+='\nCITAS MES: '+citas.length+' total | Pendientes:'+citasPend}
