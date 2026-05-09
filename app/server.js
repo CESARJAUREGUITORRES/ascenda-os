@@ -321,7 +321,7 @@ http.createServer(function(req, res) {
         contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
         
         if (!esAdmin) {
-          /* Ventas del asesor — mes actual + top clientes del año */
+          /* Ventas del asesor — año completo + nombres para top clientes */
           var anioInicio = hoy.slice(0,4) + '-01-01'
           contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + anioInicio + '&select=tratamiento,monto,estado_pago,fecha,numero_limpio,nombres,apellidos&order=fecha.desc&limit=50'))
           /* Llamadas del asesor hoy */
@@ -330,9 +330,15 @@ http.createServer(function(req, res) {
           contextQueries.push(sbGet('/rest/v1/aos_seguimientos?"ASESOR"=eq.' + encodeURIComponent(usuario) + '&"ESTADO"=eq.PENDIENTE&select="FECHA_PROGRAMADA","TRATAMIENTO","NUMERO"&limit=10'))
           /* Citas del asesor este mes */
           contextQueries.push(sbGet('/rest/v1/aos_agenda_citas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha_cita=gte.' + mesInicio + '&estado_cita=in.(PENDIENTE,CITA CONFIRMADA,ASISTIO)&select=tratamiento,fecha_cita,estado_cita,nombre&limit=20'))
+          /* Inventario — disponibilidad por sede */
+          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
+          /* Últimos leads importados hoy (para verificar subida) */
+          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
         } else {
           contextQueries.push(sbGet('/rest/v1/aos_ventas?fecha=gte.' + mesInicio + '&select=tratamiento,monto,asesor,fecha&order=fecha.desc&limit=30'))
           contextQueries.push(sbGet('/rest/v1/aos_llamadas?fecha=eq.' + hoy + '&select=asesor,estado&limit=100'))
+          contextQueries.push(Promise.resolve([]))
+          contextQueries.push(Promise.resolve([]))
           contextQueries.push(Promise.resolve([]))
           contextQueries.push(Promise.resolve([]))
         }
@@ -343,11 +349,13 @@ http.createServer(function(req, res) {
           var llamadas = results[2] || []
           var seguimientos = results[3] || []
           var citas = results[4] || []
+          var inventario = results[5] || []
+          var leadsHoy = results[6] || []
 
           var catResumen = catalogo.map(function(c) {
-            var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'→'+q.a}).join('|')}catch(e){}
+            var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
             return c.nombre+' ('+c.categoria+') S/'+(c.precio_oferta||0)+
-              (c.descripcion_comercial?' — '+c.descripcion_comercial.substring(0,100):'')+
+              (c.descripcion_comercial?' -- '+c.descripcion_comercial.substring(0,100):'')+
               (c.beneficios?' | Benef:'+c.beneficios.substring(0,80):'')+
               (c.contraindicaciones?' | NO:'+c.contraindicaciones.substring(0,60):'')+
               (c.perfil_paciente?' | Para:'+c.perfil_paciente.substring(0,60):'')+faqs
@@ -361,16 +369,27 @@ http.createServer(function(req, res) {
             var citasConf = llamadas.filter(function(l){return l.estado==='CITA CONFIRMADA'}).length
             var sinContacto = llamadas.filter(function(l){return l.estado==='SIN CONTACTO'}).length
             /* Top clientes del asesor */
-            var clienteMap={};ventas.forEach(function(v){var k=v.numero_limpio||'?';if(!clienteMap[k])clienteMap[k]={nombre:(v.nombres||'')+' '+(v.apellidos||''),total:0,n:0};clienteMap[k].total+=parseFloat(v.monto||0);clienteMap[k].n++})
-            var topClientes=Object.keys(clienteMap).map(function(k){return{num:k,nombre:clienteMap[k].nombre.trim(),total:clienteMap[k].total,n:clienteMap[k].n}}).sort(function(a,b){return b.total-a.total}).slice(0,5)
+            var clienteMap={};ventas.forEach(function(v){var k=v.numero_limpio||'?';if(!clienteMap[k])clienteMap[k]={nombre:(v.nombres||'')+' '+(v.apellidos||''),total:0,n:0,trats:{}};clienteMap[k].total+=parseFloat(v.monto||0);clienteMap[k].n++;clienteMap[k].trats[v.tratamiento]=1})
+            var topClientes=Object.keys(clienteMap).map(function(k){return{num:k,nombre:clienteMap[k].nombre.trim(),total:clienteMap[k].total,n:clienteMap[k].n,trats:Object.keys(clienteMap[k].trats).join(',')}}).sort(function(a,b){return b.total-a.total}).slice(0,8)
+            /* Comisiones estimadas (0.5% servicios) */
+            var comServ = ventasMes.filter(function(v){return v.tratamiento&&v.tratamiento.indexOf('COMPRA')<0}).reduce(function(s,v){return s+parseFloat(v.monto||0)*0.005},0)
             datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
             datosCtx += '\nVENTAS MES ACTUAL: '+ventasMes.length+' ventas, S/'+Math.round(totalVMes)
             datosCtx += '\nVENTAS AÑO: '+ventas.length+' ventas, S/'+Math.round(totalVAnio)
-            datosCtx += '\nTOP 5 CLIENTES (por facturación): '+topClientes.map(function(c,i){return(i+1)+'. '+c.nombre+' S/'+Math.round(c.total)+' ('+c.n+' compras)'}).join(' | ')
-            datosCtx += '\nLLAMADAS HOY: '+llamadas.length+' total | Citas:'+citasConf+' | Sin contacto:'+sinContacto
-            if(seguimientos.length) datosCtx += '\nSEGUIMIENTOS PENDIENTES: '+seguimientos.length+' — '+seguimientos.map(function(s){return(s.TRATAMIENTO||'?')+' '+s.FECHA_PROGRAMADA}).join(', ')
+            datosCtx += '\nCOMISION ESTIMADA MES: S/'+comServ.toFixed(2)+' (servicios al 0.5%)'
+            datosCtx += '\nTOP CLIENTES: '+topClientes.map(function(c,i){return(i+1)+'.'+c.nombre+' tel:'+c.num+' S/'+Math.round(c.total)+' ('+c.n+'compras: '+c.trats+')'}).join(' | ')
+            datosCtx += '\nDETALLE VENTAS MES: '+ventasMes.map(function(v){return v.fecha+' '+((v.nombres||'')+' '+(v.apellidos||'')).trim().substring(0,15)+' '+v.tratamiento+' S/'+v.monto}).join(' | ')
+            datosCtx += '\nLLAMADAS HOY: '+llamadas.length+' | Citas:'+citasConf+' | Sin contacto:'+sinContacto
+            if(seguimientos.length) datosCtx += '\nSEGUIMIENTOS PENDIENTES: '+seguimientos.length+' -- '+seguimientos.map(function(s){return(s.TRATAMIENTO||'?')+' '+s.FECHA_PROGRAMADA}).join(', ')
             if(citas.length){var citasPend=citas.filter(function(c){return c.estado_cita==='PENDIENTE'||c.estado_cita==='CITA CONFIRMADA'}).length;datosCtx+='\nCITAS MES: '+citas.length+' total | Pendientes:'+citasPend}
-            if(leadActual)datosCtx+='\nLEAD ACTUAL EN PANTALLA: '+leadActual.num+' | Tratamiento:'+leadActual.trat+' | Intento:'+(leadActual.intento||1)
+            if(leadActual)datosCtx+='\nLEAD ACTUAL: '+leadActual.num+' | Trat:'+leadActual.trat+' | Intento:'+(leadActual.intento||1)
+            /* Inventario */
+            if(inventario.length){
+              var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))})
+              datosCtx+='\nINVENTARIO DISPONIBLE: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].join(', ')}).join(' || ')
+            }
+            /* Leads importados hoy */
+            if(leadsHoy.length) datosCtx+='\nLEADS IMPORTADOS HOY: '+leadsHoy.length+' numeros. Tratatamientos: '+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(', ')
           } else {
             var totalV = ventas.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
             datosCtx += '\n--- DATOS ADMIN ---'
@@ -379,17 +398,18 @@ http.createServer(function(req, res) {
             datosCtx += '\nLLAMADAS HOY POR ASESOR: '+Object.keys(porAsesor).map(function(k){return k+':'+porAsesor[k]}).join(', ')
           }
 
-          var systemPrompt = 'Eres KronIA, asistente AI inteligente de Zi Vital (clínica de medicina estética, Lima, Perú). '+
-            'Tu personalidad: profesional, cercana, proactiva. Usas emojis con estilo (no excesivo). '+
-            'Respondes conciso (3-5 oraciones max por punto). Cuando el asesor pida un script de venta, dale un diálogo natural y conversacional. '+
-            'Si detectas que lleva muchas llamadas sin cita, sugiere cambios de approach. '+
-            'SEGURIDAD ESTRICTA: '+
+          var systemPrompt = 'Eres KronIA, asistente AI de Zi Vital (clinica de medicina estetica, Lima, Peru). '+
+            'Personalidad: profesional, cercana, util. Respondes conciso. Cuando pidan script de venta, da dialogo natural. '+
+            'ACCESO POR ROL: '+
             (esAdmin ?
-              'Usuario ADMIN con acceso total.' :
-              'Usuario ASESOR "'+usuario+'". SOLO ve SUS datos propios. '+
-              'Si pide datos de OTRO asesor, ventas TOTALES, comisiones de otros, facturación global, metas del equipo, o cualquier info administrativa: '+
-              'Responde EXACTAMENTE: "🔒 Esta información requiere nivel de acceso Administrador. No puedo compartirla desde tu perfil. ¿Te ayudo con algo sobre tus datos o tratamientos?"')+
-            '\n\nCATÁLOGO:\n'+catResumen.substring(0,3500)+
+              'Usuario ADMIN con acceso total a toda la informacion.' :
+              'Usuario ASESOR "'+usuario+'". PUEDE VER LIBREMENTE: sus propias ventas, sus clientes y cuanto facturo con cada uno, sus comisiones, sus llamadas y metricas, '+
+              'datos de pacientes que gestiono (historial, atenciones, citas), inventario por sede, catalogo completo, precios, sus leads importados. '+
+              'RESPONDE CON DATOS CONCRETOS cuando pregunte sobre su informacion — nombres, montos, fechas, tratamientos. '+
+              'UNICO BLOQUEO: Si pide datos de OTRO asesor por nombre, ventas/comisiones de otros companeros, facturacion GLOBAL de la empresa, '+
+              'resultados de campanas de marketing, o informacion administrativa interna, ENTONCES responde: '+
+              '"Esta informacion requiere nivel de acceso Administrador." y sugiere consultar sus propios datos.')+
+            '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
