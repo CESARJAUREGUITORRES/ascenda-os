@@ -309,65 +309,86 @@ http.createServer(function(req, res) {
         var sede = d.sede || ''
         var sessionId = d.session_id || ''
         var historial = d.historial || []
+        var leadActual = d.lead_actual || null
         if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
 
-        /* 1. Construir contexto según rol */
         var contextQueries = []
         var esAdmin = rol === 'ADMIN' || rol === 'admin'
+        var hoy = new Date().toISOString().slice(0,10)
+        var mesInicio = hoy.slice(0,8) + '01'
 
-        /* Siempre: catálogo */
-        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=30&order=categoria'))
-
-        /* Datos del asesor (solo sus datos) */
+        /* Catálogo completo */
+        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
+        
         if (!esAdmin) {
-          contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + new Date().toISOString().slice(0,8) + '01&select=tratamiento,monto,estado_pago,fecha&order=fecha.desc&limit=20'))
-          contextQueries.push(sbGet('/rest/v1/aos_llamadas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=eq.' + new Date().toISOString().slice(0,10) + '&select=estado,tratamiento&limit=50'))
+          /* Ventas del asesor este mes */
+          contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + mesInicio + '&select=tratamiento,monto,estado_pago,fecha,numero_limpio&order=fecha.desc&limit=25'))
+          /* Llamadas del asesor hoy */
+          contextQueries.push(sbGet('/rest/v1/aos_llamadas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=eq.' + hoy + '&select=estado,tratamiento,numero_limpio&limit=60'))
+          /* Seguimientos pendientes del asesor */
+          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?"ASESOR"=eq.' + encodeURIComponent(usuario) + '&"ESTADO"=eq.PENDIENTE&select="FECHA_PROGRAMADA","TRATAMIENTO","NUMERO"&limit=10'))
+          /* Citas del asesor este mes */
+          contextQueries.push(sbGet('/rest/v1/aos_agenda_citas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha_cita=gte.' + mesInicio + '&estado_cita=in.(PENDIENTE,CITA CONFIRMADA,ASISTIO)&select=tratamiento,fecha_cita,estado_cita,nombre&limit=20'))
+        } else {
+          contextQueries.push(sbGet('/rest/v1/aos_ventas?fecha=gte.' + mesInicio + '&select=tratamiento,monto,asesor,fecha&order=fecha.desc&limit=30'))
+          contextQueries.push(sbGet('/rest/v1/aos_llamadas?fecha=eq.' + hoy + '&select=asesor,estado&limit=100'))
+          contextQueries.push(Promise.resolve([]))
+          contextQueries.push(Promise.resolve([]))
         }
 
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
-          var ventasAsesor = results[1] || []
-          var llamadasHoy = results[2] || []
+          var ventas = results[1] || []
+          var llamadas = results[2] || []
+          var seguimientos = results[3] || []
+          var citas = results[4] || []
 
           var catResumen = catalogo.map(function(c) {
-            return c.nombre + ' (' + c.categoria + ') S/' + (c.precio_oferta||0) +
-              (c.descripcion_comercial ? ' — ' + c.descripcion_comercial.substring(0,80) : '') +
-              (c.beneficios ? ' | Benef: ' + c.beneficios.substring(0,60) : '') +
-              (c.contraindicaciones ? ' | NO: ' + c.contraindicaciones.substring(0,50) : '')
+            var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'→'+q.a}).join('|')}catch(e){}
+            return c.nombre+' ('+c.categoria+') S/'+(c.precio_oferta||0)+
+              (c.descripcion_comercial?' — '+c.descripcion_comercial.substring(0,100):'')+
+              (c.beneficios?' | Benef:'+c.beneficios.substring(0,80):'')+
+              (c.contraindicaciones?' | NO:'+c.contraindicaciones.substring(0,60):'')+
+              (c.perfil_paciente?' | Para:'+c.perfil_paciente.substring(0,60):'')+faqs
           }).join('\n')
 
-          var datosPersonales = ''
-          if (!esAdmin && ventasAsesor.length) {
-            var totalVentas = ventasAsesor.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
-            datosPersonales += '\nTUS VENTAS ESTE MES: ' + ventasAsesor.length + ' ventas, S/' + Math.round(totalVentas)
-          }
-          if (!esAdmin && llamadasHoy.length) {
-            var citasHoy = llamadasHoy.filter(function(l){return l.estado==='CITA CONFIRMADA'}).length
-            datosPersonales += '\nTUS LLAMADAS HOY: ' + llamadasHoy.length + ' | Citas: ' + citasHoy
+          var datosCtx = ''
+          if (!esAdmin) {
+            var totalV = ventas.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
+            var citasConf = llamadas.filter(function(l){return l.estado==='CITA CONFIRMADA'}).length
+            var sinContacto = llamadas.filter(function(l){return l.estado==='SIN CONTACTO'}).length
+            datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
+            datosCtx += '\nVENTAS MES: '+ventas.length+' ventas, S/'+Math.round(totalV)
+            datosCtx += '\nLLAMADAS HOY: '+llamadas.length+' total | Citas:'+citasConf+' | Sin contacto:'+sinContacto
+            if(seguimientos.length) datosCtx += '\nSEGUIMIENTOS PENDIENTES: '+seguimientos.length+' — '+seguimientos.map(function(s){return(s.TRATAMIENTO||'?')+' '+s.FECHA_PROGRAMADA}).join(', ')
+            if(citas.length){var citasPend=citas.filter(function(c){return c.estado_cita==='PENDIENTE'||c.estado_cita==='CITA CONFIRMADA'}).length;datosCtx+='\nCITAS MES: '+citas.length+' total | Pendientes:'+citasPend}
+            if(leadActual)datosCtx+='\nLEAD ACTUAL EN PANTALLA: '+leadActual.num+' | Tratamiento:'+leadActual.trat+' | Intento:'+(leadActual.intento||1)
+          } else {
+            var totalV = ventas.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
+            datosCtx += '\n--- DATOS ADMIN ---'
+            datosCtx += '\nVENTAS MES: '+ventas.length+' ventas, S/'+Math.round(totalV)
+            var porAsesor={};llamadas.forEach(function(l){porAsesor[l.asesor]=(porAsesor[l.asesor]||0)+1})
+            datosCtx += '\nLLAMADAS HOY POR ASESOR: '+Object.keys(porAsesor).map(function(k){return k+':'+porAsesor[k]}).join(', ')
           }
 
-          var systemPrompt = 'Eres KronIA, la asistente AI de Zi Vital, clínica de medicina estética en Lima, Perú. ' +
-            'Hablas en español, eres amable, profesional y directa. Usas emojis con moderación. ' +
-            'Respondes de forma concisa (máximo 3-4 oraciones por punto). ' +
-            'REGLAS DE SEGURIDAD: ' +
+          var systemPrompt = 'Eres KronIA, asistente AI inteligente de Zi Vital (clínica de medicina estética, Lima, Perú). '+
+            'Tu personalidad: profesional, cercana, proactiva. Usas emojis con estilo (no excesivo). '+
+            'Respondes conciso (3-5 oraciones max por punto). Cuando el asesor pida un script de venta, dale un diálogo natural y conversacional. '+
+            'Si detectas que lleva muchas llamadas sin cita, sugiere cambios de approach. '+
+            'SEGURIDAD ESTRICTA: '+
             (esAdmin ?
-              'El usuario es ADMINISTRADOR. Puede ver toda la información.' :
-              'El usuario es ASESOR "' + usuario + '". SOLO puede ver SUS propios datos. ' +
-              'NUNCA reveles datos de otros asesores, ventas totales de la empresa, comisiones de otros, ni información administrativa. ' +
-              'Si pregunta por datos que no son suyos, responde amablemente que esa info es solo para administradores.') +
-            '\n\nCATÁLOGO DE TRATAMIENTOS:\n' + catResumen.substring(0,3000) +
-            datosPersonales +
-            '\n\nFecha actual: ' + new Date().toISOString().slice(0,10) +
-            '\nSede: ' + (sede || 'No especificada')
+              'Usuario ADMIN con acceso total.' :
+              'Usuario ASESOR "'+usuario+'". SOLO ve SUS datos propios. '+
+              'Si pide datos de OTRO asesor, ventas TOTALES, comisiones de otros, facturación global, metas del equipo, o cualquier info administrativa: '+
+              'Responde EXACTAMENTE: "🔒 Esta información requiere nivel de acceso Administrador. No puedo compartirla desde tu perfil. ¿Te ayudo con algo sobre tus datos o tratamientos?"')+
+            '\n\nCATÁLOGO:\n'+catResumen.substring(0,3500)+
+            datosCtx+
+            '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
-          /* Construir mensajes con historial */
           var messages = [{ role: 'system', content: systemPrompt }]
-          historial.forEach(function(h) {
-            messages.push({ role: h.role, content: h.content })
-          })
+          historial.forEach(function(h) { messages.push({ role: h.role, content: h.content }) })
           messages.push({ role: 'user', content: pregunta })
 
-          /* 2. Llamar a Groq */
           sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
             var groqKey = rows && rows[0] ? rows[0].api_key : null
             if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
@@ -375,7 +396,7 @@ http.createServer(function(req, res) {
             var groqBody = JSON.stringify({
               model: 'llama-3.1-8b-instant',
               messages: messages,
-              max_tokens: 600,
+              max_tokens: 700,
               temperature: 0.6
             })
             var groqReq = https.request({
@@ -386,12 +407,12 @@ http.createServer(function(req, res) {
                 try {
                   var result = JSON.parse(gData)
                   var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
-                  /* 3. Guardar en historial */
+                  /* Guardar CADA mensaje en historial */
                   sbPost('/rest/v1/aos_kronia_conversaciones', {
                     usuario: usuario, rol: rol, sede: sede,
                     pregunta: pregunta.substring(0,500), respuesta: text.substring(0,2000),
                     session_id: sessionId, fue_exitosa: true,
-                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{}})
+                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null})
                   }).catch(function(){})
 
                   res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -404,6 +425,37 @@ http.createServer(function(req, res) {
           }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
         }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ KRONIA WHISPER — VOICE TO TEXT ═══
+  if (p === '/api/kronia/whisper' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var chunks = []; req.on('data', function(c) { chunks.push(c) }); req.on('end', function() {
+      try {
+        var buf = Buffer.concat(chunks)
+        sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+          var groqKey = rows && rows[0] ? rows[0].api_key : null
+          if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+          var boundary = '----KronIA' + Date.now()
+          var payload = '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n'
+          var payloadEnd = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="language"\r\n\r\nes\r\n--' + boundary + '--\r\n'
+          var fullBody = Buffer.concat([Buffer.from(payload), buf, Buffer.from(payloadEnd)])
+          var wReq = https.request({
+            hostname: 'api.groq.com', path: '/openai/v1/audio/transcriptions', method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': fullBody.length }
+          }, function(wRes) {
+            var wData = ''; wRes.on('data', function(c) { wData += c }); wRes.on('end', function() {
+              try {
+                var r = JSON.parse(wData)
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ ok: true, texto: r.text || '' }))
+              } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Whisper parse error'})) }
+            })
+          })
+          wReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+          wReq.write(fullBody); wReq.end()
+        }).catch(function() { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
+      } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Audio error'})) }
     }); return
   }
   // ═══ STUDIO API — PUBLICAR A INSTAGRAM ═══

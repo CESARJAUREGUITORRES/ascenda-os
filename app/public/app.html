@@ -1973,36 +1973,79 @@ impRender();
   <div class="kr-typing" id="kr-typing"><span></span><span></span><span></span></div>
   <div class="kr-input-wrap">
     <textarea class="kr-input" id="kr-input" placeholder="Escribe tu consulta..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();krEnviar()}"></textarea>
+    <button id="kr-mic" onclick="krVoz()" style="width:34px;height:34px;border-radius:10px;background:rgba(241,245,249,.9);border:1px solid #E2E8F0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s" title="Nota de voz">🎤</button>
     <button class="kr-send" onclick="krEnviar()">➤</button>
   </div>
 </div>
 <script>
-var KR={open:false,sessionId:'KR-'+Date.now(),historial:[],enviando:false};
+var KR={open:false,sessionId:'KR-'+Date.now(),historial:[],enviando:false,grabando:false,mediaRec:null};
 function krToggle(){KR.open=!KR.open;document.getElementById('kr-panel').style.display=KR.open?'flex':'none';document.getElementById('kr-badge').style.display='none';if(KR.open&&!KR.historial.length)krBienvenida();if(KR.open){var inp=document.getElementById('kr-input');if(inp)setTimeout(function(){inp.focus()},200)}}
-function krBienvenida(){var n=(AOS.ctx&&AOS.ctx.nombre)||'';krAddMsg('ai','¡Hola'+(n?' '+n:'')+' 👋!\nSoy <b>KronIA</b>, tu asistente inteligente.\n\n🔍 Tratamientos, precios y protocolos\n📊 Tus métricas del día\n💬 Ayuda con objeciones de venta\n❓ Cualquier consulta operativa\n\n<i>Escríbeme como si fuera un chat normal</i>')}
+function krBienvenida(){var n=(AOS.ctx&&AOS.ctx.nombre)||'';krAddMsg('ai','¡Hola'+(n?' '+n:'')+' 👋!\nSoy <b>KronIA</b>, tu asistente inteligente.\n\n🔍 Tratamientos, precios y protocolos\n📊 Tus métricas del día\n💬 Ayuda con objeciones de venta\n🎤 Envíame notas de voz\n\n<i>Escríbeme como si fuera un chat</i>')}
 function krAddMsg(tipo,texto){var body=document.getElementById('kr-body');if(!body)return;var d=document.createElement('div');d.className='kr-msg kr-msg-'+tipo;var hora=new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});d.innerHTML=texto.replace(/\n/g,'<br>')+'<div class="kr-msg-time">'+hora+'</div>';body.appendChild(d);body.scrollTop=body.scrollHeight}
 function krNuevo(){KR.sessionId='KR-'+Date.now();KR.historial=[];var body=document.getElementById('kr-body');if(body)body.innerHTML='';krBienvenida()}
-function krEnviar(){if(KR.enviando)return;var inp=document.getElementById('kr-input');var q=(inp.value||'').trim();if(!q)return;inp.value='';inp.style.height='auto';KR.enviando=true;
+function krGetLead(){try{var f=document.getElementById('main-frame');if(f&&f.contentWindow&&f.contentWindow.CC&&f.contentWindow.CC.lead){var l=f.contentWindow.CC.lead;return{num:l.num||'',trat:l.trat||'',intento:l.intento||1}}return null}catch(e){return null}}
+function krEnviar(){if(KR.enviando)return;var inp=document.getElementById('kr-input');var q=(inp.value||'').trim();if(!q)return;inp.value='';KR.enviando=true;
   krAddMsg('user',q);
   var typing=document.getElementById('kr-typing');if(typing)typing.style.display='block';
   var body=document.getElementById('kr-body');if(body)body.scrollTop=body.scrollHeight;
   var usuario=(AOS.ctx&&AOS.ctx.nombre)||'';var rol=AOS.role||'ASESOR';var sede=(AOS.ctx&&AOS.ctx.sede)||'';
-  fetch('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pregunta:q,usuario:usuario,rol:rol,sede:sede,session_id:KR.sessionId,historial:KR.historial.slice(-6)})}).then(function(r){return r.json()}).then(function(d){
+  fetch('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pregunta:q,usuario:usuario,rol:rol,sede:sede,session_id:KR.sessionId,historial:KR.historial.slice(-8),lead_actual:krGetLead()})}).then(function(r){return r.json()}).then(function(d){
     if(typing)typing.style.display='none';KR.enviando=false;
     if(d.ok){
       var resp=d.respuesta||'';
-      var isDenied=resp.indexOf('no tienes acceso')>=0||resp.indexOf('solo para administradores')>=0||resp.indexOf('no estás autorizado')>=0||resp.indexOf('nivel de acceso')>=0||resp.indexOf('no puedo compartir')>=0;
-      var delay=400+Math.min(resp.length*3,1200);
+      var isDenied=resp.indexOf('nivel de acceso')>=0||resp.indexOf('solo para administradores')>=0||resp.indexOf('no puedo compartir')>=0||resp.indexOf('no estás autorizado')>=0;
+      var delay=400+Math.min(resp.length*2,1000);
       setTimeout(function(){
-        if(isDenied){krAddMsg('denied','🔒 '+resp+'\n\n<i>Intenta con otra consulta sobre tus datos o tratamientos.</i>')}
+        if(isDenied){krAddMsg('denied','🔒 '+resp+'\n\n<i>Intenta otra consulta sobre tus datos o tratamientos.</i>')}
         else{krAddMsg('ai',resp)}
         KR.historial.push({role:'user',content:q},{role:'assistant',content:resp});
       },delay);
-    }else{krAddMsg('ai','❌ '+(d.error||'Error al procesar. Intenta de nuevo.'))}
-  }).catch(function(){if(typing)typing.style.display='none';KR.enviando=false;krAddMsg('ai','❌ Error de conexión. Verifica tu internet.')});
+    }else{krAddMsg('ai','❌ '+(d.error||'Error. Intenta de nuevo.'))}
+  }).catch(function(){if(typing)typing.style.display='none';KR.enviando=false;krAddMsg('ai','❌ Error de conexión.')});
 }
-/* Proactivo: badge después de 2 min si no ha abierto */
-setTimeout(function(){if(!KR.open&&!KR.historial.length){var b=document.getElementById('kr-badge');if(b){b.style.display='flex';b.textContent='!'}}},120000);
+/* ═══ VOZ: Grabar audio y enviar a Whisper ═══ */
+function krVoz(){
+  if(KR.grabando){krStopVoz();return}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){krAddMsg('ai','🎤 Tu navegador no soporta grabación de audio.');return}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    KR.grabando=true;var btn=document.getElementById('kr-mic');btn.style.background='#DC2626';btn.style.color='#fff';btn.textContent='⏹';
+    var chunks=[];var mr=new MediaRecorder(stream,{mimeType:'audio/webm'});
+    mr.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data)};
+    mr.onstop=function(){stream.getTracks().forEach(function(t){t.stop()});
+      var blob=new Blob(chunks,{type:'audio/webm'});
+      krAddMsg('user','🎤 <i>Nota de voz...</i>');
+      var typing=document.getElementById('kr-typing');if(typing)typing.style.display='block';
+      fetch('/api/kronia/whisper',{method:'POST',headers:{'Content-Type':'audio/webm'},body:blob}).then(function(r){return r.json()}).then(function(d){
+        if(typing)typing.style.display='none';
+        if(d.ok&&d.texto){
+          /* Reemplazar el mensaje de voz con el texto transcrito */
+          var msgs=document.querySelectorAll('.kr-msg-user');if(msgs.length){var last=msgs[msgs.length-1];last.innerHTML='🎤 '+d.texto.replace(/\n/g,'<br>')+'<div class="kr-msg-time">'+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'})+'</div>'}
+          /* Enviar como texto al chat */
+          document.getElementById('kr-input').value=d.texto;krEnviar();
+        }else{if(typing)typing.style.display='none';krAddMsg('ai','🎤 No pude transcribir el audio. Intenta de nuevo.')}
+      }).catch(function(){if(typing)typing.style.display='none';krAddMsg('ai','❌ Error al procesar audio.')});
+    };
+    mr.start();KR.mediaRec=mr;
+    /* Auto-stop a 30 segundos */
+    setTimeout(function(){if(KR.grabando)krStopVoz()},30000);
+  }).catch(function(){krAddMsg('ai','🎤 Permiso de micrófono denegado.')});
+}
+function krStopVoz(){if(KR.mediaRec&&KR.grabando){KR.mediaRec.stop();KR.grabando=false;var btn=document.getElementById('kr-mic');btn.style.background='rgba(241,245,249,.9)';btn.style.color='';btn.textContent='🎤'}}
+/* ═══ PROACTIVO: Analizar actividad y enviar sugerencias ═══ */
+function krProactivo(){
+  if(KR.open||!AOS.ctx)return;
+  try{
+    var f=document.getElementById('main-frame');
+    if(!f||!f.contentWindow)return;
+    var cc=f.contentWindow.CC;if(!cc)return;
+    /* Contar llamadas sin cita de hoy */
+    var hist=f.contentWindow.document.querySelectorAll&&f.contentWindow.document.querySelectorAll('[data-estado]');
+    /* Simple: badge proactivo cada 3 min */
+  }catch(e){}
+  var b=document.getElementById('kr-badge');if(b&&!KR.open&&KR.historial.length===0){b.style.display='flex';b.textContent='💡'}
+}
+setTimeout(krProactivo,180000);
+setInterval(krProactivo,300000);
 </script>
 </body>
 </html>
