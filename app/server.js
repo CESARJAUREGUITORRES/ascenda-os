@@ -30,6 +30,19 @@ function sbPost(endpoint, body) {
     req.end()
   })
 }
+function sbGet(endpoint) {
+  const url = new URL(SB_URL + endpoint)
+  return new Promise(function(resolve, reject) {
+    https.get({
+      hostname: url.hostname, path: url.pathname + url.search,
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    }, function(r) {
+      var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() {
+        try { resolve(JSON.parse(d)) } catch(e) { resolve([]) }
+      })
+    }).on('error', function() { resolve([]) })
+  })
+}
 
 // ═══ WEBHOOK VERIFY (GET) ═══
 function webhookVerify(req, res) {
@@ -281,6 +294,115 @@ http.createServer(function(req, res) {
             } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Key lookup error'})) }
           })
         }).on('error', function() { res.writeHead(500); res.end(JSON.stringify({error:'DB connection error'})) })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  // ═══ KRONIA CHAT — AI ASESOR CON CONTROL DE ROLES ═══
+  if (p === '/api/kronia/chat' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var pregunta = (d.pregunta || '').trim()
+        var usuario = d.usuario || ''
+        var rol = d.rol || 'asesor'
+        var sede = d.sede || ''
+        var sessionId = d.session_id || ''
+        var historial = d.historial || []
+        if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
+
+        /* 1. Construir contexto según rol */
+        var contextQueries = []
+        var esAdmin = rol === 'ADMIN' || rol === 'admin'
+
+        /* Siempre: catálogo */
+        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=30&order=categoria'))
+
+        /* Datos del asesor (solo sus datos) */
+        if (!esAdmin) {
+          contextQueries.push(sbGet('/rest/v1/aos_ventas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=gte.' + new Date().toISOString().slice(0,8) + '01&select=tratamiento,monto,estado_pago,fecha&order=fecha.desc&limit=20'))
+          contextQueries.push(sbGet('/rest/v1/aos_llamadas?asesor=eq.' + encodeURIComponent(usuario) + '&fecha=eq.' + new Date().toISOString().slice(0,10) + '&select=estado,tratamiento&limit=50'))
+        }
+
+        Promise.all(contextQueries).then(function(results) {
+          var catalogo = results[0] || []
+          var ventasAsesor = results[1] || []
+          var llamadasHoy = results[2] || []
+
+          var catResumen = catalogo.map(function(c) {
+            return c.nombre + ' (' + c.categoria + ') S/' + (c.precio_oferta||0) +
+              (c.descripcion_comercial ? ' — ' + c.descripcion_comercial.substring(0,80) : '') +
+              (c.beneficios ? ' | Benef: ' + c.beneficios.substring(0,60) : '') +
+              (c.contraindicaciones ? ' | NO: ' + c.contraindicaciones.substring(0,50) : '')
+          }).join('\n')
+
+          var datosPersonales = ''
+          if (!esAdmin && ventasAsesor.length) {
+            var totalVentas = ventasAsesor.reduce(function(s,v){return s+parseFloat(v.monto||0)},0)
+            datosPersonales += '\nTUS VENTAS ESTE MES: ' + ventasAsesor.length + ' ventas, S/' + Math.round(totalVentas)
+          }
+          if (!esAdmin && llamadasHoy.length) {
+            var citasHoy = llamadasHoy.filter(function(l){return l.estado==='CITA CONFIRMADA'}).length
+            datosPersonales += '\nTUS LLAMADAS HOY: ' + llamadasHoy.length + ' | Citas: ' + citasHoy
+          }
+
+          var systemPrompt = 'Eres KronIA, la asistente AI de Zi Vital, clínica de medicina estética en Lima, Perú. ' +
+            'Hablas en español, eres amable, profesional y directa. Usas emojis con moderación. ' +
+            'Respondes de forma concisa (máximo 3-4 oraciones por punto). ' +
+            'REGLAS DE SEGURIDAD: ' +
+            (esAdmin ?
+              'El usuario es ADMINISTRADOR. Puede ver toda la información.' :
+              'El usuario es ASESOR "' + usuario + '". SOLO puede ver SUS propios datos. ' +
+              'NUNCA reveles datos de otros asesores, ventas totales de la empresa, comisiones de otros, ni información administrativa. ' +
+              'Si pregunta por datos que no son suyos, responde amablemente que esa info es solo para administradores.') +
+            '\n\nCATÁLOGO DE TRATAMIENTOS:\n' + catResumen.substring(0,3000) +
+            datosPersonales +
+            '\n\nFecha actual: ' + new Date().toISOString().slice(0,10) +
+            '\nSede: ' + (sede || 'No especificada')
+
+          /* Construir mensajes con historial */
+          var messages = [{ role: 'system', content: systemPrompt }]
+          historial.forEach(function(h) {
+            messages.push({ role: h.role, content: h.content })
+          })
+          messages.push({ role: 'user', content: pregunta })
+
+          /* 2. Llamar a Groq */
+          sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+            var groqKey = rows && rows[0] ? rows[0].api_key : null
+            if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+
+            var groqBody = JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: messages,
+              max_tokens: 600,
+              temperature: 0.6
+            })
+            var groqReq = https.request({
+              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+            }, function(gRes) {
+              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                try {
+                  var result = JSON.parse(gData)
+                  var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
+                  /* 3. Guardar en historial */
+                  sbPost('/rest/v1/aos_kronia_conversaciones', {
+                    usuario: usuario, rol: rol, sede: sede,
+                    pregunta: pregunta.substring(0,500), respuesta: text.substring(0,2000),
+                    session_id: sessionId, fue_exitosa: true,
+                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{}})
+                  }).catch(function(){})
+
+                  res.writeHead(200, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ ok: true, respuesta: text, provider: 'groq', cost: 0 }))
+                } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
+              })
+            })
+            groqReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+            groqReq.write(groqBody); groqReq.end()
+          }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
+        }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
