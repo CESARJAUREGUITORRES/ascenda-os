@@ -440,7 +440,7 @@ var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', est
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260509.04;
+var _APP_VERSION = 20260513.01;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -1832,11 +1832,37 @@ function impTab(mode){
 function impParse(){
   var ta=document.getElementById('imp-paste');if(!ta||!ta.value.trim())return;
   var lines=ta.value.trim().split('\n').filter(function(l){return l.trim();});
+  var fechasCorregidas=0;
   if(_impMode==='leads'){
     lines.forEach(function(line){
       var c=line.split('\t');if(c.length<2)c=line.split(',');
-      _impLeads.push({fecha:(c[0]||'').trim(),celular:(c[1]||'').trim().replace(/\D/g,''),tratamiento:(c[2]||'').trim().toUpperCase(),anuncio:(c[3]||'').trim(),preguntas:(c[4]||'').trim(),hora_ingreso:(c[5]||'').trim()});
+      var fechaRaw=(c[0]||'').trim();
+      /* Validar fecha: si es futura, intentar invertir día/mes */
+      var fechaFinal=fechaRaw;
+      try{
+        var d=new Date(fechaRaw);if(!isNaN(d.getTime())){
+          var hoy=new Date();hoy.setHours(23,59,59);
+          if(d>hoy){
+            /* Intentar invertir: si el formato es DD/MM/YYYY o similar */
+            var parts=fechaRaw.match(/(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+            if(parts){
+              var p1=parseInt(parts[1]),p2=parseInt(parts[2]),p3=parseInt(parts[3]);
+              if(p3>99){/* YYYY-MM-DD o DD/MM/YYYY */
+                if(p1>31){/* YYYY-MM-DD -> intentar YYYY-DD-MM */
+                  var fixed=p1+'-'+(p3<10?'0'+p3:p3)+'-'+(p2<10?'0'+p2:p2);
+                  var df=new Date(fixed);if(!isNaN(df.getTime())&&df<=hoy){fechaFinal=fixed;fechasCorregidas++;}
+                }else{/* DD/MM/YYYY -> MM/DD/YYYY invertido */
+                  var fixed=p3+'-'+(p1<10?'0'+p1:p1)+'-'+(p2<10?'0'+p2:p2);
+                  var df=new Date(fixed);if(!isNaN(df.getTime())&&df<=hoy){fechaFinal=fixed;fechasCorregidas++;}
+                }
+              }
+            }
+          }
+        }
+      }catch(e){}
+      _impLeads.push({fecha:fechaFinal,celular:(c[1]||'').trim().replace(/\D/g,''),tratamiento:(c[2]||'').trim().toUpperCase(),anuncio:(c[3]||'').trim(),preguntas:(c[4]||'').trim(),hora_ingreso:(c[5]||'').trim()});
     });
+    if(fechasCorregidas>0&&window.AOS_showToast){AOS_showToast('Fechas corregidas','Se detectaron '+fechasCorregidas+' fechas con dia/mes invertido y se corrigieron automaticamente','');}
   }else{
     lines.forEach(function(line){
       var c=line.split('\t');if(c.length<4)return;
@@ -1858,8 +1884,9 @@ function impRender(){
     if(!rows.length){wrap.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC"><th '+thS+'>Día ingreso</th><th '+thS+'>Número</th><th '+thS+'>Tratamiento</th><th '+thS+'>Anuncio</th><th '+thS+'>Pregunta</th><th '+thS+'>Hora ingreso</th></tr></thead><tbody><tr><td colspan="6" style="padding:20px;text-align:center;color:#9AAAC8;font-size:11px">Pega datos desde tu Excel en el campo de abajo</td></tr></tbody></table>';if(cnt)cnt.textContent='';return;}
     var html='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#F0F4FC;position:sticky;top:0;z-index:2"><th '+thS+'>Día ingreso</th><th '+thS+'>Número</th><th '+thS+'>Tratamiento</th><th '+thS+'>Anuncio</th><th '+thS+'>Pregunta</th><th '+thS+'>Hora ingreso</th></tr></thead><tbody>';
     html+=rows.map(function(r,i){
+      var fechaWarning='';try{var fd=new Date(r.fecha);if(!isNaN(fd.getTime())&&fd>new Date())fechaWarning='background:#FEE2E2;color:#DC2626;';}catch(e){}
       return '<tr style="border-bottom:1px solid #F1F5F9">'+
-        '<td style="padding:3px 6px"><input value="'+esc(r.fecha)+'" onchange="_impLeads['+i+'].fecha=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none"></td>'+
+        '<td style="padding:3px 6px"><input value="'+esc(r.fecha)+'" onchange="_impLeads['+i+'].fecha=this.value" style="width:80px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;'+fechaWarning+'"></td>'+
         '<td style="padding:3px 6px"><input value="'+esc(r.celular)+'" onchange="_impLeads['+i+'].celular=this.value.replace(/\\D/g,\'\')" style="width:90px;padding:2px 4px;border:1px solid #E2E8F0;border-radius:3px;font-size:10px;font-family:DM Sans;outline:none;font-weight:700"></td>'+
         '<td style="padding:3px 6px"><input value="'+esc(r.tratamiento)+'" onchange="_impLeads['+i+'].tratamiento=this.value" '+inpS+'></td>'+
         '<td style="padding:3px 6px"><input value="'+esc(r.anuncio)+'" onchange="_impLeads['+i+'].anuncio=this.value" '+inpS+'></td>'+
