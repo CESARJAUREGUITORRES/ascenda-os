@@ -310,7 +310,7 @@ function ahLoad(){
   if(_D.loadCount===0){_r('aos_kpi_flujo_clinico',{},function(fc){
     if(!fc)return;
     var el=document.getElementById('ah-flujo-clinico');
-    if(!el){el=document.createElement('div');el.id='ah-flujo-clinico';el.style.cssText='margin:12px 0;padding:14px;background:linear-gradient(135deg,#F0F4FC,#EBF5FF);border-radius:12px;border:1px solid #DBEAFE;';var ct=document.querySelector('.ah-main')||document.querySelector('[id^="ah-"]');if(ct&&ct.parentNode)ct.parentNode.insertBefore(el,ct.nextSibling);}
+    if(!el){el=document.createElement('div');el.id='ah-flujo-clinico';el.style.cssText='margin:0;padding:14px;background:linear-gradient(135deg,#F0F4FC,#EBF5FF);border-radius:12px;border:1px solid #DBEAFE;';var alertCard=document.getElementById('ah-alerts');if(alertCard&&alertCard.parentNode&&alertCard.parentNode.parentNode){alertCard.parentNode.parentNode.appendChild(el);}}
     if(el){var pct=fc.pct_adopcion||0;var pctColor=pct>=50?'#059669':pct>=20?'#D97706':'#DC2626';
     el.innerHTML='<div style="font-family:Exo 2,sans-serif;font-weight:800;font-size:12px;color:#071D4A;margin-bottom:8px;">Flujo cl\u00ednico este mes</div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
