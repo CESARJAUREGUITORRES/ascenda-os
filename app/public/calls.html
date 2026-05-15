@@ -562,11 +562,17 @@ function ccInit(){
   CC.lead=null;CC.guardando=false;CC.ficha360=null;CC.fichaTab='compras';
   CC.token = window.AOS_getToken ? window.AOS_getToken() : '';
   var hoy = (function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
+  CC._initDay = hoy; /* Track the day the page loaded */
   var fe=document.getElementById('cc-c-fecha');if(fe)fe.min=hoy;
   var fs=document.getElementById('cc-s-fecha');if(fs){fs.min=hoy;fs.value=hoy;}
   document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(x){x.classList.remove('act');});this.classList.add('act');});});
   poblarMeses();loadTrats();
   loadMetrics();
+  /* Detectar cambio de día: si el asesor deja la app abierta de ayer, recargar automáticamente */
+  setInterval(function(){
+    var ahora=new Date();var diaActual=ahora.getFullYear()+'-'+String(ahora.getMonth()+1).padStart(2,'0')+'-'+String(ahora.getDate()).padStart(2,'0');
+    if(CC._initDay && diaActual !== CC._initDay){CC._initDay=diaActual;loadMetrics();loadHistorial();if(window.AOS_showToast)AOS_showToast('Nuevo d\u00eda','Datos actualizados a '+diaActual,'');}
+  }, 60000); /* Check cada 60 segundos */
   // Si viene de seguimientos con un número específico, cargarlo directo
   if(window._pendingLead && window._pendingLead.num){
     var pl = window._pendingLead;
@@ -1028,8 +1034,10 @@ function loadTrats(){
 }
 
 function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.classList.remove('open');if(val==='SIN CONTACTO'){sub.classList.add('open');CC.subTipif='NO CONTESTA';document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.toggle('act',o.getAttribute('data-val')==='NO CONTESTA');});}else if(val==='CITA CONFIRMADA'){
+    ['cc-c-nombre','cc-c-apellido','cc-c-dni','cc-c-correo','cc-c-fecha','cc-c-hora','cc-c-obs'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    var ts=document.getElementById('cc-c-trat');if(ts&&CC.lead&&CC.lead.trat){ts.value=CC.lead.trat;}
     document.getElementById('cc-m-cita').classList.add('open');
-    document.getElementById('cc-m-cita-num').textContent='Número: '+(CC.lead?CC.lead.num:'—');
+    document.getElementById('cc-m-cita-num').textContent='N\u00famero: '+(CC.lead?CC.lead.num:'\u2014');
     if(CC.lead&&CC.lead.num){buscarPacParaCita(CC.lead.num);}
   }else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
 function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
