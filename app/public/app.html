@@ -440,7 +440,7 @@ var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', est
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260513.01;
+var _APP_VERSION = 20260515.01;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -1066,6 +1066,21 @@ function doCierreTurno() {
 --------------------------------------------------- */
 function startPolling() {
   pollNotifications();
+  /* Check seguimientos pendientes para hoy al iniciar sesión */
+  if(AOS.role !== 'ADMIN' && AOS.ctx && AOS.ctx.nombre) {
+    var asesor = AOS.ctx.nombre.toUpperCase();
+    var hoy = new Date(); var hoyStr = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ASESOR"')+'=eq.'+encodeURIComponent(asesor)+'&'+encodeURIComponent('"FECHA_PROGRAMADA"')+'=eq.'+hoyStr+'&'+encodeURIComponent('"ESTADO"')+'=eq.PENDIENTE&select='+encodeURIComponent('"NUMERO","TRATAMIENTO","HORA_PROGRAMADA"'),{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(segs){
+      if(segs && segs.length > 0) {
+        setTimeout(function(){
+          playSound('notif');
+          showToast('⏰ Seguimientos hoy', segs.length+' paciente'+(segs.length>1?'s':'')+' para llamar hoy', '');
+        }, 3000);
+      }
+    }).catch(function(){});
+    /* También verificar vencidos */
+    fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ASESOR"')+'=eq.'+encodeURIComponent(asesor)+'&'+encodeURIComponent('"FECHA_PROGRAMADA"')+'=lt.'+hoyStr+'&'+encodeURIComponent('"ESTADO"')+'=eq.PENDIENTE&select=count',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Prefer':'count=exact'}}).then(function(r){var cnt=r.headers.get('content-range');if(cnt){var total=cnt.split('/')[1];if(parseInt(total)>0){setTimeout(function(){showToast('⚠️ Seguimientos vencidos', total+' seguimientos sin atender','toast-alerta');},6000);}}}).catch(function(){});
+  }
   if (AOS.role === 'ADMIN') {
     pollAgentFeed();
     AOS.agentFeedTimer = setInterval(pollAgentFeed, 15000);
@@ -1096,6 +1111,7 @@ function checkNewNotifs(items) {
 function handleNewNotif(n) {
   var t = (n.tipo||'').toUpperCase();
   if (t==='VENTA')   { playSound('venta');   showToast('💰 Venta',   n.titulo||n.cuerpo,'toast-venta'); }
+  else if (t==='SEGUIMIENTO') { playSound('notif'); showToast('⏰ Seguimiento', n.titulo||n.cuerpo,''); }
   else if (t==='ALERTA')  { playSound('alerta');  showToast('🚨 Alerta',  n.titulo||n.cuerpo,'toast-alerta'); }
   else if (t==='MESSAGE') { playSound('mensaje'); showToast('💬 Mensaje', n.titulo||n.cuerpo,'toast-msg'); }
   else { playSound('notif'); showToast('🔔 '+(n.titulo||'Notif'), n.cuerpo||'',''); }
