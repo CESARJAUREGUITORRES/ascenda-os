@@ -39,6 +39,7 @@
 .cbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
 .cbtn{padding:9px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;border:none;}
 .cbtn:active{opacity:.85;}.cb-call{background:#0A4FBF;color:#fff;}.cb-wa{background:#25D366;color:#fff;}
+@media (max-width:600px){.cbtn{padding:16px 9px;font-size:14px;min-height:52px;}.cb-call{box-shadow:0 4px 12px rgba(10,79,191,.3);}.cbtn svg{width:18px;height:18px;}}
 
 /* tipificación */
 .fsel{width:100%;padding:7px 9px;border-radius:8px;border:1px solid #DDE4F5;background:#F0F4FC;font-size:11px;font-family:'DM Sans',sans-serif;color:#0D1B3E;outline:none;margin-bottom:6px;}
@@ -680,14 +681,18 @@ function ccGuardar(){
   CC.guardando=true;var btn=document.getElementById('cc-btn-guardar');btn.disabled=true;btn.innerHTML='<span class="sp-sm"></span> Guardando...';
   var payload={numero:CC.lead?CC.lead.num:'',estado:tipif,subEstado:tipif==='SIN CONTACTO'?CC.subTipif:'',obs:document.getElementById('cc-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();
-  var durSeg=CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0;
-  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',duracion_seg:durSeg,created_at:now.toISOString()};
+  var durSeg=(CC._lastDur && CC._callNum===payload.numero)?CC._lastDur:(CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0);
+  var dispositivo=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)?'movil':'web';
+  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',duracion_seg:durSeg,desde_dispositivo:dispositivo,created_at:now.toISOString()};
   fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
     CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';
     if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('\u2713 Guardado','Llamada registrada.','');
     loadLead();loadHistorial();loadMetrics();
+    /* Limpiar tracking de llamada móvil */
+    CC._lastDur=null;CC._callNum=null;
+    var lblDur=document.getElementById('cc-call-dur');if(lblDur)lblDur.remove();
   }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';console.error('[AOS] Error guardando llamada:',e);if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
@@ -1041,7 +1046,45 @@ function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.cl
     if(CC.lead&&CC.lead.num){buscarPacParaCita(CC.lead.num);}
   }else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
 function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
-function doCallCC(){if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');}
+function doCallCC(){
+  if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');
+  var num=(CC.lead&&CC.lead.num)||'';
+  if(!num)return;
+  // Detectar móvil para hacer click-to-call nativo
+  var esMovil=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if(esMovil){
+    // Guardar timestamp de inicio
+    CC._callStart=Date.now();
+    CC._callNum=num;
+    // Limpiar número para tel: (solo dígitos, Perú: 51+9 dígitos)
+    var numLimpio=num.replace(/\D/g,'');
+    if(numLimpio.length===9)numLimpio='51'+numLimpio; // Agregar código país si falta
+    // Disparar marcador nativo
+    window.location.href='tel:+'+numLimpio;
+    // Cuando vuelva a la app, mostrar duración
+    if(!CC._visListener){
+      CC._visListener=true;
+      document.addEventListener('visibilitychange',function(){
+        if(document.visibilityState==='visible' && CC._callStart){
+          var dur=Math.round((Date.now()-CC._callStart)/1000);
+          CC._lastDur=dur;
+          if(window.AOS_showToast)AOS_showToast('Llamada finalizada','Duración: '+formatDur(dur)+' · Tipifica el resultado','');
+          // Mostrar duración en el panel
+          var lblDur=document.getElementById('cc-call-dur');
+          if(!lblDur){
+            var panel=document.getElementById('cc-lead-panel');
+            if(panel){lblDur=document.createElement('div');lblDur.id='cc-call-dur';lblDur.style.cssText='padding:6px 10px;background:#EBF5FF;border-radius:8px;margin:6px 0;font-size:10px;font-weight:700;color:#0A4FBF;text-align:center;';panel.insertBefore(lblDur,panel.firstChild);}
+          }
+          if(lblDur)lblDur.innerHTML='⏱ Última llamada: '+formatDur(dur);
+          // Auto-focus en tipificación
+          var sel=document.getElementById('cc-tipif');if(sel)setTimeout(function(){sel.focus()},300);
+          CC._callStart=null;
+        }
+      });
+    }
+  }
+}
+function formatDur(s){var m=Math.floor(s/60),r=s%60;return m+':'+String(r).padStart(2,'0');}
 function openWaCC(){
   if(!CC.lead||!CC.lead.num) return;
   var num = CC.lead.num;
