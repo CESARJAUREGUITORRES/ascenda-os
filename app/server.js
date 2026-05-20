@@ -59,6 +59,20 @@ function sbRpc(fnName, params) {
     req.write(data); req.end()
   })
 }
+function sbPatch(endpoint, body) {
+  const url = new URL(SB_URL + endpoint)
+  var data = JSON.stringify(body || {})
+  return new Promise(function(resolve) {
+    var req = https.request({
+      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }
+    }, function(r) {
+      var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() { resolve(r.statusCode < 300) })
+    })
+    req.on('error', function() { resolve(false) })
+    req.write(data); req.end()
+  })
+}
 
 // ═══ VALIDADOR DE SESION KRONIA ═══
 // Verifica que el usuario que llama al endpoint existe en aos_usuarios
@@ -229,6 +243,18 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                     session_id: sessionId, fue_exitosa: true,
                     metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null})
                   }).catch(function(){})
+
+                  /* Registrar como ejecución del agente KronIA en aos_agente_logs */
+                  sbPost('/rest/v1/aos_agente_logs', {
+                    agente_id: 'kronia',
+                    accion: 'chat_query',
+                    input_resumen: pregunta.substring(0,150),
+                    output_resumen: text.substring(0,200),
+                    exitoso: true,
+                    duracion_ms: (result.usage && result.usage.total_time) ? Math.round(result.usage.total_time*1000) : 0
+                  }).catch(function(){})
+                  /* Actualizar contador del agente KronIA */
+                  sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'kronia', p_exitoso: true }).catch(function(){})
 
                   res.writeHead(200, { 'Content-Type': 'application/json' })
                   res.end(JSON.stringify({ ok: true, respuesta: text, provider: 'groq', cost: 0 }))

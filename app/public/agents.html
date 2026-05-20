@@ -2170,14 +2170,18 @@ function App(){
   const metrics = useMemo(() => {
     let working = 0, meeting = 0, blocked = 0, tasksDone = 0, eff = 0, effCount = 0, healthy = 0;
     agents.forEach(a => {
-      // Activos = todos los que no están pausados (idle, working, esperando, etc.)
-      if (a.activo !== false && a.estado !== 'paused' && a.estado !== 'blocked') healthy++;
+      // Activos = todos los que no están pausados ni bloqueados (idle, working, esperando, meeting, etc.)
+      // activo puede ser true/undefined (no en SEED) = OK; solo si activo===false NO cuenta
+      const isPaused = a.estado === 'paused';
+      const isBlocked = a.estado === 'blocked';
+      const isInactive = a.activo === false;
+      if (!isPaused && !isBlocked && !isInactive) healthy++;
       if (a.estado === 'working') working++;
       if (a.estado === 'meeting') meeting++;
       if (a.estado === 'blocked') blocked++;
       tasksDone += a.total_ejecuciones || 0;
       // Solo promediar eficiencia de agentes activos
-      if (a.activo !== false && typeof a.eficiencia === 'number') {
+      if (!isInactive && typeof a.eficiencia === 'number') {
         eff += a.eficiencia;
         effCount++;
       }
