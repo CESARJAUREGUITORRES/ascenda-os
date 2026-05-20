@@ -2089,14 +2089,16 @@ function App(){
           }
           // ─────────────────────────────────────────────────────────
 
-          // Estado: si la BD tiene 'working' es real (agente ejecutando ahora)
-          // idle/null de BD = agente en reposo (no sobreescribir con sim working)
-          const realState = (dbState === 'working' || dbState === 'blocked' || dbState === 'paused' || dbState === 'meeting')
+          // Estado: respetamos estados reales (working/blocked/paused/meeting/esperando)
+          // idle/null/otros = en reposo
+          const realState = (dbState === 'working' || dbState === 'blocked' || dbState === 'paused' || dbState === 'meeting' || dbState === 'esperando' || dbState === 'error')
             ? dbState
             : 'idle';
           return {
             ...a,
             estado: realState,
+            activo: row.activo !== false,
+            area: row.area || a.area,
             // bubble_text real de BD solo si tiene contenido
             bubble_text: (row.bubble_text && row.bubble_text.length > 0) ? row.bubble_text : '',
             eficiencia: (typeof row.eficiencia === 'number' && row.eficiencia > 0) ? row.eficiencia : a.eficiencia,
@@ -2117,6 +2119,7 @@ function App(){
               shirt: '#6366F1', skin: '#F1C27D', hair: '#1F2937',
               home: window.DESKS[0] ? window.DESKS[0].id : 'd-dat-1',
               eficiencia: row.eficiencia || 75,
+              activo: row.activo !== false,
               px: 200 + Math.random()*200, py: 200 + Math.random()*200,
               tx: 200, ty: 200, walking: false,
               estado: row.estado || 'idle',
