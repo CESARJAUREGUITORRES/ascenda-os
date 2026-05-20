@@ -1266,6 +1266,188 @@ http.createServer(function(req, res) {
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' })
     res.end(); return
   }
+
+  // ═══ CAMILA — COPYWRITER ON-DEMAND ═══
+  // Body: { tipo: 'social_post'|'email'|'sms'|'anuncio', tratamiento: '...', tono: 'profesional'|'urgente'|'amigable', contexto?: '...' }
+  if (p === '/api/agents/camila/generar' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var tipo = d.tipo || 'social_post'
+        var tratamiento = d.tratamiento || ''
+        var tono = d.tono || 'profesional'
+        var ctxExtra = d.contexto || ''
+        if (!tratamiento) { res.writeHead(400); res.end(JSON.stringify({error:'Falta tratamiento'})); return }
+        
+        // Cargar info del catálogo + prompt de Camila
+        Promise.all([
+          sbGet('/rest/v1/aos_catalogo_servicios?nombre=ilike.*' + encodeURIComponent(tratamiento) + '*&select=nombre,precio_oferta,beneficios,contraindicaciones,perfil_paciente&limit=1'),
+          sbGet('/rest/v1/aos_agentes?id=eq.creador&select=system_prompt,modelo')
+        ]).then(function(results) {
+          var trat = (results[0]||[])[0] || { nombre: tratamiento, beneficios: '', perfil_paciente: '' }
+          var agent = (results[1]||[])[0] || { system_prompt: 'Eres Camila, copywriter de Zi Vital.', modelo: 'gemini-2.0-flash' }
+          
+          var formatos = {
+            social_post: 'Post de Instagram/Facebook. Hook + beneficio + CTA. Max 4 lineas. Incluye 3 hashtags relevantes al final.',
+            email: 'Asunto (max 50 caracteres) + cuerpo del email (max 120 palabras) + CTA claro. Saludo informal.',
+            sms: 'SMS de WhatsApp. Max 50 palabras. Conversacional, directo, con emoji al inicio.',
+            anuncio: 'Texto para anuncio Meta Ads. Headline (40 char) + texto principal (125 char) + descripcion (50 char).'
+          }
+          var instruccion = formatos[tipo] || formatos.social_post
+          
+          var userPrompt = 'Genera copy de tipo "' + tipo + '" con tono "' + tono + '".\n' +
+            'TRATAMIENTO: ' + trat.nombre + ' (S/' + (trat.precio_oferta||'consultar') + ')\n' +
+            'BENEFICIOS: ' + (trat.beneficios||'').substring(0,200) + '\n' +
+            'PERFIL: ' + (trat.perfil_paciente||'').substring(0,150) + '\n' +
+            (ctxExtra ? 'CONTEXTO EXTRA: ' + ctxExtra + '\n' : '') +
+            'FORMATO: ' + instruccion + '\n' +
+            'IMPORTANTE: Solo responde el copy, sin explicaciones ni meta-texto.'
+          
+          // Usar Groq (Gemini sería ideal pero ya tenemos infra de Groq)
+          sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+            var groqKey = rows && rows[0] ? rows[0].api_key : null
+            if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+            
+            var groqBody = JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: agent.system_prompt },
+                { role: 'user', content: userPrompt }
+              ],
+              max_tokens: 400,
+              temperature: 0.8
+            })
+            var startTs = Date.now()
+            var gReq = https.request({
+              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+            }, function(gRes) {
+              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                try {
+                  var result = JSON.parse(gData)
+                  var copy = result.choices && result.choices[0] ? result.choices[0].message.content.trim() : ''
+                  var dur = Date.now() - startTs
+                  
+                  // Guardar log de Camila
+                  sbPost('/rest/v1/aos_agente_logs', {
+                    agente_id: 'creador', accion: 'generar_copy_' + tipo,
+                    input_resumen: tratamiento + ' (' + tono + ')',
+                    output_resumen: copy.substring(0, 250),
+                    exitoso: copy.length > 0, duracion_ms: dur
+                  }).catch(function(){})
+                  sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'creador', p_exitoso: copy.length > 0 }).catch(function(){})
+                  
+                  // Guardar en aos_agente_contenido para historial
+                  sbPost('/rest/v1/aos_agente_contenido', {
+                    agente_id: 'creador', tipo: tipo, contenido: copy,
+                    metadata: JSON.stringify({ tratamiento: tratamiento, tono: tono })
+                  }).catch(function(){})
+                  
+                  res.writeHead(200, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ ok: true, copy: copy, tipo: tipo, tratamiento: tratamiento, duracion_ms: dur }))
+                } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error'})) }
+              })
+            })
+            gReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+            gReq.write(groqBody); gReq.end()
+          })
+        }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  if (p === '/api/agents/camila/generar' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+
+  // ═══ MAYA — RECEPCIONISTA (WhatsApp inbound simulado / endpoint público para webhook futuro) ═══
+  // Body: { numero: '...', mensaje: '...', tratamiento?: '...' }
+  if (p === '/api/agents/maya/responder' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        var numero = (d.numero || '').replace(/\D/g, '')
+        var mensaje = (d.mensaje || '').trim()
+        if (!numero || !mensaje) { res.writeHead(400); res.end(JSON.stringify({error:'Falta numero o mensaje'})); return }
+        
+        Promise.all([
+          sbGet('/rest/v1/aos_pacientes?numero_limpio=eq.' + numero + '&select=Nombres,Apellidos&limit=1'),
+          sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta&limit=15&order=categoria'),
+          sbGet('/rest/v1/aos_agentes?id=eq.recepcion&select=system_prompt,modelo')
+        ]).then(function(results) {
+          var pac = (results[0]||[])[0] || null
+          var catalogo = results[1] || []
+          var agent = (results[2]||[])[0] || { system_prompt: 'Eres Maya, recepcionista virtual de Zi Vital.' }
+          
+          var catResumen = catalogo.map(function(c){return c.nombre+' S/'+(c.precio_oferta||'consultar')}).join(', ')
+          var nombrePac = pac ? (pac.Nombres + ' ' + (pac.Apellidos||'')).trim() : 'usuario nuevo'
+          
+          var systemPrompt = agent.system_prompt + 
+            '\n\nPACIENTE: ' + nombrePac + 
+            '\nCATALOGO: ' + catResumen.substring(0,800) +
+            '\nINSTRUCCIONES: Responde corto (max 3 oraciones), cordial, profesional. ' +
+            'Si pregunta por horarios: lunes a sabado 9am-8pm, domingos 10am-2pm. ' +
+            'Si pregunta direccion: tenemos sedes en San Isidro y Pueblo Libre. ' +
+            'Si quiere agendar: pidele su nombre completo, DNI y tratamiento de interes para coordinar. ' +
+            'NUNCA inventes precios — usa SOLO los del catalogo. Si pregunta por tratamiento sin precio, di "te coordino con un asesor".'
+          
+          sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+            var groqKey = rows && rows[0] ? rows[0].api_key : null
+            if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+            
+            var groqBody = JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: mensaje }
+              ],
+              max_tokens: 250,
+              temperature: 0.7
+            })
+            var startTs = Date.now()
+            var gReq = https.request({
+              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+            }, function(gRes) {
+              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                try {
+                  var result = JSON.parse(gData)
+                  var respuesta = result.choices && result.choices[0] ? result.choices[0].message.content.trim() : ''
+                  var dur = Date.now() - startTs
+                  
+                  // Log de Maya
+                  sbPost('/rest/v1/aos_agente_logs', {
+                    agente_id: 'recepcion', accion: 'responder_mensaje',
+                    input_resumen: '[' + numero + '] ' + mensaje.substring(0,100),
+                    output_resumen: respuesta.substring(0,200),
+                    exitoso: respuesta.length > 0, duracion_ms: dur
+                  }).catch(function(){})
+                  sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'recepcion', p_exitoso: respuesta.length > 0 }).catch(function(){})
+                  
+                  // Guardar conversación en tabla específica de Maya
+                  sbPost('/rest/v1/aos_maya_conversaciones', {
+                    numero_paciente: numero, mensaje_in: mensaje, mensaje_out: respuesta,
+                    paciente_existe: pac !== null, canal: d.canal || 'web'
+                  }).catch(function(){})
+                  
+                  res.writeHead(200, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ ok: true, respuesta: respuesta, paciente: nombrePac, duracion_ms: dur }))
+                } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error'})) }
+              })
+            })
+            gReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+            gReq.write(groqBody); gReq.end()
+          })
+        }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
+  }
+  if (p === '/api/agents/maya/responder' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
   // ===== FIN AGENTS =====
   var f = path.join(PUB, p.slice(1))
   if (fs.existsSync(f) && !fs.statSync(f).isDirectory()) { serve(f, res); return }
