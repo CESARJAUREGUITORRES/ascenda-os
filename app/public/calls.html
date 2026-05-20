@@ -638,6 +638,22 @@ function loadLead(_retried){
     document.getElementById('cc-m-seg-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
+    /* Mostrar clasificación de Nico si existe */
+    fetch(_SB+'/rest/v1/aos_leads?numero_limpio=eq.'+encodeURIComponent(CC.lead.num)+'&select=clasificacion_nico&order=fecha.desc&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(arr){
+      if(arr&&arr[0]&&arr[0].clasificacion_nico){
+        try{var c=JSON.parse(arr[0].clasificacion_nico);
+          var badge=document.getElementById('cc-nico-badge');
+          if(!badge){var anc=document.getElementById('cc-anuncio');if(anc&&anc.parentNode){badge=document.createElement('div');badge.id='cc-nico-badge';badge.style.cssText='display:inline-flex;gap:4px;margin:4px 0;font-size:9px;font-weight:700;';anc.parentNode.insertBefore(badge,anc.nextSibling);}}
+          if(badge){
+            var color=c.valor_potencial===3?'#16A34A':(c.valor_potencial===2?'#0A4FBF':'#9AAAC8');
+            var label=c.valor_potencial===3?'ALTO':(c.valor_potencial===2?'MEDIO':'BAJO');
+            var urgIcon=c.urgencia==='alta'?'🔥':(c.urgencia==='media'?'⚡':'');
+            badge.innerHTML='<span style="padding:2px 7px;border-radius:6px;background:'+color+';color:#fff;">🏷️ '+label+'</span>'+(urgIcon?'<span style="padding:2px 7px;border-radius:6px;background:#FEF3C7;color:#92400E;">'+urgIcon+' '+(c.urgencia||'').toUpperCase()+'</span>':'');
+            badge.style.display='inline-flex';
+          }
+        }catch(e){}
+      }else{var b=document.getElementById('cc-nico-badge');if(b)b.style.display='none';}
+    }).catch(function(){});
   },function(e){
     console.error('[CC] loadLead error:',e);
     if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
