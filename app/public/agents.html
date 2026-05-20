@@ -1539,7 +1539,7 @@ function LiveFeed({ agents, events, metrics, tasksDoneReal, alerts, onSelectAgen
       <div style={{ fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'#64748B', letterSpacing:'0.1em' }}>ORGANIZACIÓN · LIVE</div>
       <div style={{ fontSize:18, fontWeight:700, color:'#071D4A', marginTop:2, fontFamily:'Exo 2, system-ui' }}>Oficina Ascenda</div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:10 }}>
-        <Metric label="Activos" value={`${metrics.working}/${agents.length}`} tone="mint"/>
+        <Metric label="Activos" value={`${metrics.healthy}/${agents.length}`} tone="mint"/>
         <Metric label="Reuniones" value={metrics.meeting} tone="amber"/>
         <Metric label="Bloqueados" value={metrics.blocked} tone={metrics.blocked > 0 ? "red" : "ink"}/>
         <div style={{cursor:'pointer'}} onClick={() => { var el = document.querySelector('[data-feed]'); if(el) el.scrollIntoView({behavior:'smooth'}); }} title="Click para ver detalle"><Metric label="Tareas hoy" value={tasksDoneReal !== null ? tasksDoneReal : '…'} tone="blue"/></div>
@@ -2139,7 +2139,8 @@ function App(){
     // También cargar conteo real de tareas del día
     const pullTaskCount = async () => {
       const limaDate = new Date(Date.now() + (-5 * 60) * 60000).toISOString().split('T')[0];
-      const res = await window.sbGet('/rest/v1/aos_agente_logs?created_at=gte.' + limaDate + 'T05:00:00Z&select=id');
+      // Solo contar tareas exitosas
+      const res = await window.sbGet('/rest/v1/aos_agente_logs?created_at=gte.' + limaDate + 'T05:00:00Z&exitoso=eq.true&select=id');
       if (res && Array.isArray(res)) setTasksDoneReal(res.length);
     };
     pullTaskCount();
@@ -2164,15 +2165,25 @@ function App(){
   }, [agents]);
 
   const metrics = useMemo(() => {
-    let working = 0, meeting = 0, blocked = 0, tasksDone = 0, eff = 0;
+    let working = 0, meeting = 0, blocked = 0, tasksDone = 0, eff = 0, effCount = 0, healthy = 0;
     agents.forEach(a => {
-      if (a.estado === 'working') working++;  // solo working real — no traveling ni idle
+      // Activos = todos los que no están pausados (idle, working, esperando, etc.)
+      if (a.activo !== false && a.estado !== 'paused' && a.estado !== 'blocked') healthy++;
+      if (a.estado === 'working') working++;
       if (a.estado === 'meeting') meeting++;
       if (a.estado === 'blocked') blocked++;
-      tasksDone += a.total_ejecuciones;
-      eff += a.eficiencia;
+      tasksDone += a.total_ejecuciones || 0;
+      // Solo promediar eficiencia de agentes activos
+      if (a.activo !== false && typeof a.eficiencia === 'number') {
+        eff += a.eficiencia;
+        effCount++;
+      }
     });
-    return { working, meeting, blocked, tasksDone, efficiency: Math.round(eff / agents.length) };
+    return { 
+      working, meeting, blocked, tasksDone, 
+      healthy,
+      efficiency: effCount > 0 ? Math.round(eff / effCount) : 100 
+    };
   }, [agents]);
 
   const alerts = useMemo(() => agents.filter(a => a.estado === 'blocked'), [agents]);
