@@ -60,6 +60,188 @@ function sbRpc(fnName, params) {
   })
 }
 
+// ═══ VALIDADOR DE SESION KRONIA ═══
+// Verifica que el usuario que llama al endpoint existe en aos_usuarios
+function validarSesionKronia(usuario, idAsesor) {
+  if (!usuario || usuario.trim() === '') return Promise.resolve(false)
+  var url = '/rest/v1/aos_usuarios?select=nombre,codigo_asesor,activo&nombre=eq.' + encodeURIComponent(usuario.toUpperCase())
+  return sbGet(url).then(function(rows) {
+    if (!rows || !rows.length) return false
+    var u = rows[0]
+    if (u.activo === false) return false
+    // Si pasan id_asesor, debe coincidir
+    if (idAsesor && u.codigo_asesor && idAsesor !== u.codigo_asesor) return false
+    return true
+  }).catch(function() { return false })
+}
+
+function procesarWhisper(chunks, res) {
+  try {
+        var buf = Buffer.concat(chunks)
+        sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+          var groqKey = rows && rows[0] ? rows[0].api_key : null
+          if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+          var boundary = '----KronIA' + Date.now()
+          var payload = '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n'
+          var payloadEnd = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="language"\r\n\r\nes\r\n--' + boundary + '--\r\n'
+          var fullBody = Buffer.concat([Buffer.from(payload), buf, Buffer.from(payloadEnd)])
+          var wReq = https.request({
+            hostname: 'api.groq.com', path: '/openai/v1/audio/transcriptions', method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': fullBody.length }
+          }, function(wRes) {
+            var wData = ''; wRes.on('data', function(c) { wData += c }); wRes.on('end', function() {
+              try {
+                var r = JSON.parse(wData)
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ ok: true, texto: r.text || '' }))
+              } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Whisper parse error'})) }
+            })
+          })
+          wReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+          wReq.write(fullBody); wReq.end()
+        }).catch(function() { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
+  } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Audio error'})) }
+}
+
+function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
+  try {
+    var historial = d.historial || []
+        var leadActual = d.lead_actual || null
+        if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
+
+        var contextQueries = []
+        var esAdmin = rol === 'ADMIN' || rol === 'admin'
+        var hoy = new Date().toISOString().slice(0,10)
+        var mesInicio = hoy.slice(0,8) + '01'
+        var mesNum = new Date().getMonth() + 1
+        var anioNum = new Date().getFullYear()
+        var idAsesor = d.id_asesor || ''
+
+        /* Catálogo completo */
+        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
+        
+        if (!esAdmin) {
+          /* Panel asesor consolidado (métricas del mes + hoy) */
+          contextQueries.push(sbRpc('aos_panel_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_hoy: hoy, p_mes_inicio: mesInicio}))
+          /* Comisiones REALES */
+          contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_mes: mesNum, p_anio: anioNum}))
+          /* Inventario por sede */
+          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
+          /* Leads importados hoy */
+          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
+          /* Seguimientos pendientes */
+          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
+        } else {
+          contextQueries.push(sbRpc('aos_panel_admin', {p_hoy: hoy, p_ayer: hoy, p_mes_inicio: mesInicio}))
+          contextQueries.push(Promise.resolve(null))
+          contextQueries.push(Promise.resolve([]))
+          contextQueries.push(Promise.resolve([]))
+          contextQueries.push(Promise.resolve([]))
+        }
+
+        Promise.all(contextQueries).then(function(results) {
+          var catalogo = results[0] || []
+          var panelData = results[1] || {}
+          var comisionesData = results[2] || null
+          var inventario = results[3] || []
+          var leadsHoy = results[4] || []
+          var seguimientos = results[5] || []
+
+          var catResumen = catalogo.map(function(c) {
+            var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
+            return c.nombre+' ('+c.categoria+') S/'+(c.precio_oferta||0)+
+              (c.descripcion_comercial?' -- '+c.descripcion_comercial.substring(0,100):'')+
+              (c.beneficios?' | Benef:'+c.beneficios.substring(0,80):'')+
+              (c.contraindicaciones?' | NO:'+c.contraindicaciones.substring(0,60):'')+
+              (c.perfil_paciente?' | Para:'+c.perfil_paciente.substring(0,60):'')+faqs
+          }).join('\n')
+
+          var datosCtx = ''
+          if (!esAdmin && panelData) {
+            datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
+            datosCtx += '\nLLAMADAS HOY: '+(panelData.llamHoy||0)+' | CITAS HOY: '+(panelData.citasHoy||0)
+            datosCtx += '\nLLAMADAS MES: '+(panelData.llamMes||0)+' | CITAS MES: '+(panelData.citasMes||0)+' | ASISTIDOS: '+(panelData.asistMes||0)
+            datosCtx += '\nVENTAS MES: '+(panelData.ventasMes||0)+' ventas | FACTURADO: S/'+(panelData.factMes||0)
+            datosCtx += '\nLEADS NUEVOS: '+(panelData.leadsNuevos||0)+' | LEADS LLAMADOS: '+(panelData.leadsLlamados||0)+' | LEADS CON CITA: '+(panelData.leadsCitas||0)
+            /* Tipificaciones del mes */
+            if(panelData.tipifMes&&typeof panelData.tipifMes==='object'){var tipifs=panelData.tipifMes;datosCtx+='\nTIPIFICACIONES: '+Object.keys(tipifs).map(function(k){return k+':'+tipifs[k]}).join(', ')}
+            /* Resumen anual */
+            if(panelData.resumenAnual&&panelData.resumenAnual.length){datosCtx+='\nRESUMEN ANUAL: '+panelData.resumenAnual.map(function(r){return r.mes_nombre+': '+r.llamadas+'llam, '+r.citas+'citas, S/'+Math.round(r.facturado||0)}).join(' | ')}
+            /* Llamadas detalle hoy */
+            if(panelData.llamadasHoy&&panelData.llamadasHoy.length){datosCtx+='\nDETALLE LLAMADAS HOY: '+panelData.llamadasHoy.slice(0,10).map(function(l){return l.hora+' '+l.numero+' '+l.estado}).join(' | ')}
+            /* Comisiones REALES */
+            if(comisionesData&&comisionesData.comTotal!==undefined){
+              datosCtx+='\nCOMISIONES MES: S/'+comisionesData.comTotal+' (Servicios:S/'+(comisionesData.comServ||0)+' Productos:S/'+(comisionesData.comProd||0)+') Ranking:#'+(comisionesData.ranking||'?')
+              if(comisionesData.detalle&&comisionesData.detalle.length){datosCtx+='\nDETALLE COMISIONES:';comisionesData.detalle.forEach(function(v){datosCtx+='\n  '+v.fecha+' '+(v.nombres||'')+' '+(v.apellidos||'')+' | '+v.tratamiento+' S/'+v.monto+' -> Com:S/'+v.comision_calculada+' ('+v.tipo+')'})}
+              datosCtx+='\nNOTA: Solo las ventas donde TU eres asesor asignado generan comision. Un cliente puede comprar cosas asignadas a otro asesor o "NO APLICA".'
+              if(comisionesData.topClientes&&comisionesData.topClientes.length){datosCtx+='\nTOP CLIENTES HISTORICOS: '+comisionesData.topClientes.map(function(c,i){return(i+1)+'.'+c.cliente+' S/'+Math.round(c.total)+' ('+c.compras+'compras ult:'+c.ult_fecha+')'}).join(' | ')}
+            }
+            if(leadActual)datosCtx+='\nLEAD ACTUAL: '+leadActual.num+' | Trat:'+leadActual.trat+' | Intento:'+(leadActual.intento||1)
+            /* Inventario */
+            if(inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].join(', ')}).join(' || ')}
+            if(leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nums. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
+          } else if(esAdmin && panelData) {
+            datosCtx += '\n--- DATOS ADMIN ---'
+            datosCtx += '\nPanel admin: '+JSON.stringify(panelData).substring(0,1500)
+          }
+
+          var systemPrompt = 'Eres KronIA, asistente AI de Zi Vital (clinica de medicina estetica, Lima, Peru). '+
+            'Personalidad: profesional, cercana, util. Respondes conciso. Cuando pidan script de venta, da dialogo natural. '+
+            'ACCESO POR ROL: '+
+            (esAdmin ?
+              'Usuario ADMIN con acceso total a toda la informacion.' :
+              'Usuario ASESOR "'+usuario+'". PUEDE VER LIBREMENTE: sus propias ventas, sus clientes y cuanto facturo con cada uno, sus comisiones, sus llamadas y metricas, '+
+              'datos de pacientes que gestiono (historial, atenciones, citas), inventario por sede, catalogo completo, precios, sus leads importados. '+
+              'RESPONDE CON DATOS CONCRETOS cuando pregunte sobre su informacion — nombres, montos, fechas, tratamientos. '+
+              'UNICO BLOQUEO: Si pide datos de OTRO asesor por nombre, ventas/comisiones de otros companeros, facturacion GLOBAL de la empresa, '+
+              'resultados de campanas de marketing, o informacion administrativa interna, ENTONCES responde: '+
+              '"Esta informacion requiere nivel de acceso Administrador." y sugiere consultar sus propios datos.')+
+            '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
+            datosCtx+
+            '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
+
+          var messages = [{ role: 'system', content: systemPrompt }]
+          historial.forEach(function(h) { messages.push({ role: h.role, content: h.content }) })
+          messages.push({ role: 'user', content: pregunta })
+
+          sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
+            var groqKey = rows && rows[0] ? rows[0].api_key : null
+            if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
+
+            var groqBody = JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: messages,
+              max_tokens: 700,
+              temperature: 0.6
+            })
+            var groqReq = https.request({
+              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+            }, function(gRes) {
+              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                try {
+                  var result = JSON.parse(gData)
+                  var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
+                  /* Guardar CADA mensaje en historial */
+                  sbPost('/rest/v1/aos_kronia_conversaciones', {
+                    usuario: usuario, rol: rol, sede: sede,
+                    pregunta: pregunta.substring(0,500), respuesta: text.substring(0,2000),
+                    session_id: sessionId, fue_exitosa: true,
+                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null})
+                  }).catch(function(){})
+
+                  res.writeHead(200, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ ok: true, respuesta: text, provider: 'groq', cost: 0 }))
+                } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
+              })
+            })
+            groqReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+            groqReq.write(groqBody); groqReq.end()
+          }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
+        }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
+  } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Error procesando: '+e.message})) }
+}
+
 // ═══ WEBHOOK VERIFY (GET) ═══
 function webhookVerify(req, res) {
   const u = new URL(req.url, 'http://localhost')
@@ -324,175 +506,30 @@ http.createServer(function(req, res) {
         var rol = d.rol || 'asesor'
         var sede = d.sede || ''
         var sessionId = d.session_id || ''
-        var historial = d.historial || []
-        var leadActual = d.lead_actual || null
-        if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
-
-        var contextQueries = []
-        var esAdmin = rol === 'ADMIN' || rol === 'admin'
-        var hoy = new Date().toISOString().slice(0,10)
-        var mesInicio = hoy.slice(0,8) + '01'
-        var mesNum = new Date().getMonth() + 1
-        var anioNum = new Date().getFullYear()
-        var idAsesor = d.id_asesor || ''
-
-        /* Catálogo completo */
-        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
-        
-        if (!esAdmin) {
-          /* Panel asesor consolidado (métricas del mes + hoy) */
-          contextQueries.push(sbRpc('aos_panel_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_hoy: hoy, p_mes_inicio: mesInicio}))
-          /* Comisiones REALES */
-          contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_mes: mesNum, p_anio: anioNum}))
-          /* Inventario por sede */
-          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
-          /* Leads importados hoy */
-          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
-          /* Seguimientos pendientes */
-          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
-        } else {
-          contextQueries.push(sbRpc('aos_panel_admin', {p_hoy: hoy, p_ayer: hoy, p_mes_inicio: mesInicio}))
-          contextQueries.push(Promise.resolve(null))
-          contextQueries.push(Promise.resolve([]))
-          contextQueries.push(Promise.resolve([]))
-          contextQueries.push(Promise.resolve([]))
-        }
-
-        Promise.all(contextQueries).then(function(results) {
-          var catalogo = results[0] || []
-          var panelData = results[1] || {}
-          var comisionesData = results[2] || null
-          var inventario = results[3] || []
-          var leadsHoy = results[4] || []
-          var seguimientos = results[5] || []
-
-          var catResumen = catalogo.map(function(c) {
-            var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
-            return c.nombre+' ('+c.categoria+') S/'+(c.precio_oferta||0)+
-              (c.descripcion_comercial?' -- '+c.descripcion_comercial.substring(0,100):'')+
-              (c.beneficios?' | Benef:'+c.beneficios.substring(0,80):'')+
-              (c.contraindicaciones?' | NO:'+c.contraindicaciones.substring(0,60):'')+
-              (c.perfil_paciente?' | Para:'+c.perfil_paciente.substring(0,60):'')+faqs
-          }).join('\n')
-
-          var datosCtx = ''
-          if (!esAdmin && panelData) {
-            datosCtx += '\n--- TUS DATOS ('+usuario+') ---'
-            datosCtx += '\nLLAMADAS HOY: '+(panelData.llamHoy||0)+' | CITAS HOY: '+(panelData.citasHoy||0)
-            datosCtx += '\nLLAMADAS MES: '+(panelData.llamMes||0)+' | CITAS MES: '+(panelData.citasMes||0)+' | ASISTIDOS: '+(panelData.asistMes||0)
-            datosCtx += '\nVENTAS MES: '+(panelData.ventasMes||0)+' ventas | FACTURADO: S/'+(panelData.factMes||0)
-            datosCtx += '\nLEADS NUEVOS: '+(panelData.leadsNuevos||0)+' | LEADS LLAMADOS: '+(panelData.leadsLlamados||0)+' | LEADS CON CITA: '+(panelData.leadsCitas||0)
-            /* Tipificaciones del mes */
-            if(panelData.tipifMes&&typeof panelData.tipifMes==='object'){var tipifs=panelData.tipifMes;datosCtx+='\nTIPIFICACIONES: '+Object.keys(tipifs).map(function(k){return k+':'+tipifs[k]}).join(', ')}
-            /* Resumen anual */
-            if(panelData.resumenAnual&&panelData.resumenAnual.length){datosCtx+='\nRESUMEN ANUAL: '+panelData.resumenAnual.map(function(r){return r.mes_nombre+': '+r.llamadas+'llam, '+r.citas+'citas, S/'+Math.round(r.facturado||0)}).join(' | ')}
-            /* Llamadas detalle hoy */
-            if(panelData.llamadasHoy&&panelData.llamadasHoy.length){datosCtx+='\nDETALLE LLAMADAS HOY: '+panelData.llamadasHoy.slice(0,10).map(function(l){return l.hora+' '+l.numero+' '+l.estado}).join(' | ')}
-            /* Comisiones REALES */
-            if(comisionesData&&comisionesData.comTotal!==undefined){
-              datosCtx+='\nCOMISIONES MES: S/'+comisionesData.comTotal+' (Servicios:S/'+(comisionesData.comServ||0)+' Productos:S/'+(comisionesData.comProd||0)+') Ranking:#'+(comisionesData.ranking||'?')
-              if(comisionesData.detalle&&comisionesData.detalle.length){datosCtx+='\nDETALLE COMISIONES:';comisionesData.detalle.forEach(function(v){datosCtx+='\n  '+v.fecha+' '+(v.nombres||'')+' '+(v.apellidos||'')+' | '+v.tratamiento+' S/'+v.monto+' -> Com:S/'+v.comision_calculada+' ('+v.tipo+')'})}
-              datosCtx+='\nNOTA: Solo las ventas donde TU eres asesor asignado generan comision. Un cliente puede comprar cosas asignadas a otro asesor o "NO APLICA".'
-              if(comisionesData.topClientes&&comisionesData.topClientes.length){datosCtx+='\nTOP CLIENTES HISTORICOS: '+comisionesData.topClientes.map(function(c,i){return(i+1)+'.'+c.cliente+' S/'+Math.round(c.total)+' ('+c.compras+'compras ult:'+c.ult_fecha+')'}).join(' | ')}
-            }
-            if(leadActual)datosCtx+='\nLEAD ACTUAL: '+leadActual.num+' | Trat:'+leadActual.trat+' | Intento:'+(leadActual.intento||1)
-            /* Inventario */
-            if(inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].join(', ')}).join(' || ')}
-            if(leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nums. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
-          } else if(esAdmin && panelData) {
-            datosCtx += '\n--- DATOS ADMIN ---'
-            datosCtx += '\nPanel admin: '+JSON.stringify(panelData).substring(0,1500)
-          }
-
-          var systemPrompt = 'Eres KronIA, asistente AI de Zi Vital (clinica de medicina estetica, Lima, Peru). '+
-            'Personalidad: profesional, cercana, util. Respondes conciso. Cuando pidan script de venta, da dialogo natural. '+
-            'ACCESO POR ROL: '+
-            (esAdmin ?
-              'Usuario ADMIN con acceso total a toda la informacion.' :
-              'Usuario ASESOR "'+usuario+'". PUEDE VER LIBREMENTE: sus propias ventas, sus clientes y cuanto facturo con cada uno, sus comisiones, sus llamadas y metricas, '+
-              'datos de pacientes que gestiono (historial, atenciones, citas), inventario por sede, catalogo completo, precios, sus leads importados. '+
-              'RESPONDE CON DATOS CONCRETOS cuando pregunte sobre su informacion — nombres, montos, fechas, tratamientos. '+
-              'UNICO BLOQUEO: Si pide datos de OTRO asesor por nombre, ventas/comisiones de otros companeros, facturacion GLOBAL de la empresa, '+
-              'resultados de campanas de marketing, o informacion administrativa interna, ENTONCES responde: '+
-              '"Esta informacion requiere nivel de acceso Administrador." y sugiere consultar sus propios datos.')+
-            '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
-            datosCtx+
-            '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
-
-          var messages = [{ role: 'system', content: systemPrompt }]
-          historial.forEach(function(h) { messages.push({ role: h.role, content: h.content }) })
-          messages.push({ role: 'user', content: pregunta })
-
-          sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
-            var groqKey = rows && rows[0] ? rows[0].api_key : null
-            if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
-
-            var groqBody = JSON.stringify({
-              model: 'llama-3.1-8b-instant',
-              messages: messages,
-              max_tokens: 700,
-              temperature: 0.6
-            })
-            var groqReq = https.request({
-              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
-            }, function(gRes) {
-              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
-                try {
-                  var result = JSON.parse(gData)
-                  var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
-                  /* Guardar CADA mensaje en historial */
-                  sbPost('/rest/v1/aos_kronia_conversaciones', {
-                    usuario: usuario, rol: rol, sede: sede,
-                    pregunta: pregunta.substring(0,500), respuesta: text.substring(0,2000),
-                    session_id: sessionId, fue_exitosa: true,
-                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null})
-                  }).catch(function(){})
-
-                  res.writeHead(200, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ ok: true, respuesta: text, provider: 'groq', cost: 0 }))
-                } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
-              })
-            })
-            groqReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
-            groqReq.write(groqBody); groqReq.end()
-          }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
-        }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
+        // ═══ AUTH: validar que el usuario existe en aos_usuarios ═══
+        validarSesionKronia(usuario, d.id_asesor || '').then(function(valido) {
+          if (!valido) { res.writeHead(401); res.end(JSON.stringify({error:'Sesion no autorizada'})); return }
+          procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res)
+        }).catch(function() { res.writeHead(500); res.end(JSON.stringify({error:'Error validando sesion'})) })
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
   // ═══ KRONIA WHISPER — VOICE TO TEXT ═══
   if (p === '/api/kronia/whisper' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
+    // ═══ AUTH: validar usuario via header X-AOS-User ═══
+    var authUser = req.headers['x-aos-user'] || ''
+    var authId = req.headers['x-aos-id'] || ''
+    if (!authUser) { res.writeHead(401); res.end(JSON.stringify({error:'Falta header X-AOS-User'})); return }
     var chunks = []; req.on('data', function(c) { chunks.push(c) }); req.on('end', function() {
-      try {
-        var buf = Buffer.concat(chunks)
-        sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
-          var groqKey = rows && rows[0] ? rows[0].api_key : null
-          if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
-          var boundary = '----KronIA' + Date.now()
-          var payload = '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n'
-          var payloadEnd = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="language"\r\n\r\nes\r\n--' + boundary + '--\r\n'
-          var fullBody = Buffer.concat([Buffer.from(payload), buf, Buffer.from(payloadEnd)])
-          var wReq = https.request({
-            hostname: 'api.groq.com', path: '/openai/v1/audio/transcriptions', method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': fullBody.length }
-          }, function(wRes) {
-            var wData = ''; wRes.on('data', function(c) { wData += c }); wRes.on('end', function() {
-              try {
-                var r = JSON.parse(wData)
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ ok: true, texto: r.text || '' }))
-              } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Whisper parse error'})) }
-            })
-          })
-          wReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
-          wReq.write(fullBody); wReq.end()
-        }).catch(function() { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
-      } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Audio error'})) }
-    }); return
+      validarSesionKronia(authUser, authId).then(function(valido) {
+        if (!valido) { res.writeHead(401); res.end(JSON.stringify({error:'Sesion no autorizada'})); return }
+        procesarWhisper(chunks, res)
+      })
+    })
+    return
   }
-  // ═══ STUDIO API — PUBLICAR A INSTAGRAM ═══
+
   if (p === '/api/studio/publish-instagram' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {

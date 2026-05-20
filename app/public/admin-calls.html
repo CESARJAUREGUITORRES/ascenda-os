@@ -415,7 +415,18 @@ function asignarCola(tipo,needFilter){
     var bases=[];
     if(tipo==='campana')bases=(D.bases_campana||[]).map(function(b){return b.campana;});
     else if(tipo==='tipificacion')bases=(D.bases_tipificacion||[]).map(function(b){return b.estado;});
-    if(!bases.length){filtro=prompt('Ingresa el filtro para "'+tipo+'":');if(!filtro)return;filtro=filtro.toUpperCase().trim();}
+    if(!bases.length){
+      /* Modal styled en vez de prompt nativo */
+      var ovp=document.createElement('div');ovp.id='cola-prompt-ov';ovp.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:9999;display:flex;align-items:center;justify-content:center;';ovp.onclick=function(e){if(e.target===ovp)ovp.remove();};
+      ovp.innerHTML='<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:340px"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px">Filtro de cola</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px">Ingresa el filtro para "'+tipo+'":</div><input type="text" id="cola-prompt-inp" autofocus style="width:100%;padding:10px 12px;border:1.5px solid #DDE4F5;border-radius:10px;font-family:\'DM Sans\';font-size:12px;outline:none;margin-bottom:12px;text-transform:uppercase" placeholder="Escribe el filtro..."><div style="display:flex;gap:8px"><button onclick="document.getElementById(\'cola-prompt-ov\').remove()" style="flex:1;padding:9px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:11px;color:#6B7BA8">Cancelar</button><button id="cola-prompt-ok" style="flex:1;padding:9px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:11px">Aplicar</button></div></div>';
+      document.body.appendChild(ovp);
+      var inp=document.getElementById('cola-prompt-inp');setTimeout(function(){inp.focus()},50);
+      var okBtn=document.getElementById('cola-prompt-ok');
+      var aplicar=function(){var v=inp.value.trim().toUpperCase();if(!v)return;ovp.remove();doAsignarCola(tipo,v);};
+      okBtn.onclick=aplicar;
+      inp.onkeydown=function(e){if(e.key==='Enter')aplicar();if(e.key==='Escape')ovp.remove();};
+      return;
+    }
     else{
       var ov=document.createElement('div');ov.id='cola-filter-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:999;display:flex;align-items:center;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
       var md='<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:380px;max-height:70vh;overflow-y:auto"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px">Seleccionar base</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px">'+COLA_SEL+' → '+tipo+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
