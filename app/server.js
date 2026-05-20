@@ -153,6 +153,15 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(Promise.resolve([]))
         }
 
+        /* Si la pregunta menciona tendencias/análisis/LTV/cohortes → cargar insights de Sofía */
+        var preguntaLower = pregunta.toLowerCase()
+        var pideAnalisis = /tendencia|analisis|análisis|ltv|cohorte|comparar|crecimiento|conversion|conversión|facturación|facturacion|mes pasado|histórico|historico|evolución|evolucion/.test(preguntaLower)
+        if (pideAnalisis) {
+          contextQueries.push(sbRpc('aos_kronia_obtener_insights_sofia', {}))
+        } else {
+          contextQueries.push(Promise.resolve(null))
+        }
+
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
           var panelData = results[1] || {}
@@ -160,6 +169,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var inventario = results[3] || []
           var leadsHoy = results[4] || []
           var seguimientos = results[5] || []
+          var insightsSofia = results[6] || null
 
           var catResumen = catalogo.map(function(c) {
             var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
@@ -212,6 +222,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               '"Esta informacion requiere nivel de acceso Administrador." y sugiere consultar sus propios datos.')+
             '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
+            (insightsSofia && typeof insightsSofia === 'object' ? '\n\nINSIGHTS DE SOFIA (analista de datos):\n'+JSON.stringify(insightsSofia).substring(0,1500)+'\nUSA estos datos para responder sobre tendencias, LTV, cohortes, evolucion, conversion.' : '')+
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
           var messages = [{ role: 'system', content: systemPrompt }]
