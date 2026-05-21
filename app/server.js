@@ -130,48 +130,76 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         // ═══════════════════════════════════════════════════════════
         if (confirmarAccion && confirmarAccion.rpc && confirmarAccion.params) {
           var rpcsPermitidas = [
-            'aos_kronia_actualizar_fecha_venta',
-            'aos_kronia_actualizar_estado_pago',
-            'aos_kronia_reasignar_venta',
+            'aos_editar_venta',
+            'aos_kronia_editar_cita',
+            'aos_kronia_editar_paciente',
             'aos_kronia_reprogramar_seguimiento',
-            'aos_kronia_actualizar_paciente'
+            'aos_kronia_marcar_estado_cita',
+            'aos_kronia_agregar_nota_paciente'
           ]
           if (rpcsPermitidas.indexOf(confirmarAccion.rpc) === -1) {
             res.writeHead(400); res.end(JSON.stringify({error:'RPC no autorizada para KronIA'})); return
           }
-          var params = Object.assign({}, confirmarAccion.params, {
-            p_usuario: usuario.toUpperCase(),
-            p_rol: rol,
-            p_session_id: sessionId
-          })
+          // Inyectar usuario y rol según la RPC (cada una tiene su contrato)
+          var params = Object.assign({}, confirmarAccion.params)
+          if (confirmarAccion.rpc === 'aos_editar_venta') {
+            params.p_editado_por = usuario.toUpperCase()
+            params.p_rol = rol
+            params.p_origen = 'kronia'
+          } else if (confirmarAccion.rpc === 'aos_kronia_agregar_nota_paciente') {
+            params.p_usuario = usuario.toUpperCase()
+          } else {
+            params.p_usuario = usuario.toUpperCase()
+            params.p_rol = rol
+          }
+          
+          var startTs = Date.now()
           sbRpc(confirmarAccion.rpc, params).then(function(result) {
+            var dur = Date.now() - startTs
+            
+            // Auditoría en aos_kronia_acciones
+            sbPost('/rest/v1/aos_kronia_acciones', {
+              usuario: usuario, rol: rol, session_id: sessionId,
+              accion: 'tool_call', objeto_tipo: confirmarAccion.rpc.replace('aos_kronia_','').replace('aos_',''),
+              objeto_id: String(params.p_venta_id || params.p_cita_id || params.p_paciente_id || params.p_seg_id || params.p_numero_paciente || ''),
+              tool_name: confirmarAccion.rpc,
+              parametros: JSON.stringify(params),
+              resultado: result ? JSON.stringify(result).substring(0,500) : 'null',
+              cambios: result && result.cambios ? result.cambios : null,
+              exitoso: result && result.ok === true,
+              error: result && result.error ? result.error : null,
+              duracion_ms: dur
+            }).catch(function(){})
+            
             if (!result || result.ok === false) {
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ ok: true, respuesta: '⚠️ No pude ejecutar: ' + (result && result.error ? result.error : 'error desconocido'), provider: 'ejecutor' }))
               return
             }
-            // Construir mensaje de confirmación humano
+            
+            // Mensaje humano
             var msg = '✅ Listo. '
-            if (confirmarAccion.rpc === 'aos_kronia_actualizar_fecha_venta') {
-              msg += 'Fecha de la venta de ' + result.cliente + ' cambiada del ' + result.fecha_antes + ' al ' + result.fecha_despues + '.'
-            } else if (confirmarAccion.rpc === 'aos_kronia_actualizar_estado_pago') {
-              msg += 'Estado de pago de ' + result.cliente + ' cambiado de ' + result.estado_antes + ' a ' + result.estado_despues + '.'
-            } else if (confirmarAccion.rpc === 'aos_kronia_reasignar_venta') {
-              msg += 'Venta de ' + result.cliente + ' reasignada de ' + result.asesor_antes + ' a ' + result.asesor_despues + '.'
-            } else if (confirmarAccion.rpc === 'aos_kronia_reprogramar_seguimiento') {
-              msg += 'Seguimiento de ' + result.numero + ' (' + result.tratamiento + ') reprogramado para el ' + result.fecha_despues + '.'
-            } else if (confirmarAccion.rpc === 'aos_kronia_actualizar_paciente') {
-              msg += result.campo + ' del paciente ' + result.paciente + ' actualizado: "' + result.valor_antes + '" → "' + result.valor_despues + '".'
+            if (result.cambios && result.total > 0) {
+              msg += 'Cambios aplicados: '
+              var cambiosArr = typeof result.cambios === 'string' ? JSON.parse(result.cambios) : result.cambios
+              msg += cambiosArr.map(function(c){return c.campo+': '+(c.antes||'(vacío)')+' → '+c.despues}).join(', ')
+            } else if (result.total === 0) {
+              msg = 'ℹ️ No hubo cambios (los valores ya eran iguales).'
+            } else if (result.fecha_nueva) {
+              msg += 'Reprogramado al '+result.fecha_nueva
+            } else if (result.despues) {
+              msg += result.antes+' → '+result.despues
             } else {
-              msg += JSON.stringify(result).substring(0, 200)
+              msg += JSON.stringify(result).substring(0,200)
             }
-            // Log de KronIA agente
+            
             sbPost('/rest/v1/aos_agente_logs', {
-              agente_id: 'kronia', accion: 'ejecutar_' + confirmarAccion.rpc.replace('aos_kronia_',''),
+              agente_id: 'kronia', accion: 'ejecutar_' + confirmarAccion.rpc.replace('aos_kronia_','').replace('aos_',''),
               input_resumen: 'Acción confirmada por ' + usuario,
-              output_resumen: msg.substring(0,200), exitoso: true, duracion_ms: 100
+              output_resumen: msg.substring(0,200), exitoso: true, duracion_ms: dur
             }).catch(function(){})
             sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'kronia', p_exitoso: true }).catch(function(){})
+            
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ ok: true, respuesta: msg, provider: 'ejecutor', resultado: result }))
           }).catch(function(e) {
@@ -231,14 +259,42 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         
         /* Si está en modo ejecutor, cargar ventas y seguimientos recientes para tener IDs reales */
         if (esEjecucion) {
-          var ventasUrl = '/rest/v1/aos_ventas?select=id,venta_id,nombres,tratamiento,monto,fecha,estado_pago,asesor&fecha=gte.' + new Date(Date.now()-30*86400000).toISOString().slice(0,10) + '&order=fecha.desc&limit=30'
+          // Extraer posibles nombres/números mencionados en la pregunta para búsqueda dirigida
+          var palabras = pregunta.toUpperCase().match(/[A-ZÁÉÍÓÚÑ]{4,}/g) || []
+          // Filtrar palabras comunes
+          var stopWords = ['VENTA','CITA','PACIENTE','CLIENTE','SEGUIMIENTO','CAMBIA','CORRIGE','EDITA','MODIFICA','ACTUALIZA','REPROGRAMA','REASIGNA','FECHA','MONTO','ESTADO','PAGO','NUEVA','VIEJA','HOY','AYER','MAÑANA','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO','MAYO','ABRIL','JUNIO','HOLA','GRACIAS','POR','FAVOR','PARA','DESDE','HASTA','SOLES','SOLES','SOLO']
+          var nombres = palabras.filter(function(w){return stopWords.indexOf(w)===-1})
+          var numeros = pregunta.match(/\d{7,9}/g) || []
+          
+          var ventasUrl = '/rest/v1/aos_ventas?select=id,venta_id,nombres,apellidos,tratamiento,monto,fecha,estado_pago,asesor,numero_limpio,dni&fecha=gte.' + new Date(Date.now()-60*86400000).toISOString().slice(0,10) + '&order=fecha.desc&limit=40'
           if (!esAdmin) ventasUrl += '&asesor=eq.' + encodeURIComponent(usuario.toUpperCase())
           contextQueries.push(sbGet(ventasUrl))
+          
+          // Búsqueda dirigida por nombre/número mencionado en la pregunta
+          var ventasMencionadasPromise = Promise.resolve([])
+          if (nombres.length > 0 || numeros.length > 0) {
+            // Buscar por cada nombre/número mencionado usando la RPC
+            var filtros = nombres.slice(0,3).concat(numeros.slice(0,2))
+            var promesas = filtros.map(function(f){
+              return sbRpc('aos_kronia_buscar_venta', { p_filtro: f, p_usuario: usuario.toUpperCase(), p_rol: rol })
+                .then(function(r){return (r && r.ventas) ? r.ventas : []})
+                .catch(function(){return []})
+            })
+            ventasMencionadasPromise = Promise.all(promesas).then(function(arrs){
+              // Aplanar y deduplicar por id
+              var todas = []; var ids = {}
+              arrs.forEach(function(arr){arr.forEach(function(v){if(!ids[v.id]){ids[v.id]=true;todas.push(v)}})})
+              return todas
+            })
+          }
+          contextQueries.push(ventasMencionadasPromise)
+          
           // Seguimientos pendientes del usuario
           var segUrl = '/rest/v1/aos_seguimientos?select=*&%22ESTADO%22=eq.PENDIENTE&order=%22FECHA_PROGRAMADA%22.desc&limit=20'
           if (!esAdmin) segUrl += '&%22ASESOR%22=eq.' + encodeURIComponent(usuario.toUpperCase())
           contextQueries.push(sbGet(segUrl))
         } else {
+          contextQueries.push(Promise.resolve(null))
           contextQueries.push(Promise.resolve(null))
           contextQueries.push(Promise.resolve(null))
         }
@@ -252,7 +308,17 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var seguimientos = results[5] || []
           var insightsSofia = results[6] || null
           var ventasEjecutor = results[7] || null
-          var segEjecutor = results[8] || null
+          var ventasMencionadas = results[8] || null
+          var segEjecutor = results[9] || null
+          
+          // Combinar ventas recientes + mencionadas (priorizar mencionadas, deduplicar)
+          if (ventasMencionadas && ventasMencionadas.length > 0) {
+            var idsSet = {}
+            var combinadas = []
+            ventasMencionadas.forEach(function(v){ idsSet[v.id]=true; combinadas.push(v) })
+            if (ventasEjecutor) ventasEjecutor.forEach(function(v){ if(!idsSet[v.id]){ idsSet[v.id]=true; combinadas.push(v) } })
+            ventasEjecutor = combinadas.slice(0, 50)
+          }
 
           var catResumen = catalogo.map(function(c) {
             var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
@@ -306,9 +372,9 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
             (insightsSofia && typeof insightsSofia === 'object' ? '\n\nINSIGHTS DE SOFIA (analista de datos):\n'+JSON.stringify(insightsSofia).substring(0,1500)+'\nUSA estos datos para responder sobre tendencias, LTV, cohortes, evolucion, conversion.' : '')+
-            (esEjecucion && ventasEjecutor && ventasEjecutor.length ? '\n\nVENTAS RECIENTES (para mapear nombres a IDs):\n'+ventasEjecutor.map(function(v){return '#'+v.id+' venta_id:'+v.venta_id+' '+v.nombres+' · '+v.tratamiento+' · S/'+v.monto+' · '+v.fecha+' · '+v.estado_pago+' · '+v.asesor}).join('\n').substring(0,2000) : '')+
+            (esEjecucion && ventasEjecutor && ventasEjecutor.length ? '\n\nVENTAS RECIENTES (id es el campo CRÍTICO para editar):\n'+ventasEjecutor.map(function(v){return 'id:'+v.id+' | '+(v.nombres||'')+' '+(v.apellidos||'')+' | '+v.tratamiento+' | S/'+v.monto+' | '+v.fecha+' | '+v.estado_pago+' | asesor:'+v.asesor+' | cel:'+(v.numero_limpio||'')}).join('\n').substring(0,3500) : '')+
             (esEjecucion && segEjecutor && segEjecutor.length ? '\n\nSEGUIMIENTOS PENDIENTES (para mapear a IDs):\n'+segEjecutor.map(function(s){return 'ID:'+s.ID+' NUM:'+s.NUMERO+' '+s.TRATAMIENTO+' · fecha:'+s.FECHA_PROGRAMADA+' '+s.HORA_PROGRAMADA+' · asesor:'+s.ASESOR}).join('\n').substring(0,1500) : '')+
-            (esEjecucion ? '\n\n═══════ MODO EJECUTOR ACTIVADO ═══════\nEl usuario quiere EJECUTAR una acción de edición. Tu trabajo es:\n1. Identificar la acción solicitada\n2. Si tienes TODOS los datos necesarios, responde SOLO con un bloque JSON al final entre triple backticks.\n3. Si te falta info, pregúntala primero.\n4. NUNCA ejecutes — solo PROPONES.\n5. NO inventes IDs ni datos. Si no encuentras el objeto, pide info adicional.\n\nFormato JSON al final de tu respuesta (después del mensaje natural):\n```json\n{\n  "accion": "actualizar_fecha_venta" | "actualizar_estado_pago" | "reasignar_venta" | "reprogramar_seguimiento" | "actualizar_paciente",\n  "preview": "Texto humano que describe el cambio (ej: \\"Cambiar fecha de venta de Karina del 17 al 18 de mayo\\")",\n  "rpc": "aos_kronia_actualizar_fecha_venta",\n  "params": { "p_venta_id": "123", "p_nueva_fecha": "2026-05-18" }\n}\n```\n\nMapeo de acciones a RPCs y params:\n- actualizar_fecha_venta → aos_kronia_actualizar_fecha_venta(p_venta_id, p_nueva_fecha)\n- actualizar_estado_pago → aos_kronia_actualizar_estado_pago(p_venta_id, p_nuevo_estado) [estados válidos: PAGO COMPLETO, ADELANTO, PENDIENTE, ANULADO]\n- reasignar_venta → aos_kronia_reasignar_venta(p_venta_id, p_nuevo_asesor) [SOLO ADMIN]\n- reprogramar_seguimiento → aos_kronia_reprogramar_seguimiento(p_seguimiento_id, p_nueva_fecha, p_nueva_hora)\n- actualizar_paciente → aos_kronia_actualizar_paciente(p_numero, p_campo, p_nuevo_valor) [campos: nombres, apellidos, telefono, email, dni]\n\nNUNCA generes JSON si: faltan datos, el cliente no se identifica claramente, o necesitas confirmación de cuál registro editar.' : '')+
+            (esEjecucion ? '\n\n═══════ MODO EJECUTOR ═══════\nEl usuario quiere EDITAR algo. Tu trabajo: identificar la acción, validar que tienes todos los datos, y proponer el JSON.\n\nREGLAS CRÍTICAS:\n1. NUNCA inventes IDs. Si no tienes el ID exacto del registro, primero pide info para identificarlo (nombre del cliente, fecha aproximada, número de celular).\n2. NUNCA ejecutes — solo PROPONES con un JSON al final.\n3. Si la búsqueda devuelve VARIAS coincidencias, lista las opciones y pide que elija cuál.\n4. NUNCA digas \"ya está hecho\" o \"lo he modificado\" — eso es alucinación. Solo el JSON puede ejecutar.\n5. Si te faltan datos, pregunta primero. NO generes JSON con datos inventados.\n\nFormato de propuesta (al final de tu respuesta humana):\n```json\n{\n  "preview": "Voy a cambiar X de Y a Z",\n  "rpc": "aos_editar_venta",\n  "params": { ... }\n}\n```\n\nRPCs DISPONIBLES Y SUS PARAMS:\n\n1. EDITAR VENTA: aos_editar_venta(p_venta_id, p_campos)\n   - p_venta_id: id numérico de la venta (campo `id` de las ventas listadas)\n   - p_campos: objeto JSON con los campos a cambiar. Permitidos: fecha, monto, nombres, apellidos, dni, celular, tratamiento, descripcion, pago, estado_pago, asesor, atendio, sede, tipo, numero_limpio, nro_doc\n   - Ejemplo cambiar monto: { p_venta_id: 1583, p_campos: { monto: "6.95" } }\n   - Ejemplo cambiar fecha: { p_venta_id: 1583, p_campos: { fecha: "2026-05-14" } }\n   - Ejemplo cambiar varios: { p_venta_id: 1583, p_campos: { asesor: "MIREYA", monto: "500" } }\n\n2. EDITAR CITA: aos_kronia_editar_cita(p_cita_id, p_campos)\n   - p_cita_id: id numérico\n   - p_campos: { fecha_cita, hora_cita, nombre, tratamiento, asesor, sede, doctora, estado_cita }\n\n3. EDITAR PACIENTE: aos_kronia_editar_paciente(p_paciente_id, p_campos)\n   - p_paciente_id: id text del paciente\n   - p_campos: { nombres, apellidos, telefono, dni, email, numero_limpio, sede }\n\n4. REPROGRAMAR SEGUIMIENTO: aos_kronia_reprogramar_seguimiento(p_seg_id, p_nueva_fecha, p_nueva_hora)\n   - p_seg_id: ID del seguimiento (de la lista de seguimientos)\n   - p_nueva_fecha: "YYYY-MM-DD"\n   - p_nueva_hora: "HH:MM"\n\n5. MARCAR ESTADO CITA: aos_kronia_marcar_estado_cita(p_cita_id, p_nuevo_estado)\n   - p_cita_id: id\n   - p_nuevo_estado: uno de [POR LLAMAR, LLAMADA, ASISTIO, NO ASISTIO, REPROGRAMADA, CANCELADA, CONFIRMADA]\n\n6. AGREGAR NOTA PACIENTE: aos_kronia_agregar_nota_paciente(p_numero_paciente, p_nota)\n   - p_numero_paciente: número de celular (solo dígitos)\n   - p_nota: texto de la nota\n\nNOTAS:\n- Estados válidos de pago: "PAGO COMPLETO", "ADELANTO", "PENDIENTE", "ANULADO"\n- Solo ADMIN puede reasignar ventas a otro asesor o editar ventas de otros asesores\n- Las búsquedas en "VENTAS RECIENTES" del contexto te dan los IDs exactos.' : '')+
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
           var messages = [{ role: 'system', content: systemPrompt }]
