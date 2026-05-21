@@ -241,11 +241,12 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           /* Seguimientos pendientes */
           contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
         } else {
+          /* ADMIN: cargar métricas globales del mes (panel + ventas + comisiones + agenda + llamadas) */
           contextQueries.push(sbRpc('aos_panel_admin', {p_hoy: hoy, p_ayer: hoy, p_mes_inicio: mesInicio}))
-          contextQueries.push(Promise.resolve(null))
-          contextQueries.push(Promise.resolve([]))
-          contextQueries.push(Promise.resolve([]))
-          contextQueries.push(Promise.resolve([]))
+          contextQueries.push(sbRpc('aos_ventas_admin', {p_mes: mesNum, p_anio: anioNum})) // resumen ventas mes
+          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
+          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio&order=id.desc&limit=20'))
+          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
         }
 
         /* Si la pregunta menciona tendencias/análisis/LTV/cohortes → cargar insights de Sofía */
@@ -354,15 +355,38 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if(inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].join(', ')}).join(' || ')}
             if(leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nums. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
           } else if(esAdmin && panelData) {
-            datosCtx += '\n--- DATOS ADMIN ---'
-            datosCtx += '\nPanel admin: '+JSON.stringify(panelData).substring(0,1500)
+            datosCtx += '\n--- METRICAS GLOBALES ADMIN (mes actual) ---'
+            // panelData = aos_panel_admin (datos de hoy/ayer)
+            if(panelData.kpis_hoy){var kh=panelData.kpis_hoy;datosCtx+='\nHOY: '+(kh.llamadas||0)+' llamadas, '+(kh.citas||0)+' citas, '+(kh.ventas||0)+' ventas, S/'+(kh.facturado||0)+' facturado, '+(kh.leads||0)+' leads'}
+            if(panelData.kpis_mes){var km=panelData.kpis_mes;datosCtx+='\nMES ACUM: '+(km.llamadas||0)+' llamadas, '+(km.citas||0)+' citas, '+(km.ventas||0)+' ventas, S/'+Math.round(km.facturado||0)+' facturado, '+(km.leads||0)+' leads'}
+            
+            // comisionesData = aos_ventas_admin (resumen completo del mes)
+            if(comisionesData){
+              var v = comisionesData
+              datosCtx += '\nVENTAS MES: total='+(v.nVentas||0)+' (servicios:'+(v.nServ||0)+', productos:'+(v.nProd||0)+') | facturado=S/'+Math.round(v.factTotal||0)+' (serv:S/'+Math.round(v.factServ||0)+', prod:S/'+Math.round(v.factProd||0)+') | ticket prom=S/'+Math.round(v.ticketProm||0)
+              if(v.nPagoCompleto!==undefined) datosCtx += '\nESTADOS: completas='+(v.nPagoCompleto||0)+' adelantos='+(v.nAdelanto||0)+'(S/'+Math.round(v.factAdelanto||0)+') sin_definir='+(v.nSinDefinir||0)
+              if(v.porAsesor && v.porAsesor.length){datosCtx+='\nVENTAS POR ASESOR: '+v.porAsesor.slice(0,8).map(function(a){return a.asesor+':'+a.cantidad+' (S/'+Math.round(a.facturado||0)+')'}).join(' | ')}
+              if(v.porSede && v.porSede.length){datosCtx+='\nVENTAS POR SEDE: '+v.porSede.map(function(s){return s.sede+':'+s.cantidad+' (S/'+Math.round(s.facturado||0)+')'}).join(' | ')}
+              if(v.porTratamiento && v.porTratamiento.length){datosCtx+='\nTOP TRATAMIENTOS: '+v.porTratamiento.slice(0,8).map(function(t){return t.tratamiento+':'+t.cantidad+' (S/'+Math.round(t.facturado||0)+')'}).join(' | ')}
+              if(v.porMetodoPago && v.porMetodoPago.length){datosCtx+='\nMETODOS PAGO: '+v.porMetodoPago.slice(0,6).map(function(m){return m.metodo+':'+(m.cantidad||0)+' (S/'+Math.round(m.facturado||0)+')'}).join(' | ')}
+              if(v.anual && v.anual.length){datosCtx+='\nHISTORICO ANUAL: '+v.anual.map(function(a){return 'mes'+a.mes+':'+a.nVentas+' ventas S/'+Math.round(a.facturado||0)}).join(' | ')}
+            }
+            
+            if(inventario && inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].slice(0,10).join(', ')}).join(' || ')}
+            if(leadsHoy && leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nuevos. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
+            if(seguimientos && seguimientos.length){var segPend = seguimientos.filter(function(s){return s.ESTADO==='PENDIENTE'}).length; var segVenc = seguimientos.filter(function(s){return s.ESTADO==='VENCIDO'}).length; datosCtx+='\nSEGUIMIENTOS (muestra): '+segPend+' pendientes, '+segVenc+' vencidos en muestra'}
           }
 
           var systemPrompt = 'Eres KronIA, asistente AI de Zi Vital (clinica de medicina estetica, Lima, Peru). '+
             'Personalidad: profesional, cercana, util. Respondes conciso. Cuando pidan script de venta, da dialogo natural. '+
             'ACCESO POR ROL: '+
             (esAdmin ?
-              'Usuario ADMIN con acceso total a toda la informacion.' :
+              'Usuario ADMIN (super administrador) con acceso TOTAL a toda la informacion de la empresa. '+
+              'DEBES RESPONDER SIEMPRE las consultas del admin con los datos del contexto. '+
+              'Datos disponibles en el contexto para admin: ventas totales del mes y dia, facturacion total y por sede/asesor/tratamiento, '+
+              'metodos de pago, comisiones, inventario por sede, leads de hoy, seguimientos, historico anual de ventas. '+
+              'NUNCA digas que no tienes acceso — eres el admin y tienes acceso a todo. Si un dato especifico no esta en el contexto, '+
+              'di que necesitas usar una herramienta especifica para consultarlo (como buscar_venta o buscar_paciente) pero NUNCA que no tienes acceso.' :
               'Usuario ASESOR "'+usuario+'". PUEDE VER LIBREMENTE: sus propias ventas, sus clientes y cuanto facturo con cada uno, sus comisiones, sus llamadas y metricas, '+
               'datos de pacientes que gestiono (historial, atenciones, citas), inventario por sede, catalogo completo, precios, sus leads importados. '+
               'RESPONDE CON DATOS CONCRETOS cuando pregunte sobre su informacion — nombres, montos, fechas, tratamientos. '+
@@ -386,10 +410,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
 
             var groqBody = JSON.stringify({
-              model: esEjecucion ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant',
+              model: (esEjecucion || esAdmin) ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant',
               messages: messages,
-              max_tokens: esEjecucion ? 900 : 700,
-              temperature: esEjecucion ? 0.3 : 0.6
+              max_tokens: esEjecucion ? 900 : (esAdmin ? 900 : 700),
+              temperature: esEjecucion ? 0.3 : (esAdmin ? 0.4 : 0.6)
             })
             var groqReq = https.request({
               hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
