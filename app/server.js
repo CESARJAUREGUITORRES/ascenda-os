@@ -121,6 +121,73 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
   try {
     var historial = d.historial || []
         var leadActual = d.lead_actual || null
+        var confirmarAccion = d.confirmar_accion || null
+        var idAsesor = d.id_asesor || ''
+        if (!pregunta && !confirmarAccion) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
+        
+        // ═══════════════════════════════════════════════════════════
+        // BRANCH 1: Si viene confirmar_accion = ejecutar la acción pendiente
+        // ═══════════════════════════════════════════════════════════
+        if (confirmarAccion && confirmarAccion.rpc && confirmarAccion.params) {
+          var rpcsPermitidas = [
+            'aos_kronia_actualizar_fecha_venta',
+            'aos_kronia_actualizar_estado_pago',
+            'aos_kronia_reasignar_venta',
+            'aos_kronia_reprogramar_seguimiento',
+            'aos_kronia_actualizar_paciente'
+          ]
+          if (rpcsPermitidas.indexOf(confirmarAccion.rpc) === -1) {
+            res.writeHead(400); res.end(JSON.stringify({error:'RPC no autorizada para KronIA'})); return
+          }
+          var params = Object.assign({}, confirmarAccion.params, {
+            p_usuario: usuario.toUpperCase(),
+            p_rol: rol,
+            p_session_id: sessionId
+          })
+          sbRpc(confirmarAccion.rpc, params).then(function(result) {
+            if (!result || result.ok === false) {
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ ok: true, respuesta: '⚠️ No pude ejecutar: ' + (result && result.error ? result.error : 'error desconocido'), provider: 'ejecutor' }))
+              return
+            }
+            // Construir mensaje de confirmación humano
+            var msg = '✅ Listo. '
+            if (confirmarAccion.rpc === 'aos_kronia_actualizar_fecha_venta') {
+              msg += 'Fecha de la venta de ' + result.cliente + ' cambiada del ' + result.fecha_antes + ' al ' + result.fecha_despues + '.'
+            } else if (confirmarAccion.rpc === 'aos_kronia_actualizar_estado_pago') {
+              msg += 'Estado de pago de ' + result.cliente + ' cambiado de ' + result.estado_antes + ' a ' + result.estado_despues + '.'
+            } else if (confirmarAccion.rpc === 'aos_kronia_reasignar_venta') {
+              msg += 'Venta de ' + result.cliente + ' reasignada de ' + result.asesor_antes + ' a ' + result.asesor_despues + '.'
+            } else if (confirmarAccion.rpc === 'aos_kronia_reprogramar_seguimiento') {
+              msg += 'Seguimiento de ' + result.numero + ' (' + result.tratamiento + ') reprogramado para el ' + result.fecha_despues + '.'
+            } else if (confirmarAccion.rpc === 'aos_kronia_actualizar_paciente') {
+              msg += result.campo + ' del paciente ' + result.paciente + ' actualizado: "' + result.valor_antes + '" → "' + result.valor_despues + '".'
+            } else {
+              msg += JSON.stringify(result).substring(0, 200)
+            }
+            // Log de KronIA agente
+            sbPost('/rest/v1/aos_agente_logs', {
+              agente_id: 'kronia', accion: 'ejecutar_' + confirmarAccion.rpc.replace('aos_kronia_',''),
+              input_resumen: 'Acción confirmada por ' + usuario,
+              output_resumen: msg.substring(0,200), exitoso: true, duracion_ms: 100
+            }).catch(function(){})
+            sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'kronia', p_exitoso: true }).catch(function(){})
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ ok: true, respuesta: msg, provider: 'ejecutor', resultado: result }))
+          }).catch(function(e) {
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ ok: true, respuesta: '⚠️ Error al ejecutar: ' + e.message, provider: 'ejecutor' }))
+          })
+          return
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // BRANCH 2: Detectar si la pregunta es de EJECUCIÓN
+        // ═══════════════════════════════════════════════════════════
+        var pLower = pregunta.toLowerCase()
+        var verbosEjecucion = /(cambia|corrige|corregir|edita|editar|modifica|modificar|actualiz|reprogram|reasign|mueve|cambiar fecha|cambiar estado|pon en|pásalo|pasalo|asígnale|asignale)/
+        var esEjecucion = verbosEjecucion.test(pLower) && !/no\s+(cambies|edites|modifiques)/.test(pLower)
+        
         if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
 
         var contextQueries = []
@@ -161,6 +228,20 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         } else {
           contextQueries.push(Promise.resolve(null))
         }
+        
+        /* Si está en modo ejecutor, cargar ventas y seguimientos recientes para tener IDs reales */
+        if (esEjecucion) {
+          var ventasUrl = '/rest/v1/aos_ventas?select=id,venta_id,nombres,tratamiento,monto,fecha,estado_pago,asesor&fecha=gte.' + new Date(Date.now()-30*86400000).toISOString().slice(0,10) + '&order=fecha.desc&limit=30'
+          if (!esAdmin) ventasUrl += '&asesor=eq.' + encodeURIComponent(usuario.toUpperCase())
+          contextQueries.push(sbGet(ventasUrl))
+          // Seguimientos pendientes del usuario
+          var segUrl = '/rest/v1/aos_seguimientos?select=*&%22ESTADO%22=eq.PENDIENTE&order=%22FECHA_PROGRAMADA%22.desc&limit=20'
+          if (!esAdmin) segUrl += '&%22ASESOR%22=eq.' + encodeURIComponent(usuario.toUpperCase())
+          contextQueries.push(sbGet(segUrl))
+        } else {
+          contextQueries.push(Promise.resolve(null))
+          contextQueries.push(Promise.resolve(null))
+        }
 
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
@@ -170,6 +251,8 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var leadsHoy = results[4] || []
           var seguimientos = results[5] || []
           var insightsSofia = results[6] || null
+          var ventasEjecutor = results[7] || null
+          var segEjecutor = results[8] || null
 
           var catResumen = catalogo.map(function(c) {
             var faqs='';try{var f=typeof c.faqs==='string'?JSON.parse(c.faqs):(c.faqs||[]);if(f.length)faqs=' FAQ:'+f.slice(0,2).map(function(q){return q.q+'->'+q.a}).join('|')}catch(e){}
@@ -223,6 +306,9 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
             (insightsSofia && typeof insightsSofia === 'object' ? '\n\nINSIGHTS DE SOFIA (analista de datos):\n'+JSON.stringify(insightsSofia).substring(0,1500)+'\nUSA estos datos para responder sobre tendencias, LTV, cohortes, evolucion, conversion.' : '')+
+            (esEjecucion && ventasEjecutor && ventasEjecutor.length ? '\n\nVENTAS RECIENTES (para mapear nombres a IDs):\n'+ventasEjecutor.map(function(v){return '#'+v.id+' venta_id:'+v.venta_id+' '+v.nombres+' · '+v.tratamiento+' · S/'+v.monto+' · '+v.fecha+' · '+v.estado_pago+' · '+v.asesor}).join('\n').substring(0,2000) : '')+
+            (esEjecucion && segEjecutor && segEjecutor.length ? '\n\nSEGUIMIENTOS PENDIENTES (para mapear a IDs):\n'+segEjecutor.map(function(s){return 'ID:'+s.ID+' NUM:'+s.NUMERO+' '+s.TRATAMIENTO+' · fecha:'+s.FECHA_PROGRAMADA+' '+s.HORA_PROGRAMADA+' · asesor:'+s.ASESOR}).join('\n').substring(0,1500) : '')+
+            (esEjecucion ? '\n\n═══════ MODO EJECUTOR ACTIVADO ═══════\nEl usuario quiere EJECUTAR una acción de edición. Tu trabajo es:\n1. Identificar la acción solicitada\n2. Si tienes TODOS los datos necesarios, responde SOLO con un bloque JSON al final entre triple backticks.\n3. Si te falta info, pregúntala primero.\n4. NUNCA ejecutes — solo PROPONES.\n5. NO inventes IDs ni datos. Si no encuentras el objeto, pide info adicional.\n\nFormato JSON al final de tu respuesta (después del mensaje natural):\n```json\n{\n  "accion": "actualizar_fecha_venta" | "actualizar_estado_pago" | "reasignar_venta" | "reprogramar_seguimiento" | "actualizar_paciente",\n  "preview": "Texto humano que describe el cambio (ej: \\"Cambiar fecha de venta de Karina del 17 al 18 de mayo\\")",\n  "rpc": "aos_kronia_actualizar_fecha_venta",\n  "params": { "p_venta_id": "123", "p_nueva_fecha": "2026-05-18" }\n}\n```\n\nMapeo de acciones a RPCs y params:\n- actualizar_fecha_venta → aos_kronia_actualizar_fecha_venta(p_venta_id, p_nueva_fecha)\n- actualizar_estado_pago → aos_kronia_actualizar_estado_pago(p_venta_id, p_nuevo_estado) [estados válidos: PAGO COMPLETO, ADELANTO, PENDIENTE, ANULADO]\n- reasignar_venta → aos_kronia_reasignar_venta(p_venta_id, p_nuevo_asesor) [SOLO ADMIN]\n- reprogramar_seguimiento → aos_kronia_reprogramar_seguimiento(p_seguimiento_id, p_nueva_fecha, p_nueva_hora)\n- actualizar_paciente → aos_kronia_actualizar_paciente(p_numero, p_campo, p_nuevo_valor) [campos: nombres, apellidos, telefono, email, dni]\n\nNUNCA generes JSON si: faltan datos, el cliente no se identifica claramente, o necesitas confirmación de cuál registro editar.' : '')+
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
           var messages = [{ role: 'system', content: systemPrompt }]
@@ -234,10 +320,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
 
             var groqBody = JSON.stringify({
-              model: 'llama-3.1-8b-instant',
+              model: esEjecucion ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant',
               messages: messages,
-              max_tokens: 700,
-              temperature: 0.6
+              max_tokens: esEjecucion ? 900 : 700,
+              temperature: esEjecucion ? 0.3 : 0.6
             })
             var groqReq = https.request({
               hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
@@ -247,18 +333,45 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                 try {
                   var result = JSON.parse(gData)
                   var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
+                  
+                  // ═══ Extraer plan de acción si está en modo ejecutor ═══
+                  var accionPropuesta = null
+                  if (esEjecucion) {
+                    var jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+                    if (jsonMatch) {
+                      try {
+                        var parsed = JSON.parse(jsonMatch[1])
+                        if (parsed.rpc && parsed.params) {
+                          accionPropuesta = {
+                            accion: parsed.accion || 'editar',
+                            preview: parsed.preview || 'Confirma esta acción',
+                            rpc: parsed.rpc,
+                            params: parsed.params
+                          }
+                          // Limpiar el JSON del texto visible (lo reemplazamos por el preview)
+                          text = text.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/, '').trim()
+                          if (!text || text.length < 10) {
+                            text = '📝 ' + accionPropuesta.preview + '\n\n¿Confirmas?'
+                          } else {
+                            text += '\n\n¿Confirmas?'
+                          }
+                        }
+                      } catch(e) { /* no es JSON válido, continuar */ }
+                    }
+                  }
+                  
                   /* Guardar CADA mensaje en historial */
                   sbPost('/rest/v1/aos_kronia_conversaciones', {
                     usuario: usuario, rol: rol, sede: sede,
                     pregunta: pregunta.substring(0,500), respuesta: text.substring(0,2000),
                     session_id: sessionId, fue_exitosa: true,
-                    metadata: JSON.stringify({model:'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null})
+                    metadata: JSON.stringify({model:esEjecucion?'llama-3.3-70b-versatile':'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null,accion:accionPropuesta||null})
                   }).catch(function(){})
 
                   /* Registrar como ejecución del agente KronIA en aos_agente_logs */
                   sbPost('/rest/v1/aos_agente_logs', {
                     agente_id: 'kronia',
-                    accion: 'chat_query',
+                    accion: esEjecucion ? (accionPropuesta ? 'proponer_accion' : 'chat_query') : 'chat_query',
                     input_resumen: pregunta.substring(0,150),
                     output_resumen: text.substring(0,200),
                     exitoso: true,
@@ -268,7 +381,9 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                   sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'kronia', p_exitoso: true }).catch(function(){})
 
                   res.writeHead(200, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ ok: true, respuesta: text, provider: 'groq', cost: 0 }))
+                  var respPayload = { ok: true, respuesta: text, provider: 'groq', cost: 0 }
+                  if (accionPropuesta) respPayload.accion_propuesta = accionPropuesta
+                  res.end(JSON.stringify(respPayload))
                 } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
               })
             })
