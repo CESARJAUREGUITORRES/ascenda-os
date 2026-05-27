@@ -99,7 +99,21 @@
 .sp{width:16px;height:16px;border:2px solid #EBF2FF;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .wrap-sc{overflow-y:auto;max-height:calc(100vh - 300px);}.wrap-sc::-webkit-scrollbar{width:3px;}.wrap-sc::-webkit-scrollbar-thumb{background:#DDE4F5;}
-@media(max-width:768px){.ag-main{grid-template-columns:1fr;}.krow{grid-template-columns:repeat(3,1fr);}.det-2col{grid-template-columns:1fr;}.grid-2col{grid-template-columns:1fr;}.week-grid{grid-template-columns:repeat(3,1fr);}}
+/* ===== BUSCADOR CITAS DEL DÍA ===== */
+.ag-search-btn{width:28px;height:28px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.ag-search-btn:hover{background:#EBF2FF;border-color:#0A4FBF;}
+.ag-search-btn.act{background:#0A4FBF;border-color:#0A4FBF;}
+.ag-search-btn.act svg{stroke:#fff;}
+.ag-search-wrap{display:flex;align-items:center;gap:6px;overflow:hidden;max-width:0;opacity:0;transition:max-width .25s ease,opacity .2s ease;}
+.ag-search-wrap.open{max-width:300px;opacity:1;}
+.ag-search-input{padding:5px 10px;border:1.5px solid #DDE4F5;border-radius:8px;font-size:11px;font-family:DM\ Sans,sans-serif;color:#0D1B3E;outline:none;width:200px;background:#F8FAFF;}
+.ag-search-input:focus{border-color:#0A4FBF;background:#fff;box-shadow:0 0 0 3px rgba(10,79,191,.08);}
+.ag-search-input::placeholder{color:#9AAAC8;}
+.ag-search-close{width:22px;height:22px;border-radius:6px;border:none;background:#FEF2F2;color:#DC2626;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:background .15s;}
+.ag-search-close:hover{background:#FEE2E2;}
+.ag-search-count{font-size:9px;color:#0A4FBF;font-weight:700;white-space:nowrap;}
+.ag-search-hl{background:#FEF3C7;border-radius:2px;padding:0 1px;}
+@media(max-width:768px){.ag-main{grid-template-columns:1fr;}.krow{grid-template-columns:repeat(3,1fr);}.det-2col{grid-template-columns:1fr;}.grid-2col{grid-template-columns:1fr;}.week-grid{grid-template-columns:repeat(3,1fr);}.ag-search-input{width:140px;}}
 </style>
 
 <div class="ag-root">
@@ -139,7 +153,7 @@
 
   <div class="ag-main">
     <div class="crd">
-      <div class="chd"><div class="ct" id="ag-list-title">Citas del d&iacute;a</div><div style="font-size:11px;color:#9AAAC8;" id="ag-list-count">0 citas</div></div>
+      <div class="chd"><div style="display:flex;align-items:center;gap:8px;"><div class="ct" id="ag-list-title">Citas del d&iacute;a</div><div class="ag-search-btn" id="ag-search-toggle" onclick="agToggleSearch()" title="Buscar paciente en la lista"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7BA8" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="ag-search-wrap" id="ag-search-wrap"><input class="ag-search-input" id="ag-search-input" placeholder="Nombre, DNI, tel&#233;fono..." oninput="agSearchCitas(this.value)" /><span class="ag-search-count" id="ag-search-count"></span><button class="ag-search-close" onclick="agClearSearch()" title="Cerrar b&#250;squeda">&times;</button></div></div><div style="font-size:11px;color:#9AAAC8;" id="ag-list-count">0 citas</div></div>
       <div class="wrap-sc" id="ag-content">
         <table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci&oacute;n</th></tr></thead>
         <tbody id="ag-tbody"><tr><td colspan="7" class="ld"><span class="sp"></span>Cargando...</td></tr></tbody></table>

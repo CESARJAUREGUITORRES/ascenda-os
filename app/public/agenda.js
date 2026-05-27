@@ -73,9 +73,40 @@ function renderKPIs(r){el('ag-total').textContent=r.total||0;el('ag-pend').textC
 
 function renderView(){
   var citas=filterCitas((AG.data&&AG.data.citas)||[]);
+  // ===== FILTRO BÚSQUEDA INLINE =====
+  var q=(AG.searchQ||'').trim().toLowerCase();
+  if(q.length>=2){
+    citas=citas.filter(function(c){
+      var cli=((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
+      var num=(c.numero_limpio||c.numero||'').replace(/\D/g,'');
+      var dni=(c.dni||'').toLowerCase();
+      var correo=(c.correo||c.email||'').toLowerCase();
+      return cli.indexOf(q)>=0||num.indexOf(q)>=0||dni.indexOf(q)>=0||correo.indexOf(q)>=0;
+    });
+    var sc=el('ag-search-count');if(sc)sc.textContent=citas.length+' encontrad'+(citas.length!==1?'os':'o');
+  } else {
+    var sc2=el('ag-search-count');if(sc2)sc2.textContent='';
+  }
   el('ag-list-count').textContent=citas.length+' cita'+(citas.length!==1?'s':'');
   if(AG.vista==='grid')renderGrid(citas);
   else renderList(citas);
+}
+
+// ===== BUSCADOR DE CITAS DEL DÍA =====
+AG.searchQ='';
+function agToggleSearch(){
+  var w=el('ag-search-wrap'),btn=el('ag-search-toggle'),inp=el('ag-search-input');
+  if(!w)return;
+  var isOpen=w.classList.contains('open');
+  if(isOpen){agClearSearch();}
+  else{w.classList.add('open');btn.classList.add('act');setTimeout(function(){if(inp)inp.focus();},150);}
+}
+function agSearchCitas(v){AG.searchQ=v;renderView();}
+function agClearSearch(){
+  AG.searchQ='';
+  var w=el('ag-search-wrap'),btn=el('ag-search-toggle'),inp=el('ag-search-input'),sc=el('ag-search-count');
+  if(w)w.classList.remove('open');if(btn)btn.classList.remove('act');if(inp)inp.value='';if(sc)sc.textContent='';
+  renderView();
 }
 
 function renderList(citas){
