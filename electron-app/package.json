@@ -1,0 +1,64 @@
+{
+  "name": "kronia-desktop",
+  "version": "1.0.0",
+  "description": "KronIA Desktop — Brain de AscendaOS flotando sobre tu escritorio",
+  "main": "src/main.js",
+  "author": "CREACTIVE OS",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder -mwl"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "pe.zivital.kronia",
+    "productName": "KronIA",
+    "copyright": "Copyright © 2026 CREACTIVE OS",
+    "directories": {
+      "output": "dist",
+      "buildResources": "src/assets"
+    },
+    "files": [
+      "src/**/*",
+      "!src/assets/build/**"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "src/assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KronIA",
+      "installerIcon": "src/assets/icon.png",
+      "uninstallerIcon": "src/assets/icon.png"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "src/assets/icon.png",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "src/assets/icon.png",
+      "category": "Office"
+    }
+  }
+}
