@@ -544,12 +544,49 @@ function toggleKronIA(){
 // ── Permisos + stream ────────────────────────────────────────────
 async function pedirPermiso(){
   kkState('idle');
+  setKKTxt('Verificando micrófono...');
+
+  /* 1) Verificar contexto seguro (HTTPS) */
+  if(!window.isSecureContext){
+    micReady=false; kkState('nomic');
+    setKKTxt('Error: requiere HTTPS');
+    pushAlert('Mic: requiere conexion segura HTTPS');
+    return;
+  }
+
+  /* 2) Verificar API disponible */
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    micReady=false; kkState('nomic');
+    setKKTxt('Tu navegador no soporta audio');
+    pushAlert('Mic: getUserMedia no disponible');
+    return;
+  }
+
+  /* 3) Verificar estado de permiso previo (Chrome/Edge) */
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const p = await navigator.permissions.query({name:'microphone'});
+      if(p.state === 'denied'){
+        micReady=false; kkState('nomic');
+        setKKTxt('Permiso denegado. Click candado URL para activar');
+        pushAlert('Mic: permiso denegado por el navegador. Abre el candado de la barra de direcciones > Microfono > Permitir');
+        return;
+      }
+    }
+  }catch(e){ /* no critical, browser sin permissions API */ }
+
   setKKTxt('Solicitando microfono...');
   try{
     const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
     tmp.getTracks().forEach(t=>t.stop());
     const devs=await navigator.mediaDevices.enumerateDevices();
     availableDevices=devs.filter(d=>d.kind==='audioinput');
+    if(availableDevices.length===0){
+      micReady=false; kkState('nomic');
+      setKKTxt('No se detectaron microfonos');
+      pushAlert('Mic: no hay dispositivos de entrada');
+      return;
+    }
     if(availableDevices.length>0)selectedDeviceId=availableDevices[0].deviceId;
     await startStream();
     micReady=true;
@@ -558,9 +595,15 @@ async function pedirPermiso(){
     waveReal();
   }catch(err){
     micReady=false; kkState('nomic');
-    const msg=err.name==='NotAllowedError'?'Permiso denegado.':err.name==='NotFoundError'?'Sin microfono.':'Error: '+err.name;
+    let msg='Error: '+err.name;
+    if(err.name==='NotAllowedError') msg='Permiso denegado. Click candado URL';
+    else if(err.name==='NotFoundError') msg='Sin microfono conectado';
+    else if(err.name==='NotReadableError') msg='Mic en uso por otra app';
+    else if(err.name==='OverconstrainedError') msg='Mic no compatible';
+    else if(err.name==='SecurityError') msg='Bloqueado por seguridad';
     setKKTxt(msg);
-    pushAlert('Mic: '+err.name);
+    pushAlert('Mic ('+err.name+'): '+msg);
+    console.warn('[Brain] Mic error:', err);
   }
 }
 
@@ -1180,8 +1223,35 @@ setInterval(checkProactiveEvents, 15000);
   if('serviceWorker' in navigator){
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('/sw-kronia.js')
-        .then(function(reg){ console.log('[KronIA PWA] SW registrado, scope:', reg.scope); })
+        .then(function(reg){
+          console.log('[KronIA PWA] SW registrado, scope:', reg.scope);
+
+          /* Buscar actualizaciones cada vez que se carga la pagina */
+          reg.update();
+
+          /* Detectar nueva version disponible */
+          reg.addEventListener('updatefound', function(){
+            var nuevo = reg.installing;
+            if(!nuevo) return;
+            nuevo.addEventListener('statechange', function(){
+              if(nuevo.state === 'installed' && navigator.serviceWorker.controller){
+                /* Hay version nueva: forzar activacion + recargar */
+                console.log('[KronIA PWA] Nueva version detectada, actualizando...');
+                nuevo.postMessage({type:'SKIP_WAITING'});
+              }
+            });
+          });
+        })
         .catch(function(e){ console.warn('[KronIA PWA] SW error:', e); });
+
+      /* Cuando el nuevo SW toma control, recargar para usar la version nueva */
+      var primerRefresh = true;
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        if(!primerRefresh) return;
+        primerRefresh = false;
+        console.log('[KronIA PWA] SW actualizado. Recargando...');
+        window.location.reload();
+      });
     });
   }
 
