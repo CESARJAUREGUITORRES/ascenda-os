@@ -200,9 +200,10 @@ canvas{position:fixed;inset:0;display:block}
 
 <div id="tt"><span id="tt-n"></span><div id="tt-b"></div></div>
 
+<script src="/kronia-core.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
-// ASCENDAOS BRAIN v3 + KRONIA v4.0 — PTT (Push-to-Talk)
+// ASCENDAOS BRAIN v3 + KRONIA v4.1 — usa kronia-core.js compartido
 // Sin palabras clave. Presiona → habla → suelta → KronIA responde.
 // ═══════════════════════════════════════════════════════════════
 
@@ -314,6 +315,19 @@ let selectedDeviceId=null, pendingDeviceId=null, availableDevices=[];
 let recognition=null, isRecording=false, micReady=false;
 const SESSION_ID='ses_'+Date.now();
 let memoria=[], ultimaInt=null, ultimoCtx={};
+
+// ═══ KroniaCore: nucleo compartido v1.0 ═══
+// Obtiene contexto de usuario del opener (Brain abre como popup desde app.html)
+let kUser = { usuario: 'CESAR', id_asesor: 'ZIV-001', rol: 'ADMIN', sede: '' };
+try {
+  if (window.opener && window.opener.AOS && window.opener.AOS.ctx) {
+    kUser.usuario = window.opener.AOS.ctx.nombre || 'CESAR';
+    kUser.id_asesor = window.opener.AOS.ctx.idAsesor || 'ZIV-001';
+    kUser.rol = window.opener.AOS.role || 'ADMIN';
+    kUser.sede = window.opener.AOS.ctx.sede || '';
+  }
+} catch(e) { /* sin opener: usa defaults */ }
+const kronia = window.KroniaCore.create({ user: kUser, onError: function(e){ console.warn('Kronia:', e); } });
 
 // VAD — deteccion de silencio para auto-stop
 let vadTimer=null, silenceMs=0;
@@ -571,37 +585,14 @@ async function processQuery(q){
   if(qn.match(/etiquet|tag/)) tablasMencionadas.push('aos_base_etiquetas');
   if(qn.match(/equipo|asesor|doctor|rrhh/)) tablasMencionadas.push('aos_rrhh');
   
-  // Llamar al endpoint nuevo de KronIA (mismo que el chat global)
-  // Obtener usuario/id del opener si existe (Brain se abre como window.open desde app.html)
-  let kUsuario = 'CESAR', kIdAsesor = 'ZIV-001', kRol = 'ADMIN';
-  try {
-    if (window.opener && window.opener.AOS && window.opener.AOS.ctx) {
-      kUsuario = window.opener.AOS.ctx.nombre || 'CESAR';
-      kIdAsesor = window.opener.AOS.ctx.idAsesor || 'ZIV-001';
-      kRol = window.opener.AOS.role || 'ADMIN';
-    }
-  } catch(e) {}
-  
+  // ─── Llamar a KroniaCore (nucleo compartido — mismos poderes que el chat mayor) ───
   let resp = '';
   try {
-    const r = await fetch('/api/kronia/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        pregunta: q,
-        usuario: kUsuario,
-        rol: kRol,
-        sede: '',
-        session_id: SESSION_ID,
-        historial: memoria.slice(0,4).reverse().flatMap(m => [{role:'user',content:m.q},{role:'assistant',content:m.r}]),
-        id_asesor: kIdAsesor
-      })
-    });
-    const d = await r.json();
-    if(d.ok) resp = d.respuesta || 'No tuve respuesta clara.';
-    else resp = d.error === 'Sesion no autorizada' ? 'Sesión no autorizada en KronIA.' : 'Error: '+(d.error||'no pude procesar');
+    const d = await kronia.chat(q, { session_id: SESSION_ID });
+    if (d.ok) resp = d.respuesta || 'No tuve respuesta clara.';
+    else resp = d.authExpired ? 'Sesion no autorizada en KronIA.' : ('Error: '+(d.error||'no pude procesar'));
   } catch(e) {
-    resp = 'Error de conexión con KronIA. Intenta de nuevo.';
+    resp = 'Error de conexion con KronIA. Intenta de nuevo.';
   }
   
   // Activar visualización de tablas en el canvas
@@ -724,19 +715,53 @@ navigator.mediaDevices.addEventListener('devicechange', async()=>{
 });
 
 // ── Supabase Realtime ────────────────────────────────────────────
+// FIX SES-038: arranque robusto con reintentos exponenciales para evitar
+// que aparezca "SIN CONEXION" en los primeros 30s cuando el DNS aun no
+// resolvio o Railway aun no cacheo. Antes: 1 chequeo y rojo hasta el proximo poll.
+let sbBackoff = 0;
+function setSBStatus(on, mensaje){
+  const dot = document.getElementById('sb-dot');
+  const lbl = document.getElementById('sb-lbl');
+  if(!dot || !lbl) return;
+  if(on === 'checking'){
+    dot.className = 'bc-dot';
+    lbl.className = '';
+    lbl.textContent = mensaje || 'Conectando...';
+    return;
+  }
+  dot.className = 'bc-dot' + (on ? ' on' : '');
+  lbl.className = on ? 'on' : '';
+  lbl.textContent = on ? (mensaje || 'Live · Supabase') : (mensaje || 'Sin conexión');
+}
 function checkSB(){
-  fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H}).then(r=>{
-    const on=r.ok;
-    document.getElementById('sb-dot').className='bc-dot'+(on?' on':'');
-    const lbl=document.getElementById('sb-lbl'); lbl.className=on?'on':''; lbl.textContent=on?'Live · Supabase':'Sin conexión';
-    if(!on)pushAlert('Supabase desconectado');
+  fetch(SB+'/rest/v1/aos_log_auditoria?select=id&limit=1',{headers:H, cache:'no-store'}).then(r=>{
+    if(r.ok){
+      sbBackoff = 0;
+      setSBStatus(true);
+    } else {
+      // 4xx no es "sin conexion" — es respuesta del servidor pero con error
+      sbBackoff++;
+      if(sbBackoff <= 3){
+        setSBStatus('checking', 'Reintentando...');
+        setTimeout(checkSB, Math.min(8000, 1500 * sbBackoff));
+      } else {
+        setSBStatus(false, 'Sin conexión (HTTP '+r.status+')');
+        pushAlert('Supabase: HTTP '+r.status);
+      }
+    }
   }).catch(()=>{
-    document.getElementById('sb-dot').className='bc-dot';
-    document.getElementById('sb-lbl').className='';
-    document.getElementById('sb-lbl').textContent='Sin conexión';
+    sbBackoff++;
+    if(sbBackoff <= 3){
+      setSBStatus('checking', 'Conectando...');
+      setTimeout(checkSB, Math.min(8000, 1500 * sbBackoff));
+    } else {
+      setSBStatus(false);
+    }
   });
 }
-checkSB(); setInterval(checkSB, 30000);
+setSBStatus('checking', 'Conectando...');
+setTimeout(checkSB, 600); /* primer check tras 600ms para dar tiempo al DNS */
+setInterval(checkSB, 30000);
 
 let ws=null, wsR=0;
 function connectRT(){
