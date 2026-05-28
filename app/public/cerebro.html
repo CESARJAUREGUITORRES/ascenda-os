@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=10">
 <title>AscendaOS · Brain · KronIA</title>
+<!-- PWA: permite instalar como app nativa en Chrome/Edge -->
+<link rel="manifest" href="/manifest-kronia.json">
+<meta name="theme-color" content="#0A4FBF">
+<meta name="application-name" content="KronIA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KronIA">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/icons/kronia-apple-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/kronia-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/kronia-512.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--blue:#0A4FBF;--blue2:#071D4A;--cyan:#00C9A7;--bg:#F8FAFE;--card:rgba(255,255,255,0.92);--muted:rgba(10,79,191,0.10);--t2:rgba(7,29,74,0.40);}
@@ -1160,6 +1171,82 @@ async function checkProactiveEvents(){
 /* Polling cada 15s */
 setTimeout(checkProactiveEvents, 3000); /* primer check tras 3s */
 setInterval(checkProactiveEvents, 15000);
+
+// ═══════════════════════════════════════════════════════════════
+// PWA: registrar service worker + boton de instalacion
+// ═══════════════════════════════════════════════════════════════
+(function setupPWA(){
+  /* Registrar SW si el navegador lo soporta */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw-kronia.js')
+        .then(function(reg){ console.log('[KronIA PWA] SW registrado, scope:', reg.scope); })
+        .catch(function(e){ console.warn('[KronIA PWA] SW error:', e); });
+    });
+  }
+
+  /* Capturar el prompt de instalacion para mostrarlo cuando queramos */
+  var deferredPrompt = null;
+  var installBtn = null;
+
+  function crearBotonInstalar(){
+    if(installBtn) return installBtn;
+    installBtn = document.createElement('button');
+    installBtn.id = 'kk-install-pwa';
+    installBtn.innerHTML = '&#x2B07; Instalar como app';
+    installBtn.title = 'Instalar KronIA como aplicacion nativa';
+    installBtn.style.cssText = [
+      'position:fixed','bottom:12px','left:50%','transform:translateX(-50%)',
+      'z-index:9999',
+      'background:linear-gradient(135deg,#00C9A7,#0A4FBF)','color:#fff',
+      'border:none','border-radius:20px','padding:8px 16px',
+      'font-family:inherit','font-size:11px','font-weight:700',
+      'letter-spacing:.04em','cursor:pointer',
+      'box-shadow:0 4px 16px rgba(10,79,191,0.35)',
+      'transition:transform .15s,opacity .15s',
+      'animation:kkInstallPulse 2.4s ease-in-out infinite'
+    ].join(';');
+    installBtn.onmouseenter = function(){ installBtn.style.transform = 'translateX(-50%) scale(1.06)'; };
+    installBtn.onmouseleave = function(){ installBtn.style.transform = 'translateX(-50%)'; };
+    installBtn.onclick = async function(){
+      if(!deferredPrompt) return;
+      installBtn.style.opacity = '.55';
+      deferredPrompt.prompt();
+      try{
+        var choice = await deferredPrompt.userChoice;
+        if(choice.outcome === 'accepted'){
+          installBtn.remove(); installBtn = null;
+          pushAlert('✓ KronIA instalada como app');
+        }
+      }catch(e){}
+      deferredPrompt = null;
+      if(installBtn) installBtn.style.opacity = '1';
+    };
+    /* Animacion pulse */
+    var st = document.createElement('style');
+    st.textContent = '@keyframes kkInstallPulse{0%,100%{box-shadow:0 4px 16px rgba(10,79,191,0.35)}50%{box-shadow:0 4px 22px rgba(0,201,167,0.55)}}';
+    document.head.appendChild(st);
+    document.body.appendChild(installBtn);
+    return installBtn;
+  }
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    crearBotonInstalar();
+  });
+
+  /* Si ya esta instalada (running standalone), ocultar boton */
+  window.addEventListener('appinstalled', function(){
+    if(installBtn){ installBtn.remove(); installBtn = null; }
+    pushAlert && pushAlert('✓ KronIA instalada como app');
+  });
+
+  /* Si la app ya esta corriendo como standalone, marcar body */
+  if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches){
+    document.body.classList.add('kronia-pwa-installed');
+  }
+})();
 
 </script>
 </body>
