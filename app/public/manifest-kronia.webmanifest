@@ -1,0 +1,43 @@
+{
+  "name": "KronIA · AscendaOS Brain",
+  "short_name": "KronIA",
+  "description": "Asistente AI flotante del Brain de AscendaOS — conversación por voz, notificaciones de ventas/citas/leads en tiempo real",
+  "lang": "es-PE",
+  "start_url": "/cerebro.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F8FAFE",
+  "theme_color": "#0A4FBF",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/kronia-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/kronia-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Abrir Brain",
+      "short_name": "Brain",
+      "description": "Visualización del sistema en vivo",
+      "url": "/cerebro.html",
+      "icons": [{ "src": "/icons/kronia-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AscendaOS completo",
+      "short_name": "AscendaOS",
+      "description": "Abrir el panel completo",
+      "url": "/app",
+      "icons": [{ "src": "/icons/kronia-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
