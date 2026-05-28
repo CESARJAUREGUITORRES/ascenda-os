@@ -800,18 +800,151 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
+  // ═══ KRONIA EXT — CORS PREFLIGHT GLOBAL para /api/kronia/* ═══
+  if (req.method === 'OPTIONS' && p.startsWith('/api/kronia/')) {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST,GET,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-AOS-User, X-AOS-Id, X-Kronia-Token'
+    })
+    res.end(); return
+  }
+
+  // ═══ KRONIA EXT — STEP 1: REQUEST CODE (envia codigo 2FA al email) ═══
+  // POST /api/kronia/login-request  { usuario }
+  // Reutiliza aos_login_v2 que ya envia codigo por email
+  if (p === '/api/kronia/login-request' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c){ body += c }); req.on('end', function(){
+      try {
+        var d = JSON.parse(body)
+        var usuario = (d.usuario || '').trim()
+        if (!usuario) { res.writeHead(400); res.end(JSON.stringify({ok:false, error:'Usuario requerido'})); return }
+        sbRpc('aos_login_v2', { p_usuario: usuario, p_origen: 'chrome_extension' }).then(function(r){
+          var out = Array.isArray(r) ? r[0] : r
+          res.writeHead(200, {'Content-Type':'application/json'})
+          res.end(JSON.stringify(out || {ok:false, error:'Sin respuesta del servidor'}))
+        }).catch(function(e){
+          res.writeHead(500); res.end(JSON.stringify({ok:false, error:'Error solicitando codigo: '+(e.message||e)}))
+        })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({ok:false, error:'JSON invalido'})) }
+    }); return
+  }
+
+  // ═══ KRONIA EXT — STEP 2: VERIFY CODE & EMIT TOKEN ═══
+  // POST /api/kronia/login-verify  { usuario, codigo }
+  // Valida el codigo 2FA y emite token de 24h
+  if (p === '/api/kronia/login-verify' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c){ body += c }); req.on('end', function(){
+      try {
+        var d = JSON.parse(body)
+        var usuario = (d.usuario || '').trim()
+        var codigo = (d.codigo || '').trim()
+        var deviceInfo = (d.device_info || '').slice(0,200)
+        var ipOrigen = req.headers['x-forwarded-for'] || req.connection.remoteAddress || ''
+        if (!usuario || !codigo) { res.writeHead(400); res.end(JSON.stringify({ok:false, error:'usuario y codigo requeridos'})); return }
+        // Paso 1: validar codigo 2FA
+        sbRpc('aos_verificar_2fa', { p_usuario: usuario, p_codigo: codigo }).then(function(r2){
+          var v = Array.isArray(r2) ? r2[0] : r2
+          if (!v || !v.ok) {
+            res.writeHead(401); res.end(JSON.stringify({ok:false, error:(v && v.error) || 'Codigo invalido'})); return
+          }
+          // Paso 2: emitir token de extension
+          sbRpc('aos_kronia_emitir_token', {
+            p_usuario: v.usuario || usuario,
+            p_id_asesor: v.id_asesor || v.codigo_asesor || null,
+            p_rol: v.rol || 'ASESOR',
+            p_sede: v.sede || null,
+            p_email: v.email || null,
+            p_device_info: deviceInfo,
+            p_ip_origen: String(ipOrigen).slice(0,80)
+          }).then(function(rt){
+            var t = Array.isArray(rt) ? rt[0] : rt
+            res.writeHead(200, {'Content-Type':'application/json'})
+            res.end(JSON.stringify(t || {ok:false, error:'No se pudo emitir token'}))
+          }).catch(function(e){
+            res.writeHead(500); res.end(JSON.stringify({ok:false, error:'Error emitiendo token: '+(e.message||e)}))
+          })
+        }).catch(function(e){
+          res.writeHead(500); res.end(JSON.stringify({ok:false, error:'Error validando codigo: '+(e.message||e)}))
+        })
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({ok:false, error:'JSON invalido'})) }
+    }); return
+  }
+
+  // ═══ KRONIA EXT — VERIFY TOKEN (refresca sesion) ═══
+  // GET /api/kronia/verify  con header Authorization: Bearer <token>
+  if (p === '/api/kronia/verify' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var authHeader = req.headers['authorization'] || ''
+    var tok = authHeader.replace(/^Bearer\s+/i,'').trim()
+    if (!tok) { res.writeHead(401); res.end(JSON.stringify({ok:false, error:'Token requerido'})); return }
+    sbRpc('aos_kronia_verify_token', { p_token: tok }).then(function(r){
+      var v = Array.isArray(r) ? r[0] : r
+      res.writeHead(v && v.ok ? 200 : 401, {'Content-Type':'application/json'})
+      res.end(JSON.stringify(v || {ok:false, error:'Sin respuesta'}))
+    }).catch(function(e){
+      res.writeHead(500); res.end(JSON.stringify({ok:false, error:'Error: '+(e.message||e)}))
+    })
+    return
+  }
+
+  // ═══ KRONIA EXT — LOGOUT (revoca token) ═══
+  if (p === '/api/kronia/logout' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var authHeader2 = req.headers['authorization'] || ''
+    var tok2 = authHeader2.replace(/^Bearer\s+/i,'').trim()
+    if (!tok2) { res.writeHead(400); res.end(JSON.stringify({ok:false, error:'Token requerido'})); return }
+    sbRpc('aos_kronia_revocar_token', { p_token: tok2 }).then(function(r){
+      var v = Array.isArray(r) ? r[0] : r
+      res.writeHead(200, {'Content-Type':'application/json'})
+      res.end(JSON.stringify(v || {ok:false}))
+    }).catch(function(e){
+      res.writeHead(500); res.end(JSON.stringify({ok:false, error:'Error: '+(e.message||e)}))
+    })
+    return
+  }
+
   // ═══ KRONIA CHAT — AI ASESOR CON CONTROL DE ROLES ═══
+  // Soporta dos modos de auth:
+  //   1) BEARER TOKEN (extension Chrome): header Authorization: Bearer <tok>
+  //      → datos del usuario salen del token (mas seguro: no se pueden suplantar)
+  //   2) BODY (chat interno / Brain): body con {usuario, id_asesor, rol, sede}
+  //      → flujo legado, valida que el usuario exista en aos_usuarios
   if (p === '/api/kronia/chat' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
+    var bearerHeader = req.headers['authorization'] || ''
+    var bearerTok = bearerHeader.replace(/^Bearer\s+/i,'').trim()
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
       try {
         var d = JSON.parse(body)
         var pregunta = (d.pregunta || '').trim()
+
+        // ═══ MODO 1: Bearer token (extension) ═══
+        if (bearerTok) {
+          sbRpc('aos_kronia_verify_token', { p_token: bearerTok }).then(function(rt){
+            var v = Array.isArray(rt) ? rt[0] : rt
+            if (!v || !v.ok) {
+              res.writeHead(401); res.end(JSON.stringify({error: (v && v.error) || 'Token invalido o expirado'})); return
+            }
+            // Datos del usuario salen del token (no del body, mas seguro)
+            d.usuario = v.usuario
+            d.id_asesor = v.id_asesor
+            d.rol = v.rol
+            d.sede = v.sede || d.sede || ''
+            procesarKroniaChat(d, pregunta, v.usuario, v.rol, d.sede, d.session_id || '', res)
+          }).catch(function(e){
+            res.writeHead(500); res.end(JSON.stringify({error:'Error validando token: '+(e.message||e)}))
+          })
+          return
+        }
+
+        // ═══ MODO 2: legado (chat interno / Brain) ═══
         var usuario = d.usuario || ''
         var rol = d.rol || 'asesor'
         var sede = d.sede || ''
         var sessionId = d.session_id || ''
-        // ═══ AUTH: validar que el usuario existe en aos_usuarios ═══
         validarSesionKronia(usuario, d.id_asesor || '').then(function(valido) {
           if (!valido) { res.writeHead(401); res.end(JSON.stringify({error:'Sesion no autorizada'})); return }
           procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res)
@@ -820,13 +953,22 @@ http.createServer(function(req, res) {
     }); return
   }
   // ═══ KRONIA WHISPER — VOICE TO TEXT ═══
+  // Acepta Bearer token (extension) o header X-AOS-User (flujo legado)
   if (p === '/api/kronia/whisper' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
-    // ═══ AUTH: validar usuario via header X-AOS-User ═══
+    var bearerW = (req.headers['authorization']||'').replace(/^Bearer\s+/i,'').trim()
     var authUser = req.headers['x-aos-user'] || ''
     var authId = req.headers['x-aos-id'] || ''
-    if (!authUser) { res.writeHead(401); res.end(JSON.stringify({error:'Falta header X-AOS-User'})); return }
     var chunks = []; req.on('data', function(c) { chunks.push(c) }); req.on('end', function() {
+      if (bearerW) {
+        sbRpc('aos_kronia_verify_token', { p_token: bearerW }).then(function(rt){
+          var v = Array.isArray(rt) ? rt[0] : rt
+          if (!v || !v.ok) { res.writeHead(401); res.end(JSON.stringify({error:(v&&v.error)||'Token invalido'})); return }
+          procesarWhisper(chunks, res)
+        }).catch(function(){ res.writeHead(500); res.end(JSON.stringify({error:'Error validando token'})) })
+        return
+      }
+      if (!authUser) { res.writeHead(401); res.end(JSON.stringify({error:'Falta auth (Bearer o X-AOS-User)'})); return }
       validarSesionKronia(authUser, authId).then(function(valido) {
         if (!valido) { res.writeHead(401); res.end(JSON.stringify({error:'Sesion no autorizada'})); return }
         procesarWhisper(chunks, res)
