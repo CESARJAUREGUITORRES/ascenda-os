@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KronIA</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div id="welcome" class="welcome hidden">
+  <div class="welcome-logo">K</div>
+  <h1>¡Bienvenido a KronIA!</h1>
+  <p>Tu asistente AI de AscendaOS ahora flota en cualquier pestaña del navegador.</p>
+  <div class="welcome-grid">
+    <div class="welcome-card">
+      <div class="welcome-card-icon">⌨</div>
+      <div class="welcome-card-title">Atajo rápido</div>
+      <div class="welcome-card-text">Presiona <kbd>Ctrl</kbd> + <kbd>K</kbd> en cualquier página</div>
+    </div>
+    <div class="welcome-card">
+      <div class="welcome-card-icon">🔵</div>
+      <div class="welcome-card-title">Botón flotante</div>
+      <div class="welcome-card-text">Aparece en la esquina inferior derecha de cada web</div>
+    </div>
+    <div class="welcome-card">
+      <div class="welcome-card-icon">🔒</div>
+      <div class="welcome-card-title">Login seguro</div>
+      <div class="welcome-card-text">Código 6 dígitos enviado a tu email</div>
+    </div>
+    <div class="welcome-card">
+      <div class="welcome-card-icon">🎤</div>
+      <div class="welcome-card-title">Voz o texto</div>
+      <div class="welcome-card-text">Pregunta hablando o escribiendo</div>
+    </div>
+  </div>
+  <button id="btn-empezar" class="primary-btn">Empezar</button>
+</div>
+
+<div id="main" class="main">
+  <header class="header">
+    <div class="header-logo">K</div>
+    <div class="header-titles">
+      <div class="header-title">KronIA</div>
+      <div class="header-status" id="status">Conectando...</div>
+    </div>
+    <button id="btn-logout" class="header-btn hidden" title="Cerrar sesión">⏻</button>
+  </header>
+
+  <div class="content" id="content">
+    <!-- Estado: no autenticado -->
+    <div id="login-view" class="view hidden">
+      <h2>Iniciar sesión</h2>
+      <p>Ingresa tu usuario de AscendaOS. Te enviaremos un código a tu email.</p>
+      <div id="login-step1" class="login-step active">
+        <label>Usuario</label>
+        <input type="text" id="login-usuario" placeholder="Tu usuario" autocomplete="username">
+        <button id="btn-pedir-codigo" class="primary-btn">Enviar código a mi email</button>
+      </div>
+      <div id="login-step2" class="login-step">
+        <div class="success-msg" id="codigo-ok"></div>
+        <label>Código de 6 dígitos</label>
+        <input type="text" id="login-codigo" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+        <button id="btn-verificar" class="primary-btn">Ingresar</button>
+        <button id="btn-volver" class="secondary-btn">← Cambiar usuario</button>
+      </div>
+      <div class="err-msg" id="login-err"></div>
+    </div>
+
+    <!-- Estado: autenticado (resumen rápido) -->
+    <div id="dashboard-view" class="view hidden">
+      <div class="dash-greeting">
+        Hola <span id="dash-user"></span> 👋
+      </div>
+      <p class="dash-hint">Abre KronIA en cualquier pestaña presionando <kbd>Ctrl</kbd>+<kbd>K</kbd> o tocando el botón redondo flotante.</p>
+
+      <div class="dash-section">
+        <div class="dash-section-title">Acciones rápidas</div>
+        <button class="action-btn" data-prompt="¿Cuántos leads tenemos este mes?">📊 Leads del mes</button>
+        <button class="action-btn" data-prompt="¿Cómo va la agenda hoy?">📅 Agenda hoy</button>
+        <button class="action-btn" data-prompt="¿Cuántas llamadas hizo el equipo hoy?">📞 Llamadas hoy</button>
+        <button class="action-btn" data-prompt="Resumen de ventas del mes">💰 Ventas del mes</button>
+      </div>
+
+      <div class="dash-section">
+        <div class="dash-section-title">Pregunta directa</div>
+        <textarea id="quick-q" placeholder="Pregunta a KronIA..."></textarea>
+        <button id="btn-quick-send" class="primary-btn">Preguntar</button>
+      </div>
+
+      <div id="quick-resp" class="quick-resp hidden"></div>
+    </div>
+  </div>
+</div>
+
+<script src="kronia-core.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

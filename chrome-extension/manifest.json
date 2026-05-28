@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "KronIA — Asistente AI de AscendaOS",
+  "short_name": "KronIA",
+  "version": "1.0.0",
+  "description": "Asistente AI flotante de AscendaOS. Accede a leads, agenda, ventas y ejecuta acciones desde cualquier pestaña del navegador.",
+  "author": "CREACTIVE OS",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Abrir KronIA",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": [
+        "https://chrome.google.com/*",
+        "https://chromewebstore.google.com/*"
+      ],
+      "js": ["kronia-core.js", "content-script.js"],
+      "css": ["content-style.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://ascenda-os-production.up.railway.app/*",
+    "https://ituyqwstonmhnfshnaqz.supabase.co/*"
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+K",
+        "mac": "Command+K"
+      },
+      "description": "Abrir/cerrar KronIA"
+    },
+    "toggle-floating": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Mostrar/ocultar botón flotante"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
