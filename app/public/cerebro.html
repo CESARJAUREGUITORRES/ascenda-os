@@ -69,6 +69,70 @@ canvas{position:fixed;inset:0;display:block}
   flex-direction:column;gap:6px;align-items:stretch;
   cursor:default;
 }
+/* ── ESTADO MINI RECTANGULAR (compacto siempre encima) ── */
+#kronia.mini{
+  width:280px;height:60px;border-radius:30px;
+  padding:8px 8px 8px 14px;
+  background:var(--card);
+  border:1.5px solid rgba(0,201,167,0.30);
+  box-shadow:0 6px 22px rgba(10,79,191,0.18), 0 2px 6px rgba(0,0,0,0.08);
+  flex-direction:row;gap:8px;align-items:center;
+  cursor:default;
+  -webkit-app-region:no-drag; /* compat Electron futuro */
+}
+#kronia.mini #kk-chip-icon{display:none}
+#kronia.mini #kk-inner{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%}
+#kronia.mini .kk-top{display:flex;align-items:center;gap:5px;flex-shrink:0}
+#kronia.mini #kk-cv{flex:1;height:32px;border-radius:16px;background:rgba(0,201,167,0.06);min-width:60px}
+#kronia.mini #kk-txt{display:none}
+#kronia.mini #tap-hint{display:none}
+#kronia.mini #btn-tap{
+  width:42px;height:42px;flex-shrink:0;font-size:17px;
+  box-shadow:0 2px 10px rgba(0,201,167,0.40);
+  margin:0;
+}
+#kronia.mini .kk-name{font-size:10px;font-weight:800}
+#kronia.mini #kk-st{display:none}
+#kronia.mini #kk-close{display:none}
+#kronia.mini .kk-mini-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.kk-mini-btn{
+  background:none;border:none;cursor:pointer;
+  width:22px;height:22px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t2);font-size:13px;line-height:1;
+  transition:background .15s,color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.kk-mini-btn:hover{background:rgba(0,201,167,0.10);color:var(--blue)}
+#kronia.expanded .kk-mini-actions{display:none}
+/* En expanded mostramos un botón minimizar */
+.kk-expanded-min{display:none;background:none;border:none;cursor:pointer;color:var(--t2);font-size:14px;padding:0 4px;line-height:1;flex-shrink:0}
+#kronia.expanded .kk-expanded-min{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;transition:background .15s}
+.kk-expanded-min:hover{background:rgba(0,201,167,0.10);color:var(--blue)}
+/* ── NOTIFICACION PROACTIVA (toast sobre el mini) ── */
+#kk-proactive{
+  position:absolute;bottom:calc(100% + 8px);right:0;
+  width:280px;max-width:84vw;
+  background:linear-gradient(145deg,rgba(0,201,167,0.95),rgba(10,79,191,0.95));
+  color:#fff;
+  border-radius:12px;padding:9px 12px;
+  box-shadow:0 8px 24px rgba(10,79,191,0.30);
+  font-size:11px;line-height:1.4;font-weight:600;
+  opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;
+  pointer-events:none;
+  display:none;
+}
+#kk-proactive.show{opacity:1;transform:none;pointer-events:all;display:block;animation:kkPing 1.6s ease-out}
+#kk-proactive::after{
+  content:'';position:absolute;bottom:-6px;right:24px;
+  width:12px;height:12px;background:inherit;
+  transform:rotate(45deg);border-radius:2px;
+}
+@keyframes kkPing{
+  0%{box-shadow:0 0 0 0 rgba(0,201,167,0.4)}
+  60%{box-shadow:0 0 0 14px rgba(0,201,167,0)}
+  100%{box-shadow:0 0 0 0 rgba(0,201,167,0)}
+}
 #kk-chip-icon{font-size:21px;line-height:1;color:#fff;transition:opacity .2s;flex-shrink:0}
 #kronia.expanded #kk-chip-icon{display:none}
 #kk-inner{display:none;flex-direction:column;gap:6px;width:100%}
@@ -160,20 +224,26 @@ canvas{position:fixed;inset:0;display:block}
   <div id="nr"></div>
   <div id="nb"></div>
 
-  <!-- KronIA chip flotante v5 -->
+  <!-- KronIA chip flotante v6 — 3 estados: burbuja / mini / expanded -->
   <div id="kronia">
+    <div id="kk-proactive"></div>
     <span id="kk-chip-icon">&#127908;</span>
     <div id="kk-inner">
       <div class="kk-top">
         <div id="kk-dot"></div>
         <span class="kk-name">KronIA</span>
         <span id="kk-st">Toca para hablar</span>
-        <button id="kk-close">&#215;</button>
+        <button class="kk-expanded-min" id="kk-btn-mini" title="Minimizar">&#8211;</button>
+        <button id="kk-close" title="Cerrar">&#215;</button>
       </div>
       <canvas id="kk-cv"></canvas>
       <div id="kk-txt">...</div>
       <button id="btn-tap">&#127908;</button>
       <div id="tap-hint">Toca &middot; Habla &middot; Para solo</div>
+      <div class="kk-mini-actions">
+        <button class="kk-mini-btn" id="kk-btn-expand" title="Abrir Brain completo">&#9744;</button>
+        <button class="kk-mini-btn" id="kk-btn-bubble" title="Cerrar a burbuja">&#215;</button>
+      </div>
     </div>
   </div>
   <div id="ctrls">
@@ -377,16 +447,43 @@ function kkState(s){
   }
 }
 
-// ── Chip: expand / collapse ──────────────────────────────────────
-function expandKK(){
-  document.getElementById('kronia').classList.add('expanded');
-  kkExpanded=true;
+// ── Chip: 3 estados (burbuja / mini / expanded) ──────────────────
+// burbuja  = .vis             (50x50 redondo, click → mini)
+// mini     = .vis .mini       (280x60 rectangular, siempre encima)
+// expanded = .vis .expanded   (modal completo del Brain)
+let kkMode = 'closed'; // 'closed' | 'bubble' | 'mini' | 'expanded'
+
+function setKKMode(mode){
+  const el = document.getElementById('kronia');
+  if(!el) return;
+  el.classList.remove('expanded','mini');
+  if(mode === 'closed'){
+    el.classList.remove('vis');
+    kkVis = false; kkExpanded = false;
+    stopWave();
+  } else if(mode === 'bubble'){
+    el.classList.add('vis');
+    kkVis = true; kkExpanded = false;
+    stopWave();
+  } else if(mode === 'mini'){
+    el.classList.add('vis','mini');
+    kkVis = true; kkExpanded = false; /* mini cuenta como NO-expanded para UI */
+    if(analyser) waveReal(); else waveSynth('listen');
+  } else if(mode === 'expanded'){
+    el.classList.add('vis','expanded');
+    kkVis = true; kkExpanded = true;
+    if(analyser) waveReal(); else waveSynth('listen');
+  }
+  kkMode = mode;
+  /* Guardar preferencia */
+  try{ localStorage.setItem('kk_last_mode', mode); }catch(e){}
 }
-function collapseKK(){
-  document.getElementById('kronia').classList.remove('expanded');
-  kkExpanded=false;
-  stopWave();
-}
+
+function expandKK(){ setKKMode('expanded'); }
+function collapseKK(){ setKKMode('mini'); }    /* legacy: ahora colapsa a mini, no a burbuja */
+function bubbleKK(){ setKKMode('bubble'); }
+function miniKK(){ setKKMode('mini'); }
+
 function setKKTxt(t){
   const el=document.getElementById('kk-txt');
   if(el)el.textContent=t;
@@ -402,7 +499,8 @@ function kkSpeak(text){
   setKKTxt(text);
   kkState('speaking');
   waveSynth('speak');
-  expandKK();
+  /* Si esta cerrado o en burbuja, abrir en mini para escuchar/mostrar */
+  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
   u.onend=()=>{
     isSpeaking=false;
     kkState('idle');
@@ -414,21 +512,21 @@ function kkSpeak(text){
 }
 
 // ── Toggle KronIA (boton barra inferior) ─────────────────────────
+// Comportamiento por defecto del boton inferior:
+//   cerrado → mini ; mini → expanded ; expanded → mini
 function toggleKronIA(){
-  if(!kkVis){
-    kkVis=true;
-    document.getElementById('kronia').classList.add('vis');
+  if(kkMode === 'closed'){
+    setKKMode('mini');
     document.getElementById('btn-kk').classList.add('on');
-    expandKK();
     pedirPermiso();
-  } else if(!kkExpanded){
-    expandKK();
-    if(!micReady)pedirPermiso();
-  } else {
-    stopMic();kkVis=false;kkExpanded=false;
-    document.getElementById('kronia').classList.remove('vis','expanded');
-    document.getElementById('btn-kk').classList.remove('on');
-    stopWave();
+  } else if(kkMode === 'bubble'){
+    setKKMode('mini');
+    if(!micReady) pedirPermiso();
+  } else if(kkMode === 'mini'){
+    setKKMode('expanded');
+    if(!micReady) pedirPermiso();
+  } else { /* expanded → mini (no cerrar del todo desde aqui) */
+    setKKMode('mini');
   }
 }
 
@@ -851,14 +949,26 @@ document.getElementById('btn-fs').addEventListener('click', ()=>{
   else{ document.exitFullscreen(); document.getElementById('btn-fs').textContent='⛶ Pantalla completa'; }
 });
 
-// ── Event listeners KronIA v5 ────────────────────────────────────
-// Chip cerrado: tap abre y activa microfono
+// ── Event listeners KronIA v6 (3 estados) ────────────────────────
+// Click sobre la burbuja: pasa a mini (rectangulo compacto)
 document.getElementById('kronia').addEventListener('click',function(e){
-  if(!kkExpanded){expandKK();if(!micReady)pedirPermiso();}
+  if(kkMode === 'bubble'){ setKKMode('mini'); if(!micReady) pedirPermiso(); }
 });
-// Boton cerrar panel
+// Boton MINIMIZAR (en expanded) → pasa a mini
+document.getElementById('kk-btn-mini').addEventListener('click',function(e){
+  e.stopPropagation(); setKKMode('mini');
+});
+// Boton EXPANDIR (en mini) → pasa a expanded
+document.getElementById('kk-btn-expand').addEventListener('click',function(e){
+  e.stopPropagation(); setKKMode('expanded');
+});
+// Boton CERRAR mini → pasa a burbuja
+document.getElementById('kk-btn-bubble').addEventListener('click',function(e){
+  e.stopPropagation(); setKKMode('bubble');
+});
+// Boton CERRAR panel completo (kk-close, ahora solo se ve en expanded como X)
 document.getElementById('kk-close').addEventListener('click',function(e){
-  e.stopPropagation();collapseKK();
+  e.stopPropagation();setKKMode('mini');
 });
 // Boton tap — click y touch
 const btnTap=document.getElementById('btn-tap');
@@ -869,6 +979,187 @@ navigator.mediaDevices.addEventListener('devicechange', async()=>{
   const devs = await navigator.mediaDevices.enumerateDevices();
   availableDevices = devs.filter(d=>d.kind==='audioinput');
 });
+
+// ═══════════════════════════════════════════════════════════════
+// DRAG: el chip se puede arrastrar (en mini y expanded)
+// La posicion se guarda en localStorage para persistir
+// ═══════════════════════════════════════════════════════════════
+(function setupDrag(){
+  const el = document.getElementById('kronia');
+  if(!el) return;
+  let drag = { active:false, startX:0, startY:0, origLeft:0, origTop:0, moved:false };
+  function down(e){
+    /* No arrastrar si el target es un boton interno */
+    if(e.target && (e.target.closest('button') || e.target.closest('canvas'))) return;
+    /* Solo arrastrable cuando esta visible */
+    if(kkMode === 'closed') return;
+    const r = el.getBoundingClientRect();
+    drag.active = true; drag.moved = false;
+    const pt = e.touches ? e.touches[0] : e;
+    drag.startX = pt.clientX; drag.startY = pt.clientY;
+    drag.origLeft = r.left; drag.origTop = r.top;
+    el.style.transition = 'none';
+  }
+  function move(e){
+    if(!drag.active) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - drag.startX;
+    const dy = pt.clientY - drag.startY;
+    if(Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
+    if(drag.moved){
+      el.style.left = (drag.origLeft + dx) + 'px';
+      el.style.top  = (drag.origTop + dy) + 'px';
+      el.style.right = 'auto'; el.style.bottom = 'auto';
+      if(e.cancelable) e.preventDefault();
+    }
+  }
+  function up(){
+    if(!drag.active) return;
+    el.style.transition = '';
+    if(drag.moved){
+      /* Limitar a viewport */
+      const r = el.getBoundingClientRect();
+      const maxL = window.innerWidth - r.width - 4;
+      const maxT = window.innerHeight - r.height - 4;
+      if(r.left < 4){ el.style.left = '4px'; }
+      else if(r.left > maxL){ el.style.left = maxL + 'px'; }
+      if(r.top < 4){ el.style.top = '4px'; }
+      else if(r.top > maxT){ el.style.top = maxT + 'px'; }
+      /* Guardar posicion */
+      try{
+        localStorage.setItem('kk_pos', JSON.stringify({
+          left: el.style.left, top: el.style.top
+        }));
+      }catch(_){}
+    }
+    drag.active = false;
+    /* Prevent click event si hubo drag */
+    if(drag.moved) setTimeout(()=>{drag.moved=false;}, 50);
+  }
+  el.addEventListener('mousedown', down);
+  el.addEventListener('touchstart', down, {passive:true});
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('mouseup', up);
+  document.addEventListener('touchend', up);
+  /* Restaurar posicion al cargar */
+  try{
+    const saved = localStorage.getItem('kk_pos');
+    if(saved){
+      const p = JSON.parse(saved);
+      if(p.left) el.style.left = p.left;
+      if(p.top)  el.style.top  = p.top;
+      if(p.left || p.top){ el.style.right = 'auto'; el.style.bottom = 'auto'; }
+    }
+  }catch(_){}
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// PROACTIVIDAD: KronIA detecta eventos importantes y HABLA
+// ═══════════════════════════════════════════════════════════════
+// Reusa el polling existente de aos_log_auditoria (cada 8s)
+// Cuando detecta una venta nueva, cita o lead → habla en voz alta + toast
+let proactiveLastIds = { ventas:0, agenda:0, leads:0 };
+let proactiveInit = false;
+let proactiveEnabled = true;
+let proactiveCooldown = 0; /* evita avisos en cascada */
+
+function showProactiveToast(texto, ms){
+  const el = document.getElementById('kk-proactive');
+  if(!el) return;
+  el.textContent = texto;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{
+    el.classList.remove('show');
+  }, ms || 7000);
+}
+
+function speakProactive(mensaje){
+  if(!proactiveEnabled) return;
+  const now = Date.now();
+  if(now - proactiveCooldown < 6000) return; /* no avisar 2 cosas en 6s */
+  proactiveCooldown = now;
+  /* Mostrar toast */
+  showProactiveToast(mensaje, 8000);
+  /* Si KronIA esta cerrada, abrir en mini para mostrar */
+  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
+  /* Hablar */
+  if(!isSpeaking){
+    kkSpeak(mensaje);
+  } else {
+    /* Si esta hablando, esperar y reintentar */
+    setTimeout(()=>kkSpeak(mensaje), 1500);
+  }
+}
+
+async function checkProactiveEvents(){
+  try{
+    /* Solo despues del primer init para no avisar de eventos antiguos */
+    if(!proactiveInit){
+      /* Init: capturar el id mas reciente de cada categoria */
+      const [v,a,l] = await Promise.all([
+        fetch(SB+'/rest/v1/aos_ventas?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).catch(()=>[]),
+        fetch(SB+'/rest/v1/aos_agenda_citas?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).catch(()=>[]),
+        fetch(SB+'/rest/v1/aos_leads?select=id&order=id.desc&limit=1',{headers:H}).then(r=>r.json()).catch(()=>[])
+      ]);
+      proactiveLastIds.ventas = (v[0]&&v[0].id) || 0;
+      proactiveLastIds.agenda = (a[0]&&a[0].id) || 0;
+      proactiveLastIds.leads  = (l[0]&&l[0].id) || 0;
+      proactiveInit = true;
+      return;
+    }
+
+    /* Detectar nuevas ventas */
+    const nuevasVentas = await fetch(
+      SB+'/rest/v1/aos_ventas?select=id,nombres,apellidos,tratamiento,monto,asesor&id=gt.'+proactiveLastIds.ventas+'&order=id.asc&limit=5',
+      {headers:H}
+    ).then(r=>r.json()).catch(()=>[]);
+    if(Array.isArray(nuevasVentas) && nuevasVentas.length){
+      const v0 = nuevasVentas[0];
+      const cliente = ((v0.nombres||'') + ' ' + (v0.apellidos||'')).trim() || 'un cliente';
+      const trat = v0.tratamiento || 'un servicio';
+      const monto = v0.monto ? ('soles '+Math.round(v0.monto)) : '';
+      const asesor = v0.asesor ? (' por '+v0.asesor) : '';
+      const extra = nuevasVentas.length > 1 ? (' y '+(nuevasVentas.length-1)+' venta'+(nuevasVentas.length>2?'s':'')+' mas') : '';
+      speakProactive('Nueva venta: '+cliente+', '+trat+'. '+monto+asesor+extra+'.');
+      activateTable('aos_ventas','INSERT');
+      proactiveLastIds.ventas = nuevasVentas[nuevasVentas.length-1].id;
+    }
+
+    /* Detectar nuevas citas */
+    if(!nuevasVentas.length){ /* prioridad: ventas > citas > leads */
+      const nuevasCitas = await fetch(
+        SB+'/rest/v1/aos_agenda_citas?select=id,nombre,tratamiento,fecha_cita,hora_cita,sede&id=gt.'+proactiveLastIds.agenda+'&order=id.asc&limit=3',
+        {headers:H}
+      ).then(r=>r.json()).catch(()=>[]);
+      if(Array.isArray(nuevasCitas) && nuevasCitas.length){
+        const c0 = nuevasCitas[0];
+        speakProactive('Nueva cita: '+(c0.nombre||'paciente')+', '+(c0.tratamiento||'')+(c0.fecha_cita?', el '+c0.fecha_cita:'')+(c0.sede?' en '+c0.sede:'')+'.');
+        activateTable('aos_agenda_citas','INSERT');
+        proactiveLastIds.agenda = nuevasCitas[nuevasCitas.length-1].id;
+      }
+    }
+
+    /* Detectar leads nuevos */
+    const nuevosLeads = await fetch(
+      SB+'/rest/v1/aos_leads?select=id&id=gt.'+proactiveLastIds.leads+'&order=id.asc',
+      {headers:H}
+    ).then(r=>r.json()).catch(()=>[]);
+    if(Array.isArray(nuevosLeads) && nuevosLeads.length >= 5){
+      /* Solo avisar cuando entran varios juntos (importacion) */
+      speakProactive('Entraron '+nuevosLeads.length+' leads nuevos a la base.');
+      activateTable('aos_leads','INSERT');
+      proactiveLastIds.leads = nuevosLeads[nuevosLeads.length-1].id;
+    } else if(Array.isArray(nuevosLeads) && nuevosLeads.length){
+      proactiveLastIds.leads = nuevosLeads[nuevosLeads.length-1].id;
+    }
+  }catch(e){ /* silencioso */ }
+}
+
+/* Polling cada 15s */
+setTimeout(checkProactiveEvents, 3000); /* primer check tras 3s */
+setInterval(checkProactiveEvents, 15000);
 
 </script>
 </body>
