@@ -8,7 +8,11 @@ const PORT = parseInt(process.env.PORT || '4173', 10)
 const PUB  = path.join(__dirname, 'public')
 const MIME = {
   '.html':'text/html; charset=utf-8','.js':'application/javascript',
-  '.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon'
+  '.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon',
+  '.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json',
+  '.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf',
+  '.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif',
+  '.txt':'text/plain; charset=utf-8','.map':'application/json'
 }
 
 // ═══ SUPABASE ═══
