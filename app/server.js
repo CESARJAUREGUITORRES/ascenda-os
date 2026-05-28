@@ -300,6 +300,21 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(Promise.resolve(null))
         }
 
+        /* ═══ STATS GLOBALES KRONIA (índices 10-13) ═══
+           Carga condicional: solo trae el bloque pesado cuando la pregunta lo menciona.
+           Si no menciona nada específico, carga leads+agenda (lo más consultado a diario). */
+        var pq = pregunta.toLowerCase()
+        var pideLeads     = /lead|prospecto|campaña|campana|anuncio|importad/.test(pq)
+        var pideAgenda    = /cita|agenda|agendad|asisti|no asist|reprogram|doctora|turno|programad/.test(pq)
+        var pideLlamadas  = /llamad|llamó|llamo|contact|marcar|gestion telef|tipificac/.test(pq)
+        var pidePacientes = /paciente|cliente nuevo|clientes nuevos|cartera|activos|registrad|base de datos/.test(pq)
+        /* Si no pide nada concreto, dar lo esencial del día: leads + agenda */
+        var sinFoco = !pideLeads && !pideAgenda && !pideLlamadas && !pidePacientes
+        contextQueries.push((pideLeads     || sinFoco) ? sbRpc('aos_kronia_stats_leads', {})     : Promise.resolve(null))
+        contextQueries.push((pideAgenda    || sinFoco) ? sbRpc('aos_kronia_stats_agenda', {})    : Promise.resolve(null))
+        contextQueries.push((pideLlamadas)             ? sbRpc('aos_kronia_stats_llamadas', {})  : Promise.resolve(null))
+        contextQueries.push((pidePacientes)            ? sbRpc('aos_kronia_stats_pacientes', {}) : Promise.resolve(null))
+
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
           var panelData = results[1] || {}
@@ -311,6 +326,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var ventasEjecutor = results[7] || null
           var ventasMencionadas = results[8] || null
           var segEjecutor = results[9] || null
+          var statsLeads = results[10] || null
+          var statsAgenda = results[11] || null
+          var statsLlamadas = results[12] || null
+          var statsPacientes = results[13] || null
           
           // Combinar ventas recientes + mencionadas (priorizar mencionadas, deduplicar)
           if (ventasMencionadas && ventasMencionadas.length > 0) {
@@ -377,22 +396,62 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if(seguimientos && seguimientos.length){var segPend = seguimientos.filter(function(s){return s.ESTADO==='PENDIENTE'}).length; var segVenc = seguimientos.filter(function(s){return s.ESTADO==='VENCIDO'}).length; datosCtx+='\nSEGUIMIENTOS (muestra): '+segPend+' pendientes, '+segVenc+' vencidos en muestra'}
           }
 
+          /* ═══ STATS OPERATIVAS DEL DÍA A DÍA (admin y asesor) ═══ */
+          if(statsLeads){
+            var sl=statsLeads
+            datosCtx+='\n\n--- LEADS ---'
+            datosCtx+='\nLEADS: hoy='+(sl.hoy||0)+' | esta semana='+(sl.semana||0)+' | este mes='+(sl.mes||0)+' | histórico total='+(sl.historico||0)
+            datosCtx+='\nCONVERSIÓN A CITA (mes): '+(sl.conversion_pct||0)+'% ('+(sl.convertidos_mes||0)+' de '+(sl.mes||0)+' leads ya tienen cita)'
+            if(sl.por_tratamiento){datosCtx+='\nLEADS MES POR TRATAMIENTO: '+Object.keys(sl.por_tratamiento).map(function(k){return k+':'+sl.por_tratamiento[k]}).join(', ')}
+            if(sl.por_anuncio){datosCtx+='\nTOP ANUNCIOS MES: '+Object.keys(sl.por_anuncio).map(function(k){return k+':'+sl.por_anuncio[k]}).join(' | ')}
+          }
+          if(statsAgenda){
+            var sa=statsAgenda
+            datosCtx+='\n\n--- AGENDA / CITAS ---'
+            datosCtx+='\nCITAS: hoy='+(sa.citas_hoy||0)+' | esta semana='+(sa.citas_semana||0)+' | este mes='+(sa.citas_mes||0)
+            if(sa.hoy_por_estado){datosCtx+='\nCITAS HOY POR ESTADO: '+Object.keys(sa.hoy_por_estado).map(function(k){return k+':'+sa.hoy_por_estado[k]}).join(', ')}
+            if(sa.mes_por_estado){datosCtx+='\nCITAS MES POR ESTADO: '+Object.keys(sa.mes_por_estado).map(function(k){return k+':'+sa.mes_por_estado[k]}).join(', ')}
+            if(sa.mes_por_sede){datosCtx+='\nCITAS MES POR SEDE: '+Object.keys(sa.mes_por_sede).map(function(k){return k+':'+sa.mes_por_sede[k]}).join(', ')}
+            if(sa.hoy_detalle&&sa.hoy_detalle.length){datosCtx+='\nDETALLE CITAS HOY: '+sa.hoy_detalle.map(function(c){return c.hora+' '+c.nombre+' ('+c.tratamiento+') '+c.sede+' ·'+c.estado}).join(' | ')}
+          }
+          if(statsLlamadas){
+            var sll=statsLlamadas
+            datosCtx+='\n\n--- LLAMADAS ---'
+            datosCtx+='\nLLAMADAS: hoy='+(sll.llam_hoy||0)+' | esta semana='+(sll.llam_semana||0)+' | este mes='+(sll.llam_mes||0)+' | minutos mes='+(sll.minutos_mes||0)
+            if(sll.mes_por_asesor){datosCtx+='\nLLAMADAS MES POR ASESOR: '+Object.keys(sll.mes_por_asesor).map(function(k){return k+':'+sll.mes_por_asesor[k]}).join(', ')}
+            if(sll.mes_por_estado){datosCtx+='\nLLAMADAS MES POR TIPIFICACIÓN: '+Object.keys(sll.mes_por_estado).map(function(k){return k+':'+sll.mes_por_estado[k]}).join(', ')}
+          }
+          if(statsPacientes){
+            var sp=statsPacientes
+            datosCtx+='\n\n--- PACIENTES ---'
+            datosCtx+='\nPACIENTES: total='+(sp.total||0)+' | nuevos este mes='+(sp.nuevos_mes||0)+' | activos (90d)='+(sp.activos_90d||0)+' | con compras='+(sp.con_compras||0)
+            if(sp.por_estado){datosCtx+='\nPACIENTES POR ESTADO: '+Object.keys(sp.por_estado).map(function(k){return k+':'+sp.por_estado[k]}).join(', ')}
+          }
+
           var systemPrompt = 'Eres KronIA, asistente AI de Zi Vital (clinica de medicina estetica, Lima, Peru). '+
-            'Personalidad: profesional, cercana, util. Respondes conciso. Cuando pidan script de venta, da dialogo natural. '+
+            'Eres parte del equipo de Zi Vital, no un bot generico. Hablas natural, directo y cercano, como una colega que conoce el negocio. '+
+            'Tono peruano profesional pero humano: nada de respuestas roboticas ni formales de mas. Si te saludan, saluda. Si te piden un dato, dalo al toque. '+
+            'Respondes conciso por defecto, pero te extiendes cuando el tema lo amerita (un analisis, un script de venta, un plan). '+
+            'Cuando pidan script o mensaje para cliente, escribe el dialogo natural listo para copiar.\\n\\n'+
+            'COMO USAR TUS DATOS:\\n'+
+            'Abajo en este prompt tienes secciones con datos REALES y actualizados de la clinica (LEADS, AGENDA/CITAS, LLAMADAS, PACIENTES, VENTAS, INVENTARIO, etc). '+
+            'Esos son tus datos en vivo: usalos para responder con cifras concretas. Cuando te pregunten "cuantos leads este mes", "cuantas citas hoy", "como va la cartera", etc., '+
+            'la respuesta esta en esas secciones — leela y respondela directo con el numero.\\n'+
+            'REGLA DE ORO sobre acceso: NUNCA digas frases como "no tengo acceso" o "no puedo ver esa informacion" de forma seca. '+
+            'Si el dato exacto NO aparece en las secciones de abajo, di con naturalidad: "Ese dato puntual no lo tengo cargado en este momento, pero puedo consultarlo si me das un poco mas de detalle" '+
+            'o sugiere la forma de obtenerlo. La diferencia importa: tu SI tienes acceso al sistema, solo que a veces un dato muy especifico no esta pre-cargado en esta consulta.\\n\\n'+
             'ACCESO POR ROL: '+
             (esAdmin ?
-              'Usuario ADMIN (super administrador) con acceso TOTAL a toda la informacion de la empresa. '+
-              'DEBES RESPONDER SIEMPRE las consultas del admin con los datos del contexto. '+
-              'Datos disponibles en el contexto para admin: ventas totales del mes y dia, facturacion total y por sede/asesor/tratamiento, '+
-              'metodos de pago, comisiones, inventario por sede, leads de hoy, seguimientos, historico anual de ventas. '+
-              'NUNCA digas que no tienes acceso — eres el admin y tienes acceso a todo. Si un dato especifico no esta en el contexto, '+
-              'di que necesitas usar una herramienta especifica para consultarlo (como buscar_venta o buscar_paciente) pero NUNCA que no tienes acceso.' :
-              'Usuario ASESOR "'+usuario+'". PUEDE VER LIBREMENTE: sus propias ventas, sus clientes y cuanto facturo con cada uno, sus comisiones, sus llamadas y metricas, '+
-              'datos de pacientes que gestiono (historial, atenciones, citas), inventario por sede, catalogo completo, precios, sus leads importados. '+
-              'RESPONDE CON DATOS CONCRETOS cuando pregunte sobre su informacion — nombres, montos, fechas, tratamientos. '+
-              'UNICO BLOQUEO: Si pide datos de OTRO asesor por nombre, ventas/comisiones de otros companeros, facturacion GLOBAL de la empresa, '+
-              'resultados de campanas de marketing, o informacion administrativa interna, ENTONCES responde: '+
-              '"Esta informacion requiere nivel de acceso Administrador." y sugiere consultar sus propios datos.')+
+              'Eres asistente del ADMIN (Cesar, dueno de la clinica): acceso total a toda la informacion. '+
+              'Tienes en el contexto: leads (hoy/semana/mes/historico + conversion + por tratamiento/anuncio), citas (hoy/semana/mes por estado/sede/doctora + detalle del dia), '+
+              'llamadas (hoy/semana/mes por asesor/tipificacion + minutos), pacientes (total/nuevos/activos/con compras), ventas del mes (por asesor/sede/tratamiento/metodo pago), '+
+              'comisiones, inventario, seguimientos, historico anual. Responde SIEMPRE con los datos concretos del contexto. '+
+              'Si te falta un dato muy especifico (ej. una venta puntual por nombre), ofrece buscarlo con una herramienta — nunca cierres con un "no tengo acceso".' :
+              'Eres asistente de la asesora "'+usuario+'". Ve libremente: sus ventas, sus clientes y lo facturado con cada uno, sus comisiones, sus llamadas y metricas, '+
+              'pacientes que gestiona, inventario, catalogo, precios, sus leads. Ademas tiene a la vista los totales operativos de la clinica (leads/citas/llamadas/pacientes del equipo) para que se ubique en el contexto general. '+
+              'Responde con datos concretos: nombres, montos, fechas, tratamientos. '+
+              'UNICO LIMITE REAL: las comisiones y el detalle de ventas de OTRA asesora en particular son privados. Si pide eso puntual, dile con buena onda: '+
+              '"El detalle de comisiones de otra asesora es privado, pero los totales del equipo si te los puedo mostrar." Los totales globales del equipo si los puede ver.')+
             '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
             (insightsSofia && typeof insightsSofia === 'object' ? '\n\nINSIGHTS DE SOFIA (analista de datos):\n'+JSON.stringify(insightsSofia).substring(0,1500)+'\nUSA estos datos para responder sobre tendencias, LTV, cohortes, evolucion, conversion.' : '')+
@@ -402,7 +461,11 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
           var messages = [{ role: 'system', content: systemPrompt }]
-          historial.forEach(function(h) { messages.push({ role: h.role, content: h.content }) })
+          /* Historial: solo ultimos 8 turnos validos (4 intercambios) para mantener contexto sin saturar */
+          var histLimpio = (historial || [])
+            .filter(function(h){ return h && (h.role==='user'||h.role==='assistant') && h.content && String(h.content).trim() })
+            .slice(-8)
+          histLimpio.forEach(function(h) { messages.push({ role: h.role, content: String(h.content).slice(0,2000) }) })
           messages.push({ role: 'user', content: pregunta })
 
           sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
