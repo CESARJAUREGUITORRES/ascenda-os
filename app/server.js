@@ -328,6 +328,60 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(Promise.resolve(null))
         }
 
+        /* ═══════════════════════════════════════════════════════════════
+           KRONIA EXPLORER — Acceso al ecosistema bajo demanda (admin only)
+           Indices 15-22. Solo carga si la pregunta lo pide explicitamente
+           para optimizar tokens.
+           ═══════════════════════════════════════════════════════════════ */
+        var pideVentasGlobal  = esAdmin && /venta[s]?|facturad|cobr|ingres|ticket|promedio|total/.test(pq)
+        var pideInventarioGl  = esAdmin && /inventario|stock|product[ao]|insumo|almacen|cantidad disponible|qued/.test(pq)
+        var pideEquipoGlobal  = esAdmin && /equipo|asesor|doctor|enfermer|personal|trabajador|sueld|rrhh|meta/.test(pq)
+        var pideMarketingGl   = esAdmin && /marketing|inversi[oó]n|campa[ñn]a|anuncio|publicidad|meta ads|facebook|instagram|roas|cpa|cac/.test(pq)
+        var pideFinanzasGl    = esAdmin && /finanz|caja|gasto|balance|costo|utilidad|ganancia|ingreso|egreso|presupuesto/.test(pq)
+        var pideAtencionesGl  = esAdmin && /atenci[oó]n|triaje|evaluaci[oó]n|procedimiento|sesi[oó]n cl[ií]nic|atendi/.test(pq)
+        var pideSeguimGlobal  = esAdmin && /seguimient|recontact|vencid|pendient|control de pacient/.test(pq)
+        var pideAgendaFutura  = esAdmin && /pr[oó]xim|siguiente|esta semana|pr[oó]xima semana|futura|por venir|mañana|manana/.test(pq)
+
+        /* Indice 15: inventario */
+        if (pideInventarioGl) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'inventario', p_accion: 'por_sede'}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 16: equipo */
+        if (pideEquipoGlobal) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'equipo', p_accion: 'lista'}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 17: marketing */
+        if (pideMarketingGl) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'marketing', p_accion: 'inversion_mes', p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 18: finanzas (balance global del mes) */
+        if (pideFinanzasGl) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'finanzas', p_accion: 'balance_mes', p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 19: atenciones (flujo clinico) */
+        if (pideAtencionesGl) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'atenciones', p_accion: 'resumen'}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 20: seguimientos (vencidos + por asesor) */
+        if (pideSeguimGlobal) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'seguimientos', p_accion: 'por_asesor'}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 21: agenda futura (proximos 7 dias) */
+        if (pideAgendaFutura) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'citas', p_accion: 'futuras', p_params: JSON.stringify({dias: 7, limite: 30})}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 22: ventas global detallado (cuando admin pregunta por ventas) */
+        if (pideVentasGlobal && esAdmin) {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'ventas', p_accion: 'por_tratamiento', p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
           var panelData = results[1] || {}
@@ -344,6 +398,15 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var statsLlamadas = results[12] || null
           var statsPacientes = results[13] || null
           var comisionesAdmin = results[14] || null
+          /* KRONIA EXPLORER results (indices 15-22) — bajo demanda */
+          var expInventario = results[15] || null
+          var expEquipo = results[16] || null
+          var expMarketing = results[17] || null
+          var expFinanzas = results[18] || null
+          var expAtenciones = results[19] || null
+          var expSeguimientos = results[20] || null
+          var expAgendaFutura = results[21] || null
+          var expVentasGlobal = results[22] || null
           
           // Combinar ventas recientes + mencionadas (priorizar mencionadas, deduplicar)
           if (ventasMencionadas && ventasMencionadas.length > 0) {
@@ -440,6 +503,64 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if(inventario && inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].slice(0,10).join(', ')}).join(' || ')}
             if(leadsHoy && leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nuevos. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
             if(seguimientos && seguimientos.length){var segPend = seguimientos.filter(function(s){return s.ESTADO==='PENDIENTE'}).length; var segVenc = seguimientos.filter(function(s){return s.ESTADO==='VENCIDO'}).length; datosCtx+='\nSEGUIMIENTOS (muestra): '+segPend+' pendientes, '+segVenc+' vencidos en muestra'}
+
+            /* ═══════════════════════════════════════════════════════════
+               KRONIA EXPLORER — Datos del ecosistema bajo demanda
+               Estos bloques solo aparecen si la pregunta menciona el modulo.
+               Cada bloque pesa ~150-400 tokens, suma manejable.
+               ═══════════════════════════════════════════════════════════ */
+            if(expInventario && Array.isArray(expInventario) && expInventario.length){
+              datosCtx += '\n\n--- INVENTARIO POR SEDE ---'
+              expInventario.forEach(function(s){
+                datosCtx += '\n  '+s.sede+': '+s.items+' items, valor total S/'+Math.round(s.valor_total||0)
+              })
+            }
+            if(expEquipo && Array.isArray(expEquipo) && expEquipo.length){
+              datosCtx += '\n\n--- EQUIPO ACTIVO ---'
+              expEquipo.slice(0,15).forEach(function(e){
+                datosCtx += '\n  '+e.codigo+' '+e.nombre+' ('+e.puesto+', sede '+e.sede+')'+(e.sueldo?' sueldo S/'+e.sueldo:'')+(e.meta?' meta '+e.meta:'')
+              })
+            }
+            if(expMarketing){
+              datosCtx += '\n\n--- MARKETING / INVERSION ---'
+              datosCtx += '\nInversion total mes: S/'+Math.round(expMarketing.inversion_total||0)+' ('+(expMarketing.campanas||0)+' campañas)'
+              if(expMarketing.por_tratamiento){
+                datosCtx += '\nPor tratamiento: '+expMarketing.por_tratamiento.slice(0,10).map(function(p){return p.tratamiento+':S/'+Math.round(p.monto)}).join(' | ')
+              }
+            }
+            if(expFinanzas){
+              datosCtx += '\n\n--- BALANCE DEL MES ---'
+              datosCtx += '\nIngresos por ventas: S/'+Math.round(expFinanzas.ingresos_ventas||0)
+              datosCtx += '\nGastos de caja: S/'+Math.round(expFinanzas.gastos_caja||0)
+              datosCtx += '\nInversion marketing: S/'+Math.round(expFinanzas.inversion_marketing||0)
+              if(expFinanzas.comisiones_pagadas && Array.isArray(expFinanzas.comisiones_pagadas)){
+                var totalCom = expFinanzas.comisiones_pagadas.reduce(function(a,c){return a+(parseFloat(c.com_total)||0)},0)
+                datosCtx += '\nComisiones pagadas: S/'+Math.round(totalCom)
+              }
+            }
+            if(expAtenciones){
+              datosCtx += '\n\n--- ATENCIONES CLINICAS ---'
+              datosCtx += '\nMes: '+(expAtenciones.mes_total||0)+' atenciones, '+(expAtenciones.mes_completas||0)+' completas, '+(expAtenciones.mes_en_curso||0)+' en curso'
+            }
+            if(expSeguimientos && Array.isArray(expSeguimientos) && expSeguimientos.length){
+              datosCtx += '\n\n--- SEGUIMIENTOS POR ASESOR ---'
+              expSeguimientos.slice(0,10).forEach(function(s){
+                datosCtx += '\n  '+s.asesor+': '+s.pendientes+' pendientes, '+s.vencidos+' VENCIDOS'
+              })
+            }
+            if(expAgendaFutura && Array.isArray(expAgendaFutura) && expAgendaFutura.length){
+              datosCtx += '\n\n--- AGENDA PROXIMOS 7 DIAS ---'
+              datosCtx += '\nTotal: '+expAgendaFutura.length+' citas programadas'
+              expAgendaFutura.slice(0,15).forEach(function(c){
+                datosCtx += '\n  '+c.fecha_cita+' '+(c.hora_cita||'')+' '+(c.nombre||'')+' '+(c.apellido||'')+' | '+(c.tratamiento||'')+' | '+(c.sede||'')+(c.doctora?' / '+c.doctora:'')+' ['+(c.estado_cita||'?')+']'
+              })
+            }
+            if(expVentasGlobal && Array.isArray(expVentasGlobal) && expVentasGlobal.length){
+              datosCtx += '\n\n--- VENTAS POR TRATAMIENTO (MES) ---'
+              expVentasGlobal.slice(0,12).forEach(function(t){
+                datosCtx += '\n  '+t.tratamiento+': '+t.ventas+' ventas | S/'+Math.round(t.facturado)
+              })
+            }
           }
 
           /* ═══ STATS OPERATIVAS DEL DÍA A DÍA (admin y asesor) ═══ */
@@ -488,11 +609,16 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             'o sugiere la forma de obtenerlo. La diferencia importa: tu SI tienes acceso al sistema, solo que a veces un dato muy especifico no esta pre-cargado en esta consulta.\\n\\n'+
             'ACCESO POR ROL: '+
             (esAdmin ?
-              'Eres asistente del ADMIN (Cesar, dueno de la clinica): acceso total a toda la informacion. '+
-              'Tienes en el contexto: leads (hoy/semana/mes/historico + conversion + por tratamiento/anuncio), citas (hoy/semana/mes por estado/sede/doctora + detalle del dia), '+
-              'llamadas (hoy/semana/mes por asesor/tipificacion + minutos), pacientes (total/nuevos/activos/con compras), ventas del mes (por asesor/sede/tratamiento/metodo pago), '+
-              'comisiones, inventario, seguimientos, historico anual. Responde SIEMPRE con los datos concretos del contexto. '+
-              'Si te falta un dato muy especifico (ej. una venta puntual por nombre), ofrece buscarlo con una herramienta — nunca cierres con un "no tengo acceso".' :
+              'Eres asistente del ADMIN (Cesar, dueno de la clinica): ACCESO TOTAL al ecosistema completo. '+
+              'Tienes acceso explorador a 13 modulos: VENTAS (resumen/por asesor/sede/tratamiento/detalle), CITAS (hoy/futuras/por doctora/estado), '+
+              'LLAMADAS (resumen/por asesor/estado), LEADS (mes/conversion/anuncios), PACIENTES (total/top facturadores/buscar), '+
+              'COMISIONES (ranking mes/reglas), INVENTARIO (stock/alertas/por sede), EQUIPO (lista/sueldos/metas), '+
+              'MARKETING (inversion mes/campanas/ROAS), FINANZAS (cajas/gastos/balance del mes), '+
+              'ATENCIONES (flujo clinico por profesional), SEGUIMIENTOS (vencidos/por asesor), AGENDA FUTURA (proximos 7 dias). '+
+              'En el contexto abajo veras los modulos que la pregunta pidio cargar — usa esos numeros para responder. '+
+              'Si te falta un dato MUY especifico no pre-cargado (ej. nombre + DNI de cliente x), '+
+              'di: "Dame un momento, voy a buscarlo" y propon una tool (search venta/paciente). '+
+              'NUNCA digas "no tengo acceso" — si el dato no esta cargado, pide refinar la pregunta o ejecuta una tool.' :
               'Eres asistente de la asesora "'+usuario+'". Ve libremente: sus ventas, sus clientes y lo facturado con cada uno, sus comisiones, sus llamadas y metricas, '+
               'pacientes que gestiona, inventario, catalogo, precios, sus leads. Ademas tiene a la vista los totales operativos de la clinica (leads/citas/llamadas/pacientes del equipo) para que se ubique en el contexto general. '+
               'Responde con datos concretos: nombres, montos, fechas, tratamientos. '+
