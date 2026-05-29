@@ -84,51 +84,79 @@ canvas{position:fixed;inset:0;display:block}
   flex-direction:column;gap:6px;align-items:stretch;
   cursor:default;
 }
-/* ── ESTADO MINI RECTANGULAR (140x50 — ultra compacto) ──
-   Solo waveform fina + boton mic + acciones discretas.
-   Sin nombre "K KronIA", sin texto, sin canvas grande.
-   Cesar quiere algo que NO estorbe en el escritorio. */
-#kronia.mini{
-  width:160px;height:50px;border-radius:25px;
-  padding:5px 5px 5px 10px;
-  background:var(--card);
-  border:1.5px solid rgba(0,201,167,0.30);
-  box-shadow:0 4px 14px rgba(10,79,191,0.15), 0 1px 4px rgba(0,0,0,0.06);
-  flex-direction:row;gap:5px;align-items:center;
-  cursor:default;
+/* ═══════════════════════════════════════════════════════════
+   ESTADO CHIP — 140x50 flotante ULTRA-LIMPIO
+   ═══════════════════════════════════════════════════════════
+   ARQUITECTURA: PANEL GRANDE (.expanded) y CHIP (.chip) son
+   estados visualmente DISTINTOS. El chip oculta TODO del panel
+   (header, canvas grande, texto, scroll, botones) y solo muestra:
+     - Botón mic 36x36
+     - 7 barras de onda horizontales (HTML, no canvas)
+   Click sobre el chip vuelve al panel grande. */
+#kronia.chip{
+  width:140px;height:50px;border-radius:25px;
+  padding:6px 8px 6px 10px;
+  background:linear-gradient(135deg, rgba(0,201,167,0.08), rgba(10,79,191,0.06));
+  border:1.5px solid rgba(0,201,167,0.35);
+  box-shadow:0 4px 14px rgba(10,79,191,0.18), 0 1px 4px rgba(0,0,0,0.08);
+  display:flex;flex-direction:row;gap:8px;align-items:center;
+  cursor:pointer; /* click en chip → vuelve a panel grande */
+  transition:transform .15s, box-shadow .15s;
   -webkit-app-region:no-drag;
 }
-#kronia.mini #kk-chip-icon{display:none}
-#kronia.mini #kk-inner{display:flex;flex-direction:row;align-items:center;gap:5px;width:100%}
-#kronia.mini .kk-top{display:none} /* oculta nombre + dot, queda ultra limpio */
-#kronia.mini #kk-cv{flex:1;height:24px;border-radius:12px;background:rgba(0,201,167,0.05);min-width:40px}
-#kronia.mini #kk-txt{display:none}
-#kronia.mini #tap-hint{display:none}
-#kronia.mini #btn-tap{
+#kronia.chip:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(10,79,191,0.25), 0 2px 6px rgba(0,0,0,0.10);
+}
+/* OCULTAR TODO LO DEL PANEL GRANDE cuando es chip */
+#kronia.chip #kk-chip-icon,
+#kronia.chip .kk-top,
+#kronia.chip #kk-cv,
+#kronia.chip #kk-txt,
+#kronia.chip #tap-hint,
+#kronia.chip #kk-st,
+#kronia.chip #kk-close,
+#kronia.chip .kk-mini-actions{display:none !important}
+
+/* Layout interno: solo mic + barras */
+#kronia.chip #kk-inner{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%;padding:0;margin:0;background:none;border:none}
+#kronia.chip #btn-tap{
   width:36px;height:36px;flex-shrink:0;font-size:14px;
-  box-shadow:0 2px 8px rgba(0,201,167,0.40);
+  box-shadow:0 2px 8px rgba(0,201,167,0.45);
   margin:0;
+  /* impedir que el click del btn propague al chip y dispare ampliación */
+  position:relative;z-index:2;
 }
-#kronia.mini #kk-st{display:none}
-#kronia.mini #kk-close{display:none}
-#kronia.mini .kk-mini-actions{display:flex;align-items:center;gap:1px;flex-shrink:0}
-/* En mini, los botones de control son micro (24x24) y solo iconos */
-#kronia.mini .kk-mini-btn{
-  width:24px;height:24px;padding:0;
-  border-radius:6px;font-size:10px;
-  background:transparent;border:none;
-  color:var(--t2);
+/* Barras de onda HTML (no canvas). 7 spans animados via JS. */
+#kronia.chip .kk-bars{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  gap:3px;height:32px;
+  padding:0 4px;
+  pointer-events:none; /* click pasa al chip para ampliarlo */
 }
-#kronia.mini .kk-mini-btn:hover{background:rgba(0,201,167,0.15);color:var(--blue);transform:none}
-/* Indicador visual de modo standby (gris claro) */
-#kronia.mini.standby{
+#kronia.chip .kk-bars span{
+  display:block;width:3px;border-radius:2px;
+  background:linear-gradient(180deg, var(--cyan), var(--blue));
+  height:6px; /* default mínimo, JS lo anima */
+  transition:height 60ms linear;
+}
+/* Standby: chip gris semi-transparente */
+#kronia.chip.standby{
   border-color:rgba(150,150,150,0.25);
-  opacity:0.75;
+  opacity:0.70;
+  background:linear-gradient(135deg, rgba(150,150,150,0.08), rgba(100,100,100,0.05));
 }
-#kronia.mini.standby #btn-tap{
+#kronia.chip.standby #btn-tap{
   background:linear-gradient(145deg,#888,#666);
   box-shadow:0 2px 6px rgba(0,0,0,0.15);
 }
+#kronia.chip.standby .kk-bars span{
+  background:linear-gradient(180deg,#aaa,#888);
+}
+
+/* CLASES LEGACY .mini queda pero no se usa.
+   Mantenida solo para no romper código JS antiguo. */
+
 .kk-mini-btn{
   background:rgba(0,201,167,0.10);border:1.5px solid rgba(0,201,167,0.30);cursor:pointer;
   height:28px;border-radius:8px;padding:0 9px;
@@ -279,16 +307,16 @@ canvas{position:fixed;inset:0;display:block}
         <div id="kk-dot"></div>
         <span class="kk-name">KronIA</span>
         <span id="kk-st">Toca para hablar</span>
-        <button class="kk-expanded-min" id="kk-btn-mini" title="Hacer chiquito (solo voz)">⊟ MINI</button>
+        <button class="kk-expanded-min" id="kk-btn-chip" title="Achicar a chip flotante">&#9863; ACHICAR</button>
         <button id="kk-close" title="Cerrar">&#215;</button>
       </div>
       <canvas id="kk-cv"></canvas>
       <div id="kk-txt">...</div>
       <button id="btn-tap">&#127908;</button>
       <div id="tap-hint">Toca &middot; Habla &middot; Para solo</div>
-      <div class="kk-mini-actions">
-        <button class="kk-mini-btn" id="kk-btn-expand" title="Abrir Brain completo">⊞ AMPLIAR</button>
-        <button class="kk-mini-btn" id="kk-btn-bubble" title="Cerrar">✕</button>
+      <!-- BARRAS DE ONDA HTML — solo visibles en modo .chip -->
+      <div class="kk-bars" id="kk-bars" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
     </div>
   </div>
@@ -448,7 +476,7 @@ const kronia = window.KroniaCore.create({ user: kUser, onError: function(e){ con
 // VAD — deteccion de silencio para auto-stop
 let vadTimer=null, silenceMs=0;
 const SILENCE_THRESHOLD = 6;    // nivel minimo de audio considerado voz (mas sensible)
-const SILENCE_STOP_MS   = 1500; // ms de silencio antes de procesar (1.5s — conversacional vivo)
+const SILENCE_STOP_MS   = 1000; // ms de silencio antes de procesar (1s — conversacional rapido)
 const STANDBY_AFTER_MS  = 5000; // ms tras responder antes de pasar a standby silencioso
 
 const kkCv=document.getElementById('kk-cv');
@@ -494,16 +522,57 @@ function kkState(s){
   }
 }
 
-// ── Chip: 3 estados (burbuja / mini / expanded) ──────────────────
-// burbuja  = .vis             (50x50 redondo, click → mini)
-// mini     = .vis .mini       (280x60 rectangular, siempre encima)
-// expanded = .vis .expanded   (modal completo del Brain)
-let kkMode = 'closed'; // 'closed' | 'bubble' | 'mini' | 'expanded'
+// ── Estados de KronIA: chip flotante ⇄ panel expandido ───────────
+// closed   = invisible
+// bubble   = legacy burbuja redonda 50x50 (entrada inicial)
+// chip     = NUEVO 140x50 ultra-limpio (mic + barras HTML, sin texto)
+// expanded = panel grande completo (lo de siempre)
+// (mini se mantiene como alias legacy = chip)
+let kkMode = 'closed';
+let chipBarsTimer = null; // intervalo para animar las barras HTML
+
+function animarBarrasChip(){
+  /* Solo corre cuando estamos en .chip y NO en standby silencioso */
+  if(chipBarsTimer){ clearInterval(chipBarsTimer); chipBarsTimer = null; }
+  const bars = document.querySelectorAll('#kk-bars span');
+  if(!bars.length) return;
+  chipBarsTimer = setInterval(()=>{
+    if(kkMode !== 'chip'){ clearInterval(chipBarsTimer); chipBarsTimer=null; return; }
+    /* Leer audio real si hay analyser */
+    if(analyser && dataArr && !standbyMode){
+      analyser.getByteFrequencyData(dataArr);
+      /* Distribuir 7 bandas de frecuencia entre las 7 barras */
+      const step = Math.floor(dataArr.length / bars.length);
+      bars.forEach((bar, i)=>{
+        const sliceStart = i * step;
+        let sum = 0;
+        for(let j=0; j<step; j++){ sum += (dataArr[sliceStart+j]||0); }
+        const avg = sum / step;
+        /* Mapear 0..255 -> 4..28px */
+        const h = Math.max(4, Math.min(28, Math.round(4 + (avg/255)*24)));
+        bar.style.height = h + 'px';
+      });
+    } else if(isSpeaking){
+      /* Mientras KronIA habla: ondas sintéticas para feedback visual */
+      const t = Date.now() / 200;
+      bars.forEach((bar, i)=>{
+        const h = 8 + Math.abs(Math.sin(t + i*0.7)) * 16;
+        bar.style.height = Math.round(h) + 'px';
+      });
+    } else {
+      /* Standby o sin mic: barras quietas mínimas */
+      bars.forEach(bar=> bar.style.height = '4px');
+    }
+  }, 80);
+}
 
 function setKKMode(mode){
   const el = document.getElementById('kronia');
   if(!el) return;
-  el.classList.remove('expanded','mini');
+  el.classList.remove('expanded','mini','chip','bubble');
+  /* Limpiar animación de barras si veníamos del chip */
+  if(chipBarsTimer && mode !== 'chip'){ clearInterval(chipBarsTimer); chipBarsTimer=null; }
+
   if(mode === 'closed'){
     el.classList.remove('vis');
     kkVis = false; kkExpanded = false;
@@ -512,24 +581,27 @@ function setKKMode(mode){
     el.classList.add('vis');
     kkVis = true; kkExpanded = false;
     stopWave();
-  } else if(mode === 'mini'){
-    el.classList.add('vis','mini');
-    kkVis = true; kkExpanded = false; /* mini cuenta como NO-expanded para UI */
-    if(analyser) waveReal(); else waveSynth('listen');
+  } else if(mode === 'chip' || mode === 'mini'){
+    /* Acepta 'mini' como alias legacy → renderiza como chip */
+    el.classList.add('vis','chip');
+    kkVis = true; kkExpanded = false;
+    mode = 'chip'; /* normalizar */
+    animarBarrasChip();
+    /* En chip NO usamos el canvas grande, las barras HTML lo reemplazan */
   } else if(mode === 'expanded'){
     el.classList.add('vis','expanded');
     kkVis = true; kkExpanded = true;
     if(analyser) waveReal(); else waveSynth('listen');
   }
   kkMode = mode;
-  /* Guardar preferencia */
   try{ localStorage.setItem('kk_last_mode', mode); }catch(e){}
 }
 
 function expandKK(){ setKKMode('expanded'); }
-function collapseKK(){ setKKMode('mini'); }    /* legacy: ahora colapsa a mini, no a burbuja */
+function collapseKK(){ setKKMode('chip'); }
 function bubbleKK(){ setKKMode('bubble'); }
-function miniKK(){ setKKMode('mini'); }
+function miniKK(){ setKKMode('chip'); } /* legacy */
+function chipKK(){ setKKMode('chip'); }
 
 function setKKTxt(t){
   const el=document.getElementById('kk-txt');
@@ -564,7 +636,7 @@ function entrarStandby(){
   if(isRecording) pararGrabacion();
   /* Marcar visualmente en mini */
   const el = document.getElementById('kronia');
-  if(el && kkMode==='mini') el.classList.add('standby');
+  if(el && kkMode==='chip') el.classList.add('standby');
   kkState('idle');
   setKKTxt('En standby (habla para reactivar)');
   console.log('[KronIA] → STANDBY (escuchando silenciosamente)');
@@ -635,7 +707,7 @@ function kkSpeak(text){
   setKKTxt(text);
   kkState('speaking');
   waveSynth('speak');
-  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
+  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('chip');
 
   /* BARGE-IN: monitorear nivel del mic mientras KronIA habla */
   if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
@@ -665,7 +737,7 @@ function kkSpeak(text){
     if(analyser)waveReal(); else waveSynth('listen');
     /* AUTO-ESCUCHA: arrancar grabacion inmediatamente */
     setTimeout(()=>{
-      if(!isSpeaking && !isRecording && micReady && (kkMode==='mini'||kkMode==='expanded')){
+      if(!isSpeaking && !isRecording && micReady && (kkMode==='chip'||kkMode==='expanded')){
         startGrabacion();
         /* Programar standby por si el usuario no dice nada en 5s */
         programarStandby();
@@ -685,17 +757,17 @@ function kkSpeak(text){
 //   cerrado → mini ; mini → expanded ; expanded → mini
 function toggleKronIA(){
   if(kkMode === 'closed'){
-    setKKMode('mini');
+    setKKMode('chip');
     document.getElementById('btn-kk').classList.add('on');
     pedirPermiso();
   } else if(kkMode === 'bubble'){
-    setKKMode('mini');
+    setKKMode('chip');
     if(!micReady) pedirPermiso();
-  } else if(kkMode === 'mini'){
+  } else if(kkMode === 'chip'){
     setKKMode('expanded');
     if(!micReady) pedirPermiso();
-  } else { /* expanded → mini (no cerrar del todo desde aqui) */
-    setKKMode('mini');
+  } else { /* expanded → chip (achicar) */
+    setKKMode('chip');
   }
 }
 
@@ -1254,26 +1326,29 @@ document.getElementById('btn-fs').addEventListener('click', ()=>{
   else{ document.exitFullscreen(); document.getElementById('btn-fs').textContent='⛶ Pantalla completa'; }
 });
 
-// ── Event listeners KronIA v6 (3 estados) ────────────────────────
-// Click sobre la burbuja: pasa a mini (rectangulo compacto)
+// ── Event listeners KronIA v7 (chip ⇄ expanded) ─────────────────
+// Click sobre el chip (cuando NO es el btn-tap): expandir a panel grande
 document.getElementById('kronia').addEventListener('click',function(e){
-  if(kkMode === 'bubble'){ setKKMode('mini'); if(!micReady) pedirPermiso(); }
+  /* Si está cerrado/burbuja, abrir como chip */
+  if(kkMode === 'bubble'){ setKKMode('chip'); if(!micReady) pedirPermiso(); return; }
+  /* Si es chip Y el click NO fue sobre el botón mic, expandir panel grande */
+  if(kkMode === 'chip'){
+    /* Detectar si el click vino del btn-tap o sus hijos */
+    const btnTap = document.getElementById('btn-tap');
+    if(btnTap && (e.target === btnTap || btnTap.contains(e.target))){
+      /* Click en mic: no hacer nada aquí (su propio handler procesa) */
+      return;
+    }
+    setKKMode('expanded');
+  }
 });
-// Boton MINIMIZAR (en expanded) → pasa a mini
-document.getElementById('kk-btn-mini').addEventListener('click',function(e){
-  e.stopPropagation(); setKKMode('mini');
-});
-// Boton EXPANDIR (en mini) → pasa a expanded
-document.getElementById('kk-btn-expand').addEventListener('click',function(e){
-  e.stopPropagation(); setKKMode('expanded');
-});
-// Boton CERRAR mini → pasa a burbuja
-document.getElementById('kk-btn-bubble').addEventListener('click',function(e){
-  e.stopPropagation(); setKKMode('bubble');
+// Botón ACHICAR (dentro del panel expandido) → pasa a chip flotante
+document.getElementById('kk-btn-chip').addEventListener('click',function(e){
+  e.stopPropagation(); setKKMode('chip');
 });
 // Boton CERRAR panel completo (kk-close, ahora solo se ve en expanded como X)
 document.getElementById('kk-close').addEventListener('click',function(e){
-  e.stopPropagation();setKKMode('mini');
+  e.stopPropagation();setKKMode('chip');
 });
 // Boton tap — click y touch
 const btnTap=document.getElementById('btn-tap');
@@ -1388,7 +1463,7 @@ function speakProactive(mensaje){
   /* Mostrar toast */
   showProactiveToast(mensaje, 8000);
   /* Si KronIA esta cerrada, abrir en mini para mostrar */
-  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
+  if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('chip');
   /* Hablar */
   if(!isSpeaking){
     kkSpeak(mensaje);

@@ -377,9 +377,20 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'citas', p_accion: 'futuras', p_params: JSON.stringify({dias: 7, limite: 30})}))
         } else { contextQueries.push(Promise.resolve(null)) }
 
-        /* Indice 22: ventas global detallado (cuando admin pregunta por ventas) */
+        /* Indice 22: ventas global detallado (cuando admin pregunta por ventas).
+           Si menciona "sede / san isidro / pueblo libre / sucursal / local" -> por_sede
+           Si menciona "tratamiento / servicio / producto" -> por_tratamiento
+           Default -> por_tratamiento (mas info granular) */
+        var pideVentasPorSede = /sede|san isidro|pueblo libre|sucursal|local|por separado|cada local|cada sede/.test(pq)
+        var accionVentas = pideVentasPorSede ? 'por_sede' : 'por_tratamiento'
         if (pideVentasGlobal && esAdmin) {
-          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'ventas', p_accion: 'por_tratamiento', p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'ventas', p_accion: accionVentas, p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
+        } else { contextQueries.push(Promise.resolve(null)) }
+
+        /* Indice 23: ventas por_sede SIEMPRE si admin pregunta y menciona sede
+           (incluso si ya se pidio por_tratamiento, para tener ambas vistas) */
+        if (pideVentasGlobal && esAdmin && pideVentasPorSede && accionVentas !== 'por_sede') {
+          contextQueries.push(sbRpc('aos_kronia_explorar', {p_modulo: 'ventas', p_accion: 'por_sede', p_params: JSON.stringify({mes: mesNum, anio: anioNum})}))
         } else { contextQueries.push(Promise.resolve(null)) }
 
         Promise.all(contextQueries).then(function(results) {
@@ -556,9 +567,26 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               })
             }
             if(expVentasGlobal && Array.isArray(expVentasGlobal) && expVentasGlobal.length){
-              datosCtx += '\n\n--- VENTAS POR TRATAMIENTO (MES) ---'
-              expVentasGlobal.slice(0,12).forEach(function(t){
-                datosCtx += '\n  '+t.tratamiento+': '+t.ventas+' ventas | S/'+Math.round(t.facturado)
+              /* Detectar si vinieron datos por_sede o por_tratamiento */
+              var primerItem = expVentasGlobal[0] || {}
+              if(primerItem.sede !== undefined){
+                datosCtx += '\n\n--- VENTAS POR SEDE (MES '+mesNum+'/'+anioNum+') ---'
+                expVentasGlobal.forEach(function(s){
+                  datosCtx += '\n  '+s.sede+': '+s.ventas+' ventas | facturado S/'+Math.round(s.facturado)
+                })
+              } else {
+                datosCtx += '\n\n--- VENTAS POR TRATAMIENTO (MES) ---'
+                expVentasGlobal.slice(0,12).forEach(function(t){
+                  datosCtx += '\n  '+t.tratamiento+': '+t.ventas+' ventas | S/'+Math.round(t.facturado)
+                })
+              }
+            }
+            /* Indice 23: ventas por sede adicional (cuando ya cargamos por_tratamiento Y pregunto sede) */
+            var expVentasPorSede = results[23] || null
+            if(expVentasPorSede && Array.isArray(expVentasPorSede) && expVentasPorSede.length){
+              datosCtx += '\n\n--- VENTAS POR SEDE (MES '+mesNum+'/'+anioNum+') ---'
+              expVentasPorSede.forEach(function(s){
+                datosCtx += '\n  '+s.sede+': '+s.ventas+' ventas | facturado S/'+Math.round(s.facturado)
               })
             }
           }
