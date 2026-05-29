@@ -685,7 +685,37 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
                 try {
                   var result = JSON.parse(gData)
-                  var text = result.choices && result.choices[0] ? result.choices[0].message.content : 'No pude generar respuesta.'
+                  /* === DIAGNÓSTICO: si la respuesta no tiene choices, loguear el error real === */
+                  if (!result.choices || !result.choices[0]) {
+                    console.error('[KRONIA-CHAT] Groq sin choices. Status:', gRes.statusCode)
+                    console.error('[KRONIA-CHAT] Respuesta Groq:', JSON.stringify(result).slice(0, 1000))
+                    console.error('[KRONIA-CHAT] Payload size:', groqBody.length, 'bytes')
+                    console.error('[KRONIA-CHAT] System prompt size:', systemPrompt.length, 'chars')
+                    /* Devolver el error real para diagnosticar */
+                    var errorMsg = 'No pude generar respuesta.'
+                    if (result.error && result.error.message) {
+                      errorMsg = 'Error del modelo: ' + result.error.message.slice(0, 200)
+                    } else if (gRes.statusCode === 429) {
+                      errorMsg = 'Demasiadas consultas en este momento. Probá en unos segundos.'
+                    } else if (gRes.statusCode === 413 || groqBody.length > 30000) {
+                      errorMsg = 'La consulta tiene demasiado contexto. Hacé una pregunta más específica.'
+                    } else if (gRes.statusCode >= 500) {
+                      errorMsg = 'El modelo está saturado. Probá de nuevo en un momento.'
+                    }
+                    res.writeHead(200,{'Content-Type':'application/json'})
+                    res.end(JSON.stringify({ok:true, respuesta: errorMsg, provider:'groq', cost:0, debug: {status: gRes.statusCode, hasError: !!result.error}}))
+                    return
+                  }
+                  var text = result.choices[0].message.content || ''
+                  /* Si message.content viene null/vacio pero hay tool_calls, eso explica todo */
+                  if (!text && result.choices[0].message.tool_calls) {
+                    console.error('[KRONIA-CHAT] Groq devolvió tool_calls sin content. Tools:', JSON.stringify(result.choices[0].message.tool_calls).slice(0, 500))
+                    text = 'Necesito hacer una búsqueda. Dame un momento... (modo herramientas)'
+                  }
+                  if (!text) {
+                    console.error('[KRONIA-CHAT] message.content vacío. finish_reason:', result.choices[0].finish_reason)
+                    text = 'No pude generar respuesta.'
+                  }
                   
                   // ═══ Extraer plan de acción si está en modo ejecutor ═══
                   var accionPropuesta = null
