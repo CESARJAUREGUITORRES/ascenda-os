@@ -319,6 +319,15 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         contextQueries.push((pideLlamadas)             ? sbRpc('aos_kronia_stats_llamadas', {})  : Promise.resolve(null))
         contextQueries.push((pidePacientes)            ? sbRpc('aos_kronia_stats_pacientes', {}) : Promise.resolve(null))
 
+        /* COMISIONES ADMIN: cargar reglas + ranking por asesor (indice 14) */
+        /* Solo para admin, cuando la pregunta toca comisiones/reglas/ranking */
+        var pideComisiones = /comisi|porcentaje|regla|gan|cobr|incentiv|bonif/.test(pq)
+        if (esAdmin && (pideComisiones || sinFoco)) {
+          contextQueries.push(sbRpc('aos_comisiones_admin', {p_mes: mesNum, p_anio: anioNum}))
+        } else {
+          contextQueries.push(Promise.resolve(null))
+        }
+
         Promise.all(contextQueries).then(function(results) {
           var catalogo = results[0] || []
           var panelData = results[1] || {}
@@ -334,6 +343,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var statsAgenda = results[11] || null
           var statsLlamadas = results[12] || null
           var statsPacientes = results[13] || null
+          var comisionesAdmin = results[14] || null
           
           // Combinar ventas recientes + mencionadas (priorizar mencionadas, deduplicar)
           if (ventasMencionadas && ventasMencionadas.length > 0) {
@@ -394,7 +404,39 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               if(v.porMetodoPago && v.porMetodoPago.length){datosCtx+='\nMETODOS PAGO: '+v.porMetodoPago.slice(0,6).map(function(m){return m.metodo+':'+(m.cantidad||0)+' (S/'+Math.round(m.facturado||0)+')'}).join(' | ')}
               if(v.anual && v.anual.length){datosCtx+='\nHISTORICO ANUAL: '+v.anual.map(function(a){return 'mes'+a.mes+':'+a.nVentas+' ventas S/'+Math.round(a.facturado||0)}).join(' | ')}
             }
-            
+
+            /* === COMISIONES ADMIN (reglas + ranking por asesor) === */
+            if(comisionesAdmin){
+              var c = comisionesAdmin
+              datosCtx += '\n\n--- COMISIONES ---'
+              /* Reglas activas */
+              if(c.reglas && c.reglas.length){
+                var reglasProd = c.reglas.filter(function(r){return r.tipo==='PRODUCTO' && r.activo})
+                var reglasServ = c.reglas.filter(function(r){return r.tipo==='SERVICIO' && r.activo})
+                if(reglasServ.length){
+                  var rServ = reglasServ[0]
+                  datosCtx += '\nREGLA SERVICIOS: '+(rServ.descripcion||((rServ.comision_pct*100)+'% del monto'))
+                }
+                if(reglasProd.length){
+                  datosCtx += '\nREGLAS PRODUCTOS (escalado por monto):'
+                  reglasProd.forEach(function(r){
+                    datosCtx += '\n  Desde S/'+r.monto_min+' -> comision fija S/'+r.comision
+                  })
+                }
+              }
+              /* Ranking por asesor del mes */
+              if(c.porAsesor && c.porAsesor.length){
+                datosCtx += '\nCOMISIONES DEL MES POR ASESOR (ranking):'
+                c.porAsesor.forEach(function(a, idx){
+                  datosCtx += '\n  '+(idx+1)+'. '+a.asesor+' -> S/'+a.com_total+' total (servicios S/'+a.com_serv+' + productos S/'+a.com_prod+') | '+a.n_ventas+' ventas / S/'+Math.round(a.facturado||0)+' facturado'
+                })
+              }
+              /* NoAplica */
+              if(c.noAplica){
+                datosCtx += '\nVentas sin comision (NO APLICA): '+c.noAplica.n+' ventas / S/'+Math.round(c.noAplica.total||0)
+              }
+            }
+
             if(inventario && inventario.length){var invPorSede={};inventario.forEach(function(i){var s=i.sede||'?';if(!invPorSede[s])invPorSede[s]=[];invPorSede[s].push(i.nombre+':'+i.stock_actual+(i.unidad||''))});datosCtx+='\nINVENTARIO: '+Object.keys(invPorSede).map(function(s){return s+' -> '+invPorSede[s].slice(0,10).join(', ')}).join(' || ')}
             if(leadsHoy && leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nuevos. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
             if(seguimientos && seguimientos.length){var segPend = seguimientos.filter(function(s){return s.ESTADO==='PENDIENTE'}).length; var segVenc = seguimientos.filter(function(s){return s.ESTADO==='VENCIDO'}).length; datosCtx+='\nSEGUIMIENTOS (muestra): '+segPend+' pendientes, '+segVenc+' vencidos en muestra'}

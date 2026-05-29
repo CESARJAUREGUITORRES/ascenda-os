@@ -111,19 +111,31 @@ canvas{position:fixed;inset:0;display:block}
 #kronia.mini #kk-close{display:none}
 #kronia.mini .kk-mini-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
 .kk-mini-btn{
-  background:none;border:none;cursor:pointer;
-  width:22px;height:22px;border-radius:6px;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--t2);font-size:13px;line-height:1;
-  transition:background .15s,color .15s;
+  background:rgba(0,201,167,0.10);border:1.5px solid rgba(0,201,167,0.30);cursor:pointer;
+  height:28px;border-radius:8px;padding:0 9px;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  color:var(--blue);font-size:11px;font-weight:700;line-height:1;
+  transition:background .15s,color .15s,transform .1s;
   -webkit-tap-highlight-color:transparent;
+  font-family:inherit;letter-spacing:0.02em;
 }
-.kk-mini-btn:hover{background:rgba(0,201,167,0.10);color:var(--blue)}
+.kk-mini-btn:hover{background:rgba(0,201,167,0.20);transform:scale(1.05)}
+.kk-mini-btn:active{transform:scale(0.95)}
 #kronia.expanded .kk-mini-actions{display:none}
-/* En expanded mostramos un botón minimizar */
-.kk-expanded-min{display:none;background:none;border:none;cursor:pointer;color:var(--t2);font-size:14px;padding:0 4px;line-height:1;flex-shrink:0}
-#kronia.expanded .kk-expanded-min{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;transition:background .15s}
-.kk-expanded-min:hover{background:rgba(0,201,167,0.10);color:var(--blue)}
+/* En expanded mostramos botones MINI / CERRAR grandes y visibles */
+.kk-expanded-min{
+  display:none;
+  background:linear-gradient(135deg,#00C9A7,#0A4FBF);
+  border:none;cursor:pointer;color:#fff;
+  font-size:11px;font-weight:800;padding:6px 12px;border-radius:8px;
+  line-height:1;flex-shrink:0;letter-spacing:0.04em;
+  font-family:inherit;
+  box-shadow:0 2px 8px rgba(0,201,167,0.30);
+  transition:transform .12s,box-shadow .15s;
+}
+#kronia.expanded .kk-expanded-min{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.kk-expanded-min:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,201,167,0.45)}
+.kk-expanded-min:active{transform:scale(0.96)}
 /* ── NOTIFICACION PROACTIVA (toast sobre el mini) ── */
 #kk-proactive{
   position:absolute;bottom:calc(100% + 8px);right:0;
@@ -248,7 +260,7 @@ canvas{position:fixed;inset:0;display:block}
         <div id="kk-dot"></div>
         <span class="kk-name">KronIA</span>
         <span id="kk-st">Toca para hablar</span>
-        <button class="kk-expanded-min" id="kk-btn-mini" title="Minimizar">&#8211;</button>
+        <button class="kk-expanded-min" id="kk-btn-mini" title="Hacer chiquito (solo voz)">⊟ MINI</button>
         <button id="kk-close" title="Cerrar">&#215;</button>
       </div>
       <canvas id="kk-cv"></canvas>
@@ -256,8 +268,8 @@ canvas{position:fixed;inset:0;display:block}
       <button id="btn-tap">&#127908;</button>
       <div id="tap-hint">Toca &middot; Habla &middot; Para solo</div>
       <div class="kk-mini-actions">
-        <button class="kk-mini-btn" id="kk-btn-expand" title="Abrir Brain completo">&#9744;</button>
-        <button class="kk-mini-btn" id="kk-btn-bubble" title="Cerrar a burbuja">&#215;</button>
+        <button class="kk-mini-btn" id="kk-btn-expand" title="Abrir Brain completo">⊞ AMPLIAR</button>
+        <button class="kk-mini-btn" id="kk-btn-bubble" title="Cerrar">✕</button>
       </div>
     </div>
   </div>
@@ -504,25 +516,67 @@ function setKKTxt(t){
   if(el)el.textContent=t;
 }
 
-// ── Hablar — loop: al terminar vuelve a idle listo ───────────────
+// ── Hablar — flujo conversacional natural ────────────────────────
+// (SES-038) Mejoras:
+//   - Al terminar de hablar, AUTO-ESCUCHA enseguida (no hay que tocar boton)
+//   - BARGE-IN: si detecta voz mientras KronIA habla, ella se interrumpe
+//     y empieza a escucharte (conversacion full-duplex como Alexa/Siri)
+let bargeInTimer = null;
 function kkSpeak(text){
   synth.cancel(); isSpeaking=true;
   const u=new SpeechSynthesisUtterance(text);
   if(!kkVoice)kkVoice=getVoz();
   if(kkVoice)u.voice=kkVoice;
-  u.lang='es-PE'; u.rate=0.92; u.pitch=1.10; u.volume=1;
+  u.lang='es-419'; u.rate=0.98; u.pitch=1.06; u.volume=1;
   setKKTxt(text);
   kkState('speaking');
   waveSynth('speak');
   /* Si esta cerrado o en burbuja, abrir en mini para escuchar/mostrar */
   if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
+
+  /* BARGE-IN: monitorear nivel del mic mientras KronIA habla.
+     Si el usuario habla (nivel sostenido alto), interrumpir y escuchar. */
+  if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
+  let vozSostenida = 0;
+  if(analyser && dataArr){
+    bargeInTimer = setInterval(()=>{
+      if(!isSpeaking){clearInterval(bargeInTimer);bargeInTimer=null;return;}
+      analyser.getByteFrequencyData(dataArr);
+      const avg = dataArr.reduce((a,v)=>a+v,0)/dataArr.length;
+      /* Umbral mas alto que VAD normal: necesitamos certeza de que es voz
+         y no ruido ambiental ni eco del altavoz */
+      if(avg > 22){
+        vozSostenida += 80;
+        if(vozSostenida >= 350){ /* ~350ms de voz sostenida = interrumpir */
+          clearInterval(bargeInTimer); bargeInTimer = null;
+          synth.cancel(); isSpeaking = false;
+          /* Empezar a grabar al toque */
+          setTimeout(()=>{ if(!isRecording) startGrabacion(); }, 100);
+        }
+      } else {
+        vozSostenida = Math.max(0, vozSostenida - 60);
+      }
+    }, 80);
+  }
+
   u.onend=()=>{
     isSpeaking=false;
+    if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
     kkState('idle');
-    // LOOP automatico: queda listo para siguiente pregunta sin hacer nada
     if(analyser)waveReal(); else waveSynth('listen');
+    /* AUTO-ESCUCHA: al terminar de hablar arranca a escuchar sola.
+       Esperar 400ms para no captar el final del audio de KronIA como eco. */
+    setTimeout(()=>{
+      if(!isSpeaking && !isRecording && micReady && (kkMode==='mini'||kkMode==='expanded')){
+        startGrabacion();
+      }
+    }, 450);
   };
-  u.onerror=()=>{isSpeaking=false;kkState('idle');};
+  u.onerror=()=>{
+    isSpeaking=false;
+    if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
+    kkState('idle');
+  };
   synth.speak(u);
 }
 
