@@ -84,32 +84,51 @@ canvas{position:fixed;inset:0;display:block}
   flex-direction:column;gap:6px;align-items:stretch;
   cursor:default;
 }
-/* ── ESTADO MINI RECTANGULAR (compacto siempre encima) ── */
+/* ── ESTADO MINI RECTANGULAR (140x50 — ultra compacto) ──
+   Solo waveform fina + boton mic + acciones discretas.
+   Sin nombre "K KronIA", sin texto, sin canvas grande.
+   Cesar quiere algo que NO estorbe en el escritorio. */
 #kronia.mini{
-  width:280px;height:60px;border-radius:30px;
-  padding:8px 8px 8px 14px;
+  width:160px;height:50px;border-radius:25px;
+  padding:5px 5px 5px 10px;
   background:var(--card);
   border:1.5px solid rgba(0,201,167,0.30);
-  box-shadow:0 6px 22px rgba(10,79,191,0.18), 0 2px 6px rgba(0,0,0,0.08);
-  flex-direction:row;gap:8px;align-items:center;
+  box-shadow:0 4px 14px rgba(10,79,191,0.15), 0 1px 4px rgba(0,0,0,0.06);
+  flex-direction:row;gap:5px;align-items:center;
   cursor:default;
-  -webkit-app-region:no-drag; /* compat Electron futuro */
+  -webkit-app-region:no-drag;
 }
 #kronia.mini #kk-chip-icon{display:none}
-#kronia.mini #kk-inner{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%}
-#kronia.mini .kk-top{display:flex;align-items:center;gap:5px;flex-shrink:0}
-#kronia.mini #kk-cv{flex:1;height:32px;border-radius:16px;background:rgba(0,201,167,0.06);min-width:60px}
+#kronia.mini #kk-inner{display:flex;flex-direction:row;align-items:center;gap:5px;width:100%}
+#kronia.mini .kk-top{display:none} /* oculta nombre + dot, queda ultra limpio */
+#kronia.mini #kk-cv{flex:1;height:24px;border-radius:12px;background:rgba(0,201,167,0.05);min-width:40px}
 #kronia.mini #kk-txt{display:none}
 #kronia.mini #tap-hint{display:none}
 #kronia.mini #btn-tap{
-  width:42px;height:42px;flex-shrink:0;font-size:17px;
-  box-shadow:0 2px 10px rgba(0,201,167,0.40);
+  width:36px;height:36px;flex-shrink:0;font-size:14px;
+  box-shadow:0 2px 8px rgba(0,201,167,0.40);
   margin:0;
 }
-#kronia.mini .kk-name{font-size:10px;font-weight:800}
 #kronia.mini #kk-st{display:none}
 #kronia.mini #kk-close{display:none}
-#kronia.mini .kk-mini-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+#kronia.mini .kk-mini-actions{display:flex;align-items:center;gap:1px;flex-shrink:0}
+/* En mini, los botones de control son micro (24x24) y solo iconos */
+#kronia.mini .kk-mini-btn{
+  width:24px;height:24px;padding:0;
+  border-radius:6px;font-size:10px;
+  background:transparent;border:none;
+  color:var(--t2);
+}
+#kronia.mini .kk-mini-btn:hover{background:rgba(0,201,167,0.15);color:var(--blue);transform:none}
+/* Indicador visual de modo standby (gris claro) */
+#kronia.mini.standby{
+  border-color:rgba(150,150,150,0.25);
+  opacity:0.75;
+}
+#kronia.mini.standby #btn-tap{
+  background:linear-gradient(145deg,#888,#666);
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
 .kk-mini-btn{
   background:rgba(0,201,167,0.10);border:1.5px solid rgba(0,201,167,0.30);cursor:pointer;
   height:28px;border-radius:8px;padding:0 9px;
@@ -428,8 +447,9 @@ const kronia = window.KroniaCore.create({ user: kUser, onError: function(e){ con
 
 // VAD — deteccion de silencio para auto-stop
 let vadTimer=null, silenceMs=0;
-const SILENCE_THRESHOLD = 6;    // nivel minimo de audio considerado voz (un poco mas sensible)
-const SILENCE_STOP_MS   = 3000; // ms de silencio antes de parar (3s, da tiempo a pensar)
+const SILENCE_THRESHOLD = 6;    // nivel minimo de audio considerado voz (mas sensible)
+const SILENCE_STOP_MS   = 1500; // ms de silencio antes de procesar (1.5s — conversacional vivo)
+const STANDBY_AFTER_MS  = 5000; // ms tras responder antes de pasar a standby silencioso
 
 const kkCv=document.getElementById('kk-cv');
 const kkCtx2=kkCv.getContext('2d');
@@ -516,13 +536,97 @@ function setKKTxt(t){
   if(el)el.textContent=t;
 }
 
-// ── Hablar — flujo conversacional natural ────────────────────────
-// (SES-038) Mejoras:
-//   - Al terminar de hablar, AUTO-ESCUCHA enseguida (no hay que tocar boton)
-//   - BARGE-IN: si detecta voz mientras KronIA habla, ella se interrumpe
-//     y empieza a escucharte (conversacion full-duplex como Alexa/Siri)
+// ── Hablar — flujo conversacional natural v3 ─────────────────────
+// (SES-038) Mecanismos:
+//   - BARGE-IN: si detecta voz mientras KronIA habla, ella se calla y escucha
+//   - AUTO-ESCUCHA al terminar de hablar (no hay que tocar boton)
+//   - STANDBY: tras 5s en silencio sin voz, pasa a modo standby silencioso
+//     (sigue corriendo, sigue recibiendo notificaciones proactivas, pero
+//      ya no procesa speech-to-text. Se reactiva con cualquier voz detectada)
+//   - PALABRAS DE CIERRE: "gracias", "listo", "ok", "ya", "ya entendi" cierran turno
 let bargeInTimer = null;
+let standbyTimer = null;
+let standbyMode  = false;     // true = no procesa STT, solo escucha para reactivar
+let standbyWatcher = null;     // intervalo que escucha en standby por voz
+
+/* Palabras/frases que terminan la conversacion conversacional */
+const CIERRE_REGEX = /\b(gracias|listo|ok|ya entendi|ya entendí|perfecto|de acuerdo|entendido|cierra|chao|adios|nada mas|nada más|eso es todo|suficiente|claro|copiado|dale)\b/i;
+
+function esPalabraDeCierre(texto){
+  if(!texto || texto.length > 25) return false; /* solo frases cortas son cierre */
+  return CIERRE_REGEX.test(texto.trim());
+}
+
+function entrarStandby(){
+  if(standbyMode) return;
+  standbyMode = true;
+  /* Parar grabacion activa si la hay */
+  if(isRecording) pararGrabacion();
+  /* Marcar visualmente en mini */
+  const el = document.getElementById('kronia');
+  if(el && kkMode==='mini') el.classList.add('standby');
+  kkState('idle');
+  setKKTxt('En standby (habla para reactivar)');
+  console.log('[KronIA] → STANDBY (escuchando silenciosamente)');
+  /* Activar watcher de bajo costo: solo detecta voz para reactivar */
+  iniciarStandbyWatcher();
+}
+
+function salirStandby(){
+  if(!standbyMode) return;
+  standbyMode = false;
+  /* Limpiar watcher */
+  if(standbyWatcher){ clearInterval(standbyWatcher); standbyWatcher = null; }
+  const el = document.getElementById('kronia');
+  if(el) el.classList.remove('standby');
+  console.log('[KronIA] ← REACTIVADA');
+  /* Empezar a grabar inmediatamente */
+  if(micReady && !isRecording && !isSpeaking){
+    startGrabacion();
+  }
+}
+
+function iniciarStandbyWatcher(){
+  if(standbyWatcher){ clearInterval(standbyWatcher); }
+  if(!analyser || !dataArr) return;
+  let vozAcum = 0;
+  standbyWatcher = setInterval(()=>{
+    if(!standbyMode){ clearInterval(standbyWatcher); standbyWatcher=null; return; }
+    if(isSpeaking || isRecording) return;
+    analyser.getByteFrequencyData(dataArr);
+    const avg = dataArr.reduce((a,v)=>a+v,0)/dataArr.length;
+    /* Umbral alto para evitar reactivar por ruido ambiente.
+       Necesitamos ~400ms de voz sostenida para reactivar. */
+    if(avg > 18){
+      vozAcum += 100;
+      if(vozAcum >= 400){
+        salirStandby();
+      }
+    } else {
+      vozAcum = Math.max(0, vozAcum - 80);
+    }
+  }, 100);
+}
+
+function programarStandby(){
+  /* Tras responder, programar paso a standby si no hay actividad en 5s */
+  if(standbyTimer){ clearTimeout(standbyTimer); standbyTimer=null; }
+  standbyTimer = setTimeout(()=>{
+    if(!isSpeaking && !isRecording){
+      entrarStandby();
+    }
+  }, STANDBY_AFTER_MS);
+}
+
+function cancelarStandby(){
+  if(standbyTimer){ clearTimeout(standbyTimer); standbyTimer=null; }
+}
+
 function kkSpeak(text){
+  /* Si vamos a hablar, cancelar standby pendiente */
+  cancelarStandby();
+  if(standbyMode) salirStandby();
+
   synth.cancel(); isSpeaking=true;
   const u=new SpeechSynthesisUtterance(text);
   if(!kkVoice)kkVoice=getVoz();
@@ -531,11 +635,9 @@ function kkSpeak(text){
   setKKTxt(text);
   kkState('speaking');
   waveSynth('speak');
-  /* Si esta cerrado o en burbuja, abrir en mini para escuchar/mostrar */
   if(kkMode === 'closed' || kkMode === 'bubble') setKKMode('mini');
 
-  /* BARGE-IN: monitorear nivel del mic mientras KronIA habla.
-     Si el usuario habla (nivel sostenido alto), interrumpir y escuchar. */
+  /* BARGE-IN: monitorear nivel del mic mientras KronIA habla */
   if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
   let vozSostenida = 0;
   if(analyser && dataArr){
@@ -543,14 +645,11 @@ function kkSpeak(text){
       if(!isSpeaking){clearInterval(bargeInTimer);bargeInTimer=null;return;}
       analyser.getByteFrequencyData(dataArr);
       const avg = dataArr.reduce((a,v)=>a+v,0)/dataArr.length;
-      /* Umbral mas alto que VAD normal: necesitamos certeza de que es voz
-         y no ruido ambiental ni eco del altavoz */
       if(avg > 22){
         vozSostenida += 80;
-        if(vozSostenida >= 350){ /* ~350ms de voz sostenida = interrumpir */
+        if(vozSostenida >= 350){
           clearInterval(bargeInTimer); bargeInTimer = null;
           synth.cancel(); isSpeaking = false;
-          /* Empezar a grabar al toque */
           setTimeout(()=>{ if(!isRecording) startGrabacion(); }, 100);
         }
       } else {
@@ -564,11 +663,12 @@ function kkSpeak(text){
     if(bargeInTimer){clearInterval(bargeInTimer);bargeInTimer=null;}
     kkState('idle');
     if(analyser)waveReal(); else waveSynth('listen');
-    /* AUTO-ESCUCHA: al terminar de hablar arranca a escuchar sola.
-       Esperar 400ms para no captar el final del audio de KronIA como eco. */
+    /* AUTO-ESCUCHA: arrancar grabacion inmediatamente */
     setTimeout(()=>{
       if(!isSpeaking && !isRecording && micReady && (kkMode==='mini'||kkMode==='expanded')){
         startGrabacion();
+        /* Programar standby por si el usuario no dice nada en 5s */
+        programarStandby();
       }
     }, 450);
   };
@@ -844,6 +944,35 @@ function startSingleReco(){
 function norm(s){ return s.toLowerCase().replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i').replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n').replace(/[¿¡]/g,'').trim(); }
 async function processQuery(q){
   if(!q || q.trim().length < 2){ kkSpeak('¿Qué quieres saber?'); return; }
+
+  /* DETECCION DE CIERRE: si dices "gracias", "listo", "ok", etc.,
+     KronIA responde corto y pasa a standby inmediatamente */
+  if(esPalabraDeCierre(q)){
+    console.log('[KronIA] Palabra de cierre detectada:', q);
+    const cierres = ['De nada.','Listo.','A la orden.','Por aquí estoy.','Cuando quieras.'];
+    const cierre = cierres[Math.floor(Math.random()*cierres.length)];
+    /* Hablar corto y luego forzar standby tras terminar */
+    synth.cancel(); isSpeaking=true;
+    const u = new SpeechSynthesisUtterance(cierre);
+    if(!kkVoice)kkVoice=getVoz();
+    if(kkVoice)u.voice=kkVoice;
+    u.lang='es-419'; u.rate=1.0; u.pitch=1.06;
+    setKKTxt(cierre);
+    kkState('speaking');
+    u.onend = ()=>{
+      isSpeaking=false; kkState('idle');
+      /* NO auto-escuchar; pasar directo a standby */
+      setTimeout(()=>{ entrarStandby(); }, 600);
+    };
+    u.onerror = ()=>{ isSpeaking=false; kkState('idle'); entrarStandby(); };
+    synth.speak(u);
+    return;
+  }
+
+  /* Cualquier nueva pregunta cancela standby pendiente */
+  cancelarStandby();
+  if(standbyMode) salirStandby();
+
   kkState('thinking');
   
   // Detectar tablas mencionadas para visualización en Brain

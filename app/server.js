@@ -647,7 +647,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             var groqBody = JSON.stringify({
               model: (esEjecucion || esAdmin) ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant',
               messages: messages,
-              max_tokens: esEjecucion ? 900 : (esAdmin ? 900 : 700),
+              max_tokens: esEjecucion ? 1500 : (esAdmin ? 1500 : 900),
               temperature: esEjecucion ? 0.3 : (esAdmin ? 0.4 : 0.6)
             })
             var groqReq = https.request({
