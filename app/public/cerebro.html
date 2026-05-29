@@ -416,8 +416,8 @@ const kronia = window.KroniaCore.create({ user: kUser, onError: function(e){ con
 
 // VAD — deteccion de silencio para auto-stop
 let vadTimer=null, silenceMs=0;
-const SILENCE_THRESHOLD = 7;    // nivel minimo de audio considerado voz
-const SILENCE_STOP_MS   = 1600; // ms de silencio antes de parar
+const SILENCE_THRESHOLD = 6;    // nivel minimo de audio considerado voz (un poco mas sensible)
+const SILENCE_STOP_MS   = 3000; // ms de silencio antes de parar (3s, da tiempo a pensar)
 
 const kkCv=document.getElementById('kk-cv');
 const kkCtx2=kkCv.getContext('2d');
@@ -685,39 +685,103 @@ function startVAD(){
 }
 function clearVAD(){if(vadTimer){clearInterval(vadTimer);vadTimer=null;}silenceMs=0;}
 
-// ── Reconocimiento unico por tap ─────────────────────────────────
+// ── Reconocimiento de voz mejorado (SES-038) ─────────────────────
+// Cambios:
+//   - lang es-419 (latino generico) + es-PE como fallback
+//   - continuous=true (sigue escuchando entre pausas cortas)
+//   - VAD aumentado a 3s (no corta si pausas para pensar)
+//   - acepta interim con alta confianza si VAD cierra
+//   - reintento automatico una vez si no-speech (puede ser ruido inicial)
+let recoRetryCount = 0;
 function startSingleReco(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){pushAlert('Usa Chrome para voz');return;}
+  if(!SR){pushAlert('Tu navegador no soporta voz. Usa Chrome o Edge.');return;}
   recognition=new SR();
-  recognition.lang='es-PE';
-  recognition.continuous=false;
+  /* Probar primero latino generico, mejor reconocimiento para Peru */
+  recognition.lang='es-419';
+  recognition.continuous=true;       /* sigue escuchando entre pausas cortas */
   recognition.interimResults=true;
-  recognition.maxAlternatives=3;
+  recognition.maxAlternatives=5;     /* mas opciones de transcripcion */
   let finalTxt='';
+  let mejorInterim='';
+  let mejorConfidence=0;
+
   recognition.onresult=function(e){
-    const last=e.results[e.results.length-1];
-    const txt=last[0].transcript.trim();
-    if(last.isFinal)finalTxt=txt;
-    setKKTxt(txt);
+    /* Procesar TODOS los results, no solo el ultimo */
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const res=e.results[i];
+      const alt=res[0];
+      const txt=alt.transcript.trim();
+      const conf=alt.confidence||0;
+      if(res.isFinal){
+        finalTxt += (finalTxt?' ':'') + txt;
+      } else if(conf>mejorConfidence && txt.length>=2){
+        mejorInterim=txt;
+        mejorConfidence=conf;
+      }
+      setKKTxt(txt);
+    }
   };
+
   recognition.onend=function(){
     clearVAD();isRecording=false;
-    const q=finalTxt||document.getElementById('kk-txt').textContent.trim();
-    if(!q||q.length<2){
-      kkState('idle');setKKTxt('No te escuche. Toca e intenta de nuevo.');
+    /* Usar finalTxt si existe; sino el mejor interim que tengamos */
+    let q = finalTxt.trim();
+    if(!q || q.length<2){
+      q = mejorInterim.trim();
+    }
+    if(!q || q.length<2){
+      /* Reintentar una vez antes de rendirse */
+      if(recoRetryCount<1 && analyser){
+        recoRetryCount++;
+        kkState('listening'); setKKTxt('No te escuche bien, sigue hablando...');
+        setTimeout(()=>{
+          if(!isRecording){
+            isRecording=true;
+            startSingleReco();
+            startVAD();
+          }
+        }, 400);
+        return;
+      }
+      recoRetryCount=0;
+      kkState('idle');setKKTxt('No te escuche. Toca el boton e intenta de nuevo.');
       if(analyser)waveReal();
       return;
     }
+    recoRetryCount=0;
     processQuery(q);
   };
+
   recognition.onerror=function(e){
     clearVAD();isRecording=false;
-    if(e.error==='not-allowed'){pushAlert('Mic: permiso denegado');micReady=false;kkState('nomic');}
-    else if(e.error==='no-speech'){kkState('idle');setKKTxt('No te escuche. Intenta de nuevo.');if(analyser)waveReal();}
-    else{kkState('idle');setKKTxt('Error: '+e.error);}
+    if(e.error==='not-allowed'){
+      pushAlert('Mic: permiso denegado. Click candado URL > Microfono > Permitir');
+      micReady=false;kkState('nomic');
+      setKKTxt('Permiso denegado. Click candado URL para activar');
+    }
+    else if(e.error==='no-speech'){
+      kkState('idle');setKKTxt('Silencio detectado. Toca y habla.');
+      if(analyser)waveReal();
+    }
+    else if(e.error==='network'){
+      kkState('idle');setKKTxt('Sin conexion a servidor de voz. Reintenta.');
+    }
+    else if(e.error==='audio-capture'){
+      kkState('nomic');setKKTxt('No se puede capturar audio. Verifica mic.');
+    }
+    else {
+      kkState('idle');setKKTxt('Error: '+e.error+'. Reintenta.');
+      console.warn('[Brain] SpeechRecognition error:', e.error);
+    }
   };
-  try{recognition.start();}catch(e){console.error('SR:',e);}
+
+  try{recognition.start();}catch(e){
+    console.error('[Brain] Start reco error:', e);
+    /* Si ya estaba started, intentar parar y reiniciar */
+    try{recognition.stop();}catch(_){}
+    setTimeout(()=>{try{recognition.start();}catch(_){}}, 200);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
