@@ -672,50 +672,73 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             var groqKey = rows && rows[0] ? rows[0].api_key : null
             if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
 
-            var groqBody = JSON.stringify({
-              model: (esEjecucion || esAdmin) ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant',
-              messages: messages,
-              max_tokens: esEjecucion ? 1500 : (esAdmin ? 1500 : 900),
-              temperature: esEjecucion ? 0.3 : (esAdmin ? 0.4 : 0.6)
-            })
-            var groqReq = https.request({
-              hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
-            }, function(gRes) {
-              var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
-                try {
-                  var result = JSON.parse(gData)
-                  /* === DIAGNÓSTICO: si la respuesta no tiene choices, loguear el error real === */
-                  if (!result.choices || !result.choices[0]) {
-                    console.error('[KRONIA-CHAT] Groq sin choices. Status:', gRes.statusCode)
-                    console.error('[KRONIA-CHAT] Respuesta Groq:', JSON.stringify(result).slice(0, 1000))
-                    console.error('[KRONIA-CHAT] Payload size:', groqBody.length, 'bytes')
-                    console.error('[KRONIA-CHAT] System prompt size:', systemPrompt.length, 'chars')
-                    /* Devolver el error real para diagnosticar */
-                    var errorMsg = 'No pude generar respuesta.'
-                    if (result.error && result.error.message) {
-                      errorMsg = 'Error del modelo: ' + result.error.message.slice(0, 200)
-                    } else if (gRes.statusCode === 429) {
-                      errorMsg = 'Demasiadas consultas en este momento. Probá en unos segundos.'
-                    } else if (gRes.statusCode === 413 || groqBody.length > 30000) {
-                      errorMsg = 'La consulta tiene demasiado contexto. Hacé una pregunta más específica.'
-                    } else if (gRes.statusCode >= 500) {
-                      errorMsg = 'El modelo está saturado. Probá de nuevo en un momento.'
+            /* Funcion que llama a Groq con un modelo dado.
+               Si recibe 429 (rate limit) y es el modelo 70B, hace fallback automatico a 8B-instant
+               que tiene cuota separada. Asi nunca cae del todo. */
+            function llamarGroq(modelo, intento){
+              intento = intento || 1
+              var groqBody = JSON.stringify({
+                model: modelo,
+                messages: messages,
+                max_tokens: esEjecucion ? 1500 : (esAdmin ? 1500 : 900),
+                temperature: esEjecucion ? 0.3 : (esAdmin ? 0.4 : 0.6)
+              })
+              var groqReq = https.request({
+                hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(groqBody) }
+              }, function(gRes) {
+                var gData = ''; gRes.on('data', function(c) { gData += c }); gRes.on('end', function() {
+                  /* FALLBACK 429: si el modelo grande hit rate limit, reintenta con el chico */
+                  if (gRes.statusCode === 429 && modelo === 'llama-3.3-70b-versatile' && intento === 1) {
+                    console.log('[KRONIA-CHAT] 70B hit rate limit, fallback a 8b-instant')
+                    return llamarGroq('llama-3.1-8b-instant', 2)
+                  }
+                  procesarRespuestaGroq(gData, gRes.statusCode, modelo, groqBody.length)
+                })
+              })
+              groqReq.on('error', function(err){
+                console.error('[KRONIA-CHAT] Error de red Groq:', err.message)
+                res.writeHead(200,{'Content-Type':'application/json'})
+                res.end(JSON.stringify({ok:true, respuesta:'Error de conexión con el modelo. Probá de nuevo.', provider:'groq', cost:0}))
+              })
+              groqReq.write(groqBody); groqReq.end()
+            }
+
+            /* Wrapper del parseo original. Recibe data + status + modelo usado + tamaño payload */
+            function procesarRespuestaGroq(gData, statusCode, modeloUsado, payloadSize){
+              try {
+                var result = JSON.parse(gData)
+                /* === DIAGNÓSTICO: si la respuesta no tiene choices, loguear el error real === */
+                if (!result.choices || !result.choices[0]) {
+                  console.error('[KRONIA-CHAT] Groq sin choices. Status:', statusCode, 'Modelo:', modeloUsado)
+                  console.error('[KRONIA-CHAT] Respuesta Groq:', JSON.stringify(result).slice(0, 1000))
+                  console.error('[KRONIA-CHAT] Payload size:', payloadSize, 'bytes / System prompt:', systemPrompt.length, 'chars')
+                  var errorMsg = 'No pude generar respuesta.'
+                  if (result.error && result.error.message) {
+                    /* Si es rate limit, mensaje amable */
+                    if (statusCode === 429) {
+                      errorMsg = 'Llegué al límite diario de consultas en este modelo. Probá una pregunta más simple o esperá unos minutos.'
+                    } else {
+                      errorMsg = 'Error: ' + result.error.message.slice(0, 200)
                     }
-                    res.writeHead(200,{'Content-Type':'application/json'})
-                    res.end(JSON.stringify({ok:true, respuesta: errorMsg, provider:'groq', cost:0, debug: {status: gRes.statusCode, hasError: !!result.error}}))
-                    return
+                  } else if (statusCode === 413 || payloadSize > 30000) {
+                    errorMsg = 'La consulta tiene demasiado contexto. Hacé una pregunta más específica.'
+                  } else if (statusCode >= 500) {
+                    errorMsg = 'El modelo está saturado. Probá de nuevo en un momento.'
                   }
-                  var text = result.choices[0].message.content || ''
-                  /* Si message.content viene null/vacio pero hay tool_calls, eso explica todo */
-                  if (!text && result.choices[0].message.tool_calls) {
-                    console.error('[KRONIA-CHAT] Groq devolvió tool_calls sin content. Tools:', JSON.stringify(result.choices[0].message.tool_calls).slice(0, 500))
-                    text = 'Necesito hacer una búsqueda. Dame un momento... (modo herramientas)'
-                  }
-                  if (!text) {
-                    console.error('[KRONIA-CHAT] message.content vacío. finish_reason:', result.choices[0].finish_reason)
-                    text = 'No pude generar respuesta.'
-                  }
+                  res.writeHead(200,{'Content-Type':'application/json'})
+                  res.end(JSON.stringify({ok:true, respuesta: errorMsg, provider:'groq', cost:0, debug: {status: statusCode, modelo: modeloUsado}}))
+                  return
+                }
+                var text = result.choices[0].message.content || ''
+                if (!text && result.choices[0].message.tool_calls) {
+                  console.error('[KRONIA-CHAT] Groq devolvió tool_calls sin content')
+                  text = 'Necesito hacer una búsqueda. Dame un momento... (modo herramientas)'
+                }
+                if (!text) {
+                  console.error('[KRONIA-CHAT] content vacío. finish_reason:', result.choices[0].finish_reason)
+                  text = 'No pude generar respuesta.'
+                }
                   
                   // ═══ Extraer plan de acción si está en modo ejecutor ═══
                   var accionPropuesta = null
@@ -768,10 +791,12 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                   if (accionPropuesta) respPayload.accion_propuesta = accionPropuesta
                   res.end(JSON.stringify(respPayload))
                 } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
-              })
-            })
-            groqReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
-            groqReq.write(groqBody); groqReq.end()
+              } /* fin procesarRespuestaGroq */
+
+            /* Disparar llamada a Groq: 70B si admin/ejecutor, 8B si usuario.
+               Con fallback automatico 70B -> 8B en caso de 429. */
+            var modeloInicial = (esEjecucion || esAdmin) ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant'
+            llamarGroq(modeloInicial, 1)
           }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
         }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
   } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Error procesando: '+e.message})) }
