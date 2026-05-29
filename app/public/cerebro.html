@@ -5,14 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=10">
 <title>AscendaOS · Brain · KronIA</title>
 <!-- PWA: permite instalar como app nativa en Chrome/Edge -->
-<link rel="manifest" href="/manifest-kronia.webmanifest">
-<meta name="theme-color" content="#0A4FBF">
-<meta name="application-name" content="KronIA">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="KronIA">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="/icons/kronia-apple-180.png">
+<!-- PWA desactivada (SES-038 rollback): la PWA estaba rompiendo el Brain.
+     AscendaOS se usa en Chrome normal. Si despues queremos PWA, restaurar
+     estas lineas:
+     <link rel="manifest" href="/manifest-kronia.webmanifest">
+     <meta name="theme-color" content="#0A4FBF">
+     <meta name="application-name" content="KronIA">
+     <meta name="apple-mobile-web-app-capable" content="yes">
+     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+     <meta name="apple-mobile-web-app-title" content="KronIA">
+     <meta name="mobile-web-app-capable" content="yes">
+     <link rel="apple-touch-icon" href="/icons/kronia-apple-180.png">
+-->
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/kronia-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/kronia-512.png">
 <style>
@@ -1219,8 +1223,31 @@ setInterval(checkProactiveEvents, 15000);
 // PWA: registrar service worker + boton de instalacion
 // ═══════════════════════════════════════════════════════════════
 (function setupPWA(){
-  /* Registrar SW si el navegador lo soporta */
+  /* DESINSTALAR cualquier service worker previo.
+     SES-038: el SW estaba rompiendo la PWA de Cesar mostrando pantallas blancas.
+     Decision: quitar PWA por completo. AscendaOS se usa en Chrome normal.
+     El mini-modal del Brain (3 estados) sigue funcionando sin PWA. */
   if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){
+        reg.unregister().then(function(){
+          console.log('[KronIA] Service Worker desinstalado:', reg.scope);
+        });
+      });
+    }).catch(function(e){ console.warn('[KronIA] unregister error:', e); });
+
+    /* Limpiar caches que el SW haya creado */
+    if(window.caches && caches.keys){
+      caches.keys().then(function(names){
+        names.forEach(function(n){ caches.delete(n); });
+      }).catch(function(){});
+    }
+  }
+})();
+/* Bloque viejo PWA desactivado */
+(function setupPWA_OLD_DISABLED(){
+  /* Registrar SW si el navegador lo soporta */
+  if(false && 'serviceWorker' in navigator){
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('/sw-kronia.js')
         .then(function(reg){
