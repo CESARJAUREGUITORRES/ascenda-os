@@ -231,26 +231,57 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         var idAsesor = d.id_asesor || ''
 
         /* Catálogo completo */
-        contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
+        /* Catálogo de servicios — solo cargar si la pregunta menciona tratamientos/precios.
+           OPTIMIZACION SES-038: antes se cargaba SIEMPRE (40 servicios completos = ~3KB
+           innecesarios por chat). Ahora solo si lo pide. */
+        var _pqcat = pregunta.toLowerCase()
+        var pideCatalogo = /tratamiento|servicio|precio|costo|cuanto cuesta|cuanto vale|catalogo|catálogo|paquete|promo|oferta|hidrofacial|hifu|toxina|enzima|botox|capilar|facial|corporal/.test(_pqcat)
+        if (pideCatalogo) {
+          contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
+        } else {
+          contextQueries.push(Promise.resolve(null))
+        }
         
         if (!esAdmin) {
-          /* Panel asesor consolidado (métricas del mes + hoy) */
-          contextQueries.push(sbRpc('aos_panel_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_hoy: hoy, p_mes_inicio: mesInicio}))
-          /* Comisiones REALES */
-          contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_mes: mesNum, p_anio: anioNum}))
-          /* Inventario por sede */
-          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
-          /* Leads importados hoy */
-          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
-          /* Seguimientos pendientes */
-          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
+          /* OPTIMIZACION SES-038: si es saludo puro, no cargar nada pesado */
+          var _saludoAsesor = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
+          if (_saludoAsesor) {
+            contextQueries.push(Promise.resolve(null)) // panel asesor
+            contextQueries.push(Promise.resolve(null)) // comisiones
+            contextQueries.push(Promise.resolve(null)) // inventario
+            contextQueries.push(Promise.resolve(null)) // leads hoy
+            contextQueries.push(Promise.resolve(null)) // seguimientos
+          } else {
+            /* Panel asesor consolidado (métricas del mes + hoy) */
+            contextQueries.push(sbRpc('aos_panel_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_hoy: hoy, p_mes_inicio: mesInicio}))
+            /* Comisiones REALES */
+            contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_mes: mesNum, p_anio: anioNum}))
+            /* Inventario por sede */
+            contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
+            /* Leads importados hoy */
+            contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio,fecha&order=id.desc&limit=20'))
+            /* Seguimientos pendientes */
+            contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
+          }
         } else {
-          /* ADMIN: cargar métricas globales del mes (panel + ventas + comisiones + agenda + llamadas) */
-          contextQueries.push(sbRpc('aos_panel_admin', {p_hoy: hoy, p_ayer: hoy, p_mes_inicio: mesInicio}))
-          contextQueries.push(sbRpc('aos_ventas_admin', {p_mes: mesNum, p_anio: anioNum})) // resumen ventas mes
-          contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
-          contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio&order=id.desc&limit=20'))
-          contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
+          /* ADMIN: cargar métricas globales del mes (panel + ventas + comisiones + agenda + llamadas)
+             OPTIMIZACION SES-038: si es saludo puro, NO cargar nada pesado.
+             Detección de saludo se hace mas abajo, pero la replicamos aqui para optimizar. */
+          var _esSaludo = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
+          if (_esSaludo) {
+            /* Saludo: cero datos pesados, deja 5 slots nulos para mantener indices */
+            contextQueries.push(Promise.resolve(null)) // 1: panel
+            contextQueries.push(Promise.resolve(null)) // 2: ventas mes
+            contextQueries.push(Promise.resolve(null)) // 3: inventario
+            contextQueries.push(Promise.resolve(null)) // 4: leads hoy
+            contextQueries.push(Promise.resolve(null)) // 5: seguimientos
+          } else {
+            contextQueries.push(sbRpc('aos_panel_admin', {p_hoy: hoy, p_ayer: hoy, p_mes_inicio: mesInicio}))
+            contextQueries.push(sbRpc('aos_ventas_admin', {p_mes: mesNum, p_anio: anioNum})) // resumen ventas mes
+            contextQueries.push(sbGet('/rest/v1/aos_inventario?select=nombre,sede,stock_actual,unidad,precio_unitario&stock_actual=gt.0&order=nombre&limit=40'))
+            contextQueries.push(sbGet('/rest/v1/aos_leads?fecha=eq.' + hoy + '&select=numero_limpio,tratamiento,anuncio&order=id.desc&limit=20'))
+            contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
+          }
         }
 
         /* Si la pregunta menciona tendencias/análisis/LTV/cohortes → cargar insights de Sofía */
@@ -305,24 +336,32 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         }
 
         /* ═══ STATS GLOBALES KRONIA (índices 10-13) ═══
-           Carga condicional: solo trae el bloque pesado cuando la pregunta lo menciona.
-           Si no menciona nada específico, carga leads+agenda (lo más consultado a diario). */
+           OPTIMIZACION SES-038 (Supabase NANO saturado): carga AGRESIVAMENTE
+           bajo demanda. sinFoco YA NO precarga nada — antes precargaba leads+
+           agenda+comisiones "por si acaso" en cada chat y eso multiplicaba x4
+           las consultas. Ahora solo carga lo que la pregunta menciona EXPLICITAMENTE. */
         var pq = pregunta.toLowerCase()
+        /* Saludos / preguntas conversacionales sin sustancia: cero precarga */
+        var esSaludo = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
         var pideLeads     = /lead|prospecto|campaña|campana|anuncio|importad/.test(pq)
         var pideAgenda    = /cita|agenda|agendad|asisti|no asist|reprogram|doctora|turno|programad/.test(pq)
         var pideLlamadas  = /llamad|llamó|llamo|contact|marcar|gestion telef|tipificac/.test(pq)
         var pidePacientes = /paciente|cliente nuevo|clientes nuevos|cartera|activos|registrad|base de datos/.test(pq)
-        /* Si no pide nada concreto, dar lo esencial del día: leads + agenda */
-        var sinFoco = !pideLeads && !pideAgenda && !pideLlamadas && !pidePacientes
-        contextQueries.push((pideLeads     || sinFoco) ? sbRpc('aos_kronia_stats_leads', {})     : Promise.resolve(null))
-        contextQueries.push((pideAgenda    || sinFoco) ? sbRpc('aos_kronia_stats_agenda', {})    : Promise.resolve(null))
-        contextQueries.push((pideLlamadas)             ? sbRpc('aos_kronia_stats_llamadas', {})  : Promise.resolve(null))
-        contextQueries.push((pidePacientes)            ? sbRpc('aos_kronia_stats_pacientes', {}) : Promise.resolve(null))
+        /* sinFoco solo se usa para que las preguntas vagas tipo "como va todo"
+           muestren panorama. Excluimos saludos puros. */
+        var sinFoco = !esSaludo && !pideLeads && !pideAgenda && !pideLlamadas && !pidePacientes
+        /* OPTIMIZACION CLAVE: sinFoco YA NO dispara stats automaticos.
+           Antes: precargaba leads+agenda en cada chat sin foco = 2 RPC extras siempre.
+           Ahora: solo carga si la pregunta lo MENCIONA explicitamente. */
+        contextQueries.push(pideLeads     ? sbRpc('aos_kronia_stats_leads', {})     : Promise.resolve(null))
+        contextQueries.push(pideAgenda    ? sbRpc('aos_kronia_stats_agenda', {})    : Promise.resolve(null))
+        contextQueries.push(pideLlamadas  ? sbRpc('aos_kronia_stats_llamadas', {})  : Promise.resolve(null))
+        contextQueries.push(pidePacientes ? sbRpc('aos_kronia_stats_pacientes', {}) : Promise.resolve(null))
 
-        /* COMISIONES ADMIN: cargar reglas + ranking por asesor (indice 14) */
-        /* Solo para admin, cuando la pregunta toca comisiones/reglas/ranking */
-        var pideComisiones = /comisi|porcentaje|regla|gan|cobr|incentiv|bonif/.test(pq)
-        if (esAdmin && (pideComisiones || sinFoco)) {
+        /* COMISIONES ADMIN: SOLO si la pregunta menciona comisiones.
+           Antes: sinFoco la disparaba siempre = la RPC mas pesada en cada chat admin. */
+        var pideComisiones = /comisi|porcentaje|regla|incentiv|bonif|ranking|cuanto gana|cuanto gano|cuanto ha ganado/.test(pq)
+        if (esAdmin && pideComisiones) {
           contextQueries.push(sbRpc('aos_comisiones_admin', {p_mes: mesNum, p_anio: anioNum}))
         } else {
           contextQueries.push(Promise.resolve(null))
@@ -793,9 +832,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                 } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: '+e.message})) }
               } /* fin procesarRespuestaGroq */
 
-            /* Disparar llamada a Groq: 70B si admin/ejecutor, 8B si usuario.
-               Con fallback automatico 70B -> 8B en caso de 429. */
-            var modeloInicial = (esEjecucion || esAdmin) ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant'
+            /* OPTIMIZACION SES-038: usar 8b-instant por default (cuota mucho mas alta,
+               respuestas mas rapidas, libera conexiones Supabase antes). 70b solo para
+               modo ejecutor (que requiere razonamiento complejo de tools). */
+            var modeloInicial = esEjecucion ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant'
             llamarGroq(modeloInicial, 1)
           }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'DB error'})) })
         }).catch(function(e) { res.writeHead(500); res.end(JSON.stringify({error:'Context error'})) })
