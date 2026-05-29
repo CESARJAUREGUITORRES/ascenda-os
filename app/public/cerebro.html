@@ -85,78 +85,85 @@ canvas{position:fixed;inset:0;display:block}
   cursor:default;
 }
 /* ═══════════════════════════════════════════════════════════
-   ESTADO CHIP — 140x50 flotante ULTRA-LIMPIO
+   #kronia-chip — ELEMENTO HTML SEPARADO DEL PANEL #kronia
    ═══════════════════════════════════════════════════════════
-   ARQUITECTURA: PANEL GRANDE (.expanded) y CHIP (.chip) son
-   estados visualmente DISTINTOS. El chip oculta TODO del panel
-   (header, canvas grande, texto, scroll, botones) y solo muestra:
-     - Botón mic 36x36
-     - 7 barras de onda horizontales (HTML, no canvas)
-   Click sobre el chip vuelve al panel grande. */
-#kronia.chip{
-  width:140px;height:50px;border-radius:25px;
+   Dos elementos HTML totalmente independientes. Cero clases
+   compartidas. Cero contaminación CSS posible.
+   - #kronia        = panel grande de siempre (visible por default)
+   - #kronia-chip   = chip 140x50 (display:none por default)
+   El JS alterna display:none/flex entre ambos. */
+#kronia-chip{
+  display:none; /* oculto por default; JS lo activa */
+  position:fixed;
+  right:20px;bottom:20px;
+  width:140px;height:50px;
+  border-radius:25px;
   padding:6px 8px 6px 10px;
-  background:linear-gradient(135deg, rgba(0,201,167,0.08), rgba(10,79,191,0.06));
-  border:1.5px solid rgba(0,201,167,0.35);
-  box-shadow:0 4px 14px rgba(10,79,191,0.18), 0 1px 4px rgba(0,0,0,0.08);
-  display:flex;flex-direction:row;gap:8px;align-items:center;
-  cursor:pointer; /* click en chip → vuelve a panel grande */
-  transition:transform .15s, box-shadow .15s;
+  background:linear-gradient(135deg, rgba(0,201,167,0.10), rgba(10,79,191,0.08));
+  border:1.5px solid rgba(0,201,167,0.40);
+  box-shadow:0 6px 20px rgba(10,79,191,0.25), 0 2px 6px rgba(0,0,0,0.10);
+  flex-direction:row;gap:8px;align-items:center;
+  cursor:pointer; /* click sobre el chip vuelve a panel grande */
+  transition:transform .15s, box-shadow .15s, opacity .2s;
+  z-index:99999;
   -webkit-app-region:no-drag;
+  user-select:none;
 }
-#kronia.chip:hover{
-  transform:translateY(-1px);
-  box-shadow:0 6px 18px rgba(10,79,191,0.25), 0 2px 6px rgba(0,0,0,0.10);
+#kronia-chip.visible{display:flex !important}
+#kronia-chip:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(10,79,191,0.32), 0 3px 8px rgba(0,0,0,0.12);
 }
-/* OCULTAR TODO LO DEL PANEL GRANDE cuando es chip */
-#kronia.chip #kk-chip-icon,
-#kronia.chip .kk-top,
-#kronia.chip #kk-cv,
-#kronia.chip #kk-txt,
-#kronia.chip #tap-hint,
-#kronia.chip #kk-st,
-#kronia.chip #kk-close,
-#kronia.chip .kk-mini-actions{display:none !important}
-
-/* Layout interno: solo mic + barras */
-#kronia.chip #kk-inner{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%;padding:0;margin:0;background:none;border:none}
-#kronia.chip #btn-tap{
-  width:36px;height:36px;flex-shrink:0;font-size:14px;
-  box-shadow:0 2px 8px rgba(0,201,167,0.45);
-  margin:0;
-  /* impedir que el click del btn propague al chip y dispare ampliación */
-  position:relative;z-index:2;
+#kchip-mic{
+  width:36px;height:36px;flex-shrink:0;
+  border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(145deg, var(--cyan), var(--blue));
+  color:#fff;font-size:14px;
+  box-shadow:0 2px 8px rgba(0,201,167,0.50);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:2; /* click en mic NO dispara expansión */
+  transition:transform .1s, box-shadow .15s;
 }
-/* Barras de onda HTML (no canvas). 7 spans animados via JS. */
-#kronia.chip .kk-bars{
+#kchip-mic:hover{transform:scale(1.06)}
+#kchip-mic:active{transform:scale(0.94)}
+#kchip-mic.recording{
+  background:linear-gradient(145deg, #ff5470, #c8003c);
+  animation:kchipPulse 1.2s ease-in-out infinite;
+}
+#kchip-mic.speaking{
+  background:linear-gradient(145deg, #ffd166, #f59e0b);
+}
+@keyframes kchipPulse{
+  0%,100%{box-shadow:0 2px 8px rgba(255,84,112,0.5)}
+  50%{box-shadow:0 2px 16px rgba(255,84,112,0.9)}
+}
+#kchip-bars{
   flex:1;display:flex;align-items:center;justify-content:center;
-  gap:3px;height:32px;
-  padding:0 4px;
-  pointer-events:none; /* click pasa al chip para ampliarlo */
+  gap:3px;height:32px;padding:0 4px;
+  pointer-events:none; /* click pasa al chip para expandirlo */
 }
-#kronia.chip .kk-bars span{
+#kchip-bars span{
   display:block;width:3px;border-radius:2px;
   background:linear-gradient(180deg, var(--cyan), var(--blue));
-  height:6px; /* default mínimo, JS lo anima */
+  height:4px;
   transition:height 60ms linear;
 }
-/* Standby: chip gris semi-transparente */
-#kronia.chip.standby{
+/* Standby visual */
+#kronia-chip.standby{
   border-color:rgba(150,150,150,0.25);
   opacity:0.70;
   background:linear-gradient(135deg, rgba(150,150,150,0.08), rgba(100,100,100,0.05));
 }
-#kronia.chip.standby #btn-tap{
-  background:linear-gradient(145deg,#888,#666);
-  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+#kronia-chip.standby #kchip-mic{
+  background:linear-gradient(145deg,#999,#666);
+  box-shadow:0 2px 6px rgba(0,0,0,0.18);
+  animation:none;
 }
-#kronia.chip.standby .kk-bars span{
+#kronia-chip.standby #kchip-bars span{
   background:linear-gradient(180deg,#aaa,#888);
 }
 
-/* CLASES LEGACY .mini queda pero no se usa.
-   Mantenida solo para no romper código JS antiguo. */
-
+/* Legacy: clase .kk-mini-btn mantenida por si el JS la usa en algun lugar */
 .kk-mini-btn{
   background:rgba(0,201,167,0.10);border:1.5px solid rgba(0,201,167,0.30);cursor:pointer;
   height:28px;border-radius:8px;padding:0 9px;
@@ -298,7 +305,7 @@ canvas{position:fixed;inset:0;display:block}
   <div id="nr"></div>
   <div id="nb"></div>
 
-  <!-- KronIA chip flotante v6 — 3 estados: burbuja / mini / expanded -->
+  <!-- KronIA PANEL GRANDE — modal expandido completo -->
   <div id="kronia">
     <div id="kk-proactive"></div>
     <span id="kk-chip-icon">&#127908;</span>
@@ -314,10 +321,16 @@ canvas{position:fixed;inset:0;display:block}
       <div id="kk-txt">...</div>
       <button id="btn-tap">&#127908;</button>
       <div id="tap-hint">Toca &middot; Habla &middot; Para solo</div>
-      <!-- BARRAS DE ONDA HTML — solo visibles en modo .chip -->
-      <div class="kk-bars" id="kk-bars" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
+    </div>
+  </div>
+
+  <!-- KronIA CHIP FLOTANTE — ELEMENTO TOTALMENTE INDEPENDIENTE del panel
+       NO comparte CSS con #kronia, NO se contamina con .expanded
+       Visible solo cuando el panel grande se oculta. -->
+  <div id="kronia-chip" aria-hidden="true">
+    <button id="kchip-mic" title="Activar/parar mic">&#127908;</button>
+    <div id="kchip-bars" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
   </div>
   <div id="ctrls">
@@ -520,6 +533,15 @@ function kkState(s){
     if(s==='thinking') btn.classList.add('thinking');
     btn.innerHTML=m.icon;
   }
+  /* Reflejar estado en el mic del CHIP (elemento separado) */
+  const chipMic = document.getElementById('kchip-mic');
+  if(chipMic){
+    chipMic.classList.remove('recording','speaking','thinking');
+    if(s==='recording') chipMic.classList.add('recording');
+    else if(s==='speaking') chipMic.classList.add('speaking');
+    else if(s==='thinking') chipMic.classList.add('thinking');
+    chipMic.innerHTML = m.icon;
+  }
 }
 
 // ── Estados de KronIA: chip flotante ⇄ panel expandido ───────────
@@ -532,64 +554,73 @@ let kkMode = 'closed';
 let chipBarsTimer = null; // intervalo para animar las barras HTML
 
 function animarBarrasChip(){
-  /* Solo corre cuando estamos en .chip y NO en standby silencioso */
+  /* Anima las 7 barras del chip leyendo audio del analyser.
+     Selecciona #kchip-bars span (elemento NUEVO, separado de #kronia). */
   if(chipBarsTimer){ clearInterval(chipBarsTimer); chipBarsTimer = null; }
-  const bars = document.querySelectorAll('#kk-bars span');
+  const bars = document.querySelectorAll('#kchip-bars span');
   if(!bars.length) return;
   chipBarsTimer = setInterval(()=>{
     if(kkMode !== 'chip'){ clearInterval(chipBarsTimer); chipBarsTimer=null; return; }
-    /* Leer audio real si hay analyser */
     if(analyser && dataArr && !standbyMode){
       analyser.getByteFrequencyData(dataArr);
-      /* Distribuir 7 bandas de frecuencia entre las 7 barras */
       const step = Math.floor(dataArr.length / bars.length);
       bars.forEach((bar, i)=>{
         const sliceStart = i * step;
         let sum = 0;
         for(let j=0; j<step; j++){ sum += (dataArr[sliceStart+j]||0); }
         const avg = sum / step;
-        /* Mapear 0..255 -> 4..28px */
         const h = Math.max(4, Math.min(28, Math.round(4 + (avg/255)*24)));
         bar.style.height = h + 'px';
       });
     } else if(isSpeaking){
-      /* Mientras KronIA habla: ondas sintéticas para feedback visual */
       const t = Date.now() / 200;
       bars.forEach((bar, i)=>{
         const h = 8 + Math.abs(Math.sin(t + i*0.7)) * 16;
         bar.style.height = Math.round(h) + 'px';
       });
     } else {
-      /* Standby o sin mic: barras quietas mínimas */
       bars.forEach(bar=> bar.style.height = '4px');
     }
   }, 80);
 }
 
+/* setKKMode v8 — ALTERNA entre #kronia (panel) y #kronia-chip (chip)
+   Son DOS ELEMENTOS HTML INDEPENDIENTES. Nunca coexisten visibles.
+   - closed   = ambos display:none
+   - bubble   = #kronia visible con clase .vis (sin .expanded)
+   - chip     = #kronia oculto, #kronia-chip visible
+   - expanded = #kronia visible con .expanded, #kronia-chip oculto */
 function setKKMode(mode){
-  const el = document.getElementById('kronia');
-  if(!el) return;
-  el.classList.remove('expanded','mini','chip','bubble');
-  /* Limpiar animación de barras si veníamos del chip */
+  const panel = document.getElementById('kronia');
+  const chip  = document.getElementById('kronia-chip');
+  if(!panel || !chip) return;
+
+  /* Limpiar animación de barras si dejamos el chip */
   if(chipBarsTimer && mode !== 'chip'){ clearInterval(chipBarsTimer); chipBarsTimer=null; }
 
+  /* Reset visual */
+  panel.classList.remove('expanded','mini','chip','bubble','vis');
+  chip.classList.remove('visible','standby');
+
   if(mode === 'closed'){
-    el.classList.remove('vis');
+    /* Ambos ocultos */
     kkVis = false; kkExpanded = false;
     stopWave();
   } else if(mode === 'bubble'){
-    el.classList.add('vis');
+    /* Solo panel como burbuja */
+    panel.classList.add('vis');
     kkVis = true; kkExpanded = false;
     stopWave();
   } else if(mode === 'chip' || mode === 'mini'){
-    /* Acepta 'mini' como alias legacy → renderiza como chip */
-    el.classList.add('vis','chip');
+    /* OCULTAR panel, MOSTRAR chip */
+    chip.classList.add('visible');
+    if(standbyMode) chip.classList.add('standby');
     kkVis = true; kkExpanded = false;
-    mode = 'chip'; /* normalizar */
+    mode = 'chip';
     animarBarrasChip();
-    /* En chip NO usamos el canvas grande, las barras HTML lo reemplazan */
   } else if(mode === 'expanded'){
-    el.classList.add('vis','expanded');
+    /* MOSTRAR panel expandido, ocultar chip */
+    panel.classList.add('vis','expanded');
     kkVis = true; kkExpanded = true;
     if(analyser) waveReal(); else waveSynth('listen');
   }
@@ -632,30 +663,39 @@ function esPalabraDeCierre(texto){
 function entrarStandby(){
   if(standbyMode) return;
   standbyMode = true;
-  /* Parar grabacion activa si la hay */
   if(isRecording) pararGrabacion();
-  /* Marcar visualmente en mini */
-  const el = document.getElementById('kronia');
-  if(el && kkMode==='chip') el.classList.add('standby');
+  /* Marcar visualmente en el CHIP nuevo (elemento separado) */
+  const chip = document.getElementById('kronia-chip');
+  if(chip && kkMode==='chip') chip.classList.add('standby');
   kkState('idle');
   setKKTxt('En standby (habla para reactivar)');
   console.log('[KronIA] → STANDBY (escuchando silenciosamente)');
-  /* Activar watcher de bajo costo: solo detecta voz para reactivar */
   iniciarStandbyWatcher();
 }
 
 function salirStandby(){
   if(!standbyMode) return;
   standbyMode = false;
-  /* Limpiar watcher */
   if(standbyWatcher){ clearInterval(standbyWatcher); standbyWatcher = null; }
-  const el = document.getElementById('kronia');
-  if(el) el.classList.remove('standby');
+  const chip = document.getElementById('kronia-chip');
+  if(chip) chip.classList.remove('standby');
   console.log('[KronIA] ← REACTIVADA');
-  /* Empezar a grabar inmediatamente */
-  if(micReady && !isRecording && !isSpeaking){
-    startGrabacion();
-  }
+  /* Pequeño delay para que se estabilicen los recursos de audio
+     antes de intentar grabar de nuevo */
+  setTimeout(()=>{
+    if(micReady && !isRecording && !isSpeaking){
+      try{ startGrabacion(); }
+      catch(err){
+        console.warn('[KronIA] Error al reactivar grabación:', err);
+        /* Si falla, reintentar tras 500ms con permiso fresco */
+        setTimeout(()=>{
+          if(!isRecording && !isSpeaking){
+            try{ startGrabacion(); }catch(e){ console.error(e); }
+          }
+        }, 500);
+      }
+    }
+  }, 150);
 }
 
 function iniciarStandbyWatcher(){
@@ -1326,25 +1366,36 @@ document.getElementById('btn-fs').addEventListener('click', ()=>{
   else{ document.exitFullscreen(); document.getElementById('btn-fs').textContent='⛶ Pantalla completa'; }
 });
 
-// ── Event listeners KronIA v7 (chip ⇄ expanded) ─────────────────
-// Click sobre el chip (cuando NO es el btn-tap): expandir a panel grande
+// ── Event listeners KronIA v8 (dos elementos HTML separados) ────
+// Click sobre el PANEL #kronia (modo burbuja): abre como chip
 document.getElementById('kronia').addEventListener('click',function(e){
-  /* Si está cerrado/burbuja, abrir como chip */
-  if(kkMode === 'bubble'){ setKKMode('chip'); if(!micReady) pedirPermiso(); return; }
-  /* Si es chip Y el click NO fue sobre el botón mic, expandir panel grande */
-  if(kkMode === 'chip'){
-    /* Detectar si el click vino del btn-tap o sus hijos */
-    const btnTap = document.getElementById('btn-tap');
-    if(btnTap && (e.target === btnTap || btnTap.contains(e.target))){
-      /* Click en mic: no hacer nada aquí (su propio handler procesa) */
-      return;
-    }
-    setKKMode('expanded');
+  if(kkMode === 'bubble'){
+    setKKMode('chip');
+    if(!micReady) pedirPermiso();
   }
 });
-// Botón ACHICAR (dentro del panel expandido) → pasa a chip flotante
+// Botón ACHICAR dentro del panel → cambia a chip (oculta panel, muestra chip)
 document.getElementById('kk-btn-chip').addEventListener('click',function(e){
-  e.stopPropagation(); setKKMode('chip');
+  e.stopPropagation();
+  setKKMode('chip');
+});
+// Click sobre el CHIP nuevo #kronia-chip → expande panel grande
+// EXCEPCIÓN: si el click viene del mic (#kchip-mic), no expandir
+document.getElementById('kronia-chip').addEventListener('click',function(e){
+  const mic = document.getElementById('kchip-mic');
+  /* Si clickearon el mic o sus hijos, NO expandir (mic tiene su handler propio) */
+  if(mic && (e.target === mic || mic.contains(e.target))) return;
+  setKKMode('expanded');
+});
+// Mic dentro del chip: dispara toggle de grabación
+document.getElementById('kchip-mic').addEventListener('click',function(e){
+  e.stopPropagation();
+  /* Si está hablando, cortar (barge-in manual) */
+  if(isSpeaking){ synth.cancel(); isSpeaking=false; }
+  /* Toggle grabación */
+  if(isRecording){ pararGrabacion(); }
+  else if(micReady){ startGrabacion(); }
+  else { pedirPermiso(); }
 });
 // Boton CERRAR panel completo (kk-close, ahora solo se ve en expanded como X)
 document.getElementById('kk-close').addEventListener('click',function(e){
