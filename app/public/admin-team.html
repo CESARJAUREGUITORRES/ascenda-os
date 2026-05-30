@@ -118,12 +118,6 @@ function editUser(idx){
   html+='<div class="fg" style="grid-template-columns:1fr;"><div class="fg-l">Distrito</div><select class="mi" id="eu-dist"><option>'+(u.distrito||'—')+'</option></select></div>';
   html+='</div>';
   html+='<div class="fg"><div class="fg-l">Dirección</div><input class="mi" id="eu-dir" value="'+h(u.direccion||'')+'"></div>';
-  /* ═══ ACCESO AL SISTEMA ═══ */
-  html+='<div class="sec-t">🔐 Acceso al sistema</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
-  html+='<div class="fg"><div class="fg-l">Usuario de ingreso</div><input class="mi" id="eu-username" value="'+h(u.username_login||'')+'" placeholder="usuario.login" style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,\'\')"><div style="font-size:8px;color:#6B7BA8;margin-top:2px;">Solo minúsculas, números, ._-  · Mín 3 chars · Único</div></div>';
-  html+='<div class="fg"><div class="fg-l">Estado contraseña</div><div class="mi" style="background:#F8FAFF;display:flex;align-items:center;justify-content:space-between;font-size:11px;">'+(u.tiene_password?'<span style="color:#059669;">🔑 Configurada</span>':'<span style="color:#DC2626;">⚠ Sin contraseña</span>')+'</div></div>';
-  html+='</div>';
   html+='<div class="sec-t">💼 Datos Laborales</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
   html+='<div class="fg"><div class="fg-l">Área</div><select class="mi" id="eu-area" onchange="updateCargos()"><option value="administración">Administración</option><option value="enfermería">Enfermería</option><option value="médica">Médica</option><option value="ventas">Ventas</option><option value="marketing">Marketing</option><option value="recepción">Recepción</option><option value="contabilidad">Contabilidad</option></select></div>';
@@ -159,10 +153,25 @@ function editUser(idx){
   html+='<div class="sec-t" style="color:#059669;">🔐 Paneles Operativos</div>';
   html+='<div class="pm">';P.filter(function(p){return p.categoria==='asesor';}).forEach(function(p){var on=ps.indexOf(p.id)>=0;html+='<div class="pi'+(on?' on':'')+'" data-p="'+p.id+'" onclick="tp(this)"><div class="pc-k">'+(on?'✓':'')+'</div>'+p.icono+' '+h(p.nombre)+'</div>';});
   html+='</div>';
-  html+='<div class="sec-t">🔑 Cuenta</div>';
-  html+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-  if(!u.cuenta_activada){html+='<button class="mbtn mbtn-g" style="font-size:9px;" onclick="activarCuenta(\''+u.id+'\',\''+h(u.email)+'\',\''+h(u.nombre)+'\')">🚀 Activar Cuenta (enviar credenciales)</button>';}
-  else{html+='<span class="tag" style="background:#F0FDF4;color:#059669;padding:4px 10px;">✓ Cuenta activa</span>';}
+  html+='<div class="sec-t">🔑 Cuenta &amp; Acceso al Sistema</div>';
+  /* ─── Fila 1: usuario de ingreso + estado password ─── */
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
+  html+='<div class="fg"><div class="fg-l">Usuario de ingreso</div><input class="mi" id="eu-username" value="'+h(u.username_login||'')+'" placeholder="usuario.login" style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,\'\')"><div style="font-size:8px;color:#6B7BA8;margin-top:2px;">Solo minúsculas, números, ._- · Mín 3 chars · Único · Se guarda con el botón Guardar</div></div>';
+  html+='<div class="fg"><div class="fg-l">Estado de contraseña</div><div class="mi" style="background:#F8FAFF;display:flex;align-items:center;font-size:11px;">'+(u.tiene_password?'<span style="color:#059669;">🔑 Configurada</span>':'<span style="color:#DC2626;">⚠ Sin contraseña — usuario no puede entrar</span>')+'</div></div>';
+  html+='</div>';
+  /* ─── Fila 2: estado 2FA + estado cuenta ─── */
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;margin-top:6px;">';
+  html+='<div class="fg"><div class="fg-l">Doble factor (2FA por email)</div><div class="mi" style="background:#F8FAFF;display:flex;align-items:center;justify-content:space-between;font-size:11px;">'+(u.two_factor?'<span style="color:#059669;">🛡️ Activado</span>':'<span style="color:#D97706;">⚠ Desactivado</span>')+'<button class="mbtn mbtn-c" style="font-size:8px;padding:2px 8px;height:22px;" onclick="toggle2FA(\''+u.id+'\','+(u.two_factor?'false':'true')+',\''+h(u.nombre)+'\')">'+(u.two_factor?'Desactivar':'Activar')+'</button></div></div>';
+  html+='<div class="fg"><div class="fg-l">Estado de cuenta</div><div class="mi" style="background:#F8FAFF;display:flex;align-items:center;font-size:11px;">'+(u.cuenta_activada?'<span style="color:#059669;">✓ Cuenta activa</span>':'<span style="color:#D97706;">⏳ Pendiente de activación</span>')+'</div></div>';
+  html+='</div>';
+  /* ─── Botones de acción ─── */
+  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">';
+  /* Activar/Reenviar credenciales — siempre visible */
+  if(!u.cuenta_activada){
+    html+='<button class="mbtn mbtn-g" style="font-size:9px;" onclick="activarCuenta(\''+u.id+'\',\''+h(u.email)+'\',\''+h(u.nombre)+'\')">🚀 Activar Cuenta (enviar credenciales por email)</button>';
+  } else {
+    html+='<button class="mbtn mbtn-g" style="font-size:9px;background:#7C3AED;" onclick="reenviarCredenciales(\''+u.id+'\',\''+h(u.email)+'\',\''+h(u.nombre)+'\')">📧 Reenviar credenciales por email</button>';
+  }
   html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="cambiarPass(\''+u.id+'\',\''+h(u.nombre)+'\')">🔄 Cambiar contraseña</button>';
   html+='<button class="mbtn mbtn-c" style="font-size:8px;" onclick="forzarCierre(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">🚪 Forzar cierre sesión</button>';
   html+='<button class="mbtn" style="font-size:8px;background:#0A4FBF;color:#fff;" onclick="abrirComo(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">👁 Abrir como</button>';
@@ -579,6 +588,60 @@ function forzarCierre(codigo,nombre){
   fetch(SB+'/rest/v1/aos_security_log',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({usuario:nombre,accion:'force_logout',detalles:'Forzado por admin',created_at:new Date().toISOString()})}).catch(function(){});
   showToast(nombre+' será deslogueado al recargar');
 }
+// ═══ ACTIVAR / DESACTIVAR 2FA ═══
+function toggle2FA(uid, activar, nombre){
+  var msg = activar ? '¿Activar 2FA para '+nombre+'?\nCada vez que inicie sesión le llegará un código al email.' : '¿Desactivar 2FA para '+nombre+'?\nPodrá entrar solo con usuario y contraseña (menos seguro).';
+  if(!confirm(msg)) return;
+  fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+uid,{
+    method:'PATCH',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({two_factor:activar})
+  }).then(function(r){
+    if(r.ok){
+      showToast(activar?'🛡️ 2FA activado para '+nombre:'2FA desactivado para '+nombre, activar?'Próximo login pedirá código por email':'Solo usuario y contraseña');
+      /* Refrescar lista y modal */
+      var idActual = uid;
+      loadTeam();
+      setTimeout(function(){ var ix=(U||[]).findIndex(function(x){return x.id===idActual;}); if(ix>=0) editUser(ix); },800);
+    } else {
+      showToast('❌ Error al cambiar 2FA');
+    }
+  }).catch(function(){showToast('Error de red');});
+}
+
+// ═══ REENVIAR CREDENCIALES (cuenta ya activa) ═══
+function reenviarCredenciales(uid, email, nombre){
+  if(!email){showToast('Sin email registrado — agrega un email primero');return;}
+  if(!confirm('¿Reenviar credenciales a '+nombre+' ('+email+')?\nSe le pedirá una nueva contraseña.')) return;
+  var pw = prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):', nombre.toLowerCase().slice(0,4)+'2026');
+  if(!pw||pw.length<6){if(pw)alert('Mínimo 6 caracteres');return;}
+  /* 1) Cambiar password */
+  fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_password',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_usuario_id:uid,p_nueva_password:pw})
+  }).then(function(r){return r.json();}).then(function(res){
+    if(!res||!res.ok){showToast('❌ No se pudo cambiar pass: '+(res&&res.error||'desconocido'));return;}
+    var us = res.username || nombre.toLowerCase();
+    /* 2) Enviar email con credenciales */
+    fetch('https://ascenda-os-production.up.railway.app/api/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to:email,
+        subject:'🔑 Tus credenciales AscendaOS — Zi Vital',
+        html:'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;text-align:center;border-radius:12px 12px 0 0;color:#fff;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">CLÍNICA ZI VITAL</div><div style="font-size:22px;font-weight:800;margin-top:6px;">Tus credenciales actualizadas</div></div><div style="padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+nombre+'</b>,</p><p>Te enviamos tus credenciales de acceso al sistema:</p><div style="background:#F0F4FC;padding:16px;border-radius:10px;margin:12px 0;"><p style="margin:4px 0;"><b>Usuario:</b> '+us+'</p><p style="margin:4px 0;"><b>Contraseña:</b> '+pw+'</p></div><p style="color:#DC2626;font-size:11px;">Por seguridad, cambia tu contraseña después del primer login.</p><a href="https://ascenda-os-production.up.railway.app" style="display:block;text-align:center;background:#0A4FBF;color:#fff;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:12px;">Ingresar al sistema →</a></div></div>'
+      })
+    }).then(function(r){return r.json();}).then(function(emailRes){
+      if(emailRes && emailRes.id){
+        showToast('📧 Credenciales reenviadas a '+email, 'Resend ID: '+emailRes.id.slice(0,8));
+      } else {
+        showToast('⚠ Password cambió pero email falló', emailRes&&emailRes.error||'error desconocido');
+      }
+    }).catch(function(){showToast('⚠ Password OK pero email no se envió');});
+  }).catch(function(){showToast('Error al cambiar pass');});
+}
+
 function cambiarPass(uid,nombre){
   var np=prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):');
   if(!np||np.length<6){if(np)alert('Mínimo 6 caracteres');return;}
