@@ -61,13 +61,15 @@ function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apike
 function showToast(m){var tw=el('tm-toast');tw.style.display='block';var d=document.createElement('div');d.className='toast-item';d.textContent='✓ '+m;tw.appendChild(d);setTimeout(function(){d.remove();if(!tw.children.length)tw.style.display='none';},3500);}
 var P=[],U=[],UB=[];
 function loadTeam(){
-  var f=el('tm-filter').value;var qs='select=*&order=nivel_jerarquia,nombre&activo=eq.true'+(f?'&cargo=eq.'+f:'');
-  q('aos_usuarios',qs,function(u){
+  var f=el('tm-filter').value;var qs='select=*&order=nivel_jerarquia,nombre'+(f?'&cargo=eq.'+f:'');
+  q('aos_team_full',qs,function(u){
     U=u||[];el('tm-count').textContent=U.length+' miembros';
     var cols={'ADMINISTRADOR':'#7C3AED','DOCTORA':'#0A4FBF','ENFERMERIA':'#059669','ASESOR':'#D97706','MARKETING':'#DC2626','RECEPCION':'#00C9A7'};
     el('tm-list').innerHTML=U.map(function(u,i){
       var c=cols[u.cargo]||'#0A4FBF';var np=(u.paneles_acceso||[]).length;
-      return '<div class="pc" onclick="editUser('+i+')"><div class="pc-img" style="background:'+c+';">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'">':'<div style="font-size:52px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0]+(u.apellidos||'')[0]||'')+'</div>')+'</div><div class="pc-body"><div style="font-family:Exo 2;font-weight:800;font-size:13px;">'+h(u.nombre)+(u.apellidos?' '+h(u.apellidos):'')+'</div><div style="font-size:8px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.area||'')+' · '+h(u.codigo_asesor||'')+'</div><div style="font-size:8px;color:#6B7BA8;margin-top:3px;">📍 '+h(u.sede||'—')+' · 🔐 '+np+' paneles'+(u.email?' · ✉ Sí':'')+'</div><div style="margin-top:4px;">'+(u.cuenta_activada?'<span class="tag" style="background:#F0FDF4;color:#059669;">Activo</span>':'<span class="tag" style="background:#FFFBEB;color:#D97706;">Pendiente</span>')+' <span class="tag" style="background:'+c+'15;color:'+c+';">Nivel '+u.nivel_jerarquia+'</span> <span class="tag" style="background:#0A4FBF;color:#fff;cursor:pointer;padding:3px 8px;" onclick="event.stopPropagation();abrirComo(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">👁 Ver como</span></div></div></div>';
+      var uname=u.username_login||'';
+      var ubadge=uname?'<div style="font-size:9px;color:#0A4FBF;font-weight:700;margin-top:2px;">👤 '+h(uname)+'</div>':'<div style="font-size:8px;color:#DC2626;margin-top:2px;">⚠ sin usuario</div>';
+      return '<div class="pc" onclick="editUser('+i+')"><div class="pc-img" style="background:'+c+';">'+(u.avatar_url?'<img src="'+h(u.avatar_url)+'">':'<div style="font-size:52px;font-weight:800;color:rgba(255,255,255,.7);">'+h((u.nombre||'?')[0]+(u.apellidos||'')[0]||'')+'</div>')+'</div><div class="pc-body"><div style="font-family:Exo 2;font-weight:800;font-size:13px;">'+h(u.nombre)+(u.apellidos?' '+h(u.apellidos):'')+'</div>'+ubadge+'<div style="font-size:8px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.area||'')+' · '+h(u.codigo_asesor||'')+'</div><div style="font-size:8px;color:#6B7BA8;margin-top:3px;">📍 '+h(u.sede||'—')+' · 🔐 '+np+' paneles'+(u.email?' · ✉ Sí':'')+(u.tiene_password?' · 🔑':' · ⚠ sin pass')+'</div><div style="margin-top:4px;">'+(u.cuenta_activada?'<span class="tag" style="background:#F0FDF4;color:#059669;">Activo</span>':'<span class="tag" style="background:#FFFBEB;color:#D97706;">Pendiente</span>')+' <span class="tag" style="background:'+c+'15;color:'+c+';">Nivel '+u.nivel_jerarquia+'</span> <span class="tag" style="background:#0A4FBF;color:#fff;cursor:pointer;padding:3px 8px;" onclick="event.stopPropagation();abrirComo(\''+h(u.codigo_asesor)+'\',\''+h(u.nombre)+'\')">👁 Ver como</span></div></div></div>';
     }).join('');
   });
   q('aos_paneles_disponibles','select=*&order=orden',function(p){P=p||[];});
@@ -77,7 +79,10 @@ function editUser(idx){
   var u=U[idx];if(!u)return;
   var c={'ADMINISTRADOR':'#7C3AED','DOCTORA':'#0A4FBF','ENFERMERIA':'#059669','ASESOR':'#D97706'}[u.cargo]||'#0A4FBF';
   var ps=u.paneles_acceso||[];
-  el('mu-title').textContent=u.nombre+(u.apellidos?' '+u.apellidos:'');
+  /* Header: nombre completo + username de login */
+  var hdr=u.nombre+(u.apellidos?' '+u.apellidos:'');
+  if(u.username_login){hdr+='   👤 '+u.username_login;}
+  el('mu-title').textContent=hdr;
   // Métricas top
   var html='<div id="eu-met" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:10px;padding:8px;background:linear-gradient(135deg,#071D4A08,#0A4FBF06);border-radius:10px;"></div>';
   // Chips
@@ -90,7 +95,7 @@ function editUser(idx){
   html+='<div style="text-align:center;margin:6px 0;"><label style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#EBF2FF;border-radius:8px;cursor:pointer;font-size:9px;font-weight:700;color:#0A4FBF;">📷 Cambiar foto<input type="file" id="eu-af" accept="image/*" style="display:none;" onchange="upAv(this,\''+u.id+'\')"></label><div id="eu-as" style="font-size:8px;margin-top:2px;"></div></div>';
   html+='<input type="hidden" id="eu-avatar" value="'+h(u.avatar_url||'')+'">';
   html+='<input type="hidden" id="eu-codigo" value="'+h(u.codigo_asesor||'')+'">';
-  html+='<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:16px;">'+h(u.nombre)+(u.apellidos?' '+h(u.apellidos):'')+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.codigo_asesor||'')+'</div></div></div>';
+  html+='<div style="text-align:center;"><div style="font-family:Exo 2;font-weight:800;font-size:16px;">'+h(u.nombre)+(u.apellidos?' '+h(u.apellidos):'')+'</div><div style="font-size:9px;color:#6B7BA8;">'+h(u.cargo)+' · '+h(u.codigo_asesor||'')+'</div>'+(u.username_login?'<div style="font-size:11px;color:#0A4FBF;font-weight:700;margin-top:3px;">👤 '+h(u.username_login)+'</div>':'<div style="font-size:9px;color:#DC2626;margin-top:3px;">⚠ Sin usuario de ingreso</div>')+'</div></div>';
   // Right: datos
   html+='<div>';
   html+='<div class="sec-t">📋 Datos Personales</div>';
@@ -113,6 +118,12 @@ function editUser(idx){
   html+='<div class="fg" style="grid-template-columns:1fr;"><div class="fg-l">Distrito</div><select class="mi" id="eu-dist"><option>'+(u.distrito||'—')+'</option></select></div>';
   html+='</div>';
   html+='<div class="fg"><div class="fg-l">Dirección</div><input class="mi" id="eu-dir" value="'+h(u.direccion||'')+'"></div>';
+  /* ═══ ACCESO AL SISTEMA ═══ */
+  html+='<div class="sec-t">🔐 Acceso al sistema</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
+  html+='<div class="fg"><div class="fg-l">Usuario de ingreso</div><input class="mi" id="eu-username" value="'+h(u.username_login||'')+'" placeholder="usuario.login" style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,\'\')"><div style="font-size:8px;color:#6B7BA8;margin-top:2px;">Solo minúsculas, números, ._-  · Mín 3 chars · Único</div></div>';
+  html+='<div class="fg"><div class="fg-l">Estado contraseña</div><div class="mi" style="background:#F8FAFF;display:flex;align-items:center;justify-content:space-between;font-size:11px;">'+(u.tiene_password?'<span style="color:#059669;">🔑 Configurada</span>':'<span style="color:#DC2626;">⚠ Sin contraseña</span>')+'</div></div>';
+  html+='</div>';
   html+='<div class="sec-t">💼 Datos Laborales</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;">';
   html+='<div class="fg"><div class="fg-l">Área</div><select class="mi" id="eu-area" onchange="updateCargos()"><option value="administración">Administración</option><option value="enfermería">Enfermería</option><option value="médica">Médica</option><option value="ventas">Ventas</option><option value="marketing">Marketing</option><option value="recepción">Recepción</option><option value="contabilidad">Contabilidad</option></select></div>';
@@ -265,6 +276,25 @@ function saveU(id){
       fetch(SB+'/rest/v1/aos_perfiles_profesional?nombre_publico=ilike.*'+encodeURIComponent(search)+'*',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(profs){
         if(profs&&profs[0]){fetch(SB+'/rest/v1/aos_perfiles_profesional?id=eq.'+profs[0].id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({servicios:svc})});}
       }).catch(function(){});
+    }
+    /* === Cambio de username si fue editado === */
+    var usernameInput=el('eu-username');
+    var usernameNuevo=usernameInput?(usernameInput.value||'').trim().toLowerCase():'';
+    /* Buscar el username actual desde la lista U (cargada en loadTeam) */
+    var userObj=(U||[]).filter(function(x){return x.id===id;})[0];
+    var usernameActual=userObj?(userObj.username_login||''):'';
+    if(usernameNuevo && usernameNuevo!==usernameActual){
+      fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_username',{
+        method:'POST',
+        headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+        body:JSON.stringify({p_usuario_id:id,p_nuevo_username:usernameNuevo})
+      }).then(function(r){return r.json();}).then(function(res){
+        if(res&&res.ok){
+          showToast('✅ Username: '+usernameActual+' → '+usernameNuevo,'Cambio propagado');
+        }else{
+          showToast('⚠ Username no cambió','Error: '+(res&&res.error||'desconocido'));
+        }
+      }).catch(function(){showToast('Error de red al cambiar username');});
     }
     showToast(d.nombre+' actualizado','Datos, permisos'+(svc.length?' y '+svc.length+' servicios':'')+' guardados');el('m-user').classList.remove('open');loadTeam();
   });
@@ -552,8 +582,17 @@ function forzarCierre(codigo,nombre){
 function cambiarPass(uid,nombre){
   var np=prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):');
   if(!np||np.length<6){if(np)alert('Mínimo 6 caracteres');return;}
-  fetch(SB+'/rest/v1/rpc/aos_cambiar_password',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_usuario_id:uid,p_nueva_password:np})}).then(function(r){return r.json();}).then(function(res){
-    if(res&&res.ok){showToast('Contraseña cambiada — '+nombre);}else{showToast('Error: '+(res&&res.error||'No se pudo cambiar'));}
+  /* RPC nueva: aos_admin_cambiar_password(p_usuario_id UUID, p_nueva_password TEXT) */
+  fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_password',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_usuario_id:uid,p_nueva_password:np})
+  }).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok){
+      showToast('✅ Contraseña cambiada para '+nombre,'Username: '+(res.username||'?'));
+    }else{
+      showToast('❌ Error','No se pudo cambiar: '+(res&&res.error||'desconocido'));
+    }
   }).catch(function(){showToast('Error de conexión');});
 }
 loadTeam();
