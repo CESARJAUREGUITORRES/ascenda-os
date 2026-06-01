@@ -52,6 +52,7 @@
       <div class="mk-modes"><button class="mk-mode act" data-m="mes" onclick="mkMd(this)">Mes</button><button class="mk-mode" data-m="anio" onclick="mkMd(this)">Año</button></div>
       <select class="ps" id="mk-mes" onchange="mkL()"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       <select class="ps" id="mk-anio" onchange="mkL()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <button class="mk-inv" onclick="openLeadsModal()" style="background:#0A4FBF;">📋 Ver Leads</button>
       <button class="mk-inv" onclick="openIv()">💰 Gestión de Inversión</button>
     </div>
   </div>
@@ -86,6 +87,94 @@
   </div>
   <div class="mfoot"><button class="mbtn mbtn-c" onclick="el('m-iv').classList.remove('open')">Cancelar</button><button class="mbtn mbtn-p" onclick="ivSave()">💾 Guardar</button></div>
 </div></div>
+
+<!-- ═══ MODAL VER LEADS ═══ -->
+<div class="mov" id="m-leads" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal" style="max-width:1200px;width:95vw;">
+<div class="mhd">
+  <div class="mtit">📋 Leads del período <span id="ld-count" style="font-size:11px;color:#6B7BA8;font-weight:600;margin-left:8px;"></span></div>
+  <button class="mx" onclick="el('m-leads').classList.remove('open')">✕</button>
+</div>
+<div class="mbody" style="max-height:75vh;overflow-y:auto;">
+  <!-- Filtros: chips de rango + chips de estado -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+    <span style="font-size:9px;font-weight:700;color:#6B7BA8;letter-spacing:.6px;text-transform:uppercase;">Rango:</span>
+    <button class="ld-chip act" data-r="mes" onclick="ldRng('mes')">📅 Este mes</button>
+    <button class="ld-chip" data-r="hoy" onclick="ldRng('hoy')">🌟 Hoy</button>
+    <button class="ld-chip" data-r="semana" onclick="ldRng('semana')">📆 Últimos 7d</button>
+    <button class="ld-chip" data-r="anio" onclick="ldRng('anio')">🗓 Este año</button>
+    <button class="ld-chip" data-r="custom" onclick="ldRng('custom')">⚙ Personalizado</button>
+    <input type="date" id="ld-desde" style="display:none;font-size:10px;padding:4px 6px;border:1px solid #DDE4F5;border-radius:6px;">
+    <input type="date" id="ld-hasta" style="display:none;font-size:10px;padding:4px 6px;border:1px solid #DDE4F5;border-radius:6px;">
+    <button class="ld-chip" id="ld-aplicar" style="display:none;background:#0A4FBF;color:#fff;" onclick="ldLoad()">Aplicar →</button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+    <span style="font-size:9px;font-weight:700;color:#6B7BA8;letter-spacing:.6px;text-transform:uppercase;">Estado:</span>
+    <button class="ld-chip act" data-e="todos" onclick="ldEst('todos')">Todos</button>
+    <button class="ld-chip" data-e="VENDIDO" onclick="ldEst('VENDIDO')" style="border-color:#059669;color:#059669;">💰 Vendidos</button>
+    <button class="ld-chip" data-e="CON CITA" onclick="ldEst('CON CITA')" style="border-color:#7C3AED;color:#7C3AED;">📅 Con cita</button>
+    <button class="ld-chip" data-e="EN GESTION" onclick="ldEst('EN GESTION')" style="border-color:#D97706;color:#D97706;">📞 En gestión</button>
+    <button class="ld-chip" data-e="SIN CONTACTO" onclick="ldEst('SIN CONTACTO')" style="border-color:#DC2626;color:#DC2626;">⚠ Sin contacto</button>
+    <input type="text" id="ld-buscar" placeholder="🔍 Buscar número o anuncio..." onkeyup="ldRender()" style="margin-left:auto;font-size:10px;padding:5px 10px;border:1px solid #DDE4F5;border-radius:8px;width:200px;">
+  </div>
+  
+  <!-- KPI strip -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px;">
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-total">0</div><div class="ld-kpi-l">Total</div></div>
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-llam" style="color:#D97706;">0</div><div class="ld-kpi-l">Con llamadas</div></div>
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-cita" style="color:#7C3AED;">0</div><div class="ld-kpi-l">Con citas</div></div>
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-ventas" style="color:#059669;">0</div><div class="ld-kpi-l">Vendidos</div></div>
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-sin" style="color:#DC2626;">0</div><div class="ld-kpi-l">Sin contacto</div></div>
+    <div class="ld-kpi"><div class="ld-kpi-v" id="ld-k-monto" style="color:#0A4FBF;">S/0</div><div class="ld-kpi-l">Facturado</div></div>
+  </div>
+  
+  <!-- Tabla -->
+  <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;">
+    <div style="overflow-x:auto;max-height:55vh;overflow-y:auto;">
+      <table id="ld-tabla" style="width:100%;border-collapse:collapse;font-size:10px;">
+        <thead>
+          <tr style="background:#F0F4FC;position:sticky;top:0;z-index:2;">
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">DÍA</th>
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">HORA</th>
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">NÚMERO</th>
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">TRATAMIENTO</th>
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">ANUNCIO</th>
+            <th style="padding:8px;text-align:center;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">📞 LLAM</th>
+            <th style="padding:8px;text-align:left;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">ÚLT. ASESOR</th>
+            <th style="padding:8px;text-align:center;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">📅 CITAS</th>
+            <th style="padding:8px;text-align:right;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">💰 S/</th>
+            <th style="padding:8px;text-align:center;font-size:8px;color:#6B7BA8;letter-spacing:.5px;border-bottom:1px solid #DDE4F5;">ESTADO</th>
+          </tr>
+        </thead>
+        <tbody id="ld-body"><tr><td colspan="10" style="padding:40px;text-align:center;color:#9AAAC8;">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="mfoot">
+  <button class="mbtn mbtn-c" onclick="ldExport()">📥 Exportar CSV</button>
+  <button class="mbtn mbtn-p" onclick="el('m-leads').classList.remove('open')">Cerrar</button>
+</div>
+</div>
+</div>
+
+<style>
+.ld-chip{font-family:DM Sans;padding:5px 10px;border-radius:14px;border:1px solid #DDE4F5;background:#fff;color:#6B7BA8;font-size:9px;font-weight:700;cursor:pointer;transition:all .15s;}
+.ld-chip:hover{background:#F0F4FC;}
+.ld-chip.act{background:#0A4FBF;border-color:#0A4FBF;color:#fff;}
+.ld-kpi{background:#F8FAFF;border-radius:10px;padding:8px 10px;text-align:center;}
+.ld-kpi-v{font-family:Exo 2;font-weight:800;font-size:18px;color:#071D4A;}
+.ld-kpi-l{font-size:7px;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-top:2px;}
+#ld-tabla tbody tr{border-bottom:1px solid #F1F5F9;transition:background .12s;}
+#ld-tabla tbody tr:hover{background:#F8FAFF;}
+#ld-tabla tbody td{padding:6px 8px;font-family:DM Sans;}
+.ld-est{display:inline-block;padding:2px 7px;border-radius:8px;font-size:8px;font-weight:700;letter-spacing:.4px;}
+.ld-est-v{background:#F0FDF4;color:#059669;}
+.ld-est-c{background:#F5F3FF;color:#7C3AED;}
+.ld-est-g{background:#FFFBEB;color:#D97706;}
+.ld-est-s{background:#FEE2E2;color:#DC2626;}
+</style>
+
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
@@ -354,4 +443,134 @@ function ivAdd(){var d=document.createElement('div');d.className='iv-row';d.inne
 function ivDel(btn,id){if(id)rest('aos_inversion_campanas?id=eq.'+id,{method:'DELETE'}).then(function(){btn.parentNode.remove();ivCalc();});else{btn.parentNode.remove();ivCalc();}}
 function ivCalc(){var t=0;el('iv-list').querySelectorAll('[data-field=inversion]').forEach(function(i){t+=Number(i.value)||0;});el('iv-tot').textContent='S/ '+fmt(t)+' total';}
 function ivSave(){var m=Number(el('iv-m').value),a=Number(el('iv-a').value),mn=MF[m].toUpperCase();rest('aos_inversion_campanas?mes_num=eq.'+m+'&anio=eq.'+a,{method:'DELETE'}).then(function(){var ins=[];el('iv-list').querySelectorAll('.iv-row').forEach(function(row){var t=row.querySelector('[data-field=tratamiento]').value,p=row.querySelector('[data-field=plataforma]').value,v=Number(row.querySelector('[data-field=inversion]').value)||0;if(v>0)ins.push({tratamiento:t,mes:mn,anio:a,inversion:v,mes_num:m,plataforma:p});});if(ins.length)return fetch(SB+'/rest/v1/aos_inversion_campanas',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(ins)});}).then(function(){el('m-iv').classList.remove('open');mkL();}).catch(function(e){console.error(e);});}
+
+/* ═══ VER LEADS — Modal con tabla detallada de leads + tracking ═══ */
+var _ldData=[]; var _ldFiltroEstado='todos';
+
+function openLeadsModal(){
+  /* Default: usar el mes/año del selector principal */
+  var m=Number(el('mk-mes').value), a=Number(el('mk-anio').value);
+  var desde=a+'-'+(m<10?'0'+m:m)+'-01';
+  var fin=new Date(a,m,0); /* ultimo dia del mes */
+  var hasta=a+'-'+(m<10?'0'+m:m)+'-'+(fin.getDate()<10?'0'+fin.getDate():fin.getDate());
+  el('ld-desde').value=desde; el('ld-hasta').value=hasta;
+  /* Activar chip 'mes' por defecto */
+  document.querySelectorAll('.ld-chip[data-r]').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-r')==='mes');});
+  document.querySelectorAll('.ld-chip[data-e]').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-e')==='todos');});
+  _ldFiltroEstado='todos';
+  el('ld-buscar').value='';
+  el('m-leads').classList.add('open');
+  ldLoad();
+}
+
+function ldRng(r){
+  document.querySelectorAll('.ld-chip[data-r]').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-r')===r);});
+  var hoy=new Date(); var y=hoy.getFullYear(), m=hoy.getMonth()+1, d=hoy.getDate();
+  var pad=function(n){return n<10?'0'+n:''+n;};
+  var hoyStr=y+'-'+pad(m)+'-'+pad(d);
+  var custom=(r==='custom');
+  el('ld-desde').style.display=custom?'':'none';
+  el('ld-hasta').style.display=custom?'':'none';
+  el('ld-aplicar').style.display=custom?'':'none';
+  if(r==='hoy'){el('ld-desde').value=hoyStr;el('ld-hasta').value=hoyStr;ldLoad();}
+  else if(r==='semana'){var s=new Date(hoy);s.setDate(s.getDate()-6);el('ld-desde').value=s.getFullYear()+'-'+pad(s.getMonth()+1)+'-'+pad(s.getDate());el('ld-hasta').value=hoyStr;ldLoad();}
+  else if(r==='mes'){el('ld-desde').value=y+'-'+pad(m)+'-01';var fin=new Date(y,m,0);el('ld-hasta').value=y+'-'+pad(m)+'-'+pad(fin.getDate());ldLoad();}
+  else if(r==='anio'){el('ld-desde').value=y+'-01-01';el('ld-hasta').value=y+'-12-31';ldLoad();}
+  /* custom: espera al boton Aplicar */
+}
+
+function ldEst(e){
+  _ldFiltroEstado=e;
+  document.querySelectorAll('.ld-chip[data-e]').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-e')===e);});
+  ldRender();
+}
+
+function ldLoad(){
+  var desde=el('ld-desde').value, hasta=el('ld-hasta').value;
+  if(!desde||!hasta){el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#DC2626;">Selecciona fechas válidas</td></tr>';return;}
+  el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#9AAAC8;">Cargando...</td></tr>';
+  fetch(SB+'/rest/v1/rpc/aos_marketing_leads_detalle',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_fecha_desde:desde,p_fecha_hasta:hasta})
+  }).then(function(r){return r.json();}).then(function(rows){
+    _ldData=Array.isArray(rows)?rows:[];
+    ldRender();
+  }).catch(function(e){
+    el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#DC2626;">Error: '+e.message+'</td></tr>';
+  });
+}
+
+function ldRender(){
+  var filtroEstado=_ldFiltroEstado;
+  var busq=(el('ld-buscar').value||'').toLowerCase().trim();
+  var rows=_ldData.filter(function(r){
+    if(filtroEstado!=='todos' && r.estado_lead!==filtroEstado)return false;
+    if(busq){
+      var hay=(r.celular||'').toLowerCase().indexOf(busq)>=0 || (r.anuncio||'').toLowerCase().indexOf(busq)>=0 || (r.tratamiento||'').toLowerCase().indexOf(busq)>=0;
+      if(!hay)return false;
+    }
+    return true;
+  });
+  /* Actualizar KPIs */
+  el('ld-count').textContent=rows.length+' de '+_ldData.length;
+  el('ld-k-total').textContent=rows.length;
+  el('ld-k-llam').textContent=rows.filter(function(r){return r.llamadas_total>0;}).length;
+  el('ld-k-cita').textContent=rows.filter(function(r){return r.citas_total>0;}).length;
+  el('ld-k-ventas').textContent=rows.filter(function(r){return r.ventas_total>0;}).length;
+  el('ld-k-sin').textContent=rows.filter(function(r){return r.estado_lead==='SIN CONTACTO';}).length;
+  var tot=rows.reduce(function(s,r){return s+(parseFloat(r.monto_facturado)||0);},0);
+  el('ld-k-monto').textContent='S/'+Math.round(tot).toLocaleString();
+  /* Render tabla */
+  if(!rows.length){
+    el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#9AAAC8;">Sin leads en este rango/filtro</td></tr>';
+    return;
+  }
+  var estClass={'VENDIDO':'ld-est-v','CON CITA':'ld-est-c','EN GESTION':'ld-est-g','SIN CONTACTO':'ld-est-s'};
+  var estIcon={'VENDIDO':'💰','CON CITA':'📅','EN GESTION':'📞','SIN CONTACTO':'⚠'};
+  el('ld-body').innerHTML=rows.map(function(r){
+    var hora=r.hora_ingreso?new Date(r.hora_ingreso).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false}):'—';
+    var ec=estClass[r.estado_lead]||'';
+    var ei=estIcon[r.estado_lead]||'';
+    var tc=_tratColor(r.tratamiento||'');
+    var anuncioTxt=(r.anuncio||'—').substring(0,30);
+    var anuncioFull=h(r.anuncio||'');
+    var monto=parseFloat(r.monto_facturado)||0;
+    return '<tr>'+
+      '<td style="white-space:nowrap;font-size:9px;color:#6B7BA8;">'+h(r.fecha)+'</td>'+
+      '<td style="font-size:9px;color:#6B7BA8;font-family:monospace;">'+hora+'</td>'+
+      '<td style="font-weight:700;color:#0A4FBF;font-family:monospace;">'+h(r.celular||'')+'</td>'+
+      '<td><span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:6px;'+tc+'">'+h((r.tratamiento||'').substring(0,16))+'</span></td>'+
+      '<td style="font-size:9px;color:#6B7BA8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+anuncioFull+'">'+h(anuncioTxt)+'</td>'+
+      '<td style="text-align:center;font-weight:700;">'+(r.llamadas_total>0?'<span style="color:#D97706;">'+r.llamadas_total+'</span>':'<span style="color:#CBD5E1;">0</span>')+'</td>'+
+      '<td style="font-size:9px;">'+h(r.ultimo_asesor||'—')+'</td>'+
+      '<td style="text-align:center;font-weight:700;">'+(r.citas_total>0?'<span style="color:#7C3AED;">'+r.citas_total+'</span>':'<span style="color:#CBD5E1;">0</span>')+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:'+(monto>0?'#059669':'#CBD5E1')+';">'+(monto>0?'S/'+Math.round(monto):'—')+'</td>'+
+      '<td style="text-align:center;"><span class="ld-est '+ec+'">'+ei+' '+r.estado_lead+'</span></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function ldExport(){
+  if(!_ldData||!_ldData.length){alert('Sin datos para exportar');return;}
+  var filtroEstado=_ldFiltroEstado;
+  var busq=(el('ld-buscar').value||'').toLowerCase().trim();
+  var rows=_ldData.filter(function(r){
+    if(filtroEstado!=='todos' && r.estado_lead!==filtroEstado)return false;
+    if(busq){var hay=(r.celular||'').toLowerCase().indexOf(busq)>=0 || (r.anuncio||'').toLowerCase().indexOf(busq)>=0;if(!hay)return false;}
+    return true;
+  });
+  var headers=['Fecha','Hora','Numero','Tratamiento','Anuncio','Llamadas','Ultimo Asesor','Citas','Monto Facturado','Estado'];
+  var csv=headers.join(',')+'\n';
+  csv+=rows.map(function(r){
+    var hora=r.hora_ingreso?new Date(r.hora_ingreso).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false}):'';
+    var c=function(v){var s=String(v==null?'':v).replace(/"/g,'""');return /[",\n]/.test(s)?'"'+s+'"':s;};
+    return [r.fecha,hora,r.celular,r.tratamiento,r.anuncio,r.llamadas_total,r.ultimo_asesor||'',r.citas_total,r.monto_facturado,r.estado_lead].map(c).join(',');
+  }).join('\n');
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='leads_'+el('ld-desde').value+'_a_'+el('ld-hasta').value+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
 </script>
