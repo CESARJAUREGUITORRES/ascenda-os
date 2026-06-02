@@ -440,7 +440,7 @@ var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', est
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260601.2;
+var _APP_VERSION = 20260602.1;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -1990,7 +1990,18 @@ function impRender(){
 
 function impClear(){if(_impMode==='leads')_impLeads=[];else _impVentas=[];impRender();}
 
+/* Flag global para prevenir doble-disparo de impSave */
+var _impSaving = false;
+
 function impSave(){
+  /* ═══ GUARD ANTI-DUPLICADO ═══
+     Si ya está procesando, no hacer nada. Esto previene el bug de
+     ventas duplicadas cuando el usuario hace doble-clic o el navegador
+     reintenta la petición. */
+  if(_impSaving){
+    if(window.AOS_showToast)AOS_showToast('⏳ Procesando, espera...','','toast-alerta');
+    return;
+  }
   if(_impMode==='leads'){
     if(!_impLeads.length){if(window.AOS_showToast)AOS_showToast('Pega leads primero','','toast-alerta');return;}
     /* Validar que no haya fechas con error sin resolver */
@@ -2011,9 +2022,17 @@ function impSave(){
     var paraEnviar = valid.map(function(r){
       return {fecha:r.fecha, celular:r.celular, tratamiento:r.tratamiento, anuncio:r.anuncio, preguntas:r.preguntas, hora_ingreso:r.hora_ingreso};
     });
+    /* ═══ ANTI-DUPLICADO: bloquear flag + botón mientras procesa ═══ */
+    _impSaving = true;
+    var saveBtnL = document.getElementById('imp-save-btn');
+    var btnTxtL = saveBtnL ? saveBtnL.innerHTML : '';
+    if(saveBtnL){ saveBtnL.disabled = true; saveBtnL.style.opacity='0.5'; saveBtnL.style.cursor='wait'; saveBtnL.innerHTML='⏳ Guardando...'; }
     fetch(_SBU+'/rest/v1/rpc/aos_agregar_leads',{method:'POST',headers:{'apikey':_SBK,'Authorization':'Bearer '+_SBK,'Content-Type':'application/json'},body:JSON.stringify({p_leads:paraEnviar})}).then(function(r){return r.json();}).then(function(d){
       if(d&&d.insertados!==undefined){if(window.AOS_showToast)AOS_showToast('✅ '+d.insertados+' leads agregados'+(d.duplicados?' ('+d.duplicados+' duplicados)':''),'','');_impLeads=[];impRender();document.getElementById('import-modal').style.display='none';}else{if(window.AOS_showToast)AOS_showToast('Error','','toast-alerta');}
-    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');});
+    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');}).finally(function(){
+      _impSaving = false;
+      if(saveBtnL){ saveBtnL.disabled=false; saveBtnL.style.opacity='1'; saveBtnL.style.cursor='pointer'; saveBtnL.innerHTML=btnTxtL; }
+    });
   }else{
     if(!_impVentas.length){if(window.AOS_showToast)AOS_showToast('Pega ventas primero','','toast-alerta');return;}
     var fecha=document.getElementById('imp-fecha').value;
@@ -2022,11 +2041,29 @@ function impSave(){
       var montoStr=(r.monto||'0').replace(/S\/\.?\s*/gi,'').replace(/\$/g,'').replace(/,/g,'').replace(/\s/g,'').replace(/^\.+/,'');
       return {fecha:fecha,sede:sede,nombres:r.nombres,apellidos:r.apellidos,dni:r.dni,celular:r.celular,tratamiento:r.tratamiento,descripcion:r.descripcion,pago:r.pago,monto:montoStr,estado_pago:r.estado_pago||'PAGO COMPLETO',asesor:r.asesor,atendio:r.atendio};
     });
+    /* ═══ ANTI-DUPLICADO: bloquear flag + botón mientras procesa ═══ */
+    _impSaving = true;
+    var saveBtn = document.getElementById('imp-save-btn');
+    var btnTextoOriginal = saveBtn ? saveBtn.innerHTML : '';
+    if(saveBtn){ saveBtn.disabled = true; saveBtn.style.opacity='0.5'; saveBtn.style.cursor='wait'; saveBtn.innerHTML='⏳ Guardando...'; }
     fetch(_SBU+'/rest/v1/rpc/aos_importar_ventas',{method:'POST',headers:{'apikey':_SBK,'Authorization':'Bearer '+_SBK,'Content-Type':'application/json'},body:JSON.stringify({p_ventas:valid})}).then(function(r){return r.json();}).then(function(d){
       var res=Array.isArray(d)?d[0]:d;
-      if(res&&res.insertados!==undefined){if(window.AOS_showToast)AOS_showToast('✅ '+res.insertados+' ventas importadas'+(res.errores?' ('+res.errores+' errores)':''),'','');_impVentas=[];impRender();document.getElementById('import-modal').style.display='none';}
-      else{if(window.AOS_showToast)AOS_showToast('Error al importar','','toast-alerta');}
-    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');});
+      if(res&&res.insertados!==undefined){
+        var msg='✅ '+res.insertados+' ventas importadas';
+        if(res.duplicados>0) msg+=' · ⚠ '+res.duplicados+' duplicadas omitidas';
+        if(res.errores>0) msg+=' ('+res.errores+' errores)';
+        if(window.AOS_showToast)AOS_showToast(msg,'','');
+        _impVentas=[];impRender();document.getElementById('import-modal').style.display='none';
+      } else {
+        if(window.AOS_showToast)AOS_showToast('Error al importar','','toast-alerta');
+      }
+    }).catch(function(e){
+      if(window.AOS_showToast)AOS_showToast('Error: '+e.message,'','toast-alerta');
+    }).finally(function(){
+      /* SIEMPRE liberar el lock, haya error o éxito */
+      _impSaving = false;
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity='1'; saveBtn.style.cursor='pointer'; saveBtn.innerHTML=btnTextoOriginal; }
+    });
   }
 }
 
