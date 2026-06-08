@@ -512,25 +512,53 @@ function openNewUser(){el('mu-title').textContent='+ Nuevo Usuario';
 }
 function updateCargos2(){var area=el('eu-area2').value;var sel=el('eu-cargo2');var cargos=CARGOS_POR_AREA[area]||['ASESOR'];sel.innerHTML=cargos.map(function(c){return '<option>'+c+'</option>';}).join('');}
 function createU(){
-  var n=(el('eu-nombre').value||'').toUpperCase(),a=(el('eu-apellidos')?el('eu-apellidos').value:'').toUpperCase();
-  var em=el('eu-email').value,tel=el('eu-tel')?el('eu-tel').value:'';
+  var n=(el('eu-nombre').value||'').trim().toUpperCase(),a=(el('eu-apellidos')?el('eu-apellidos').value:'').trim().toUpperCase();
+  var em=(el('eu-email').value||'').trim(),tel=el('eu-tel')?el('eu-tel').value.trim():'';
   var cg=el('eu-cargo2')?el('eu-cargo2').value:'ASESOR',area=el('eu-area2')?el('eu-area2').value:'enfermería';
   var rol=el('eu-rol2')?Number(el('eu-rol2').value):3,acc=el('eu-acc2')?el('eu-acc2').value:'limitado';
-  if(!n||!a){showToast('Completa nombre y apellidos');return;}
-  // Auto-generar usuario y contraseña
-  var us=n.toLowerCase().replace(/\s+/g,'.')+'.'+a.toLowerCase().split(' ')[0];
-  var pw=n.toLowerCase().slice(0,4)+String(Math.floor(Math.random()*9000)+1000);
-  var nc='ZIV-'+String(100+U.length+1).padStart(3,'0');
-  var sedes=acc==='libre'?'TODAS':'SAN ISIDRO, PUEBLO LIBRE';
-  fetch(SB+'/rest/v1/aos_rrhh',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,usuario:us,password_hash:pw,puesto:cg,sede:sedes,estado:'ACTIVO',codigo_asesor:nc})}).then(function(){
-    return fetch(SB+'/rest/v1/aos_usuarios',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:n,apellidos:a,email:em,telefono_personal:tel,cargo:cg,area:area,sede:sedes,nivel_jerarquia:rol,acceso_geo:acc,sedes_permitidas:acc==='limitado'?['SAN_ISIDRO','PUEBLO_LIBRE']:[],codigo_asesor:nc,cuenta_activada:false,paneles_acceso:[]})});
-  }).then(function(){
-    showToast(n+' creado — Configura su perfil');el('m-user').classList.remove('open');
-    // Recargar equipo y abrir perfil del nuevo usuario
-    setTimeout(function(){loadTeam();setTimeout(function(){
-      var idx=-1;U.forEach(function(x,i){if(x.nombre===n)idx=i;});
-      if(idx>=0)editUser(idx);
-    },1000);},500);
+  if(!n||!a){showToast('Completa nombre y apellidos','','toast-alerta');return;}
+  var btn=document.querySelector('#mu-body .mbtn-g');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Creando...';}
+  fetch(SB+'/rest/v1/rpc/aos_admin_crear_usuario',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_nombre:n,p_apellido:a,p_email:em,p_telefono:tel,p_cargo:cg,p_area:area,p_nivel_jerarquia:rol,p_acceso_geo:acc,p_sede:acc==='libre'?'TODAS':'TODAS'})
+  }).then(function(r){return r.json();}).then(function(d){
+    var res=Array.isArray(d)?d[0]:d;
+    if(res&&res.ok){
+      /* Modal de éxito con credenciales */
+      el('mu-body').innerHTML='<div style="text-align:center;padding:20px 0;">'+
+        '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#059669,#00E5A0);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="font-size:40px;">✓</span></div>'+
+        '<h2 style="font-size:20px;font-weight:800;color:#071D4A;margin:0 0 8px;">Usuario Creado</h2>'+
+        '<p style="font-size:14px;color:#0A4FBF;font-weight:700;margin:0 0 16px;">'+res.nombre+'</p>'+
+        '<div style="background:#F0F4FC;border-radius:12px;padding:16px;text-align:left;margin:0 auto;max-width:360px;">'+
+        '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;">'+
+        '<span style="color:#6B7BA8;font-weight:700;">Código:</span><span style="font-weight:700;color:#071D4A;">'+res.codigo+'</span>'+
+        '<span style="color:#6B7BA8;font-weight:700;">Usuario:</span><span style="font-family:monospace;color:#0A4FBF;font-weight:700;">'+res.username+'</span>'+
+        '<span style="color:#6B7BA8;font-weight:700;">Contraseña:</span><span style="font-family:monospace;color:#059669;font-weight:700;">'+res.password+'</span>'+
+        (res.email?'<span style="color:#6B7BA8;font-weight:700;">Email:</span><span>'+res.email+'</span>':'')+
+        '</div></div>'+
+        '<p style="font-size:10px;color:#D97706;margin:12px 0 0;font-weight:600;">⚠ Guarda estas credenciales — la contraseña no se mostrará de nuevo</p>'+
+        '</div>';
+      el('mu-title').textContent='✓ Usuario Creado';
+      showToast('✅ '+res.nombre+' creado con éxito — '+res.codigo);
+      /* Enviar email de bienvenida si tiene email */
+      if(res.email){
+        fetch('https://ascenda-os-production.up.railway.app/api/send-email',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({to:res.email,subject:'🎉 Bienvenido a AscendaOS — Tus credenciales',
+            html:'<div style="font-family:Arial;max-width:450px;margin:0 auto;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;text-align:center;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">ASCENDA OS</div><div style="color:#fff;font-size:18px;font-weight:800;margin-top:6px;">Bienvenido al equipo</div></div><div style="background:#fff;padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>'+res.nombre+'</b>,</p><p>Tu cuenta ha sido creada. Usa estas credenciales para acceder:</p><div style="background:#F0F4FC;border-radius:10px;padding:16px;margin:12px 0;"><p style="margin:4px 0;font-size:13px;"><b>Usuario:</b> <code style="background:#E8ECF4;padding:2px 6px;border-radius:4px;">'+res.username+'</code></p><p style="margin:4px 0;font-size:13px;"><b>Contraseña:</b> <code style="background:#E8ECF4;padding:2px 6px;border-radius:4px;">'+res.password+'</code></p></div><p style="font-size:11px;color:#6B7BA8;">Ingresa en: <a href="https://ascenda-os-production.up.railway.app/login.html">ascenda-os-production.up.railway.app</a></p></div></div>'
+          })
+        }).catch(function(){});
+      }
+      setTimeout(function(){loadTeam();},1500);
+    } else {
+      showToast(res&&res.error?res.error:'Error al crear usuario','','toast-alerta');
+      if(btn){btn.disabled=false;btn.textContent='✓ Crear Usuario';}
+    }
+  }).catch(function(e){
+    showToast('Error de conexión: '+e.message,'','toast-alerta');
+    if(btn){btn.disabled=false;btn.textContent='✓ Crear Usuario';}
   });
 }
 // ═══ SERVICIOS — Cargar y guardar tratamientos por profesional ═══
