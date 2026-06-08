@@ -239,6 +239,9 @@ function checkGeoAccess(loginRes, callback){
   });
 }
 function doLogin() {
+  /* Guard anti-doble-disparo: previene 2 emails de código */
+  if (window._loginBusy) return;
+  window._loginBusy = true;
   var user  = document.getElementById('inp-user').value.trim();
   var pass  = document.getElementById('inp-pass').value.trim();
   var errEl = document.getElementById('error-msg');
@@ -246,14 +249,15 @@ function doLogin() {
 
   if (!user || !pass) {
     errEl.textContent = 'Completa usuario y contrasena.';
+    window._loginBusy = false;
     return;
   }
+  setLoading(true);
   if (!_turnstileToken) {
     // Sin token de Turnstile — proceder con login directamente (2FA protege)
     doLoginAuth(user, pass);
     return;
   }
-  setLoading(true);
 
   // Verificar Turnstile token en servidor antes de login
   fetch('https://ascenda-os-production.up.railway.app/api/verify-turnstile', {
@@ -518,6 +522,7 @@ function onLoginOk(res) {
   // No usado  doLogin maneja el redirect directamente
 }
 function setLoading(on) {
+  if (!on) window._loginBusy = false; /* liberar guard anti-doble */
   var btn = document.getElementById('btn-login');
   var sp  = document.getElementById('spinner');
   var txt = document.getElementById('btn-txt');

@@ -208,7 +208,7 @@ function editUser(idx){
   html+='<div style="margin-top:8px;display:flex;gap:6px;"><button class="mbtn mbtn-c" onclick="selAllSvc(true)">✅ Todos</button><button class="mbtn mbtn-c" onclick="selAllSvc(false)">❌ Ninguno</button></div>';
   html+='</div></div></div>';
   // Footer
-  html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn mbtn-r" style="margin-left:auto;">Desactivar</button>':'')+'</div>';
+  html+='<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #EEF0F8;flex-wrap:wrap;"><button class="mbtn mbtn-g" onclick="saveU(\''+u.id+'\')">💾 Guardar</button><button class="mbtn mbtn-c" onclick="el(\'m-user\').classList.remove(\'open\')">Cerrar</button>'+(u.nivel_jerarquia>1?'<button class="mbtn" style="margin-left:auto;background:'+(u.activo!==false?'#D97706':'#059669')+';color:#fff;font-size:9px;" onclick="toggleUser(\''+u.id+'\','+(u.activo!==false?'false':'true')+',\''+h(u.nombre)+'\')">'+( u.activo!==false?'⏸ Desactivar':'▶ Activar')+'</button><button class="mbtn" style="background:#DC2626;color:#fff;font-size:9px;" onclick="eliminarUser(\''+u.id+'\',\''+h(u.nombre)+'\')">🗑 Eliminar</button>':'')+'</div>';
   el('mu-body').innerHTML=html;
   el('eu-area').value=u.area||'enfermería';updateCargos();el('eu-cargo').value=u.cargo||'ASESOR';
   el('eu-ctr').value=u.tipo_contrato||'prueba';
@@ -659,4 +659,53 @@ function cambiarPass(uid,nombre){
   }).catch(function(){showToast('Error de conexión');});
 }
 loadTeam();
+
+/* ═══ DESACTIVAR / ACTIVAR USUARIO ═══ */
+function toggleUser(uid, activar, nombre){
+  var accion = activar ? 'activar' : 'desactivar';
+  var msg = activar
+    ? '¿Activar la cuenta de ' + nombre + '?\n\nVolverá a poder iniciar sesión.'
+    : '¿Desactivar la cuenta de ' + nombre + '?\n\nNo podrá iniciar sesión hasta que la reactives. Su historial de datos se conserva.';
+  if(!confirm(msg)) return;
+  fetch(SB+'/rest/v1/rpc/aos_admin_toggle_usuario',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_usuario_id:uid,p_activar:activar})
+  }).then(function(r){return r.json();}).then(function(d){
+    var res=Array.isArray(d)?d[0]:d;
+    if(res&&res.ok){
+      showToast((activar?'▶':'⏸')+' '+nombre+' '+(activar?'activado':'desactivado'));
+      el('m-user').classList.remove('open');
+      loadTeam();
+    } else {
+      showToast(res&&res.error?res.error:'Error','','toast-alerta');
+    }
+  }).catch(function(){showToast('Error de conexión','','toast-alerta');});
+}
+
+/* ═══ ELIMINAR USUARIO (definitivo, conserva historial) ═══ */
+function eliminarUser(uid, nombre){
+  var msg = '⚠ ELIMINAR USUARIO: ' + nombre + '\n\n' +
+    'Esta acción es DEFINITIVA.\n' +
+    '• Se eliminará su acceso al sistema\n' +
+    '• Su historial de ventas, llamadas y citas se conserva\n' +
+    '• No podrá recuperarse fácilmente\n\n' +
+    '¿Estás seguro?';
+  if(!confirm(msg)) return;
+  if(!confirm('CONFIRMAR: Escribir OK para eliminar a ' + nombre + '\n\n¿Proceder?')) return;
+  fetch(SB+'/rest/v1/rpc/aos_admin_eliminar_usuario',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_usuario_id:uid, p_admin_id:'CESAR'})
+  }).then(function(r){return r.json();}).then(function(d){
+    var res=Array.isArray(d)?d[0]:d;
+    if(res&&res.ok){
+      showToast('🗑 '+nombre+' eliminado. Historial conservado.');
+      el('m-user').classList.remove('open');
+      loadTeam();
+    } else {
+      showToast(res&&res.error?res.error:'Error al eliminar','','toast-alerta');
+    }
+  }).catch(function(){showToast('Error de conexión','','toast-alerta');});
+}
 </script>
