@@ -80,7 +80,7 @@ function mkAdDetail(idx){
   var periodo=MK.modo==='anio'?'Año '+anio:(MF[mes]+' '+anio);
   el('ad-detail-period').textContent='· '+periodo;
   el('ad-detail-body').innerHTML=
-    '<div class="ad-detail-name">'+h(a.nombre||'—')+'<div class="ad-detail-sub">Cohorte de leads: '+h(periodo)+'</div></div>'+ 
+    '<div class="ad-detail-name">'+h(a.nombre||'—')+'<div class="ad-detail-sub">Cohorte de leads: '+h(periodo)+'</div></div>'+
     '<div class="ad-detail-grid">'+
       _mkAdCard('Leads',leads,'#0A4FBF')+
       _mkAdCard('Citas',citas,'#00C9A7')+
@@ -95,7 +95,7 @@ function mkAdDetail(idx){
       _mkAdCard('Fact. posterior',postFact>0?'S/'+Math.round(postFact).toLocaleString('es-PE'):'—','#D97706')+
       _mkAdCard('Fact. acumulada',fa>0?'S/'+Math.round(fa).toLocaleString('es-PE'):'—','#00C9A7')+
       _mkAdCard('Ticket acum.',ticket>0?'S/'+Math.round(ticket).toLocaleString('es-PE'):'—','#6B7BA8')+
-    '</div>'+ 
+    '</div>'+
     '<div class="ad-detail-note"><b>Lectura correcta de cohorte:</b> Mes 0 incluye únicamente ventas ocurridas durante el mes en que ingresó el lead. “Posteriores” incluye solo ventas después de cerrar ese mes; compras anteriores a la cohorte no se atribuyen a este anuncio.</div>';
   el('m-ad-detail').classList.add('open');
 }
