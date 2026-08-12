@@ -47,23 +47,31 @@ Las 150 pendientes vencidas NO se corrigen automáticamente. Pueden representar 
 
 Conclusión: Ventas es relativamente completa como fuente comercial, aunque la importación por Excel históricamente no conserva siempre el vínculo explícito con cita/atención.
 
-## 2. Corrección puntual validada
+## 2. Correcciones puntuales validadas
 
-Se detectó una cita Call Center almacenada accidentalmente en agosto de 2029.
+Durante la auditoría se detectaron dos fechas extremas en citas Call Center. En ambos casos existía evidencia explícita en la propia gestión y se modificó **solo `fecha_cita`**, conservando estado, tratamiento, sede y origen.
 
-Evidencia disponible:
+### Caso A — año futuro incorrecto
 
-- fue creada durante una gestión de agosto 2026;
-- existía una llamada `CITA CONFIRMADA` de la misma gestión;
-- la observación de esa llamada indicaba explícitamente día 05 de agosto y hora 17:00;
-- no existía otra cita del mismo paciente que justificara el año 2029.
+- Valor almacenado: 2029-08-05.
+- La cita había sido creada durante una gestión de agosto 2026.
+- Existía una llamada `CITA CONFIRMADA` de la misma gestión.
+- La observación de esa llamada indicaba explícitamente día 05 de agosto y hora 17:00.
+- Corrección aplicada: 2026-08-05.
 
-Se realizó una corrección estricta cambiando únicamente `fecha_cita` de 2029-08-05 a 2026-08-05. Estado, tratamiento, sede y origen se conservaron.
+### Caso B — año/mes histórico incorrectos
+
+- Valor almacenado: 0026-02-09.
+- La cita había sido creada durante una gestión de mayo 2026.
+- Existía una llamada `CITA CONFIRMADA` de la misma gestión.
+- La propia gestión indicaba explícitamente sábado 09 de mayo a las 12:00.
+- Corrección aplicada: 2026-05-09.
 
 Resultado posterior:
 
-- citas a más de un año futuro: 0.
-- no se realizaron otras correcciones de Agenda.
+- citas a más de un año futuro detectadas: 0;
+- citas con año anterior a 2000 detectadas en la revisión extrema: 0;
+- no se modificaron estados históricos para hacer que los datos “cuadren”.
 
 ## 3. Contradicciones que NO deben repararse automáticamente
 
@@ -91,7 +99,7 @@ Si una venta ocurre después de un lead del mes pero la persona ya tenía leads 
 2. Toda llamada originada desde un lead debe conservar `lead_id_origen`.
 3. Toda cita originada por Call Center debe conservar `lead_id_origen` cuando exista.
 4. Los nuevos registros deben usar IDs explícitos en lugar de reconstrucciones por teléfono cuando el sistema ya conoce la relación.
-5. Una fecha de cita anormalmente futura debe generar advertencia antes de guardar.
+5. Una fecha de cita anormalmente futura o históricamente imposible debe generar advertencia antes de guardar.
 6. Una cita `PENDIENTE` vencida debe entrar en una cola operativa de cierre/revisión, no corregirse silenciosamente.
 7. Los duplicados técnicos de leads se marcan y excluyen de métricas cuando la firma es inequívoca; no se eliminan físicamente durante esta fase.
 8. Los datos clínicos/comerciales contradictorios se preservan y se reportan; la auditoría nunca debe fabricar coherencia.
