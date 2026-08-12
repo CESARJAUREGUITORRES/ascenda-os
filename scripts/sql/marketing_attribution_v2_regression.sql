@@ -1,8 +1,11 @@
 -- ASCENDA OS — Marketing Attribution V2 regression contract
 -- Read-only. Expected snapshot values are intentionally limited to known historical periods.
+-- Materialize expensive read models once per run to avoid repeated full recomputation.
 
-with attr as materialized (
-  select * from public.aos_marketing_attribution_v2_preview(null,null)
+with hist as materialized (
+  select * from public.aos_marketing_historico_v2_preview(2026)
+), attr as materialized (
+  select * from public.aos_marketing_attribution_v2_preview(date '2026-01-01',date '2026-08-31')
 ), checks as (
   select 'no_sale_before_lead' test_name,
          count(*)=0 passed,
@@ -19,30 +22,30 @@ with attr as materialized (
 
   union all
   select 'historico_current_year_has_8_months',count(*)=8,count(*)::text
-  from public.aos_marketing_historico_v2_preview(2026)
+  from hist
 
   union all
   select 'aug_touchpoint_accounting',
          (max(touchpoints_raw)=max(touchpoints_efectivos)+max(duplicados_tecnicos_probables)),
          (max(touchpoints_raw)||'='||max(touchpoints_efectivos)||'+'||max(duplicados_tecnicos_probables))::text
-  from public.aos_marketing_historico_v2_preview(2026) where mes=8
+  from hist where mes=8
 
   union all
   select 'aug_m0_baseline',
          (max(clientes_m0)=2 and max(ventas_m0)=6 and max(fact_m0)=1045),
          ('clientes='||max(clientes_m0)||',ops='||max(ventas_m0)||',fact='||max(fact_m0))::text
-  from public.aos_marketing_historico_v2_preview(2026) where mes=8
+  from hist where mes=8
 
   union all
   select 'july_sale_before_lead_excluded',
          (max(clientes_m0)=3 and max(ventas_m0)=13 and max(fact_m0)=4258.8),
          ('clientes='||max(clientes_m0)||',ops='||max(ventas_m0)||',fact='||max(fact_m0))::text
-  from public.aos_marketing_historico_v2_preview(2026) where mes=7
+  from hist where mes=7
 
   union all
   select 'march_ambiguous_reentry_excluded',
          (max(clientes_m0)=3 and max(ventas_m0)=6 and max(fact_m0)=965),
          ('clientes='||max(clientes_m0)||',ops='||max(ventas_m0)||',fact='||max(fact_m0))::text
-  from public.aos_marketing_historico_v2_preview(2026) where mes=3
+  from hist where mes=3
 )
 select * from checks order by test_name;
