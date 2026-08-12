@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const path='app/public/app.html';
+let s=fs.readFileSync(path,'utf8');
+const from='var _APP_VERSION = 20260608.1;';
+const to='var _APP_VERSION = 20260812.2;';
+const count=s.split(from).length-1;
+if(count!==1) throw new Error(`Expected exactly one APP_VERSION baseline, found ${count}`);
+s=s.replace(from,to);
+fs.writeFileSync(path,s);
+console.log('Bumped _APP_VERSION to 20260812.2');
