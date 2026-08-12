@@ -2041,6 +2041,36 @@ function impSave(){
       var montoStr=(r.monto||'0').replace(/S\/\.?\s*/gi,'').replace(/\$/g,'').replace(/,/g,'').replace(/\s/g,'').replace(/^\.+/,'');
       return {fecha:fecha,sede:sede,nombres:r.nombres,apellidos:r.apellidos,dni:r.dni,celular:r.celular,tratamiento:r.tratamiento,descripcion:r.descripcion,pago:r.pago,monto:montoStr,estado_pago:r.estado_pago||'PAGO COMPLETO',asesor:r.asesor,atendio:r.atendio};
     });
+    /* ASCENDA_IMPORT_SALES_CONFIRMATION_20260812
+       Safety gate: the selected date is applied to every row in this pasted batch. */
+    if(!fecha){
+      if(window.AOS_showToast)AOS_showToast('Selecciona la fecha de las ventas antes de importar','','toast-alerta');
+      return;
+    }
+    var importInvalidos=valid.filter(function(r){var x=Number(r.monto);return !Number.isFinite(x)||x<=0;});
+    if(importInvalidos.length){
+      if(window.AOS_showToast)AOS_showToast('Hay '+importInvalidos.length+' monto(s) inválido(s). Corrige el lote antes de guardar.','','toast-alerta');
+      return;
+    }
+    var importTotal=valid.reduce(function(sum,r){return sum+Number(r.monto||0);},0);
+    var importFecha=fecha.split('-').reverse().join('/');
+    var importFechaObj=new Date(fecha+'T12:00:00');
+    var importHoy=new Date();importHoy.setHours(12,0,0,0);
+    var importDiff=Math.round((importFechaObj-importHoy)/86400000);
+    var importAviso=importDiff===0?'':'\n\n⚠ La fecha seleccionada no es hoy. Esto es correcto solo si estás cargando ventas históricas.';
+    var importOk=window.confirm(
+      'CONFIRMAR IMPORTACIÓN DE VENTAS\n\n'+
+      'Fecha que se guardará: '+importFecha+'\n'+
+      'Sede: '+sede+'\n'+
+      'Filas: '+valid.length+'\n'+
+      'Total: S/'+importTotal.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})+
+      importAviso+'\n\n'+
+      'IMPORTANTE: esta fecha se aplicará a TODAS las filas del lote.\n\n¿Confirmas que FECHA, SEDE, FILAS y TOTAL son correctos?'
+    );
+    if(!importOk){
+      if(window.AOS_showToast)AOS_showToast('Importación cancelada. No se guardó ninguna venta.','','toast-alerta');
+      return;
+    }
     /* ═══ ANTI-DUPLICADO: bloquear flag + botón mientras procesa ═══ */
     _impSaving = true;
     var saveBtn = document.getElementById('imp-save-btn');
