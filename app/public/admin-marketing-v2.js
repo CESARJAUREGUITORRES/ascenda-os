@@ -1,195 +1,79 @@
-/* ASCENDA OS — Marketing progressive alignment adapter
- * Safe progressive enhancement: legacy renders first and always remains the fallback.
- * This adapter only applies validated cohort metrics after successful V2 RPC responses.
+/* ASCENDA OS — Marketing V3 final progressive adapter
+ * Legacy-first, block-isolated, race-proof and reconciliation-gated.
  */
 (function(){
-  if(window.__AOS_MARKETING_PROGRESSIVE_ACTIVE)return;
+  if(window.__AOS_MARKETING_V3_ACTIVE)return;
+  window.__AOS_MARKETING_V3_ACTIVE=true;
   window.__AOS_MARKETING_V2_LOADED=true;
   window.__AOS_MARKETING_V2_ACTIVE=false;
-  window.__AOS_MARKETING_PROGRESSIVE_ACTIVE=true;
 
-  var orig={
-    mkL:window.mkL,
-    rKPI:window.rKPI,
-    rEmb:window.rEmb,
-    rHist:window.rHist,
-    ldLoad:window.ldLoad,
-    ldRender:window.ldRender
-  };
-  var S={legacyKpi:null,legacyEmb:null,leadSummary:null,leadReq:0,blockReq:0,periodos:[]};
+  var RELEASE='2026-08-12-final-1';
+  var orig={mkL:window.mkL,rKPI:window.rKPI,rEmb:window.rEmb,rHist:window.rHist,rLTV:window.rLTV,rAn:window.rAn,rCamp:window.rCamp,ldLoad:window.ldLoad,ldRender:window.ldRender};
+  var S={legacyKpi:null,leadSummary:null,history:[],periodos:[],req:{summary:0,history:0,ltv:0,ads:0,camp:0,intent:0,attr:0,leads:0},timers:{},ads:{search:'',order:'fact_acum'},camp:{search:'',order:'fact_acum'},leadPage:1,leadPageSize:50,latest:{ltv:[],ads:[],camp:[],attr:null,intent:[]}};
 
-  function vrpc(fn,p){
-    return fetch(SB+'/rest/v1/rpc/'+fn,{
-      method:'POST',
-      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
-      body:JSON.stringify(p||{})
-    }).then(function(r){
-      if(!r.ok)return r.text().then(function(t){throw new Error(fn+' HTTP '+r.status+' '+t.slice(0,160));});
-      return r.json();
-    });
-  }
+  function vrpc(fn,p){return fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(fn+' HTTP '+r.status+' '+t.slice(0,220));});return r.json();});}
   function n(v){return Number(v)||0;}
   function money(v){return 'S/'+Math.round(n(v)).toLocaleString('es-PE');}
+  function esc(v){return h(v==null?'':String(v));}
+  function arr(v){if(Array.isArray(v))return v;if(v==null)return[];if(typeof v==='string'){try{var x=JSON.parse(v);return Array.isArray(x)?x:[];}catch(e){return[];}}return[];}
+  function later(name,fn,ms){clearTimeout(S.timers[name]);S.timers[name]=setTimeout(fn,ms||35);}
+  function current(){var a=Number(el('mk-anio').value),m=Number(el('mk-mes').value),first=a+'-'+String(m).padStart(2,'0')+'-01',last=new Date(a,m,0).getDate();return{anio:a,mes:m,desde:first,hasta:a+'-'+String(m).padStart(2,'0')+'-'+String(last).padStart(2,'0')};}
+  function expectedRevenue(){if(!S.history.length)return null;if(MK.modo==='mes'){var m=Number(el('mk-mes').value),r=S.history.find(function(x){return n(x.mes)===m;});return r?{m0:n(r.fact),acum:n(r.fact_acumulado)}:null;}return{m0:S.history.reduce(function(s,x){return s+n(x.fact);},0),acum:S.history.reduce(function(s,x){return s+n(x.fact_acumulado);},0)};}
+  function reconciles(rows){var e=expectedRevenue();if(!e)return false;var m0=rows.reduce(function(s,x){return s+n(x.fact_m0);},0),ac=rows.reduce(function(s,x){return s+n(x.fact_acum);},0);return Math.abs(m0-e.m0)<0.51&&Math.abs(ac-e.acum)<0.51;}
 
-  /* Keep the stable renderer active. We only remember its KPI/embudo payload. */
-  window.rKPI=function(k){S.legacyKpi=k||null;orig.rKPI(k);scheduleBlocks();};
-  window.rEmb=function(e){S.legacyEmb=e||null;orig.rEmb(e);};
+  /* TRACE + KPI CAUSAL */
+  function ensureTrace(){var c=el('mk-v3-trace');if(c)return c;var g=el('mk-gest');if(!g)return null;c=document.createElement('div');c.id='mk-v3-trace';c.className='crd';c.style.padding='8px 12px';c.innerHTML='<div class="ct" style="margin-bottom:6px;">🧭 Trazabilidad del período <span class="tag tag-b">personas e ingresos</span></div><div id="mk-v3-trace-grid" class="g-row"><div class="ld">Validando...</div></div><div id="mk-v3-trace-note" style="font-size:8px;color:#6B7BA8;margin-top:6px;line-height:1.45;"></div>';g.insertAdjacentElement('afterend',c);return c;}
+  function renderTrace(s){var c=ensureTrace();if(!c)return;c.style.display=MK.modo==='mes'?'':'none';if(MK.modo!=='mes')return;var items=[[n(s.ingresos),'INGRESOS','#0A4FBF'],[n(s.personasUnicas),'PERSONAS ÚNICAS','#0D9488'],[n(s.reingresos),'REINGRESOS','#7C3AED'],[n(s.personasGestionadas),'GESTIÓN POST-INGRESO','#059669'],[n(s.personasCitaTel),'CITAS TEL.','#D97706'],[n(s.personasConCita),'CITAS AGENDA','#7C3AED'],[n(s.clientesM0),'CLIENTES M0','#059669']];el('mk-v3-trace-grid').innerHTML=items.map(function(x){return '<div class="g-c" style="background:#F8FAFF;border:1px solid #EEF2F8;"><div class="g-v" style="color:'+x[2]+'">'+x[0]+'</div><div class="g-l">'+x[1]+'</div></div>';}).join('');el('mk-v3-trace-note').innerHTML='Embudo causal: la gestión se cuenta solo después del ingreso del lead. La franja azul de <b>Gestión</b> sigue mostrando actividad operativa total del mes y puede incluir seguimientos de cohortes anteriores. Citas Tel. = tipificación Call Center; Citas Agenda = citas realmente registradas.';}
+  function renderTop(s){if(!S.legacyKpi||MK.modo!=='mes')return;var inv=n(S.legacyKpi.invTotal),leads=n(s.personasUnicas),ll=n(s.personasGestionadas),citas=n(s.personasCitaTel),asist=n(s.personasAsistieron),cli=n(s.clientesM0),ventas=n(s.ventasM0),fact=n(s.factM0),k={};Object.keys(S.legacyKpi).forEach(function(x){k[x]=S.legacyKpi[x];});k.leads=leads;k.llamados=ll;k.citas=citas;k.asistieron=asist;k.clientes=cli;k.nVentas=ventas;k.factTotal=fact;k.pctLlamados=leads?Math.round(ll/leads*10000)/100:0;k.roas=inv?Math.round(fact/inv*100)/100:null;k.cac=cli&&inv?Math.round(inv/cli*100)/100:null;k.cpl=leads&&inv?Math.round(inv/leads*100)/100:null;orig.rKPI(k);orig.rEmb({leads:leads,llamados:ll,citas:citas,asistieron:asist,clientes:cli,ventas:ventas,factTotal:fact,tasas:{llamados:leads?Math.round(ll/leads*10000)/100:0,citas:ll?Math.round(citas/ll*10000)/100:0,asist:citas?Math.round(asist/citas*10000)/100:0,clientes:asist?Math.round(cli/asist*10000)/100:0,ventas:cli?Math.round(ventas/cli*10000)/100:0}});renderTrace(s);}
+  function loadSummary(){if(MK.modo!=='mes'){var c=el('mk-v3-trace');if(c)c.style.display='none';return;}var r=current(),req=++S.req.summary;vrpc('aos_marketing_period_summary_v2',{p_fecha_desde:r.desde,p_fecha_hasta:r.hasta}).then(function(s){if(req!==S.req.summary)return;renderTop(s||{});}).catch(function(e){console.warn('[MKT V3] KPI causal mantiene legacy:',e.message);});}
 
-  function currentMonthRange(){
-    var a=Number(el('mk-anio').value),m=Number(el('mk-mes').value);
-    var d1=a+'-'+String(m).padStart(2,'0')+'-01';
-    var last=new Date(a,m,0).getDate();
-    return{anio:a,mes:m,desde:d1,hasta:a+'-'+String(m).padStart(2,'0')+'-'+String(last).padStart(2,'0')};
-  }
+  /* HISTORICO RACE-PROOF */
+  function applyHistory(rows){rows=arr(rows);if(!rows.length)return;S.history=rows.slice().sort(function(a,b){return n(a.mes)-n(b.mes);});var mapped=S.history.map(function(r){return{mes:n(r.mes),anio:n(r.anio),leads:n(r.leads),llamados:(n(r.llamados)===0&&n(r.citas)>0?'—':n(r.llamados)),citas:n(r.citas),asistieron:n(r.asistieron),clientes:n(r.clientes),ventas:n(r.ventas),fact:n(r.fact),fact_acumulado:n(r.fact_acumulado),conv:n(r.conv).toFixed(2)};});orig.rHist(mapped);var hist=el('mk-hist');if(hist){var old=el('mk-v3-hist-note');if(old)old.remove();var note=document.createElement('div');note.id='mk-v3-hist-note';note.style.cssText='font-size:8px;color:#6B7BA8;margin-top:6px;line-height:1.45;';note.innerHTML='Histórico anual fijo: cambiar el mes <b>no recorta</b> el año. Leads = personas únicas; Llamados = gestión posterior al ingreso; Citas = Agenda; Clientes/Ventas/Facturación = atribución M0. <b>—</b> = histórico de llamadas no reconstruible con certeza.';hist.appendChild(note);if(MK.modo==='mes'){var target=MF[Number(el('mk-mes').value)].slice(0,3).toUpperCase();Array.from(hist.querySelectorAll('tbody tr')).forEach(function(tr){var td=tr.querySelector('td');if(td&&td.textContent.indexOf(target+' ')===0){tr.style.background='#F0F7FF';tr.style.outline='1px solid #D9E8FF';}});}}later('ltv',loadLTV,10);later('ads',loadAds,20);later('camp',loadCamp,30);renderIntelligence();}
+  function loadHistory(){var a=Number(el('mk-anio').value),req=++S.req.history;vrpc('aos_marketing_historico_public_v2',{p_anio:a}).then(function(rows){if(req!==S.req.history)return;applyHistory(rows);}).catch(function(e){console.warn('[MKT V3] Histórico mantiene legacy:',e.message);});}
 
-  function ensureTrace(){
-    var card=document.getElementById('mk-progressive-trace');
-    if(card)return card;
-    var gest=document.getElementById('mk-gest');if(!gest)return null;
-    card=document.createElement('div');card.id='mk-progressive-trace';card.className='crd';card.style.padding='8px 12px';
-    card.innerHTML='<div class="ct" style="margin-bottom:6px;">🧭 Trazabilidad del período <span class="tag tag-b">personas vs ingresos</span></div><div id="mk-progressive-trace-grid" class="g-row"><div class="ld">Validando...</div></div><div id="mk-progressive-trace-note" style="font-size:8px;color:#6B7BA8;margin-top:6px;line-height:1.45;"></div>';
-    gest.insertAdjacentElement('afterend',card);
-    return card;
-  }
-  function renderTrace(s){
-    var card=ensureTrace();if(!card)return;
-    card.style.display=MK.modo==='mes'?'':'none';if(MK.modo!=='mes')return;
-    var box=document.getElementById('mk-progressive-trace-grid');
-    var items=[
-      [n(s.ingresos),'INGRESOS','#0A4FBF'],[n(s.personasUnicas),'PERSONAS ÚNICAS','#0D9488'],[n(s.reingresos),'REINGRESOS','#7C3AED'],
-      [n(s.personasGestionadas),'GESTIÓN POST-INGRESO','#059669'],[n(s.personasCitaTel),'CITAS TEL.','#D97706'],[n(s.personasConCita),'CITAS AGENDA','#7C3AED'],[n(s.clientesM0),'CLIENTES M0','#059669']
-    ];
-    box.innerHTML=items.map(function(x){return '<div class="g-c" style="background:#F8FAFF;border:1px solid #EEF2F8;"><div class="g-v" style="color:'+x[2]+'">'+x[0]+'</div><div class="g-l">'+x[1]+'</div></div>';}).join('');
-    var note=document.getElementById('mk-progressive-trace-note');
-    if(note)note.innerHTML='Embudo causal: la gestión cuenta solo después del ingreso del lead. La franja azul de <b>Gestión</b> sigue siendo actividad operativa total del mes y puede incluir seguimientos de cohortes anteriores. Citas Tel. = tipificación del Call Center; Citas Agenda = citas realmente registradas.';
-  }
+  /* LTV */
+  function ltvCell(v,state,color){if(v===null||v===undefined||state==='FUTURE')return '<span style="color:#CBD5E1;">—</span>';var z=n(v),partial=state==='PARTIAL';return '<div style="font-weight:700;color:'+color+';">'+money(z)+'</div>'+(partial?'<div style="font-size:7px;color:#D97706;">parcial</div>':'');}
+  function renderLTV(rows){rows=arr(rows);if(!rows.length)return;S.latest.ltv=rows;var box=el('mk-ltv'),tag=el('mk-ltv-tag');if(!box||!tag)return;var sel=MK.modo==='mes'?rows.find(function(x){return n(x.mes)===Number(el('mk-mes').value);}):null,totalM0=rows.reduce(function(s,x){return s+n(x.m0);},0),totalLtv=rows.reduce(function(s,x){return s+n(x.ltv_total);},0),totalInv=rows.reduce(function(s,x){return s+n(x.inversion);},0),totalAcq=rows.reduce(function(s,x){return s+n(x.clientes_adquiridos);},0);var f=sel||{m0:totalM0,ltv_total:totalLtv,inversion:totalInv,clientes_adquiridos:totalAcq,roas_m0:totalInv?totalM0/totalInv:0,roas_ltv:totalInv?totalLtv/totalInv:0,cac_adquisicion:totalAcq?totalInv/totalAcq:0,m1:rows.reduce(function(s,x){return s+n(x.m1);},0),m2:rows.reduce(function(s,x){return s+n(x.m2);},0),m3:rows.reduce(function(s,x){return s+n(x.m3);},0),m4plus:rows.reduce(function(s,x){return s+n(x.m4plus);},0)};var mult=n(f.m0)?n(f.ltv_total)/n(f.m0):0;tag.textContent='LTV atribuido '+(mult?mult.toFixed(1)+'x':'—')+' · '+rows.length+' cohortes';var vals=[n(f.m0),n(f.m1),n(f.m2),n(f.m3),n(f.m4plus)],labs=['M0','M+1','M+2','M+3','M+4+'],cols=['#0A4FBF','#00C9A7','#7C3AED','#D97706','#6B7BA8'],den=n(f.ltv_total)||1;var dist=vals.map(function(v,i){return '<div style="display:flex;align-items:center;gap:5px;margin:3px 0;"><div style="width:34px;font-size:7px;font-weight:700;color:#6B7BA8;">'+labs[i]+'</div><div style="flex:1;height:12px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:'+Math.min(100,v/den*100)+'%;background:'+cols[i]+';"></div></div><div style="width:38px;font-size:8px;font-weight:800;color:'+cols[i]+';">'+(v/den*100).toFixed(1)+'%</div></div>';}).join('');var html='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"><div style="flex:1;min-width:120px;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:8px;font-weight:700;color:#7C3AED;">LTV / M0</div><div style="font-family:Exo 2;font-weight:800;font-size:24px;color:#7C3AED;">'+(mult?mult.toFixed(1)+'x':'—')+'</div><div style="font-size:8px;color:#9AAAC8;">valor acumulado de la cohorte</div></div><div style="flex:1;min-width:120px;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:8px;font-weight:700;color:#059669;">ROAS LTV</div><div style="font-family:Exo 2;font-weight:800;font-size:24px;color:#059669;">'+n(f.roas_ltv).toFixed(2)+'x</div><div style="font-size:8px;color:#9AAAC8;">revenue acumulado / inversión</div></div><div style="flex:1;min-width:120px;background:#FFF7ED;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:8px;font-weight:700;color:#D97706;">CAC ADQUISICIÓN</div><div style="font-family:Exo 2;font-weight:800;font-size:24px;color:#D97706;">'+(n(f.cac_adquisicion)?money(f.cac_adquisicion):'—')+'</div><div style="font-size:8px;color:#9AAAC8;">inversión / clientes adquiridos</div></div><div style="flex:2;min-width:240px;background:#F8FAFF;border-radius:8px;padding:10px;"><div style="font-size:7px;font-weight:700;color:#0A4FBF;margin-bottom:5px;">DISTRIBUCIÓN REAL DEL REVENUE</div>'+dist+'</div></div>';html+='<div style="font-size:11px;font-weight:700;margin:8px 0 6px;">Matriz de Cohortes — revenue observado</div><div style="overflow-x:auto;"><table class="vt"><thead><tr><th>COHORTE</th><th>PERSONAS</th><th>ADQUIRIDOS</th><th>INV.</th><th style="color:#0A4FBF;">M0</th><th style="color:#00C9A7;">M+1</th><th style="color:#7C3AED;">M+2</th><th style="color:#D97706;">M+3</th><th>M+4+</th><th style="color:#059669;">LTV TOTAL</th><th>CAC</th><th>ROAS M0</th><th>ROAS LTV</th></tr></thead><tbody>';rows.forEach(function(c){var active=MK.modo==='mes'&&n(c.mes)===Number(el('mk-mes').value);html+='<tr'+(active?' style="background:#F0F7FF;outline:1px solid #D9E8FF;"':'')+'><td style="font-weight:700;">'+MF[n(c.mes)].slice(0,3).toUpperCase()+'</td><td>'+n(c.personas_unicas)+'</td><td>'+n(c.clientes_adquiridos)+'</td><td>'+money(c.inversion)+'</td><td>'+ltvCell(c.m0,c.m0_estado,'#0A4FBF')+'</td><td>'+ltvCell(c.m1,c.m1_estado,'#00C9A7')+'</td><td>'+ltvCell(c.m2,c.m2_estado,'#7C3AED')+'</td><td>'+ltvCell(c.m3,c.m3_estado,'#D97706')+'</td><td>'+ltvCell(c.m4plus,c.m4plus===null?'FUTURE':'COMPLETE','#6B7BA8')+'</td><td class="hi hi-g">'+money(c.ltv_total)+'</td><td>'+money(c.cac_adquisicion)+'</td><td>'+n(c.roas_m0).toFixed(2)+'x</td><td class="hi hi-g">'+n(c.roas_ltv).toFixed(2)+'x</td></tr>';});html+='</tbody></table></div><div style="margin-top:8px;padding:8px 10px;background:#F0FDFA;border-radius:8px;font-size:8px;color:#0D9488;line-height:1.5;"><b>Lectura V3:</b> LTV pertenece a la cohorte que adquirió al cliente. Todas sus compras posteriores suman a ese LTV. Una campaña posterior puede recibir crédito de reactivación sin duplicar la facturación total. “parcial” indica período en curso; “—” período futuro.</div>';box.innerHTML=html;renderIntelligence();}
+  function loadLTV(){var req=++S.req.ltv,a=Number(el('mk-anio').value);vrpc('aos_marketing_ltv_public_v2',{p_anio:a}).then(function(rows){if(req!==S.req.ltv)return;renderLTV(rows);}).catch(function(e){console.warn('[MKT V3] LTV mantiene legacy:',e.message);});}
 
-  function renderTopFromSummary(s){
-    if(!S.legacyKpi||MK.modo!=='mes')return;
-    var inv=n(S.legacyKpi.invTotal),leads=n(s.personasUnicas),ll=n(s.personasGestionadas),citas=n(s.personasCitaTel),asist=n(s.personasAsistieron),cli=n(s.clientesM0),ventas=n(s.ventasM0),fact=n(s.factM0);
-    var k={};Object.keys(S.legacyKpi||{}).forEach(function(x){k[x]=S.legacyKpi[x];});
-    k.leads=leads;k.llamados=ll;k.citas=citas;k.asistieron=asist;k.clientes=cli;k.nVentas=ventas;k.factTotal=fact;
-    k.pctLlamados=leads>0?Math.round(ll/leads*10000)/100:0;
-    k.roas=inv>0?Math.round(fact/inv*100)/100:null;
-    k.cac=cli>0&&inv>0?Math.round(inv/cli*100)/100:null;
-    k.cpl=leads>0&&inv>0?Math.round(inv/leads*100)/100:null;
-    orig.rKPI(k);
-    orig.rEmb({
-      leads:leads,llamados:ll,citas:citas,asistieron:asist,clientes:cli,ventas:ventas,factTotal:fact,
-      tasas:{
-        llamados:leads>0?Math.round(ll/leads*10000)/100:0,
-        citas:ll>0?Math.round(citas/ll*10000)/100:0,
-        asist:citas>0?Math.round(asist/citas*10000)/100:0,
-        clientes:asist>0?Math.round(cli/asist*10000)/100:0,
-        ventas:cli>0?Math.round(ventas/cli*10000)/100:0
-      }
-    });
-    renderTrace(s);
-  }
+  /* ANUNCIOS / CAMPANAS */
+  function ensureTools(kind){var body=kind==='ads'?el('mk-an'):el('mk-camp');if(!body)return;var card=body.closest('.crd');if(!card)return;var id='mk-v3-'+kind+'-tools';if(el(id))return;var title=card.querySelector('.ct'),bar=document.createElement('div'),state=kind==='ads'?S.ads:S.camp;bar.id=id;bar.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px;';bar.innerHTML='<input id="'+id+'-q" class="ps" style="min-width:180px;flex:1;" placeholder="Buscar '+(kind==='ads'?'anuncio':'campaña')+'..."><select id="'+id+'-ord" class="ps"><option value="fact_acum">Fact. acumulada</option><option value="fact_m0">Fact. M0</option><option value="leads">Leads</option><option value="citas">Citas</option><option value="conversion">Conversión</option></select><span id="'+id+'-count" style="font-size:8px;color:#6B7BA8;font-weight:700;"></span>';title.insertAdjacentElement('afterend',bar);var q=el(id+'-q'),ord=el(id+'-ord');q.value=state.search;ord.value=state.order;q.addEventListener('input',function(){state.search=q.value;later(kind,kind==='ads'?loadAds:loadCamp,250);});ord.addEventListener('change',function(){state.order=ord.value;(kind==='ads'?loadAds:loadCamp)();});}
+  function renderAds(rows){rows=arr(rows);if(!rows.length){orig.rAn([]);return;}if(!S.ads.search&&!reconciles(rows)){console.warn('[MKT V3] Anuncios no reconcilia con Histórico; conserva legacy');return;}S.latest.ads=rows;var mapped=rows.map(function(r){return{nombre:r.anuncio,leads:n(r.personas_unicas),citas:n(r.leads_con_cita),asistieron:n(r.leads_con_asistencia),clientes:n(r.clientes_m0),ventas:n(r.ventas_m0),fact_mes:n(r.fact_m0),clientes_fuera:n(r.clientes_post),ventas_fuera:n(r.ventas_post),fact_acum:n(r.fact_acum)};});orig.rAn(mapped);ensureTools('ads');var c=el('mk-v3-ads-tools-count');if(c)c.textContent=n(rows[0].total_rows)+' anuncios';var tag=el('mk-an').closest('.crd').querySelector('.tag');if(tag)tag.textContent=MK.modo==='mes'?'cohorte del mes':'cohortes del año';renderIntelligence();}
+  function loadAds(){if(!S.history.length)return;var req=++S.req.ads,a=Number(el('mk-anio').value),m=MK.modo==='mes'?Number(el('mk-mes').value):null;vrpc('aos_marketing_anuncios_public_v2',{p_anio:a,p_mes:m,p_search:S.ads.search||null,p_limit:200,p_offset:0,p_order:S.ads.order}).then(function(rows){if(req!==S.req.ads)return;renderAds(rows);}).catch(function(e){console.warn('[MKT V3] Anuncios mantiene legacy:',e.message);});}
+  function renderCamp(rows){rows=arr(rows);if(!rows.length){orig.rCamp([]);return;}if(!S.camp.search&&!reconciles(rows)){console.warn('[MKT V3] Campañas no reconcilia con Histórico; conserva legacy');return;}S.latest.camp=rows;var mapped=rows.map(function(r){return{nombre:r.tratamiento,leads:n(r.personas_unicas),citas:n(r.leads_con_cita),pctCita:n(r.personas_unicas)?(n(r.leads_con_cita)/n(r.personas_unicas)*100).toFixed(1):0,asistieron:n(r.leads_con_asistencia),clientes:n(r.clientes_m0),ventas:n(r.ventas_m0),fact_mes:n(r.fact_m0),fact_acum:n(r.fact_acum),inv:n(r.inversion),roas:n(r.roas_acum)};});orig.rCamp(mapped);ensureTools('camp');var c=el('mk-v3-camp-tools-count');if(c)c.textContent=n(rows[0].total_rows)+' campañas';var tag=el('mk-camp').closest('.crd').querySelector('.tag');if(tag)tag.textContent=MK.modo==='mes'?'cohorte del mes':'cohortes del año';renderIntelligence();}
+  function loadCamp(){if(!S.history.length)return;var req=++S.req.camp,a=Number(el('mk-anio').value),m=MK.modo==='mes'?Number(el('mk-mes').value):null;vrpc('aos_marketing_campanas_public_v2',{p_anio:a,p_mes:m,p_search:S.camp.search||null,p_limit:200,p_offset:0,p_order:S.camp.order}).then(function(rows){if(req!==S.req.camp)return;renderCamp(rows);}).catch(function(e){console.warn('[MKT V3] Campañas mantiene legacy:',e.message);});}
 
-  function applyHistory(rows){
-    if(!Array.isArray(rows)||!rows.length)return;
-    var mapped=rows.map(function(r){
-      return{
-        mes:n(r.mes),anio:n(r.anio),leads:n(r.leads),
-        llamados:(n(r.llamados)===0&&n(r.citas)>0?'—':n(r.llamados)),
-        citas:n(r.citas),asistieron:n(r.asistieron),clientes:n(r.clientes),ventas:n(r.ventas),
-        fact:n(r.fact),fact_acumulado:n(r.fact_acumulado),conv:n(r.conv).toFixed(2)
-      };
-    });
-    orig.rHist(mapped);
-    var hist=document.getElementById('mk-hist');if(!hist)return;
-    var old=document.getElementById('mk-progressive-hist-note');if(old)old.remove();
-    var note=document.createElement('div');note.id='mk-progressive-hist-note';note.style.cssText='font-size:8px;color:#6B7BA8;margin-top:6px;line-height:1.45;';
-    note.innerHTML='Histórico anual fijo: no se recorta al cambiar el mes. Leads = personas únicas; Llamados = gestión posterior al ingreso; Citas = Agenda; Clientes/Ventas/Facturación = atribución M0. <b>—</b> indica ausencia de histórico confiable de llamadas.';
-    hist.appendChild(note);
-    if(MK.modo==='mes'){
-      var target=MF[Number(el('mk-mes').value)].slice(0,3).toUpperCase();
-      Array.from(hist.querySelectorAll('tbody tr')).forEach(function(tr){var td=tr.querySelector('td');if(td&&td.textContent.indexOf(target+' ')===0){tr.style.background='#F0F7FF';tr.style.outline='1px solid #D9E8FF';}});
-    }
-  }
+  /* NUEVOS BLOQUES */
+  function ensureInsightArea(){var a=el('mk-v3-insights');if(a)return a;var l=el('mk-ltv');if(!l)return null;var card=l.closest('.crd');if(!card)return null;a=document.createElement('div');a.id='mk-v3-insights';a.style.cssText='display:flex;flex-wrap:wrap;gap:10px;';a.innerHTML='<div class="crd" id="mk-v3-attr-card" style="flex:1 1 420px;"><div class="ct">🧠 Atribución y reingresos <span class="tag tag-b">V3</span></div><div id="mk-v3-attr"><div class="ld">Validando...</div></div></div><div class="crd" id="mk-v3-intent-card" style="flex:1 1 420px;"><div class="ct">🧩 Intención → Compra <span class="tag tag-c">compra atribuida</span></div><div id="mk-v3-intent"><div class="ld">Validando...</div></div></div>';card.insertAdjacentElement('afterend',a);return a;}
+  function renderAttr(s){if(!s||typeof s!=='object')return;S.latest.attr=s;ensureInsightArea();var b=el('mk-v3-attr');if(!b)return;var items=[[n(s.personasUnicas),'PERSONAS ÚNICAS','#0A4FBF'],[n(s.touchpointsEfectivos),'TOUCHPOINTS EFECTIVOS','#0D9488'],[n(s.duplicadosTecnicosProbables),'DUPLICADOS TÉCNICOS','#DC2626'],[n(s.reingresosProspectoHistorico),'REINGRESOS PROSPECTO','#7C3AED'],[n(s.reingresosClienteExistente),'CLIENTES QUE REINGRESAN','#D97706'],[n(s.clientesAdquiridos),'CLIENTES ADQUIRIDOS','#059669'],[n(s.reactivacionesConfirmadas),'REACTIVACIONES CONF.','#00C9A7'],[money(s.revenueReactivacion),'REV. REACTIVACIÓN','#00A67E'],[n(s.anomaliasHigh),'REVISIÓN ALTA','#DC2626'],[n(s.anomaliasMedium),'REVISIÓN MEDIA','#D97706']];b.innerHTML='<div class="g-row">'+items.map(function(x){return '<div class="g-c" style="background:#F8FAFF;border:1px solid #EEF2F8;"><div class="g-v" style="color:'+x[2]+'">'+x[0]+'</div><div class="g-l">'+x[1]+'</div></div>';}).join('')+'</div><div style="font-size:8px;color:#6B7BA8;margin-top:7px;line-height:1.5;">Adquisición = touchpoint que consiguió la primera compra atribuible. Reactivación confirmada exige un nuevo touchpoint posterior a una compra previa y evidencia de conversión; no se infiere solo porque el cliente vuelva a aparecer.</div>';renderIntelligence();}
+  function loadAttr(){ensureInsightArea();var req=++S.req.attr,a=Number(el('mk-anio').value),fn=MK.modo==='anio'?'aos_marketing_attribution_public_v2_anio':'aos_marketing_attribution_public_v2',p=MK.modo==='anio'?{p_anio:a}:{p_mes:Number(el('mk-mes').value),p_anio:a};vrpc(fn,p).then(function(s){if(req!==S.req.attr)return;renderAttr(s);}).catch(function(e){console.warn('[MKT V3] Atribución no reemplaza otros bloques:',e.message);var b=el('mk-v3-attr');if(b)b.innerHTML='<div class="ld">Atribución avanzada temporalmente no disponible. El resto del panel continúa operativo.</div>';});}
+  function renderIntent(rows){ensureInsightArea();var b=el('mk-v3-intent');if(!b)return;if(MK.modo!=='mes'){el('mk-v3-intent-card').style.display='none';return;}el('mk-v3-intent-card').style.display='';rows=arr(rows);S.latest.intent=rows;if(!rows.length){b.innerHTML='<div class="ld">Sin compras atribuibles para esta cohorte.</div>';return;}b.innerHTML='<div style="overflow:auto;max-height:260px;"><table class="vt"><thead><tr><th>INTENCIÓN</th><th>COMPRA REAL</th><th>CLIENTES</th><th>OPS.</th><th>FACT.</th><th>% DEL INTERÉS</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td style="font-weight:700;">'+esc(r.tratamiento_interes)+'</td><td>'+esc(r.tratamiento_compra)+'</td><td>'+n(r.clientes)+'</td><td>'+n(r.operaciones)+'</td><td class="hi hi-g">'+money(r.facturacion)+'</td><td style="font-weight:700;color:'+(r.coincide_intencion?'#059669':'#6B7BA8')+';">'+n(r.porcentaje_facturacion_intencion).toFixed(1)+'%</td></tr>';}).join('')+'</tbody></table></div><div style="font-size:8px;color:#6B7BA8;margin-top:7px;line-height:1.5;">Muestra qué terminó comprando cada persona a partir de ventas atribuidas al touchpoint de esta cohorte. No equivale al LTV completo: LTV también incorpora recompras futuras del cliente adquirido.</div>';renderIntelligence();}
+  function loadIntent(){ensureInsightArea();if(MK.modo!=='mes'){var c=el('mk-v3-intent-card');if(c)c.style.display='none';return;}var req=++S.req.intent,r=current();vrpc('aos_marketing_intent_public_v2',{p_mes:r.mes,p_anio:r.anio}).then(function(rows){if(req!==S.req.intent)return;renderIntent(rows);}).catch(function(e){console.warn('[MKT V3] Intención→Compra no disponible:',e.message);});}
+  function renderIntelligence(){if(!S.history.length)return;var id='mk-v3-intelligence',c=el(id);if(!c){var area=ensureInsightArea();if(!area)return;c=document.createElement('div');c.id=id;c.className='crd';c.style.cssText='flex:1 1 100%;';c.innerHTML='<div class="ct">💡 Marketing Intelligence <span class="tag tag-b">insights determinísticos</span></div><div id="mk-v3-intelligence-body"><div class="ld">Esperando datos...</div></div>';area.insertAdjacentElement('afterend',c);}var ads=S.latest.ads||[],camp=S.latest.camp||[],ltv=S.latest.ltv||[],at=S.latest.attr||{};if(!ads.length&&!camp.length&&!ltv.length)return;var bestAd=ads.slice().sort(function(a,b){return n(b.fact_acum)-n(a.fact_acum);})[0],bestCamp=camp.filter(function(x){return n(x.fact_acum)>0;}).sort(function(a,b){return n(b.roas_acum)-n(a.roas_acum);})[0],bestC=ltv.slice().sort(function(a,b){return n(b.ltv_total)-n(a.ltv_total);})[0];var items=[];if(bestAd)items.push('<b>Mejor anuncio por revenue acumulado:</b> '+esc(bestAd.anuncio)+' · '+money(bestAd.fact_acum));if(bestCamp)items.push('<b>Mejor campaña por ROAS acumulado:</b> '+esc(bestCamp.tratamiento)+' · '+n(bestCamp.roas_acum).toFixed(2)+'x');if(bestC)items.push('<b>Cohorte con mayor LTV:</b> '+MF[n(bestC.mes)]+' · '+money(bestC.ltv_total)+' · ROAS '+n(bestC.roas_ltv).toFixed(2)+'x');if(at&&typeof at==='object')items.push('<b>Calidad de atribución:</b> '+n(at.duplicadosTecnicosProbables)+' duplicados técnicos · '+n(at.anomaliasHigh)+' revisiones altas · '+n(at.reactivacionesConfirmadas)+' reactivaciones confirmadas.');el('mk-v3-intelligence-body').innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;">'+items.map(function(t){return '<div style="padding:9px 10px;background:#F8FAFF;border:1px solid #EEF2F8;border-radius:8px;font-size:9px;color:#4B5D82;line-height:1.45;">'+t+'</div>';}).join('')+'</div>';}
 
-  function scheduleBlocks(){setTimeout(loadBlocks,30);}
-  function loadBlocks(){
-    var req=++S.blockReq;
-    var anio=Number(el('mk-anio').value);
-    vrpc('aos_marketing_historico_public_v2',{p_anio:anio}).then(function(rows){if(req!==S.blockReq)return;applyHistory(rows);}).catch(function(e){console.warn('[MKT progressive] histórico mantiene legacy:',e.message);});
-    if(MK.modo==='mes'){
-      var r=currentMonthRange();
-      vrpc('aos_marketing_period_summary_v2',{p_fecha_desde:r.desde,p_fecha_hasta:r.hasta}).then(function(s){if(req!==S.blockReq)return;renderTopFromSummary(s||{});}).catch(function(e){console.warn('[MKT progressive] KPIs mantienen legacy:',e.message);});
-    }else{
-      var card=document.getElementById('mk-progressive-trace');if(card)card.style.display='none';
-    }
-  }
+  /* LEADS APROBADO + PAGINACION */
+  function setLeadCard(id,v,label){var e=el(id);if(!e)return;e.textContent=v;var l=e.parentElement&&e.parentElement.querySelector('.ld-kpi-l');if(l&&label)l.textContent=label;}
+  function ensureLeadNote(){var note=el('ld-v3-note');if(note)return note;var v=el('ld-k-total');if(!v||!v.parentElement||!v.parentElement.parentElement)return null;var grid=v.parentElement.parentElement;note=document.createElement('div');note.id='ld-v3-note';note.style.cssText='font-size:8px;color:#6B7BA8;background:#F8FAFF;border:1px solid #EEF2F8;border-radius:8px;padding:7px 9px;margin:7px 0;line-height:1.45;';grid.insertAdjacentElement('afterend',note);return note;}
+  function filteredLeadRows(){var f=typeof _ldFiltroEstado!=='undefined'?_ldFiltroEstado:'todos',q=(el('ld-buscar').value||'').toLowerCase().trim();return(_ldData||[]).filter(function(r){if(f!=='todos'&&r.estado_lead!==f)return false;if(q)return(r.celular||'').toLowerCase().indexOf(q)>=0||(r.anuncio||'').toLowerCase().indexOf(q)>=0||(r.tratamiento||'').toLowerCase().indexOf(q)>=0;return true;});}
+  function ensureLeadPager(){var p=el('ld-v3-pager');if(p)return p;var body=el('ld-body');if(!body)return null;var table=body.closest('table'),outer=table&&table.parentElement&&table.parentElement.parentElement;if(!outer)return null;p=document.createElement('div');p.id='ld-v3-pager';p.style.cssText='display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:7px 4px 0;font-size:9px;color:#6B7BA8;';p.innerHTML='<span id="ld-v3-pager-info"></span><select id="ld-v3-page-size" class="ms" style="width:70px;padding:5px;"><option>25</option><option selected>50</option><option>100</option></select><button id="ld-v3-prev" class="ld-chip">←</button><span id="ld-v3-page-num"></span><button id="ld-v3-next" class="ld-chip">→</button>';outer.insertAdjacentElement('afterend',p);el('ld-v3-page-size').addEventListener('change',function(){S.leadPageSize=Number(this.value);S.leadPage=1;applyLeadPagination();});el('ld-v3-prev').addEventListener('click',function(){if(S.leadPage>1){S.leadPage--;applyLeadPagination();}});el('ld-v3-next').addEventListener('click',function(){S.leadPage++;applyLeadPagination();});return p;}
+  function applyLeadPagination(){ensureLeadPager();var dom=Array.from(el('ld-body').querySelectorAll('tr')),total=filteredLeadRows().length;if(!dom.length)return;var pages=Math.max(1,Math.ceil(total/S.leadPageSize));if(S.leadPage>pages)S.leadPage=pages;var start=(S.leadPage-1)*S.leadPageSize,end=start+S.leadPageSize;dom.forEach(function(tr,i){tr.style.display=i>=start&&i<end?'':'none';});if(el('ld-v3-pager-info'))el('ld-v3-pager-info').textContent=total?(start+1)+'–'+Math.min(end,total)+' de '+total:'0 resultados';if(el('ld-v3-page-num'))el('ld-v3-page-num').textContent='Pág. '+S.leadPage+' / '+pages;if(el('ld-v3-prev'))el('ld-v3-prev').disabled=S.leadPage<=1;if(el('ld-v3-next'))el('ld-v3-next').disabled=S.leadPage>=pages;}
+  function applyLeadSummary(){var s=S.leadSummary;if(!s)return;var f=typeof _ldFiltroEstado!=='undefined'?_ldFiltroEstado:'todos',q=(el('ld-buscar').value||'').trim(),note=ensureLeadNote();if(note)note.innerHTML='<b>'+n(s.ingresos)+' ingresos</b> = <b>'+n(s.personasUnicas)+' personas únicas</b> ('+n(s.reingresos)+' reingresos). '+n(s.personasGestionadas)+' gestionadas post-ingreso · '+n(s.personasCitaTel)+' Citas Tel. · '+n(s.personasConCita)+' citas Agenda · '+n(s.clientesM0)+' clientes M0 · '+n(s.ventasM0)+' operaciones M0 · '+money(s.factM0)+' M0.';var count=el('ld-count');if(f==='todos'&&!q){if(count)count.textContent=n(s.ingresos)+' ingresos · '+n(s.personasUnicas)+' personas';setLeadCard('ld-k-total',n(s.personasUnicas),'PERSONAS ÚNICAS');setLeadCard('ld-k-llam',n(s.personasGestionadas),'GESTIÓN POST-INGRESO');setLeadCard('ld-k-cita',n(s.personasConCita),'CON CITA EN AGENDA');setLeadCard('ld-k-ventas',n(s.clientesM0),'CLIENTES M0');setLeadCard('ld-k-sin',n(s.personasSinGestion),'SIN GESTIÓN POST-INGRESO');setLeadCard('ld-k-monto',money(s.factM0),'FACTURACIÓN M0');}else{if(count)count.textContent=count.textContent+' · '+n(s.personasUnicas)+' personas en período';[['ld-k-total','INGRESOS FILTRADOS'],['ld-k-llam','CON LLAMADAS'],['ld-k-cita','CON CITAS ATRIB.'],['ld-k-ventas','VENDIDOS'],['ld-k-sin','SIN CONTACTO'],['ld-k-monto','FACTURADO FILTRO']].forEach(function(x){var e=el(x[0]),l=e&&e.parentElement&&e.parentElement.querySelector('.ld-kpi-l');if(l)l.textContent=x[1];});}}
+  window.ldRender=function(){orig.ldRender();applyLeadSummary();applyLeadPagination();};
+  window.ldLoad=function(){var desde=el('ld-desde').value,hasta=el('ld-hasta').value;if(!desde||!hasta){orig.ldLoad();return;}var req=++S.req.leads;S.leadPage=1;el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#9AAAC8;">Validando atribución...</td></tr>';Promise.all([vrpc('aos_marketing_leads_detalle_v2',{p_fecha_desde:desde,p_fecha_hasta:hasta}),vrpc('aos_marketing_period_summary_v2',{p_fecha_desde:desde,p_fecha_hasta:hasta})]).then(function(res){if(req!==S.req.leads)return;_ldData=arr(res[0]);S.leadSummary=res[1]||null;window.ldRender();}).catch(function(e){if(req!==S.req.leads)return;console.warn('[MKT V3] Leads mantiene legacy:',e.message);S.leadSummary=null;orig.ldLoad();});};
 
-  window.mkL=function(){orig.mkL();scheduleBlocks();};
+  /* PERIODOS */
+  function loadPeriodos(){vrpc('aos_marketing_periodos_v2_preview',{}).then(function(rows){rows=arr(rows);if(!rows.length)return;S.periodos=rows;var ys=el('mk-anio'),ms=el('mk-mes');if(!ys||!ms)return;var cur=Number(ys.value),years=[];rows.forEach(function(r){var y=n(r.anio);if(years.indexOf(y)<0)years.push(y);});years.sort(function(a,b){return b-a;});ys.innerHTML=years.map(function(y){return '<option value="'+y+'">'+y+'</option>';}).join('');ys.value=String(years.indexOf(cur)>=0?cur:years[0]);var allowed=rows.filter(function(r){return n(r.anio)===Number(ys.value);}).map(function(r){return n(r.mes);});Array.from(ms.options).forEach(function(o){o.disabled=allowed.indexOf(Number(o.value))<0;});}).catch(function(e){console.warn('[MKT V3] selector mantiene legacy:',e.message);});}
 
-  /* Leads del período: use attribution-safe rows, with automatic legacy fallback. */
-  function setLeadCard(id,value,label){
-    var v=document.getElementById(id);if(!v)return;v.textContent=value;
-    var lab=v.parentElement&&v.parentElement.querySelector('.ld-kpi-l');if(lab&&label)lab.textContent=label;
-  }
-  function ensureLeadNote(){
-    var note=document.getElementById('ld-progressive-note');if(note)return note;
-    var v=document.getElementById('ld-k-total');if(!v||!v.parentElement||!v.parentElement.parentElement)return null;
-    var grid=v.parentElement.parentElement;
-    note=document.createElement('div');note.id='ld-progressive-note';note.style.cssText='font-size:8px;color:#6B7BA8;background:#F8FAFF;border:1px solid #EEF2F8;border-radius:8px;padding:7px 9px;margin:7px 0;line-height:1.45;';
-    grid.insertAdjacentElement('afterend',note);return note;
-  }
-  function applyLeadSummary(){
-    var s=S.leadSummary;if(!s)return;
-    var filtro=(typeof _ldFiltroEstado!=='undefined'?_ldFiltroEstado:'todos');
-    var q=(el('ld-buscar').value||'').trim();
-    var note=ensureLeadNote();
-    if(note)note.innerHTML='<b>'+n(s.ingresos)+' ingresos</b> corresponden a <b>'+n(s.personasUnicas)+' personas únicas</b> ('+n(s.reingresos)+' reingresos). Personas: '+n(s.personasGestionadas)+' gestionadas después del ingreso · '+n(s.personasCitaTel)+' Citas Tel. · '+n(s.personasConCita)+' citas en Agenda · '+n(s.clientesM0)+' clientes M0 · '+n(s.ventasM0)+' operaciones M0 · '+money(s.factM0)+' M0. La tabla y sus filtros representan <b>touchpoints/ingresos</b>; “VENDIDO” solo aparece cuando la venta fue atribuida a ese ingreso.';
-    var count=document.getElementById('ld-count');
-    if(filtro==='todos'&&!q){
-      if(count)count.textContent=n(s.ingresos)+' ingresos · '+n(s.personasUnicas)+' personas';
-      setLeadCard('ld-k-total',n(s.personasUnicas),'PERSONAS ÚNICAS');
-      setLeadCard('ld-k-llam',n(s.personasGestionadas),'GESTIÓN POST-INGRESO');
-      setLeadCard('ld-k-cita',n(s.personasConCita),'CON CITA EN AGENDA');
-      setLeadCard('ld-k-ventas',n(s.clientesM0),'CLIENTES M0');
-      setLeadCard('ld-k-sin',n(s.personasSinGestion),'SIN GESTIÓN POST-INGRESO');
-      setLeadCard('ld-k-monto',money(s.factM0),'FACTURACIÓN M0');
-    }else{
-      if(count)count.textContent=count.textContent+' · '+n(s.personasUnicas)+' personas en período';
-      var labels=[['ld-k-total','INGRESOS FILTRADOS'],['ld-k-llam','CON LLAMADAS'],['ld-k-cita','CON CITAS ATRIB.'],['ld-k-ventas','VENDIDOS'],['ld-k-sin','SIN CONTACTO'],['ld-k-monto','FACTURADO FILTRO']];
-      labels.forEach(function(x){var e=document.getElementById(x[0]);var lab=e&&e.parentElement&&e.parentElement.querySelector('.ld-kpi-l');if(lab)lab.textContent=x[1];});
-    }
-  }
+  /* RACE-PROOF HOOKS: cualquier callback legacy tardío vuelve a disparar su bloque V3. */
+  window.rKPI=function(k){S.legacyKpi=k||null;orig.rKPI(k);later('summary',loadSummary,15);};
+  window.rEmb=function(e){orig.rEmb(e);};
+  window.rHist=function(hi){orig.rHist(hi);later('history',loadHistory,15);};
+  window.rLTV=function(k,hi,ltv){orig.rLTV(k,hi,ltv);later('ltv',loadLTV,15);};
+  window.rAn=function(x){orig.rAn(x);later('ads',loadAds,15);};
+  window.rCamp=function(x){orig.rCamp(x);later('camp',loadCamp,15);};
+  window.mkL=function(){orig.mkL();later('history',loadHistory,10);later('summary',loadSummary,20);later('ltv',loadLTV,30);later('attr',loadAttr,40);later('intent',loadIntent,50);};
 
-  window.ldRender=function(){orig.ldRender();applyLeadSummary();};
-  window.ldLoad=function(){
-    var desde=el('ld-desde').value,hasta=el('ld-hasta').value;
-    if(!desde||!hasta){orig.ldLoad();return;}
-    var req=++S.leadReq;
-    el('ld-body').innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#9AAAC8;">Validando atribución...</td></tr>';
-    Promise.all([
-      vrpc('aos_marketing_leads_detalle_v2',{p_fecha_desde:desde,p_fecha_hasta:hasta}),
-      vrpc('aos_marketing_period_summary_v2',{p_fecha_desde:desde,p_fecha_hasta:hasta})
-    ]).then(function(res){
-      if(req!==S.leadReq)return;
-      _ldData=Array.isArray(res[0])?res[0]:[];S.leadSummary=res[1]||null;window.ldRender();
-    }).catch(function(e){
-      if(req!==S.leadReq)return;
-      console.warn('[MKT progressive] Leads V2 falló; usando legacy:',e.message);S.leadSummary=null;orig.ldLoad();
-    });
-  };
-
-  /* Years/months come from real data; failure leaves the original hardcoded selector untouched. */
-  function loadPeriodos(){
-    vrpc('aos_marketing_periodos_v2_preview',{}).then(function(rows){
-      if(!Array.isArray(rows)||!rows.length)return;S.periodos=rows;
-      var ys=el('mk-anio'),ms=el('mk-mes');if(!ys||!ms)return;
-      var current=Number(ys.value),years=[];rows.forEach(function(r){var y=Number(r.anio);if(years.indexOf(y)<0)years.push(y);});years.sort(function(a,b){return b-a;});
-      ys.innerHTML=years.map(function(y){return '<option value="'+y+'">'+y+'</option>';}).join('');ys.value=String(years.indexOf(current)>=0?current:years[0]);
-      var allowed=rows.filter(function(r){return Number(r.anio)===Number(ys.value);}).map(function(r){return Number(r.mes);});
-      Array.from(ms.options).forEach(function(o){o.disabled=allowed.indexOf(Number(o.value))<0;});
-    }).catch(function(e){console.warn('[MKT progressive] períodos mantienen selector legacy:',e.message);});
-  }
-
-  loadPeriodos();
-  /* Enhance the already-rendered initial view; later legacy renders trigger another safe pass. */
-  setTimeout(loadBlocks,250);
-  console.log('[ASCENDA] Marketing progressive alignment activo: legacy-first + V2 on success.');
+  ensureInsightArea();ensureTrace();loadPeriodos();
+  setTimeout(function(){loadHistory();loadSummary();loadLTV();loadAttr();loadIntent();},220);
+  console.log('[ASCENDA] Marketing V3 '+RELEASE+' activo: legacy-first + race-proof + reconciliation gates.');
 })();
