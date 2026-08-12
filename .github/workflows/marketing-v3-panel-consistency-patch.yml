@@ -1,0 +1,35 @@
+name: Marketing V3 panel consistency patch
+
+on:
+  push:
+    branches:
+      - fix/marketing-v3-panel-consistency
+    paths:
+      - .github/workflows/marketing-v3-panel-consistency-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/marketing-v3-panel-consistency
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply controlled patch
+        run: node scripts/patch_marketing_v3_panel_consistency.mjs
+      - name: Commit generated production change
+        run: |
+          if git diff --quiet -- app/public/admin-marketing-v2.js; then
+            echo "No production changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/admin-marketing-v2.js
+          git commit -m "Stabilize Marketing V3 panel rendering"
+          git push
