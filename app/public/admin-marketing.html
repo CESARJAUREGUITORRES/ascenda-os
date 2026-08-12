@@ -643,4 +643,13 @@ function ldExport(){
   a.href=url; a.download='leads_'+el('ld-desde').value+'_a_'+el('ld-hasta').value+'.csv';
   a.click(); URL.revokeObjectURL(url);
 }
+
+/* Marketing Attribution V2 modular bootstrap */
+(function(){
+  window.__AOS_MARKETING_V2_LOADED=false;
+  var old=document.getElementById('aos-marketing-v2-adapter');if(old)old.remove();
+  var s=document.createElement('script');s.id='aos-marketing-v2-adapter';
+  s.src='/admin-marketing-v2.js?v='+(typeof _APP_VERSION!=='undefined'?_APP_VERSION:Date.now());
+  document.head.appendChild(s);
+})();
 </script>
