@@ -2,6 +2,10 @@
 
 **Workflow:** `.github/workflows/ascenda-ci.yml`
 
+## Estado actual
+
+El workflow inicial fue ejecutado correctamente sobre la rama de auditoría y finalizó en verde.
+
 ## Qué valida hoy
 
 - checkout del repositorio;
@@ -36,3 +40,7 @@ El CI inicial debe ser compatible con la arquitectura real actual y no bloquear 
 5. E2E con navegador en staging.
 6. Security checks y secret scanning tras saneamiento de baseline.
 7. Checks de schema drift Git↔Supabase.
+
+## Última validación
+
+Baseline CI ejecutada el 2026-08-12: `Runtime baseline` → **SUCCESS** en todos los steps configurados.
