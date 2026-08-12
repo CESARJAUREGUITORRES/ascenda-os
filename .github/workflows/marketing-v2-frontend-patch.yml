@@ -1,0 +1,45 @@
+name: Marketing V2 frontend patch
+
+on:
+  push:
+    branches:
+      - feature/marketing-attribution-v2-foundation
+    paths:
+      - scripts/apply_marketing_v2_frontend_patch.mjs
+      - .github/workflows/marketing-v2-frontend-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-feature-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/marketing-attribution-v2-foundation
+          fetch-depth: 0
+
+      - name: Apply guarded patch
+        run: node scripts/apply_marketing_v2_frontend_patch.mjs
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check app/public/calls.js
+          node --check app/public/admin-marketing-v2.js
+
+      - name: Validate diff
+        run: git diff --check
+
+      - name: Commit patched frontend
+        run: |
+          if git diff --quiet; then
+            echo "No patch changes required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/calls.js app/public/admin-marketing.html
+          git commit -m "feat(marketing): wire Attribution V2 frontend"
+          git push origin HEAD:feature/marketing-attribution-v2-foundation
