@@ -1,0 +1,41 @@
+name: Patch Marketing UI
+
+on:
+  push:
+    branches:
+      - fix/marketing-cohort-attribution
+    paths:
+      - scripts/patch_marketing_ui.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/marketing-cohort-attribution
+          fetch-depth: 0
+
+      - name: Apply deterministic UI patch
+        run: python scripts/patch_marketing_ui.py
+
+      - name: Validate diff
+        run: |
+          git diff --check
+          git diff -- app/public/admin-marketing.html
+
+      - name: Commit patched panel
+        run: |
+          if git diff --quiet -- app/public/admin-marketing.html; then
+            echo "No UI changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/admin-marketing.html
+          git commit -m "feat(marketing): add Top Anuncios detail modal"
+          git push origin HEAD:fix/marketing-cohort-attribution
