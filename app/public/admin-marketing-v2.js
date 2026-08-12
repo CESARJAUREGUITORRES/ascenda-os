@@ -8,6 +8,8 @@
 
   var orig={
     mkL:window.mkL,
+    rKPI:window.rKPI,
+    rEmb:window.rEmb,
     rHist:window.rHist,
     rLTV:window.rLTV,
     rAn:window.rAn,
@@ -17,7 +19,7 @@
     ldRng:window.ldRng,
     ldExport:window.ldExport
   };
-  var legacyCache={hist:null,an:null,camp:null};
+  var legacyCache={kpi:null,emb:null,hist:null,an:null,camp:null};
   var V2={periodos:[],leadPage:1,leadSize:50,leadTotal:0,leadRows:[],leadSummary:null,searchTimer:null};
 
   function vrpc(fn,p){
@@ -37,6 +39,8 @@
   /* Capture legacy responses so a V2 RPC failure can fall back safely. */
   window.rHist=function(d){legacyCache.hist=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rHist)orig.rHist(d);};
   window.rLTV=function(k,hi,d){if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rLTV)orig.rLTV(k,hi,d);};
+  window.rKPI=function(d){legacyCache.kpi=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rKPI)orig.rKPI(d);};
+  window.rEmb=function(d){legacyCache.emb=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rEmb)orig.rEmb(d);};
   window.rAn=function(d){legacyCache.an=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rAn)orig.rAn(d);};
   window.rCamp=function(d){legacyCache.camp=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rCamp)orig.rCamp(d);};
   window.__AOS_MARKETING_V2_ACTIVE=true;
@@ -79,6 +83,31 @@
       fact_acumulado:n(x.fact_acumulado),
       conv:n(x.conversion_m0)
     };});
+  }
+
+  function loadInvestment(anio,mes){
+    var q=SB+'/rest/v1/aos_inversion_campanas?select=inversion&anio=eq.'+encodeURIComponent(anio);
+    if(mes!=null)q+='&mes_num=eq.'+encodeURIComponent(mes);
+    return fetch(q,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){if(!r.ok)throw new Error('investment HTTP '+r.status);return r.json();}).then(function(rows){return (Array.isArray(rows)?rows:[]).reduce(function(s,x){return s+n(x.inversion);},0);});
+  }
+
+  function renderTopV2(rows,inv){
+    rows=rows||[];var src;
+    if(MK.modo==='mes'){
+      var m=Number(document.getElementById('mk-mes').value);src=rows.filter(function(x){return n(x.mes)===m;})[0]||{};
+    }else{
+      src=rows.reduce(function(a,x){
+        a.personas_unicas+=n(x.personas_unicas);a.leads_gestionados+=n(x.leads_gestionados);a.llamadas_atribuidas+=n(x.llamadas_atribuidas);
+        a.leads_con_cita+=n(x.leads_con_cita);a.leads_con_asistencia+=n(x.leads_con_asistencia);a.clientes_m0+=n(x.clientes_m0);a.ventas_m0+=n(x.ventas_m0);
+        a.fact_m0+=n(x.fact_m0);a.fact_acumulado+=n(x.fact_acumulado);return a;
+      },{personas_unicas:0,leads_gestionados:0,llamadas_atribuidas:0,leads_con_cita:0,leads_con_asistencia:0,clientes_m0:0,ventas_m0:0,fact_m0:0,fact_acumulado:0});
+    }
+    var leads=n(src.personas_unicas),ll=n(src.leads_gestionados),citas=n(src.leads_con_cita),asist=n(src.leads_con_asistencia),cli=n(src.clientes_m0),ventas=n(src.ventas_m0),fact=n(src.fact_m0),factAc=n(src.fact_acumulado),inversion=n(inv);
+    var k={leads:leads,llamados:ll,llamadasTotal:n(src.llamadas_atribuidas),citas:citas,asistieron:asist,clientes:cli,nVentas:ventas,factTotal:fact,factAcumulado:factAc,invTotal:inversion,
+      roas:inversion>0?fact/inversion:null,cac:cli>0&&inversion>0?inversion/cli:null,pctLlamados:leads>0?ll/leads*100:0,cpl:leads>0&&inversion>0?inversion/leads:null,ltvMultiplier:fact>0?factAc/fact:null};
+    var tasas={llamados:leads>0?ll/leads*100:0,citas:ll>0?citas/ll*100:0,asist:citas>0?asist/citas*100:0,clientes:asist>0?cli/asist*100:0,ventas:cli>0?ventas/cli*100:0};
+    if(orig.rKPI)orig.rKPI(k);
+    if(orig.rEmb)orig.rEmb({leads:leads,llamados:ll,citas:citas,asistieron:asist,clientes:cli,ventas:ventas,factTotal:fact,tasas:tasas});
   }
 
   function renderLtvV2(rows){
@@ -134,7 +163,9 @@
   function loadV2Blocks(){
     var anio=Number(document.getElementById('mk-anio').value);var mes=Number(document.getElementById('mk-mes').value);
     syncMonths();
-    vrpc('aos_marketing_historico_v2_preview',{p_anio:anio}).then(function(rows){if(orig.rHist)orig.rHist(mapHist(rows));}).catch(function(e){console.warn('[MKT-V2] historico',e);if(legacyCache.hist&&orig.rHist)orig.rHist(legacyCache.hist);});
+    var histP=vrpc('aos_marketing_historico_v2_preview',{p_anio:anio});
+    histP.then(function(rows){if(orig.rHist)orig.rHist(mapHist(rows));}).catch(function(e){console.warn('[MKT-V2] historico',e);if(legacyCache.hist&&orig.rHist)orig.rHist(legacyCache.hist);});
+    Promise.all([histP,loadInvestment(anio,MK.modo==='mes'?mes:null)]).then(function(res){renderTopV2(res[0],res[1]);}).catch(function(e){console.warn('[MKT-V2] KPI/embudo',e);if(legacyCache.kpi&&orig.rKPI)orig.rKPI(legacyCache.kpi);if(legacyCache.emb&&orig.rEmb)orig.rEmb(legacyCache.emb);});
     vrpc('aos_marketing_cohortes_ltv_v2_preview',{p_anio:anio}).then(renderLtvV2).catch(function(e){console.warn('[MKT-V2] ltv',e);});
     if(MK.modo==='mes'){
       vrpc('aos_marketing_attribution_summary_v2_preview',{p_mes:mes,p_anio:anio}).then(renderSummary).catch(function(e){console.warn('[MKT-V2] summary',e);});
