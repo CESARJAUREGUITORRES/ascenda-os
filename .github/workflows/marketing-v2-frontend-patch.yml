@@ -5,7 +5,7 @@ on:
     branches:
       - feature/marketing-attribution-v2-foundation
     paths:
-      - scripts/apply_marketing_v2_frontend_patch.mjs
+      - scripts/apply_marketing_v2_year_patch.mjs
       - .github/workflows/marketing-v2-frontend-patch.yml
 
 permissions:
@@ -21,8 +21,8 @@ jobs:
           ref: feature/marketing-attribution-v2-foundation
           fetch-depth: 0
 
-      - name: Apply guarded patch
-        run: node scripts/apply_marketing_v2_frontend_patch.mjs
+      - name: Apply guarded annual-mode patch
+        run: node scripts/apply_marketing_v2_year_patch.mjs
 
       - name: Validate JavaScript syntax
         run: |
@@ -40,6 +40,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/public/calls.js app/public/admin-marketing.html
-          git commit -m "feat(marketing): wire Attribution V2 frontend"
+          git add app/public/admin-marketing-v2.js
+          git commit -m "feat(marketing): wire annual Attribution V2 UI"
           git push origin HEAD:feature/marketing-attribution-v2-foundation
