@@ -113,7 +113,7 @@
   function loadBlocks(){
     var req=++S.blockReq;
     var anio=Number(el('mk-anio').value);
-    vrpc('aos_marketing_historico_aligned_v2',{p_anio:anio}).then(function(rows){if(req!==S.blockReq)return;applyHistory(rows);}).catch(function(e){console.warn('[MKT progressive] histórico mantiene legacy:',e.message);});
+    vrpc('aos_marketing_historico_public_v2',{p_anio:anio}).then(function(rows){if(req!==S.blockReq)return;applyHistory(rows);}).catch(function(e){console.warn('[MKT progressive] histórico mantiene legacy:',e.message);});
     if(MK.modo==='mes'){
       var r=currentMonthRange();
       vrpc('aos_marketing_period_summary_v2',{p_fecha_desde:r.desde,p_fecha_hasta:r.hasta}).then(function(s){if(req!==S.blockReq)return;renderTopFromSummary(s||{});}).catch(function(e){console.warn('[MKT progressive] KPIs mantienen legacy:',e.message);});
@@ -141,7 +141,7 @@
     var filtro=(typeof _ldFiltroEstado!=='undefined'?_ldFiltroEstado:'todos');
     var q=(el('ld-buscar').value||'').trim();
     var note=ensureLeadNote();
-    if(note)note.innerHTML='<b>'+n(s.ingresos)+' ingresos</b> corresponden a <b>'+n(s.personasUnicas)+' personas únicas</b> ('+n(s.reingresos)+' reingresos). Personas: '+n(s.personasGestionadas)+' gestionadas después del ingreso · '+n(s.personasCitaTel)+' Citas Tel. · '+n(s.personasConCita)+' citas en Agenda · '+n(s.clientesM0)+' clientes M0. La tabla y sus filtros representan <b>touchpoints/ingresos</b>; “VENDIDO” solo aparece cuando la venta fue atribuida a ese ingreso.';
+    if(note)note.innerHTML='<b>'+n(s.ingresos)+' ingresos</b> corresponden a <b>'+n(s.personasUnicas)+' personas únicas</b> ('+n(s.reingresos)+' reingresos). Personas: '+n(s.personasGestionadas)+' gestionadas después del ingreso · '+n(s.personasCitaTel)+' Citas Tel. · '+n(s.personasConCita)+' citas en Agenda · '+n(s.clientesM0)+' clientes M0 · '+n(s.ventasM0)+' operaciones M0 · '+money(s.factM0)+' M0. La tabla y sus filtros representan <b>touchpoints/ingresos</b>; “VENDIDO” solo aparece cuando la venta fue atribuida a ese ingreso.';
     var count=document.getElementById('ld-count');
     if(filtro==='todos'&&!q){
       if(count)count.textContent=n(s.ingresos)+' ingresos · '+n(s.personasUnicas)+' personas';
