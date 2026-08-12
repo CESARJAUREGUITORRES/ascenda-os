@@ -4,6 +4,14 @@
 
 Usar Codex Security como segunda capa de validación independiente sobre el repositorio privado de ASCENDA.
 
+## Estado
+
+- Repositorio GitHub privado: **sí**.
+- `SECURITY.md` repository-specific: **creado**.
+- `AGENTS.md` con reglas de cambio: **creado**.
+- CI baseline: **activo y validado en verde**.
+- Activación de Codex Security en la interfaz de Codex: **pendiente de habilitar el repositorio `CESARJAUREGUITORRES/ascenda-os`**.
+
 ## Alcance inicial
 
 - historial completo del repositorio;
@@ -18,13 +26,15 @@ Usar Codex Security como segunda capa de validación independiente sobre el repo
 - carga de archivos/Storage;
 - acciones administrativas.
 
-## Supuestos de threat model que deben registrarse
+## Supuestos de threat model
+
+La política canónica para el scan se encuentra en `SECURITY.md`. Como mínimo:
 
 - aplicación clínica con datos personales y potencialmente sensibles;
 - usuarios ADMIN, ASESOR y personal clínico;
 - navegador cliente no confiable;
 - Internet no confiable;
-- secretos solo deben existir server-side/secret manager;
+- secretos solo server-side/secret manager;
 - producción usa Railway + Supabase;
 - frontend productivo está en `app/public/`;
 - Node productivo es `app/server.js`;
