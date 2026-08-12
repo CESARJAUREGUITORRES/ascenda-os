@@ -7,6 +7,7 @@ on:
       - staging
   push:
     branches:
+      - main
       - staging
       - 'feature/**'
       - 'fix/**'

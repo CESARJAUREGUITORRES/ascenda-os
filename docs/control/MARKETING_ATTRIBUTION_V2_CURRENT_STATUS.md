@@ -1,9 +1,25 @@
 # ASCENDA OS — Marketing Attribution V2 — Current Status
 
 **Fecha:** 2026-08-12  
-**Rama:** `feature/marketing-attribution-v2-foundation`  
-**PR:** #5 → `staging` (draft)  
-**Producción (`main`):** sin cutover V2
+**Producción (`main`):** cutover V2 promovido  
+**Commit productivo:** `6b817a84a9355d95e66aaad90e1ffef73830787c`  
+**Issue operativo:** #4
+
+## Estado ejecutivo
+
+Marketing Attribution V2 fue promovido desde feature → `staging` → `main` después de gates SQL, CI de PR y CI de `staging` en verde.
+
+La promoción productiva incluye:
+- captura futura de `lead_id_origen` en Call Center;
+- `Ver Leads` V2;
+- KPIs y embudo V2;
+- Histórico anual V2;
+- LTV por cohortes V2;
+- Anuncios/Campañas V2 mensual y anual;
+- períodos automáticos;
+- fila de trazabilidad de personas/touchpoints/duplicados/reingresos/reactivación.
+
+No se ejecutó backfill destructivo ni se forzaron atribuciones ambiguas.
 
 ## Gates de datos cerrados
 
@@ -34,7 +50,7 @@ Estado histórico observado:
 - clientes existentes que reingresaron: **4**
 - conversiones de reactivación confirmadas: **0**
 
-Por tanto, hoy existe pipeline de reactivación, pero no revenue histórico de reactivación confirmado.
+Por tanto, existe pipeline de reactivación, pero no revenue histórico de reactivación confirmado.
 
 ## Casos patrón conservados
 
@@ -64,7 +80,7 @@ Total 2026 observado hasta agosto:
 
 Anuncios V2 anual, Campañas V2 anual e Histórico V2 anual reconcilian exactamente esos totales.
 
-## Frontend implementado en la feature
+## Frontend productivo
 
 ### Call Center
 `app/public/calls.js`:
@@ -79,10 +95,10 @@ Anuncios V2 anual, Campañas V2 anual e Histórico V2 anual reconcilian exactame
 Limitación legacy conocida: `aos_get_seguimientos` aún no devuelve `lead_id_origen` para seguimientos históricos/reabiertos. No bloquea la captura correcta de nuevos seguimientos.
 
 ### Marketing
-`app/public/admin-marketing.html` solo carga el adaptador modular `admin-marketing-v2.js`.
+`app/public/admin-marketing.html` carga el adaptador modular `admin-marketing-v2.js`.
 
 El adaptador V2:
-- mantiene las tarjetas/embudo/gestión existentes;
+- alinea tarjetas KPI y embudo con el mismo Histórico V2;
 - sustituye Histórico por V2;
 - sustituye LTV por cohortes reales V2, sin proyecciones especulativas legacy;
 - sustituye Anuncios/Campañas mensuales por V2;
@@ -92,17 +108,47 @@ El adaptador V2:
 - `Ver Leads` usa SQL server-side para paginación 25/50/100, búsqueda, filtro de estado y KPIs completos del filtro;
 - exportación CSV conserva el filtro seleccionado.
 
+En modo año, el embudo usa la suma de oportunidades/cohortes mensuales. La fila de trazabilidad muestra aparte las personas únicas reales del año para no confundir personas con oportunidades recurrentes.
+
 ## Seguridad de superficie
 
 Las funciones internas de reconstrucción/matching permanecen sin `EXECUTE` para `anon`. Solo las RPC read-only/agregadas necesarias para la UI actual fueron expuestas, coherente con la arquitectura frontend existente.
 
-La Action temporal utilizada para aplicar parches protegidos de frontend fue eliminada antes de integrar a `staging`.
+Las Actions temporales utilizadas para aplicar parches protegidos fueron eliminadas antes de la promoción.
 
-## CI / integración
+## Integración y CI
 
-- Los parches de frontend pasaron `node --check` y `git diff --check` durante la Action de parcheo.
-- Los gates SQL críticos fueron ejecutados y validados de forma individual.
-- El regression SQL agregado completo excede el statement timeout por costo acumulado; debe dividirse en checks independientes en una fase de CI de base de datos posterior.
-- Falta gate final: **Ascenda CI verde sobre el head definitivo de la feature**.
-- Solo después de CI verde: merge PR #5 → `staging`.
-- `main` y Railway permanecen sin cutover V2 hasta validación posterior.
+- PR #5 → `staging`: merged, CI verde.
+- `staging` `3c461f4e...`: CI verde.
+- PR #6 KPI/embudo → `staging`: CI verde.
+- `staging` final `0cb7a885...`: CI verde.
+- PR #7 `staging → main`: CI específico contra `main` verde y mergeable.
+- `main`: `6b817a84a9355d95e66aaad90e1ffef73830787c`.
+- Se añade `main` al trigger `push` de Ascenda CI como hardening post-deploy, para que futuros merges productivos tengan verificación posterior además del CI del PR.
+
+El regression SQL combinado completo puede exceder el statement timeout por costo acumulado; los gates críticos se validan individualmente y el suite debe dividirse en checks independientes en una fase posterior.
+
+## Post-deploy / observabilidad
+
+- El asset `app/public/admin-marketing-v2.js` está presente en `main`.
+- El entorno actual de ChatGPT no logra resolver por DNS el hostname Railway conocido y GitHub App no tiene permiso para listar deployments. Por ello la entrega en Railway no se declara verificada por HTTP desde este entorno.
+- `aos_marketing_traceability_health_v2` muestra 0 `lead_id_origen` en el histórico previo al cutover; esto es esperado porque no se hizo backfill.
+- La primera validación operativa pendiente es comprobar nuevas llamadas/citas creadas después del deploy y confirmar cobertura de `lead_id_origen` cuando haya tráfico real.
+
+## Follow-ups abiertos
+
+1. Confirmar Railway/asset desde un entorno con acceso al hostname o mediante evidencia del navegador.
+2. Verificar primeras llamadas/citas nuevas con `lead_id_origen` cuando exista tráfico real.
+3. Propagar `lead_id_origen` al reabrir seguimientos legacy si se confirma necesario (`aos_get_seguimientos`).
+4. Dividir regression SQL pesado en checks independientes.
+5. Importar/integrar catálogo real de Meta antes de afirmar anuncios activos con 0 leads.
+
+## Rollback operativo
+
+Ante regresión de UI/código:
+- revertir el merge productivo `6b817a84...` o retirar el bootstrap V2;
+- Call Center puede volver a `aos_siguiente_lead` sin borrar columnas ni datos nuevos.
+
+Ante incidente de base de datos:
+- no borrar columnas ni funciones como primera respuesta;
+- dejar de consumir V2. Las columnas añadidas son nullable y backward-compatible.
