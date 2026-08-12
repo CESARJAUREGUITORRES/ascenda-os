@@ -3,6 +3,14 @@
 **Fecha:** 2026-08-12  
 **Objetivo:** crear un entorno de preproducción seguro antes de introducir cambios funcionales de alto impacto.
 
+## Estado actual
+
+- GitHub branch `staging`: **creada**.
+- AGENTS/CI/documentación de control: **presentes en staging**.
+- CI baseline: **verde**.
+- Supabase development branch: **pendiente de confirmación de coste**.
+- Railway staging: **pendiente hasta disponer de Supabase staging**.
+
 ## 1. Componentes
 
 ### GitHub
@@ -56,7 +64,7 @@ Railway staging
 - [ ] URL/key de staging configuradas solo como variables del environment.
 - [ ] secrets productivos no reutilizados cuando no sea necesario.
 - [ ] endpoint/login básico responde.
-- [ ] CI verde.
+- [x] CI verde.
 - [ ] smoke tests definidos.
 - [ ] no hay datos clínicos reales expuestos en un entorno menos protegido.
 
