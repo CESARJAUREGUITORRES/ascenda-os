@@ -44,6 +44,16 @@
 .iv-del{width:24px;height:24px;border-radius:6px;border:none;background:rgba(220,38,38,.06);color:#dc2626;cursor:pointer;font-size:9px;}
 .iv-add{padding:5px;border-radius:6px;border:1px dashed #DDE4F5;background:none;color:#0A4FBF;font-size:9px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-family:'DM Sans';}
 .iv-tot{padding:6px 12px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;color:#fff;font-family:'Exo 2',sans-serif;font-weight:800;font-size:13px;}
+.mk-an-row{cursor:pointer;transition:background .12s;}
+.mk-an-row:hover td{background:#F0F7FF!important;}
+.ad-detail-name{font-family:'Exo 2',sans-serif;font-weight:800;font-size:17px;line-height:1.35;color:#0D1B3E;word-break:break-word;padding:12px 14px;background:#F8FAFF;border:1px solid #E8EEF8;border-radius:12px;}
+.ad-detail-sub{font-size:9px;color:#6B7BA8;margin-top:5px;}
+.ad-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;}
+.ad-detail-kpi{background:#fff;border:1px solid #E8EEF8;border-radius:10px;padding:10px;text-align:center;min-width:0;}
+.ad-detail-kpi-v{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;color:#0D1B3E;overflow-wrap:anywhere;}
+.ad-detail-kpi-l{font-size:7px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#9AAAC8;margin-top:2px;}
+.ad-detail-note{margin-top:12px;padding:9px 11px;border-radius:9px;background:#F0FDFA;color:#0D9488;font-size:9px;line-height:1.5;}
+@media(max-width:700px){.ad-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:1100px){.mk-2t{grid-template-columns:1fr;}.emb-2{grid-template-columns:1fr;}}
 </style>
 <div class="mk">
@@ -65,7 +75,7 @@
   </div>
   <div class="crd"><div class="ct">📊 Valor del Lead (LTV) <span style="margin-left:auto;font-size:8px;font-weight:700;color:#7C3AED;background:#F5F3FF;padding:2px 8px;border-radius:5px;" id="mk-ltv-tag">cargando...</span></div><div id="mk-ltv"></div></div>
   <div class="mk-2t">
-    <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#7C3AED;">Cli.Fuera</th><th style="color:#D97706;">Vtas.Fuera</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
+    <div class="crd"><div class="ct">📢 Top Anuncios <span class="tag tag-c">leads del mes</span><span style="margin-left:auto;font-size:8px;font-weight:600;color:#9AAAC8;">clic en una fila para ver detalle</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Anuncio</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#7C3AED;">Cli.Fuera</th><th style="color:#D97706;">Vtas.Fuera</th><th style="color:#00C9A7;">Fact.Acum.</th></tr></thead><tbody id="mk-an"></tbody></table></div></div>
     <div class="crd"><div class="ct">🎯 Campañas <span class="tag tag-c">leads del mes</span></div><div style="overflow-x:auto;max-height:420px;overflow-y:auto;"><table class="vt"><thead><tr><th>Trat.</th><th>Leads</th><th>Citas</th><th>%</th><th>Asist.</th><th>Clientes</th><th>Ventas</th><th style="color:#0A4FBF;">Fact.Mes</th><th style="color:#00C9A7;">Fact.Acum.</th><th>Inv.</th><th>ROAS</th></tr></thead><tbody id="mk-camp"></tbody></table></div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -73,6 +83,18 @@
     <div class="crd"><div class="ct">📦 Ventas Fuera del Mes <span class="tag" style="background:#FFFBEB;color:#D97706;" id="mk-nvf">0</span><span style="margin-left:auto;font-size:9px;color:#00C9A7;font-weight:700;" id="mk-ffuera">S/0</span></div><div style="overflow-x:auto;max-height:300px;overflow-y:auto;"><table class="vt"><thead><tr><th>Fecha</th><th>Nombre</th><th>Anuncio</th><th>Tratamiento</th><th>Monto</th><th>Sede</th></tr></thead><tbody id="mk-vf"></tbody></table></div></div>
   </div>
 </div>
+<!-- ═══ MODAL DETALLE TOP ANUNCIO ═══ -->
+<div class="mov" id="m-ad-detail" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:820px;width:94vw;">
+    <div class="mhd">
+      <div class="mtit">📢 Detalle del anuncio <span id="ad-detail-period" style="font-size:9px;color:#9AAAC8;font-weight:600;margin-left:6px;"></span></div>
+      <button class="mx" onclick="el('m-ad-detail').classList.remove('open')">✕</button>
+    </div>
+    <div class="mbody" id="ad-detail-body"></div>
+    <div class="mfoot"><button class="mbtn mbtn-p" onclick="el('m-ad-detail').classList.remove('open')">Cerrar</button></div>
+  </div>
+</div>
+
 <div class="mov" id="m-iv" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal"><div class="mhd"><div class="mtit">💰 Gestión de Inversión</div><button class="mx" onclick="el('m-iv').classList.remove('open')">✕</button></div>
   <div class="mbody">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
@@ -183,7 +205,7 @@ function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function el(id){return document.getElementById(id);}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var MF=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var MK={modo:'mes'};
+var MK={modo:'mes',anuncios:[]};
 (function(){var m=new Date().getMonth()+1;el('mk-mes').value=String(m);el('mk-anio').value=String(new Date().getFullYear());mkL();})();
 function mkMd(btn){
   document.querySelectorAll('.mk-mode').forEach(function(b){b.classList.remove('act');});
@@ -410,11 +432,48 @@ function rGest(g){
   }).join('')+'<div style="font-size:7px;color:rgba(255,255,255,.3);margin-left:8px;">de '+tl+' llamadas</div>';
 }
 function rAn(an){
-  el('mk-an').innerHTML=an.length?an.map(function(a){
+  MK.anuncios=an||[];
+  el('mk-an').innerHTML=an.length?an.map(function(a,idx){
     var fm=parseFloat(a.fact_mes||0),fa=parseFloat(a.fact_acum||0);var pC=a.leads>0?((a.citas||0)/a.leads*100).toFixed(1):'0';
     var cf=a.clientes_fuera||0;var vf=a.ventas_fuera||0;
-    return '<tr><td style="font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h((a.nombre||'').substring(0,28))+'</td><td>'+a.leads+'</td><td style="color:#00C9A7;font-weight:700;">'+a.citas+'</td><td style="color:#00C9A7;font-size:8px;">'+pC+'%</td><td>'+(a.asistieron||0)+'</td><td class="hi hi-g">'+(a.clientes||0)+'</td><td>'+(a.ventas||0)+'</td><td class="hi hi-b">'+(fm>0?'S/'+Math.round(fm):'—')+'</td><td style="color:#7C3AED;font-weight:700">'+(cf>0?cf:'—')+'</td><td style="color:#D97706;font-weight:700">'+(vf>0?vf:'—')+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'—')+'</td></tr>';
+    return '<tr class="mk-an-row" onclick="mkAdDetail('+idx+')" title="Ver detalle completo del anuncio"><td style="font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(a.nombre||'—')+'</td><td>'+a.leads+'</td><td style="color:#00C9A7;font-weight:700;">'+a.citas+'</td><td style="color:#00C9A7;font-size:8px;">'+pC+'%</td><td>'+(a.asistieron||0)+'</td><td class="hi hi-g">'+(a.clientes||0)+'</td><td>'+(a.ventas||0)+'</td><td class="hi hi-b">'+(fm>0?'S/'+Math.round(fm):'—')+'</td><td style="color:#7C3AED;font-weight:700">'+(cf>0?cf:'—')+'</td><td style="color:#D97706;font-weight:700">'+(vf>0?vf:'—')+'</td><td class="hi hi-c">'+(fa>0?'S/'+Math.round(fa):'—')+'</td></tr>';
   }).join(''):'<tr><td colspan="11" class="ld">Sin datos</td></tr>';
+}
+function _mkAdCard(label,value,color){
+  return '<div class="ad-detail-kpi"><div class="ad-detail-kpi-v" style="color:'+(color||'#0D1B3E')+';">'+value+'</div><div class="ad-detail-kpi-l">'+label+'</div></div>';
+}
+function mkAdDetail(idx){
+  var a=(MK.anuncios||[])[idx];if(!a)return;
+  var fm=parseFloat(a.fact_mes||0),fa=parseFloat(a.fact_acum||0);
+  var cf=parseInt(a.clientes_fuera||0),vf=parseInt(a.ventas_fuera||0);
+  var postFact=Math.max(0,fa-fm);
+  var citas=parseInt(a.citas||0),leads=parseInt(a.leads||0),clientes=parseInt(a.clientes||0),ventas=parseInt(a.ventas||0);
+  var pctCita=leads>0?(citas/leads*100):0;
+  var pctCliente=leads>0?(clientes/leads*100):0;
+  var totalVentas=ventas+vf;
+  var ticket=totalVentas>0?fa/totalVentas:0;
+  var anio=Number(el('mk-anio').value),mes=Number(el('mk-mes').value);
+  var periodo=MK.modo==='anio'?'Año '+anio:(MF[mes]+' '+anio);
+  el('ad-detail-period').textContent='· '+periodo;
+  el('ad-detail-body').innerHTML=
+    '<div class="ad-detail-name">'+h(a.nombre||'—')+'<div class="ad-detail-sub">Cohorte de leads: '+h(periodo)+'</div></div>'+
+    '<div class="ad-detail-grid">'+
+      _mkAdCard('Leads',leads,'#0A4FBF')+
+      _mkAdCard('Citas',citas,'#00C9A7')+
+      _mkAdCard('% cita',pctCita.toFixed(1)+'%','#00C9A7')+
+      _mkAdCard('Asistencias',parseInt(a.asistieron||0),'#7C3AED')+
+      _mkAdCard('Clientes Mes 0',clientes,'#059669')+
+      _mkAdCard('Ventas Mes 0',ventas,'#0D1B3E')+
+      _mkAdCard('Fact. Mes 0',fm>0?'S/'+Math.round(fm).toLocaleString('es-PE'):'—','#0A4FBF')+
+      _mkAdCard('Conv. lead→cliente',pctCliente.toFixed(1)+'%','#059669')+
+      _mkAdCard('Clientes posteriores',cf>0?cf:'—','#7C3AED')+
+      _mkAdCard('Ventas posteriores',vf>0?vf:'—','#D97706')+
+      _mkAdCard('Fact. posterior',postFact>0?'S/'+Math.round(postFact).toLocaleString('es-PE'):'—','#D97706')+
+      _mkAdCard('Fact. acumulada',fa>0?'S/'+Math.round(fa).toLocaleString('es-PE'):'—','#00C9A7')+
+      _mkAdCard('Ticket acum.',ticket>0?'S/'+Math.round(ticket).toLocaleString('es-PE'):'—','#6B7BA8')+
+    '</div>'+
+    '<div class="ad-detail-note"><b>Lectura correcta de cohorte:</b> Mes 0 incluye únicamente ventas ocurridas durante el mes en que ingresó el lead. “Posteriores” incluye solo ventas después de cerrar ese mes; compras anteriores a la cohorte no se atribuyen a este anuncio.</div>';
+  el('m-ad-detail').classList.add('open');
 }
 function rCamp(tr){
   el('mk-camp').innerHTML=tr.length?tr.map(function(t){
