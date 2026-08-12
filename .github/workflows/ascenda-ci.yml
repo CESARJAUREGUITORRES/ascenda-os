@@ -1,0 +1,108 @@
+name: Ascenda CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+  push:
+    branches:
+      - staging
+      - 'feature/**'
+      - 'fix/**'
+      - 'security/**'
+      - 'data/**'
+      - 'chore/**'
+      - 'audit/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ascenda-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: Runtime baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package.json
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm install --no-audit --no-fund
+
+      - name: Check production server syntax
+        run: node --check app/server.js
+
+      - name: Check public JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+            count=$((count + 1))
+          done < <(find app/public -maxdepth 1 -type f -name '*.js' -print0)
+          echo "Checked $count public JavaScript files"
+
+      - name: Validate JSON files
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const roots = ['app'];
+          let checked = 0;
+          function walk(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(full);
+              else if (entry.isFile() && entry.name.endsWith('.json')) {
+                JSON.parse(fs.readFileSync(full, 'utf8'));
+                console.log(`Valid JSON: ${full}`);
+                checked++;
+              }
+            }
+          }
+          for (const root of roots) walk(root);
+          console.log(`Validated ${checked} JSON files`);
+          NODE
+
+      - name: Verify production-critical files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            app/server.js
+            app/package.json
+            app/railway.json
+            app/nixpacks.toml
+            app/public/app.html
+            app/public/login.html
+          )
+          for file in "${required[@]}"; do
+            test -s "$file" || { echo "Missing or empty critical file: $file"; exit 1; }
+          done
+          echo "Production-critical files present"
+
+      - name: Report architecture mode
+        run: |
+          echo "Ascenda production runtime: node app/server.js"
+          echo "Frontend source of truth: app/public/"
+          echo "Vite build is intentionally not used as a blocking production check."
