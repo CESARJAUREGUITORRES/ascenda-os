@@ -37,8 +37,8 @@
   /* Capture legacy responses so a V2 RPC failure can fall back safely. */
   window.rHist=function(d){legacyCache.hist=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rHist)orig.rHist(d);};
   window.rLTV=function(k,hi,d){if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rLTV)orig.rLTV(k,hi,d);};
-  window.rAn=function(d){legacyCache.an=d;if(MK.modo==='anio'&&orig.rAn)orig.rAn(d);};
-  window.rCamp=function(d){legacyCache.camp=d;if(MK.modo==='anio'&&orig.rCamp)orig.rCamp(d);};
+  window.rAn=function(d){legacyCache.an=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rAn)orig.rAn(d);};
+  window.rCamp=function(d){legacyCache.camp=d;if(!window.__AOS_MARKETING_V2_ACTIVE&&orig.rCamp)orig.rCamp(d);};
   window.__AOS_MARKETING_V2_ACTIVE=true;
 
   function ensureSummary(){
@@ -141,7 +141,10 @@
       vrpc('aos_marketing_anuncios_v2_preview',{p_mes:mes,p_anio:anio,p_search:null,p_limit:50,p_offset:0,p_order:'fact_acum'}).then(function(rows){if(orig.rAn)orig.rAn(mapAds(rows));}).catch(function(e){console.warn('[MKT-V2] ads',e);if(legacyCache.an&&orig.rAn)orig.rAn(legacyCache.an);});
       vrpc('aos_marketing_campanas_v2_preview',{p_mes:mes,p_anio:anio,p_search:null,p_limit:50,p_offset:0,p_order:'fact_acum'}).then(function(rows){if(orig.rCamp)orig.rCamp(mapCamp(rows));}).catch(function(e){console.warn('[MKT-V2] campaigns',e);if(legacyCache.camp&&orig.rCamp)orig.rCamp(legacyCache.camp);});
     } else {
-      var sc=document.getElementById('mk-v2-summary');if(sc)sc.style.display='none';
+      var sc=document.getElementById('mk-v2-summary');if(sc)sc.style.display='';
+      vrpc('aos_marketing_attribution_summary_v2_anio_preview',{p_anio:anio}).then(renderSummary).catch(function(e){console.warn('[MKT-V2] annual summary',e);});
+      vrpc('aos_marketing_anuncios_v2_anio_preview',{p_anio:anio,p_search:null,p_limit:200,p_offset:0,p_order:'fact_acum'}).then(function(rows){if(orig.rAn)orig.rAn(mapAds(rows));}).catch(function(e){console.warn('[MKT-V2] annual ads',e);if(legacyCache.an&&orig.rAn)orig.rAn(legacyCache.an);});
+      vrpc('aos_marketing_campanas_v2_anio_preview',{p_anio:anio,p_search:null,p_limit:200,p_offset:0,p_order:'fact_acum'}).then(function(rows){if(orig.rCamp)orig.rCamp(mapCamp(rows));}).catch(function(e){console.warn('[MKT-V2] annual campaigns',e);if(legacyCache.camp&&orig.rCamp)orig.rCamp(legacyCache.camp);});
     }
   }
 
