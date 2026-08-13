@@ -3,23 +3,16 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging funcional tras Fase 3:** `cd00090ad7a949f15d6b90422ec2bedf775a26dd`  
+**Staging funcional tras Fase 4:** `26971547d22eccd496aa5fea67a61f109bec21ee`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
 
 # REGLA DE ESTADO
 
-Estados permitidos:
+Estados: `NOT_STARTED | READY | IN_PROGRESS | BLOCKED | VALIDATING | 100_COMPLETE`.
 
-- `NOT_STARTED`
-- `READY`
-- `IN_PROGRESS`
-- `BLOCKED`
-- `VALIDATING`
-- `100_COMPLETE`
-
-Una fase solo pasa a `100_COMPLETE` cuando todos sus gates tienen evidencia y el checkpoint final existe en GitHub + `aos_memory`.
+Una fase solo es `100_COMPLETE` cuando todos sus gates tienen evidencia y existe checkpoint final en GitHub + `aos_memory`.
 
 ---
 
@@ -31,8 +24,8 @@ Una fase solo pasa a `100_COMPLETE` cuando todos sus gates tienen evidencia y el
 | 1 | Identity Resolver | `100_COMPLETE` | 100% |
 | 2 | Commercial Facts | `100_COMPLETE` | 100% |
 | 3 | Segmentation Engine | `100_COMPLETE` | 100% |
-| 4 | Audience Resolver | `READY` | 0% |
-| 5 | Panel Central Skeleton | `NOT_STARTED` | 0% |
+| 4 | Audience Resolver | `100_COMPLETE` | 100% |
+| 5 | Panel Central Skeleton | `READY` | 0% |
 | 6 | Audience Library Persistence | `NOT_STARTED` | 0% |
 | 7 | Snapshots & Activation | `NOT_STARTED` | 0% |
 | 8 | Channel Context & Availability | `NOT_STARTED` | 0% |
@@ -51,207 +44,171 @@ Una fase solo pasa a `100_COMPLETE` cuando todos sus gates tienen evidencia y el
 
 # FASE 0 — CIERRE
 
-P0-G01…P0-G09 = PASS.  
-**Fase 0 = 100_COMPLETE.**
-
-Entregables: Product Spec/Impact Report V3, Fact Registry V1, Frontend Contract, baseline, roadmap y continuidad.
+P0-G01…P0-G09 PASS. Product Spec/Impact Report V3, Fact Registry V1, Frontend Contract, baseline y continuidad establecidos.
 
 ---
 
 # FASE 1 — CIERRE
 
-P1-G01…P1-G11 = PASS.  
-**Fase 1 = 100_COMPLETE.**
+P1-G01…P1-G11 PASS.
 
-Identity V1 validado:
-
+Identity V1:
 - 11,473 contact keys;
 - 7,041 RESOLVED;
 - 23 CONFLICT;
 - 10 FUSED_ONLY;
 - 4,399 NO_PATIENT_PROFILE.
 
-PR feature → staging: #50.  
-CI run 274: SUCCESS.  
-Merge funcional: `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`.
+PR #50, CI 274 SUCCESS. Merge funcional `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`.
 
 ---
 
 # FASE 2 — CIERRE
 
-P2-G01…P2-G14 = PASS.  
-**Fase 2 = 100_COMPLETE.**
+P2-G01…P2-G14 PASS.
 
-Entregables principales:
+Commercial Facts 1:1:
+- Leads 5,391 / 5,076 contacts;
+- Calls 33,999 / 5,885;
+- Appointments 2,918 / 1,157;
+- Sales 1,268 / 296;
+- Followups 523 / 456;
+- lead unworked since latest entry 1,287;
+- Email 1,942 sends / 1,623 mapped / 319 unresolved;
+- full representative composition ~474 ms.
 
-- Commercial Facts por dominio;
-- `aos_cia_commercial_facts_v1` 1:1 por contact_key;
-- Fact Registry V1.1;
-- auditor/tests;
-- Email resolver con BOOLEAN3.
-
-Evidencia live read-only:
-
-- Leads: 5,391 filas válidas / 5,076 contactos;
-- Calls: 33,999 / 5,885;
-- Appointments: 2,918 / 1,157;
-- Sales: 1,268 / 296;
-- Follow-ups: 523 / 456;
-- todos los dominios: 0 claves fuera de Identity V1;
-- lead unworked since latest entry: 1,287;
-- email: 1,942 sends / 1,623 mapped / 319 unresolved;
-- composición representativa ~474 ms.
-
-PR feature → staging: #55.  
-CI run 293 = SUCCESS.  
-Merge funcional: `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`.
+PR #55, CI 293 SUCCESS. Merge `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`.
 
 ---
 
 # FASE 3 — CIERRE
 
-P3-G01…P3-G14 = PASS al persistir checkpoint final.  
-**Fase 3 = 100_COMPLETE.**
+P3-G01…P3-G14 PASS.
 
-## Entregables
+Segmentation SHADOW V1:
+- STANDARD 11,344;
+- PREMIUM 95;
+- GOLD 21;
+- DIAMANTE 13;
+- 794 terminal-history contacts rescued by newer lead;
+- Engagement LOW 11,220 / MEDIUM 176 / HIGH 77;
+- explainable/versioned policy;
+- benchmark ~404.553 ms.
 
-- `PHASE_03_SEGMENTATION_ENGINE.md`
-- `PHASE_03_VALIDATION_REPORT.md`
-- `FACT_REGISTRY_V1_2_PHASE3.md`
-- `20260813070000_cia_segmentation_engine_v1.sql`
-- auditor y tests SQL.
+PR #57, CI 308 SUCCESS. Merge funcional `cd00090ad7a949f15d6b90422ec2bedf775a26dd`.
+
+---
+
+# FASE 4 — CIERRE
+
+P4-G01…P4-G16 PASS al persistir checkpoint final.
 
 ## Contratos
 
-- `aos_segmentation_policies` — registry versionado;
-- `aos_cia_current_segmentation_policy_v1`;
-- `aos_cia_customer_segments_v1`;
-- policy `COMMERCIAL_SEGMENTATION` v1 SHADOW;
-- Value Tier + Lifecycle + Engagement + Commercial Traits;
-- explicación/provenance por contacto.
+- Profile Facts V1;
+- Audience Source V1/V1.1;
+- Filter Registry whitelisted;
+- DSL V1, max 2 group levels / 25 rules;
+- deterministic validate/count/preview/explain;
+- MATCH/MISS/UNKNOWN;
+- official presets;
+- Product/Service purchase-detail reconciliation;
+- safe `never_contains`;
+- future-window numeric facts;
+- no dynamic SQL;
+- private/service_role only.
 
-## Value Tier live read-only
+## Data quality / purchase detail
 
-Universo: 11,473.
+Producto full:
+- 404 rows;
+- 270 mapped high-confidence;
+- 134 UNKNOWN;
+- 66.8% mapped.
 
-- STANDARD: 11,344;
-- PREMIUM: 95;
-- GOLD: 21;
-- DIAMANTE: 13.
+Producto Identity-valid:
+- 403 rows;
+- 269 mapped;
+- 134 UNKNOWN;
+- 66.7% mapped.
 
-296 compradores válidos fueron usados para calibración empírica de revenue/frequency/recency.
+146 product-buyer contacts; 75 have unresolved product evidence.
 
-## Lifecycle live read-only
+Services:
+- 871 rows;
+- 773 categorized;
+- 98 UNKNOWN;
+- 88.7% mapped.
 
-- PROFILE_ONLY: 5,480;
-- WARM_PROSPECT: 1,849;
-- COLD_PROSPECT: 1,534;
-- DISQUALIFIED_PROSPECT: 1,313;
-- ACTIVE_PROSPECT: 965;
-- ACTIVE_CUSTOMER: 110;
-- COOLING_CUSTOMER: 89;
-- INACTIVE_CUSTOMER: 56;
-- NEW_CUSTOMER: 41;
-- APPOINTMENT_READY_PROSPECT: 36.
+Safe negatives:
+- BEAUTY MAKER 26 bought / 11,387 never-safe / 60 UNKNOWN;
+- ISDIN 20 / 11,392 / 61;
+- ENZIMAS service category 21 / 11,404 / 48.
 
-La regla temporal evitó veto eterno: **794 contactos** con tipificación terminal histórica tienen un lead posterior y fueron rescatados del estado terminal.
+## Presets / windows
 
-`REACTIVATED` no se inventa en V1; requiere nueva evidencia histórica en Commercial Facts.
+- Leads unworked 1,287;
+- Leads unworked 7d 115;
+- No-show without future appointment 826;
+- Followup overdue 442;
+- future appointment 54; within next 7d 34.
 
-## Engagement live read-only
+## Performance / integration
 
-- LOW: 11,220;
-- MEDIUM: 176;
-- HIGH: 77.
+- product reconciliation equivalent ~204 ms;
+- complex audience equivalent ~346 ms;
+- PASS vs normal P95 <1.5 s;
+- no speculative cache/materialization/indexes.
 
-Revenue no participa en Engagement.
+PR #59. Ascenda CI run 342 = SUCCESS. Functional staging merge `26971547d22eccd496aa5fea67a61f109bec21ee`.
 
-## Traits destacados
+Production verified after merge:
+- Phase 4 physical tables = 0;
+- Phase 4 physical views = 0.
 
-- NO_SHOW_HISTORY: 854;
-- FOLLOWUP_OVERDUE: 442;
-- REPEAT_NO_SHOW: 351;
-- SERVICE_BUYER: 251;
-- REPEAT_BUYER: 178;
-- PRODUCT_BUYER: 146;
-- PRODUCT_AND_SERVICE_BUYER: 101;
-- FREQUENT_BUYER: 75;
-- HIGH_VALUE_BUYER: 31.
+Certification scope: SQL contracts/migrations/tests versioned and semantics validated read-only on live data; no claim of physical Phase 4 DDL deployment or exact PL/pgSQL runtime benchmark before a deployable DB gate.
 
-## Shadow vs legacy
-
-La etiqueta legacy se conserva intacta. La policy nueva no depende solo de lifetime revenue y detectó múltiples perfiles NORMAL legacy con valor shadow PREMIUM/GOLD/DIAMANTE.
-
-## Performance
-
-Composición representativa + score: **~404.553 ms**.  
-PASS contra presupuesto P95 <1.5 s.  
-Sin materialización/cache/índices nuevos.
-
-## Integración
-
-- PR feature → staging: #57;
-- Ascenda CI run 308 = SUCCESS;
-- merge funcional staging: `cd00090ad7a949f15d6b90422ec2bedf775a26dd`;
-- producción verificada con 0 objetos Phase 3.
-
-Nota de certificación: reglas y semánticas fueron validadas con equivalentes read-only sobre datos vivos. La migration está versionada/integrada a staging; no se afirma despliegue físico de DDL en Supabase productivo.
+Detailed report: `PHASE_04_VALIDATION_REPORT.md`.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 4 — AUDIENCE RESOLVER = READY
+## FASE 5 — PANEL CENTRAL SKELETON = READY
 
-Objetivo:
+Goal: introduce the ADMIN-only, read-only **Bases & Audiencias** shell into the production frontend architecture without exposing source tables or duplicating resolver logic.
 
-Convertir Identity V1 + Commercial Facts V1 + Segmentation V1 en un motor universal de resolución de audiencias mediante **Filter Registry whitelisted + DSL declarativo**, sin SQL libre.
+Phase 5 must:
 
-Debe entregar como mínimo:
-
-- DSL versionada;
-- AND / OR con profundidad controlada;
-- whitelisted fields/operators de Fact Registry V1.2;
-- resolver determinista;
-- count;
-- preview paginado;
-- explain inclusion/exclusion;
-- presets oficiales;
-- filtro por Product/Service;
-- filtros latest/ever/window diferenciados;
-- filtros `segment.value_tier`, `segment.lifecycle`, `segment.engagement`, `segment.traits`;
-- `UNKNOWN` tratado explícitamente;
-- seguridad backend/service_role;
-- tests de equivalencia e invariantes;
-- benchmark contra datos vivos;
-- sin persistir todavía biblioteca de audiencias (eso corresponde a Fase 6).
-
-Reglas de inicio:
-
-- no SQL libre desde frontend/IA;
-- no duplicar reglas de Facts/Segmentation dentro del resolver;
-- una audiencia selecciona contactos, no asigna asesores;
-- total audiencia ≠ eligible ≠ available now;
-- Fase 4 resuelve pertenencia; elegibilidad contextual llega después.
+- use `app/public/` and ASCENDA shell, never `src/` legacy;
+- follow `FRONTEND_CONTRACT_V1.md` exactly;
+- add Admin navigation entry;
+- build responsive shell/navigation for Dashboard · Audiencias · Constructor · Distribución · Asesores · Oportunidades IA · Solicitudes · Segmentación · Activaciones · Historial/Auditoría;
+- initially enable only read-only sections backed by controlled resolver contracts / safe placeholders where later engines are not built;
+- no native alert/confirm/prompt;
+- no raw Supabase source-table reads from browser;
+- no audience persistence yet;
+- no assignments/activations yet;
+- preserve current Call/Email/Marketing panels unchanged;
+- feature flag / safe rollback;
+- responsive + accessibility + CI/staging validation.
 
 ---
 
 # LOOP UNIVERSAL
 
-Cada fase:
-
-`baseline → alcance → impacto → branch → implementación aislada → checks → tests → comparación real → edge cases → roles → staging → E2E → rollback → rollout → observación → cierre docs → checkpoint memory`
+`baseline → scope → impact → branch → isolated implementation → checks → tests → real-data comparison → edge cases → roles → responsive → staging → E2E → rollback → rollout → observation → closure docs → memory checkpoint`
 
 ---
 
-# PRINCIPIO DE CONTINUIDAD
+# CONTINUIDAD
 
-Cualquier nueva conversación debe recuperar en este orden:
+New chats recover in order:
 
 1. `AGENTS.md`;
 2. `docs/control/ASCENDA_CONTROL_MASTER.md`;
 3. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`;
-4. `docs/control/commercial-intelligence/ROADMAP_STATUS.md`;
-5. documento de la fase actual;
-6. claves `cia_v3_*` / `cia_phase_*` en `aos_memory`;
-7. staging/GitHub y Supabase vivos antes de ejecutar cambios.
+4. this roadmap;
+5. current phase document;
+6. `cia_v3_*` / `cia_phase_*` in `aos_memory`;
+7. live staging/GitHub + Supabase before changes.
