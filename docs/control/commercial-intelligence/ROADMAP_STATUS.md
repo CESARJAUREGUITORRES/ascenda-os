@@ -3,7 +3,7 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging tras Fase 5:** `95cae1ca85e3bec252abbd7b03de80f3829a2ae3`  
+**Staging funcional tras Fase 6:** `78da0bf4561f53100df17717051d2ab3db621040`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
@@ -26,8 +26,8 @@ Una fase solo es `100_COMPLETE` cuando sus gates tienen evidencia, el cambio est
 | 3 | Segmentation Engine | `100_COMPLETE` | 100% |
 | 4 | Audience Resolver | `100_COMPLETE` | 100% |
 | 5 | Panel Central Skeleton | `100_COMPLETE` | 100% |
-| 6 | Audience Library Persistence | `READY` | 0% |
-| 7 | Snapshots & Activation | `NOT_STARTED` | 0% |
+| 6 | Audience Library Persistence | `100_COMPLETE` | 100% |
+| 7 | Snapshots & Activation | `READY` | 0% |
 | 8 | Channel Context & Availability | `NOT_STARTED` | 0% |
 | 9 | Assignment Engine | `NOT_STARTED` | 0% |
 | 10 | Advisor Control Center | `NOT_STARTED` | 0% |
@@ -93,99 +93,151 @@ La deuda física que existía al cierre documental original de Fase 4 quedó eli
 
 # FASE 5 — PANEL CENTRAL SKELETON = 100_COMPLETE
 
+Panel ADMIN **Bases & Audiencias** integrado en `app/public/` con Dashboard, Presets, Constructor DSL, Preview, Explain, Segmentación y frescura explícita de caches.
+
+Runtime V2:
+- `aos_cia_audience_count_v2`;
+- `aos_cia_audience_preview_v2`;
+- `aos_cia_audience_explain_v2`;
+- resolver set/domain-aware;
+- Segment cache y Email cache: 11,473 contactos;
+- Preview máximo 100 server-side.
+
+Seguridad/frontend:
+- gateway CIA ADMIN;
+- resolver interno no público;
+- sesión CIA separada;
+- 2FA proof single-use para sesión CIA;
+- 0 `alert/confirm/prompt`;
+- sin SQL arbitrario ni lecturas directas de fuentes operativas desde el panel.
+
+Integración:
+- PR #62 MERGED;
+- Ascenda CI #389 SUCCESS;
+- merge funcional `95cae1ca85e3bec252abbd7b03de80f3829a2ae3`;
+- cierre documental PR #64.
+
+Reportes:
+- `PHASE_05_PANEL_CENTRAL.md`;
+- `PHASE_05_VALIDATION_REPORT.md`.
+
+---
+
+# FASE 6 — AUDIENCE LIBRARY PERSISTENCE = 100_COMPLETE
+
 ## Entrega
 
-Panel ADMIN read-only **Bases & Audiencias** integrado en `app/public/` con:
-- Dashboard.
-- Presets.
-- Constructor DSL.
-- Preview paginado.
-- Explain por contacto.
-- Segmentación.
-- Frescura explícita de caches.
-- Secciones futuras bloqueadas hasta sus fases correspondientes.
+ASCENDA ya dispone de una biblioteca universal de definiciones de audiencia, independiente de canal y de asesor.
 
-## Runtime V2
+Objetos:
+- `aos_audiencias`;
+- `aos_audiencia_versiones`;
+- `aos_audiencia_audit`.
 
-- `aos_cia_audience_count_v2`.
-- `aos_cia_audience_preview_v2`.
-- `aos_cia_audience_explain_v2`.
-- Resolver set/domain-aware.
-- Segment cache y Email cache: 11,473 contactos cada uno.
-- Preview limitado server-side a 100 registros por request.
+Capacidades:
+- crear audiencia dinámica;
+- guardar definición DSL validada;
+- crear nueva versión sin overwrite;
+- historial inmutable;
+- optimistic concurrency con `expected_version`;
+- duplicar;
+- archivar/restaurar;
+- nombre activo único case-insensitive;
+- conteo al guardar con `resolved_at`;
+- LIST/GET paginados y limitados.
 
-## Correctitud final
+## Fronteras preservadas
 
-Validación live final:
-- FOLLOWUP_OVERDUE: 442.
-- LEADS_UNWORKED: 1,287.
-- LEADS_UNWORKED_7D: 115.
-- NO_SHOW_NO_FUTURE: 823 y coincide con cálculo directo actual.
-- DSL campo inexistente → `FIELD_NOT_ALLOWED`.
-- Operador no permitido → `OPERATOR_NOT_ALLOWED`.
-- `never_contains BEAUTY MAKER` → `MISS / UNKNOWN / MATCH` según evidencia.
+Fase 6 **no** crea snapshots de miembros, activaciones ni asignaciones.
 
-Las variaciones históricas en audiencias dinámicas responden a actividad operacional real y no a drift del resolver.
+No se modificaron:
+- `aos_siguiente_lead`;
+- `aos_cola_config`;
+- `calls.js` / Call Center;
+- fuentes CRM, Agenda o Ventas;
+- `aos_email_audiencias` ni su FK legacy.
 
-## Performance final
+## Seguridad
 
-Último gate:
-- COUNT representativo: ~763 ms.
-- PREVIEW 50: ~838 ms.
-- EXPLAIN representativo: ~183 ms.
+- RLS activo en las tres tablas;
+- `anon/authenticated` sin acceso directo de tabla;
+- RPC internos no públicos;
+- `service_role` con SELECT directo solamente tras hardening;
+- mutaciones detrás del gateway CIA ADMIN;
+- versiones inmutables;
+- audit append-only;
+- FK diferible protege `current_version`;
+- sin hard delete funcional.
 
-PASS contra objetivo normal `< 1.5 s`.
+## QA / Performance
 
-## Seguridad / frontend
+QA transaccional con rollback:
+- CREATE v1 PASS;
+- DSL inválido rechazado;
+- UPDATE → v2 PASS;
+- stale update → `VERSION_CONFLICT`;
+- duplicate PASS;
+- archive/restore PASS;
+- name conflict PASS;
+- inmutabilidad PASS;
+- residuos de QA = 0.
 
-- Navegador consume datos comerciales mediante gateway CIA; no lee tablas operativas directamente.
-- Resolver interno no está expuesto a `anon/authenticated`.
-- Sesión CIA separada para ADMIN.
-- Prueba 2FA usada queda vinculada de forma single-use a la sesión CIA.
-- 0 `alert()`, 0 `confirm()`, 0 `prompt()` en el panel.
-- Sin SQL arbitrario desde frontend.
-- Future actions permanecen deshabilitadas.
+Performance:
+- Library LIST ~58 ms;
+- COUNT representativo cold ~1.238 s;
+- COUNT warm ~142 ms;
+- PASS contra objetivo normal `<1.5 s`.
 
-## Compatibilidad Call Center
+## Replayability
 
-Incidente de write-path cerrado y documentado.
-- Índices funcionales inseguros fueron retirados.
-- Optimización final usa expresiones nativas compatibles con INSERT operacional.
-- Insert como `anon` fue validado con rollback.
-- Tráfico real posterior confirmó `POST /aos_llamadas → 201` y cola de llamadas operativa.
-- Fase 5 final no modifica `aos_siguiente_lead`, `calls.js` ni reglas de cola.
+Migrations Git alineadas 1:1 con versiones live de Supabase:
+- `20260813190851_cia_audience_library_schema_v1.sql`;
+- `20260813190951_cia_audience_library_rpcs_v1.sql`;
+- `20260813191028_cia_admin_gateway_phase6_v1.sql`;
+- `20260813192800_cia_audience_library_hardening_v1.sql`.
+
+## Frontend
+
+Panel actualizado con pestaña **Audiencias**:
+- activas/archivadas;
+- guardar desde Constructor;
+- nueva versión;
+- historial;
+- duplicar;
+- archivar/restaurar;
+- feedback de conflictos;
+- `Conteo al guardar` diferenciado del conteo live;
+- modales ASCENDA, sin diálogos nativos.
 
 ## Integración
 
-- PR #62: MERGED.
-- Head auditado: `dea116acb80c55b27d782a493366ecdc5c065a1c`.
-- Ascenda CI run #389: SUCCESS.
-- Merge a staging: `95cae1ca85e3bec252abbd7b03de80f3829a2ae3`.
-- Post-merge compare: feature tiene 0 commits/archivos pendientes frente a staging.
-- Panel y migration final de hardening verificados físicamente en `staging`.
+- PR #65: MERGED.
+- Head auditado: `1c939652f2ee03eb5a17f67e23193385387393fd`.
+- Ascenda CI #418: SUCCESS.
+- Merge funcional a staging: `78da0bf4561f53100df17717051d2ab3db621040`.
+- Post-merge compare: 0 archivos pendientes.
+- Call Center observado operativo después del despliegue; 63 llamadas guardadas al último smoke.
+- Email legacy intacto.
 
-Detailed reports:
-- `PHASE_05_PANEL_CENTRAL.md`.
-- `PHASE_05_VALIDATION_REPORT.md`.
-- `PHASE_05_CLOSURE_CHECKPOINT.md`.
+Detalle: `PHASE_06_AUDIENCE_LIBRARY.md` y `PHASE_06_VALIDATION_REPORT.md`.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 6 — AUDIENCE LIBRARY PERSISTENCE = READY
+## FASE 7 — SNAPSHOTS & ACTIVATION = READY
 
-Objetivo: convertir definiciones de audiencia validadas en objetos persistentes de ASCENDA sin mezclar todavía activación ni assignment.
+Objetivo: convertir una audiencia persistente en un uso comercial trazable sin confundir definición dinámica con miembros congelados.
 
-Fase 6 debe diseñarse y validarse desde el estado final de Fase 5. Reglas de entrada:
-- Audience sigue siendo universal y channel-agnostic.
-- Audience no almacena ownership de asesor.
-- Dynamic definition y Snapshot son conceptos distintos.
-- Persistencia debe usar el DSL/registry ya certificado.
-- No reescribir fuentes operativas.
-- No tocar `aos_siguiente_lead`.
-- Nuevos objetos seguros por defecto y auditables.
-- Impact Report antes de DDL productivo.
+Reglas de entrada:
+- `aos_audiencias` sigue siendo definición universal;
+- snapshot debe ser inmutable y reproducible;
+- activation debe registrar audiencia/version, propósito, canal/contexto, modo live/snapshot, creador, estado y timestamps;
+- membership congelada pertenece a activation/snapshot, no a la audiencia base;
+- no assignment todavía: la distribución a asesores permanece para Fase 9;
+- no cambio temprano de `aos_siguiente_lead`;
+- respetar total audience ≠ eligible ≠ available;
+- Impact Report antes de DDL.
 
 ---
 
