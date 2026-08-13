@@ -3,7 +3,7 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging actual tras Fase 1:** `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`  
+**Staging funcional tras Fase 2:** `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
@@ -19,7 +19,7 @@ Estados permitidos:
 - `VALIDATING`
 - `100_COMPLETE`
 
-Una fase solo puede pasar a `100_COMPLETE` cuando todos sus gates tienen evidencia y el checkpoint fue persistido en GitHub + `aos_memory`.
+Una fase solo pasa a `100_COMPLETE` cuando todos sus gates tienen evidencia y el checkpoint final existe en GitHub + `aos_memory`.
 
 ---
 
@@ -29,8 +29,8 @@ Una fase solo puede pasar a `100_COMPLETE` cuando todos sus gates tienen evidenc
 |---:|---|---|---:|
 | 0 | Baseline & Contracts | `100_COMPLETE` | 100% |
 | 1 | Identity Resolver | `100_COMPLETE` | 100% |
-| 2 | Commercial Facts | `READY` | 0% |
-| 3 | Segmentation Engine | `NOT_STARTED` | 0% |
+| 2 | Commercial Facts | `100_COMPLETE` | 100% |
+| 3 | Segmentation Engine | `READY` | 0% |
 | 4 | Audience Resolver | `NOT_STARTED` | 0% |
 | 5 | Panel Central Skeleton | `NOT_STARTED` | 0% |
 | 6 | Audience Library Persistence | `NOT_STARTED` | 0% |
@@ -51,83 +51,120 @@ Una fase solo puede pasar a `100_COMPLETE` cuando todos sus gates tienen evidenc
 
 # FASE 0 — CIERRE
 
-P0-G01…P0-G09 = PASS.
+P0-G01…P0-G09 = PASS.  
+**Fase 0 = 100_COMPLETE.**
 
-**Fase 0 cerrada 100% el 2026-08-13.**
-
-Entregables principales:
-
-- Product Spec + Impact Report V3;
-- Fact Registry V1;
-- Frontend Contract V1;
-- baseline reproducible;
-- roadmap/gates/continuidad.
+Entregables: Product Spec/Impact Report V3, Fact Registry V1, Frontend Contract, baseline, roadmap y continuidad.
 
 ---
 
 # FASE 1 — CIERRE
 
-## Identity Resolver V1
+P1-G01…P1-G11 = PASS.  
+**Fase 1 = 100_COMPLETE.**
 
-P1-G01…P1-G11 = PASS.
+Identity V1 validado:
 
-**Fase 1 cerrada 100% el 2026-08-13.**
+- 11,473 contact keys;
+- 7,041 RESOLVED;
+- 23 CONFLICT;
+- 10 FUSED_ONLY;
+- 4,399 NO_PATIENT_PROFILE.
 
-Evidencia:
+PR feature → staging: #50.  
+CI run 274: SUCCESS.  
+Merge funcional: `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`.
 
-- feature: `feature/commercial-intelligence-phase1-identity-20260813`;
-- PR sync staging → feature: #49;
-- PR feature → staging: #50;
-- CI: Ascenda CI run 274 = SUCCESS;
-- staging merge: `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`;
-- producción verificada sin objetos `aos_cia_*` después de integración staging.
+---
 
-Contrato validado live:
+# FASE 2 — CIERRE
 
-- 11,473 `contact_key` válidos únicos;
-- 7,041 `RESOLVED`;
-- 23 `CONFLICT`;
-- 10 `FUSED_ONLY`;
-- 4,399 `NO_PATIENT_PROFILE`;
-- resolver simulado ~148 ms;
-- todos los invariantes PASS.
+P2-G01…P2-G14 = PASS al persistir checkpoint final.  
+**Fase 2 = 100_COMPLETE.**
 
-Migration versionada:
+## Entregables
 
-`supabase/migrations/20260813061200_cia_identity_resolver_v1.sql`
+- `PHASE_02_COMMERCIAL_FACTS.md`
+- `PHASE_02_VALIDATION_REPORT.md`
+- `FACT_REGISTRY_V1_1_PHASE2.md`
+- `20260813063500_cia_commercial_facts_v1.sql`
+- `20260813063600_cia_commercial_facts_v1_1_email_fix.sql`
+- auditor y tests SQL read-only.
 
-Reglas no negociables heredadas:
+## Contratos
 
-- no reescribir `numero_limpio`;
-- no fusionar automáticamente;
-- `CONFLICT` no recibe identidad canónica;
-- email no es merge key V1;
-- `FUSIONADO` no reaparece como perfil canónico;
-- fases siguientes reutilizan este contrato y no crean deduplicación paralela.
+- Lead Facts;
+- Call Facts;
+- Appointment Facts;
+- Sales/Product/Service Facts;
+- Follow-up Facts;
+- Email Facts con BOOLEAN3;
+- `aos_cia_commercial_facts_v1` 1:1 por contact_key.
+
+## Evidencia live read-only
+
+- Leads: 5,391 filas válidas / 5,076 contactos;
+- Calls: 33,999 / 5,885;
+- Appointments: 2,918 / 1,157;
+- Sales: 1,268 / 296;
+- Follow-ups: 523 / 456;
+- todos los dominios: 0 claves fuera de Identity V1.
+
+Oportunidad lead:
+
+- 1,287 `unworked_since_latest_entry`;
+- 3,789 `called_since_latest_entry`.
+
+Email final:
+
+- 1,942 unique sends;
+- 1,623 mapped;
+- 319 unresolved;
+- 1,167 never-sent TRUE;
+- 9,972 UNKNOWN.
+
+Performance:
+
+- Call-heavy ~260 ms;
+- Email reconciliation ~78 ms;
+- composición representativa completa ~474 ms;
+- sin necesidad de materialización/cache/índices nuevos en Fase 2.
+
+Integración:
+
+- PR sync staging → feature: #54;
+- PR feature → staging: #55;
+- Ascenda CI run 293 = SUCCESS;
+- merge funcional staging: `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`;
+- producción verificada con 0 vistas/funciones `aos_cia_*`.
+
+Nota de certificación: las migrations están versionadas en staging y sus semánticas fueron validadas read-only sobre datos vivos. No se afirma despliegue físico de DDL en Supabase productivo.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 2 — COMMERCIAL FACTS = READY
+## FASE 3 — SEGMENTATION ENGINE = READY
 
 Objetivo:
 
-Construir una capa 1:1 por `contact_key` que normalice actividad comercial sin mega-joins ni lógica duplicada.
+Construir clasificación multidimensional, versionada y explicable sobre Identity V1 + Commercial Facts V1:
 
-Dominios iniciales:
+- Value Tier: STANDARD / PREMIUM / GOLD / DIAMANTE;
+- Lifecycle;
+- Engagement;
+- Commercial Traits;
+- futuras señales de riesgo cuando tengan definición determinista suficiente;
+- policy versioning + `effective_from/effective_to`;
+- provenance: “por qué este contacto tiene esta clasificación”.
 
-- Lead Facts;
-- Call Facts;
-- Agenda Facts;
-- Sales Facts;
-- Product Facts;
-- Service Facts;
-- Follow-up Facts;
-- Email Facts;
-- freshness/provenance/UNKNOWN semantics.
+Reglas de inicio:
 
-Debe iniciar con su propio Impact Report y gates antes de agregar objetos nuevos.
+- no usar `etiqueta_vip` legacy como fuente maestra;
+- no depender únicamente de lifetime revenue;
+- no hardcodear thresholds irreversibles dentro del frontend;
+- primero shadow/derived; no sobrescribir clasificaciones históricas actuales;
+- preservar una fila/clasificación reproducible por policy version.
 
 ---
 

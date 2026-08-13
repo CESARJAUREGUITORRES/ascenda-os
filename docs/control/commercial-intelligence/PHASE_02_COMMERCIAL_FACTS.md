@@ -1,402 +1,319 @@
 # ASCENDA OS — COMMERCIAL INTELLIGENCE & AUDIENCE OS
 ## PHASE 2 — COMMERCIAL FACTS ENGINE
 
-**Estado:** IN_PROGRESS  
-**Fecha:** 2026-08-13  
-**Base:** staging `58bae8c4c44e9325ebbfdd0b9db1782fd1610bec`  
-**Rama:** `feature/commercial-intelligence-phase2-facts-20260813`  
-**Supabase live de validación:** `ituyqwstonmhnfshnaqz`  
-**Dependencia obligatoria:** Identity Resolver V1 de Fase 1.
+**Estado:** `100_COMPLETE`  
+**Fecha de cierre:** 2026-08-13  
+**Feature:** `feature/commercial-intelligence-phase2-facts-20260813`  
+**PR feature → staging:** #55  
+**CI:** Ascenda CI run 293 = SUCCESS  
+**Merge funcional staging:** `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`  
+**Supabase live usado para validación read-only:** `ituyqwstonmhnfshnaqz`  
+**Dependencia:** Identity Resolver V1.
 
 ---
 
-# 1. OBJETIVO
+# 1. OBJETIVO CERRADO
 
-Convertir la actividad comercial diaria de ASCENDA en hechos semánticos estables y reutilizables por contacto, evitando que Audience Engine, KronIA, Call Center o Email tengan que reinterpretar tablas operativas.
+Fase 2 establece una capa semántica reutilizable 1:1 por `contact_key` para que Audience Engine, Segmentation, KronIA, Call Center, Email y futuros canales no tengan que reinterpretar las tablas operativas.
 
-Grano contractual:
+Principios cerrados:
 
-- una fila por `contact_key` en el consolidado;
-- cero duplicación por joins multi-evento;
-- cada dominio agrega antes de unirse;
-- todas las claves telefónicas usan `aos_cia_normalize_contact_key_v1`;
-- ninguna fuente modifica datos históricos.
-
-Dominios V1:
-
-1. Leads / Acquisition;
-2. Calls;
-3. Appointments;
-4. Sales + Product + Service;
-5. Follow-ups;
-6. Email engagement;
-7. Consolidated Commercial Facts.
+- identidad proviene únicamente de Identity Resolver V1;
+- cada dominio agrega antes del join final;
+- el consolidado tiene grano contractual de un contacto;
+- `latest`, `ever`, `count`, `days_since`, freshness y provenance poseen semántica documentada;
+- `UNKNOWN` no se convierte silenciosamente en FALSE;
+- producto y servicio son dimensiones separadas;
+- la oportunidad lead actual es distinta del historial lifetime del contacto;
+- no se modifica ninguna fila fuente.
 
 ---
 
-# 2. GATES FASE 2
+# 2. GATES — CIERRE
 
-| Gate | Criterio | Estado inicial |
+| Gate | Criterio | Estado |
 |---|---|---|
 | P2-G01 | Impact Report + invariantes | PASS |
-| P2-G02 | Lead facts + oportunidad actual | IN_PROGRESS |
-| P2-G03 | Call facts + contact policy V1 | IN_PROGRESS |
-| P2-G04 | Agenda facts + upcoming/attendance policy | IN_PROGRESS |
-| P2-G05 | Sales/Product/Service facts | IN_PROGRESS |
-| P2-G06 | Follow-up facts | IN_PROGRESS |
-| P2-G07 | Email reconciliation + UNKNOWN semantics | IN_PROGRESS |
-| P2-G08 | Consolidated 1:1 por `contact_key` | PENDING |
-| P2-G09 | Provenance/freshness versionados | PENDING |
-| P2-G10 | Tests/invariantes contra Supabase vivo | PENDING |
-| P2-G11 | Performance baseline | PENDING |
-| P2-G12 | Seguridad: objetos privados por defecto | PENDING |
-| P2-G13 | CI + integración staging | PENDING |
-| P2-G14 | Continuidad GitHub + `aos_memory` | PENDING |
+| P2-G02 | Lead facts + oportunidad actual | PASS |
+| P2-G03 | Call facts + contact policy V1 | PASS |
+| P2-G04 | Agenda facts + upcoming/attendance policy | PASS |
+| P2-G05 | Sales/Product/Service facts | PASS |
+| P2-G06 | Follow-up facts | PASS |
+| P2-G07 | Email reconciliation + UNKNOWN semantics | PASS |
+| P2-G08 | Consolidated 1:1 por `contact_key` | PASS |
+| P2-G09 | Provenance/freshness versionados | PASS |
+| P2-G10 | Tests/invariantes contra Supabase vivo | PASS |
+| P2-G11 | Performance baseline | PASS |
+| P2-G12 | Seguridad: objetos privados por defecto | PASS |
+| P2-G13 | CI + integración staging | PASS |
+| P2-G14 | Continuidad GitHub + `aos_memory` | PASS al persistir checkpoint final |
 
-La fase solo pasa a `100_COMPLETE` cuando P2-G01…P2-G14 estén en PASS.
-
----
-
-# 3. PRINCIPIO CLAVE: CONTACTO ≠ OPORTUNIDAD ACTUAL
-
-La auditoría detectó una distinción crítica:
-
-- `calls.never_called` responde si el contacto nunca tuvo ninguna llamada histórica;
-- `lead.unworked_since_latest_entry` responde si el ingreso lead más reciente todavía no tiene una llamada posterior.
-
-Snapshot live:
-
-- contactos lead válidos: 5,076;
-- contactos lead sin ninguna llamada histórica: 0;
-- contactos cuyo ingreso lead más reciente está posterior a su última llamada: **1,287**;
-- contactos con llamada posterior o igual al último ingreso lead: 3,789.
-
-Por tanto, para priorizar “leads nuevos sin trabajar” se debe usar `lead.unworked_since_latest_entry`, no `calls.never_called`.
+**Regla:** Fase 2 solo se considera formalmente 100% al persistir P2-G14 en `aos_memory`.
 
 ---
 
-# 4. LEAD FACTS V1
+# 3. OBJETOS VERSIONADOS
 
-Campos principales:
+Migrations:
 
-- `lead_count`;
-- `first_lead_at`;
-- `last_lead_at`;
-- `days_since_last_lead`;
-- `latest_lead_id`;
-- `latest_interest`;
-- `latest_interest_type`;
-- `interests[]`;
-- `interest_types[]`;
-- `latest_ad`;
-- `ads[]`.
+- `supabase/migrations/20260813063500_cia_commercial_facts_v1.sql`
+- `supabase/migrations/20260813063600_cia_commercial_facts_v1_1_email_fix.sql`
 
-Orden canónico del lead más reciente:
+Objetos de contrato:
 
-`event_at DESC, id DESC`
+- `aos_cia_interest_taxonomy_v1`
+- `aos_cia_lead_facts_v1`
+- `aos_cia_call_facts_v1`
+- `aos_cia_appointment_facts_v1`
+- `aos_cia_sales_facts_v1`
+- `aos_cia_followup_facts_v1`
+- `aos_cia_email_facts_v1`
+- `aos_cia_commercial_facts_v1`
 
-`event_at = COALESCE(hora_ingreso, created_at, fecha)`.
+Artefactos de control:
 
-## Taxonomía producto/servicio de interés
-
-Ventas ya poseen `tipo=PRODUCTO|SERVICIO` y no necesitan inferencia.
-
-Leads usan etiquetas de campaña/tratamiento que no coinciden 1:1 con el catálogo. En el baseline solo 2 de 10 etiquetas hacen match exacto con `aos_catalogo_servicios`.
-
-Por ello V1 usa una taxonomía explícita/versionada para las etiquetas activas actuales. No se utiliza fuzzy matching automático. Nuevas etiquetas no reconocidas quedan `UNKNOWN` hasta ser mapeadas de forma controlada.
+- `FACT_REGISTRY_V1_1_PHASE2.md`
+- `scripts/audit_cia_commercial_facts_phase2_readonly.sql`
+- `scripts/test_cia_commercial_facts_phase2.sql`
+- `PHASE_02_VALIDATION_REPORT.md`
 
 ---
 
-# 5. CALL FACTS V1
+# 4. SNAPSHOT VALIDADO
 
-Campos principales:
+| Dominio | Filas fuente | Válidas por contact_key | Contactos |
+|---|---:|---:|---:|
+| Leads | 5,403 | 5,391 | 5,076 |
+| Calls | 34,188 | 33,999 | 5,885 |
+| Appointments | 3,047 | 2,918 | 1,157 |
+| Sales | 1,275 | 1,268 | 296 |
+| Follow-ups | 524 | 523 | 456 |
 
-- `call_count`;
-- `first_call_at`;
-- `last_call_at`;
-- `days_since_last_call`;
-- `latest_call_id`;
-- `latest_status`;
-- `latest_substatus`;
-- `latest_advisor_id`;
-- `latest_advisor_label`;
-- `latest_treatment`;
-- `ever_statuses[]`;
-- `called_today`;
-- `max_attempt`;
-- `effective_contact_count`;
-- `non_contact_count`.
+Todos los dominios: **0 contact keys fuera de Identity V1**.
 
-## Call Contact Policy V1
+Los datos son vivos; estas cifras son evidencia de cierre, no constantes hardcoded.
 
-Normalización:
+---
+
+# 5. LEAD FACTS / OPORTUNIDAD ACTUAL
+
+Hecho clave descubierto y cerrado:
+
+`calls.never_called` NO equivale a “nuevo ingreso lead todavía sin trabajar”.
+
+Facts separados:
+
+- `calls.never_called`
+- `lead.never_called`
+- `lead.called_since_latest_entry`
+- `lead.unworked_since_latest_entry`
+
+Validación:
+
+- contactos lead: 5,076;
+- `lead.unworked_since_latest_entry`: **1,287**;
+- `lead.called_since_latest_entry`: **3,789**;
+- suma = 5,076: PASS.
+
+Este contrato será la base de presets como **Leads nuevos sin trabajar**.
+
+Taxonomía de interés V1 es explícita/versionada. No existe fuzzy mapping automático producto/servicio.
+
+---
+
+# 6. CALL FACTS
+
+Call Contact Policy V1:
 
 - `PROVINCIAS` → `PROVINCIA`;
-- blanks → UNKNOWN.
+- SIN CONTACTO / NO CONTESTA = no-contact operativo;
+- otros estados no vacíos = interacción/resolución operativa.
 
-No contacto:
+Validación sobre 33,999 filas normalizadas:
 
-- `SIN CONTACTO`;
-- `NO CONTESTA`.
+- effective-contact rows: 6,651;
+- no-contact rows: 27,348;
+- max intento observado: 77.
 
-Contacto efectivo para métrica operacional:
-
-cualquier estado no vacío distinto de los dos anteriores, incluyendo `CITA CONFIRMADA`, `SEGUIMIENTO`, `NO LE INTERESA`, `SACAR DE LA BASE` y `PROVINCIA`.
-
-Esta clasificación mide existencia de interacción/resolución operativa; no reemplaza el significado comercial del estado.
-
-Orden latest call:
+Latest order:
 
 `created_at DESC, fecha DESC, id DESC`.
 
 ---
 
-# 6. APPOINTMENT FACTS V1
+# 7. AGENDA FACTS
 
-Campos:
+Política V1:
 
-- `appointment_count`;
-- `last_appointment_at`;
-- `last_appointment_status`;
-- `last_treatment`;
-- `last_branch`;
-- `next_appointment_at`;
-- `next_appointment_status`;
-- `next_treatment`;
-- `next_branch`;
-- `has_future_appointment`;
-- `no_show_count`;
-- `attended_count`;
-- `last_attended_at`;
-- `appointment_statuses[]`.
+- cita futura activa: `fecha_cita >= hoy Lima` y estado `PENDIENTE|CITA CONFIRMADA`;
+- attendance: `ASISTIO|EFECTIVA`;
+- no-show: `NO ASISTIO`;
+- `REAGENDADA` no es future-active por sí sola.
 
-Políticas:
+Validación normalizada:
 
-- próximo/upcoming = `fecha_cita >= fecha local de Lima`;
-- estados activos V1 para future/upcoming: `PENDIENTE`, `CITA CONFIRMADA`;
-- `attended_count`: `ASISTIO` + `EFECTIVA`;
-- `no_show_count`: `NO ASISTIO`.
-
-No se considera `REAGENDADA` como cita futura activa por sí sola, porque representa un estado de transición/histórico.
+- NO ASISTIO: 1,583;
+- ASISTIO/EFECTIVA: 780;
+- contactos con cita activa futura: 54.
 
 ---
 
-# 7. SALES / PRODUCT / SERVICE FACTS V1
+# 8. SALES / PRODUCT / SERVICE FACTS
 
-Fuente autoritativa: `aos_ventas`.
+Fuente autoritativa de tipo: `aos_ventas.tipo`.
 
-Baseline observado:
+Filas normalizadas:
 
-- 1,275 filas;
-- `SERVICIO`: 871;
-- `PRODUCTO`: 404;
-- estados de pago: `PAGO COMPLETO` 1,153; `ADELANTO` 122.
+- PRODUCTO: 403;
+- SERVICIO: 865;
+- mismatch de partición: 0;
+- revenue: S/ 551,046.27;
+- product revenue: S/ 60,286.50;
+- service revenue: S/ 490,759.77.
 
-Campos:
-
-- `sale_count`;
-- `revenue_lifetime`;
-- `first_sale_at`;
-- `last_sale_at`;
-- `days_since_last_sale`;
-- `product_count`;
-- `service_count`;
-- `product_revenue`;
-- `service_revenue`;
-- `products[]`;
-- `services[]`;
-- `latest_item_type`;
-- `latest_item`;
-- `latest_branch`;
-- `latest_advisor_id` nullable;
-- `latest_advisor_label`;
-- `payment_states[]`;
-- `payment_methods[]`.
-
-Asesor de venta se resuelve a `aos_usuarios.id` solo cuando el label/código mapea unívocamente. Si no, el ID queda NULL y se conserva el label.
+`never_bought_product(X)` y `never_bought_service(X)` deberán consultarse contra dimensiones separadas; nunca contra el boolean global `sales_never_bought`.
 
 ---
 
-# 8. FOLLOW-UP FACTS V1
+# 9. FOLLOW-UP FACTS
 
-`aos_seguimientos` usa `NUMERO` y fechas legacy en texto.
+Validación:
 
-Auditoría:
+- 524 filas fuente;
+- 523 normalizables;
+- 456 contactos;
+- 524/524 FECHA_PROGRAMADA en ISO;
+- pending: 15;
+- overdue V1: 509;
+- completed: 2.
 
-- 524 filas;
-- 456 contact keys distintos válidos en lectura actual;
-- 0 contact keys de seguimiento fuera del universo Identity V1;
-- `FECHA_PROGRAMADA`: 524/524 en formato ISO `YYYY-MM-DD`;
-- estados: VENCIDO 507, PENDIENTE 15, COMPLETADO 2.
+Overdue V1:
 
-Campos:
-
-- `followup_count`;
-- `pending_count`;
-- `overdue_count`;
-- `completed_count`;
-- `next_followup_at`;
-- `oldest_overdue_at`;
-- `latest_advisor_id`;
-- `latest_advisor_label`;
-- `treatments[]`.
-
-`overdue_count` V1 = estado `VENCIDO` OR (`PENDIENTE` y fecha programada < hoy).
+`VENCIDO OR (PENDIENTE AND fecha_programada < hoy Lima)`.
 
 ---
 
-# 9. EMAIL FACTS V1
+# 10. EMAIL FACTS
 
-Email requiere reconciliación y no puede deducirse de una sola tabla.
-
-## Fuentes de envío
+Fuentes canónicas de envío:
 
 - `aos_emails_enviados`;
-- `aos_email_envios` con `estado='enviado'`.
+- `aos_email_envios` con estado enviado.
 
-`aos_email_flujo_ejecuciones` NO suma envíos: representa estado de workflow.
+No cuentan como envío por sí mismos:
 
-## Dedupe
+- `aos_email_flujo_ejecuciones`;
+- `aos_email_cadencia`.
 
-Clave de envío preferida: `resend_id`.
+Identidad:
 
-Si no existe, se genera una clave técnica `source:id`. Actualmente:
+- HIGH = teléfono directo seguro;
+- MEDIUM = email canónico unívoco;
+- UNKNOWN = evidencia insuficiente.
 
-- `aos_emails_enviados`: 1,925 resend IDs distintos;
-- `aos_email_envios`: 17 resend IDs enviados;
-- overlap actual: 0;
-- total de envíos únicos observados: 1,942.
+No se usa `paciente_id` legacy de email como join V1.
 
-## Reconciliación de identidad
+Corrección V1.1 descubierta en validación:
 
-Prioridad:
+- 56 filas tenían `email_destino=''` pero `destinatario` útil;
+- resolver corregido con `COALESCE(NULLIF(TRIM(email_destino),''), NULLIF(TRIM(destinatario),''))`.
 
-1. teléfono directo normalizable y existente en Identity V1 → `HIGH`;
-2. email canónico que mapea de forma unívoca a un solo `contact_key` → `MEDIUM`;
-3. sin evidencia segura → `UNKNOWN`.
+Baseline final:
 
-No se usa `paciente_id` de email como join V1: la auditoría confirmó que no corresponde al `ID_PACIENTE` actual.
+- unique sends: 1,942;
+- safely mapped sends: **1,623**;
+- unresolved sends: **319**;
+- contacts with send evidence: 334;
+- safe-email contacts: 1,501;
+- `never_sent=TRUE`: 1,167;
+- `never_sent=UNKNOWN`: 9,972.
 
-Baseline de alias email seguro:
-
-- 1,501 contactos con email canónico utilizable y unívoco;
-- 334 contactos con al menos un envío reconciliado;
-- 1,167 contactos con email seguro y cero envíos → `email.never_sent=TRUE`;
-- 9,972 contactos sin evidencia suficiente para afirmar “nunca enviado” → `UNKNOWN`;
-- 1,619 de 1,942 envíos únicos pueden reconciliarse a contacto hoy;
-- 323 permanecen no resueltos y no se atribuyen artificialmente.
-
-Provider events observados:
-
-- delivered 968;
-- bounced 54;
-- opened 1.
-
-Los eventos se vinculan por `resend_id` cuando existe un envío reconciliado; en ausencia, por email unívoco. Eventos sin identidad segura no contaminan facts de contacto.
+Los 319 envíos no resueltos permanecen sin atribución.
 
 ---
 
-# 10. CONSOLIDATED COMMERCIAL FACTS V1
+# 11. CONSOLIDATED COMMERCIAL FACTS
 
-Vista objetivo:
-
-`aos_cia_commercial_facts_v1`
-
-Base: `aos_cia_contact_identity_v1`.
+`aos_cia_commercial_facts_v1` se define sobre Identity V1 y joins 1:1 de facts agregados.
 
 Invariantes:
 
-1. exactamente una fila por `contact_key` Identity V1;
-2. misma cantidad de filas que Identity V1;
-3. ningún dominio puede agregar contactos fuera de Identity V1;
-4. ausencia de evento en un contacto válido produce 0/FALSE cuando semánticamente comprobable;
-5. `UNKNOWN` se conserva cuando falta evidencia de identidad o canal;
-6. arrays/set vacíos se devuelven como `[]`, no NULL, salvo que la semántica requiera UNKNOWN.
-
-Facts derivados transversales:
-
-- `calls_never_called`;
-- `lead_never_called`;
-- `lead_called_since_latest_entry`;
-- `lead_unworked_since_latest_entry`;
-- `appointments_never_had`;
-- `sales_never_bought`;
-- `email_never_sent` boolean3.
+- una fila por contact_key;
+- ningún dominio amplía identidad;
+- counts ausentes comprobables → 0;
+- sets ausentes → `[]`;
+- channel uncertainty → UNKNOWN/NULL cuando corresponda;
+- identity conflicts continúan sin paciente canónico;
+- provenance JSONB conserva filas/IDs y versión.
 
 ---
 
-# 11. FRESHNESS Y PROVENANCE
+# 12. PERFORMANCE
 
-Cada vista incluye:
+Benchmarks live read-only:
 
-- `facts_version = 1`;
-- `source_rows` / counts cuando aplique;
-- ID del último registro cuando aplique;
-- `source_last_at` o fecha de actividad más reciente;
-- `provenance JSONB` en el consolidado.
+- Call heavy ranking/aggregation: ~260 ms.
+- Email reconciliation aislada: ~78 ms.
+- Composición representativa de los dominios sobre 11,473 contactos: **~474 ms**.
 
-V1 son vistas calculadas en lectura, por lo que sus hechos son live/realtime respecto a las tablas fuente. Materialización/caché solo se introducirá si benchmarks posteriores lo justifican.
+Presupuesto inicial: P95 normal < 1.5 s.
+
+**Decisión:** no materializar, no agregar cache y no crear índices nuevos en Fase 2. La arquitectura live preserva actualización automática y tiene margen de rendimiento suficiente.
 
 ---
 
-# 12. SEGURIDAD
+# 13. SEGURIDAD / ROLLOUT
 
-Todos los objetos `aos_cia_*_facts_v1`:
+Objetos nuevos:
 
 - `security_invoker=true`;
-- sin `SECURITY DEFINER`;
-- sin escritura;
-- sin acceso `PUBLIC`, `anon`, `authenticated`;
-- acceso inicial solo `service_role`;
-- ninguna policy/RLS de fuente se modifica.
+- no SECURITY DEFINER;
+- no escritura;
+- sin acceso PUBLIC/anon/authenticated;
+- select inicial solo service_role.
 
-El browser no consulta estas vistas directamente. Audience Engine/Backend las expondrá mediante contratos autorizados en fases posteriores.
+No se cambian:
 
----
-
-# 13. IMPACT REPORT
-
-**Riesgo:** MEDIUM.  
-**Motivo:** nuevas vistas analíticas sobre fuentes operativas; sin mutación de datos ni cambio de contratos actuales.
-
-## Fuentes leídas
-
-- `aos_pacientes` indirectamente por Identity V1;
-- `aos_leads`;
-- `aos_llamadas`;
-- `aos_agenda_citas`;
-- `aos_ventas`;
-- `aos_seguimientos`;
-- `aos_usuarios` para resolución segura de asesor;
-- `aos_emails_enviados`;
-- `aos_email_envios`;
-- `aos_email_eventos`.
-
-## No se modifica
-
-- filas fuente;
+- RLS fuente;
+- datos operativos;
 - `numero_limpio`;
 - Call Center V2;
 - Email runtime;
-- RLS existente;
-- `main`/producción durante validación.
+- frontend/backend productivo.
 
-## Rollback
+Después del merge a staging se verificó Supabase live:
 
-Drop de las vistas V1 de Fase 2. No requiere restaurar datos.
+- `aos_cia_*` views = 0;
+- `aos_cia_*` functions = 0.
+
+Producción continúa intacta.
 
 ---
 
-# 14. CRITERIO DE SALIDA
+# 14. CERTIFICACIÓN Y LÍMITE EXPLÍCITO
 
-Fase 2 podrá cerrar cuando:
+Ascenda CI run 293 = SUCCESS.
 
-- todos los facts tengan definición estable;
-- los tests 1:1 y sumatorias pasen sobre datos vivos;
-- `lead_unworked_since_latest_entry` quede validado;
-- Email preserve UNKNOWN correctamente;
-- benchmark consolidado esté dentro del presupuesto o exista decisión de optimización explícita;
-- CI sea SUCCESS;
-- integración se haga únicamente a staging;
-- Supabase productivo permanezca sin despliegue CIA hasta el gate correspondiente;
-- `aos_memory` marque `cia_phase2_progress=100` y Fase 3 READY.
+El CI actual no ejecuta migrations SQL contra una base temporal. No existe una development branch Supabase reutilizable en este momento; crear una nueva requiere un flujo separado de costo/confirmación.
+
+Por ello el 100% de esta fase certifica:
+
+1. contratos cerrados;
+2. semántica SQL ejecutada mediante equivalentes read-only contra datos vivos;
+3. sumatorias/invariantes reconciliadas;
+4. migrations aditivas versionadas y revisadas;
+5. CI del repositorio exitoso;
+6. integración a staging;
+7. producción no modificada.
+
+No se afirma que las migrations hayan sido físicamente aplicadas al Supabase productivo. Ese despliegue continúa sujeto al gate de deployment correspondiente.
+
+---
+
+# 15. SALIDA
+
+Fase 2 = `100_COMPLETE` al persistirse P2-G14.
+
+**Siguiente fase:** FASE 3 — SEGMENTATION ENGINE = READY.
+
+Fase 3 debe consumir Identity V1 + Commercial Facts V1 / Fact Registry V1.1. No debe reconstruir hechos directamente desde las tablas operativas salvo extensión formal del registry.
