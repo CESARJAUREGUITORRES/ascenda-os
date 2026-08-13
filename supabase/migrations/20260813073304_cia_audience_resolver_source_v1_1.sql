@@ -49,6 +49,10 @@ begin
  return jsonb_build_object('ok',true,'contact_key',p_contact_key,'included',(trace->>'evaluation_state')='MATCH','evaluation_state',trace->>'evaluation_state','trace',trace,'registry_version',1,'source_version','1.1','observed_at',statement_timestamp());
 end;$$;
 
-revoke all on function public.aos_cia_audience_count_v1(jsonb),function public.aos_cia_audience_preview_v1(jsonb,integer,integer),function public.aos_cia_audience_explain_v1(jsonb,text) from public,anon,authenticated;
-grant execute on function public.aos_cia_audience_count_v1(jsonb),function public.aos_cia_audience_preview_v1(jsonb,integer,integer),function public.aos_cia_audience_explain_v1(jsonb,text) to service_role;
+revoke all on function public.aos_cia_audience_count_v1(jsonb) from public,anon,authenticated;
+revoke all on function public.aos_cia_audience_preview_v1(jsonb,integer,integer) from public,anon,authenticated;
+revoke all on function public.aos_cia_audience_explain_v1(jsonb,text) from public,anon,authenticated;
+grant execute on function public.aos_cia_audience_count_v1(jsonb) to service_role;
+grant execute on function public.aos_cia_audience_preview_v1(jsonb,integer,integer) to service_role;
+grant execute on function public.aos_cia_audience_explain_v1(jsonb,text) to service_role;
 commit;
