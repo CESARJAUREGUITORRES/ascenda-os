@@ -16,6 +16,8 @@ jobs:
       - name: apply
         run: |
           if git log -1 --pretty=%B | grep -Fq '[sales-panel-patched]'; then exit 0; fi
+          sed -i "s/, ranking_code, text, count=1, flags=re.S)/, lambda m: ranking_code, text, count=1, flags=re.S)/" scripts/patch_sales_panel_20260813.py
+          sed -i "s/, detail_code, text, count=1, flags=re.S)/, lambda m: detail_code, text, count=1, flags=re.S)/" scripts/patch_sales_panel_20260813.py
           python scripts/patch_sales_panel_20260813.py
           python - <<'PY'
           from pathlib import Path
