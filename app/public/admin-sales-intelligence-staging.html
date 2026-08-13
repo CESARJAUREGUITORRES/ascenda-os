@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASCENDA Sales Intelligence — Staging Fixture</title>
+<style>html,body{margin:0;height:100%;background:#f6f8fc}iframe{border:0;width:100%;height:100vh;display:block}</style>
+<iframe id="stage" title="Sales Intelligence staging fixture"></iframe>
+<script>
+(function(){
+  var months=[
+    [1,191,91029.60,139,84354.60,52,6675.00],[2,166,78734.62,130,73479.62,36,5255.00],
+    [3,156,63681.65,96,55470.65,60,8211.00],[4,152,59496.95,105,52925.95,47,6571.00],
+    [5,179,79225.85,125,71911.85,54,7314.00],[6,159,61140.75,124,55684.75,35,5456.00],
+    [7,189,65115.05,112,52613.95,77,12501.10],[8,83,56948.80,51,51598.80,32,5350.00]
+  ];
+  function r2(n){return Math.round(n*100)/100}
+  var prev=null,serie=months.map(function(m){var v=prev==null?null:r2((m[2]/prev-1)*100);prev=m[2];return{mes:m[0],facturado:m[2],meta:100000,pctMeta:r2(m[2]/1000),ventas:m[1],ticket:r2(m[2]/m[1]),variacionPct:v,nServ:m[3],factServ:m[4],nProd:m[5],factProd:m[6],estado:m[0]===8?'PARCIAL':'CERRADO'}});
+  for(var i=9;i<=12;i++)serie.push({mes:i,facturado:0,meta:0,pctMeta:null,ventas:0,ticket:0,variacionPct:null,nServ:0,factServ:0,nProd:0,factProd:0,estado:'FUTURO'});
+  var fixture={hasData:true,anio:2026,dataThrough:'2026-08-12',mesActual:8,diaCorte:12,diasMes:31,parcial:true,factYTD:555373.27,ventasYTD:1275,ticketYTD:435.59,nServYTD:882,factServYTD:498040.17,nProdYTD:393,factProdYTD:57333.10,metaYTD:800000,metaAnual:800000,pctMetaYTD:69.42,gapYTD:244626.73,promedioMesesCerrados:71203.50,mejorMes:{mes:1,facturado:91029.60},ultimoMesCerrado:{mes:7,facturado:65115.05,mesAnterior:6,facturadoAnterior:61140.75,variacionPct:6.50},mtdComparable:{facturadoActual:56948.80,ventasActual:83,facturadoAnteriorMismosDias:32839.05,variacionPct:73.42,diasComparados:12},proyeccionMes:{facturadoActual:56948.80,proyectado:147117.73,meta:100000,faltante:43051.20,ritmoDiarioActual:4745.73,ritmoDiarioNecesario:2265.85,diasRestantes:19},serie:serie};
+  fetch('admin-sales-intelligence.html',{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){
+    var shim='<script>(function(){var f='+JSON.stringify(fixture)+';var real=window.fetch.bind(window);window.fetch=function(u,o){if(String(u).indexOf("/rest/v1/rpc/aos_sales_intelligence_summary")>=0)return Promise.resolve(new Response(JSON.stringify(f),{status:200,headers:{"Content-Type":"application/json"}}));return real(u,o)};window.__ASCENDA_STAGING_FIXTURE__=true})();<\/script>';
+    document.getElementById('stage').srcdoc=shim+html;
+  }).catch(function(e){document.body.textContent='Fixture harness error: '+e.message});
+})();
+</script>
