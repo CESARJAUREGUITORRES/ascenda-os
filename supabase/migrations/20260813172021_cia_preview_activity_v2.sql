@@ -1,0 +1,13 @@
+create or replace function public.aos_cia_preview_activity_v2(p_keys text[])
+returns table(contact_key text,latest_interest text,last_call_at timestamptz,latest_call_status text,next_appointment_at date,next_appointment_branch text,sale_count integer,revenue_lifetime numeric,latest_sale_branch text,pending_followups integer,overdue_followups integer)
+language sql stable security invoker as $$
+select k,ld.latest_interest,cl.last_call_at,cl.latest_call_status,ap.next_at,ap.next_branch,coalesce(sv.sale_count,0),coalesce(sv.revenue_lifetime,0),sv.latest_branch,coalesce(fu.pending_count,0),coalesce(fu.overdue_count,0)
+from unnest(p_keys) k
+left join lateral(select nullif(upper(btrim(l.tratamiento)),'') latest_interest from public.aos_leads l where public.aos_cia_normalize_contact_key_v1(l.numero_limpio)=k order by coalesce(l.hora_ingreso,l.created_at,l.fecha::timestamp at time zone 'America/Lima') desc,l.id desc limit 1)ld on true
+left join lateral(select c.created_at last_call_at,nullif(upper(btrim(c.estado)),'') latest_call_status from public.aos_llamadas c where public.aos_cia_normalize_contact_key_v1(c.numero_limpio)=k order by c.created_at desc nulls last,c.fecha desc,c.id desc limit 1)cl on true
+left join lateral(select a.fecha_cita next_at,a.sede next_branch from public.aos_agenda_citas a where public.aos_cia_normalize_contact_key_v1(a.numero_limpio)=k and a.fecha_cita>=(now() at time zone 'America/Lima')::date and upper(btrim(coalesce(a.estado_cita,''))) in('PENDIENTE','CITA CONFIRMADA') order by a.fecha_cita,a.id limit 1)ap on true
+left join lateral(select count(*)::integer sale_count,coalesce(sum(v.monto),0)::numeric revenue_lifetime,(array_agg(nullif(btrim(v.sede),'') order by v.fecha desc,v.id desc) filter(where nullif(btrim(v.sede),'') is not null))[1] latest_branch from public.aos_ventas v where public.aos_cia_normalize_contact_key_v1(v.numero_limpio)=k)sv on true
+left join lateral(select count(*) filter(where upper(btrim(coalesce(s."ESTADO",'')))='PENDIENTE')::integer pending_count,count(*) filter(where upper(btrim(coalesce(s."ESTADO",'')))='VENCIDO' or (upper(btrim(coalesce(s."ESTADO",'')))='PENDIENTE' and s."FECHA_PROGRAMADA"~'^\d{4}-\d{2}-\d{2}$' and to_date(s."FECHA_PROGRAMADA",'YYYY-MM-DD')<(now() at time zone 'America/Lima')::date))::integer overdue_count from public.aos_seguimientos s where public.aos_cia_normalize_contact_key_v1(s."NUMERO")=k)fu on true;
+$$;
+revoke all on function public.aos_cia_preview_activity_v2(text[]) from public,anon,authenticated;
+grant execute on function public.aos_cia_preview_activity_v2(text[]) to service_role;
