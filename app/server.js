@@ -2172,9 +2172,17 @@ http.createServer(function(req, res) {
   console.log('AscendaOS http://0.0.0.0:' + PORT)
   console.log('Webhook: https://ascenda-os-production.up.railway.app/webhook')
   console.log('Agents: Think-loop ready on /api/agents/tick')
-  // Auto-tick every 60 seconds for cron agents
-  setInterval(function() { autoTick() }, 30000) // cada 30s — más visible
-  console.log('Agents: Auto-tick every 60s started')
+  // PERFORMANCE GUARD: comprobar cron cada 60s; el cron de negocio no cambia.
+  var _autoTickRunning = false
+  function guardedAutoTick() {
+    if (_autoTickRunning || !bgCanRun()) return
+    _autoTickRunning = true
+    try { autoTick() } catch(e) { bgFail(); console.error('[TICK] Guard error:', e.message) }
+    setTimeout(function(){ _autoTickRunning = false }, 50000)
+  }
+  setInterval(guardedAutoTick, 60000)
+  setTimeout(guardedAutoTick, 15000)
+  console.log('Agents: guarded auto-tick every 60s started')
 })
 
 
@@ -3824,12 +3832,29 @@ function buildChatContext(agentId) {
   })
 }
 
-// Regenerar snapshot cada 5 min en Railway
-setInterval(function() {
+// PERFORMANCE GUARD — trabajos background compartidos
+var _bgFailures = 0
+var _bgOpenUntil = 0
+function bgCanRun() { return Date.now() >= _bgOpenUntil }
+function bgOk() { _bgFailures = 0; _bgOpenUntil = 0 }
+function bgFail() {
+  _bgFailures++
+  var wait = _bgFailures >= 3 ? 600000 : (_bgFailures === 2 ? 120000 : 30000)
+  _bgOpenUntil = Math.max(_bgOpenUntil, Date.now() + wait)
+  console.warn('[PERF-GUARD] background backoff', wait, 'ms; failures=', _bgFailures)
+}
+
+// Snapshot global: 30 min en background. getSnapshot() mantiene cache/on-demand.
+var _snapshotJobRunning = false
+function backgroundSnapshotRun() {
+  if (_snapshotJobRunning || !bgCanRun()) return
+  _snapshotJobRunning = true
   sbRpc('aos_generar_snapshot', {})
-    .then(function(snap) { _cachedSnapshot = snap; _snapshotAge = Date.now(); console.log('[SNAPSHOT] Regenerado OK') })
-    .catch(function(e) { console.error('[SNAPSHOT] Error:', e.message) })
-}, 300000) // 5 min
+    .then(function(snap) { _cachedSnapshot = snap; _snapshotAge = Date.now(); bgOk(); console.log('[SNAPSHOT] Regenerado OK') })
+    .catch(function(e) { bgFail(); console.error('[SNAPSHOT] Error:', e.message) })
+    .finally(function() { _snapshotJobRunning = false })
+}
+setInterval(backgroundSnapshotRun, 1800000) // 30 min
 
 // Call Groq with full message history (multi-turn DM chat from panel)
 function callGroqChat(systemPrompt, messages, model) {
@@ -4037,7 +4062,7 @@ function autoTick() {
         }, Promise.resolve())
       })
     })
-  }).catch(function(e) { console.error('[TICK] Error:', e.message) })
+  }).catch(function(e) { bgFail(); console.error('[TICK] Error:', e.message) })
 }
 
 function shouldRunCron(cronStr, now, lastRun) {
@@ -4249,8 +4274,14 @@ function studioPublishToNetwork(plat, item, callback) {
   }
 }
 
-// Ejecutar scheduler cada 60 segundos
-setInterval(studioSchedulerRun, 60000)
-// Primera ejecución 10 segundos después del boot
-setTimeout(studioSchedulerRun, 10000)
-console.log('[STUDIO-CRON] Scheduler iniciado — revisa contenido programado cada 60s')
+// PERFORMANCE GUARD: Studio mantiene publicación automática con anti-solapamiento.
+var _studioSchedulerRunning = false
+function guardedStudioSchedulerRun() {
+  if (_studioSchedulerRunning || !bgCanRun()) return
+  _studioSchedulerRunning = true
+  try { studioSchedulerRun() } catch(e) { bgFail(); console.error('[STUDIO-CRON] Guard error:', e.message) }
+  setTimeout(function(){ _studioSchedulerRunning = false }, 45000)
+}
+setInterval(guardedStudioSchedulerRun, 120000)
+setTimeout(guardedStudioSchedulerRun, 10000)
+console.log('[STUDIO-CRON] Scheduler protegido — revisión cada 120s')
