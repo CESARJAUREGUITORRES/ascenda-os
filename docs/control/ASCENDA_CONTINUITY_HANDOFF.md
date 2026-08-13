@@ -1,92 +1,67 @@
 # ASCENDA OS — CANONICAL CONTINUITY HANDOFF
 
-**Updated:** 2026-08-12 (America/Lima)
+**Updated:** 2026-08-12 (America/Lima)  
+**Current boundary:** January closed -> February read-only audit
 
-This document is the canonical handoff for continuing ASCENDA OS work from another ChatGPT/Codex session. Read it together with `AGENTS.md`, `SECURITY.md` and the rest of `docs/control/` before changing code or production data.
+This is the canonical handoff for continuing ASCENDA OS from another ChatGPT/Codex session. Read it together with `AGENTS.md`, `SECURITY.md`, `docs/control/ASCENDA_CONTROL_MASTER.md` and the front-specific documents in `docs/control/` before changing production.
 
 ## 1. Project anchors
 
 - GitHub repository: `CESARJAUREGUITORRES/ascenda-os` (private)
-- Production code: primarily `app/`
-- Production frontend: `app/public/*.html` + JS
-- Production Node server: `app/server.js`
-- Supabase production project: `ituyqwstonmhnfshnaqz`
-- Runtime architecture: static frontend + Node/Railway + Supabase/Postgres with substantial business logic in RPC/functions/triggers
-- `main` = production baseline
-- `staging` = integration branch; it is NOT a separate production-like database/runtime
-- No paid Supabase development branch is desired at this stage
+- Supabase production: `ituyqwstonmhnfshnaqz`
+- `main` = production Git baseline
+- `staging` = integration branch, not a separate production database
+- productive application: `app/`
+- productive frontend: `app/public/`
+- productive Node/Railway server: `app/server.js`
+- `src/` = legacy/historical unless proven otherwise
+- Railway deploys from GitHub `main`; a merge to `main` may auto-deploy
 
 ## 2. Mandatory operating rules
 
-1. Read `AGENTS.md`, `SECURITY.md` and `docs/control/` before modifying anything.
-2. Do not expose credentials, service-role keys, passwords, OTPs, API tokens or secrets.
-3. Do not make broad refactors while reconciling historical sales.
-4. For production data corrections use: read-only audit -> Impact Report -> dependency check -> guarded transaction -> post-check -> rollback evidence.
-5. Do not mass-delete duplicate-looking sales. Legitimate repeated purchases exist.
-6. Code changes should normally branch from `staging`, pass CI, then be reviewed/promoted.
-7. Historical sales reconciliation is being done ONE MONTH AT A TIME, January through July.
+1. Read `AGENTS.md` and `SECURITY.md` before writes.
+2. Never expose credentials, tokens, API keys, passwords or PHI/PII in Git documentation.
+3. For HIGH production-data corrections use: read-only audit -> Impact Report -> dependency/trigger check -> snapshot -> deterministic transaction -> post-check -> rollback evidence.
+4. Do not mass-delete duplicate-looking sales; legitimate repeated purchases exist.
+5. Do not overwrite cleaner canonical identity from suspicious spreadsheet DNI/phone values.
+6. Historical sales reconciliation is performed **one month at a time** with a separate rollback boundary for every month.
+7. Do not start a month's writes until its source CSV has been retrieved and current production re-queried.
 
-## 3. Source-of-truth matrix for sales reconciliation
+## 3. Source-of-truth rules
 
-### Financial / transactional truth
-The monthly source CSV is authoritative for:
+### Monthly CSV = transactional truth
+Authoritative for:
 - sale date
 - treatment/category
 - raw description
 - payment method
 - amount
 - payment status
-- sales adviser
+- adviser
 - attended-by/professional
-- location/site
-- number of financial transaction rows
-- monthly and daily totals
+- branch
+- financial row count
+- daily/monthly totals
 
-### Identity truth
-ASCENDA is the priority source for:
+### ASCENDA + corroborating systems = identity priority
+Prefer already-clean canonical data from ASCENDA for:
 - DNI
-- phone/cell number
-- normalized phone
-- already-consolidated patient identity
+- phone
+- `numero_limpio`
+- consolidated patient identity
 
-Reason: the source sales spreadsheets contain known Google Sheets autofill artifacts in some DNI/phone cells. Never overwrite a cleaner ASCENDA identity blindly from the CSV.
+Identity conflicts must be resolved using combined evidence from patients, sales, appointments, calls, leads and historical frequency. A later separate affiliation/client database supplied by the user will be used as higher-confidence evidence during the Master Patient phase.
 
-When identity is uncertain, resolve with the combined evidence of `aos_pacientes`, existing sales, leads, calls, appointments and historical frequency. Put unresolved cases into review; do not guess.
+### Products
+For `TRATAMIENTO = COMPRA DE PRODUCTO`, the actual product is often encoded in `DESCRIPCION`.
 
-## 4. Persistent source files
+Preserve raw description. Product alias/canonical-name/quantity/payment-semantic normalization is a later dedicated phase after historical sales are financially reconciled.
 
-The seven original monthly CSVs are stored in the user's private ChatGPT Library at:
+## 4. Historical monthly source targets
 
-`/ASCENDA OS/Auditorias/Ventas 2026/`
-
-Files:
-- `VENTAS_2026_01_ENERO.csv`
-- `VENTAS_2026_02_FEBRERO.csv`
-- `VENTAS_2026_03_MARZO.csv`
-- `VENTAS_2026_04_ABRIL.csv`
-- `VENTAS_2026_05_MAYO.csv`
-- `VENTAS_2026_06_JUNIO.csv`
-- `VENTAS_2026_07_JULIO.csv`
-
-Do not copy these raw files into GitHub because they contain PII. In a new ChatGPT session, use the Files/Library connector to retrieve them from the exact folder above.
-
-Each CSV has 13 operational columns: date, names, surnames, DNI/CE, cell, treatment, description, payment, amount/caja, payment status, appointment/adviser field, attended-by, site.
-
-## 5. Reconciliation baseline — January through July
-
-Source total January-July:
+January-July source total:
 - **1,192 transactions**
 - **S/498,424.47**
-
-Supabase baseline before month-by-month remediation:
-- **1,203 transactions**
-- **S/503,994.07**
-
-Difference at baseline:
-- **+11 transactions** in ASCENDA
-- **+S/5,569.60** in ASCENDA
-
-Monthly source targets:
 
 | Month | Source rows | Source total |
 |---|---:|---:|
@@ -98,148 +73,215 @@ Monthly source targets:
 | Jun 2026 | 159 | S/61,140.75 |
 | Jul 2026 | 189 | S/65,115.05 |
 
-Baseline differences found:
-- January: same row count, **S/99 short** in ASCENDA
-- February: **+13 rows / +S/5,751.60** in ASCENDA
-- March: **-1 row / -S/161** in ASCENDA
-- April: rows and total reconcile; field-level audit still required
-- May: **+2 rows / +S/79** in ASCENDA
-- June: **-3 rows / -S/1** in ASCENDA
-- July: rows and total reconcile; field-level audit still required
+Historical baseline differences before month-by-month remediation:
+- January: same row count, S/99 short
+- February: +13 rows / +S/5,751.60 in ASCENDA
+- March: -1 row / -S/161 in ASCENDA
+- April: row count and total matched, field-level audit still required
+- May: +2 rows / +S/79 in ASCENDA
+- June: -3 rows / -S/1 in ASCENDA
+- July: row count and total matched, field-level audit still required
 
-## 6. Known systematic failure modes discovered
+These are historical baselines only. Always re-query live production before acting.
 
-- whole import batches assigned the wrong date
-- one logical sale split into multiple artificial sale rows
-- multiple logical sale rows fused into one row
+## 5. Known systematic failure modes
+
+- entire import batches shifted to the wrong date
+- one logical sale split into artificial rows
+- multiple source sales fused into one row
 - duplicate imports / extra rows
 - missing rows
-- source spreadsheet phone/DNI autofill artifacts
+- source phone/DNI autofill artifacts
 - historical loss of `ATENDIO`
 - inconsistent treatment labels
-- product names hidden inside free-text `descripcion`
-- payment/adviser/professional fields sometimes changed or omitted by older import paths
+- product names embedded in description
+- payment/adviser/professional values omitted or changed by older imports
 
-## 7. Current production fixes already completed before this handoff
+Semantic one-to-one matching is required; row ordinal is not reliable.
 
-### August sales
-A recent August reconciliation found two extra sales totaling S/300 and a date-shifted batch. Production August was corrected atomically from **73 / S/53,574.80** to the source total **71 / S/53,274.80** at that point in the audit. Ten rows originally sourced as 2026-08-08 had been stored as 2026-08-09 and were corrected. Newer sales may have been imported after that reconciliation, so always query current August before comparing.
+## 6. Attendance reconstruction rule
 
-### Sales import hardening
-- backend lot-level idempotency was introduced to reduce exact-batch duplicate reimports
-- the import UI received a safety confirmation showing date/site/rows/total before import
-- the current native browser confirmation is considered temporary UX debt and should later be replaced by a professional ASCENDA blue/white modal
-- do not use fuzzy transaction deduplication because legitimate same-patient/same-product/same-amount purchases exist
+Approved clinic rule:
 
-### Marketing
-Marketing Attribution/Traceability work has been developed in parallel. The current architecture uses a reinitalizable controller (V4 line) to avoid SPA remount races. Historically, `Historico` and `LTV` suffered `57014 statement timeout` because expensive annual RPCs were fired concurrently under the public role. The mitigation serializes heavy requests and adds safe query/index improvements. Marketing M0 revenue is cohort-attributed revenue and must NOT be compared as if it were total monthly sales revenue.
+- a certified sale at a clinic location means the patient was physically present that day;
+- advances, balances and partial payments count as presence;
+- MercadoPago for a service still counts as presence;
+- automatic web exception: `COMPRA DE PRODUCTO + MERCADOPAGO` does not create a patient visit;
+- staff purchases remain valid sales but do not count as patient visits;
+- visit grain is **PATIENT + DATE + BRANCH**, not one visit per sale.
 
-Historical monthly Marketing must remain year-scoped rather than shrink when a past month is selected.
+Never invent an appointment hour. If historical presence is proven but time is not, use `hora_cita = NULL`.
 
-## 8. Product-data rule
+## 7. Persistent monthly reconciliation ledger
 
-When `TRATAMIENTO = COMPRA DE PRODUCTO`, the real sold item is usually encoded in `DESCRIPCION`.
+A protected internal control-plane ledger now exists in production Supabase:
 
-Do NOT erase or normalize the raw description in-place. Preserve it as raw evidence.
+- `aos_recon_meses`
+- `aos_recon_identidades`
+- `aos_recon_visitas`
+- `aos_recon_cambios`
 
-Future target model:
-- raw treatment: `COMPRA DE PRODUCTO`
-- raw description preserved
-- canonical product reference
-- canonical product name
-- quantity
-- payment semantics (total/advance/balance where inferable)
-- alias dictionary for historical spelling variants
+Security:
+- RLS enabled
+- no client policies
+- privileges revoked from `anon` and `authenticated`
+- do not expose this ledger directly to the frontend
 
-Examples of historical aliases include Beauty Maker / Beautymaker / promo variants, Lifting B variants, Zinc variants, etc.
+Purpose:
+- preserve monthly checksums
+- preserve identity-resolution evidence
+- preserve patient-day-branch visit reconstruction
+- preserve source sale-ID links
+- preserve before/after/rollback evidence for every applied change
 
-ASCENDA's existing product/inventory catalog should be the primary canonical naming reference. The user will later provide/approve a product mapping sheet including quantity semantics such as `2 BEAUTY MAKER`, and cases where multiple payment rows represent one product.
+Use the same ledger for February onward rather than recreating matrices only in chat.
 
-Do not perform aggressive product canonicalization during January financial reconciliation. Capture evidence first; normalize products in a later dedicated pass.
+## 8. JANUARY 2026 — CLOSED
 
-## 9. Identity-data rule
+**Current status: `VALIDATED_SALES_VISITS`.**
 
-The user explicitly confirmed:
-- for sales/facturation/transaction facts -> monthly CSV is the source of truth
-- for DNI/cell -> prefer the already-corrected values in ASCENDA
+Canonical final document:
+- `docs/control/JANUARY_2026_RECONCILIATION_FINAL.md`
 
-Known source issue: some spreadsheet sequences contain progressively altered phone numbers or DNI values from spreadsheet autofill. Therefore a sales reconciliation must not propagate suspicious source identity values into `aos_pacientes`.
-
-## 10. JANUARY — exact current continuation point
-
-**Status: AUDITED, NOT YET REMEDIATED in the January month-by-month process.**
-
-Target after reconciliation:
+Certified financial result:
 - **191 sales**
 - **S/91,029.60**
 
-Supabase baseline observed for January before remediation:
-- **191 sales**
-- **S/90,930.60**
+Visit result:
+- 95 client-day-branch events
+- **93 patient visits**
+- 1 web product sale excluded from attendance
+- 1 staff purchase excluded from patient attendance
+- final validation: **93/93 patient visits represented as `ASISTIO` or `EFECTIVA`**
+- missing representation: **0**
 
-Important January findings already established:
-- at least one batch has a one-day date displacement around 08/01 and 09/01
-- one logical high-value transaction was represented as split rows and must be reconciled to the source representation
-- one S/99 source sale near month-end is missing from ASCENDA
-- January's `ATENDIO` field is empty across the historical sales table even though the source contains attended-by data
-- several treatment/adviser values differ from source even when the amount matches
-- some source phones/DNI are visibly autofill-corrupted; retain ASCENDA identity unless independent evidence proves ASCENDA wrong
+Agenda before January attendance remediation:
+- total 425
+- ASISTIO 107
+- EFECTIVA 25
+- NO ASISTIO 237
+- CANCELADA 32
+- PENDIENTE 13
+- REAGENDADA 11
 
-A read-only query immediately before this handoff showed January rows around IDs `660` onward and confirmed the historical `ATENDIO` blanks. Do NOT assume row ordinal = CSV ordinal for the whole month; the prior quick ordinal test showed poor ordinal matching because inserted/split/date-shifted rows break positional alignment. Matching must be semantic, not row-number-based.
+Applied:
+- 3 deterministic `PENDIENTE -> ASISTIO` updates
+- 11 historical `ASISTIO` inserts without invented time
+- no unexpected patient auto-creation
+- ambiguous existing no-show schedules were preserved instead of rewritten without evidence
 
-### January matching strategy
-Use a scored deterministic matching process, prioritizing:
-1. ASCENDA identity evidence (normalized phone/DNI/name) without overwriting it from suspect source cells
-2. amount
-3. treatment
-4. description
-5. payment method
-6. date with tolerance for known +/- 1 day batch shifts
-7. site/adviser/professional
+Agenda after remediation:
+- total **436**
+- ASISTIO **121**
+- EFECTIVA 25
+- NO ASISTIO 237
+- CANCELADA 32
+- PENDIENTE 10
+- REAGENDADA 11
 
-Repeated legitimate purchases require one-to-one assignment, not de-duplication.
+January reconciliation ledger contains:
+- 72 source identity-cluster rows
+- 95 event/visit rows
+- exact sale-ID arrays per event
+- 18 APPLIED change records with rollback evidence
 
-### January remediation loop
-1. Load `VENTAS_2026_01_ENERO.csv` from Library.
-2. Query current January from `aos_ventas` and any dependent tables/triggers.
-3. Build an explicit source-row <-> sale-id reconciliation table.
-4. Classify every row: exact / update / split-merge / missing / extra / identity-review.
-5. Present/record an Impact Report.
-6. Snapshot all affected production rows and dependency state.
-7. Apply guarded transaction only to unambiguous changes.
-8. Abort unless post-state is exactly **191 sales / S/91,029.60**.
-9. Reconcile daily row counts and daily totals to the CSV, not only monthly total.
-10. Verify service/product totals, advisers, sites, payment methods, payment states and `ATENDIO`.
-11. Validate downstream effects in Sales, Commissions and Marketing; do not assume UI correctness from DB totals alone.
-12. Keep unresolved DNI/phone cases unchanged and list them for later identity-resolution.
-13. Update this handoff with January = VALIDATED only after all gates pass.
+Applied change categories:
+- 11 historical Agenda visits
+- 3 Agenda state corrections
+- 1 Agenda identity enrichment
+- 1 canonical patient identity correction
+- 1 identity-collision cleanup
+- 1 sale identity-only correction
 
-## 11. Required monthly loop after January
+Remaining ambiguous identity clusters are deferred to the later affiliation/Master Patient phase. They do not block the certified sales/visit layer.
 
-For February -> July repeat independently:
+### January downstream checks
 
-`snapshot -> source vs DB reconciliation -> Impact Report -> dependency check -> guarded correction -> exact monthly total -> exact daily totals -> field audit -> downstream validation -> documentation -> next month`
+Commissions (`aos_comisiones_admin(1,2026)`):
+- 191 sales
+- S/91,029.60 revenue
+- S/573.39 commission total
 
-Never remediate all seven months in one transaction. Each month needs its own rollback boundary.
+Marketing (`aos_marketing_attribution_public_v3(1,2026)`):
+- RPC healthy
+- `anomaliasHigh = 0`
 
-## 12. Definition of VALIDATED for a month
+Marketing attribution metrics must not be equated with total clinic sales revenue because cohort/attribution scope differs.
 
-A month is not validated merely because monthly revenue matches.
+## 9. Performance incident / Performance Guard
 
-All of these must pass:
+During January reconciliation, Supabase Free/Nano became overloaded with gateway 5xx and PostgreSQL statement timeouts.
+
+Canonical incident doc:
+- `docs/control/PERFORMANCE_GUARD_20260812.md`
+
+Production Performance Guard commit:
+- `558c6c27f36e9be3b1491ae9a76e3fa73d65ec73`
+
+Key fixes:
+- dynamic panel interval cleanup on navigation
+- Home Admin duplicate polling removed
+- hidden-tab polling suspended
+- expensive panel reads staggered
+- overload retry delay increased
+- agent due-check guarded; business cron cadence preserved
+- snapshot background generation reduced from 5 min to 30 min with mutex
+- Studio scheduler protected from overlap
+- shared background backoff/circuit behavior
+- agent-log numeric trigger fixed through versioned migration
+
+Post-fix checks during January remediation:
+- low connection count
+- 0 idle-in-transaction sessions
+- 0 active queries >5 s in repeated health checks
+- no return of the prior 5xx/statement-timeout storm during reconciliation writes
+
+Residual technical debt:
+- a separate recurring unauthorized Studio request returns 401 approximately every minute. It is currently low cost and not a reconciliation blocker; trace and remove it in a dedicated performance cleanup, not by weakening authorization.
+
+## 10. CURRENT CONTINUATION POINT — FEBRUARY 2026
+
+Do **not** repeat January.
+
+Next exact action is a **READ-ONLY February audit**.
+
+Historical source target:
+- **166 transactions**
+- **S/78,734.62**
+
+A current commission RPC observed before February remediation reported a different live February state, demonstrating why live production must be re-queried rather than assuming the historical baseline.
+
+### February sequence
+
+1. Retrieve the original February CSV from the user's private ChatGPT File Library.
+2. Query current February `aos_ventas`.
+3. Recompute daily counts/totals and full transaction fingerprinting.
+4. Build semantic one-to-one source <-> DB matching.
+5. Classify exact/update/missing/extra/split/fused/identity-review cases.
+6. Build February identity matrix using canonical ASCENDA identity priority.
+7. Infer patient-day-branch visits using the approved attendance rule.
+8. Cross-check Agenda and existing attendance states.
+9. Persist the read-only February matrix into the reconciliation ledger.
+10. Produce the February Impact Report.
+11. Only after the Impact Report: snapshot -> guarded writes -> exact financial post-check -> 100% visit representation.
+12. Validate Commissions + Marketing.
+13. Mark February validated and update this handoff before March.
+
+## 11. Monthly definition of done
+
+A month is validated only when:
 - source row count = DB row count
 - source monthly total = DB monthly total
-- daily row counts match
-- daily totals match
-- every source transaction has one assigned DB transaction or an explicitly approved representation rule
-- no unexplained extra DB rows
-- treatment/description/payment/amount/status/adviser/professional/site reconciled for unambiguous rows
-- identity anomalies do not overwrite cleaner ASCENDA identity
-- downstream Sales/Commissions/Marketing checked for regressions
-- rollback evidence retained
+- daily row counts and totals reconcile
+- each source financial transaction has a deterministic DB representation
+- no unexplained extras remain
+- operational fields reconcile for unambiguous rows
+- cleaner canonical identity is not degraded
+- every certified patient visit is represented in Agenda as attended/effective under the approved rule
+- downstream Commissions/Marketing are checked
+- reconciliation ledger and rollback evidence are complete
+- handoff is updated before moving to the next month
 
-## 13. Next recommended action
+## 12. Next recommended action
 
-Continue **January only**. Do not start February until January is validated and this file is updated accordingly.
-
-The next session should retrieve the January CSV from Library, re-query production because data may have changed since this handoff, and continue the semantic reconciliation. Do not rely on cached totals if new imports have occurred.
+**Start February read-only audit. No February writes before its Impact Report.**
