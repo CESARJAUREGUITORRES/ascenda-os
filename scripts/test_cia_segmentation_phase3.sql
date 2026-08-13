@@ -60,15 +60,20 @@ begin
   if n <> 0 then raise exception 'P3 invalid value score rows=%', n; end if;
 end $$;
 
--- G06: Diamond guardrails must hold.
+-- G06: Diamond guardrails must match the selected policy, not hardcoded test values.
 do $$
 declare n int;
 begin
   select count(*) into n
   from public.aos_cia_customer_segments_v1 s
   join public.aos_cia_commercial_facts_v1 f using(contact_key)
+  cross join public.aos_cia_current_segmentation_policy_v1 p
   where s.value_tier='DIAMANTE'
-    and (s.value_score < 8 or f.revenue_lifetime < 5000 or f.sale_count < 5);
+    and (
+      s.value_score < (p.rules#>>'{value_tier,diamond_min_score}')::integer
+      or f.revenue_lifetime < (p.rules#>>'{value_tier,diamond_min_revenue}')::numeric
+      or f.sale_count < (p.rules#>>'{value_tier,diamond_min_sales}')::integer
+    );
   if n <> 0 then raise exception 'P3 invalid DIAMANTE rows=%', n; end if;
 end $$;
 
@@ -84,17 +89,18 @@ begin
   if n <> 0 then raise exception 'P3 lifecycle buyer/prospect mismatch rows=%', n; end if;
 end $$;
 
--- G08: disqualified requires terminal latest state after/no newer lead.
+-- G08: disqualified requires a policy-defined terminal state after/no newer lead.
 do $$
 declare n int;
 begin
   select count(*) into n
   from public.aos_cia_customer_segments_v1 s
   join public.aos_cia_commercial_facts_v1 f using(contact_key)
+  cross join public.aos_cia_current_segmentation_policy_v1 p
   where s.lifecycle='DISQUALIFIED_PROSPECT'
     and not (
       f.sale_count=0
-      and f.latest_call_status in ('NO LE INTERESA','SACAR DE LA BASE')
+      and (p.rules#>'{lifecycle,terminal_call_statuses}') ? coalesce(f.latest_call_status,'')
       and (f.last_lead_at is null or f.last_call_at >= f.last_lead_at)
     );
   if n <> 0 then raise exception 'P3 invalid disqualified rows=%', n; end if;
