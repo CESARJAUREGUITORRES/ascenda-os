@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   patch-sales-panel:
-    if: ${{ !contains(github.event.head_commit.message, '[sales-panel-patched]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,9 +17,14 @@ jobs:
           ref: feat/sales-top-products-services-20260813
           fetch-depth: 0
 
-      - name: Patch admin-sales.html
+      - name: Patch, validate and commit admin-sales.html
         shell: bash
         run: |
+          if git log -1 --pretty=%B | grep -Fq '[sales-panel-patched]'; then
+            echo 'Patch already applied; nothing to do.'
+            exit 0
+          fi
+
           python - <<'PY'
           from pathlib import Path
           import re
@@ -114,15 +118,15 @@ jobs:
               'load-reset'
           )
 
-          old_call = "      renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);"
-          if text.count(old_call) != 1:
-              raise SystemExit(f'Expected 1 annual render call, found {text.count(old_call)}')
-          text = text.replace(old_call, "      renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);", 1)
+          annual_call = "      renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);"
+          if text.count(annual_call) != 1:
+              raise SystemExit(f'Expected 1 annual render call, found {text.count(annual_call)}')
+          text = text.replace(annual_call, "      renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);", 1)
 
-          old_call2 = "    renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);"
-          if text.count(old_call2) != 1:
-              raise SystemExit(f'Expected 1 monthly render call, found {text.count(old_call2)}')
-          text = text.replace(old_call2, "    renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);", 1)
+          month_call = "    renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);"
+          if text.count(month_call) != 1:
+              raise SystemExit(f'Expected 1 monthly render call, found {text.count(month_call)}')
+          text = text.replace(month_call, "    renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);", 1)
 
           ranking_code = r'''function normSalesLabel(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
@@ -221,9 +225,6 @@ function vsMore(){VS.detailLimit+=VS.detailStep;if(VS.data)renderDet(VS.data.det
           print('Patched', path)
           PY
 
-      - name: Validate JavaScript and diff
-        shell: bash
-        run: |
           python - <<'PY'
           from pathlib import Path
           import re
@@ -233,14 +234,12 @@ function vsMore(){VS.detailLimit+=VS.detailStep;if(VS.data)renderDet(VS.data.det
               raise SystemExit('No script block found')
           Path('/tmp/admin-sales.js').write_text('\n'.join(scripts),encoding='utf-8')
           PY
+
           node --check /tmp/admin-sales.js
           git diff --check
           git diff --stat
           git diff -- app/public/admin-sales.html
 
-      - name: Commit patch
-        shell: bash
-        run: |
           if git diff --quiet; then
             echo 'No changes to commit'
             exit 0
