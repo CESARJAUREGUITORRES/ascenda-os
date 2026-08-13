@@ -20,13 +20,14 @@ const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'
 const VERIFY_TOKEN = 'ascendaos_zivital_2026'
 
-function sbPost(endpoint, body) {
+function sbPost(endpoint, body, method) {
   const url = new URL(SB_URL + endpoint)
+  const httpMethod = String(method || 'POST').toUpperCase() === 'PATCH' ? 'PATCH' : 'POST'
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body)
     const req = https.request({
-      hostname: url.hostname, path: url.pathname,
-      method: 'POST',
+      hostname: url.hostname, path: url.pathname + url.search,
+      method: httpMethod,
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }
     }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(res.statusCode)) })
     req.on('error', reject)
@@ -2856,7 +2857,6 @@ function executeAction(agent, task, queryResult) {
 
   // Guardar alerta en panel (siempre)
   function saveEmailAlerta(tipo, template, titulo, detalle, destinatario, resendId) {
-    sbFetch('/rest/v1/aos_email_alertas').catch(function(){}) // ensure table exists
     var body = JSON.stringify({ tipo: tipo, template: template, titulo: titulo, detalle: detalle || '', destinatario: destinatario || '', resend_id: resendId || '' })
     var url = new URL(SB_URL + '/rest/v1/aos_email_alertas')
     var req = https.request({ hostname: url.hostname, path: url.pathname, method: 'POST',
@@ -3195,7 +3195,7 @@ function executeAction(agent, task, queryResult) {
   // ─── CARTERO: Motor flujos multi-paso ───────────
   if (accion === 'procesar_flujos') {
     // Buscar ejecuciones activas cuyo proximo_envio ya pasó
-    return sbFetch('/rest/v1/aos_email_flujo_ejecuciones?estado=eq.activo&proximo_envio=lte.' + new Date().toISOString() + '&select=*&limit=20')
+    return sbFetch('/rest/v1/aos_email_flujo_ejecuciones?estado=eq.activo&flujo_id=not.is.null&proximo_envio=lte.' + new Date().toISOString() + '&select=*&limit=20')
       .then(function(ejecuciones) {
         if (!ejecuciones || !ejecuciones.length) {
           console.log('[FLUJOS] Sin ejecuciones pendientes')
@@ -3317,6 +3317,11 @@ function _dispararFlujo(triggerTipo, email, pacienteId, variables) {
 }
 
 function _procesarPasoFlujo(agent, ej) {
+  // Defensa adicional: una ejecución activa sin flujo padre es inválida.
+  if (!ej || !ej.flujo_id) {
+    console.warn('[FLUJOS] Ejecución inválida sin flujo_id; se omite:', ej && ej.id ? ej.id : 'sin-id')
+    return Promise.resolve()
+  }
   // Cargar flujo padre para obtener pasos
   return sbFetch('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id + '&select=nombre,pasos')
     .then(function(flujos) {
