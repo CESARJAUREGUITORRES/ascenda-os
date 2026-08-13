@@ -1,0 +1,101 @@
+name: ASCENDA Sales Intelligence Phase 1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/admin-sales-intelligence.html'
+      - 'app/public/admin-sales-intelligence-staging.html'
+      - 'ci/phase1-sales-intelligence/**'
+      - '.github/workflows/sales-intelligence-phase1.yml'
+  push:
+    branches:
+      - 'feat/sales-intelligence-v2-phase1-canary'
+    paths:
+      - 'app/public/admin-sales-intelligence.html'
+      - 'app/public/admin-sales-intelligence-staging.html'
+      - 'ci/phase1-sales-intelligence/**'
+      - '.github/workflows/sales-intelligence-phase1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sales-intelligence-phase1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui-fixture:
+    name: UI fixture / runtime smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package.json
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm install --no-audit --no-fund
+
+      - name: Validate UI fixture contract
+        run: python3 ci/phase1-sales-intelligence/ui_contract.py
+
+      - name: Validate embedded script syntax
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          files=['app/public/admin-sales-intelligence.html','app/public/admin-sales-intelligence-staging.html']
+          out=[]
+          for src in files:
+              text=Path(src).read_text(encoding='utf-8')
+              scripts=re.findall(r'<script[^>]*>(.*?)</script>',text,re.S|re.I)
+              if not scripts:
+                  raise SystemExit(f'No scripts found in {src}')
+              for i,s in enumerate(scripts):
+                  p=Path(f'/tmp/{Path(src).stem}-{i}.js')
+                  p.write_text(s,encoding='utf-8')
+                  out.append(str(p))
+          Path('/tmp/phase1-js-files.txt').write_text('\n'.join(out))
+          PY
+          while IFS= read -r f; do node --check "$f"; done </tmp/phase1-js-files.txt
+
+      - name: Start ASCENDA runtime and verify health
+        working-directory: app
+        run: |
+          set -euo pipefail
+          PORT=4173 node server.js >/tmp/ascenda-phase1-server.log 2>&1 &
+          echo $! >/tmp/ascenda-phase1-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/health >/dev/null; then
+              echo 'PHASE1_RUNTIME_HEALTH=PASS'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ascenda-phase1-server.log
+          exit 1
+
+      - name: HTTP shadow surface gate
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence.html >/tmp/si.html
+          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence-staging.html >/tmp/si-staging.html
+          grep -q 'Sales Intelligence V2' /tmp/si.html
+          grep -q 'ASCENDA Sales Intelligence' /tmp/si-staging.html
+          grep -q 'window.__ASCENDA_STAGING_FIXTURE__=true' /tmp/si-staging.html
+          echo 'PHASE1_HTTP_SHADOW=PASS'
+
+      - name: Stop ASCENDA runtime
+        if: always()
+        run: |
+          if [ -f /tmp/ascenda-phase1-server.pid ]; then kill $(cat /tmp/ascenda-phase1-server.pid) 2>/dev/null || true; fi
