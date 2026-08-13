@@ -1,13 +1,13 @@
 # ASCENDA OS — COMMERCIAL INTELLIGENCE & AUDIENCE OS
 ## PHASE 0 — BASELINE & CONTRACTS
 
-**Estado:** IN PROGRESS → objetivo de cierre 100% documental/read-only  
+**Estado:** `100_COMPLETE` — 100% cerrado y verificado  
 **Fecha:** 2026-08-13  
 **Baseline GitHub:** `82d5115fe240b97464850d942b368a982e8e2258`  
 **Rama:** `audit/commercial-intelligence-phase0-20260813`  
 **Supabase:** `ituyqwstonmhnfshnaqz`  
 **Documento maestro:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`  
-**Regla:** esta fase NO modifica runtime, DDL, RLS, datos operativos ni colas productivas.
+**Regla:** esta fase NO modificó runtime, DDL, RLS, datos operativos ni colas productivas.
 
 ---
 
@@ -25,7 +25,7 @@ Cerrar todos los contratos necesarios para empezar Fase 1 sin ambigüedad:
 8. feature flags / rollout / rollback;
 9. continuidad persistente de fase.
 
-La salida de Fase 0 debe permitir que otro chat/agente continúe el proyecto leyendo GitHub + `aos_memory`, sin reconstruir decisiones históricas.
+La salida de Fase 0 permite que otro chat/agente continúe el proyecto leyendo GitHub + `aos_memory`, sin reconstruir decisiones históricas.
 
 ---
 
@@ -41,9 +41,9 @@ La salida de Fase 0 debe permitir que otro chat/agente continúe el proyecto ley
 | P0-G06 | Permisos y ownership | matriz ADMIN/ASESOR y gap actual | PASS |
 | P0-G07 | Performance baseline | EXPLAIN ANALYZE de consultas representativas | PASS |
 | P0-G08 | Frontend contract | design tokens + estados + navegación + modales | PASS |
-| P0-G09 | Rollout/continuidad | flags, phase gate, rollback y `aos_memory` | PASS al registrar cierre |
+| P0-G09 | Rollout/continuidad | flags, phase gate, rollback y `aos_memory` | PASS |
 
-**Regla de cierre:** la fase solo pasa a `100% COMPLETE` cuando P0-G01…P0-G09 estén en PASS y el estado sea persistido en `aos_memory`.
+**Cierre:** P0-G01…P0-G09 verificados. Checkpoint persistido en `aos_memory` el 2026-08-13. Fase 1 autorizada como `READY`.
 
 ---
 
@@ -336,43 +336,50 @@ Los flags se activarán por fase; no es necesario que todos sean variables de en
 
 # 12. CHECKPOINT DE CONTINUIDAD
 
-En `aos_memory` deben existir al menos:
+Checkpoint verificado en `aos_memory`:
 
-- identidad del subproyecto;
-- documento canónico;
-- rama/commit de trabajo;
-- fase actual;
-- porcentaje actual;
-- gates PASS/FAIL;
-- siguiente acción;
-- último resultado validado;
-- bloqueadores si existen.
-
-Al cerrar Fase 0:
-
-`FASE 0 = 100% COMPLETE`  
-`FASE 1 = READY / Identity Resolver`
+- `cia_phase0_status = 100_COMPLETE`;
+- `cia_phase0_progress = 100`;
+- `cia_phase0_gates = P0-G01..P0-G09 PASS`;
+- `cia_phase0_branch = audit/commercial-intelligence-phase0-20260813`;
+- artefactos y baseline medido registrados;
+- `cia_phase1_status = READY`;
+- `cia_v3_current_phase = FASE 0 100_COMPLETE / FASE 1 READY`.
 
 ---
 
 # 13. IMPACT REPORT DE FASE 0
 
 **Riesgo:** LOW/MEDIUM documental y lectura.  
-**Writes productivos:** ninguno.  
+**Writes productivos:** únicamente checkpoint de continuidad en `aos_memory`, explícitamente solicitado; ningún dato comercial/operativo alterado.  
 **DDL:** ninguno.  
 **RLS/Auth:** ninguno.  
 **Runtime:** ninguno.  
-**Rollback:** eliminar/revertir únicamente documentación de rama; producción no cambia.  
+**Rollback:** revertir documentación/checkpoint; producción funcional no cambia.  
 **Blast radius:** cero sobre operación clínica/comercial.
 
 ---
 
-# 14. SALIDA ESPERADA
+# 14. ARTEFACTOS CERRADOS
 
-Fase 0 está lista para declararse 100% cuando existan en esta rama:
+- `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
+- `docs/control/commercial-intelligence/PHASE_00_BASELINE_CONTRACTS.md`
+- `docs/control/commercial-intelligence/FACT_REGISTRY_V1.md`
+- `docs/control/commercial-intelligence/FRONTEND_CONTRACT_V1.md`
+- `docs/control/commercial-intelligence/ROADMAP_STATUS.md`
+- `scripts/audit_commercial_intelligence_phase0.sql`
+- checkpoint `ASCENDA_CIA_PHASES` / `ASCENDA_CIA_V3` en `aos_memory`
 
-- este documento;
-- `FACT_REGISTRY_V1.md`;
-- `FRONTEND_CONTRACT_V1.md`;
-- `scripts/audit_commercial_intelligence_phase0.sql`;
-- checkpoint `aos_memory` verificado.
+---
+
+# 15. RESULTADO DE FASE
+
+## `FASE 0 = 100% COMPLETE`
+
+No hay gates pendientes.
+
+## Siguiente fase autorizada
+
+`FASE 1 — Identity Resolver = READY`
+
+Objetivo inicial de Fase 1: resolver identidad read-only con `contact_key`, paciente canónico, `FUSIONADO`, conflictos, source flags y preparación para aliases/contact_id; sin reescribir `numero_limpio` ni fusionar datos existentes.
