@@ -26,8 +26,8 @@ Una fase solo puede pasar a `100_COMPLETE` cuando todos sus gates tienen evidenc
 
 | # | Fase | Estado | Progreso |
 |---:|---|---|---:|
-| 0 | Baseline & Contracts | `VALIDATING` | 95% |
-| 1 | Identity Resolver | `NOT_STARTED` | 0% |
+| 0 | Baseline & Contracts | `100_COMPLETE` | 100% |
+| 1 | Identity Resolver | `READY` | 0% |
 | 2 | Commercial Facts | `NOT_STARTED` | 0% |
 | 3 | Segmentation Engine | `NOT_STARTED` | 0% |
 | 4 | Audience Resolver | `NOT_STARTED` | 0% |
@@ -60,14 +60,33 @@ Una fase solo puede pasar a `100_COMPLETE` cuando todos sus gates tienen evidenc
 | P0-G06 Permisos/ownership | PASS |
 | P0-G07 Performance baseline | PASS |
 | P0-G08 Frontend contract | PASS |
-| P0-G09 Continuidad/checkpoint | PENDING FINAL WRITE |
+| P0-G09 Continuidad/checkpoint | PASS |
 
-Cuando P0-G09 pase a PASS:
+**Fase 0 cerrada al 100% el 2026-08-13.**
 
-- Fase 0 → `100_COMPLETE` / 100%;
-- Fase 1 → `READY` / 0%;
-- `current_phase` en `aos_memory` → FASE 1 READY;
-- el siguiente trabajo inicia en Identity Resolver read-only.
+No hubo cambios de runtime, DDL, RLS ni datos comerciales/operativos. El único write en Supabase fue el checkpoint de continuidad solicitado en `aos_memory`.
+
+---
+
+# SIGUIENTE FASE
+
+## FASE 1 — Identity Resolver = READY
+
+Objetivo:
+
+- `contact_key` V1;
+- paciente canónico;
+- exclusión lógica de `FUSIONADO` como identidad independiente;
+- `identity_conflict`;
+- `source_flags`;
+- normalización read-only de claves legacy;
+- preparación para `contact_id + aliases`;
+- tests contra el universo vivo;
+- benchmark;
+- feature flag `AOS_CIA_IDENTITY_ENABLED`;
+- cero reescritura masiva de `numero_limpio`.
+
+Fase 1 debe iniciar con su propio Impact Report y gates antes de cualquier implementación.
 
 ---
 
