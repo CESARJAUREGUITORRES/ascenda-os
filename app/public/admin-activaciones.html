@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Activaciones · ASCENDA</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin-activaciones.css">
+</head>
+<body>
+<header class="top"><div class="brand">ASCENDA <span>OS</span></div><span class="phase">COMMERCIAL INTELLIGENCE · FASE 7</span><div class="spacer"></div><button class="top-btn" id="back-btn">← Bases & Audiencias</button><button class="top-btn" id="lock-btn">🔒 Bloquear</button></header>
+<main class="wrap">
+<div class="hero"><div><h1>Activaciones</h1><p>Uso trazable de una audiencia versionada · snapshots inmutables · sin ejecución de canal ni asignación.</p></div><button class="btn primary" id="new-btn">+ Nueva activación</button></div>
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+<div class="info phase-note"><b>Fase 7:</b> Canal es contexto declarado. No significa elegibilidad, consentimiento, disponibilidad ni envío. BATCH congela miembros; DYNAMIC recalcula miembros desde la versión fijada. Los hechos mostrados son LIVE.</div>
+<nav class="tabs"><button class="tab act" data-tab="activations">Activaciones</button><button class="tab" data-tab="snapshots">Snapshots</button></nav>
+<section id="kpis" class="grid kpis"></section>
+<section id="tab-activations"><div class="card"><div class="toolbar"><div><h2 class="section-title">Historial de activaciones</h2><div class="muted">DRAFT · ACTIVE · PAUSED · COMPLETED · CANCELLED</div></div><div class="spacer"></div><label class="muted"><input type="checkbox" id="terminal" checked> Mostrar terminales</label><button class="btn ghost" id="refresh-btn">Actualizar</button></div><div id="activation-list"></div></div></section>
+<section id="tab-snapshots" class="hidden"><div class="card"><div class="toolbar"><div><h2 class="section-title">Snapshots inmutables</h2><div class="muted">Membresía congelada con SHA-256 y versión exacta.</div></div><div class="spacer"></div><button class="btn ghost" id="refresh-snap-btn">Actualizar</button></div><div id="snapshot-list"></div></div></section>
+</main>
+<div id="modal" class="modal-bg hidden"></div>
+<script src="/admin-activaciones.js"></script>
+</body></html>
