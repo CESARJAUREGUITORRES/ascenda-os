@@ -36,8 +36,20 @@
 .kcard-l{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8;margin-top:3px;}
 .kcard-s{font-size:9px;color:#6B7BA8;margin-top:2px;}
 
-/* Middle row: Metodos + Top Asesores + Top Tratamientos */
-.vs-mid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+/* Middle row: Metodos + Top Asesores */
+.vs-mid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.vs-rankings{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rkx-row{display:grid;grid-template-columns:minmax(120px,1.1fr) minmax(90px,1fr) 88px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F0F4FC;}
+.rkx-row:last-child{border-bottom:none;}
+.rkx-name{font-size:10px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rkx-sub{font-size:8px;color:#9AAAC8;margin-top:1px;}
+.rkx-bar{height:7px;background:#E2E8F0;border-radius:4px;overflow:hidden;}
+.rkx-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#0A4FBF,#00C9A7);}
+.rkx-fill-prod{background:linear-gradient(90deg,#7C3AED,#A78BFA);}
+.rkx-val{text-align:right;font-family:'Exo 2',sans-serif;font-size:10px;font-weight:800;color:#071D4A;}
+.rkx-note{font-size:8px;color:#9AAAC8;margin-top:8px;padding-top:7px;border-top:1px solid #F0F4FC;}
+.more-btn{padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:#fff;color:#0A4FBF;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans';}
+.more-btn:hover{background:#F8FAFF;border-color:#0A4FBF;}
 .ct{font-family:'Exo 2',sans-serif;font-weight:800;font-size:12px;letter-spacing:.4px;color:#0D1B3E;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 /* Metodos */
 .mp-tabs{display:flex;gap:4px;margin-bottom:8px;}
@@ -97,8 +109,8 @@
 .cfg-add:hover{border-color:#0A4FBF;background:#F8FAFF;}
 .met-row{display:grid;grid-template-columns:1fr 100px 70px 50px 28px;gap:6px;align-items:center;margin-bottom:6px;font-size:10px;}
 .met-hd{font-size:8px;font-weight:700;color:#9AAAC8;text-transform:uppercase;letter-spacing:.5px;}
-@media(max-width:1100px){.vs-top{grid-template-columns:1fr 1fr;}.vs-mid{grid-template-columns:1fr 1fr;}}
-@media(max-width:800px){.krow{grid-template-columns:repeat(4,1fr);}.vs-top{grid-template-columns:1fr;}.vs-mid{grid-template-columns:1fr;}}
+@media(max-width:1100px){.vs-top{grid-template-columns:1fr 1fr;}.vs-mid{grid-template-columns:1fr 1fr;}.vs-rankings{grid-template-columns:1fr 1fr;}}
+@media(max-width:800px){.krow{grid-template-columns:repeat(4,1fr);}.vs-top{grid-template-columns:1fr;}.vs-mid{grid-template-columns:1fr;}.vs-rankings{grid-template-columns:1fr;}}
 </style>
 
 <div class="vs">
@@ -146,17 +158,30 @@
     <div class="kcard"><div class="kcard-v" id="k-ticket">S/0</div><div class="kcard-l">Ticket prom.</div><div class="kcard-s">por venta</div></div>
   </div>
 
-  <!-- ROW 3: Metodos + Top Asesores + Top Tratamientos -->
+  <!-- ROW 3: Metodos + Top Asesores -->
   <div class="vs-mid">
     <div class="crd"><div class="ct">💳 MÉTODOS DE PAGO</div>
       <div class="mp-tabs" id="mp-tabs"></div>
       <div id="vs-metodos"><div class="ld">--</div></div>
     </div>
     <div class="crd"><div class="ct">🏆 TOP ASESORES</div><div id="vs-rank"><div class="ld">--</div></div></div>
-    <div class="crd"><div class="ct">💊 TOP TRATAMIENTOS</div><div id="vs-trat"><div class="ld">--</div></div></div>
   </div>
 
-  <!-- ROW 4: Detail table -->
+  <!-- ROW 4: Top Servicios + Top Productos -->
+  <div class="vs-rankings">
+    <div class="crd">
+      <div class="ct">🩺 TOP SERVICIOS <span style="margin-left:auto;font-size:8px;color:#9AAAC8;font-family:'DM Sans';font-weight:600;">por facturación</span></div>
+      <div id="vs-top-serv"><div class="ld">--</div></div>
+      <div class="rkx-note">Servicios específicos. La categoría OTROS sigue incluida en facturación general, pero no compite en este ranking.</div>
+    </div>
+    <div class="crd">
+      <div class="ct">🧴 TOP PRODUCTOS <span style="margin-left:auto;font-size:8px;color:#9AAAC8;font-family:'DM Sans';font-weight:600;">por facturación</span></div>
+      <div id="vs-top-prod"><div class="ld">--</div></div>
+      <div class="rkx-note">Solo ventas COMPRA DE PRODUCTO. El nombre se consolida desde DESCRIPCIÓN; se muestran ventas, no unidades físicas.</div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Detail table -->
   <div class="crd">
     <div class="chd">
       <div class="ct" style="margin:0;">📋 DETALLE DE VENTAS</div>
@@ -170,6 +195,7 @@
     <tbody id="vs-tb"><tr><td colspan="10" class="ld">Cargando...</td></tr></tbody>
     <tfoot><tr style="border-top:2px solid #00C9A7;"><td colspan="5" style="font-weight:700;font-size:11px;color:#0D1B3E;">TOTAL</td><td style="font-weight:800;font-family:'Exo 2';color:#0D1B3E;" id="vs-tft">--</td><td colspan="4"></td></tr></tfoot>
     </table></div>
+    <div id="vs-more" style="text-align:center;margin-top:10px;"></div>
   </div>
 </div>
 
@@ -209,7 +235,7 @@ function el(id){return document.getElementById(id);}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var CL={'MIREYA':'#3B82F6','WILMER':'#00C9A7','RUVILA':'#16A34A','SRA CARMEN':'#F59E0B','DRA CAROLINA':'#EF4444','DRA PAMELA':'#EC4899','CESAR':'#8B5CF6'};
-var VS={data:null,filtro:'all',modo:'mes',mpSede:'all'};
+var VS={data:null,filtro:'all',modo:'mes',mpSede:'all',detailLimit:100,detailStep:100};
 
 (function(){var m=new Date().getMonth()+1;el('vs-mes').value=String(m);el('vs-anio').value=String(new Date().getFullYear());vsLoad();})();
 
@@ -221,7 +247,7 @@ function setModo(btn){
 function vsLoad(){
   var mes=Number(el('vs-mes').value),anio=Number(el('vs-anio').value);
   var sede=el('vs-sede').value,asesor=el('vs-asesor').value;
-  VS.filtro='all';VS.mpSede='all';
+  VS.filtro='all';VS.mpSede='all';VS.detailLimit=100;
   document.querySelectorAll('.ftab').forEach(function(t){t.classList.toggle('act',t.getAttribute('data-f')==='all');});
   
   if(VS.modo==='anio'){
@@ -229,7 +255,7 @@ function vsLoad(){
     rpc('aos_ventas_admin_anio',{p_anio:anio,p_sede:sede,p_asesor:asesor},function(d){
       if(!d)return;VS.data=d;
       renderTop(d);renderKPIs(d);renderMetodos(d);
-      renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
+      renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);
       renderDet(d.detalle||[],'all');
     });
     return;
@@ -261,7 +287,7 @@ function vsLoad(){
     
     VS.data=d;
     renderTop(d);renderKPIs(d);renderMetodos(d);
-    renderRank(d.porAsesor||[],d.noAplica);renderTrat(d.porTratamiento||[]);
+    renderRank(d.porAsesor||[],d.noAplica);renderCategoryRankings(d.detalle||[]);
     renderDet(d.detalle||[],'all');
   });
 }
@@ -338,23 +364,66 @@ function renderRank(asesores,noAplica){
   box.innerHTML=html;
 }
 
-function renderTrat(trats){
-  var box=el('vs-trat');if(!trats.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
-  var mx=parseFloat(trats[0].total||1);
-  box.innerHTML=trats.map(function(t){
-    var val=parseFloat(t.total||0);
-    var pct=Math.round(val/mx*100);
-    return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;"><div style="width:110px;font-size:9px;font-weight:700;color:#0D1B3E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">'+h((t.tratamiento||'').substring(0,16))+'</div><div style="flex:1;background:#E2E8F0;border-radius:3px;height:8px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#00C9A7,#0A4FBF);border-radius:3px;"></div></div><div style="min-width:55px;text-align:right;font-size:9px;font-weight:800;color:#071D4A;">S/'+Math.round(val)+'</div></div>';
+function normSalesLabel(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+}
+function canonProductName(s){
+  var x=normSalesLabel(s),c=x.replace(/[^A-Z0-9]/g,'');
+  if(!x)return '';
+  if(x.indexOf('BEAUTY MAKER')>=0||c.indexOf('BEAUTYMAKER')>=0)return 'BEAUTY MAKER';
+  if(c.indexOf('LIFTINGB')>=0||c.indexOf('LIFTINB')>=0)return 'LIFTING B';
+  if(c.indexOf('SKINREGENERATION')>=0)return 'SKIN REGENERATION';
+  if(x.indexOf('ASTAXANTINA')>=0)return 'ASTAXANTINA';
+  if(x.indexOf('REDUFAST')>=0)return 'REDUFAST';
+  if(x.indexOf('HYDRASHIELD')>=0||x.indexOf('HIDRASHIELD')>=0)return 'HYDRASHIELD';
+  if(x.indexOf('ULTRAGLOW')>=0)return 'ULTRAGLOW';
+  if(x.indexOf('SPRAY')>=0&&x.indexOf('MINOX')>=0)return 'SPRAY MINOX';
+  if(c.indexOf('NEUROVITAL')>=0)return 'NEUROVITAL';
+  if(x.indexOf('ZINC')>=0)return 'ZINC';
+  if(x.indexOf('ULTRA EYE')>=0)return 'ULTRA EYES';
+  if(x.indexOf('RETINAL INTEN')>=0)return 'RETINAL INTENSE';
+  return x.replace(/\s*\+\s*DELIVERY.*$/,'').trim();
+}
+function rankRows(map){
+  return Object.keys(map).map(function(k){return{name:k,n:map[k].n,total:map[k].total};}).sort(function(a,b){return b.total-a.total;}).slice(0,8);
+}
+function renderCategoryRankings(rows){
+  var serv={},prod={},servBase=0,prodBase=0;
+  (rows||[]).forEach(function(v){
+    var m=parseFloat(v.monto||0);if(!isFinite(m))m=0;
+    if(v.tipo==='SERVICIO'){
+      servBase+=m;
+      var s=normSalesLabel(v.tratamiento||'');
+      if(!s||s==='OTROS')return;
+      if(!serv[s])serv[s]={n:0,total:0};serv[s].n++;serv[s].total+=m;
+    }else if(v.tipo==='PRODUCTO'&&normSalesLabel(v.tratamiento)==='COMPRA DE PRODUCTO'){
+      var p=canonProductName(v.descripcion||'');if(!p)return;
+      prodBase+=m;if(!prod[p])prod[p]={n:0,total:0};prod[p].n++;prod[p].total+=m;
+    }
+  });
+  renderRankList('vs-top-serv',rankRows(serv),servBase,false);
+  renderRankList('vs-top-prod',rankRows(prod),prodBase,true);
+}
+function renderRankList(id,items,base,isProd){
+  var box=el(id);if(!box)return;
+  if(!items.length){box.innerHTML='<div class="ld">Sin datos</div>';return;}
+  var max=items[0].total||1;
+  box.innerHTML=items.map(function(x,i){
+    var w=Math.max(4,Math.round((x.total/max)*100));
+    var share=base>0?Math.round((x.total/base)*100):0;
+    return '<div class="rkx-row"><div><div class="rkx-name" title="'+h(x.name)+'">'+(i+1)+'. '+h(x.name)+'</div><div class="rkx-sub">'+x.n+' ventas · '+share+'% categoría</div></div><div class="rkx-bar"><div class="rkx-fill '+(isProd?'rkx-fill-prod':'')+'" style="width:'+w+'%"></div></div><div class="rkx-val">S/'+fmt(x.total)+'</div></div>';
   }).join('');
 }
 
 function renderDet(rows,filtro){
   var f=filtro==='all'?rows:rows.filter(function(r){return(r.tipo||'')===filtro;});
-  var tb=el('vs-tb');el('vs-cnt').textContent=f.length+' registros';
-  if(!f.length){tb.innerHTML='<tr><td colspan="10" class="ld">Sin ventas en este período</td></tr>';el('vs-tft').textContent='S/0';return;}
-  var tot=0;
-  tb.innerHTML=f.map(function(v){
-    var m=parseFloat(v.monto||0);tot+=m;
+  var tb=el('vs-tb');
+  var visible=f.slice(0,VS.detailLimit);
+  el('vs-cnt').textContent=(visible.length<f.length?visible.length+' de ':'')+f.length+' registros';
+  if(!f.length){tb.innerHTML='<tr><td colspan="10" class="ld">Sin ventas en este período</td></tr>';el('vs-tft').textContent='S/0';if(el('vs-more'))el('vs-more').innerHTML='';return;}
+  var tot=f.reduce(function(s,v){return s+parseFloat(v.monto||0);},0);
+  tb.innerHTML=visible.map(function(v){
+    var m=parseFloat(v.monto||0);
     var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();
     var epC=v.estado_pago==='PAGO COMPLETO'?'ep-ok':v.estado_pago==='ADELANTO'?'ep-ad':'ep-pen';
     var epL=v.estado_pago==='PAGO COMPLETO'?'Completo':v.estado_pago==='ADELANTO'?'Adelanto':(v.estado_pago||'--');
@@ -370,8 +439,13 @@ function renderDet(rows,filtro){
       '<td style="font-size:9px;color:#6B7BA8;">'+h((v.sede||'').substring(0,6))+'</td></tr>';
   }).join('');
   el('vs-tft').textContent='S/'+fmt(tot);
+  var more=el('vs-more');if(more){
+    if(f.length>VS.detailLimit){var rem=f.length-VS.detailLimit;more.innerHTML='<button class="more-btn" onclick="vsMore()">Mostrar '+Math.min(VS.detailStep,rem)+' más · quedan '+rem+'</button>';}
+    else{more.innerHTML=f.length>VS.detailStep?'<span style="font-size:9px;color:#9AAAC8;">'+f.length+' registros cargados</span>':'';}
+  }
 }
-function vsFlt(btn){document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');VS.filtro=btn.getAttribute('data-f');if(VS.data)renderDet(VS.data.detalle||[],VS.filtro);}
+function vsFlt(btn){document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');VS.filtro=btn.getAttribute('data-f');VS.detailLimit=100;if(VS.data)renderDet(VS.data.detalle||[],VS.filtro);}
+function vsMore(){VS.detailLimit+=VS.detailStep;if(VS.data)renderDet(VS.data.detalle||[],VS.filtro);}
 
 // ═══ CONFIG MODAL ═══
 function openCfg(){el('m-cfg').classList.add('open');renderCfgMetas();renderCfgMet();}
