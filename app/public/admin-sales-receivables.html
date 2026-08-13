@@ -1,0 +1,36 @@
+<!-- ASCENDA OS — Sales Intelligence V2 / Receivables preview -->
+<style>
+.rcv{padding:14px;display:flex;flex-direction:column;gap:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E}.rcv-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.rcv-title{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800}.rcv-sub{font-size:10px;color:#6B7BA8;margin-top:2px}.rcv-badge{font-size:9px;font-weight:800;padding:4px 8px;border-radius:20px;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.rcv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.rcv-card{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px}.rcv-main{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;border:none}.rcv-lbl{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#9AAAC8}.rcv-main .rcv-lbl{color:rgba(255,255,255,.65)}.rcv-val{font-family:'Exo 2',sans-serif;font-size:21px;font-weight:800;margin-top:5px}.rcv-note{font-size:9px;color:#6B7BA8;margin-top:4px}.rcv-main .rcv-note{color:rgba(255,255,255,.55)}.rcv-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rcv-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F0F4FC;font-size:10px}.rcv-row:last-child{border-bottom:none}.rcv-k{font-weight:700}.rcv-v{font-family:'Exo 2',sans-serif;font-weight:800}.rcv-warn{background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px;font-size:9px;color:#991B1B}.rcv-ok{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px;font-size:9px;color:#166534}.rcv-loading{text-align:center;padding:24px;color:#9AAAC8;font-size:11px}@media(max-width:1100px){.rcv-grid{grid-template-columns:repeat(3,1fr)}.rcv-two{grid-template-columns:1fr}}@media(max-width:700px){.rcv-grid{grid-template-columns:1fr 1fr}}
+</style>
+<div class="rcv">
+  <div class="rcv-hd"><div><div class="rcv-title">💼 Cartera de Adelantos y Saldos</div><div class="rcv-sub">Lectura agregada · conciliación histórica pendiente</div></div><span class="rcv-badge">NO ENVIAR COBRANZAS AÚN</span></div>
+  <div class="rcv-grid">
+    <div class="rcv-card rcv-main"><div class="rcv-lbl">Saldo confirmado</div><div class="rcv-val">S/0.00</div><div class="rcv-note">Hasta completar conciliación</div></div>
+    <div class="rcv-card"><div class="rcv-lbl">Saldo candidato</div><div class="rcv-val" id="rcv-balance">--</div><div class="rcv-note" id="rcv-partials">--</div></div>
+    <div class="rcv-card"><div class="rcv-lbl">Adelantos legacy</div><div class="rcv-val" id="rcv-adv">--</div><div class="rcv-note" id="rcv-adv-n">--</div></div>
+    <div class="rcv-card"><div class="rcv-lbl">Pipeline abierto</div><div class="rcv-val" id="rcv-pipe">--</div><div class="rcv-note" id="rcv-pipe-n">--</div></div>
+    <div class="rcv-card"><div class="rcv-lbl">Ledger de pagos</div><div class="rcv-val" id="rcv-ledger">--</div><div class="rcv-note" id="rcv-ledger-n">--</div></div>
+  </div>
+  <div class="rcv-two">
+    <div class="rcv-card"><div class="rcv-lbl" style="margin-bottom:8px">ANTIGÜEDAD DEL SALDO CANDIDATO</div><div id="rcv-age"><div class="rcv-loading">Cargando...</div></div></div>
+    <div class="rcv-card"><div class="rcv-lbl" style="margin-bottom:8px">CONTROL DE CALIDAD</div><div id="rcv-quality"><div class="rcv-loading">Cargando...</div></div></div>
+  </div>
+  <div class="rcv-warn">Los saldos de cotizaciones PAGADO_PARCIAL son candidatos de cartera, no deuda exigible certificada. Antes de recordatorios o cobranzas se deben reconciliar contra ADELANTOS, pagos posteriores y operaciones relacionadas.</div>
+</div>
+<script>
+(function(){
+  var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+  var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+  function e(id){return document.getElementById(id)}function money(n){return 'S/'+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  fetch(SB+'/rest/v1/rpc/aos_sales_receivables_summary',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:'{}'})
+    .then(function(r){if(!r.ok)throw new Error('RPC '+r.status);return r.json()}).then(function(d){
+      var p=d.partialCandidates||{},a=d.legacyAdvances||{},pi=d.pipeline||{},g=d.paymentLedger||{},an=d.annulledExcluded||{};
+      e('rcv-balance').textContent=money(p.balance);e('rcv-partials').textContent=(p.count||0)+' cotizaciones parciales';
+      e('rcv-adv').textContent=money(a.amount);e('rcv-adv-n').textContent=(a.count||0)+' registros históricos';
+      e('rcv-pipe').textContent=money(pi.balance);e('rcv-pipe-n').textContent=(pi.count||0)+' cotizaciones abiertas';
+      e('rcv-ledger').textContent=money(g.amount);e('rcv-ledger-n').textContent=(g.count||0)+' pagos en ledger';
+      e('rcv-age').innerHTML=(p.ageing||[]).map(function(x){return '<div class="rcv-row"><span class="rcv-k">'+x.bucket+' días</span><span>'+(x.count||0)+' casos</span><span class="rcv-v">'+money(x.balance)+'</span></div>'}).join('');
+      e('rcv-quality').innerHTML='<div class="rcv-row"><span class="rcv-k">Parciales registrados</span><span class="rcv-v">'+money(p.balance)+'</span></div><div class="rcv-row"><span class="rcv-k">Adelantos históricos</span><span class="rcv-v">'+money(a.amount)+'</span></div><div class="rcv-row"><span class="rcv-k">Anulados excluidos</span><span class="rcv-v">'+money(an.residualBalance)+'</span></div><div class="rcv-row"><span class="rcv-k">Pagos trazados en ledger</span><span class="rcv-v">'+money(g.amount)+'</span></div><div class="rcv-ok">Estado: conciliación requerida antes de convertir saldos candidatos en cartera confirmada.</div>';
+    }).catch(function(err){console.error(err);e('rcv-age').innerHTML='<div class="rcv-loading">RPC de cartera aún no desplegado.</div>';e('rcv-quality').innerHTML='<div class="rcv-loading">Pendiente de staging.</div>'});
+})();
+</script>
