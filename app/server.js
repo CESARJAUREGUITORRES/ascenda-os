@@ -4279,14 +4279,21 @@ function studioPublishToNetwork(plat, item, callback) {
   }
 }
 
-// PERFORMANCE GUARD: Studio mantiene publicación automática con anti-solapamiento.
+// PERFORMANCE GUARD v1.2 — Studio background hibernado por defecto.
+// El panel, tablas, assets y funciones de Studio permanecen intactos.
+// Reactivación controlada: AOS_STUDIO_BACKGROUND_ENABLED=true + redeploy.
+var STUDIO_BACKGROUND_ENABLED = /^(1|true|yes|on)$/i.test(String(process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'))
 var _studioSchedulerRunning = false
 function guardedStudioSchedulerRun() {
-  if (_studioSchedulerRunning || !bgCanRun()) return
+  if (!STUDIO_BACKGROUND_ENABLED || _studioSchedulerRunning || !bgCanRun()) return
   _studioSchedulerRunning = true
   try { studioSchedulerRun() } catch(e) { bgFail(); console.error('[STUDIO-CRON] Guard error:', e.message) }
   setTimeout(function(){ _studioSchedulerRunning = false }, 45000)
 }
-setInterval(guardedStudioSchedulerRun, 120000)
-setTimeout(guardedStudioSchedulerRun, 10000)
-console.log('[STUDIO-CRON] Scheduler protegido — revisión cada 120s')
+if (STUDIO_BACKGROUND_ENABLED) {
+  setInterval(guardedStudioSchedulerRun, 120000)
+  setTimeout(guardedStudioSchedulerRun, 10000)
+  console.log('[STUDIO-CRON] ACTIVE — revisión protegida cada 120s')
+} else {
+  console.log('[STUDIO-CRON] HIBERNATED — background OFF; panel y datos preservados')
+}
