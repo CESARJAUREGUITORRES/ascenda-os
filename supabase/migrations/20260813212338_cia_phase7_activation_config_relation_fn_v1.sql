@@ -1,0 +1,2 @@
+-- HISTORY ONLY
+-- Supabase already records version 20260813212338.
