@@ -151,11 +151,11 @@ function renderDet(rows){
   tb.innerHTML=filtered.map(function(v){
     var cli=((v.nombres||'')+' '+(v.apellidos||'')).trim();var c=parseFloat(v.comision||0);
     var epC=v.estado_pago==='PAGO COMPLETO'?'ep-ok':v.estado_pago==='ADELANTO'?'ep-ad':'ep-pen';
-    var tbC=v.asesor==='NO APLICA'?'tb-na':(v.tipo==='PRODUCTO'?'tb-p':'tb-s');
+    var tbC=v.tipo==='PRODUCTO'?'tb-p':'tb-s';
     var sedeCol=(v.sede||'').indexOf('PUEBLO')>=0?'background:#FFFBEB;color:#D97706':'background:#F0FDF4;color:#059669';
     return '<tr><td><div style="font-weight:700;font-size:10px">'+h((cli||'--').substring(0,22))+'</div><div style="font-size:8px;color:#9AAAC8">'+h(v.numero_limpio||'')+'</div></td>'+
       '<td style="font-size:9px;color:#6B7BA8">'+h((v.tratamiento||'').substring(0,16))+'</td>'+
-      '<td><span class="tb '+tbC+'">'+(v.asesor==='NO APLICA'?'N/A':v.tipo==='PRODUCTO'?'PROD':'SERV')+'</span></td>'+
+      '<td><span class="tb '+tbC+'">'+(v.tipo==='PRODUCTO'?'PROD':'SERV')+'</span></td>'+
       '<td style="font-weight:700">S/'+parseFloat(v.monto||0).toFixed(2)+'</td>'+
       '<td><span class="com-v">S/'+c.toFixed(2)+'</span></td>'+
       '<td><span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;'+sedeCol+'">'+h((v.sede||'').substring(0,10))+'</span></td>'+
