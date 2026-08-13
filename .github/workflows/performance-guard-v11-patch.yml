@@ -1,0 +1,59 @@
+name: ASCENDA Performance Guard v1.1 Patch
+
+on:
+  push:
+    branches:
+      - fix/performance-guard-v1.1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'remove v1.1 patch workflow') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/performance-guard-v1.1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Apply deterministic v1.1 patch
+        run: python3 scripts/apply_performance_guard_v11.py
+
+      - name: Validate Node syntax and invariants
+        shell: bash
+        run: |
+          node --check app/server.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('app/server.js').read_text(encoding='utf-8')
+          checks={
+            'sbPost supports method': 'function sbPost(endpoint, body, method)' in s,
+            'query string preserved': 'path: url.pathname + url.search' in s,
+            'flow worker excludes null': 'flujo_id=not.is.null' in s,
+            'flow null guard': "if (!ej || !ej.flujo_id)" in s,
+            'redundant alert probe removed': "sbFetch('/rest/v1/aos_email_alertas').catch(function(){})" not in s,
+            'default POST preserved': "const httpMethod = String(method || 'POST').toUpperCase() === 'PATCH' ? 'PATCH' : 'POST'" in s,
+          }
+          bad=[k for k,v in checks.items() if not v]
+          for k,v in checks.items(): print(('OK ' if v else 'FAIL ')+k)
+          if bad: raise SystemExit('Invariant failures: '+', '.join(bad))
+          PY
+
+      - name: Commit runtime patch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/server.js
+          git commit -m 'fix: preserve PATCH semantics and stop email-flow phantom rows'
+          git push origin HEAD:fix/performance-guard-v1.1
