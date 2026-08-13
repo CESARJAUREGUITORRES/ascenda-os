@@ -2,6 +2,8 @@
 begin;
 create or replace view public.aos_cia_audience_source_v1_1 with(security_invoker=true) as
 select a.*,
+ case when a.next_appointment_at is not null then (a.next_appointment_at-(now() at time zone 'America/Lima')::date)::integer end as days_until_next_appointment,
+ case when a.next_followup_at is not null then (a.next_followup_at-(now() at time zone 'America/Lima')::date)::integer end as days_until_next_followup,
  d.product_mapped_count,
  d.product_unresolved_count,
  d.canonical_products,
@@ -23,6 +25,8 @@ update public.aos_audience_filter_registry set
 where field_key='sales.services';
 
 insert into public.aos_audience_filter_registry(field_key,label,category,data_type,allowed_operators,source_column,description) values
+('appointments.days_until_next','Días hasta próxima cita','APPOINTMENT','integer',array['eq','gt','gte','lt','lte','between','exists','not_exists'],'days_until_next_appointment','Lima-local calendar days until next active appointment'),
+('followups.days_until_next','Días hasta próximo seguimiento','FOLLOWUP','integer',array['eq','gt','gte','lt','lte','between','exists','not_exists'],'days_until_next_followup','Lima-local calendar days until next pending follow-up'),
 ('sales.product_categories','Categorías producto','SALE','set',array['contains','contains_any','contains_all','never_contains'],'product_categories','Catalog categories from safely reconciled product sales'),
 ('sales.product_unresolved_count','Compras producto sin resolver','SALE','integer',array['eq','gt','gte','lt','lte','between'],'product_unresolved_count','Product sale rows without safe catalog reconciliation'),
 ('sales.service_categories','Categorías servicio','SALE','set',array['contains','contains_any','contains_all','never_contains'],'service_categories','High-confidence service categories'),
