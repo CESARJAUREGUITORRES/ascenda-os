@@ -11,15 +11,22 @@ Visual validation of the real Sales Intelligence V2 UI using certified fixture d
 - Environment type: Empty Environment
 - Repository: `CESARJAUREGUITORRES/ascenda-os`
 - Branch: `feat/sales-intelligence-v2-phase1-canary`
-- Root directory: `app`
-- Custom Start Command: `node staging-server.js`
+- Root directory: `/app`
+- Config as Code file: `/app/railway.staging.json`
+- Custom Start Command effective value: `node staging-server.js`
+- Healthcheck: `/health`
 - Application variables: none required
 - Public domain: enabled for the staging service
+
+## Why the explicit staging config is mandatory
+The repository already contains `app/railway.json` for the production service and that file starts `node server.js`. Railway Config as Code overrides matching dashboard values, so staging must explicitly use `/app/railway.staging.json` to prevent production runtime configuration from winning over the staging dashboard settings.
 
 ## Safety invariant
 The staging service must run `app/staging-server.js`, never `app/server.js`.
 
-The staging server is static-only and contains no Supabase URL/key, database calls, agents, background jobs or webhooks. It only accepts GET/HEAD and rejects write methods with HTTP 405. `/health` returns `mode: staging-fixture`, and responses include `X-ASCENDA-ENV: staging-fixture`.
+The staging server is static-only and contains no Supabase URL/key, database calls, agents, background jobs or webhooks. It only accepts GET/HEAD and rejects write methods with HTTP 405. `/health` must return `mode: staging-fixture`, and responses include `X-ASCENDA-ENV: staging-fixture`.
+
+If `/health` only returns `{\"status\":\"ok\"}`, staging is still running the production runtime and the gate FAILS.
 
 ## Expected certified values
 - Facturado YTD: S/555,373.27
