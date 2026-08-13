@@ -22,44 +22,38 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-
           p = Path('app/server.js')
           s = p.read_text(encoding='utf-8')
-          old = """// PERFORMANCE GUARD: Studio mantiene publicación automática con anti-solapamiento.
-var _studioSchedulerRunning = false
-function guardedStudioSchedulerRun() {
-  if (_studioSchedulerRunning || !bgCanRun()) return
-  _studioSchedulerRunning = true
-  try { studioSchedulerRun() } catch(e) { bgFail(); console.error('[STUDIO-CRON] Guard error:', e.message) }
-  setTimeout(function(){ _studioSchedulerRunning = false }, 45000)
-}
-setInterval(guardedStudioSchedulerRun, 120000)
-setTimeout(guardedStudioSchedulerRun, 10000)
-console.log('[STUDIO-CRON] Scheduler protegido — revisión cada 120s')"""
-          new = """// PERFORMANCE GUARD v1.2 — Studio background hibernado por defecto.
-// El panel, tablas, assets y funciones de Studio permanecen intactos.
-// Reactivación controlada: AOS_STUDIO_BACKGROUND_ENABLED=true + redeploy.
-var STUDIO_BACKGROUND_ENABLED = /^(1|true|yes|on)$/i.test(String(process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'))
-var _studioSchedulerRunning = false
-function guardedStudioSchedulerRun() {
-  if (!STUDIO_BACKGROUND_ENABLED || _studioSchedulerRunning || !bgCanRun()) return
-  _studioSchedulerRunning = true
-  try { studioSchedulerRun() } catch(e) { bgFail(); console.error('[STUDIO-CRON] Guard error:', e.message) }
-  setTimeout(function(){ _studioSchedulerRunning = false }, 45000)
-}
-if (STUDIO_BACKGROUND_ENABLED) {
-  setInterval(guardedStudioSchedulerRun, 120000)
-  setTimeout(guardedStudioSchedulerRun, 10000)
-  console.log('[STUDIO-CRON] ACTIVE — revisión protegida cada 120s')
-} else {
-  console.log('[STUDIO-CRON] HIBERNATED — background OFF; panel y datos preservados')
-}"""
-          if new in s:
+          marker = '// PERFORMANCE GUARD: Studio mantiene publicación automática con anti-solapamiento.'
+          final = "console.log('[STUDIO-CRON] Scheduler protegido — revisión cada 120s')"
+          if 'AOS_STUDIO_BACKGROUND_ENABLED' in s:
               print('Studio hibernation already applied')
-          elif old not in s:
-              raise SystemExit('Expected Studio scheduler block not found; refusing non-deterministic edit')
           else:
-              p.write_text(s.replace(old, new, 1), encoding='utf-8')
+              if marker not in s or final not in s:
+                  raise SystemExit('Expected Studio scheduler markers not found; refusing edit')
+              start = s.index(marker)
+              end = s.index(final, start) + len(final)
+              lines = [
+                  '// PERFORMANCE GUARD v1.2 — Studio background hibernado por defecto.',
+                  '// El panel, tablas, assets y funciones de Studio permanecen intactos.',
+                  '// Reactivación controlada: AOS_STUDIO_BACKGROUND_ENABLED=true + redeploy.',
+                  "var STUDIO_BACKGROUND_ENABLED = /^(1|true|yes|on)$/i.test(String(process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'))",
+                  'var _studioSchedulerRunning = false',
+                  'function guardedStudioSchedulerRun() {',
+                  '  if (!STUDIO_BACKGROUND_ENABLED || _studioSchedulerRunning || !bgCanRun()) return',
+                  '  _studioSchedulerRunning = true',
+                  "  try { studioSchedulerRun() } catch(e) { bgFail(); console.error('[STUDIO-CRON] Guard error:', e.message) }",
+                  '  setTimeout(function(){ _studioSchedulerRunning = false }, 45000)',
+                  '}',
+                  'if (STUDIO_BACKGROUND_ENABLED) {',
+                  '  setInterval(guardedStudioSchedulerRun, 120000)',
+                  '  setTimeout(guardedStudioSchedulerRun, 10000)',
+                  "  console.log('[STUDIO-CRON] ACTIVE — revisión protegida cada 120s')",
+                  '} else {',
+                  "  console.log('[STUDIO-CRON] HIBERNATED — background OFF; panel y datos preservados')",
+                  '}'
+              ]
+              p.write_text(s[:start] + '\n'.join(lines) + s[end:], encoding='utf-8')
               print('Studio hibernation patch applied')
           PY
 
@@ -72,7 +66,7 @@ if (STUDIO_BACKGROUND_ENABLED) {
           from pathlib import Path
           s = Path('app/server.js').read_text(encoding='utf-8')
           assert "process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'" in s
-          assert "if (STUDIO_BACKGROUND_ENABLED)" in s
+          assert 'if (STUDIO_BACKGROUND_ENABLED)' in s
           assert s.count('setInterval(guardedStudioSchedulerRun, 120000)') == 1
           print('Studio hibernation invariants OK')
           PY
