@@ -3,7 +3,7 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging funcional tras Fase 2:** `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`  
+**Staging funcional tras Fase 3:** `cd00090ad7a949f15d6b90422ec2bedf775a26dd`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
@@ -30,8 +30,8 @@ Una fase solo pasa a `100_COMPLETE` cuando todos sus gates tienen evidencia y el
 | 0 | Baseline & Contracts | `100_COMPLETE` | 100% |
 | 1 | Identity Resolver | `100_COMPLETE` | 100% |
 | 2 | Commercial Facts | `100_COMPLETE` | 100% |
-| 3 | Segmentation Engine | `READY` | 0% |
-| 4 | Audience Resolver | `NOT_STARTED` | 0% |
+| 3 | Segmentation Engine | `100_COMPLETE` | 100% |
+| 4 | Audience Resolver | `READY` | 0% |
 | 5 | Panel Central Skeleton | `NOT_STARTED` | 0% |
 | 6 | Audience Library Persistence | `NOT_STARTED` | 0% |
 | 7 | Snapshots & Activation | `NOT_STARTED` | 0% |
@@ -79,92 +79,160 @@ Merge funcional: `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`.
 
 # FASE 2 — CIERRE
 
-P2-G01…P2-G14 = PASS al persistir checkpoint final.  
+P2-G01…P2-G14 = PASS.  
 **Fase 2 = 100_COMPLETE.**
 
-## Entregables
+Entregables principales:
 
-- `PHASE_02_COMMERCIAL_FACTS.md`
-- `PHASE_02_VALIDATION_REPORT.md`
-- `FACT_REGISTRY_V1_1_PHASE2.md`
-- `20260813063500_cia_commercial_facts_v1.sql`
-- `20260813063600_cia_commercial_facts_v1_1_email_fix.sql`
-- auditor y tests SQL read-only.
+- Commercial Facts por dominio;
+- `aos_cia_commercial_facts_v1` 1:1 por contact_key;
+- Fact Registry V1.1;
+- auditor/tests;
+- Email resolver con BOOLEAN3.
 
-## Contratos
-
-- Lead Facts;
-- Call Facts;
-- Appointment Facts;
-- Sales/Product/Service Facts;
-- Follow-up Facts;
-- Email Facts con BOOLEAN3;
-- `aos_cia_commercial_facts_v1` 1:1 por contact_key.
-
-## Evidencia live read-only
+Evidencia live read-only:
 
 - Leads: 5,391 filas válidas / 5,076 contactos;
 - Calls: 33,999 / 5,885;
 - Appointments: 2,918 / 1,157;
 - Sales: 1,268 / 296;
 - Follow-ups: 523 / 456;
-- todos los dominios: 0 claves fuera de Identity V1.
+- todos los dominios: 0 claves fuera de Identity V1;
+- lead unworked since latest entry: 1,287;
+- email: 1,942 sends / 1,623 mapped / 319 unresolved;
+- composición representativa ~474 ms.
 
-Oportunidad lead:
+PR feature → staging: #55.  
+CI run 293 = SUCCESS.  
+Merge funcional: `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`.
 
-- 1,287 `unworked_since_latest_entry`;
-- 3,789 `called_since_latest_entry`.
+---
 
-Email final:
+# FASE 3 — CIERRE
 
-- 1,942 unique sends;
-- 1,623 mapped;
-- 319 unresolved;
-- 1,167 never-sent TRUE;
-- 9,972 UNKNOWN.
+P3-G01…P3-G14 = PASS al persistir checkpoint final.  
+**Fase 3 = 100_COMPLETE.**
 
-Performance:
+## Entregables
 
-- Call-heavy ~260 ms;
-- Email reconciliation ~78 ms;
-- composición representativa completa ~474 ms;
-- sin necesidad de materialización/cache/índices nuevos en Fase 2.
+- `PHASE_03_SEGMENTATION_ENGINE.md`
+- `PHASE_03_VALIDATION_REPORT.md`
+- `FACT_REGISTRY_V1_2_PHASE3.md`
+- `20260813070000_cia_segmentation_engine_v1.sql`
+- auditor y tests SQL.
 
-Integración:
+## Contratos
 
-- PR sync staging → feature: #54;
-- PR feature → staging: #55;
-- Ascenda CI run 293 = SUCCESS;
-- merge funcional staging: `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`;
-- producción verificada con 0 vistas/funciones `aos_cia_*`.
+- `aos_segmentation_policies` — registry versionado;
+- `aos_cia_current_segmentation_policy_v1`;
+- `aos_cia_customer_segments_v1`;
+- policy `COMMERCIAL_SEGMENTATION` v1 SHADOW;
+- Value Tier + Lifecycle + Engagement + Commercial Traits;
+- explicación/provenance por contacto.
 
-Nota de certificación: las migrations están versionadas en staging y sus semánticas fueron validadas read-only sobre datos vivos. No se afirma despliegue físico de DDL en Supabase productivo.
+## Value Tier live read-only
+
+Universo: 11,473.
+
+- STANDARD: 11,344;
+- PREMIUM: 95;
+- GOLD: 21;
+- DIAMANTE: 13.
+
+296 compradores válidos fueron usados para calibración empírica de revenue/frequency/recency.
+
+## Lifecycle live read-only
+
+- PROFILE_ONLY: 5,480;
+- WARM_PROSPECT: 1,849;
+- COLD_PROSPECT: 1,534;
+- DISQUALIFIED_PROSPECT: 1,313;
+- ACTIVE_PROSPECT: 965;
+- ACTIVE_CUSTOMER: 110;
+- COOLING_CUSTOMER: 89;
+- INACTIVE_CUSTOMER: 56;
+- NEW_CUSTOMER: 41;
+- APPOINTMENT_READY_PROSPECT: 36.
+
+La regla temporal evitó veto eterno: **794 contactos** con tipificación terminal histórica tienen un lead posterior y fueron rescatados del estado terminal.
+
+`REACTIVATED` no se inventa en V1; requiere nueva evidencia histórica en Commercial Facts.
+
+## Engagement live read-only
+
+- LOW: 11,220;
+- MEDIUM: 176;
+- HIGH: 77.
+
+Revenue no participa en Engagement.
+
+## Traits destacados
+
+- NO_SHOW_HISTORY: 854;
+- FOLLOWUP_OVERDUE: 442;
+- REPEAT_NO_SHOW: 351;
+- SERVICE_BUYER: 251;
+- REPEAT_BUYER: 178;
+- PRODUCT_BUYER: 146;
+- PRODUCT_AND_SERVICE_BUYER: 101;
+- FREQUENT_BUYER: 75;
+- HIGH_VALUE_BUYER: 31.
+
+## Shadow vs legacy
+
+La etiqueta legacy se conserva intacta. La policy nueva no depende solo de lifetime revenue y detectó múltiples perfiles NORMAL legacy con valor shadow PREMIUM/GOLD/DIAMANTE.
+
+## Performance
+
+Composición representativa + score: **~404.553 ms**.  
+PASS contra presupuesto P95 <1.5 s.  
+Sin materialización/cache/índices nuevos.
+
+## Integración
+
+- PR feature → staging: #57;
+- Ascenda CI run 308 = SUCCESS;
+- merge funcional staging: `cd00090ad7a949f15d6b90422ec2bedf775a26dd`;
+- producción verificada con 0 objetos Phase 3.
+
+Nota de certificación: reglas y semánticas fueron validadas con equivalentes read-only sobre datos vivos. La migration está versionada/integrada a staging; no se afirma despliegue físico de DDL en Supabase productivo.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 3 — SEGMENTATION ENGINE = READY
+## FASE 4 — AUDIENCE RESOLVER = READY
 
 Objetivo:
 
-Construir clasificación multidimensional, versionada y explicable sobre Identity V1 + Commercial Facts V1:
+Convertir Identity V1 + Commercial Facts V1 + Segmentation V1 en un motor universal de resolución de audiencias mediante **Filter Registry whitelisted + DSL declarativo**, sin SQL libre.
 
-- Value Tier: STANDARD / PREMIUM / GOLD / DIAMANTE;
-- Lifecycle;
-- Engagement;
-- Commercial Traits;
-- futuras señales de riesgo cuando tengan definición determinista suficiente;
-- policy versioning + `effective_from/effective_to`;
-- provenance: “por qué este contacto tiene esta clasificación”.
+Debe entregar como mínimo:
+
+- DSL versionada;
+- AND / OR con profundidad controlada;
+- whitelisted fields/operators de Fact Registry V1.2;
+- resolver determinista;
+- count;
+- preview paginado;
+- explain inclusion/exclusion;
+- presets oficiales;
+- filtro por Product/Service;
+- filtros latest/ever/window diferenciados;
+- filtros `segment.value_tier`, `segment.lifecycle`, `segment.engagement`, `segment.traits`;
+- `UNKNOWN` tratado explícitamente;
+- seguridad backend/service_role;
+- tests de equivalencia e invariantes;
+- benchmark contra datos vivos;
+- sin persistir todavía biblioteca de audiencias (eso corresponde a Fase 6).
 
 Reglas de inicio:
 
-- no usar `etiqueta_vip` legacy como fuente maestra;
-- no depender únicamente de lifetime revenue;
-- no hardcodear thresholds irreversibles dentro del frontend;
-- primero shadow/derived; no sobrescribir clasificaciones históricas actuales;
-- preservar una fila/clasificación reproducible por policy version.
+- no SQL libre desde frontend/IA;
+- no duplicar reglas de Facts/Segmentation dentro del resolver;
+- una audiencia selecciona contactos, no asigna asesores;
+- total audiencia ≠ eligible ≠ available now;
+- Fase 4 resuelve pertenencia; elegibilidad contextual llega después.
 
 ---
 
@@ -172,7 +240,7 @@ Reglas de inicio:
 
 Cada fase:
 
-`baseline → alcance → impacto → branch → implementación aislada → checks → tests → comparación real → edge cases → roles → responsive → staging → E2E → rollback → rollout → observación → cierre docs → checkpoint memory`
+`baseline → alcance → impacto → branch → implementación aislada → checks → tests → comparación real → edge cases → roles → staging → E2E → rollback → rollout → observación → cierre docs → checkpoint memory`
 
 ---
 
