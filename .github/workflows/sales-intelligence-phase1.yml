@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'app/staging-server.js'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
       - 'ci/phase1-sales-intelligence/**'
@@ -12,6 +13,7 @@ on:
     branches:
       - 'feat/sales-intelligence-v2-phase1-canary'
     paths:
+      - 'app/staging-server.js'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
       - 'ci/phase1-sales-intelligence/**'
@@ -27,7 +29,7 @@ concurrency:
 
 jobs:
   ui-fixture:
-    name: UI fixture / runtime smoke
+    name: UI fixture / isolated runtime smoke
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -47,6 +49,16 @@ jobs:
 
       - name: Validate UI fixture contract
         run: python3 ci/phase1-sales-intelligence/ui_contract.py
+
+      - name: Validate static staging isolation
+        run: |
+          set -euo pipefail
+          node --check app/staging-server.js
+          if grep -qi 'supabase\.co\|aos_ventas\|aos_pacientes\|aos_agenda' app/staging-server.js; then
+            echo 'Staging server contains production/data coupling'
+            exit 1
+          fi
+          echo 'PHASE1_STAGING_ISOLATION=PASS'
 
       - name: Validate embedded script syntax
         run: |
@@ -69,14 +81,14 @@ jobs:
           PY
           while IFS= read -r f; do node --check "$f"; done </tmp/phase1-js-files.txt
 
-      - name: Start ASCENDA runtime and verify health
+      - name: Start isolated static runtime and verify health
         working-directory: app
         run: |
           set -euo pipefail
-          PORT=4173 node server.js >/tmp/ascenda-phase1-server.log 2>&1 &
+          PORT=4173 node staging-server.js >/tmp/ascenda-phase1-server.log 2>&1 &
           echo $! >/tmp/ascenda-phase1-server.pid
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/health >/dev/null; then
+            if curl -fsS http://127.0.0.1:4173/health | grep -q 'staging-fixture'; then
               echo 'PHASE1_RUNTIME_HEALTH=PASS'
               exit 0
             fi
@@ -88,6 +100,7 @@ jobs:
       - name: HTTP shadow surface gate
         run: |
           set -euo pipefail
+          curl -fsSI http://127.0.0.1:4173/admin-sales-intelligence-staging.html | grep -qi 'X-ASCENDA-ENV: staging-fixture'
           curl -fsS http://127.0.0.1:4173/admin-sales-intelligence.html >/tmp/si.html
           curl -fsS http://127.0.0.1:4173/admin-sales-intelligence-staging.html >/tmp/si-staging.html
           grep -q 'Sales Intelligence V2' /tmp/si.html
@@ -95,7 +108,14 @@ jobs:
           grep -q 'window.__ASCENDA_STAGING_FIXTURE__=true' /tmp/si-staging.html
           echo 'PHASE1_HTTP_SHADOW=PASS'
 
-      - name: Stop ASCENDA runtime
+      - name: Reject write methods in staging runtime
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:4173/admin-sales-intelligence-staging.html)
+          test "$code" = '405'
+          echo 'PHASE1_WRITE_METHODS_BLOCKED=PASS'
+
+      - name: Stop isolated staging runtime
         if: always()
         run: |
           if [ -f /tmp/ascenda-phase1-server.pid ]; then kill $(cat /tmp/ascenda-phase1-server.pid) 2>/dev/null || true; fi
