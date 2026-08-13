@@ -7,5 +7,15 @@
   "deploy": {
     "startCommand": "node server.js",
     "restartPolicyType": "ON_FAILURE"
+  },
+  "environments": {
+    "staging-sales-intelligence": {
+      "deploy": {
+        "startCommand": "node staging-server.js",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 300,
+        "restartPolicyType": "ON_FAILURE"
+      }
+    }
   }
 }
