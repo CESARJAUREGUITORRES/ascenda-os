@@ -436,7 +436,30 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <script>
 
 /* ===== GLOBAL STATE ===== */
-var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', estadoBloqueo:'', bloqueoInicio:0 };
+var AOS = { token:'', ctx:{}, role:'ASESOR', collapsed:false, activeView:'', estadoBloqueo:'', bloqueoInicio:0, panelTimers:[], _capturePanelTimers:false };
+
+/* PERFORMANCE GUARD: lifecycle de timers de paneles dinámicos.
+   Solo captura timers creados mientras se ejecuta el JS de un panel; no toca timers del shell. */
+var _AOS_NATIVE_SET_INTERVAL = window.setInterval;
+var _AOS_NATIVE_CLEAR_INTERVAL = window.clearInterval;
+window.setInterval = function(){
+  var id = _AOS_NATIVE_SET_INTERVAL.apply(window, arguments);
+  if(AOS._capturePanelTimers) AOS.panelTimers.push(id);
+  return id;
+};
+window.clearInterval = function(id){
+  AOS.panelTimers = (AOS.panelTimers||[]).filter(function(x){return x!==id;});
+  return _AOS_NATIVE_CLEAR_INTERVAL.call(window, id);
+};
+function aosCleanupPanelRuntime(){
+  AOS._capturePanelTimers = false;
+  (AOS.panelTimers||[]).forEach(function(id){ try{_AOS_NATIVE_CLEAR_INTERVAL.call(window,id);}catch(e){} });
+  AOS.panelTimers = [];
+  if(typeof window.AOS_PANEL_CLEANUP === 'function'){
+    try{ window.AOS_PANEL_CLEANUP(); }catch(e){ console.warn('[AOS] panel cleanup',e); }
+  }
+  window.AOS_PANEL_CLEANUP = null;
+}
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
@@ -837,8 +860,10 @@ function navigateTo(viewId) {
     fetch(route)
       .then(function(r) { return r.text(); })
       .then(function(panelHtml) {
+        aosCleanupPanelRuntime();
         ws.innerHTML = panelHtml;
         // Ejecutar scripts del panel
+        AOS._capturePanelTimers = true;
         var scripts = ws.querySelectorAll('script');
         var allInline = [];
         var extSrcs = [];
@@ -874,8 +899,11 @@ function navigateTo(viewId) {
             var burl = URL.createObjectURL(blob);
             var s = document.createElement('script');
             s.src = burl;
-            s.onload = function() { URL.revokeObjectURL(burl); };
+            s.onload = function() { URL.revokeObjectURL(burl); AOS._capturePanelTimers = false; };
+            s.onerror = function() { URL.revokeObjectURL(burl); AOS._capturePanelTimers = false; };
             document.head.appendChild(s);
+          } else {
+            AOS._capturePanelTimers = false;
           }
         }
         loadNext();
