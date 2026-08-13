@@ -3,7 +3,7 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging funcional tras Fase 4:** `26971547d22eccd496aa5fea67a61f109bec21ee`  
+**Staging tras Fase 5:** `95cae1ca85e3bec252abbd7b03de80f3829a2ae3`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
@@ -12,7 +12,7 @@
 
 Estados: `NOT_STARTED | READY | IN_PROGRESS | BLOCKED | VALIDATING | 100_COMPLETE`.
 
-Una fase solo es `100_COMPLETE` cuando todos sus gates tienen evidencia y existe checkpoint final en GitHub + `aos_memory`.
+Una fase solo es `100_COMPLETE` cuando sus gates tienen evidencia, el cambio está integrado en `staging` y existe checkpoint final en GitHub + `aos_memory`.
 
 ---
 
@@ -25,8 +25,8 @@ Una fase solo es `100_COMPLETE` cuando todos sus gates tienen evidencia y existe
 | 2 | Commercial Facts | `100_COMPLETE` | 100% |
 | 3 | Segmentation Engine | `100_COMPLETE` | 100% |
 | 4 | Audience Resolver | `100_COMPLETE` | 100% |
-| 5 | Panel Central Skeleton | `READY` | 0% |
-| 6 | Audience Library Persistence | `NOT_STARTED` | 0% |
+| 5 | Panel Central Skeleton | `100_COMPLETE` | 100% |
+| 6 | Audience Library Persistence | `READY` | 0% |
 | 7 | Snapshots & Activation | `NOT_STARTED` | 0% |
 | 8 | Channel Context & Availability | `NOT_STARTED` | 0% |
 | 9 | Assignment Engine | `NOT_STARTED` | 0% |
@@ -42,156 +42,150 @@ Una fase solo es `100_COMPLETE` cuando todos sus gates tienen evidencia y existe
 
 ---
 
-# FASE 0 — CIERRE
+# FASES 0–4 — CIERRE
+
+## Fase 0 — Baseline & Contracts
 
 P0-G01…P0-G09 PASS. Product Spec/Impact Report V3, Fact Registry V1, Frontend Contract, baseline y continuidad establecidos.
 
----
-
-# FASE 1 — CIERRE
+## Fase 1 — Identity Resolver
 
 P1-G01…P1-G11 PASS.
-
-Identity V1:
-- 11,473 contact keys;
-- 7,041 RESOLVED;
-- 23 CONFLICT;
-- 10 FUSED_ONLY;
+- 11,473 contact keys.
+- 7,041 RESOLVED.
+- 23 CONFLICT.
+- 10 FUSED_ONLY.
 - 4,399 NO_PATIENT_PROFILE.
+- PR #50 / CI 274 SUCCESS.
 
-PR #50, CI 274 SUCCESS. Merge funcional `e7746797c9b8fa407eb25c7b81afcb7179f62e6a`.
-
----
-
-# FASE 2 — CIERRE
+## Fase 2 — Commercial Facts
 
 P2-G01…P2-G14 PASS.
+- Facts 1:1 por contacto para Leads, Calls, Agenda, Sales, Followups y Email.
+- Email engagement consolidado con evidencia mapeada/no resuelta.
+- PR #55 / CI 293 SUCCESS.
 
-Commercial Facts 1:1:
-- Leads 5,391 / 5,076 contacts;
-- Calls 33,999 / 5,885;
-- Appointments 2,918 / 1,157;
-- Sales 1,268 / 296;
-- Followups 523 / 456;
-- lead unworked since latest entry 1,287;
-- Email 1,942 sends / 1,623 mapped / 319 unresolved;
-- full representative composition ~474 ms.
-
-PR #55, CI 293 SUCCESS. Merge `b71daf9e1c75cdee3dd6ced6a0288a73a3d4aecd`.
-
----
-
-# FASE 3 — CIERRE
+## Fase 3 — Segmentation Engine
 
 P3-G01…P3-G14 PASS.
+- Customer Tier Engine SHADOW V1.
+- STANDARD / PREMIUM / GOLD / DIAMANTE separados de traits conductuales.
+- Explicable y versionado.
+- PR #57 / CI 308 SUCCESS.
 
-Segmentation SHADOW V1:
-- STANDARD 11,344;
-- PREMIUM 95;
-- GOLD 21;
-- DIAMANTE 13;
-- 794 terminal-history contacts rescued by newer lead;
-- Engagement LOW 11,220 / MEDIUM 176 / HIGH 77;
-- explainable/versioned policy;
-- benchmark ~404.553 ms.
+## Fase 4 — Audience Resolver
 
-PR #57, CI 308 SUCCESS. Merge funcional `cd00090ad7a949f15d6b90422ec2bedf775a26dd`.
+P4-G01…P4-G16 PASS.
+- Profile Facts + Audience Source.
+- Filter Registry whitelisted.
+- DSL V1, AND/OR, máximo 25 reglas y profundidad visual 2.
+- Validate / Count / Preview / Explain determinísticos.
+- `MATCH / MISS / UNKNOWN`.
+- Separación Producto / Servicio.
+- `never_contains` seguro ante evidencia no resuelta.
+- Presets oficiales.
+- No dynamic SQL.
+- PR #59 / Ascenda CI 342 SUCCESS.
+
+La deuda física que existía al cierre documental original de Fase 4 quedó eliminada durante Fase 5: los contratos necesarios fueron desplegados y revalidados físicamente en Supabase antes de habilitar el panel.
 
 ---
 
-# FASE 4 — CIERRE
+# FASE 5 — PANEL CENTRAL SKELETON = 100_COMPLETE
 
-P4-G01…P4-G16 PASS al persistir checkpoint final.
+## Entrega
 
-## Contratos
+Panel ADMIN read-only **Bases & Audiencias** integrado en `app/public/` con:
+- Dashboard.
+- Presets.
+- Constructor DSL.
+- Preview paginado.
+- Explain por contacto.
+- Segmentación.
+- Frescura explícita de caches.
+- Secciones futuras bloqueadas hasta sus fases correspondientes.
 
-- Profile Facts V1;
-- Audience Source V1/V1.1;
-- Filter Registry whitelisted;
-- DSL V1, max 2 group levels / 25 rules;
-- deterministic validate/count/preview/explain;
-- MATCH/MISS/UNKNOWN;
-- official presets;
-- Product/Service purchase-detail reconciliation;
-- safe `never_contains`;
-- future-window numeric facts;
-- no dynamic SQL;
-- private/service_role only.
+## Runtime V2
 
-## Data quality / purchase detail
+- `aos_cia_audience_count_v2`.
+- `aos_cia_audience_preview_v2`.
+- `aos_cia_audience_explain_v2`.
+- Resolver set/domain-aware.
+- Segment cache y Email cache: 11,473 contactos cada uno.
+- Preview limitado server-side a 100 registros por request.
 
-Producto full:
-- 404 rows;
-- 270 mapped high-confidence;
-- 134 UNKNOWN;
-- 66.8% mapped.
+## Correctitud final
 
-Producto Identity-valid:
-- 403 rows;
-- 269 mapped;
-- 134 UNKNOWN;
-- 66.7% mapped.
+Validación live final:
+- FOLLOWUP_OVERDUE: 442.
+- LEADS_UNWORKED: 1,287.
+- LEADS_UNWORKED_7D: 115.
+- NO_SHOW_NO_FUTURE: 823 y coincide con cálculo directo actual.
+- DSL campo inexistente → `FIELD_NOT_ALLOWED`.
+- Operador no permitido → `OPERATOR_NOT_ALLOWED`.
+- `never_contains BEAUTY MAKER` → `MISS / UNKNOWN / MATCH` según evidencia.
 
-146 product-buyer contacts; 75 have unresolved product evidence.
+Las variaciones históricas en audiencias dinámicas responden a actividad operacional real y no a drift del resolver.
 
-Services:
-- 871 rows;
-- 773 categorized;
-- 98 UNKNOWN;
-- 88.7% mapped.
+## Performance final
 
-Safe negatives:
-- BEAUTY MAKER 26 bought / 11,387 never-safe / 60 UNKNOWN;
-- ISDIN 20 / 11,392 / 61;
-- ENZIMAS service category 21 / 11,404 / 48.
+Último gate:
+- COUNT representativo: ~763 ms.
+- PREVIEW 50: ~838 ms.
+- EXPLAIN representativo: ~183 ms.
 
-## Presets / windows
+PASS contra objetivo normal `< 1.5 s`.
 
-- Leads unworked 1,287;
-- Leads unworked 7d 115;
-- No-show without future appointment 826;
-- Followup overdue 442;
-- future appointment 54; within next 7d 34.
+## Seguridad / frontend
 
-## Performance / integration
+- Navegador consume datos comerciales mediante gateway CIA; no lee tablas operativas directamente.
+- Resolver interno no está expuesto a `anon/authenticated`.
+- Sesión CIA separada para ADMIN.
+- Prueba 2FA usada queda vinculada de forma single-use a la sesión CIA.
+- 0 `alert()`, 0 `confirm()`, 0 `prompt()` en el panel.
+- Sin SQL arbitrario desde frontend.
+- Future actions permanecen deshabilitadas.
 
-- product reconciliation equivalent ~204 ms;
-- complex audience equivalent ~346 ms;
-- PASS vs normal P95 <1.5 s;
-- no speculative cache/materialization/indexes.
+## Compatibilidad Call Center
 
-PR #59. Ascenda CI run 342 = SUCCESS. Functional staging merge `26971547d22eccd496aa5fea67a61f109bec21ee`.
+Incidente de write-path cerrado y documentado.
+- Índices funcionales inseguros fueron retirados.
+- Optimización final usa expresiones nativas compatibles con INSERT operacional.
+- Insert como `anon` fue validado con rollback.
+- Tráfico real posterior confirmó `POST /aos_llamadas → 201` y cola de llamadas operativa.
+- Fase 5 final no modifica `aos_siguiente_lead`, `calls.js` ni reglas de cola.
 
-Production verified after merge:
-- Phase 4 physical tables = 0;
-- Phase 4 physical views = 0.
+## Integración
 
-Certification scope: SQL contracts/migrations/tests versioned and semantics validated read-only on live data; no claim of physical Phase 4 DDL deployment or exact PL/pgSQL runtime benchmark before a deployable DB gate.
+- PR #62: MERGED.
+- Head auditado: `dea116acb80c55b27d782a493366ecdc5c065a1c`.
+- Ascenda CI run #389: SUCCESS.
+- Merge a staging: `95cae1ca85e3bec252abbd7b03de80f3829a2ae3`.
+- Post-merge compare: feature tiene 0 commits/archivos pendientes frente a staging.
+- Panel y migration final de hardening verificados físicamente en `staging`.
 
-Detailed report: `PHASE_04_VALIDATION_REPORT.md`.
+Detailed reports:
+- `PHASE_05_PANEL_CENTRAL.md`.
+- `PHASE_05_VALIDATION_REPORT.md`.
+- `PHASE_05_CLOSURE_CHECKPOINT.md`.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 5 — PANEL CENTRAL SKELETON = READY
+## FASE 6 — AUDIENCE LIBRARY PERSISTENCE = READY
 
-Goal: introduce the ADMIN-only, read-only **Bases & Audiencias** shell into the production frontend architecture without exposing source tables or duplicating resolver logic.
+Objetivo: convertir definiciones de audiencia validadas en objetos persistentes de ASCENDA sin mezclar todavía activación ni assignment.
 
-Phase 5 must:
-
-- use `app/public/` and ASCENDA shell, never `src/` legacy;
-- follow `FRONTEND_CONTRACT_V1.md` exactly;
-- add Admin navigation entry;
-- build responsive shell/navigation for Dashboard · Audiencias · Constructor · Distribución · Asesores · Oportunidades IA · Solicitudes · Segmentación · Activaciones · Historial/Auditoría;
-- initially enable only read-only sections backed by controlled resolver contracts / safe placeholders where later engines are not built;
-- no native alert/confirm/prompt;
-- no raw Supabase source-table reads from browser;
-- no audience persistence yet;
-- no assignments/activations yet;
-- preserve current Call/Email/Marketing panels unchanged;
-- feature flag / safe rollback;
-- responsive + accessibility + CI/staging validation.
+Fase 6 debe diseñarse y validarse desde el estado final de Fase 5. Reglas de entrada:
+- Audience sigue siendo universal y channel-agnostic.
+- Audience no almacena ownership de asesor.
+- Dynamic definition y Snapshot son conceptos distintos.
+- Persistencia debe usar el DSL/registry ya certificado.
+- No reescribir fuentes operativas.
+- No tocar `aos_siguiente_lead`.
+- Nuevos objetos seguros por defecto y auditables.
+- Impact Report antes de DDL productivo.
 
 ---
 
@@ -204,11 +198,10 @@ Phase 5 must:
 # CONTINUIDAD
 
 New chats recover in order:
-
-1. `AGENTS.md`;
-2. `docs/control/ASCENDA_CONTROL_MASTER.md`;
-3. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`;
-4. this roadmap;
-5. current phase document;
-6. `cia_v3_*` / `cia_phase_*` in `aos_memory`;
+1. `AGENTS.md`.
+2. `docs/control/ASCENDA_CONTROL_MASTER.md`.
+3. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`.
+4. this roadmap.
+5. current phase document.
+6. `cia_v3_*` / `cia_phase_*` in `aos_memory`.
 7. live staging/GitHub + Supabase before changes.
