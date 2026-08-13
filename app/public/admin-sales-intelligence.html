@@ -1,0 +1,88 @@
+<!-- ASCENDA OS — Sales Intelligence V2 / Phase A preview -->
+<style>
+.siv2{padding:14px;display:flex;flex-direction:column;gap:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E}
+.si-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.si-title{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800}.si-sub{font-size:10px;color:#6B7BA8;margin-top:2px}
+.si-badge{font-size:9px;font-weight:800;padding:4px 8px;border-radius:20px;background:#E0F7F3;color:#07836F}
+.si-filters{display:flex;gap:6px}.si-sel{padding:6px 9px;border:1px solid #DDE4F5;border-radius:8px;background:#fff;color:#0D1B3E;font-size:11px}
+.si-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.si-card{background:#fff;border:1px solid #DDE4F5;border-radius:12px;padding:12px}.si-dark{background:linear-gradient(135deg,#071D4A,#0A4FBF);color:#fff;border:none}
+.si-lbl{font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#9AAAC8}.si-dark .si-lbl{color:rgba(255,255,255,.65)}
+.si-val{font-family:'Exo 2',sans-serif;font-size:21px;font-weight:800;margin-top:5px}.si-note{font-size:9px;color:#6B7BA8;margin-top:4px}.si-dark .si-note{color:rgba(255,255,255,.55)}
+.si-two{display:grid;grid-template-columns:1.5fr 1fr;gap:10px}.si-three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.si-ct{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:800;margin-bottom:10px}.si-muted{font-size:9px;color:#9AAAC8}
+.si-chart{height:240px;display:flex;align-items:flex-end;gap:7px;border-bottom:1px solid #DDE4F5;padding:10px 4px 0}.si-col{height:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:28px}.si-bars{height:185px;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px}.si-bar{width:42%;border-radius:4px 4px 0 0;min-height:2px}.si-real{background:linear-gradient(180deg,#0A4FBF,#00C9A7)}.si-meta{background:#E2E8F0}.si-month{font-size:8px;color:#6B7BA8;margin-top:5px}.si-pct{font-size:7px;font-weight:700;color:#6B7BA8;margin-bottom:3px}.si-partial{color:#D97706}
+.si-progress{height:9px;background:#E2E8F0;border-radius:10px;overflow:hidden;margin:8px 0}.si-progress>div{height:100%;border-radius:10px;background:linear-gradient(90deg,#0A4FBF,#00C9A7)}
+.si-table{width:100%;border-collapse:collapse}.si-table th{font-size:8px;color:#9AAAC8;text-align:right;padding:6px;border-bottom:1px solid #DDE4F5}.si-table th:first-child,.si-table td:first-child{text-align:left}.si-table td{font-size:9px;padding:7px 6px;text-align:right;border-bottom:1px solid #F0F4FC}.si-up{color:#16A34A;font-weight:700}.si-down{color:#DC2626;font-weight:700}.si-flat{color:#9AAAC8}.si-warn{background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:9px 11px;font-size:9px;color:#92400E}
+.si-loading{text-align:center;padding:24px;color:#9AAAC8;font-size:11px}
+@media(max-width:1100px){.si-grid{grid-template-columns:repeat(3,1fr)}.si-two{grid-template-columns:1fr}.si-three{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:760px){.si-grid{grid-template-columns:1fr 1fr}.si-three{grid-template-columns:1fr}.si-chart{overflow-x:auto}}
+</style>
+
+<div class="siv2">
+  <div class="si-hd">
+    <div><div class="si-title">📈 Sales Intelligence V2</div><div class="si-sub">Rendimiento anual · metas · MTD comparable · proyección</div></div>
+    <div style="display:flex;align-items:center;gap:8px"><span class="si-badge">PREVIEW · SOLO LECTURA</span><div class="si-filters"><select id="si-year" class="si-sel"><option value="2026">2026</option></select><select id="si-sede" class="si-sel"><option value="">Todas las sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div></div>
+  </div>
+
+  <div class="si-grid">
+    <div class="si-card si-dark"><div class="si-lbl">Facturado YTD</div><div class="si-val" id="si-fact">--</div><div class="si-note" id="si-cut">--</div></div>
+    <div class="si-card"><div class="si-lbl">Meta YTD</div><div class="si-val" id="si-meta">--</div><div class="si-note" id="si-meta-note">--</div></div>
+    <div class="si-card"><div class="si-lbl">Cumplimiento YTD</div><div class="si-val" id="si-pct">--</div><div class="si-note" id="si-gap">--</div></div>
+    <div class="si-card"><div class="si-lbl">Ticket YTD</div><div class="si-val" id="si-ticket">--</div><div class="si-note" id="si-sales">--</div></div>
+    <div class="si-card"><div class="si-lbl">Mejor mes cerrado</div><div class="si-val" id="si-best">--</div><div class="si-note" id="si-best-note">--</div></div>
+    <div class="si-card"><div class="si-lbl">Promedio mes cerrado</div><div class="si-val" id="si-avg">--</div><div class="si-note">Base: meses completamente cerrados</div></div>
+  </div>
+
+  <div class="si-two">
+    <div class="si-card"><div class="si-ct">COMPARATIVA ANUAL · REAL VS META</div><div id="si-chart" class="si-chart"><div class="si-loading">Cargando...</div></div></div>
+    <div class="si-card"><div class="si-ct">MES ACTUAL · RITMO Y PROYECCIÓN</div><div id="si-proj"><div class="si-loading">Cargando...</div></div></div>
+  </div>
+
+  <div class="si-three">
+    <div class="si-card"><div class="si-lbl">MTD actual</div><div class="si-val" id="si-mtd">--</div><div class="si-note" id="si-mtd-days">--</div></div>
+    <div class="si-card"><div class="si-lbl">Mismos días mes anterior</div><div class="si-val" id="si-prev">--</div><div class="si-note">Comparación homogénea</div></div>
+    <div class="si-card"><div class="si-lbl">Variación MTD comparable</div><div class="si-val" id="si-delta">--</div><div class="si-note">No compara mes parcial contra mes completo</div></div>
+  </div>
+
+  <div class="si-card"><div class="si-ct">TABLA MENSUAL</div><div style="overflow-x:auto"><table class="si-table"><thead><tr><th>Mes</th><th>Estado</th><th>Facturado</th><th>Meta</th><th>% meta</th><th>Ventas</th><th>Ticket</th><th>Δ mes</th></tr></thead><tbody id="si-tbody"><tr><td colspan="8" class="si-loading">Cargando...</td></tr></tbody></table></div></div>
+  <div class="si-warn">La proyección es una estimación basada en ritmo promedio diario hasta la última fecha con datos. No modifica metas, ventas ni registros históricos.</div>
+</div>
+
+<script>
+(function(){
+  var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+  var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+  var MF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function e(id){return document.getElementById(id)}
+  function money(n){return 'S/'+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function pct(n){return n==null?'--':Number(n).toFixed(2)+'%'}
+  function call(){
+    var y=Number(e('si-year').value),s=e('si-sede').value;
+    fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_summary',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_anio:y,p_sede:s,p_asesor:''})})
+      .then(function(r){if(!r.ok)throw new Error('RPC '+r.status);return r.json()})
+      .then(render).catch(function(err){console.error(err);e('si-chart').innerHTML='<div class="si-loading">RPC V2 aún no desplegado en este entorno.</div>';e('si-proj').innerHTML='<div class="si-loading">Pendiente de staging.</div>'});
+  }
+  function render(d){
+    if(!d||!d.hasData)return;
+    e('si-fact').textContent=money(d.factYTD);e('si-cut').textContent='Datos hasta '+d.dataThrough;
+    e('si-meta').textContent=money(d.metaYTD);e('si-meta-note').textContent='Meta anual configurada: '+money(d.metaAnual);
+    e('si-pct').textContent=pct(d.pctMetaYTD);e('si-gap').textContent='Gap YTD: '+money(d.gapYTD);
+    e('si-ticket').textContent=money(d.ticketYTD);e('si-sales').textContent=(d.ventasYTD||0)+' ventas acumuladas';
+    e('si-best').textContent=d.mejorMes?MF[d.mejorMes.mes]:'--';e('si-best-note').textContent=d.mejorMes?money(d.mejorMes.facturado):'--';
+    e('si-avg').textContent=money(d.promedioMesesCerrados);
+    var m=d.mtdComparable||{};e('si-mtd').textContent=money(m.facturadoActual);e('si-mtd-days').textContent=(m.diasComparados||0)+' días comparados';e('si-prev').textContent=money(m.facturadoAnteriorMismosDias);
+    var dv=Number(m.variacionPct||0);e('si-delta').textContent=(dv>0?'+':'')+dv.toFixed(2)+'%';e('si-delta').style.color=dv>=0?'#16A34A':'#DC2626';
+    renderChart(d.serie||[]);renderProjection(d.proyeccionMes||{},d.pctMetaYTD);renderTable(d.serie||[]);
+  }
+  function renderChart(rows){
+    var max=1;rows.forEach(function(r){max=Math.max(max,Number(r.facturado||0),Number(r.meta||0))});
+    e('si-chart').innerHTML=rows.map(function(r){var hr=Math.max(2,Math.round(Number(r.facturado||0)/max*180)),hm=Math.max(2,Math.round(Number(r.meta||0)/max*180));var pp=r.pctMeta==null?'--':Math.round(r.pctMeta)+'%';return '<div class="si-col"><div class="si-pct '+(r.estado==='PARCIAL'?'si-partial':'')+'">'+pp+'</div><div class="si-bars"><div class="si-bar si-real" title="Real '+money(r.facturado)+'" style="height:'+hr+'px"></div><div class="si-bar si-meta" title="Meta '+money(r.meta)+'" style="height:'+hm+'px"></div></div><div class="si-month">'+MF[r.mes]+'</div></div>'}).join('');
+  }
+  function renderProjection(p){
+    var meta=Number(p.meta||0),fact=Number(p.facturadoActual||0),progress=meta>0?Math.min(100,fact/meta*100):0,proj=Number(p.proyectado||0);var reach=meta>0?proj/meta*100:0;
+    e('si-proj').innerHTML='<div style="display:flex;justify-content:space-between;align-items:end"><div><div class="si-lbl">Facturado</div><div class="si-val">'+money(fact)+'</div></div><div style="text-align:right"><div class="si-lbl">Meta</div><div style="font-weight:800">'+money(meta)+'</div></div></div><div class="si-progress"><div style="width:'+progress+'%"></div></div><div class="si-note">'+progress.toFixed(1)+'% de meta alcanzada · faltan '+money(p.faltante)+'</div><hr style="border:none;border-top:1px solid #F0F4FC;margin:12px 0"><div class="si-lbl">Proyección al cierre</div><div class="si-val" style="color:'+(reach>=100?'#16A34A':'#0A4FBF')+'">'+money(proj)+'</div><div class="si-note">Ritmo actual: '+money(p.ritmoDiarioActual)+'/día · requerido: '+money(p.ritmoDiarioNecesario)+'/día · '+(p.diasRestantes||0)+' días restantes</div>';
+  }
+  function renderTable(rows){e('si-tbody').innerHTML=rows.map(function(r){var v=r.variacionPct,vc=v==null?'si-flat':v>=0?'si-up':'si-down',vs=v==null?'--':(v>0?'+':'')+Number(v).toFixed(2)+'%';return '<tr><td><b>'+MF[r.mes]+'</b></td><td>'+r.estado+'</td><td><b>'+money(r.facturado)+'</b></td><td>'+money(r.meta)+'</td><td>'+pct(r.pctMeta)+'</td><td>'+r.ventas+'</td><td>'+money(r.ticket)+'</td><td class="'+vc+'">'+vs+'</td></tr>'}).join('')}
+  e('si-year').addEventListener('change',call);e('si-sede').addEventListener('change',call);call();
+})();
+</script>
