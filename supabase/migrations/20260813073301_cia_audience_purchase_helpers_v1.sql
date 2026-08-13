@@ -1,8 +1,10 @@
--- ASCENDA OS — CIA Phase 4 purchase-detail helper mappings
+-- ASCENDA OS — CIA Phase 4 extended helper mappings
 begin;
 create or replace function public.aos_cia_audience_observed_value_v1(p_row jsonb,p_field text)
 returns jsonb language sql immutable parallel safe as $$
 select case p_field
+ when 'appointments.days_until_next' then p_row->'days_until_next_appointment'
+ when 'followups.days_until_next' then p_row->'days_until_next_followup'
  when 'sales.products' then p_row->'canonical_products'
  when 'sales.product_categories' then p_row->'product_categories'
  when 'sales.product_unresolved_count' then p_row->'product_unresolved_count'
@@ -16,7 +18,7 @@ create or replace function public.aos_cia_audience_effective_field_type_v1(p_fie
 returns text language sql immutable parallel safe as $$
 select case
  when p_field in ('sales.products','sales.product_categories','sales.services','sales.service_categories') then 'set'
- when p_field in ('sales.product_unresolved_count','sales.service_category_unresolved_count') then 'integer'
+ when p_field in ('appointments.days_until_next','followups.days_until_next','sales.product_unresolved_count','sales.service_category_unresolved_count') then 'integer'
  else public.aos_cia_audience_field_type_v1(p_field)
 end;
 $$;
