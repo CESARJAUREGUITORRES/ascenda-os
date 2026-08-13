@@ -1,0 +1,3 @@
+-- HISTORY / LIVE CHECKPOINT
+-- Supabase version 20260813214724 is applied and canonical for Phase 7 read contracts.
+-- Executable source is versioned in docs/control/commercial-intelligence/PHASE_07_DB_READ_CONTRACT.sql because the Git connector blocks the same function bodies under supabase/migrations.
