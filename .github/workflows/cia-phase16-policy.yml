@@ -15,6 +15,8 @@ on:
       - 'app/public/caja.html'
       - 'app/public/calls.html'
       - 'ci/phase16/test_email_gateway_policy.js'
+      - 'scripts/ci/runner-healthcheck.sh'
+      - 'scripts/ci/expose-runner-node.sh'
       - '.github/workflows/cia-phase16-policy.yml'
   pull_request:
     branches: [staging, main]
@@ -28,6 +30,8 @@ on:
       - 'app/public/caja.html'
       - 'app/public/calls.html'
       - 'ci/phase16/test_email_gateway_policy.js'
+      - 'scripts/ci/runner-healthcheck.sh'
+      - 'scripts/ci/expose-runner-node.sh'
       - '.github/workflows/cia-phase16-policy.yml'
   workflow_dispatch:
 
