@@ -3,7 +3,7 @@
 
 **Estado:** CURRENT / DYNAMIC SOURCE OF PHASE STATUS  
 **Última actualización:** 2026-08-14 (America/Lima)  
-**Staging funcional F12:** `dedbc80de9967a70c4cd7a1195a534496b245a2d`  
+**Staging funcional F13:** `594c2c77dae8513ff73a300e60f4caed1996efad`  
 **Master arquitectónico:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`  
 **Bootstrap actual:** `docs/control/commercial-intelligence/CIA_AGENT_BOOTSTRAP_CURRENT.md`
 
@@ -14,17 +14,14 @@
 Estados válidos:
 `NOT_STARTED | READY | IN_PROGRESS | BLOCKED | VALIDATING | 100_COMPLETE`
 
-Una fase solo es `100_COMPLETE` cuando:
-- input handshake desde la fase anterior está probado;
-- todos sus gates están sustentados;
-- implementación está integrada en `staging`;
-- CI pasa;
-- smoke post-merge pasa;
-- output contract para la fase siguiente está probado;
-- Validation Report final existe;
-- GitHub, `aos_memory` y Notion quedan sincronizados.
+Una fase se declara `100_COMPLETE` cuando input handshake, funcionalidad, seguridad, performance, no-regresión, replayability, output contract, integración/staging smoke y cierre documental quedan sustentados.
 
-El detalle histórico vive en cada `PHASE_XX_VALIDATION_REPORT.md`; este documento mantiene solo estado vivo, contratos y siguiente acción.
+Si una dependencia externa impide ejecutar CI sin llegar a checkout/tests, puede existir una `CI_INFRA_EXCEPTION_DOCUMENTED` únicamente cuando:
+- el bloqueo externo está probado por la plataforma;
+- no se representa falsamente como SUCCESS;
+- el scope cambiado pasa validación equivalente aislada;
+- smoke post-merge y gates funcionales permanecen PASS;
+- la deuda de infraestructura queda registrada.
 
 ---
 
@@ -45,8 +42,8 @@ El detalle histórico vive en cada `PHASE_XX_VALIDATION_REPORT.md`; este documen
 | 10 | Advisor Control Center | `100_COMPLETE` | 100% |
 | 11 | Call Center Integration V3 | `100_COMPLETE` | 100% |
 | 12 | Advisor Work Views | `100_COMPLETE` | 100% |
-| 13 | Requests & Approval Engine | `READY` | 0% |
-| 14 | Commercial Intelligence Shadow | `NOT_STARTED` | 0% |
+| 13 | Requests & Approval Engine | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` | 100% |
+| 14 | Commercial Intelligence Shadow | `READY` | 0% |
 | 15 | KronIA + Multiagent Orchestration | `NOT_STARTED` | 0% |
 | 16 | Email Integration | `NOT_STARTED` | 0% |
 | 17 | SMS / WhatsApp / Future Channels | `NOT_STARTED` | 0% |
@@ -54,52 +51,17 @@ El detalle histórico vive en cada `PHASE_XX_VALIDATION_REPORT.md`; este documen
 
 ---
 
-# CADENA CERTIFICADA F0–F12
+# CADENA CERTIFICADA F0–F13
 
-`Identity → Commercial Facts → Segmentation → Audience Resolver → Panel → Audience Library → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Routing V3 → Advisor Work Views`
+`Identity → Commercial Facts → Segmentation → Audience Resolver → Panel → Audience Library → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Routing V3 → Advisor Work Views → Requests & Approval`
 
 Separaciones no negociables:
-- Audience ≠ Eligibility ≠ Activation ≠ Assignment ≠ Work View;
-- Work View nunca cambia ownership;
-- Requests/Approvals todavía no existen en F12;
+- Audience ≠ Eligibility ≠ Activation ≠ Assignment ≠ Work View ≠ Request ≠ Approval ≠ Execution;
+- ownership = advisor UUID;
+- F12 solo organiza work, nunca ownership;
+- F13 gobierna requests, decisión humana y ejecución explícita;
 - IA no decide ownership;
-- Call Center V3 conserva fallback V2 y kill switch global OFF salvo rollout explícito.
-
----
-
-## F0–F4 — Data/semantic foundation
-
-`100_COMPLETE`.
-
-Entregan:
-- Identity Resolver con conflictos explícitos;
-- Commercial Facts 1:1;
-- Value Tier / Lifecycle / Engagement / Traits;
-- Audience DSL whitelisted;
-- Count/Preview/Explain;
-- MATCH/MISS/UNKNOWN;
-- `never_contains` seguro.
-
-Validation Reports:
-- `PHASE_01_IDENTITY_RESOLVER.md`
-- `PHASE_02_VALIDATION_REPORT.md`
-- `PHASE_03_VALIDATION_REPORT.md`
-- documentación F4 / Roadmap checkpoints.
-
----
-
-## F5–F8 — Control/Audience/Activation
-
-`100_COMPLETE`.
-
-Entregan:
-- panel ADMIN Bases & Audiencias;
-- CIA admin gateway/session;
-- Audience Library versionada;
-- snapshots inmutables SHA-256;
-- Activation BATCH/DYNAMIC;
-- `Audience Total → Eligible → Available Now`;
-- `aos_cia_activation_available_keys_v1(activation_id)` como input autoritativo para Assignment.
+- F11 conserva fallback V2 y kill switch global OFF salvo rollout explícito.
 
 ---
 
@@ -107,45 +69,8 @@ Entregan:
 
 `100_COMPLETE`.
 
-Contrato:
-`F8 available_keys → Assignment Plan → Assignment Lease → F10 read-models`
-
-Entregas:
-- ownership por `aos_usuarios.id` UUID;
-- ONE / EQUAL / PERCENTAGE / FIXED;
-- GLOBAL / ACTIVATION;
-- `RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED | RELEASED | EXPIRED`;
-- capacity;
-- top-up NONE / MAINTAIN_TARGET / CONTINUOUS;
-- concurrency/idempotency;
-- audit append-only;
-- read-models F10.
-
-Cierre funcional F9:
-`2e1116f07919fcf53bdac8cf61cbd23944863630`
-
-Documento:
-`docs/control/commercial-intelligence/PHASE_09_VALIDATION_REPORT.md`
-
----
-
-## F10 — Advisor Control Center
-
-`100_COMPLETE`.
-
-Contrato:
-`F9 ownership/read-models → F10 administrative control plane → F11 readiness`
-
-Entregas:
-- workload por advisor UUID;
-- plan health;
-- capacity/utilization;
-- overdue/expiring;
-- advisor drill-down;
-- readiness estructural F11.
-
-Documento:
-`docs/control/commercial-intelligence/PHASE_10_VALIDATION_REPORT.md`
+Autoridad de ownership y lifecycle de lease:
+`RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED | RELEASED | EXPIRED`.
 
 ---
 
@@ -153,32 +78,10 @@ Documento:
 
 `100_COMPLETE`.
 
-Contrato:
-`F8 availability → F9 ownership → F10 readiness → F11 dispatcher/claim/consume → F12`
+Routing V3 paralelo/canary, global OFF por defecto, fallback V2 obligatorio, claim/consume gobernados por F9 ownership.
 
-Entregas:
-- dispatcher V3 paralelo;
-- kill switch global default OFF;
-- V2_ONLY / V3_CANARY / V3_PREFERRED;
-- fallback V2 obligatorio;
-- claim `ASSIGNED → IN_PROGRESS`;
-- resume de IN_PROGRESS propio;
-- post-write consume → COMPLETED;
-- F12 readiness;
-- America/Lima explícito;
-- wrapper/adapter frontend rollback-safe.
-
-Cierre F11 original preservó:
-- `aos_siguiente_lead` hash `76412bac81e20ec6cfdc4f8c0db89e8c`;
-- `aos_siguiente_lead_v2` hash histórico `cb69781d1457ed73de8f8d52f0f83a00`.
-
-Cambio concurrente posterior, fuera de F12:
-- Marketing Attribution V2 reemplazó legítimamente `aos_siguiente_lead_v2` mediante `20260814104500_marketing_attribution_v2_safe_origin_resolution.sql`;
-- hash live posterior: `2b5b5707450df3bc648636936c02a0d4`;
-- F12 sincronizó ese `staging` antes de integración y no reescribió routing.
-
-Documento:
-`docs/control/commercial-intelligence/PHASE_11_VALIDATION_REPORT.md`
+Output:
+`aos_cia_call_routing_f12_readiness_v1()`.
 
 ---
 
@@ -186,141 +89,109 @@ Documento:
 
 `100_COMPLETE`.
 
+Contrato:
+`F9 ownership + F11 routing evidence → F12 personal work universe → F13 requestable context`.
+
+Garantías:
+- Work View deriva solo de F9 ownership;
+- pin/snooze/priority no cambian owner;
+- `requestable=true` solo en own ASSIGNED/IN_PROGRESS no expirado;
+- output `aos_cia_advisor_work_f13_readiness_v1()`.
+
+Functional merge:
+`dedbc80de9967a70c4cd7a1195a534496b245a2d`.
+
+---
+
+## F13 — Requests & Approval Engine
+
+`100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED`.
+
 Contrato certificado:
+`F12 own work-item → Request PENDING → ADMIN decision → atomic revalidation → explicit execution → F14 governed proposal context`.
 
-`F9 assignment lease + F11 routing evidence → F12 personal work universe/preferences → F13 requestable context`
-
-### Entregas
-
-Persistencia no propietaria:
-- `aos_cia_advisor_work_preferences`;
-- pin;
-- snooze ≤30 días;
-- prioridad visual HIGH/NORMAL/LOW;
-- RLS deny-by-default;
-- guard DB exige que preference advisor = assignment owner.
-
-Read contracts:
-- `aos_cia_advisor_work_universe_v1(...)` — privado;
-- `aos_cia_advisor_work_summary_v1(...)`;
-- `aos_cia_advisor_work_list_v1(...)`;
-- `aos_cia_advisor_work_detail_v1(...)`;
-- `aos_cia_advisor_work_preference_v1(...)`;
-- `aos_cia_advisor_work_f13_readiness_v1()` — privado.
-
-Priority V1:
-1. IN_PROGRESS;
-2. OVERDUE_TO_START;
-3. EXPIRING_SOON ≤60m;
-4. FOLLOWUP_OVERDUE;
-5. FOLLOWUP_PENDING;
-6. DIAMANTE/GOLD/PREMIUM;
-7. resto del ownership activo.
-
-Reglas:
-- `pinned` solo eleva visualmente;
-- snooze solo oculta temporalmente;
-- priority override solo reordena;
-- ninguna acción F12 cambia `advisor_user_id`, plan, activation o assignment state.
-
-Frontend:
-- `advisor-work.html/css/js`;
-- montado en la zona izquierda reservada de `advisor-home.html`;
-- no modifica `app.html` ni Call Center;
-- NOW / PINNED / SNOOZED / HISTORY;
-- KPIs, deadlines, reasons, routing evidence y detail;
-- badge F13 `solicitable`, sin implementar requests.
-
-QA rollback-only:
-- 5 leases propios;
-- IN_PROGRESS/ASSIGNED;
-- CLAIM F11;
-- pin/snooze/priority;
-- cross-advisor mutation rechazada;
-- ownership unchanged;
-- F13 readiness true;
-- zero residue.
-
-Performance:
-- primera mega-enrichment con call facts: ~1.63s → rechazada;
-- 1,000 per-row call lookups: ~1.89s → rechazada;
-- contrato final LIST/SUMMARY sin last-call bulk + DETAIL single-call lookup;
-- 1,000 work-items / page 100: ~874.8ms → PASS <1.5s.
+Entregas:
+- `aos_cia_requests`;
+- `aos_cia_request_events` append-only;
+- request `RELEASE_ASSIGNMENT`;
+- advisor create/list/summary/detail;
+- ADMIN gateway SUMMARY/LIST/GET/APPROVE/REJECT/EXECUTE;
+- APPROVE ≠ EXECUTE;
+- stale ownership/state/expiry → EXPIRED fail-closed;
+- release execution reuses F9 lifecycle;
+- Policy Gate para F14/KronIA;
+- AUTO_ASSIGN/TRANSFER/AUTO_APPROVE/RAW_SQL BLOCK;
+- `auto_execute=false`;
+- advisor + ADMIN frontend;
+- F14 readiness.
 
 Security:
-- preferences RLS enabled / 0 policies;
-- anon/auth sin SELECT directo;
-- public advisor RPCs filtran por advisor UUID resuelto con el contrato F11;
-- internal universe/readiness no ejecutables por anon/auth;
-- SECURITY DEFINER con `search_path=public`.
+- F13 tables RLS enabled, 0 policies;
+- anon/auth sin acceso directo;
+- admin authority resuelta server-side;
+- extension calls schema-qualified.
 
-Replayability Git↔Supabase:
-- `20260814153444_cia_phase12_work_preferences_v1.sql`;
-- `20260814153657_cia_phase12_work_universe_v1.sql`;
-- `20260814153814_cia_phase12_work_contracts_v1.sql`;
-- `20260814154524_cia_phase12_work_universe_call_lookup_v2.sql`;
-- `20260814155611_cia_phase12_list_detail_split_v2.sql`.
+QA:
+- rollback-only E2E PASS;
+- cross-advisor/duplicate/invalid-admin/stale negative tests PASS;
+- approve/execute idempotency PASS;
+- zero residue PASS.
+
+Performance:
+- advisor list ~21.7 ms;
+- advisor summary ~4.5 ms;
+- F14 readiness ~250.2 ms;
+- 1,000 request query-shape/page100 ~5.4 ms;
+- target <1.5s PASS.
 
 Integration:
-- Functional PR #89 — MERGED;
-- Ascenda CI #903 — SUCCESS;
-- functional staging merge `dedbc80de9967a70c4cd7a1195a534496b245a2d`;
-- post-merge summary/list empty-state PASS;
-- F11 readiness `READY_NO_LIVE_V3` / ready_for_f12=true;
-- F13 readiness `READY_NO_REQUESTABLE_WORK` / ready_for_f13=true;
-- zero residues PASS.
+- PR #95 MERGED;
+- functional staging merge `594c2c77dae8513ff73a300e60f4caed1996efad`;
+- GitHub Actions #997 no ejecutó steps por billing/spending del runner;
+- manual scope-equivalent validation PASS;
+- post-merge smoke PASS;
+- live `aos_cia_request_f14_readiness_v1()` = `READY_NO_REQUESTS`, `ready_for_f14=true`.
 
 Documento:
-`docs/control/commercial-intelligence/PHASE_12_VALIDATION_REPORT.md`
+`docs/control/commercial-intelligence/PHASE_13_VALIDATION_REPORT.md`.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 13 — REQUESTS & APPROVAL ENGINE = READY
+## F14 — COMMERCIAL INTELLIGENCE SHADOW = READY
 
 Objetivo:
-gobernar solicitudes que parten del universo personal F12 y requieren aprobación antes de cualquier cambio de recursos/ownership.
+convertir facts/segments/audiences/ownership/work/request outcomes en inteligencia comercial explicable **sin autoacciones**.
 
-### Input contract F12 → F13
+Input contract F13 → F14:
+- `aos_cia_request_f14_readiness_v1()`;
+- request lifecycle/state;
+- `advisor_user_id` + `assignment_id`;
+- F13 Policy Gate;
+- facts/segments/audience/activation/ownership/work context certificado.
 
-F13 debe consumir:
-- `advisor_user_id` UUID;
-- `assignment_id` como work-item/ownership reference estable;
-- plan/activation IDs;
-- assignment state;
-- deadlines/expiry;
-- work bucket / priority reasons;
-- preference state;
-- F11 routing evidence;
-- `requestable=true` solo si el assignment sigue siendo propio, ASSIGNED/IN_PROGRESS y no expiró;
-- `aos_cia_advisor_work_f13_readiness_v1()`.
+F14 debe construir:
+- opportunities determinísticas;
+- affinity/recompra/priorización;
+- evidence + confidence + sample size + freshness;
+- explainability;
+- recommendation SHADOW;
+- read-models ADMIN/advisor según roles;
+- propuesta gobernada de acciones mediante F13 Policy Gate;
+- outcome/audit link recommendation → proposed request → human decision.
 
-### F13 debe construir
+F14 no debe:
+- autoaprobar;
+- autoejecutar;
+- autoasignar;
+- escribir SQL arbitrario;
+- usar datos clínicos sensibles como features comerciales ordinarias;
+- confundir score IA con regla determinística;
+- saltarse F13.
 
-- Request lifecycle estructurado;
-- tipos de request permitidos;
-- requester advisor UUID;
-- target resource / assignment reference;
-- PENDING / APPROVED / REJECTED / EXPIRED / EXECUTED;
-- revalidación atómica al aprobar/ejecutar;
-- no double approval;
-- audit append-only;
-- ADMIN control plane;
-- advisor request status.
-
-### F13 no debe
-
-- permitir autoasignación directa;
-- aceptar `contact_key` crudo como ownership authority;
-- saltarse F9 assignment state;
-- ejecutar si ownership cambió/expiró;
-- introducir affinity IA como aprobación automática;
-- retirar fallback V2/F11 safeguards.
-
-Output esperado para F14:
-
-un Approval Gate transaccional, auditable y revalidado que Intelligence/KronIA pueda usar sin escribir recursos arbitrariamente.
+Output esperado para F15:
+**Intelligence Shadow explainable + governed tools/contracts, lista para KronIA/Multiagent sin autonomía de escritura.**
 
 ---
 
@@ -328,21 +199,19 @@ un Approval Gate transaccional, auditable y revalidado que Intelligence/KronIA p
 
 `recovery → baseline → input handshake → scope/Impact → branch → implementation → guards → QA rollback-only → security → performance → write-path safety → frontend → output handshake → PR/CI → staging smoke → Validation Report → aos_memory → Notion`
 
-No se habilita F14 hasta F13 = `100_COMPLETE`.
-
 ---
 
 # CONTINUIDAD / RECOVERY
 
 En un nuevo chat/agente:
-
 1. `AGENTS.md`
 2. `docs/control/ASCENDA_CONTROL_MASTER.md`
 3. `docs/control/commercial-intelligence/CIA_AGENT_BOOTSTRAP_CURRENT.md`
 4. `docs/control/commercial-intelligence/CIA_EXECUTION_PLAYBOOK_V1.md`
 5. `docs/control/commercial-intelligence/CIA_MASTER_ALIGNMENT_CURRENT.md`
 6. este Roadmap
-7. `PHASE_12_VALIDATION_REPORT.md`
-8. `aos_memory` claves `cia_v3_*`, `cia_phase12_*`, `cia_phase13_status`
+7. `PHASE_13_VALIDATION_REPORT.md`
+8. `aos_memory` claves `cia_v3_*`, `cia_phase13_*`, `cia_phase14_status`
 9. Notion CIA Control Maestro / Fases / Hallazgos
-10. verificar `staging` + Supabase live antes de cualquier cambio.
+10. `aos_cia_request_f14_readiness_v1()`
+11. verificar staging + Supabase live antes de cualquier cambio.

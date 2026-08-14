@@ -1,47 +1,23 @@
 # ASCENDA OS — CIA MASTER ALIGNMENT CURRENT
 
 **Estado:** CURRENT  
-**Fecha:** 2026-08-13 (America/Lima)  
+**Fecha:** 2026-08-14 (America/Lima)  
 **Master arquitectónico:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`  
 **Estado dinámico:** `docs/control/commercial-intelligence/ROADMAP_STATUS.md`  
-**Checkpoint funcional de cierre Fase 9:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
-**Checkpoint de control actual:** consultar `staging` HEAD + `aos_memory.cia_v3_control_checkpoint`
+**Último merge funcional:** F13 `594c2c77dae8513ff73a300e60f4caed1996efad`  
+**Checkpoint de control actual:** consultar `staging` HEAD + `aos_memory.cia_v3_control_checkpoint`.
 
 ---
 
 # 1. OBJETIVO
 
-Este documento endereza formalmente la relación entre el Master V3 original y el estado real después de completar Fases 0–9.
+El Master V3 original continúa como arquitectura madre. Este documento alinea esa arquitectura con el estado real alcanzado después de cerrar F0–F13.
 
-El Master V3 original sigue siendo **arquitectura madre vigente** para:
+El Master sigue vigente para visión, separación de dominios, Fact Registry/DSL, Audience Engine, Assignment, governance, IA/Policy Gate, performance, compatibilidad de canales, rollback y roadmap conceptual F0–F18.
 
-- visión;
-- principios no negociables;
-- separación Audience/Eligibility/Activation/Assignment/Work View;
-- Fact Registry/DSL;
-- IA/policy gate;
-- performance/design system;
-- compatibilidad Call Center/Email;
-- testing/rollback master;
-- roadmap conceptual 0–18;
-- definición de éxito final.
+Sus secciones de estado inicial (`READY FOR PHASE 0`, estado de ejecución original y primera acción histórica) son **HISTORICAL / SUPERSEDED FOR CURRENT STATUS**.
 
-Sin embargo, sus secciones creadas como baseline de arranque ya no representan el estado actual.
-
----
-
-# 2. SECCIONES DEL MASTER ORIGINAL SUPERSEDED COMO ESTADO
-
-Quedan marcadas conceptualmente como **HISTORICAL / SUPERSEDED FOR CURRENT STATUS**:
-
-- encabezado `READY FOR PHASE 0`;
-- sección 41 `ESTADO DE EJECUCIÓN ACTUAL`;
-- sección 42 `PRIMERA ACCIÓN DESPUÉS DE APROBAR V3`.
-
-No deben borrarse porque documentan el punto de partida y la intención original.
-
-Para estado actual usar siempre:
-
+Para estado actual prevalecen:
 1. `CIA_AGENT_BOOTSTRAP_CURRENT.md`;
 2. `ROADMAP_STATUS.md`;
 3. último `PHASE_XX_VALIDATION_REPORT.md`;
@@ -50,9 +26,7 @@ Para estado actual usar siempre:
 
 ---
 
-# 3. ROADMAP MAESTRO 0–18 — ALINEACIÓN ACTUAL
-
-El índice de 19 fases del Master **se conserva**. No se reordena.
+# 2. ROADMAP MAESTRO 0–18 — ALINEACIÓN ACTUAL
 
 | # | Fase | Estado actual | Dependencia principal |
 |---:|---|---|---|
@@ -66,11 +40,11 @@ El índice de 19 fases del Master **se conserva**. No se reordena.
 | 7 | Snapshots & Activation | `100_COMPLETE` | F6 |
 | 8 | Channel Context & Availability | `100_COMPLETE` | F7 |
 | 9 | Assignment Engine | `100_COMPLETE` | F8 |
-| 10 | Advisor Control Center | `READY` | F9 read-models |
-| 11 | Call Center Integration V3 | `NOT_STARTED` | F9 + F10 |
-| 12 | Advisor Work Views | `NOT_STARTED` | F9 + F11 |
-| 13 | Requests & Approval Engine | `NOT_STARTED` | F9/F12 |
-| 14 | Commercial Intelligence Shadow | `NOT_STARTED` | outcomes + F10/F12 |
+| 10 | Advisor Control Center | `100_COMPLETE` | F9 |
+| 11 | Call Center Integration V3 | `100_COMPLETE` | F9+F10 |
+| 12 | Advisor Work Views | `100_COMPLETE` | F9+F11 |
+| 13 | Requests & Approval Engine | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` | F12 |
+| 14 | Commercial Intelligence Shadow | `READY` | F13 + facts/outcomes |
 | 15 | KronIA + Multiagent | `NOT_STARTED` | F13/F14 |
 | 16 | Email Integration | `NOT_STARTED` | Audience/Activation central |
 | 17 | SMS/WhatsApp/Future Channels | `NOT_STARTED` | F8/F16 patterns |
@@ -78,136 +52,109 @@ El índice de 19 fases del Master **se conserva**. No se reordena.
 
 ---
 
-# 4. CAMINO RESTANTE — NO DESVIARSE
+# 3. CADENA IMPLEMENTADA Y CERTIFICADA
 
-## F10 Advisor Control Center
+`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Requests/Approval`
 
-Primero observar y controlar Assignment antes de conectarlo al runtime de llamadas.
-
-Input:
-- `aos_cia_assignment_advisor_workload_v1()`;
-- `aos_cia_assignment_plan_summary_v1(plan_id)`;
-- list/events F9.
-
-Output para F11:
-- control plane administrativo confiable;
-- carga/capacidad/depletion visibles;
-- capacidad de diagnosticar ownership antes de routing.
-
-## F11 Call Center Integration V3
-
-Primera fase que puede conectar Assignment con siguiente contacto del Call Center.
-
-Obligatorio:
-- V3 paralela;
-- feature flag;
-- fallback V2;
-- rollout por usuarios;
-- hashes/baselines pre/post;
-- rollback inmediato;
-- no big bang.
-
-## F12 Advisor Work Views
-
-Personalización dentro de ownership autorizado. No autoasignación.
-
-## F13 Requests & Approval
-
-Gobernanza estructurada para pedir/cambiar recursos y ejecutar tras revalidación.
-
-## F14 Commercial Intelligence Shadow
-
-Recomendaciones con evidence/confidence/sample size; sin autoacciones.
-
-## F15 KronIA + Multiagent
-
-Orquestación sobre tools/contracts; Policy Gate; no SQL write arbitrario.
-
-## F16 Email
-
-Consume la arquitectura central, migra de forma progresiva y mantiene flows existentes como fallback durante transición.
-
-## F17 SMS/WhatsApp
-
-Mismo Audience Engine; provider/backend específico; no duplicar audiencias por canal.
-
-## F18 Attribution/Learning/Hardening
-
-Cerrar cadena:
-
-`Audience → Activation → Assignment/Channel → Contact → Appointment → Attendance → Sale → Revenue`
-
-más observabilidad, resiliencia, seguridad, jobs y paquete reusable.
+Decisiones demostradas:
+- `aos_usuarios.id` UUID es identidad de ownership;
+- `assignment_id` es referencia estable de work-item;
+- F8 availability gobierna nuevas asignaciones;
+- F9 lease/ownership gobierna trabajo activo;
+- F11 routing consume ownership con fallback V2;
+- F12 organiza work sin mutar owner;
+- F13 separa Request, Approval y Execution y revalida antes de mutar;
+- IA/F14/KronIA deben cruzar Policy Gate y no escriben arbitrariamente.
 
 ---
 
-# 5. DECISIONES DEL MASTER CONFIRMADAS POR LA IMPLEMENTACIÓN
+# 4. REFINAMIENTOS INSTITUCIONALIZADOS
 
-Las siguientes decisiones originales demostraron ser correctas y quedan reforzadas:
-
-- no big-bang;
-- read-only first;
-- `numero_limpio` como bridge temporal;
-- facts 1:1 por contacto;
-- no SQL arbitrario desde IA/frontend;
-- una sola audiencia multicanal;
-- Snapshot para reproducibilidad;
-- leases en Assignment;
-- feature flag/fallback para Call Center;
-- SHADOW antes de autonomía IA;
-- no Redis/Kafka/Temporal sin evidencia;
-- `aos_usuarios.id` como identidad de ownership;
-- GitHub + `aos_memory` como continuidad dual.
-
----
-
-# 6. DECISIONES DEL MASTER REFINADAS POR APRENDIZAJE REAL
-
-## Realtime vs cache
-
-No basta clasificar facts como realtime/batch: cada cache debe demostrar cobertura contra el universo y exponer freshness. UNKNOWN falla cerrado.
+## Datos / freshness
+Caches y facts deben demostrar cobertura/freshness. Ausencia no equivale automáticamente a FALSE; UNKNOWN falla cerrado.
 
 ## Performance
-
-Evitar mega-vistas incluso si conceptualmente son elegantes. El planner debe resolver por dominios/facts necesarios.
+No usar mega-views ni aumentar timeouts para ocultar N+1. Resolver por dominios, snapshots/listas y drill-down selectivo.
 
 ## Seguridad
-
-No basta RLS teórico. Verificar grants reales y write-path side effects de funciones usadas en índices/triggers.
+RLS teórico no basta: auditar grants reales. SECURITY DEFINER con search_path restringido debe schema-qualify extensiones, como `extensions.digest`.
 
 ## Testing
-
-Añadir dos gates que la experiencia demostró críticos:
-
-- handshake fase anterior → fase actual;
-- output fase actual → fase siguiente.
+Handshake anterior → actual y output actual → siguiente son gates obligatorios. QA mutante rollback-only; benchmarks mutantes también dentro de rollback.
 
 ## Replayability
-
-Migration versionada significa también timestamp/nombre compatible con `schema_migrations` real.
+Migration versionada implica reconciliación exacta con ledger live para migraciones del frente, distinguiendo cambios concurrentes legítimos.
 
 ## Timezone
+“Hoy” operacional = `America/Lima`.
 
-La timezone operacional de Zi Vital es `America/Lima`; evitar `CURRENT_DATE` implícito cuando el significado sea “hoy en clínica”.
+## Governance
+`Work View ≠ Assignment ≠ Request ≠ Approval ≠ Execution`.
+Retries idempotentes de estados terminales deben reconocerse antes de revalidar un recurso que la primera ejecución mutó intencionalmente.
+
+## CI
+Un runner bloqueado por billing antes de checkout no es un fallo de código ni un SUCCESS. F13 registró `CI_INFRA_EXCEPTION_DOCUMENTED`, validación equivalente aislada y smoke post-merge; la automatización debe restaurarse cuando se resuelva la infraestructura.
+
+---
+
+# 5. F13 — CONTRATO CERRADO
+
+F13 entrega:
+- `aos_cia_requests`;
+- `aos_cia_request_events` append-only;
+- state machine PENDING/APPROVED/REJECTED/EXPIRED/EXECUTED;
+- advisor request RPCs;
+- ADMIN gateway;
+- revalidación atómica ownership/state/expiry;
+- ejecución RELEASE usando lifecycle F9;
+- Policy Gate determinístico;
+- `aos_cia_request_f14_readiness_v1()`.
+
+Policy actual:
+- F14/KronIA `RELEASE_ASSIGNMENT` proposal → REQUIRE_APPROVAL;
+- AUTO_ASSIGN/TRANSFER/AUTO_APPROVE/RAW_SQL → BLOCK;
+- `auto_execute=false`.
+
+Post-merge live:
+- `ready_for_f14=true`;
+- `status=READY_NO_REQUESTS`;
+- zero F13 residue;
+- F11 routing sigue global OFF / no rollout live.
+
+---
+
+# 6. F14 — CAMINO EXACTO
+
+**Commercial Intelligence Shadow** es la siguiente fase correcta.
+
+Debe iniciar SHADOW/read-only y construir:
+- Opportunity objects determinísticos;
+- afinidad/recompra/priorización;
+- evidence, confidence, sample size y freshness;
+- explainability;
+- recommendations sin ejecución automática;
+- read-models ADMIN/advisor gobernados;
+- propuestas de acción únicamente vía F13 Policy Gate;
+- trazabilidad recommendation → proposed request → human decision.
+
+No debe:
+- autoaprobar;
+- autoejecutar;
+- autoasignar;
+- usar SQL write arbitrario;
+- usar historia clínica/fotos/diagnósticos/notas clínicas como features comerciales ordinarias;
+- saltarse F13;
+- presentar inferencia IA como hecho determinístico.
+
+Output F14 → F15:
+**Commercial Intelligence Shadow explicable + tools/contracts gobernados, listo para KronIA/Multiagent sin autonomía de escritura.**
 
 ---
 
 # 7. ESTADO ACTUAL DE LA MISIÓN
 
-Hasta Fase 9 ya existen físicamente y están certificados:
+F0–F13 constituyen ya el núcleo comercial gobernado de datos → audiencia → activación → ownership → operación personal → aprobación.
 
-- identidad comercial;
-- facts;
-- segmentación;
-- Audience Resolver;
-- panel central;
-- biblioteca versionada;
-- snapshots/activations;
-- context/availability;
-- Assignment Engine.
+La siguiente construcción no rehace ese núcleo. Añade una capa de inteligencia shadow sobre contratos existentes y prepara F15.
 
-Lo que falta no es rehacer ese cerebro, sino conectar control operativo, experiencia de asesores, approvals, intelligence, KronIA, canales y outcomes sobre esos contratos.
-
-La siguiente fase correcta es **Fase 10 — Advisor Control Center**.
-
-No saltar directamente a F11 solo porque Assignment ya existe: primero debe existir observabilidad/control suficiente para operar y revertir el routing cuando se conecte Call Center.
+**Siguiente fase: F14 — Commercial Intelligence Shadow.**
