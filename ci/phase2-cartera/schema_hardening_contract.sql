@@ -36,6 +36,14 @@ grant select,insert,update,delete,truncate,references,trigger on public.aos_plan
 grant select,insert,update,delete,truncate,references,trigger on public.aos_plan_trabajo_items to anon,authenticated;
 grant select,insert,update,delete,truncate,references,trigger on public.aos_ventas to anon,authenticated;
 
+-- Legacy auth stubs required by the final revoke contract.
+create or replace function public.aos_login_v2(text,text) returns json
+language sql security definer as $$select json_build_object('ok',true)$$;
+create or replace function public.aos_cia_claim_admin_session_v1(text,text) returns jsonb
+language sql security definer as $$select jsonb_build_object('ok',true)$$;
+grant execute on function public.aos_login_v2(text,text) to anon,authenticated;
+grant execute on function public.aos_cia_claim_admin_session_v1(text,text) to anon,authenticated;
+
 -- Legacy Caja stubs used only to prove v2 wrappers discard caller-supplied identity.
 create or replace function public.aos_caja_abrir(text,text,numeric,numeric,numeric,date) returns jsonb
 language sql security definer as $$select jsonb_build_object('ok',true,'sesion_id','test-session','actor',$2)$$;
