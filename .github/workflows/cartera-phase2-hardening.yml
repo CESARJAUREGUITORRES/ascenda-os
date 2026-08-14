@@ -1,0 +1,109 @@
+name: ASCENDA Cartera Phase 2 Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
+      - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
+      - 'ci/phase2-cartera/**'
+      - 'app/public/login.html'
+      - 'app/public/phase2-service-worker.js'
+      - '.github/workflows/cartera-phase2-hardening.yml'
+  push:
+    branches: ['agent/**','feature/**','fix/**','security/**']
+    paths:
+      - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
+      - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
+      - 'ci/phase2-cartera/**'
+      - 'app/public/login.html'
+      - 'app/public/phase2-service-worker.js'
+      - '.github/workflows/cartera-phase2-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartera-phase2-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-security-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: supabase db start
+
+      - name: Build synthetic schema and prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813164711_fix_otros_service_type.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814021609_fix_2fa_context_canary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814024619_sales_intelligence_admin_activation.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_hardening_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/fixture_pre_migration.sql
+
+      - name: Compile exact Phase 2 release chain
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814030000_phase2_auth_v3_additive.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814060000_phase2_production_hardening.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP Phase 2 base contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/004_cartera_phase2.sql | tee /tmp/base.txt
+          grep -q '1..96' /tmp/base.txt
+          ! grep -q 'not ok' /tmp/base.txt
+
+      - name: pgTAP Phase 2 hardening contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/005_phase2_hardening.sql | tee /tmp/hardening.txt
+          grep -q '1..33' /tmp/hardening.txt
+          ! grep -q 'not ok' /tmp/hardening.txt
+          ! grep -q 'Looks like you planned' /tmp/hardening.txt
+
+      - name: UI and cutover contract
+        run: |
+          set -euo pipefail
+          python3 ci/phase2-cartera/ui_contract.py
+          python3 - <<'PY'
+          from pathlib import Path
+          login=Path('app/public/login.html').read_text(encoding='utf-8')
+          sw=Path('app/public/phase2-service-worker.js').read_text(encoding='utf-8')
+          hard=Path('supabase/migrations/20260814060000_phase2_production_hardening.sql').read_text(encoding='utf-8')
+          assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
+          assert 'aos_login_v2' not in login and '/api/send-2fa' not in login
+          assert "register('/phase2-service-worker.js'" in login
+          assert 'aos_secure_write_v2' in sw and 'aos_caja_abrir_v2' in sw
+          assert 'aos_planes_trabajo' in sw and 'aos_catalogo_servicios' in sw
+          assert 'revoke execute on function public.aos_login_v2' in hard.lower()
+          assert 'revoke insert,update,delete' in hard.lower()
+          PY
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
