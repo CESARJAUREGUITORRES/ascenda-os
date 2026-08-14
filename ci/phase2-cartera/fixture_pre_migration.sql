@@ -13,7 +13,7 @@ insert into public.aos_usuarios(
   sedes_permitidas,area,cargo,two_factor,activo
 ) values
   ('CAROWNER','CARTERA OWNER','owner@example.invalid','admin',
-   array['admin-sales-intelligence','admin-cartera','admin-caja'],1,
+   array['admin-sales-intelligence','admin-cartera','admin-caja','admin-team'],1,
    array['SAN ISIDRO','PUEBLO LIBRE'],'DIRECCION','DIRECTOR GENERAL',true,true),
   ('CARNOPE','CARTERA NO ACCESS','nope@example.invalid','admin',
    array['admin-home'],1,array['PUEBLO LIBRE'],'ADMIN','ADMINISTRADOR',true,true),
