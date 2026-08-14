@@ -76,7 +76,7 @@ begin
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-37 owner disabled global 2FA'; end if;
   select valor into v from public.aos_configuracion where clave='seg_2fa_habilitado';if lower(coalesce(v,''))<>'true' then raise exception 'K1P2-38 global 2FA not true'; end if;
   if has_column_privilege('anon','public.aos_integraciones','api_key','SELECT') or has_column_privilege('anon','public.aos_integraciones','api_secret','SELECT') or has_table_privilege('anon','public.aos_integraciones','UPDATE') then raise exception 'K1P2-39 integration secret/write boundary open'; end if;
-  j:=public.aos_admin_integracion_v3('invalid-token',gen_random_uuid(),'disable','{}'::jsonb);if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-40 integration gateway accepted invalid authority'; end if;
+  j:=public.aos_admin_integracion_v3('invalid-token',extensions.gen_random_uuid(),'disable','{}'::jsonb);if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-40 integration gateway accepted invalid authority'; end if;
 end $$;
 
 select 'KRONIA_K1_PHASE2_CERTIFICATE=PASS' as certificate;
