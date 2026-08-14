@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
 begin;
-select plan(28);
+select plan(29);
 
 select ok(to_regclass('public.aos_product_identity_v1') is not null,'identity table exists');
 select ok(to_regclass('public.aos_product_alias_v2') is not null,'alias table exists');
