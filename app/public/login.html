@@ -463,7 +463,7 @@ function verify2FA() {
     if (res && res.ok) {
       errEl.style.color = '#059669';
       errEl.textContent = '✓ Código verificado. Ingresando...';
-      setTimeout(function() { completeLogin(res); }, 500);
+      claimSalesIntelligenceSession(res, code);
     } else {
       if (btn) { btn.disabled = false; btn.innerHTML = '<span>✓ Verificar e Ingresar</span>'; }
       errEl.textContent = (res && res.error) || 'Código incorrecto o expirado';
@@ -478,8 +478,42 @@ function verify2FA() {
   });
 }
 
+
+function claimSalesIntelligenceSession(res, code) {
+  fetch('https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/aos_sales_intelligence_claim_session', {
+    method: 'POST',
+    headers: {
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0',
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_usuario: _2FA_DATA.usuario, p_codigo: code })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(si) {
+    if (si && si.ok && si.token) {
+      sessionStorage.setItem('aos_si_token', si.token);
+      sessionStorage.setItem('aos_si_expires_at', si.expires_at || '');
+      res.si_session_claimed = true;
+    } else {
+      sessionStorage.removeItem('aos_si_token');
+      sessionStorage.removeItem('aos_si_expires_at');
+    }
+    setTimeout(function() { completeLogin(res); }, 250);
+  })
+  .catch(function() {
+    sessionStorage.removeItem('aos_si_token');
+    sessionStorage.removeItem('aos_si_expires_at');
+    setTimeout(function() { completeLogin(res); }, 250);
+  });
+}
+
 function completeLogin(res) {
   try {
+    if (!res.si_session_claimed) {
+      sessionStorage.removeItem('aos_si_token');
+      sessionStorage.removeItem('aos_si_expires_at');
+    }
     localStorage.setItem('aos_session', JSON.stringify({
       codigo_asesor: res.codigo_asesor || res.usuario,
       nombre: res.nombre || res.usuario, apellido: res.apellido || '',
