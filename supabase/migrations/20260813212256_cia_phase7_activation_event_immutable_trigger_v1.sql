@@ -1,0 +1,2 @@
+-- HISTORY ONLY. No SQL is executed from this file.
+-- Remote version 20260813212256 is already present in Supabase.

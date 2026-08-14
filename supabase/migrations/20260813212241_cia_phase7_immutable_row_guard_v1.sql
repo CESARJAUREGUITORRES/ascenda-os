@@ -1,0 +1,2 @@
+-- Remote migration 20260813212241 already applied live.
+-- Replayed by the canonical Phase 7 contract checkpoint.

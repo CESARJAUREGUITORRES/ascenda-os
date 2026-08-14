@@ -1,0 +1,2 @@
+-- HISTORY ONLY. Remote version 20260813212315 is already applied live.
+-- Canonical executable definition is in the later Phase 7 contract checkpoint.
