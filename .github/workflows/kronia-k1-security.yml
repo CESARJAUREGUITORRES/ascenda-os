@@ -42,7 +42,7 @@ jobs:
   security-contract:
     name: K1 identity / session / secrets / RPC boundary
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
@@ -50,15 +50,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Materialize exact Railway K1 runtime v3
+      - name: Materialize exact Railway K1 runtime v4
         run: |
           set -euo pipefail
-          (cd app && python3 k1_materialize_runtime.py && python3 k1_internal_boundary_v2.py && python3 k1_identity_boundary.py)
+          (cd app && python3 k1_materialize_runtime.py && python3 k1_internal_boundary_v2.py && python3 k1_identity_boundary.py && python3 k1_config_boundary.py)
           test -s app/k1-runtime-manifest.json
           cp app/k1-runtime-manifest.json /tmp/kronia-k1-runtime-manifest.json
-          grep -q 'python3 k1_materialize_runtime.py && python3 k1_internal_boundary_v2.py && python3 k1_identity_boundary.py' app/railway.json
-          sed -E -i 's/(^|[^.[:alnum:]_])digest\(/\1extensions.digest(/g' ci/kronia-k1/test_k1.sql
-          sed -E -i 's/(^|[^.[:alnum:]_])gen_random_bytes\(/\1extensions.gen_random_bytes(/g' ci/kronia-k1/test_k1.sql
+          grep -q 'python3 k1_materialize_runtime.py && python3 k1_internal_boundary_v2.py && python3 k1_identity_boundary.py && python3 k1_config_boundary.py' app/railway.json
           git diff --check
 
       - name: Runtime syntax and contract preflight
@@ -68,11 +66,14 @@ jobs:
           node --check app/public/kronia-core.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/popup.js
-          python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py app/k1_internal_boundary.py app/k1_internal_boundary_v2.py app/k1_identity_boundary.py
+          python3 -m py_compile \
+            app/k1_runtime_base.py app/k1_materialize_runtime.py app/k1_internal_boundary.py \
+            app/k1_internal_boundary_v2.py app/k1_identity_boundary.py app/k1_config_boundary.py
           python3 ci/kronia-k1/check_runtime_contract.py
           python3 ci/kronia-k1/check_compat_contract.py
           python3 ci/kronia-k1/check_internal_boundary.py
           python3 ci/kronia-k1/check_identity_boundary.py
+          python3 ci/kronia-k1/check_config_boundary.py
 
       - name: Dynamic privileged API security smoke
         run: |
@@ -89,7 +90,7 @@ jobs:
           import json
           from pathlib import Path
           m=json.loads(Path('/tmp/kronia-k1-runtime-manifest.json').read_text())
-          assert m.get('contract') == 'kronia-k1-runtime-v3'
+          assert m.get('contract') == 'kronia-k1-runtime-v4'
           expected={'server.js','public/app.html','public/kronia-core.js','public/login.html','public/admin-sales.html','public/admin-config.html','public/agents.html','public/cerebro.html','public/admin-team.html'}
           assert set(m.get('files',{})) == expected
           assert all(len(v)==64 for v in m['files'].values())
@@ -103,7 +104,9 @@ jobs:
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
-        run: supabase db start
+        run: |
+          set -euo pipefail
+          supabase db start
 
       - name: Build production-shaped K1 contracts
         run: |
@@ -113,38 +116,48 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/internal_primitives.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/identity_primitives.sql
 
-      - name: Compile K1 migrations 515-523 exactly
+      - name: Compile exact K1 migrations 515-527
         run: |
           set -euo pipefail
-          for f in \
-            supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql \
-            supabase/migrations/20260814051600_kronia_k1_extension_claim.sql \
-            supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql \
-            supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql \
-            supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql \
-            supabase/migrations/20260814052000_kronia_k1_internal_log_boundary.sql \
-            supabase/migrations/20260814052100_kronia_k1_private_credentials.sql \
-            supabase/migrations/20260814052200_kronia_k1_admin_identity_gateway.sql \
-            supabase/migrations/20260814052300_kronia_k1_admin_identity_safe_wrapper.sql; do
-              psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$f"
-          done
+          shopt -s nullglob
+          migrations=(supabase/migrations/20260814051*.sql supabase/migrations/20260814052*.sql)
+          test "${#migrations[@]}" -eq 13
+          printf '%s\n' "${migrations[@]}" | sort > /tmp/kronia-k1-migrations.txt
+          while IFS= read -r f; do
+            echo "APPLY $f"
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$f"
+          done < /tmp/kronia-k1-migrations.txt
 
-      - name: K1 authorization / credential / identity certificate
+      - name: Install post-migration CI-only auth helper
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_helpers_post_migration.sql
+
+      - name: K1 v5 authorization / credential / identity certificate
         run: |
           set -euo pipefail
           : > /tmp/kronia-k1-certificate.txt
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1.sql | tee -a /tmp/kronia-k1-certificate.txt
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1_extended.sql | tee -a /tmp/kronia-k1-certificate.txt
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1_identity.sql | tee -a /tmp/kronia-k1-certificate.txt
-          grep -q 'KRONIA_K1_NEGATIVE_AUTH_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
-          grep -q 'KRONIA_K1_EXTENDED_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+          for t in \
+            ci/kronia-k1/test_k1_core_v5.sql \
+            ci/kronia-k1/test_k1_extended_v2.sql \
+            ci/kronia-k1/test_k1_identity.sql \
+            ci/kronia-k1/test_k1_config.sql \
+            ci/kronia-k1/test_k1_authority.sql; do
+              psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$t" | tee -a /tmp/kronia-k1-certificate.txt
+          done
+          grep -q 'KRONIA_K1_CORE_V5_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_EXTENDED_V2_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
           grep -q 'KRONIA_K1_IDENTITY_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_CONFIG_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_AUTHORITY_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
-        run: supabase db lint --local --schema public --level error
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error
 
-      - name: Credential-safe rollback certificate
+      - name: Security-preserving rollback certificate
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814_kronia_k1_rollback.sql | tee -a /tmp/kronia-k1-certificate.txt
@@ -158,6 +171,18 @@ jobs:
           ! grep -n "const VERIFY_TOKEN = '" app/server.js
           ! grep -n "select=api_key" app/server.js
           ! grep -nE "password_hash[[:space:]]*:[[:space:]]*(pw|np|password)" app/public/admin-team.html
+          ! grep -nE "grant execute on function public\.aos_(login_v2|verificar_2fa|kronia_emitir_token|kronia_verify_token).* to anon" supabase/rollbacks/20260814_kronia_k1_rollback.sql
+
+      - name: Build immutable K1 evidence digest
+        run: |
+          set -euo pipefail
+          sha256sum \
+            /tmp/kronia-k1-certificate.txt \
+            /tmp/kronia-k1-runtime-manifest.json \
+            /tmp/kronia-k1-migrations.txt \
+            > /tmp/kronia-k1-evidence.sha256
+          sha256sum /tmp/kronia-k1-evidence.sha256 | tee /tmp/kronia-k1-evidence-root.sha256
+          echo 'KRONIA_K1_V5_ZERO_COST_CERTIFIED=PASS'
 
       - name: Upload K1 evidence
         if: always()
@@ -167,6 +192,9 @@ jobs:
           path: |
             /tmp/kronia-k1-certificate.txt
             /tmp/kronia-k1-runtime-manifest.json
+            /tmp/kronia-k1-migrations.txt
+            /tmp/kronia-k1-evidence.sha256
+            /tmp/kronia-k1-evidence-root.sha256
           if-no-files-found: ignore
           retention-days: 30
 
