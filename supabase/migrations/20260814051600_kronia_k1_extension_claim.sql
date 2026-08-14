@@ -60,8 +60,8 @@ begin
   v_role_raw := upper(coalesce(v_u.rol,v_u.cargo,v_rr.puesto,'ASESOR'));
   v_role := case when v_role_raw like '%ADMIN%' then 'ADMIN' else 'ASESOR' end;
   v_user_key := coalesce(nullif(v_rr.usuario,''),v_rr.nombre);
-  v_raw_token := encode(gen_random_bytes(32),'hex');
-  v_digest := encode(digest(v_raw_token,'sha256'),'hex');
+  v_raw_token := encode(extensions.gen_random_bytes(32),'hex');
+  v_digest := encode(extensions.digest(v_raw_token,'sha256'),'hex');
   v_expira := now()+interval '8 hours';
 
   update public.aos_kronia_tokens set revocado=true
@@ -89,5 +89,7 @@ begin
 end;
 $$;
 
-revoke all on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text) from public;
-grant execute on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text) to anon,authenticated;
+revoke all on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text)
+  from public, anon, authenticated;
+grant execute on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text)
+  to service_role;
