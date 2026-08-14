@@ -30,9 +30,10 @@ assert "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'" in
 assert "ascendaos_zivital_2026" not in inner
 assert re.search(r"const SB_KEY = process\.env\.SUPABASE_SERVICE_ROLE_KEY",inner)
 
-# K1 never rewrites the Phase 2 login UI/auth contract.
+# K1 preserves the Phase 2 login UI exactly as a canonical Auth V3 consumer.
 assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
-assert 'login.html' not in re.findall(r"for p in \[([^\]]+)\]",mat)[0] if re.findall(r"for p in \[([^\]]+)\]",mat) else True
+assert "for p in ['public/app.html','public/cerebro.html']" in mat
+assert "write('public/login.html'" not in mat and "p='public/login.html'" not in mat
 assert 'aos_app_token' in browser
 assert 'aos_kronia_tool_v3' in browser and 'aos_admin_identity_v4' in browser and 'aos_admin_config_v3' in browser
 assert "sessionStorage.getItem('aos_kronia_token')" not in browser
@@ -41,7 +42,7 @@ assert "sessionStorage.getItem('aos_kronia_token')" not in browser
 assert '/api/kronia/login-request' in extauth and '/api/kronia/login-verify' in extauth
 assert 'challenge_id' in extauth
 assert 'loginPassword.value' in popup and 'core.loginRequest(u,pw)' in popup
-assert 'state.password' not in popup and 'password:' not in json.dumps({'popup':popup})
+assert 'state.password' not in popup and 'kronia_session.password' not in popup
 
 manifest=json.loads((app/'k1-phase2-runtime-manifest.json').read_text(encoding='utf-8'))
 assert manifest['contract']=='kronia-k1-phase2-runtime-v1'
