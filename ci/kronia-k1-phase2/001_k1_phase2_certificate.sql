@@ -77,6 +77,25 @@ begin
   select valor into v from public.aos_configuracion where clave='seg_2fa_habilitado';if lower(coalesce(v,''))<>'true' then raise exception 'K1P2-38 global 2FA not true'; end if;
   if has_column_privilege('anon','public.aos_integraciones','api_key','SELECT') or has_column_privilege('anon','public.aos_integraciones','api_secret','SELECT') or has_table_privilege('anon','public.aos_integraciones','UPDATE') then raise exception 'K1P2-39 integration secret/write boundary open'; end if;
   j:=public.aos_admin_integracion_v3('invalid-token',extensions.gen_random_uuid(),'disable','{}'::jsonb);if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-40 integration gateway accepted invalid authority'; end if;
+
+  -- K1P2-41..47: full Team profile semantics and permission boundaries.
+  if public.aos_app_actor_v3(tok,null,false) is distinct from adv_id then raise exception 'K1P2-41 ordinary profile edit revoked advisor session'; end if;
+  j:=public.aos_admin_identity_v4('k1-owner-app-token-00000000000000000000000001','update_profile',adv_id,
+      jsonb_build_object('dni','99999999','sueldo',2450.50,'bono_metas',180.25,'cmp','CMP-K1','paneles_acceso',jsonb_build_array('ventas','admin-sales-intelligence')));
+  if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1P2-42 full Team profile update failed: %',j; end if;
+  if not exists(select 1 from public.aos_usuarios where id=adv_id and dni='99999999' and sueldo=2450.50 and bono_metas=180.25 and cmp='CMP-K1') then raise exception 'K1P2-43 Team fields were silently lost'; end if;
+  if exists(select 1 from public.aos_usuarios where id=adv_id and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]) then raise exception 'K1P2-44 Sales Intelligence panel forged through generic Team update'; end if;
+  j:=public.aos_admin_identity_v4('k1-owner-app-token-00000000000000000000000001','update_profile',owner_id,jsonb_build_object('nivel_jerarquia',2));
+  if coalesce((j->>'ok')::boolean,true) or j->>'error'<>'OWNER_SELF_PROTECTION' then raise exception 'K1P2-45 owner self-demotion not blocked: %',j; end if;
+  j:=public.aos_admin_identity_v4('k1-owner-app-token-00000000000000000000000001','toggle_active',owner_id,jsonb_build_object('enabled',false));
+  if coalesce((j->>'ok')::boolean,true) or j->>'error'<>'OWNER_SELF_PROTECTION' then raise exception 'K1P2-46 owner self-deactivation not blocked: %',j; end if;
+  if public.aos_app_actor_v3(tok,null,false) is distinct from adv_id then raise exception 'K1P2-47 non-authority Team update revoked advisor session'; end if;
+
+  -- K1P2-48..50: promotion cannot inherit a weaker pre-promotion PASSWORD session.
+  j:=public.aos_admin_identity_v4('k1-owner-app-token-00000000000000000000000001','update_profile',adv_id,jsonb_build_object('nivel_jerarquia',2));
+  if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1P2-48 owner promotion failed: %',j; end if;
+  if public.aos_app_actor_v3(tok,null,false) is not null then raise exception 'K1P2-49 pre-promotion PASSWORD session survived authority change'; end if;
+  if not exists(select 1 from public.aos_usuarios where id=adv_id and lower(rol)='admin' and nivel_jerarquia=2 and two_factor=true) then raise exception 'K1P2-50 promoted identity not canonical ADMIN+2FA'; end if;
 end $$;
 
 select 'KRONIA_K1_PHASE2_CERTIFICATE=PASS' as certificate;
