@@ -1,0 +1,69 @@
+<link rel="stylesheet" href="/advisor-work.css">
+<div class="aw-root" id="aw-root">
+  <div class="aw-head">
+    <div>
+      <div class="aw-eyebrow">Advisor Work Views · Fase 12</div>
+      <h1>Mi trabajo</h1>
+      <p>Tu cartera asignada, priorizada sin cambiar el ownership.</p>
+    </div>
+    <div class="aw-head-actions">
+      <button class="aw-btn secondary" id="aw-refresh">↻ Actualizar</button>
+      <button class="aw-btn primary" id="aw-callcenter">☎ Abrir Call Center</button>
+    </div>
+  </div>
+
+  <div class="aw-kpis" id="aw-kpis">
+    <div class="aw-kpi"><span>Activos</span><strong id="aw-k-active">—</strong><small>ownership vigente</small></div>
+    <div class="aw-kpi"><span>En progreso</span><strong id="aw-k-progress">—</strong><small>trabajándose ahora</small></div>
+    <div class="aw-kpi warning"><span>Vencidos al iniciar</span><strong id="aw-k-overdue">—</strong><small>requieren atención</small></div>
+    <div class="aw-kpi amber"><span>Expiran ≤60m</span><strong id="aw-k-expiring">—</strong><small>lease próximo a vencer</small></div>
+    <div class="aw-kpi"><span>Snooze</span><strong id="aw-k-snoozed">—</strong><small>ocultos temporalmente</small></div>
+    <div class="aw-kpi"><span>Solicitables</span><strong id="aw-k-requestable">—</strong><small>F13 habilitará requests</small></div>
+  </div>
+
+  <div class="aw-card">
+    <div class="aw-toolbar">
+      <div class="aw-tabs" role="tablist">
+        <button class="aw-tab active" data-view="NOW">Ahora <span id="aw-count-now"></span></button>
+        <button class="aw-tab" data-view="PINNED">Fijados</button>
+        <button class="aw-tab" data-view="SNOOZED">Snooze</button>
+        <button class="aw-tab" data-view="HISTORY">Historial</button>
+      </div>
+      <div class="aw-legend"><span class="dot red"></span>urgente <span class="dot amber"></span>próximo <span class="dot blue"></span>normal</div>
+    </div>
+    <div id="aw-state" class="aw-state loading"><span class="aw-spinner"></span>Cargando tu universo de trabajo…</div>
+    <div id="aw-list" class="aw-list" hidden></div>
+    <div class="aw-pager" id="aw-pager" hidden>
+      <button id="aw-prev" class="aw-mini">← Anterior</button>
+      <span id="aw-page-label">—</span>
+      <button id="aw-next" class="aw-mini">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="aw-overlay" id="aw-detail-modal" aria-hidden="true">
+  <div class="aw-modal" role="dialog" aria-modal="true" aria-labelledby="aw-detail-title">
+    <div class="aw-modal-head">
+      <div><div class="aw-eyebrow">Detalle de ownership</div><h2 id="aw-detail-title">Detalle</h2></div>
+      <button class="aw-close" data-close="detail">×</button>
+    </div>
+    <div id="aw-detail-body" class="aw-detail-body"></div>
+  </div>
+</div>
+
+<div class="aw-overlay" id="aw-snooze-modal" aria-hidden="true">
+  <div class="aw-modal compact" role="dialog" aria-modal="true" aria-labelledby="aw-snooze-title">
+    <div class="aw-modal-head">
+      <div><div class="aw-eyebrow">Preferencia personal</div><h2 id="aw-snooze-title">Posponer work-item</h2></div>
+      <button class="aw-close" data-close="snooze">×</button>
+    </div>
+    <p class="aw-modal-note">Snooze solo oculta temporalmente este elemento. No libera ni reasigna el contacto.</p>
+    <div class="aw-snooze-grid">
+      <button data-minutes="60">1 hora</button>
+      <button data-minutes="240">4 horas</button>
+      <button data-minutes="1440">1 día</button>
+      <button data-minutes="4320">3 días</button>
+    </div>
+  </div>
+</div>
+<script src="/advisor-work.js"></script>
