@@ -8,6 +8,7 @@ on:
       - 'app/railway.staging.json'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
+      - 'app/public/app.html'
       - 'ci/phase1-sales-intelligence/**'
       - '.github/workflows/sales-intelligence-phase1.yml'
   push:
@@ -18,6 +19,7 @@ on:
       - 'app/railway.staging.json'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
+      - 'app/public/app.html'
       - 'ci/phase1-sales-intelligence/**'
       - '.github/workflows/sales-intelligence-phase1.yml'
   workflow_dispatch:
