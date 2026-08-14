@@ -25,6 +25,23 @@ check 'python3' python3 --version
 check 'psql' psql --version
 check 'docker-cli' docker version
 
+# GitHub JavaScript actions use the runner-bundled Node runtime even when the
+# `node` binary is not exported to shell steps. Reuse that trusted local binary
+# and publish its directory through GITHUB_PATH for subsequent Zero-Cost steps.
+if command -v node >/dev/null 2>&1; then
+  check 'node' node --version
+elif [[ -n "${RUNNER_TEMP:-}" && -n "${GITHUB_PATH:-}" ]]; then
+  if bash "$(dirname "${BASH_SOURCE[0]}")/expose-runner-node.sh" >/dev/null 2>&1; then
+    echo 'PASS  runner-node-bundled'
+  else
+    echo 'FAIL  runner-node-bundled'
+    fail=1
+  fi
+else
+  echo 'FAIL  node unavailable and runner metadata missing'
+  fail=1
+fi
+
 if command -v docker >/dev/null 2>&1; then
   if docker run --rm hello-world >/dev/null 2>&1; then
     echo 'PASS  docker-container-smoke'
