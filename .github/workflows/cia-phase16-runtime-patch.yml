@@ -1,0 +1,76 @@
+name: ASCENDA CIA Phase 16 Runtime Patch
+
+on:
+  push:
+    branches:
+      - 'feature/cia-phase16-email-integration-20260814'
+    paths:
+      - 'scripts/ci/phase16_patch_runtime.py'
+      - '.github/workflows/cia-phase16-runtime-patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cia-phase16-runtime-patch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    name: F16 deterministic runtime migration
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/cia-phase16-email-integration-20260814
+          fetch-depth: 1
+
+      - name: Enforce Zero-Cost CI V2 policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Self-hosted runner healthcheck
+        run: bash scripts/ci/runner-healthcheck.sh
+
+      - name: Apply deterministic runtime patch
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/phase16_patch_runtime.py
+
+      - name: Runtime syntax and security assertions
+        run: |
+          set -euo pipefail
+          node --check app/server.js
+          node --check app/email-gateway.js
+          grep -q "if (p === '/api/email-gateway')" app/server.js
+          grep -q "EMAIL_GATEWAY.handleWebhook" app/server.js
+          grep -q "emCall('LEGACY_SEND'" app/public/admin-email.html
+          ! grep -q "fetch(SB+" app/public/admin-email.html
+          ! grep -q "'apikey':SK" app/public/admin-email.html
+          ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          echo 'CIA_PHASE16_RUNTIME_SECURITY_ASSERTIONS=PASS'
+
+      - name: Verify exact changed runtime scope
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected=$'app/public/admin-email.html\napp/server.js'
+          if [ "$changed" != "$expected" ]; then
+            echo "Unexpected runtime patch scope:" >&2
+            printf '%s\n' "$changed" >&2
+            exit 1
+          fi
+          echo 'CIA_PHASE16_RUNTIME_SCOPE=PASS'
+
+      - name: Commit governed runtime migration
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server.js app/public/admin-email.html
+          git commit -m 'feat(cia): route Email admin runtime through authoritative gateway'
+          git push origin HEAD:feature/cia-phase16-email-integration-20260814
