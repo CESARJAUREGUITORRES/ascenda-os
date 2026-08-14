@@ -8,6 +8,7 @@ on:
       - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
+      - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
       - 'app/public/kronia-core.js'
@@ -22,6 +23,7 @@ on:
       - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
+      - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
       - 'app/public/kronia-core.js'
@@ -112,6 +114,13 @@ jobs:
         run: |
           set -euo pipefail
           supabase db lint --local --schema public --level error
+
+      - name: Rollback certificate
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814_kronia_k1_rollback.sql | tee -a /tmp/kronia-k1-certificate.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_rollback.sql | tee -a /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_ROLLBACK_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
 
       - name: Runtime syntax gate
         run: |
