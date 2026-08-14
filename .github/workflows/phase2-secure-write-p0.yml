@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/phase2-secure-write-p0.yml'
   push:
     branches: ['fix/phase2-secure-write-jsonb-*']
@@ -31,6 +32,9 @@ jobs:
         with:
           version: 2.101.0
 
+      - name: Clean stale ASCENDA Supabase resources
+        run: bash scripts/ci/cleanup-ascenda-supabase.sh
+
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
         run: |
@@ -42,10 +46,7 @@ jobs:
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
-        run: |
-          set -euo pipefail
-          supabase stop --no-backup || true
-          supabase db start
+        run: supabase db start
 
       - name: Build production-shaped Phase 2 baseline
         run: |
@@ -116,7 +117,10 @@ jobs:
           sha256sum supabase/migrations/20260814195300_fix_auth_v3_btrim.sql supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.sha256
           echo 'PHASE2_SECURE_WRITE_ZERO_COST_CERTIFIED=PASS'
 
-      - name: Stop isolated Supabase
+      - name: Stop isolated Supabase and prove zero residue
         if: always()
-        working-directory: ci/zero-cost-staging
-        run: supabase stop --no-backup || true
+        run: |
+          cd ci/zero-cost-staging
+          supabase stop --no-backup || true
+          cd ../..
+          bash scripts/ci/cleanup-ascenda-supabase.sh
