@@ -38,7 +38,6 @@ begin
     exception when others then return jsonb_build_object('ok',false,'error','LEVEL_INVALID'); end;
     if v_level not between 1 and 5 then return jsonb_build_object('ok',false,'error','LEVEL_INVALID'); end if;
 
-    -- The canonical owner cannot accidentally remove its own recovery authority.
     if v_target.id=v_actor.id and v_level<>1 then return jsonb_build_object('ok',false,'error','OWNER_SELF_PROTECTION'); end if;
 
     if v_level in (1,2) and coalesce(
@@ -126,7 +125,10 @@ begin
   elsif v_action='force_logout' then null;
   end if;
 
-  if v_action in ('update_profile','set_2fa','change_username','toggle_active','delete_user','force_logout') then
+  -- Ordinary update_profile fields do not force logout. K1-G revokes sessions
+  -- only if role/level/2FA/email/active actually changed. Explicit security/lifecycle
+  -- actions below always invalidate current sessions.
+  if v_action in ('set_2fa','change_username','toggle_active','delete_user','force_logout') then
     update public.aos_app_sessions_v3 set revoked=true where user_id=v_target.id and revoked=false;
     update public.aos_cia_admin_sessions set revoked=true where user_id=v_target.id and revoked=false;
   end if;
