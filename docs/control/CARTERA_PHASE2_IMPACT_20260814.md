@@ -92,7 +92,7 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 ## Pruebas y gate
 
 - Esquema sintético sin datos reales.
-- pgTAP: 87 aserciones para RLS, permisos, sesión, sedes —incluidos casos adversariales con `NULL` y valores no finitos—, sobrecargas legacy, clasificación, reconciliación, idempotencia ligada al actor, sobrepago, atomicidad y roles de pago.
+- pgTAP: 94 aserciones para RLS, permisos, sesión, sedes —incluidos casos adversariales con `NULL` y valores no finitos—, sobrecargas legacy, clasificación, reconciliación, idempotencia ligada al actor, sobrepago, atomicidad y roles de pago.
 - Lint de Supabase en nivel error.
 - Contrato UI para menú, autorización, gateway, Caja v2 y bloqueo de recordatorios.
 - Smoke requerido antes de producción: San Isidro, Pueblo Libre, administrador con panel, administrador sin panel, sobrepago rechazado y saldo exacto.

@@ -1,6 +1,6 @@
 begin;
 
-select plan(87);
+select plan(94);
 
 select has_table('public','aos_cartera_reconciliacion','bridge exists');
 select is((select relrowsecurity from pg_class where oid='public.aos_cartera_reconciliacion'::regclass),true,'bridge has RLS');
