@@ -4,43 +4,30 @@
 
 Este archivo define las reglas operativas obligatorias para cualquier agente de IA/Codex que trabaje sobre ASCENDA OS. El objetivo es permitir desarrollo rápido sin perder trazabilidad, seguridad ni estabilidad de producción.
 
-## Commercial Intelligence & Audience OS — recovery obligatorio
-
-Si el trabajo pertenece a **Commercial Intelligence & Audience OS V3** (Bases, Audiencias, Segmentación, Activaciones, Contexto, Asignaciones, Advisor Control, Work Views, Approvals, Intelligence, KronIA o integraciones de canales), antes de proponer o ejecutar cambios leer en este orden:
-
-1. `docs/control/commercial-intelligence/CIA_AGENT_BOOTSTRAP_CURRENT.md`
-2. `docs/control/commercial-intelligence/CIA_EXECUTION_PLAYBOOK_V1.md`
-3. `docs/control/commercial-intelligence/CIA_MASTER_ALIGNMENT_CURRENT.md`
-4. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
-5. `docs/control/commercial-intelligence/ROADMAP_STATUS.md`
-6. último `PHASE_XX_VALIDATION_REPORT.md`
-7. `aos_memory` claves `cia_v3_*` y fase actual
-8. verificar `staging` + Supabase live antes de escribir.
-
-Reglas especiales CIA:
-
-- el Master V3 es arquitectura estática; el Roadmap/Bootstrap son estado dinámico;
-- no reconstruir lógica de una fase anterior: consumir su contrato certificado;
-- cada fase declara `INPUT CONTRACT ← FASE → OUTPUT CONTRACT`;
-- no declarar `100_COMPLETE` sin PR/CI/staging smoke/Validation Report/`aos_memory`;
-- migrations Git y `schema_migrations` live deben ser replayables y coherentes;
-- cualquier DDL sobre write-path operacional requiere prueba con el rol real que escribe;
-- QA mutante debe ser rollback-only cuando sea posible y terminar con cero residuos;
-- UNKNOWN/freshness incompleta falla cerrado;
-- para lógica diaria de Zi Vital usar semántica explícita `America/Lima`;
-- incidentes productivos se restauran primero y luego se continúa la fase;
-- no avanzar de fase si el handshake con la fase anterior o el contrato para la siguiente no está probado.
-
-Checkpoint funcional CIA al incorporar estas reglas: Fases 0–9 `100_COMPLETE`; Fase 10 — Advisor Control Center `READY`; cierre funcional F9 `2e1116f07919fcf53bdac8cf61cbd23944863630`. El checkpoint de control/documentación actual se obtiene siempre de `staging` HEAD live y `aos_memory.cia_v3_control_checkpoint`.
-
 ## Fuente de verdad de arquitectura
 
 Antes de proponer o ejecutar cambios, leer:
 
 1. `docs/control/ASCENDA_CONTROL_MASTER.md`
-2. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
-3. Los archivos productivos bajo `app/`
-4. Las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+2. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
+3. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
+4. el master/index/checkpoint CURRENT del workstream afectado
+5. `SECURITY.md` para cambios de seguridad, Auth, RLS, secretos, agentes o infraestructura
+6. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
+7. los archivos productivos bajo `app/`
+8. las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+
+Antes de continuar trabajo iniciado por otro chat/agente, verificar el estado real de GitHub (`main`, `staging`, branch, PR, checks) y de Supabase; no asumir que un checkpoint antiguo sigue vigente.
+
+### Bootstrap obligatorio de Zero-Cost CI V2
+
+Todo chat/agente de ASCENDA debe asumir como CURRENT que el CI normal corre en el runner repo-level `ASCENDA-ZERO-COST-V2`, labels `self-hosted`, `Linux`, `X64`, `ascenda-zero-cost-v2`, con gasto pagado de GitHub Actions objetivo **US$0**.
+
+- Si el runner está offline, los jobs quedan en cola; no se cambia a `ubuntu-latest`/`windows-latest`/`macos-*` como fallback.
+- Un reinicio de la PC NO afecta producción; solo interrumpe CI.
+- Tras reinicio, el runner se recupera arrancando Docker y `./run.sh`; no se debe repetir `config.sh` salvo revocación/eliminación del runner.
+- Con un único runner los jobs se ejecutan secuencialmente; `queued/pending` no equivale por sí solo a fallo.
+- Antes de tocar workflows, leer el handoff CURRENT indicado arriba.
 
 ### Clasificación del repositorio
 
@@ -82,11 +69,33 @@ No arreglar síntomas modificando datos o columnas sin determinar primero la fue
 - No hacer force push sobre `main`.
 - No fusionar cambios de alto impacto sin revisión humana y validación.
 
-### Staging
+### GitHub Staging
 
-- `staging` es la rama de integración/preproducción.
+- `staging` es la rama de integración/preproducción de código.
+- **No confundir `staging` de GitHub con una Supabase Cloud Development Branch.**
 - Las nuevas features deben desarrollarse en `feature/*`, `fix/*`, `security/*`, `data/*` o `chore/*`.
-- Flujo esperado: branch → checks → PR → staging → validación → PR/main.
+- Flujo esperado: branch → checks → PR → staging cuando aplique → validación → PR/main.
+
+### Zero-Cost Staging — estándar por defecto
+
+ASCENDA usa `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md` como circuito preproductivo obligatorio por defecto.
+
+- GitHub Actions coordina y el cómputo normal se ejecuta en el self-hosted runner repo-level `ASCENDA-ZERO-COST-V2`.
+- Supabase CLI/PostgreSQL/Docker levantan un entorno efímero y reproducible en el runner.
+- No se usan credenciales productivas ni PII/PHI real como fixtures.
+- Se compilan las migraciones EXACTAS del release, se ejecutan lint, contracts, pgTAP/pruebas equivalentes, seguridad, performance y rollback según riesgo.
+- El entorno se destruye al finalizar, incluso cuando el workflow falla.
+- Para HIGH/CRITICAL debe existir evidencia reproducible (run/artifact/digest/checkpoint) antes del gate productivo.
+- Un CI verde no autoriza producción: siguen siendo obligatorios preflight, canary/cutover/smoke y autorización según riesgo.
+- Los workflows normales deben usar `runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]` y no tener fallback facturable.
+
+### Infraestructura cloud pagada
+
+- Supabase Cloud Development Branch, proyecto duplicado, staging Railway dedicado u otra infraestructura con costo **NO son requisitos automáticos**.
+- Solo se crean si un riesgo material no puede validarse suficientemente mediante Zero-Cost Staging + preflight/canary.
+- Antes de crear infraestructura con costo: explicar necesidad, alternativa cero-costo descartada, permisos/datos implicados, costo/recurrencia, rollback/borrado y obtener aprobación explícita del propietario.
+- Por defecto, cualquier entorno cloud adicional debe ser efímero y eliminarse al terminar su gate.
+- No recomendar compra de minutos de GitHub Actions como primera solución; optimizar routing, concurrencia y self-hosted CI primero.
 
 ### Auditoría
 
@@ -127,7 +136,7 @@ Cualquier cambio que toque:
 - historia clínica
 - KronIA con acciones de escritura
 
-Requiere Impact Report, pruebas específicas y rollback.
+Requiere Impact Report, pruebas específicas, Zero-Cost Staging y rollback.
 
 ### ⚫ CRITICAL
 
@@ -142,7 +151,7 @@ Requiere Impact Report, pruebas específicas y rollback.
 - deploy/infraestructura;
 - cambios multi-tenant.
 
-No ejecutar directamente en producción sin staging, backup/restore conocido y aprobación explícita.
+No ejecutar directamente en producción sin Zero-Cost Staging certificado, preflight productivo, backup/restore o rollback conocido, canary/additive rollout cuando sea posible, security review y aprobación explícita.
 
 ---
 
@@ -257,6 +266,8 @@ Antes de cambiar `server.js`:
 - revisar CORS y autenticación;
 - mantener compatibilidad de endpoints existentes.
 
+Cuando CI materialice o genere un runtime, HIGH/CRITICAL exige demostrar que el artefacto certificado es equivalente al artefacto que Railway ejecutará.
+
 ---
 
 ## Pruebas mínimas por cambio
@@ -277,7 +288,18 @@ Agregar además:
 - prueba por rol relevante;
 - prueba mobile si existe UI;
 - flujo E2E relacionado;
-- rollback documentado.
+- Zero-Cost Staging;
+- rollback documentado y, cuando sea seguro, ejecutado dentro del staging efímero;
+- production preflight read-only;
+- evidencia reproducible de certificación.
+
+### CRITICAL adicional
+
+- pruebas negativas explícitas;
+- trust-boundary/security review;
+- canary/additive rollout cuando técnicamente sea posible;
+- 0 HIGH/CRITICAL abiertos dentro del scope antes de certificar producción;
+- autorización explícita del propietario antes del primer cambio productivo.
 
 ---
 
@@ -329,11 +351,21 @@ Una tarea no está terminada solo porque “se ve bien”. Debe cumplir, según 
 - migración versionada;
 - pruebas ejecutadas;
 - seguridad revisada;
-- staging validado;
-- producción validada tras merge;
+- Zero-Cost Staging validado cuando aplique;
+- preflight/canary productivo según riesgo;
+- producción validada tras release;
 - datos reconciliados;
 - rollback conocido;
-- documentación actualizada.
+- documentación/checkpoint actualizado.
+
+### Estados de certificación
+
+No mezclar estados:
+
+- `ZERO-COST CERTIFIED` = contratos/migraciones/tests/rollback certificados en entorno efímero.
+- `CANARY CERTIFIED` = integración real mínima validada sin activación general.
+- `PRODUCTION CERTIFIED` = release autorizado, smoke real y reconciliación final completados.
+- `100_COMPLETE` solo puede utilizarse cuando todos los gates declarados del alcance están cerrados.
 
 ---
 
@@ -349,7 +381,8 @@ No:
 - copiar secretos entre entornos;
 - usar datos reales de Zi Vital como seed del futuro SaaS;
 - convertir la base productiva actual a multi-tenant mediante cambios masivos;
-- ocultar fallos de tests para “poner verde” el CI.
+- ocultar fallos de tests para “poner verde” el CI;
+- crear infraestructura cloud pagada por costumbre cuando Zero-Cost Staging cubre el riesgo.
 
 ---
 
