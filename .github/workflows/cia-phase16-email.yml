@@ -8,6 +8,7 @@ on:
     paths:
       - 'supabase/migrations/*cia_phase16_email*.sql'
       - 'ci/phase16/**'
+      - 'ci/zero-cost-staging/supabase/config.toml'
       - 'app/server.js'
       - 'app/public/admin-email.html'
       - '.github/workflows/cia-phase16-email.yml'
@@ -20,6 +21,7 @@ on:
     paths:
       - 'supabase/migrations/*cia_phase16_email*.sql'
       - 'ci/phase16/**'
+      - 'ci/zero-cost-staging/supabase/config.toml'
       - 'app/server.js'
       - 'app/public/admin-email.html'
       - '.github/workflows/cia-phase16-email.yml'
@@ -65,6 +67,13 @@ jobs:
           psql --version
           python3 --version
           docker --version
+
+      - name: Verify Zero-Cost staging config
+        run: |
+          set -euo pipefail
+          test -f ci/zero-cost-staging/supabase/config.toml
+          grep -q 'project_id = "ascenda-zero-cost-staging"' ci/zero-cost-staging/supabase/config.toml
+          grep -q '^port = 54322$' ci/zero-cost-staging/supabase/config.toml
 
       - name: Start isolated Supabase PostgreSQL
         working-directory: ci/zero-cost-staging
