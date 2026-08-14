@@ -72,6 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/auth_primitives.sql
 
       - name: Compile K1 migrations exactly
         run: |
