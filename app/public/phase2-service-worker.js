@@ -5,6 +5,7 @@ self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());}
 
 var PROTECTED={aos_catalogo_categorias:1,aos_catalogo_servicios:1,aos_catalogo_toppings:1,aos_catalogo_productos_detalle:1,aos_planes_trabajo:1,aos_plan_trabajo_items:1};
 var CAJA={aos_caja_abrir:'aos_caja_abrir_v2',aos_caja_cerrar:'aos_caja_cerrar_v2',aos_caja_editar_pago:'aos_caja_editar_pago_v2',aos_caja_eliminar_venta:'aos_caja_eliminar_venta_v2',aos_caja_ingreso_extra:'aos_caja_ingreso_extra_v2',aos_caja_registrar_gasto:'aos_caja_registrar_gasto_v2'};
+var IDENTITY={aos_admin_crear_usuario:'aos_admin_crear_usuario_v3',aos_admin_cambiar_password:'aos_admin_cambiar_password_v3',aos_cambiar_password:'aos_cambiar_password_v3'};
 
 async function getToken(){try{var c=await caches.open('aos-phase2-auth');var r=await c.match('/__aos_app_token');return r?await r.text():'';}catch(e){return '';}}
 function json(obj,status){return new Response(JSON.stringify(obj),{status:status||200,headers:{'Content-Type':'application/json'}});}
@@ -19,6 +20,20 @@ self.addEventListener('fetch',function(event){
   if(u.hostname.indexOf('supabase.co')<0)return;
 
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
+  if(rm&&IDENTITY[rm[1]]){
+    event.respondWith((async function(){
+      var p=await requestJson(req);p.p_token=await getToken();
+      // The retired 4-argument admin password RPC is intentionally not compatible.
+      if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}
+      if(rm[1]==='aos_cambiar_password'){
+        p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};
+      }
+      var r=await rpcFrom(req,IDENTITY[rm[1]],p);
+      if(isMissing(r))return fetch(req);
+      return r;
+    })());return;
+  }
+
   if(rm&&CAJA[rm[1]]){
     event.respondWith((async function(){
       var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;
