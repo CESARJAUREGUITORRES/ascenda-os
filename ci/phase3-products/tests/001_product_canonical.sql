@@ -1,12 +1,13 @@
 \set ON_ERROR_STOP on
 
 begin;
-select plan(29);
+select plan(33);
 
 select ok(to_regclass('public.aos_product_identity_v1') is not null,'identity table exists');
 select ok(to_regclass('public.aos_product_alias_v2') is not null,'alias table exists');
 select ok(to_regclass('public.aos_product_sale_fact_v1') is not null,'sale fact table exists');
 select ok(to_regclass('public.aos_product_sale_fact_current_v1') is not null,'sanitized fact view exists');
+select ok(to_regclass('public.aos_product_review_queue_v1') is not null,'review queue view exists');
 
 select ok((select relrowsecurity from pg_class where oid='public.aos_product_identity_v1'::regclass),'identity RLS enabled');
 select ok((select relrowsecurity from pg_class where oid='public.aos_product_alias_v2'::regclass),'alias RLS enabled');
@@ -35,6 +36,9 @@ select is((select physical_qty from public.aos_product_sale_fact_v1 where sale_i
 select is((select physical_qty from public.aos_product_sale_fact_v1 where sale_id=1638),0::numeric,'sale 1638 does not double count split payment');
 select is((select descripcion from public.aos_ventas where id=909),'PERFECT- B 90GR','migration preserves original sale description');
 
+select ok((select resolution_status='RESOLVED' and resolution_source='AUTO_ALIAS_V2' from public.aos_product_sale_fact_v1 where sale_id=2340),'real post-workbook sale 2340 is backfilled automatically');
+select is((select canonical_name from public.aos_product_sale_fact_v1 f join public.aos_product_identity_v1 i using(product_key) where f.sale_id=2340),'LIFTING B 30GR','real post-workbook Liftin B maps to canonical Lifting B');
+
 insert into public.aos_ventas(id,fecha,tratamiento,descripcion,sede,tipo)
 values (99999,current_date,'COMPRA DE PRODUCTO','LIFTIN B','SAN ISIDRO','PRODUCTO');
 select ok((select resolution_status='RESOLVED' from public.aos_product_sale_fact_v1 where sale_id=99999),'new Liftin B sale resolves automatically');
@@ -42,6 +46,7 @@ select ok((select resolution_status='RESOLVED' from public.aos_product_sale_fact
 insert into public.aos_ventas(id,fecha,tratamiento,descripcion,sede,tipo)
 values (99998,current_date,'COMPRA DE PRODUCTO','ZZZ NEVER SEEN PRODUCT','SAN ISIDRO','PRODUCTO');
 select ok((select resolution_status='REVIEW_REQUIRED' from public.aos_product_sale_fact_v1 where sale_id=99998),'unknown product fails closed to review');
+select ok(exists(select 1 from public.aos_product_review_queue_v1 where sale_id=99998),'unknown product is visible in governed review queue');
 
 select * from finish();
 rollback;
