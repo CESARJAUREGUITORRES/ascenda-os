@@ -3,7 +3,7 @@
 Fecha: 2026-08-14
 Rama: `feat/sales-intelligence-v2-phase1-canary`
 PR: #66
-Estado: **STAGING GATE APROBADO — PRODUCCIÓN PENDIENTE DE APROBACIÓN HUMANA**
+Estado: **GATES PREPRODUCTIVOS APROBADOS — PRODUCCIÓN PENDIENTE DE APROBACIÓN HUMANA**
 
 ## 1. Evidencia de staging vivo
 
@@ -15,14 +15,16 @@ Estado: **STAGING GATE APROBADO — PRODUCCIÓN PENDIENTE DE APROBACIÓN HUMANA*
   - `admin-sales-intelligence.html`: `7a3bb3e2441af0f78d15ae4e0a0949522e8d5a9b`.
 - UI desktop: KPIs, comparativa anual, proyección, MTD y tabla mensual visibles sin error de RPC.
 - Consola de la página: sin errores propios del panel.
+- Railway redeploy del HEAD `8c1e1950d641bfe134a4aa69b51cae6d3a83d52d`: SUCCESS.
+- `app.html` vivo coincide con el blob canary `b3b1cbf8a86355401ffc3dd53ba19be935718c43` e incluye el acceso nivel 1.
 
 ## 2. CI certificado
 
 - Ascenda CI: SUCCESS.
 - Sales Intelligence Phase 1: SUCCESS.
 - Zero-Cost Staging: SUCCESS.
-- pgTAP: 40 pruebas previstas tras hardening ACL.
-- Presupuesto de performance certificado previo: ejecución 8.015 ms; 1,132 buffers; límites 250 ms / 1,500.
+- pgTAP: 40/40 PASS tras hardening ACL.
+- Performance final: ejecución 9.924 ms; 1,132 buffers; límites 250 ms / 1,500.
 
 ## 3. Snapshot financiero preflight
 
