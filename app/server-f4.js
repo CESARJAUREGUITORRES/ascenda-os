@@ -1,6 +1,4 @@
 // ASCENDA OS — F4 Revenue Operations front proxy.
-// Intercepts sensitive KronIA sale-edit confirmations and requires the strong
-// Auth V3 app token before delegating to the tokenized F4 database contract.
 'use strict';
 const http=require('http');
 const https=require('https');
@@ -15,6 +13,7 @@ const child=spawn(process.execPath,['server-phase2.js'],{cwd:__dirname,env:Objec
 child.on('exit',(code,signal)=>{console.error('[F4-PROXY] backend exited',{code,signal});process.exit(code==null?1:code);});
 
 function writeJson(res,status,obj){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Ascenda-Revenue-Route':'f4'});res.end(JSON.stringify(obj));}
+function readJson(req,maxBytes=1024*1024){return new Promise((resolve,reject)=>{let raw='',overflow=false;req.on('data',c=>{if(overflow)return;raw+=c;if(Buffer.byteLength(raw)>maxBytes)overflow=true;});req.on('end',()=>{if(overflow){reject(Object.assign(new Error('PAYLOAD_TOO_LARGE'),{status:413}));return;}try{resolve({raw,body:JSON.parse(raw||'{}')});}catch(e){reject(Object.assign(new Error('INVALID_JSON'),{status:400}));}});req.on('error',reject);});}
 function sbRpc(name,payload){
   return new Promise((resolve,reject)=>{
     let sb;try{sb=new URL(SB_URL);}catch(e){reject(e);return;}
@@ -25,9 +24,10 @@ function sbRpc(name,payload){
     req.on('timeout',()=>req.destroy(new Error('UPSTREAM_TIMEOUT')));req.on('error',reject);req.write(data);req.end();
   });
 }
+function strongToken(req){const t=String(req.headers['x-aos-app-token']||'').trim();return t.length>=32?t:'';}
 async function handleKroniaSaleEdit(req,res,body){
-  const appToken=String(req.headers['x-aos-app-token']||'').trim();
-  if(appToken.length<32){writeJson(res,403,{ok:true,respuesta:'🔒 La edición financiera requiere una sesión administrativa 2FA vigente.',provider:'f4-security',error:'F4_STRONG_SESSION_REQUIRED'});return;}
+  const appToken=strongToken(req);
+  if(!appToken){writeJson(res,403,{ok:true,respuesta:'🔒 La edición financiera requiere una sesión administrativa 2FA vigente.',provider:'f4-security',error:'F4_STRONG_SESSION_REQUIRED'});return;}
   const action=body&&body.confirmar_accion;const params=action&&action.params||{};const saleId=Number(params.p_venta_id||0);
   if(!saleId||!params.p_campos||typeof params.p_campos!=='object'){writeJson(res,400,{ok:false,error:'INVALID_SALE_EDIT'});return;}
   try{
@@ -39,29 +39,24 @@ async function handleKroniaSaleEdit(req,res,body){
     writeJson(res,200,{ok:true,respuesta:'✅ Venta actualizada mediante el contrato seguro F4.',provider:'f4-ejecutor',resultado:result});
   }catch(e){console.error('[F4-PROXY] KronIA sale edit',e.message);writeJson(res,502,{ok:true,respuesta:'⚠️ No fue posible completar la edición segura en este momento.',provider:'f4-ejecutor',error:'F4_UPSTREAM_UNAVAILABLE'});}
 }
+async function handleCandidates(req,res,body){
+  const appToken=strongToken(req);if(!appToken){writeJson(res,403,{ok:false,error:'F4_STRONG_SESSION_REQUIRED'});return;}
+  const caseId=String((body&&body.case_id)||'').trim();if(!caseId){writeJson(res,400,{ok:false,error:'CASE_ID_REQUIRED'});return;}
+  try{const out=await sbRpc('aos_cartera_candidates_v2',{p_token:appToken,p_case_id:caseId});writeJson(res,out.status>=200&&out.status<300?200:out.status,out.data||{ok:false,error:'UPSTREAM_EMPTY'});}catch(e){console.error('[F4-PROXY] candidates',e.message);writeJson(res,502,{ok:false,error:'F4_UPSTREAM_UNAVAILABLE'});}
+}
 
-const server=http.createServer((req,res)=>{
+const server=http.createServer(async(req,res)=>{
   let pathname='/';try{pathname=new URL(req.url,'http://localhost').pathname;}catch(e){}
+  if(pathname==='/api/f4/cartera-candidates'&&req.method==='POST'){
+    try{const parsed=await readJson(req,128*1024);await handleCandidates(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;
+  }
   if(pathname==='/api/kronia/chat'&&req.method==='POST'){
-    let raw='',overflow=false;req.on('data',c=>{if(overflow)return;raw+=c;if(Buffer.byteLength(raw)>1024*1024)overflow=true;});req.on('end',()=>{
-      if(overflow){writeJson(res,413,{ok:false,error:'PAYLOAD_TOO_LARGE'});return;}
-      let body;try{body=JSON.parse(raw||'{}');}catch(e){writeJson(res,400,{ok:false,error:'INVALID_JSON'});return;}
-      if(body&&body.confirmar_accion&&body.confirmar_accion.rpc==='aos_editar_venta'){handleKroniaSaleEdit(req,res,body);return;}
-      proxyBuffered(req,res,raw);
-    });return;
+    try{const parsed=await readJson(req);if(parsed.body&&parsed.body.confirmar_accion&&parsed.body.confirmar_accion.rpc==='aos_editar_venta'){await handleKroniaSaleEdit(req,res,parsed.body);return;}proxyBuffered(req,res,parsed.raw);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;
   }
   proxyStream(req,res);
 });
-function proxyBuffered(req,res,raw){
-  const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT,'content-length':Buffer.byteLength(raw)});
-  const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});
-  up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] buffered',e.message);});up.write(raw);up.end();
-}
-function proxyStream(req,res){
-  const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
-  const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});
-  up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] stream',e.message);});req.pipe(up);
-}
+function proxyBuffered(req,res,raw){const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT,'content-length':Buffer.byteLength(raw)});const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] buffered',e.message);});up.write(raw);up.end();}
+function proxyStream(req,res){const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] stream',e.message);});req.pipe(up);}
 function shutdown(sig){console.log('[F4-PROXY] shutdown',sig);server.close(()=>process.exit(0));if(!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}
 process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
 server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT));
