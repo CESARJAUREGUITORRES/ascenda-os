@@ -3,6 +3,7 @@ import re
 
 page = Path('app/public/admin-sales-intelligence.html').read_text(encoding='utf-8')
 staging = Path('app/public/admin-sales-intelligence-staging.html').read_text(encoding='utf-8')
+shell = Path('app/public/app.html').read_text(encoding='utf-8')
 
 required_ids = [
     'si-fact','si-meta','si-pct','si-gap','si-ticket','si-sales','si-best','si-avg',
@@ -30,4 +31,11 @@ assert staging.count('.supabase.co') == 0, 'staging harness must not contain a S
 assert '/rest/v1/rpc/aos_sales_intelligence_summary' in staging
 assert re.search(r'for\(var i=9;i<=12;i\+\+\)', staging), 'fixture must expose 12 months'
 
+assert 'var _APP_VERSION = 20260814.1;' in shell, 'shell cache version must force the canary hotfix'
+assert 'function revalidateAdminSessionContext()' in shell
+assert "select=nivel_jerarquia,paneles_acceso,avatar_url,area,cargo" in shell
+assert "revalidateAdminSessionContext();" in shell
+assert "id:'admin-sales-intelligence'" in shell
+assert "canaryNivel:1" in shell
+assert "Number(AOS.ctx.nivel || 99) <= 1" in shell
 print('PHASE1_UI_CONTRACT=PASS')
