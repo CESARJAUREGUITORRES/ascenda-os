@@ -19,6 +19,7 @@ on:
       - 'fix/**'
       - 'security/**'
       - 'data/**'
+      - 'infra/**'
     paths:
       - 'supabase/**'
       - 'ci/zero-cost-staging/**'
@@ -40,7 +41,7 @@ concurrency:
 jobs:
   database-contract:
     name: Supabase local / regression / performance
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 20
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -92,7 +93,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
-          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.relnamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1" || test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1"
 
       - name: Compile 2FA canary context migration
         run: |
@@ -142,6 +143,7 @@ jobs:
           done
           psql "$DB_URL" -X -qAt -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT zcs.aos_sales_intelligence_summary(2026,'','')" > /tmp/sales_intelligence_plan.json
           python3 ci/zero-cost-staging/check_explain.py /tmp/sales_intelligence_plan.json
+          sha256sum /tmp/sales_intelligence_plan.json
 
       - name: Final zero-cost staging certificate
         run: |
@@ -156,15 +158,6 @@ jobs:
           print('ZERO_COST_STAGING_CERTIFIED=PASS')
           print('BASELINE=1275 sales / S/555373.27 / cutoff 2026-08-12')
           PY
-
-      - name: Upload performance evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: zero-cost-staging-evidence
-          path: /tmp/sales_intelligence_plan.json
-          if-no-files-found: ignore
-          retention-days: 14
 
       - name: Stop isolated Supabase database
         if: always()
