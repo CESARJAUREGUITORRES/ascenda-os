@@ -2,35 +2,29 @@
 
 **Estado:** CURRENT / RECOVERY ENTRYPOINT  
 **Actualizado:** 2026-08-14 (America/Lima)  
-**Checkpoint funcional de cierre Fase 9:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
-**Checkpoint de control/documentación actual:** consultar `aos_memory` + `staging` HEAD live  
-**Fases cerradas:** 0–9 `100_COMPLETE`  
-**Fase actual:** 10 — Advisor Control Center `READY`
+**Fases cerradas:** 0–10 `100_COMPLETE`  
+**Fase actual:** 11 — Call Center Integration V3 `READY`  
+**Último merge funcional certificado:** F10 `2a74c3443bb600c1157b746349e1e85dac7f67fc`  
+**Checkpoint de control/documentación actual:** consultar `aos_memory.cia_v3_control_checkpoint` + `staging` HEAD live.
 
 ---
 
 # 1. MISIÓN
 
-Commercial Intelligence & Audience OS transforma los datos operativos vivos de ASCENDA en:
-
-`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Work → Approval → Intelligence → KronIA → Channels → Attribution`
-
-Principios:
-
-- una audiencia pertenece a ASCENDA, no a un canal;
-- Audience ≠ Eligibility ≠ Activation ≠ Assignment ≠ Work View;
-- datos fuente operativos permanecen intactos;
-- `numero_limpio/contact_key` es bridge V1, no identidad eterna;
-- SQL/RPC determinístico calcula; IA interpreta/recomienda;
-- human-in-the-loop para ownership/recursos sensibles;
-- UNKNOWN falla cerrado;
-- toda capa material es versionada/auditable;
-- no big-bang;
-- no romper producción para completar una fase.
+`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Approval → Intelligence → KronIA → Channels → Attribution`
 
 Misión global ASCENDA:
 
 `CONTROLAR → ESTABILIZAR → MIGRAR A PROPIEDAD CORPORATIVA → PRODUCTIZAR COMO SaaS`
+
+Principios:
+- Audience ≠ Eligibility ≠ Activation ≠ Assignment ≠ Work View;
+- datos fuente operativos permanecen intactos;
+- ownership = `aos_usuarios.id` UUID;
+- UNKNOWN/freshness incompleta falla cerrado;
+- SQL/RPC determinístico calcula; IA interpreta/recomienda;
+- no big-bang;
+- no romper producción para completar una fase.
 
 ---
 
@@ -38,52 +32,36 @@ Misión global ASCENDA:
 
 Antes de cualquier cambio:
 
-1. leer `AGENTS.md`;
-2. leer `docs/control/ASCENDA_CONTROL_MASTER.md`;
-3. leer este archivo;
-4. leer `CIA_EXECUTION_PLAYBOOK_V1.md`;
-5. leer `CIA_MASTER_ALIGNMENT_CURRENT.md`;
-6. leer `ROADMAP_STATUS.md`;
-7. leer el último `PHASE_XX_VALIDATION_REPORT.md`;
-8. leer `aos_memory` claves `cia_v3_*` y fase actual;
-9. consultar el Control Maestro visual de Notion y comprobar que refleja el mismo estado;
+1. `AGENTS.md`;
+2. `docs/control/ASCENDA_CONTROL_MASTER.md`;
+3. este Bootstrap;
+4. `CIA_EXECUTION_PLAYBOOK_V1.md`;
+5. `CIA_MASTER_ALIGNMENT_CURRENT.md`;
+6. `ROADMAP_STATUS.md`;
+7. `PHASE_10_VALIDATION_REPORT.md`;
+8. `aos_memory` claves `cia_v3_*`, `cia_phase10_*`, `cia_phase11_status`;
+9. Notion CIA Control Maestro + Fases + Hallazgos;
 10. verificar `staging` HEAD live;
 11. verificar Supabase live/migrations;
-12. solo entonces ejecutar la fase activa.
+12. recién entonces iniciar F11.
 
-No usar como estado actual la sección histórica “Estado de ejecución actual” del Master V3 original. El estado técnico vivo está en GitHub + `aos_memory` + runtime. Notion es una capa visual derivada y debe corregirse si existe drift.
-
----
-
-# 3. NOTION — CONTROL VISUAL DERIVADO
-
-ASCENDA usa un patrón visual común para proyectos de largo recorrido:
-
-`Control Maestro + Fases + Hallazgos & Mejoras`
-
-## CIA V3
-
-- Control Maestro: `https://app.notion.com/p/3bc0e4fe841481489c8ad11bb55acaf3?pvs=204`
-- Fases CIA V3: `https://app.notion.com/p/1a24a1f7e7ab4a299f4848f1eaeff74d`
-- Hallazgos & Mejoras CIA V3: `https://app.notion.com/p/4b3d3d6180ef4fb2b8d978f324e66dfd`
-- Estándar de Control de Proyectos ASCENDA: `https://app.notion.com/p/3bc0e4fe84148160ad18d30d380782db?pvs=204`
-
-## Proyecto hermano KronIA
-
-- KronIA V2 — Control Maestro: `https://app.notion.com/p/3bc0e4fe8414812db4b6f73e71e3c018?pvs=204`
-
-Reglas:
-
-- GitHub + Supabase/runtime prevalecen sobre Notion;
-- Notion debe actualizarse al final de cada loop certificado;
-- exactamente una fase debe quedar `Siguiente` o `En curso`;
-- todo hallazgo nuevo se registra con fase destino, evidencia y criterio de cierre;
-- un hallazgo no se marca `Resuelto` sin evidencia;
-- si Notion contradice GitHub/runtime, corregir Notion antes de continuar.
+GitHub + Supabase/runtime prevalecen sobre Notion. Si existe drift visual, corregir Notion.
 
 ---
 
-# 4. ESTADO DE LAS 19 FASES
+# 3. NOTION
+
+- Control Maestro CIA: `https://app.notion.com/p/3bc0e4fe841481489c8ad11bb55acaf3?pvs=204`
+- Fases CIA: `https://app.notion.com/p/1a24a1f7e7ab4a299f4848f1eaeff74d`
+- Hallazgos CIA: `https://app.notion.com/p/4b3d3d6180ef4fb2b8d978f324e66dfd`
+- Estándar ASCENDA: `https://app.notion.com/p/3bc0e4fe84148160ad18d30d380782db?pvs=204`
+- KronIA V2: `https://app.notion.com/p/3bc0e4fe8414812db4b6f73e71e3c018?pvs=204`
+
+Al cierre de cada fase: GitHub/CI/staging → `aos_memory` → Notion.
+
+---
+
+# 4. ROADMAP F0–F18
 
 | # | Fase | Estado |
 |---:|---|---|
@@ -97,8 +75,8 @@ Reglas:
 | 7 | Snapshots & Activation | `100_COMPLETE` |
 | 8 | Channel Context & Availability | `100_COMPLETE` |
 | 9 | Assignment Engine | `100_COMPLETE` |
-| 10 | Advisor Control Center | `READY` |
-| 11 | Call Center Integration V3 | `NOT_STARTED` |
+| 10 | Advisor Control Center | `100_COMPLETE` |
+| 11 | Call Center Integration V3 | `READY` |
 | 12 | Advisor Work Views | `NOT_STARTED` |
 | 13 | Requests & Approval Engine | `NOT_STARTED` |
 | 14 | Commercial Intelligence Shadow | `NOT_STARTED` |
@@ -109,175 +87,140 @@ Reglas:
 
 ---
 
-# 5. CONTRATOS YA CERTIFICADOS
+# 5. CONTRATOS CERTIFICADOS HASTA F10
 
-## F0–F4
-
-- Identity resolver con conflictos explícitos.
-- Commercial Facts 1:1.
-- Segmentation separada de legacy `etiqueta_vip`.
-- Audience DSL whitelisted con MATCH/MISS/UNKNOWN y `never_contains`.
-
-## F5–F6
-
-- Panel ADMIN Bases & Audiencias.
-- CIA admin session/gateway.
-- Biblioteca universal de audiencias versionada y auditable.
-
-## F7–F8
-
-- Snapshots inmutables.
-- Activation BATCH/DYNAMIC.
-- `Audience Total → Eligible → Available Now`.
-- UNKNOWN no assignable.
-
-## F9
-
-Input autoritativo:
+## F8 → F9
 
 `aos_cia_activation_available_keys_v1(activation_id)`
 
-Assignment:
+solo devuelve contactos assignable según contexto/availability.
 
-- ownership por `aos_usuarios.id` UUID;
+## F9 Assignment
+
+- plans / targets / runs / leases / events;
 - ONE / EQUAL / PERCENTAGE / FIXED;
 - GLOBAL / ACTIVATION;
-- `RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED | RELEASED | EXPIRED`;
 - capacity;
-- NONE / MAINTAIN_TARGET / CONTINUOUS;
-- idempotency;
-- advisory lock;
-- anti-double-ownership;
+- top-up;
+- lifecycle de leases;
+- concurrency/idempotency;
 - audit append-only.
 
-Output autoritativo para F10:
+## F10 Advisor Control
 
-`aos_cia_assignment_advisor_workload_v1()`
+Read-models:
 
-`aos_cia_assignment_plan_summary_v1(plan_id)`
+- `aos_cia_advisor_control_overview_v1()`
+- `aos_cia_advisor_control_advisor_detail_v1(...)`
+- `aos_cia_advisor_control_plan_health_v1(...)`
+- `aos_cia_advisor_control_alerts_v1(...)`
+- `aos_cia_advisor_control_f11_readiness_v1()`
 
-Complementarios:
+Gateway:
 
-`aos_cia_assignment_list_v1(...)`
+`aos_cia_phase10_admin_gateway_v1(...)`
 
-`aos_cia_assignment_events_v1(...)`
+Readiness F11 valida:
+- GLOBAL ownership conflicts;
+- asesores/targets inválidos;
+- deadlines inválidos;
+- plan ACTIVE con Activation no ACTIVE.
+
+Estado live tras cierre F10:
+- 6 asesores activos;
+- 0 ownership real;
+- readiness `READY_NO_ACTIVE_OWNERSHIP`;
+- `routing_modified=false`.
+
+F10 performance con 1,000 leases:
+- overview 4.83 ms;
+- advisor detail 50 10.76 ms;
+- plan health 14.22 ms;
+- readiness 6.09 ms.
+
+Plan health general usa `LAST_RUN_SNAPSHOT`; `GET_PLAN` entrega detalle live exacto para un plan seleccionado.
 
 ---
 
-# 6. FASE 10 — MISIÓN EXACTA
+# 6. FASE 11 — MISIÓN EXACTA
 
-Construir **Advisor Control Center**, un read/control plane administrativo sobre ownership ya creado por Fase 9.
+Construir **Call Center Integration V3** como ruta paralela y reversible entre Assignment y el runtime operativo de llamadas.
 
-Debe mostrar, por `aos_usuarios.id`:
+F11 debe:
 
-- carga activa;
-- ASSIGNED;
-- IN_PROGRESS;
-- COMPLETED;
-- RELEASED;
-- EXPIRED;
-- active plans;
-- overdue-to-start;
-- expiring leases;
-- candidate remaining;
-- source available;
-- depletion;
-- capacity/utilization;
-- drill-down de ownership/deadlines.
+1. ejecutar `aos_cia_advisor_control_f11_readiness_v1()` como preflight;
+2. bloquear rollout si readiness=`BLOCKED`;
+3. crear routing V3 paralelo;
+4. usar feature flag/canary por usuario;
+5. conservar `aos_siguiente_lead_v2` como fallback;
+6. respetar `America/Lima`;
+7. consumir ownership F9, no reconstruir eligibility ni Assignment;
+8. probar claim/consume/release/expiry y concurrencia;
+9. demostrar rollback inmediato a V2;
+10. preservar hashes/baseline V2 hasta el rollout explícito.
 
-Fase 10 **no** debe:
-
-- reconstruir ownership desde calls/leads;
+F11 NO debe:
+- eliminar/reemplazar V2 en big-bang;
 - crear otro Assignment Engine;
-- modificar `aos_siguiente_lead`;
-- entregar Work Views a asesores;
-- hacer routing Call Center V3;
-- implementar approvals;
-- introducir afinidad IA como decisión real.
+- redefinir availability F8;
+- adelantar Advisor Work Views F12;
+- activar a todos los asesores simultáneamente.
 
-Output requerido para F11:
-
-un control plane confiable que permita observar y gobernar Assignment antes de conectarlo al runtime de Call Center.
+Output F11 → F12:
+routing V3 estable, observable y con ownership canónico, listo para Work Views personales.
 
 ---
 
-# 7. CAMINO RESTANTE 10–18
+# 7. BASELINE DE ROUTING QUE F11 DEBE PRESERVAR
 
-**F10 Advisor Control Center** → observar/controlar ownership F9.  
-**F11 Call Center Integration V3** → ruta paralela + feature flag + fallback V2.  
-**F12 Advisor Work Views** → vistas personales dentro del ownership.  
-**F13 Requests & Approval** → requests estructuradas y ejecución atómica.  
-**F14 Intelligence Shadow** → oportunidades/afinidad/agotamiento sin autoacción.  
-**F15 KronIA + Multiagent** → tools estructuradas + Policy Gate.  
-**F16 Email** → consumir Audience/Activation central conservando flows actuales.  
-**F17 SMS/WhatsApp** → mismos contratos, provider específico.  
-**F18 Attribution/Learning/Hardening** → outcomes end-to-end, resiliencia, observabilidad y paquete reusable.
+Antes de tocar Call Center verificar nuevamente:
 
-No adelantar capacidades entre fases salvo deuda bloqueante demostrada; si se adelanta una corrección, documentar por qué y mantener la frontera funcional.
+- `aos_siguiente_lead` hash: `76412bac81e20ec6cfdc4f8c0db89e8c`
+- `aos_siguiente_lead_v2` hash: `cb69781d1457ed73de8f8d52f0f83a00`
+
+Cierre F10 no modificó:
+- `calls.js`;
+- `aos_siguiente_lead*`;
+- `aos_cola_config`;
+- `aos_leads_en_curso`.
+
+Semántica diaria V3 debe ser `America/Lima`, no `CURRENT_DATE` server implícito.
 
 ---
 
-# 8. GUARDRAILS ADQUIRIDOS
+# 8. GUARDRAILS PERMANENTES
 
-Antes de tocar una tabla operativa:
-
-- revisar write-path;
-- revisar funciones usadas por índices/triggers;
-- probar INSERT/UPDATE como rol real;
-- confirmar tráfico real posterior.
-
-Antes de optimizar:
-
-- EXPLAIN/benchmark;
-- no subir timeout como solución;
-- no mega-join de dominios innecesarios.
-
-Antes de certificar:
-
-- migration replayability;
-- grants reales;
-- timezone Lima;
-- cache coverage/freshness;
-- QA rollback-only;
+- write-path safety obligatorio antes de tocar tablas/routing operativo;
+- QA mutante rollback-only cuando sea posible;
 - zero residue;
-- handshake fase anterior;
-- output siguiente fase;
-- PR + CI + staging smoke;
-- docs + `aos_memory` + Notion.
+- migrations Git ↔ `schema_migrations` coherentes;
+- ACL reales post-DDL;
+- no subir timeout para ocultar una arquitectura lenta;
+- freshness explícita;
+- una sola fuente autoritativa de audit events;
+- handshake fase anterior + output fase siguiente antes de `100_COMPLETE`;
+- PR + CI + staging smoke + Validation Report + `aos_memory` + Notion.
 
 ---
 
-# 9. INCIDENTES QUE TODO AGENTE DEBE RECORDAR
+# 9. INCIDENTES/LECCIONES QUE SIGUEN VIGENTES
 
-1. Mega-view del resolver llegó a ~30.4 s → Resolver V2 domain-aware.
-2. Índices CIA con función privada rompieron INSERT de Call Center con 401 → write-path safety obligatorio.
-3. Default EXECUTE de funciones fue más amplio de lo supuesto → revisar ACL post-DDL.
-4. Auth KronIA existente no era apta para panel ADMIN → no reutilizar auth sin auditoría.
-5. Drift de timestamps de migrations → Git ↔ `schema_migrations` debe ser 1:1.
-6. Segment/Email caches quedaron detrás del universo → absence no es FALSE si freshness no cuadra.
-7. Snapshot BATCH falló por `digest()` sin schema → calificar extensiones y probar handshake real.
-8. Event emitter DB + RPC manual duplicaba potencialmente eventos → una sola fuente de audit.
-9. `CURRENT_DATE` server divergió de Lima → timezone explícita.
-10. CONTINUOUS top-up inicial se desbalanceó → probar ciclo completo, no solo primera asignación.
-
-Sentry está registrado en Notion como mejora planificada de observabilidad; no asumir integración completada hasta que exista confirmación y evidencia técnica.
+1. Mega-view ~30.4 s → resolver por dominios.
+2. Índices CIA privados rompieron Call Center 401 → write-path test real.
+3. ACL defaults inesperados → auditar privileges.
+4. Auth heredada no se reutiliza sin auditoría.
+5. Drift de migrations → ledger Git/live 1:1.
+6. Cache stale → UNKNOWN/freshness fail-closed.
+7. `digest()` sin schema → extensiones schema-qualified.
+8. Doble audit source → una sola fuente DB.
+9. UTC vs Lima → timezone explícita.
+10. CONTINUOUS top-up → probar ciclo completo.
+11. F10 plan health N+1 → lista snapshot ligera + drill-down exacto live.
 
 ---
 
-# 10. CHECKPOINTS
+# 10. SIGUIENTE ACCIÓN
 
-Checkpoint funcional/closure Fase 9:
+**Iniciar F11 únicamente después de recovery/preflight completo.**
 
-`2e1116f07919fcf53bdac8cf61cbd23944863630`
-
-Checkpoint de control/documentación actual:
-
-consultar `staging` HEAD live y `aos_memory` clave `cia_v3_control_checkpoint`.
-
-Último cierre funcional:
-
-`docs/control/commercial-intelligence/PHASE_09_VALIDATION_REPORT.md`
-
-Siguiente acción:
-
-**Iniciar Fase 10 únicamente después de recovery/preflight y comprobar que Notion visual coincide con GitHub/runtime.**
+Primer paso F11: baseline exhaustivo del Call Center V2 + readiness F10 + Impact Report CRITICAL antes de modificar routing.
