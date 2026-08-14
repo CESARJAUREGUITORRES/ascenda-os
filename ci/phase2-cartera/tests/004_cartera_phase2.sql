@@ -133,7 +133,7 @@ select is((select cr.estado_reconciliacion from public.aos_cartera_reconciliacio
 select is((select source_active from public.aos_cartera_reconciliacion where source_type='COTIZACION' and cotizacion_id='Q-PART-1'),false,'closed quote leaves active receivables');
 
 update public.aos_cotizaciones set total_pagado=250,saldo_pendiente=550,updated_at=now() where id='Q-PART-2';
-select is((select estado_reconciliacion from public.aos_cartera_reconciliacion where source_type='VENTA' and venta_row_id=(select id from public.aos_ventas where venta_id='V-ADV-2')),'SALDO_CONFIRMADO','unrelated venta review remains explicit');
+select is((select estado_reconciliacion from public.aos_cartera_reconciliacion where source_type='VENTA' and venta_row_id=(select id from public.aos_ventas where venta_id='V-ADV-2')),'REVISAR','linked sale approval is invalidated after quote change');
 select is((select estado_reconciliacion from public.aos_cartera_reconciliacion where source_type='COTIZACION' and cotizacion_id='Q-PART-2'),'REVISAR','quote source edit invalidates quote approval');
 
 select * from finish();
