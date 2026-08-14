@@ -27,8 +27,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: cartera-phase2-${{ github.ref }}
-  cancel-in-progress: true
+  group: ascenda-local-supabase-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   isolated-contract:
@@ -44,7 +44,10 @@ jobs:
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
-        run: supabase db start
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          supabase db start
 
       - name: Build synthetic schema and prerequisite contracts
         run: |
