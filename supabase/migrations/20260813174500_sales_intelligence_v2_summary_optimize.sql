@@ -195,3 +195,12 @@ $function$;
 
 COMMENT ON FUNCTION public.aos_sales_intelligence_summary(integer,text,text) IS
 'Sales Intelligence V2 aggregate-only summary: annual/meta/YTD, same-days MTD comparison and monthly projection. Optimized narrow read.';
+
+-- Explicit API privilege contract.
+-- ASCENDA's current browser runtime uses the anon role even after its custom login,
+-- so anon execution remains required for this aggregate-only RPC. PUBLIC is revoked
+-- to prevent unintended inheritance by additional database roles.
+REVOKE ALL ON FUNCTION public.aos_sales_intelligence_summary(integer,text,text)
+FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.aos_sales_intelligence_summary(integer,text,text)
+TO anon, authenticated, service_role;
