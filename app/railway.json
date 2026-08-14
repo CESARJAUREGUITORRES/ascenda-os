@@ -5,7 +5,7 @@
     "buildCommand": "echo 'Skip build — serving static from public/'"
   },
   "deploy": {
-    "startCommand": "node server.js",
+    "startCommand": "node server-phase2.js",
     "restartPolicyType": "ON_FAILURE"
   },
   "environments": {
