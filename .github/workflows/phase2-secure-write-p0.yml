@@ -1,0 +1,110 @@
+name: Phase2 Secure Write JSONB P0
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
+      - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
+      - '.github/workflows/phase2-secure-write-p0.yml'
+  push:
+    branches: ['fix/phase2-secure-write-jsonb-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase2-secure-write-p0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zero-cost-p0:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:58322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-secure-write-p0"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 58321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 58322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 58320/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          supabase db start
+
+      - name: Build production-shaped Phase 2 baseline
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813164711_fix_otros_service_type.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814021609_fix_2fa_context_canary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814024619_sales_intelligence_admin_activation.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_hardening_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/fixture_pre_migration.sql
+          for f in \
+            20260814030000_phase2_auth_v3_additive.sql \
+            20260814034401_cartera_phase2_reconciliation.sql \
+            20260814050000_cartera_phase2_security_cleanup.sql \
+            20260814060000_phase2_production_hardening.sql \
+            20260814061000_phase2_secure_write_defaults_fix.sql \
+            20260814062000_phase2_auth_provider_boundary.sql \
+            20260814063000_phase2_identity_admin_hardening.sql \
+            20260814064000_phase2_owner_canary_access.sql \
+            20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
+            20260814164500_restore_2fa_email_branding.sql \
+            20260814195300_fix_auth_v3_btrim.sql \
+            20260814201500_fix_secure_write_v2_jsonb_match_count.sql; do
+              psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+
+      - name: Secure write P0 contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.txt
+          grep -q 'PHASE2_SECURE_WRITE_JSONB_P0=PASS' /tmp/secure-write-p0.txt
+
+      - name: Phase 2 regression contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          for t in 004_cartera_phase2.sql 005_phase2_hardening.sql 006_phase2_provider_boundary.sql 007_phase2_identity_admin.sql; do
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "ci/phase2-cartera/tests/$t" | tee "/tmp/$t.txt"
+            ! grep -q 'not ok' "/tmp/$t.txt"
+            ! grep -q 'Looks like you planned' "/tmp/$t.txt"
+          done
+
+      - name: Database lint must be clean
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/db-lint.txt
+          ! grep -q 'jsonb_object_length' /tmp/db-lint.txt
+          ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
+
+      - name: Release digest
+        run: |
+          set -euo pipefail
+          sha256sum supabase/migrations/20260814195300_fix_auth_v3_btrim.sql supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.sha256
+          echo 'PHASE2_SECURE_WRITE_ZERO_COST_CERTIFIED=PASS'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
