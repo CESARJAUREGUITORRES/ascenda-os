@@ -35,17 +35,18 @@ function allowedRate(req,group,limit){
 }
 setInterval(()=>{const cut=Date.now()-120000;for(const [k,v] of buckets){if(v.start<cut)buckets.delete(k);}},60000).unref();
 
+function ipOrigin(req){return String(req.headers.origin||'');}
 function originAllowed(req){
-  const o=req.headers.origin;
+  const o=ipOrigin(req);
   if(!o)return true;
   if(EXTRA_ORIGINS.has(o))return true;
   if(/^chrome-extension:\/\/[a-z]+$/i.test(o))return true;
   try{const u=new URL(o);return u.host===req.headers.host;}catch(_){return false;}
 }
 function cors(req,res){
-  const o=req.headers.origin;
+  const o=ipOrigin(req);
   if(o&&originAllowed(req)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}
-  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Authorization,Content-Type');
   res.setHeader('Cache-Control','no-store');
 }
@@ -102,7 +103,8 @@ async function handleAuthCompat(req,res,pathname){
 
 const server=http.createServer(async(req,res)=>{
   let pathname='/';try{pathname=new URL(req.url,'http://localhost').pathname}catch(_){}
-  const protectedRoute=pathname.startsWith('/api/kronia/')||pathname.startsWith('/api/agents/');
+  const adminCredentialApi=pathname==='/api/send-email'||pathname.startsWith('/api/studio/');
+  const protectedRoute=pathname.startsWith('/api/kronia/')||pathname.startsWith('/api/agents/')||adminCredentialApi;
   if(protectedRoute){cors(req,res);if(!originAllowed(req)){json(res,403,{ok:false,error:'ORIGIN_NOT_ALLOWED'});return;}if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}}
 
   if(pathname==='/api/kronia/login-request'||pathname==='/api/kronia/login-verify'){
@@ -135,6 +137,24 @@ const server=http.createServer(async(req,res)=>{
   if(pathname.startsWith('/api/agents/')){
     if(!allowedRate(req,'agents',120)){json(res,429,{ok:false,error:'RATE_LIMIT'});return;}
     const id=await identity(req,true);if(!id.ok){json(res,id.status,{ok:false,error:id.error});return;}proxy(req,res);return;
+  }
+  if(pathname==='/api/send-email'&&req.method==='POST'){
+    if(!allowedRate(req,'email',30)){json(res,429,{ok:false,error:'RATE_LIMIT'});return;}
+    const id=await identity(req,true);if(!id.ok){json(res,id.status,{ok:false,error:id.error});return;}
+    let raw;try{raw=await collect(req,524288);}catch(e){json(res,e.status||400,{ok:false,error:e.message});return;}
+    let d={};try{d=JSON.parse(raw.toString('utf8')||'{}');}catch(_){json(res,400,{ok:false,error:'INVALID_JSON'});return;}
+    const html=String(d.html||'');
+    // Passwords/temporary credentials must never be transported by email.
+    if(/(?:contrase(?:ñ|n)a|password)\s*:\s*(?:<[^>]+>\s*)*[^<\s]/i.test(html)){
+      json(res,422,{ok:false,error:'PASSWORD_EMAIL_FORBIDDEN'});return;
+    }
+    proxy(req,res,Buffer.from(JSON.stringify(d)));return;
+  }
+  if(pathname.startsWith('/api/studio/')){
+    if(!allowedRate(req,'studio',120)){json(res,429,{ok:false,error:'RATE_LIMIT'});return;}
+    const id=await identity(req,true);if(!id.ok){json(res,id.status,{ok:false,error:id.error});return;}
+    const len=Number(req.headers['content-length']||0);if(len>5*1024*1024){json(res,413,{ok:false,error:'BODY_TOO_LARGE'});return;}
+    proxy(req,res);return;
   }
   if(pathname.startsWith('/api/kronia/')){
     const id=await identity(req,false);if(!id.ok){json(res,id.status,{ok:false,error:id.error});return;}proxy(req,res);return;
