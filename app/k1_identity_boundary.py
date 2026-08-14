@@ -87,9 +87,17 @@ if 'K1 IDENTITY BOUNDARY — compatibility shim' not in s:
 # Gateway enforces >=8. Match UI validation so legacy chains cannot report a
 # false success for 6–7 character passwords.
 s=s.replace('pw.length<6','pw.length<8').replace('Mínimo 6 caracteres','Mínimo 8 caracteres').replace('mínimo 6 caracteres','mínimo 8 caracteres').replace('Contraseña mínimo 6 caracteres','Contraseña mínimo 8 caracteres')
+
+# Materialization must be deterministic and git-diff clean. The source HTML has
+# historical blank lines containing spaces; strip trailing whitespace from every
+# line so `git diff --check` certifies the generated artifact rather than failing
+# on unrelated formatting residue.
+had_final_newline=s.endswith('\n')
+s='\n'.join(line.rstrip() for line in s.splitlines())+('\n' if had_final_newline else '')
 path.write_text(s,encoding='utf-8')
 
-# Final deploy manifest v3 includes the Team identity surface.
+# Final deploy manifest v3 includes the Team identity surface. Config boundary
+# runs after this materializer and upgrades the manifest to runtime-v4.
 manifest_path=ROOT/'k1-runtime-manifest.json'
 m=json.loads(manifest_path.read_text()) if manifest_path.exists() else {'files':{}}
 targets=['server.js','public/app.html','public/kronia-core.js','public/login.html','public/admin-sales.html','public/admin-config.html','public/agents.html','public/cerebro.html','public/admin-team.html']
