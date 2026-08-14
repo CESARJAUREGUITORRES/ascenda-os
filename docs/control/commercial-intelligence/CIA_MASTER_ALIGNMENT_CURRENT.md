@@ -4,7 +4,8 @@
 **Fecha:** 2026-08-13 (America/Lima)  
 **Master arquitectónico:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`  
 **Estado dinámico:** `docs/control/commercial-intelligence/ROADMAP_STATUS.md`  
-**Checkpoint canónico:** `2e1116f07919fcf53bdac8cf61cbd23944863630`
+**Checkpoint funcional de cierre Fase 9:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
+**Checkpoint de control actual:** consultar `staging` HEAD + `aos_memory.cia_v3_control_checkpoint`
 
 ---
 
