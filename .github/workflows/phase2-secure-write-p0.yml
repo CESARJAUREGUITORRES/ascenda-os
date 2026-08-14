@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
+      - 'supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
       - '.github/workflows/phase2-secure-write-p0.yml'
   push:
@@ -98,10 +99,21 @@ jobs:
           ! grep -q 'jsonb_object_length' /tmp/db-lint.txt
           ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
 
+      - name: Fail-closed recovery and reapply
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_secure_write_v2(text,text,text,jsonb,jsonb)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('authenticated','public.aos_secure_write_v2(text,text,text,jsonb,jsonb)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_secure_write_v2(text,text,text,jsonb,jsonb)','EXECUTE')")" = "t"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_secure_write_v2(text,text,text,jsonb,jsonb)','EXECUTE')")" = "t"
+          echo 'PHASE2_SECURE_WRITE_RECOVERY=PASS'
+
       - name: Release digest
         run: |
           set -euo pipefail
-          sha256sum supabase/migrations/20260814195300_fix_auth_v3_btrim.sql supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.sha256
+          sha256sum supabase/migrations/20260814195300_fix_auth_v3_btrim.sql supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.sha256
           echo 'PHASE2_SECURE_WRITE_ZERO_COST_CERTIFIED=PASS'
 
       - name: Stop isolated Supabase
