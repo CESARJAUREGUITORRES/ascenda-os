@@ -4,7 +4,8 @@ insert into public.aos_rrhh(
   codigo_asesor,nombre,apellido,puesto,sede,usuario,password_hash,permisos,estado
 ) values
   ('CAROWNER','CARTERA OWNER','TEST','DIRECTOR GENERAL','SAN ISIDRO','cartera.owner','owner-pass','{}','ACTIVO'),
-  ('CARNOPE','CARTERA NO ACCESS','TEST','ADMINISTRADOR','PUEBLO LIBRE','cartera.nope','nope-pass','{}','ACTIVO');
+  ('CARNOPE','CARTERA NO ACCESS','TEST','ADMINISTRADOR','PUEBLO LIBRE','cartera.nope','nope-pass','{}','ACTIVO'),
+  ('CARSINGLE','CARTERA SINGLE','TEST','ADMINISTRADOR','SAN ISIDRO','cartera.single','single-pass','{}','ACTIVO');
 
 insert into public.aos_usuarios(
   codigo_asesor,nombre,email,rol,paneles_acceso,nivel_jerarquia,
@@ -14,7 +15,9 @@ insert into public.aos_usuarios(
    array['admin-sales-intelligence','admin-cartera','admin-caja'],1,
    array['SAN ISIDRO','PUEBLO LIBRE'],'DIRECCION','DIRECTOR GENERAL',true,true),
   ('CARNOPE','CARTERA NO ACCESS','nope@example.invalid','admin',
-   array['admin-home'],1,array['PUEBLO LIBRE'],'ADMIN','ADMINISTRADOR',true,true);
+   array['admin-home'],1,array['PUEBLO LIBRE'],'ADMIN','ADMINISTRADOR',true,true),
+  ('CARSINGLE','CARTERA SINGLE','single@example.invalid','admin',
+   array['admin-cartera','admin-caja'],2,array['SAN ISIDRO'],'ADMIN','ADMINISTRADOR',true,true);
 
 insert into public.aos_cia_admin_sessions(token_hash,user_id,usuario,expires_at)
 select encode(extensions.digest('phase2-owner-token-0000000000000000000001','sha256'),'hex'),
@@ -25,6 +28,17 @@ insert into public.aos_cia_admin_sessions(token_hash,user_id,usuario,expires_at)
 select encode(extensions.digest('phase2-no-panel-token-000000000000000001','sha256'),'hex'),
        id,nombre,now()+interval '8 hours'
 from public.aos_usuarios where codigo_asesor='CARNOPE';
+
+insert into public.aos_cia_admin_sessions(token_hash,user_id,usuario,expires_at)
+select encode(extensions.digest('phase2-single-site-token-00000000000000001','sha256'),'hex'),
+       id,nombre,now()+interval '8 hours'
+from public.aos_usuarios where codigo_asesor='CARSINGLE';
+
+insert into public.aos_caja_sesiones(id,sede,fecha,estado,abierto_por)
+values
+  ('CASH-SI-TODAY','SAN ISIDRO',(now() at time zone 'America/Lima')::date,'ABIERTA','CARTERA OWNER'),
+  ('CASH-PL-TODAY','PUEBLO LIBRE',(now() at time zone 'America/Lima')::date,'ABIERTA','CARTERA OWNER'),
+  ('CASH-SINGLE-SI','SAN ISIDRO',(now() at time zone 'America/Lima')::date,'ABIERTA','CARTERA SINGLE');
 
 insert into public.aos_cotizaciones(
   id,numero_limpio,nombre_paciente,dni_paciente,estado,subtotal,total_pagado,
