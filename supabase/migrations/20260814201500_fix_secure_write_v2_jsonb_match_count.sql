@@ -16,7 +16,7 @@ set search_path=''
 as $function$
 declare
   v_uid uuid; v_user record; v_family text;
-  v_action text:=pg_catalog.upper(pg_catalog.btrim(pg_catalog.coalesce(p_action,'')));
+  v_action text:=pg_catalog.upper(pg_catalog.btrim(coalesce(p_action,'')));
   v_allowed_match text[]; v_key text;
   v_where text:=''; v_set text:=''; v_cols text:=''; v_vals text:='';
   v_rows jsonb:='[]'::jsonb; v_sql text;
@@ -28,13 +28,13 @@ begin
 
   if p_table in ('aos_catalogo_categorias','aos_catalogo_servicios','aos_catalogo_toppings','aos_catalogo_productos_detalle') then
     v_family:='CATALOG';
-    if pg_catalog.lower(pg_catalog.coalesce(v_user.rol,''))<>'admin' or not (pg_catalog.coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['admin-config']::text[]) then
+    if pg_catalog.lower(coalesce(v_user.rol,''))<>'admin' or not (coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['admin-config']::text[]) then
       return pg_catalog.jsonb_build_object('ok',false,'error','CATALOG_ADMIN_REQUIRED');
     end if;
     v_allowed_match:=case when p_table='aos_catalogo_servicios' then array['id','categoria','tipo']::text[] else array['id']::text[] end;
   elsif p_table in ('aos_planes_trabajo','aos_plan_trabajo_items') then
     v_family:='PLAN';
-    if not (pg_catalog.coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['advisor-attendance']::text[] or pg_catalog.coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['admin-agenda']::text[]) then
+    if not (coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['advisor-attendance']::text[] or coalesce(v_user.paneles_acceso,'{}'::text[]) @> array['admin-agenda']::text[]) then
       return pg_catalog.jsonb_build_object('ok',false,'error','PLAN_ACCESS_REQUIRED');
     end if;
     v_allowed_match:=case when p_table='aos_planes_trabajo' then array['id','numero_limpio','fecha']::text[] else array['id','plan_id','numero_limpio','fecha']::text[] end;
@@ -44,18 +44,18 @@ begin
 
   if v_action not in ('INSERT','PATCH','DELETE') then return pg_catalog.jsonb_build_object('ok',false,'error','ACTION_NOT_ALLOWED'); end if;
   if v_action in ('PATCH','DELETE') and not exists (
-    select 1 from pg_catalog.jsonb_object_keys(pg_catalog.coalesce(p_match,'{}'::jsonb))
+    select 1 from pg_catalog.jsonb_object_keys(coalesce(p_match,'{}'::jsonb))
   ) then return pg_catalog.jsonb_build_object('ok',false,'error','MATCH_REQUIRED'); end if;
 
-  for v_key in select pg_catalog.jsonb_object_keys(pg_catalog.coalesce(p_match,'{}'::jsonb)) loop
+  for v_key in select pg_catalog.jsonb_object_keys(coalesce(p_match,'{}'::jsonb)) loop
     if not (v_key=any(v_allowed_match)) then return pg_catalog.jsonb_build_object('ok',false,'error','MATCH_NOT_ALLOWED','field',v_key); end if;
     if v_where<>'' then v_where:=v_where||' and '; end if;
     v_where:=v_where||pg_catalog.format('%I::text=%L',v_key,p_match->>v_key);
   end loop;
 
   if v_action in ('INSERT','PATCH') then
-    select pg_catalog.count(*) into v_all_keys from pg_catalog.jsonb_object_keys(pg_catalog.coalesce(p_data,'{}'::jsonb));
-    select pg_catalog.count(*) into v_real_keys from pg_catalog.jsonb_object_keys(pg_catalog.coalesce(p_data,'{}'::jsonb)) k
+    select pg_catalog.count(*) into v_all_keys from pg_catalog.jsonb_object_keys(coalesce(p_data,'{}'::jsonb));
+    select pg_catalog.count(*) into v_real_keys from pg_catalog.jsonb_object_keys(coalesce(p_data,'{}'::jsonb)) k
       join information_schema.columns c on c.table_schema='public' and c.table_name=p_table and c.column_name=k;
     if v_all_keys=0 or v_all_keys<>v_real_keys then return pg_catalog.jsonb_build_object('ok',false,'error','FIELD_NOT_ALLOWED'); end if;
   end if;
