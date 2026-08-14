@@ -66,6 +66,98 @@ if "sbRpc('aos_kronia_revocar_token'" in server:
     server = server.replace("sbRpc('aos_kronia_revocar_token'", "sbServiceRpc('aos_kronia_revocar_token'")
 elif "sbServiceRpc('aos_kronia_revocar_token'" not in server:
     raise SystemExit('K1 revoke-token service boundary missing')
+
+# K1.6 — origin policy, rate limiting and request-size limits for privileged
+# surfaces. Same-origin is automatic. Cross-origin clients (including the
+# production Chrome extension) must be explicitly listed in ASCENDA_CORS_ORIGINS.
+security_helpers = r'''
+var K1_RATE_BUCKETS = new Map()
+function k1ClientIp(req) {
+  var xff = String((req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim()
+  return xff || (req.socket && req.socket.remoteAddress) || 'unknown'
+}
+function k1OriginAllowed(req) {
+  var origin = String((req.headers && req.headers.origin) || '').trim()
+  if (!origin) return true
+  var proto = String((req.headers && req.headers['x-forwarded-proto']) || 'https').split(',')[0].trim()
+  var host = String((req.headers && (req.headers['x-forwarded-host'] || req.headers.host)) || '').split(',')[0].trim()
+  if (host && origin === proto + '://' + host) return true
+  var allowed = String(process.env.ASCENDA_CORS_ORIGINS || '').split(',').map(function(x){return x.trim()}).filter(Boolean)
+  return allowed.indexOf(origin) !== -1
+}
+function k1RateAllowed(req, scope, limit, windowMs) {
+  var now = Date.now(), key = scope + '|' + k1ClientIp(req), b = K1_RATE_BUCKETS.get(key)
+  if (!b || now - b.started >= windowMs) { b = {started:now,count:0}; K1_RATE_BUCKETS.set(key,b) }
+  b.count += 1
+  if (K1_RATE_BUCKETS.size > 5000) {
+    K1_RATE_BUCKETS.forEach(function(v,k){ if(now-v.started > 3600000) K1_RATE_BUCKETS.delete(k) })
+  }
+  return b.count <= limit
+}
+function k1InstallBodyLimit(req, res, maxBytes) {
+  if (!maxBytes || req._k1BodyLimitInstalled) return true
+  var declared = parseInt(String((req.headers && req.headers['content-length']) || '0'),10) || 0
+  if (declared > maxBytes) {
+    res.writeHead(413, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Solicitud demasiado grande'})); return false
+  }
+  req._k1BodyLimitInstalled = true
+  var seen = 0, originalOn = req.on.bind(req)
+  req.on = function(event, listener) {
+    if (event === 'data') {
+      return originalOn('data', function(chunk) {
+        if (req._k1BodyExceeded) return
+        seen += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk))
+        if (seen > maxBytes) {
+          req._k1BodyExceeded = true
+          if (!res.writableEnded) { res.writeHead(413, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Solicitud demasiado grande'})) }
+          req.destroy(); return
+        }
+        listener(chunk)
+      })
+    }
+    return originalOn(event, listener)
+  }
+  return true
+}
+'''
+create_anchor = 'http.createServer(async function(req, res) {'
+if 'function k1OriginAllowed(req)' not in server:
+    if create_anchor not in server:
+        raise SystemExit('K1 server create anchor missing')
+    server = server.replace(create_anchor, security_helpers + '\n' + create_anchor, 1)
+
+early_anchor = "http.createServer(async function(req, res) {\n  var p = req.url.split('?')[0]\n"
+early_guard = r'''http.createServer(async function(req, res) {
+  var p = req.url.split('?')[0]
+  var k1Protected = p.startsWith('/api/kronia/') || p.startsWith('/api/auth/') || p.startsWith('/api/agents/')
+  if (k1Protected) {
+    var k1Origin = String((req.headers && req.headers.origin) || '').trim()
+    if (!k1OriginAllowed(req)) { res.writeHead(403, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Origen no permitido'})); return }
+    if (k1Origin) { res.setHeader('Access-Control-Allow-Origin',k1Origin); res.setHeader('Vary','Origin') }
+    var k1SetHeader = res.setHeader.bind(res)
+    res.setHeader = function(name,value) {
+      if (String(name).toLowerCase()==='access-control-allow-origin' && value==='*' && k1Origin) return k1SetHeader(name,k1Origin)
+      return k1SetHeader(name,value)
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {'Access-Control-Allow-Methods':'POST,GET,OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Max-Age':'600'}); res.end(); return
+    }
+    var k1Rate = p === '/api/auth/resend-2fa' ? ['auth-resend',6,600000]
+      : p === '/api/auth/verify-2fa' || p === '/api/kronia/login-verify' ? ['auth-verify',20,300000]
+      : p === '/api/auth/login' || p === '/api/kronia/login-request' ? ['auth-login',30,300000]
+      : p === '/api/kronia/whisper' ? ['whisper',30,300000]
+      : p.startsWith('/api/agents/') ? ['agents',120,60000]
+      : ['kronia',120,60000]
+    if (!k1RateAllowed(req,k1Rate[0],k1Rate[1],k1Rate[2])) { res.writeHead(429, {'Content-Type':'application/json','Retry-After':'60'}); res.end(JSON.stringify({ok:false,error:'Demasiadas solicitudes'})); return }
+    var k1Max = p === '/api/kronia/whisper' ? 27262976 : p.startsWith('/api/agents/') ? 1048576 : p === '/api/kronia/chat' ? 524288 : 32768
+    if (!k1InstallBodyLimit(req,res,k1Max)) return
+  }
+'''
+if early_guard not in server:
+    if early_anchor not in server:
+        raise SystemExit('K1 early middleware anchor missing')
+    server = server.replace(early_anchor, early_guard, 1)
+
 server_path.write_text(server, encoding='utf-8')
 
 config_path = ROOT / 'public/admin-config.html'
