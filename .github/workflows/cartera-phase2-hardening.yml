@@ -7,9 +7,12 @@ on:
       - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
+      - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
+      - 'app/railway.json'
       - '.github/workflows/cartera-phase2-hardening.yml'
   push:
     branches: ['agent/**','feature/**','fix/**','security/**']
@@ -17,9 +20,12 @@ on:
       - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
+      - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
+      - 'app/railway.json'
       - '.github/workflows/cartera-phase2-hardening.yml'
   workflow_dispatch:
 
@@ -67,6 +73,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814060000_phase2_production_hardening.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
@@ -88,6 +95,13 @@ jobs:
           ! grep -q 'not ok' /tmp/hardening.txt
           ! grep -q 'Looks like you planned' /tmp/hardening.txt
 
+      - name: pgTAP auth provider boundary
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/006_phase2_provider_boundary.sql | tee /tmp/provider.txt
+          grep -q '1..3' /tmp/provider.txt
+          ! grep -q 'not ok' /tmp/provider.txt
+
       - name: UI and cutover contract
         run: |
           set -euo pipefail
@@ -98,6 +112,9 @@ jobs:
           sw=Path('app/public/phase2-service-worker.js').read_text(encoding='utf-8')
           hard=Path('supabase/migrations/20260814060000_phase2_production_hardening.sql').read_text(encoding='utf-8')
           fix=Path('supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql').read_text(encoding='utf-8')
+          provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
+          proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
+          railway=Path('app/railway.json').read_text(encoding='utf-8')
           assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
           assert 'aos_login_v2' not in login and '/api/send-2fa' not in login
           assert "register('/phase2-service-worker.js'" in login
@@ -106,9 +123,31 @@ jobs:
           assert 'revoke execute on function public.aos_login_v2' in hard.lower()
           assert 'revoke insert,update,delete' in hard.lower()
           assert 'v_cols' in fix and 'jsonb_populate_record' in fix
+          assert 'anon_integ_read_non_auth_provider' in provider and 'resend' in provider.lower()
+          assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
+          assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
+          assert 'node server-phase2.js' in railway
+          assert 'node staging-server.js' in railway
           PY
+
+      - name: Runtime auth retirement smoke
+        run: |
+          set -euo pipefail
+          PORT=4190 node app/server-phase2.js >/tmp/phase2-proxy.log 2>&1 &
+          echo $! >/tmp/phase2-proxy.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4190/login >/tmp/login.html; then break; fi
+            sleep 1
+          done
+          grep -q 'aos_login_v3' /tmp/login.html
+          test "$(curl -sS -o /tmp/legacy2fa.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:4190/api/send-2fa)" = "410"
+          grep -q 'LEGACY_AUTH_ENDPOINT_RETIRED' /tmp/legacy2fa.json
+          test "$(curl -sS -o /tmp/turnstile.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:4190/api/verify-turnstile)" = "410"
+          kill $(cat /tmp/phase2-proxy.pid) || true
 
       - name: Stop isolated Supabase
         if: always()
-        working-directory: ci/zero-cost-staging
-        run: supabase stop --no-backup || true
+        run: |
+          if [ -f /tmp/phase2-proxy.pid ]; then kill $(cat /tmp/phase2-proxy.pid) 2>/dev/null || true; fi
+          cd ci/zero-cost-staging
+          supabase stop --no-backup || true
