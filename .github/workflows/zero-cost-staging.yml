@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
-          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.relnamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1" || test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1"
 
       - name: Compile 2FA canary context migration
         run: |
