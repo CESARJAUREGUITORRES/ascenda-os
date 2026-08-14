@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "python3 k1_materialize_runtime.py && npm install"
+    "buildCommand": "python3 k1_materialize_runtime.py"
   },
   "deploy": {
     "startCommand": "node server.js",
