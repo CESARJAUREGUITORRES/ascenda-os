@@ -18,6 +18,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/railway.json'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
   push:
     branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
@@ -36,6 +37,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/railway.json'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
   workflow_dispatch:
 
@@ -58,6 +60,9 @@ jobs:
         with:
           version: 2.101.0
 
+      - name: Clean stale ASCENDA Supabase resources
+        run: bash scripts/ci/cleanup-ascenda-supabase.sh
+
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
         run: |
@@ -69,10 +74,7 @@ jobs:
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
-        run: |
-          set -euo pipefail
-          supabase stop --no-backup || true
-          supabase db start
+        run: supabase db start
 
       - name: Build synthetic schema and prerequisites
         run: |
@@ -220,9 +222,11 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_admin_cambiar_password(uuid,text)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_ventas','INSERT')")" = "f"
 
-      - name: Stop isolated Supabase
+      - name: Stop isolated Supabase and prove zero residue
         if: always()
         run: |
           if [ -f /tmp/phase2-proxy.pid ]; then kill $(cat /tmp/phase2-proxy.pid) 2>/dev/null || true; fi
           cd ci/zero-cost-staging
           supabase stop --no-backup || true
+          cd ../..
+          bash scripts/ci/cleanup-ascenda-supabase.sh
