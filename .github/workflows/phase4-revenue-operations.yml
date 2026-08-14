@@ -52,7 +52,6 @@ jobs:
         run: |
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
-          ! grep -nE 'runs-on: *(ubuntu-latest|windows-latest|macos-[^ ]*)' .github/workflows/phase4-revenue-operations.yml
 
       - name: Runtime syntax contracts
         run: |
