@@ -1,7 +1,7 @@
 # ASCENDA OS — CIA AGENT BOOTSTRAP CURRENT
 
 **Estado:** CURRENT / RECOVERY ENTRYPOINT  
-**Actualizado:** 2026-08-13 (America/Lima)  
+**Actualizado:** 2026-08-14 (America/Lima)  
 **Checkpoint funcional de cierre Fase 9:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
 **Checkpoint de control/documentación actual:** consultar `aos_memory` + `staging` HEAD live  
 **Fases cerradas:** 0–9 `100_COMPLETE`  
@@ -42,18 +42,48 @@ Antes de cualquier cambio:
 2. leer `docs/control/ASCENDA_CONTROL_MASTER.md`;
 3. leer este archivo;
 4. leer `CIA_EXECUTION_PLAYBOOK_V1.md`;
-5. leer `ROADMAP_STATUS.md`;
-6. leer `PHASE_09_VALIDATION_REPORT.md`;
-7. leer `aos_memory` claves `cia_v3_*`, `cia_phase9_*`, `cia_phase10_status`;
-8. verificar `staging` HEAD live;
-9. verificar Supabase live/migrations;
-10. solo entonces ejecutar Fase 10.
+5. leer `CIA_MASTER_ALIGNMENT_CURRENT.md`;
+6. leer `ROADMAP_STATUS.md`;
+7. leer el último `PHASE_XX_VALIDATION_REPORT.md`;
+8. leer `aos_memory` claves `cia_v3_*` y fase actual;
+9. consultar el Control Maestro visual de Notion y comprobar que refleja el mismo estado;
+10. verificar `staging` HEAD live;
+11. verificar Supabase live/migrations;
+12. solo entonces ejecutar la fase activa.
 
-No usar como estado actual la sección histórica “Estado de ejecución actual” del Master V3 original. El estado vivo está en este Bootstrap + Roadmap + `aos_memory`.
+No usar como estado actual la sección histórica “Estado de ejecución actual” del Master V3 original. El estado técnico vivo está en GitHub + `aos_memory` + runtime. Notion es una capa visual derivada y debe corregirse si existe drift.
 
 ---
 
-# 3. ESTADO DE LAS 19 FASES
+# 3. NOTION — CONTROL VISUAL DERIVADO
+
+ASCENDA usa un patrón visual común para proyectos de largo recorrido:
+
+`Control Maestro + Fases + Hallazgos & Mejoras`
+
+## CIA V3
+
+- Control Maestro: `https://app.notion.com/p/3bc0e4fe841481489c8ad11bb55acaf3?pvs=204`
+- Fases CIA V3: `https://app.notion.com/p/1a24a1f7e7ab4a299f4848f1eaeff74d`
+- Hallazgos & Mejoras CIA V3: `https://app.notion.com/p/4b3d3d6180ef4fb2b8d978f324e66dfd`
+- Estándar de Control de Proyectos ASCENDA: `https://app.notion.com/p/3bc0e4fe84148160ad18d30d380782db?pvs=204`
+
+## Proyecto hermano KronIA
+
+- KronIA V2 — Control Maestro: `https://app.notion.com/p/3bc0e4fe8414812db4b6f73e71e3c018?pvs=204`
+
+Reglas:
+
+- GitHub + Supabase/runtime prevalecen sobre Notion;
+- Notion debe actualizarse al final de cada loop certificado;
+- exactamente una fase debe quedar `Siguiente` o `En curso`;
+- todo hallazgo nuevo se registra con fase destino, evidencia y criterio de cierre;
+- un hallazgo no se marca `Resuelto` sin evidencia;
+- si Notion contradice GitHub/runtime, corregir Notion antes de continuar.
+
+---
+
+# 4. ESTADO DE LAS 19 FASES
 
 | # | Fase | Estado |
 |---:|---|---|
@@ -79,7 +109,7 @@ No usar como estado actual la sección histórica “Estado de ejecución actual
 
 ---
 
-# 4. CONTRATOS YA CERTIFICADOS
+# 5. CONTRATOS YA CERTIFICADOS
 
 ## F0–F4
 
@@ -134,7 +164,7 @@ Complementarios:
 
 ---
 
-# 5. FASE 10 — MISIÓN EXACTA
+# 6. FASE 10 — MISIÓN EXACTA
 
 Construir **Advisor Control Center**, un read/control plane administrativo sobre ownership ya creado por Fase 9.
 
@@ -171,7 +201,7 @@ un control plane confiable que permita observar y gobernar Assignment antes de c
 
 ---
 
-# 6. CAMINO RESTANTE 10–18
+# 7. CAMINO RESTANTE 10–18
 
 **F10 Advisor Control Center** → observar/controlar ownership F9.  
 **F11 Call Center Integration V3** → ruta paralela + feature flag + fallback V2.  
@@ -187,7 +217,7 @@ No adelantar capacidades entre fases salvo deuda bloqueante demostrada; si se ad
 
 ---
 
-# 7. GUARDRAILS ADQUIRIDOS
+# 8. GUARDRAILS ADQUIRIDOS
 
 Antes de tocar una tabla operativa:
 
@@ -213,11 +243,11 @@ Antes de certificar:
 - handshake fase anterior;
 - output siguiente fase;
 - PR + CI + staging smoke;
-- docs + `aos_memory`.
+- docs + `aos_memory` + Notion.
 
 ---
 
-# 8. INCIDENTES QUE TODO AGENTE DEBE RECORDAR
+# 9. INCIDENTES QUE TODO AGENTE DEBE RECORDAR
 
 1. Mega-view del resolver llegó a ~30.4 s → Resolver V2 domain-aware.
 2. Índices CIA con función privada rompieron INSERT de Call Center con 401 → write-path safety obligatorio.
@@ -230,9 +260,11 @@ Antes de certificar:
 9. `CURRENT_DATE` server divergió de Lima → timezone explícita.
 10. CONTINUOUS top-up inicial se desbalanceó → probar ciclo completo, no solo primera asignación.
 
+Sentry está registrado en Notion como mejora planificada de observabilidad; no asumir integración completada hasta que exista confirmación y evidencia técnica.
+
 ---
 
-# 9. CHECKPOINTS
+# 10. CHECKPOINTS
 
 Checkpoint funcional/closure Fase 9:
 
@@ -248,4 +280,4 @@ consultar `staging` HEAD live y `aos_memory` clave `cia_v3_control_checkpoint`.
 
 Siguiente acción:
 
-**Iniciar Fase 10 únicamente después de recovery/preflight.**
+**Iniciar Fase 10 únicamente después de recovery/preflight y comprobar que Notion visual coincide con GitHub/runtime.**
