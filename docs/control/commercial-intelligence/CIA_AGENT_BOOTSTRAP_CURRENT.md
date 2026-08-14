@@ -2,7 +2,8 @@
 
 **Estado:** CURRENT / RECOVERY ENTRYPOINT  
 **Actualizado:** 2026-08-13 (America/Lima)  
-**Checkpoint canónico de staging:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
+**Checkpoint funcional de cierre Fase 9:** `2e1116f07919fcf53bdac8cf61cbd23944863630`  
+**Checkpoint de control/documentación actual:** consultar `aos_memory` + `staging` HEAD live  
 **Fases cerradas:** 0–9 `100_COMPLETE`  
 **Fase actual:** 10 — Advisor Control Center `READY`
 
@@ -231,13 +232,17 @@ Antes de certificar:
 
 ---
 
-# 9. CURRENT CHECKPOINT
+# 9. CHECKPOINTS
 
-Canonical staging closure:
+Checkpoint funcional/closure Fase 9:
 
 `2e1116f07919fcf53bdac8cf61cbd23944863630`
 
-Último cierre:
+Checkpoint de control/documentación actual:
+
+consultar `staging` HEAD live y `aos_memory` clave `cia_v3_control_checkpoint`.
+
+Último cierre funcional:
 
 `docs/control/commercial-intelligence/PHASE_09_VALIDATION_REPORT.md`
 
