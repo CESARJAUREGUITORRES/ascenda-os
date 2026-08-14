@@ -49,11 +49,23 @@ if marker in src:
 # Execute the same core transformation inside app/.
 exec(compile(src, str(base_path), 'exec'), {'__name__': '__main__', '__file__': str(base_path)})
 
-# V3 release deltas that were added after the base certificate was introduced.
+# Release deltas added after the base certificate was introduced.
 server_path = ROOT / 'server.js'
 server = server_path.read_text(encoding='utf-8')
 server = server.replace("var groqKey = rows && rows[0] ? rows[0].api_key : null", "var groqKey = process.env.GROQ_API_KEY || ''")
 server = server.replace("{ok:true,text:j.text}", "{ok:true,text:j.text,texto:j.text}")
+
+# Session issue/verify/revoke primitives are service-role only in the canonical
+# K1 closure. Legacy Node verify/logout routes must therefore use the same
+# server-side service RPC boundary as the new auth/chat routes.
+if "sbRpc('aos_kronia_verify_token'" in server:
+    server = server.replace("sbRpc('aos_kronia_verify_token'", "sbServiceRpc('aos_kronia_verify_token'")
+elif "sbServiceRpc('aos_kronia_verify_token'" not in server:
+    raise SystemExit('K1 verify-token service boundary missing')
+if "sbRpc('aos_kronia_revocar_token'" in server:
+    server = server.replace("sbRpc('aos_kronia_revocar_token'", "sbServiceRpc('aos_kronia_revocar_token'")
+elif "sbServiceRpc('aos_kronia_revocar_token'" not in server:
+    raise SystemExit('K1 revoke-token service boundary missing')
 server_path.write_text(server, encoding='utf-8')
 
 config_path = ROOT / 'public/admin-config.html'
