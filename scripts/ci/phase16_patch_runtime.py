@@ -23,10 +23,22 @@ def must_replace(text: str, old: str, new: str, label: str, count: int = 1) -> s
 
 
 def must_sub(text: str, pattern: str, repl: str, label: str, count: int = 1, flags: int = 0) -> str:
-    out, n = re.subn(pattern, repl, text, count=count, flags=flags)
+    # Treat migration replacement bodies as literal source text. Passing them directly
+    # to re.subn makes Python parse backslashes in JavaScript regexes (for example
+    # \\w) as replacement-template escapes; Python 3.14 correctly rejects those.
+    # A callable replacement returns the body verbatim and keeps the patch deterministic.
+    out, n = re.subn(pattern, lambda _match: repl, text, count=count, flags=flags)
     if n != count:
         raise RuntimeError(f"{label}: expected {count} regex replacement(s), found {n}")
     return out
+
+
+def assert_literal_regex_replacement() -> None:
+    """Regression guard for JS regex source embedded in deterministic replacements."""
+    probe = r"body.replace(/<span>(\\w+)<\\/span>/g,'$1')"
+    actual = must_sub("ANCHOR", r"ANCHOR", probe, "literal replacement regression")
+    if actual != probe:
+        raise RuntimeError("literal replacement regression: backslash-bearing JS source mutated")
 
 
 def patch_server(text: str) -> str:
@@ -173,6 +185,7 @@ function loadDashboard""",
 
 
 def main() -> int:
+    assert_literal_regex_replacement()
     before_server = SERVER.read_text(encoding="utf-8")
     before_admin = ADMIN.read_text(encoding="utf-8")
     after_server = patch_server(before_server)
