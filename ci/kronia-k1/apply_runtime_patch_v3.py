@@ -71,3 +71,37 @@ server_path = Path('app/server.js')
 server = server_path.read_text(encoding='utf-8')
 server = server.replace("{ok:true,text:j.text}", "{ok:true,text:j.text,texto:j.text}")
 server_path.write_text(server, encoding='utf-8')
+
+# Chrome popup uses ids login-usuario/login-codigo (not the older loginUser
+# prototype assumed by the first patch). Add password beside the real username
+# control and pass it to the shared core. The core keeps it only in memory until
+# 2FA verification; it is never persisted in chrome.storage.
+popup_html_path = Path('chrome-extension/popup.html')
+popup_html = popup_html_path.read_text(encoding='utf-8')
+if 'id="loginPass"' not in popup_html:
+    anchor = '<input type="text" id="login-usuario" placeholder="Tu usuario" autocomplete="username">'
+    if anchor not in popup_html:
+        raise SystemExit('K1 v3: Chrome username input anchor not found')
+    popup_html = popup_html.replace(
+        anchor,
+        anchor + '\n        <label>Contraseña</label>\n        <input type="password" id="loginPass" placeholder="Tu contraseña" autocomplete="current-password">',
+        1
+    )
+popup_html_path.write_text(popup_html, encoding='utf-8')
+
+popup_js_path = Path('chrome-extension/popup.js')
+popup_js = popup_js_path.read_text(encoding='utf-8')
+if "var loginPass = $('loginPass');" not in popup_js:
+    popup_js = popup_js.replace("var loginUsuario = $('login-usuario');", "var loginUsuario = $('login-usuario');\n  var loginPass = $('loginPass');", 1)
+legacy_call = 'core.loginRequest(u)'
+secure_call = "core.loginRequest(u, loginPass ? loginPass.value : '')"
+if legacy_call in popup_js:
+    popup_js = popup_js.replace(legacy_call, secure_call, 1)
+elif secure_call not in popup_js:
+    raise SystemExit('K1 v3: Chrome loginRequest anchor not found')
+popup_js = popup_js.replace(
+    "if (!u) { loginErr.textContent = 'Ingresa tu usuario'; return; }",
+    "if (!u) { loginErr.textContent = 'Ingresa tu usuario'; return; }\n    if (!loginPass || !loginPass.value) { loginErr.textContent = 'Ingresa tu contraseña'; return; }",
+    1
+)
+popup_js_path.write_text(popup_js, encoding='utf-8')
