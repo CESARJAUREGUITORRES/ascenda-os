@@ -41,16 +41,20 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 1. Crea `aos_cartera_reconciliacion`, con RLS, sin lectura/escritura directa para `anon` o `authenticated`.
 2. Carga el bridge desde predicados de negocio, sin IDs hardcodeados y sin alterar ventas, pagos o cotizaciones.
 3. Mantiene sincronizados nuevos adelantos y nuevas cotizaciones parciales mediante triggers acotados.
-4. Añade gateway y reconciliación manual protegidos por sesión 2FA, rol administrador y panel `admin-cartera`.
+4. Añade gateway y reconciliación manual protegidos por sesión 2FA, rol administrador, panel `admin-cartera` y sedes permitidas del usuario.
 5. Reemplaza el flujo de abono por `aos_abonar_cotizacion_v2`:
    - bloquea la cotización con `FOR UPDATE`;
-   - rechaza montos no positivos, sedes inválidas y sobrepagos;
+   - deriva la sede, el cajero y el asesor desde fuentes verificadas;
+   - exige una caja abierta del actor en esa sede y fecha Lima actual;
+   - exige una clave idempotente única y hace que los reintentos no dupliquen pagos;
+   - rechaza montos no positivos, acceso cruzado entre sedes y sobrepagos;
    - registra `ADELANTO` o `PAGO COMPLETO` según el saldo resultante;
    - enlaza `aos_pagos`, `aos_ventas`, cotización y bridge;
    - trata el componente financiero como `SERVICIO`, evitando inflar Top Productos;
    - conserva la respuesta usada por Caja y agrega IDs trazables.
-6. Retira `EXECUTE` anónimo del RPC legacy y actualiza Caja al RPC con token.
-7. Crea el panel operativo Cartera con filtros, revisión manual y recordatorios bloqueados.
+6. Habilita RLS y retira acceso REST directo a cotizaciones, ítems y pagos; Caja consulta por un gateway 2FA con alcance de sede.
+7. Retira `EXECUTE` anónimo del RPC legacy y actualiza Caja al RPC con token.
+8. Crea el panel operativo Cartera con filtros, control de concurrencia optimista, auditoría antes/después y recordatorios bloqueados.
 
 ## Impacto
 
@@ -69,13 +73,17 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 | Llamar deuda a un pago | Estado inicial `PENDIENTE_RECONCILIAR`; monto confirmado obligatorio |
 | Duplicar casos | Índices únicos parciales por venta y cotización |
 | Concurrencia en cotización | `SELECT ... FOR UPDATE` dentro de la transacción |
+| Reintento o doble clic de un pago | `request_id` UUID único + advisory lock transaccional |
+| Cruce de pacientes o sedes | Sede del actor aplicada dentro de cada RPC; vínculo exige identidad compatible |
+| Sobrescritura de una revisión reciente | `expected_updated_at`; el cliente debe refrescar ante `STALE_CASE` |
+| Saldo confirmado obsoleto después de un cambio | Triggers invalidan la aprobación y devuelven el caso a `REVISAR` |
 | Exposición del bridge | RLS + revocación de tabla + gateway con token opaco |
 | Automatización prematura | No existe ruta de envío; bandera visible de recordatorios bloqueados |
 
 ## Pruebas y gate
 
 - Esquema sintético sin datos reales.
-- pgTAP: 46 aserciones para RLS, permisos, sesión, clasificación, reconciliación, sobrepago, atomicidad y roles de pago.
+- pgTAP: 73 aserciones para RLS, permisos, sesión, sedes, clasificación, reconciliación, idempotencia, sobrepago, atomicidad y roles de pago.
 - Lint de Supabase en nivel error.
 - Contrato UI para menú, autorización, gateway, Caja v2 y bloqueo de recordatorios.
 - Smoke requerido antes de producción: San Isidro, Pueblo Libre, administrador con panel, administrador sin panel, sobrepago rechazado y saldo exacto.
@@ -84,28 +92,29 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 
 Rollback de aplicación: desplegar el commit anterior a FASE 2.
 
-Rollback SQL de emergencia, conservando primero un snapshot de `aos_cartera_reconciliacion`:
+Rollback SQL de emergencia, conservando primero snapshots de `aos_cartera_reconciliacion` y de las definiciones/ACL financieras. El rollback es **roll-forward seguro**: no restaura ejecución anónima ni acceso REST directo a tablas financieras.
 
 ```sql
 begin;
 drop trigger if exists trg_aos_cartera_sync_venta on public.aos_ventas;
 drop trigger if exists trg_aos_cartera_sync_cotizacion on public.aos_cotizaciones;
 revoke all on function public.aos_cartera_gateway(text,text,text,integer,integer) from public,anon,authenticated;
-revoke all on function public.aos_cartera_reconcile(text,uuid,text,text,numeric,numeric,text,text,text) from public,anon,authenticated;
-revoke all on function public.aos_abonar_cotizacion_v2(text,text,numeric,text,text,text,text,text,text,text,text,text) from public,anon,authenticated;
+revoke all on function public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text) from public,anon,authenticated;
+revoke all on function public.aos_caja_cotizaciones_gateway(text,text,text,text) from public,anon,authenticated;
+revoke all on function public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text) from public,anon,authenticated;
 drop function if exists public.aos_cartera_gateway(text,text,text,integer,integer);
-drop function if exists public.aos_cartera_reconcile(text,uuid,text,text,numeric,numeric,text,text,text);
-drop function if exists public.aos_abonar_cotizacion_v2(text,text,numeric,text,text,text,text,text,text,text,text,text);
+drop function if exists public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text);
+drop function if exists public.aos_caja_cotizaciones_gateway(text,text,text,text);
+drop function if exists public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text);
 drop function if exists public.aos_cartera_actor(text,text);
 drop function if exists public.aos_cartera_sync_venta();
 drop function if exists public.aos_cartera_sync_cotizacion();
 delete from public.aos_paneles_disponibles where id='admin-cartera';
 alter table public.aos_cartera_reconciliacion rename to aos_cartera_reconciliacion_rollback_20260814;
-grant execute on function public.aos_abonar_cotizacion(text,numeric,text,text,text,text,text,text,text,text,text) to anon,authenticated,service_role;
 commit;
 ```
 
-El último `GRANT` restaura el comportamiento legacy solo como medida de emergencia y reabre el riesgo de ejecución anónima; no es el estado objetivo.
+El RPC legacy permanece restringido a `service_role`. Si la UI necesita retroceder, debe hacerse mediante un adaptador autenticado o un roll-forward; nunca mediante un `GRANT` a `anon`.
 
 ## Gate productivo
 
