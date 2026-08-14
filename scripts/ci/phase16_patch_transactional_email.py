@@ -14,7 +14,9 @@ CONSUMERS = [
     ROOT / "app/public/calls.js",
     ROOT / "app/public/citas.html",
     ROOT / "app/public/caja.html",
-    ROOT / "app/public/calls.html",
+    # F11 calls.html is now only a loader wrapper; the live legacy panel is
+    # fetched and executed from calls-v2.html by calls-loader-v3.js.
+    ROOT / "app/public/calls-v2.html",
 ]
 
 
@@ -30,6 +32,17 @@ def sub_once(text: str, pattern: str, repl: str, label: str, flags: int = 0) -> 
     if n != 1:
         raise RuntimeError(f"{label}: expected 1 replacement, found {n}")
     return out
+
+
+def assert_live_call_center_consumer() -> None:
+    """Regression guard: F11 wrapper must resolve the consumer we harden."""
+    wrapper = (ROOT / "app/public/calls.html").read_text(encoding="utf-8")
+    loader = (ROOT / "app/public/calls-loader-v3.js").read_text(encoding="utf-8")
+    live = (ROOT / "app/public/calls-v2.html").read_text(encoding="utf-8")
+    if "/calls-loader-v3.js" not in wrapper or "fetch('/calls-v2.html'" not in loader:
+        raise RuntimeError("F11 call-center loader contract changed; re-resolve live Email consumer")
+    if "/api/send-template" not in live:
+        raise RuntimeError("calls-v2.html is no longer the live send-template consumer")
 
 
 def patch_server(text: str) -> str:
@@ -176,6 +189,7 @@ def patch_consumer(path: pathlib.Path) -> bool:
 
 
 def main() -> int:
+    assert_live_call_center_consumer()
     server = SERVER.read_text(encoding="utf-8")
     patched = patch_server(server)
     SERVER.write_text(patched, encoding="utf-8")
