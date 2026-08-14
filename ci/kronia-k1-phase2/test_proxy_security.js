@@ -8,7 +8,7 @@ const PORT=4290;
 function req(method,p,headers,body){return new Promise((resolve,reject)=>{const data=body?Buffer.from(body):null;const h=Object.assign({},headers||{});if(data&&!h['Content-Length'])h['Content-Length']=data.length;const r=http.request({hostname:'127.0.0.1',port:PORT,path:p,method,headers:h},res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>resolve({status:res.statusCode,body:d,headers:res.headers}))});r.on('error',reject);if(data)r.write(data);r.end()})}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 (async()=>{
- const child=spawn(process.execPath,['server-k1.js'],{cwd:app,env:Object.assign({},process.env,{PORT:String(PORT),SUPABASE_SERVICE_ROLE_KEY:'ci-not-a-real-service-role-key',META_VERIFY_TOKEN:'ci-disabled'}),stdio:['ignore','pipe','pipe']});
+ const child=spawn(process.execPath,['server-k1.js'],{cwd:app,env:Object.assign({},process.env,{PORT:String(PORT),SUPABASE_SERVICE_ROLE_KEY:'ci-not-a-real-service-role-key',META_VERIFY_TOKEN:'ci-disabled',K1_SKIP_RUNTIME_SECRET_LOOKUP:'1',RESEND_API_KEY:'ci-not-a-real-resend-key'}),stdio:['ignore','pipe','pipe']});
  let logs='';child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);
  try{
   let ready=false;for(let i=0;i<40;i++){try{const r=await req('GET','/login');if(r.status===200){ready=true;break}}catch(e){}await sleep(250)}
