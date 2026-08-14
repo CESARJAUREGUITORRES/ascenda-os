@@ -39,6 +39,15 @@ assert "row.addEventListener('click', function(){ cargarCotEnVenta(cot.id); })" 
 assert "advisor.textContent = 'Asesor: ' + cot.asesor" in caja
 assert "escH(plan.autor || '')" in caja
 assert "escH(item.nombre || '')" in caja
+assert "suggestion.textContent = value" in caja
+assert "suggestion.addEventListener('click'" in caja
+assert "badgeDetail.textContent = pendientes.length" in caja
+assert "badge.addEventListener('click'" in caja
+assert "precioVariante.toFixed(2)" in caja
+assert "precioItem.toFixed(2)" in caja
+assert "box.innerHTML='<div" not in caja
+assert "badge.innerHTML = '<div style=\"display:flex;align-items:center;gap:8px;font-size:12px;\">'" not in caja
+assert "(v.precio||0) + '</span>" not in caja
 assert 'var abonoFailed = false' in caja
 assert 'delete VT._paymentKeys[cotId]' not in caja
 assert 'if (abonoFailed)' in caja
