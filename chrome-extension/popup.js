@@ -1,8 +1,8 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
  *  KronIA Popup Logic
- *  Comparte el core con el content script. UI más compacta y orientada
- *  a acciones rápidas y onboarding.
+ *  K1: credenciales + sesión opaca; la contraseña solo vive en memoria
+ *  durante el challenge 2FA y nunca se persiste en chrome.storage.
  * ═══════════════════════════════════════════════════════════════════
  */
 (function () {
@@ -18,7 +18,6 @@
     onError: function (e) { console.warn('[KronIA popup]', e); }
   });
 
-  // ─── DOM refs ────────────────────────────────────────────────────
   var $ = function (id) { return document.getElementById(id); };
   var welcome = $('welcome');
   var main = $('main');
@@ -27,6 +26,7 @@
   var loginStep1 = $('login-step1');
   var loginStep2 = $('login-step2');
   var loginUsuario = $('login-usuario');
+  var loginPass = $('loginPass');
   var loginCodigo = $('login-codigo');
   var btnPedir = $('btn-pedir-codigo');
   var btnVerificar = $('btn-verificar');
@@ -43,7 +43,6 @@
 
   var state = { loginUsuario: '' };
 
-  // ─── Helpers UI ──────────────────────────────────────────────────
   function setView(view) {
     [welcome, loginView, dashView].forEach(function (v) { if (v) v.classList.add('hidden'); });
     if (view === 'welcome') { welcome.classList.remove('hidden'); main.classList.add('hidden'); }
@@ -52,7 +51,6 @@
 
   function setStatus(text) { status.textContent = text; }
 
-  // ─── Init ────────────────────────────────────────────────────────
   function init() {
     var params = new URLSearchParams(location.search);
     if (params.get('welcome') === '1') {
@@ -91,31 +89,36 @@
     setStatus('· ' + (user && user.usuario || ''));
     btnLogout.classList.remove('hidden');
     dashUser.textContent = (user && user.usuario) || '';
+    if (loginPass) loginPass.value = '';
     setView(dashView);
   }
 
-  // ─── Login ───────────────────────────────────────────────────────
   btnPedir.addEventListener('click', function () {
     var u = loginUsuario.value.trim();
+    var pass = loginPass ? loginPass.value : '';
     if (!u) { loginErr.textContent = 'Ingresa tu usuario'; return; }
+    if (!pass) { loginErr.textContent = 'Ingresa tu contraseña'; return; }
     loginErr.textContent = '';
     btnPedir.disabled = true;
-    btnPedir.textContent = 'Enviando...';
+    btnPedir.textContent = 'Verificando...';
     state.loginUsuario = u;
-    core.loginRequest(u).then(function (r) {
+    core.loginRequest(u, pass).then(function (r) {
       btnPedir.disabled = false;
-      btnPedir.textContent = 'Enviar código a mi email';
-      if (r && r.ok) {
-        codigoOk.textContent = '✓ Código enviado a ' + (r.email_oculto || 'tu email');
+      btnPedir.textContent = 'Continuar de forma segura';
+      if (r && r.ok && r.token) {
+        core.persist(chrome.storage.local);
+        entrarDashboard();
+      } else if (r && r.ok && r.require_2fa) {
+        codigoOk.textContent = '✓ Código enviado a ' + (r.email_oculto || r.email_masked || 'tu email');
         loginStep1.classList.remove('active');
         loginStep2.classList.add('active');
         loginCodigo.focus();
       } else {
-        loginErr.textContent = (r && r.error) || 'No se pudo enviar el código';
+        loginErr.textContent = (r && r.error) || 'No se pudo iniciar sesión';
       }
     }).catch(function () {
       btnPedir.disabled = false;
-      btnPedir.textContent = 'Enviar código a mi email';
+      btnPedir.textContent = 'Continuar de forma segura';
       loginErr.textContent = 'Error de conexión';
     });
   });
@@ -131,6 +134,7 @@
       btnVerificar.textContent = 'Ingresar';
       if (r && r.ok && r.token) {
         core.persist(chrome.storage.local);
+        if (loginPass) loginPass.value = '';
         entrarDashboard();
       } else {
         loginErr.textContent = (r && r.error) || 'Código inválido';
@@ -146,10 +150,14 @@
     loginStep2.classList.remove('active');
     loginStep1.classList.add('active');
     loginErr.textContent = '';
+    if (loginPass) loginPass.value = '';
     loginUsuario.focus();
   });
 
   loginUsuario.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); if (loginPass) loginPass.focus(); else btnPedir.click(); }
+  });
+  if (loginPass) loginPass.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); btnPedir.click(); }
   });
   loginCodigo.addEventListener('keydown', function (e) {
@@ -164,7 +172,6 @@
     });
   });
 
-  // ─── Acciones rápidas ─────────────────────────────────────────────
   document.querySelectorAll('.action-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       quickQ.value = btn.getAttribute('data-prompt');
