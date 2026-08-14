@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(33);
 
 select has_table('public','aos_login_challenges_v3','2FA challenge table exists');
 select has_table('public','aos_app_sessions_v3','opaque app session table exists');
