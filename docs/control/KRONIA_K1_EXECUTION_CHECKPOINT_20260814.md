@@ -4,6 +4,7 @@
 **Risk:** CRITICAL  
 **Branch:** `security/kronia-k1-hardening-20260814`  
 **Production baseline:** `0747d8c26ef0c467f9667ac6240df09457e75a6c`  
+**Draft PR:** `#81`  
 **Production changes:** none
 
 ## Objective
@@ -13,10 +14,11 @@ Close the legacy KronIA trust boundary without breaking current consumers: ident
 ## Consumer matrix decisions
 
 - `app/public/kronia-core.js`: shared web/Brain client. K1 moves authority to an opaque Bearer token; browser user/role/sede remain UI context only.
-- `chrome-extension/`: legacy auth contract is incompatible with the live `aos_login_v2(text,text)` signature. K1 repairs it through server-side login/2FA; password is not persisted.
+- `app/public/app.html`: discovered during K1 as an independent embedded KronIA transport. K1 compatibility requires Bearer-only text and Whisper and rejects browser identity/role claims.
+- `chrome-extension/`: legacy auth contract is incompatible with the live `aos_login_v2(text,text)` signature. K1 repairs it through server-side login/2FA; password is transient and not persisted.
 - `app/public/admin-sales.html`: consumes `aos_editar_venta`; therefore the raw RPC cannot be revoked until the editor is migrated to the same token-bound gateway.
-- `app/public/admin-config.html`: consumes `aos_integraciones`; after K1 it may receive metadata only, never credentials/config secret material.
-- `app/server.js`: current legacy boundary trusts body role after weak validation and reads provider credentials from integration storage. K1 materializes a server-authoritative runtime boundary before execution.
+- `app/public/admin-config.html`: consumes `aos_integraciones`; after K1 it may receive metadata only, never credentials/config secret material; administrative deactivation uses a narrow token-bound ADMIN gateway.
+- `app/server.js`: legacy boundary trusts body role after weak validation and reads provider credentials from integration storage. K1 materializes a server-authoritative runtime boundary before execution.
 - `/api/agents/*`: control endpoints require authoritative ADMIN identity in K1.
 
 ## New findings discovered during execution
@@ -36,35 +38,71 @@ Supabase project branching currently exposes only the default `main` branch. The
 
 **Resolution target:** isolated GitHub/Supabase CI is the current preproduction database gate. A real staging/preview database or an explicitly approved equivalent is mandatory before CRITICAL production release.
 
+### K1-F16 — Embedded main chat bypassed shared KronIA transport
+`app/public/app.html` maintained an independent `/api/kronia/chat`/Whisper transport using browser `usuario/rol/sede` and legacy identity headers.
+
+**Resolution target:** same opaque Bearer boundary as shared KroniaCore; compatibility contract now covers this consumer explicitly.
+
 ## K1 implementation artifacts
 
 - `supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql`
 - `supabase/migrations/20260814051600_kronia_k1_extension_claim.sql`
+- `supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql`
+- `supabase/rollbacks/20260814_kronia_k1_rollback.sql`
 - `ci/kronia-k1/schema_contract.sql`
 - `ci/kronia-k1/auth_primitives.sql`
 - `ci/kronia-k1/test_k1.sql`
+- `ci/kronia-k1/test_k1_extended.sql`
+- `ci/kronia-k1/test_rollback.sql`
 - `ci/kronia-k1/check_runtime_contract.py`
+- `ci/kronia-k1/check_compat_contract.py`
 - `ci/kronia-k1/apply_runtime_patch.py`
 - `ci/kronia-k1/apply_runtime_patch_v2.py`
+- `ci/kronia-k1/apply_runtime_patch_v3.py`
 - `.github/workflows/kronia-k1-security.yml`
 
-## Security certificate
+## Isolated security certificate — GREEN
 
-The isolated certificate deliberately starts red and is iterated only by correcting implementation/fixtures. Current gates include 36 positive/negative authorization assertions plus database lint, runtime syntax, static trust-boundary checks, and secret-source regression checks.
+Workflow: `KronIA K1 Security Certificate`  
+Run: `31775262556`  
+Conclusion: **SUCCESS**
 
-Observed corrections so far:
-1. `pgcrypto` is installed under the `extensions` schema in the live project; K1 uses explicitly qualified `extensions.digest` / `extensions.gen_random_bytes` with empty function `search_path`.
-2. Staging fixtures now model the live auth function signatures so revocation is tested rather than skipped.
+Passed gates:
+1. deterministic K1 runtime materialization;
+2. runtime syntax preflight;
+3. consumer compatibility preflight;
+4. isolated production-shaped Supabase startup;
+5. K1 migration compilation;
+6. 36 main positive/negative authorization assertions;
+7. extended auth/integration authorization assertions;
+8. database lint;
+9. executable rollback and rollback certificate;
+10. runtime syntax gate;
+11. static no-legacy-authority contract;
+12. secret-source regression gate.
+
+Observed corrections during the red→green loop:
+1. `pgcrypto` is installed under the `extensions` schema in the live project; K1 explicitly uses `extensions.digest` / `extensions.gen_random_bytes` with empty function `search_path` where materialized.
+2. Staging fixtures model the live auth function signatures so revocation is tested rather than skipped.
+3. Chrome compatibility claim explicitly revokes `PUBLIC`, `anon` and `authenticated`; only `service_role` retains execution.
+4. Studio provider-key transformation was narrowed after syntax preflight detected an over-broad replacement.
+5. Chrome popup contract was aligned to its real DOM rather than the historical prototype.
+6. Main `app.html` text/voice consumer was added to compatibility gates after late discovery.
 
 ## Release blockers still open
 
-- K1 security certificate must be fully green.
-- Generated runtime diff must pass compatibility checks for web login, Brain, Chrome extension, Sales editor and integration metadata UI.
-- Rollback must be executable and tested.
-- Server-side secret/session environment requirements must be present in staging/release environment without exposing values.
-- A real staging/preview deployment gate must be resolved.
-- No production migration or merge is authorized by this checkpoint.
+- **Canonical deploy artifact:** large changes to `app/server.js`, `app/public/app.html`, `login.html`, `admin-sales.html` and `admin-config.html` are currently materialized deterministically in CI rather than present as canonical source diffs. The runtime certified by CI must become exactly the runtime Railway will execute before release.
+- **Real staging:** no development/staging Supabase branch exists yet; creation may have cost and requires owner confirmation.
+- **Environment boundary:** required server-side secrets/session keys must exist in staging/release environment without values being placed in GitHub/chat.
+- **Secret rotation:** credentials historically present in source or browser-readable integration storage must be rotated and previous values proven invalid.
+- **Real compatibility smoke/E2E:** web login, Brain, main chat text/voice, Chrome, Sales editor, integration metadata/admin and agent negative-auth.
+- **Final security review:** no HIGH/CRITICAL findings open in K1 scope.
+- **Explicit production authorization:** mandatory after staging + smoke + rollback evidence.
+
+## Current release position
+
+K1 is **isolated-CI certified, not production certified**. PR #81 remains draft. No migration, merge or production deploy is authorized by this checkpoint.
 
 ## Next exact action
 
-Run the K1 certificate against the corrected production-shaped auth fixtures; resolve the next real failure, then produce the rollback migration and draft PR once all isolated gates are green.
+Resolve the real Supabase staging gate and canonical deployment-artifact equivalence. Then deploy K1 to staging with required environment variables, execute compatibility/security smoke tests and rollback, perform final security review, and only then request explicit production release authorization.
