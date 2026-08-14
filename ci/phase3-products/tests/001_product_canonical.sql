@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
 begin;
-select plan(33);
+select plan(34);
 
 select ok(to_regclass('public.aos_product_identity_v1') is not null,'identity table exists');
 select ok(to_regclass('public.aos_product_alias_v2') is not null,'alias table exists');
@@ -38,6 +38,13 @@ select is((select descripcion from public.aos_ventas where id=909),'PERFECT- B 9
 
 select ok((select resolution_status='RESOLVED' and resolution_source='AUTO_ALIAS_V2' from public.aos_product_sale_fact_v1 where sale_id=2340),'real post-workbook sale 2340 is backfilled automatically');
 select is((select canonical_name from public.aos_product_sale_fact_v1 f join public.aos_product_identity_v1 i using(product_key) where f.sale_id=2340),'LIFTING B 30GR','real post-workbook Liftin B maps to canonical Lifting B');
+select ok(not exists(
+  select 1
+  from public.aos_product_identity_v1 cat
+  join public.aos_product_identity_v1 f3 on f3.catalog_service_id=cat.catalog_service_id
+  where cat.product_key like 'CAT:%'
+    and f3.product_key='F3:LIFTINGB30GR'
+),'one-to-one Lifting B catalog identity is unified to the owner canonical identity');
 
 insert into public.aos_ventas(id,fecha,tratamiento,descripcion,sede,tipo)
 values (99999,current_date,'COMPRA DE PRODUCTO','LIFTIN B','SAN ISIDRO','PRODUCTO');
