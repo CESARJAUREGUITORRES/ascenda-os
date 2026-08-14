@@ -5,21 +5,16 @@
 **Fecha:** 2026-08-13  
 **Baseline staging:** `d17eaa8cabfeae88c9442246f542b2e18b2a1691`
 
----
-
 ## Resultado ejecutivo
 
-La capa Phase 7 está implementada de forma aditiva y mantiene las fronteras requeridas:
-
+Fase 7 está funcionalmente implementada y lista para PR/CI. Mantiene las fronteras:
 - Audience Definition ≠ Snapshot.
 - Snapshot ≠ Activation.
 - Activation ≠ Assignment.
-- `channel` es contexto, no ejecución ni elegibilidad.
-- Fase 7 no modifica Call Center, Email legacy, `aos_siguiente_lead`, `aos_cola_config` ni fuentes operativas.
+- `channel` es contexto en Fase 7; no ejecuta envíos ni llamadas.
+- no modifica `aos_siguiente_lead`, `aos_cola_config`, Call Center, Email legacy ni fuentes operativas.
 
----
-
-## Persistencia desplegada
+## Persistencia
 
 Snapshot:
 - `aos_audiencia_snapshots`
@@ -31,28 +26,21 @@ Activation Aggregate:
 - `aos_audiencia_activacion_estado`
 - `aos_audiencia_activacion_eventos`
 
-El aggregate separa identidad/configuración inmutable de lifecycle mutable y audit append-only.
+Identidad/configuración son inmutables; lifecycle es mutable únicamente por máquina de estados; eventos son append-only.
 
----
+## Snapshot contract
 
-## Snapshot
-
-Contrato certificado:
 - audience/version exacta;
 - BUILDING → READY;
-- snapshot header inmutable tras sello;
+- header inmutable tras sello;
 - members inmutables;
-- no members nuevos tras READY;
 - count físico verificado al sellar;
 - `membership_hash` SHA-256 de contact keys ordenados;
 - `filter_hash` SHA-256;
-- máximo 100,000 miembros.
+- máximo 100,000 miembros;
+- membership congelada; Commercial Facts posteriores continúan LIVE y la API/UI lo declara.
 
-El snapshot congela membership e identity status/conflict. Commercial Facts visualizados posteriormente siguen siendo LIVE y la API/UI lo declara.
-
-### Paridad resolver
-
-Count V2 = resolver completo:
+Paridad resolver completa:
 - FOLLOWUP_OVERDUE: 442 = 442
 - LEADS_UNWORKED: 1,292 = 1,292
 - LEADS_UNWORKED_7D: 126 = 126
@@ -60,56 +48,50 @@ Count V2 = resolver completo:
 
 PASS.
 
----
+## Activation semantics
 
-## Activation
-
-### BATCH
-- snapshot obligatorio;
-- snapshot READY;
+BATCH:
+- snapshot obligatorio y READY;
 - misma audience/version;
-- membership `FROZEN_SNAPSHOT`;
-- facts `LIVE`.
+- `membership_mode=FROZEN_SNAPSHOT`;
+- `facts_mode=LIVE`.
 
-### DYNAMIC
+DYNAMIC:
 - snapshot prohibido;
 - versión fijada;
-- membership `DYNAMIC_LIVE`;
-- facts `LIVE`.
+- `membership_mode=DYNAMIC_LIVE`;
+- `facts_mode=LIVE`.
 
-### Lifecycle
-
-Permitido:
+Lifecycle permitido:
 - DRAFT → ACTIVE | CANCELLED
 - ACTIVE → PAUSED | COMPLETED | CANCELLED
 - PAUSED → ACTIVE | COMPLETED | CANCELLED
+- COMPLETED/CANCELLED terminales.
 
-Terminal:
-- COMPLETED
-- CANCELLED
+## Audit lifecycle — single source
 
-Harness TEMP con trigger productivo:
-- DRAFT→ACTIVE→PAUSED→ACTIVE→COMPLETED: PASS
-- COMPLETED→ACTIVE: rechazado
-- `started_at`: presente
-- `ended_at`: presente
+Hardening final:
+- `20260813220108_cia_phase7_state_event_emitter_v2`
+- `20260813220123_cia_phase7_state_event_emitter_trigger_v2`
+- `20260814024344_cia_phase7_rpc_event_single_source_v2`
 
----
+La base de datos es la única fuente de eventos lifecycle. Los RPC `CREATE` y `TRANSITION` ya no insertan eventos manualmente.
 
-## Inmutabilidad / validación
+QA real con rollback:
+- CREATE events = 1
+- START events = 1
+- PAUSE events = 1
+- RESUME events = 1
+- COMPLETE events = 1
+- total events = 5
+- final state = COMPLETED
+- residuos después del rollback = 0
 
-Harness TEMP con guard productivo de eventos:
-- UPDATE: rechazado
-- DELETE: rechazado
-- payload original: intacto
+PASS: exactamente un evento por transición.
 
-Harness TEMP con config validator:
-- DYNAMIC sin snapshot: aceptado
-- DYNAMIC con snapshot: rechazado
-- BATCH sin snapshot: rechazado
-- channel fuera de whitelist: rechazado
+## Guards / integridad
 
-Triggers físicos verificados en producción:
+Verificados físicamente:
 1. snapshot header guard
 2. snapshot member guard
 3. activation identity guard
@@ -118,43 +100,35 @@ Triggers físicos verificados en producción:
 6. activation config relation
 7. activation state guard
 8. activation event immutable
+9. activation state event emitter
 
----
+Harness TEMP:
+- terminal reopen rechazado;
+- UPDATE/DELETE de eventos rechazados;
+- DYNAMIC+snapshot rechazado;
+- BATCH sin snapshot rechazado;
+- channel fuera de whitelist rechazado.
 
-## Autorización
+## Seguridad
 
-Mutators y gateway son `SECURITY DEFINER` con `search_path=public`:
+Mutators/gateway `SECURITY DEFINER` con `search_path=public` y verificación CIA admin token antes de escribir:
 - snapshot create
 - activation create
 - activation transition
 - Phase 7 gateway
 
-Cada mutator verifica la sesión CIA administrativa antes de escribir y deriva el actor desde esa sesión.
+Pruebas negativas:
+- snapshot create con token inválido → UNAUTHORIZED
+- activation create → UNAUTHORIZED
+- transition → UNAUTHORIZED
+- gateway → UNAUTHORIZED
 
-Pruebas negativas reales:
-- snapshot create con token inválido → `UNAUTHORIZED`
-- activation create → `UNAUTHORIZED`
-- transition → `UNAUTHORIZED`
-- gateway → `UNAUTHORIZED`
+RLS activo en los seis objetos. No existen policies permisivas Phase 7.
+- anon: 0 filas visibles
+- authenticated: 0 filas visibles
+- INSERT directo anon: rechazado
 
-No se fabricó una sesión CIA ni se extrajo credencial para forzar un E2E positivo. El verifier de sesión CIA fue certificado en Fases 5–6; Phase 7 lo ejecuta dentro de cada mutator. Los invariantes de negocio fueron probados mediante triggers productivos en tablas temporales y paridad del resolver, sin persistir datos de QA.
-
----
-
-## RLS
-
-RLS = `true` en los seis objetos.
-
-No existen policies permisivas Phase 7.
-
-Pruebas de rol:
-- `anon`: 0 filas visibles
-- `authenticated`: 0 filas visibles
-- INSERT directo como anon: rechazado
-
-Nota de plataforma: Supabase conserva los privilegios estándar de `service_role`; el conector bloqueó DCL `REVOKE`. No se afirma SELECT-only para ese rol. `service_role` es server-side y no forma parte de la superficie browser.
-
----
+Nota: Supabase conserva privilegios estándar de `service_role`; el conector no permitió DCL `REVOKE`. No se afirma SELECT-only para ese rol. Browser sigue limitado a anon/authenticated + gateway CIA.
 
 ## Read contracts
 
@@ -166,15 +140,7 @@ Nota de plataforma: Supabase conserva los privilegios estándar de `service_role
 Límites server-side:
 - list ≤ 100
 - preview ≤ 100
-- payload gateway ≤ 64 KiB
-
-Semántica expuesta explícitamente:
-- `FROZEN_SNAPSHOT`
-- `DYNAMIC_LIVE`
-- `facts_mode=LIVE`
-- `context_only=true`
-
----
+- gateway payload ≤ 64 KiB
 
 ## Replayability
 
@@ -182,94 +148,61 @@ Checkpoints live canónicos:
 - `20260813214724_cia_phase7_read_contract_checkpoint_v1`
 - `20260813214912_cia_phase7_gateway_checkpoint_v1`
 - `20260813215012_cia_phase7_hardening_checkpoint_v1`
+- `20260813220108_cia_phase7_state_event_emitter_v2`
+- `20260813220123_cia_phase7_state_event_emitter_trigger_v2`
+- `20260814024344_cia_phase7_rpc_event_single_source_v2`
 
-Gateway y hardening tienen source ejecutable en migrations Git.
-
-El read checkpoint tiene un history pointer en migrations y su source SQL exacto está en:
-- `PHASE_07_DB_READ_CONTRACT.sql`
-
-Los micro-pasos live previos se conservan como migrations reales o markers de historia según limitaciones del conector.
-
-Un provisional `20260813210730...` nunca aplicado remotamente duplica idempotentemente `CREATE TABLE/INDEX IF NOT EXISTS` frente a la versión canónica `20260813210734...`; no introduce operación destructiva.
-
----
+El read source exacto está además en `PHASE_07_DB_READ_CONTRACT.sql`. Micro-pasos live previos permanecen versionados o documentados como history markers por limitaciones del conector.
 
 ## Performance
 
-Live:
-- resolver completo de LEADS_UNWORKED (1,292 keys): ~739 ms
+- resolver completo LEADS_UNWORKED (1,292 keys): ~739 ms
 - list activations vacío: ~75 ms
 
 PASS contra objetivo normal `<1.5 s`.
 
-No se agregaron índices/triggers a tablas operativas.
-
----
-
 ## Frontend
 
-Nuevos:
 - `admin-activaciones.html`
 - `admin-activaciones.css`
 - `admin-activaciones.js`
-
-Integración:
-- Bases & Audiencias muestra Fase 7
-- Activaciones desbloqueado
-- Distribución continúa bloqueada hasta F9
-- Solicitudes continúa bloqueada hasta F13
+- acceso desbloqueado desde Bases & Audiencias.
 
 Controller:
 - 0 `alert()`
 - 0 `confirm()`
 - 0 `prompt()`
-- 0 `/rest/v1/aos_*` direct reads
-
-Incluye BATCH/DYNAMIC, creación, DRAFT/start now, cards, transitions, detalle, preview, event history y snapshot hashes.
-
----
+- 0 lecturas directas `/rest/v1/aos_*`
 
 ## Compatibilidad
 
-Después de desplegar Phase 7:
-- 177 llamadas guardadas el 13-08-2026 al momento del gate;
-- última escritura de llamadas observada posterior al despliegue.
-
-Email legacy:
-- `aos_email_audiencias`: 0
-- `aos_email_campanias`: 0
-- FK sigue `aos_email_campanias.audiencia_id → aos_email_audiencias.id`
-
-Legacy snapshot:
-- `aos_snapshot_global`: 1 fila, intacto.
-
----
+Último smoke pre-PR:
+- 349 llamadas guardadas hoy (Lima) al momento del gate;
+- última escritura observada posterior a los cambios Phase 7;
+- Email legacy 0 audiencias / 0 campañas y FK legacy intacta;
+- `aos_snapshot_global` legacy intacto.
 
 ## Residuos QA
 
-Estado final antes del PR:
+Estado final pre-PR:
 - snapshots: 0
 - snapshot members: 0
 - activations: 0
-- activation config: 0
-- activation state: 0
 - activation events: 0
 - audiences: 0
 
-PASS: cero residuos.
-
----
+PASS.
 
 ## Gates
 
 - P7-G01 baseline Git/Supabase: PASS
 - P7-G02 Impact Report pre-DDL: PASS
 - P7-G03 schema/FKs/checks: PASS
-- P7-G04 snapshot build/seal contract: PASS
+- P7-G04 snapshot build/seal: PASS
 - P7-G05 snapshot immutability/hash: PASS
-- P7-G06 activation BATCH contract: PASS
-- P7-G07 activation DYNAMIC contract: PASS
-- P7-G08 state machine/history: PASS
+- P7-G06 BATCH: PASS
+- P7-G07 DYNAMIC: PASS
+- P7-G08 state machine/history/single-event-source: PASS
 - P7-G09 list/get/preview: PASS
 - P7-G10 security/RLS: PASS
 - P7-G11 gateway authorization: PASS
