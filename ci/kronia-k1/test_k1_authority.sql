@@ -15,8 +15,8 @@ begin
   select id into eve_id from public.aos_usuarios where codigo_asesor='A002';
 
   -- K1-106: free-form cargo/puesto cannot elevate a regular identity.
-  update public.aos_usuarios set rol='asesor',nivel_jerarquia=4,cargo='ADMINISTRADOR',two_factor=false where id=eve_id;
-  update public.aos_rrhh set puesto='ADMINISTRADOR' where codigo_asesor='A002';
+  update public.aos_usuarios set rol='asesor',nivel_jerarquia=4,cargo='ADMINISTRADOR',two_factor=false,activo=true where id=eve_id;
+  update public.aos_rrhh set puesto='ADMINISTRADOR',estado='ACTIVO' where codigo_asesor='A002';
   j:=public.aos_kronia_claim_session('eve','eve-pass',null,'ci-authority',null,'ci');
   if not coalesce((j->>'ok')::boolean,false) or j->>'rol'<>'ASESOR' then
     raise exception 'K1-106 free-form cargo/puesto elevated authority: %',j;
