@@ -1,27 +1,40 @@
-name: Sync Supabase → GitHub
+name: Sync Supabase → GitHub (LEGACY / MANUAL)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
+    inputs:
+      confirm_legacy_sync:
+        description: 'Type SYNC_LEGACY to run the historical aos_codigo_fuente sync'
+        required: true
+        default: 'NO'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: legacy-supabase-sync
+  cancel-in-progress: true
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event.inputs.confirm_legacy_sync == 'SYNC_LEGACY'
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Instalar dependencias
-        run: npm install node-fetch@2
+      - name: Install transient dependency
+        run: npm install --no-save --no-audit --no-fund node-fetch@2
 
-      - name: Sync desde Supabase
+      - name: Sync historical source from Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
+          set -euo pipefail
           node << 'EOF'
           const fetch = require('node-fetch');
           const fs = require('fs');
@@ -40,8 +53,9 @@ jobs:
               `${process.env.SUPABASE_URL}/rest/v1/aos_codigo_fuente?select=nombre,tipo,contenido&order=tipo.asc,nombre.asc`,
               { headers: { apikey: process.env.SUPABASE_KEY, Authorization: `Bearer ${process.env.SUPABASE_KEY}` } }
             );
+            if (!resp.ok) throw new Error(`Supabase sync HTTP ${resp.status}`);
             const archivos = await resp.json();
-            console.log(`Supabase: ${archivos.length} archivos`);
+            console.log(`Supabase historical source: ${archivos.length} files`);
             let cambios = 0;
             for (const a of archivos) {
               if (!a.contenido || a.contenido === 'PENDIENTE_CONTENIDO_COMPLETO') continue;
@@ -51,26 +65,32 @@ jobs:
               try { actual = fs.readFileSync(fp, 'utf8'); } catch(e) {}
               if (actual !== a.contenido) {
                 fs.writeFileSync(fp, a.contenido, 'utf8');
-                console.log(`  ✓ ${fp}`);
+                console.log(`  updated ${fp}`);
                 cambios++;
               }
             }
-            console.log(`Cambios: ${cambios}`);
+            console.log(`Changes: ${cambios}`);
             fs.writeFileSync('sync_result.txt', String(cambios));
           }
-          main().catch(e => { console.error(e); process.exit(1); });
+          main().catch(e => { console.error(e.message); process.exit(1); });
           EOF
 
-      - name: Commit y push si hay cambios
+      - name: Commit and push historical changes only
         run: |
+          set -euo pipefail
           CAMBIOS=$(cat sync_result.txt 2>/dev/null || echo "0")
           if [ "$CAMBIOS" -gt "0" ]; then
             git config user.email "sync@creactive.os"
             git config user.name "AscendaOS Sync"
             git add src/ docs/
-            git commit -m "sync: $CAMBIOS archivos actualizados desde Supabase [$(date +'%Y-%m-%d %H:%M')]"
+            git commit -m "sync(legacy): $CAMBIOS archivos desde aos_codigo_fuente [$(date +'%Y-%m-%d %H:%M')]"
             git push
-            echo "Push: $CAMBIOS archivos"
+            echo "LEGACY_SYNC_PUSHED=$CAMBIOS"
           else
-            echo "Sin cambios — no se hace commit"
+            echo "LEGACY_SYNC_NO_CHANGES=PASS"
           fi
+
+      - name: Cleanup transient dependency
+        if: always()
+        run: |
+          rm -rf node_modules sync_result.txt
