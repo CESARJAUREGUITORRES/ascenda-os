@@ -4,6 +4,13 @@
 -- valid synthetic OTP proof for an existing synthetic user and then exercises
 -- the REAL K1 session claim. This keeps tests honest once ADMIN sessions require
 -- 2FA instead of disabling the factor in fixtures.
+--
+-- Normalize synthetic passwords only AFTER migration 521 moved credentials into
+-- aos_auth_credentials. No plaintext credential is written back to aos_rrhh.
+select public.aos_auth_set_password('A001','alice-pass');
+select public.aos_auth_set_password('A002','eve-pass');
+select public.aos_auth_set_password('A003','bob-pass');
+
 create or replace function public.k1_ci_claim_token(p_login text,p_password text)
 returns text
 language plpgsql
