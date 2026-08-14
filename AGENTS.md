@@ -10,13 +10,24 @@ Antes de proponer o ejecutar cambios, leer:
 
 1. `docs/control/ASCENDA_CONTROL_MASTER.md`
 2. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
-3. el master/index/checkpoint CURRENT del workstream afectado
-4. `SECURITY.md` para cambios de seguridad, Auth, RLS, secretos, agentes o infraestructura
-5. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
-6. los archivos productivos bajo `app/`
-7. las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+3. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
+4. el master/index/checkpoint CURRENT del workstream afectado
+5. `SECURITY.md` para cambios de seguridad, Auth, RLS, secretos, agentes o infraestructura
+6. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
+7. los archivos productivos bajo `app/`
+8. las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
 
 Antes de continuar trabajo iniciado por otro chat/agente, verificar el estado real de GitHub (`main`, `staging`, branch, PR, checks) y de Supabase; no asumir que un checkpoint antiguo sigue vigente.
+
+### Bootstrap obligatorio de Zero-Cost CI V2
+
+Todo chat/agente de ASCENDA debe asumir como CURRENT que el CI normal corre en el runner repo-level `ASCENDA-ZERO-COST-V2`, labels `self-hosted`, `Linux`, `X64`, `ascenda-zero-cost-v2`, con gasto pagado de GitHub Actions objetivo **US$0**.
+
+- Si el runner está offline, los jobs quedan en cola; no se cambia a `ubuntu-latest`/`windows-latest`/`macos-*` como fallback.
+- Un reinicio de la PC NO afecta producción; solo interrumpe CI.
+- Tras reinicio, el runner se recupera arrancando Docker y `./run.sh`; no se debe repetir `config.sh` salvo revocación/eliminación del runner.
+- Con un único runner los jobs se ejecutan secuencialmente; `queued/pending` no equivale por sí solo a fallo.
+- Antes de tocar workflows, leer el handoff CURRENT indicado arriba.
 
 ### Clasificación del repositorio
 
@@ -69,12 +80,14 @@ No arreglar síntomas modificando datos o columnas sin determinar primero la fue
 
 ASCENDA usa `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md` como circuito preproductivo obligatorio por defecto.
 
-- GitHub Actions + Supabase CLI/PostgreSQL/Docker levantan un entorno efímero y reproducible.
+- GitHub Actions coordina y el cómputo normal se ejecuta en el self-hosted runner repo-level `ASCENDA-ZERO-COST-V2`.
+- Supabase CLI/PostgreSQL/Docker levantan un entorno efímero y reproducible en el runner.
 - No se usan credenciales productivas ni PII/PHI real como fixtures.
 - Se compilan las migraciones EXACTAS del release, se ejecutan lint, contracts, pgTAP/pruebas equivalentes, seguridad, performance y rollback según riesgo.
 - El entorno se destruye al finalizar, incluso cuando el workflow falla.
 - Para HIGH/CRITICAL debe existir evidencia reproducible (run/artifact/digest/checkpoint) antes del gate productivo.
 - Un CI verde no autoriza producción: siguen siendo obligatorios preflight, canary/cutover/smoke y autorización según riesgo.
+- Los workflows normales deben usar `runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]` y no tener fallback facturable.
 
 ### Infraestructura cloud pagada
 
@@ -82,6 +95,7 @@ ASCENDA usa `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md` como circuit
 - Solo se crean si un riesgo material no puede validarse suficientemente mediante Zero-Cost Staging + preflight/canary.
 - Antes de crear infraestructura con costo: explicar necesidad, alternativa cero-costo descartada, permisos/datos implicados, costo/recurrencia, rollback/borrado y obtener aprobación explícita del propietario.
 - Por defecto, cualquier entorno cloud adicional debe ser efímero y eliminarse al terminar su gate.
+- No recomendar compra de minutos de GitHub Actions como primera solución; optimizar routing, concurrencia y self-hosted CI primero.
 
 ### Auditoría
 
