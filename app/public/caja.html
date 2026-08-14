@@ -2317,13 +2317,21 @@ function grabarCotizacion() {
     }
   }
 
-  // Ejecutar: primero abonos, luego nuevos
+  // Ejecutar: primero abonos, luego nuevos.
+  // Los abonos financieros exigen una sesion administrativa 2FA vigente.
+  var financeToken = '';
+  try { financeToken = sessionStorage.getItem('aos_si_token') || ''; } catch(e) {}
+  if (cotKeys.length && !financeToken) {
+    toast('Vuelve a iniciar sesion con 2FA para registrar abonos de cotizacion', 'warn');
+    return;
+  }
   loading(true);
   if (cotKeys.length) {
     var processed = 0;
     cotKeys.forEach(function(cotId) {
       var info = cotIds[cotId];
-      rpc('aos_abonar_cotizacion', {
+      rpc('aos_abonar_cotizacion_v2', {
+        p_token: financeToken,
         p_cotizacion_id: cotId, p_monto: info.monto,
         p_metodo_pago: (info.items[0] && info.items[0].metodoPago) || '',
         p_tipo_comprobante: (info.items[0] && info.items[0].comprobante) || 'BOLETA VIRTUAL',
