@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
@@ -28,6 +29,7 @@ on:
       - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
@@ -97,10 +99,14 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814164500_restore_2fa_email_branding.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814195300_fix_auth_v3_btrim.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
-        run: supabase db lint --local --schema public --level error
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/db-lint.txt
+          ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
 
       - name: pgTAP Phase 2 base contract
         run: |
@@ -140,6 +146,7 @@ jobs:
           from pathlib import Path
           audit=Path('supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql').read_text(encoding='utf-8')
           brand=Path('supabase/migrations/20260814164500_restore_2fa_email_branding.sql').read_text(encoding='utf-8')
+          btrim=Path('supabase/migrations/20260814195300_fix_auth_v3_btrim.sql').read_text(encoding='utf-8')
           assert "set search_path = ''" in audit
           assert 'public.aos_log_auditoria' in audit
           assert "AscendaOS <info@zivital.pe>" in brand
@@ -147,8 +154,10 @@ jobs:
           assert 'ascenda_branded_v1' in brand
           assert 'extensions.digest' in brand
           assert "set search_path=''" in brand
+          assert 'pg_catalog.btrim' in btrim and 'pg_catalog.trim' not in btrim
           print('PHASE2_AUTH_OUTAGE_REGRESSION_STATIC=PASS')
           print('PHASE2_BRANDED_2FA_CONTRACT=PASS')
+          print('PHASE2_AUTH_BTRIM_P0=PASS')
           PY
 
       - name: UI and cutover contract
