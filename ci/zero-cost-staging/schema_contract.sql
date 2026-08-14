@@ -70,6 +70,7 @@ CREATE TABLE public.aos_rrhh (
   puesto text,
   sede text,
   usuario text,
+  password_hash text,
   permisos jsonb NOT NULL DEFAULT '{}'::jsonb,
   estado text NOT NULL DEFAULT 'ACTIVO'
 );

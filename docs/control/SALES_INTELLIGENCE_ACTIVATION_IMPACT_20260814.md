@@ -25,14 +25,16 @@
 
 1. Crear `aos_sales_intelligence_access` como fuente autoritativa de grants.
 2. Denegar lectura/escritura directa de esa tabla a `anon` y `authenticated`.
-3. Crear una sesión opaca derivada de una prueba 2FA ya consumida.
-4. Exponer las métricas únicamente mediante `aos_sales_intelligence_gateway`.
-5. Revocar ejecución de la RPC financiera cruda a `anon` y `authenticated`.
-6. Permitir que solo un administrador nivel 1 ya autorizado otorgue o revoque el panel.
-7. Desactivar acceso y revocar sesiones al quitar 2FA, demover, desactivar o retirar el panel.
-8. Añadir el panel al catálogo de Roles y Permisos.
-9. Sembrar únicamente al administrador nivel 1 activo con 2FA.
-10. Actualizar login, menú, gestión de equipo, shadow page y versión de caché.
+3. Revocar acceso directo de clientes a `aos_auth_codes`; login y verificación continúan mediante funciones `SECURITY DEFINER`.
+4. Crear una sesión opaca solo cuando coincidan usuario, contraseña, identidad 2FA y grant protegidos.
+5. Congelar en el grant el usuario de login, sujeto 2FA, código de asesor y digest de contraseña para impedir reasignaciones por campos legacy mutables.
+6. Exponer las métricas únicamente mediante `aos_sales_intelligence_gateway`.
+7. Revocar ejecución de la RPC financiera cruda a `anon` y `authenticated`.
+8. Permitir que solo un administrador nivel 1 ya autorizado otorgue o revoque el panel.
+9. Desactivar acceso y revocar sesiones al quitar 2FA, demover, desactivar o retirar el panel.
+10. Añadir el panel al catálogo de Roles y Permisos.
+11. Sembrar únicamente al administrador nivel 1 activo con 2FA y credenciales RRHH válidas.
+12. Actualizar login, menú, gestión de equipo, shadow page y versión de caché.
 
 ## Impacto de datos
 
@@ -55,7 +57,8 @@ No modifica ventas, pacientes, caja, comisiones, productos, inventario ni metas.
 ## Riesgos y mitigación
 
 - **Sesión anterior sin token:** el administrador debe cerrar sesión e ingresar nuevamente con 2FA.
-- **Permiso visual falsificado por política legacy:** no otorga datos; la tabla autoritativa no es accesible por anon.
+- **Permiso o identidad visual falsificados por política legacy:** no otorgan datos; el grant conserva una vinculación de credenciales protegida y no accesible por clientes.
+- **Cambio de contraseña de un autorizado:** requiere volver a guardar el permiso de Sales Intelligence desde Roles y Permisos para renovar el digest protegido.
 - **Retiro de permiso durante una sesión:** el trigger revoca las sesiones del usuario.
 - **Fallo del gateway:** deniega acceso; no existe fallback a la RPC pública.
 - **Rollback:** interrumpe únicamente el módulo; no afecta datos comerciales.
@@ -78,7 +81,7 @@ where exists (
 drop trigger if exists trg_aos_sales_intelligence_guard_user on public.aos_usuarios;
 drop function if exists public.aos_sales_intelligence_set_access(text,uuid,boolean);
 drop function if exists public.aos_sales_intelligence_gateway(text,integer,text,text);
-drop function if exists public.aos_sales_intelligence_claim_session(text,text);
+drop function if exists public.aos_sales_intelligence_claim_session(text,text,text,text);
 drop function if exists public.aos_sales_intelligence_guard_user();
 
 update public.aos_usuarios
@@ -95,6 +98,11 @@ drop index if exists public.aos_cia_admin_sessions_source_code_uidx;
 
 grant execute on function public.aos_sales_intelligence_summary(integer,text,text)
   to anon,authenticated,service_role;
+
+-- Restauración exacta del ACL legacy de 2FA. Solo usar durante rollback
+-- completo mientras el login anterior siga dependiendo de ese contrato.
+grant select,insert,update,delete,truncate,references,trigger
+  on table public.aos_auth_codes to anon,authenticated;
 
 commit;
 ```

@@ -11,6 +11,10 @@ create unique index if not exists aos_cia_admin_sessions_source_code_uidx
 create table if not exists public.aos_sales_intelligence_access (
   user_id uuid primary key references public.aos_usuarios(id) on delete cascade,
   enabled boolean not null default false,
+  login_usuario text not null,
+  twofa_subject text not null,
+  codigo_asesor_snapshot text not null,
+  password_digest text not null,
   granted_by uuid references public.aos_usuarios(id),
   granted_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -19,6 +23,11 @@ create table if not exists public.aos_sales_intelligence_access (
 alter table public.aos_sales_intelligence_access enable row level security;
 revoke all on table public.aos_sales_intelligence_access from public, anon, authenticated;
 grant all on table public.aos_sales_intelligence_access to service_role;
+
+-- Authentication proofs must only be created/consumed through SECURITY DEFINER
+-- login and verifier functions. Direct client access made OTP rows forgeable.
+revoke all on table public.aos_auth_codes from public, anon, authenticated;
+grant all on table public.aos_auth_codes to service_role;
 
 insert into public.aos_paneles_disponibles(id,nombre,icono,categoria,orden,descripcion)
 values (
@@ -37,6 +46,8 @@ set nombre=excluded.nombre,
     descripcion=excluded.descripcion;
 
 create or replace function public.aos_sales_intelligence_claim_session(
+  p_login_usuario text,
+  p_password text,
   p_usuario text,
   p_codigo text
 ) returns jsonb
@@ -51,14 +62,36 @@ declare
   v_hash text;
   v_exp timestamptz;
 begin
+  select au.id, au.nombre, sia.twofa_subject
+    into u
+  from public.aos_sales_intelligence_access sia
+  join public.aos_usuarios au on au.id=sia.user_id
+  where sia.enabled=true
+    and lower(sia.login_usuario)=lower(trim(coalesce(p_login_usuario,'')))
+    and sia.password_digest=encode(
+      extensions.digest(coalesce(p_password,''),'sha256'),
+      'hex'
+    )
+    and au.activo=true
+    and au.two_factor=true
+    and au.nivel_jerarquia in (1,2)
+    and lower(coalesce(au.rol,''))='admin'
+    and coalesce(au.paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]
+  limit 1;
+
+  if u.id is null then
+    return jsonb_build_object('ok',false,'error','PROOF_INVALID');
+  end if;
+
   select ac.id, ac.usuario
     into c
   from public.aos_auth_codes ac
-  where upper(ac.usuario)=upper(p_usuario)
+  where upper(ac.usuario)=upper(u.twofa_subject)
+    and upper(ac.usuario)=upper(p_usuario)
     and ac.codigo=p_codigo
     and ac.usado=true
     and ac.created_at>now()-interval '5 minutes'
-    and ac.expira_at>now()-interval '5 minutes'
+    and ac.expira_at>now()
   order by ac.created_at desc
   limit 1
   for update;
@@ -72,23 +105,6 @@ begin
     where s.source_auth_code_id=c.id
   ) then
     return jsonb_build_object('ok',false,'error','PROOF_ALREADY_CLAIMED');
-  end if;
-
-  select au.id, au.nombre
-    into u
-  from public.aos_usuarios au
-  join public.aos_sales_intelligence_access sia
-    on sia.user_id=au.id and sia.enabled=true
-  where au.activo=true
-    and au.two_factor=true
-    and au.nivel_jerarquia in (1,2)
-    and lower(coalesce(au.rol,''))='admin'
-    and coalesce(au.paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]
-    and upper(au.nombre)=upper(c.usuario)
-  limit 1;
-
-  if u.id is null then
-    return jsonb_build_object('ok',false,'error','SALES_INTELLIGENCE_ACCESS_REQUIRED');
   end if;
 
   update public.aos_cia_admin_sessions
@@ -223,9 +239,13 @@ begin
     return jsonb_build_object('ok',false,'error','OWNER_ADMIN_REQUIRED');
   end if;
 
-  select au.id,au.nombre,au.activo,au.two_factor,au.nivel_jerarquia,au.rol
+  select au.id,au.nombre,au.activo,au.two_factor,au.nivel_jerarquia,au.rol,
+         au.codigo_asesor,r.usuario as login_usuario,r.nombre as twofa_subject,
+         encode(extensions.digest(coalesce(r.password_hash,''),'sha256'),'hex') as password_digest,
+         r.estado as rrhh_estado
     into v_target
   from public.aos_usuarios au
+  join public.aos_rrhh r on r.codigo_asesor=au.codigo_asesor
   where au.id=p_target_user_id
   limit 1
   for update;
@@ -239,26 +259,36 @@ begin
     and coalesce(v_target.two_factor,false)
     and v_target.nivel_jerarquia in (1,2)
     and lower(coalesce(v_target.rol,''))='admin'
+    and upper(coalesce(v_target.rrhh_estado,''))='ACTIVO'
+    and coalesce(trim(v_target.login_usuario),'')<>''
+    and coalesce(trim(v_target.twofa_subject),'')<>''
+    and v_target.password_digest<>
+        encode(extensions.digest('','sha256'),'hex')
   ) then
     return jsonb_build_object('ok',false,'error','TARGET_ADMIN_2FA_REQUIRED');
   end if;
 
-  insert into public.aos_sales_intelligence_access(
-    user_id,enabled,granted_by,granted_at,updated_at
-  ) values (
-    v_target.id,coalesce(p_enabled,false),v_actor.id,now(),now()
-  )
-  on conflict (user_id) do update
-  set enabled=excluded.enabled,
-      granted_by=excluded.granted_by,
-      granted_at=case
-        when excluded.enabled and not public.aos_sales_intelligence_access.enabled
-          then now()
-        else public.aos_sales_intelligence_access.granted_at
-      end,
-      updated_at=now();
-
   if coalesce(p_enabled,false) then
+    insert into public.aos_sales_intelligence_access(
+      user_id,enabled,login_usuario,twofa_subject,codigo_asesor_snapshot,
+      password_digest,granted_by,granted_at,updated_at
+    ) values (
+      v_target.id,true,v_target.login_usuario,v_target.twofa_subject,
+      v_target.codigo_asesor,v_target.password_digest,v_actor.id,now(),now()
+    )
+    on conflict (user_id) do update
+    set enabled=true,
+        login_usuario=excluded.login_usuario,
+        twofa_subject=excluded.twofa_subject,
+        codigo_asesor_snapshot=excluded.codigo_asesor_snapshot,
+        password_digest=excluded.password_digest,
+        granted_by=excluded.granted_by,
+        granted_at=case
+          when not public.aos_sales_intelligence_access.enabled then now()
+          else public.aos_sales_intelligence_access.granted_at
+        end,
+        updated_at=now();
+
     update public.aos_usuarios
     set paneles_acceso=case
           when coalesce(paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]
@@ -268,6 +298,10 @@ begin
         updated_at=now()
     where id=v_target.id;
   else
+    update public.aos_sales_intelligence_access
+    set enabled=false,granted_by=v_actor.id,updated_at=now()
+    where user_id=v_target.id;
+
     update public.aos_usuarios
     set paneles_acceso=array_remove(coalesce(paneles_acceso,'{}'::text[]),'admin-sales-intelligence'),
         updated_at=now()
@@ -331,10 +365,10 @@ on public.aos_usuarios
 for each row
 execute function public.aos_sales_intelligence_guard_user();
 
-revoke all on function public.aos_sales_intelligence_claim_session(text,text) from public;
+revoke all on function public.aos_sales_intelligence_claim_session(text,text,text,text) from public;
 revoke all on function public.aos_sales_intelligence_gateway(text,integer,text,text) from public;
 revoke all on function public.aos_sales_intelligence_set_access(text,uuid,boolean) from public;
-grant execute on function public.aos_sales_intelligence_claim_session(text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_sales_intelligence_claim_session(text,text,text,text) to anon,authenticated,service_role;
 grant execute on function public.aos_sales_intelligence_gateway(text,integer,text,text) to anon,authenticated,service_role;
 grant execute on function public.aos_sales_intelligence_set_access(text,uuid,boolean) to anon,authenticated,service_role;
 
@@ -344,22 +378,35 @@ grant execute on function public.aos_sales_intelligence_summary(integer,text,tex
   to service_role;
 
 with initial_admin as (
-  select au.id
+  select au.id,au.codigo_asesor,r.usuario as login_usuario,r.nombre as twofa_subject,
+         encode(extensions.digest(coalesce(r.password_hash,''),'sha256'),'hex') as password_digest
   from public.aos_usuarios au
+  join public.aos_rrhh r on r.codigo_asesor=au.codigo_asesor
   where au.activo=true
     and au.two_factor=true
     and au.nivel_jerarquia=1
     and lower(coalesce(au.rol,''))='admin'
+    and upper(coalesce(r.estado,''))='ACTIVO'
+    and coalesce(trim(r.usuario),'')<>''
+    and coalesce(trim(r.nombre),'')<>''
+    and coalesce(r.password_hash,'')<>''
   order by au.created_at nulls last,au.id
   limit 1
 )
 insert into public.aos_sales_intelligence_access(
-  user_id,enabled,granted_by,granted_at,updated_at
+  user_id,enabled,login_usuario,twofa_subject,codigo_asesor_snapshot,
+  password_digest,granted_by,granted_at,updated_at
 )
-select id,true,id,now(),now()
+select id,true,login_usuario,twofa_subject,codigo_asesor,password_digest,id,now(),now()
 from initial_admin
 on conflict (user_id) do update
-set enabled=true,granted_by=excluded.granted_by,updated_at=now();
+set enabled=true,
+    login_usuario=excluded.login_usuario,
+    twofa_subject=excluded.twofa_subject,
+    codigo_asesor_snapshot=excluded.codigo_asesor_snapshot,
+    password_digest=excluded.password_digest,
+    granted_by=excluded.granted_by,
+    updated_at=now();
 
 update public.aos_usuarios au
 set paneles_acceso=case
@@ -375,7 +422,7 @@ where au.id in (
 );
 
 comment on table public.aos_sales_intelligence_access is
-  'Authoritative grants for Sales Intelligence V2. Never writable by anon clients.';
+  'Authoritative Sales Intelligence grants with immutable credential snapshots. Never readable or writable by client roles.';
 comment on function public.aos_sales_intelligence_gateway(text,integer,text,text) is
   'Read-only Sales Intelligence gateway protected by a 2FA-derived opaque session and explicit admin grant.';
 

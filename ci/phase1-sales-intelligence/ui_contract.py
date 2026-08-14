@@ -40,7 +40,7 @@ assert staging.count('.supabase.co') == 0, 'staging harness must not contain a S
 assert '/rest/v1/rpc/aos_sales_intelligence_gateway' in staging
 assert re.search(r'for\(var i=9;i<=12;i\+\+\)', staging), 'fixture must expose 12 months'
 
-assert 'var _APP_VERSION = 20260814.2;' in shell, 'shell cache version must force activation'
+assert 'var _APP_VERSION = 20260814.3;' in shell, 'shell cache version must force activation'
 assert 'function revalidateAdminSessionContext()' in shell
 assert "id:'admin-sales-intelligence'" in shell
 assert 'requiresPanel:true' in shell
@@ -51,6 +51,10 @@ assert "sessionStorage.removeItem('aos_si_token')" in shell
 assert 'aos_sales_intelligence_claim_session' in login
 assert "sessionStorage.setItem('aos_si_token'" in login
 assert 'si_session_claimed' in login
+assert 'p_login_usuario: _SI_LOGIN_USER' in login
+assert 'p_password: _SI_LOGIN_PASSWORD' in login
+assert "sessionStorage.setItem('aos_si_password'" not in login
+assert "localStorage.setItem('aos_si_password'" not in login
 
 assert 'aos_sales_intelligence_set_access' in team
 assert 'TARGET_ADMIN_2FA_REQUIRED' in team

@@ -1,6 +1,13 @@
 BEGIN;
 
-SELECT plan(27);
+SELECT plan(35);
+
+INSERT INTO public.aos_rrhh
+  (codigo_asesor,nombre,apellido,puesto,sede,usuario,password_hash,permisos,estado)
+VALUES
+  ('SIOWNER','SI OWNER','TEST','DIRECTOR GENERAL','SAN ISIDRO','si.owner','owner-pass','{}','ACTIVO'),
+  ('SIADMIN','SI ADMIN','TEST','COORDINADOR','PUEBLO LIBRE','si.admin','admin-pass','{}','ACTIVO'),
+  ('SIFORGE','SI FORGE','TEST','OPERATIVO','SAN ISIDRO','si.forge','forge-pass','{}','ACTIVO');
 
 INSERT INTO public.aos_usuarios
   (codigo_asesor,nombre,email,rol,paneles_acceso,nivel_jerarquia,area,cargo,two_factor,activo)
@@ -12,8 +19,13 @@ VALUES
   ('SIFORGE','SI FORGE','forge@example.invalid','admin',
    ARRAY['admin-sales-intelligence'],4,'OPERACIONES','OPERATIVO',true,true);
 
-INSERT INTO public.aos_sales_intelligence_access(user_id,enabled,granted_by)
-SELECT id,true,id FROM public.aos_usuarios WHERE codigo_asesor='SIOWNER';
+INSERT INTO public.aos_sales_intelligence_access(
+  user_id,enabled,login_usuario,twofa_subject,codigo_asesor_snapshot,
+  password_digest,granted_by
+)
+SELECT id,true,'si.owner','SI OWNER','SIOWNER',
+       encode(extensions.digest('owner-pass','sha256'),'hex'),id
+FROM public.aos_usuarios WHERE codigo_asesor='SIOWNER';
 
 INSERT INTO public.aos_metas_ventas(periodo,meta)
 VALUES ('2026-01',1000);
@@ -26,14 +38,28 @@ VALUES
 INSERT INTO public.aos_auth_codes(usuario,email,codigo,usado,expira_at)
 VALUES ('SI OWNER','owner@example.invalid','111111',true,now()+interval '5 minutes');
 
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'si.owner','wrong-pass','SI OWNER','111111'
+)->>'ok')::boolean,false,'wrong password cannot claim an authorized proof');
+
 CREATE TEMP TABLE _si_owner_claim AS
-SELECT public.aos_sales_intelligence_claim_session('SI OWNER','111111') AS j;
+SELECT public.aos_sales_intelligence_claim_session(
+  'si.owner','owner-pass','SI OWNER','111111'
+) AS j;
 
 SELECT is((SELECT (j->>'ok')::boolean FROM _si_owner_claim),true,'authorized owner claims SI session');
 SELECT ok((SELECT length(j->>'token')>=64 FROM _si_owner_claim),'opaque token has sufficient entropy');
 SELECT is((SELECT count(*) FROM public.aos_cia_admin_sessions WHERE source_auth_code_id is not null),1::bigint,'2FA proof creates exactly one session');
-SELECT is((public.aos_sales_intelligence_claim_session('SI OWNER','111111')->>'ok')::boolean,false,'2FA proof cannot be claimed twice');
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'si.owner','owner-pass','SI OWNER','111111'
+)->>'ok')::boolean,false,'2FA proof cannot be claimed twice');
 SELECT is((public.aos_sales_intelligence_gateway('invalid-token',2026,'','')->>'ok')::boolean,false,'invalid token is rejected');
+
+INSERT INTO public.aos_auth_codes(usuario,email,codigo,usado,expira_at)
+VALUES ('SI OWNER','owner@example.invalid','111112',true,now()-interval '1 second');
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'si.owner','owner-pass','SI OWNER','111112'
+)->>'ok')::boolean,false,'expired 2FA proof is rejected without a grace window');
 
 CREATE TEMP TABLE _si_all AS
 SELECT public.aos_sales_intelligence_gateway(
@@ -71,8 +97,25 @@ SELECT ok((SELECT paneles_acceso @> ARRAY['admin-sales-intelligence']::text[] FR
 
 INSERT INTO public.aos_auth_codes(usuario,email,codigo,usado,expira_at)
 VALUES ('SI ADMIN','admin@example.invalid','222222',true,now()+interval '5 minutes');
+
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'si.admin','wrong-pass','SI ADMIN','222222'
+)->>'ok')::boolean,false,'target proof cannot be claimed with a wrong password');
+
+UPDATE public.aos_rrhh
+SET usuario='attacker',password_hash='attacker-pass'
+WHERE codigo_asesor='SIADMIN';
+UPDATE public.aos_usuarios
+SET nombre='ATTACKER REBIND'
+WHERE codigo_asesor='SIADMIN';
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'attacker','attacker-pass','SI ADMIN','222222'
+)->>'ok')::boolean,false,'mutable legacy identity cannot rebind a protected grant');
+
 CREATE TEMP TABLE _si_target_claim AS
-SELECT public.aos_sales_intelligence_claim_session('SI ADMIN','222222') AS j;
+SELECT public.aos_sales_intelligence_claim_session(
+  'si.admin','admin-pass','SI ADMIN','222222'
+) AS j;
 SELECT is((SELECT (j->>'ok')::boolean FROM _si_target_claim),true,'granted target claims own SI session');
 
 CREATE TEMP TABLE _si_revoke AS
@@ -87,9 +130,15 @@ SELECT ok(not (SELECT paneles_acceso @> ARRAY['admin-sales-intelligence']::text[
 
 INSERT INTO public.aos_auth_codes(usuario,email,codigo,usado,expira_at)
 VALUES ('SI FORGE','forge@example.invalid','333333',true,now()+interval '5 minutes');
-SELECT is((public.aos_sales_intelligence_claim_session('SI FORGE','333333')->>'ok')::boolean,false,'forged client panel cannot create authoritative access');
+SELECT is((public.aos_sales_intelligence_claim_session(
+  'si.forge','forge-pass','SI FORGE','333333'
+)->>'ok')::boolean,false,'forged client panel cannot create authoritative access');
 
 SELECT ok(not has_table_privilege('anon','public.aos_sales_intelligence_access','SELECT'),'anon cannot read authoritative grants');
+SELECT ok(not has_table_privilege('anon','public.aos_auth_codes','SELECT'),'anon cannot read 2FA proofs');
+SELECT ok(not has_table_privilege('anon','public.aos_auth_codes','INSERT'),'anon cannot forge 2FA proofs');
+SELECT ok(not has_table_privilege('authenticated','public.aos_auth_codes','SELECT'),'authenticated cannot read 2FA proofs');
+SELECT ok(not has_table_privilege('authenticated','public.aos_auth_codes','INSERT'),'authenticated cannot forge 2FA proofs');
 SELECT ok(not has_function_privilege('anon','public.aos_sales_intelligence_summary(integer,text,text)','EXECUTE'),'anon cannot execute raw financial RPC');
 SELECT ok(not has_function_privilege('authenticated','public.aos_sales_intelligence_summary(integer,text,text)','EXECUTE'),'authenticated cannot execute raw financial RPC');
 SELECT ok(has_function_privilege('anon','public.aos_sales_intelligence_gateway(text,integer,text,text)','EXECUTE'),'anon may call only the token-validating gateway');
