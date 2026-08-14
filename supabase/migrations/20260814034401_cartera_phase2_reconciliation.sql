@@ -207,6 +207,13 @@ begin
         confirmed_at=null,
         evidencia=public.aos_cartera_reconciliacion.evidencia||excluded.evidencia,
         updated_at=now();
+    update public.aos_cartera_reconciliacion
+    set estado_reconciliacion='REVISAR',confianza='NO_EVALUADA',
+        saldo_confirmado=null,confirmado_por=null,confirmed_at=null,
+        evidencia=evidencia||jsonb_build_object(
+          'quote_changed_at',now(),'source_saldo_actual',new.saldo_pendiente
+        ),updated_at=now()
+    where source_type='VENTA' and cotizacion_id=new.id and source_active=true;
   else
     update public.aos_cartera_reconciliacion
     set source_active=false,estado_reconciliacion='REVISAR',
@@ -217,6 +224,21 @@ begin
           'source_saldo_actual',new.saldo_pendiente
         )
     where source_type='COTIZACION' and cotizacion_id=new.id;
+    update public.aos_cartera_reconciliacion
+    set source_active=false,
+        estado_reconciliacion=case
+          when new.estado='PAGADO_COMPLETO' then 'PAGO_RECONCILIADO'
+          else 'REVISAR' end,
+        confianza=case
+          when new.estado='PAGADO_COMPLETO' then 'CONFIRMADA'
+          else 'NO_EVALUADA' end,
+        saldo_confirmado=case when new.estado='PAGADO_COMPLETO' then 0 else null end,
+        confirmado_por=null,confirmed_at=null,
+        evidencia=evidencia||jsonb_build_object(
+          'quote_changed_at',now(),'source_estado_actual',new.estado,
+          'source_saldo_actual',new.saldo_pendiente
+        ),updated_at=now()
+    where source_type='VENTA' and cotizacion_id=new.id and source_active=true;
   end if;
   return new;
 end;
