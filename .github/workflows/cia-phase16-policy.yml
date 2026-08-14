@@ -1,0 +1,67 @@
+name: ASCENDA CIA Phase 16 Email Policy
+
+on:
+  push:
+    branches:
+      - 'feature/cia-phase16-*'
+      - 'release/cia-phase16-*'
+    paths:
+      - 'app/email-gateway.js'
+      - 'app/server.js'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
+      - 'ci/phase16/test_email_gateway_policy.js'
+      - '.github/workflows/cia-phase16-policy.yml'
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - 'app/email-gateway.js'
+      - 'app/server.js'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
+      - 'ci/phase16/test_email_gateway_policy.js'
+      - '.github/workflows/cia-phase16-policy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cia-phase16-email-policy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: F16 transactional auth / marketing fail-closed
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zero-Cost policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Syntax and gateway policy
+        run: |
+          set -euo pipefail
+          node --check app/email-gateway.js
+          node --check app/server.js
+          node ci/phase16/test_email_gateway_policy.js
+      - name: Transactional caller session contract
+        run: |
+          set -euo pipefail
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do
+            grep -q 'X-ASCENDA-Session' "$f"
+          done
+          grep -q 'LEGACY_2FA_RETIRED' app/server.js
+          grep -q 'F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED' app/server.js
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          echo 'CIA_PHASE16_TRANSACTIONAL_POLICY_GATE=PASS'
