@@ -31,32 +31,49 @@ async function waitServer(){
 }
 
 function assert(cond,msg){if(!cond)throw new Error(msg);}
+async function phase(name,fn){
+  try{return await fn();}
+  catch(err){err.message='['+name+'] '+err.message;throw err;}
+}
 
 (async()=>{
   const child=spawn(process.execPath,['app/server.js'],{env,stdio:['ignore','pipe','pipe']});
   let stderr='';child.stderr.on('data',d=>stderr+=d.toString());
   try{
-    await waitServer();
+    await phase('startup',waitServer);
 
-    let r=await request('/api/auth/login',{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'});
-    assert(r.status===403,'disallowed origin expected 403, got '+r.status);
+    await phase('cors-deny',async()=>{
+      const r=await request('/api/auth/login',{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'});
+      assert(r.status===403,'disallowed origin expected 403, got '+r.status);
+    });
 
-    r=await request('/api/auth/login',{method:'OPTIONS',headers:{Origin:'https://allowed.example','Access-Control-Request-Method':'POST'}});
-    assert(r.status===204,'allowed preflight expected 204, got '+r.status);
-    assert(r.headers['access-control-allow-origin']==='https://allowed.example','allowed origin was not echoed exactly');
+    await phase('cors-preflight',async()=>{
+      const r=await request('/api/auth/login',{method:'OPTIONS',headers:{Origin:'https://allowed.example','Access-Control-Request-Method':'POST'}});
+      assert(r.status===204,'allowed preflight expected 204, got '+r.status);
+      assert(r.headers['access-control-allow-origin']==='https://allowed.example','allowed origin was not echoed exactly');
+    });
 
-    r=await request('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'203.0.113.2'},body:JSON.stringify({pregunta:'test'})});
-    assert(r.status===401,'missing bearer chat expected 401, got '+r.status);
+    await phase('chat-no-bearer',async()=>{
+      const r=await request('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'203.0.113.2'},body:JSON.stringify({pregunta:'test'})});
+      assert(r.status===401,'missing bearer chat expected 401, got '+r.status);
+    });
 
-    r=await request('/api/agents/run',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'203.0.113.3'},body:'{}'});
-    assert(r.status===401,'missing bearer agent control expected 401, got '+r.status);
+    await phase('agents-no-bearer',async()=>{
+      const r=await request('/api/agents/run',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'203.0.113.3'},body:'{}'});
+      assert(r.status===401,'missing bearer agent control expected 401, got '+r.status);
+    });
 
-    r=await request('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','Content-Length':'40000','X-Forwarded-For':'203.0.113.4'}});
-    assert(r.status===413,'oversized auth request expected 413, got '+r.status);
+    await phase('body-limit',async()=>{
+      const large=JSON.stringify({padding:'x'.repeat(40000)});
+      const r=await request('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'203.0.113.4'},body:large});
+      assert(r.status===413,'oversized auth request expected 413, got '+r.status);
+    });
 
-    let last=null;
-    for(let i=0;i<121;i++) last=await request('/api/kronia/__rate_probe',{headers:{'X-Forwarded-For':'203.0.113.9'}});
-    assert(last.status===429,'rate probe expected final 429, got '+last.status);
+    await phase('rate-limit',async()=>{
+      let last=null;
+      for(let i=0;i<121;i++) last=await request('/api/kronia/__rate_probe',{headers:{'X-Forwarded-For':'203.0.113.9'}});
+      assert(last.status===429,'rate probe expected final 429, got '+last.status);
+    });
 
     console.log('KRONIA_K1_RUNTIME_SECURITY_SMOKE=PASS');
   } finally {
