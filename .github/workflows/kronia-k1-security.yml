@@ -11,10 +11,12 @@ on:
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
+      - 'app/public/app.html'
       - 'app/public/kronia-core.js'
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'app/public/cerebro.html'
       - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
   pull_request:
@@ -26,10 +28,12 @@ on:
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
+      - 'app/public/app.html'
       - 'app/public/kronia-core.js'
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'app/public/cerebro.html'
       - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
   workflow_dispatch:
@@ -76,6 +80,11 @@ jobs:
           node --check app/public/kronia-core.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/popup.js
+
+      - name: Consumer compatibility preflight
+        run: |
+          set -euo pipefail
+          python3 ci/kronia-k1/check_compat_contract.py
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
@@ -135,6 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 ci/kronia-k1/check_runtime_contract.py
+          python3 ci/kronia-k1/check_compat_contract.py
 
       - name: Secret-source regression gate
         run: |
