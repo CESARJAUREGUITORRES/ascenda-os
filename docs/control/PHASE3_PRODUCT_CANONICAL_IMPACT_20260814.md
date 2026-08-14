@@ -5,6 +5,7 @@
 **Rama:** `feature/phase3-product-canonical-20260814`  
 **Base CI:** `infra/zero-cost-ci-v2` hasta que PR #97 cierre y se sincronice con `main`  
 **Riesgo:** HIGH — identidad comercial de producto, importaciones de ventas, analítica e inventario.  
+**Autorización owner:** 2026-08-14 — “procede para llegar al 100%”, válida para completar el loop gobernado F3 una vez que los gates exigidos estén verdes; no habilita bypass de CI, seguridad o rollback.  
 
 ## Objetivo
 
