@@ -21,6 +21,19 @@ revoke all on function public.aos_verificar_2fa(text,text)
 grant execute on function public.aos_login_v2(text,text) to service_role;
 grant execute on function public.aos_verificar_2fa(text,text) to service_role;
 
+-- Session issuance/verification/revocation are server-only. Browsers interact
+-- with these primitives through the K1 Node auth/session endpoints so rate,
+-- transport and secret boundaries cannot be bypassed with direct PostgREST RPC.
+revoke all on function public.aos_kronia_claim_session(text,text,text,text,text,text)
+  from public, anon, authenticated;
+revoke all on function public.aos_kronia_verify_token(text)
+  from public, anon, authenticated;
+revoke all on function public.aos_kronia_revocar_token(text)
+  from public, anon, authenticated;
+grant execute on function public.aos_kronia_claim_session(text,text,text,text,text,text) to service_role;
+grant execute on function public.aos_kronia_verify_token(text) to service_role;
+grant execute on function public.aos_kronia_revocar_token(text) to service_role;
+
 -- Chrome compatibility claim is likewise server-only.
 revoke all on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text)
   from public, anon, authenticated;
@@ -32,4 +45,4 @@ grant execute on function public.aos_kronia_claim_verified_2fa(text,text,text,te
 grant select(url_api) on public.aos_integraciones to anon, authenticated;
 
 comment on function public.aos_kronia_claim_session(text,text,text,text,text,text) is
-'K1 authoritative session claim. SECURITY DEFINER search path restricted to pg_catalog/extensions; identity/role/sede derived server-side.';
+'K1 server-only authoritative session claim. SECURITY DEFINER search path restricted to pg_catalog/extensions; identity/role/sede derived server-side.';
