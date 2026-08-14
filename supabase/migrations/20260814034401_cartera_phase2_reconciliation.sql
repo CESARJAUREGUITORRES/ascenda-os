@@ -432,8 +432,7 @@ begin
       'confirmedBalances',count(*) filter(where estado_reconciliacion='SALDO_CONFIRMADO'),
       'confirmedAmount',coalesce(sum(saldo_confirmado) filter(where estado_reconciliacion='SALDO_CONFIRMADO'),0),
       'reconciled',count(*) filter(where estado_reconciliacion in ('PAGO_RECONCILIADO','CERRADO','NO_ES_DEUDA')),
-      'historicalAdvancesCutoff',count(*) filter(where source_type='VENTA' and source_date<='2026-08-12'),
-      'historicalAdvancePayments',coalesce(sum(monto_registrado) filter(where source_type='VENTA' and source_date<='2026-08-12'),0)
+      'historicalAdvancesCutoff',count(*) filter(where source_type='VENTA' and source_date<='2026-08-12')
     ) data from cases
   ), page as (
     select coalesce(jsonb_agg(jsonb_build_object(
@@ -453,6 +452,7 @@ begin
     'ok',true,'readOnly',false,'summary',summary.data,'rows',page.data,
     'policy',jsonb_build_object(
       'advanceIsPaymentNotBalance',true,
+      'legacyAmountsTrusted',false,
       'remindersEnabled',false,
       'onlyConfirmedBalancesCollectible',true
     )

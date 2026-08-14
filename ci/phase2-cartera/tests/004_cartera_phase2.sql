@@ -45,7 +45,7 @@ select is(public.aos_cartera_gateway('phase2-no-panel-token-000000000000000001',
 select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)->>'ok')::boolean,true,'authorized owner gateway works');
 select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)#>>'{summary,activeCases}')::bigint,4::bigint,'gateway reports four active candidates');
 select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)#>>'{summary,historicalAdvancesCutoff}')::bigint,2::bigint,'historical advance count certified');
-select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)#>>'{summary,historicalAdvancePayments}')::numeric,350::numeric,'advance amounts are payments');
+select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)#>'{summary}') ? 'historicalAdvancePayments',false,'unreviewed legacy amounts are excluded from aggregate decisions');
 select is((public.aos_cartera_gateway('phase2-owner-token-0000000000000000000001','','',50,0)#>>'{summary,confirmedAmount}')::numeric,0::numeric,'unreviewed payments are not receivables');
 select is((public.aos_cartera_gateway('phase2-single-site-token-00000000000000001','','',50,0)->>'ok')::boolean,true,'single-site gateway works');
 select is((public.aos_cartera_gateway('phase2-single-site-token-00000000000000001','','',50,0)#>>'{summary,activeCases}')::bigint,2::bigint,'single-site gateway is server scoped');

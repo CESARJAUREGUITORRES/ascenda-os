@@ -27,6 +27,8 @@ Estado: `PREPARADO EN RAMA — PRODUCCIÓN SIN CAMBIOS`
 
 Conclusión: un `ADELANTO` representa un pago recibido, no el saldo por cobrar. El saldo real no puede derivarse de `aos_ventas.monto` porque la fila no guarda el total esperado. Las 39 cotizaciones parciales tienen saldo aritmético consistente, pero el libro de pagos está incompleto; por ello se presentan como casos por reconciliar, no como deuda confirmada.
 
+Los importes legacy permanecen visibles por caso como evidencia no confiable, pero se excluyen de los agregados financieros de Cartera. Solo `confirmedAmount`, sustentado por revisión y cotización consistente, puede utilizarse para cobranza.
+
 ## Separación conservadora de falsos positivos
 
 - `ANULADO`: 12 cotizaciones y S/11,991 de saldo residual. Excluidas de cobranza.
