@@ -205,6 +205,6 @@ Before declaring K1 `100_COMPLETE`:
 
 ## 13. Explicit authorization boundary
 
-The user's authorization to use Zero-Cost Staging authorizes the preproduction validation methodology and documentation. It **does not by itself authorize production mutation**.
+The authorization to use Zero-Cost Staging covers the preproduction validation methodology and its documentation. It **does not by itself authorize production mutation**.
 
-The next irreversible/operational boundary is the production additive canary/cutover. That requires explicit owner authorization after environment/secret readiness is confirmed.
+The next operational boundary is the production additive canary/cutover. That requires explicit owner authorization after environment/secret readiness is confirmed.
