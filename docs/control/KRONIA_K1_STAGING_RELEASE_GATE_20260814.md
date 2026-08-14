@@ -1,44 +1,68 @@
-# KronIA K1 — Real Staging & Release Gate — 2026-08-14
+# KronIA K1 — Zero-Cost Canary & Production Release Gate — 2026-08-14
 
 **Phase:** K1 — Identity, Session & Secrets Hardening  
 **Risk:** CRITICAL  
 **Branch:** `security/kronia-k1-hardening-20260814`  
-**PR:** #81 (draft until all gates below are complete)  
-**Production authorization:** NOT GRANTED
+**PR:** #81  
+**Production authorization:** NOT GRANTED  
+**Validation policy:** `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
 
 ## 1. Purpose
 
-This document defines the evidence required to promote K1 from isolated-CI certification to real staging certification and, only after explicit owner authorization, production release.
+Define the remaining evidence required to promote K1 from **ZERO-COST CERTIFIED** to **CANARY CERTIFIED** and finally **PRODUCTION CERTIFIED** without creating unnecessary paid staging infrastructure.
 
-Isolated CI is necessary but not sufficient for a CRITICAL identity/security change. The staging runtime, database, secret boundary and consumer flows must reproduce the deployable architecture.
+A Supabase Cloud Development Branch is not required for K1 because the release migrations, authorization contracts, rollback and deploy artifact can be exercised reproducibly in ephemeral Zero-Cost Staging. A paid remote branch remains an exceptional fallback only if a future dependency cannot be reproduced safely by this circuit.
 
-## 2. Environment topology
-
-### Database
-Create a Supabase development/staging branch from production only after:
-1. owner selects the Supabase organization;
-2. current branch cost is obtained;
-3. owner explicitly approves that cost;
-4. the returned cost confirmation token is used to create the branch.
-
-No production SQL is applied to obtain staging evidence.
-
-### Runtime
-Deploy the K1 GitHub branch to a non-production Railway environment/service. The runtime contract is:
+## 2. Certified preproduction topology
 
 ```text
-Railway Root Directory: app/
-build: python3 k1_materialize_runtime.py && npm install
-start: node server.js
+feature/security branch
+  → Ascenda CI
+  → ASCENDA Zero-Cost Staging
+      → Supabase/Postgres ephemeral
+      → production-shaped synthetic contracts
+      → exact migrations
+      → pgTAP / auth-negative tests / lint / performance
+      → rollback
+      → destroy environment
+  → K1 Security Certificate
+      → exact Railway materializer
+      → runtime syntax/compatibility
+      → secret regression
+  → production read-only preflight
+  → owner-authorized canary/cutover
 ```
 
-The build must emit `k1-runtime-manifest.json`. The manifest SHA-256 values must match the manifest produced by the K1 GitHub security certificate for the same commit.
+No production credentials or patient PII/PHI belong in Zero-Cost fixtures.
 
-## 3. Required server-side environment variables
+## 3. Current certified evidence
 
-Values MUST be provisioned in the staging environment/secret manager. Values MUST NOT be pasted into GitHub, Notion, logs, CI artifacts or ChatGPT.
+Certified K1 functional head before documentation-only checkpoint commits: `a6e5762063b0774f2cc0c384c3fbcf4e05b1c57c`.
 
-Required K1 boundary variables:
+- Ascenda CI #731 / run `31806139117`: **SUCCESS**
+- ASCENDA Zero-Cost Staging #82 / run `31806139089`: **SUCCESS**
+- KronIA K1 Security Certificate #44 / run `31806139104`: **SUCCESS**
+
+K1-specific certificate includes exact Railway artifact materialization, consumer compatibility, four migrations, negative authorization, lint, rollback, runtime gates and secret-source regression.
+
+## 4. Production preflight facts
+
+Read-only verification on 2026-08-14 confirmed:
+- K1 migrations applied: `0`;
+- live auth primitives return `json`;
+- pre-K1 browser execution remains open on login/2FA and scoped mutation RPCs;
+- `aos_kronia_tokens` still lacks effective browser isolation;
+- broad browser table privileges remain on scoped identity/audit/integration surfaces;
+- 3/49 integration rows contain non-empty `api_key` values; values were not read;
+- exactly 1 active ADMIN identity is eligible for canary and has 2FA/email/credential available.
+
+These facts are evidence of the current pre-K1 baseline, not release completion.
+
+## 5. Required environment gate
+
+Before any production mutation, confirm server-side variables exist in the Railway/secret-manager environment. Values MUST NOT be pasted into GitHub, Notion, logs or ChatGPT.
+
+Required/expected K1 boundary variables include:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GROQ_API_KEY`
 - `GEMINI_API_KEY`
@@ -46,142 +70,141 @@ Required K1 boundary variables:
 - `ASCENDA_VERIFY_TOKEN`
 - `TURNSTILE_SECRET_KEY`
 
-Any additional provider variable already used by the deployed runtime remains environment-owned and must follow the same rule.
+Missing provider secrets must fail closed. Do not restore hardcoded fallbacks.
 
-Before production release, credentials historically present in source or browser-readable integration storage must be rotated and prior values proven invalid.
+## 6. Secret rotation gate
 
-## 4. Database staging sequence
+Before final production certification:
+1. inventory provider credentials by name/location only, never value;
+2. provision replacement values in server environment/secret manager;
+3. rotate/revoke historical credentials that were present in source or browser-readable DB fields;
+4. prove prior credentials invalid through provider-side status or controlled failure evidence;
+5. remove browser access to credential columns through K1 permissions;
+6. do not delete configuration metadata needed for the UI.
 
-Apply in order:
+## 7. Additive canary sequence
+
+K1 is CRITICAL. Prefer a compatibility-first rollout so the clinic is not locked out.
+
+### Phase A — Runtime ready
+- deploy the K1-compatible runtime/materializer;
+- confirm health endpoint/runtime startup;
+- confirm required environment variables are present by boolean/config status only;
+- do not print secret values;
+- retain rollback to prior runtime commit.
+
+### Phase B — Single ADMIN canary
+Using only the one eligible ADMIN:
+- valid web login;
+- 2FA delivered server-side;
+- browser response contains no raw OTP/credential/integration secret;
+- opaque KronIA session issued;
+- Brain/shared KroniaCore restores session;
+- main chat text succeeds;
+- current voice/Whisper path succeeds with Bearer;
+- Chrome login + 2FA + chat succeeds;
+- password is not persisted in Chrome storage;
+- Sales editor succeeds through token-bound gateway;
+- integrations page returns metadata only;
+- agent admin endpoints require ADMIN Bearer.
+
+Do not widen canary to additional users until these pass.
+
+## 8. Cutover database sequence
+
+After additive canary/runtime readiness and explicit owner authorization, apply in order:
 1. `20260814051500_kronia_k1_identity_session_hardening.sql`
 2. `20260814051600_kronia_k1_extension_claim.sql`
 3. `20260814051700_kronia_k1_integration_admin_gateway.sql`
 4. `20260814051800_kronia_k1_canonical_closure.sql`
 
-Then verify:
-- K1 functions compile;
-- raw auth primitives are not executable by `anon`/`authenticated`;
-- raw KronIA mutation/search RPCs in K1 scope are not browser-executable;
-- `aos_kronia_tokens` cannot be read/mutated by browser roles;
-- integration secret columns cannot be read by browser roles;
-- identity source cannot be mutated by browser roles;
-- authoritative KronIA action/security audit cannot be rewritten by browser roles;
-- active session role is re-derived after role change;
-- deactivation invalidates an existing session;
-- replay of consumed 2FA is rejected.
+Immediately verify:
+- raw auth primitives denied to `anon` / `authenticated`;
+- raw scoped mutation RPCs denied to browser roles;
+- `aos_kronia_tokens` browser read/write denied;
+- integration secret columns inaccessible;
+- `aos_usuarios` browser writes denied;
+- authoritative action/audit surfaces cannot be rewritten by browser roles;
+- active token role re-derives from current identity;
+- user deactivation/role change affects existing session authorization;
+- 2FA replay is rejected.
 
-## 5. Required staging smoke / E2E matrix
+## 9. Mandatory post-cutover smoke matrix
 
-### A. Web login / 2FA
-- valid user without 2FA obtains opaque session;
-- valid 2FA user receives code through server delivery, not browser payload;
-- wrong password denied;
-- wrong/expired/replayed code denied;
-- no raw code, credential hash or integration secret appears in browser/network response;
-- session token is present only in expected client storage and stored as digest in DB.
+### Web Auth/2FA
+- valid canary login PASS;
+- wrong password DENY;
+- wrong/expired/replayed 2FA DENY;
+- raw auth RPC browser call DENY;
+- token stored client-side only in expected session storage and server-side only as digest.
 
-### B. Main ASCENDA chat
-- text message succeeds with Bearer session;
-- request without Bearer returns 401;
-- forged `usuario`, `rol` or `sede` in body cannot change effective identity;
-- authorized read/query returns expected business result.
+### KronIA / main chat / Brain
+- valid Bearer text PASS;
+- no Bearer 401;
+- forged `usuario`/`rol`/`sede` cannot alter effective identity;
+- voice requires Bearer;
+- legacy identity headers provide no authority.
 
-### C. Brain / Brime
-- shared KroniaCore restores the same session model;
-- text continuity works;
-- current non-realtime voice path transcribes with Bearer auth;
-- no legacy identity headers are accepted as authority.
+### Chrome
+- password never persisted;
+- 2FA single-use;
+- opaque session used;
+- logout clears/revokes expected session state.
 
-### D. Chrome extension
-- username + password challenge succeeds;
-- password is never persisted in `chrome.storage`;
-- 2FA flow succeeds once and rejects replay;
-- extension chat uses opaque Bearer session;
-- logout revokes/clears session.
+### Sales editor
+- authorized edit uses `aos_kronia_tool` → allowed RPC;
+- raw `aos_editar_venta` browser execution DENY;
+- actor/role is server-derived;
+- unauthorized action DENY;
+- audit row produced.
 
-### E. Native Sales editor
-- authorized edit reaches `aos_kronia_tool` → `aos_editar_venta`;
-- browser cannot execute raw `aos_editar_venta` directly;
-- effective actor/role match server-derived identity;
-- unauthorized role/action denied;
-- audit row records the operation.
+### Integrations
+- metadata list works;
+- credential/config fields inaccessible to browser;
+- advisor cannot perform ADMIN action;
+- ADMIN narrow gateway works and audits.
 
-### F. Integrations admin
-- metadata list loads without secret fields;
-- secret/config/webhook credential columns remain inaccessible;
-- advisor cannot disable an integration;
-- ADMIN can execute the narrow disable gateway;
-- action is audited;
-- use a disposable/non-production staging integration fixture only.
+### Agents
+For control endpoints as applicable:
+- no token DENY;
+- invalid token DENY;
+- advisor token DENY for ADMIN control;
+- valid ADMIN Bearer allowed only under existing business contract.
 
-### G. Agent control API
-For `/api/agents/run`, `/api/agents/tick`, `/api/agents/status`, `/api/agents/chat`, `/api/agents/costs` as applicable:
-- no token → denied;
-- invalid token → denied;
-- advisor token → denied for admin control;
-- valid ADMIN token → permitted only within the endpoint's existing business contract.
+## 10. Rollback/recovery
 
-### H. Secret regression
-- no provider API secret returned to browser;
-- no known provider/API secret printed in staging logs;
-- no hardcoded fallback accepted by the materialized runtime;
-- environment variable absence fails closed for privileged/provider paths.
+Rollback SQL: `supabase/rollbacks/20260814_kronia_k1_rollback.sql`.
 
-## 6. Reconciliation evidence
+Already proven in Zero-Cost Staging. If production rollback becomes necessary:
+- revert compatible runtime to prior release commit;
+- execute documented compensating SQL in approved order;
+- K1 sessions are invalidated and users re-login;
+- do not attempt to reverse SHA-256 token digests;
+- verify legacy compatibility only to the documented pre-K1 baseline;
+- repeat login/smoke and data/audit reconciliation.
 
-Record:
-- Git commit SHA;
-- PR number;
-- Supabase staging branch/project reference;
-- applied migration versions;
-- runtime manifest SHA-256 map;
-- test identities/fixtures used (never credentials);
-- smoke/E2E pass/fail matrix;
-- negative-auth evidence;
-- audit rows generated by test operations;
-- error/log review;
-- secret-rotation verification status.
+Do not reopen individual grants manually as an improvised rollback.
 
-## 7. Rollback staging test
+## 11. Final security review
 
-Execute `supabase/rollbacks/20260814_kronia_k1_rollback.sql` on staging only and verify:
-- K1-only gateways removed;
-- K1 sessions invalidated;
-- legacy auth/RPC compatibility restored according to the pre-K1 baseline;
-- application can return to the pre-K1 deployment commit;
-- re-login is required after rollback;
-- no data corruption occurs in business tables.
+Before declaring K1 `100_COMPLETE`:
+- final PR/runtime diff reviewed;
+- `PUBLIC`, `anon`, `authenticated` effective privileges reviewed;
+- `SECURITY DEFINER` search paths reviewed;
+- secrets rotated and old values invalidated;
+- browser responses/logs checked for sensitive leakage;
+- no HIGH/CRITICAL finding open in K1 scope;
+- post-cutover smoke and negative-auth matrix complete.
 
-After successful rollback test, rebuild the staging branch or re-apply K1 and repeat a reduced smoke to prove forward recovery.
+## 12. Certification states
 
-## 8. Final security review gate
+- `ZERO-COST CERTIFIED` — all local/CI contracts and rollback passed. **CURRENT: YES**.
+- `CANARY CERTIFIED` — single eligible ADMIN passes real integration flows. **CURRENT: NO**.
+- `PRODUCTION CERTIFIED` — cutover authorized/applied, post-smoke/security reconciliation passed. **CURRENT: NO**.
+- `K1 100_COMPLETE` — only after PRODUCTION CERTIFIED + documentation/checkpoint closure.
 
-Before production authorization:
-- review final PR diff/materializer/deploy contract;
-- confirm no HIGH/CRITICAL finding remains open in K1 scope;
-- confirm `PUBLIC` privilege paths, RLS, SECURITY DEFINER search paths and server endpoints;
-- confirm secrets are rotated and no historical value remains valid;
-- confirm production environment has required variables before DB privilege revocation could affect live consumers.
+## 13. Explicit authorization boundary
 
-## 9. Production release gate
+The user's authorization to use Zero-Cost Staging authorizes the preproduction validation methodology and documentation. It **does not by itself authorize production mutation**.
 
-K1 may move from `En curso` to `Ready for release` only when all sections above have evidence.
-
-Production steps require explicit owner authorization and must be ordered to avoid lockout:
-1. snapshot/backup and rollback readiness;
-2. confirm runtime environment variables;
-3. deploy compatible server/runtime if required by the release sequence;
-4. apply DB migrations in the approved order;
-5. immediate negative-auth + compatibility smoke;
-6. reconcile audit/session state;
-7. observe errors/latency;
-8. merge/finalize only after production verification.
-
-If a blocking regression is detected, execute the documented rollback rather than manually reopening individual privileges.
-
-## 10. Current status
-
-- Isolated K1 security certificate: GREEN on run `31775262556`.
-- Exact Railway materializer equivalence: being re-certified on the current K1 head.
-- Real Supabase staging: NOT CREATED; organization/cost approval required first.
-- Production: UNCHANGED.
+The next irreversible/operational boundary is the production additive canary/cutover. That requires explicit owner authorization after environment/secret readiness is confirmed.
