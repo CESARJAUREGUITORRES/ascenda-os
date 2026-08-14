@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   zero-cost-security:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 30
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:57322/postgres
@@ -93,7 +93,7 @@ jobs:
             echo "$f" | tee -a /tmp/k1-migrations.txt
             psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$f"
           done
-          test "$(wc -l < /tmp/k1-migrations.txt)" -eq 5
+          test "$(wc -l < /tmp/k1-migrations.txt)" -eq 7
 
       - name: K1 Auth V3 / control-plane certificate
         run: |
@@ -137,7 +137,7 @@ jobs:
           node ci/kronia-k1-phase2/test_proxy_security.js | tee /tmp/k1-proxy.txt
           grep -q 'KRONIA_K1_PHASE2_PROXY_SMOKE=PASS' /tmp/k1-proxy.txt
 
-      - name: Secret and authority static gates
+      - name: Secret, authority and workstream-boundary static gates
         run: |
           set -euo pipefail
           ! grep -n "ascendaos_zivital_2026" app/server.js
@@ -145,6 +145,7 @@ jobs:
           ! grep -nE "process\.env\.RESEND_API_KEY[[:space:]]*\|\|[[:space:]]*['\"][^'\"]+" app/server.js
           ! grep -n "sessionStorage.getItem('aos_kronia_token')" app/public/k1-browser-security.js
           ! grep -nE "grant (all|insert|update|delete).*aos_(usuarios|rrhh|integraciones|kronia_acciones|security_log).*anon" supabase/migrations/2026081417*.sql
+          ! grep -nE "aos_execute_agent_query|aos_cia_kronia_" supabase/migrations/2026081417*kronia_k1*.sql
           grep -q 'node server-k1.js' app/railway.json
           grep -q "server-phase2.js" app/server-k1.js
           grep -q 'aos_app_actor_v3' app/server-k1.js
