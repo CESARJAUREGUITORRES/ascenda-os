@@ -6,7 +6,7 @@ Estado global: K0 cerrado documentalmente; K1 es la siguiente fase ejecutable.
 
 ## 1. Propósito
 
-Este documento es la referencia canónica de continuidad técnica para KronIA V2. Debe permitir retomar el programa desde cualquier chat o sesión sin reconstruir decisiones previas. Notion actúa como tablero operativo; GitHub conserva la fuente versionada y auditable.
+Este documento es la referencia canónica de continuidad técnica para KronIA V2. Debe permitir retomar el programa desde cualquier chat o sesión sin reconstruir decisiones previas. **GitHub es la fuente de verdad técnica y de continuidad.** Notion actúa como tablero visual/operativo derivado; nunca reemplaza la autoridad del repositorio.
 
 ## 2. Regla de trabajo
 
@@ -145,15 +145,105 @@ Al terminar cada loop, registrar:
 - No declarar una fase cerrada sin pruebas, rollback y evidencia.
 - HIGH/CRITICAL siguen `AGENTS.md` y `SECURITY.md`.
 
-## 8. Fuentes canónicas
+## 8. Jerarquía de información y herramientas
 
-Orden de precedencia para retomar trabajo:
+### Nivel A — Autoridad / Source of Truth: GitHub
+GitHub es el centro permanente del proyecto. Debe contener:
+- código canónico;
+- migraciones y tests;
+- `AGENTS.md`, `SECURITY.md` y documentos `docs/control/*`;
+- índices maestros y decisiones arquitectónicas;
+- Impact Reports;
+- Issues para trabajo ejecutable/hallazgos cuando corresponda;
+- branches, commits y PRs como evidencia de cambio;
+- GitHub Actions para CI/CD, validaciones y controles automáticos.
+
+Regla: una decisión técnica relevante, una fase completada, un riesgo aceptado o un cambio de arquitectura **no se considera preservado** hasta quedar representado en GitHub.
+
+### Nivel B — Vista humana / Control visual: Notion
+`ASCENDA OS → KronIA V2 — Control Maestro` es una proyección legible y navegable del estado:
+- roadmap K0–K8;
+- estados y gates;
+- hallazgos/mejoras;
+- checkpoints resumidos;
+- vistas board/table/dashboard.
+
+Regla: Notion puede resumir o visualizar, pero no debe convertirse en la única ubicación de evidencia técnica ni contradecir GitHub. Si existe discrepancia, prevalece GitHub y Notion se corrige.
+
+### Nivel C — Runtime / Datos reales: Supabase + infraestructura
+Supabase y el runtime conservan el estado operativo real. Su información se usa como evidencia mediante queries, migraciones, tests, snapshots y telemetry, pero la arquitectura, decisiones y procedimientos deben quedar documentados/versionados en GitHub.
+
+### Nivel D — Observabilidad: Sentry / telemetry especializada
+Recomendado para errores, trazas, rendimiento y posteriormente LLM/agent monitoring. No sustituye logs/auditoría de negocio ni la fuente de verdad GitHub; aporta evidencia runtime que puede vincularse a Issues/PRs.
+
+### Nivel E — Comunicación / opcional
+Slack u otros canales pueden servir para notificaciones de CI, incidentes y alertas de operación. No son fuentes canónicas.
+
+## 9. MCP y conectividad de agentes
+
+Interpretación adoptada: cuando se mencione “MSF” en contexto de conexiones de IA/herramientas, verificar si se refiere a **MCP — Model Context Protocol** antes de diseñar una integración.
+
+MCP puede estandarizar cómo distintos clientes/agentes acceden a herramientas como GitHub y Notion. Para ASCENDA debe tratarse como **capa de interoperabilidad**, no como authority layer.
+
+Principios obligatorios para MCP en ASCENDA:
+- usar servidores oficiales/gestionados cuando existan;
+- mínimo privilegio y toolsets allowlisted;
+- preferir read-only para exploración/auditoría;
+- separar lectura de mutaciones;
+- no exponer secretos en archivos de configuración versionados;
+- aprobación humana para operaciones HIGH/CRITICAL;
+- identidad/autorización siguen siendo server-authoritative;
+- registrar tool call, actor, scope y resultado;
+- ningún MCP puede saltarse Tool Registry / Policy Gate / Proposal Approval de KronIA V2.
+
+Candidatos:
+1. GitHub MCP oficial — útil para repos, issues, PRs, Actions y security; habilitar toolsets mínimos.
+2. Notion MCP oficial — útil para reflejar documentación/tableros mediante OAuth.
+3. Linear MCP — solo evaluar si GitHub Issues/Projects resulta insuficiente; evitar doble backlog por defecto.
+4. Sentry — observabilidad runtime y AI/LLM tracing; su incorporación se evalúa dentro de K4.
+
+## 10. Estrategia de organización recomendada
+
+No multiplicar sistemas por moda. Arquitectura objetivo:
+
+`GitHub (truth + execution evidence)`
+`├── docs/control (continuidad / arquitectura)`
+`├── Issues (unidad de trabajo / riesgo)`
+`├── PRs (cambio verificable)`
+`├── Actions (gates automáticos)`
+`└── releases/tags (estado desplegable)`
+
+`Notion (mirror visual / dashboard)`
+
+`Supabase + runtime (estado operacional)`
+
+`Sentry (observabilidad técnica, si se adopta)`
+
+`MCP/connectors (interoperabilidad controlada)`
+
+Se evita por defecto incorporar Linear/Jira/Airtable para el mismo backlog mientras GitHub Issues/Projects cubra la necesidad. Solo se añade una herramienta adicional si resuelve una limitación concreta y se define qué sistema es autoritativo para cada objeto.
+
+## 11. Fuentes canónicas para retomar trabajo
+
+Orden de precedencia:
 1. `AGENTS.md` y `SECURITY.md`.
 2. Este `KRONIA_V2_MASTER_INDEX_20260813.md`.
 3. Auditoría K0 e Impact Reports por fase.
 4. Código/migraciones/tests de la branch activa.
-5. Notion `ASCENDA OS → KronIA V2 — Control Maestro` como tablero operativo y backlog de hallazgos.
+5. Issues/PRs/Actions de GitHub vinculados.
+6. Notion `ASCENDA OS → KronIA V2 — Control Maestro` como tablero operativo derivado.
 
-## 9. Próxima ejecución
+## 12. Protocolo para cualquier chat nuevo
+
+Antes de ejecutar trabajo KronIA, el chat/agente debe:
+1. leer `AGENTS.md` y `SECURITY.md`;
+2. leer este Índice Maestro;
+3. identificar fase activa y último checkpoint;
+4. revisar hallazgos/Issues abiertos vinculados;
+5. comprobar branch/PR/CI actuales;
+6. continuar desde la próxima acción exacta;
+7. al cerrar el loop, actualizar evidencia GitHub y después reflejar el resumen en Notion.
+
+## 13. Próxima ejecución
 
 Iniciar K1 desde un baseline limpio, construir primero la matriz de consumidores y el set de negative authorization tests, y solo después aplicar cierres de permisos/RPC/secrets. Cualquier cambio productivo deberá pasar staging y rollback conforme al Impact Report K1.
