@@ -2,6 +2,8 @@
 -- SECURITY NOTE: this intentionally restores legacy browser privileges only for
 -- emergency compatibility rollback. Re-applying K1 should be prioritized.
 -- Token digests are irreversible, so rollback invalidates all KronIA sessions.
+-- The atomic aos_verificar_2fa implementation from migration 519 is intentionally
+-- retained because it preserves the legacy JSON contract while removing a race.
 
 begin;
 
@@ -74,19 +76,33 @@ drop policy if exists kronia_acc_all on public.aos_kronia_acciones;
 create policy kronia_acc_all on public.aos_kronia_acciones for all to anon,authenticated using (true) with check (true);
 grant all on table public.aos_kronia_acciones to anon,authenticated;
 
+-- Restore conversation policy that existed before K1 internal-boundary closure.
+drop policy if exists kronia_conv_service_only on public.aos_kronia_conversaciones;
+drop policy if exists aos_kronia_conv_all on public.aos_kronia_conversaciones;
+create policy aos_kronia_conv_all on public.aos_kronia_conversaciones
+  for all to anon,authenticated using (true) with check (true);
 grant all on table public.aos_kronia_conversaciones to anon,authenticated;
+
 grant all on table public.aos_agente_logs to anon,authenticated;
 grant all on table public.aos_agente_acciones to anon,authenticated;
+
+-- RLS is historically disabled on aos_log_auditoria, but restore its legacy
+-- policy metadata too so rollback reproduces the baseline as closely as possible.
+drop policy if exists gas_access_auditoria on public.aos_log_auditoria;
+create policy gas_access_auditoria on public.aos_log_auditoria
+  for all to anon using (true) with check (true);
 grant all on table public.aos_log_auditoria to anon,authenticated;
 grant all on table public.aos_security_log to anon,authenticated;
 
 -- 4) Restore pre-K1 browser EXECUTE privileges.
 grant execute on function public.aos_login_v2(text,text) to anon,authenticated;
+-- Migration 519 remains in place: same JSON contract, atomic one-time OTP use.
 grant execute on function public.aos_verificar_2fa(text,text) to anon,authenticated;
 grant execute on function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) to anon,authenticated;
 grant execute on function public.aos_kronia_limpiar_tokens_expirados() to anon,authenticated;
 grant execute on function public.aos_kronia_verify_token(text) to anon,authenticated;
 grant execute on function public.aos_kronia_revocar_token(text) to anon,authenticated;
+grant execute on function public.aos_security_dashboard() to anon,authenticated;
 
 grant execute on function public.aos_kronia_buscar_cita(text,text,text) to anon,authenticated;
 grant execute on function public.aos_kronia_buscar_paciente(text) to anon,authenticated;
