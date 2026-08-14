@@ -18,6 +18,7 @@ on:
       - 'app/public/citas.html'
       - 'app/public/caja.html'
       - 'app/public/calls.html'
+      - 'app/public/calls-v2.html'
       - '.github/workflows/cia-phase16-email.yml'
       - 'scripts/ci/**'
   push:
@@ -39,6 +40,7 @@ on:
       - 'app/public/citas.html'
       - 'app/public/caja.html'
       - 'app/public/calls.html'
+      - 'app/public/calls-v2.html'
       - '.github/workflows/cia-phase16-email.yml'
       - 'scripts/ci/**'
   workflow_dispatch:
@@ -160,7 +162,7 @@ jobs:
           ! grep -q "'apikey':SK" app/public/admin-email.html
           ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
           ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
-          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls-v2.html; do
             grep -q "X-ASCENDA-Session" "$f"
           done
           echo 'CIA_PHASE16_RUNTIME_BOUNDARY=PASS'
@@ -195,6 +197,7 @@ jobs:
             app/public/citas.html
             app/public/caja.html
             app/public/calls.html
+            app/public/calls-v2.html
           )
           if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,})' "${files[@]}"; then
             echo 'F16_SECRET_SCOPE_SCAN=FAIL'
@@ -247,7 +250,8 @@ jobs:
             app/public/calls.js \
             app/public/citas.html \
             app/public/caja.html \
-            app/public/calls.html
+            app/public/calls.html \
+            app/public/calls-v2.html
           echo 'CIA_PHASE16_ZERO_COST_CONTRACT_GATE=PASS'
           echo 'DELIVERY_ENABLED=false'
 
