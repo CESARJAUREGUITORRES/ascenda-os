@@ -70,6 +70,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200500_phase3_product_canonical_schema_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200600_phase3_product_owner_seed_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200700_phase3_product_existing_backfill_v1.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
@@ -80,7 +81,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase3-products/tests/001_product_canonical.sql | tee /tmp/phase3-products-pgtap.txt
-          grep -q '1..29' /tmp/phase3-products-pgtap.txt
+          grep -q '1..33' /tmp/phase3-products-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/phase3-products-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/phase3-products-pgtap.txt; then exit 1; fi
 
