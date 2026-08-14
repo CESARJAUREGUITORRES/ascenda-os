@@ -4,14 +4,14 @@
 **Fecha:** 2026-08-14 (America/Lima)  
 **Master arquitectónico:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`  
 **Estado dinámico:** `docs/control/commercial-intelligence/ROADMAP_STATUS.md`  
-**Último merge funcional:** F13 `594c2c77dae8513ff73a300e60f4caed1996efad`  
+**Último merge funcional:** F14 `ce88f7f0f5d4cc50fd6e726b0f44459db9daa9ca`  
 **Checkpoint de control actual:** consultar `staging` HEAD + `aos_memory.cia_v3_control_checkpoint`.
 
 ---
 
 # 1. OBJETIVO
 
-El Master V3 original continúa como arquitectura madre. Este documento alinea esa arquitectura con el estado real alcanzado después de cerrar F0–F13.
+El Master V3 original continúa como arquitectura madre. Este documento alinea esa arquitectura con el estado real alcanzado después de cerrar F0–F14.
 
 El Master sigue vigente para visión, separación de dominios, Fact Registry/DSL, Audience Engine, Assignment, governance, IA/Policy Gate, performance, compatibilidad de canales, rollback y roadmap conceptual F0–F18.
 
@@ -44,9 +44,9 @@ Para estado actual prevalecen:
 | 11 | Call Center Integration V3 | `100_COMPLETE` | F9+F10 |
 | 12 | Advisor Work Views | `100_COMPLETE` | F9+F11 |
 | 13 | Requests & Approval Engine | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` | F12 |
-| 14 | Commercial Intelligence Shadow | `READY` | F13 + facts/outcomes |
-| 15 | KronIA + Multiagent | `NOT_STARTED` | F13/F14 |
-| 16 | Email Integration | `NOT_STARTED` | Audience/Activation central |
+| 14 | Commercial Intelligence Shadow | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` | F13 + facts/segments |
+| 15 | KronIA + Multiagent | `READY` | F13/F14 |
+| 16 | Email Integration | `NOT_STARTED` | Audience/Activation central + F15 |
 | 17 | SMS/WhatsApp/Future Channels | `NOT_STARTED` | F8/F16 patterns |
 | 18 | Attribution/Learning/Hardening | `NOT_STARTED` | todas las anteriores |
 
@@ -54,7 +54,7 @@ Para estado actual prevalecen:
 
 # 3. CADENA IMPLEMENTADA Y CERTIFICADA
 
-`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Requests/Approval`
+`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Requests/Approval → Intelligence Shadow`
 
 Decisiones demostradas:
 - `aos_usuarios.id` UUID es identidad de ownership;
@@ -64,97 +64,120 @@ Decisiones demostradas:
 - F11 routing consume ownership con fallback V2;
 - F12 organiza work sin mutar owner;
 - F13 separa Request, Approval y Execution y revalida antes de mutar;
-- IA/F14/KronIA deben cruzar Policy Gate y no escriben arbitrariamente.
+- F14 calcula Recommendation objects SHADOW con evidence/confidence/freshness y no actúa;
+- IA/F15 debe cruzar F13 Policy Gate y no obtiene SQL write arbitrario.
 
 ---
 
 # 4. REFINAMIENTOS INSTITUCIONALIZADOS
 
 ## Datos / freshness
-Caches y facts deben demostrar cobertura/freshness. Ausencia no equivale automáticamente a FALSE; UNKNOWN falla cerrado.
+Caches y facts deben demostrar cobertura/freshness. Ausencia no equivale automáticamente a FALSE; UNKNOWN falla cerrado. F14 además demuestra que STALE debe permanecer etiquetado como stale, no maquillarse como fresh.
 
 ## Performance
-No usar mega-views ni aumentar timeouts para ocultar N+1. Resolver por dominios, snapshots/listas y drill-down selectivo.
+No usar mega-views ni aumentar timeouts. F14 rechazó un join live facts+segments de ~44.4 s y lo reemplazó por refresh/coverage + snapshot SHADOW: top100 ~66.9 ms.
 
 ## Seguridad
-RLS teórico no basta: auditar grants reales. SECURITY DEFINER con search_path restringido debe schema-qualify extensiones, como `extensions.digest`.
+RLS teórico no basta: auditar grants reales. Una tabla privada puede usar RLS + 0 policies + grants directos revocados y ser servida únicamente por RPC gobernada. SECURITY DEFINER con search_path restringido debe schema-qualify extensiones.
 
 ## Testing
 Handshake anterior → actual y output actual → siguiente son gates obligatorios. QA mutante rollback-only; benchmarks mutantes también dentro de rollback.
 
 ## Replayability
-Migration versionada implica reconciliación exacta con ledger live para migraciones del frente, distinguiendo cambios concurrentes legítimos.
+Migration versionada implica reconciliación exacta con ledger live. F14 corrigió sus filenames de desarrollo antes del PR para coincidir 1:1 con `schema_migrations`.
 
 ## Timezone
 “Hoy” operacional = `America/Lima`.
 
 ## Governance
-`Work View ≠ Assignment ≠ Request ≠ Approval ≠ Execution`.
-Retries idempotentes de estados terminales deben reconocerse antes de revalidar un recurso que la primera ejecución mutó intencionalmente.
+`Work View ≠ Assignment ≠ Request ≠ Approval ≠ Execution`.  
+`Recommendation ≠ Authority`.
+
+F14 Recommendation puede ser interpretada o usada para una propuesta, pero no es permiso para ejecutar ownership/resources.
 
 ## CI
-Un runner bloqueado por billing antes de checkout no es un fallo de código ni un SUCCESS. F13 registró `CI_INFRA_EXCEPTION_DOCUMENTED`, validación equivalente aislada y smoke post-merge; la automatización debe restaurarse cuando se resuelva la infraestructura.
+Un runner bloqueado por billing antes de checkout no es fallo de código ni SUCCESS. F13 y F14 registran `CI_INFRA_EXCEPTION_DOCUMENTED`, validación equivalente y smoke post-merge; la automatización debe restaurarse al resolver infraestructura.
 
 ---
 
-# 5. F13 — CONTRATO CERRADO
+# 5. F14 — CONTRATO CERRADO
 
-F13 entrega:
-- `aos_cia_requests`;
-- `aos_cia_request_events` append-only;
-- state machine PENDING/APPROVED/REJECTED/EXPIRED/EXECUTED;
-- advisor request RPCs;
-- ADMIN gateway;
-- revalidación atómica ownership/state/expiry;
-- ejecución RELEASE usando lifecycle F9;
-- Policy Gate determinístico;
-- `aos_cia_request_f14_readiness_v1()`.
+F14 entrega:
+- `aos_cia_intelligence_shadow_runs`;
+- `aos_cia_intelligence_recommendations`;
+- `aos_cia_intelligence_events`;
+- `aos_cia_intelligence_shadow_refresh_v1(...)`;
+- `aos_cia_intelligence_admin_gateway_v1(...)`;
+- `aos_cia_intelligence_advisor_list_v1(...)`;
+- `aos_cia_intelligence_f15_readiness_v1()`.
 
-Policy actual:
-- F14/KronIA `RELEASE_ASSIGNMENT` proposal → REQUIRE_APPROVAL;
-- AUTO_ASSIGN/TRANSFER/AUTO_APPROVE/RAW_SQL → BLOCK;
-- `auto_execute=false`.
-
-Post-merge live:
-- `ready_for_f14=true`;
-- `status=READY_NO_REQUESTS`;
-- zero F13 residue;
-- F11 routing sigue global OFF / no rollout live.
-
----
-
-# 6. F14 — CAMINO EXACTO
-
-**Commercial Intelligence Shadow** es la siguiente fase correcta.
-
-Debe iniciar SHADOW/read-only y construir:
-- Opportunity objects determinísticos;
-- afinidad/recompra/priorización;
-- evidence, confidence, sample size y freshness;
+Semántica certificada:
+- Opportunity types determinísticos;
+- evidence/confidence/sample-size/freshness;
 - explainability;
-- recommendations sin ejecución automática;
-- read-models ADMIN/advisor gobernados;
-- propuestas de acción únicamente vía F13 Policy Gate;
-- trazabilidad recommendation → proposed request → human decision.
+- observed affinity desde compras/servicios comerciales canónicos;
+- identity conflicts excluidos;
+- segment cache coverage exacta;
+- state `SHADOW`;
+- no autoassign/approve/execute;
+- F13 Policy Gate permanece autoridad.
+
+Live:
+- 451 recommendations;
+- 0 non-shadow states;
+- 0 auto_execute violations;
+- 0 missing GENERATED events;
+- F15 readiness `READY_SHADOW_ACTIVE`, true.
+
+Functional merge:
+`ce88f7f0f5d4cc50fd6e726b0f44459db9daa9ca`.
+
+---
+
+# 6. F15 — CAMINO EXACTO
+
+**KronIA + Multiagent Orchestration** es la siguiente fase correcta.
+
+Debe construir una capa de orquestación gobernada, no un agente con acceso abierto a la base.
+
+Input:
+- F14 Recommendation SHADOW objects;
+- deterministic evidence/confidence/freshness;
+- F9 advisor/assignment context;
+- F13 Request lifecycle + Policy Gate;
+- `aos_cia_intelligence_f15_readiness_v1()`.
+
+Debe construir:
+- Tool Registry estructurado/versionado;
+- tool schemas tipados;
+- agent roles/scopes;
+- provenance/evidence por respuesta;
+- Agent Run/Audit trace;
+- rate/timeout/error boundaries;
+- policy preflight obligatorio;
+- flujo `OBSERVE → INTERPRET → PROPOSE → REQUEST → HUMAN DECISION → EXECUTE`;
+- shadow-first rollout;
+- output contract hacia F16 Email.
 
 No debe:
 - autoaprobar;
 - autoejecutar;
 - autoasignar;
-- usar SQL write arbitrario;
-- usar historia clínica/fotos/diagnósticos/notas clínicas como features comerciales ordinarias;
+- SQL write arbitrario;
 - saltarse F13;
-- presentar inferencia IA como hecho determinístico.
+- usar datos clínicos sensibles como features comerciales ordinarias;
+- convertir Recommendation F14 en autoridad;
+- habilitar autonomía general en F15.
 
-Output F14 → F15:
-**Commercial Intelligence Shadow explicable + tools/contracts gobernados, listo para KronIA/Multiagent sin autonomía de escritura.**
+Output F15 → F16:
+**KronIA/Multiagent con tools, Policy Gate, provenance y audit, capaz de consultar/interpretar/proponer sin autonomía de escritura, listo para integrar Email como canal central.**
 
 ---
 
 # 7. ESTADO ACTUAL DE LA MISIÓN
 
-F0–F13 constituyen ya el núcleo comercial gobernado de datos → audiencia → activación → ownership → operación personal → aprobación.
+F0–F14 constituyen el núcleo gobernado de datos → audiencias → activación → ownership → work → aprobación → inteligencia shadow.
 
-La siguiente construcción no rehace ese núcleo. Añade una capa de inteligencia shadow sobre contratos existentes y prepara F15.
+La siguiente construcción no rehace ese núcleo. Añade orquestación IA gobernada sobre contratos ya certificados.
 
-**Siguiente fase: F14 — Commercial Intelligence Shadow.**
+**Siguiente fase: F15 — KronIA + Multiagent Orchestration.**
