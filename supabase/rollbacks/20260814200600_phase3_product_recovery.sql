@@ -14,15 +14,17 @@ revoke all on function public.aos_product_sync_sale_trigger_v1() from public, an
 revoke all on function public.aos_product_normalize_alias_v2(text) from public, anon, authenticated;
 grant execute on function public.aos_product_normalize_alias_v2(text) to service_role;
 
--- Preserve evidence tables but keep them browser-inaccessible.
+-- Preserve evidence tables/views but keep them browser-inaccessible.
 revoke all on table public.aos_product_identity_v1 from public, anon, authenticated;
 revoke all on table public.aos_product_alias_v2 from public, anon, authenticated;
 revoke all on table public.aos_product_sale_fact_v1 from public, anon, authenticated;
 revoke all on table public.aos_product_sale_fact_current_v1 from public, anon, authenticated;
+revoke all on table public.aos_product_review_queue_v1 from public, anon, authenticated;
 
 grant select on table public.aos_product_identity_v1 to service_role;
 grant select on table public.aos_product_alias_v2 to service_role;
 grant select on table public.aos_product_sale_fact_v1 to service_role;
 grant select on table public.aos_product_sale_fact_current_v1 to service_role;
+grant select on table public.aos_product_review_queue_v1 to service_role;
 
 commit;
