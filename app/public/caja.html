@@ -2302,7 +2302,7 @@ function grabarCotizacion() {
         else console.error('[CAJA-EMAIL] No enviado:',JSON.stringify(res));
       }).catch(function(e){console.error('[CAJA-EMAIL] Error:',e);});
     }
-    VT.items = []; VT.pac = null; VT.cotizacion_existente = null; VT._guardando = false;
+    VT.items = []; VT.pac = null; VT.cotizacion_existente = null; VT._paymentKeys = {}; VT._guardando = false;
     var msg = resultados.length ? resultados.join(' + ') : 'Venta grabada';
     toast('✅ ' + msg, 'ok');
     // Recargar caja inmediatamente — overlay ya está cerrado con display:none
@@ -2328,20 +2328,20 @@ function grabarCotizacion() {
   loading(true);
   if (cotKeys.length) {
     var processed = 0;
+    if (!VT._paymentKeys) VT._paymentKeys = {};
     cotKeys.forEach(function(cotId) {
       var info = cotIds[cotId];
+      if (!VT._paymentKeys[cotId]) VT._paymentKeys[cotId] = crypto.randomUUID();
+      var paymentKey = VT._paymentKeys[cotId];
       rpc('aos_abonar_cotizacion_v2', {
-        p_token: financeToken,
+        p_token: financeToken, p_idempotency_key: paymentKey,
         p_cotizacion_id: cotId, p_monto: info.monto,
         p_metodo_pago: (info.items[0] && info.items[0].metodoPago) || '',
         p_tipo_comprobante: (info.items[0] && info.items[0].comprobante) || 'BOLETA VIRTUAL',
-        p_sede: CAJA.sede, p_usuario: CAJA.usuario || 'CAJA',
-        p_asesor: (info.items[0] && info.items[0].asesorComision) || '',
-        p_nota: nota, p_sesion_id: CAJA.sesion ? CAJA.sesion.id : '',
-        p_fecha: fechaLima()
+        p_nro_doc: '', p_nota: nota, p_sesion_id: CAJA.sesion ? CAJA.sesion.id : ''
       }, function(d) {
         console.log('[CAJA] Abono resultado:', d);
-        if (d && d.ok) resultados.push('Abono #' + (d.numero||'') + ': S/' + info.monto + ' (saldo S/' + parseFloat(d.saldo||0).toFixed(0) + ')');
+        if (d && d.ok) { delete VT._paymentKeys[cotId]; resultados.push('Abono #' + (d.numero||'') + ': S/' + info.monto + ' (saldo S/' + parseFloat(d.saldo||0).toFixed(0) + ')'); }
         else if (d) { console.error('[CAJA] Abono error:', d); toast('Error abono: ' + (d.error||''), 'err'); }
         processed++;
         if (processed >= cotKeys.length) procesarNuevos();
@@ -2886,7 +2886,10 @@ function cargarPlanesPaciente(numero) {
 
 function cargarCotizacionesPaciente(numero) {
   if (!numero) return;
-  sbGet('aos_cotizaciones', 'numero_limpio=eq.' + numero + '&estado=not.in.(ANULADO,PAGADO_COMPLETO)&saldo_pendiente=gt.0&order=created_at.desc&limit=10', function(cots) {
+  var financeToken = ''; try { financeToken = sessionStorage.getItem('aos_si_token') || ''; } catch(e) {}
+  if (!financeToken) return;
+  rpc('aos_caja_cotizaciones_gateway', {p_token:financeToken,p_mode:'LIST',p_numero_limpio:numero,p_cotizacion_id:null}, function(resp) {
+    var cots = (resp && resp.ok && resp.rows) || [];
     if (!cots || !cots.length) return;
     var pf = document.getElementById('pac-ficha');
     if (!pf) return;
@@ -3090,11 +3093,14 @@ function mostrarCotizaciones(cots, numero) {
 
 function cargarCotEnVenta(cotId) {
   VT.cotizacion_existente = cotId;
-  sbGet('aos_cotizaciones', 'id=eq.' + cotId + '&limit=1', function(cots) {
-    var cot = (cots && cots[0]) || {};
+  var financeToken = ''; try { financeToken = sessionStorage.getItem('aos_si_token') || ''; } catch(e) {}
+  if (!financeToken) { toast('Vuelve a iniciar sesión con 2FA', 'warn'); return; }
+  rpc('aos_caja_cotizaciones_gateway', {p_token:financeToken,p_mode:'DETAIL',p_numero_limpio:null,p_cotizacion_id:cotId}, function(resp) {
+    if (!resp || !resp.ok) { toast('Cotización no disponible para tu sede', 'warn'); return; }
+    var cot = resp.quote || {};
     var saldoCot = parseFloat(cot.saldo_pendiente || 0);
     if (saldoCot <= 0) { toast('Cotización sin saldo pendiente', 'warn'); return; }
-    sbGet('aos_cotizacion_items', 'cotizacion_id=eq.' + cotId + '&order=created_at.asc', function(items) {
+    var items = resp.items || [];
       if (!items || !items.length) { toast('Cotizacion sin items', 'warn'); return; }
       // Cruzar con ventas ya realizadas para saber qué items tienen saldo real
       var numPac = VT.pac ? (VT.pac.telefono || VT.pac.numero_limpio || '') : '';
@@ -3142,7 +3148,6 @@ function cargarCotEnVenta(cotId) {
         if (itemsConSaldo > 0) toast('Saldo de cotizacion #' + (cot.numero_cotizacion||'') + ' cargado — S/' + saldoCot.toFixed(0), 'ok');
         else toast('Todos los items de esta cotización ya están pagados', 'warn');
       });
-    });
   });
 }
 // ===== MOD-11-END: PLANES Y COTIZACIONES EN CAJA =====
