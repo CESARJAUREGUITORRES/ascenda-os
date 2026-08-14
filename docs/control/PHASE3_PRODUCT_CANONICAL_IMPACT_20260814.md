@@ -23,7 +23,7 @@ Auditoría al corte del archivo:
 - 43 filas marcadas promo/pack;
 - 51 nombres canónicos distintos;
 - 167 aliases históricos de producto sin conflicto después de correcciones;
-- producción ya contiene una venta posterior al corte del Excel (13/08/2026), que debe resolverse por la lógica futura y no por el seed histórico.
+- producción ya contiene una venta posterior al corte del Excel (13/08/2026, `sale_id=2340`, `LIFTIN B`), que debe resolverse por la lógica futura y no por el seed histórico.
 
 ## Correcciones de integración detectadas
 
@@ -69,19 +69,19 @@ Nueva capa `aos_product_alias_v2`:
 
 ### 3. Hecho de producto por venta
 
-Nueva capa `aos_product_sale_review_v1` + vista de hechos:
+Nueva capa `aos_product_sale_fact_v1` + vistas sanitizadas:
 
 - `sale_id` único;
-- clasificación `PRODUCT` o `EXCLUDED`;
 - identidad canónica opcional;
 - cantidad física;
 - promo/pack;
 - estado de resolución;
-- fuente de evidencia.
+- fuente de evidencia;
+- `aos_product_review_queue_v1` para descripciones desconocidas sin PII de identidad.
 
 Los 394 registros del Excel se sembrarán solo mediante IDs y metadatos de producto. **No se copiarán nombres, teléfonos, DNI ni otra PII al repositorio.**
 
-### 4. Futuras importaciones
+### 4. Futuras importaciones y ventas ya posteriores al Excel
 
 El resolver F3 se ejecutará después de INSERT/UPDATE de una venta PRODUCTO:
 
@@ -91,16 +91,18 @@ El resolver F3 se ejecutará después de INSERT/UPDATE de una venta PRODUCTO:
 - si no hay certeza, genera `REVIEW_REQUIRED` en vez de inventar;
 - no modifica monto, pago, paciente, asesor, sede ni identidad del cliente.
 
+Después del seed propietario se ejecuta un backfill controlado únicamente sobre filas no bloqueadas. Esto permite que ventas que llegaron después del Excel —incluida `2340 / LIFTIN B`— se resuelvan con la misma lógica canónica sin editar la evidencia histórica.
+
 ## Catálogo: criterio de incorporación
 
 No todo nombre histórico debe convertirse en producto activo. Se distinguen:
 
 - `CATALOG`: ya existe un producto activo equivalente;
-- `CURRENT_UNCATALOGED`: existe evidencia de producto de venta activo en inventario pero falta alta canónica de catálogo;
+- `CURRENT_UNCATALOGED`: existe evidencia de producto de venta actual pero falta alta canónica de catálogo;
 - `LEGACY`: producto histórico sin evidencia suficiente de vigencia actual;
 - `REVIEW`: identidad no suficientemente determinada.
 
-Los productos `CURRENT_UNCATALOGED` se incorporarán al catálogo solo en una migración aditiva separada y después de gate CI/preflight.
+Los productos `CURRENT_UNCATALOGED` quedan plenamente identificados por F3 sin forzar precio/categoría operativa no confirmados. Su eventual alta comercial en catálogo debe conservar la misma `product_key` y realizarse mediante migración aditiva gobernada, no inventando precios desde ventas promocionales.
 
 ## Seguridad / ACL
 
@@ -127,10 +129,12 @@ Gates mínimos:
 - 388 PRODUCT / 6 EXCLUDED / 418 unidades / 43 promo-pack / 51 canónicos;
 - 0 conflictos alias→canónico;
 - split-payments no duplican unidades;
-- venta nueva `LIFTIN B` resuelve por alias a LIFTING B;
-- desconocidos quedan `REVIEW_REQUIRED`;
+- venta real post-corte `2340 / LIFTIN B` se resuelve por backfill a `LIFTING B 30GR`;
+- nuevas ventas `LIFTIN B` se resuelven por trigger;
+- desconocidos quedan `REVIEW_REQUIRED` y aparecen en review queue;
 - `aos_ventas.descripcion` no cambia;
-- recovery preserva seguridad y ventas.
+- recovery preserva seguridad y ventas;
+- contrato dedicado actual: 33 assertions pgTAP.
 
 ## Rollback / recovery
 
@@ -138,7 +142,7 @@ El rollback F3:
 
 1. revoca ejecución del resolver F3 y elimina su trigger;
 2. mantiene intactos `aos_ventas`, catálogo, caja y pacientes;
-3. conserva o archiva la capa de hechos F3 como evidencia, sin usarla operativamente;
+3. conserva la capa de hechos F3 como evidencia, sin usarla operativamente;
 4. nunca restaura rutas débiles de escritura o Auth.
 
 ## Gate de producción
