@@ -62,7 +62,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_cartera_reconciliacion")" = "4"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion(text,numeric,text,text,text,text,text,text,text,text,text)','EXECUTE')")" = "f"
-          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion_v2(text,text,numeric,text,text,text,text,text,text,text,text,text)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)','EXECUTE')")" = "t"
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
