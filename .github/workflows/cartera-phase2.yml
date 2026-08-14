@@ -12,7 +12,7 @@ on:
       - 'app/public/caja.html'
       - '.github/workflows/cartera-phase2.yml'
   push:
-    branches: ['agent/**','feature/**','fix/**','security/**']
+    branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
     paths:
       - 'supabase/migrations/*cartera_phase2*'
       - 'supabase/rollbacks/*cartera_phase2*'
@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   isolated-contract:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 20
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
