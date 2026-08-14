@@ -1,8 +1,10 @@
+providers = ["...", "python"]
+
 [phases.install]
 cmds = ["npm install"]
 
-# No ejecutar vite build — los archivos HTML se sirven directamente desde public/
-# El build de vite no aplica a esta arquitectura de servidor Express-like
+# Los HTML se sirven desde public/. Python se usa únicamente para materializar
+# el hardening K1 determinista durante build; no hay framework Python en runtime.
 
 [start]
-cmd = "node server.js"
+cmd = "node server-k1.js"
