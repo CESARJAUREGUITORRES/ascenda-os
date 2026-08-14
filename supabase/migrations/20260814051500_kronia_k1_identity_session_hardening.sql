@@ -3,11 +3,7 @@
 
 create extension if not exists pgcrypto;
 
--- -----------------------------------------------------------------------------
--- 1) Token store: browser roles must never read or mutate session material.
---    Existing raw tokens are converted to SHA-256 digests in-place so an already
---    issued raw token can continue to verify after this migration.
--- -----------------------------------------------------------------------------
+-- 1) Session material is never directly readable/writable by browser roles.
 alter table public.aos_kronia_tokens enable row level security;
 revoke all on table public.aos_kronia_tokens from anon, authenticated;
 
@@ -23,7 +19,8 @@ begin
   end if;
 end $$;
 
--- One-time conversion of the current token material to digests.
+-- One-time conversion of legacy raw tokens to SHA-256 digests. The raw token
+-- previously held by a valid client still verifies because verify() hashes input.
 update public.aos_kronia_tokens
 set token = encode(digest(token, 'sha256'), 'hex')
 where token is not null;
@@ -31,10 +28,8 @@ where token is not null;
 alter table public.aos_auth_codes
   add column if not exists kronia_claimed_at timestamptz;
 
--- -----------------------------------------------------------------------------
--- 2) Session claim. Credentials are validated against the same current identity
---    sources used by aos_login_v2. Browser-supplied role/sede are never trusted.
--- -----------------------------------------------------------------------------
+-- 2) Web session claim. Role/sede/identity are derived from current server-side
+-- identity sources. No client-supplied role is accepted.
 create or replace function public.aos_kronia_claim_session(
   p_login_usuario text,
   p_password text,
@@ -52,7 +47,7 @@ declare
   v_u public.aos_usuarios%rowtype;
   v_2fa_global boolean := true;
   v_2fa_required boolean := false;
-  v_auth_id bigint;
+  v_auth_id uuid;
   v_raw_token text;
   v_digest text;
   v_expira timestamptz;
@@ -60,8 +55,7 @@ declare
   v_role text;
   v_user_key text;
 begin
-  if nullif(trim(coalesce(p_login_usuario,'')), '') is null
-     or p_password is null then
+  if nullif(trim(coalesce(p_login_usuario,'')), '') is null or p_password is null then
     return jsonb_build_object('ok',false,'error','Credenciales requeridas');
   end if;
 
@@ -76,7 +70,7 @@ begin
   if v_rr is null or coalesce(v_rr.password_hash,'') <> p_password then
     insert into public.aos_security_log(usuario,accion,detalles)
     values (coalesce(p_login_usuario,'?'),'kronia_session_denied',
-      jsonb_build_object('reason','invalid_credentials'));
+            jsonb_build_object('reason','invalid_credentials'));
     return jsonb_build_object('ok',false,'error','Credenciales inválidas');
   end if;
 
@@ -122,7 +116,6 @@ begin
   v_digest := encode(digest(v_raw_token,'sha256'),'hex');
   v_expira := now() + interval '8 hours';
 
-  -- A login supersedes previous web sessions of the same origin/user.
   update public.aos_kronia_tokens
   set revocado=true
   where upper(usuario)=upper(v_user_key)
@@ -139,7 +132,7 @@ begin
 
   insert into public.aos_security_log(usuario,accion,detalles)
   values (v_rr.nombre,'kronia_session_issued',
-    jsonb_build_object('origin',coalesce(p_origen,'web'),'2fa',v_2fa_required));
+          jsonb_build_object('origin',coalesce(p_origen,'web'),'2fa',v_2fa_required));
 
   return jsonb_build_object(
     'ok',true,'token',v_raw_token,'usuario',upper(v_user_key),
@@ -149,9 +142,7 @@ begin
 end;
 $$;
 
--- -----------------------------------------------------------------------------
--- 3) Verification always re-derives current identity and role.
--- -----------------------------------------------------------------------------
+-- 3) Verification re-derives current identity and role every time.
 create or replace function public.aos_kronia_verify_token(p_token text)
 returns jsonb
 language plpgsql
@@ -171,8 +162,7 @@ begin
   end if;
   v_digest := encode(digest(p_token,'sha256'),'hex');
 
-  select * into v_row from public.aos_kronia_tokens
-  where token=v_digest limit 1;
+  select * into v_row from public.aos_kronia_tokens where token=v_digest limit 1;
   if v_row.id is null or v_row.revocado or v_row.expira_at<now() then
     return jsonb_build_object('ok',false,'error','Sesión inválida o expirada');
   end if;
@@ -196,7 +186,7 @@ begin
   v_role := case when v_role_raw like '%ADMIN%' then 'ADMIN' else 'ASESOR' end;
 
   update public.aos_kronia_tokens
-  set ultimo_uso=now(), rol=v_role, id_asesor=v_rr.codigo_asesor,
+  set ultimo_uso=now(),rol=v_role,id_asesor=v_rr.codigo_asesor,
       sede=coalesce(v_u.sede,v_rr.sede)
   where id=v_row.id;
 
@@ -226,10 +216,7 @@ begin
 end;
 $$;
 
--- -----------------------------------------------------------------------------
--- 4) One token-bound gateway for all KronIA reads/writes used by the current
---    server. Underlying business RPCs lose browser EXECUTE privileges.
--- -----------------------------------------------------------------------------
+-- 4) Token-bound tool gateway. It is the authoritative execution/audit boundary.
 create or replace function public.aos_kronia_tool(
   p_token text,
   p_tool text,
@@ -247,33 +234,30 @@ declare
   v_inner jsonb;
 begin
   v_ident := public.aos_kronia_verify_token(p_token);
-  if coalesce((v_ident->>'ok')::boolean,false)=false then
-    return v_ident;
-  end if;
+  if coalesce((v_ident->>'ok')::boolean,false)=false then return v_ident; end if;
   v_user := v_ident->>'usuario';
   v_role := v_ident->>'rol';
   p_params := coalesce(p_params,'{}'::jsonb);
 
   case p_tool
     when 'aos_editar_venta' then
-      v_result := public.aos_editar_venta(
-        (p_params->>'p_venta_id')::bigint,
+      v_result := public.aos_editar_venta((p_params->>'p_venta_id')::bigint,
         coalesce(p_params->'p_campos','{}'::jsonb),v_user,v_role,'kronia');
     when 'aos_kronia_editar_cita' then
-      v_result := public.aos_kronia_editar_cita(
-        (p_params->>'p_cita_id')::bigint,coalesce(p_params->'p_campos','{}'::jsonb),v_user,v_role);
+      v_result := public.aos_kronia_editar_cita((p_params->>'p_cita_id')::bigint,
+        coalesce(p_params->'p_campos','{}'::jsonb),v_user,v_role);
     when 'aos_kronia_editar_paciente' then
-      v_result := public.aos_kronia_editar_paciente(
-        p_params->>'p_paciente_id',coalesce(p_params->'p_campos','{}'::jsonb),v_user);
+      v_result := public.aos_kronia_editar_paciente(p_params->>'p_paciente_id',
+        coalesce(p_params->'p_campos','{}'::jsonb),v_user);
     when 'aos_kronia_reprogramar_seguimiento' then
-      v_result := public.aos_kronia_reprogramar_seguimiento(
-        p_params->>'p_seg_id',p_params->>'p_nueva_fecha',p_params->>'p_nueva_hora',v_user,v_role);
+      v_result := public.aos_kronia_reprogramar_seguimiento(p_params->>'p_seg_id',
+        p_params->>'p_nueva_fecha',p_params->>'p_nueva_hora',v_user,v_role);
     when 'aos_kronia_marcar_estado_cita' then
-      v_result := public.aos_kronia_marcar_estado_cita(
-        (p_params->>'p_cita_id')::bigint,p_params->>'p_nuevo_estado',v_user,v_role);
+      v_result := public.aos_kronia_marcar_estado_cita((p_params->>'p_cita_id')::bigint,
+        p_params->>'p_nuevo_estado',v_user,v_role);
     when 'aos_kronia_agregar_nota_paciente' then
-      v_result := public.aos_kronia_agregar_nota_paciente(
-        p_params->>'p_numero_paciente',p_params->>'p_nota',v_user);
+      v_result := public.aos_kronia_agregar_nota_paciente(p_params->>'p_numero_paciente',
+        p_params->>'p_nota',v_user);
     when 'aos_kronia_buscar_venta' then
       v_result := public.aos_kronia_buscar_venta(p_params->>'p_filtro',v_user,v_role);
     when 'aos_kronia_buscar_cita' then
@@ -291,20 +275,22 @@ begin
       end if;
       v_inner := p_params->'p_params';
       if jsonb_typeof(v_inner)='string' then v_inner := (p_params->>'p_params')::jsonb; end if;
-      v_result := public.aos_kronia_explorar(
-        p_params->>'p_modulo',p_params->>'p_accion',coalesce(v_inner,'{}'::jsonb));
+      v_result := public.aos_kronia_explorar(p_params->>'p_modulo',p_params->>'p_accion',
+        coalesce(v_inner,'{}'::jsonb));
     else
       return jsonb_build_object('ok',false,'error','Tool no permitida');
   end case;
 
   insert into public.aos_kronia_acciones(
-    usuario,rol,accion,objeto_tipo,objeto_id,tool_name,parametros,resultado,exitoso,error
+    usuario,rol,accion,objeto_tipo,objeto_id,cambios,resultado,exitoso,session_id
   ) values (
     v_user,v_role,'tool_call',p_tool,
-    coalesce(p_params->>'p_venta_id',p_params->>'p_cita_id',p_params->>'p_paciente_id',p_params->>'p_seg_id',p_params->>'p_numero_paciente',''),
-    p_tool,p_params,
+    coalesce(p_params->>'p_venta_id',p_params->>'p_cita_id',p_params->>'p_paciente_id',
+             p_params->>'p_seg_id',p_params->>'p_numero_paciente',''),
+    p_params,
     case when v_result is null then null else left(v_result::text,2000) end,
-    coalesce((v_result->>'ok')::boolean,true),v_result->>'error'
+    coalesce((v_result->>'ok')::boolean,true),
+    nullif(p_params->>'_session_id','')
   );
 
   return v_result;
@@ -326,59 +312,58 @@ grant execute on function public.aos_kronia_verify_token(text) to anon, authenti
 grant execute on function public.aos_kronia_revocar_token(text) to anon, authenticated;
 grant execute on function public.aos_kronia_tool(text,text,jsonb) to anon, authenticated;
 
--- Legacy token issuer and cleanup are never browser-callable.
-revoke execute on function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_limpiar_tokens_expirados() from public, anon, authenticated;
+-- Legacy token administration is never browser-callable.
+revoke execute on function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_limpiar_tokens_expirados() from public,anon,authenticated;
 
--- Remove browser execution of the underlying KronIA business surface.
-revoke execute on function public.aos_kronia_buscar_cita(text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_buscar_paciente(text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_buscar_venta(text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_editar_cita(bigint,jsonb,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_editar_paciente(text,jsonb,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_marcar_estado_cita(bigint,text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_agregar_nota_paciente(text,text,text) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_explorar(text,text,jsonb) from public, anon, authenticated;
-revoke execute on function public.aos_kronia_obtener_insights_sofia() from public, anon, authenticated;
-revoke execute on function public.aos_kronia_stats_leads() from public, anon, authenticated;
-revoke execute on function public.aos_kronia_stats_agenda() from public, anon, authenticated;
-revoke execute on function public.aos_kronia_stats_llamadas() from public, anon, authenticated;
-revoke execute on function public.aos_kronia_stats_pacientes() from public, anon, authenticated;
+-- Underlying KronIA business functions are reachable only through the gateway.
+revoke execute on function public.aos_kronia_buscar_cita(text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_buscar_paciente(text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_buscar_venta(text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_editar_cita(bigint,jsonb,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_editar_paciente(text,jsonb,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_marcar_estado_cita(bigint,text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_agregar_nota_paciente(text,text,text) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_explorar(text,text,jsonb) from public,anon,authenticated;
+revoke execute on function public.aos_kronia_obtener_insights_sofia() from public,anon,authenticated;
+revoke execute on function public.aos_kronia_stats_leads() from public,anon,authenticated;
+revoke execute on function public.aos_kronia_stats_agenda() from public,anon,authenticated;
+revoke execute on function public.aos_kronia_stats_llamadas() from public,anon,authenticated;
+revoke execute on function public.aos_kronia_stats_pacientes() from public,anon,authenticated;
+revoke execute on function public.aos_editar_venta(bigint,jsonb,text,text,text) from public,anon,authenticated;
 
--- aos_editar_venta is also consumed by the native Sales editor. It is revoked only
--- after that editor is migrated to the token-bound gateway in this K1 branch.
-revoke execute on function public.aos_editar_venta(bigint,jsonb,text,text,text) from public, anon, authenticated;
-
--- -----------------------------------------------------------------------------
--- 5) Secrets + identity authority + append-only audit boundaries.
--- -----------------------------------------------------------------------------
--- Integration secret columns are no longer readable/writable by browser roles.
+-- 5) Integration secrets: browser receives metadata, never secret material.
 drop policy if exists anon_integ_read on public.aos_integraciones;
 drop policy if exists anon_integ_write on public.aos_integraciones;
-revoke all on table public.aos_integraciones from anon, authenticated;
+revoke all on table public.aos_integraciones from anon,authenticated;
 create policy integrations_browser_metadata on public.aos_integraciones
-  for select to anon, authenticated using (true);
-grant select(id,tipo,nombre,cuenta,estado,principal,created_at,updated_at,categoria,icono,descripcion,pasos_guia,uso_para,orden,url_docs,url_signup,multi_cuenta,logo_url)
-  on public.aos_integraciones to anon, authenticated;
+  for select to anon,authenticated using (true);
+grant select(id,tipo,nombre,cuenta,estado,principal,created_at,updated_at,categoria,icono,
+             descripcion,pasos_guia,uso_para,orden,url_docs,url_signup,multi_cuenta,logo_url)
+  on public.aos_integraciones to anon,authenticated;
 
--- Browser roles must not be able to promote/disable/change identities.
+-- 6) Identity source remains readable for legacy UI compatibility in K1, but
+-- browser roles cannot promote, disable or otherwise mutate identities.
 drop policy if exists anon_usuarios_all on public.aos_usuarios;
-revoke insert, update, delete on public.aos_usuarios from anon, authenticated;
+revoke insert,update,delete on public.aos_usuarios from anon,authenticated;
 create policy usuarios_legacy_read on public.aos_usuarios
-  for select to anon, authenticated using (true);
+  for select to anon,authenticated using (true);
 
--- Security/audit records become non-mutable from the browser. Legacy append-only
--- inserts remain where current consumers still need them; the authoritative
--- KronIA tool audit is written inside aos_kronia_tool as SECURITY DEFINER.
-revoke update, delete on public.aos_kronia_conversaciones from anon, authenticated;
+-- 7) Audit integrity. KronIA action audit is private and gateway-owned.
 drop policy if exists kronia_acc_all on public.aos_kronia_acciones;
-revoke all on public.aos_kronia_acciones from anon, authenticated;
+revoke all on public.aos_kronia_acciones from anon,authenticated;
 alter table public.aos_kronia_acciones enable row level security;
-revoke update, delete on public.aos_agente_logs from anon, authenticated;
-revoke update, delete on public.aos_agente_acciones from anon, authenticated;
-revoke update, delete on public.aos_log_auditoria from anon, authenticated;
-revoke all on public.aos_security_log from anon, authenticated;
+
+-- Conversation/legacy operational logs remain readable/appendable where current
+-- consumers require it, but browser roles cannot rewrite or delete history.
+revoke update,delete on public.aos_kronia_conversaciones from anon,authenticated;
+revoke update,delete on public.aos_agente_logs from anon,authenticated;
+revoke update,delete on public.aos_agente_acciones from anon,authenticated;
+revoke update,delete on public.aos_log_auditoria from anon,authenticated;
+
+-- Security log is only written/read through privileged functions/server paths.
+revoke all on public.aos_security_log from anon,authenticated;
 
 comment on function public.aos_kronia_tool(text,text,jsonb) is
-'K1 server-authoritative gateway. Browser role/usuario claims are ignored; identity is derived from opaque session token.';
+'K1 authoritative gateway. Browser role/user/sede claims are ignored; identity is re-derived from an opaque session token.';
