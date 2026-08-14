@@ -8,6 +8,7 @@ on:
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
+      - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
@@ -21,6 +22,7 @@ on:
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
+      - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
@@ -115,6 +117,7 @@ jobs:
           provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
           proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
           railway=Path('app/railway.json').read_text(encoding='utf-8')
+          recovery=Path('supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql').read_text(encoding='utf-8')
           assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
           assert 'aos_login_v2' not in login and '/api/send-2fa' not in login
           assert "register('/phase2-service-worker.js'" in login
@@ -128,6 +131,7 @@ jobs:
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
           assert 'node server-phase2.js' in railway
           assert 'node staging-server.js' in railway
+          assert 'legacy_bypass' in recovery and 'not_restored' in recovery
           PY
 
       - name: Runtime auth retirement smoke
@@ -144,6 +148,16 @@ jobs:
           grep -q 'LEGACY_AUTH_ENDPOINT_RETIRED' /tmp/legacy2fa.json
           test "$(curl -sS -o /tmp/turnstile.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:4190/api/verify-turnstile)" = "410"
           kill $(cat /tmp/phase2-proxy.pid) || true
+
+      - name: Emergency recovery contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cartera_gateway(text,text,text,integer,integer)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_caja_abrir_v2(text,text,numeric,numeric,numeric,date)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_login_v3(text,text)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_login_v2(text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_ventas','INSERT')")" = "f"
 
       - name: Stop isolated Supabase
         if: always()
