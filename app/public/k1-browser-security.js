@@ -16,10 +16,29 @@
     return nativeFetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':k,Authorization:'Bearer '+k},body:JSON.stringify(p||{})});
   }
   function rpcJson(name,p){return rpc(name,p).then(function(r){return r.json().then(function(d){if(!r.ok||d&&d.ok===false)throw new Error((d&&d.error)||('HTTP_'+r.status));return d})})}
-  function sameOriginApi(raw){try{var u=new URL(raw,location.href);return u.origin===location.origin&&(u.pathname.indexOf('/api/kronia/')===0||u.pathname.indexOf('/api/agents/')===0)}catch(e){return false}}
+  function protectedAppApi(raw){
+    try{
+      var u=new URL(raw,location.href),same=u.origin===location.origin;
+      if(!same)return false;
+      return u.pathname.indexOf('/api/kronia/')===0||u.pathname.indexOf('/api/agents/')===0||u.pathname==='/api/send-email'||u.pathname.indexOf('/api/studio/')===0;
+    }catch(e){return false}
+  }
+  function scrubCredentialEmail(init){
+    if(!init||!init.body)return init;
+    try{
+      var d=JSON.parse(init.body);if(!d||!d.html)return init;
+      var html=String(d.html);
+      html=html.replace(/(<b>Contrase(?:ñ|n)a:<\/b>\s*)(?:<code[^>]*>)?[^<]*(?:<\/code>)?/gi,'$1Entregada por el administrador mediante canal seguro')
+               .replace(/(<span[^>]*>Contrase(?:ñ|n)a:<\/span>\s*<span[^>]*>)[^<]*(<\/span>)/gi,'$1Entregada por el administrador mediante canal seguro$2');
+      d.html=html;
+      return Object.assign({},init,{body:JSON.stringify(d)});
+    }catch(e){return init}
+  }
   function withBearer(input,init){
-    var t=token(),h=new Headers((init&&init.headers)||(input&&input.headers)||{});if(t)h.set('Authorization','Bearer '+t);h.delete('X-AOS-User');h.delete('X-AOS-Id');
-    return [input,Object.assign({},init||{},{headers:h})];
+    var t=token(),next=init||{},raw=urlOf(input),u;try{u=new URL(raw,location.href)}catch(e){u=null}
+    if(u&&u.pathname==='/api/send-email')next=scrubCredentialEmail(next);
+    var h=new Headers((next&&next.headers)||(input&&input.headers)||{});if(t)h.set('Authorization','Bearer '+t);h.delete('X-AOS-User');h.delete('X-AOS-Id');
+    return [input,Object.assign({},next,{headers:h})];
   }
   function targetIdFrom(u){var x=u.searchParams.get('id')||'';return x.indexOf('eq.')===0?x.slice(3):''}
   function targetByCode(code){var k=anonKey();return nativeFetch(SB+'/rest/v1/aos_usuarios?select=id&codigo_asesor=eq.'+encodeURIComponent(code),{headers:{apikey:k,Authorization:'Bearer '+k}}).then(function(r){return r.json()}).then(function(rows){return rows&&rows[0]&&rows[0].id})}
@@ -27,7 +46,7 @@
 
   window.fetch=function(input,init){
     var raw=urlOf(input),method=String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
-    if(sameOriginApi(raw)){var b=withBearer(input,init);return nativeFetch(b[0],b[1]);}
+    if(protectedAppApi(raw)){var b=withBearer(input,init);return nativeFetch(b[0],b[1]);}
 
     var u;try{u=new URL(raw,location.href)}catch(e){return nativeFetch(input,init)}
     var rpcm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/),fn=rpcm&&rpcm[1];
