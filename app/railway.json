@@ -5,7 +5,7 @@
     "buildCommand": "python3 k1_materialize_runtime.py && python3 k1_internal_boundary_v2.py && python3 k1_identity_boundary.py && python3 k1_config_boundary.py"
   },
   "deploy": {
-    "startCommand": "node server.js",
+    "startCommand": "node server-phase2.js",
     "restartPolicyType": "ON_FAILURE"
   },
   "environments": {

@@ -59,6 +59,26 @@ Este documento define la política de seguridad y las fronteras de confianza de 
 8. Producción no debe utilizarse como entorno de prueba.
 9. El futuro SaaS debe aislar clínicas/tenants por diseño; no se asume aislamiento multi-tenant en la base actual.
 10. Cambios de Auth, RLS, GRANT/REVOKE, secretos o infraestructura son CRITICAL según `AGENTS.md`.
+11. Para HIGH/CRITICAL, Zero-Cost Staging es el gate preproductivo por defecto conforme a `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`.
+12. Una Supabase Cloud Development Branch u otra infraestructura pagada no reemplaza controles de seguridad y solo se crea cuando exista una necesidad técnica no cubierta por Zero-Cost + canary, con costo y autorización explícitos.
+
+## Política Zero-Cost para seguridad
+
+Zero-Cost Staging debe usarse para demostrar, según el cambio:
+
+- compilación exacta de migrations;
+- RLS/GRANT/REVOKE y ACL efectivas;
+- callers permitidos/denegados de `SECURITY DEFINER`;
+- pruebas positivas y negativas de Auth/rol/sesión;
+- rechazo de replay, forged claims, IDOR o bypass directo cuando aplique;
+- lint de base de datos;
+- rollback ejecutable y recovery;
+- equivalencia entre runtime certificado y runtime desplegable;
+- ausencia de secretos/fallbacks hardcodeados en el artefacto de release.
+
+El entorno Zero-Cost no debe contener secretos productivos ni PII/PHI real y debe destruirse automáticamente al finalizar.
+
+Un certificado Zero-Cost no equivale a autorización productiva. Para CRITICAL siguen siendo obligatorios el preflight productivo read-only, canary/additive rollout cuando sea posible, smoke real, security review final y aprobación explícita antes de mutar producción.
 
 ## Política para Codex / agentes de desarrollo
 
@@ -66,12 +86,14 @@ Antes de modificar código o base:
 
 1. leer `AGENTS.md`;
 2. leer `docs/control/ASCENDA_CONTROL_MASTER.md`;
-3. identificar archivos, endpoints, RPC, tablas, triggers y consumidores;
-4. clasificar riesgo;
-5. para HIGH/CRITICAL, crear Impact Report y rollback;
-6. trabajar en branch no productiva;
-7. ejecutar CI y pruebas aplicables;
-8. validar en staging antes de producción cuando el riesgo lo requiera.
+3. leer `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`;
+4. localizar el master/index/checkpoint CURRENT del workstream;
+5. identificar archivos, endpoints, RPC, tablas, triggers y consumidores;
+6. clasificar riesgo;
+7. para HIGH/CRITICAL, crear Impact Report y rollback;
+8. trabajar en branch no productiva;
+9. ejecutar CI y Zero-Cost Staging/pruebas aplicables;
+10. ejecutar preflight/canary/smoke según riesgo antes de declarar producción certificada.
 
 ## Política para Codex Security
 
@@ -96,10 +118,11 @@ Antes de modificar código o base:
 ### Reglas de remediación
 
 - Un finding no se corrige directamente en `main`.
-- HIGH/CRITICAL requiere validación, Impact Report, branch, pruebas y staging.
+- HIGH/CRITICAL requiere validación, Impact Report, branch, pruebas y Zero-Cost Staging.
 - Hallazgos de secretos requieren rotación; eliminar el valor del HEAD no invalida exposición histórica.
 - No se reduce un control de seguridad solo para hacer pasar pruebas.
 - Los parches de seguridad deben preservar disponibilidad y compatibilidad mediante migración progresiva.
+- Para CRITICAL, no declarar 100% mientras quede un finding HIGH/CRITICAL abierto dentro del scope o un gate productivo obligatorio sin ejecutar.
 
 ## Reporte responsable interno
 
@@ -109,3 +132,4 @@ Los hallazgos deben registrarse sin publicar secretos, PHI/PII ni pruebas ofensi
 
 Repository: `CESARJAUREGUITORRES/ascenda-os`
 Baseline date: `2026-08-12`
+Policy update: `2026-08-14` — Zero-Cost Validation Standard adopted as default preproduction security gate.

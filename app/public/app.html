@@ -721,6 +721,7 @@ var SIDEBAR_ADMIN = [
   {type:'sep'},
   {type:'section',label:'Finanzas'},
   {type:'item',id:'admin-caja',          ico:'money',     lbl:'Caja'},
+  {type:'item',id:'admin-cartera',       ico:'money',     lbl:'Cartera', requiresPanel:true},
   {type:'item',id:'admin-billing',      ico:'receipt',   lbl:'Facturacion'},
   {type:'sep'},
   {type:'section',label:'Recursos'},
@@ -842,6 +843,7 @@ var VIEW_MAP = {
   'admin-email':         'ViewAdminEmail',
   'admin-calls':         'ViewAdminCalls',
   'admin-caja':          'ViewAdminCaja',
+  'admin-cartera':'ViewAdminCartera',
   'admin-billing':       'ViewAdminBilling',
   'admin-team':          'ViewAdminTeam',
   'admin-catalogo':      'ViewAdminCatalogo',
@@ -854,6 +856,12 @@ var VIEW_MAP = {
 function navigateTo(viewId) {
   if (viewId === 'admin-sales-intelligence' && !(AOS.role === 'ADMIN' && Number(AOS.ctx.nivel || 99) <= 1)) {
     viewId = 'admin-sales';
+  }
+  if (viewId === 'admin-cartera' && !(
+    AOS.role === 'ADMIN' && Number(AOS.ctx.nivel || 99) <= 2 &&
+    (AOS.ctx.paneles_acceso || []).indexOf('admin-cartera') >= 0
+  )) {
+    viewId = 'admin-caja';
   }
   if (AOS.activeView === viewId) return;
   AOS.activeView = viewId;
@@ -898,6 +906,7 @@ function navigateTo(viewId) {
     'ViewAdminMarketing':     '/admin-marketing.html',
     'ViewAdminEmail':         '/admin-email.html',
     'ViewAdminCaja':          '/caja.html',
+    'ViewAdminCartera':     '/admin-cartera.html',
     'ViewAdminAgenda':        '/admin-agenda.html',
     'ViewAdminBilling':       '/admin-billing.html',
     'ViewAdminConfig':        '/admin-config.html',

@@ -1,0 +1,103 @@
+name: ASCENDA Cartera Phase 2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*cartera_phase2*'
+      - 'supabase/rollbacks/*cartera_phase2*'
+      - 'ci/phase2-cartera/**'
+      - 'app/public/admin-cartera.html'
+      - 'app/public/app.html'
+      - 'app/public/caja.html'
+      - '.github/workflows/cartera-phase2.yml'
+  push:
+    branches: ['agent/**','feature/**','fix/**','security/**']
+    paths:
+      - 'supabase/migrations/*cartera_phase2*'
+      - 'supabase/rollbacks/*cartera_phase2*'
+      - 'ci/phase2-cartera/**'
+      - 'app/public/admin-cartera.html'
+      - 'app/public/app.html'
+      - 'app/public/caja.html'
+      - '.github/workflows/cartera-phase2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartera-phase2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase2-base"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 55321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 55322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 55320/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          supabase db start
+
+      - name: Build synthetic schema and prerequisite contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813164711_fix_otros_service_type.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814021609_fix_2fa_context_canary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814024619_sales_intelligence_admin_activation.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/fixture_pre_migration.sql
+
+      - name: Compile Cartera Phase 2 migration
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_cartera_reconciliacion")" = "4"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion(text,numeric,text,text,text,text,text,text,text,text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)','EXECUTE')")" = "t"
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP Cartera contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/004_cartera_phase2.sql | tee /tmp/cartera-pgtap.txt
+          grep -q '1..96' /tmp/cartera-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/cartera-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/cartera-pgtap.txt; then exit 1; fi
+
+      - name: UI contract
+        run: |
+          python3 -c "from pathlib import Path; p=Path('app/public/caja.html'); p.read_text(encoding='utf-8'); assert p.stat().st_size > 150000"
+          python3 ci/phase2-cartera/ui_contract.py
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true

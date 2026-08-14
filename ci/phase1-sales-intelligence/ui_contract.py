@@ -48,11 +48,17 @@ assert 'canaryNivel' not in shell
 assert "perms.indexOf(it.id) >= 0" in shell
 assert "sessionStorage.removeItem('aos_si_token')" in shell
 
-assert 'aos_sales_intelligence_claim_session' in login
+# Phase 2 strengthens the shared login boundary. Sales Intelligence now receives
+# the same opaque token from the independent 2FA v3 verifier instead of asking
+# the browser to replay password + OTP into aos_sales_intelligence_claim_session.
+assert 'aos_login_v3' in login
+assert 'aos_verificar_2fa_v3' in login
 assert "sessionStorage.setItem('aos_si_token'" in login
-assert 'si_session_claimed' in login
-assert 'p_login_usuario: _SI_LOGIN_USER' in login
-assert 'p_password: _SI_LOGIN_PASSWORD' in login
+assert "sessionStorage.setItem('aos_app_token'" in login
+assert 'finance_token' in login
+assert 'aos_sales_intelligence_claim_session' not in login
+assert 'aos_login_v2' not in login
+assert '/api/send-2fa' not in login
 assert "sessionStorage.setItem('aos_si_password'" not in login
 assert "localStorage.setItem('aos_si_password'" not in login
 
