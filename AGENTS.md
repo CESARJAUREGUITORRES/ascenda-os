@@ -31,7 +31,7 @@ Reglas especiales CIA:
 - incidentes productivos se restauran primero y luego se continúa la fase;
 - no avanzar de fase si el handshake con la fase anterior o el contrato para la siguiente no está probado.
 
-Checkpoint CIA al incorporar estas reglas: Fases 0–9 `100_COMPLETE`; Fase 10 — Advisor Control Center `READY`; staging canónico `2e1116f07919fcf53bdac8cf61cbd23944863630`.
+Checkpoint funcional CIA al incorporar estas reglas: Fases 0–9 `100_COMPLETE`; Fase 10 — Advisor Control Center `READY`; cierre funcional F9 `2e1116f07919fcf53bdac8cf61cbd23944863630`. El checkpoint de control/documentación actual se obtiene siempre de `staging` HEAD live y `aos_memory.cia_v3_control_checkpoint`.
 
 ## Fuente de verdad de arquitectura
 
