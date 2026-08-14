@@ -33,3 +33,13 @@ src = src[:pos] + "\ns = s.replace(\"var groqKey = rows && rows[0] ? rows[0].api
 
 code = compile(src, str(src_path), 'exec')
 exec(code, {'__name__': '__main__', '__file__': str(src_path)})
+
+# K1 uses a narrow token-bound ADMIN RPC for integration deactivation. This
+# prevents the configuration UI from overloading the general KronIA tool router.
+cfg_path = Path('app/public/admin-config.html')
+cfg = cfg_path.read_text(encoding='utf-8')
+cfg = cfg.replace(
+    "sbRpc('aos_kronia_tool',{p_token:t,p_tool:'aos_admin_desactivar_integracion',p_params:{p_id:id}})",
+    "sbRpc('aos_kronia_admin_desactivar_integracion',{p_token:t,p_id:id})"
+)
+cfg_path.write_text(cfg, encoding='utf-8')
