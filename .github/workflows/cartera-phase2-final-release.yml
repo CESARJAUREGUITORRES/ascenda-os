@@ -12,10 +12,13 @@ on:
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
       - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/migrations/20260814064000_phase2_owner_canary_access.sql'
+      - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
+      - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
       - '.github/workflows/cartera-phase2-final-release.yml'
   push:
-    branches: ['agent/**','feature/**','fix/**','security/**']
+    branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
     paths:
       - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
       - 'supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql'
@@ -25,6 +28,9 @@ on:
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
       - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/migrations/20260814064000_phase2_owner_canary_access.sql'
+      - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
+      - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
       - '.github/workflows/cartera-phase2-final-release.yml'
   workflow_dispatch:
@@ -38,7 +44,7 @@ concurrency:
 
 jobs:
   exact-release-chain:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 25
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:57322/postgres
@@ -85,9 +91,45 @@ jobs:
             20260814061000_phase2_secure_write_defaults_fix.sql \
             20260814062000_phase2_auth_provider_boundary.sql \
             20260814063000_phase2_identity_admin_hardening.sql \
-            20260814064000_phase2_owner_canary_access.sql; do
+            20260814064000_phase2_owner_canary_access.sql \
+            20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
+            20260814164500_restore_2fa_email_branding.sql \
+            20260814195300_fix_auth_v3_btrim.sql; do
               psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
           done
+
+      - name: Reproduce and close P0 audit-trigger outage
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          create table if not exists public.aos_log_auditoria (
+            id bigserial primary key,
+            ts timestamptz,
+            tabla text,
+            accion text,
+            asesor text,
+            registro_id text,
+            datos_new jsonb,
+            datos_old jsonb,
+            metadata jsonb
+          );
+          alter table public.aos_log_auditoria add column if not exists ts timestamptz;
+          alter table public.aos_log_auditoria add column if not exists tabla text;
+          alter table public.aos_log_auditoria add column if not exists accion text;
+          alter table public.aos_log_auditoria add column if not exists asesor text;
+          alter table public.aos_log_auditoria add column if not exists registro_id text;
+          alter table public.aos_log_auditoria add column if not exists datos_new jsonb;
+          alter table public.aos_log_auditoria add column if not exists datos_old jsonb;
+          alter table public.aos_log_auditoria add column if not exists metadata jsonb;
+          drop trigger if exists trg_brain_audit on public.aos_rrhh;
+          create trigger trg_brain_audit
+            after update on public.aos_rrhh
+            for each row execute function public.fn_audit_trigger();
+          set search_path='';
+          update public.aos_rrhh set updated_at=pg_catalog.now() where codigo_asesor='CAROWNER';
+          SQL
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_log_auditoria where tabla='aos_rrhh' and accion='UPDATE'")" -ge "1"
+          echo 'PHASE2_P0_AUDIT_TRIGGER_REGRESSION=PASS'
 
       - name: Final release invariants
         run: |
@@ -100,10 +142,35 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)','EXECUTE')")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_ventas','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_cartera_reconciliacion') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('AscendaOS <info@zivital.pe>' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('ascenda_branded_v1' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.btrim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.trim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))=0")" = "t"
+          echo 'PHASE2_BRANDED_2FA_FINAL=PASS'
+          echo 'PHASE2_AUTH_BTRIM_P0=PASS'
 
       - name: Final database lint
         working-directory: ci/zero-cost-staging
-        run: supabase db lint --local --schema public --level error
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/db-lint.txt
+          ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
+
+      - name: Release digest
+        run: |
+          set -euo pipefail
+          sha256sum \
+            supabase/migrations/20260814030000_phase2_auth_v3_additive.sql \
+            supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql \
+            supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql \
+            supabase/migrations/20260814060000_phase2_production_hardening.sql \
+            supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql \
+            supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql \
+            supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql \
+            supabase/migrations/20260814064000_phase2_owner_canary_access.sql \
+            supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
+            supabase/migrations/20260814164500_restore_2fa_email_branding.sql \
+            supabase/migrations/20260814195300_fix_auth_v3_btrim.sql
 
       - name: Stop isolated Supabase
         if: always()
