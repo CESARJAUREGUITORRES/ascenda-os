@@ -3,7 +3,7 @@
 DO $$
 declare
   alice_id uuid;
-  bob_id uuid;
+  eve_id uuid;
   level2_id uuid;
   admin_token text;
   level2_token text;
@@ -12,12 +12,12 @@ declare
   blocked boolean;
 begin
   select id into alice_id from public.aos_usuarios where codigo_asesor='A001';
-  select id into bob_id from public.aos_usuarios where codigo_asesor='A002';
+  select id into eve_id from public.aos_usuarios where codigo_asesor='A002';
 
   -- K1-106: free-form cargo/puesto cannot elevate a regular identity.
-  update public.aos_usuarios set rol='asesor',nivel_jerarquia=4,cargo='ADMINISTRADOR',two_factor=false where id=bob_id;
+  update public.aos_usuarios set rol='asesor',nivel_jerarquia=4,cargo='ADMINISTRADOR',two_factor=false where id=eve_id;
   update public.aos_rrhh set puesto='ADMINISTRADOR' where codigo_asesor='A002';
-  j:=public.aos_kronia_claim_session('bob','bob-pass',null,'ci-authority',null,'ci');
+  j:=public.aos_kronia_claim_session('eve','eve-pass',null,'ci-authority',null,'ci');
   if not coalesce((j->>'ok')::boolean,false) or j->>'rol'<>'ASESOR' then
     raise exception 'K1-106 free-form cargo/puesto elevated authority: %',j;
   end if;
@@ -25,7 +25,7 @@ begin
   -- K1-107: DB invariant blocks role=admin outside privileged hierarchy.
   blocked:=false;
   begin
-    update public.aos_usuarios set rol='admin' where id=bob_id;
+    update public.aos_usuarios set rol='admin' where id=eve_id;
   exception when others then blocked:=true;
   end;
   if not blocked then raise exception 'K1-107 ordinary level accepted ADMIN role'; end if;
@@ -37,7 +37,7 @@ begin
     raise exception 'K1-108 ADMIN without 2FA obtained/approached session: %',j;
   end if;
 
-  -- K1-109/110: verifier safely accepts username, resolves canonical 2FA subject,
+  -- K1-109/110: verifier accepts username, resolves canonical 2FA subject,
   -- and consumes the OTP only once.
   update public.aos_usuarios set two_factor=true where id=alice_id;
   insert into public.aos_auth_codes(usuario,email,codigo,expira_at,usado)
@@ -52,7 +52,7 @@ begin
     raise exception 'K1-111 canonical owner token not ADMIN';
   end if;
 
-  -- Build a level-2 ADMIN with valid 2FA proof.
+  -- Build or reuse level-2 ADMIN with valid 2FA proof.
   select id into level2_id from public.aos_usuarios where codigo_asesor='A004';
   if level2_id is null then
     insert into public.aos_rrhh(codigo_asesor,nombre,apellido,puesto,sede,usuario,password_hash,estado)
@@ -73,16 +73,16 @@ begin
     raise exception 'K1-112 level-2 created privileged identity: %',j;
   end if;
 
-  -- K1-113: attempting role=admin on an ordinary target cannot bypass hierarchy.
-  j:=public.aos_kronia_admin_identity_safe(admin_token,'update_profile',bob_id,
+  -- K1-113: attempting role=admin on ordinary target cannot bypass hierarchy.
+  j:=public.aos_kronia_admin_identity_safe(admin_token,'update_profile',eve_id,
       jsonb_build_object('rol','admin','nivel_jerarquia',4));
   if coalesce((j->>'ok')::boolean,false) then
-    if exists(select 1 from public.aos_usuarios where id=bob_id and lower(coalesce(rol,''))='admin') then
+    if exists(select 1 from public.aos_usuarios where id=eve_id and lower(coalesce(rol,''))='admin') then
       raise exception 'K1-113 ordinary identity was promoted via free-form role';
     end if;
   end if;
 
-  -- K1-114: changing the canonical role invalidates an existing ADMIN token.
+  -- K1-114: changing canonical role invalidates existing ADMIN token.
   update public.aos_usuarios set rol='asesor' where id=alice_id;
   j:=public.aos_kronia_verify_token(admin_token);
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1-114 role-changed ADMIN token remained valid'; end if;
