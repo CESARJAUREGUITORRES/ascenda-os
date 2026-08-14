@@ -10,4 +10,4 @@ Certification targets: 394 owner-reviewed rows, 388 product facts, 6 exclusions,
 
 Owner authorization to complete the governed F3 loop was recorded on 2026-08-14. It does not permit bypassing the exact-SHA CI, preflight, recovery or post-cutover smoke gates.
 
-The push workflow is the active preproduction gate while this PR is temporarily based on the Zero-Cost CI V2 infrastructure branch. After PR #97 merges, Phase 3 must synchronize to CURRENT `main` and obtain a final exact-SHA gate again before production cutover.
+PR #97 / ASCENDA Zero-Cost CI V2 is now merged into CURRENT `main` at merge commit `c8b71d2d10aa913b81044ba58e8d09674cbe7ab3`. Phase 3 is retargeted to `main`; this commit intentionally triggers the final exact-SHA preproduction gate before any production cutover.
