@@ -22,19 +22,42 @@ if n_resend < 2: raise SystemExit(f'K1 materialize: expected Resend hardcoded fa
 if re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",s): raise SystemExit('K1 materialize: Resend fallback survived')
 write(p,s)
 
-# Global browser boundary. Main app hosts dynamic admin fragments, so injecting
-# once in app.html covers Team/Config/Sales/Agents/Email/Studio. Brain is standalone.
+# Main app hosts dynamic admin fragments; user interactions happen after this
+# boundary is installed, so one injection before </body> covers them.
 tag='<script src="/k1-browser-security.js"></script>'
-for p in ['public/app.html','public/cerebro.html']:
-    s=read(p)
-    if tag not in s:
-        if '</body>' not in s.lower(): raise SystemExit(f'K1 materialize: body anchor missing in {p}')
-        idx=s.lower().rfind('</body>')
-        s=s[:idx]+tag+'\n'+s[idx:]
-    write(p,s)
+p='public/app.html'; s=read(p)
+if tag not in s:
+    if '</body>' not in s.lower(): raise SystemExit('K1 materialize: app body anchor missing')
+    idx=s.lower().rfind('</body>'); s=s[:idx]+tag+'\n'+s[idx:]
+write(p,s)
+
+# Brain starts connectivity checks synchronously inside its main inline script.
+# Split that script immediately after the canonical Supabase key/header setup so
+# K1 fetch interception is active before any audit polling. Then disable only the
+# direct Realtime audit WebSocket; sanitized incremental polling remains active.
+p='public/cerebro.html'; s=read(p)
+brain_anchor="const H = {'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};"
+if tag not in s:
+    if brain_anchor not in s: raise SystemExit('K1 materialize: Brain Supabase header anchor missing')
+    split=brain_anchor+"\nwindow._SK=SK;\n</script>\n"+tag+"\n<script>"
+    s=s.replace(brain_anchor,split,1)
+if '/* K1: direct audit Realtime disabled; sanitized polling remains. */' not in s:
+    if s.count('\nconnectRT();\n')!=1: raise SystemExit('K1 materialize: Brain connectRT anchor mismatch')
+    s=s.replace('\nconnectRT();\n','\n/* K1: direct audit Realtime disabled; sanitized polling remains. */\n',1)
+write(p,s)
+
+# Team backend now enforces minimum 10 characters. Keep UI validation consistent
+# so the legacy view cannot show a false-success path for 6–9 character values.
+p='public/admin-team.html'; s=read(p)
+s=s.replace('pw.length<6','pw.length<10')
+s=s.replace('np.length<6','np.length<10')
+s=s.replace('Mínimo 6 caracteres','Mínimo 10 caracteres')
+s=s.replace('mínimo 6 caracteres','mínimo 10 caracteres')
+s=s.replace('Contraseña mínimo 6 caracteres','Contraseña mínimo 10 caracteres')
+write(p,s)
 
 # Deterministic manifest proves the exact runtime produced by Railway.
-targets=['server.js','server-k1.js','server-phase2.js','public/app.html','public/cerebro.html','public/k1-browser-security.js','public/login.html','public/phase2-auth-shim.js','public/phase2-security-shim.js','public/phase2-service-worker.js']
+targets=['server.js','server-k1.js','server-phase2.js','public/app.html','public/cerebro.html','public/admin-team.html','public/k1-browser-security.js','public/login.html','public/phase2-auth-shim.js','public/phase2-security-shim.js','public/phase2-service-worker.js']
 manifest={'contract':'kronia-k1-phase2-runtime-v1','files':{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in targets}}
 write('k1-phase2-runtime-manifest.json',json.dumps(manifest,sort_keys=True,indent=2)+'\n')
 print('KRONIA_K1_PHASE2_RUNTIME=PASS')
