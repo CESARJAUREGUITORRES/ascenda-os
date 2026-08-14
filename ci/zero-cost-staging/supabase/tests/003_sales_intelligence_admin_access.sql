@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(26);
+SELECT plan(27);
 
 INSERT INTO public.aos_usuarios
   (codigo_asesor,nombre,email,rol,paneles_acceso,nivel_jerarquia,area,cargo,two_factor,activo)
@@ -121,16 +121,13 @@ SELECT is((
     AND coalesce(array_to_string(p.proconfig,','),'') like '%search_path=""%'
 ),4::bigint,'all SI security-definer functions use an empty search_path');
 
-DO $
-DECLARE
-  v_token text;
-  v_target uuid;
-BEGIN
-  SELECT j->>'token' INTO v_token FROM _si_owner_claim;
-  SELECT id INTO v_target FROM public.aos_usuarios WHERE codigo_asesor='SIADMIN';
-  PERFORM public.aos_sales_intelligence_set_access(v_token,v_target,true);
-END;
-$;
+SELECT ok((
+  public.aos_sales_intelligence_set_access(
+    (SELECT j->>'token' FROM _si_owner_claim),
+    (SELECT id FROM public.aos_usuarios WHERE codigo_asesor='SIADMIN'),
+    true
+  )->>'ok'
+)::boolean,'target can be re-enabled before trigger test');
 UPDATE public.aos_usuarios SET two_factor=false WHERE codigo_asesor='SIADMIN';
 SELECT is((SELECT enabled FROM public.aos_sales_intelligence_access sia JOIN public.aos_usuarios u ON u.id=sia.user_id WHERE u.codigo_asesor='SIADMIN'),false,'demotion or 2FA removal automatically disables access');
 
