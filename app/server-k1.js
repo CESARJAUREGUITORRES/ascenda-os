@@ -18,13 +18,7 @@ if (!SERVICE_KEY) {
   process.exit(1);
 }
 
-const child = spawn(process.execPath,['server-phase2.js'],{
-  cwd:__dirname,
-  env:Object.assign({},process.env,{PORT:String(PHASE2_PORT)}),
-  stdio:['ignore','inherit','inherit']
-});
-child.on('exit',(code,signal)=>{console.error('[K1] Phase2 proxy exited',{code,signal});process.exit(code==null?1:code);});
-
+let child=null;
 const buckets=new Map();
 function ipOf(req){return String((req.headers['x-forwarded-for']||'').split(',')[0]||req.socket.remoteAddress||'unknown').trim();}
 function rateKey(req,group){return group+':'+ipOf(req);}
@@ -56,12 +50,34 @@ function bearer(req){const h=String(req.headers.authorization||'');return /^Bear
 function sbRequest(method,endpoint,body){
   const u=new URL(SB_URL+endpoint),payload=body===undefined?null:JSON.stringify(body);
   return new Promise(resolve=>{
+    let settled=false;
+    const done=(value)=>{if(settled)return;settled=true;resolve(value);};
     const headers={'apikey':SERVICE_KEY,'Authorization':'Bearer '+SERVICE_KEY,'Content-Type':'application/json'};
     if(payload!==null)headers['Content-Length']=Buffer.byteLength(payload);
-    const r=https.request({hostname:u.hostname,path:u.pathname+u.search,method,headers},rr=>{let d='';rr.on('data',c=>d+=c);rr.on('end',()=>{let parsed=null;try{parsed=JSON.parse(d)}catch(_){parsed=d}resolve({status:rr.statusCode||500,data:parsed});});});
-    r.on('error',()=>resolve({status:503,data:null}));if(payload!==null)r.write(payload);r.end();
+    const r=https.request({hostname:u.hostname,path:u.pathname+u.search,method,headers},rr=>{let d='';rr.on('data',c=>d+=c);rr.on('end',()=>{let parsed=null;try{parsed=JSON.parse(d)}catch(_){parsed=d}done({status:rr.statusCode||500,data:parsed});});});
+    r.setTimeout(8000,()=>{r.destroy();done({status:504,data:null});});
+    r.on('error',()=>done({status:503,data:null}));if(payload!==null)r.write(payload);r.end();
   });
 }
+
+async function loadResendRuntimeKey(){
+  // K1 makes aos_integraciones secret columns service-role only. Runtime loads
+  // the principal connected Resend key into child-process memory; never logs it.
+  if(process.env.K1_SKIP_RUNTIME_SECRET_LOOKUP==='1')return String(process.env.RESEND_API_KEY||'');
+  const r=await sbRequest('GET','/rest/v1/aos_integraciones?select=api_key&tipo=eq.resend&estado=eq.conectado&principal=eq.true&limit=1');
+  const row=Array.isArray(r.data)&&r.data[0];
+  if(row&&typeof row.api_key==='string'&&row.api_key.length>10)return row.api_key;
+  return String(process.env.RESEND_API_KEY||'');
+}
+function startInner(runtimeEnv){
+  child=spawn(process.execPath,['server-phase2.js'],{
+    cwd:__dirname,
+    env:runtimeEnv,
+    stdio:['ignore','inherit','inherit']
+  });
+  child.on('exit',(code,signal)=>{console.error('[K1] Phase2 proxy exited',{code,signal});process.exit(code==null?1:code);});
+}
+
 async function identity(req,requireAdmin){
   const token=bearer(req);if(token.length<32)return {ok:false,status:401,error:'APP_SESSION_REQUIRED'};
   // Prefer K1 identity once migration B exists; fall back to Phase 2 actor during
@@ -144,7 +160,6 @@ const server=http.createServer(async(req,res)=>{
     let raw;try{raw=await collect(req,524288);}catch(e){json(res,e.status||400,{ok:false,error:e.message});return;}
     let d={};try{d=JSON.parse(raw.toString('utf8')||'{}');}catch(_){json(res,400,{ok:false,error:'INVALID_JSON'});return;}
     const html=String(d.html||'');
-    // Passwords/temporary credentials must never be transported by email.
     if(/(?:contrase(?:ñ|n)a|password)\s*:\s*(?:<[^>]+>\s*)*[^<\s]/i.test(html)){
       json(res,422,{ok:false,error:'PASSWORD_EMAIL_FORBIDDEN'});return;
     }
@@ -163,6 +178,15 @@ const server=http.createServer(async(req,res)=>{
 });
 
 server.on('clientError',(err,socket)=>socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
-function shutdown(sig){server.close(()=>process.exit(0));if(!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}
+function shutdown(sig){server.close(()=>process.exit(0));if(child&&!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}
 process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
-server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[K1] security proxy listening',EXTERNAL_PORT,'-> phase2',PHASE2_PORT));
+
+async function bootstrap(){
+  const resendKey=await loadResendRuntimeKey();
+  const runtimeEnv=Object.assign({},process.env,{PORT:String(PHASE2_PORT)});
+  if(resendKey)runtimeEnv.RESEND_API_KEY=resendKey;
+  else delete runtimeEnv.RESEND_API_KEY;
+  startInner(runtimeEnv);
+  server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[K1] security proxy listening',EXTERNAL_PORT,'-> phase2',PHASE2_PORT));
+}
+bootstrap().catch(err=>{console.error('[K1] secure bootstrap failed',err&&err.message?err.message:'unknown');process.exit(1);});
