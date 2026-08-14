@@ -4,10 +4,13 @@
 'use strict';
 
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10);
 const INTERNAL_PORT = EXTERNAL_PORT === 4187 ? 4188 : 4187;
+const SB_URL = process.env.SUPABASE_URL || 'https://ituyqwstonmhnfshnaqz.supabase.co';
+const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 const child = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
@@ -24,9 +27,106 @@ function blocked(pathname) {
   return pathname === '/api/send-2fa' || pathname === '/api/verify-turnstile';
 }
 
+function writeJson(res, status, body, extraHeaders) {
+  const headers = Object.assign({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate'
+  }, extraHeaders || {});
+  res.writeHead(status, headers);
+  res.end(JSON.stringify(body));
+}
+
+function authRpcProxy(req, res, rpcName) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'no-store'
+    });
+    res.end();
+    return;
+  }
+  if (req.method !== 'POST') {
+    writeJson(res, 405, { ok: false, error: 'METHOD_NOT_ALLOWED', auth_version: 'v3' });
+    return;
+  }
+
+  let body = '';
+  let overflow = false;
+  req.on('data', chunk => {
+    if (overflow) return;
+    body += chunk;
+    if (Buffer.byteLength(body) > 16384) overflow = true;
+  });
+  req.on('end', () => {
+    if (overflow) {
+      writeJson(res, 413, { ok: false, error: 'PAYLOAD_TOO_LARGE', auth_version: 'v3' });
+      return;
+    }
+    try { JSON.parse(body || '{}'); } catch (_) {
+      writeJson(res, 400, { ok: false, error: 'INVALID_JSON', auth_version: 'v3' });
+      return;
+    }
+
+    let sb;
+    try { sb = new URL(SB_URL); } catch (_) {
+      writeJson(res, 503, { ok: false, error: 'AUTH_UPSTREAM_CONFIG_ERROR', auth_version: 'v3' });
+      return;
+    }
+
+    const payload = body || '{}';
+    const upstream = https.request({
+      hostname: sb.hostname,
+      port: sb.port || 443,
+      path: '/rest/v1/rpc/' + rpcName,
+      method: 'POST',
+      headers: {
+        apikey: SB_ANON_KEY,
+        Authorization: 'Bearer ' + SB_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'User-Agent': 'AscendaOS-Phase2-AuthProxy/1.0'
+      },
+      timeout: 12000
+    }, upstreamRes => {
+      let data = '';
+      upstreamRes.on('data', chunk => { data += chunk; });
+      upstreamRes.on('end', () => {
+        res.writeHead(upstreamRes.statusCode || 502, {
+          'Content-Type': upstreamRes.headers['content-type'] || 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'X-Ascenda-Auth-Route': 'same-origin-v3'
+        });
+        res.end(data || '{}');
+      });
+    });
+
+    upstream.on('timeout', () => upstream.destroy(new Error('AUTH_UPSTREAM_TIMEOUT')));
+    upstream.on('error', err => {
+      console.error('[AUTH-V3-PROXY] upstream error', rpcName, err.message);
+      if (!res.headersSent) {
+        writeJson(res, 502, { ok: false, error: 'AUTH_UPSTREAM_UNAVAILABLE', auth_version: 'v3' }, {
+          'X-Ascenda-Auth-Route': 'same-origin-v3'
+        });
+      } else {
+        res.end();
+      }
+    });
+
+    upstream.write(payload);
+    upstream.end();
+  });
+}
+
 const proxy = http.createServer((req, res) => {
   let pathname = '/';
   try { pathname = new URL(req.url, 'http://localhost').pathname; } catch (_) {}
+
+  // Same-origin Auth V3 transport. This removes browser/network dependency on
+  // direct Supabase RPC access while preserving the exact database auth contract.
+  if (pathname === '/api/auth/v3/login') return authRpcProxy(req, res, 'aos_login_v3');
+  if (pathname === '/api/auth/v3/verify') return authRpcProxy(req, res, 'aos_verificar_2fa_v3');
 
   if (blocked(pathname)) {
     if (req.method === 'OPTIONS') {
