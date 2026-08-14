@@ -27,6 +27,13 @@ require(server, "process.env.ASCENDA_VERIFY_TOKEN", 'webhook verify token comes 
 forbid(server, "select=api_key", 'server fetches provider secret from browser-readable integration table')
 require(server, "requireKroniaAdmin", 'agent control endpoints have an authoritative admin gate')
 
+# Session administration is server-only; browser-facing endpoints must use
+# service-role RPC after canonical ACL closure.
+require(server, "sbServiceRpc('aos_kronia_verify_token'", 'verify endpoint uses service-role RPC')
+require(server, "sbServiceRpc('aos_kronia_revocar_token'", 'logout endpoint uses service-role RPC')
+forbid(server, "sbRpc('aos_kronia_verify_token'", 'verify endpoint uses anon-key RPC')
+forbid(server, "sbRpc('aos_kronia_revocar_token'", 'logout endpoint uses anon-key RPC')
+
 # Shared web core: web mode must not send role/sede authority in request body.
 require(core, "sessionStorage", 'web KronIA session uses sessionStorage')
 require(core, "aos_kronia_token", 'web KronIA loads canonical opaque token')
@@ -44,8 +51,10 @@ require(sales, "aos_kronia_tool", 'Sales editor uses protected gateway')
 forbid(sales, "/rest/v1/rpc/aos_editar_venta", 'Sales editor bypasses protected gateway')
 
 # Integration UI may read safe metadata but cannot read/write secret columns directly.
+require(config, "aos_kronia_admin_desactivar_integracion", 'integration UI uses narrow token-bound ADMIN gateway')
 forbid(config, "aos_integraciones?select=*", 'integration UI selects secret columns')
 forbid(config, "sbPatch('/rest/v1/aos_integraciones", 'integration UI writes secrets/table directly')
+forbid(config, "p_tool:'aos_admin_desactivar_integracion'", 'integration UI calls nonexistent generic tool alias')
 
 if failures:
     print('KRONIA_K1_RUNTIME_CONTRACT=FAIL')
