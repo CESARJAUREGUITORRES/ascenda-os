@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql'
+      - 'supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql'
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/k1_runtime_base.py'
@@ -31,6 +32,7 @@ on:
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql'
+      - 'supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql'
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/k1_runtime_base.py'
@@ -143,6 +145,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051600_kronia_k1_extension_claim.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql
 
       - name: Negative authorization certificate
         run: |
