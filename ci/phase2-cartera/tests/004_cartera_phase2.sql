@@ -30,14 +30,14 @@ select is((select prosecdef from pg_proc where oid='public.aos_cartera_gateway(t
 select is((select prosecdef from pg_proc where oid='public.aos_caja_cotizaciones_gateway(text,text,text,text)'::regprocedure),true,'quote gateway is definer');
 select is((select prosecdef from pg_proc where oid='public.aos_cartera_reconcile(text,uuid,timestamp with time zone,text,text,numeric,numeric,text,text,text)'::regprocedure),true,'reconcile is definer');
 select is((select prosecdef from pg_proc where oid='public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)'::regprocedure),true,'abono v2 is definer');
-select like(coalesce((select array_to_string(proconfig,',') from pg_proc where oid='public.aos_cartera_gateway(text,text,text,integer,integer)'::regprocedure),''),'%search_path=""%','gateway pins empty search_path');
-select like(coalesce((select array_to_string(proconfig,',') from pg_proc where oid='public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)'::regprocedure),''),'%search_path=""%','abono v2 pins empty search_path');
+select ok(coalesce((select array_to_string(proconfig,',') from pg_proc where oid='public.aos_cartera_gateway(text,text,text,integer,integer)'::regprocedure),'') like '%search_path=""%','gateway pins empty search_path');
+select ok(coalesce((select array_to_string(proconfig,',') from pg_proc where oid='public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)'::regprocedure),'') like '%search_path=""%','abono v2 pins empty search_path');
 select is(has_function_privilege('anon','public.aos_abonar_cotizacion(text,numeric,text,text,text,text,text,text,text,text,text)','EXECUTE'),false,'legacy abono denied to anon');
 select is(has_function_privilege('anon','public.aos_abonar_cotizacion_v2(text,uuid,text,numeric,text,text,text,text,text)','EXECUTE'),true,'tokenized abono callable by anon transport');
 select is(has_function_privilege('anon','public.aos_caja_cotizaciones_gateway(text,text,text,text)','EXECUTE'),true,'quote gateway callable by anon transport');
 select is(to_regprocedure('public.aos_cartera_reconcile(text,uuid,text,text,numeric,numeric,text,text,text)') is null,true,'obsolete reconcile overload is absent');
 select is(to_regprocedure('public.aos_abonar_cotizacion_v2(text,text,numeric,text,text,text,text,text,text,text,text,text)') is null,true,'obsolete payment overload is absent');
-select like(pg_get_functiondef('public.aos_sales_intelligence_claim_session(text,text,text,text)'::regprocedure),'%aos_sales_intelligence_access%','certified Phase 1 session issuer is restored');
+select ok(pg_get_functiondef('public.aos_sales_intelligence_claim_session(text,text,text,text)'::regprocedure) like '%aos_sales_intelligence_access%','certified Phase 1 session issuer is restored');
 
 select is(public.aos_cartera_gateway('','','',50,0)->>'error','UNAUTHORIZED','blank token denied');
 select is(public.aos_cartera_gateway('phase2-no-panel-token-000000000000000001','','',50,0)->>'error','UNAUTHORIZED','admin without panel denied');
