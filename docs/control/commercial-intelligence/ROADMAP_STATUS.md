@@ -3,16 +3,16 @@
 
 **Última actualización:** 2026-08-13  
 **Baseline inicial:** `82d5115fe240b97464850d942b368a982e8e2258`  
-**Staging funcional tras Fase 7:** `d90b5ef7a4f960c86655ecb0712286f02d059b81`  
+**Staging funcional tras Fase 8:** `6f1fdf5668ad067da58d9b1df37060f0ced4d429`  
 **Master:** `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
 
 ---
 
-# REGLA DE ESTADO
+## Regla de estado
 
 Estados: `NOT_STARTED | READY | IN_PROGRESS | BLOCKED | VALIDATING | 100_COMPLETE`.
 
-Una fase solo es `100_COMPLETE` cuando sus gates tienen evidencia, el cambio está integrado en `staging` y existe checkpoint final en GitHub + `aos_memory`.
+Una fase solo es `100_COMPLETE` con gates verificados, integración a `staging` y checkpoint final GitHub + `aos_memory`.
 
 ---
 
@@ -28,8 +28,8 @@ Una fase solo es `100_COMPLETE` cuando sus gates tienen evidencia, el cambio est
 | 5 | Panel Central Skeleton | `100_COMPLETE` | 100% |
 | 6 | Audience Library Persistence | `100_COMPLETE` | 100% |
 | 7 | Snapshots & Activation | `100_COMPLETE` | 100% |
-| 8 | Channel Context & Availability | `READY` | 0% |
-| 9 | Assignment Engine | `NOT_STARTED` | 0% |
+| 8 | Channel Context & Availability | `100_COMPLETE` | 100% |
+| 9 | Assignment Engine | `READY` | 0% |
 | 10 | Advisor Control Center | `NOT_STARTED` | 0% |
 | 11 | Call Center Integration V3 | `NOT_STARTED` | 0% |
 | 12 | Advisor Work Views | `NOT_STARTED` | 0% |
@@ -44,111 +44,167 @@ Una fase solo es `100_COMPLETE` cuando sus gates tienen evidencia, el cambio est
 
 # CIERRES CERTIFICADOS
 
-## Fase 0 — Baseline & Contracts
-P0-G01…P0-G09 PASS. Product Spec/Impact Report V3, Fact Registry, Frontend Contract, baseline y continuidad establecidos.
+## Fases 0–4
 
-## Fase 1 — Identity Resolver
-P1-G01…P1-G11 PASS. Resolver transversal de identidad/contact key con conflictos explícitos. PR #50 / CI 274 SUCCESS.
-
-## Fase 2 — Commercial Facts
-P2-G01…P2-G14 PASS. Facts 1:1 por contacto para Leads, Calls, Agenda, Sales, Followups y Email. PR #55 / CI 293 SUCCESS.
-
-## Fase 3 — Segmentation Engine
-P3-G01…P3-G14 PASS. Customer Tier Engine SHADOW V1; tier económico separado de traits/lifecycle/engagement. PR #57 / CI 308 SUCCESS.
-
-## Fase 4 — Audience Resolver
-P4-G01…P4-G16 PASS. DSL whitelisted, AND/OR, Validate/Count/Preview/Explain, MATCH/MISS/UNKNOWN, Producto/Servicio y presets oficiales. PR #59 / CI 342 SUCCESS.
+- F0 Baseline & Contracts: P0-G01…G09 PASS.
+- F1 Identity Resolver: P1-G01…G11 PASS; PR #50 / CI 274.
+- F2 Commercial Facts: P2-G01…G14 PASS; PR #55 / CI 293.
+- F3 Segmentation: P3-G01…G14 PASS; PR #57 / CI 308.
+- F4 Audience Resolver: P4-G01…G16 PASS; DSL whitelisted, Count/Preview/Explain, MATCH/MISS/UNKNOWN; PR #59 / CI 342.
 
 ## Fase 5 — Panel Central Skeleton
-`100_COMPLETE`. Panel ADMIN Bases & Audiencias, Resolver V2, CIA gateway/admin session, frontend contract y seguridad. PR #62 / CI #389; cierre documental PR #64.
+
+`100_COMPLETE`. Bases & Audiencias, Resolver V2, CIA gateway/admin session, frontend nativo y seguridad. PR #62 / CI #389; cierre PR #64.
 
 ## Fase 6 — Audience Library Persistence
-`100_COMPLETE`. Biblioteca universal `aos_audiencias` + versiones inmutables + audit; optimistic concurrency, duplicate/archive/restore, UI y gateway. PR #65 / CI #418; cierre documental PR #67.
+
+`100_COMPLETE`. `aos_audiencias` + versiones inmutables + audit; optimistic concurrency, duplicate/archive/restore. PR #65 / CI #418; cierre PR #67.
 
 ## Fase 7 — Snapshots & Activation
+
 `100_COMPLETE`.
 
-### Entrega
-- snapshots inmutables de membership;
-- `membership_hash` y `filter_hash` SHA-256;
-- member identity status/conflict observado al congelar;
-- Activation Aggregate separado en identity/config/state/events;
-- BATCH = membership `FROZEN_SNAPSHOT`;
-- DYNAMIC = membership `DYNAMIC_LIVE` sobre versión fijada;
-- Commercial Facts permanecen LIVE en ambos modos;
-- lifecycle DRAFT / ACTIVE / PAUSED / COMPLETED / CANCELLED;
-- estados terminales no reabribles;
-- event history append-only;
-- DB trigger como única fuente de eventos lifecycle;
-- gateway CIA Phase 7;
-- panel `admin-activaciones.html/css/js` integrado desde Bases & Audiencias.
-
-### Integridad
-- snapshot header/members inmutables tras sello;
-- BATCH exige snapshot READY y misma audience/version;
-- DYNAMIC prohíbe snapshot;
-- RLS activo en seis objetos sin policies permisivas;
-- mutators verifican CIA admin token;
-- preview/list server-side limitados a 100;
-- payload gateway ≤64 KiB.
-
-### QA certificado
-Paridad Count V2 vs snapshot resolver:
-- FOLLOWUP_OVERDUE 442=442;
-- LEADS_UNWORKED 1292=1292;
-- LEADS_UNWORKED_7D 126=126;
-- NO_SHOW_NO_FUTURE 822=822.
-
-Lifecycle event cardinality con rollback:
-- CREATE=1;
-- START=1;
-- PAUSE=1;
-- RESUME=1;
-- COMPLETE=1;
-- total=5;
-- final=COMPLETED;
-- residuos=0.
-
-Performance:
-- resolver 1,292 keys ~739 ms;
-- list activations vacío ~75 ms;
-- PASS objetivo normal <1.5 s.
-
-Compatibilidad:
-- `aos_siguiente_lead`, `aos_cola_config` y Call Center sin cambios;
-- Email legacy/FK intactos;
-- `aos_snapshot_global` legacy intacto;
-- 349 llamadas guardadas el día del smoke post-merge.
+Entrega:
+- snapshot membership inmutable + SHA-256;
+- BATCH = FROZEN_SNAPSHOT;
+- DYNAMIC = DYNAMIC_LIVE sobre versión fijada;
+- facts LIVE;
+- Activation Aggregate identity/config/state/events;
+- lifecycle protegido;
+- event audit append-only, DB como única fuente lifecycle;
+- admin Activaciones.
 
 Integración:
-- PR #69 MERGED;
-- Ascenda CI #510 SUCCESS;
-- merge funcional staging `d90b5ef7a4f960c86655ecb0712286f02d059b81`;
+- PR #69 / CI #510;
+- functional merge `d90b5ef7a4f960c86655ecb0712286f02d059b81`;
+- closure PR #70 / CI #516;
+- closure `6a422bfffcaaef610820633b50b6d2bf6c8e6429`.
+
+## Fase 8 — Channel Context & Availability
+
+`100_COMPLETE` — P8-G01…P8-G18 PASS.
+
+### Entrega
+
+Contrato canónico:
+`Audience Total → Eligible for Context → Available Now`.
+
+Objetos:
+- `aos_cia_context_policies`;
+- `aos_audiencia_activacion_context`.
+
+Policies V1:
+- CALL_GENERAL / CALL_PROVINCE;
+- EMAIL_GENERAL;
+- SMS_GENERAL / WHATSAPP_GENERAL;
+- ANALYSIS_GENERAL / AUTOMATION_GENERAL / OTHER_GENERAL.
+
+Semántica:
+- eligibility: ELIGIBLE / INELIGIBLE / UNKNOWN;
+- availability: AVAILABLE / UNAVAILABLE / UNKNOWN;
+- `is_assignable=true` únicamente con Activation ACTIVE + ELIGIBLE + AVAILABLE;
+- UNKNOWN nunca es asignable.
+
+Handoff autoritativo Fase 9:
+`aos_cia_activation_available_keys_v1(activation_id)`.
+
+### Integración F7→F8
+
+Primer BATCH real detectó deuda de F7: pgcrypto está en `extensions` pero snapshot usaba `digest()` bajo `search_path=public`.
+
+Corregido por:
+`20260814032421_cia_phase7_snapshot_pgcrypto_fix_v1.sql`.
+
+Después del fix BATCH/DYNAMIC aprobaron paridad.
+
+### QA
+
+Preset LEADS_UNWORKED_7D durante QA: 116.
+
+CALL_GENERAL:
+- total 116;
+- eligible 111;
+- available 103;
+- available_keys 103;
+- BATCH snapshot 116 y DYNAMIC 116.
+
+CALL_PROVINCE:
+- eligible 5;
+- available 5.
+
+EMAIL:
+- eligible 15;
+- available 13;
+- EMAIL_SENT_TODAY 2;
+- bounce = warning.
+
+SMS:
+- eligible 116;
+- availability UNKNOWN 116;
+- assignable 0.
+
+Freshness certificado:
+- universe 11,520;
+- segment cache 11,520;
+- email cache 11,520.
+
+Performance representativa sobre 1,277 contactos:
+- summary ~445 ms;
+- preview 50 ~436 ms;
+- explain ~434 ms;
+- available_keys ~437 ms.
+
+Seguridad:
+- RLS deny-by-default;
+- 0 policies permisivas;
+- anon/authenticated ven 0 rows;
+- gateway + binding mutator requieren CIA admin token;
+- policies/bindings inmutables.
+
+Compatibilidad:
+- `aos_siguiente_lead`, V2, `aos_cola_config`, `calls.js` intactos;
+- 349 llamadas observadas en smoke;
+- Email legacy/FK intactos;
+- 0 QA residue.
+
+Frontend:
+- tab Contexto & disponibilidad;
+- policy binding;
+- Total/Eligible/Available/Unknown;
+- reasons/warnings;
+- preview + explain;
+- Phase 9 handoff visible;
+- no Assignment todavía.
+
+Integración:
+- functional PR #72;
+- Ascenda CI #553 SUCCESS;
+- staging merge `6f1fdf5668ad067da58d9b1df37060f0ced4d429`;
 - post-merge smoke PASS.
 
-Documentos:
-- `PHASE_07_SNAPSHOTS_ACTIVATION.md`;
-- `PHASE_07_IMPLEMENTATION_ADDENDUM.md`;
-- `PHASE_07_VALIDATION_REPORT.md`;
-- `PHASE_07_DB_READ_CONTRACT.sql`.
+Detalle:
+- `PHASE_08_CHANNEL_CONTEXT_AVAILABILITY.md`;
+- `PHASE_08_VALIDATION_REPORT.md`.
 
 ---
 
 # SIGUIENTE FASE
 
-## FASE 8 — CHANNEL CONTEXT & AVAILABILITY = READY
+## FASE 9 — ASSIGNMENT ENGINE = READY
 
-Objetivo: calcular, por activation/contexto, **total audience ≠ eligible ≠ available now**, con razones determinísticas de exclusión y sin duplicar la audiencia.
+Entrada autoritativa:
+`aos_cia_activation_available_keys_v1(activation_id)`.
 
 Reglas de entrada:
-- Phase 7 Activation es el contexto canónico de uso;
-- BATCH/DYNAMIC deben conservar su semántica de membership;
-- Channel Context no envía mensajes ni asigna asesores;
-- elegibilidad y disponibilidad deben ser separadas y explicables;
-- reglas Call Center históricas no se convierten automáticamente en supresión universal;
-- Email/Call/SMS/WhatsApp deben tener adaptadores contextuales independientes;
-- SMS/WhatsApp outbound continúan bloqueados donde falte infraestructura de preferencia/tracking;
-- no modificar `aos_siguiente_lead` todavía;
+- Assignment es objeto separado de Audience, Snapshot y Activation;
+- solo contactos Phase 8 `is_assignable=true` pueden asignarse;
+- IDs de asesor = `aos_usuarios.id`, nunca nombres hardcoded;
+- no doble ownership activo cuando policy lo prohíba;
+- lifecycle mínimo: RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED / RELEASED / EXPIRED;
+- distribución: 100% uno, equal, percentages, fixed quantities, remainder, priority;
+- top-up: NONE / MAINTAIN_TARGET / CONTINUOUS;
+- capacidad/frescura explícitas;
+- no modificar `aos_siguiente_lead` todavía: integración Call Center V3 sigue en Fase 11 detrás de feature flag;
 - Impact Report antes de DDL.
 
 ---
@@ -161,11 +217,11 @@ Reglas de entrada:
 
 # CONTINUIDAD
 
-New chats recover in order:
-1. `AGENTS.md`.
-2. `docs/control/ASCENDA_CONTROL_MASTER.md`.
-3. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`.
-4. this roadmap.
-5. current phase document.
-6. `cia_v3_*` / `cia_phase_*` in `aos_memory`.
-7. live staging/GitHub + Supabase before changes.
+Recuperar en orden:
+1. `AGENTS.md`;
+2. `docs/control/ASCENDA_CONTROL_MASTER.md`;
+3. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`;
+4. este roadmap;
+5. `PHASE_08_VALIDATION_REPORT.md`;
+6. `cia_v3_*` / `cia_phase_*` en `aos_memory`;
+7. verificar `staging` + Supabase live antes de Fase 9.
