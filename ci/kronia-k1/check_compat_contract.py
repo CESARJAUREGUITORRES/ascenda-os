@@ -52,7 +52,7 @@ forbid(brain, "X-AOS-User", 'Brain uses legacy identity header')
 
 # Chrome extension: same core contract, password transient only.
 require(ext_html, 'id="loginPass"', 'Chrome extension has password input for authoritative login')
-require(ext_popup, 'CORE.loginRequest(u,', 'Chrome extension passes password to server login')
+require(ext_popup, 'core.loginRequest(u,', 'Chrome extension passes password to server login')
 require(ext_core, 'pendingLoginPassword', 'extension core holds password only transiently')
 forbid(ext_core, "payload.rol = state.user.rol", 'extension sends role authority')
 
