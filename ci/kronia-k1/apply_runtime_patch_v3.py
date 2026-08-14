@@ -43,3 +43,31 @@ cfg = cfg.replace(
     "sbRpc('aos_kronia_admin_desactivar_integracion',{p_token:t,p_id:id})"
 )
 cfg_path.write_text(cfg, encoding='utf-8')
+
+# The main app embeds its own KronIA client instead of using KroniaCore. Migrate
+# both text and Whisper paths to the same opaque Bearer credential.
+app_path = Path('app/public/app.html')
+app = app_path.read_text(encoding='utf-8')
+legacy_payload = "var payload={pregunta:q,usuario:usuario,rol:rol,sede:sede,session_id:KR.sessionId,historial:KR.historial.slice(-8),lead_actual:krGetLead(),id_asesor:idAsesor};"
+secure_payload = "var kTok=sessionStorage.getItem('aos_kronia_token')||'';if(!kTok){KR.enviando=false;if(typing)typing.style.display='none';krAddMsg('ai','Sesión segura requerida. Vuelve a ingresar.');return;}var payload={pregunta:q,session_id:KR.sessionId,historial:KR.historial.slice(-8),lead_actual:krGetLead()};"
+if legacy_payload not in app:
+    raise SystemExit('K1 v3: main chat legacy payload anchor not found')
+app = app.replace(legacy_payload, secure_payload, 1)
+legacy_fetch = "fetch('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})"
+secure_fetch = "fetch('/api/kronia/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+kTok},body:JSON.stringify(payload)})"
+if legacy_fetch not in app:
+    raise SystemExit('K1 v3: main chat fetch anchor not found')
+app = app.replace(legacy_fetch, secure_fetch, 1)
+legacy_whisper = "headers:{'Content-Type':'audio/webm','X-AOS-User':(AOS.ctx&&AOS.ctx.nombre)||'','X-AOS-Id':(AOS.ctx&&AOS.ctx.idAsesor)||''}"
+secure_whisper = "headers:{'Content-Type':'audio/webm','Authorization':'Bearer '+(sessionStorage.getItem('aos_kronia_token')||'')}"
+if legacy_whisper not in app:
+    raise SystemExit('K1 v3: main Whisper legacy headers anchor not found')
+app = app.replace(legacy_whisper, secure_whisper, 1)
+app_path.write_text(app, encoding='utf-8')
+
+# Preserve the historical Whisper response contract (`texto`) while also
+# supporting the shared core's normalized `text` field.
+server_path = Path('app/server.js')
+server = server_path.read_text(encoding='utf-8')
+server = server.replace("{ok:true,text:j.text}", "{ok:true,text:j.text,texto:j.text}")
+server_path.write_text(server, encoding='utf-8')
