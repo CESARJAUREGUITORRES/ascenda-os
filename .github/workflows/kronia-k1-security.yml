@@ -52,10 +52,26 @@ jobs:
       - name: Materialize deterministic K1 runtime
         run: |
           set -euo pipefail
-          python3 ci/kronia-k1/apply_runtime_patch_v2.py
+          python3 ci/kronia-k1/apply_runtime_patch_v3.py
           sed -E -i 's/(^|[^.[:alnum:]_])digest\(/\1extensions.digest(/g' ci/kronia-k1/test_k1.sql
           sed -E -i 's/(^|[^.[:alnum:]_])gen_random_bytes\(/\1extensions.gen_random_bytes(/g' ci/kronia-k1/test_k1.sql
           git diff --check
+
+      - name: Runtime syntax preflight
+        run: |
+          set -euo pipefail
+          if ! node --check app/server.js 2>/tmp/k1-nodecheck.txt; then
+            cat /tmp/k1-nodecheck.txt
+            line=$(grep -oE 'app/server\.js:[0-9]+' /tmp/k1-nodecheck.txt | head -1 | cut -d: -f2 || true)
+            if [ -n "${line:-}" ]; then
+              from=$(( line > 25 ? line-25 : 1 )); to=$((line+25))
+              nl -ba app/server.js | sed -n "${from},${to}p"
+            fi
+            exit 1
+          fi
+          node --check app/public/kronia-core.js
+          node --check chrome-extension/kronia-core.js
+          node --check chrome-extension/popup.js
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
@@ -99,7 +115,7 @@ jobs:
           node --check app/public/kronia-core.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/popup.js
-          python3 -m py_compile ci/kronia-k1/apply_runtime_patch.py ci/kronia-k1/apply_runtime_patch_v2.py
+          python3 -m py_compile ci/kronia-k1/apply_runtime_patch.py ci/kronia-k1/apply_runtime_patch_v2.py ci/kronia-k1/apply_runtime_patch_v3.py
 
       - name: Static K1 no-legacy-authority gate
         run: |
@@ -111,6 +127,7 @@ jobs:
           set -euo pipefail
           ! grep -nE "process\.env\.(RESEND_API_KEY|GROQ_API_KEY|GEMINI_API_KEY)[[:space:]]*\|\|[[:space:]]*['\"][^'\"]+" app/server.js
           ! grep -n "const VERIFY_TOKEN = '" app/server.js
+          ! grep -n "select=api_key" app/server.js
 
       - name: Upload K1 evidence
         if: always()
