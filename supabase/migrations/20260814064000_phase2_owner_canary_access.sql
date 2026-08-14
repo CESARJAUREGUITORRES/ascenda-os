@@ -8,8 +8,8 @@ declare
   v_count integer;
   v_owner uuid;
 begin
-  select count(*), min(id)
-    into v_count, v_owner
+  select count(*)
+    into v_count
   from public.aos_usuarios
   where activo=true
     and two_factor=true
@@ -19,9 +19,21 @@ begin
     and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-caja']::text[]
     and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[];
 
-  if v_count<>1 or v_owner is null then
+  if v_count<>1 then
     raise exception 'PHASE2_OWNER_CANARY_AMBIGUOUS: expected exactly one eligible owner, found %', v_count;
   end if;
+
+  select id
+    into v_owner
+  from public.aos_usuarios
+  where activo=true
+    and two_factor=true
+    and nivel_jerarquia=1
+    and lower(coalesce(rol,''))='admin'
+    and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-team']::text[]
+    and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-caja']::text[]
+    and coalesce(paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]
+  limit 1;
 
   update public.aos_usuarios
   set paneles_acceso=case
