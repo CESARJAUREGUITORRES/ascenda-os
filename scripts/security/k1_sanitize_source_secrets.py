@@ -1,11 +1,10 @@
 from pathlib import Path
 import re
-import sys
 
+# One-shot deterministic source cleanup. Never prints matched secret values.
 p = Path('app/server.js')
 s = p.read_text(encoding='utf-8')
 
-# Never print matched values. Only report deterministic replacement counts.
 verify_pattern = re.compile(r"const\s+VERIFY_TOKEN\s*=\s*'[^']*'")
 resend_pattern = re.compile(r"process\.env\.RESEND_API_KEY\s*\|\|\s*'[^']+'")
 
