@@ -1,5 +1,5 @@
 from pathlib import Path
-import json,re
+import json,re,subprocess
 
 root=Path(__file__).resolve().parents[2]
 app=root/'app'
@@ -16,6 +16,16 @@ login=(app/'public/login.html').read_text(encoding='utf-8')
 extauth=(root/'chrome-extension/k1-extension-auth.js').read_text(encoding='utf-8')
 popup=(root/'chrome-extension/popup.js').read_text(encoding='utf-8')
 
+# Read the committed source independently of the materializer's working-tree
+# mutation. K1 cannot certify a SHA whose HEAD still contains provider fallbacks.
+source_inner=subprocess.check_output(
+    ['git','show','HEAD:app/server.js'],cwd=root,text=True,encoding='utf-8'
+)
+resend_fallback=re.compile(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",re.I)
+verify_literal=re.compile(r"const\s+VERIFY_TOKEN\s*=\s*['\"][^'\"]+",re.I)
+assert not resend_fallback.search(source_inner)
+assert not verify_literal.search(source_inner)
+
 assert rail['build']['buildCommand']=='python3 k1_phase2_materialize.py'
 assert rail['deploy']['startCommand']=='node server-k1.js'
 assert 'providers = ["...", "python"]' in nix
@@ -29,13 +39,13 @@ assert 'PASSWORD_EMAIL_FORBIDDEN' in proxy
 assert "const id=await identity(req,true)" in proxy
 assert "d.usuario=id.nombre||id.usuario" in proxy and 'd.rol=id.rol' in proxy
 
-# Materialized inner server must not keep anonymous server authority, hardcoded
-# webhook secrets or provider API-key fallbacks.
+# Materialized inner server must use server authority and contain no provider
+# secret fallback regardless of whether HEAD was already sanitized.
 assert "process.env.SUPABASE_SERVICE_ROLE_KEY" in inner
 assert "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'" in inner
-assert "ascendaos_zivital_2026" not in inner
 assert re.search(r"const SB_KEY = process\.env\.SUPABASE_SERVICE_ROLE_KEY",inner)
-assert not re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",inner)
+assert not resend_fallback.search(inner)
+assert not verify_literal.search(inner.replace("const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'",''))
 
 # K1 preserves Phase 2 login and reuses the shell's existing publishable anon key.
 assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
@@ -72,4 +82,5 @@ manifest=json.loads((app/'k1-phase2-runtime-manifest.json').read_text(encoding='
 assert manifest['contract']=='kronia-k1-phase2-runtime-v1'
 assert 'public/admin-team.html' in manifest['files']
 assert all(len(v)==64 for v in manifest['files'].values())
+print('KRONIA_K1_PHASE2_SOURCE_SECRET_CONTRACT=PASS')
 print('KRONIA_K1_PHASE2_RUNTIME_CONTRACT=PASS')
