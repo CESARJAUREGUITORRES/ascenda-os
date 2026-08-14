@@ -1,0 +1,102 @@
+name: ASCENDA Phase 3 Product Canonical
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*phase3_product*'
+      - 'supabase/rollbacks/*phase3_product*'
+      - 'ci/phase3-products/**'
+      - 'docs/control/PHASE3_PRODUCT_CANONICAL_IMPACT_20260814.md'
+      - '.github/workflows/phase3-products.yml'
+  push:
+    branches: ['feature/**','fix/**','security/**','infra/**']
+    paths:
+      - 'supabase/migrations/*phase3_product*'
+      - 'supabase/rollbacks/*phase3_product*'
+      - 'ci/phase3-products/**'
+      - 'docs/control/PHASE3_PRODUCT_CANONICAL_IMPACT_20260814.md'
+      - '.github/workflows/phase3-products.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-products-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  product-canonical-contract:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:58322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          ! grep -R --line-number -E 'runs-on: *(ubuntu-latest|windows-latest|macos-[^ ]*)' .github/workflows/phase3-products.yml
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase3-products"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 58321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 58322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 58320/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          supabase db start
+
+      - name: Build Phase 3 synthetic prerequisite schema
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase3-products/schema_contract.sql
+
+      - name: Apply exact Phase 3 migrations
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200500_phase3_product_canonical_schema_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200600_phase3_product_owner_seed_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200650_phase3_product_catalog_identity_unify_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200700_phase3_product_existing_backfill_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP Phase 3 product contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase3-products/tests/001_product_canonical.sql | tee /tmp/phase3-products-pgtap.txt
+          grep -q '1..34' /tmp/phase3-products-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/phase3-products-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/phase3-products-pgtap.txt; then exit 1; fi
+
+      - name: Recovery preserves evidence and disables automation
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814200600_phase3_product_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgrelid='public.aos_ventas'::regclass and tgname='trg_aos_product_sync_sale_v1' and not tgisinternal")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_product_sale_fact_v1 where resolution_source='OWNER_XLSX_2026'")" = "394"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_product_sale_fact_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_product_review_queue_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_product_review_queue_v1','SELECT')")" = "t"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
