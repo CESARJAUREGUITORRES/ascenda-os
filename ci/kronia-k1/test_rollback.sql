@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
 DO $$
-declare rls_on boolean;
+declare rls_on boolean; v_2fa_def text;
 begin
   select c.relrowsecurity into rls_on
   from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -17,6 +17,24 @@ begin
   if not has_table_privilege('anon','public.aos_integraciones','UPDATE') then raise exception 'K1-R07 integration legacy grant not restored'; end if;
   if not has_table_privilege('anon','public.aos_usuarios','UPDATE') then raise exception 'K1-R08 identity legacy grant not restored'; end if;
   if not has_table_privilege('anon','public.aos_security_log','DELETE') then raise exception 'K1-R09 audit legacy grant not restored'; end if;
+
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='aos_kronia_conversaciones' and policyname='aos_kronia_conv_all') then
+    raise exception 'K1-R12 conversation legacy policy not restored';
+  end if;
+  if not has_table_privilege('anon','public.aos_agente_logs','SELECT')
+     or not has_table_privilege('anon','public.aos_log_auditoria','INSERT') then
+    raise exception 'K1-R13 internal log legacy grants not restored';
+  end if;
+  if not has_function_privilege('anon','public.aos_security_dashboard()','EXECUTE') then
+    raise exception 'K1-R14 security dashboard legacy execute not restored';
+  end if;
+
+  -- Security improvement intentionally survives rollback because the public JSON
+  -- contract is unchanged; reintroducing the OTP race is never required for compatibility.
+  select lower(pg_get_functiondef('public.aos_verificar_2fa(text,text)'::regprocedure)) into v_2fa_def;
+  if position('for update skip locked' in v_2fa_def)=0 then
+    raise exception 'K1-R15 rollback reintroduced non-atomic 2FA';
+  end if;
 end $$;
 
 -- Hashed K1 sessions must have been invalidated, but the legacy raw verifier must
