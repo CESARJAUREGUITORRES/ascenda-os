@@ -22,14 +22,18 @@ assert 'SUPABASE_SERVICE_ROLE_KEY' in proxy and 'if (!SERVICE_KEY)' in proxy
 assert 'aos_app_actor_v3' in proxy and 'aos_kronia_identity_v3' in proxy
 assert 'ORIGIN_NOT_ALLOWED' in proxy and 'RATE_LIMIT' in proxy and 'BODY_TOO_LARGE' in proxy
 assert "pathname==='/api/kronia/chat'" in proxy and "pathname.startsWith('/api/agents/')" in proxy
+assert "pathname==='/api/send-email'" in proxy and "pathname.startsWith('/api/studio/')" in proxy
+assert 'PASSWORD_EMAIL_FORBIDDEN' in proxy
+assert "const id=await identity(req,true)" in proxy
 assert "d.usuario=id.nombre||id.usuario" in proxy and 'd.rol=id.rol' in proxy
 
-# Materialized inner server must not keep the old anonymous server DB key nor
-# the historical static webhook verification secret.
+# Materialized inner server must not keep anonymous server authority, hardcoded
+# webhook secrets or provider API-key fallbacks.
 assert "process.env.SUPABASE_SERVICE_ROLE_KEY" in inner
 assert "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'" in inner
 assert "ascendaos_zivital_2026" not in inner
 assert re.search(r"const SB_KEY = process\.env\.SUPABASE_SERVICE_ROLE_KEY",inner)
+assert not re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",inner)
 
 # K1 preserves Phase 2 login and reuses the shell's existing publishable anon key.
 assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
@@ -40,6 +44,8 @@ assert 'window._SK' in browser and 'window.SK' not in browser
 assert 'aos_app_token' in browser
 assert 'aos_kronia_tool_v3' in browser and 'aos_admin_identity_v4' in browser and 'aos_admin_config_v3' in browser
 assert "sessionStorage.getItem('aos_kronia_token')" not in browser
+assert "u.pathname==='/api/send-email'" in browser and "u.pathname.indexOf('/api/studio/')===0" in browser
+assert 'scrubCredentialEmail' in browser and 'Entregada por el administrador mediante canal seguro' in browser
 
 # Chrome transport uses Auth V3 via the K1 proxy and never persists a password.
 assert '/api/kronia/login-request' in extauth and '/api/kronia/login-verify' in extauth
