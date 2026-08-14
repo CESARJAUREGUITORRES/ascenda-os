@@ -2,9 +2,9 @@
 
 **Estado:** CURRENT / RECOVERY ENTRYPOINT  
 **Actualizado:** 2026-08-14 (America/Lima)  
-**Fases cerradas:** 0–10 `100_COMPLETE`  
-**Fase actual:** 11 — Call Center Integration V3 `READY`  
-**Último merge funcional certificado:** F10 `2a74c3443bb600c1157b746349e1e85dac7f67fc`  
+**Fases cerradas:** 0–11 `100_COMPLETE`  
+**Fase actual:** 12 — Advisor Work Views `READY`  
+**Último merge funcional certificado:** F11 `f439f8d33cad841dd6745b07462aec7a264ea6b2`  
 **Checkpoint de control/documentación actual:** consultar `aos_memory.cia_v3_control_checkpoint` + `staging` HEAD live.
 
 ---
@@ -38,12 +38,12 @@ Antes de cualquier cambio:
 4. `CIA_EXECUTION_PLAYBOOK_V1.md`;
 5. `CIA_MASTER_ALIGNMENT_CURRENT.md`;
 6. `ROADMAP_STATUS.md`;
-7. `PHASE_10_VALIDATION_REPORT.md`;
-8. `aos_memory` claves `cia_v3_*`, `cia_phase10_*`, `cia_phase11_status`;
+7. `PHASE_11_VALIDATION_REPORT.md`;
+8. `aos_memory` claves `cia_v3_*`, `cia_phase11_*`, `cia_phase12_status`;
 9. Notion CIA Control Maestro + Fases + Hallazgos;
 10. verificar `staging` HEAD live;
 11. verificar Supabase live/migrations;
-12. recién entonces iniciar F11.
+12. recién entonces iniciar F12.
 
 GitHub + Supabase/runtime prevalecen sobre Notion. Si existe drift visual, corregir Notion.
 
@@ -76,8 +76,8 @@ Al cierre de cada fase: GitHub/CI/staging → `aos_memory` → Notion.
 | 8 | Channel Context & Availability | `100_COMPLETE` |
 | 9 | Assignment Engine | `100_COMPLETE` |
 | 10 | Advisor Control Center | `100_COMPLETE` |
-| 11 | Call Center Integration V3 | `READY` |
-| 12 | Advisor Work Views | `NOT_STARTED` |
+| 11 | Call Center Integration V3 | `100_COMPLETE` |
+| 12 | Advisor Work Views | `READY` |
 | 13 | Requests & Approval Engine | `NOT_STARTED` |
 | 14 | Commercial Intelligence Shadow | `NOT_STARTED` |
 | 15 | KronIA + Multiagent Orchestration | `NOT_STARTED` |
@@ -87,7 +87,7 @@ Al cierre de cada fase: GitHub/CI/staging → `aos_memory` → Notion.
 
 ---
 
-# 5. CONTRATOS CERTIFICADOS HASTA F10
+# 5. CONTRATOS CERTIFICADOS HASTA F11
 
 ## F8 → F9
 
@@ -109,7 +109,6 @@ solo devuelve contactos assignable según contexto/availability.
 ## F10 Advisor Control
 
 Read-models:
-
 - `aos_cia_advisor_control_overview_v1()`
 - `aos_cia_advisor_control_advisor_detail_v1(...)`
 - `aos_cia_advisor_control_plan_health_v1(...)`
@@ -117,81 +116,92 @@ Read-models:
 - `aos_cia_advisor_control_f11_readiness_v1()`
 
 Gateway:
-
 `aos_cia_phase10_admin_gateway_v1(...)`
 
-Readiness F11 valida:
-- GLOBAL ownership conflicts;
-- asesores/targets inválidos;
-- deadlines inválidos;
-- plan ACTIVE con Activation no ACTIVE.
+## F11 Call Center V3
 
-Estado live tras cierre F10:
-- 6 asesores activos;
-- 0 ownership real;
-- readiness `READY_NO_ACTIVE_OWNERSHIP`;
-- `routing_modified=false`.
+Dispatcher:
+`aos_siguiente_lead_v3(p_asesor,p_id_asesor,p_hoy)`
 
-F10 performance con 1,000 leases:
-- overview 4.83 ms;
-- advisor detail 50 10.76 ms;
-- plan health 14.22 ms;
-- readiness 6.09 ms.
+Consume:
+`aos_cia_call_routing_consume_v1(...)`
 
-Plan health general usa `LAST_RUN_SNAPSHOT`; `GET_PLAN` entrega detalle live exacto para un plan seleccionado.
+Admin:
+`aos_cia_call_routing_admin_v1(...)`
 
----
+Output F12:
+`aos_cia_call_routing_f12_readiness_v1()`
 
-# 6. FASE 11 — MISIÓN EXACTA
+Contrato:
+- global kill switch default OFF;
+- per-advisor `V2_ONLY / V3_CANARY / V3_PREFERRED`;
+- fallback V2 obligatorio;
+- F10 readiness antes de V3;
+- ASSIGNED requiere F8 availability y pasa a IN_PROGRESS;
+- IN_PROGRESS se reanuda desde F9 ownership;
+- legacy claim compatibility via `aos_leads_en_curso`;
+- post-write consume → COMPLETED/idempotent;
+- clinic-day `America/Lima`;
+- `aos_siguiente_lead` y `aos_siguiente_lead_v2` permanecen sin modificar.
 
-Construir **Call Center Integration V3** como ruta paralela y reversible entre Assignment y el runtime operativo de llamadas.
+Estado live tras cierre F11:
+- kill switch OFF;
+- 0 advisors V3 persistentes;
+- 0 routing events persistentes;
+- 0 CALL ownership real;
+- F12 readiness `READY_NO_LIVE_V3` con `ready_for_f12=true`.
 
-F11 debe:
+Legacy hashes:
+- `aos_siguiente_lead` = `76412bac81e20ec6cfdc4f8c0db89e8c`;
+- `aos_siguiente_lead_v2` = `cb69781d1457ed73de8f8d52f0f83a00`.
 
-1. ejecutar `aos_cia_advisor_control_f11_readiness_v1()` como preflight;
-2. bloquear rollout si readiness=`BLOCKED`;
-3. crear routing V3 paralelo;
-4. usar feature flag/canary por usuario;
-5. conservar `aos_siguiente_lead_v2` como fallback;
-6. respetar `America/Lima`;
-7. consumir ownership F9, no reconstruir eligibility ni Assignment;
-8. probar claim/consume/release/expiry y concurrencia;
-9. demostrar rollback inmediato a V2;
-10. preservar hashes/baseline V2 hasta el rollout explícito.
-
-F11 NO debe:
-- eliminar/reemplazar V2 en big-bang;
-- crear otro Assignment Engine;
-- redefinir availability F8;
-- adelantar Advisor Work Views F12;
-- activar a todos los asesores simultáneamente.
-
-Output F11 → F12:
-routing V3 estable, observable y con ownership canónico, listo para Work Views personales.
+Frontend:
+- legacy Call Center byte-idéntico en `calls-v2.html`;
+- `calls.html` wrapper mínimo;
+- `calls-loader-v3.js` + `calls-routing-v3.js`;
+- admin tab `Routing V3`.
 
 ---
 
-# 7. BASELINE DE ROUTING QUE F11 DEBE PRESERVAR
+# 6. FASE 12 — MISIÓN EXACTA
 
-Antes de tocar Call Center verificar nuevamente:
+Construir **Advisor Work Views**: vistas personales priorizadas dentro de ownership ya autorizado.
 
-- `aos_siguiente_lead` hash: `76412bac81e20ec6cfdc4f8c0db89e8c`
-- `aos_siguiente_lead_v2` hash: `cb69781d1457ed73de8f8d52f0f83a00`
+F12 debe:
+1. usar `aos_usuarios.id` como advisor ownership;
+2. consumir F9 leases, no inferir ownership desde calls/leads;
+3. incorporar estado/routing F11 para saber qué trabajo fue servido/consumido;
+4. mostrar ASSIGNED / IN_PROGRESS / deadlines/expiry propios;
+5. crear vistas temporales/priorizadas como callbacks, seguimientos y clientes propios;
+6. permitir reordenar/priorizar solo dentro del universo propio;
+7. mantener Work View ≠ Assignment;
+8. demostrar que ninguna vista personal cambia ownership;
+9. dejar output gobernado para Requests & Approval F13.
 
-Cierre F10 no modificó:
-- `calls.js`;
-- `aos_siguiente_lead*`;
-- `aos_cola_config`;
-- `aos_leads_en_curso`.
+F12 NO debe:
+- autoasignar contactos;
+- mover ownership entre asesores;
+- saltarse F9/F11;
+- implementar Requests/Approvals F13;
+- introducir afinidad IA como acción real;
+- retirar fallback V2 de F11.
 
-Semántica diaria V3 debe ser `America/Lima`, no `CURRENT_DATE` server implícito.
+Input handshake mínimo:
+- `aos_cia_call_routing_f12_readiness_v1()` = ready;
+- F9 ownership contracts intactos;
+- F11 hashes/fallback intactos.
+
+Output F12 → F13:
+universo personal gobernado y auditado sobre el cual un asesor puede solicitar recursos/cambios sin autoasignarse.
 
 ---
 
-# 8. GUARDRAILS PERMANENTES
+# 7. GUARDRAILS PERMANENTES
 
 - write-path safety obligatorio antes de tocar tablas/routing operativo;
 - QA mutante rollback-only cuando sea posible;
+- benchmarks de RPC mutantes siempre dentro de rollback;
+- verificar el runtime realmente cargado por el shell; no asumir que un sibling JS es productivo;
 - zero residue;
 - migrations Git ↔ `schema_migrations` coherentes;
 - ACL reales post-DDL;
@@ -203,7 +213,7 @@ Semántica diaria V3 debe ser `America/Lima`, no `CURRENT_DATE` server implícit
 
 ---
 
-# 9. INCIDENTES/LECCIONES QUE SIGUEN VIGENTES
+# 8. INCIDENTES/LECCIONES QUE SIGUEN VIGENTES
 
 1. Mega-view ~30.4 s → resolver por dominios.
 2. Índices CIA privados rompieron Call Center 401 → write-path test real.
@@ -216,11 +226,14 @@ Semántica diaria V3 debe ser `America/Lima`, no `CURRENT_DATE` server implícit
 9. UTC vs Lima → timezone explícita.
 10. CONTINUOUS top-up → probar ciclo completo.
 11. F10 plan health N+1 → lista snapshot ligera + drill-down exacto live.
+12. F11 runtime real estaba inline en `calls.html`; `calls.js` no era la fuente ejecutada → verificar loader real antes de tocar frontend.
+13. `EXPLAIN ANALYZE` de RPC mutante puede generar side effects → siempre rollback-only.
+14. F11 repeat route tras START → F8 gates ASSIGNED; F9 ownership gobierna IN_PROGRESS.
 
 ---
 
-# 10. SIGUIENTE ACCIÓN
+# 9. SIGUIENTE ACCIÓN
 
-**Iniciar F11 únicamente después de recovery/preflight completo.**
+**Iniciar F12 únicamente después de recovery/preflight completo.**
 
-Primer paso F11: baseline exhaustivo del Call Center V2 + readiness F10 + Impact Report CRITICAL antes de modificar routing.
+Primer paso F12: baseline de F9 leases + F11 routing/readiness + advisor UI actual; diseñar Work View sin mutar ownership.
