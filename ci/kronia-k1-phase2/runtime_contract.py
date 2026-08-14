@@ -9,6 +9,7 @@ mat=(app/'k1_phase2_materialize.py').read_text(encoding='utf-8')
 rail=json.loads((app/'railway.json').read_text(encoding='utf-8'))
 nix=(app/'nixpacks.toml').read_text(encoding='utf-8')
 browser=(app/'public/k1-browser-security.js').read_text(encoding='utf-8')
+apphtml=(app/'public/app.html').read_text(encoding='utf-8')
 login=(app/'public/login.html').read_text(encoding='utf-8')
 extauth=(root/'chrome-extension/k1-extension-auth.js').read_text(encoding='utf-8')
 popup=(root/'chrome-extension/popup.js').read_text(encoding='utf-8')
@@ -30,10 +31,12 @@ assert "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'" in
 assert "ascendaos_zivital_2026" not in inner
 assert re.search(r"const SB_KEY = process\.env\.SUPABASE_SERVICE_ROLE_KEY",inner)
 
-# K1 preserves the Phase 2 login UI exactly as a canonical Auth V3 consumer.
+# K1 preserves Phase 2 login and reuses the shell's existing publishable anon key.
 assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
 assert "for p in ['public/app.html','public/cerebro.html']" in mat
 assert "write('public/login.html'" not in mat and "p='public/login.html'" not in mat
+assert "var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK=" in apphtml
+assert 'window._SK' in browser and 'window.SK' not in browser
 assert 'aos_app_token' in browser
 assert 'aos_kronia_tool_v3' in browser and 'aos_admin_identity_v4' in browser and 'aos_admin_config_v3' in browser
 assert "sessionStorage.getItem('aos_kronia_token')" not in browser
