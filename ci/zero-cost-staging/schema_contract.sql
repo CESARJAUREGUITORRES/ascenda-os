@@ -1,6 +1,13 @@
 -- ASCENDA OS — Zero-Cost Staging
 -- Minimal synthetic schema contract for Sales Intelligence Phase A.
 -- Contains no production records or patient data.
+-- The self-hosted runner may restore an old local Supabase backup; reset only
+-- the synthetic public schema so every contract starts from deterministic state.
+
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
