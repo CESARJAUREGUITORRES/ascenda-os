@@ -19,8 +19,8 @@ async function injectF4(req){
   var type=(r.headers.get('content-type')||'').toLowerCase();if(type.indexOf('text/html')<0)return r;
   var html=await r.text();
   if(html.indexOf('/f4-revenue-ops.js')<0){
-    var tag='<script src="/f4-revenue-ops.js?v=20260814-f4"></script>';
-    html=html.indexOf('</body>')>=0?html.replace('</body>',tag+'</body>'):html+tag;
+    var tags='<script src="/f4-revenue-ops.js?v=20260814-f4"></script><script src="/f4-kronia-revenue-bridge.js?v=20260814-f4"></script>';
+    html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;
   }
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
@@ -29,40 +29,18 @@ async function injectF4(req){
 self.addEventListener('fetch',function(event){
   var req=event.request,u;
   try{u=new URL(req.url);}catch(e){return;}
-
-  // F4 is injected only into the authenticated app shell. Login remains standalone.
-  if(u.origin===self.location.origin&&req.method==='GET'&&(u.pathname==='/app'||u.pathname==='/app.html')){
-    event.respondWith(injectF4(req));return;
-  }
-
+  if(u.origin===self.location.origin&&req.method==='GET'&&(u.pathname==='/app'||u.pathname==='/app.html')){event.respondWith(injectF4(req));return;}
   if(u.hostname.indexOf('supabase.co')<0)return;
 
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
   if(rm&&IDENTITY[rm[1]]){
-    event.respondWith((async function(){
-      var p=await requestJson(req);p.p_token=await getToken();
-      if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}
-      if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};
-      var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;
-    })());return;
+    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
-
   if(rm&&CAJA[rm[1]]){
-    event.respondWith((async function(){
-      var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;
-      var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return fetch(req);return r;
-    })());return;
+    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
-
   var tm=u.pathname.match(/\/rest\/v1\/([^/]+)$/),table=tm&&tm[1],method=req.method.toUpperCase();
   if(table&&PROTECTED[table]&&(method==='POST'||method==='PATCH'||method==='DELETE')){
-    event.respondWith((async function(){
-      var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}
-      var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};
-      var r=await rpcFrom(req,'aos_secure_write_v2',payload);if(isMissing(r))return fetch(req);
-      var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}
-      if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);
-      return json(d.rows||[],200);
-    })());
+    event.respondWith((async function(){var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};var r=await rpcFrom(req,'aos_secure_write_v2',payload);if(isMissing(r))return fetch(req);var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);return json(d.rows||[],200);})());
   }
 });
