@@ -8,6 +8,7 @@ on:
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
+      - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
@@ -22,6 +23,7 @@ on:
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
+      - 'supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
       - 'ci/phase2-cartera/**'
       - 'app/public/login.html'
@@ -76,6 +78,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814060000_phase2_production_hardening.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
@@ -104,6 +107,14 @@ jobs:
           grep -q '1..3' /tmp/provider.txt
           ! grep -q 'not ok' /tmp/provider.txt
 
+      - name: pgTAP identity administration boundary
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/007_phase2_identity_admin.sql | tee /tmp/identity.txt
+          grep -q '1..12' /tmp/identity.txt
+          ! grep -q 'not ok' /tmp/identity.txt
+          ! grep -q 'Looks like you planned' /tmp/identity.txt
+
       - name: UI and cutover contract
         run: |
           set -euo pipefail
@@ -115,6 +126,7 @@ jobs:
           hard=Path('supabase/migrations/20260814060000_phase2_production_hardening.sql').read_text(encoding='utf-8')
           fix=Path('supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql').read_text(encoding='utf-8')
           provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
+          identity=Path('supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql').read_text(encoding='utf-8')
           proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
           railway=Path('app/railway.json').read_text(encoding='utf-8')
           recovery=Path('supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql').read_text(encoding='utf-8')
@@ -122,11 +134,14 @@ jobs:
           assert 'aos_login_v2' not in login and '/api/send-2fa' not in login
           assert "register('/phase2-service-worker.js'" in login
           assert 'aos_secure_write_v2' in sw and 'aos_caja_abrir_v2' in sw
+          assert 'aos_admin_crear_usuario_v3' in sw and 'aos_admin_cambiar_password_v3' in sw
           assert 'aos_planes_trabajo' in sw and 'aos_catalogo_servicios' in sw
           assert 'revoke execute on function public.aos_login_v2' in hard.lower()
           assert 'revoke insert,update,delete' in hard.lower()
           assert 'v_cols' in fix and 'jsonb_populate_record' in fix
           assert 'anon_integ_read_non_auth_provider' in provider and 'resend' in provider.lower()
+          assert 'revoke execute on function public.aos_login(text,text)' in identity.lower()
+          assert 'owner_admin_2fa_required' in identity.lower()
           assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
           assert 'node server-phase2.js' in railway
@@ -157,6 +172,7 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_caja_abrir_v2(text,text,numeric,numeric,numeric,date)','EXECUTE')")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_login_v3(text,text)','EXECUTE')")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_login_v2(text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_admin_cambiar_password(uuid,text)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_ventas','INSERT')")" = "f"
 
       - name: Stop isolated Supabase
