@@ -23,6 +23,7 @@ Estado: `PREPARADO EN RAMA — PRODUCCIÓN SIN CAMBIOS`
 | Coincidencia exacta e inequívoca por importe | 0 |
 | Libro `aos_pagos` | 1 pago / S/169.00 |
 | Migración FASE 2 aplicada en Supabase productivo | No; versiones `20260814034401` y `20260814050000` ausentes al 2026-08-14 |
+| Adelantos con monto no finito en productivo | 0 de 123 al 2026-08-13 |
 
 Conclusión: un `ADELANTO` representa un pago recibido, no el saldo por cobrar. El saldo real no puede derivarse de `aos_ventas.monto` porque la fila no guarda el total esperado. Las 39 cotizaciones parciales tienen saldo aritmético consistente, pero el libro de pagos está incompleto; por ello se presentan como casos por reconciliar, no como deuda confirmada.
 
@@ -61,7 +62,7 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 9. Exige que un saldo confirmado vinculado a cotización coincida exactamente con `subtotal - total_pagado = saldo_pendiente`; no admite importes parciales inventados.
 10. No instala un trigger sobre `aos_ventas`: evita convertir escrituras legacy directas en casos protegidos. El corte histórico se carga una vez y los pagos v2 escriben el bridge de forma atómica.
 11. Incluye una migración de limpieza que elimina sobrecargas obsoletas y restaura el emisor de sesión certificado de FASE 1. Supabase productivo fue verificado sin ninguna migración FASE 2 aplicada, por lo que el despliegue autorizado deberá ejecutar la migración principal y luego esta limpieza, en orden.
-12. Rechaza `NaN` e infinitos tanto en la función como mediante constraints defensivos para impedir que un valor no finito contamine los totales de Cartera.
+12. Rechaza `NaN` e infinitos en saldos, totales, montos del bridge y pagos v2; el seed omite importes legacy no finitos y los constraints impiden su reingreso.
 
 ## Impacto
 
@@ -92,7 +93,7 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 ## Pruebas y gate
 
 - Esquema sintético sin datos reales.
-- pgTAP: 94 aserciones para RLS, permisos, sesión, sedes —incluidos casos adversariales con `NULL` y valores no finitos—, sobrecargas legacy, clasificación, reconciliación, idempotencia ligada al actor, sobrepago, atomicidad y roles de pago.
+- pgTAP: 96 aserciones para RLS, permisos, sesión, sedes —incluidos casos adversariales con `NULL` y valores no finitos—, sobrecargas legacy, clasificación, reconciliación, idempotencia ligada al actor, sobrepago, atomicidad y roles de pago.
 - Lint de Supabase en nivel error.
 - Contrato UI para menú, autorización, gateway, Caja v2 y bloqueo de recordatorios.
 - Smoke requerido antes de producción: San Isidro, Pueblo Libre, administrador con panel, administrador sin panel, sobrepago rechazado y saldo exacto.

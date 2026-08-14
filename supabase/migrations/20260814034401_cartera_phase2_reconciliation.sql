@@ -93,6 +93,16 @@ begin
         or lower(saldo_confirmado::text) not in ('nan','infinity','-infinity')
       );
   end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.aos_cartera_reconciliacion'::regclass
+      and conname='aos_cartera_monto_finite_chk'
+  ) then
+    alter table public.aos_cartera_reconciliacion
+      add constraint aos_cartera_monto_finite_chk check (
+        lower(monto_registrado::text) not in ('nan','infinity','-infinity')
+      );
+  end if;
 end;
 $constraints$;
 
@@ -145,6 +155,7 @@ select
   )
 from public.aos_ventas v
 where upper(trim(coalesce(v.estado_pago,'')))='ADELANTO'
+  and lower(coalesce(v.monto::text,'')) not in ('nan','infinity','-infinity')
 on conflict (venta_row_id) where source_type='VENTA' do nothing;
 
 insert into public.aos_cartera_reconciliacion(
@@ -843,6 +854,7 @@ begin
   end if;
   if p_cotizacion_id is null or coalesce(p_monto,0)<=0
      or round(p_monto,2)<>p_monto
+     or lower(coalesce(p_monto::text,'')) in ('nan','infinity','-infinity')
      or trim(coalesce(p_metodo_pago,''))='' then
     return jsonb_build_object('ok',false,'error','INVALID_PAYMENT');
   end if;

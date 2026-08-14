@@ -49,6 +49,7 @@ assert "registrado_por_user_id" in migration
 assert "abierto_por_user_id" in migration
 assert "BALANCE_MUST_MATCH_QUOTE" in migration
 assert "aos_cartera_saldo_finite_chk" in migration
+assert "aos_cartera_monto_finite_chk" in migration
 assert "forbidden_sede" in migration.lower()
 assert "stale_case" in migration.lower()
 assert "'OVERPAYMENT'" in migration

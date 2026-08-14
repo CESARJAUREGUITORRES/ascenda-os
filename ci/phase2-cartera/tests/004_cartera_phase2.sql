@@ -1,6 +1,6 @@
 begin;
 
-select plan(94);
+select plan(96);
 
 select has_table('public','aos_cartera_reconciliacion','bridge exists');
 select is((select relrowsecurity from pg_class where oid='public.aos_cartera_reconciliacion'::regclass),true,'bridge has RLS');
@@ -24,6 +24,7 @@ select is(has_table_privilege('anon','public.aos_caja_sesiones','UPDATE'),false,
 select is((select count(*) from public.aos_cartera_reconciliacion where source_type='VENTA'),2::bigint,'two advances seeded');
 select is((select count(*) from public.aos_cartera_reconciliacion where source_type='COTIZACION'),2::bigint,'two partial quotes seeded');
 select is((select count(*) from public.aos_cartera_reconciliacion where estado_reconciliacion='SALDO_CONFIRMADO'),0::bigint,'nothing becomes debt automatically');
+select is((select count(*) from pg_constraint where conrelid='public.aos_cartera_reconciliacion'::regclass and conname='aos_cartera_monto_finite_chk'),1::bigint,'recorded payment amount has finite-value constraint');
 
 select is((select prosecdef from pg_proc where oid='public.aos_cartera_actor(text,text)'::regprocedure),true,'actor validator is definer');
 select is((select prosecdef from pg_proc where oid='public.aos_cartera_gateway(text,text,text,integer,integer)'::regprocedure),true,'gateway is definer');
@@ -114,6 +115,9 @@ select is(public.aos_cartera_reconcile(
 select is(public.aos_abonar_cotizacion_v2(
   '', '00000000-0000-0000-0000-000000000001','Q-PART-1',200,'EFECTIVO','BOLETA','','','CASH-SI-TODAY'
 )->>'error','UNAUTHORIZED','abono rejects missing token');
+select is(public.aos_abonar_cotizacion_v2(
+  'phase2-owner-token-0000000000000000000001','00000000-0000-0000-0000-000000000021','Q-PART-1','NaN'::numeric,'EFECTIVO','BOLETA','','','CASH-SI-TODAY'
+)->>'error','INVALID_PAYMENT','payment rejects non-finite amount');
 select is(public.aos_abonar_cotizacion_v2(
   'phase2-single-site-token-00000000000000001','00000000-0000-0000-0000-000000000002','Q-PART-2',100,'EFECTIVO','BOLETA','','','CASH-SINGLE-SI'
 )->>'error','FORBIDDEN_SEDE','single-site admin cannot pay another site');

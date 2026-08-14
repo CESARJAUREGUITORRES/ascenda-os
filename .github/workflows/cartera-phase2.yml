@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/004_cartera_phase2.sql | tee /tmp/cartera-pgtap.txt
-          grep -q '1..94' /tmp/cartera-pgtap.txt
+          grep -q '1..96' /tmp/cartera-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/cartera-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/cartera-pgtap.txt; then exit 1; fi
 
