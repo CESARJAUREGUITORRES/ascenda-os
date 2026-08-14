@@ -2,6 +2,7 @@
 
 -- Auth primitives and compatibility claims must not be browser-callable.
 DO $$
+declare v_2fa_def text;
 begin
   if has_function_privilege('anon','public.aos_login_v2(text,text)','EXECUTE') then
     raise exception 'K1-37 raw login primitive executable by anon';
@@ -33,6 +34,14 @@ begin
   end if;
   if not has_function_privilege('anon','public.aos_kronia_tool(text,text,jsonb)','EXECUTE') then
     raise exception 'K1-51 token-bound business gateway unavailable to browser';
+  end if;
+
+  select lower(pg_get_functiondef('public.aos_verificar_2fa(text,text)'::regprocedure)) into v_2fa_def;
+  if position('for update skip locked' in v_2fa_def)=0 then
+    raise exception 'K1-52 2FA verifier does not atomically lock OTP candidate';
+  end if;
+  if position('set usado = true' in v_2fa_def)=0 then
+    raise exception 'K1-53 2FA verifier does not consume OTP in atomic update';
   end if;
 end $$;
 
