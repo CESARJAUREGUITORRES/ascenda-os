@@ -8,8 +8,9 @@
 Corregir un fallo de runtime detectado por Zero-Cost CI: `aos_secure_write_v2` usa `jsonb_object_length(jsonb)`, función inexistente en PostgreSQL, al validar `p_match` para `PATCH`/`DELETE`.
 
 ## Código / datos
-- migration nueva: `supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql`
-- función: `public.aos_secure_write_v2(text,text,text,jsonb,jsonb)`
+- migration nueva: `supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql`;
+- recovery: `supabase/rollbacks/20260814201500_fix_secure_write_v2_jsonb_match_count.sql`;
+- función: `public.aos_secure_write_v2(text,text,text,jsonb,jsonb)`;
 - no cambia tablas, datos productivos, allowlists, roles ni contrato de retorno.
 
 ## Consumidores
@@ -19,7 +20,7 @@ El gateway protege escrituras allowlisted sobre catálogo y planes de trabajo. L
 - conserva `SECURITY DEFINER` + `search_path=''`;
 - conserva autoridad derivada de `aos_app_actor_v3`;
 - conserva allowlists de tablas/campos/match;
-- no amplía grants;
+- no amplía grants en operación normal;
 - no usa PII/PHI ni secretos en CI.
 
 ## Plan de prueba
@@ -29,10 +30,12 @@ El gateway protege escrituras allowlisted sobre catálogo y planes de trabajo. L
 4. sesión sintética autorizada: `DELETE` con `p_match={}` debe devolver `MATCH_REQUIRED`, no `WRITE_REJECTED`;
 5. tabla fuera de allowlist debe seguir devolviendo `TABLE_NOT_ALLOWED`;
 6. `supabase db lint --level error` sin el finding de `aos_secure_write_v2`;
-7. ejecutar contratos Phase 2 relevantes.
+7. ejecutar contratos Phase 2 relevantes;
+8. ejecutar recovery fail-closed y demostrar que `anon/authenticated` pierden EXECUTE mientras `service_role` lo conserva;
+9. reaplicar la migration y verificar recuperación del contrato normal.
 
 ## Rollback / recovery
-La migration solo redefine la función. Recovery: restaurar la definición inmediatamente anterior si apareciera regresión, pero **no** restaurar `jsonb_object_length`; en emergencia se puede degradar temporalmente el gateway antes que reintroducir una función inválida.
+No se restaura la definición defectuosa. El recovery es **security-preserving / fail-closed**: revoca temporalmente `EXECUTE` a `anon` y `authenticated`, conserva `service_role` y permite recuperar el servicio reejecutando la migration validada. Se prioriza degradación temporal del gateway sobre reintroducir una función inválida.
 
 ## Gate productivo
 No aplicar directamente en producción. Branch → Zero-Cost V2 → PR → integración → preflight read-only → autorización conforme a gobernanza HIGH.
