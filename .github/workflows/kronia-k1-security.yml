@@ -13,6 +13,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
   pull_request:
     branches: [main]
@@ -25,6 +26,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
   workflow_dispatch:
 
@@ -39,13 +41,21 @@ jobs:
   security-contract:
     name: K1 identity / session / secrets / RPC boundary
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Materialize deterministic K1 runtime
+        run: |
+          set -euo pipefail
+          python3 ci/kronia-k1/apply_runtime_patch.py
+          sed -E -i 's/(^|[^.[:alnum:]_])digest\(/\1extensions.digest(/g' ci/kronia-k1/test_k1.sql
+          sed -E -i 's/(^|[^.[:alnum:]_])gen_random_bytes\(/\1extensions.gen_random_bytes(/g' ci/kronia-k1/test_k1.sql
+          git diff --check
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
@@ -86,11 +96,20 @@ jobs:
           set -euo pipefail
           node --check app/server.js
           node --check app/public/kronia-core.js
+          node --check chrome-extension/kronia-core.js
+          node --check chrome-extension/popup.js
+          python3 -m py_compile ci/kronia-k1/apply_runtime_patch.py
 
       - name: Static K1 no-legacy-authority gate
         run: |
           set -euo pipefail
           python3 ci/kronia-k1/check_runtime_contract.py
+
+      - name: Secret-source regression gate
+        run: |
+          set -euo pipefail
+          ! grep -nE "process\.env\.(RESEND_API_KEY|GROQ_API_KEY|GEMINI_API_KEY)[[:space:]]*\|\|[[:space:]]*['\"][^'\"]+" app/server.js
+          ! grep -n "const VERIFY_TOKEN = '" app/server.js
 
       - name: Upload K1 evidence
         if: always()
