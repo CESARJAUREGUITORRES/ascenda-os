@@ -105,6 +105,11 @@ jobs:
           node --check chrome-extension/popup.js
           python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py app/k1_internal_boundary.py app/k1_internal_boundary_v2.py
 
+      - name: Dynamic privileged API security smoke
+        run: |
+          set -euo pipefail
+          node ci/kronia-k1/test_runtime_security.js
+
       - name: Consumer compatibility preflight
         run: |
           set -euo pipefail
