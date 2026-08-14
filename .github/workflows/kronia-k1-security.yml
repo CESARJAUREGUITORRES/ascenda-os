@@ -1,0 +1,107 @@
+name: KronIA K1 Security Certificate
+
+on:
+  push:
+    branches:
+      - 'security/kronia-k1-hardening-*'
+    paths:
+      - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
+      - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
+      - 'ci/kronia-k1/**'
+      - 'app/server.js'
+      - 'app/public/kronia-core.js'
+      - 'app/public/login.html'
+      - 'app/public/admin-sales.html'
+      - 'app/public/admin-config.html'
+      - '.github/workflows/kronia-k1-security.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
+      - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
+      - 'ci/kronia-k1/**'
+      - 'app/server.js'
+      - 'app/public/kronia-core.js'
+      - 'app/public/login.html'
+      - 'app/public/admin-sales.html'
+      - 'app/public/admin-config.html'
+      - '.github/workflows/kronia-k1-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kronia-k1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-contract:
+    name: K1 identity / session / secrets / RPC boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db start
+
+      - name: Build K1 production-shaped contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/schema_contract.sql
+
+      - name: Compile K1 migrations exactly
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051600_kronia_k1_extension_claim.sql
+
+      - name: Negative authorization certificate
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1.sql | tee /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_NEGATIVE_AUTH_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error
+
+      - name: Runtime syntax gate
+        run: |
+          set -euo pipefail
+          node --check app/server.js
+          node --check app/public/kronia-core.js
+
+      - name: Static K1 no-legacy-authority gate
+        run: |
+          set -euo pipefail
+          python3 ci/kronia-k1/check_runtime_contract.py
+
+      - name: Upload K1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kronia-k1-security-evidence
+          path: /tmp/kronia-k1-certificate.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
