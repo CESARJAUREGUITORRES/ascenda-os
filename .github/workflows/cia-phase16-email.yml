@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/*cia_phase16_email*.sql'
       - 'ci/phase16/**'
       - 'ci/zero-cost-staging/supabase/config.toml'
+      - 'app/email-gateway.js'
       - 'app/server.js'
       - 'app/public/admin-email.html'
       - '.github/workflows/cia-phase16-email.yml'
@@ -18,10 +19,12 @@ on:
       - 'feature/cia-phase16-*'
       - 'fix/cia-phase16-*'
       - 'security/cia-phase16-*'
+      - 'release/cia-phase16-*'
     paths:
       - 'supabase/migrations/*cia_phase16_email*.sql'
       - 'ci/phase16/**'
       - 'ci/zero-cost-staging/supabase/config.toml'
+      - 'app/email-gateway.js'
       - 'app/server.js'
       - 'app/public/admin-email.html'
       - '.github/workflows/cia-phase16-email.yml'
@@ -39,7 +42,7 @@ jobs:
   contract:
     name: F16 synthetic Email contract / rollback
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
       F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_test
@@ -65,6 +68,7 @@ jobs:
           set -euo pipefail
           supabase --version
           psql --version
+          node --version
           python3 --version
           docker --version
 
@@ -97,6 +101,8 @@ jobs:
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql
 
       - name: Database lint gate
         run: |
@@ -107,6 +113,13 @@ jobs:
         run: |
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_contracts.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_delivery_contracts.sql
+
+      - name: Server-authoritative gateway unit contracts
+        run: |
+          set -euo pipefail
+          node --check app/email-gateway.js
+          node ci/phase16/test_email_gateway.js
 
       - name: Changed-scope secret and fixture policy gate
         shell: bash
@@ -115,11 +128,16 @@ jobs:
           files=(
             supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql
             supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql
+            supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql
+            supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql
             ci/phase16/schema_contract.sql
             ci/phase16/test_phase16_contracts.sql
+            ci/phase16/test_phase16_delivery_contracts.sql
+            ci/phase16/test_email_gateway.js
             ci/phase16/rollback_phase16.sql
+            app/email-gateway.js
           )
-          if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|service_role[^[:space:]]*[=:][^[:space:]]+)' "${files[@]}"; then
+          if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{40,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,})' "${files[@]}"; then
             echo 'F16_SECRET_SCOPE_SCAN=FAIL'
             exit 1
           fi
@@ -144,9 +162,14 @@ jobs:
           sha256sum \
             supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql \
             supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql \
+            supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
+            supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql \
             ci/phase16/schema_contract.sql \
             ci/phase16/test_phase16_contracts.sql \
-            ci/phase16/rollback_phase16.sql
+            ci/phase16/test_phase16_delivery_contracts.sql \
+            ci/phase16/test_email_gateway.js \
+            ci/phase16/rollback_phase16.sql \
+            app/email-gateway.js
           echo 'CIA_PHASE16_ZERO_COST_CONTRACT_GATE=PASS'
           echo 'DELIVERY_ENABLED=false'
 
