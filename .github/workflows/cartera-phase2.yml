@@ -27,20 +27,29 @@ permissions:
   contents: read
 
 concurrency:
-  group: ascenda-local-supabase-${{ github.ref }}
-  cancel-in-progress: false
+  group: cartera-phase2-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   isolated-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase2-base"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 55321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 55322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 55320/' supabase/config.toml
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
