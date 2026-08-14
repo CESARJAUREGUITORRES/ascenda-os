@@ -14,13 +14,16 @@ m=re.search(r"const SB_KEY = 'eyJ[^']+'",s)
 if not m: raise SystemExit('K1 materialize: SB_KEY anchor missing')
 s=s[:m.start()]+"const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''\nif (!SB_KEY) { console.error('[K1] SUPABASE_SERVICE_ROLE_KEY required'); process.exit(1) }"+s[m.end():]
 
-# Historical inline secrets are never valid fallback paths in K1. Secrets must
-# exist in the runtime secret manager or the dependent feature fails closed.
-s=re.sub(r"const VERIFY_TOKEN = '[^']*'","const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'",s,count=1)
+# Source may already be sanitized by the K1 one-shot source cleanup. Keep this
+# transform idempotent and fail closed if any hardcoded provider fallback remains.
+s,n_verify=re.subn(r"const\s+VERIFY_TOKEN\s*=\s*'[^']*'","const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'",s,count=1)
 s,n_resend=re.subn(r"process\.env\.RESEND_API_KEY\s*\|\|\s*'[^']+'","process.env.RESEND_API_KEY || ''",s)
-if n_resend < 2: raise SystemExit(f'K1 materialize: expected Resend hardcoded fallbacks, replaced {n_resend}')
-if re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",s): raise SystemExit('K1 materialize: Resend fallback survived')
+if re.search(r"const\s+VERIFY_TOKEN\s*=\s*['\"][^'\"]+",s):
+    raise SystemExit('K1 materialize: VERIFY_TOKEN hardcoded fallback survived')
+if re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",s):
+    raise SystemExit('K1 materialize: Resend hardcoded fallback survived')
 write(p,s)
+print(f'K1_RUNTIME_SECRET_NORMALIZE=PASS verify_replaced={n_verify} resend_replaced={n_resend}')
 
 # Main app hosts dynamic admin fragments; user interactions happen after this
 # boundary is installed, so one injection before </body> covers them.
