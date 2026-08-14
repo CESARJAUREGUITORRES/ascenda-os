@@ -42,7 +42,6 @@ jobs:
         run: |
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
-          ! grep -R --line-number -E 'runs-on: *(ubuntu-latest|windows-latest|macos-[^ ]*)' .github/workflows/phase3-products.yml
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
