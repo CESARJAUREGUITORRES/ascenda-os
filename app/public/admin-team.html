@@ -58,6 +58,27 @@ function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function q(t,qs,cb){fetch(SB+'/rest/v1/'+t+'?'+qs,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb).catch(function(){});}
 function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(){});}
+function setSalesIntelligenceAccess(targetId,enabled){
+  var token='';
+  try{token=sessionStorage.getItem('aos_si_token')||'';}catch(e){}
+  if(!token){
+    showToast('Sales Intelligence: vuelve a iniciar sesión con 2FA para administrar este permiso');
+    return;
+  }
+  fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_set_access',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:JSON.stringify({p_token:token,p_target_user_id:targetId,p_enabled:!!enabled})
+  }).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok){
+      showToast('Sales Intelligence '+(enabled?'autorizado':'revocado')+' correctamente');
+    }else{
+      var err=(res&&res.error)||'ERROR_DESCONOCIDO';
+      if(err==='TARGET_ADMIN_2FA_REQUIRED')err='el usuario debe ser Admin activo y tener 2FA';
+      showToast('Sales Intelligence no cambió: '+err);
+    }
+  }).catch(function(){showToast('Error de red al actualizar Sales Intelligence');});
+}
 function showToast(m){var tw=el('tm-toast');tw.style.display='block';var d=document.createElement('div');d.className='toast-item';d.textContent='✓ '+m;tw.appendChild(d);setTimeout(function(){d.remove();if(!tw.children.length)tw.style.display='none';},3500);}
 var P=[],U=[],UB=[];
 function loadTeam(){
@@ -265,15 +286,21 @@ function showTab(t){['datos','roles','horarios','servicios'].forEach(function(x)
 function tp(e){e.classList.toggle('on');var k=e.querySelector('.pc-k');k.textContent=e.classList.contains('on')?'✓':'';}
 function saveU(id){
   var ps=[];document.querySelectorAll('.pi.on').forEach(function(p){ps.push(p.getAttribute('data-p'));});
+  var userObj=(U||[]).filter(function(x){return x.id===id;})[0];
+  var previousPanels=(userObj&&userObj.paneles_acceso)||[];
   var sedes=[];document.querySelectorAll('.sede-chk:checked').forEach(function(c){sedes.push(c.value);});
   var sedeStr=el('eu-acceso')&&el('eu-acceso').value==='libre'?'TODAS':sedes.join(', ');
   // Recoger servicios si la pestaña existe
   var svc=[];document.querySelectorAll('.eu-svc:checked').forEach(function(cb){svc.push(cb.value);});
   var cmpEl=el('eu-cmp');
   var d={nombre:(el('eu-nombre').value||'').toUpperCase(),apellidos:(el('eu-apellidos').value||'').toUpperCase(),email:el('eu-email').value,dni:el('eu-dni').value,telefono_personal:el('eu-tel').value,contacto_emergencia:el('eu-emg').value,fecha_nacimiento:el('eu-nac').value||null,lugar_nacimiento:el('eu-lnac').value,rh:el('eu-rh').value,departamento:el('eu-dep').value,provincia:el('eu-prov').value,distrito:el('eu-dist').value,direccion:el('eu-dir').value,cargo:el('eu-cargo').value,area:el('eu-area').value,sede:sedeStr||el('eu-sede').value,fecha_ingreso:el('eu-fing').value||null,tipo_contrato:el('eu-ctr').value,nivel_jerarquia:Number(el('eu-niv')?el('eu-niv').value:4)||4,acceso_geo:el('eu-acceso')?el('eu-acceso').value:'libre',sueldo:Number(el('eu-sue').value)||0,bono_metas:Number(el('eu-bon').value)||0,avatar_url:el('eu-avatar').value,paneles_acceso:ps,updated_at:new Date().toISOString()};
+  d.rol=d.nivel_jerarquia<=2?'admin':((userObj&&userObj.rol)||'asesor');
   if(svc.length)d.servicios=svc;
   if(cmpEl)d.cmp=cmpEl.value.trim();
   fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)}).then(function(){
+    var wantsSI=ps.indexOf('admin-sales-intelligence')>=0;
+    var hadSI=previousPanels.indexOf('admin-sales-intelligence')>=0;
+    if(wantsSI||hadSI)setSalesIntelligenceAccess(id,wantsSI);
     // Sincronizar nombre, cargo y sede con aos_rrhh
     var codigo = el('eu-codigo') ? el('eu-codigo').value : '';
     if(codigo){
@@ -290,7 +317,6 @@ function saveU(id){
     var usernameInput=el('eu-username');
     var usernameNuevo=usernameInput?(usernameInput.value||'').trim().toLowerCase():'';
     /* Buscar el username actual desde la lista U (cargada en loadTeam) */
-    var userObj=(U||[]).filter(function(x){return x.id===id;})[0];
     var usernameActual=userObj?(userObj.username_login||''):'';
     if(usernameNuevo && usernameNuevo!==usernameActual){
       fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_username',{
