@@ -30,16 +30,17 @@ begin
   end;
   if not blocked then raise exception 'K1-107 ordinary level accepted ADMIN role'; end if;
 
-  -- K1-108: privileged ADMIN session requires user-level 2FA enrollment.
-  update public.aos_usuarios set rol='admin',nivel_jerarquia=1,two_factor=false where id=alice_id;
-  j:=public.aos_kronia_claim_session('alice','alice-pass',null,'ci-authority',null,'ci');
-  if coalesce((j->>'ok')::boolean,true) or j->>'error'<>'ADMIN_TWO_FACTOR_REQUIRED' then
-    raise exception 'K1-108 ADMIN without 2FA obtained/approached session: %',j;
-  end if;
+  -- K1-108: privileged ADMIN identity itself cannot drift to two_factor=false.
+  update public.aos_usuarios set rol='admin',nivel_jerarquia=1,two_factor=true where id=alice_id;
+  blocked:=false;
+  begin
+    update public.aos_usuarios set two_factor=false where id=alice_id;
+  exception when others then blocked:=true;
+  end;
+  if not blocked then raise exception 'K1-108 privileged ADMIN accepted two_factor=false'; end if;
 
   -- K1-109/110: verifier accepts username, resolves canonical 2FA subject,
   -- and consumes the OTP only once.
-  update public.aos_usuarios set two_factor=true where id=alice_id;
   insert into public.aos_auth_codes(usuario,email,codigo,expira_at,usado)
   values('Alice Admin','alice@example.test',code,now()+interval '10 minutes',false);
   j:=public.aos_verificar_2fa('alice',code);
