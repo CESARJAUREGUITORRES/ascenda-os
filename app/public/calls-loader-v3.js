@@ -1,0 +1,13 @@
+(function(){
+'use strict';
+var host=document.getElementById('workspace');
+if(!host){console.error('[F11] workspace no encontrado');return;}
+function loadScript(src){return new Promise(function(resolve,reject){var s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
+function runInline(code){var s=document.createElement('script');s.text=code;document.body.appendChild(s);s.remove();}
+function renderLegacy(html){var box=document.createElement('div');box.innerHTML=html;var scripts=Array.prototype.slice.call(box.querySelectorAll('script'));scripts.forEach(function(s){s.remove();});host.innerHTML=box.innerHTML;var chain=Promise.resolve();scripts.forEach(function(s){chain=chain.then(function(){if(s.src)return loadScript(s.src);runInline(s.textContent||'');});});return chain;}
+loadScript('/calls-routing-v3.js?v=20260814')
+  .then(function(){return fetch('/calls-v2.html',{cache:'no-store'});})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+  .then(renderLegacy)
+  .catch(function(e){console.error('[F11] Error cargando Call Center:',e);host.innerHTML='<div style="padding:30px;text-align:center;color:#B91C1C;font:600 12px DM Sans,sans-serif;">No se pudo cargar el Call Center. Recarga la página.</div>';});
+})();
