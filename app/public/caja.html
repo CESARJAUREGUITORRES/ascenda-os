@@ -1510,25 +1510,55 @@ function renderCatResults(rows, res) {
     res.innerHTML = '<div style="padding:10px;text-align:center;font-size:11px;color:var(--label);">Sin resultados</div>';
     res.style.display = 'block'; return;
   }
-  res.innerHTML = rows.map(function(r) {
+  res.innerHTML = '';
+  rows.forEach(function(r) {
     var precio = parseFloat(r.precio_oferta || r.precio_base || 0);
-    var catBadge = r.categoria ? '<span style="font-size:8px;background:var(--blue-xl);color:var(--blue);padding:1px 5px;border-radius:10px;margin-left:4px;">'+escH(r.categoria)+'</span>' : '';
-    var tipoBadge = r.tipo === 'PRODUCTO' ?
-      '<span style="font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;">Prod.</span>' :
-      '<span style="font-size:8px;background:var(--green-xl);color:var(--green);padding:1px 5px;border-radius:10px;">Serv.</span>';
-    return '<div onclick="agregarItemDesdeCatalogo('+JSON.stringify(r).replace(/"/g,'&quot;')+')" ' +
-      'style="padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);" ' +
-      'onmouseover="this.style.background=\'var(--blue-xl)\'" onmouseout="this.style.background=\'\'">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<div style="display:flex;align-items:center;gap:4px;min-width:0;">' +
-          '<span style="font-weight:700;">'+escH(r.nombre||'')+'</span>' +
-          tipoBadge + catBadge +
-        '</div>' +
-        '<span style="color:var(--blue);font-weight:700;font-size:11px;flex-shrink:0;margin-left:8px;">S/ '+precio.toFixed(2)+'</span>' +
-      '</div>' +
-      (r.descripcion_comercial ? '<div style="font-size:8px;color:#6B7BA8;margin-top:2px;line-height:1.3;max-height:26px;overflow:hidden">'+escH(r.descripcion_comercial.substring(0,120))+'...</div>' : '') +
-    '</div>';
-  }).join('');
+    if (!Number.isFinite(precio)) precio = 0;
+
+    var row = document.createElement('div');
+    row.style.cssText = 'padding:7px 12px;font-size:11px;cursor:pointer;border-bottom:1px solid var(--border);';
+    row.addEventListener('mouseenter', function(){ row.style.background = 'var(--blue-xl)'; });
+    row.addEventListener('mouseleave', function(){ row.style.background = ''; });
+    row.addEventListener('click', function(){ agregarItemDesdeCatalogo(r); });
+
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+    var labels = document.createElement('div');
+    labels.style.cssText = 'display:flex;align-items:center;gap:4px;min-width:0;';
+    var name = document.createElement('span');
+    name.style.fontWeight = '700';
+    name.textContent = r.nombre || '';
+    labels.appendChild(name);
+
+    var tipoBadge = document.createElement('span');
+    tipoBadge.style.cssText = r.tipo === 'PRODUCTO'
+      ? 'font-size:8px;background:#FFF7ED;color:#EA580C;padding:1px 5px;border-radius:10px;'
+      : 'font-size:8px;background:var(--green-xl);color:var(--green);padding:1px 5px;border-radius:10px;';
+    tipoBadge.textContent = r.tipo === 'PRODUCTO' ? 'Prod.' : 'Serv.';
+    labels.appendChild(tipoBadge);
+
+    if (r.categoria) {
+      var catBadge = document.createElement('span');
+      catBadge.style.cssText = 'font-size:8px;background:var(--blue-xl);color:var(--blue);padding:1px 5px;border-radius:10px;margin-left:4px;';
+      catBadge.textContent = r.categoria;
+      labels.appendChild(catBadge);
+    }
+
+    var amount = document.createElement('span');
+    amount.style.cssText = 'color:var(--blue);font-weight:700;font-size:11px;flex-shrink:0;margin-left:8px;';
+    amount.textContent = 'S/ ' + precio.toFixed(2);
+    top.appendChild(labels);
+    top.appendChild(amount);
+    row.appendChild(top);
+
+    if (r.descripcion_comercial) {
+      var description = document.createElement('div');
+      description.style.cssText = 'font-size:8px;color:#6B7BA8;margin-top:2px;line-height:1.3;max-height:26px;overflow:hidden;';
+      description.textContent = String(r.descripcion_comercial).substring(0, 120) + '...';
+      row.appendChild(description);
+    }
+    res.appendChild(row);
+  });
   res.style.display = 'block';
 }
 
@@ -3021,8 +3051,8 @@ function mostrarPlanes(planes) {
   planes.forEach(function(plan) {
     o += '<div style="padding:12px 16px;border-bottom:1px solid #EEF0F8;">';
     o += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
-    o += '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:2px 8px;border-radius:4px;">' + plan.autor + '</span>';
-    o += '<span style="font-size:9px;color:#6B7BA8;">' + plan.fecha + '</span></div>';
+    o += '<span style="font-size:8px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:2px 8px;border-radius:4px;">' + escH(plan.autor || '') + '</span>';
+    o += '<span style="font-size:9px;color:#6B7BA8;">' + escH(plan.fecha || '') + '</span></div>';
     plan.items.forEach(function(item) {
       if (item.estado === 'PAGADO' || item.estado === 'COMPLETADO') return;
       if (item.estado !== 'PENDIENTE' && item.estado !== 'PARCIAL' && item.estado !== 'COTIZADO') return;
@@ -3033,14 +3063,14 @@ function mostrarPlanes(planes) {
       o += '<div style="padding:10px;border:1.5px solid #DDE4F5;border-radius:8px;margin-bottom:6px;background:#F8FAFF;">';
       o += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
       o += '<span style="font-size:14px;">' + (item.tipo==='SERVICIO'?'✨':'💊') + '</span>';
-      o += '<b style="flex:1;font-size:12px;color:#071D4A;">' + item.nombre + badgeEstado + '</b>';
+      o += '<b style="flex:1;font-size:12px;color:#071D4A;">' + escH(item.nombre || '') + badgeEstado + '</b>';
       o += '<span style="font-size:9px;color:#0A4FBF;font-weight:700;background:#EBF2FF;padding:2px 8px;border-radius:10px;">' + (item.sesiones||item.num_sesiones||1) + ' ses</span></div>';
       if (variantes.length) {
         variantes.forEach(function(v) {
           var uid = 'pv' + idx++;
           o += '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:11px;border:1.5px solid #EEF0F8;border-radius:8px;margin-bottom:3px;background:#fff;" for="' + uid + '">';
-          o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + item.id + '" data-nombre="' + (v.nombre||'').replace(/"/g,'') + '" data-precio="' + (v.precio||0) + '" data-sesiones="' + (item.sesiones||item.num_sesiones||1) + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
-          o += '<span style="flex:1;font-weight:600;color:#071D4A;">' + (v.nombre||'') + '</span>';
+          o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + escH(item.id || '') + '" data-nombre="' + escH(v.nombre || '') + '" data-precio="' + (parseFloat(v.precio)||0) + '" data-sesiones="' + (parseInt(item.sesiones||item.num_sesiones,10)||1) + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
+          o += '<span style="flex:1;font-weight:600;color:#071D4A;">' + escH(v.nombre || '') + '</span>';
           o += '<span style="font-weight:800;color:#0A4FBF;font-size:12px;">S/' + (v.precio||0) + '</span></label>';
           o += '<div id="' + uid + 'S" style="display:none;padding:2px 0 6px 36px;align-items:center;gap:6px;">';
           o += '<span style="font-size:9px;color:#6B7BA8;font-weight:700;">Sesiones a cobrar:</span>';
@@ -3050,8 +3080,8 @@ function mostrarPlanes(planes) {
       } else {
         var uid = 'pv' + idx++;
         o += '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:11px;border:1.5px solid #EEF0F8;border-radius:8px;background:#fff;" for="' + uid + '">';
-        o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + item.id + '" data-nombre="' + (item.nombre||'').replace(/"/g,'') + '" data-precio="' + (item.precio||item.precio_unitario||0) + '" data-sesiones="' + (item.sesiones||item.num_sesiones||1) + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
-        o += '<span style="flex:1;font-weight:600;color:#071D4A;">' + item.nombre + '</span>';
+        o += '<input type="checkbox" id="' + uid + '" class="plan-chk" data-item="' + escH(item.id || '') + '" data-nombre="' + escH(item.nombre || '') + '" data-precio="' + (parseFloat(item.precio||item.precio_unitario)||0) + '" data-sesiones="' + (parseInt(item.sesiones||item.num_sesiones,10)||1) + '" onchange="document.getElementById(\'' + uid + 'S\').style.display=this.checked?\'flex\':\'none\'">';
+        o += '<span style="flex:1;font-weight:600;color:#071D4A;">' + escH(item.nombre || '') + '</span>';
         o += '<span style="font-weight:800;color:#0A4FBF;font-size:12px;">S/' + (item.precio||item.precio_unitario||0) + '</span></label>';
         o += '<div id="' + uid + 'S" style="display:none;padding:2px 0 6px 36px;align-items:center;gap:6px;">';
         o += '<span style="font-size:9px;color:#6B7BA8;font-weight:700;">Sesiones a cobrar:</span>';
@@ -3099,30 +3129,98 @@ function cargarPlanEnVenta() {
 }
 
 function mostrarCotizaciones(cots, numero) {
-  var o = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="modal-cots">';
-  o += '<div style="background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15);" onclick="event.stopPropagation()">';
-  o += '<div style="padding:14px 16px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D97706,#F59E0B);border-radius:12px 12px 0 0;color:#fff;">';
-  o += '<span style="font-size:20px;">💰</span><div style="flex:1;"><b style="font-size:14px;">Cotizaciones pendientes</b><br><span style="font-size:10px;opacity:.8;">Selecciona para abonar o completar pago</span></div>';
-  o += '<button onclick="document.getElementById(\'modal-cots\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#fff;">✕</button></div>';
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-cots';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.addEventListener('click', function(event){ if (event.target === overlay) overlay.remove(); });
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15);';
+  modal.addEventListener('click', function(event){ event.stopPropagation(); });
+
+  var header = document.createElement('div');
+  header.style.cssText = 'padding:14px 16px;border-bottom:1px solid #DDE4F5;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D97706,#F59E0B);border-radius:12px 12px 0 0;color:#fff;';
+  var icon = document.createElement('span');
+  icon.style.fontSize = '20px';
+  icon.textContent = '💰';
+  var heading = document.createElement('div');
+  heading.style.flex = '1';
+  var title = document.createElement('b');
+  title.style.fontSize = '14px';
+  title.textContent = 'Cotizaciones pendientes';
+  var subtitle = document.createElement('span');
+  subtitle.style.cssText = 'font-size:10px;opacity:.8;';
+  subtitle.textContent = 'Selecciona para abonar o completar pago';
+  heading.appendChild(title);
+  heading.appendChild(document.createElement('br'));
+  heading.appendChild(subtitle);
+  var close = document.createElement('button');
+  close.type = 'button';
+  close.style.cssText = 'background:none;border:none;font-size:18px;cursor:pointer;color:#fff;';
+  close.textContent = '✕';
+  close.addEventListener('click', function(){ overlay.remove(); });
+  header.appendChild(icon);
+  header.appendChild(heading);
+  header.appendChild(close);
+  modal.appendChild(header);
 
   cots.forEach(function(cot) {
-    o += '<div style="padding:12px 16px;border-bottom:1px solid #EEF0F8;cursor:pointer;" onclick="cargarCotEnVenta(\'' + cot.id + '\')" onmouseover="this.style.background=\'#F8FAFF\'" onmouseout="this.style.background=\'\'">';
-    o += '<div style="display:flex;align-items:center;gap:8px;">';
-    o += '<span style="font-size:9px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:3px 8px;border-radius:4px;">#' + (cot.numero_cotizacion||'') + '</span>';
-    o += '<span style="font-size:9px;color:#6B7BA8;">' + (cot.fecha_creacion||'') + '</span>';
-    if(cot.plan_id) o += '<span style="font-size:7px;background:#EBF2FF;color:#0A4FBF;padding:1px 4px;border-radius:3px;">Plan</span>';
-    o += '<div style="flex:1;"></div>';
-    o += '<div style="text-align:right;"><div style="font-size:12px;font-weight:800;color:#071D4A;">S/' + parseFloat(cot.subtotal||0).toFixed(0) + '</div>';
-    var saldo = parseFloat(cot.saldo_pendiente||0);
-    if(saldo > 0) o += '<div style="font-size:9px;color:#DC2626;font-weight:700;">Saldo: S/' + saldo.toFixed(0) + '</div>';
-    else o += '<div style="font-size:9px;color:#059669;font-weight:700;">Pagado</div>';
-    o += '</div></div>';
-    if(cot.asesor) o += '<div style="font-size:8px;color:#6B7BA8;margin-top:2px;">Asesor: ' + cot.asesor + (cot.origen==='PLAN_TRABAJO'?' - Origen: Plan de trabajo':'') + '</div>';
-    o += '</div>';
+    var row = document.createElement('div');
+    row.style.cssText = 'padding:12px 16px;border-bottom:1px solid #EEF0F8;cursor:pointer;';
+    row.addEventListener('mouseenter', function(){ row.style.background = '#F8FAFF'; });
+    row.addEventListener('mouseleave', function(){ row.style.background = ''; });
+    row.addEventListener('click', function(){ cargarCotEnVenta(cot.id); });
+
+    var line = document.createElement('div');
+    line.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    var number = document.createElement('span');
+    number.style.cssText = 'font-size:9px;font-weight:800;color:#0A4FBF;background:#EBF2FF;padding:3px 8px;border-radius:4px;';
+    number.textContent = '#' + (cot.numero_cotizacion || '');
+    var date = document.createElement('span');
+    date.style.cssText = 'font-size:9px;color:#6B7BA8;';
+    date.textContent = cot.fecha_creacion || '';
+    line.appendChild(number);
+    line.appendChild(date);
+    if (cot.plan_id) {
+      var planBadge = document.createElement('span');
+      planBadge.style.cssText = 'font-size:7px;background:#EBF2FF;color:#0A4FBF;padding:1px 4px;border-radius:3px;';
+      planBadge.textContent = 'Plan';
+      line.appendChild(planBadge);
+    }
+    var spacer = document.createElement('div');
+    spacer.style.flex = '1';
+    line.appendChild(spacer);
+
+    var amounts = document.createElement('div');
+    amounts.style.textAlign = 'right';
+    var subtotal = parseFloat(cot.subtotal || 0);
+    if (!Number.isFinite(subtotal)) subtotal = 0;
+    var total = document.createElement('div');
+    total.style.cssText = 'font-size:12px;font-weight:800;color:#071D4A;';
+    total.textContent = 'S/' + subtotal.toFixed(0);
+    amounts.appendChild(total);
+    var saldo = parseFloat(cot.saldo_pendiente || 0);
+    if (!Number.isFinite(saldo)) saldo = 0;
+    var balance = document.createElement('div');
+    balance.style.cssText = saldo > 0
+      ? 'font-size:9px;color:#DC2626;font-weight:700;'
+      : 'font-size:9px;color:#059669;font-weight:700;';
+    balance.textContent = saldo > 0 ? 'Saldo: S/' + saldo.toFixed(0) : 'Pagado';
+    amounts.appendChild(balance);
+    line.appendChild(amounts);
+    row.appendChild(line);
+
+    if (cot.asesor) {
+      var advisor = document.createElement('div');
+      advisor.style.cssText = 'font-size:8px;color:#6B7BA8;margin-top:2px;';
+      advisor.textContent = 'Asesor: ' + cot.asesor + (cot.origen === 'PLAN_TRABAJO' ? ' - Origen: Plan de trabajo' : '');
+      row.appendChild(advisor);
+    }
+    modal.appendChild(row);
   });
 
-  o += '</div></div>';
-  document.body.insertAdjacentHTML('beforeend', o);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
 }
 
 function cargarCotEnVenta(cotId) {
