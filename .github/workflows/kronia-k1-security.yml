@@ -10,10 +10,12 @@ on:
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql'
       - 'supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql'
+      - 'supabase/migrations/20260814052000_kronia_k1_internal_log_boundary.sql'
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/k1_runtime_base.py'
       - 'app/k1_materialize_runtime.py'
+      - 'app/k1_internal_boundary.py'
       - 'app/railway.json'
       - 'app/nixpacks.toml'
       - 'app/server.js'
@@ -22,6 +24,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'app/public/agents.html'
       - 'app/public/cerebro.html'
       - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
@@ -33,10 +36,12 @@ on:
       - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql'
       - 'supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql'
+      - 'supabase/migrations/20260814052000_kronia_k1_internal_log_boundary.sql'
       - 'supabase/rollbacks/20260814_kronia_k1_rollback.sql'
       - 'ci/kronia-k1/**'
       - 'app/k1_runtime_base.py'
       - 'app/k1_materialize_runtime.py'
+      - 'app/k1_internal_boundary.py'
       - 'app/railway.json'
       - 'app/nixpacks.toml'
       - 'app/server.js'
@@ -45,6 +50,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/admin-sales.html'
       - 'app/public/admin-config.html'
+      - 'app/public/agents.html'
       - 'app/public/cerebro.html'
       - 'chrome-extension/**'
       - '.github/workflows/kronia-k1-security.yml'
@@ -72,10 +78,10 @@ jobs:
       - name: Materialize exact Railway K1 runtime
         run: |
           set -euo pipefail
-          (cd app && python3 k1_materialize_runtime.py)
+          (cd app && python3 k1_materialize_runtime.py && python3 k1_internal_boundary.py)
           test -s app/k1-runtime-manifest.json
           cp app/k1-runtime-manifest.json /tmp/kronia-k1-runtime-manifest.json
-          grep -q 'python3 k1_materialize_runtime.py' app/railway.json
+          grep -q 'python3 k1_materialize_runtime.py && python3 k1_internal_boundary.py' app/railway.json
           sed -E -i 's/(^|[^.[:alnum:]_])digest\(/\1extensions.digest(/g' ci/kronia-k1/test_k1.sql
           sed -E -i 's/(^|[^.[:alnum:]_])gen_random_bytes\(/\1extensions.gen_random_bytes(/g' ci/kronia-k1/test_k1.sql
           git diff --check
@@ -95,27 +101,27 @@ jobs:
           node --check app/public/kronia-core.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/popup.js
-          python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py
+          python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py app/k1_internal_boundary.py
 
       - name: Consumer compatibility preflight
         run: |
           set -euo pipefail
           python3 ci/kronia-k1/check_compat_contract.py
+          python3 ci/kronia-k1/check_internal_boundary.py
 
       - name: Railway deployment contract
         run: |
           set -euo pipefail
-          grep -q '"buildCommand": "python3 k1_materialize_runtime.py"' app/railway.json
+          grep -q '"buildCommand": "python3 k1_materialize_runtime.py && python3 k1_internal_boundary.py"' app/railway.json
           grep -q '"startCommand": "node server.js"' app/railway.json
           grep -q 'providers = \["\.\.\.", "python"\]' app/nixpacks.toml
           grep -q 'cmds = \["npm install"\]' app/nixpacks.toml
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p=Path('/tmp/kronia-k1-runtime-manifest.json')
-          m=json.loads(p.read_text())
-          assert m.get('contract') == 'kronia-k1-runtime-v1'
-          expected={'server.js','public/app.html','public/kronia-core.js','public/login.html','public/admin-sales.html','public/admin-config.html'}
+          m=json.loads(Path('/tmp/kronia-k1-runtime-manifest.json').read_text())
+          assert m.get('contract') == 'kronia-k1-runtime-v2'
+          expected={'server.js','public/app.html','public/kronia-core.js','public/login.html','public/admin-sales.html','public/admin-config.html','public/agents.html','public/cerebro.html'}
           assert set(m.get('files',{})) == expected
           assert all(len(v)==64 for v in m['files'].values())
           print('KRONIA_K1_RAILWAY_EQUIVALENCE=PASS')
@@ -137,6 +143,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/schema_contract.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/auth_primitives.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/internal_primitives.sql
 
       - name: Compile K1 migrations exactly
         run: |
@@ -146,6 +153,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051800_kronia_k1_canonical_closure.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051900_kronia_k1_atomic_2fa_verify.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814052000_kronia_k1_internal_log_boundary.sql
 
       - name: Negative authorization certificate
         run: |
@@ -175,13 +183,14 @@ jobs:
           node --check app/public/kronia-core.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/popup.js
-          python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py ci/kronia-k1/check_runtime_contract.py ci/kronia-k1/check_compat_contract.py
+          python3 -m py_compile app/k1_runtime_base.py app/k1_materialize_runtime.py app/k1_internal_boundary.py ci/kronia-k1/check_runtime_contract.py ci/kronia-k1/check_compat_contract.py ci/kronia-k1/check_internal_boundary.py
 
       - name: Static K1 no-legacy-authority gate
         run: |
           set -euo pipefail
           python3 ci/kronia-k1/check_runtime_contract.py
           python3 ci/kronia-k1/check_compat_contract.py
+          python3 ci/kronia-k1/check_internal_boundary.py
 
       - name: Secret-source regression gate
         run: |
