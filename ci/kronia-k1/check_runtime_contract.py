@@ -34,6 +34,18 @@ require(server, "sbServiceRpc('aos_kronia_revocar_token'", 'logout endpoint uses
 forbid(server, "sbRpc('aos_kronia_verify_token'", 'verify endpoint uses anon-key RPC')
 forbid(server, "sbRpc('aos_kronia_revocar_token'", 'logout endpoint uses anon-key RPC')
 
+# K1.6 request boundary: explicit origin allowlist, rate limits and body limits.
+require(server, 'function k1OriginAllowed(req)', 'privileged API origin policy exists')
+require(server, 'process.env.ASCENDA_CORS_ORIGINS', 'cross-origin allowlist is environment-controlled')
+require(server, 'function k1RateAllowed(req, scope, limit, windowMs)', 'rate limiter exists')
+require(server, 'function k1InstallBodyLimit(req, res, maxBytes)', 'request-size limiter exists')
+require(server, "p.startsWith('/api/agents/')", 'agent surface is covered by privileged middleware')
+require(server, "p.startsWith('/api/auth/')", 'auth surface is covered by privileged middleware')
+require(server, "p.startsWith('/api/kronia/')", 'KronIA surface is covered by privileged middleware')
+require(server, "res.writeHead(429", 'rate-limit denial is explicit')
+require(server, "res.writeHead(413", 'oversized request denial is explicit')
+require(server, "'Access-Control-Allow-Headers':'Content-Type, Authorization'", 'preflight exposes only required privileged headers')
+
 # Shared web core: web mode must not send role/sede authority in request body.
 require(core, "sessionStorage", 'web KronIA session uses sessionStorage')
 require(core, "aos_kronia_token", 'web KronIA loads canonical opaque token')
