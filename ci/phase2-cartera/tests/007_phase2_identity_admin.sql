@@ -1,6 +1,6 @@
 begin;
 
-select plan(11);
+select plan(12);
 
 select is(has_function_privilege('anon','public.aos_login(text,text)','EXECUTE'),false,'legacy plaintext login is closed');
 select is(has_function_privilege('anon','public.aos_admin_crear_usuario(text,text,text,text,text,text,integer,text,text)','EXECUTE'),false,'legacy unauthenticated user creation is closed');
