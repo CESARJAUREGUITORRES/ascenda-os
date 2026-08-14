@@ -32,7 +32,7 @@ create table if not exists public.aos_cia_intelligence_recommendations (
   explanation jsonb not null,
   observed_affinity jsonb not null default '{}'::jsonb,
   proposed_action text,
-  policy_decision jsonb not null default jsonb_build_object('decision','SHADOW_ONLY','auto_execute',false),
+  policy_decision jsonb not null default '{"decision":"SHADOW_ONLY","auto_execute":false}'::jsonb,
   state text not null default 'SHADOW' check (state='SHADOW'),
   created_at timestamptz not null default clock_timestamp(),
   unique(run_id,contact_key,opportunity_type)
