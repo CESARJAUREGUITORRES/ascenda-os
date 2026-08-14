@@ -12,6 +12,12 @@ on:
       - 'app/email-gateway.js'
       - 'app/server.js'
       - 'app/public/admin-email.html'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
       - '.github/workflows/cia-phase16-email.yml'
       - 'scripts/ci/**'
   push:
@@ -27,6 +33,12 @@ on:
       - 'app/email-gateway.js'
       - 'app/server.js'
       - 'app/public/admin-email.html'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
       - '.github/workflows/cia-phase16-email.yml'
       - 'scripts/ci/**'
   workflow_dispatch:
@@ -105,6 +117,7 @@ jobs:
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql
 
       - name: Database lint gate
         run: |
@@ -118,12 +131,15 @@ jobs:
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_delivery_contracts.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_render_context_hardening.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_legacy_acl.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_app_session.sql
 
       - name: Server-authoritative gateway unit contracts
         run: |
           set -euo pipefail
           node --check app/email-gateway.js
           node --check app/server.js
+          node --check app/public/agenda.js
+          node --check app/public/calls.js
           node ci/phase16/test_email_gateway.js
 
       - name: Runtime boundary contract
@@ -132,6 +148,11 @@ jobs:
           grep -q "createEmailGateway" app/server.js
           grep -q "if (p === '/api/email-gateway')" app/server.js
           grep -q "EMAIL_GATEWAY.handleWebhook" app/server.js
+          grep -q "EMAIL_GATEWAY.verifyApp" app/server.js
+          grep -q "LEGACY_2FA_RETIRED" app/server.js
+          grep -q "F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED" app/server.js
+          grep -q "GOVERNED_ACTIVATION_REQUIRED" app/email-gateway.js
+          grep -q "aos_cia_verify_app_session_v1" app/email-gateway.js
           grep -q "emCall('LEGACY_SEND'" app/public/admin-email.html
           grep -q "SUPABASE_SERVICE_ROLE_KEY || ''" app/server.js
           grep -q "f16RequireEmailBackend" app/server.js
@@ -139,6 +160,9 @@ jobs:
           ! grep -q "'apikey':SK" app/public/admin-email.html
           ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
           ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do
+            grep -q "X-ASCENDA-Session" "$f"
+          done
           echo 'CIA_PHASE16_RUNTIME_BOUNDARY=PASS'
 
       - name: Changed-scope secret and fixture policy gate
@@ -151,18 +175,26 @@ jobs:
             supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql
             supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql
             supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql
+            supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql
             ci/phase16/schema_contract.sql
             ci/phase16/legacy_email_schema_contract.sql
             ci/phase16/test_phase16_contracts.sql
             ci/phase16/test_phase16_delivery_contracts.sql
             ci/phase16/test_phase16_render_context_hardening.sql
             ci/phase16/test_phase16_legacy_acl.sql
+            ci/phase16/test_phase16_app_session.sql
             ci/phase16/test_email_gateway.js
             ci/phase16/rollback_phase16.sql
             ci/phase16/rollback_phase16_legacy_acl.sql
             app/email-gateway.js
             app/server.js
             app/public/admin-email.html
+            app/public/attendance.html
+            app/public/agenda.js
+            app/public/calls.js
+            app/public/citas.html
+            app/public/caja.html
+            app/public/calls.html
           )
           if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,})' "${files[@]}"; then
             echo 'F16_SECRET_SCOPE_SCAN=FAIL'
@@ -184,6 +216,7 @@ jobs:
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16_legacy_acl.sql | tee /tmp/f16_acl_rollback.log
           grep -q 'CIA_PHASE16_LEGACY_ACL_ROLLBACK=PASS' /tmp/f16_acl_rollback.log
           test "$(psql "$F16_DB_URL" -X -qAt -c "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'aos_cia_email_%'")" = "0"
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_cia_verify_app_session_v1'")" = "0"
           test "$(psql "$F16_DB_URL" -X -qAt -c "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('aos_email_alertas','aos_email_audiencias','aos_email_cadencia','aos_email_campanias','aos_email_envios','aos_email_eventos','aos_email_flujo_ejecuciones','aos_email_flujos','aos_email_plantillas','aos_emails_empresa','aos_emails_enviados') and c.relrowsecurity")" = "0"
 
       - name: Evidence digest
@@ -195,18 +228,26 @@ jobs:
             supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
             supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql \
             supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql \
+            supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql \
             ci/phase16/schema_contract.sql \
             ci/phase16/legacy_email_schema_contract.sql \
             ci/phase16/test_phase16_contracts.sql \
             ci/phase16/test_phase16_delivery_contracts.sql \
             ci/phase16/test_phase16_render_context_hardening.sql \
             ci/phase16/test_phase16_legacy_acl.sql \
+            ci/phase16/test_phase16_app_session.sql \
             ci/phase16/test_email_gateway.js \
             ci/phase16/rollback_phase16.sql \
             ci/phase16/rollback_phase16_legacy_acl.sql \
             app/email-gateway.js \
             app/server.js \
-            app/public/admin-email.html
+            app/public/admin-email.html \
+            app/public/attendance.html \
+            app/public/agenda.js \
+            app/public/calls.js \
+            app/public/citas.html \
+            app/public/caja.html \
+            app/public/calls.html
           echo 'CIA_PHASE16_ZERO_COST_CONTRACT_GATE=PASS'
           echo 'DELIVERY_ENABLED=false'
 
