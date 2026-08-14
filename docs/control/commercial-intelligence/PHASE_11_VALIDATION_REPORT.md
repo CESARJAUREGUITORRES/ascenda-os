@@ -1,156 +1,166 @@
 # ASCENDA OS — FASE 11 VALIDATION REPORT
 
 **Fase:** Call Center Integration V3  
-**Estado:** VALIDATING — funcionalmente completa, pendiente PR/CI/staging/closure  
+**Estado:** `100_COMPLETE`  
 **Fecha:** 2026-08-14 (America/Lima)  
-**Baseline staging:** `76e5b3b609cb52f4b9a0b8c2289dea4a1fca2c64`
+**Baseline staging:** `76e5b3b609cb52f4b9a0b8c2289dea4a1fca2c64`  
+**Merge funcional staging:** `f439f8d33cad841dd6745b07462aec7a264ea6b2`  
+**PR funcional:** #84  
+**Ascenda CI:** #743 `SUCCESS`
 
 ---
 
 ## 1. Resultado ejecutivo
 
-F11 implementa una ruta V3 paralela y reversible sin modificar las RPC legacy madre.
+Fase 11 queda certificada al 100% con una ruta Call Center V3 **paralela, canary por asesor, reversible y con fallback V2 obligatorio**.
 
-Contrato:
+Contrato certificado:
 
 `F8 available_now → F9 assignment lease → F10 readiness → F11 dispatcher/claim/consume → F12 Work Views`
 
-Live al pre-PR:
-- kill switch global = OFF;
-- 0 asesores con flag V3 persistente;
-- 0 eventos F11 persistentes;
-- 0 assignments persistentes;
-- 0 residuos QA;
-- `aos_siguiente_lead` y `aos_siguiente_lead_v2` hashes idénticos al baseline.
+Estado live al cierre:
+- `global_enabled=false`;
+- 0 advisors V3 persistentes;
+- 0 routing events persistentes;
+- 0 assignment rows persistentes;
+- 0 QA residues;
+- `ready_for_f12=true`;
+- F12 readiness status `READY_NO_LIVE_V3`.
+
+F11 queda funcionalmente disponible, pero **no activa V3 productivo por defecto**. La activación futura se hace desde el control ADMIN y siempre conserva fallback V2 durante esta arquitectura.
 
 ---
 
-## 2. Routing legacy preservado
+## 2. Legacy preservado
 
-Hashes antes/después:
+Hashes inicial/final:
 - `aos_siguiente_lead` = `76412bac81e20ec6cfdc4f8c0db89e8c`
 - `aos_siguiente_lead_v2` = `cb69781d1457ed73de8f8d52f0f83a00`
 
+Ambos permanecen idénticos.
+
 No se modificó:
 - `aos_cola_config`;
+- lógica madre V2;
 - esquema/índices/triggers de `aos_llamadas`;
-- esquema/índices/triggers de `aos_leads_en_curso`;
-- lógica madre V2.
+- esquema/índices/triggers de `aos_leads_en_curso`.
 
-Con kill switch OFF, `aos_siguiente_lead_v3` delega directamente a V2. Paridad rollback-only verificada sobre MIREYA: mismo contacto y mismo resultado funcional.
+Con kill switch OFF, `aos_siguiente_lead_v3` delega directamente a V2.
 
 ---
 
 ## 3. Rollout / rollback
 
-Persistencia F11 privada:
+Persistencia privada:
 - `aos_cia_call_routing_control`;
 - `aos_cia_call_routing_advisors`;
 - `aos_cia_call_routing_events`.
 
-Modos por `aos_usuarios.id`:
+Modes:
 - `V2_ONLY`;
 - `V3_CANARY`;
 - `V3_PREFERRED`.
 
-F11 no permite modo sin fallback.
+No existe `V3_NO_FALLBACK` en F11.
 
-Rollback inmediato:
-1. `global_enabled=false` → todos vuelven a V2;
-2. por asesor `V2_ONLY` → solo ese asesor vuelve a V2;
-3. rollback frontend → restaurar blob original `calls-v2.html` como `calls.html`.
+Rollback operativo:
+1. global OFF → todos los advisors a V2;
+2. advisor V2_ONLY → solo ese advisor a V2;
+3. frontend rollback → restaurar blob legacy `calls-v2.html` como `calls.html`.
 
-La copia `calls-v2.html` usa exactamente el blob legacy `010c73e0bb55c0169470e5a259c912681afbccc9`.
-
----
-
-## 4. V3 claim semantics
-
-El dispatcher:
-- resuelve `codigo_asesor + nombre` a `aos_usuarios.id` UUID activo/ASESOR;
-- exige F10 readiness sano;
-- sirve solo plan ACTIVE + Activation ACTIVE + policy CALL ACTIVE;
-- sirve únicamente ownership del asesor;
-- `ASSIGNED` requiere disponibilidad F8 actual;
-- al claim: `ASSIGNED → IN_PROGRESS` mediante motor F9;
-- crea claim compatible en `aos_leads_en_curso`;
-- respeta claims legacy de otro asesor;
-- usa lock de fila + advisory lock por `contact_key`;
-- si no puede usar V3 → fallback V2.
-
-### Corrección encontrada en QA
-
-La primera versión revalidaba F8 también al reabrir un lease `IN_PROGRESS`. Eso provocaba fallback V2 en el segundo request del mismo asesor.
-
-Corrección:
-- **antes del claim:** F8 availability es autoritativa;
-- **después del claim:** F9 `IN_PROGRESS` es ownership autoritativo hasta COMPLETE/RELEASE/EXPIRE.
-
-Re-QA PASS: segundo request reanuda exactamente el mismo assignment.
+`calls-v2.html` es byte-idéntico al pre-F11 `calls.html`, blob:
+`010c73e0bb55c0169470e5a259c912681afbccc9`.
 
 ---
 
-## 5. Consume / completion
+## 4. Routing V3
 
-`aos_cia_call_routing_consume_v1`:
-- no escribe llamadas;
-- se invoca después de escritura legacy exitosa;
-- valida advisor UUID dueño del assignment;
+`aos_siguiente_lead_v3(...)`:
+- resuelve `nombre + codigo_asesor` contra `aos_usuarios.id` UUID activo;
+- respeta global kill switch;
+- usa F10 readiness antes de V3;
+- consume exclusivamente F9 ownership;
+- exige plan ACTIVE + Activation ACTIVE + policy CALL ACTIVE;
+- respeta claims legacy de otros advisors;
+- usa row lock + advisory lock por contact key;
+- `ASSIGNED` requiere F8 availability y pasa `ASSIGNED → IN_PROGRESS`;
+- `IN_PROGRESS` propio se reanuda desde F9 ownership;
+- no work / invalid / blocked → fallback V2;
+- usa clinic-day `America/Lima`.
+
+### Defecto encontrado y corregido
+
+La primera implementación revalidaba F8 al reabrir un lease ya `IN_PROGRESS`; luego de START, F8 podía dejar de considerarlo assignable y causar fallback V2 al refrescar.
+
+Contrato final:
+- F8 gobierna **antes del claim**;
+- F9 ownership gobierna **IN_PROGRESS** hasta COMPLETE/RELEASE/EXPIRE.
+
+Re-QA confirmó que el segundo request sirve el mismo assignment.
+
+---
+
+## 5. Consume lifecycle
+
+`aos_cia_call_routing_consume_v1(...)`:
+- se ejecuta después del write legacy;
+- no crea/reescribe llamadas;
+- valida advisor dueño del assignment;
 - ASSIGNED tardío → START → COMPLETE;
 - IN_PROGRESS → COMPLETE;
 - COMPLETED → idempotent PASS;
 - RELEASED/EXPIRED → terminal noop;
 - limpia claim propio de `aos_leads_en_curso`;
-- audita CONSUME.
+- registra CONSUME.
 
 Frontend adapter:
-- intercepta la llamada legacy ya existente a `aos_llamadas`;
-- si el contacto proviene de V3 y el write devuelve HTTP OK, sincroniza el lease;
-- si el consume falla, **no borra la llamada** y el siguiente route reanuda el mismo IN_PROGRESS;
-- manual/follow-up sobre otro número no consume un assignment ajeno.
+- routing RPC legacy → dispatcher V3;
+- POST existente de `aos_llamadas` se conserva;
+- si el contacto es V3, tras HTTP OK sincroniza el assignment;
+- si consume falla, la llamada queda guardada y el lease sigue IN_PROGRESS, por lo que se reanuda el mismo contacto en lugar de saltar a otro.
 
 ---
 
 ## 6. QA E2E rollback-only
 
-Cadena real creada dentro de rollback:
+Cadena real:
 
-Audience `LEADS_UNWORKED` → DYNAMIC Activation CALL_GENERAL → F9 plan ONE/GLOBAL → MIREYA → 1 lease → F11.
+`LEADS_UNWORKED → Audience → DYNAMIC Activation CALL_GENERAL → F9 ONE/GLOBAL plan → MIREYA → F11`
 
-Asserts PASS:
+PASS:
 - allocation created;
 - F10 readiness true;
-- foreign legacy claim → fallback V2;
-- first claim → V3 y assignment esperado;
-- claim → IN_PROGRESS;
+- foreign legacy claim → V2 fallback;
+- first V3 claim → expected assignment;
+- assignment → IN_PROGRESS;
 - compatibility claim created;
-- repeat request → mismo IN_PROGRESS;
+- repeat request → same IN_PROGRESS assignment;
 - consume → COMPLETED;
 - consume clears legacy claim;
 - second consume idempotent;
-- no work after completion → fallback V2;
-- advisor sin flag → V2_ONLY;
-- F10 readiness bloqueado → fallback V2.
+- post-complete → V2 fallback;
+- unflagged advisor → V2_ONLY;
+- F10 blocked → V2 fallback.
 
-El harness final trata NULL como FAIL.
+Harness final trata NULL como FAIL.
 
-Resultado: todos los asserts TRUE, transaction ROLLBACK, residuos = 0.
+Resultado: todos los asserts TRUE y rollback completo.
 
 ---
 
-## 7. Seguridad
+## 7. Security
 
-Tablas F11:
+F11 tables:
 - RLS enabled;
 - 0 policies;
 - anon/authenticated sin SELECT directo.
 
-Superficie browser permitida:
+Browser surface:
 - `aos_siguiente_lead_v3`;
 - `aos_cia_call_routing_consume_v1`;
 - `aos_cia_call_routing_admin_v1` con CIA ADMIN token.
 
-Privadas:
+Internal/private:
 - advisor resolver;
 - effective-mode resolver;
 - V3 core;
@@ -158,27 +168,23 @@ Privadas:
 
 `SECURITY DEFINER` usa `search_path=public`.
 
-Admin gateway:
+Admin:
 - invalid token → `UNAUTHORIZED`;
-- SET_GLOBAL=true se bloquea si F10 readiness no está sano.
-
-Rol real `anon`:
-- puede invocar dispatcher V3 con global OFF → V2 válido;
-- consume NULL → noop válido;
-- INSERT rollback-only en `aos_llamadas` PASS.
+- `SET_GLOBAL=true` se rechaza si F10 readiness está blocked.
 
 ---
 
-## 8. America/Lima
+## 8. Timezone
 
-F11 usa:
+F11 usa explícitamente:
+
 `(clock_timestamp() AT TIME ZONE 'America/Lima')::date`
 
-para clinic-day y no usa `CURRENT_DATE` server como autoridad del routing V3.
+para clinic-day.
 
-`p_hoy` se conserva solo como input compatible/audit metadata.
+`p_hoy` se conserva como input compatible/audit, no como autoridad temporal.
 
-Esto corrige la deuda detectada en F8 respecto al límite UTC vs Lima sin modificar V2 legacy.
+Esto resuelve para V3 la deuda UTC/Lima detectada en F8 sin alterar V2.
 
 ---
 
@@ -186,43 +192,56 @@ Esto corrige la deuda detectada en F8 respecto al límite UTC vs Lima sin modifi
 
 Mediciones físicas:
 - V2 warm rollback-only: ~393 ms;
-- V3 dispatcher con kill switch OFF: ~249 ms en corrida warm observada;
-- V3 core sin ownership: ~98 ms.
+- V3 dispatcher kill OFF: ~249 ms observado;
+- V3 core sin ownership: ~98 ms;
+- fallback conservador V3-core + V2: ~491 ms.
 
-Límite conservador core-no-work + V2 fallback: ~491 ms, bajo target normal <1.5 s.
+Todo bajo target normal <1.5 s.
 
 No se añadieron índices sobre write-path operacional.
 
+Nota de aprendizaje:
+`EXPLAIN ANALYZE` sobre RPC mutante debe ejecutarse dentro de rollback. Un benchmark V2 sin rollback creó temporalmente un claim; se identificó y eliminó únicamente ese registro exacto antes de continuar. Las mediciones posteriores se ejecutaron rollback-only.
+
 ---
 
-## 10. Frontend / rollback safety
+## 10. Frontend / source-of-truth correction
 
-El runtime real del asesor fue auditado: `app.html` carga `/calls.html`, cuyo legacy contenía JS inline y divergía de `calls.js`.
+Durante F11 se confirmó que el runtime real del Call Center no era el sibling `calls.js`: `app.html` carga `/calls.html`, que contenía su propio JS inline.
 
-F11 evita editar el monolito:
-- `calls-v2.html` = copia byte-idéntica del legacy;
-- `calls.html` = wrapper declarativo mínimo;
-- `calls-loader-v3.js` carga adapter antes del legacy;
-- `calls-routing-v3.js` intercepta solo:
-  - RPC legacy de siguiente lead → dispatcher V3;
-  - POST legacy a `aos_llamadas` → consume ACK si corresponde.
-
-El resto de UI/save logic legacy queda byte-idéntico.
+Para no editar el monolito:
+- `calls-v2.html` preserva el panel legacy byte-idéntico;
+- `calls.html` es wrapper mínimo;
+- `calls-loader-v3.js` carga el adapter antes del legacy;
+- `calls-routing-v3.js` intercepta únicamente routing RPC y call-write ACK relevante;
+- ambos JS nuevos pasan CI syntax check.
 
 Admin:
 - sexta pestaña `Routing V3`;
 - kill switch;
-- per-advisor V2/CANARY/PREFERRED;
+- rollout por advisor;
 - readiness F10→F11 y F11→F12;
 - eventos recientes;
-- CIA admin session canónica `aos_cia_admin_token`;
-- modales custom, sin nuevos `alert/confirm/prompt`.
+- sesión CIA canónica `aos_cia_admin_token`;
+- modales custom.
 
 ---
 
-## 11. Replayability
+## 11. Write-path safety
 
-Git filenames reconciliados 1:1 con Supabase `schema_migrations`:
+Antes y después del merge:
+- INSERT `aos_llamadas` como rol `anon` dentro de transaction rollback-only = PASS;
+- 0 QA call rows después;
+- 0 claims residuales;
+- 0 routing config/events residuales.
+
+Esto demuestra que F11 no repite el incidente de índices funcionales ocurrido en F5.
+
+---
+
+## 12. Replayability
+
+Git filenames = Supabase `schema_migrations`:
 - `20260814131129_cia_phase11_routing_schema_v1.sql`
 - `20260814131238_cia_phase11_routing_control_v1.sql`
 - `20260814131507_cia_phase11_router_core_v1.sql`
@@ -231,54 +250,74 @@ Git filenames reconciliados 1:1 con Supabase `schema_migrations`:
 - `20260814132450_cia_phase11_f12_readiness_v1.sql`
 - `20260814133119_cia_phase11_admin_readiness_guard_v1.sql`
 
+PASS.
+
 ---
 
-## 12. F11 → F12 contract
+## 13. F11 → F12 output contract
 
-`aos_cia_call_routing_f12_readiness_v1()` devuelve:
-- rollout live/configurado;
-- V3 claims/consumes/fallbacks/errors;
-- CALL ownership ASSIGNED/IN_PROGRESS;
+`aos_cia_call_routing_f12_readiness_v1()` entrega:
+- rollout;
+- V3 claims / consumes / fallbacks / errors;
+- CALL ASSIGNED / IN_PROGRESS;
 - expired IN_PROGRESS;
-- IN_PROGRESS sin claim event;
+- IN_PROGRESS sin claim audit;
 - F10 readiness;
-- `ready_for_f12` y status determinístico.
+- `ready_for_f12` + status.
 
-Estado pre-rollout live:
+Post-merge:
 - `ready_for_f12=true`;
 - `status=READY_NO_LIVE_V3`;
 - global OFF;
-- 0 V3 advisors;
-- 0 routing events;
-- 0 CALL ownership persistente.
+- 0 advisors V3;
+- 0 persisted routing events;
+- 0 CALL ownership.
 
-F12 debe consumir ownership F9 + estado/audit F11. No inferir ownership desde `aos_llamadas`.
+F12 debe consumir F9 ownership + F11 routing state/events. No inferir ownership desde raw calls.
 
 ---
 
-## 13. Gates
+## 14. Integration evidence
 
-- P11-G01 Recovery + F10 handshake — PASS
-- P11-G02 Legacy baseline/hashes — PASS
-- P11-G03 Impact/scope/rollback — PASS
-- P11-G04 Rollout config/kill switch — PASS
-- P11-G05 RLS/ACL/admin auth — PASS
-- P11-G06 V3 candidate from F8/F9 — PASS
-- P11-G07 advisor UUID mapping — PASS
-- P11-G08 legacy claim compatibility — PASS
-- P11-G09 START lifecycle — PASS
-- P11-G10 consume/COMPLETE/idempotency — PASS
-- P11-G11 readiness block/fallback — PASS
-- P11-G12 V2_ONLY/no ownership fallback — PASS
-- P11-G13 concurrency/anti-double-claim — PASS (row lock + advisory lock + F9 GLOBAL invariant + QA repeated/foreign claim)
-- P11-G14 America/Lima semantics — PASS
-- P11-G15 performance — PASS
-- P11-G16 frontend dispatcher/ack — PASS pre-CI
-- P11-G17 admin rollout control — PASS pre-CI
-- P11-G18 write-path safety — PASS rollback-only; real post-merge smoke pending
-- P11-G19 replayability — PASS
-- P11-G20 PR/CI/staging smoke — PENDING
-- P11-G21 closure docs/memory/Notion — PENDING
-- P11-G22 F11→F12 handshake — PASS
+- Functional PR #84 — MERGED
+- Ascenda CI #743 — SUCCESS
+- Functional staging merge — `f439f8d33cad841dd6745b07462aec7a264ea6b2`
+- Post-merge smoke — PASS
+- legacy blob preservation — PASS
+- legacy hashes — PASS
+- kill switch remains OFF — PASS
+- post-merge anon write-path rollback — PASS
+- F12 readiness — PASS
 
-**No marcar 100_COMPLETE hasta G20/G21 y post-merge G18.**
+---
+
+## 15. Gates
+
+P11-G01..P11-G22 = **PASS**.
+
+- G01 recovery/F10 handshake PASS
+- G02 legacy baseline/hashes PASS
+- G03 Impact/scope/rollback PASS
+- G04 rollout config/kill switch PASS
+- G05 RLS/ACL/admin auth PASS
+- G06 V3 candidate from F8/F9 PASS
+- G07 advisor UUID mapping PASS
+- G08 legacy claim compatibility PASS
+- G09 START lifecycle PASS
+- G10 consume/COMPLETE/idempotency PASS
+- G11 readiness fallback PASS
+- G12 V2_ONLY/no ownership fallback PASS
+- G13 concurrency/anti-double-claim PASS
+- G14 America/Lima PASS
+- G15 performance PASS
+- G16 frontend dispatcher/ack PASS
+- G17 admin rollout control PASS
+- G18 write-path safety PASS
+- G19 replayability PASS
+- G20 PR/CI/staging smoke PASS
+- G21 closure docs/memory/Notion PASS upon closure checkpoint
+- G22 F11→F12 handshake PASS
+
+**FASE 11 = `100_COMPLETE`.**
+
+**FASE 12 — Advisor Work Views = `READY`.**
