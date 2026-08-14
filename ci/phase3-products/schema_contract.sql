@@ -73,12 +73,13 @@ insert into public.aos_product_alias_overrides(alias_text,canonical_short_name,r
 ('SERUM LIFTING B','LIFTING B','LEGACY_ALIAS',true)
 on conflict (alias_text) do update set canonical_short_name=excluded.canonical_short_name,active=true;
 
--- Owner-seed fixture IDs used by negative/consistency checks.
+-- Owner-seed fixture IDs used by negative/consistency checks plus one real post-workbook sale.
 insert into public.aos_ventas(id,fecha,tratamiento,descripcion,sede,tipo) values
 (909,'2026-02-07','COMPRA DE PRODUCTO','PERFECT- B 90GR','SAN ISIDRO','PRODUCTO'),
 (1644,'2026-05-27','COMPRA DE PRODUCTO','LYMDHARIAL GOTAS','SAN ISIDRO','PRODUCTO'),
 (1631,'2026-05-23','COMPRA DE PRODUCTO','GOTAS LYNDHARIAL','PUEBLO LIBRE','PRODUCTO'),
 (1632,'2026-05-23','COMPRA DE PRODUCTO','GOTAS LYNDHARIAL','PUEBLO LIBRE','PRODUCTO'),
 (1637,'2026-05-27','COMPRA DE PRODUCTO','1ER PARTE SERUM LIFTING B','SAN ISIDRO','PRODUCTO'),
-(1638,'2026-05-27','COMPRA DE PRODUCTO','2DO PARTE SERUM LIFTING B','SAN ISIDRO','PRODUCTO')
+(1638,'2026-05-27','COMPRA DE PRODUCTO','2DO PARTE SERUM LIFTING B','SAN ISIDRO','PRODUCTO'),
+(2340,'2026-08-13','COMPRA DE PRODUCTO','LIFTIN B','PUEBLO LIBRE','PRODUCTO')
 on conflict (id) do nothing;
