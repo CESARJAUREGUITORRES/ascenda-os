@@ -18,7 +18,7 @@ declare
   v_allowed_match text[]; v_key text;
   v_where text:=''; v_set text:=''; v_cols text:=''; v_vals text:='';
   v_rows jsonb:='[]'::jsonb; v_sql text;
-  v_all_keys integer; v_real_keys integer;
+  v_all_keys integer; v_real_keys integer; v_match_keys integer;
 begin
   v_uid:=public.aos_app_actor_v3(p_token,null,false);
   if v_uid is null then return jsonb_build_object('ok',false,'error','UNAUTHORIZED'); end if;
@@ -41,7 +41,8 @@ begin
   end if;
 
   if v_action not in ('INSERT','PATCH','DELETE') then return jsonb_build_object('ok',false,'error','ACTION_NOT_ALLOWED'); end if;
-  if v_action in ('PATCH','DELETE') and coalesce(jsonb_object_length(p_match),0)=0 then return jsonb_build_object('ok',false,'error','MATCH_REQUIRED'); end if;
+  select count(*) into v_match_keys from jsonb_object_keys(coalesce(p_match,'{}'::jsonb));
+  if v_action in ('PATCH','DELETE') and v_match_keys=0 then return jsonb_build_object('ok',false,'error','MATCH_REQUIRED'); end if;
 
   for v_key in select jsonb_object_keys(coalesce(p_match,'{}'::jsonb)) loop
     if not (v_key=any(v_allowed_match)) then return jsonb_build_object('ok',false,'error','MATCH_NOT_ALLOWED','field',v_key); end if;
