@@ -21,6 +21,7 @@ declare
   v_target public.aos_usuarios%rowtype;
   v_action text := lower(trim(coalesce(p_action,'')));
   v_result jsonb;
+  v_requested_level integer;
 begin
   v_auth:=public.aos_kronia_verify_token(p_token);
   if not coalesce((v_auth->>'ok')::boolean,false) or upper(coalesce(v_auth->>'rol',''))<>'ADMIN' then
@@ -41,18 +42,36 @@ begin
   end if;
 
   if v_action='create_user' then
-    if coalesce(nullif(p_params->>'nivel_jerarquia','')::integer,3)=1 and v_actor.nivel_jerarquia<>1 then
+    begin
+      v_requested_level:=coalesce(nullif(p_params->>'nivel_jerarquia','')::integer,3);
+    exception when invalid_text_representation then
+      return jsonb_build_object('ok',false,'error','LEVEL_INVALID');
+    end;
+    if v_requested_level<1 or v_requested_level>9 then return jsonb_build_object('ok',false,'error','LEVEL_INVALID'); end if;
+    -- Creating any privileged ADMIN level (1/2) is owner-only.
+    if v_requested_level<=2 and v_actor.nivel_jerarquia<>1 then
       return jsonb_build_object('ok',false,'error','OWNER_LEVEL_REQUIRED');
     end if;
   else
     if p_target_user_id is null then return jsonb_build_object('ok',false,'error','TARGET_REQUIRED'); end if;
     select u.* into v_target from public.aos_usuarios u where u.id=p_target_user_id limit 1;
     if v_target.id is null then return jsonb_build_object('ok',false,'error','TARGET_NOT_FOUND'); end if;
-    -- Level 1 is the owner boundary. Level 2 ADMIN may manage ordinary users
-    -- but may never mutate the owner account by changing username, password,
-    -- activation, services, 2FA, profile or lifecycle state.
-    if coalesce(v_target.nivel_jerarquia,99)=1 and v_actor.nivel_jerarquia<>1 then
+    -- Any existing privileged identity (level 1/2) is owner-managed. A level-2
+    -- ADMIN can manage ordinary users but cannot mutate peers or the owner.
+    if coalesce(v_target.nivel_jerarquia,99)<=2 and v_actor.nivel_jerarquia<>1 then
       return jsonb_build_object('ok',false,'error','OWNER_LEVEL_REQUIRED');
+    end if;
+    -- Promotion into a privileged ADMIN level is also owner-only.
+    if v_action='update_profile' and p_params ? 'nivel_jerarquia' then
+      begin
+        v_requested_level:=nullif(p_params->>'nivel_jerarquia','')::integer;
+      exception when invalid_text_representation then
+        return jsonb_build_object('ok',false,'error','LEVEL_INVALID');
+      end;
+      if v_requested_level is not null and (v_requested_level<1 or v_requested_level>9) then return jsonb_build_object('ok',false,'error','LEVEL_INVALID'); end if;
+      if coalesce(v_requested_level,99)<=2 and v_actor.nivel_jerarquia<>1 then
+        return jsonb_build_object('ok',false,'error','OWNER_LEVEL_REQUIRED');
+      end if;
     end if;
   end if;
 
@@ -97,6 +116,6 @@ grant execute on function public.aos_kronia_admin_identity_safe(text,text,uuid,j
   to anon,authenticated,service_role;
 
 comment on function public.aos_kronia_admin_identity_safe(text,text,uuid,jsonb) is
-'K1 browser-safe ADMIN identity gateway. Opaque token + live ADMIN hierarchy; owner/level-1 mutations require owner session.';
+'K1 browser-safe ADMIN identity gateway. Opaque token + live hierarchy; level-1/2 identities and privilege grants are owner-level-1 managed.';
 
 commit;
