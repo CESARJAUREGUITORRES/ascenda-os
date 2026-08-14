@@ -1,4 +1,4 @@
--- P0 Auth V3 hotfix: pg_catalog.trim(text) is not a callable function in PostgreSQL.
+-- P0 Auth V3 hotfix: the prior invalid trim qualification is not callable in PostgreSQL.
 -- Replace the invalid qualification with pg_catalog.btrim(text) while preserving
 -- the branded 2FA template and all Phase 2 Auth V3 behavior/security boundaries.
 
