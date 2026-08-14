@@ -48,16 +48,15 @@ begin
     raise exception 'K1-68 direct browser identity write remains';
   end if;
 
-  -- K1-69/70: correct password survives migration; wrong password fails.
-  j:=public.aos_kronia_claim_session('alice','alice-pass',null,'ci',null,'web');
-  if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1-69 migrated bcrypt credential rejected: %',j; end if;
-  alice_token:=j->>'token';
+  -- K1-69/70: correct bcrypt password + mandatory ADMIN 2FA survive migration.
+  alice_token:=public.k1_ci_claim_token('alice','alice-pass');
+  if alice_token is null then raise exception 'K1-69 migrated bcrypt/2FA owner credential rejected'; end if;
   j:=public.aos_kronia_claim_session('alice','wrong-password',null,'ci',null,'web');
   if coalesce((j->>'ok')::boolean,false) then raise exception 'K1-70 wrong password accepted'; end if;
 
   select id into alice_id from public.aos_usuarios where codigo_asesor='A001';
-  select id into bob_id from public.aos_usuarios where codigo_asesor='A002';
-  select id into eve_id from public.aos_usuarios where codigo_asesor='A003';
+  select id into eve_id from public.aos_usuarios where codigo_asesor='A002';
+  select id into bob_id from public.aos_usuarios where codigo_asesor='A003';
 
   -- Browser can call only the hierarchy-safe wrapper; implementation is server-only.
   if not has_function_privilege('anon','public.aos_kronia_admin_identity_safe(text,text,uuid,jsonb)','EXECUTE') then
@@ -67,19 +66,19 @@ begin
     raise exception 'K1-72 implementation identity gateway directly browser-callable';
   end if;
 
-  -- Advisor cannot use ADMIN identity gateway.
-  bob_token:=public.aos_kronia_claim_session('bob','bob-pass',null,'ci',null,'web')->>'token';
+  -- Advisor cannot use ADMIN identity gateway. Bob has 2FA enabled in fixture.
+  bob_token:=public.k1_ci_claim_token('bob','bob-pass');
   j:=public.aos_kronia_admin_identity_safe(bob_token,'set_services',bob_id,jsonb_build_object('servicios',jsonb_build_array('TEST')));
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1-73 advisor used ADMIN identity gateway'; end if;
 
-  -- Create a synthetic level-2 ADMIN; it may manage regular users but never owner level 1.
+  -- Create synthetic level-2 ADMIN with mandatory 2FA; it cannot mutate owner level 1.
   insert into public.aos_rrhh(codigo_asesor,nombre,apellido,puesto,sede,usuario,password_hash,estado)
   values('A004','Level Two','Admin','ADMIN','SAN ISIDRO','level2',null,'ACTIVO');
   insert into public.aos_usuarios(codigo_asesor,nombre,apellidos,email,rol,cargo,sede,activo,two_factor,nivel_jerarquia)
-  values('A004','Level Two','Admin','level2@example.test','admin','Admin','SAN ISIDRO',true,false,2)
+  values('A004','Level Two','Admin','level2@example.test','admin','Admin','SAN ISIDRO',true,true,2)
   returning id into level2_id;
   perform public.aos_auth_set_password('A004','level2-pass');
-  level2_token:=public.aos_kronia_claim_session('level2','level2-pass',null,'ci',null,'web')->>'token';
+  level2_token:=public.k1_ci_claim_token('level2','level2-pass');
   j:=public.aos_kronia_admin_identity_safe(level2_token,'change_username',alice_id,jsonb_build_object('username','owner-hijack'));
   if coalesce((j->>'ok')::boolean,true) or j->>'error'<>'OWNER_LEVEL_REQUIRED' then
     raise exception 'K1-74 level-2 ADMIN can mutate owner: %',j;
@@ -91,8 +90,7 @@ begin
   j:=public.aos_kronia_admin_identity_safe(alice_token,'sql_query',bob_id,'{}'::jsonb);
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1-76 unknown identity action accepted'; end if;
 
-  -- Create-user returns temporary password once, but DB stores only bcrypt and
-  -- team view preserves tiene_password without exposing the hash.
+  -- Create-user returns temporary password once; DB stores only bcrypt.
   j:=public.aos_kronia_admin_identity_safe(alice_token,'create_user',null,
       jsonb_build_object('nombre','New','apellido','User','email','new@example.test','telefono','999999999','cargo','ASESOR','area','ventas','nivel_jerarquia',4,'acceso_geo','limitado','sede','SAN ISIDRO'));
   if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1-77 create_user failed: %',j; end if;
@@ -117,9 +115,9 @@ begin
   -- Password reset produces a new bcrypt hash and old credential stops matching.
   j:=public.aos_kronia_admin_identity_safe(alice_token,'change_password',bob_id,jsonb_build_object('password','bob-new-pass-2026'));
   if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1-87 password change failed: %',j; end if;
-  if public.aos_auth_password_matches('A002','bob-pass') then raise exception 'K1-88 old password still matches after reset'; end if;
-  if not public.aos_auth_password_matches('A002','bob-new-pass-2026') then raise exception 'K1-89 new password does not match'; end if;
-  if exists(select 1 from public.aos_rrhh where codigo_asesor='A002' and nullif(password_hash,'') is not null) then raise exception 'K1-90 password reset repopulated RRHH secret'; end if;
+  if public.aos_auth_password_matches('A003','bob-pass') then raise exception 'K1-88 old password still matches after reset'; end if;
+  if not public.aos_auth_password_matches('A003','bob-new-pass-2026') then raise exception 'K1-89 new password does not match'; end if;
+  if exists(select 1 from public.aos_rrhh where codigo_asesor='A003' and nullif(password_hash,'') is not null) then raise exception 'K1-90 password reset repopulated RRHH secret'; end if;
 
   -- Sales Intelligence snapshots the private bcrypt hash, not plaintext.
   select sia.password_digest into digest_snapshot from public.aos_sales_intelligence_access sia where sia.user_id=alice_id;
