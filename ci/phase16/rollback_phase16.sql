@@ -1,5 +1,13 @@
 -- CIA F16 Zero-Cost rollback/recovery proof.
--- Drops only additive F16 objects created by the two migrations under test.
+-- Drops only additive F16 objects created by the F16 migrations under test.
+
+drop function if exists public.aos_cia_email_admin_gateway_v2(text,text,jsonb);
+drop function if exists public.aos_cia_email_release_mark_v1(text,boolean,text);
+drop function if exists public.aos_cia_email_ingest_provider_event_v2(text,text,text,timestamptz,jsonb);
+drop function if exists public.aos_cia_email_record_dispatch_result_v2(uuid,boolean,text,text,text,jsonb);
+drop function if exists public.aos_cia_email_claim_dispatch_v2(uuid);
+drop function if exists public.aos_cia_email_queue_request_v2(uuid,uuid);
+drop function if exists public.aos_cia_email_prepare_request_v2(uuid,uuid,text,uuid,jsonb);
 
 drop function if exists public.aos_cia_email_admin_gateway_v1(text,text,jsonb);
 drop function if exists public.aos_cia_email_f17_readiness_v1();
@@ -20,6 +28,7 @@ drop function if exists public.aos_cia_email_template_guard_v1();
 drop function if exists public.aos_cia_email_append_only_guard_v1();
 drop function if exists public.aos_cia_email_control_audit_v1();
 
+drop table if exists public.aos_cia_email_release_state;
 drop table if exists public.aos_cia_email_send_events;
 drop table if exists public.aos_cia_email_send_requests;
 drop table if exists public.aos_cia_email_template_versions;
@@ -29,5 +38,6 @@ drop table if exists public.aos_cia_email_recipient_controls;
 select case when count(*)=0 then 'CIA_PHASE16_ROLLBACK=PASS' else 'CIA_PHASE16_ROLLBACK=FAIL' end as rollback_result
 from pg_class c join pg_namespace n on n.oid=c.relnamespace
 where n.nspname='public' and c.relname in (
-  'aos_cia_email_recipient_controls','aos_cia_email_recipient_control_events','aos_cia_email_template_versions','aos_cia_email_send_requests','aos_cia_email_send_events'
+  'aos_cia_email_recipient_controls','aos_cia_email_recipient_control_events','aos_cia_email_template_versions',
+  'aos_cia_email_send_requests','aos_cia_email_send_events','aos_cia_email_release_state'
 );
