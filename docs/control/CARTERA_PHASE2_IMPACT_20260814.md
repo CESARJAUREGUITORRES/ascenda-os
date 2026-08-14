@@ -46,7 +46,9 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
    - bloquea la cotización con `FOR UPDATE`;
    - deriva la sede, el cajero y el asesor desde fuentes verificadas;
    - exige una caja abierta del actor en esa sede y fecha Lima actual;
-   - exige una clave idempotente única y hace que los reintentos no dupliquen pagos;
+   - exige una clave idempotente única, ligada criptográficamente al actor, cotización, caja y payload completo;
+   - liga la sesión de caja al UUID del actor y bloquea la fila durante el abono;
+   - hace que los reintentos válidos no dupliquen pagos y rechaza la reutilización cruzada de la clave;
    - rechaza montos no positivos, acceso cruzado entre sedes y sobrepagos;
    - registra `ADELANTO` o `PAGO COMPLETO` según el saldo resultante;
    - enlaza `aos_pagos`, `aos_ventas`, cotización y bridge;
@@ -55,6 +57,9 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 6. Habilita RLS y retira acceso REST directo a cotizaciones, ítems y pagos; Caja consulta por un gateway 2FA con alcance de sede.
 7. Retira `EXECUTE` anónimo del RPC legacy y actualiza Caja al RPC con token.
 8. Crea el panel operativo Cartera con filtros, control de concurrencia optimista, auditoría antes/después y recordatorios bloqueados.
+9. Exige que un saldo confirmado vinculado a cotización coincida exactamente con `subtotal - total_pagado = saldo_pendiente`; no admite importes parciales inventados.
+10. No instala un trigger sobre `aos_ventas`: evita convertir escrituras legacy directas en casos protegidos. El corte histórico se carga una vez y los pagos v2 escriben el bridge de forma atómica.
+11. Incluye una migración forward de compatibilidad que elimina sobrecargas obsoletas y restaura el emisor de sesión certificado de FASE 1 si un entorno hubiese ejecutado una revisión anterior.
 
 ## Impacto
 
@@ -75,6 +80,8 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 | Concurrencia en cotización | `SELECT ... FOR UPDATE` dentro de la transacción |
 | Reintento o doble clic de un pago | `request_id` UUID único + advisory lock transaccional |
 | Cruce de pacientes o sedes | Sede del actor aplicada dentro de cada RPC; vínculo exige identidad compatible |
+| Reutilización de idempotencia por otro actor | Huella SHA-256 del request + UUID del actor + sesión de caja, validada después del control de sede/caja |
+| Sesión de caja suplantada por nombre | Propietario normalizado a `abierto_por_user_id`; la fila se bloquea antes de validar y pagar |
 | Sobrescritura de una revisión reciente | `expected_updated_at`; el cliente debe refrescar ante `STALE_CASE` |
 | Saldo confirmado obsoleto después de un cambio | Triggers invalidan la aprobación y devuelven el caso a `REVISAR` |
 | Exposición del bridge | RLS + revocación de tabla + gateway con token opaco |
@@ -83,7 +90,7 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 ## Pruebas y gate
 
 - Esquema sintético sin datos reales.
-- pgTAP: 73 aserciones para RLS, permisos, sesión, sedes, clasificación, reconciliación, idempotencia, sobrepago, atomicidad y roles de pago.
+- pgTAP: 86 aserciones para RLS, permisos, sesión, sedes —incluido el caso adversarial con elementos `NULL`—, sobrecargas legacy, clasificación, reconciliación, idempotencia ligada al actor, sobrepago, atomicidad y roles de pago.
 - Lint de Supabase en nivel error.
 - Contrato UI para menú, autorización, gateway, Caja v2 y bloqueo de recordatorios.
 - Smoke requerido antes de producción: San Isidro, Pueblo Libre, administrador con panel, administrador sin panel, sobrepago rechazado y saldo exacto.
@@ -92,7 +99,7 @@ SQL exacto: `supabase/migrations/20260814034401_cartera_phase2_reconciliation.sq
 
 Rollback de aplicación: desplegar el commit anterior a FASE 2.
 
-Rollback SQL de emergencia, conservando primero snapshots de `aos_cartera_reconciliacion` y de las definiciones/ACL financieras. El rollback es **roll-forward seguro**: no restaura ejecución anónima ni acceso REST directo a tablas financieras.
+Rollback SQL de emergencia: `supabase/rollbacks/20260814034401_cartera_phase2_reconciliation.rollback.sql`, conservando primero snapshots de `aos_cartera_reconciliacion` y de las definiciones/ACL financieras. El rollback es **roll-forward seguro**: no restaura ejecución anónima ni acceso REST directo a tablas financieras.
 
 ```sql
 begin;
@@ -116,6 +123,13 @@ commit;
 
 El RPC legacy permanece restringido a `service_role`. Si la UI necesita retroceder, debe hacerse mediante un adaptador autenticado o un roll-forward; nunca mediante un `GRANT` a `anon`.
 
+### Deuda técnica de seguridad preexistente
+
+- El emisor de sesión administrativa de FASE 1 continúa dependiendo del contrato 2FA ya certificado, pero su verificación de contraseña y limitación de intentos necesitan un hardening separado antes de una activación general de Cartera.
+- `aos_caja_abrir()` y `aos_caja_cerrar()` son funciones legacy de Caja y requieren su propio endurecimiento de identidad, sesión y privilegios.
+- `aos_ventas` conserva acceso legacy directo para módulos existentes. FASE 2 evita ampliar ese riesgo al no instalar un trigger de sincronización; su migración integral a gateways/RLS queda como gate de seguridad independiente.
+- Estas dependencias no son introducidas por este diff, pero mantienen la activación productiva general **BLOQUEADA**. El PR puede probarse como canary administrativo controlado; no habilita recordatorios ni agentes.
+
 ## Gate productivo
 
 No aplicar hasta que:
@@ -125,3 +139,4 @@ No aplicar hasta que:
 3. se verifiquen los administradores que recibirán `admin-cartera` y `admin-caja`;
 4. se tome snapshot del bridge y definiciones de funciones;
 5. exista autorización expresa para migración productiva y despliegue coordinado.
+6. se endurezca el emisor de sesión 2FA y la apertura/cierre de Caja, o se apruebe explícitamente un canary limitado con riesgo residual documentado.

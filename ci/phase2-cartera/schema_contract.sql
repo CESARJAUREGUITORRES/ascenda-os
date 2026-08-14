@@ -81,6 +81,7 @@ create table public.aos_caja_sesiones (
   fecha date not null default current_date,
   estado text not null default 'ABIERTA',
   abierto_por text,
+  abierto_por_user_id uuid references public.aos_usuarios(id),
   cerrado_por text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()

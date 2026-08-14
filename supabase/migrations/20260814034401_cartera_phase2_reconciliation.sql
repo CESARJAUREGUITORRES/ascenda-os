@@ -87,7 +87,16 @@ grant all on table public.aos_pagos to service_role;
 
 alter table public.aos_pagos
   add column if not exists request_id uuid,
+  add column if not exists request_hash text,
+  add column if not exists cash_session_id text,
   add column if not exists registrado_por_user_id uuid references public.aos_usuarios(id);
+
+alter table public.aos_caja_sesiones
+  add column if not exists abierto_por_user_id uuid references public.aos_usuarios(id);
+
+revoke insert,update,delete,truncate,references,trigger
+  on table public.aos_caja_sesiones from public,anon,authenticated;
+grant all on table public.aos_caja_sesiones to service_role;
 
 create unique index if not exists aos_pagos_request_id_uidx
   on public.aos_pagos(request_id)
@@ -171,10 +180,11 @@ begin
 end;
 $function$;
 
+-- No se instala un trigger sobre aos_ventas: esa tabla legacy conserva acceso
+-- directo en modulos existentes. El snapshot inicial cubre el corte historico y
+-- los nuevos pagos v2 escriben el bridge dentro de la misma transaccion.
+-- Evita que una escritura legacy no autenticada se convierta en un caso admin.
 drop trigger if exists trg_aos_cartera_sync_venta on public.aos_ventas;
-create trigger trg_aos_cartera_sync_venta
-after insert or update of estado_pago,monto,cotizacion_id on public.aos_ventas
-for each row execute function public.aos_cartera_sync_venta();
 
 create or replace function public.aos_cartera_sync_cotizacion()
 returns trigger
@@ -304,7 +314,11 @@ begin
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
   select au.nivel_jerarquia,
-         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+         coalesce((
+           select array_agg(upper(trim(s)))
+           from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s
+           where nullif(trim(s),'') is not null
+         ),'{}'::text[])
     into v_level,v_allowed_sedes
   from public.aos_usuarios au where au.id=v_actor;
   if v_estado not in (
@@ -316,7 +330,8 @@ begin
   if v_level<>1 and cardinality(v_allowed_sedes)=0 then
     return jsonb_build_object('ok',false,'error','NO_ALLOWED_SEDE');
   end if;
-  if v_sede<>'' and v_level<>1 and not (v_sede=any(v_allowed_sedes)) then
+  if v_sede<>'' and v_level<>1
+     and not coalesce(v_sede=any(v_allowed_sedes),false) then
     return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
   end if;
   if p_limit not between 1 and 100 or p_offset<0 then
@@ -367,7 +382,7 @@ begin
     where cr.source_active=true
       and (
         v_level=1
-        or upper(trim(coalesce(v.sede,c.sede,'')))=any(v_allowed_sedes)
+        or coalesce(upper(trim(coalesce(v.sede,c.sede,'')))=any(v_allowed_sedes),false)
       )
       and (v_estado='' or cr.estado_reconciliacion=v_estado)
       and (v_sede='' or upper(coalesce(v.sede,c.sede,''))=v_sede)
@@ -435,6 +450,8 @@ declare
   v_target_quote text;
   v_quote_balance numeric;
   v_quote_total numeric;
+  v_quote_paid numeric;
+  v_quote_estado text;
   v_source_phone text;
   v_source_dni text;
   v_quote_phone text;
@@ -452,7 +469,11 @@ begin
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
   select au.nivel_jerarquia,
-         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+         coalesce((
+           select array_agg(upper(trim(s)))
+           from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s
+           where nullif(trim(s),'') is not null
+         ),'{}'::text[])
     into v_level,v_allowed_sedes
   from public.aos_usuarios au where au.id=v_actor;
   if v_level<>1 and cardinality(v_allowed_sedes)=0 then
@@ -493,10 +514,10 @@ begin
   end;
 
   if v_target_quote is not null then
-    select upper(trim(coalesce(c.sede,''))),c.saldo_pendiente,c.subtotal,
+    select upper(trim(coalesce(c.sede,''))),c.saldo_pendiente,c.subtotal,c.total_pagado,c.estado,
            regexp_replace(coalesce(c.numero_limpio,''),'\D','','g'),
            regexp_replace(coalesce(c.dni_paciente,''),'\D','','g')
-      into v_quote_sede,v_quote_balance,v_quote_total,v_quote_phone,v_quote_dni
+      into v_quote_sede,v_quote_balance,v_quote_total,v_quote_paid,v_quote_estado,v_quote_phone,v_quote_dni
     from public.aos_cotizaciones c where c.id=v_target_quote
     for update;
     if v_quote_sede is null then
@@ -513,6 +534,9 @@ begin
       'ok',false,'error','STALE_CASE','current_updated_at',v_previous.updated_at
     );
   end if;
+  if not coalesce(v_previous.source_active,false) then
+    return jsonb_build_object('ok',false,'error','INACTIVE_CASE');
+  end if;
 
   select upper(trim(coalesce(v.sede,c.sede,''))) into v_source_sede
   from public.aos_cartera_reconciliacion cr
@@ -522,7 +546,7 @@ begin
   if v_source_sede is null or v_source_sede not in ('SAN ISIDRO','PUEBLO LIBRE') then
     return jsonb_build_object('ok',false,'error','SOURCE_SEDE_INVALID');
   end if;
-  if v_level<>1 and not (v_source_sede=any(v_allowed_sedes)) then
+  if v_level<>1 and not coalesce(v_source_sede=any(v_allowed_sedes),false) then
     return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
   end if;
 
@@ -530,7 +554,7 @@ begin
     if v_quote_sede<>v_source_sede then
       return jsonb_build_object('ok',false,'error','QUOTE_SEDE_MISMATCH');
     end if;
-    if v_level<>1 and not (v_quote_sede=any(v_allowed_sedes)) then
+    if v_level<>1 and not coalesce(v_quote_sede=any(v_allowed_sedes),false) then
       return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
     end if;
     if v_previous.source_type='VENTA' then
@@ -538,7 +562,15 @@ begin
              regexp_replace(coalesce(v.dni,''),'\D','','g')
         into v_source_phone,v_source_dni
       from public.aos_ventas v where v.id=v_previous.venta_row_id;
-      if not (
+      if (
+        length(coalesce(v_source_phone,''))>=6
+        and length(coalesce(v_quote_phone,''))>=6
+        and v_source_phone<>v_quote_phone
+      ) or (
+        length(coalesce(v_source_dni,''))>=6
+        and length(coalesce(v_quote_dni,''))>=6
+        and v_source_dni<>v_quote_dni
+      ) or not (
         (length(coalesce(v_source_phone,''))>=6 and v_source_phone=v_quote_phone)
         or (length(coalesce(v_source_dni,''))>=6 and v_source_dni=v_quote_dni)
       ) then
@@ -551,11 +583,17 @@ begin
     if p_saldo_confirmado>p_total_esperado then
       return jsonb_build_object('ok',false,'error','BALANCE_EXCEEDS_EXPECTED_TOTAL');
     end if;
+    if v_target_quote is not null
+       and upper(trim(coalesce(v_quote_estado,'')))<>'PAGADO_PARCIAL' then
+      return jsonb_build_object('ok',false,'error','QUOTE_NOT_COLLECTIBLE');
+    end if;
     if v_target_quote is not null and (
-      p_saldo_confirmado>greatest(coalesce(v_quote_balance,0),0)
+      greatest(coalesce(v_quote_total,0),0)-greatest(coalesce(v_quote_paid,0),0)
+        <>greatest(coalesce(v_quote_balance,0),0)
+      or p_saldo_confirmado<>greatest(coalesce(v_quote_balance,0),0)
       or p_total_esperado<>greatest(coalesce(v_quote_total,0),0)
     ) then
-      return jsonb_build_object('ok',false,'error','BALANCE_EXCEEDS_QUOTE');
+      return jsonb_build_object('ok',false,'error','BALANCE_MUST_MATCH_QUOTE');
     end if;
   end if;
 
@@ -645,7 +683,11 @@ begin
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
   select au.nivel_jerarquia,
-         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+         coalesce((
+           select array_agg(upper(trim(s)))
+           from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s
+           where nullif(trim(s),'') is not null
+         ),'{}'::text[])
     into v_level,v_allowed_sedes
   from public.aos_usuarios au where au.id=v_actor;
   if v_level<>1 and cardinality(v_allowed_sedes)=0 then
@@ -674,7 +716,7 @@ begin
       where regexp_replace(coalesce(q.numero_limpio,''),'\D','','g')=v_numero
         and q.estado not in ('ANULADO','PAGADO_COMPLETO')
         and coalesce(q.saldo_pendiente,0)>0
-        and (v_level=1 or upper(trim(coalesce(q.sede,'')))=any(v_allowed_sedes))
+        and (v_level=1 or coalesce(upper(trim(coalesce(q.sede,'')))=any(v_allowed_sedes),false))
       order by q.created_at desc limit 10
     ) c;
     return v_result;
@@ -704,7 +746,7 @@ begin
   ) into v_result
   from public.aos_cotizaciones c
   where c.id=p_cotizacion_id
-    and (v_level=1 or upper(trim(coalesce(c.sede,'')))=any(v_allowed_sedes));
+    and (v_level=1 or coalesce(upper(trim(coalesce(c.sede,'')))=any(v_allowed_sedes),false));
   if v_result is null then
     return jsonb_build_object('ok',false,'error','QUOTE_NOT_FOUND');
   end if;
@@ -735,6 +777,9 @@ declare
   v_quote_sede text;
   v_cot record;
   v_existing record;
+  v_cash record;
+  v_name_matches integer;
+  v_request_hash text;
   v_prev_pagado numeric;
   v_nuevo_pagado numeric;
   v_nuevo_saldo numeric;
@@ -755,7 +800,11 @@ begin
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
   select au.nombre,au.nivel_jerarquia,
-         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+         coalesce((
+           select array_agg(upper(trim(s)))
+           from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s
+           where nullif(trim(s),'') is not null
+         ),'{}'::text[])
     into v_actor_name,v_level,v_allowed_sedes
   from public.aos_usuarios au where au.id=v_actor;
   if v_level<>1 and cardinality(v_allowed_sedes)=0 then
@@ -767,28 +816,22 @@ begin
     return jsonb_build_object('ok',false,'error','INVALID_PAYMENT');
   end if;
   v_fecha:=(now() at time zone 'America/Lima')::date;
+  v_request_hash:=encode(extensions.digest(jsonb_build_object(
+    'actor_id',v_actor,'quote_id',p_cotizacion_id,'amount',p_monto,
+    'payment_method',upper(trim(p_metodo_pago)),
+    'receipt_type',upper(trim(coalesce(p_tipo_comprobante,''))),
+    'document',trim(coalesce(p_nro_doc,'')),
+    'note',trim(coalesce(p_nota,'')),
+    'cash_session_id',trim(coalesce(p_sesion_id,''))
+  )::text,'sha256'),'hex');
 
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_idempotency_key::text));
 
-  select p.id,p.cotizacion_id,p.monto,p.metodo_pago,c.numero_cotizacion,
-         c.total_pagado,c.saldo_pendiente,c.estado
+  select p.id,p.cotizacion_id,p.monto,p.metodo_pago,p.registrado_por_user_id,
+         p.request_hash,p.cash_session_id
     into v_existing
   from public.aos_pagos p
-  join public.aos_cotizaciones c on c.id=p.cotizacion_id
   where p.request_id=p_idempotency_key;
-  if v_existing.id is not null then
-    if v_existing.cotizacion_id<>p_cotizacion_id
-       or v_existing.monto<>p_monto
-       or v_existing.metodo_pago<>p_metodo_pago then
-      return jsonb_build_object('ok',false,'error','IDEMPOTENCY_CONFLICT');
-    end if;
-    return jsonb_build_object(
-      'ok',true,'replay',true,'cotizacion_id',v_existing.cotizacion_id,
-      'numero',v_existing.numero_cotizacion,'monto_abonado',v_existing.monto,
-      'total_pagado',v_existing.total_pagado,'saldo',v_existing.saldo_pendiente,
-      'estado',v_existing.estado,'pago_id',v_existing.id
-    );
-  end if;
 
   select * into v_cot
   from public.aos_cotizaciones
@@ -797,25 +840,59 @@ begin
   if v_cot.id is null then
     return jsonb_build_object('ok',false,'error','QUOTE_NOT_FOUND');
   end if;
-  if v_cot.estado in ('ANULADO','PAGADO_COMPLETO') then
-    return jsonb_build_object('ok',false,'error','QUOTE_NOT_PAYABLE');
-  end if;
   v_quote_sede:=upper(trim(coalesce(v_cot.sede,'')));
   if v_quote_sede not in ('SAN ISIDRO','PUEBLO LIBRE') then
     return jsonb_build_object('ok',false,'error','QUOTE_SEDE_INVALID');
   end if;
-  if v_level<>1 and not (v_quote_sede=any(v_allowed_sedes)) then
+  if v_level<>1 and not coalesce(v_quote_sede=any(v_allowed_sedes),false) then
     return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
   end if;
-  if nullif(trim(coalesce(p_sesion_id,'')),'') is null or not exists (
-    select 1 from public.aos_caja_sesiones cs
-    where cs.id=p_sesion_id
-      and upper(trim(coalesce(cs.sede,'')))=v_quote_sede
-      and upper(trim(coalesce(cs.estado,'')))='ABIERTA'
-      and cs.fecha=v_fecha
-      and upper(trim(coalesce(cs.abierto_por,'')))=upper(trim(v_actor_name))
-  ) then
+  if nullif(trim(coalesce(p_sesion_id,'')),'') is null then
     return jsonb_build_object('ok',false,'error','INVALID_CASH_SESSION');
+  end if;
+  select cs.* into v_cash
+  from public.aos_caja_sesiones cs
+    where cs.id=p_sesion_id
+  for update;
+  if v_cash.id is null
+     or upper(trim(coalesce(v_cash.sede,'')))<>v_quote_sede
+     or upper(trim(coalesce(v_cash.estado,'')))<>'ABIERTA'
+     or v_cash.fecha<>v_fecha then
+    return jsonb_build_object('ok',false,'error','INVALID_CASH_SESSION');
+  end if;
+  if v_cash.abierto_por_user_id is null then
+    select count(*) into v_name_matches
+    from public.aos_usuarios au
+    where au.activo=true and lower(trim(coalesce(au.nombre,'')))=lower(trim(v_actor_name));
+    if v_name_matches<>1
+       or lower(trim(coalesce(v_cash.abierto_por,'')))<>lower(trim(v_actor_name)) then
+      return jsonb_build_object('ok',false,'error','CASH_SESSION_OWNER_UNVERIFIED');
+    end if;
+    update public.aos_caja_sesiones
+    set abierto_por_user_id=v_actor,updated_at=now()
+    where id=v_cash.id and abierto_por_user_id is null;
+    v_cash.abierto_por_user_id:=v_actor;
+  end if;
+  if v_cash.abierto_por_user_id<>v_actor then
+    return jsonb_build_object('ok',false,'error','INVALID_CASH_SESSION');
+  end if;
+
+  if v_existing.id is not null then
+    if v_existing.cotizacion_id<>p_cotizacion_id
+       or v_existing.registrado_por_user_id<>v_actor
+       or v_existing.request_hash<>v_request_hash
+       or v_existing.cash_session_id<>p_sesion_id then
+      return jsonb_build_object('ok',false,'error','IDEMPOTENCY_CONFLICT');
+    end if;
+    return jsonb_build_object(
+      'ok',true,'replay',true,'cotizacion_id',v_cot.id,
+      'numero',v_cot.numero_cotizacion,'monto_abonado',v_existing.monto,
+      'total_pagado',v_cot.total_pagado,'saldo',v_cot.saldo_pendiente,
+      'estado',v_cot.estado,'pago_id',v_existing.id
+    );
+  end if;
+  if v_cot.estado in ('ANULADO','PAGADO_COMPLETO') then
+    return jsonb_build_object('ok',false,'error','QUOTE_NOT_PAYABLE');
   end if;
 
   v_prev_pagado:=greatest(coalesce(v_cot.total_pagado,0),0);
@@ -857,11 +934,11 @@ begin
   insert into public.aos_pagos(
     id,cotizacion_id,monto,moneda,metodo_pago,tipo_comprobante,
     numero_comprobante,sede,registrado_por,registrado_por_user_id,fecha_pago,
-    nota,asesor_comision,request_id
+    nota,asesor_comision,request_id,request_hash,cash_session_id
   ) values (
     extensions.gen_random_uuid()::text,p_cotizacion_id,p_monto,'PEN',p_metodo_pago,
     p_tipo_comprobante,p_nro_doc,v_quote_sede,v_actor_name,v_actor,v_fecha,p_nota,
-    coalesce(v_cot.asesor,''),p_idempotency_key
+    coalesce(v_cot.asesor,''),p_idempotency_key,v_request_hash,p_sesion_id
   ) returning id into v_pago_id;
 
   v_venta_id:='V-'||to_char(now() at time zone 'America/Lima','YYYYMMDD-HH24MISS')||'-'||
