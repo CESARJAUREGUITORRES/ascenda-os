@@ -75,6 +75,17 @@ create table public.aos_pagos (
   item_id text
 );
 
+create table public.aos_caja_sesiones (
+  id text primary key default extensions.gen_random_uuid()::text,
+  sede text not null,
+  fecha date not null default current_date,
+  estado text not null default 'ABIERTA',
+  abierto_por text,
+  cerrado_por text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table public.aos_caja_log (
   id uuid primary key default extensions.gen_random_uuid(),
   sesion_id text,
