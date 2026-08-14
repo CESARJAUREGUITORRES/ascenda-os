@@ -14,6 +14,7 @@ on:
       - 'supabase/migrations/20260814064000_phase2_owner_canary_access.sql'
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
       - '.github/workflows/cartera-phase2-final-release.yml'
   push:
@@ -29,6 +30,7 @@ on:
       - 'supabase/migrations/20260814064000_phase2_owner_canary_access.sql'
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
+      - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
       - '.github/workflows/cartera-phase2-final-release.yml'
   workflow_dispatch:
@@ -91,7 +93,8 @@ jobs:
             20260814063000_phase2_identity_admin_hardening.sql \
             20260814064000_phase2_owner_canary_access.sql \
             20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
-            20260814164500_restore_2fa_email_branding.sql; do
+            20260814164500_restore_2fa_email_branding.sql \
+            20260814195300_fix_auth_v3_btrim.sql; do
               psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
           done
 
@@ -141,11 +144,17 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_cartera_reconciliacion') is not null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select position('AscendaOS <info@zivital.pe>' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select position('ascenda_branded_v1' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.btrim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.trim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))=0")" = "t"
           echo 'PHASE2_BRANDED_2FA_FINAL=PASS'
+          echo 'PHASE2_AUTH_BTRIM_P0=PASS'
 
       - name: Final database lint
         working-directory: ci/zero-cost-staging
-        run: supabase db lint --local --schema public --level error
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/db-lint.txt
+          ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
 
       - name: Release digest
         run: |
@@ -160,7 +169,8 @@ jobs:
             supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql \
             supabase/migrations/20260814064000_phase2_owner_canary_access.sql \
             supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
-            supabase/migrations/20260814164500_restore_2fa_email_branding.sql
+            supabase/migrations/20260814164500_restore_2fa_email_branding.sql \
+            supabase/migrations/20260814195300_fix_auth_v3_btrim.sql
 
       - name: Stop isolated Supabase
         if: always()
