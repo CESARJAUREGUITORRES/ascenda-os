@@ -53,7 +53,7 @@ jobs:
           supabase stop --no-backup || true
           supabase db start
 
-      - name: Build synthetic Phase 1 + Phase 2 baseline
+      - name: Build synthetic Phase 1 + latest Phase 2 baseline
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
@@ -73,6 +73,8 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814064000_phase2_owner_canary_access.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814164500_restore_2fa_email_branding.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1-phase2/fixture_pre_k1.sql
 
       - name: Baseline Cartera certificate before K1
@@ -91,13 +93,15 @@ jobs:
             echo "$f" | tee -a /tmp/k1-migrations.txt
             psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$f"
           done
-          test "$(wc -l < /tmp/k1-migrations.txt)" -eq 4
+          test "$(wc -l < /tmp/k1-migrations.txt)" -eq 5
 
       - name: K1 Auth V3 / control-plane certificate
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1-phase2/001_k1_phase2_certificate.sql | tee /tmp/k1-certificate.txt
           grep -q 'KRONIA_K1_PHASE2_CERTIFICATE=PASS' /tmp/k1-certificate.txt
+          psql "$DB_URL" -X -qAt -c "select case when lower(pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)) like '%aos_auth_password_matches%' and lower(pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)) like '%ascenda_branded_v1%' then 'K1_BRANDED_AUTH_V3=PASS' else 'K1_BRANDED_AUTH_V3=FAIL' end" | tee -a /tmp/k1-certificate.txt
+          grep -q 'K1_BRANDED_AUTH_V3=PASS' /tmp/k1-certificate.txt
 
       - name: Cartera regression certificate after K1
         run: |
