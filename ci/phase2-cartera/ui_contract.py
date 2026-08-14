@@ -33,6 +33,12 @@ for anchor in ('id="ov-venta"', 'function cargarCaja(', 'function buscarPaciente
     assert anchor in caja
 assert 'onclick="selPaciente(' not in caja
 assert "row.addEventListener('click', function(){ selPaciente(p); })" in caja
+assert 'JSON.stringify(r).replace(/"/g' not in caja
+assert "row.addEventListener('click', function(){ agregarItemDesdeCatalogo(r); })" in caja
+assert "row.addEventListener('click', function(){ cargarCotEnVenta(cot.id); })" in caja
+assert "advisor.textContent = 'Asesor: ' + cot.asesor" in caja
+assert "escH(plan.autor || '')" in caja
+assert "escH(item.nombre || '')" in caja
 assert 'var abonoFailed = false' in caja
 assert 'delete VT._paymentKeys[cotId]' not in caja
 assert 'if (abonoFailed)' in caja
