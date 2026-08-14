@@ -1,0 +1,31 @@
+{
+  "cutoff": "2026-08-12",
+  "totals": {
+    "ventas": 1275,
+    "facturado": 555373.27,
+    "servicios": 882,
+    "fact_servicios": 498040.17,
+    "productos": 393,
+    "fact_productos": 57333.10,
+    "otros_invalidos": 0,
+    "meta_ytd": 800000.00,
+    "pct_meta_ytd": 69.42
+  },
+  "mtd": {
+    "agosto_1_12": 56948.80,
+    "julio_1_12": 32839.05,
+    "variacion_pct": 73.42,
+    "proyeccion_agosto": 147117.73,
+    "ritmo_diario_necesario": 2265.85
+  },
+  "months": [
+    {"mes":1,"ventas":191,"facturado":91029.60,"servicios":139,"fact_servicios":84354.60,"productos":52,"fact_productos":6675.00},
+    {"mes":2,"ventas":166,"facturado":78734.62,"servicios":130,"fact_servicios":73479.62,"productos":36,"fact_productos":5255.00},
+    {"mes":3,"ventas":156,"facturado":63681.65,"servicios":96,"fact_servicios":55470.65,"productos":60,"fact_productos":8211.00},
+    {"mes":4,"ventas":152,"facturado":59496.95,"servicios":105,"fact_servicios":52925.95,"productos":47,"fact_productos":6571.00},
+    {"mes":5,"ventas":179,"facturado":79225.85,"servicios":125,"fact_servicios":71911.85,"productos":54,"fact_productos":7314.00},
+    {"mes":6,"ventas":159,"facturado":61140.75,"servicios":124,"fact_servicios":55684.75,"productos":35,"fact_productos":5456.00},
+    {"mes":7,"ventas":189,"facturado":65115.05,"servicios":112,"fact_servicios":52613.95,"productos":77,"fact_productos":12501.10},
+    {"mes":8,"ventas":83,"facturado":56948.80,"servicios":51,"fact_servicios":51598.80,"productos":32,"fact_productos":5350.00}
+  ]
+}

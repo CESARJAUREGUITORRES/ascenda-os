@@ -1,0 +1,151 @@
+name: ASCENDA Zero-Cost Staging
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'ci/zero-cost-staging/**'
+      - 'app/public/admin-sales-intelligence.html'
+      - '.github/workflows/zero-cost-staging.yml'
+  push:
+    branches:
+      - 'feat/**'
+      - 'feature/**'
+      - 'fix/**'
+      - 'security/**'
+      - 'data/**'
+    paths:
+      - 'supabase/**'
+      - 'ci/zero-cost-staging/**'
+      - 'app/public/admin-sales-intelligence.html'
+      - '.github/workflows/zero-cost-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zero-cost-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database-contract:
+    name: Supabase local / regression / performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Toolchain versions
+        run: |
+          set -euo pipefail
+          supabase --version
+          psql --version
+          python3 --version
+          docker --version
+
+      - name: Static read-only migration contract
+        run: |
+          set -euo pipefail
+          python3 ci/zero-cost-staging/check_migration_contract.py \
+            supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql \
+            supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
+
+      - name: Start isolated Supabase database
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db start
+
+      - name: Build minimal public schema contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
+
+      - name: Compile OTROS hotfix migration
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813164711_fix_otros_service_type.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname='trg_normalizar_tipo_venta_otros' and not tgisinternal")" = "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_editar_venta'")" = "1"
+
+      - name: Compile Sales Intelligence migrations exactly
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sales_intelligence_summary' and not p.prosecdef and p.provolatile='s'")" = "1"
+
+      - name: Database lint gate
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error
+
+      - name: Create immutable certified fixture views
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/certified_fixture_views.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from zcs.aos_ventas")" = "1275"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_char(sum(monto),'FM9999999990.00') from zcs.aos_ventas")" = "555373.27"
+
+      - name: Compile optimized RPC against isolated fixtures
+        run: |
+          set -euo pipefail
+          python3 ci/zero-cost-staging/prepare_rpc_under_test.py \
+            supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql \
+            /tmp/aos_sales_intelligence_zcs.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f /tmp/aos_sales_intelligence_zcs.sql
+
+      - name: pgTAP regression gates
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase test db --local
+
+      - name: Performance gate
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            psql "$DB_URL" -X -qAt -c "select zcs.aos_sales_intelligence_summary(2026,'','')" >/dev/null
+          done
+          psql "$DB_URL" -X -qAt -c "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT zcs.aos_sales_intelligence_summary(2026,'','')" > /tmp/sales_intelligence_plan.json
+          python3 ci/zero-cost-staging/check_explain.py /tmp/sales_intelligence_plan.json
+
+      - name: Final zero-cost staging certificate
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          g=json.loads(Path('ci/zero-cost-staging/golden_2026-08-12.json').read_text())
+          assert g['totals']['ventas']==1275
+          assert round(g['totals']['facturado'],2)==555373.27
+          assert g['totals']['otros_invalidos']==0
+          print('ZERO_COST_STAGING_CERTIFIED=PASS')
+          print('BASELINE=1275 sales / S/555373.27 / cutoff 2026-08-12')
+          PY
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-cost-staging-evidence
+          path: /tmp/sales_intelligence_plan.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop isolated Supabase database
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true

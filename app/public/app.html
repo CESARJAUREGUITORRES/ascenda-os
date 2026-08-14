@@ -672,6 +672,7 @@ var SIDEBAR_ADMIN = [
   {type:'sep'},
   {type:'section',label:'Comercial'},
   {type:'item',id:'admin-sales',        ico:'money',     lbl:'Ventas'},
+  {type:'item',id:'admin-sales-intelligence',ico:'chart', lbl:'Sales Intelligence V2',canaryNivel:1},
   {type:'item',id:'admin-commissions',  ico:'chart',     lbl:'Comisiones'},
   {type:'item',id:'admin-marketing',    ico:'megaphone', lbl:'Marketing'},
   {type:'item',id:'admin-calls',        ico:'phone',     lbl:'Llamadas'},
@@ -699,7 +700,9 @@ function buildSidebar() {
   // Si tiene permisos específicos y NO es admin, construir sidebar mixto
   var items;
   if (AOS.role === 'ADMIN') {
-    items = SIDEBAR_ADMIN;
+    items = SIDEBAR_ADMIN.filter(function(it) {
+      return !it.canaryNivel || Number(AOS.ctx.nivel || 99) <= Number(it.canaryNivel);
+    });
   } else if (perms.length > 0) {
     // Construir sidebar solo con los paneles permitidos
     // Combinar ambos sidebars y filtrar
@@ -792,6 +795,7 @@ var VIEW_MAP = {
   'admin-agenda':        'ViewAdminAgenda',
   'admin-patients':      'ViewAdminPatients',
   'admin-sales':         'ViewAdminSales',
+  'admin-sales-intelligence':'ViewAdminSalesIntelligence',
   'admin-commissions':   'ViewAdminComisiones',
   'admin-marketing':     'ViewAdminMarketing',
   'admin-email':         'ViewAdminEmail',
@@ -807,6 +811,9 @@ var VIEW_MAP = {
 };
 
 function navigateTo(viewId) {
+  if (viewId === 'admin-sales-intelligence' && !(AOS.role === 'ADMIN' && Number(AOS.ctx.nivel || 99) <= 1)) {
+    viewId = 'admin-sales';
+  }
   if (AOS.activeView === viewId) return;
   AOS.activeView = viewId;
   var actCls = AOS.role === 'ADMIN' ? 'act-admin' : 'act-asesor';
@@ -841,6 +848,7 @@ function navigateTo(viewId) {
     'ViewAdminCalls':         '/admin-calls.html',
     'ViewAdminPatients':      '/patients.html',
     'ViewAdminSales':         '/admin-sales.html',
+    'ViewAdminSalesIntelligence':'/admin-sales-intelligence.html',
     'ViewAdminComisiones':    '/admin-comisiones.html',
     'ViewAdminTeam':          '/admin-team.html',
     'ViewAdminCatalogo':      '/admin-catalogo.html',
