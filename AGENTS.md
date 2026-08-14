@@ -9,9 +9,14 @@ Este archivo define las reglas operativas obligatorias para cualquier agente de 
 Antes de proponer o ejecutar cambios, leer:
 
 1. `docs/control/ASCENDA_CONTROL_MASTER.md`
-2. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
-3. Los archivos productivos bajo `app/`
-4. Las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+2. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
+3. el master/index/checkpoint CURRENT del workstream afectado
+4. `SECURITY.md` para cambios de seguridad, Auth, RLS, secretos, agentes o infraestructura
+5. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
+6. los archivos productivos bajo `app/`
+7. las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+
+Antes de continuar trabajo iniciado por otro chat/agente, verificar el estado real de GitHub (`main`, `staging`, branch, PR, checks) y de Supabase; no asumir que un checkpoint antiguo sigue vigente.
 
 ### Clasificación del repositorio
 
@@ -53,11 +58,30 @@ No arreglar síntomas modificando datos o columnas sin determinar primero la fue
 - No hacer force push sobre `main`.
 - No fusionar cambios de alto impacto sin revisión humana y validación.
 
-### Staging
+### GitHub Staging
 
-- `staging` es la rama de integración/preproducción.
+- `staging` es la rama de integración/preproducción de código.
+- **No confundir `staging` de GitHub con una Supabase Cloud Development Branch.**
 - Las nuevas features deben desarrollarse en `feature/*`, `fix/*`, `security/*`, `data/*` o `chore/*`.
-- Flujo esperado: branch → checks → PR → staging → validación → PR/main.
+- Flujo esperado: branch → checks → PR → staging cuando aplique → validación → PR/main.
+
+### Zero-Cost Staging — estándar por defecto
+
+ASCENDA usa `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md` como circuito preproductivo obligatorio por defecto.
+
+- GitHub Actions + Supabase CLI/PostgreSQL/Docker levantan un entorno efímero y reproducible.
+- No se usan credenciales productivas ni PII/PHI real como fixtures.
+- Se compilan las migraciones EXACTAS del release, se ejecutan lint, contracts, pgTAP/pruebas equivalentes, seguridad, performance y rollback según riesgo.
+- El entorno se destruye al finalizar, incluso cuando el workflow falla.
+- Para HIGH/CRITICAL debe existir evidencia reproducible (run/artifact/digest/checkpoint) antes del gate productivo.
+- Un CI verde no autoriza producción: siguen siendo obligatorios preflight, canary/cutover/smoke y autorización según riesgo.
+
+### Infraestructura cloud pagada
+
+- Supabase Cloud Development Branch, proyecto duplicado, staging Railway dedicado u otra infraestructura con costo **NO son requisitos automáticos**.
+- Solo se crean si un riesgo material no puede validarse suficientemente mediante Zero-Cost Staging + preflight/canary.
+- Antes de crear infraestructura con costo: explicar necesidad, alternativa cero-costo descartada, permisos/datos implicados, costo/recurrencia, rollback/borrado y obtener aprobación explícita del propietario.
+- Por defecto, cualquier entorno cloud adicional debe ser efímero y eliminarse al terminar su gate.
 
 ### Auditoría
 
@@ -98,7 +122,7 @@ Cualquier cambio que toque:
 - historia clínica
 - KronIA con acciones de escritura
 
-Requiere Impact Report, pruebas específicas y rollback.
+Requiere Impact Report, pruebas específicas, Zero-Cost Staging y rollback.
 
 ### ⚫ CRITICAL
 
@@ -113,7 +137,7 @@ Requiere Impact Report, pruebas específicas y rollback.
 - deploy/infraestructura;
 - cambios multi-tenant.
 
-No ejecutar directamente en producción sin staging, backup/restore conocido y aprobación explícita.
+No ejecutar directamente en producción sin Zero-Cost Staging certificado, preflight productivo, backup/restore o rollback conocido, canary/additive rollout cuando sea posible, security review y aprobación explícita.
 
 ---
 
@@ -228,6 +252,8 @@ Antes de cambiar `server.js`:
 - revisar CORS y autenticación;
 - mantener compatibilidad de endpoints existentes.
 
+Cuando CI materialice o genere un runtime, HIGH/CRITICAL exige demostrar que el artefacto certificado es equivalente al artefacto que Railway ejecutará.
+
 ---
 
 ## Pruebas mínimas por cambio
@@ -248,7 +274,18 @@ Agregar además:
 - prueba por rol relevante;
 - prueba mobile si existe UI;
 - flujo E2E relacionado;
-- rollback documentado.
+- Zero-Cost Staging;
+- rollback documentado y, cuando sea seguro, ejecutado dentro del staging efímero;
+- production preflight read-only;
+- evidencia reproducible de certificación.
+
+### CRITICAL adicional
+
+- pruebas negativas explícitas;
+- trust-boundary/security review;
+- canary/additive rollout cuando técnicamente sea posible;
+- 0 HIGH/CRITICAL abiertos dentro del scope antes de certificar producción;
+- autorización explícita del propietario antes del primer cambio productivo.
 
 ---
 
@@ -300,11 +337,21 @@ Una tarea no está terminada solo porque “se ve bien”. Debe cumplir, según 
 - migración versionada;
 - pruebas ejecutadas;
 - seguridad revisada;
-- staging validado;
-- producción validada tras merge;
+- Zero-Cost Staging validado cuando aplique;
+- preflight/canary productivo según riesgo;
+- producción validada tras release;
 - datos reconciliados;
 - rollback conocido;
-- documentación actualizada.
+- documentación/checkpoint actualizado.
+
+### Estados de certificación
+
+No mezclar estados:
+
+- `ZERO-COST CERTIFIED` = contratos/migraciones/tests/rollback certificados en entorno efímero.
+- `CANARY CERTIFIED` = integración real mínima validada sin activación general.
+- `PRODUCTION CERTIFIED` = release autorizado, smoke real y reconciliación final completados.
+- `100_COMPLETE` solo puede utilizarse cuando todos los gates declarados del alcance están cerrados.
 
 ---
 
@@ -320,7 +367,8 @@ No:
 - copiar secretos entre entornos;
 - usar datos reales de Zi Vital como seed del futuro SaaS;
 - convertir la base productiva actual a multi-tenant mediante cambios masivos;
-- ocultar fallos de tests para “poner verde” el CI.
+- ocultar fallos de tests para “poner verde” el CI;
+- crear infraestructura cloud pagada por costumbre cuando Zero-Cost Staging cubre el riesgo.
 
 ---
 
