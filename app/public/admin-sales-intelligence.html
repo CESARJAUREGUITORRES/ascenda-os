@@ -1,4 +1,4 @@
-<!-- ASCENDA OS — Sales Intelligence V2 / Phase A preview -->
+<!-- ASCENDA OS — Sales Intelligence V2 / admin-only read-only activation -->
 <style>
 .siv2{padding:14px;display:flex;flex-direction:column;gap:12px;font-family:'DM Sans',sans-serif;color:#0D1B3E}
 .si-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -21,7 +21,7 @@
 <div class="siv2">
   <div class="si-hd">
     <div><div class="si-title">📈 Sales Intelligence V2</div><div class="si-sub">Rendimiento anual · metas · MTD comparable · proyección</div></div>
-    <div style="display:flex;align-items:center;gap:8px"><span class="si-badge">PREVIEW · SOLO LECTURA</span><div class="si-filters"><select id="si-year" class="si-sel"><option value="2026">2026</option></select><select id="si-sede" class="si-sel"><option value="">Todas las sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div></div>
+    <div style="display:flex;align-items:center;gap:8px"><span class="si-badge">ACTIVO · SOLO LECTURA</span><div class="si-filters"><select id="si-year" class="si-sel"><option value="2026">2026</option></select><select id="si-sede" class="si-sel"><option value="">Todas las sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select></div></div>
   </div>
 
   <div class="si-grid">
@@ -56,11 +56,31 @@
   function e(id){return document.getElementById(id)}
   function money(n){return 'S/'+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}
   function pct(n){return n==null?'--':Number(n).toFixed(2)+'%'}
+  function deny(message){
+    var root=document.querySelector('.siv2');
+    if(root)root.innerHTML='<div class="si-card" style="max-width:620px;margin:60px auto;text-align:center;padding:28px"><div class="si-title">🔒 Acceso restringido</div><div class="si-note" style="font-size:12px;margin-top:10px">'+message+'</div></div>';
+  }
   function call(){
+    var token='';
+    try{token=sessionStorage.getItem('aos_si_token')||'';}catch(err){}
+    if(!token){
+      deny('Inicia sesión nuevamente con 2FA y solicita que Sales Intelligence V2 esté asignado en Roles y Permisos.');
+      return;
+    }
     var y=Number(e('si-year').value),s=e('si-sede').value;
-    fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_summary',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_anio:y,p_sede:s,p_asesor:''})})
-      .then(function(r){if(!r.ok)throw new Error('RPC '+r.status);return r.json()})
-      .then(render).catch(function(err){console.error(err);e('si-chart').innerHTML='<div class="si-loading">RPC V2 aún no desplegado en este entorno.</div>';e('si-proj').innerHTML='<div class="si-loading">Pendiente de staging.</div>'});
+    fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_gateway',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_token:token,p_anio:y,p_sede:s,p_asesor:''})})
+      .then(function(r){if(!r.ok)throw new Error('GATEWAY '+r.status);return r.json()})
+      .then(function(d){
+        if(d&&d.ok===false){
+          sessionStorage.removeItem('aos_si_token');
+          deny('La sesión o el permiso no son válidos. Vuelve a ingresar con 2FA.');
+          return;
+        }
+        render(d);
+      }).catch(function(err){
+        console.error(err);
+        deny('No fue posible validar el acceso. Intenta nuevamente.');
+      });
   }
   function render(d){
     if(!d||!d.hasData)return;

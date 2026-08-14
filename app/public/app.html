@@ -463,7 +463,7 @@ function aosCleanupPanelRuntime(){
 
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 /* ===== AUTO-RELOAD: forzar recarga si versión vieja ===== */
-var _APP_VERSION = 20260814.1;
+var _APP_VERSION = 20260814.3;
 if(!localStorage.getItem('aos_v') || parseFloat(localStorage.getItem('aos_v')) < _APP_VERSION){
   localStorage.setItem('aos_v', _APP_VERSION);
   location.reload(true);
@@ -713,7 +713,7 @@ var SIDEBAR_ADMIN = [
   {type:'sep'},
   {type:'section',label:'Comercial'},
   {type:'item',id:'admin-sales',        ico:'money',     lbl:'Ventas'},
-  {type:'item',id:'admin-sales-intelligence',ico:'chart', lbl:'Sales Intelligence V2',canaryNivel:1},
+  {type:'item',id:'admin-sales-intelligence',ico:'chart', lbl:'Sales Intelligence V2',requiresPanel:true},
   {type:'item',id:'admin-commissions',  ico:'chart',     lbl:'Comisiones'},
   {type:'item',id:'admin-marketing',    ico:'megaphone', lbl:'Marketing'},
   {type:'item',id:'admin-calls',        ico:'phone',     lbl:'Llamadas'},
@@ -742,7 +742,7 @@ function buildSidebar() {
   var items;
   if (AOS.role === 'ADMIN') {
     items = SIDEBAR_ADMIN.filter(function(it) {
-      return !it.canaryNivel || Number(AOS.ctx.nivel || 99) <= Number(it.canaryNivel);
+      return !it.requiresPanel || perms.indexOf(it.id) >= 0;
     });
   } else if (perms.length > 0) {
     // Construir sidebar solo con los paneles permitidos
@@ -1753,6 +1753,8 @@ function doLogout() {
 function redirectLogin() {
   try {
     sessionStorage.removeItem('aos_token');
+    sessionStorage.removeItem('aos_si_token');
+    sessionStorage.removeItem('aos_si_expires_at');
     localStorage.removeItem('aos_session');
   } catch(e) {}
   window.location.href = '/';

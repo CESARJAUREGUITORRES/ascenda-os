@@ -8,17 +8,22 @@ on:
       - 'app/railway.staging.json'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
+      - 'app/public/login.html'
+      - 'app/public/admin-team.html'
       - 'app/public/app.html'
       - 'ci/phase1-sales-intelligence/**'
       - '.github/workflows/sales-intelligence-phase1.yml'
   push:
     branches:
       - 'feat/sales-intelligence-v2-phase1-canary'
+      - 'security/**'
     paths:
       - 'app/staging-server.js'
       - 'app/railway.staging.json'
       - 'app/public/admin-sales-intelligence.html'
       - 'app/public/admin-sales-intelligence-staging.html'
+      - 'app/public/login.html'
+      - 'app/public/admin-team.html'
       - 'app/public/app.html'
       - 'ci/phase1-sales-intelligence/**'
       - '.github/workflows/sales-intelligence-phase1.yml'
@@ -75,7 +80,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          files=['app/public/admin-sales-intelligence.html','app/public/admin-sales-intelligence-staging.html']
+          files=['app/public/admin-sales-intelligence.html','app/public/admin-sales-intelligence-staging.html','app/public/login.html','app/public/admin-team.html']
           out=[]
           for src in files:
               text=Path(src).read_text(encoding='utf-8')
