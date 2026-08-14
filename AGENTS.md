@@ -4,6 +4,35 @@
 
 Este archivo define las reglas operativas obligatorias para cualquier agente de IA/Codex que trabaje sobre ASCENDA OS. El objetivo es permitir desarrollo rápido sin perder trazabilidad, seguridad ni estabilidad de producción.
 
+## Commercial Intelligence & Audience OS — recovery obligatorio
+
+Si el trabajo pertenece a **Commercial Intelligence & Audience OS V3** (Bases, Audiencias, Segmentación, Activaciones, Contexto, Asignaciones, Advisor Control, Work Views, Approvals, Intelligence, KronIA o integraciones de canales), antes de proponer o ejecutar cambios leer en este orden:
+
+1. `docs/control/commercial-intelligence/CIA_AGENT_BOOTSTRAP_CURRENT.md`
+2. `docs/control/commercial-intelligence/CIA_EXECUTION_PLAYBOOK_V1.md`
+3. `docs/control/commercial-intelligence/CIA_MASTER_ALIGNMENT_CURRENT.md`
+4. `docs/control/COMMERCIAL_INTELLIGENCE_AUDIENCE_OS_V3_MASTER.md`
+5. `docs/control/commercial-intelligence/ROADMAP_STATUS.md`
+6. último `PHASE_XX_VALIDATION_REPORT.md`
+7. `aos_memory` claves `cia_v3_*` y fase actual
+8. verificar `staging` + Supabase live antes de escribir.
+
+Reglas especiales CIA:
+
+- el Master V3 es arquitectura estática; el Roadmap/Bootstrap son estado dinámico;
+- no reconstruir lógica de una fase anterior: consumir su contrato certificado;
+- cada fase declara `INPUT CONTRACT ← FASE → OUTPUT CONTRACT`;
+- no declarar `100_COMPLETE` sin PR/CI/staging smoke/Validation Report/`aos_memory`;
+- migrations Git y `schema_migrations` live deben ser replayables y coherentes;
+- cualquier DDL sobre write-path operacional requiere prueba con el rol real que escribe;
+- QA mutante debe ser rollback-only cuando sea posible y terminar con cero residuos;
+- UNKNOWN/freshness incompleta falla cerrado;
+- para lógica diaria de Zi Vital usar semántica explícita `America/Lima`;
+- incidentes productivos se restauran primero y luego se continúa la fase;
+- no avanzar de fase si el handshake con la fase anterior o el contrato para la siguiente no está probado.
+
+Checkpoint CIA al incorporar estas reglas: Fases 0–9 `100_COMPLETE`; Fase 10 — Advisor Control Center `READY`; staging canónico `2e1116f07919fcf53bdac8cf61cbd23944863630`.
+
 ## Fuente de verdad de arquitectura
 
 Antes de proponer o ejecutar cambios, leer:
