@@ -14,6 +14,7 @@ on:
       - 'app/public/citas.html'
       - 'app/public/caja.html'
       - 'app/public/calls.html'
+      - 'app/public/calls-v2.html'
       - 'ci/phase16/test_email_gateway_policy.js'
       - 'scripts/ci/runner-healthcheck.sh'
       - 'scripts/ci/expose-runner-node.sh'
@@ -29,6 +30,7 @@ on:
       - 'app/public/citas.html'
       - 'app/public/caja.html'
       - 'app/public/calls.html'
+      - 'app/public/calls-v2.html'
       - 'ci/phase16/test_email_gateway_policy.js'
       - 'scripts/ci/runner-healthcheck.sh'
       - 'scripts/ci/expose-runner-node.sh'
@@ -62,7 +64,7 @@ jobs:
       - name: Transactional caller session contract
         run: |
           set -euo pipefail
-          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls-v2.html; do
             grep -q 'X-ASCENDA-Session' "$f"
           done
           grep -q 'LEGACY_2FA_RETIRED' app/server.js
