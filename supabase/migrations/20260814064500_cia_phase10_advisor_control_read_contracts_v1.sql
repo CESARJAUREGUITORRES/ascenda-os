@@ -1,0 +1,3 @@
+-- SUPERSEDED / NEVER APPLIED.
+-- Provisional filename created before Supabase assigned the canonical remote version.
+-- Canonical migration: 20260814064201_cia_phase10_advisor_control_read_contracts_v1.sql

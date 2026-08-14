@@ -1,0 +1,3 @@
+-- SUPERSEDED / NEVER APPLIED.
+-- Provisional filename created before Supabase assigned the canonical remote version.
+-- Canonical migration: 20260814064219_cia_phase10_admin_gateway_v1.sql
