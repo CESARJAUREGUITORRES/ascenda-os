@@ -21,8 +21,8 @@ assert "RECORDATORIOS BLOQUEADOS" in cartera
 assert "Adelantos ≠ deuda" in cartera
 
 assert "rpc('aos_abonar_cotizacion_v2'" in caja
-assert "p_token: financeToken" in caja
-assert "p_idempotency_key:" in caja
+assert re.search(r"p_token\s*:\s*financeToken", caja)
+assert re.search(r"p_idempotency_key\s*:", caja)
 assert "aos_caja_cotizaciones_gateway" in caja
 assert not re.search(r"rpc\(['\"]aos_abonar_cotizacion['\"]", caja)
 assert not re.search(r"sbGet\(['\"]aos_cotizaciones['\"]", caja)
@@ -38,6 +38,8 @@ assert "forbidden_sede" in migration.lower()
 assert "stale_case" in migration.lower()
 assert "'OVERPAYMENT'" in migration
 assert "'SERVICIO'" in migration
-assert "reminder" not in migration.lower()
+assert "'remindersEnabled',false" in migration
+assert "send-reminder" not in migration.lower()
+assert "send-template" not in migration.lower()
 
 print('CARTERA_PHASE2_UI_CONTRACT=PASS')
