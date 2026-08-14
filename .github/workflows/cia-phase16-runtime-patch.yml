@@ -10,6 +10,8 @@ on:
       - 'scripts/ci/phase16_patch_gateway_policy.py'
       - 'scripts/ci/phase16_patch_email_backend_acl.py'
       - 'scripts/ci/phase16_patch_transactional_email.py'
+      - 'scripts/ci/runner-healthcheck.sh'
+      - 'scripts/ci/expose-runner-node.sh'
       - '.github/workflows/cia-phase16-runtime-patch.yml'
   workflow_dispatch:
 
@@ -26,10 +28,9 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 12
     steps:
-      - name: Checkout exact branch
+      - name: Checkout exact triggering SHA
         uses: actions/checkout@v4
         with:
-          ref: feature/cia-phase16-email-integration-20260814
           fetch-depth: 1
 
       - name: Enforce Zero-Cost CI V2 policy
@@ -67,7 +68,7 @@ jobs:
           ! grep -q "'apikey':SK" app/public/admin-email.html
           ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
           ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
-          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls-v2.html; do
             grep -q "X-ASCENDA-Session" "$f"
           done
           echo 'CIA_PHASE16_RUNTIME_SECURITY_ASSERTIONS=PASS'
@@ -77,7 +78,7 @@ jobs:
           set -euo pipefail
           git diff --check
           changed="$(git diff --name-only | sort)"
-          expected=$'app/email-gateway.js\napp/public/admin-email.html\napp/public/agenda.js\napp/public/attendance.html\napp/public/caja.html\napp/public/calls.html\napp/public/calls.js\napp/public/citas.html\napp/server.js'
+          expected=$'app/email-gateway.js\napp/public/admin-email.html\napp/public/agenda.js\napp/public/attendance.html\napp/public/caja.html\napp/public/calls-v2.html\napp/public/calls.js\napp/public/citas.html\napp/server.js'
           if [ "$changed" != "$expected" ]; then
             echo "Unexpected runtime patch scope:" >&2
             printf '%s\n' "$changed" >&2
@@ -90,6 +91,6 @@ jobs:
           set -euo pipefail
           git config user.name 'ASCENDA Zero-Cost CI'
           git config user.email 'actions@users.noreply.github.com'
-          git add app/email-gateway.js app/server.js app/public/admin-email.html app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html
+          git add app/email-gateway.js app/server.js app/public/admin-email.html app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls-v2.html
           git commit -m 'feat(cia): enforce authoritative Email runtime boundaries'
           git push origin HEAD:feature/cia-phase16-email-integration-20260814
