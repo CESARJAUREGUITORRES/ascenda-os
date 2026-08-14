@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(37);
+SELECT plan(40);
 
 SELECT is((SELECT count(*) FROM zcs.aos_ventas), 1275::bigint, 'fixture has certified sale count');
 SELECT is((SELECT sum(monto) FROM zcs.aos_ventas), 555373.27::numeric, 'fixture has certified billed total');
@@ -61,6 +61,18 @@ WITH d AS (SELECT zcs.aos_sales_intelligence_summary(2026,'','') AS j)
 SELECT is((SELECT x->>'estado' FROM jsonb_array_elements(j->'serie') x WHERE (x->>'mes')::int=9), 'FUTURO', 'September is future') FROM d;
 SELECT is((SELECT prosecdef FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='zcs' AND p.proname='aos_sales_intelligence_summary' LIMIT 1), false, 'RPC is SECURITY INVOKER');
 SELECT is((SELECT provolatile FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='zcs' AND p.proname='aos_sales_intelligence_summary' LIMIT 1), 's'::"char", 'RPC is STABLE');
+SELECT is((
+  SELECT count(*)
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid=p.pronamespace
+  CROSS JOIN LATERAL aclexplode(p.proacl) a
+  WHERE n.nspname='zcs'
+    AND p.proname='aos_sales_intelligence_summary'
+    AND a.grantee=0
+    AND a.privilege_type='EXECUTE'
+), 0::bigint, 'RPC does not grant EXECUTE to PUBLIC');
+SELECT ok(has_function_privilege('anon','zcs.aos_sales_intelligence_summary(integer,text,text)','EXECUTE'), 'RPC grants EXECUTE explicitly to anon for current ASCENDA runtime');
+SELECT ok(has_function_privilege('authenticated','zcs.aos_sales_intelligence_summary(integer,text,text)','EXECUTE'), 'RPC grants EXECUTE explicitly to authenticated');
 WITH d AS (SELECT zcs.aos_sales_intelligence_summary(2026,'SAN ISIDRO','') AS j), q AS (SELECT count(*) n, sum(monto) s FROM zcs.aos_ventas WHERE sede='SAN ISIDRO')
 SELECT is((d.j->>'ventasYTD')::bigint, q.n, 'sede filter count matches source') FROM d,q;
 WITH d AS (SELECT zcs.aos_sales_intelligence_summary(2026,'','CARMEN') AS j), q AS (SELECT count(*) n FROM zcs.aos_ventas WHERE asesor='CARMEN')
