@@ -73,6 +73,26 @@ alter table public.aos_cartera_reconciliacion enable row level security;
 revoke all on table public.aos_cartera_reconciliacion from public,anon,authenticated;
 grant all on table public.aos_cartera_reconciliacion to service_role;
 
+-- Las fuentes financieras dejan de estar expuestas como tablas REST anonimas.
+-- Las lecturas/escrituras operativas pasan exclusivamente por gateways 2FA.
+alter table public.aos_cotizaciones enable row level security;
+alter table public.aos_cotizacion_items enable row level security;
+alter table public.aos_pagos enable row level security;
+revoke all on table public.aos_cotizaciones from public,anon,authenticated;
+revoke all on table public.aos_cotizacion_items from public,anon,authenticated;
+revoke all on table public.aos_pagos from public,anon,authenticated;
+grant all on table public.aos_cotizaciones to service_role;
+grant all on table public.aos_cotizacion_items to service_role;
+grant all on table public.aos_pagos to service_role;
+
+alter table public.aos_pagos
+  add column if not exists request_id uuid,
+  add column if not exists registrado_por_user_id uuid references public.aos_usuarios(id);
+
+create unique index if not exists aos_pagos_request_id_uidx
+  on public.aos_pagos(request_id)
+  where request_id is not null;
+
 -- Snapshot derivado y reversible: no modifica las fuentes financieras.
 insert into public.aos_cartera_reconciliacion(
   source_type,venta_row_id,cotizacion_id,rol_pago,estado_reconciliacion,
@@ -132,11 +152,18 @@ begin
     set cotizacion_id=coalesce(excluded.cotizacion_id,public.aos_cartera_reconciliacion.cotizacion_id),
         monto_registrado=excluded.monto_registrado,
         source_active=true,
+        estado_reconciliacion='REVISAR',
+        confianza='NO_EVALUADA',
+        saldo_confirmado=null,
+        confirmado_por=null,
+        confirmed_at=null,
         evidencia=public.aos_cartera_reconciliacion.evidencia||excluded.evidencia,
         updated_at=now();
   else
     update public.aos_cartera_reconciliacion
-    set source_active=false,updated_at=now(),
+    set source_active=false,estado_reconciliacion='REVISAR',
+        confianza='NO_EVALUADA',saldo_confirmado=null,
+        confirmado_por=null,confirmed_at=null,updated_at=now(),
         evidencia=evidencia||jsonb_build_object('source_estado_pago_actual',new.estado_pago)
     where source_type='VENTA' and venta_row_id=new.id;
   end if;
@@ -173,11 +200,18 @@ begin
     set monto_registrado=excluded.monto_registrado,
         total_compra_esperado=excluded.total_compra_esperado,
         source_active=true,
+        estado_reconciliacion='REVISAR',
+        confianza='NO_EVALUADA',
+        saldo_confirmado=null,
+        confirmado_por=null,
+        confirmed_at=null,
         evidencia=public.aos_cartera_reconciliacion.evidencia||excluded.evidencia,
         updated_at=now();
   else
     update public.aos_cartera_reconciliacion
-    set source_active=false,updated_at=now(),
+    set source_active=false,estado_reconciliacion='REVISAR',
+        confianza='NO_EVALUADA',saldo_confirmado=null,
+        confirmado_por=null,confirmed_at=null,updated_at=now(),
         evidencia=evidencia||jsonb_build_object(
           'source_estado_actual',new.estado,
           'source_saldo_actual',new.saldo_pendiente
@@ -193,105 +227,8 @@ create trigger trg_aos_cartera_sync_cotizacion
 after insert or update of estado,total_pagado,saldo_pendiente,subtotal on public.aos_cotizaciones
 for each row execute function public.aos_cartera_sync_cotizacion();
 
--- La misma prueba 2FA emite una sesion administrativa para SI o Finanzas.
--- Los gateways siguen validando el panel especifico en cada uso.
-create or replace function public.aos_sales_intelligence_claim_session(
-  p_login_usuario text,
-  p_password text,
-  p_usuario text,
-  p_codigo text
-) returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-declare
-  c record;
-  u record;
-  v_token text;
-  v_hash text;
-  v_exp timestamptz;
-begin
-  select au.id,au.nombre,r.nombre as twofa_subject,au.paneles_acceso
-    into u
-  from public.aos_usuarios au
-  join public.aos_rrhh r on r.codigo_asesor=au.codigo_asesor
-  where lower(trim(coalesce(r.usuario,'')))=lower(trim(coalesce(p_login_usuario,'')))
-    and encode(extensions.digest(coalesce(r.password_hash,''),'sha256'),'hex')=
-        encode(extensions.digest(coalesce(p_password,''),'sha256'),'hex')
-    and upper(coalesce(r.estado,''))='ACTIVO'
-    and au.activo=true
-    and au.two_factor=true
-    and au.nivel_jerarquia in (1,2)
-    and lower(coalesce(au.rol,''))='admin'
-    and (
-      coalesce(au.paneles_acceso,'{}'::text[]) && array['admin-cartera','admin-caja']::text[]
-      or (
-        coalesce(au.paneles_acceso,'{}'::text[]) @> array['admin-sales-intelligence']::text[]
-        and exists (
-          select 1 from public.aos_sales_intelligence_access sia
-          where sia.user_id=au.id and sia.enabled=true
-        )
-      )
-    )
-  limit 1;
-
-  if u.id is null then
-    return jsonb_build_object('ok',false,'error','PROOF_INVALID');
-  end if;
-
-  select ac.id,ac.usuario into c
-  from public.aos_auth_codes ac
-  where upper(ac.usuario)=upper(u.twofa_subject)
-    and upper(ac.usuario)=upper(p_usuario)
-    and ac.codigo=p_codigo
-    and ac.usado=true
-    and ac.created_at>now()-interval '5 minutes'
-    and ac.expira_at>now()
-  order by ac.created_at desc
-  limit 1
-  for update;
-
-  if c.id is null then
-    return jsonb_build_object('ok',false,'error','PROOF_INVALID');
-  end if;
-
-  if exists (
-    select 1 from public.aos_cia_admin_sessions s
-    where s.source_auth_code_id=c.id
-  ) then
-    return jsonb_build_object('ok',false,'error','PROOF_ALREADY_CLAIMED');
-  end if;
-
-  update public.aos_cia_admin_sessions
-  set revoked=true
-  where user_id=u.id and revoked=false;
-
-  v_token:=replace(extensions.gen_random_uuid()::text,'-','')||
-           replace(extensions.gen_random_uuid()::text,'-','');
-  v_hash:=encode(extensions.digest(v_token,'sha256'),'hex');
-  v_exp:=now()+interval '8 hours';
-
-  begin
-    insert into public.aos_cia_admin_sessions(
-      token_hash,user_id,usuario,expires_at,source_auth_code_id
-    ) values (v_hash,u.id,u.nombre,v_exp,c.id);
-  exception when unique_violation then
-    return jsonb_build_object('ok',false,'error','PROOF_ALREADY_CLAIMED');
-  end;
-
-  insert into public.aos_security_log(usuario,accion,detalles)
-  values (
-    u.nombre,'ADMIN_FINANCIAL_SESSION_CLAIMED',
-    jsonb_build_object('user_id',u.id,'expires_at',v_exp,'panels',u.paneles_acceso)
-  );
-
-  return jsonb_build_object(
-    'ok',true,'token',v_token,'expires_at',v_exp,
-    'panel','admin-financial','panels',u.paneles_acceso
-  );
-end;
-$function$;
+-- Se reutiliza la sesion 2FA ya certificada en FASE 1. Esta migracion no
+-- redefine el verificador de contrasena ni amplia quien puede emitir tokens.
 
 create or replace function public.aos_cartera_actor(
   p_token text,
@@ -305,6 +242,7 @@ as $function$
   select au.id
   from public.aos_cia_admin_sessions s
   join public.aos_usuarios au on au.id=s.user_id
+  join public.aos_rrhh r on r.codigo_asesor=au.codigo_asesor
   where s.token_hash=encode(extensions.digest(p_token,'sha256'),'hex')
     and s.revoked=false
     and s.expires_at>now()
@@ -312,6 +250,7 @@ as $function$
     and au.two_factor=true
     and au.nivel_jerarquia in (1,2)
     and lower(coalesce(au.rol,''))='admin'
+    and upper(trim(coalesce(r.estado,'')))='ACTIVO'
     and coalesce(au.paneles_acceso,'{}'::text[]) @> array[p_panel]::text[]
   limit 1
 $function$;
@@ -329,6 +268,8 @@ set search_path = ''
 as $function$
 declare
   v_actor uuid;
+  v_level integer;
+  v_allowed_sedes text[];
   v_estado text:=upper(trim(coalesce(p_estado,'')));
   v_sede text:=upper(trim(coalesce(p_sede,'')));
   v_result jsonb;
@@ -340,11 +281,21 @@ begin
   if v_actor is null then
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
+  select au.nivel_jerarquia,
+         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+    into v_level,v_allowed_sedes
+  from public.aos_usuarios au where au.id=v_actor;
   if v_estado not in (
     '','PENDIENTE_RECONCILIAR','SALDO_CONFIRMADO','PAGO_RECONCILIADO',
     'CERRADO','NO_ES_DEUDA','REVISAR'
   ) or v_sede not in ('','SAN ISIDRO','PUEBLO LIBRE') then
     return jsonb_build_object('ok',false,'error','INVALID_FILTER');
+  end if;
+  if v_level<>1 and cardinality(v_allowed_sedes)=0 then
+    return jsonb_build_object('ok',false,'error','NO_ALLOWED_SEDE');
+  end if;
+  if v_sede<>'' and v_level<>1 and not (v_sede=any(v_allowed_sedes)) then
+    return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
   end if;
   if p_limit not between 1 and 100 or p_offset<0 then
     return jsonb_build_object('ok',false,'error','INVALID_PAGE');
@@ -392,6 +343,10 @@ begin
     left join public.aos_ventas v on cr.source_type='VENTA' and v.id=cr.venta_row_id
     left join public.aos_cotizaciones c on cr.cotizacion_id=c.id
     where cr.source_active=true
+      and (
+        v_level=1
+        or upper(trim(coalesce(v.sede,c.sede,'')))=any(v_allowed_sedes)
+      )
       and (v_estado='' or cr.estado_reconciliacion=v_estado)
       and (v_sede='' or upper(coalesce(v.sede,c.sede,''))=v_sede)
   ), summary as (
@@ -436,6 +391,7 @@ $function$;
 create or replace function public.aos_cartera_reconcile(
   p_token text,
   p_case_id uuid,
+  p_expected_updated_at timestamptz,
   p_estado text,
   p_confianza text default 'CONFIRMADA',
   p_total_esperado numeric default null,
@@ -450,6 +406,17 @@ set search_path = ''
 as $function$
 declare
   v_actor uuid;
+  v_level integer;
+  v_allowed_sedes text[];
+  v_source_sede text;
+  v_quote_sede text;
+  v_target_quote text;
+  v_quote_balance numeric;
+  v_quote_total numeric;
+  v_source_phone text;
+  v_source_dni text;
+  v_quote_phone text;
+  v_quote_dni text;
   v_estado text:=upper(trim(coalesce(p_estado,'')));
   v_confianza text:=upper(trim(coalesce(p_confianza,'')));
   v_rol text:=upper(trim(coalesce(p_rol_pago,'')));
@@ -462,6 +429,13 @@ begin
   if v_actor is null then
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
+  select au.nivel_jerarquia,
+         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+    into v_level,v_allowed_sedes
+  from public.aos_usuarios au where au.id=v_actor;
+  if v_level<>1 and cardinality(v_allowed_sedes)=0 then
+    return jsonb_build_object('ok',false,'error','NO_ALLOWED_SEDE');
+  end if;
   if v_estado not in (
     'PENDIENTE_RECONCILIAR','SALDO_CONFIRMADO','PAGO_RECONCILIADO',
     'CERRADO','NO_ES_DEUDA','REVISAR'
@@ -469,24 +443,98 @@ begin
      or v_rol not in ('UNICO','ADELANTO','PARTE_1','PARTE_2','SALDO','COMPLEMENTO') then
     return jsonb_build_object('ok',false,'error','INVALID_STATE');
   end if;
-  if v_estado='SALDO_CONFIRMADO' and coalesce(p_saldo_confirmado,0)<=0 then
+  if v_estado='SALDO_CONFIRMADO'
+     and (coalesce(p_saldo_confirmado,0)<=0 or coalesce(p_total_esperado,0)<=0) then
     return jsonb_build_object('ok',false,'error','CONFIRMED_BALANCE_REQUIRED');
   end if;
   if coalesce(p_total_esperado,0)<0 or coalesce(p_saldo_confirmado,0)<0 then
     return jsonb_build_object('ok',false,'error','INVALID_AMOUNT');
   end if;
-  if p_cotizacion_id is not null and not exists(
-    select 1 from public.aos_cotizaciones where id=p_cotizacion_id
-  ) then
-    return jsonb_build_object('ok',false,'error','QUOTE_NOT_FOUND');
+
+  -- Lectura inicial para identificar la cotizacion; la validacion final se
+  -- repite bajo lock despues de bloquear primero la fuente financiera.
+  select * into v_previous
+  from public.aos_cartera_reconciliacion
+  where id=p_case_id;
+  if v_previous.id is null then
+    return jsonb_build_object('ok',false,'error','CASE_NOT_FOUND');
+  end if;
+
+  if v_previous.source_type='COTIZACION'
+     and p_cotizacion_id is not null
+     and p_cotizacion_id<>v_previous.cotizacion_id then
+    return jsonb_build_object('ok',false,'error','QUOTE_SOURCE_IMMUTABLE');
+  end if;
+  v_target_quote:=case
+    when v_previous.source_type='COTIZACION' then v_previous.cotizacion_id
+    else coalesce(p_cotizacion_id,v_previous.cotizacion_id)
+  end;
+
+  if v_target_quote is not null then
+    select upper(trim(coalesce(c.sede,''))),c.saldo_pendiente,c.subtotal,
+           regexp_replace(coalesce(c.numero_limpio,''),'\D','','g'),
+           regexp_replace(coalesce(c.dni_paciente,''),'\D','','g')
+      into v_quote_sede,v_quote_balance,v_quote_total,v_quote_phone,v_quote_dni
+    from public.aos_cotizaciones c where c.id=v_target_quote
+    for update;
+    if v_quote_sede is null then
+      return jsonb_build_object('ok',false,'error','QUOTE_NOT_FOUND');
+    end if;
   end if;
 
   select * into v_previous
   from public.aos_cartera_reconciliacion
   where id=p_case_id
   for update;
-  if v_previous.id is null then
-    return jsonb_build_object('ok',false,'error','CASE_NOT_FOUND');
+  if p_expected_updated_at is null or v_previous.updated_at<>p_expected_updated_at then
+    return jsonb_build_object(
+      'ok',false,'error','STALE_CASE','current_updated_at',v_previous.updated_at
+    );
+  end if;
+
+  select upper(trim(coalesce(v.sede,c.sede,''))) into v_source_sede
+  from public.aos_cartera_reconciliacion cr
+  left join public.aos_ventas v on cr.source_type='VENTA' and v.id=cr.venta_row_id
+  left join public.aos_cotizaciones c on cr.cotizacion_id=c.id
+  where cr.id=p_case_id;
+  if v_source_sede is null or v_source_sede not in ('SAN ISIDRO','PUEBLO LIBRE') then
+    return jsonb_build_object('ok',false,'error','SOURCE_SEDE_INVALID');
+  end if;
+  if v_level<>1 and not (v_source_sede=any(v_allowed_sedes)) then
+    return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
+  end if;
+
+  if v_target_quote is not null then
+    if v_quote_sede<>v_source_sede then
+      return jsonb_build_object('ok',false,'error','QUOTE_SEDE_MISMATCH');
+    end if;
+    if v_level<>1 and not (v_quote_sede=any(v_allowed_sedes)) then
+      return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
+    end if;
+    if v_previous.source_type='VENTA' then
+      select regexp_replace(coalesce(v.numero_limpio,v.celular,''),'\D','','g'),
+             regexp_replace(coalesce(v.dni,''),'\D','','g')
+        into v_source_phone,v_source_dni
+      from public.aos_ventas v where v.id=v_previous.venta_row_id;
+      if not (
+        (length(coalesce(v_source_phone,''))>=6 and v_source_phone=v_quote_phone)
+        or (length(coalesce(v_source_dni,''))>=6 and v_source_dni=v_quote_dni)
+      ) then
+        return jsonb_build_object('ok',false,'error','QUOTE_IDENTITY_MISMATCH');
+      end if;
+    end if;
+  end if;
+
+  if v_estado='SALDO_CONFIRMADO' then
+    if p_saldo_confirmado>p_total_esperado then
+      return jsonb_build_object('ok',false,'error','BALANCE_EXCEEDS_EXPECTED_TOTAL');
+    end if;
+    if v_target_quote is not null and (
+      p_saldo_confirmado>greatest(coalesce(v_quote_balance,0),0)
+      or p_total_esperado<>greatest(coalesce(v_quote_total,0),0)
+    ) then
+      return jsonb_build_object('ok',false,'error','BALANCE_EXCEEDS_QUOTE');
+    end if;
   end if;
 
   update public.aos_cartera_reconciliacion
@@ -498,21 +546,50 @@ begin
         when v_estado in ('PAGO_RECONCILIADO','CERRADO','NO_ES_DEUDA') then 0
         else p_saldo_confirmado
       end,
-      cotizacion_id=coalesce(p_cotizacion_id,cotizacion_id),
+      cotizacion_id=coalesce(v_target_quote,cotizacion_id),
       rol_pago=v_rol,
       observacion=nullif(trim(coalesce(p_observacion,'')),''),
       confirmado_por=v_actor,
       confirmed_at=now(),
       updated_at=now(),
       evidencia=evidencia||jsonb_build_object(
-        'reviewed_at',now(),'previous_state',v_previous.estado_reconciliacion
+        'reviewed_at',now(),
+        'previous',jsonb_build_object(
+          'state',v_previous.estado_reconciliacion,
+          'confidence',v_previous.confianza,
+          'expected_total',v_previous.total_compra_esperado,
+          'confirmed_balance',v_previous.saldo_confirmado,
+          'quote_id',v_previous.cotizacion_id,
+          'role',v_previous.rol_pago,
+          'observation',v_previous.observacion,
+          'updated_at',v_previous.updated_at
+        )
       )
   where id=p_case_id;
 
   insert into public.aos_security_log(usuario,accion,detalles)
   select au.nombre,'CARTERA_CASE_RECONCILED',jsonb_build_object(
     'actor_id',v_actor,'case_id',p_case_id,
-    'previous_state',v_previous.estado_reconciliacion,'new_state',v_estado
+    'before',jsonb_build_object(
+      'state',v_previous.estado_reconciliacion,
+      'confidence',v_previous.confianza,
+      'expected_total',v_previous.total_compra_esperado,
+      'confirmed_balance',v_previous.saldo_confirmado,
+      'quote_id',v_previous.cotizacion_id,
+      'role',v_previous.rol_pago,
+      'observation',v_previous.observacion,
+      'updated_at',v_previous.updated_at
+    ),
+    'after',jsonb_build_object(
+      'state',v_estado,'confidence',v_confianza,
+      'expected_total',p_total_esperado,
+      'confirmed_balance',case
+        when v_estado='SALDO_CONFIRMADO' then p_saldo_confirmado
+        when v_estado in ('PAGO_RECONCILIADO','CERRADO','NO_ES_DEUDA') then 0
+        else p_saldo_confirmado end,
+      'quote_id',coalesce(v_target_quote,v_previous.cotizacion_id),
+      'role',v_rol,'observation',nullif(trim(coalesce(p_observacion,'')),'')
+    )
   )
   from public.aos_usuarios au where au.id=v_actor;
 
@@ -520,19 +597,11 @@ begin
 end;
 $function$;
 
-create or replace function public.aos_abonar_cotizacion_v2(
+create or replace function public.aos_caja_cotizaciones_gateway(
   p_token text,
-  p_cotizacion_id text,
-  p_monto numeric,
-  p_metodo_pago text,
-  p_tipo_comprobante text default 'BOLETA VIRTUAL',
-  p_nro_doc text default '',
-  p_sede text default 'SAN ISIDRO',
-  p_usuario text default 'CAJA',
-  p_asesor text default '',
-  p_nota text default '',
-  p_sesion_id text default null,
-  p_fecha text default null
+  p_mode text,
+  p_numero_limpio text default null,
+  p_cotizacion_id text default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -540,7 +609,110 @@ set search_path = ''
 as $function$
 declare
   v_actor uuid;
+  v_level integer;
+  v_allowed_sedes text[];
+  v_mode text:=upper(trim(coalesce(p_mode,'')));
+  v_numero text:=regexp_replace(coalesce(p_numero_limpio,''),'\D','','g');
+  v_result jsonb;
+begin
+  if coalesce(length(p_token),0)<32 or v_mode not in ('LIST','DETAIL') then
+    return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
+  end if;
+  v_actor:=public.aos_cartera_actor(p_token,'admin-caja');
+  if v_actor is null then
+    return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
+  end if;
+  select au.nivel_jerarquia,
+         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+    into v_level,v_allowed_sedes
+  from public.aos_usuarios au where au.id=v_actor;
+  if v_level<>1 and cardinality(v_allowed_sedes)=0 then
+    return jsonb_build_object('ok',false,'error','NO_ALLOWED_SEDE');
+  end if;
+
+  update public.aos_cia_admin_sessions
+  set last_used_at=now()
+  where user_id=v_actor and revoked=false;
+
+  if v_mode='LIST' then
+    if length(v_numero)<6 then
+      return jsonb_build_object('ok',false,'error','INVALID_PATIENT_KEY');
+    end if;
+    select jsonb_build_object(
+      'ok',true,
+      'rows',coalesce(jsonb_agg(jsonb_build_object(
+        'id',c.id,'numero_cotizacion',c.numero_cotizacion,
+        'fecha_creacion',c.fecha_creacion,'plan_id',c.plan_id,
+        'subtotal',c.subtotal,'saldo_pendiente',c.saldo_pendiente,
+        'asesor',c.asesor,'origen',c.origen,'sede',c.sede
+      ) order by c.created_at desc),'[]'::jsonb)
+    ) into v_result
+    from (
+      select q.* from public.aos_cotizaciones q
+      where regexp_replace(coalesce(q.numero_limpio,''),'\D','','g')=v_numero
+        and q.estado not in ('ANULADO','PAGADO_COMPLETO')
+        and coalesce(q.saldo_pendiente,0)>0
+        and (v_level=1 or upper(trim(coalesce(q.sede,'')))=any(v_allowed_sedes))
+      order by q.created_at desc limit 10
+    ) c;
+    return v_result;
+  end if;
+
+  if nullif(trim(coalesce(p_cotizacion_id,'')),'') is null then
+    return jsonb_build_object('ok',false,'error','QUOTE_REQUIRED');
+  end if;
+  select jsonb_build_object(
+    'ok',true,
+    'quote',jsonb_build_object(
+      'id',c.id,'numero_cotizacion',c.numero_cotizacion,
+      'numero_limpio',c.numero_limpio,'estado',c.estado,
+      'subtotal',c.subtotal,'total_pagado',c.total_pagado,
+      'saldo_pendiente',c.saldo_pendiente,'sede',c.sede,
+      'asesor',c.asesor,'plan_id',c.plan_id,'origen',c.origen,
+      'venta_id_origen',c.venta_legacy_id
+    ),
+    'items',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',i.id,'nombre',i.nombre,'descripcion',i.descripcion,
+        'tipo',i.tipo,'cantidad',i.cantidad,'precio_unitario',i.precio_unitario,
+        'subtotal',i.subtotal,'moneda',i.moneda,'created_at',i.created_at
+      ) order by i.created_at,i.id)
+      from public.aos_cotizacion_items i where i.cotizacion_id=c.id
+    ),'[]'::jsonb)
+  ) into v_result
+  from public.aos_cotizaciones c
+  where c.id=p_cotizacion_id
+    and (v_level=1 or upper(trim(coalesce(c.sede,'')))=any(v_allowed_sedes));
+  if v_result is null then
+    return jsonb_build_object('ok',false,'error','QUOTE_NOT_FOUND');
+  end if;
+  return v_result;
+end;
+$function$;
+
+create or replace function public.aos_abonar_cotizacion_v2(
+  p_token text,
+  p_idempotency_key uuid,
+  p_cotizacion_id text,
+  p_monto numeric,
+  p_metodo_pago text,
+  p_tipo_comprobante text default 'BOLETA VIRTUAL',
+  p_nro_doc text default '',
+  p_nota text default '',
+  p_sesion_id text default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor uuid;
+  v_actor_name text;
+  v_level integer;
+  v_allowed_sedes text[];
+  v_quote_sede text;
   v_cot record;
+  v_existing record;
   v_prev_pagado numeric;
   v_nuevo_pagado numeric;
   v_nuevo_saldo numeric;
@@ -553,24 +725,48 @@ declare
   v_rol text;
   v_estado_pago text;
 begin
-  if coalesce(length(p_token),0)<32 then
+  if coalesce(length(p_token),0)<32 or p_idempotency_key is null then
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
   v_actor:=public.aos_cartera_actor(p_token,'admin-caja');
   if v_actor is null then
     return jsonb_build_object('ok',false,'error','UNAUTHORIZED');
   end if;
+  select au.nombre,au.nivel_jerarquia,
+         coalesce((select array_agg(upper(trim(s))) from unnest(coalesce(au.sedes_permitidas,'{}'::text[])) s),'{}'::text[])
+    into v_actor_name,v_level,v_allowed_sedes
+  from public.aos_usuarios au where au.id=v_actor;
+  if v_level<>1 and cardinality(v_allowed_sedes)=0 then
+    return jsonb_build_object('ok',false,'error','NO_ALLOWED_SEDE');
+  end if;
   if p_cotizacion_id is null or coalesce(p_monto,0)<=0
      or round(p_monto,2)<>p_monto
-     or upper(trim(coalesce(p_sede,''))) not in ('SAN ISIDRO','PUEBLO LIBRE')
      or trim(coalesce(p_metodo_pago,''))='' then
     return jsonb_build_object('ok',false,'error','INVALID_PAYMENT');
   end if;
-  begin
-    v_fecha:=coalesce(nullif(trim(coalesce(p_fecha,'')),'')::date,(now() at time zone 'America/Lima')::date);
-  exception when others then
-    return jsonb_build_object('ok',false,'error','INVALID_DATE');
-  end;
+  v_fecha:=(now() at time zone 'America/Lima')::date;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_idempotency_key::text));
+
+  select p.id,p.cotizacion_id,p.monto,p.metodo_pago,c.numero_cotizacion,
+         c.total_pagado,c.saldo_pendiente,c.estado
+    into v_existing
+  from public.aos_pagos p
+  join public.aos_cotizaciones c on c.id=p.cotizacion_id
+  where p.request_id=p_idempotency_key;
+  if v_existing.id is not null then
+    if v_existing.cotizacion_id<>p_cotizacion_id
+       or v_existing.monto<>p_monto
+       or v_existing.metodo_pago<>p_metodo_pago then
+      return jsonb_build_object('ok',false,'error','IDEMPOTENCY_CONFLICT');
+    end if;
+    return jsonb_build_object(
+      'ok',true,'replay',true,'cotizacion_id',v_existing.cotizacion_id,
+      'numero',v_existing.numero_cotizacion,'monto_abonado',v_existing.monto,
+      'total_pagado',v_existing.total_pagado,'saldo',v_existing.saldo_pendiente,
+      'estado',v_existing.estado,'pago_id',v_existing.id
+    );
+  end if;
 
   select * into v_cot
   from public.aos_cotizaciones
@@ -581,6 +777,23 @@ begin
   end if;
   if v_cot.estado in ('ANULADO','PAGADO_COMPLETO') then
     return jsonb_build_object('ok',false,'error','QUOTE_NOT_PAYABLE');
+  end if;
+  v_quote_sede:=upper(trim(coalesce(v_cot.sede,'')));
+  if v_quote_sede not in ('SAN ISIDRO','PUEBLO LIBRE') then
+    return jsonb_build_object('ok',false,'error','QUOTE_SEDE_INVALID');
+  end if;
+  if v_level<>1 and not (v_quote_sede=any(v_allowed_sedes)) then
+    return jsonb_build_object('ok',false,'error','FORBIDDEN_SEDE');
+  end if;
+  if nullif(trim(coalesce(p_sesion_id,'')),'') is null or not exists (
+    select 1 from public.aos_caja_sesiones cs
+    where cs.id=p_sesion_id
+      and upper(trim(coalesce(cs.sede,'')))=v_quote_sede
+      and upper(trim(coalesce(cs.estado,'')))='ABIERTA'
+      and cs.fecha=v_fecha
+      and upper(trim(coalesce(cs.abierto_por,'')))=upper(trim(v_actor_name))
+  ) then
+    return jsonb_build_object('ok',false,'error','INVALID_CASH_SESSION');
   end if;
 
   v_prev_pagado:=greatest(coalesce(v_cot.total_pagado,0),0);
@@ -621,10 +834,12 @@ begin
 
   insert into public.aos_pagos(
     id,cotizacion_id,monto,moneda,metodo_pago,tipo_comprobante,
-    numero_comprobante,sede,registrado_por,fecha_pago,nota,asesor_comision
+    numero_comprobante,sede,registrado_por,registrado_por_user_id,fecha_pago,
+    nota,asesor_comision,request_id
   ) values (
     extensions.gen_random_uuid()::text,p_cotizacion_id,p_monto,'PEN',p_metodo_pago,
-    p_tipo_comprobante,p_nro_doc,upper(trim(p_sede)),p_usuario,v_fecha,p_nota,p_asesor
+    p_tipo_comprobante,p_nro_doc,v_quote_sede,v_actor_name,v_actor,v_fecha,p_nota,
+    coalesce(v_cot.asesor,''),p_idempotency_key
   ) returning id into v_pago_id;
 
   v_venta_id:='V-'||to_char(now() at time zone 'America/Lima','YYYYMMDD-HH24MISS')||'-'||
@@ -639,7 +854,7 @@ begin
     v_tratamiento,
     case when v_rol='SALDO' then 'Saldo' when v_rol='UNICO' then 'Pago' else 'Abono' end||
       ' #'||v_cot.numero_cotizacion||' — '||v_tratamiento,
-    p_metodo_pago,p_monto,v_estado_pago,p_asesor,upper(trim(p_sede)),
+    p_metodo_pago,p_monto,v_estado_pago,coalesce(v_cot.asesor,''),v_quote_sede,
     'SERVICIO',v_cot.numero_limpio,'PEN',p_nro_doc,p_tipo_comprobante,
     p_cotizacion_id,v_cot.plan_id,now(),now()
   ) returning id into v_venta_row_id;
@@ -669,20 +884,20 @@ begin
       evidencia=public.aos_cartera_reconciliacion.evidencia||excluded.evidencia,
       source_active=true,updated_at=now();
 
-  if p_sesion_id is not null and p_sesion_id<>'' then
-    insert into public.aos_caja_log(
-      sesion_id,sede,accion,entidad_tipo,entidad_id,usuario,detalle,monto_despues
-    ) values (
-      p_sesion_id,upper(trim(p_sede)),'ABONO_COTIZACION','cotizacion',p_cotizacion_id,
-      p_usuario,v_tratamiento||' — '||v_rol||' #'||v_cot.numero_cotizacion||' S/'||p_monto,
-      p_monto
-    );
-  end if;
+  insert into public.aos_caja_log(
+    sesion_id,sede,accion,entidad_tipo,entidad_id,usuario,detalle,monto_despues
+  ) values (
+    p_sesion_id,v_quote_sede,'ABONO_COTIZACION','cotizacion',p_cotizacion_id,
+    v_actor_name,v_tratamiento||' — '||v_rol||' #'||v_cot.numero_cotizacion||' S/'||p_monto,
+    p_monto
+  );
 
   insert into public.aos_security_log(usuario,accion,detalles)
   select au.nombre,'COTIZACION_PAYMENT_V2',jsonb_build_object(
     'actor_id',v_actor,'cotizacion_id',p_cotizacion_id,'payment_id',v_pago_id,
-    'venta_row_id',v_venta_row_id,'amount',p_monto,'role',v_rol,'balance_after',v_nuevo_saldo
+    'venta_row_id',v_venta_row_id,'request_id',p_idempotency_key,
+    'amount',p_monto,'role',v_rol,'balance_after',v_nuevo_saldo,
+    'sede',v_quote_sede,'cash_session_id',p_sesion_id
   ) from public.aos_usuarios au where au.id=v_actor;
 
   return jsonb_build_object(
@@ -707,21 +922,20 @@ revoke all on function public.aos_cartera_sync_venta() from public,anon,authenti
 revoke all on function public.aos_cartera_sync_cotizacion() from public,anon,authenticated;
 revoke all on function public.aos_cartera_actor(text,text) from public,anon,authenticated;
 revoke all on function public.aos_cartera_gateway(text,text,text,integer,integer) from public;
-revoke all on function public.aos_cartera_reconcile(text,uuid,text,text,numeric,numeric,text,text,text) from public;
+revoke all on function public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text) from public;
+revoke all on function public.aos_caja_cotizaciones_gateway(text,text,text,text) from public;
 revoke all on function public.aos_abonar_cotizacion_v2(
-  text,text,numeric,text,text,text,text,text,text,text,text,text
+  text,uuid,text,numeric,text,text,text,text,text
 ) from public;
 
 grant execute on function public.aos_cartera_gateway(text,text,text,integer,integer)
   to anon,authenticated,service_role;
-grant execute on function public.aos_cartera_reconcile(text,uuid,text,text,numeric,numeric,text,text,text)
+grant execute on function public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text)
+  to anon,authenticated,service_role;
+grant execute on function public.aos_caja_cotizaciones_gateway(text,text,text,text)
   to anon,authenticated,service_role;
 grant execute on function public.aos_abonar_cotizacion_v2(
-  text,text,numeric,text,text,text,text,text,text,text,text,text
+  text,uuid,text,numeric,text,text,text,text,text
 ) to anon,authenticated,service_role;
-
-revoke all on function public.aos_sales_intelligence_claim_session(text,text,text,text) from public;
-grant execute on function public.aos_sales_intelligence_claim_session(text,text,text,text)
-  to anon,authenticated,service_role;
 
 commit;
