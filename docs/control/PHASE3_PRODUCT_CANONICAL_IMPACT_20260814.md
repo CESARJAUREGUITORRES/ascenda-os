@@ -3,7 +3,7 @@
 **Estado:** BUILD / PREPRODUCTION ONLY  
 **Fecha:** 2026-08-14  
 **Rama:** `feature/phase3-product-canonical-20260814`  
-**Base CI:** `infra/zero-cost-ci-v2` hasta que PR #97 cierre y se sincronice con `main`  
+**Base CI:** `main` CURRENT después del merge de PR #97 Zero-Cost CI V2 (`c8b71d2d10aa913b81044ba58e8d09674cbe7ab3`)  
 **Riesgo:** HIGH — identidad comercial de producto, importaciones de ventas, analítica e inventario.  
 **Autorización owner:** 2026-08-14 — “procede para llegar al 100%”, válida para completar el loop gobernado F3 una vez que los gates exigidos estén verdes; no habilita bypass de CI, seguridad o rollback.  
 
@@ -57,7 +57,8 @@ Nueva capa `aos_product_identity_v1`:
 - identidad canónica estable;
 - vínculo opcional al catálogo activo;
 - estado de ciclo de vida: `CATALOG`, `CURRENT_UNCATALOGED`, `LEGACY`, `REVIEW`;
-- no obliga a introducir productos históricos en el catálogo operativo actual.
+- no obliga a introducir productos históricos en el catálogo operativo actual;
+- si un SKU de catálogo enlaza a exactamente una identidad F3, los aliases automáticos se unifican a esa identidad F3; si un SKU enlaza a varias variantes F3, la arquitectura no las colapsa automáticamente.
 
 ### 2. Alias
 
@@ -131,11 +132,12 @@ Gates mínimos:
 - 0 conflictos alias→canónico;
 - split-payments no duplican unidades;
 - venta real post-corte `2340 / LIFTIN B` se resuelve por backfill a `LIFTING B 30GR`;
+- aliases de un catálogo one-to-one se unifican a la identidad F3 y no crean dos canónicos para el mismo producto;
 - nuevas ventas `LIFTIN B` se resuelven por trigger;
 - desconocidos quedan `REVIEW_REQUIRED` y aparecen en review queue;
 - `aos_ventas.descripcion` no cambia;
 - recovery preserva seguridad y ventas;
-- contrato dedicado actual: 33 assertions pgTAP.
+- contrato dedicado actual: 34 assertions pgTAP.
 
 ## Rollback / recovery
 
@@ -150,8 +152,8 @@ El rollback F3:
 
 No aplicar F3 a producción hasta que:
 
-1. PR #97 Zero-Cost CI V2 esté cerrado/sincronizado;
-2. el branch F3 esté sincronizado con `main` CURRENT;
+1. PR #97 Zero-Cost CI V2 esté fusionado en `main`;
+2. el branch F3 esté sincronizado/retargeteado con `main` CURRENT;
 3. CI F3 completo esté verde en un SHA exacto;
 4. preflight productivo read-only confirme ausencia de drift crítico;
 5. se prepare migración/recovery exactos;
