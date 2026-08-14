@@ -7,6 +7,7 @@ on:
     paths:
       - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
+      - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
       - 'app/public/kronia-core.js'
@@ -20,6 +21,7 @@ on:
     paths:
       - 'supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql'
       - 'supabase/migrations/20260814051600_kronia_k1_extension_claim.sql'
+      - 'supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql'
       - 'ci/kronia-k1/**'
       - 'app/server.js'
       - 'app/public/kronia-core.js'
@@ -95,12 +97,15 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051500_kronia_k1_identity_session_hardening.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051600_kronia_k1_extension_claim.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814051700_kronia_k1_integration_admin_gateway.sql
 
       - name: Negative authorization certificate
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1.sql | tee /tmp/kronia-k1-certificate.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1/test_k1_extended.sql | tee -a /tmp/kronia-k1-certificate.txt
           grep -q 'KRONIA_K1_NEGATIVE_AUTH_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
+          grep -q 'KRONIA_K1_EXTENDED_CERTIFICATE=PASS' /tmp/kronia-k1-certificate.txt
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
