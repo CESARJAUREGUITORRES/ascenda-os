@@ -1,5 +1,5 @@
 -- K1 compatibility bridge for the Chrome extension.
--- Requires a 2FA code that has already been verified/consumed by aos_verificar_2fa.
+-- Requires a 2FA code already verified/consumed by aos_verificar_2fa.
 -- No role, sede or identity claim is accepted from the browser.
 
 create or replace function public.aos_kronia_claim_verified_2fa(
@@ -16,7 +16,7 @@ as $$
 declare
   v_rr public.aos_rrhh%rowtype;
   v_u public.aos_usuarios%rowtype;
-  v_auth_id bigint;
+  v_auth_id uuid;
   v_raw_token text;
   v_digest text;
   v_expira timestamptz;
@@ -90,4 +90,4 @@ end;
 $$;
 
 revoke all on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text) from public;
-grant execute on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text) to anon, authenticated;
+grant execute on function public.aos_kronia_claim_verified_2fa(text,text,text,text,text) to anon,authenticated;
