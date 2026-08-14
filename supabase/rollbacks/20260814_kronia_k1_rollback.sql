@@ -1,10 +1,11 @@
 -- K1 security-preserving emergency rollback.
 --
 -- PURPOSE
--- Revert K1-dependent runtime behavior enough to recover the core web login
--- path while NEVER restoring the vulnerabilities K1 was created to remove.
--- Availability may degrade for KronIA/Team/Agents during rollback; identity,
--- credentials, session stores, secrets and authoritative audit remain closed.
+-- Revert K1-dependent runtime behavior while NEVER restoring the vulnerabilities
+-- K1 was created to remove. Availability may degrade for KronIA/Team/Agents;
+-- identity, credentials, auth/session primitives, secrets and authoritative audit
+-- remain closed. Emergency recovery must prefer safe degradation over reopening
+-- a browser-trust boundary.
 --
 -- PERMANENTLY PRESERVED SECURITY
 -- - bcrypt credentials remain in aos_auth_credentials only;
@@ -12,7 +13,7 @@
 -- - ADMIN role hierarchy + ADMIN 2FA identity invariant survive;
 -- - global 2FA=true invariant survives;
 -- - token store remains service-only and all K1 sessions are invalidated;
--- - legacy token issuer/verifier are NOT re-opened to browser roles;
+-- - login/2FA/token primitives are NOT re-opened to browser roles;
 -- - identity/config/integration-secret/audit browser writes remain denied;
 -- - raw business mutation RPCs remain denied to browser roles.
 
@@ -40,10 +41,14 @@ drop function if exists public.aos_kronia_tool(text,text,jsonb);
 drop function if exists public.aos_kronia_claim_verified_2fa(text,text,text,text,text);
 drop function if exists public.aos_kronia_claim_session(text,text,text,text,text,text);
 
--- 2) Core login compatibility. bcrypt-backed login_v2 and atomic 2FA remain the
--- only browser-visible auth primitives. Password-only legacy login stays closed.
-grant execute on function public.aos_login_v2(text,text) to anon,authenticated;
-grant execute on function public.aos_verificar_2fa(text,text) to anon,authenticated;
+-- 2) Authentication primitives remain server-only. login_v2 returns the OTP code
+-- in its JSON contract for trusted server-side delivery; exposing it directly to
+-- a browser would collapse the second factor. Rollback therefore does NOT grant
+-- anon/authenticated EXECUTE on login_v2 or aos_verificar_2fa.
+revoke all on function public.aos_login_v2(text,text) from public,anon,authenticated;
+revoke all on function public.aos_verificar_2fa(text,text) from public,anon,authenticated;
+grant execute on function public.aos_login_v2(text,text) to service_role;
+grant execute on function public.aos_verificar_2fa(text,text) to service_role;
 revoke all on function public.aos_login(text,text) from public,anon,authenticated;
 revoke all on function public.aos_cambiar_password(text,text,text) from public,anon,authenticated;
 
