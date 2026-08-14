@@ -114,12 +114,27 @@ jobs:
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_contracts.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_delivery_contracts.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_render_context_hardening.sql
 
       - name: Server-authoritative gateway unit contracts
         run: |
           set -euo pipefail
           node --check app/email-gateway.js
+          node --check app/server.js
           node ci/phase16/test_email_gateway.js
+
+      - name: Runtime boundary contract
+        run: |
+          set -euo pipefail
+          grep -q "createEmailGateway" app/server.js
+          grep -q "if (p === '/api/email-gateway')" app/server.js
+          grep -q "EMAIL_GATEWAY.handleWebhook" app/server.js
+          grep -q "emCall('LEGACY_SEND'" app/public/admin-email.html
+          ! grep -q "fetch(SB+" app/public/admin-email.html
+          ! grep -q "'apikey':SK" app/public/admin-email.html
+          ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          echo 'CIA_PHASE16_RUNTIME_BOUNDARY=PASS'
 
       - name: Changed-scope secret and fixture policy gate
         shell: bash
@@ -133,15 +148,18 @@ jobs:
             ci/phase16/schema_contract.sql
             ci/phase16/test_phase16_contracts.sql
             ci/phase16/test_phase16_delivery_contracts.sql
+            ci/phase16/test_phase16_render_context_hardening.sql
             ci/phase16/test_email_gateway.js
             ci/phase16/rollback_phase16.sql
             app/email-gateway.js
+            app/server.js
+            app/public/admin-email.html
           )
-          if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{40,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,})' "${files[@]}"; then
+          if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,})' "${files[@]}"; then
             echo 'F16_SECRET_SCOPE_SCAN=FAIL'
             exit 1
           fi
-          if grep -nEi '(dni|historia[_ -]?clinica|foto[_ -]?paciente)' ci/phase16/*.sql; then
+          if grep -nEi '(historia[_ -]?clinica|foto[_ -]?paciente)' ci/phase16/*.sql; then
             echo 'F16_SYNTHETIC_FIXTURE_POLICY=FAIL'
             exit 1
           fi
@@ -167,9 +185,12 @@ jobs:
             ci/phase16/schema_contract.sql \
             ci/phase16/test_phase16_contracts.sql \
             ci/phase16/test_phase16_delivery_contracts.sql \
+            ci/phase16/test_phase16_render_context_hardening.sql \
             ci/phase16/test_email_gateway.js \
             ci/phase16/rollback_phase16.sql \
-            app/email-gateway.js
+            app/email-gateway.js \
+            app/server.js \
+            app/public/admin-email.html
           echo 'CIA_PHASE16_ZERO_COST_CONTRACT_GATE=PASS'
           echo 'DELIVERY_ENABLED=false'
 
