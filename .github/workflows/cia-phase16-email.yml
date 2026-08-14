@@ -1,0 +1,152 @@
+name: ASCENDA CIA Phase 16 Email Contracts
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - main
+    paths:
+      - 'supabase/migrations/*cia_phase16_email*.sql'
+      - 'ci/phase16/**'
+      - 'app/server.js'
+      - 'app/public/admin-email.html'
+      - '.github/workflows/cia-phase16-email.yml'
+      - 'scripts/ci/**'
+  push:
+    branches:
+      - 'feature/cia-phase16-*'
+      - 'fix/cia-phase16-*'
+      - 'security/cia-phase16-*'
+    paths:
+      - 'supabase/migrations/*cia_phase16_email*.sql'
+      - 'ci/phase16/**'
+      - 'app/server.js'
+      - 'app/public/admin-email.html'
+      - '.github/workflows/cia-phase16-email.yml'
+      - 'scripts/ci/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cia-phase16-email-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: F16 synthetic Email contract / rollback
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    env:
+      BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enforce Zero-Cost CI V2 policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Self-hosted runner healthcheck
+        shell: bash
+        run: bash scripts/ci/runner-healthcheck.sh
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Toolchain versions
+        run: |
+          set -euo pipefail
+          supabase --version
+          psql --version
+          python3 --version
+          docker --version
+
+      - name: Start isolated Supabase PostgreSQL
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db start
+
+      - name: Create dedicated synthetic F16 database
+        run: |
+          set -euo pipefail
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_test with (force)"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_test"
+
+      - name: Build synthetic dependency contract
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
+
+      - name: Compile exact F16 migrations
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql
+
+      - name: Database lint gate
+        run: |
+          set -euo pipefail
+          supabase db lint --db-url "$F16_DB_URL" --schema public --level error
+
+      - name: Synthetic positive and negative contracts
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_contracts.sql
+
+      - name: Changed-scope secret and fixture policy gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql
+            supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql
+            ci/phase16/schema_contract.sql
+            ci/phase16/test_phase16_contracts.sql
+            ci/phase16/rollback_phase16.sql
+          )
+          if grep -nE '(re_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|service_role[^[:space:]]*[=:][^[:space:]]+)' "${files[@]}"; then
+            echo 'F16_SECRET_SCOPE_SCAN=FAIL'
+            exit 1
+          fi
+          if grep -nEi '(dni|historia[_ -]?clinica|foto[_ -]?paciente)' ci/phase16/*.sql; then
+            echo 'F16_SYNTHETIC_FIXTURE_POLICY=FAIL'
+            exit 1
+          fi
+          echo 'F16_SECRET_SCOPE_SCAN=PASS'
+          echo 'F16_SYNTHETIC_FIXTURE_POLICY=PASS'
+          echo 'PROVIDER_REAL_CALLS=0'
+
+      - name: Rollback and zero-residue proof
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16.sql | tee /tmp/f16_rollback.log
+          grep -q 'CIA_PHASE16_ROLLBACK=PASS' /tmp/f16_rollback.log
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'aos_cia_email_%'")" = "0"
+
+      - name: Evidence digest
+        run: |
+          set -euo pipefail
+          sha256sum \
+            supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql \
+            supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql \
+            ci/phase16/schema_contract.sql \
+            ci/phase16/test_phase16_contracts.sql \
+            ci/phase16/rollback_phase16.sql
+          echo 'CIA_PHASE16_ZERO_COST_CONTRACT_GATE=PASS'
+          echo 'DELIVERY_ENABLED=false'
+
+      - name: Drop synthetic F16 database
+        if: always()
+        run: |
+          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_test with (force)" || true
+
+      - name: Stop isolated Supabase PostgreSQL
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
