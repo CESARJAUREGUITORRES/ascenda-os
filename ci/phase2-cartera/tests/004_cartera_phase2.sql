@@ -1,6 +1,6 @@
 begin;
 
-select plan(86);
+select plan(87);
 
 select has_table('public','aos_cartera_reconciliacion','bridge exists');
 select is((select relrowsecurity from pg_class where oid='public.aos_cartera_reconciliacion'::regclass),true,'bridge has RLS');
@@ -63,6 +63,12 @@ select is(public.aos_cartera_reconcile(
   (select p.updated_at from phase2_case_versions p join public.aos_cartera_reconciliacion cr on cr.id=p.id join public.aos_ventas v on v.id=cr.venta_row_id where v.venta_id='V-ADV-2'),
   'SALDO_CONFIRMADO','CONFIRMADA',800,null,null,'ADELANTO','falta monto'
 )->>'error','CONFIRMED_BALANCE_REQUIRED','confirmed debt needs explicit total and balance');
+select is(public.aos_cartera_reconcile(
+  'phase2-owner-token-0000000000000000000001',
+  (select cr.id from public.aos_cartera_reconciliacion cr join public.aos_ventas v on v.id=cr.venta_row_id where v.venta_id='V-ADV-1'),
+  (select p.updated_at from phase2_case_versions p join public.aos_cartera_reconciliacion cr on cr.id=p.id join public.aos_ventas v on v.id=cr.venta_row_id where v.venta_id='V-ADV-1'),
+  'SALDO_CONFIRMADO','CONFIRMADA','NaN'::numeric,'NaN'::numeric,null,'ADELANTO','non finite'
+)->>'error','INVALID_AMOUNT','non-finite values cannot poison confirmed totals');
 
 select is(public.aos_cartera_reconcile(
   'phase2-single-site-token-00000000000000001',

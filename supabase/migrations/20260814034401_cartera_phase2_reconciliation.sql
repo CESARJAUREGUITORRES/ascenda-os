@@ -69,6 +69,33 @@ create unique index if not exists aos_cartera_cotizacion_source_uidx
 create index if not exists aos_cartera_estado_active_idx
   on public.aos_cartera_reconciliacion(estado_reconciliacion,source_active,updated_at desc);
 
+do $constraints$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.aos_cartera_reconciliacion'::regclass
+      and conname='aos_cartera_total_finite_chk'
+  ) then
+    alter table public.aos_cartera_reconciliacion
+      add constraint aos_cartera_total_finite_chk check (
+        total_compra_esperado is null
+        or lower(total_compra_esperado::text) not in ('nan','infinity','-infinity')
+      );
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.aos_cartera_reconciliacion'::regclass
+      and conname='aos_cartera_saldo_finite_chk'
+  ) then
+    alter table public.aos_cartera_reconciliacion
+      add constraint aos_cartera_saldo_finite_chk check (
+        saldo_confirmado is null
+        or lower(saldo_confirmado::text) not in ('nan','infinity','-infinity')
+      );
+  end if;
+end;
+$constraints$;
+
 alter table public.aos_cartera_reconciliacion enable row level security;
 revoke all on table public.aos_cartera_reconciliacion from public,anon,authenticated;
 grant all on table public.aos_cartera_reconciliacion to service_role;
@@ -491,6 +518,10 @@ begin
     return jsonb_build_object('ok',false,'error','CONFIRMED_BALANCE_REQUIRED');
   end if;
   if coalesce(p_total_esperado,0)<0 or coalesce(p_saldo_confirmado,0)<0 then
+    return jsonb_build_object('ok',false,'error','INVALID_AMOUNT');
+  end if;
+  if lower(coalesce(p_total_esperado::text,'')) in ('nan','infinity','-infinity')
+     or lower(coalesce(p_saldo_confirmado::text,'')) in ('nan','infinity','-infinity') then
     return jsonb_build_object('ok',false,'error','INVALID_AMOUNT');
   end if;
 

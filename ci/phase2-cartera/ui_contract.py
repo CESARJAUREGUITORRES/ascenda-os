@@ -28,6 +28,14 @@ assert re.search(r"p_idempotency_key\s*:", caja)
 assert "aos_caja_cotizaciones_gateway" in caja
 assert not re.search(r"rpc\(['\"]aos_abonar_cotizacion['\"]", caja)
 assert not re.search(r"sbGet\(['\"]aos_cotizaciones['\"]", caja)
+assert len(caja) > 150000
+for anchor in ('id="ov-venta"', 'function cargarCaja(', 'function buscarPaciente(q)', 'function finalizarGrabado()'):
+    assert anchor in caja
+assert 'onclick="selPaciente(' not in caja
+assert "row.addEventListener('click', function(){ selPaciente(p); })" in caja
+assert 'var abonoFailed = false' in caja
+assert 'delete VT._paymentKeys[cotId]' not in caja
+assert 'if (abonoFailed)' in caja
 
 assert "enable row level security" in migration.lower()
 assert "revoke all on table public.aos_cartera_reconciliacion" in migration.lower()
@@ -40,6 +48,7 @@ assert "request_hash" in migration
 assert "registrado_por_user_id" in migration
 assert "abierto_por_user_id" in migration
 assert "BALANCE_MUST_MATCH_QUOTE" in migration
+assert "aos_cartera_saldo_finite_chk" in migration
 assert "forbidden_sede" in migration.lower()
 assert "stale_case" in migration.lower()
 assert "'OVERPAYMENT'" in migration
