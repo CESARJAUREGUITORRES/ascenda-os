@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Auth primitives and extension compatibility claim must not be browser-callable.
+-- Auth primitives and compatibility claims must not be browser-callable.
 DO $$
 begin
   if has_function_privilege('anon','public.aos_login_v2(text,text)','EXECUTE') then
@@ -11,6 +11,28 @@ begin
   end if;
   if has_function_privilege('anon','public.aos_kronia_claim_verified_2fa(text,text,text,text,text)','EXECUTE') then
     raise exception 'K1-39 extension compatibility claim browser-callable';
+  end if;
+
+  if has_function_privilege('anon','public.aos_kronia_claim_session(text,text,text,text,text,text)','EXECUTE') then
+    raise exception 'K1-45 session claim browser-callable';
+  end if;
+  if has_function_privilege('authenticated','public.aos_kronia_claim_session(text,text,text,text,text,text)','EXECUTE') then
+    raise exception 'K1-46 session claim authenticated-browser-callable';
+  end if;
+  if has_function_privilege('anon','public.aos_kronia_verify_token(text)','EXECUTE') then
+    raise exception 'K1-47 token verifier browser-callable';
+  end if;
+  if has_function_privilege('anon','public.aos_kronia_revocar_token(text)','EXECUTE') then
+    raise exception 'K1-48 token revoker browser-callable';
+  end if;
+  if not has_function_privilege('service_role','public.aos_kronia_claim_session(text,text,text,text,text,text)','EXECUTE') then
+    raise exception 'K1-49 service role cannot issue sessions';
+  end if;
+  if not has_function_privilege('service_role','public.aos_kronia_verify_token(text)','EXECUTE') then
+    raise exception 'K1-50 service role cannot verify sessions';
+  end if;
+  if not has_function_privilege('anon','public.aos_kronia_tool(text,text,jsonb)','EXECUTE') then
+    raise exception 'K1-51 token-bound business gateway unavailable to browser';
   end if;
 end $$;
 
