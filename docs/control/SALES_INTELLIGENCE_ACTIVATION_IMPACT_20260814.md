@@ -1,8 +1,8 @@
 # Impact Report — Sales Intelligence V2 admin-only activation
 
-**Fecha:** 2026-08-14  
-**Clasificación:** CRITICAL  
-**Aprobación:** autorización expresa del propietario en el chat operativo  
+**Fecha:** 2026-08-14
+**Clasificación:** CRITICAL
+**Aprobación:** autorización expresa del propietario en el chat operativo
 **Alcance:** activación general únicamente para administradores con 2FA y permiso explícito
 
 ## Snapshot previo
