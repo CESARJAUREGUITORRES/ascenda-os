@@ -14,7 +14,7 @@ fi
 
 : "${GITHUB_PATH:?GITHUB_PATH is required on GitHub Actions}"
 
-roots=()
+roots=("/home/ascenda-runner/actions-runner/actions-runner")
 if [[ -n "${RUNNER_TEMP:-}" ]]; then
   roots+=("$(dirname "$(dirname "$RUNNER_TEMP")")")
 fi
@@ -25,19 +25,22 @@ fi
 node_bin=""
 for root in "${roots[@]}"; do
   for candidate in \
+    "$root"/externals/node24/bin/node \
+    "$root"/externals/node20/bin/node \
     "$root"/externals/node*/bin/node \
-    "$root"/externals/node*/bin/node.exe \
     "$root"/bin/node; do
-    if [[ -x "$candidate" ]]; then
+    if [[ -e "$candidate" && -x "$candidate" ]]; then
       node_bin="$candidate"
+      break 2
     fi
   done
 done
 
 if [[ -z "$node_bin" && -n "${RUNNER_TOOL_CACHE:-}" ]]; then
   for candidate in "$RUNNER_TOOL_CACHE"/node/*/*/bin/node; do
-    if [[ -x "$candidate" ]]; then
+    if [[ -e "$candidate" && -x "$candidate" ]]; then
       node_bin="$candidate"
+      break
     fi
   done
 fi
