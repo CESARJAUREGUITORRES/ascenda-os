@@ -8,12 +8,26 @@ do $roles$
 begin
   if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
+  if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if;
 end
 $roles$;
 
 create table public.aos_usuarios (
   id uuid primary key,
-  nombre text not null
+  nombre text not null,
+  rol text not null default 'ADMIN',
+  activo boolean not null default true,
+  paneles_acceso text[] not null default '{}'::text[]
+);
+
+create table public.aos_app_sessions_v3 (
+  token_hash text primary key,
+  user_id uuid not null references public.aos_usuarios(id),
+  assurance_level text not null default 'PASSWORD',
+  expires_at timestamptz not null,
+  last_used_at timestamptz,
+  revoked boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 create table public.aos_audiencia_activaciones (
@@ -102,9 +116,21 @@ as $function$
   )
 $function$;
 
-revoke all on table public.aos_usuarios from anon, authenticated;
-revoke all on table public.aos_audiencia_activaciones from anon, authenticated;
-revoke all on table public.aos_audiencia_activacion_config from anon, authenticated;
-revoke all on table public.aos_audiencia_activacion_estado from anon, authenticated;
-revoke all on table public.aos_cia_activation_members_fixture from anon, authenticated;
-revoke all on table public.aos_cia_audience_source_v1_1 from anon, authenticated;
+insert into public.aos_usuarios(id,nombre,rol,activo,paneles_acceso)
+values
+  ('00000000-0000-0000-0000-000000000001','Synthetic Admin','ADMIN',true,array['admin-email']),
+  ('00000000-0000-0000-0000-000000000002','Synthetic Operator','ASESOR',true,array['calls','agenda']);
+
+insert into public.aos_app_sessions_v3(token_hash,user_id,assurance_level,expires_at,revoked)
+values
+  (encode(extensions.digest('synthetic-app-token-valid-000000000000000001','sha256'),'hex'),'00000000-0000-0000-0000-000000000002','PASSWORD',now()+interval '8 hours',false),
+  (encode(extensions.digest('synthetic-app-token-revoked-00000000000001','sha256'),'hex'),'00000000-0000-0000-0000-000000000002','PASSWORD',now()+interval '8 hours',true),
+  (encode(extensions.digest('synthetic-app-token-expired-00000000000001','sha256'),'hex'),'00000000-0000-0000-0000-000000000002','PASSWORD',now()-interval '1 minute',false);
+
+revoke all on table public.aos_usuarios from anon,authenticated;
+revoke all on table public.aos_app_sessions_v3 from anon,authenticated;
+revoke all on table public.aos_audiencia_activaciones from anon,authenticated;
+revoke all on table public.aos_audiencia_activacion_config from anon,authenticated;
+revoke all on table public.aos_audiencia_activacion_estado from anon,authenticated;
+revoke all on table public.aos_cia_activation_members_fixture from anon,authenticated;
+revoke all on table public.aos_cia_audience_source_v1_1 from anon,authenticated;
