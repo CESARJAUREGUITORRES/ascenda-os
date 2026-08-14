@@ -2,29 +2,30 @@
 
 **Estado:** CURRENT / RECOVERY ENTRYPOINT  
 **Actualizado:** 2026-08-14 (America/Lima)  
-**Fases cerradas:** F0–F14 `100_COMPLETE`  
-**Fase actual:** F15 — KronIA + Multiagent Orchestration `READY`  
-**Último merge funcional certificado:** F14 `ce88f7f0f5d4cc50fd6e726b0f44459db9daa9ca`  
-**CI F14:** GitHub Actions run #1067 no ejecutó steps por billing/spending del runner; `CI_INFRA_EXCEPTION_DOCUMENTED` + validación equivalente + post-merge smoke PASS.  
-**Checkpoint de control/documentación actual:** consultar `aos_memory.cia_v3_control_checkpoint` + `staging` HEAD live.
+**Fases cerradas:** F0–F15 `100_COMPLETE`  
+**Fase actual:** F16 — Email Integration `READY`  
+**Último merge funcional certificado:** F15 `4836d1ad6b25bc57d0f278f99b72db8b8919054d`  
+**CI F15:** GitHub Actions #1085 no ejecutó steps por billing/spending del runner; `CI_INFRA_EXCEPTION_DOCUMENTED` + validación equivalente + post-merge smoke PASS.  
+**Checkpoint de control/documentación:** consultar `aos_memory.cia_v3_control_checkpoint` + `staging` HEAD live.
 
 ---
 
 # 1. MISIÓN
 
-`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Requests/Approval → Intelligence Shadow → KronIA → Channels → Attribution`
+`Identity → Facts → Segmentation → Audience → Snapshot/Activation → Context/Availability → Assignment → Advisor Control → Call Center V3 → Advisor Work → Requests/Approval → Intelligence Shadow → KronIA/Multiagent → Email → Channels → Attribution`
 
 Misión global ASCENDA:
 `CONTROLAR → ESTABILIZAR → MIGRAR A PROPIEDAD CORPORATIVA → PRODUCTIZAR COMO SaaS`
 
 Principios no negociables:
 - Audience ≠ Eligibility ≠ Activation ≠ Assignment ≠ Work View ≠ Request ≠ Approval ≠ Execution;
-- Recommendation ≠ authority;
+- Recommendation ≠ Authority;
+- Agent interpretation ≠ Authority;
 - ownership = `aos_usuarios.id` UUID;
-- `assignment_id` es referencia estable de work-item;
 - UNKNOWN/freshness incompleta falla cerrado;
 - SQL/RPC determinístico calcula; IA interpreta/recomienda;
-- IA no aprueba, ejecuta ni asigna ownership automáticamente;
+- IA no autoasigna, autoaprueba ni autoejecuta;
+- no arbitrary SQL tool;
 - no big-bang;
 - no romper producción para completar una fase.
 
@@ -32,20 +33,20 @@ Principios no negociables:
 
 # 2. RECOVERY OBLIGATORIO
 
-Antes de cualquier cambio F15:
+Antes de cualquier cambio F16:
 1. `AGENTS.md`;
 2. `docs/control/ASCENDA_CONTROL_MASTER.md`;
 3. este Bootstrap;
 4. `CIA_EXECUTION_PLAYBOOK_V1.md`;
 5. `CIA_MASTER_ALIGNMENT_CURRENT.md`;
 6. `ROADMAP_STATUS.md`;
-7. `PHASE_14_VALIDATION_REPORT.md`;
-8. `aos_memory` claves `cia_v3_*`, `cia_phase14_*`, `cia_phase15_status`;
+7. `PHASE_15_VALIDATION_REPORT.md`;
+8. `aos_memory` claves `cia_v3_*`, `cia_phase15_*`, `cia_phase16_status`;
 9. Notion CIA Control Maestro + Fases + Hallazgos;
 10. verificar `staging` HEAD live;
 11. verificar Supabase live/migrations;
-12. ejecutar `aos_cia_intelligence_f15_readiness_v1()`;
-13. recién entonces iniciar F15.
+12. ejecutar `aos_cia_kronia_f16_readiness_v1()`;
+13. recién entonces iniciar F16.
 
 GitHub + Supabase/runtime prevalecen sobre Notion.
 
@@ -70,8 +71,8 @@ GitHub + Supabase/runtime prevalecen sobre Notion.
 | 12 | Advisor Work Views | `100_COMPLETE` |
 | 13 | Requests & Approval Engine | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` |
 | 14 | Commercial Intelligence Shadow | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` |
-| 15 | KronIA + Multiagent Orchestration | `READY` |
-| 16 | Email Integration | `NOT_STARTED` |
+| 15 | KronIA + Multiagent Orchestration | `100_COMPLETE · CI_INFRA_EXCEPTION_DOCUMENTED` |
+| 16 | Email Integration | `READY` |
 | 17 | SMS / WhatsApp / Future Channels | `NOT_STARTED` |
 | 18 | Attribution, Learning & Hardening | `NOT_STARTED` |
 
@@ -79,115 +80,116 @@ GitHub + Supabase/runtime prevalecen sobre Notion.
 
 # 4. CONTRATOS CERTIFICADOS CLAVE
 
-## F9 Assignment
-- ownership por advisor UUID;
-- lease lifecycle `RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED|RELEASED|EXPIRED`;
-- concurrency/idempotency/audit.
+## F9 — Assignment
+Ownership por advisor UUID; lifecycle `RESERVED → ASSIGNED → IN_PROGRESS → COMPLETED|RELEASED|EXPIRED`.
 
-## F11 Call Center V3
-- routing paralelo/canary;
-- global kill switch default OFF;
-- V2 fallback obligatorio;
-- output `aos_cia_call_routing_f12_readiness_v1()`.
+## F13 — Requests & Approval
+`Request ≠ Approval ≠ Execution`; EXECUTE revalida ownership/state/expiry. Policy Gate:
+- KronIA/F14 `RELEASE_ASSIGNMENT` proposal → `REQUIRE_APPROVAL`;
+- AUTO_ASSIGN/TRANSFER/AUTO_APPROVE/RAW_SQL → `BLOCK`;
+- `auto_execute=false`.
 
-## F12 Advisor Work
-- work universe deriva solo de F9 ownership;
-- pin/snooze/priority nunca cambian owner;
-- requestable solo own ASSIGNED/IN_PROGRESS no expirado;
-- output `aos_cia_advisor_work_f13_readiness_v1()`.
+## F14 — Commercial Intelligence Shadow
+451 recomendaciones SHADOW explicables con evidence/confidence/sample-size/freshness/affinity. `aos_cia_intelligence_f15_readiness_v1()` = `READY_SHADOW_ACTIVE`, true. Recommendation nunca es autoridad.
 
-## F13 Requests & Approval
-- `aos_cia_requests` + append-only events;
-- Request ≠ Approval ≠ Execution;
-- EXECUTE revalida ownership/state/expiry;
-- F14/KronIA `RELEASE_ASSIGNMENT` proposal → REQUIRE_APPROVAL;
-- AUTO_ASSIGN/TRANSFER/AUTO_APPROVE/RAW_SQL → BLOCK;
-- `auto_execute=false`;
-- output `aos_cia_request_f14_readiness_v1()`.
+## F15 — KronIA + Multiagent Orchestration
+Persistencia/control:
+- `aos_cia_kronia_tool_registry`;
+- `aos_cia_kronia_agent_registry`;
+- `aos_cia_kronia_agent_runs`;
+- `aos_cia_kronia_tool_calls`;
+- `aos_cia_kronia_proposals`;
+- `aos_cia_kronia_proposal_events`.
 
-## F14 Commercial Intelligence Shadow
-Persistencia derivada:
-- `aos_cia_intelligence_shadow_runs`;
-- `aos_cia_intelligence_recommendations`;
-- `aos_cia_intelligence_events`.
+Tools certificadas:
+- `intelligence.get`;
+- `intelligence.explain`;
+- `policy.release.probe`;
+- `policy.auto_assign.probe`;
+- `proposal.release`;
+- `f16.email.context.preview`.
 
-Motor:
-- `aos_cia_intelligence_shadow_refresh_v1(...)`;
-- deterministic Opportunity types;
-- evidence + confidence + sample_size + freshness + explainability;
-- observed commercial affinity;
-- identity conflicts excluded;
-- segment cache refresh + exact coverage gate;
-- state siempre SHADOW;
-- no autoactions.
+Agentes gobernados iniciales:
+- KronIA;
+- Dante;
+- Nico;
+- Valentina;
+- León;
+- Sofía.
 
-Read/governance:
-- `aos_cia_intelligence_admin_gateway_v1(...)`;
-- `aos_cia_intelligence_advisor_list_v1(...)` limitado a ownership F9 actual;
-- Policy Gate F13 intacto;
-- `aos_cia_intelligence_f15_readiness_v1()`.
+Gobierno:
+- execution mode siempre SHADOW;
+- tool allowlist por agente;
+- provenance + Agent Run/Tool Call audit;
+- proposal RELEASE exige F9 ownership requestable + F13 Policy Gate;
+- no autoapprove/autoexecute/autoassign;
+- `f16.email.context.preview` no envía correo y no usa features clínicas;
+- internal F15 RPCs privadas; ADMIN gateway con sesión CIA server-side.
 
-Live certified run:
-- 451 recommendations;
-- 291 HIGH confidence / 156 MEDIUM / 4 LOW;
-- 111 FRESH / 45 AGING / 295 STALE / 0 UNKNOWN;
-- latest-run top100 ~66.9 ms;
-- F15 readiness ~54.1 ms;
-- batch ~4.21 s vs rejected ~44.4 s live mega-join.
+Legacy compatibility hardening:
+- `aos_execute_agent_query` ya no acepta arbitrary caller SQL;
+- exact active task-config allowlist `F15_CONFIG_ALLOWLIST_V1`;
+- SELECT-only + 100 row cap + 3s timeout;
+- anon/auth no pueden mutar `aos_agente_tareas`.
 
-Output F15:
-- `READY_SHADOW_ACTIVE`;
-- `ready_for_f15=true`;
-- non_shadow_state=0;
-- auto_execute=0;
-- missing_generated_event=0;
-- direct browser table access=false.
+Live F15 smoke:
+- 5 governed tool calls SUCCEEDED;
+- 1 proposal correctamente BLOCKED por no existir F9 ownership;
+- assignments/requests/routing = 0;
+- proposals = 0;
+- auto_execute = 0;
+- F16 readiness ≈318.946 ms.
 
-Functional integration F14:
-- PR #98 MERGED;
-- staging merge `ce88f7f0f5d4cc50fd6e726b0f44459db9daa9ca`;
-- security/performance/static/replayability/post-merge smoke PASS;
-- GitHub Actions run #1067 blocked before executing steps by account billing/spending; validation equivalent documented, never called SUCCESS.
+Output F16:
+- `aos_cia_kronia_f16_readiness_v1()`;
+- `status=READY_GOVERNED_ORCHESTRATION`;
+- `ready_for_f16=true`.
+
+Functional integration F15:
+- PR #100 MERGED;
+- staging merge `4836d1ad6b25bc57d0f278f99b72db8b8919054d`;
+- GitHub Actions #1085: 0 steps por billing/spending;
+- equivalent validation + post-merge smoke PASS.
+
+**Scope boundary:** CIA F15 cerrado no equivale a cerrar KronIA V2 K0–K8. El programa hermano conserva su propio hardening/cutover.
 
 ---
 
-# 5. FASE 15 — MISIÓN EXACTA
+# 5. FASE 16 — MISIÓN EXACTA
 
-Construir **KronIA + Multiagent Orchestration** sobre los contracts estructurados F13/F14 sin entregar autonomía de escritura arbitraria.
+Integrar **Email** como canal consumidor de la arquitectura central, sin crear un Audience Engine paralelo ni permitir que una recomendación/IA envíe automáticamente por sí sola.
 
 ## Input autoritativo
-- F14 Shadow Recommendation objects;
-- deterministic evidence/confidence/sample-size/freshness;
-- observed commercial affinity;
-- F9 advisor/assignment context;
-- F13 request lifecycle + Policy Gate;
-- `aos_cia_intelligence_f15_readiness_v1()`.
+- Audience/Activation central ya certificado;
+- F8 channel context/availability cuando aplique;
+- F14 Recommendation SHADOW;
+- F15 governed context/tool provenance;
+- `aos_cia_kronia_f16_readiness_v1()`.
 
 ## Debe construir
-- Tool Registry estructurado y versionado;
-- Policy Gate como mandatory preflight de toda acción sensible;
-- agente/orquestador que consulta facts y recommendations sin SQL arbitrario;
-- separación `OBSERVE → INTERPRET → PROPOSE → REQUEST → HUMAN DECISION → EXECUTE`;
-- tool inputs/outputs tipados;
-- provenance/evidence por respuesta;
-- agent run/audit trace;
-- rate/timeout/error boundaries;
-- roles y scopes por agente;
-- shadow-first rollout;
-- output contract hacia F16 Email Integration.
+- contrato Email sobre Audience/Activation central;
+- preview/eligibility/freshness antes de envío;
+- template/campaign identity versionada;
+- idempotency/deduplication;
+- send request/queue separada de delivery outcome;
+- provider adapter/fallback sin acoplar Audience a proveedor;
+- consent/suppression/bounce/unsubscribe cuando exista dato autoritativo;
+- audit end-to-end activation → email request → provider/delivery outcome;
+- roles/ADMIN control surface;
+- gradual rollout/canary;
+- output hacia F17 canales futuros.
 
 ## No debe
-- autoaprobar;
-- autoejecutar ownership;
-- autoasignar;
-- escribir SQL arbitrario;
-- leer datos clínicos sensibles como features comerciales ordinarias;
-- saltarse F13 Policy Gate;
-- usar una recommendation F14 como verdad o permiso de acción;
-- eliminar fallback/compatibilidad existente.
+- enviar desde F15 preview;
+- crear una base de audiencia paralela;
+- inferir consentimiento inexistente como TRUE;
+- usar historia clínica/fotos/diagnósticos/notas como features comerciales ordinarias;
+- duplicar envíos por retry;
+- autoejecutar acciones sensibles por score IA;
+- romper el email legacy antes de tener adapter/fallback probado.
 
-Output esperado F15 → F16:
-**KronIA/Multiagent gobernado por tools + Policy Gate + audit, capaz de consultar/interpretar/proponer sin autonomía de escritura, listo para consumir Email como canal central.**
+Output esperado F16 → F17:
+**Email como primer channel adapter gobernado sobre Audience/Activation central, con trazabilidad y delivery semantics reutilizables por SMS/WhatsApp/futuros canales.**
 
 ---
 
@@ -196,56 +198,50 @@ Output esperado F15 → F16:
 - recovery + handshake antes de escribir;
 - Impact Report si HIGH/CRITICAL;
 - QA mutante rollback-only;
-- benchmarks mutantes rollback-only;
 - zero operational residue;
 - migrations Git ↔ live 1:1;
-- ACL reales post-DDL;
+- ACL/RLS reales post-DDL;
 - performance por cardinalidad realista;
 - freshness explícita;
+- typed tools y provenance;
+- Policy Gate para acciones sensibles;
 - una sola fuente autoritativa de audit events por dominio;
-- verificar source real cargado por shell;
-- sincronizar staging concurrente;
-- output handshake antes de `100_COMPLETE`;
+- verificar runtime real cargado por shell/server;
+- staging smoke antes de cierre;
 - GitHub/staging → `aos_memory` → Notion.
 
 ---
 
-# 7. LECCIONES VIGENTES F0–F14
+# 7. LECCIONES VIGENTES F0–F15
 
-1. Mega-views lentas → resolver por dominios/snapshots, no timeout.
+1. Mega-views lentas → dominios/snapshots, no timeout.
 2. Índices CIA pueden romper write-path → probar paths operativos.
 3. ACL defaults inesperados → auditar grants reales.
 4. Auth heredada no se reutiliza sin auditoría.
-5. Migration filenames deben reconciliar con ledger live.
-6. Cache sin coverage/freshness → UNKNOWN fail-closed.
-7. SECURITY DEFINER + search_path restringido → schema-qualify extensiones.
-8. Audit events → productor autoritativo por dominio.
-9. “Hoy” operacional = `America/Lima`.
-10. Assignment → probar lifecycle completo.
-11. Evitar N+1; snapshot/list + live drill-down.
-12. Verificar runtime cargado realmente por shell.
-13. Benchmark mutante → rollback-only.
-14. F8 gobierna nuevo ASSIGNED; F9 ownership gobierna IN_PROGRESS.
-15. Work View nunca muta ownership.
-16. Request/Approval/Execution son estados separados.
-17. Retry terminal idempotente antes de revalidar recurso ya mutado por ejecución previa.
-18. CI bloqueado antes de checkout no es SUCCESS ni fallo de producto; documentar excepción.
-19. F14 confirmó que una join live facts+segments podía costar ~44.4 s; el patrón correcto es refresh/coverage + SHADOW persistence + interactive read-model.
-20. Freshness stale se etiqueta; nunca se maquilla como fresh ni se usa como autoridad.
-21. Recommendation es evidencia para interpretación, no permiso para actuar.
+5. Migrations deben reconciliar 1:1 con ledger live.
+6. UNKNOWN/freshness incompleta → fail-closed.
+7. SECURITY DEFINER requiere hardening real, no confianza en nombre de RPC.
+8. Una Recommendation es evidencia, no autoridad.
+9. Un Agent interpreta/proporciona propuestas, no adquiere autoridad.
+10. Tool Registry debe ser allowlist tipada; RAW_SQL no es una tool de negocio.
+11. Un compatibility bridge puede endurecer legacy sin big-bang: exact config allowlist permitió neutralizar arbitrary SQL sin romper cron activo.
+12. Proposal ≠ Request ≠ Human Decision ≠ Execute.
+13. Audit/provenance deben persistir incluso cuando una acción es BLOCKED.
+14. F16 channel context preview ≠ permiso de envío.
+15. CI bloqueado antes de checkout se documenta como infraestructura, nunca SUCCESS.
 
 ---
 
 # 8. SIGUIENTE ACCIÓN
 
-**F15 — KronIA + Multiagent Orchestration.**
+**F16 — Email Integration.**
 
 Primer loop:
 1. recovery completo;
-2. `aos_cia_intelligence_f15_readiness_v1()` = true;
-3. baseline KronIA/agent/tool objects existentes;
-4. Impact Report CRITICAL antes de ampliar agent write surface;
-5. definir Tool Registry + Agent Run/Audit contracts;
-6. Policy Gate F13 obligatorio para proposed actions;
-7. iniciar en SHADOW/READ-only donde sea posible;
-8. no habilitar autonomía general durante F15.
+2. `aos_cia_kronia_f16_readiness_v1()` = true;
+3. inventariar Email legacy real: tablas/RPCs/server/provider/cron/templates/sends/alerts;
+4. identificar qué flujo envía hoy y qué source carga el runtime;
+5. Impact Report antes de tocar delivery;
+6. diseñar adapter sobre Audience/Activation central;
+7. comenzar shadow/read-only + preview;
+8. mantener fallback legacy hasta canary certificado.
