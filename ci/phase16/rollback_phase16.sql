@@ -1,6 +1,7 @@
 -- CIA F16 Zero-Cost rollback/recovery proof.
 -- Drops only additive F16 objects created by the F16 migrations under test.
 
+drop function if exists public.aos_cia_verify_app_session_v1(text);
 drop function if exists public.aos_cia_email_admin_gateway_v2(text,text,jsonb);
 drop function if exists public.aos_cia_email_release_mark_v1(text,boolean,text);
 drop function if exists public.aos_cia_email_ingest_provider_event_v2(text,text,text,timestamptz,jsonb);
