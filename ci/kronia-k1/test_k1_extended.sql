@@ -45,6 +45,44 @@ begin
   end if;
 end $$;
 
+-- Internal logs/conversations are no longer browser data stores.
+DO $$
+declare
+  t text;
+begin
+  foreach t in array array['aos_kronia_conversaciones','aos_agente_logs','aos_agente_acciones','aos_log_auditoria','aos_security_log'] loop
+    if has_table_privilege('anon','public.'||t,'SELECT')
+       or has_table_privilege('anon','public.'||t,'INSERT')
+       or has_table_privilege('anon','public.'||t,'UPDATE')
+       or has_table_privilege('anon','public.'||t,'DELETE') then
+      raise exception 'K1-54 anon still has privilege on %',t;
+    end if;
+    if has_table_privilege('authenticated','public.'||t,'SELECT')
+       or has_table_privilege('authenticated','public.'||t,'INSERT')
+       or has_table_privilege('authenticated','public.'||t,'UPDATE')
+       or has_table_privilege('authenticated','public.'||t,'DELETE') then
+      raise exception 'K1-55 authenticated still has privilege on %',t;
+    end if;
+    if not has_table_privilege('service_role','public.'||t,'SELECT') then
+      raise exception 'K1-56 service_role cannot read %',t;
+    end if;
+  end loop;
+
+  if has_function_privilege('anon','public.aos_security_dashboard()','EXECUTE')
+     or has_function_privilege('authenticated','public.aos_security_dashboard()','EXECUTE') then
+    raise exception 'K1-57 security dashboard directly browser-callable';
+  end if;
+  if not has_function_privilege('service_role','public.aos_security_dashboard()','EXECUTE') then
+    raise exception 'K1-58 service role cannot execute security dashboard';
+  end if;
+  if exists(select 1 from pg_policies where schemaname='public' and tablename='aos_kronia_conversaciones' and policyname='aos_kronia_conv_all') then
+    raise exception 'K1-59 permissive conversation policy survived';
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='aos_kronia_conversaciones' and policyname='kronia_conv_service_only') then
+    raise exception 'K1-60 service-only conversation policy missing';
+  end if;
+end $$;
+
 -- Narrow Integration admin gateway: invalid token denied, advisor denied, ADMIN accepted.
 insert into public.aos_rrhh(codigo_asesor,nombre,puesto,sede,usuario,password_hash,estado)
 values
