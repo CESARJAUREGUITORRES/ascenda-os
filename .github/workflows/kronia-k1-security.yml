@@ -14,6 +14,7 @@ on:
       - 'app/k1_runtime_base.py'
       - 'app/k1_materialize_runtime.py'
       - 'app/railway.json'
+      - 'app/nixpacks.toml'
       - 'app/server.js'
       - 'app/public/app.html'
       - 'app/public/kronia-core.js'
@@ -35,6 +36,7 @@ on:
       - 'app/k1_runtime_base.py'
       - 'app/k1_materialize_runtime.py'
       - 'app/railway.json'
+      - 'app/nixpacks.toml'
       - 'app/server.js'
       - 'app/public/app.html'
       - 'app/public/kronia-core.js'
@@ -101,8 +103,10 @@ jobs:
       - name: Railway deployment contract
         run: |
           set -euo pipefail
-          grep -q '"buildCommand": "python3 k1_materialize_runtime.py && npm install"' app/railway.json
+          grep -q '"buildCommand": "python3 k1_materialize_runtime.py"' app/railway.json
           grep -q '"startCommand": "node server.js"' app/railway.json
+          grep -q 'providers = \["\.\.\.", "python"\]' app/nixpacks.toml
+          grep -q 'cmds = \["npm install"\]' app/nixpacks.toml
           python3 - <<'PY'
           import json
           from pathlib import Path
