@@ -1,40 +1,45 @@
 # ASCENDA OS — FASE 8 VALIDATION REPORT
 
 **Fase:** Channel Context & Availability  
-**Estado:** VALIDATING  
+**Estado:** `100_COMPLETE`  
 **Fecha:** 2026-08-13  
-**Baseline staging:** `6a422bfffcaaef610820633b50b6d2bf6c8e6429`
+**Baseline de entrada:** `6a422bfffcaaef610820633b50b6d2bf6c8e6429`  
+**Merge funcional staging:** `6f1fdf5668ad067da58d9b1df37060f0ced4d429`  
+**Functional PR:** #72  
+**Ascenda CI:** #553 SUCCESS
 
-## Resultado ejecutivo
+## Resultado
 
-Fase 8 implementa el contrato:
+Fase 8 queda certificada con el contrato:
 
 `Audience Total → Eligible for Context → Available Now`
 
-sin crear Assignment, sin ejecutar canales y sin modificar Call Center.
+Fase 9 debe consumir exclusivamente `aos_cia_activation_available_keys_v1(activation_id)` y no reinterpretar por su cuenta elegibilidad/disponibilidad.
 
-El handoff de Fase 9 queda definido por `aos_cia_activation_available_keys_v1(activation_id)`; UNKNOWN nunca entra en ese set.
+UNKNOWN nunca es asignable.
 
-## Continuidad Fase 7 → Fase 8
+## Conexión Fase 7 → Fase 8
 
-Phase 8 consume:
+Phase 8 consume correctamente:
 - Activation identity/config/state de Fase 7;
 - BATCH desde snapshot inmutable;
-- DYNAMIC desde la versión de audiencia fijada;
-- Facts/segments/email actuales.
+- DYNAMIC desde la versión fijada;
+- facts, segmentation y email current-state.
 
-Durante el primer QA BATCH real se detectó una deuda de Fase 7: `pgcrypto` está en schema `extensions`, pero snapshot seal/create invocaban `digest()` bajo `search_path=public`.
+Durante el primer QA BATCH se detectó y corrigió una deuda real de Fase 7: `pgcrypto` está en schema `extensions`, mientras snapshot create/seal usaban `digest()` con `search_path=public`.
 
-Se corrigió mediante migration canónica:
+Fix certificado:
 - `20260814032421_cia_phase7_snapshot_pgcrypto_fix_v1.sql`
+- `extensions.digest(...)` explícito en snapshot create + seal guard.
 
-Solo se calificó `extensions.digest(...)`; no se modificó auth, Call Center ni semántica de snapshot.
+Después del fix:
+- BATCH snapshot real sella correctamente;
+- DYNAMIC resolver usa `filter_dsl->'root'` igual que Fase 7;
+- paridad BATCH/DYNAMIC aprobada.
 
-Después del fix, BATCH y DYNAMIC pasaron paridad completa.
+## Policy registry / binding
 
-## Persistencia / políticas
-
-Nuevos objetos:
+Objetos:
 - `aos_cia_context_policies`
 - `aos_audiencia_activacion_context`
 
@@ -48,18 +53,16 @@ Policies V1:
 - AUTOMATION_GENERAL
 - OTHER_GENERAL
 
-Policy y binding son inmutables. Binding valida channel de activation contra channel de policy.
+Policy y binding son inmutables y versionados. Binding valida compatibilidad exacta entre channel de Activation y channel de Policy.
 
 ## Semántica
 
-Estados por contacto:
-- eligibility: ELIGIBLE / INELIGIBLE / UNKNOWN
-- availability: AVAILABLE / UNAVAILABLE / UNKNOWN
-- `is_assignable=true` solo con activation ACTIVE + ELIGIBLE + AVAILABLE.
+Per-contact:
+- eligibility: `ELIGIBLE | INELIGIBLE | UNKNOWN`
+- availability: `AVAILABLE | UNAVAILABLE | UNKNOWN`
+- `is_assignable=true` solo con Activation ACTIVE + ELIGIBLE + AVAILABLE.
 
-UNKNOWN nunca se convierte en AVAILABLE.
-
-Reason taxonomy incluye:
+Razones determinísticas incluyen:
 - PHONE_INVALID
 - EMAIL_INVALID
 - EMAIL_IDENTITY_UNKNOWN
@@ -73,126 +76,110 @@ Reason taxonomy incluye:
 - LEGACY_WORK_IN_PROGRESS
 - CHANNEL_HISTORY_NOT_INTEGRATED
 
-Warnings:
+Warning V1:
 - EMAIL_BOUNCE_HISTORY
 
-## QA real con rollback — BATCH + DYNAMIC
+## QA real rollback-only
 
-Preset usado: `LEADS_UNWORKED_7D`.
-Conteo live durante el QA: 116.
+Preset: `LEADS_UNWORKED_7D`, total live del momento = 116.
 
-CALL_GENERAL DYNAMIC:
+### CALL_GENERAL — DYNAMIC
 - total 116
 - eligible 111
 - ineligible 5
-- available_now 103
-- assignable_now 103
+- available 103
+- assignable 103
 - available_keys 103
 
-CALL_GENERAL BATCH:
-- snapshot member_count 116
+### CALL_GENERAL — BATCH
+- snapshot members 116
 - total 116
 - eligible 111
 - ineligible 5
-- available_now 103
-- assignable_now 103
+- available 103
+- assignable 103
 - available_keys 103
 
 Asserts:
 - DYNAMIC total = resolver live: PASS
-- BATCH total = snapshot = resolver al congelar: PASS
-- eligibility partitions = total: PASS
-- available_now = Phase 9 available_keys: PASS
+- BATCH total = snapshot membership: PASS
+- eligibility partition = total: PASS
+- `available_now = available_keys`: PASS
 
-## CALL_PROVINCE
-
-Sobre los mismos 116 contactos:
+### CALL_PROVINCE
+Mismos 116 contactos:
 - eligible 5
 - ineligible 111
-- available_now 5
+- available 5
 - available_keys 5
 
-PASS: PROVINCIA es una ruta contextual específica; no una exclusión universal.
+PASS: `PROVINCIA` es routing contextual, no exclusión universal.
 
-## EMAIL
-
-Sobre los mismos 116 contactos durante QA:
+### EMAIL
 - eligible 15
 - ineligible 101
-- available_now 13
-- unavailable_now 2
-- EMAIL_SENT_TODAY: 2
-- EMAIL_BOUNCE_HISTORY: 3 warnings
+- available 13
+- unavailable 2
+- EMAIL_SENT_TODAY 2
+- EMAIL_BOUNCE_HISTORY 3 warnings
 
-Email validity de Phase 8 fue alineado exactamente con Profile Facts:
-- Phase 8 valid: 1,579
-- Profile Facts `email_valid=true`: 1,579
+Email validity quedó 1:1 con Fact Registry:
+- Phase 8 = 1,579 válidos
+- Profile Facts = 1,579 válidos
 
-Historical bounce sigue siendo warning y no causal blocker V1.
-
-## SMS / WhatsApp
-
-SMS QA:
+### SMS
 - eligible 116
-- availability_unknown 116
-- assignable_now 0
-- reason CHANNEL_HISTORY_NOT_INTEGRATED = 116
+- availability UNKNOWN 116
+- assignable 0
+- CHANNEL_HISTORY_NOT_INTEGRATED 116
 
-PASS: falta de outbound history nunca se convierte en AVAILABLE.
+PASS: ausencia de channel history nunca se convierte en AVAILABLE.
 
 ## Freshness
 
-Al iniciar Phase 8 el universo había crecido de 11,473 a 11,520, mientras Segment/Email caches seguían en 11,473.
+Universe creció durante desarrollo de 11,473 a 11,520. Antes de evaluar se detectó stale cache y se refrescó controladamente.
 
-Se ejecutó refresh controlado y el estado final pre-PR es:
-- profile universe: 11,520
+Estado certificado:
+- universe: 11,520
 - segment cache: 11,520
 - email cache: 11,520
 
-Gateway Phase 8 expone `stale_dependencies` y UI refresca dependencias antes de evaluar si detecta drift.
+Gateway/UI exponen `stale_dependencies` y pueden ejecutar refresh controlado.
 
-## Seguridad / RLS
+## Seguridad
 
-RLS activo en:
-- `aos_cia_context_policies`
-- `aos_audiencia_activacion_context`
-
-Policies permisivas: 0.
+RLS activo en policy registry y activation context binding; 0 policies permisivas.
 
 Rol anon:
-- policies visibles: 0
-- bindings visibles: 0
-- INSERT directo: rechazado por RLS.
+- policies visibles 0
+- bindings visibles 0
+- INSERT directo rechazado por RLS.
 
 Rol authenticated:
-- policies visibles: 0
-- bindings visibles: 0.
+- policies visibles 0
+- bindings visibles 0.
 
-Gateway con token inválido → UNAUTHORIZED.
-Bind mutator con token inválido → UNAUTHORIZED.
-
-Inmutabilidad QA:
-- policy UPDATE rechazado
-- policy DELETE rechazado
-- binding UPDATE rechazado
-- binding DELETE rechazado
-- policy/channel mismatch rechazado
+- gateway bad token → UNAUTHORIZED
+- bind bad token → UNAUTHORIZED
+- policy UPDATE/DELETE rechazados
+- binding UPDATE/DELETE rechazados
+- channel mismatch rechazado
 
 ## Performance
 
-Audiencia representativa `LEADS_UNWORKED` durante benchmark: 1,277 contactos.
+Audiencia representativa `LEADS_UNWORKED`: 1,277 contactos durante benchmark.
 
-Warm measurements:
-- context summary: ~445 ms
-- preview 50: ~436 ms
-- explain: ~434 ms
-- available_keys: ~437 ms
+Warm:
+- summary ~445 ms
+- preview 50 ~436 ms
+- explain ~434 ms
+- available_keys ~437 ms
 
-PASS contra targets Phase 8.
+PASS.
 
-No se agregaron nuevos índices ni triggers sobre tablas operativas.
+No se agregaron índices ni triggers en operational write paths.
 
-## Call Center compatibility
+## Compatibilidad
 
 No se modificaron:
 - `aos_siguiente_lead`
@@ -200,62 +187,50 @@ No se modificaron:
 - `aos_cola_config`
 - `aos_leads_en_curso` write path
 - `calls.js`
+- Agenda/Ventas/CRM writes
+- Email legacy FK/tables.
 
-Smoke pre-PR:
-- 349 llamadas guardadas durante el día Lima
-- última escritura observada posterior al despliegue Phase 8.
+Call Center post-merge:
+- 349 llamadas guardadas en el día Lima al último smoke.
 
-Reconciliación cita futura:
-- CIA/Lima: 62 contactos
-- legacy view/server CURRENT_DATE: 61
-- diferencia: 1 cita PENDIENTE del día Lima que el servidor UTC ya consideraba día anterior.
+Email legacy:
+- `aos_email_audiencias` 0
+- `aos_email_campanias` 0
+- FK legacy intacta.
 
-Phase 8 conserva la interpretación Lima y bloquea conservadoramente ese contacto. Call Center legacy no fue modificado en esta fase.
+Cita futura reconciliation:
+- CIA/Lima 62
+- legacy CURRENT_DATE server 61
+- diferencia = 1 cita PENDIENTE del día Lima que UTC ya había desplazado al día anterior.
 
-## Email legacy compatibility
-
-- `aos_email_audiencias`: 0
-- `aos_email_campanias`: 0
-- FK `aos_email_campanias.audiencia_id → aos_email_audiencias.id` intacta.
-
-## QA residue
-
-Final pre-PR:
-- QA audiences: 0
-- QA activation configs: 0
-- context bindings: 0
-- recent QA snapshots: 0
-
-PASS.
+Phase 8 conserva timezone Lima y bloquea conservadoramente ese contacto; Call Center legacy no fue modificado.
 
 ## Frontend
 
-Phase 8 se integra como módulo separado:
+Nuevos:
 - `admin-activaciones-context.js`
 - `admin-activaciones-context.css`
 - tab Contexto & disponibilidad en `admin-activaciones.html`.
 
-Capacidades:
-- freshness visible y refresh controlado
-- policy compatible por channel
-- binding explícito/inmutable
-- Total / Elegibles / Disponibles / Unknown
-- reason counts y warning counts
+Funciones:
+- freshness + refresh
+- selección de policy compatible
+- binding explícito
+- Total / Eligible / Available / Unknown
+- reasons/warnings
 - preview contextual
-- explain por contacto
-- indicador de handoff Phase 9
+- explain per-contact
+- Phase 9 handoff count.
 
-Audit del controller:
-- 0 alert()
-- 0 confirm()
-- 0 prompt()
-- 0 direct `/rest/v1/aos_*` table reads
-
-Distribución/Assignment continúa fuera de Phase 8.
+Frontend audit:
+- 0 `alert()`
+- 0 `confirm()`
+- 0 `prompt()`
+- 0 direct `/rest/v1/aos_*` reads.
 
 ## Replayability
 
-Git filenames fueron alineados con las versiones live reales de Supabase:
+Git filenames = Supabase live migration versions:
 - `20260814031448_cia_phase8_context_schema_v1.sql`
 - `20260814031521_cia_phase8_context_guards_v1.sql`
 - `20260814031701_cia_phase8_context_engine_v1.sql`
@@ -265,33 +240,28 @@ Git filenames fueron alineados con las versiones live reales de Supabase:
 - `20260814032421_cia_phase7_snapshot_pgcrypto_fix_v1.sql`
 - `20260814032849_cia_phase8_email_validity_fix_v1.sql`
 
-## Phase 9 contract
+## No-residue
 
-Authoritative assignment input:
-`aos_cia_activation_available_keys_v1(activation_id)`
-
-Fase 9 must not independently reinterpret eligibility/availability.
-It may distribute only this set and still must not change Call Center until Phase 11 feature-flagged integration.
+Post-QA/post-merge:
+- QA audiences 0
+- QA activations 0
+- QA snapshots 0
+- context bindings 0 (no real activation bound yet)
+- 8 system policies persist intentionally.
 
 ## Gates
 
-- P8-G01 baseline / Phase 7 continuity: PASS
-- P8-G02 Impact Report pre-DDL: PASS
-- P8-G03 policy registry / versioning: PASS
-- P8-G04 activation context binding: PASS
-- P8-G05 deterministic eligibility: PASS
-- P8-G06 deterministic availability: PASS
-- P8-G07 reason taxonomy / explain: PASS
-- P8-G08 BATCH membership parity: PASS
-- P8-G09 DYNAMIC membership parity: PASS
-- P8-G10 UNKNOWN semantics: PASS
-- P8-G11 security / RLS / gateway: PASS
-- P8-G12 frontend / responsive contract: PASS
-- P8-G13 performance: PASS
-- P8-G14 Call Center / Email compatibility: PASS
-- P8-G15 QA / no residue: PASS
-- P8-G16 replayability + CI + PR: PENDING
-- P8-G17 staging post-merge: PENDING
-- P8-G18 roadmap + memory checkpoint: PENDING
+P8-G01…P8-G18: **PASS**.
 
-Phase 8 remains VALIDATING until G16–G18 close.
+- functional PR #72 MERGED
+- CI #553 SUCCESS
+- staging merge `6f1fdf5668ad067da58d9b1df37060f0ced4d429`
+- post-merge smoke PASS
+- closure docs + `aos_memory` complete this certification.
+
+## Phase 9 handoff
+
+**Authoritative input:**
+`aos_cia_activation_available_keys_v1(activation_id)`
+
+Fase 9 may allocate only those keys. It must preserve Assignment as a separate object and still must not alter Call Center routing until Phase 11 feature-flagged integration.
