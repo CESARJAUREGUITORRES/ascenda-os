@@ -5,6 +5,12 @@ on:
     branches:
       - main
       - staging
+    paths:
+      - 'app/**'
+      - 'supabase/**'
+      - 'ci/**'
+      - 'scripts/ci/**'
+      - '.github/workflows/**'
   push:
     branches:
       - main
@@ -15,6 +21,13 @@ on:
       - 'data/**'
       - 'chore/**'
       - 'audit/**'
+      - 'infra/**'
+    paths:
+      - 'app/**'
+      - 'supabase/**'
+      - 'ci/**'
+      - 'scripts/ci/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -27,12 +40,16 @@ concurrency:
 jobs:
   baseline:
     name: Runtime baseline
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Self-hosted runner healthcheck
+        shell: bash
+        run: bash scripts/ci/runner-healthcheck.sh
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -106,4 +123,5 @@ jobs:
         run: |
           echo "Ascenda production runtime: node app/server.js"
           echo "Frontend source of truth: app/public/"
+          echo "CI compute: self-hosted ascenda-zero-cost-v2"
           echo "Vite build is intentionally not used as a blocking production check."
