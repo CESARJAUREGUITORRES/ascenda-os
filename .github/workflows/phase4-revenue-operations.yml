@@ -14,6 +14,8 @@ on:
       - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/phase4-revenue-operations.yml'
+      - '.github/workflows/ascenda-ci.yml'
+      - 'scripts/ci/enforce-zero-cost-policy.py'
   push:
     branches: ['feature/**','fix/**','security/**','infra/**']
     paths:
@@ -27,6 +29,8 @@ on:
       - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/phase4-revenue-operations.yml'
+      - '.github/workflows/ascenda-ci.yml'
+      - 'scripts/ci/enforce-zero-cost-policy.py'
   workflow_dispatch:
 
 permissions:
@@ -37,11 +41,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  revenue-operations-contract:
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 30
-    env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:59322/postgres
+  fast-contracts:
+    name: FAST runtime/UI contracts
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,23 +53,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Runtime syntax contracts
+        shell: powershell
+        run: |
+          node --check app/public/f4-revenue-ops.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/f4-kronia-revenue-bridge.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/phase2-service-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-f4.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/phase4-revenue/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  revenue-operations-contract:
+    name: DB/security contracts
+    needs: fast-contracts
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59322/postgres
+    steps:
+      - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
 
-      - name: Enforce Zero-Cost runner policy
+      - name: Enforce Zero-Cost DB runner policy
         run: |
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
-
-      - name: Runtime syntax contracts
-        run: |
-          set -euo pipefail
-          node --check app/public/f4-revenue-ops.js
-          node --check app/public/f4-kronia-revenue-bridge.js
-          node --check app/public/phase2-service-worker.js
-          node --check app/server-f4.js
-          python3 ci/phase4-revenue/ui_contract.py
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
@@ -82,7 +106,18 @@ jobs:
         run: |
           set -euo pipefail
           supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-phase4-revenue' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
           supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59322 -U postgres >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'F4 isolated Postgres did not become ready on 59322' >&2
+          docker ps -a --filter 'name=ascenda-phase4-revenue' || true
+          exit 1
 
       - name: Build synthetic prerequisite schema
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/schema_contract.sql
