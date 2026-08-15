@@ -16,7 +16,7 @@ function enviarEmailConfirmacionCita(d) {
     fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
   } catch(e) {}
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
     body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
   }).then(function(r) { return r.json(); }).then(function(res) {
     if (res && (res.ok || res.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
@@ -550,7 +550,7 @@ function agGuardarEstado(){
           var pac=pacs&&pacs[0];
           if(pac&&pac.Email){
             fetch('https://ascenda-os-production.up.railway.app/api/send-template',{
-              method:'POST',headers:{'Content-Type':'application/json'},
+              method:'POST',headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
               body:JSON.stringify({
                 to:pac.Email,
                 template:'no_asistencia',
