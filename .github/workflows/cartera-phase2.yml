@@ -41,23 +41,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Resolve system Python
-        shell: powershell
-        run: |
-          if (Get-Command python -ErrorAction SilentlyContinue) {
-            python --version
-            exit 0
-          }
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
-            New-Item -ItemType Directory -Force -Path $shim | Out-Null
-            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
-            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            py -3 --version
-            exit 0
-          }
-          throw 'Python runtime missing on ASCENDA FAST runner'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Classify change scope
         id: scope
@@ -78,12 +64,12 @@ jobs:
           "db_required=$($db.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host "Cartera DB required: $db"
 
-      - name: Validate UI contract
+      - name: Validate Node parity UI contract
         shell: powershell
         run: |
-          python -c "from pathlib import Path; p=Path('app/public/caja.html'); p.read_text(encoding='utf-8'); assert p.stat().st_size > 150000"
+          node --check ci/phase2-cartera/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python ci/phase2-cartera/ui_contract.py
+          node ci/phase2-cartera/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   isolated-contract:
