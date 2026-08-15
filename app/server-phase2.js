@@ -9,7 +9,7 @@ const { spawn } = require('child_process');
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10);
 const INTERNAL_PORT = parseInt(
-  process.env.ASCENDA_PHASE2_INTERNAL_PORT || String(EXTERNAL_PORT === 4187 ? 4188 : 4187),
+  process.env.ASCENDA_PHASE2_INTERNAL_PORT || String(EXTERNAL_PORT + 1),
   10
 );
 const SB_URL = process.env.SUPABASE_URL || 'https://ituyqwstonmhnfshnaqz.supabase.co';
