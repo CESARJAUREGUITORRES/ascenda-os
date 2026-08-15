@@ -3,7 +3,7 @@ const fs=require('fs');
 const html=fs.readFileSync('app/public/admin-whatsapp.html','utf8');
 const required=[
   'aos_wa_inbox_v1','aos_wa_conversation_v1','aos_wa_mark_inbox_read_v1','aos_wa_close_conversation_v1',
-  '/api/wa/send','X-AOS-App-Token','idempotency_key','WA_CANARY','admin-chats',
+  '/api/wa/send','X-AOS-App-Token','idempotency_key','admin-chats',
   'setInterval(loadInbox,4000)','setInterval(function(){loadConversation(false)},3000)',
   '72h candidata activa','24h servicio activa','Sin conversaciones'
 ];
