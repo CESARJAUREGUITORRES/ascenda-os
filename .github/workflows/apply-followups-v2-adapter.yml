@@ -19,20 +19,22 @@ jobs:
         with:
           node-version: 20
       - name: Apply exact patch
-        shell: pwsh
+        shell: cmd
         run: node scripts/apply_followups_v2_adapter.mjs
       - name: Syntax check
-        shell: pwsh
+        shell: cmd
         run: node --check app/public/calls.js
       - name: Commit patched file when changed
-        shell: pwsh
+        shell: cmd
         run: |
-          if (git status --porcelain app/public/calls.js) {
+          git status --porcelain app/public/calls.js > patch_status.txt
+          for /f %%i in (patch_status.txt) do set CHANGED=1
+          if defined CHANGED (
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add app/public/calls.js
             git commit -m "fix(call-center): preserve followup origin in adapter"
             git push origin HEAD:fix/call-center-followups-v2-adapter
-          } else {
-            Write-Host "No patch changes needed"
-          }
+          ) else (
+            echo No patch changes needed
+          )
