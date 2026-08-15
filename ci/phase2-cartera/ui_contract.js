@@ -5,6 +5,8 @@ function ok(condition, message){ if(!condition) throw new Error(message); }
 const app = read('app/public/app.html');
 const cartera = read('app/public/admin-cartera.html');
 const caja = read('app/public/caja.html');
+const sw = read('app/public/phase2-service-worker.js');
+const authHotfix = read('supabase/migrations/20260815191500_f4_cartera_gateway_v2_auth_chain_hotfix.sql');
 const migration = read('supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql');
 const cleanup = read('supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql');
 const rollback = read('supabase/rollbacks/20260814034401_cartera_phase2_reconciliation.rollback.sql');
@@ -15,6 +17,10 @@ ok(/['"]ViewAdminCartera['"]\s*:\s*['"]\/admin-cartera\.html['"]/.test(app), 'ad
 ok(/viewId\s*===\s*['"]admin-cartera['"]/.test(app), 'admin-cartera view activation missing');
 for(const marker of ['aos_cartera_gateway','aos_cartera_reconcile','p_expected_updated_at:current.updatedAt','aos_app_token','RECORDATORIOS BLOQUEADOS','Adelantos ≠ deuda']) ok(cartera.includes(marker), `missing Cartera marker: ${marker}`);
 ok(!cartera.includes('aos_si_token'), 'Cartera must not depend on the Sales Intelligence token scope');
+ok(!sw.includes("var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'}"), 'service worker must not reconstruct Cartera read RPC');
+ok(!sw.includes('CARTERA[rm[1]]'), 'service worker Cartera interception must remain absent');
+ok(authHotfix.includes('select public.aos_cartera_gateway_v2('), 'legacy Cartera read name must alias Auth V3 V2 in DB');
+ok(authHotfix.includes("v_actor:=public.aos_f4_actor(p_token,'admin-cartera')"), 'V2 must enforce Auth V3 admin-cartera gate');
 ok(caja.includes("rpc('aos_abonar_cotizacion_v2'"), 'secure quote payment RPC missing');
 ok(/p_token\s*:\s*financeToken/.test(caja), 'finance token missing from quote payment');
 ok(/p_idempotency_key\s*:/.test(caja), 'idempotency key missing');
