@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import sys
 
-# Exact-SHA certification trigger only; no runtime semantics changed.
+# Exact-SHA certification retrigger: prior run validated runtime/scope but lost only the push race.
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PATCH = ROOT / "scripts/ci/phase16_patch_runtime.py"
 
