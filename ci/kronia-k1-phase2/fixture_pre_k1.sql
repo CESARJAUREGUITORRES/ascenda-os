@@ -73,25 +73,27 @@ create table if not exists public.aos_log_auditoria (
 );
 
 -- Legacy raw RPCs are implementation dependencies that K1 must revoke from the browser.
-create or replace function public.aos_editar_venta(bigint,jsonb,text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_agregar_nota_paciente(text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_buscar_cita(text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_buscar_paciente(text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_buscar_venta(text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_editar_cita(bigint,jsonb,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_editar_paciente(text,jsonb,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_explorar(text,text,jsonb) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_marcar_estado_cita(bigint,text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+-- Parameter names/defaults and result types mirror production so CREATE OR REPLACE
+-- is compatible even when Phase 2 already materialized one of these routines.
+create or replace function public.aos_editar_venta(p_venta_id bigint,p_campos jsonb,p_editado_por text,p_rol text default 'asesor',p_origen text default 'manual') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_agregar_nota_paciente(p_numero_paciente text,p_nota text,p_usuario text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_buscar_cita(p_filtro text,p_usuario text,p_rol text default 'asesor') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_buscar_paciente(p_filtro text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_buscar_venta(p_filtro text,p_usuario text,p_rol text default 'asesor') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_editar_cita(p_cita_id bigint,p_campos jsonb,p_usuario text,p_rol text default 'asesor') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_editar_paciente(p_paciente_id text,p_campos jsonb,p_usuario text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_explorar(p_modulo text,p_accion text,p_params jsonb default '{}'::jsonb) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_marcar_estado_cita(p_cita_id bigint,p_nuevo_estado text,p_usuario text,p_rol text default 'asesor') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_reprogramar_seguimiento(p_seg_id text,p_nueva_fecha text,p_nueva_hora text,p_usuario text,p_rol text default 'asesor') returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_obtener_insights_sofia() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_stats_agenda() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_stats_leads() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_stats_llamadas() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_stats_pacientes() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_limpiar_tokens_expirados() returns integer language sql security definer set search_path='' as $$select 0$$;
-create or replace function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) returns text language sql security definer set search_path='' as $$select 'synthetic-token'::text$$;
-create or replace function public.aos_kronia_verify_token(text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
-create or replace function public.aos_kronia_revocar_token(text) returns boolean language sql security definer set search_path='' as $$select true$$;
+create or replace function public.aos_kronia_limpiar_tokens_expirados() returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true,'deleted',0)$$;
+create or replace function public.aos_kronia_emitir_token(p_usuario text,p_id_asesor text default null,p_rol text default 'ASESOR',p_sede text default null,p_email text default null,p_device_info text default null,p_ip_origen text default null) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true,'token','synthetic-token')$$;
+create or replace function public.aos_kronia_verify_token(p_token text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
+create or replace function public.aos_kronia_revocar_token(p_token text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 
 grant execute on function public.aos_editar_venta(bigint,jsonb,text,text,text) to anon,authenticated,service_role;
 grant execute on function public.aos_kronia_agregar_nota_paciente(text,text,text) to anon,authenticated,service_role;
