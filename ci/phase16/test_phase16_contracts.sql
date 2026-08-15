@@ -1,7 +1,8 @@
 -- CIA F16 synthetic contract tests. Zero PII/PHI and zero provider calls.
 
 insert into public.aos_usuarios(id,nombre) values
-('00000000-0000-0000-0000-000000000001','Synthetic Admin');
+('00000000-0000-0000-0000-000000000001','Synthetic Admin')
+on conflict (id) do update set nombre=excluded.nombre;
 
 insert into public.aos_audiencia_activaciones(id,audiencia_id,audiencia_version_id) values
 ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001'),
