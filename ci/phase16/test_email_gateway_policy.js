@@ -6,7 +6,6 @@ const path = require('path')
 const EventEmitter = require('events')
 const gatewayLib = require('../../app/email-gateway')
 
-// F16 exact-head certification trigger after CURRENT main sync; no functional test semantics changed.
 function mockRequest(body, headers) {
   var req = new EventEmitter()
   req.method = 'POST'
@@ -94,9 +93,13 @@ async function run() {
   assert.strictEqual(providerCalls, 1, 'transactional email should call provider exactly once')
 
   var server = fs.readFileSync(path.join(__dirname, '../../app/server.js'), 'utf8')
+  var gatewaySource = fs.readFileSync(path.join(__dirname, '../../app/email-gateway.js'), 'utf8')
   assert.ok(server.includes("EMAIL_GATEWAY.verifyApp(templateToken)"), 'send-template must verify current app session')
   assert.ok(server.includes('LEGACY_2FA_RETIRED'), 'legacy public 2FA provider route must be retired')
   assert.ok(server.includes('F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED'), 'agent marketing bypass must be closed')
+  assert.ok(gatewaySource.includes("process.env.RESEND_API_KEY || ''"), 'Resend API key must come from environment')
+  assert.ok(gatewaySource.includes("process.env.RESEND_WEBHOOK_SECRET || ''"), 'Resend webhook secret must come from environment')
+  assert.strictEqual(/['\"]re_[A-Za-z0-9_-]{20,}['\"]/.test(gatewaySource), false, 'provider API key must not be hardcoded in gateway source')
   var sendTemplateStart = server.indexOf("if (p === '/api/send-template' && req.method === 'POST')")
   assert.ok(sendTemplateStart >= 0)
   var sendTemplateWindow = server.slice(sendTemplateStart, sendTemplateStart + 700)
@@ -106,6 +109,7 @@ async function run() {
   console.log('AUTH_V3_TRANSACTIONAL_EMAIL=PASS')
   console.log('UNGOVERNED_MARKETING_PROVIDER_CALLS=0')
   console.log('LEGACY_2FA_PUBLIC_PROVIDER_PATH=RETIRED')
+  console.log('PROVIDER_SECRETS_ENV_ONLY=PASS')
 }
 
 run().catch(function(err) {
