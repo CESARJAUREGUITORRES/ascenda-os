@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(22);
 
 select ok(to_regclass('public.aos_wa_messages_v1') is not null,'messages table exists');
 select ok(to_regclass('public.aos_wa_events_v1') is not null,'events table exists');
@@ -20,6 +20,10 @@ select ok((select relrowsecurity from pg_class where oid='public.aos_meta_config
 select ok((select relforcerowsecurity from pg_class where oid='public.aos_meta_config'::regclass),'Meta config FORCE RLS enabled');
 select ok(not has_table_privilege('anon','public.aos_meta_config','SELECT'),'anon cannot read Meta credentials');
 select ok(not has_table_privilege('authenticated','public.aos_meta_config','UPDATE'),'authenticated cannot mutate Meta credentials');
+select ok(to_regclass('public.aos_wa_outbound_requests_v1') is not null,'outbound idempotency ledger exists');
+select ok((select relforcerowsecurity from pg_class where oid='public.aos_wa_outbound_requests_v1'::regclass),'outbound ledger FORCE RLS enabled');
+select ok(not has_table_privilege('anon','public.aos_wa_outbound_requests_v1','SELECT'),'anon cannot inspect outbound reservations');
+select ok(has_table_privilege('service_role','public.aos_wa_outbound_requests_v1','INSERT'),'service role can reserve outbound idempotency key');
 
 select * from finish();
 rollback;
