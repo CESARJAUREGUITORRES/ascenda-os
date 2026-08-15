@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cartera-phase2-${{ github.ref }}
+  group: cartera-phase2-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
