@@ -1,0 +1,148 @@
+name: ASCENDA WA-1 Secure WhatsApp Gateway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-f4.js'
+      - 'app/wa-gateway.js'
+      - 'supabase/migrations/*wa1_secure_gateway*'
+      - 'supabase/rollbacks/*wa1_secure_gateway*'
+      - 'ci/wa1-secure-gateway/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
+      - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
+      - 'ci/phase4-revenue/ui_contract.py'
+  push:
+    branches: ['security/**']
+    paths:
+      - 'app/server-f4.js'
+      - 'app/wa-gateway.js'
+      - 'supabase/migrations/*wa1_secure_gateway*'
+      - 'supabase/rollbacks/*wa1_secure_gateway*'
+      - 'ci/wa1-secure-gateway/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
+      - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
+      - 'ci/phase4-revenue/ui_contract.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa1-secure-gateway-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: WA-1 Zero-Cost security certification
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59622/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Runtime syntax and regression tests
+        run: |
+          set -euo pipefail
+          node --check app/wa-gateway.js
+          node --check app/server-f4.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+
+      - name: Security source contracts
+        run: |
+          set -euo pipefail
+          grep -q "x-hub-signature-256" app/server-f4.js
+          grep -q "WHATSAPP_APP_SECRET" app/server-f4.js
+          grep -q "SUPABASE_SERVICE_ROLE_KEY" app/server-f4.js
+          grep -q "p_required_panel:'admin-chats'" app/server-f4.js
+          grep -q "aos_wa_outbound_requests_v1" app/server-f4.js
+          grep -q "delete childEnv.SUPABASE_SERVICE_ROLE_KEY" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_APP_SECRET" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_ACCESS_TOKEN" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_VERIFY_TOKEN" app/server-f4.js
+          grep -q "e.definite===true" app/server-f4.js
+          grep -q "ambiguous_pending" app/server-f4.js
+          grep -q "retry_safe:false" app/server-f4.js
+          ! grep -Eq "WHATSAPP_(APP_SECRET|ACCESS_TOKEN|VERIFY_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-f4.js
+          ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-f4.js app/wa-gateway.js
+
+      - name: Cross-workstream F4 compatibility contract
+        run: |
+          set -euo pipefail
+          python3 ci/phase4-revenue/ui_contract.py
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa1-secure-gateway"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59621/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59622/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59620/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa1-secure-gateway' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59622 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-1 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa1-secure-gateway/schema_contract.sql
+
+      - name: Apply exact WA-1 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP authorization contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa1-secure-gateway/tests/001_wa1_security.sql | tee /tmp/wa1-pgtap.txt
+          grep -q '1..25' /tmp/wa1-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/wa1-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/wa1-pgtap.txt; then exit 1; fi
+
+      - name: Recovery remains fail-closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815160000_wa1_secure_gateway_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_messages_v1','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_wa_messages_v1','UPDATE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_outbound_requests_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_whatsapp_mensajes','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_webhook_log','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_meta_config','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_meta_config','UPDATE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_messages_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_outbound_requests_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_webhook_log'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_meta_config'::regclass")" = "t"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
