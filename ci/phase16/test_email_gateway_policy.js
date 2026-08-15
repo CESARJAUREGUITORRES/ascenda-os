@@ -116,3 +116,5 @@ run().catch(function(err) {
   console.error('CIA_PHASE16_GATEWAY_POLICY=FAIL', err && err.message ? err.message : err)
   process.exit(1)
 })
+
+// Exact-head certification retrigger only; no runtime behavior change.
