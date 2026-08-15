@@ -1,0 +1,31 @@
+name: ASCENDA WA-4 Model Readiness Probe
+
+on:
+  push:
+    branches: ['probe/wa4-model-readiness-20260815']
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Probe WA-4 production model readiness
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = Invoke-RestMethod -Uri 'https://ascenda-os-production.up.railway.app/api/wa4/health' -Method Get -TimeoutSec 20
+          if (-not $r.ok) { throw 'WA4_HEALTH_NOT_OK' }
+          if ($r.auto_send -ne $false) { throw 'WA4_AUTO_SEND_MUST_BE_FALSE' }
+          if (-not $r.health.configured) { throw ('WA4_PROVIDER_NOT_CONFIGURED: ' + $r.health.error) }
+          if (-not $r.health.active.fast) { throw 'WA4_FAST_MODEL_NOT_READY' }
+          if (-not $r.health.active.reasoning) { throw 'WA4_REASONING_MODEL_NOT_READY' }
+          if (-not $r.health.active.safety) { throw 'WA4_SAFETY_MODEL_NOT_READY' }
+          if (-not $r.health.copilot_ready) { throw 'WA4_COPILOT_NOT_READY' }
+          Write-Host 'WA4_MODEL_READINESS=PASS'
+          Write-Host ('FAST=' + $r.health.models.fast)
+          Write-Host ('REASONING=' + $r.health.models.reasoning)
+          Write-Host ('SAFETY=' + $r.health.models.safety)
+          Write-Host 'AUTO_SEND=false'
