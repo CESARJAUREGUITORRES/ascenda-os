@@ -17,6 +17,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
+      - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/cartera-phase2-hardening.yml'
   push:
@@ -35,6 +36,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
+      - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/cartera-phase2-hardening.yml'
   workflow_dispatch:
@@ -186,6 +188,7 @@ jobs:
           provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
           identity=Path('supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql').read_text(encoding='utf-8')
           proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
+          f4proxy=Path('app/server-f4.js').read_text(encoding='utf-8') if Path('app/server-f4.js').exists() else ''
           railway=Path('app/railway.json').read_text(encoding='utf-8')
           recovery=Path('supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql').read_text(encoding='utf-8')
           assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
@@ -202,7 +205,7 @@ jobs:
           assert 'owner_admin_2fa_required' in identity.lower()
           assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
-          assert 'node server-phase2.js' in railway
+          assert ('node server-phase2.js' in railway) or ('node server-f4.js' in railway and "['server-phase2.js']" in f4proxy)
           assert 'node staging-server.js' in railway
           assert 'legacy_bypass' in recovery and 'not_restored' in recovery
           PY
