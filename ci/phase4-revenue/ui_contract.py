@@ -29,9 +29,25 @@ assert 'aos_cartera_candidates_v2' in proxy
 assert 'node server-f4.js' in railway
 assert 'node server-phase2.js' not in railway.split('"environments"')[0]
 
-# F4 never embeds service-role credentials in browser/runtime bridges.
-for text in (bridge, kronia, proxy):
+# Browser/runtime bridges must never know service-role credentials.
+for text in (bridge, kronia):
     assert 'service_role' not in text.lower()
+
+# WA-1 is allowed to consume the service role only at the server-side front boundary.
+# Least privilege requires stripping that credential and all WA secrets before spawning
+# the legacy/product child process.
+assert 'SUPABASE_SERVICE_ROLE_KEY' in proxy
+assert 'delete childEnv.SUPABASE_SERVICE_ROLE_KEY' in proxy
+for marker in (
+    'delete childEnv.WHATSAPP_VERIFY_TOKEN',
+    'delete childEnv.WHATSAPP_APP_SECRET',
+    'delete childEnv.WHATSAPP_ACCESS_TOKEN',
+    'delete childEnv.WHATSAPP_PHONE_NUMBER_ID',
+    'delete childEnv.WHATSAPP_GRAPH_VERSION',
+    'delete childEnv.WA_CANARY_MODE',
+    'delete childEnv.WA_CANARY_ALLOW_TO',
+):
+    assert marker in proxy, f'missing secret isolation marker: {marker}'
 
 # Raw evidence preservation belongs to the DB read model. The browser consumes the
 # enriched payload transparently, so do not require a dead marker in the bridge.
