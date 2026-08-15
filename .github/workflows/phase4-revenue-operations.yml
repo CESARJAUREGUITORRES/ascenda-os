@@ -115,6 +115,7 @@ jobs:
           if ($hotfix -notmatch 'aos-phase2-auth') { throw 'Service-worker token cache recovery missing' }
           if ($hotfix -notmatch 'aos_sales_admin_gateway_v4') { throw 'Sales V4 routing missing' }
           if ($hotfix -notmatch "d\.error==='UNAUTHORIZED'") { throw 'Unauthorized retry contract missing' }
+          if ($hotfix -match 'aos_si_token') { throw 'Ventas recovery must not read or overwrite the Sales Intelligence finance token' }
 
   revenue-operations-contract:
     name: DB/security contracts
