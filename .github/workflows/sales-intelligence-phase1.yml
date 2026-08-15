@@ -39,9 +39,12 @@ concurrency:
 
 jobs:
   ui-fixture:
-    name: UI fixture / isolated runtime smoke
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    name: FAST UI fixture / isolated runtime smoke
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,12 +56,23 @@ jobs:
           cache: 'npm'
           cache-dependency-path: app/package.json
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Enforce FAST lane
+        run: |
+          set -euo pipefail
+          test "${RUNNER_ENVIRONMENT}" = "self-hosted"
+          echo "FAST runner: ${RUNNER_NAME} / ${RUNNER_OS}"
+
       - name: Install app dependencies
         working-directory: app
         run: npm install --no-audit --no-fund
 
       - name: Validate UI fixture contract
-        run: python3 ci/phase1-sales-intelligence/ui_contract.py
+        run: python ci/phase1-sales-intelligence/ui_contract.py
 
       - name: Validate Railway staging config
         run: |
@@ -78,10 +92,12 @@ jobs:
       - name: Validate embedded script syntax
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          python - <<'PY'
           from pathlib import Path
-          import re
+          import re, tempfile
           files=['app/public/admin-sales-intelligence.html','app/public/admin-sales-intelligence-staging.html','app/public/login.html','app/public/admin-team.html']
+          root=Path(tempfile.gettempdir())/'ascenda-phase1-js'
+          root.mkdir(parents=True,exist_ok=True)
           out=[]
           for src in files:
               text=Path(src).read_text(encoding='utf-8')
@@ -89,19 +105,23 @@ jobs:
               if not scripts:
                   raise SystemExit(f'No scripts found in {src}')
               for i,s in enumerate(scripts):
-                  p=Path(f'/tmp/{Path(src).stem}-{i}.js')
+                  p=root/f'{Path(src).stem}-{i}.js'
                   p.write_text(s,encoding='utf-8')
                   out.append(str(p))
-          Path('/tmp/phase1-js-files.txt').write_text('\n'.join(out))
+          (root/'files.txt').write_text('\n'.join(out),encoding='utf-8')
+          print(root/'files.txt')
           PY
-          while IFS= read -r f; do node --check "$f"; done </tmp/phase1-js-files.txt
+          FILES="$(python -c "import tempfile; from pathlib import Path; print(Path(tempfile.gettempdir())/'ascenda-phase1-js'/'files.txt')")"
+          while IFS= read -r f; do node --check "$f"; done <"$FILES"
 
       - name: Start isolated static runtime and verify health
         working-directory: app
         run: |
           set -euo pipefail
-          PORT=4173 node staging-server.js >/tmp/ascenda-phase1-server.log 2>&1 &
-          echo $! >/tmp/ascenda-phase1-server.pid
+          LOG="${RUNNER_TEMP}/ascenda-phase1-server.log"
+          PID="${RUNNER_TEMP}/ascenda-phase1-server.pid"
+          PORT=4173 node staging-server.js >"$LOG" 2>&1 &
+          echo $! >"$PID"
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4173/health | grep -q 'staging-fixture'; then
               echo 'PHASE1_RUNTIME_HEALTH=PASS'
@@ -109,18 +129,18 @@ jobs:
             fi
             sleep 1
           done
-          cat /tmp/ascenda-phase1-server.log
+          cat "$LOG"
           exit 1
 
       - name: HTTP shadow surface gate
         run: |
           set -euo pipefail
           curl -fsSI http://127.0.0.1:4173/admin-sales-intelligence-staging.html | grep -qi 'X-ASCENDA-ENV: staging-fixture'
-          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence.html >/tmp/si.html
-          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence-staging.html >/tmp/si-staging.html
-          grep -q 'Sales Intelligence V2' /tmp/si.html
-          grep -q 'ASCENDA Sales Intelligence' /tmp/si-staging.html
-          grep -q 'window.__ASCENDA_STAGING_FIXTURE__=true' /tmp/si-staging.html
+          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence.html >"${RUNNER_TEMP}/si.html"
+          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence-staging.html >"${RUNNER_TEMP}/si-staging.html"
+          grep -q 'Sales Intelligence V2' "${RUNNER_TEMP}/si.html"
+          grep -q 'ASCENDA Sales Intelligence' "${RUNNER_TEMP}/si-staging.html"
+          grep -q 'window.__ASCENDA_STAGING_FIXTURE__=true' "${RUNNER_TEMP}/si-staging.html"
           echo 'PHASE1_HTTP_SHADOW=PASS'
 
       - name: Reject write methods in staging runtime
@@ -133,4 +153,5 @@ jobs:
       - name: Stop isolated staging runtime
         if: always()
         run: |
-          if [ -f /tmp/ascenda-phase1-server.pid ]; then kill $(cat /tmp/ascenda-phase1-server.pid) 2>/dev/null || true; fi
+          PID="${RUNNER_TEMP}/ascenda-phase1-server.pid"
+          if [ -f "$PID" ]; then kill $(cat "$PID") 2>/dev/null || true; fi
