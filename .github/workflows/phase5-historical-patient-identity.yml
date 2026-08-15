@@ -31,9 +31,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Enforce self-hosted FAST lane
         shell: powershell
         run: |
@@ -41,7 +38,11 @@ jobs:
           Write-Host "Runner: $env:RUNNER_NAME"
       - name: F5 static private-boundary contract
         shell: powershell
-        run: python ci/phase5-historical-identity/security_contract.py
+        run: |
+          node --check ci/phase5-historical-identity/security_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase5-historical-identity/security_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   db-security:
     name: Zero-Cost DB / RLS / pgTAP
