@@ -11,6 +11,7 @@ on:
       - 'app/public/f4-revenue-ops.js'
       - 'app/public/f4-kronia-revenue-bridge.js'
       - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
       - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/phase4-revenue-operations.yml'
@@ -26,6 +27,7 @@ on:
       - 'app/public/f4-revenue-ops.js'
       - 'app/public/f4-kronia-revenue-bridge.js'
       - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
       - 'app/server-f4.js'
       - 'app/railway.json'
       - '.github/workflows/phase4-revenue-operations.yml'
@@ -50,9 +52,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
 
       - name: Enforce self-hosted FAST lane
         shell: powershell
@@ -69,9 +68,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/phase2-service-worker.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check app/server-f4.js
+          node --check app/server-phase2.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python ci/phase4-revenue/ui_contract.py
+          node --check app/server-f4.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   revenue-operations-contract:
@@ -91,6 +90,12 @@ jobs:
         run: |
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: F4 UI/consumer contract
+        run: |
+          set -euo pipefail
+          python3 ci/phase4-revenue/ui_contract.py
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
