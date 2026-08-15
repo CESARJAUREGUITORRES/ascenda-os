@@ -1,0 +1,146 @@
+name: ASCENDA CIA Phase 16 Clean Release Materialize
+
+on:
+  push:
+    branches:
+      - 'release/cia-phase16-email-20260814-v4'
+    paths:
+      - '.github/workflows/cia-phase16-release-materialize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cia-phase16-clean-release-materialize-v4
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    name: F16 clean release materialization v4
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - name: Checkout clean release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Enforce Zero-Cost CI V2 policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Self-hosted runner healthcheck
+        run: bash scripts/ci/runner-healthcheck.sh
+
+      - name: Verify clean current-main base
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "release/cia-phase16-email-20260814-v4"
+          git fetch --no-tags --depth=2 origin release/cia-phase16-email-20260814-v4
+          git fetch --no-tags origin d19560e4985dccf702252789f34a28cd73cf0cfc
+          git merge-base --is-ancestor d19560e4985dccf702252789f34a28cd73cf0cfc HEAD
+          echo 'CIA_PHASE16_CLEAN_BASE=PASS'
+
+      - name: Copy certified F16 allowlist from engineering SHA
+        env:
+          SOURCE_SHA: e374bff05ae596dbc244ed06f3784f108b6634c5
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$SOURCE_SHA"
+          files=(
+            .github/workflows/cia-phase16-email.yml
+            .github/workflows/cia-phase16-policy.yml
+            .github/workflows/cia-phase16-runtime-patch.yml
+            app/email-gateway.js
+            ci/phase16/legacy_email_schema_contract.sql
+            ci/phase16/rollback_phase16.sql
+            ci/phase16/rollback_phase16_legacy_acl.sql
+            ci/phase16/schema_contract.sql
+            ci/phase16/test_email_gateway.js
+            ci/phase16/test_email_gateway_policy.js
+            ci/phase16/test_phase16_app_session.sql
+            ci/phase16/test_phase16_contracts.sql
+            ci/phase16/test_phase16_delivery_contracts.sql
+            ci/phase16/test_phase16_legacy_acl.sql
+            ci/phase16/test_phase16_render_context_hardening.sql
+            docs/control/commercial-intelligence/PHASE_16_IMPACT_REPORT_20260814.md
+            scripts/ci/expose-runner-node.sh
+            scripts/ci/phase16_apply_runtime_patch.py
+            scripts/ci/phase16_patch_email_backend_acl.py
+            scripts/ci/phase16_patch_runtime.py
+            scripts/ci/phase16_patch_transactional_email.py
+            supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql
+            supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql
+            supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql
+            supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql
+            supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql
+            supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql
+          )
+          for f in "${files[@]}"; do
+            mkdir -p "$(dirname "$f")"
+            git show "$SOURCE_SHA:$f" > "$f"
+          done
+          echo "CIA_PHASE16_RELEASE_ALLOWLIST_COUNT=${#files[@]}"
+
+      - name: Adapt F16 release to CURRENT main runtime
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('scripts/ci/phase16_patch_transactional_email.py')
+          s = p.read_text()
+          s = s.replace('    # F11 calls.html is now only a loader wrapper; the live legacy panel is\n    # fetched and executed from calls-v2.html by calls-loader-v3.js.\n    ROOT / "app/public/calls-v2.html",\n', '    # CURRENT main serves the live Call Center directly from calls.html.\n    ROOT / "app/public/calls.html",\n')
+          s = re.sub(r'\n\ndef assert_live_call_center_consumer\(\) -> None:.*?\n\ndef patch_server', '\n\ndef patch_server', s, flags=re.S)
+          s = s.replace('    assert_live_call_center_consumer()\n', '')
+          p.write_text(s)
+
+          p = Path('.github/workflows/cia-phase16-email.yml')
+          s = p.read_text()
+          s = s.replace("      - 'app/public/calls-v2.html'\n", '')
+          if 'Expose trusted runner Node' not in s:
+            s = s.replace('      - name: Setup Supabase CLI\n', "      - name: Expose trusted runner Node\n        run: bash scripts/ci/expose-runner-node.sh\n\n      - name: Setup Supabase CLI\n")
+          s = s.replace('app/public/caja.html app/public/calls-v2.html', 'app/public/caja.html app/public/calls.html')
+          s = s.replace('            app/public/calls-v2.html\n', '')
+          p.write_text(s)
+
+          p = Path('.github/workflows/cia-phase16-policy.yml')
+          s = p.read_text()
+          s = s.replace("      - 'app/public/calls-v2.html'\n", '')
+          if 'Expose trusted runner Node' not in s:
+            s = s.replace('      - name: Syntax and gateway policy\n', "      - name: Expose trusted runner Node\n        run: bash scripts/ci/expose-runner-node.sh\n      - name: Syntax and gateway policy\n")
+          s = s.replace('app/public/caja.html app/public/calls-v2.html', 'app/public/caja.html app/public/calls.html')
+          p.write_text(s)
+
+          p = Path('.github/workflows/cia-phase16-runtime-patch.yml')
+          s = p.read_text()
+          s = s.replace("      - 'feature/cia-phase16-email-integration-20260814'", "      - 'release/cia-phase16-email-20260814-v4'")
+          s = s.replace('          python3 scripts/ci/phase16_patch_gateway_policy.py\n', '')
+          s = s.replace('app/public/calls-v2.html', 'app/public/calls.html')
+          s = s.replace('git add app/email-gateway.js ', 'git add ')
+          s = s.replace('git push origin HEAD:feature/cia-phase16-email-integration-20260814', 'git push origin HEAD:${GITHUB_REF_NAME}')
+          p.write_text(s)
+          PY
+
+          python3 -m py_compile scripts/ci/phase16_apply_runtime_patch.py scripts/ci/phase16_patch_runtime.py scripts/ci/phase16_patch_email_backend_acl.py scripts/ci/phase16_patch_transactional_email.py
+          grep -q "app/public/calls.html" scripts/ci/phase16_patch_transactional_email.py
+          ! grep -q "calls-v2.html" scripts/ci/phase16_patch_transactional_email.py
+          echo 'CIA_PHASE16_CURRENT_MAIN_ADAPTATION=PASS'
+
+      - name: Remove one-time materializer and verify release scope
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/cia-phase16-release-materialize.yml
+          git diff --check
+          ! git diff --name-only | grep -Eq '^app/(server.js|public/admin-email.html|public/agenda.js|public/attendance.html|public/caja.html|public/calls.html|public/calls.js|public/citas.html)$'
+          echo 'CIA_PHASE16_PRE_RUNTIME_RELEASE_SCOPE=PASS'
+
+      - name: Commit clean F16 release inputs
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'release(cia): materialize clean F16 Email release inputs v4'
+          git push origin HEAD:${GITHUB_REF_NAME}
