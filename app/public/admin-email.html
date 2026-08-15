@@ -220,19 +220,14 @@
 <div class="inner-toast" id="em-toast"></div>
 
 <script>
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 function el(id){var e=document.getElementById(id);return e||{textContent:'',innerHTML:'',style:{},value:'',classList:{add:function(){},remove:function(){},toggle:function(){}},querySelectorAll:function(){return[];},setAttribute:function(){}};}
 function fmt(n){return typeof n==='number'?n.toLocaleString('es-PE'):n;}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('es-PE');}
-function emSessionToken(){return sessionStorage.getItem('aos_si_token')||sessionStorage.getItem('aos_app_token')||'';}
-function emCall(action,payload){
-  var token=emSessionToken();
-  if(!token)return Promise.reject(new Error('Sesión administrativa requerida'));
-  return fetch('/api/email-gateway',{method:'POST',headers:{'Content-Type':'application/json','X-ASCENDA-Session':token},body:JSON.stringify({action:action,payload:payload||{}})}).then(function(r){return r.json().then(function(b){if(!r.ok||!b||b.ok!==true)throw new Error((b&&b.error)||('HTTP '+r.status));return b;});});
-}
-function rpc(fn,params,cb){emCall('LEGACY_RPC',{name:fn,params:params||{}}).then(function(r){cb(r.data);}).catch(function(e){console.error(fn,e);showToast('Error de sesión/email',e.message,true);});}
-function q(table,query,cb){emCall('LEGACY_READ',{table:table,query:query||''}).then(function(r){cb(r.data||[]);}).catch(function(e){console.error(table,e);showToast('Error de sesión/email',e.message,true);cb([]);});}
-function emPatch(table,id,changes,cb){emCall('LEGACY_PATCH',{table:table,id:id,changes:changes||{}}).then(function(r){if(cb)cb(null,r);}).catch(function(e){if(cb)cb(e);else showToast('Error al guardar',e.message,true);});}
+function rpc(fn,params,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(params)}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(fn,e);});}
+function q(table,query,cb){fetch(SB+'/rest/v1/'+table+'?'+query,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(cb);}
 function showToast(t,m,err){var tw=el('em-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
 
 var D={};var TAB='dashboard';
@@ -347,23 +342,26 @@ function loadTplPreview(id,nombre){
     el('send-preview').innerHTML=preview;
   });
 }
-var _sendClientRequestId='';
 function doSendEmail(email,nombre,numero){
   var tplId=el('send-tpl').value;var asunto=el('send-asunto').value;
   if(!asunto){showToast('Error','Escribe un asunto',true);return;}
-  if(!_sendClientRequestId)_sendClientRequestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('email-'+Date.now()+'-'+Math.random().toString(36).slice(2));
+  // Get template HTML
   q('aos_email_plantillas','select=html_body,variables&id=eq.'+tplId,function(rows){
     if(!rows||!rows[0])return;
     var htmlBody=rows[0].html_body.replace(/\{\{nombre\}\}/g,nombre).replace(/\{\{tratamiento\}\}/g,'').replace(/\{\{fecha_cita\}\}/g,'').replace(/\{\{hora_cita\}\}/g,'').replace(/\{\{sede\}\}/g,'').replace(/\{\{monto\}\}/g,'').replace(/\{\{fecha\}\}/g,'');
-    emCall('LEGACY_SEND',{
+    fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       to:email,subject:asunto.replace(/\{\{nombre\}\}/g,nombre),html:htmlBody,
-      nombre:nombre,numero:numero,plantilla_id:tplId,variables:{nombre:nombre},client_request_id:_sendClientRequestId
-    }).then(function(res){
-      showToast('Email Enviado','Correo enviado exitosamente a '+email);
-      _sendClientRequestId='';
-      el('m-send').classList.remove('open');
-      if(numero)verContacto(numero);
-    }).catch(function(e){showToast('Error al enviar',e.message,true);});
+      nombre:nombre,numero:numero,plantilla_id:tplId,
+      variables:{nombre:nombre}
+    })}).then(function(r){return r.json();}).then(function(res){
+      if(res.id){
+        showToast('Email Enviado','Correo enviado exitosamente a '+email);
+        el('m-send').classList.remove('open');
+        if(numero)verContacto(numero);
+      } else {
+        showToast('Error al enviar',res.message||res.error||'Error desconocido',true);
+      }
+    }).catch(function(e){showToast('Error',e.message,true);});
   });
 }
 
@@ -506,8 +504,7 @@ function verFlujo(id){
 }
 
 function toggleFlujo(id,activo){
-  emPatch('aos_email_flujos',id,{activo:activo,updated_at:new Date().toISOString()},function(err){
-    if(err){showToast('Error al actualizar flujo',err.message,true);return;}
+  fetch(SB+'/rest/v1/aos_email_flujos?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({activo:activo,updated_at:new Date().toISOString()})}).then(function(){
     showToast('Flujo '+(activo?'Activado':'Desactivado'),'');
     el('m-flujo').classList.remove('open');loadFlujos();loadDashboard();
   });
@@ -603,8 +600,8 @@ function openTplEditor(id){
 function insertWaVar(v){var ta=el('wa-body');if(!ta)return;var s=ta.selectionStart;var txt=ta.value;ta.value=txt.slice(0,s)+'{{'+v+'}}'+txt.slice(s);ta.focus();updateWaPreview();}
 function updateWaPreview(){var body=el('wa-body')?el('wa-body').value:'';el('wa-preview').innerHTML=body.replace(/\{\{(\w+)\}\}/g,'<span style="background:#FFFBEB;padding:1px 4px;border-radius:3px;color:#D97706;font-weight:700;">{{$1}}</span>');}
 function saveWaTpl(id){
-  var data={nombre:el('wa-nombre').value,cuerpo:el('wa-body').value,sede:el('wa-sede').value||null,updated_at:new Date().toISOString()};
-  emPatch('aos_plantillas_mensajes',id,data,function(err){if(err){showToast('Error',err.message,true);return;}showToast('Plantilla guardada',data.nombre);loadPlantillas();});
+  var data={nombre:el('wa-nombre').value,cuerpo:el('wa-body').value,sede:el('wa-sede').value||null};
+  fetch(SB+'/rest/v1/aos_plantillas_mensajes?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(r){if(r.ok){showToast('Plantilla guardada',data.nombre);loadPlantillas();}else{showToast('Error','',true);}});
 }
 function filtrarTpl(){}
 function renderTplGrid(){}
@@ -629,9 +626,12 @@ function updateTplPreview(){
 }
 function savePlantilla(id){
   var body=_htmlMode?el('tpl-html-raw').value:el('tpl-editor').innerHTML;
+  // Clean the variable spans back to {{var}} format
   body=body.replace(/<span[^>]*>\{\{(\w+)\}\}<\/span>/g,'{{$1}}');
   var data={nombre:el('tpl-nombre').value,asunto:el('tpl-asunto').value,html_body:body,updated_at:new Date().toISOString()};
-  emPatch('aos_email_plantillas',id,data,function(err){if(err){showToast('Error al guardar',err.message,true);return;}showToast('Plantilla guardada',''+data.nombre);loadPlantillas();});
+  fetch(SB+'/rest/v1/aos_email_plantillas?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(r){
+    if(r.ok){showToast('Plantilla guardada',''+data.nombre);loadPlantillas();}else{showToast('Error al guardar');}
+  });
 }
 
 function loadEnviados(){
