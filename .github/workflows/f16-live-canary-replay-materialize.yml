@@ -1,0 +1,55 @@
+name: F16 Live Canary Replay Materialize
+
+on:
+  push:
+    branches: ['ops/f16-live-provider-canary-20260815']
+    paths:
+      - '.github/workflows/f16-live-canary-replay-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Zero-Cost health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Expose trusted runner Node
+        run: bash scripts/ci/expose-runner-node.sh
+      - name: Add exact replay route
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/server.js')
+          s=p.read_text()
+          anchor="  if (p === '/api/f16-live-canary') return F16_LIVE_CANARY.handleCanary(req, res)\n  if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)\n"
+          replacement="  if (p === '/api/f16-live-canary') return F16_LIVE_CANARY.handleCanary(req, res)\n  if (p === '/api/f16-live-canary-replay') return F16_LIVE_CANARY.handleReplay(req, res)\n  if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)\n"
+          if s.count(anchor)!=1:
+              raise SystemExit('replay route anchor not unique')
+          p.write_text(s.replace(anchor,replacement,1))
+          PY
+      - name: Safety assertions
+        run: |
+          set -euo pipefail
+          node --check app/f16-live-canary.js
+          node --check app/server.js
+          grep -q "/api/f16-live-canary-replay" app/server.js
+          grep -q "REPLAY_CAPTURED_SIGNED_WEBHOOK" app/f16-live-canary.js
+          grep -q "SIGNED_WEBHOOK_REPLAY_DEDUPED" app/f16-live-canary.js
+          git diff --check
+      - name: Commit replay route
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server.js
+          git commit -m 'ops(f16): materialize exact signed webhook replay route'
+          git push origin HEAD:${GITHUB_REF_NAME}
