@@ -21,7 +21,12 @@ assert re.search(r"['\"]admin-cartera['\"]\s*:\s*['\"]ViewAdminCartera['\"]", ap
 assert re.search(r"['\"]ViewAdminCartera['\"]\s*:\s*['\"]/admin-cartera\.html['\"]", app)
 assert re.search(r"viewId\s*===\s*['\"]admin-cartera['\"]", app)
 
-assert "aos_cartera_gateway" in cartera
+assert "/api/f4/cartera-read" in cartera
+assert "caches.open('aos-phase2-auth')" in cartera
+assert "'X-AOS-App-Token':t" in cartera
+assert "api('aos_cartera_gateway'" not in cartera
+assert "pathname==='/api/f4/cartera-read'" in f4
+assert "rpcName='aos_cartera_gateway'" in f4
 assert "aos_cartera_reconcile" in cartera
 assert "p_expected_updated_at:current.updatedAt" in cartera
 assert "sessionStorage.getItem('aos_app_token')" in cartera

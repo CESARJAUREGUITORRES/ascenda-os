@@ -9,7 +9,7 @@ const login = read('app/public/login.html');
 const team = read('app/public/admin-team.html');
 const requiredIds = ['si-fact','si-meta','si-pct','si-gap','si-ticket','si-sales','si-best','si-avg','si-chart','si-proj','si-mtd','si-prev','si-delta','si-tbody','si-year','si-sede'];
 for(const rid of requiredIds) ok(page.includes(`id="${rid}"`), `missing UI contract id: ${rid}`);
-ok(page.includes('aos_sales_intelligence_gateway'), 'missing Sales Intelligence gateway');
+ok(page.includes('/api/f4/sales-intelligence-read'), 'missing same-origin Sales Intelligence gateway');
 ok(!page.includes('aos_sales_intelligence_summary'), 'direct summary RPC must remain absent');
 ok(page.includes("sessionStorage.getItem('aos_si_token')"), 'finance token read missing');
 ok(page.includes('ACTIVO · SOLO LECTURA'), 'read-only marker missing');
@@ -47,4 +47,8 @@ ok(team.includes('aos_sales_intelligence_set_access'), 'team access RPC missing'
 ok(team.includes('TARGET_ADMIN_2FA_REQUIRED'), 'admin 2FA guard missing');
 ok(team.includes("d.rol=d.nivel_jerarquia<=2?'admin'"), 'role normalization missing');
 ok(team.includes("ps.indexOf('admin-sales-intelligence')"), 'team panel access marker missing');
+ok(page.includes("'/api/f4/sales-intelligence-read'"), 'same-origin Sales Intelligence read transport missing');
+ok(page.includes("caches.open('aos-phase2-auth')"), 'Sales Intelligence cached strong-token recovery missing');
+ok(page.includes("sessionStorage.getItem('aos_app_token')"), 'Sales Intelligence app-token recovery marker missing');
+ok(!page.includes("fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_gateway'"), 'direct Sales Intelligence browser PostgREST read must remain absent');
 console.log('PHASE1_UI_CONTRACT=PASS');

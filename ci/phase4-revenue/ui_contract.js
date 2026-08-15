@@ -41,4 +41,15 @@ for(const marker of ['delete childEnv.WHATSAPP_VERIFY_TOKEN','delete childEnv.WH
 ok(core.includes("'rawDescription',e->>'descripcion'"), 'raw evidence e descripcion marker missing');
 ok(core.includes("'rawDescription',v.descripcion"), 'raw evidence v descripcion marker missing');
 ok(core.includes("'canonicalProductName'"), 'canonical product marker missing');
+const carteraPage = read('app/public/admin-cartera.html');
+const siPage = read('app/public/admin-sales-intelligence.html');
+ok(proxy.includes("pathname==='/api/f4/cartera-read'") && proxy.includes("pathname==='/api/f4/sales-intelligence-read'"), 'F4 same-origin sensitive-read transport routes missing');
+ok(proxy.includes("rpcName='aos_cartera_gateway'") && proxy.includes("rpcName='aos_sales_intelligence_gateway'"), 'F4 same-origin read RPC routing missing');
+ok(proxy.includes('const appToken=strongToken(req)') && proxy.includes('F4_STRONG_SESSION_REQUIRED'), 'F4 same-origin read must require strong app token');
+ok(carteraPage.includes("'/api/f4/cartera-read'") && carteraPage.includes("'X-AOS-App-Token':t"), 'Cartera same-origin transport missing');
+ok(carteraPage.includes("caches.open('aos-phase2-auth')"), 'Cartera cache recovery missing');
+ok(siPage.includes("'/api/f4/sales-intelligence-read'") && siPage.includes("'X-AOS-App-Token':token"), 'Sales Intelligence same-origin transport missing');
+ok(siPage.includes("caches.open('aos-phase2-auth')"), 'Sales Intelligence cache recovery missing');
+ok(!carteraPage.includes("api('aos_cartera_gateway'"), 'Cartera direct PostgREST read must remain absent');
+ok(!siPage.includes("fetch(SB+'/rest/v1/rpc/aos_sales_intelligence_gateway'"), 'SI direct PostgREST read must remain absent');
 console.log('F4 UI/runtime contract PASS');
