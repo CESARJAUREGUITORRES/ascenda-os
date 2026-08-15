@@ -11,7 +11,7 @@ var carteraRows=[];
 var carteraCandidateByCase={};
 
 function token(){
-  try{return sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||''}catch(e){return ''}
+  try{return sessionStorage.getItem('aos_app_token')||''}catch(e){return ''}
 }
 function urlOf(input){return typeof input==='string'?input:(input&&input.url)||''}
 function parseBody(init){try{return JSON.parse((init&&init.body)||'{}')}catch(e){return {}}}

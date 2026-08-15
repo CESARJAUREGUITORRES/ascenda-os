@@ -13,7 +13,8 @@ ok(/admin-cartera[\s\S]{0,220}requiresPanel\s*:\s*true/.test(app), 'admin-carter
 ok(/['"]admin-cartera['"]\s*:\s*['"]ViewAdminCartera['"]/.test(app), 'admin-cartera view mapping missing');
 ok(/['"]ViewAdminCartera['"]\s*:\s*['"]\/admin-cartera\.html['"]/.test(app), 'admin-cartera route missing');
 ok(/viewId\s*===\s*['"]admin-cartera['"]/.test(app), 'admin-cartera view activation missing');
-for(const marker of ['aos_cartera_gateway','aos_cartera_reconcile','p_expected_updated_at:current.updatedAt','aos_si_token','RECORDATORIOS BLOQUEADOS','Adelantos ≠ deuda']) ok(cartera.includes(marker), `missing Cartera marker: ${marker}`);
+for(const marker of ['aos_cartera_gateway','aos_cartera_reconcile','p_expected_updated_at:current.updatedAt','aos_app_token','RECORDATORIOS BLOQUEADOS','Adelantos ≠ deuda']) ok(cartera.includes(marker), `missing Cartera marker: ${marker}`);
+ok(!cartera.includes('aos_si_token'), 'Cartera must not depend on the Sales Intelligence token scope');
 ok(caja.includes("rpc('aos_abonar_cotizacion_v2'"), 'secure quote payment RPC missing');
 ok(/p_token\s*:\s*financeToken/.test(caja), 'finance token missing from quote payment');
 ok(/p_idempotency_key\s*:/.test(caja), 'idempotency key missing');
