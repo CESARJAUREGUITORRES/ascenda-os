@@ -18,7 +18,9 @@ function parseBody(init){try{return JSON.parse((init&&init.body)||'{}');}catch(e
 function rpcUrl(url,name){return url.split('/rest/v1/')[0]+'/rest/v1/rpc/'+name;}
 function unique(xs){var out=[];xs.forEach(function(x){x=String(x||'').trim();if(x&&out.indexOf(x)<0)out.push(x);});return out;}
 function storageTokens(){
-  try{return unique([sessionStorage.getItem('aos_app_token'),sessionStorage.getItem('aos_si_token')]);}
+  // Ventas F4 is authorized exclusively by Auth V3 app sessions.
+  // Never consume the separate Sales Intelligence finance token here.
+  try{return unique([sessionStorage.getItem('aos_app_token')]);}
   catch(e){return [];}
 }
 function cacheToken(){
@@ -31,7 +33,9 @@ function strongTokenCandidates(){
 }
 function rememberToken(t){
   if(!t)return;
-  try{sessionStorage.setItem('aos_app_token',t);sessionStorage.setItem('aos_si_token',t);}catch(e){}
+  // Keep token scopes isolated: app_token belongs to aos_app_sessions_v3.
+  // Sales Intelligence owns its own finance token and must remain untouched.
+  try{sessionStorage.setItem('aos_app_token',t);}catch(e){}
   try{caches.open('aos-phase2-auth').then(function(c){return c.put('/__aos_app_token',new Response(t));}).catch(function(){});}catch(e){}
 }
 function salesErrorBanner(msg){
@@ -73,10 +77,10 @@ function strongSalesRead(url,init,name,body){
 }
 
 // P0.5: intercept Sales reads before the older F4 bridge. The older bridge used
-// only sessionStorage synchronously; after some app/PWA navigation cycles that
-// token can be absent while the strong token is still present in the service
-// worker cache written at login. Trying both sources prevents a valid dataset
-// from being rendered as an all-zero dashboard on an UNAUTHORIZED envelope.
+// only sessionStorage synchronously; after some app/PWA navigation cycles the
+// app token can be absent while the same strong app token remains in the service
+// worker cache written at login. Trying both app-token sources prevents a valid
+// dataset from being rendered as an all-zero dashboard on an UNAUTHORIZED envelope.
 window.fetch=function(input,init){
   var url=urlOf(input),rm=url.match(/\/rest\/v1\/rpc\/([^?]+)/),name=rm&&rm[1];
   if(name==='aos_ventas_admin'||name==='aos_ventas_admin_anio'){

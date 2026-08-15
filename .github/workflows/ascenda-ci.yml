@@ -34,7 +34,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ascenda-ci-${{ github.ref }}
+  # Push and PR validation for the same branch share one lane: keep only the newest run.
+  group: ascenda-ci-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:

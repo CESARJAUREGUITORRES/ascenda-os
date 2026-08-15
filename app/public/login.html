@@ -7,7 +7,7 @@
 <script>
 (function(){
 'use strict';
-var SB='https://ituyqwstonmhnfshnaqz.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+var SB='https://ituyqwstonmhnfshnaqz.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 var challenge='',loginUser='',loginPass='',masked='';
 function $(x){return document.getElementById(x)}
 function rpc(name,p){
@@ -29,7 +29,22 @@ function verify(){var code='';document.querySelectorAll('.digit').forEach(functi
 function resend(){message('Enviando nuevo código...');rpc('aos_login_v3',{p_usuario:loginUser.toLowerCase(),p_password:loginPass}).then(function(x){var d=x.data||{};if(d.ok&&d.require_2fa){challenge=d.challenge_id;masked=d.email_masked||masked;message('Código reenviado.',true)}else message(d.error||'No se pudo reenviar.')}).catch(function(){message('Error de conexión.')})}
 function allowedGeo(d,cb){if((d.acceso_geo||'libre')==='libre'||!navigator.geolocation){cb(true);return}navigator.geolocation.getCurrentPosition(function(pos){var sites=[{n:'SAN_ISIDRO',lat:-12.09352,lng:-77.02721},{n:'PUEBLO_LIBRE',lat:-12.07809,lng:-77.06838}],allowed=d.sedes_permitidas||[],best=1e9;sites.forEach(function(s){if(allowed.indexOf(s.n)<0)return;var R=6371000,a=(pos.coords.latitude-s.lat)*Math.PI/180,b=(pos.coords.longitude-s.lng)*Math.PI/180,q=Math.sin(a/2)*Math.sin(a/2)+Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(s.lat*Math.PI/180)*Math.sin(b/2)*Math.sin(b/2);best=Math.min(best,R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q)))});cb(best<=500)},function(){cb(false)},{timeout:8000,enableHighAccuracy:true})}
 function finish(d){allowedGeo(d,function(ok){if(!ok){message('Acceso denegado: ubicación fuera de la sede autorizada.');return}var app=d.app_token||'',fin=d.finance_token||'';try{if(app)sessionStorage.setItem('aos_app_token',app);if(fin){sessionStorage.setItem('aos_si_token',fin);sessionStorage.setItem('aos_si_expires_at',d.expires_at||'')}else{sessionStorage.removeItem('aos_si_token')}localStorage.setItem('aos_session',JSON.stringify({codigo_asesor:d.codigo_asesor||d.usuario,nombre:d.nombre||d.usuario,apellido:d.apellido||'',puesto:d.puesto||'',sede:d.sede||'',usuario:d.usuario||d.nombre,permisos:d.permisos||{},paneles_acceso:d.paneles_acceso||[],avatar_url:d.avatar_url||'',nivel:d.nivel||4,area:d.area||'',expires:Date.now()+8*60*60*1000}))}catch(e){}registerBridge(app).then(function(){location.href='/app'})})}
-function registerBridge(token){if(!('serviceWorker'in navigator))return Promise.resolve();return navigator.serviceWorker.register('/phase2-service-worker.js',{scope:'/'}).then(function(){return navigator.serviceWorker.ready}).then(function(){return caches.open('aos-phase2-auth')}).then(function(c){return c.put('/__aos_app_token',new Response(token||''))}).catch(function(e){console.error('[AUTH] service worker',e)})}
+function registerBridge(token){
+  if(!('serviceWorker'in navigator))return Promise.resolve();
+  return navigator.serviceWorker.register('/phase2-service-worker.js',{scope:'/',updateViaCache:'none'}).then(function(reg){
+    return reg.update().catch(function(){return reg}).then(function(){
+      var pending=reg.installing||reg.waiting;
+      if(!pending)return reg;
+      if(reg.waiting){try{reg.waiting.postMessage({type:'ASCENDA_ACTIVATE_NOW'})}catch(e){}}
+      return new Promise(function(resolve){
+        var done=false,t=setTimeout(finishActivation,4000);
+        function finishActivation(){if(done)return;done=true;clearTimeout(t);navigator.serviceWorker.removeEventListener('controllerchange',finishActivation);resolve(reg)}
+        navigator.serviceWorker.addEventListener('controllerchange',finishActivation);
+        try{pending.addEventListener('statechange',function(){if(pending.state==='activated'||pending.state==='redundant')finishActivation()})}catch(e){}
+      });
+    });
+  }).then(function(){return navigator.serviceWorker.ready}).then(function(){return caches.open('aos-phase2-auth')}).then(function(c){return c.put('/__aos_app_token',new Response(token||''))}).catch(function(e){console.error('[AUTH] service worker',e)})
+}
 $('login').onclick=login;$('user').addEventListener('keydown',function(e){if(e.key==='Enter')login()});$('pass').addEventListener('keydown',function(e){if(e.key==='Enter')login()});try{sessionStorage.removeItem('aos_app_token');sessionStorage.removeItem('aos_si_token');}catch(e){}
 })();
 </script></body></html>

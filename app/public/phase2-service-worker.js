@@ -2,6 +2,7 @@
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
+self.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='ASCENDA_ACTIVATE_NOW')self.skipWaiting();});
 
 var PROTECTED={aos_catalogo_categorias:1,aos_catalogo_servicios:1,aos_catalogo_toppings:1,aos_catalogo_productos_detalle:1,aos_planes_trabajo:1,aos_plan_trabajo_items:1};
 var CAJA={aos_caja_abrir:'aos_caja_abrir_v2',aos_caja_cerrar:'aos_caja_cerrar_v2',aos_caja_editar_pago:'aos_caja_editar_pago_v2',aos_caja_eliminar_venta:'aos_caja_eliminar_venta_v2',aos_caja_ingreso_extra:'aos_caja_ingreso_extra_v2',aos_caja_registrar_gasto:'aos_caja_registrar_gasto_v2'};
@@ -23,7 +24,7 @@ async function injectF4(req){
     tags+='<script src="/f4-revenue-ops.js?v=20260815-f4-canary-p0"></script><script src="/f4-kronia-revenue-bridge.js?v=20260815-f4-canary-p0"></script>';
   }
   if(html.indexOf('/f4-production-canary-hotfix.js')<0){
-    tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-p0"></script>';
+    tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-f4-sales-auth-p06"></script>';
   }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
