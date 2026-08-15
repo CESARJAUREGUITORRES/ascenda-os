@@ -14,6 +14,7 @@ f4 = (root / 'app/server-f4.js').read_text(encoding='utf-8') if (root/'app/serve
 wa2 = (root / 'app/server-wa2.js').read_text(encoding='utf-8') if (root/'app/server-wa2.js').exists() else ''
 wa3 = (root / 'app/server-wa3.js').read_text(encoding='utf-8') if (root/'app/server-wa3.js').exists() else ''
 wa4 = (root / 'app/server-wa4.js').read_text(encoding='utf-8') if (root/'app/server-wa4.js').exists() else ''
+f5 = (root / 'app/server-f5.js').read_text(encoding='utf-8') if (root/'app/server-f5.js').exists() else ''
 
 assert re.search(r"id\s*:\s*['\"]admin-cartera['\"]", app)
 assert re.search(r"admin-cartera[\s\S]{0,220}requiresPanel\s*:\s*true", app)
@@ -71,7 +72,8 @@ f4_chain = '"startCommand": "node server-f4.js"' in prod and "spawn(process.exec
 wa2_chain = ('"startCommand": "node server-wa2.js"' in prod and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
 wa3_chain = ('"startCommand": "node server-wa3.js"' in prod and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
 wa4_chain = ('"startCommand": "node server-wa4.js"' in prod and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
-assert direct_phase2 or f4_chain or wa2_chain or wa3_chain or wa4_chain, 'Cartera requires certified Phase2 runtime chain'
+f5_chain = ('"startCommand": "node server-f5.js"' in prod and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+assert direct_phase2 or f4_chain or wa2_chain or wa3_chain or wa4_chain or f5_chain, 'Cartera requires certified Phase2 runtime chain'
 assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in phase2
 
 assert "enable row level security" in migration.lower()
