@@ -1,0 +1,62 @@
+name: ASCENDA CIA Phase 16 Environment Alias
+
+on:
+  push:
+    branches: ['release/cia-phase16-email-20260815-v5']
+    paths:
+      - '.github/workflows/f16-service-role-env-alias.yml'
+      - 'scripts/ci/f16_env_alias_patch.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cia-phase16-env-alias-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    name: F16 environment alias compatibility
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Zero-Cost policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Expose trusted runner Node
+        run: bash scripts/ci/expose-runner-node.sh
+      - name: Apply environment-only alias compatibility
+        run: python3 scripts/ci/f16_env_alias_patch.py
+      - name: Verify syntax and security boundary
+        run: |
+          set -euo pipefail
+          node --check app/server.js
+          node --check app/email-gateway.js
+          node ci/phase16/test_email_gateway.js
+          node ci/phase16/test_email_gateway_policy.js
+          grep -q 'process.env.SUPABASE_SERVICE_ROLE_KEY' app/server.js
+          grep -q 'process.env.service_role' app/server.js
+          grep -q 'process.env.SUPABASE_SERVICE_ROLE_KEY' app/email-gateway.js
+          grep -q 'process.env.service_role' app/email-gateway.js
+          ! grep -Eq "['\"](eyJ|re_)[A-Za-z0-9._-]{20,}['\"]" app/email-gateway.js
+          git diff --check
+      - name: Verify exact changed scope
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only | sort)"
+          expected=$'app/email-gateway.js\napp/server.js'
+          test "$changed" = "$expected"
+          echo 'CIA_PHASE16_ENV_ALIAS_SCOPE=PASS'
+      - name: Commit environment-only compatibility
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server.js app/email-gateway.js
+          git commit -m 'fix(f16): accept Railway service-role env alias'
+          git push origin HEAD:${GITHUB_REF_NAME}
