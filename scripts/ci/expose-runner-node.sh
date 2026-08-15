@@ -5,6 +5,7 @@ set -euo pipefail
 # GitHub JavaScript actions can run even when `node` is not exported on PATH.
 # This script reuses trusted local runner binaries only: no package install,
 # no network download, no secret access, and no hosted-runner fallback.
+# F16 exact-head recertification marker after Railway environment gate; no runtime behavior change.
 
 if command -v node >/dev/null 2>&1; then
   echo "ASCENDA_RUNNER_NODE=ALREADY_AVAILABLE"
