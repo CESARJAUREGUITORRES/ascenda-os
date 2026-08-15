@@ -2,9 +2,10 @@ name: F16 Live Canary Certification
 
 on:
   push:
-    branches: ['hotfix/f16-live-canary-direct-replay-20260815']
+    branches:
+      - hotfix/f16-supabase-secret-key-compat-20260815
     paths:
-      - '.github/workflows/f16-live-canary-certify.yml'
+      - .github/workflows/f16-live-canary-certify.yml
 
 permissions:
   contents: read
@@ -30,38 +31,37 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/phase16/test_email_gateway.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Write-Host 'F16_FAST_RUNTIME_A=PASS'
+          Write-Host 'F16_FAST_SECRET_KEY_RUNTIME=PASS'
 
   fast-runtime-b:
-    name: FAST direct-replay security scope
+    name: FAST Supabase key compatibility security
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify fixed recipient, provider and signed replay invariants
+      - name: Verify new secret-key and legacy JWT compatibility
         shell: powershell
         run: |
-          $text = Get-Content app/f16-live-canary.js -Raw
-          if (-not $text.Contains('delivered+ascenda-f16-20260815@resend.dev')) { throw 'Fixed Resend simulator recipient missing' }
-          if (-not $text.Contains('ascenda-f16-provider-canary-20260815-v2')) { throw 'Fresh fixed idempotency key missing' }
-          if (-not $text.Contains('ASCENDA F16 governed provider canary')) { throw 'Fixed canary subject missing' }
-          if (-not $text.Contains('aos_cia_email_f17_readiness_v1')) { throw 'Authoritative readiness gate missing' }
-          if (-not $text.Contains('WEBHOOK_VERIFIED')) { throw 'Webhook evidence gate missing' }
-          if (-not $text.Contains('CANARY_PASSED')) { throw 'Canary evidence gate missing' }
-          if (-not $text.Contains('SIGNED_WEBHOOK_REPLAY_DEDUPED')) { throw 'Exact replay proof missing' }
-          if (-not $text.Contains('https://ascenda-os-production.up.railway.app/api/resend-webhook')) { throw 'Replay target must be fixed production webhook' }
-          if ($text -match 'body\.to|payload\.to|req.*recipient') { throw 'Dynamic canary recipient forbidden' }
-          if ($text -match 're_[A-Za-z0-9_-]{20,}') { throw 'Provider secret committed' }
-          if ($text.Contains('aos_cia_email_canary_evidence_temp')) { throw 'Temp PostgREST evidence dependency must be removed' }
-          if ($text.Contains('CANARY_EVIDENCE_WRITE_FAILED')) { throw 'Stale temp evidence path remains' }
-          if (-not $text.Contains('RESEND_API_KEY')) { throw 'Provider key must remain environment-only' }
-          $changed = git diff --name-only 4fcdafb9163a0061a21bc318545be2ef46111cb2...HEAD | Where-Object { $_ -ne '.github/workflows/f16-live-canary-certify.yml' }
-          $allowed = @('app/f16-live-canary.js')
-          foreach ($f in $changed) { if ($allowed -notcontains $f) { throw "Unexpected hotfix scope: $f" } }
-          foreach ($f in $allowed) { if ($changed -notcontains $f) { throw "Expected hotfix change missing: $f" } }
-          Write-Host 'F16_FAST_DIRECT_REPLAY_SECURITY=PASS'
+          $gateway = Get-Content app/email-gateway.js -Raw
+          $canary = Get-Content app/f16-live-canary.js -Raw
+          $server = Get-Content app/server.js -Raw
+          foreach ($text in @($gateway,$canary,$server)) {
+            if (-not $text.Contains('sb_(?:secret|publishable)_')) { throw 'Opaque Supabase key discriminator missing' }
+          }
+          if (-not $gateway.Contains("var headers = { apikey: serviceKey }")) { throw 'Gateway apikey-only base header missing' }
+          if (-not $canary.Contains("var headers = { apikey: serviceKey }")) { throw 'Canary apikey-only base header missing' }
+          if (-not $server.Contains('f16SupabaseHeaders')) { throw 'Server compatibility helper missing' }
+          if ($gateway -match "apikey: serviceKey, Authorization") { throw 'Gateway still sends opaque secret as unconditional Bearer' }
+          if ($canary -match "apikey: serviceKey, Authorization") { throw 'Canary still sends opaque secret as unconditional Bearer' }
+          if ($server -match "'apikey': dbKey, 'Authorization': 'Bearer ' \+ dbKey") { throw 'Server legacy Email backend still has unconditional Bearer' }
+          if ($gateway -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
+          if ($canary -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
+          if ($server -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
+          if (-not $canary.Contains('delivered+ascenda-f16-20260815@resend.dev')) { throw 'Fixed simulator recipient missing' }
+          if (-not $canary.Contains('SIGNED_WEBHOOK_REPLAY_DEDUPED')) { throw 'Signed replay proof missing' }
+          Write-Host 'F16_FAST_SECRET_KEY_SECURITY=PASS'
 
   zero-cost-db:
     name: Zero-Cost F16 contracts and release gates
@@ -69,7 +69,7 @@ jobs:
     timeout-minutes: 25
     env:
       BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_live_direct_replay
+      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_secret_key_compat
     steps:
       - uses: actions/checkout@v4
       - name: Zero-Cost policy and runner health
@@ -85,8 +85,8 @@ jobs:
       - name: Create isolated database
         run: |
           set -euo pipefail
-          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_live_direct_replay with (force)"
-          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_live_direct_replay"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_secret_key_compat with (force)"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_secret_key_compat"
       - name: Compile certified F16 schema
         run: |
           set -euo pipefail
@@ -103,24 +103,24 @@ jobs:
             psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
           done
           supabase db lint --db-url "$F16_DB_URL" --schema public --level error
-      - name: Existing delivery, suppression and release contracts
+      - name: Existing provider, suppression and release contracts
         run: |
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_contracts.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_delivery_contracts.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_resend_outcomes_v3.sql
           test "$(psql "$F16_DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cia_email_release_mark_v1(text,boolean,text)','EXECUTE')")" = "f"
-          echo 'F16_ZERO_COST_RELEASE_GATES=PASS'
-      - name: Full F16 rollback and zero residue
+          echo 'F16_ZERO_COST_SECRET_KEY_DB=PASS'
+      - name: Full rollback and zero residue
         run: |
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16.sql | tee /tmp/f16_rollback.log
           grep -q 'CIA_PHASE16_ROLLBACK=PASS' /tmp/f16_rollback.log
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16_legacy_acl.sql | tee /tmp/f16_acl_rollback.log
           grep -q 'CIA_PHASE16_LEGACY_ACL_ROLLBACK=PASS' /tmp/f16_acl_rollback.log
-          echo 'F16_ZERO_COST_DIRECT_REPLAY_ROLLBACK=PASS'
+          echo 'F16_ZERO_COST_SECRET_KEY_ROLLBACK=PASS'
       - name: Cleanup
         if: always()
         run: |
-          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_live_direct_replay with (force)" || true
+          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_secret_key_compat with (force)" || true
           cd ci/zero-cost-staging && supabase stop --no-backup || true
