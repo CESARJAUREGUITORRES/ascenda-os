@@ -61,6 +61,26 @@ alter table public.aos_wa_events_v1 force row level security;
 revoke all on table public.aos_wa_events_v1 from public, anon, authenticated;
 grant select, insert on table public.aos_wa_events_v1 to service_role;
 
+-- Atomic idempotency reservation for outbound sends.
+-- A retry that encounters PENDING/ACCEPTED/FAILED does not send again automatically.
+create table if not exists public.aos_wa_outbound_requests_v1 (
+  idempotency_key text primary key,
+  actor_id uuid not null,
+  to_number text not null,
+  message_type text not null,
+  state text not null default 'PENDING' check (state in ('PENDING','ACCEPTED','FAILED')),
+  provider_message_id text,
+  error_code text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists aos_wa_outbound_requests_v1_state_idx on public.aos_wa_outbound_requests_v1(state, created_at desc);
+alter table public.aos_wa_outbound_requests_v1 enable row level security;
+alter table public.aos_wa_outbound_requests_v1 force row level security;
+revoke all on table public.aos_wa_outbound_requests_v1 from public, anon, authenticated;
+grant select, insert, update on table public.aos_wa_outbound_requests_v1 to service_role;
+
 -- Legacy WhatsApp table remains available for historical reads, but direct client writes close.
 revoke insert, update, delete, truncate, references, trigger on table public.aos_whatsapp_mensajes from anon, authenticated;
 
@@ -74,5 +94,6 @@ grant select, insert, update, delete on table public.aos_meta_config to service_
 do $$ begin
   comment on table public.aos_wa_messages_v1 is 'WA-1 canonical normalized WhatsApp message store. Server/service-role only; no raw webhook payloads.';
   comment on table public.aos_wa_events_v1 is 'WA-1 idempotent WhatsApp event/status ledger. Server/service-role only; sanitized payload only.';
+  comment on table public.aos_wa_outbound_requests_v1 is 'WA-1 atomic outbound idempotency ledger. Reservation occurs before provider send; ambiguous PENDING never auto-resends.';
   comment on table public.aos_meta_config is 'Legacy Meta configuration store. WA-1 closes all browser/client access; active secrets belong in server-side runtime environment.';
 exception when others then null; end $$;
