@@ -46,3 +46,28 @@ jobs:
           Probe 'unsigned-post' @('-X','POST','-H','Content-Type: application/json','--data-binary','{}',"$base/webhook") @(401,503)
 
           Write-Host 'WA-1 production gateway V1 is deployed and fail-closed.'
+
+      - name: Discover Railway CLI and variable names only
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $rw = Get-Command railway -ErrorAction SilentlyContinue
+          if (-not $rw) {
+            Write-Host 'RAILWAY_CLI=ABSENT'
+            exit 0
+          }
+          Write-Host 'RAILWAY_CLI=PRESENT'
+          & railway --version
+          $raw = & railway variables --json 2>$null
+          if ($LASTEXITCODE -ne 0 -or -not $raw) {
+            Write-Host 'RAILWAY_CONTEXT=UNAVAILABLE_OR_UNLINKED'
+            exit 0
+          }
+          try {
+            $obj = ($raw -join "`n") | ConvertFrom-Json
+            $names = @($obj.PSObject.Properties.Name | Sort-Object)
+            Write-Host 'RAILWAY_CONTEXT=AVAILABLE'
+            Write-Host ('RAILWAY_VARIABLE_NAMES=' + ($names -join ','))
+          } catch {
+            Write-Host 'RAILWAY_CONTEXT=JSON_PARSE_FAILED'
+          }
