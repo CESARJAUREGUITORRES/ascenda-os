@@ -6,7 +6,7 @@ const path = require('path')
 const EventEmitter = require('events')
 const gatewayLib = require('../../app/email-gateway')
 
-// F16 v5 exact-SHA certification trigger: no functional test semantics changed.
+// F16 exact-head certification trigger after CURRENT main sync; no functional test semantics changed.
 function mockRequest(body, headers) {
   var req = new EventEmitter()
   req.method = 'POST'
