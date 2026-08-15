@@ -105,7 +105,7 @@ function enviarEmailConfirmacionCita(datosCita) {
     fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
   } catch(e) {}
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
     body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: datosCita.tratamiento || 'Consulta', hora: datosCita.hora_cita || '', sede: datosCita.sede || '', fecha: fechaLabel, dni: datosCita.dni || '', telefono: datosCita.numero_limpio || '', email: correo })
   }).then(function(r) { return r.json(); }).then(function(d) {
     if (d && (d.ok || d.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
