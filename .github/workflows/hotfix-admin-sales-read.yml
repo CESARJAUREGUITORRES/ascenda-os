@@ -5,8 +5,7 @@ on:
     branches:
       - hotfix/admin-home-lima-business-date-20260815
     paths:
-      - 'scripts/ci/hotfix_admin_sales_rpc_isolation.py'
-      - 'scripts/ci/admin_sales_read_path_test.py'
+      - 'scripts/ci/hotfix_admin_sales_rpc_isolation.js'
       - '.github/workflows/hotfix-admin-sales-read.yml'
       - 'app/public/admin-sales.html'
 
@@ -26,13 +25,16 @@ jobs:
         shell: cmd
         run: |
           git --version
-          python --version
+          "%RUNNER_TEMP%\..\..\externals\node24\bin\node.exe" --version
       - name: Apply deterministic Sales read-path hotfix
         shell: cmd
-        run: python scripts\ci\hotfix_admin_sales_rpc_isolation.py
-      - name: Certify Sales read path
+        run: '"%RUNNER_TEMP%\..\..\externals\node24\bin\node.exe" scripts\ci\hotfix_admin_sales_rpc_isolation.js'
+      - name: Certify materialized Sales read path
         shell: cmd
-        run: python scripts\ci\admin_sales_read_path_test.py
+        run: |
+          findstr /C:"var VS_SB='https://ituyqwstonmhnfshnaqz.supabase.co',VS_SK='" app\public\admin-sales.html
+          findstr /C:"if(!r.ok||!b||b.code||b.error)" app\public\admin-sales.html
+          findstr /C:"timeZone:'America/Lima'" app\public\admin-sales.html
       - name: Commit materialized frontend only when changed
         shell: bash
         run: |
