@@ -1,13 +1,47 @@
 -- Phase 2 hardening synthetic-only schema. No production identities/PII.
 
--- Columns required by the final identity-admin contracts.
+-- Columns required by the final identity-admin and K1 team-view contracts.
+-- Keep this synthetic schema structurally aligned with production while using
+-- only generated/null fixture values.
 alter table public.aos_rrhh add column if not exists id uuid default extensions.gen_random_uuid();
+alter table public.aos_rrhh add column if not exists sueldo numeric;
+alter table public.aos_rrhh add column if not exists fecha_ingreso date;
+alter table public.aos_rrhh add column if not exists fecha_salida date;
+alter table public.aos_rrhh add column if not exists meta numeric;
+alter table public.aos_rrhh add column if not exists bonus_pct numeric;
+alter table public.aos_rrhh add column if not exists label text;
+alter table public.aos_rrhh add column if not exists numero text;
+alter table public.aos_rrhh add column if not exists tiene_agenda text;
+alter table public.aos_rrhh add column if not exists foto_url text;
 alter table public.aos_rrhh add column if not exists created_at timestamptz default now();
 alter table public.aos_rrhh add column if not exists updated_at timestamptz default now();
+
+alter table public.aos_usuarios add column if not exists auth_id uuid;
 alter table public.aos_usuarios add column if not exists apellidos text;
+alter table public.aos_usuarios add column if not exists telefono text;
+alter table public.aos_usuarios add column if not exists permisos jsonb default '{}'::jsonb;
+alter table public.aos_usuarios add column if not exists ultimo_login timestamptz;
+alter table public.aos_usuarios add column if not exists login_method text;
+alter table public.aos_usuarios add column if not exists sueldo numeric;
+alter table public.aos_usuarios add column if not exists fecha_ingreso date;
+alter table public.aos_usuarios add column if not exists dni text;
 alter table public.aos_usuarios add column if not exists telefono_personal text;
+alter table public.aos_usuarios add column if not exists direccion text;
+alter table public.aos_usuarios add column if not exists contacto_emergencia text;
 alter table public.aos_usuarios add column if not exists sede text;
+alter table public.aos_usuarios add column if not exists invitacion_enviada boolean default false;
 alter table public.aos_usuarios add column if not exists cuenta_activada boolean default false;
+alter table public.aos_usuarios add column if not exists fecha_nacimiento date;
+alter table public.aos_usuarios add column if not exists lugar_nacimiento text;
+alter table public.aos_usuarios add column if not exists pais text;
+alter table public.aos_usuarios add column if not exists departamento text;
+alter table public.aos_usuarios add column if not exists provincia text;
+alter table public.aos_usuarios add column if not exists distrito text;
+alter table public.aos_usuarios add column if not exists tipo_contrato text;
+alter table public.aos_usuarios add column if not exists rh text;
+alter table public.aos_usuarios add column if not exists bono_metas numeric;
+alter table public.aos_usuarios add column if not exists cmp text;
+alter table public.aos_usuarios add column if not exists servicios text[] default ARRAY[]::text[];
 
 create table if not exists public.aos_integraciones (
   id uuid primary key default extensions.gen_random_uuid(),
