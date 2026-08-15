@@ -26,7 +26,7 @@ declare
   v_safe_name text;
   v_html text;
 begin
-  if coalesce(pg_catalog.length(pg_catalog.trim(p_usuario)),0)<1 or coalesce(pg_catalog.length(p_password),0)<1 then
+  if coalesce(pg_catalog.length(pg_catalog.btrim(p_usuario)),0)<1 or coalesce(pg_catalog.length(p_password),0)<1 then
     return pg_catalog.jsonb_build_object('ok',false,'error','Credenciales inválidas');
   end if;
 
@@ -34,13 +34,13 @@ begin
     into v_user
   from public.aos_rrhh r
   left join public.aos_usuarios u on u.codigo_asesor=r.codigo_asesor
-  where (pg_catalog.lower(r.usuario)=pg_catalog.lower(pg_catalog.trim(p_usuario)) or pg_catalog.lower(coalesce(u.email,''))=pg_catalog.lower(pg_catalog.trim(p_usuario)))
+  where (pg_catalog.lower(r.usuario)=pg_catalog.lower(pg_catalog.btrim(p_usuario)) or pg_catalog.lower(coalesce(u.email,''))=pg_catalog.lower(pg_catalog.btrim(p_usuario)))
     and r.estado='ACTIVO'
   limit 1;
 
   if v_user.codigo_asesor is null then
     insert into public.aos_security_log(usuario,accion,detalles)
-    values (pg_catalog.left(pg_catalog.trim(p_usuario),120),'login_failed',pg_catalog.jsonb_build_object('reason','not_found','version','v3-k1'));
+    values (pg_catalog.left(pg_catalog.btrim(p_usuario),120),'login_failed',pg_catalog.jsonb_build_object('reason','not_found','version','v3-k1'));
     return pg_catalog.jsonb_build_object('ok',false,'error','Usuario o email no encontrado');
   end if;
 
@@ -63,12 +63,12 @@ begin
   v_paneles:=coalesce(v_udata.paneles_acceso,'{}'::text[]);
 
   if pg_catalog.lower(coalesce(v_udata.rol,''))='admin' and coalesce(v_udata.nivel_jerarquia,99) in (1,2)
-     and (not coalesce(v_udata.two_factor,false) or coalesce(pg_catalog.trim(v_udata.email),'')='') then
+     and (not coalesce(v_udata.two_factor,false) or coalesce(pg_catalog.btrim(v_udata.email),'')='') then
     return pg_catalog.jsonb_build_object('ok',false,'error','ADMIN_2FA_REQUIRED');
   end if;
 
   if coalesce(v_udata.two_factor,false) then
-    if coalesce(pg_catalog.trim(v_udata.email),'')='' then return pg_catalog.jsonb_build_object('ok',false,'error','2FA requiere un email válido'); end if;
+    if coalesce(pg_catalog.btrim(v_udata.email),'')='' then return pg_catalog.jsonb_build_object('ok',false,'error','2FA requiere un email válido'); end if;
 
     v_code:=pg_catalog.lpad((((('x'||pg_catalog.substr(pg_catalog.encode(extensions.gen_random_bytes(4),'hex'),1,8))::bit(32)::bigint)%1000000))::text,6,'0');
     v_challenge:=extensions.gen_random_uuid();
