@@ -40,19 +40,12 @@ concurrency:
 jobs:
   baseline:
     name: Runtime baseline
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Enforce Zero-Cost CI V2 policy
-        run: python3 scripts/ci/enforce-zero-cost-policy.py
-
-      - name: Self-hosted runner healthcheck
-        shell: bash
-        run: bash scripts/ci/runner-healthcheck.sh
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -61,30 +54,51 @@ jobs:
           cache: 'npm'
           cache-dependency-path: app/package.json
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Enforce Zero-Cost multi-runner policy
+        shell: powershell
+        run: python scripts/ci/enforce-zero-cost-policy.py
+
+      - name: FAST runner healthcheck
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Runner must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
+          git --version
+          node --version
+          python --version
+
       - name: Install app dependencies
+        shell: powershell
         working-directory: app
-        run: npm install --no-audit --no-fund
+        run: npm.cmd install --no-audit --no-fund
 
       - name: Check production server syntax
-        run: node --check app/server.js
+        shell: powershell
+        run: |
+          node --check app/server.js
+          if (Test-Path 'app/server-f4.js') { node --check app/server-f4.js }
 
       - name: Check public JavaScript syntax
-        shell: bash
+        shell: powershell
         run: |
-          set -euo pipefail
-          count=0
-          while IFS= read -r -d '' file; do
-            echo "Checking $file"
-            node --check "$file"
-            count=$((count + 1))
-          done < <(find app/public -maxdepth 1 -type f -name '*.js' -print0)
-          echo "Checked $count public JavaScript files"
+          $files = Get-ChildItem 'app/public' -File -Filter '*.js'
+          foreach ($file in $files) {
+            Write-Host "Checking $($file.FullName)"
+            node --check $file.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Write-Host "Checked $($files.Count) public JavaScript files"
 
       - name: Validate JSON files
-        shell: bash
+        shell: powershell
         run: |
-          set -euo pipefail
-          node <<'NODE'
+          $script = @'
           const fs = require('fs');
           const path = require('path');
           const roots = ['app'];
@@ -103,28 +117,33 @@ jobs:
           }
           for (const root of roots) walk(root);
           console.log(`Validated ${checked} JSON files`);
-          NODE
+          '@
+          $script | node
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify production-critical files
-        shell: bash
+        shell: powershell
         run: |
-          set -euo pipefail
-          required=(
-            app/server.js
-            app/package.json
-            app/railway.json
-            app/nixpacks.toml
-            app/public/app.html
-            app/public/login.html
+          $required = @(
+            'app/server.js',
+            'app/package.json',
+            'app/railway.json',
+            'app/nixpacks.toml',
+            'app/public/app.html',
+            'app/public/login.html'
           )
-          for file in "${required[@]}"; do
-            test -s "$file" || { echo "Missing or empty critical file: $file"; exit 1; }
-          done
-          echo "Production-critical files present"
+          foreach ($file in $required) {
+            if (-not (Test-Path $file) -or (Get-Item $file).Length -eq 0) {
+              throw "Missing or empty critical file: $file"
+            }
+          }
+          Write-Host 'Production-critical files present'
 
       - name: Report architecture mode
+        shell: powershell
         run: |
-          echo "Ascenda production runtime: node app/server.js"
-          echo "Frontend source of truth: app/public/"
-          echo "CI compute: self-hosted ascenda-zero-cost-v2"
-          echo "Vite build is intentionally not used as a blocking production check."
+          Write-Host 'Ascenda production runtime: node app/server.js'
+          Write-Host 'Frontend source of truth: app/public/'
+          Write-Host 'FAST CI compute: self-hosted Windows ascenda-fast'
+          Write-Host 'DB CI remains on self-hosted Linux ascenda-zero-cost-v2'
+          Write-Host 'Vite build is intentionally not used as a blocking production check.'
