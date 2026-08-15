@@ -122,3 +122,5 @@ jobs:
         run: |
           psql "$BASE_DB_URL" -X -c "drop database if exists phase16_live_canary with (force)" || true
           cd ci/zero-cost-staging && supabase stop --no-backup || true
+
+# Exact-head recertification trigger after final minimal-scope cleanup.
