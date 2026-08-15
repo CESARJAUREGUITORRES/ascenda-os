@@ -1,0 +1,176 @@
+name: ASCENDA Phase 4 Revenue Operations
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*f4_revenue*'
+      - 'supabase/migrations/*f4_cartera*'
+      - 'supabase/rollbacks/*f4_revenue*'
+      - 'ci/phase4-revenue/**'
+      - 'app/public/f4-revenue-ops.js'
+      - 'app/public/f4-kronia-revenue-bridge.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
+      - 'app/server-f4.js'
+      - 'app/railway.json'
+      - '.github/workflows/phase4-revenue-operations.yml'
+      - '.github/workflows/ascenda-ci.yml'
+      - 'scripts/ci/enforce-zero-cost-policy.py'
+  push:
+    branches: ['feature/**','fix/**','security/**','infra/**']
+    paths:
+      - 'supabase/migrations/*f4_revenue*'
+      - 'supabase/migrations/*f4_cartera*'
+      - 'supabase/rollbacks/*f4_revenue*'
+      - 'ci/phase4-revenue/**'
+      - 'app/public/f4-revenue-ops.js'
+      - 'app/public/f4-kronia-revenue-bridge.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'app/server-phase2.js'
+      - 'app/server-f4.js'
+      - 'app/railway.json'
+      - '.github/workflows/phase4-revenue-operations.yml'
+      - '.github/workflows/ascenda-ci.yml'
+      - 'scripts/ci/enforce-zero-cost-policy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase4-revenue-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-contracts:
+    name: FAST runtime/UI contracts
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Runtime syntax contracts
+        shell: powershell
+        run: |
+          node --check app/public/f4-revenue-ops.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/f4-kronia-revenue-bridge.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/phase2-service-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-phase2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-f4.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  revenue-operations-contract:
+    name: DB/security contracts
+    needs: fast-contracts
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost DB runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: F4 UI/consumer contract
+        run: |
+          set -euo pipefail
+          python3 ci/phase4-revenue/ui_contract.py
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase4-revenue"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59320/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-phase4-revenue' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59322 -U postgres >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'F4 isolated Postgres did not become ready on 59322' >&2
+          docker ps -a --filter 'name=ascenda-phase4-revenue' || true
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/schema_contract.sql
+
+      - name: Apply exact additive F4 migrations
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223100_f4_cartera_candidates_v2.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP F4 contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/tests/001_revenue_operations.sql | tee /tmp/f4-pgtap.txt
+          grep -q '1..38' /tmp/f4-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/f4-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/f4-pgtap.txt; then exit 1; fi
+
+      - name: Apply cutover contract and verify legacy writes close
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223900_f4_revenue_operations_cutover.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta(bigint,jsonb,text,text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas(jsonb)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_grabar_venta_caja(text,text,text,text,text,text,text,text,text,text,jsonb,text,numeric,text,text,text,text,text,text,text,text,numeric)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta_v4(text,bigint,timestamptz,jsonb,text)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas_v4(text,jsonb)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cartera_reconcile_v2(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text,text)','EXECUTE')")" = "t"
+
+      - name: Recovery stays fail-closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814223900_f4_revenue_operations_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta_v4(text,bigint,timestamptz,jsonb,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas_v4(text,jsonb)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cartera_reconcile_v2(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_sales_admin_gateway_v4(text,integer,integer,text,text,text)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas_preview_v4(text,jsonb)','EXECUTE')")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta(bigint,jsonb,text,text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas(jsonb)','EXECUTE')")" = "f"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
