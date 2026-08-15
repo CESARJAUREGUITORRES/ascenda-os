@@ -1,0 +1,146 @@
+name: ASCENDA WA-2 Conversation Store & Live Inbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa2.js'
+      - 'app/public/admin-whatsapp.html'
+      - 'app/railway.json'
+      - 'supabase/migrations/*wa2_conversation_live_inbox*'
+      - 'supabase/rollbacks/*wa2_conversation_live_inbox*'
+      - 'ci/wa2-conversation-live-inbox/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA2_*'
+      - '.github/workflows/wa2-conversation-live-inbox.yml'
+  push:
+    branches: ['feature/wa2-conversation-live-inbox']
+    paths:
+      - 'app/server-wa2.js'
+      - 'app/public/admin-whatsapp.html'
+      - 'app/railway.json'
+      - 'supabase/migrations/*wa2_conversation_live_inbox*'
+      - 'supabase/rollbacks/*wa2_conversation_live_inbox*'
+      - 'ci/wa2-conversation-live-inbox/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA2_*'
+      - '.github/workflows/wa2-conversation-live-inbox.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa2-conversation-live-inbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: WA-2 Zero-Cost security certification
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Runtime syntax and cross-workstream regression
+        run: |
+          set -euo pipefail
+          node --check app/server-wa2.js
+          node --check app/server-f4.js
+          node --check app/wa-gateway.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          python3 ci/phase4-revenue/ui_contract.py
+          python3 ci/wa2-conversation-live-inbox/ui_contract.py
+
+      - name: Source security contracts
+        run: |
+          set -euo pipefail
+          grep -q "p_required_panel:PANEL" app/server-wa2.js
+          grep -q "p_require_2fa:true" app/server-wa2.js
+          grep -q "nivel_jerarquia" app/server-wa2.js
+          grep -q "SUPABASE_SERVICE_ROLE_KEY" app/server-wa2.js
+          grep -q "X-Ascenda-WA2-Inbox" app/server-wa2.js
+          grep -q "node server-wa2.js" app/railway.json
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY)\s*=\s*['\"][^'\"]+['\"]" app/server-wa2.js
+          ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-wa2.js app/public/admin-whatsapp.html
+          ! grep -q "supabase.co" app/public/admin-whatsapp.html
+          ! grep -q "/rest/v1/" app/public/admin-whatsapp.html
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa2-conversation-live-inbox"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59721/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59722/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59720/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa2-conversation-live-inbox' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59722 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-2 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/schema_contract.sql
+
+      - name: Apply exact WA-1 prerequisite migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+
+      - name: Seed pre-WA2 deterministic fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/pre_migration_fixture.sql
+
+      - name: Apply exact WA-2 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP store, projection and authorization contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/tests/001_wa2_store.sql | tee /tmp/wa2-pgtap.txt
+          grep -q '1..36' /tmp/wa2-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/wa2-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/wa2-pgtap.txt; then exit 1; fi
+
+      - name: Recovery is fail-closed and preserves evidence
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815175500_wa2_conversation_live_inbox_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname='trg_aos_wa2_bind_conversation_v1' and not tgisinternal")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa2_bind_conversation_v1()') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_paneles_disponibles where id='admin-whatsapp'")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_usuarios where 'admin-whatsapp'=any(coalesce(paneles_acceso,'{}'::text[]))")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_conversations_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa_conversations_v1")" -ge "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_conversations_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_conversations_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_wa_conversation_events_v1','INSERT')")" = "f"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
