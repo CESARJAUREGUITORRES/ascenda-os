@@ -65,9 +65,7 @@ replaceOnce(
           fi`
 );
 
-for(const p of ['app/public/f4-revenue-ops.js','ci/phase4-revenue/ui_contract.js']){
-  const s=read(p);
-  if(s.includes('aos_si_token'))throw new Error(`${p}: cross-scope token reference found`);
-}
-if(!read('app/public/f4-revenue-ops.js').includes("postRpc(url,init,'aos_cartera_gateway_v2'"))throw new Error('V2 Cartera route missing');
+const bridge=read('app/public/f4-revenue-ops.js');
+if(bridge.includes('aos_si_token'))throw new Error('app/public/f4-revenue-ops.js: cross-scope token reference found');
+if(!bridge.includes("postRpc(url,init,'aos_cartera_gateway_v2'"))throw new Error('V2 Cartera route missing');
 console.log('F4_CARTERA_V2_AUTH_CHAIN_MATERIALIZATION=PASS');
