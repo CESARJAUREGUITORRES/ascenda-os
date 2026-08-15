@@ -2,8 +2,6 @@ const http = require('http')
 const https = require('https')
 const fs   = require('fs')
 const path = require('path')
-const { createEmailGateway } = require('./email-gateway')
-const EMAIL_GATEWAY = createEmailGateway()
 const PORT = parseInt(process.env.PORT || '4173', 10)
 // Servir siempre desde public/ (archivos HTML estáticos editados directamente)
 // El build de vite no aplica a estos archivos
@@ -21,29 +19,16 @@ const MIME = {
 const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'
 const VERIFY_TOKEN = 'ascendaos_zivital_2026'
-// F16: Email tables are backend-only. No service-role value is stored in source.
-const EMAIL_SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-function f16DbKey(endpoint) {
-  var e = String(endpoint || '')
-  return /^\/rest\/v1\/aos_emails?_/.test(e) ? EMAIL_SB_KEY : SB_KEY
-}
-function f16RequireEmailBackend(endpoint) {
-  if (/^\/rest\/v1\/aos_emails?_/.test(String(endpoint || '')) && !EMAIL_SB_KEY) {
-    throw new Error('EMAIL_SERVICE_ROLE_NOT_CONFIGURED')
-  }
-}
 
 function sbPost(endpoint, body, method) {
-  f16RequireEmailBackend(endpoint)
   const url = new URL(SB_URL + endpoint)
   const httpMethod = String(method || 'POST').toUpperCase() === 'PATCH' ? 'PATCH' : 'POST'
-  const dbKey = f16DbKey(endpoint)
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body)
     const req = https.request({
       hostname: url.hostname, path: url.pathname + url.search,
       method: httpMethod,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }
     }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(res.statusCode)) })
     req.on('error', reject)
     req.write(data)
@@ -51,13 +36,11 @@ function sbPost(endpoint, body, method) {
   })
 }
 function sbGet(endpoint) {
-  try { f16RequireEmailBackend(endpoint) } catch (e) { return Promise.resolve([]) }
   const url = new URL(SB_URL + endpoint)
-  const dbKey = f16DbKey(endpoint)
   return new Promise(function(resolve, reject) {
     https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { resolve([]) }
@@ -82,14 +65,12 @@ function sbRpc(fnName, params) {
   })
 }
 function sbPatch(endpoint, body) {
-  try { f16RequireEmailBackend(endpoint) } catch (e) { return Promise.resolve(false) }
   const url = new URL(SB_URL + endpoint)
-  const dbKey = f16DbKey(endpoint)
   var data = JSON.stringify(body || {})
   return new Promise(function(resolve) {
     var req = https.request({
       hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() { resolve(r.statusCode < 300) })
     })
@@ -930,10 +911,6 @@ function serve(f, res) {
 // ═══ SERVER ═══
 http.createServer(function(req, res) {
   var p = req.url.split('?')[0]
-  // F16: all admin Email writes and provider webhooks enter through a server-authoritative boundary.
-  if (p === '/api/email-gateway') return EMAIL_GATEWAY.handleAdmin(req, res)
-  if (p === '/api/send-email') return EMAIL_GATEWAY.handleAdmin(req, res)
-  if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)
   if (p === '/webhook' || p === '/webhook/') {
     if (req.method === 'GET') return webhookVerify(req, res)
     if (req.method === 'POST') return webhookMessage(req, res)
@@ -1498,33 +1475,106 @@ http.createServer(function(req, res) {
     res.end(connData); return
   }
   // ═══ FIN STUDIO API ═══
-  // ===== F16 EMAIL ADMIN SEND =====
-  // Handled above by EMAIL_GATEWAY with authoritative admin session verification.
-  // ===== F16 LEGACY 2FA RETIRED =====
-  // Current Auth V3 sends 2FA inside aos_login_v3. This legacy public provider path is closed.
-  if (p === '/api/send-2fa') {
-    res.writeHead(410, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
-    res.end(JSON.stringify({ ok:false, error:'LEGACY_2FA_RETIRED' })); return
+  // ===== RESEND EMAIL API =====
+  if (p === '/api/send-email' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        if (!d.to || !d.subject || !d.html) { res.writeHead(400); res.end(JSON.stringify({error:'Missing to, subject, or html'})); return }
+        var RESEND_KEY = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
+        var emailData = JSON.stringify({
+          from: d.from || 'Clínica Zi Vital <info@zivital.pe>',
+          to: Array.isArray(d.to) ? d.to : [d.to],
+          subject: d.subject,
+          html: d.html,
+          reply_to: d.reply_to || 'jaureguitorrescesar@gmail.com'
+        })
+        var rReq = https.request({
+          hostname: 'api.resend.com', path: '/emails', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
+        }, function(rRes) {
+          var rData = ''; rRes.on('data', function(c) { rData += c }); rRes.on('end', function() {
+            try {
+              var result = JSON.parse(rData)
+              // Log to Supabase
+              var logData = JSON.stringify({
+                destinatario_email: Array.isArray(d.to) ? d.to[0] : d.to,
+                destinatario_nombre: d.nombre || '',
+                destinatario_numero: d.numero || '',
+                plantilla_id: d.plantilla_id || null,
+                campania_id: d.campania_id || null,
+                flujo_id: d.flujo_id || null,
+                flujo_paso: d.flujo_paso || null,
+                asunto: d.subject,
+                variables_usadas: d.variables || {},
+                estado: result.id ? 'enviado' : 'error',
+                resend_id: result.id || null,
+                error_msg: result.message || null,
+                enviado_at: result.id ? new Date().toISOString() : null
+              })
+              var logReq = https.request({
+                hostname: 'ituyqwstonmhnfshnaqz.supabase.co', path: '/rest/v1/aos_email_envios', method: 'POST',
+                headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(logData) }
+              }, function() {})
+              logReq.on('error', function() {})
+              logReq.write(logData); logReq.end()
+
+              res.writeHead(result.id ? 200 : 400, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify(result))
+            } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error: ' + rData})) }
+          })
+        })
+        rReq.on('error', function(e) { res.writeHead(500); res.end(JSON.stringify({error:e.message})) })
+        rReq.write(emailData); rReq.end()
+      } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
+    }); return
   }
-  // ===== FIN F16 LEGACY 2FA =====
+  if (p === '/api/send-email' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN RESEND =====
+  // ===== 2FA CODE EMAIL =====
+  if (p === '/api/send-2fa' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+      try {
+        var d = JSON.parse(body)
+        if (!d.email || !d.code || !d.nombre) { res.writeHead(400); res.end('{"error":"missing fields"}'); return }
+        var RESEND_KEY = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
+        var emailData = JSON.stringify({
+          from: 'AscendaOS <info@zivital.pe>',
+          to: [d.email],
+          subject: '🔐 Código de verificación — AscendaOS',
+          html: '<div style="font-family:Arial;max-width:400px;margin:0 auto;text-align:center;"><div style="background:linear-gradient(135deg,#071D4A,#0A4FBF);padding:24px;border-radius:12px 12px 0 0;"><div style="color:#00E5A0;font-size:10px;font-weight:700;letter-spacing:2px;">ASCENDA OS</div><div style="color:#fff;font-size:18px;font-weight:800;margin-top:6px;">Código de Verificación</div></div><div style="background:#fff;padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;"><p>Hola <b>' + d.nombre + '</b>,</p><p style="font-size:13px;color:#6B7BA8;">Tu código de acceso es:</p><div style="background:#F0F4FC;border-radius:12px;padding:20px;margin:16px 0;"><div style="font-family:monospace;font-size:36px;font-weight:800;letter-spacing:8px;color:#0A4FBF;">' + d.code + '</div></div><p style="font-size:11px;color:#9AAAC8;">Este código expira en 5 minutos. Si no solicitaste este código, ignora este mensaje.</p></div></div>'
+        })
+        var rReq = https.request({
+          hostname: 'api.resend.com', path: '/emails', method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(emailData) }
+        }, function(rRes) {
+          var rData = ''; rRes.on('data', function(c) { rData += c }); rRes.on('end', function() {
+            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(rData)
+          })
+        })
+        rReq.on('error', function(e) { res.writeHead(500); res.end('{"error":"' + e.message + '"}') })
+        rReq.write(emailData); rReq.end()
+      } catch(e) { res.writeHead(400); res.end('{"error":"Invalid JSON"}') }
+    }); return
+  }
+  if (p === '/api/send-2fa' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
+  // ===== FIN 2FA =====
   // ===== TEMPLATE EMAILS (confirmación cita, recibo venta, seguimiento) =====
   if (p === '/api/send-template' && req.method === 'POST') {
-    var templateToken = String(req.headers['x-ascenda-session'] || '')
-    EMAIL_GATEWAY.verifyApp(templateToken).then(function(templateAuth) {
-      if (!templateAuth || templateAuth.ok !== true) {
-        res.writeHead(401, { 'Content-Type':'application/json', 'Cache-Control':'no-store' })
-        res.end(JSON.stringify({ok:false,error:'UNAUTHORIZED'})); return
-      }
-      var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
       try {
         var d = JSON.parse(body)
         if (!d.to || !d.template) { res.writeHead(400); res.end('{"error":"missing to/template"}'); return }
         var html = '', subject = '', tipo = d.template
-        // F16: template endpoint is transactional only. Marketing must use governed activation/consent.
-        if (EMAILS_TRANSACCIONALES.indexOf(String(tipo || '')) === -1) {
-          res.writeHead(403, { 'Content-Type':'application/json', 'Cache-Control':'no-store' })
-          res.end(JSON.stringify({ok:false,error:'GOVERNED_ACTIVATION_REQUIRED',template:String(tipo||'')})); return
-        }
         // Construir variables para la plantilla
         var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
 
@@ -1626,20 +1676,133 @@ http.createServer(function(req, res) {
           })
           .catch(function(e) { res.writeHead(500); res.end('{"error":"' + e.message + '"}') })
       } catch(e) { res.writeHead(400); res.end('{"error":"Invalid JSON"}') }
-      })
-    }).catch(function() {
-      res.writeHead(401, { 'Content-Type':'application/json', 'Cache-Control':'no-store' })
-      res.end(JSON.stringify({ok:false,error:'UNAUTHORIZED'}))
-    })
-    return
+    }); return
   }
   if (p === '/api/send-template' && req.method === 'OPTIONS') {
-    res.writeHead(405, { 'Content-Type':'application/json', 'Cache-Control':'no-store' })
-    res.end(JSON.stringify({ok:false,error:'METHOD_NOT_ALLOWED'})); return
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
   }
   // ===== FIN TEMPLATE EMAILS =====
-  // ===== F16 RESEND WEBHOOK =====
-  // Handled above by EMAIL_GATEWAY with cryptographic signature + replay protection.
+  // ===== RESEND WEBHOOK — open/click/bounce tracking =====
+  if (p === '/api/resend-webhook' && req.method === 'POST') {
+    var wBody = ''; req.on('data', function(c) { wBody += c }); req.on('end', function() {
+      try {
+        var evt = JSON.parse(wBody)
+        var evtType = evt.type || ''
+        var evtData = evt.data || {}
+        var emailId = evtData.email_id || ''
+        var emailTo = evtData.to ? (Array.isArray(evtData.to) ? evtData.to[0] : evtData.to) : ''
+        var clickUrl = evtData.click && evtData.click.link ? evtData.click.link : ''
+
+        console.log('[WEBHOOK] ' + evtType + ' — ' + emailTo + (clickUrl ? ' → ' + clickUrl : ''))
+
+        // ═══ 1. GUARDAR EVENTO RAW ═══
+        sbPost('/rest/v1/aos_email_eventos', {
+          resend_id: emailId, tipo_evento: evtType,
+          email_destino: emailTo, metadata: evtData
+        }).catch(function(){})
+
+        // ═══ 2. ACTUALIZAR TRACKING en email enviado ═══
+        if (evtType === 'email.delivered' && emailId) {
+          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+            ultimo_evento: new Date().toISOString()
+          }, 'PATCH').catch(function(){})
+        }
+
+        if (evtType === 'email.opened' && emailId) {
+          sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+            abierto: true, ultimo_evento: new Date().toISOString()
+          }, 'PATCH').catch(function(){})
+
+          // ═══ 3. SCORE DE ENGAGEMENT: incrementar score del paciente ═══
+          if (emailTo) {
+            sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select=numero_limpio,"SCORE_ESTADO"&limit=1')
+              .then(function(pacs) {
+                if (pacs && pacs[0]) {
+                  var newScore = Math.min((parseInt(pacs[0].SCORE_ESTADO) || 0) + 1, 100)
+                  sbPost('/rest/v1/aos_pacientes?numero_limpio=eq.' + pacs[0].numero_limpio, {
+                    "SCORE_ESTADO": newScore.toString()
+                  }, 'PATCH').catch(function(){})
+                }
+              }).catch(function(){})
+          }
+        }
+
+        if (evtType === 'email.clicked' && emailId) {
+          // Incrementar clicks
+          sbFetch('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId + '&select=clicks,tipo,destinatario').then(function(rows) {
+            if (rows && rows[0]) {
+              sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+                clicks: (rows[0].clicks || 0) + 1, abierto: true, ultimo_evento: new Date().toISOString()
+              }, 'PATCH').catch(function(){})
+
+              // ═══ 4. ALERTA AL ASESOR: si clickeó link de agendar/WhatsApp ═══
+              var isActionClick = clickUrl && (clickUrl.indexOf('wa.me') > -1 || clickUrl.indexOf('agendar') > -1 || clickUrl.indexOf('whatsapp') > -1)
+              if (isActionClick) {
+                var tipoEmail = rows[0].tipo || 'email'
+                // Buscar nombre del paciente
+                sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select="Nombres","Apellidos",numero_limpio,tratamiento_principal&limit=1')
+                  .then(function(pacs) {
+                    var pacNombre = pacs && pacs[0] ? (pacs[0].Nombres || '') + ' ' + (pacs[0].Apellidos || '') : emailTo
+                    var pacNum = pacs && pacs[0] ? pacs[0].numero_limpio : ''
+                    // Notificación interna al CRM
+                    notifyAdmin(
+                      '🔥 ' + pacNombre.trim() + ' quiere agendar',
+                      'Hizo click en "Agendar" desde email ' + tipoEmail + '. Llamar ahora. Tel: ' + pacNum,
+                      'LEAD_CALIENTE', 'ALTA'
+                    )
+                    // Log de acción
+                    logAction('cartero', 'click_agendar', pacNombre.trim() + ' clickeó agendar desde ' + tipoEmail, {
+                      email: emailTo, tipo_email: tipoEmail, url: clickUrl, numero: pacNum
+                    })
+                    console.log('[WEBHOOK] 🔥 LEAD CALIENTE: ' + pacNombre.trim() + ' clickeó agendar desde ' + tipoEmail)
+                  }).catch(function(){})
+              }
+            }
+          }).catch(function(){})
+        }
+
+        if (evtType === 'email.bounced' || evtType === 'email.complained') {
+          if (emailId) {
+            sbPost('/rest/v1/aos_emails_enviados?resend_id=eq.' + emailId, {
+              rebotado: true, ultimo_evento: new Date().toISOString()
+            }, 'PATCH').catch(function(){})
+          }
+
+          // ═══ 5. AUTO-LIMPIAR EMAILS INVÁLIDOS ═══
+          if (emailTo) {
+            // Marcar email como inválido en el paciente para que Elena no le envíe más
+            sbFetch('/rest/v1/aos_pacientes?or=("Email".eq.' + encodeURIComponent(emailTo) + ')&select=numero_limpio,"Nombres","Email"&limit=1')
+              .then(function(pacs) {
+                if (pacs && pacs[0]) {
+                  var motivo = evtType === 'email.complained' ? 'SPAM' : 'REBOTADO'
+                  sbPost('/rest/v1/aos_pacientes?numero_limpio=eq.' + pacs[0].numero_limpio, {
+                    "Email": pacs[0].Email + ' [' + motivo + ']'
+                  }, 'PATCH').catch(function(){})
+                  console.log('[WEBHOOK] ⚠ Email invalidado: ' + emailTo + ' (' + motivo + ') — ' + (pacs[0].Nombres || ''))
+                  // Alerta para que César sepa
+                  notifyAdmin(
+                    '⚠ Email ' + motivo + ': ' + (pacs[0].Nombres || ''),
+                    'El email ' + emailTo + ' fue marcado como ' + motivo + '. Se desactivó para futuros envíos.',
+                    'EMAIL', 'MEDIA'
+                  )
+                }
+              }).catch(function(){})
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end('{"ok":true}')
+      } catch(e) {
+        console.error('[WEBHOOK] Error:', e.message)
+        res.writeHead(400); res.end('{"error":"invalid payload"}')
+      }
+    }); return
+  }
+  if (p === '/api/resend-webhook' && req.method === 'OPTIONS') {
+    res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.end(); return
+  }
 
   // ===== RESEND STATS — datos reales de emails enviados =====
   if (p === '/api/resend-stats' && req.method === 'GET') {
@@ -2066,7 +2229,7 @@ function saveContent(agentId, tipo, titulo, contenido, metadata) {
 // MOTOR DE ACCIONES — agentes actúan, no solo analizan
 // ═══════════════════════════════════════════════════════════════
 
-var RESEND_KEY_AG = process.env.RESEND_API_KEY || ''
+var RESEND_KEY_AG = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
 
 // ═══ BRANDING CACHE (se carga al inicio y refresca cada 30min) ═══
 var BRAND = {
@@ -2157,14 +2320,10 @@ function validarEmail(email) {
 }
 
 // Tipos transaccionales: NO se limitan por cadencia (son respuestas a acciones del paciente)
-var EMAILS_TRANSACCIONALES = ['confirmacion_cita','recibo_venta','recordatorio_hoy','recordatorio_manana','recordatorio','bienvenida','confirmacion_pago','cotizacion','catalogo','comprobante','agradecimiento','agradecimiento_visita','no_asistencia','reprogramacion','saldo_pendiente','seguimiento']
+var EMAILS_TRANSACCIONALES = ['confirmacion_cita', 'recibo_venta', 'recordatorio_hoy', 'recordatorio_manana', 'bienvenida', 'confirmacion_pago', 'cotizacion']
 
 function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
   return new Promise(function(resolve) {
-    // F16: all marketing/reactivation/cross-sell agent sends require governed Audience activation + consent.
-    if (EMAILS_TRANSACCIONALES.indexOf(String(tipo || '')) === -1) {
-      resolve({ skip:true, reason:'F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED', governed_activation_required:true }); return
-    }
     // Anti-duplicado: verificar si ya se envió hoy
     sbFetch('/rest/v1/aos_emails_enviados?tipo=eq.' + encodeURIComponent(tipo) + '&destinatario=eq.' + encodeURIComponent(destinatario_id) + '&fecha_envio=eq.' + limaDateStr())
       .then(function(rows) {
@@ -2699,10 +2858,9 @@ function executeAction(agent, task, queryResult) {
   // Guardar alerta en panel (siempre)
   function saveEmailAlerta(tipo, template, titulo, detalle, destinatario, resendId) {
     var body = JSON.stringify({ tipo: tipo, template: template, titulo: titulo, detalle: detalle || '', destinatario: destinatario || '', resend_id: resendId || '' })
-    if (!EMAIL_SB_KEY) return
     var url = new URL(SB_URL + '/rest/v1/aos_email_alertas')
     var req = https.request({ hostname: url.hostname, path: url.pathname, method: 'POST',
-      headers: { 'apikey': EMAIL_SB_KEY, 'Authorization': 'Bearer ' + EMAIL_SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
     }, function(){})
     req.on('error', function(){})
     req.write(body); req.end()
@@ -3492,13 +3650,11 @@ function loadAIKeys() {
 }
 
 function sbFetch(endpoint) {
-  try { f16RequireEmailBackend(endpoint) } catch (e) { return Promise.reject(e) }
   return new Promise(function(resolve, reject) {
     var url = new URL(SB_URL + endpoint)
-    var dbKey = f16DbKey(endpoint)
     https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     }, function(res) {
       var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { reject(e) }

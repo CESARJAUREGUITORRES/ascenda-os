@@ -15,7 +15,7 @@ ok(/admin-cartera[\s\S]{0,220}requiresPanel\s*:\s*true/.test(app), 'admin-carter
 ok(/['"]admin-cartera['"]\s*:\s*['"]ViewAdminCartera['"]/.test(app), 'admin-cartera view mapping missing');
 ok(/['"]ViewAdminCartera['"]\s*:\s*['"]\/admin-cartera\.html['"]/.test(app), 'admin-cartera route missing');
 ok(/viewId\s*===\s*['"]admin-cartera['"]/.test(app), 'admin-cartera view activation missing');
-for(const marker of ['aos_cartera_gateway','aos_cartera_reconcile','p_expected_updated_at:current.updatedAt','aos_app_token','RECORDATORIOS BLOQUEADOS','Adelantos ≠ deuda']) ok(cartera.includes(marker), `missing Cartera marker: ${marker}`);
+for(const marker of ['/api/f4/cartera-read','aos_cartera_reconcile','p_expected_updated_at:current.updatedAt','aos_app_token','RECORDATORIOS BLOQUEADOS','Adelantos ≠ deuda']) ok(cartera.includes(marker), `missing Cartera marker: ${marker}`);
 ok(!cartera.includes('aos_si_token'), 'Cartera must not depend on the Sales Intelligence token scope');
 ok(!sw.includes("var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'}"), 'service worker must not reconstruct Cartera read RPC');
 ok(!sw.includes('CARTERA[rm[1]]'), 'service worker Cartera interception must remain absent');
@@ -64,4 +64,7 @@ ok(!rollbackLower.includes('grant execute'), 'rollback must not grant execute');
 ok(!/grant[\s\S]{0,120}\b(?:anon|authenticated)\b/i.test(rollback), 'rollback must not grant anon/authenticated');
 ok(rollbackLower.includes('revoke all on function public.aos_abonar_cotizacion_v2'), 'rollback revoke missing');
 ok(rollbackLower.includes('rename to aos_cartera_reconciliacion_rollback_20260814'), 'rollback rename missing');
+ok(cartera.includes("'/api/f4/cartera-read'"), 'same-origin Cartera read transport missing');
+ok(cartera.includes("caches.open('aos-phase2-auth')"), 'Cartera cached Auth V3 recovery missing');
+ok(!cartera.includes("api('aos_cartera_gateway'"), 'direct Cartera gateway browser read must remain absent');
 console.log('CARTERA_PHASE2_UI_CONTRACT=PASS');
