@@ -16,7 +16,7 @@ grant execute on function public.aos_cartera_candidates_v2(text,uuid) to anon,au
 -- Legacy mutation functions intentionally remain revoked after recovery.
 revoke execute on function public.aos_editar_venta(bigint,jsonb,text,text,text) from public,anon,authenticated;
 revoke execute on function public.aos_importar_ventas(jsonb) from public,anon,authenticated;
-revoke execute on function public.aos_grabar_venta_caja(text,text,text,text,text,text,text,text,text,text,text,jsonb,text,numeric,text,text,text,text,text,text,text,text,numeric) from public,anon,authenticated;
+revoke execute on function public.aos_grabar_venta_caja(text,text,text,text,text,text,text,text,text,text,jsonb,text,numeric,text,text,text,text,text,text,text,text,numeric) from public,anon,authenticated;
 revoke execute on function public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text) from public,anon,authenticated;
 
 insert into public.aos_security_log(usuario,accion,detalles)
