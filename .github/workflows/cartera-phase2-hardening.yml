@@ -203,7 +203,12 @@ jobs:
           assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
           assert 'PHASE2_INTERNAL_PORT' in proxy
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
-          assert 'node server-phase2.js' in railway and 'node staging-server.js' in railway
+          assert ('node server-phase2.js' in railway or 'node server-k1.js' in railway)
+          assert 'node staging-server.js' in railway
+          if 'node server-k1.js' in railway:
+              k1=Path('app/server-k1.js').read_text(encoding='utf-8')
+              assert 'server-phase2.js' in k1
+              assert 'aos_kronia_identity_v3' in k1
           assert 'legacy_bypass' in recovery and 'not_restored' in recovery
           PY
 
