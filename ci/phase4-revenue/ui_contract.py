@@ -6,6 +6,7 @@ kronia = (root / 'app/public/f4-kronia-revenue-bridge.js').read_text(encoding='u
 sw = (root / 'app/public/phase2-service-worker.js').read_text(encoding='utf-8')
 proxy = (root / 'app/server-f4.js').read_text(encoding='utf-8')
 railway = (root / 'app/railway.json').read_text(encoding='utf-8')
+core = (root / 'supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql').read_text(encoding='utf-8')
 
 required_bridge = [
     'aos_sales_admin_gateway_v4', 'aos_sales_admin_sale_v4', 'aos_editar_venta_v4',
@@ -28,8 +29,13 @@ assert 'aos_cartera_candidates_v2' in proxy
 assert 'node server-f4.js' in railway
 assert 'node server-phase2.js' not in railway.split('"environments"')[0]
 
-# F4 never embeds service-role credentials and never writes raw sales descriptions during read-model rendering.
+# F4 never embeds service-role credentials in browser/runtime bridges.
 for text in (bridge, kronia, proxy):
     assert 'service_role' not in text.lower()
-assert 'rawDescription' in bridge
+
+# Raw evidence preservation belongs to the DB read model. The browser consumes the
+# enriched payload transparently, so do not require a dead marker in the bridge.
+assert "'rawDescription',e->>'descripcion'" in core
+assert "'rawDescription',v.descripcion" in core
+assert "'canonicalProductName'" in core
 print('F4 UI/runtime contract PASS')
