@@ -11,6 +11,7 @@ wa2 = wa2_path.read_text(encoding='utf-8') if wa2_path.exists() else ''
 wa3_path = root / 'app/server-wa3.js'
 wa3 = wa3_path.read_text(encoding='utf-8') if wa3_path.exists() else ''
 core = (root / 'supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql').read_text(encoding='utf-8')
+cartera_auth = (root / 'supabase/migrations/20260815191500_f4_cartera_gateway_v2_auth_chain_hotfix.sql').read_text(encoding='utf-8')
 
 required_bridge = [
     'aos_sales_admin_gateway_v4', 'aos_sales_admin_sale_v4', 'aos_editar_venta_v4',
@@ -23,6 +24,9 @@ for marker in required_bridge:
     assert marker in bridge, f'missing F4 bridge marker: {marker}'
 assert '/f4-revenue-ops.js' in sw
 assert '/f4-kronia-revenue-bridge.js' in sw
+assert "var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'}" not in sw, 'Cartera reads must not be re-proxied by the service worker'
+assert 'CARTERA[rm[1]]' not in sw, 'Cartera service-worker interception must remain absent'
+assert 'select public.aos_cartera_gateway_v2(' in cartera_auth, 'DB compatibility alias must route legacy Cartera read to Auth V3 V2'
 assert "'/api/kronia/chat'" in kronia and 'X-AOS-App-Token' in kronia
 assert "body.confirmar_accion.rpc==='aos_editar_venta'" in proxy
 assert 'F4_STRONG_SESSION_REQUIRED' in proxy

@@ -6,8 +6,11 @@ self.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='ASCENDA
 
 var PROTECTED={aos_catalogo_categorias:1,aos_catalogo_servicios:1,aos_catalogo_toppings:1,aos_catalogo_productos_detalle:1,aos_planes_trabajo:1,aos_plan_trabajo_items:1};
 var CAJA={aos_caja_abrir:'aos_caja_abrir_v2',aos_caja_cerrar:'aos_caja_cerrar_v2',aos_caja_editar_pago:'aos_caja_editar_pago_v2',aos_caja_eliminar_venta:'aos_caja_eliminar_venta_v2',aos_caja_ingreso_extra:'aos_caja_ingreso_extra_v2',aos_caja_registrar_gasto:'aos_caja_registrar_gasto_v2'};
-var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'};
 var IDENTITY={aos_admin_crear_usuario:'aos_admin_crear_usuario_v3',aos_admin_cambiar_password:'aos_admin_cambiar_password_v3',aos_cambiar_password:'aos_cambiar_password_v3'};
+// Cartera reads are intentionally NOT re-proxied here. The production DB keeps
+// aos_cartera_gateway as the compatibility read alias to Auth V3 gateway V2.
+// Rebuilding the cross-origin request in the service worker caused PostgREST 401
+// before the valid application token could be evaluated.
 
 async function getToken(){try{var c=await caches.open('aos-phase2-auth');var r=await c.match('/__aos_app_token');return r?await r.text():'';}catch(e){return '';}}
 function json(obj,status){return new Response(JSON.stringify(obj),{status:status||200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});}
@@ -41,11 +44,8 @@ self.addEventListener('fetch',function(event){
   if(rm&&IDENTITY[rm[1]]){
     event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
-  if(rm&&CARTERA[rm[1]]){
-    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();var r=await rpcFrom(req,CARTERA[rm[1]],p);if(isMissing(r))return json({ok:false,error:'F4_CARTERA_GATEWAY_UNAVAILABLE'},503);return r;})());return;
-  }
   if(rm&&CAJA[rm[1]]){
-    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return json({ok:false,error:'SECURE_CAJA_GATEWAY_UNAVAILABLE'},503);return r;})());return;
+    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
   var tm=u.pathname.match(/\/rest\/v1\/([^/]+)$/),table=tm&&tm[1],method=req.method.toUpperCase();
   if(table&&PROTECTED[table]&&(method==='POST'||method==='PATCH'||method==='DELETE')){
