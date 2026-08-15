@@ -43,6 +43,15 @@ assert railway['deploy']['startCommand'] == 'node server-wa2.js'
 assert 'aos_wa_conversations_v1' in migration
 assert 'aos_wa_conversation_events_v1' in migration
 assert 'conversation_id' in migration
+assert 'aos_wa2_bind_conversation_v1' in migration
+assert 'aos_wa2_project_message_v1' in migration
+assert 'trg_aos_wa2_project_insert_v1' in migration
+assert 'trg_aos_wa2_project_backfill_v1' in migration
+assert 'on conflict (conversation_key) do nothing' in migration.lower()
+assert 'after insert on public.aos_wa_messages_v1' in migration.lower()
+assert "old.conversation_id is null and new.conversation_id is not null" in migration.lower()
+assert "v_ts > c.last_read_at" in migration
+assert "coalesce(c.closed_at, '-infinity'::timestamptz)" in migration
 assert 'force row level security' in migration.lower()
 assert "where nivel_jerarquia = 1" in migration
 assert "and two_factor is true" in migration
@@ -50,8 +59,11 @@ assert 'aos_mensajes' not in migration and 'aos_canales' not in migration
 assert 'drop table' not in migration.lower()
 
 # Recovery must fail closed and preserve captured evidence.
-assert 'drop trigger' in rollback.lower()
-assert 'drop function' in rollback.lower()
+assert 'trg_aos_wa2_bind_conversation_v1' in rollback
+assert 'trg_aos_wa2_project_insert_v1' in rollback
+assert 'trg_aos_wa2_project_backfill_v1' in rollback
+assert 'aos_wa2_bind_conversation_v1' in rollback
+assert 'aos_wa2_project_message_v1' in rollback
 assert "array_remove" in rollback
 assert "delete from public.aos_paneles_disponibles where id='admin-whatsapp'" in rollback
 assert 'drop table' not in rollback.lower()
