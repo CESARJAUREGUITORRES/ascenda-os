@@ -142,12 +142,13 @@ jobs:
         shell: powershell
         run: |
           $head = Invoke-WebRequest -UseBasicParsing -Method Head -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
-          if ($head.Headers['X-ASCENDA-ENV'] -notmatch 'staging-fixture') { throw 'Missing staging fixture response header' }
+          $envHeader = [string]$head.Headers['X-ASCENDA-ENV']
+          if ($envHeader -ne 'staging-fixture') { throw "Missing staging fixture response header: $envHeader" }
           $si = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence.html').Content
           $staging = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html').Content
-          if ($si -notmatch 'Sales Intelligence V2') { throw 'Production SI surface marker missing' }
-          if ($staging -notmatch 'ASCENDA Sales Intelligence') { throw 'Staging SI title missing' }
-          if ($staging -notmatch 'window\.__ASCENDA_STAGING_FIXTURE__=true') { throw 'Staging fixture marker missing over HTTP' }
+          if (-not $si.Contains('Sales Intelligence V2')) { throw 'Production SI surface marker missing' }
+          if (-not $staging.Contains('ASCENDA Sales Intelligence')) { throw 'Staging SI title missing' }
+          if (-not $staging.Contains('window.__ASCENDA_STAGING_FIXTURE__=true')) { throw 'Staging fixture marker missing over HTTP' }
           Write-Host 'PHASE1_HTTP_SHADOW=PASS'
 
       - name: Reject write methods in staging runtime
