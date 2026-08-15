@@ -1,0 +1,143 @@
+name: ASCENDA WA-3 Boxes Routing Handoff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa3.js'
+      - 'app/public/admin-whatsapp-wa3.html'
+      - 'app/railway.json'
+      - 'supabase/migrations/*wa3_boxes_routing_handoff*'
+      - 'supabase/rollbacks/*wa3_boxes_routing_handoff*'
+      - 'ci/wa3-boxes-routing-handoff/**'
+      - 'ci/wa2-conversation-live-inbox/ui_contract.py'
+      - 'ci/phase4-revenue/ui_contract.py'
+      - 'ci/phase4-revenue/ui_contract.js'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA3_*'
+      - '.github/workflows/wa3-boxes-routing-handoff.yml'
+  push:
+    branches: ['feature/wa3-boxes-routing-handoff']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa3-boxes-routing-handoff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: WA-3 Zero-Cost routing certification
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59822/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Runtime and cross-workstream contracts
+        run: |
+          set -euo pipefail
+          node --check app/server-wa3.js
+          node --check app/server-wa2.js
+          node --check app/server-f4.js
+          node --check app/wa-gateway.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          python3 ci/phase4-revenue/ui_contract.py
+          node ci/phase4-revenue/ui_contract.js
+          python3 ci/wa2-conversation-live-inbox/ui_contract.py
+          python3 ci/wa3-boxes-routing-handoff/ui_contract.py
+
+      - name: Source security invariants
+        run: |
+          set -euo pipefail
+          grep -q "aos_wa3_human_send_authorize_v1" app/server-wa3.js
+          grep -q "validIdempotencyKey" app/server-wa3.js
+          grep -q "canaryAllows" app/server-wa3.js
+          grep -q "\['server-wa2.js'\]" app/server-wa3.js
+          grep -q "ai_send_enabled boolean not null default false check (ai_send_enabled = false)" supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-wa3.js
+          ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-wa3.js app/public/admin-whatsapp-wa3.html
+          ! grep -q "supabase.co" app/public/admin-whatsapp-wa3.html
+          ! grep -q "/rest/v1/" app/public/admin-whatsapp-wa3.html
+          ! grep -q "graph.facebook.com" app/public/admin-whatsapp-wa3.html
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa3-boxes-routing"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59821/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59822/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59820/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa3-boxes-routing' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59822 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-3 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+
+      - name: Apply exact WA-1 and WA-2 prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+
+      - name: Apply exact WA-3 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP routing ownership handoff contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/001_wa3_routing.sql | tee /tmp/wa3-pgtap.txt
+          ! grep -q 'not ok' /tmp/wa3-pgtap.txt
+          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa3-pgtap.txt || true)
+          echo "WA-3 pgTAP assertions: $COUNT"
+          test "$COUNT" -ge 60
+
+      - name: Recovery stays fail-closed and preserves WA-2 evidence
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815190500_wa3_boxes_routing_handoff_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname='trg_aos_wa3_auto_route_new_conversation_v1' and not tgisinternal")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_human_send_authorize_v1(text,uuid)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select auto_routing_enabled=false and human_send_enabled=false and ai_send_enabled=false from public.aos_wa_routing_control_v1 where id=1")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_assignments_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_assignments_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_paneles_disponibles where id='whatsapp-agent'")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname='trg_aos_wa2_project_insert_v1' and not tgisinternal")" = "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_conversations_v1') is not null")" = "t"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
