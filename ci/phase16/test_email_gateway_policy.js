@@ -117,4 +117,4 @@ run().catch(function(err) {
   process.exit(1)
 })
 
-// Exact-head certification retrigger only; no runtime behavior change.
+// Exact-head certification retrigger after CURRENT main freshness sync; no runtime behavior change.
