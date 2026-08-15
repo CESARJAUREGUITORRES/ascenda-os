@@ -1,0 +1,110 @@
+name: ASCENDA F4 Production Canary P0
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*f4_revenue_production_canary*'
+      - 'ci/phase4-revenue/canary_p0_*.sql'
+      - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/public/phase2-service-worker.js'
+      - '.github/workflows/f4-production-canary-p0.yml'
+  push:
+    branches: ['fix/**']
+    paths:
+      - 'supabase/migrations/*f4_revenue_production_canary*'
+      - 'ci/phase4-revenue/canary_p0_*.sql'
+      - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/public/phase2-service-worker.js'
+      - '.github/workflows/f4-production-canary-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f4-production-canary-p0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast:
+    name: FAST browser/service-worker P0
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Runtime syntax
+        shell: powershell
+        run: |
+          node --check app/public/phase2-service-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/f4-production-canary-hotfix.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Fail-closed routing contract
+        shell: powershell
+        run: |
+          $sw = Get-Content app/public/phase2-service-worker.js -Raw
+          if ($sw -notmatch 'aos_cartera_gateway_v2') { throw 'Cartera v2 route missing' }
+          if ($sw -notmatch 'F4_CARTERA_GATEWAY_UNAVAILABLE') { throw 'Cartera fail-closed marker missing' }
+          if ($sw -notmatch 'SECURE_CAJA_GATEWAY_UNAVAILABLE') { throw 'Caja fail-closed marker missing' }
+          if ($sw -match 'if\(isMissing\(r\)\)return fetch\(req\);return r;\}\)\(\)\);return;\s*\}\s*if\(rm&&CAJA') { throw 'Caja may still fall back to legacy' }
+
+  db:
+    name: DB runtime inheritance + strong Cartera P0
+    needs: fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59622/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-f4-canary-p0"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59621/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59622/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59620/' supabase/config.toml
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-f4-canary-p0' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59622 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build F4 synthetic baseline
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223100_f4_cartera_candidates_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/canary_p0_prereq.sql
+      - name: Apply production canary P0
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815162000_f4_revenue_production_canary_p0.sql
+      - name: Assert P0 contracts
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase4-revenue/canary_p0_assert.sql
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
