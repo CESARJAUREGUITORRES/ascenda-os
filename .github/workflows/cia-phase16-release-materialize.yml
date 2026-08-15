@@ -37,8 +37,8 @@ jobs:
           set -euo pipefail
           test "${GITHUB_REF_NAME}" = "release/cia-phase16-email-20260815-v5"
           git fetch --no-tags --depth=5 origin release/cia-phase16-email-20260815-v5
-          git fetch --no-tags origin 9fd6f2baa8dc0284f239dc24cff91b65c4836b27
-          git merge-base --is-ancestor 9fd6f2baa8dc0284f239dc24cff91b65c4836b27 HEAD
+          git fetch --no-tags origin 42d77fe6fbe65c275927db0b4a776d4493f10ef3
+          git merge-base --is-ancestor 42d77fe6fbe65c275927db0b4a776d4493f10ef3 HEAD
           echo 'CIA_PHASE16_CLEAN_BASE=PASS'
 
       - name: Copy certified F16 non-workflow allowlist from engineering SHA
