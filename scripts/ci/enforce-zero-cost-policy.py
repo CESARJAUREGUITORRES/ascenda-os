@@ -16,6 +16,10 @@ hosted_patterns = (
     'macos-15',
 )
 
+# Zero-Cost multi-runner pool. Both labels are repo-level self-hosted capacity;
+# ascenda-zero-cost-v2 remains the Linux/DB lane and ascenda-fast is Windows/static.
+allowed_runner_labels = ('ascenda-zero-cost-v2', 'ascenda-fast')
+
 workflow_files = sorted(list(WF.glob('*.yml')) + list(WF.glob('*.yaml')))
 if not workflow_files:
     errors.append('No workflow files found')
@@ -31,14 +35,19 @@ for path in workflow_files:
     if not runs:
         errors.append(f'{path.relative_to(ROOT)} has no runs-on declaration')
     for line in runs:
-        if 'self-hosted' not in line or 'ascenda-zero-cost-v2' not in line:
-            errors.append(f'{path.relative_to(ROOT)} has non-canonical runs-on: {line}')
+        if 'self-hosted' not in line:
+            errors.append(f'{path.relative_to(ROOT)} is not self-hosted: {line}')
+            continue
+        if not any(label in line for label in allowed_runner_labels):
+            errors.append(f'{path.relative_to(ROOT)} has non-canonical Zero-Cost runs-on: {line}')
+        if 'ascenda-fast' in line and ('Windows' not in line or 'X64' not in line):
+            errors.append(f'{path.relative_to(ROOT)} FAST lane must be Windows X64: {line}')
 
 sync = WF / 'sync-supabase.yml'
 if sync.exists():
     sync_text = sync.read_text(encoding='utf-8')
     if re.search(r'^\s*schedule\s*:', sync_text, re.M):
-        errors.append('sync-supabase.yml must remain manual; schedule is prohibited under Zero-Cost CI V2')
+        errors.append('sync-supabase.yml must remain manual; schedule is prohibited under Zero-Cost CI')
 
 standard = ROOT / 'docs' / 'control' / 'ASCENDA_ZERO_COST_VALIDATION_STANDARD.md'
 if not standard.exists():
@@ -46,7 +55,7 @@ if not standard.exists():
 else:
     s = standard.read_text(encoding='utf-8')
     if 'ZERO-COST VALIDATION STANDARD V2' not in s or 'ascenda-zero-cost-v2' not in s:
-        errors.append('Canonical standard is not Zero-Cost CI V2')
+        errors.append('Canonical Zero-Cost validation standard is missing its V2 baseline')
 
 if errors:
     print('ASCENDA_ZERO_COST_POLICY=FAIL')
@@ -54,4 +63,4 @@ if errors:
         print(f' - {e}')
     sys.exit(1)
 
-print(f'ASCENDA_ZERO_COST_POLICY=PASS workflows={len(workflow_files)}')
+print(f'ASCENDA_ZERO_COST_POLICY=PASS workflows={len(workflow_files)} lanes={",".join(allowed_runner_labels)}')
