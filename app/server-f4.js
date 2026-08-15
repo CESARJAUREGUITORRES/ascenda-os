@@ -18,7 +18,18 @@ const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 
-const child=spawn(process.execPath,['server-phase2.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});
+// Least privilege: WA/service-role secrets belong only to this front proxy.
+// The legacy/product child does not need them and must never inherit them.
+const childEnv=Object.assign({},process.env,{PORT:String(INNER_PORT)});
+delete childEnv.SUPABASE_SERVICE_ROLE_KEY;
+delete childEnv.WHATSAPP_VERIFY_TOKEN;
+delete childEnv.WHATSAPP_APP_SECRET;
+delete childEnv.WHATSAPP_ACCESS_TOKEN;
+delete childEnv.WHATSAPP_PHONE_NUMBER_ID;
+delete childEnv.WHATSAPP_GRAPH_VERSION;
+delete childEnv.WA_CANARY_MODE;
+delete childEnv.WA_CANARY_ALLOW_TO;
+const child=spawn(process.execPath,['server-phase2.js'],{cwd:__dirname,env:childEnv,stdio:['ignore','inherit','inherit']});
 child.on('exit',(code,signal)=>{console.error('[F4-PROXY] backend exited',{code,signal});process.exit(code==null?1:code);});
 
 function writeJson(res,status,obj,extra){res.writeHead(status,Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Ascenda-Revenue-Route':'f4','X-Ascenda-WA-Gateway':'v1'},extra||{}));res.end(JSON.stringify(obj));}
@@ -97,8 +108,11 @@ async function handleWaWebhook(req,res){
 }
 function graphSend(payload){
   return new Promise((resolve,reject)=>{
-    if(!waConfigReadyOutbound()){reject(Object.assign(new Error('WA_OUTBOUND_NOT_CONFIGURED'),{status:503}));return;}
-    const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}if(r.statusCode>=200&&r.statusCode<300)resolve(parsed);else reject(Object.assign(new Error('META_SEND_REJECTED'),{status:502,metaStatus:r.statusCode}));});});q.on('timeout',()=>q.destroy(new Error('META_SEND_TIMEOUT')));q.on('error',reject);q.write(data);q.end();
+    if(!waConfigReadyOutbound()){reject(Object.assign(new Error('WA_OUTBOUND_NOT_CONFIGURED'),{status:503,definite:true}));return;}
+    const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}if(r.statusCode>=200&&r.statusCode<300)resolve(parsed);else reject(Object.assign(new Error('META_SEND_REJECTED'),{status:502,metaStatus:r.statusCode,definite:true}));});});
+    q.on('timeout',()=>q.destroy(Object.assign(new Error('META_SEND_TIMEOUT'),{status:504,ambiguous:true})));
+    q.on('error',err=>reject(Object.assign(err,{status:err.status||502,ambiguous:err.definite!==true})));
+    q.write(data);q.end();
   });
 }
 async function reserveOutbound(idempotencyKey,actor,payload){
@@ -123,7 +137,7 @@ async function handleWaSend(req,res,body){
       writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});return;
     }
     const meta=await graphSend(payload);const messageId=meta&&meta.messages&&meta.messages[0]&&meta.messages[0].id;
-    if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502});
+    if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});
     await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:new Date().toISOString()},'return=minimal');
     await sbService('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{
       provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,received_at:new Date().toISOString(),updated_at:new Date().toISOString()
@@ -131,8 +145,10 @@ async function handleWaSend(req,res,body){
     await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:actor,message_type:payload.type}},'resolution=ignore-duplicates,return=minimal');
     writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'ACCEPTED',canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
   }catch(e){
-    if(reservation&&reservation.owner){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
-    console.error('[WA-GATEWAY] outbound',e.message);writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED'});
+    if(reservation&&reservation.owner&&e.definite===true){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
+    const ambiguous=!!(reservation&&reservation.owner&&e.definite!==true);
+    console.error('[WA-GATEWAY] outbound',e.message,ambiguous?'ambiguous_pending':'definite_failure');
+    writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED',status:ambiguous?'PENDING':'FAILED',retry_safe:false});
   }
 }
 async function handleWaStatus(req,res){
