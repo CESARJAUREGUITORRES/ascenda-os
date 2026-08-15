@@ -74,8 +74,9 @@ jobs:
         shell: powershell
         run: |
           $sql = Get-Content supabase/migrations/20260815183000_wa2_conversation_store_live_inbox_v1.sql -Raw
-          $required = @('force row level security','aos_app_actor_v3','admin-chats','p_require_2fa','conversation_id','provider_message_id')
+          $required = @('force row level security','aos_app_actor_v3','admin-chats','conversation_id','provider_message_id')
           foreach ($needle in $required) { if (-not $sql.ToLowerInvariant().Contains($needle.ToLowerInvariant())) { throw "Missing WA-2 contract: $needle" } }
+          if ($sql -notmatch "aos_app_actor_v3\s*\(\s*p_token\s*,\s*'admin-chats'\s*,\s*true\s*\)") { throw 'WA-2 RPCs must require admin-chats + 2FA' }
           if ($sql -match 'grant\s+(select|insert|update|delete)\s+on\s+table\s+public\.aos_wa_conversations_v1\s+to\s+(anon|authenticated)') { throw 'Direct client grant found on conversation store' }
 
   certify-db:
