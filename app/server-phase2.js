@@ -8,12 +8,20 @@ const https = require('https');
 const { spawn } = require('child_process');
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10);
-// Preserve production 4173→4187 and staging 4187→4188 exactly. Other explicit
-// ports are test/dev scopes and receive an adjacent isolated internal port so
-// sequential self-hosted CI cannot collide with a stale smoke process.
-const INTERNAL_PORT = EXTERNAL_PORT === 4173 ? 4187 : (EXTERNAL_PORT === 4187 ? 4188 : EXTERNAL_PORT + 1);
+// Preserve production 4173→4187 and staging 4187→4188 exactly. CI/dev may
+// explicitly allocate a free internal port to eliminate self-hosted runner
+// collisions without changing production defaults.
+const defaultInternalPort = EXTERNAL_PORT === 4173 ? 4187 : (EXTERNAL_PORT === 4187 ? 4188 : EXTERNAL_PORT + 1);
+const INTERNAL_PORT = parseInt(process.env.PHASE2_INTERNAL_PORT || String(defaultInternalPort), 10);
 const SB_URL = process.env.SUPABASE_URL || 'https://ituyqwstonmhnfshnaqz.supabase.co';
-const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmaWQiOiJpdHV5cXdzdG9ubWhuZnNobmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+
+if (!Number.isInteger(EXTERNAL_PORT) || EXTERNAL_PORT < 1 || EXTERNAL_PORT > 65535 ||
+    !Number.isInteger(INTERNAL_PORT) || INTERNAL_PORT < 1 || INTERNAL_PORT > 65535 ||
+    EXTERNAL_PORT === INTERNAL_PORT) {
+  console.error('[PHASE2-PROXY] invalid port configuration');
+  process.exit(1);
+}
 
 const child = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
@@ -126,8 +134,6 @@ const proxy = http.createServer((req, res) => {
   let pathname = '/';
   try { pathname = new URL(req.url, 'http://localhost').pathname; } catch (_) {}
 
-  // Same-origin Auth V3 transport. This removes browser/network dependency on
-  // direct Supabase RPC access while preserving the exact database auth contract.
   if (pathname === '/api/auth/v3/login') return authRpcProxy(req, res, 'aos_login_v3');
   if (pathname === '/api/auth/v3/verify') return authRpcProxy(req, res, 'aos_verificar_2fa_v3');
 
@@ -145,21 +151,13 @@ const proxy = http.createServer((req, res) => {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store'
     });
-    res.end(JSON.stringify({
-      ok: false,
-      error: 'LEGACY_AUTH_ENDPOINT_RETIRED',
-      auth_version: 'v3'
-    }));
+    res.end(JSON.stringify({ ok: false, error: 'LEGACY_AUTH_ENDPOINT_RETIRED', auth_version: 'v3' }));
     return;
   }
 
   const headers = Object.assign({}, req.headers, { host: '127.0.0.1:' + INTERNAL_PORT });
   const upstream = http.request({
-    hostname: '127.0.0.1',
-    port: INTERNAL_PORT,
-    path: req.url,
-    method: req.method,
-    headers
+    hostname: '127.0.0.1', port: INTERNAL_PORT, path: req.url, method: req.method, headers
   }, upstreamRes => {
     res.writeHead(upstreamRes.statusCode || 502, upstreamRes.headers);
     upstreamRes.pipe(res);
@@ -170,13 +168,10 @@ const proxy = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: false, error: 'UPSTREAM_UNAVAILABLE' }));
     console.error('[PHASE2-PROXY] upstream error', err.message);
   });
-
   req.pipe(upstream);
 });
 
-proxy.on('clientError', (err, socket) => {
-  socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-});
+proxy.on('clientError', (err, socket) => socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
 
 function shutdown(signal) {
   console.log('[PHASE2-PROXY] shutting down', signal);
