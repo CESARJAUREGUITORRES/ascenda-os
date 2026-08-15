@@ -1,0 +1,26 @@
+const fs=require('fs');
+function ok(c,m){if(!c)throw new Error(m)}
+const srv=fs.readFileSync('app/server-f5.js','utf8');
+const mod=fs.readFileSync('app/f5-historical-upload.js','utf8');
+const html=fs.readFileSync('app/public/admin-f5-historical.html','utf8');
+const rail=JSON.parse(fs.readFileSync('app/railway.json','utf8'));
+const pkg=JSON.parse(fs.readFileSync('app/package.json','utf8'));
+ok(srv.includes("p_required_panel:'admin-import-ventas'"),'F5 upload must require authorized import panel');
+ok(srv.includes('p_require_2fa:true'),'F5 upload must require 2FA');
+ok(srv.includes("'/api/f5/historical-upload'"),'upload route missing');
+ok(srv.includes('manifestBySha(normalized.sourceSha)'),'exact SHA manifest check missing');
+ok(srv.includes('SOURCE_FILENAME_SHA_MISMATCH'),'filename/SHA binding missing');
+ok(srv.includes('SOURCE_MANIFEST_COUNT_MISMATCH'),'row/column manifest count check missing');
+ok(srv.includes("serviceRpc('aos_f5_ingest_source_rows_v1'"),'private ingest RPC missing');
+ok(srv.includes('normalized.rows.slice(i,i+500)'),'bounded staging chunks missing');
+ok(!srv.includes('console.log(buffer)')&&!srv.includes('console.log(normalized.rows)'),'PII must not be logged');
+ok(mod.includes('MAX_FILE_BYTES=12*1024*1024'),'file size bound missing');
+ok(mod.includes('const HEADERS=[')&&mod.includes("'Último presupuesto'"),'schema allowlist missing');
+ok(mod.includes('row_content_hash')&&mod.includes('identity_seed_hash'),'row provenance hashes missing');
+ok(html.includes('X-AOS-App-Token')&&html.includes('X-AOS-Source-Filename'),'admin upload headers missing');
+ok(html.includes('No crea pacientes')&&html.includes('no fusiona identidades'),'safety disclosure missing');
+ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be pinned');
+ok(pkg.scripts.start==='node server-f5.js','npm start must enter F5 wrapper');
+ok(rail.deploy.startCommand==='node server-f5.js','Railway must enter F5 wrapper');
+ok(String(rail.build.buildCommand).includes('server-f5.js -> node server-wa4.js'),'certified chain declaration missing');
+console.log('F5 secure XLSX upload contract: PASS');
