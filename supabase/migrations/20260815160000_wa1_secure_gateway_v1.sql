@@ -84,6 +84,13 @@ grant select, insert, update on table public.aos_wa_outbound_requests_v1 to serv
 -- Legacy WhatsApp table remains available for historical reads, but direct client writes close.
 revoke insert, update, delete, truncate, references, trigger on table public.aos_whatsapp_mensajes from anon, authenticated;
 
+-- Raw legacy webhook store has no live rows and no CURRENT consumer except the bypassed WA legacy handler.
+-- It must not remain a client-readable/client-writable payload sink.
+alter table public.aos_webhook_log enable row level security;
+alter table public.aos_webhook_log force row level security;
+revoke all on table public.aos_webhook_log from public, anon, authenticated;
+grant select, insert, update on table public.aos_webhook_log to service_role;
+
 -- Meta credential/config store was historically exposed with RLS disabled and broad client grants.
 -- No CURRENT runtime consumer reads it directly; WA-1 moves active secrets to server-side environment.
 alter table public.aos_meta_config enable row level security;
@@ -95,5 +102,6 @@ do $$ begin
   comment on table public.aos_wa_messages_v1 is 'WA-1 canonical normalized WhatsApp message store. Server/service-role only; no raw webhook payloads.';
   comment on table public.aos_wa_events_v1 is 'WA-1 idempotent WhatsApp event/status ledger. Server/service-role only; sanitized payload only.';
   comment on table public.aos_wa_outbound_requests_v1 is 'WA-1 atomic outbound idempotency ledger. Reservation occurs before provider send; ambiguous PENDING never auto-resends.';
+  comment on table public.aos_webhook_log is 'Legacy raw webhook log. WA-1 closes browser/client access; canonical WhatsApp ingress no longer writes raw payloads here.';
   comment on table public.aos_meta_config is 'Legacy Meta configuration store. WA-1 closes all browser/client access; active secrets belong in server-side runtime environment.';
 exception when others then null; end $$;
