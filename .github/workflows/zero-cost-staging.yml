@@ -4,13 +4,13 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'supabase/**'
+      - 'supabase/migrations/20260813164711_fix_otros_service_type.sql'
+      - 'supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql'
+      - 'supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql'
+      - 'supabase/migrations/20260814021609_fix_2fa_context_canary.sql'
+      - 'supabase/migrations/20260814024619_sales_intelligence_admin_activation.sql'
+      - 'supabase/tests/**'
       - 'ci/zero-cost-staging/**'
-      - 'app/public/admin-sales-intelligence.html'
-      - 'app/public/admin-sales-intelligence-staging.html'
-      - 'app/public/login.html'
-      - 'app/public/admin-team.html'
-      - 'app/public/app.html'
       - '.github/workflows/zero-cost-staging.yml'
   push:
     branches:
@@ -21,13 +21,13 @@ on:
       - 'data/**'
       - 'infra/**'
     paths:
-      - 'supabase/**'
+      - 'supabase/migrations/20260813164711_fix_otros_service_type.sql'
+      - 'supabase/migrations/20260813173000_sales_intelligence_v2_summary.sql'
+      - 'supabase/migrations/20260813174500_sales_intelligence_v2_summary_optimize.sql'
+      - 'supabase/migrations/20260814021609_fix_2fa_context_canary.sql'
+      - 'supabase/migrations/20260814024619_sales_intelligence_admin_activation.sql'
+      - 'supabase/tests/**'
       - 'ci/zero-cost-staging/**'
-      - 'app/public/admin-sales-intelligence.html'
-      - 'app/public/admin-sales-intelligence-staging.html'
-      - 'app/public/login.html'
-      - 'app/public/admin-team.html'
-      - 'app/public/app.html'
       - '.github/workflows/zero-cost-staging.yml'
   workflow_dispatch:
 
@@ -35,7 +35,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: zero-cost-staging-${{ github.ref }}
+  # Zero-Cost is a DB/performance certificate, not a generic UI gate.
+  # Push + PR for one branch share one lane so only the newest certificate runs.
+  group: zero-cost-staging-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
