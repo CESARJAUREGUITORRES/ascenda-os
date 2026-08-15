@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify new secret-key and legacy JWT compatibility
+      - name: Verify new secret-key, legacy JWT and sanitized diagnostics
         shell: powershell
         run: |
           $gateway = Get-Content app/email-gateway.js -Raw
@@ -59,9 +59,14 @@ jobs:
           if ($gateway -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
           if ($canary -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
           if ($server -match 'sb_secret_[A-Za-z0-9_-]{10,}') { throw 'Supabase secret committed' }
+          if (-not $canary.Contains('key_kind')) { throw 'Sanitized key-kind diagnostic missing' }
+          if (-not $canary.Contains('upstream_status')) { throw 'Sanitized upstream status diagnostic missing' }
+          if (-not $canary.Contains('jwt_role')) { throw 'Safe JWT role diagnostic missing' }
+          if (-not $canary.Contains('supabase_ref')) { throw 'Safe project-ref diagnostic missing' }
+          if ($canary -match 'diagnostic[^}]{0,500}(serviceKey|resendKey)') { throw 'Secret-bearing variable leaked into diagnostic object' }
           if (-not $canary.Contains('delivered+ascenda-f16-20260815@resend.dev')) { throw 'Fixed simulator recipient missing' }
           if (-not $canary.Contains('SIGNED_WEBHOOK_REPLAY_DEDUPED')) { throw 'Signed replay proof missing' }
-          Write-Host 'F16_FAST_SECRET_KEY_SECURITY=PASS'
+          Write-Host 'F16_FAST_SANITIZED_DIAGNOSTICS=PASS'
 
   zero-cost-db:
     name: Zero-Cost F16 contracts and release gates
