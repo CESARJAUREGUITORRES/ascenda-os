@@ -1,0 +1,43 @@
+name: ASCENDA Admin Sales Read Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/admin-home-lima-business-date-20260815
+    paths:
+      - 'scripts/ci/hotfix_admin_sales_rpc_isolation.py'
+      - 'scripts/ci/admin_sales_read_path_test.py'
+      - '.github/workflows/hotfix-admin-sales-read.yml'
+      - 'app/public/admin-sales.html'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize-and-test:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/admin-home-lima-business-date-20260815
+          fetch-depth: 1
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Apply deterministic Sales read-path hotfix
+        run: python3 scripts/ci/hotfix_admin_sales_rpc_isolation.py
+      - name: Certify Sales read path
+        run: python3 scripts/ci/admin_sales_read_path_test.py
+      - name: Commit materialized frontend only when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- app/public/admin-sales.html; then
+            echo 'ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT'
+            exit 0
+          fi
+          git config user.name 'ascenda-ci'
+          git config user.email 'ascenda-ci@users.noreply.github.com'
+          git add app/public/admin-sales.html
+          git commit -m 'hotfix(sales): isolate RPC client and fail closed on API errors'
+          git push origin HEAD:hotfix/admin-home-lima-business-date-20260815
