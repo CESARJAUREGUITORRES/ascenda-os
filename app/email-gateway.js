@@ -169,7 +169,8 @@ function createEmailGateway(config) {
 
   function supabase(path, method, body, prefer) {
     if (!serviceKey) return Promise.resolve({ status: 503, body: { error: 'SERVICE_ROLE_NOT_CONFIGURED' } })
-    var headers = { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey }
+    var headers = { apikey: serviceKey }
+    if (!/^sb_(?:secret|publishable)_/.test(serviceKey)) headers.Authorization = 'Bearer ' + serviceKey
     if (prefer) headers.Prefer = prefer
     return requester(sbUrl + path, { method: method || 'GET', headers: headers, timeout: 15000 }, body)
   }

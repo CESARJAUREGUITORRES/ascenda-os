@@ -35,6 +35,12 @@ function f16RequireEmailBackend(endpoint) {
   }
 }
 
+function f16SupabaseHeaders(dbKey, extra) {
+  var headers = { 'apikey': dbKey }
+  if (!/^sb_(?:secret|publishable)_/.test(String(dbKey || ''))) headers.Authorization = 'Bearer ' + dbKey
+  return Object.assign(headers, extra || {})
+}
+
 function sbPost(endpoint, body, method) {
   f16RequireEmailBackend(endpoint)
   const url = new URL(SB_URL + endpoint)
@@ -45,7 +51,7 @@ function sbPost(endpoint, body, method) {
     const req = https.request({
       hostname: url.hostname, path: url.pathname + url.search,
       method: httpMethod,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }
+      headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) })
     }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(res.statusCode)) })
     req.on('error', reject)
     req.write(data)
@@ -59,7 +65,7 @@ function sbGet(endpoint) {
   return new Promise(function(resolve, reject) {
     https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }
+      headers: f16SupabaseHeaders(dbKey)
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { resolve([]) }
@@ -91,7 +97,7 @@ function sbPatch(endpoint, body) {
   return new Promise(function(resolve) {
     var req = https.request({
       hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }
+      headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' })
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() { resolve(r.statusCode < 300) })
     })
@@ -3502,7 +3508,7 @@ function sbFetch(endpoint) {
     var dbKey = f16DbKey(endpoint)
     https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }
+      headers: f16SupabaseHeaders(dbKey)
     }, function(res) {
       var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { reject(e) }
