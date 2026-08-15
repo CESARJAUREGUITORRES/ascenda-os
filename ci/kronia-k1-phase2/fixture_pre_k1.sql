@@ -27,7 +27,7 @@ values ('seg_2fa_habilitado','true','synthetic K1 2FA setting'),
        ('k1_public_setting','enabled','synthetic non-secret setting')
 on conflict(clave) do nothing;
 
-aLTER TABLE public.aos_integraciones add column if not exists cuenta text default '';
+alter table public.aos_integraciones add column if not exists cuenta text default '';
 alter table public.aos_integraciones add column if not exists config jsonb;
 alter table public.aos_integraciones add column if not exists created_at timestamptz default now();
 alter table public.aos_integraciones add column if not exists categoria text;
@@ -93,7 +93,25 @@ create or replace function public.aos_kronia_emitir_token(text,text,text,text,te
 create or replace function public.aos_kronia_verify_token(text) returns jsonb language sql security definer set search_path='' as $$select jsonb_build_object('ok',true)$$;
 create or replace function public.aos_kronia_revocar_token(text) returns boolean language sql security definer set search_path='' as $$select true$$;
 
-grant execute on all functions in schema public to anon,authenticated,service_role;
+grant execute on function public.aos_editar_venta(bigint,jsonb,text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_agregar_nota_paciente(text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_buscar_cita(text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_buscar_paciente(text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_buscar_venta(text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_editar_cita(bigint,jsonb,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_editar_paciente(text,jsonb,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_explorar(text,text,jsonb) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_marcar_estado_cita(bigint,text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_obtener_insights_sofia() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_stats_agenda() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_stats_leads() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_stats_llamadas() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_stats_pacientes() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_limpiar_tokens_expirados() to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_verify_token(text) to anon,authenticated,service_role;
+grant execute on function public.aos_kronia_revocar_token(text) to anon,authenticated,service_role;
 grant all on public.aos_kronia_tokens,public.aos_kronia_acciones,public.aos_kronia_conversaciones,public.aos_agente_logs,public.aos_agente_acciones,public.aos_log_auditoria to anon,authenticated,service_role;
 grant all on public.aos_configuracion to anon,authenticated,service_role;
 
