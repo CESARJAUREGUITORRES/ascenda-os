@@ -1,0 +1,62 @@
+name: KronIA K1 Final One-Shot Source Sanitize
+
+on:
+  push:
+    branches: ['security/kronia-k1-final-20260814']
+    paths:
+      - '.github/workflows/kronia-k1-final-one-shot-sanitize.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kronia-k1-final-one-shot-sanitize
+  cancel-in-progress: false
+
+jobs:
+  sanitize-source-once:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sanitize exact inherited source fallbacks
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('app/server.js')
+          s=p.read_text(encoding='utf-8')
+          verify_pattern=re.compile(r"const\s+VERIFY_TOKEN\s*=\s*'[^']*'")
+          resend_pattern=re.compile(r"process\.env\.RESEND_API_KEY\s*\|\|\s*'[^']+'")
+          s,verify_count=verify_pattern.subn("const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'",s,count=1)
+          s,resend_count=resend_pattern.subn("process.env.RESEND_API_KEY || ''",s)
+          if verify_count != 1:
+              raise SystemExit(f'K1 sanitizer anchor mismatch: VERIFY_TOKEN count={verify_count}')
+          if resend_count < 1:
+              raise SystemExit(f'K1 sanitizer anchor mismatch: RESEND fallback count={resend_count}')
+          if verify_pattern.search(s) or resend_pattern.search(s):
+              raise SystemExit('K1 sanitizer: a hardcoded provider fallback survived')
+          p.write_text(s,encoding='utf-8')
+          print(f'K1_SOURCE_SECRET_SANITIZE=PASS verify={verify_count} resend={resend_count}')
+          PY
+          runner_root="$(cd "$(dirname "$RUNNER_WORKSPACE")/.." && pwd)"
+          NODE_BIN="${runner_root}/externals/node24/bin/node"
+          test -x "$NODE_BIN"
+          "$NODE_BIN" --check app/server.js
+          ! grep -qE "process\.env\.RESEND_API_KEY[[:space:]]*\|\|[[:space:]]*['\"][^'\"]+" app/server.js
+          ! grep -qE "const[[:space:]]+VERIFY_TOKEN[[:space:]]*=[[:space:]]*['\"][^'\"]+" app/server.js
+
+      - name: Commit only sanitized source
+        run: |
+          set -euo pipefail
+          test "$(git status --porcelain | wc -l)" -eq 1
+          git status --porcelain | grep -q '^ M app/server.js$'
+          git config user.name 'ASCENDA Zero-Cost Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server.js
+          git commit -m 'security(k1): sanitize committed provider fallbacks'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
