@@ -60,6 +60,7 @@ jobs:
           grep -q "WHATSAPP_APP_SECRET" app/server-f4.js
           grep -q "SUPABASE_SERVICE_ROLE_KEY" app/server-f4.js
           grep -q "p_required_panel:'admin-chats'" app/server-f4.js
+          grep -q "aos_wa_outbound_requests_v1" app/server-f4.js
           ! grep -Eq "WHATSAPP_(APP_SECRET|ACCESS_TOKEN|VERIFY_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-f4.js
           ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-f4.js app/wa-gateway.js
 
@@ -101,7 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa1-secure-gateway/tests/001_wa1_security.sql | tee /tmp/wa1-pgtap.txt
-          grep -q '1..18' /tmp/wa1-pgtap.txt
+          grep -q '1..22' /tmp/wa1-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/wa1-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/wa1-pgtap.txt; then exit 1; fi
 
@@ -111,10 +112,12 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815160000_wa1_secure_gateway_recovery.sql
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_messages_v1','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_wa_messages_v1','UPDATE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_outbound_requests_v1','SELECT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_whatsapp_mensajes','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_meta_config','SELECT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_meta_config','UPDATE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_messages_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_outbound_requests_v1'::regclass")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_meta_config'::regclass")" = "t"
 
       - name: Stop isolated Supabase
