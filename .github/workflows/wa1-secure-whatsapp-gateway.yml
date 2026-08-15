@@ -12,6 +12,7 @@ on:
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
       - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
       - 'ci/phase4-revenue/ui_contract.py'
+      - 'ci/phase4-revenue/ui_contract.js'
   push:
     branches: ['security/**','infra/**']
     paths:
@@ -23,6 +24,7 @@ on:
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
       - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
       - 'ci/phase4-revenue/ui_contract.py'
+      - 'ci/phase4-revenue/ui_contract.js'
   workflow_dispatch:
 
 permissions:
@@ -46,23 +48,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      - name: Resolve system Python
-        shell: powershell
-        run: |
-          if (Get-Command python -ErrorAction SilentlyContinue) {
-            python --version
-            exit 0
-          }
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
-            New-Item -ItemType Directory -Force -Path $shim | Out-Null
-            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
-            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            py -3 --version
-            exit 0
-          }
-          throw 'Python runtime missing on ASCENDA FAST runner'
 
       - name: Classify WA-1 change scope
         id: scope
@@ -114,7 +99,9 @@ jobs:
       - name: Cross-workstream F4 compatibility contract
         shell: powershell
         run: |
-          python ci/phase4-revenue/ui_contract.py
+          node --check ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase4-revenue/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   certify-db:
