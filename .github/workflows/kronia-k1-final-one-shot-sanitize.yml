@@ -1,5 +1,7 @@
 name: KronIA K1 Final One-Shot Source Sanitize
 
+# ONE-SHOT FINAL: the branch must remain frozen until this job either fast-forwards
+# its single server.js commit or fails. Delete this workflow before certification.
 on:
   push:
     branches: ['security/kronia-k1-final-20260814']
