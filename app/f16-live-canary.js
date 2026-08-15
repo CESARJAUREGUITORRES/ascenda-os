@@ -112,9 +112,11 @@ function createLiveCanary(config) {
 
   function supabase(path, method, body) {
     if (!serviceKey) return Promise.resolve({ status: 503, body: { error: 'SERVICE_ROLE_NOT_CONFIGURED' } })
+    var headers = { apikey: serviceKey }
+    if (!/^sb_(?:secret|publishable)_/.test(serviceKey)) headers.Authorization = 'Bearer ' + serviceKey
     return requester(sbUrl + path, {
       method: method || 'GET',
-      headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey },
+      headers: headers,
       timeout: 15000
     }, body)
   }
