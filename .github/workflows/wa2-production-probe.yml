@@ -1,0 +1,48 @@
+name: ASCENDA WA-2 Production Probe
+
+on:
+  push:
+    branches: ['probe/wa2-production-smoke-20260815']
+    paths:
+      - '.github/workflows/wa2-production-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: WA-2 production wrapper probe
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    steps:
+      - name: Enforce FAST runner
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Probe must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Probe WA-2 + WA-1 production boundaries
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='https://ascenda-os-production.up.railway.app'
+
+          function Probe([string]$name,[string[]]$tail,[int[]]$allowed,[string]$headerName,[string]$headerValue){
+            $h=Join-Path $env:RUNNER_TEMP ($name+'-h.txt')
+            $b=Join-Path $env:RUNNER_TEMP ($name+'-b.txt')
+            $a=@('-sS','--connect-timeout','10','--max-time','25','-D',$h,'-o',$b,'-w','%{http_code}')+$tail
+            $code=[int](& curl.exe @a)
+            if($LASTEXITCODE -ne 0){throw "$name curl failed $LASTEXITCODE"}
+            $headers=Get-Content $h -Raw
+            Write-Host "$name status=$code"
+            if($allowed -notcontains $code){throw "$name unexpected HTTP $code"}
+            if($headerName -and $headers -notmatch ('(?im)^'+[regex]::Escape($headerName)+':\s*'+[regex]::Escape($headerValue)+'\s*$')){throw "$name missing $headerName=$headerValue"}
+          }
+
+          Probe 'wa2-inbox-noauth' @("$base/api/wa/inbox") @(403) 'X-Ascenda-WA2-Inbox' 'v1'
+          Probe 'wa2-health-noauth' @("$base/api/wa/inbox/health") @(403) 'X-Ascenda-WA2-Inbox' 'v1'
+          Probe 'wa2-shadow-page' @("$base/admin-whatsapp.html") @(200) '' ''
+          Probe 'wa1-verify-invalid' @("$base/webhook?hub.mode=subscribe&hub.verify_token=__wa2_probe_invalid__&hub.challenge=wa2") @(403) 'X-Ascenda-WA-Gateway' 'v1'
+          Probe 'wa1-unsigned-post' @('-X','POST','-H','Content-Type: application/json','--data-binary','{}',"$base/webhook") @(401) 'X-Ascenda-WA-Gateway' 'v1'
+          Write-Host 'WA-2 production wrapper is deployed; WA-1 boundary preserved.'
