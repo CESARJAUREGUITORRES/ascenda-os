@@ -5,6 +5,7 @@ self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());}
 
 var PROTECTED={aos_catalogo_categorias:1,aos_catalogo_servicios:1,aos_catalogo_toppings:1,aos_catalogo_productos_detalle:1,aos_planes_trabajo:1,aos_plan_trabajo_items:1};
 var CAJA={aos_caja_abrir:'aos_caja_abrir_v2',aos_caja_cerrar:'aos_caja_cerrar_v2',aos_caja_editar_pago:'aos_caja_editar_pago_v2',aos_caja_eliminar_venta:'aos_caja_eliminar_venta_v2',aos_caja_ingreso_extra:'aos_caja_ingreso_extra_v2',aos_caja_registrar_gasto:'aos_caja_registrar_gasto_v2'};
+var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'};
 var IDENTITY={aos_admin_crear_usuario:'aos_admin_crear_usuario_v3',aos_admin_cambiar_password:'aos_admin_cambiar_password_v3',aos_cambiar_password:'aos_cambiar_password_v3'};
 
 async function getToken(){try{var c=await caches.open('aos-phase2-auth');var r=await c.match('/__aos_app_token');return r?await r.text():'';}catch(e){return '';}}
@@ -17,11 +18,14 @@ async function rpcFrom(req,name,payload){var u=new URL(req.url);var target=u.ori
 async function injectF4(req){
   var r=await fetch(req,{cache:'no-store'});if(!r.ok)return r;
   var type=(r.headers.get('content-type')||'').toLowerCase();if(type.indexOf('text/html')<0)return r;
-  var html=await r.text();
+  var html=await r.text(),tags='';
   if(html.indexOf('/f4-revenue-ops.js')<0){
-    var tags='<script src="/f4-revenue-ops.js?v=20260814-f4"></script><script src="/f4-kronia-revenue-bridge.js?v=20260814-f4"></script>';
-    html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;
+    tags+='<script src="/f4-revenue-ops.js?v=20260815-f4-canary-p0"></script><script src="/f4-kronia-revenue-bridge.js?v=20260815-f4-canary-p0"></script>';
   }
+  if(html.indexOf('/f4-production-canary-hotfix.js')<0){
+    tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-p0"></script>';
+  }
+  if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
 }
@@ -36,8 +40,11 @@ self.addEventListener('fetch',function(event){
   if(rm&&IDENTITY[rm[1]]){
     event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
+  if(rm&&CARTERA[rm[1]]){
+    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();var r=await rpcFrom(req,CARTERA[rm[1]],p);if(isMissing(r))return json({ok:false,error:'F4_CARTERA_GATEWAY_UNAVAILABLE'},503);return r;})());return;
+  }
   if(rm&&CAJA[rm[1]]){
-    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
+    event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();delete p.p_usuario;var r=await rpcFrom(req,CAJA[rm[1]],p);if(isMissing(r))return json({ok:false,error:'SECURE_CAJA_GATEWAY_UNAVAILABLE'},503);return r;})());return;
   }
   var tm=u.pathname.match(/\/rest\/v1\/([^/]+)$/),table=tm&&tm[1],method=req.method.toUpperCase();
   if(table&&PROTECTED[table]&&(method==='POST'||method==='PATCH'||method==='DELETE')){
