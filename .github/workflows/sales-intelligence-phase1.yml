@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sales-intelligence-phase1-${{ github.ref }}
+  group: sales-intelligence-phase1-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
