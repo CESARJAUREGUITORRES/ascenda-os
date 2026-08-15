@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(25);
 
 select ok(to_regclass('public.aos_wa_messages_v1') is not null,'messages table exists');
 select ok(to_regclass('public.aos_wa_events_v1') is not null,'events table exists');
@@ -24,6 +24,9 @@ select ok(to_regclass('public.aos_wa_outbound_requests_v1') is not null,'outboun
 select ok((select relforcerowsecurity from pg_class where oid='public.aos_wa_outbound_requests_v1'::regclass),'outbound ledger FORCE RLS enabled');
 select ok(not has_table_privilege('anon','public.aos_wa_outbound_requests_v1','SELECT'),'anon cannot inspect outbound reservations');
 select ok(has_table_privilege('service_role','public.aos_wa_outbound_requests_v1','INSERT'),'service role can reserve outbound idempotency key');
+select ok((select relrowsecurity from pg_class where oid='public.aos_webhook_log'::regclass),'raw webhook log RLS enabled');
+select ok((select relforcerowsecurity from pg_class where oid='public.aos_webhook_log'::regclass),'raw webhook log FORCE RLS enabled');
+select ok(not has_table_privilege('anon','public.aos_webhook_log','SELECT'),'anon cannot read raw webhook payloads');
 
 select * from finish();
 rollback;
