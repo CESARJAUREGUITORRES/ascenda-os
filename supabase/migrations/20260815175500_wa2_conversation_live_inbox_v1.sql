@@ -119,20 +119,58 @@ begin
   on conflict (conversation_key) do update set
     contact_name = coalesce(nullif(excluded.contact_name,''), c.contact_name),
     phone_number_id = coalesce(excluded.phone_number_id, c.phone_number_id),
-    state = case when excluded.last_message_direction='INBOUND' and c.state='CLOSED' then 'NEW' else c.state end,
-    closed_at = case when excluded.last_message_direction='INBOUND' and c.state='CLOSED' then null else c.closed_at end,
-    last_message_id = excluded.last_message_id,
-    last_message_direction = excluded.last_message_direction,
-    last_message_type = excluded.last_message_type,
-    last_message_preview = excluded.last_message_preview,
-    last_message_status = excluded.last_message_status,
+    state = case
+      when excluded.last_message_direction='INBOUND'
+       and c.state='CLOSED'
+       and excluded.last_message_at >= coalesce(c.closed_at, '-infinity'::timestamptz)
+      then 'NEW'
+      else c.state
+    end,
+    closed_at = case
+      when excluded.last_message_direction='INBOUND'
+       and c.state='CLOSED'
+       and excluded.last_message_at >= coalesce(c.closed_at, '-infinity'::timestamptz)
+      then null
+      else c.closed_at
+    end,
+    last_message_id = case
+      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then excluded.last_message_id else c.last_message_id end,
+    last_message_direction = case
+      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then excluded.last_message_direction else c.last_message_direction end,
+    last_message_type = case
+      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then excluded.last_message_type else c.last_message_type end,
+    last_message_preview = case
+      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then excluded.last_message_preview else c.last_message_preview end,
+    last_message_status = case
+      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then excluded.last_message_status else c.last_message_status end,
     last_message_at = greatest(coalesce(c.last_message_at, excluded.last_message_at), excluded.last_message_at),
     unread_count = c.unread_count + case when excluded.last_message_direction='INBOUND' then 1 else 0 end,
     message_count = c.message_count + 1,
-    first_inbound_at = coalesce(c.first_inbound_at, excluded.first_inbound_at),
-    first_outbound_at = coalesce(c.first_outbound_at, excluded.first_outbound_at),
-    last_inbound_at = coalesce(excluded.last_inbound_at, c.last_inbound_at),
-    last_outbound_at = coalesce(excluded.last_outbound_at, c.last_outbound_at),
+    first_inbound_at = case
+      when c.first_inbound_at is null then excluded.first_inbound_at
+      when excluded.first_inbound_at is null then c.first_inbound_at
+      else least(c.first_inbound_at, excluded.first_inbound_at)
+    end,
+    first_outbound_at = case
+      when c.first_outbound_at is null then excluded.first_outbound_at
+      when excluded.first_outbound_at is null then c.first_outbound_at
+      else least(c.first_outbound_at, excluded.first_outbound_at)
+    end,
+    last_inbound_at = case
+      when c.last_inbound_at is null then excluded.last_inbound_at
+      when excluded.last_inbound_at is null then c.last_inbound_at
+      else greatest(c.last_inbound_at, excluded.last_inbound_at)
+    end,
+    last_outbound_at = case
+      when c.last_outbound_at is null then excluded.last_outbound_at
+      when excluded.last_outbound_at is null then c.last_outbound_at
+      else greatest(c.last_outbound_at, excluded.last_outbound_at)
+    end,
     campaign_source = coalesce(c.campaign_source, excluded.campaign_source),
     ad_id = coalesce(c.ad_id, excluded.ad_id),
     lead_id = coalesce(c.lead_id, excluded.lead_id),
@@ -173,4 +211,4 @@ where nivel_jerarquia = 1
 comment on table public.aos_wa_conversations_v1 is 'WA-2 canonical conversation projection over WA-1 messages. Service-only; browser access is mediated by admin+2FA APIs.';
 comment on table public.aos_wa_conversation_events_v1 is 'WA-2 append-only internal conversation activity/audit ledger.';
 comment on column public.aos_wa_messages_v1.conversation_id is 'WA-2 deterministic link to canonical WhatsApp conversation.';
-comment on function public.aos_wa2_bind_conversation_v1() is 'WA-2 trigger projection: atomically binds each WA-1 message to a conversation and updates unread/message counters.';
+comment on function public.aos_wa2_bind_conversation_v1() is 'WA-2 trigger projection: atomically binds each WA-1 message to a conversation and updates unread/message counters with provider-timestamp ordering.';
