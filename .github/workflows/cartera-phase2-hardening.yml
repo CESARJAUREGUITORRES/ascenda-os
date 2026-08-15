@@ -18,6 +18,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
+      - 'app/server-f4.js'
       - 'app/railway.json'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
@@ -38,6 +39,7 @@ on:
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
+      - 'app/server-f4.js'
       - 'app/railway.json'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
@@ -190,6 +192,7 @@ jobs:
           provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
           identity=Path('supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql').read_text(encoding='utf-8')
           proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
+          f4_proxy=Path('app/server-f4.js').read_text(encoding='utf-8') if Path('app/server-f4.js').exists() else ''
           railway=Path('app/railway.json').read_text(encoding='utf-8')
           recovery=Path('supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql').read_text(encoding='utf-8')
           assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
@@ -203,7 +206,11 @@ jobs:
           assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
           assert 'PHASE2_INTERNAL_PORT' in proxy
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
-          assert 'node server-phase2.js' in railway and 'node staging-server.js' in railway
+          production_runtime=railway.split('"environments"')[0]
+          assert 'node staging-server.js' in railway
+          if 'node server-phase2.js' not in production_runtime:
+              assert 'node server-f4.js' in production_runtime
+              assert "spawn(process.execPath,['server-phase2.js']" in f4_proxy
           assert 'legacy_bypass' in recovery and 'not_restored' in recovery
           PY
 
