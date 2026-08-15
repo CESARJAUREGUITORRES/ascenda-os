@@ -15,21 +15,14 @@ HOSTED_PATTERNS = (
     'macos-14',
     'macos-15',
 )
-REQUIRED_LABELS = (
-    'self-hosted',
-    'linux',
-    'x64',
-    'ascenda-zero-cost-v2',
+CANONICAL_RUNNER_SETS = (
+    ('self-hosted', 'linux', 'x64', 'ascenda-zero-cost-v2'),
+    ('self-hosted', 'windows', 'x64', 'ascenda-fast'),
 )
 
 
 def runs_on_values(text: str) -> list[str]:
-    """Return only YAML runs-on declarations, including simple block-list forms.
-
-    Do not scan arbitrary workflow text for hosted-runner names: workflows may
-    legitimately mention forbidden runner tokens inside policy assertions or
-    documentation. The policy must judge scheduler declarations, not prose.
-    """
+    """Return only YAML runs-on declarations, including simple block-list forms."""
     lines = text.splitlines()
     values: list[str] = []
     i = 0
@@ -80,11 +73,11 @@ for path in workflow_files:
         for token in HOSTED_PATTERNS:
             if token in lower:
                 errors.append(f'{path.relative_to(ROOT)} uses prohibited GitHub-hosted runner: {token}')
-        missing = [label for label in REQUIRED_LABELS if label not in lower]
-        if missing:
+        if not any(all(label in lower for label in labels) for labels in CANONICAL_RUNNER_SETS):
+            expected = ' OR '.join(','.join(labels) for labels in CANONICAL_RUNNER_SETS)
             errors.append(
                 f'{path.relative_to(ROOT)} has non-canonical runs-on: {declaration} '
-                f'(missing {",".join(missing)})'
+                f'(expected {expected})'
             )
 
 sync = WF / 'sync-supabase.yml'
