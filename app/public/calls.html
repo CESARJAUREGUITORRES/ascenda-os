@@ -505,7 +505,7 @@ function enviarEmailConfirmacionCita(datosCita) {
   console.log('[EMAIL-CITA] Enviando confirmación a ' + correo + ' — ' + nombre);
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
     body: JSON.stringify({
       to: correo,
       template: 'confirmacion_cita',

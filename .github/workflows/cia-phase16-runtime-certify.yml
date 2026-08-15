@@ -1,0 +1,80 @@
+name: ASCENDA CIA Phase 16 Runtime Certification
+
+on:
+  push:
+    branches: ['release/cia-phase16-email-20260815-v5']
+    paths:
+      - 'app/server.js'
+      - 'app/email-gateway.js'
+      - 'app/public/admin-email.html'
+      - 'app/public/agenda.js'
+      - 'app/public/attendance.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'ci/phase16/**'
+      - '.github/workflows/cia-phase16-runtime-certify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cia-phase16-runtime-certify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: F16 exact-head runtime certification
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Enforce Zero-Cost CI V2 policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Self-hosted runner healthcheck
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Expose trusted runner Node
+        run: bash scripts/ci/expose-runner-node.sh
+      - name: Runtime syntax assertions
+        run: |
+          set -euo pipefail
+          node --check app/server.js
+          node --check app/email-gateway.js
+          node --check app/public/agenda.js
+          node --check app/public/calls.js
+      - name: Authoritative Email boundary assertions
+        run: |
+          set -euo pipefail
+          grep -q "if (p === '/api/email-gateway') return EMAIL_GATEWAY.handleAdmin(req, res)" app/server.js
+          grep -q "if (p === '/api/send-email') return EMAIL_GATEWAY.handleAdmin(req, res)" app/server.js
+          grep -q "if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)" app/server.js
+          grep -q "SUPABASE_SERVICE_ROLE_KEY || ''" app/server.js
+          grep -q "process.env.RESEND_API_KEY || ''" app/email-gateway.js
+          grep -q "process.env.RESEND_WEBHOOK_SECRET || ''" app/email-gateway.js
+          grep -q "aos_cia_verify_app_session_v1" app/email-gateway.js
+          grep -q "GOVERNED_ACTIVATION_REQUIRED" app/email-gateway.js
+          grep -q "function emSessionToken" app/public/admin-email.html
+          grep -q "emCall('LEGACY_SEND'" app/public/admin-email.html
+          ! grep -q "fetch(SB+" app/public/admin-email.html
+          ! grep -q "'apikey':SK" app/public/admin-email.html
+          ! grep -q "fetch('/api/send-email'" app/public/admin-email.html
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/email-gateway.js
+          for f in app/public/attendance.html app/public/agenda.js app/public/calls.js app/public/citas.html app/public/caja.html app/public/calls.html; do grep -q "X-ASCENDA-Session" "$f"; done
+          echo 'CIA_PHASE16_RUNTIME_EXACT_HEAD=PASS'
+      - name: Gateway unit contracts
+        run: |
+          set -euo pipefail
+          node ci/phase16/test_email_gateway.js
+          node ci/phase16/test_email_gateway_policy.js
+      - name: Working tree remains clean
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          echo 'CIA_PHASE16_RUNTIME_READ_ONLY=PASS'
