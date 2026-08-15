@@ -4,6 +4,8 @@ const fs   = require('fs')
 const path = require('path')
 const { createEmailGateway } = require('./email-gateway')
 const EMAIL_GATEWAY = createEmailGateway()
+const { createLiveCanary } = require('./f16-live-canary')
+const F16_LIVE_CANARY = createLiveCanary()
 const PORT = parseInt(process.env.PORT || '4173', 10)
 // Servir siempre desde public/ (archivos HTML estáticos editados directamente)
 // El build de vite no aplica a estos archivos
@@ -933,6 +935,7 @@ http.createServer(function(req, res) {
   // F16: all admin Email writes and provider webhooks enter through a server-authoritative boundary.
   if (p === '/api/email-gateway') return EMAIL_GATEWAY.handleAdmin(req, res)
   if (p === '/api/send-email') return EMAIL_GATEWAY.handleAdmin(req, res)
+  if (p === '/api/f16-live-canary') return F16_LIVE_CANARY.handleCanary(req, res)
   if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)
   if (p === '/webhook' || p === '/webhook/') {
     if (req.method === 'GET') return webhookVerify(req, res)
