@@ -102,6 +102,16 @@ function requestRaw(urlString, headers, rawBody) {
   })
 }
 
+function decodeJwtPayload(token) {
+  try {
+    var parts = String(token || '').split('.')
+    if (parts.length !== 3) return null
+    var payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    while (payload.length % 4) payload += '='
+    return JSON.parse(Buffer.from(payload, 'base64').toString('utf8'))
+  } catch (_) { return null }
+}
+
 function createLiveCanary(config) {
   config = config || {}
   var sbUrl = String(config.supabaseUrl || process.env.SUPABASE_URL || DEFAULT_SB_URL).replace(/\/$/, '')
@@ -109,6 +119,19 @@ function createLiveCanary(config) {
   var resendKey = String(config.resendApiKey != null ? config.resendApiKey : (process.env.RESEND_API_KEY || ''))
   var requester = config.requestJson || requestJson
   var rawRequester = config.requestRaw || requestRaw
+
+  function keyDiagnostics() {
+    var jwt = decodeJwtPayload(serviceKey)
+    var kind = /^sb_secret_/.test(serviceKey) ? 'opaque_secret' : (/^sb_publishable_/.test(serviceKey) ? 'opaque_publishable' : (jwt ? 'legacy_jwt' : 'unknown'))
+    var projectRef = ''
+    try { projectRef = String(new URL(sbUrl).hostname || '').split('.')[0] } catch (_) {}
+    return {
+      key_kind: kind,
+      jwt_role: jwt && jwt.role ? String(jwt.role).slice(0, 40) : null,
+      jwt_ref: jwt && jwt.ref ? String(jwt.ref).slice(0, 80) : null,
+      supabase_ref: projectRef
+    }
+  }
 
   function supabase(path, method, body) {
     if (!serviceKey) return Promise.resolve({ status: 503, body: { error: 'SERVICE_ROLE_NOT_CONFIGURED' } })
@@ -131,7 +154,13 @@ function createLiveCanary(config) {
       p_value: true,
       p_evidence: evidence
     })
-    return out.status < 300 && out.body && out.body.ok === true
+    var body = out && out.body && typeof out.body === 'object' ? out.body : {}
+    return {
+      ok: !!(out && out.status < 300 && body.ok === true),
+      status: out && out.status ? Number(out.status) : 0,
+      error_code: body.code ? String(body.code).slice(0, 80) : (body.error ? String(body.error).slice(0, 80) : null),
+      error_message: body.message ? String(body.message).slice(0, 160) : null
+    }
   }
 
   async function readiness() {
@@ -187,7 +216,17 @@ function createLiveCanary(config) {
         'PROVIDER_CONFIGURED',
         'Resend fixed simulator canary accepted by provider; provider_message_id=' + providerId
       )
-      if (!marked) return jsonResponse(res, 500, { ok: false, error: 'PROVIDER_GATE_WRITE_FAILED' })
+      if (!marked.ok) {
+        return jsonResponse(res, 500, {
+          ok: false,
+          error: 'PROVIDER_GATE_WRITE_FAILED',
+          diagnostic: Object.assign(keyDiagnostics(), {
+            upstream_status: marked.status,
+            upstream_error_code: marked.error_code,
+            upstream_error_message: marked.error_message
+          })
+        })
+      }
 
       return jsonResponse(res, 200, {
         ok: true,
@@ -222,7 +261,7 @@ function createLiveCanary(config) {
         'CANARY_PASSED',
         'Exact Resend Svix-signed email.delivered replay re-verified byte-for-byte; provider_event_id=' + String(ctx.eventId)
       )
-      if (!replayMarked) return { handled: true, status: 500, body: { ok: false, error: 'CANARY_GATE_WRITE_FAILED' } }
+      if (!replayMarked.ok) return { handled: true, status: 500, body: { ok: false, error: 'CANARY_GATE_WRITE_FAILED' } }
       return { handled: true, status: 200, body: { ok: true, canary: true, idempotent: true, state: 'SIGNED_WEBHOOK_REPLAY_DEDUPED' } }
     }
 
@@ -230,7 +269,7 @@ function createLiveCanary(config) {
       'WEBHOOK_VERIFIED',
       'Real Resend Svix-signed email.delivered accepted for fixed simulator recipient; provider_event_id=' + String(ctx.eventId)
     )
-    if (!verifiedMarked) return { handled: true, status: 500, body: { ok: false, error: 'WEBHOOK_GATE_WRITE_FAILED' } }
+    if (!verifiedMarked.ok) return { handled: true, status: 500, body: { ok: false, error: 'WEBHOOK_GATE_WRITE_FAILED' } }
 
     var replay = await rawRequester(PROD_WEBHOOK_URL, {
       'svix-id': String(ctx.eventId),
