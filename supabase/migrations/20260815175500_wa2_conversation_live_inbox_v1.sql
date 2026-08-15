@@ -72,6 +72,9 @@ alter table public.aos_wa_messages_v1
 create index if not exists aos_wa_messages_v1_conversation_idx
   on public.aos_wa_messages_v1(conversation_id, created_at asc);
 
+-- Bind only. This function MUST NOT increment counters: PostgreSQL runs BEFORE INSERT
+-- even for INSERT ... ON CONFLICT, so keeping projection side effects here would break
+-- WA-1 idempotency when Meta retries an already-known provider_message_id.
 create or replace function public.aos_wa2_bind_conversation_v1()
 returns trigger
 language plpgsql
@@ -81,7 +84,6 @@ declare
   v_contact text;
   v_key text;
   v_ts timestamptz;
-  v_preview text;
   v_conv uuid;
 begin
   if tg_op = 'UPDATE' and new.conversation_id is not null then
@@ -98,99 +100,142 @@ begin
 
   v_key := coalesce(nullif(new.phone_number_id,''), 'default') || ':' || v_contact;
   v_ts := coalesce(new.provider_timestamp, new.received_at, new.sent_at, new.created_at, now());
-  v_preview := left(coalesce(nullif(new.message_body,''), '[' || coalesce(new.message_type,'message') || ']'), 240);
 
-  insert into public.aos_wa_conversations_v1 as c (
-    conversation_key, contact_number, contact_name, phone_number_id, state,
-    last_message_id, last_message_direction, last_message_type, last_message_preview,
-    last_message_status, last_message_at, unread_count, message_count,
-    first_inbound_at, first_outbound_at, last_inbound_at, last_outbound_at,
-    campaign_source, ad_id, lead_id, opened_at, updated_at
+  insert into public.aos_wa_conversations_v1(
+    conversation_key, contact_number, contact_name, phone_number_id, state, opened_at, updated_at
   ) values (
-    v_key, v_contact, nullif(new.contact_name,''), new.phone_number_id, 'NEW',
-    new.provider_message_id, new.direction, new.message_type, v_preview,
-    new.status, v_ts, case when new.direction='INBOUND' then 1 else 0 end, 1,
-    case when new.direction='INBOUND' then v_ts end,
-    case when new.direction='OUTBOUND' then v_ts end,
-    case when new.direction='INBOUND' then v_ts end,
-    case when new.direction='OUTBOUND' then v_ts end,
-    new.campaign_source, new.ad_id, new.lead_id, v_ts, now()
+    v_key, v_contact, nullif(new.contact_name,''), new.phone_number_id, 'NEW', v_ts, now()
   )
-  on conflict (conversation_key) do update set
-    contact_name = coalesce(nullif(excluded.contact_name,''), c.contact_name),
-    phone_number_id = coalesce(excluded.phone_number_id, c.phone_number_id),
-    state = case
-      when excluded.last_message_direction='INBOUND'
-       and c.state='CLOSED'
-       and excluded.last_message_at >= coalesce(c.closed_at, '-infinity'::timestamptz)
-      then 'NEW'
-      else c.state
-    end,
-    closed_at = case
-      when excluded.last_message_direction='INBOUND'
-       and c.state='CLOSED'
-       and excluded.last_message_at >= coalesce(c.closed_at, '-infinity'::timestamptz)
-      then null
-      else c.closed_at
-    end,
-    last_message_id = case
-      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
-      then excluded.last_message_id else c.last_message_id end,
-    last_message_direction = case
-      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
-      then excluded.last_message_direction else c.last_message_direction end,
-    last_message_type = case
-      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
-      then excluded.last_message_type else c.last_message_type end,
-    last_message_preview = case
-      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
-      then excluded.last_message_preview else c.last_message_preview end,
-    last_message_status = case
-      when excluded.last_message_at >= coalesce(c.last_message_at, '-infinity'::timestamptz)
-      then excluded.last_message_status else c.last_message_status end,
-    last_message_at = greatest(coalesce(c.last_message_at, excluded.last_message_at), excluded.last_message_at),
-    unread_count = c.unread_count + case when excluded.last_message_direction='INBOUND' then 1 else 0 end,
-    message_count = c.message_count + 1,
-    first_inbound_at = case
-      when c.first_inbound_at is null then excluded.first_inbound_at
-      when excluded.first_inbound_at is null then c.first_inbound_at
-      else least(c.first_inbound_at, excluded.first_inbound_at)
-    end,
-    first_outbound_at = case
-      when c.first_outbound_at is null then excluded.first_outbound_at
-      when excluded.first_outbound_at is null then c.first_outbound_at
-      else least(c.first_outbound_at, excluded.first_outbound_at)
-    end,
-    last_inbound_at = case
-      when c.last_inbound_at is null then excluded.last_inbound_at
-      when excluded.last_inbound_at is null then c.last_inbound_at
-      else greatest(c.last_inbound_at, excluded.last_inbound_at)
-    end,
-    last_outbound_at = case
-      when c.last_outbound_at is null then excluded.last_outbound_at
-      when excluded.last_outbound_at is null then c.last_outbound_at
-      else greatest(c.last_outbound_at, excluded.last_outbound_at)
-    end,
-    campaign_source = coalesce(c.campaign_source, excluded.campaign_source),
-    ad_id = coalesce(c.ad_id, excluded.ad_id),
-    lead_id = coalesce(c.lead_id, excluded.lead_id),
-    version = c.version + 1,
-    updated_at = now()
+  on conflict (conversation_key) do nothing
   returning id into v_conv;
+
+  if v_conv is null then
+    select id into v_conv
+    from public.aos_wa_conversations_v1
+    where conversation_key = v_key;
+  end if;
+
+  if v_conv is null then
+    raise exception 'WA2_CONVERSATION_BIND_FAILED';
+  end if;
 
   new.conversation_id := v_conv;
   return new;
 end
 $$;
 
-revoke all on function public.aos_wa2_bind_conversation_v1() from public, anon, authenticated;
+-- Projection only after an actual new ledger row, or after a true NULL->bound backfill.
+create or replace function public.aos_wa2_project_message_v1()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_ts timestamptz;
+  v_preview text;
+begin
+  if new.conversation_id is null then
+    raise exception 'WA2_CONVERSATION_REQUIRED' using errcode = '23514';
+  end if;
 
--- Bind future inserts and allow a safe backfill of any WA-1 messages that may arrive between preflight and cutover.
+  v_ts := coalesce(new.provider_timestamp, new.received_at, new.sent_at, new.created_at, now());
+  v_preview := left(coalesce(nullif(new.message_body,''), '[' || coalesce(new.message_type,'message') || ']'), 240);
+
+  update public.aos_wa_conversations_v1 c
+  set
+    contact_name = coalesce(nullif(new.contact_name,''), c.contact_name),
+    phone_number_id = coalesce(new.phone_number_id, c.phone_number_id),
+    state = case
+      when new.direction='INBOUND'
+       and c.state='CLOSED'
+       and v_ts >= coalesce(c.closed_at, '-infinity'::timestamptz)
+      then 'NEW'
+      else c.state
+    end,
+    closed_at = case
+      when new.direction='INBOUND'
+       and c.state='CLOSED'
+       and v_ts >= coalesce(c.closed_at, '-infinity'::timestamptz)
+      then null
+      else c.closed_at
+    end,
+    last_message_id = case
+      when v_ts >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then new.provider_message_id else c.last_message_id end,
+    last_message_direction = case
+      when v_ts >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then new.direction else c.last_message_direction end,
+    last_message_type = case
+      when v_ts >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then new.message_type else c.last_message_type end,
+    last_message_preview = case
+      when v_ts >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then v_preview else c.last_message_preview end,
+    last_message_status = case
+      when v_ts >= coalesce(c.last_message_at, '-infinity'::timestamptz)
+      then new.status else c.last_message_status end,
+    last_message_at = greatest(coalesce(c.last_message_at, v_ts), v_ts),
+    unread_count = c.unread_count + case
+      when new.direction='INBOUND'
+       and (c.last_read_at is null or v_ts > c.last_read_at)
+      then 1 else 0 end,
+    message_count = c.message_count + 1,
+    first_inbound_at = case
+      when new.direction <> 'INBOUND' then c.first_inbound_at
+      when c.first_inbound_at is null then v_ts
+      else least(c.first_inbound_at, v_ts)
+    end,
+    first_outbound_at = case
+      when new.direction <> 'OUTBOUND' then c.first_outbound_at
+      when c.first_outbound_at is null then v_ts
+      else least(c.first_outbound_at, v_ts)
+    end,
+    last_inbound_at = case
+      when new.direction <> 'INBOUND' then c.last_inbound_at
+      when c.last_inbound_at is null then v_ts
+      else greatest(c.last_inbound_at, v_ts)
+    end,
+    last_outbound_at = case
+      when new.direction <> 'OUTBOUND' then c.last_outbound_at
+      when c.last_outbound_at is null then v_ts
+      else greatest(c.last_outbound_at, v_ts)
+    end,
+    campaign_source = coalesce(c.campaign_source, new.campaign_source),
+    ad_id = coalesce(c.ad_id, new.ad_id),
+    lead_id = coalesce(c.lead_id, new.lead_id),
+    version = c.version + 1,
+    updated_at = now()
+  where c.id = new.conversation_id;
+
+  if not found then
+    raise exception 'WA2_CONVERSATION_PROJECT_FAILED';
+  end if;
+  return null;
+end
+$$;
+
+revoke all on function public.aos_wa2_bind_conversation_v1() from public, anon, authenticated;
+revoke all on function public.aos_wa2_project_message_v1() from public, anon, authenticated;
+
 drop trigger if exists trg_aos_wa2_bind_conversation_v1 on public.aos_wa_messages_v1;
 create trigger trg_aos_wa2_bind_conversation_v1
 before insert or update of conversation_id on public.aos_wa_messages_v1
 for each row execute function public.aos_wa2_bind_conversation_v1();
 
+drop trigger if exists trg_aos_wa2_project_insert_v1 on public.aos_wa_messages_v1;
+create trigger trg_aos_wa2_project_insert_v1
+after insert on public.aos_wa_messages_v1
+for each row execute function public.aos_wa2_project_message_v1();
+
+drop trigger if exists trg_aos_wa2_project_backfill_v1 on public.aos_wa_messages_v1;
+create trigger trg_aos_wa2_project_backfill_v1
+after update of conversation_id on public.aos_wa_messages_v1
+for each row
+when (old.conversation_id is null and new.conversation_id is not null)
+execute function public.aos_wa2_project_message_v1();
+
+-- Safe backfill: the BEFORE trigger turns NULL into a deterministic conversation_id;
+-- the AFTER backfill trigger projects the message exactly once.
 update public.aos_wa_messages_v1
 set conversation_id = null
 where conversation_id is null;
@@ -211,4 +256,5 @@ where nivel_jerarquia = 1
 comment on table public.aos_wa_conversations_v1 is 'WA-2 canonical conversation projection over WA-1 messages. Service-only; browser access is mediated by admin+2FA APIs.';
 comment on table public.aos_wa_conversation_events_v1 is 'WA-2 append-only internal conversation activity/audit ledger.';
 comment on column public.aos_wa_messages_v1.conversation_id is 'WA-2 deterministic link to canonical WhatsApp conversation.';
-comment on function public.aos_wa2_bind_conversation_v1() is 'WA-2 trigger projection: atomically binds each WA-1 message to a conversation and updates unread/message counters with provider-timestamp ordering.';
+comment on function public.aos_wa2_bind_conversation_v1() is 'WA-2 idempotent bind-only trigger function. It never changes conversation counters.';
+comment on function public.aos_wa2_project_message_v1() is 'WA-2 post-insert/backfill projection. Updates counters once per real ledger row and respects provider timestamp ordering.';
