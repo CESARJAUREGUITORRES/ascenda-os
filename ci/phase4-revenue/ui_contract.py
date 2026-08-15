@@ -10,7 +10,7 @@ railway = (root / 'app/railway.json').read_text(encoding='utf-8')
 required_bridge = [
     'aos_sales_admin_gateway_v4', 'aos_sales_admin_sale_v4', 'aos_editar_venta_v4',
     'aos_importar_ventas_preview_v4', 'aos_importar_ventas_v4', 'aos_grabar_venta_caja_v4',
-    'aos_cartera_candidates_v2', 'aos_cartera_reconcile_v2', 'canonicalProductName',
+    '/api/f4/cartera-candidates', 'aos_cartera_reconcile_v2', 'canonicalProductName',
     'physicalQty', 'productResolutionStatus', 'REVIEW_REQUIRED', 'PAGO_RECONCILIADO',
     'importApproval', 'carteraCandidateByCase'
 ]
@@ -23,6 +23,8 @@ assert "'/api/kronia/chat'" in kronia and 'X-AOS-App-Token' in kronia
 assert "body.confirmar_accion.rpc==='aos_editar_venta'" in proxy
 assert 'F4_STRONG_SESSION_REQUIRED' in proxy
 assert 'aos_sales_admin_sale_v4' in proxy and 'aos_editar_venta_v4' in proxy
+assert "pathname==='/api/f4/cartera-candidates'" in proxy
+assert 'aos_cartera_candidates_v2' in proxy
 assert 'node server-f4.js' in railway
 assert 'node server-phase2.js' not in railway.split('"environments"')[0]
 
