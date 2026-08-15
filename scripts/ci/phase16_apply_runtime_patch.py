@@ -21,6 +21,7 @@ import subprocess
 import sys
 
 # Exact-SHA certification retrigger: prior run validated runtime/scope but lost only the push race.
+# 2026-08-15 CURRENT-main sync retrigger: recertify runtime after PR #120 merged into the active release.
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PATCH = ROOT / "scripts/ci/phase16_patch_runtime.py"
 
