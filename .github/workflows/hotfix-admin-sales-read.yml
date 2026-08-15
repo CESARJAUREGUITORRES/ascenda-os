@@ -36,15 +36,15 @@ jobs:
           findstr /C:"if(!r.ok||!b||b.code||b.error)" app\public\admin-sales.html
           findstr /C:"timeZone:'America/Lima'" app\public\admin-sales.html
       - name: Commit materialized frontend only when changed
-        shell: bash
+        shell: cmd
         run: |
-          set -euo pipefail
-          if git diff --quiet -- app/public/admin-sales.html; then
-            echo 'ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT'
-            exit 0
-          fi
-          git config user.name 'ascenda-ci'
-          git config user.email 'ascenda-ci@users.noreply.github.com'
+          git diff --quiet -- app/public/admin-sales.html
+          if not errorlevel 1 (
+            echo ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT
+            exit /b 0
+          )
+          git config user.name ascenda-ci
+          git config user.email ascenda-ci@users.noreply.github.com
           git add app/public/admin-sales.html
-          git commit -m 'hotfix(sales): isolate RPC client and fail closed on API errors'
+          git commit -m "hotfix(sales): isolate RPC client and fail closed on API errors"
           git push origin HEAD:hotfix/admin-home-lima-business-date-20260815
