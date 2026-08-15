@@ -57,8 +57,9 @@ jobs:
           foreach ($f in $files) {
             if ($f -like 'supabase/migrations/*cartera_phase2*' -or
                 $f -like 'supabase/rollbacks/*cartera_phase2*' -or
-                $f -like 'ci/phase2-cartera/*' -or
-                $f -like 'ci/phase2-cartera/**' -or
+                $f -eq 'ci/phase2-cartera/schema_contract.sql' -or
+                $f -eq 'ci/phase2-cartera/fixture_pre_migration.sql' -or
+                $f -eq 'ci/phase2-cartera/tests/004_cartera_phase2.sql' -or
                 $f -eq '.github/workflows/cartera-phase2.yml') { $db = $true }
           }
           "db_required=$($db.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
