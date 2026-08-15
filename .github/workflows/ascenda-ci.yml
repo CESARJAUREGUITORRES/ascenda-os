@@ -54,15 +54,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: app/package.json
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Enforce Zero-Cost multi-runner policy
-        shell: powershell
-        run: python scripts/ci/enforce-zero-cost-policy.py
-
       - name: FAST runner healthcheck
         shell: powershell
         run: |
@@ -71,7 +62,6 @@ jobs:
           Write-Host "OS: $env:RUNNER_OS"
           git --version
           node --version
-          python --version
 
       - name: Install app dependencies
         shell: powershell
@@ -82,7 +72,11 @@ jobs:
         shell: powershell
         run: |
           node --check app/server.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/server-phase2.js') { node --check app/server-phase2.js }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/server-f4.js') { node --check app/server-f4.js }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check public JavaScript syntax
         shell: powershell
@@ -145,5 +139,5 @@ jobs:
           Write-Host 'Ascenda production runtime: node app/server.js'
           Write-Host 'Frontend source of truth: app/public/'
           Write-Host 'FAST CI compute: self-hosted Windows ascenda-fast'
-          Write-Host 'DB CI remains on self-hosted Linux ascenda-zero-cost-v2'
+          Write-Host 'DB CI + Zero-Cost policy remain on self-hosted Linux ascenda-zero-cost-v2'
           Write-Host 'Vite build is intentionally not used as a blocking production check.'
