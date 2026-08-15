@@ -18,7 +18,7 @@ const MIME = {
 // ═══ SUPABASE ═══
 const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'
-const VERIFY_TOKEN = 'ascendaos_zivital_2026'
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'
 
 function sbPost(endpoint, body, method) {
   const url = new URL(SB_URL + endpoint)
@@ -1482,7 +1482,7 @@ http.createServer(function(req, res) {
       try {
         var d = JSON.parse(body)
         if (!d.to || !d.subject || !d.html) { res.writeHead(400); res.end(JSON.stringify({error:'Missing to, subject, or html'})); return }
-        var RESEND_KEY = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
+        var RESEND_KEY = process.env.RESEND_API_KEY || ''
         var emailData = JSON.stringify({
           from: d.from || 'Clínica Zi Vital <info@zivital.pe>',
           to: Array.isArray(d.to) ? d.to : [d.to],
@@ -1542,7 +1542,7 @@ http.createServer(function(req, res) {
       try {
         var d = JSON.parse(body)
         if (!d.email || !d.code || !d.nombre) { res.writeHead(400); res.end('{"error":"missing fields"}'); return }
-        var RESEND_KEY = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
+        var RESEND_KEY = process.env.RESEND_API_KEY || ''
         var emailData = JSON.stringify({
           from: 'AscendaOS <info@zivital.pe>',
           to: [d.email],
@@ -2229,7 +2229,7 @@ function saveContent(agentId, tipo, titulo, contenido, metadata) {
 // MOTOR DE ACCIONES — agentes actúan, no solo analizan
 // ═══════════════════════════════════════════════════════════════
 
-var RESEND_KEY_AG = process.env.RESEND_API_KEY || 're_UEV4yw2G_GdVeWHn4fLQnYSAL7uKXzSjt'
+var RESEND_KEY_AG = process.env.RESEND_API_KEY || ''
 
 // ═══ BRANDING CACHE (se carga al inicio y refresca cada 30min) ═══
 var BRAND = {
