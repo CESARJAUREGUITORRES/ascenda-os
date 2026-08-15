@@ -101,23 +101,39 @@ function graphSend(payload){
     const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}if(r.statusCode>=200&&r.statusCode<300)resolve(parsed);else reject(Object.assign(new Error('META_SEND_REJECTED'),{status:502,metaStatus:r.statusCode}));});});q.on('timeout',()=>q.destroy(new Error('META_SEND_TIMEOUT')));q.on('error',reject);q.write(data);q.end();
   });
 }
+async function reserveOutbound(idempotencyKey,actor,payload){
+  const created=await sbService('POST','/rest/v1/aos_wa_outbound_requests_v1?on_conflict=idempotency_key',{
+    idempotency_key:String(idempotencyKey),actor_id:actor,to_number:payload.to,message_type:payload.type,state:'PENDING',updated_at:new Date().toISOString()
+  },'resolution=ignore-duplicates,return=representation');
+  if(Array.isArray(created.data)&&created.data.length===1)return {owner:true,row:created.data[0]};
+  const existing=await sbService('GET','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(idempotencyKey)+'&select=idempotency_key,state,provider_message_id,error_code&limit=1',null);
+  return {owner:false,row:Array.isArray(existing.data)?existing.data[0]||null:null};
+}
 async function handleWaSend(req,res,body){
   if(!waConfigReadyOutbound()){writeJson(res,503,{ok:false,error:'WA_OUTBOUND_NOT_CONFIGURED'});return;}
   const actor=await authorizeWaSender(req);if(!actor){writeJson(res,403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});return;}
   if(!wa.validIdempotencyKey(body&&body.idempotency_key)){writeJson(res,400,{ok:false,error:'IDEMPOTENCY_KEY_REQUIRED'});return;}
   let payload;try{payload=wa.buildOutboundPayload(body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message});return;}
   if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO)){writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});return;}
+  let reservation;
   try{
-    const existing=await sbService('GET','/rest/v1/aos_wa_messages_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key)+'&select=provider_message_id,status&limit=1',null);
-    if(Array.isArray(existing.data)&&existing.data[0]){writeJson(res,200,{ok:true,idempotent:true,message_id:existing.data[0].provider_message_id,status:existing.data[0].status});return;}
+    reservation=await reserveOutbound(body.idempotency_key,actor,payload);
+    if(!reservation.owner){
+      const row=reservation.row||{};
+      writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});return;
+    }
     const meta=await graphSend(payload);const messageId=meta&&meta.messages&&meta.messages[0]&&meta.messages[0].id;
     if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502});
+    await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:new Date().toISOString()},'return=minimal');
     await sbService('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{
       provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,received_at:new Date().toISOString(),updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal');
     await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:actor,message_type:payload.type}},'resolution=ignore-duplicates,return=minimal');
-    writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'accepted',canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
-  }catch(e){console.error('[WA-GATEWAY] outbound',e.message);writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED'});}
+    writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'ACCEPTED',canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
+  }catch(e){
+    if(reservation&&reservation.owner){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
+    console.error('[WA-GATEWAY] outbound',e.message);writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED'});
+  }
 }
 async function handleWaStatus(req,res){
   try{const actor=await authorizeWaSender(req);if(!actor){writeJson(res,403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});return;}writeJson(res,200,{ok:true,gateway:'v1',inbound_configured:waConfigReadyInbound(),outbound_configured:waConfigReadyOutbound(),canary:String(WA_CANARY_MODE).toLowerCase()==='true',allowlist_count:String(WA_CANARY_ALLOW_TO).split(',').filter(Boolean).length});}catch(e){writeJson(res,503,{ok:false,error:'WA_STATUS_UNAVAILABLE'});}
