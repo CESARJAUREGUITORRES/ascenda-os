@@ -1,0 +1,129 @@
+name: ASCENDA Phase 5 Historical Patient Identity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*f5_historical_patient_identity*'
+      - 'supabase/rollbacks/*f5_historical_patient_identity*'
+      - 'ci/phase5-historical-identity/**'
+      - '.github/workflows/phase5-historical-patient-identity.yml'
+  push:
+    branches: ['data/**','feature/**','fix/**','security/**']
+    paths:
+      - 'supabase/migrations/*f5_historical_patient_identity*'
+      - 'supabase/rollbacks/*f5_historical_patient_identity*'
+      - 'ci/phase5-historical-identity/**'
+      - '.github/workflows/phase5-historical-patient-identity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase5-historical-identity-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  fast-static:
+    name: FAST PII/security static contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+      - name: F5 static private-boundary contract
+        shell: powershell
+        run: |
+          node --check ci/phase5-historical-identity/security_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase5-historical-identity/security_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  db-security:
+    name: Zero-Cost DB / RLS / pgTAP
+    needs: fast-static
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59522/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost DB runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase5-identity"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59521/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59522/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59520/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-phase5-identity' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59522 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'F5 isolated Postgres did not become ready on 59522' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase5-historical-identity/schema_contract.sql
+
+      - name: Apply exact F5 foundation migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815220000_f5_historical_patient_identity_foundation_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP F5 foundation
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase5-historical-identity/tests/001_foundation.sql | tee /tmp/f5-pgtap.txt
+          grep -q '1..30' /tmp/f5-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/f5-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/f5-pgtap.txt; then exit 1; fi
+
+      - name: Verify browser roles have zero F5 table access
+        run: |
+          set -euo pipefail
+          for t in aos_f5_source_batches_v1 aos_f5_patient_source_rows_v1 aos_f5_identity_clusters_v1 aos_f5_identity_cluster_members_v1 aos_f5_patient_link_preview_v1 aos_f5_audit_v1; do
+            test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.$t','SELECT')")" = "f"
+            test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.$t','SELECT')")" = "f"
+          done
+
+      - name: Recovery is fail-closed and preserves evidence tables
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815220000_f5_historical_patient_identity_foundation_v1_recovery.sql
+          for t in aos_f5_source_batches_v1 aos_f5_patient_source_rows_v1 aos_f5_identity_clusters_v1 aos_f5_identity_cluster_members_v1 aos_f5_patient_link_preview_v1 aos_f5_audit_v1; do
+            test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.$t') is not null")" = "t"
+            test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.$t','SELECT')")" = "f"
+          done
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
