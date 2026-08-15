@@ -8,6 +8,11 @@ caja = (root / 'app/public/caja.html').read_text(encoding='utf-8')
 migration = (root / 'supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql').read_text(encoding='utf-8')
 cleanup = (root / 'supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql').read_text(encoding='utf-8')
 rollback = (root / 'supabase/rollbacks/20260814034401_cartera_phase2_reconciliation.rollback.sql').read_text(encoding='utf-8')
+railway = (root / 'app/railway.json').read_text(encoding='utf-8')
+phase2 = (root / 'app/server-phase2.js').read_text(encoding='utf-8')
+f4 = (root / 'app/server-f4.js').read_text(encoding='utf-8') if (root/'app/server-f4.js').exists() else ''
+wa2 = (root / 'app/server-wa2.js').read_text(encoding='utf-8') if (root/'app/server-wa2.js').exists() else ''
+wa3 = (root / 'app/server-wa3.js').read_text(encoding='utf-8') if (root/'app/server-wa3.js').exists() else ''
 
 assert re.search(r"id\s*:\s*['\"]admin-cartera['\"]", app)
 assert re.search(r"admin-cartera[\s\S]{0,220}requiresPanel\s*:\s*true", app)
@@ -18,7 +23,8 @@ assert re.search(r"viewId\s*===\s*['\"]admin-cartera['\"]", app)
 assert "aos_cartera_gateway" in cartera
 assert "aos_cartera_reconcile" in cartera
 assert "p_expected_updated_at:current.updatedAt" in cartera
-assert "aos_si_token" in cartera
+assert "sessionStorage.getItem('aos_app_token')" in cartera
+assert "aos_si_token" not in cartera
 assert "RECORDATORIOS BLOQUEADOS" in cartera
 assert "Adelantos ≠ deuda" in cartera
 
@@ -51,6 +57,15 @@ assert "(v.precio||0) + '</span>" not in caja
 assert 'var abonoFailed = false' in caja
 assert 'delete VT._paymentKeys[cotId]' not in caja
 assert 'if (abonoFailed)' in caja
+
+# Production runtime compatibility is explicit, not arbitrary wrapper acceptance.
+prod = railway.split('"environments"')[0]
+direct_phase2 = '"startCommand": "node server-phase2.js"' in prod
+f4_chain = '"startCommand": "node server-f4.js"' in prod and "spawn(process.execPath,['server-phase2.js']" in f4
+wa2_chain = ('"startCommand": "node server-wa2.js"' in prod and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+wa3_chain = ('"startCommand": "node server-wa3.js"' in prod and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+assert direct_phase2 or f4_chain or wa2_chain or wa3_chain, 'Cartera requires certified Phase2 runtime chain'
+assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in phase2
 
 assert "enable row level security" in migration.lower()
 assert "revoke all on table public.aos_cartera_reconciliacion" in migration.lower()
