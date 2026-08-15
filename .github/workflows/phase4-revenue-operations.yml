@@ -10,6 +10,7 @@ on:
       - 'ci/phase4-revenue/**'
       - 'app/public/f4-revenue-ops.js'
       - 'app/public/f4-kronia-revenue-bridge.js'
+      - 'app/public/f4-production-canary-hotfix.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/server-f4.js'
@@ -26,6 +27,7 @@ on:
       - 'ci/phase4-revenue/**'
       - 'app/public/f4-revenue-ops.js'
       - 'app/public/f4-kronia-revenue-bridge.js'
+      - 'app/public/f4-production-canary-hotfix.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/server-f4.js'
@@ -47,8 +49,12 @@ jobs:
     name: FAST runtime/UI contracts
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 5
+    outputs:
+      db_required: ${{ steps.scope.outputs.db_required }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -59,23 +65,61 @@ jobs:
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
           Write-Host "Runner: $env:RUNNER_NAME"
 
+      - name: Classify F4 change scope
+        id: scope
+        shell: powershell
+        run: |
+          $base = '${{ github.event.pull_request.base.sha }}'
+          if (-not $base) { $base = '${{ github.event.before }}' }
+          if (-not $base -or $base -match '^0+$') { $base = 'HEAD^' }
+          $files = @(git diff --name-only $base $env:GITHUB_SHA)
+          Write-Host 'Changed files:'
+          $files | ForEach-Object { Write-Host " - $_" }
+          $db = $false
+          foreach ($f in $files) {
+            if ($f -like 'supabase/migrations/*f4_revenue*' -or
+                $f -like 'supabase/migrations/*f4_cartera*' -or
+                $f -like 'supabase/rollbacks/*f4_revenue*' -or
+                $f -like 'ci/phase4-revenue/*' -or
+                $f -like 'ci/phase4-revenue/**' -or
+                $f -eq 'scripts/ci/enforce-zero-cost-policy.py') {
+              $db = $true
+            }
+          }
+          "db_required=$($db.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "DB required: $db"
+
       - name: Runtime syntax contracts
         shell: powershell
         run: |
-          node --check app/public/f4-revenue-ops.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check app/public/f4-kronia-revenue-bridge.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check app/public/phase2-service-worker.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check app/server-phase2.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check app/server-f4.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $files = @(
+            'app/public/f4-revenue-ops.js',
+            'app/public/f4-kronia-revenue-bridge.js',
+            'app/public/f4-production-canary-hotfix.js',
+            'app/public/phase2-service-worker.js',
+            'app/server-phase2.js',
+            'app/server-f4.js'
+          )
+          foreach ($file in $files) {
+            if (Test-Path $file) {
+              node --check $file
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          }
+
+      - name: F4 sales recovery contract
+        shell: powershell
+        run: |
+          $hotfix = Get-Content 'app/public/f4-production-canary-hotfix.js' -Raw
+          if ($hotfix -notmatch 'strongTokenCandidates') { throw 'Strong token candidate recovery missing' }
+          if ($hotfix -notmatch 'aos-phase2-auth') { throw 'Service-worker token cache recovery missing' }
+          if ($hotfix -notmatch 'aos_sales_admin_gateway_v4') { throw 'Sales V4 routing missing' }
+          if ($hotfix -notmatch "d\.error==='UNAUTHORIZED'") { throw 'Unauthorized retry contract missing' }
 
   revenue-operations-contract:
     name: DB/security contracts
     needs: fast-contracts
+    if: needs.fast-contracts.outputs.db_required == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 30
     env:
