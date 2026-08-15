@@ -1,0 +1,42 @@
+name: ASCENDA WA-4 Production Health Probe
+
+on:
+  push:
+    branches: ['probe/wa4-prod-health-20260815']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: WA-4 production health
+    runs-on: [self-hosted, Linux, X64, ascenda-fast-v1]
+    timeout-minutes: 5
+    steps:
+      - name: Probe non-secret WA-4 health
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://ascenda-os-production.up.railway.app/api/wa4/health'
+          for i in $(seq 1 20); do
+            CODE=$(curl -sS --max-time 15 -o /tmp/wa4-health.json -w '%{http_code}' "$URL" || true)
+            if [ "$CODE" = "200" ]; then break; fi
+            sleep 3
+          done
+          test "$CODE" = "200"
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=fs.readFileSync('/tmp/wa4-health.json','utf8');
+          if(/(?:gsk_|sk-[A-Za-z0-9_-]{16,}|re_[A-Za-z0-9_-]{16,})/.test(raw)) throw new Error('SECRET_PATTERN_EXPOSED');
+          const j=JSON.parse(raw);
+          if(j.ok!==true || j.version!=='WA4-V1') throw new Error('WA4_HEALTH_INVALID');
+          if(j.auto_send!==false) throw new Error('WA4_AUTO_SEND_NOT_FALSE');
+          const h=j.health||{};
+          if(h.configured!==true) throw new Error('GROQ_NOT_CONFIGURED');
+          if(!h.active || h.active.fast!==true || h.active.reasoning!==true || h.active.safety!==true) {
+            throw new Error('REQUIRED_MODELS_NOT_READY:'+JSON.stringify(h.active||{}));
+          }
+          if(h.copilot_ready!==true) throw new Error('WA4_COPILOT_MODELS_NOT_READY');
+          console.log(JSON.stringify({ok:true,version:j.version,auto_send:j.auto_send,configured:h.configured,active:h.active,legacy_compat_ready:h.legacy_compat_ready,copilot_ready:h.copilot_ready,checked_at:h.checked_at}));
+          NODE
