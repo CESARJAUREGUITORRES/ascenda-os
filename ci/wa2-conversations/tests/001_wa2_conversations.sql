@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(32);
 
 select ok(to_regclass('public.aos_wa_conversations_v1') is not null,'conversation table exists');
 select ok(to_regclass('public.aos_wa_conversation_events_v1') is not null,'conversation event table exists');
