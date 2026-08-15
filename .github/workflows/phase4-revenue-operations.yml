@@ -83,9 +83,12 @@ jobs:
             if ($f -like 'supabase/migrations/*f4_revenue*' -or
                 $f -like 'supabase/migrations/*f4_cartera*' -or
                 $f -like 'supabase/rollbacks/*f4_revenue*' -or
-                $f -like 'ci/phase4-revenue/*' -or
-                $f -like 'ci/phase4-revenue/**' -or
-                $f -eq 'scripts/ci/enforce-zero-cost-policy.py') {
+                $f -eq 'ci/phase4-revenue/schema_contract.sql' -or
+                $f -eq 'ci/phase4-revenue/ui_contract.py' -or
+                $f -like 'ci/phase4-revenue/tests/*' -or
+                $f -like 'ci/phase4-revenue/tests/**' -or
+                $f -eq 'scripts/ci/enforce-zero-cost-policy.py' -or
+                $f -eq '.github/workflows/phase4-revenue-operations.yml') {
               $db = $true
             }
           }
@@ -115,6 +118,14 @@ jobs:
           $loginJs = Join-Path $env:RUNNER_TEMP 'ascenda-login-inline.js'
           [IO.File]::WriteAllText($loginJs,$inline.Groups[1].Value)
           node --check $loginJs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: F4 Node parity UI contract
+        shell: powershell
+        run: |
+          node --check ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase4-revenue/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: F4 sales recovery contract

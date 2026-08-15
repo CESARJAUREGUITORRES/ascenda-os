@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
+      - 'supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql'
+      - 'supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql'
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
@@ -14,7 +16,15 @@ on:
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
-      - 'ci/phase2-cartera/**'
+      - 'ci/phase2-cartera/schema_contract.sql'
+      - 'ci/phase2-cartera/schema_hardening_contract.sql'
+      - 'ci/phase2-cartera/fixture_pre_migration.sql'
+      - 'ci/phase2-cartera/ui_contract.py'
+      - 'ci/phase2-cartera/tests/004_cartera_phase2.sql'
+      - 'ci/phase2-cartera/tests/005_phase2_hardening.sql'
+      - 'ci/phase2-cartera/tests/006_phase2_provider_boundary.sql'
+      - 'ci/phase2-cartera/tests/007_phase2_identity_admin.sql'
+      - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
@@ -26,6 +36,8 @@ on:
     branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
     paths:
       - 'supabase/migrations/20260814030000_phase2_auth_v3_additive.sql'
+      - 'supabase/migrations/20260814034401_cartera_phase2_reconciliation.sql'
+      - 'supabase/migrations/20260814050000_cartera_phase2_security_cleanup.sql'
       - 'supabase/migrations/20260814060000_phase2_production_hardening.sql'
       - 'supabase/migrations/20260814061000_phase2_secure_write_defaults_fix.sql'
       - 'supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql'
@@ -35,7 +47,15 @@ on:
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql'
-      - 'ci/phase2-cartera/**'
+      - 'ci/phase2-cartera/schema_contract.sql'
+      - 'ci/phase2-cartera/schema_hardening_contract.sql'
+      - 'ci/phase2-cartera/fixture_pre_migration.sql'
+      - 'ci/phase2-cartera/ui_contract.py'
+      - 'ci/phase2-cartera/tests/004_cartera_phase2.sql'
+      - 'ci/phase2-cartera/tests/005_phase2_hardening.sql'
+      - 'ci/phase2-cartera/tests/006_phase2_provider_boundary.sql'
+      - 'ci/phase2-cartera/tests/007_phase2_identity_admin.sql'
+      - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
       - 'app/public/login.html'
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
@@ -49,7 +69,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cartera-phase2-hardening-${{ github.ref }}
+  group: cartera-phase2-hardening-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
