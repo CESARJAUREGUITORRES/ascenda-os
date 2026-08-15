@@ -21,6 +21,8 @@ jobs:
         run: |
           python3 scripts/ci/enforce-zero-cost-policy.py
           bash scripts/ci/runner-healthcheck.sh
+      - name: Expose trusted runner Node
+        run: bash scripts/ci/expose-runner-node.sh
       - name: Patch runtime with fixed-recipient canary
         run: |
           set -euo pipefail
