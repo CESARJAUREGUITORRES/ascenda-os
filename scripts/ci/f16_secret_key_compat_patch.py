@@ -55,27 +55,23 @@ if s.count(anchor) != 1:
     raise SystemExit(f'server helper anchor count={s.count(anchor)}')
 s = s.replace(anchor, helper, 1)
 
-pairs = [
-    (
-        "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }",
-        "headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) })",
-        'server POST headers',
-    ),
-    (
-        "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }",
-        "headers: f16SupabaseHeaders(dbKey)",
-        'server GET headers',
-    ),
-    (
-        "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }",
-        "headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' })",
-        'server PATCH headers',
-    ),
-]
-for old, new, label in pairs:
-    if s.count(old) != 1:
-        raise SystemExit(f'{label} anchor count={s.count(old)}')
-    s = s.replace(old, new, 1)
+post_old = "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) }"
+post_new = "headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) })"
+if s.count(post_old) != 1:
+    raise SystemExit(f'server POST headers anchor count={s.count(post_old)}')
+s = s.replace(post_old, post_new, 1)
+
+get_old = "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey }"
+get_new = "headers: f16SupabaseHeaders(dbKey)"
+if s.count(get_old) != 2:
+    raise SystemExit(f'server GET headers anchor count={s.count(get_old)}')
+s = s.replace(get_old, get_new)
+
+patch_old = "headers: { 'apikey': dbKey, 'Authorization': 'Bearer ' + dbKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' }"
+patch_new = "headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' })"
+if s.count(patch_old) != 1:
+    raise SystemExit(f'server PATCH headers anchor count={s.count(patch_old)}')
+s = s.replace(patch_old, patch_new, 1)
 p.write_text(s)
 
 print('F16_SECRET_KEY_COMPAT_PATCH=PASS')
