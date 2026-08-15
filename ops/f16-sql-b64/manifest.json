@@ -1,0 +1,12 @@
+{
+  "20260814200600_cia_phase16_email_contracts_v1.sql": {
+    "sha256": "05c1782b55fc03c403aab22420610260a089e9c3e6c594dd9b5ba9fbe2e044dc",
+    "bytes": 20580,
+    "transport_bytes": 5933
+  },
+  "20260814220000_cia_phase16_email_delivery_contracts_v2.sql": {
+    "sha256": "d682b82a89b9932382a5eea7bcd7ce4abdb3ae87c91cabe8049ce78466823278",
+    "bytes": 28855,
+    "transport_bytes": 7361
+  }
+}
