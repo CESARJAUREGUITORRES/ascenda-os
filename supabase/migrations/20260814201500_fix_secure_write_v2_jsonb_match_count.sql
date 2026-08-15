@@ -1,4 +1,5 @@
--- P0/HIGH: PostgreSQL has jsonb_object_keys(jsonb), not jsonb_object_length(jsonb).
+-- P0/HIGH: PostgreSQL validates JSONB object presence via jsonb_object_keys(jsonb);
+-- the legacy object-length helper was not a valid PostgreSQL function.
 -- Preserve the existing secure-write contract while making PATCH/DELETE match
 -- validation executable and lint-clean.
 begin;
