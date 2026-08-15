@@ -37,6 +37,10 @@ select is((public.aos_editar_venta_v4('bad',2,(select updated_at from public.aos
 create temporary table f4_version(v timestamptz);insert into f4_version select updated_at from public.aos_ventas where id=2;
 select is((public.aos_editar_venta_v4('F4-TEST-TOKEN',2,(select v from f4_version),'{"descripcion":"SPRAY MINOX"}','test')->>'ok')::boolean,true,'14 tokenized edit succeeds');
 select is((select product_key from public.aos_product_sale_fact_v1 where sale_id=2),'F3:SPRAYMINOX','15 edit re-resolves product fact');
+-- Production RPC calls are separate DB transactions. This suite intentionally runs inside
+-- one pgTAP transaction, where now() is transaction-stable, so advance the row version
+-- with the wall clock to model the next request boundary deterministically.
+update public.aos_ventas set updated_at=clock_timestamp() where id=2;
 select is(public.aos_editar_venta_v4('F4-TEST-TOKEN',2,(select v from f4_version),'{"monto":201}','test')->>'error','STALE_SALE','16 stale edit rejected');
 select is(public.aos_editar_venta_v4('F4-TEST-TOKEN',2,(select updated_at from public.aos_ventas where id=2),'{"evil":"x"}','test')->>'error','FIELD_NOT_ALLOWED','17 unknown edit field rejected');
 
