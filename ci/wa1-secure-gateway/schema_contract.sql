@@ -10,6 +10,16 @@ create table if not exists public.aos_whatsapp_mensajes (
 );
 grant all on table public.aos_whatsapp_mensajes to anon, authenticated, service_role;
 
+create table if not exists public.aos_webhook_log (
+  id uuid primary key default gen_random_uuid(),
+  source text,
+  payload jsonb,
+  processed boolean default false,
+  error text,
+  created_at timestamptz default now()
+);
+grant all on table public.aos_webhook_log to anon, authenticated, service_role;
+
 create table if not exists public.aos_meta_config (
   id uuid primary key default gen_random_uuid(),
   key text not null,
