@@ -936,6 +936,7 @@ http.createServer(function(req, res) {
   if (p === '/api/email-gateway') return EMAIL_GATEWAY.handleAdmin(req, res)
   if (p === '/api/send-email') return EMAIL_GATEWAY.handleAdmin(req, res)
   if (p === '/api/f16-live-canary') return F16_LIVE_CANARY.handleCanary(req, res)
+  if (p === '/api/f16-live-canary-replay') return F16_LIVE_CANARY.handleReplay(req, res)
   if (p === '/api/resend-webhook') return EMAIL_GATEWAY.handleWebhook(req, res)
   if (p === '/webhook' || p === '/webhook/') {
     if (req.method === 'GET') return webhookVerify(req, res)
