@@ -1,0 +1,50 @@
+'use strict';
+const fs = require('fs');
+function read(path){ return fs.readFileSync(path, 'utf8'); }
+function ok(condition, message){ if(!condition) throw new Error(message); }
+const page = read('app/public/admin-sales-intelligence.html');
+const staging = read('app/public/admin-sales-intelligence-staging.html');
+const shell = read('app/public/app.html');
+const login = read('app/public/login.html');
+const team = read('app/public/admin-team.html');
+const requiredIds = ['si-fact','si-meta','si-pct','si-gap','si-ticket','si-sales','si-best','si-avg','si-chart','si-proj','si-mtd','si-prev','si-delta','si-tbody','si-year','si-sede'];
+for(const rid of requiredIds) ok(page.includes(`id="${rid}"`), `missing UI contract id: ${rid}`);
+ok(page.includes('aos_sales_intelligence_gateway'), 'missing Sales Intelligence gateway');
+ok(!page.includes('aos_sales_intelligence_summary'), 'direct summary RPC must remain absent');
+ok(page.includes("sessionStorage.getItem('aos_si_token')"), 'finance token read missing');
+ok(page.includes('ACTIVO · SOLO LECTURA'), 'read-only marker missing');
+ok(page.includes('Acceso restringido'), 'restricted-access marker missing');
+ok(staging.includes("fetch('admin-sales-intelligence.html'"), 'staging must load production page');
+ok(staging.includes('window.__ASCENDA_STAGING_FIXTURE__=true'), 'staging fixture marker missing');
+ok(staging.includes('aos_sales_intelligence_gateway'), 'staging gateway missing');
+ok(!staging.includes('aos_sales_intelligence_summary'), 'staging direct summary RPC must remain absent');
+for(const marker of ['556097.27','800000','57672.80','35493.05','62.49','137527.45','2351.51']) ok(staging.includes(marker), `missing staging fixture marker: ${marker}`);
+for(const forbidden of ['INSERT INTO aos_ventas','UPDATE aos_ventas','DELETE FROM aos_ventas','TRUNCATE aos_ventas']) {
+  ok(!page.toLowerCase().includes(forbidden.toLowerCase()), `forbidden write in page: ${forbidden}`);
+  ok(!staging.toLowerCase().includes(forbidden.toLowerCase()), `forbidden write in staging: ${forbidden}`);
+}
+ok((staging.match(/\.supabase\.co/g) || []).length === 0, 'staging harness must not contain a Supabase hostname');
+ok(staging.includes('/rest/v1/rpc/aos_sales_intelligence_gateway'), 'staging gateway route missing');
+ok(/for\(var i=9;i<=12;i\+\+\)/.test(staging), 'fixture must expose 12 months');
+ok(shell.includes('var _APP_VERSION = 20260814.3;'), 'shell cache version must force activation');
+ok(shell.includes('function revalidateAdminSessionContext()'), 'admin session revalidation missing');
+ok(shell.includes("id:'admin-sales-intelligence'"), 'Sales Intelligence menu id missing');
+ok(shell.includes('requiresPanel:true'), 'panel gate missing');
+ok(!shell.includes('canaryNivel'), 'legacy canaryNivel must be absent');
+ok(shell.includes("perms.indexOf(it.id) >= 0"), 'panel permission filter missing');
+ok(shell.includes("sessionStorage.removeItem('aos_si_token')"), 'finance token cleanup missing');
+ok(login.includes('aos_login_v3'), 'Auth V3 login missing');
+ok(login.includes('aos_verificar_2fa_v3'), 'Auth V3 2FA verifier missing');
+ok(login.includes("sessionStorage.setItem('aos_si_token'"), 'finance token storage missing');
+ok(login.includes("sessionStorage.setItem('aos_app_token'"), 'app token storage missing');
+ok(login.includes('finance_token'), 'finance token response marker missing');
+ok(!login.includes('aos_sales_intelligence_claim_session'), 'legacy SI claim session must be absent');
+ok(!login.includes('aos_login_v2'), 'Auth V2 must be absent');
+ok(!login.includes('/api/send-2fa'), 'legacy 2FA endpoint must be absent');
+ok(!login.includes("sessionStorage.setItem('aos_si_password'"), 'SI password must not enter sessionStorage');
+ok(!login.includes("localStorage.setItem('aos_si_password'"), 'SI password must not enter localStorage');
+ok(team.includes('aos_sales_intelligence_set_access'), 'team access RPC missing');
+ok(team.includes('TARGET_ADMIN_2FA_REQUIRED'), 'admin 2FA guard missing');
+ok(team.includes("d.rol=d.nivel_jerarquia<=2?'admin'"), 'role normalization missing');
+ok(team.includes("ps.indexOf('admin-sales-intelligence')"), 'team panel access marker missing');
+console.log('PHASE1_UI_CONTRACT=PASS');
