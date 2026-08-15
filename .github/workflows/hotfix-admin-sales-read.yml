@@ -23,24 +23,24 @@ jobs:
           ref: hotfix/admin-home-lima-business-date-20260815
           fetch-depth: 1
       - name: Fast runner health
-        shell: pwsh
+        shell: cmd
         run: |
           git --version
           python --version
       - name: Apply deterministic Sales read-path hotfix
-        shell: pwsh
-        run: python scripts/ci/hotfix_admin_sales_rpc_isolation.py
+        shell: cmd
+        run: python scripts\ci\hotfix_admin_sales_rpc_isolation.py
       - name: Certify Sales read path
-        shell: pwsh
-        run: python scripts/ci/admin_sales_read_path_test.py
+        shell: cmd
+        run: python scripts\ci\admin_sales_read_path_test.py
       - name: Commit materialized frontend only when changed
-        shell: pwsh
+        shell: bash
         run: |
-          git diff --quiet -- app/public/admin-sales.html
-          if ($LASTEXITCODE -eq 0) {
-            Write-Output 'ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT'
+          set -euo pipefail
+          if git diff --quiet -- app/public/admin-sales.html; then
+            echo 'ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT'
             exit 0
-          }
+          fi
           git config user.name 'ascenda-ci'
           git config user.email 'ascenda-ci@users.noreply.github.com'
           git add app/public/admin-sales.html
