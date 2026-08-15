@@ -1,0 +1,54 @@
+name: F16 Exact Migration Gzip Transport
+
+on:
+  push:
+    branches: ['ops/f16-migration-extract-20260815']
+    paths:
+      - '.github/workflows/f16-extract-migration-b64.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  encode:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Zero-Cost health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Encode exact SQL and prove roundtrip
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, gzip, base64, json
+          out=Path('ops/f16-sql-b64'); out.mkdir(parents=True,exist_ok=True)
+          files=[
+            'supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql',
+            'supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql',
+          ]
+          manifest={}
+          for fp in files:
+            p=Path(fp); data=p.read_bytes()
+            encoded=base64.b64encode(gzip.compress(data, compresslevel=9)).decode('ascii')+'\n'
+            target=out/(p.name+'.gz.b64'); target.write_text(encoded,encoding='ascii')
+            rebuilt=gzip.decompress(base64.b64decode(encoded))
+            assert rebuilt==data
+            manifest[p.name]={'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'transport_bytes':len(encoded)}
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print('CIA_F16_GZIP_SQL_ROUNDTRIP=PASS')
+          PY
+      - name: Commit exact transports
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add ops/f16-sql-b64
+          git commit -m 'ops(f16): exact gzip migration transports'
+          git push origin HEAD:${GITHUB_REF_NAME}
