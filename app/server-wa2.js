@@ -61,7 +61,12 @@ async function authorize(req){
     const out=await sbRpc('aos_app_actor_v3',{p_token:token,p_required_panel:PANEL,p_require_2fa:true});
     if(out.status<200||out.status>=300)return null;
     const actor=out.data;
-    return typeof actor==='string'&&UUID_RE.test(actor)?actor:null;
+    if(typeof actor!=='string'||!UUID_RE.test(actor))return null;
+    // Defense in depth: a panel assignment alone never upgrades a non-admin into the patient inbox.
+    const user=await sbService('GET','/rest/v1/aos_usuarios?id=eq.'+encodeURIComponent(actor)+'&select=id,nivel_jerarquia,activo&limit=1',null);
+    const row=Array.isArray(user.data)?user.data[0]||null:null;
+    if(!row||row.activo!==true||Number(row.nivel_jerarquia||99)>2)return null;
+    return actor;
   }catch(e){return null;}
 }
 function safeLimit(v,max,def){const n=parseInt(v,10);return Number.isFinite(n)&&n>0?Math.min(n,max):def;}
@@ -113,7 +118,7 @@ async function markRead(req,res,id){
   if(!UUID_RE.test(id)){writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});return;}
   const now=new Date().toISOString();
   try{
-    const patched=await sbService('PATCH','/rest/v1/aos_wa_conversations_v1?id=eq.'+encodeURIComponent(id),{unread_count:0,last_read_at:now,last_read_by:actor,updated_at:now,version:undefined},'return=representation');
+    const patched=await sbService('PATCH','/rest/v1/aos_wa_conversations_v1?id=eq.'+encodeURIComponent(id),{unread_count:0,last_read_at:now,last_read_by:actor,updated_at:now},'return=representation');
     const rows=Array.isArray(patched.data)?patched.data:[];
     if(!rows.length){writeJson(res,404,{ok:false,error:'CONVERSATION_NOT_FOUND'});return;}
     await sbService('POST','/rest/v1/aos_wa_conversation_events_v1',{conversation_id:id,event_type:'conversation.read',actor_id:actor,payload:{source:'WA2_LIVE_INBOX'}},'return=minimal');
