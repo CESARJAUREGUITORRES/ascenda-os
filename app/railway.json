@@ -2,10 +2,10 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "echo 'Skip build — serving static from public/'"
+    "buildCommand": "echo 'Skip build — certified outer runtime chain: node server-wa3.js -> node server-wa2.js -> node server-f4.js'"
   },
   "deploy": {
-    "startCommand": "node server-wa2.js",
+    "startCommand": "node server-wa3.js",
     "restartPolicyType": "ON_FAILURE"
   },
   "environments": {
