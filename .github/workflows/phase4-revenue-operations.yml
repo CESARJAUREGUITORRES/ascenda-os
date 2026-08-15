@@ -12,6 +12,7 @@ on:
       - 'app/public/f4-kronia-revenue-bridge.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'app/public/phase2-service-worker.js'
+      - 'app/public/login.html'
       - 'app/server-phase2.js'
       - 'app/server-f4.js'
       - 'app/railway.json'
@@ -29,6 +30,7 @@ on:
       - 'app/public/f4-kronia-revenue-bridge.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'app/public/phase2-service-worker.js'
+      - 'app/public/login.html'
       - 'app/server-phase2.js'
       - 'app/server-f4.js'
       - 'app/railway.json'
@@ -107,16 +109,29 @@ jobs:
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
           }
+          $login = Get-Content 'app/public/login.html' -Raw
+          $inline = [regex]::Match($login,'(?is)<script[^>]*>(.*?)</script>')
+          if (-not $inline.Success) { throw 'Login inline script missing' }
+          $loginJs = Join-Path $env:RUNNER_TEMP 'ascenda-login-inline.js'
+          [IO.File]::WriteAllText($loginJs,$inline.Groups[1].Value)
+          node --check $loginJs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: F4 sales recovery contract
         shell: powershell
         run: |
           $hotfix = Get-Content 'app/public/f4-production-canary-hotfix.js' -Raw
+          $sw = Get-Content 'app/public/phase2-service-worker.js' -Raw
+          $login = Get-Content 'app/public/login.html' -Raw
           if ($hotfix -notmatch 'strongTokenCandidates') { throw 'Strong token candidate recovery missing' }
           if ($hotfix -notmatch 'aos-phase2-auth') { throw 'Service-worker token cache recovery missing' }
           if ($hotfix -notmatch 'aos_sales_admin_gateway_v4') { throw 'Sales V4 routing missing' }
           if ($hotfix -notmatch "d\.error==='UNAUTHORIZED'") { throw 'Unauthorized retry contract missing' }
           if ($hotfix -match 'aos_si_token') { throw 'Ventas recovery must not read or overwrite the Sales Intelligence finance token' }
+          if ($sw -notmatch '20260815-f4-sales-auth-p06') { throw 'Versioned Sales recovery asset missing from service worker' }
+          if ($sw -notmatch 'ASCENDA_ACTIVATE_NOW') { throw 'Immediate service-worker activation hook missing' }
+          if ($login -notmatch "updateViaCache:'none'") { throw 'Login must bypass service-worker HTTP cache during bridge registration' }
+          if ($login -notmatch 'reg\.update\(\)') { throw 'Login must explicitly check for the current bridge before app entry' }
 
   revenue-operations-contract:
     name: DB/security contracts
