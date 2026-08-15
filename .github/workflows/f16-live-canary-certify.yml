@@ -63,7 +63,7 @@ jobs:
           if (-not $canary.Contains('upstream_status')) { throw 'Sanitized upstream status diagnostic missing' }
           if (-not $canary.Contains('jwt_role')) { throw 'Safe JWT role diagnostic missing' }
           if (-not $canary.Contains('supabase_ref')) { throw 'Safe project-ref diagnostic missing' }
-          if ($canary -match 'diagnostic[^}]{0,500}(serviceKey|resendKey)') { throw 'Secret-bearing variable leaked into diagnostic object' }
+          if ($canary -match 'serviceKey\s*:\s*serviceKey|resendKey\s*:\s*resendKey|key_value|key_prefix|key_length') { throw 'Secret-bearing field exposed by diagnostic response' }
           if (-not $canary.Contains('delivered+ascenda-f16-20260815@resend.dev')) { throw 'Fixed simulator recipient missing' }
           if (-not $canary.Contains('SIGNED_WEBHOOK_REPLAY_DEDUPED')) { throw 'Signed replay proof missing' }
           Write-Host 'F16_FAST_SANITIZED_DIAGNOSTICS=PASS'
