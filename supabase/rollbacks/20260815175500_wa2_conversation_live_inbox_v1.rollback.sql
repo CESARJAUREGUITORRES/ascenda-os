@@ -4,7 +4,10 @@
 
 begin;
 
+drop trigger if exists trg_aos_wa2_project_backfill_v1 on public.aos_wa_messages_v1;
+drop trigger if exists trg_aos_wa2_project_insert_v1 on public.aos_wa_messages_v1;
 drop trigger if exists trg_aos_wa2_bind_conversation_v1 on public.aos_wa_messages_v1;
+drop function if exists public.aos_wa2_project_message_v1();
 drop function if exists public.aos_wa2_bind_conversation_v1();
 
 update public.aos_usuarios
