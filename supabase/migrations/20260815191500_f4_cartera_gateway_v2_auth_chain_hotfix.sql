@@ -1,7 +1,7 @@
 -- ASCENDA OS — F4 Cartera gateway V2 Auth V3 chain hotfix.
 -- Read-path only for business data: removes the incompatible second legacy-session
--- validation from aos_cartera_gateway_v2. The browser continues to require the
--- canonical Auth V3 app token, 2FA and explicit admin-cartera panel access.
+-- validation from aos_cartera_gateway_v2 and makes the old READ gateway a compatibility
+-- alias to V2. No legacy write function is widened or changed.
 
 begin;
 
@@ -175,6 +175,29 @@ $function$;
 
 revoke all on function public.aos_cartera_gateway_v2(text,text,text,integer,integer) from public;
 grant execute on function public.aos_cartera_gateway_v2(text,text,text,integer,integer) to anon,authenticated;
+
+-- Transitional READ compatibility for the currently deployed panel and stale
+-- service-worker/browser assets. This old read name no longer performs its own
+-- finance-session validation; it is a narrow alias to the canonical V2 gate.
+-- No reconcile/write function is changed here.
+create or replace function public.aos_cartera_gateway(
+  p_token text,
+  p_estado text default '',
+  p_sede text default '',
+  p_limit integer default 50,
+  p_offset integer default 0
+) returns jsonb
+language sql
+security definer
+set search_path = ''
+as $function$
+  select public.aos_cartera_gateway_v2(
+    p_token,p_estado,p_sede,p_limit,p_offset
+  )
+$function$;
+
+revoke all on function public.aos_cartera_gateway(text,text,text,integer,integer) from public;
+grant execute on function public.aos_cartera_gateway(text,text,text,integer,integer) to anon,authenticated;
 
 notify pgrst, 'reload schema';
 
