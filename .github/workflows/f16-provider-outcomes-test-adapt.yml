@@ -1,0 +1,61 @@
+name: F16 Provider Outcomes Test Adapt
+
+on:
+  push:
+    branches: ['hotfix/f16-resend-outcomes-20260815']
+    paths:
+      - '.github/workflows/f16-provider-outcomes-test-adapt.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  adapt:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Zero-Cost health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Adapt existing delivery contract to complaint suppression
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ci/phase16/test_phase16_delivery_contracts.sql')
+          s=p.read_text()
+          needle="""  if j->>'state' <> 'COMPLAINED' then
+    raise exception 'F16_DELIVERY_TEST_FAIL: post-delivery complaint transition %',j;
+  end if;
+end
+$test$;
+"""
+          replacement="""  if j->>'state' <> 'COMPLAINED' then
+    raise exception 'F16_DELIVERY_TEST_FAIL: post-delivery complaint transition %',j;
+  end if;
+  if coalesce((select global_suppressed from public.aos_cia_email_recipient_controls where contact_key='synthetic-contact-1'),false) is not true then
+    raise exception 'F16_DELIVERY_TEST_FAIL: complaint did not suppress recipient';
+  end if;
+  update public.aos_cia_email_recipient_controls
+     set global_suppressed=false,suppression_reason=null,source='SYNTHETIC_RESET',source_updated_at=now(),updated_by_user_id='00000000-0000-0000-0000-000000000001'
+   where contact_key='synthetic-contact-1';
+end
+$test$;
+"""
+          if s.count(needle)!=1:
+            raise SystemExit('complaint contract anchor not unique')
+          p.write_text(s.replace(needle,replacement,1))
+          PY
+          git diff --check
+      - name: Commit test contract adaptation
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add ci/phase16/test_phase16_delivery_contracts.sql
+          git commit -m 'test(f16): assert complaint suppression outcome'
+          git push origin HEAD:${GITHUB_REF_NAME}

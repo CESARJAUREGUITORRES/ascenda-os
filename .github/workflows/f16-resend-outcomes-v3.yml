@@ -1,0 +1,91 @@
+name: ASCENDA F16 Resend Outcomes V3
+
+on:
+  push:
+    branches: ['hotfix/f16-resend-outcomes-20260815']
+    paths:
+      - '.github/workflows/f16-resend-outcomes-v3.yml'
+      - 'supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql'
+      - 'ci/phase16/test_phase16_delivery_contracts.sql'
+      - 'ci/phase16/test_phase16_resend_outcomes_v3.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f16-resend-outcomes-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: F16 Resend outcome coverage / rollback
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_outcomes_v3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zero-Cost policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Start isolated Supabase PostgreSQL
+        working-directory: ci/zero-cost-staging
+        run: supabase db start
+      - name: Create isolated F16 database
+        run: |
+          set -euo pipefail
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_outcomes_v3 with (force)"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_outcomes_v3"
+      - name: Compile F16 plus outcome coverage
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
+          for f in \
+            20260814200500_cia_phase16_email_governed_schema_v1.sql \
+            20260814200600_cia_phase16_email_contracts_v1.sql \
+            20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
+            20260814220100_cia_phase16_email_render_context_hardening.sql \
+            20260814220200_cia_phase16_legacy_email_acl_hardening.sql \
+            20260814220300_cia_phase16_verify_app_session_v1.sql \
+            20260815221000_cia_phase16_resend_outcome_coverage_v3.sql; do
+            psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          supabase db lint --db-url "$F16_DB_URL" --schema public --level error
+      - name: Existing and V3 provider contracts
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_contracts.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_delivery_contracts.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_render_context_hardening.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_legacy_acl.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_app_session.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/test_phase16_resend_outcomes_v3.sql
+      - name: Fail-closed provider surface assertions
+        run: |
+          set -euo pipefail
+          grep -q "'email.failed'" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "'email.suppressed'" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "RESEND_WEBHOOK" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cia_email_ingest_provider_event_v2(text,text,text,timestamptz,jsonb)','EXECUTE')")" = "f"
+          echo 'CIA_PHASE16_RESEND_OUTCOME_SURFACE=PASS'
+      - name: Rollback and zero residue
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16.sql | tee /tmp/f16_rollback.log
+          grep -q 'CIA_PHASE16_ROLLBACK=PASS' /tmp/f16_rollback.log
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16_legacy_acl.sql | tee /tmp/f16_acl_rollback.log
+          grep -q 'CIA_PHASE16_LEGACY_ACL_ROLLBACK=PASS' /tmp/f16_acl_rollback.log
+          echo 'CIA_PHASE16_RESEND_OUTCOME_ROLLBACK=PASS'
+      - name: Cleanup
+        if: always()
+        run: |
+          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_outcomes_v3 with (force)" || true
+          cd ci/zero-cost-staging && supabase stop --no-backup || true

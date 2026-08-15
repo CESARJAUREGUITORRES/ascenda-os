@@ -90,6 +90,12 @@ begin
   if j->>'state' <> 'COMPLAINED' then
     raise exception 'F16_DELIVERY_TEST_FAIL: post-delivery complaint transition %',j;
   end if;
+  if coalesce((select global_suppressed from public.aos_cia_email_recipient_controls where contact_key='synthetic-contact-1'),false) is not true then
+    raise exception 'F16_DELIVERY_TEST_FAIL: complaint did not suppress recipient';
+  end if;
+  update public.aos_cia_email_recipient_controls
+     set global_suppressed=false,suppression_reason=null,source='SYNTHETIC_RESET',source_updated_at=now(),updated_by_user_id='00000000-0000-0000-0000-000000000001'
+   where contact_key='synthetic-contact-1';
 end
 $test$;
 
