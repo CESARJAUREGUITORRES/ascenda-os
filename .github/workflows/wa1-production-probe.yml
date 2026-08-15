@@ -1,0 +1,48 @@
+name: ASCENDA WA-1 Production Probe
+
+on:
+  push:
+    branches: ['probe/wa1-production-smoke-20260815']
+    paths:
+      - '.github/workflows/wa1-production-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: WA-1 production fail-closed probe
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Probe must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Probe deployed WA gateway without secrets
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = 'https://ascenda-os-production.up.railway.app'
+
+          function Probe([string]$name, [string[]]$args, [int[]]$allowed) {
+            $h = Join-Path $env:RUNNER_TEMP ($name + '-headers.txt')
+            $b = Join-Path $env:RUNNER_TEMP ($name + '-body.txt')
+            $curlArgs = @('-sS','--connect-timeout','10','--max-time','20','-D',$h,'-o',$b,'-w','%{http_code}') + $args
+            $codeText = & curl.exe @curlArgs
+            if ($LASTEXITCODE -ne 0) { throw "$name curl failed: $LASTEXITCODE" }
+            $code = [int]$codeText
+            $headers = Get-Content $h -Raw
+            Write-Host "$name status=$code"
+            if ($allowed -notcontains $code) { throw "$name unexpected HTTP $code" }
+            if ($headers -notmatch '(?im)^X-Ascenda-WA-Gateway:\s*v1\s*$') { throw "$name missing WA gateway v1 header" }
+          }
+
+          Probe 'verify-invalid' @("$base/webhook?hub.mode=subscribe&hub.verify_token=__wa1_invalid_probe__&hub.challenge=wa1") @(403,503)
+          Probe 'status-no-auth' @("$base/api/wa/status") @(403,503)
+          Probe 'unsigned-post' @('-X','POST','-H','Content-Type: application/json','--data-binary','{}',"$base/webhook") @(401,503)
+
+          Write-Host 'WA-1 production gateway V1 is deployed and fail-closed.'
