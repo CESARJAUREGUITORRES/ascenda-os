@@ -24,7 +24,7 @@ jobs:
       - name: Checkout clean release branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 4
 
       - name: Enforce Zero-Cost CI V2 policy
         run: python3 scripts/ci/enforce-zero-cost-policy.py
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${GITHUB_REF_NAME}" = "release/cia-phase16-email-20260814-v4"
-          git fetch --no-tags --depth=2 origin release/cia-phase16-email-20260814-v4
+          git fetch --no-tags --depth=4 origin release/cia-phase16-email-20260814-v4
           git fetch --no-tags origin d19560e4985dccf702252789f34a28cd73cf0cfc
           git merge-base --is-ancestor d19560e4985dccf702252789f34a28cd73cf0cfc HEAD
           echo 'CIA_PHASE16_CLEAN_BASE=PASS'
