@@ -15,6 +15,7 @@ on:
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
+      - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'ci/phase2-cartera/**'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
@@ -32,6 +33,7 @@ on:
       - 'supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql'
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
+      - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
       - 'ci/phase2-cartera/**'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
@@ -99,7 +101,8 @@ jobs:
             20260814064000_phase2_owner_canary_access.sql \
             20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
             20260814164500_restore_2fa_email_branding.sql \
-            20260814195300_fix_auth_v3_btrim.sql; do
+            20260814195300_fix_auth_v3_btrim.sql \
+            20260814201500_fix_secure_write_v2_jsonb_match_count.sql; do
               psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
           done
 
@@ -108,15 +111,8 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           create table if not exists public.aos_log_auditoria (
-            id bigserial primary key,
-            ts timestamptz,
-            tabla text,
-            accion text,
-            asesor text,
-            registro_id text,
-            datos_new jsonb,
-            datos_old jsonb,
-            metadata jsonb
+            id bigserial primary key, ts timestamptz, tabla text, accion text,
+            asesor text, registro_id text, datos_new jsonb, datos_old jsonb, metadata jsonb
           );
           alter table public.aos_log_auditoria add column if not exists ts timestamptz;
           alter table public.aos_log_auditoria add column if not exists tabla text;
@@ -127,14 +123,18 @@ jobs:
           alter table public.aos_log_auditoria add column if not exists datos_old jsonb;
           alter table public.aos_log_auditoria add column if not exists metadata jsonb;
           drop trigger if exists trg_brain_audit on public.aos_rrhh;
-          create trigger trg_brain_audit
-            after update on public.aos_rrhh
-            for each row execute function public.fn_audit_trigger();
+          create trigger trg_brain_audit after update on public.aos_rrhh for each row execute function public.fn_audit_trigger();
           set search_path='';
           update public.aos_rrhh set updated_at=pg_catalog.now() where codigo_asesor='CAROWNER';
           SQL
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_log_auditoria where tabla='aos_rrhh' and accion='UPDATE'")" -ge "1"
           echo 'PHASE2_P0_AUDIT_TRIGGER_REGRESSION=PASS'
+
+      - name: Secure write P0 exact regression
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-p0.txt
+          grep -q 'PHASE2_SECURE_WRITE_JSONB_P0=PASS' /tmp/secure-write-p0.txt
 
       - name: Final release invariants
         run: |
@@ -151,8 +151,8 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select position('ascenda_branded_v1' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.btrim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))>0")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select position('pg_catalog.trim' in pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure))=0")" = "t"
-          echo 'PHASE2_BRANDED_2FA_FINAL=PASS'
-          echo 'PHASE2_AUTH_BTRIM_P0=PASS'
+          test "$(psql "$DB_URL" -X -qAt -c "select position('jsonb_object_length' in pg_get_functiondef('public.aos_secure_write_v2(text,text,text,jsonb,jsonb)'::regprocedure))=0")" = "t"
+          echo 'PHASE2_FINAL_INVARIANTS=PASS'
 
       - name: Final database lint
         working-directory: ci/zero-cost-staging
@@ -160,6 +160,8 @@ jobs:
           set -euo pipefail
           supabase db lint --local --schema public --level error | tee /tmp/db-lint.txt
           ! grep -q 'pg_catalog.trim' /tmp/db-lint.txt
+          ! grep -q 'jsonb_object_length' /tmp/db-lint.txt
+          ! grep -q '"level": "error"' /tmp/db-lint.txt
 
       - name: Release digest
         run: |
@@ -175,7 +177,9 @@ jobs:
             supabase/migrations/20260814064000_phase2_owner_canary_access.sql \
             supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
             supabase/migrations/20260814164500_restore_2fa_email_branding.sql \
-            supabase/migrations/20260814195300_fix_auth_v3_btrim.sql
+            supabase/migrations/20260814195300_fix_auth_v3_btrim.sql \
+            supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql
+          echo 'PHASE2_FINAL_RELEASE_DIGEST=PASS'
 
       - name: Stop isolated Supabase and prove zero residue
         if: always()
