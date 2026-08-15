@@ -1,0 +1,162 @@
+name: ASCENDA WA-2 Conversation Store + Live Inbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/admin-whatsapp.html'
+      - 'supabase/migrations/*wa2_conversation_store_live_inbox*'
+      - 'supabase/rollbacks/*wa2_conversation_store_live_inbox*'
+      - 'ci/wa2-conversations/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA2_*'
+      - '.github/workflows/wa2-conversation-store-live-inbox.yml'
+  push:
+    branches: ['feature/wa2-**']
+    paths:
+      - 'app/public/admin-whatsapp.html'
+      - 'supabase/migrations/*wa2_conversation_store_live_inbox*'
+      - 'supabase/rollbacks/*wa2_conversation_store_live_inbox*'
+      - 'ci/wa2-conversations/**'
+      - '.github/workflows/wa2-conversation-store-live-inbox.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa2-conversations-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  fast-ui-contracts:
+    name: FAST WA-2 inbox/source contracts
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    outputs:
+      db_required: ${{ steps.scope.outputs.db_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Classify WA-2 scope
+        id: scope
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'WA-2 FAST lane must be self-hosted' }
+          $base = '${{ github.event.pull_request.base.sha }}'
+          if (-not $base) { $base = '${{ github.event.before }}' }
+          if (-not $base -or $base -match '^0+$') { $base = 'HEAD^' }
+          $files = @(git diff --name-only $base $env:GITHUB_SHA)
+          $db = $false
+          foreach ($f in $files) {
+            if ($f -like 'supabase/migrations/*wa2_conversation_store_live_inbox*' -or
+                $f -like 'supabase/rollbacks/*wa2_conversation_store_live_inbox*' -or
+                $f -like 'ci/wa2-conversations/tests/**' -or
+                $f -eq 'ci/wa2-conversations/schema_contract.sql' -or
+                $f -eq '.github/workflows/wa2-conversation-store-live-inbox.yml') { $db = $true }
+          }
+          "db_required=$($db.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "WA-2 DB required: $db"
+
+      - name: Live inbox UI contracts
+        shell: powershell
+        run: |
+          node --check ci/wa2-conversations/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/wa2-conversations/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Source security contracts
+        shell: powershell
+        run: |
+          $sql = Get-Content supabase/migrations/20260815183000_wa2_conversation_store_live_inbox_v1.sql -Raw
+          $required = @('force row level security','aos_app_actor_v3','admin-chats','p_require_2fa','conversation_id','provider_message_id')
+          foreach ($needle in $required) { if (-not $sql.ToLowerInvariant().Contains($needle.ToLowerInvariant())) { throw "Missing WA-2 contract: $needle" } }
+          if ($sql -match 'grant\s+(select|insert|update|delete)\s+on\s+table\s+public\.aos_wa_conversations_v1\s+to\s+(anon|authenticated)') { throw 'Direct client grant found on conversation store' }
+
+  certify-db:
+    name: WA-2 DB/security certification
+    needs: fast-ui-contracts
+    if: needs.fast-ui-contracts.outputs.db_required == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa2-conversations"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59721/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59722/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59720/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa2-conversations' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59722 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-2 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversations/schema_contract.sql
+
+      - name: Apply WA-1 prerequisite migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+
+      - name: Apply exact WA-2 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815183000_wa2_conversation_store_live_inbox_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: pgTAP conversation + authorization contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversations/tests/001_wa2_conversations.sql | tee /tmp/wa2-pgtap.txt
+          grep -q '1..32' /tmp/wa2-pgtap.txt
+          if grep -q 'Looks like you planned' /tmp/wa2-pgtap.txt; then exit 1; fi
+          if grep -q 'not ok' /tmp/wa2-pgtap.txt; then exit 1; fi
+
+      - name: Recovery preserves history and fails closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "insert into public.aos_wa_messages_v1(provider_message_id,direction,from_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at) values ('wamid.recovery','INBOUND','51999000000','biz-recovery','text','Recovery probe','received',now(),now());"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa_conversations_v1")" = "1"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815183000_wa2_conversation_store_live_inbox_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa_conversations_v1")" = "1"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_conversations_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_wa_conversation_events_v1','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_wa_inbox_v1(text,text,text,integer,timestamptz)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_conversations_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgrelid='public.aos_wa_messages_v1'::regclass and tgname like 'trg_aos_wa_%conversation_v1' and not tgisinternal")" = "0"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
