@@ -8,7 +8,10 @@ const https = require('https');
 const { spawn } = require('child_process');
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10);
-const INTERNAL_PORT = EXTERNAL_PORT === 4187 ? 4188 : 4187;
+const INTERNAL_PORT = parseInt(
+  process.env.ASCENDA_PHASE2_INTERNAL_PORT || String(EXTERNAL_PORT === 4187 ? 4188 : 4187),
+  10
+);
 const SB_URL = process.env.SUPABASE_URL || 'https://ituyqwstonmhnfshnaqz.supabase.co';
 const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
