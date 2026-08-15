@@ -113,63 +113,49 @@ jobs:
           }
           Write-Host 'PHASE1_EMBEDDED_JS=PASS'
 
-      - name: Start isolated static runtime and verify health
+      - name: Isolated runtime / shadow / write-block smoke
         shell: powershell
         working-directory: app
         run: |
           $env:PORT = '4173'
           $outLog = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.out.log'
           $errLog = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.err.log'
-          $pidFile = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.pid'
           $proc = Start-Process -FilePath 'node' -ArgumentList 'staging-server.js' -PassThru -RedirectStandardOutput $outLog -RedirectStandardError $errLog
-          Set-Content -Path $pidFile -Value $proc.Id
-          $healthy = $false
-          for ($i=0; $i -lt 30; $i++) {
-            try {
-              $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/health' -TimeoutSec 2
-              if ($r.StatusCode -eq 200 -and $r.Content -match 'staging-fixture') { $healthy = $true; break }
-            } catch {}
-            Start-Sleep -Seconds 1
-          }
-          if (-not $healthy) {
-            if (Test-Path $outLog) { Get-Content $outLog }
-            if (Test-Path $errLog) { Get-Content $errLog }
-            throw 'PHASE1_RUNTIME_HEALTH=FAIL'
-          }
-          Write-Host 'PHASE1_RUNTIME_HEALTH=PASS'
-
-      - name: HTTP shadow surface gate
-        shell: powershell
-        run: |
-          $head = Invoke-WebRequest -UseBasicParsing -Method Head -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
-          $envHeader = [string]$head.Headers['X-ASCENDA-ENV']
-          if ($envHeader -ne 'staging-fixture') { throw "Missing staging fixture response header: $envHeader" }
-          $si = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence.html').Content
-          $staging = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html').Content
-          if (-not $si.Contains('Sales Intelligence V2')) { throw 'Production SI surface marker missing' }
-          if (-not $staging.Contains('ASCENDA Sales Intelligence')) { throw 'Staging SI title missing' }
-          if (-not $staging.Contains('window.__ASCENDA_STAGING_FIXTURE__=true')) { throw 'Staging fixture marker missing over HTTP' }
-          Write-Host 'PHASE1_HTTP_SHADOW=PASS'
-
-      - name: Reject write methods in staging runtime
-        shell: powershell
-        run: |
-          $code = 0
           try {
-            $r = Invoke-WebRequest -UseBasicParsing -Method Post -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
-            $code = [int]$r.StatusCode
-          } catch {
-            if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
-          }
-          if ($code -ne 405) { throw "Expected HTTP 405 for POST, got $code" }
-          Write-Host 'PHASE1_WRITE_METHODS_BLOCKED=PASS'
+            $healthy = $false
+            for ($i=0; $i -lt 30; $i++) {
+              try {
+                $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/health' -TimeoutSec 2
+                if ($r.StatusCode -eq 200 -and $r.Content -match 'staging-fixture') { $healthy = $true; break }
+              } catch {}
+              Start-Sleep -Seconds 1
+            }
+            if (-not $healthy) {
+              if (Test-Path $outLog) { Get-Content $outLog }
+              if (Test-Path $errLog) { Get-Content $errLog }
+              throw 'PHASE1_RUNTIME_HEALTH=FAIL'
+            }
+            Write-Host 'PHASE1_RUNTIME_HEALTH=PASS'
 
-      - name: Stop isolated staging runtime
-        if: always()
-        shell: powershell
-        run: |
-          $pidFile = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.pid'
-          if (Test-Path $pidFile) {
-            $procId = [int](Get-Content $pidFile -Raw)
-            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            $head = Invoke-WebRequest -UseBasicParsing -Method Head -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
+            $envHeader = [string]$head.Headers['X-ASCENDA-ENV']
+            if ($envHeader -ne 'staging-fixture') { throw "Missing staging fixture response header: $envHeader" }
+            $si = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence.html').Content
+            $staging = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html').Content
+            if (-not $si.Contains('Sales Intelligence V2')) { throw 'Production SI surface marker missing' }
+            if (-not $staging.Contains('ASCENDA Sales Intelligence')) { throw 'Staging SI title missing' }
+            if (-not $staging.Contains('window.__ASCENDA_STAGING_FIXTURE__=true')) { throw 'Staging fixture marker missing over HTTP' }
+            Write-Host 'PHASE1_HTTP_SHADOW=PASS'
+
+            $code = 0
+            try {
+              $post = Invoke-WebRequest -UseBasicParsing -Method Post -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
+              $code = [int]$post.StatusCode
+            } catch {
+              if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
+            }
+            if ($code -ne 405) { throw "Expected HTTP 405 for POST, got $code" }
+            Write-Host 'PHASE1_WRITE_METHODS_BLOCKED=PASS'
+          } finally {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           }
