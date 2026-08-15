@@ -59,9 +59,9 @@ begin
     raise exception 'F4_CARTERA_V2_VALID_APP_TOKEN_REJECTED: %',v_result;
   end if;
 
-  v_result:=public.aos_cartera_gateway(v_token,'SAN ISIDRO',100,0);
+  v_result:=public.aos_cartera_gateway(v_token,'','SAN ISIDRO',100,0);
   if coalesce((v_result->>'ok')::boolean,false) is not true then
-    raise exception 'F4_CARTERA_LEGACY_READ_ALIAS_REJECTED_APP_TOKEN: %',v_result;
+    raise exception 'F4_CARTERA_SAN_ISIDRO_FILTER_FAILED: %',v_result;
   end if;
 
   v_result:=public.aos_cartera_gateway(v_token,'','PUEBLO LIBRE',100,0);
