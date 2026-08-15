@@ -11,6 +11,7 @@ on:
       - 'ci/wa1-secure-gateway/**'
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
       - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
+      - 'ci/phase4-revenue/ui_contract.py'
   push:
     branches: ['security/**']
     paths:
@@ -21,6 +22,7 @@ on:
       - 'ci/wa1-secure-gateway/**'
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA1_*'
       - '.github/workflows/wa1-secure-whatsapp-gateway.yml'
+      - 'ci/phase4-revenue/ui_contract.py'
   workflow_dispatch:
 
 permissions:
@@ -67,8 +69,20 @@ jobs:
           grep -q "SUPABASE_SERVICE_ROLE_KEY" app/server-f4.js
           grep -q "p_required_panel:'admin-chats'" app/server-f4.js
           grep -q "aos_wa_outbound_requests_v1" app/server-f4.js
+          grep -q "delete childEnv.SUPABASE_SERVICE_ROLE_KEY" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_APP_SECRET" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_ACCESS_TOKEN" app/server-f4.js
+          grep -q "delete childEnv.WHATSAPP_VERIFY_TOKEN" app/server-f4.js
+          grep -q "e.definite===true" app/server-f4.js
+          grep -q "ambiguous_pending" app/server-f4.js
+          grep -q "retry_safe:false" app/server-f4.js
           ! grep -Eq "WHATSAPP_(APP_SECRET|ACCESS_TOKEN|VERIFY_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-f4.js
           ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-f4.js app/wa-gateway.js
+
+      - name: Cross-workstream F4 compatibility contract
+        run: |
+          set -euo pipefail
+          python3 ci/phase4-revenue/ui_contract.py
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
