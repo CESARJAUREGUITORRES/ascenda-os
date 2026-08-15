@@ -16,7 +16,10 @@ on:
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
-      - 'ci/phase2-cartera/**'
+      - 'ci/phase2-cartera/schema_contract.sql'
+      - 'ci/phase2-cartera/schema_hardening_contract.sql'
+      - 'ci/phase2-cartera/fixture_pre_migration.sql'
+      - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
   push:
@@ -34,7 +37,10 @@ on:
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'supabase/migrations/20260814201500_fix_secure_write_v2_jsonb_match_count.sql'
-      - 'ci/phase2-cartera/**'
+      - 'ci/phase2-cartera/schema_contract.sql'
+      - 'ci/phase2-cartera/schema_hardening_contract.sql'
+      - 'ci/phase2-cartera/fixture_pre_migration.sql'
+      - 'ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql'
       - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
   workflow_dispatch:
@@ -43,7 +49,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cartera-phase2-final-${{ github.ref }}
+  group: cartera-phase2-final-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:

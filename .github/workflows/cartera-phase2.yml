@@ -27,11 +27,55 @@ permissions:
   contents: read
 
 concurrency:
-  group: cartera-phase2-${{ github.ref }}
+  group: cartera-phase2-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
+  fast-ui:
+    name: FAST Cartera UI/runtime contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    outputs:
+      db_required: ${{ steps.scope.outputs.db_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Classify change scope
+        id: scope
+        shell: powershell
+        run: |
+          $base = '${{ github.event.pull_request.base.sha }}'
+          if (-not $base) { $base = '${{ github.event.before }}' }
+          if (-not $base -or $base -match '^0+$') { $base = 'HEAD^' }
+          $files = @(git diff --name-only $base $env:GITHUB_SHA)
+          $db = $false
+          foreach ($f in $files) {
+            if ($f -like 'supabase/migrations/*cartera_phase2*' -or
+                $f -like 'supabase/rollbacks/*cartera_phase2*' -or
+                $f -eq 'ci/phase2-cartera/schema_contract.sql' -or
+                $f -eq 'ci/phase2-cartera/fixture_pre_migration.sql' -or
+                $f -eq 'ci/phase2-cartera/tests/004_cartera_phase2.sql' -or
+                $f -eq '.github/workflows/cartera-phase2.yml') { $db = $true }
+          }
+          "db_required=$($db.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Cartera DB required: $db"
+
+      - name: Validate Node parity UI contract
+        shell: powershell
+        run: |
+          node --check ci/phase2-cartera/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase2-cartera/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   isolated-contract:
+    needs: fast-ui
+    if: needs.fast-ui.outputs.db_required == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 20
     env:
@@ -91,11 +135,6 @@ jobs:
           grep -q '1..96' /tmp/cartera-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/cartera-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/cartera-pgtap.txt; then exit 1; fi
-
-      - name: UI contract
-        run: |
-          python3 -c "from pathlib import Path; p=Path('app/public/caja.html'); p.read_text(encoding='utf-8'); assert p.stat().st_size > 150000"
-          python3 ci/phase2-cartera/ui_contract.py
 
       - name: Stop isolated Supabase
         if: always()

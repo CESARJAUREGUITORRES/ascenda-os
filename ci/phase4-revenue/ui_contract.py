@@ -6,6 +6,8 @@ kronia = (root / 'app/public/f4-kronia-revenue-bridge.js').read_text(encoding='u
 sw = (root / 'app/public/phase2-service-worker.js').read_text(encoding='utf-8')
 proxy = (root / 'app/server-f4.js').read_text(encoding='utf-8')
 railway = (root / 'app/railway.json').read_text(encoding='utf-8')
+wa2_path = root / 'app/server-wa2.js'
+wa2 = wa2_path.read_text(encoding='utf-8') if wa2_path.exists() else ''
 core = (root / 'supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql').read_text(encoding='utf-8')
 
 required_bridge = [
@@ -26,7 +28,16 @@ assert 'F4_STRONG_SESSION_REQUIRED' in proxy
 assert 'aos_sales_admin_sale_v4' in proxy and 'aos_editar_venta_v4' in proxy
 assert "pathname==='/api/f4/cartera-candidates'" in proxy
 assert 'aos_cartera_candidates_v2' in proxy
-assert 'node server-f4.js' in railway
+
+# Production may start F4 directly, or a governed outer proxy that deterministically
+# spawns server-f4.js and proxies non-owned routes. Do not accept arbitrary wrappers.
+direct_f4 = 'node server-f4.js' in railway
+wa2_wrapped_f4 = (
+    'node server-wa2.js' in railway
+    and "['server-f4.js']" in wa2
+    and 'proxy(req,res)' in wa2
+)
+assert direct_f4 or wa2_wrapped_f4, 'Railway must start F4 directly or through certified WA-2 wrapper'
 assert 'node server-phase2.js' not in railway.split('"environments"')[0]
 
 # Browser/runtime bridges must never know service-role credentials.
