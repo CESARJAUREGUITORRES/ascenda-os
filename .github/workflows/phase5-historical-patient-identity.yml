@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'app/f5-historical-upload.js'
+      - 'app/server-f5.js'
+      - 'app/public/admin-f5-historical.html'
+      - 'app/package.json'
+      - 'app/railway.json'
       - 'supabase/migrations/*f5_historical_patient_identity*'
       - 'supabase/rollbacks/*f5_historical_patient_identity*'
       - 'ci/phase5-historical-identity/**'
@@ -11,6 +16,11 @@ on:
   push:
     branches: ['data/**','feature/**','fix/**','security/**']
     paths:
+      - 'app/f5-historical-upload.js'
+      - 'app/server-f5.js'
+      - 'app/public/admin-f5-historical.html'
+      - 'app/package.json'
+      - 'app/railway.json'
       - 'supabase/migrations/*f5_historical_patient_identity*'
       - 'supabase/rollbacks/*f5_historical_patient_identity*'
       - 'ci/phase5-historical-identity/**'
@@ -26,9 +36,9 @@ concurrency:
 
 jobs:
   fast-static:
-    name: FAST PII/security static contract
+    name: FAST PII/security + XLSX uploader contract
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Enforce self-hosted FAST lane
@@ -42,6 +52,27 @@ jobs:
           node --check ci/phase5-historical-identity/security_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/phase5-historical-identity/security_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-f5.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/f5-historical-upload.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/phase5-historical-identity/f5_upload_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase5-historical-identity/f5_upload_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install pinned XLSX parser dependency
+        shell: powershell
+        working-directory: app
+        run: |
+          npm install --no-audit --no-fund --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node -e "const p=require('./node_modules/exceljs/package.json'); if(p.version!=='4.4.0') process.exit(1); console.log('ExcelJS pinned:',p.version)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: F5 deterministic XLSX normalization test
+        shell: powershell
+        run: |
+          node ci/phase5-historical-identity/f5_upload_parser_test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   db-security:
