@@ -43,7 +43,10 @@ jobs:
           p.write_text(s,encoding='utf-8')
           print(f'K1_SOURCE_SECRET_SANITIZE=PASS verify={verify_count} resend={resend_count}')
           PY
-          node --check app/server.js
+          runner_root="$(cd "$(dirname "$RUNNER_WORKSPACE")/.." && pwd)"
+          NODE_BIN="${runner_root}/externals/node24/bin/node"
+          test -x "$NODE_BIN"
+          "$NODE_BIN" --check app/server.js
           ! grep -qE "process\.env\.RESEND_API_KEY[[:space:]]*\|\|[[:space:]]*['\"][^'\"]+" app/server.js
           ! grep -qE "const[[:space:]]+VERIFY_TOKEN[[:space:]]*=[[:space:]]*['\"][^'\"]+" app/server.js
 
