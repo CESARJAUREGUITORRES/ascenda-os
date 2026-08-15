@@ -1,0 +1,93 @@
+name: ASCENDA Phase 5 Private Historical Ingest
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*f5_historical_patient_identity*'
+      - 'ci/phase5-historical-identity/**'
+      - '.github/workflows/phase5-private-ingest.yml'
+  push:
+    branches: ['data/**']
+    paths:
+      - 'supabase/migrations/*f5_historical_patient_identity*'
+      - 'ci/phase5-historical-identity/**'
+      - '.github/workflows/phase5-private-ingest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Private ingest static contract
+        shell: powershell
+        run: |
+          node --check ci/phase5-historical-identity/private_ingest_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase5-historical-identity/private_ingest_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  db:
+    needs: fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59622/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-phase5-private-ingest"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59621/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59622/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59620/' supabase/config.toml
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-phase5-private-ingest' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do pg_isready -h 127.0.0.1 -p 59622 -U postgres >/dev/null 2>&1 && exit 0; sleep 1; done
+          exit 1
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase5-historical-identity/schema_contract.sql
+      - name: Apply F5 foundation and private ingest
+        run: |
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815220000_f5_historical_patient_identity_foundation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815233000_f5_historical_patient_identity_private_ingest_v1.sql
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+      - name: pgTAP private ingest
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase5-historical-identity/tests/002_private_ingest.sql | tee /tmp/f5-ingest.txt
+          grep -q '1..12' /tmp/f5-ingest.txt
+          if grep -q 'not ok' /tmp/f5-ingest.txt; then exit 1; fi
+      - name: Verify private boundary
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_f5_ingest_source_rows_v1(text,jsonb)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('authenticated','public.aos_f5_ingest_source_rows_v1(text,jsonb)','EXECUTE')")" = "f"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
