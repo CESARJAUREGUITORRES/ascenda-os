@@ -1,0 +1,126 @@
+name: F16 Live Canary Certification
+
+on:
+  push:
+    branches: ['ops/f16-live-provider-canary-20260815']
+    paths:
+      - '.github/workflows/f16-live-canary-certify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fast-runtime-a:
+    name: FAST runtime and unit contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Runtime syntax and Email gateway tests
+        shell: powershell
+        run: |
+          node --check app/f16-live-canary.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/email-gateway.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase16/test_email_gateway.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host 'F16_FAST_RUNTIME_A=PASS'
+
+  fast-runtime-b:
+    name: FAST fixed-recipient security scope
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify fixed recipient and exact runtime scope
+        shell: powershell
+        run: |
+          $text = Get-Content app/f16-live-canary.js -Raw
+          $server = Get-Content app/server.js -Raw
+          if (-not $text.Contains('delivered+ascenda-f16-20260815@resend.dev')) { throw 'Fixed Resend simulator recipient missing' }
+          if (-not $text.Contains('CANARY_IDEMPOTENCY_KEY')) { throw 'Fixed canary idempotency missing' }
+          if (-not $text.Contains('REPLAY_CAPTURED_SIGNED_WEBHOOK')) { throw 'Exact replay confirmation missing' }
+          if (-not $text.Contains('SIGNED_WEBHOOK_REPLAY_DEDUPED')) { throw 'Replay dedup evidence missing' }
+          if (-not $text.Contains('https://ascenda-os-production.up.railway.app/api/resend-webhook')) { throw 'Replay target must be fixed production webhook' }
+          if ($text -match 'body\.to|payload\.to|req.*recipient') { throw 'Dynamic canary recipient forbidden' }
+          if ($text -match 're_[A-Za-z0-9_-]{20,}') { throw 'Provider secret committed' }
+          if (-not $text.Contains('RESEND_API_KEY')) { throw 'Provider key must remain environment-only' }
+          if (-not $server.Contains('/api/f16-live-canary')) { throw 'Canary route missing' }
+          if (-not $server.Contains('/api/f16-live-canary-replay')) { throw 'Replay route missing' }
+          $changed = git diff --name-only bb04bf1cb207c96dc39ed54958690fd728b77c95...HEAD | Where-Object { $_ -ne '.github/workflows/f16-live-canary-certify.yml' }
+          $allowed = @('app/email-gateway.js','app/f16-live-canary.js','app/server.js','supabase/migrations/20260815223500_cia_phase16_live_canary_evidence_temp.sql')
+          foreach ($f in $changed) { if ($allowed -notcontains $f) { throw "Unexpected canary scope: $f" } }
+          foreach ($f in $allowed) { if ($changed -notcontains $f) { throw "Expected canary change missing: $f" } }
+          Write-Host 'F16_FAST_RUNTIME_B=PASS'
+
+  zero-cost-db:
+    name: Zero-Cost DB ACL and rollback
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_live_canary
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zero-Cost policy and runner health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Start isolated PostgreSQL
+        working-directory: ci/zero-cost-staging
+        run: supabase db start
+      - name: Create isolated database
+        run: |
+          set -euo pipefail
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_live_canary with (force)"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_live_canary"
+      - name: Compile F16 plus temporary canary evidence
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
+          for f in \
+            20260814200500_cia_phase16_email_governed_schema_v1.sql \
+            20260814200600_cia_phase16_email_contracts_v1.sql \
+            20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
+            20260814220100_cia_phase16_email_render_context_hardening.sql \
+            20260814220200_cia_phase16_legacy_email_acl_hardening.sql \
+            20260814220300_cia_phase16_verify_app_session_v1.sql \
+            20260815221000_cia_phase16_resend_outcome_coverage_v3.sql \
+            20260815223500_cia_phase16_live_canary_evidence_temp.sql; do
+            psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          supabase db lint --db-url "$F16_DB_URL" --schema public --level error
+      - name: ACL and zero-PII canary assertions
+        run: |
+          set -euo pipefail
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='aos_cia_email_canary_evidence_temp'")" = "t"
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_cia_email_canary_evidence_temp','SELECT')")" = "f"
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_cia_email_canary_evidence_temp','SELECT')")" = "f"
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_cia_email_canary_evidence_temp','SELECT')")" = "t"
+          ! grep -Eiq 'patient|paciente|recipient_email|contact_key|phone|telefono|dni' supabase/migrations/20260815223500_cia_phase16_live_canary_evidence_temp.sql
+          echo 'F16_ZERO_COST_CANARY_ACL=PASS'
+      - name: Rollback canary evidence only
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -c 'drop table public.aos_cia_email_canary_evidence_temp'
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select to_regclass('public.aos_cia_email_canary_evidence_temp') is null")" = "t"
+          echo 'F16_ZERO_COST_CANARY_ROLLBACK=PASS'
+      - name: Cleanup
+        if: always()
+        run: |
+          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_live_canary with (force)" || true
+          cd ci/zero-cost-staging && supabase stop --no-backup || true
+
+# Exact-head recertification trigger after final minimal-scope cleanup.
