@@ -152,7 +152,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260814223900_f4_revenue_operations_cutover.sql
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta(bigint,jsonb,text,text,text)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas(jsonb)','EXECUTE')")" = "f"
-          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_grabar_venta_caja(text,text,text,text,text,text,text,text,text,text,text,jsonb,text,numeric,text,text,text,text,text,text,text,text,numeric)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_grabar_venta_caja(text,text,text,text,text,text,text,text,text,text,jsonb,text,numeric,text,text,text,text,text,text,text,text,numeric)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cartera_reconcile(text,uuid,timestamptz,text,text,numeric,numeric,text,text,text)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_editar_venta_v4(text,bigint,timestamptz,jsonb,text)','EXECUTE')")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_importar_ventas_v4(text,jsonb)','EXECUTE')")" = "t"
