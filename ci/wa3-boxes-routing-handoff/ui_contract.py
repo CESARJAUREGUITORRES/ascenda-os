@@ -60,7 +60,7 @@ assert 'auto_routing_enabled=false' in rb
 assert 'human_send_enabled=false' in rb
 assert 'ai_send_enabled=false' in rb
 assert "state='RELEASED'" in rb
-assert "state='HUMAN_REQUESTED'" in rb
+assert "then 'HUMAN_REQUESTED'" in rb
 assert "array_remove" in rb
 assert "delete from public.aos_paneles_disponibles where id='whatsapp-agent'" in rb
 for evidence in ('aos_wa_boxes_v1','aos_wa_assignments_v1','aos_wa_routing_events_v1'):
