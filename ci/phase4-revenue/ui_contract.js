@@ -1,0 +1,34 @@
+'use strict';
+const fs = require('fs');
+function read(path){ return fs.readFileSync(path, 'utf8'); }
+function ok(condition, message){ if(!condition) throw new Error(message); }
+const bridge = read('app/public/f4-revenue-ops.js');
+const kronia = read('app/public/f4-kronia-revenue-bridge.js');
+const sw = read('app/public/phase2-service-worker.js');
+const proxy = read('app/server-f4.js');
+const railway = read('app/railway.json');
+const wa2 = fs.existsSync('app/server-wa2.js') ? read('app/server-wa2.js') : '';
+const core = read('supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql');
+const requiredBridge = ['aos_sales_admin_gateway_v4','aos_sales_admin_sale_v4','aos_editar_venta_v4','aos_importar_ventas_preview_v4','aos_importar_ventas_v4','aos_grabar_venta_caja_v4','/api/f4/cartera-candidates','aos_cartera_reconcile_v2','canonicalProductName','physicalQty','productResolutionStatus','REVIEW_REQUIRED','PAGO_RECONCILIADO','importApproval','carteraCandidateByCase'];
+for(const marker of requiredBridge) ok(bridge.includes(marker), `missing F4 bridge marker: ${marker}`);
+ok(sw.includes('/f4-revenue-ops.js'), 'service worker must inject F4 revenue bridge');
+ok(sw.includes('/f4-kronia-revenue-bridge.js'), 'service worker must inject KronIA revenue proof bridge');
+ok(kronia.includes("'/api/kronia/chat'") && kronia.includes('X-AOS-App-Token'), 'KronIA authenticated bridge contract missing');
+ok(proxy.includes("body.confirmar_accion.rpc==='aos_editar_venta'"), 'server edit confirmation gate missing');
+ok(proxy.includes('F4_STRONG_SESSION_REQUIRED'), 'strong-session guard missing');
+ok(proxy.includes('aos_sales_admin_sale_v4') && proxy.includes('aos_editar_venta_v4'), 'server sales V4 RPC routing missing');
+ok(proxy.includes("pathname==='/api/f4/cartera-candidates'"), 'cartera candidates route missing');
+ok(proxy.includes('aos_cartera_candidates_v2'), 'cartera candidates RPC missing');
+const directF4 = railway.includes('node server-f4.js');
+const wa2WrappedF4 = railway.includes('node server-wa2.js') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+ok(directF4 || wa2WrappedF4, 'Railway must start F4 directly or through certified WA-2 wrapper');
+const preEnvironments = railway.split('"environments"')[0];
+ok(!preEnvironments.includes('node server-phase2.js'), 'legacy phase2 server must not be production start command');
+for(const text of [bridge,kronia]) ok(!text.toLowerCase().includes('service_role'), 'browser/runtime bridge must not contain service_role');
+ok(proxy.includes('SUPABASE_SERVICE_ROLE_KEY'), 'server front boundary service role marker missing');
+ok(proxy.includes('delete childEnv.SUPABASE_SERVICE_ROLE_KEY'), 'service role child isolation missing');
+for(const marker of ['delete childEnv.WHATSAPP_VERIFY_TOKEN','delete childEnv.WHATSAPP_APP_SECRET','delete childEnv.WHATSAPP_ACCESS_TOKEN','delete childEnv.WHATSAPP_PHONE_NUMBER_ID','delete childEnv.WHATSAPP_GRAPH_VERSION','delete childEnv.WA_CANARY_MODE','delete childEnv.WA_CANARY_ALLOW_TO']) ok(proxy.includes(marker), `missing secret isolation marker: ${marker}`);
+ok(core.includes("'rawDescription',e->>'descripcion'"), 'raw evidence e descripcion marker missing');
+ok(core.includes("'rawDescription',v.descripcion"), 'raw evidence v descripcion marker missing');
+ok(core.includes("'canonicalProductName'"), 'canonical product marker missing');
+console.log('F4 UI/runtime contract PASS');
