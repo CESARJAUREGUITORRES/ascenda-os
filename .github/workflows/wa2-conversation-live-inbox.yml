@@ -128,7 +128,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/tests/001_wa2_store.sql | tee /tmp/wa2-pgtap.txt
-          grep -q '1..36' /tmp/wa2-pgtap.txt
+          grep -q '1..51' /tmp/wa2-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/wa2-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/wa2-pgtap.txt; then exit 1; fi
 
@@ -136,8 +136,9 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815175500_wa2_conversation_live_inbox_v1.rollback.sql
-          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname='trg_aos_wa2_bind_conversation_v1' and not tgisinternal")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname in ('trg_aos_wa2_bind_conversation_v1','trg_aos_wa2_project_insert_v1','trg_aos_wa2_project_backfill_v1') and not tgisinternal")" = "0"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa2_bind_conversation_v1()') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa2_project_message_v1()') is null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_paneles_disponibles where id='admin-whatsapp'")" = "0"
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_usuarios where 'admin-whatsapp'=any(coalesce(paneles_acceso,'{}'::text[]))")" = "0"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_conversations_v1') is not null")" = "t"
