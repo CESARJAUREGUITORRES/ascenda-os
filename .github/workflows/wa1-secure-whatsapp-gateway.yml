@@ -101,7 +101,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa1-secure-gateway/tests/001_wa1_security.sql | tee /tmp/wa1-pgtap.txt
-          grep -q '1..14' /tmp/wa1-pgtap.txt
+          grep -q '1..18' /tmp/wa1-pgtap.txt
           if grep -q 'Looks like you planned' /tmp/wa1-pgtap.txt; then exit 1; fi
           if grep -q 'not ok' /tmp/wa1-pgtap.txt; then exit 1; fi
 
@@ -112,7 +112,10 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_messages_v1','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_wa_messages_v1','UPDATE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_whatsapp_mensajes','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_meta_config','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_meta_config','UPDATE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_wa_messages_v1'::regclass")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select relforcerowsecurity from pg_class where oid='public.aos_meta_config'::regclass")" = "t"
 
       - name: Stop isolated Supabase
         if: always()
