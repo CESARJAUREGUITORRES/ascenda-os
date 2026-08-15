@@ -79,6 +79,17 @@ async function handleCandidates(req,res,body){
   try{const out=await sbRpc('aos_cartera_candidates_v2',{p_token:appToken,p_case_id:caseId});writeJson(res,out.status>=200&&out.status<300?200:out.status,out.data||{ok:false,error:'UPSTREAM_EMPTY'});}catch(e){console.error('[F4-PROXY] candidates',e.message);writeJson(res,502,{ok:false,error:'F4_UPSTREAM_UNAVAILABLE'});}
 }
 
+async function handleRevenueRead(req,res,body,kind){
+  const appToken=strongToken(req);
+  if(!appToken){writeJson(res,403,{ok:false,error:'F4_STRONG_SESSION_REQUIRED'});return;}
+  let rpcName='',payload={};
+  if(kind==='cartera'){rpcName='aos_cartera_gateway';payload={p_token:appToken,p_estado:String((body&&body.estado)||''),p_sede:String((body&&body.sede)||''),p_limit:Number((body&&body.limit)||100),p_offset:Number((body&&body.offset)||0)};}
+  else if(kind==='sales-intelligence'){rpcName='aos_sales_intelligence_gateway';payload={p_token:appToken,p_anio:Number((body&&body.anio)||0),p_sede:String((body&&body.sede)||''),p_asesor:String((body&&body.asesor)||'')};}
+  else{writeJson(res,400,{ok:false,error:'INVALID_REVENUE_READ'});return;}
+  try{const out=await sbRpc(rpcName,payload);if(out.status<200||out.status>=300){writeJson(res,502,{ok:false,error:'F4_REVENUE_UPSTREAM_REJECTED',upstream_status:out.status});return;}writeJson(res,200,out.data||{ok:false,error:'UPSTREAM_EMPTY'});}
+  catch(e){console.error('[F4-PROXY] revenue read',kind,e.message);writeJson(res,502,{ok:false,error:'F4_REVENUE_UPSTREAM_UNAVAILABLE'});}
+}
+
 function waConfigReadyInbound(){return !!(WA_VERIFY_TOKEN&&WA_APP_SECRET&&SB_SERVICE_KEY);}
 function waConfigReadyOutbound(){return !!(waConfigReadyInbound()&&WA_ACCESS_TOKEN&&WA_PHONE_NUMBER_ID&&/^v\d+\.\d+$/.test(WA_GRAPH_VERSION));}
 function handleWaVerify(req,res){
@@ -162,6 +173,8 @@ const server=http.createServer(async(req,res)=>{
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/status'&&req.method==='GET'){await handleWaStatus(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-AOS-App-Token','Cache-Control':'no-store'});res.end();return;}
+  if(pathname==='/api/f4/cartera-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'cartera');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
+  if(pathname==='/api/f4/sales-intelligence-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'sales-intelligence');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/f4/cartera-candidates'&&req.method==='POST'){
     try{const parsed=await readJson(req,128*1024);await handleCandidates(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;
   }
