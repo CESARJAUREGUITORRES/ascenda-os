@@ -8,9 +8,12 @@ const https = require('https');
 const { spawn } = require('child_process');
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10);
-const INTERNAL_PORT = EXTERNAL_PORT === 4187 ? 4188 : 4187;
+// Preserve production 4173→4187 and staging 4187→4188 exactly. Other explicit
+// ports are test/dev scopes and receive an adjacent isolated internal port so
+// sequential self-hosted CI cannot collide with a stale smoke process.
+const INTERNAL_PORT = EXTERNAL_PORT === 4173 ? 4187 : (EXTERNAL_PORT === 4187 ? 4188 : EXTERNAL_PORT + 1);
 const SB_URL = process.env.SUPABASE_URL || 'https://ituyqwstonmhnfshnaqz.supabase.co';
-const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+const SB_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmaWQiOiJpdHV5cXdzdG9ubWhuZnNobmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 const child = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,

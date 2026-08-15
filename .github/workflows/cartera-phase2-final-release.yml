@@ -16,6 +16,7 @@ on:
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
   push:
     branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
@@ -32,6 +33,7 @@ on:
       - 'supabase/migrations/20260814164500_restore_2fa_email_branding.sql'
       - 'supabase/migrations/20260814195300_fix_auth_v3_btrim.sql'
       - 'ci/phase2-cartera/**'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-final-release.yml'
   workflow_dispatch:
 
@@ -53,6 +55,9 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+
+      - name: Clean stale ASCENDA Supabase resources
+        run: bash scripts/ci/cleanup-ascenda-supabase.sh
 
       - name: Configure isolated ports
         working-directory: ci/zero-cost-staging
@@ -172,7 +177,10 @@ jobs:
             supabase/migrations/20260814164500_restore_2fa_email_branding.sql \
             supabase/migrations/20260814195300_fix_auth_v3_btrim.sql
 
-      - name: Stop isolated Supabase
+      - name: Stop isolated Supabase and prove zero residue
         if: always()
-        working-directory: ci/zero-cost-staging
-        run: supabase stop --no-backup || true
+        run: |
+          cd ci/zero-cost-staging
+          supabase stop --no-backup || true
+          cd ../..
+          bash scripts/ci/cleanup-ascenda-supabase.sh

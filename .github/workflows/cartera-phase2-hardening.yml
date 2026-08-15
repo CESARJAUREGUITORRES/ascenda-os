@@ -18,6 +18,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/railway.json'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
   push:
     branches: ['agent/**','feature/**','fix/**','security/**','infra/**']
@@ -36,6 +37,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/server-phase2.js'
       - 'app/railway.json'
+      - 'scripts/ci/cleanup-ascenda-supabase.sh'
       - '.github/workflows/cartera-phase2-hardening.yml'
   workflow_dispatch:
 
@@ -58,6 +60,9 @@ jobs:
         with:
           version: 2.101.0
 
+      - name: Clean stale ASCENDA Supabase resources
+        run: bash scripts/ci/cleanup-ascenda-supabase.sh
+
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
         run: |
@@ -69,10 +74,7 @@ jobs:
 
       - name: Start isolated Supabase
         working-directory: ci/zero-cost-staging
-        run: |
-          set -euo pipefail
-          supabase stop --no-backup || true
-          supabase db start
+        run: supabase db start
 
       - name: Build synthetic schema and prerequisites
         run: |
@@ -146,7 +148,6 @@ jobs:
           from pathlib import Path
           audit=Path('supabase/migrations/20260814163000_p0_auth_audit_trigger_search_path_fix.sql').read_text(encoding='utf-8')
           brand=Path('supabase/migrations/20260814164500_restore_2fa_email_branding.sql').read_text(encoding='utf-8')
-          btrim=Path('supabase/migrations/20260814195300_fix_auth_v3_btrim.sql').read_text(encoding='utf-8')
           assert "set search_path = ''" in audit
           assert 'public.aos_log_auditoria' in audit
           assert "AscendaOS <info@zivital.pe>" in brand
@@ -154,11 +155,14 @@ jobs:
           assert 'ascenda_branded_v1' in brand
           assert 'extensions.digest' in brand
           assert "set search_path=''" in brand
-          assert 'pg_catalog.btrim' in btrim and 'pg_catalog.trim' not in btrim
           print('PHASE2_AUTH_OUTAGE_REGRESSION_STATIC=PASS')
-          print('PHASE2_BRANDED_2FA_CONTRACT=PASS')
-          print('PHASE2_AUTH_BTRIM_P0=PASS')
+          print('PHASE2_BRANDED_2FA_SOURCE_CONTRACT=PASS')
           PY
+          AUTH_DEF="$(psql "$DB_URL" -X -qAt -c "select pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)")"
+          grep -q 'pg_catalog.btrim' <<<"$AUTH_DEF"
+          ! grep -q 'pg_catalog.trim(' <<<"$AUTH_DEF"
+          grep -q 'ascenda_branded_v1' <<<"$AUTH_DEF"
+          echo 'PHASE2_AUTH_BTRIM_FINAL_DEFINITION=PASS'
 
       - name: UI and cutover contract
         run: |
@@ -220,9 +224,11 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_admin_cambiar_password(uuid,text)','EXECUTE')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_ventas','INSERT')")" = "f"
 
-      - name: Stop isolated Supabase
+      - name: Stop isolated Supabase and prove zero residue
         if: always()
         run: |
           if [ -f /tmp/phase2-proxy.pid ]; then kill $(cat /tmp/phase2-proxy.pid) 2>/dev/null || true; fi
           cd ci/zero-cost-staging
           supabase stop --no-backup || true
+          cd ../..
+          bash scripts/ci/cleanup-ascenda-supabase.sh
