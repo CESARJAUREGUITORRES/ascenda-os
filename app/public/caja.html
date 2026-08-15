@@ -2360,7 +2360,7 @@ function grabarCotizacion() {
       var _pacNombre = ((pac.nombres||pac.Nombres||'')+ ' '+(pac.apellidos||pac.Apellidos||'')).trim();
       var _tratList = itemsConPago.map(function(it){return it.nombre;}).join(', ');
       fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
-        method:'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ to:_pacEmail, template:'confirmacion_pago', nombre:_pacNombre, tratamiento:_tratList, monto:totalPagado, saldo_actual:0, metodo_pago:(itemsConPago[0]&&itemsConPago[0].metodoPago)||'' })
       }).then(function(r){return r.json()}).then(function(res){
         if(res&&(res.ok||res.id)) toast('📧 Comprobante enviado a '+_pacEmail,'ok');
@@ -2618,7 +2618,7 @@ function emCajaEnviarInline() {
     fetch(_SB+'/rest/v1/aos_pacientes?numero_limpio=eq.'+d.pac.numero,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"Email":email})}).catch(function(){});
   }
   toast('Enviando...','');
-  fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},body:JSON.stringify({to:email,template:template,nombre:d.nombre,items:d.items,total:d.total,moneda:'PEN',metodo:'',sede:CAJA.sede||'',fecha:fechaLima(),venta_id:''})}).then(function(r){return r.json()}).then(function(res){
+  fetch('https://ascenda-os-production.up.railway.app/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,template:template,nombre:d.nombre,items:d.items,total:d.total,moneda:'PEN',metodo:'',sede:CAJA.sede||'',fecha:fechaLima(),venta_id:''})}).then(function(r){return r.json()}).then(function(res){
     var m = document.getElementById('email-modal-inline'); if(m) m.remove();
     if(res&&(res.ok||res.id)) toast('\u2705 Email enviado a '+email,'ok');
     else toast('Error: '+(res.error||''),'warn');
@@ -2650,7 +2650,7 @@ function emCajaEnviar() {
 
   toast('Enviando...', '');
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
-    method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ to: email, template: template, nombre: d.nombre, items: d.items, total: d.total, moneda: 'PEN', metodo: '', sede: CAJA.sede || '', fecha: fechaLima(), venta_id: '' })
   }).then(function(r) { return r.json(); }).then(function(res) {
     cerrarOv('ov-email-caja');
