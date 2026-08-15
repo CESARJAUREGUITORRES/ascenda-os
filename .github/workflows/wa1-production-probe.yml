@@ -28,10 +28,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $base = 'https://ascenda-os-production.up.railway.app'
 
-          function Probe([string]$name, [string[]]$args, [int[]]$allowed) {
+          function Probe([string]$name, [string[]]$curlTail, [int[]]$allowed) {
             $h = Join-Path $env:RUNNER_TEMP ($name + '-headers.txt')
             $b = Join-Path $env:RUNNER_TEMP ($name + '-body.txt')
-            $curlArgs = @('-sS','--connect-timeout','10','--max-time','20','-D',$h,'-o',$b,'-w','%{http_code}') + $args
+            $curlArgs = @('-sS','--connect-timeout','10','--max-time','20','-D',$h,'-o',$b,'-w','%{http_code}') + $curlTail
             $codeText = & curl.exe @curlArgs
             if ($LASTEXITCODE -ne 0) { throw "$name curl failed: $LASTEXITCODE" }
             $code = [int]$codeText
