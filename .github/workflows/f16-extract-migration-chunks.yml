@@ -1,0 +1,58 @@
+name: F16 Exact Migration Chunk Extract
+
+on:
+  push:
+    branches: ['ops/f16-migration-extract-20260815']
+    paths:
+      - '.github/workflows/f16-extract-migration-chunks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Zero-Cost health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Split exact SQL and prove roundtrip
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          out=Path('ops/f16-sql-chunks'); out.mkdir(parents=True,exist_ok=True)
+          files=[
+            'supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql',
+            'supabase/migrations/20260814220000_cia_phase16_email_delivery_contracts_v2.sql',
+          ]
+          manifest={}
+          for fp in files:
+            p=Path(fp); data=p.read_bytes(); lines=data.splitlines(keepends=True)
+            stem=p.name
+            parts=[]
+            for i in range(0,len(lines),45):
+              chunk=b''.join(lines[i:i+45])
+              name=f'{stem}.part{i//45+1:03d}.sql'
+              (out/name).write_bytes(chunk); parts.append(name)
+            rebuilt=b''.join((out/n).read_bytes() for n in parts)
+            assert rebuilt==data
+            manifest[stem]={'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'parts':parts}
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+          print('CIA_F16_EXACT_SQL_ROUNDTRIP=PASS')
+          PY
+      - name: Commit chunks
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add ops/f16-sql-chunks
+          git commit -m 'ops(f16): materialize exact migration chunks'
+          git push origin HEAD:${GITHUB_REF_NAME}
