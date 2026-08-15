@@ -4,7 +4,7 @@ on:
   push:
     branches: ['fix/f4-auth-transport-same-origin-20260815']
     paths:
-      - 'scripts/ci/materialize-f4-auth-transport-v2.js'
+      - 'scripts/ci/materialize-f4-auth-transport-v3.js'
       - '.github/workflows/f4-auth-transport-materialize.yml'
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
       - name: Materialize transport hotfix
         shell: powershell
         run: |
-          node scripts/ci/materialize-f4-auth-transport-v2.js
+          node scripts/ci/materialize-f4-auth-transport-v3.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/server-f4.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
