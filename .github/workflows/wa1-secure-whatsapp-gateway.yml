@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: wa1-secure-gateway-${{ github.ref }}
+  group: wa1-secure-gateway-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
