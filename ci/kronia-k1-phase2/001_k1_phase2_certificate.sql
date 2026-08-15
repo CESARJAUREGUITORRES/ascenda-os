@@ -33,7 +33,7 @@ begin
   begin update public.aos_usuarios set two_factor=false where id=owner_id; exception when others then blocked:=true; end;
   if not blocked then raise exception 'K1P2-12 privileged ADMIN can disable 2FA'; end if;
   update public.aos_usuarios set cargo='ADMINISTRADOR',rol='asesor',nivel_jerarquia=4 where id=adv_id;
-  j:=public.aos_kronia_identity_v3('k1-advisor-app-token-000000000000000000000001',false,null);
+  j:=public.aos_kronia_identity_v3(tok,false,null);
   if not coalesce((j->>'ok')::boolean,false) or j->>'rol'<>'ASESOR' then raise exception 'K1P2-13 free-form cargo elevated authority: %',j; end if;
   j:=public.aos_kronia_identity_v3('k1-owner-app-token-00000000000000000000000001',true,null);
   if not coalesce((j->>'ok')::boolean,false) or j->>'rol'<>'ADMIN' then raise exception 'K1P2-14 owner 2FA app token not authoritative: %',j; end if;
@@ -49,7 +49,7 @@ begin
   if has_function_privilege('anon','public.aos_kronia_explorar(text,text,jsonb)','EXECUTE') then raise exception 'K1P2-19 raw explorer public'; end if;
   if not has_function_privilege('anon','public.aos_kronia_tool_v3(text,text,jsonb)','EXECUTE') then raise exception 'K1P2-20 safe tool gateway unavailable'; end if;
   j:=public.aos_kronia_tool_v3('invalid-token','aos_kronia_stats_leads','{}'::jsonb);if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-21 invalid token used tool gateway'; end if;
-  j:=public.aos_kronia_tool_v3('k1-advisor-app-token-000000000000000000000001','aos_kronia_explorar',jsonb_build_object('p_modulo','finanzas','p_accion','balance_mes'));
+  j:=public.aos_kronia_tool_v3(tok,'aos_kronia_explorar',jsonb_build_object('p_modulo','finanzas','p_accion','balance_mes'));
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-22 advisor reached admin explorer'; end if;
   if has_table_privilege('anon','public.aos_kronia_tokens','SELECT') then raise exception 'K1P2-23 legacy KronIA token store readable'; end if;
   if has_function_privilege('anon','public.aos_kronia_emitir_token(text,text,text,text,text,text,text)','EXECUTE') then raise exception 'K1P2-24 legacy KronIA token issuer public'; end if;
@@ -62,7 +62,7 @@ begin
   if has_table_privilege('anon','public.aos_security_log','DELETE') then raise exception 'K1P2-29 security audit browser-mutable'; end if;
   j:=public.aos_kronia_feed_v3('k1-owner-app-token-00000000000000000000000001','agent_logs',10);
   if not coalesce((j->>'ok')::boolean,false) then raise exception 'K1P2-30 sanitized admin feed failed: %',j; end if;
-  j:=public.aos_kronia_feed_v3('k1-advisor-app-token-000000000000000000000001','agent_logs',10);
+  j:=public.aos_kronia_feed_v3(tok,'agent_logs',10);
   if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-31 advisor read admin feed'; end if;
 
   -- K1P2-32..40: identity/config/integration secret boundaries.
