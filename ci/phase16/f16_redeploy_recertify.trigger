@@ -1,1 +1,1 @@
-F16 exact-head recertification after updating Runtime + Contracts assertions for canonical and Railway service-role environment names. Trigger v6. No runtime behavior change.
+F16 rollback-safe snapshot exact-head recertification with idempotent Railway environment alias gate. Trigger v7. No runtime behavior change.

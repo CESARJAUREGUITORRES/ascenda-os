@@ -30,7 +30,7 @@ jobs:
         run: bash scripts/ci/runner-healthcheck.sh
       - name: Expose trusted runner Node
         run: bash scripts/ci/expose-runner-node.sh
-      - name: Apply environment-only alias compatibility
+      - name: Apply or certify environment-only alias compatibility
         run: python3 scripts/ci/f16_env_alias_patch.py
       - name: Verify syntax and security boundary
         run: |
@@ -45,16 +45,24 @@ jobs:
           grep -q 'process.env.service_role' app/email-gateway.js
           ! grep -Eq "['\"](eyJ|re_)[A-Za-z0-9._-]{20,}['\"]" app/email-gateway.js
           git diff --check
-      - name: Verify exact changed scope
+      - name: Verify compatible changed scope
         run: |
           set -euo pipefail
           changed="$(git diff --name-only | sort)"
           expected=$'app/email-gateway.js\napp/server.js'
-          test "$changed" = "$expected"
-          echo 'CIA_PHASE16_ENV_ALIAS_SCOPE=PASS'
-      - name: Commit environment-only compatibility
+          if [ -z "$changed" ]; then
+            echo 'CIA_PHASE16_ENV_ALIAS_ALREADY_MATERIALIZED=PASS'
+          else
+            test "$changed" = "$expected"
+            echo 'CIA_PHASE16_ENV_ALIAS_SCOPE=PASS'
+          fi
+      - name: Commit environment-only compatibility if needed
         run: |
           set -euo pipefail
+          if [ -z "$(git diff --name-only)" ]; then
+            echo 'CIA_PHASE16_ENV_ALIAS_NO_COMMIT_NEEDED=PASS'
+            exit 0
+          fi
           git config user.name 'ASCENDA Zero-Cost CI'
           git config user.email 'actions@users.noreply.github.com'
           git add app/server.js app/email-gateway.js
