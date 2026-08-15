@@ -8,6 +8,7 @@ const sw = read('app/public/phase2-service-worker.js');
 const proxy = read('app/server-f4.js');
 const railway = read('app/railway.json');
 const wa2 = fs.existsSync('app/server-wa2.js') ? read('app/server-wa2.js') : '';
+const wa3 = fs.existsSync('app/server-wa3.js') ? read('app/server-wa3.js') : '';
 const core = read('supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql');
 const requiredBridge = ['aos_sales_admin_gateway_v4','aos_sales_admin_sale_v4','aos_editar_venta_v4','aos_importar_ventas_preview_v4','aos_importar_ventas_v4','aos_grabar_venta_caja_v4','/api/f4/cartera-candidates','aos_cartera_reconcile_v2','canonicalProductName','physicalQty','productResolutionStatus','REVIEW_REQUIRED','PAGO_RECONCILIADO','importApproval','carteraCandidateByCase'];
 for(const marker of requiredBridge) ok(bridge.includes(marker), `missing F4 bridge marker: ${marker}`);
@@ -21,7 +22,8 @@ ok(proxy.includes("pathname==='/api/f4/cartera-candidates'"), 'cartera candidate
 ok(proxy.includes('aos_cartera_candidates_v2'), 'cartera candidates RPC missing');
 const directF4 = railway.includes('node server-f4.js');
 const wa2WrappedF4 = railway.includes('node server-wa2.js') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
-ok(directF4 || wa2WrappedF4, 'Railway must start F4 directly or through certified WA-2 wrapper');
+const wa3WrappedChain = railway.includes('node server-wa3.js') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+ok(directF4 || wa2WrappedF4 || wa3WrappedChain, 'Railway must preserve certified F4 chain through explicit WA wrappers');
 const preEnvironments = railway.split('"environments"')[0];
 ok(!preEnvironments.includes('node server-phase2.js'), 'legacy phase2 server must not be production start command');
 for(const text of [bridge,kronia]) ok(!text.toLowerCase().includes('service_role'), 'browser/runtime bridge must not contain service_role');
