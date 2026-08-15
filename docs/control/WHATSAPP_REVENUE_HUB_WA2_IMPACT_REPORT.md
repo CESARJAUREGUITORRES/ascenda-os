@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-08-15 (America/Lima)  
 **Riesgo:** CRITICAL (RLS/GRANT, permisos de panel y cambio de entrypoint Railway)  
-**Base de desarrollo:** `main@843be04aaac304ed049ac5d2f8efe4a7c76ae0f8`  
+**Base inicial de desarrollo:** `main@843be04aaac304ed049ac5d2f8efe4a7c76ae0f8`  
 **Branch:** `feature/wa2-conversation-live-inbox`  
 **Dependencia:** WA-1 Secure WhatsApp Gateway desplegado y fail-closed. El canary Meta real de WA-1 continúa como gate externo separado.
 
@@ -34,9 +34,21 @@ WA-2 agrega:
 - `aos_wa_conversations_v1` — proyección canónica de conversación;
 - `aos_wa_conversation_events_v1` — auditoría/actividad interna append-only;
 - `aos_wa_messages_v1.conversation_id` — enlace determinístico del ledger WA-1;
-- trigger `aos_wa2_bind_conversation_v1()` — crea/actualiza conversación atómicamente al insertarse un mensaje WA-1.
+- `aos_wa2_bind_conversation_v1()` — bind idempotente sin efectos sobre contadores;
+- `aos_wa2_project_message_v1()` — proyección post-insert/backfill que actualiza métricas una sola vez.
 
 El ledger `aos_wa_messages_v1` continúa siendo evidencia de mensaje; la conversación es una proyección operativa, no una copia de mensajes.
+
+### Preservación de idempotencia WA-1
+
+PostgreSQL ejecuta triggers `BEFORE INSERT` incluso cuando un `INSERT ... ON CONFLICT` termina resolviéndose como update. Por eso WA-2 separa deliberadamente **bind** de **projection**:
+
+1. el trigger BEFORE solo obtiene/crea la conversación y asigna `conversation_id`;
+2. no toca `message_count`, `unread_count` ni latest state;
+3. la proyección se ejecuta AFTER INSERT únicamente para filas realmente nuevas;
+4. el backfill se proyecta únicamente en transición real `conversation_id NULL → UUID`.
+
+Resultado: un retry del mismo `provider_message_id` puede actualizar el ledger WA-1 sin inflar métricas conversacionales.
 
 ## 3. Conversation key V1
 
@@ -51,7 +63,7 @@ Ventajas:
 
 WA-2 no altera `numero_limpio` en tablas core. La resolución avanzada persona/touchpoint sigue en WA-6/WA-7.
 
-## 4. Estado y contadores
+## 4. Estado, orden temporal y contadores
 
 Estados permitidos V1:
 
@@ -59,14 +71,17 @@ Estados permitidos V1:
 
 En WA-2 solamente se inicializa/reabre `NEW`; WA-3/WA-4 introducirán las transiciones gobernadas.
 
-El trigger mantiene:
+La proyección mantiene:
 
-- `message_count`;
-- `unread_count` solo para inbound;
-- first/last inbound/outbound;
-- último mensaje/preview/status;
+- `message_count` una vez por fila real del ledger;
+- `unread_count` solo para inbound posterior a `last_read_at`;
+- first inbound/outbound como mínimos por provider timestamp;
+- last inbound/outbound como máximos por provider timestamp;
+- último mensaje/preview/status únicamente si el evento es temporalmente igual o más nuevo;
 - contacto y provenance inicial;
-- reapertura `CLOSED → NEW` ante nuevo inbound.
+- reapertura `CLOSED → NEW` solo si el inbound es posterior al `closed_at`.
+
+Esto evita que entregas retrasadas o reordenadas por proveedor retrocedan el inbox, reabran chats antiguos o creen falsos no-leídos.
 
 No se incrementan contadores por delivery/read status updates de un mensaje ya existente.
 
@@ -81,11 +96,11 @@ Las dos tablas WA-2:
 - `PUBLIC`, `anon`, `authenticated` sin acceso directo;
 - acceso server-side exclusivamente mediante `service_role`.
 
-La función trigger:
+Las funciones trigger:
 
-- no es `SECURITY DEFINER`;
-- tiene `search_path` fijado;
-- no tiene EXECUTE para `PUBLIC/anon/authenticated`.
+- no son `SECURITY DEFINER`;
+- tienen `search_path` fijado;
+- no tienen EXECUTE para `PUBLIC/anon/authenticated`.
 
 ### API
 
@@ -151,7 +166,7 @@ Debe demostrar:
 - runner self-hosted Zero-Cost;
 - sintaxis Node;
 - WA-1 unit/regression;
-- compatibilidad F4;
+- compatibilidad F4, incluida composición certificada `server-wa2 → server-f4`;
 - contratos UI/server;
 - Supabase efímero aislado;
 - prerequisite schema sintético sin PII;
@@ -159,8 +174,9 @@ Debe demostrar:
 - mensaje sintético creado antes de WA-2 para probar backfill;
 - migración WA-2 exacta;
 - DB lint;
-- 36 contratos pgTAP de RLS, proyección, contadores, reapertura, provenance y canary permission;
-- recovery fail-closed;
+- **51 contratos pgTAP** de RLS, proyección, idempotencia, contadores, orden temporal, reapertura, provenance y canary permission;
+- recovery fail-closed de los tres triggers y dos funciones;
+- preservación de evidencia tras recovery;
 - destrucción del entorno.
 
 ## 9. Cutover productivo
@@ -188,7 +204,8 @@ Revertir Railway a `node server-f4.js`. WA-1 continúa operativo; WhatsApp inbou
 
 `supabase/rollbacks/20260815175500_wa2_conversation_live_inbox_v1.rollback.sql`:
 
-- desactiva trigger/proyección;
+- desactiva bind + proyección insert + proyección backfill;
+- elimina las dos funciones WA-2;
 - elimina acceso `admin-whatsapp` de usuarios y catálogo;
 - **no borra** conversaciones/mensajes ya capturados;
 - mantiene tablas con FORCE RLS y client roles revocados.
