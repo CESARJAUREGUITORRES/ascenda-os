@@ -1,0 +1,52 @@
+name: ASCENDA WA-2 Final Production Probe
+
+on:
+  push:
+    branches: ['probe/wa2-prod-smoke-final-20260815']
+    paths: ['.github/workflows/wa2-prod-final-probe.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: WA-2 production smoke
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Enforce FAST self-hosted runner
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Probe must be self-hosted' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Probe WA-2 and WA-1 production boundaries
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='https://ascenda-os-production.up.railway.app'
+
+          function Http([string]$name,[string[]]$tail,[int]$expected,[string]$requiredHeader='') {
+            $h=Join-Path $env:RUNNER_TEMP ($name+'-h.txt')
+            $b=Join-Path $env:RUNNER_TEMP ($name+'-b.txt')
+            $args=@('-sS','--connect-timeout','10','--max-time','20','-D',$h,'-o',$b,'-w','%{http_code}')+$tail
+            $codeText=& curl.exe @args
+            if($LASTEXITCODE -ne 0){throw "$name curl failed $LASTEXITCODE"}
+            $code=[int]$codeText
+            $headers=Get-Content $h -Raw
+            Write-Host "$name status=$code"
+            if($code -ne $expected){throw "$name expected $expected got $code"}
+            if($requiredHeader -and $headers -notmatch $requiredHeader){throw "$name missing required header"}
+            return $b
+          }
+
+          $inboxBody=Http 'wa2-inbox-unauth' @("$base/api/wa/inbox") 403 '(?im)^X-Ascenda-WA2-Inbox:\s*v1\s*$'
+          $htmlBody=Http 'wa2-shadow-page' @("$base/admin-whatsapp.html") 200 ''
+          $html=Get-Content $htmlBody -Raw
+          if($html -notmatch 'ASCENDA\s+<span>CONVERSATIONS</span>'){throw 'WA-2 shadow page marker missing'}
+
+          Http 'wa1-invalid-verify' @("$base/webhook?hub.mode=subscribe&hub.verify_token=__wa2_probe_invalid__&hub.challenge=wa2") 403 '(?im)^X-Ascenda-WA-Gateway:\s*v1\s*$' | Out-Null
+          Http 'wa1-unsigned-post' @('-X','POST','-H','Content-Type: application/json','--data-binary','{}',"$base/webhook") 401 '(?im)^X-Ascenda-WA-Gateway:\s*v1\s*$' | Out-Null
+
+          Write-Host 'WA-2 deployed, admin boundary fail-closed, shadow page present, WA-1 regression PASS.'
