@@ -1,0 +1,47 @@
+name: F4 Auth Transport Materialize
+
+on:
+  push:
+    branches: ['fix/f4-auth-transport-same-origin-20260815']
+    paths:
+      - 'scripts/ci/materialize-f4-auth-transport.js'
+      - '.github/workflows/f4-auth-transport-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Materialize transport hotfix
+        shell: powershell
+        run: |
+          node scripts/ci/materialize-f4-auth-transport.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-f4.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase2-cartera/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase1-sales-intelligence/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Commit generated hotfix
+        shell: powershell
+        run: |
+          git config user.name 'ascenda-fast-runner'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          if (git diff --cached --quiet) { throw 'Materializer produced no diff' }
+          git commit -m 'fix(f4): route sensitive revenue reads same-origin'
+          git push origin HEAD:${{ github.ref_name }}
