@@ -3,16 +3,21 @@ import json
 
 root=Path(__file__).resolve().parents[2]
 server=(root/'app/server-wa3.js').read_text(encoding='utf-8')
+wa4_path=root/'app/server-wa4.js'
+wa4=wa4_path.read_text(encoding='utf-8') if wa4_path.exists() else ''
 ui=(root/'app/public/admin-whatsapp-wa3.html').read_text(encoding='utf-8')
 railway=json.loads((root/'app/railway.json').read_text(encoding='utf-8'))
 mig=(root/'supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql').read_text(encoding='utf-8')
 rb=(root/'supabase/rollbacks/20260815190500_wa3_boxes_routing_handoff_v1.rollback.sql').read_text(encoding='utf-8')
 
-# Explicit runtime chain WA3 -> WA2. No generic wrapper acceptance.
+# Explicit runtime chain WA4 -> WA3 -> WA2. No generic wrapper acceptance.
 assert "['server-wa2.js']" in server
 assert "proxy(req,res)" in server
 assert "X-Ascenda-WA3-Routing':'v1'" in server
-assert railway['deploy']['startCommand']=='node server-wa3.js'
+start=railway['deploy']['startCommand']
+direct=start=='node server-wa3.js'
+wa4_wrapped=(start=='node server-wa4.js' and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
+assert direct or wa4_wrapped, 'Railway must start WA-3 directly or through certified WA-4 wrapper'
 assert '/api/wa3/bootstrap' in server
 assert '/api/wa3/inbox' in server
 assert '/claim-next' in server
