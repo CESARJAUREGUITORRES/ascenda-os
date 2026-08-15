@@ -41,10 +41,7 @@ jobs:
   ui-fixture:
     name: FAST UI fixture / isolated runtime smoke
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 10
-    defaults:
-      run:
-        shell: bash
+    timeout-minutes: 7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,114 +53,122 @@ jobs:
           cache: 'npm'
           cache-dependency-path: app/package.json
 
-      - name: Resolve system Python
+      - name: Enforce FAST lane
         shell: powershell
         run: |
-          if (Get-Command python -ErrorAction SilentlyContinue) {
-            python --version
-            exit 0
-          }
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
-            New-Item -ItemType Directory -Force -Path $shim | Out-Null
-            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
-            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            py -3 --version
-            exit 0
-          }
-          throw 'Python runtime missing on ASCENDA FAST runner'
-
-      - name: Enforce FAST lane
-        run: |
-          set -euo pipefail
-          test "${RUNNER_ENVIRONMENT}" = "self-hosted"
-          echo "FAST runner: ${RUNNER_NAME} / ${RUNNER_OS}"
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Sales Intelligence FAST lane must be self-hosted' }
+          Write-Host "FAST runner: $env:RUNNER_NAME / $env:RUNNER_OS"
+          node --version
 
       - name: Install app dependencies
+        shell: powershell
         working-directory: app
-        run: npm install --no-audit --no-fund
+        run: npm.cmd install --no-audit --no-fund
 
-      - name: Validate UI fixture contract
-        run: python ci/phase1-sales-intelligence/ui_contract.py
+      - name: Validate Node parity UI fixture contract
+        shell: powershell
+        run: |
+          node --check ci/phase1-sales-intelligence/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase1-sales-intelligence/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Validate Railway staging config
+        shell: powershell
         run: |
-          set -euo pipefail
           node -e "const c=require('./app/railway.staging.json'); if(c.deploy.startCommand!=='node staging-server.js'||c.deploy.healthcheckPath!=='/health') process.exit(1); console.log('PHASE1_RAILWAY_CONFIG=PASS')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Validate static staging isolation
+        shell: powershell
         run: |
-          set -euo pipefail
           node --check app/staging-server.js
-          if grep -qi 'supabase\.co\|aos_ventas\|aos_pacientes\|aos_agenda' app/staging-server.js; then
-            echo 'Staging server contains production/data coupling'
-            exit 1
-          fi
-          echo 'PHASE1_STAGING_ISOLATION=PASS'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $server = Get-Content 'app/staging-server.js' -Raw
+          if ($server -match 'supabase\.co|aos_ventas|aos_pacientes|aos_agenda') { throw 'Staging server contains production/data coupling' }
+          Write-Host 'PHASE1_STAGING_ISOLATION=PASS'
 
       - name: Validate embedded script syntax
+        shell: powershell
         run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re, tempfile
-          files=['app/public/admin-sales-intelligence.html','app/public/admin-sales-intelligence-staging.html','app/public/login.html','app/public/admin-team.html']
-          root=Path(tempfile.gettempdir())/'ascenda-phase1-js'
-          root.mkdir(parents=True,exist_ok=True)
-          out=[]
-          for src in files:
-              text=Path(src).read_text(encoding='utf-8')
-              scripts=re.findall(r'<script[^>]*>(.*?)</script>',text,re.S|re.I)
-              if not scripts:
-                  raise SystemExit(f'No scripts found in {src}')
-              for i,s in enumerate(scripts):
-                  p=root/f'{Path(src).stem}-{i}.js'
-                  p.write_text(s,encoding='utf-8')
-                  out.append(str(p))
-          (root/'files.txt').write_text('\n'.join(out),encoding='utf-8')
-          print(root/'files.txt')
-          PY
-          FILES="$(python -c "import tempfile; from pathlib import Path; print(Path(tempfile.gettempdir())/'ascenda-phase1-js'/'files.txt')")"
-          while IFS= read -r f; do node --check "$f"; done <"$FILES"
+          $files = @(
+            'app/public/admin-sales-intelligence.html',
+            'app/public/admin-sales-intelligence-staging.html',
+            'app/public/login.html',
+            'app/public/admin-team.html'
+          )
+          $root = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-js'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          foreach ($src in $files) {
+            $text = Get-Content $src -Raw
+            $matches = [regex]::Matches($text, '(?is)<script[^>]*>(.*?)</script>')
+            if ($matches.Count -eq 0) { throw "No scripts found in $src" }
+            for ($i=0; $i -lt $matches.Count; $i++) {
+              $name = [IO.Path]::GetFileNameWithoutExtension($src) + '-' + $i + '.js'
+              $out = Join-Path $root $name
+              [IO.File]::WriteAllText($out, $matches[$i].Groups[1].Value, (New-Object Text.UTF8Encoding($false)))
+              node --check $out
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          }
+          Write-Host 'PHASE1_EMBEDDED_JS=PASS'
 
       - name: Start isolated static runtime and verify health
+        shell: powershell
         working-directory: app
         run: |
-          set -euo pipefail
-          LOG="${RUNNER_TEMP}/ascenda-phase1-server.log"
-          PID="${RUNNER_TEMP}/ascenda-phase1-server.pid"
-          PORT=4173 node staging-server.js >"$LOG" 2>&1 &
-          echo $! >"$PID"
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/health | grep -q 'staging-fixture'; then
-              echo 'PHASE1_RUNTIME_HEALTH=PASS'
-              exit 0
-            fi
-            sleep 1
-          done
-          cat "$LOG"
-          exit 1
+          $env:PORT = '4173'
+          $outLog = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.out.log'
+          $errLog = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.err.log'
+          $pidFile = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.pid'
+          $proc = Start-Process -FilePath 'node' -ArgumentList 'staging-server.js' -PassThru -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+          Set-Content -Path $pidFile -Value $proc.Id
+          $healthy = $false
+          for ($i=0; $i -lt 30; $i++) {
+            try {
+              $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/health' -TimeoutSec 2
+              if ($r.StatusCode -eq 200 -and $r.Content -match 'staging-fixture') { $healthy = $true; break }
+            } catch {}
+            Start-Sleep -Seconds 1
+          }
+          if (-not $healthy) {
+            if (Test-Path $outLog) { Get-Content $outLog }
+            if (Test-Path $errLog) { Get-Content $errLog }
+            throw 'PHASE1_RUNTIME_HEALTH=FAIL'
+          }
+          Write-Host 'PHASE1_RUNTIME_HEALTH=PASS'
 
       - name: HTTP shadow surface gate
+        shell: powershell
         run: |
-          set -euo pipefail
-          curl -fsSI http://127.0.0.1:4173/admin-sales-intelligence-staging.html | grep -qi 'X-ASCENDA-ENV: staging-fixture'
-          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence.html >"${RUNNER_TEMP}/si.html"
-          curl -fsS http://127.0.0.1:4173/admin-sales-intelligence-staging.html >"${RUNNER_TEMP}/si-staging.html"
-          grep -q 'Sales Intelligence V2' "${RUNNER_TEMP}/si.html"
-          grep -q 'ASCENDA Sales Intelligence' "${RUNNER_TEMP}/si-staging.html"
-          grep -q 'window.__ASCENDA_STAGING_FIXTURE__=true' "${RUNNER_TEMP}/si-staging.html"
-          echo 'PHASE1_HTTP_SHADOW=PASS'
+          $head = Invoke-WebRequest -UseBasicParsing -Method Head -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
+          if ($head.Headers['X-ASCENDA-ENV'] -notmatch 'staging-fixture') { throw 'Missing staging fixture response header' }
+          $si = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence.html').Content
+          $staging = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html').Content
+          if ($si -notmatch 'Sales Intelligence V2') { throw 'Production SI surface marker missing' }
+          if ($staging -notmatch 'ASCENDA Sales Intelligence') { throw 'Staging SI title missing' }
+          if ($staging -notmatch 'window\.__ASCENDA_STAGING_FIXTURE__=true') { throw 'Staging fixture marker missing over HTTP' }
+          Write-Host 'PHASE1_HTTP_SHADOW=PASS'
 
       - name: Reject write methods in staging runtime
+        shell: powershell
         run: |
-          set -euo pipefail
-          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:4173/admin-sales-intelligence-staging.html)
-          test "$code" = '405'
-          echo 'PHASE1_WRITE_METHODS_BLOCKED=PASS'
+          $code = 0
+          try {
+            $r = Invoke-WebRequest -UseBasicParsing -Method Post -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html'
+            $code = [int]$r.StatusCode
+          } catch {
+            if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
+          }
+          if ($code -ne 405) { throw "Expected HTTP 405 for POST, got $code" }
+          Write-Host 'PHASE1_WRITE_METHODS_BLOCKED=PASS'
 
       - name: Stop isolated staging runtime
         if: always()
+        shell: powershell
         run: |
-          PID="${RUNNER_TEMP}/ascenda-phase1-server.pid"
-          if [ -f "$PID" ]; then kill $(cat "$PID") 2>/dev/null || true; fi
+          $pidFile = Join-Path $env:RUNNER_TEMP 'ascenda-phase1-server.pid'
+          if (Test-Path $pidFile) {
+            $procId = [int](Get-Content $pidFile -Raw)
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+          }
