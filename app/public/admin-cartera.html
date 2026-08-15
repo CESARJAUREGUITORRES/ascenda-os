@@ -34,7 +34,7 @@
   var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmIjoiaXR1eXF3c3Rvbm1obmZzaG5hcXoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NDc0NDIxOCwiZXhwIjoyMDkwMzIwMjE4fQ.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
   var rows=[],current=null;
   function e(id){return document.getElementById(id)}
-  function token(){try{return sessionStorage.getItem('aos_si_token')||''}catch(err){return ''}}
+  function token(){try{return sessionStorage.getItem('aos_app_token')||''}catch(err){return ''}}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function money(n){return 'S/'+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}
   function deny(msg){document.querySelector('.car').innerHTML='<div class="car-card" style="max-width:620px;margin:60px auto;text-align:center;padding:28px"><div class="car-title">🔒 Acceso restringido</div><div class="car-sub" style="font-size:12px;margin-top:10px">'+esc(msg)+'</div></div>'}

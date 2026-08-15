@@ -12,6 +12,8 @@ const wa3 = fs.existsSync('app/server-wa3.js') ? read('app/server-wa3.js') : '';
 const core = read('supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql');
 const requiredBridge = ['aos_sales_admin_gateway_v4','aos_sales_admin_sale_v4','aos_editar_venta_v4','aos_importar_ventas_preview_v4','aos_importar_ventas_v4','aos_grabar_venta_caja_v4','/api/f4/cartera-candidates','aos_cartera_reconcile_v2','canonicalProductName','physicalQty','productResolutionStatus','REVIEW_REQUIRED','PAGO_RECONCILIADO','importApproval','carteraCandidateByCase'];
 for(const marker of requiredBridge) ok(bridge.includes(marker), `missing F4 bridge marker: ${marker}`);
+ok(bridge.includes("sessionStorage.getItem('aos_app_token')"), 'F4 must use the Auth V3 app token');
+ok(!bridge.includes('aos_si_token'), 'F4 must not fall back to the Sales Intelligence token scope');
 ok(sw.includes('/f4-revenue-ops.js'), 'service worker must inject F4 revenue bridge');
 ok(sw.includes('/f4-kronia-revenue-bridge.js'), 'service worker must inject KronIA revenue proof bridge');
 ok(kronia.includes("'/api/kronia/chat'") && kronia.includes('X-AOS-App-Token'), 'KronIA authenticated bridge contract missing');
