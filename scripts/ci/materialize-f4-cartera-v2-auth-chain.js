@@ -3,12 +3,16 @@ const fs=require('fs');
 function read(p){return fs.readFileSync(p,'utf8')}
 function write(p,s){fs.writeFileSync(p,s,'utf8')}
 function replaceOnce(p,oldText,newText){
-  let s=read(p);
+  const original=read(p);
+  let s=original.replace(/\r\n/g,'\n');
+  oldText=oldText.replace(/\r\n/g,'\n');
+  newText=newText.replace(/\r\n/g,'\n');
   if(s.includes(newText)){console.log(`${p}: already materialized`);return}
   const i=s.indexOf(oldText);
   if(i<0)throw new Error(`${p}: expected source shape not found`);
   if(s.indexOf(oldText,i+oldText.length)>=0)throw new Error(`${p}: ambiguous source shape`);
-  write(p,s.replace(oldText,newText));
+  s=s.replace(oldText,newText);
+  write(p,s);
   console.log(`${p}: materialized`);
 }
 
