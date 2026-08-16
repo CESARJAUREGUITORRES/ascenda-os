@@ -10,6 +10,7 @@ const INIT_PATH = 'app/sentinel-sentry-init.cjs';
 const CONTRACT_PATH = 'sentinel/sentry/f4-contract.json';
 const FIXTURE_PATH = 'ci/sentinel/fixtures/f4_sentry_sensitive_event.json';
 const F1_POLICY = 'docs/control/SENTINEL_F1_GOVERNANCE_PRIVACY_COST_POLICY.md';
+const F1_WORKFLOW = '.github/workflows/sentinel-phase1-governance.yml';
 const F3_CONTRACT = 'sentinel/telemetry/contract-v1.json';
 const F2_REGISTRY = 'docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json';
 const REPORT_PATH = 'docs/control/SENTINEL_F4_VALIDATION_REPORT_20260816.md';
@@ -29,6 +30,7 @@ const f4 = json(CONTRACT_PATH);
 const f3 = json(F3_CONTRACT);
 const f2 = json(F2_REGISTRY);
 const f1 = read(F1_POLICY);
+const f1Workflow = read(F1_WORKFLOW);
 const fixture = json(FIXTURE_PATH);
 const initSource = read(INIT_PATH);
 const workflow = read(WORKFLOW_PATH);
@@ -58,6 +60,18 @@ for (const token of [
   'SENTINEL_SENTRY_ENABLED',
   'Sentry temporalmente caído'
 ]) ok(f1.includes(token), `F1_MATERIAL_INVARIANT_MISSING:${token}`);
+
+// F1's historical full certificate must not auto-run on every later Sentinel phase.
+// Later phases carry their own material F1 regression, as F4 does here.
+for (const token of [
+  "docs/control/SENTINEL_F1_GOVERNANCE_PRIVACY_COST_POLICY.md",
+  "docs/control/SENTINEL_F1_VALIDATION_REPORT_20260816.md",
+  "ci/sentinel/phase1_governance_contract.js"
+]) ok(f1Workflow.includes(token), `F1_WORKFLOW_NARROW_PATH_MISSING:${token}`);
+for (const broad of ["docs/control/SENTINEL_*.md", "ci/sentinel/**", "sentinel-phase1-governance.yml'"]) {
+  ok(!f1Workflow.includes(broad), `F1_WORKFLOW_CROSS_PHASE_TRIGGER_FORBIDDEN:${broad}`);
+}
+
 ok(f3.schema_version === 'sentinel-telemetry-contract/v1', 'F3_SCHEMA_DRIFT');
 ok(f3.design.zero_phi_pii === true, 'F3_ZERO_PHI_PII_DRIFT');
 ok(f3.design.allowlist_first === true, 'F3_ALLOWLIST_DRIFT');
@@ -178,7 +192,8 @@ ok(telemetry.normalizeEnvironment('staging') === 'zero-cost', 'ENV_STAGING_FAILE
 ok(telemetry.buildRelease({RAILWAY_GIT_COMMIT_SHA:'e3ff8914447c06a2b94b3be5cccbade73526ce0d'}) === 'ascenda-os@e3ff8914447c06a2b94b3be5cccbade73526ce0d', 'RELEASE_SHA_FAILED');
 ok(telemetry.buildRelease({}) === 'ascenda-os@unknown', 'RELEASE_FALLBACK_FAILED');
 
-// Scope: F4 foundation may add only dormant Sentry integration/test/control files.
+// Scope: F4 foundation may add only dormant Sentry integration/test/control files
+// plus the one governance workflow fix that prevents cross-phase false-reds.
 function changedFiles() {
   try {
     cp.execFileSync('git', ['rev-parse', 'HEAD^2'], {cwd: ROOT, stdio:'ignore'});
@@ -201,14 +216,15 @@ const allowedExact = new Set([
   'ci/sentinel/phase4_sentry_contract.js',
   REPORT_PATH,
   'docs/control/SENTINEL_F4_SENTRY_RUNBOOK.md',
-  WORKFLOW_PATH
+  WORKFLOW_PATH,
+  F1_WORKFLOW
 ]);
 for (const p of changed) ok(allowedExact.has(p), `F4_SCOPE_UNEXPECTED_FILE:${p}`);
 ok(!changed.includes('app/railway.json'), 'F4_FOUNDATION_MUST_NOT_CHANGE_RAILWAY');
 ok(!changed.some(p => p.startsWith('supabase/migrations/') || p.startsWith('supabase/functions/')), 'F4_FOUNDATION_DB_MUTATION');
 
 // Secret/DSN guard. Fixture contains only fake invalid values; repository must contain no real DSN/token patterns.
-const scanPaths = [INIT_PATH, CONTRACT_PATH, REPORT_PATH, 'docs/control/SENTINEL_F4_SENTRY_RUNBOOK.md', WORKFLOW_PATH, 'app/package.json'];
+const scanPaths = [INIT_PATH, CONTRACT_PATH, REPORT_PATH, 'docs/control/SENTINEL_F4_SENTRY_RUNBOOK.md', WORKFLOW_PATH, F1_WORKFLOW, 'app/package.json'];
 const suspicious = [
   /https:\/\/[A-Za-z0-9_-]{16,}@[A-Za-z0-9.-]+\.ingest(?:\.[A-Za-z0-9.-]+)?\.sentry\.io\/[0-9]+/i,
   /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/,
@@ -228,6 +244,7 @@ console.log(JSON.stringify({
   certificate: 'SENTINEL_F4_FOUNDATION_CONTRACT_PASS',
   sdk: '@sentry/node@10.70.0',
   f1_privacy_material_regression: true,
+  f1_cross_phase_false_red_fixed: true,
   f2_topology_material_regression: true,
   f3_telemetry_material_regression: true,
   default_active: false,
