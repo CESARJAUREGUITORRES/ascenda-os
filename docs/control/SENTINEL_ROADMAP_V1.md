@@ -359,6 +359,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 1: `CERRADA / 100_COMPLETE`.
 - Fase 2: `CERRADA / 100_COMPLETE`.
 - Fase 3: `CERRADA / 100_COMPLETE`.
-- Fase 4: `SIGUIENTE`.
-- Fases 5–13: `PENDIENTE`.
-- Ningún sensor productivo queda autorizado por el cierre de F3; F4 debe ejecutar privacy gate, synthetic error gate y kill-switch antes de activarse.
+- Fase 4: `CERRADA / 100_COMPLETE / 18/18 PASS`.
+- Fase 5: `EN CURSO — Availability Foundation`.
+- Fases 6–13: `PENDIENTE`.
+- F5 no autoriza gasto automático ni despliegue 24/7 hasta resolver `F5-HOST-01`; la foundation puede certificarse íntegramente en CI Zero-Cost.
