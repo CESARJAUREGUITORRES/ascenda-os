@@ -1,0 +1,152 @@
+name: ASCENDA PHASE S WA3 Stabilization
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-phase-s.js'
+      - 'app/railway.json'
+      - 'app/server-f5.js'
+      - 'app/server-wa4.js'
+      - 'app/server-wa3.js'
+      - 'app/server-wa2.js'
+      - 'app/server-f4.js'
+      - 'app/wa-gateway.js'
+      - 'ci/phase-s/**'
+      - 'ci/phase4-revenue/**'
+      - 'ci/wa2-conversation-live-inbox/**'
+      - 'ci/wa3-boxes-routing-handoff/**'
+      - 'ci/wa4-ai-sales-router/**'
+      - 'ci/phase5-historical-identity/**'
+      - 'docs/control/WHATSAPP_PHASE_S_*'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_EXPANSION_*'
+      - '.github/workflows/phase-s-wa3-stabilization.yml'
+  push:
+    branches: ['phase-s/wa3-stabilization-human-outbound']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-s-wa3-stabilization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: FAST Phase S full runtime-chain certification
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Resolve system Python
+        shell: powershell
+        run: |
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            exit 0
+          }
+          if (Get-Command py -ErrorAction SilentlyContinue) {
+            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
+            New-Item -ItemType Directory -Force -Path $shim | Out-Null
+            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
+            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            py -3 --version
+            exit 0
+          }
+          throw 'Python runtime missing on ASCENDA FAST runner'
+
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Phase S must run on a self-hosted runner' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+
+      - name: Runtime syntax
+        shell: powershell
+        run: |
+          $files = @(
+            'app/server-phase-s.js',
+            'app/server-f5.js',
+            'app/server-wa4.js',
+            'app/server-wa3.js',
+            'app/server-wa2.js',
+            'app/server-f4.js',
+            'app/wa-gateway.js'
+          )
+          foreach ($file in $files) {
+            node --check $file
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Phase S boundary contract
+        shell: powershell
+        run: |
+          node ci/phase-s/phase-s_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-1 gateway regression
+        shell: powershell
+        run: |
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: F4 runtime/UI topology contracts
+        shell: powershell
+        run: |
+          python ci/phase4-revenue/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-2 inbox topology contract
+        shell: powershell
+        run: |
+          python ci/wa2-conversation-live-inbox/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-3 routing topology contract
+        shell: powershell
+        run: |
+          python ci/wa3-boxes-routing-handoff/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-4 AI boundary topology contract
+        shell: powershell
+        run: |
+          python ci/wa4-ai-sales-router/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: F5 private-boundary topology contract
+        shell: powershell
+        run: |
+          node ci/phase5-historical-identity/f5_upload_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Security invariants
+        shell: powershell
+        run: |
+          $s = Get-Content app/server-phase-s.js -Raw
+          $rail = Get-Content app/railway.json -Raw
+          if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
+          if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
+          if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
+          if ($s -notmatch 'ai_send_enabled:false') { throw 'AI send fail-closed default missing' }
+          if ($s -match '(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          if ($rail -notmatch '"startCommand"\s*:\s*"node server-phase-s\.js"') { throw 'Railway Phase S start command missing' }
+
+      - name: DB gates remain canonical and independent
+        shell: powershell
+        run: |
+          Write-Host 'Phase S adds no DB migration or schema object.'
+          Write-Host 'WA-2/WA-3/F4/WA-4/F5 DB/RLS/pgTAP remain owned by their Linux Zero-Cost workflows.'
+
+      - name: Phase S gate summary
+        shell: powershell
+        run: |
+          Write-Host 'PHASE S FULL STATIC/RUNTIME-CHAIN GATE PASS'
+          Write-Host 'Production gates remaining: deploy health, native reload canary, human outbound, Meta delivery/read receipt.'

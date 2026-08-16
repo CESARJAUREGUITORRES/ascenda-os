@@ -1,6 +1,7 @@
 const fs=require('fs');
 function ok(c,m){if(!c)throw new Error(m)}
 const srv=fs.readFileSync('app/server-f5.js','utf8');
+const phaseS=fs.existsSync('app/server-phase-s.js')?fs.readFileSync('app/server-phase-s.js','utf8'):'';
 const mod=fs.readFileSync('app/f5-historical-upload.js','utf8');
 const html=fs.readFileSync('app/public/admin-f5-historical.html','utf8');
 const rail=JSON.parse(fs.readFileSync('app/railway.json','utf8'));
@@ -21,6 +22,12 @@ ok(html.includes('X-AOS-App-Token')&&html.includes('X-AOS-Source-Filename'),'adm
 ok(html.includes('No crea pacientes')&&html.includes('no fusiona identidades'),'safety disclosure missing');
 ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be pinned');
 ok(pkg.scripts.start==='node server-f5.js','npm start must enter F5 wrapper');
-ok(rail.deploy.startCommand==='node server-f5.js','Railway must enter F5 wrapper');
-ok(String(rail.build.buildCommand).includes('server-f5.js -> node server-wa4.js'),'certified chain declaration missing');
+const directF5=rail.deploy.startCommand==='node server-f5.js';
+const phaseSWrapped=rail.deploy.startCommand==='node server-phase-s.js'&&phaseS.includes("['server-f5.js']")&&phaseS.includes('proxy(req,res)');
+ok(directF5||phaseSWrapped,'Railway must enter F5 directly or through certified Phase S wrapper');
+if(phaseSWrapped){
+  ok(String(rail.build.buildCommand).includes('server-phase-s.js'),'Phase S chain declaration missing');
+  ok(String(rail.build.buildCommand).includes('server-f5.js'),'F5 chain declaration missing');
+}
+ok(String(rail.build.buildCommand).includes('server-wa4.js'),'WA4 chain declaration missing');
 console.log('F5 secure XLSX upload contract: PASS');
