@@ -22,9 +22,15 @@ ok(html.includes('X-AOS-App-Token')&&html.includes('X-AOS-Source-Filename'),'adm
 ok(html.includes('No crea pacientes')&&html.includes('no fusiona identidades'),'safety disclosure missing');
 ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be pinned');
 ok(pkg.scripts.start==='node server-f5.js','npm start must enter F5 wrapper');
-const directF5=rail.deploy.startCommand==='node server-f5.js';
-const phaseSWrapped=rail.deploy.startCommand==='node server-phase-s.js'&&phaseS.includes("['server-f5.js']")&&phaseS.includes('proxy(req,res)');
+const start=rail.deploy.startCommand;
+const sentinelPhaseS="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
+const directF5=start==='node server-f5.js';
+const phaseSEntry=start==='node server-phase-s.js'||start===sentinelPhaseS;
+const phaseSWrapped=phaseSEntry&&phaseS.includes("['server-f5.js']")&&phaseS.includes('proxy(req,res)');
 ok(directF5||phaseSWrapped,'Railway must enter F5 directly or through certified Phase S wrapper');
+if(start===sentinelPhaseS){
+  ok(rail.build&&!String(rail.build.buildCommand).includes('NODE_OPTIONS'),'Sentinel preload must not contaminate build');
+}
 if(phaseSWrapped){
   ok(String(rail.build.buildCommand).includes('server-phase-s.js'),'Phase S chain declaration missing');
   ok(String(rail.build.buildCommand).includes('server-f5.js'),'F5 chain declaration missing');
