@@ -1,0 +1,127 @@
+{
+  "schema_version": "sentinel-telemetry-contract/v1",
+  "contract_id": "ASCENDA-SENTINEL-TELEMETRY-V1",
+  "system": "ascenda-os",
+  "design": {
+    "vendor_neutral": true,
+    "runtime_activation_in_f3": false,
+    "network_export_in_f3": false,
+    "zero_phi_pii": true,
+    "allowlist_first": true,
+    "baggage_enabled": false
+  },
+  "resource": {
+    "required": [
+      "service.namespace",
+      "service.name",
+      "service.version",
+      "deployment.environment.name"
+    ],
+    "allowed": [
+      "service.namespace",
+      "service.name",
+      "service.version",
+      "deployment.environment.name",
+      "sentinel.domain",
+      "sentinel.component",
+      "sentinel.phase"
+    ],
+    "service_namespace": "ascenda-os",
+    "environments": ["development", "zero-cost", "production"]
+  },
+  "attributes": {
+    "allowed": [
+      "sentinel.domain",
+      "sentinel.component",
+      "sentinel.capability",
+      "sentinel.dependency",
+      "sentinel.operation",
+      "sentinel.phase",
+      "sentinel.request_id",
+      "sentinel.provider",
+      "sentinel.route_template",
+      "sentinel.site_code",
+      "error.type",
+      "error.code",
+      "http.request.method",
+      "http.response.status_code",
+      "http.route"
+    ],
+    "max_string_length": 160,
+    "max_attribute_count": 32
+  },
+  "propagation": {
+    "trace_context": "W3C Trace Context",
+    "traceparent_version": "00",
+    "trace_id_hex_length": 32,
+    "span_id_hex_length": 16,
+    "request_id_format": "uuid-v4",
+    "accept_inbound_baggage": false,
+    "emit_baggage": false
+  },
+  "sampling": {
+    "mode": "deterministic-trace-id",
+    "defaults": {
+      "development": 1,
+      "zero-cost": 1,
+      "production": 0
+    },
+    "production_change_requires_explicit_phase_gate": true
+  },
+  "redaction": {
+    "action_for_unknown_key": "drop",
+    "action_for_denied_key": "drop",
+    "action_for_sensitive_allowed_value": "redact",
+    "redaction_marker": "[REDACTED]",
+    "denied_key_fragments": [
+      "authorization",
+      "cookie",
+      "set-cookie",
+      "apikey",
+      "api_key",
+      "token",
+      "access_token",
+      "refresh_token",
+      "service_role",
+      "password",
+      "phone",
+      "telefono",
+      "recipient",
+      "wa_id",
+      "dni",
+      "documento",
+      "email",
+      "paciente",
+      "patient",
+      "nombre",
+      "name_raw",
+      "body",
+      "message",
+      "content",
+      "prompt",
+      "response",
+      "input",
+      "output",
+      "webhook"
+    ],
+    "forbidden_payload_classes": [
+      "patient identity",
+      "clinical text",
+      "WhatsApp or email content",
+      "request or response bodies",
+      "authentication secrets",
+      "AI prompts or model responses"
+    ]
+  },
+  "exporter": {
+    "interface": "export(envelope)",
+    "required_method": "export",
+    "f3_allowed_exporters": ["noop", "memory-test"],
+    "production_network_exporter_allowed": false
+  },
+  "envelope": {
+    "schema_version": "sentinel-telemetry-envelope/v1",
+    "signals": ["span", "error", "metric", "event"],
+    "fields": ["schema_version", "signal", "timestamp", "resource", "context", "attributes"]
+  }
+}
