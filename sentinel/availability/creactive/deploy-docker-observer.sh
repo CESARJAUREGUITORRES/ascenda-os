@@ -12,6 +12,8 @@ KUMA_VOLUME="uptime-kuma-data"
 TARGET="${SENTINEL_HEALTH_URL:-https://ascenda-os-production.up.railway.app/health}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AVAIL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 mkdir -p "$RUNTIME_DIR" "$STATE_DIR"
 install -m 700 "$AVAIL_DIR/local-observer-agent.py" "$RUNTIME_DIR/local-observer-agent.py"
@@ -19,22 +21,18 @@ install -m 600 "$AVAIL_DIR/compose.yaml" "$RUNTIME_DIR/compose.yaml"
 chmod 700 "$STATE_DIR"
 
 docker version >/dev/null
-
 docker volume create "$KUMA_VOLUME" >/dev/null
 
 ensure_kuma(){
-  if docker inspect "$KUMA_NAME" >/dev/null 2>&1; then
-    docker start "$KUMA_NAME" >/dev/null 2>&1 || true
-  else
-    docker run -d \
-      --name "$KUMA_NAME" \
-      --restart unless-stopped \
-      --security-opt no-new-privileges:true \
-      --cap-drop ALL \
-      -p 127.0.0.1:3001:3001 \
-      -v "$KUMA_VOLUME:/app/data" \
-      "$KUMA_IMAGE" >/dev/null
-  fi
+  # Recreate the container to guarantee certified runtime options while preserving its named data volume.
+  docker rm -f "$KUMA_NAME" >/dev/null 2>&1 || true
+  docker run -d \
+    --name "$KUMA_NAME" \
+    --restart unless-stopped \
+    --security-opt no-new-privileges:true \
+    -p 127.0.0.1:3001:3001 \
+    -v "$KUMA_VOLUME:/app/data" \
+    "$KUMA_IMAGE" >/dev/null
 }
 
 ensure_observer(){
@@ -45,6 +43,7 @@ ensure_observer(){
     --security-opt no-new-privileges:true \
     --cap-drop ALL \
     --read-only \
+    --user "$HOST_UID:$HOST_GID" \
     --tmpfs /tmp:rw,noexec,nosuid,size=16m \
     -e SENTINEL_LOCAL_STATE_DIR=/var/lib/ascenda-sentinel \
     -e SENTINEL_HEALTH_URL="$TARGET" \
@@ -59,7 +58,7 @@ ensure_kuma
 ensure_observer
 
 ok=0
-for i in $(seq 1 45); do
+for i in $(seq 1 60); do
   if curl -fsS --max-time 3 http://127.0.0.1:3001/ >/dev/null 2>&1 && [ -s "$STATE_DIR/resume-report.json" ]; then
     ok=1; break
   fi
@@ -68,8 +67,8 @@ done
 
 if [ "$ok" != 1 ]; then
   echo 'SENTINEL_CREACTIVE_DOCKER_OBSERVER_VERIFY_FAILED' >&2
-  docker logs --tail 50 "$KUMA_NAME" || true
-  docker logs --tail 50 "$OBSERVER_NAME" || true
+  docker logs --tail 80 "$KUMA_NAME" || true
+  docker logs --tail 80 "$OBSERVER_NAME" || true
   exit 31
 fi
 
