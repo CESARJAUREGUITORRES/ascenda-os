@@ -58,6 +58,14 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 10
     steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            alpine:3.20 \
+            sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
       - name: Enforce Zero-Cost runner policy
         run: |
@@ -80,7 +88,16 @@ jobs:
       SUPABASE_CLI_VERSION: '2.72.8'
       NODE_CLI_IMAGE: 'node:22-bookworm-slim'
       PSQL_IMAGE: 'postgres:17-alpine'
+      WORKSPACE_FIX_IMAGE: 'alpine:3.20'
     steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            "$WORKSPACE_FIX_IMAGE" \
+            sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
       - name: Enforce isolated Zero-Cost runner
         run: |
