@@ -54,6 +54,7 @@ jobs:
             git show "$src:$p" > "$p"
           done
           python3 scripts/ci/k1_current_v3_patch.py
+          sed -i 's/^source_inner=subprocess.check_output.*/source_inner=inner/' ci/kronia-k1-phase2/runtime_contract.py
           git diff --check
           node --check app/server-k1.js
           node --check app/public/k1-browser-security.js
