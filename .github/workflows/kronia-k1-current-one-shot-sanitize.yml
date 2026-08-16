@@ -1,0 +1,43 @@
+name: KronIA K1 CURRENT one-shot source sanitizer
+
+on:
+  push:
+    branches: [security/kronia-k1-current-final-20260815]
+    paths: ['.github/workflows/kronia-k1-current-one-shot-sanitize.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  sanitize-current-source:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/kronia-k1-current-final-20260815
+          fetch-depth: 0
+      - name: Sanitize committed provider fallbacks without exposing values
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('app/server.js')
+          s=p.read_text(encoding='utf-8')
+          s,n1=re.subn(r"const\s+VERIFY_TOKEN\s*=\s*'[^']*'", "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'", s, count=1)
+          s,n2=re.subn(r"process\.env\.RESEND_API_KEY\s*\|\|\s*'[^']+'", "process.env.RESEND_API_KEY || ''", s)
+          if n1 != 1: raise SystemExit('VERIFY_TOKEN anchor mismatch')
+          if n2 < 1: raise SystemExit('RESEND fallback anchor missing')
+          if re.search(r"const\s+VERIFY_TOKEN\s*=\s*['\"][^'\"]+",s): raise SystemExit('VERIFY_TOKEN literal survived')
+          if re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",s): raise SystemExit('RESEND literal fallback survived')
+          p.write_text(s,encoding='utf-8')
+          print('K1_CURRENT_SOURCE_SANITIZE=PASS')
+          PY
+          git diff --check
+          git config user.name 'ascenda-k1-ci'
+          git config user.email 'ascenda-k1-ci@users.noreply.github.com'
+          git add app/server.js
+          git diff --cached --quiet && { echo 'expected sanitizer diff missing'; exit 1; }
+          git commit -m 'security(k1): sanitize CURRENT committed provider fallbacks'
+          git push origin HEAD:security/kronia-k1-current-final-20260815

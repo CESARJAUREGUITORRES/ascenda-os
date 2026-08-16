@@ -1,8 +1,10 @@
+providers = ["...", "python"]
+
 [phases.install]
 cmds = ["npm install"]
 
-# No ejecutar vite build — los archivos HTML se sirven directamente desde public/
-# El build de vite no aplica a esta arquitectura de servidor Express-like
+# CURRENT runtime is wrapped by KronIA K1. Python only materializes deterministic
+# security hardening during build; application runtime remains Node.
 
 [start]
-cmd = "node server.js"
+cmd = "node server-k1.js"
