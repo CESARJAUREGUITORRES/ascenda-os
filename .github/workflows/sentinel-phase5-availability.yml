@@ -32,10 +32,13 @@ jobs:
       - name: Diff hygiene
         shell: powershell
         run: git diff --check
-      - name: State machine syntax
+      - name: State and Windows task syntax
         shell: powershell
-        run: node --check sentinel/availability/state-machine.cjs
-      - name: F5 availability contract
+        run: |
+          node --check sentinel/availability/state-machine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $null = [scriptblock]::Create((Get-Content -Raw 'sentinel/availability/creactive/Install-SentinelCreactiveTask.ps1'))
+      - name: F5 hybrid availability contract
         shell: powershell
         run: node ci/sentinel/phase5_availability_contract.js
 
@@ -51,6 +54,26 @@ jobs:
           set -euo pipefail
           test "$RUNNER_OS" = "Linux"
           docker version >/dev/null
+          python3 --version
+      - name: Validate local observer scripts and gap fixtures
+        run: |
+          set -euo pipefail
+          bash -n sentinel/availability/creactive/start-observer.sh
+          bash -n sentinel/availability/creactive/install-observer.sh
+          python3 -m py_compile sentinel/availability/local-observer-agent.py
+          python3 - <<'PY'
+          import importlib.util
+          p='sentinel/availability/local-observer-agent.py'
+          spec=importlib.util.spec_from_file_location('observer',p)
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          now=m.parse_iso('2026-08-16T12:10:00Z')
+          gap=m.compute_coverage_gap('2026-08-16T12:00:00Z',now,120)
+          assert gap and gap['seconds']==600 and gap['state']=='UNKNOWN' and gap['retroactive_health_claim'] is False
+          assert m.compute_coverage_gap('2026-08-16T12:09:00Z',now,120) is None
+          safe=m.safe_health_shape({'ok':True,'service':'ascenda-phase-s','child_alive':True,'inner_ready':True,'email':'x','token':'y'})
+          assert sorted(safe.keys())==['child_alive','inner_ready','ok','service']
+          print('SENTINEL_F5_GAP_FIXTURE=PASS')
+          PY
       - name: Validate versioned compose artifact statically
         run: |
           set -euo pipefail
@@ -58,6 +81,7 @@ jobs:
           grep -q '127.0.0.1:3001:3001' sentinel/availability/compose.yaml
           grep -q 'uptime-kuma-data:/app/data' sentinel/availability/compose.yaml
           grep -q 'no-new-privileges:true' sentinel/availability/compose.yaml
+          grep -q 'restart: unless-stopped' sentinel/availability/compose.yaml
           ! grep -Eq '(SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|Bearer )' sentinel/availability/compose.yaml
           ! grep -q 'network_mode: host' sentinel/availability/compose.yaml
           ! grep -q '/var/run/docker.sock' sentinel/availability/compose.yaml
