@@ -20,6 +20,7 @@ const RUNBOOK_PATH = 'docs/control/SENTINEL_F4_SENTRY_RUNBOOK.md';
 const WORKFLOW_PATH = '.github/workflows/sentinel-phase4-sentry.yml';
 const F5_RUNTIME_CONTRACT = 'ci/phase5-historical-identity/f5_upload_contract.js';
 const WA2_RUNTIME_CONTRACT = 'ci/wa2-conversation-live-inbox/ui_contract.py';
+const CARTERA_RUNTIME_CONTRACT = 'ci/phase2-cartera/ui_contract.py';
 
 function fail(msg) { throw new Error(msg); }
 function ok(value, msg) { if (!value) fail(msg); }
@@ -45,6 +46,7 @@ const report = read(REPORT_PATH);
 const runbook = read(RUNBOOK_PATH);
 const f5RuntimeContract = read(F5_RUNTIME_CONTRACT);
 const wa2RuntimeContract = read(WA2_RUNTIME_CONTRACT);
+const carteraRuntimeContract = read(CARTERA_RUNTIME_CONTRACT);
 
 ok(pkg.dependencies && pkg.dependencies['@sentry/node'] === '10.70.0', 'SENTRY_SDK_NOT_EXACT_PIN_10_70_0');
 ok(f4.schema_version === 'sentinel-sentry-core/v1' && f4.phase === 'F4', 'F4_CONTRACT_INVALID');
@@ -87,6 +89,7 @@ ok(phaseS.includes("env:Object.assign({},process.env,{PORT:String(INNER_PORT)})"
 ok(runbook.includes('NO configurar `NODE_OPTIONS` como variable global de Railway'), 'F4_RUNBOOK_GLOBAL_NODE_OPTIONS_GUARD_MISSING');
 ok(f5RuntimeContract.includes('sentinelPhaseS') && f5RuntimeContract.includes('Sentinel preload must not contaminate build'), 'F5_RUNTIME_CONTRACT_NOT_SENTINEL_AWARE');
 ok(wa2RuntimeContract.includes('sentinel_phase_s') && wa2RuntimeContract.includes('Sentinel preload must not contaminate build'), 'WA2_RUNTIME_CONTRACT_NOT_SENTINEL_AWARE');
+ok(carteraRuntimeContract.includes('sentinel_phase_s') && carteraRuntimeContract.includes('Sentinel preload must not contaminate build'), 'CARTERA_RUNTIME_CONTRACT_NOT_SENTINEL_AWARE');
 
 for (const token of [
   'sendDefaultPii: false','tracesSampleRate: 0','enableLogs: false','maxBreadcrumbs: 0',
@@ -150,7 +153,7 @@ const allowed = new Set([
   '.github/workflows/sentinel-phase1-governance.yml', WORKFLOW_PATH,
   'app/package.json', INIT_PATH, RAILWAY_PATH,
   CONTRACT_PATH, FIXTURE_PATH, 'ci/sentinel/phase4_sentry_contract.js', REPORT_PATH, RUNBOOK_PATH,
-  F5_RUNTIME_CONTRACT, WA2_RUNTIME_CONTRACT
+  F5_RUNTIME_CONTRACT, WA2_RUNTIME_CONTRACT, CARTERA_RUNTIME_CONTRACT
 ]);
 const changed = changedFiles();
 for (const p of changed) ok(allowed.has(p), `F4_SCOPE_UNEXPECTED_FILE:${p}`);
