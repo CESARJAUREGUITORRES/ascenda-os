@@ -19,11 +19,15 @@ assert "['server-wa2.js']" in server
 assert "proxy(req,res)" in server
 assert "X-Ascenda-WA3-Routing':'v1'" in server
 start=railway['deploy']['startCommand']
+sentinel_phase_s="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
 direct=start=='node server-wa3.js'
 wa4_wrapped=(start=='node server-wa4.js' and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
 f5_wrapped=(start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
-phase_s_wrapped=(start=='node server-phase-s.js' and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
+phase_s_entry=(start=='node server-phase-s.js' or start==sentinel_phase_s)
+phase_s_wrapped=(phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
 assert direct or wa4_wrapped or f5_wrapped or phase_s_wrapped, 'Railway must start WA-3 directly or through certified WA-4/F5/Phase-S wrappers'
+if start==sentinel_phase_s:
+    assert 'NODE_OPTIONS' not in str(railway.get('build',{}).get('buildCommand','')), 'Sentinel preload must not contaminate build'
 assert '/api/wa3/bootstrap' in server
 assert '/api/wa3/inbox' in server
 assert '/claim-next' in server
@@ -37,7 +41,6 @@ assert 'aos_wa_messages_v1' in server
 assert 'message.human_accepted' in server
 assert 'WA3_RATE_LIMIT' in server
 
-# Browser never accesses Supabase/Graph directly and cannot bypass ownership.
 for forbidden in ('supabase.co','/rest/v1/','SUPABASE_SERVICE_ROLE_KEY','WHATSAPP_ACCESS_TOKEN','graph.facebook.com','apikey'):
     assert forbidden not in ui, f'WA3 browser leaks/directly depends on {forbidden}'
 assert 'X-AOS-App-Token' in ui
@@ -48,7 +51,6 @@ assert 'IA no envía en WA-3' in ui
 assert 'FORZADO OFF' in ui
 assert 'esc(' in ui
 
-# Data/security invariants.
 for marker in ('aos_wa_routing_control_v1','aos_wa_boxes_v1','aos_wa_box_members_v1','aos_wa_assignments_v1','aos_wa_routing_events_v1'):
     assert marker in mig
 assert 'one_current_idx' in mig
@@ -66,7 +68,6 @@ assert 'WA3_HUMAN_SEND_DISABLED' in mig
 assert 'WA3_CAPACITY_REACHED' in mig
 assert 'auto_route.rejected' in mig
 
-# Recovery is fail-closed and keeps evidence.
 assert 'auto_routing_enabled=false' in rb
 assert 'human_send_enabled=false' in rb
 assert 'ai_send_enabled=false' in rb
