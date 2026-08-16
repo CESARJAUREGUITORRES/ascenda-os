@@ -42,9 +42,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+
+      - name: Resolve system Python
+        shell: powershell
+        run: |
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            exit 0
+          }
+          if (Get-Command py -ErrorAction SilentlyContinue) {
+            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
+            New-Item -ItemType Directory -Force -Path $shim | Out-Null
+            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
+            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            py -3 --version
+            exit 0
+          }
+          throw 'Python runtime missing on ASCENDA FAST runner'
 
       - name: Enforce self-hosted FAST lane
         shell: powershell
