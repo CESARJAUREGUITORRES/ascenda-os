@@ -52,10 +52,11 @@ self.addEventListener('fetch',function(event){
   if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
     event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
   }
-  // WA-3 APIs are same-origin and may be opened from a different browser tab.
-  // sessionStorage is tab-scoped, so inject the already-governed Phase 2 token
-  // from the same-origin cache. The server still performs 2FA/panel/ownership checks.
-  if(u.origin===self.location.origin&&u.pathname.indexOf('/api/wa3/')===0){event.respondWith(injectSameOriginAppToken(req));return;}
+  // WA APIs are same-origin and may execute inside the embedded workspace.
+  // Inject the already-governed Phase 2 token from the same-origin cache.
+  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0)){
+    event.respondWith(injectSameOriginAppToken(req));return;
+  }
   if(u.hostname.indexOf('supabase.co')<0)return;
 
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
