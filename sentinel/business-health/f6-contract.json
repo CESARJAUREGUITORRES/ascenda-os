@@ -1,5 +1,5 @@
 {
-  "schema_version": "sentinel-business-health/v1",
+  "schema_version": "sentinel-business-health/v1.1",
   "phase": "F6",
   "baseline_main": "81da6ceb18ed35cca8acb0ac68b90dc6e9ed8aae",
   "mode": "aggregate-read-only",
@@ -35,14 +35,14 @@
   },
   "source_contracts": {
     "verified_on": "2026-08-16",
-    "verification_mode": "github-plus-live-schema-metadata-only",
+    "verification_mode": "github-plus-live-schema-metadata-and-aggregate-preflight",
     "call_center": {
       "tables": ["aos_leads", "aos_llamadas"],
       "rpcs": ["aos_panel_admin", "aos_panel_asesor", "aos_monitoreo_equipo", "aos_siguiente_lead_v2"]
     },
     "sales": {
       "tables": ["aos_ventas"],
-      "rpcs": ["aos_sales_intelligence_gateway"]
+      "rpcs": ["aos_sales_intelligence_gateway", "aos_sales_intelligence_summary"]
     },
     "whatsapp": {
       "tables": ["aos_wa_conversations_v1", "aos_wa_messages_v1", "aos_wa_outbound_requests_v1"],
@@ -50,7 +50,9 @@
     },
     "email": {
       "tables": ["aos_email_envios", "aos_email_eventos", "aos_email_flujo_ejecuciones"],
-      "runtime_files": ["app/email-gateway.js", "app/server-f4.js"]
+      "runtime_files": ["app/email-gateway.js", "app/server-f4.js"],
+      "current_health_horizon_minutes": 1440,
+      "historical_unmatched_outside_horizon_affects_live_state": false
     }
   },
   "invariants": [
@@ -95,12 +97,13 @@
       "domain": "EMAIL",
       "component": "resend-gateway",
       "capability": "send-and-webhook-progression",
-      "inputs": ["feature_expected", "gateway_service_configured", "provider_send_configured", "webhook_configured", "sent_without_event", "oldest_sent_without_event_age_minutes", "legacy_child_privilege_warning"],
+      "inputs": ["feature_expected", "gateway_service_configured", "provider_send_configured", "webhook_configured", "monitoring_horizon_minutes", "recent_sent_count", "recent_sent_without_event", "oldest_recent_without_event_age_minutes", "legacy_child_privilege_warning"],
       "semantics": {
-        "unknown_when": "email feature is intentionally not expected",
-        "incident_when": "governed gateway configuration is missing while feature is expected, or sent items have no provider event for >=60 minutes",
-        "degraded_when": "sent items have no provider event for >=15 minutes",
-        "ignore_rule": "legacy child EMAIL_SERVICE_ROLE_NOT_CONFIGURED warning alone is not an incident because server-f4 intentionally strips service-role from its child; require governed gateway evidence"
+        "unknown_when": "email feature is not expected; governed config evidence is incomplete; or there are zero sends inside the current monitoring horizon",
+        "incident_when": "governed gateway configuration is explicitly missing while feature is expected, or recent sent items have no provider event for >=60 minutes",
+        "degraded_when": "recent sent items have no provider event for >=15 minutes",
+        "healthy_when": "governed config is verified, at least one send exists inside the current horizon, and no recent send is waiting abnormally for a provider event",
+        "ignore_rule": "legacy child EMAIL_SERVICE_ROLE_NOT_CONFIGURED warning alone is not an incident; historical unmatched sends outside the current monitoring horizon do not affect live health"
       }
     }
   ],
@@ -109,8 +112,19 @@
     "call_center_incident_minutes": 60,
     "whatsapp_degraded_minutes": 15,
     "whatsapp_incident_minutes": 60,
+    "email_monitoring_horizon_minutes": 1440,
     "email_degraded_minutes": 15,
     "email_incident_minutes": 60
+  },
+  "live_preflight": {
+    "performed_at": "2026-08-16",
+    "aggregate_only": true,
+    "call_center": "NO_ELIGIBLE_BACKLOG_NO_INCIDENT",
+    "sales": "SAME_SCOPE_MATCH_1299_OF_1299",
+    "whatsapp": "ZERO_ACCEPTED_WITHOUT_PROGRESS",
+    "email": "ONE_RECENT_SEND_WITHOUT_EVENT_CONFIG_HEALTH_UNVERIFIED_SO_LIVE_STATE_UNKNOWN",
+    "email_historical_unmatched_records": 12,
+    "email_historical_records_live_state": "IGNORED_OUTSIDE_HORIZON"
   },
   "state_priority": ["INCIDENT", "DEGRADED", "UNKNOWN", "HEALTHY"],
   "signal_contract": {
