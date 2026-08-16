@@ -77,7 +77,7 @@ ok(mon.expected_json?.ok===true&&mon.expected_json?.service==='ascenda-phase-s'&
 ok(mon.contains_phi_pii===false,'F5_MONITOR_PRIVACY_DRIFT');
 ok(f5.deployment.cloud_monitor_gate==='PASS','F5_CLOUD_GATE_NOT_PASS');
 ok(f5.deployment.local_install_gate==='PASS','F5_LOCAL_GATE_NOT_PASS');
-ok(f5.deployment.outage_recovery_gate==='CI_PENDING','F5_G11_GATE_STATE_DRIFT');
+ok(f5.deployment.outage_recovery_gate==='PASS','F5_G11_GATE_NOT_PASS');
 
 ok(phaseS.includes("p==='/health'"),'F5_HEALTH_ROUTE_MISSING');
 ok(phaseS.includes("{ok:ready,service:'ascenda-phase-s',child_alive:childAlive,inner_ready:ready}"),'F5_HEALTH_RESPONSE_DRIFT');
@@ -138,7 +138,7 @@ ok(!Object.prototype.hasOwnProperty.call(mon,'username')&&!Object.prototype.hasO
 
 console.log(JSON.stringify({
   ok:true,
-  certificate:'SENTINEL_F5_G10_VERIFIED_G11_READY_CONTRACT_PASS',
+  certificate:'SENTINEL_F5_TERMINAL_CONTRACT_PASS',
   f4_complete:true,
   architecture:f5.availability_architecture,
   cloud_provider:cloud.provider,
@@ -151,5 +151,7 @@ console.log(JSON.stringify({
   zero_phi_pii:true,
   incremental_cost_usd_month:0,
   direct_notifications:false,
+  g10_cloud:true,
+  g11_recovery:true,
   state_machine:true
 },null,2));
