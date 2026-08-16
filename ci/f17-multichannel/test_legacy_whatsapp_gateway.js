@@ -49,7 +49,7 @@ async function run() {
   var upstreamFailure = createLegacyWhatsAppGateway({
     serviceRoleKey: 'service-role-test-value-long-enough',
     verifyApp: async function() { return { ok: true, user_id: 'synthetic-user' } },
-    requestJson: async function() { return { status: 500, body: { error: 'synthetic' } }
+    requestJson: async function() { return { status: 500, body: { error: 'synthetic' } } }
   })
   var failed = await upstreamFailure.listTemplates('valid-session-token-that-is-long-enough')
   assert.strictEqual(failed.ok, false)
