@@ -1,4 +1,4 @@
-name: F16 Resend Webhook Metadata Invoke
+name: F16 Resend Email State Invoke
 
 on:
   push:
@@ -15,13 +15,13 @@ jobs:
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect production Resend webhook metadata
+      - name: Inspect fixed production Resend canary state
         shell: powershell
         run: |
           $headers = @{ 'X-ASCENDA-F16-CANARY' = 'F16_PROVIDER_CANARY_20260815' }
-          $body = '{"confirm":"INSPECT_RESEND_WEBHOOK_CONFIG"}'
+          $body = '{"confirm":"INSPECT_RESEND_CANARY_EMAIL_STATE"}'
           $r = Invoke-WebRequest -Uri 'https://ascenda-os-production.up.railway.app/api/f16-live-canary' -Method POST -ContentType 'application/json' -Headers $headers -Body $body -UseBasicParsing
           Write-Host $r.Content
           $j = $r.Content | ConvertFrom-Json
-          if ($r.StatusCode -ne 200 -or $j.ok -ne $true) { throw 'F16_RESEND_WEBHOOK_METADATA_PROBE=FAIL' }
-          Write-Host 'F16_RESEND_WEBHOOK_METADATA_PROBE=PASS'
+          if ($r.StatusCode -ne 200 -or $j.ok -ne $true -or $j.canary_recipient_match -ne $true -or $j.canary_subject_match -ne $true) { throw 'F16_RESEND_EMAIL_STATE_PROBE=FAIL' }
+          Write-Host 'F16_RESEND_EMAIL_STATE_PROBE=PASS'
