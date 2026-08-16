@@ -1,0 +1,71 @@
+# Sentinel F3 reference only — NOT DEPLOYED / NOT WIRED TO PRODUCTION.
+# Any future Collector deployment requires its own phase gate and privacy validation.
+# Processor order follows the principle: drop/filter early, redact/transform, then batch.
+
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+      http: {}
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+  filter/sentinel:
+    error_mode: ignore
+    traces:
+      span:
+        - 'resource.attributes["service.namespace"] != "ascenda-os"'
+
+  redaction/sentinel:
+    allow_all_keys: false
+    allowed_keys:
+      - service.namespace
+      - service.name
+      - service.version
+      - deployment.environment.name
+      - sentinel.domain
+      - sentinel.component
+      - sentinel.capability
+      - sentinel.dependency
+      - sentinel.operation
+      - sentinel.phase
+      - sentinel.request_id
+      - sentinel.provider
+      - sentinel.route_template
+      - sentinel.site_code
+      - error.type
+      - error.code
+      - http.request.method
+      - http.response.status_code
+      - http.route
+    blocked_values:
+      - '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}'
+      - '(?:\+?\d[\s().-]*){9,}'
+      - '\b\d{8}\b'
+      - '\bBearer\s+[A-Za-z0-9._~+\/-]+=*\b'
+
+  batch:
+    timeout: 5s
+    send_batch_size: 256
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/sentinel, redaction/sentinel, batch]
+      exporters: [debug]
+
+# F3 invariants:
+# - no production endpoint
+# - no credentials
+# - no Sentry/third-party exporter
+# - no logs/metrics pipeline enabled yet
+# - production sampling remains 0 until a later gate explicitly changes it
