@@ -1,0 +1,56 @@
+name: ASCENDA CIA Phase 17 WA Adapter Materializer
+
+on:
+  push:
+    branches: ['feature/cia-phase17-wa-adapter-20260815-v1']
+    paths:
+      - 'scripts/ops/patch-f17-wa-adapter.js'
+      - 'app/f17-wa-adapter.js'
+      - 'ci/phase17-multichannel/test_f17_wa_adapter.js'
+      - '.github/workflows/cia-phase17-wa-adapter-materialize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cia-phase17-wa-adapter-20260815-v1
+          fetch-depth: 0
+      - name: FAST runner health
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'F17 materializer must use self-hosted FAST' }
+          node --version
+      - name: Apply deterministic runtime patch
+        shell: powershell
+        run: node scripts/ops/patch-f17-wa-adapter.js
+      - name: Syntax and unit contracts
+        shell: powershell
+        run: |
+          node --check app/server-f4.js
+          node --check app/f17-wa-adapter.js
+          node ci/phase17-multichannel/test_f17_wa_adapter.js
+      - name: Security and scope assertions
+        shell: powershell
+        run: |
+          $s=Get-Content app/server-f4.js -Raw
+          if(-not $s.Contains("F17_CHANNEL_POLICY_BLOCKED")){throw 'F17 policy not wired'}
+          if(-not $s.Contains("await F17_WA.ingestEnvelope(envelope)")){throw 'F17 inbound bridge not wired'}
+          if(-not $s.Contains("if(!/^sb_secret_/i.test(SB_SERVICE_KEY))headers.Authorization")){throw 'Supabase secret-key compatibility missing'}
+          if($s -match '(?i)(WHATSAPP_ACCESS_TOKEN|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*[''\"][^''\"]+'){throw 'Hard-coded runtime secret detected'}
+          git diff --check
+      - name: Commit materialized runtime
+        shell: powershell
+        run: |
+          git config user.name 'ascenda-zero-cost-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server-f4.js
+          if (git diff --cached --quiet) { Write-Host 'Runtime already materialized'; exit 0 }
+          git commit -m 'feat(f17): wire WA runtime through governed channel contracts'
+          git push origin HEAD:feature/cia-phase17-wa-adapter-20260815-v1
