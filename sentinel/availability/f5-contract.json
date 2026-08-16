@@ -1,0 +1,80 @@
+{
+  "schema_version": "sentinel-availability/v1",
+  "phase": "F5",
+  "baseline_main": "00797fe87869f4cee8a11414de1f1de262e8c109",
+  "observer": {
+    "engine": "uptime-kuma",
+    "docker_image": "louislam/uptime-kuma:2",
+    "verified_release_at_design_time": "2.3.2",
+    "verified_on": "2026-08-16",
+    "production_host_required": true,
+    "must_be_independent_from_ascenda_railway_runtime": true,
+    "same_railway_service_forbidden": true,
+    "public_admin_ui_default": false,
+    "bind_admin_ui": "127.0.0.1:3001",
+    "data_volume": "local-persistent-volume",
+    "nfs_forbidden": true
+  },
+  "privacy": {
+    "zero_phi_pii": true,
+    "no_auth_headers": true,
+    "no_tokens": true,
+    "no_patient_identifiers": true,
+    "no_message_content": true,
+    "no_request_bodies": true,
+    "no_provider_secrets_in_monitor_config": true
+  },
+  "baseline_monitors": [
+    {
+      "id": "ascenda-production-health",
+      "type": "http-json",
+      "method": "GET",
+      "url": "https://ascenda-os-production.up.railway.app/health",
+      "environment": "production",
+      "interval_seconds": 60,
+      "timeout_seconds": 10,
+      "retries_before_down": 2,
+      "recovery_successes": 2,
+      "expected_http_status": 200,
+      "expected_json": {
+        "ok": true,
+        "service": "ascenda-phase-s",
+        "child_alive": true,
+        "inner_ready": true
+      },
+      "contains_phi_pii": false
+    }
+  ],
+  "state_translation": {
+    "observer_stale": "UNKNOWN",
+    "initial_or_insufficient_samples": "UNKNOWN",
+    "healthy_after_success_threshold": "UP",
+    "partial_failure_before_down_threshold": "DEGRADED",
+    "failure_threshold_reached": "DOWN"
+  },
+  "anti_flapping": {
+    "failure_samples_required": 3,
+    "recovery_samples_required": 2,
+    "direct_notification_from_uptime_kuma": false,
+    "notifications_owned_by_phase": "F9",
+    "maintenance_suppression_required": true
+  },
+  "cost": {
+    "software_license_cost_usd_month": 0,
+    "automatic_paid_hosting": false,
+    "hosting_must_be_approved_before_24x7_deploy": true
+  },
+  "deployment": {
+    "ci_container_smoke_allowed": true,
+    "ci_must_destroy_container_and_volume": true,
+    "production_deploy_in_f5_foundation": false,
+    "host_decision_gate": "F5-HOST-01"
+  },
+  "forbidden_external_probes": [
+    "/api/phase-s/status",
+    "authenticated endpoints",
+    "Supabase endpoints requiring apikey/service_role",
+    "WhatsApp or email content endpoints",
+    "clinical endpoints"
+  ]
+}
