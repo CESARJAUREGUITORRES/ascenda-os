@@ -13,6 +13,7 @@ const compose=read('sentinel/availability/compose.yaml');
 const phaseS=read('app/server-phase-s.js');
 const startObserver=read('sentinel/availability/creactive/start-observer.sh');
 const installObserver=read('sentinel/availability/creactive/install-observer.sh');
+const bootstrap=read('sentinel/availability/creactive/bootstrap-observer.sh');
 const installTask=read('sentinel/availability/creactive/Install-SentinelCreactiveTask.ps1');
 const localAgent=read('sentinel/availability/local-observer-agent.py');
 const sm=require(path.join(ROOT,'sentinel/availability/state-machine.cjs'));
@@ -81,6 +82,12 @@ ok(installObserver.includes('.local/share/ascenda-sentinel/availability'),'F5_LO
 ok(installTask.includes('AtLogOn'),'F5_WINDOWS_LOGON_TRIGGER_MISSING');
 ok(installTask.includes('RunLevel Limited'),'F5_WINDOWS_ELEVATION_FORBIDDEN');
 ok(installTask.includes('IgnoreNew'),'F5_WINDOWS_DUPLICATE_INSTANCE_GUARD_MISSING');
+ok(installTask.includes('Start-ScheduledTask'),'F5_WINDOWS_START_NOW_MISSING');
+ok(bootstrap.includes('bash "$SCRIPT_DIR/install-observer.sh"'),'F5_BOOTSTRAP_INSTALL_CHAIN_MISSING');
+ok(bootstrap.includes('powershell.exe'),'F5_BOOTSTRAP_WINDOWS_INTEROP_MISSING');
+ok(bootstrap.includes('-PlanOnly'),'F5_BOOTSTRAP_PLAN_MODE_MISSING');
+ok(bootstrap.includes('-StartNow'),'F5_BOOTSTRAP_START_MODE_MISSING');
+ok(bootstrap.includes('resume-report.json'),'F5_BOOTSTRAP_RESUME_REPORT_CHECK_MISSING');
 ok(localAgent.includes("'retroactive_health_claim': False"),'F5_GAP_FALSE_GREEN_GUARD_MISSING');
 ok(localAgent.includes("'history_location': 'Sentry Monitors/Uptime'"),'F5_CLOUD_HISTORY_REFERENCE_MISSING');
 ok(localAgent.includes('urllib.request'),'F5_AGENT_NOT_STDLIB_HTTP');
@@ -103,7 +110,7 @@ ok(sm.sentinelHealthState('DOWN')==='INCIDENT','F5_SENTINEL_DOWN_MAP');
 ok(sm.sentinelHealthState('UNKNOWN')==='UNKNOWN','F5_SENTINEL_UNKNOWN_MAP');
 ok(sm.availabilityFingerprint({environment:'production',monitorId:'ascenda-production-health'})==='availability:production:ascenda-production-health','F5_FINGERPRINT_DRIFT');
 
-const serialized=[JSON.stringify(f5),compose,startObserver,installObserver,installTask,localAgent].join('\n');
+const serialized=[JSON.stringify(f5),compose,startObserver,installObserver,bootstrap,installTask,localAgent].join('\n');
 const secretPatterns=[
   /\bsb_secret_[A-Za-z0-9_-]{20,}\b/,
   /\b(?:eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/,
@@ -125,6 +132,7 @@ console.log(JSON.stringify({
   cloud_provider:f5.continuous_coverage.provider,
   local_observer:f5.observer.host,
   local_agent_runtime:'python3-stdlib',
+  one_command_bootstrap:true,
   local_offline_semantics:f5.observer.offline_semantics,
   gap_reconciliation:true,
   zero_phi_pii:true,
