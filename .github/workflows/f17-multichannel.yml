@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'app/f17-whatsapp-legacy-gateway.js'
       - 'supabase/migrations/*f17_*'
       - 'supabase/rollbacks/*f17_*'
       - 'ci/f17-multichannel/**'
@@ -36,6 +37,13 @@ jobs:
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Validate server-authoritative legacy WhatsApp gateway
+        run: |
+          set -euo pipefail
+          node --check app/f17-whatsapp-legacy-gateway.js
+          node --check ci/f17-multichannel/test_legacy_whatsapp_gateway.js
+          node ci/f17-multichannel/test_legacy_whatsapp_gateway.js
 
       - name: Configure isolated Supabase
         working-directory: ci/zero-cost-staging
