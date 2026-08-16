@@ -1,0 +1,99 @@
+name: ASCENDA CIA Phase 17 WA Adapter Contracts
+
+on:
+  push:
+    branches: ['feature/cia-phase17-wa-adapter-20260815-v1']
+    paths:
+      - 'supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql'
+      - 'supabase/rollbacks/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql'
+      - 'ci/phase17-multichannel/tests/002_f17_whatsapp_adapter.sql'
+      - '.github/workflows/cia-phase17-wa-adapter-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    name: F17 WA adapter source/security
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source/security contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $m=Get-Content supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql -Raw
+          foreach($x in @('SYSTEM_CANARY','expires_at','allowlist_verified','aos_cia_channel_mark_dispatch_v1','aos_cia_channel_ingest_inbound_v1','aos_cia_channel_record_provider_event_v1')){if(-not $m.Contains($x)){throw "Missing adapter invariant: $x"}}
+          if($m -match '(?is)create\s+table[^;]*(audien|customer|patient|lead)'){throw 'Adapter must not create identity/audience truth'}
+          if($m -match '(?i)(WHATSAPP_ACCESS_TOKEN|WHATSAPP_APP_SECRET|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*[''\"][^''\"]+'){throw 'Hard-coded secret detected'}
+          git diff --check HEAD^
+
+  zero-cost-db:
+    name: F17 WA adapter Zero-Cost DB/rollback
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59732/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Zero-Cost policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-cia-f17-wa-adapter"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59731/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59732/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59730/' supabase/config.toml
+      - name: Start isolated DB
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-cia-f17-wa-adapter' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do pg_isready -h 127.0.0.1 -p 59732 -U postgres >/dev/null 2>&1 && exit 0; sleep 1; done
+          exit 1
+      - name: Build prerequisites + block1 contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815215000_cia_phase17_multichannel_contracts_v1.sql
+      - name: Apply adapter migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql
+      - name: DB lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+      - name: Execute base + adapter contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/001_f17_multichannel.sql >/tmp/f17-base.txt
+          grep -q 'F17_MULTICHANNEL_CONTRACTS_PASS' /tmp/f17-base.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/002_f17_whatsapp_adapter.sql | tee /tmp/f17-adapter.txt
+          grep -q 'F17_WHATSAPP_ADAPTER_DB_PASS' /tmp/f17-adapter.txt
+      - name: Adapter rollback preserves block1
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_channel_register_canary_recipient_v1(jsonb)') is null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_channel_mark_dispatch_v1(jsonb)') is null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_channel_ingest_inbound_v1(jsonb)') is null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_channel_record_provider_event_v1(jsonb)') is null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_cia_channel_send_requests_v1') is not null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_f18_readiness_v1()') is not null")" = t
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_messages_v1') is not null")" = t
+          echo F17_WA_ADAPTER_ROLLBACK_PASS
+      - name: Cleanup isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
