@@ -145,7 +145,7 @@
     "persistent_local_runtime": "docker-native",
     "cloud_monitor_gate": "PASS",
     "local_install_gate": "PASS",
-    "outage_recovery_gate": "CI_PENDING"
+    "outage_recovery_gate": "PASS"
   },
   "forbidden_external_probes": [
     "/api/phase-s/status",
