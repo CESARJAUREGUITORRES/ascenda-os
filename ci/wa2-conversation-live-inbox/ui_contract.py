@@ -9,6 +9,8 @@ wa4_path = root / 'app/server-wa4.js'
 wa4 = wa4_path.read_text(encoding='utf-8') if wa4_path.exists() else ''
 f5_path = root / 'app/server-f5.js'
 f5 = f5_path.read_text(encoding='utf-8') if f5_path.exists() else ''
+phase_s_path = root / 'app/server-phase-s.js'
+phase_s = phase_s_path.read_text(encoding='utf-8') if phase_s_path.exists() else ''
 ui = (root / 'app/public/admin-whatsapp.html').read_text(encoding='utf-8')
 railway = json.loads((root / 'app/railway.json').read_text(encoding='utf-8'))
 migration = (root / 'supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql').read_text(encoding='utf-8')
@@ -46,7 +48,8 @@ direct=start=='node server-wa2.js'
 wa3_wrapped=(start=='node server-wa3.js' and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
 wa4_wrapped=(start=='node server-wa4.js' and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
 f5_wrapped=(start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-assert direct or wa3_wrapped or wa4_wrapped or f5_wrapped, 'Railway must start WA-2 directly or through certified WA-3/WA-4/F5 wrappers'
+phase_s_wrapped=(start=='node server-phase-s.js' and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
+assert direct or wa3_wrapped or wa4_wrapped or f5_wrapped or phase_s_wrapped, 'Railway must start WA-2 directly or through certified WA-3/WA-4/F5/Phase-S wrappers'
 assert 'aos_wa_conversations_v1' in migration
 assert 'aos_wa_conversation_events_v1' in migration
 assert 'conversation_id' in migration
