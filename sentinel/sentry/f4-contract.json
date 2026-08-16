@@ -11,6 +11,10 @@
     "default_active": false,
     "master_switch": "SENTINEL_ENABLED",
     "sensor_switch": "SENTINEL_SENTRY_ENABLED",
+    "canary_switch": "SENTINEL_SENTRY_CANARY_MODE",
+    "canary_default": true,
+    "synthetic_boot_switch": "SENTINEL_SENTRY_SYNTHETIC_ON_BOOT",
+    "synthetic_code": "SENTINEL_F4_SYNTHETIC_ERROR",
     "dsn_variable": "SENTRY_DSN",
     "environment_variable": "SENTRY_ENVIRONMENT",
     "release_variable": "RAILWAY_GIT_COMMIT_SHA",
@@ -61,15 +65,20 @@
   },
   "human_boundary_gate": {
     "required": true,
+    "canary_rule": "while-canary-true-only-SENTINEL_F4_SYNTHETIC_ERROR-may-export",
     "steps": [
       "create-sentry-node-project-on-free-developer-plan",
-      "verify-server-side-data-scrubbing",
+      "verify-server-side-data-scrubbing-and-ip-scrubbing",
       "set-railway-secrets-without-sharing-dsn-in-chat",
       "set-node-options-preloader",
-      "canary-synthetic-error",
+      "enable-master-and-sensor-switches-with-canary-true",
+      "enable-one-shot-synthetic-on-boot",
       "verify-sentry-event-has-correct-environment-and-release",
       "verify-event-contains-no-phi-pii-secrets",
-      "kill-switch-off-and-confirm-ascenda-remains-healthy"
+      "disable-synthetic-on-boot",
+      "kill-switch-off-and-confirm-ascenda-remains-healthy",
+      "reenable-sensor-in-canary-and-confirm-health",
+      "set-canary-false-to-activate-sanitized-real-errors"
     ],
     "no_100_complete_before_gate": true
   }
