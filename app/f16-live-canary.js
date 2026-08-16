@@ -191,6 +191,32 @@ function createLiveCanary(config) {
       var raw = await readRawBody(req)
       var body
       try { body = JSON.parse(raw.toString('utf8') || '{}') } catch (_) { return jsonResponse(res, 400, { ok: false, error: 'INVALID_JSON' }) }
+      if (body.confirm === 'INSPECT_RESEND_WEBHOOK_CONFIG') {
+        var hooks = await requester('https://api.resend.com/webhooks', {
+          method: 'GET',
+          timeout: 15000,
+          headers: { Authorization: 'Bearer ' + resendKey }
+        })
+        if (!(hooks.status >= 200 && hooks.status < 300)) {
+          return jsonResponse(res, 502, { ok: false, error: 'RESEND_WEBHOOK_LIST_FAILED', provider_status: hooks.status || 0 })
+        }
+        var rows = hooks.body && Array.isArray(hooks.body.data) ? hooks.body.data : []
+        var target = rows.filter(function(row) { return String(row && row.endpoint || '') === PROD_WEBHOOK_URL }).map(function(row) {
+          var events = Array.isArray(row.events) ? row.events.map(String).sort() : []
+          return {
+            endpoint_match: true,
+            status: String(row.status || ''),
+            events: events,
+            email_delivered_subscribed: events.indexOf('email.delivered') !== -1
+          }
+        })
+        return jsonResponse(res, 200, {
+          ok: true,
+          provider: 'RESEND',
+          matching_webhooks: target.length,
+          webhooks: target
+        })
+      }
       if (body.confirm !== CANARY_CONFIRM) return jsonResponse(res, 400, { ok: false, error: 'CANARY_CONFIRMATION_REQUIRED' })
 
       var provider = await requester('https://api.resend.com/emails', {
