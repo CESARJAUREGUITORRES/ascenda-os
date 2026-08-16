@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/server-phase-s.js'
+      - 'app/auth-resend-reconcile.js'
       - 'app/railway.json'
       - 'app/server-f5.js'
       - 'app/server-wa4.js'
@@ -13,6 +14,7 @@ on:
       - 'app/server-f4.js'
       - 'app/wa-gateway.js'
       - 'ci/phase-s/**'
+      - 'ci/phase16/test_auth_resend_reconcile.js'
       - 'ci/phase4-revenue/**'
       - 'ci/wa2-conversation-live-inbox/**'
       - 'ci/wa3-boxes-routing-handoff/**'
@@ -43,40 +45,26 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Resolve system Python
-        shell: powershell
-        run: |
-          if (Get-Command python -ErrorAction SilentlyContinue) {
-            python --version
-            exit 0
-          }
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
-            New-Item -ItemType Directory -Force -Path $shim | Out-Null
-            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
-            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            py -3 --version
-            exit 0
-          }
-          throw 'Python runtime missing on ASCENDA FAST runner'
-
       - name: Enforce self-hosted FAST lane
         shell: powershell
         run: |
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Phase S must run on a self-hosted runner' }
           Write-Host "Runner: $env:RUNNER_NAME"
+          node --version
 
       - name: Runtime syntax
         shell: powershell
         run: |
           $files = @(
             'app/server-phase-s.js',
+            'app/auth-resend-reconcile.js',
             'app/server-f5.js',
             'app/server-wa4.js',
             'app/server-wa3.js',
             'app/server-wa2.js',
             'app/server-f4.js',
-            'app/wa-gateway.js'
+            'app/wa-gateway.js',
+            'ci/phase16/test_auth_resend_reconcile.js'
           )
           foreach ($file in $files) {
             node --check $file
@@ -89,36 +77,22 @@ jobs:
           node ci/phase-s/phase-s_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Auth Resend private-vault regression
+        shell: powershell
+        run: |
+          node ci/phase16/test_auth_resend_reconcile.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: WA-1 gateway regression
         shell: powershell
         run: |
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: F4 runtime/UI topology contracts
+      - name: F4 runtime topology contract
         shell: powershell
         run: |
-          python ci/phase4-revenue/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/phase4-revenue/ui_contract.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-2 inbox topology contract
-        shell: powershell
-        run: |
-          python ci/wa2-conversation-live-inbox/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-3 routing topology contract
-        shell: powershell
-        run: |
-          python ci/wa3-boxes-routing-handoff/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-4 AI boundary topology contract
-        shell: powershell
-        run: |
-          python ci/wa4-ai-sales-router/ui_contract.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: F5 private-boundary topology contract
@@ -131,22 +105,40 @@ jobs:
         shell: powershell
         run: |
           $s = Get-Content app/server-phase-s.js -Raw
+          $sync = Get-Content app/auth-resend-reconcile.js -Raw
           $rail = Get-Content app/railway.json -Raw
           if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
           if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
           if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
           if ($s -notmatch 'ai_send_enabled:false') { throw 'AI send fail-closed default missing' }
-          if ($s -match '(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
-          if ($rail -notmatch '"startCommand"\s*:\s*"node server-phase-s\.js"') { throw 'Railway Phase S start command missing' }
+          if ($s -notmatch "p==='/api/auth/v3/login'") { throw 'Auth V3 reconcile gate missing' }
+          if ($sync -notmatch 'aos_integration_secrets_v1') { throw 'Private integration vault target missing' }
+          if ($sync -match '/rest/v1/aos_integraciones(?:\?|["''])') { throw 'Public integration catalog must not receive provider secret' }
+          if (($s + $sync) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          $legacy = '"startCommand"\s*:\s*"node server-phase-s\.js"'
+          $sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s\.js"'
+          if (($rail -notmatch $legacy) -and ($rail -notmatch $sentinel)) { throw 'Railway certified Phase S start command missing' }
+          if ($rail -match $sentinel) {
+            $cfg = $rail | ConvertFrom-Json
+            if ([string]$cfg.build.buildCommand -match 'NODE_OPTIONS') { throw 'Sentinel preload must not contaminate build' }
+          }
 
-      - name: DB gates remain canonical and independent
+      - name: Delegated Linux contracts remain canonical
         shell: powershell
         run: |
           Write-Host 'Phase S adds no DB migration or schema object.'
-          Write-Host 'WA-2/WA-3/F4/WA-4/F5 DB/RLS/pgTAP remain owned by their Linux Zero-Cost workflows.'
+          Write-Host 'Python and DB/RLS/pgTAP contracts remain owned by Linux Zero-Cost workflows.'
+          $required = @(
+            'ci/phase4-revenue/ui_contract.py',
+            'ci/wa2-conversation-live-inbox/ui_contract.py',
+            'ci/wa3-boxes-routing-handoff/ui_contract.py',
+            'ci/wa4-ai-sales-router/ui_contract.py'
+          )
+          foreach ($file in $required) { if (-not (Test-Path $file)) { throw "Delegated contract missing: $file" } }
 
       - name: Phase S gate summary
         shell: powershell
         run: |
-          Write-Host 'PHASE S FULL STATIC/RUNTIME-CHAIN GATE PASS'
-          Write-Host 'Production gates remaining: deploy health, native reload canary, human outbound, Meta delivery/read receipt.'
+          Write-Host 'PHASE S NODE/RUNTIME GATE PASS'
+          Write-Host 'AUTH RESEND PRIVATE-VAULT RECONCILIATION GATE PASS'
+          Write-Host 'Production validation remaining: deploy health + authenticated 2FA email canary.'
