@@ -6,6 +6,7 @@ on:
       - release/f16-certified-cleanup-20260815
     paths:
       - '.github/workflows/f16-certified-cleanup-materialize.yml'
+      - 'scripts/ci/f16_certified_cleanup.py'
 
 permissions:
   contents: write
@@ -20,61 +21,13 @@ jobs:
           fetch-depth: 0
       - name: Zero-Cost runner health
         run: |
-          set -euo pipefail
           python3 scripts/ci/enforce-zero-cost-policy.py
           bash scripts/ci/runner-healthcheck.sh
-      - name: Remove certified canary and diagnostic surfaces
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          def replace_once(path, old, new):
-              p = Path(path)
-              s = p.read_text()
-              if old not in s:
-                  raise SystemExit(f'cleanup anchor missing: {path}: {old[:80]!r}')
-              p.write_text(s.replace(old, new, 1))
-
-          replace_once('app/server-f4.js', "const {createLiveCanary}=require('./f16-live-canary');\n", '')
-          replace_once('app/server-f4.js', "const F16_LIVE_CANARY=createLiveCanary();\n", '')
-          replace_once('app/server-f4.js', "  if(pathname==='/api/f16-live-canary'){F16_LIVE_CANARY.handleCanary(req,res);return;}\n", '')
-          replace_once('app/server-f4.js', "  if(pathname==='/api/f16-live-canary-replay'){F16_LIVE_CANARY.handleReplay(req,res);return;}\n", '')
-
-          replace_once('app/server.js', "const { createLiveCanary } = require('./f16-live-canary')\n", '')
-          replace_once('app/server.js', "const F16_LIVE_CANARY = createLiveCanary()\n", '')
-          replace_once('app/server.js', "  if (p === '/api/f16-live-canary') return F16_LIVE_CANARY.handleCanary(req, res)\n", '')
-          replace_once('app/server.js', "  if (p === '/api/f16-live-canary-replay') return F16_LIVE_CANARY.handleReplay(req, res)\n", '')
-
-          replace_once('app/email-gateway.js', "const { createLiveCanary } = require('./f16-live-canary')\n", '')
-          replace_once('app/email-gateway.js', "const F16_LIVE_CANARY = createLiveCanary()\n", '')
-          block = """      var liveCanary = await F16_LIVE_CANARY.handleSignedWebhookCanary({
-        messageId: messageId,
-        eventType: eventType,
-        eventId: verified.eventId,
-        timestamp: String(req.headers['svix-timestamp'] || ''),
-        signature: String(req.headers['svix-signature'] || ''),
-        rawBody: raw.toString('utf8')
-      })
-      if (liveCanary && liveCanary.handled) return jsonResponse(res, liveCanary.status || 200, liveCanary.body || { ok: true, canary: true })
-"""
-          replace_once('app/email-gateway.js', block, '')
-
-          for path in [
-              'app/f16-live-canary.js',
-              '.github/workflows/f16-live-canary-certify.yml',
-              'supabase/migrations/20260815223500_cia_phase16_live_canary_evidence_temp.sql',
-              '.github/workflows/f16-certified-cleanup-materialize.yml'
-          ]:
-              p = Path(path)
-              if p.exists():
-                  p.unlink()
-          PY
+      - name: Materialize cleanup
+        run: python3 scripts/ci/f16_certified_cleanup.py
       - name: Expose runner Node
         run: bash scripts/ci/expose-runner-node.sh
       - name: Certify post-cleanup runtime
-        shell: bash
         run: |
           set -euo pipefail
           node --check app/server-f4.js
@@ -91,7 +44,6 @@ jobs:
           test ! -e supabase/migrations/20260815223500_cia_phase16_live_canary_evidence_temp.sql
           echo 'F16_CERTIFIED_CLEANUP=PASS'
       - name: Commit certified cleanup
-        shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
