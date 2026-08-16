@@ -1,35 +1,36 @@
 # SENTINEL F2 — System Registry & Topology Taxonomy — Validation Report
 
 **Fecha:** 2026-08-16 (America/Lima)  
-**Estado:** `TECHNICALLY_CERTIFIED / NOTION_FINALIZATION_PENDING`  
+**Estado:** `100_COMPLETE`  
 **Lifecycle:** `VALIDATING → TECHNICALLY_CERTIFIED → 100_COMPLETE`  
 **F1:** `100_COMPLETE`  
 **Baseline F2:** `main@2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0`  
-**Fundación F2:** PR `#184` → `main@97a03444a00d5e008231ff33ce35969d2b49e94a`  
+**Fundación F2:** PR `#184` → `97a03444a00d5e008231ff33ce35969d2b49e94a`  
+**Checkpoint técnico:** PR `#185` → `ea71b4cb41e14343f4d3b410f8d837d1091b95ea`  
 **Riesgo:** MEDIUM — inventory/control only; no runtime or DB mutation.
 
 ---
 
-## 1. Resultado técnico
+## 1. Certificación
 
-F2 dispone de un registry machine-readable que clasifica las superficies de producto, cadena runtime, dominios, capabilities, dependencias y data-access crítico sin afirmar salud operativa no observada.
+**SENTINEL F2 — System Registry & Topology Taxonomy queda certificada al 100% para la baseline 2026-08-16.**
 
-F2 no modificó runtime, database schema, Railway, Supabase data ni secrets.
+El resultado canónico es `docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json`, registry machine-readable de superficies, runtime, dominios, capabilities, dependencias y data-access crítico. F2 describe qué existe y cómo se conecta; no inventa salud operativa.
 
-## 2. Recovery y baseline
+## 2. Recovery y evidencia
 
 - F1 estaba `100_COMPLETE` antes de iniciar.
-- F2 era la única fase `Siguiente` en Notion.
-- `main` había avanzado concurrentemente por F17; F2 tomó el current `2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0` como snapshot inicial.
-- Durante el gate fundacional `main` no cambió.
+- F2 era la única fase `Siguiente` al iniciar.
+- F2 tomó current `main@2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0` como snapshot inicial, incorporando el avance concurrente de F17.
 - Railway arranca `node server-phase-s.js`.
 - Cadena source-verified: `server-phase-s.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → server-phase2.js → server.js`.
-- `app/public/` contiene 41 superficies HTML top-level.
-- Supabase live metadata read-only: 254 tablas, 141 con RLS, 38 vistas, 1 materialized view, 658 funciones públicas y 522 funciones `aos_*`.
+- `app/public/` contiene 41 HTML top-level y todos están clasificados exactamente una vez.
+- Metadata live read-only de Supabase: 254 tablas, 141 con RLS, 38 vistas, 1 materialized view, 658 funciones públicas y 522 funciones `aos_*`.
+- El snapshot de catálogo es evidencia topológica; **no** certifica la seguridad/RLS de cada objeto.
 
-## 3. Coverage certificada por contrato
+## 3. Coverage certificada
 
-El run fundacional emitió:
+El contrato fundacional emitió:
 
 ```text
 SENTINEL_F2_REGISTRY_CONTRACT_PASS
@@ -43,30 +44,42 @@ unmapped_critical_nodes = 0
 changed_files_checked = 7
 ```
 
-El registry cubre 14 dominios canónicos y 8 dominios críticos iniciales. `CLINICAL` permanece bajo boundary `metadata-only-no-PHI`.
+Dominios canónicos: `AUTH`, `SALES`, `CALL_CENTER`, `AGENDA`, `WHATSAPP`, `EMAIL`, `MARKETING`, `CLINICAL`, `INVENTORY`, `PEOPLE`, `KRONIA`, `STUDIO`, `FINANCE`, `PLATFORM`.
 
-## 4. Evidencia CI exacta
+Dominios críticos iniciales: `AUTH`, `SALES`, `CALL_CENTER`, `AGENDA`, `WHATSAPP`, `CLINICAL`, `FINANCE`, `PLATFORM`.
 
-Candidate fundacional: `f10fdcd129d502cd0d756e58a32277bf92365b11`.
+`CLINICAL` conserva `sensitivity=PHI` y boundary `metadata-only-no-PHI`.
+
+## 4. Evidencia CI
+
+### Fundación PR #184
+
+Candidate: `f10fdcd129d502cd0d756e58a32277bf92365b11`.
 
 - Sentinel F2 Registry Certificate — run `31953402560` — **PASS**.
 - Ascenda CI — run `31953402539` — **PASS**.
 - Sentinel F1 Governance regression — run `31953402541` — **PASS**.
-- PR #184 era `mergeable=true` antes del merge.
+- Scope: 7 archivos control/docs/CI; 0 `app/`; 0 migrations/DB; 0 production mutation.
+- Merge: `97a03444a00d5e008231ff33ce35969d2b49e94a`.
 
-Changed files PR #184:
+### Checkpoint PR #185
 
-1. `.github/workflows/sentinel-phase2-registry.yml`
-2. `ci/sentinel/phase2_registry_contract.js`
-3. `docs/control/SENTINEL_F2_REGISTRY_CHANGE_POLICY.md`
-4. `docs/control/SENTINEL_F2_REGISTRY_README.md`
-5. `docs/control/SENTINEL_F2_TOPOLOGY_REPORT_20260816.md`
-6. `docs/control/SENTINEL_F2_VALIDATION_REPORT_20260816.md`
-7. `docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json`
+Candidate: `71aa41f2e30c72656aecbcd529c1d98fb3e20396`.
 
-Resultado scope: **0 `app/`, 0 migrations/DB, 0 Supabase runtime, 0 production mutation**.
+- Sentinel F2 Registry Certificate — run `31953540695` — **PASS**.
+- Sentinel F1 Governance regression — run `31953540706` — **PASS**.
+- Scope: 1 documento de validación.
+- Merge: `ea71b4cb41e14343f4d3b410f8d837d1091b95ea`.
 
-## 5. Gates F2
+## 5. Evidencia Notion
+
+Después del checkpoint técnico integrado:
+
+- F2 page `3be0e4fe-8414-81b1-95c6-e96c28e200eb`: `Estado=Cerrada`, `Progreso=100`.
+- F3 page `3be0e4fe-8414-8126-bb3e-d6e997c31025`: `Estado=Siguiente`, `Progreso=0`.
+- F1 permanece cerrada; F4–F13 permanecen pendientes.
+
+## 6. Gates F2
 
 | Gate | Evidencia requerida | Estado |
 |---|---|---|
@@ -75,7 +88,7 @@ Resultado scope: **0 `app/`, 0 migrations/DB, 0 Supabase runtime, 0 production m
 | F2-G03 | 41/41 HTML top-level clasificados exactamente una vez | PASS |
 | F2-G04 | Railway entrypoint registrado y verificado | PASS |
 | F2-G05 | cadena de 8 procesos Node y spawn edges verificados | PASS |
-| F2-G06 | taxonomía de 14 dominios canónica y IDs únicos | PASS |
+| F2-G06 | taxonomía de 14 dominios canónica e IDs únicos | PASS |
 | F2-G07 | 34 capabilities con criticality y evidence | PASS |
 | F2-G08 | runtime/dependencies/capabilities en `UNKNOWN`; cero false-green | PASS |
 | F2-G09 | 8 dependencias registradas con evidencia | PASS |
@@ -87,20 +100,27 @@ Resultado scope: **0 `app/`, 0 migrations/DB, 0 Supabase runtime, 0 production m
 | F2-G15 | workflow self-hosted FAST sin hosted fallback | PASS |
 | F2-G16 | exact-head F2 CI + Ascenda CI + F1 regression PASS | PASS |
 | F2-G17 | final diff control/docs/CI only; 0 `app/`, 0 migrations/DB | PASS |
-| F2-G18 | checkpoint integrado + Notion F2=100/Cerrada + F3 única Siguiente + certificado final | PENDING |
+| F2-G18 | checkpoint integrado + Notion F2=100/Cerrada + F3 única Siguiente + certificado final | PASS |
 
-## 6. No-certificaciones deliberadas
+**Resultado:** `18/18 PASS`.
 
-Cerrar F2 no certifica:
+## 7. Decisiones congeladas al cerrar F2
 
-- que los módulos estén `HEALTHY`;
-- que todas las políticas RLS existentes sean correctas;
-- que cada integración externa esté disponible;
-- que cada RPC pública sea segura;
-- que exista tracing/error/uptime monitoring.
+- Registry canónico: `SENTINEL_SYSTEM_REGISTRY_V1.json`.
+- Schema: `sentinel-system-registry/v1`.
+- 41 superficies, 14 dominios, 34 capabilities, 8 dependencias y 8 nodos runtime en la baseline.
+- Todo `observability_state` permanece `UNKNOWN` en F2.
+- `HEALTHY` está prohibido en F2 por contrato automático.
+- Un nuevo HTML top-level, cambio de entrypoint Railway o spawn edge genera drift y debe actualizar el registry.
+- Zero PHI/PII telemetry permanece vigente.
+- F2 no instala Sentry, OpenTelemetry, Kuma ni ningún sensor productivo.
 
-F2 certifica topología y cobertura. Las señales reales se añaden en F3–F6.
+## 8. No-certificaciones deliberadas
 
-## 7. Estado de cierre
+F2 no certifica disponibilidad en tiempo real, seguridad total de RLS/RPC, configuración actual de todos los proveedores ni tracing/error/uptime monitoring. Esas capacidades pertenecen a F3–F6 y workstreams de seguridad específicos.
 
-G01–G17 están técnicamente certificados. Falta únicamente G18: integrar este checkpoint, sincronizar Notion y emitir el certificado final `100_COMPLETE` que deje F3 como única fase `Siguiente`.
+## 9. Handoff a F3
+
+F3 — `Telemetry Contract & OpenTelemetry Foundation` es la única fase `Siguiente`.
+
+F3 debe partir del registry V1 y definir el contrato portable de telemetría, correlation IDs, redaction/filtering, sampling y exporter abstraction sin introducir PHI/PII ni dependencia estructural de un proveedor.

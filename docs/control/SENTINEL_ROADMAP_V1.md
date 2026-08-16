@@ -357,6 +357,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 ## Estado actual
 
 - Fase 1: `CERRADA / 100_COMPLETE`.
-- Fase 2: `SIGUIENTE`.
-- Fases 3–13: `PENDIENTE`.
-- Ningún sensor productivo queda autorizado por el cierre de F1; cada fase debe ejecutar sus gates.
+- Fase 2: `CERRADA / 100_COMPLETE`.
+- Fase 3: `SIGUIENTE`.
+- Fases 4–13: `PENDIENTE`.
+- Ningún sensor productivo queda autorizado por el cierre de F2; cada fase debe ejecutar sus gates.
