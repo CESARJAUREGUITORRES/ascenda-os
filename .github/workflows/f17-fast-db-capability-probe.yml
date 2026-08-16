@@ -1,0 +1,29 @@
+name: F17 FAST DB Capability Probe
+
+on:
+  push:
+    branches: ['ops/f17-fast-db-probe-20260815']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe local zero-cost DB tooling
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Continue'
+          Write-Host "runner=$env:RUNNER_NAME"
+          foreach($cmd in @('docker','wsl','psql','supabase')) {
+            $c=Get-Command $cmd -ErrorAction SilentlyContinue
+            if($c){ Write-Host ("CAPABILITY {0}=YES path={1}" -f $cmd,$c.Source) }
+            else { Write-Host ("CAPABILITY {0}=NO" -f $cmd) }
+          }
+          if(Get-Command docker -ErrorAction SilentlyContinue){ docker version --format '{{.Server.Version}}' 2>$null; if($LASTEXITCODE -eq 0){Write-Host 'DOCKER_DAEMON=YES'}else{Write-Host 'DOCKER_DAEMON=NO'} }
+          if(Get-Command wsl -ErrorAction SilentlyContinue){ wsl -l -q 2>$null | ForEach-Object { Write-Host ("WSL_DISTRO="+$_.Trim()) } }
+          Write-Host 'F17_FAST_DB_CAPABILITY_PROBE_COMPLETE'
