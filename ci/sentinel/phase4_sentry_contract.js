@@ -67,12 +67,13 @@ for(const [name,text] of Object.entries(runtimeContracts)){
 ok(!wa2wf.includes('grep -q "node server-wa2.js" app/railway.json'),'WA2_STALE_START_COMMAND_GREP');
 ok(wa2wf.includes('Runtime topology/start-command compatibility is certified by ui_contract.py'),'WA2_WORKFLOW_RUNTIME_CONTRACT_HANDOFF_MISSING');
 
-// FAST pool portability: workflow provisions its own Python and knows exact Sentinel wrapper.
-ok(phaseSwf.includes('actions/setup-python@v5'),'PHASE_S_PYTHON_NOT_PROVISIONED');
-ok(phaseSwf.includes("python-version: '3.13'"),'PHASE_S_PYTHON_VERSION_NOT_PINNED');
-ok(!phaseSwf.includes('Python runtime missing on ASCENDA FAST runner'),'PHASE_S_STILL_DEPENDS_ON_SYSTEM_PYTHON');
+// FAST pool stays Node/runtime-only; Python and DB contracts remain on Linux Zero-Cost.
+ok(!phaseSwf.includes('actions/setup-python@v5'),'PHASE_S_FAST_MUST_NOT_PROVISION_PYTHON');
+ok(!phaseSwf.includes('Resolve system Python'),'PHASE_S_FAST_SYSTEM_PYTHON_DEPENDENCY_FORBIDDEN');
+ok(phaseSwf.includes('Python and DB/RLS/pgTAP contracts remain owned by Linux Zero-Cost workflows.'),'PHASE_S_LINUX_DELEGATION_MISSING');
+ok(phaseSwf.includes('Auth Resend private-vault regression'),'PHASE_S_AUTH_RESEND_GATE_MISSING');
 ok(phaseSwf.includes("$sentinel = '\"startCommand\"\\s*:\\s*\"env NODE_OPTIONS=''--require \\./sentinel-sentry-init\\.cjs'' node server-phase-s\\.js\"'"),'PHASE_S_SENTINEL_START_GUARD_MISSING');
-ok(phaseSwf.includes("Sentinel preload must not contaminate build"),'PHASE_S_BUILD_GUARD_MISSING');
+ok(phaseSwf.includes('Sentinel preload must not contaminate build'),'PHASE_S_BUILD_GUARD_MISSING');
 
 // Defensive Sentry source options.
 for(const t of ['sendDefaultPii: false','tracesSampleRate: 0','enableLogs: false','maxBreadcrumbs: 0','includeLocalVariables: false','beforeBreadcrumb: () => null','beforeSend: event => {','SENTINEL_ENABLED','SENTINEL_SENTRY_ENABLED','SENTINEL_SENTRY_CANARY_MODE','SENTINEL_SENTRY_SYNTHETIC_ON_BOOT','SENTRY_DSN','SENTINEL_F4_SYNTHETIC_ERROR']) ok(init.includes(t),`INIT_GUARD_MISSING:${t}`);
@@ -119,4 +120,4 @@ for(const t of ['F4-G01','F4-G18','HUMAN_BOUNDARY_PENDING'])ok(report.includes(t
 for(const t of ['self-hosted','Windows','X64','ascenda-fast','npm install','node ci/sentinel/phase4_sentry_contract.js'])ok(f4wf.includes(t),`F4_WORKFLOW_MISSING:${t}`);
 for(const t of ['ubuntu-latest','windows-latest','macos-latest'])ok(!f4wf.includes(t),`F4_HOSTED_RUNNER_FORBIDDEN:${t}`);
 
-console.log(JSON.stringify({ok:true,certificate:'SENTINEL_F4_RUNTIME_PRELOAD_CONTRACT_PASS',sdk:'@sentry/node@10.70.0',f1_privacy_material_regression:true,f2_topology_material_regression:true,f3_telemetry_material_regression:true,default_active:false,runtime_only_preload:true,build_preload:false,child_env_inheritance:true,fast_pool_python_portable:true,canary_default:true,canary_only_synthetic:true,missing_dsn_fail_closed:true,zero_phi_pii_fixture:true,fixture_leaks:0,traces_sample_rate:0,logs:false,breadcrumbs:0,pay_as_you_go:false,human_boundary:'PENDING',changed_files_checked:changed.length},null,2));
+console.log(JSON.stringify({ok:true,certificate:'SENTINEL_F4_RUNTIME_PRELOAD_CONTRACT_PASS',sdk:'@sentry/node@10.70.0',f1_privacy_material_regression:true,f2_topology_material_regression:true,f3_telemetry_material_regression:true,default_active:false,runtime_only_preload:true,build_preload:false,child_env_inheritance:true,fast_pool_python_delegated:true,auth_resend_gate_preserved:true,canary_default:true,canary_only_synthetic:true,missing_dsn_fail_closed:true,zero_phi_pii_fixture:true,fixture_leaks:0,traces_sample_rate:0,logs:false,breadcrumbs:0,pay_as_you_go:false,human_boundary:'PENDING',changed_files_checked:changed.length},null,2));
