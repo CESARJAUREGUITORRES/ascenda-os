@@ -5,9 +5,7 @@ const https=require('https');
 const {spawn}=require('child_process');
 const wa=require('./wa-gateway');
 const {createEmailGateway}=require('./email-gateway');
-const {createLiveCanary}=require('./f16-live-canary');
 const EMAIL_GATEWAY=createEmailGateway();
-const F16_LIVE_CANARY=createLiveCanary();
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
 const INNER_PORT=EXTERNAL_PORT===4189?4190:4189;
@@ -174,8 +172,6 @@ const server=http.createServer(async(req,res)=>{
   let pathname='/';try{pathname=new URL(req.url,'http://localhost').pathname;}catch(e){}
   if(pathname==='/api/email-gateway'||pathname==='/api/send-email'){EMAIL_GATEWAY.handleAdmin(req,res);return;}
   if(pathname==='/api/resend-webhook'){EMAIL_GATEWAY.handleWebhook(req,res);return;}
-  if(pathname==='/api/f16-live-canary'){F16_LIVE_CANARY.handleCanary(req,res);return;}
-  if(pathname==='/api/f16-live-canary-replay'){F16_LIVE_CANARY.handleReplay(req,res);return;}
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='GET'){handleWaVerify(req,res);return;}
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='POST'){await handleWaWebhook(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
