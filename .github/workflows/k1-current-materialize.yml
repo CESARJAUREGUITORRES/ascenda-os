@@ -1,0 +1,154 @@
+name: K1 CURRENT materializer
+
+on:
+  push:
+    branches: [security/kronia-k1-current-main-20260815-v2]
+    paths:
+      - '.github/workflows/k1-current-materialize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: security/kronia-k1-current-main-20260815-v2
+      - name: Materialize K1 assets on CURRENT main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin security/kronia-k1-clean-20260815:refs/remotes/origin/k1-clean
+          source_ref=origin/k1-clean
+          copy_paths=(
+            app/public/k1-browser-security.js
+            app/server-k1.js
+            app/k1_phase2_materialize.py
+            chrome-extension/k1-extension-auth.js
+            chrome-extension/popup.html
+            chrome-extension/popup.js
+            ci/kronia-k1-phase2/001_k1_phase2_certificate.sql
+            ci/kronia-k1-phase2/002_k1_safe_recovery.sql
+            ci/kronia-k1-phase2/fixture_pre_k1.sql
+            ci/kronia-k1-phase2/runtime_contract.py
+            ci/kronia-k1-phase2/test_proxy_security.js
+            supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql
+            supabase/migrations/20260814171000_kronia_k1_app_token_control_plane.sql
+            supabase/migrations/20260814171500_kronia_k1_identity_sync.sql
+            supabase/migrations/20260814171600_kronia_k1_feed_schema_alignment.sql
+            supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql
+            supabase/migrations/20260814172000_kronia_k1_team_profile_alignment.sql
+            supabase/migrations/20260814172100_kronia_k1_authority_session_revocation.sql
+            supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql
+          )
+          for p in "${copy_paths[@]}"; do
+            mkdir -p "$(dirname "$p")"
+            git show "$source_ref:$p" > "$p"
+          done
+
+          git show "$source_ref:.github/workflows/kronia-k1-phase2-security.yml" > .github/workflows/kronia-k1-phase2-security.yml
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) K1 becomes the outer security boundary over the CURRENT production chain.
+          p=Path('app/server-k1.js'); s=p.read_text()
+          s=s.replace('// ASCENDA OS — K1 security front proxy over CURRENT F4 runtime.', '// ASCENDA OS — K1 security front proxy over CURRENT production runtime.')
+          s=s.replace("const F4_PORT=parseInt(process.env.K1_F4_PORT||'4190',10);", "const CURRENT_PORT=parseInt(process.env.K1_CURRENT_PORT||'4190',10);")
+          s=re.sub(r"\nconst PHASE2_INTERNAL_PORT=parseInt\(process\.env\.K1_LEGACY_PORT\|\|'4191',10\);",'',s)
+          s=s.replace('new Set([EXTERNAL_PORT,F4_PORT,PHASE2_INTERNAL_PORT]).size!==3','new Set([EXTERNAL_PORT,CURRENT_PORT]).size!==2')
+          s=s.replace("spawn(process.execPath,['server-f4.js']", "spawn(process.execPath,['server-f5.js']")
+          s=s.replace("console.error('[K1] F4 proxy exited'", "console.error('[K1] CURRENT runtime exited'")
+          s=s.replace('port:F4_PORT','port:CURRENT_PORT').replace("'127.0.0.1:'+F4_PORT", "'127.0.0.1:'+CURRENT_PORT")
+          s=s.replace("{PORT:String(F4_PORT),PHASE2_INTERNAL_PORT:String(PHASE2_INTERNAL_PORT)}", "{PORT:String(CURRENT_PORT)}")
+          s=s.replace("'-> f4',F4_PORT,'-> phase2',PHASE2_INTERNAL_PORT", "'-> current-root',CURRENT_PORT")
+          if 'F4_PORT' in s or 'PHASE2_INTERNAL_PORT' in s: raise SystemExit('stale K1 port topology survived')
+          if "server-f5.js" not in s: raise SystemExit('K1 CURRENT root not wired')
+          p.write_text(s)
+
+          # 2) Browser authority is ONLY the canonical Auth V3 app token.
+          p=Path('app/public/k1-browser-security.js'); s=p.read_text()
+          s=s.replace("return sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||''", "return sessionStorage.getItem('aos_app_token')||''")
+          if 'aos_si_token' in s: raise SystemExit('Sales Intelligence token fallback survived K1 browser boundary')
+          p.write_text(s)
+
+          # 3) Remove the remaining committed provider verify-token literal from legacy source.
+          p=Path('app/server.js'); s=p.read_text()
+          s,n=re.subn(r"const\s+VERIFY_TOKEN\s*=\s*'[^']*'", "const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'", s, count=1)
+          if n != 1: raise SystemExit(f'expected one legacy VERIFY_TOKEN literal, got {n}')
+          if re.search(r"const\s+VERIFY_TOKEN\s*=\s*['\"][^'\"]+",s): raise SystemExit('hardcoded VERIFY_TOKEN survived')
+          p.write_text(s)
+
+          # 4) Commit browser boundary statically; no build-time security mutation.
+          tag='<script src="/k1-browser-security.js"></script>'
+          p=Path('app/public/app.html'); s=p.read_text()
+          if tag not in s:
+            idx=s.lower().rfind('</body>')
+            if idx<0: raise SystemExit('app.html body anchor missing')
+            s=s[:idx]+tag+'\n'+s[idx:]
+          p.write_text(s)
+
+          p=Path('app/public/cerebro.html'); s=p.read_text()
+          if tag not in s:
+            idx=s.lower().rfind('</body>')
+            if idx<0: raise SystemExit('cerebro.html body anchor missing')
+            s=s[:idx]+tag+'\n'+s[idx:]
+          s=s.replace('\nconnectRT();\n','\n/* K1: direct audit Realtime disabled; sanitized polling remains. */\n',1)
+          p.write_text(s)
+
+          p=Path('app/public/admin-team.html'); s=p.read_text()
+          for a,b in [('pw.length<6','pw.length<10'),('np.length<6','np.length<10'),('Mínimo 6 caracteres','Mínimo 10 caracteres'),('mínimo 6 caracteres','mínimo 10 caracteres'),('Contraseña mínimo 6 caracteres','Contraseña mínimo 10 caracteres')]:
+            s=s.replace(a,b)
+          p.write_text(s)
+
+          # 5) Railway/Nixpacks point to K1 outer boundary, preserving CURRENT chain behind it.
+          p=Path('app/railway.json'); s=p.read_text()
+          s=s.replace("certified outer runtime chain: node server-f5.js -> node server-wa4.js -> node server-wa3.js -> node server-wa2.js -> node server-f4.js", "K1 CURRENT runtime chain: node server-k1.js -> node server-f5.js -> node server-wa4.js -> node server-wa3.js -> node server-wa2.js -> node server-f4.js")
+          s=s.replace('"startCommand": "node server-f5.js"','"startCommand": "node server-k1.js"',1)
+          p.write_text(s)
+          p=Path('app/nixpacks.toml'); s=p.read_text().replace('cmd = "node server.js"','cmd = "node server-k1.js"')
+          p.write_text(s)
+
+          # 6) CURRENT materializer becomes a validator/manifest generator only.
+          Path('app/k1_phase2_materialize.py').write_text('''from pathlib import Path\nimport hashlib,json,re\nROOT=Path(__file__).resolve().parent\ndef read(p): return (ROOT/p).read_text(encoding="utf-8")\nserver=read("server.js")\nif re.search(r"const\\s+VERIFY_TOKEN\\s*=\\s*[\\\'\\\"][^\\\'\\\"]+",server): raise SystemExit("K1: hardcoded VERIFY_TOKEN")\nif re.search(r"process\\.env\\.RESEND_API_KEY\\s*\\|\\|\\s*[\\\'\\\"][^\\\'\\\"]+",server): raise SystemExit("K1: hardcoded Resend fallback")\nk1=read("server-k1.js")\nif "server-f5.js" not in k1: raise SystemExit("K1: CURRENT runtime root missing")\nif "server-f4.js" in k1 and "spawn(process.execPath,[\\\'server-f4.js\\\']" in k1: raise SystemExit("K1: stale direct F4 spawn")\nif "aos_si_token" in read("public/k1-browser-security.js"): raise SystemExit("K1: alternate browser authority survived")\ntargets=["server-k1.js","server-f5.js","server-wa4.js","server-wa3.js","server-wa2.js","server-f4.js","server-phase2.js","server.js","public/app.html","public/cerebro.html","public/admin-team.html","public/k1-browser-security.js","public/login.html","public/phase2-auth-shim.js","public/phase2-security-shim.js","public/phase2-service-worker.js"]\nmanifest={"contract":"kronia-k1-current-runtime-v3","files":{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in targets}}\n(ROOT/"k1-phase2-runtime-manifest.json").write_text(json.dumps(manifest,sort_keys=True,indent=2)+"\\n")\nprint("KRONIA_K1_CURRENT_RUNTIME=PASS")\n''')
+
+          # 7) Adapt K1 Zero-Cost workflow to current runtime and branch.
+          p=Path('.github/workflows/kronia-k1-phase2-security.yml'); s=p.read_text()
+          s=s.replace("branches: ['security/kronia-k1-clean-*']", "branches: ['security/kronia-k1-current-main-*']")
+          s=s.replace("grep -q \"server-f4.js\" app/server-k1.js", "grep -q \"server-f5.js\" app/server-k1.js")
+          s=s.replace("          grep -q 'PHASE2_INTERNAL_PORT' app/server-k1.js\n",'')
+          s=s.replace("          node --check app/server-f4.js\n", "          node --check app/server-f5.js\n          node --check app/server-wa4.js\n          node --check app/server-wa3.js\n          node --check app/server-wa2.js\n          node --check app/server-f4.js\n")
+          p.write_text(s)
+          PY
+
+          git diff --check
+          node --check app/server-k1.js
+          node --check app/public/k1-browser-security.js
+          node --check chrome-extension/k1-extension-auth.js
+          node --check chrome-extension/popup.js
+          python3 -m py_compile app/k1_phase2_materialize.py
+          (cd app && python3 k1_phase2_materialize.py)
+          rm -f app/k1-phase2-runtime-manifest.json
+
+          git status --short
+          git add app chrome-extension ci supabase .github/workflows/kronia-k1-phase2-security.yml
+          git config user.name 'ASCENDA Zero-Cost Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git commit -m 'security(k1): rebuild K1 over current runtime chain'
+          git push origin HEAD:security/kronia-k1-current-main-20260815-v2
+
+      - name: Remove one-shot materializer from branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/k1-current-materialize.yml
+          git config user.name 'ASCENDA Zero-Cost Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git commit -m 'ci(k1): retire one-shot current materializer'
+          git push origin HEAD:security/kronia-k1-current-main-20260815-v2
