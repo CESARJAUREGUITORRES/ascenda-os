@@ -42,29 +42,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      - name: Resolve system Python
-        shell: powershell
-        run: |
-          if (Get-Command python -ErrorAction SilentlyContinue) {
-            python --version
-            exit 0
-          }
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            $shim = Join-Path $env:RUNNER_TEMP 'ascenda-python-bin'
-            New-Item -ItemType Directory -Force -Path $shim | Out-Null
-            "@echo off`r`npy -3 %*" | Set-Content -Path (Join-Path $shim 'python.cmd') -Encoding ascii
-            $shim | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            py -3 --version
-            exit 0
-          }
-          throw 'Python runtime missing on ASCENDA FAST runner'
+      - name: Provision Python consistently on FAST pool
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
       - name: Enforce self-hosted FAST lane
         shell: powershell
         run: |
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Phase S must run on a self-hosted runner' }
           Write-Host "Runner: $env:RUNNER_NAME"
+          python --version
 
       - name: Runtime syntax
         shell: powershell
@@ -137,7 +125,13 @@ jobs:
           if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
           if ($s -notmatch 'ai_send_enabled:false') { throw 'AI send fail-closed default missing' }
           if ($s -match '(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
-          if ($rail -notmatch '"startCommand"\s*:\s*"node server-phase-s\.js"') { throw 'Railway Phase S start command missing' }
+          $legacy = '"startCommand"\s*:\s*"node server-phase-s\.js"'
+          $sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s\.js"'
+          if (($rail -notmatch $legacy) -and ($rail -notmatch $sentinel)) { throw 'Railway certified Phase S start command missing' }
+          if ($rail -match $sentinel) {
+            $cfg = $rail | ConvertFrom-Json
+            if ([string]$cfg.build.buildCommand -match 'NODE_OPTIONS') { throw 'Sentinel preload must not contaminate build' }
+          }
 
       - name: DB gates remain canonical and independent
         shell: powershell
