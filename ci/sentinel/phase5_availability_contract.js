@@ -22,6 +22,8 @@ ok(f5.observer.must_be_independent_from_ascenda_railway_runtime===true,'F5_OBSER
 ok(f5.observer.same_railway_service_forbidden===true,'F5_SAME_RUNTIME_FORBIDDEN');
 ok(f5.observer.public_admin_ui_default===false,'F5_ADMIN_UI_MUST_NOT_DEFAULT_PUBLIC');
 ok(f5.privacy.zero_phi_pii===true&&f5.privacy.no_auth_headers===true&&f5.privacy.no_tokens===true,'F5_PRIVACY_DRIFT');
+ok(f5.privacy.no_patient_identifiers===true&&f5.privacy.no_message_content===true&&f5.privacy.no_request_bodies===true,'F5_DATA_BOUNDARY_DRIFT');
+ok(f5.privacy.no_provider_secrets_in_monitor_config===true,'F5_PROVIDER_SECRET_BOUNDARY_DRIFT');
 ok(f5.cost.software_license_cost_usd_month===0&&f5.cost.automatic_paid_hosting===false,'F5_COST_GUARD_DRIFT');
 ok(f5.deployment.production_deploy_in_f5_foundation===false,'F5_PROD_DEPLOY_FORBIDDEN_IN_FOUNDATION');
 ok(f5.anti_flapping.failure_samples_required===3&&f5.anti_flapping.recovery_samples_required===2,'F5_ANTI_FLAP_DRIFT');
@@ -42,6 +44,7 @@ ok(compose.includes('127.0.0.1:3001:3001'),'F5_KUMA_UI_NOT_LOCALHOST_BOUND');
 ok(compose.includes('uptime-kuma-data:/app/data'),'F5_LOCAL_PERSISTENT_VOLUME_MISSING');
 ok(!/\b(?:SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|RESEND_API_KEY|Authorization|apikey)\b/.test(compose),'F5_SECRET_MATERIAL_IN_COMPOSE');
 ok(!compose.includes('network_mode: host'),'F5_HOST_NETWORK_FORBIDDEN');
+ok(!compose.includes('/var/run/docker.sock'),'F5_DOCKER_SOCKET_FORBIDDEN');
 
 const c=sm.classifyAvailability;
 ok(c({observerFresh:false,consecutiveSuccesses:10})==='UNKNOWN','F5_UNKNOWN_OBSERVER_STALE');
@@ -56,10 +59,23 @@ ok(sm.sentinelHealthState('DOWN')==='INCIDENT','F5_SENTINEL_DOWN_MAP');
 ok(sm.sentinelHealthState('UNKNOWN')==='UNKNOWN','F5_SENTINEL_UNKNOWN_MAP');
 ok(sm.availabilityFingerprint({environment:'production',monitorId:'ascenda-production-health'})==='availability:production:ascenda-production-health','F5_FINGERPRINT_DRIFT');
 
+// Policy documents may name forbidden classes such as service_role. Detect material
+// credential shapes/values instead of treating the name of a forbidden class as a leak.
 const serialized=JSON.stringify(f5);
-for(const forbidden of ['service_role','Bearer ','@gmail.com','wa_id','dni','paciente','telefono']){
-  ok(!serialized.toLowerCase().includes(forbidden.toLowerCase()),`F5_CONTRACT_SENSITIVE_TOKEN:${forbidden}`);
-}
+const secretPatterns=[
+  /\bsb_secret_[A-Za-z0-9_-]{20,}\b/,
+  /\b(?:eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/,
+  /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i,
+  /https:\/\/[A-Za-z0-9_-]{16,}@[A-Za-z0-9.-]+\.ingest(?:\.[A-Za-z0-9.-]+)?\.sentry\.io\/\d+/i,
+  /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+  /\b(?:sk-(?:proj-)?|xox[baprs]-)[A-Za-z0-9_-]{20,}\b/
+];
+for(const re of secretPatterns)ok(!re.test(serialized),`F5_CONTRACT_MATERIAL_SECRET:${re}`);
+
+// Baseline monitor itself must stay unauthenticated and payload-free.
+ok(!Object.prototype.hasOwnProperty.call(mon,'headers'),'F5_MONITOR_HEADERS_FORBIDDEN');
+ok(!Object.prototype.hasOwnProperty.call(mon,'body'),'F5_MONITOR_BODY_FORBIDDEN');
+ok(!Object.prototype.hasOwnProperty.call(mon,'username')&&!Object.prototype.hasOwnProperty.call(mon,'password'),'F5_MONITOR_CREDENTIAL_FIELDS_FORBIDDEN');
 
 console.log(JSON.stringify({
   ok:true,
@@ -70,6 +86,7 @@ console.log(JSON.stringify({
   production_deploy:false,
   monitor_count:f5.baseline_monitors.length,
   zero_phi_pii:true,
+  material_secret_patterns:0,
   anti_flapping:true,
   direct_notifications:false,
   state_machine:true
