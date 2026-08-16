@@ -59,19 +59,19 @@ jobs:
 
   synthetic-linux:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Enforce Zero-Cost runner policy
         run: |
           set -euo pipefail
           test "$RUNNER_OS" = "Linux"
-          node --version
-      - name: Cross-platform syntax and fixtures
+          docker version >/dev/null
+      - name: Cross-platform syntax and fixtures in disposable Node
         run: |
           set -euo pipefail
-          node --check sentinel/business-health/invariant-engine.cjs
-          node --check ci/sentinel/phase6_business_health_contract.js
-          node --check ci/sentinel/phase6_business_health_synthetic.js
-          node ci/sentinel/phase6_business_health_contract.js
-          node ci/sentinel/phase6_business_health_synthetic.js
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" \
+            -w /work \
+            node:22-alpine \
+            sh -lc 'node --version && node --check sentinel/business-health/invariant-engine.cjs && node --check ci/sentinel/phase6_business_health_contract.js && node --check ci/sentinel/phase6_business_health_synthetic.js && node ci/sentinel/phase6_business_health_contract.js && node ci/sentinel/phase6_business_health_synthetic.js'
