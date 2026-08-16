@@ -10,7 +10,7 @@ const healthy=()=>({
     call_center:{operating_window:true,window_age_minutes:180,active_advisors:4,eligible_leads:25,calls_in_window:18,latest_call_age_minutes:4},
     sales:{scope_consistent:true,source_sales_count:125,gateway_has_data:true,gateway_sales_count:125},
     whatsapp:{accepted_without_progress:0,oldest_unprogressed_age_minutes:null},
-    email:{feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,sent_without_event:0,oldest_sent_without_event_age_minutes:null,legacy_child_privilege_warning:false}
+    email:{feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:3,recent_sent_without_event:0,oldest_recent_without_event_age_minutes:null,legacy_child_privilege_warning:false}
   }
 });
 
@@ -39,14 +39,32 @@ assert.equal(waOut.signals[2].state,'INCIDENT');
 assert.equal(waOut.signals[2].reason,'OUTBOUND_RECEIPT_STALL_60M');
 
 const email=healthy();
-email.domains.email={feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,sent_without_event:4,oldest_sent_without_event_age_minutes:75,legacy_child_privilege_warning:false};
+email.domains.email={feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:4,recent_sent_without_event:4,oldest_recent_without_event_age_minutes:75,legacy_child_privilege_warning:false};
 const emailOut=engine.evaluateSnapshot(email);
 assert.equal(emailOut.signals[3].state,'INCIDENT');
 assert.equal(emailOut.signals[3].reason,'EMAIL_PROVIDER_EVENT_STALL_60M');
 
 const emailConfig=healthy();
-emailConfig.domains.email={feature_expected:true,gateway_service_configured:false,provider_send_configured:true,webhook_configured:true,sent_without_event:0,oldest_sent_without_event_age_minutes:null,legacy_child_privilege_warning:false};
+emailConfig.domains.email={feature_expected:true,gateway_service_configured:false,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:1,recent_sent_without_event:1,oldest_recent_without_event_age_minutes:75,legacy_child_privilege_warning:false};
 assert.equal(engine.evaluateSnapshot(emailConfig).signals[3].reason,'GOVERNED_EMAIL_GATEWAY_NOT_READY');
+
+const emailConfigUnknown=healthy();
+emailConfigUnknown.domains.email={feature_expected:true,gateway_service_configured:null,provider_send_configured:null,webhook_configured:null,monitoring_horizon_minutes:1440,recent_sent_count:1,recent_sent_without_event:1,oldest_recent_without_event_age_minutes:75,legacy_child_privilege_warning:false};
+const emailUnknownOut=engine.evaluateSnapshot(emailConfigUnknown);
+assert.equal(emailUnknownOut.signals[3].state,'UNKNOWN');
+assert.equal(emailUnknownOut.signals[3].reason,'EMAIL_CONFIG_EVIDENCE_INCOMPLETE');
+
+const noRecent=healthy();
+noRecent.domains.email={feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:0,recent_sent_without_event:0,oldest_recent_without_event_age_minutes:null,legacy_child_privilege_warning:false};
+const noRecentOut=engine.evaluateSnapshot(noRecent);
+assert.equal(noRecentOut.signals[3].state,'UNKNOWN');
+assert.equal(noRecentOut.signals[3].reason,'NO_RECENT_EMAIL_ACTIVITY');
+
+const outsideHorizon=healthy();
+outsideHorizon.domains.email={feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:1,recent_sent_without_event:1,oldest_recent_without_event_age_minutes:166761,legacy_child_privilege_warning:false};
+const outsideHorizonOut=engine.evaluateSnapshot(outsideHorizon);
+assert.equal(outsideHorizonOut.signals[3].state,'UNKNOWN');
+assert.equal(outsideHorizonOut.signals[3].reason,'EMAIL_SAMPLE_OUTSIDE_MONITORING_HORIZON');
 
 const legacyNoise=healthy();
 legacyNoise.domains.email.legacy_child_privilege_warning=true;
@@ -60,6 +78,11 @@ assert.equal(engine.evaluateSnapshot(ccGrace).signals[0].state,'DEGRADED');
 const waGrace=healthy();
 waGrace.domains.whatsapp={accepted_without_progress:1,oldest_unprogressed_age_minutes:20};
 assert.equal(engine.evaluateSnapshot(waGrace).signals[2].state,'DEGRADED');
+
+const emailGrace=healthy();
+emailGrace.domains.email.recent_sent_without_event=1;
+emailGrace.domains.email.oldest_recent_without_event_age_minutes=20;
+assert.equal(engine.evaluateSnapshot(emailGrace).signals[3].state,'DEGRADED');
 
 const outside=healthy();
 outside.domains.call_center.operating_window=false;
@@ -85,6 +108,8 @@ console.log(JSON.stringify({
   silent_failures:4,
   zero_phi_pii:true,
   valid_empty_not_incident:true,
+  email_historical_false_positive_guard:true,
+  email_no_recent_activity_unknown:true,
   legacy_email_child_warning_not_incident:true,
   production_mutation:false
 }));
