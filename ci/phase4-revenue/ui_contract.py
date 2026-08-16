@@ -12,6 +12,10 @@ wa3_path = root / 'app/server-wa3.js'
 wa3 = wa3_path.read_text(encoding='utf-8') if wa3_path.exists() else ''
 wa4_path = root / 'app/server-wa4.js'
 wa4 = wa4_path.read_text(encoding='utf-8') if wa4_path.exists() else ''
+f5_path = root / 'app/server-f5.js'
+f5 = f5_path.read_text(encoding='utf-8') if f5_path.exists() else ''
+phase_s_path = root / 'app/server-phase-s.js'
+phase_s = phase_s_path.read_text(encoding='utf-8') if phase_s_path.exists() else ''
 core = (root / 'supabase/migrations/20260814223000_f4_revenue_operations_core_v1.sql').read_text(encoding='utf-8')
 cartera_auth = (root / 'supabase/migrations/20260815191500_f4_cartera_gateway_v2_auth_chain_hotfix.sql').read_text(encoding='utf-8')
 
@@ -49,7 +53,22 @@ wa4_wrapped_chain = (
     and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
-assert direct_f4 or wa2_wrapped_f4 or wa3_wrapped_chain or wa4_wrapped_chain, 'Railway must preserve certified F4 chain through explicit WA wrappers'
+f5_wrapped_chain = (
+    'node server-f5.js' in railway
+    and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
+    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
+    and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
+)
+phase_s_wrapped_chain = (
+    'node server-phase-s.js' in railway
+    and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s
+    and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
+    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
+    and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
+)
+assert direct_f4 or wa2_wrapped_f4 or wa3_wrapped_chain or wa4_wrapped_chain or f5_wrapped_chain or phase_s_wrapped_chain, 'Railway must preserve certified F4 chain through explicit WA/F5/Phase-S wrappers'
 assert 'node server-phase2.js' not in railway.split('"environments"')[0]
 for text in (bridge,kronia): assert 'service_role' not in text.lower()
 assert 'SUPABASE_SERVICE_ROLE_KEY' in proxy
