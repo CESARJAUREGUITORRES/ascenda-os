@@ -29,6 +29,9 @@ async function injectF4(req){
   if(html.indexOf('/f4-production-canary-hotfix.js')<0){
     tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-f4-sales-auth-p06"></script>';
   }
+  if(html.indexOf('/wa-shell-integration.js')<0){
+    tags+='<script src="/wa-shell-integration.js?v=20260815-wa-shell-p01"></script>';
+  }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
@@ -44,6 +47,11 @@ self.addEventListener('fetch',function(event){
   var req=event.request,u;
   try{u=new URL(req.url);}catch(e){return;}
   if(u.origin===self.location.origin&&req.method==='GET'&&(u.pathname==='/app'||u.pathname==='/app.html')){event.respondWith(injectF4(req));return;}
+  // A direct WA-3 page is now a compatibility entrypoint. Normal navigation is
+  // returned to the canonical ASCENDA shell; the embedded iframe bypasses this.
+  if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
+    event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
+  }
   // WA-3 APIs are same-origin and may be opened from a different browser tab.
   // sessionStorage is tab-scoped, so inject the already-governed Phase 2 token
   // from the same-origin cache. The server still performs 2FA/panel/ownership checks.
