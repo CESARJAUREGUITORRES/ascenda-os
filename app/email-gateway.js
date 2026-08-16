@@ -2,8 +2,6 @@
 
 const crypto = require('crypto')
 const https = require('https')
-const { createLiveCanary } = require('./f16-live-canary')
-const F16_LIVE_CANARY = createLiveCanary()
 
 const DEFAULT_SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const MAX_BODY_BYTES = 1024 * 1024
@@ -381,15 +379,6 @@ function createEmailGateway(config) {
       var messageId = String(data.email_id || data.id || '')
       var eventType = String(event.type || '')
       var occurredAt = event.created_at || new Date().toISOString()
-      var liveCanary = await F16_LIVE_CANARY.handleSignedWebhookCanary({
-        messageId: messageId,
-        eventType: eventType,
-        eventId: verified.eventId,
-        timestamp: String(req.headers['svix-timestamp'] || ''),
-        signature: String(req.headers['svix-signature'] || ''),
-        rawBody: raw.toString('utf8')
-      })
-      if (liveCanary && liveCanary.handled) return jsonResponse(res, liveCanary.status || 200, liveCanary.body || { ok: true, canary: true })
       var ingest = await rpc('aos_cia_email_ingest_provider_event_v2', {
         p_provider_event_id: verified.eventId,
         p_provider_message_id: messageId,
