@@ -24,7 +24,7 @@ F6 baseline:
 
 ## 3. Recovery técnico realizado
 
-Se contrastó GitHub con metadata de schema live, sin leer filas identificables.
+Se contrastó GitHub con metadata de schema live y consultas agregadas, sin devolver filas identificables.
 
 ### Call Center
 
@@ -44,6 +44,7 @@ Fuentes existentes verificadas:
 - tabla `aos_ventas`;
 - endpoint seguro F4 `POST /api/f4/sales-intelligence-read`;
 - RPC gobernada `aos_sales_intelligence_gateway`;
+- función agregada `STABLE` `aos_sales_intelligence_summary`;
 - panel `admin-sales-intelligence.html` es solo lectura.
 
 ### WhatsApp
@@ -66,17 +67,28 @@ Fuentes existentes verificadas:
 - `email-gateway.js` expone `CONFIG_HEALTH` bajo sesión gobernada y usa Resend con idempotencia;
 - `server-f4.js` maneja `/api/email-gateway`, `/api/send-email` y `/api/resend-webhook` en el boundary que conserva secretos.
 
-## 4. Hallazgo importante: warning Email del child
+## 4. Hallazgos de false-positive resueltos
 
-El warning observado anteriormente `EMAIL_SERVICE_ROLE_NOT_CONFIGURED` **no puede clasificarse solo como caída del email**.
+### 4.1 Warning Email del child
 
-Razón: `server-f4.js` elimina intencionalmente `SUPABASE_SERVICE_ROLE_KEY` del entorno de su child antes de lanzar `server-phase2.js`, mientras el `EMAIL_GATEWAY` gobernado vive en F4 y conserva el secreto en su boundary. Por tanto:
+El warning `EMAIL_SERVICE_ROLE_NOT_CONFIGURED` **no puede clasificarse solo como caída del email**.
 
-- warning del child sin evidencia adicional = ruido/contexto, no incidente;
-- `CONFIG_HEALTH` gobernado no listo = incidente real de configuración;
-- envíos aceptados sin eventos de proveedor durante umbral = degradación/incidente de pipeline.
+`server-f4.js` elimina intencionalmente `SUPABASE_SERVICE_ROLE_KEY` del entorno del child antes de lanzar `server-phase2.js`, mientras el `EMAIL_GATEWAY` gobernado vive en F4 y conserva el secreto en su boundary. Por tanto:
 
-Esto evita un false-positive que Sentinel habría podido introducir si trataba logs de forma aislada.
+- warning del child sin evidencia adicional = contexto, no incidente;
+- `CONFIG_HEALTH` gobernado explícitamente no listo = incidente de configuración;
+- config no verificada = `UNKNOWN`, no se infiere `HEALTHY` ni `INCIDENT`.
+
+### 4.2 Historial Email no equivale a salud actual
+
+El preflight agregado encontró 12 envíos históricos sin evento proveedor asociado. El registro más antiguo supera ampliamente la ventana operativa actual; si Sentinel leyera todo el historial sin horizonte, produciría un incidente falso.
+
+La regla F6 v1.1 fija un **horizonte actual de 1,440 minutos (24 h)**:
+
+- registros no emparejados fuera de la ventana no afectan el health live;
+- quedan como deuda histórica/evidencia, no como alarma actual;
+- dentro de la ventana, el pipeline solo puede declararse `HEALTHY` si `CONFIG_HEALTH` está verificado y existe actividad reciente que progresa correctamente;
+- sin actividad reciente suficiente, o sin evidencia de configuración, el estado es `UNKNOWN`.
 
 ## 5. Invariantes baseline
 
@@ -100,7 +112,7 @@ Umbrales iniciales:
 Compara dos superficies con el **mismo scope**:
 
 - conteo fuente de ventas;
-- resultado del gateway Sales Intelligence.
+- resultado agregado de Sales Intelligence.
 
 Reglas:
 
@@ -121,15 +133,60 @@ No lee cuerpo del mensaje ni números.
 
 ### F6-I04 — `email.provider_pipeline_health`
 
-Requiere evidencia del gateway gobernado y del pipeline:
+Usa exclusivamente agregados de una ventana reciente de 24 h y evidencia de configuración gobernada:
 
-- feature intencionalmente deshabilitada/no esperada → `UNKNOWN`;
-- service/provider/webhook config no listos mientras feature es esperada → `INCIDENT`;
-- enviado con `resend_id` sin evento proveedor >=15 min → `DEGRADED`;
+- feature no esperada → `UNKNOWN`;
+- config gobernada no comprobada → `UNKNOWN`;
+- config gobernada explícitamente incompleta mientras feature es esperada → `INCIDENT`;
+- config sana pero cero sends recientes → `UNKNOWN` (`NO_RECENT_EMAIL_ACTIVITY`);
+- al menos un send reciente y cero unmatched → `HEALTHY`;
+- send reciente sin evento >=15 min → `DEGRADED`;
 - >=60 min → `INCIDENT`;
-- warning del child por privilegio reducido, con gateway sano → no altera `HEALTHY`.
+- muestra fuera del horizonte → `UNKNOWN`;
+- warning del child por privilegio reducido no cambia un health sano.
 
-## 6. Motor
+## 6. Preflight agregado live — 2026-08-16
+
+Todas las consultas fueron read-only y devolvieron solo conteos/edades/booleanos.
+
+### Call Center
+
+- usuarios activos con código asesor: 10;
+- leads del día: 0;
+- llamadas del día: 0;
+- no existe evidencia de backlog elegible que justifique declarar falla.
+
+**Resultado Sentinel:** `UNKNOWN / NO_ELIGIBLE_BACKLOG`, no incidente.
+
+### Sales
+
+- conteo fuente 2026: `1299`;
+- Sales Intelligence agregado 2026: `1299`;
+- `hasData=true`;
+- data through: `2026-08-15`;
+- same-scope match: `true`.
+
+**Resultado Sentinel:** `HEALTHY` para la consistencia evaluada.
+
+### WhatsApp
+
+- outbound `ACCEPTED` sin progresión: `0`;
+- stalled >=15m: `0`;
+- stalled >=60m: `0`.
+
+**Resultado Sentinel:** `HEALTHY` para la progresión evaluada.
+
+### Email
+
+- envíos históricos sin evento: `12` — excluidos del health live por horizonte;
+- sends dentro de 24 h: `1`;
+- sends recientes sin evento: `1`;
+- edad aproximada del unmatched reciente: ~20 h;
+- `CONFIG_HEALTH` gobernado no fue verificado por esta consulta agregada.
+
+**Resultado Sentinel:** `UNKNOWN / EMAIL_CONFIG_EVIDENCE_INCOMPLETE`. No se declara incidente sin la evidencia de configuración requerida.
+
+## 7. Motor
 
 `sentinel/business-health/invariant-engine.cjs`
 
@@ -144,28 +201,30 @@ Propiedades:
 - no depende de Sentry;
 - no persiste ni notifica.
 
-## 7. Gates F6
+## 8. Gates F6
 
-| Gate | Criterio |
-|---|---|
-| F6-G01 Recovery | fuentes de los 4 dominios verificadas contra GitHub/schema metadata |
-| F6-G02 Privacy | allowlist aggregate-only y negative test contra campo sensible |
-| F6-G03 Call Center | anomalía sintética cambia solo Call Center a DEGRADED/INCIDENT |
-| F6-G04 Sales | source-present/gateway-empty produce INCIDENT |
-| F6-G05 WhatsApp | accepted-without-progress produce DEGRADED/INCIDENT por edad |
-| F6-G06 Email | config/pipeline stall detectado; legacy child warning solo no dispara incidente |
-| F6-G07 Valid empty | cero actividad legítima no se convierte automáticamente en incidente |
-| F6-G08 Cross-platform | Windows FAST + Linux Zero-Cost ejecutan contrato/fixtures |
-| F6-G09 Live aggregate preflight | consultas agregadas/read-only sin PII confirman que fuentes pueden calcularse |
-| F6-G10 Exact-head CI | workflow F6 exact-head PASS |
-| F6-G11 Scope | diff sin DB DDL, sin runtime mutation, sin secrets |
-| F6-G12 Closure | certificado final + merge + post-merge PASS + Notion |
+| Gate | Criterio | Estado |
+|---|---|---|
+| F6-G01 Recovery | fuentes de los 4 dominios verificadas contra GitHub/schema metadata | PASS |
+| F6-G02 Privacy | allowlist aggregate-only y negative test contra campo sensible | IMPLEMENTADO / CI |
+| F6-G03 Call Center | anomalía sintética cambia solo Call Center a DEGRADED/INCIDENT | IMPLEMENTADO / CI |
+| F6-G04 Sales | source-present/gateway-empty produce INCIDENT | IMPLEMENTADO / CI |
+| F6-G05 WhatsApp | accepted-without-progress produce DEGRADED/INCIDENT por edad | IMPLEMENTADO / CI |
+| F6-G06 Email | config/pipeline stall; horizonte reciente; legacy warning aislado no dispara incidente | IMPLEMENTADO / CI |
+| F6-G07 Valid empty | cero actividad legítima no se convierte automáticamente en incidente | IMPLEMENTADO / CI |
+| F6-G08 Cross-platform | Windows FAST + Linux Zero-Cost ejecutan contrato/fixtures | PENDIENTE EXACT-HEAD |
+| F6-G09 Live aggregate preflight | consultas agregadas/read-only sin PII | PASS |
+| F6-G10 Exact-head CI | workflow F6 exact-head PASS | PENDIENTE |
+| F6-G11 Scope | diff sin DB DDL, sin runtime mutation, sin secrets | PENDIENTE FINAL |
+| F6-G12 Closure | certificado final + merge + post-merge PASS + Notion | PENDIENTE |
 
-## 8. Próximo tramo
+## 9. Próximo tramo
 
-1. ejecutar CI F6;
-2. correr preflight agregado live sin persistencia;
-3. corregir cualquier false-positive detectado;
-4. abrir PR F6;
+1. ejecutar CI v1.1 en los tres runners;
+2. corregir cualquier divergencia;
+3. abrir PR F6;
+4. revisar scope exacto;
 5. exact-head PASS;
-6. certificado y cierre solo si G01–G12 pasan.
+6. certificado terminal;
+7. merge y post-merge PASS;
+8. Notion F6 = `Cerrada / 100%`; F7 = única siguiente.
