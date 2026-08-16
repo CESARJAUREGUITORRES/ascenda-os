@@ -243,6 +243,24 @@ function createLiveCanary(config) {
           webhooks: target
         })
       }
+      if (body.confirm === 'INSPECT_RESEND_CANARY_EMAIL_STATE') {
+        var email = await requester('https://api.resend.com/emails/a642351f-6cdb-4a81-963e-860037dfd2b5', {
+          method: 'GET',
+          timeout: 15000,
+          headers: { Authorization: 'Bearer ' + resendKey }
+        })
+        if (!(email.status >= 200 && email.status < 300) || !email.body) {
+          return jsonResponse(res, 502, { ok: false, error: 'RESEND_EMAIL_STATE_FAILED', provider_status: email.status || 0 })
+        }
+        var to = Array.isArray(email.body.to) ? email.body.to.map(function(v) { return String(v).toLowerCase() }) : []
+        return jsonResponse(res, 200, {
+          ok: true,
+          provider: 'RESEND',
+          last_event: String(email.body.last_event || ''),
+          canary_recipient_match: to.length === 1 && to[0] === CANARY_TO.toLowerCase(),
+          canary_subject_match: String(email.body.subject || '') === CANARY_SUBJECT
+        })
+      }
       if (body.confirm !== CANARY_CONFIRM) return jsonResponse(res, 400, { ok: false, error: 'CANARY_CONFIRMATION_REQUIRED' })
 
       var provider = await requester('https://api.resend.com/emails', {
