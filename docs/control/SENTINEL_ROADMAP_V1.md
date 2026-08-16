@@ -114,7 +114,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ---
 
-# FASE 5 — Availability Layer / Uptime Kuma
+# FASE 5 — Availability Layer / Hybrid Observer
 
 **Objetivo:** detectar caídas externas que no requieren una excepción interna.
 
@@ -122,8 +122,9 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - identificar endpoints/probes seguros;
 - `/health` outer runtime;
 - probes selectivos por dependencias;
-- diseñar deployment Uptime Kuma;
-- verificar costo marginal 24/7 antes de desplegar;
+- cobertura cloud continua sin costo incremental;
+- Uptime Kuma local/intermitente en CREACTIVE;
+- persistencia y reconciliación de coverage gaps;
 - configurar retries y anti-flapping;
 - definir status `UP/DOWN/UNKNOWN` traducible a Sentinel;
 - evitar endpoints que expongan métricas sensibles;
@@ -131,8 +132,9 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ### Gate de salida
 - disponibilidad externa puede detectarse independientemente del runtime observado;
-- hosting aprobado y documentado o fase queda técnicamente lista sin gasto no autorizado;
-- outage sintético produce señal deduplicada.
+- cobertura cloud continua verificada sin gasto incremental;
+- observador local reiniciable/persistente y su ausencia se traduce a `UNKNOWN`, no false green;
+- outage/recovery sintético produce estados deterministas y deduplicables.
 
 ---
 
@@ -360,6 +362,8 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 2: `CERRADA / 100_COMPLETE`.
 - Fase 3: `CERRADA / 100_COMPLETE`.
 - Fase 4: `CERRADA / 100_COMPLETE / 18/18 PASS`.
-- Fase 5: `EN CURSO — Availability Foundation`.
-- Fases 6–13: `PENDIENTE`.
-- F5 no autoriza gasto automático ni despliegue 24/7 hasta resolver `F5-HOST-01`; la foundation puede certificarse íntegramente en CI Zero-Cost.
+- Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local, G01–G12 PASS.
+- Fase 6: `SIGUIENTE — Business Health & Silent Failure Invariants`.
+- Fases 7–13: `PENDIENTE`.
+- Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
+- F5 mantiene costo incremental cloud `USD 0`, no autoriza gasto automático y no convierte gaps locales en false green.
