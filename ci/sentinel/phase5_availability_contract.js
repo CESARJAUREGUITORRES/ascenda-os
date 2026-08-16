@@ -17,7 +17,7 @@ const sm=require(path.join(ROOT,'sentinel/availability/state-machine.cjs'));
 
 ok(f4.includes('**F4:** `100_COMPLETE`'),'F4_NOT_CERTIFIED');
 ok(f4.includes('**Resultado:** `18/18 PASS`'),'F4_GATES_NOT_COMPLETE');
-ok(f5.schema_version==='sentinel-availability/v1.3'&&f5.phase==='F5','F5_CONTRACT_INVALID');
+ok(f5.schema_version==='sentinel-availability/v1.4'&&f5.phase==='F5','F5_CONTRACT_INVALID');
 ok(f5.availability_architecture==='hybrid-cloud-plus-local','F5_HYBRID_ARCHITECTURE_DRIFT');
 
 const cloud=f5.continuous_coverage;
@@ -30,6 +30,12 @@ ok(cloud.business_use_allowed===true,'F5_CLOUD_BUSINESS_USE_REQUIRED');
 ok(cloud.incremental_cost_usd_month===0,'F5_CLOUD_COST_DRIFT');
 ok(cloud.target_url==='https://ascenda-os-production.up.railway.app/health','F5_CLOUD_TARGET_DRIFT');
 ok(cloud.api_dependency_for_sentinel_core===false,'F5_CLOUD_API_LOCKIN_FORBIDDEN');
+ok(cloud.status==='VERIFIED','F5_CLOUD_NOT_VERIFIED');
+ok(cloud.verified_evidence?.provider_status==='UP','F5_CLOUD_PROVIDER_NOT_UP');
+ok(cloud.verified_evidence?.provider_uptime_percent===100,'F5_CLOUD_UPTIME_EVIDENCE_MISSING');
+ok(cloud.verified_evidence?.provider_incidents===0,'F5_CLOUD_INCIDENT_EVIDENCE_DRIFT');
+ok(cloud.verified_evidence?.provider_interval_seconds===300,'F5_CLOUD_EVIDENCE_INTERVAL_DRIFT');
+ok(cloud.verified_evidence?.railway_health_status===200,'F5_RAILWAY_HEALTH_EVIDENCE_MISSING');
 ok(cloud.fallback_from==='sentry-uptime','F5_CLOUD_FALLBACK_HISTORY_MISSING');
 ok(typeof cloud.fallback_reason==='string'&&cloud.fallback_reason.includes('1000'),'F5_SENTRY_LIMIT_EVIDENCE_MISSING');
 ok(cloud.custom_domain_not_required===true,'F5_CUSTOM_DOMAIN_MUST_NOT_BE_REQUIRED');
@@ -66,8 +72,12 @@ const mon=f5.baseline_monitors[0];
 ok(mon.url==='https://ascenda-os-production.up.railway.app/health','F5_HEALTH_URL_DRIFT');
 ok(mon.method==='GET'&&mon.expected_http_status===200,'F5_HEALTH_METHOD_STATUS_DRIFT');
 ok(mon.local_interval_seconds===60&&mon.cloud_interval_seconds===300,'F5_HYBRID_INTERVAL_DRIFT');
+ok(mon.timeout_seconds===15,'F5_TIMEOUT_DRIFT');
 ok(mon.expected_json?.ok===true&&mon.expected_json?.service==='ascenda-phase-s'&&mon.expected_json?.child_alive===true&&mon.expected_json?.inner_ready===true,'F5_EXPECTED_HEALTH_DRIFT');
 ok(mon.contains_phi_pii===false,'F5_MONITOR_PRIVACY_DRIFT');
+ok(f5.deployment.cloud_monitor_gate==='PASS','F5_CLOUD_GATE_NOT_PASS');
+ok(f5.deployment.local_install_gate==='PASS','F5_LOCAL_GATE_NOT_PASS');
+ok(f5.deployment.outage_recovery_gate==='PASS','F5_G11_GATE_NOT_PASS');
 
 ok(phaseS.includes("p==='/health'"),'F5_HEALTH_ROUTE_MISSING');
 ok(phaseS.includes("{ok:ready,service:'ascenda-phase-s',child_alive:childAlive,inner_ready:ready}"),'F5_HEALTH_RESPONSE_DRIFT');
@@ -101,6 +111,8 @@ ok(c({observerFresh:true,consecutiveSuccesses:2})==='UP','F5_UP_THRESHOLD_DRIFT'
 ok(c({observerFresh:true,consecutiveFailures:1})==='DEGRADED','F5_DEGRADED_DRIFT');
 ok(c({observerFresh:true,consecutiveFailures:2})==='DEGRADED','F5_DEGRADED_BEFORE_THRESHOLD_DRIFT');
 ok(c({observerFresh:true,consecutiveFailures:3})==='DOWN','F5_DOWN_THRESHOLD_DRIFT');
+ok(c({observerFresh:true,previousState:'DOWN',consecutiveSuccesses:1})==='DEGRADED','F5_RECOVERY_FIRST_SUCCESS_DRIFT');
+ok(c({observerFresh:true,previousState:'DEGRADED',consecutiveSuccesses:2})==='UP','F5_RECOVERY_THRESHOLD_DRIFT');
 ok(sm.classifyCoverage({cloudObserverFresh:true,localObserverFresh:true})==='CLOUD_AND_LOCAL','F5_COVERAGE_BOTH_DRIFT');
 ok(sm.classifyCoverage({cloudObserverFresh:true,localObserverFresh:false})==='CLOUD_ONLY','F5_COVERAGE_CLOUD_DRIFT');
 ok(sm.classifyCoverage({cloudObserverFresh:false,localObserverFresh:true})==='LOCAL_ONLY','F5_COVERAGE_LOCAL_DRIFT');
@@ -126,11 +138,11 @@ ok(!Object.prototype.hasOwnProperty.call(mon,'username')&&!Object.prototype.hasO
 
 console.log(JSON.stringify({
   ok:true,
-  certificate:'SENTINEL_F5_HYBRID_CLOUD_FALLBACK_CONTRACT_PASS',
+  certificate:'SENTINEL_F5_TERMINAL_CONTRACT_PASS',
   f4_complete:true,
   architecture:f5.availability_architecture,
   cloud_provider:cloud.provider,
-  cloud_plan:cloud.plan,
+  cloud_status:cloud.status,
   cloud_interval_seconds:cloud.check_interval_seconds,
   local_observer:f5.observer.host,
   local_runtime:'docker-native',
@@ -139,5 +151,7 @@ console.log(JSON.stringify({
   zero_phi_pii:true,
   incremental_cost_usd_month:0,
   direct_notifications:false,
+  g10_cloud:true,
+  g11_recovery:true,
   state_machine:true
 },null,2));

@@ -42,7 +42,8 @@ Es técnicamente viable reemplazar Sentry por una combinación self-hosted, pero
 
 - **Sentry Cloud Developer:** sensor especializado de errores/traces de alto valor; no es la base de datos de Sentinel.
 - **OpenTelemetry:** contrato portable de telemetría y futura capa de routing/filter/redaction/sampling.
-- **Uptime Kuma:** disponibilidad externa y health checks cuando exista hosting 24/7 con costo marginal aceptable/autorizado.
+- **UptimeRobot Free:** cobertura cloud continua del endpoint público `/health` para disponibilidad externa sin costo incremental.
+- **Uptime Kuma:** observador local/intermitente en CREACTIVE con persistencia, autoarranque Docker y reconciliación de coverage gaps.
 - **Sentinel Core:** topología, reglas de negocio, estados, incidentes `SEN-*`, severidad, evidencias y correlación.
 - **Supabase:** almacenamiento mínimo de estado/incidentes de Sentinel cuando se aprueben sus objetos versionados.
 - **GitHub:** código, releases, commits, PR, CI y evidencia reproducible.
@@ -152,7 +153,7 @@ ASCENDA runtime / browser / dependencies
                │
       ┌────────┼───────────┐
       │        │           │
-  Sentry    OTel       Health/Business probes
+  Sentry    OTel       Availability/Business probes
       │        │           │
       └────────┴─────┬─────┘
                      ▼
@@ -210,7 +211,9 @@ El panel final debe permitir abrir el incidente, ver evidencia sanitizada, relea
 - no activar pay-as-you-go automáticamente;
 - sampling y filtering obligatorios antes de ampliar tracing/logging;
 - no duplicar la misma telemetría en múltiples backends sin una razón demostrable;
-- Uptime Kuma solo se despliega 24/7 cuando exista hosting con costo marginal aceptado; no se crea infraestructura pagada por inercia;
+- UptimeRobot Free mantiene la cobertura cloud continua de F5 mientras siga cumpliendo el baseline aprobado;
+- Uptime Kuma corre localmente en CREACTIVE y su ausencia se representa como `UNKNOWN`, no como caída de ASCENDA;
+- no se crea infraestructura pagada por inercia;
 - cualquier upgrade Sentry o servicio adicional requiere Impact Report económico y autorización expresa.
 
 ## 13. Fuentes canónicas
@@ -245,3 +248,10 @@ Sentinel puede declararse `100_COMPLETE` para una baseline solo cuando:
 ## 15. Roadmap
 
 El roadmap operativo detallado está en `docs/control/SENTINEL_ROADMAP_V1.md`.
+
+## 16. Checkpoint actual
+
+- F1–F4: `100_COMPLETE`.
+- F5: `100_COMPLETE` una vez fusionado el cierre terminal certificado en PR #205.
+- F6: siguiente fase canónica — `Business Health & Silent Failure Invariants`.
+- Certificado terminal F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.

@@ -20,11 +20,20 @@ function classifyAvailability(input={}){
   const consecutiveSuccesses=Number.isInteger(input.consecutiveSuccesses)?Math.max(0,input.consecutiveSuccesses):0;
   const failureThreshold=Number.isInteger(input.failureThreshold)?Math.max(1,input.failureThreshold):3;
   const recoveryThreshold=Number.isInteger(input.recoveryThreshold)?Math.max(1,input.recoveryThreshold):2;
+  const previousState=Object.values(STATES).includes(input.previousState)?input.previousState:STATES.UNKNOWN;
 
   if(!observerFresh)return STATES.UNKNOWN;
   if(consecutiveFailures>=failureThreshold)return STATES.DOWN;
   if(consecutiveFailures>0)return STATES.DEGRADED;
   if(consecutiveSuccesses>=recoveryThreshold)return STATES.UP;
+
+  // Preserve incident context while recovery is not yet proven.
+  // One isolated success after DOWN/DEGRADED must never become a false green
+  // and should not erase the known degraded condition as UNKNOWN.
+  if(consecutiveSuccesses>0&&(previousState===STATES.DOWN||previousState===STATES.DEGRADED)){
+    return STATES.DEGRADED;
+  }
+
   return STATES.UNKNOWN;
 }
 
