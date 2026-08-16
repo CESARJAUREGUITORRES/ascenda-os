@@ -1,0 +1,84 @@
+{
+  "event_id": "0123456789abcdef0123456789abcdef",
+  "timestamp": 1786896000,
+  "platform": "node",
+  "level": "error",
+  "environment": "production",
+  "release": "ascenda-os@e3ff8914447c06a2b94b3be5cccbade73526ce0d",
+  "message": "Patient FAKE NAME with phone +51 999 999 999 failed",
+  "transaction": "/api/patients/00000000?email=fake.patient@example.invalid",
+  "user": {
+    "id": "patient-00000000",
+    "email": "fake.patient@example.invalid",
+    "ip_address": "203.0.113.10"
+  },
+  "request": {
+    "url": "https://ascenda.invalid/api/patients/00000000?email=fake.patient@example.invalid",
+    "method": "POST",
+    "headers": {
+      "authorization": "Bearer fake-access-token",
+      "cookie": "session=fake-cookie"
+    },
+    "data": {
+      "dni": "00000000",
+      "telefono": "+51 999 999 999",
+      "prompt": "synthetic AI prompt that must never leave"
+    }
+  },
+  "breadcrumbs": [
+    {
+      "category": "console",
+      "message": "WhatsApp body: synthetic private message"
+    }
+  ],
+  "extra": {
+    "service_role": "fake-service-role",
+    "patient_name": "FAKE NAME"
+  },
+  "contexts": {
+    "patient": {
+      "dni": "00000000"
+    }
+  },
+  "tags": {
+    "system": "ascenda-os",
+    "sentinel.phase": "F4",
+    "service.name": "server-phase-s.js",
+    "email": "fake.patient@example.invalid",
+    "unknown.custom": "must-drop"
+  },
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "Patient FAKE NAME 00000000 fake.patient@example.invalid",
+        "stacktrace": {
+          "frames": [
+            {
+              "filename": "C:/Users/FAKEUSER/project/app/server-phase-s.js",
+              "abs_path": "C:/Users/FAKEUSER/project/app/server-phase-s.js",
+              "module": "server-phase-s",
+              "function": "handleSynthetic",
+              "lineno": 10,
+              "colno": 5,
+              "context_line": "throw new Error(patient.email)",
+              "pre_context": ["const email = fake.patient@example.invalid"],
+              "post_context": ["console.log(email)"],
+              "vars": {
+                "token": "fake-secret-value"
+              },
+              "in_app": true
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "generic",
+          "handled": false,
+          "data": {
+            "body": "synthetic private body"
+          }
+        }
+      }
+    ]
+  }
+}
