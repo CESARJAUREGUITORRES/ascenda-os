@@ -1,0 +1,125 @@
+{
+  "schema_version": "sentinel-business-health/v1",
+  "phase": "F6",
+  "baseline_main": "81da6ceb18ed35cca8acb0ac68b90dc6e9ed8aae",
+  "mode": "aggregate-read-only",
+  "purpose": "Detect silent functional failures when HTTP/runtime may still appear healthy.",
+  "privacy": {
+    "zero_phi_pii": true,
+    "aggregate_only": true,
+    "request_bodies_forbidden": true,
+    "message_content_forbidden": true,
+    "patient_identifiers_forbidden": true,
+    "contact_identifiers_forbidden": true,
+    "auth_material_forbidden": true,
+    "forbidden_key_fragments": [
+      "phone",
+      "telefono",
+      "numero_limpio",
+      "dni",
+      "email",
+      "recipient",
+      "destinatario",
+      "nombre",
+      "name",
+      "message_body",
+      "prompt",
+      "authorization",
+      "cookie",
+      "token",
+      "apikey",
+      "service_role",
+      "secret",
+      "password"
+    ]
+  },
+  "source_contracts": {
+    "verified_on": "2026-08-16",
+    "verification_mode": "github-plus-live-schema-metadata-only",
+    "call_center": {
+      "tables": ["aos_leads", "aos_llamadas"],
+      "rpcs": ["aos_panel_admin", "aos_panel_asesor", "aos_monitoreo_equipo", "aos_siguiente_lead_v2"]
+    },
+    "sales": {
+      "tables": ["aos_ventas"],
+      "rpcs": ["aos_sales_intelligence_gateway"]
+    },
+    "whatsapp": {
+      "tables": ["aos_wa_conversations_v1", "aos_wa_messages_v1", "aos_wa_outbound_requests_v1"],
+      "runtime_files": ["app/server-wa2.js", "app/server-wa3.js", "app/server-f4.js"]
+    },
+    "email": {
+      "tables": ["aos_email_envios", "aos_email_eventos", "aos_email_flujo_ejecuciones"],
+      "runtime_files": ["app/email-gateway.js", "app/server-f4.js"]
+    }
+  },
+  "invariants": [
+    {
+      "id": "callcenter.activity_stall",
+      "domain": "CALL_CENTER",
+      "component": "lead-workflow",
+      "capability": "lead-to-call-activity",
+      "inputs": ["operating_window", "window_age_minutes", "active_advisors", "eligible_leads", "calls_in_window", "latest_call_age_minutes"],
+      "semantics": {
+        "unknown_when": "outside operating window, no active advisors, or no eligible lead backlog",
+        "degraded_when": "eligible backlog and active advisors exist, but no/recent call activity is stale for >=30 minutes",
+        "incident_when": "same correlated stall reaches >=60 minutes"
+      }
+    },
+    {
+      "id": "sales.pipeline_consistency",
+      "domain": "SALES",
+      "component": "sales-intelligence",
+      "capability": "aggregate-sales-read",
+      "inputs": ["scope_consistent", "source_sales_count", "gateway_has_data", "gateway_sales_count"],
+      "semantics": {
+        "unknown_when": "scope is not proven equivalent",
+        "incident_when": "source contains sales in the same scope but the read gateway reports no data",
+        "degraded_when": "both surfaces have data but their same-scope counts diverge"
+      }
+    },
+    {
+      "id": "whatsapp.outbound_receipt_stall",
+      "domain": "WHATSAPP",
+      "component": "human-outbound",
+      "capability": "provider-status-progression",
+      "inputs": ["accepted_without_progress", "oldest_unprogressed_age_minutes"],
+      "semantics": {
+        "healthy_when": "no accepted outbound is waiting abnormally for provider progression",
+        "degraded_when": "one or more accepted sends have no later provider progression for >=15 minutes",
+        "incident_when": "oldest such send reaches >=60 minutes"
+      }
+    },
+    {
+      "id": "email.provider_pipeline_health",
+      "domain": "EMAIL",
+      "component": "resend-gateway",
+      "capability": "send-and-webhook-progression",
+      "inputs": ["feature_expected", "gateway_service_configured", "provider_send_configured", "webhook_configured", "sent_without_event", "oldest_sent_without_event_age_minutes", "legacy_child_service_role_warning"],
+      "semantics": {
+        "unknown_when": "email feature is intentionally not expected",
+        "incident_when": "governed gateway configuration is missing while feature is expected, or sent items have no provider event for >=60 minutes",
+        "degraded_when": "sent items have no provider event for >=15 minutes",
+        "ignore_rule": "legacy child EMAIL_SERVICE_ROLE_NOT_CONFIGURED warning alone is not an incident because server-f4 intentionally strips service-role from its child; require governed gateway evidence"
+      }
+    }
+  ],
+  "thresholds": {
+    "call_center_degraded_minutes": 30,
+    "call_center_incident_minutes": 60,
+    "whatsapp_degraded_minutes": 15,
+    "whatsapp_incident_minutes": 60,
+    "email_degraded_minutes": 15,
+    "email_incident_minutes": 60
+  },
+  "state_priority": ["INCIDENT", "DEGRADED", "UNKNOWN", "HEALTHY"],
+  "signal_contract": {
+    "required_fields": ["domain", "component", "capability", "invariant_id", "state", "reason", "observed_at", "evidence"],
+    "evidence_must_be_aggregate": true,
+    "persistence_owned_by_phase": "F8",
+    "notifications_owned_by_phase": "F9"
+  },
+  "production_mutation": false,
+  "new_database_objects": false,
+  "automatic_remediation": false
+}
