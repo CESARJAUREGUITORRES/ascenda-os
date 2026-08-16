@@ -1,0 +1,51 @@
+name: F16 Production Env Probe
+
+on:
+  push:
+    branches:
+      - ops/f16-prod-canary-trigger-20260815
+    paths:
+      - .github/workflows/f16-prod-env-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe gateway and webhook configuration without secrets
+        shell: powershell
+        run: |
+          $base = 'https://ascenda-os-production.up.railway.app'
+          function Post-Json($url, $headers) {
+            try {
+              $r = Invoke-WebRequest -Uri $url -Method POST -ContentType 'application/json' -Body '{}' -Headers $headers -UseBasicParsing
+              return @{ Status = [int]$r.StatusCode; Body = $r.Content }
+            } catch {
+              $resp = $_.Exception.Response
+              if ($null -eq $resp) { throw }
+              $status = [int]$resp.StatusCode
+              $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+              $body = $reader.ReadToEnd()
+              return @{ Status = $status; Body = $body }
+            }
+          }
+
+          $gw = Post-Json "$base/api/email-gateway" @{}
+          Write-Host "GATEWAY_STATUS=$($gw.Status)"
+          Write-Host "GATEWAY_BODY=$($gw.Body)"
+
+          $wh = Post-Json "$base/api/resend-webhook" @{
+            'svix-id'='probe-invalid';
+            'svix-timestamp'='1';
+            'svix-signature'='v1,invalid'
+          }
+          Write-Host "WEBHOOK_STATUS=$($wh.Status)"
+          Write-Host "WEBHOOK_BODY=$($wh.Body)"
+
+          if ($gw.Status -notin @(401,503)) { throw "Unexpected gateway status $($gw.Status)" }
+          if ($wh.Status -notin @(401,503)) { throw "Unexpected webhook status $($wh.Status)" }
+          Write-Host 'F16_ENV_PROBE=PASS'
