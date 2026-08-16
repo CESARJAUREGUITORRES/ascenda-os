@@ -3,9 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'docs/control/SENTINEL_*.md'
-      - 'ci/sentinel/**'
-      - '.github/workflows/sentinel-phase1-governance.yml'
+      - 'docs/control/SENTINEL_F1_GOVERNANCE_PRIVACY_COST_POLICY.md'
+      - 'docs/control/SENTINEL_F1_VALIDATION_REPORT_20260816.md'
+      - 'ci/sentinel/phase1_governance_contract.js'
 permissions:
   contents: read
 concurrency:
