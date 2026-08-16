@@ -12,7 +12,7 @@ const DOMAIN_KEYS=Object.freeze({
   call_center:new Set(['operating_window','window_age_minutes','active_advisors','eligible_leads','calls_in_window','latest_call_age_minutes']),
   sales:new Set(['scope_consistent','source_sales_count','gateway_has_data','gateway_sales_count']),
   whatsapp:new Set(['accepted_without_progress','oldest_unprogressed_age_minutes']),
-  email:new Set(['feature_expected','gateway_service_configured','provider_send_configured','webhook_configured','sent_without_event','oldest_sent_without_event_age_minutes','legacy_child_privilege_warning'])
+  email:new Set(['feature_expected','gateway_service_configured','provider_send_configured','webhook_configured','monitoring_horizon_minutes','recent_sent_count','recent_sent_without_event','oldest_recent_without_event_age_minutes','legacy_child_privilege_warning'])
 });
 const FORBIDDEN_KEY_FRAGMENTS=[
   'phone','telefono','numero_limpio','dni','email_address','recipient','destinatario','patient','paciente',
@@ -132,10 +132,13 @@ function evaluateEmail(data,observedAt){
   const service=boolOrNull(d.gateway_service_configured),provider=boolOrNull(d.provider_send_configured),webhook=boolOrNull(d.webhook_configured);
   if(service==null||provider==null||webhook==null)return signal(META.email,STATES.UNKNOWN,'EMAIL_CONFIG_EVIDENCE_INCOMPLETE',ev,observedAt);
   if(!service||!provider||!webhook)return signal(META.email,STATES.INCIDENT,'GOVERNED_EMAIL_GATEWAY_NOT_READY',ev,observedAt);
-  const count=nonNegative(d.sent_without_event),age=nonNegative(d.oldest_sent_without_event_age_minutes);
-  if(count==null)return signal(META.email,STATES.UNKNOWN,'EMAIL_PIPELINE_INPUT_INCOMPLETE',ev,observedAt);
-  if(count===0)return signal(META.email,STATES.HEALTHY,'EMAIL_GATEWAY_AND_EVENT_PIPELINE_HEALTHY',ev,observedAt);
-  if(age==null)return signal(META.email,STATES.UNKNOWN,'EMAIL_EVENT_STALL_AGE_UNKNOWN',ev,observedAt);
+  const horizon=nonNegative(d.monitoring_horizon_minutes),recentSent=nonNegative(d.recent_sent_count),unmatched=nonNegative(d.recent_sent_without_event),age=nonNegative(d.oldest_recent_without_event_age_minutes);
+  if(horizon==null||horizon<=0||recentSent==null||unmatched==null)return signal(META.email,STATES.UNKNOWN,'EMAIL_PIPELINE_INPUT_INCOMPLETE',ev,observedAt);
+  if(recentSent===0)return signal(META.email,STATES.UNKNOWN,'NO_RECENT_EMAIL_ACTIVITY',ev,observedAt);
+  if(unmatched===0)return signal(META.email,STATES.HEALTHY,'EMAIL_RECENT_PIPELINE_HEALTHY',ev,observedAt);
+  if(unmatched>recentSent)return signal(META.email,STATES.UNKNOWN,'EMAIL_AGGREGATE_INCONSISTENT',ev,observedAt);
+  if(age==null)return signal(META.email,STATES.UNKNOWN,'EMAIL_RECENT_STALL_AGE_UNKNOWN',ev,observedAt);
+  if(age>horizon)return signal(META.email,STATES.UNKNOWN,'EMAIL_SAMPLE_OUTSIDE_MONITORING_HORIZON',ev,observedAt);
   if(age>=60)return signal(META.email,STATES.INCIDENT,'EMAIL_PROVIDER_EVENT_STALL_60M',ev,observedAt);
   if(age>=15)return signal(META.email,STATES.DEGRADED,'EMAIL_PROVIDER_EVENT_STALL_15M',ev,observedAt);
   return signal(META.email,STATES.HEALTHY,'EMAIL_EVENT_PROGRESS_WITHIN_GRACE',ev,observedAt);
