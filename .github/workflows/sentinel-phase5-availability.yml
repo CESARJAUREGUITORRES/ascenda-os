@@ -61,7 +61,7 @@ jobs:
           bash -n sentinel/availability/creactive/start-observer.sh
           bash -n sentinel/availability/creactive/install-observer.sh
           bash -n sentinel/availability/creactive/bootstrap-observer.sh
-          sentinel/availability/creactive/bootstrap-observer.sh --help >/tmp/sentinel-f5-bootstrap-help.txt
+          bash sentinel/availability/creactive/bootstrap-observer.sh --help >/tmp/sentinel-f5-bootstrap-help.txt
           python3 -m py_compile sentinel/availability/local-observer-agent.py
           python3 - <<'PY'
           import importlib.util
