@@ -32,10 +32,15 @@ jobs:
       - name: Diff hygiene
         shell: powershell
         run: git diff --check
-      - name: State machine syntax
+      - name: State and agent syntax
         shell: powershell
-        run: node --check sentinel/availability/state-machine.cjs
-      - name: F5 availability contract
+        run: |
+          node --check sentinel/availability/state-machine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/availability/local-observer-agent.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $null = [scriptblock]::Create((Get-Content -Raw 'sentinel/availability/creactive/Install-SentinelCreactiveTask.ps1'))
+      - name: F5 hybrid availability contract
         shell: powershell
         run: node ci/sentinel/phase5_availability_contract.js
 
@@ -51,6 +56,12 @@ jobs:
           set -euo pipefail
           test "$RUNNER_OS" = "Linux"
           docker version >/dev/null
+      - name: Validate local observer scripts
+        run: |
+          set -euo pipefail
+          bash -n sentinel/availability/creactive/start-observer.sh
+          bash -n sentinel/availability/creactive/install-observer.sh
+          node --check sentinel/availability/local-observer-agent.cjs
       - name: Validate versioned compose artifact statically
         run: |
           set -euo pipefail
@@ -58,6 +69,7 @@ jobs:
           grep -q '127.0.0.1:3001:3001' sentinel/availability/compose.yaml
           grep -q 'uptime-kuma-data:/app/data' sentinel/availability/compose.yaml
           grep -q 'no-new-privileges:true' sentinel/availability/compose.yaml
+          grep -q 'restart: unless-stopped' sentinel/availability/compose.yaml
           ! grep -Eq '(SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|Bearer )' sentinel/availability/compose.yaml
           ! grep -q 'network_mode: host' sentinel/availability/compose.yaml
           ! grep -q '/var/run/docker.sock' sentinel/availability/compose.yaml
