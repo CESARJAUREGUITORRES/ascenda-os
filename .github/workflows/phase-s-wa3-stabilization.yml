@@ -13,6 +13,11 @@ on:
       - 'app/server-f4.js'
       - 'app/wa-gateway.js'
       - 'ci/phase-s/**'
+      - 'ci/phase4-revenue/**'
+      - 'ci/wa2-conversation-live-inbox/**'
+      - 'ci/wa3-boxes-routing-handoff/**'
+      - 'ci/wa4-ai-sales-router/**'
+      - 'ci/phase5-historical-identity/**'
       - 'docs/control/WHATSAPP_PHASE_S_*'
       - 'docs/control/WHATSAPP_REVENUE_HUB_EXPANSION_*'
       - '.github/workflows/phase-s-wa3-stabilization.yml'
@@ -29,14 +34,17 @@ concurrency:
 
 jobs:
   certify:
-    name: FAST Phase S native bootstrap and human-send boundary
+    name: FAST Phase S full runtime-chain certification
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Enforce self-hosted FAST lane
         shell: powershell
@@ -61,7 +69,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
-      - name: Phase S contracts
+      - name: Phase S boundary contract
         shell: powershell
         run: |
           node ci/phase-s/phase-s_contract.js
@@ -71,6 +79,38 @@ jobs:
         shell: powershell
         run: |
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: F4 runtime/UI topology contracts
+        shell: powershell
+        run: |
+          python ci/phase4-revenue/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase4-revenue/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-2 inbox topology contract
+        shell: powershell
+        run: |
+          python ci/wa2-conversation-live-inbox/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-3 routing topology contract
+        shell: powershell
+        run: |
+          python ci/wa3-boxes-routing-handoff/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-4 AI boundary topology contract
+        shell: powershell
+        run: |
+          python ci/wa4-ai-sales-router/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: F5 private-boundary topology contract
+        shell: powershell
+        run: |
+          node ci/phase5-historical-identity/f5_upload_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Security invariants
@@ -85,14 +125,14 @@ jobs:
           if ($s -match '(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
           if ($rail -notmatch '"startCommand"\s*:\s*"node server-phase-s\.js"') { throw 'Railway Phase S start command missing' }
 
-      - name: Canonical downstream gates are independent
+      - name: DB gates remain canonical and independent
         shell: powershell
         run: |
-          Write-Host 'WA-2 and WA-3 are certified by their dedicated workflows triggered by this PR.'
-          Write-Host 'Phase S does not duplicate their DB/pgTAP contracts on FAST runners.'
+          Write-Host 'Phase S adds no DB migration or schema object.'
+          Write-Host 'WA-2/WA-3/F4/WA-4/F5 DB/RLS/pgTAP remain owned by their Linux Zero-Cost workflows.'
 
       - name: Phase S gate summary
         shell: powershell
         run: |
-          Write-Host 'PHASE S STATIC GATE PASS'
-          Write-Host 'Production gates remaining: native reload canary, human outbound, Meta delivery/read receipt.'
+          Write-Host 'PHASE S FULL STATIC/RUNTIME-CHAIN GATE PASS'
+          Write-Host 'Production gates remaining: deploy health, native reload canary, human outbound, Meta delivery/read receipt.'
