@@ -805,7 +805,7 @@ begin
       when (c.conflicts->>'DNI_CONFLICT')::boolean or (c.conflicts->>'DOB_CONFLICT')::boolean or (c.conflicts->>'SEX_CONFLICT')::boolean then 'REVIEW_REQUIRED'
       when p.patient_id is null then 'UNMATCHED'
       when p.tied_at_score>1 then 'REVIEW_REQUIRED'
-      when p.score>=70 then 'AUTO_CANDIDATE'
+      when (p.signals ? 'DNI_NAME') or ((p.signals ? 'EMAIL') and ((p.signals ? 'PHONE_NAME') or (p.signals ? 'NAME_DOB'))) then 'AUTO_CANDIDATE'
       else 'REVIEW_REQUIRED'
     end,
     case when p.patient_id is null then null else array_to_string(array(select jsonb_array_elements_text(p.signals)), '+') end,
