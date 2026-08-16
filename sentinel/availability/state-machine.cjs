@@ -7,6 +7,13 @@ const STATES=Object.freeze({
   UNKNOWN:'UNKNOWN'
 });
 
+const COVERAGE=Object.freeze({
+  CLOUD_AND_LOCAL:'CLOUD_AND_LOCAL',
+  CLOUD_ONLY:'CLOUD_ONLY',
+  LOCAL_ONLY:'LOCAL_ONLY',
+  UNKNOWN:'UNKNOWN'
+});
+
 function classifyAvailability(input={}){
   const observerFresh=input.observerFresh===true;
   const consecutiveFailures=Number.isInteger(input.consecutiveFailures)?Math.max(0,input.consecutiveFailures):0;
@@ -19,6 +26,15 @@ function classifyAvailability(input={}){
   if(consecutiveFailures>0)return STATES.DEGRADED;
   if(consecutiveSuccesses>=recoveryThreshold)return STATES.UP;
   return STATES.UNKNOWN;
+}
+
+function classifyCoverage(input={}){
+  const cloudFresh=input.cloudObserverFresh===true;
+  const localFresh=input.localObserverFresh===true;
+  if(cloudFresh&&localFresh)return COVERAGE.CLOUD_AND_LOCAL;
+  if(cloudFresh)return COVERAGE.CLOUD_ONLY;
+  if(localFresh)return COVERAGE.LOCAL_ONLY;
+  return COVERAGE.UNKNOWN;
 }
 
 function sentinelHealthState(availabilityState){
@@ -35,4 +51,4 @@ function availabilityFingerprint({environment='unknown',monitorId='unknown'}={})
   return `availability:${safe(environment)}:${safe(monitorId)}`;
 }
 
-module.exports={STATES,classifyAvailability,sentinelHealthState,availabilityFingerprint};
+module.exports={STATES,COVERAGE,classifyAvailability,classifyCoverage,sentinelHealthState,availabilityFingerprint};
