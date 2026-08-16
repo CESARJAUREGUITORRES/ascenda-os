@@ -31,13 +31,16 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - establecer política `no pay-as-you-go automático`;
 - definir cuándo Sentry, OTel, Kuma o GlitchTip pueden utilizarse;
 - definir rollback/desactivación total de observabilidad;
-- crear Control Maestro GitHub + Notion + bases de fases/hallazgos.
+- crear Control Maestro GitHub + Notion + bases de fases/hallazgos;
+- añadir contrato machine-checkable y workflow self-hosted de certificación.
 
 ### Gate de salida
 - arquitectura y políticas canónicas versionadas;
 - costo inicial objetivo documentado;
 - no existe telemetría productiva antes de completar privacy gate;
-- Notion y GitHub reflejan la misma fase activa.
+- exact-head F1 CI PASS;
+- scope final sin cambios runtime/DB;
+- Notion y GitHub reflejan la misma fase activa/cerrada.
 
 ---
 
@@ -296,7 +299,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ---
 
-# FASE 13 — Sentinel Hub, System Map & Cross-System Certification
+# FASE 13 — Sentinel Hub, System Map & Certification
 
 **Objetivo:** entregar el panel interno final dentro de ASCENDA y certificar Sentinel transversalmente.
 
@@ -351,8 +354,8 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 | 12 | Safe Remediation | fix→PR con gates |
 | 13 | Sentinel Hub | mapa interno + certificación 100% |
 
-## Estado inicial
+## Estado actual
 
-- Fase 1: `SIGUIENTE`.
+- Fase 1: `EN CURSO`.
 - Fases 2–13: `PENDIENTE`.
 - Ningún sensor productivo queda autorizado únicamente por este documento; cada fase debe ejecutar sus gates.
