@@ -5,7 +5,7 @@
     "buildCommand": "echo 'Skip build — certified outer runtime chain: node server-f5.js -> node server-wa4.js -> node server-wa3.js -> node server-wa2.js -> node server-f4.js'"
   },
   "deploy": {
-    "startCommand": "node server-f5.js",
+    "startCommand": "node server-k1.js",
     "restartPolicyType": "ON_FAILURE"
   },
   "environments": {
