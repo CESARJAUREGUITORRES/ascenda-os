@@ -64,18 +64,12 @@ jobs:
           (cd app && python3 k1_phase2_materialize.py)
           python3 ci/kronia-k1-phase2/runtime_contract.py
           rm -f app/k1-phase2-runtime-manifest.json
-          git add .github/workflows/kronia-k1-phase2-security.yml app chrome-extension ci/kronia-k1-phase2 scripts/ci/k1_current_v3_patch.py supabase
+          find app ci scripts -type d -name __pycache__ -prune -exec rm -rf {} +
+          git add app chrome-extension ci/kronia-k1-phase2 scripts/ci/k1_current_v3_patch.py supabase
           git config user.name 'ASCENDA Zero-Cost Bot'
           git config user.email 'actions@users.noreply.github.com'
           git commit -m 'security(k1): port recovered K1 onto current certified runtime'
           git push origin HEAD:security/kronia-k1-current-certified-20260815-v3
 
-      - name: Retire one-shot materializer
-        shell: bash
-        run: |
-          set -euo pipefail
-          git rm .github/workflows/k1-current-v3-materialize.yml
-          git config user.name 'ASCENDA Zero-Cost Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git commit -m 'ci(k1): retire current v3 materializer'
-          git push origin HEAD:security/kronia-k1-current-certified-20260815-v3
+      - name: Confirm workflow-isolated materialization
+        run: echo 'K1_CURRENT_V3_MATERIALIZER_PUSH=PASS'
