@@ -129,7 +129,32 @@ jobs:
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
-        run: supabase db lint --local --schema public --level error
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/f5-lint.txt
+          python3 - <<'PY'
+          import json,re,sys
+          text=open('/tmp/f5-lint.txt',encoding='utf-8').read()
+          start=text.find('['); end=text.rfind(']')
+          if start < 0 or end < start:
+              print('F5_DB_LINT=PASS no JSON issues')
+              raise SystemExit(0)
+          issues=json.loads(text[start:end+1])
+          unexpected=[]; allowed=0
+          for fn in issues:
+              for issue in fn.get('issues',[]):
+                  if issue.get('level')!='error':
+                      continue
+                  msg=issue.get('message','')
+                  if re.fullmatch(r'relation "tmp_f5_[A-Za-z0-9_]+" does not exist',msg):
+                      allowed += 1
+                  else:
+                      unexpected.append((fn.get('function'),msg))
+          print(f'F5_DB_LINT_TEMP_FALSE_POSITIVES={allowed}')
+          if unexpected:
+              print('Unexpected DB lint errors:',unexpected,file=sys.stderr)
+              raise SystemExit(1)
+          PY
 
       - name: pgTAP F5 foundation + compact preview
         run: |
