@@ -1,7 +1,7 @@
 {
-  "schema_version": "sentinel-availability/v1.3",
+  "schema_version": "sentinel-availability/v1.4",
   "phase": "F5",
-  "baseline_main": "9d3ddba3289d3937259891a5b7d288356962d54c",
+  "baseline_main": "5810d294479529c662d36f49012de321ce6f4ca4",
   "availability_architecture": "hybrid-cloud-plus-local",
   "continuous_coverage": {
     "required": true,
@@ -15,7 +15,16 @@
     "target_url": "https://ascenda-os-production.up.railway.app/health",
     "configuration_requires_provider_ui": true,
     "api_dependency_for_sentinel_core": false,
-    "status": "HUMAN_UI_PENDING",
+    "status": "VERIFIED",
+    "verified_at": "2026-08-16T17:21:00-05:00",
+    "verified_evidence": {
+      "provider_status": "UP",
+      "provider_uptime_percent": 100,
+      "provider_incidents": 0,
+      "provider_interval_seconds": 300,
+      "railway_health_status": 200,
+      "manual_ui_evidence": true
+    },
     "fallback_from": "sentry-uptime",
     "fallback_reason": "Sentry UI rejected creation because shared domain *.railway.app had reached its 1000 uptime-monitoring-alert limit on 2026-08-16",
     "custom_domain_not_required": true
@@ -88,7 +97,7 @@
       "environment": "production",
       "local_interval_seconds": 60,
       "cloud_interval_seconds": 300,
-      "timeout_seconds": 10,
+      "timeout_seconds": 15,
       "retries_before_down": 3,
       "recovery_successes": 2,
       "expected_http_status": 200,
@@ -106,7 +115,8 @@
     "initial_or_insufficient_samples": "UNKNOWN",
     "healthy_after_success_threshold": "UP",
     "partial_failure_before_down_threshold": "DEGRADED",
-    "failure_threshold_reached": "DOWN"
+    "failure_threshold_reached": "DOWN",
+    "first_success_after_down_before_recovery_threshold": "DEGRADED"
   },
   "coverage_translation": {
     "cloud_and_local": "CLOUD_AND_LOCAL",
@@ -133,9 +143,9 @@
     "persistent_local_deploy_authorized": true,
     "local_host": "CREACTIVE",
     "persistent_local_runtime": "docker-native",
-    "cloud_monitor_gate": "F5-CLOUD-01",
-    "local_install_gate": "F5-LOCAL-01",
-    "outage_recovery_gate": "F5-RECOVERY-01"
+    "cloud_monitor_gate": "PASS",
+    "local_install_gate": "PASS",
+    "outage_recovery_gate": "CI_PENDING"
   },
   "forbidden_external_probes": [
     "/api/phase-s/status",
