@@ -1,7 +1,7 @@
 {
-  "schema_version": "sentinel-availability/v1.1",
+  "schema_version": "sentinel-availability/v1.2",
   "phase": "F5",
-  "baseline_main": "d81863d46f4f4fe54deb4c017968aac5b19b310d",
+  "baseline_main": "28dfdeafbf66cfa79f6fcec132e607d40529ee37",
   "availability_architecture": "hybrid-cloud-plus-local",
   "continuous_coverage": {
     "required": true,
@@ -18,11 +18,12 @@
   "observer": {
     "engine": "uptime-kuma",
     "docker_image": "louislam/uptime-kuma:2",
+    "agent_image": "python:3.14-alpine",
     "verified_release_at_design_time": "2.3.2",
     "verified_on": "2026-08-16",
     "mode": "intermittent-workstation-observer",
     "host": "CREACTIVE",
-    "runtime": "Windows + WSL2 Ubuntu + Docker",
+    "runtime": "Ubuntu/Docker on CREACTIVE",
     "must_be_independent_from_ascenda_railway_runtime": true,
     "same_railway_service_forbidden": true,
     "public_admin_ui_default": false,
@@ -32,14 +33,14 @@
     "restart_policy": "unless-stopped",
     "offline_semantics": "UNKNOWN",
     "offline_is_not_ascenda_down": true,
-    "autostart_chain": [
-      "Windows user logon",
-      "Task Scheduler",
-      "wsl.exe Ubuntu",
-      "wait for Docker",
-      "start/reuse Uptime Kuma",
-      "start local observer agent"
-    ]
+    "baseline_autostart_chain": [
+      "CREACTIVE powered on",
+      "Ubuntu/Docker available",
+      "Docker restart policy restores Uptime Kuma",
+      "Docker restart policy restores Sentinel local observer"
+    ],
+    "optional_windows_logon_task": true,
+    "windows_task_required_for_f5_baseline": false
   },
   "gap_reconciliation": {
     "enabled": true,
@@ -125,6 +126,7 @@
     "ci_must_destroy_container_and_volume": true,
     "persistent_local_deploy_authorized": true,
     "local_host": "CREACTIVE",
+    "persistent_local_runtime": "docker-native",
     "cloud_monitor_gate": "F5-CLOUD-01",
     "local_install_gate": "F5-LOCAL-01",
     "outage_recovery_gate": "F5-RECOVERY-01"
