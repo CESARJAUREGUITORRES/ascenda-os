@@ -76,6 +76,10 @@ ok(publicHtml.length === 41, `F2_PUBLIC_HTML_DRIFT:${publicHtml.length}`);
 ok(f4.activation.default_active === false, 'F4_MUST_DEFAULT_OFF');
 ok(f4.activation.master_switch === 'SENTINEL_ENABLED', 'F4_MASTER_SWITCH_DRIFT');
 ok(f4.activation.sensor_switch === 'SENTINEL_SENTRY_ENABLED', 'F4_SENSOR_SWITCH_DRIFT');
+ok(f4.activation.canary_switch === 'SENTINEL_SENTRY_CANARY_MODE', 'F4_CANARY_SWITCH_DRIFT');
+ok(f4.activation.canary_default === true, 'F4_CANARY_MUST_DEFAULT_TRUE');
+ok(f4.activation.synthetic_boot_switch === 'SENTINEL_SENTRY_SYNTHETIC_ON_BOOT', 'F4_SYNTHETIC_SWITCH_DRIFT');
+ok(f4.activation.synthetic_code === 'SENTINEL_F4_SYNTHETIC_ERROR', 'F4_SYNTHETIC_CODE_DRIFT');
 ok(f4.activation.dsn_variable === 'SENTRY_DSN', 'F4_DSN_VAR_DRIFT');
 ok(f4.activation.preload_value === '--require ./sentinel-sentry-init.cjs', 'F4_PRELOAD_DRIFT');
 ok(f4.privacy.send_default_pii === false, 'F4_SEND_DEFAULT_PII_MUST_FALSE');
@@ -95,10 +99,13 @@ for (const token of [
   'maxBreadcrumbs: 0',
   'includeLocalVariables: false',
   'beforeBreadcrumb: () => null',
-  'beforeSend: event => sanitizeEvent(event)',
-  "SENTINEL_ENABLED",
-  "SENTINEL_SENTRY_ENABLED",
-  "SENTRY_DSN"
+  'beforeSend: event => {',
+  'SENTINEL_ENABLED',
+  'SENTINEL_SENTRY_ENABLED',
+  'SENTINEL_SENTRY_CANARY_MODE',
+  'SENTINEL_SENTRY_SYNTHETIC_ON_BOOT',
+  'SENTRY_DSN',
+  'SENTINEL_F4_SYNTHETIC_ERROR'
 ]) ok(initSource.includes(token), `INIT_GUARD_MISSING:${token}`);
 
 // Load the preloader with switches explicitly disabled. It must not need DSN or network.
@@ -109,17 +116,22 @@ const telemetry = require(path.join(ROOT, INIT_PATH));
 ok(telemetry.status.requested === false, 'KILL_SWITCH_DEFAULT_REQUESTED');
 ok(telemetry.status.active === false, 'KILL_SWITCH_DEFAULT_ACTIVE');
 ok(telemetry.status.reason === 'disabled', 'KILL_SWITCH_DEFAULT_REASON');
+ok(telemetry.status.canary_mode === true, 'CANARY_DEFAULT_STATUS_MUST_TRUE');
 
-// Dual-switch truth table.
+// Dual-switch and canary truth tables.
 ok(telemetry.requested({SENTINEL_ENABLED:'true', SENTINEL_SENTRY_ENABLED:'true'}) === true, 'DUAL_SWITCH_TRUE_FAILED');
 ok(telemetry.requested({SENTINEL_ENABLED:'true', SENTINEL_SENTRY_ENABLED:'false'}) === false, 'SENSOR_SWITCH_FALSE_FAILED');
 ok(telemetry.requested({SENTINEL_ENABLED:'false', SENTINEL_SENTRY_ENABLED:'true'}) === false, 'MASTER_SWITCH_FALSE_FAILED');
+ok(telemetry.canaryMode({}) === true, 'CANARY_DEFAULT_FAILED');
+ok(telemetry.canaryMode({SENTINEL_SENTRY_CANARY_MODE:'true'}) === true, 'CANARY_TRUE_FAILED');
+ok(telemetry.canaryMode({SENTINEL_SENTRY_CANARY_MODE:'false'}) === false, 'CANARY_FALSE_FAILED');
 
 // Missing DSN must fail closed for telemetry without loading a network exporter.
 const childCode = "process.env.SENTINEL_ENABLED='true';process.env.SENTINEL_SENTRY_ENABLED='true';delete process.env.SENTRY_DSN;const x=require('./sentinel-sentry-init.cjs');process.stdout.write(JSON.stringify(x.status));";
 const childRaw = cp.execFileSync(process.execPath, ['-e', childCode], {cwd: APP, encoding: 'utf8'}).trim();
 const childStatus = JSON.parse(childRaw);
 ok(childStatus.requested === true && childStatus.active === false && childStatus.reason === 'missing_dsn', 'MISSING_DSN_FAIL_CLOSED_FAILED');
+ok(childStatus.canary_mode === true, 'MISSING_DSN_CANARY_DEFAULT_FAILED');
 
 // Adversarial privacy fixture must be minimized before Sentry export.
 const clean = telemetry.sanitizeEvent(fixture);
@@ -147,8 +159,9 @@ ok(clean.exception.values[0].stacktrace.frames[0].filename === 'server-phase-s.j
 ok(!('abs_path' in clean.exception.values[0].stacktrace.frames[0]), 'F4_ABS_PATH_LEAK');
 ok(!('email' in clean.tags) && !('unknown.custom' in clean.tags), 'F4_TAG_ALLOWLIST_FAILED');
 ok(clean.tags.system === 'ascenda-os' && clean.tags['sentinel.phase'] === 'F4', 'F4_REQUIRED_TAGS_LOST');
+ok(telemetry.isSyntheticEvent(clean) === false, 'REAL_FIXTURE_MUST_NOT_PASS_CANARY');
 
-// Safe synthetic code remains useful for grouping/title.
+// Safe synthetic code remains useful for grouping/title and is the only canary event.
 const safeEvent = telemetry.sanitizeEvent({
   level: 'error',
   message: 'SENTINEL_F4_SYNTHETIC_ERROR',
@@ -157,6 +170,7 @@ const safeEvent = telemetry.sanitizeEvent({
 });
 ok(safeEvent.message === 'SENTINEL_F4_SYNTHETIC_ERROR', 'F4_SAFE_ERROR_CODE_LOST');
 ok(safeEvent.exception.values[0].value === 'SENTINEL_F4_SYNTHETIC_ERROR', 'F4_SAFE_EXCEPTION_CODE_LOST');
+ok(telemetry.isSyntheticEvent(safeEvent) === true, 'SYNTHETIC_EVENT_NOT_RECOGNIZED');
 
 // Release/environment rules.
 ok(telemetry.normalizeEnvironment('production') === 'production', 'ENV_PRODUCTION_FAILED');
@@ -167,7 +181,6 @@ ok(telemetry.buildRelease({}) === 'ascenda-os@unknown', 'RELEASE_FALLBACK_FAILED
 // Scope: F4 foundation may add only dormant Sentry integration/test/control files.
 function changedFiles() {
   try {
-    // GitHub PR checkout is a synthetic merge commit: first parent is base.
     cp.execFileSync('git', ['rev-parse', 'HEAD^2'], {cwd: ROOT, stdio:'ignore'});
     return cp.execFileSync('git', ['diff', '--name-only', 'HEAD^1', 'HEAD'], {cwd: ROOT, encoding:'utf8'})
       .split(/\r?\n/).map(x => x.trim()).filter(Boolean);
@@ -218,6 +231,8 @@ console.log(JSON.stringify({
   f2_topology_material_regression: true,
   f3_telemetry_material_regression: true,
   default_active: false,
+  canary_default: true,
+  canary_only_synthetic: true,
   missing_dsn_fail_closed: true,
   zero_phi_pii_fixture: true,
   fixture_leaks: 0,
