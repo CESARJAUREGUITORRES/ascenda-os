@@ -175,10 +175,10 @@ def run_once(state_dir=None, target_url=None, gap_threshold_seconds=None, now_ts
         'current_health': 'HEALTHY' if sample['semantic_ok'] else 'DEGRADED',
         'current_probe': sample,
         'cloud_coverage': {
-            'provider': 'sentry-uptime',
-            'expected_mode': 'continuous',
+            'provider': 'uptimerobot',
+            'expected_mode': 'continuous-5-minute',
             'local_api_reconciliation': False,
-            'history_location': 'Sentry Monitors/Uptime',
+            'history_location': 'UptimeRobot Dashboard',
         },
         'retroactive_claims_forbidden': True,
     }
