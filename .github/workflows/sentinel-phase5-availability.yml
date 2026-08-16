@@ -1,0 +1,95 @@
+name: Sentinel F5 Availability Foundation Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-phase-s.js'
+      - 'sentinel/availability/**'
+      - 'ci/sentinel/phase5_availability_contract.js'
+      - 'docs/control/SENTINEL_F5_*.md'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase5-availability.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f5-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: State machine syntax
+        shell: powershell
+        run: node --check sentinel/availability/state-machine.cjs
+      - name: F5 availability contract
+        shell: powershell
+        run: node ci/sentinel/phase5_availability_contract.js
+
+  uptime-kuma-container-smoke:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 15
+    env:
+      KUMA_IMAGE: louislam/uptime-kuma:2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+      - name: Validate versioned compose artifact statically
+        run: |
+          set -euo pipefail
+          grep -q 'image: louislam/uptime-kuma:2' sentinel/availability/compose.yaml
+          grep -q '127.0.0.1:3001:3001' sentinel/availability/compose.yaml
+          grep -q 'uptime-kuma-data:/app/data' sentinel/availability/compose.yaml
+          grep -q 'no-new-privileges:true' sentinel/availability/compose.yaml
+          ! grep -Eq '(SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|Bearer )' sentinel/availability/compose.yaml
+          ! grep -q 'network_mode: host' sentinel/availability/compose.yaml
+          ! grep -q '/var/run/docker.sock' sentinel/availability/compose.yaml
+      - name: Start disposable Uptime Kuma with Docker
+        run: |
+          set -euo pipefail
+          NAME="sentinel-f5-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          VOLUME="${NAME}-data"
+          echo "KUMA_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "KUMA_VOLUME=$VOLUME" >> "$GITHUB_ENV"
+          docker volume create "$VOLUME" >/dev/null
+          docker run -d \
+            --name "$NAME" \
+            --security-opt no-new-privileges:true \
+            -p 127.0.0.1::3001 \
+            -v "$VOLUME:/app/data" \
+            "$KUMA_IMAGE" >/tmp/sentinel-f5-container-id.txt
+          PORT="$(docker inspect -f '{{(index (index .NetworkSettings.Ports "3001/tcp") 0).HostPort}}' "$NAME")"
+          test -n "$PORT"
+          echo "KUMA_PORT=$PORT" >> "$GITHUB_ENV"
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 3 "http://127.0.0.1:${PORT}/" >/tmp/sentinel-f5-kuma.html; then ok=1; break; fi
+            if ! docker ps --format '{{.Names}}' | grep -qx "$NAME"; then break; fi
+            sleep 2
+          done
+          if [ "$ok" != 1 ]; then
+            docker logs "$NAME" || true
+            exit 1
+          fi
+          test -s /tmp/sentinel-f5-kuma.html
+          echo 'SENTINEL_F5_KUMA_CONTAINER_SMOKE=PASS'
+      - name: Destroy disposable observer and volume
+        if: always()
+        run: |
+          if [ -n "${KUMA_NAME:-}" ]; then docker rm -f "$KUMA_NAME" >/dev/null 2>&1 || true; fi
+          if [ -n "${KUMA_VOLUME:-}" ]; then docker volume rm "$KUMA_VOLUME" >/dev/null 2>&1 || true; fi
+          if [ -n "${KUMA_NAME:-}" ]; then test -z "$(docker ps -aq --filter name=^/${KUMA_NAME}$)" || exit 1; fi
