@@ -14,16 +14,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Probe local zero-cost DB tooling
+      - name: Probe native and WSL zero-cost DB tooling
         shell: powershell
         run: |
           $ErrorActionPreference='Continue'
           Write-Host "runner=$env:RUNNER_NAME"
           foreach($cmd in @('docker','wsl','psql','supabase')) {
             $c=Get-Command $cmd -ErrorAction SilentlyContinue
-            if($c){ Write-Host ("CAPABILITY {0}=YES path={1}" -f $cmd,$c.Source) }
-            else { Write-Host ("CAPABILITY {0}=NO" -f $cmd) }
+            if($c){ Write-Host ("NATIVE {0}=YES" -f $cmd) } else { Write-Host ("NATIVE {0}=NO" -f $cmd) }
           }
-          if(Get-Command docker -ErrorAction SilentlyContinue){ docker version --format '{{.Server.Version}}' 2>$null; if($LASTEXITCODE -eq 0){Write-Host 'DOCKER_DAEMON=YES'}else{Write-Host 'DOCKER_DAEMON=NO'} }
-          if(Get-Command wsl -ErrorAction SilentlyContinue){ wsl -l -q 2>$null | ForEach-Object { Write-Host ("WSL_DISTRO="+$_.Trim()) } }
+          if(Get-Command wsl -ErrorAction SilentlyContinue){
+            cmd /c "wsl.exe -l -q" 2>$null
+            Write-Host ("WSL_LIST_EXIT="+$LASTEXITCODE)
+            cmd /c "wsl.exe -e sh -lc \"echo WSL_EXEC=YES; uname -a; for c in docker psql postgres initdb supabase python3; do if command -v `$c >/dev/null 2>&1; then echo WSL_CAP_`$c=YES; else echo WSL_CAP_`$c=NO; fi; done; exit 0\""
+            Write-Host ("WSL_EXEC_EXIT="+$LASTEXITCODE)
+          }
           Write-Host 'F17_FAST_DB_CAPABILITY_PROBE_COMPLETE'
+          exit 0
