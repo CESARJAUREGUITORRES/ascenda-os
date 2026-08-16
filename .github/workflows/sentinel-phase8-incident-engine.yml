@@ -6,6 +6,10 @@ on:
     paths: &f8_paths
       - 'sentinel/incidents/**'
       - 'ci/sentinel/phase8_incident_engine_*.js'
+      - 'ci/sentinel/phase8_persistence_zero_cost.sql'
+      - 'ci/sentinel/phase8_persistence_zero_cost.sh'
+      - 'supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql'
+      - 'supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql'
       - 'docs/control/SENTINEL_F8_*.md'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase8-incident-engine.yml'
@@ -68,3 +72,22 @@ jobs:
             -w /work \
             node:22-alpine \
             sh -lc 'node --version && node --check sentinel/incidents/memory-repository.cjs && node --check sentinel/incidents/incident-engine.cjs && node ci/sentinel/phase8_incident_engine_contract.js && node ci/sentinel/phase8_incident_engine_synthetic.js'
+
+  persistence-zero-cost:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: '2.72.8'
+      NODE_CLI_IMAGE: 'node:22-bookworm-slim'
+      PSQL_IMAGE: 'postgres:17-alpine'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce isolated Zero-Cost runner
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+          python3 --version
+          bash -n ci/sentinel/phase8_persistence_zero_cost.sh
+      - name: F8 isolated PostgreSQL migration concurrency RLS rollback certificate
+        run: bash ci/sentinel/phase8_persistence_zero_cost.sh
