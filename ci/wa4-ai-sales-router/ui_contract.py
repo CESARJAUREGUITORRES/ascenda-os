@@ -14,10 +14,14 @@ secret = (root/'supabase/migrations/20260815205000_integration_secret_boundary_v
 secret_rb = (root/'supabase/rollbacks/20260815205000_integration_secret_boundary_v1.rollback.sql').read_text()
 rail = json.loads((root/'app/railway.json').read_text())
 start = rail['deploy']['startCommand']
+sentinel_phase_s = "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
 direct = start == 'node server-wa4.js'
 f5_wrapped = start == 'node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
-phase_s_wrapped = (start == 'node server-phase-s.js' and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5)
+phase_s_entry = start == 'node server-phase-s.js' or start == sentinel_phase_s
+phase_s_wrapped = (phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5)
 assert direct or f5_wrapped or phase_s_wrapped, 'Railway must start WA-4 directly or through certified F5/Phase-S wrappers'
+if start == sentinel_phase_s:
+    assert 'NODE_OPTIONS' not in str(rail.get('build',{}).get('buildCommand','')), 'Sentinel preload must not contaminate build'
 assert 'server-wa3.js' in wa4
 assert 'aos_wa4_authorize_copilot_v1' in wa4
 assert "auto_send:false" in wa4 or "auto_send: false" in wa4
