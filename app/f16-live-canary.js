@@ -201,15 +201,41 @@ function createLiveCanary(config) {
           return jsonResponse(res, 502, { ok: false, error: 'RESEND_WEBHOOK_LIST_FAILED', provider_status: hooks.status || 0 })
         }
         var rows = hooks.body && Array.isArray(hooks.body.data) ? hooks.body.data : []
-        var target = rows.filter(function(row) { return String(row && row.endpoint || '') === PROD_WEBHOOK_URL }).map(function(row) {
+        var matches = rows.filter(function(row) { return String(row && row.endpoint || '') === PROD_WEBHOOK_URL })
+        var target = []
+        for (var hi = 0; hi < matches.length; hi++) {
+          var row = matches[hi] || {}
           var events = Array.isArray(row.events) ? row.events.map(String).sort() : []
-          return {
+          var secretMatch = null
+          if (row.id && process.env.RESEND_WEBHOOK_SECRET) {
+            var hook = await requester('https://api.resend.com/webhooks/' + encodeURIComponent(String(row.id)), {
+              method: 'GET',
+              timeout: 15000,
+              headers: { Authorization: 'Bearer ' + resendKey }
+            })
+            var providerSecret = hook.status < 300 && hook.body ? String(hook.body.signing_secret || '') : ''
+            var localSecret = String(process.env.RESEND_WEBHOOK_SECRET || '')
+            if (providerSecret && localSecret) {
+              var a = Buffer.from(providerSecret)
+              var b = Buffer.from(localSecret)
+              secretMatch = a.length === b.length && a.length > 0
+              if (secretMatch) {
+                var diff = 0
+                for (var si = 0; si < a.length; si++) diff |= a[si] ^ b[si]
+                secretMatch = diff === 0
+              }
+            } else {
+              secretMatch = false
+            }
+          }
+          target.push({
             endpoint_match: true,
             status: String(row.status || ''),
             events: events,
-            email_delivered_subscribed: events.indexOf('email.delivered') !== -1
-          }
-        })
+            email_delivered_subscribed: events.indexOf('email.delivered') !== -1,
+            signing_secret_matches_runtime: secretMatch
+          })
+        }
         return jsonResponse(res, 200, {
           ok: true,
           provider: 'RESEND',
