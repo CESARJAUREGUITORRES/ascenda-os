@@ -76,8 +76,14 @@ jobs:
       - name: WA-2 inbox contract
         shell: powershell
         run: |
-          python ci/wa2-conversation-live-inbox/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $output = & python ci/wa2-conversation-live-inbox/ui_contract.py 2>&1
+          $code = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+          if ($code -ne 0) {
+            $msg = ($output -join ' | ').Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Host "::error title=WA-2 contract failed::$msg"
+            exit $code
+          }
 
       - name: WA-3 routing contract
         shell: powershell
