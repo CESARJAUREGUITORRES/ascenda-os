@@ -1,0 +1,40 @@
+name: F16 F4 Boundary Exact Head Cert
+
+on:
+  push:
+    branches:
+      - ops/f16-prod-canary-trigger-20260815
+    paths:
+      - '.github/workflows/f16-f4-boundary-exact-head-cert.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 42263ab64c7b5afb0f32a1b7fb7aa094f950f1b7
+          fetch-depth: 1
+      - name: Zero-Cost runner health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Expose runner Node
+        run: bash scripts/ci/expose-runner-node.sh
+      - name: Exact-head F16 F4 certification
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "42263ab64c7b5afb0f32a1b7fb7aa094f950f1b7"
+          node --check app/server-f4.js
+          node --check app/email-gateway.js
+          node --check app/f16-live-canary.js
+          node ci/phase16/test_email_gateway.js
+          grep -F "delete childEnv.SUPABASE_SERVICE_ROLE_KEY;" app/server-f4.js
+          grep -F "EMAIL_GATEWAY.handleAdmin(req,res)" app/server-f4.js
+          grep -F "EMAIL_GATEWAY.handleWebhook(req,res)" app/server-f4.js
+          grep -F "F16_LIVE_CANARY.handleCanary(req,res)" app/server-f4.js
+          grep -F "F16_LIVE_CANARY.handleReplay(req,res)" app/server-f4.js
+          echo 'F16_F4_EXACT_HEAD=PASS'
