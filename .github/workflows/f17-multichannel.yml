@@ -1,0 +1,82 @@
+name: ASCENDA CIA V3 F17 Multichannel
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*f17_*'
+      - 'supabase/rollbacks/*f17_*'
+      - 'ci/f17-multichannel/**'
+      - 'docs/control/commercial-intelligence/PHASE_17_*'
+      - '.github/workflows/f17-multichannel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f17-multichannel-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  zero-cost-db:
+    name: F17 Zero-Cost DB security contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-f17-multichannel"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59721/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59722/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59720/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59722 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Build synthetic legacy baseline
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/f17-multichannel/schema_contract.sql
+
+      - name: Apply F17 P0 ACL migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260816024600_f17_legacy_whatsapp_acl_p0.sql
+
+      - name: Negative authorization contract
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/f17-multichannel/tests/001_legacy_acl.sql
+
+      - name: Recovery remains fail-closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260816024600_f17_legacy_whatsapp_acl_p0_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_plantillas_whatsapp','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_plantillas_whatsapp','UPDATE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_plantillas_whatsapp','SELECT')")" = "t"
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
