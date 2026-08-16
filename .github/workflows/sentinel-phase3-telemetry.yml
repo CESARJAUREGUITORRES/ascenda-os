@@ -1,0 +1,39 @@
+name: Sentinel F3 Telemetry Certificate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'sentinel/telemetry/**'
+      - 'sentinel/collector/**'
+      - 'ci/sentinel/fixtures/f3_*'
+      - 'ci/sentinel/phase3_telemetry_contract.js'
+      - 'docs/control/SENTINEL_F3_*.md'
+      - '.github/workflows/sentinel-phase3-telemetry.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sentinel-f3-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  telemetry-contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: CommonJS syntax
+        shell: powershell
+        run: node --check sentinel/telemetry/index.js
+      - name: F1 governance regression
+        shell: powershell
+        run: node ci/sentinel/phase1_governance_contract.js
+      - name: F2 registry regression
+        shell: powershell
+        run: node ci/sentinel/phase2_registry_contract.js
+      - name: F3 telemetry contract
+        shell: powershell
+        run: node ci/sentinel/phase3_telemetry_contract.js
