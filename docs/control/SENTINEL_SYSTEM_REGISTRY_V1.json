@@ -1,0 +1,200 @@
+{
+  "schema_version": "sentinel-system-registry/v1",
+  "registry_id": "ASCENDA-SENTINEL-REGISTRY-V1",
+  "snapshot": {
+    "date": "2026-08-16",
+    "repository": "CESARJAUREGUITORRES/ascenda-os",
+    "source_commit": "2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0",
+    "supabase_project_ref": "ituyqwstonmhnfshnaqz",
+    "environment": "production-topology-snapshot",
+    "evidence_mode": "github-plus-live-readonly-pg-catalog"
+  },
+  "rules": {
+    "health_claims_allowed_in_f2": false,
+    "default_observability_state": "UNKNOWN",
+    "phi_pii_telemetry_allowed": false,
+    "unmapped_critical_nodes_allowed": false,
+    "source_of_truth_precedence": ["github", "runtime-config", "live-schema-metadata", "sentinel-registry", "notion"]
+  },
+  "database_snapshot": {
+    "source": "live-pg-catalog-readonly",
+    "public_tables": 254,
+    "public_tables_with_rls": 141,
+    "public_views": 38,
+    "public_materialized_views": 1,
+    "public_functions": 658,
+    "public_aos_functions": 522,
+    "note": "F2 records topology only; RLS/security posture is not certified by this phase."
+  },
+  "runtime": {
+    "host": "railway",
+    "config": "app/railway.json",
+    "start_command": "node server-phase-s.js",
+    "healthcheck_path": "/health",
+    "entrypoint": "app/server-phase-s.js",
+    "chain": [
+      {"id":"phase-s","file":"app/server-phase-s.js","spawns":"app/server-f5.js","role":"WhatsApp Phase S stabilization boundary","domain":"WHATSAPP","observability_state":"UNKNOWN"},
+      {"id":"f5","file":"app/server-f5.js","spawns":"app/server-wa4.js","role":"historical patient identity upload boundary","domain":"CLINICAL","observability_state":"UNKNOWN"},
+      {"id":"wa4","file":"app/server-wa4.js","spawns":"app/server-wa3.js","role":"WhatsApp AI copilot boundary","domain":"WHATSAPP","observability_state":"UNKNOWN"},
+      {"id":"wa3","file":"app/server-wa3.js","spawns":"app/server-wa2.js","role":"WhatsApp boxes routing ownership human-send boundary","domain":"WHATSAPP","observability_state":"UNKNOWN"},
+      {"id":"wa2","file":"app/server-wa2.js","spawns":"app/server-f4.js","role":"WhatsApp conversation store and live inbox boundary","domain":"WHATSAPP","observability_state":"UNKNOWN"},
+      {"id":"f4","file":"app/server-f4.js","spawns":"app/server-phase2.js","role":"Revenue Operations and WA-1 secure front proxy","domain":"PLATFORM","observability_state":"UNKNOWN"},
+      {"id":"phase2-auth","file":"app/server-phase2.js","spawns":"app/server.js","role":"same-origin auth v3 security front proxy","domain":"AUTH","observability_state":"UNKNOWN"},
+      {"id":"core","file":"app/server.js","spawns":null,"role":"legacy/current application core server","domain":"PLATFORM","observability_state":"UNKNOWN"}
+    ]
+  },
+  "dependencies": [
+    {"id":"supabase","type":"database-auth-rest-rpc","criticality":"critical","evidence":["app/server-phase-s.js","app/server-f5.js","app/server-wa4.js","app/server-wa3.js","app/server-wa2.js","app/server-f4.js","app/server-phase2.js","app/server.js"],"observability_state":"UNKNOWN"},
+    {"id":"railway","type":"runtime-host","criticality":"critical","evidence":["app/railway.json"],"observability_state":"UNKNOWN"},
+    {"id":"meta-whatsapp","type":"messaging-provider","criticality":"critical","evidence":["app/server-wa3.js","app/server-f4.js","app/wa-gateway.js"],"observability_state":"UNKNOWN"},
+    {"id":"resend","type":"email-provider","criticality":"high","evidence":["app/email-gateway.js","app/server.js"],"observability_state":"UNKNOWN"},
+    {"id":"groq","type":"ai-provider","criticality":"high","evidence":["app/ai-router.js","app/server-wa4.js","app/server.js"],"observability_state":"UNKNOWN"},
+    {"id":"gemini","type":"ai-provider","criticality":"medium","evidence":["app/server-wa4.js","app/server.js"],"observability_state":"UNKNOWN"},
+    {"id":"openai","type":"ai-provider","criticality":"medium","evidence":["app/server-wa4.js","app/server.js"],"observability_state":"UNKNOWN"},
+    {"id":"github-actions","type":"ci-control-plane","criticality":"high","evidence":[".github/workflows/ascenda-ci.yml"],"observability_state":"UNKNOWN"}
+  ],
+  "domains": [
+    {
+      "id":"AUTH","name":"Authentication & Access","criticality":"critical",
+      "surfaces":["app/public/login.html","app/public/auth-recovery.html"],
+      "components":["phase2-auth","core"],
+      "capabilities":[
+        {"id":"login-v3","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_login_challenges_v3","aos_app_sessions_v3","aos_usuarios"],"rpc_refs":["aos_login_v3"],"dependencies":["supabase"],"evidence":["app/server-phase2.js","app/public/login.html"]},
+        {"id":"verify-2fa-v3","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_login_challenges_v3","aos_app_sessions_v3"],"rpc_refs":["aos_verificar_2fa_v3"],"dependencies":["supabase","resend"],"evidence":["app/server-phase2.js","app/public/login.html"]},
+        {"id":"panel-actor-authorization","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_app_sessions_v3","aos_usuarios","aos_paneles_disponibles"],"rpc_refs":["aos_app_actor_v3"],"dependencies":["supabase"],"evidence":["app/server-f5.js","app/server-wa2.js","app/server-f4.js"]}
+      ]
+    },
+    {
+      "id":"SALES","name":"Sales & Revenue Intelligence","criticality":"critical",
+      "surfaces":["app/public/admin-sales.html","app/public/sales.html","app/public/admin-sales-intelligence.html","app/public/admin-sales-intelligence-staging.html","app/public/admin-cartera.html","app/public/admin-comisiones.html","app/public/commissions.html","app/public/admin-catalogo.html","app/public/catalogo.html"],
+      "components":["f4","core"],
+      "capabilities":[
+        {"id":"sales-ledger","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_ventas","aos_pagos","aos_import_ventas_batches"],"rpc_refs":["aos_sales_admin_gateway_v4","aos_sales_admin_sale_v4"],"dependencies":["supabase"],"evidence":["app/public/sales.js","app/server-f4.js"]},
+        {"id":"sales-intelligence","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_ventas","aos_metas_ventas","aos_sales_intelligence_access"],"rpc_refs":["aos_sales_intelligence_gateway","aos_sales_intelligence_summary"],"dependencies":["supabase"],"evidence":["app/public/admin-sales-intelligence.html","app/server-f4.js"]},
+        {"id":"cartera-reconciliation","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_cartera_reconciliacion","aos_cotizaciones","aos_cotizacion_items","aos_pagos"],"rpc_refs":["aos_cartera_gateway","aos_cartera_gateway_v2","aos_cartera_reconcile_v2","aos_cartera_candidates_v2"],"dependencies":["supabase"],"evidence":["app/public/admin-cartera.html","app/server-f4.js"]},
+        {"id":"product-normalization","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_product_alias_v2","aos_product_alias_overrides","aos_product_identity_v1","aos_product_sale_fact_v1"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/admin-catalogo.html","app/public/catalogo.html"]},
+        {"id":"commissions","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_tabla_comisiones","aos_ajustes_comision","aos_ventas"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/commissions.js","app/public/admin-comisiones.html"]}
+      ]
+    },
+    {
+      "id":"CALL_CENTER","name":"Call Center & Leads","criticality":"critical",
+      "surfaces":["app/public/admin-calls.html","app/public/calls.html","app/public/coordinacion.html","app/public/asesor-coord.html","app/public/followups.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"lead-queue","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_leads","aos_cola_config","aos_seguimientos"],"rpc_refs":["aos_cola_leads","aos_siguiente_lead_v3"],"dependencies":["supabase"],"evidence":["app/public/calls.js","app/server.js"]},
+        {"id":"call-ledger","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_llamadas","aos_llamadas_ultimo","aos_metas_llamadas"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/calls.js","app/public/admin-calls.html"]}
+      ]
+    },
+    {
+      "id":"AGENDA","name":"Agenda & Appointments","criticality":"critical",
+      "surfaces":["app/public/admin-agenda.html","app/public/agenda.html","app/public/agendar.html","app/public/citas.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"appointment-calendar","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_agenda_citas","aos_horarios_doctoras","aos_horarios_personal","aos_horarios_profesional"],"rpc_refs":["aos_agenda_dia","aos_agenda_admin_dia"],"dependencies":["supabase"],"evidence":["app/public/agenda.js","app/public/citas.js"]},
+        {"id":"public-booking","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_agenda_citas","aos_links_agenda"],"rpc_refs":["aos_agendar_publica"],"dependencies":["supabase"],"evidence":["app/public/agendar.html"]}
+      ]
+    },
+    {
+      "id":"WHATSAPP","name":"WhatsApp Revenue Hub","criticality":"critical",
+      "surfaces":["app/public/admin-whatsapp.html","app/public/admin-whatsapp-wa3.html"],
+      "components":["phase-s","wa4","wa3","wa2","f4"],
+      "capabilities":[
+        {"id":"inbound-webhook","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_wa_messages_v1","aos_wa_events_v1","aos_webhook_log"],"rpc_refs":[],"dependencies":["meta-whatsapp","supabase"],"evidence":["app/server-f4.js","app/wa-gateway.js"]},
+        {"id":"conversation-inbox","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_wa_conversations_v1","aos_wa_messages_v1","aos_wa_conversation_events_v1"],"rpc_refs":["aos_app_actor_v3"],"dependencies":["supabase"],"evidence":["app/server-wa2.js"]},
+        {"id":"boxes-routing-ownership","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_wa_boxes_v1","aos_wa_box_members_v1","aos_wa_assignments_v1","aos_wa_routing_control_v1","aos_wa_routing_events_v1"],"rpc_refs":["aos_wa3_actor_v1","aos_wa3_route_v1","aos_wa3_claim_next_v1","aos_wa3_release_v1","aos_wa3_set_mode_v1"],"dependencies":["supabase"],"evidence":["app/server-phase-s.js","app/server-wa3.js"]},
+        {"id":"human-outbound","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_wa_outbound_requests_v1","aos_wa_messages_v1"],"rpc_refs":["aos_wa3_human_send_authorize_v1"],"dependencies":["meta-whatsapp","supabase"],"evidence":["app/server-wa3.js","app/server-f4.js"]},
+        {"id":"ai-copilot","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_wa_ai_control_v1","aos_wa_ai_runs_v1"],"rpc_refs":["aos_wa4_authorize_copilot_v1","aos_wa4_admin_set_control_v1"],"dependencies":["supabase","groq","gemini","openai"],"evidence":["app/server-wa4.js","app/wa4-copilot.js","app/ai-router.js"]}
+      ]
+    },
+    {
+      "id":"EMAIL","name":"Email Operations","criticality":"high",
+      "surfaces":["app/public/admin-email.html"],
+      "components":["f4","core"],
+      "capabilities":[
+        {"id":"email-send","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_email_envios","aos_email_eventos","aos_emails_enviados"],"rpc_refs":[],"dependencies":["resend","supabase"],"evidence":["app/email-gateway.js","app/server-f4.js"]},
+        {"id":"email-campaigns-flows","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_email_campanias","aos_email_flujos","aos_email_flujo_ejecuciones","aos_email_plantillas","aos_email_audiencias"],"rpc_refs":["aos_email_dashboard"],"dependencies":["supabase","resend"],"evidence":["app/public/admin-email.html","app/email-gateway.js"]}
+      ]
+    },
+    {
+      "id":"MARKETING","name":"Marketing Attribution & Audiences","criticality":"high",
+      "surfaces":["app/public/admin-marketing.html","app/public/encuesta.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"marketing-attribution","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_meta_campanas","aos_meta_metricas","aos_inversion_campanas"],"rpc_refs":["aos_marketing_dashboard","aos_marketing_attribution_public_v3","aos_marketing_traceability_health_v2"],"dependencies":["supabase"],"evidence":["app/public/admin-marketing.html"]},
+        {"id":"audience-segmentation","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_audiencias","aos_audiencia_snapshots","aos_audience_filter_registry","aos_segmentation_policies"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["supabase/migrations"]}
+      ]
+    },
+    {
+      "id":"CLINICAL","name":"Patients & Clinical","criticality":"critical","sensitivity":"PHI",
+      "surfaces":["app/public/admin-patients.html","app/public/patients.html","app/public/admin-f5-historical.html"],
+      "components":["f5","core"],
+      "capabilities":[
+        {"id":"patient-registry","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_pacientes","aos_filiacion_medica","aos_notas_clinicas"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/patients.js","app/public/admin-patients.html"]},
+        {"id":"clinical-records","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_historia_clinica","aos_atenciones","aos_evaluaciones_clinicas","aos_evoluciones","aos_prescripciones","aos_documentos_pacientes","aos_fotos_clinicas"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["live-pg-catalog-readonly"],"telemetry_policy":"metadata-only-no-PHI"},
+        {"id":"historical-identity-intake","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_f5_source_batches_v1","aos_f5_patient_source_rows_v1","aos_f5_identity_clusters_v1","aos_f5_audit_v1"],"rpc_refs":["aos_f5_ingest_source_rows_v1","aos_app_actor_v3"],"dependencies":["supabase"],"evidence":["app/server-f5.js","app/f5-historical-upload.js"]}
+      ]
+    },
+    {
+      "id":"INVENTORY","name":"Inventory","criticality":"high",
+      "surfaces":["app/public/inventario.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"stock-movements","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_inventario","aos_movimientos_inv","aos_transferencias_inv","aos_alertas_inv","aos_inv_alertas_agente"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/inventario.html"]}
+      ]
+    },
+    {
+      "id":"PEOPLE","name":"Team & Attendance","criticality":"high",
+      "surfaces":["app/public/admin-team.html","app/public/attendance.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"team-directory","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_usuarios","aos_rrhh","aos_team_full"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/admin-team.html"]},
+        {"id":"attendance-shifts","criticality":"medium","observability_state":"UNKNOWN","db_relations":["aos_estado_equipo","aos_horarios_personal","aos_turnos"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/attendance.html"]}
+      ]
+    },
+    {
+      "id":"KRONIA","name":"KronIA & Agents","criticality":"high",
+      "surfaces":["app/public/agents.html","app/public/cerebro.html"],
+      "components":["core","wa4"],
+      "capabilities":[
+        {"id":"agent-runtime","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_agentes","aos_agente_acciones","aos_agente_tareas","aos_agente_logs"],"rpc_refs":[],"dependencies":["supabase","groq","gemini","openai"],"evidence":["app/ai-router.js","app/server.js"]},
+        {"id":"kronia-actions","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_kronia_acciones","aos_kronia_conversaciones","aos_kronia_tokens"],"rpc_refs":["aos_kronia_buscar_cita","aos_kronia_buscar_paciente","aos_kronia_buscar_venta"],"dependencies":["supabase"],"evidence":["app/public/cerebro.html","app/server.js"]}
+      ]
+    },
+    {
+      "id":"STUDIO","name":"Studio Content Operations","criticality":"medium",
+      "surfaces":["app/public/studio.html","app/public/studio-creator.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"content-studio","criticality":"medium","observability_state":"UNKNOWN","db_relations":["aos_studio_contenido","aos_studio_publicaciones","aos_studio_assets","aos_studio_calendario","aos_studio_brand"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/studio.html","app/public/studio-creator.html"]}
+      ]
+    },
+    {
+      "id":"FINANCE","name":"Billing & Cash","criticality":"critical",
+      "surfaces":["app/public/admin-billing.html","app/public/caja.html"],
+      "components":["core"],
+      "capabilities":[
+        {"id":"cash-operations","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_caja_gastos","aos_caja_log","aos_caja_sesiones","aos_gastos"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/caja.html"]},
+        {"id":"billing-documents","criticality":"high","observability_state":"UNKNOWN","db_relations":["aos_comprobantes","aos_documentos_fiscales","aos_tipos_comprobante","aos_razones_sociales"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/admin-billing.html"]}
+      ]
+    },
+    {
+      "id":"PLATFORM","name":"Platform & Configuration","criticality":"critical",
+      "surfaces":["app/public/app.html","app/public/admin-home.html","app/public/admin-config.html","app/public/advisor-home.html"],
+      "components":["phase-s","f5","wa4","wa3","wa2","f4","phase2-auth","core"],
+      "capabilities":[
+        {"id":"runtime-chain","criticality":"critical","observability_state":"UNKNOWN","db_relations":[],"rpc_refs":[],"dependencies":["railway","github-actions"],"evidence":["app/railway.json","app/server-phase-s.js","app/server-f5.js","app/server-wa4.js","app/server-wa3.js","app/server-wa2.js","app/server-f4.js","app/server-phase2.js","app/server.js"]},
+        {"id":"configuration-integrations","criticality":"critical","observability_state":"UNKNOWN","db_relations":["aos_configuracion","aos_integraciones","aos_integration_secrets_v1"],"rpc_refs":[],"dependencies":["supabase"],"evidence":["app/public/admin-config.html","app/server.js"]}
+      ]
+    }
+  ],
+  "coverage": {
+    "top_level_public_html_expected": 41,
+    "top_level_public_html_classification": "complete",
+    "runtime_chain_nodes": 8,
+    "runtime_chain_classification": "complete",
+    "domain_count": 14,
+    "critical_domains": ["AUTH","SALES","CALL_CENTER","AGENDA","WHATSAPP","CLINICAL","FINANCE","PLATFORM"],
+    "unmapped_critical_nodes": [],
+    "health_claims": 0
+  }
+}

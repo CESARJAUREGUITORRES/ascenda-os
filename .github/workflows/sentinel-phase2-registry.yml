@@ -1,0 +1,28 @@
+name: Sentinel F2 Registry Certificate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json'
+      - 'docs/control/SENTINEL_F2_*.md'
+      - 'ci/sentinel/phase2_registry_contract.js'
+      - '.github/workflows/sentinel-phase2-registry.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sentinel-f2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  registry:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: F2 registry contract
+        shell: powershell
+        run: node ci/sentinel/phase2_registry_contract.js
