@@ -1,0 +1,40 @@
+name: Sentinel F4 Sentry Foundation Certificate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/package.json'
+      - 'app/sentinel-sentry-init.cjs'
+      - 'sentinel/sentry/**'
+      - 'ci/sentinel/fixtures/f4_*'
+      - 'ci/sentinel/phase4_sentry_contract.js'
+      - 'docs/control/SENTINEL_F4_*.md'
+      - '.github/workflows/sentinel-phase4-sentry.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sentinel-f4-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  sentry-foundation:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Preloader syntax
+        shell: powershell
+        run: node --check app/sentinel-sentry-init.cjs
+      - name: Install app dependencies
+        shell: powershell
+        run: |
+          Push-Location app
+          npm install --no-audit --no-fund
+          Pop-Location
+      - name: F4 Sentry foundation contract
+        shell: powershell
+        run: node ci/sentinel/phase4_sentry_contract.js

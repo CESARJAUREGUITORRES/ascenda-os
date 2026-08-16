@@ -1,0 +1,85 @@
+{
+  "schema_version": "sentinel-sentry-core/v1",
+  "phase": "F4",
+  "baseline_main": "e3ff8914447c06a2b94b3be5cccbade73526ce0d",
+  "sdk": {
+    "package": "@sentry/node",
+    "version": "10.70.0",
+    "version_policy": "exact-pin-during-f4"
+  },
+  "activation": {
+    "default_active": false,
+    "master_switch": "SENTINEL_ENABLED",
+    "sensor_switch": "SENTINEL_SENTRY_ENABLED",
+    "canary_switch": "SENTINEL_SENTRY_CANARY_MODE",
+    "canary_default": true,
+    "synthetic_boot_switch": "SENTINEL_SENTRY_SYNTHETIC_ON_BOOT",
+    "synthetic_code": "SENTINEL_F4_SYNTHETIC_ERROR",
+    "dsn_variable": "SENTRY_DSN",
+    "environment_variable": "SENTRY_ENVIRONMENT",
+    "release_variable": "RAILWAY_GIT_COMMIT_SHA",
+    "preload_variable": "NODE_OPTIONS",
+    "preload_value": "--require ./sentinel-sentry-init.cjs",
+    "required_working_directory": "app",
+    "failure_mode": "fail-open-for-ascenda-fail-closed-for-telemetry"
+  },
+  "privacy": {
+    "send_default_pii": false,
+    "breadcrumbs": 0,
+    "logs": false,
+    "session_replay": false,
+    "attachments": false,
+    "local_variables": false,
+    "request_capture": "drop-before-export",
+    "query_capture": "drop-before-export",
+    "body_capture": "drop-before-export",
+    "user_capture": "drop-before-export",
+    "exception_message_policy": "preserve-uppercase-code-only-otherwise-redact",
+    "source_context": "drop-before-export"
+  },
+  "sampling": {
+    "traces_sample_rate": 0,
+    "logs": 0,
+    "replays": 0,
+    "metrics": 0
+  },
+  "allowed_tags": [
+    "system",
+    "sentinel.phase",
+    "sentinel.domain",
+    "sentinel.component",
+    "sentinel.capability",
+    "sentinel.dependency",
+    "service.name"
+  ],
+  "release": {
+    "format": "ascenda-os@<commit_sha>",
+    "unknown_fallback": "ascenda-os@unknown"
+  },
+  "cost": {
+    "incremental_cloud_budget_usd_month": 0,
+    "pay_as_you_go": false,
+    "baseline_error_target_per_month": 2500,
+    "external_logs": 0,
+    "session_replays": 0
+  },
+  "human_boundary_gate": {
+    "required": true,
+    "canary_rule": "while-canary-true-only-SENTINEL_F4_SYNTHETIC_ERROR-may-export",
+    "steps": [
+      "create-sentry-node-project-on-free-developer-plan",
+      "verify-server-side-data-scrubbing-and-ip-scrubbing",
+      "set-railway-secrets-without-sharing-dsn-in-chat",
+      "set-node-options-preloader",
+      "enable-master-and-sensor-switches-with-canary-true",
+      "enable-one-shot-synthetic-on-boot",
+      "verify-sentry-event-has-correct-environment-and-release",
+      "verify-event-contains-no-phi-pii-secrets",
+      "disable-synthetic-on-boot",
+      "kill-switch-off-and-confirm-ascenda-remains-healthy",
+      "reenable-sensor-in-canary-and-confirm-health",
+      "set-canary-false-to-activate-sanitized-real-errors"
+    ],
+    "no_100_complete_before_gate": true
+  }
+}
