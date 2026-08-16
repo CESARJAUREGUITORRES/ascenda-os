@@ -40,13 +40,19 @@ jobs:
           Write-Host 'F16_POST_CLEANUP_WEBHOOK_401=PASS'
 
           $canaryStatus = 0
+          $canaryContent = ''
+          $canaryContentType = ''
           try {
             $r = Invoke-WebRequest -Uri "$base/api/f16-live-canary" -Method POST -ContentType 'application/json' -Headers @{ 'X-ASCENDA-F16-CANARY' = 'F16_PROVIDER_CANARY_20260815' } -Body '{"confirm":"INSPECT_RESEND_WEBHOOK_CONFIG"}' -UseBasicParsing
             $canaryStatus = [int]$r.StatusCode
-            if ($r.Content -match 'matching_webhooks|signing_secret_matches_runtime|INSPECT_RESEND') { throw 'F16_CANARY_DIAGNOSTIC_STILL_EXPOSED' }
+            $canaryContent = [string]$r.Content
+            $canaryContentType = [string]$r.Headers['Content-Type']
           } catch {
-            if ($_.Exception.Message -eq 'F16_CANARY_DIAGNOSTIC_STILL_EXPOSED') { throw }
-            if ($_.Exception.Response) { $canaryStatus = [int]$_.Exception.Response.StatusCode } else { throw }
+            if ($_.Exception.Response) {
+              $canaryStatus = [int]$_.Exception.Response.StatusCode
+              $canaryContentType = [string]$_.Exception.Response.Headers['Content-Type']
+            } else { throw }
           }
-          if ($canaryStatus -eq 200) { throw 'F16_CANARY_ROUTE_STILL_ACTIVE' }
-          Write-Host "F16_POST_CLEANUP_CANARY_RETIRED=PASS status=$canaryStatus"
+          if ($canaryContent -match 'matching_webhooks|signing_secret_matches_runtime|INSPECT_RESEND|F16_PROVIDER_CANARY|provider_message_id') { throw 'F16_CANARY_DIAGNOSTIC_STILL_EXPOSED' }
+          if ($canaryContentType -match 'application/json' -and $canaryStatus -eq 200) { throw 'F16_CANARY_JSON_ROUTE_STILL_ACTIVE' }
+          Write-Host "F16_POST_CLEANUP_CANARY_RETIRED=PASS status=$canaryStatus content_type=$canaryContentType"
