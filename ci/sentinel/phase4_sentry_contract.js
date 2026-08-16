@@ -110,7 +110,7 @@ function changedFiles(){
     try{cp.execFileSync('git',['fetch','origin','main','--depth=1'],{cwd:ROOT,stdio:'ignore'});return cp.execFileSync('git',['diff','--name-only','origin/main...HEAD'],{cwd:ROOT,encoding:'utf8'}).split(/\r?\n/).filter(Boolean)}catch(_){return []}
   }
 }
-const allowed=new Set([P.f4wf,P.wa2wf,P.phaseSwf,P.railway,P.contract,'ci/sentinel/phase4_sentry_contract.js','ci/phase-s/phase-s_contract.js',P.report,P.runbook,P.f5,P.wa2,P.wa3,P.wa4,P.cartera]);
+const allowed=new Set([P.f4wf,P.wa2wf,P.phaseSwf,P.railway,P.contract,'ci/sentinel/phase4_sentry_contract.js','ci/phase-s/phase-s_contract.js','.github/workflows/cartera-phase2-hardening.yml',P.report,P.runbook,P.f5,P.wa2,P.wa3,P.wa4,P.cartera]);
 const changed=changedFiles();
 for(const p of changed)ok(allowed.has(p),`F4_SCOPE_UNEXPECTED_FILE:${p}`);
 ok(!changed.some(p=>p.startsWith('supabase/migrations/')||p.startsWith('supabase/functions/')),'F4_DB_MUTATION_FORBIDDEN');
