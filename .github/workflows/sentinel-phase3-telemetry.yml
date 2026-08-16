@@ -31,15 +31,6 @@ jobs:
       - name: F1 governance regression
         shell: powershell
         run: node ci/sentinel/phase1_governance_contract.js
-      - name: Hydrate F2 ancestry
-        shell: powershell
-        run: |
-          git fetch origin 2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0 --no-tags --force
-          git fetch origin main --no-tags --force
-          git merge-base --is-ancestor 2608c90a9f0d1d80f0f9a7ca6713ef8f221b03c0 HEAD
-      - name: F2 registry regression
-        shell: powershell
-        run: node ci/sentinel/phase2_registry_contract.js
-      - name: F3 telemetry contract
+      - name: F2 material invariants + F3 telemetry contract
         shell: powershell
         run: node ci/sentinel/phase3_telemetry_contract.js
