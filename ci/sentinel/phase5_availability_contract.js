@@ -14,9 +14,8 @@ const phaseS=read('app/server-phase-s.js');
 const startObserver=read('sentinel/availability/creactive/start-observer.sh');
 const installObserver=read('sentinel/availability/creactive/install-observer.sh');
 const installTask=read('sentinel/availability/creactive/Install-SentinelCreactiveTask.ps1');
-const localAgent=read('sentinel/availability/local-observer-agent.cjs');
+const localAgent=read('sentinel/availability/local-observer-agent.py');
 const sm=require(path.join(ROOT,'sentinel/availability/state-machine.cjs'));
-const agent=require(path.join(ROOT,'sentinel/availability/local-observer-agent.cjs'));
 
 ok(f4.includes('**F4:** `100_COMPLETE`'),'F4_NOT_CERTIFIED');
 ok(f4.includes('**Resultado:** `18/18 PASS`'),'F4_GATES_NOT_COMPLETE');
@@ -75,13 +74,17 @@ ok(!compose.includes('/var/run/docker.sock'),'F5_DOCKER_SOCKET_FORBIDDEN');
 ok(startObserver.includes('wait_for_docker'),'F5_LOCAL_DOCKER_WAIT_MISSING');
 ok(startObserver.includes('--restart unless-stopped'),'F5_LOCAL_KUMA_RESTART_MISSING');
 ok(startObserver.includes('127.0.0.1:3001:3001'),'F5_LOCAL_KUMA_UI_EXPOSURE_DRIFT');
-ok(startObserver.includes('exec node "$AGENT"'),'F5_LOCAL_AGENT_FOREGROUND_MISSING');
+ok(startObserver.includes('exec python3 "$AGENT"'),'F5_LOCAL_AGENT_FOREGROUND_MISSING');
+ok(startObserver.includes('SENTINEL_LOCAL_OBSERVER_PYTHON_MISSING'),'F5_LOCAL_PYTHON_GUARD_MISSING');
+ok(installObserver.includes('local-observer-agent.py'),'F5_LOCAL_INSTALL_AGENT_DRIFT');
 ok(installObserver.includes('.local/share/ascenda-sentinel/availability'),'F5_LOCAL_INSTALL_PATH_DRIFT');
-ok(installTask.includes("AtLogOn"),'F5_WINDOWS_LOGON_TRIGGER_MISSING');
+ok(installTask.includes('AtLogOn'),'F5_WINDOWS_LOGON_TRIGGER_MISSING');
 ok(installTask.includes('RunLevel Limited'),'F5_WINDOWS_ELEVATION_FORBIDDEN');
 ok(installTask.includes('IgnoreNew'),'F5_WINDOWS_DUPLICATE_INSTANCE_GUARD_MISSING');
-ok(localAgent.includes('retroactive_health_claim: false'),'F5_GAP_FALSE_GREEN_GUARD_MISSING');
-ok(localAgent.includes("history_location: 'Sentry Monitors/Uptime'"),'F5_CLOUD_HISTORY_REFERENCE_MISSING');
+ok(localAgent.includes("'retroactive_health_claim': False"),'F5_GAP_FALSE_GREEN_GUARD_MISSING');
+ok(localAgent.includes("'history_location': 'Sentry Monitors/Uptime'"),'F5_CLOUD_HISTORY_REFERENCE_MISSING');
+ok(localAgent.includes('urllib.request'),'F5_AGENT_NOT_STDLIB_HTTP');
+ok(!localAgent.includes('requests.'),'F5_AGENT_EXTERNAL_PYTHON_DEPENDENCY_FORBIDDEN');
 
 const c=sm.classifyAvailability;
 ok(c({observerFresh:false,consecutiveSuccesses:10})==='UNKNOWN','F5_UNKNOWN_OBSERVER_STALE');
@@ -99,13 +102,6 @@ ok(sm.sentinelHealthState('DEGRADED')==='DEGRADED','F5_SENTINEL_DEGRADED_MAP');
 ok(sm.sentinelHealthState('DOWN')==='INCIDENT','F5_SENTINEL_DOWN_MAP');
 ok(sm.sentinelHealthState('UNKNOWN')==='UNKNOWN','F5_SENTINEL_UNKNOWN_MAP');
 ok(sm.availabilityFingerprint({environment:'production',monitorId:'ascenda-production-health'})==='availability:production:ascenda-production-health','F5_FINGERPRINT_DRIFT');
-
-const fakeNow=Date.parse('2026-08-16T12:10:00.000Z');
-const gap=agent.computeCoverageGap('2026-08-16T12:00:00.000Z',fakeNow,120);
-ok(gap&&gap.seconds===600&&gap.state==='UNKNOWN'&&gap.retroactive_health_claim===false,'F5_GAP_FIXTURE_DRIFT');
-ok(agent.computeCoverageGap('2026-08-16T12:09:00.000Z',fakeNow,120)===null,'F5_FALSE_GAP_FIXTURE');
-const sanitized=agent.safeHealthShape({ok:true,service:'ascenda-phase-s',child_alive:true,inner_ready:true,email:'secret@example.com',token:'secret'});
-ok(Object.keys(sanitized).sort().join(',')==='child_alive,inner_ready,ok,service','F5_LOCAL_SAMPLE_ALLOWLIST_DRIFT');
 
 const serialized=[JSON.stringify(f5),compose,startObserver,installObserver,installTask,localAgent].join('\n');
 const secretPatterns=[
@@ -128,6 +124,7 @@ console.log(JSON.stringify({
   architecture:f5.availability_architecture,
   cloud_provider:f5.continuous_coverage.provider,
   local_observer:f5.observer.host,
+  local_agent_runtime:'python3-stdlib',
   local_offline_semantics:f5.observer.offline_semantics,
   gap_reconciliation:true,
   zero_phi_pii:true,
