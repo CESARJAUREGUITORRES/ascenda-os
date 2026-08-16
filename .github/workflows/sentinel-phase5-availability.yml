@@ -1,0 +1,74 @@
+name: Sentinel F5 Availability Foundation Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-phase-s.js'
+      - 'sentinel/availability/**'
+      - 'ci/sentinel/phase5_availability_contract.js'
+      - 'docs/control/SENTINEL_F4_VALIDATION_REPORT_20260816.md'
+      - 'docs/control/SENTINEL_F5_*.md'
+      - '.github/workflows/sentinel-phase5-availability.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f5-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: State machine syntax
+        shell: powershell
+        run: node --check sentinel/availability/state-machine.cjs
+      - name: F5 availability contract
+        shell: powershell
+        run: node ci/sentinel/phase5_availability_contract.js
+
+  uptime-kuma-container-smoke:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+      - name: Validate compose
+        run: |
+          set -euo pipefail
+          docker compose -f sentinel/availability/compose.yaml config >/tmp/sentinel-f5-compose.txt
+          grep -q 'louislam/uptime-kuma:2' /tmp/sentinel-f5-compose.txt
+          ! grep -Eq '(SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|Bearer )' /tmp/sentinel-f5-compose.txt
+      - name: Start disposable Uptime Kuma
+        run: |
+          set -euo pipefail
+          docker compose -p sentinel-f5-ci -f sentinel/availability/compose.yaml up -d
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 3 http://127.0.0.1:3001/ >/tmp/sentinel-f5-kuma.html; then ok=1; break; fi
+            sleep 2
+          done
+          if [ "$ok" != 1 ]; then
+            docker compose -p sentinel-f5-ci -f sentinel/availability/compose.yaml logs --no-color || true
+            exit 1
+          fi
+          test -s /tmp/sentinel-f5-kuma.html
+          echo 'SENTINEL_F5_KUMA_CONTAINER_SMOKE=PASS'
+      - name: Destroy disposable observer and volume
+        if: always()
+        run: |
+          docker compose -p sentinel-f5-ci -f sentinel/availability/compose.yaml down -v --remove-orphans || true
+          test -z "$(docker ps -q --filter name=sentinel-uptime-kuma)" || exit 1
