@@ -89,6 +89,7 @@
       <button class="em-tab" onclick="emTab('plantillas')">📝 Plantillas</button>
     </div>
     <div style="display:flex;gap:6px;">
+      <button class="mbtn mbtn-g" onclick="openManualEmail()">✉️ Enviar Email</button>
       <button class="mbtn mbtn-p" onclick="openNewCampania()">+ Nueva Campaña</button>
       <button class="chip" onclick="openConfig()">⚙ Config</button>
     </div>
@@ -231,6 +232,7 @@ function emCall(action,payload){
   return fetch('/api/email-gateway',{method:'POST',headers:{'Content-Type':'application/json','X-ASCENDA-Session':token},body:JSON.stringify({action:action,payload:payload||{}})}).then(function(r){return r.json().then(function(b){if(!r.ok||!b||b.ok!==true)throw new Error((b&&b.error)||('HTTP '+r.status));return b;});});
 }
 function rpc(fn,params,cb){emCall('LEGACY_RPC',{name:fn,params:params||{}}).then(function(r){cb(r.data);}).catch(function(e){console.error(fn,e);showToast('Error de sesión/email',e.message,true);});}
+function rpcSilent(fn,params,cb){emCall('LEGACY_RPC',{name:fn,params:params||{}}).then(function(r){cb(r.data);}).catch(function(e){console.warn('[EMAIL-MKT] fallback RPC no disponible:',fn,e.message);});}
 function q(table,query,cb){emCall('LEGACY_READ',{table:table,query:query||''}).then(function(r){cb(r.data||[]);}).catch(function(e){console.error(table,e);showToast('Error de sesión/email',e.message,true);cb([]);});}
 function emPatch(table,id,changes,cb){emCall('LEGACY_PATCH',{table:table,id:id,changes:changes||{}}).then(function(r){if(cb)cb(null,r);}).catch(function(e){if(cb)cb(e);else showToast('Error al guardar',e.message,true);});}
 function showToast(t,m,err){var tw=el('em-toast');var d=document.createElement('div');d.className='toast-item';d.style.borderBottom='3px solid '+(err?'#DC2626':'#00C9A7');d.innerHTML='<div style="font-size:20px;">'+(err?'❌':'✅')+'</div><div><div style="font-weight:800;font-size:13px;">'+t+'</div><div style="font-size:10px;color:#6B7BA8;">'+m+'</div></div>';tw.appendChild(d);setTimeout(function(){d.style.animation='toastOut .3s forwards';setTimeout(function(){d.remove();},300);},4000);}
@@ -319,10 +321,32 @@ function verContacto(numero){
   });
 }
 
+function openManualEmail(){
+  _sendClientRequestId='';
+  var html='<div style="font-family:Exo 2;font-weight:800;font-size:16px;margin-bottom:4px;">Nuevo Email</div>';
+  html+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:14px;">Envío manual transaccional mediante el gateway seguro de ASCENDA. La API de Resend nunca se expone al navegador.</div>';
+  html+='<div style="margin-bottom:10px;"><label style="font-size:9px;font-weight:700;color:#6B7BA8;">Email destinatario</label><input class="mi" id="manual-email" type="email" autocomplete="off" placeholder="correo@dominio.com" style="margin-top:4px;"></div>';
+  html+='<div style="margin-bottom:14px;"><label style="font-size:9px;font-weight:700;color:#6B7BA8;">Nombre</label><input class="mi" id="manual-name" autocomplete="off" placeholder="Nombre del destinatario" style="margin-top:4px;"></div>';
+  html+='<div style="display:flex;gap:8px;"><button class="mbtn mbtn-g" onclick="continueManualEmail()">Continuar →</button><button class="mbtn mbtn-c" onclick="el(\'m-send\').classList.remove(\'open\')">Cancelar</button></div>';
+  el('ms-body').innerHTML=html;
+  el('m-send').classList.add('open');
+  setTimeout(function(){var input=document.getElementById('manual-email');if(input)input.focus();},50);
+}
+function continueManualEmail(){
+  var email=String(el('manual-email').value||'').trim();
+  var nombre=String(el('manual-name').value||'').trim()||'Paciente';
+  if(!email||email.length>320||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showToast('Email inválido','Ingresa un correo válido antes de continuar',true);return;}
+  el('m-send').classList.remove('open');
+  setTimeout(function(){enviarEmailA(email,nombre,'');},0);
+}
+
 function enviarEmailA(email,nombre,numero){
   if(!email){showToast('Error','Este paciente no tiene email',true);return;}
   // Modal para seleccionar plantilla y enviar
   q('aos_email_plantillas','select=id,nombre,tipo,asunto&activo=eq.true&order=nombre',function(tpls){
+    var manualTypes={agradecimiento:true,agradecimiento_visita:true,bienvenida:true,catalogo:true,comprobante:true,confirmacion_cita:true,confirmacion_pago:true,no_asistencia:true,recibo_venta:true,recordatorio:true,recordatorio_hoy:true,reprogramacion:true,saldo_pendiente:true,seguimiento:true};
+    tpls=(tpls||[]).filter(function(t){return manualTypes[String(t.tipo||'').toLowerCase().trim()]===true;});
+    if(!tpls.length){showToast('Sin plantillas transaccionales','No hay una plantilla activa autorizada para envío manual',true);return;}
     var html='<div style="font-family:\'Exo 2\';font-weight:800;font-size:16px;margin-bottom:4px;">Enviar Email</div>';
     html+='<div style="font-size:10px;color:#6B7BA8;margin-bottom:14px;">Para: <b>'+h(nombre)+'</b> ('+h(email)+')</div>';
     html+='<div style="margin-bottom:10px;"><label style="font-size:9px;font-weight:700;color:#6B7BA8;">Plantilla:</label><select class="mi" id="send-tpl" onchange="previewSendTpl()" style="margin-top:4px;">'+(tpls||[]).map(function(t){return '<option value="'+t.id+'" data-asunto="'+h(t.asunto)+'">'+h(t.nombre)+' ('+t.tipo+')</option>';}).join('')+'</select></div>';
@@ -375,7 +399,7 @@ function loadDashboard(){
     if(!rs||!rs.ok){
       // Fallback: cargar desde Supabase RPC directo
       console.log('[EMAIL-MKT] Fallback a RPC...');
-      rpc('aos_email_dashboard',{},function(d){
+      rpcSilent('aos_email_dashboard',{},function(d){
         if(!d||!d.ok)return;
         el('em-s-total').textContent=fmt(d.total_enviados||0);
         el('em-s-hoy').textContent='—';
@@ -412,7 +436,7 @@ function loadDashboard(){
     _resendEmails=rs.emails||[];
     renderResendTable(_resendEmails);
   }).catch(function(e){el('em-campanias').innerHTML='<tr><td colspan="5" style="text-align:center;color:#DC2626;padding:20px;">'+e.message+'</td></tr>';});
-  rpc('aos_email_dashboard',{},function(d){if(d&&d.ok)el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);});
+  rpcSilent('aos_email_dashboard',{},function(d){if(d&&d.ok)el('em-s-pacientes').textContent=fmt(d.pacientes_con_email||0);});
 }
 var _resendEmails=[];
 function filterResend(tipo){
