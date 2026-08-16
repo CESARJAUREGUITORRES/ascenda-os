@@ -7,6 +7,7 @@ const SAFE_CODE_RE = /^[A-Z][A-Z0-9_.:-]{2,95}$/;
 const SAFE_TECH_RE = /^[A-Za-z0-9_.:/@-]{1,160}$/;
 const REDACTED = '[REDACTED]';
 const REDACTED_MESSAGE = '[REDACTED_MESSAGE]';
+const SYNTHETIC_CODE = 'SENTINEL_F4_SYNTHETIC_ERROR';
 const ALLOWED_TAGS = new Set([
   'system',
   'sentinel.phase',
@@ -147,9 +148,21 @@ function requested(env = process.env) {
   return flag(env.SENTINEL_ENABLED) && flag(env.SENTINEL_SENTRY_ENABLED);
 }
 
+function canaryMode(env = process.env) {
+  const raw = env.SENTINEL_SENTRY_CANARY_MODE;
+  return raw == null || String(raw).trim() === '' ? true : flag(raw);
+}
+
 function serviceName(argv = process.argv) {
   const file = path.basename(String(argv[1] || 'node-runtime'));
   return safeTechnicalValue(file, 'node-runtime');
+}
+
+function isSyntheticEvent(event) {
+  if (!event || typeof event !== 'object') return false;
+  if (event.message === SYNTHETIC_CODE) return true;
+  const values = event.exception && Array.isArray(event.exception.values) ? event.exception.values : [];
+  return values.some(v => v && v.value === SYNTHETIC_CODE);
 }
 
 function bootstrap(env = process.env) {
@@ -158,6 +171,7 @@ function bootstrap(env = process.env) {
   const base = {
     requested: requested(env),
     active: false,
+    canary_mode: canaryMode(env),
     phase: 'F4',
     service_name: serviceName(),
     environment: normalizeEnvironment(env.SENTRY_ENVIRONMENT || env.RAILWAY_ENVIRONMENT_NAME),
@@ -191,7 +205,11 @@ function bootstrap(env = process.env) {
       serverName: 'ascenda-os',
       integrations: filterDefaultIntegrations,
       beforeBreadcrumb: () => null,
-      beforeSend: event => sanitizeEvent(event),
+      beforeSend: event => {
+        const clean = sanitizeEvent(event);
+        if (base.canary_mode && !isSyntheticEvent(clean)) return null;
+        return clean;
+      },
       initialScope: {
         tags: {
           system: 'ascenda-os',
@@ -201,7 +219,16 @@ function bootstrap(env = process.env) {
       }
     });
     base.active = true;
-    base.reason = 'active';
+    base.reason = base.canary_mode ? 'active_canary' : 'active';
+
+    if (base.canary_mode && flag(env.SENTINEL_SENTRY_SYNTHETIC_ON_BOOT) && base.service_name === 'server-phase-s.js') {
+      setImmediate(() => {
+        try {
+          Sentry.captureException(new Error(SYNTHETIC_CODE));
+          Promise.resolve(Sentry.flush(2000)).catch(() => {});
+        } catch (_) {}
+      });
+    }
   } catch (_) {
     // Sentry must never be able to stop ASCENDA from booting.
     base.active = false;
@@ -217,15 +244,18 @@ const status = bootstrap();
 module.exports = {
   REDACTED,
   REDACTED_MESSAGE,
+  SYNTHETIC_CODE,
   ALLOWED_TAGS,
   flag,
   requested,
+  canaryMode,
   normalizeEnvironment,
   buildRelease,
   hasSensitiveValue,
   sanitizeExceptionMessage,
   sanitizeEvent,
   filterDefaultIntegrations,
+  isSyntheticEvent,
   bootstrap,
   status
 };
