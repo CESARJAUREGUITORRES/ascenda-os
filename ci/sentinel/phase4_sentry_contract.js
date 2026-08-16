@@ -104,7 +104,7 @@ ok(telemetry.isSyntheticEvent(synth)===true&&telemetry.isSyntheticEvent(clean)==
 ok(telemetry.normalizeEnvironment('production')==='production','F4_ENVIRONMENT_NORMALIZATION_FAILED');
 ok(telemetry.buildRelease({RAILWAY_GIT_COMMIT_SHA:'e3ff8914447c06a2b94b3be5cccbade73526ce0d'}).startsWith('ascenda-os@'),'F4_RELEASE_FORMAT_FAILED');
 
-// Exact hotfix scope; no wildcard workflow allowances.
+// Exact F4 scope; no wildcard workflow allowances.
 function changedFiles(){
   try{cp.execFileSync('git',['rev-parse','HEAD^2'],{cwd:ROOT,stdio:'ignore'});return cp.execFileSync('git',['diff','--name-only','HEAD^1','HEAD'],{cwd:ROOT,encoding:'utf8'}).split(/\r?\n/).filter(Boolean)}catch(_){
     try{cp.execFileSync('git',['fetch','origin','main','--depth=1'],{cwd:ROOT,stdio:'ignore'});return cp.execFileSync('git',['diff','--name-only','origin/main...HEAD'],{cwd:ROOT,encoding:'utf8'}).split(/\r?\n/).filter(Boolean)}catch(_){return []}
@@ -116,8 +116,12 @@ for(const p of changed)ok(allowed.has(p),`F4_SCOPE_UNEXPECTED_FILE:${p}`);
 ok(!changed.some(p=>p.startsWith('supabase/migrations/')||p.startsWith('supabase/functions/')),'F4_DB_MUTATION_FORBIDDEN');
 const suspicious=[/https:\/\/[A-Za-z0-9_-]{16,}@[A-Za-z0-9.-]+\.ingest(?:\.[A-Za-z0-9.-]+)?\.sentry\.io\/[0-9]+/i,/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/,/\bsb_secret_[A-Za-z0-9_-]{20,}\b/,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/];
 for(const p of [P.init,P.contract,P.report,P.runbook,P.f4wf,P.railway])for(const re of suspicious)ok(!re.test(read(p)),`F4_SECRET_GUARD:${p}`);
-for(const t of ['F4-G01','F4-G18','HUMAN_BOUNDARY_PENDING'])ok(report.includes(t),`F4_REPORT_MISSING:${t}`);
+for(const t of ['F4-G01','F4-G18'])ok(report.includes(t),`F4_REPORT_MISSING:${t}`);
+const humanPending=report.includes('HUMAN_BOUNDARY_PENDING');
+const terminalCertified=report.includes('**Estado:** `100_COMPLETE / CERTIFIED`')&&report.includes('**F4:** `100_COMPLETE`')&&report.includes('**Resultado:** `18/18 PASS`');
+ok(humanPending||terminalCertified,'F4_REPORT_STATE_INVALID');
+if(terminalCertified)ok(!humanPending,'F4_TERMINAL_REPORT_CANNOT_REMAIN_HUMAN_PENDING');
 for(const t of ['self-hosted','Windows','X64','ascenda-fast','npm install','node ci/sentinel/phase4_sentry_contract.js'])ok(f4wf.includes(t),`F4_WORKFLOW_MISSING:${t}`);
 for(const t of ['ubuntu-latest','windows-latest','macos-latest'])ok(!f4wf.includes(t),`F4_HOSTED_RUNNER_FORBIDDEN:${t}`);
 
-console.log(JSON.stringify({ok:true,certificate:'SENTINEL_F4_RUNTIME_PRELOAD_CONTRACT_PASS',sdk:'@sentry/node@10.70.0',f1_privacy_material_regression:true,f2_topology_material_regression:true,f3_telemetry_material_regression:true,default_active:false,runtime_only_preload:true,build_preload:false,child_env_inheritance:true,fast_pool_python_delegated:true,auth_resend_gate_preserved:true,canary_default:true,canary_only_synthetic:true,missing_dsn_fail_closed:true,zero_phi_pii_fixture:true,fixture_leaks:0,traces_sample_rate:0,logs:false,breadcrumbs:0,pay_as_you_go:false,human_boundary:'PENDING',changed_files_checked:changed.length},null,2));
+console.log(JSON.stringify({ok:true,certificate:'SENTINEL_F4_RUNTIME_PRELOAD_CONTRACT_PASS',sdk:'@sentry/node@10.70.0',f1_privacy_material_regression:true,f2_topology_material_regression:true,f3_telemetry_material_regression:true,default_active:false,runtime_only_preload:true,build_preload:false,child_env_inheritance:true,fast_pool_python_delegated:true,auth_resend_gate_preserved:true,canary_default:true,canary_only_synthetic:true,missing_dsn_fail_closed:true,zero_phi_pii_fixture:true,fixture_leaks:0,traces_sample_rate:0,logs:false,breadcrumbs:0,pay_as_you_go:false,human_boundary:terminalCertified?'CLOSED':'PENDING',f4_terminal_certified:terminalCertified,changed_files_checked:changed.length},null,2));
