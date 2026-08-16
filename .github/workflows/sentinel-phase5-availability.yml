@@ -11,7 +11,7 @@ on:
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase5-availability.yml'
   push:
-    branches: ['feature/**','fix/**']
+    branches: ['main','feature/**','fix/**']
     paths: *f5_paths
 
 permissions:
@@ -62,7 +62,6 @@ jobs:
           bash -n sentinel/availability/creactive/install-observer.sh
           bash -n sentinel/availability/creactive/bootstrap-observer.sh
           sentinel/availability/creactive/bootstrap-observer.sh --help >/tmp/sentinel-f5-bootstrap-help.txt
-          grep -q 'one' /dev/null 2>/dev/null || true
           python3 -m py_compile sentinel/availability/local-observer-agent.py
           python3 - <<'PY'
           import importlib.util
@@ -123,3 +122,34 @@ jobs:
           if [ -n "${KUMA_NAME:-}" ]; then docker rm -f "$KUMA_NAME" >/dev/null 2>&1 || true; fi
           if [ -n "${KUMA_VOLUME:-}" ]; then docker volume rm -f "$KUMA_VOLUME" >/dev/null 2>&1 || true; fi
           if [ -n "${KUMA_NAME:-}" ]; then test -z "$(docker ps -aq --filter name=^/${KUMA_NAME}$)" || exit 1; fi
+
+  deploy-creactive-local-observer:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'CREACTIVE bootstrap')
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    needs: [uptime-kuma-container-smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap persistent CREACTIVE observer
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          test "$(hostname)" = "CREACTIVE"
+          docker version >/dev/null
+          python3 --version
+          bash sentinel/availability/creactive/bootstrap-observer.sh
+      - name: Verify persistent observer state
+        run: |
+          set -euo pipefail
+          test "$(docker inspect -f '{{.State.Running}}' sentinel-uptime-kuma)" = "true"
+          test -s "$HOME/.local/share/ascenda-sentinel/availability/state/resume-report.json"
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path.home()/'.local/share/ascenda-sentinel/availability/state/resume-report.json'
+          d=json.loads(p.read_text())
+          assert d['observer']=='CREACTIVE'
+          assert d['local_observer_state']=='ONLINE'
+          assert d['retroactive_claims_forbidden'] is True
+          assert d['current_health'] in ('HEALTHY','DEGRADED')
+          print('SENTINEL_F5_CREACTIVE_PERSISTENT_OBSERVER=PASS')
+          PY
