@@ -1,0 +1,40 @@
+name: F16 F4 Boundary FAST Exact Head
+
+on:
+  push:
+    branches:
+      - ops/f16-prod-canary-trigger-20260815
+    paths:
+      - '.github/workflows/f16-f4-boundary-fast-exact.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certify-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 42263ab64c7b5afb0f32a1b7fb7aa094f950f1b7
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact-head F16 F4 certification
+        shell: powershell
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne '42263ab64c7b5afb0f32a1b7fb7aa094f950f1b7') { throw 'HEAD_MISMATCH' }
+          node --check app/server-f4.js
+          node --check app/email-gateway.js
+          node --check app/f16-live-canary.js
+          node ci/phase16/test_email_gateway.js
+          $s = Get-Content app/server-f4.js -Raw
+          foreach ($needle in @(
+            'delete childEnv.SUPABASE_SERVICE_ROLE_KEY;',
+            'EMAIL_GATEWAY.handleAdmin(req,res)',
+            'EMAIL_GATEWAY.handleWebhook(req,res)',
+            'F16_LIVE_CANARY.handleCanary(req,res)',
+            'F16_LIVE_CANARY.handleReplay(req,res)'
+          )) { if (-not $s.Contains($needle)) { throw "MISSING:$needle" } }
+          Write-Host 'F16_F4_FAST_EXACT_HEAD=PASS'
