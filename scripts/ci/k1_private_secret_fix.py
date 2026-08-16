@@ -44,7 +44,7 @@ new="""    -- CURRENT provider-secret boundary: final branded Auth V3 reads only
     order by coalesce(i.principal,false) desc,s.updated_at desc nulls last limit 1;"""
 if old in s:
     s=s.replace(old,new,1)
-if 'from public.aos_integraciones i\n    where' in s and 'select i.api_key into v_api_key' in s:
+if 'select i.api_key into v_api_key' in s:
     raise SystemExit('K1-E legacy integration secret authority survived')
 if 'from public.aos_integration_secrets_v1 s' not in s:
     raise SystemExit('K1-E private provider vault lookup missing')
@@ -106,9 +106,32 @@ if 'insert into public.aos_integration_secrets_v1' not in s or 'update public.ao
     raise SystemExit('K1-B private provider vault admin path missing')
 p.write_text(s,encoding='utf-8')
 
-# Synthetic CURRENT boundary: no production rows/secrets.
+# Synthetic CURRENT integration shape + provider-secret boundary. No production rows/secrets.
 fixture=ROOT/'ci/kronia-k1-phase2/fixture_pre_k1.sql'
 f=fixture.read_text(encoding='utf-8')
+shape="""
+
+-- CURRENT aos_integraciones shape required by K1-B (shape only).
+alter table public.aos_integraciones
+  add column if not exists cuenta text default '',
+  add column if not exists config jsonb default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists categoria text default 'infraestructura',
+  add column if not exists icono text default '🔗',
+  add column if not exists descripcion text default '',
+  add column if not exists api_secret text default '',
+  add column if not exists webhook_url text default '',
+  add column if not exists pasos_guia jsonb default '[]'::jsonb,
+  add column if not exists uso_para text[] default '{}'::text[],
+  add column if not exists orden integer default 0,
+  add column if not exists url_api text default '',
+  add column if not exists url_docs text default '',
+  add column if not exists url_signup text default '',
+  add column if not exists multi_cuenta boolean default false,
+  add column if not exists logo_url text default '';
+"""
+if 'CURRENT aos_integraciones shape required by K1-B' not in f:
+    f += shape
 block="""
 
 -- CURRENT provider-secret boundary (synthetic shape + dummy credential only).
@@ -133,11 +156,30 @@ from public.aos_integraciones
 where coalesce(api_key,'')<>''
 on conflict(integration_id) do update
 set tipo=excluded.tipo,nombre=excluded.nombre,api_key=excluded.api_key,updated_at=now();
-update public.aos_integraciones set api_key='',updated_at=now() where coalesce(api_key,'')<>'';
+update public.aos_integraciones set api_key='',api_secret='',updated_at=now()
+where coalesce(api_key,'')<>'' or coalesce(api_secret,'')<>'';
 """
 if 'CURRENT provider-secret boundary (synthetic shape + dummy credential only)' not in f:
     f += block
 fixture.write_text(f,encoding='utf-8')
+
+# Recovery must preserve the CURRENT private provider-secret vault and blank public columns.
+rollback=ROOT/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql'
+r=rollback.read_text(encoding='utf-8')
+anchor="""-- Integration secret material remains server-only.
+revoke all on table public.aos_integraciones from anon,authenticated;"""
+replacement="""-- Integration secret material remains server-only.
+alter table public.aos_integration_secrets_v1 enable row level security;
+alter table public.aos_integration_secrets_v1 force row level security;
+revoke all on table public.aos_integration_secrets_v1 from public,anon,authenticated;
+grant select,insert,update on table public.aos_integration_secrets_v1 to service_role;
+update public.aos_integraciones set api_key='',api_secret='' where coalesce(api_key,'')<>'' or coalesce(api_secret,'')<>'';
+revoke all on table public.aos_integraciones from anon,authenticated;"""
+if 'alter table public.aos_integration_secrets_v1 force row level security;' not in r:
+    if anchor not in r:
+        raise SystemExit('safe recovery integration anchor missing')
+    r=r.replace(anchor,replacement,1)
+rollback.write_text(r,encoding='utf-8')
 
 # Permanent regression assertions executed by the K1 certificate.
 contract=ROOT/'ci/kronia-k1-phase2/runtime_contract.py'
@@ -147,6 +189,7 @@ inject=(
     "migration_a=(root/'supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql').read_text()\n"
     "migration_b=(root/'supabase/migrations/20260814171000_kronia_k1_app_token_control_plane.sql').read_text()\n"
     "migration_e=(root/'supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql').read_text()\n"
+    "recovery=(root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()\n"
 )
 if "migration_a=(root/'supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql').read_text()" not in c:
     if anchor not in c:
@@ -154,6 +197,8 @@ if "migration_a=(root/'supabase/migrations/20260814170000_kronia_k1_private_cred
     c=c.replace(anchor,anchor+inject,1)
 else:
     c=c.replace("migration=(root/'supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql').read_text()\n",inject)
+    if "recovery=(root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()" not in c:
+        c=c.replace("migration_e=(root/'supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql').read_text()\n", "migration_e=(root/'supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql').read_text()\nrecovery=(root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()\n")
 assert_anchor="assert 'loadResendRuntimeKey' not in k1 and 'aos_integraciones?select=api_key' not in k1\n"
 checks=(
     "assert 'from public.aos_integration_secrets_v1 s' in migration_a\n"
@@ -162,9 +207,18 @@ checks=(
     "assert 'select i.api_key into v_api_key' not in migration_e\n"
     "assert 'insert into public.aos_integration_secrets_v1' in migration_b and 'update public.aos_integration_secrets_v1' in migration_b\n"
     "assert \"api_key=case when p_data ? 'api_key'\" not in migration_b and \"api_secret=case when p_data ? 'api_secret'\" not in migration_b\n"
+    "assert 'force row level security' in recovery and 'revoke all on table public.aos_integration_secrets_v1 from public,anon,authenticated' in recovery\n"
 )
-# Remove the first-wave assertions if present, then install the complete set once.
 c=c.replace("assert 'from public.aos_integration_secrets_v1 s' in migration\nassert 'select i.api_key into v_api_key from public.aos_integraciones' not in migration\n",'')
+old_checks=(
+    "assert 'from public.aos_integration_secrets_v1 s' in migration_a\n"
+    "assert 'select i.api_key into v_api_key from public.aos_integraciones' not in migration_a\n"
+    "assert 'from public.aos_integration_secrets_v1 s' in migration_e\n"
+    "assert 'select i.api_key into v_api_key' not in migration_e\n"
+    "assert 'insert into public.aos_integration_secrets_v1' in migration_b and 'update public.aos_integration_secrets_v1' in migration_b\n"
+    "assert \"api_key=case when p_data ? 'api_key'\" not in migration_b and \"api_secret=case when p_data ? 'api_secret'\" not in migration_b\n"
+)
+c=c.replace(old_checks,'')
 if checks not in c:
     if assert_anchor not in c:
         raise SystemExit('runtime contract assertion anchor missing')
