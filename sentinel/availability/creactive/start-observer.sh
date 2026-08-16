@@ -44,8 +44,8 @@ if ! command -v docker >/dev/null 2>&1; then
   echo 'SENTINEL_LOCAL_OBSERVER_DOCKER_COMMAND_MISSING' >&2
   exit 20
 fi
-if ! command -v node >/dev/null 2>&1; then
-  echo 'SENTINEL_LOCAL_OBSERVER_NODE_MISSING' >&2
+if ! command -v python3 >/dev/null 2>&1; then
+  echo 'SENTINEL_LOCAL_OBSERVER_PYTHON_MISSING' >&2
   exit 21
 fi
 
@@ -54,14 +54,14 @@ ensure_kuma
 
 export SENTINEL_LOCAL_STATE_DIR="$STATE_DIR"
 export SENTINEL_HEALTH_URL="${SENTINEL_HEALTH_URL:-https://ascenda-os-production.up.railway.app/health}"
-export SENTINEL_LOCAL_INTERVAL_MS="${SENTINEL_LOCAL_INTERVAL_MS:-60000}"
+export SENTINEL_LOCAL_INTERVAL_SECONDS="${SENTINEL_LOCAL_INTERVAL_SECONDS:-60}"
 export SENTINEL_GAP_THRESHOLD_SECONDS="${SENTINEL_GAP_THRESHOLD_SECONDS:-120}"
 
-AGENT="$RUNTIME_DIR/local-observer-agent.cjs"
+AGENT="$RUNTIME_DIR/local-observer-agent.py"
 if [ ! -f "$AGENT" ]; then
   echo "SENTINEL_LOCAL_OBSERVER_AGENT_MISSING:$AGENT" >&2
   exit 22
 fi
 
 # Foreground process intentionally keeps the WSL observer session alive while Windows is on.
-exec node "$AGENT"
+exec python3 "$AGENT"
