@@ -23,10 +23,11 @@ jobs:
             $c=Get-Command $cmd -ErrorAction SilentlyContinue
             if($c){ Write-Host ("NATIVE {0}=YES" -f $cmd) } else { Write-Host ("NATIVE {0}=NO" -f $cmd) }
           }
-          if(Get-Command wsl -ErrorAction SilentlyContinue){
-            cmd /c "wsl.exe -l -q" 2>$null
+          $wsl=Get-Command wsl -ErrorAction SilentlyContinue
+          if($wsl){
+            & wsl.exe -l -q 2>$null
             Write-Host ("WSL_LIST_EXIT="+$LASTEXITCODE)
-            cmd /c "wsl.exe -e sh -lc \"echo WSL_EXEC=YES; uname -a; for c in docker psql postgres initdb supabase python3; do if command -v `$c >/dev/null 2>&1; then echo WSL_CAP_`$c=YES; else echo WSL_CAP_`$c=NO; fi; done; exit 0\""
+            & wsl.exe -e sh -lc 'echo WSL_EXEC=YES; uname -a; for c in docker psql postgres initdb supabase python3; do if command -v $c >/dev/null 2>&1; then echo WSL_CAP_${c}=YES; else echo WSL_CAP_${c}=NO; fi; done; exit 0'
             Write-Host ("WSL_EXEC_EXIT="+$LASTEXITCODE)
           }
           Write-Host 'F17_FAST_DB_CAPABILITY_PROBE_COMPLETE'
