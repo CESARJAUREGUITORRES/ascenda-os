@@ -7,6 +7,7 @@ on:
       - 'app/server-phase-s.js'
       - 'sentinel/availability/**'
       - 'ci/sentinel/phase5_availability_contract.js'
+      - 'ci/sentinel/phase5_recovery_synthetic.js'
       - 'docs/control/SENTINEL_F5_*.md'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase5-availability.yml'
@@ -37,9 +38,14 @@ jobs:
         run: |
           node --check sentinel/availability/state-machine.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase5_recovery_synthetic.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: F5 hybrid availability contract
         shell: powershell
         run: node ci/sentinel/phase5_availability_contract.js
+      - name: F5 synthetic outage and recovery
+        shell: powershell
+        run: node ci/sentinel/phase5_recovery_synthetic.js
 
   uptime-kuma-container-smoke:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
