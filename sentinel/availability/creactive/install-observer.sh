@@ -8,7 +8,7 @@ RUNTIME_DIR="$DEST_BASE/runtime"
 STATE_DIR="$DEST_BASE/state"
 
 mkdir -p "$RUNTIME_DIR" "$STATE_DIR"
-install -m 700 "$AVAIL_DIR/local-observer-agent.cjs" "$RUNTIME_DIR/local-observer-agent.cjs"
+install -m 700 "$AVAIL_DIR/local-observer-agent.py" "$RUNTIME_DIR/local-observer-agent.py"
 install -m 700 "$SCRIPT_DIR/start-observer.sh" "$RUNTIME_DIR/start-observer.sh"
 install -m 600 "$AVAIL_DIR/compose.yaml" "$RUNTIME_DIR/compose.yaml"
 
@@ -20,6 +20,7 @@ cat > "$DEST_BASE/INSTALLATION.json" <<EOF
   "state_dir": "$STATE_DIR",
   "target": "https://ascenda-os-production.up.railway.app/health",
   "admin_ui": "http://127.0.0.1:3001",
+  "agent_runtime": "python3-stdlib",
   "contains_secrets": false
 }
 EOF
