@@ -29,53 +29,68 @@ concurrency:
 
 jobs:
   certify:
-    name: Phase S native bootstrap and human-send boundary
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 15
+    name: FAST Phase S native bootstrap and human-send boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Enforce Zero-Cost runner policy
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
         run: |
-          set -euo pipefail
-          test "${{ runner.environment }}" = "self-hosted"
-          python3 scripts/ci/enforce-zero-cost-policy.py
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Phase S must run on a self-hosted runner' }
+          Write-Host "Runner: $env:RUNNER_NAME"
 
       - name: Runtime syntax
+        shell: powershell
         run: |
-          set -euo pipefail
-          node --check app/server-phase-s.js
-          node --check app/server-f5.js
-          node --check app/server-wa4.js
-          node --check app/server-wa3.js
-          node --check app/server-wa2.js
-          node --check app/server-f4.js
-          node --check app/wa-gateway.js
+          $files = @(
+            'app/server-phase-s.js',
+            'app/server-f5.js',
+            'app/server-wa4.js',
+            'app/server-wa3.js',
+            'app/server-wa2.js',
+            'app/server-f4.js',
+            'app/wa-gateway.js'
+          )
+          foreach ($file in $files) {
+            node --check $file
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Phase S contracts
-        run: node ci/phase-s/phase-s_contract.js
+        shell: powershell
+        run: |
+          node ci/phase-s/phase-s_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Preserve WA gateway and inbox regressions
+        shell: powershell
         run: |
-          set -euo pipefail
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
-          python3 ci/wa2-conversation-live-inbox/ui_contract.py
-          python3 ci/wa3-boxes-routing-handoff/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/wa2-conversation-live-inbox/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/wa3-boxes-routing-handoff/ui_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Security invariants
+        shell: powershell
         run: |
-          set -euo pipefail
-          grep -q "aos_wa3_actor_v1" app/server-phase-s.js
-          grep -q "human_send_enabled:false" app/server-phase-s.js
-          grep -q "auto_routing_enabled:false" app/server-phase-s.js
-          grep -q "ai_send_enabled:false" app/server-phase-s.js
-          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-phase-s.js
-          grep -q '"startCommand": "node server-phase-s.js"' app/railway.json
+          $s = Get-Content app/server-phase-s.js -Raw
+          $rail = Get-Content app/railway.json -Raw
+          if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
+          if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
+          if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
+          if ($s -notmatch 'ai_send_enabled:false') { throw 'AI send fail-closed default missing' }
+          if ($s -match '(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          if ($rail -notmatch '"startCommand"\s*:\s*"node server-phase-s\.js"') { throw 'Railway Phase S start command missing' }
 
       - name: Phase S gate summary
+        shell: powershell
         run: |
-          echo 'PHASE S STATIC GATE PASS'
-          echo 'Production gates remaining: native reload canary, human outbound, Meta delivery/read receipt.'
+          Write-Host 'PHASE S STATIC GATE PASS'
+          Write-Host 'Production gates remaining: native reload canary, human outbound, Meta delivery/read receipt.'
