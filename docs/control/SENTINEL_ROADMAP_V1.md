@@ -356,6 +356,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ## Estado actual
 
-- Fase 1: `EN CURSO`.
-- Fases 2–13: `PENDIENTE`.
+- Fase 1: `CLOSING` — capacidad técnica certificada; continuidad/Notion pendiente.
+- Fase 2: `PENDIENTE` hasta cierre final F1.
+- Fases 3–13: `PENDIENTE`.
 - Ningún sensor productivo queda autorizado únicamente por este documento; cada fase debe ejecutar sus gates.
