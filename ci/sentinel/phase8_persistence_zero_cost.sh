@@ -5,6 +5,7 @@ set -euo pipefail
 SUPABASE_CLI_VERSION="${SUPABASE_CLI_VERSION:-2.72.8}"
 NODE_CLI_IMAGE="${NODE_CLI_IMAGE:-node:22-bookworm-slim}"
 PSQL_IMAGE="${PSQL_IMAGE:-postgres:17-alpine}"
+WORKSPACE_FIX_IMAGE="${WORKSPACE_FIX_IMAGE:-alpine:3.20}"
 MIGRATION="supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql"
 ROLLBACK="supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql"
 FIXTURE="ci/sentinel/phase8_persistence_zero_cost.sql"
@@ -12,6 +13,8 @@ DOCKER_BIN="$(command -v docker)"
 PROJECT_DIR="$GITHUB_WORKSPACE/ci/zero-cost-staging"
 NPM_CACHE="sentinel-f8-npm-cache"
 STATUS_FILE="/tmp/sentinel-f8-status.json"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 for f in "$MIGRATION" "$ROLLBACK" "$FIXTURE"; do test -f "$GITHUB_WORKSPACE/$f"; done
 python3 --version >/dev/null
@@ -29,13 +32,24 @@ supa(){
     sh -lc "npx --yes supabase@${SUPABASE_CLI_VERSION} $*"
 }
 
+repair_workspace(){
+  docker run --rm \
+    -v "$GITHUB_WORKSPACE:/work" \
+    "$WORKSPACE_FIX_IMAGE" \
+    sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R ${HOST_UID}:${HOST_GID} /work 2>/dev/null || true" \
+    >/dev/null 2>&1 || true
+}
+
 cleanup(){
   supa "stop --no-backup >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
   docker volume rm -f "$NPM_CACHE" >/dev/null 2>&1 || true
   rm -f "$STATUS_FILE" /tmp/f8-replay-a.txt /tmp/f8-replay-b.txt /tmp/f8-fp-a.txt /tmp/f8-fp-b.txt
+  repair_workspace
 }
 trap cleanup EXIT
 
+# Ensure stale container-owned Supabase metadata from a prior attempt cannot poison this run.
+repair_workspace
 supa "stop --no-backup >/dev/null 2>&1 || true" >/dev/null
 supa "start >/dev/null"
 supa "status --output json" > "$STATUS_FILE"
