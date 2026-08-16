@@ -178,6 +178,19 @@ async function handlePhaseStatus(req,res){
   });
 }
 
+function probeChild(){
+  return new Promise(resolve=>{
+    if(!childAlive)return resolve(false);
+    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:'/app.html',method:'GET',timeout:1500},r=>{
+      r.resume();
+      resolve((r.statusCode||500)>=200&&(r.statusCode||500)<500);
+    });
+    q.on('timeout',()=>{q.destroy();resolve(false);});
+    q.on('error',()=>resolve(false));
+    q.end();
+  });
+}
+
 function proxy(req,res){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
   const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
@@ -194,7 +207,10 @@ function proxy(req,res){
 const server=http.createServer(async(req,res)=>{
   let u;try{u=new URL(req.url,'http://localhost');}catch(_){return writeJson(res,400,{ok:false,error:'INVALID_URL'});}
   const p=u.pathname;
-  if(req.method==='GET'&&p==='/health')return writeJson(res,childAlive?200:503,{ok:childAlive,service:'ascenda-phase-s',child_alive:childAlive});
+  if(req.method==='GET'&&p==='/health'){
+    const ready=await probeChild();
+    return writeJson(res,ready?200:503,{ok:ready,service:'ascenda-phase-s',child_alive:childAlive,inner_ready:ready});
+  }
   if(req.method==='GET'&&p==='/api/wa3/bootstrap')return handleBootstrap(req,res);
   if(req.method==='GET'&&p==='/api/phase-s/status')return handlePhaseStatus(req,res);
   return proxy(req,res);
