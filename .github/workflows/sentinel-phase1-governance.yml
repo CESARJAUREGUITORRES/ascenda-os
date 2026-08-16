@@ -1,0 +1,27 @@
+name: Sentinel F1 Governance Certificate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/control/SENTINEL_*.md'
+      - 'ci/sentinel/**'
+      - '.github/workflows/sentinel-phase1-governance.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sentinel-f1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  governance:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: F1 governance contract
+        shell: powershell
+        run: node ci/sentinel/phase1_governance_contract.js
