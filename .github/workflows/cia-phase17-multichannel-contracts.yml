@@ -3,7 +3,7 @@ name: ASCENDA CIA Phase 17 Multichannel Contracts
 on:
   push:
     branches:
-      - 'feature/cia-phase17-multichannel-20260815-v5'
+      - 'feature/cia-phase17-multichannel-20260815-v*'
     paths:
       - 'supabase/migrations/*phase17_multichannel*'
       - 'supabase/rollbacks/*phase17_multichannel*'
