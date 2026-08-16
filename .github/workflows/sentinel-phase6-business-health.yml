@@ -1,0 +1,77 @@
+name: Sentinel F6 Business Health Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths: &f6_paths
+      - 'sentinel/business-health/**'
+      - 'ci/sentinel/phase6_business_health_*.js'
+      - 'docs/control/SENTINEL_F6_*.md'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase6-business-health.yml'
+      - 'app/public/calls.js'
+      - 'app/server-f4.js'
+      - 'app/server-wa2.js'
+      - 'app/server-wa3.js'
+      - 'app/email-gateway.js'
+  push:
+    branches: ['main','feature/**','fix/**']
+    paths: *f6_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f6-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: FAST runner healthcheck
+        shell: powershell
+        run: node --version
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check sentinel/business-health/invariant-engine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase6_business_health_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: F6 business-health contract
+        shell: powershell
+        run: node ci/sentinel/phase6_business_health_contract.js
+
+  synthetic-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic silent failures
+        shell: powershell
+        run: node ci/sentinel/phase6_business_health_synthetic.js
+
+  synthetic-linux:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          node --version
+      - name: Cross-platform syntax and fixtures
+        run: |
+          set -euo pipefail
+          node --check sentinel/business-health/invariant-engine.cjs
+          node --check ci/sentinel/phase6_business_health_contract.js
+          node --check ci/sentinel/phase6_business_health_synthetic.js
+          node ci/sentinel/phase6_business_health_contract.js
+          node ci/sentinel/phase6_business_health_synthetic.js
