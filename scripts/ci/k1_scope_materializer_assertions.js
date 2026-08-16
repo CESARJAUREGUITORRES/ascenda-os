@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('fs');
+const p='scripts/ci/k1_materialize_current.js';
+let s=fs.readFileSync(p,'utf8');
+const oldInvariant=`if(s.includes("api_key=case when p_data ? 'api_key'")||s.includes("api_secret=case when p_data ? 'api_secret'")) die('K1-B public secret write survived');`;
+const newInvariant=`if(s.includes("else api_key end")||s.includes("else api_secret end")) die('K1-B public secret write survived');`;
+const oldRuntime=`assert "api_key=case when p_data ? 'api_key'" not in _k1b and "api_secret=case when p_data ? 'api_secret'" not in _k1b`;
+const newRuntime=`assert "else api_key end" not in _k1b and "else api_secret end" not in _k1b`;
+if(!s.includes(oldInvariant)) throw new Error('K1-B materializer invariant anchor missing');
+if(!s.includes(oldRuntime)) throw new Error('K1-B runtime invariant anchor missing');
+s=s.replace(oldInvariant,newInvariant).replace(oldRuntime,newRuntime);
+fs.writeFileSync(p,s,'utf8');
+console.log('KRONIA_K1_MATERIALIZER_SCOPE_FIX=PASS');
