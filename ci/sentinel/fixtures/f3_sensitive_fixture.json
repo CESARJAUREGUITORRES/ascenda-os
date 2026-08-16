@@ -1,0 +1,37 @@
+{
+  "fixture": "SYNTHETIC_ONLY_DO_NOT_USE_AS_REAL_DATA",
+  "resource": {
+    "service.namespace": "wrong-value-must-normalize",
+    "service.name": "ascenda-zero-cost-fixture",
+    "service.version": "fixture-sha-0000000",
+    "deployment.environment.name": "zero-cost",
+    "sentinel.domain": "WHATSAPP",
+    "sentinel.component": "wa3",
+    "sentinel.phase": "F3",
+    "patient.email": "fake.patient@example.invalid",
+    "authorization": "Bearer fake-not-a-token"
+  },
+  "attributes": {
+    "sentinel.domain": "WHATSAPP",
+    "sentinel.component": "wa3",
+    "sentinel.capability": "human-outbound",
+    "sentinel.operation": "fixture-sensitive-value-fake.patient@example.invalid",
+    "sentinel.provider": "meta-whatsapp",
+    "sentinel.route_template": "/api/wa/:conversation_id/send",
+    "sentinel.site_code": "SI",
+    "http.request.method": "POST",
+    "http.response.status_code": 503,
+    "error.type": "SyntheticProviderError",
+    "error.code": "FIXTURE_503",
+    "email": "fake.patient@example.invalid",
+    "telefono": "+51 999 999 999",
+    "dni": "00000000",
+    "authorization": "Bearer fake-secret-value",
+    "access_token": "fake-access-token",
+    "request.body": "{\"patient\":\"FAKE NAME\",\"message\":\"synthetic body\"}",
+    "prompt": "synthetic AI prompt that must never leave",
+    "unknown.custom": "must be dropped"
+  },
+  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "request_id": "11111111-1111-4111-8111-111111111111"
+}
