@@ -1,0 +1,20 @@
+name: Sentinel F1 Governance Certificate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/control/SENTINEL_*.md'
+      - 'ci/sentinel/**'
+      - '.github/workflows/sentinel-phase1-governance.yml'
+permissions:
+  contents: read
+jobs:
+  governance:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - shell: powershell
+        run: node ci/sentinel/phase1_governance_contract.js
