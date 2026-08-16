@@ -5,6 +5,7 @@
 const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
+const {createResendVaultReconciler}=require('./auth-resend-reconcile');
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
 const INNER_PORT=EXTERNAL_PORT===4225?4226:4225;
@@ -14,6 +15,24 @@ const SB_SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const AUTH_RESEND_RECONCILER=createResendVaultReconciler();
+
+let authResendReady=false;
+let authResendSync=null;
+function ensureAuthResendReady(){
+  if(authResendReady)return Promise.resolve({ok:true,status:200,code:'AUTH_RESEND_VAULT_READY'});
+  if(authResendSync)return authResendSync;
+  authResendSync=AUTH_RESEND_RECONCILER.reconcile().then(out=>{
+    authResendReady=!!(out&&out.ok===true);
+    if(authResendReady)console.log('[PHASE-S] auth resend vault ready');
+    else console.warn('[PHASE-S] auth resend vault unavailable',out&&out.code?out.code:'AUTH_RESEND_SYNC_FAILED');
+    return out||{ok:false,status:503,code:'AUTH_RESEND_SYNC_FAILED'};
+  }).catch(e=>{
+    console.warn('[PHASE-S] auth resend vault unavailable','AUTH_RESEND_SYNC_ERROR');
+    return {ok:false,status:503,code:'AUTH_RESEND_SYNC_ERROR'};
+  }).finally(()=>{authResendSync=null;});
+  return authResendSync;
+}
 
 let childAlive=true;
 const child=spawn(process.execPath,['server-f5.js'],{
@@ -211,11 +230,17 @@ const server=http.createServer(async(req,res)=>{
     const ready=await probeChild();
     return writeJson(res,ready?200:503,{ok:ready,service:'ascenda-phase-s',child_alive:childAlive,inner_ready:ready});
   }
+  if(req.method==='POST'&&p==='/api/auth/v3/login'){
+    const sync=await ensureAuthResendReady();
+    if(!sync||sync.ok!==true)return writeJson(res,503,{ok:false,error:'No fue posible preparar el envío del código 2FA',code:sync&&sync.code?sync.code:'AUTH_RESEND_SYNC_FAILED'});
+    proxy(req,res);return;
+  }
   if(req.method==='GET'&&p==='/api/wa3/bootstrap')return handleBootstrap(req,res);
   if(req.method==='GET'&&p==='/api/phase-s/status')return handlePhaseStatus(req,res);
   return proxy(req,res);
 });
 
+ensureAuthResendReady().catch(()=>{});
 server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[PHASE-S] stabilization boundary listening',{external:EXTERNAL_PORT,inner:INNER_PORT}));
 function shutdown(sig){
   console.log('[PHASE-S] shutdown',sig);
