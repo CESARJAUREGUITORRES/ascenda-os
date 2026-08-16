@@ -1,5 +1,6 @@
 \set ON_ERROR_STOP on
 begin;
+\i supabase/migrations/20260816000600_f5_cluster_fieldwise_enrichment_v1.sql
 select plan(25);
 
 insert into public.aos_f5_source_batches_v1(
@@ -82,7 +83,7 @@ select ok((
   select proposed_patch ? 'Email' and proposed_patch ? 'distrito'
   from public.aos_f5_patient_link_preview_v1
   where target_patient_id='P1'
-),'23 enrichment preview fills only missing canonical fields');
+),'23 enrichment preview fills missing fields from latest non-null source evidence');
 
 select ok(exists(
   select 1 from public.aos_f5_patient_link_preview_v1
