@@ -3,13 +3,16 @@ name: Sentinel F5 Availability Foundation Certificate
 on:
   pull_request:
     branches: [main]
-    paths:
+    paths: &f5_paths
       - 'app/server-phase-s.js'
       - 'sentinel/availability/**'
       - 'ci/sentinel/phase5_availability_contract.js'
       - 'docs/control/SENTINEL_F5_*.md'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase5-availability.yml'
+  push:
+    branches: ['feature/**','fix/**']
+    paths: *f5_paths
 
 permissions:
   contents: read
