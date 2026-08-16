@@ -34,10 +34,20 @@ async function injectF4(req){
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
 }
 
+async function injectSameOriginAppToken(req){
+  var h=new Headers(req.headers),t=String(await getToken()).trim();
+  if(t.length>=32)h.set('X-AOS-App-Token',t);
+  return fetch(new Request(req,{headers:h,cache:'no-store'}));
+}
+
 self.addEventListener('fetch',function(event){
   var req=event.request,u;
   try{u=new URL(req.url);}catch(e){return;}
   if(u.origin===self.location.origin&&req.method==='GET'&&(u.pathname==='/app'||u.pathname==='/app.html')){event.respondWith(injectF4(req));return;}
+  // WA-3 APIs are same-origin and may be opened from a different browser tab.
+  // sessionStorage is tab-scoped, so inject the already-governed Phase 2 token
+  // from the same-origin cache. The server still performs 2FA/panel/ownership checks.
+  if(u.origin===self.location.origin&&u.pathname.indexOf('/api/wa3/')===0){event.respondWith(injectSameOriginAppToken(req));return;}
   if(u.hostname.indexOf('supabase.co')<0)return;
 
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
