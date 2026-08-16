@@ -42,17 +42,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Provision Python consistently on FAST pool
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
 
       - name: Enforce self-hosted FAST lane
         shell: powershell
         run: |
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Phase S must run on a self-hosted runner' }
           Write-Host "Runner: $env:RUNNER_NAME"
-          python --version
+          node --version
 
       - name: Runtime syntax
         shell: powershell
@@ -83,37 +79,20 @@ jobs:
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: F4 runtime/UI topology contracts
+      - name: Node-owned cross-workstream contracts
         shell: powershell
         run: |
-          python ci/phase4-revenue/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/phase4-revenue/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-2 inbox topology contract
-        shell: powershell
-        run: |
-          python ci/wa2-conversation-live-inbox/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-3 routing topology contract
-        shell: powershell
-        run: |
-          python ci/wa3-boxes-routing-handoff/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: WA-4 AI boundary topology contract
-        shell: powershell
-        run: |
-          python ci/wa4-ai-sales-router/ui_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: F5 private-boundary topology contract
-        shell: powershell
-        run: |
           node ci/phase5-historical-identity/f5_upload_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Delegated Python topology gates
+        shell: powershell
+        run: |
+          Write-Host 'Python topology contracts are intentionally delegated to Linux Zero-Cost workflows.'
+          Write-Host 'Required independent checks: Revenue, WA-2, WA-3, WA-4, Cartera and F5.'
+          Write-Host 'Phase S FAST remains a Windows Node/runtime-chain gate and has no Python toolchain dependency.'
 
       - name: Security invariants
         shell: powershell
@@ -142,5 +121,6 @@ jobs:
       - name: Phase S gate summary
         shell: powershell
         run: |
-          Write-Host 'PHASE S FULL STATIC/RUNTIME-CHAIN GATE PASS'
+          Write-Host 'PHASE S WINDOWS NODE/RUNTIME-CHAIN GATE PASS'
+          Write-Host 'Python/DB gates are independently enforced by Linux Zero-Cost workflows.'
           Write-Host 'Production gates remaining: deploy health, native reload canary, human outbound, Meta delivery/read receipt.'
