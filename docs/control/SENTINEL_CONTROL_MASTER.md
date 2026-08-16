@@ -251,7 +251,8 @@ El roadmap operativo detallado está en `docs/control/SENTINEL_ROADMAP_V1.md`.
 
 ## 16. Checkpoint actual
 
-- F1–F4: `100_COMPLETE`.
-- F5: `100_COMPLETE` una vez fusionado el cierre terminal certificado en PR #205.
-- F6: siguiente fase canónica — `Business Health & Silent Failure Invariants`.
-- Certificado terminal F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
+- F1–F5: `100_COMPLETE` y fusionadas a `main`.
+- F6: `100_COMPLETE` candidate; PR #206 requiere exact-head PASS, merge y post-merge PASS para que el cierre sea autoritativo.
+- F6 baseline: motor aggregate-only con invariantes Call Center, Sales, WhatsApp y Email; Zero-PHI/PII; sin persistencia ni notificaciones.
+- F7: siguiente fase canónica tras cierre autoritativo F6 — `Release, Deploy & Correlation Layer`.
+- Certificados terminales: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md` y `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.

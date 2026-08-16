@@ -363,7 +363,9 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 3: `CERRADA / 100_COMPLETE`.
 - Fase 4: `CERRADA / 100_COMPLETE / 18/18 PASS`.
 - Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local, G01–G12 PASS.
-- Fase 6: `SIGUIENTE — Business Health & Silent Failure Invariants`.
-- Fases 7–13: `PENDIENTE`.
+- Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; cierre se vuelve autoritativo al fusionar PR #206 tras exact-head PASS.
+- Fase 7: `SIGUIENTE — Release, Deploy & Correlation Layer`.
+- Fases 8–13: `PENDIENTE`.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
-- F5 mantiene costo incremental cloud `USD 0`, no autoriza gasto automático y no convierte gaps locales en false green.
+- Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
+- F6 no crea incidentes persistentes ni notificaciones: esas responsabilidades permanecen asignadas a F8 y F9.
