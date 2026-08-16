@@ -1,18 +1,19 @@
 # SENTINEL F3 — Telemetry Contract & OpenTelemetry Foundation — Validation Report
 
 **Fecha:** 2026-08-16 (America/Lima)  
-**Estado:** `TECHNICALLY_CERTIFIED / NOTION_FINALIZATION_PENDING`  
+**Estado:** `100_COMPLETE`  
 **Lifecycle:** `VALIDATING → TECHNICALLY_CERTIFIED → 100_COMPLETE`  
 **F1:** `100_COMPLETE`  
 **F2:** `100_COMPLETE`  
 **Baseline F3:** `main@2ec3c7ad0883d171dcfb81f61049d6b51e38f882`  
-**Foundation PR:** `#187`  
-**Technical candidate:** `bd19c8d11a04c5c3843ea041726e623e5d0461cb`  
+**Foundation PR:** `#187` → `main@c43ae9eddf9c70b2a8149b7ca011c1eb6167c319`  
 **Riesgo:** HIGH — privacy/telemetry contract; runtime activation remains forbidden in F3.
 
-## 1. Resultado técnico
+## 1. Certificación
 
-F3 establece una frontera portable de telemetría antes de conectar cualquier backend: identidad de servicio, correlation IDs, W3C Trace Context, sampling, filtering/redaction, envelope V1 y exporter abstraction.
+**SENTINEL F3 — Telemetry Contract & OpenTelemetry Foundation queda certificada al 100% para la baseline 2026-08-16.**
+
+F3 entrega una frontera portable de telemetría antes de conectar cualquier backend: identidad de servicio, correlation IDs, W3C Trace Context, sampling, filtering/redaction, envelope V1 y exporter abstraction.
 
 No se activó SDK, Collector, Sentry, OTLP, tracing productivo, logs, métricas ni export de red. No se modificó `app/`, Railway, Supabase, DB/migrations ni proveedores.
 
@@ -31,15 +32,18 @@ No se activó SDK, Collector, Sentry, OTLP, tracing productivo, logs, métricas 
 - Exporters F3: `noop`, `memory-test`; custom adapter probado por contrato.
 - Collector: reference-only, no desplegado.
 
-## 3. Certificado exact-head
+## 3. Evidencia exact-head
 
-Candidate validado: `bd19c8d11a04c5c3843ea041726e623e5d0461cb`.
+### Foundation candidate final
 
-### Sentinel F3 Telemetry Certificate
+Head validado antes de integrar PR #187: `8b51298f369dfee8473b7c78e2a02e9f289e44f7`.
 
-Run `31955549802` — **PASS**.
+- Sentinel F3 Telemetry Certificate — run `31955680560` — **PASS**.
+- Sentinel F1 Governance Certificate — run `31955680553` — **PASS**.
+- Ascenda CI — run `31955680547` — **PASS**.
+- PR #187 era `mergeable=true` y se fusionó como `c43ae9eddf9c70b2a8149b7ca011c1eb6167c319`.
 
-Emitió:
+El certificado F3 emitió, sobre el loop técnico previo y revalidado en el checkpoint final:
 
 ```text
 SENTINEL_F3_TELEMETRY_CONTRACT_PASS
@@ -55,18 +59,11 @@ exporter_interchangeability = true
 trace_context = W3C
 fixture_leaks = 0
 runtime_db_mutations = 0
-changed_files_checked = 8
 ```
-
-### Regresiones externas
-
-- Sentinel F1 Governance Certificate — run `31955549806` — **PASS**.
-- Ascenda CI — run `31955549811` — **PASS**.
-- PR #187: `mergeable=true` sobre la baseline validada.
 
 ## 4. Scope proof
 
-Changed files PR #187 en el checkpoint técnico:
+Foundation PR #187 modificó exactamente ocho superficies de Sentinel/CI/docs:
 
 1. `.github/workflows/sentinel-phase3-telemetry.yml`
 2. `ci/sentinel/fixtures/f3_sensitive_fixture.json`
@@ -98,13 +95,13 @@ Se verificó el mismo envelope sanitizado contra:
 - `memory-test` — fixture/CI;
 - adapter custom que implementa `export(envelope)`.
 
-Los tres respetaron la misma frontera; por tanto F3 no queda estructuralmente acoplada a Sentry ni a otro backend.
+Los adapters respetaron la misma frontera; F3 no queda estructuralmente acoplada a Sentry ni a otro backend.
 
 ## 7. Regresión F2 y mejora del loop
 
-Los primeros intentos del workflow F3 detectaron una inconsistencia del historial Git del merge ref temporal en runners self-hosted: el contrato histórico F2 exigía que su snapshot fuera ancestro de `HEAD`, mientras GitHub remoto confirmaba que `2608c90...` sí era ancestro de `main@2ec3c7ad`.
+Los primeros intentos del workflow F3 revelaron una inconsistencia del historial Git del merge ref temporal en runners self-hosted: el contrato histórico F2 comprobaba ancestralidad del snapshot contra `HEAD`, mientras GitHub remoto confirmó que `2608c90...` sí era ancestro de la baseline `main@2ec3c7ad`.
 
-No se relajó la topología F2. El gate cross-phase se corrigió para validar directamente sus invariantes materiales en el merge candidate F3:
+No se relajó la topología F2. El cross-phase gate se hizo más material y estable, comprobando directamente en el candidate F3:
 
 - 41/41 HTML actuales contra registry;
 - Railway entrypoint contra registry;
@@ -115,9 +112,18 @@ No se relajó la topología F2. El gate cross-phase se corrigió para validar di
 - cero `HEALTHY`;
 - cero critical nodes no mapeados.
 
-El run final certificó `f2_registry_regression=true`.
+El certificado final mantiene `f2_registry_regression=true`.
 
-## 8. Gates F3
+## 8. Notion / continuidad
+
+Después de integrar la foundation `main@c43ae9ed...`:
+
+- F3 page `3be0e4fe-8414-8126-bb3e-d6e997c31025`: `Estado=Cerrada`, `Progreso=100`.
+- F4 page `3be0e4fe-8414-819c-a65e-eca1026537fc`: `Estado=Siguiente`, `Progreso=0`.
+- F1/F2 permanecen cerradas.
+- F5–F13 permanecen pendientes.
+
+## 9. Gates F3
 
 | Gate | Evidencia requerida | Estado |
 |---|---|---|
@@ -138,19 +144,16 @@ El run final certificó `f2_registry_regression=true`.
 | F3-G15 | final diff sin `app/`, Railway, DB/migrations, providers ni secrets | PASS |
 | F3-G16 | exact-head self-hosted F3 certificate PASS | PASS |
 | F3-G17 | F1 Governance + F2 material invariants + Ascenda CI PASS | PASS |
-| F3-G18 | foundation merge + Notion F3=100/Cerrada + F4 única Siguiente + certificado final | PENDING |
+| F3-G18 | foundation integrada + Notion F3=100/Cerrada + F4 única Siguiente + certificado final | PASS |
 
-**Estado técnico:** `17/18 PASS`.
+**Resultado:** `18/18 PASS`.
 
-## 9. No-certificaciones deliberadas
+## 10. No-certificaciones deliberadas
 
-Cerrar F3 no significa que exista Sentry/Collector/OTLP activo, tracing productivo, métricas productivas, logs productivos o export de red. F4 incorpora Sentry Error Monitoring Core; F5 disponibilidad; F6 business health; F7 release/deploy correlation.
+F3 no certifica que Sentry/Collector/OTLP estén activos. Tampoco certifica tracing, métricas o logs productivos. F4 incorpora **Sentry Error Monitoring Core** bajo este contrato; F5 disponibilidad; F6 business health; F7 release/deploy correlation.
 
-## 10. Handoff pendiente
+## 11. Handoff a F4
 
-1. revalidar este checkpoint sobre exact merge candidate;
-2. fusionar PR #187;
-3. sincronizar Notion F3/F4;
-4. emitir certificado GitHub `100_COMPLETE` con 18/18 PASS;
-5. ejecutar gate final y fusionar;
-6. dejar F4 como única fase `Siguiente`.
+F4 — `Sentry Error Monitoring Core` es la única fase `Siguiente`.
+
+Debe consumir la frontera F3, mantener `sendDefaultPii=false`, scrubbing/redaction, tracing inicialmente OFF o limitado según gate, un error sintético no sensible y kill switch probado. Sentry seguirá siendo sensor especializado, no dependencia estructural de Sentinel Core.
