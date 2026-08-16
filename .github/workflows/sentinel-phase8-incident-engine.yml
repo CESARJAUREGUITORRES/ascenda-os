@@ -14,7 +14,7 @@ on:
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase8-incident-engine.yml'
   push:
-    branches: ['main','feature/**','fix/**']
+    branches: [main]
     paths: *f8_paths
 
 permissions:
