@@ -1,0 +1,101 @@
+{
+  "schema_version": "sentinel-correlation/v1",
+  "phase": "F7",
+  "baseline_main": "c1a857fc515397ad9b9b6dcbadc6e53df30341",
+  "purpose": "Correlate Sentinel signals with exact release, commit, deployment, request and trace metadata without asserting unproven causality.",
+  "design": {
+    "vendor_neutral": true,
+    "read_only": true,
+    "zero_phi_pii": true,
+    "railway_api_required": false,
+    "github_write_required": false,
+    "production_runtime_activation_in_f7": false,
+    "automatic_rollback": false
+  },
+  "upstream_contracts": {
+    "f3_telemetry": {
+      "path": "sentinel/telemetry/contract-v1.json",
+      "correlation_fields": ["service.version", "deployment.environment.name", "request_id", "trace_id"]
+    },
+    "f4_sentry": {
+      "path": "sentinel/sentry/f4-contract.json",
+      "release_format": "ascenda-os@<commit_sha>",
+      "release_variable": "RAILWAY_GIT_COMMIT_SHA"
+    },
+    "f6_business_health": {
+      "path": "sentinel/business-health/f6-contract.json",
+      "signal_fields": ["domain", "component", "capability", "invariant_id", "state", "observed_at"]
+    }
+  },
+  "railway_system_metadata": {
+    "verified_on": "2026-08-16",
+    "documentation": "Railway Variables Reference",
+    "allowed_variables": [
+      "RAILWAY_GIT_COMMIT_SHA",
+      "RAILWAY_DEPLOYMENT_ID",
+      "RAILWAY_ENVIRONMENT_NAME",
+      "RAILWAY_SERVICE_NAME",
+      "RAILWAY_REPLICA_ID"
+    ],
+    "forbidden_variables": [
+      "RAILWAY_GIT_AUTHOR",
+      "RAILWAY_GIT_COMMIT_MESSAGE"
+    ],
+    "reason_for_forbidden": "Human-authored free text is unnecessary for correlation and can contain sensitive or irrelevant data."
+  },
+  "correlation_envelope": {
+    "schema_version": "sentinel-correlation-envelope/v1",
+    "fields": [
+      "system",
+      "environment",
+      "service_name",
+      "release",
+      "commit_sha",
+      "deployment_id",
+      "replica_id",
+      "request_id",
+      "trace_id",
+      "observed_at",
+      "source"
+    ],
+    "system": "ascenda-os",
+    "unknown_marker": "UNKNOWN"
+  },
+  "confidence": {
+    "EXACT": "Explicit deployment_id and commit_sha agree with a deployment record in the same environment/service.",
+    "STRONG": "Exact commit_sha/release maps to a deployment in the same environment/service, but deployment_id was absent.",
+    "WEAK": "Only temporal proximity identifies a candidate deployment; this is an inference, not identity or causality.",
+    "UNKNOWN": "Evidence is insufficient or contradictory."
+  },
+  "regression_window": {
+    "default_minutes": 60,
+    "temporal_candidate_allowed": true,
+    "temporal_candidate_is_causality": false,
+    "wording": "suspect change candidate / deployment in regression window"
+  },
+  "rollback_policy": {
+    "selection": "latest prior known-good deployment in same environment and service",
+    "known_good_requires": ["status=SUCCESS", "health_state=HEALTHY", "valid commit_sha", "started_at before suspect deployment"],
+    "if_missing": "UNKNOWN",
+    "never_guess": true,
+    "action_authorized": false,
+    "execution_owned_by_phase": "F12"
+  },
+  "privacy": {
+    "allowed_value_classes": ["technical-id", "enum", "timestamp"],
+    "free_text_forbidden": true,
+    "request_body_forbidden": true,
+    "message_content_forbidden": true,
+    "patient_contact_identifiers_forbidden": true,
+    "auth_material_forbidden": true
+  },
+  "gates": {
+    "exact_sha_environment": true,
+    "request_trace_passthrough": true,
+    "deployment_match": true,
+    "temporal_inference_labeled": true,
+    "rollback_target_without_guessing": true,
+    "contradiction_returns_unknown": true,
+    "cross_platform_ci": true
+  }
+}

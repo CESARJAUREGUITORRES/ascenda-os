@@ -1,0 +1,73 @@
+name: Sentinel F7 Release Deploy Correlation Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths: &f7_paths
+      - 'sentinel/correlation/**'
+      - 'ci/sentinel/phase7_correlation_*.js'
+      - 'docs/control/SENTINEL_F7_*.md'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase7-correlation.yml'
+      - 'sentinel/telemetry/**'
+      - 'sentinel/sentry/**'
+      - 'app/sentinel-sentry-init.cjs'
+  push:
+    branches: ['main','feature/**','fix/**']
+    paths: *f7_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f7-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: FAST runner healthcheck
+        shell: powershell
+        run: node --version
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check sentinel/correlation/runtime-metadata.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/correlation/correlation-engine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase7_correlation_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase7_correlation_synthetic.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: F7 correlation contract
+        shell: powershell
+        run: node ci/sentinel/phase7_correlation_contract.js
+      - name: F7 synthetic incident correlation
+        shell: powershell
+        run: node ci/sentinel/phase7_correlation_synthetic.js
+
+  correlation-linux:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+      - name: Cross-platform fixtures in disposable Node
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" \
+            -w /work \
+            node:22-alpine \
+            sh -lc 'node --version && node --check sentinel/correlation/runtime-metadata.cjs && node --check sentinel/correlation/correlation-engine.cjs && node ci/sentinel/phase7_correlation_contract.js && node ci/sentinel/phase7_correlation_synthetic.js'
