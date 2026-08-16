@@ -1,19 +1,57 @@
 {
-  "schema_version": "sentinel-availability/v1",
+  "schema_version": "sentinel-availability/v1.1",
   "phase": "F5",
-  "baseline_main": "00797fe87869f4cee8a11414de1f1de262e8c109",
+  "baseline_main": "d81863d46f4f4fe54deb4c017968aac5b19b310d",
+  "availability_architecture": "hybrid-cloud-plus-local",
+  "continuous_coverage": {
+    "required": true,
+    "provider": "sentry-uptime",
+    "plan": "Developer",
+    "included_monitors": 1,
+    "incremental_cost_usd_month": 0,
+    "target_monitor_id": "ascenda-production-health",
+    "target_url": "https://ascenda-os-production.up.railway.app/health",
+    "configuration_requires_sentry_ui": true,
+    "api_dependency_for_sentinel_core": false,
+    "status": "HUMAN_UI_PENDING"
+  },
   "observer": {
     "engine": "uptime-kuma",
     "docker_image": "louislam/uptime-kuma:2",
     "verified_release_at_design_time": "2.3.2",
     "verified_on": "2026-08-16",
-    "production_host_required": true,
+    "mode": "intermittent-workstation-observer",
+    "host": "CREACTIVE",
+    "runtime": "Windows + WSL2 Ubuntu + Docker",
     "must_be_independent_from_ascenda_railway_runtime": true,
     "same_railway_service_forbidden": true,
     "public_admin_ui_default": false,
     "bind_admin_ui": "127.0.0.1:3001",
     "data_volume": "local-persistent-volume",
-    "nfs_forbidden": true
+    "nfs_forbidden": true,
+    "restart_policy": "unless-stopped",
+    "offline_semantics": "UNKNOWN",
+    "offline_is_not_ascenda_down": true,
+    "autostart_chain": [
+      "Windows user logon",
+      "Task Scheduler",
+      "wsl.exe Ubuntu",
+      "wait for Docker",
+      "start/reuse Uptime Kuma",
+      "start local observer agent"
+    ]
+  },
+  "gap_reconciliation": {
+    "enabled": true,
+    "gap_threshold_seconds": 120,
+    "persist_observer_heartbeat": true,
+    "persist_safe_health_samples": true,
+    "resume_report": true,
+    "coverage_gap_state": "UNKNOWN",
+    "retroactive_health_claims_forbidden": true,
+    "cloud_history_source": "Sentry Monitors/Uptime",
+    "automatic_cloud_api_query_required": false,
+    "future_automation_phases": ["F7", "F8", "F11"]
   },
   "privacy": {
     "zero_phi_pii": true,
@@ -22,7 +60,18 @@
     "no_patient_identifiers": true,
     "no_message_content": true,
     "no_request_bodies": true,
-    "no_provider_secrets_in_monitor_config": true
+    "no_provider_secrets_in_monitor_config": true,
+    "local_history_allowed_fields": [
+      "timestamp",
+      "http_status",
+      "duration_ms",
+      "semantic_ok",
+      "health.ok",
+      "health.service",
+      "health.child_alive",
+      "health.inner_ready",
+      "error_code"
+    ]
   },
   "baseline_monitors": [
     {
@@ -52,6 +101,12 @@
     "partial_failure_before_down_threshold": "DEGRADED",
     "failure_threshold_reached": "DOWN"
   },
+  "coverage_translation": {
+    "cloud_and_local": "CLOUD_AND_LOCAL",
+    "cloud_only": "CLOUD_ONLY",
+    "local_only": "LOCAL_ONLY",
+    "neither": "UNKNOWN"
+  },
   "anti_flapping": {
     "failure_samples_required": 3,
     "recovery_samples_required": 2,
@@ -61,14 +116,18 @@
   },
   "cost": {
     "software_license_cost_usd_month": 0,
+    "sentry_uptime_incremental_cost_usd_month": 0,
     "automatic_paid_hosting": false,
-    "hosting_must_be_approved_before_24x7_deploy": true
+    "paid_hosting_required_for_hybrid_baseline": false
   },
   "deployment": {
     "ci_container_smoke_allowed": true,
     "ci_must_destroy_container_and_volume": true,
-    "production_deploy_in_f5_foundation": false,
-    "host_decision_gate": "F5-HOST-01"
+    "persistent_local_deploy_authorized": true,
+    "local_host": "CREACTIVE",
+    "cloud_monitor_gate": "F5-CLOUD-01",
+    "local_install_gate": "F5-LOCAL-01",
+    "outage_recovery_gate": "F5-RECOVERY-01"
   },
   "forbidden_external_probes": [
     "/api/phase-s/status",
