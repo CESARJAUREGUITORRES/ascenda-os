@@ -5,7 +5,7 @@
     "buildCommand": "echo 'Skip build — Phase S outer runtime: node server-phase-s.js -> server-f5.js -> server-wa4.js -> server-wa3.js -> server-wa2.js -> server-f4.js'"
   },
   "deploy": {
-    "startCommand": "node server-phase-s.js",
+    "startCommand": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"

@@ -20,7 +20,10 @@
     "release_variable": "RAILWAY_GIT_COMMIT_SHA",
     "preload_variable": "NODE_OPTIONS",
     "preload_value": "--require ./sentinel-sentry-init.cjs",
+    "preload_scope": "runtime-command-only-not-global-railway-variable",
+    "runtime_start_command": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js",
     "required_working_directory": "app",
+    "child_inheritance": "server-phase-s-and-descendants-inherit-process-env",
     "failure_mode": "fail-open-for-ascenda-fail-closed-for-telemetry"
   },
   "privacy": {
@@ -70,7 +73,8 @@
       "create-sentry-node-project-on-free-developer-plan",
       "verify-server-side-data-scrubbing-and-ip-scrubbing",
       "set-railway-secrets-without-sharing-dsn-in-chat",
-      "set-node-options-preloader",
+      "do-not-set-global-railway-node-options",
+      "use-runtime-only-preloader-from-railway-start-command",
       "enable-master-and-sensor-switches-with-canary-true",
       "enable-one-shot-synthetic-on-boot",
       "verify-sentry-event-has-correct-environment-and-release",

@@ -212,7 +212,6 @@ jobs:
           provider=Path('supabase/migrations/20260814062000_phase2_auth_provider_boundary.sql').read_text(encoding='utf-8')
           identity=Path('supabase/migrations/20260814063000_phase2_identity_admin_hardening.sql').read_text(encoding='utf-8')
           proxy=Path('app/server-phase2.js').read_text(encoding='utf-8')
-          f4_proxy=Path('app/server-f4.js').read_text(encoding='utf-8') if Path('app/server-f4.js').exists() else ''
           railway=Path('app/railway.json').read_text(encoding='utf-8')
           recovery=Path('supabase/rollbacks/20260814062000_phase2_emergency_recovery.sql').read_text(encoding='utf-8')
           assert 'aos_login_v3' in login and 'aos_verificar_2fa_v3' in login
@@ -226,11 +225,10 @@ jobs:
           assert '/api/send-2fa' in proxy and '/api/verify-turnstile' in proxy
           assert 'PHASE2_INTERNAL_PORT' in proxy
           assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in proxy
-          production_runtime=railway.split('"environments"')[0]
           assert 'node staging-server.js' in railway
-          if 'node server-phase2.js' not in production_runtime:
-              assert 'node server-f4.js' in production_runtime
-              assert "spawn(process.execPath,['server-phase2.js']" in f4_proxy
+          # Production runtime topology is certified once, canonically, by
+          # ci/phase2-cartera/ui_contract.py above. Do not duplicate a stale
+          # direct-entry assumption here as wrappers evolve.
           assert 'legacy_bypass' in recovery and 'not_restored' in recovery
           PY
 
