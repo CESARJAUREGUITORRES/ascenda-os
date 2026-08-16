@@ -67,13 +67,21 @@ jobs:
           node ci/phase-s/phase-s_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Preserve WA gateway and inbox regressions
+      - name: WA-1 gateway regression
         shell: powershell
         run: |
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-2 inbox contract
+        shell: powershell
+        run: |
           python ci/wa2-conversation-live-inbox/ui_contract.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-3 routing contract
+        shell: powershell
+        run: |
           python ci/wa3-boxes-routing-handoff/ui_contract.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
