@@ -8,6 +8,7 @@
     "start": "node server-f5.js"
   },
   "dependencies": {
+    "@sentry/node": "10.70.0",
     "@supabase/supabase-js": "^2.39.0",
     "exceljs": "4.4.0"
   },
