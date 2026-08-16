@@ -78,7 +78,7 @@ jobs:
           grep -q "nivel_jerarquia" app/server-wa2.js
           grep -q "SUPABASE_SERVICE_ROLE_KEY" app/server-wa2.js
           grep -q "X-Ascenda-WA2-Inbox" app/server-wa2.js
-          grep -q "node server-wa2.js" app/railway.json
+          # Runtime topology/start-command compatibility is certified by ui_contract.py above.
           ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY)\s*=\s*['\"][^'\"]+['\"]" app/server-wa2.js
           ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-wa2.js app/public/admin-whatsapp.html
           ! grep -q "supabase.co" app/public/admin-whatsapp.html
