@@ -17,7 +17,7 @@ const wa3=read('app/server-wa3.js');
 const email=read('app/email-gateway.js');
 
 ok(f5.includes('**Status:** `100_COMPLETE`'),'F5_NOT_CLOSED');
-ok(c.schema_version==='sentinel-business-health/v1'&&c.phase==='F6','F6_CONTRACT_INVALID');
+ok(c.schema_version==='sentinel-business-health/v1.1'&&c.phase==='F6','F6_CONTRACT_INVALID');
 ok(c.mode==='aggregate-read-only','F6_MODE_DRIFT');
 ok(c.production_mutation===false&&c.new_database_objects===false&&c.automatic_remediation===false,'F6_SCOPE_MUTATION_FORBIDDEN');
 ok(c.privacy.zero_phi_pii===true&&c.privacy.aggregate_only===true,'F6_PRIVACY_BASELINE_DRIFT');
@@ -32,7 +32,14 @@ for(const id of ['callcenter.activity_stall','sales.pipeline_consistency','whats
 ok(c.invariants.length===4,'F6_BASELINE_INVARIANT_COUNT_DRIFT');
 ok(c.thresholds.call_center_degraded_minutes===30&&c.thresholds.call_center_incident_minutes===60,'F6_CALLCENTER_THRESHOLDS_DRIFT');
 ok(c.thresholds.whatsapp_degraded_minutes===15&&c.thresholds.whatsapp_incident_minutes===60,'F6_WHATSAPP_THRESHOLDS_DRIFT');
+ok(c.thresholds.email_monitoring_horizon_minutes===1440,'F6_EMAIL_HORIZON_DRIFT');
 ok(c.thresholds.email_degraded_minutes===15&&c.thresholds.email_incident_minutes===60,'F6_EMAIL_THRESHOLDS_DRIFT');
+ok(c.source_contracts.email.current_health_horizon_minutes===1440,'F6_EMAIL_SOURCE_HORIZON_DRIFT');
+ok(c.source_contracts.email.historical_unmatched_outside_horizon_affects_live_state===false,'F6_HISTORICAL_EMAIL_FALSE_POSITIVE_GUARD_MISSING');
+ok(c.live_preflight?.aggregate_only===true,'F6_LIVE_PREFLIGHT_NOT_AGGREGATE');
+ok(c.live_preflight?.sales==='SAME_SCOPE_MATCH_1299_OF_1299','F6_SALES_LIVE_PREFLIGHT_MISSING');
+ok(c.live_preflight?.whatsapp==='ZERO_ACCEPTED_WITHOUT_PROGRESS','F6_WA_LIVE_PREFLIGHT_MISSING');
+ok(c.live_preflight?.email_historical_records_live_state==='IGNORED_OUTSIDE_HORIZON','F6_EMAIL_HISTORICAL_GUARD_EVIDENCE_MISSING');
 
 ok(calls.includes("_rpc('aos_panel_asesor'"),'F6_CALLCENTER_PANEL_SOURCE_MISSING');
 ok(calls.includes("_rpc('aos_monitoreo_equipo'"),'F6_CALLCENTER_TEAM_SOURCE_MISSING');
@@ -53,7 +60,7 @@ const healthy={
     call_center:{operating_window:true,window_age_minutes:120,active_advisors:2,eligible_leads:4,calls_in_window:6,latest_call_age_minutes:5},
     sales:{scope_consistent:true,source_sales_count:4,gateway_has_data:true,gateway_sales_count:4},
     whatsapp:{accepted_without_progress:0,oldest_unprogressed_age_minutes:null},
-    email:{feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,sent_without_event:0,oldest_sent_without_event_age_minutes:null,legacy_child_privilege_warning:true}
+    email:{feature_expected:true,gateway_service_configured:true,provider_send_configured:true,webhook_configured:true,monitoring_horizon_minutes:1440,recent_sent_count:2,recent_sent_without_event:0,oldest_recent_without_event_age_minutes:null,legacy_child_privilege_warning:true}
   }
 };
 const out=engine.evaluateSnapshot(healthy);
@@ -61,6 +68,22 @@ ok(out.state==='HEALTHY','F6_ENGINE_HEALTHY_BASELINE_FAILED');
 ok(out.signals.length===4,'F6_SIGNAL_COUNT_DRIFT');
 ok(out.signals.every(s=>['HEALTHY','DEGRADED','INCIDENT','UNKNOWN'].includes(s.state)),'F6_INVALID_SIGNAL_STATE');
 ok(out.signals.every(s=>Object.values(s.evidence).every(v=>v===null||typeof v==='number'||typeof v==='boolean')),'F6_NON_AGGREGATE_EVIDENCE');
+
+const historical=JSON.parse(JSON.stringify(healthy));
+historical.domains.email.recent_sent_count=1;
+historical.domains.email.recent_sent_without_event=1;
+historical.domains.email.oldest_recent_without_event_age_minutes=166761;
+const historicalOut=engine.evaluateSnapshot(historical);
+ok(historicalOut.signals[3].state==='UNKNOWN'&&historicalOut.signals[3].reason==='EMAIL_SAMPLE_OUTSIDE_MONITORING_HORIZON','F6_EMAIL_HISTORICAL_FALSE_INCIDENT');
+
+const configUnknown=JSON.parse(JSON.stringify(healthy));
+configUnknown.domains.email.gateway_service_configured=null;
+configUnknown.domains.email.provider_send_configured=null;
+configUnknown.domains.email.webhook_configured=null;
+configUnknown.domains.email.recent_sent_count=1;
+configUnknown.domains.email.recent_sent_without_event=1;
+configUnknown.domains.email.oldest_recent_without_event_age_minutes=1200;
+ok(engine.evaluateSnapshot(configUnknown).signals[3].state==='UNKNOWN','F6_EMAIL_UNVERIFIED_CONFIG_MUST_BE_UNKNOWN');
 
 console.log(JSON.stringify({
   ok:true,
@@ -70,6 +93,8 @@ console.log(JSON.stringify({
   invariants:4,
   aggregate_only:true,
   zero_phi_pii:true,
+  email_monitoring_horizon_minutes:1440,
+  email_historical_false_positive_guard:true,
   persistence_phase:'F8',
   notification_phase:'F9',
   production_mutation:false
