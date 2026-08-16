@@ -20,7 +20,13 @@ ok(mod.includes('row_content_hash')&&mod.includes('identity_seed_hash'),'row pro
 ok(html.includes('X-AOS-App-Token')&&html.includes('X-AOS-Source-Filename'),'admin upload headers missing');
 ok(html.includes('No crea pacientes')&&html.includes('no fusiona identidades'),'safety disclosure missing');
 ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be pinned');
-ok(pkg.scripts.start==='node server-f5.js','npm start must enter F5 wrapper');
-ok(rail.deploy.startCommand==='node server-f5.js','Railway must enter F5 wrapper');
-ok(String(rail.build.buildCommand).includes('server-f5.js -> node server-wa4.js'),'certified chain declaration missing');
+ok(pkg.scripts.start==='node server-f5.js','npm start must retain direct F5 dev/runtime fallback');
+const railStart=rail.deploy&&rail.deploy.startCommand;
+if(railStart==='node server-k1.js'){
+  const k1=fs.readFileSync('app/server-k1.js','utf8');
+  ok(k1.includes("spawn(process.execPath,['server-f5.js']"),'K1 outer boundary must enter F5 wrapper');
+}else{
+  ok(railStart==='node server-f5.js','Railway must enter F5 directly or through certified K1 boundary');
+}
+ok(String(rail.build.buildCommand).includes('server-f5.js -> node server-wa4.js'),'certified inner chain declaration missing');
 console.log('F5 secure XLSX upload contract: PASS');
