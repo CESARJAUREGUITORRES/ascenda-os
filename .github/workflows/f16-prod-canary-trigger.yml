@@ -1,0 +1,44 @@
+name: F16 Production Canary Trigger
+
+on:
+  push:
+    branches:
+      - ops/f16-prod-canary-trigger-20260815
+    paths:
+      - .github/workflows/f16-prod-canary-trigger.yml
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-canary:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zero-Cost runner health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Invoke fixed Resend simulator canary exactly once
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          status="$(curl -sS --max-time 30 -o "$tmp" -w '%{http_code}' \
+            -X POST 'https://ascenda-os-production.up.railway.app/api/f16-live-canary' \
+            -H 'Content-Type: application/json' \
+            -H 'X-ASCENDA-F16-CANARY: F16_PROVIDER_CANARY_20260815' \
+            --data '{"confirm":"RUN_FIXED_RESEND_SIMULATOR_CANARY"}')"
+          cat "$tmp"
+          printf '\nHTTP_STATUS=%s\n' "$status"
+          python3 - "$tmp" "$status" <<'PY'
+          import json, pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          status = int(sys.argv[2])
+          body = json.loads(p.read_text() or '{}')
+          if status != 200 or body.get('ok') is not True or body.get('state') != 'PROVIDER_ACCEPTED':
+              raise SystemExit('F16_PROD_CANARY_TRIGGER=FAIL')
+          if body.get('recipient') != 'delivered+ascenda-f16-20260815@resend.dev':
+              raise SystemExit('F16_PROD_CANARY_RECIPIENT_SCOPE=FAIL')
+          print('F16_PROD_CANARY_TRIGGER=PASS')
+          PY
