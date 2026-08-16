@@ -11,16 +11,13 @@ const f4=read('docs/control/SENTINEL_F4_VALIDATION_REPORT_20260816.md');
 const f5=json('sentinel/availability/f5-contract.json');
 const compose=read('sentinel/availability/compose.yaml');
 const phaseS=read('app/server-phase-s.js');
-const startObserver=read('sentinel/availability/creactive/start-observer.sh');
-const installObserver=read('sentinel/availability/creactive/install-observer.sh');
-const bootstrap=read('sentinel/availability/creactive/bootstrap-observer.sh');
-const installTask=read('sentinel/availability/creactive/Install-SentinelCreactiveTask.ps1');
+const dockerDeploy=read('sentinel/availability/creactive/deploy-docker-observer.sh');
 const localAgent=read('sentinel/availability/local-observer-agent.py');
 const sm=require(path.join(ROOT,'sentinel/availability/state-machine.cjs'));
 
 ok(f4.includes('**F4:** `100_COMPLETE`'),'F4_NOT_CERTIFIED');
 ok(f4.includes('**Resultado:** `18/18 PASS`'),'F4_GATES_NOT_COMPLETE');
-ok(f5.schema_version==='sentinel-availability/v1.1'&&f5.phase==='F5','F5_CONTRACT_INVALID');
+ok(f5.schema_version==='sentinel-availability/v1.2'&&f5.phase==='F5','F5_CONTRACT_INVALID');
 ok(f5.availability_architecture==='hybrid-cloud-plus-local','F5_HYBRID_ARCHITECTURE_DRIFT');
 
 ok(f5.continuous_coverage.required===true,'F5_CONTINUOUS_COVERAGE_REQUIRED');
@@ -32,13 +29,17 @@ ok(f5.continuous_coverage.api_dependency_for_sentinel_core===false,'F5_CLOUD_API
 
 ok(f5.observer.engine==='uptime-kuma','F5_ENGINE_DRIFT');
 ok(f5.observer.docker_image==='louislam/uptime-kuma:2','F5_IMAGE_DRIFT');
+ok(f5.observer.agent_image==='python:3.14-alpine','F5_AGENT_IMAGE_DRIFT');
 ok(f5.observer.mode==='intermittent-workstation-observer','F5_LOCAL_MODE_DRIFT');
 ok(f5.observer.host==='CREACTIVE','F5_LOCAL_HOST_DRIFT');
+ok(f5.observer.runtime==='Ubuntu/Docker on CREACTIVE','F5_LOCAL_RUNTIME_DRIFT');
 ok(f5.observer.must_be_independent_from_ascenda_railway_runtime===true,'F5_OBSERVER_INDEPENDENCE_REQUIRED');
 ok(f5.observer.same_railway_service_forbidden===true,'F5_SAME_RUNTIME_FORBIDDEN');
 ok(f5.observer.public_admin_ui_default===false,'F5_ADMIN_UI_MUST_NOT_DEFAULT_PUBLIC');
 ok(f5.observer.restart_policy==='unless-stopped','F5_RESTART_POLICY_DRIFT');
 ok(f5.observer.offline_semantics==='UNKNOWN'&&f5.observer.offline_is_not_ascenda_down===true,'F5_LOCAL_OFFLINE_SEMANTICS_DRIFT');
+ok(f5.observer.windows_task_required_for_f5_baseline===false,'F5_WINDOWS_TASK_MUST_BE_OPTIONAL');
+ok(Array.isArray(f5.observer.baseline_autostart_chain)&&f5.observer.baseline_autostart_chain.some(v=>v.includes('Docker restart policy restores Uptime Kuma')),'F5_DOCKER_AUTOSTART_CHAIN_DRIFT');
 
 ok(f5.gap_reconciliation.enabled===true,'F5_GAP_RECONCILIATION_DISABLED');
 ok(f5.gap_reconciliation.coverage_gap_state==='UNKNOWN','F5_GAP_STATE_DRIFT');
@@ -72,22 +73,14 @@ ok(!/\b(?:SENTRY_DSN|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|RESEND_API_KEY|
 ok(!compose.includes('network_mode: host'),'F5_HOST_NETWORK_FORBIDDEN');
 ok(!compose.includes('/var/run/docker.sock'),'F5_DOCKER_SOCKET_FORBIDDEN');
 
-ok(startObserver.includes('wait_for_docker'),'F5_LOCAL_DOCKER_WAIT_MISSING');
-ok(startObserver.includes('--restart unless-stopped'),'F5_LOCAL_KUMA_RESTART_MISSING');
-ok(startObserver.includes('127.0.0.1:3001:3001'),'F5_LOCAL_KUMA_UI_EXPOSURE_DRIFT');
-ok(startObserver.includes('exec python3 "$AGENT"'),'F5_LOCAL_AGENT_FOREGROUND_MISSING');
-ok(startObserver.includes('SENTINEL_LOCAL_OBSERVER_PYTHON_MISSING'),'F5_LOCAL_PYTHON_GUARD_MISSING');
-ok(installObserver.includes('local-observer-agent.py'),'F5_LOCAL_INSTALL_AGENT_DRIFT');
-ok(installObserver.includes('.local/share/ascenda-sentinel/availability'),'F5_LOCAL_INSTALL_PATH_DRIFT');
-ok(installTask.includes('AtLogOn'),'F5_WINDOWS_LOGON_TRIGGER_MISSING');
-ok(installTask.includes('RunLevel Limited'),'F5_WINDOWS_ELEVATION_FORBIDDEN');
-ok(installTask.includes('IgnoreNew'),'F5_WINDOWS_DUPLICATE_INSTANCE_GUARD_MISSING');
-ok(installTask.includes('Start-ScheduledTask'),'F5_WINDOWS_START_NOW_MISSING');
-ok(bootstrap.includes('bash "$SCRIPT_DIR/install-observer.sh"'),'F5_BOOTSTRAP_INSTALL_CHAIN_MISSING');
-ok(bootstrap.includes('powershell.exe'),'F5_BOOTSTRAP_WINDOWS_INTEROP_MISSING');
-ok(bootstrap.includes('-PlanOnly'),'F5_BOOTSTRAP_PLAN_MODE_MISSING');
-ok(bootstrap.includes('-StartNow'),'F5_BOOTSTRAP_START_MODE_MISSING');
-ok(bootstrap.includes('resume-report.json'),'F5_BOOTSTRAP_RESUME_REPORT_CHECK_MISSING');
+ok(dockerDeploy.includes('sentinel-uptime-kuma'),'F5_DOCKER_KUMA_NAME_MISSING');
+ok(dockerDeploy.includes('sentinel-local-observer'),'F5_DOCKER_AGENT_NAME_MISSING');
+ok(dockerDeploy.includes('--restart unless-stopped'),'F5_DOCKER_RESTART_POLICY_MISSING');
+ok(dockerDeploy.includes('--read-only'),'F5_AGENT_READ_ONLY_MISSING');
+ok(dockerDeploy.includes('--cap-drop ALL'),'F5_DOCKER_CAP_DROP_MISSING');
+ok(dockerDeploy.includes('127.0.0.1:3001:3001'),'F5_DOCKER_KUMA_EXPOSURE_DRIFT');
+ok(dockerDeploy.includes('python:3.14-alpine'),'F5_DOCKER_AGENT_IMAGE_MISSING');
+ok(dockerDeploy.includes('resume-report.json'),'F5_DOCKER_RESUME_VERIFY_MISSING');
 ok(localAgent.includes("'retroactive_health_claim': False"),'F5_GAP_FALSE_GREEN_GUARD_MISSING');
 ok(localAgent.includes("'history_location': 'Sentry Monitors/Uptime'"),'F5_CLOUD_HISTORY_REFERENCE_MISSING');
 ok(localAgent.includes('urllib.request'),'F5_AGENT_NOT_STDLIB_HTTP');
@@ -110,7 +103,7 @@ ok(sm.sentinelHealthState('DOWN')==='INCIDENT','F5_SENTINEL_DOWN_MAP');
 ok(sm.sentinelHealthState('UNKNOWN')==='UNKNOWN','F5_SENTINEL_UNKNOWN_MAP');
 ok(sm.availabilityFingerprint({environment:'production',monitorId:'ascenda-production-health'})==='availability:production:ascenda-production-health','F5_FINGERPRINT_DRIFT');
 
-const serialized=[JSON.stringify(f5),compose,startObserver,installObserver,bootstrap,installTask,localAgent].join('\n');
+const serialized=[JSON.stringify(f5),compose,dockerDeploy,localAgent].join('\n');
 const secretPatterns=[
   /\bsb_secret_[A-Za-z0-9_-]{20,}\b/,
   /\b(?:eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/,
@@ -126,13 +119,13 @@ ok(!Object.prototype.hasOwnProperty.call(mon,'username')&&!Object.prototype.hasO
 
 console.log(JSON.stringify({
   ok:true,
-  certificate:'SENTINEL_F5_HYBRID_OBSERVER_CONTRACT_PASS',
+  certificate:'SENTINEL_F5_DOCKER_NATIVE_OBSERVER_CONTRACT_PASS',
   f4_complete:true,
   architecture:f5.availability_architecture,
   cloud_provider:f5.continuous_coverage.provider,
   local_observer:f5.observer.host,
-  local_agent_runtime:'python3-stdlib',
-  one_command_bootstrap:true,
+  local_runtime:'docker-native',
+  windows_task_required:false,
   local_offline_semantics:f5.observer.offline_semantics,
   gap_reconciliation:true,
   zero_phi_pii:true,
