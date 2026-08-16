@@ -1,0 +1,75 @@
+name: F16 F4 Email Boundary Materialize
+
+on:
+  push:
+    branches:
+      - hotfix/f16-f4-email-boundary-20260815
+    paths:
+      - '.github/workflows/f16-f4-boundary-materialize.yml'
+      - 'app/server-f4.js'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Zero-Cost runner health
+        run: |
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Materialize minimum-privilege F16 routes at F4 boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/server-f4.js')
+          s = p.read_text()
+          imports = "const {createEmailGateway}=require('./email-gateway');\nconst {createLiveCanary}=require('./f16-live-canary');\nconst EMAIL_GATEWAY=createEmailGateway();\nconst F16_LIVE_CANARY=createLiveCanary();\n"
+          anchor = "const wa=require('./wa-gateway');\n"
+          if "const EMAIL_GATEWAY=createEmailGateway();" not in s:
+              if anchor not in s:
+                  raise SystemExit('F16_F4_IMPORT_ANCHOR_MISSING')
+              s = s.replace(anchor, anchor + imports, 1)
+          routes = "  if(pathname==='/api/email-gateway'||pathname==='/api/send-email'){EMAIL_GATEWAY.handleAdmin(req,res);return;}\n  if(pathname==='/api/resend-webhook'){EMAIL_GATEWAY.handleWebhook(req,res);return;}\n  if(pathname==='/api/f16-live-canary'){F16_LIVE_CANARY.handleCanary(req,res);return;}\n  if(pathname==='/api/f16-live-canary-replay'){F16_LIVE_CANARY.handleReplay(req,res);return;}\n"
+          route_anchor = "  if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='GET'){handleWaVerify(req,res);return;}\n"
+          if "pathname==='/api/resend-webhook'" not in s:
+              if route_anchor not in s:
+                  raise SystemExit('F16_F4_ROUTE_ANCHOR_MISSING')
+              s = s.replace(route_anchor, routes + route_anchor, 1)
+          p.write_text(s)
+          PY
+      - name: Expose runner Node
+        run: bash scripts/ci/expose-runner-node.sh
+      - name: Certify F4 boundary and F16 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/server-f4.js
+          node --check app/email-gateway.js
+          node --check app/f16-live-canary.js
+          node ci/phase16/test_email_gateway.js
+          grep -F "delete childEnv.SUPABASE_SERVICE_ROLE_KEY;" app/server-f4.js
+          grep -F "EMAIL_GATEWAY.handleAdmin(req,res)" app/server-f4.js
+          grep -F "EMAIL_GATEWAY.handleWebhook(req,res)" app/server-f4.js
+          grep -F "F16_LIVE_CANARY.handleCanary(req,res)" app/server-f4.js
+          grep -F "F16_LIVE_CANARY.handleReplay(req,res)" app/server-f4.js
+          echo 'F16_F4_BOUNDARY_CERTIFICATION=PASS'
+      - name: Commit materialized runtime if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- app/server-f4.js; then
+            echo 'F16_F4_BOUNDARY_ALREADY_MATERIALIZED=PASS'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/server-f4.js
+          git commit -m 'fix(f16): terminate email runtime at F4 secure boundary'
+          git push origin HEAD:hotfix/f16-f4-email-boundary-20260815
