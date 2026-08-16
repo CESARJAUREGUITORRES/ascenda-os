@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql'
       - 'supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql'
       - 'ci/sentinel/phase8_persistence_zero_cost.sql'
+      - 'ci/sentinel/phase8_persistence_zero_cost.sh'
       - 'sentinel/incidents/persistence-design-v1.json'
       - '.github/workflows/sentinel-phase8-persistence-zero-cost.yml'
       - 'docs/control/SENTINEL_F8_*.md'
@@ -29,122 +30,14 @@ jobs:
       SUPABASE_CLI_VERSION: '2.72.8'
       NODE_CLI_IMAGE: 'node:22-bookworm-slim'
       PSQL_IMAGE: 'postgres:17-alpine'
-      MIGRATION: 'supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql'
-      ROLLBACK: 'supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql'
-      FIXTURE: 'ci/sentinel/phase8_persistence_zero_cost.sql'
     steps:
       - uses: actions/checkout@v4
-
       - name: Enforce isolated Zero-Cost runner
         run: |
           set -euo pipefail
           test "$RUNNER_OS" = "Linux"
           docker version >/dev/null
           python3 --version
-          test -f "$MIGRATION"
-          test -f "$ROLLBACK"
-          test -f "$FIXTURE"
-          ! grep -Eq '(service_role_key|SUPABASE_SERVICE_ROLE_KEY|Bearer [A-Za-z0-9._-]{20,}|sb_secret_|sk-proj-)' "$MIGRATION" "$ROLLBACK" "$FIXTURE"
-
-      - name: Start isolated local Supabase through disposable CLI
-        run: |
-          set -euo pipefail
-          docker run --rm --network host \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            -v sentinel-f8-npm-cache:/root/.npm \
-            -w "$GITHUB_WORKSPACE/ci/zero-cost-staging" \
-            "$NODE_CLI_IMAGE" \
-            sh -lc "npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup >/dev/null 2>&1 || true; npx --yes supabase@${SUPABASE_CLI_VERSION} start >/dev/null"
-          docker run --rm --network host \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            -v sentinel-f8-npm-cache:/root/.npm \
-            -w "$GITHUB_WORKSPACE/ci/zero-cost-staging" \
-            "$NODE_CLI_IMAGE" \
-            sh -lc "npx --yes supabase@${SUPABASE_CLI_VERSION} status --output json" > /tmp/sentinel-f8-status.json
-          python3 - <<'PY'
-          import json,os
-          d=json.load(open('/tmp/sentinel-f8-status.json'))
-          u=d.get('DB_URL') or d.get('db_url')
-          if not u or not any(x in u for x in ('127.0.0.1','localhost')):
-              raise SystemExit('F8_ZERO_COST_DB_URL_NOT_LOCAL')
-          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('F8_DB_URL='+u+'\n')
-          print('SENTINEL_F8_LOCAL_DB=READY')
-          PY
-
-      - name: Apply F8 migration only to local PostgreSQL
-        run: |
-          set -euo pipefail
-          docker run --rm --network host \
-            -v "$GITHUB_WORKSPACE:/work:ro" \
-            "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -f "/work/$MIGRATION"
-          echo 'SENTINEL_F8_LOCAL_MIGRATION=PASS'
-
-      - name: Run RLS lifecycle replay and reopen fixtures
-        run: |
-          set -euo pipefail
-          docker run --rm --network host \
-            -v "$GITHUB_WORKSPACE:/work:ro" \
-            "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -f "/work/$FIXTURE"
-
-      - name: Concurrent replay must remain idempotent
-        run: |
-          set -euo pipefail
-          SQL="select public.aos_sentinel_ingest_signal_v1(jsonb_build_object('event_id','concurrent-replay-001','signal_class','ERROR','environment','zero-cost','domain','EMAIL','component','resend-gateway','capability','send-and-webhook-progression','failure_family','provider-stall','signal_fingerprint','error:email:provider-stall','incident_fingerprint','zero-cost:email:resend-gateway:send-and-webhook-progression:provider-stall','severity','P2','observed_at','2026-08-16T23:40:00Z'));"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -Atqc "$SQL" >/tmp/f8-replay-a.txt & A=$!
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -Atqc "$SQL" >/tmp/f8-replay-b.txt & B=$!
-          wait "$A"; wait "$B"
-          CHECK="do \$\$ begin if (select count(*) from public.aos_sentinel_incident_signals_v1 where event_id='concurrent-replay-001')<>1 then raise exception 'F8_CONCURRENT_REPLAY_SIGNAL_DUP'; end if; if (select count(*) from public.aos_sentinel_incidents_v1 where incident_fingerprint='zero-cost:email:resend-gateway:send-and-webhook-progression:provider-stall')<>1 then raise exception 'F8_CONCURRENT_REPLAY_INCIDENT_DUP'; end if; if (select signal_count from public.aos_sentinel_incidents_v1 where incident_fingerprint='zero-cost:email:resend-gateway:send-and-webhook-progression:provider-stall')<>1 then raise exception 'F8_CONCURRENT_REPLAY_COUNT_DRIFT'; end if; end \$\$;"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -c "$CHECK"
-          echo 'SENTINEL_F8_CONCURRENT_REPLAY=PASS'
-
-      - name: Concurrent different signals must converge once
-        run: |
-          set -euo pipefail
-          COMMON="'environment','zero-cost','domain','SALES','component','sales-intelligence','capability','aggregate-sales-read','failure_family','gateway-divergence','incident_fingerprint','zero-cost:sales:sales-intelligence:aggregate-sales-read:gateway-divergence','observed_at','2026-08-16T23:45:00Z'"
-          SQL_A="select public.aos_sentinel_ingest_signal_v1(jsonb_build_object('event_id','concurrent-fp-a','signal_class','ERROR','signal_fingerprint','error:sales:gateway-divergence','severity','P2',${COMMON}));"
-          SQL_B="select public.aos_sentinel_ingest_signal_v1(jsonb_build_object('event_id','concurrent-fp-b','signal_class','BUSINESS_HEALTH','signal_fingerprint','business-health:sales:gateway-divergence','severity','P1',${COMMON}));"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -Atqc "$SQL_A" >/tmp/f8-fp-a.txt & A=$!
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -Atqc "$SQL_B" >/tmp/f8-fp-b.txt & B=$!
-          wait "$A"; wait "$B"
-          CHECK="do \$\$ begin if (select count(*) from public.aos_sentinel_incidents_v1 where incident_fingerprint='zero-cost:sales:sales-intelligence:aggregate-sales-read:gateway-divergence')<>1 then raise exception 'F8_CONCURRENT_FP_INCIDENT_DUP'; end if; if (select signal_count from public.aos_sentinel_incidents_v1 where incident_fingerprint='zero-cost:sales:sales-intelligence:aggregate-sales-read:gateway-divergence')<>2 then raise exception 'F8_CONCURRENT_FP_SIGNAL_COUNT'; end if; if (select severity from public.aos_sentinel_incidents_v1 where incident_fingerprint='zero-cost:sales:sales-intelligence:aggregate-sales-read:gateway-divergence')<>'P1' then raise exception 'F8_CONCURRENT_FP_SEVERITY'; end if; end \$\$;"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -c "$CHECK"
-          echo 'SENTINEL_F8_CONCURRENT_FINGERPRINT=PASS'
-
-      - name: Verify security-definer search path and DB lint
-        run: |
-          set -euo pipefail
-          CHECK="do \$\$ begin if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('aos_sentinel_ingest_signal_v1','aos_sentinel_transition_incident_v1','aos_sentinel_get_incident_v1') and (p.prosecdef is not true or coalesce(array_to_string(p.proconfig,','),'') not like '%search_path=%')) then raise exception 'F8_SECURITY_DEFINER_SEARCH_PATH'; end if; end \$\$;"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -c "$CHECK"
-          docker run --rm --network host \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            -v sentinel-f8-npm-cache:/root/.npm \
-            -w "$GITHUB_WORKSPACE/ci/zero-cost-staging" \
-            "$NODE_CLI_IMAGE" \
-            sh -lc "npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local --level warning" >/tmp/sentinel-f8-db-lint.txt
-          ! grep -Eqi '(security definer.*mutable search_path|rls.*disabled)' /tmp/sentinel-f8-db-lint.txt
-          echo 'SENTINEL_F8_SECURITY_DB_LINT=PASS'
-
-      - name: Rollback and reapply in isolated DB
-        run: |
-          set -euo pipefail
-          docker run --rm --network host -v "$GITHUB_WORKSPACE:/work:ro" "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -f "/work/$ROLLBACK"
-          CHECK="do \$\$ begin if to_regclass('public.aos_sentinel_incidents_v1') is not null then raise exception 'F8_ROLLBACK_TABLE_REMAINS'; end if; if to_regprocedure('public.aos_sentinel_ingest_signal_v1(jsonb)') is not null then raise exception 'F8_ROLLBACK_RPC_REMAINS'; end if; end \$\$;"
-          docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -c "$CHECK"
-          docker run --rm --network host -v "$GITHUB_WORKSPACE:/work:ro" "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -f "/work/$MIGRATION" >/dev/null
-          docker run --rm --network host -v "$GITHUB_WORKSPACE:/work:ro" "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 -f "/work/$FIXTURE" >/dev/null
-          echo 'SENTINEL_F8_ROLLBACK_REAPPLY=PASS'
-
-      - name: Stop local Supabase and destroy npm cache
-        if: always()
-        run: |
-          docker run --rm --network host \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            -v sentinel-f8-npm-cache:/root/.npm \
-            -w "$GITHUB_WORKSPACE/ci/zero-cost-staging" \
-            "$NODE_CLI_IMAGE" \
-            sh -lc "npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup >/dev/null 2>&1 || true" || true
-          docker volume rm -f sentinel-f8-npm-cache >/dev/null 2>&1 || true
+          bash -n ci/sentinel/phase8_persistence_zero_cost.sh
+      - name: Execute F8 isolated persistence certificate
+        run: bash ci/sentinel/phase8_persistence_zero_cost.sh
