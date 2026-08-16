@@ -1287,7 +1287,7 @@ function connectRT(){
   ws.onerror=()=>ws.close();
 }
 setInterval(()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'})); }, 25000);
-connectRT();
+/* K1: direct audit Realtime disabled; sanitized polling remains. */
 
 let lastId=0;
 async function poll(){
@@ -1719,5 +1719,6 @@ setInterval(checkProactiveEvents, 15000);
 })();
 
 </script>
+<script src="/k1-browser-security.js"></script>
 </body>
 </html>

@@ -5,4 +5,4 @@ cmds = ["npm install"]
 # El build de vite no aplica a esta arquitectura de servidor Express-like
 
 [start]
-cmd = "node server.js"
+cmd = "node server-k1.js"
