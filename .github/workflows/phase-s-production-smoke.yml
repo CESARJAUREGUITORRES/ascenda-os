@@ -1,0 +1,57 @@
+name: PHASE S Production Smoke
+
+on:
+  push:
+    branches: ['phase-s/production-smoke-20260815']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-s-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Probe production Phase S
+        shell: powershell
+        run: |
+          $base = 'https://ascenda-os-production.up.railway.app'
+          $deadline = (Get-Date).AddMinutes(3)
+          $health = $null
+          do {
+            try {
+              $health = Invoke-RestMethod -Uri "$base/health" -Method Get -TimeoutSec 15
+              if ($health.ok -eq $true -and $health.service -eq 'ascenda-phase-s' -and $health.child_alive -eq $true -and $health.inner_ready -eq $true) { break }
+            } catch {
+              Write-Host "Waiting for Railway deploy: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 10
+          } while ((Get-Date) -lt $deadline)
+          if ($null -eq $health) { throw 'Production /health never became reachable' }
+          $json = $health | ConvertTo-Json -Compress
+          Write-Host "PHASE_S_HEALTH=$json"
+          if ($health.ok -ne $true) { throw 'Phase S health ok=false' }
+          if ($health.service -ne 'ascenda-phase-s') { throw "Unexpected runtime service: $($health.service)" }
+          if ($health.child_alive -ne $true -or $health.inner_ready -ne $true) { throw 'Inner runtime not ready' }
+
+          $app = Invoke-WebRequest -Uri "$base/app" -Method Get -TimeoutSec 20
+          Write-Host "APP_STATUS=$($app.StatusCode)"
+          if ($app.StatusCode -ne 200) { throw 'ASCENDA /app is not 200' }
+
+          try {
+            Invoke-WebRequest -Uri "$base/api/phase-s/status" -Method Get -TimeoutSec 15 -ErrorAction Stop | Out-Null
+            throw 'Protected Phase S status unexpectedly allowed anonymous access'
+          } catch {
+            if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 403) {
+              Write-Host 'PHASE_S_UNAUTH_GATE=403_PASS'
+            } elseif ($_.Exception.Message -eq 'Protected Phase S status unexpectedly allowed anonymous access') {
+              throw
+            } else {
+              throw "Unexpected Phase S status response: $($_.Exception.Message)"
+            }
+          }
