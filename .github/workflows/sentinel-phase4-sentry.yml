@@ -5,6 +5,8 @@ on:
     paths:
       - 'app/package.json'
       - 'app/sentinel-sentry-init.cjs'
+      - 'app/railway.json'
+      - 'app/server-phase-s.js'
       - 'sentinel/sentry/**'
       - 'ci/sentinel/fixtures/f4_*'
       - 'ci/sentinel/phase4_sentry_contract.js'
