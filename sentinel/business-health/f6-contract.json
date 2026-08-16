@@ -95,7 +95,7 @@
       "domain": "EMAIL",
       "component": "resend-gateway",
       "capability": "send-and-webhook-progression",
-      "inputs": ["feature_expected", "gateway_service_configured", "provider_send_configured", "webhook_configured", "sent_without_event", "oldest_sent_without_event_age_minutes", "legacy_child_service_role_warning"],
+      "inputs": ["feature_expected", "gateway_service_configured", "provider_send_configured", "webhook_configured", "sent_without_event", "oldest_sent_without_event_age_minutes", "legacy_child_privilege_warning"],
       "semantics": {
         "unknown_when": "email feature is intentionally not expected",
         "incident_when": "governed gateway configuration is missing while feature is expected, or sent items have no provider event for >=60 minutes",
