@@ -44,8 +44,9 @@ for pat,label in [
 if 'aos_integration_secrets_v1' not in sql: fail('private provider vault missing')
 
 # Sensitive tables may never receive browser write authority from K1 migrations.
-# Parse each GRANT statement independently so a service_role table grant cannot be
-# accidentally concatenated with a later browser EXECUTE grant across semicolons.
+# GRANT statements in these migrations are one-line statements. Keep the parser
+# bounded to that physical statement line so function grants can never bleed into
+# a later table grant, even when comments/function bodies contain many semicolons.
 sensitive_tables={
     'aos_usuarios','aos_rrhh','aos_integraciones','aos_integration_secrets_v1',
     'aos_auth_credentials','aos_app_sessions_v3','aos_login_challenges_v3',
@@ -53,7 +54,7 @@ sensitive_tables={
 }
 write_privs={'all','insert','update','delete','truncate','references','trigger'}
 grant_re=re.compile(
-    r'(?ims)^\s*grant\s+(.+?)\s+on\s+(?:table\s+)?public\.(aos_[a-z0-9_]+)\s+to\s+([^;]+);'
+    r'(?im)^\s*grant\s+([^;\n]+?)\s+on\s+(?:table\s+)?public\.(aos_[a-z0-9_]+)\s+to\s+([^;\n]+);'
 )
 for m in grant_re.finditer(sql):
     priv_expr=m.group(1).strip().lower()
