@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'app/f17-whatsapp-legacy-gateway.js'
       - 'supabase/migrations/*f17_*'
       - 'supabase/rollbacks/*f17_*'
       - 'ci/f17-multichannel/**'
@@ -26,7 +27,15 @@ jobs:
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
     steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -36,6 +45,13 @@ jobs:
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Validate server-authoritative legacy WhatsApp gateway
+        run: |
+          set -euo pipefail
+          node --check app/f17-whatsapp-legacy-gateway.js
+          node --check ci/f17-multichannel/test_legacy_whatsapp_gateway.js
+          node ci/f17-multichannel/test_legacy_whatsapp_gateway.js
 
       - name: Configure isolated Supabase
         working-directory: ci/zero-cost-staging
