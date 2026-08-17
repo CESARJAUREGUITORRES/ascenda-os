@@ -103,3 +103,30 @@ jobs:
         run: bash -n ci/sentinel/phase13_db_zero_cost.sh
       - name: Isolated PostgreSQL compile ACL canary rollback/reapply
         run: bash ci/sentinel/phase13_db_zero_cost.sh
+
+  hub-production-smoke:
+    name: hub-production-smoke
+    needs: [hub-zero-cost, hub-db-zero-cost]
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - name: Public health and Hub asset smoke
+        env:
+          BASE_URL: https://ascenda-os-production.up.railway.app
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$BASE_URL/health" -o "$tmp/health"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$BASE_URL/admin-sentinel.html" -o "$tmp/hub.html"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$BASE_URL/sentinel-hub.js" -o "$tmp/hub.js"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$BASE_URL/sentinel-hub-bootstrap.js" -o "$tmp/bootstrap.js"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$BASE_URL/sentinel-topology.v1.json" -o "$tmp/topology.json"
+          grep -q 'Sentinel' "$tmp/hub.html"
+          grep -q 'AOS_SentinelHub' "$tmp/hub.js"
+          grep -q 'sentinel-hub-topology/v1' "$tmp/topology.json"
+          ! grep -Eqi 'service_role|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|BEGIN PRIVATE KEY' "$tmp/hub.html" "$tmp/hub.js" "$tmp/bootstrap.js" "$tmp/topology.json"
+          docker run --rm -v "$tmp:/work:ro" node:22-alpine node -e "const fs=require('fs');const t=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(t.schema_version!=='sentinel-hub-topology/v1'||t.projection!=='owner-ui-safe'||t.default_state!=='UNKNOWN')process.exit(1)" /work/topology.json
+          echo 'SENTINEL_F13_PRODUCTION_HEALTH=PASS'
+          echo 'SENTINEL_F13_PRODUCTION_HUB_ASSETS=PASS'
+          echo 'SENTINEL_F13_PRODUCTION_PRIVACY=PASS'
