@@ -1,0 +1,35 @@
+name: ASCENDA CIA Phase 17 Closeout
+
+on:
+  push:
+    branches: ['feature/cia-phase17-closeout-20260817']
+  pull_request:
+    paths:
+      - 'app/server-f17.js'
+      - 'app/f17-wa-adapter.js'
+      - 'ci/phase17-multichannel/test_f17_wa_adapter.js'
+      - 'supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql'
+      - 'supabase/rollbacks/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runtime syntax and adapter contracts
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          node --check app/server-f17.js
+          node --check app/f17-wa-adapter.js
+          node ci/phase17-multichannel/test_f17_wa_adapter.js
+          $s=Get-Content app/server-f17.js -Raw
+          foreach($x in @('/api/wa/send','/webhook','F17_CHANNEL_POLICY_BLOCKED','WA_ADMIN_2FA_REQUIRED','createF17WaAdapter','x-ascenda-f17')){if(-not $s.Contains($x)){throw "Missing runtime invariant: $x"}}
+          if($s -match '(?i)(WHATSAPP_ACCESS_TOKEN|WHATSAPP_APP_SECRET|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*[''\"][^''\"]+'){throw 'Hard-coded secret detected'}
+          $a=Get-Content app/f17-wa-adapter.js -Raw
+          if($a.Contains('message_body') -or $a.Contains('raw_referral')){throw 'F17 adapter must not persist message content/raw referral'}
+          Write-Host F17_CLOSEOUT_RUNTIME_PASS
