@@ -37,6 +37,21 @@ async function injectF4(req){
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
 }
 
+async function injectEmbeddedWa(req){
+  var r=await fetch(req,{cache:'no-store'});if(!r.ok)return r;
+  var type=(r.headers.get('content-type')||'').toLowerCase();if(type.indexOf('text/html')<0)return r;
+  var html=await r.text();
+  if(html.indexOf('/wa-native-bootstrap-prelude.js')<0){
+    var tag='<script src="/wa-native-bootstrap-prelude.js?v=20260817-s5-p01"></script>\n';
+    var marker='<script>\n(function(){\'use strict\';';
+    if(html.indexOf(marker)>=0)html=html.replace(marker,tag+marker);
+    else if(html.indexOf('</head>')>=0)html=html.replace('</head>',tag+'</head>');
+    else html=tag+html;
+  }
+  var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
+  return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
+}
+
 async function injectSameOriginAppToken(req){
   var h=new Headers(req.headers),t=String(await getToken()).trim();
   if(t.length>=32)h.set('X-AOS-App-Token',t);
@@ -47,6 +62,9 @@ self.addEventListener('fetch',function(event){
   var req=event.request,u;
   try{u=new URL(req.url);}catch(e){return;}
   if(u.origin===self.location.origin&&req.method==='GET'&&(u.pathname==='/app'||u.pathname==='/app.html')){event.respondWith(injectF4(req));return;}
+  if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')==='1'){
+    event.respondWith(injectEmbeddedWa(req));return;
+  }
   // A direct WA-3 page is now a compatibility entrypoint. Normal navigation is
   // returned to the canonical ASCENDA shell; the embedded iframe bypasses this.
   if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
