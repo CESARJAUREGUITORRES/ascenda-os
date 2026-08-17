@@ -1,0 +1,105 @@
+name: Sentinel F13 Hub Final Certificate
+
+on:
+  push:
+    branches: ['feature/sentinel-f13-hub-system-map','main']
+    paths: &f13_paths
+      - 'sentinel/hub/**'
+      - 'app/public/admin-sentinel.html'
+      - 'app/public/sentinel-hub.js'
+      - 'app/public/sentinel-hub-bootstrap.js'
+      - 'app/public/sentinel-topology.v1.json'
+      - 'app/public/sentinel-inapp-notifications.js'
+      - 'ci/sentinel/phase13_*'
+      - 'ci/sentinel/sql/phase13_*'
+      - 'supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql'
+      - 'docs/control/SENTINEL_F13_*'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase13-hub.yml'
+  pull_request:
+    branches: [main]
+    paths: *f13_paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f13-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hub-fast:
+    name: hub-fast
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check sentinel/hub/hub-core.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/sentinel-hub.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/sentinel-hub-bootstrap.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/sentinel-inapp-notifications.js
+      - name: Topology contract and privacy
+        shell: powershell
+        run: node ci/sentinel/phase13_hub_contract_test.js
+      - name: No-false-green resilience and portability
+        shell: powershell
+        run: node ci/sentinel/phase13_hub_resilience_test.js
+      - name: UI/Auth/read-only security
+        shell: powershell
+        run: node ci/sentinel/phase13_ui_security_test.js
+
+  hub-zero-cost:
+    name: hub-zero-cost
+    needs: hub-fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 15
+    steps:
+      - name: Repair workspace
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Cross-platform Hub contract
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$GITHUB_WORKSPACE:/work:ro" -w /work node:22-alpine sh -lc 'node --check sentinel/hub/hub-core.cjs && node --check app/public/sentinel-hub.js && node --check app/public/sentinel-hub-bootstrap.js && node ci/sentinel/phase13_hub_contract_test.js && node ci/sentinel/phase13_hub_resilience_test.js && node ci/sentinel/phase13_ui_security_test.js'
+      - name: Static browser privacy boundary
+        run: |
+          set -euo pipefail
+          ! grep -nE 'service_role|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|BEGIN PRIVATE KEY|Bearer [A-Za-z0-9]' app/public/sentinel-hub.js app/public/sentinel-hub-bootstrap.js app/public/sentinel-topology.v1.json
+          ! grep -nE 'db_relations|rpc_refs|dependencies|aos_|supabase|railway|server\.js' app/public/sentinel-topology.v1.json
+          echo 'SENTINEL_F13_BROWSER_PRIVACY=PASS'
+
+  hub-db-zero-cost:
+    name: hub-db-zero-cost
+    needs: hub-fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    steps:
+      - name: Repair workspace
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax shell
+        run: bash -n ci/sentinel/phase13_db_zero_cost.sh
+      - name: Isolated PostgreSQL compile ACL canary rollback/reapply
+        run: bash ci/sentinel/phase13_db_zero_cost.sh
