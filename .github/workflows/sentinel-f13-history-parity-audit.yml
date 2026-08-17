@@ -1,0 +1,33 @@
+name: Sentinel F13 history parity audit
+
+on:
+  push:
+    branches:
+      - 'audit/sentinel-f13-history-parity-20260817-v1'
+    paths:
+      - '.github/workflows/sentinel-f13-history-parity-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hash-audit:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare local F13 migration bytes to production ledger statement
+        run: |
+          set -euo pipefail
+          file='supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql'
+          test -f "$file"
+          actual="$(md5sum "$file" | awk '{print $1}')"
+          expected='e403332d1c9f53efa0338f8f3585442c'
+          echo "LOCAL_MD5=$actual"
+          echo "LIVE_MD5=$expected"
+          if [ "$actual" != "$expected" ]; then
+            echo 'SENTINEL_F13_EXACT_CONTENT=NO'
+            exit 2
+          fi
+          echo 'SENTINEL_F13_EXACT_CONTENT=PASS'
