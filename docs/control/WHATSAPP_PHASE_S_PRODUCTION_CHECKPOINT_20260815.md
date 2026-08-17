@@ -123,3 +123,62 @@ Faltan:
 - idempotency/canary block;
 - delivery receipt S3;
 - checkpoint final y retiro del recovery como dependencia normal.
+
+## 9. Revalidación PRE-S2 — 2026-08-17
+
+Antes de iniciar el primer outbound humano se revalidó producción contra Supabase real y `main` actual.
+
+Estado medido:
+
+- `aos_wa_outbound_requests_v1`: `0`;
+- mensajes `OUTBOUND`: `0`;
+- mensajes `INBOUND`: `2`;
+- routing events: `7`;
+- AI runs: `0`;
+- `VENTAS_GENERAL` sigue activo;
+- `zi vital` / `51960618468` sigue `HUMAN_ACTIVE`;
+- owner sigue siendo CESAR;
+- `ownership_version=2`;
+- exactamente `1` assignment `ACTIVE`.
+
+Los routing events 5–7 son esperados y corresponden únicamente a:
+
+1. creación/actualización de `VENTAS_GENERAL`;
+2. membership canary de CESAR;
+3. promoción manual de la conversación canary al business box.
+
+Safety vigente:
+
+- `human_send_enabled=true`;
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- WA-4 `copilot_enabled=false`;
+- WA-4 `auto_reply_enabled=false`.
+
+El sender humano actual fue auditado antes de S2 y exige acumulativamente:
+
+- token fuerte de panel / sesión 2FA;
+- autorización `aos_wa3_human_send_authorize_v1`;
+- owner exacto;
+- conversación en `HUMAN_ACTIVE` o `AI_COPILOT`;
+- assignment `ACTIVE` del mismo owner;
+- `human_send_enabled=true`;
+- recipient dentro de la canary allowlist;
+- idempotency key válida;
+- configuración Meta outbound completa.
+
+La persistencia exitosa debe producir:
+
+- outbound request `ACCEPTED`;
+- `provider_message_id` Meta;
+- mensaje `OUTBOUND` ligado a la conversación;
+- evento `message.accepted`;
+- routing event `message.human_accepted`.
+
+La idempotencia está respaldada además por índices únicos sobre `aos_wa_outbound_requests_v1.idempotency_key`, `aos_wa_messages_v1.idempotency_key` y `aos_wa_messages_v1.provider_message_id`.
+
+Observabilidad actual:
+
+Railway mantiene PHASE S como outer runtime y `main` ahora precarga Sentinel/Sentry antes de `server-phase-s.js` mediante `NODE_OPTIONS='--require ./sentinel-sentry-init.cjs'`. Esto agrega observabilidad sin cambiar el contrato WA-3 de envío.
+
+**NEXT sigue siendo S2 autenticado.** No existe evidencia de un outbound parcial previo que deba limpiarse o reconciliarse antes de la prueba.
