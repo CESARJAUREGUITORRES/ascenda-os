@@ -1,0 +1,253 @@
+name: KronIA K1 CURRENT v4 CRITICAL Certificate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kronia-k1-v4-cert-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zero-cost-security:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:57322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce exact branch and zero-cost policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          test "${GITHUB_REF_NAME}" = "security/kronia-k1-current-main-20260817-v4"
+          echo "K1_CERT_SHA=${GITHUB_SHA}" | tee /tmp/k1-cert-sha.txt
+
+      - name: Clean stale ASCENDA Supabase resources
+        run: bash scripts/ci/cleanup-ascenda-supabase.sh
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-k1-v4"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 57321/' supabase/config.toml
+          sed -i 's/port = 54322/port = 57322/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 57320/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: supabase db start
+
+      - name: Build Phase 1 and canonical Phase 2 synthetic baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/zero-cost-staging/schema_contract.sql
+          for f in \
+            20260813164711_fix_otros_service_type.sql \
+            20260813173000_sales_intelligence_v2_summary.sql \
+            20260813174500_sales_intelligence_v2_summary_optimize.sql \
+            20260814021609_fix_2fa_context_canary.sql \
+            20260814024619_sales_intelligence_admin_activation.sql; do
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/schema_hardening_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/fixture_pre_migration.sql
+          for f in \
+            20260814030000_phase2_auth_v3_additive.sql \
+            20260814034401_cartera_phase2_reconciliation.sql \
+            20260814050000_cartera_phase2_security_cleanup.sql \
+            20260814060000_phase2_production_hardening.sql \
+            20260814061000_phase2_secure_write_defaults_fix.sql \
+            20260814062000_phase2_auth_provider_boundary.sql \
+            20260814063000_phase2_identity_admin_hardening.sql \
+            20260814064000_phase2_owner_canary_access.sql \
+            20260814163000_p0_auth_audit_trigger_search_path_fix.sql \
+            20260814164500_restore_2fa_email_branding.sql \
+            20260814195300_fix_auth_v3_btrim.sql \
+            20260814201500_fix_secure_write_v2_jsonb_match_count.sql; do
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1-phase2/fixture_pre_k1.sql
+          psql "$DB_URL" -X -qAt -c "select case when to_regclass('public.aos_integration_secrets_v1') is null then 'K1_PRE_VAULT_ABSENT=PASS' else 'K1_PRE_VAULT_ABSENT=FAIL' end" | tee /tmp/k1-pre-vault.txt
+          grep -q 'K1_PRE_VAULT_ABSENT=PASS' /tmp/k1-pre-vault.txt
+
+      - name: Baseline Cartera and P0 secure-write before K1
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "create extension if not exists pgtap with schema extensions"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/004_cartera_phase2.sql | tee /tmp/cartera-before.txt
+          grep -q '1..96' /tmp/cartera-before.txt
+          ! grep -q 'not ok' /tmp/cartera-before.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-before.txt
+          grep -q 'PHASE2_SECURE_WRITE_JSONB_P0=PASS' /tmp/secure-write-before.txt
+
+      - name: Compile exact seven K1 migrations in chronological order
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/k1-migrations.txt
+          for f in $(find supabase/migrations -maxdepth 1 -type f -name '2026081417*kronia_k1*.sql' | sort); do
+            echo "$f" | tee -a /tmp/k1-migrations.txt
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$f"
+          done
+          test "$(wc -l < /tmp/k1-migrations.txt)" -eq 7
+          psql "$DB_URL" -X -qAt -c "select case when to_regclass('public.aos_integration_secrets_v1') is not null and exists(select 1 from public.aos_integration_secrets_v1 where lower(tipo)='resend' and length(api_key)>10) and not exists(select 1 from public.aos_integraciones where coalesce(api_key,'')<>'' or coalesce(api_secret,'')<>'') then 'K1_VAULT_BOOTSTRAP=PASS' else 'K1_VAULT_BOOTSTRAP=FAIL' end" | tee /tmp/k1-vault-bootstrap.txt
+          grep -q 'K1_VAULT_BOOTSTRAP=PASS' /tmp/k1-vault-bootstrap.txt
+
+      - name: K1 Auth identity control-plane and sensitive-read certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1-phase2/001_k1_phase2_certificate.sql | tee /tmp/k1-certificate.txt
+          grep -q 'KRONIA_K1_PHASE2_CERTIFICATE=PASS' /tmp/k1-certificate.txt
+          grep -q 'KRONIA_K1_CURRENT_SENSITIVE_READ_BOUNDARY=PASS' /tmp/k1-certificate.txt
+          psql "$DB_URL" -X -qAt -c "select case when lower(pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)) like '%aos_auth_password_matches%' and lower(pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)) like '%ascenda_branded_v1%' and lower(pg_get_functiondef('public.aos_login_v3(text,text)'::regprocedure)) like '%aos_integration_secrets_v1%' then 'K1_BRANDED_AUTH_V3=PASS' else 'K1_BRANDED_AUTH_V3=FAIL' end" | tee -a /tmp/k1-certificate.txt
+          grep -q 'K1_BRANDED_AUTH_V3=PASS' /tmp/k1-certificate.txt
+
+      - name: Prove later CURRENT provider-vault migration is idempotent after K1
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815205000_integration_secret_boundary_v1.sql | tee /tmp/k1-current-vault-compat.txt
+          psql "$DB_URL" -X -qAt -c "select case when not has_table_privilege('anon','public.aos_integration_secrets_v1','SELECT') and not has_table_privilege('authenticated','public.aos_integration_secrets_v1','SELECT') then 'K1_CURRENT_VAULT_COMPAT=PASS' else 'K1_CURRENT_VAULT_COMPAT=FAIL' end" | tee -a /tmp/k1-current-vault-compat.txt
+          grep -q 'K1_CURRENT_VAULT_COMPAT=PASS' /tmp/k1-current-vault-compat.txt
+
+      - name: Cartera and P0 secure-write regression after K1
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/004_cartera_phase2.sql | tee /tmp/cartera-after.txt
+          grep -q '1..96' /tmp/cartera-after.txt
+          ! grep -q 'not ok' /tmp/cartera-after.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase2-cartera/tests/008_secure_write_jsonb_fix.sql | tee /tmp/secure-write-after.txt
+          grep -q 'PHASE2_SECURE_WRITE_JSONB_P0=PASS' /tmp/secure-write-after.txt
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error | tee /tmp/k1-db-lint.txt
+
+      - name: Materialize and verify exact CURRENT v4 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          node --check app/server-k1.js
+          node --check app/server-phase-s.js
+          node --check app/server-f5.js
+          node --check app/server-wa4.js
+          node --check app/server-wa3.js
+          node --check app/server-wa2.js
+          node --check app/server-f4.js
+          node --check app/server-phase2.js
+          node --check app/server.js
+          node --check app/public/k1-browser-security.js
+          node --check chrome-extension/kronia-core.js
+          node --check chrome-extension/k1-extension-auth.js
+          node --check chrome-extension/content-script.js
+          node --check chrome-extension/popup.js
+          node ci/phase5-historical-identity/f5_upload_contract.js | tee /tmp/k1-f5-contract.txt
+          python3 -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py ci/kronia-k1-phase2/security_static_contract.py
+          (cd app && python3 k1_phase2_materialize.py)
+          cp app/k1-phase2-runtime-manifest.json /tmp/k1-runtime-manifest.json
+          python3 ci/kronia-k1-phase2/runtime_contract.py | tee /tmp/k1-runtime-contract.txt
+          python3 ci/kronia-k1-phase2/security_static_contract.py | tee /tmp/k1-static-security.txt
+          grep -q 'KRONIA_K1_CURRENT_PHASE_S_CHAIN=PASS' /tmp/k1-runtime-contract.txt
+          grep -q 'KRONIA_K1_CURRENT_NODE_MATERIALIZED_CONTRACT=PASS' /tmp/k1-runtime-contract.txt
+          grep -q 'KRONIA_K1_STATIC_SECURITY=PASS' /tmp/k1-static-security.txt
+          rm -f app/k1-phase2-runtime-manifest.json
+
+      - name: Dynamic K1 proxy smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node ci/kronia-k1-phase2/test_proxy_security.js | tee /tmp/k1-proxy.txt
+          grep -q 'KRONIA_K1_PHASE2_PROXY_SMOKE=PASS' /tmp/k1-proxy.txt
+
+      - name: Security-preserving recovery certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql | tee /tmp/k1-recovery.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/kronia-k1-phase2/002_k1_safe_recovery.sql | tee -a /tmp/k1-recovery.txt
+          grep -q 'KRONIA_K1_PHASE2_SAFE_RECOVERY=PASS' /tmp/k1-recovery.txt
+          psql "$DB_URL" -X -qAt -c "select case when not has_table_privilege('anon','public.aos_integration_secrets_v1','SELECT') and not has_table_privilege('anon','public.aos_team_full','SELECT') then 'K1_RECOVERY_SENSITIVE_BOUNDARY=PASS' else 'K1_RECOVERY_SENSITIVE_BOUNDARY=FAIL' end" | tee -a /tmp/k1-recovery.txt
+          grep -q 'K1_RECOVERY_SENSITIVE_BOUNDARY=PASS' /tmp/k1-recovery.txt
+
+      - name: Build immutable exact-SHA evidence root
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            /tmp/k1-cert-sha.txt \
+            /tmp/k1-pre-vault.txt \
+            /tmp/cartera-before.txt \
+            /tmp/secure-write-before.txt \
+            /tmp/k1-migrations.txt \
+            /tmp/k1-vault-bootstrap.txt \
+            /tmp/k1-certificate.txt \
+            /tmp/k1-current-vault-compat.txt \
+            /tmp/cartera-after.txt \
+            /tmp/secure-write-after.txt \
+            /tmp/k1-db-lint.txt \
+            /tmp/k1-f5-contract.txt \
+            /tmp/k1-runtime-manifest.json \
+            /tmp/k1-runtime-contract.txt \
+            /tmp/k1-static-security.txt \
+            /tmp/k1-proxy.txt \
+            /tmp/k1-recovery.txt > /tmp/k1-evidence.sha256
+          sha256sum /tmp/k1-evidence.sha256 | tee /tmp/k1-evidence-root.sha256
+          echo 'KRONIA_K1_CURRENT_V4_ZERO_COST_CERTIFIED=PASS'
+
+      - name: Upload K1 v4 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kronia-k1-v4-evidence-${{ github.sha }}
+          path: |
+            /tmp/k1-cert-sha.txt
+            /tmp/k1-pre-vault.txt
+            /tmp/cartera-before.txt
+            /tmp/secure-write-before.txt
+            /tmp/k1-migrations.txt
+            /tmp/k1-vault-bootstrap.txt
+            /tmp/k1-certificate.txt
+            /tmp/k1-current-vault-compat.txt
+            /tmp/cartera-after.txt
+            /tmp/secure-write-after.txt
+            /tmp/k1-db-lint.txt
+            /tmp/k1-f5-contract.txt
+            /tmp/k1-runtime-manifest.json
+            /tmp/k1-runtime-contract.txt
+            /tmp/k1-static-security.txt
+            /tmp/k1-proxy.txt
+            /tmp/k1-recovery.txt
+            /tmp/k1-evidence.sha256
+            /tmp/k1-evidence-root.sha256
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Stop isolated Supabase and prove zero residue
+        if: always()
+        shell: bash
+        run: |
+          cd ci/zero-cost-staging
+          supabase stop --no-backup || true
+          cd ../..
+          bash scripts/ci/cleanup-ascenda-supabase.sh
