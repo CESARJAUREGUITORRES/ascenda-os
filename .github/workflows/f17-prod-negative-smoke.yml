@@ -1,0 +1,41 @@
+name: F17 Production Negative Smoke
+
+on:
+  push:
+    branches: ['ops/f17-prod-negative-smoke-20260817']
+
+permissions:
+  contents: read
+
+jobs:
+  negative-smoke:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - name: Wait for F17 runtime and verify fail-closed routes
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='https://ascenda-os-production.up.railway.app'
+          $sendBody=@{idempotency_key='f17-negative-smoke-20260817-noauth';to='51900000001';type='text';text='NEGATIVE_SMOKE_DO_NOT_SEND'} | ConvertTo-Json -Compress
+          $ready=$false
+          for($i=0;$i -lt 24;$i++){
+            try{
+              $r=Invoke-WebRequest -Uri "$base/api/wa/send" -Method Post -ContentType 'application/json' -Body $sendBody -SkipHttpErrorCheck -TimeoutSec 15
+              $h=($r.Headers['X-Ascenda-F17'] | Select-Object -First 1)
+              Write-Host "send status=$($r.StatusCode) f17=$h body=$($r.Content)"
+              if($h -eq 'multichannel-v1'){
+                if([int]$r.StatusCode -notin @(401,403)){throw "Unexpected unauthenticated send status $($r.StatusCode)"}
+                if($r.Content -notmatch 'WA_ADMIN_2FA_REQUIRED'){throw 'Expected WA_ADMIN_2FA_REQUIRED'}
+                $ready=$true; break
+              }
+            }catch{Write-Host $_.Exception.Message}
+            Start-Sleep -Seconds 10
+          }
+          if(-not $ready){throw 'F17 runtime header did not appear before timeout'}
+          $w=Invoke-WebRequest -Uri "$base/webhook" -Method Post -ContentType 'application/json' -Body '{"object":"whatsapp_business_account","entry":[]}' -SkipHttpErrorCheck -TimeoutSec 15
+          $wh=($w.Headers['X-Ascenda-F17'] | Select-Object -First 1)
+          Write-Host "webhook status=$($w.StatusCode) f17=$wh body=$($w.Content)"
+          if([int]$w.StatusCode -notin @(400,401,403)){throw "Unsigned webhook was not rejected: $($w.StatusCode)"}
+          if($wh -ne 'governed-wa-v1'){throw 'Webhook was not traversing governed F17 runtime'}
+          Write-Host 'F17_PROD_NEGATIVE_SMOKE_PASS'
