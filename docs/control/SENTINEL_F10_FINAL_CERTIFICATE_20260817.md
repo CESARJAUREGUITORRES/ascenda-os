@@ -1,10 +1,11 @@
 # Sentinel F10 — Diagnostic Runner — Final Certificate
 
-**Estado:** PRE-MERGE CERTIFIED / G01–G14 PASS  
+**Estado:** `CERRADA / 100_COMPLETE / G01–G15 PASS`  
 **Fecha:** 2026-08-17 America/Lima  
 **PR:** #235  
 **Impact Report:** Issue #233 + `docs/control/SENTINEL_F10_DIAGNOSTIC_RUNNER_IMPACT_REPORT_20260817.md`  
-**Functional head certificado antes de este commit:** `9a59163d40bd1e5ed68f4f891fae6bea738f0ecd`
+**Functional head:** `616e401c167dc451ae1d92f53119a22ab03c868b`  
+**Merge main:** `45d0d176b1bb5838a2a76fb1f7163a262b13ea9a`
 
 ## Alcance
 F10 automatiza diagnóstico reproducible de incidentes `SEN-*` mediante self-hosted CI y evidencia sanitizada. Es estrictamente read-only.
@@ -18,7 +19,7 @@ Seguridad:
 - workflow GitHub `contents: read` únicamente;
 - `persist-credentials:false` en checkouts;
 - cero credenciales Supabase/Railway write;
-- tooling F10 se ejecuta desde la branch certificada, nunca desde el checkout afectado;
+- tooling F10 se ejecuta desde código certificado, nunca desde el checkout afectado;
 - affected SHA debe ser 40-hex o queda `UNKNOWN`;
 - sensitive keys se rechazan recursivamente;
 - evidence refs heredan allowlist F8;
@@ -40,49 +41,52 @@ Seguridad:
 - G12 negatives: sensitive input, invalid SHA, unapproved key, query-string evidence ref, revision 0, unknown/missing evidence — PASS.
 
 ## G09/G14 runtime replay evidence
-Branch run `32055149504` on functional head `9a59163d40bd1e5ed68f4f891fae6bea738f0ecd`:
-
-- `contract-fast` — SUCCESS;
-- `diagnostic-zero-cost` — SUCCESS;
-- target SHA checkout — EXACT;
+Branch run `32055149504`:
+- target SHA checkout — `EXACT`;
 - synthetic incident — `SEN-2099-9001`;
-- first diagnostic id — `F10-396d072b9dfadfca7585`;
-- first report digest — `22588779c2665ca96fd35c1cb2d0fb0992481705b97ffe9b9b78b2a93e584b3a`;
-- immediate replay diagnostic id — identical;
-- immediate replay report digest — identical;
+- diagnostic id — `F10-396d072b9dfadfca7585`;
+- report digest — `22588779c2665ca96fd35c1cb2d0fb0992481705b97ffe9b9b78b2a93e584b3a`;
+- immediate replay diagnostic id/digest — identical;
 - byte-for-byte JSON/Markdown compare — PASS;
-- marker `SENTINEL_F10_RUNTIME_REPLAY=PASS`;
-- marker `SENTINEL_F10_ZERO_COST_DIAGNOSTIC=PASS`.
+- `SENTINEL_F10_RUNTIME_REPLAY=PASS`;
+- `SENTINEL_F10_ZERO_COST_DIAGNOSTIC=PASS`.
 
-This is the controlled synthetic end-to-end G14 baseline. `workflow_dispatch` remains available for owner-triggered diagnostics after merge; no public webhook or automatic production trigger is enabled.
+This is the controlled synthetic end-to-end G14 baseline. `workflow_dispatch` remains available for owner-triggered diagnostics; no public webhook or automatic production trigger is enabled.
 
 ## G13 rollback/isolation — PASS
-Diff against current main contains only:
-- `.github/workflows/sentinel-phase10-diagnostic-runner.yml`;
-- `sentinel/diagnostics/f10-contract.json`;
-- `sentinel/diagnostics/diagnostic-runner.cjs`;
-- `ci/sentinel/phase10_diagnostic_contract.js`;
-- `ci/sentinel/phase10_synthetic_request.json`;
-- F10 governance/certificate docs.
+F10 changes only diagnostic workflow/tooling/tests/docs. No migration, DB/RPC, Railway runtime, application server or production frontend file is changed.
 
-No migration, DB/RPC, Railway runtime, application server or production frontend file is changed. Logical rollback is removal/disable of the F10 workflow/tooling and therefore leaves F1–F9 intact.
+Logical rollback = disable/remove F10 workflow/tooling. F1–F9 remain intact.
 
-## Infrastructure defects resolved during certification
-1. Linux host had no global Node: fixed by disposable container; host unchanged.
-2. Full Node image pull was too heavy: replaced by cached `node:22-bookworm-slim` derived image with only Git/CA certs.
-3. Container root ownership caused report hash failure and Git safe-directory `UNKNOWN`: fixed by running the diagnostic container with host UID/GID + `HOME=/tmp`.
+## Infrastructure defects resolved
+1. Linux host had no global Node → disposable container; host unchanged.
+2. Full Node image was too heavy → cached `node:22-bookworm-slim` derived runtime with only Git/CA certs.
+3. Container root ownership caused report-hash and Git safe-directory failures → diagnostic container runs with host UID/GID + `HOME=/tmp`.
 
 All fixes preserve read-only scope.
 
-## PR merge-ref compatibility
-PR run `32055154914` against the current merge candidate passed both FAST and Linux diagnostic jobs, including exact replay. This validates F10 combined with concurrent `main` changes rather than branch-only behavior.
+## Exact-head / merge-ref certification
+- Final pre-merge F10 head `616e401c167dc451ae1d92f53119a22ab03c868b`:
+  - F10 certificate run `32055373422` — FAST + Linux SUCCESS;
+  - Ascenda CI run `32055376752` — SUCCESS.
+- PR merge-ref compatibility run `32055154914` — FAST + Linux SUCCESS.
+- PR #235 merged with `expected_head_sha=616e401c...` to `main@45d0d176b1bb5838a2a76fb1f7163a262b13ea9a`.
 
-## G15 terminal sequence
-F10 is not marked `100_COMPLETE` until:
-1. final certificate commit exact-head F10 + Ascenda CI PASS;
-2. PR #235 ready and merged;
-3. post-merge F10 + Ascenda CI PASS on `main`;
-4. GitHub roadmap + Notion set F10 `CERRADA / 100_COMPLETE`;
-5. F11 promoted.
+## G15 post-merge — PASS
+On `main@45d0d176b1bb5838a2a76fb1f7163a262b13ea9a`:
+- F10 post-merge run `32055537762`:
+  - `contract-fast` — SUCCESS;
+  - `diagnostic-zero-cost` — SUCCESS;
+  - exact affected-SHA checkout — PASS;
+  - deterministic diagnostic + exact replay — PASS;
+  - report/digest gate — PASS.
+- Ascenda CI post-merge run `32055537694`:
+  - Runtime baseline — SUCCESS.
 
-No production DDL or runtime deployment is required for F10 baseline.
+No production DDL or runtime deployment is required for the F10 baseline.
+
+## Resultado terminal
+**F10 Diagnostic Runner = `100_COMPLETE`.**
+
+Promotion gate:
+`F1–F10 = 100_COMPLETE → F11 MCP / AI-Assisted Triage = NEXT / EN CURSO`.
