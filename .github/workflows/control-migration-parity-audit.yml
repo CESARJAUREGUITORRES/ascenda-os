@@ -39,6 +39,12 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/ci/audit_migration_parity.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/control/MIGRATION_PARITY_AUDIT_20260817.md')
+          text = p.read_text(encoding='utf-8')
+          p.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n', encoding='utf-8')
+          PY
           test -s docs/control/MIGRATION_PARITY_AUDIT_20260817.md
           git diff --check
 
