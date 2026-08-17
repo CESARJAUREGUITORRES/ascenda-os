@@ -573,7 +573,7 @@ function openWaCC(){
   var headers = {'apikey':_sk,'Authorization':'Bearer '+_sk};
 
   Promise.all([
-    fetch(_sb+'/rest/v1/aos_plantillas_whatsapp?activo=eq.true&order=orden',{headers:headers}).then(function(r){return r.json()}),
+    fetch('/api/f17/whatsapp/templates',{headers:{'X-ASCENDA-Session':((window.AOS_getToken?window.AOS_getToken():'')||'')},cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('WHATSAPP_TEMPLATE_GATEWAY_'+r.status);return r.json();}).then(function(d){return d&&d.ok&&Array.isArray(d.templates)?d.templates:[];}),
     fetch(_sb+'/rest/v1/aos_info_tratamientos?activo=eq.true',{headers:headers}).then(function(r){return r.json()})
   ]).then(function(results) {
     var plantillasDB = results[0] || [];
