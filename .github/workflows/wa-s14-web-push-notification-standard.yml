@@ -1,0 +1,60 @@
+name: WA S14 Web Push Notification Standard
+on:
+  pull_request:
+    paths:
+      - 'app/server-f17.js'
+      - 'app/push-notifications-s14.js'
+      - 'app/package.json'
+      - 'app/public/notification-push-s14.js'
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'app/public/icons/channel-whatsapp.svg'
+      - 'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'
+      - 'ci/wa-s12/**'
+      - 'ci/wa-s13/**'
+      - 'ci/wa-s14/**'
+      - '.github/workflows/wa-s14-web-push-notification-standard.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/server-f17.js'
+      - 'app/push-notifications-s14.js'
+      - 'app/package.json'
+      - 'app/public/notification-push-s14.js'
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'
+      - 'ci/wa-s14/**'
+      - '.github/workflows/wa-s14-web-push-notification-standard.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install runtime dependencies
+        working-directory: app
+        shell: powershell
+        run: npm.cmd install --no-audit --no-fund
+      - name: JavaScript syntax
+        shell: powershell
+        run: |
+          node --check app/server-f17.js
+          node --check app/push-notifications-s14.js
+          node --check app/public/notification-push-s14.js
+          node --check app/public/wa-human-alerts.js
+          node --check app/public/phase2-service-worker.js
+      - name: Historical S12 safety contract
+        shell: powershell
+        run: node ci/wa-s12/contract.js
+      - name: Historical S13 UX contract
+        shell: powershell
+        run: node ci/wa-s13/contract.js
+      - name: S14 Web Push transport contract
+        shell: powershell
+        run: node ci/wa-s14/contract.js
