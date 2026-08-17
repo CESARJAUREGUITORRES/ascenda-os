@@ -6,7 +6,7 @@
 **PR:** `#208`  
 **Certified functional head before terminal docs:** `d9f84652b1818a6a61e9d9e8dbfbdb85a4ede041`  
 **Production Supabase project:** `ituyqwstonmhnfshnaqz`  
-**Production migration version:** `20260817000919` — `sentinel_f8_incident_engine`  
+**Production migration version:** `20260817000618` — `sentinel_f8_incident_engine`  
 **Synthetic production canary:** `SEN-2026-0001` — final state `RESOLVED`  
 
 ## Result
@@ -64,9 +64,11 @@ These changes reduce false-red CI without weakening any F8 database gate.
 
 The owner explicitly authorized the full controlled F8 production gate after G12 certification.
 
-Production migration was applied once through Supabase migration tooling and recorded as:
+Production migration was applied once through Supabase migration tooling and recorded by the live migration history as:
 
-`20260817000919 sentinel_f8_incident_engine`
+`20260817000618 sentinel_f8_incident_engine`
+
+The repository migration filename remains `20260816233500_sentinel_f8_incident_engine.sql`; Supabase's production migration-history version is the authoritative runtime identifier above.
 
 No production rollback/reapply cycle was performed. Rollback/reapply was already proven in isolated G12; production rollback remains contingency-only.
 
