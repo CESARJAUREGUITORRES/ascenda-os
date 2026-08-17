@@ -1,6 +1,10 @@
 name: KronIA K1 CURRENT v4 CRITICAL Certificate
 
 on:
+  push:
+    branches: [security/kronia-k1-current-main-20260817-v4]
+    paths:
+      - '.github/workflows/kronia-k1-v4-certificate.yml'
   workflow_dispatch:
 
 permissions:
