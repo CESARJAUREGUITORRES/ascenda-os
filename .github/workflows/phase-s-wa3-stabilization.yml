@@ -70,6 +70,7 @@ jobs:
             'app/public/wa-native-panel.js',
             'ci/phase-s/wa_native_s8_contract.js',
             'ci/phase-s/wa_customer_window_s10_contract.js',
+            'ci/phase-s/wa_s11_live_sync_meta_auth_contract.js',
             'ci/phase16/test_auth_resend_reconcile.js'
           )
           foreach ($file in $files) {
@@ -93,6 +94,12 @@ jobs:
         shell: powershell
         run: |
           node ci/phase-s/wa_customer_window_s10_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA S11 live-sync and Meta-auth contract
+        shell: powershell
+        run: |
+          node ci/phase-s/wa_s11_live_sync_meta_auth_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Auth Resend private-vault regression
@@ -161,5 +168,6 @@ jobs:
           Write-Host 'PHASE S NODE/RUNTIME GATE PASS'
           Write-Host 'WA S8 NATIVE WORKSPACE CONTRACT PASS'
           Write-Host 'WA S10 CUSTOMER-WINDOW CONTRACT PASS'
+          Write-Host 'WA S11 LIVE-SYNC + META-AUTH CONTRACT PASS'
           Write-Host 'AUTH RESEND PRIVATE-VAULT RECONCILIATION GATE PASS'
-          Write-Host 'Production validation remaining: deploy health + authenticated human outbound canary inside an open 24h window.'
+          Write-Host 'Production validation remaining: deploy health + provider readiness + authenticated human outbound canary inside an open 24h window.'
