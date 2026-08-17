@@ -20,20 +20,19 @@ The change must preserve F8 as the incident source of truth and the existing F9 
 - The current F9 database contract hardcodes `telegram-owner` in the durable dispatch channel.
 - ASCENDA already renders a notification panel in `app/public/app.html`.
 - Legacy `aos_notificaciones` / `aos_log_notificaciones` have RLS disabled and broad browser-role grants in production; Sentinel must NOT persist owner alerts there.
-- The application already has a strong app-session token issued by Auth V3 and the service worker injects `X-AOS-App-Token` for governed same-origin APIs.
+- The application already has a strong app-session token issued by Auth V3 and the service worker injects governed application code into the canonical ASCENDA shell.
 
 ## Code impact
 
-Planned files:
+Implemented/planned files:
 
 - `sentinel/alerts/f9-contract.json` — transport-neutral v2 policy and non-blocking Telegram debt.
-- `sentinel/alerts/alert-router.cjs` — canonical `ascenda-in-app` route for owner alerts.
-- `sentinel/alerts/alert-dispatcher.cjs` — provider-neutral sanitized owner envelope while preserving Telegram adapter compatibility.
-- `sentinel/alerts/ascenda-inapp-transport.cjs` — in-app transport contract.
-- `app/server-f4.js` — same-origin owner notification API using strong Auth V3 app token; no trust in browser role fields.
-- `app/public/phase2-service-worker.js` — inject existing app token into `/api/sentinel/*`.
-- `app/public/app.html` — use the existing notification panel shell for Sentinel owner feed when the authenticated user is admin; preserve existing non-Sentinel behavior outside this scope.
-- `ci/sentinel/*phase9*` and workflow — deterministic contract/security tests.
+- `sentinel/alerts/alert-router.cjs` — canonical `ascenda-in-app` owner route with explicit Telegram compatibility.
+- `sentinel/alerts/alert-dispatcher.cjs` — provider-neutral sanitized owner envelope while preserving Telegram renderer compatibility.
+- `sentinel/alerts/ascenda-inapp-transport.cjs` — in-app transport ACK contract.
+- `app/public/phase2-service-worker.js` — load the Sentinel owner notification client into the canonical shell without changing the certified backend process chain.
+- `app/public/sentinel-inapp-notifications.js` — owner/admin-only UI client; authorization remains server-authoritative in PostgreSQL.
+- `ci/sentinel/*phase9*` and dedicated F9-C workflow — deterministic contract/security tests.
 - `docs/control/SENTINEL_F9_*`, roadmap/control master — canonical rebaseline/certificate.
 
 ## Data impact
@@ -41,26 +40,27 @@ Planned files:
 Versioned additive migration planned:
 
 - allow `aos_sentinel_alert_dispatches_v1.channel` to accept only `ascenda-in-app` and `telegram-owner`;
-- add a dedicated sanitized owner-notification persistence table keyed to durable F9 dispatches;
+- reuse the certified durable F9 dispatch row itself as the in-app delivery record rather than duplicate notification payloads;
 - add per-actor read receipts so `READ` remains distinct from transport `DELIVERED`;
-- add service-only publish RPC used by the in-app transport;
-- add strong-session owner/admin feed + mark-read RPCs that internally validate Auth V3 session + 2FA and never trust client role/username.
+- add a service-controlled runtime switch (`aos_sentinel_alert_runtime_v1.inapp_enabled`);
+- add strong-session owner/admin feed + mark-read RPCs that internally validate Auth V3 session + 2FA and never trust client role/username;
+- add sanitized routing-error telemetry containing only operation + SQLSTATE so F9 faults never abort F8.
 
-No patient/contact/message content, request body, arbitrary evidence, tokens or secrets may be stored.
+No patient/contact/message content, request body, arbitrary evidence, tokens or secrets are persisted by Sentinel F9.
 
 ## Consumers
 
-- ASCENDA topbar notification bell / existing notification panel.
+- ASCENDA topbar notification bell / existing notification panel shell.
 - Future F13 Sentinel Hub may deep-link from these alerts but F13 remains a separate phase.
 - Telegram adapter remains dormant until live credentials are provisioned later.
 
 ## Security
 
 - Legacy `aos_notificaciones` is not a Sentinel persistence target.
-- Sentinel persistence tables remain RLS/FORCE-RLS with no direct `anon`/`authenticated` table access.
-- Publish/transport RPC is `service_role` only.
+- New Sentinel support tables are RLS + FORCE RLS with no direct `anon`/`authenticated` table access.
+- Internal routing/publish/config RPCs are service-role only.
 - Browser-facing owner read/mark-read RPC requires a valid, non-revoked, unexpired `PASSWORD_2FA` Auth V3 token and active admin hierarchy (`nivel_jerarquia <= 2`).
-- Server/UI must not accept role claims as authorization.
+- Browser role claims are UI optimization only and never authorization.
 - Fixed `search_path=''` on SECURITY DEFINER functions.
 - Telegram secrets remain absent and are not requested or committed.
 
@@ -68,28 +68,28 @@ No patient/contact/message content, request body, arbitrary evidence, tokens or 
 
 1. Contract/syntax and sensitive-field allowlist tests.
 2. Route P0/P1 immediate to `ascenda-in-app`; P2 digest; P3 panel-only.
-3. In-app transport ACK only after persistence succeeds; failure never becomes `DELIVERED`.
+3. In-app transport ACK only after durable dispatch persistence succeeds; failure never becomes `DELIVERED`.
 4. Exact replay does not duplicate.
 5. Durable cooldown, escalation bypass, flapping, maintenance and one recovery remain green.
 6. Anonymous/weak/non-admin session cannot read or mark Sentinel alerts.
 7. Strong 2FA owner/admin session can list sanitized alerts and mark a dispatch read.
 8. No PHI/PII/secrets in schema, fixtures or responses.
 9. Rollback/reapply in Zero-Cost staging with F8/F9-B preserved.
-10. Production preflight, additive apply, synthetic canary, replay/noise/recovery verification, kill-switch verification.
+10. Production preflight, additive apply, synthetic canary, replay/noise/recovery verification, runtime kill-switch verification.
 11. F5/F6/F7/F8/F9 + Ascenda CI regressions.
 
 ## Kill switch
 
-`SENTINEL_ASCENDA_ALERTS_ENABLED=false` disables the runtime in-app publication/read surface without disabling Sentinel sensing or F8 incident persistence. Telegram remains separately disabled/unconfigured.
+The canonical F9-C kill switch is the service-only runtime flag `aos_sentinel_alert_runtime_v1.inapp_enabled`. It can disable in-app publication atomically without disabling Sentinel sensing or F8 incident persistence. Telegram remains separately disabled/unconfigured.
 
 ## Rollback
 
-1. Disable `SENTINEL_ASCENDA_ALERTS_ENABLED`.
-2. Revert app transport/UI integration.
-3. Execute versioned F9-C rollback to remove only the new owner-notification/read-receipt objects and restore the dispatch channel constraint to the prior safe state if no non-Telegram rows remain.
+1. Set the in-app runtime flag false.
+2. Remove the UI transport injection if needed.
+3. Execute the versioned F9-C rollback to remove only new trigger/RPC/support objects; restore the old channel constraint only when no in-app audit rows remain.
 4. Verify F8 incident tables and F9-B durable outbox remain intact.
 5. Re-run F8/F9 regression fixtures.
 
 ## Exit gate
 
-F9 may become `100_COMPLETE` only after the in-app transport has a production synthetic delivery ACK, no duplicate on replay, exactly one recovery, authorization negatives, kill switch and rollback/reapply evidence. Telegram is then tracked separately as `F9-T DEFERRED / NON-BLOCKING` and does not block F10.
+F9 may become `100_COMPLETE` only after the in-app transport has a production synthetic delivery ACK, no duplicate on replay/cooldown, exactly one recovery, authorization negatives, kill switch and rollback/reapply evidence. Telegram is then tracked separately as `F9-T DEFERRED / NON-BLOCKING` and does not block F10.
