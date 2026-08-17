@@ -1,0 +1,44 @@
+name: WA S13 Conversation UX + PWA Alerts
+on:
+  pull_request:
+    paths:
+      - 'app/public/wa-chat-ux-s13.js'
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'ci/wa-s12/**'
+      - 'ci/wa-s13/**'
+      - '.github/workflows/wa-s13-conversation-ux-pwa-alerts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/public/wa-chat-ux-s13.js'
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'ci/wa-s12/**'
+      - 'ci/wa-s13/**'
+      - '.github/workflows/wa-s13-conversation-ux-pwa-alerts.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        shell: powershell
+        run: |
+          node --check app/public/wa-chat-ux-s13.js
+          node --check app/public/wa-human-alerts.js
+          node --check app/public/phase2-service-worker.js
+          node --check ci/wa-s12/contract.js
+          node --check ci/wa-s13/contract.js
+      - name: Historical S12 safety contract
+        shell: powershell
+        run: node ci/wa-s12/contract.js
+      - name: S13 conversation UX and PWA alert contract
+        shell: powershell
+        run: node ci/wa-s13/contract.js
