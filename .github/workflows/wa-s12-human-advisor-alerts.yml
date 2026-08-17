@@ -1,0 +1,34 @@
+name: WA S12 Human Advisor Alerts
+on:
+  pull_request:
+    paths:
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'ci/wa-s12/**'
+      - '.github/workflows/wa-s12-human-advisor-alerts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/public/wa-human-alerts.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'ci/wa-s12/**'
+      - '.github/workflows/wa-s12-human-advisor-alerts.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        shell: powershell
+        run: |
+          node --check app/public/wa-human-alerts.js
+          node --check app/public/phase2-service-worker.js
+      - name: Human-only alert contract
+        shell: powershell
+        run: node ci/wa-s12/contract.js
