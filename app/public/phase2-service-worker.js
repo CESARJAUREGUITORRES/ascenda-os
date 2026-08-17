@@ -68,6 +68,6 @@ self.addEventListener('fetch',function(event){
   }
   var tm=u.pathname.match(/\/rest\/v1\/([^/]+)$/),table=tm&&tm[1],method=req.method.toUpperCase();
   if(table&&PROTECTED[table]&&(method==='POST'||method==='PATCH'||method==='DELETE')){
-    event.respondWith((async function(){var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};var r=await rpcFrom(req,'aos_secure_write_v2',p);if(isMissing(r))return fetch(req);var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);return json(d.rows||[],200);})());
+    event.respondWith((async function(){var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};var r=await rpcFrom(req,'aos_secure_write_v2',payload);if(isMissing(r))return fetch(req);var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);return json(d.rows||[],200);})());
   }
 });
