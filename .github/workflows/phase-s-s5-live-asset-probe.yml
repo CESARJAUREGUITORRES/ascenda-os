@@ -1,0 +1,39 @@
+name: PHASE S S5 Live Asset Probe
+
+on:
+  push:
+    branches: ['phase-s/s5-live-asset-probe-20260817']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Verify Railway health and S5 shell asset
+        shell: powershell
+        run: |
+          $base='https://ascenda-os-production.up.railway.app'
+          $deadline=(Get-Date).AddMinutes(3)
+          $ok=$false
+          do {
+            try {
+              $health = curl.exe -fsS "$base/health"
+              if ($LASTEXITCODE -ne 0) { throw 'health unavailable' }
+              $asset = curl.exe -fsS "$base/wa-shell-integration.js?v=20260817-wa-shell-p03"
+              if ($LASTEXITCODE -ne 0) { throw 'asset unavailable' }
+              if ($health -match '"service":"ascenda-phase-s"' -and $asset -match '20260817-s5-p01' -and $asset -match 'syncFrameSession' -and $asset -match 'nativeSessionReload') {
+                $ok=$true
+                Write-Host 'PHASE_S_S5_LIVE_ASSET=PASS'
+                break
+              }
+              Write-Host 'Waiting for S5 asset deployment...'
+            } catch {
+              Write-Host "Waiting for Railway: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 10
+          } while ((Get-Date) -lt $deadline)
+          if (-not $ok) { throw 'S5 live asset did not become visible before timeout' }
