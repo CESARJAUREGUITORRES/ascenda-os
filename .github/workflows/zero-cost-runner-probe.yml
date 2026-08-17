@@ -9,38 +9,34 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  probe-a:
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 5
     steps:
-      - name: Probe WSL runner without mutation
+      - name: Probe WSL runner without mutation A
         shell: powershell
         run: |
           $ErrorActionPreference='Continue'
-          Write-Host '=== WINDOWS ==='
           Write-Host ('COMPUTERNAME=' + $env:COMPUTERNAME)
           if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { Write-Host 'WSL_EXE=ABSENT'; exit 0 }
           Write-Host 'WSL_EXE=PRESENT'
-          Write-Host '=== DISTROS ==='
           wsl.exe -l -v
-          Write-Host '=== LINUX PROBE ==='
-          wsl.exe -- bash -lc @'
-          set +e
-          echo "LINUX_HOST=$(hostname)"
-          echo "CURRENT_USER=$(id -un)"
-          for p in /home/ascenda-runner/actions-runner/actions-runner /home/ascenda-runner/actions-runner; do
-            if [ -d "$p" ]; then echo "RUNNER_DIR=$p"; fi
-          done
-          if pgrep -af 'Runner.Listener|Runner.Worker|run.sh' >/tmp/aos_runner_probe.txt 2>/dev/null; then
-            echo RUNNER_PROCESS=PRESENT
-            sed -E 's/(token|secret|password|authorization)=[^ ]+/<redacted>/Ig' /tmp/aos_runner_probe.txt
-          else
-            echo RUNNER_PROCESS=ABSENT
-          fi
-          if command -v docker >/dev/null 2>&1; then
-            echo DOCKER_BIN=PRESENT
-            docker info >/dev/null 2>&1 && echo DOCKER_DAEMON=UP || echo DOCKER_DAEMON=DOWN
-          else
-            echo DOCKER_BIN=ABSENT
-          fi
-          '@
+          if ($LASTEXITCODE -ne 0) { Write-Host ('WSL_LIST_EXIT=' + $LASTEXITCODE); exit 0 }
+          wsl.exe -- bash -lc "set +e; echo LINUX_HOST=\$(hostname); echo CURRENT_USER=\$(id -un); for p in /home/ascenda-runner/actions-runner/actions-runner /home/ascenda-runner/actions-runner; do [ -d \"\$p\" ] && echo RUNNER_DIR=\$p; done; pgrep -af 'Runner.Listener|Runner.Worker|run.sh' >/tmp/aos_runner_probe.txt 2>/dev/null && { echo RUNNER_PROCESS=PRESENT; cat /tmp/aos_runner_probe.txt; } || echo RUNNER_PROCESS=ABSENT; command -v docker >/dev/null 2>&1 && { echo DOCKER_BIN=PRESENT; docker info >/dev/null 2>&1 && echo DOCKER_DAEMON=UP || echo DOCKER_DAEMON=DOWN; } || echo DOCKER_BIN=ABSENT"
+          exit 0
+
+  probe-b:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Probe WSL runner without mutation B
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Continue'
+          Write-Host ('COMPUTERNAME=' + $env:COMPUTERNAME)
+          if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { Write-Host 'WSL_EXE=ABSENT'; exit 0 }
+          Write-Host 'WSL_EXE=PRESENT'
+          wsl.exe -l -v
+          if ($LASTEXITCODE -ne 0) { Write-Host ('WSL_LIST_EXIT=' + $LASTEXITCODE); exit 0 }
+          wsl.exe -- bash -lc "set +e; echo LINUX_HOST=\$(hostname); echo CURRENT_USER=\$(id -un); for p in /home/ascenda-runner/actions-runner/actions-runner /home/ascenda-runner/actions-runner; do [ -d \"\$p\" ] && echo RUNNER_DIR=\$p; done; pgrep -af 'Runner.Listener|Runner.Worker|run.sh' >/tmp/aos_runner_probe.txt 2>/dev/null && { echo RUNNER_PROCESS=PRESENT; cat /tmp/aos_runner_probe.txt; } || echo RUNNER_PROCESS=ABSENT; command -v docker >/dev/null 2>&1 && { echo DOCKER_BIN=PRESENT; docker info >/dev/null 2>&1 && echo DOCKER_DAEMON=UP || echo DOCKER_DAEMON=DOWN; } || echo DOCKER_BIN=ABSENT"
+          exit 0
