@@ -68,11 +68,19 @@ jobs:
           node --check app/public/sentinel-hub-bootstrap.js
           node --check app/public/sentinel-inapp-notifications.js
 
-      - name: F13 functional contracts
+      - name: F13 hub contract
         run: |
           set -euo pipefail
           node ci/sentinel/phase13_hub_contract_test.js
+
+      - name: F13 resilience contract
+        run: |
+          set -euo pipefail
           node ci/sentinel/phase13_hub_resilience_test.js
+
+      - name: F13 UI security contract
+        run: |
+          set -euo pipefail
           node ci/sentinel/phase13_ui_security_test.js
 
       - name: F13 privacy and topology boundary
