@@ -16,8 +16,10 @@ const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AUTH_RESEND_RECONCILER=createResendVaultReconciler();
-const WA_SHELL_TAG='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script>';
-const WA_PRELUDE_TAG='<script src="/wa-native-bootstrap-prelude.js?v=20260817-s5-p02"></script>';
+const AUTH_COOKIE='aos_app_session';
+const AUTH_COOKIE_MAX_AGE=8*60*60;
+const WA_SHELL_TAG='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script><script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
+const WA_PRELUDE_TAG='<script src="/wa-native-bootstrap-prelude.js?v=20260817-s7-p01"></script>';
 
 let authResendReady=false;
 let authResendSync=null;
@@ -48,17 +50,47 @@ child.on('exit',(code,signal)=>{
   process.exit(code==null?1:code);
 });
 
-function writeJson(res,status,obj){
-  res.writeHead(status,{
+function writeJson(res,status,obj,extraHeaders){
+  res.writeHead(status,Object.assign({
     'Content-Type':'application/json; charset=utf-8',
     'Cache-Control':'no-store',
     'X-Content-Type-Options':'nosniff',
     'X-Ascenda-Phase-S':'wa3-stabilization-v1'
-  });
+  },extraHeaders||{}));
   res.end(JSON.stringify(obj));
 }
 function parseData(raw){try{return raw?JSON.parse(raw):null;}catch(_){return null;}}
-function strongToken(req){const t=String(req.headers['x-aos-app-token']||'').trim();return t.length>=32?t:'';}
+function parseCookies(req){
+  const out={};
+  const raw=String(req.headers.cookie||'');
+  raw.split(';').forEach(part=>{
+    const i=part.indexOf('=');
+    if(i<0)return;
+    const k=part.slice(0,i).trim();
+    if(!k)return;
+    let v=part.slice(i+1).trim();
+    try{v=decodeURIComponent(v);}catch(_){}
+    out[k]=v;
+  });
+  return out;
+}
+function cookieToken(req){
+  const t=String(parseCookies(req)[AUTH_COOKIE]||'').trim();
+  return t.length>=32?t:'';
+}
+function strongToken(req){
+  const h=String(req.headers['x-aos-app-token']||'').trim();
+  if(h.length>=32)return h;
+  return cookieToken(req);
+}
+function sessionCookie(token){
+  return AUTH_COOKIE+'='+encodeURIComponent(String(token||'').trim())+
+    '; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age='+AUTH_COOKIE_MAX_AGE;
+}
+function clearSessionCookie(){
+  return AUTH_COOKIE+'=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0';
+}
+
 function sbRequest(method,endpoint,body,useService){
   return new Promise((resolve,reject)=>{
     const key=useService?SB_SERVICE_KEY:SB_ANON_KEY;
@@ -214,12 +246,14 @@ function probeChild(){
 
 function upstreamHeaders(req){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
+  const t=strongToken(req);
+  if(t&&!headers['x-aos-app-token'])headers['x-aos-app-token']=t;
   headers['accept-encoding']='identity';
   delete headers['content-length'];
   return headers;
 }
-function sendBuffered(res,r,body){
-  const h=Object.assign({},r.headers);
+function sendBuffered(res,r,body,extraHeaders){
+  const h=Object.assign({},r.headers,extraHeaders||{});
   delete h['content-length'];
   delete h['content-encoding'];
   delete h['etag'];
@@ -229,9 +263,12 @@ function sendBuffered(res,r,body){
   res.end(body);
 }
 function injectAppShell(html){
-  if(html.indexOf('/wa-shell-integration.js')>=0)return html;
-  if(html.indexOf('</body>')>=0)return html.replace('</body>',WA_SHELL_TAG+'\n</body>');
-  return html+'\n'+WA_SHELL_TAG;
+  let tags='';
+  if(html.indexOf('/wa-shell-integration.js')<0)tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script>';
+  if(html.indexOf('/auth-session-cookie-bridge.js')<0)tags+='<script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
+  if(!tags)return html;
+  if(html.indexOf('</body>')>=0)return html.replace('</body>',tags+'\n</body>');
+  return html+'\n'+tags;
 }
 function injectWaPrelude(html){
   if(html.indexOf('/wa-native-bootstrap-prelude.js')>=0)return html;
@@ -260,7 +297,7 @@ function proxyHtml(req,res,mode){
   req.pipe(q);
 }
 function proxy(req,res){
-  const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
+  const headers=upstreamHeaders(req);
   const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
     res.writeHead(r.statusCode||502,r.headers);
     r.pipe(res);
@@ -268,6 +305,28 @@ function proxy(req,res){
   q.on('error',e=>{
     console.error('[PHASE-S] upstream',e.message);
     if(!res.headersSent)writeJson(res,502,{ok:false,error:'PHASE_S_UPSTREAM_UNAVAILABLE'});else res.end();
+  });
+  req.pipe(q);
+}
+function proxyVerify(req,res){
+  const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT,'accept-encoding':'identity'});
+  const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
+    const chunks=[];
+    r.on('data',c=>chunks.push(Buffer.from(c)));
+    r.on('end',()=>{
+      const body=Buffer.concat(chunks);
+      const data=parseData(body.toString('utf8'));
+      const extra={};
+      if((r.statusCode||500)>=200&&(r.statusCode||500)<300&&data&&data.ok===true){
+        const t=String(data.app_token||'').trim();
+        if(t.length>=32)extra['set-cookie']=sessionCookie(t);
+      }
+      sendBuffered(res,r,body,extra);
+    });
+  });
+  q.on('error',e=>{
+    console.error('[PHASE-S] verify upstream',e.message);
+    if(!res.headersSent)writeJson(res,502,{ok:false,error:'PHASE_S_AUTH_VERIFY_UNAVAILABLE'});else res.end();
   });
   req.pipe(q);
 }
@@ -283,6 +342,10 @@ const server=http.createServer(async(req,res)=>{
     const sync=await ensureAuthResendReady();
     if(!sync||sync.ok!==true)return writeJson(res,503,{ok:false,error:'No fue posible preparar el envío del código 2FA',code:sync&&sync.code?sync.code:'AUTH_RESEND_SYNC_FAILED'});
     proxy(req,res);return;
+  }
+  if(req.method==='POST'&&p==='/api/auth/v3/verify')return proxyVerify(req,res);
+  if(req.method==='POST'&&p==='/api/auth/v3/logout'){
+    return writeJson(res,200,{ok:true,logged_out:true},{'Set-Cookie':clearSessionCookie()});
   }
   if(req.method==='GET'&&(p==='/app'||p==='/app.html'))return proxyHtml(req,res,'app');
   if(req.method==='GET'&&p==='/admin-whatsapp.html'&&u.searchParams.get('embedded')==='1')return proxyHtml(req,res,'wa');
