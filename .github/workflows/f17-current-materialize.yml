@@ -1,0 +1,195 @@
+name: F17 CURRENT materializer
+
+on:
+  push:
+    branches: ['fix/f17-current-history-runtime-20260817-v1']
+    paths: ['.github/workflows/f17-current-materialize.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: f17-current-materialize
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - name: Repair workspace
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Materialize live-version history and CURRENT runtime boundary
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+
+          git mv supabase/migrations/20260815215000_cia_phase17_multichannel_contracts_v1.sql supabase/migrations/20260816031658_cia_phase17_multichannel_contracts_v1.sql
+          git mv supabase/migrations/20260816054900_f17_legacy_whatsapp_acl_p0.sql supabase/migrations/20260816093639_f17_legacy_whatsapp_acl_p0.sql
+          git mv supabase/migrations/20260817170500_f17_legacy_whatsapp_acl_final.sql supabase/migrations/20260817170316_f17_legacy_whatsapp_acl_final.sql
+          git mv supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql supabase/migrations/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql
+          git mv supabase/rollbacks/20260815215000_cia_phase17_multichannel_contracts_v1.rollback.sql supabase/rollbacks/20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql
+          git mv supabase/rollbacks/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql supabase/rollbacks/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql
+
+          cat > supabase/migrations/20260817171043_cia_phase17_whatsapp_canary_control_v1.sql <<'SQL'
+          -- F17 history tombstone: production 20260817171043 created aos_cia_channel_canary_control_v1.
+          -- CURRENT runtime has no consumer of that RPC. Durable canary governance is superseded by
+          -- aos_cia_channel_register_canary_recipient_v1 in 20260817183507.
+          -- Intentionally no-op on rebuild; version retained to preserve production migration order.
+          do $$ begin null; end $$;
+          SQL
+          cat > supabase/migrations/20260817171102_cia_phase17_whatsapp_mark_dispatch_v1.sql <<'SQL'
+          -- F17 history tombstone: production 20260817171102 introduced mark_dispatch v1.
+          -- The same function is durably replaced by the final adapter migration 20260817183507.
+          -- Intentionally no-op on rebuild; version retained to preserve production migration order.
+          do $$ begin null; end $$;
+          SQL
+          cat > supabase/migrations/20260817171119_cia_phase17_whatsapp_provider_event_v1.sql <<'SQL'
+          -- F17 history tombstone: production 20260817171119 introduced provider_event v1.
+          -- The same function is durably replaced by the final adapter migration 20260817183507.
+          -- Intentionally no-op on rebuild; version retained to preserve production migration order.
+          do $$ begin null; end $$;
+          SQL
+          cat > supabase/migrations/20260817171141_cia_phase17_whatsapp_inbound_v1.sql <<'SQL'
+          -- F17 history tombstone: production 20260817171141 introduced record_inbound v1.
+          -- CURRENT runtime has no consumer of that RPC. Durable inbound ingestion is superseded by
+          -- aos_cia_channel_ingest_inbound_v1 in 20260817183507.
+          -- Intentionally no-op on rebuild; version retained to preserve production migration order.
+          do $$ begin null; end $$;
+          SQL
+
+          cat > ci/phase17-multichannel/history_fixture.sql <<'SQL'
+          \set ON_ERROR_STOP on
+          create table if not exists public.aos_plantillas_whatsapp(id uuid primary key default gen_random_uuid());
+          create table if not exists public.aos_whatsapp_mensajes(id uuid primary key default gen_random_uuid());
+          grant select,insert,update,delete on public.aos_plantillas_whatsapp to anon,authenticated;
+          grant select,insert,update,delete on public.aos_whatsapp_mensajes to anon,authenticated;
+          SQL
+
+          cat > ci/phase17-multichannel/tests/002_f17_history_runtime.sql <<'SQL'
+          \set ON_ERROR_STOP on
+          do $$
+          declare r1 jsonb; r2 jsonb; rid uuid; ev jsonb; i1 jsonb; i2 jsonb;
+          begin
+            if has_table_privilege('anon','public.aos_plantillas_whatsapp','select') then raise exception 'legacy template anon select remains'; end if;
+            if has_table_privilege('authenticated','public.aos_whatsapp_mensajes','select') then raise exception 'legacy messages authenticated select remains'; end if;
+            if not has_function_privilege('service_role','public.aos_cia_channel_register_canary_recipient_v1(jsonb)','execute') then raise exception 'canary RPC service role missing'; end if;
+            if has_function_privilege('anon','public.aos_cia_channel_register_canary_recipient_v1(jsonb)','execute') then raise exception 'canary RPC anon execute'; end if;
+            perform public.aos_cia_channel_register_canary_recipient_v1(jsonb_build_object('channel','WHATSAPP','recipient_contact','999111222','allowlist_verified',true,'ttl_minutes',30));
+            r1:=public.aos_cia_channel_prepare_send_v1(jsonb_build_object('channel','WHATSAPP','recipient_contact','999111222','purpose','HISTORY_REPLAY','message_class','TEXT','idempotency_key','f17-history-replay-0001','context',jsonb_build_object('canary',true)));
+            r2:=public.aos_cia_channel_prepare_send_v1(jsonb_build_object('channel','WHATSAPP','recipient_contact','999111222','purpose','HISTORY_REPLAY','message_class','TEXT','idempotency_key','f17-history-replay-0001','context',jsonb_build_object('canary',true)));
+            if coalesce((r1->>'dispatch_allowed')::boolean,false) is not true then raise exception 'canary not READY'; end if;
+            if r1->>'request_id' <> r2->>'request_id' then raise exception 'prepare idempotency broken'; end if;
+            rid:=(r1->>'request_id')::uuid;
+            perform public.aos_cia_channel_mark_dispatch_v1(jsonb_build_object('request_id',rid,'outcome','ACCEPTED','provider','META_WHATSAPP','provider_message_id','wamid.history.replay'));
+            ev:=public.aos_cia_channel_record_provider_event_v1(jsonb_build_object('channel','WHATSAPP','provider_message_id','wamid.history.replay','event_key','meta:history:delivered:1','event_type','DELIVERED','status','delivered'));
+            perform public.aos_cia_channel_record_provider_event_v1(jsonb_build_object('channel','WHATSAPP','provider_message_id','wamid.history.replay','event_key','meta:history:delivered:1','event_type','DELIVERED','status','delivered'));
+            if (select count(*) from public.aos_cia_channel_send_events_v1 where event_key='meta:history:delivered:1')<>1 then raise exception 'provider replay duplicate'; end if;
+            i1:=public.aos_cia_channel_ingest_inbound_v1(jsonb_build_object('channel','WHATSAPP','provider_message_id','wamid.history.inbound','sender_contact','999111222','message_type','text'));
+            i2:=public.aos_cia_channel_ingest_inbound_v1(jsonb_build_object('channel','WHATSAPP','provider_message_id','wamid.history.inbound','sender_contact','999111222','message_type','text'));
+            if coalesce((i1->>'inserted')::boolean,false) is not true or coalesce((i2->>'inserted')::boolean,true) is not false then raise exception 'inbound replay idempotency broken'; end if;
+            if to_regprocedure('public.aos_cia_channel_canary_control_v1(text,boolean,text)') is not null then raise exception 'superseded canary RPC unexpectedly rebuilt'; end if;
+            if to_regprocedure('public.aos_cia_channel_record_inbound_v1(jsonb)') is not null then raise exception 'superseded inbound RPC unexpectedly rebuilt'; end if;
+          end $$;
+          select 'F17_HISTORY_REPLAY_PASS';
+          SQL
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          repl={
+            '20260815215000_cia_phase17_multichannel_contracts_v1.sql':'20260816031658_cia_phase17_multichannel_contracts_v1.sql',
+            '20260815215000_cia_phase17_multichannel_contracts_v1.rollback.sql':'20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql',
+            '20260816054900_f17_legacy_whatsapp_acl_p0.sql':'20260816093639_f17_legacy_whatsapp_acl_p0.sql',
+            '20260817170500_f17_legacy_whatsapp_acl_final.sql':'20260817170316_f17_legacy_whatsapp_acl_final.sql',
+            '20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql':'20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql',
+            '20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql':'20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql',
+          }
+          for root in (Path('.github/workflows'),Path('ci')):
+            for p in root.rglob('*'):
+              if not p.is_file(): continue
+              try: s=p.read_text(encoding='utf-8')
+              except: continue
+              ns=s
+              for a,b in repl.items(): ns=ns.replace(a,b)
+              if ns!=s: p.write_text(ns,encoding='utf-8')
+
+          # Replay exact production version order in canonical F17 DB workflow.
+          p=Path('.github/workflows/cia-phase17-multichannel-contracts.yml')
+          s=p.read_text()
+          s=s.replace("      - name: Apply exact F17 migration\n        run: psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260816031658_cia_phase17_multichannel_contracts_v1.sql",
+          """      - name: Apply exact production F17 history\n        run: |\n          set -euo pipefail\n          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/history_fixture.sql\n          for f in \\\n            20260816031658_cia_phase17_multichannel_contracts_v1.sql \\\n            20260816093639_f17_legacy_whatsapp_acl_p0.sql \\\n            20260817170316_f17_legacy_whatsapp_acl_final.sql \\\n            20260817171043_cia_phase17_whatsapp_canary_control_v1.sql \\\n            20260817171102_cia_phase17_whatsapp_mark_dispatch_v1.sql \\\n            20260817171119_cia_phase17_whatsapp_provider_event_v1.sql \\\n            20260817171141_cia_phase17_whatsapp_inbound_v1.sql \\\n            20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql; do\n            psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f \"supabase/migrations/$f\"\n          done""")
+          s=s.replace("          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/001_f17_multichannel.sql | tee /tmp/f17-contracts.txt\n          grep -q 'F17_MULTICHANNEL_CONTRACTS_PASS' /tmp/f17-contracts.txt",
+          "          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/001_f17_multichannel.sql | tee /tmp/f17-contracts.txt\n          grep -q 'F17_MULTICHANNEL_CONTRACTS_PASS' /tmp/f17-contracts.txt\n          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/002_f17_history_runtime.sql | tee /tmp/f17-history.txt\n          grep -q 'F17_HISTORY_REPLAY_PASS' /tmp/f17-history.txt")
+          s=s.replace("          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql",
+          "          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql\n          psql \"$DB_URL\" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql")
+          s=s.replace("      - 'ci/phase17-multichannel/**'", "      - 'ci/phase17-multichannel/**'\n      - 'app/server-phase-s.js'\n      - 'app/server-f17.js'\n      - 'app/server-wa3.js'\n      - 'app/f17-wa-adapter.js'\n      - 'app/railway.json'")
+          p.write_text(s)
+
+          # Effective runtime: Phase S -> F17 -> F5 -> WA4 -> WA3 -> WA2 -> F4.
+          p=Path('app/server-phase-s.js'); s=p.read_text()
+          old="const child=spawn(process.execPath,['server-f5.js'],{"
+          if old not in s: raise SystemExit('server-phase-s child anchor missing')
+          s=s.replace(old,"const child=spawn(process.execPath,['server-f17.js'],{",1)
+          p.write_text(s)
+          p=Path('app/railway.json'); s=p.read_text()
+          s=s.replace("server-phase-s.js -> server-f5.js -> server-wa4.js -> server-wa3.js -> server-wa2.js -> server-f4.js","server-phase-s.js -> server-f17.js -> server-f5.js -> server-wa4.js -> server-wa3.js -> server-wa2.js -> server-f4.js")
+          p.write_text(s)
+
+          # Govern the native WA3 human-send path with the same F17 adapter.
+          p=Path('app/server-wa3.js'); s=p.read_text()
+          imp="const wa=require('./wa-gateway');"
+          if "createF17WaAdapter" not in s: s=s.replace(imp,imp+"\nconst {createF17WaAdapter}=require('./f17-wa-adapter');",1)
+          anchor="function serviceRpc(name,payload){return sbRequest('POST','/rest/v1/rpc/'+name,payload,true);}" 
+          if "const f17wa=createF17WaAdapter" not in s:
+            if anchor not in s: raise SystemExit('WA3 serviceRpc anchor missing')
+            s=s.replace(anchor,anchor+"\nconst f17wa=createF17WaAdapter({serviceRpc:serviceRpc,canaryMode:WA_CANARY_MODE});",1)
+          pat=r"async function ownedSend\(req,res,id,body\)\{.*?\n\}\n\nconst buckets="
+          new=r'''async function ownedSend(req,res,id,body){if(!UUID_RE.test(id))return writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});const token=strongToken(req);if(!token)return writeJson(res,403,{ok:false,error:'WA3_2FA_PANEL_REQUIRED'});if(!wa.validIdempotencyKey(body&&body.idempotency_key))return writeJson(res,400,{ok:false,error:'IDEMPOTENCY_KEY_REQUIRED'});const text=String(body&&body.text||'').trim().slice(0,4096);if(!text)return writeJson(res,400,{ok:false,error:'TEXT_REQUIRED'});if(!waConfigReadyOutbound())return writeJson(res,503,{ok:false,error:'WA_OUTBOUND_NOT_CONFIGURED'});
+  let auth;try{const out=await sbRpc('aos_wa3_human_send_authorize_v1',{p_token:token,p_conversation_id:id});auth=out.data||{};}catch(e){return writeJson(res,503,{ok:false,error:'WA3_SEND_AUTH_UNAVAILABLE'});}if(auth.ok!==true)return writeJson(res,403,{ok:false,error:auth.error||'WA3_SEND_FORBIDDEN'});
+  let payload;try{payload=wa.buildOutboundPayload({to:auth.to_number,type:'text',text});}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message});}if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO))return writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});
+  let governed;try{governed=await f17wa.prepareOutbound({actor:auth.actor_id,idempotencyKey:String(body.idempotency_key),payload});if(!governed||governed.dispatch_allowed!==true)return writeJson(res,403,{ok:false,error:'F17_CHANNEL_POLICY_BLOCKED',state:governed&&governed.state||'BLOCKED'});}catch(e){return writeJson(res,e.status||503,{ok:false,error:'F17_CHANNEL_POLICY_UNAVAILABLE'});}
+  let reservation,providerAccepted=false,messageId=null;try{reservation=await reserveOutbound(String(body.idempotency_key),auth.actor_id,payload);if(!reservation.owner){const row=reservation.row||{};try{if(row.state==='ACCEPTED'&&row.provider_message_id)await f17wa.markAccepted(governed.request_id,row.provider_message_id);else if(row.state==='FAILED')await f17wa.markFailed(governed.request_id,row.error_code||'PREVIOUS_SEND_FAILED');}catch(_e){return writeJson(res,503,{ok:false,error:'F17_DISPATCH_RECONCILIATION_FAILED',status:row.state||'PENDING'});}return writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});}
+    const meta=await graphSend(payload);messageId=meta&&meta.messages&&meta.messages[0]&&meta.messages[0].id;if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});providerAccepted=true;const now=new Date().toISOString();
+    await sbRequest('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:now},true,'return=minimal');
+    await sbRequest('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),conversation_id:id,direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:'text',message_body:payload.text.body,media_id:null,status:'accepted',actor_id:auth.actor_id,received_at:now,updated_at:now},true,'resolution=merge-duplicates,return=minimal');
+    await sbRequest('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:auth.actor_id,message_type:'text',conversation_id:id,source:'WA3_OWNED_HUMAN'}},true,'resolution=ignore-duplicates,return=minimal');
+    await sbRequest('POST','/rest/v1/aos_wa_routing_events_v1',{conversation_id:id,box_id:auth.box_id||null,event_type:'message.human_accepted',actor_id:auth.actor_id,payload:{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key)}},true,'return=minimal');
+    try{await f17wa.markAccepted(governed.request_id,String(messageId));}catch(_e){return writeJson(res,503,{ok:false,error:'F17_DISPATCH_RECONCILIATION_FAILED',status:'ACCEPTED_RECONCILIATION_PENDING',message_id:String(messageId)});}
+    writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'ACCEPTED',conversation_id:id,canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
+  }catch(e){if(reservation&&reservation.owner&&e.definite===true&&!providerAccepted){try{await sbRequest('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA3_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},true,'return=minimal')}catch(_e){}try{await f17wa.markFailed(governed.request_id,String(e.message||'WA3_SEND_FAILED'));}catch(_e){}}
+    const ambiguous=!!(reservation&&reservation.owner&&e.definite!==true&&!providerAccepted);console.error('[WA3] outbound',e.message,ambiguous?'ambiguous_pending':'definite_failure');writeJson(res,e.status||502,{ok:false,error:e.message||'WA3_SEND_FAILED',status:providerAccepted?'ACCEPTED_RECONCILIATION_PENDING':(ambiguous?'PENDING':'FAILED'),retry_safe:false,provider_http_status:e.metaStatus||null,provider_code:e.metaCode||null,provider_details:e.metaDetails||null});}
+}
+
+const buckets='''
+          s2,n=re.subn(pat,new,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('WA3 ownedSend anchor missing')
+          p.write_text(s2)
+
+          Path('ci/phase17-multichannel/test_current_runtime_chain.js').write_text("""'use strict';\nconst fs=require('fs');\nfunction ok(v,m){if(!v)throw new Error(m)}\nconst phase=fs.readFileSync('app/server-phase-s.js','utf8');\nconst f17=fs.readFileSync('app/server-f17.js','utf8');\nconst f5=fs.readFileSync('app/server-f5.js','utf8');\nconst wa3=fs.readFileSync('app/server-wa3.js','utf8');\nconst rail=fs.readFileSync('app/railway.json','utf8');\nok(rail.includes('node server-phase-s.js'),'Railway must retain Phase S outer boundary');\nok(phase.includes("spawn(process.execPath,['server-f17.js']"),'Phase S must enter F17');\nok(f17.includes("spawn(process.execPath, ['server-f5.js']"),'F17 must enter F5');\nok(f5.includes("spawn(process.execPath,['server-wa4.js']"),'F5 must preserve WA4 chain');\nok(f17.includes("url.pathname === '/webhook'")&&f17.includes('handleGovernedWebhook'),'signed webhook must traverse F17');\nok(wa3.includes('createF17WaAdapter')&&wa3.includes('f17wa.prepareOutbound')&&wa3.includes('f17wa.markAccepted')&&wa3.includes('f17wa.markFailed'),'native WA3 sends must reconcile through F17');\nok(wa3.indexOf('f17wa.prepareOutbound')<wa3.indexOf('graphSend(payload)'),'F17 policy must precede Meta dispatch');\nconsole.log('F17_EFFECTIVE_RUNTIME_CHAIN=PASS');\n""")
+
+          # Ensure fast lane executes the effective-runtime proof.
+          p=Path('.github/workflows/cia-phase17-multichannel-contracts.yml'); s=p.read_text()
+          needle="      - name: Rollback scope contract\n"
+          insert="      - name: Effective production runtime chain\n        shell: powershell\n        run: node ci/phase17-multichannel/test_current_runtime_chain.js\n"
+          if insert not in s:
+            if needle not in s: raise SystemExit('F17 workflow fast-lane anchor missing')
+            s=s.replace(needle,insert+needle,1)
+          p.write_text(s)
+          PY
+
+          node --check app/server-phase-s.js
+          node --check app/server-f17.js
+          node --check app/server-wa3.js
+          node ci/phase17-multichannel/test_current_runtime_chain.js
+          git diff --check
+          git add -A
+          git commit -m 'fix(f17): reconcile live history and effective runtime boundary'
+          git push origin HEAD:${GITHUB_REF_NAME}
