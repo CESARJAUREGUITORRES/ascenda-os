@@ -1,8 +1,20 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S12 — controlled-write + revenue + Sentinel + WhatsApp native layout/alerts bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S13 — controlled-write + revenue + Sentinel + WhatsApp PWA UX bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
 self.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='ASCENDA_ACTIVATE_NOW')self.skipWaiting();});
+self.addEventListener('notificationclick',function(event){
+  var n=event.notification,d=n&&n.data||{};
+  if(!d||d.kind!=='AOS_WA_HUMAN')return;
+  try{n.close();}catch(_){}
+  var id=String(d.conversationId||''),view=String(d.view||'admin-whatsapp');
+  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){
+    var target=null;for(var i=0;i<list.length;i++){try{var u=new URL(list[i].url);if(u.origin===self.location.origin){target=list[i];break;}}catch(_){}}
+    if(target){try{target.postMessage({type:'AOS_WA_OPEN_CONVERSATION',conversationId:id,view:view});}catch(_){}return target.focus();}
+    var url='/app?wa_conv='+encodeURIComponent(id)+'#'+encodeURIComponent(view);
+    return self.clients.openWindow?self.clients.openWindow(url):null;
+  }));
+});
 
 var PROTECTED={aos_catalogo_categorias:1,aos_catalogo_servicios:1,aos_catalogo_toppings:1,aos_catalogo_productos_detalle:1,aos_planes_trabajo:1,aos_plan_trabajo_items:1};
 var CAJA={aos_caja_abrir:'aos_caja_abrir_v2',aos_caja_cerrar:'aos_caja_cerrar_v2',aos_caja_editar_pago:'aos_caja_editar_pago_v2',aos_caja_eliminar_venta:'aos_caja_eliminar_venta_v2',aos_caja_ingreso_extra:'aos_caja_ingreso_extra_v2',aos_caja_registrar_gasto:'aos_caja_registrar_gasto_v2'};
@@ -35,8 +47,11 @@ async function injectF4(req){
   if(html.indexOf('/wa-native-layout-s9.js')<0){
     tags+='<script src="/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01"></script>';
   }
+  if(html.indexOf('/wa-chat-ux-s13.js')<0){
+    tags+='<script src="/wa-chat-ux-s13.js?v=20260817-wa-chat-s13-p01"></script>';
+  }
   if(html.indexOf('/wa-human-alerts.js')<0){
-    tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s12-p01"></script>';
+    tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s13-p01"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';

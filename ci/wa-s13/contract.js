@@ -1,0 +1,24 @@
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'../..');
+const ux=fs.readFileSync(path.join(root,'app/public/wa-chat-ux-s13.js'),'utf8');
+const alerts=fs.readFileSync(path.join(root,'app/public/wa-human-alerts.js'),'utf8');
+const sw=fs.readFileSync(path.join(root,'app/public/phase2-service-worker.js'),'utf8');
+function ok(cond,msg){if(!cond){console.error('WA S13 CONTRACT FAIL:',msg);process.exit(1);}}
+ok(ux.includes("m.direction==='OUTBOUND'?[m.sent_at,m.created_at,m.provider_timestamp"),'outbound chronology must prefer sent_at/created_at');
+ok(ux.includes("[m.provider_timestamp,m.received_at,m.created_at,m.sent_at]"),'inbound chronology must prefer provider/received timestamps');
+ok(ux.includes("/^\\/api\\/wa3\\/conversations\\/[^/]+\\/messages$/"),'timeline fetch scope must be WA-3 messages only');
+ok(ux.includes('wa13-date-sep'),'date separators missing');
+ok(ux.includes("status==='delivered'")&&ux.includes("status==='read'"),'delivery/read markers missing');
+ok(alerts.includes('volume:.72'),'louder default alert volume missing');
+ok(alerts.includes('createDynamicsCompressor'),'alert loudness compressor missing');
+ok(alerts.includes("reg.showNotification('Nuevo WhatsApp asignado'"),'persistent service-worker notification missing');
+ok(alerts.includes('silent:false'),'background notification must allow OS-native sound');
+ok(alerts.includes("r.owner_user_id===S.actorId")&&alerts.includes("r.state==='HUMAN_ACTIVE'")&&alerts.includes("r.last_message_direction==='INBOUND'"),'human-only alert gates changed');
+ok(!alerts.includes('body:r.last_message_preview'),'notification must not expose message content');
+ok(sw.includes("self.addEventListener('notificationclick'"),'service-worker notification click handler missing');
+ok(sw.includes("type:'AOS_WA_OPEN_CONVERSATION'"),'notification click must deep-link to conversation');
+ok(sw.includes('/wa-chat-ux-s13.js?v=20260817-wa-chat-s13-p01'),'service worker must inject S13 chat UX');
+ok(sw.includes('/wa-human-alerts.js?v=20260817-wa-alerts-s13-p01'),'service worker must inject S13 alerts');
+console.log('WA S13 contract PASS');
