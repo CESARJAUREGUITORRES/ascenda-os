@@ -1,0 +1,93 @@
+name: Sentinel F11 MCP AI Triage Certificate
+
+on:
+  push:
+    branches: ['feature/sentinel-f11-ai-assisted-triage','main']
+    paths: &paths
+      - 'sentinel/triage/**'
+      - 'ci/sentinel/phase11_*'
+      - 'docs/control/SENTINEL_F11_*'
+      - '.github/workflows/sentinel-phase11-ai-triage.yml'
+  pull_request:
+    branches: [main]
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f11-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  triage-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: F11 syntax and contract
+        shell: powershell
+        run: |
+          node --check sentinel/triage/triage-core.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/triage/mcp-stdio-server.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase11_ai_triage_contract.js
+
+  triage-zero-cost:
+    needs: triage-fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    env:
+      WORKSPACE_FIX_IMAGE: alpine:3.20
+      NODE_BASE_IMAGE: node:22-bookworm-slim
+      F11_RUNTIME_IMAGE: ascenda-f11-nodegit:22-bookworm-slim-v1
+    steps:
+      - name: Repair workspace
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare minimal disposable runtime
+        run: |
+          set -euo pipefail
+          docker image inspect "$F11_RUNTIME_IMAGE" >/dev/null 2>&1 || docker build --pull=false -t "$F11_RUNTIME_IMAGE" - <<EOF
+          FROM $NODE_BASE_IMAGE
+          RUN apt-get update -qq \
+            && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null \
+            && rm -rf /var/lib/apt/lists/*
+          EOF
+      - name: F11 contract and MCP stdio
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$GITHUB_WORKSPACE:/work" -w /work "$F11_RUNTIME_IMAGE" node ci/sentinel/phase11_ai_triage_contract.js
+      - name: F11 deterministic agent-style E2E replay
+        run: |
+          set -euo pipefail
+          run_e2e() {
+            local out="$1"
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$GITHUB_WORKSPACE:/work" -w /work "$F11_RUNTIME_IMAGE" node ci/sentinel/phase11_ai_triage_e2e.js --out "$out"
+          }
+          run_e2e .f11-a
+          run_e2e .f11-b
+          cmp -s .f11-a/triage-packet.json .f11-b/triage-packet.json
+          cmp -s .f11-a/triage-response.validated.json .f11-b/triage-response.validated.json
+          cmp -s .f11-a/triage-audit.json .f11-b/triage-audit.json
+          sha256sum .f11-a/*.json | tee .f11-a/sha256.txt
+          echo "SENTINEL_F11_RUNTIME_REPLAY=PASS"
+          echo "SENTINEL_F11_ZERO_COST_TRIAGE=PASS"
+      - name: No-write static boundary
+        run: |
+          set -euo pipefail
+          EXECUTABLES=(sentinel/triage/*.cjs ci/sentinel/phase11_*.js)
+          ! grep -niE 'supabase[[:space:]]+db[[:space:]]+push|railway[[:space:]]+up|git[[:space:]]+push|execute_sql|service_role' "${EXECUTABLES[@]}"
+          ! grep -niE 'pull-requests:[[:space:]]*write|contents:[[:space:]]*write|deployments:[[:space:]]*write|actions:[[:space:]]*write' .github/workflows/sentinel-phase11-ai-triage.yml
+          echo "SENTINEL_F11_NO_WRITE_BOUNDARY=PASS"
