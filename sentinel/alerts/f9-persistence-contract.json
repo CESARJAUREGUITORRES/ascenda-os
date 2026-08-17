@@ -1,0 +1,50 @@
+{
+  "schema_version":"sentinel-alert-persistence/v1",
+  "phase":"F9-B",
+  "baseline_main":"a72a68c600dbacf04b778380d343f345bd5c71fc",
+  "purpose":"Persist notification reservations, delivery acknowledgements, P2 digest queue and technical maintenance windows so F9 noise control survives process restarts without storing rendered messages or secrets.",
+  "tables":[
+    "aos_sentinel_alert_dispatches_v1",
+    "aos_sentinel_alert_digest_items_v1",
+    "aos_sentinel_maintenance_windows_v1"
+  ],
+  "security":{
+    "rls_all_tables":true,
+    "direct_app_role_access":false,
+    "operational_rpcs_service_role_only":true,
+    "security_definer_fixed_search_path":true,
+    "rendered_message_storage":false,
+    "secret_storage":false,
+    "phi_pii_storage":false
+  },
+  "dispatch":{
+    "attempt_key_unique":true,
+    "decision_key_reusable_after_cooldown":true,
+    "decision_key_lock":"pg_advisory_xact_lock",
+    "states":["RESERVED","DELIVERED","FAILED","UNAVAILABLE","RETRY_LATER"],
+    "actions":["IMMEDIATE","RECOVERY","FLAPPING_SUMMARY","DIGEST"],
+    "delivery_truth":"DELIVERED only after transport ACK",
+    "provider_ack_id":"technical acknowledgement identifier only; never rendered content"
+  },
+  "digest":{
+    "unique_item":"digest_key + incident_id",
+    "states":["QUEUED","CLAIMED","SENT"],
+    "rendered_text_stored":false
+  },
+  "maintenance":{
+    "technical_scope_only":["environment","domain","component","capability"],
+    "reason_code_slug_only":true,
+    "p0_policy_enforced_by_router":true
+  },
+  "gates":{
+    "exact_attempt_replay_idempotent":true,
+    "concurrent_attempt_reservation_idempotent":true,
+    "cooldown_survives_restart":true,
+    "new_attempt_after_cooldown_allowed":true,
+    "second_recovery_after_reopen_allowed":true,
+    "digest_queue_deduplicated":true,
+    "rls_acl_certified":true,
+    "rollback_reapply_certified":true,
+    "production_apply_requires_zero_cost_pass":true
+  }
+}

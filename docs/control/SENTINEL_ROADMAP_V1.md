@@ -365,11 +365,12 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local; G01–G12 PASS.
 - Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
 - Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
-- Fase 8: `COMPLETE CANDIDATE / G12+G13 PASS / PARITY HOTFIX` — Incident Engine y persistencia productiva aplicados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; archivo fuente `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 ya fusionado a `main@a30de31de1f659f4d367f63dab9ff5db8ebab5ac`; pendiente únicamente hotfix documental de paridad → exact-head/post-merge → Notion.
-- Fase 9: `SIGUIENTE — Alert Routing, Telegram & Noise Control` después del cierre autoritativo F8.
-- Fases 10–13: `PENDIENTE`.
+- Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado y paridad documental cerrada.
+- Fase 9: `EN CURSO` — F9-A routing/noise control certificado; F9-B durable outbox productivo y certificado con migraciones live `20260817013916 sentinel_f9_alert_outbox` y `20260817014618 sentinel_f9_digest_incident_fk_index`; RLS/ACL, concurrencia, cooldown durable, digest, maintenance, DB lint, rollback/reapply y canary productivo PASS. Único gate pendiente: crear/configurar de forma segura la integración canónica Telegram `Sentinel Owner Alerts` y ejecutar canary real sanitizado + provider ACK + recovery/noise verification. No existe actualmente bot token/chat target en el vault canónico.
+- Fases 10–13: `PENDIENTE`; F10 no se promueve mientras F9 siga abierta.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
-- F8 no envía alertas ni ejecuta remediación; alerting comienza en F9 y rollback/remediation automática pertenece a F12.
+- Certificado durable F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
+- Sentinel no ejecuta remediación automática: diagnóstico pertenece a F10/F11 y rollback/remediation segura a F12.
