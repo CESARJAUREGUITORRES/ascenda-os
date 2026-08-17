@@ -20,6 +20,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 20
     steps:
+      - name: Repair Zero-Cost workspace ownership
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
@@ -41,57 +46,72 @@ jobs:
       - name: Start isolated DB and replay full history
         id: replay
         working-directory: ci/zero-cost-staging
+        shell: bash
         run: |
-          set -uo pipefail
-          supabase db start
           set +e
-          supabase db reset --local 2>&1 | tee /tmp/ascenda-full-replay.log
-          rc=${PIPESTATUS[0]}
-          set -e
-          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          supabase stop --no-backup >/tmp/ascenda-full-replay-prestop.log 2>&1
+          supabase db start > /tmp/ascenda-full-replay-start.log 2>&1
+          start_rc=$?
+          if [ "$start_rc" -eq 0 ]; then
+            supabase db reset --local > /tmp/ascenda-full-replay-reset.log 2>&1
+            reset_rc=$?
+          else
+            reset_rc=999
+            : > /tmp/ascenda-full-replay-reset.log
+          fi
+          cat /tmp/ascenda-full-replay-start.log /tmp/ascenda-full-replay-reset.log > /tmp/ascenda-full-replay.log
+          echo "start_rc=$start_rc" >> "$GITHUB_OUTPUT"
+          echo "reset_rc=$reset_rc" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Materialize replay evidence
+        if: always()
         run: |
           set -euo pipefail
-          rc='${{ steps.replay.outputs.rc }}'
-          python3 - "$rc" <<'PY'
+          start_rc='${{ steps.replay.outputs.start_rc }}'
+          reset_rc='${{ steps.replay.outputs.reset_rc }}'
+          python3 - "$start_rc" "$reset_rc" <<'PY'
           from pathlib import Path
           import re,sys
-          rc=int(sys.argv[1] or 999)
+          start_rc=int(sys.argv[1] or 999)
+          reset_rc=int(sys.argv[2] or 999)
           log=Path('/tmp/ascenda-full-replay.log').read_text(errors='replace') if Path('/tmp/ascenda-full-replay.log').exists() else ''
           applying=re.findall(r'Applying migration\s+([^\s]+)',log)
           error=''
           for line in log.splitlines():
-              if re.search(r'(?i)(error:|ERROR:|failed to|migration failed)',line):
+              if re.search(r'(?i)(error:|ERROR:|failed to|migration failed|cannot start|failed to start)',line):
                   error=line.strip()
                   break
-          status='PASS' if rc==0 else 'FAIL'
+          status='PASS' if start_rc==0 and reset_rc==0 else 'FAIL'
           last=applying[-1] if applying else 'NONE_DETECTED'
+          stage='REPLAY' if start_rc==0 else 'DB_START'
           out=Path('docs/control/MIGRATION_FULL_REPLAY_AUDIT_20260817.md')
           out.write_text(
               '# ASCENDA Migration Full Replay Audit\n\n'
               '**Environment:** self-hosted Zero-Cost isolated Supabase DB; no production writes.\n\n'
-              f'- Branch head source: exact-6 parity candidate\n'
-              f'- Supabase CLI: `2.101.0`\n'
-              f'- Full `supabase/migrations` replay result: **{status}** (`rc={rc}`)\n'
+              '- Branch source: exact-6 parity candidate\n'
+              '- Supabase CLI: `2.101.0`\n'
+              f'- DB start: `rc={start_rc}`\n'
+              f'- Full `supabase/migrations` reset/replay: `rc={reset_rc}`\n'
+              f'- Result: **{status}** at stage **{stage}**\n'
               f'- Last migration announced by CLI: `{last}`\n'
               f'- First detected error: `{error or "NONE"}`\n\n'
               '## Gate\n\n'
-              + ('**FULL_HISTORY_REPLAY=PASS.** Proceed to DB lint and parity-class verification.\n' if rc==0 else '**FULL_HISTORY_REPLAY=BLOCKED.** The first replay failure is the next migration-history P0; do not merge history repairs until classified.\n'),
+              + ('**FULL_HISTORY_REPLAY=PASS.** Proceed to DB lint and parity-class verification.\n' if status=='PASS' else '**FULL_HISTORY_REPLAY=BLOCKED.** Resolve the recorded startup/replay blocker before merging history repairs.\n'),
               encoding='utf-8')
           print(out.read_text())
           PY
           git diff --check
 
       - name: DB lint when replay succeeded
-        if: steps.replay.outputs.rc == '0'
+        if: steps.replay.outputs.start_rc == '0' && steps.replay.outputs.reset_rc == '0'
         working-directory: ci/zero-cost-staging
         run: |
           set -euo pipefail
           supabase db lint --local --schema public --level error
 
       - name: Commit replay evidence
+        if: always()
         run: |
           set -euo pipefail
           git config user.name 'ASCENDA Zero-Cost CI'
@@ -105,7 +125,8 @@ jobs:
       - name: Enforce replay gate
         run: |
           set -euo pipefail
-          test '${{ steps.replay.outputs.rc }}' = '0'
+          test '${{ steps.replay.outputs.start_rc }}' = '0'
+          test '${{ steps.replay.outputs.reset_rc }}' = '0'
 
       - name: Stop isolated Supabase DB
         if: always()
