@@ -1,0 +1,65 @@
+name: CIA Phase 17 Governed WA Adapter
+
+on:
+  push:
+    branches:
+      - 'feature/f17-governed-wa-adapter-*'
+    paths:
+      - 'app/server-f4.js'
+      - 'app/f17-whatsapp-adapter.js'
+      - 'ci/f17/**'
+      - '.github/workflows/cia-phase17-wa-adapter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  certify-materialize:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Unit contract
+        shell: powershell
+        run: node ci/f17/test_governed_wa_adapter.js
+      - name: Materialize once
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Get-Content app/server-f4.js -Raw
+          if($src -notmatch 'F17_WA.prepare'){
+            node ci/f17/materialize_governed_wa_adapter.js
+          } else {
+            Write-Host 'F17 adapter already materialized; validating idempotently.'
+          }
+      - name: Runtime and security assertions
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          node --check app/server-f4.js
+          node --check app/f17-whatsapp-adapter.js
+          $src=Get-Content app/server-f4.js -Raw
+          if($src -notmatch 'F17_WA.prepare'){throw 'policy gate missing'}
+          if($src -notmatch 'WEBHOOK_REPLAY_VALIDATED'){throw 'replay gate missing'}
+          if($src -notmatch 'CANARY_PASSED'){throw 'canary gate missing'}
+          if($src -notmatch "split\('\.'\).length===3"){throw 'Supabase secret-key compatibility missing'}
+          $adapter=Get-Content app/f17-whatsapp-adapter.js -Raw
+          if($adapter -match 'message_body|text\.body|caption|raw_referral:'){throw 'generic F17 adapter must not persist message content'}
+      - name: Commit materialized runtime if needed
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if(git status --porcelain app/server-f4.js){
+            git config user.name 'ASCENDA F17 Bot'
+            git config user.email 'f17-bot@users.noreply.github.com'
+            git add app/server-f4.js
+            git commit -m 'feat(f17): govern WhatsApp send and signed provider events'
+            git push origin HEAD
+          } else {
+            Write-Host 'No materialized runtime diff to commit.'
+          }
