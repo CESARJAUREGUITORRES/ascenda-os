@@ -1,0 +1,114 @@
+name: F16 exact-6 release-slice audit
+
+on:
+  push:
+    branches:
+      - 'audit/f16-exact6-release-slice-20260817-v1'
+    paths:
+      - '.github/workflows/f16-exact6-release-slice-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f16-exact6-release-slice-audit
+  cancel-in-progress: true
+
+jobs:
+  release-slice:
+    name: F16 exact-6 synthetic contract + rollback
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      BASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      F16_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/phase16_exact6
+    steps:
+      - name: Repair Zero-Cost workspace ownership
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: Zero-Cost policy / health
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+          bash scripts/ci/expose-runner-node.sh
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Start isolated Supabase PostgreSQL
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          supabase db start
+      - name: Create dedicated synthetic F16 database
+        run: |
+          set -euo pipefail
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "drop database if exists phase16_exact6 with (force)"
+          psql "$BASE_DB_URL" -X -v ON_ERROR_STOP=1 -c "create database phase16_exact6"
+      - name: Compile exact repaired F16 release slice
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
+          for f in \
+            20260815215930_cia_phase16_email_governed_schema_v1.sql \
+            20260815220040_cia_phase16_email_contracts_v1.sql \
+            20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
+            20260815220329_cia_phase16_email_render_context_hardening.sql \
+            20260815220458_cia_phase16_legacy_email_acl_hardening.sql \
+            20260815220344_cia_phase16_verify_app_session_v1.sql \
+            20260815221343_cia_phase16_resend_outcome_coverage_v3.sql; do
+            test -f "supabase/migrations/$f"
+            psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          supabase db lint --db-url "$F16_DB_URL" --schema public --level error
+      - name: Positive negative and provider contracts
+        run: |
+          set -euo pipefail
+          for f in \
+            test_phase16_contracts.sql \
+            test_phase16_delivery_contracts.sql \
+            test_phase16_render_context_hardening.sql \
+            test_phase16_legacy_acl.sql \
+            test_phase16_app_session.sql \
+            test_phase16_resend_outcomes_v3.sql; do
+            psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "ci/phase16/$f"
+          done
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cia_email_ingest_provider_event_v2(text,text,text,timestamptz,jsonb)','EXECUTE')")" = "f"
+          grep -q "'email.failed'" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "'email.suppressed'" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "RESEND_WEBHOOK" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          echo 'F16_EXACT6_PROVIDER_BOUNDARY=PASS'
+      - name: Server-authoritative runtime contracts
+        run: |
+          set -euo pipefail
+          node --check app/email-gateway.js
+          node --check app/server.js
+          node --check app/public/agenda.js
+          node --check app/public/calls.js
+          node ci/phase16/test_email_gateway.js
+          grep -q "aos_cia_verify_app_session_v1" app/email-gateway.js
+          grep -q "LEGACY_2FA_RETIRED" app/server.js
+          grep -q "F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED" app/server.js
+          ! grep -Eq "['\"]re_[A-Za-z0-9_-]{20,}['\"]" app/server.js
+          echo 'F16_EXACT6_RUNTIME_BOUNDARY=PASS'
+      - name: Rollback and zero residue
+        run: |
+          set -euo pipefail
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16.sql | tee /tmp/f16_rollback.log
+          grep -q 'CIA_PHASE16_ROLLBACK=PASS' /tmp/f16_rollback.log
+          psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/rollback_phase16_legacy_acl.sql | tee /tmp/f16_acl_rollback.log
+          grep -q 'CIA_PHASE16_LEGACY_ACL_ROLLBACK=PASS' /tmp/f16_acl_rollback.log
+          test "$(psql "$F16_DB_URL" -X -qAt -c "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'aos_cia_email_%'")" = "0"
+          echo 'F16_EXACT6_RELEASE_SLICE=PASS'
+      - name: Cleanup
+        if: always()
+        run: |
+          psql "$BASE_DB_URL" -X -c "drop database if exists phase16_exact6 with (force)" || true
+          cd ci/zero-cost-staging && supabase stop --no-backup || true
