@@ -9,5 +9,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Verify production WA S5 assets
         run: node ci/wa-s5-live-probe.js
