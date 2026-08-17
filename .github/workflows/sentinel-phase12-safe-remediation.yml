@@ -1,0 +1,68 @@
+name: Sentinel F12 Safe Remediation Certificate
+
+on:
+  push:
+    branches:
+      - feature/sentinel-f12-safe-remediation-loop
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f12-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  remediation-fast:
+    name: remediation-fast
+    runs-on: [self-hosted, Windows, X64, ASCENDA-FAST-V2]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and machine contract
+        shell: powershell
+        run: |
+          node --check sentinel/remediation/remediation-core.cjs
+          node ci/sentinel/phase12_contract_test.js
+      - name: Negative boundaries
+        shell: powershell
+        run: node ci/sentinel/phase12_remediation_negative_test.js
+      - name: Deterministic sandbox replay and rollback
+        shell: powershell
+        run: node ci/sentinel/phase12_remediation_e2e_test.js
+
+  remediation-zero-cost:
+    name: remediation-zero-cost
+    needs: remediation-fast
+    runs-on: [self-hosted, Linux, X64, ASCENDA-ZERO-COST-V2]
+    timeout-minutes: 15
+    steps:
+      - name: Repair workspace
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE" 2>/dev/null || true
+          rm -rf "$GITHUB_WORKSPACE/.branches" 2>/dev/null || true
+      - uses: actions/checkout@v4
+        with:
+          clean: true
+      - name: Prepare disposable runtime
+        run: |
+          export HOME="$(mktemp -d)"
+          unset GITHUB_TOKEN GH_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_SERVICE_ROLE_KEY RAILWAY_TOKEN
+          node --version
+      - name: Contract and security boundaries
+        run: |
+          node --check sentinel/remediation/remediation-core.cjs
+          node ci/sentinel/phase12_contract_test.js
+          node ci/sentinel/phase12_remediation_negative_test.js
+      - name: Candidate patch replay and rollback
+        run: node ci/sentinel/phase12_remediation_e2e_test.js
+      - name: No production/network capability static gate
+        run: |
+          ! grep -R -nE 'child_process|execSync\(|spawnSync\(|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|GITHUB_TOKEN|service_role|fetch\(|axios' sentinel/remediation ci/sentinel/phase12_*_test.js
+          grep -q 'production_mutation.*false' sentinel/remediation/remediation-contract.v1.json
+          grep -q 'auto_merge.*false' sentinel/remediation/remediation-contract.v1.json
+          grep -q 'auto_deploy.*false' sentinel/remediation/remediation-contract.v1.json
+          echo 'SENTINEL_F12_STATIC_BOUNDARY=PASS'
