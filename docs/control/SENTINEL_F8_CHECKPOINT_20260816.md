@@ -1,98 +1,138 @@
-# Sentinel F8 — Current Checkpoint
+# Sentinel F8 — Terminal Checkpoint
 
-**Fecha:** 2026-08-16 (America/Lima)  
-**Estado:** `F8 EN CURSO`  
+**Fecha:** 2026-08-16/17 (America/Lima)  
+**Estado técnico:** `F8 COMPLETE CANDIDATE — TERMINAL REPO SYNC PENDING`  
 **PR:** `#208 DRAFT`  
-**Producción:** `DDL NOT AUTHORIZED / NOT APPLIED`  
+**Producción:** `F8 PERSISTENCE APPLIED + CANARY CERTIFIED`  
+**Functional certified head:** `d9f84652b1818a6a61e9d9e8dbfbdb85a4ede041`  
+**Production migration:** `20260817000919 sentinel_f8_incident_engine`  
+**Production canary:** `SEN-2026-0001 / RESOLVED`  
 
 ## Completed before F8
 
-- F1–F7: `100_COMPLETE`.
-- F7 authoritative main baseline: `01958565af1a5ffe426ffb0ac9e0588c77341175`.
+- F1–F7: `100_COMPLETE` and authoritative in `main`.
+- F7 authoritative pre-F8 baseline: `01958565af1a5ffe426ffb0ac9e0588c77341175`.
 
-## F8 core
+## F8 core and persistence
 
-Implemented and cross-platform certified:
+Certified:
 
 - stable `SEN-YYYY-NNNN` IDs;
 - event replay idempotency;
-- signal vs incident fingerprints;
-- 7 signal classes;
-- P0/P1/P2/P3 severity;
+- explicit signal vs incident fingerprints;
+- seven signal classes;
+- P0/P1/P2/P3 severity escalation;
 - OPEN/ACK/INVESTIGATING/MITIGATED/RESOLVED lifecycle;
-- severity escalation timeline;
-- 60-minute reopen same-ID policy;
-- outside-window new-ID policy;
+- 60-minute same-ID reopen;
 - explicit multi-signal convergence;
 - no implicit same-module merge;
 - typed evidence references only;
-- F7 correlation metadata only, no causality assertion;
-- in-memory repository adapter for deterministic core certification.
+- F7 correlation metadata without assumed causality;
+- transactional PostgreSQL persistence;
+- RLS on all persistence tables;
+- `service_role`-only protected RPC boundary;
+- fixed SECURITY DEFINER search path;
+- no raw payload columns;
+- advisory transaction locks for event and incident fingerprints;
+- event ledger primary key;
+- active fingerprint partial unique index;
+- transactional yearly `SEN-*` counter;
+- versioned rollback artifact.
 
-## F8 persistence branch artifacts
+## G12 — Zero-Cost DB
 
-Created but not applied to production:
+`PASS` on exact functional head `d9f84652b1818a6a61e9d9e8dbfbdb85a4ede041`.
 
-- `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`
-- `supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql`
-- `ci/sentinel/phase8_persistence_zero_cost.sql`
-- `ci/sentinel/phase8_persistence_zero_cost.sh`
-- `sentinel/incidents/persistence-design-v1.json`
+Canonical F8 workflow run: `31980704736`.
 
-Persistence properties:
+- Windows incident core: PASS;
+- Linux incident core: PASS;
+- isolated PostgreSQL persistence: PASS;
+- migration: PASS;
+- RLS/ACL: PASS;
+- lifecycle: PASS;
+- replay: PASS;
+- concurrent same-event: PASS;
+- concurrent same-fingerprint: PASS;
+- severity escalation: PASS;
+- reopen: PASS;
+- DB lint/search_path: PASS;
+- rollback: PASS;
+- reapply + fixture: PASS.
 
-- 4 new Sentinel-only tables;
-- 5 Sentinel-only functions;
-- RLS enabled;
-- no direct anon/authenticated access;
-- service-role-only protected RPC boundary;
-- fixed SECURITY DEFINER search_path;
-- no raw payload column;
-- advisory transaction locks for concurrent event/fingerprint ingest;
-- event ledger PK;
-- active fingerprint unique constraint;
-- yearly transactional SEN counter.
+Ascenda CI run `31980704753`: PASS.
 
-## Production read-only preflight
+## G13 — Production Persistence
 
-`PASS` on 2026-08-16:
+Owner authorization received and executed.
 
-- required Supabase roles exist;
-- no proposed F8 table collision;
-- no proposed F8 function collision;
-- no production DDL executed.
+Production read-only preflight:
 
-## Current active gate
+- required roles present;
+- no F8 table/function collisions;
+- project healthy.
 
-`F8-G12 — Zero-Cost DB`
+Production apply:
 
-The local certificate must prove:
+- migration applied once through Supabase migration tooling;
+- migration history version `20260817000919`;
+- no unrelated production object changed by F8.
 
-1. migration compiles in isolated local Supabase;
-2. RLS/ACL/grants;
-3. service-role-only RPC;
-4. lifecycle/reopen;
-5. exact replay idempotency;
-6. concurrent same-event replay;
-7. concurrent same-fingerprint convergence;
-8. severity escalation;
-9. DB lint/security-definer search_path;
-10. rollback removes all F8 objects;
-11. reapply + fixtures pass again.
+Post-DDL security verification:
 
-## Hard blocker
+- 4/4 Sentinel tables present;
+- RLS enabled on all 4;
+- no direct policies;
+- 3 operational RPCs SECURITY DEFINER;
+- fixed search path;
+- `anon/authenticated` cannot execute operational Sentinel RPCs;
+- `service_role` can execute them;
+- no sensitive PHI/PII/secret-like columns.
 
-`F8-G13 Production Persistence = BLOCKED`
+## Production synthetic canary
 
-Do not:
+`SEN-2026-0001` is intentionally retained as sanitized audit evidence.
 
-- apply migration to production;
-- merge PR #208;
-- expose new F8 RPCs in ASCENDA runtime;
-- enable alerts/remediation.
+Final state:
 
-G13 requires:
+- `RESOLVED`;
+- P2;
+- signal_count=3;
+- persisted signal rows=3;
+- distinct event IDs=3;
+- reopened_count=1;
+- one severity escalation;
+- one reopen;
+- two successful resolve transitions;
+- read RPC works;
+- consistency checks PASS.
 
-1. G12 Zero-Cost PASS;
-2. `SENTINEL_F8_PRODUCTION_PERSISTENCE_IMPACT_20260816.md`;
-3. explicit owner authorization for this exact migration/canary/conditional rollback.
+The canary proved exact replay, multi-signal convergence, severity escalation, lifecycle and same-ID reopen in production without PHI/PII.
+
+## Advisor review
+
+Post-DDL security/performance advisors were reviewed.
+
+- No Sentinel-specific security advisory was introduced.
+- No Sentinel unindexed-FK or multiple-policy warning was introduced.
+- Fresh Sentinel indexes may be reported as unused immediately after creation; retain until sufficient operational evidence exists.
+- Existing non-Sentinel database advisories are separate backlog items and are not modified under F8 scope.
+
+## Current terminal gate
+
+`F8-G14 — Repository / Control Synchronization`
+
+Remaining before authoritative `CERRADA / 100_COMPLETE`:
+
+1. commit final certificate + roadmap/control state;
+2. exact-head F8 workflow PASS;
+3. exact-head Ascenda CI/regressions PASS;
+4. mark PR #208 ready;
+5. merge exact green head to `main`;
+6. post-merge verification on `main`;
+7. update Notion last;
+8. promote F9 as the sole active next phase.
+
+## Hard boundary
+
+Do not execute rollback in production unless a verified production defect requires contingency. Rollback→reapply is already certified in isolated G12.
