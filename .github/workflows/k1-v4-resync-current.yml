@@ -1,0 +1,55 @@
+name: K1 v4 resync CURRENT main
+
+on:
+  push:
+    branches: [security/kronia-k1-current-main-20260817-v4]
+    paths:
+      - '.github/workflows/k1-v4-resync-current.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: security/kronia-k1-current-main-20260817-v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Merge latest main and revalidate K1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          MAIN_SHA="$(git rev-parse origin/main)"
+          git config user.name 'ASCENDA Zero-Cost Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git merge --no-edit origin/main
+          git diff --check
+          node --check app/server-k1.js
+          node --check app/server-phase-s.js
+          node --check app/server-f5.js
+          node --check app/public/k1-browser-security.js
+          node --check chrome-extension/kronia-core.js
+          node --check chrome-extension/k1-extension-auth.js
+          node --check chrome-extension/content-script.js
+          node ci/phase5-historical-identity/f5_upload_contract.js
+          python3 -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py ci/kronia-k1-phase2/security_static_contract.py
+          (cd app && python3 k1_phase2_materialize.py)
+          python3 ci/kronia-k1-phase2/runtime_contract.py
+          python3 ci/kronia-k1-phase2/security_static_contract.py
+          rm -f app/k1-phase2-runtime-manifest.json
+          find app ci -type d -name __pycache__ -prune -exec rm -rf {} +
+          find app ci -type f -name '*.pyc' -delete
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "ci(k1): resync CURRENT main ${MAIN_SHA} after ACL hardening"
+          fi
+          git push origin HEAD:security/kronia-k1-current-main-20260817-v4
+          echo "KRONIA_K1_RESYNC_MAIN=${MAIN_SHA}"
+          echo 'KRONIA_K1_CURRENT_RESYNC=PASS'
