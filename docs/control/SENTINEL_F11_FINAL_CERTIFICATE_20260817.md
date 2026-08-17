@@ -1,10 +1,11 @@
 # Sentinel F11 — Final Certificate
 
-**Estado:** PRE-MERGE CERTIFIED / READY TO MERGE AFTER EXACT-HEAD RECHECK  
+**Estado:** CERRADA / 100_COMPLETE  
 **Fecha de ejecución:** 2026-08-17 (America/Lima)  
-**PR:** #240  
+**PR:** #240 — MERGED  
+**Merge commit:** `3e7faa2395462f3a8bee8674bfe3187f19e25df8`  
 **Impact Report:** `docs/control/SENTINEL_F11_AI_TRIAGE_IMPACT_REPORT_20260817.md`  
-**Functional head certificado antes de este documento:** `57e388ebc9ea8b7b6ad5215e961fd2636deb9b5f`
+**Functional head pre-merge:** `dda4a0c441d16a0a45dc51372e354c03bf46e8f1`
 
 ## Scope freeze
 
@@ -38,24 +39,36 @@ Las annotations MCP de read-only son informativas; el control real también se a
 
 ## Evidencia ejecutada
 
-### Exact-head branch
+### Exact-head funcional
 
-Head funcional: `57e388ebc9ea8b7b6ad5215e961fd2636deb9b5f`
+Head: `57e388ebc9ea8b7b6ad5215e961fd2636deb9b5f`
 
 - F11 Certificate run `32058896402`: FAST PASS + Linux Zero-Cost PASS.
 - Ascenda CI run `32058896409`: PASS.
-- markers:
-  - `SENTINEL_F11_AI_TRIAGE_CONTRACT_PASS`
-  - `SENTINEL_F11_RUNTIME_REPLAY=PASS`
-  - `SENTINEL_F11_ZERO_COST_TRIAGE=PASS`
-  - `SENTINEL_F11_NO_WRITE_BOUNDARY=PASS`
 
-### PR merge-ref
+### Certificado exact-head
 
-PR #240 synthetic merge SHA antes de este documento: `8084998a785e01bf505b40523230771aed79f176`.
+Head: `dda4a0c441d16a0a45dc51372e354c03bf46e8f1`
 
-- F11 PR run `32059101279`: FAST PASS + Linux Zero-Cost PASS.
-- Ascenda CI PR run `32059101501`: PASS.
+- exact-head F11 push run `32059618598` reejecutado tras cancelación por concurrency: FAST PASS + Linux Zero-Cost PASS;
+- PR merge-ref F11 run `32059622098`: FAST PASS + Linux Zero-Cost PASS;
+- PR Ascenda CI run `32059622071`: PASS.
+
+La cancelación inicial del push fue causada por el grupo de `concurrency` al dispararse simultáneamente push + pull_request; se reejecutó el mismo SHA sin cambios y pasó.
+
+### Post-merge G15
+
+Merge commit: `3e7faa2395462f3a8bee8674bfe3187f19e25df8`
+
+- F11 post-merge run `32060081561`: FAST PASS + Linux Zero-Cost PASS;
+- Ascenda CI post-merge run `32060081702`: PASS.
+
+Markers certificados:
+
+- `SENTINEL_F11_AI_TRIAGE_CONTRACT_PASS`
+- `SENTINEL_F11_RUNTIME_REPLAY=PASS`
+- `SENTINEL_F11_ZERO_COST_TRIAGE=PASS`
+- `SENTINEL_F11_NO_WRITE_BOUNDARY=PASS`
 
 El E2E sintético ejecuta dos veces el mismo triage y exige igualdad byte-for-byte de packet, validated response y audit artifact.
 
@@ -77,20 +90,14 @@ El E2E sintético ejecuta dos veces el mismo triage y exige igualdad byte-for-by
 | G12 | no-write boundary / minimal permissions | PASS |
 | G13 | exact-head FAST + Linux Zero-Cost | PASS |
 | G14 | PR merge-ref F11 + Ascenda CI | PASS |
-| G15 | post-merge F11 + Ascenda CI sobre `main` | PENDING |
+| G15 | post-merge F11 + Ascenda CI sobre `main` | PASS |
 
 ## Operational result
 
 F11 permite que un agente investigue un `SEN-*` usando únicamente evidencia técnica sanitizada y herramientas de lectura. No existe en F11 una ruta para aplicar un fix, mutar producción, fusionar o desplegar.
 
-## Remaining terminal step
+## Terminal decision
 
-1. certificar el SHA exacto que incluye este documento;
-2. certificar el nuevo merge-ref de PR #240;
-3. marcar PR ready;
-4. merge con expected-head SHA;
-5. ejecutar G15 post-merge;
-6. cambiar este certificado y el roadmap a `CERRADA / 100_COMPLETE`;
-7. promover F12 Safe Remediation Loop.
+**F11 = `CERRADA / 100_COMPLETE`.**
 
-Hasta completar G15, F11 no se declara `100_COMPLETE`.
+La promoción a F12 — Safe Remediation Loop queda habilitada. F12 debe empezar con Impact Report CRITICAL en branch aislada y conservar aprobación humana obligatoria para cualquier mutación productiva. F13 permanece bloqueada hasta el cierre de F12.
