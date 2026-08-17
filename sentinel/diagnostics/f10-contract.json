@@ -1,0 +1,43 @@
+{
+  "schema_version": "sentinel-diagnostic/v1",
+  "phase": "F10",
+  "purpose": "Produce deterministic, privacy-safe diagnostic evidence for SEN-* incidents without any production mutation path.",
+  "design": {
+    "read_only": true,
+    "zero_phi_pii": true,
+    "production_database_access": false,
+    "production_write_credentials": false,
+    "automatic_fix": false,
+    "automatic_deploy": false,
+    "automatic_rollback": false,
+    "ai_triage": false
+  },
+  "trigger": {"baseline":"workflow_dispatch","public_webhook":false,"automatic_production_trigger":false},
+  "request": {
+    "schema": "sentinel-diagnostic-request/v1",
+    "required_fields": ["incident_id","diagnostic_revision","severity","status","environment","domain","component","capability","failure_family","observed_at"],
+    "optional_fields": ["signal_count","reopened_count","release","commit_sha","deployment_id","evidence_refs"],
+    "incident_id_pattern": "^SEN-[0-9]{4}-[0-9]{4,}$",
+    "commit_sha_pattern": "^[0-9a-f]{40}$",
+    "diagnostic_revision_min": 1,
+    "free_text_payload_forbidden": true
+  },
+  "forbidden_key_fragments": ["patient","paciente","dni","phone","telefono","numero_limpio","email","recipient","destinatario","message","mensaje","body","payload","prompt","authorization","cookie","token","apikey","service_role","secret","password","clinical","clinico","diagnostico_medico"],
+  "evidence": {
+    "allowed_kinds": ["CONTRACT_TEST","SYNTHETIC_REPRO","RECENT_DIFF","HEALTH_CHECK","RELEASE_CORRELATION","DEPENDENCY_STATUS","MISSING_EVIDENCE"],
+    "confidence": ["SUPPORTED","PLAUSIBLE","WEAK","UNKNOWN"],
+    "raw_payload_forbidden": true,
+    "query_strings_forbidden": true,
+    "credentials_forbidden": true
+  },
+  "hypothesis": {"confidence":["SUPPORTED","PLAUSIBLE","WEAK","UNKNOWN"],"causality_confirmed_default":false,"temporal_proximity_is_causality":false},
+  "upstream_contracts": {
+    "f6_business_health": "sentinel/business-health/f6-contract.json",
+    "f7_correlation": "sentinel/correlation/f7-contract.json",
+    "f8_incidents": "sentinel/incidents/f8-contract.json"
+  },
+  "permissions": {"github_contents":"read","pull_requests_write":false,"deployments_write":false,"actions_write":false,"supabase_write":false,"railway_write":false},
+  "gates": {
+    "request_allowlist":true,"sensitive_key_rejection":true,"affected_sha_exact_or_unknown":true,"deterministic_planner":true,"domain_contract_evidence":true,"recent_diff_filenames_only":true,"sanitized_report":true,"deterministic_replay":true,"timeout_and_concurrency":true,"no_production_write_path":true,"rollback_is_workflow_removal":true
+  }
+}
