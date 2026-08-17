@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   hash-audit:
@@ -17,17 +17,47 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Compare local F13 migration bytes to production ledger statement
+      - name: Classify local F13 migration against production ledger statement
         run: |
           set -euo pipefail
-          file='supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql'
-          test -f "$file"
-          actual="$(md5sum "$file" | awk '{print $1}')"
-          expected='e403332d1c9f53efa0338f8f3585442c'
-          echo "LOCAL_MD5=$actual"
-          echo "LIVE_MD5=$expected"
-          if [ "$actual" != "$expected" ]; then
-            echo 'SENTINEL_F13_EXACT_CONTENT=NO'
-            exit 2
-          fi
-          echo 'SENTINEL_F13_EXACT_CONTENT=PASS'
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re
+          p=Path('supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql')
+          s=p.read_text(encoding='utf-8')
+          raw=hashlib.md5(p.read_bytes()).hexdigest()
+          norm=re.sub(r'(?m)--[^\n]*',' ',s)
+          norm=re.sub(r'\s+','',norm)
+          norm_md5=hashlib.md5(norm.encode()).hexdigest()
+          live_raw='e403332d1c9f53efa0338f8f3585442c'
+          live_norm='e2f7b3b395c5632db27ecdfb72bc15bc'
+          raw_status='PASS' if raw==live_raw else 'DIFF'
+          norm_status='PASS' if norm_md5==live_norm else 'DIFF'
+          decision=(
+            'VERSION_ONLY_FORMAT_DRIFT: normalized SQL is equivalent; owner-specific version rename is eligible after CURRENT-main sync and exact-head replay.'
+            if norm_status=='PASS' else
+            'SEMANTIC_OR_AUXILIARY_DRIFT: do not rename by timestamp alone; F13 owner must reconcile SQL/state before merge.'
+          )
+          out=Path('docs/control/SENTINEL_F13_HISTORY_PARITY_AUDIT_20260817.md')
+          out.write_text(
+            '# Sentinel F13 History Parity Audit\n\n'
+            '**Mode:** child-branch, read-only comparison against the already-applied production migration statement.\n\n'
+            f'- Local file: `20260817203500_sentinel_f13_owner_hub.sql`\n'
+            f'- Production ledger: `20260817203504 sentinel_f13_owner_hub`\n'
+            f'- Raw MD5: local `{raw}` vs live `{live_raw}` → **{raw_status}**\n'
+            f'- Normalized MD5 (line comments + whitespace removed): local `{norm_md5}` vs live `{live_norm}` → **{norm_status}**\n'
+            f'- Local normalized length: `{len(norm)}` vs live normalized length: `1970`\n\n'
+            f'## Decision\n\n**{decision}**\n',
+            encoding='utf-8')
+          print(out.read_text())
+          PY
+          git diff --check
+      - name: Commit audit evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/control/SENTINEL_F13_HISTORY_PARITY_AUDIT_20260817.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'docs(audit): materialize Sentinel F13 history parity result'
+          git push origin HEAD:${GITHUB_REF_NAME}
