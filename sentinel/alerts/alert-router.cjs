@@ -117,7 +117,8 @@ class AlertRouter {
         next.flap_summary_until=next.flap_until;
         next.had_notifiable_route=true;
         this.state.saveIncident(safe.incident_id,next);
-        return this._decision('FLAPPING_SUMMARY',safe,now,{channel:'telegram-owner',reason:'STATUS_FLAPPING',cooldown_seconds:900});
+        const key=`${safe.incident_id}:FLAPPING:${next.flap_until}`;
+        return this._decision('FLAPPING_SUMMARY',safe,now,{channel:'telegram-owner',reason:'STATUS_FLAPPING',cooldown_seconds:900,dedup_key:key});
       }
       this.state.saveIncident(safe.incident_id,next);
       return this._decision('SUPPRESSED_FLAPPING',safe,now,{channel:null,reason:'FLAPPING_WINDOW'});
@@ -188,7 +189,10 @@ class AlertRouter {
     this.state.recordDispatch(decision.dedup_key,iso(at,'DELIVERY'));
   }
 
-  _dedupKey(safe,kind){return `${safe.incident_id}:${kind}:${safe.severity}:${safe.status}`;}
+  _dedupKey(safe,kind){
+    if(kind==='RECOVERY')return `${safe.incident_id}:RECOVERY:${safe.severity}:${safe.status}:${safe.observed_at}`;
+    return `${safe.incident_id}:${kind}:${safe.severity}:${safe.status}`;
+  }
   _decision(action,safe,now,extra){return {action,notification_kind:action,...safe,routed_at:now,...extra};}
 }
 
