@@ -1,0 +1,38 @@
+name: F17 history equivalence audit
+
+on:
+  push:
+    branches:
+      - 'audit/f17-history-equivalence-20260817-v1'
+    paths:
+      - '.github/workflows/f17-history-equivalence-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Normalize canonical F17 SQL and compare live hash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, re
+          p=Path('supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql')
+          s=p.read_text(encoding='utf-8')
+          normalized=re.sub(r'(?m)--[^\n]*',' ',s)
+          normalized=re.sub(r'\s+','',normalized)
+          digest=hashlib.md5(normalized.encode()).hexdigest()
+          print('LOCAL_NORMALIZED_LEN='+str(len(normalized)))
+          print('LOCAL_NORMALIZED_MD5='+digest)
+          expected='398e6c489ca3df9a9d3a938f0ba99da4'
+          if digest != expected:
+              print('F17_NORMALIZED_TEXT_EQUIVALENCE=NO')
+              raise SystemExit(2)
+          print('F17_NORMALIZED_TEXT_EQUIVALENCE=PASS')
+          PY
