@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Merge latest main and revalidate K1 CURRENT contracts
+      - name: Merge latest main, renumber K1, and revalidate CURRENT contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -38,6 +38,8 @@ jobs:
           git config user.name 'ASCENDA Zero-Cost Bot'
           git config user.email 'actions@users.noreply.github.com'
           git merge --no-edit origin/main
+
+          node scripts/ci/k1_renumber_release_v4.js
 
           # Build artifacts are never source-of-truth.
           find app ci scripts -type d -name __pycache__ -prune -exec rm -rf {} +
@@ -71,10 +73,13 @@ jobs:
           grep -q "server-phase-s.js" app/server-k1.js
           grep -q "server-f5.js" app/server-phase-s.js
           grep -q 'KRONIA_K1_CURRENT_SENSITIVE_READ_BOUNDARY=PASS' ci/kronia-k1-phase2/001_k1_phase2_certificate.sql
+          test "$(find supabase/migrations -maxdepth 1 -type f -name '2026081717*kronia_k1*.sql' | wc -l)" -eq 7
+          test "$(find supabase/migrations -maxdepth 1 -type f -name '2026081417*kronia_k1*.sql' | wc -l)" -eq 0
 
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m "ci(k1): sync CURRENT main ${MAIN_SHA} and remove build residue"
+            git commit -m "ci(k1): sync CURRENT main ${MAIN_SHA} and renumber release migrations"
           fi
           git push origin HEAD:security/kronia-k1-current-main-20260817-v4
           echo 'KRONIA_K1_CURRENT_V4_MAIN_SYNC=PASS'
+          echo 'KRONIA_K1_RELEASE_MIGRATION_ORDER=PASS'
