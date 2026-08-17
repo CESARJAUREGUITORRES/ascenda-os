@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict');const fs=require('node:fs');const os=require('node:os');const path=require('node:path');const cp=require('node:child_process');
+const ROOT=path.resolve(__dirname,'../..');
+const {runDiagnostic}=require('../../sentinel/diagnostics/diagnostic-runner.cjs');
+const {buildPacket,validateResponse}=require('../../sentinel/triage/triage-core.cjs');
+const {TOOLS,handle}=require('../../sentinel/triage/mcp-stdio-server.cjs');
+const req=JSON.parse(fs.readFileSync(path.join(ROOT,'ci/sentinel/phase10_synthetic_request.json'),'utf8'));const sha=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim();
+const f10=runDiagnostic({...req,commit_sha:sha,release:`ascenda-os@${sha}`},{toolingRoot:ROOT,repoRoot:ROOT,health:{ok:true,service:'synthetic-ci',child_alive:true,inner_ready:true}}).report;
+const p1=buildPacket(f10),p2=buildPacket(f10);assert.deepEqual(p1,p2);assert.match(p1.packet_digest,/^[0-9a-f]{64}$/);assert.equal(p1.safety.production_mutation,false);assert.equal(TOOLS.length,6);assert.deepEqual(TOOLS.map(t=>t.name),[...TOOLS.map(t=>t.name)].sort());assert.ok(TOOLS.every(t=>t.annotations.readOnlyHint===true&&t.annotations.openWorldHint===false));
+let r=handle(p1,{jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'fixture',version:'1'}}});assert.equal(r.result.protocolVersion,'2025-11-25');assert.deepEqual(r.result.capabilities,{tools:{listChanged:false}});
+r=handle(p1,{jsonrpc:'2.0',id:2,method:'tools/list'});assert.equal(r.result.tools.length,6);
+for(const name of p1.mcp_tools){const args=name==='sentinel.get_evidence'?{evidence_id:p1.evidence[0].id}:{};r=handle(p1,{jsonrpc:'2.0',id:3,method:'tools/call',params:{name,arguments:args}});assert.equal(r.result.isError,false,name);}
+r=handle(p1,{jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'sentinel.shell',arguments:{}}});assert.equal(r.error.code,-32602);
+r=handle(p1,{jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'sentinel.get_summary',arguments:{path:'/etc/passwd'}}});assert.equal(r.result.isError,true);
+const supported=p1.evidence.find(e=>e.confidence==='SUPPORTED');assert.ok(supported);
+const response={schema_version:'sentinel-triage-response/v1',incident_id:p1.incident.incident_id,diagnostic_id:p1.diagnostic.diagnostic_id,assessment:'La evidencia valida el alcance técnico; la causa raíz aún requiere correlación adicional.',claims:[{claim_id:'C001',type:'OBSERVATION',statement:'El diagnóstico se ejecutó sobre evidencia técnica validada.',evidence_refs:[supported.id],confidence:'SUPPORTED'},{claim_id:'C002',type:'HYPOTHESIS',statement:'La causa raíz no está confirmada y debe mantenerse como hipótesis.',evidence_refs:[p1.evidence.find(e=>e.kind==='MISSING_EVIDENCE')?.id||supported.id],confidence:'UNKNOWN'}],next_steps:['INSPECT_EVIDENCE','COLLECT_MISSING_EVIDENCE'],causality_confirmed:false,provider:'synthetic-agent',model:'fixture-v1'};
+const v1=validateResponse(response,p1),v2=validateResponse(response,p1);assert.deepEqual(v1,v2);assert.match(v1.audit.audit_digest,/^[0-9a-f]{64}$/);assert.equal(v1.validated.causality_confirmed,false);
+assert.throws(()=>validateResponse({...response,causality_confirmed:true},p1),/F11_CAUSALITY_FORBIDDEN/);
+assert.throws(()=>validateResponse({...response,claims:[{...response.claims[0],evidence_refs:[]}]},p1),/F11_CLAIM_EVIDENCE_REQUIRED/);
+assert.throws(()=>validateResponse({...response,claims:[{...response.claims[0],evidence_refs:['E999']}]},p1),/F11_UNKNOWN_EVIDENCE_REF/);
+assert.throws(()=>validateResponse({...response,next_steps:['APPLY_PATCH']},p1),/F11_NEXT_STEP_FORBIDDEN/);
+assert.throws(()=>validateResponse({...response,assessment:'Contactar a paciente@example.com'},p1),/F11_ASSESSMENT_INVALID/);
+assert.throws(()=>buildPacket({...f10,patient_name:'synthetic'}),/F11_SENSITIVE_KEY/);
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'f11-'));const packetFile=path.join(tmp,'packet.json');fs.writeFileSync(packetFile,JSON.stringify(p1));
+const input=[{jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'fixture',version:'1'}}},{jsonrpc:'2.0',method:'notifications/initialized'},{jsonrpc:'2.0',id:2,method:'tools/list'},{jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'sentinel.get_summary',arguments:{}}}].map(JSON.stringify).join('\n')+'\n';
+const proc=cp.spawnSync(process.execPath,[path.join(ROOT,'sentinel/triage/mcp-stdio-server.cjs'),'--packet',packetFile],{input,encoding:'utf8'});assert.equal(proc.status,0,proc.stderr);const lines=proc.stdout.trim().split(/\r?\n/).map(JSON.parse);assert.equal(lines.length,3);assert.equal(lines[0].result.protocolVersion,'2025-11-25');assert.equal(lines[1].result.tools.length,6);assert.equal(lines[2].result.isError,false);fs.rmSync(tmp,{recursive:true,force:true});
+console.log(JSON.stringify({ok:true,certificate:'SENTINEL_F11_AI_TRIAGE_CONTRACT_PASS',packet_digest:p1.packet_digest,audit_digest:v1.audit.audit_digest,mcp_stdio:true,tools:6,evidence_grounded:true,causality_blocked:true,sensitive_output_blocked:true,remediation_blocked:true,vendor_neutral:true}));
