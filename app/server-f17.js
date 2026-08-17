@@ -17,6 +17,8 @@ const WA_CANARY_MODE = String(process.env.WA_CANARY_MODE || 'true')
 const WA_CANARY_ALLOW_TO = String(process.env.WA_CANARY_ALLOW_TO || '')
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 let child = null
+let notificationPumpTimer = null
+let notificationPumpBusy = false
 
 function parseJson(text) { try { return text ? JSON.parse(text) : null } catch (_) { return null } }
 function writeJson(res, status, body) {
@@ -38,7 +40,7 @@ function requestSupabase(name, payload, service) {
     if (!key) return reject(new Error(service ? 'SUPABASE_SERVICE_ROLE_NOT_CONFIGURED' : 'SUPABASE_ANON_KEY_NOT_CONFIGURED'))
     let url; try { url = new URL(SB_URL) } catch (e) { return reject(e) }
     const body = JSON.stringify(payload || {})
-    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.2' }
+    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.3' }
     if (!/^sb_(?:secret|publishable)_/i.test(key)) headers.Authorization = 'Bearer ' + key
     const req = https.request({ hostname: url.hostname, port: url.port || 443, path: '/rest/v1/rpc/' + encodeURIComponent(name), method: 'POST', headers: headers, timeout: 12000 }, function(res) {
       let raw = ''
@@ -72,6 +74,29 @@ const push = createPushService({
   vapidSubject: process.env.AOS_PUSH_VAPID_SUBJECT || 'mailto:notifications@ascenda.local',
   logger: console
 })
+
+async function runNotificationPump() {
+  if (notificationPumpBusy) return
+  notificationPumpBusy = true
+  try {
+    const r = await push.dispatchPendingNotifications(25)
+    if (r && (r.delivered || r.failed || r.partial)) console.log('[S15] notification push', r)
+  } catch (e) {
+    console.error('[S15] notification pump fail-open', e && e.message || e)
+  } finally {
+    notificationPumpBusy = false
+  }
+}
+function startNotificationPump() {
+  if (notificationPumpTimer) return
+  setImmediate(function() { runNotificationPump().catch(function(){}) })
+  notificationPumpTimer = setInterval(function() { runNotificationPump().catch(function(){}) }, 4000)
+  if (notificationPumpTimer.unref) notificationPumpTimer.unref()
+}
+function stopNotificationPump() {
+  if (notificationPumpTimer) clearInterval(notificationPumpTimer)
+  notificationPumpTimer = null
+}
 
 function proxy(req, res) {
   const q = http.request({ hostname: '127.0.0.1', port: INNER_PORT, path: req.url, method: req.method, headers: Object.assign({}, req.headers, { host: '127.0.0.1:' + INNER_PORT }) }, function(upstream) {
@@ -190,16 +215,16 @@ const server = http.createServer(async function(req, res) {
 })
 
 server.on('clientError', function(_, socket) { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n') })
-function shutdown(signal) { server.close(function() { process.exit(0) }); if (child && !child.killed) child.kill(signal); setTimeout(function() { process.exit(1) }, 5000).unref() }
+function shutdown(signal) { stopNotificationPump(); server.close(function() { process.exit(0) }); if (child && !child.killed) child.kill(signal); setTimeout(function() { process.exit(1) }, 5000).unref() }
 process.on('SIGTERM', function() { shutdown('SIGTERM') }); process.on('SIGINT', function() { shutdown('SIGINT') })
 
 function start() {
   child = spawn(process.execPath, ['server-f5.js'], { cwd: __dirname, env: Object.assign({}, process.env, { PORT: String(INNER_PORT) }), stdio: ['ignore', 'inherit', 'inherit'] })
   child.on('exit', function(code) { process.exit(code == null ? 1 : code) })
   server.listen(EXTERNAL_PORT, '0.0.0.0', function() {
-    console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1' })
-    push.ensureVapid().then(function() { console.log('[S14] VAPID ready') }).catch(function(e) { console.error('[S14] VAPID deferred', e.message) })
+    console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1', notificationEvents: 'S15' })
+    push.ensureVapid().then(function() { console.log('[S14] VAPID ready'); startNotificationPump() }).catch(function(e) { console.error('[S14] VAPID deferred', e.message); startNotificationPump() })
   })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start }
+module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump }
