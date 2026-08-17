@@ -1,0 +1,20 @@
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'../..');
+const alerts=fs.readFileSync(path.join(root,'app/public/wa-human-alerts.js'),'utf8');
+const sw=fs.readFileSync(path.join(root,'app/public/phase2-service-worker.js'),'utf8');
+function ok(cond,msg){if(!cond){console.error('WA S12 CONTRACT FAIL:',msg);process.exit(1);}}
+ok(alerts.includes("r.owner_user_id===S.actorId"),'alerts must require current actor ownership');
+ok(alerts.includes("r.state==='HUMAN_ACTIVE'"),'alerts must be HUMAN_ACTIVE only');
+ok(alerts.includes("r.last_message_direction==='INBOUND'"),'alerts must be inbound only');
+ok(!alerts.includes("r.state==='AI_COPILOT'&&"),'copilot must not qualify for human alerts');
+ok(alerts.includes("new Notification('Nuevo WhatsApp asignado'"),'system notification missing');
+ok(alerts.includes('AudioContext||window.webkitAudioContext'),'WebAudio chime missing');
+ok(alerts.includes("body:'Nuevo mensaje de '+safeName(r)+'.'"),'notification must use minimal privacy-safe body');
+ok(!alerts.includes("last_message_preview") || !alerts.includes("body:r.last_message_preview"),'notification must not expose message preview');
+ok(alerts.includes("tag:'aos-wa-human-'"),'notification dedupe tag missing');
+ok(alerts.includes("localStorage.setItem('aos_wa_selected',r.id)"),'notification click must target conversation');
+ok(alerts.includes("Notification.permission==='default'"),'permission request must be gated');
+ok(sw.includes('/wa-human-alerts.js?v=20260817-wa-alerts-s12-p01'),'service worker must inject S12 alerts asset');
+console.log('WA S12 contract PASS');
