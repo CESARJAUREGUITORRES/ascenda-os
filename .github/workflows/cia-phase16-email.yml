@@ -17,6 +17,22 @@ on:
       - 'app/public/calls.html'
       - '.github/workflows/cia-phase16-email.yml'
       - 'scripts/ci/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*cia_phase16_email*.sql'
+      - 'ci/phase16/**'
+      - 'app/email-gateway.js'
+      - 'app/server.js'
+      - 'app/public/admin-email.html'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
+      - '.github/workflows/cia-phase16-email.yml'
+      - 'scripts/ci/**'
   workflow_dispatch:
 
 permissions:
