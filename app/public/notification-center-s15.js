@@ -7,7 +7,7 @@ window.__AOS_NOTIFICATION_CENTER_S15=true;
 var CHANNELS={
   WHATSAPP:{emoji:'🟢',label:'WhatsApp'},SALES:{emoji:'💰',label:'Ventas'},COMMISSION:{emoji:'📈',label:'Comisiones'},
   AGENDA:{emoji:'📅',label:'Agenda'},CHAT:{emoji:'💬',label:'Chat'},TASKS:{emoji:'✅',label:'Tareas'},
-  SENTINEL:{emoji:'🛡️',label:'Sentinel'},SYSTEM:{emoji:'🔔',label:'ASCENDA'}
+  AGENTS:{emoji:'🤖',label:'Agentes AI'},SENTINEL:{emoji:'🛡️',label:'Sentinel'},SYSTEM:{emoji:'🔔',label:'ASCENDA'}
 };
 
 function E(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
