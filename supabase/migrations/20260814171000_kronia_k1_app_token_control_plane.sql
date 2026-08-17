@@ -342,17 +342,34 @@ begin
   if v_actor.id is null then return jsonb_build_object('ok',false,'error','OWNER_ADMIN_2FA_REQUIRED'); end if;
   if p_id is null or not exists(select 1 from public.aos_integraciones where id=p_id) then return jsonb_build_object('ok',false,'error','INTEGRATION_NOT_FOUND'); end if;
   if v_action='disable' then
-    update public.aos_integraciones set estado='pendiente',api_key=null,api_secret=null,config=null,webhook_url=null,cuenta='',updated_at=now() where id=p_id;
+    update public.aos_integraciones
+      set estado='pendiente',api_key='',api_secret='',config=null,webhook_url=null,cuenta='',updated_at=now()
+      where id=p_id;
+    update public.aos_integration_secrets_v1
+      set api_key='',api_secret='',updated_at=now()
+      where integration_id=p_id;
   elsif v_action='update' then
     update public.aos_integraciones set
       cuenta=coalesce(p_data->>'cuenta',cuenta),estado=coalesce(p_data->>'estado',estado),
       principal=coalesce((p_data->>'principal')::boolean,principal),
-      api_key=case when p_data ? 'api_key' then nullif(p_data->>'api_key','') else api_key end,
-      api_secret=case when p_data ? 'api_secret' then nullif(p_data->>'api_secret','') else api_secret end,
+      api_key='',api_secret='',
       config=case when p_data ? 'config' then p_data->'config' else config end,
       webhook_url=case when p_data ? 'webhook_url' then nullif(p_data->>'webhook_url','') else webhook_url end,
       updated_at=now()
     where id=p_id;
+    if p_data ? 'api_key' or p_data ? 'api_secret' then
+      insert into public.aos_integration_secrets_v1(integration_id,tipo,nombre,api_key,api_secret,captured_at,updated_at)
+      select i.id,i.tipo,i.nombre,
+             case when p_data ? 'api_key' then coalesce(p_data->>'api_key','') else '' end,
+             case when p_data ? 'api_secret' then coalesce(p_data->>'api_secret','') else '' end,
+             now(),now()
+      from public.aos_integraciones i where i.id=p_id
+      on conflict(integration_id) do update set
+        tipo=excluded.tipo,nombre=excluded.nombre,
+        api_key=case when p_data ? 'api_key' then excluded.api_key else public.aos_integration_secrets_v1.api_key end,
+        api_secret=case when p_data ? 'api_secret' then excluded.api_secret else public.aos_integration_secrets_v1.api_secret end,
+        updated_at=now();
+    end if;
   else return jsonb_build_object('ok',false,'error','ACTION_NOT_ALLOWED');
   end if;
   insert into public.aos_security_log(usuario,accion,detalles)
@@ -369,5 +386,42 @@ revoke execute on function public.aos_admin_crear_usuario(text,text,text,text,te
 revoke execute on function public.aos_admin_cambiar_password(uuid,text) from public,anon,authenticated;
 revoke execute on function public.aos_admin_cambiar_password(text,text,text,text) from public,anon,authenticated;
 revoke execute on function public.aos_cambiar_password(text,text,text) from public,anon,authenticated;
+
+
+-- K1 CURRENT sensitive identity read boundary.
+-- Raw browser access is a minimal operational directory only. Full Team/PII
+-- requires an Auth V3 app token, privileged admin identity and 2FA.
+revoke all on table public.aos_usuarios from anon,authenticated;
+grant select(id,codigo_asesor,nombre,apellidos,rol,cargo,area,sede,activo,cuenta_activada,two_factor,paneles_acceso,avatar_url,nivel_jerarquia,acceso_geo,sedes_permitidas,cmp,servicios)
+  on public.aos_usuarios to anon,authenticated;
+revoke all on table public.aos_rrhh from anon,authenticated;
+grant select(codigo_asesor,nombre,apellido,puesto,sede,estado)
+  on public.aos_rrhh to anon,authenticated;
+revoke all on table public.aos_team_full from public,anon,authenticated;
+grant select on table public.aos_team_full to service_role;
+
+create or replace function public.aos_team_feed_v3(
+  p_token text,
+  p_cargo text default null,
+  p_limit integer default 200
+) returns jsonb
+language plpgsql security definer set search_path=''
+as $function$
+declare v_i jsonb; v_rows jsonb; v_limit integer:=greatest(1,least(coalesce(p_limit,200),500));
+begin
+  v_i:=public.aos_kronia_identity_v3(p_token,true,'admin-team');
+  if not coalesce((v_i->>'ok')::boolean,false) then return v_i; end if;
+  select coalesce(jsonb_agg(to_jsonb(x)),'[]'::jsonb) into v_rows
+  from (
+    select * from public.aos_team_full t
+    where nullif(trim(coalesce(p_cargo,'')),'') is null or t.cargo=p_cargo
+    order by t.nivel_jerarquia,t.nombre
+    limit v_limit
+  ) x;
+  return jsonb_build_object('ok',true,'rows',v_rows);
+end
+$function$;
+revoke all on function public.aos_team_feed_v3(text,text,integer) from public;
+grant execute on function public.aos_team_feed_v3(text,text,integer) to anon,authenticated,service_role;
 
 commit;

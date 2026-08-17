@@ -65,3 +65,49 @@ alter table public.aos_rrhh
   add column if not exists foto_url text,
   add column if not exists created_at timestamptz default now(),
   add column if not exists updated_at timestamptz default now();
+
+
+-- CURRENT aos_integraciones shape required by K1-B (shape only).
+alter table public.aos_integraciones
+  add column if not exists cuenta text default '',
+  add column if not exists config jsonb default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists categoria text default 'infraestructura',
+  add column if not exists icono text default '🔗',
+  add column if not exists descripcion text default '',
+  add column if not exists api_secret text default '',
+  add column if not exists webhook_url text default '',
+  add column if not exists pasos_guia jsonb default '[]'::jsonb,
+  add column if not exists uso_para text[] default '{}'::text[],
+  add column if not exists orden integer default 0,
+  add column if not exists url_api text default '',
+  add column if not exists url_docs text default '',
+  add column if not exists url_signup text default '',
+  add column if not exists multi_cuenta boolean default false,
+  add column if not exists logo_url text default '';
+
+
+-- CURRENT provider-secret boundary (synthetic shape + dummy credential only).
+-- The browser-readable integration catalog keeps metadata; credential material
+-- moves to a FORCE-RLS service-only vault exactly as in CURRENT production.
+create table if not exists public.aos_integration_secrets_v1 (
+  integration_id uuid primary key references public.aos_integraciones(id) on delete cascade,
+  tipo text not null,
+  nombre text not null,
+  api_key text not null default '',
+  api_secret text not null default '',
+  captured_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.aos_integration_secrets_v1 enable row level security;
+alter table public.aos_integration_secrets_v1 force row level security;
+revoke all on table public.aos_integration_secrets_v1 from public,anon,authenticated;
+grant select,insert,update on table public.aos_integration_secrets_v1 to service_role;
+insert into public.aos_integration_secrets_v1(integration_id,tipo,nombre,api_key,api_secret,captured_at,updated_at)
+select id,tipo,nombre,api_key,'',now(),now()
+from public.aos_integraciones
+where coalesce(api_key,'')<>''
+on conflict(integration_id) do update
+set tipo=excluded.tipo,nombre=excluded.nombre,api_key=excluded.api_key,updated_at=now();
+update public.aos_integraciones set api_key='',api_secret='',updated_at=now()
+where coalesce(api_key,'')<>'' or coalesce(api_secret,'')<>'';

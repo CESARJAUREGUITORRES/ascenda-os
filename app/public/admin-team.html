@@ -60,7 +60,7 @@ function q(t,qs,cb){fetch(SB+'/rest/v1/'+t+'?'+qs,{headers:{'apikey':SK,'Authori
 function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(){});}
 function setSalesIntelligenceAccess(targetId,enabled){
   var token='';
-  try{token=sessionStorage.getItem('aos_si_token')||'';}catch(e){}
+  try{token=sessionStorage.getItem('aos_app_token')||'';}catch(e){}
   if(!token){
     showToast('Sales Intelligence: vuelve a iniciar sesión con 2FA para administrar este permiso');
     return;

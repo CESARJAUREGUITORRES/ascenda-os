@@ -28,6 +28,11 @@ revoke insert,update,delete on table public.aos_rrhh from anon,authenticated;
 revoke insert,update,delete on table public.aos_configuracion from anon,authenticated;
 
 -- Integration secret material remains server-only.
+alter table public.aos_integration_secrets_v1 enable row level security;
+alter table public.aos_integration_secrets_v1 force row level security;
+revoke all on table public.aos_integration_secrets_v1 from public,anon,authenticated;
+grant select,insert,update on table public.aos_integration_secrets_v1 to service_role;
+update public.aos_integraciones set api_key='',api_secret='' where coalesce(api_key,'')<>'' or coalesce(api_secret,'')<>'';
 revoke all on table public.aos_integraciones from anon,authenticated;
 grant select(id,tipo,nombre,cuenta,estado,principal,categoria,icono,descripcion,uso_para,orden,url_docs,url_signup,multi_cuenta,logo_url,created_at,updated_at)
   on public.aos_integraciones to anon,authenticated;
@@ -67,5 +72,15 @@ revoke execute on function public.aos_admin_crear_usuario(text,text,text,text,te
 revoke execute on function public.aos_admin_cambiar_password(uuid,text) from public,anon,authenticated;
 revoke execute on function public.aos_admin_cambiar_password(text,text,text,text) from public,anon,authenticated;
 revoke execute on function public.aos_cambiar_password(text,text,text) from public,anon,authenticated;
+
+
+-- Sensitive identity reads remain least-privilege during recovery.
+revoke all on table public.aos_usuarios from anon,authenticated;
+grant select(id,codigo_asesor,nombre,apellidos,rol,cargo,area,sede,activo,cuenta_activada,two_factor,paneles_acceso,avatar_url,nivel_jerarquia,acceso_geo,sedes_permitidas,cmp,servicios)
+  on public.aos_usuarios to anon,authenticated;
+revoke all on table public.aos_rrhh from anon,authenticated;
+grant select(codigo_asesor,nombre,apellido,puesto,sede,estado) on public.aos_rrhh to anon,authenticated;
+revoke all on table public.aos_team_full from public,anon,authenticated;
+grant select on table public.aos_team_full to service_role;
 
 commit;

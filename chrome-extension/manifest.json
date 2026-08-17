@@ -29,7 +29,7 @@
         "https://chrome.google.com/*",
         "https://chromewebstore.google.com/*"
       ],
-      "js": ["kronia-core.js", "content-script.js"],
+      "js": ["kronia-core.js", "k1-extension-auth.js", "content-script.js"],
       "css": ["content-style.css"],
       "run_at": "document_idle",
       "all_frames": false

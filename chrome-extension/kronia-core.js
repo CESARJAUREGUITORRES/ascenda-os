@@ -238,8 +238,7 @@
       try {
         var data = {
           token: state.token,
-          user: state.user,
-          historial: state.historial
+          user: state.user
         };
         if (s.setItem) {
           s.setItem('kronia_session', JSON.stringify(data));
@@ -261,7 +260,7 @@
             var data = JSON.parse(raw);
             if (data.token) state.token = data.token;
             if (data.user) state.user = data.user;
-            if (Array.isArray(data.historial)) state.historial = data.historial;
+
             return Promise.resolve(state);
           }
         } catch (e) { /* silent */ }
@@ -274,7 +273,7 @@
           if (data) {
             if (data.token) state.token = data.token;
             if (data.user) state.user = data.user;
-            if (Array.isArray(data.historial)) state.historial = data.historial;
+
             resolve(state);
           } else resolve(null);
         });

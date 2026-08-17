@@ -99,3 +99,33 @@ begin
 end $$;
 
 select 'KRONIA_K1_PHASE2_CERTIFICATE=PASS' as certificate;
+
+
+-- K1P2-CURRENT-PII: raw sensitive Team/identity reads must be closed.
+do $$
+declare j jsonb;
+begin
+  if has_table_privilege('anon','public.aos_team_full','SELECT') or has_table_privilege('authenticated','public.aos_team_full','SELECT') then
+    raise exception 'K1P2-PII-01 aos_team_full remains browser-readable';
+  end if;
+  if has_table_privilege('anon','public.aos_usuarios','SELECT') or has_table_privilege('anon','public.aos_rrhh','SELECT') then
+    raise exception 'K1P2-PII-02 raw identity table-level SELECT remains open';
+  end if;
+  if has_column_privilege('anon','public.aos_usuarios','sueldo','SELECT')
+     or has_column_privilege('anon','public.aos_usuarios','dni','SELECT')
+     or has_column_privilege('anon','public.aos_usuarios','direccion','SELECT')
+     or has_column_privilege('anon','public.aos_usuarios','contacto_emergencia','SELECT')
+     or has_column_privilege('anon','public.aos_rrhh','password_hash','SELECT') then
+    raise exception 'K1P2-PII-03 sensitive identity columns remain browser-readable';
+  end if;
+  if not has_column_privilege('anon','public.aos_usuarios','id','SELECT')
+     or not has_column_privilege('anon','public.aos_rrhh','codigo_asesor','SELECT') then
+    raise exception 'K1P2-PII-04 minimal directory compatibility missing';
+  end if;
+  if not has_function_privilege('anon','public.aos_team_feed_v3(text,text,integer)','EXECUTE') then
+    raise exception 'K1P2-PII-05 secure Team feed unavailable';
+  end if;
+  j:=public.aos_team_feed_v3('invalid-token',null,10);
+  if coalesce((j->>'ok')::boolean,true) then raise exception 'K1P2-PII-06 Team feed accepted invalid authority'; end if;
+end $$;
+\echo 'KRONIA_K1_CURRENT_SENSITIVE_READ_BOUNDARY=PASS'

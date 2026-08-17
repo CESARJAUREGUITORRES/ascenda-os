@@ -6,6 +6,8 @@
   var nativeFetch=window.fetch.bind(window);
   var SB='https://ituyqwstonmhnfshnaqz.supabase.co';
   var SAFE_INTEGRATION_COLUMNS='id,tipo,nombre,cuenta,estado,principal,categoria,icono,descripcion,uso_para,orden,url_docs,url_signup,multi_cuenta,logo_url,created_at,updated_at';
+  var SAFE_USER_COLUMNS='id,codigo_asesor,nombre,apellidos,rol,cargo,area,sede,activo,cuenta_activada,two_factor,paneles_acceso,avatar_url,nivel_jerarquia,acceso_geo,sedes_permitidas,cmp,servicios';
+  var SAFE_RRHH_COLUMNS='codigo_asesor,nombre,apellido,puesto,sede,estado';
   function anonKey(){return String(window._SK||window.SK||'')}
   function token(){try{return sessionStorage.getItem('aos_app_token')||''}catch(e){return ''}}
   function urlOf(i){return typeof i==='string'?i:(i&&i.url)||''}
@@ -39,6 +41,14 @@
     if(u&&u.pathname==='/api/send-email')next=scrubCredentialEmail(next);
     var h=new Headers((next&&next.headers)||(input&&input.headers)||{});if(t)h.set('Authorization','Bearer '+t);h.delete('X-AOS-User');h.delete('X-AOS-Id');
     return [input,Object.assign({},next,{headers:h})];
+  }
+  function filterTeamRows(u,rows){
+    rows=Array.isArray(rows)?rows.slice():[];
+    ['id','codigo_asesor','cargo','sede','activo'].forEach(function(k){var v=u.searchParams.get(k)||'';if(v.indexOf('eq.')===0){v=decodeURIComponent(v.slice(3));rows=rows.filter(function(r){return String(r[k])===v})}});
+    var sel=String(u.searchParams.get('select')||'*');
+    if(sel&&sel!=='*'&&sel.indexOf('(')<0){var keys=sel.split(',').map(function(x){return x.trim()}).filter(Boolean);rows=rows.map(function(r){var o={};keys.forEach(function(k){if(Object.prototype.hasOwnProperty.call(r,k))o[k]=r[k]});return o})}
+    var lim=Number(u.searchParams.get('limit')||500);if(Number.isFinite(lim)&&lim>0)rows=rows.slice(0,Math.min(lim,500));
+    return rows;
   }
   function targetIdFrom(u){var x=u.searchParams.get('id')||'';return x.indexOf('eq.')===0?x.slice(3):''}
   function targetByCode(code){var k=anonKey();return nativeFetch(SB+'/rest/v1/aos_usuarios?select=id&codigo_asesor=eq.'+encodeURIComponent(code),{headers:{apikey:k,Authorization:'Bearer '+k}}).then(function(r){return r.json()}).then(function(rows){return rows&&rows[0]&&rows[0].id})}
@@ -101,6 +111,17 @@
       if(method==='PATCH'&&iid){
         return rpcJson('aos_admin_integracion_v3',{p_token:token(),p_id:iid,p_action:'update',p_data:body(init)}).then(function(){return new Response(null,{status:204})});
       }
+    }
+
+    if(u.hostname.indexOf('supabase.co')>=0&&method==='GET'&&u.pathname==='/rest/v1/aos_team_full'){
+      var cargo=(u.searchParams.get('cargo')||'').replace(/^eq\./,'');
+      return rpcJson('aos_team_feed_v3',{p_token:token(),p_cargo:cargo?decodeURIComponent(cargo):null,p_limit:Number(u.searchParams.get('limit')||500)}).then(function(d){return resp(filterTeamRows(u,d.rows||[]),200)});
+    }
+    if(u.hostname.indexOf('supabase.co')>=0&&method==='GET'&&u.pathname==='/rest/v1/aos_usuarios'){
+      return rpcJson('aos_team_feed_v3',{p_token:token(),p_cargo:null,p_limit:500}).then(function(d){return resp(filterTeamRows(u,d.rows||[]),200)}).catch(function(){u.searchParams.set('select',SAFE_USER_COLUMNS);return nativeFetch(u.toString(),init)});
+    }
+    if(u.hostname.indexOf('supabase.co')>=0&&method==='GET'&&u.pathname==='/rest/v1/aos_rrhh'){
+      u.searchParams.set('select',SAFE_RRHH_COLUMNS);return nativeFetch(u.toString(),init);
     }
 
     if(u.hostname.indexOf('supabase.co')>=0&&method==='GET'&&u.pathname==='/rest/v1/aos_agente_logs'){

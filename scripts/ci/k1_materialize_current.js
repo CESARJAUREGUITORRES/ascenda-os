@@ -107,7 +107,7 @@ function beforeLastCommit(s,block,label){
   else return jsonb_build_object('ok',false,'error','ACTION_NOT_ALLOWED');
   end if;`;
   if(!s.includes('insert into public.aos_integration_secrets_v1')) s=replaceOnce(s,oldv,newv,'K1-B private secret writer');
-  if(s.includes("api_key=case when p_data ? 'api_key'")||s.includes("api_secret=case when p_data ? 'api_secret'")) die('K1-B public secret write survived');
+  if(s.includes("else api_key end")||s.includes("else api_secret end")) die('K1-B public secret write survived');
 
   const piiBlock=`
 
@@ -429,7 +429,7 @@ end $$;
           user: state.user
         };`;
   if(s.includes(oldv)) s=s.replace(oldv,newv);
-  s=s.replace("            if (Array.isArray(data.historial)) state.historial = data.historial;\n",'');
+  s=s.replace(/^\s*if \(Array\.isArray\(data\.historial\)\) state\.historial = data\.historial;\s*$/gm,'');
   if(s.includes('historial: state.historial')||s.includes('data.historial')) die('persistent Chrome history survived'); write(p,s);
 }
 
@@ -453,7 +453,7 @@ _k1core=(_k1root/'chrome-extension/kronia-core.js').read_text()
 assert 'from public.aos_integration_secrets_v1 s' in _k1a and 'select i.api_key into v_api_key from public.aos_integraciones' not in _k1a
 assert 'from public.aos_integration_secrets_v1 s' in _k1e and 'select i.api_key into v_api_key' not in _k1e
 assert 'insert into public.aos_integration_secrets_v1' in _k1b and 'update public.aos_integration_secrets_v1' in _k1b
-assert "api_key=case when p_data ? 'api_key'" not in _k1b and "api_secret=case when p_data ? 'api_secret'" not in _k1b
+assert "else api_key end" not in _k1b and "else api_secret end" not in _k1b
 assert 'aos_team_feed_v3' in _k1b and 'revoke all on table public.aos_team_full from public,anon,authenticated' in _k1b
 assert 'SAFE_USER_COLUMNS' in _k1browser and 'SAFE_RRHH_COLUMNS' in _k1browser
 assert 'aos_si_token' not in _k1team and 'aos_app_token' in _k1team

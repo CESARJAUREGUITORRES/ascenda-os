@@ -137,10 +137,15 @@ begin
     insert into public.aos_login_challenges_v3(id,user_id,code_hash,expires_at)
     values(v_challenge,v_udata.id,encode(extensions.digest(v_challenge::text||':'||v_code,'sha256'),'hex'),now()+interval '5 minutes');
 
-    select i.api_key into v_api_key from public.aos_integraciones i
-    where (lower(coalesce(i.tipo,''))='resend' or lower(coalesce(i.nombre,'')) like '%resend%')
-      and coalesce(length(i.api_key),0)>10
-    order by coalesce(i.principal,false) desc,i.updated_at desc nulls last limit 1;
+    -- CURRENT provider-secret boundary: credential material is service-side only.
+    -- aos_integraciones remains metadata/status; the key itself lives in the private vault.
+    select s.api_key into v_api_key
+    from public.aos_integration_secrets_v1 s
+    join public.aos_integraciones i on i.id=s.integration_id
+    where (lower(coalesce(s.tipo,''))='resend' or lower(coalesce(s.nombre,'')) like '%resend%')
+      and coalesce(length(s.api_key),0)>10
+      and lower(coalesce(i.estado,'')) in ('conectado','activo')
+    order by coalesce(i.principal,false) desc,s.updated_at desc nulls last limit 1;
     if v_api_key is null then
       update public.aos_login_challenges_v3 set consumed=true where id=v_challenge;
       insert into public.aos_security_log(usuario,accion,detalles)

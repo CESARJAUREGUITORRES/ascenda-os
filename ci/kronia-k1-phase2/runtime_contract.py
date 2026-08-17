@@ -25,3 +25,29 @@ assert all(len(v)==64 for v in manifest['files'].values())
 print('KRONIA_K1_CURRENT_SOURCE_SECRET_CONTRACT=PASS')
 print('KRONIA_K1_CURRENT_RUNTIME_CHAIN=PASS')
 print('KRONIA_K1_CURRENT_RUNTIME_CONTRACT=PASS')
+
+
+# KRONIA_K1_CURRENT_NODE_MATERIALIZED_CONTRACT
+from pathlib import Path as _K1Path
+_k1root=_K1Path(__file__).resolve().parents[2]
+_k1a=(_k1root/'supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql').read_text()
+_k1b=(_k1root/'supabase/migrations/20260814171000_kronia_k1_app_token_control_plane.sql').read_text()
+_k1e=(_k1root/'supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql').read_text()
+_k1r=(_k1root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()
+_k1browser=(_k1root/'app/public/k1-browser-security.js').read_text()
+_k1team=(_k1root/'app/public/admin-team.html').read_text()
+_k1manifest=(_k1root/'chrome-extension/manifest.json').read_text()
+_k1content=(_k1root/'chrome-extension/content-script.js').read_text()
+_k1core=(_k1root/'chrome-extension/kronia-core.js').read_text()
+assert 'from public.aos_integration_secrets_v1 s' in _k1a and 'select i.api_key into v_api_key from public.aos_integraciones' not in _k1a
+assert 'from public.aos_integration_secrets_v1 s' in _k1e and 'select i.api_key into v_api_key' not in _k1e
+assert 'insert into public.aos_integration_secrets_v1' in _k1b and 'update public.aos_integration_secrets_v1' in _k1b
+assert "else api_key end" not in _k1b and "else api_secret end" not in _k1b
+assert 'aos_team_feed_v3' in _k1b and 'revoke all on table public.aos_team_full from public,anon,authenticated' in _k1b
+assert 'SAFE_USER_COLUMNS' in _k1browser and 'SAFE_RRHH_COLUMNS' in _k1browser
+assert 'aos_si_token' not in _k1team and 'aos_app_token' in _k1team
+assert '"js": ["kronia-core.js", "k1-extension-auth.js", "content-script.js"]' in _k1manifest
+assert 'core.loginRequest(u, pw)' in _k1content
+assert 'historial: state.historial' not in _k1core and 'data.historial' not in _k1core
+assert 'force row level security' in _k1r and 'Sensitive identity reads remain least-privilege during recovery.' in _k1r
+print('KRONIA_K1_CURRENT_NODE_MATERIALIZED_CONTRACT=PASS')
