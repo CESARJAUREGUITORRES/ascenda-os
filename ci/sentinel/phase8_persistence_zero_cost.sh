@@ -12,13 +12,18 @@ FIXTURE="ci/sentinel/phase8_persistence_zero_cost.sql"
 DOCKER_BIN="$(command -v docker)"
 PROJECT_DIR="$GITHUB_WORKSPACE/ci/zero-cost-staging"
 NPM_CACHE="sentinel-f8-npm-cache"
-STATUS_FILE="/tmp/sentinel-f8-status.json"
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
+F8_DB_URL="${F8_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+export F8_DB_URL
 
 for f in "$MIGRATION" "$ROLLBACK" "$FIXTURE"; do test -f "$GITHUB_WORKSPACE/$f"; done
 python3 --version >/dev/null
 docker version >/dev/null
+case "$F8_DB_URL" in
+  *127.0.0.1*|*localhost*) ;;
+  *) echo 'F8_ZERO_COST_DB_URL_NOT_LOCAL' >&2; exit 1;;
+esac
 ! grep -Eq '(SUPABASE_SERVICE_ROLE_KEY|Bearer [A-Za-z0-9._-]{20,}|sb_secret_|sk-proj-)' "$GITHUB_WORKSPACE/$MIGRATION" "$GITHUB_WORKSPACE/$ROLLBACK" "$GITHUB_WORKSPACE/$FIXTURE"
 
 supa(){
@@ -43,28 +48,16 @@ repair_workspace(){
 cleanup(){
   supa "stop --no-backup >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
   docker volume rm -f "$NPM_CACHE" >/dev/null 2>&1 || true
-  rm -f "$STATUS_FILE" /tmp/f8-replay-a.txt /tmp/f8-replay-b.txt /tmp/f8-fp-a.txt /tmp/f8-fp-b.txt
+  rm -f /tmp/f8-replay-a.txt /tmp/f8-replay-b.txt /tmp/f8-fp-a.txt /tmp/f8-fp-b.txt /tmp/sentinel-f8-db-lint.txt
   repair_workspace
 }
 trap cleanup EXIT
 
-# Ensure stale container-owned Supabase metadata from a prior attempt cannot poison this run.
+# Only PostgreSQL is required for F8. Starting the full Supabase stack adds unrelated
+# Analytics/Auth/Storage health dependencies and can create false negatives.
 repair_workspace
 supa "stop --no-backup >/dev/null 2>&1 || true" >/dev/null
-supa "start >/dev/null"
-supa "status --output json" > "$STATUS_FILE"
-
-F8_DB_URL="$(python3 - <<'PY'
-import json
-p='/tmp/sentinel-f8-status.json'
-d=json.load(open(p))
-u=d.get('DB_URL') or d.get('db_url')
-if not u or not any(x in u for x in ('127.0.0.1','localhost')):
-    raise SystemExit('F8_ZERO_COST_DB_URL_NOT_LOCAL')
-print(u)
-PY
-)"
-export F8_DB_URL
+supa "db start >/dev/null"
 printf '%s\n' 'SENTINEL_F8_LOCAL_DB=READY'
 
 psql_file(){
@@ -74,6 +67,9 @@ psql_file(){
 psql_cmd(){
   docker run --rm --network host "$PSQL_IMAGE" psql "$F8_DB_URL" -v ON_ERROR_STOP=1 "$@"
 }
+
+# Confirm the local database is reachable before applying any F8 DDL.
+psql_cmd -Atqc "select case when current_database()='postgres' then 'F8_DB_LOCAL_OK' else 'F8_DB_WRONG_DATABASE' end" | grep -qx 'F8_DB_LOCAL_OK'
 
 psql_file "$MIGRATION"
 printf '%s\n' 'SENTINEL_F8_LOCAL_MIGRATION=PASS'
