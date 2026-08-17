@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compare:
@@ -17,22 +17,69 @@ jobs:
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
-      - name: Normalize canonical F17 SQL and compare live hash
+      - name: Compare final F17 function blocks against live migration statement
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import hashlib, re
-          p=Path('supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql')
-          s=p.read_text(encoding='utf-8')
-          normalized=re.sub(r'(?m)--[^\n]*',' ',s)
-          normalized=re.sub(r'\s+','',normalized)
-          digest=hashlib.md5(normalized.encode()).hexdigest()
-          print('LOCAL_NORMALIZED_LEN='+str(len(normalized)))
-          print('LOCAL_NORMALIZED_MD5='+digest)
-          expected='398e6c489ca3df9a9d3a938f0ba99da4'
-          if digest != expected:
-              print('F17_NORMALIZED_TEXT_EQUIVALENCE=NO')
-              raise SystemExit(2)
-          print('F17_NORMALIZED_TEXT_EQUIVALENCE=PASS')
+
+          path=Path('supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql')
+          sql=path.read_text(encoding='utf-8')
+          expected={
+            'aos_cia_channel_prepare_send_v1':('4f543dc1cdd14ff5de45cbfb2e46bf22',3929),
+            'aos_cia_channel_register_canary_recipient_v1':('414bbc58a5cac480d8d8d25b4b9046ad',1813),
+            'aos_cia_channel_mark_dispatch_v1':('ec44383bc5d55171a077ec275ca07c0a',2589),
+            'aos_cia_channel_ingest_inbound_v1':('658086ad3f58013642ef56c97013c8a6',1794),
+            'aos_cia_channel_record_provider_event_v1':('ba6cc31ed74e9199e135d75ef1178d2f',1354),
+          }
+          rows=[]
+          mismatch=False
+          lower=sql.lower()
+          for name,(remote_md5,remote_len) in expected.items():
+              marker='create or replace function public.'+name
+              pos=lower.find(marker)
+              if pos < 0:
+                  rows.append((name,remote_md5,'MISSING',remote_len,0,'MISSING'))
+                  mismatch=True
+                  continue
+              tail=sql[pos:]
+              if '$$;' not in tail:
+                  rows.append((name,remote_md5,'NO_END',remote_len,0,'MISSING'))
+                  mismatch=True
+                  continue
+              block=tail.split('$$;',1)[0]+'$$;'
+              normalized=re.sub(r'(?m)--[^\n]*',' ',block)
+              normalized=re.sub(r'\s+','',normalized)
+              local_md5=hashlib.md5(normalized.encode()).hexdigest()
+              status='PASS' if local_md5==remote_md5 else 'DIFF'
+              mismatch |= status!='PASS'
+              rows.append((name,remote_md5,local_md5,remote_len,len(block),status))
+
+          out=Path('docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md')
+          lines=[
+            '# F17 History Equivalence Audit', '',
+            '**Mode:** static, read-only comparison of the canonical repository migration against hashes derived from the already-applied production migration statement.', '',
+            '| Function | Live normalized MD5 | Local normalized MD5 | Live raw length | Local raw length | Result |',
+            '|---|---|---|---:|---:|---|',
+          ]
+          for row in rows:
+              lines.append('| `{}` | `{}` | `{}` | {} | {} | **{}** |'.format(*row))
+          lines += ['', '## Decision', '']
+          if mismatch:
+              lines.append('**NOT TEXT-EQUIVALENT.** Do not repair the final F17 migration by timestamp-only rename. Semantic/replay analysis is required before any history tombstone strategy.')
+          else:
+              lines.append('**FUNCTION BLOCKS TEXT-EQUIVALENT after comment/whitespace normalization.** Remaining whole-file drift is limited to auxiliary DDL/ACL/comment text and must be audited separately.')
+          out.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          print(out.read_text())
           PY
+          git diff --check
+      - name: Commit audit evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'docs(audit): materialize F17 history equivalence matrix'
+          git push origin HEAD:${GITHUB_REF_NAME}
