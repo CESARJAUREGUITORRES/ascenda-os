@@ -49,7 +49,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 **Objetivo:** construir el mapa verificable de ASCENDA que Sentinel observará.
 
 ### Trabajos
-- inventariar paneles productivos `app/public/`;
+- inventar paneles productivos `app/public/`;
 - mapear servidores/runtime Node actuales;
 - mapear módulos y capacidades;
 - mapear RPC/tablas relevantes por dominio;
@@ -374,12 +374,14 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
 - Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado.
 - Fase 9: `CERRADA / 100_COMPLETE` — F9-A routing/noise + F9-B durable outbox + F9-C `ascenda-in-app` certificados; PR #214 fusionado a `main@2a55e61fb9ab5ae6543da4c706cf6813e7910078`; live `20260817174233 sentinel_f9_inapp_owner_alerts`; canaries `SEN-2026-0002` y `SEN-2026-0003` final `RESOLVED`; post-merge CI + Railway `/health`/asset/service-worker/shell smoke PASS. Telegram queda `F9-T DEFERRED / NON-BLOCKING`.
-- Fase 10: `EN CURSO` — Diagnostic Runner read-only; Impact Report y branch son el siguiente gate de implementación.
-- Fases 11–13: `PENDIENTE`.
-- Deuda transversal separada: Supabase Branching/GitHub App mantiene migration-history parity legacy (`Remote migration versions not found in local migrations directory`) por timestamps live ≠ filenames Git. No afecta el runtime/schema F9 certificado; resolver mediante auditoría completa + `supabase migration repair`, nunca reejecutando DDL para maquillar historial.
+- Fase 10: `CERRADA / 100_COMPLETE` — Diagnostic Runner read-only certificado. PR #235 fusionado a `main@45d0d176b1bb5838a2a76fb1f7163a262b13ea9a`; synthetic `SEN-2099-9001` diagnosticó affected SHA `EXACT`; replay runtime byte-for-byte PASS con diagnostic ID `F10-396d072b9dfadfca7585` y report digest `22588779c2665ca96fd35c1cb2d0fb0992481705b97ffe9b9b78b2a93e584b3a`; exact-head, merge-ref y post-merge FAST/Linux + Ascenda CI PASS. Cero DDL/runtime productivo y cero write credentials.
+- Fase 11: `EN CURSO` — MCP / AI-Assisted Triage; siguiente gate: Impact Report previo al código + contrato read-only/evidence-grounded/vendor-neutral.
+- Fases 12–13: `PENDIENTE`.
+- Deuda transversal separada: Supabase Branching/GitHub App mantiene migration-history parity legacy (`Remote migration versions not found in local migrations directory`) por timestamps live ≠ filenames Git. No afecta el runtime/schema Sentinel certificado; resolver mediante auditoría completa + `supabase migration repair`, nunca reejecutando DDL para maquillar historial.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
 - Certificado terminal F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
-- Sentinel no ejecuta remediación automática: diagnóstico pertenece a F10/F11 y rollback/remediation segura a F12.
+- Certificado terminal F10: `docs/control/SENTINEL_F10_FINAL_CERTIFICATE_20260817.md`.
+- Sentinel no ejecuta remediación automática: F11 sigue siendo triage read-only; rollback/remediation segura pertenece a F12.
