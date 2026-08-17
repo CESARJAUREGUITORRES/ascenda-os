@@ -4,13 +4,13 @@ import re
 ROOT=Path(__file__).resolve().parents[2]
 MIG=ROOT/'supabase'/'migrations'
 K1=[
- '20260814170000_kronia_k1_private_credentials_auth_v3.sql',
- '20260814171000_kronia_k1_app_token_control_plane.sql',
- '20260814171500_kronia_k1_identity_sync.sql',
- '20260814171600_kronia_k1_feed_schema_alignment.sql',
- '20260814171800_kronia_k1_auth_v3_branded_alignment.sql',
- '20260814172000_kronia_k1_team_profile_alignment.sql',
- '20260814172100_kronia_k1_authority_session_revocation.sql',
+ '20260817170000_kronia_k1_private_credentials_auth_v3.sql',
+ '20260817170100_kronia_k1_app_token_control_plane.sql',
+ '20260817170200_kronia_k1_identity_sync.sql',
+ '20260817170300_kronia_k1_feed_schema_alignment.sql',
+ '20260817170400_kronia_k1_auth_v3_branded_alignment.sql',
+ '20260817170500_kronia_k1_team_profile_alignment.sql',
+ '20260817170600_kronia_k1_authority_session_revocation.sql',
 ]
 
 def fail(msg):

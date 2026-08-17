@@ -1,4 +1,4 @@
-# KronIA K1 — CURRENT Certification Checkpoint — 2026-08-15
+# KronIA K1 — CURRENT Certification Checkpoint — 2026-08-17
 
 ## Estado
 
@@ -8,7 +8,7 @@ Candidato de certificación K1. **No implica despliegue ni migración a producci
 
 - `main` base al construir este candidato: `047188a215aab15aac7991f640595e287880500e`.
 - P0 `aos_secure_write_v2` (#111) ya forma parte de la baseline.
-- Runtime CURRENT preservado: `K1 -> F5 -> WA4 -> WA3 -> WA2 -> F4 -> Phase2/core`.
+- Runtime CURRENT preservado: `K1 -> Phase S -> F5 -> WA4 -> WA3 -> WA2 -> F4 -> Phase2/core`.
 - El candidato es el commit que contiene este checkpoint; no se fija aquí su propio SHA para evitar una referencia circular.
 
 ## Alcance K1
@@ -26,13 +26,13 @@ Candidato de certificación K1. **No implica despliegue ni migración a producci
 
 ## Migrations K1 exactas
 
-1. `20260814170000_kronia_k1_private_credentials_auth_v3.sql`
-2. `20260814171000_kronia_k1_app_token_control_plane.sql`
-3. `20260814171500_kronia_k1_identity_sync.sql`
-4. `20260814171600_kronia_k1_feed_schema_alignment.sql`
-5. `20260814171800_kronia_k1_auth_v3_branded_alignment.sql`
-6. `20260814172000_kronia_k1_team_profile_alignment.sql`
-7. `20260814172100_kronia_k1_authority_session_revocation.sql`
+1. `20260817170000_kronia_k1_private_credentials_auth_v3.sql`
+2. `20260817170100_kronia_k1_app_token_control_plane.sql`
+3. `20260817170200_kronia_k1_identity_sync.sql`
+4. `20260817170300_kronia_k1_feed_schema_alignment.sql`
+5. `20260817170400_kronia_k1_auth_v3_branded_alignment.sql`
+6. `20260817170500_kronia_k1_team_profile_alignment.sql`
+7. `20260817170600_kronia_k1_authority_session_revocation.sql`
 
 Recovery: `supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql`.
 

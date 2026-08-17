@@ -4,7 +4,7 @@ root=Path(__file__).resolve().parents[2]; app=root/'app'
 k1=(app/'server-k1.js').read_text(); phase_s=(app/'server-phase-s.js').read_text(); inner=(app/'server.js').read_text(); browser=(app/'public/k1-browser-security.js').read_text()
 apphtml=(app/'public/app.html').read_text(); brain=(app/'public/cerebro.html').read_text(); team=(app/'public/admin-team.html').read_text(); login=(app/'public/login.html').read_text()
 popup=(root/'chrome-extension/popup.js').read_text(); extauth=(root/'chrome-extension/k1-extension-auth.js').read_text(); manifest=(root/'chrome-extension/manifest.json').read_text(); content=(root/'chrome-extension/content-script.js').read_text(); core=(root/'chrome-extension/kronia-core.js').read_text()
-a=(root/'supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql').read_text(); b=(root/'supabase/migrations/20260814171000_kronia_k1_app_token_control_plane.sql').read_text(); e=(root/'supabase/migrations/20260814171800_kronia_k1_auth_v3_branded_alignment.sql').read_text(); recovery=(root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()
+a=(root/'supabase/migrations/20260817170000_kronia_k1_private_credentials_auth_v3.sql').read_text(); b=(root/'supabase/migrations/20260817170100_kronia_k1_app_token_control_plane.sql').read_text(); e=(root/'supabase/migrations/20260817170400_kronia_k1_auth_v3_branded_alignment.sql').read_text(); recovery=(root/'supabase/rollbacks/20260814_kronia_k1_phase2_safe_recovery.sql').read_text()
 rail=json.loads((app/'railway.json').read_text())
 assert not re.search(r"const\s+VERIFY_TOKEN\s*=\s*['\"][^'\"]+",inner)
 assert not re.search(r"process\.env\.RESEND_API_KEY\s*\|\|\s*['\"][^'\"]+",inner)
