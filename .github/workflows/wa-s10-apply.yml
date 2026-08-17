@@ -21,6 +21,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Normalize patch targets to LF
+        shell: powershell
+        run: |
+          node -e "const fs=require('fs'); for(const f of ['app/server-phase-s.js','.github/workflows/phase-s-wa3-stabilization.yml']){fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(/\r\n/g,'\n'));}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Apply S10 patch
         shell: powershell
         run: |
