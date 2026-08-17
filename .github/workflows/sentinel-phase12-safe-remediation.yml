@@ -2,30 +2,41 @@ name: Sentinel F12 Safe Remediation Certificate
 
 on:
   push:
-    branches:
-      - feature/sentinel-f12-safe-remediation-loop
-      - main
+    branches: ['feature/sentinel-f12-safe-remediation-loop','main']
+    paths: &paths
+      - 'sentinel/remediation/**'
+      - 'ci/sentinel/phase12_*'
+      - 'docs/control/SENTINEL_F12_*'
+      - '.github/workflows/sentinel-phase12-safe-remediation.yml'
   pull_request:
+    branches: ['main','feature/sentinel-f12-safe-remediation-loop']
+    paths: *paths
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: sentinel-f12-${{ github.ref }}
+  group: sentinel-f12-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   remediation-fast:
     name: remediation-fast
-    runs-on: [self-hosted, Windows, X64, ASCENDA-FAST-V2]
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
       - name: Syntax and machine contract
         shell: powershell
         run: |
           node --check sentinel/remediation/remediation-core.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/sentinel/phase12_contract_test.js
       - name: Negative boundaries
         shell: powershell
@@ -37,32 +48,42 @@ jobs:
   remediation-zero-cost:
     name: remediation-zero-cost
     needs: remediation-fast
-    runs-on: [self-hosted, Linux, X64, ASCENDA-ZERO-COST-V2]
-    timeout-minutes: 15
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    env:
+      WORKSPACE_FIX_IMAGE: alpine:3.20
+      NODE_BASE_IMAGE: node:22-bookworm-slim
+      F12_RUNTIME_IMAGE: ascenda-f12-node:22-bookworm-slim-v1
     steps:
       - name: Repair workspace
         run: |
-          sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE" 2>/dev/null || true
-          rm -rf "$GITHUB_WORKSPACE/.branches" 2>/dev/null || true
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
         with:
-          clean: true
-      - name: Prepare disposable runtime
+          persist-credentials: false
+      - name: Prepare minimal disposable runtime
         run: |
-          export HOME="$(mktemp -d)"
-          unset GITHUB_TOKEN GH_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_SERVICE_ROLE_KEY RAILWAY_TOKEN
-          node --version
+          set -euo pipefail
+          docker image inspect "$F12_RUNTIME_IMAGE" >/dev/null 2>&1 || docker build --pull=false -t "$F12_RUNTIME_IMAGE" - <<EOF
+          FROM $NODE_BASE_IMAGE
+          EOF
       - name: Contract and security boundaries
         run: |
-          node --check sentinel/remediation/remediation-core.cjs
-          node ci/sentinel/phase12_contract_test.js
-          node ci/sentinel/phase12_remediation_negative_test.js
+          set -euo pipefail
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$F12_RUNTIME_IMAGE" node --check sentinel/remediation/remediation-core.cjs
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$F12_RUNTIME_IMAGE" node ci/sentinel/phase12_contract_test.js
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$F12_RUNTIME_IMAGE" node ci/sentinel/phase12_remediation_negative_test.js
       - name: Candidate patch replay and rollback
-        run: node ci/sentinel/phase12_remediation_e2e_test.js
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$F12_RUNTIME_IMAGE" node ci/sentinel/phase12_remediation_e2e_test.js
       - name: No production/network capability static gate
         run: |
-          ! grep -R -nE 'child_process|execSync\(|spawnSync\(|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|GITHUB_TOKEN|service_role|fetch\(|axios' sentinel/remediation ci/sentinel/phase12_*_test.js
-          grep -q 'production_mutation.*false' sentinel/remediation/remediation-contract.v1.json
-          grep -q 'auto_merge.*false' sentinel/remediation/remediation-contract.v1.json
-          grep -q 'auto_deploy.*false' sentinel/remediation/remediation-contract.v1.json
+          set -euo pipefail
+          ! grep -nE 'child_process|execSync\(|spawnSync\(|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|GITHUB_TOKEN|service_role|fetch\(|axios' sentinel/remediation/remediation-core.cjs
+          grep -q '"production_mutation": false' sentinel/remediation/remediation-contract.v1.json
+          grep -q '"auto_merge": false' sentinel/remediation/remediation-contract.v1.json
+          grep -q '"auto_deploy": false' sentinel/remediation/remediation-contract.v1.json
           echo 'SENTINEL_F12_STATIC_BOUNDARY=PASS'
