@@ -1,10 +1,7 @@
 name: F16 Provider Outcomes Test Adapt
 
 on:
-  push:
-    branches: ['hotfix/f16-resend-outcomes-20260815']
-    paths:
-      - '.github/workflows/f16-provider-outcomes-test-adapt.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
