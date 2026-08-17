@@ -27,7 +27,7 @@ function renderTelegramEnvelope(decision){
   const text=lines.join('\n');
   if(text.length>3500)throw new Error('F9_TELEGRAM_TEMPLATE_TOO_LONG');
   if(/(token|authorization|cookie|password|phone|telefono|dni|email|paciente|patient|nombre|wa_id|recipient)\s*:/i.test(text))throw new Error('F9_TELEGRAM_TEMPLATE_SENSITIVE_LABEL');
-  return {channel:'telegram-owner',text,parse_mode:null,disable_web_page_preview:true};
+  return {channel:'telegram-owner',text};
 }
 
 class AlertDispatcher {
@@ -46,7 +46,10 @@ class AlertDispatcher {
     const envelope=renderTelegramEnvelope(decision);
     const ack=await this.transport.send(envelope);
     if(!ack||ack.ok!==true){
-      return {status:'FAILED',delivered:false,action:decision.action,provider_code:ack?.code||'NO_ACK'};
+      const code=ack?.code||'NO_ACK';
+      if(code==='UNAVAILABLE'||code==='MISCONFIGURED')return {status:'UNAVAILABLE',delivered:false,action:decision.action,provider_code:code};
+      if(code==='RATE_LIMITED')return {status:'RETRY_LATER',delivered:false,action:decision.action,provider_code:code,retry_after:ack?.retry_after||null};
+      return {status:'FAILED',delivered:false,action:decision.action,provider_code:code};
     }
     this.router.recordDelivered(decision,ack.at||new Date().toISOString());
     return {status:'DELIVERED',delivered:true,action:decision.action,provider_message_id:ack.message_id||null};
