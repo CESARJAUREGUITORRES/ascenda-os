@@ -1,0 +1,24 @@
+'use strict';
+const fs=require('fs');
+function ok(v,m){if(!v)throw new Error(m);}
+const p=fs.readFileSync('app/public/wa-native-panel.js','utf8');
+const w=fs.readFileSync('app/server-wa3.js','utf8');
+const ph=fs.readFileSync('app/server-phase-s.js','utf8');
+const sh=fs.readFileSync('app/public/wa-shell-integration.js','utf8');
+ok(p.includes("api('/api/wa3/provider-health')"),'provider health UI probe missing');
+ok(p.includes("e&&e.message==='META_190'"),'META_190 reprobe hook missing');
+ok(p.includes('function heartbeat(force)'),'heartbeat missing');
+ok(p.includes('visibilitychange'),'visibility refresh missing');
+ok(p.includes("window.addEventListener('focus'"),'focus refresh missing');
+ok(p.includes('1500'),'live polling cadence missing');
+ok(p.includes('heartbeatBusy'),'heartbeat overlap guard missing');
+ok(w.includes("p==='/api/wa3/provider-health'"),'provider route missing');
+ok(w.includes("'TOKEN_INVALID_OR_EXPIRED'"),'token diagnosis missing');
+ok(w.includes("'PHONE_NUMBER_ID_INVALID_OR_INACCESSIBLE'"),'phone diagnosis missing');
+ok(w.includes("'PERMISSION_OR_ASSET_ACCESS'"),'permission diagnosis missing');
+ok(w.includes("requireActor(req,res,true)"),'provider health must be admin protected');
+ok(!w.includes('access_token:WA_ACCESS_TOKEN'),'token must never be returned');
+ok(ph.includes('/wa-native-panel.js?v=20260817-wa-native-s11-p01'),'Phase S S11 native asset missing');
+ok(ph.includes('/wa-shell-integration.js?v=20260817-wa-shell-s11-p01'),'Phase S S11 shell asset missing');
+ok(sh.includes("NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s11-p01'"),'shell S11 fallback missing');
+console.log('WA_S11_LIVE_SYNC_META_AUTH_CONTRACT_PASS');
