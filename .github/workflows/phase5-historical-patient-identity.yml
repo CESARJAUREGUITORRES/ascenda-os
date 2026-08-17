@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/f5-historical-upload.js'
+      - 'app/f5-recovery-worker.js'
       - 'app/server-f5.js'
       - 'app/public/admin-f5-historical.html'
       - 'app/package.json'
@@ -17,6 +18,7 @@ on:
     branches: ['data/**','feature/**','fix/**','security/**']
     paths:
       - 'app/f5-historical-upload.js'
+      - 'app/f5-recovery-worker.js'
       - 'app/server-f5.js'
       - 'app/public/admin-f5-historical.html'
       - 'app/package.json'
@@ -56,6 +58,12 @@ jobs:
           node --check app/server-f5.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/f5-historical-upload.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/f5-recovery-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/phase5-historical-identity/f5_recovery_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase5-historical-identity/f5_recovery_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check ci/phase5-historical-identity/f5_upload_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
