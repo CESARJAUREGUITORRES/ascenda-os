@@ -2,6 +2,7 @@
 (function(){
 'use strict';
 var BOOT_TRIES=0,BOOT_MAX=50;
+var WA_IFRAME_URL='/admin-whatsapp.html?embedded=1&v=20260817-s5-p01';
 
 function contains(arr,id){return Array.isArray(arr)&&arr.some(function(x){return x&&x.type==='item'&&x.id===id;});}
 function insertAfter(arr,afterId,item){
@@ -23,6 +24,15 @@ function markActive(viewId){
 }
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function appToken(){try{return sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'';}catch(e){return '';}}
+function syncFrameSession(frame){
+  var t=appToken();if(!t||!frame||!frame.contentWindow)return false;
+  try{
+    var ss=frame.contentWindow.sessionStorage;
+    var changed=ss.getItem('aos_app_token')!==t;
+    ss.setItem('aos_app_token',t);
+    return changed;
+  }catch(e){console.warn('[AOS-WA-SHELL] iframe session sync skipped',e);return false;}
+}
 function reqJson(url){
   return fetch(url,{headers:{'X-AOS-App-Token':appToken(),'Accept':'application/json'},cache:'no-store'}).then(function(r){
     return r.json().catch(function(){return {ok:false,error:'INVALID_JSON'};}).then(function(d){if(!r.ok||d.ok===false){var e=new Error(d.error||('HTTP_'+r.status));e.status=r.status;throw e;}return d;});
@@ -51,9 +61,17 @@ function renderRecoveryList(frame,d,rows,mode){
   list.innerHTML=rows.map(function(r){return '<div class="conv" data-id="'+esc(r.id)+'"><div class="row"><div class="name">'+esc(r.contact_name||('WhatsApp +'+String(r.contact_number||'').slice(-6)))+'</div><div class="grow"></div>'+(Number(r.unread_count||0)?'<span class="badge">'+Math.min(99,Number(r.unread_count||0))+'</span>':'')+'</div><div class="meta">+'+esc(r.contact_number||'')+'</div><div class="row" style="margin-top:4px"><span class="badge '+(r.owner_user_id?'human':'queue')+'">'+esc(r.state||'NEW')+'</span><span class="meta">'+(mode==='WA2'?'fallback WA-2':'WA-3')+'</span></div></div>';}).join('');
   Array.prototype.forEach.call(list.querySelectorAll('.conv'),function(el){el.onclick=function(){var id=el.getAttribute('data-id'),row=rows.find(function(x){return x.id===id;});if(!row)return;renderRecoveryMessages(d,row,(mode==='WA2'?'/api/wa/conversations/':'/api/wa3/conversations/')+id+'/messages?limit=250');};});
 }
+function nativeSessionReload(frame,d,label){
+  if(frame.__aosWaNativeReloaded)return false;
+  syncFrameSession(frame);
+  frame.__aosWaNativeReloaded=true;
+  recoveryStatus(d,label||'Sincronizando sesión nativa WA-3…',false);
+  clearTimeout(frame.__aosWaRecoveryTimer);
+  try{frame.contentWindow.location.replace(WA_IFRAME_URL+'&session_sync=1');return true;}catch(e){console.warn('[AOS-WA-SHELL] native session reload failed',e);return false;}
+}
 function installRecovery(frame,d){
-  if(frame.__aosWaRecovery)return;frame.__aosWaRecovery=true;
-  setTimeout(function(){
+  clearTimeout(frame.__aosWaRecoveryTimer);
+  frame.__aosWaRecoveryTimer=setTimeout(function(){
     try{
       var list=d.getElementById('list'),side=d.getElementById('side');
       if(!list||!side)return;
@@ -61,6 +79,7 @@ function installRecovery(frame,d){
       recoveryStatus(d,'Reintentando bootstrap WA-3…',false);
       var bErr='';
       reqJson('/api/wa3/bootstrap').catch(function(e){bErr=e.message;return null;}).then(function(boot){
+        if(boot&&!frame.__aosWaNativeReloaded&&nativeSessionReload(frame,d,'WA-3 autenticado. Reiniciando panel nativo…'))return true;
         return reqJson('/api/wa3/inbox?limit=120').then(function(inbox){
           renderRecoveryList(frame,d,inbox.rows||[],'WA3');
           recoveryStatus(d,boot?'WA-3 recuperado automáticamente.':'Chats recuperados; bootstrap parcial: '+(bErr||'sin detalle'),!boot);
@@ -90,7 +109,7 @@ function mountWhatsApp(viewId){
   var ws=document.getElementById('workspace');
   if(!ws)return;
   try{if(typeof window.aosCleanupPanelRuntime==='function')window.aosCleanupPanelRuntime();}catch(e){}
-  ws.innerHTML='<iframe id="aos-wa-workspace" title="ASCENDA WhatsApp" src="/admin-whatsapp.html?embedded=1" style="display:block;width:100%;height:100%;border:0;background:#f2f5fb" referrerpolicy="same-origin"></iframe>';
+  ws.innerHTML='<iframe id="aos-wa-workspace" title="ASCENDA WhatsApp" src="'+WA_IFRAME_URL+'" style="display:block;width:100%;height:100%;border:0;background:#f2f5fb" referrerpolicy="same-origin"></iframe>';
   var frame=document.getElementById('aos-wa-workspace');
   frame.addEventListener('load',function(){
     try{
@@ -100,6 +119,8 @@ function mountWhatsApp(viewId){
       var layout=d.querySelector('.layout');if(layout)layout.style.height='100%';
       var notice=d.querySelector('.notice');if(notice)notice.style.top='10px';
       d.documentElement.style.height='100%';d.body.style.height='100%';
+      var changed=syncFrameSession(frame);
+      if(changed&&!frame.__aosWaNativeReloaded){nativeSessionReload(frame,d,'Sincronizando sesión 2FA con WhatsApp Hub…');return;}
       installRecovery(frame,d);
     }catch(e){console.warn('[AOS-WA-SHELL] embed styling skipped',e);}
   });
