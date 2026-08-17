@@ -1,0 +1,90 @@
+{
+  "schema_version": "sentinel-ai-triage/v1",
+  "phase": "F11",
+  "protocol": {
+    "name": "MCP",
+    "revision": "2025-11-25",
+    "transport": "stdio",
+    "jsonrpc": "2.0",
+    "http_enabled": false,
+    "sampling_enabled": false,
+    "elicitation_enabled": false,
+    "tasks_enabled": false
+  },
+  "design": {
+    "read_only": true,
+    "vendor_neutral": true,
+    "zero_phi_pii": true,
+    "production_database_access": false,
+    "production_write_credentials": false,
+    "automatic_remediation": false,
+    "automatic_deploy": false,
+    "automatic_patch": false
+  },
+  "upstream": {
+    "diagnostic_schema": "sentinel-diagnostic-report/v1",
+    "diagnostic_contract": "sentinel/diagnostics/f10-contract.json",
+    "incident_contract": "sentinel/incidents/f8-contract.json",
+    "correlation_contract": "sentinel/correlation/f7-contract.json"
+  },
+  "mcp_tools": [
+    "sentinel.get_summary",
+    "sentinel.list_evidence",
+    "sentinel.get_evidence",
+    "sentinel.list_hypotheses",
+    "sentinel.get_correlation",
+    "sentinel.get_triage_packet"
+  ],
+  "tool_policy": {
+    "paths_allowed": false,
+    "urls_allowed": false,
+    "sql_allowed": false,
+    "shell_allowed": false,
+    "network_allowed": false,
+    "write_allowed": false,
+    "dynamic_tool_registration": false
+  },
+  "allowed_next_steps": [
+    "INSPECT_EVIDENCE",
+    "COLLECT_MISSING_EVIDENCE",
+    "COMPARE_RELEASE",
+    "REPRODUCE_FIXTURE",
+    "REQUEST_F10_RERUN",
+    "ESCALATE_HUMAN"
+  ],
+  "claim_types": ["OBSERVATION", "HYPOTHESIS", "MISSING_EVIDENCE"],
+  "confidence": ["SUPPORTED", "PLAUSIBLE", "WEAK", "UNKNOWN"],
+  "forbidden_key_fragments": [
+    "patient", "paciente", "dni", "phone", "telefono", "numero_limpio", "email",
+    "recipient", "destinatario", "message", "mensaje", "body", "payload", "prompt",
+    "authorization", "cookie", "token", "apikey", "service_role", "secret", "password",
+    "clinical", "clinico", "diagnostico_medico", "sql", "command", "shell", "path", "url"
+  ],
+  "output_privacy_patterns": {
+    "email": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+    "bearer": "Bearer\\s+[A-Za-z0-9._~-]+",
+    "jwt": "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
+    "openai_key": "sk-[A-Za-z0-9_-]{16,}",
+    "supabase_secret": "sb_(?:secret|service)_[A-Za-z0-9_-]{8,}",
+    "peru_phone": "(?:\\+?51[ -]?)?9[0-9]{8}",
+    "dni_like": "(?<![0-9])[0-9]{8}(?![0-9])"
+  },
+  "response": {
+    "schema": "sentinel-triage-response/v1",
+    "required_fields": ["schema_version", "incident_id", "diagnostic_id", "assessment", "claims", "next_steps", "causality_confirmed"],
+    "optional_fields": ["provider", "model"],
+    "causality_confirmed_required_value": false,
+    "claims_require_evidence": true,
+    "supported_claim_requires_supported_evidence": true,
+    "max_claims": 12,
+    "max_next_steps": 6
+  },
+  "audit": {
+    "raw_prompt_persistence": false,
+    "raw_provider_response_persistence": false,
+    "packet_digest": true,
+    "validated_response_digest": true,
+    "evidence_refs": true,
+    "provider_model_metadata_optional": true
+  }
+}
