@@ -1,0 +1,39 @@
+name: F17 Production Runtime Smoke Temp
+
+on:
+  push:
+    branches:
+      - ops/f17-runtime-smoke-20260817
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    steps:
+      - name: Probe health and fail-closed template boundary
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = 'https://ascenda-os-production.up.railway.app'
+          $health = Invoke-WebRequest -UseBasicParsing -Uri "$base/health" -Method GET -TimeoutSec 20
+          Write-Host "health_status=$($health.StatusCode)"
+          if ($health.StatusCode -ne 200) { throw "health expected 200" }
+
+          try {
+            $r = Invoke-WebRequest -UseBasicParsing -Uri "$base/api/f17/whatsapp/templates" -Method GET -TimeoutSec 20
+            $status = [int]$r.StatusCode
+            $body = $r.Content
+          } catch {
+            if ($_.Exception.Response) {
+              $status = [int]$_.Exception.Response.StatusCode
+              $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+              $body = $reader.ReadToEnd()
+            } else { throw }
+          }
+          Write-Host "template_no_session_status=$status"
+          Write-Host "template_body=$body"
+          if ($status -ne 401) { throw "template boundary expected 401 without session, got $status" }
+          if ($body -notmatch 'UNAUTHORIZED') { throw "template boundary did not fail closed" }
