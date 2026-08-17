@@ -12,7 +12,7 @@ on:
       - 'app/public/sentinel-inapp-notifications.js'
       - 'ci/sentinel/phase13_*'
       - 'ci/sentinel/sql/phase13_*'
-      - 'supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql'
+      - 'supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql'
       - 'docs/control/SENTINEL_F13_*'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase13-hub.yml'
