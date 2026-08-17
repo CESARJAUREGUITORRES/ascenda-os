@@ -5,8 +5,11 @@ const shell=fs.readFileSync('app/public/wa-shell-integration.js','utf8');
 const native=fs.readFileSync('app/public/wa-native-panel.js','utf8');
 const phase=fs.readFileSync('app/server-phase-s.js','utf8');
 const layout=fs.existsSync('app/public/wa-native-layout-s9.js')?fs.readFileSync('app/public/wa-native-layout-s9.js','utf8'):'';
+const nativeLoaderS8='/wa-native-panel.js?v=20260817-wa-native-s8-p01';
+const nativeLoaderS9='/wa-native-panel.js?v=20260817-wa-native-s9-p01';
+const nativeLoaderS10='/wa-native-panel.js?v=20260817-wa-native-s10-p01';
 ok(shell.includes('AOS_WA_NATIVE'),'native module mount missing');
-ok(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s8-p01')||shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01'),'native cache-busted loader missing');
+ok(shell.includes(nativeLoaderS8)||shell.includes(nativeLoaderS9)||shell.includes(nativeLoaderS10),'native cache-busted loader missing');
 ok(!shell.includes('WA_IFRAME_URL'),'iframe runtime must not be normal path');
 ok(!shell.includes('<iframe'),'iframe markup must not be normal path');
 ok(!shell.includes('installRecovery'),'recovery renderer must not be normal path');
@@ -24,14 +27,14 @@ ok(native.includes("['HUMAN_ACTIVE','AI_COPILOT']"),'mode gate missing');
 ok(native.includes('idempotency_key:key'),'idempotency key missing');
 ok(native.includes('Lead 360 · base operativa'),'lead context panel missing');
 ok(native.includes('wa8-left-toggle')&&native.includes('wa8-right-toggle'),'collapsible side controls missing');
-ok(phase.includes('/wa-native-panel.js?v=20260817-wa-native-s8-p01'),'Phase S native panel anchor missing');
-ok(phase.includes('/wa-shell-integration.js?v=20260817-wa-shell-s8-p01'),'Phase S S8 shell cache-buster missing');
+ok(phase.includes(nativeLoaderS8)||phase.includes(nativeLoaderS10),'Phase S native panel anchor missing');
+ok(phase.includes('/wa-shell-integration.js?v=20260817-wa-shell-s8-p01')||phase.includes('/wa-shell-integration.js?v=20260817-wa-shell-s10-p01'),'Phase S shell cache-buster missing');
 ok(phase.includes("if(req.method==='GET'&&p==='/api/wa3/bootstrap')"),'Phase S WA3 bootstrap boundary missing');
-if(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01')){
+if(shell.includes(nativeLoaderS9)||shell.includes(nativeLoaderS10)){
   ok(shell.includes('/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01'),'S9 layout loader missing');
   ok(layout.includes("display:flex!important"),'S9 deterministic flex layout missing');
   ok(layout.includes('getBoundingClientRect'),'S9 runtime geometry check missing');
   ok(layout.includes('self-heal'),'S9 self-heal marker missing');
   ok(layout.includes('AOS_WA_LAYOUT_DIAG'),'S9 diagnostics exposure missing');
 }
-console.log(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01')?'WA_NATIVE_S9_CONTRACT_PASS':'WA_NATIVE_S8_CONTRACT_PASS');
+console.log(shell.includes(nativeLoaderS10)?'WA_NATIVE_S10_CONTRACT_PASS':(shell.includes(nativeLoaderS9)?'WA_NATIVE_S9_CONTRACT_PASS':'WA_NATIVE_S8_CONTRACT_PASS'));

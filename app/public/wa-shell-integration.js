@@ -1,7 +1,7 @@
-// ASCENDA Conversations — S9 native shell integration. No iframe/recovery in normal path.
+// ASCENDA Conversations — S10 native shell integration. No iframe/recovery in normal path.
 (function(){
 'use strict';
-var BOOT_TRIES=0,BOOT_MAX=60,NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s9-p01',LAYOUT_SRC='/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01',nativeLoading=null,layoutLoading=null;
+var BOOT_TRIES=0,BOOT_MAX=60,NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s10-p01',LAYOUT_SRC='/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01',nativeLoading=null,layoutLoading=null;
 function contains(arr,id){return Array.isArray(arr)&&arr.some(function(x){return x&&x.type==='item'&&x.id===id;});}
 function insertAfter(arr,afterId,item){if(!Array.isArray(arr)||contains(arr,item.id))return;var idx=arr.findIndex(function(x){return x&&x.type==='item'&&x.id===afterId;});if(idx<0)arr.push(item);else arr.splice(idx+1,0,item);}
 function perms(){try{return window.AOS&&AOS.ctx&&Array.isArray(AOS.ctx.paneles_acceso)?AOS.ctx.paneles_acceso:[];}catch(_){return [];}}
