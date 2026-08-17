@@ -1,0 +1,33 @@
+{
+  "schema_version": "sentinel.remediation-contract.v1",
+  "request_schema_version": "sentinel.remediation-request.v1",
+  "plan_schema_version": "sentinel.remediation-plan.v1",
+  "audit_schema_version": "sentinel.remediation-audit.v1",
+  "risk_levels": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  "limits": {
+    "max_files": 5,
+    "max_patch_bytes": 16384,
+    "max_objective_chars": 512,
+    "max_evidence_refs": 24
+  },
+  "allowed_roots": ["app/", "sentinel/", "ci/", "docs/"],
+  "denied_prefixes": [
+    ".git/",
+    ".github/",
+    "supabase/migrations/"
+  ],
+  "denied_exact": ["AGENTS.md", "SECURITY.md", ".env", ".env.local", ".env.production"],
+  "denied_extensions": [".pem", ".key", ".p12", ".pfx", ".crt", ".cer"],
+  "baseline": {
+    "production_mutation": false,
+    "auto_merge": false,
+    "auto_deploy": false,
+    "requires_explicit_base_sha": true,
+    "requires_evidence": true,
+    "requires_human_production_approval": true,
+    "network_access": false,
+    "arbitrary_shell": false,
+    "arbitrary_sql": false,
+    "secret_retrieval": false
+  }
+}

@@ -1,0 +1,21 @@
+'use strict';
+const fs=require('fs');const os=require('os');const path=require('path');
+const c=require('../../sentinel/remediation/remediation-core.cjs');
+function ok(v,m){if(!v)throw new Error(m);}
+const BASE='a'.repeat(40),DIGEST='b'.repeat(64);
+const req={schema_version:c.REQUEST_SCHEMA,incident_id:'SEN-2099-9201',diagnostic_id:'F10-'+('c'.repeat(20)),triage_audit_digest:DIGEST,base_sha:BASE,risk:'CRITICAL',objective:'Increase the synthetic retry budget after evidence-backed timeout diagnosis.',target_files:['sentinel/remediation/fixtures/synthetic-target.txt'],evidence_refs:['EVIDENCE:F10:timeout','EVIDENCE:F11:claim-1'],approval:{production_authorized:false,auto_merge:false,auto_deploy:false}};
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'f12-'));
+fs.mkdirSync(path.join(root,'sentinel/remediation/fixtures'),{recursive:true});
+const target=path.join(root,'sentinel/remediation/fixtures/synthetic-target.txt');
+const before='retry_budget=2\nmode=synthetic\n';fs.writeFileSync(target,before);
+const change={path:'sentinel/remediation/fixtures/synthetic-target.txt',expected_before_sha256:c.sha256Hex(before),find:'retry_budget=2',replace:'retry_budget=3'};
+const plan1=c.buildPlan(req,[change],BASE),plan2=c.buildPlan(req,[change],BASE);
+ok(c.stableStringify(plan1)===c.stableStringify(plan2),'plan replay must be byte deterministic');
+let killed=false;try{c.applyPlan(plan1,root,{enabled:false});}catch(e){killed=e.code==='F12_KILL_SWITCH_OFF';}ok(killed,'kill switch must fail closed');
+const audit=c.applyPlan(plan1,root,{enabled:true,production:false});ok(fs.readFileSync(target,'utf8').includes('retry_budget=3'),'candidate patch not applied');
+ok(audit.production_mutation===false&&audit.auto_merge===false&&audit.auto_deploy===false,'unsafe audit flags');
+const pub1=c.publicAudit(audit),pub2=c.publicAudit(audit);ok(c.stableStringify(pub1)===c.stableStringify(pub2),'audit replay not deterministic');
+const rb=c.rollbackAudit(audit,root,{enabled:true,production:false});ok(rb.ok&&rb.rolled_back===1,'rollback failed');ok(fs.readFileSync(target,'utf8')===before,'rollback did not restore baseline');
+let prod=false;try{c.applyPlan(plan1,root,{enabled:true,production:true});}catch(e){prod=e.code==='PRODUCTION_MUTATION_BLOCKED';}ok(prod,'production mutation must be blocked');
+console.log('SENTINEL_F12_REMEDIATION_E2E=PASS');
+console.log('SENTINEL_F12_REPLAY_ROLLBACK=PASS');
