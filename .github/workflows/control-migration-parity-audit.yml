@@ -8,6 +8,7 @@ on:
       - '.github/workflows/control-migration-parity-audit.yml'
       - 'scripts/ci/audit_migration_parity.py'
       - 'docs/control/snapshots/migration_ledger_prod_20260815_20260817.txt'
+      - 'docs/control/snapshots/migration_ledger_prod_20260815_20260817_hashes.txt'
   workflow_dispatch:
 
 permissions:
