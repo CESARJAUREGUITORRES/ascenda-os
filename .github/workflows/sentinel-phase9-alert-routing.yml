@@ -45,11 +45,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check sentinel/alerts/telegram-transport.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/supabase-telegram-config-provider.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check ci/sentinel/phase9_alert_routing_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check ci/sentinel/phase9_alert_routing_synthetic.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check ci/sentinel/phase9_alert_routing_telegram_adapter.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase9_alert_routing_secret_provider.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: F9 routing contract
         shell: powershell
@@ -60,6 +64,9 @@ jobs:
       - name: F9 Telegram adapter contract
         shell: powershell
         run: node ci/sentinel/phase9_alert_routing_telegram_adapter.js
+      - name: F9 server-side secret provider contract
+        shell: powershell
+        run: node ci/sentinel/phase9_alert_routing_secret_provider.js
 
   routing-linux:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
@@ -83,4 +90,4 @@ jobs:
             -v "$GITHUB_WORKSPACE:/work:ro" \
             -w /work \
             node:22-alpine \
-            sh -lc 'node --version && node --check sentinel/alerts/memory-alert-state.cjs && node --check sentinel/alerts/alert-router.cjs && node --check sentinel/alerts/alert-dispatcher.cjs && node --check sentinel/alerts/fake-transport.cjs && node --check sentinel/alerts/telegram-transport.cjs && node ci/sentinel/phase9_alert_routing_contract.js && node ci/sentinel/phase9_alert_routing_synthetic.js && node ci/sentinel/phase9_alert_routing_telegram_adapter.js'
+            sh -lc 'node --version && node --check sentinel/alerts/memory-alert-state.cjs && node --check sentinel/alerts/alert-router.cjs && node --check sentinel/alerts/alert-dispatcher.cjs && node --check sentinel/alerts/fake-transport.cjs && node --check sentinel/alerts/telegram-transport.cjs && node --check sentinel/alerts/supabase-telegram-config-provider.cjs && node ci/sentinel/phase9_alert_routing_contract.js && node ci/sentinel/phase9_alert_routing_synthetic.js && node ci/sentinel/phase9_alert_routing_telegram_adapter.js && node ci/sentinel/phase9_alert_routing_secret_provider.js'
