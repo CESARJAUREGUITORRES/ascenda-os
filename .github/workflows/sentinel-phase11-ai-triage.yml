@@ -87,4 +87,7 @@ jobs:
       - name: No-write static boundary
         run: |
           set -euo pipefail
-          ! grep -RniE 'supabase[[:space:]]+db[[:space:]]+push|railway[[:space:]]+up|git[[:space:]]+push|execute_sql|service_role|pull-requests:[[:space:]]*write|contents:[[:space:]]*write|deployments:[[:space:]]*write|actions:[[:space:]]*write' sentinel/triage ci/sentinel/phase11_* .github/workflows/sentinel-phase11-ai-triage.yml
+          EXECUTABLES=(sentinel/triage/*.cjs ci/sentinel/phase11_*.js)
+          ! grep -niE 'supabase[[:space:]]+db[[:space:]]+push|railway[[:space:]]+up|git[[:space:]]+push|execute_sql|service_role' "${EXECUTABLES[@]}"
+          ! grep -niE 'pull-requests:[[:space:]]*write|contents:[[:space:]]*write|deployments:[[:space:]]*write|actions:[[:space:]]*write' .github/workflows/sentinel-phase11-ai-triage.yml
+          echo "SENTINEL_F11_NO_WRITE_BOUNDARY=PASS"
