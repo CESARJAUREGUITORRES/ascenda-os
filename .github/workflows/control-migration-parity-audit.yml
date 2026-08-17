@@ -1,0 +1,55 @@
+name: ASCENDA Migration History Parity Audit
+
+on:
+  push:
+    branches:
+      - 'control/ascenda-current-reconciliation-20260817-v1'
+    paths:
+      - '.github/workflows/control-migration-parity-audit.yml'
+      - 'scripts/ci/audit_migration_parity.py'
+      - 'docs/control/snapshots/migration_ledger_prod_20260815_20260817.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ascenda-migration-parity-audit-current
+  cancel-in-progress: true
+
+jobs:
+  parity-audit:
+    name: Read-only repository vs production-ledger audit
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - name: Checkout control branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Enforce zero-cost runner policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+
+      - name: Generate deterministic parity report
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/audit_migration_parity.py
+          test -s docs/control/MIGRATION_PARITY_AUDIT_20260817.md
+          git diff --check
+
+      - name: Commit generated evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/control/MIGRATION_PARITY_AUDIT_20260817.md
+          if git diff --cached --quiet; then
+            echo 'PARITY_REPORT_UNCHANGED=PASS'
+            exit 0
+          fi
+          git commit -m 'docs(control): materialize migration parity audit evidence'
+          git push origin HEAD:${GITHUB_REF_NAME}
