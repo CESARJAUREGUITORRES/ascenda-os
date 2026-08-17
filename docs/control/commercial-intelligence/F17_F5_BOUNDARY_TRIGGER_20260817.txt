@@ -1,0 +1,1 @@
+Trigger F17 F5 effective-entrypoint boundary materialization. No production mutation or secrets.
