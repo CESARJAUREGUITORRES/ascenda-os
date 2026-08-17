@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
-      - name: Compare final F17 function blocks against live migration statement
+      - name: Compare final F17 canonical SQL against live migration statement
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -26,6 +26,13 @@ jobs:
 
           path=Path('supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql')
           sql=path.read_text(encoding='utf-8')
+
+          def norm(s):
+              s=re.sub(r'(?m)--[^\n]*',' ',s)
+              return re.sub(r'\s+','',s)
+          def md5(s):
+              return hashlib.md5(s.encode()).hexdigest()
+
           expected={
             'aos_cia_channel_prepare_send_v1':('4f543dc1cdd14ff5de45cbfb2e46bf22',3929),
             'aos_cia_channel_register_canary_recipient_v1':('414bbc58a5cac480d8d8d25b4b9046ad',1813),
@@ -49,27 +56,56 @@ jobs:
                   mismatch=True
                   continue
               block=tail.split('$$;',1)[0]+'$$;'
-              normalized=re.sub(r'(?m)--[^\n]*',' ',block)
-              normalized=re.sub(r'\s+','',normalized)
-              local_md5=hashlib.md5(normalized.encode()).hexdigest()
+              local_md5=md5(norm(block))
               status='PASS' if local_md5==remote_md5 else 'DIFF'
               mismatch |= status!='PASS'
               rows.append((name,remote_md5,local_md5,remote_len,len(block),status))
+
+          first_marker='create or replace function public.aos_cia_channel_prepare_send_v1'
+          first_pos=lower.find(first_marker)
+          prefix=sql[:first_pos]
+          prefix_md5=md5(norm(prefix))
+          prefix_expected='5600c40c0f56929e8e79500b2553864a'
+          prefix_status='PASS' if prefix_md5==prefix_expected else 'DIFF'
+
+          acl_marker='revoke all on function public.aos_cia_channel_register_canary_recipient_v1'
+          acl_pos=lower.find(acl_marker)
+          suffix=sql[acl_pos:]
+          # Production final statement ends after the four service-only grants.
+          # Repository adds COMMENT ON metadata afterwards. Remove only those
+          # metadata statements before comparing security-significant ACL SQL.
+          acl_only=re.sub(r'(?is)comment\s+on\s+function\s+public\.[^;]+;',' ',suffix)
+          acl_md5=md5(norm(acl_only))
+          acl_expected='0f6f2a8e7b7dee77d4b7f820fbac20ee'
+          acl_status='PASS' if acl_md5==acl_expected else 'DIFF'
+
+          comments=re.findall(r'(?is)comment\s+on\s+function\s+public\.[^;]+;',suffix)
+          comments_count=len(comments)
+          aux_mismatch = prefix_status!='PASS' or acl_status!='PASS'
 
           out=Path('docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md')
           lines=[
             '# F17 History Equivalence Audit', '',
             '**Mode:** static, read-only comparison of the canonical repository migration against hashes derived from the already-applied production migration statement.', '',
+            '## Function blocks', '',
             '| Function | Live normalized MD5 | Local normalized MD5 | Live raw length | Local raw length | Result |',
             '|---|---|---|---:|---:|---|',
           ]
           for row in rows:
               lines.append('| `{}` | `{}` | `{}` | {} | {} | **{}** |'.format(*row))
-          lines += ['', '## Decision', '']
-          if mismatch:
-              lines.append('**NOT TEXT-EQUIVALENT.** Do not repair the final F17 migration by timestamp-only rename. Semantic/replay analysis is required before any history tombstone strategy.')
+          lines += [
+            '', '## Auxiliary DDL / ACL', '',
+            '| Surface | Live normalized MD5 | Local normalized MD5 | Result |',
+            '|---|---|---|---|',
+            f'| `ALTER TABLE expires_at` prefix | `{prefix_expected}` | `{prefix_md5}` | **{prefix_status}** |',
+            f'| service-only ACL revoke/grant block | `{acl_expected}` | `{acl_md5}` | **{acl_status}** |',
+            '', f'Repository-only descriptive `COMMENT ON FUNCTION` statements after the ACL block: **{comments_count}**.',
+            '', '## Decision', ''
+          ]
+          if mismatch or aux_mismatch:
+              lines.append('**NOT CANONICALLY EQUIVALENT.** Do not version-repair the final F17 migration until the differing durable/security surface is resolved.')
           else:
-              lines.append('**FUNCTION BLOCKS TEXT-EQUIVALENT after comment/whitespace normalization.** Remaining whole-file drift is limited to auxiliary DDL/ACL/comment text and must be audited separately.')
+              lines.append('**DURABLE/SECURITY SQL EQUIVALENT.** All five function blocks, the `expires_at` DDL and service-only ACL block match production after comment/whitespace normalization. Whole-file MD5 drift is attributable to formatting and repository-only descriptive comments. The final F17 file is eligible for version alignment, subject to replay-order validation with the four superseded intermediate production migrations represented as explicit no-op history tombstones.')
           out.write_text('\n'.join(lines)+'\n',encoding='utf-8')
           print(out.read_text())
           PY
@@ -81,5 +117,5 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'docs(audit): materialize F17 history equivalence matrix'
+          git commit -m 'docs(audit): extend F17 history equivalence to DDL and ACL'
           git push origin HEAD:${GITHUB_REF_NAME}
