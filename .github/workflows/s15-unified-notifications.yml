@@ -30,6 +30,10 @@ on:
       - '.github/workflows/s15-unified-notifications.yml'
   workflow_dispatch:
 
+concurrency:
+  group: s15-notifications-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   contract:
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
