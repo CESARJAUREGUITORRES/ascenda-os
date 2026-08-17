@@ -29,11 +29,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce runner policy
+      - name: Enforce runner policy and expose Node
         run: |
           set -euo pipefail
           python3 scripts/ci/enforce-zero-cost-policy.py
           bash scripts/ci/runner-healthcheck.sh
+          bash scripts/ci/expose-runner-node.sh
+          node --version
 
       - name: Merge exact CURRENT main
         run: |
@@ -58,16 +60,24 @@ jobs:
           test "$(grep -RIl '20260817203504_sentinel_f13_owner_hub.sql' .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh | wc -l)" = '2'
           git diff --check
 
-      - name: Fast F13 contracts
+      - name: F13 syntax contracts
         run: |
           set -euo pipefail
           node --check sentinel/hub/hub-core.cjs
           node --check app/public/sentinel-hub.js
           node --check app/public/sentinel-hub-bootstrap.js
           node --check app/public/sentinel-inapp-notifications.js
+
+      - name: F13 functional contracts
+        run: |
+          set -euo pipefail
           node ci/sentinel/phase13_hub_contract_test.js
           node ci/sentinel/phase13_hub_resilience_test.js
           node ci/sentinel/phase13_ui_security_test.js
+
+      - name: F13 privacy and topology boundary
+        run: |
+          set -euo pipefail
           ! grep -nE 'service_role|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|BEGIN PRIVATE KEY|Bearer [A-Za-z0-9]' app/public/sentinel-hub.js app/public/sentinel-hub-bootstrap.js app/public/sentinel-topology.v1.json
           ! grep -nE 'db_relations|rpc_refs|dependencies|aos_|supabase|railway|server\.js' app/public/sentinel-topology.v1.json
 
