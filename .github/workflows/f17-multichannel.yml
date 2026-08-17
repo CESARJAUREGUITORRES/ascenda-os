@@ -27,6 +27,11 @@ jobs:
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
     steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
