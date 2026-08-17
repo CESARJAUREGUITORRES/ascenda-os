@@ -60,7 +60,7 @@ function q(t,qs,cb){fetch(SB+'/rest/v1/'+t+'?'+qs,{headers:{'apikey':SK,'Authori
 function rpc(fn,p,cb){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();}).then(cb).catch(function(){});}
 function setSalesIntelligenceAccess(targetId,enabled){
   var token='';
-  try{token=sessionStorage.getItem('aos_si_token')||'';}catch(e){}
+  try{token=sessionStorage.getItem('aos_app_token')||'';}catch(e){}
   if(!token){
     showToast('Sales Intelligence: vuelve a iniciar sesión con 2FA para administrar este permiso');
     return;
@@ -506,7 +506,7 @@ function activarCuenta(id,email,nombre){
   document.body.insertAdjacentHTML('beforeend',mHTML);
 }
 function doActivar(id,email,nombre){
-  var pw=el('act-pw').value;if(!pw||pw.length<6){showToast('Contraseña mínimo 6 caracteres');return;}
+  var pw=el('act-pw').value;if(!pw||pw.length<10){showToast('Contraseña mínimo 10 caracteres');return;}
   fetch(SB+'/rest/v1/aos_rrhh?nombre=eq.'+encodeURIComponent(nombre),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({password_hash:pw})}).then(function(){
     return fetch(SB+'/rest/v1/aos_usuarios?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cuenta_activada:true})});
   }).then(function(){
@@ -667,8 +667,8 @@ function toggle2FA(uid, activar, nombre){
 function reenviarCredenciales(uid, email, nombre){
   if(!email){showToast('Sin email registrado — agrega un email primero');return;}
   if(!confirm('¿Reenviar credenciales a '+nombre+' ('+email+')?\nSe le pedirá una nueva contraseña.')) return;
-  var pw = prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):', nombre.toLowerCase().slice(0,4)+'2026');
-  if(!pw||pw.length<6){if(pw)alert('Mínimo 6 caracteres');return;}
+  var pw = prompt('Nueva contraseña para '+nombre+' (mínimo 10 caracteres):', nombre.toLowerCase().slice(0,4)+'2026');
+  if(!pw||pw.length<10){if(pw)alert('Mínimo 10 caracteres');return;}
   /* 1) Cambiar password */
   fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_password',{
     method:'POST',
@@ -697,8 +697,8 @@ function reenviarCredenciales(uid, email, nombre){
 }
 
 function cambiarPass(uid,nombre){
-  var np=prompt('Nueva contraseña para '+nombre+' (mínimo 6 caracteres):');
-  if(!np||np.length<6){if(np)alert('Mínimo 6 caracteres');return;}
+  var np=prompt('Nueva contraseña para '+nombre+' (mínimo 10 caracteres):');
+  if(!np||np.length<10){if(np)alert('Mínimo 10 caracteres');return;}
   /* RPC nueva: aos_admin_cambiar_password(p_usuario_id UUID, p_nueva_password TEXT) */
   fetch(SB+'/rest/v1/rpc/aos_admin_cambiar_password',{
     method:'POST',

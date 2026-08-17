@@ -20,7 +20,7 @@ const MIME = {
 // ═══ SUPABASE ═══
 const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'
-const VERIFY_TOKEN = 'ascendaos_zivital_2026'
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '__DISABLED__'
 // F16: Email tables are backend-only. No service-role value is stored in source.
 const EMAIL_SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.service_role || ''
 function f16DbKey(endpoint) {

@@ -100,10 +100,13 @@
   // Login overlay (oculto si ya hay sesión)
   var loginErr = el('div', { class: 'kronia-err' });
   var loginUsuario = el('input', { type: 'text', placeholder: 'Tu usuario', autocomplete: 'username' });
-  var btnPedirCodigo = el('button', { text: 'Enviar código a mi email' });
+  var loginPassword = el('input', { type: 'password', placeholder: 'Tu contraseña', autocomplete: 'current-password' });
+  var btnPedirCodigo = el('button', { text: 'Continuar' });
   var step1 = el('div', { class: 'kronia-login-step active' }, [
     el('label', { text: 'Usuario' }),
     loginUsuario,
+    el('label', { text: 'Contraseña' }),
+    loginPassword,
     btnPedirCodigo
   ]);
 
@@ -189,6 +192,7 @@
       login.classList.remove('hidden');
       step1.classList.add('active'); step2.classList.remove('active');
       loginUsuario.value = '';
+      if (loginPassword) loginPassword.value = '';
       loginCodigo.value = '';
       loginErr.textContent = '';
       btnClose.style.display = 'none';
@@ -270,27 +274,38 @@
   }
 
   btnPedirCodigo.addEventListener('click', function () {
-    var u = loginUsuario.value.trim();
-    if (!u) { loginErr.textContent = 'Ingresa tu usuario'; return; }
+    var u = loginUsuario.value.trim(), pw = loginPassword.value;
+    if (!u || !pw) { loginErr.textContent = 'Ingresa usuario y contraseña'; return; }
     loginErr.textContent = '';
     btnPedirCodigo.disabled = true;
-    btnPedirCodigo.textContent = 'Enviando...';
+    btnPedirCodigo.textContent = 'Verificando...';
     state.loginUsuario = u;
-    core.loginRequest(u).then(function (r) {
+    core.loginRequest(u, pw).then(function (r) {
+      loginPassword.value = '';
       btnPedirCodigo.disabled = false;
-      btnPedirCodigo.textContent = 'Enviar código a mi email';
-      if (r && r.ok) {
+      btnPedirCodigo.textContent = 'Continuar';
+      if (r && r.ok && r.token) {
+        state.authenticated = true;
+        state.user = core.getUser();
+        core.persist(chrome.storage.local);
+        setStatus('· ' + ((state.user&&state.user.usuario)||u), '#fff');
+        showLogin(false);
+        welcomeMessage();
+        return;
+      }
+      if (r && r.ok && r.require_2fa) {
         document.querySelector('.kronia-codigo-ok').textContent =
-          '✓ Código enviado a ' + (r.email_oculto || 'tu email');
+          '✓ Código enviado a ' + (r.email_masked || r.email_oculto || 'tu email');
         step1.classList.remove('active');
         step2.classList.add('active');
         loginCodigo.focus();
       } else {
-        loginErr.textContent = (r && r.error) || 'No se pudo enviar el código';
+        loginErr.textContent = (r && r.error) || 'No se pudo iniciar sesión';
       }
-    }).catch(function (e) {
+    }).catch(function () {
+      loginPassword.value = '';
       btnPedirCodigo.disabled = false;
-      btnPedirCodigo.textContent = 'Enviar código a mi email';
+      btnPedirCodigo.textContent = 'Continuar';
       loginErr.textContent = 'Error de conexión';
     });
   });
@@ -332,6 +347,9 @@
     if (e.key === 'Enter') { e.preventDefault(); btnVerificar.click(); }
   });
   loginUsuario.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); loginPassword.focus(); }
+  });
+  loginPassword.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); btnPedirCodigo.click(); }
   });
 
