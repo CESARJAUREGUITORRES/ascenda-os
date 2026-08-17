@@ -5,10 +5,13 @@ on:
     branches: [main]
     paths:
       - 'app/f17-whatsapp-legacy-gateway.js'
+      - 'app/server-f17.js'
+      - 'app/package.json'
       - 'supabase/migrations/*f17_*'
       - 'supabase/rollbacks/*f17_*'
       - 'ci/f17-multichannel/**'
       - 'docs/control/commercial-intelligence/PHASE_17_*'
+      - 'docs/impact-reports/F17_*'
       - '.github/workflows/f17-multichannel.yml'
   workflow_dispatch:
 
@@ -50,8 +53,10 @@ jobs:
         run: |
           set -euo pipefail
           node --check app/f17-whatsapp-legacy-gateway.js
+          node --check app/server-f17.js
           node --check ci/f17-multichannel/test_legacy_whatsapp_gateway.js
           node ci/f17-multichannel/test_legacy_whatsapp_gateway.js
+          node -e "const p=require('./app/package.json'); if(p.scripts.start!=='node server-f17.js') process.exit(1)"
 
       - name: Configure isolated Supabase
         working-directory: ci/zero-cost-staging
