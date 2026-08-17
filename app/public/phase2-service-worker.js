@@ -30,7 +30,7 @@ async function injectF4(req){
     tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-f4-sales-auth-p06"></script>';
   }
   if(html.indexOf('/wa-shell-integration.js')<0){
-    tags+='<script src="/wa-shell-integration.js?v=20260815-wa-shell-p02"></script>';
+    tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p03"></script>';
   }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
@@ -68,6 +68,6 @@ self.addEventListener('fetch',function(event){
   }
   var tm=u.pathname.match(/\/rest\/v1\/([^/]+)$/),table=tm&&tm[1],method=req.method.toUpperCase();
   if(table&&PROTECTED[table]&&(method==='POST'||method==='PATCH'||method==='DELETE')){
-    event.respondWith((async function(){var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};var r=await rpcFrom(req,'aos_secure_write_v2',payload);if(isMissing(r))return fetch(req);var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);return json(d.rows||[],200);})());
+    event.respondWith((async function(){var match;try{match=parseMatch(u);}catch(e){return json({ok:false,error:'FILTER_NOT_ALLOWED'},403);}var payload={p_token:await getToken(),p_table:table,p_action:method==='POST'?'INSERT':method,p_match:match,p_data:method==='DELETE'?{}:await requestJson(req)};var r=await rpcFrom(req,'aos_secure_write_v2',p);if(isMissing(r))return fetch(req);var d;try{d=await r.json();}catch(e){return json({ok:false,error:'WRITE_REJECTED'},500);}if(!d||d.ok===false)return json(d||{ok:false,error:'WRITE_REJECTED'},403);return json(d.rows||[],200);})());
   }
 });
