@@ -1,4 +1,4 @@
-# ASCENDA CURRENT restart marker: 2026-08-17 S14
+# ASCENDA CURRENT restart marker: 2026-08-17 post-F13-merge e47cf32
 name: Sentinel F13 CURRENT integration materializer
 
 on:
