@@ -1,0 +1,41 @@
+name: WA Native Anchor Live Probe
+on:
+  push:
+    branches:
+      - diag/wa-native-anchor-live-20260817
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Phase S WhatsApp anchor
+        shell: powershell
+        run: |
+          $base='https://ascenda-os-production.up.railway.app'
+          $tmp=$env:RUNNER_TEMP
+
+          $health = curl.exe -fsS "$base/health?probe=wa-anchor-20260817"
+          if ($LASTEXITCODE -ne 0) { throw 'health probe failed' }
+          if ($health -notmatch 'ascenda-phase-s') { throw 'Phase S marker missing' }
+
+          curl.exe -fsS -D "$tmp\app.headers" -o "$tmp\app.body" "$base/app?probe=wa-anchor-20260817"
+          if ($LASTEXITCODE -ne 0) { throw 'app probe failed' }
+          $appHeaders = Get-Content "$tmp\app.headers" -Raw
+          $appBody = Get-Content "$tmp\app.body" -Raw
+          if ($appHeaders -notmatch 'x-ascenda-phase-s-shell:\s*native-wa-anchor-v1') { throw 'native shell response header missing' }
+          if ($appBody -notmatch 'wa-shell-integration\.js\?v=20260817-wa-shell-p04') { throw 'p04 WhatsApp shell anchor missing from live app' }
+
+          curl.exe -fsS -D "$tmp\wa.headers" -o "$tmp\wa.body" "$base/admin-whatsapp.html?embedded=1&probe=wa-anchor-20260817"
+          if ($LASTEXITCODE -ne 0) { throw 'embedded WA probe failed' }
+          $waHeaders = Get-Content "$tmp\wa.headers" -Raw
+          $waBody = Get-Content "$tmp\wa.body" -Raw
+          if ($waHeaders -notmatch 'x-ascenda-phase-s-shell:\s*native-wa-anchor-v1') { throw 'embedded WA native anchor header missing' }
+          if ($waBody -notmatch 'wa-native-bootstrap-prelude\.js\?v=20260817-s5-p02') { throw 'p02 native bootstrap prelude missing from embedded WA page' }
+
+          curl.exe -sS -D "$tmp\redir.headers" -o NUL "$base/admin-whatsapp.html?probe=wa-anchor-20260817"
+          if ($LASTEXITCODE -ne 0) { throw 'compat redirect probe failed' }
+          $redirHeaders = Get-Content "$tmp\redir.headers" -Raw
+          if ($redirHeaders -notmatch 'HTTP/[^ ]+\s+302') { throw 'standalone WA route did not redirect' }
+          if ($redirHeaders -notmatch 'location:\s*/app\.html#admin-whatsapp') { throw 'standalone WA redirect target incorrect' }
+
+          Write-Host 'WA_NATIVE_ANCHOR_LIVE=PASS'
