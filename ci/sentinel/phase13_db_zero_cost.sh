@@ -29,7 +29,7 @@ insert into public.aos_sentinel_incidents_v1 values('SEN-2099-9401','P1','OPEN',
 insert into public.aos_sentinel_incident_timeline_v1(incident_id,event_type,occurred_at) values('SEN-2099-9401','INCIDENT_OPENED',now()-interval '4 minutes'),('SEN-2099-9401','SIGNAL_ATTACHED',now()-interval '1 minute');
 SQL
 
-docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql
+docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql
 
 check_sql F13_ANON_TABLE_SELECT "select has_table_privilege('anon','public.aos_sentinel_incidents_v1','select')" f
 check_sql F13_ANON_RPC_EXECUTE "select has_function_privilege('anon','public.aos_sentinel_owner_hub_v1(text,integer)','execute')" t
@@ -40,7 +40,7 @@ check_sql F13_CANARY "select (j->>'ok')::boolean and (j->>'active_incidents')::i
 docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < ci/sentinel/sql/phase13_owner_hub_rollback.sql
 check_sql F13_ROLLBACK_ABSENT "select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is null" t
 
-docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql
+docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql
 check_sql F13_REAPPLY_PRESENT "select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is not null" t
 
 echo 'SENTINEL_F13_DB_COMPILE=PASS'
