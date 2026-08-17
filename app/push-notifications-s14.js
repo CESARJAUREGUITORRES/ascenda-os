@@ -7,6 +7,7 @@ function text(v, max) {
 }
 function digits(v) { return String(v || '').replace(/\D/g, '').slice(0, 20) }
 function bool(v) { return v === true || String(v).toLowerCase() === 'true' }
+function topic(v) { return text(v, 32).replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 32) || 'ascenda' }
 
 function createPushService(opts) {
   const serviceRpc = opts && opts.serviceRpc
@@ -113,6 +114,27 @@ function createPushService(opts) {
     }
   }
 
+  function genericEnvelope(n) {
+    const channel = text(n && n.channel, 32).toUpperCase() || 'SYSTEM'
+    const entityId = text(n && n.entity_id, 180)
+    const notificationId = text(n && n.id, 80)
+    return {
+      version: 'AOS_PUSH_V1',
+      channel: channel,
+      event_type: text(n && n.event_type, 80) || 'notification',
+      title: text(n && n.title, 120) || 'ASCENDA',
+      body: text(n && n.body, 320),
+      icon: text(n && n.icon, 256) || '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+      tag: 'aos-' + channel.toLowerCase() + '-' + (entityId || notificationId),
+      route: text(n && n.route, 256) || '/app.html',
+      entity_id: entityId || notificationId,
+      dedupe_key: text(n && n.dedupe_key, 300) || ('notif:' + notificationId),
+      created_at: n && n.created_at || new Date().toISOString(),
+      data: { kind: 'AOS_PUSH', channel: channel, notificationId: notificationId, eventType: text(n && n.event_type, 80) }
+    }
+  }
+
   async function complete(dispatchId, status, errorCode, terminal) {
     try {
       await rpc('aos_push_dispatch_complete_v1', {
@@ -126,13 +148,16 @@ function createPushService(opts) {
     }
   }
 
-  async function deliverOne(target, subscription, payload) {
+  async function sendToSubscription(input) {
+    const subscription = input.subscription
+    const payload = input.payload
+    const recipientUserId = text(input.recipientUserId, 80)
     const claim = await rpc('aos_push_dispatch_claim_v1', {
       subscription_id: subscription.id,
-      recipient_user_id: target.owner_user_id,
-      channel: 'WHATSAPP',
-      event_type: 'message.inbound',
-      entity_id: target.conversation_id,
+      recipient_user_id: recipientUserId,
+      channel: input.channel,
+      event_type: input.eventType,
+      entity_id: input.entityId,
       dedupe_key: payload.dedupe_key
     })
     if (claim.claimed !== true || !claim.dispatch_id) return { skipped: true }
@@ -142,9 +167,9 @@ function createPushService(opts) {
     }
     try {
       await webpush.sendNotification(webSubscription, JSON.stringify(payload), {
-        TTL: 120,
-        urgency: 'high',
-        topic: ('wa-' + String(target.conversation_id || '')).slice(0, 32)
+        TTL: Number(input.ttl || 300),
+        urgency: input.urgency || 'normal',
+        topic: topic(input.topic || (input.channel + '-' + input.entityId))
       })
       await complete(claim.dispatch_id, 'DELIVERED', null, false)
       return { delivered: true }
@@ -154,6 +179,20 @@ function createPushService(opts) {
       await complete(claim.dispatch_id, gone ? 'GONE' : 'FAILED', 'WEB_PUSH_' + (code || 'ERROR'), gone)
       return { failed: true, terminal: gone, statusCode: code }
     }
+  }
+
+  async function deliverOne(target, subscription, payload) {
+    return sendToSubscription({
+      subscription: subscription,
+      payload: payload,
+      recipientUserId: target.owner_user_id,
+      channel: 'WHATSAPP',
+      eventType: 'message.inbound',
+      entityId: target.conversation_id,
+      ttl: 120,
+      urgency: 'high',
+      topic: 'wa-' + String(target.conversation_id || '')
+    })
   }
 
   async function dispatchWhatsAppEnvelope(waEnvelope) {
@@ -196,11 +235,77 @@ function createPushService(opts) {
     return totals
   }
 
+  async function finishNotification(notificationId, status, errorCode) {
+    try {
+      return await rpc('aos_notification_push_complete_v1', {
+        notification_id: notificationId,
+        status: status,
+        error_code: text(errorCode, 160) || null
+      })
+    } catch (e) {
+      logger.error('[S15] notification completion failed', e.message)
+      return null
+    }
+  }
+
+  async function dispatchPendingNotifications(limit) {
+    await ensureVapid()
+    const batch = await rpc('aos_notification_push_claim_v1', { limit: Math.max(1, Math.min(50, Number(limit || 20))) })
+    const rows = Array.isArray(batch.rows) ? batch.rows : []
+    const totals = { ok: true, claimed: rows.length, notifications: 0, delivered: 0, skipped: 0, failed: 0, partial: 0 }
+    for (const n of rows) {
+      const subs = Array.isArray(n.subscriptions) ? n.subscriptions : []
+      if (!subs.length) {
+        totals.skipped++
+        await finishNotification(n.id, 'SKIPPED', 'NO_ACTIVE_PUSH_SUBSCRIPTION')
+        continue
+      }
+      const payload = genericEnvelope(n)
+      let delivered = 0, failed = 0, skipped = 0
+      for (const sub of subs) {
+        const recipient = text(sub && sub.user_id || n.recipient_user_id, 80)
+        if (!recipient) { skipped++; continue }
+        try {
+          const pri = text(n.priority, 24).toUpperCase()
+          const r = await sendToSubscription({
+            subscription: sub,
+            payload: payload,
+            recipientUserId: recipient,
+            channel: text(n.channel, 32).toUpperCase() || 'SYSTEM',
+            eventType: text(n.event_type, 80) || 'notification',
+            entityId: text(n.entity_id, 180) || text(n.id, 80),
+            ttl: pri === 'URGENTE' || pri === 'ALTA' ? 600 : 300,
+            urgency: pri === 'URGENTE' || pri === 'ALTA' ? 'high' : 'normal',
+            topic: (text(n.channel, 24) || 'system') + '-' + (text(n.entity_id, 60) || text(n.id, 60))
+          })
+          if (r.delivered) delivered++
+          else if (r.failed) failed++
+          else skipped++
+        } catch (e) {
+          failed++
+          logger.error('[S15] generic push dispatch failed', e.message)
+        }
+      }
+      totals.notifications++
+      totals.delivered += delivered
+      totals.failed += failed
+      totals.skipped += skipped
+      if (delivered > 0 && failed === 0) await finishNotification(n.id, 'DELIVERED', null)
+      else if (delivered > 0) { totals.partial++; await finishNotification(n.id, 'PARTIAL', 'PARTIAL_DELIVERY') }
+      else if (failed > 0) await finishNotification(n.id, 'FAILED', 'WEB_PUSH_DELIVERY_FAILED')
+      else await finishNotification(n.id, 'SKIPPED', 'NO_DELIVERY_TARGET')
+    }
+    return totals
+  }
+
   function status() {
     return { version: 'AOS_PUSH_V1', configured: !!vapid, subject: vapidSubject }
   }
 
-  return { publicConfig, subscribe, unsubscribe, dispatchWhatsAppEnvelope, ensureVapid, status, messagePreview, senderLabel }
+  return {
+    publicConfig, subscribe, unsubscribe, dispatchWhatsAppEnvelope, dispatchPendingNotifications,
+    ensureVapid, status, messagePreview, senderLabel, genericEnvelope
+  }
 }
 
 module.exports = { createPushService }
