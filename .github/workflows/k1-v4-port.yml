@@ -79,3 +79,5 @@ jobs:
 
       - name: Confirm CURRENT v4 port
         run: echo 'KRONIA_K1_CURRENT_V4_PORT=PASS'
+
+# rerun-after-current-npm-metadata-alignment
