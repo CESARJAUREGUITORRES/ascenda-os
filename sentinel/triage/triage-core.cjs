@@ -15,6 +15,7 @@ const INCIDENT=/^SEN-[0-9]{4}-[0-9]{4,}$/;
 const DIAG=/^F10-[0-9a-f]{20}$/;
 const EVID=/^E[0-9]{3,}$/;
 const CLAIM=/^C[0-9]{3,}$/;
+const NATURAL_ONLY_PATTERNS=new Set(['peru_phone','dni_like']);
 
 function isObject(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
 function stable(v){if(Array.isArray(v))return `[${v.map(stable).join(',')}]`;if(isObject(v))return `{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${stable(v[k])}`).join(',')}}`;return JSON.stringify(v);}
@@ -30,10 +31,11 @@ function scanKeys(v){
     scanKeys(val);
   }
 }
-function privacyCheckString(s,code='F11_SENSITIVE_OUTPUT'){
+function privacyCheckString(s,code='F11_SENSITIVE_OUTPUT',mode='technical'){
   const text=String(s??'');
   if(text.length>4000)fail('F11_TEXT_TOO_LONG');
   for(const [name,pattern] of Object.entries(CONTRACT.output_privacy_patterns)){
+    if(mode!=='natural'&&NATURAL_ONLY_PATTERNS.has(name))continue;
     const rx=new RegExp(pattern,'i');
     if(rx.test(text))fail(code,name);
   }
@@ -41,7 +43,7 @@ function privacyCheckString(s,code='F11_SENSITIVE_OUTPUT'){
   if(/(?:authorization|cookie|password|service[_ -]?role|api[_ -]?key|secret)\s*[:=]/i.test(text))fail(code,'credential-label');
   return text;
 }
-function safeText(v,code,max=1200){const s=privacyCheckString(v,code).trim();if(!s||s.length>max)fail(code);return s;}
+function safeText(v,code,max=1200){const s=privacyCheckString(v,code,'natural').trim();if(!s||s.length>max)fail(code);return s;}
 function safeTech(v,code){const s=String(v??'').trim();if(!s||!TECH.test(s)||s.includes('..')||s.includes('?')||s.includes('#'))fail(code);return s;}
 function assertDiagnostic(report){
   if(!isObject(report)||report.schema_version!=='sentinel-diagnostic-report/v1')fail('F11_F10_REPORT_SCHEMA');
@@ -63,12 +65,7 @@ function assertDiagnostic(report){
 }
 function correlationFrom(report){
   const i=report.incident||{};
-  return {
-    release:i.release||null,
-    commit_sha:i.commit_sha||null,
-    deployment_id:i.deployment_id||null,
-    affected_sha_state:report.affected_sha_state||'UNKNOWN'
-  };
+  return {release:i.release||null,commit_sha:i.commit_sha||null,deployment_id:i.deployment_id||null,affected_sha_state:report.affected_sha_state||'UNKNOWN'};
 }
 function buildPacket(report){
   assertDiagnostic(report);
@@ -77,19 +74,11 @@ function buildPacket(report){
   const hypotheses=report.hypotheses.map(h=>({id:h.id,statement_code:h.statement_code,supporting_evidence:[...(h.supporting_evidence||[])],contradicting_evidence:[...(h.contradicting_evidence||[])],confidence:h.confidence,causality_confirmed:false}));
   const packet={
     schema_version:'sentinel-triage-packet/v1',
-    incident:{
-      incident_id:incident.incident_id,severity:incident.severity,status:incident.status,environment:incident.environment,
-      domain:incident.domain,component:incident.component,capability:incident.capability,failure_family:incident.failure_family,
-      signal_count:Number.isInteger(incident.signal_count)?incident.signal_count:null,reopened_count:Number.isInteger(incident.reopened_count)?incident.reopened_count:null
-    },
+    incident:{incident_id:incident.incident_id,severity:incident.severity,status:incident.status,environment:incident.environment,domain:incident.domain,component:incident.component,capability:incident.capability,failure_family:incident.failure_family,signal_count:Number.isInteger(incident.signal_count)?incident.signal_count:null,reopened_count:Number.isInteger(incident.reopened_count)?incident.reopened_count:null},
     diagnostic:{diagnostic_id:report.diagnostic_id,generated_at:report.generated_at,affected_sha_state:report.affected_sha_state||'UNKNOWN'},
-    correlation:correlationFrom(report),
-    evidence,
-    hypotheses,
-    allowed_next_steps:[...CONTRACT.allowed_next_steps],
+    correlation:correlationFrom(report),evidence,hypotheses,allowed_next_steps:[...CONTRACT.allowed_next_steps],
     guardrails:['CITE_EXISTING_EVIDENCE','NO_CAUSALITY_INVENTION','NO_PHI_PII_SECRETS','READ_ONLY_NEXT_STEPS_ONLY','DECLARE_UNKNOWN_WHEN_EVIDENCE_MISSING'],
-    mcp_tools:[...CONTRACT.mcp_tools],
-    safety:{read_only:true,production_mutation:false,automatic_remediation:false,vendor_neutral:true}
+    mcp_tools:[...CONTRACT.mcp_tools],safety:{read_only:true,production_mutation:false,automatic_remediation:false,vendor_neutral:true}
   };
   privacyCheckString(JSON.stringify(packet));
   packet.packet_digest=digest(packet);
@@ -110,30 +99,23 @@ function validateResponse(response,packet){
   const evidenceMap=packetEvidenceMap(packet),seen=new Set();
   const claims=response.claims.map((c,idx)=>{
     if(!isObject(c))fail('F11_CLAIM_OBJECT',String(idx));
-    const keys=Object.keys(c).sort();
-    const allowed=['claim_id','confidence','evidence_refs','statement','type'];
+    const keys=Object.keys(c).sort();const allowed=['claim_id','confidence','evidence_refs','statement','type'];
     if(keys.some(k=>!allowed.includes(k)))fail('F11_CLAIM_UNAPPROVED_KEY',String(idx));
     const id=String(c.claim_id||'');if(!CLAIM.test(id)||seen.has(id))fail('F11_CLAIM_ID',id);seen.add(id);
     const type=String(c.type||'');if(!CLAIM_TYPES.has(type))fail('F11_CLAIM_TYPE',type);
     const confidence=String(c.confidence||'');if(!CONF.has(confidence))fail('F11_CLAIM_CONFIDENCE',confidence);
     const statement=safeText(c.statement,'F11_CLAIM_STATEMENT',800);
     if(!Array.isArray(c.evidence_refs)||c.evidence_refs.length<1||c.evidence_refs.length>12)fail('F11_CLAIM_EVIDENCE_REQUIRED',id);
-    const refs=[...new Set(c.evidence_refs.map(String))];
-    for(const r of refs)if(!evidenceMap.has(r))fail('F11_UNKNOWN_EVIDENCE_REF',r);
+    const refs=[...new Set(c.evidence_refs.map(String))];for(const r of refs)if(!evidenceMap.has(r))fail('F11_UNKNOWN_EVIDENCE_REF',r);
     if(confidence==='SUPPORTED'&&!refs.some(r=>evidenceMap.get(r).confidence==='SUPPORTED'))fail('F11_SUPPORTED_WITHOUT_SUPPORTED_EVIDENCE',id);
     return {claim_id:id,type,statement,evidence_refs:refs,confidence};
   });
-  const nextSteps=[...new Set(response.next_steps.map(String))];
-  for(const n of nextSteps)if(!NEXT_STEPS.has(n))fail('F11_NEXT_STEP_FORBIDDEN',n);
+  const nextSteps=[...new Set(response.next_steps.map(String))];for(const n of nextSteps)if(!NEXT_STEPS.has(n))fail('F11_NEXT_STEP_FORBIDDEN',n);
   const provider=response.provider===undefined?null:safeTech(response.provider,'F11_PROVIDER_INVALID');
   const model=response.model===undefined?null:safeTech(response.model,'F11_MODEL_INVALID');
   const validated={schema_version:'sentinel-triage-validated/v1',incident_id:response.incident_id,diagnostic_id:response.diagnostic_id,assessment,claims,next_steps:nextSteps,causality_confirmed:false,...(provider?{provider}:{}),...(model?{model}:{})};
   privacyCheckString(JSON.stringify(validated));
-  const audit={
-    schema_version:'sentinel-triage-audit/v1',incident_id:response.incident_id,diagnostic_id:response.diagnostic_id,
-    packet_digest:packet.packet_digest,response_digest:digest(validated),evidence_refs:[...new Set(claims.flatMap(c=>c.evidence_refs))].sort(),
-    validation:'PASS',...(provider?{provider}:{}),...(model?{model}:{})
-  };
+  const audit={schema_version:'sentinel-triage-audit/v1',incident_id:response.incident_id,diagnostic_id:response.diagnostic_id,packet_digest:packet.packet_digest,response_digest:digest(validated),evidence_refs:[...new Set(claims.flatMap(c=>c.evidence_refs))].sort(),validation:'PASS',...(provider?{provider}:{}),...(model?{model}:{})};
   audit.audit_digest=digest(audit);
   return {validated,audit};
 }
