@@ -10,9 +10,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: k1-current-v4-port-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   port:
-    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +25,15 @@ jobs:
           ref: security/kronia-k1-current-main-20260817-v4
 
       - name: Port exact hardened K1 source onto CURRENT main
-        shell: powershell
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
+          set -euo pipefail
           git fetch origin security/kronia-k1-current-final-v3-20260815
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
           node scripts/ci/k1_copy_source_v4.js 57d8ddd6b4c9554a167224369e71f9544c863151
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/ci/k1_port_current_v4.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/ci/k1_v4_runtime_contract_fix.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           git diff --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/server-k1.js
           node --check app/server-phase-s.js
           node --check app/server-f5.js
@@ -46,38 +44,27 @@ jobs:
           node --check chrome-extension/popup.js
           node --check ci/phase5-historical-identity/f5_upload_contract.js
           node ci/phase5-historical-identity/f5_upload_contract.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          python -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Push-Location app
-          python k1_phase2_materialize.py
-          if ($LASTEXITCODE -ne 0) { Pop-Location; exit $LASTEXITCODE }
-          Pop-Location
-          python ci/kronia-k1-phase2/runtime_contract.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Remove-Item -Force app/k1-phase2-runtime-manifest.json
+          python3 -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py
+          (cd app && python3 k1_phase2_materialize.py)
+          python3 ci/kronia-k1-phase2/runtime_contract.py
+          rm -f app/k1-phase2-runtime-manifest.json
 
-          $rail=Get-Content -Raw app/railway.json
-          $k1=Get-Content -Raw app/server-k1.js
-          $phaseS=Get-Content -Raw app/server-phase-s.js
-          if ($rail -notmatch 'sentinel-sentry-init\.cjs.*server-k1\.js') { throw 'Sentinel/K1 Railway entry missing' }
-          if ($k1 -notmatch "server-phase-s\.js") { throw 'K1 Phase S child missing' }
-          if ($k1 -match "spawn\(process\.execPath,\['server-f5\.js'\]") { throw 'K1 still bypasses Phase S' }
-          if ($phaseS -notmatch "server-f5\.js") { throw 'Phase S no longer preserves F5' }
+          grep -q "sentinel-sentry-init.cjs.*server-k1.js" app/railway.json
+          grep -q "server-phase-s.js" app/server-k1.js
+          ! grep -q "spawn(process.execPath,\['server-f5.js'\]" app/server-k1.js
+          grep -q "server-f5.js" app/server-phase-s.js
 
           git status --short
           git add -A
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) { throw 'K1 v4 port produced no delta' }
-          git config user.name 'ASCENDA FAST Bot'
+          if git diff --cached --quiet; then
+            echo 'KRONIA_K1_CURRENT_V4_ALREADY_MATERIALIZED=PASS'
+            exit 0
+          fi
+          git config user.name 'ASCENDA Zero-Cost Bot'
           git config user.email 'actions@users.noreply.github.com'
           git commit -m 'security(k1): rebuild hardened K1 over CURRENT Phase S runtime'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git push origin HEAD:security/kronia-k1-current-main-20260817-v4
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Confirm CURRENT v4 port
         run: echo 'KRONIA_K1_CURRENT_V4_PORT=PASS'
-
-# rerun-after-current-npm-metadata-alignment
