@@ -5,7 +5,7 @@ on:
     branches: ['hotfix/f16-resend-outcomes-20260815']
     paths:
       - '.github/workflows/f16-resend-outcomes-v3.yml'
-      - 'supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql'
+      - 'supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql'
       - 'ci/phase16/test_phase16_delivery_contracts.sql'
       - 'ci/phase16/test_phase16_resend_outcomes_v3.sql'
   workflow_dispatch:
@@ -49,13 +49,13 @@ jobs:
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
           for f in \
-            20260814200500_cia_phase16_email_governed_schema_v1.sql \
-            20260814200600_cia_phase16_email_contracts_v1.sql \
+            20260815215930_cia_phase16_email_governed_schema_v1.sql \
+            20260815220040_cia_phase16_email_contracts_v1.sql \
             20260814220000_cia_phase16_email_delivery_contracts_v2.sql \
-            20260814220100_cia_phase16_email_render_context_hardening.sql \
-            20260814220200_cia_phase16_legacy_email_acl_hardening.sql \
-            20260814220300_cia_phase16_verify_app_session_v1.sql \
-            20260815221000_cia_phase16_resend_outcome_coverage_v3.sql; do
+            20260815220329_cia_phase16_email_render_context_hardening.sql \
+            20260815220458_cia_phase16_legacy_email_acl_hardening.sql \
+            20260815220344_cia_phase16_verify_app_session_v1.sql \
+            20260815221343_cia_phase16_resend_outcome_coverage_v3.sql; do
             psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
           done
           supabase db lint --db-url "$F16_DB_URL" --schema public --level error
@@ -71,9 +71,9 @@ jobs:
       - name: Fail-closed provider surface assertions
         run: |
           set -euo pipefail
-          grep -q "'email.failed'" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
-          grep -q "'email.suppressed'" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
-          grep -q "RESEND_WEBHOOK" supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "'email.failed'" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "'email.suppressed'" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          grep -q "RESEND_WEBHOOK" supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
           test "$(psql "$F16_DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_cia_email_ingest_provider_event_v2(text,text,text,timestamptz,jsonb)','EXECUTE')")" = "f"
           echo 'CIA_PHASE16_RESEND_OUTCOME_SURFACE=PASS'
       - name: Rollback and zero residue
