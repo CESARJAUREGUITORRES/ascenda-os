@@ -8,6 +8,13 @@ on:
       - 'supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql'
       - 'ci/phase16/test_phase16_delivery_contracts.sql'
       - 'ci/phase16/test_phase16_resend_outcomes_v3.sql'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/f16-resend-outcomes-v3.yml'
+      - 'supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql'
+      - 'ci/phase16/test_phase16_delivery_contracts.sql'
+      - 'ci/phase16/test_phase16_resend_outcomes_v3.sql'
   workflow_dispatch:
 
 permissions:
