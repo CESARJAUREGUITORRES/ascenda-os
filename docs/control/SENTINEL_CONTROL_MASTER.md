@@ -45,7 +45,7 @@ Es técnicamente viable reemplazar Sentry por una combinación self-hosted, pero
 - **UptimeRobot Free:** cobertura cloud continua del endpoint público `/health` para disponibilidad externa sin costo incremental.
 - **Uptime Kuma:** observador local/intermitente en CREACTIVE con persistencia, autoarranque Docker y reconciliación de coverage gaps.
 - **Sentinel Core:** topología, reglas de negocio, estados, incidentes `SEN-*`, severidad, evidencias y correlación.
-- **Supabase:** persistencia mínima versionada de estado/incidentes Sentinel; F8 estableció la primera capa productiva protegida.
+- **Supabase:** persistencia mínima versionada de estado/incidentes Sentinel; F8 estableció la primera capa productiva protegida y F9 añadió estado durable de alertas/noise control.
 - **GitHub:** código, releases, commits, PR, CI y evidencia reproducible.
 - **Railway:** runtime/deploy actual; se correlaciona, no se reemplaza.
 - **Telegram:** canal owner para incidentes relevantes; nunca se usa como fuente canónica.
@@ -207,6 +207,7 @@ El panel final debe permitir abrir el incidente, ver evidencia sanitizada, relea
 - no PHI/PII en fixtures.
 - toda nueva tabla/RPC de Sentinel pasa migration versionada, RLS/ACL y Zero-Cost validation según riesgo.
 - F8 persiste solo metadata técnica sanitizada y evidence references tipados; las RPC operativas están restringidas a `service_role` y las tablas no tienen acceso directo de app roles.
+- F9 persiste únicamente ledger/outbox técnico, estado de delivery, digest y maintenance scopes; no guarda mensaje Telegram renderizado, bot token, chat target, PHI ni PII.
 
 ## 12. Política económica
 
@@ -255,11 +256,14 @@ El roadmap operativo detallado está en `docs/control/SENTINEL_ROADMAP_V1.md`.
 ## 16. Checkpoint actual
 
 - F1–F7: `CERRADA / 100_COMPLETE` y fusionadas a `main` con post-merge CI.
-- F8: `COMPLETE CANDIDATE / G12+G13 PASS`; producción contiene la migración `sentinel_f8_incident_engine` con versión de historial live `20260817000618`; el archivo fuente es `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`; el canary `SEN-2026-0001` terminó `RESOLVED`.
-- F8 G12: run `31980704736` PASS en Windows/Linux/PostgreSQL local; Ascenda CI `31980704753` PASS.
-- F8 security boundary: 4 tablas con RLS, sin políticas directas, RPCs operativas `service_role`-only, SECURITY DEFINER con search_path fijo y cero columnas sensibles.
-- F8 PR #208 fue fusionado a `main@a30de31de1f659f4d367f63dab9ff5db8ebab5ac`; una verificación read-only posterior detectó y está corrigiendo únicamente el identificador documental de migration-history para igualarlo a Supabase live.
-- F8 terminal pendiente: hotfix de paridad documental → exact-head CI → merge → final post-merge → Notion last.
-- F9: única fase `SIGUIENTE` después del cierre autoritativo F8 — `Alert Routing, Telegram & Noise Control`.
+- F8: `CERRADA / 100_COMPLETE`; producción contiene `20260817000618 sentinel_f8_incident_engine`; el canary `SEN-2026-0001` terminó `RESOLVED`; PR #208 y paridad documental quedaron cerrados.
+- F8 security boundary: 4 tablas con RLS, sin acceso directo de app roles, RPCs operativas `service_role`-only, SECURITY DEFINER con search_path fijo y cero columnas sensibles.
+- F9: `EN CURSO` y es la única fase activa.
+- F9-A: routing/noise control certificado — P0/P1 immediate, P2 digest, P3 panel-only, cooldown/dedup, flapping, recovery, maintenance y plantillas sanitizadas.
+- F9-B: durable alert state/outbox `PRODUCTION_CERTIFIED`; producción registra `20260817013916 sentinel_f9_alert_outbox` y `20260817014618 sentinel_f9_digest_incident_fk_index`; Zero-Cost certificó concurrencia, replay, durable cooldown, digest dedupe, maintenance, DB lint y rollback/reapply preservando F8; Security Advisor post-DDL = 0 findings.
+- F9 canary productivo durable: PASS sin Telegram network call; IDs técnicos sintéticos solamente.
+- F9 Telegram live: `BLOCKED_BY_CONFIGURATION`; no existe integración canónica activa `Sentinel Owner Alerts`, ni secret-row, bot token o owner chat target en el vault canónico. Este es el único gate pendiente para cerrar F9.
+- F10–F13: `PENDIENTE`; F10 no se promueve mientras F9 siga abierta.
 - Certificados terminales: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
-- Los advisories globales Supabase no relacionados con `aos_sentinel_*` se mantienen fuera del scope F8 y deben tratarse como backlog técnico separado.
+- Certificado F9 durable: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
+- Los advisories Supabase no atribuibles a `aos_sentinel_*` se mantienen fuera del scope Sentinel activo y se tratan como backlog técnico separado.
