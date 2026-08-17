@@ -24,7 +24,7 @@
     "states":["RESERVED","DELIVERED","FAILED","UNAVAILABLE","RETRY_LATER"],
     "actions":["IMMEDIATE","RECOVERY","FLAPPING_SUMMARY","DIGEST"],
     "delivery_truth":"DELIVERED only after transport ACK",
-    "provider_message_id":"technical identifier only"
+    "provider_ack_id":"technical acknowledgement identifier only; never rendered content"
   },
   "digest":{
     "unique_item":"digest_key + incident_id",
