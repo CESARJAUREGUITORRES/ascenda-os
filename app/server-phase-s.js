@@ -16,6 +16,8 @@ const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AUTH_RESEND_RECONCILER=createResendVaultReconciler();
+const WA_SHELL_TAG='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script>';
+const WA_PRELUDE_TAG='<script src="/wa-native-bootstrap-prelude.js?v=20260817-s5-p02"></script>';
 
 let authResendReady=false;
 let authResendSync=null;
@@ -210,6 +212,53 @@ function probeChild(){
   });
 }
 
+function upstreamHeaders(req){
+  const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
+  headers['accept-encoding']='identity';
+  delete headers['content-length'];
+  return headers;
+}
+function sendBuffered(res,r,body){
+  const h=Object.assign({},r.headers);
+  delete h['content-length'];
+  delete h['content-encoding'];
+  delete h['etag'];
+  h['cache-control']='no-store, no-cache, must-revalidate';
+  h['x-ascenda-phase-s-shell']='native-wa-anchor-v1';
+  res.writeHead(r.statusCode||502,h);
+  res.end(body);
+}
+function injectAppShell(html){
+  if(html.indexOf('/wa-shell-integration.js')>=0)return html;
+  if(html.indexOf('</body>')>=0)return html.replace('</body>',WA_SHELL_TAG+'\n</body>');
+  return html+'\n'+WA_SHELL_TAG;
+}
+function injectWaPrelude(html){
+  if(html.indexOf('/wa-native-bootstrap-prelude.js')>=0)return html;
+  const marker="<script>\n(function(){'use strict';";
+  if(html.indexOf(marker)>=0)return html.replace(marker,WA_PRELUDE_TAG+'\n'+marker);
+  if(html.indexOf('</head>')>=0)return html.replace('</head>',WA_PRELUDE_TAG+'\n</head>');
+  return WA_PRELUDE_TAG+'\n'+html;
+}
+function proxyHtml(req,res,mode){
+  const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers:upstreamHeaders(req)},r=>{
+    const chunks=[];
+    r.on('data',c=>chunks.push(Buffer.from(c)));
+    r.on('end',()=>{
+      const raw=Buffer.concat(chunks);
+      const type=String(r.headers['content-type']||'').toLowerCase();
+      if(type.indexOf('text/html')<0)return sendBuffered(res,r,raw);
+      let html=raw.toString('utf8');
+      html=mode==='app'?injectAppShell(html):injectWaPrelude(html);
+      sendBuffered(res,r,Buffer.from(html,'utf8'));
+    });
+  });
+  q.on('error',e=>{
+    console.error('[PHASE-S] html upstream',e.message);
+    if(!res.headersSent)writeJson(res,502,{ok:false,error:'PHASE_S_UPSTREAM_UNAVAILABLE'});else res.end();
+  });
+  req.pipe(q);
+}
 function proxy(req,res){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
   const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
@@ -234,6 +283,12 @@ const server=http.createServer(async(req,res)=>{
     const sync=await ensureAuthResendReady();
     if(!sync||sync.ok!==true)return writeJson(res,503,{ok:false,error:'No fue posible preparar el envío del código 2FA',code:sync&&sync.code?sync.code:'AUTH_RESEND_SYNC_FAILED'});
     proxy(req,res);return;
+  }
+  if(req.method==='GET'&&(p==='/app'||p==='/app.html'))return proxyHtml(req,res,'app');
+  if(req.method==='GET'&&p==='/admin-whatsapp.html'&&u.searchParams.get('embedded')==='1')return proxyHtml(req,res,'wa');
+  if(req.method==='GET'&&p==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
+    res.writeHead(302,{Location:'/app.html#admin-whatsapp','Cache-Control':'no-store'});
+    return res.end();
   }
   if(req.method==='GET'&&p==='/api/wa3/bootstrap')return handleBootstrap(req,res);
   if(req.method==='GET'&&p==='/api/phase-s/status')return handlePhaseStatus(req,res);
