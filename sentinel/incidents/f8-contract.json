@@ -117,7 +117,7 @@
     "fixture_uses_production_persistence": false,
     "live_incidents_in_notion": false,
     "production_status": "certified",
-    "production_migration_version": "20260817000919",
+    "production_migration_version": "20260817000618",
     "production_migration_name": "sentinel_f8_incident_engine",
     "production_canary_incident": "SEN-2026-0001",
     "production_canary_final_status": "RESOLVED"
