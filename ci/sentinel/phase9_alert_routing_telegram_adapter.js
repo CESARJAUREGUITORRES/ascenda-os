@@ -10,14 +10,29 @@ const syntheticToken='123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghi';
 const syntheticChat='-1001234567890';
 const sha='f90542bfa21b7be5e3a306f0d9241c52368fbe19';
 let now='2026-08-16T19:30:00-05:00';
-const state=new MemoryAlertState();
-const router=new AlertRouter({state,clock:()=>now});
-const decision=router.route({
-  incident_id:'SEN-2026-9101',severity:'P1',status:'OPEN',environment:'production',domain:'SENTINEL',component:'alert-router',capability:'telegram-adapter',failure_family:'synthetic-canary',updated_at:now,signal_count:1,reopened_count:0,
-  correlation:{release:`ascenda-os@${sha}`,commit_sha:sha,deployment_id:'f9-telegram-fixture'}
-});
+
+function incidentInput(id){
+  return {
+    incident_id:id,
+    severity:'P1',
+    status:'OPEN',
+    environment:'production',
+    domain:'SENTINEL',
+    component:'alert-router',
+    capability:'telegram-adapter',
+    failure_family:'synthetic-canary',
+    updated_at:now,
+    signal_count:1,
+    reopened_count:0,
+    correlation:{release:`ascenda-os@${sha}`,commit_sha:sha,deployment_id:'f9-telegram-fixture'}
+  };
+}
 
 (async()=>{
+  const state=new MemoryAlertState();
+  const router=new AlertRouter({state,clock:()=>now});
+  const decision=router.route(incidentInput('SEN-2026-9101'));
+
   const disabled=new TelegramTransport({enabled:false,configProvider:async()=>({bot_token:syntheticToken,chat_id:syntheticChat}),fetchImpl:async()=>{throw new Error('MUST_NOT_CALL');}});
   let dispatcher=new AlertDispatcher({router,transport:disabled});
   let result=await dispatcher.dispatch(decision);
@@ -45,10 +60,10 @@ const decision=router.route({
   assert.deepEqual(body.link_preview_options,{is_disabled:true});
   assert.equal(Object.prototype.hasOwnProperty.call(body,'parse_mode'),false);
 
+  const missingRouter=new AlertRouter({state:new MemoryAlertState(),clock:()=>now});
   const missing=new TelegramTransport({enabled:true,configProvider:async()=>({}),fetchImpl:successFetch});
-  dispatcher=new AlertDispatcher({router:new AlertRouter({state:new MemoryAlertState(),clock:()=>now}),transport:missing});
-  const missingDecision=dispatcher.router.route({...decision,incident_id:'SEN-2026-9102'});
-  result=await dispatcher.dispatch(missingDecision);
+  dispatcher=new AlertDispatcher({router:missingRouter,transport:missing});
+  result=await dispatcher.dispatch(missingRouter.route(incidentInput('SEN-2026-9102')));
   assert.equal(result.status,'UNAVAILABLE');
   assert.equal(result.provider_code,'MISCONFIGURED');
 
@@ -56,8 +71,7 @@ const decision=router.route({
   const rate=new TelegramTransport({enabled:true,configProvider:async()=>({bot_token:syntheticToken,chat_id:syntheticChat}),fetchImpl:rateFetch});
   const rateRouter=new AlertRouter({state:new MemoryAlertState(),clock:()=>now});
   dispatcher=new AlertDispatcher({router:rateRouter,transport:rate});
-  const rateDecision=rateRouter.route({...decision,incident_id:'SEN-2026-9103'});
-  result=await dispatcher.dispatch(rateDecision);
+  result=await dispatcher.dispatch(rateRouter.route(incidentInput('SEN-2026-9103')));
   assert.equal(result.status,'RETRY_LATER');
   assert.equal(result.retry_after,17);
   assert.equal(result.delivered,false);
@@ -66,7 +80,7 @@ const decision=router.route({
   const rejected=new TelegramTransport({enabled:true,configProvider:async()=>({bot_token:syntheticToken,chat_id:syntheticChat}),fetchImpl:rejectedFetch});
   const rejectRouter=new AlertRouter({state:new MemoryAlertState(),clock:()=>now});
   dispatcher=new AlertDispatcher({router:rejectRouter,transport:rejected});
-  result=await dispatcher.dispatch(rejectRouter.route({...decision,incident_id:'SEN-2026-9104'}));
+  result=await dispatcher.dispatch(rejectRouter.route(incidentInput('SEN-2026-9104')));
   assert.equal(result.status,'FAILED');
   assert.equal(result.provider_code,'TELEGRAM_REJECTED');
   assert.equal(JSON.stringify(result).includes(syntheticToken),false);
