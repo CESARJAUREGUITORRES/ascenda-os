@@ -45,9 +45,10 @@ jobs:
           node --check ci/phase5-historical-identity/f5_upload_contract.js
           node ci/phase5-historical-identity/f5_upload_contract.js
 
-          python3 -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py
+          python3 -m py_compile app/k1_phase2_materialize.py ci/kronia-k1-phase2/runtime_contract.py ci/kronia-k1-phase2/security_static_contract.py
           (cd app && python3 k1_phase2_materialize.py)
           python3 ci/kronia-k1-phase2/runtime_contract.py
+          python3 ci/kronia-k1-phase2/security_static_contract.py
           rm -f app/k1-phase2-runtime-manifest.json
 
           grep -q "sentinel-sentry-init.cjs.*server-k1.js" app/railway.json
