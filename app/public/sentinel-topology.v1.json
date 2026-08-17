@@ -1,0 +1,22 @@
+{
+  "schema_version":"sentinel-hub-topology/v1",
+  "source_registry_id":"ASCENDA-SENTINEL-REGISTRY-V1",
+  "projection":"owner-ui-safe",
+  "default_state":"UNKNOWN",
+  "domains":[
+    {"id":"AUTH","name":"Authentication & Access","criticality":"critical","components":[{"id":"access-control","name":"Access Control","capabilities":[{"id":"login-v3","criticality":"critical"},{"id":"verify-2fa-v3","criticality":"critical"},{"id":"panel-actor-authorization","criticality":"critical"}]}]},
+    {"id":"SALES","name":"Sales & Revenue Intelligence","criticality":"critical","components":[{"id":"revenue-ops","name":"Revenue Operations","capabilities":[{"id":"sales-ledger","criticality":"critical"},{"id":"sales-intelligence","criticality":"high"},{"id":"cartera-reconciliation","criticality":"critical"},{"id":"product-normalization","criticality":"high"},{"id":"commissions","criticality":"high"}]}]},
+    {"id":"CALL_CENTER","name":"Call Center & Leads","criticality":"critical","components":[{"id":"lead-operations","name":"Lead Operations","capabilities":[{"id":"lead-queue","criticality":"critical"},{"id":"call-ledger","criticality":"critical"}]}]},
+    {"id":"AGENDA","name":"Agenda & Appointments","criticality":"critical","components":[{"id":"scheduling","name":"Scheduling","capabilities":[{"id":"appointment-calendar","criticality":"critical"},{"id":"public-booking","criticality":"high"}]}]},
+    {"id":"WHATSAPP","name":"WhatsApp Revenue Hub","criticality":"critical","components":[{"id":"messaging","name":"Messaging","capabilities":[{"id":"inbound-webhook","criticality":"critical"},{"id":"conversation-inbox","criticality":"critical"},{"id":"boxes-routing-ownership","criticality":"critical"},{"id":"human-outbound","criticality":"critical"},{"id":"ai-copilot","criticality":"high"}]}]},
+    {"id":"EMAIL","name":"Email Operations","criticality":"high","components":[{"id":"email-operations","name":"Email Operations","capabilities":[{"id":"email-send","criticality":"high"},{"id":"email-campaigns-flows","criticality":"high"}]}]},
+    {"id":"MARKETING","name":"Marketing Attribution & Audiences","criticality":"high","components":[{"id":"attribution","name":"Attribution & Audiences","capabilities":[{"id":"marketing-attribution","criticality":"high"},{"id":"audience-segmentation","criticality":"high"}]}]},
+    {"id":"CLINICAL","name":"Patients & Clinical","criticality":"critical","components":[{"id":"clinical-operations","name":"Clinical Operations","capabilities":[{"id":"patient-registry","criticality":"critical"},{"id":"clinical-records","criticality":"critical"},{"id":"historical-identity-intake","criticality":"high"}]}]},
+    {"id":"INVENTORY","name":"Inventory","criticality":"high","components":[{"id":"inventory-control","name":"Inventory Control","capabilities":[{"id":"stock-movements","criticality":"high"}]}]},
+    {"id":"PEOPLE","name":"Team & Attendance","criticality":"high","components":[{"id":"workforce","name":"Workforce","capabilities":[{"id":"team-directory","criticality":"high"},{"id":"attendance-shifts","criticality":"medium"}]}]},
+    {"id":"KRONIA","name":"KronIA & Agents","criticality":"high","components":[{"id":"ai-agents","name":"AI & Agents","capabilities":[{"id":"agent-runtime","criticality":"high"},{"id":"kronia-actions","criticality":"high"}]}]},
+    {"id":"STUDIO","name":"Studio Content Operations","criticality":"medium","components":[{"id":"content-operations","name":"Content Operations","capabilities":[{"id":"content-studio","criticality":"medium"}]}]},
+    {"id":"FINANCE","name":"Billing & Cash","criticality":"critical","components":[{"id":"finance-operations","name":"Finance Operations","capabilities":[{"id":"cash-operations","criticality":"critical"},{"id":"billing-documents","criticality":"high"}]}]},
+    {"id":"PLATFORM","name":"Platform & Configuration","criticality":"critical","components":[{"id":"platform-control","name":"Platform Control","capabilities":[{"id":"runtime-chain","criticality":"critical"},{"id":"configuration-integrations","criticality":"critical"}]}]}
+  ]
+}
