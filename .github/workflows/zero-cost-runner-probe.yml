@@ -1,4 +1,4 @@
-name: Zero-Cost Runner Read-Only Probe
+name: Sentinel F9 Production Read-Only Probe
 
 on:
   push:
@@ -9,44 +9,30 @@ permissions:
   contents: read
 
 jobs:
-  probe-a:
+  production-smoke:
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 5
     steps:
-      - name: Probe local capabilities A
+      - name: Probe Railway health and F9 assets
         shell: powershell
         run: |
-          $ErrorActionPreference='Continue'
-          Write-Host ('COMPUTERNAME=' + $env:COMPUTERNAME)
-          if (Get-Command docker.exe -ErrorAction SilentlyContinue) {
-            Write-Host 'DOCKER_EXE=PRESENT'
-            docker version --format '{{.Server.Os}}' 2>$null
-            Write-Host ('DOCKER_EXIT=' + $LASTEXITCODE)
-            docker info --format '{{.OSType}}' 2>$null
-            Write-Host ('DOCKER_INFO_EXIT=' + $LASTEXITCODE)
-          } else { Write-Host 'DOCKER_EXE=ABSENT' }
-          if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { Write-Host 'WSL_EXE=ABSENT'; exit 0 }
-          wsl.exe -l -q 2>$null
-          Write-Host ('WSL_LIST_EXIT=' + $LASTEXITCODE)
-          exit 0
-
-  probe-b:
-    runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 5
-    steps:
-      - name: Probe local capabilities B
-        shell: powershell
-        run: |
-          $ErrorActionPreference='Continue'
-          Write-Host ('COMPUTERNAME=' + $env:COMPUTERNAME)
-          if (Get-Command docker.exe -ErrorAction SilentlyContinue) {
-            Write-Host 'DOCKER_EXE=PRESENT'
-            docker version --format '{{.Server.Os}}' 2>$null
-            Write-Host ('DOCKER_EXIT=' + $LASTEXITCODE)
-            docker info --format '{{.OSType}}' 2>$null
-            Write-Host ('DOCKER_INFO_EXIT=' + $LASTEXITCODE)
-          } else { Write-Host 'DOCKER_EXE=ABSENT' }
-          if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { Write-Host 'WSL_EXE=ABSENT'; exit 0 }
-          wsl.exe -l -q 2>$null
-          Write-Host ('WSL_LIST_EXIT=' + $LASTEXITCODE)
-          exit 0
+          $ErrorActionPreference='Stop'
+          $base='https://ascenda-os-production.up.railway.app'
+          function Get-Body([string]$path) {
+            $r=Invoke-WebRequest -UseBasicParsing -Uri ($base+$path) -TimeoutSec 20 -Headers @{'Cache-Control'='no-cache'}
+            if ($r.StatusCode -ne 200) { throw "HTTP_$($r.StatusCode):$path" }
+            Write-Host ("PASS_HTTP_200="+$path)
+            return [string]$r.Content
+          }
+          $health=Get-Body '/health'
+          Write-Host ('HEALTH_BODY='+$health)
+          $asset=Get-Body '/sentinel-inapp-notifications.js'
+          if ($asset -notmatch 'AOS_sentinelPollNow') { throw 'SENTINEL_ASSET_SIGNATURE_MISSING' }
+          Write-Host 'PASS_SENTINEL_ASSET_SIGNATURE=true'
+          $sw=Get-Body '/phase2-service-worker.js'
+          if ($sw -notmatch '/sentinel-inapp-notifications.js') { throw 'SENTINEL_SW_INJECTION_MISSING' }
+          Write-Host 'PASS_SENTINEL_SW_INJECTION=true'
+          $app=Get-Body '/app.html'
+          if ($app -notmatch 'btn-notif' -or $app -notmatch 'np-list') { throw 'ASCENDA_NOTIFICATION_SHELL_MISSING' }
+          Write-Host 'PASS_ASCENDA_NOTIFICATION_SHELL=true'
+          Write-Host 'SENTINEL_F9_PRODUCTION_HTTP_SMOKE=PASS'
