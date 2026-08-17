@@ -17,10 +17,10 @@
 | Surface | Live normalized MD5 | Local normalized MD5 | Result |
 |---|---|---|---|
 | `ALTER TABLE expires_at` prefix | `5600c40c0f56929e8e79500b2553864a` | `5600c40c0f56929e8e79500b2553864a` | **PASS** |
-| service-only ACL revoke/grant block | `0f6f2a8e7b7dee77d4b7f820fbac20ee` | `a77c3f1ca94f19a5e1b7e760639629b9` | **DIFF** |
+| service-only ACL revoke/grant block | `0f6f2a8e7b7dee77d4b7f820fbac20ee` | `0f6f2a8e7b7dee77d4b7f820fbac20ee` | **PASS** |
 
 Repository-only descriptive `COMMENT ON FUNCTION` statements after the ACL block: **4**.
 
 ## Decision
 
-**NOT CANONICALLY EQUIVALENT.** Do not version-repair the final F17 migration until the differing durable/security surface is resolved.
+**DURABLE/SECURITY SQL EQUIVALENT.** All five function blocks, the `expires_at` DDL and service-only ACL block match production after comment/whitespace normalization. Whole-file MD5 drift is attributable to formatting and repository-only descriptive comments. The final F17 file is eligible for version alignment, subject to replay-order validation with the four superseded intermediate production migrations represented as explicit no-op history tombstones.
