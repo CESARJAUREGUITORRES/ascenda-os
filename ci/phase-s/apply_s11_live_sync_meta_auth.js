@@ -33,6 +33,6 @@ fs.writeFileSync(phasePath,ph);
 
 const shellPath='app/public/wa-shell-integration.js';
 let sh=fs.readFileSync(shellPath,'utf8');
-sh=repOnce(sh,"NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s9-p01'","NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s11-p01'",'shell native fallback');
+sh=repOnce(sh,"NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s10-p01'","NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s11-p01'",'shell native fallback');
 fs.writeFileSync(shellPath,sh);
 console.log('S11_LIVE_SYNC_META_AUTH_APPLIED');
