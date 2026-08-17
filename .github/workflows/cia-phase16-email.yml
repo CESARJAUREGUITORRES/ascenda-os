@@ -5,6 +5,24 @@ on:
     branches: ['release/cia-phase16-email-20260815-v5']
     paths:
       - 'supabase/migrations/*cia_phase16_email*.sql'
+      - 'supabase/migrations/*cia_phase16_resend*.sql'
+      - 'ci/phase16/**'
+      - 'app/email-gateway.js'
+      - 'app/server.js'
+      - 'app/public/admin-email.html'
+      - 'app/public/attendance.html'
+      - 'app/public/agenda.js'
+      - 'app/public/calls.js'
+      - 'app/public/citas.html'
+      - 'app/public/caja.html'
+      - 'app/public/calls.html'
+      - '.github/workflows/cia-phase16-email.yml'
+      - 'scripts/ci/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*cia_phase16_email*.sql'
+      - 'supabase/migrations/*cia_phase16_resend*.sql'
       - 'ci/phase16/**'
       - 'app/email-gateway.js'
       - 'app/server.js'
@@ -59,12 +77,12 @@ jobs:
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
-          for f in 20260814200500_cia_phase16_email_governed_schema_v1.sql 20260814200600_cia_phase16_email_contracts_v1.sql 20260814220000_cia_phase16_email_delivery_contracts_v2.sql 20260814220100_cia_phase16_email_render_context_hardening.sql 20260814220200_cia_phase16_legacy_email_acl_hardening.sql 20260814220300_cia_phase16_verify_app_session_v1.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
+          for f in 20260815215930_cia_phase16_email_governed_schema_v1.sql 20260815220040_cia_phase16_email_contracts_v1.sql 20260814220000_cia_phase16_email_delivery_contracts_v2.sql 20260815220329_cia_phase16_email_render_context_hardening.sql 20260815220458_cia_phase16_legacy_email_acl_hardening.sql 20260815220344_cia_phase16_verify_app_session_v1.sql 20260815221343_cia_phase16_resend_outcome_coverage_v3.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
           supabase db lint --db-url "$F16_DB_URL" --schema public --level error
       - name: Synthetic positive and negative contracts
         run: |
           set -euo pipefail
-          for f in test_phase16_contracts.sql test_phase16_delivery_contracts.sql test_phase16_render_context_hardening.sql test_phase16_legacy_acl.sql test_phase16_app_session.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "ci/phase16/$f"; done
+          for f in test_phase16_contracts.sql test_phase16_delivery_contracts.sql test_phase16_render_context_hardening.sql test_phase16_legacy_acl.sql test_phase16_app_session.sql test_phase16_resend_outcomes_v3.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "ci/phase16/$f"; done
       - name: Server-authoritative gateway contracts
         run: |
           set -euo pipefail
