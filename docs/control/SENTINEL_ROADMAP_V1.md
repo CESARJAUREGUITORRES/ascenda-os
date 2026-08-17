@@ -205,27 +205,34 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ---
 
-# FASE 9 — Alert Routing, Telegram & Noise Control
+# FASE 9 — Alert Routing, Owner Notifications & Noise Control
 
-**Objetivo:** avisar lo correcto, a la persona correcta, sin fatiga de alertas.
+**Objetivo:** avisar lo correcto al owner/admin dentro de ASCENDA sin fatiga de alertas ni exposición sensible.
 
 ### Trabajos
-- Telegram bot/canal owner;
+- transporte owner canónico `ascenda-in-app`;
+- Telegram como adapter externo opcional `F9-T`;
 - P0/P1 inmediato;
-- P2 agrupado;
+- P2 agrupado/durable;
 - P3 solo panel/log;
-- cooldown/dedup;
+- cooldown/dedup ACK-based;
 - flapping suppression;
 - recovery notification;
-- maintenance window;
-- plantilla sanitizada;
-- links/IDs a Sentinel/GitHub/Sentry cuando sean accesibles;
-- pruebas de rate/noise.
+- maintenance window + P0 bypass;
+- UI sanitizada sobre el shell ASCENDA;
+- Auth V3 + `PASSWORD_2FA` + jerarquía owner/admin;
+- read receipts independientes de delivery ACK;
+- kill switch service-only;
+- F9 fail-open respecto de F8;
+- pruebas de rate/noise/rollback.
 
 ### Gate de salida
-- incidentes críticos notifican;
-- repetición masiva no genera spam;
-- Telegram nunca incluye PHI/PII/secrets.
+- incidentes críticos notifican por el canal owner canónico;
+- replay y repetición masiva no generan spam;
+- recovery se emite una sola vez cuando corresponde;
+- deshabilitar F9 no rompe F8;
+- canal owner nunca incluye PHI/PII/secrets;
+- producción, CI, deployment y shell in-app certificados.
 
 ---
 
@@ -350,8 +357,8 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 | 6 | Business Health | fallos silenciosos |
 | 7 | Correlation | error→release→deploy |
 | 8 | Incident Engine | IDs `SEN-*` persistentes |
-| 9 | Alert Routing | Telegram sin ruido |
-| 10 | Diagnostic Runner | investigación automatizada |
+| 9 | Alert Routing | owner in-app sin ruido; Telegram opcional |
+| 10 | Diagnostic Runner | investigación automatizada read-only |
 | 11 | MCP/AI Triage | análisis asistido |
 | 12 | Safe Remediation | fix→PR con gates |
 | 13 | Sentinel Hub | mapa interno + certificación 100% |
@@ -365,12 +372,14 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local; G01–G12 PASS.
 - Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
 - Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
-- Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado y paridad documental cerrada.
-- Fase 9: `EN CURSO` — F9-A routing/noise control certificado; F9-B durable outbox productivo y certificado con migraciones live `20260817013916 sentinel_f9_alert_outbox` y `20260817014618 sentinel_f9_digest_incident_fk_index`; RLS/ACL, concurrencia, cooldown durable, digest, maintenance, DB lint, rollback/reapply y canary productivo PASS. Único gate pendiente: crear/configurar de forma segura la integración canónica Telegram `Sentinel Owner Alerts` y ejecutar canary real sanitizado + provider ACK + recovery/noise verification. No existe actualmente bot token/chat target en el vault canónico.
-- Fases 10–13: `PENDIENTE`; F10 no se promueve mientras F9 siga abierta.
+- Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado.
+- Fase 9: `CERRADA / 100_COMPLETE` — F9-A routing/noise + F9-B durable outbox + F9-C `ascenda-in-app` certificados; PR #214 fusionado a `main@2a55e61fb9ab5ae6543da4c706cf6813e7910078`; live `20260817174233 sentinel_f9_inapp_owner_alerts`; canaries `SEN-2026-0002` y `SEN-2026-0003` final `RESOLVED`; post-merge CI + Railway `/health`/asset/service-worker/shell smoke PASS. Telegram queda `F9-T DEFERRED / NON-BLOCKING`.
+- Fase 10: `EN CURSO` — Diagnostic Runner read-only; Impact Report y branch son el siguiente gate de implementación.
+- Fases 11–13: `PENDIENTE`.
+- Deuda transversal separada: Supabase Branching/GitHub App mantiene migration-history parity legacy (`Remote migration versions not found in local migrations directory`) por timestamps live ≠ filenames Git. No afecta el runtime/schema F9 certificado; resolver mediante auditoría completa + `supabase migration repair`, nunca reejecutando DDL para maquillar historial.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
-- Certificado durable F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
+- Certificado terminal F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
 - Sentinel no ejecuta remediación automática: diagnóstico pertenece a F10/F11 y rollback/remediation segura a F12.
