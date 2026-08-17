@@ -1,0 +1,122 @@
+{
+  "schema_version": "sentinel-incident-persistence-design/v1",
+  "phase": "F8",
+  "status": "DESIGN_ONLY_NOT_APPLIED",
+  "target": "Supabase/PostgreSQL",
+  "production_ddl_authorized": false,
+  "tables": {
+    "aos_sentinel_incidents_v1": {
+      "purpose": "canonical incident state",
+      "primary_key": "incident_id",
+      "required_columns": [
+        "incident_id text",
+        "incident_fingerprint text",
+        "environment text",
+        "domain text",
+        "component text",
+        "capability text",
+        "failure_family text",
+        "severity text",
+        "status text",
+        "opened_at timestamptz",
+        "updated_at timestamptz",
+        "last_signal_at timestamptz",
+        "resolved_at timestamptz null",
+        "signal_count bigint",
+        "reopened_count integer",
+        "signal_classes text[]",
+        "signal_fingerprints text[]",
+        "evidence_refs jsonb",
+        "correlation jsonb"
+      ],
+      "constraints": [
+        "incident_id matches ^SEN-[0-9]{4}-[0-9]{4,}$",
+        "severity in P0,P1,P2,P3",
+        "status in OPEN,ACK,INVESTIGATING,MITIGATED,RESOLVED",
+        "signal_count >= 1",
+        "reopened_count >= 0"
+      ],
+      "indexes": [
+        "partial unique(environment, incident_fingerprint) where status <> 'RESOLVED'",
+        "index(updated_at desc)",
+        "index(status, severity, updated_at desc)"
+      ]
+    },
+    "aos_sentinel_incident_signals_v1": {
+      "purpose": "idempotency ledger and sanitized normalized signals",
+      "primary_key": "event_id",
+      "required_columns": [
+        "event_id text",
+        "incident_id text references aos_sentinel_incidents_v1",
+        "signal_class text",
+        "signal_fingerprint text",
+        "severity text",
+        "observed_at timestamptz",
+        "evidence_refs jsonb",
+        "correlation jsonb",
+        "recorded_at timestamptz"
+      ],
+      "raw_payload_column": false,
+      "unique_event_id": true
+    },
+    "aos_sentinel_incident_timeline_v1": {
+      "purpose": "immutable technical lifecycle timeline",
+      "primary_key": "timeline_id bigint generated identity",
+      "required_columns": [
+        "timeline_id bigint",
+        "incident_id text references aos_sentinel_incidents_v1",
+        "event_type text",
+        "occurred_at timestamptz",
+        "details jsonb"
+      ],
+      "allowed_event_types": ["INCIDENT_OPENED","SIGNAL_ATTACHED","SEVERITY_ESCALATED","STATUS_CHANGED","INCIDENT_REOPENED"],
+      "free_text_notes": false
+    },
+    "aos_sentinel_incident_counters_v1": {
+      "purpose": "transactional yearly SEN id allocation",
+      "primary_key": "year integer",
+      "required_columns": ["year integer", "last_sequence bigint"],
+      "constraints": ["year between 2000 and 9999", "last_sequence >= 0"]
+    }
+  },
+  "transaction_boundary": {
+    "required": true,
+    "future_rpc": "aos_sentinel_ingest_signal_v1",
+    "steps": [
+      "validate sanitized normalized signal",
+      "check event_id idempotency ledger",
+      "lock/find active incident by environment + incident_fingerprint",
+      "if none, lock/find latest resolved same fingerprint and evaluate reopen window",
+      "if new incident required, atomically increment yearly counter and allocate SEN id",
+      "insert/update incident",
+      "insert signal ledger row",
+      "append timeline rows",
+      "commit as one transaction"
+    ],
+    "race_condition_policy": "unique constraints plus row locks; never retry by inventing a client-side SEN id"
+  },
+  "security": {
+    "rls_enabled": true,
+    "anon_direct_access": "NONE",
+    "authenticated_direct_access": "NONE",
+    "service_role_runtime_boundary": "server-only",
+    "future_admin_read": "protected ASCENDA server endpoint / RPC boundary with existing session + authorization model",
+    "security_definer_search_path_fixed": true,
+    "execute_grants": "explicit least privilege only",
+    "raw_payload_storage": false,
+    "phi_pii_storage": false
+  },
+  "zero_cost_validation": {
+    "required_before_production": true,
+    "local_supabase_migration": true,
+    "concurrency_fixture": true,
+    "replay_fixture": true,
+    "rls_acl_fixture": true,
+    "rollback_sql_required": true
+  },
+  "production_gate": {
+    "migration_file_created": false,
+    "migration_applied": false,
+    "requires_explicit_production_authorization": true
+  }
+}

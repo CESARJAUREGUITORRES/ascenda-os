@@ -1,0 +1,143 @@
+{
+  "schema_version": "sentinel-incidents/v1",
+  "phase": "F8",
+  "baseline_main": "01958565af1a5ffe426ffb0ac9e0588c77341175",
+  "purpose": "Normalize multiple Sentinel signals into stable, deduplicated, privacy-safe incidents without coupling the engine to a storage provider.",
+  "design": {
+    "vendor_neutral": true,
+    "repository_adapter": true,
+    "production_persistence_in_initial_core": false,
+    "notion_live_incident_store": false,
+    "automatic_notification": false,
+    "automatic_remediation": false,
+    "zero_phi_pii": true
+  },
+  "incident_id": {
+    "format": "SEN-YYYY-NNNN",
+    "sequence_scope": "year",
+    "minimum_sequence_digits": 4,
+    "allocation": "repository-transactional",
+    "client_side_guessing_forbidden": true
+  },
+  "signal_classes": [
+    "ERROR",
+    "AVAILABILITY",
+    "BUSINESS_HEALTH",
+    "DEPENDENCY",
+    "DEPLOYMENT_CHANGE",
+    "SECURITY",
+    "USER_REPORTED"
+  ],
+  "severities": ["P0", "P1", "P2", "P3"],
+  "severity_order": ["P0", "P1", "P2", "P3"],
+  "statuses": ["OPEN", "ACK", "INVESTIGATING", "MITIGATED", "RESOLVED"],
+  "status_transitions": {
+    "OPEN": ["ACK", "INVESTIGATING", "MITIGATED", "RESOLVED"],
+    "ACK": ["INVESTIGATING", "MITIGATED", "RESOLVED"],
+    "INVESTIGATING": ["MITIGATED", "RESOLVED"],
+    "MITIGATED": ["INVESTIGATING", "RESOLVED"],
+    "RESOLVED": []
+  },
+  "reopen": {
+    "enabled": true,
+    "window_minutes": 60,
+    "same_incident_fingerprint_required": true,
+    "new_event_id_required": true,
+    "target_status": "OPEN",
+    "outside_window_creates_new_incident": true
+  },
+  "deduplication": {
+    "event_id": "global idempotency key; exact replay must be a no-op",
+    "signal_fingerprint": "identity of a normalized signal pattern/evidence source",
+    "incident_fingerprint": "explicit correlation key for one coherent failure/impact family",
+    "active_incident_uniqueness": "one non-resolved incident per environment + incident_fingerprint",
+    "cross_signal_convergence": true,
+    "implicit_same_module_merge_forbidden": true
+  },
+  "normalized_signal": {
+    "required_fields": [
+      "event_id",
+      "signal_class",
+      "environment",
+      "domain",
+      "component",
+      "capability",
+      "failure_family",
+      "signal_fingerprint",
+      "incident_fingerprint",
+      "severity",
+      "observed_at"
+    ],
+    "optional_fields": ["evidence_refs", "correlation"],
+    "free_text_payload_forbidden": true
+  },
+  "incident": {
+    "required_fields": [
+      "incident_id",
+      "incident_fingerprint",
+      "environment",
+      "domain",
+      "component",
+      "capability",
+      "failure_family",
+      "severity",
+      "status",
+      "opened_at",
+      "updated_at",
+      "last_signal_at",
+      "signal_count",
+      "signal_classes",
+      "evidence_refs",
+      "timeline"
+    ]
+  },
+  "evidence_reference": {
+    "shape": ["kind", "id"],
+    "allowed_kinds": ["sentinel-signal", "sentry-issue", "github-commit", "github-pr", "railway-deployment", "uptime-monitor", "ci-run", "trace"],
+    "raw_payload_forbidden": true,
+    "query_strings_forbidden": true,
+    "credentials_forbidden": true
+  },
+  "correlation_reference": {
+    "allowed_fields": ["release", "commit_sha", "deployment_id", "request_id", "trace_id", "confidence"],
+    "confidence": ["EXACT", "STRONG", "WEAK", "UNKNOWN"],
+    "causality_not_established": true
+  },
+  "timeline_events": [
+    "INCIDENT_OPENED",
+    "SIGNAL_ATTACHED",
+    "SEVERITY_ESCALATED",
+    "STATUS_CHANGED",
+    "INCIDENT_REOPENED"
+  ],
+  "persistence_target": {
+    "preferred": "Supabase/PostgreSQL",
+    "implementation_gate": "separate versioned migration + RLS/ACL + Zero-Cost validation + production authorization",
+    "initial_engine_repository": "in-memory reference adapter",
+    "fixture_uses_production_persistence": false,
+    "live_incidents_in_notion": false,
+    "production_status": "certified",
+    "production_migration_version": "20260817000919",
+    "production_migration_name": "sentinel_f8_incident_engine",
+    "production_canary_incident": "SEN-2026-0001",
+    "production_canary_final_status": "RESOLVED"
+  },
+  "retention": {
+    "resolved_incidents_policy": "retain metadata/timeline according to later storage policy; no sensitive payload",
+    "raw_signal_payload_retention": "forbidden"
+  },
+  "gates": {
+    "multi_signal_convergence": true,
+    "stable_incident_id": true,
+    "replay_idempotent": true,
+    "severity_escalation": true,
+    "valid_status_transitions": true,
+    "reopen_same_id_within_window": true,
+    "new_id_outside_reopen_window": true,
+    "privacy_safe_evidence": true,
+    "cross_platform_ci": true,
+    "production_persistence_requires_separate_gate": true,
+    "zero_cost_persistence_certified": true,
+    "production_persistence_certified": true
+  }
+}

@@ -1,7 +1,7 @@
 # Sentinel — Control Maestro
 
 **Estado:** CURRENT / CANONICAL / DESIGN BASELINE  
-**Fecha:** 2026-08-16 (America/Lima)  
+**Fecha:** 2026-08-16/17 (America/Lima)  
 **Repositorio:** `CESARJAUREGUITORRES/ascenda-os`  
 **Workstream:** `SENTINEL`  
 **Rama fundacional:** `docs/sentinel-control-v1`  
@@ -45,7 +45,7 @@ Es técnicamente viable reemplazar Sentry por una combinación self-hosted, pero
 - **UptimeRobot Free:** cobertura cloud continua del endpoint público `/health` para disponibilidad externa sin costo incremental.
 - **Uptime Kuma:** observador local/intermitente en CREACTIVE con persistencia, autoarranque Docker y reconciliación de coverage gaps.
 - **Sentinel Core:** topología, reglas de negocio, estados, incidentes `SEN-*`, severidad, evidencias y correlación.
-- **Supabase:** almacenamiento mínimo de estado/incidentes de Sentinel cuando se aprueben sus objetos versionados.
+- **Supabase:** persistencia mínima versionada de estado/incidentes Sentinel; F8 estableció la primera capa productiva protegida.
 - **GitHub:** código, releases, commits, PR, CI y evidencia reproducible.
 - **Railway:** runtime/deploy actual; se correlaciona, no se reemplaza.
 - **Telegram:** canal owner para incidentes relevantes; nunca se usa como fuente canónica.
@@ -93,11 +93,13 @@ No se usarán identificadores de pacientes/personas como tags de observabilidad.
 
 ## 7. Incident ID
 
-Formato canónico inicial:
+Formato canónico:
 
 `SEN-YYYY-NNNN`
 
-Un incidente puede relacionar múltiples eventos y sensores, pero debe representar una causa/impacto coherente. El mismo incidente debe poder enlazar evidencia de Sentinel, Sentry, GitHub, Railway, CI y postmortem sin copiar secretos.
+F8 certificó generación transaccional anual, replay idempotente, convergencia explícita por fingerprint, escalamiento de severidad, lifecycle y reopen del mismo ID dentro de la ventana gobernada.
+
+Un incidente puede relacionar múltiples eventos y sensores, pero debe representar una causa/impacto coherente. El mismo incidente puede enlazar evidencia de Sentinel, Sentry, GitHub, Railway, CI y postmortem sin copiar secretos.
 
 ## 8. Mapa inicial de dominios
 
@@ -204,6 +206,7 @@ El panel final debe permitir abrir el incidente, ver evidencia sanitizada, relea
 - no service role en logs.
 - no PHI/PII en fixtures.
 - toda nueva tabla/RPC de Sentinel pasa migration versionada, RLS/ACL y Zero-Cost validation según riesgo.
+- F8 persiste solo metadata técnica sanitizada y evidence references tipados; las RPC operativas están restringidas a `service_role` y las tablas no tienen acceso directo de app roles.
 
 ## 12. Política económica
 
@@ -251,8 +254,11 @@ El roadmap operativo detallado está en `docs/control/SENTINEL_ROADMAP_V1.md`.
 
 ## 16. Checkpoint actual
 
-- F1–F6: `100_COMPLETE` y fusionadas a `main` con post-merge CI.
-- F7: `100_COMPLETE` candidate; PR #207 requiere terminal exact-head PASS, merge y post-merge PASS para que el cierre sea autoritativo.
-- F7 baseline: correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, temporal candidate sin causalidad asumida y rollback target known-good sin ejecución.
-- F8: siguiente fase canónica tras cierre autoritativo F7 — `Sentinel Incident Engine (SEN-*)`.
-- Certificados terminales: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
+- F1–F7: `CERRADA / 100_COMPLETE` y fusionadas a `main` con post-merge CI.
+- F8: `COMPLETE CANDIDATE / G12+G13 PASS`; producción ya contiene la migración versionada `20260817000919 sentinel_f8_incident_engine` y el canary sintético `SEN-2026-0001` terminó `RESOLVED`.
+- F8 G12: run `31980704736` PASS en Windows/Linux/PostgreSQL local; Ascenda CI `31980704753` PASS.
+- F8 security boundary: 4 tablas con RLS, sin políticas directas, RPCs operativas `service_role`-only, SECURITY DEFINER con search_path fijo y cero columnas sensibles.
+- F8 terminal pendiente: exact-head CI de documentación final → PR #208 ready → merge exact head → post-merge main → Notion last.
+- F9: única fase `SIGUIENTE` después del cierre autoritativo F8 — `Alert Routing, Telegram & Noise Control`.
+- Certificados terminales: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
+- Los advisories globales Supabase no relacionados con `aos_sentinel_*` se mantienen fuera del scope F8 y deben tratarse como backlog técnico separado.

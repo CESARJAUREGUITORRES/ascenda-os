@@ -1,7 +1,7 @@
 # Sentinel — Roadmap V1
 
 **Estado:** CURRENT / CANONICAL  
-**Fecha:** 2026-08-16 (America/Lima)  
+**Fecha:** 2026-08-16/17 (America/Lima)  
 **Control Maestro:** `docs/control/SENTINEL_CONTROL_MASTER.md`
 
 ---
@@ -349,7 +349,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 | 5 | Availability | caídas externas |
 | 6 | Business Health | fallos silenciosos |
 | 7 | Correlation | error→release→deploy |
-| 8 | Incident Engine | IDs `SEN-*` |
+| 8 | Incident Engine | IDs `SEN-*` persistentes |
 | 9 | Alert Routing | Telegram sin ruido |
 | 10 | Diagnostic Runner | investigación automatizada |
 | 11 | MCP/AI Triage | análisis asistido |
@@ -362,12 +362,14 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 2: `CERRADA / 100_COMPLETE`.
 - Fase 3: `CERRADA / 100_COMPLETE`.
 - Fase 4: `CERRADA / 100_COMPLETE / 18/18 PASS`.
-- Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local, G01–G12 PASS.
+- Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local; G01–G12 PASS.
 - Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
-- Fase 7: `CERRADA / 100_COMPLETE` — release/SHA/deployment/request/trace correlation, confidence EXACT/STRONG/WEAK/UNKNOWN, causalidad no asumida y rollback target known-good sin ejecución; cierre se vuelve autoritativo al fusionar PR #207 tras exact-head PASS.
-- Fase 8: `SIGUIENTE — Sentinel Incident Engine (SEN-*)`.
-- Fases 9–13: `PENDIENTE`.
+- Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
+- Fase 8: `COMPLETE CANDIDATE / G12+G13 PASS` — Incident Engine y persistencia productiva aplicados; migración `20260817000919 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; pendiente únicamente terminal exact-head merge/post-merge/Notion para cierre autoritativo.
+- Fase 9: `SIGUIENTE — Alert Routing, Telegram & Noise Control` después del cierre autoritativo F8.
+- Fases 10–13: `PENDIENTE`.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
 - Certificado F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
-- F7 no ejecuta rollback ni persiste incidentes; rollback/remediation pertenece a F12 y persistencia `SEN-*` comienza en F8.
+- Certificado F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
+- F8 no envía alertas ni ejecuta remediación; alerting comienza en F9 y rollback/remediation automática pertenece a F12.

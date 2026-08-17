@@ -1,0 +1,110 @@
+name: Sentinel F8 Incident Engine Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths: &f8_paths
+      - 'sentinel/incidents/**'
+      - 'ci/sentinel/phase8_incident_engine_*.js'
+      - 'ci/sentinel/phase8_persistence_zero_cost.sql'
+      - 'ci/sentinel/phase8_persistence_zero_cost.sh'
+      - 'supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql'
+      - 'supabase/rollbacks/20260816233500_sentinel_f8_incident_engine_rollback.sql'
+      - 'docs/control/SENTINEL_F8_*.md'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase8-incident-engine.yml'
+  push:
+    branches: [main]
+    paths: *f8_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f8-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  incident-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: FAST runner healthcheck
+        shell: powershell
+        run: node --version
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check sentinel/incidents/memory-repository.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/incidents/incident-engine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase8_incident_engine_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase8_incident_engine_synthetic.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: F8 incident engine contract
+        shell: powershell
+        run: node ci/sentinel/phase8_incident_engine_contract.js
+      - name: F8 incident lifecycle synthetic
+        shell: powershell
+        run: node ci/sentinel/phase8_incident_engine_synthetic.js
+
+  incident-linux:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            alpine:3.20 \
+            sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+      - name: Cross-platform incident fixtures in disposable Node
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" \
+            -w /work \
+            node:22-alpine \
+            sh -lc 'node --version && node --check sentinel/incidents/memory-repository.cjs && node --check sentinel/incidents/incident-engine.cjs && node ci/sentinel/phase8_incident_engine_contract.js && node ci/sentinel/phase8_incident_engine_synthetic.js'
+
+  persistence-zero-cost:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: '2.72.8'
+      NODE_CLI_IMAGE: 'node:22-bookworm-slim'
+      PSQL_IMAGE: 'postgres:17-alpine'
+      WORKSPACE_FIX_IMAGE: 'alpine:3.20'
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            "$WORKSPACE_FIX_IMAGE" \
+            sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: Enforce isolated Zero-Cost runner
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+          python3 --version
+          bash -n ci/sentinel/phase8_persistence_zero_cost.sh
+      - name: F8 isolated PostgreSQL migration concurrency RLS rollback certificate
+        run: bash ci/sentinel/phase8_persistence_zero_cost.sh
