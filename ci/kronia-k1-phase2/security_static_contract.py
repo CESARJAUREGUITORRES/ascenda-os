@@ -44,9 +44,27 @@ for pat,label in [
 if 'aos_integration_secrets_v1' not in sql: fail('private provider vault missing')
 
 # Sensitive tables may never receive browser write authority from K1 migrations.
-sensitive='aos_(?:usuarios|rrhh|integraciones|integration_secrets_v1|auth_credentials|app_sessions_v3|login_challenges_v3|auth_codes|kronia_acciones|security_log)'
-if re.search(rf'(?is)grant\s+(?:all|insert|update|delete)(?:\s*,\s*(?:insert|update|delete))*\s+on\s+(?:table\s+)?public\.{sensitive}.*?\s+to\s+(?:public|anon|authenticated)\b',sql):
-    fail('browser write grant on sensitive table')
+# Parse each GRANT statement independently so a service_role table grant cannot be
+# accidentally concatenated with a later browser EXECUTE grant across semicolons.
+sensitive_tables={
+    'aos_usuarios','aos_rrhh','aos_integraciones','aos_integration_secrets_v1',
+    'aos_auth_credentials','aos_app_sessions_v3','aos_login_challenges_v3',
+    'aos_auth_codes','aos_kronia_acciones','aos_security_log'
+}
+write_privs={'all','insert','update','delete','truncate','references','trigger'}
+grant_re=re.compile(
+    r'(?ims)^\s*grant\s+(.+?)\s+on\s+(?:table\s+)?public\.(aos_[a-z0-9_]+)\s+to\s+([^;]+);'
+)
+for m in grant_re.finditer(sql):
+    priv_expr=m.group(1).strip().lower()
+    table=m.group(2).strip().lower()
+    recipients={x.strip().lower() for x in m.group(3).split(',')}
+    if table not in sensitive_tables or not recipients.intersection({'public','anon','authenticated'}):
+        continue
+    normalized=re.sub(r'\([^)]*\)','',priv_expr)
+    priv_tokens={x.strip() for x in normalized.split(',')}
+    if priv_tokens.intersection(write_privs):
+        fail('browser write grant on sensitive table: '+table+' privileges='+priv_expr+' recipients='+','.join(sorted(recipients)))
 
 # Full Team PII view must be service-side only and browser use must go through the tokenized feed.
 if 'revoke all on table public.aos_team_full from public,anon,authenticated' not in low:
