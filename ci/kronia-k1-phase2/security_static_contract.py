@@ -42,6 +42,8 @@ for pat,label in [
 ]:
     if re.search(pat,sql): fail(label)
 if 'aos_integration_secrets_v1' not in sql: fail('private provider vault missing')
+if "::regprocedure" in text(MIG/'20260817170100_kronia_k1_app_token_control_plane.sql'): fail('hard optional legacy regprocedure cast in K1-B')
+if "r:=to_regprocedure(v_sig);" not in text(MIG/'20260817170100_kronia_k1_app_token_control_plane.sql'): fail('guarded optional K1-B ACL resolver missing')
 
 # Sensitive tables may never receive browser write authority from K1 migrations.
 # GRANT statements in these migrations are one-line statements. Keep the parser
@@ -99,6 +101,7 @@ if 'historial: state.historial' in core or 'data.historial' in core: fail('Chrom
 if re.search(r'(?i)(password|contrase(?:n|ñ)a)\s*:',core): fail('password persisted in KronIA core')
 
 recovery=text(ROOT/'supabase'/'rollbacks'/'20260814_kronia_k1_phase2_safe_recovery.sql').lower()
+if '::regprocedure' in recovery or 'to_regprocedure(v_sig)' not in recovery: fail('recovery optional RPC ACL is not idempotent')
 for needle in ['aos_integration_secrets_v1','force row level security','aos_team_full','aos_auth_credentials']:
     if needle not in recovery: fail('recovery invariant missing '+needle)
 

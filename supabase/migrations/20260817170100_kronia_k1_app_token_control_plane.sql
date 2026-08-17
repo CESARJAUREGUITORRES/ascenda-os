@@ -100,34 +100,41 @@ $function$;
 revoke all on function public.aos_kronia_tool_v3(text,text,jsonb) from public;
 grant execute on function public.aos_kronia_tool_v3(text,text,jsonb) to anon,authenticated,service_role;
 
--- Raw implementations are never browser-callable after K1.
+-- Raw implementations and retired token helpers are never browser-callable after K1.
+-- Optional legacy RPCs are resolved with to_regprocedure(): production revokes every
+-- function that exists, while clean/staging installs do not abort on absent legacy code.
 do $acl$
-declare r regprocedure;
+declare v_sig text; r regprocedure;
 begin
-  foreach r in array array[
-    'public.aos_editar_venta(bigint,jsonb,text,text,text)'::regprocedure,
-    'public.aos_kronia_agregar_nota_paciente(text,text,text)'::regprocedure,
-    'public.aos_kronia_buscar_cita(text,text,text)'::regprocedure,
-    'public.aos_kronia_buscar_paciente(text)'::regprocedure,
-    'public.aos_kronia_buscar_venta(text,text,text)'::regprocedure,
-    'public.aos_kronia_editar_cita(bigint,jsonb,text,text)'::regprocedure,
-    'public.aos_kronia_editar_paciente(text,jsonb,text)'::regprocedure,
-    'public.aos_kronia_explorar(text,text,jsonb)'::regprocedure,
-    'public.aos_kronia_marcar_estado_cita(bigint,text,text,text)'::regprocedure,
-    'public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text)'::regprocedure,
-    'public.aos_kronia_obtener_insights_sofia()'::regprocedure,
-    'public.aos_kronia_stats_agenda()'::regprocedure,
-    'public.aos_kronia_stats_leads()'::regprocedure,
-    'public.aos_kronia_stats_llamadas()'::regprocedure,
-    'public.aos_kronia_stats_pacientes()'::regprocedure
+  foreach v_sig in array array[
+    'public.aos_editar_venta(bigint,jsonb,text,text,text)',
+    'public.aos_kronia_agregar_nota_paciente(text,text,text)',
+    'public.aos_kronia_buscar_cita(text,text,text)',
+    'public.aos_kronia_buscar_paciente(text)',
+    'public.aos_kronia_buscar_venta(text,text,text)',
+    'public.aos_kronia_editar_cita(bigint,jsonb,text,text)',
+    'public.aos_kronia_editar_paciente(text,jsonb,text)',
+    'public.aos_kronia_explorar(text,text,jsonb)',
+    'public.aos_kronia_marcar_estado_cita(bigint,text,text,text)',
+    'public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text)',
+    'public.aos_kronia_obtener_insights_sofia()',
+    'public.aos_kronia_stats_agenda()',
+    'public.aos_kronia_stats_leads()',
+    'public.aos_kronia_stats_llamadas()',
+    'public.aos_kronia_stats_pacientes()',
+    'public.aos_kronia_limpiar_tokens_expirados()',
+    'public.aos_kronia_emitir_token(text,text,text,text,text,text,text)',
+    'public.aos_kronia_verify_token(text)',
+    'public.aos_kronia_revocar_token(text)'
   ] loop
-    execute format('revoke all on function %s from public,anon,authenticated',r);
-    execute format('grant execute on function %s to service_role',r);
+    r:=to_regprocedure(v_sig);
+    if r is not null then
+      execute format('revoke all on function %s from public,anon,authenticated',r);
+      execute format('grant execute on function %s to service_role',r);
+    end if;
   end loop;
 end
 $acl$;
-revoke all on function public.aos_kronia_limpiar_tokens_expirados() from public,anon,authenticated;
-grant execute on function public.aos_kronia_limpiar_tokens_expirados() to service_role;
 
 -- Legacy KronIA tokens are no longer an authority source.
 alter table public.aos_kronia_tokens enable row level security;
@@ -135,9 +142,6 @@ drop policy if exists kronia_tokens_service_only on public.aos_kronia_tokens;
 create policy kronia_tokens_service_only on public.aos_kronia_tokens for all to service_role using(true) with check(true);
 revoke all on table public.aos_kronia_tokens from public,anon,authenticated;
 grant all on table public.aos_kronia_tokens to service_role;
-revoke all on function public.aos_kronia_emitir_token(text,text,text,text,text,text,text) from public,anon,authenticated;
-revoke all on function public.aos_kronia_verify_token(text) from public,anon,authenticated;
-revoke all on function public.aos_kronia_revocar_token(text) from public,anon,authenticated;
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 2. Authoritative audit/log stores = service-only. Browser reads use feeds.

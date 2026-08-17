@@ -48,31 +48,32 @@ revoke all on table public.aos_log_auditoria from anon,authenticated;
 revoke all on table public.aos_security_log from anon,authenticated;
 
 -- Never restore raw browser-callable business/KronIA authority.
+-- Recovery is idempotent even when a clean install never had a legacy RPC.
 do $acl$
-declare r regprocedure;
+declare v_sig text; r regprocedure;
 begin
-  foreach r in array array[
-    'public.aos_editar_venta(bigint,jsonb,text,text,text)'::regprocedure,
-    'public.aos_kronia_agregar_nota_paciente(text,text,text)'::regprocedure,
-    'public.aos_kronia_buscar_cita(text,text,text)'::regprocedure,
-    'public.aos_kronia_buscar_paciente(text)'::regprocedure,
-    'public.aos_kronia_buscar_venta(text,text,text)'::regprocedure,
-    'public.aos_kronia_editar_cita(bigint,jsonb,text,text)'::regprocedure,
-    'public.aos_kronia_editar_paciente(text,jsonb,text)'::regprocedure,
-    'public.aos_kronia_explorar(text,text,jsonb)'::regprocedure,
-    'public.aos_kronia_marcar_estado_cita(bigint,text,text,text)'::regprocedure,
-    'public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text)'::regprocedure
-  ] loop execute format('revoke all on function %s from public,anon,authenticated',r); end loop;
+  foreach v_sig in array array[
+    'public.aos_editar_venta(bigint,jsonb,text,text,text)',
+    'public.aos_kronia_agregar_nota_paciente(text,text,text)',
+    'public.aos_kronia_buscar_cita(text,text,text)',
+    'public.aos_kronia_buscar_paciente(text)',
+    'public.aos_kronia_buscar_venta(text,text,text)',
+    'public.aos_kronia_editar_cita(bigint,jsonb,text,text)',
+    'public.aos_kronia_editar_paciente(text,jsonb,text)',
+    'public.aos_kronia_explorar(text,text,jsonb)',
+    'public.aos_kronia_marcar_estado_cita(bigint,text,text,text)',
+    'public.aos_kronia_reprogramar_seguimiento(text,text,text,text,text)',
+    'public.aos_login(text,text)',
+    'public.aos_admin_crear_usuario(text,text,text,text,text,text,integer,text,text)',
+    'public.aos_admin_cambiar_password(uuid,text)',
+    'public.aos_admin_cambiar_password(text,text,text,text)',
+    'public.aos_cambiar_password(text,text,text)'
+  ] loop
+    r:=to_regprocedure(v_sig);
+    if r is not null then execute format('revoke all on function %s from public,anon,authenticated',r); end if;
+  end loop;
 end
 $acl$;
-
--- Historical password-only/admin functions stay retired.
-revoke execute on function public.aos_login(text,text) from public,anon,authenticated;
-revoke execute on function public.aos_admin_crear_usuario(text,text,text,text,text,text,integer,text,text) from public,anon,authenticated;
-revoke execute on function public.aos_admin_cambiar_password(uuid,text) from public,anon,authenticated;
-revoke execute on function public.aos_admin_cambiar_password(text,text,text,text) from public,anon,authenticated;
-revoke execute on function public.aos_cambiar_password(text,text,text) from public,anon,authenticated;
-
 
 -- Sensitive identity reads remain least-privilege during recovery.
 revoke all on table public.aos_usuarios from anon,authenticated;
