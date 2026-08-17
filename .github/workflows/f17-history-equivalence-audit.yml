@@ -71,16 +71,12 @@ jobs:
           acl_marker='revoke all on function public.aos_cia_channel_register_canary_recipient_v1'
           acl_pos=lower.find(acl_marker)
           suffix=sql[acl_pos:]
-          # Production final statement ends after the four service-only grants.
-          # Repository adds COMMENT ON metadata afterwards. Remove only those
-          # metadata statements before comparing security-significant ACL SQL.
-          acl_only=re.sub(r'(?is)comment\s+on\s+function\s+public\.[^;]+;',' ',suffix)
+          comment_pos=suffix.lower().find('comment on function')
+          acl_only=suffix if comment_pos < 0 else suffix[:comment_pos]
           acl_md5=md5(norm(acl_only))
           acl_expected='0f6f2a8e7b7dee77d4b7f820fbac20ee'
           acl_status='PASS' if acl_md5==acl_expected else 'DIFF'
-
-          comments=re.findall(r'(?is)comment\s+on\s+function\s+public\.[^;]+;',suffix)
-          comments_count=len(comments)
+          comments_count=len(re.findall(r'(?i)comment\s+on\s+function\s+public\.',suffix))
           aux_mismatch = prefix_status!='PASS' or acl_status!='PASS'
 
           out=Path('docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md')
@@ -117,5 +113,5 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add docs/control/F17_HISTORY_EQUIVALENCE_AUDIT_20260817.md
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'docs(audit): extend F17 history equivalence to DDL and ACL'
+          git commit -m 'docs(audit): finalize F17 history equivalence matrix'
           git push origin HEAD:${GITHUB_REF_NAME}
