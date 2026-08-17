@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S9 — controlled-write + revenue + Sentinel + WhatsApp native layout bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S12 — controlled-write + revenue + Sentinel + WhatsApp native layout/alerts bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -34,6 +34,9 @@ async function injectF4(req){
   }
   if(html.indexOf('/wa-native-layout-s9.js')<0){
     tags+='<script src="/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01"></script>';
+  }
+  if(html.indexOf('/wa-human-alerts.js')<0){
+    tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s12-p01"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
