@@ -182,3 +182,106 @@ Observabilidad actual:
 Railway mantiene PHASE S como outer runtime y `main` ahora precarga Sentinel/Sentry antes de `server-phase-s.js` mediante `NODE_OPTIONS='--require ./sentinel-sentry-init.cjs'`. Esto agrega observabilidad sin cambiar el contrato WA-3 de envío.
 
 **NEXT sigue siendo S2 autenticado.** No existe evidencia de un outbound parcial previo que deba limpiarse o reconciliarse antes de la prueba.
+
+## 10. S8 — Native Workspace Cutover — 2026-08-17
+
+### Causa raíz consolidada
+
+Las iteraciones S5–S7 demostraron que el problema operativo no era Supabase, ownership, boxes ni el sender de Meta. El camino normal continuaba siendo:
+
+`ASCENDA shell → iframe WA-3 → bridges de sessionStorage/cookie/service worker → recovery read-only`.
+
+Cuando el iframe no conseguía bootstrap fuerte, el recovery sí podía mostrar el inbox pero deliberadamente no construía el composer ni los controles completos de ownership/routing. Eso producía la situación observada: chats visibles + `Recuperación automática` + imposibilidad de responder.
+
+### Decisión arquitectónica S8
+
+El iframe/recovery fue retirado del **camino normal**. La operación diaria ahora queda:
+
+`ASCENDA shell → wa-native-panel.js → X-AOS-App-Token del mismo shell → PHASE S / WA-3 APIs → Supabase / Meta`.
+
+La shadow page histórica se conserva únicamente como rollback/auditoría y ya no participa en la navegación normal de WhatsApp Hub.
+
+### PR y merge
+
+- PR: `#234 — WA S8 — panel nativo integrado en ASCENDA`;
+- merge productivo: `736f78c96196a3ad65a70cf39cfc42420e2d3908`;
+- archivos productivos afectados:
+  - `app/public/wa-native-panel.js`;
+  - `app/public/wa-shell-integration.js`;
+  - `app/server-phase-s.js`;
+  - contrato `ci/phase-s/wa_native_s8_contract.js`;
+  - workflow Phase S para incluir el gate S8.
+
+### Contratos pre-merge
+
+Pasaron antes del cutover:
+
+- runtime syntax;
+- Phase S boundary contract;
+- **WA S8 native workspace contract**;
+- Auth Resend private-vault regression;
+- WA-1 gateway regression;
+- F4 runtime topology contract;
+- Ascenda CI completo, incluyendo todos los JavaScript públicos y archivos críticos.
+
+El único rojo del workflow umbrella continúa siendo el contrato histórico F5 que exige literalmente que `npm start` entre por F5; es una expectativa anterior al outer boundary productivo actual y no fue introducida por S8.
+
+### Funcionalidad incluida en S8
+
+El panel nativo contiene:
+
+- inbox/buscador;
+- timeline central;
+- composer humano + botón `Enviar`;
+- gate frontend consistente con backend: `human_send_enabled + owner exacto + HUMAN_ACTIVE|AI_COPILOT`;
+- idempotency key por envío;
+- asignación de business box y owner mediante APIs WA-3 existentes;
+- acción `Asignarme`;
+- modos `HUMAN_ACTIVE` y `AI_COPILOT` mediante RPC gobernado;
+- liberación a cola;
+- ficha operativa Lead & Routing con teléfono, owner, box, campaña, lead/ad id, mensajes y último contacto;
+- indicador de Human/Copilot/BOT;
+- panel izquierdo y derecho plegables para ampliar la conversación;
+- polling de inbox y timeline;
+- error 2FA explícito en vez de recovery silencioso.
+
+No se habilitó AI outbound ni auto-routing.
+
+### Production probe — PASS
+
+Un probe externo ejecutado desde runner self-hosted verificó en Railway:
+
+- `/health` sigue en `ascenda-phase-s`;
+- `/app` contiene `wa-native-panel.js?v=20260817-wa-native-s8-p01`;
+- `/app` contiene `wa-shell-integration.js?v=20260817-wa-shell-s8-p01`;
+- el asset nativo contiene `AOS_WA_NATIVE`, `X-AOS-App-Token`, `/send`, estructura Lead/Routing, controles plegables y gates de composer;
+- el shell S8 ya no contiene `WA_IFRAME_URL`;
+- el shell S8 ya no contiene markup `<iframe>`;
+- el shell S8 ya no contiene `installRecovery`;
+- `/api/wa3/bootstrap` sin autenticación continúa rechazando con `403 WA3_2FA_PANEL_REQUIRED`.
+
+### Estado DB después del cutover
+
+Revalidado después del merge:
+
+- outbound requests: `0`;
+- mensajes OUTBOUND: `0`;
+- AI runs: `0`;
+- `zi vital` sigue `HUMAN_ACTIVE`;
+- box `VENTAS_GENERAL` / `Ventas General WhatsApp`;
+- ownership version `2`;
+- exactamente `1` assignment activo;
+- `human_send_enabled=true`;
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`.
+
+### Gate restante inmediato
+
+S8 está desplegado y estructuralmente certificado, pero no debe declararse todavía como envío humano certificado hasta completar una sesión real de usuario:
+
+1. abrir/reiniciar ASCENDA para cargar los assets cache-busted S8;
+2. entrar a WhatsApp Hub;
+3. confirmar que no existe `Recuperación automática`;
+4. confirmar visualmente Lead & Routing + composer;
+5. ejecutar un solo S2 outbound canary;
+6. reconciliar `ACCEPTED → sent → delivered → read|failed`.
