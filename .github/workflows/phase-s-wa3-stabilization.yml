@@ -13,6 +13,8 @@ on:
       - 'app/server-wa2.js'
       - 'app/server-f4.js'
       - 'app/wa-gateway.js'
+      - 'app/public/wa-shell-integration.js'
+      - 'app/public/wa-native-panel.js'
       - 'ci/phase-s/**'
       - 'ci/phase16/test_auth_resend_reconcile.js'
       - 'ci/phase4-revenue/**'
@@ -64,6 +66,9 @@ jobs:
             'app/server-wa2.js',
             'app/server-f4.js',
             'app/wa-gateway.js',
+            'app/public/wa-shell-integration.js',
+            'app/public/wa-native-panel.js',
+            'ci/phase-s/wa_native_s8_contract.js',
             'ci/phase16/test_auth_resend_reconcile.js'
           )
           foreach ($file in $files) {
@@ -75,6 +80,12 @@ jobs:
         shell: powershell
         run: |
           node ci/phase-s/phase-s_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA S8 native workspace contract
+        shell: powershell
+        run: |
+          node ci/phase-s/wa_native_s8_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Auth Resend private-vault regression
@@ -140,5 +151,6 @@ jobs:
         shell: powershell
         run: |
           Write-Host 'PHASE S NODE/RUNTIME GATE PASS'
+          Write-Host 'WA S8 NATIVE WORKSPACE CONTRACT PASS'
           Write-Host 'AUTH RESEND PRIVATE-VAULT RECONCILIATION GATE PASS'
-          Write-Host 'Production validation remaining: deploy health + authenticated 2FA email canary.'
+          Write-Host 'Production validation remaining: deploy health + authenticated human outbound canary.'
