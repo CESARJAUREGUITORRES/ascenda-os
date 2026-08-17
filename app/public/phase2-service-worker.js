@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4/F9 — app-wide controlled-write + revenue operations + Sentinel owner notification bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S9 — controlled-write + revenue + Sentinel + WhatsApp native layout bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -31,6 +31,9 @@ async function injectF4(req){
   }
   if(html.indexOf('/wa-shell-integration.js')<0){
     tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p03"></script>';
+  }
+  if(html.indexOf('/wa-native-layout-s9.js')<0){
+    tags+='<script src="/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
@@ -73,8 +76,7 @@ self.addEventListener('fetch',function(event){
   if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
     event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
   }
-  // WA APIs are same-origin and may execute inside the embedded workspace.
-  // Inject the already-governed Phase 2 token from the same-origin cache.
+  // WA APIs are same-origin and use the already-governed Phase 2 token cache.
   if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0)){
     event.respondWith(injectSameOriginAppToken(req));return;
   }
