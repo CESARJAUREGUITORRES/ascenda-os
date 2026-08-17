@@ -1,0 +1,3 @@
+'use strict';
+class AscendaInAppTransport{constructor({publish,clock=()=>new Date().toISOString(),isAvailable=true}={}){if(typeof publish!=='function')throw new Error('F9_INAPP_PUBLISH_REQUIRED');this.publish=publish;this.clock=clock;this.isAvailable=isAvailable;}available(){return this.isAvailable===true;}async send(envelope){if(!this.available())return {ok:false,code:'UNAVAILABLE'};if(!envelope||envelope.channel!=='ascenda-in-app')return {ok:false,code:'MISCONFIGURED'};const out=await this.publish(envelope);if(!out||out.ok!==true)return {ok:false,code:out?.code||'PERSISTENCE_REJECTED'};return {ok:true,message_id:String(out.ack_id||out.dispatch_id||'inapp-ack'),at:out.at||this.clock()};}}
+module.exports={AscendaInAppTransport};
