@@ -1,0 +1,15 @@
+{
+  "ambiguous_content_match": 0,
+  "content_exact_name_and_version_drift": 0,
+  "content_exact_version_drift": 0,
+  "duplicate_local_version": 0,
+  "exact_content": 6,
+  "exact_version_content_mismatch": 1,
+  "local_only": 23,
+  "local_rows_all": 89,
+  "name_match_content_mismatch": 24,
+  "remote_only": 29,
+  "remote_rows": 60,
+  "unsupported_statement_count": 0,
+  "version_name_conflict": 0
+}
