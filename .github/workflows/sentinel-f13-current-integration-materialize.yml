@@ -6,6 +6,7 @@ on:
       - 'integration/sentinel-f13-current-20260817-v1'
     paths:
       - '.github/workflows/sentinel-f13-current-integration-materialize.yml'
+      - 'ci/sentinel/phase13_ui_security_test.js'
   workflow_dispatch:
 
 permissions:
@@ -115,7 +116,7 @@ jobs:
       - name: Commit and push integrated candidate
         run: |
           set -euo pipefail
-          git add supabase/migrations .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh
+          git add supabase/migrations .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh ci/sentinel/phase13_ui_security_test.js
           if ! git diff --cached --quiet; then
             git commit -m 'fix(sentinel): align F13 CURRENT integration to live migration version'
           fi
