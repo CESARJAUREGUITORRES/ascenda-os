@@ -1,0 +1,20 @@
+'use strict';
+const fs=require('fs');function ok(v,m){if(!v)throw new Error(m);}
+const hub=fs.readFileSync('app/public/sentinel-hub.js','utf8');const boot=fs.readFileSync('app/public/sentinel-hub-bootstrap.js','utf8');const notif=fs.readFileSync('app/public/sentinel-inapp-notifications.js','utf8');const sql=fs.readFileSync('supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql','utf8');
+ok(hub.includes("String(c.role||'').toUpperCase()==='ADMIN'")&&hub.includes('Number(c.nivel||99)<=2'),'client owner/admin gate missing');
+ok(boot.includes("String(c.role||'').toUpperCase()==='ADMIN'")&&boot.includes('Number(c.nivel||99)<=2'),'bootstrap owner/admin gate missing');
+ok(hub.includes("sessionStorage.getItem('aos_app_token')"),'strong session token missing');
+ok(hub.includes('aos_sentinel_owner_hub_v1'),'owner hub RPC missing');
+ok(!hub.includes('service_role')&&!hub.includes('SUPABASE_SERVICE_ROLE_KEY'),'browser service role leak');
+ok(!hub.includes('.innerHTML'),'remote-data client must not use innerHTML');
+ok(hub.includes('textContent'),'safe DOM rendering missing');
+ok(sql.includes('security definer')&&sql.includes("set search_path=''"),'RPC security definer/search_path missing');
+ok(sql.includes('aos_sentinel_owner_actor_v1(p_token)'),'F9 Auth V3 owner boundary not reused');
+ok(sql.includes("'SENTINEL_OWNER_2FA_REQUIRED'"),'2FA negative missing');
+ok(!/insert\s+into\s+public\.aos_sentinel/i.test(sql)&&!/update\s+public\.aos_sentinel/i.test(sql)&&!/delete\s+from\s+public\.aos_sentinel/i.test(sql),'F13 RPC migration must not write Sentinel data');
+ok(sql.includes('revoke all on function public.aos_sentinel_owner_hub_v1')&&sql.includes('grant execute on function public.aos_sentinel_owner_hub_v1'),'RPC ACL missing');
+ok(notif.includes('loadHubBootstrap')&&notif.includes('s.onerror=function(){}'),'F9 fail-open bootstrap missing');
+ok(!boot.includes('service_role')&&!boot.includes('SUPABASE_SERVICE_ROLE_KEY'),'bootstrap secret leak');
+console.log('SENTINEL_F13_AUTH_2FA_BOUNDARY=PASS');
+console.log('SENTINEL_F13_UI_PRIVACY=PASS');
+console.log('SENTINEL_F13_READ_ONLY_RPC=PASS');
