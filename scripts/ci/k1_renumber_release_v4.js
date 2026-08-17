@@ -1,7 +1,6 @@
 'use strict';
 const fs=require('fs');
 const path=require('path');
-const cp=require('child_process');
 const map={
  '20260814170000_kronia_k1_private_credentials_auth_v3.sql':'20260817170000_kronia_k1_private_credentials_auth_v3.sql',
  '20260814171000_kronia_k1_app_token_control_plane.sql':'20260817170100_kronia_k1_app_token_control_plane.sql',
@@ -37,9 +36,12 @@ if(fs.existsSync(newDoc)){
   s=s.replace(/K1 -> F5 -> WA4 -> WA3 -> WA2 -> F4 -> Phase2\/core/g,'K1 -> Phase S -> F5 -> WA4 -> WA3 -> WA2 -> F4 -> Phase2/core');
   fs.writeFileSync(newDoc,s,'utf8');
 }
-const listed=cp.execFileSync('git',['ls-files','supabase/migrations/*kronia_k1*.sql'],{encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean);
+const listed=fs.readdirSync(path.join('supabase','migrations'))
+  .filter(x=>x.includes('kronia_k1')&&x.endsWith('.sql'))
+  .map(x=>'supabase/migrations/'+x)
+  .sort();
 const expected=Object.values(map).map(x=>'supabase/migrations/'+x).sort();
-if(JSON.stringify(listed.sort())!==JSON.stringify(expected)) throw new Error('K1 migration set is not exact after renumber: '+JSON.stringify(listed));
+if(JSON.stringify(listed)!==JSON.stringify(expected)) throw new Error('K1 migration set is not exact after renumber: '+JSON.stringify(listed));
 for(const p of expected){
   const version=path.basename(p).slice(0,14);
   if(version<='20260817161248') throw new Error('K1 version not after current production baseline: '+version);
