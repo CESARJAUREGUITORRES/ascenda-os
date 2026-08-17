@@ -1,0 +1,57 @@
+name: ASCENDA Migration History Parity Audit CURRENT
+
+on:
+  push:
+    branches:
+      - 'control/migration-parity-current-f68b-20260817'
+    paths:
+      - '.github/workflows/control-migration-parity-audit.yml'
+      - 'scripts/ci/audit_migration_parity.py'
+      - 'docs/control/snapshots/migration_ledger_prod_20260815_20260817_hashes.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ascenda-migration-parity-audit-current-f68b
+  cancel-in-progress: true
+
+jobs:
+  parity-audit:
+    name: Read-only repository vs production-ledger audit
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - name: Repair Zero-Cost workspace ownership
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Enforce Zero-Cost policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Generate CURRENT parity evidence
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/audit_migration_parity.py
+          test -s docs/control/MIGRATION_PARITY_AUDIT_CURRENT.md
+          test -s docs/control/snapshots/migration_parity_current_summary.json
+          git diff --check
+      - name: Commit generated evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/control/MIGRATION_PARITY_AUDIT_CURRENT.md docs/control/snapshots/migration_parity_current_summary.json
+          if git diff --cached --quiet; then
+            echo 'PARITY_REPORT_UNCHANGED=PASS'
+            exit 0
+          fi
+          git commit -m 'docs(control): materialize CURRENT migration parity evidence'
+          git push origin HEAD:${GITHUB_REF_NAME}
