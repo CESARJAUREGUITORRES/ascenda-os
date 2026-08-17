@@ -117,7 +117,7 @@ jobs:
           if [[ $code -ne 0 ]]; then
             printf '%s\n' '{"ok":false,"service":"ascenda-phase-s","child_alive":false,"inner_ready":false}' > .f10-health.json
           fi
-      - name: Execute deterministic diagnostic
+      - name: Execute deterministic diagnostic and exact replay
         env:
           F10_REQUEST_JSON: ${{ inputs.request_json }}
           TARGET_SHA: ${{ steps.prep.outputs.target_sha }}
@@ -125,19 +125,27 @@ jobs:
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             printf '%s' "$F10_REQUEST_JSON" > .f10-request.json
-            args=(--request .f10-request.json --target-sha "$TARGET_SHA" --repo affected --out .f10-report)
+            args=(--request .f10-request.json --target-sha "$TARGET_SHA" --repo affected)
             if [[ -f .f10-health.json ]]; then args+=(--health .f10-health.json); fi
           else
-            args=(--request ci/sentinel/phase10_synthetic_request.json --target-sha "$TARGET_SHA" --repo affected --health .f10-health.json --out .f10-report)
+            args=(--request ci/sentinel/phase10_synthetic_request.json --target-sha "$TARGET_SHA" --repo affected --health .f10-health.json)
           fi
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -e HOME=/tmp \
-            -v "$GITHUB_WORKSPACE:/work" \
-            -w /work \
-            "$F10_RUNTIME_IMAGE" \
-            node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}"
-          rm -f .f10-request.json
+          run_diag() {
+            local out="$1"
+            docker run --rm \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              -v "$GITHUB_WORKSPACE:/work" \
+              -w /work \
+              "$F10_RUNTIME_IMAGE" \
+              node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}" --out "$out"
+          }
+          run_diag .f10-report
+          run_diag .f10-replay
+          cmp -s .f10-report/diagnostic-report.json .f10-replay/diagnostic-report.json
+          cmp -s .f10-report/diagnostic-report.md .f10-replay/diagnostic-report.md
+          echo "SENTINEL_F10_RUNTIME_REPLAY=PASS"
+          rm -rf .f10-replay .f10-request.json
       - name: Verify report and digest
         run: |
           set -euo pipefail
