@@ -365,7 +365,7 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 - Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local; G01–G12 PASS.
 - Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
 - Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
-- Fase 8: `COMPLETE CANDIDATE / G12+G13 PASS` — Incident Engine y persistencia productiva aplicados; migración `20260817000919 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; pendiente únicamente terminal exact-head merge/post-merge/Notion para cierre autoritativo.
+- Fase 8: `COMPLETE CANDIDATE / G12+G13 PASS / PARITY HOTFIX` — Incident Engine y persistencia productiva aplicados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; archivo fuente `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 ya fusionado a `main@a30de31de1f659f4d367f63dab9ff5db8ebab5ac`; pendiente únicamente hotfix documental de paridad → exact-head/post-merge → Notion.
 - Fase 9: `SIGUIENTE — Alert Routing, Telegram & Noise Control` después del cierre autoritativo F8.
 - Fases 10–13: `PENDIENTE`.
 - Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
