@@ -9,8 +9,10 @@ on:
       - 'app/public/icons/channel-*.svg'
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
+      - 'supabase/migrations/20260817224700_s15_legacy_notification_bridge.sql'
       - 'supabase/rollback/20260817224500_s15_unified_notification_events_rollback.sql'
       - 'supabase/rollback/20260817224600_s15_topbar_notification_bridge_rollback.sql'
+      - 'supabase/rollback/20260817224700_s15_legacy_notification_bridge_rollback.sql'
       - 'ci/s15/**'
       - '.github/workflows/s15-unified-notifications.yml'
   push:
@@ -20,8 +22,10 @@ on:
       - 'app/push-notifications-s14.js'
       - 'app/public/notification-push-s14.js'
       - 'app/public/notification-center-s15.js'
+      - 'app/public/icons/channel-*.svg'
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
+      - 'supabase/migrations/20260817224700_s15_legacy_notification_bridge.sql'
       - 'ci/s15/**'
       - '.github/workflows/s15-unified-notifications.yml'
   workflow_dispatch:
@@ -63,3 +67,6 @@ jobs:
       - name: S15 topbar bridge contract
         shell: powershell
         run: node ci/s15/topbar_contract.js
+      - name: S15 legacy producer bridge contract
+        shell: powershell
+        run: node ci/s15/legacy_bridge_contract.js
