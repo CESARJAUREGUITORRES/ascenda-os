@@ -1,2 +1,3 @@
-F17 production runtime smoke trigger after main b4e9fb5d387ea1b0ed25d1a51d1d305e58fed780.
+F17 production runtime smoke trigger after merge 9ef4ece6c7e764155a97aa2dec63751df38fe461.
+Expect health=200 and unauthenticated /api/f17/whatsapp/templates=401.
 No production data or secret content.
