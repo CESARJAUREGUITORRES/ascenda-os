@@ -1,0 +1,88 @@
+name: Parity exact-6 materializer
+
+on:
+  push:
+    branches:
+      - 'fix/migration-history-parity-20260817-v1'
+    paths:
+      - '.github/workflows/parity-exact6-materialize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parity-exact6-materializer
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    name: Rename content-identical F16 migrations to live ledger versions
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Enforce runner policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+
+      - name: Verify immutable source hashes and target absence
+        shell: bash
+        run: |
+          set -euo pipefail
+          verify() {
+            old="$1"; new="$2"; expected="$3"
+            test -f "$old"
+            test ! -e "$new"
+            actual="$(md5sum "$old" | awk '{print $1}')"
+            test "$actual" = "$expected"
+          }
+          verify supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql supabase/migrations/20260815215930_cia_phase16_email_governed_schema_v1.sql 3c3704f0a291920aea185cf9effe49f8
+          verify supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql supabase/migrations/20260815220040_cia_phase16_email_contracts_v1.sql 469408332e983f87baa3231799aefac2
+          verify supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql supabase/migrations/20260815220329_cia_phase16_email_render_context_hardening.sql 5b5c310d89fdc8813802b8d021699b55
+          verify supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql supabase/migrations/20260815220344_cia_phase16_verify_app_session_v1.sql 6b0966b5446a817dbeadb2b951901a85
+          verify supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql supabase/migrations/20260815220458_cia_phase16_legacy_email_acl_hardening.sql bbba3422f613fea24700e61611b62833
+          verify supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql d15577b78c30f16a0ad154209019b829
+
+      - name: Materialize exact version alignment
+        run: |
+          set -euo pipefail
+          git mv supabase/migrations/20260814200500_cia_phase16_email_governed_schema_v1.sql supabase/migrations/20260815215930_cia_phase16_email_governed_schema_v1.sql
+          git mv supabase/migrations/20260814200600_cia_phase16_email_contracts_v1.sql supabase/migrations/20260815220040_cia_phase16_email_contracts_v1.sql
+          git mv supabase/migrations/20260814220100_cia_phase16_email_render_context_hardening.sql supabase/migrations/20260815220329_cia_phase16_email_render_context_hardening.sql
+          git mv supabase/migrations/20260814220300_cia_phase16_verify_app_session_v1.sql supabase/migrations/20260815220344_cia_phase16_verify_app_session_v1.sql
+          git mv supabase/migrations/20260814220200_cia_phase16_legacy_email_acl_hardening.sql supabase/migrations/20260815220458_cia_phase16_legacy_email_acl_hardening.sql
+          git mv supabase/migrations/20260815221000_cia_phase16_resend_outcome_coverage_v3.sql supabase/migrations/20260815221343_cia_phase16_resend_outcome_coverage_v3.sql
+          git diff --check
+
+      - name: Verify no duplicate migration versions remain
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import re
+          by_version = defaultdict(list)
+          for p in Path('supabase/migrations').glob('*.sql'):
+              m = re.match(r'^(\d{14})_(.+)\.sql$', p.name)
+              if m:
+                  by_version[m.group(1)].append(p.name)
+          dup = {k:v for k,v in by_version.items() if len(v) > 1}
+          if dup:
+              raise SystemExit(f'DUPLICATE_MIGRATION_VERSIONS={dup}')
+          print('DUPLICATE_MIGRATION_VERSIONS=0')
+          PY
+
+      - name: Commit exact-content rename set
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add supabase/migrations
+          git commit -m 'fix(parity): align six exact F16 migration versions to production ledger'
+          git push origin HEAD:${GITHUB_REF_NAME}
