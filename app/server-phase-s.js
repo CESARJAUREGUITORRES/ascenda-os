@@ -18,7 +18,7 @@ const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a
 const AUTH_RESEND_RECONCILER=createResendVaultReconciler();
 const AUTH_COOKIE='aos_app_session';
 const AUTH_COOKIE_MAX_AGE=8*60*60;
-const WA_SHELL_TAG='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script><script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
+const WA_SHELL_TAG='<script src="/wa-native-panel.js?v=20260817-wa-native-s8-p01"></script><script src="/wa-shell-integration.js?v=20260817-wa-shell-s8-p01"></script><script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
 const WA_PRELUDE_TAG='<script src="/wa-native-bootstrap-prelude.js?v=20260817-s7-p01"></script>';
 
 let authResendReady=false;
@@ -264,7 +264,8 @@ function sendBuffered(res,r,body,extraHeaders){
 }
 function injectAppShell(html){
   let tags='';
-  if(html.indexOf('/wa-shell-integration.js')<0)tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p04"></script>';
+  if(html.indexOf('/wa-native-panel.js')<0)tags+='<script src="/wa-native-panel.js?v=20260817-wa-native-s8-p01"></script>';
+  if(html.indexOf('/wa-shell-integration.js')<0)tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-s8-p01"></script>';
   if(html.indexOf('/auth-session-cookie-bridge.js')<0)tags+='<script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
   if(!tags)return html;
   if(html.indexOf('</body>')>=0)return html.replace('</body>',tags+'\n</body>');
