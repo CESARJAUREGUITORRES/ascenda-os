@@ -1,0 +1,99 @@
+name: Sentinel F13 CURRENT integration materializer
+
+on:
+  push:
+    branches:
+      - 'integration/sentinel-f13-current-20260817-v1'
+    paths:
+      - '.github/workflows/sentinel-f13-current-integration-materialize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sentinel-f13-current-integration
+  cancel-in-progress: true
+
+jobs:
+  integrate:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce runner policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+
+      - name: Merge exact CURRENT main
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git fetch origin main
+          current="$(git rev-parse origin/main)"
+          echo "CURRENT_MAIN=$current"
+          git merge --no-edit origin/main
+
+      - name: Align F13 migration to exact live ledger version
+        run: |
+          set -euo pipefail
+          old='supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql'
+          new='supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql'
+          test -f "$old"
+          test ! -e "$new"
+          git mv "$old" "$new"
+          sed -i 's/20260817203500_sentinel_f13_owner_hub.sql/20260817203504_sentinel_f13_owner_hub.sql/g' .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh
+          test "$(grep -RIl '20260817203500_sentinel_f13_owner_hub.sql' .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh | wc -l)" = '0'
+          test "$(grep -RIl '20260817203504_sentinel_f13_owner_hub.sql' .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh | wc -l)" = '2'
+          git diff --check
+
+      - name: Fast F13 contracts
+        run: |
+          set -euo pipefail
+          node --check sentinel/hub/hub-core.cjs
+          node --check app/public/sentinel-hub.js
+          node --check app/public/sentinel-hub-bootstrap.js
+          node --check app/public/sentinel-inapp-notifications.js
+          node ci/sentinel/phase13_hub_contract_test.js
+          node ci/sentinel/phase13_hub_resilience_test.js
+          node ci/sentinel/phase13_ui_security_test.js
+          ! grep -nE 'service_role|SUPABASE_SERVICE_ROLE_KEY|RAILWAY_TOKEN|BEGIN PRIVATE KEY|Bearer [A-Za-z0-9]' app/public/sentinel-hub.js app/public/sentinel-hub-bootstrap.js app/public/sentinel-topology.v1.json
+          ! grep -nE 'db_relations|rpc_refs|dependencies|aos_|supabase|railway|server\.js' app/public/sentinel-topology.v1.json
+
+      - name: F13 isolated DB compile ACL canary rollback/reapply
+        run: |
+          set -euo pipefail
+          bash -n ci/sentinel/phase13_db_zero_cost.sh
+          bash ci/sentinel/phase13_db_zero_cost.sh
+
+      - name: Verify CURRENT ancestry and zero duplicate migration versions
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor origin/main HEAD
+          python3 - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import re
+          by=defaultdict(list)
+          for p in Path('supabase/migrations').glob('*.sql'):
+              m=re.match(r'^(\d{14})_',p.name)
+              if m: by[m.group(1)].append(p.name)
+          dup={k:v for k,v in by.items() if len(v)>1}
+          if dup: raise SystemExit(f'DUPLICATE_MIGRATION_VERSIONS={dup}')
+          print('DUPLICATE_MIGRATION_VERSIONS=0')
+          PY
+
+      - name: Commit and push integrated candidate
+        run: |
+          set -euo pipefail
+          git add supabase/migrations .github/workflows/sentinel-phase13-hub.yml ci/sentinel/phase13_db_zero_cost.sh
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(sentinel): align F13 CURRENT integration to live migration version'
+          fi
+          git push origin HEAD:${GITHUB_REF_NAME}
