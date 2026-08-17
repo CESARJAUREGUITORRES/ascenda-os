@@ -6,11 +6,14 @@ on:
     paths: &f9_paths
       - 'sentinel/alerts/**'
       - 'ci/sentinel/phase9_alert_routing_*.js'
+      - 'ci/sentinel/phase9_alert_outbox_zero_cost.*'
+      - 'supabase/migrations/20260817010000_sentinel_f9_alert_outbox.sql'
+      - 'supabase/rollbacks/20260817010000_sentinel_f9_alert_outbox_rollback.sql'
       - 'docs/control/SENTINEL_F9_*.md'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase9-alert-routing.yml'
   push:
-    branches: ['feature/sentinel-f9-alert-routing','main']
+    branches: ['feature/sentinel-f9-alert-routing','feature/sentinel-f9-durable-alert-state','main']
     paths: *f9_paths
 
 permissions:
@@ -91,3 +94,27 @@ jobs:
             -w /work \
             node:22-alpine \
             sh -lc 'node --version && node --check sentinel/alerts/memory-alert-state.cjs && node --check sentinel/alerts/alert-router.cjs && node --check sentinel/alerts/alert-dispatcher.cjs && node --check sentinel/alerts/fake-transport.cjs && node --check sentinel/alerts/telegram-transport.cjs && node --check sentinel/alerts/supabase-telegram-config-provider.cjs && node ci/sentinel/phase9_alert_routing_contract.js && node ci/sentinel/phase9_alert_routing_synthetic.js && node ci/sentinel/phase9_alert_routing_telegram_adapter.js && node ci/sentinel/phase9_alert_routing_secret_provider.js'
+
+  outbox-zero-cost:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: '2.72.8'
+      NODE_CLI_IMAGE: 'node:22-bookworm-slim'
+      PSQL_IMAGE: 'postgres:17-alpine'
+      WORKSPACE_FIX_IMAGE: 'alpine:3.20'
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: Enforce isolated Zero-Cost runner
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+          bash -n ci/sentinel/phase9_alert_outbox_zero_cost.sh
+      - name: F9 durable outbox PostgreSQL certificate
+        run: bash ci/sentinel/phase9_alert_outbox_zero_cost.sh
