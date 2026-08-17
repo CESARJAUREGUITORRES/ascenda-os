@@ -1,4 +1,4 @@
-name: K1 CURRENT v4 sync main
+name: K1 CURRENT v4 final sync
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: k1-v4-sync-main-${{ github.ref }}
+  group: k1-v4-final-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,21 +27,25 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Merge latest main, renumber K1, and revalidate CURRENT contracts
+      - name: Merge latest main, retire scaffolding, and revalidate release candidate
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
           MAIN_SHA="$(git rev-parse origin/main)"
-          printf 'K1_SYNC_MAIN_SHA=%s\n' "$MAIN_SHA" | tee /tmp/k1-sync-main.txt
+          printf 'K1_FINAL_SYNC_MAIN_SHA=%s\n' "$MAIN_SHA" | tee /tmp/k1-final-sync-main.txt
 
           git config user.name 'ASCENDA Zero-Cost Bot'
           git config user.email 'actions@users.noreply.github.com'
           git merge --no-edit origin/main
 
-          node scripts/ci/k1_renumber_release_v4.js
+          git rm -f --ignore-unmatch \
+            scripts/ci/k1_copy_source_v4.js \
+            scripts/ci/k1_port_current_v4.js \
+            scripts/ci/k1_renumber_release_v4.js \
+            scripts/ci/k1_v4_fixture_bootstrap_fix.js \
+            scripts/ci/k1_v4_runtime_contract_fix.js
 
-          # Build artifacts are never source-of-truth.
           find app ci scripts -type d -name __pycache__ -prune -exec rm -rf {} +
           find app ci scripts -type f -name '*.pyc' -delete
           git rm -r --cached --ignore-unmatch app/__pycache__ ci/kronia-k1-phase2/__pycache__ || true
@@ -54,6 +58,8 @@ jobs:
           node --check app/server-wa3.js
           node --check app/server-wa2.js
           node --check app/server-f4.js
+          node --check app/server-phase2.js
+          node --check app/server.js
           node --check app/public/k1-browser-security.js
           node --check chrome-extension/kronia-core.js
           node --check chrome-extension/k1-extension-auth.js
@@ -75,11 +81,14 @@ jobs:
           grep -q 'KRONIA_K1_CURRENT_SENSITIVE_READ_BOUNDARY=PASS' ci/kronia-k1-phase2/001_k1_phase2_certificate.sql
           test "$(find supabase/migrations -maxdepth 1 -type f -name '2026081717*kronia_k1*.sql' | wc -l)" -eq 7
           test "$(find supabase/migrations -maxdepth 1 -type f -name '2026081417*kronia_k1*.sql' | wc -l)" -eq 0
+          test ! -e scripts/ci/k1_copy_source_v4.js
+          test ! -e scripts/ci/k1_port_current_v4.js
+          test ! -e scripts/ci/k1_renumber_release_v4.js
+          test ! -e scripts/ci/k1_v4_fixture_bootstrap_fix.js
+          test ! -e scripts/ci/k1_v4_runtime_contract_fix.js
 
           git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "ci(k1): sync CURRENT main ${MAIN_SHA} and renumber release migrations"
-          fi
+          git commit -m "ci(k1): final sync CURRENT main ${MAIN_SHA} and retire port scaffolding"
           git push origin HEAD:security/kronia-k1-current-main-20260817-v4
-          echo 'KRONIA_K1_CURRENT_V4_MAIN_SYNC=PASS'
-          echo 'KRONIA_K1_RELEASE_MIGRATION_ORDER=PASS'
+          echo 'KRONIA_K1_CURRENT_V4_FINAL_SYNC=PASS'
+          echo 'KRONIA_K1_RELEASE_CANDIDATE_CLEAN=PASS'
