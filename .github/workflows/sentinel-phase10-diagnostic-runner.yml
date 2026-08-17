@@ -40,6 +40,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Diff hygiene
         shell: powershell
         run: git diff --check
@@ -56,6 +58,7 @@ jobs:
     timeout-minutes: 20
     env:
       WORKSPACE_FIX_IMAGE: alpine:3.20
+      NODE_CLI_IMAGE: node:22-bookworm
     steps:
       - name: Repair container-owned workspace before checkout
         run: |
@@ -64,6 +67,8 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - name: Checkout F10 tooling
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Resolve and validate affected SHA
         id: prep
         env:
@@ -85,6 +90,11 @@ jobs:
         with:
           ref: ${{ steps.prep.outputs.target_sha }}
           path: affected
+          persist-credentials: false
+      - name: Verify disposable diagnostic runtime
+        run: |
+          set -euo pipefail
+          docker run --rm "$NODE_CLI_IMAGE" bash -lc 'node --version && git --version'
       - name: Prepare synthetic CI health evidence
         if: github.event_name != 'workflow_dispatch'
         run: |
@@ -107,17 +117,18 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            args=(--target-sha "$TARGET_SHA" --repo affected --out .f10-report)
+            printf '%s' "$F10_REQUEST_JSON" > .f10-request.json
+            args=(--request .f10-request.json --target-sha "$TARGET_SHA" --repo affected --out .f10-report)
             if [[ -f .f10-health.json ]]; then args+=(--health .f10-health.json); fi
-            node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}"
           else
-            node sentinel/diagnostics/diagnostic-runner.cjs \
-              --request ci/sentinel/phase10_synthetic_request.json \
-              --target-sha "$TARGET_SHA" \
-              --repo affected \
-              --health .f10-health.json \
-              --out .f10-report
+            args=(--request ci/sentinel/phase10_synthetic_request.json --target-sha "$TARGET_SHA" --repo affected --health .f10-health.json --out .f10-report)
           fi
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            "$NODE_CLI_IMAGE" \
+            node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}"
+          rm -f .f10-request.json
       - name: Verify report and digest
         run: |
           set -euo pipefail
