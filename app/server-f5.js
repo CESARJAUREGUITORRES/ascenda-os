@@ -5,6 +5,7 @@ const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
 const f5=require('./f5-historical-upload');
+const f5Recovery=require('./f5-recovery-worker');
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
 const INNER_PORT=EXTERNAL_PORT===4208?4209:4208;
@@ -46,4 +47,4 @@ function proxy(req,res){const q=http.request({hostname:'127.0.0.1',port:INNER_PO
 const server=http.createServer(async(req,res)=>{let u;try{u=new URL(req.url,'http://localhost');}catch(_){return writeJson(res,400,{ok:false,error:'INVALID_URL'});}if(u.pathname==='/api/f5/historical-upload'&&req.method==='POST')return handleUpload(req,res);if(u.pathname==='/api/f5/historical-status'&&req.method==='GET')return handleStatus(req,res);return proxy(req,res);});
 server.on('clientError',(_,s)=>s.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
 function shutdown(sig){server.close(()=>process.exit(0));if(child&&!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
-child=spawn(process.execPath,['server-wa4.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});child.on('exit',code=>process.exit(code==null?1:code));server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F5-UPLOAD] listening',{external:EXTERNAL_PORT,inner:INNER_PORT,maxFileBytes:f5.MAX_FILE_BYTES}));
+child=spawn(process.execPath,['server-wa4.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});child.on('exit',code=>process.exit(code==null?1:code));server.listen(EXTERNAL_PORT,'0.0.0.0',()=>{console.log('[F5-UPLOAD] listening',{external:EXTERNAL_PORT,inner:INNER_PORT,maxFileBytes:f5.MAX_FILE_BYTES});setTimeout(()=>f5Recovery.run().catch(e=>console.error('[F5-RECOVERY] fatal',e.message)),12000).unref();});
