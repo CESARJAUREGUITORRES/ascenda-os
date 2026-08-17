@@ -59,7 +59,7 @@ jobs:
           set -euo pipefail
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/schema_contract.sql
           psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase16/legacy_email_schema_contract.sql
-          for f in 20260814200500_cia_phase16_email_governed_schema_v1.sql 20260814200600_cia_phase16_email_contracts_v1.sql 20260814220000_cia_phase16_email_delivery_contracts_v2.sql 20260814220100_cia_phase16_email_render_context_hardening.sql 20260814220200_cia_phase16_legacy_email_acl_hardening.sql 20260814220300_cia_phase16_verify_app_session_v1.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
+          for f in 20260815215930_cia_phase16_email_governed_schema_v1.sql 20260815220040_cia_phase16_email_contracts_v1.sql 20260814220000_cia_phase16_email_delivery_contracts_v2.sql 20260815220329_cia_phase16_email_render_context_hardening.sql 20260815220458_cia_phase16_legacy_email_acl_hardening.sql 20260815220344_cia_phase16_verify_app_session_v1.sql; do psql "$F16_DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
           supabase db lint --db-url "$F16_DB_URL" --schema public --level error
       - name: Synthetic positive and negative contracts
         run: |
