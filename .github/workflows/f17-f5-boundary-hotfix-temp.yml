@@ -1,0 +1,47 @@
+name: F17 F5 Boundary Hotfix Temp
+
+on:
+  push:
+    branches:
+      - ops/f17-f5-boundary-hotfix-20260817
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply deterministic F5 boundary
+        shell: powershell
+        run: node ci/f17/materialize_f5_template_boundary.js
+      - name: Certify F5 boundary
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          node --check app/server-f5.js
+          node --check app/f17-whatsapp-legacy-gateway.js
+          $src=Get-Content app/server-f5.js -Raw
+          if($src -notmatch '/api/f17/whatsapp/templates'){throw 'F17 route missing'}
+          if($src -notmatch 'createLegacyWhatsAppGateway'){throw 'F17 gateway missing'}
+          if($src -notmatch 'aos_app_actor_v3'){throw 'F17 auth missing'}
+          $changed=git diff --name-only
+          if(($changed|Measure-Object).Count -ne 1 -or $changed -ne 'app/server-f5.js'){throw "unexpected scope: $changed"}
+      - name: Commit hotfix
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'ASCENDA F17 Bot'
+          git config user.email 'f17-bot@users.noreply.github.com'
+          git add app/server-f5.js
+          git commit -m 'fix(f17): serve template gateway at effective F5 entrypoint'
+          git push origin HEAD:ops/f17-f5-boundary-hotfix-20260817
