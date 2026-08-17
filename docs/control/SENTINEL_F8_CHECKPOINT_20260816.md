@@ -1,11 +1,13 @@
 # Sentinel F8 — Terminal Checkpoint
 
 **Fecha:** 2026-08-16/17 (America/Lima)  
-**Estado técnico:** `F8 COMPLETE CANDIDATE — TERMINAL REPO SYNC PENDING`  
-**PR:** `#208 DRAFT`  
+**Estado técnico:** `F8 COMPLETE CANDIDATE — MIGRATION-HISTORY PARITY HOTFIX`  
+**PR funcional:** `#208 MERGED`  
 **Producción:** `F8 PERSISTENCE APPLIED + CANARY CERTIFIED`  
 **Functional certified head:** `d9f84652b1818a6a61e9d9e8dbfbdb85a4ede041`  
-**Production migration:** `20260817000919 sentinel_f8_incident_engine`  
+**F8 merge main:** `a30de31de1f659f4d367f63dab9ff5db8ebab5ac`  
+**Production migration history:** `20260817000618 sentinel_f8_incident_engine`  
+**Repository migration file:** `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`  
 **Production canary:** `SEN-2026-0001 / RESOLVED`  
 
 ## Completed before F8
@@ -75,7 +77,8 @@ Production read-only preflight:
 Production apply:
 
 - migration applied once through Supabase migration tooling;
-- migration history version `20260817000919`;
+- live migration history version `20260817000618`;
+- migration name `sentinel_f8_incident_engine`;
 - no unrelated production object changed by F8.
 
 Post-DDL security verification:
@@ -118,20 +121,19 @@ Post-DDL security/performance advisors were reviewed.
 - Fresh Sentinel indexes may be reported as unused immediately after creation; retain until sufficient operational evidence exists.
 - Existing non-Sentinel database advisories are separate backlog items and are not modified under F8 scope.
 
-## Current terminal gate
+## Runtime parity correction
 
-`F8-G14 — Repository / Control Synchronization`
+A post-merge read-only migration-history verification detected that the production migration tooling recorded version `20260817000618`, while terminal documentation initially contained `20260817000919`. The database objects and applied SQL were correct; only the documentary migration-history identifier was stale. This hotfix aligns the machine-readable contract and control evidence with the live Supabase source of truth before F8 closure.
+
+## Current terminal gate
 
 Remaining before authoritative `CERRADA / 100_COMPLETE`:
 
-1. commit final certificate + roadmap/control state;
-2. exact-head F8 workflow PASS;
-3. exact-head Ascenda CI/regressions PASS;
-4. mark PR #208 ready;
-5. merge exact green head to `main`;
-6. post-merge verification on `main`;
-7. update Notion last;
-8. promote F9 as the sole active next phase.
+1. migration-history parity hotfix exact-head CI;
+2. merge hotfix to `main`;
+3. final post-merge verification;
+4. update Notion last;
+5. promote F9 as the sole active next phase.
 
 ## Hard boundary
 
