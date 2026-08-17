@@ -1,0 +1,113 @@
+name: Migration full replay audit
+
+on:
+  push:
+    branches:
+      - 'audit/migration-full-replay-exact6-20260817-v1'
+    paths:
+      - '.github/workflows/migration-full-replay-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migration-full-replay-audit
+  cancel-in-progress: true
+
+jobs:
+  full-replay:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+
+      - name: Wire repository migrations into isolated Supabase project
+        run: |
+          set -euo pipefail
+          rm -rf ci/zero-cost-staging/supabase/migrations
+          ln -s "$GITHUB_WORKSPACE/supabase/migrations" ci/zero-cost-staging/supabase/migrations
+          test -L ci/zero-cost-staging/supabase/migrations
+
+      - name: Start isolated DB and replay full history
+        id: replay
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -uo pipefail
+          supabase db start
+          set +e
+          supabase db reset --local 2>&1 | tee /tmp/ascenda-full-replay.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Materialize replay evidence
+        run: |
+          set -euo pipefail
+          rc='${{ steps.replay.outputs.rc }}'
+          python3 - "$rc" <<'PY'
+          from pathlib import Path
+          import re,sys
+          rc=int(sys.argv[1] or 999)
+          log=Path('/tmp/ascenda-full-replay.log').read_text(errors='replace') if Path('/tmp/ascenda-full-replay.log').exists() else ''
+          applying=re.findall(r'Applying migration\s+([^\s]+)',log)
+          error=''
+          for line in log.splitlines():
+              if re.search(r'(?i)(error:|ERROR:|failed to|migration failed)',line):
+                  error=line.strip()
+                  break
+          status='PASS' if rc==0 else 'FAIL'
+          last=applying[-1] if applying else 'NONE_DETECTED'
+          out=Path('docs/control/MIGRATION_FULL_REPLAY_AUDIT_20260817.md')
+          out.write_text(
+              '# ASCENDA Migration Full Replay Audit\n\n'
+              '**Environment:** self-hosted Zero-Cost isolated Supabase DB; no production writes.\n\n'
+              f'- Branch head source: exact-6 parity candidate\n'
+              f'- Supabase CLI: `2.101.0`\n'
+              f'- Full `supabase/migrations` replay result: **{status}** (`rc={rc}`)\n'
+              f'- Last migration announced by CLI: `{last}`\n'
+              f'- First detected error: `{error or "NONE"}`\n\n'
+              '## Gate\n\n'
+              + ('**FULL_HISTORY_REPLAY=PASS.** Proceed to DB lint and parity-class verification.\n' if rc==0 else '**FULL_HISTORY_REPLAY=BLOCKED.** The first replay failure is the next migration-history P0; do not merge history repairs until classified.\n'),
+              encoding='utf-8')
+          print(out.read_text())
+          PY
+          git diff --check
+
+      - name: DB lint when replay succeeded
+        if: steps.replay.outputs.rc == '0'
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error
+
+      - name: Commit replay evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/control/MIGRATION_FULL_REPLAY_AUDIT_20260817.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs(audit): materialize full migration replay result'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Enforce replay gate
+        run: |
+          set -euo pipefail
+          test '${{ steps.replay.outputs.rc }}' = '0'
+
+      - name: Stop isolated Supabase DB
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
