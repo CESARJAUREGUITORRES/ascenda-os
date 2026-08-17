@@ -10,6 +10,26 @@ on conflict(event_type) do update set
  priority=excluded.priority,aggregate_seconds=excluded.aggregate_seconds,icon=excluded.icon,route=excluded.route,
  description=excluded.description,updated_at=now();
 
+-- Classify historical AI-agent rows for a coherent history, but never replay them to Web Push.
+update public.aos_notificaciones n
+   set para_user_id=coalesce(n.para_user_id,public.aos_notification_resolve_user_v1(n.para)),
+       channel='AGENTS',
+       event_type='AGENT_ALERT',
+       route=coalesce(nullif(n.route,''),'/app.html#admin-chats'),
+       icon=coalesce(nullif(n.icon,''),'/icons/channel-agent.svg'),
+       metadata=coalesce(n.metadata,'{}'::jsonb)||jsonb_build_object('legacy_backfill',true,'legacy_source',coalesce(n.de,'AGENTES_AI')),
+       push_enabled=false,
+       push_status='SKIPPED',
+       push_claimed_at=null,
+       updated_at=now()
+ where nullif(trim(coalesce(n.event_type,'')),'') is null
+   and (
+     upper(coalesce(n.de,''))='AGENTES_AI'
+     or upper(coalesce(n.titulo,'')) like '%BRUNO%'
+     or upper(coalesce(n.titulo,'')) like '%LEÓN%'
+     or upper(coalesce(n.titulo,'')) like '%LEON%'
+   );
+
 create or replace function public.aos_notification_legacy_bridge_v1()
 returns trigger
 language plpgsql
