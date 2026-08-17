@@ -309,6 +309,37 @@ function proxy(req,res){
   });
   req.pipe(q);
 }
+async function handleCustomerWindowSend(req,res,p){
+  const a=await actor(req);
+  if(!a)return writeJson(res,403,{ok:false,error:'WA3_2FA_PANEL_REQUIRED'});
+  const m=String(p||'').match(/^\/api\/wa3\/conversations\/([0-9a-f-]{36})\/send$/i);
+  if(!m||!UUID_RE.test(m[1]))return writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});
+  try{
+    const out=await serviceGet('/rest/v1/aos_wa_conversations_v1?id=eq.'+encodeURIComponent(m[1])+'&select=id,owner_user_id,state,last_inbound_at&limit=1');
+    const row=Array.isArray(out.data)?out.data[0]||null:null;
+    if(!row)return writeJson(res,404,{ok:false,error:'CONVERSATION_NOT_FOUND'});
+    if(a.is_admin!==true&&row.owner_user_id!==a.actor_id)return writeJson(res,403,{ok:false,error:'WA3_NOT_OWNER'});
+    const lastMs=Date.parse(String(row.last_inbound_at||''));
+    const expiresMs=Number.isFinite(lastMs)?lastMs+(24*60*60*1000):0;
+    const open=expiresMs>Date.now();
+    if(!open){
+      return writeJson(res,409,{
+        ok:false,
+        error:'WA_CUSTOMER_WINDOW_CLOSED',
+        status:'BLOCKED',
+        requires_template:true,
+        last_inbound_at:row.last_inbound_at||null,
+        window_expires_at:expiresMs?new Date(expiresMs).toISOString():null,
+        policy:'WHATSAPP_24H_CUSTOMER_SERVICE_WINDOW'
+      });
+    }
+    return proxy(req,res);
+  }catch(e){
+    console.error('[PHASE-S] customer-window preflight',e.message);
+    return writeJson(res,503,{ok:false,error:'WA_CUSTOMER_WINDOW_CHECK_UNAVAILABLE'});
+  }
+}
+
 function proxyVerify(req,res){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT,'accept-encoding':'identity'});
   const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
@@ -356,6 +387,7 @@ const server=http.createServer(async(req,res)=>{
   }
   if(req.method==='GET'&&p==='/api/wa3/bootstrap')return handleBootstrap(req,res);
   if(req.method==='GET'&&p==='/api/phase-s/status')return handlePhaseStatus(req,res);
+  if(req.method==='POST'&&/^\/api\/wa3\/conversations\/[0-9a-f-]{36}\/send$/i.test(p))return handleCustomerWindowSend(req,res,p);
   return proxy(req,res);
 });
 
