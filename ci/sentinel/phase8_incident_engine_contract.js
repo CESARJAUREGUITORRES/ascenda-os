@@ -17,7 +17,7 @@ const repo=read('sentinel/incidents/memory-repository.cjs');
 ok(f7.includes('F7 — Final Certificate'),'F7_CERTIFICATE_MISSING');
 ok(f8.schema_version==='sentinel-incidents/v1'&&f8.phase==='F8','F8_CONTRACT_INVALID');
 ok(f8.design.vendor_neutral===true&&f8.design.repository_adapter===true,'F8_VENDOR_NEUTRAL_REPOSITORY_REQUIRED');
-ok(f8.design.production_persistence_in_initial_core===false,'F8_PREMATURE_PRODUCTION_PERSISTENCE');
+ok(f8.design.production_persistence_in_initial_core===false,'F8_INITIAL_CORE_BOUNDARY_DRIFT');
 ok(f8.design.notion_live_incident_store===false,'F8_NOTION_LIVE_STORE_FORBIDDEN');
 ok(f8.design.automatic_notification===false&&f8.design.automatic_remediation===false,'F8_SCOPE_AUTOMATION_DRIFT');
 ok(f8.design.zero_phi_pii===true,'F8_PRIVACY_DRIFT');
@@ -42,8 +42,13 @@ ok(f8.evidence_reference.raw_payload_forbidden===true&&f8.evidence_reference.que
 ok(f8.correlation_reference.causality_not_established===true,'F8_CAUSALITY_GUARD_MISSING');
 ok(f8.persistence_target.preferred==='Supabase/PostgreSQL','F8_PERSISTENCE_TARGET_DRIFT');
 ok(f8.persistence_target.initial_engine_repository==='in-memory reference adapter','F8_REFERENCE_REPOSITORY_DRIFT');
+ok(f8.persistence_target.fixture_uses_production_persistence===false,'F8_FIXTURE_MUST_NOT_USE_PRODUCTION');
 ok(f8.persistence_target.live_incidents_in_notion===false,'F8_NOTION_RUNTIME_STORE_FORBIDDEN');
+ok(f8.persistence_target.production_status==='certified','F8_PRODUCTION_PERSISTENCE_NOT_CERTIFIED');
+ok(f8.persistence_target.production_migration_version==='20260817000919','F8_PRODUCTION_MIGRATION_VERSION_DRIFT');
+ok(f8.persistence_target.production_canary_incident==='SEN-2026-0001'&&f8.persistence_target.production_canary_final_status==='RESOLVED','F8_PRODUCTION_CANARY_DRIFT');
 ok(f8.gates.production_persistence_requires_separate_gate===true,'F8_PRODUCTION_PERSISTENCE_GATE_MISSING');
+ok(f8.gates.zero_cost_persistence_certified===true&&f8.gates.production_persistence_certified===true,'F8_PERSISTENCE_CERTIFICATION_DRIFT');
 
 ok(f6.signal_contract.persistence_owned_by_phase==='F8','F8_F6_PERSISTENCE_HANDOFF_MISSING');
 ok(f5.deployment.outage_recovery_gate==='PASS','F8_F5_AVAILABILITY_NOT_CERTIFIED');
@@ -69,5 +74,9 @@ console.log(JSON.stringify({
   multi_signal_convergence:true,
   evidence_reference_only:true,
   notion_live_store:false,
-  production_persistence:false
+  fixture_uses_production_persistence:false,
+  production_persistence_status:f8.persistence_target.production_status,
+  production_migration_version:f8.persistence_target.production_migration_version,
+  production_canary_incident:f8.persistence_target.production_canary_incident,
+  production_canary_final_status:f8.persistence_target.production_canary_final_status
 },null,2));
