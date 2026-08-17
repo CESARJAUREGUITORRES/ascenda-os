@@ -1,0 +1,59 @@
+name: S15 Unified Notification Events
+on:
+  pull_request:
+    paths:
+      - 'app/server-f17.js'
+      - 'app/push-notifications-s14.js'
+      - 'app/public/notification-push-s14.js'
+      - 'app/public/notification-center-s15.js'
+      - 'app/public/icons/channel-*.svg'
+      - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
+      - 'supabase/rollback/20260817224500_s15_unified_notification_events_rollback.sql'
+      - 'ci/s15/**'
+      - '.github/workflows/s15-unified-notifications.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/server-f17.js'
+      - 'app/push-notifications-s14.js'
+      - 'app/public/notification-push-s14.js'
+      - 'app/public/notification-center-s15.js'
+      - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
+      - 'ci/s15/**'
+      - '.github/workflows/s15-unified-notifications.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install runtime dependencies
+        working-directory: app
+        shell: powershell
+        run: npm.cmd install --no-audit --no-fund
+      - name: JavaScript syntax
+        shell: powershell
+        run: |
+          node --check app/server-f17.js
+          node --check app/push-notifications-s14.js
+          node --check app/public/notification-push-s14.js
+          node --check app/public/notification-center-s15.js
+          node --check app/public/phase2-service-worker.js
+          node --check app/public/wa-human-alerts.js
+      - name: Historical S12 safety contract
+        shell: powershell
+        run: node ci/wa-s12/contract.js
+      - name: Historical S13 UX contract
+        shell: powershell
+        run: node ci/wa-s13/contract.js
+      - name: Historical S14 Web Push contract
+        shell: powershell
+        run: node ci/wa-s14/contract.js
+      - name: S15 unified notification contract
+        shell: powershell
+        run: node ci/s15/contract.js
