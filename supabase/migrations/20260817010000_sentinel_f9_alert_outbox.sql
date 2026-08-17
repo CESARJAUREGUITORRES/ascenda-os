@@ -31,6 +31,7 @@ create table public.aos_sentinel_alert_dispatches_v1 (
   delivered_at timestamptz,
   updated_at timestamptz not null default now(),
   check ((action='DIGEST' and incident_id is null and digest_key is not null) or (action<>'DIGEST' and incident_id is not null and digest_key is null)),
+  check (digest_key is null or (digest_key ~ '^[A-Za-z0-9._:@/-]{1,240}$' and digest_key !~ '[?#]' and digest_key !~ '\.\.')),
   check (component is null or component ~ '^[a-z0-9][a-z0-9._:-]{0,199}$'),
   check (capability is null or capability ~ '^[a-z0-9][a-z0-9._:-]{0,199}$'),
   check (failure_family is null or failure_family ~ '^[a-z0-9][a-z0-9._:-]{0,199}$'),
@@ -40,13 +41,9 @@ create table public.aos_sentinel_alert_dispatches_v1 (
   check (provider_message_id is null or provider_message_id ~ '^[A-Za-z0-9._:@/-]{1,200}$'),
   check ((delivery_state='DELIVERED' and delivered_at is not null) or delivery_state<>'DELIVERED')
 );
-
-create index aos_sentinel_alert_dispatches_v1_decision_idx
-  on public.aos_sentinel_alert_dispatches_v1(decision_key, delivered_at desc nulls last, decided_at desc);
-create index aos_sentinel_alert_dispatches_v1_incident_idx
-  on public.aos_sentinel_alert_dispatches_v1(incident_id, decided_at desc) where incident_id is not null;
-create index aos_sentinel_alert_dispatches_v1_state_idx
-  on public.aos_sentinel_alert_dispatches_v1(delivery_state, updated_at);
+create index aos_sentinel_alert_dispatches_v1_decision_idx on public.aos_sentinel_alert_dispatches_v1(decision_key,delivered_at desc nulls last,decided_at desc);
+create index aos_sentinel_alert_dispatches_v1_incident_idx on public.aos_sentinel_alert_dispatches_v1(incident_id,decided_at desc) where incident_id is not null;
+create index aos_sentinel_alert_dispatches_v1_state_idx on public.aos_sentinel_alert_dispatches_v1(delivery_state,updated_at);
 
 create table public.aos_sentinel_alert_digest_items_v1 (
   digest_key text not null check (digest_key ~ '^[A-Za-z0-9._:@/-]{1,240}$' and digest_key !~ '[?#]' and digest_key !~ '\.\.'),
@@ -63,8 +60,7 @@ create table public.aos_sentinel_alert_digest_items_v1 (
   check (bucket_end > bucket_start),
   check ((state='CLAIMED' and claim_expires_at is not null) or state<>'CLAIMED')
 );
-create index aos_sentinel_alert_digest_items_v1_due_idx
-  on public.aos_sentinel_alert_digest_items_v1(state,bucket_end,claim_expires_at);
+create index aos_sentinel_alert_digest_items_v1_due_idx on public.aos_sentinel_alert_digest_items_v1(state,bucket_end,claim_expires_at);
 
 create table public.aos_sentinel_maintenance_windows_v1 (
   window_id bigint generated always as identity primary key,
@@ -79,8 +75,7 @@ create table public.aos_sentinel_maintenance_windows_v1 (
   created_at timestamptz not null default now(),
   check (ends_at > starts_at)
 );
-create index aos_sentinel_maintenance_windows_v1_active_idx
-  on public.aos_sentinel_maintenance_windows_v1(enabled,starts_at,ends_at);
+create index aos_sentinel_maintenance_windows_v1_active_idx on public.aos_sentinel_maintenance_windows_v1(enabled,starts_at,ends_at);
 
 alter table public.aos_sentinel_alert_dispatches_v1 enable row level security;
 alter table public.aos_sentinel_alert_digest_items_v1 enable row level security;
@@ -108,8 +103,9 @@ begin
   v_env:=pg_catalog.lower(p_request->>'environment'); v_domain:=pg_catalog.upper(p_request->>'domain');
   v_component:=nullif(pg_catalog.lower(coalesce(p_request->>'component','')),''); v_capability:=nullif(pg_catalog.lower(coalesce(p_request->>'capability','')),'');
   v_failure:=nullif(pg_catalog.lower(coalesce(p_request->>'failure_family','')),''); v_release:=nullif(p_request->>'release',''); v_commit:=nullif(p_request->>'commit_sha',''); v_deploy:=nullif(p_request->>'deployment_id','');
-  v_signal_count:=coalesce((p_request->>'signal_count')::bigint,0); v_reopened:=coalesce((p_request->>'reopened_count')::integer,0); v_cooldown:=coalesce((p_request->>'cooldown_seconds')::integer,0);
-  begin v_decided:=(p_request->>'decided_at')::timestamptz; exception when others then raise exception 'F9_DISPATCH_INVALID_TIMESTAMP'; end;
+  begin
+    v_signal_count:=coalesce((p_request->>'signal_count')::bigint,0); v_reopened:=coalesce((p_request->>'reopened_count')::integer,0); v_cooldown:=coalesce((p_request->>'cooldown_seconds')::integer,0); v_decided:=(p_request->>'decided_at')::timestamptz;
+  exception when others then raise exception 'F9_DISPATCH_NUMERIC_OR_TIMESTAMP_INVALID'; end;
 
   if v_attempt is null or v_attempt !~ '^[A-Za-z0-9._:@/-]{1,240}$' or v_attempt ~ '[?#]' or v_attempt ~ '\.\.' then raise exception 'F9_ATTEMPT_KEY_INVALID'; end if;
   if v_decision is null or v_decision !~ '^[A-Za-z0-9._:@/-]{1,240}$' or v_decision ~ '[?#]' or v_decision ~ '\.\.' then raise exception 'F9_DECISION_KEY_INVALID'; end if;
@@ -118,6 +114,7 @@ begin
   if v_env !~ '^[a-z0-9][a-z0-9._:-]{0,63}$' or v_domain !~ '^[A-Z][A-Z0-9_]{0,63}$' then raise exception 'F9_SCOPE_INVALID'; end if;
   if v_cooldown<0 or v_cooldown>86400 or v_signal_count<0 or v_reopened<0 then raise exception 'F9_COUNTER_OR_COOLDOWN_INVALID'; end if;
   if (v_action='DIGEST' and (v_incident is not null or v_digest is null)) or (v_action<>'DIGEST' and (v_incident is null or v_digest is not null)) then raise exception 'F9_DISPATCH_TARGET_INVALID'; end if;
+  if v_digest is not null and (v_digest !~ '^[A-Za-z0-9._:@/-]{1,240}$' or v_digest ~ '[?#]' or v_digest ~ '\.\.') then raise exception 'F9_DIGEST_KEY_INVALID'; end if;
 
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('sentinel:f9:attempt:'||v_attempt,0));
   select dispatch_id into v_existing from public.aos_sentinel_alert_dispatches_v1 where attempt_key=v_attempt;
@@ -126,16 +123,12 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('sentinel:f9:decision:'||v_decision,0));
   if v_cooldown>0 then
     select max(delivered_at) into v_last from public.aos_sentinel_alert_dispatches_v1 where decision_key=v_decision and delivery_state='DELIVERED';
-    if v_last is not null and v_decided < v_last + pg_catalog.make_interval(secs=>v_cooldown) then
-      return pg_catalog.jsonb_build_object('ok',true,'result','SUPPRESSED_COOLDOWN','last_delivered_at',v_last);
-    end if;
+    if v_last is not null and v_decided < v_last + pg_catalog.make_interval(secs=>v_cooldown) then return pg_catalog.jsonb_build_object('ok',true,'result','SUPPRESSED_COOLDOWN','last_delivered_at',v_last); end if;
   end if;
 
-  insert into public.aos_sentinel_alert_dispatches_v1(
-    attempt_key,decision_key,incident_id,digest_key,action,severity,status,channel,environment,domain,component,capability,failure_family,release,commit_sha,deployment_id,signal_count,reopened_count,decided_at,cooldown_seconds
-  ) values(
-    v_attempt,v_decision,v_incident,v_digest,v_action,v_severity,v_status,'telegram-owner',v_env,v_domain,v_component,v_capability,v_failure,v_release,v_commit,v_deploy,v_signal_count,v_reopened,v_decided,v_cooldown
-  ) returning dispatch_id into v_id;
+  insert into public.aos_sentinel_alert_dispatches_v1(attempt_key,decision_key,incident_id,digest_key,action,severity,status,channel,environment,domain,component,capability,failure_family,release,commit_sha,deployment_id,signal_count,reopened_count,decided_at,cooldown_seconds)
+  values(v_attempt,v_decision,v_incident,v_digest,v_action,v_severity,v_status,'telegram-owner',v_env,v_domain,v_component,v_capability,v_failure,v_release,v_commit,v_deploy,v_signal_count,v_reopened,v_decided,v_cooldown)
+  returning dispatch_id into v_id;
   return pg_catalog.jsonb_build_object('ok',true,'result','RESERVED','dispatch_id',v_id);
 end;
 $$;
@@ -165,20 +158,21 @@ language plpgsql
 security definer
 set search_path=''
 as $$
-declare v_key text; v_incident text; v_env text; v_domain text; v_start timestamptz; v_end timestamptz; v_queued timestamptz; v_inserted boolean;
+declare v_key text; v_incident text; v_env text; v_domain text; v_start timestamptz; v_end timestamptz; v_queued timestamptz; v_count bigint; k text;
 begin
   if p_item is null or pg_catalog.jsonb_typeof(p_item)<>'object' then raise exception 'F9_DIGEST_OBJECT_REQUIRED'; end if;
+  for k in select pg_catalog.jsonb_object_keys(p_item) loop
+    if k not in ('digest_key','incident_id','environment','domain','bucket_start','bucket_end','queued_at') then raise exception 'F9_DIGEST_UNAPPROVED_KEY:%',k; end if;
+  end loop;
   if not (p_item ?& array['digest_key','incident_id','environment','domain','bucket_start','bucket_end','queued_at']) then raise exception 'F9_DIGEST_REQUIRED_FIELD_MISSING'; end if;
-  if exists(select 1 from pg_catalog.jsonb_object_keys(p_item) k where k not in ('digest_key','incident_id','environment','domain','bucket_start','bucket_end','queued_at')) then raise exception 'F9_DIGEST_UNAPPROVED_KEY'; end if;
   v_key:=p_item->>'digest_key'; v_incident:=p_item->>'incident_id'; v_env:=pg_catalog.lower(p_item->>'environment'); v_domain:=pg_catalog.upper(p_item->>'domain');
   begin v_start:=(p_item->>'bucket_start')::timestamptz; v_end:=(p_item->>'bucket_end')::timestamptz; v_queued:=(p_item->>'queued_at')::timestamptz; exception when others then raise exception 'F9_DIGEST_INVALID_TIMESTAMP'; end;
   if v_key !~ '^[A-Za-z0-9._:@/-]{1,240}$' or v_key ~ '[?#]' or v_key ~ '\.\.' then raise exception 'F9_DIGEST_KEY_INVALID'; end if;
   if v_incident !~ '^SEN-[0-9]{4}-[0-9]{4,}$' or v_env !~ '^[a-z0-9][a-z0-9._:-]{0,63}$' or v_domain !~ '^[A-Z][A-Z0-9_]{0,63}$' or v_end<=v_start then raise exception 'F9_DIGEST_SCOPE_INVALID'; end if;
   insert into public.aos_sentinel_alert_digest_items_v1(digest_key,incident_id,environment,domain,bucket_start,bucket_end,queued_at)
-  values(v_key,v_incident,v_env,v_domain,v_start,v_end,v_queued)
-  on conflict(digest_key,incident_id) do nothing;
-  get diagnostics v_inserted = row_count;
-  return pg_catalog.jsonb_build_object('ok',true,'inserted',v_inserted,'digest_key',v_key,'incident_id',v_incident);
+  values(v_key,v_incident,v_env,v_domain,v_start,v_end,v_queued) on conflict(digest_key,incident_id) do nothing;
+  get diagnostics v_count = row_count;
+  return pg_catalog.jsonb_build_object('ok',true,'inserted',(v_count=1),'digest_key',v_key,'incident_id',v_incident);
 end;
 $$;
 
@@ -189,10 +183,7 @@ stable
 security definer
 set search_path=''
 as $$
-  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-    'dispatch_id',d.dispatch_id,'attempt_key',d.attempt_key,'decision_key',d.decision_key,'action',d.action,'severity',d.severity,'status',d.status,
-    'decided_at',d.decided_at,'cooldown_seconds',d.cooldown_seconds,'delivery_state',d.delivery_state,'delivered_at',d.delivered_at,'retry_after_seconds',d.retry_after_seconds
-  ) order by d.dispatch_id),'[]'::jsonb)
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('dispatch_id',d.dispatch_id,'attempt_key',d.attempt_key,'decision_key',d.decision_key,'action',d.action,'severity',d.severity,'status',d.status,'decided_at',d.decided_at,'cooldown_seconds',d.cooldown_seconds,'delivery_state',d.delivery_state,'delivered_at',d.delivered_at,'retry_after_seconds',d.retry_after_seconds) order by d.dispatch_id),'[]'::jsonb)
   from public.aos_sentinel_alert_dispatches_v1 d where d.incident_id=p_incident_id;
 $$;
 
@@ -203,11 +194,8 @@ stable
 security definer
 set search_path=''
 as $$
-  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-    'window_id',w.window_id,'environment',w.environment,'domain',w.domain,'component',w.component,'capability',w.capability,'reason_code',w.reason_code,'starts_at',w.starts_at,'ends_at',w.ends_at
-  ) order by w.window_id),'[]'::jsonb)
-  from public.aos_sentinel_maintenance_windows_v1 w
-  where w.enabled and coalesce(p_at,pg_catalog.clock_timestamp()) between w.starts_at and w.ends_at;
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('window_id',w.window_id,'environment',w.environment,'domain',w.domain,'component',w.component,'capability',w.capability,'reason_code',w.reason_code,'starts_at',w.starts_at,'ends_at',w.ends_at) order by w.window_id),'[]'::jsonb)
+  from public.aos_sentinel_maintenance_windows_v1 w where w.enabled and coalesce(p_at,pg_catalog.clock_timestamp()) between w.starts_at and w.ends_at;
 $$;
 
 revoke all on table public.aos_sentinel_alert_dispatches_v1 from PUBLIC,anon,authenticated,service_role;
