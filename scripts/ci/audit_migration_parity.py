@@ -29,25 +29,25 @@ def read_remote() -> list[tuple[str, str]]:
     return rows
 
 
-def read_local() -> list[tuple[str, str, str]]:
+def read_local_all() -> list[tuple[str, str, str]]:
     rows: list[tuple[str, str, str]] = []
     for path in sorted(MIGRATIONS.glob("*.sql")):
         match = VERSION_RE.match(path.name)
         if not match:
             continue
         version, name = match.groups()
-        if version >= SCOPE_MIN:
-            rows.append((version, name, path.as_posix().split("/supabase/", 1)[-1]))
+        rows.append((version, name, path.relative_to(ROOT).as_posix()))
     return rows
 
 
 def main() -> int:
     remote = read_remote()
-    local = read_local()
+    local_all = read_local_all()
+    local_scope = [row for row in local_all if row[0] >= SCOPE_MIN]
 
     local_by_version: dict[str, tuple[str, str]] = {}
     local_by_name: dict[str, list[tuple[str, str]]] = defaultdict(list)
-    for version, name, path in local:
+    for version, name, path in local_all:
         if version in local_by_version:
             raise SystemExit(f"duplicate local migration version {version}")
         local_by_version[version] = (name, path)
@@ -62,6 +62,7 @@ def main() -> int:
     same_name_diff: list[tuple[str, str, str, str]] = []
     version_name_conflict: list[tuple[str, str, str, str]] = []
     remote_only: list[tuple[str, str]] = []
+    ambiguous_name: list[tuple[str, str, int]] = []
 
     for version, name in remote:
         local_exact = local_by_version.get(version)
@@ -76,15 +77,17 @@ def main() -> int:
         if len(matches) == 1:
             local_version, path = matches[0]
             same_name_diff.append((name, version, local_version, path))
+        elif len(matches) > 1:
+            ambiguous_name.append((version, name, len(matches)))
         else:
             remote_only.append((version, name))
 
     local_only: list[tuple[str, str, str]] = []
-    for version, name, path in local:
+    for version, name, path in local_scope:
         if version in remote_by_version:
             continue
         if name in remote_by_name:
-            # Already represented as SAME_NAME_DIFFERENT_VERSION.
+            # Already represented as SAME_NAME_DIFFERENT_VERSION or AMBIGUOUS_NAME.
             continue
         local_only.append((version, name, path))
 
@@ -92,19 +95,21 @@ def main() -> int:
         "# ASCENDA OS — Migration History Parity Audit",
         "",
         "**Mode:** read-only / offline comparison against frozen production ledger snapshot  ",
-        "**Scope:** versions `>= 20260815000000`  ",
+        "**Remote scope:** versions `>= 20260815000000`  ",
         f"**Remote rows:** {len(remote)}  ",
-        f"**Local rows in scope:** {len(local)}  ",
+        f"**Local rows scanned (all history):** {len(local_all)}  ",
+        f"**Local rows in recent scope:** {len(local_scope)}  ",
         "",
         "## Summary",
         "",
         f"- EXACT: **{len(exact)}**",
         f"- SAME_NAME_DIFFERENT_VERSION: **{len(same_name_diff)}**",
         f"- VERSION_NAME_CONFLICT: **{len(version_name_conflict)}**",
+        f"- AMBIGUOUS_NAME: **{len(ambiguous_name)}**",
         f"- REMOTE_ONLY: **{len(remote_only)}**",
         f"- LOCAL_ONLY: **{len(local_only)}**",
         "",
-        "`SAME_NAME_DIFFERENT_VERSION` is a candidate for filename/history reconciliation only after content identity is proven. `REMOTE_ONLY` may be active concurrent work and must never be blindly deleted or replayed.",
+        "`SAME_NAME_DIFFERENT_VERSION` is a candidate for filename/history reconciliation only after content identity is proven. `REMOTE_ONLY` may be active concurrent work and must never be blindly deleted or replayed. `AMBIGUOUS_NAME` requires manual content/checksum resolution.",
         "",
         "## SAME_NAME_DIFFERENT_VERSION",
         "",
@@ -127,6 +132,18 @@ def main() -> int:
         lines.append(f"| `{version}` | `{remote_name}` | `{local_name}` | `{path}` |")
     if not version_name_conflict:
         lines.append("| — | — | — | — |")
+
+    lines += [
+        "",
+        "## AMBIGUOUS_NAME",
+        "",
+        "| Production version | Migration | Local matches |",
+        "|---:|---|---:|",
+    ]
+    for version, name, count in ambiguous_name:
+        lines.append(f"| `{version}` | `{name}` | `{count}` |")
+    if not ambiguous_name:
+        lines.append("| — | — | — |")
 
     lines += [
         "",
@@ -163,7 +180,13 @@ def main() -> int:
     ]
 
     REPORT.write_text("\n".join(lines), encoding="utf-8")
-    print(f"PARITY_AUDIT_GENERATED remote={len(remote)} local={len(local)} exact={len(exact)} same_name_diff={len(same_name_diff)} version_name_conflict={len(version_name_conflict)} remote_only={len(remote_only)} local_only={len(local_only)}")
+    print(
+        "PARITY_AUDIT_GENERATED "
+        f"remote={len(remote)} local_all={len(local_all)} local_scope={len(local_scope)} "
+        f"exact={len(exact)} same_name_diff={len(same_name_diff)} "
+        f"version_name_conflict={len(version_name_conflict)} ambiguous_name={len(ambiguous_name)} "
+        f"remote_only={len(remote_only)} local_only={len(local_only)}"
+    )
     return 0
 
 
