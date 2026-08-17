@@ -114,7 +114,13 @@
     "preferred": "Supabase/PostgreSQL",
     "implementation_gate": "separate versioned migration + RLS/ACL + Zero-Cost validation + production authorization",
     "initial_engine_repository": "in-memory reference adapter",
-    "live_incidents_in_notion": false
+    "fixture_uses_production_persistence": false,
+    "live_incidents_in_notion": false,
+    "production_status": "certified",
+    "production_migration_version": "20260817000919",
+    "production_migration_name": "sentinel_f8_incident_engine",
+    "production_canary_incident": "SEN-2026-0001",
+    "production_canary_final_status": "RESOLVED"
   },
   "retention": {
     "resolved_incidents_policy": "retain metadata/timeline according to later storage policy; no sensitive payload",
@@ -130,6 +136,8 @@
     "new_id_outside_reopen_window": true,
     "privacy_safe_evidence": true,
     "cross_platform_ci": true,
-    "production_persistence_requires_separate_gate": true
+    "production_persistence_requires_separate_gate": true,
+    "zero_cost_persistence_certified": true,
+    "production_persistence_certified": true
   }
 }
