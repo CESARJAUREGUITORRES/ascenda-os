@@ -12,5 +12,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify live Phase S WhatsApp S8 native panel
-        run: node .github/scripts/wa-s8-live-probe.js
+      - name: Verify live Phase S WhatsApp S9 native layout
+        run: node .github/scripts/wa-s9-live-probe.js
