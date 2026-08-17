@@ -1,4 +1,5 @@
 'use strict'
+// Exact-head trigger for governed WhatsApp adapter certification.
 const assert=require('assert');
 const {createF17WhatsAppAdapter}=require('../../app/f17-whatsapp-adapter');
 
