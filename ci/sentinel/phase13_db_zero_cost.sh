@@ -4,6 +4,13 @@ DB="sentinel-f13-${GITHUB_RUN_ID:-local}-$$"
 cleanup(){ docker rm -f "$DB" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
+check_sql(){
+  local label="$1" sql="$2" expected="${3:-t}" out
+  out="$(docker exec "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres -c "$sql" | tr -d '\r')"
+  echo "${label}=${out}"
+  test "$out" = "$expected"
+}
+
 docker run -d --name "$DB" -e POSTGRES_PASSWORD=postgres postgres:17-alpine >/dev/null
 for _ in $(seq 1 40); do docker exec "$DB" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
 docker exec "$DB" pg_isready -U postgres >/dev/null
@@ -24,35 +31,17 @@ SQL
 
 docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql
 
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 'f'
-select has_table_privilege('anon','public.aos_sentinel_incidents_v1','select');
-SQL
-
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 't'
-select has_function_privilege('anon','public.aos_sentinel_owner_hub_v1(text,integer)','execute');
-SQL
-
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 't|{search_path=""}'
-select p.prosecdef::text||'|'||p.proconfig::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sentinel_owner_hub_v1';
-SQL
-
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 'SENTINEL_OWNER_2FA_REQUIRED'
-select public.aos_sentinel_owner_hub_v1('bad-token',50)->>'error';
-SQL
-
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 'true|1|SEN-2099-9401|2'
-select (j->>'ok')||'|'||(j->>'active_incidents')||'|'||(j->'items'->0->>'incident_id')||'|'||jsonb_array_length(j->'items'->0->'timeline') from (select public.aos_sentinel_owner_hub_v1('owner-token',50) j) x;
-SQL
+check_sql F13_ANON_TABLE_SELECT "select has_table_privilege('anon','public.aos_sentinel_incidents_v1','select')" f
+check_sql F13_ANON_RPC_EXECUTE "select has_function_privilege('anon','public.aos_sentinel_owner_hub_v1(text,integer)','execute')" t
+check_sql F13_SECURITY_DEFINER "select p.prosecdef and p.proconfig is not null and p.proconfig[1] like 'search_path=%' from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='aos_sentinel_owner_hub_v1'" t
+check_sql F13_NEGATIVE_2FA "select public.aos_sentinel_owner_hub_v1('bad-token',50)->>'error'='SENTINEL_OWNER_2FA_REQUIRED'" t
+check_sql F13_CANARY "select (j->>'ok')::boolean and (j->>'active_incidents')::integer=1 and j->'items'->0->>'incident_id'='SEN-2099-9401' and jsonb_array_length(j->'items'->0->'timeline')=2 from (select public.aos_sentinel_owner_hub_v1('owner-token',50) j) x" t
 
 docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < ci/sentinel/sql/phase13_owner_hub_rollback.sql
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 'f'
-select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is not null;
-SQL
+check_sql F13_ROLLBACK_ABSENT "select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is null" t
 
 docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20260817203500_sentinel_f13_owner_hub.sql
-docker exec -i "$DB" psql -At -v ON_ERROR_STOP=1 -U postgres <<'SQL' | grep -qx 't'
-select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is not null;
-SQL
+check_sql F13_REAPPLY_PRESENT "select to_regprocedure('public.aos_sentinel_owner_hub_v1(text,integer)') is not null" t
 
 echo 'SENTINEL_F13_DB_COMPILE=PASS'
 echo 'SENTINEL_F13_DB_ACL=PASS'
