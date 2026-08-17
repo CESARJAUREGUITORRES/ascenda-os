@@ -34,7 +34,6 @@ function signal(overrides={}){
   };
 }
 
-// First signal opens a stable SEN id.
 const opened=engine.ingest(signal());
 assert.equal(opened.replay,false);
 assert.equal(opened.incident.incident_id,'SEN-2026-0001');
@@ -44,7 +43,6 @@ assert.equal(opened.incident.signal_count,1);
 assert.deepEqual(opened.incident.signal_classes,['AVAILABILITY']);
 assert.equal(opened.incident.correlation.confidence,'EXACT');
 
-// Exact event replay is a no-op and returns the same incident.
 const replay=engine.ingest(signal());
 assert.equal(replay.replay,true);
 assert.equal(replay.mutated,false);
@@ -52,7 +50,6 @@ assert.equal(replay.incident.incident_id,'SEN-2026-0001');
 assert.equal(replay.incident.signal_count,1);
 assert.equal(repo.eventCount(),1);
 
-// A different signal class converges into the same incident only because incident_fingerprint + taxonomy/failure family match.
 clock='2026-08-16T23:02:00Z';
 const business=engine.ingest(signal({
   event_id:'evt-wa-002',
@@ -69,7 +66,6 @@ assert.equal(business.incident.severity,'P1');
 assert.ok(business.incident.timeline.some(x=>x.type==='SEVERITY_ESCALATED'&&x.from==='P2'&&x.to==='P1'));
 assert.equal(business.incident.evidence_refs.length,3);
 
-// Lifecycle transitions are explicit and invalid backwards transitions are rejected.
 clock='2026-08-16T23:03:00Z';
 assert.equal(engine.transition('SEN-2026-0001','ACK').incident.status,'ACK');
 assert.throws(()=>engine.transition('SEN-2026-0001','OPEN'),/F8_STATUS_TRANSITION_INVALID/);
@@ -81,13 +77,11 @@ assert.equal(resolved.incident.status,'RESOLVED');
 assert.equal(resolved.incident.resolved_at,'2026-08-16T23:10:00.000Z');
 assert.throws(()=>engine.transition('SEN-2026-0001','ACK'),/F8_STATUS_TRANSITION_INVALID/);
 
-// Replay of an old event after resolution still does not reopen.
 clock='2026-08-16T23:12:00Z';
 const oldReplay=engine.ingest(signal());
 assert.equal(oldReplay.replay,true);
 assert.equal(oldReplay.incident.status,'RESOLVED');
 
-// New event with the same fingerprint inside 60m reopens the SAME incident id.
 clock='2026-08-16T23:25:00Z';
 const reopened=engine.ingest(signal({
   event_id:'evt-wa-003',
@@ -104,7 +98,6 @@ assert.equal(reopened.incident.reopened_count,1);
 assert.equal(reopened.incident.signal_count,3);
 assert.ok(reopened.incident.timeline.some(x=>x.type==='INCIDENT_REOPENED'));
 
-// Resolve again. A new event outside reopen window must create a NEW stable incident id.
 clock='2026-08-16T23:30:00Z';
 engine.transition('SEN-2026-0001','RESOLVED');
 clock='2026-08-17T01:45:00Z';
@@ -120,7 +113,6 @@ assert.equal(outside.reopened,false);
 assert.equal(outside.incident.incident_id,'SEN-2026-0002');
 assert.equal(outside.incident.status,'OPEN');
 
-// Different failure family/fingerprint never merges implicitly merely because module/capability is similar.
 clock='2026-08-17T01:46:00Z';
 const separate=engine.ingest(signal({
   event_id:'evt-wa-005',
@@ -135,7 +127,6 @@ const separate=engine.ingest(signal({
 assert.equal(separate.incident.incident_id,'SEN-2026-0003');
 assert.equal(repo.listIncidents().length,3);
 
-// IDs are year-scoped and padded; a new year restarts that year's sequence without mutating previous ids.
 clock='2027-01-01T00:05:00Z';
 const nextYear=engine.ingest(signal({
   event_id:'evt-sales-2027-001',
@@ -155,7 +146,6 @@ const nextYear=engine.ingest(signal({
 assert.equal(nextYear.incident.incident_id,'SEN-2027-0001');
 assert.equal(repo.getIncident('SEN-2026-0001').incident_id,'SEN-2026-0001');
 
-// Privacy/evidence boundary: raw URLs/query strings and unapproved fields are rejected.
 assert.throws(()=>engine.ingest(signal({event_id:'evt-bad-001',evidence_refs:[{kind:'sentry-issue',id:'https://example.test/issue?token=secret'}]})),/F8_EVIDENCE_REF_INVALID_TECHNICAL_ID/);
 assert.throws(()=>engine.ingest({...signal({event_id:'evt-bad-002'}),patient_name:'NO'}),/F8_SIGNAL_UNAPPROVED_KEY/);
 assert.throws(()=>engine.ingest(signal({event_id:'evt-bad-003',incident_fingerprint:'bad fingerprint with spaces'})),/F8_INCIDENT_FINGERPRINT_INVALID_SLUG/);
@@ -172,5 +162,6 @@ console.log(JSON.stringify({
   new_id_outside_window:true,
   unrelated_failures_not_merged:true,
   evidence_reference_only:true,
-  production_persistence:false
+  fixture_repository:'in-memory reference adapter',
+  fixture_uses_production_persistence:false
 }));
