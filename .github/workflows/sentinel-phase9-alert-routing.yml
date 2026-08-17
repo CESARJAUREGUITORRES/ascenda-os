@@ -1,0 +1,79 @@
+name: Sentinel F9 Alert Routing Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths: &f9_paths
+      - 'sentinel/alerts/**'
+      - 'ci/sentinel/phase9_alert_routing_*.js'
+      - 'docs/control/SENTINEL_F9_*.md'
+      - 'docs/control/SENTINEL_ROADMAP_V1.md'
+      - '.github/workflows/sentinel-phase9-alert-routing.yml'
+  push:
+    branches: ['feature/sentinel-f9-alert-routing','main']
+    paths: *f9_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f9-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  routing-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: FAST runner healthcheck
+        shell: powershell
+        run: node --version
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check sentinel/alerts/memory-alert-state.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/alert-router.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/alert-dispatcher.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/fake-transport.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase9_alert_routing_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase9_alert_routing_synthetic.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: F9 routing contract
+        shell: powershell
+        run: node ci/sentinel/phase9_alert_routing_contract.js
+      - name: F9 noise-control synthetic
+        shell: powershell
+        run: node ci/sentinel/phase9_alert_routing_synthetic.js
+
+  routing-linux:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: Enforce Zero-Cost runner policy
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = "Linux"
+          docker version >/dev/null
+      - name: Cross-platform routing fixtures in disposable Node
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" \
+            -w /work \
+            node:22-alpine \
+            sh -lc 'node --version && node --check sentinel/alerts/memory-alert-state.cjs && node --check sentinel/alerts/alert-router.cjs && node --check sentinel/alerts/alert-dispatcher.cjs && node --check sentinel/alerts/fake-transport.cjs && node ci/sentinel/phase9_alert_routing_contract.js && node ci/sentinel/phase9_alert_routing_synthetic.js'
