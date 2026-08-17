@@ -45,7 +45,7 @@ ok(f8.persistence_target.initial_engine_repository==='in-memory reference adapte
 ok(f8.persistence_target.fixture_uses_production_persistence===false,'F8_FIXTURE_MUST_NOT_USE_PRODUCTION');
 ok(f8.persistence_target.live_incidents_in_notion===false,'F8_NOTION_RUNTIME_STORE_FORBIDDEN');
 ok(f8.persistence_target.production_status==='certified','F8_PRODUCTION_PERSISTENCE_NOT_CERTIFIED');
-ok(f8.persistence_target.production_migration_version==='20260817000919','F8_PRODUCTION_MIGRATION_VERSION_DRIFT');
+ok(f8.persistence_target.production_migration_version==='20260817000618','F8_PRODUCTION_MIGRATION_VERSION_DRIFT');
 ok(f8.persistence_target.production_canary_incident==='SEN-2026-0001'&&f8.persistence_target.production_canary_final_status==='RESOLVED','F8_PRODUCTION_CANARY_DRIFT');
 ok(f8.gates.production_persistence_requires_separate_gate===true,'F8_PRODUCTION_PERSISTENCE_GATE_MISSING');
 ok(f8.gates.zero_cost_persistence_certified===true&&f8.gates.production_persistence_certified===true,'F8_PERSISTENCE_CERTIFICATION_DRIFT');
