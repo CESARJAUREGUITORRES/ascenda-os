@@ -4,8 +4,9 @@ function ok(v,m){if(!v)throw new Error(m);}
 const shell=fs.readFileSync('app/public/wa-shell-integration.js','utf8');
 const native=fs.readFileSync('app/public/wa-native-panel.js','utf8');
 const phase=fs.readFileSync('app/server-phase-s.js','utf8');
+const layout=fs.existsSync('app/public/wa-native-layout-s9.js')?fs.readFileSync('app/public/wa-native-layout-s9.js','utf8'):'';
 ok(shell.includes('AOS_WA_NATIVE'),'native module mount missing');
-ok(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s8-p01'),'native cache-busted loader missing');
+ok(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s8-p01')||shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01'),'native cache-busted loader missing');
 ok(!shell.includes('WA_IFRAME_URL'),'iframe runtime must not be normal path');
 ok(!shell.includes('<iframe'),'iframe markup must not be normal path');
 ok(!shell.includes('installRecovery'),'recovery renderer must not be normal path');
@@ -26,4 +27,11 @@ ok(native.includes('wa8-left-toggle')&&native.includes('wa8-right-toggle'),'coll
 ok(phase.includes('/wa-native-panel.js?v=20260817-wa-native-s8-p01'),'Phase S native panel anchor missing');
 ok(phase.includes('/wa-shell-integration.js?v=20260817-wa-shell-s8-p01'),'Phase S S8 shell cache-buster missing');
 ok(phase.includes("if(req.method==='GET'&&p==='/api/wa3/bootstrap')"),'Phase S WA3 bootstrap boundary missing');
-console.log('WA_NATIVE_S8_CONTRACT_PASS');
+if(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01')){
+  ok(shell.includes('/wa-native-layout-s9.js?v=20260817-wa-layout-s9-p01'),'S9 layout loader missing');
+  ok(layout.includes("display:flex!important"),'S9 deterministic flex layout missing');
+  ok(layout.includes('getBoundingClientRect'),'S9 runtime geometry check missing');
+  ok(layout.includes('self-heal'),'S9 self-heal marker missing');
+  ok(layout.includes('AOS_WA_LAYOUT_DIAG'),'S9 diagnostics exposure missing');
+}
+console.log(shell.includes('/wa-native-panel.js?v=20260817-wa-native-s9-p01')?'WA_NATIVE_S9_CONTRACT_PASS':'WA_NATIVE_S8_CONTRACT_PASS');
