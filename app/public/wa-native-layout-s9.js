@@ -61,7 +61,10 @@ function wrap(){
   if(!window.AOS_WA_NATIVE||typeof window.AOS_WA_NATIVE.mount!=='function'){
     if(WRAP_TRIES<WRAP_MAX)setTimeout(wrap,50);return;
   }
-  if(window.AOS_WA_NATIVE.__s9Wrapped)return;
+  if(window.AOS_WA_NATIVE.__s9Wrapped){
+    if(el('wa8-grid'))stabilize({left:read('aos_wa_s9_left_open',true),right:read('aos_wa_s9_right_open',true)});
+    return;
+  }
   var baseMount=window.AOS_WA_NATIVE.mount,baseUnmount=window.AOS_WA_NATIVE.unmount;
   window.AOS_WA_NATIVE.mount=function(viewId){
     var state={left:read('aos_wa_s9_left_open',true),right:read('aos_wa_s9_right_open',true)};
@@ -71,6 +74,8 @@ function wrap(){
   window.AOS_WA_NATIVE.unmount=function(){try{var ws=el('workspace');if(ws)ws.style.overflow='';}catch(_){}return baseUnmount.apply(this,arguments);};
   window.AOS_WA_NATIVE.__s9Wrapped=true;
   window.AOS_WA_NATIVE.layoutDiagnostics=function(){return expose('manual');};
+  // If S8 mounted before this script was injected, repair that existing DOM immediately.
+  if(el('wa8-grid'))stabilize({left:true,right:window.innerWidth>900});
 }
 wrap();
 })();
