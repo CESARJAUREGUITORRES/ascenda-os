@@ -1,15 +1,17 @@
 # Sentinel F12 — Safe Remediation Loop — Final Certificate
 
-**Estado:** PRE-MERGE CERTIFIED / READY AFTER EXACT-HEAD + MERGE-REF  
+**Estado:** CERRADA / 100_COMPLETE  
 **Fecha:** 2026-08-17 (America/Lima)  
 **Impact Report:** `docs/control/SENTINEL_F12_SAFE_REMEDIATION_IMPACT_REPORT_20260817.md`  
-**Riesgo:** CRITICAL
+**Riesgo:** CRITICAL  
+**PR de implementación:** #244  
+**Merge:** `a82089b3cf40bbc8546b6c98bb8f6b48512933c5`
 
 ## Scope certificado
 
 F12 convierte evidencia validada `SEN-* → F10 → F11` en un candidate fix verificable sin crear una ruta de mutación productiva automática.
 
-Flujo:
+Flujo certificado:
 
 `SEN-* → diagnostic_id F10 → F11 triage audit digest/evidence → remediation request → deterministic plan → isolated sandbox → targeted tests → Zero-Cost/security gate → candidate PR DRAFT → human gate → canary/rollback cuando aplique → producción únicamente tras autorización explícita`
 
@@ -28,9 +30,9 @@ Flujo:
 - kill switch fail-closed: `enabled !== true` bloquea cualquier apply/rollback.
 - rollback verifica hash posterior y restaura hash previo.
 
-## Evidencia exact-head funcional
+## Evidencia funcional y exact-head
 
-Head funcional previo a este certificado: `e7d6ed7b05286885ffac663f6530ffe5ce80c71a`.
+Head funcional: `e7d6ed7b05286885ffac663f6530ffe5ce80c71a`.
 
 - F12 Certificate `32063873662`: FAST PASS + Linux Zero-Cost PASS.
 - Ascenda CI `32063873475`: PASS.
@@ -41,6 +43,10 @@ Head funcional previo a este certificado: `e7d6ed7b05286885ffac663f6530ffe5ce80c
   - `SENTINEL_F12_REMEDIATION_E2E=PASS`
   - `SENTINEL_F12_REPLAY_ROLLBACK=PASS`
   - `SENTINEL_F12_STATIC_BOUNDARY=PASS`
+
+Head con certificado pre-merge: `89d9887bbfa9b340b3b90e496beddd6b878743cf`.
+
+- F12 Certificate `32064239491`: FAST PASS + Linux Zero-Cost PASS.
 
 ## Candidate PR canary
 
@@ -53,6 +59,26 @@ Diff: un único archivo allowlisted `sentinel/remediation/fixtures/synthetic-tar
 F12 PR run `32064051908`: FAST PASS + Linux Zero-Cost PASS.
 
 Resultado del human gate: PR #243 fue **CLOSED / NOT MERGED**. No hubo deployment ni mutación productiva. Esto prueba que un incidente puede llegar a PR validado y detenerse antes de integración.
+
+## Implementation PR / merge-ref
+
+PR #244 `feat(sentinel): F12 Safe Remediation Loop`.
+
+- head exacto: `89d9887bbfa9b340b3b90e496beddd6b878743cf`;
+- F12 PR run `32064409164`: FAST PASS + Linux Zero-Cost PASS;
+- Ascenda CI PR run `32064409124`: PASS;
+- PR marcado READY únicamente después de ambos gates;
+- merge ejecutado con `expected_head_sha=89d9887bbfa9b340b3b90e496beddd6b878743cf`;
+- merge commit: `a82089b3cf40bbc8546b6c98bb8f6b48512933c5`.
+
+## Post-merge
+
+Sobre `main@a82089b3cf40bbc8546b6c98bb8f6b48512933c5`:
+
+- F12 post-merge `32064580020`: FAST PASS + Linux Zero-Cost PASS;
+- Ascenda CI post-merge `32064579939`: PASS.
+
+No se detectó ruta de escritura productiva, auto-merge o auto-deploy añadida por F12.
 
 ## Security gate
 
@@ -89,10 +115,12 @@ PASS por controles positivos y negativos machine-checkable:
 | G12 | FAST + Linux Zero-Cost exact-head funcional | PASS |
 | G13 | Ascenda CI exact-head funcional | PASS |
 | G14 | synthetic candidate PR DRAFT + CI + CLOSED NOT MERGED | PASS |
-| G15 | certificado-head exacto + implementation PR merge-ref | PENDING |
-| G16 | merge con expected-head | PENDING |
-| G17 | post-merge F12 + Ascenda CI sobre main | PENDING |
+| G15 | certificado-head exacto + implementation PR merge-ref | PASS |
+| G16 | merge con expected-head | PASS |
+| G17 | post-merge F12 + Ascenda CI sobre main | PASS |
 
-## Criterio de cierre
+## Cierre
 
-F12 solo pasa a `CERRADA / 100_COMPLETE` cuando G15–G17 sean PASS. F13 permanece bloqueada hasta ese momento.
+**F12 = CERRADA / 100_COMPLETE.**
+
+Safe Remediation queda certificada para candidate fixes y PRs bajo gates. Ninguna ruta puede auto-fusionar o auto-desplegar HIGH/CRITICAL; producción conserva aprobación humana explícita. F13 Sentinel Hub/System Map queda habilitada para promoción.
