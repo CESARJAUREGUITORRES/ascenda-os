@@ -30,7 +30,7 @@ async function injectF4(req){
     tags+='<script src="/f4-production-canary-hotfix.js?v=20260815-f4-sales-auth-p06"></script>';
   }
   if(html.indexOf('/wa-shell-integration.js')<0){
-    tags+='<script src="/wa-shell-integration.js?v=20260815-wa-shell-p02"></script>';
+    tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p03"></script>';
   }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
