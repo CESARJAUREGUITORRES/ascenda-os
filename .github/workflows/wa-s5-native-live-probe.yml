@@ -1,0 +1,25 @@
+name: WA S5 Native Live Probe
+on:
+  push:
+    branches:
+      - diag/wa-s5-native-live-probe-20260817
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Verify production WA S5 assets
+        shell: powershell
+        run: |
+          $base='https://ascenda-os-production.up.railway.app'
+          $health = curl.exe -fsS "$base/health"
+          if ($LASTEXITCODE -ne 0) { throw 'health probe failed' }
+          if ($health -notmatch 'ascenda-phase-s') { throw 'Phase S health marker missing' }
+          $sw = curl.exe -fsS "$base/phase2-service-worker.js?probe=20260817s5"
+          if ($LASTEXITCODE -ne 0) { throw 'service worker probe failed' }
+          if ($sw -notmatch 'wa-native-bootstrap-prelude.js') { throw 'live SW missing native prelude injection' }
+          $prelude = curl.exe -fsS "$base/wa-native-bootstrap-prelude.js?probe=20260817s5"
+          if ($LASTEXITCODE -ne 0) { throw 'prelude asset probe failed' }
+          if ($prelude -notmatch '\[WA-S5\]') { throw 'live native prelude marker missing' }
+          if ($prelude -notmatch '/api/wa3/bootstrap') { throw 'live prelude bootstrap retry contract missing' }
+          Write-Host 'WA S5 LIVE ASSETS PASS'
