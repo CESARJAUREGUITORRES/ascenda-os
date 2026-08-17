@@ -20,6 +20,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 20
     steps:
+      - name: Repair Zero-Cost workspace ownership
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" alpine:3.20 sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
