@@ -30,6 +30,7 @@ jobs:
           set -euo pipefail
           git fetch origin security/kronia-k1-current-final-v3-20260815
           node scripts/ci/k1_copy_source_v4.js 57d8ddd6b4c9554a167224369e71f9544c863151
+          node scripts/ci/k1_v4_fixture_bootstrap_fix.js
           node scripts/ci/k1_port_current_v4.js
           node scripts/ci/k1_v4_runtime_contract_fix.js
 
@@ -55,6 +56,8 @@ jobs:
           grep -q "server-phase-s.js" app/server-k1.js
           ! grep -q "spawn(process.execPath,\['server-f5.js'\]" app/server-k1.js
           grep -q "server-f5.js" app/server-phase-s.js
+          ! grep -q "create table if not exists public.aos_integration_secrets_v1" ci/kronia-k1-phase2/fixture_pre_k1.sql
+          grep -q "K1 CURRENT private provider vault bootstrap" supabase/migrations/20260814170000_kronia_k1_private_credentials_auth_v3.sql
 
           git status --short
           git add -A
