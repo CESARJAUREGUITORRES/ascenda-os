@@ -24,8 +24,11 @@ ok(server.includes("url.pathname === '/api/push/config'"),'push config endpoint 
 ok(server.includes("url.pathname === '/api/push/subscribe'"),'push subscribe endpoint missing')
 ok(server.includes("url.pathname === '/api/push/unsubscribe'"),'push unsubscribe endpoint missing')
 ok(server.includes("verifyApp(req.headers['x-aos-app-token'], false)"),'push endpoints must bind subscription to authenticated ASCENDA actor')
-ok(server.includes('res.writeHead(upstream.statusCode || 502, headers); res.end(responseBody)')&&server.includes('setImmediate(function()'),'push dispatch must be fail-open after webhook response')
-ok(server.indexOf('res.writeHead(upstream.statusCode || 502, headers); res.end(responseBody)')<server.indexOf("setImmediate(function() {\n        push.dispatchWhatsAppEnvelope"),'Meta webhook ACK must precede Web Push dispatch')
+const webhookStart=server.indexOf('async function handleGovernedWebhook')
+const webhookEnd=server.indexOf('\nconst server = http.createServer',webhookStart)
+const webhook=webhookStart>=0&&webhookEnd>webhookStart?server.slice(webhookStart,webhookEnd):''
+ok(webhook.includes('res.writeHead(upstream.statusCode || 502, headers); res.end(responseBody)')&&webhook.includes('setImmediate(function()'),'push dispatch must be fail-open after webhook response')
+ok(webhook.indexOf('res.writeHead(upstream.statusCode || 502, headers); res.end(responseBody)')<webhook.indexOf('setImmediate(function()'),'Meta webhook ACK must precede Web Push dispatch')
 
 ok(migration.includes("v_conv.state <> 'HUMAN_ACTIVE'"),'server target RPC must require HUMAN_ACTIVE')
 ok(migration.includes("v_conv.last_message_direction <> 'INBOUND'"),'server target RPC must require inbound last message')
