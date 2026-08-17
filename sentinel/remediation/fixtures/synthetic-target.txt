@@ -1,2 +1,2 @@
-retry_budget=2
+retry_budget=3
 mode=synthetic
