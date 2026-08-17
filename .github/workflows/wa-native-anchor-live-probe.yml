@@ -12,9 +12,9 @@ jobs:
         with:
           node-version: '24'
       - name: Verify live Phase S WhatsApp S7 bridge
-        shell: bash
+        shell: powershell
         run: |
-          node <<'NODE'
+          $code = @'
           const base='https://ascenda-os-production.up.railway.app';
           const ok=(v,m)=>{if(!v)throw new Error(m)};
           async function text(path,opts){const r=await fetch(base+path,Object.assign({cache:'no-store'},opts||{}));return {r,body:await r.text()};}
@@ -22,28 +22,26 @@ jobs:
             let x=await text('/health?probe=wa-s7-20260817');
             ok(x.r.ok,'health '+x.r.status);
             ok(x.body.includes('ascenda-phase-s'),'Phase S marker missing');
-
             x=await text('/app?probe=wa-s7-20260817');
             ok(x.r.ok,'app '+x.r.status);
             ok((x.r.headers.get('x-ascenda-phase-s-shell')||'')==='native-wa-anchor-v1','shell marker missing');
             ok(x.body.includes('auth-session-cookie-bridge.js?v=20260817-s7-p01'),'logout bridge missing');
-
             x=await text('/wa-native-bootstrap-prelude.js?probe=wa-s7-20260817');
             ok(x.r.ok,'prelude '+x.r.status);
             ok(x.body.includes('PHASE S S7 minimal native bootstrap bridge'),'S7 marker missing');
             ok(!x.body.includes('wa-lead360'),'S6 Lead 360 still live');
             ok(!x.body.includes('wa-left-closed'),'S6 collapse CSS still live');
             ok(x.body.includes("next.credentials='same-origin'"),'cookie credentials contract missing');
-
             x=await text('/api/auth/v3/logout?probe=wa-s7-20260817',{method:'POST'});
             ok(x.r.ok,'logout '+x.r.status);
             const sc=x.r.headers.get('set-cookie')||'';
             ok(sc.includes('aos_app_session=')&&sc.includes('Max-Age=0'),'logout cookie revocation missing');
-
             x=await text('/api/wa3/bootstrap?probe=wa-s7-20260817');
             ok(x.r.status===403,'anonymous WA3 must remain closed: '+x.r.status);
             ok(x.body.includes('WA3_2FA_PANEL_REQUIRED'),'anonymous gate changed');
-
             console.log('WA_S7_HTTPONLY_SESSION_LIVE=PASS');
           })().catch(e=>{console.error(e);process.exit(1)});
-          NODE
+          '@
+          $probe = Join-Path $env:RUNNER_TEMP 'wa-s7-live-probe.js'
+          Set-Content -Path $probe -Value $code -Encoding UTF8
+          node $probe
