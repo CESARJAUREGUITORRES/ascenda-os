@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4 — app-wide controlled-write + revenue operations bridge.
+// ASCENDA OS Phase 2/F4/F9 — app-wide controlled-write + revenue operations + Sentinel owner notification bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -31,6 +31,9 @@ async function injectF4(req){
   }
   if(html.indexOf('/wa-shell-integration.js')<0){
     tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-p03"></script>';
+  }
+  if(html.indexOf('/sentinel-inapp-notifications.js')<0){
+    tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
   }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');

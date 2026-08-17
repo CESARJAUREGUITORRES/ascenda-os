@@ -1,0 +1,76 @@
+name: Sentinel F9 In-App Owner Alerts Certificate
+
+on:
+  pull_request:
+    branches: [main]
+    paths: &paths
+      - 'sentinel/alerts/**'
+      - 'ci/sentinel/phase9_inapp_*'
+      - 'ci/sentinel/phase9_alert_routing_*.js'
+      - 'app/public/sentinel-inapp-notifications.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'supabase/migrations/20260817043000_sentinel_f9_inapp_owner_alerts.sql'
+      - 'supabase/rollbacks/20260817043000_sentinel_f9_inapp_owner_alerts_rollback.sql'
+      - 'docs/control/SENTINEL_F9_*.md'
+      - '.github/workflows/sentinel-phase9-inapp.yml'
+  push:
+    branches: ['feature/sentinel-f9-inapp-owner-alerts','main']
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f9-inapp-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  inapp-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: Syntax and transport-neutral contract
+        shell: powershell
+        run: |
+          node --check sentinel/alerts/alert-router.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/alert-dispatcher.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check sentinel/alerts/ascenda-inapp-transport.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/sentinel-inapp-notifications.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/phase2-service-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase9_alert_routing_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase9_alert_routing_synthetic.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase9_alert_routing_telegram_adapter.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase9_alert_routing_secret_provider.js
+
+  inapp-zero-cost:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      SUPABASE_CLI_VERSION: '2.72.8'
+      NODE_CLI_IMAGE: 'node:22-bookworm-slim'
+      PSQL_IMAGE: 'postgres:17-alpine'
+      WORKSPACE_FIX_IMAGE: 'alpine:3.20'
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - uses: actions/checkout@v4
+      - name: F9-C Zero-Cost certificate
+        run: |
+          set -euo pipefail
+          bash -n ci/sentinel/phase9_inapp_zero_cost.sh
+          bash ci/sentinel/phase9_inapp_zero_cost.sh

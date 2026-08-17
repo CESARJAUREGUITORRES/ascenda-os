@@ -1,98 +1,15 @@
 {
-  "schema_version": "sentinel-alerts/v1",
+  "schema_version": "sentinel-alerts/v2",
   "phase": "F9",
-  "baseline_main": "f90542bfa21b7be5e3a306f0d9241c52368fbe19",
+  "baseline_main": "24a36b64ca85a856a5640f306435405c0b5d92ac",
   "purpose": "Route sanitized Sentinel incidents to owner-facing notification actions with deterministic severity policy, deduplication, cooldown, grouping, flapping suppression, maintenance windows and recovery notifications.",
-  "design": {
-    "zero_phi_pii": true,
-    "secret_free_core": true,
-    "transport_agnostic": true,
-    "telegram_live_configured": false,
-    "telegram_secret_in_browser_forbidden": true,
-    "automatic_remediation": false,
-    "incident_source_owned_by_f8": true
-  },
-  "severity_routing": {
-    "P0": {"mode": "IMMEDIATE", "channel": "telegram-owner", "cooldown_seconds": 60, "maintenance_suppressible": false},
-    "P1": {"mode": "IMMEDIATE", "channel": "telegram-owner", "cooldown_seconds": 300, "maintenance_suppressible": true},
-    "P2": {"mode": "DIGEST", "channel": "telegram-owner", "digest_window_seconds": 900, "maintenance_suppressible": true},
-    "P3": {"mode": "PANEL_ONLY", "channel": null, "maintenance_suppressible": true}
-  },
-  "recovery": {
-    "enabled": true,
-    "for_severities": ["P0", "P1", "P2"],
-    "requires_prior_notifiable_incident": true,
-    "dedup_once_per_resolve_transition": true
-  },
-  "deduplication": {
-    "key_fields": ["incident_id", "notification_kind", "severity", "status"],
-    "severity_escalation_bypasses_cooldown": true,
-    "replay_inside_cooldown": "SUPPRESSED_COOLDOWN"
-  },
-  "flapping": {
-    "window_seconds": 600,
-    "transition_threshold": 4,
-    "suppression_seconds": 900,
-    "emit_one_summary": true,
-    "p0_bypasses_suppression": true
-  },
-  "maintenance": {
-    "match_fields": ["environment", "domain", "component", "capability"],
-    "expected_incidents_suppressed": true,
-    "p0_never_suppressed": true
-  },
-  "sanitized_alert": {
-    "allowed_fields": [
-      "incident_id",
-      "notification_kind",
-      "severity",
-      "status",
-      "environment",
-      "domain",
-      "component",
-      "capability",
-      "failure_family",
-      "release",
-      "commit_sha",
-      "deployment_id",
-      "signal_count",
-      "reopened_count",
-      "observed_at"
-    ],
-    "digest_allowed_fields": [
-      "notification_kind",
-      "severity",
-      "environment",
-      "domain",
-      "incident_ids",
-      "count",
-      "window_start",
-      "window_end"
-    ],
-    "free_text_from_incident_forbidden": true,
-    "raw_evidence_forbidden": true,
-    "patient_or_contact_identifiers_forbidden": true,
-    "secret_values_forbidden": true
-  },
-  "transport": {
-    "interface": "send(alertEnvelope)",
-    "baseline_adapter": "fake-transport",
-    "telegram_adapter": "separate materialization gate using server-side secret boundary",
-    "delivery_claim_requires_transport_ack": true,
-    "unconfigured_transport_state": "UNAVAILABLE"
-  },
-  "gates": {
-    "p0_p1_immediate": true,
-    "p2_grouped": true,
-    "p3_panel_only": true,
-    "cooldown_dedup": true,
-    "severity_escalation_bypass": true,
-    "flapping_suppression": true,
-    "maintenance_suppression": true,
-    "recovery_once": true,
-    "zero_phi_pii_template": true,
-    "transport_unavailable_not_false_delivered": true,
-    "cross_platform_ci": true,
-    "live_telegram_requires_separate_gate": true
-  }
+  "design": {"zero_phi_pii": true,"secret_free_core": true,"transport_agnostic": true,"primary_owner_transport": "ascenda-in-app","telegram_live_configured": false,"telegram_debt_status": "DEFERRED_NON_BLOCKING","telegram_secret_in_browser_forbidden": true,"automatic_remediation": false,"incident_source_owned_by_f8": true},
+  "severity_routing": {"P0": {"mode": "IMMEDIATE", "channel": "ascenda-in-app", "cooldown_seconds": 60, "maintenance_suppressible": false},"P1": {"mode": "IMMEDIATE", "channel": "ascenda-in-app", "cooldown_seconds": 300, "maintenance_suppressible": true},"P2": {"mode": "DIGEST", "channel": "ascenda-in-app", "digest_window_seconds": 900, "maintenance_suppressible": true},"P3": {"mode": "PANEL_ONLY", "channel": null, "maintenance_suppressible": true}},
+  "recovery": {"enabled": true, "for_severities": ["P0", "P1", "P2"], "requires_prior_notifiable_incident": true, "dedup_once_per_resolve_transition": true},
+  "deduplication": {"key_fields": ["incident_id", "notification_kind", "severity", "status"], "severity_escalation_bypasses_cooldown": true, "replay_inside_cooldown": "SUPPRESSED_COOLDOWN"},
+  "flapping": {"window_seconds": 600, "transition_threshold": 4, "suppression_seconds": 900, "emit_one_summary": true, "p0_bypasses_suppression": true},
+  "maintenance": {"match_fields": ["environment", "domain", "component", "capability"], "expected_incidents_suppressed": true, "p0_never_suppressed": true},
+  "sanitized_alert": {"allowed_fields": ["incident_id","notification_kind","severity","status","environment","domain","component","capability","failure_family","release","commit_sha","deployment_id","signal_count","reopened_count","observed_at"],"digest_allowed_fields": ["notification_kind","severity","environment","domain","incident_ids","count","window_start","window_end"],"free_text_from_incident_forbidden": true,"raw_evidence_forbidden": true,"patient_or_contact_identifiers_forbidden": true,"secret_values_forbidden": true},
+  "transport": {"interface": "send(alertEnvelope)","mandatory_adapter": "ascenda-in-app","baseline_adapter": "fake-transport","telegram_adapter": "implemented but live credentials deferred","delivery_claim_requires_transport_ack": true,"inapp_delivery_ack": "durable dispatch persisted and marked DELIVERED","read_is_distinct_from_delivered": true,"unconfigured_transport_state": "UNAVAILABLE"},
+  "gates": {"p0_p1_immediate": true,"p2_grouped": true,"p3_panel_only": true,"cooldown_dedup": true,"severity_escalation_bypass": true,"flapping_suppression": true,"maintenance_suppression": true,"recovery_once": true,"zero_phi_pii_template": true,"transport_unavailable_not_false_delivered": true,"cross_platform_ci": true,"inapp_live_required": true,"telegram_live_required_for_f9_close": false}
 }
