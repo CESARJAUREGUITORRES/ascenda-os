@@ -59,6 +59,16 @@
       "reopened_count",
       "observed_at"
     ],
+    "digest_allowed_fields": [
+      "notification_kind",
+      "severity",
+      "environment",
+      "domain",
+      "incident_ids",
+      "count",
+      "window_start",
+      "window_end"
+    ],
     "free_text_from_incident_forbidden": true,
     "raw_evidence_forbidden": true,
     "patient_or_contact_identifiers_forbidden": true,
