@@ -5,6 +5,7 @@ const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
 const f5=require('./f5-historical-upload');
+const {createLegacyWhatsAppGateway}=require('./f17-whatsapp-legacy-gateway');
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
 const INNER_PORT=EXTERNAL_PORT===4208?4209:4208;
@@ -21,6 +22,9 @@ function sbRequest(method,endpoint,body,service,prefer){return new Promise((reso
 const anonRpc=(n,p)=>sbRequest('POST','/rest/v1/rpc/'+n,p,false);
 const serviceRpc=(n,p)=>sbRequest('POST','/rest/v1/rpc/'+n,p,true);
 const serviceGet=e=>sbRequest('GET',e,null,true);
+
+async function verifyF17App(token){const t=String(token||'').trim();if(t.length<32)return{ok:false,status:401};try{const out=await anonRpc('aos_app_actor_v3',{p_token:t,p_required_panel:null,p_require_2fa:false});const id=typeof out.data==='string'?out.data:'';return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)?{ok:true,actor_id:id}:{ok:false,status:403};}catch(_){return{ok:false,status:503};}}
+const f17Gateway=createLegacyWhatsAppGateway({supabaseUrl:SB_URL,serviceRoleKey:SB_SERVICE_KEY,verifyApp:verifyF17App});
 
 async function authorize(req){const token=strongToken(req);if(!token)return null;try{const out=await anonRpc('aos_app_actor_v3',{p_token:token,p_required_panel:'admin-import-ventas',p_require_2fa:true});const id=typeof out.data==='string'?out.data:'';return /^[0-9a-f-]{36}$/i.test(id)?{id,token}:null;}catch(_){return null;}}
 function safeFilename(req){const s=String(req.headers['x-aos-source-filename']||'').trim();if(!/^(SAN ISIDRO|PUEBLO LIBRE) 20(24|25|26)\.xlsx$/i.test(s))return'';return s.toUpperCase().replace('.XLSX','.xlsx');}
@@ -43,7 +47,7 @@ async function handleUpload(req,res){
 }
 async function handleStatus(req,res){const actor=await authorize(req);if(!actor)return writeJson(res,403,{ok:false,error:'F5_ADMIN_2FA_REQUIRED'});try{const o=await serviceGet('/rest/v1/aos_f5_source_batches_v1?select=source_filename,source_sede,source_year,source_rows,status,metadata&order=source_year.asc,source_sede.asc');const rows=Array.isArray(o.data)?o.data:[];writeJson(res,200,{ok:true,batches:rows.map(x=>({filename:x.source_filename,sede:x.source_sede,year:x.source_year,expected_rows:Number(x.source_rows),staged_rows:Number((x.metadata||{}).staged_rows||0),complete:(x.metadata||{}).staging_complete===true,status:x.status}))});}catch(_){writeJson(res,503,{ok:false,error:'F5_STATUS_UNAVAILABLE'});}}
 function proxy(req,res){const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers:Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT})},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});q.on('error',()=>{if(!res.headersSent)res.writeHead(502,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:'F5_UPSTREAM_UNAVAILABLE'}));});req.pipe(q);}
-const server=http.createServer(async(req,res)=>{let u;try{u=new URL(req.url,'http://localhost');}catch(_){return writeJson(res,400,{ok:false,error:'INVALID_URL'});}if(u.pathname==='/api/f5/historical-upload'&&req.method==='POST')return handleUpload(req,res);if(u.pathname==='/api/f5/historical-status'&&req.method==='GET')return handleStatus(req,res);return proxy(req,res);});
+const server=http.createServer(async(req,res)=>{let u;try{u=new URL(req.url,'http://localhost');}catch(_){return writeJson(res,400,{ok:false,error:'INVALID_URL'});}if(u.pathname==='/api/f17/whatsapp/templates')return f17Gateway.handle(req,res);if(u.pathname==='/api/f5/historical-upload'&&req.method==='POST')return handleUpload(req,res);if(u.pathname==='/api/f5/historical-status'&&req.method==='GET')return handleStatus(req,res);return proxy(req,res);});
 server.on('clientError',(_,s)=>s.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
 function shutdown(sig){server.close(()=>process.exit(0));if(child&&!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
 child=spawn(process.execPath,['server-wa4.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});child.on('exit',code=>process.exit(code==null?1:code));server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F5-UPLOAD] listening',{external:EXTERNAL_PORT,inner:INNER_PORT,maxFileBytes:f5.MAX_FILE_BYTES}));
