@@ -58,7 +58,8 @@ jobs:
     timeout-minutes: 20
     env:
       WORKSPACE_FIX_IMAGE: alpine:3.20
-      NODE_CLI_IMAGE: node:22-bookworm
+      NODE_BASE_IMAGE: node:22-bookworm-slim
+      F10_RUNTIME_IMAGE: ascenda-f10-nodegit:22-bookworm-slim-v1
     steps:
       - name: Repair container-owned workspace before checkout
         run: |
@@ -91,10 +92,16 @@ jobs:
           ref: ${{ steps.prep.outputs.target_sha }}
           path: affected
           persist-credentials: false
-      - name: Verify disposable diagnostic runtime
+      - name: Prepare minimal disposable diagnostic runtime
         run: |
           set -euo pipefail
-          docker run --rm "$NODE_CLI_IMAGE" bash -lc 'node --version && git --version'
+          docker image inspect "$F10_RUNTIME_IMAGE" >/dev/null 2>&1 || docker build --pull=false -t "$F10_RUNTIME_IMAGE" - <<EOF
+          FROM $NODE_BASE_IMAGE
+          RUN apt-get update -qq \
+            && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null \
+            && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker run --rm "$F10_RUNTIME_IMAGE" sh -lc 'node --version && git --version'
       - name: Prepare synthetic CI health evidence
         if: github.event_name != 'workflow_dispatch'
         run: |
@@ -126,7 +133,7 @@ jobs:
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/work" \
             -w /work \
-            "$NODE_CLI_IMAGE" \
+            "$F10_RUNTIME_IMAGE" \
             node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}"
           rm -f .f10-request.json
       - name: Verify report and digest
