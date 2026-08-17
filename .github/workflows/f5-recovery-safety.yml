@@ -39,3 +39,18 @@ jobs:
         run: |
           node ci/phase5-historical-identity/f5_recovery_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  recovery-env-presence:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Presence only — never print secret values
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then echo 'F5_HAS_SUPABASE_SERVICE_ROLE_KEY=true'; else echo 'F5_HAS_SUPABASE_SERVICE_ROLE_KEY=false'; fi
+          if [ -n "${service_role:-}" ]; then echo 'F5_HAS_SERVICE_ROLE_ALIAS=true'; else echo 'F5_HAS_SERVICE_ROLE_ALIAS=false'; fi
+          if [ -n "${SUPABASE_URL:-}" ]; then echo 'F5_HAS_SUPABASE_URL=true'; else echo 'F5_HAS_SUPABASE_URL=false'; fi
