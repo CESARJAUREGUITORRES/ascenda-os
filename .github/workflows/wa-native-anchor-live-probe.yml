@@ -5,37 +5,41 @@ on:
       - diag/wa-native-anchor-live-20260817
 jobs:
   probe:
-    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Verify live Phase S WhatsApp anchor
-        shell: powershell
+        shell: bash
         run: |
-          $base='https://ascenda-os-production.up.railway.app'
-          $tmp=$env:RUNNER_TEMP
+          node <<'NODE'
+          const base='https://ascenda-os-production.up.railway.app';
+          const ok=(v,m)=>{if(!v)throw new Error(m)};
+          async function text(path,opts){
+            const r=await fetch(base+path,Object.assign({cache:'no-store'},opts||{}));
+            const body=await r.text();
+            return {r,body};
+          }
+          (async()=>{
+            let x=await text('/health?probe=wa-anchor-20260817');
+            ok(x.r.ok,'health probe failed '+x.r.status);
+            ok(x.body.includes('ascenda-phase-s'),'Phase S marker missing');
 
-          $health = curl.exe -fsS "$base/health?probe=wa-anchor-20260817"
-          if ($LASTEXITCODE -ne 0) { throw 'health probe failed' }
-          if ($health -notmatch 'ascenda-phase-s') { throw 'Phase S marker missing' }
+            x=await text('/app?probe=wa-anchor-20260817');
+            ok(x.r.ok,'app probe failed '+x.r.status);
+            ok((x.r.headers.get('x-ascenda-phase-s-shell')||'')==='native-wa-anchor-v1','native shell response header missing');
+            ok(x.body.includes('wa-shell-integration.js?v=20260817-wa-shell-p04'),'p04 WhatsApp shell anchor missing from live app');
 
-          curl.exe -fsS -D "$tmp\app.headers" -o "$tmp\app.body" "$base/app?probe=wa-anchor-20260817"
-          if ($LASTEXITCODE -ne 0) { throw 'app probe failed' }
-          $appHeaders = Get-Content "$tmp\app.headers" -Raw
-          $appBody = Get-Content "$tmp\app.body" -Raw
-          if ($appHeaders -notmatch 'x-ascenda-phase-s-shell:\s*native-wa-anchor-v1') { throw 'native shell response header missing' }
-          if ($appBody -notmatch 'wa-shell-integration\.js\?v=20260817-wa-shell-p04') { throw 'p04 WhatsApp shell anchor missing from live app' }
+            x=await text('/admin-whatsapp.html?embedded=1&probe=wa-anchor-20260817');
+            ok(x.r.ok,'embedded WA probe failed '+x.r.status);
+            ok((x.r.headers.get('x-ascenda-phase-s-shell')||'')==='native-wa-anchor-v1','embedded WA native anchor header missing');
+            ok(x.body.includes('wa-native-bootstrap-prelude.js?v=20260817-s5-p02'),'p02 native bootstrap prelude missing from embedded WA page');
 
-          curl.exe -fsS -D "$tmp\wa.headers" -o "$tmp\wa.body" "$base/admin-whatsapp.html?embedded=1&probe=wa-anchor-20260817"
-          if ($LASTEXITCODE -ne 0) { throw 'embedded WA probe failed' }
-          $waHeaders = Get-Content "$tmp\wa.headers" -Raw
-          $waBody = Get-Content "$tmp\wa.body" -Raw
-          if ($waHeaders -notmatch 'x-ascenda-phase-s-shell:\s*native-wa-anchor-v1') { throw 'embedded WA native anchor header missing' }
-          if ($waBody -notmatch 'wa-native-bootstrap-prelude\.js\?v=20260817-s5-p02') { throw 'p02 native bootstrap prelude missing from embedded WA page' }
-
-          curl.exe -sS -D "$tmp\redir.headers" -o NUL "$base/admin-whatsapp.html?probe=wa-anchor-20260817"
-          if ($LASTEXITCODE -ne 0) { throw 'compat redirect probe failed' }
-          $redirHeaders = Get-Content "$tmp\redir.headers" -Raw
-          if ($redirHeaders -notmatch 'HTTP/[^ ]+\s+302') { throw 'standalone WA route did not redirect' }
-          if ($redirHeaders -notmatch 'location:\s*/app\.html#admin-whatsapp') { throw 'standalone WA redirect target incorrect' }
-
-          Write-Host 'WA_NATIVE_ANCHOR_LIVE=PASS'
+            x=await text('/admin-whatsapp.html?probe=wa-anchor-20260817',{redirect:'manual'});
+            ok(x.r.status===302,'standalone WA route did not redirect: '+x.r.status);
+            ok((x.r.headers.get('location')||'').includes('/app.html#admin-whatsapp'),'standalone WA redirect target incorrect');
+            console.log('WA_NATIVE_ANCHOR_LIVE=PASS');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
