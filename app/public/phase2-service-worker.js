@@ -1,18 +1,36 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S13 — controlled-write + revenue + Sentinel + WhatsApp PWA UX bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S14 — controlled-write + revenue + Sentinel + generic Web Push bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
 self.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='ASCENDA_ACTIVATE_NOW')self.skipWaiting();});
+
+function appClients(){return self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){return list.filter(function(c){try{var u=new URL(c.url);return u.origin===self.location.origin&&(u.pathname==='/app'||u.pathname==='/app.html');}catch(_){return false;}});});}
+function pushData(d){var x=Object.assign({},d&&d.data||{});x.kind='AOS_PUSH';x.version=String(d&&d.version||'AOS_PUSH_V1');x.channel=String(d&&d.channel||'');x.route=String(d&&d.route||'/app.html');x.entityId=String(d&&d.entity_id||x.entityId||'');if(x.channel==='WHATSAPP'&&!x.conversationId)x.conversationId=x.entityId;return x;}
+self.addEventListener('push',function(event){
+  var payload=null;try{payload=event.data?event.data.json():null;}catch(_){try{payload=JSON.parse(event.data&&event.data.text?event.data.text():'{}');}catch(__){payload=null;}}
+  if(!payload||payload.version!=='AOS_PUSH_V1')return;
+  event.waitUntil(appClients().then(function(list){
+    if(list.length){list.forEach(function(c){try{c.postMessage({type:'AOS_PUSH_EVENT',payload:payload});}catch(_){}});return null;}
+    var title=String(payload.title||'ASCENDA'),opts={body:String(payload.body||''),icon:String(payload.icon||'/icons/icon-192x192.png'),badge:String(payload.badge||'/icons/icon-192x192.png'),tag:String(payload.tag||('aos-push-'+Date.now())),renotify:true,silent:false,data:pushData(payload)};
+    return self.registration.showNotification(title,opts);
+  }));
+});
+
 self.addEventListener('notificationclick',function(event){
-  var n=event.notification,d=n&&n.data||{};
-  if(!d||d.kind!=='AOS_WA_HUMAN')return;
+  var n=event.notification,d=n&&n.data||{};if(!d)return;
+  var isWa=d.kind==='AOS_WA_HUMAN'||(d.kind==='AOS_PUSH'&&d.channel==='WHATSAPP');
+  var id=String(d.conversationId||d.entityId||''),view=String(d.view||'admin-whatsapp'),route=String(d.route||'/app.html');
+  if(isWa&&route.indexOf('#')<0)route='/app.html#'+encodeURIComponent(view);
   try{n.close();}catch(_){}
-  var id=String(d.conversationId||''),view=String(d.view||'admin-whatsapp');
   event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){
     var target=null;for(var i=0;i<list.length;i++){try{var u=new URL(list[i].url);if(u.origin===self.location.origin){target=list[i];break;}}catch(_){}}
-    if(target){try{target.postMessage({type:'AOS_WA_OPEN_CONVERSATION',conversationId:id,view:view});}catch(_){}return target.focus();}
-    var url='/app?wa_conv='+encodeURIComponent(id)+'#'+encodeURIComponent(view);
-    return self.clients.openWindow?self.clients.openWindow(url):null;
+    if(target){
+      try{if(isWa)target.postMessage({type:'AOS_WA_OPEN_CONVERSATION',conversationId:id,view:view});else target.postMessage({type:'AOS_PUSH_OPEN',route:route,entityId:id,channel:d.channel||''});}catch(_){}
+      return target.focus().then(function(){try{if(!isWa&&target.navigate)return target.navigate(route);}catch(_){}return target;});
+    }
+    var openRoute=route;
+    if(isWa&&id){var sep=openRoute.indexOf('?')>=0?'&':'?';var hash='',hi=openRoute.indexOf('#');if(hi>=0){hash=openRoute.slice(hi);openRoute=openRoute.slice(0,hi);}openRoute+=sep+'wa_conv='+encodeURIComponent(id)+hash;}
+    return self.clients.openWindow?self.clients.openWindow(openRoute):null;
   }));
 });
 
@@ -51,7 +69,10 @@ async function injectF4(req){
     tags+='<script src="/wa-chat-ux-s13.js?v=20260817-wa-chat-s13-p01"></script>';
   }
   if(html.indexOf('/wa-human-alerts.js')<0){
-    tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s13-p01"></script>';
+    tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s14-p01"></script>';
+  }
+  if(html.indexOf('/notification-push-s14.js')<0){
+    tags+='<script src="/notification-push-s14.js?v=20260817-push-s14-p01"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
@@ -94,8 +115,8 @@ self.addEventListener('fetch',function(event){
   if(u.origin===self.location.origin&&req.method==='GET'&&req.mode==='navigate'&&u.pathname==='/admin-whatsapp.html'&&u.searchParams.get('embedded')!=='1'){
     event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
   }
-  // WA APIs are same-origin and use the already-governed Phase 2 token cache.
-  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0)){
+  // Same-origin governed APIs use the already-controlled Phase 2 token cache.
+  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0||u.pathname.indexOf('/api/push/')===0)){
     event.respondWith(injectSameOriginAppToken(req));return;
   }
   if(u.hostname.indexOf('supabase.co')<0)return;
