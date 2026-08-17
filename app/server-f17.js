@@ -6,6 +6,7 @@ const { spawn } = require('child_process')
 const wa = require('./wa-gateway')
 const { createLegacyWhatsAppGateway } = require('./f17-whatsapp-legacy-gateway')
 const { createF17WaAdapter } = require('./f17-wa-adapter')
+const { createPushService } = require('./push-notifications-s14')
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10)
 const INNER_PORT = EXTERNAL_PORT === 4217 ? 4218 : 4217
@@ -37,7 +38,7 @@ function requestSupabase(name, payload, service) {
     if (!key) return reject(new Error(service ? 'SUPABASE_SERVICE_ROLE_NOT_CONFIGURED' : 'SUPABASE_ANON_KEY_NOT_CONFIGURED'))
     let url; try { url = new URL(SB_URL) } catch (e) { return reject(e) }
     const body = JSON.stringify(payload || {})
-    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.1' }
+    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.2' }
     if (!/^sb_(?:secret|publishable)_/i.test(key)) headers.Authorization = 'Bearer ' + key
     const req = https.request({ hostname: url.hostname, port: url.port || 443, path: '/rest/v1/rpc/' + encodeURIComponent(name), method: 'POST', headers: headers, timeout: 12000 }, function(res) {
       let raw = ''
@@ -66,6 +67,11 @@ async function verifyApp(token, strong) {
 
 const gateway = createLegacyWhatsAppGateway({ supabaseUrl: SB_URL, serviceRoleKey: SB_SERVICE_KEY, verifyApp: function(token) { return verifyApp(token, false) } })
 const f17wa = createF17WaAdapter({ serviceRpc: serviceRpc, canaryMode: WA_CANARY_MODE })
+const push = createPushService({
+  serviceRpc: serviceRpc,
+  vapidSubject: process.env.AOS_PUSH_VAPID_SUBJECT || 'mailto:notifications@ascenda.local',
+  logger: console
+})
 
 function proxy(req, res) {
   const q = http.request({ hostname: '127.0.0.1', port: INNER_PORT, path: req.url, method: req.method, headers: Object.assign({}, req.headers, { host: '127.0.0.1:' + INNER_PORT }) }, function(upstream) {
@@ -84,6 +90,38 @@ function proxyBuffered(req, raw, callback) {
   })
   q.on('error', function(e) { callback(e) })
   q.write(raw); q.end()
+}
+
+async function handlePushConfig(req, res) {
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'PUSH_APP_SESSION_REQUIRED' })
+  try { return writeJson(res, 200, await push.publicConfig()) }
+  catch (e) { console.error('[S14] config', e.message); return writeJson(res, 503, { ok: false, error: 'PUSH_CONFIG_UNAVAILABLE' }) }
+}
+
+async function handlePushSubscribe(req, res) {
+  let raw; try { raw = await readRaw(req, 96 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
+  const body = parseJson(raw.toString('utf8'))
+  if (!body) return writeJson(res, 400, { ok: false, error: 'INVALID_JSON' })
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'PUSH_APP_SESSION_REQUIRED' })
+  try {
+    const out = await push.subscribe(actor.actor_id, body, req.headers['user-agent'])
+    return writeJson(res, 200, Object.assign({ version: 'AOS_PUSH_V1' }, out))
+  } catch (e) {
+    console.error('[S14] subscribe', e.message)
+    return writeJson(res, e.status || 503, { ok: false, error: e.message === 'INVALID_PUSH_SUBSCRIPTION' ? e.message : 'PUSH_SUBSCRIBE_UNAVAILABLE' })
+  }
+}
+
+async function handlePushUnsubscribe(req, res) {
+  let raw; try { raw = await readRaw(req, 32 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
+  const body = parseJson(raw.toString('utf8'))
+  if (!body) return writeJson(res, 400, { ok: false, error: 'INVALID_JSON' })
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'PUSH_APP_SESSION_REQUIRED' })
+  try { return writeJson(res, 200, await push.unsubscribe(actor.actor_id, body)) }
+  catch (e) { console.error('[S14] unsubscribe', e.message); return writeJson(res, e.status || 503, { ok: false, error: 'PUSH_UNSUBSCRIBE_UNAVAILABLE' }) }
 }
 
 async function handleGovernedSend(req, res) {
@@ -119,20 +157,32 @@ async function handleGovernedWebhook(req, res) {
   let raw; try { raw = await readRaw(req, 1024 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
   proxyBuffered(req, raw, async function(err, upstream, responseBody) {
     if (err) return writeJson(res, 502, { ok: false, error: 'F17_UPSTREAM_UNAVAILABLE' })
+    let envelope = null
     if ((upstream.statusCode || 500) >= 200 && (upstream.statusCode || 500) < 300) {
       const payload = parseJson(raw.toString('utf8'))
       if (payload) {
-        try { await f17wa.ingestEnvelope(wa.extractWebhook(payload)) } catch (_) { return writeJson(res, 503, { ok: false, error: 'F17_WEBHOOK_RECONCILIATION_FAILED' }) }
+        envelope = wa.extractWebhook(payload)
+        try { await f17wa.ingestEnvelope(envelope) } catch (_) { return writeJson(res, 503, { ok: false, error: 'F17_WEBHOOK_RECONCILIATION_FAILED' }) }
       }
     }
     const headers = Object.assign({}, upstream.headers, { 'x-ascenda-f17': 'governed-wa-v1' })
     delete headers['content-length']
     res.writeHead(upstream.statusCode || 502, headers); res.end(responseBody)
+    if (envelope && Array.isArray(envelope.messages) && envelope.messages.length) {
+      setImmediate(function() {
+        push.dispatchWhatsAppEnvelope(envelope).then(function(r) {
+          if (r && (r.delivered || r.failed)) console.log('[S14] WA push', r)
+        }).catch(function(e) { console.error('[S14] WA push fail-open', e.message) })
+      })
+    }
   })
 }
 
 const server = http.createServer(async function(req, res) {
   let url; try { url = new URL(req.url, 'http://localhost') } catch (_) { return writeJson(res, 400, { ok: false, error: 'INVALID_URL' }) }
+  if (url.pathname === '/api/push/config' && req.method === 'GET') return handlePushConfig(req, res)
+  if (url.pathname === '/api/push/subscribe' && req.method === 'POST') return handlePushSubscribe(req, res)
+  if (url.pathname === '/api/push/unsubscribe' && req.method === 'POST') return handlePushUnsubscribe(req, res)
   if (url.pathname === '/api/f17/whatsapp/templates') return gateway.handle(req, res)
   if (url.pathname === '/api/wa/send' && req.method === 'POST') return handleGovernedSend(req, res)
   if ((url.pathname === '/webhook' || url.pathname === '/webhook/') && req.method === 'POST') return handleGovernedWebhook(req, res)
@@ -146,7 +196,10 @@ process.on('SIGTERM', function() { shutdown('SIGTERM') }); process.on('SIGINT', 
 function start() {
   child = spawn(process.execPath, ['server-f5.js'], { cwd: __dirname, env: Object.assign({}, process.env, { PORT: String(INNER_PORT) }), stdio: ['ignore', 'inherit', 'inherit'] })
   child.on('exit', function(code) { process.exit(code == null ? 1 : code) })
-  server.listen(EXTERNAL_PORT, '0.0.0.0', function() { console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true }) })
+  server.listen(EXTERNAL_PORT, '0.0.0.0', function() {
+    console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1' })
+    push.ensureVapid().then(function() { console.log('[S14] VAPID ready') }).catch(function(e) { console.error('[S14] VAPID deferred', e.message) })
+  })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, server: server, start: start }
+module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start }
