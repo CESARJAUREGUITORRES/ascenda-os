@@ -26,7 +26,7 @@ create table public.aos_sentinel_alert_dispatches_v1 (
   decided_at timestamptz not null,
   cooldown_seconds integer not null default 0 check (cooldown_seconds between 0 and 86400),
   delivery_state text not null default 'RESERVED' check (delivery_state in ('RESERVED','DELIVERED','FAILED','UNAVAILABLE','RETRY_LATER')),
-  provider_message_id text,
+  provider_ack_id text,
   retry_after_seconds integer check (retry_after_seconds is null or retry_after_seconds between 1 and 86400),
   delivered_at timestamptz,
   updated_at timestamptz not null default now(),
@@ -38,7 +38,7 @@ create table public.aos_sentinel_alert_dispatches_v1 (
   check (release is null or release='ascenda-os@unknown' or release ~ '^ascenda-os@[0-9a-f]{7,40}$'),
   check (commit_sha is null or commit_sha ~ '^[0-9a-f]{7,40}$'),
   check (deployment_id is null or (deployment_id ~ '^[A-Za-z0-9._:@/-]{1,200}$' and deployment_id !~ '[?#]' and deployment_id !~ '\.\.')),
-  check (provider_message_id is null or provider_message_id ~ '^[A-Za-z0-9._:@/-]{1,200}$'),
+  check (provider_ack_id is null or provider_ack_id ~ '^[A-Za-z0-9._:@/-]{1,200}$'),
   check ((delivery_state='DELIVERED' and delivered_at is not null) or delivery_state<>'DELIVERED')
 );
 create index aos_sentinel_alert_dispatches_v1_decision_idx on public.aos_sentinel_alert_dispatches_v1(decision_key,delivered_at desc nulls last,decided_at desc);
@@ -133,7 +133,7 @@ begin
 end;
 $$;
 
-create or replace function public.aos_sentinel_alert_mark_delivery_v1(p_dispatch_id bigint,p_state text,p_provider_message_id text default null,p_retry_after_seconds integer default null,p_at timestamptz default null)
+create or replace function public.aos_sentinel_alert_mark_delivery_v1(p_dispatch_id bigint,p_state text,p_provider_ack_id text default null,p_retry_after_seconds integer default null,p_at timestamptz default null)
 returns jsonb
 language plpgsql
 security definer
@@ -142,12 +142,12 @@ as $$
 declare v_state text:=pg_catalog.upper(coalesce(p_state,'')); v_at timestamptz:=coalesce(p_at,pg_catalog.clock_timestamp()); v public.aos_sentinel_alert_dispatches_v1%rowtype;
 begin
   if v_state not in ('DELIVERED','FAILED','UNAVAILABLE','RETRY_LATER') then raise exception 'F9_DELIVERY_STATE_INVALID'; end if;
-  if p_provider_message_id is not null and (p_provider_message_id !~ '^[A-Za-z0-9._:@/-]{1,200}$' or p_provider_message_id ~ '[?#]' or p_provider_message_id ~ '\.\.') then raise exception 'F9_PROVIDER_MESSAGE_ID_INVALID'; end if;
+  if p_provider_ack_id is not null and (p_provider_ack_id !~ '^[A-Za-z0-9._:@/-]{1,200}$' or p_provider_ack_id ~ '[?#]' or p_provider_ack_id ~ '\.\.') then raise exception 'F9_PROVIDER_ACK_ID_INVALID'; end if;
   if p_retry_after_seconds is not null and (p_retry_after_seconds<1 or p_retry_after_seconds>86400) then raise exception 'F9_RETRY_AFTER_INVALID'; end if;
   select * into v from public.aos_sentinel_alert_dispatches_v1 where dispatch_id=p_dispatch_id for update;
   if not found then raise exception 'F9_DISPATCH_NOT_FOUND'; end if;
   if v.delivery_state='DELIVERED' then return pg_catalog.jsonb_build_object('ok',true,'replay',true,'dispatch_id',v.dispatch_id,'state',v.delivery_state); end if;
-  update public.aos_sentinel_alert_dispatches_v1 set delivery_state=v_state,provider_message_id=case when v_state='DELIVERED' then p_provider_message_id else null end,retry_after_seconds=case when v_state='RETRY_LATER' then p_retry_after_seconds else null end,delivered_at=case when v_state='DELIVERED' then v_at else null end,updated_at=v_at where dispatch_id=p_dispatch_id returning * into v;
+  update public.aos_sentinel_alert_dispatches_v1 set delivery_state=v_state,provider_ack_id=case when v_state='DELIVERED' then p_provider_ack_id else null end,retry_after_seconds=case when v_state='RETRY_LATER' then p_retry_after_seconds else null end,delivered_at=case when v_state='DELIVERED' then v_at else null end,updated_at=v_at where dispatch_id=p_dispatch_id returning * into v;
   return pg_catalog.jsonb_build_object('ok',true,'replay',false,'dispatch_id',v.dispatch_id,'state',v.delivery_state,'delivered_at',v.delivered_at,'retry_after_seconds',v.retry_after_seconds);
 end;
 $$;
