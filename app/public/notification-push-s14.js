@@ -1,4 +1,4 @@
-// ASCENDA S14/S15 — generic PWA Web Push subscription client + unified notification center loader.
+// ASCENDA S14/S15.1 — generic PWA Web Push subscription client + actor-bound notification center loader.
 (function(){
 'use strict';
 if(window.__AOS_PUSH_S14)return;
@@ -17,7 +17,7 @@ function ensureSubscription(){if(S.busy||!S.enabled)return Promise.resolve(statu
 function enable(){S.enabled=true;try{localStorage.setItem('aos_push_enabled','1');}catch(_){}if(!supported())return Promise.resolve(status());if(Notification.permission==='granted')return ensureSubscription();if(Notification.permission==='default')return Notification.requestPermission().then(function(p){return p==='granted'?ensureSubscription():status();});return Promise.resolve(status());}
 function disable(){S.enabled=false;try{localStorage.setItem('aos_push_enabled','0');}catch(_){}if(!supported())return Promise.resolve(status());return navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription();}).then(function(sub){if(!sub)return status();var endpoint=sub.endpoint;return api('/api/push/unsubscribe',{method:'POST',body:{endpoint:endpoint}}).catch(function(){}).then(function(){return sub.unsubscribe();}).then(function(){return status();});}).catch(function(){return status();});}
 function status(){return {version:S.version,supported:supported(),enabled:S.enabled,permission:typeof Notification==='undefined'?'unsupported':Notification.permission,busy:S.busy,last:S.last};}
-function loadCenter(){if(window.__AOS_NOTIFICATION_CENTER_S15||document.querySelector('script[data-aos-notification-center]'))return;var s=document.createElement('script');s.src='/notification-center-s15.js?v=20260817-s15-p01';s.async=true;s.dataset.aosNotificationCenter='1';document.head.appendChild(s);}
+function loadCenter(){if(window.__AOS_NOTIFICATION_CENTER_S15||document.querySelector('script[data-aos-notification-center]'))return;var s=document.createElement('script');s.src='/notification-center-s15.js?v=20260817-s15-auth-p02';s.async=true;s.dataset.aosNotificationCenter='1';document.head.appendChild(s);}
 function bindPermissionGesture(){document.addEventListener('click',function(e){if(!S.enabled||!supported()||Notification.permission!=='default')return;var node=e.target&&e.target.closest?e.target.closest('#nav-admin-whatsapp,#nav-whatsapp-agent,#nav-advisor-coord,#nav-admin-coord,#nav-admin-chats,#nav-advisor-sales,#nav-admin-sales,#nav-advisor-commissions,#nav-admin-commissions,#nav-advisor-agenda,#nav-advisor-citas,#nav-admin-agenda'):null;if(node)enable().catch(function(){});},{capture:true});}
 function boot(){loadCenter();bindPermissionGesture();if(S.enabled&&supported()&&Notification.permission==='granted')setTimeout(function(){ensureSubscription();},1200);}
 
