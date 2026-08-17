@@ -1,0 +1,18 @@
+{
+  "incident_id": "SEN-2099-9001",
+  "diagnostic_revision": 1,
+  "severity": "P1",
+  "status": "OPEN",
+  "environment": "production",
+  "domain": "WHATSAPP",
+  "component": "human-outbound",
+  "capability": "provider-status-progression",
+  "failure_family": "synthetic-diagnostic",
+  "observed_at": "2026-08-17T18:15:00Z",
+  "signal_count": 2,
+  "reopened_count": 0,
+  "deployment_id": "dep-f10-synthetic",
+  "evidence_refs": [
+    {"kind": "ci-run", "id": "f10-synthetic"}
+  ]
+}

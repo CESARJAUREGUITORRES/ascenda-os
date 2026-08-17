@@ -1,0 +1,164 @@
+name: Sentinel F10 Diagnostic Runner Certificate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Exact affected commit SHA (40 lowercase hex)
+        required: true
+        type: string
+      request_json:
+        description: Sanitized sentinel-diagnostic-request/v1 JSON
+        required: true
+        type: string
+      live_health:
+        description: Include read-only production /health evidence
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: ['feature/sentinel-f10-diagnostic-runner','main']
+    paths: &f10_paths
+      - 'sentinel/diagnostics/**'
+      - 'ci/sentinel/phase10_*'
+      - 'docs/control/SENTINEL_F10_*'
+      - '.github/workflows/sentinel-phase10-diagnostic-runner.yml'
+  pull_request:
+    branches: [main]
+    paths: *f10_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-f10-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-fast:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Diff hygiene
+        shell: powershell
+        run: git diff --check
+      - name: F10 syntax and contract
+        shell: powershell
+        run: |
+          node --check sentinel/diagnostics/diagnostic-runner.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase10_diagnostic_contract.js
+
+  diagnostic-zero-cost:
+    needs: contract-fast
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    env:
+      WORKSPACE_FIX_IMAGE: alpine:3.20
+      NODE_BASE_IMAGE: node:22-bookworm-slim
+      F10_RUNTIME_IMAGE: ascenda-f10-nodegit:22-bookworm-slim-v1
+    steps:
+      - name: Repair container-owned workspace before checkout
+        run: |
+          set -euo pipefail
+          docker version >/dev/null
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" "$WORKSPACE_FIX_IMAGE" sh -lc "rm -rf /work/ci/zero-cost-staging/supabase/.branches; chown -R $(id -u):$(id -g) /work 2>/dev/null || true"
+      - name: Checkout F10 tooling
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resolve and validate affected SHA
+        id: prep
+        env:
+          INPUT_TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            target="${INPUT_TARGET_SHA,,}"
+          else
+            target="${GITHUB_SHA,,}"
+          fi
+          if [[ ! "$target" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "F10_TARGET_SHA_INVALID" >&2
+            exit 1
+          fi
+          echo "target_sha=$target" >> "$GITHUB_OUTPUT"
+      - name: Checkout exact affected SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.prep.outputs.target_sha }}
+          path: affected
+          persist-credentials: false
+      - name: Prepare minimal disposable diagnostic runtime
+        run: |
+          set -euo pipefail
+          docker image inspect "$F10_RUNTIME_IMAGE" >/dev/null 2>&1 || docker build --pull=false -t "$F10_RUNTIME_IMAGE" - <<EOF
+          FROM $NODE_BASE_IMAGE
+          RUN apt-get update -qq \
+            && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null \
+            && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker run --rm "$F10_RUNTIME_IMAGE" sh -lc 'node --version && git --version'
+      - name: Prepare synthetic CI health evidence
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          printf '%s\n' '{"ok":true,"service":"synthetic-ci","child_alive":true,"inner_ready":true}' > .f10-health.json
+      - name: Collect optional read-only live health evidence
+        if: github.event_name == 'workflow_dispatch' && inputs.live_health == true
+        run: |
+          set +e
+          curl --fail --silent --show-error --max-time 10 --retry 1 \
+            https://ascenda-os-production.up.railway.app/health > .f10-health.json
+          code=$?
+          set -e
+          if [[ $code -ne 0 ]]; then
+            printf '%s\n' '{"ok":false,"service":"ascenda-phase-s","child_alive":false,"inner_ready":false}' > .f10-health.json
+          fi
+      - name: Execute deterministic diagnostic and exact replay
+        env:
+          F10_REQUEST_JSON: ${{ inputs.request_json }}
+          TARGET_SHA: ${{ steps.prep.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            printf '%s' "$F10_REQUEST_JSON" > .f10-request.json
+            args=(--request .f10-request.json --target-sha "$TARGET_SHA" --repo affected)
+            if [[ -f .f10-health.json ]]; then args+=(--health .f10-health.json); fi
+          else
+            args=(--request ci/sentinel/phase10_synthetic_request.json --target-sha "$TARGET_SHA" --repo affected --health .f10-health.json)
+          fi
+          run_diag() {
+            local out="$1"
+            docker run --rm \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              -v "$GITHUB_WORKSPACE:/work" \
+              -w /work \
+              "$F10_RUNTIME_IMAGE" \
+              node sentinel/diagnostics/diagnostic-runner.cjs "${args[@]}" --out "$out"
+          }
+          run_diag .f10-report
+          run_diag .f10-replay
+          cmp -s .f10-report/diagnostic-report.json .f10-replay/diagnostic-report.json
+          cmp -s .f10-report/diagnostic-report.md .f10-replay/diagnostic-report.md
+          echo "SENTINEL_F10_RUNTIME_REPLAY=PASS"
+          rm -rf .f10-replay .f10-request.json
+      - name: Verify report and digest
+        run: |
+          set -euo pipefail
+          test -s .f10-report/diagnostic-report.json
+          test -s .f10-report/diagnostic-report.md
+          sha256sum .f10-report/diagnostic-report.json .f10-report/diagnostic-report.md | tee .f10-report/sha256.txt
+          cat .f10-report/diagnostic-report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "SENTINEL_F10_ZERO_COST_DIAGNOSTIC=PASS"
+      - name: Upload controlled diagnostic report
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-f10-${{ steps.prep.outputs.target_sha }}
+          path: .f10-report
+          retention-days: 1
+          if-no-files-found: error
