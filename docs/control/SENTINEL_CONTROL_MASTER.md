@@ -255,10 +255,11 @@ El roadmap operativo detallado está en `docs/control/SENTINEL_ROADMAP_V1.md`.
 ## 16. Checkpoint actual
 
 - F1–F7: `CERRADA / 100_COMPLETE` y fusionadas a `main` con post-merge CI.
-- F8: `COMPLETE CANDIDATE / G12+G13 PASS`; producción ya contiene la migración versionada `20260817000919 sentinel_f8_incident_engine` y el canary sintético `SEN-2026-0001` terminó `RESOLVED`.
+- F8: `COMPLETE CANDIDATE / G12+G13 PASS`; producción contiene la migración `sentinel_f8_incident_engine` con versión de historial live `20260817000618`; el archivo fuente es `supabase/migrations/20260816233500_sentinel_f8_incident_engine.sql`; el canary `SEN-2026-0001` terminó `RESOLVED`.
 - F8 G12: run `31980704736` PASS en Windows/Linux/PostgreSQL local; Ascenda CI `31980704753` PASS.
 - F8 security boundary: 4 tablas con RLS, sin políticas directas, RPCs operativas `service_role`-only, SECURITY DEFINER con search_path fijo y cero columnas sensibles.
-- F8 terminal pendiente: exact-head CI de documentación final → PR #208 ready → merge exact head → post-merge main → Notion last.
+- F8 PR #208 fue fusionado a `main@a30de31de1f659f4d367f63dab9ff5db8ebab5ac`; una verificación read-only posterior detectó y está corrigiendo únicamente el identificador documental de migration-history para igualarlo a Supabase live.
+- F8 terminal pendiente: hotfix de paridad documental → exact-head CI → merge → final post-merge → Notion last.
 - F9: única fase `SIGUIENTE` después del cierre autoritativo F8 — `Alert Routing, Telegram & Noise Control`.
 - Certificados terminales: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`, `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
 - Los advisories globales Supabase no relacionados con `aos_sentinel_*` se mantienen fuera del scope F8 y deben tratarse como backlog técnico separado.
