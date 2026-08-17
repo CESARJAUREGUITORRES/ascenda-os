@@ -131,6 +131,8 @@ jobs:
             args=(--request ci/sentinel/phase10_synthetic_request.json --target-sha "$TARGET_SHA" --repo affected --health .f10-health.json --out .f10-report)
           fi
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
             -v "$GITHUB_WORKSPACE:/work" \
             -w /work \
             "$F10_RUNTIME_IMAGE" \
