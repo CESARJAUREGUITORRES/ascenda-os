@@ -1,0 +1,17 @@
+name: WA S11 Production Live Probe
+on:
+  push:
+    branches:
+      - diag/wa-s11-live-20260817
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify S11 live on Railway
+        shell: powershell
+        run: node .github/scripts/wa-s11-live-probe.js
