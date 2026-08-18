@@ -2,17 +2,26 @@ name: ASCENDA CIA Phase 17 Closeout
 
 on:
   push:
-    branches: ['feature/cia-phase17-closeout-20260817']
+    branches: ['feature/cia-phase17-closeout-20260817','fix/f17-current-history-runtime-20260817-v1']
   pull_request:
+    branches: [main]
     paths:
-      - 'app/server-f17.js'
+      - 'app/server-f17-current.js'
       - 'app/f17-wa-adapter.js'
+      - 'app/wa-gateway.js'
+      - 'app/railway.json'
+      - 'app/package.json'
       - 'ci/phase17-multichannel/test_f17_wa_adapter.js'
-      - 'supabase/migrations/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.sql'
-      - 'supabase/rollbacks/20260815223000_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql'
+      - 'ci/phase17-multichannel/test_current_runtime_chain.js'
+      - 'supabase/migrations/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql'
+      - 'supabase/rollbacks/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql'
 
 permissions:
   contents: read
+
+concurrency:
+  group: cia-f17-closeout-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   runtime-contract:
@@ -24,12 +33,17 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          node --check app/server-f17.js
+          node --check app/server-f17-current.js
           node --check app/f17-wa-adapter.js
+          node --check app/wa-gateway.js
           node ci/phase17-multichannel/test_f17_wa_adapter.js
-          $s=Get-Content app/server-f17.js -Raw
-          foreach($x in @('/api/wa/send','/webhook','F17_CHANNEL_POLICY_BLOCKED','WA_ADMIN_2FA_REQUIRED','createF17WaAdapter','x-ascenda-f17')){if(-not $s.Contains($x)){throw "Missing runtime invariant: $x"}}
+          node ci/phase17-multichannel/test_current_runtime_chain.js
+          $s=Get-Content app/server-f17-current.js -Raw
+          foreach($x in @('/api/wa/send','/webhook','handleNativeHumanSend','F17_CHANNEL_POLICY_BLOCKED','WA_ADMIN_2FA_REQUIRED','createF17WaAdapter','x-ascenda-f17','server-phase-s.js','wa.canaryAllows')){if(-not $s.Contains($x)){throw "Missing CURRENT runtime invariant: $x"}}
           if($s -match '(?i)(WHATSAPP_ACCESS_TOKEN|WHATSAPP_APP_SECRET|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*[''\"][^''\"]+'){throw 'Hard-coded secret detected'}
+          if($s.IndexOf('f17wa.prepareOutbound') -gt $s.IndexOf('proxyBuffered(req,raw')){throw 'F17 policy must precede provider path'}
           $a=Get-Content app/f17-wa-adapter.js -Raw
           if($a.Contains('message_body') -or $a.Contains('raw_referral')){throw 'F17 adapter must not persist message content/raw referral'}
+          $rail=Get-Content app/railway.json -Raw
+          if(-not $rail.Contains('server-f17-current.js')){throw 'Railway does not start F17 CURRENT'}
           Write-Host F17_CLOSEOUT_RUNTIME_PASS
