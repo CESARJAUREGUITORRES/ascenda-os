@@ -3,6 +3,8 @@ const fs=require('fs');
 const assert=require('assert');
 
 const s=fs.readFileSync('app/server-phase-s.js','utf8');
+const f17=fs.readFileSync('app/server-f17.js','utf8');
+const s152=fs.readFileSync('app/server-phase-s-f17.js','utf8');
 const railway=fs.readFileSync('app/railway.json','utf8');
 const authSync=fs.readFileSync('app/auth-resend-reconcile.js','utf8');
 
@@ -25,8 +27,17 @@ assert(!/RESEND_API_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+authSync),'no hard-coded
 const cfg=JSON.parse(railway);
 const legacy='node server-phase-s.js';
 const sentinel="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
-assert([legacy,sentinel].includes(cfg.deploy.startCommand),'Phase S start command must be legacy or exact Sentinel runtime wrapper');
-if(cfg.deploy.startCommand===sentinel){
+const s152Legacy='node server-phase-s-f17.js';
+const s152Sentinel="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js";
+const start=cfg.deploy.startCommand;
+const directPhaseS=[legacy,sentinel].includes(start);
+const f17Bootstrap=[s152Legacy,s152Sentinel].includes(start)
+  && s152.includes("a[0]==='server-f5.js'")
+  && s152.includes("a[0]='server-f17.js'")
+  && s152.includes("require('./server-phase-s.js')")
+  && f17.includes("['server-f5.js']");
+assert(directPhaseS||f17Bootstrap,'Phase S start command must be direct or the exact certified S15.2 F17 bootstrap');
+if(start===sentinel||start===s152Sentinel){
   assert(!String(cfg.build&&cfg.build.buildCommand||'').includes('NODE_OPTIONS'),'Sentinel preload must not contaminate build');
 }
 assert.strictEqual(cfg.deploy.healthcheckPath,'/health');
