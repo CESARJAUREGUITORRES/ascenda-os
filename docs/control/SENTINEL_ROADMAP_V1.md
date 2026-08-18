@@ -1,8 +1,9 @@
 # Sentinel — Roadmap V1
 
-**Estado:** CURRENT / CANONICAL  
+**Estado:** `CERRADA / 100_COMPLETE / CANONICAL BASELINE`  
 **Fecha:** 2026-08-16/17 (America/Lima)  
-**Control Maestro:** `docs/control/SENTINEL_CONTROL_MASTER.md`
+**Control Maestro:** `docs/control/SENTINEL_CONTROL_MASTER.md`  
+**Terminal F13:** `docs/control/SENTINEL_F13_FINAL_CERTIFICATE_20260817.md`
 
 ---
 
@@ -12,7 +13,7 @@ Cada fase usa el loop ASCENDA:
 
 `recovery → evidencia → branch → implementación → tests → Zero-Cost gate → preflight/canary si aplica → checkpoint → Notion`
 
-Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase se marca cerrada por intención; solo por evidencia.
+Ninguna fase se marca cerrada por intención; solo por evidencia. La baseline V1 ya no tiene una fase `SIGUIENTE` o `EN CURSO`: las trece fases están cerradas. Cualquier ampliación futura debe entrar como mejora/versionado posterior y no reescribir retrospectivamente la evidencia V1.
 
 ---
 
@@ -347,43 +348,62 @@ Solo una fase puede estar `SIGUIENTE` o `EN CURSO` al mismo tiempo. Ninguna fase
 
 ## Índice ejecutivo de fases
 
-| # | Fase | Resultado principal |
-|---|---|---|
-| 1 | Governance, Privacy & Cost | límites seguros y económicos |
-| 2 | Registry & Topology | mapa verificable de ASCENDA |
-| 3 | OTel Foundation | contrato portable |
-| 4 | Sentry Core | errores y debugging |
-| 5 | Availability | caídas externas |
-| 6 | Business Health | fallos silenciosos |
-| 7 | Correlation | error→release→deploy |
-| 8 | Incident Engine | IDs `SEN-*` persistentes |
-| 9 | Alert Routing | owner in-app sin ruido; Telegram opcional |
-| 10 | Diagnostic Runner | investigación automatizada read-only |
-| 11 | MCP/AI Triage | análisis asistido |
-| 12 | Safe Remediation | fix→PR con gates |
-| 13 | Sentinel Hub | mapa interno + certificación 100% |
+| # | Fase | Resultado principal | Estado |
+|---|---|---|---|
+| 1 | Governance, Privacy & Cost | límites seguros y económicos | `100_COMPLETE` |
+| 2 | Registry & Topology | mapa verificable de ASCENDA | `100_COMPLETE` |
+| 3 | OTel Foundation | contrato portable | `100_COMPLETE` |
+| 4 | Sentry Core | errores y debugging | `100_COMPLETE` |
+| 5 | Availability | caídas externas | `100_COMPLETE` |
+| 6 | Business Health | fallos silenciosos | `100_COMPLETE` |
+| 7 | Correlation | error→release→deploy | `100_COMPLETE` |
+| 8 | Incident Engine | IDs `SEN-*` persistentes | `100_COMPLETE` |
+| 9 | Alert Routing | owner in-app sin ruido; Telegram opcional | `100_COMPLETE` |
+| 10 | Diagnostic Runner | investigación automatizada read-only | `100_COMPLETE` |
+| 11 | MCP/AI Triage | análisis asistido | `100_COMPLETE` |
+| 12 | Safe Remediation | fix→PR con gates | `100_COMPLETE` |
+| 13 | Sentinel Hub | mapa interno + certificación | `100_COMPLETE` |
 
-## Estado actual
+## Estado terminal
 
 - Fase 1: `CERRADA / 100_COMPLETE`.
 - Fase 2: `CERRADA / 100_COMPLETE`.
 - Fase 3: `CERRADA / 100_COMPLETE`.
 - Fase 4: `CERRADA / 100_COMPLETE / 18/18 PASS`.
 - Fase 5: `CERRADA / 100_COMPLETE` — hybrid availability: UptimeRobot Free cloud + Uptime Kuma/CREACTIVE local; G01–G12 PASS.
-- Fase 6: `CERRADA / 100_COMPLETE` — 4 invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
+- Fase 6: `CERRADA / 100_COMPLETE` — cuatro invariantes silent-failure, aggregate-only, Zero-PHI/PII, preflight live y CI cross-platform; PR #206 fusionado y post-merge certificado.
 - Fase 7: `CERRADA / 100_COMPLETE` — PR #207 fusionado; correlation envelope vendor-neutral con release/SHA/deployment/request/trace, confidence `EXACT/STRONG/WEAK/UNKNOWN`, causalidad no asumida y rollback target known-good sin ejecución.
-- Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live registra `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado.
-- Fase 9: `CERRADA / 100_COMPLETE` — F9-A routing/noise + F9-B durable outbox + F9-C `ascenda-in-app` certificados; PR #214 fusionado a `main@2a55e61fb9ab5ae6543da4c706cf6813e7910078`; live `20260817174233 sentinel_f9_inapp_owner_alerts`; canaries `SEN-2026-0002` y `SEN-2026-0003` final `RESOLVED`; post-merge CI + Railway `/health`/asset/service-worker/shell smoke PASS. Telegram queda `F9-T DEFERRED / NON-BLOCKING`.
-- Fase 10: `CERRADA / 100_COMPLETE` — Diagnostic Runner read-only certificado. PR #235 fusionado a `main@45d0d176b1bb5838a2a76fb1f7163a262b13ea9a`; synthetic `SEN-2099-9001` diagnosticó affected SHA `EXACT`; replay runtime byte-for-byte PASS con diagnostic ID `F10-396d072b9dfadfca7585` y report digest `22588779c2665ca96fd35c1cb2d0fb0992481705b97ffe9b9b78b2a93e584b3a`; exact-head, merge-ref y post-merge FAST/Linux + Ascenda CI PASS. Cero DDL/runtime productivo y cero write credentials.
-- Fase 11: `CERRADA / 100_COMPLETE` — MCP / AI-Assisted Triage certificado. PR #240 fusionado a `main@3e7faa2395462f3a8bee8674bfe3187f19e25df8`; seis tools MCP stdio read-only; evidence refs y confidence labels obligatorios; causalidad inventada bloqueada; negatives reales de teléfono Perú/DNI PASS; replay byte-for-byte y no-write boundary PASS; exact-head, merge-ref, post-merge F11 + Ascenda CI PASS. Certificado: `docs/control/SENTINEL_F11_FINAL_CERTIFICATE_20260817.md`.
-- Fase 12: `EN CURSO` — Safe Remediation Loop promovida desde F11 terminal. Branch `feature/sentinel-f12-safe-remediation-loop`; Impact Report CRITICAL como primer commit `cbb6d2ba7bce75e8509c1401c419f20cc61ef5cf`; baseline sin producción writable, sin auto-merge/auto-deploy, con aprobación humana obligatoria. Siguiente gate: contrato machine-readable + negatives de path traversal/secret/injection/evidence/approval antes de cualquier candidate patch.
-- Fase 13: `PENDIENTE / BLOQUEADA POR F12` — Sentinel Hub, System Map & Certification solo se promueve tras F12 `100_COMPLETE`.
-- Deuda transversal separada: Supabase Branching/GitHub App mantiene migration-history parity legacy (`Remote migration versions not found in local migrations directory`) por timestamps live ≠ filenames Git. No afecta el runtime/schema Sentinel certificado; resolver mediante auditoría completa + `supabase migration repair`, nunca reejecutando DDL para maquillar historial.
-- Certificado F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
-- Certificado F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
-- Certificado F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
-- Certificado F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
-- Certificado terminal F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
-- Certificado terminal F10: `docs/control/SENTINEL_F10_FINAL_CERTIFICATE_20260817.md`.
-- Certificado terminal F11: `docs/control/SENTINEL_F11_FINAL_CERTIFICATE_20260817.md`.
-- Sentinel no ejecuta remediación automática en producción: F12 solo habilita candidate fixes/PRs bajo gates; cualquier producción HIGH/CRITICAL mantiene aprobación humana explícita obligatoria.
+- Fase 8: `CERRADA / 100_COMPLETE` — Incident Engine y persistencia productiva certificados; Supabase live `20260817000618 sentinel_f8_incident_engine`; canary `SEN-2026-0001` final `RESOLVED`; PR #208 fusionado.
+- Fase 9: `CERRADA / 100_COMPLETE` — F9-A routing/noise + F9-B durable outbox + F9-C `ascenda-in-app`; PR #214; live `20260817174233 sentinel_f9_inapp_owner_alerts`; canaries `SEN-2026-0002`/`0003` final `RESOLVED`. Telegram queda `F9-T DEFERRED / NON-BLOCKING`.
+- Fase 10: `CERRADA / 100_COMPLETE` — PR #235; Diagnostic Runner read-only; synthetic `SEN-2099-9001`; affected SHA `EXACT`; replay byte-for-byte; FAST/Linux + Ascenda CI PASS; cero producción writable.
+- Fase 11: `CERRADA / 100_COMPLETE` — PR #240; seis tools MCP stdio read-only; evidence refs/confidence obligatorios; causalidad inventada bloqueada; negatives PII PASS; replay y no-write boundary PASS.
+- Fase 12: `CERRADA / 100_COMPLETE` — certificado `docs/control/SENTINEL_F12_FINAL_CERTIFICATE_20260817.md`; PR #244 → merge `a82089b3cf40bbc8546b6c98bb8f6b48512933c5`; candidate PR sintético #243 pasó CI y fue `CLOSED / NOT MERGED`; post-merge F12 `32064580020` + Ascenda CI `32064579939` PASS; sin auto-merge/auto-deploy.
+- Fase 13: `CERRADA / 100_COMPLETE` — Hub/System Map owner-safe; PR #252 funcional; PR #255 paridad `203504`; PR #254 terminal smoke/current; exact-current run F13 `32082197260` + Ascenda CI `32082197300` PASS; merge técnico `aacd92148a2a15f12bed7d0e014fb7424bc25415`; Railway SUCCESS; production Hub asset/privacy smoke PASS; Supabase read-back `20260817203504 sentinel_f13_owner_hub`. Closeout #263 se rebasa sobre CURRENT S15.1 `043b4e454682e13cc0b84e860b90e0a15e8ed0cc` para compatibilidad final de F9/F13 sin cambios funcionales Sentinel.
+
+## Decisión de baseline
+
+**`SENTINEL BASELINE F1–F13 = 100_COMPLETE`**.
+
+El flujo transversal certificado es:
+
+`detect → SEN-* → owner notification → diagnostic runner → MCP/AI triage → candidate remediation → PR/CI/human gate`
+
+No existe auto-remediation productiva en la baseline. F12 permite candidate fixes bajo límites y gates; HIGH/CRITICAL conserva aprobación humana explícita.
+
+## Deudas y extensiones no bloqueantes
+
+- `F9-T Telegram`: `DEFERRED / NON-BLOCKING`; el canal owner canónico es `ascenda-in-app`.
+- La auditoría global de migration-history del repositorio (#238 y sucesores) es una deuda transversal separada. **La paridad específica F13 sí quedó corregida** en PR #255 (`203504` Git = `203504` live); problemas de otros owners no reabren Sentinel F13 salvo evidencia de impacto Sentinel real.
+- Cualquier backend nuevo, sensor adicional, panel cliente o remediación más autónoma debe entrar mediante nueva versión/Impact Report; no modifica retrospectivamente el cierre V1.
+
+## Certificados terminales
+
+- F5: `docs/control/SENTINEL_F5_FINAL_CERTIFICATE_20260816.md`.
+- F6: `docs/control/SENTINEL_F6_FINAL_CERTIFICATE_20260816.md`.
+- F7: `docs/control/SENTINEL_F7_FINAL_CERTIFICATE_20260816.md`.
+- F8: `docs/control/SENTINEL_F8_FINAL_CERTIFICATE_20260817.md`.
+- F9: `docs/control/SENTINEL_F9_DURABLE_PRODUCTION_CERTIFICATE_20260817.md`.
+- F10: `docs/control/SENTINEL_F10_FINAL_CERTIFICATE_20260817.md`.
+- F11: `docs/control/SENTINEL_F11_FINAL_CERTIFICATE_20260817.md`.
+- F12: `docs/control/SENTINEL_F12_FINAL_CERTIFICATE_20260817.md`.
+- F13: `docs/control/SENTINEL_F13_FINAL_CERTIFICATE_20260817.md`.
