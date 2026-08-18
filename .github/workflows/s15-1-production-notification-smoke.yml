@@ -1,0 +1,38 @@
+name: S15.1 Production Notification Smoke
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/s15-1-production-notification-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: s15-1-production-notification-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Railway serves S15.1 actor-bound notification runtime
+        shell: powershell
+        run: |
+          $uri = 'https://ascenda-os-production.up.railway.app/api/notifications/health'
+          $last = $null
+          for ($i = 1; $i -le 12; $i++) {
+            try {
+              $r = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 12 -Headers @{ 'Cache-Control' = 'no-cache' }
+              Write-Host ("Attempt {0}: {1}" -f $i, ($r | ConvertTo-Json -Compress))
+              if ($r.ok -eq $true -and $r.version -eq 'S15.1' -and $r.auth -eq 'actor-bound') {
+                Write-Host 'S15.1 Railway production smoke PASS'
+                exit 0
+              }
+              $last = 'unexpected payload'
+            } catch {
+              $last = $_.Exception.Message
+              Write-Host ("Attempt {0} failed: {1}" -f $i, $last)
+            }
+            Start-Sleep -Seconds 10
+          }
+          throw "S15.1 Railway production smoke failed after 12 attempts. Last result: $last"
