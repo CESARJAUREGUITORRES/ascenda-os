@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'app/server-f17.js'
+      - 'app/server-f17-current.js'
+      - 'app/railway.json'
       - 'app/push-notifications-s14.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
@@ -22,6 +24,8 @@ on:
     branches: [main]
     paths:
       - 'app/server-f17.js'
+      - 'app/server-f17-current.js'
+      - 'app/railway.json'
       - 'app/push-notifications-s14.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
@@ -56,11 +60,18 @@ jobs:
         shell: powershell
         run: |
           node --check app/server-f17.js
+          node --check app/server-f17-current.js
           node --check app/push-notifications-s14.js
           node --check app/public/notification-push-s14.js
           node --check app/public/notification-center-s15.js
           node --check app/public/phase2-service-worker.js
           node --check app/public/wa-human-alerts.js
+      - name: Effective runtime entrypoint
+        shell: powershell
+        run: |
+          node ci/phase17-multichannel/test_current_runtime_chain.js
+          $rail=Get-Content app/railway.json -Raw
+          if(-not $rail.Contains('server-f17-current.js')){throw 'S15.1 effective runtime is not F17 CURRENT'}
       - name: Historical S12 safety contract
         shell: powershell
         run: node ci/wa-s12/contract.js
