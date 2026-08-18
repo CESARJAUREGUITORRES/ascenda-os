@@ -1,9 +1,9 @@
 'use strict'
 const fs=require('fs'),path=require('path')
 const root=path.resolve(__dirname,'../..')
-const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260817235500_s15_notification_auth_boundary.sql'),'utf8')
+const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260818003159_s15_notification_auth_boundary_stage1.sql'),'utf8')
 const pending=fs.readFileSync(path.join(root,'supabase/pending/s15_notification_legacy_acl_cutover_after_s15_2.sql'),'utf8')
-const rollback=fs.readFileSync(path.join(root,'supabase/rollback/20260817235500_s15_notification_auth_boundary_rollback.sql'),'utf8')
+const rollback=fs.readFileSync(path.join(root,'supabase/rollback/20260818003159_s15_notification_auth_boundary_stage1_rollback.sql'),'utf8')
 const server=fs.readFileSync(path.join(root,'app/server-f17.js'),'utf8')
 const sw=fs.readFileSync(path.join(root,'app/public/phase2-service-worker.js'),'utf8')
 const center=fs.readFileSync(path.join(root,'app/public/notification-center-s15.js'),'utf8')
