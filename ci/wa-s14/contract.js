@@ -64,11 +64,16 @@ ok(client.includes('subscribeFresh(reg,cfg).then(saveSubscription)'),'client mus
 ok(client.includes("PUSH_SUBSCRIPTION_RECOVERY_FAILED"),'client must fail closed if provider returns the same retired subscription again')
 ok(rollback.includes('on conflict(endpoint) do update set'),'S15.4 rollback must restore previous reactivation behavior')
 
-// S15.5: the production app shell must actually execute the S14 client.
+// S15.5: shell mount + PWA restore must reach the SW token bridge instead of aborting on empty sessionStorage.
 ok(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260818-s15-5-shell-mount-p01'"),'production shell must mount the versioned S14 Push client')
 ok(shell.includes('function ensurePush()'),'production shell Push loader missing')
 ok(shell.includes("window.AOS_PUSH&&typeof AOS_PUSH.ensure==='function'"),'shell Push loader must be idempotent')
 ok(shell.includes("ensurePush().catch(function(e){try{console.warn('[S15.5] Web Push bootstrap fail-open'"),'shell must bootstrap Push fail-open after authenticated app context is ready')
+ok(sw.includes("async function getToken()")&&sw.includes("c.match('/__aos_app_token')"),'service worker must restore the controlled application token from its private cache')
+ok(sw.includes('function injectSameOriginAppToken(req)')&&sw.includes("h.set('X-AOS-App-Token',t)"),'service worker must inject the restored token into same-origin governed APIs')
+ok(client.includes("if(t.length>=32)h.set('X-AOS-App-Token',t)"),'client must use session token when present without requiring it')
+ok(!client.includes("if(t.length<32)return Promise.reject(new Error('AOS_APP_SESSION_MISSING'))"),'client must not abort before the service-worker token bridge can run')
+ok(!client.includes('if(token().length<32)return Promise.resolve(status())'),'subscription recovery must not silently stop when a restored PWA has no sessionStorage token')
 
 ok(alerts.includes("title='WhatsApp · '+safeSender(r)"),'WhatsApp notification sender identity missing')
 ok(alerts.includes('body:safePreview(r)'),'WhatsApp notification preview sanitizer missing')
