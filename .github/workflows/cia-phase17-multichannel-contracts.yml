@@ -4,20 +4,25 @@ on:
   push:
     branches:
       - 'feature/cia-phase17-multichannel-20260815-v*'
-    paths:
-      - 'supabase/migrations/*phase17_multichannel*'
-      - 'supabase/rollbacks/*phase17_multichannel*'
+      - 'fix/f17-current-history-runtime-20260817-v1'
+    paths: &f17_paths
+      - 'supabase/migrations/*phase17*'
+      - 'supabase/migrations/*f17*'
+      - 'supabase/rollbacks/*phase17*'
       - 'ci/phase17-multichannel/**'
+      - 'app/server-f17-current.js'
+      - 'app/server-phase-s.js'
+      - 'app/server-f5.js'
+      - 'app/f17-wa-adapter.js'
+      - 'app/wa-gateway.js'
+      - 'app/push-notifications-s14.js'
+      - 'app/railway.json'
+      - 'app/package.json'
       - 'docs/control/commercial-intelligence/PHASE_17_*'
       - '.github/workflows/cia-phase17-multichannel-contracts.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'supabase/migrations/*phase17_multichannel*'
-      - 'supabase/rollbacks/*phase17_multichannel*'
-      - 'ci/phase17-multichannel/**'
-      - 'docs/control/commercial-intelligence/PHASE_17_*'
-      - '.github/workflows/cia-phase17-multichannel-contracts.yml'
+    paths: *f17_paths
   workflow_dispatch:
 
 permissions:
@@ -29,9 +34,9 @@ concurrency:
 
 jobs:
   fast-source:
-    name: F17 source/security invariants
+    name: F17 source/security/runtime invariants
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,7 +49,8 @@ jobs:
       - name: Provider-neutral architecture contract
         shell: powershell
         run: |
-          $m = Get-Content supabase/migrations/20260815215000_cia_phase17_multichannel_contracts_v1.sql -Raw
+          $m = Get-Content supabase/migrations/20260816031658_cia_phase17_multichannel_contracts_v1.sql -Raw
+          $a = Get-Content supabase/migrations/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql -Raw
           $required = @(
             'aos_cia_channel_recipient_controls_v1',
             'aos_cia_channel_send_requests_v1',
@@ -59,21 +65,46 @@ jobs:
             'force row level security'
           )
           foreach ($needle in $required) { if (-not $m.Contains($needle)) { throw "Missing F17 invariant: $needle" } }
-          if ($m -match '(?is)create\s+table[^;]*(whatsapp|sms)[^;]*(audien|customer|patient|lead)') { throw 'F17 must not create per-channel audience/customer/patient/lead truth' }
-          if ($m -match '(?i)(WHATSAPP_ACCESS_TOKEN|WHATSAPP_APP_SECRET|RESEND_API_KEY)\s*=\s*[''\"][^''\"]+') { throw 'Hard-coded provider secret found' }
+          foreach ($needle in @('aos_cia_channel_register_canary_recipient_v1','aos_cia_channel_mark_dispatch_v1','aos_cia_channel_record_provider_event_v1','aos_cia_channel_ingest_inbound_v1')) { if (-not $a.Contains($needle)) { throw "Missing F17 adapter invariant: $needle" } }
+          if (($m + $a) -match '(?is)create\s+table[^;]*(whatsapp|sms)[^;]*(audien|customer|patient|lead)') { throw 'F17 must not create per-channel audience/customer/patient/lead truth' }
+          if (($m + $a) -match '(?i)(WHATSAPP_ACCESS_TOKEN|WHATSAPP_APP_SECRET|RESEND_API_KEY)\s*=\s*[''\"][^''\"]+') { throw 'Hard-coded provider secret found' }
           if ($m -match '(?is)aos_cia_whatsapp_bridge_v1.*message_body') { throw 'WhatsApp bridge must not project message body' }
           if ($m -match '(?is)aos_cia_whatsapp_bridge_v1.*raw_referral') { throw 'WhatsApp bridge must not project raw referral' }
+      - name: Exact history/tombstone contract
+        shell: powershell
+        run: |
+          $versions=@(
+            '20260816031658_cia_phase17_multichannel_contracts_v1.sql',
+            '20260816093639_f17_legacy_whatsapp_acl_p0.sql',
+            '20260817170316_f17_legacy_whatsapp_acl_final.sql',
+            '20260817171043_cia_phase17_whatsapp_canary_control_v1.sql',
+            '20260817171102_cia_phase17_whatsapp_mark_dispatch_v1.sql',
+            '20260817171119_cia_phase17_whatsapp_provider_event_v1.sql',
+            '20260817171141_cia_phase17_whatsapp_inbound_v1.sql',
+            '20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql'
+          )
+          foreach($f in $versions){if(-not (Test-Path "supabase/migrations/$f")){throw "Missing production F17 history version: $f"}}
+          foreach($f in $versions[3..6]){$t=Get-Content "supabase/migrations/$f" -Raw;if(-not $t.Contains('Intentionally no-op')){throw "F17 tombstone marker missing: $f"};if($t -match '(?i)create\s+or\s+replace\s+function'){throw "F17 tombstone unexpectedly rebuilds superseded RPC: $f"}}
+      - name: Effective CURRENT runtime boundary
+        shell: powershell
+        run: |
+          node --check app/server-f17-current.js
+          node --check app/f17-wa-adapter.js
+          node --check app/wa-gateway.js
+          node ci/phase17-multichannel/test_current_runtime_chain.js
       - name: Rollback scope contract
         shell: powershell
         run: |
-          $r = Get-Content supabase/rollbacks/20260815215000_cia_phase17_multichannel_contracts_v1.rollback.sql -Raw
-          if ($r -match 'drop\s+(table|view|function).*aos_wa_(messages|events|conversations|outbound_requests)') { throw 'F17 rollback must not delete WA-1..WA-4 objects' }
-          if ($r -match 'aos_cia_email_f17_readiness_v1') { throw 'F17 rollback must not delete F16 readiness' }
+          $r1 = Get-Content supabase/rollbacks/20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql -Raw
+          $r2 = Get-Content supabase/rollbacks/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql -Raw
+          if (($r1+$r2) -match 'drop\s+(table|view|function).*aos_wa_(messages|events|conversations|outbound_requests)') { throw 'F17 rollback must not delete WA-1..WA-4 objects' }
+          if (($r1+$r2) -match 'aos_cia_email_f17_readiness_v1') { throw 'F17 rollback must not delete F16 readiness' }
+          Write-Host F17_FAST_CURRENT_CONTRACTS_PASS
 
   zero-cost-db:
-    name: F17 Zero-Cost DB contracts/rollback
+    name: F17 Zero-Cost exact-history replay/rollback
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:59722/postgres
     steps:
@@ -95,7 +126,7 @@ jobs:
         working-directory: ci/zero-cost-staging
         run: |
           set -euo pipefail
-          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-cia-f17-multichannel"/' supabase/config.toml
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-cia-f17-current"/' supabase/config.toml
           sed -i 's/port = 54321/port = 59721/' supabase/config.toml
           sed -i 's/port = 54322/port = 59722/' supabase/config.toml
           sed -i 's/shadow_port = 54320/shadow_port = 59720/' supabase/config.toml
@@ -104,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           supabase stop --no-backup || true
-          docker ps -aq --filter 'name=ascenda-cia-f17-multichannel' | xargs -r docker rm -f || true
+          docker ps -aq --filter 'name=ascenda-cia-f17-current' | xargs -r docker rm -f || true
           rm -rf supabase/.temp supabase/.branches
           supabase db start
           for i in $(seq 1 30); do
@@ -114,21 +145,40 @@ jobs:
           echo 'F17 isolated Postgres did not become ready' >&2
           exit 1
       - name: Build synthetic prerequisites
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/schema_contract.sql
-      - name: Apply exact F17 migration
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815215000_cia_phase17_multichannel_contracts_v1.sql
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/history_fixture.sql
+      - name: Replay exact production F17 history
+        run: |
+          set -euo pipefail
+          for f in \
+            20260816031658_cia_phase17_multichannel_contracts_v1.sql \
+            20260816093639_f17_legacy_whatsapp_acl_p0.sql \
+            20260817170316_f17_legacy_whatsapp_acl_final.sql \
+            20260817171043_cia_phase17_whatsapp_canary_control_v1.sql \
+            20260817171102_cia_phase17_whatsapp_mark_dispatch_v1.sql \
+            20260817171119_cia_phase17_whatsapp_provider_event_v1.sql \
+            20260817171141_cia_phase17_whatsapp_inbound_v1.sql \
+            20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.sql; do
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          echo F17_EXACT_PRODUCTION_HISTORY_REPLAY=PASS
       - name: Database lint
         working-directory: ci/zero-cost-staging
         run: supabase db lint --local --schema public --level error
-      - name: Execute F17 contracts
+      - name: Execute base and replay/idempotency contracts
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/001_f17_multichannel.sql | tee /tmp/f17-contracts.txt
           grep -q 'F17_MULTICHANNEL_CONTRACTS_PASS' /tmp/f17-contracts.txt
-      - name: Exact rollback and zero residue
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/phase17-multichannel/tests/002_f17_history_runtime.sql | tee /tmp/f17-history.txt
+          grep -q 'F17_HISTORY_REPLAY_PASS' /tmp/f17-history.txt
+      - name: Adapter then base rollback and zero residue
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815215000_cia_phase17_multichannel_contracts_v1.rollback.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260817183507_cia_phase17_whatsapp_adapter_contracts_v1.rollback.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260816031658_cia_phase17_multichannel_contracts_v1.rollback.sql
           for obj in aos_cia_channel_recipient_controls_v1 aos_cia_channel_send_requests_v1 aos_cia_channel_send_events_v1 aos_cia_channel_inbound_facts_v1 aos_cia_channel_release_state; do
             test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.$obj') is null")" = "t"
           done
@@ -136,6 +186,7 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_channel_prepare_send_v1(jsonb)') is null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_f18_readiness_v1()') is null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_messages_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_plantillas_whatsapp') is not null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_cia_email_f17_readiness_v1()') is not null")" = "t"
           echo F17_ROLLBACK_ZERO_RESIDUE_PASS
       - name: Stop isolated Supabase
