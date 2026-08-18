@@ -1,79 +1,69 @@
 # ASCENDA OS — PROJECT PORTFOLIO CURRENT
 
-**CURRENT control baseline:** `main@addd14f2a57f06ec54b5ace10e042f4d8b69a85a`  
+**Captured from control baseline:** `main@93fcc9a5171703ee6750f67c3c17373a323dc2ab`  
 **Runtime inherited:** S15.3 / `ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
-**ACTIVE PORTFOLIO OWNER:** `CIA-F17/F18-CLOSEOUT`
+**ACTIVE PORTFOLIO OWNER:** `WA-NOTIFICATIONS-CLOSEOUT`
+
+## Owner override
+
+The current owner instruction is to finish and certify the WhatsApp Revenue Hub + Notifications recovery before another HIGH/CRITICAL project continues. This supersedes the earlier CIA-first handoff encoded in the previous CURRENT control layer.
 
 ## Runtime
 
-Railway outer command:
+Railway outer command remains the S15.3 chain beginning at `server-phase-s-f17.js`.
 
-`NODE_OPTIONS=--require ./sentinel-sentry-init.cjs node server-phase-s-f17.js`
-
-Chain:
+Effective chain:
 
 `Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`
 
-S15.3 fixed buffered HTTP framing while preserving the topology.
-
 ## Program map
 
-| Program | Closed | Remaining | Portfolio state |
+| Program | Closed / validated input | Remaining | Portfolio state |
 |---|---|---|---|
-| Sentinel | SEN-F1..F13 | only deferred/maintenance findings | **FROZEN / REGRESSION-ONLY** |
-| CIA | CIA-F0..F16 | CIA-F17 4/6; CIA-F18 pending | **ACTIVE** |
-| Revenue | REV-F1..F4 | REV-F5/F6/F7 | **PAUSED** |
-| WhatsApp | WA0/WA2/WA3 | WA1=98; WA4=70; WA5–WA8 | **PAUSED** |
-| KronIA | K0 | K1–K8 | **PAUSED / REBUILD FROM CURRENT** |
-| Migration governance | safe owner slices | #238 owner parity; #250 baseline | **MAINTENANCE LANE** |
+| WhatsApp + Notifications | WA0/WA2/WA3 historical closure; S15.3 inbound recovery proven; S15.4 DB recovery live | fresh Push endpoint, closed-PWA DELIVERED/click, legacy ACL cutover, Meta outbound token/canary, WA closeout revalidation | **ACTIVE** |
+| CIA | CIA-F0..F16 closed | CIA-F17 4/6; CIA-F18 blocked | **PAUSED / READ-ONLY** |
+| Revenue | REV-F1..F4 closed | REV-F5/F6/F7 | **PAUSED** |
+| Sentinel | SEN-F1..F13 closed | regression-only/deferred maintenance | **FROZEN / REGRESSION-ONLY** |
+| KronIA | K0 closed | K1–K8 | **PAUSED / REBUILD FROM THEN-CURRENT** |
+| Migration governance | safe owner slices | #238 owner parity; #250 baseline | **MAINTENANCE ONLY** |
 
-## CIA active entry state
+## WhatsApp / Notifications live state
 
-Live at handoff:
+S15.3 physical canary `PRUEBA 6 S15.3` proved real inbound traversal and canonical persistence. The same canary exposed a provider-terminal Push subscription (`WEB_PUSH_410`).
 
-- contracts=true
-- WhatsApp bridge=true
-- outbound policy=true
-- rollback=true
-- webhook replay=false
-- canary=false
-- ready_for_f18=false
-- illegal send states=0
-- governed inbound=1
-- governed send requests/events=0
-- WA messages=12
+Production Supabase now contains `20260818013809_s15_4_push_retired_subscription_recovery`, which prevents an inactive provider-terminal endpoint from being silently reactivated with identical keys and requests a browser-side reset. The stale CESAR endpoint remains inactive.
 
-Runtime traversal has improved after S15.3, but F17 is still exactly 4/6 until explicit replay/idempotency and allowlisted canary evidence exists.
+The legacy notification ACL cutover is deliberately pending until a new real closed-PWA canary reaches Push `DELIVERED` and native notification click/deep-link is proven.
 
-PR #261 is evidence-only; remaining work starts from CURRENT.
+Meta outbound `TOKEN_INVALID_OR_EXPIRED` is a separate known blocker and must be solved after inbound + Push certification with a long-lived System User token in Railway; no provider secret enters GitHub/chat.
 
 ## Paused inputs
 
+### CIA
+CIA-F17 remains exactly 4/6: contracts/WhatsApp bridge/outbound policy/rollback true; signed replay/idempotency and real allowlisted CIA canary not yet certified. No CIA mutation while WA owns the lock.
+
 ### Revenue
-1000/15498 staged, 3950 clusters, 0 members, 0 previews, 7675 canonical patients at control handoff. No concurrent ingest/rebuild/apply and no canonical mutation.
-
-### WhatsApp
-WA1 and WA4 are no longer simultaneously active. When WhatsApp receives the lock, WA1 is revalidated/closed first, then WA4 is rebaselined.
-
-CIA may use the same Meta transport for its own explicitly scoped F17 canary; that evidence does not automatically close WA1/WA4.
+REV-F5 and later remain paused. No concurrent historical ingest/rebuild/apply or canonical patient mutation.
 
 ### KronIA
-K0 closed; K1–K8 pending. PR #94/#175 closed as superseded. New K1 starts from then-CURRENT and reuses CIA-F15 canonical registry/policy.
+K1–K8 remain paused. Stale K1 branches/PRs are evidence only and must rebuild from future CURRENT.
 
 ### Sentinel
-F1–F13 100_COMPLETE; PR #271 is paused maintenance evidence. Sentinel regressions may be checked, but program scope is not reopened by default.
+SEN-F1..F13 remains closed. Run only regressions required as sensors for the WA release unless a real Sentinel regression is demonstrated.
 
-## Sequential closeout
+## Closeout requirement
 
-1. **CIA-F17/F18 — ACTIVE**
-2. Revenue F5/F7
-3. WhatsApp WA1/WA8
-4. #250 reproducible baseline once feature schemas stabilize
-5. KronIA K1/K8
-6. final cross-program certification
+Before WA releases the lock:
 
-#238 is resolved only as an owner-scoped dependency of the active project; it is not a parallel schema-history rewrite project.
+1. exact main/runtime and S15.4 merge/deploy captured;
+2. fresh active Push subscription verified while terminal endpoint remains inactive;
+3. closed-PWA inbound produces Push `DELIVERED` and native Windows notification;
+4. notification click/deep-link verified;
+5. duplicate/noise behavior verified;
+6. final legacy notification ACL cutover applied and audited;
+7. Meta outbound credential/canary resolved and controlled;
+8. WA1/WA2/WA3/WA4/Phase S/S13/S14/S15 regressions re-run;
+9. no unresolved HIGH/CRITICAL issue remains inside declared closeout scope;
+10. GitHub CURRENT docs + `aos_memory` + Notion reconciled.
 
-## Handoff requirement
-
-Before CIA releases the lock to Revenue: exact main/runtime, live readiness, PR classification, CI/canary/rollback evidence, no untracked mutation, GitHub CURRENT docs, `aos_memory`, Notion-last update, and explicit Revenue input contract.
+The next portfolio owner is **not preassigned**; it requires an explicit owner-approved handoff after WA closeout.

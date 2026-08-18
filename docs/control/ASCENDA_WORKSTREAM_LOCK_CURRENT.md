@@ -1,114 +1,98 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / cross-program control  
-**Portfolio handoff baseline:** `main@addd14f2a57f06ec54b5ace10e042f4d8b69a85a`  
-**Runtime baseline inherited:** S15.3 / `ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
-**ACTIVE LOCK:** `CIA-F17/F18-CLOSEOUT`  
-**NEXT LOCK AFTER CIA:** `REV-F5/F7-CLOSEOUT`
+**Status:** CURRENT / explicit owner override  
+**Captured from baseline:** `main@93fcc9a5171703ee6750f67c3c17373a323dc2ab`  
+**Runtime inherited:** S15.3 / `ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
+**ACTIVE LOCK:** `WA-NOTIFICATIONS-CLOSEOUT`  
+**NEXT LOCK:** `UNASSIGNED` until WA closeout is certified.
+
+## Owner directive
+
+The owner explicitly ordered ASCENDA to stop parallel HIGH/CRITICAL project execution and finish the WhatsApp/Notifications workstream first: identify the regression, repair it, revalidate the complete WhatsApp + notification chain, preserve the learning, and certify it before moving to another project.
+
+This directive supersedes the earlier portfolio order that assigned the active lock to `CIA-F17/F18-CLOSEOUT`.
 
 ## Global rule
 
 At most **one HIGH/CRITICAL feature/data workstream may mutate ASCENDA at a time**.
 
-Canonical namespaces: `CIA-F*`, `REV-F*`, `WA-*`, `SEN-F*`, `K*`, `PARITY-*`, `BASELINE-*`, `CONTROL-*`.
+Canonical namespaces remain: `CIA-F*`, `REV-F*`, `WA-*`, `SEN-F*`, `K*`, `PARITY-*`, `BASELINE-*`, `CONTROL-*`.
 
-While `CIA-F17/F18-CLOSEOUT` owns the lock:
+While `WA-NOTIFICATIONS-CLOSEOUT` owns the lock:
 
-- Revenue, WhatsApp and KronIA are read-only/documentation-only;
-- no competing migrations/materializers/canaries/deploys are intentionally started;
-- Sentinel is regression-only unless a demonstrated production-safety incident receives an explicit maintenance lock;
-- #238/#250 are maintenance lanes and may only run a scoped CIA-required repair, not an independent history project;
-- FAST runners may execute isolated CIA/runtime regressions;
-- `ASCENDA-ZERO-COST-V2` is reserved for CIA-F17/F18 DB/security/release gates;
-- any unrelated `main` merge invalidates pending exact-head CIA certification until revalidated.
+- WhatsApp Revenue Hub plus S13/S14/S15.x notification transport may mutate only within the scoped recovery/certification plan;
+- CIA, Revenue, KronIA and migration-governance feature work are read-only/documentation-only;
+- Sentinel remains closed/regression-only unless a demonstrated Sentinel regression is caused by this release;
+- no competing migrations, materializers, canaries or deploys are intentionally started;
+- FAST runners may execute isolated WA/runtime regressions required by this workstream;
+- `ASCENDA-ZERO-COST-V2` is reserved for WA/notification DB/security/release gates when needed;
+- any unrelated advance of `main` invalidates a pending exact-head WA certificate until the diff is revalidated.
 
-## CURRENT runtime
+## Runtime CURRENT
 
-Railway outer command:
-
-`NODE_OPTIONS=--require ./sentinel-sentry-init.cjs node server-phase-s-f17.js`
-
-Effective chain:
+Railway chain:
 
 `Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`
 
-S15.3 fixes buffered HTTP framing for signed/governed WhatsApp traffic through F17. Railway was SUCCESS at the control handoff.
+S15.3 repaired invalid buffered HTTP framing between Phase S and F17 while preserving the chain.
 
-## CIA-F17 entry state
+## Live WA / Notifications checkpoint
 
-Live state immediately before this handoff:
+Physical canary `PRUEBA 6 S15.3` proved:
 
-- `contracts_active=true`
-- `whatsapp_bridge_validated=true`
-- `outbound_policy_validated=true`
-- `rollback_verified=true`
-- `webhook_replay_validated=false`
-- `canary_passed=false`
-- `ready_for_f18=false`
-- `illegal_send_states=0`
-- browser direct governed-table access=false
-- governed inbound facts=1
-- governed send requests=0
-- governed send events=0
-- WA message facts=12
+- signed WhatsApp inbound traverses the runtime again;
+- canonical message/event persistence succeeds;
+- conversation `zi vital` remains `HUMAN_ACTIVE` with owner CESAR;
+- WA2/WA3 state and counters update correctly;
+- Web Push dispatch executed but provider returned HTTP `410 Gone`.
 
-Interpretation: S15.3 improved real traffic traversal, but CIA-F17 remains **4/6**. Do not infer replay/idempotency or canary from a single inbound fact.
+The retired CESAR PWA endpoint is intentionally inactive with `failure_count=1`.
 
-## CIA-F17 closeout contract
+Production Supabase already contains:
 
-Work only from CURRENT.
+`20260818013809_s15_4_push_retired_subscription_recovery`
 
-1. Re-read `main`, Railway status and live readiness before each mutable gate.
-2. Treat PR #261 as `EVIDENCE_ONLY`; do not merge/rebase it wholesale.
-3. Inventory unresolved F17 history/parity against CURRENT and preserve only still-needed owner scope.
-4. Run F17 isolated DB/history replay/security/rollback using the active lock's Zero-Cost runner.
-5. Prove authentic Meta-signed webhook traversal.
-6. Prove duplicate/replay/idempotency through governed F17 evidence.
-7. Execute a real canary only against the explicit owner-approved allowlist; broad send remains OFF.
-8. Reconcile requests/events/inbound/provider outcomes and require `illegal_send_states=0`.
-9. Re-run rollback/recovery.
-10. Re-read `aos_cia_f18_readiness_v1()` and require all six gates true + `ready_for_f18=true`.
-11. Only then mark `CIA-F17=100_COMPLETE` and unlock CIA-F18.
+Its contract refuses to resurrect a provider-terminal endpoint with the same endpoint+keys and returns `reset_required=true`. Execute privilege remains service-role-only.
 
-## CIA-F18 gate
+## Active closeout sequence
 
-CIA-F18 cannot start before F17 returns the certified readiness marker (`READY_F18_MULTICHANNEL_CERTIFIED` or equivalent canonical gate) and `ready_for_f18=true`.
+1. Integrate S15.4 client self-healing on exact CURRENT.
+2. Require exact-head S14/S15/Ascenda CI PASS.
+3. Require Railway SUCCESS on the exact merge commit.
+4. Reopen the installed ASCENDA PWA and verify the retired endpoint stays inactive while a new active subscription is created.
+5. Fully close ASCENDA and send a new real inbound WhatsApp canary.
+6. Require canonical WA message/event persistence and Push dispatch `DELIVERED`.
+7. Require native Windows notification and successful click/deep-link into ASCENDA/WhatsApp.
+8. Verify no duplicate notification storm when ASCENDA is visible.
+9. Only then execute the pending legacy notification ACL cutover and verify service-role-only legacy access.
+10. Resolve the separate Meta outbound `TOKEN_INVALID_OR_EXPIRED` blocker with an approved long-lived System User token in Railway; never put the token in GitHub/chat.
+11. Run the controlled outbound canary and revalidate WA1/WA2/WA3/WA4/Phase S/S13/S14/S15.
+12. Only after all declared WA/notification gates close may the owner assign the next global workstream lock.
 
-F18 must be completed under the same CIA lock before the portfolio transitions to Revenue.
+## Paused project state
 
-## Paused projects
+### CIA
+CIA-F0..F16 closed; CIA-F17 remains 4/6 and CIA-F18 blocked. No CIA closeout mutation while WA owns the lock. Existing CIA evidence remains valid input but does not authorize parallel execution.
 
 ### Revenue
-`REV-F5` remains 1000/15498 staged, 3950 clusters, 0 members, 0 previews at handoff. No ingest/rebuild/apply while CIA owns lock; canonical mutation remains forbidden.
-
-### WhatsApp
-WA1=98%, WA4=70%, WA5–WA8 pending. No Meta canary/AI activation/WA5+ project execution while CIA owns lock. CIA may use the shared Meta transport only for CIA-F17's explicitly scoped governed canary; that evidence does not auto-close WA phases.
+REV-F1..F4 closed; REV-F5/F6/F7 paused. No historical ingest/rebuild/apply or canonical patient mutation.
 
 ### KronIA
-K0 closed. K1–K8 pending. PR #94/#175 are closed evidence-only. No K1 materialization/cutover while CIA owns lock.
+K0 closed; K1–K8 paused. Historical K1 branches remain evidence-only.
 
 ### Sentinel
-SEN-F1..F13 remains 100_COMPLETE/regression-only. PR #271 is paused maintenance evidence.
+SEN-F1..F13 remains closed/regression-only.
 
 ## Runner policy
 
-- Zero-Cost DB runner belongs to CIA while this lock is active.
+- shared runners are execution capacity, never source of truth;
+- source of truth is exact Git commit/diff + production deployment SHA + live Supabase evidence;
 - unique DB/container/project names per run;
 - cleanup on success/failure;
-- no production PII/PHI/secrets as fixtures;
-- queued/pending = capacity wait, not failure;
-- no hosted paid fallback merely to bypass queue.
+- no production secrets or PHI/PII as CI fixtures;
+- queued/pending means capacity wait, not product failure;
+- a PASS from another workstream is only regression evidence, never WA certification.
 
-## Lock transition
+## Handoff rule
 
-The lock may move from CIA to Revenue only after:
-
-1. CIA-F17/F18 exact `main`/runtime captured;
-2. live readiness and production evidence reconciled;
-3. CIA PRs classified/closed;
-4. CI/canary/rollback state recorded;
-5. no untracked CIA production mutation remains;
-6. GitHub CURRENT docs updated;
-7. `aos_memory` updated;
-8. Notion updated last;
-9. explicit Revenue input contract written.
+Do not move the lock automatically. A future handoff requires exact main/runtime, live Supabase state, PR classification, CI/canary/rollback evidence, final GitHub CURRENT docs, `aos_memory`, Notion-last reconciliation and an explicit owner-approved next workstream.
