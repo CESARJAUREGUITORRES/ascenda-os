@@ -1,169 +1,139 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Status:** CURRENT / cross-program control  
-**Baseline:** `main@644cb0d0a1290276d9cb5d2a8c8f015b4a24d073`  
-**Captured:** 2026-08-17 20:03 America/Lima  
+**Baseline:** `main@ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
+**Release:** S15.3 — F17 buffered HTTP framing  
 **ACTIVE LOCK:** `CONTROL-REALIGNMENT`  
-**NEXT LOCK AFTER CONTROL MERGE:** `CIA-F17/F18-CLOSEOUT`
+**NEXT LOCK:** `CIA-F17/F18-CLOSEOUT`
 
-## Purpose
+## Global rule
 
-ASCENDA shares GitHub, Railway, Supabase and self-hosted CI across multiple programs. Shared infrastructure does **not** make them one project. This lock prevents phases, migrations, PRs, runners and certifications from different programs being mixed accidentally.
+ASCENDA contains multiple programs in one repository. At most **one HIGH/CRITICAL feature/data workstream may mutate ASCENDA at a time**.
 
-## Canonical namespaces
+Canonical namespaces:
 
-Every task/checkpoint declares a `WORKSTREAM_ID`:
+- `CIA-F*` — Commercial Intelligence & Audience OS V3
+- `REV-F*` — Revenue Data & Intelligence
+- `WA-*` — WhatsApp Revenue Hub
+- `SEN-F*` — Sentinel
+- `K*` / `K1-*` — KronIA
+- `PARITY-*` — #238 migration parity
+- `BASELINE-*` — #250 reproducible pre-history baseline
+- `CONTROL-*` — portfolio/governance
 
-- `CIA-F*` — Commercial Intelligence & Audience OS V3.
-- `REV-F*` — Revenue Data & Intelligence.
-- `WA-*` — WhatsApp Revenue Hub.
-- `SEN-F*` — Sentinel.
-- `K*` / `K1-*` — KronIA.
-- `PARITY-*` — Git ↔ Supabase history parity (#238).
-- `BASELINE-*` — reproducible pre-history baseline (#250).
-- `CONTROL-*` — portfolio/governance alignment.
-
-Bare `F17` is prohibited in cross-program control because several roadmaps use the same phase numbers.
-
-## Global exclusivity
-
-At most **one HIGH/CRITICAL feature/data workstream may mutate ASCENDA at a time**.
-
-While a workstream owns the lock:
-
-1. other programs are read-only/documentation-only;
-2. no competing migrations/materializers/canaries/deploys are intentionally started;
-3. FAST runners may execute isolated regression/syntax/UI checks required by the owner;
-4. the Zero-Cost DB runner is reserved to the owner for DB/migration/security gates;
-5. a PASS from another project cannot certify the owner;
-6. queued/pending means capacity wait, not product failure;
-7. any unrelated merge that advances `main` invalidates a pending exact-head certificate until revalidated.
+Bare phase names such as `F17` are prohibited in cross-program control.
 
 ## CURRENT runtime
 
-PR #265 / S15.2 is merged.
+Railway:
 
-Railway outer command:
+`NODE_OPTIONS=--require ./sentinel-sentry-init.cjs node server-phase-s-f17.js`
 
-`env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js`
+Chain:
 
-Effective chain:
+`Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`
 
-`Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core runtime`
+S15.3 preserves this topology and fixes buffered HTTP framing for governed/signed WhatsApp traffic. `app/server.js` is not the outer Railway entrypoint.
 
-`app/server.js` is not the outer Railway entrypoint.
+## Exclusivity
 
-## Current portfolio state
+While a workstream owns the lock:
 
-### CONTROL-REALIGNMENT — ACTIVE
+1. other projects are read-only/documentation-only;
+2. no competing migrations/materializers/canaries/deploys are intentionally started;
+3. FAST runners may execute isolated regression/syntax/UI checks required by the owner;
+4. `ASCENDA-ZERO-COST-V2` is reserved to the owner for DB/migration/security gates;
+5. a PASS from another project cannot certify the owner;
+6. `queued/pending` is capacity wait, not product failure;
+7. any unrelated merge that advances `main` invalidates pending exact-head certification until revalidated.
 
-Allowed now:
+## CONTROL-REALIGNMENT — ACTIVE
 
-- read-only GitHub/Supabase/runtime audit;
-- documentation and tracker reconciliation;
+Allowed:
+
+- GitHub/Supabase/Railway read-only audit;
+- docs/agent/memory/tracker reconciliation;
 - stale PR classification;
-- `aos_memory` control keys;
 - no feature/data production mutation.
 
 Exit gate:
 
-- canonical portfolio map + agents/memory + Notion reconciled;
-- stale/overlapping PRs classified;
-- root AGENTS points to CURRENT runtime/lock;
-- next input contract for CIA-F17 recorded.
+- portfolio map + root AGENTS + agent bootstrap + memory reconciled;
+- old merge candidates classified/closed where clearly superseded;
+- Notion project states serialized;
+- `aos_memory` current keys refreshed;
+- exact current main/Railway/readiness rechecked;
+- explicit CIA-F17 input contract recorded.
 
-### CIA-F17/F18 — NEXT
+## CIA-F17/F18 — NEXT
 
-Live F17 at control capture:
+Live after S15.3:
 
-- `contracts_active=true`
-- `whatsapp_bridge_validated=true`
-- `outbound_policy_validated=true`
-- `rollback_verified=true`
-- `webhook_replay_validated=false`
-- `canary_passed=false`
-- `ready_for_f18=false`
+- contracts=true
+- WhatsApp bridge=true
+- outbound policy=true
+- rollback=true
+- webhook replay=false
+- canary=false
+- ready_for_f18=false
+- governed inbound facts=1
+- governed send requests/events=0
+- WA message facts=12
 
-S15.2 fixed the production-chain bypass. Runtime activation does not equal F17 100%.
+The inbound fact demonstrates improved traversal but is not a replay/idempotency certificate. Readiness remains 4/6 until explicit evidence flips the live gates.
 
-PR #261 was built before #265 and is **not mergeable as-is**; remaining F17 work starts/reconciles from CURRENT.
+PR #261 is paused/evidence-only; it predates #265/S15.3 and must not merge as-is.
 
-### Other programs while CONTROL/CIA owns lock
+## Other programs while locked
 
 - `REV-F5`: paused; no ingest/rebuild/apply.
 - `WA-*`: paused; no Meta canary, AI activation or WA5+ implementation.
-- `K*`: paused; no K1 materialization/cutover and no stale K1 merge.
-- `SEN-F1..F13`: closed/regression-only. Maintenance findings are queued unless they represent an actual production-safety incident.
-- `PARITY-*` / `BASELINE-*`: read-only analysis allowed; no independent history rewrite or DDL replay.
+- `K*`: paused; no K1 materialization/cutover; old K1 PR #94/#175 are closed evidence-only.
+- `SEN-F1..F13`: closed/regression-only; PR #271 remains draft maintenance unless a production-safety incident warrants reprioritization.
+- `PARITY-*` / `BASELINE-*`: read-only analysis only unless the active project explicitly requires a scoped repair.
 
-## Runner routing
+## Runner policy
 
 ### Zero-Cost DB runner
 
 `ASCENDA-ZERO-COST-V2` / `[self-hosted, Linux, X64, ascenda-zero-cost-v2]`
 
-Rules:
-
-- reserved to active workstream for DB/security/release gates;
-- unique DB/container/project names per run;
+- one active workstream owner;
+- unique DB/container/project names;
 - cleanup on success/failure;
 - no production PII/PHI/secrets in fixtures;
-- no GitHub-hosted billable fallback merely because it is queued/offline.
+- no billable hosted fallback merely because queued/offline.
 
 ### FAST runners
 
-May run isolated same-workstream syntax/UI/runtime contracts or explicitly required regressions. They do not replace the Zero-Cost DB/security gate.
+Same-workstream syntax/UI/runtime contracts and required regressions only. They do not replace DB/security gates.
 
-## Branch/PR resume rule
+## Resume rule
 
 When a paused project resumes:
 
 1. re-read exact `main`;
 2. re-read live Supabase state;
-3. classify branches/PRs: `MERGE_CANDIDATE`, `PAUSED`, `SUPERSEDED`, `EVIDENCE_ONLY`;
-4. for HIGH/CRITICAL drift, prefer fresh branch from CURRENT;
-5. never merge because historical CI was green.
+3. classify old branches/PRs: `MERGE_CANDIDATE`, `PAUSED`, `SUPERSEDED`, `EVIDENCE_ONLY`;
+4. for HIGH/CRITICAL drift, prefer a fresh branch from CURRENT;
+5. never merge solely because historical CI was green.
 
 ## Lock transition gate
 
-The active lock changes only after:
-
-1. exact `main` SHA/runtime captured;
-2. project live readiness/state captured;
-3. active PRs classified;
-4. CI/canary/rollback state recorded;
-5. no untracked production mutation remains;
-6. GitHub CURRENT docs updated;
-7. `aos_memory` current key updated;
-8. Notion updated last;
-9. next project input contract written.
-
-If unfinished but safe to pause, state is `PAUSED_WITH_CHECKPOINT`, never “finished”.
+The lock changes only after exact `main`/runtime, live phase readiness, PR classification, CI/canary/rollback state, GitHub CURRENT docs, `aos_memory`, and Notion are reconciled. If unfinished but safe to pause, record `PAUSED_WITH_CHECKPOINT`.
 
 ## Sequential portfolio queue
 
-1. `CONTROL-REALIGNMENT` — ACTIVE.
-2. `CIA-F17/F18-CLOSEOUT`.
-3. `REV-F5/F7-CLOSEOUT`.
-4. `WA-1/WA-8-CLOSEOUT`.
-5. `BASELINE-#250` after feature schemas stabilize.
-6. `K1/K8-CLOSEOUT`.
-7. `FINAL-CROSS-PROGRAM-CERTIFICATION`.
+1. `CONTROL-REALIGNMENT`
+2. `CIA-F17/F18-CLOSEOUT`
+3. `REV-F5/F7-CLOSEOUT`
+4. `WA-1/WA-8-CLOSEOUT`
+5. `BASELINE-#250`
+6. `K1/K8-CLOSEOUT`
+7. `FINAL-CROSS-PROGRAM-CERTIFICATION`
 
-Sentinel remains frozen/regression-only unless a demonstrated Sentinel regression requires a maintenance lock.
+Sentinel remains frozen/regression-only unless a demonstrated Sentinel regression receives an explicit maintenance lock.
 
-## Recovery protocol for any new chat/agent
+## Bootstrap for every new chat/agent
 
-Before touching ASCENDA:
-
-1. read root `AGENTS.md`;
-2. read `SECURITY.md`;
-3. read `ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
-4. read this lock;
-5. declare `WORKSTREAM_ID`;
-6. read only that project's CURRENT control/phase;
-7. verify GitHub main/PR/checks and Supabase live;
-8. confirm no other mutable lock is active;
-9. execute only the next declared gate.
-
-GitHub/runtime/Supabase live override stale memory/Notion. Notion is corrected last.
+Read root `AGENTS.md` → `SECURITY.md` → `ASCENDA_PROJECT_PORTFOLIO_CURRENT.md` → this lock → declare `WORKSTREAM_ID` → read only that project's CURRENT control → verify GitHub/live Supabase → execute only the next declared gate.
