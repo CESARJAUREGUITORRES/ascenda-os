@@ -1,139 +1,114 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Status:** CURRENT / cross-program control  
-**Baseline:** `main@ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
-**Release:** S15.3 — F17 buffered HTTP framing  
-**ACTIVE LOCK:** `CONTROL-REALIGNMENT`  
-**NEXT LOCK:** `CIA-F17/F18-CLOSEOUT`
+**Portfolio handoff baseline:** `main@addd14f2a57f06ec54b5ace10e042f4d8b69a85a`  
+**Runtime baseline inherited:** S15.3 / `ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
+**ACTIVE LOCK:** `CIA-F17/F18-CLOSEOUT`  
+**NEXT LOCK AFTER CIA:** `REV-F5/F7-CLOSEOUT`
 
 ## Global rule
 
-ASCENDA contains multiple programs in one repository. At most **one HIGH/CRITICAL feature/data workstream may mutate ASCENDA at a time**.
+At most **one HIGH/CRITICAL feature/data workstream may mutate ASCENDA at a time**.
 
-Canonical namespaces:
+Canonical namespaces: `CIA-F*`, `REV-F*`, `WA-*`, `SEN-F*`, `K*`, `PARITY-*`, `BASELINE-*`, `CONTROL-*`.
 
-- `CIA-F*` — Commercial Intelligence & Audience OS V3
-- `REV-F*` — Revenue Data & Intelligence
-- `WA-*` — WhatsApp Revenue Hub
-- `SEN-F*` — Sentinel
-- `K*` / `K1-*` — KronIA
-- `PARITY-*` — #238 migration parity
-- `BASELINE-*` — #250 reproducible pre-history baseline
-- `CONTROL-*` — portfolio/governance
+While `CIA-F17/F18-CLOSEOUT` owns the lock:
 
-Bare phase names such as `F17` are prohibited in cross-program control.
+- Revenue, WhatsApp and KronIA are read-only/documentation-only;
+- no competing migrations/materializers/canaries/deploys are intentionally started;
+- Sentinel is regression-only unless a demonstrated production-safety incident receives an explicit maintenance lock;
+- #238/#250 are maintenance lanes and may only run a scoped CIA-required repair, not an independent history project;
+- FAST runners may execute isolated CIA/runtime regressions;
+- `ASCENDA-ZERO-COST-V2` is reserved for CIA-F17/F18 DB/security/release gates;
+- any unrelated `main` merge invalidates pending exact-head CIA certification until revalidated.
 
 ## CURRENT runtime
 
-Railway:
+Railway outer command:
 
 `NODE_OPTIONS=--require ./sentinel-sentry-init.cjs node server-phase-s-f17.js`
 
-Chain:
+Effective chain:
 
 `Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`
 
-S15.3 preserves this topology and fixes buffered HTTP framing for governed/signed WhatsApp traffic. `app/server.js` is not the outer Railway entrypoint.
+S15.3 fixes buffered HTTP framing for signed/governed WhatsApp traffic through F17. Railway was SUCCESS at the control handoff.
 
-## Exclusivity
+## CIA-F17 entry state
 
-While a workstream owns the lock:
+Live state immediately before this handoff:
 
-1. other projects are read-only/documentation-only;
-2. no competing migrations/materializers/canaries/deploys are intentionally started;
-3. FAST runners may execute isolated regression/syntax/UI checks required by the owner;
-4. `ASCENDA-ZERO-COST-V2` is reserved to the owner for DB/migration/security gates;
-5. a PASS from another project cannot certify the owner;
-6. `queued/pending` is capacity wait, not product failure;
-7. any unrelated merge that advances `main` invalidates pending exact-head certification until revalidated.
-
-## CONTROL-REALIGNMENT — ACTIVE
-
-Allowed:
-
-- GitHub/Supabase/Railway read-only audit;
-- docs/agent/memory/tracker reconciliation;
-- stale PR classification;
-- no feature/data production mutation.
-
-Exit gate:
-
-- portfolio map + root AGENTS + agent bootstrap + memory reconciled;
-- old merge candidates classified/closed where clearly superseded;
-- Notion project states serialized;
-- `aos_memory` current keys refreshed;
-- exact current main/Railway/readiness rechecked;
-- explicit CIA-F17 input contract recorded.
-
-## CIA-F17/F18 — NEXT
-
-Live after S15.3:
-
-- contracts=true
-- WhatsApp bridge=true
-- outbound policy=true
-- rollback=true
-- webhook replay=false
-- canary=false
-- ready_for_f18=false
+- `contracts_active=true`
+- `whatsapp_bridge_validated=true`
+- `outbound_policy_validated=true`
+- `rollback_verified=true`
+- `webhook_replay_validated=false`
+- `canary_passed=false`
+- `ready_for_f18=false`
+- `illegal_send_states=0`
+- browser direct governed-table access=false
 - governed inbound facts=1
-- governed send requests/events=0
+- governed send requests=0
+- governed send events=0
 - WA message facts=12
 
-The inbound fact demonstrates improved traversal but is not a replay/idempotency certificate. Readiness remains 4/6 until explicit evidence flips the live gates.
+Interpretation: S15.3 improved real traffic traversal, but CIA-F17 remains **4/6**. Do not infer replay/idempotency or canary from a single inbound fact.
 
-PR #261 is paused/evidence-only; it predates #265/S15.3 and must not merge as-is.
+## CIA-F17 closeout contract
 
-## Other programs while locked
+Work only from CURRENT.
 
-- `REV-F5`: paused; no ingest/rebuild/apply.
-- `WA-*`: paused; no Meta canary, AI activation or WA5+ implementation.
-- `K*`: paused; no K1 materialization/cutover; old K1 PR #94/#175 are closed evidence-only.
-- `SEN-F1..F13`: closed/regression-only; PR #271 remains draft maintenance unless a production-safety incident warrants reprioritization.
-- `PARITY-*` / `BASELINE-*`: read-only analysis only unless the active project explicitly requires a scoped repair.
+1. Re-read `main`, Railway status and live readiness before each mutable gate.
+2. Treat PR #261 as `EVIDENCE_ONLY`; do not merge/rebase it wholesale.
+3. Inventory unresolved F17 history/parity against CURRENT and preserve only still-needed owner scope.
+4. Run F17 isolated DB/history replay/security/rollback using the active lock's Zero-Cost runner.
+5. Prove authentic Meta-signed webhook traversal.
+6. Prove duplicate/replay/idempotency through governed F17 evidence.
+7. Execute a real canary only against the explicit owner-approved allowlist; broad send remains OFF.
+8. Reconcile requests/events/inbound/provider outcomes and require `illegal_send_states=0`.
+9. Re-run rollback/recovery.
+10. Re-read `aos_cia_f18_readiness_v1()` and require all six gates true + `ready_for_f18=true`.
+11. Only then mark `CIA-F17=100_COMPLETE` and unlock CIA-F18.
+
+## CIA-F18 gate
+
+CIA-F18 cannot start before F17 returns the certified readiness marker (`READY_F18_MULTICHANNEL_CERTIFIED` or equivalent canonical gate) and `ready_for_f18=true`.
+
+F18 must be completed under the same CIA lock before the portfolio transitions to Revenue.
+
+## Paused projects
+
+### Revenue
+`REV-F5` remains 1000/15498 staged, 3950 clusters, 0 members, 0 previews at handoff. No ingest/rebuild/apply while CIA owns lock; canonical mutation remains forbidden.
+
+### WhatsApp
+WA1=98%, WA4=70%, WA5–WA8 pending. No Meta canary/AI activation/WA5+ project execution while CIA owns lock. CIA may use the shared Meta transport only for CIA-F17's explicitly scoped governed canary; that evidence does not auto-close WA phases.
+
+### KronIA
+K0 closed. K1–K8 pending. PR #94/#175 are closed evidence-only. No K1 materialization/cutover while CIA owns lock.
+
+### Sentinel
+SEN-F1..F13 remains 100_COMPLETE/regression-only. PR #271 is paused maintenance evidence.
 
 ## Runner policy
 
-### Zero-Cost DB runner
-
-`ASCENDA-ZERO-COST-V2` / `[self-hosted, Linux, X64, ascenda-zero-cost-v2]`
-
-- one active workstream owner;
-- unique DB/container/project names;
+- Zero-Cost DB runner belongs to CIA while this lock is active.
+- unique DB/container/project names per run;
 - cleanup on success/failure;
-- no production PII/PHI/secrets in fixtures;
-- no billable hosted fallback merely because queued/offline.
+- no production PII/PHI/secrets as fixtures;
+- queued/pending = capacity wait, not failure;
+- no hosted paid fallback merely to bypass queue.
 
-### FAST runners
+## Lock transition
 
-Same-workstream syntax/UI/runtime contracts and required regressions only. They do not replace DB/security gates.
+The lock may move from CIA to Revenue only after:
 
-## Resume rule
-
-When a paused project resumes:
-
-1. re-read exact `main`;
-2. re-read live Supabase state;
-3. classify old branches/PRs: `MERGE_CANDIDATE`, `PAUSED`, `SUPERSEDED`, `EVIDENCE_ONLY`;
-4. for HIGH/CRITICAL drift, prefer a fresh branch from CURRENT;
-5. never merge solely because historical CI was green.
-
-## Lock transition gate
-
-The lock changes only after exact `main`/runtime, live phase readiness, PR classification, CI/canary/rollback state, GitHub CURRENT docs, `aos_memory`, and Notion are reconciled. If unfinished but safe to pause, record `PAUSED_WITH_CHECKPOINT`.
-
-## Sequential portfolio queue
-
-1. `CONTROL-REALIGNMENT`
-2. `CIA-F17/F18-CLOSEOUT`
-3. `REV-F5/F7-CLOSEOUT`
-4. `WA-1/WA-8-CLOSEOUT`
-5. `BASELINE-#250`
-6. `K1/K8-CLOSEOUT`
-7. `FINAL-CROSS-PROGRAM-CERTIFICATION`
-
-Sentinel remains frozen/regression-only unless a demonstrated Sentinel regression receives an explicit maintenance lock.
-
-## Bootstrap for every new chat/agent
-
-Read root `AGENTS.md` → `SECURITY.md` → `ASCENDA_PROJECT_PORTFOLIO_CURRENT.md` → this lock → declare `WORKSTREAM_ID` → read only that project's CURRENT control → verify GitHub/live Supabase → execute only the next declared gate.
+1. CIA-F17/F18 exact `main`/runtime captured;
+2. live readiness and production evidence reconciled;
+3. CIA PRs classified/closed;
+4. CI/canary/rollback state recorded;
+5. no untracked CIA production mutation remains;
+6. GitHub CURRENT docs updated;
+7. `aos_memory` updated;
+8. Notion updated last;
+9. explicit Revenue input contract written.
