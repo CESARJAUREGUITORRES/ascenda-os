@@ -1,0 +1,75 @@
+'use strict';
+// F17 CURRENT outer governance boundary.
+// Effective chain: F17 CURRENT -> Phase S -> F5 -> WA4 -> WA3 -> WA2 -> F4.
+const http=require('http');
+const https=require('https');
+const {spawn}=require('child_process');
+const wa=require('./wa-gateway');
+const {createF17WaAdapter}=require('./f17-wa-adapter');
+const {createPushService}=require('./push-notifications-s14');
+
+const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
+const INNER_PORT=EXTERNAL_PORT===4237?4238:4237;
+const SB_URL=String(process.env.SUPABASE_URL||'https://ituyqwstonmhnfshnaqz.supabase.co').replace(/\/$/,'');
+const SB_ANON_KEY=String(process.env.SUPABASE_ANON_KEY||'');
+const SB_SERVICE_KEY=String(process.env.SUPABASE_SERVICE_ROLE_KEY||'');
+const WA_CANARY_MODE=String(process.env.WA_CANARY_MODE||'true');
+const WA_CANARY_ALLOW_TO=String(process.env.WA_CANARY_ALLOW_TO||'');
+const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const AUTH_COOKIE='aos_app_session';
+let childAlive=true,pumpTimer=null,pumpBusy=false;
+
+const child=spawn(process.execPath,['server-phase-s.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});
+child.on('exit',(code,signal)=>{childAlive=false;console.error('[F17-CURRENT] Phase S exited',{code,signal});process.exit(code==null?1:code);});
+
+function parseJson(v){try{return v?JSON.parse(v):null}catch(_){return null}}
+function writeJson(res,status,obj){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Ascenda-F17':'current-v1'});res.end(JSON.stringify(obj));}
+function readRaw(req,max){return new Promise((resolve,reject)=>{const chunks=[];let n=0,over=false;req.on('data',c=>{if(over)return;n+=c.length;if(n>max){over=true;return;}chunks.push(Buffer.from(c));});req.on('end',()=>over?reject(Object.assign(new Error('PAYLOAD_TOO_LARGE'),{status:413})):resolve(Buffer.concat(chunks)));req.on('error',reject);});}
+function parseCookies(req){const out={};String(req.headers.cookie||'').split(';').forEach(x=>{const i=x.indexOf('=');if(i<0)return;const k=x.slice(0,i).trim();let v=x.slice(i+1).trim();try{v=decodeURIComponent(v)}catch(_){}if(k)out[k]=v;});return out;}
+function strongToken(req){const h=String(req.headers['x-aos-app-token']||'').trim();if(h.length>=32)return h;const c=String(parseCookies(req)[AUTH_COOKIE]||'').trim();return c.length>=32?c:'';}
+function keyHeaders(key){const h={apikey:key,'Content-Type':'application/json','User-Agent':'AscendaOS-F17-Current/1.0'};if(key&&!/^sb_(?:secret|publishable)_/i.test(key))h.Authorization='Bearer '+key;return h;}
+function sbRpc(name,payload,service){return new Promise((resolve,reject)=>{const key=service?SB_SERVICE_KEY:SB_ANON_KEY;if(!key)return reject(Object.assign(new Error(service?'SUPABASE_SERVICE_ROLE_NOT_CONFIGURED':'SUPABASE_ANON_KEY_NOT_CONFIGURED'),{status:503}));let u;try{u=new URL(SB_URL)}catch(e){return reject(e)}const data=JSON.stringify(payload||{}),headers=keyHeaders(key);headers['Content-Length']=Buffer.byteLength(data);const q=https.request({hostname:u.hostname,port:u.port||443,path:'/rest/v1/rpc/'+encodeURIComponent(name),method:'POST',headers,timeout:12000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{if((r.statusCode||500)<200||(r.statusCode||500)>=300)return reject(Object.assign(new Error('F17_RPC_UNAVAILABLE'),{status:503,upstream_status:r.statusCode,body:parseJson(raw)}));resolve(parseJson(raw));});});q.on('timeout',()=>q.destroy(Object.assign(new Error('F17_RPC_TIMEOUT'),{status:504})));q.on('error',reject);q.write(data);q.end();});}
+function serviceGet(endpoint){return new Promise((resolve,reject)=>{const key=SB_SERVICE_KEY;if(!key)return reject(Object.assign(new Error('SUPABASE_SERVICE_ROLE_NOT_CONFIGURED'),{status:503}));let u;try{u=new URL(SB_URL)}catch(e){return reject(e)}const h=keyHeaders(key);const q=https.request({hostname:u.hostname,port:u.port||443,path:endpoint,method:'GET',headers:h,timeout:12000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{if((r.statusCode||500)<200||(r.statusCode||500)>=300)return reject(Object.assign(new Error('F17_DB_UNAVAILABLE'),{status:503}));resolve(parseJson(raw));});});q.on('timeout',()=>q.destroy(Object.assign(new Error('F17_DB_TIMEOUT'),{status:504})));q.on('error',reject);q.end();});}
+const serviceRpc=(name,payload)=>sbRpc(name,payload,true);
+const f17wa=createF17WaAdapter({serviceRpc,canaryMode:WA_CANARY_MODE});
+const push=createPushService({serviceRpc,vapidSubject:process.env.AOS_PUSH_VAPID_SUBJECT||'mailto:notifications@ascenda.local',logger:console});
+
+async function verifyApp(token,strong){const t=String(token||'').trim();if(t.length<32)return{ok:false,status:401};try{const id=await sbRpc('aos_app_actor_v3',{p_token:t,p_required_panel:strong?'admin-chats':null,p_require_2fa:strong===true},false);return UUID_RE.test(String(id||''))?{ok:true,actor_id:id}:{ok:false,status:403};}catch(_){return{ok:false,status:503};}}
+function proxy(req,res){const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers:Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT})},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});q.on('error',()=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'F17_UPSTREAM_UNAVAILABLE'});else res.end();});req.pipe(q);}
+function proxyBuffered(req,raw,cb){const h=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT,'content-length':Buffer.byteLength(raw)});const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers:h},r=>{const chunks=[];r.on('data',c=>chunks.push(Buffer.from(c)));r.on('end',()=>cb(null,r,Buffer.concat(chunks)));});q.on('error',cb);q.write(raw);q.end();}
+function passBuffered(res,up,raw){const h=Object.assign({},up.headers,{'x-ascenda-f17':'current-v1'});delete h['content-length'];res.writeHead(up.statusCode||502,h);res.end(raw);}
+async function customerWindow(conversationId){const d=await serviceGet('/rest/v1/aos_wa_conversations_v1?id=eq.'+encodeURIComponent(conversationId)+'&select=id,last_inbound_at&limit=1');const row=Array.isArray(d)?d[0]||null:null;if(!row)return{ok:false,status:404,error:'CONVERSATION_NOT_FOUND'};const t=Date.parse(String(row.last_inbound_at||'')),exp=Number.isFinite(t)?t+86400000:0;return exp>Date.now()?{ok:true}:{ok:false,status:409,error:'WA_CUSTOMER_WINDOW_CLOSED',window_expires_at:exp?new Date(exp).toISOString():null};}
+
+async function handleNativeHumanSend(req,res,id){let raw;try{raw=await readRaw(req,256*1024)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}const body=parseJson(raw.toString('utf8'));if(!body)return writeJson(res,400,{ok:false,error:'INVALID_JSON'});if(!wa.validIdempotencyKey(body.idempotency_key))return writeJson(res,400,{ok:false,error:'IDEMPOTENCY_KEY_REQUIRED'});const text=String(body.text||'').trim().slice(0,4096);if(!text)return writeJson(res,400,{ok:false,error:'TEXT_REQUIRED'});const token=strongToken(req);if(!token)return writeJson(res,403,{ok:false,error:'WA3_2FA_PANEL_REQUIRED'});
+  let auth;try{auth=await sbRpc('aos_wa3_human_send_authorize_v1',{p_token:token,p_conversation_id:id},false)}catch(_){return writeJson(res,503,{ok:false,error:'WA3_SEND_AUTH_UNAVAILABLE'})}if(!auth||auth.ok!==true)return writeJson(res,403,{ok:false,error:auth&&auth.error||'WA3_SEND_FORBIDDEN'});
+  let win;try{win=await customerWindow(id)}catch(_){return writeJson(res,503,{ok:false,error:'WA_CUSTOMER_WINDOW_CHECK_UNAVAILABLE'})}if(!win.ok)return writeJson(res,win.status||409,{ok:false,error:win.error,status:'BLOCKED',requires_template:true,window_expires_at:win.window_expires_at||null});
+  let payload;try{payload=wa.buildOutboundPayload({to:auth.to_number,type:'text',text})}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO))return writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});
+  let governed;try{governed=await f17wa.prepareOutbound({actor:auth.actor_id,idempotencyKey:String(body.idempotency_key),payload});if(!governed||governed.dispatch_allowed!==true)return writeJson(res,403,{ok:false,error:'F17_CHANNEL_POLICY_BLOCKED',state:governed&&governed.state||'BLOCKED'});}catch(e){return writeJson(res,e.status||503,{ok:false,error:'F17_CHANNEL_POLICY_UNAVAILABLE'});}
+  proxyBuffered(req,raw,async(err,up,out)=>{if(err)return writeJson(res,502,{ok:false,error:'F17_UPSTREAM_UNAVAILABLE'});const data=parseJson(out.toString('utf8'));try{if((up.statusCode||500)>=200&&(up.statusCode||500)<300&&data&&data.message_id)await f17wa.markAccepted(governed.request_id,data.message_id);else if(data&&data.status==='FAILED')await f17wa.markFailed(governed.request_id,data.error||'WA_SEND_FAILED');else if((up.statusCode||500)>=400&&data&&data.status!=='PENDING')await f17wa.markFailed(governed.request_id,data.error||'WA_SEND_BLOCKED');}catch(_){return writeJson(res,503,{ok:false,error:'F17_DISPATCH_RECONCILIATION_FAILED',provider_message_id:data&&data.message_id||null});}passBuffered(res,up,out);});
+}
+
+async function handleGenericSend(req,res){let raw;try{raw=await readRaw(req,256*1024)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}const body=parseJson(raw.toString('utf8'));if(!body)return writeJson(res,400,{ok:false,error:'INVALID_JSON'});const actor=await verifyApp(strongToken(req),true);if(!actor.ok)return writeJson(res,actor.status||403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});if(!wa.validIdempotencyKey(body.idempotency_key))return writeJson(res,400,{ok:false,error:'IDEMPOTENCY_KEY_REQUIRED'});let payload;try{payload=wa.buildOutboundPayload(body)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO))return writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});let governed;try{governed=await f17wa.prepareOutbound({actor:actor.actor_id,idempotencyKey:body.idempotency_key,payload});if(!governed||governed.dispatch_allowed!==true)return writeJson(res,403,{ok:false,error:'F17_CHANNEL_POLICY_BLOCKED'});}catch(_){return writeJson(res,503,{ok:false,error:'F17_CHANNEL_POLICY_UNAVAILABLE'});}
+  proxyBuffered(req,raw,async(err,up,out)=>{if(err)return writeJson(res,502,{ok:false,error:'F17_UPSTREAM_UNAVAILABLE'});const data=parseJson(out.toString('utf8'));try{if((up.statusCode||500)>=200&&(up.statusCode||500)<300&&data&&data.message_id)await f17wa.markAccepted(governed.request_id,data.message_id);else if(data&&data.status==='FAILED')await f17wa.markFailed(governed.request_id,data.error||'WA_SEND_FAILED');}catch(_){return writeJson(res,503,{ok:false,error:'F17_DISPATCH_RECONCILIATION_FAILED'});}passBuffered(res,up,out);});
+}
+
+async function handleGovernedWebhook(req,res){let raw;try{raw=await readRaw(req,1024*1024)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}proxyBuffered(req,raw,async(err,up,out)=>{if(err)return writeJson(res,502,{ok:false,error:'F17_UPSTREAM_UNAVAILABLE'});let env=null;if((up.statusCode||500)>=200&&(up.statusCode||500)<300){const p=parseJson(raw.toString('utf8'));if(p){env=wa.extractWebhook(p);try{await f17wa.ingestEnvelope(env)}catch(_){return writeJson(res,503,{ok:false,error:'F17_WEBHOOK_RECONCILIATION_FAILED'})}}}passBuffered(res,up,out);if(env&&Array.isArray(env.messages)&&env.messages.length)setImmediate(()=>push.dispatchWhatsAppEnvelope(env).catch(e=>console.error('[F17-CURRENT] push fail-open',e.message)));});}
+
+async function handlePushConfig(req,res){const a=await verifyApp(strongToken(req),false);if(!a.ok)return writeJson(res,a.status||403,{ok:false,error:'PUSH_APP_SESSION_REQUIRED'});try{return writeJson(res,200,await push.publicConfig())}catch(_){return writeJson(res,503,{ok:false,error:'PUSH_CONFIG_UNAVAILABLE'})}}
+async function handlePushSubscribe(req,res){let raw;try{raw=await readRaw(req,96*1024)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}const b=parseJson(raw.toString('utf8')),a=await verifyApp(strongToken(req),false);if(!b)return writeJson(res,400,{ok:false,error:'INVALID_JSON'});if(!a.ok)return writeJson(res,a.status||403,{ok:false,error:'PUSH_APP_SESSION_REQUIRED'});try{return writeJson(res,200,Object.assign({version:'AOS_PUSH_V1'},await push.subscribe(a.actor_id,b,req.headers['user-agent'])))}catch(e){return writeJson(res,e.status||503,{ok:false,error:e.message==='INVALID_PUSH_SUBSCRIPTION'?e.message:'PUSH_SUBSCRIBE_UNAVAILABLE'})}}
+async function handlePushUnsubscribe(req,res){let raw;try{raw=await readRaw(req,32*1024)}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message})}const b=parseJson(raw.toString('utf8')),a=await verifyApp(strongToken(req),false);if(!b)return writeJson(res,400,{ok:false,error:'INVALID_JSON'});if(!a.ok)return writeJson(res,a.status||403,{ok:false,error:'PUSH_APP_SESSION_REQUIRED'});try{return writeJson(res,200,await push.unsubscribe(a.actor_id,b))}catch(_){return writeJson(res,503,{ok:false,error:'PUSH_UNSUBSCRIBE_UNAVAILABLE'})}}
+async function pump(){if(pumpBusy)return;pumpBusy=true;try{const r=await push.dispatchPendingNotifications(25);if(r&&(r.delivered||r.failed||r.partial))console.log('[F17-CURRENT] notification push',r)}catch(e){console.error('[F17-CURRENT] notification pump fail-open',e.message)}finally{pumpBusy=false}}
+
+const server=http.createServer(async(req,res)=>{let u;try{u=new URL(req.url,'http://localhost')}catch(_){return writeJson(res,400,{ok:false,error:'INVALID_URL'})}const p=u.pathname,m=p.match(/^\/api\/wa3\/conversations\/([0-9a-f-]{36})\/send$/i);
+  if(req.method==='POST'&&m&&UUID_RE.test(m[1]))return handleNativeHumanSend(req,res,m[1]);
+  if(req.method==='POST'&&p==='/api/wa/send')return handleGenericSend(req,res);
+  if(req.method==='POST'&&(p==='/webhook'||p==='/webhook/'))return handleGovernedWebhook(req,res);
+  if(req.method==='GET'&&p==='/api/push/config')return handlePushConfig(req,res);
+  if(req.method==='POST'&&p==='/api/push/subscribe')return handlePushSubscribe(req,res);
+  if(req.method==='POST'&&p==='/api/push/unsubscribe')return handlePushUnsubscribe(req,res);
+  return proxy(req,res);
+});
+server.on('clientError',(_,s)=>s.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
+pumpTimer=setInterval(()=>pump(),4000);if(pumpTimer.unref)pumpTimer.unref();setImmediate(()=>pump());
+server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F17-CURRENT] listening',{external:EXTERNAL_PORT,inner:INNER_PORT,child_alive:childAlive}));
+function shutdown(sig){if(pumpTimer)clearInterval(pumpTimer);try{child.kill(sig)}catch(_){}server.close(()=>process.exit(0));setTimeout(()=>process.exit(1),5000).unref();}
+process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
