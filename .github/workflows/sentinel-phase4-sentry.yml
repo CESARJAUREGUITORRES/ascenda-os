@@ -6,11 +6,17 @@ on:
       - 'app/package.json'
       - 'app/sentinel-sentry-init.cjs'
       - 'app/railway.json'
+      - 'app/server-phase-s-f17.js'
       - 'app/server-phase-s.js'
+      - 'app/server-f17.js'
       - 'sentinel/sentry/**'
+      - 'sentinel/maintenance/current-alignment-v1.json'
       - 'ci/sentinel/fixtures/f4_*'
       - 'ci/sentinel/phase4_sentry_contract.js'
+      - 'ci/sentinel/phase4_sentry_current_alignment_contract.js'
       - 'docs/control/SENTINEL_F4_*.md'
+      - 'docs/control/SENTINEL_V11_*'
+      - 'docs/control/SENTINEL_V1_POST_CERTIFICATION_REVIEW_*'
       - '.github/workflows/sentinel-phase4-sentry.yml'
 permissions:
   contents: read
@@ -28,15 +34,20 @@ jobs:
       - name: Diff hygiene
         shell: powershell
         run: git diff --check
-      - name: Preloader syntax
+      - name: Preloader and CURRENT wrapper syntax
         shell: powershell
-        run: node --check app/sentinel-sentry-init.cjs
+        run: |
+          node --check app/sentinel-sentry-init.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-phase-s-f17.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-f17.js
       - name: Install app dependencies
         shell: powershell
         run: |
           Push-Location app
           npm install --no-audit --no-fund
           Pop-Location
-      - name: F4 Sentry foundation contract
+      - name: F4 Sentry CURRENT alignment contract
         shell: powershell
-        run: node ci/sentinel/phase4_sentry_contract.js
+        run: node ci/sentinel/phase4_sentry_current_alignment_contract.js
