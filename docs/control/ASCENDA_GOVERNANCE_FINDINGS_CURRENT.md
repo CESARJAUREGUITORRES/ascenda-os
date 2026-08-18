@@ -1,55 +1,63 @@
 # ASCENDA OS — GOVERNANCE FINDINGS CURRENT
 
-**Baseline audit:** `main@644cb0d0a1290276d9cb5d2a8c8f015b4a24d073`  
-**Date:** 2026-08-17 America/Lima  
-**Scope:** control / no production mutation
+**Baseline:** `main@644cb0d0a1290276d9cb5d2a8c8f015b4a24d073`  
+**Captured:** 2026-08-17 20:03 America/Lima  
+**Scope:** control/read-only except metadata/docs reconciliation
 
-## Purpose
-
-Record the cross-workstream drift discovered while revalidating ASCENDA so it is not rediscovered ad hoc by future chats/agents.
+## Findings
 
 | ID | Finding | Risk | State | Required action |
 |---|---|---|---|---|
-| GOV-01 | Bare `F#` names are ambiguous across CIA, Revenue, Sentinel and other programs. | HIGH | MITIGATED in PR #267 | Always use namespace: CIA-F*, REV-F*, WA-*, SEN-F*, K1-*, PARITY-*. |
-| GOV-02 | `main` is currently not branch-protected / no required status-check protection is exposed by the GitHub branch state. | HIGH | OPEN | After the active F17 closeout workflows are normalized, enable a deliberate branch-protection policy that does not deadlock Zero-Cost CI. |
-| GOV-03 | Current `cia-phase17-closeout.yml` still targets an older branch/file/migration lineage. | HIGH | OPEN / CIA-F17 | Reconstruct the F17 exact-head workflow from CURRENT before certification. |
-| GOV-04 | `cia-phase17-wa-adapter.yml` is an older materializer with `contents: write` and targets the prior `server-f4.js` adapter lineage. | HIGH | OPEN / CIA-F17 | Supersede or disable this lineage during CURRENT F17 reconstruction; no manual dispatch while ambiguous. |
-| GOV-05 | PR #261 was based on pre-#265 CURRENT and overlaps runtime-chain work already merged by #265. | HIGH | CONTROLLED | Do not merge as-is; rebuild/rebase from CURRENT and retain only unresolved history/replay/canary/readiness scope. |
-| GOV-06 | `AGENTS.md` contains a generic Node/Railway section that still describes `app/server.js` / `node server.js` as current outer runtime while S15.2 now starts `server-phase-s-f17.js`. | HIGH | MITIGATED, PATCH PENDING | `ASCENDA_AGENT_BOOTSTRAP_CURRENT.md` is the temporary CURRENT override. Patch AGENTS carefully after functional F17 lineage is stabilized. |
-| GOV-07 | `aos_memory` CURRENT keys were stale (`F16 READY`, `F17 NOT_STARTED`, old PR #97 state). | MEDIUM | FIXED | CURRENT keys updated 2026-08-17; preserve dated historical records. |
-| GOV-08 | WhatsApp Revenue Hub Notion tracker contains mixed-generation checkpoints (e.g. WA-1 not closed while downstream WA-2/WA-3 are closed, plus older zero-traffic snapshots). | MEDIUM | PAUSED | Revalidate WA project independently against CURRENT Git/runtime/Supabase after CIA-F17; do not infer percentages. |
-| GOV-09 | Multiple old PRs remain open after their functional state was superseded/certified, creating navigation noise. | MEDIUM | OPEN | Archive/classify stale PRs owner-by-owner after F17; do not bulk-close without verifying retained evidence/dependencies. |
-| GOV-10 | Runtime/Supabase/Notion can advance independently, so a checkpoint may be correct when written but stale minutes later. | HIGH | CONTROLLED | Exact-head + live-readiness revalidation before merge/certification and Notion-last update rule. |
+| GOV-01 | Bare `F#` names collide across CIA, Revenue and Sentinel. | HIGH | MITIGATED | Use `CIA-F*`, `REV-F*`, `SEN-F*`, `WA-*`, `K*`, `PARITY-*`. |
+| GOV-02 | Multiple HIGH/CRITICAL projects were able to launch work on shared CURRENT/runners concurrently. | CRITICAL | MITIGATED BY LOCK | One global mutable workstream in `ASCENDA_WORKSTREAM_LOCK_CURRENT.md`. |
+| GOV-03 | Runtime docs/agents still described `node server.js` while S15.2 runs `server-phase-s-f17.js`. | HIGH | FIXED IN #267 | Root `AGENTS.md` + bootstrap now document actual wrapper chain. |
+| GOV-04 | Historical `docs/MEMORY.md` / `docs/adn/AGENTS.md` describe GAS/Sheets generation and `aos_codigo_fuente` authority. | HIGH | MITIGATED | `MEMORY_CURRENT.md` + `AGENTS_CURRENT.md`; historical docs preserved as evidence only. |
+| GOV-05 | PR #261 predates merged #265 and overlaps runtime-chain work already in CURRENT. | HIGH | PAUSED / DO NOT MERGE AS-IS | Rebuild remaining F17 scope from CURRENT when CIA lock begins. |
+| GOV-06 | KronIA PR #175/#94 and prior K1 branches predate multiple runtime/schema wrappers. | CRITICAL | PAUSED / EVIDENCE_ONLY | Fresh K1 from CURRENT when KronIA receives lock. |
+| GOV-07 | Revenue F5 Notion had both an old 15498/15498 claim and a later live correction. | HIGH | FIXED | Live state is 1000/15498, 3950 clusters, 0 members, 0 previews at this capture. |
+| GOV-08 | WhatsApp tracker showed WA1 and WA4 simultaneously `En curso`. | HIGH | FIXED / PAUSED | Both paused by portfolio lock; when WA resumes, WA1 is revalidated/closed first. |
+| GOV-09 | Multiple stale PRs remain open and appear merge-like despite being superseded. | MEDIUM | CLEANUP ACTIVE | Close only after owner/evidence classification; do not bulk-close unknown work. |
+| GOV-10 | Runtime/Supabase/Notion can advance independently within minutes. | HIGH | CONTROLLED | exact-head + live-readiness before merge/certification; Notion last. |
+| GOV-11 | During this audit another control PR (#267) and Sentinel maintenance PR (#271) were created concurrently, proving the governance layer itself could fork. | HIGH | CONTROLLED | Consolidate realignment into #267; keep Sentinel maintenance draft/paused until portfolio lock permits it or production-safety incident demands it. |
+| GOV-12 | Sentinel F1–F13 is certified, but cross-workstream runtime changes can make old Sentinel regression assumptions stale. | MEDIUM | QUEUED MAINTENANCE | Regression findings may be recorded, but do not reopen Sentinel baseline or mutate runtime during another lock. |
+| GOV-13 | Git branch protection/required checks are not a sufficient substitute for project ownership because multiple legitimate workflows share one repo. | HIGH | OPEN | After control PR merge, define branch-protection checks that complement, not replace, workstream lock. |
+| GOV-14 | #238 parity and #250 blank-DB baseline were being treated like feature phases. | HIGH | FIXED | They are maintenance lanes; no parallel history rewrite while feature project owns lock. |
 
-## CIA-F17 live evidence at this audit
+## Live CIA-F17 evidence
 
-Authoritative readiness remains 4/6:
+- status `IN_PROGRESS_MULTICHANNEL_GOVERNANCE`
+- ready_for_f18 = false
+- true: contracts, WhatsApp bridge, outbound policy, rollback
+- false: signed webhook replay/idempotency, real allowlisted canary
+- illegal send states = 0
+- browser direct governed-table access = false
+- send requests/events/inbound ledgers = 0 at capture
+- WA facts/messages = 11
 
-- `contracts_active=true`
-- `whatsapp_bridge_validated=true`
-- `outbound_policy_validated=true`
-- `rollback_verified=true`
-- `webhook_replay_validated=false`
-- `canary_passed=false`
-- `ready_for_f18=false`
+Interpretation: #265/S15.2 fixed the runtime-chain bypass, but real governed F17 evidence has not yet completed the last 2 gates.
 
-Live F17 storage at the checkpoint:
+## Live REV-F5 evidence
 
-- `aos_cia_channel_recipient_controls_v1`: 0 rows
-- `aos_cia_channel_send_requests_v1`: 0 rows
-- `aos_cia_channel_send_events_v1`: 0 rows
-- `aos_cia_channel_inbound_facts_v1`: 0 rows
-- `aos_cia_whatsapp_bridge_v1`: 11 rows
+- 1000/15498 source rows
+- 3950 provisional clusters
+- 0 members
+- 0 previews
+- 7675 canonical patients
 
-Interpretation: S15.2 fixed the production chain, but the final governed real webhook replay/canary evidence has not yet occurred through the F17 ledgers. Do not set the readiness flags manually.
+Interpretation: F5 must not be run/rebuilt in parallel with CIA closeout and must not mutate canonical patients before review gate.
 
 ## Runner interpretation
 
-Repository policy confirms two execution classes in code:
+Repository workflows expose at least:
 
 - Linux `ascenda-zero-cost-v2` for DB/security/release validation;
-- Windows `ascenda-fast` for selected runtime/UI/materialization contracts.
+- Windows `ascenda-fast` for selected runtime/UI contracts.
 
-The control problem is not that runners are shared; it is allowing two HIGH/CRITICAL workstreams to mutate the same CURRENT concurrently. The exclusive mutation lock is the required coordination layer.
+The coordination defect was not merely runner count; it was **ownership of shared mutable CURRENT**. The portfolio lock serializes HIGH/CRITICAL work even when multiple physical runners exist.
 
-The connected GitHub interface used for this audit does not expose a reliable live enumeration of physical self-hosted runners, so online runner count must not be inferred from workflow labels alone.
+## Current control decision
+
+- Active lock until this PR closes: `CONTROL-REALIGNMENT`.
+- Next: `CIA-F17/F18-CLOSEOUT`.
+- Revenue, WhatsApp and KronIA paused.
+- Sentinel closed/regression-only; PR #271 is maintenance evidence, not permission for concurrent mutation.
