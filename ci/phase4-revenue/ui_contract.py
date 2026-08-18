@@ -96,7 +96,7 @@ cartera_page = (root / 'app/public/admin-cartera.html').read_text(encoding='utf-
 si_page = (root / 'app/public/admin-sales-intelligence.html').read_text(encoding='utf-8')
 assert "pathname==='/api/f4/cartera-read'" in proxy and "pathname==='/api/f4/sales-intelligence-read'" in proxy, 'F4 same-origin sensitive-read transport routes missing'
 assert "rpcName='aos_cartera_gateway'" in proxy and "rpcName='aos_sales_intelligence_gateway'" in proxy, 'F4 same-origin read RPC routing missing'
-assert 'const appToken=strongToken(req)' in proxy and 'F4_STRONG_SESSION_REQUIRED', 'F4 same-origin read must require strong app token'
+assert 'const appToken=strongToken(req)' in proxy and 'F4_STRONG_SESSION_REQUIRED' in proxy, 'F4 same-origin read must require strong app token'
 assert "'/api/f4/cartera-read'" in cartera_page and "'X-AOS-App-Token':t" in cartera_page, 'Cartera same-origin transport missing'
 assert "caches.open('aos-phase2-auth')" in cartera_page, 'Cartera cache recovery missing'
 assert "'/api/f4/sales-intelligence-read'" in si_page and "'X-AOS-App-Token':token" in si_page, 'Sales Intelligence same-origin transport missing'
