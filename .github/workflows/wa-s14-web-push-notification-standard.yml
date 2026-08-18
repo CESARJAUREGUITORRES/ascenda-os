@@ -10,6 +10,8 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/public/icons/channel-whatsapp.svg'
       - 'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'
+      - 'supabase/migrations/20260818013809_s15_4_push_retired_subscription_recovery.sql'
+      - 'supabase/rollback/20260818013809_s15_4_push_retired_subscription_recovery_rollback.sql'
       - 'ci/wa-s12/**'
       - 'ci/wa-s13/**'
       - 'ci/wa-s14/**'
@@ -24,6 +26,8 @@ on:
       - 'app/public/wa-human-alerts.js'
       - 'app/public/phase2-service-worker.js'
       - 'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'
+      - 'supabase/migrations/20260818013809_s15_4_push_retired_subscription_recovery.sql'
+      - 'supabase/rollback/20260818013809_s15_4_push_retired_subscription_recovery_rollback.sql'
       - 'ci/wa-s14/**'
       - '.github/workflows/wa-s14-web-push-notification-standard.yml'
   workflow_dispatch:
