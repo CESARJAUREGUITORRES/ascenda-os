@@ -1,11 +1,16 @@
 # Sentinel F13 — Hub, System Map & Final Certification
 
-**Estado:** PRE-MERGE CERTIFIED / POST-MERGE PENDING  
+**Estado:** `CERRADA / 100_COMPLETE`  
 **Fecha:** 2026-08-17 (America/Lima)  
 **Riesgo:** HIGH  
-**PR:** #252  
+**PR funcional:** #252  
+**PR paridad:** #255  
+**PR terminal smoke/current:** #254  
+**PR closeout documental/current:** #263  
 **Impact Report:** `docs/control/SENTINEL_F13_HUB_IMPACT_REPORT_20260817.md`  
-**Functional head certificado:** `a52fa75ece1112db104cc3a4d8a28b1561cc4b79`
+**Functional head certificado:** `a52fa75ece1112db104cc3a4d8a28b1561cc4b79`  
+**Terminal technical merge:** `aacd92148a2a15f12bed7d0e014fb7424bc25415`  
+**CURRENT de closeout:** `043b4e454682e13cc0b84e860b90e0a15e8ed0cc` (S15.1 auth-bound notifications)
 
 ## Resultado funcional
 
@@ -17,47 +22,116 @@ La topología pública deriva de `SENTINEL_SYSTEM_REGISTRY_V1.json` y cubre las 
 
 - Hub live restringido por Auth V3 + `PASSWORD_2FA` mediante `aos_sentinel_owner_actor_v1`.
 - RPC F13 `aos_sentinel_owner_hub_v1(text,integer)` es `SECURITY DEFINER`, `STABLE`, `search_path=''` y read-only.
-- navegador usa únicamente anon key pública + app token fuerte; no existe `service_role` en browser.
-- topology JSON público contiene solo taxonomía owner-safe.
-- timeline live expone solo `event_type` + `occurred_at`; no stack traces/payloads.
+- Navegador usa únicamente anon key pública + app token fuerte; no existe `service_role` en browser.
+- Topology JSON público contiene solo taxonomía owner-safe.
+- Timeline live expone solo `event_type` + `occurred_at`; no stack traces/payloads.
 - UI usa `textContent`, no `innerHTML` para datos remotos.
-- missing/stale/unavailable evidence → `UNKNOWN`; nunca false-green.
-- no auto-remediation, auto-merge ni deploy desde F13.
+- Missing/stale/unavailable evidence → `UNKNOWN`; nunca false-green.
+- F13 no introduce auto-remediation, auto-merge ni auto-deploy.
 
 ## Resilience / portability
 
-Certificado por `phase13_hub_resilience_test.js`:
+`phase13_hub_resilience_test.js` certifica:
 
-- Sentry unavailable → no rompe Hub / evidencia dependiente no se marca HEALTHY.
-- Kuma unavailable → availability no false-green.
-- Collector unavailable → freshness ausente produce UNKNOWN.
-- Sentinel Core unavailable → Hub fail-closed/UNKNOWN.
-- provider/fixture alternativo bajo el mismo contrato produce modelo determinista.
+- Sentry unavailable → Hub continúa sin declarar evidencia dependiente como HEALTHY;
+- Kuma unavailable → availability queda UNKNOWN cuando corresponde;
+- Collector unavailable → freshness ausente produce UNKNOWN;
+- Sentinel Core unavailable → Hub fail-closed/UNKNOWN;
+- backend/fixture alternativo bajo el mismo contrato produce modelo determinista.
 
-## Evidencia CI — functional head
+## Evidencia funcional inicial — PR #252
 
-PR #252 merge context con head `a52fa75ece1112db104cc3a4d8a28b1561cc4b79`:
+PR #252 con head funcional `a52fa75ece1112db104cc3a4d8a28b1561cc4b79`:
 
-- Sentinel F13 Hub Final Certificate run `32076979482`: PASS.
-  - `hub-fast`: PASS.
-  - `hub-zero-cost`: PASS.
-  - `hub-db-zero-cost`: PASS, incluido compile/ACL/canary/rollback/reapply PostgreSQL aislado.
+- Sentinel F13 Hub Final Certificate run `32076979482`: PASS (`hub-fast`, `hub-zero-cost`, `hub-db-zero-cost`).
 - Ascenda CI `32076979501`: PASS.
 - Sentinel F9 regression `32076979446`: FAST + Linux Zero-Cost PASS.
+- PR #252 fusionado y Hub F13 incorporado a `main`.
 
-## Producción — read boundary
+## Paridad migration-history — PR #255
 
-Proyecto Supabase: `ituyqwstonmhnfshnaqz`.
+Producción registra de forma autoritativa:
 
-- migración live autoritativa: `20260817203504 sentinel_f13_owner_hub`.
-- `aos_sentinel_owner_hub_v1` presente, `SECURITY DEFINER`, `search_path=''`.
-- llamada live con token inválido: `ok=false / SENTINEL_OWNER_2FA_REQUIRED` — fail-closed PASS.
-- preflight live: existe al menos una sesión owner/admin activa con assurance `PASSWORD_2FA`; no se extrajo ni expuso token alguno.
-- el canary positivo de authorization/read se ejecuta en DB Zero-Cost aislado. La herramienta conectada bloqueó correctamente la creación de una sesión sintética transaccional en producción; no se intentó evadir ese control.
+`20260817203504 sentinel_f13_owner_hub`
 
-La cadena auth positiva de producción reutilizada por F13 es el boundary F9 ya certificado; F13 no crea un segundo mecanismo de autenticación.
+PR #255 preservó el SQL F13 sin cambios funcionales y alineó Git con el ledger live:
 
-## Gate matrix pre-merge
+- migration Git canónica: `supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql`;
+- filename legado `20260817203500_sentinel_f13_owner_hub.sql` eliminado;
+- workflow F13, DB Zero-Cost y UI/Auth security test actualizados a `203504`;
+- merge PR #255: `f68b5c0efe3765af8ea8abd0760af29cd13928df`.
+
+El drift era exclusivamente de versión/filename; no se reejecutó DDL productivo para maquillar historial.
+
+## Terminal CURRENT + production smoke — PR #254
+
+Durante el cierre, `main` avanzó por trabajo concurrente S15. #254 fue rebasado fail-closed sobre el CURRENT real `f6db7f5fffa0f9bdb383b47557e34f8f5049f65b` antes de fusionar.
+
+Head terminal exacto:
+
+`4109465080d55e02f9a87bd5d94853981406a566`
+
+Diff terminal: únicamente `.github/workflows/sentinel-phase13-hub.yml`, añadiendo `hub-production-smoke`; cero DDL/runtime/product logic.
+
+Exact-current CI:
+
+- Sentinel F13 Hub Final Certificate run `32082197260`: PASS.
+  - `hub-fast`: PASS.
+  - `hub-zero-cost`: PASS.
+  - `hub-db-zero-cost`: PASS — compile/ACL/canary/rollback/reapply.
+  - `hub-production-smoke`: PASS.
+- Ascenda CI run `32082197300`: PASS.
+
+El primer intento de smoke detectó correctamente una limitación de infraestructura del runner (`node` ausente en host, exit 127). No se ocultó el rojo: se cambió únicamente la validación JSON para usar el runtime Zero-Cost ya aprobado `node:22-alpine`, y el nuevo exact-head volvió a ejecutar todos los gates desde cero.
+
+Antes del merge se confirmó que `main` seguía exactamente en `f6db7f5f...`; PR #254 se marcó READY solo entonces y se fusionó con `expected_head_sha=4109465080d55e02f9a87bd5d94853981406a566`.
+
+Merge terminal técnico:
+
+`aacd92148a2a15f12bed7d0e014fb7424bc25415`
+
+## Compatibilidad CURRENT posterior — S15.1
+
+Después del merge técnico F13, `main` avanzó a `043b4e454682e13cc0b84e860b90e0a15e8ed0cc` por S15.1, que endurece el boundary de notificaciones generales/F17 y service worker.
+
+Auditoría de diff `aacd9214… → 043b4e45…` confirmó que S15.1 **no modifica**:
+
+- `sentinel/*`;
+- `app/public/sentinel-inapp-notifications.js`;
+- `app/public/admin-sentinel.html`;
+- `app/public/sentinel-hub.js` / bootstrap / topology;
+- workflow F13;
+- RPC/migration F13.
+
+El closeout documental #263 se rebasa sobre ese CURRENT y activa regresiones F9/F13 por dependencia del Roadmap. Esto valida compatibilidad con el boundary de notificaciones vigente sin reabrir ni duplicar F13.
+
+## Producción terminal
+
+- Railway deployment/status para `main@aacd92148a2a15f12bed7d0e014fb7424bc25415`: SUCCESS.
+- Production smoke certificado sobre `https://ascenda-os-production.up.railway.app`:
+  - `/health`: PASS;
+  - `/admin-sentinel.html`: PASS;
+  - `/sentinel-hub.js`: PASS;
+  - `/sentinel-hub-bootstrap.js`: PASS;
+  - `/sentinel-topology.v1.json`: PASS;
+  - topology schema `sentinel-hub-topology/v1`: PASS;
+  - projection `owner-ui-safe`: PASS;
+  - default state `UNKNOWN`: PASS;
+  - browser/public artifact privacy denylist: PASS.
+- Supabase post-merge read-back: `20260817203504 sentinel_f13_owner_hub` presente.
+- `aos_sentinel_owner_hub_v1(text,integer)` presente.
+- Live invalid-token boundary verificado: `SENTINEL_OWNER_2FA_REQUIRED` — fail-closed.
+- Positive Auth V3/PASSWORD_2FA se certifica en DB Zero-Cost aislado; no se fabricaron ni extrajeron credenciales productivas.
+
+## Flujo transversal certificado
+
+La baseline cubre:
+
+`detect → incident SEN-* → notify owner in-app → diagnose read-only → AI/MCP triage → candidate remediation → PR + CI + human gate`
+
+F12 mantiene `production_mutation=false`, `auto_merge=false` y `auto_deploy=false`; HIGH/CRITICAL conserva aprobación humana explícita.
+
+## Gate matrix terminal
 
 | Gate | Control | Estado |
 |---|---|---|
@@ -74,15 +148,21 @@ La cadena auth positiva de producción reutilizada por F13 es el boundary F9 ya 
 | G11 | Linux Zero-Cost exact functional head | PASS |
 | G12 | DB Zero-Cost compile/ACL/canary/rollback/reapply | PASS |
 | G13 | Ascenda CI exact functional head | PASS |
-| G14 | F9 regression | PASS |
+| G14 | F9 regression / owner notification compatibility | PASS |
 | G15 | production migration/read boundary preflight | PASS |
-| G16 | certificate-head exact recheck | PENDING |
-| G17 | PR merge-ref after certificate | PENDING |
-| G18 | merge with expected-head | PENDING |
-| G19 | post-merge F13 + Ascenda CI + F9 | PENDING |
-| G20 | production Hub asset/shell smoke | PENDING |
-| G21 | GitHub roadmap + Notion alignment | PENDING |
+| G16 | certificate/current exact recheck | PASS |
+| G17 | PR merge-ref/current drift control | PASS |
+| G18 | merge with expected-head | PASS |
+| G19 | terminal CURRENT integration + Ascenda CI | PASS |
+| G20 | Railway + production Hub asset/privacy smoke | PASS |
+| G21 | canonical GitHub certificate/roadmap/control closeout | PASS |
 
-## Cierre pendiente
+Notion es un mirror operativo posterior a la verdad GitHub/runtime y se sincroniza después de fusionar este closeout documental; su actualización no puede convertir un gate técnico rojo en verde ni reabrir F13 por sí sola.
 
-F13 todavía no se declara `100_COMPLETE` en este documento. Solo tras G16–G21 se actualizará este certificado a terminal y Sentinel baseline podrá declararse `CERRADA / 100_COMPLETE` para F1–F13.
+## Decisión final
+
+**F13 = `CERRADA / 100_COMPLETE`.**
+
+Con F12 ya certificada `CERRADA / 100_COMPLETE`, las trece fases Sentinel quedan técnicamente cerradas. Tras fusionar el closeout documental canónico y sincronizar/read-back de Notion, la baseline Sentinel se declara:
+
+**`SENTINEL BASELINE F1–F13 = 100_COMPLETE`**.
