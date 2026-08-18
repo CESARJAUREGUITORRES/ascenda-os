@@ -8,9 +8,9 @@
     "immutable_by_sha": true
   },
   "current": {
-    "source_main": "644cb0d0a1290276d9cb5d2a8c8f015b4a24d073",
+    "source_main": "8487a1d7481e364ddee12139a927d4e3b1b259db",
     "status": "REVALIDATING",
-    "reason": "S15.2 introduced the F17 production bootstrap after the V1 certificate; F13 also added the Sentinel Hub surface after the original F2 snapshot.",
+    "reason": "S15.2 introduced the F17 production bootstrap after the V1 certificate; F13 also added the Sentinel Hub surface after the original F2 snapshot. CURRENT later advanced through a CIA V3 control-plane docs-only merge, so the overlay is rebound to that exact main SHA without changing the runtime topology claim.",
     "runtime": {
       "railway_config": "app/railway.json",
       "start_command": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js",
