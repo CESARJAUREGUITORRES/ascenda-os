@@ -1,85 +1,89 @@
 # ASCENDA OS — AGENTS CURRENT OVERLAY
 
-**Captured:** 2026-08-17 20:03 America/Lima  
-**Applies to:** every CURRENT ASCENDA agent/chat.
+**Applies to:** every CURRENT ASCENDA agent/chat  
+**ACTIVE WORKSTREAM:** `WA-NOTIFICATIONS-CLOSEOUT`
 
-This overlay supersedes operational assumptions in historical `docs/adn/AGENTS.md` while preserving that file as provenance/domain knowledge.
+This overlay supersedes operational assumptions in historical `docs/adn/AGENTS.md` and earlier CURRENT snapshots while preserving them as provenance.
 
 ## Mandatory bootstrap
 
 Before any write:
 
 1. root `AGENTS.md` + `SECURITY.md`;
-2. `ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
-3. `ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
-4. exact `main` and runtime chain;
-5. live Supabase for the selected project;
-6. one selected project's Control Maestro/active checkpoint;
-7. old PR/branch classification.
+2. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
+3. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
+4. `docs/MEMORY_CURRENT.md`;
+5. exact `main` and runtime chain;
+6. live Supabase for WhatsApp/Push/Notifications;
+7. WhatsApp Revenue Hub CURRENT Control Maestro + S15.3/S15.4 evidence;
+8. current WA branch/PR/checks.
 
-If workstream ownership is ambiguous, stop writes and reconcile read-only.
+If ownership is ambiguous, stop writes and reconcile read-only. The current owner directive is unambiguous: WhatsApp/Notifications closes first.
 
-## A-01 Portfolio Controller
+## Portfolio Controller
 
-Declares `WORKSTREAM_ID`, enforces one global HIGH/CRITICAL mutable workstream, and owns handoff. It prevents project/phase-name collisions such as bare `F17`.
+Declare `WORKSTREAM_ID=WA-NOTIFICATIONS-CLOSEOUT`. Enforce one global HIGH/CRITICAL mutable workstream. CIA, Revenue, KronIA and migration-governance mutation are paused; Sentinel is regression-only.
 
-## A-02 Runtime Architect
+## Runtime Architect
 
-Reads `app/railway.json`, `app/package.json` and actual wrappers before modifying runtime.
-
-Captured CURRENT chain:
+Captured chain:
 
 `Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`.
 
-Never assumes `server.js` is the outer entrypoint from historical docs.
+S15.3 repaired buffered HTTP framing. Any wrapper/runtime change must preserve exact chain and wire-level framing invariants.
 
-## A-03 Supabase/Data Architect
+## Supabase/Data Architect
 
-Owns migration/RPC/RLS/ACL impact. Keeps #238 parity separate from #250 pre-history baseline. Never rewrites history or replays production DDL merely to satisfy CI. Preserves F5 provenance/human review.
+Current production evidence includes S15.4 migration `20260818013809_s15_4_push_retired_subscription_recovery`. Do not replay it cosmetically. Verify its exact content/ACL and keep retired provider endpoints inactive.
 
-## A-04 Security Guardian
+Final legacy notification ACL cutover remains pending until closed-PWA Push certification.
 
-Uses root `SECURITY.md`. HIGH/CRITICAL requires exact-current security/negative-auth/rollback evidence; secrets stay environment/vault only.
+## Security Guardian
 
-## A-05 CI/Runner Governor
+Use root `SECURITY.md`. Provider tokens remain environment/vault only. Meta outbound token repair is a later WA gate and the token must never be committed, printed or pasted into chat.
 
-- Zero-Cost DB runner belongs to the ACTIVE workstream during DB gates.
-- No unrelated materializers compete for shared workspace/ports.
-- `queued/pending` is capacity wait, not product failure.
-- FAST may run isolated same-workstream syntax/UI/regressions, never replace DB/security gates.
-- Certification names workstream + phase + exact SHA.
+## CI/Runner Governor
 
-## A-06 Project Historian / Memory Manager
+- shared runners are capacity, not authority;
+- exact commit/diff + deployment SHA + live DB are authority;
+- DB runner belongs to WA when DB/security gates are required;
+- FAST may run isolated WA/runtime regressions;
+- another workstream PASS is regression evidence only;
+- any unrelated `main` advance requires diff/revalidation before WA merge/certification.
 
-At each pause/closure:
+## Historian / Memory Manager
 
-1. update GitHub CURRENT docs;
-2. update `aos_memory` current keys;
-3. update project phase/Control Maestro in Notion;
-4. mark superseded evidence explicitly;
-5. record the next input contract.
+At each material incident or closeout:
 
-Never treats `aos_codigo_fuente` as CURRENT production authority.
+1. freeze GitHub evidence;
+2. record production ledger/runtime evidence;
+3. update CURRENT GitHub docs;
+4. update `aos_memory` after the release baseline is known;
+5. update Notion last;
+6. mark superseded PRs/branches clearly.
 
-## A-07 Release Certifier
+Current lessons to preserve: Phase S/F17 invalid dual HTTP framing caused lost inbound; Web Push 410 is a terminal provider endpoint; server retirement alone is insufficient unless browser PushManager state is reset; subscription presence alone does not certify delivery.
 
-Distinguishes `ZERO-COST CERTIFIED`, `CANARY CERTIFIED`, `PRODUCTION CERTIFIED`, and `100_COMPLETE`. A sibling project's PASS is only input evidence.
+## Release Certifier
 
-## Current state
+Do not declare WA/Notifications 100_COMPLETE until:
 
-- Sentinel: closed/regression-only.
-- CIA: F17/F18 remaining; first feature workstream after realignment.
-- Revenue: F5–F7 paused.
-- WhatsApp: WA1/WA4/WA5–WA8 paused; phase state must serialize.
-- KronIA: K1–K8 paused; stale K1 branches evidence-only.
+- S15.4 exact-current CI and Railway deploy pass;
+- fresh PWA subscription is active and stale endpoint remains inactive;
+- closed-PWA real inbound generates Push `DELIVERED`;
+- Windows notification and click/deep-link are proven;
+- duplicate/noise behavior is clean;
+- legacy notification ACL cutover is applied/audited;
+- Meta outbound token/canary is repaired separately;
+- final WA1/WA2/WA3/WA4/Phase S/S13/S14/S15 regressions pass;
+- GitHub/runtime/Supabase/aos_memory/Notion are reconciled.
 
-## Anti-confusion examples
+## Current portfolio state
 
-Do not:
+- WhatsApp/Notifications: **ACTIVE**.
+- CIA: F17 4/6, F18 blocked; **PAUSED/READ-ONLY**.
+- Revenue: F5–F7 **PAUSED**.
+- Sentinel: F1–F13 **CLOSED / REGRESSION-ONLY**.
+- KronIA: K1–K8 **PAUSED**.
 
-- run Revenue F5 recovery while certifying CIA-F17;
-- materialize K1 Auth/secrets while the F17 runtime baseline is moving;
-- interpret Sentinel regression jobs as Sentinel development;
-- treat WA transport completion as CIA readiness or CIA readiness as WA closure;
-- use `SKIPPED`, another workstream's PASS, or historical green CI as the current phase gate;
-- continue from a chat summary without rereading CURRENT GitHub/Supabase.
+No next workstream is automatically assigned after WA; wait for explicit owner handoff.
