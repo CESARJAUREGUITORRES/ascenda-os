@@ -40,7 +40,7 @@ function requestSupabase(name, payload, service) {
     if (!key) return reject(new Error(service ? 'SUPABASE_SERVICE_ROLE_NOT_CONFIGURED' : 'SUPABASE_ANON_KEY_NOT_CONFIGURED'))
     let url; try { url = new URL(SB_URL) } catch (e) { return reject(e) }
     const body = JSON.stringify(payload || {})
-    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.3' }
+    const headers = { apikey: key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'User-Agent': 'AscendaOS-F17/1.4' }
     if (!/^sb_(?:secret|publishable)_/i.test(key)) headers.Authorization = 'Bearer ' + key
     const req = https.request({ hostname: url.hostname, port: url.port || 443, path: '/rest/v1/rpc/' + encodeURIComponent(name), method: 'POST', headers: headers, timeout: 12000 }, function(res) {
       let raw = ''
@@ -115,6 +115,35 @@ function proxyBuffered(req, raw, callback) {
   })
   q.on('error', function(e) { callback(e) })
   q.write(raw); q.end()
+}
+
+async function handleNotificationInbox(req, res, url) {
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'NOTIFICATION_APP_SESSION_REQUIRED' })
+  const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit') || 50)))
+  try {
+    const out = await serviceRpc('aos_notification_inbox_actor_v1', { p_payload: { actor_id: actor.actor_id, limit: limit } })
+    return writeJson(res, 200, out || { ok: true, unreadNotifs: 0, unreadMsgs: 0, items: [], rows: [] })
+  } catch (e) {
+    console.error('[S15.1] notification inbox', e.message)
+    return writeJson(res, 503, { ok: false, error: 'NOTIFICATION_INBOX_UNAVAILABLE' })
+  }
+}
+
+async function handleNotificationRead(req, res) {
+  let raw; try { raw = await readRaw(req, 16 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
+  const body = parseJson(raw.toString('utf8'))
+  if (!body || !UUID_RE.test(String(body.id || ''))) return writeJson(res, 400, { ok: false, error: 'NOTIFICATION_ID_REQUIRED' })
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'NOTIFICATION_APP_SESSION_REQUIRED' })
+  try {
+    const out = await serviceRpc('aos_notification_mark_read_actor_v1', { p_payload: { actor_id: actor.actor_id, notification_id: body.id } })
+    if (!out || out.ok !== true) return writeJson(res, 403, out || { ok: false, error: 'NOTIFICATION_READ_REJECTED' })
+    return writeJson(res, 200, out)
+  } catch (e) {
+    console.error('[S15.1] notification read', e.message)
+    return writeJson(res, 503, { ok: false, error: 'NOTIFICATION_READ_UNAVAILABLE' })
+  }
 }
 
 async function handlePushConfig(req, res) {
@@ -205,6 +234,9 @@ async function handleGovernedWebhook(req, res) {
 
 const server = http.createServer(async function(req, res) {
   let url; try { url = new URL(req.url, 'http://localhost') } catch (_) { return writeJson(res, 400, { ok: false, error: 'INVALID_URL' }) }
+  if (url.pathname === '/api/notifications/health' && req.method === 'GET') return writeJson(res, 200, { ok: true, version: 'S15.1', auth: 'actor-bound' })
+  if (url.pathname === '/api/notifications/inbox' && req.method === 'GET') return handleNotificationInbox(req, res, url)
+  if (url.pathname === '/api/notifications/read' && req.method === 'POST') return handleNotificationRead(req, res)
   if (url.pathname === '/api/push/config' && req.method === 'GET') return handlePushConfig(req, res)
   if (url.pathname === '/api/push/subscribe' && req.method === 'POST') return handlePushSubscribe(req, res)
   if (url.pathname === '/api/push/unsubscribe' && req.method === 'POST') return handlePushUnsubscribe(req, res)
@@ -222,9 +254,9 @@ function start() {
   child = spawn(process.execPath, ['server-f5.js'], { cwd: __dirname, env: Object.assign({}, process.env, { PORT: String(INNER_PORT) }), stdio: ['ignore', 'inherit', 'inherit'] })
   child.on('exit', function(code) { process.exit(code == null ? 1 : code) })
   server.listen(EXTERNAL_PORT, '0.0.0.0', function() {
-    console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1', notificationEvents: 'S15' })
+    console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1', notificationEvents: 'S15.1' })
     push.ensureVapid().then(function() { console.log('[S14] VAPID ready'); startNotificationPump() }).catch(function(e) { console.error('[S14] VAPID deferred', e.message); startNotificationPump() })
   })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump }
+module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead }

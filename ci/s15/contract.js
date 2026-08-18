@@ -42,10 +42,10 @@ ok(server.includes('setInterval(function() { runNotificationPump()'), 'notificat
 ok(server.includes("console.error('[S15] notification pump fail-open'"),'notification pump must be fail-open')
 ok(server.includes('stopNotificationPump(); server.close'),'pump shutdown cleanup missing')
 
-ok(client.includes("'/notification-center-s15.js?v=20260817-s15-p01'"),'global notification center loader missing')
+ok(client.includes("'/notification-center-s15.js?v=20260817-s15-p01'")||client.includes("'/notification-center-s15.js?v=20260817-s15-auth-p02'"),'global notification center loader missing')
 ok(client.includes('#nav-advisor-sales')&&client.includes('#nav-admin-agenda'),'notification opt-in gesture must cover non-WhatsApp modules')
 ok(center.includes("d.type==='AOS_PUSH_EVENT'"),'open-app generic push listener missing')
-ok(center.includes("sbRpc('aos_admin_notificaciones_v1'"),'admin notification filter patch missing')
+ok(center.includes("sbRpc('aos_admin_notificaciones_v1'")||center.includes("api('/api/notifications/inbox?limit=50')"),'admin notification filter patch missing')
 ok(center.includes('AOS_NOTIFICATION_CENTER.readAndOpen'),'notification read+route UX missing')
 for(const ch of ['WHATSAPP','SALES','COMMISSION','AGENDA','CHAT','TASKS','SENTINEL','SYSTEM'])ok(center.includes(ch+':{')||center.includes(ch+"':{"),'channel visual distinction missing: '+ch)
 
