@@ -1,59 +1,60 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Status:** CURRENT  
-**Baseline:** `main@ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
-**Release:** S15.3 — F17 buffered HTTP framing
+**Control baseline:** `main@addd14f2a57f06ec54b5ace10e042f4d8b69a85a`  
+**Runtime:** S15.3  
+**ACTIVE WORKSTREAM:** `CIA-F17/F18-CLOSEOUT`
 
-## Mandatory read order
+## Mandatory bootstrap
 
 1. root `AGENTS.md`
 2. `SECURITY.md`
 3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
 5. `docs/MEMORY_CURRENT.md`
-6. selected project's CURRENT Control Maestro / active phase
-7. `app/railway.json` + exact runtime files
-8. GitHub exact `main`/PR/checks + relevant Supabase live state
+6. CIA CURRENT Control Maestro + CIA-F17 checkpoint only
+7. exact `main`, Railway runtime and F17 Supabase readiness
+8. relevant branch/PR/checks
 
-Historical chat summaries, `docs/MEMORY.md`, `docs/adn/AGENTS.md`, `aos_codigo_fuente` and old Notion checkpoints are not production authority.
+Do not resume Revenue, WhatsApp, KronIA, Sentinel maintenance, #238 or #250 as a competing mutable workstream while CIA owns the lock.
 
-## Runtime CURRENT
+## Runtime
 
 `server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
 
-S15.3 fixes buffered HTTP framing for signed/governed WhatsApp requests through F17 without changing the outer topology.
+S15.3 fixed buffered HTTP framing for F17 webhook/governed traffic.
 
-## Workstream lock
+## CIA-F17 entry contract
 
-**ACTIVE:** `CONTROL-REALIGNMENT`.
+At portfolio handoff:
 
-**NEXT:** `CIA-F17/F18-CLOSEOUT`.
+- contracts=true
+- WhatsApp bridge=true
+- outbound policy=true
+- rollback=true
+- webhook replay=false
+- canary=false
+- ready_for_f18=false
+- illegal send states=0
+- governed inbound facts=1
+- governed send requests/events=0
+- WA messages=12
 
-Until control transition:
+Do not turn this into 5/6 by inference. The remaining gates need explicit signed replay/idempotency and real allowlisted canary evidence.
 
-- CIA/Revenue/WhatsApp/KronIA feature mutation is paused;
-- Sentinel remains closed/regression-only;
-- read-only audits/docs are allowed;
-- do not launch competing Zero-Cost DB jobs.
+PR #261 is evidence-only and must not merge as-is. Start remaining F17 work from CURRENT.
 
-## Project snapshot
+## CIA-F17 next actions
 
-- Sentinel: F1–F13 100_COMPLETE.
-- CIA: F0–F16 closed; F17 4/6 live; F18 pending.
-- Revenue: F1–F4 closed; F5 live 1000/15498 staged, 3950 clusters, 0 members/previews; F6/F7 pending.
-- WhatsApp: WA0/WA2/WA3 closed; WA1 98%; WA4 70%; WA5–WA8 pending/paused.
-- KronIA: K0 closed; K1–K8 pending; stale K1 branches/PRs closed or evidence-only.
-
-## CIA-F17 input contract when lock is released
-
-- F16 = `READY_F17_EMAIL_CERTIFIED`, ready=true.
-- F17 = `IN_PROGRESS_MULTICHANNEL_GOVERNANCE`, ready_for_f18=false.
-- true: contracts, bridge, outbound policy, rollback.
-- false: signed webhook replay/idempotency, real allowlisted canary.
-- S15.2 inserted F17 into the production chain.
-- S15.3 fixed buffered webhook framing; live governed inbound facts increased to 1, but replay/canary gates remain false.
-- PR #261 predates CURRENT and must not merge as-is.
+1. freeze exact CURRENT and live readiness;
+2. inventory only unresolved F17 history/parity/runtime scope;
+3. run isolated F17 DB/replay/security/rollback gates;
+4. validate authentic signed Meta webhook + replay/idempotency;
+5. execute only owner-approved allowlisted canary, broad send OFF;
+6. reconcile ledgers/outcomes and rollback;
+7. require F17 6/6 and `ready_for_f18=true`;
+8. then execute CIA-F18 under the same CIA lock;
+9. close CIA, update memory/Notion, and hand lock to Revenue.
 
 ## Certification rule
 
-Never declare 100_COMPLETE from percentage, runtime activation, sibling PASS, queued/skipped checks or old CI. Require exact-head DoD, live readiness, security, rollback/recovery, required canary/smoke and final GitHub + `aos_memory` + Notion reconciliation.
+No percentage, runtime merge, sibling PASS, skipped check or old CI certifies CIA-F17. Use exact-head CURRENT, live readiness, security, rollback/recovery and required real canary evidence.
