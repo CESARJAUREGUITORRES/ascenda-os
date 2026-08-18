@@ -1,4 +1,4 @@
-// ASCENDA S15 — unified in-app notification center.
+// ASCENDA S15.1 — unified in-app notification center with actor-bound F17 reads.
 (function(){
 'use strict';
 if(window.__AOS_NOTIFICATION_CENTER_S15)return;
@@ -33,19 +33,17 @@ function toast(payload){
   setTimeout(function(){if(!d.isConnected)return;d.style.opacity='0';d.style.transform='translateY(-10px)';setTimeout(function(){try{d.remove();}catch(_){}},250);},6500);
 }
 
-function currentUser(){
-  try{var s=JSON.parse(localStorage.getItem('aos_session')||'{}');return String(s.nombre||'').toUpperCase();}catch(_){}
-  try{return String(window.AOS&&AOS.ctx&&AOS.ctx.nombre||'').toUpperCase();}catch(_){return'';}
-}
-function sbRpc(name,payload){
-  var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmIjoiaXR1eXF3c3Rvbm1obmZzaG5hcXoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NDc0NDIxOCwiZXhwIjoyMDkwMzIwMjE4fQ.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-  return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(payload||{}),cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP_'+r.status);return r.json();});
+function token(){try{return String(sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'').trim();}catch(_){return '';}}
+function api(path,opts){
+  opts=opts||{};var t=token();if(t.length<32)return Promise.reject(new Error('AOS_APP_SESSION_MISSING'));
+  var h=new Headers(opts.headers||{});h.set('Accept','application/json');h.set('X-AOS-App-Token',t);if(opts.body!=null&&!h.has('Content-Type'))h.set('Content-Type','application/json');
+  return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body==null?undefined:(typeof opts.body==='string'?opts.body:JSON.stringify(opts.body)),cache:'no-store',credentials:'same-origin'}).then(function(r){return r.text().then(function(txt){var d={};try{d=txt?JSON.parse(txt):{};}catch(_){d={};}if(!r.ok||d.ok===false){var e=new Error(d.error||('HTTP_'+r.status));e.status=r.status;throw e;}return d;});});
 }
 function cardIcon(n){return meta(n&&n.channel).emoji;}
 function applyAdminLoadPatch(){
   if(typeof window.lNo!=='function'||window.lNo.__aosS15)return;
   var fallback=window.lNo;
-  var fn=function(){return sbRpc('aos_admin_notificaciones_v1',{p_limit:50}).then(function(d){if(window.D){D.no=d&&d.rows||[];if(D.rpTab==='n'&&typeof window.rNo==='function')window.rNo();}return d;}).catch(function(){try{return fallback();}catch(_){return null;}});};
+  var fn=function(){return api('/api/notifications/inbox?limit=50').then(function(d){if(window.D){D.no=d&&d.rows||[];if(D.rpTab==='n'&&typeof window.rNo==='function')window.rNo();}return d;}).catch(function(){try{return fallback();}catch(_){return null;}});};
   fn.__aosS15=true;fn.__aosFallback=fallback;window.lNo=fn;
   if(document.getElementById('zNL'))setTimeout(function(){try{fn();}catch(_){}},0);
 }
@@ -78,8 +76,8 @@ function applyReadPatch(){
   fn.__aosS15=true;fn.__aosFallback=fallback;window.aRN=fn;
 }
 function readAndOpen(id,route,entityId){
-  var u=currentUser();if(!id){go(route,entityId);return;}
-  sbRpc('aos_marcar_notif_leida',{p_notif_id:id,p_usuario:u}).catch(function(){}).finally(function(){try{if(typeof window.aLoad==='function')window.aLoad();}catch(_){}go(route,entityId);});
+  if(!id){go(route,entityId);return;}
+  api('/api/notifications/read',{method:'POST',body:{id:id}}).catch(function(){}).finally(function(){try{if(typeof window.aLoad==='function')window.aLoad();}catch(_){}go(route,entityId);});
 }
 function patchPanels(){applyAdminLoadPatch();applyAdvisorRenderPatch();applyAdminRenderPatch();applyReadPatch();}
 

@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S14 — controlled-write + revenue + Sentinel + generic Web Push bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S14/S15.1 — controlled-write + revenue + Sentinel + actor-bound notification bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -48,6 +48,13 @@ function isMissing(r){return r.status===404||r.status===400;}
 function parseMatch(u){var out={};u.searchParams.forEach(function(v,k){if(k==='select'||k==='order'||k==='limit'||k==='offset')return;if(String(v).indexOf('eq.')!==0)throw new Error('FILTER_NOT_ALLOWED');out[k]=String(v).slice(3);});return out;}
 async function requestJson(req){try{return await req.clone().json();}catch(e){return {};}}
 async function rpcFrom(req,name,payload){var u=new URL(req.url);var target=u.origin+'/rest/v1/rpc/'+name;var h=new Headers(req.headers);h.set('Content-Type','application/json');return fetch(target,{method:'POST',headers:h,body:JSON.stringify(payload),credentials:req.credentials,mode:req.mode==='navigate'?'cors':req.mode,cache:'no-store'});}
+async function notificationApi(path,method,body){
+  var t=String(await getToken()).trim();if(t.length<32)return json({ok:false,error:'NOTIFICATION_APP_SESSION_REQUIRED'},401);
+  var h=new Headers({'Accept':'application/json','X-AOS-App-Token':t});
+  var opts={method:method||'GET',headers:h,cache:'no-store',credentials:'same-origin'};
+  if(body!==undefined){h.set('Content-Type','application/json');opts.body=JSON.stringify(body);}
+  try{return await fetch(self.location.origin+path,opts);}catch(_){return json({ok:false,error:'NOTIFICATION_BRIDGE_UNAVAILABLE'},503);}
+}
 
 async function injectF4(req){
   var r=await fetch(req,{cache:'no-store'});if(!r.ok)return r;
@@ -72,7 +79,7 @@ async function injectF4(req){
     tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s14-p01"></script>';
   }
   if(html.indexOf('/notification-push-s14.js')<0){
-    tags+='<script src="/notification-push-s14.js?v=20260817-push-s14-p01"></script>';
+    tags+='<script src="/notification-push-s14.js?v=20260817-push-s15-auth-p02"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
@@ -116,12 +123,20 @@ self.addEventListener('fetch',function(event){
     event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
   }
   // Same-origin governed APIs use the already-controlled Phase 2 token cache.
-  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0||u.pathname.indexOf('/api/push/')===0)){
+  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0||u.pathname.indexOf('/api/push/')===0||u.pathname.indexOf('/api/notifications/')===0)){
     event.respondWith(injectSameOriginAppToken(req));return;
   }
   if(u.hostname.indexOf('supabase.co')<0)return;
 
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
+  // Existing app-shell bell still calls these legacy RPC names. Keep its UI contract,
+  // but bind identity to the verified application token through F17 instead of trusting p_id_asesor.
+  if(rm&&rm[1]==='aos_list_notificaciones'){
+    event.respondWith(notificationApi('/api/notifications/inbox?limit=30','GET'));return;
+  }
+  if(rm&&rm[1]==='aos_mark_notif_read'){
+    event.respondWith((async function(){var p=await requestJson(req);return notificationApi('/api/notifications/read','POST',{id:p.p_id});})());return;
+  }
   if(rm&&IDENTITY[rm[1]]){
     event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
   }
