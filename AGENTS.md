@@ -1,391 +1,369 @@
-# AGENTS.md — ASCENDA OS
+# AGENTS.md — ASCENDA OS CURRENT
 
-## Propósito
+## Purpose
 
-Este archivo define las reglas operativas obligatorias para cualquier agente de IA/Codex que trabaje sobre ASCENDA OS. El objetivo es permitir desarrollo rápido sin perder trazabilidad, seguridad ni estabilidad de producción.
+This file defines mandatory operating rules for every AI/Codex/development agent working on ASCENDA OS. Speed never overrides scope isolation, production safety, traceability or exact-current evidence.
 
-## Fuente de verdad de arquitectura
+## Mandatory bootstrap — read before any write
 
-Antes de proponer o ejecutar cambios, leer:
+1. `AGENTS.md`
+2. `SECURITY.md`
+3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
+4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
+5. `docs/MEMORY_CURRENT.md`
+6. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
+7. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
+8. the CURRENT Control Maestro / phase checkpoint of **one selected project only**
+9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
 
-1. `docs/control/ASCENDA_CONTROL_MASTER.md`
-2. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
-3. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
-4. el master/index/checkpoint CURRENT del workstream afectado
-5. `SECURITY.md` para cambios de seguridad, Auth, RLS, secretos, agentes o infraestructura
-6. `PROTOCOLO_DESARROLLO.md` como referencia histórica, no como verdad absoluta
-7. los archivos productivos bajo `app/`
-8. las migraciones/esquema vigentes de Supabase cuando estén disponibles en Git
+Historical documents may contain useful context, but they do not override CURRENT.
 
-Antes de continuar trabajo iniciado por otro chat/agente, verificar el estado real de GitHub (`main`, `staging`, branch, PR, checks) y de Supabase; no asumir que un checkpoint antiguo sigue vigente.
-
-### Bootstrap obligatorio de Zero-Cost CI V2
-
-Todo chat/agente de ASCENDA debe asumir como CURRENT que el CI normal corre en el runner repo-level `ASCENDA-ZERO-COST-V2`, labels `self-hosted`, `Linux`, `X64`, `ascenda-zero-cost-v2`, con gasto pagado de GitHub Actions objetivo **US$0**.
-
-- Si el runner está offline, los jobs quedan en cola; no se cambia a `ubuntu-latest`/`windows-latest`/`macos-*` como fallback.
-- Un reinicio de la PC NO afecta producción; solo interrumpe CI.
-- Tras reinicio, el runner se recupera arrancando Docker y `./run.sh`; no se debe repetir `config.sh` salvo revocación/eliminación del runner.
-- Con un único runner los jobs se ejecutan secuencialmente; `queued/pending` no equivale por sí solo a fallo.
-- Antes de tocar workflows, leer el handoff CURRENT indicado arriba.
-
-### Clasificación del repositorio
-
-- `app/` = aplicación productiva actual.
-- `app/public/` = frontend servido directamente en producción.
-- `app/server.js` = servidor Node y APIs productivas.
-- `src/` = arquitectura histórica/legacy hasta que se demuestre lo contrario.
-- `docs/` = documentación; puede contener documentos históricos.
-- `aos_codigo_fuente` en Supabase = fuente histórica, NO fuente canónica de producción.
-
-Nunca modificar `src/` suponiendo que cambiará producción sin comprobar la ruta productiva equivalente en `app/`.
+Before continuing work from another chat/agent, revalidate GitHub + Supabase. Never assume an old checkpoint, branch, runtime chain or migration version is still valid.
 
 ---
 
-## Regla cero: analizar antes de escribir
+## Global portfolio lock — non-negotiable
 
-Para cualquier bug, feature o cambio de datos:
+ASCENDA contains multiple programs in one repository. One repo does **not** mean one project.
 
-1. identificar pantalla/flujo afectado;
-2. localizar archivo productivo real;
-3. localizar JS/endpoint/RPC utilizado;
-4. identificar tablas/views relacionadas;
-5. revisar triggers y efectos secundarios;
-6. identificar consumidores adicionales de la misma RPC/tabla;
-7. clasificar riesgo;
-8. definir pruebas y rollback;
-9. recién entonces modificar.
+At most **one HIGH/CRITICAL feature/data workstream may be ACTIVE globally**.
 
-No arreglar síntomas modificando datos o columnas sin determinar primero la fuente de verdad.
+The active owner is declared in `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`.
 
----
+While another HIGH/CRITICAL workstream owns the lock:
 
-## Entornos y ramas
+- other projects are read-only/documentation-only;
+- do not launch their migrations, materializers, canaries or deploys;
+- do not intentionally start competing DB-heavy Zero-Cost jobs;
+- FAST runners may run only isolated regression/syntax/UI checks needed by the active workstream;
+- a PASS from another project cannot certify the active project;
+- queued/pending from another project is contamination/capacity evidence, not a product failure.
 
-### Producción
+When a paused project resumes, rebase/rebuild from CURRENT when risk or drift warrants it. Historical green CI never makes a stale branch mergeable by itself.
 
-- `main` representa producción GitHub.
-- No hacer desarrollo normal directamente sobre `main`.
-- No hacer force push sobre `main`.
-- No fusionar cambios de alto impacto sin revisión humana y validación.
+### Portfolio programs
 
-### GitHub Staging
-
-- `staging` es la rama de integración/preproducción de código.
-- **No confundir `staging` de GitHub con una Supabase Cloud Development Branch.**
-- Las nuevas features deben desarrollarse en `feature/*`, `fix/*`, `security/*`, `data/*` o `chore/*`.
-- Flujo esperado: branch → checks → PR → staging cuando aplique → validación → PR/main.
-
-### Zero-Cost Staging — estándar por defecto
-
-ASCENDA usa `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md` como circuito preproductivo obligatorio por defecto.
-
-- GitHub Actions coordina y el cómputo normal se ejecuta en el self-hosted runner repo-level `ASCENDA-ZERO-COST-V2`.
-- Supabase CLI/PostgreSQL/Docker levantan un entorno efímero y reproducible en el runner.
-- No se usan credenciales productivas ni PII/PHI real como fixtures.
-- Se compilan las migraciones EXACTAS del release, se ejecutan lint, contracts, pgTAP/pruebas equivalentes, seguridad, performance y rollback según riesgo.
-- El entorno se destruye al finalizar, incluso cuando el workflow falla.
-- Para HIGH/CRITICAL debe existir evidencia reproducible (run/artifact/digest/checkpoint) antes del gate productivo.
-- Un CI verde no autoriza producción: siguen siendo obligatorios preflight, canary/cutover/smoke y autorización según riesgo.
-- Los workflows normales deben usar `runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]` y no tener fallback facturable.
-
-### Infraestructura cloud pagada
-
-- Supabase Cloud Development Branch, proyecto duplicado, staging Railway dedicado u otra infraestructura con costo **NO son requisitos automáticos**.
-- Solo se crean si un riesgo material no puede validarse suficientemente mediante Zero-Cost Staging + preflight/canary.
-- Antes de crear infraestructura con costo: explicar necesidad, alternativa cero-costo descartada, permisos/datos implicados, costo/recurrencia, rollback/borrado y obtener aprobación explícita del propietario.
-- Por defecto, cualquier entorno cloud adicional debe ser efímero y eliminarse al terminar su gate.
-- No recomendar compra de minutos de GitHub Actions como primera solución; optimizar routing, concurrencia y self-hosted CI primero.
-
-### Auditoría
-
-- `audit/*` se usa para documentación, investigación y cambios de control que no deben alterar runtime.
+- **Sentinel** — F1–F13 closed; regression-only unless real regression exists.
+- **Commercial Intelligence & Audience OS V3** — F17/F18 remaining.
+- **Revenue Data & Intelligence** — F5/F6/F7 remaining.
+- **WhatsApp Revenue Hub** — WA1, WA4, WA5–WA8 remaining; project state must be serialized.
+- **KronIA V2** — K1–K8 remaining; stale K1 branches are evidence-only.
+- **#238/#250** — cross-program maintenance, not parallel feature projects.
 
 ---
 
-## Niveles de riesgo
+## CURRENT production runtime
 
-### 🟢 LOW
+Always verify `app/railway.json` and `app/package.json` before changing server topology.
 
-- texto/estilo aislado;
-- documentación;
-- lectura sin side effects;
-- cambios visuales que no cambian contratos de datos.
+Captured CURRENT Railway outer command:
 
-### 🟡 MEDIUM
+`env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js`
 
-- frontend funcional;
-- filtros/reportes;
-- nuevas consultas de lectura;
-- cambios en un módulo con dependencias identificadas.
+Captured effective chain:
 
-### 🔴 HIGH
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core runtime`
 
-Cualquier cambio que toque:
+Important:
 
-- `aos_ventas`
-- `aos_pacientes`
-- `aos_agenda_citas`
-- `aos_llamadas`
-- `aos_leads`
-- `aos_atenciones`
-- `aos_cotizaciones`
-- `aos_pagos`
-- inventario/movimientos
-- comisiones
-- historia clínica
-- KronIA con acciones de escritura
+- `app/server.js` remains a lower/core API server; it is **not automatically the outer Railway entrypoint**.
+- `app/public/` is the product frontend served by the runtime chain.
+- wrappers belong to different workstreams and must not be bypassed accidentally.
+- a runtime-chain change is HIGH/CRITICAL and needs exact-chain regression evidence.
 
-Requiere Impact Report, pruebas específicas, Zero-Cost Staging y rollback.
+---
 
-### ⚫ CRITICAL
+## Repository classification
 
-- Auth / sesiones / 2FA;
-- RLS / GRANT / REVOKE;
-- `SECURITY DEFINER`;
-- Storage policies;
-- secretos/tokens;
-- migraciones destructivas;
-- fusión/eliminación masiva de pacientes;
-- borrados masivos;
-- deploy/infraestructura;
-- cambios multi-tenant.
+- `app/` = CURRENT product application/runtime.
+- `app/public/` = CURRENT product frontend.
+- `supabase/migrations/` = versioned forward schema history; reconcile against live history, do not rewrite blindly.
+- `supabase/pending/` = explicitly not active until its gate is satisfied.
+- `src/` = historical/legacy unless proven CURRENT.
+- `docs/control/` = technical governance; CURRENT files outrank historical snapshots.
+- `docs/MEMORY_CURRENT.md` = current continuity memory.
+- `docs/MEMORY.md` = historical April-generation memory.
+- `docs/adn/AGENTS_CURRENT.md` = current agent overlay.
+- `docs/adn/AGENTS.md` = historical role knowledge, not current runtime authority.
+- `aos_codigo_fuente` = historical source archive, **not** canonical production source.
+- `aos_memory` = technical memory, subordinate to GitHub/runtime/live DB.
 
-No ejecutar directamente en producción sin Zero-Cost Staging certificado, preflight productivo, backup/restore o rollback conocido, canary/additive rollout cuando sea posible, security review y aprobación explícita.
+---
+
+## Zero-Cost CI V2
+
+Normal DB/security CI uses repo-level `ASCENDA-ZERO-COST-V2` with labels:
+
+`[self-hosted, Linux, X64, ascenda-zero-cost-v2]`
+
+Rules:
+
+- target paid GitHub Actions spend = US$0;
+- if runner is offline, jobs queue; do not switch to billable hosted runners as fallback;
+- with a single DB runner, jobs serialize;
+- reserve the DB runner to the active HIGH/CRITICAL workstream;
+- use unique DB/container/project names per run;
+- cleanup must run on success **and** failure;
+- no production secrets or real PHI/PII as fixtures;
+- compile exact release migrations, lint, contracts, security, performance and rollback as applicable;
+- CI green does not authorize production.
+
+FAST runners may handle isolated same-workstream syntax/UI/contracts. They never replace Zero-Cost DB/security gates.
+
+---
+
+## Rule zero — analyze before write
+
+For every bug/feature/data change:
+
+1. name the owning project and phase;
+2. confirm it owns the portfolio lock;
+3. identify exact UI/flow;
+4. locate the product runtime file actually loaded;
+5. locate endpoint/RPC/table/view;
+6. inspect triggers and side effects;
+7. identify sibling consumers;
+8. classify risk;
+9. define tests + rollback;
+10. only then modify.
+
+Do not fix symptoms by mutating data or bypassing wrappers without identifying the source of truth.
+
+---
+
+## Branches and PRs
+
+- `main` = GitHub production baseline.
+- no normal development directly on `main`;
+- no force push on `main`;
+- work in `feature/*`, `fix/*`, `security/*`, `data/*`, `chore/*`, `control/*` or project-specific branches;
+- HIGH/CRITICAL stale branches must be revalidated against CURRENT before reuse;
+- classify old PRs as `MERGE_CANDIDATE`, `PAUSED`, `SUPERSEDED`, or `EVIDENCE_ONLY`;
+- close superseded PRs rather than leaving misleading merge candidates open.
+
+A PR cannot be certified using tests from a different HEAD or another project.
+
+---
+
+## Risk
+
+### LOW
+
+Documentation, isolated text/style, read-only investigation.
+
+### MEDIUM
+
+Functional frontend, filters/reporting, read-only queries with known consumers.
+
+### HIGH
+
+Changes involving core sales, patients, agenda, calls, leads, payments, inventory, clinical data, F5 identity resolution, channel delivery, KronIA actions or multi-module runtime behavior.
+
+Requires Impact Report, isolated branch, tests, Zero-Cost when applicable and rollback.
+
+### CRITICAL
+
+Auth/session/2FA, RLS/GRANT/REVOKE, SECURITY DEFINER, secrets, destructive migrations, patient merges, mass writes/deletes, deploy topology, infrastructure, cross-project runtime wrappers, multi-tenant boundaries.
+
+Requires Zero-Cost certificate, negative tests, read-only production preflight, rollback/recovery, canary/additive rollout when possible, final security review and explicit owner authorization before production mutation.
 
 ---
 
 ## PostgreSQL / Supabase
 
-### Cambios estructurales
+### DDL and history
 
-- Toda DDL nueva debe representarse como migration versionada.
-- No crear/alterar/drop tablas, índices, policies, funciones o triggers ad hoc en producción salvo incidente explícitamente aprobado.
-- Preferir cambios backward-compatible durante migraciones.
-- No renombrar/eliminar columnas hasta verificar todos sus consumidores.
+- structural changes are versioned migrations;
+- do not apply ad-hoc production DDL except explicitly approved incident recovery;
+- prefer backward-compatible changes;
+- do not rename/drop columns before consumer audit;
+- **do not replay production DDL merely to make migration-history checks green**;
+- #238 migration parity is owner-scoped;
+- #250 reproducible pre-history baseline is a separate foundational problem.
 
-### Datos
+### Data
 
-- Antes de UPDATE/DELETE masivo: ejecutar SELECT equivalente y reportar cantidad/ejemplos.
-- Usar filtros determinísticos e idempotencia.
-- Para correcciones de datos críticos: backup lógico o snapshot/branch primero.
-- No borrar datos clínicos/financieros como mecanismo de “limpieza”.
-- Registrar auditoría cuando el dominio la requiera.
+- before bulk UPDATE/DELETE: run equivalent SELECT and report counts/examples;
+- use deterministic filters and idempotency;
+- never erase clinical/financial data as cleanup;
+- F5 never mutates canonical patients before provenance + preview + human approval;
+- production is not a test environment.
 
-### Identificadores críticos
+### Critical identifiers
 
-Tratar `numero_limpio` como identificador transversal mientras no exista un ID canónico superior plenamente migrado.
+Treat `numero_limpio/contact_key` as transversal legacy/current bridge until an explicitly certified canonical identity supersedes it. Any identity change requires cross-domain impact review.
 
-No cambiar teléfonos/identificadores sin revisar:
+### RPC
 
-- pacientes;
-- leads;
-- llamadas;
-- citas;
-- ventas;
-- seguimientos;
-- cotizaciones;
-- atenciones;
-- email/WhatsApp;
-- predicciones/agentes.
+Before modifying an RPC:
 
-### Funciones/RPC
-
-Antes de modificar una RPC:
-
-- identificar tablas que lee/escribe;
-- identificar paneles/funciones que la llaman;
-- verificar si es `SECURITY DEFINER`;
-- verificar permisos/grants;
-- verificar triggers que puede activar indirectamente;
-- mantener contrato de retorno o versionar la RPC.
+- read all tables/views it touches;
+- identify callers;
+- inspect SECURITY DEFINER/search_path;
+- inspect effective grants;
+- inspect indirect trigger effects;
+- version return contracts when breaking compatibility.
 
 ---
 
-## Seguridad
+## Security
 
-- Nunca incluir secretos reales en código, documentación, commits, PRs, prompts o logs.
-- Nunca imprimir tokens, passwords, API keys o service-role keys en respuestas.
-- Usar variables de entorno/Vault/secret manager.
-- No agregar fallbacks hardcodeados de secretos.
-- No confiar en un rol enviado desde el navegador como autorización suficiente.
-- La autorización debe derivarse de identidad autenticada y verificable.
-- Aplicar mínimo privilegio.
-- Cualquier corrección de seguridad debe preservar disponibilidad de la clínica mediante migración progresiva.
+Root `SECURITY.md` is authoritative.
+
+Never:
+
+- commit/log/print real passwords, API keys, service-role keys or provider tokens;
+- put service credentials in browser code;
+- trust browser-supplied role/permission as authority;
+- give agents arbitrary write SQL;
+- weaken a control merely to make CI green.
+
+Secrets come from environment/vault/secret manager. Removing a leaked secret from HEAD does not replace provider-side rotation/revocation.
 
 ---
 
-## KronIA y agentes
+## KronIA / agents
 
-KronIA tiene capacidad de investigación y acciones operativas. Antes de ampliar herramientas:
+KronIA is its own K0–K8 program.
 
-1. definir acción permitida;
-2. definir rol autorizado;
-3. definir objetos/campos permitidos;
-4. requerir confirmación humana para escrituras sensibles;
-5. registrar auditoría;
-6. limitar resultados/datos sensibles;
-7. definir rollback cuando corresponda.
+- CIA F15 Tool Registry + Agent Registry SHADOW + Policy Gate are reusable canonical inputs.
+- Do not create a second incompatible Tool/Agent Registry.
+- K1 must be rebuilt from CURRENT when KronIA receives the portfolio lock.
+- historical K1 PRs/branches are evidence-only unless revalidated.
+- sensitive writes require allowlisted tools, server authority, confirmation where required, audit and rollback.
 
-No otorgar a un agente SQL de escritura arbitrario sobre producción.
+---
+
+## Project boundaries
+
+### CIA vs WhatsApp
+
+CIA owns provider-neutral Audience/Activation/channel-governance and F17/F18 readiness. WhatsApp owns conversational product, inbox, routing, AI agent, media, booking and conversation/revenue UX.
+
+A Meta canary may produce evidence useful to both, but closing CIA F17 does **not** automatically close WA1/WA4 and vice versa.
+
+### Revenue vs CIA/WhatsApp
+
+Revenue F5 owns historical patient/source identity and canonical enrichment review. It does not run in parallel with channel/runtime releases.
+
+### Sentinel
+
+Sentinel is already closed F1–F13. Its checks are regressions/sensors for other projects, not a reason to reopen Sentinel unless its own contract regresses.
 
 ---
 
 ## Frontend
 
-La interfaz productiva actual se sirve desde `app/public/`.
-
-Al recibir una captura o petición visual:
-
-1. localizar el panel exacto;
-2. revisar responsive móvil/tablet/escritorio;
-3. preservar navegación, sesión y shell común;
-4. no duplicar lógica ya existente en otra pantalla;
-5. reutilizar RPC/contratos cuando sea correcto;
-6. validar estados loading/error/empty;
-7. validar rol ADMIN/ASESOR/profesional según aplique.
-
-No asumir que `app/src/` o Vite controla las pantallas productivas sin comprobarlo.
+- locate the exact panel loaded by the shell;
+- preserve shell/session/navigation;
+- reuse existing contracts instead of duplicating business logic;
+- validate loading/error/empty and responsive states;
+- validate roles;
+- do not assume Vite/app/src controls production pages without proof.
 
 ---
 
-## Node / Railway
+## Minimum tests
 
-Runtime productivo actual:
+### Always
 
-- `app/server.js`
-- comando: `node server.js`
-- `app/public/` servido directamente
-
-Antes de cambiar `server.js`:
-
-- ejecutar `node --check server.js`;
-- identificar endpoint consumidor;
-- validar método HTTP, entrada, salida y errores;
-- no introducir secretos hardcodeados;
-- revisar CORS y autenticación;
-- mantener compatibilidad de endpoints existentes.
-
-Cuando CI materialice o genere un runtime, HIGH/CRITICAL exige demostrar que el artefacto certificado es equivalente al artefacto que Railway ejecutará.
-
----
-
-## Pruebas mínimas por cambio
-
-### Siempre
-
-- sintaxis de archivos modificados;
-- revisión de diff;
-- smoke test del módulo afectado;
-- comprobar que no se modificaron archivos no relacionados.
+- syntax;
+- `git diff --check` / diff hygiene;
+- module smoke;
+- prove unrelated files were not modified.
 
 ### HIGH/CRITICAL
 
-Agregar además:
+Also:
 
-- consulta/datos antes y después;
-- prueba de dependencias;
-- prueba por rol relevante;
-- prueba mobile si existe UI;
-- flujo E2E relacionado;
-- Zero-Cost Staging;
-- rollback documentado y, cuando sea seguro, ejecutado dentro del staging efímero;
+- dependency/regression tests;
+- role/auth positive + negative tests;
+- data pre/post evidence where applicable;
+- Zero-Cost DB/security gates;
+- rollback executed in isolated environment when safe;
 - production preflight read-only;
-- evidencia reproducible de certificación.
+- exact SHA evidence.
 
-### CRITICAL adicional
+### CRITICAL additional
 
-- pruebas negativas explícitas;
-- trust-boundary/security review;
-- canary/additive rollout cuando técnicamente sea posible;
-- 0 HIGH/CRITICAL abiertos dentro del scope antes de certificar producción;
-- autorización explícita del propietario antes del primer cambio productivo.
+- trust-boundary review;
+- explicit bypass/replay/forged-claim negatives;
+- canary/additive rollout where possible;
+- zero unresolved HIGH/CRITICAL findings in scope;
+- explicit owner authorization before first production mutation.
 
 ---
 
-## Impact Report obligatorio para HIGH/CRITICAL
+## Impact Report for HIGH/CRITICAL
 
-Usar este formato antes de implementar:
+Document at minimum:
 
 ```md
 ## Impact Report
+**Project / phase:**
+**Objective:**
+**Risk:** HIGH / CRITICAL
 
-**Objetivo:**
-**Riesgo:** HIGH / CRITICAL
-
-### Código
-- archivos:
-- endpoints:
-
-### Datos
-- tablas/views:
-- RPC:
-- triggers:
-
-### Consumidores
-- paneles:
-- agentes/automatizaciones:
-
-### Seguridad
-- roles/permisos:
-- datos sensibles:
-
-### Plan de prueba
-1.
-2.
-
+### Code/runtime
+### Data/RPC/triggers
+### Consumers/dependencies
+### Security/roles/sensitive data
+### Tests
 ### Rollback
-1.
-2.
+### Portfolio-lock impact
 ```
 
 ---
 
-## Definition of Done
+## Certification states
 
-Una tarea no está terminada solo porque “se ve bien”. Debe cumplir, según aplique:
+Never conflate:
 
-- cambio en branch correcto;
-- diff revisado;
-- CI verde;
-- migración versionada;
-- pruebas ejecutadas;
-- seguridad revisada;
-- Zero-Cost Staging validado cuando aplique;
-- preflight/canary productivo según riesgo;
-- producción validada tras release;
-- datos reconciliados;
-- rollback conocido;
-- documentación/checkpoint actualizado.
+- `ZERO-COST CERTIFIED`
+- `CANARY CERTIFIED`
+- `PRODUCTION CERTIFIED`
+- `100_COMPLETE`
 
-### Estados de certificación
+`100_COMPLETE` means every declared gate of that phase is closed and GitHub/runtime/live DB/aos_memory/Notion are reconciled.
 
-No mezclar estados:
-
-- `ZERO-COST CERTIFIED` = contratos/migraciones/tests/rollback certificados en entorno efímero.
-- `CANARY CERTIFIED` = integración real mínima validada sin activación general.
-- `PRODUCTION CERTIFIED` = release autorizado, smoke real y reconciliación final completados.
-- `100_COMPLETE` solo puede utilizarse cuando todos los gates declarados del alcance están cerrados.
+A runtime merge does not equal 100% — CIA F17 is an explicit current example.
 
 ---
 
-## Prohibiciones explícitas
+## Project handoff / pause protocol
 
-No:
+Before the portfolio lock moves:
 
-- modificar producción para experimentar;
-- borrar tablas/columnas/filas masivamente sin plan;
-- hacer `DROP`, `TRUNCATE` o `DELETE` amplio por conveniencia;
-- hacer force push;
-- reescribir historia Git sin proyecto específico de saneamiento;
-- copiar secretos entre entornos;
-- usar datos reales de Zi Vital como seed del futuro SaaS;
-- convertir la base productiva actual a multi-tenant mediante cambios masivos;
-- ocultar fallos de tests para “poner verde” el CI;
-- crear infraestructura cloud pagada por costumbre cuando Zero-Cost Staging cubre el riesgo.
+1. capture exact `main` SHA and runtime chain;
+2. capture live Supabase phase state;
+3. classify all project PRs/branches;
+4. record CI/rollback/canary state;
+5. update GitHub CURRENT docs;
+6. update `aos_memory` current key;
+7. update Notion last;
+8. state the exact next input contract.
+
+No chat should reconstruct a project from informal memory when these sources exist.
 
 ---
 
-## Objetivo de largo plazo
+## Explicit prohibitions
 
-ASCENDA Zi Vital debe estabilizarse como implementación de referencia y luego migrarse a infraestructura corporativa. El producto SaaS se desarrollará en repositorio e infraestructura separados, con aislamiento multi-tenant diseñado desde el inicio.
+Do not:
+
+- run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastructure;
+- experiment in production;
+- broad DROP/TRUNCATE/DELETE for convenience;
+- force-push production history;
+- blind-rewrite migration history;
+- copy secrets between environments;
+- use real Zi Vital data as generic SaaS seed;
+- hide/skip failing tests to get green;
+- infer project completion from a sibling project's certificate;
+- revive a stale branch without CURRENT revalidation.
+
+---
+
+## Long-term objective
+
+Stabilize ASCENDA Zi Vital as a controlled reference implementation, migrate it to corporate-owned infrastructure, and build the future multi-tenant SaaS separately. The current production database is not to be converted into multi-tenant SaaS by a big-bang mutation.
