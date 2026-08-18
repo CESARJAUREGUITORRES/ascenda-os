@@ -106,8 +106,18 @@ function proxy(req, res) {
   req.pipe(q)
 }
 
+function bufferedProxyHeaders(req, raw) {
+  const headers = Object.assign({}, req.headers)
+  const connectionTokens = String(headers.connection || '').split(',').map(function(v) { return v.trim().toLowerCase() }).filter(Boolean)
+  connectionTokens.forEach(function(name) { delete headers[name] })
+  ;['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade'].forEach(function(name) { delete headers[name] })
+  headers.host = '127.0.0.1:' + INNER_PORT
+  headers['content-length'] = Buffer.byteLength(raw)
+  return headers
+}
+
 function proxyBuffered(req, raw, callback) {
-  const headers = Object.assign({}, req.headers, { host: '127.0.0.1:' + INNER_PORT, 'content-length': Buffer.byteLength(raw) })
+  const headers = bufferedProxyHeaders(req, raw)
   const q = http.request({ hostname: '127.0.0.1', port: INNER_PORT, path: req.url, method: req.method, headers: headers }, function(upstream) {
     const chunks = []
     upstream.on('data', function(c) { chunks.push(Buffer.from(c)) })
@@ -259,4 +269,4 @@ function start() {
   })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead }
+module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead, bufferedProxyHeaders: bufferedProxyHeaders }
