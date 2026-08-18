@@ -12,5 +12,10 @@ ok(runtime.includes('handleGovernedWebhook')&&runtime.includes("p==='/webhook'")
 ok(runtime.includes('handleNativeHumanSend')&&runtime.includes('f17wa.prepareOutbound')&&runtime.includes('f17wa.markAccepted')&&runtime.includes('f17wa.markFailed'),'native send must reconcile F17');
 ok(runtime.indexOf('f17wa.prepareOutbound')<runtime.indexOf('proxyBuffered(req,raw'),'F17 policy must precede inner Meta path');
 ok(runtime.includes('wa.canaryAllows'),'real allowlist gate missing');
+ok(runtime.includes('handleNotificationInbox')&&runtime.includes('aos_notification_inbox_actor_v1'),'S15.1 actor inbox boundary missing');
+ok(runtime.includes('handleNotificationRead')&&runtime.includes('aos_notification_mark_read_actor_v1'),'S15.1 actor read boundary missing');
+ok(runtime.includes("p==='/api/notifications/inbox'")&&runtime.includes("p==='/api/notifications/read'"),'S15.1 notification routes missing');
+ok(runtime.includes('push.ensureVapid')&&runtime.includes('startPump'),'S14/S15 push pump boundary missing');
 ok(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['"][^'"]+/.test(runtime),'hard-coded provider token');
+ok(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"][^'"]+/.test(runtime),'hard-coded service role');
 console.log('F17_EFFECTIVE_RUNTIME_CHAIN=PASS');
