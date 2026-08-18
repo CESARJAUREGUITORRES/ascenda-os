@@ -8,6 +8,8 @@ const client=fs.readFileSync(path.join(root,'app/public/notification-push-s14.js
 const sw=fs.readFileSync(path.join(root,'app/public/phase2-service-worker.js'),'utf8')
 const alerts=fs.readFileSync(path.join(root,'app/public/wa-human-alerts.js'),'utf8')
 const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'),'utf8')
+const recovery=fs.readFileSync(path.join(root,'supabase/migrations/20260818013809_s15_4_push_retired_subscription_recovery.sql'),'utf8')
+const rollback=fs.readFileSync(path.join(root,'supabase/rollback/20260818013809_s15_4_push_retired_subscription_recovery_rollback.sql'),'utf8')
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'app/package.json'),'utf8'))
 function ok(cond,msg){if(!cond){console.error('WA S14 CONTRACT FAIL:',msg);process.exit(1)}}
 
@@ -49,6 +51,18 @@ ok(sw.includes("if(list.length){list.forEach"),'open ASCENDA clients must suppre
 ok(sw.includes("self.registration.showNotification(title,opts)"),'closed-app system notification missing')
 ok(sw.includes("u.pathname.indexOf('/api/push/')===0"),'service-worker app-token bridge must cover push APIs')
 
+// S15.4: a provider-terminal subscription must never be blindly reactivated.
+ok(recovery.includes("'PUSH_SUBSCRIPTION_RETIRED'"),'retired subscription reason missing')
+ok(recovery.includes("'reset_required',true"),'retired subscription must request browser reset')
+ok(recovery.includes('v_existing_active=false'),'recovery gate must require inactive terminal endpoint')
+ok(recovery.includes('coalesce(v_existing_failures,0)>0'),'recovery gate must require recorded delivery failure')
+ok(recovery.includes('v_existing_p256dh=v_p256dh')&&recovery.includes('v_existing_auth=v_auth'),'recovery gate must compare endpoint keys before refusing reactivation')
+ok(client.includes('d.reset_required===true'),'client must consume server reset_required signal')
+ok(client.includes('existing.unsubscribe()'),'client must retire local PushManager subscription before recovery')
+ok(client.includes('subscribeFresh(reg,cfg).then(saveSubscription)'),'client must register a fresh browser endpoint after retirement')
+ok(client.includes("PUSH_SUBSCRIPTION_RECOVERY_FAILED"),'client must fail closed if provider returns the same retired subscription again')
+ok(rollback.includes('on conflict(endpoint) do update set'),'S15.4 rollback must restore previous reactivation behavior')
+
 ok(alerts.includes("title='WhatsApp · '+safeSender(r)"),'WhatsApp notification sender identity missing')
 ok(alerts.includes('body:safePreview(r)'),'WhatsApp notification preview sanitizer missing')
 ok(alerts.includes("icon:'/icons/channel-whatsapp.svg'"),'WhatsApp channel icon missing')
@@ -61,4 +75,4 @@ ok(preview.length<=140,'preview must be truncated to 140 characters')
 ok(!/[\u0000-\u001f\u007f]/.test(preview),'preview must remove control characters')
 ok(svc.senderLabel({contact_name:'',contact_number:'51987654321'},{} )==='+51987654321','phone fallback must identify unknown WhatsApp contact')
 
-console.log('WA S14 contract PASS')
+console.log('WA S14/S15.4 contract PASS')
