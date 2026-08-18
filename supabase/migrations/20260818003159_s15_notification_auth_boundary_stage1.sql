@@ -1,5 +1,7 @@
--- ASCENDA S15.1 — notification authorization boundary.
+-- ASCENDA S15.1 — notification authorization boundary, stage 1.
 -- Browser identity parameters are no longer trusted for the new S15 notification readers.
+-- This migration is additive/compatible: it creates server-only actor RPCs but intentionally
+-- leaves legacy notification readers available until S15.2 is live and certified.
 
 create or replace function public.aos_notification_inbox_actor_v1(p_payload jsonb)
 returns jsonb
@@ -140,22 +142,14 @@ begin
 end;
 $$;
 
--- New actor-bound functions are server-only.
+-- New actor-bound functions are server-only from the moment they exist.
 revoke all on function public.aos_notification_inbox_actor_v1(jsonb) from public,anon,authenticated;
 revoke all on function public.aos_notification_mark_read_actor_v1(jsonb) from public,anon,authenticated;
 grant execute on function public.aos_notification_inbox_actor_v1(jsonb) to service_role;
 grant execute on function public.aos_notification_mark_read_actor_v1(jsonb) to service_role;
 
--- Retire public execution on S15 readers introduced for UI compatibility.
--- F17 + the service worker now form the authorization bridge.
-revoke all on function public.aos_list_notificaciones(text,date) from public,anon,authenticated;
-revoke all on function public.aos_mark_notif_read(uuid) from public,anon,authenticated;
-revoke all on function public.aos_admin_notificaciones_v1(integer) from public,anon,authenticated;
-revoke all on function public.aos_mis_notificaciones_v1(text,integer) from public,anon,authenticated;
-grant execute on function public.aos_list_notificaciones(text,date) to service_role;
-grant execute on function public.aos_mark_notif_read(uuid) to service_role;
-grant execute on function public.aos_admin_notificaciones_v1(integer) to service_role;
-grant execute on function public.aos_mis_notificaciones_v1(text,integer) to service_role;
+-- IMPORTANT: legacy reader revocation is intentionally deferred until S15.2 Railway smoke passes.
+-- See supabase/pending/s15_notification_legacy_acl_cutover_after_s15_2.sql.
 
 comment on function public.aos_notification_inbox_actor_v1(jsonb) is 'S15.1 server-only notification inbox bound to verified ASCENDA actor UUID.';
 comment on function public.aos_notification_mark_read_actor_v1(jsonb) is 'S15.1 server-only read marker enforcing notification visibility for verified actor.';

@@ -4,7 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'app/server-phase-s-f17.js'
       - 'app/server-phase-s.js'
+      - 'app/server-f17.js'
       - 'app/auth-resend-reconcile.js'
       - 'app/railway.json'
       - 'app/server-f5.js'
@@ -58,7 +60,9 @@ jobs:
         shell: powershell
         run: |
           $files = @(
+            'app/server-phase-s-f17.js',
             'app/server-phase-s.js',
+            'app/server-f17.js',
             'app/auth-resend-reconcile.js',
             'app/server-f5.js',
             'app/server-wa4.js',
@@ -130,6 +134,8 @@ jobs:
         shell: powershell
         run: |
           $s = Get-Content app/server-phase-s.js -Raw
+          $s152 = Get-Content app/server-phase-s-f17.js -Raw
+          $f17 = Get-Content app/server-f17.js -Raw
           $sync = Get-Content app/auth-resend-reconcile.js -Raw
           $rail = Get-Content app/railway.json -Raw
           if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
@@ -140,11 +146,19 @@ jobs:
           if ($s -notmatch 'WA_CUSTOMER_WINDOW_CLOSED') { throw 'WA 24h customer window gate missing' }
           if ($sync -notmatch 'aos_integration_secrets_v1') { throw 'Private integration vault target missing' }
           if ($sync -match '/rest/v1/aos_integraciones(?:\?|["''])') { throw 'Public integration catalog must not receive provider secret' }
-          if (($s + $sync) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          if (($s + $sync + $s152 + $f17) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
           $legacy = '"startCommand"\s*:\s*"node server-phase-s\.js"'
           $sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s\.js"'
-          if (($rail -notmatch $legacy) -and ($rail -notmatch $sentinel)) { throw 'Railway certified Phase S start command missing' }
-          if ($rail -match $sentinel) {
+          $s152Legacy = '"startCommand"\s*:\s*"node server-phase-s-f17\.js"'
+          $s152Sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s-f17\.js"'
+          $directOk = ($rail -match $legacy) -or ($rail -match $sentinel)
+          $bootstrapOk = (($rail -match $s152Legacy) -or ($rail -match $s152Sentinel)) -and
+            ($s152 -match "a\[0\]==='server-f5\.js'") -and
+            ($s152 -match "a\[0\]='server-f17\.js'") -and
+            ($s152 -match "require\('./server-phase-s\.js'\)") -and
+            ($f17 -match "\['server-f5\.js'\]")
+          if (-not ($directOk -or $bootstrapOk)) { throw 'Railway certified Phase S/F17 start command missing' }
+          if (($rail -match $sentinel) -or ($rail -match $s152Sentinel)) {
             $cfg = $rail | ConvertFrom-Json
             if ([string]$cfg.build.buildCommand -match 'NODE_OPTIONS') { throw 'Sentinel preload must not contaminate build' }
           }

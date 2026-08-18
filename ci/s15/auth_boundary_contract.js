@@ -1,8 +1,9 @@
 'use strict'
 const fs=require('fs'),path=require('path')
 const root=path.resolve(__dirname,'../..')
-const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260817235500_s15_notification_auth_boundary.sql'),'utf8')
-const rollback=fs.readFileSync(path.join(root,'supabase/rollback/20260817235500_s15_notification_auth_boundary_rollback.sql'),'utf8')
+const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260818003159_s15_notification_auth_boundary_stage1.sql'),'utf8')
+const pending=fs.readFileSync(path.join(root,'supabase/pending/s15_notification_legacy_acl_cutover_after_s15_2.sql'),'utf8')
+const rollback=fs.readFileSync(path.join(root,'supabase/rollback/20260818003159_s15_notification_auth_boundary_stage1_rollback.sql'),'utf8')
 const server=fs.readFileSync(path.join(root,'app/server-f17.js'),'utf8')
 const sw=fs.readFileSync(path.join(root,'app/public/phase2-service-worker.js'),'utf8')
 const center=fs.readFileSync(path.join(root,'app/public/notification-center-s15.js'),'utf8')
@@ -16,14 +17,23 @@ ok(migration.includes("x.para_user_id=uid")||migration.includes('n.para_user_id=
 ok(migration.includes('NOTIFICATION_NOT_VISIBLE_TO_ACTOR'),'mark-read must enforce recipient visibility')
 for(const sig of [
   'public.aos_notification_inbox_actor_v1(jsonb)',
-  'public.aos_notification_mark_read_actor_v1(jsonb)',
+  'public.aos_notification_mark_read_actor_v1(jsonb)'
+]) ok(migration.includes('revoke all on function '+sig+' from public,anon,authenticated'),'new actor RPC must be server-only: '+sig)
+ok(migration.includes('grant execute on function public.aos_notification_inbox_actor_v1(jsonb) to service_role'),'actor inbox must be service-role only')
+ok(migration.includes('grant execute on function public.aos_notification_mark_read_actor_v1(jsonb) to service_role'),'actor read must be service-role only')
+ok(!migration.includes('revoke all on function public.aos_list_notificaciones(text,date) from public,anon,authenticated'),'legacy list revoke must not happen before S15.2 live smoke')
+ok(!migration.includes('revoke all on function public.aos_mark_notif_read(uuid) from public,anon,authenticated'),'legacy read revoke must not happen before S15.2 live smoke')
+for(const sig of [
   'public.aos_list_notificaciones(text,date)',
   'public.aos_mark_notif_read(uuid)',
   'public.aos_admin_notificaciones_v1(integer)',
   'public.aos_mis_notificaciones_v1(text,integer)'
-]) ok(migration.includes('revoke all on function '+sig+' from public,anon,authenticated'),'public/anon revoke missing: '+sig)
-ok(migration.includes('grant execute on function public.aos_notification_inbox_actor_v1(jsonb) to service_role'),'actor inbox must be service-role only')
-ok(migration.includes('grant execute on function public.aos_notification_mark_read_actor_v1(jsonb) to service_role'),'actor read must be service-role only')
+]) {
+  ok(pending.includes('revoke all on function '+sig+' from public,anon,authenticated'),'pending final ACL revoke missing: '+sig)
+  ok(pending.includes('grant execute on function '+sig+' to service_role'),'pending service-role grant missing: '+sig)
+}
+ok(pending.includes('DO NOT apply before'),'pending ACL cutover must be explicitly gated')
+ok(pending.includes('/api/notifications/health'),'pending ACL cutover must require production health smoke')
 
 ok(server.includes("url.pathname === '/api/notifications/inbox'"),'F17 notification inbox endpoint missing')
 ok(server.includes("url.pathname === '/api/notifications/read'"),'F17 notification read endpoint missing')
@@ -50,4 +60,4 @@ ok(sw.includes('/notification-push-s14.js?v=20260817-push-s15-auth-p02'),'servic
 ok(rollback.includes('drop function if exists public.aos_notification_inbox_actor_v1(jsonb)'),'actor inbox rollback missing')
 ok(rollback.includes('grant execute on function public.aos_list_notificaciones(text,date) to anon,authenticated,service_role'),'compatibility rollback grant missing')
 
-console.log('S15.1 actor-bound notification authorization contract PASS')
+console.log('S15.1 staged actor-bound notification authorization contract PASS')

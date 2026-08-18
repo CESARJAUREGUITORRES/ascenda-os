@@ -1,0 +1,41 @@
+name: S15.2 Production Runtime Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/server-phase-s-f17.js'
+      - 'app/railway.json'
+      - 'app/server-f17.js'
+  workflow_dispatch:
+
+concurrency:
+  group: s15-2-production-runtime-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Railway S15.1 actor-bound runtime
+        shell: powershell
+        run: |
+          $uri = 'https://ascenda-os-production.up.railway.app/api/notifications/health'
+          $last = $null
+          for ($i = 1; $i -le 18; $i++) {
+            try {
+              $r = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 12 -Headers @{ 'Cache-Control' = 'no-cache' }
+              Write-Host ("Attempt {0}: {1}" -f $i, ($r | ConvertTo-Json -Compress))
+              if ($r.ok -eq $true -and $r.version -eq 'S15.1' -and $r.auth -eq 'actor-bound') {
+                Write-Host 'S15.2 Railway runtime smoke PASS'
+                exit 0
+              }
+              $last = 'unexpected payload'
+            } catch {
+              $last = $_.Exception.Message
+              Write-Host ("Attempt {0} failed: {1}" -f $i, $last)
+            }
+            Start-Sleep -Seconds 10
+          }
+          throw "S15.2 Railway runtime smoke failed after 18 attempts. Last result: $last"

@@ -2,7 +2,11 @@ name: S15 Unified Notification Events
 on:
   pull_request:
     paths:
+      - 'app/server-phase-s-f17.js'
+      - 'app/server-phase-s.js'
       - 'app/server-f17.js'
+      - 'app/server-f5.js'
+      - 'app/railway.json'
       - 'app/push-notifications-s14.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
@@ -11,17 +15,22 @@ on:
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
       - 'supabase/migrations/20260817224700_s15_legacy_notification_bridge.sql'
-      - 'supabase/migrations/20260817235500_s15_notification_auth_boundary.sql'
+      - 'supabase/migrations/20260818003159_s15_notification_auth_boundary_stage1.sql'
+      - 'supabase/pending/s15_notification_legacy_acl_cutover_after_s15_2.sql'
       - 'supabase/rollback/20260817224500_s15_unified_notification_events_rollback.sql'
       - 'supabase/rollback/20260817224600_s15_topbar_notification_bridge_rollback.sql'
       - 'supabase/rollback/20260817224700_s15_legacy_notification_bridge_rollback.sql'
-      - 'supabase/rollback/20260817235500_s15_notification_auth_boundary_rollback.sql'
+      - 'supabase/rollback/20260818003159_s15_notification_auth_boundary_stage1_rollback.sql'
       - 'ci/s15/**'
       - '.github/workflows/s15-unified-notifications.yml'
   push:
     branches: [main]
     paths:
+      - 'app/server-phase-s-f17.js'
+      - 'app/server-phase-s.js'
       - 'app/server-f17.js'
+      - 'app/server-f5.js'
+      - 'app/railway.json'
       - 'app/push-notifications-s14.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
@@ -30,7 +39,9 @@ on:
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
       - 'supabase/migrations/20260817224700_s15_legacy_notification_bridge.sql'
-      - 'supabase/migrations/20260817235500_s15_notification_auth_boundary.sql'
+      - 'supabase/migrations/20260818003159_s15_notification_auth_boundary_stage1.sql'
+      - 'supabase/pending/s15_notification_legacy_acl_cutover_after_s15_2.sql'
+      - 'supabase/rollback/20260818003159_s15_notification_auth_boundary_stage1_rollback.sql'
       - 'ci/s15/**'
       - '.github/workflows/s15-unified-notifications.yml'
   workflow_dispatch:
@@ -55,6 +66,7 @@ jobs:
       - name: JavaScript syntax
         shell: powershell
         run: |
+          node --check app/server-phase-s-f17.js
           node --check app/server-f17.js
           node --check app/push-notifications-s14.js
           node --check app/public/notification-push-s14.js
@@ -82,3 +94,6 @@ jobs:
       - name: S15.1 actor-bound notification authorization contract
         shell: powershell
         run: node ci/s15/auth_boundary_contract.js
+      - name: S15.2 production runtime chain contract
+        shell: powershell
+        run: node ci/s15/production_chain_contract.js
