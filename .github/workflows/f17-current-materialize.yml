@@ -33,6 +33,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
           fetch-depth: 0
+      - name: Absorb exact CURRENT main
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git fetch origin main
+          echo "F17_CURRENT_MAIN=$(git rev-parse origin/main)"
+          git merge --no-edit origin/main
       - name: Materialize F17 CURRENT
         run: |
           set -euo pipefail
@@ -44,12 +52,14 @@ jobs:
       - name: Commit exact materialized candidate
         run: |
           set -euo pipefail
-          git config user.name 'ASCENDA Zero-Cost CI'
-          git config user.email 'actions@users.noreply.github.com'
           git add -A
           git diff --cached --check
           if git diff --cached --quiet; then
-            echo 'F17_CURRENT_NO_DIFF=PASS'
+            if test "$(git rev-parse HEAD)" != "$(git rev-parse origin/${{ github.event.pull_request.head.ref || github.ref_name }})"; then
+              git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+            else
+              echo 'F17_CURRENT_NO_DIFF=PASS'
+            fi
             exit 0
           fi
           git commit -m 'fix(f17): reconcile live history and effective runtime boundary'
