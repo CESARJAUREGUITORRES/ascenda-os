@@ -5,15 +5,23 @@ on:
     branches: ['feature/sentinel-f13-hub-system-map','main']
     paths: &f13_paths
       - 'sentinel/hub/**'
+      - 'sentinel/maintenance/current-alignment-v1.json'
+      - 'app/railway.json'
+      - 'app/server-phase-s-f17.js'
+      - 'app/server-f17.js'
       - 'app/public/admin-sentinel.html'
       - 'app/public/sentinel-hub.js'
       - 'app/public/sentinel-hub-bootstrap.js'
       - 'app/public/sentinel-topology.v1.json'
       - 'app/public/sentinel-inapp-notifications.js'
+      - 'app/public/notification-center-s15.js'
+      - 'app/public/phase2-service-worker.js'
       - 'ci/sentinel/phase13_*'
       - 'ci/sentinel/sql/phase13_*'
       - 'supabase/migrations/20260817203504_sentinel_f13_owner_hub.sql'
       - 'docs/control/SENTINEL_F13_*'
+      - 'docs/control/SENTINEL_V11_*'
+      - 'docs/control/SENTINEL_V1_POST_CERTIFICATION_REVIEW_*'
       - 'docs/control/SENTINEL_ROADMAP_V1.md'
       - '.github/workflows/sentinel-phase13-hub.yml'
   pull_request:
