@@ -11,6 +11,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
       - 'app/public/notification-center-s15.js'
+      - 'app/public/wa-shell-integration.js'
       - 'app/public/icons/channel-*.svg'
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
@@ -35,6 +36,7 @@ on:
       - 'app/public/phase2-service-worker.js'
       - 'app/public/notification-push-s14.js'
       - 'app/public/notification-center-s15.js'
+      - 'app/public/wa-shell-integration.js'
       - 'app/public/icons/channel-*.svg'
       - 'supabase/migrations/20260817224500_s15_unified_notification_events.sql'
       - 'supabase/migrations/20260817224600_s15_topbar_notification_bridge.sql'
@@ -71,6 +73,7 @@ jobs:
           node --check app/push-notifications-s14.js
           node --check app/public/notification-push-s14.js
           node --check app/public/notification-center-s15.js
+          node --check app/public/wa-shell-integration.js
           node --check app/public/phase2-service-worker.js
           node --check app/public/wa-human-alerts.js
       - name: Historical S12 safety contract

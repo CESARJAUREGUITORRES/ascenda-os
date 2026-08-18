@@ -6,6 +6,7 @@ on:
       - 'app/push-notifications-s14.js'
       - 'app/package.json'
       - 'app/public/notification-push-s14.js'
+      - 'app/public/wa-shell-integration.js'
       - 'app/public/wa-human-alerts.js'
       - 'app/public/phase2-service-worker.js'
       - 'app/public/icons/channel-whatsapp.svg'
@@ -23,6 +24,7 @@ on:
       - 'app/push-notifications-s14.js'
       - 'app/package.json'
       - 'app/public/notification-push-s14.js'
+      - 'app/public/wa-shell-integration.js'
       - 'app/public/wa-human-alerts.js'
       - 'app/public/phase2-service-worker.js'
       - 'supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql'
@@ -51,6 +53,7 @@ jobs:
           node --check app/server-f17.js
           node --check app/push-notifications-s14.js
           node --check app/public/notification-push-s14.js
+          node --check app/public/wa-shell-integration.js
           node --check app/public/wa-human-alerts.js
           node --check app/public/phase2-service-worker.js
       - name: Historical S12 safety contract
