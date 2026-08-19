@@ -1,46 +1,48 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / TEMPORARY HOTFIX-2  
-**Owner assignment:** 2026-08-18 Lima — correct Wilmer scheduling semantics + late Marketing attribution  
-**Previous lock:** `REV-F5-CLOSEOUT` — RECOVERABLE PAUSE  
-**ACTIVE LOCK:** `HOTFIX-WILMER-AGENDA-MARKETING-2-20260818`  
-**NEXT LOCK:** `REV-F5-CLOSEOUT` immediately after production certification.
+**Status:** CURRENT / REV-F5 REACTIVATED  
+**Owner assignment:** 2026-08-18 Lima — resume definitive REV-F5 closeout  
+**Certified hotfix merge:** `main@d260a5e060e840d8db6baca9581bbc5386539d10` / PR #284  
+**Previous lock:** `HOTFIX-WILMER-AGENDA-MARKETING-2-20260818` — CLOSED / PRODUCTION CERTIFIED  
+**ACTIVE LOCK:** `REV-F5-CLOSEOUT`  
+**NEXT LOCK:** `UNASSIGNED` until REV-F5 is production-certified.
 
-## Owner authorization
+## Hotfix-2 certification
 
-The owner explicitly requested correction of Wilmer's 2026-08-18 calls/citas so Agenda remains intact while non-commercial scheduling stops inflating Calls/Home, and requested strengthening `Agenda manual first → Marketing lead later → no call` attribution. This authorizes the temporary recoverable pause required by the one-mutable-workstream rule.
+Canonical evidence:
 
-## REV-F5 frozen checkpoint
+- `docs/control/REV_F5_PAUSE_CHECKPOINT_20260818_WILMER_AGENDA_HOTFIX2.md`;
+- `docs/control/WILMER_AGENDA_SEMANTICS_HOTFIX2_CERT_20260818.md`;
+- migration `wilmer_agenda_semantics_hotfix2_20260818`;
+- migration `late_lead_agenda_origin_marketing_fix_20260818`;
+- PR #284 merged at `d260a5e060e840d8db6baca9581bbc5386539d10`.
 
-Canonical checkpoint: `docs/control/REV_F5_PAUSE_CHECKPOINT_20260818_WILMER_AGENDA_HOTFIX2.md`.
+Certified business semantics:
 
-Production Supabase immediately before handoff:
+- 12 Wilmer scheduling/reagenda rows from 2026-08-18 were removed from `aos_llamadas` after full JSON audit archival;
+- all 12 corresponding Agenda rows remain intact;
+- 9 classified `PACIENTE_CONTINUIDAD`, 3 `REAGENDA_NO_COMERCIAL`;
+- the two later cases `910303293` and `982093872` remain as valid Agenda reagendas and retain direct Marketing lead attribution;
+- future continuation/reagenda confirmations are archived as non-commercial and suppressed from `aos_llamadas`, preventing Home/Calls/Marketing KPI inflation;
+- Agenda/CITA_MANUAL created before a unique same-day Marketing lead, with no registered call and no prior clinical conversion, receives direct Agenda attribution only; no call is fabricated;
+- one deterministic historical Mireya Agenda-only late-lead case (`935740326` → lead 4610) was reconciled.
 
-- source manifests: **6**;
-- expected rows: **15,498**;
-- source rows persisted: **7,064**;
-- identity clusters: **3,950**;
-- members: **0**;
-- preview: **0**;
-- apply events: **0**;
-- patients: **7,679**;
-- temporary F5 transport rows: **0**.
+## REV-F5 resume state
 
-## Hotfix isolation
+Production Supabase remained unchanged through hotfix-2:
 
-This hotfix may mutate only Calls / Agenda / Marketing classification, attribution, KPI semantics, and audit evidence. It must not mutate F5 source rows, clusters/members, preview/apply tables, patient canonical data, or historical source files.
+- source batches: **6**;
+- expected source rows: **15,498**;
+- `aos_f5_patient_source_rows_v1`: **7,064**;
+- remaining source rows: **8,434**;
+- `aos_f5_identity_clusters_v1`: **3,950**;
+- `aos_f5_identity_cluster_members_v1`: **0**;
+- `aos_f5_patient_link_preview_v1`: **0**;
+- `aos_f5_canonical_apply_events_v1`: **0**;
+- `aos_pacientes`: **7,679**.
 
-## Required hotfix gates
-
-1. Verify all Wilmer 2026-08-18 `CITA CONFIRMADA` rows against Agenda and patient/lead history.
-2. Preserve valid Agenda rows.
-3. Mark/exclude non-commercial scheduling/reagenda events from Calls/Home commercial KPIs without destroying auditability.
-4. Protect future patient-continuation/reagenda scheduling from commercial KPI inflation.
-5. Reconcile manual Agenda created before a same-day Marketing lead, with no registered call, by attaching direct lead attribution to Agenda only; never fabricate a call.
-6. Validate Marketing, Calls, Home and Agenda read-backs.
-7. Verify REV-F5 counts unchanged.
-8. Restore `ACTIVE LOCK: REV-F5-CLOSEOUT` immediately.
+Resume REV-F5 from **7,064/15,498**, reconciling persisted state before any retry. Never restart from the obsolete 1,000-row snapshot.
 
 ## Global rule
 
-At most one HIGH/CRITICAL mutable workstream may operate at a time. CIA, WA, SEN, K1, PARITY and REV-F5 remain read-only while this hotfix owns the lock.
+At most one HIGH/CRITICAL mutable workstream may operate at a time. While `REV-F5-CLOSEOUT` owns the lock, Calls/Agenda/Marketing remains regression-only unless another explicit recoverable pause is authorized.
