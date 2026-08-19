@@ -1,215 +1,186 @@
 ---
 name: skill-clinica-crm
-description: Lógica de negocio específica de clínicas estéticas y wellness para AscendaOS. Usar cuando se construyan módulos de call center, pacientes, citas, ventas, comisiones o seguimientos. Contiene el modelo de datos, terminología, flujos operativos y reglas de negocio validadas con Zi Vital (Lima, Perú).
+description: Lógica de negocio específica de clínicas estéticas y wellness para AscendaOS. Usar cuando se construyan módulos de call center, pacientes, citas, ventas, comisiones o seguimientos. Contiene modelo de datos, terminología, flujos operativos y reglas de negocio validadas para la implementación clínica de referencia.
 ---
 
-# Clínica CRM — AscendaOS / Zi Vital
+# Clínica CRM — AscendaOS / implementación de referencia
 
 ## CONTEXTO DEL NEGOCIO
 
-**Cliente piloto:** Zi Vital — clínica de estética y wellness
-**Sedes:** San Isidro y Pueblo Libre (Lima, Perú)
-**Equipo:** 1 Admin (César) + 4 Asesoras (Wilmer, Ruvila, Mireya, Carmen)
-**Credenciales:**
-```
-ZIV-001 ADMIN  cesar123
-ZIV-002 ASESOR ruvila123
-ZIV-003 ASESOR mireya123
-ZIV-004 ASESOR wilmer123
-ZIV-005 ASESOR carmen123
-```
+La implementación de referencia opera múltiples sedes y perfiles (administración, asesoría, recepción y personal clínico). **Nunca almacenar credenciales reales, contraseñas, tokens o secretos en skills, prompts, README, ejemplos o memoria versionada.** Las credenciales pertenecen exclusivamente a los mecanismos de autenticación/secret manager autorizados.
 
-## TAXONOMÍA DE BASES (3 dimensiones aprobadas)
+## IDENTIDAD CANÓNICA DEL PACIENTE — REGLA MADRE
 
-```
-DIM1 — ESTADO del lead/paciente:
-  Virgen          → nunca contactado, nunca tuvo cita
-  SinContacto     → contactado antes pero sin respuesta reciente
-  Contactado      → se habló pero sin cita agendada
-  ConCita         → tiene cita programada
-  PacienteActivo  → vino al menos una vez, sigue activo
-  Inactivo        → más de 90 días sin actividad
-  Provincia       → fuera de Lima, no viable
-  Retirado        → pidió no ser contactado
-  ConAdelanto     → pagó adelanto, espera servicio
+La identidad comercial/operativa ya no debe depender únicamente de `numero_limpio`.
 
-DIM2 — ORIGEN del lead:
-  Campaña         → viene de campaña de marketing pagada
-  Tratamiento     → interés en tratamiento específico
-  Orgánico        → referido o búsqueda orgánica
-  MesIngreso      → clasificación temporal
-  BaseAntigua     → lead de más de 6 meses
-  PacientesHistóricos → atendidos antes, potencial recompra
+Modelo objetivo:
 
-DIM3 — AGENDA:
-  Asistió         → vino a su cita
-  NoAsistió       → no se presentó
-  Canceló         → canceló con aviso
-  CitaPendiente   → tiene cita futura
-  ConVentaEnCita  → vino y compró
-  ControlRecurrente → cita de seguimiento de tratamiento
-```
+`identificador de entrada → evidencia/alias gobernado → canonical_patient_id → historial/timeline`
+
+Reglas:
+
+- `canonical_patient_id` es el sujeto estable una vez certificado REV-F5;
+- `numero_limpio/contact_key` sigue siendo útil para búsqueda/importación/compatibilidad;
+- un paciente puede conservar múltiples teléfonos históricos como aliases;
+- mismo nombre **no** implica misma persona;
+- mismo teléfono **no** implica misma persona;
+- teléfono aproximado o numéricamente cercano nunca es evidencia de identidad;
+- mismo nombre+apellido+teléfono+documento exactos y sin conflictos puede ser candidato de máxima confianza, pero la fusión física sigue gobernada y reversible;
+- mismo documento con teléfono cambiado puede ser evidencia fuerte, pero requiere reglas de compatibilidad/revisión;
+- conflicto de DNI/DOB/sexo o identifier ya asignado a otro paciente bloquea auto-merge;
+- filas absorbidas/fusionadas conservan provenance y aliases históricos;
+- CIA, WA, F6, Patient 360 e importadores consumen la misma identidad F5; no crean otra verdad de cliente.
+
+Contratos actuales:
+
+- `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`
+- `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md`
+- `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`
+
+## TAXONOMÍA DE BASES
+
+### DIM1 — ESTADO operativo del lead/paciente
+
+- Virgen → nunca contactado, nunca tuvo cita.
+- SinContacto → contactado antes pero sin respuesta reciente.
+- Contactado → se habló pero sin cita agendada.
+- ConCita → tiene cita programada.
+- PacienteActivo → vino al menos una vez, sigue activo.
+- Inactivo → sin actividad según la ventana vigente.
+- Provincia → fuera del ámbito operativo definido.
+- Retirado → pidió no ser contactado.
+- ConAdelanto → existe evidencia de adelanto; **no equivale automáticamente a deuda/saldo**.
+
+### DIM2 — ORIGEN
+
+- Campaña.
+- Tratamiento/interés.
+- Orgánico/referido.
+- MesIngreso.
+- BaseAntigua.
+- PacientesHistóricos.
+
+### DIM3 — AGENDA
+
+- Asistió.
+- NoAsistió.
+- Canceló.
+- CitaPendiente.
+- ConVentaEnCita.
+- ControlRecurrente.
+
+## CUSTOMER LIFECYCLE REV-F6
+
+El lifecycle analítico es independiente de los estados operativos anteriores y se deriva de hechos certificados:
+
+- `NEW_PATIENT`
+- `RETURNING_PATIENT`
+- `HISTORICAL_REACTIVATED`
+- `ACTIVE_REPEAT`
+- `DORMANT`
+- `UNRESOLVED_IDENTITY`
+
+Toda métrica inferida debe exponer, cuando aplique: `coverage`, `confidence`, `freshness`, `sample_size` y período observado.
 
 ## SEMÁNTICA DE CAMPAÑA VS TRATAMIENTO
 
-```
-CAMPAÑA (campo marketing):
-  = LEAD_COL.TRAT = LLAM_COL.TRATAMIENTO
-  = tipo de campaña que capturó el lead
-  Valores: HIFU, ENZIMAS FACIALES, CAPILAR, HIDROFACIAL, etc.
-  → Es el gancho que usó marketing para atraer al lead
+**CAMPAÑA** = gancho/origen de marketing que captó el lead.  
+**TRATAMIENTO** = servicio realmente vendido/aplicado.
 
-TRATAMIENTO (campo clínico):
-  = VENT_COL.TRATAMIENTO
-  = servicio realmente aplicado en clínica
-  → Puede ser distinto a la campaña de origen
-  
-⚠️ NUNCA mezclar estos dos campos en cálculos de conversión
-```
+Nunca mezclar ambos campos en cálculos de conversión o producto real. REV-F3 es la autoridad de producto canónico de ventas; CIA es la autoridad de adquisición/atribución gobernada.
 
 ## DEFINICIÓN DE CONVERSIÓN
 
-```
-Un lead se considera CONVERTIDO cuando:
-  → Tuvo su PRIMERA cita en el período analizado
-  → O tiene un VENTA_ID vinculado a su número
+Una conversión debe estar respaldada por evidencia explícita del funnel correspondiente (por ejemplo cita/venta), con período y denominador definidos. No atribuir ventas a campañas mediante coincidencia ilimitada de teléfono.
 
-La tasa de conversión = convertidos / total leads del período
-```
+## LÓGICA MADRE DE CALL CENTER
 
-## LÓGICA MADRE DE CALL CENTER (8 pasos — columna vertebral)
+Priorización base:
 
-```
-El call center opera con esta priorización diaria:
+1. Vírgenes mes actual.
+2. No asistió cita reciente.
+3. Vírgenes históricos.
+4. Sin contacto mes actual.
+5. Canceló o reprogramó.
+6. Base antigua sin convertir.
+7. Pacientes activos/recompra según ventana.
+8. Sin contacto histórico.
 
-PASO 1: Vírgenes mes actual
-  → Leads nuevos que ingresaron este mes, nunca llamados
-  → Prioridad máxima: están "frescos"
-
-PASO 2: No asistió cita en últimas 2 semanas
-  → Tenían cita, no vinieron → oportunidad de re-agendado
-
-PASO 3: Vírgenes históricos
-  → Leads de meses anteriores nunca contactados
-  → Base de recuperación
-
-PASO 4: Sin contacto mes actual
-  → Leads que no recibieron llamada este mes
-
-PASO 5: Canceló o reprogramó
-  → Querían venir pero algo pasó → segundo intento
-
-PASO 6: Base antigua sin convertir
-  → Más de 6 meses sin convertir → último intento
-
-PASO 7: Pacientes activos recompra 90 días
-  → Vinieron hace ~90 días → proponer siguiente tratamiento
-
-PASO 8: Sin contacto histórico
-  → Base fría, último recurso del día
-
-ANTI-DUPLICADO DIARIO:
-  CacheService key: COLA_HOY_[ASESOR]_[FECHA]
-  → Cada asesor no recibe el mismo lead dos veces en el día
-
-DISTRIBUCIÓN:
-  PropertiesService key: DIST_CONFIG_[ASESOR_NORM]
-  → Configura cuántos de cada tipo recibe cada asesor
-```
+El anti-duplicado diario de cola no sustituye la identidad canónica del paciente.
 
 ## TIPIFICACIONES DE LLAMADA
 
-```
-CONTACTADO_INTERESADO    → habló, quiere agendar
-CONTACTADO_NO_INTERESADO → habló, no le interesa ahora
-NO_CONTESTA             → llamada sin respuesta
-BUZÓN                   → llegó a buzón de voz
-NÚMERO_EQUIVOCADO       → dato incorrecto en base
-CITA_AGENDADA           → éxito: tiene cita
-REAGENDADO              → tenía cita, se movió a nueva fecha
-CANCELÓ                 → canceló definitivamente
-VOLVER_A_LLAMAR         → pidió que llamen en otro momento
-PROVINCIA               → confirmado fuera de Lima
-```
+- CONTACTADO_INTERESADO
+- CONTACTADO_NO_INTERESADO
+- NO_CONTESTA
+- BUZÓN
+- NÚMERO_EQUIVOCADO
+- CITA_AGENDADA
+- REAGENDADO
+- CANCELÓ
+- VOLVER_A_LLAMAR
+- PROVINCIA
 
-## SEGUIMIENTOS PROGRAMADOS POR TRATAMIENTO
+## SEGUIMIENTOS PROGRAMADOS
 
-```
-Toxina botulínica    → recontactar a los 4-6 meses
-Ácido hialurónico   → recontactar a los 12-18 meses
-HIFU                → recontactar a los 12 meses
-Productos con dosis → calcular fin = (unidades / dosis_diaria) días
-                      alertar X días antes de fecha fin
-```
+Las ventanas de recompra/recontacto por tratamiento son reglas comerciales configurables y deben derivarse del producto/tratamiento canónico y de la última evidencia real, no de texto libre cuando exista F3.
 
-## HISTORIA CLÍNICA MINSA (campos obligatorios)
+## HISTORIA CLÍNICA / PRIVACIDAD
 
-```
-Identificación: DNI, nombre completo, fecha_nac, sexo, estado_civil,
-                ocupación, distrito, dirección, contacto_emergencia
-
-Antecedentes: alergias, enfermedades_crónicas, medicamentos_actuales,
-              cirugías_previas, tratamientos_estéticos_previos,
-              queloides (sí/no), implantes (tipo/ubicación)
-
-Campos para mujer: embarazo, lactancia, anticonceptivos, fecha_última_menstruación
-
-Hábitos: tabaco, alcohol, ejercicio, hidratación, protector_solar
-
-Consentimiento: obligatorio por procedimiento, firma digital o física
-```
+Identificación y campos clínicos sensibles requieren rol/política correspondiente. Notas clínicas, alergias, evaluaciones, imágenes y PHI no se exponen automáticamente a asesores, CIA o WA porque el Patient 360 comercial pueda resolver la identidad.
 
 ## ROLES Y PERMISOS
 
-```
-ADMIN:      todo + delete + merge pacientes + ver todas las sedes
-ASESOR:     lectura + notas_ventas + crear_citas + su propia cartera
-RECEPCIÓN:  citas + notas_recepción + ver datos básicos
-DOCTOR:     notas_médicas + recetas + historia_clínica_completa + descuentos
-ENFERMERO:  notas_enfermería + receta_enfermería + plan_cuidados
-```
+- ADMIN: administración y acciones críticas según auth/2FA y políticas.
+- ASESOR: contexto comercial permitido, citas/notas comerciales y cartera asignada.
+- RECEPCIÓN: agenda y datos básicos según política.
+- DOCTOR/ENFERMERÍA: módulos clínicos según rol y regulación.
 
-## TIPOS DE PDF
+**Patient merge = CRITICAL.** Requiere admin+2FA, dry-run, evidencia, audit event, canary y rollback/recovery. Nunca autorizar por UI/browser role solamente.
 
-```
-1. Comprobante de compra    → QR + código interno + datos de venta
-2. Cotización editable      → presupuesto para el paciente
-3. Receta médica            → requiere CMP del doctor
-4. Receta enfermería        → requiere registro técnico/licenciado
-```
+## SCORE / RECENCIA
 
-## SCORE DE PACIENTE
+Los umbrales operativos históricos (por ejemplo 90/180 días) pueden usarse como defaults, pero REV-F6 debe versionarlos, mostrar el `as_of` y separar lifecycle analítico de etiquetas operativas legacy.
 
-```
-ACTIVO:   última visita < 90 días
-RIESGO:   última visita 90-180 días
-INACTIVO: última visita > 180 días
+## FUNNEL DE CONVERSIÓN — MODELO ACTUALIZADO
 
-Campo: PACIENTES.SCORE_ESTADO + PACIENTES.DIAS_ULTIMA_VISITA
-Alerta visual: verde / amarillo / rojo en ficha del paciente
-```
+Preferir enlaces explícitos y canonical identity:
 
-## FUNNEL DE CONVERSIÓN
+`LEAD → lead_id_origen → LLAMADA → llamada_id_origen → AGENDA → venta_id_match/IDs explícitos → VENTA → F3 PRODUCTO → F4 REVENUE`
 
-```
-LEADS → join LLAMADAS (por NUMERO_LIMPIO) 
-      → join AGENDA_CITAS (por numero)
-      → join VENTAS (por NUMERO_LIMPIO)
+F5 resuelve el `canonical_patient_id` transversal.
 
-KPIs clave:
-  tasa_contacto    = contactados / total_leads
-  tasa_cita        = citas_agendadas / contactados  
-  tasa_asistencia  = asistidos / citas_agendadas
-  tasa_conversión  = ventas / asistidos
-  ticket_promedio  = total_ventas / cantidad_ventas
-```
+`numero_limpio` queda como fallback/compatibility bridge, no como prueba de identidad ni atribución por sí solo.
 
-## VERTICALES FUTUROS — ADAPTACIONES CLAVE
+KPIs deben definir claramente numerador, denominador, período, cobertura y fuente.
 
-```
-AscendaNails:    sin historia clínica MINSA, agenda por técnica
-AscendaLegal:    pacientes → clientes/casos, citas → audiencias
-AscendaPsych:    historia clínica psicológica, sesiones recurrentes
-AscendaBarber:   sin historial médico, servicios rápidos, fidelización
-AscendaEcommerce: sin agenda, pipeline de ventas, seguimiento pedidos
-```
+## PATIENT COMMERCIAL 360
+
+Evolucionar el panel existente `app/public/patients.html`; no crear un segundo patient master.
+
+Objetivo V2:
+
+- canonical identity + aliases históricos;
+- timeline lead/call/WA/agenda/sale/product/payment;
+- lifecycle;
+- revenue observado con cobertura temporal;
+- identity confidence;
+- coverage/freshness/sample-size para inteligencia;
+- duplicate/merge audit state;
+- separación estricta entre contexto comercial y PHI clínica.
+
+## SENTINEL — DATA INTEGRITY
+
+Sentinel debe poder observar invariantes agregados de identidad/revenue sin PII, según `docs/control/SENTINEL_DATA_INTEGRITY_SIGNALS_CONTRACT.md`, incluyendo source mismatch, member mismatch, identity collision, apply sin governance, sale/product orphan y reconciliation orphan.
+
+## VERTICALES FUTUROS
+
+Al adaptar a otros verticales, conservar la separación entre:
+
+- identidad canónica;
+- eventos/operación;
+- producto/servicio;
+- dinero/revenue;
+- lifecycle/inteligencia;
+- activación/canales;
+- observabilidad.

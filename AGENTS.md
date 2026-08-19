@@ -16,6 +16,7 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 8. the CURRENT Control Maestro / phase checkpoint of **one selected project only**
 9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
 10. for Revenue F5 / identity / historical data work, `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`
+11. for F5→F6 identity/Patient 360 work, `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`, `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`, `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md` and `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`.
 
 Historical documents may contain useful context, but they do not override CURRENT.
 
@@ -192,11 +193,21 @@ Requires Zero-Cost certificate, negative tests, read-only production preflight, 
 - production is not a test environment;
 - every HIGH/CRITICAL data gate follows Persistence Triple-Proof.
 
-### Identifiers
+### Patient identity / duplicate resolution
 
-Treat `numero_limpio/contact_key` as a transversal bridge until an explicitly certified canonical identity supersedes it. Identity changes require cross-domain impact review.
+- `canonical_patient_id` is the durable identity target once REV-F5 certifies it;
+- `numero_limpio/contact_key` remains an import/search/compatibility bridge, never sole merge authority;
+- preserve old/current phones, emails and source-scoped IDs as governed aliases when identity is proven;
+- same name alone never merges patients;
+- same phone alone never merges patients;
+- approximate/numeric-near phone values are **not** identity evidence; heuristics such as phone `±3` are prohibited;
+- exact normalized name+surname+phone+valid document with zero strong conflicts may be `AUTO_ELIGIBLE_EXACT`, but physical consolidation still requires governed admin+2FA, dry-run, canary, audit and rollback;
+- strong evidence with changed phone/name formatting routes to `REVIEW_STRONG` unless already verified;
+- conflicting valid documents/DOB/sex or an identifier mapped to another canonical patient routes to `BLOCK_CONFLICT`;
+- absorbed profiles/identifiers remain provenance/aliases; do not erase history;
+- the legacy `aos_fusionar_pacientes` and `aos_duplicados_paciente` must not become F5 batch authority without dependency/security/versioning audit.
 
-For patients/customers, F5 governed identity/provenance is the canonical resolution layer. CIA, WA, F6 and future historical-sales imports must not create competing customer identity truth. Phone equality alone is never merge authority.
+F5 governed identity/provenance is the canonical patient resolution layer. CIA, WA, F6, Patient 360 and historical-sales imports must not create competing customer identity truth.
 
 ### RPC
 
@@ -206,7 +217,7 @@ Before modifying an RPC: identify reads/writes, callers, SECURITY DEFINER/search
 
 Root `SECURITY.md` is authoritative.
 
-Never commit/log/print real passwords, API keys, service-role keys or provider tokens. Never put service credentials in browser code. Never trust browser-supplied role/permission as authority. Never grant agents arbitrary production write SQL. Never weaken a control just to make CI green.
+Never commit/log/print real passwords, API keys, service-role keys or provider tokens. Never store real credentials in skills, examples, README files, prompts or agent memory. Never put service credentials in browser code. Never trust browser-supplied role/permission as authority. Never grant agents arbitrary production write SQL. Never weaken a control just to make CI green.
 
 Secrets come from environment/vault/secret manager. Removing an exposed secret from HEAD does not replace provider-side rotation/revocation.
 
@@ -218,19 +229,21 @@ CIA owns provider-neutral Audience/Activation/channel governance and F17/F18 rea
 A Meta canary may provide evidence to both, but closing CIA-F17 does not close WA1/WA4 and vice versa.
 
 ### Revenue
-Revenue F5 owns historical patient/source identity and canonical enrichment review. Do not run it concurrently with channel/runtime releases.
+Revenue F5 owns historical patient/source identity, duplicate resolution and canonical enrichment review. Do not run it concurrently with channel/runtime releases.
 
 Canonical Revenue responsibility:
 
 - REV-F3 = product/service identity for sales;
 - REV-F4 = payment/revenue/cartera/reconciliation truth;
-- REV-F5 = historical patient identity + provenance + governed canonical enrichment;
-- REV-F6 = intelligence derived from certified F3/F4/F5 facts.
+- REV-F5 = historical patient identity + provenance + duplicate resolution + governed canonical enrichment;
+- REV-F6 = Patient Commercial 360/read-model intelligence derived from certified F3/F4/F5 facts.
 
 Historical 2024–2025 transaction imports must reuse those domains rather than create a new product/customer/revenue model. See `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`.
 
+The existing Patient 360 (`app/public/patients.html` / `aos_paciente_360`) must be evolved, not duplicated. V2 resolves lookup identifiers through canonical identity/aliases before aggregating history.
+
 ### Sentinel
-Sentinel SEN-F1..F13 is closed. Run regressions as sensors for other projects; reopen Sentinel only on a demonstrated Sentinel regression.
+Sentinel SEN-F1..F13 is closed. Run regressions as sensors for other projects; reopen Sentinel only on a demonstrated Sentinel regression or explicit maintenance handoff. Data-integrity signals use `docs/control/SENTINEL_DATA_INTEGRITY_SIGNALS_CONTRACT.md`: aggregate/zero-PII observation only; Sentinel never silently repairs business data.
 
 ### KronIA
 KronIA is K0–K8. CIA-F15 Tool Registry + Agent Registry SHADOW + Policy Gate are canonical reusable inputs. Do not build a second incompatible registry. Fresh K1 starts from CURRENT when it receives the portfolio lock; historical K1 PRs are evidence-only.
@@ -294,7 +307,7 @@ No chat should reconstruct a project from informal memory when these sources exi
 
 ## Prohibitions
 
-Do not run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastructure; experiment in production; broad DROP/TRUNCATE/DELETE for convenience; force-push production history; blind-rewrite migration history; copy secrets between environments; use real Zi Vital data as generic SaaS seed; hide failing tests; infer project closure from sibling certificates; infer data persistence from tool output alone; certify a phase whose live post-conditions are not present; or revive stale branches without CURRENT revalidation.
+Do not run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastructure; experiment in production; broad DROP/TRUNCATE/DELETE for convenience; force-push production history; blind-rewrite migration history; copy secrets between environments; use real Zi Vital data as generic SaaS seed; hide failing tests; infer project closure from sibling certificates; infer data persistence from tool output alone; certify a phase whose live post-conditions are not present; merge patient identities from name/phone/approximate-phone alone; or revive stale branches without CURRENT revalidation.
 
 ## Long-term objective
 
