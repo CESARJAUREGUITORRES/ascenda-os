@@ -22,9 +22,8 @@ create unique index if not exists aos_f5_one_active_field_apply_v2
   on public.aos_f5_canonical_apply_events_v1(cluster_id,field_name)
   where field_name is not null and rolled_back_at is null;
 
--- Final conservative field policy for REV-F5.6.
--- Only LOW-risk profile fields are eligible for this phase. Identity anchors,
--- potentially stale profile data and semantically unresolved mappings stay blocked.
+-- Existing risk-class contract is intentionally preserved:
+-- LOW / MEDIUM / IDENTITY_ANCHOR / BLOCKED.
 insert into public.aos_f5_apply_field_policy_v1(field_name,risk_class,apply_allowed,notes)
 values
   ('Sexo','LOW',true,'REV-F5.6 fill-only after explicit field review; canonical must still be empty'),
@@ -34,22 +33,21 @@ values
   ('Email','IDENTITY_ANCHOR',false,'Blocked in REV-F5.6; identity anchor requires a later dedicated contract'),
   ('N° documento','IDENTITY_ANCHOR',false,'Blocked in REV-F5.6; identity anchor requires a later dedicated contract'),
   ('Teléfono','IDENTITY_ANCHOR',false,'Blocked in REV-F5.6; identity/contact anchor requires a later dedicated contract'),
-  ('Fecha de nacimiento','IDENTITY_SENSITIVE',false,'Blocked in REV-F5.6; identity-sensitive field'),
-  ('Dirección','STALE_PROFILE',false,'Blocked in REV-F5.6; historical address may be stale'),
-  ('Ocupación','STALE_PROFILE',false,'Blocked in REV-F5.6; historical occupation may be stale'),
-  ('FUENTE','SEMANTIC_UNMAPPED',false,'Blocked until historical acquisition-channel mapping is contractually defined'),
-  ('fuente_datos','SEMANTIC_UNMAPPED',false,'Blocked until historical acquisition-channel mapping is contractually defined'),
-  ('ULTIMA_VISITA','SEMANTIC_UNMAPPED',false,'Blocked until latest-appointment canonical semantics are defined'),
-  ('ult_visita','SEMANTIC_UNMAPPED',false,'Blocked until latest-appointment canonical semantics are defined'),
-  ('NOTAS','CLINICAL_EXCLUDED',false,'Clinical/free-text notes are excluded from automatic commercial enrichment'),
-  ('Alergias','CLINICAL_EXCLUDED',false,'Clinical allergy data is excluded from automatic commercial enrichment')
+  ('Fecha de nacimiento','BLOCKED',false,'Blocked in REV-F5.6; identity-sensitive field'),
+  ('Dirección','MEDIUM',false,'Blocked in REV-F5.6; historical address may be stale'),
+  ('Ocupación','MEDIUM',false,'Blocked in REV-F5.6; historical occupation may be stale'),
+  ('FUENTE','BLOCKED',false,'Blocked until historical acquisition-channel mapping is contractually defined'),
+  ('fuente_datos','BLOCKED',false,'Blocked until historical acquisition-channel mapping is contractually defined'),
+  ('ULTIMA_VISITA','BLOCKED',false,'Blocked until latest-appointment canonical semantics are defined'),
+  ('ult_visita','BLOCKED',false,'Blocked until latest-appointment canonical semantics are defined'),
+  ('NOTAS','BLOCKED',false,'Clinical/free-text notes are excluded from automatic commercial enrichment'),
+  ('Alergias','BLOCKED',false,'Clinical allergy data is excluded from automatic commercial enrichment')
 on conflict (field_name) do update
 set risk_class=excluded.risk_class,
     apply_allowed=excluded.apply_allowed,
     notes=excluded.notes,
     updated_at=now();
 
--- Refresh the F5.5 policy snapshot without changing proposed values or provenance.
 update public.aos_f5_enrichment_preview_v1 e
 set policy_state=case when fp.apply_allowed then 'APPLY_ALLOWED' else 'POLICY_BLOCKED' end,
     policy_risk_class=fp.risk_class,
@@ -364,8 +362,6 @@ begin
 end
 $$;
 
--- Browser roles never receive mutation capability. Service role remains the sole transport;
--- the functions themselves additionally require an active PASSWORD_2FA admin session.
 revoke all on function public.aos_f5_assert_active_admin_2fa_v2(uuid) from public,anon,authenticated;
 revoke all on function public.aos_f5_review_enrichment_field_v2(uuid,text,uuid,timestamptz,text,text) from public,anon,authenticated;
 revoke all on function public.aos_f5_apply_enrichment_field_v2(uuid,text,uuid,timestamptz,text,text) from public,anon,authenticated;
@@ -375,11 +371,10 @@ grant execute on function public.aos_f5_review_enrichment_field_v2(uuid,text,uui
 grant execute on function public.aos_f5_apply_enrichment_field_v2(uuid,text,uuid,timestamptz,text,text) to service_role;
 grant execute on function public.aos_f5_rollback_enrichment_field_v2(uuid,uuid,text) to service_role;
 
--- Freeze legacy mutators behind service role; F5.6 certification uses only v2 field functions.
+-- Legacy mutators stay server-only; REV-F5.6 certification uses v2 field functions.
 revoke all on function public.aos_f5_review_decision_v1(uuid,uuid,text,text,timestamptz) from public,anon,authenticated;
 revoke all on function public.aos_f5_apply_reviewed_patch_v1(uuid,uuid,timestamptz,text) from public,anon,authenticated;
 revoke all on function public.aos_f5_rollback_apply_v1(uuid,uuid,text) from public,anon,authenticated;
-
 grant execute on function public.aos_f5_review_decision_v1(uuid,uuid,text,text,timestamptz) to service_role;
 grant execute on function public.aos_f5_apply_reviewed_patch_v1(uuid,uuid,timestamptz,text) to service_role;
 grant execute on function public.aos_f5_rollback_apply_v1(uuid,uuid,text) to service_role;
