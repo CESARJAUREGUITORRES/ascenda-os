@@ -2,18 +2,19 @@
 
 **Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
 **Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
-**Loop-2 functional merge:** `63e7cefe4c0845aa87f0da59419aea0cee5afe0b` / PR #288  
+**Loop-3 entry main:** `3f42a8cdce3f45b32b641874bdfe8f1155a7c05c`  
 **Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
 **NEXT LOCK:** `REV-F5-CLOSEOUT` after MKT Integrity production certification and handback.
 
 ## Roadmap execution state
 
-- LOOP 1 — Control / freeze / BEFORE package: **PASS** (PR #287 / `d2113e6e5be91210e111a33813f6d8167b1eb54e`).
-- LOOP 2 — Marketing V3 Shadow: **PASS** (functional PR #288 / `63e7cefe4c0845aa87f0da59419aea0cee5afe0b`; final post-merge readback certified).
-- LOOP 3 — Acquisition V2↔V3 parity: **NOT STARTED**.
+- LOOP 1 — Control / freeze / BEFORE package: **PASS**.
+- LOOP 2 — Marketing V3 Shadow: **PASS**.
+- LOOP 3 — Acquisition V2↔V3 parity: **PASS_PENDING_FINAL_MERGE_READBACK**.
+- LOOP 4 — Deterministic late-lead backfill: **NOT STARTED**.
 
-Loops execute sequentially. Do not begin Loop 3 until explicitly invoked.
+Loops execute sequentially. Do not begin Loop 4 automatically.
 
 ## REV-F5 recoverable pause
 
@@ -35,82 +36,106 @@ Loop-1 canonical recovery hashes:
 - source rows: `62b8fbedaa5da450a38c2471dd23b6b9`
 - clusters: `2d39d9ac990fee61a7ecb6ffa52efb64`
 
-Loop 2 verified unchanged F5 counts and write timestamps older than the Loop-1 freeze. The exact Loop-1 hash serialization SQL was not persisted, so differently serialized ad-hoc hashes are not treated as drift. The original hashes above remain the canonical handback references.
+The exact Loop-1 hash serialization SQL was not persisted. Counts + high-water/write timestamps are the drift gate; the original hashes remain canonical references.
 
-## Loop 2 canonical artifacts
-
-- `docs/control/MKT_INTEGRITY_V3_LOOP2_IMPACT_REPORT_20260818.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP2_SHADOW_BASELINE_20260818.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP2_EXECUTION_REPORT_20260818.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP2_FINAL_READBACK_20260818.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP2_ROLLBACK_20260818.sql`
-- `supabase/migrations/20260819015100_mkt_integrity_v3_shadow_loop2.sql`
-- live migration `20260819015951_mkt_integrity_v3_shadow_loop2_20260818`.
-
-## V3 shadow objects
-
-Loop 2 created only read-path/service-role shadow functions:
-
-1. `aos_marketing_treatment_family_v3(text)`
-2. `aos_marketing_call_lead_match_v3_preview(date,date)`
-3. `aos_marketing_agenda_lead_match_v3_preview(date,date)`
-4. `aos_marketing_acquisition_customers_v3_preview()`
-5. `aos_marketing_attribution_v3_preview(date,date)`
-6. `aos_marketing_touchpoint_rollup_v3_preview(date,date)`
-7. `aos_marketing_leads_detalle_v3_paged(date,date,text,text,integer,integer)`
-8. `aos_marketing_leads_detalle_v3_summary(date,date,text,text)`
-
-All exact Loop-2 objects are restricted to `postgres` + `service_role`; no productive frontend was redirected.
-
-## Certified shadow baseline
+## Loop 2 shadow baseline preserved
 
 Acquisition:
 
-- V2 = **54** customers.
-- V3 shadow = **55** customers.
-- V3-only = exactly `973438607 → lead 2135`, method `NEAREST_PRIOR_FIRST_SALE`, confidence 55.
-- V2-only = 0.
+- V2 = 54
+- V3 shadow = 55
+- V3-only expected = `973438607 → lead 2135`
 
-Attribution 2026-01-01..2026-08-18:
+Attribution remains shadow-only:
 
-- V2 = **126 ops / S/45,158.70**.
-- V3 shadow = **173 ops / S/66,644.10**.
-- delta = **+47 ops / +S/21,485.40**.
+- V2 = 126 ops / S/45,158.70
+- V3 = 173 ops / S/66,644.10
+- delta = +47 ops / +S/21,485.40
 
-This Attribution delta is **not approved for production cutover**. It remains a parity/revenue subject for later loops.
+This Attribution delta is **not approved for production cutover**.
 
-Reference cases:
+## Loop 3 — Acquisition parity certification
 
-- `961780427`, call 32014 → prior CAPILAR lead `4650`, confidence 80.
-- `957549186`, call 35976 → no automatic lead; REVIEW/unresolved.
-- `992829013` → V3 exposes 2 first-sale-day ops / S1,018; remaining later sales require revenue semantics.
-- `998564399` → V3 exposes 4 ops / S1,567 without duplicate acquisition.
-- Mireya calls `37108` / `37110` remain deleted; restoration remains Loop 5.
+Canonical artifacts:
 
-## Loop 2 safety certification
+- `docs/control/MKT_INTEGRITY_V3_LOOP3_ACQUISITION_PARITY_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP3_EXECUTION_REPORT_20260818.md`
 
-Loop 2 performed:
+Parity result:
 
-- **0** INSERT/UPDATE/DELETE on `aos_llamadas`, `aos_agenda_citas`, `aos_leads`, `aos_ventas`;
-- **0** backfills;
+- V2 = **54**;
+- V3 = **55**;
+- shared V2∩V3 = **54**;
+- V2-only = **0**;
+- V3-only = exactly **1**, `973438607 → lead 2135`;
+- duplicate acquisitions = **0**;
+- post-sale-date lead attribution = **0**;
+- nearest-prior cases = exactly **1**, the expected `973438607` case;
+- all 54 shared rows have identical lead_id, lead date, treatment, ad, first-sale date, method and confidence;
+- V3 deterministic ordered hash = `3223caf0ec5d1b264c4494775c6f7d58`.
+
+Cohort parity by selected Marketing lead month:
+
+- JAN 9→9
+- FEB 5→5
+- MAR 9→10
+- APR 3→3
+- MAY 8→8
+- JUN 8→8
+- JUL 8→8
+- AUG 4→4
+
+Only delta = **March +1**, exactly `973438607`.
+
+## Additional acquisition `973438607`
+
+Chronology:
+
+1. lead 1150 — 2026-02-05 — HIFU;
+2. lead 2135 — 2026-03-11 — HIFU;
+3. first sale — 2026-03-12 — 2 ops / S/588.
+
+Before lead 2135 there are:
+
+- 0 prior sales;
+- 0 prior clinical attentions;
+- 0 attended/EFECTIVA appointments;
+- 0 prior Acquisition V2 rows.
+
+It is certified as a true acquisition, not reactivation/follow-up.
+
+## Control cases
+
+- `992829013`: remains exactly one acquisition in V2/V3; 2 first-sale-day ops / S/1,018, 5 total sales / S/2,467.
+- `998564399`: remains exactly one acquisition in V2/V3; 4 first-sale-day ops / S/1,567.
+- `961780427`: 0 acquisitions in both V2 and V3.
+- `957549186`: 0 acquisitions in both V2 and V3; no automatic acquisition inference.
+- Mireya calls `37108` / `37110`: still not restored; restoration remains Loop 5.
+
+## Loop 3 safety certification
+
+Loop 3 used read-only Supabase SELECT statements only and performed:
+
+- **0** business-table DML;
+- **0** Supabase DDL/migrations;
+- **0** late-lead backfills;
 - **0** Mireya restorations;
-- **0** V2 function-definition changes;
+- **0** V2 function changes;
+- **0** V3 function changes;
 - **0** frontend/Home/Monitoreo/Call Center changes;
 - **0** REV-F5 mutations.
 
-Business-table counts were identical immediately before DDL and at final readback: calls 35,296 / agenda 3,125 / leads 5,669 / sales 1,299.
-
-Rollback was compiled and executed transactionally before persistent application (`ROLLBACK_OK`); the permanent reverse-order schema-only rollback is stored in the Loop-2 rollback artifact.
+Productive Marketing frontend remains on its current non-V3 RPC path.
 
 ## Concurrency rule
 
-At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-INTEGRITY-HOTFIX-V3` owns the lock, REV-F5 and all other HIGH/CRITICAL workstreams are read/audit/documentation or regression-only.
+At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-INTEGRITY-HOTFIX-V3` owns the lock, REV-F5 and all other HIGH/CRITICAL workstreams remain read/audit/documentation or regression-only.
 
 ## Next sequential loop
 
-`LOOP 3 — PARITY ACQUISITION V2 ↔ V3`
+`LOOP 4 — BACKFILL LATE-LEAD DETERMINÍSTICO`
 
-Loop 3 has **not** started and requires explicit invocation.
+Loop 4 has **NOT STARTED** and requires explicit invocation after Loop-3 final merge/readback.
 
 ## Exit / handback
 
