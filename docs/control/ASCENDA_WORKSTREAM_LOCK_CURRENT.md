@@ -2,7 +2,7 @@
 
 **Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
 **Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
-**Loop-4 entry main:** `e6649515afa2e7aa3854d91a6594624cb084e0e2`  
+**Loop-4 merge:** `8151b82cb2a3f339db80af86aa16e49e63f067af` / PR #292  
 **Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
 **NEXT LOCK:** `REV-F5-CLOSEOUT` after MKT Integrity production certification and handback.
@@ -12,7 +12,7 @@
 - LOOP 1 — Control / freeze / BEFORE package: **PASS**.
 - LOOP 2 — Marketing V3 Shadow: **PASS**.
 - LOOP 3 — Acquisition V2↔V3 parity: **PASS**.
-- LOOP 4 — Deterministic late-lead backfill: **PASS_PENDING_FINAL_MERGE_READBACK**.
+- LOOP 4 — Deterministic late-lead backfill: **PASS**.
 - LOOP 5 — Mireya repair / inbound-manual semantics: **NOT STARTED**.
 
 Loops execute sequentially. Do not begin Loop 5 automatically.
@@ -43,16 +43,16 @@ Counts + high-water/write timestamps remain the operational drift gate.
 
 Acquisition:
 
-- V2 = 54
-- V3 = 55
-- V3-only = exactly `973438607 → lead 2135`
-- deterministic V3 hash = `3223caf0ec5d1b264c4494775c6f7d58`
+- V2 = **54**;
+- V3 = **55**;
+- V3-only = exactly `973438607 → lead 2135`;
+- deterministic V3 hash = `3223caf0ec5d1b264c4494775c6f7d58`.
 
 Attribution remains shadow-only:
 
-- V2 = 126 ops / S/45,158.70
-- V3 = 173 ops / S/66,644.10
-- delta = +47 ops / +S/21,485.40
+- V2 = **126 ops / S/45,158.70**;
+- V3 = **173 ops / S/66,644.10**;
+- delta = **+47 ops / +S/21,485.40**.
 
 This Attribution delta is **not approved for production cutover** and remains a Loop-9 subject.
 
@@ -63,6 +63,7 @@ Canonical artifacts:
 - `docs/control/MKT_INTEGRITY_V3_LOOP4_IMPACT_REPORT_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP4_BACKFILL_EVIDENCE_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP4_EXECUTION_REPORT_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP4_FINAL_READBACK_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP4_ROLLBACK_20260818.sql`
 - `supabase/backfills/20260818_mkt_integrity_v3_loop4_late_lead_backfill.sql`
 
@@ -88,21 +89,21 @@ Agenda-linked calls:
 
 `14828,15076,15468,30320,33358,36025`.
 
-Post-apply readback:
+Final post-merge readback at 2026-08-18 21:45:44 Lima:
 
-- exact calls = 24/24;
-- exact Agenda = 6/6;
-- call matcher = 24 × `DIRECT_LEAD_ID`;
-- Agenda matcher = 6 × `DIRECT_LEAD_ID`;
-- all 30 NO-ACTION candidates remained NULL;
-- Acquisition V2/V3 = 54/55;
-- V3-only unchanged;
-- duplicates = 0;
-- post-sale = 0;
+- exact calls = **24/24**;
+- exact Agenda = **6/6**;
+- call matcher = **24 × `DIRECT_LEAD_ID`**;
+- Agenda matcher = **6 × `DIRECT_LEAD_ID`**;
+- all **30** NO-ACTION candidates remained NULL;
+- Acquisition V2/V3 = **54/55**;
+- sole V3-only unchanged;
+- duplicates = **0**;
+- post-sale = **0**;
 - V3 hash unchanged;
 - Attribution V2/V3 unchanged;
 - `37108` / `37110` still absent;
-- second dry-run = 0 call updates / 0 Agenda updates;
+- second dry-run = **0 call updates / 0 Agenda updates**;
 - REV-F5 unchanged;
 - V2/V3 function definitions unchanged.
 
@@ -126,7 +127,7 @@ At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-I
 
 `LOOP 5 — REPARACIÓN MIREYA Y LLAMADAS INBOUND/MANUALES`
 
-Loop 5 is **NOT STARTED** and requires explicit invocation after Loop-4 final merge/readback.
+Loop 5 is **NOT STARTED** and requires explicit invocation.
 
 ## Exit / handback
 
