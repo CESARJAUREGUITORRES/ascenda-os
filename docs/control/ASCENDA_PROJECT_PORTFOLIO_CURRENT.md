@@ -1,69 +1,89 @@
 # ASCENDA OS — PROJECT PORTFOLIO CURRENT
 
-**Captured from control baseline:** `main@93fcc9a5171703ee6750f67c3c17373a323dc2ab`  
-**Runtime inherited:** S15.3 / `ce7ca6ee1326646f22e9f70ef51eb25e7f9d4189`  
-**ACTIVE PORTFOLIO OWNER:** `WA-NOTIFICATIONS-CLOSEOUT`
+**Captured from control baseline:** `main@40b2cbf50a9ffc2d9ca1ee3fedbf457c133c4a21`  
+**Captured:** 2026-08-19 America/Lima  
+**ACTIVE PORTFOLIO OWNER:** `REV-F5-CLOSEOUT`
 
-## Owner override
+## Owner state
 
-The current owner instruction is to finish and certify the WhatsApp Revenue Hub + Notifications recovery before another HIGH/CRITICAL project continues. This supersedes the earlier CIA-first handoff encoded in the previous CURRENT control layer.
+MKT Integrity V3 Loop 5 is merged/PASS. Loop 6 is **NOT STARTED**. The owner explicitly handed the mutable HIGH/CRITICAL lane back to Revenue and ordered REV-F5 to continue before REV-F6.
 
 ## Runtime
 
-Railway outer command remains the S15.3 chain beginning at `server-phase-s-f17.js`.
+Railway runtime topology is not part of the current F5 change scope. Preserve the effective chain unless a demonstrated F5 blocker requires runtime mutation:
 
-Effective chain:
-
-`Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`
+`Phase S F17 → Phase S → F17 → F5 → WA4 → WA3 → WA2 → F4 → lower/core`.
 
 ## Program map
 
 | Program | Closed / validated input | Remaining | Portfolio state |
 |---|---|---|---|
-| WhatsApp + Notifications | WA0/WA2/WA3 historical closure; S15.3 inbound recovery proven; S15.4 DB recovery live | fresh Push endpoint, closed-PWA DELIVERED/click, legacy ACL cutover, Meta outbound token/canary, WA closeout revalidation | **ACTIVE** |
-| CIA | CIA-F0..F16 closed | CIA-F17 4/6; CIA-F18 blocked | **PAUSED / READ-ONLY** |
-| Revenue | REV-F1..F4 closed | REV-F5/F6/F7 | **PAUSED** |
-| Sentinel | SEN-F1..F13 closed | regression-only/deferred maintenance | **FROZEN / REGRESSION-ONLY** |
-| KronIA | K0 closed | K1–K8 | **PAUSED / REBUILD FROM THEN-CURRENT** |
-| Migration governance | safe owner slices | #238 owner parity; #250 baseline | **MAINTENANCE ONLY** |
+| Revenue | REV-F1..F4 closed; F5 source model/RPCs exist | REV-F5 live closeout, then F6/F7 | **ACTIVE — F5 NOT CERTIFIED** |
+| MKT Integrity / Call Center | Loops 1–5 PASS | Loop 6+ not started | **PAUSED / READ-ONLY** |
+| WhatsApp + Notifications | S15.5 notification infrastructure certified | WA roadmap items outside current F5 scope | **PAUSED / REGRESSION-ONLY** |
+| CIA | CIA-F0..F16 closed | CIA-F17/F18 | **PAUSED / READ-ONLY** |
+| Sentinel | SEN-F1..F13 closed | regression/deferred maintenance | **FROZEN / REGRESSION-ONLY** |
+| KronIA | K0 closed | K1–K8 | **PAUSED** |
+| Migration governance | safe owner slices | parity/baseline maintenance | **MAINTENANCE ONLY** |
 
-## WhatsApp / Notifications live state
+## REV-F5 production truth
 
-S15.3 physical canary `PRUEBA 6 S15.3` proved real inbound traversal and canonical persistence. The same canary exposed a provider-terminal Push subscription (`WEB_PUSH_410`).
+Fresh Supabase live state:
 
-Production Supabase now contains `20260818013809_s15_4_push_retired_subscription_recovery`, which prevents an inactive provider-terminal endpoint from being silently reactivated with identical keys and requests a browser-side reset. The stale CESAR endpoint remains inactive.
+- source batches: 6;
+- expected rows: **15,498**;
+- persisted rows: **8,264**;
+- remaining: **7,234**;
+- complete batches: **1/6**;
+- provisional identity clusters: 3,950;
+- members: 0;
+- previews: 0;
+- apply events: 0;
+- structural duplicate source keys: 0;
+- orphan source rows: 0.
 
-The legacy notification ACL cutover is deliberately pending until a new real closed-PWA canary reaches Push `DELIVERED` and native notification click/deep-link is proven.
+Batch state:
 
-Meta outbound `TOKEN_INVALID_OR_EXPIRED` is a separate known blocker and must be solved after inbound + Push certification with a long-lived System User token in Railway; no provider secret enters GitHub/chat.
+| Source | Staged / Expected |
+|---|---:|
+| PL2024 | 3,949 / 4,192 |
+| PL2025 | 1,801 / 3,053 |
+| PL2026 | 993 / 993 |
+| SI2024 | 1,521 / 3,190 |
+| SI2025 | 0 / 3,066 |
+| SI2026 | 0 / 1,004 |
 
-## Paused inputs
+Any prior claim that F5 reached 15,498/15,498, rebuilt identity or unblocked REV-F6 is superseded by this live evidence.
 
-### CIA
-CIA-F17 remains exactly 4/6: contracts/WhatsApp bridge/outbound policy/rollback true; signed replay/idempotency and real allowlisted CIA canary not yet certified. No CIA mutation while WA owns the lock.
+## Revenue architecture preserved
 
-### Revenue
-REV-F5 and later remain paused. No concurrent historical ingest/rebuild/apply or canonical patient mutation.
+Do not create competing truth layers.
 
-### KronIA
-K1–K8 remain paused. Stale K1 branches/PRs are evidence only and must rebuild from future CURRENT.
+- REV-F3 = product identity/facts;
+- REV-F4 = payment/revenue/cartera/reconciliation truth;
+- REV-F5 = patient identity + provenance + governed enrichment;
+- REV-F6 = intelligence over certified F3/F4/F5;
+- CIA = governed acquisition/activation attribution;
+- WA = conversation/channel product consuming permitted identity context.
 
-### Sentinel
-SEN-F1..F13 remains closed. Run only regressions required as sensors for the WA release unless a real Sentinel regression is demonstrated.
+Cross-domain explicit keys already exist (`lead_id_origen`, `llamada_id_origen`, `venta_id_match`, sale IDs, cotización/plan/item IDs). `numero_limpio` remains useful supporting evidence, not standalone merge authority.
 
-## Closeout requirement
+## Current Revenue next gate
 
-Before WA releases the lock:
+1. finish exact missing source ranges from live state;
+2. certify 6/6 batches using persistence triple-proof + complete source replay;
+3. require 15,498/15,498 before identity rebuild;
+4. execute F5.3–F5.10 with governed review/apply and cross-domain coverage;
+5. only then mark REV-F5 production-certified and hand the lock to REV-F6.
 
-1. exact main/runtime and S15.4 merge/deploy captured;
-2. fresh active Push subscription verified while terminal endpoint remains inactive;
-3. closed-PWA inbound produces Push `DELIVERED` and native Windows notification;
-4. notification click/deep-link verified;
-5. duplicate/noise behavior verified;
-6. final legacy notification ACL cutover applied and audited;
-7. Meta outbound credential/canary resolved and controlled;
-8. WA1/WA2/WA3/WA4/Phase S/S13/S14/S15 regressions re-run;
-9. no unresolved HIGH/CRITICAL issue remains inside declared closeout scope;
-10. GitHub CURRENT docs + `aos_memory` + Notion reconciled.
+## Future historical sales input
 
-The next portfolio owner is **not preassigned**; it requires an explicit owner-approved handoff after WA closeout.
+2024–2025 transaction files can be incorporated later without changing this architecture. Follow `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`:
+
+`source SHA/provenance → sales staging → canonical sale → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
+
+Until those transaction sources are certified, patient history does not justify unsupported 2024/2025 revenue or YoY claims.
+
+## Global lock rule
+
+At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. Other workstreams may run read-only/documentation/regression work that cannot alter production state or compete for mutable DB/release ownership.
