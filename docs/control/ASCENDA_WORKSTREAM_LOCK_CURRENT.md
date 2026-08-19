@@ -2,7 +2,7 @@
 
 **Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
 **Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
-**Loop-3 entry main:** `3f42a8cdce3f45b32b641874bdfe8f1155a7c05c`  
+**Loop-3 merge:** `483c720cdb3b7e70dca8effeb80c16963e1da069` / PR #290  
 **Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
 **NEXT LOCK:** `REV-F5-CLOSEOUT` after MKT Integrity production certification and handback.
@@ -11,7 +11,7 @@
 
 - LOOP 1 — Control / freeze / BEFORE package: **PASS**.
 - LOOP 2 — Marketing V3 Shadow: **PASS**.
-- LOOP 3 — Acquisition V2↔V3 parity: **PASS_PENDING_FINAL_MERGE_READBACK**.
+- LOOP 3 — Acquisition V2↔V3 parity: **PASS**.
 - LOOP 4 — Deterministic late-lead backfill: **NOT STARTED**.
 
 Loops execute sequentially. Do not begin Loop 4 automatically.
@@ -60,8 +60,9 @@ Canonical artifacts:
 
 - `docs/control/MKT_INTEGRITY_V3_LOOP3_ACQUISITION_PARITY_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP3_EXECUTION_REPORT_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP3_FINAL_READBACK_20260818.md`
 
-Parity result:
+Final parity result:
 
 - V2 = **54**;
 - V3 = **55**;
@@ -135,7 +136,7 @@ At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-I
 
 `LOOP 4 — BACKFILL LATE-LEAD DETERMINÍSTICO`
 
-Loop 4 has **NOT STARTED** and requires explicit invocation after Loop-3 final merge/readback.
+Loop 4 has **NOT STARTED** and requires explicit invocation.
 
 ## Exit / handback
 
