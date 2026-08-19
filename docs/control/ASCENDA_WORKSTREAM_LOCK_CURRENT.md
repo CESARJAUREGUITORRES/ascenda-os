@@ -1,36 +1,33 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / REV-F5 REACTIVATED  
-**Owner assignment:** 2026-08-18 Lima — resume definitive REV-F5 closeout  
-**Certified hotfix merge:** `main@d260a5e060e840d8db6baca9581bbc5386539d10` / PR #284  
-**Previous lock:** `HOTFIX-WILMER-AGENDA-MARKETING-2-20260818` — CLOSED / PRODUCTION CERTIFIED  
-**ACTIVE LOCK:** `REV-F5-CLOSEOUT`  
-**NEXT LOCK:** `UNASSIGNED` until REV-F5 is production-certified.
+**Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
+**Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
+**Source main before transfer:** `6ffdd18542d9636704e5b107e0692beb29405af9`  
+**Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
+**ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
+**NEXT LOCK:** `REV-F5-CLOSEOUT` after MKT Integrity production certification and handback.
 
-## Hotfix-2 certification
+## Authorized scope
 
-Canonical evidence:
+The user explicitly authorized the 13-loop Marketing Integrity & Call Center Semantics V3 roadmap. **Only Loop 1 is complete/authorized as executed at this checkpoint. Loop 2 has not started.**
 
-- `docs/control/REV_F5_PAUSE_CHECKPOINT_20260818_WILMER_AGENDA_HOTFIX2.md`;
-- `docs/control/WILMER_AGENDA_SEMANTICS_HOTFIX2_CERT_20260818.md`;
-- migration `wilmer_agenda_semantics_hotfix2_20260818`;
-- migration `late_lead_agenda_origin_marketing_fix_20260818`;
-- PR #284 merged at `d260a5e060e840d8db6baca9581bbc5386539d10`.
+Loop 1 authorizes governance/control writes only:
 
-Certified business semantics:
+- revalidate exact `main`;
+- reconcile live REV-F5;
+- create recoverable F5 checkpoint;
+- capture BEFORE/rollback baselines;
+- transfer the single global mutable HIGH/CRITICAL lock.
 
-- 12 Wilmer scheduling/reagenda rows from 2026-08-18 were removed from `aos_llamadas` after full JSON audit archival;
-- all 12 corresponding Agenda rows remain intact;
-- 9 classified `PACIENTE_CONTINUIDAD`, 3 `REAGENDA_NO_COMERCIAL`;
-- the two later cases `910303293` and `982093872` remain as valid Agenda reagendas and retain direct Marketing lead attribution;
-- future continuation/reagenda confirmations are archived as non-commercial and suppressed from `aos_llamadas`, preventing Home/Calls/Marketing KPI inflation;
-- Agenda/CITA_MANUAL created before a unique same-day Marketing lead, with no registered call and no prior clinical conversion, receives direct Agenda attribution only; no call is fabricated;
-- one deterministic historical Mireya Agenda-only late-lead case (`935740326` → lead 4610) was reconciled.
+No Marketing rule, RPC, frontend, call, Agenda, lead, sale, attribution, LTV or F5 functional data was mutated by Loop 1.
 
-## REV-F5 resume state
+## REV-F5 recoverable pause
 
-Production Supabase remained unchanged through hotfix-2:
+Canonical checkpoint: `docs/control/REV_F5_PAUSE_CHECKPOINT_20260818_MKT_INTEGRITY_V3.md`.
 
+Live F5-owned state captured 2026-08-18 20:30:10 Lima:
+
+- live batch table: **`aos_f5_source_batches_v1`** (older references to `aos_f5_patient_source_batches_v1` are stale documentation);
 - source batches: **6**;
 - expected source rows: **15,498**;
 - `aos_f5_patient_source_rows_v1`: **7,064**;
@@ -39,10 +36,48 @@ Production Supabase remained unchanged through hotfix-2:
 - `aos_f5_identity_cluster_members_v1`: **0**;
 - `aos_f5_patient_link_preview_v1`: **0**;
 - `aos_f5_canonical_apply_events_v1`: **0**;
-- `aos_pacientes`: **7,679**.
+- observational `aos_pacientes`: **7,684** at capture, **not an F5 invariant** because normal production can continue creating/updating patients.
 
-Resume REV-F5 from **7,064/15,498**, reconciling persisted state before any retry. Never restart from the obsolete 1,000-row snapshot.
+F5 recovery hashes:
 
-## Global rule
+- batches: `807f03e96e5786203d867938c3938154`
+- source rows: `62b8fbedaa5da450a38c2471dd23b6b9`
+- clusters: `2d39d9ac990fee61a7ecb6ffa52efb64`
 
-At most one HIGH/CRITICAL mutable workstream may operate at a time. While `REV-F5-CLOSEOUT` owns the lock, Calls/Agenda/Marketing remains regression-only unless another explicit recoverable pause is authorized.
+Resume REV-F5 from **7,064 / 15,498** only after re-reading live state at handback. If the F5-owned hashes/counts are unchanged, continue from this checkpoint. If a higher idempotent state exists, reconcile before resuming. Never restart from obsolete snapshots.
+
+## MKT-INTEGRITY-HOTFIX-V3 BEFORE package
+
+Canonical manifest: `docs/control/MKT_INTEGRITY_V3_LOOP1_BEFORE_MANIFEST_20260818.md`.
+
+It contains timestamped counts/hashes for:
+
+- `aos_llamadas`, `aos_agenda_citas`, `aos_leads`, `aos_ventas`;
+- Attribution V2 and Acquisition V2;
+- LTV and Marketing Histórico 2026;
+- Modal Leads summary;
+- Home/Monitoreo explicit Lima-date snapshot;
+- Mireya callback/inbound cases;
+- late-lead candidate reconciliation;
+- pending buyer attribution cases;
+- relevant function definition hashes.
+
+## Reconciliation findings from Loop 1
+
+1. The previous control file was stale: it still referenced Hotfix-2/PR #284 and patient count 7,679 while `main` had already advanced to Hotfix-3B.
+2. `aos_pacientes` is operationally live and must not be used as the sole REV-F5 freeze invariant.
+3. The planning shorthand `19 strong / 17 compatible / 2 mismatches` for late leads is not canonical. In particular, `961780427` has a prior CAPILAR lead (`4650`) before its CAPILAR call/Agenda and must not be grouped with the true CAPILAR↔BIO mismatch `957549186` without re-derivation.
+4. Audit records prove Mireya calls `37108` and `37110` were inserted as `CITA CONFIRMADA / MARKETING` and then deleted; restoration is deferred to Loop 5.
+
+## Concurrency rule
+
+At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-INTEGRITY-HOTFIX-V3` owns the lock:
+
+- REV-F5 is read/audit/documentation only;
+- CIA, Sentinel, WhatsApp and other mutable HIGH/CRITICAL workstreams remain paused/regression-only;
+- open stale/draft PRs do not acquire ownership by existing;
+- any `main` advance requires exact-head revalidation before the next hotfix loop.
+
+## Exit / handback gate
+
+The lock returns to `REV-F5-CLOSEOUT` only after the Marketing Integrity work is production-certified, all required canaries/read-backs pass, GitHub/Notion control is reconciled, and REV-F5 hashes/counts are re-read.
