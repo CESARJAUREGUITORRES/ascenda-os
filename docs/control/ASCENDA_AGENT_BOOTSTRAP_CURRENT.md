@@ -1,55 +1,100 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Captured from baseline:** `main@93fcc9a5171703ee6750f67c3c17373a323dc2ab`  
-**Runtime:** S15.3 + S15.4 Push recovery closeout  
-**ACTIVE WORKSTREAM:** `WA-NOTIFICATIONS-CLOSEOUT`
+**Captured from baseline:** `main@40b2cbf50a9ffc2d9ca1ee3fedbf457c133c4a21`  
+**Captured:** 2026-08-19 America/Lima  
+**ACTIVE WORKSTREAM:** `REV-F5-CLOSEOUT`
 
 ## Mandatory bootstrap
 
-1. root `AGENTS.md`
-2. `SECURITY.md`
-3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
-4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
-5. `docs/MEMORY_CURRENT.md`
-6. WhatsApp Revenue Hub Control Maestro + S15.3/S15.4 closeout evidence
-7. exact `main`, Railway runtime/deploy and live Supabase WA/Push state
-8. relevant WA branch/PR/checks only
+1. root `AGENTS.md`;
+2. root `SECURITY.md`;
+3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
+4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
+5. `docs/MEMORY_CURRENT.md`;
+6. `docs/adn/AGENTS_CURRENT.md`;
+7. for Revenue/F5 or data-pipeline work: `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`;
+8. exact GitHub `main`, relevant branch/PR/checks, Railway deploy/runtime and live Supabase;
+9. current Control Maestro/checkpoint for the selected workstream only.
 
-Do not resume CIA, Revenue, KronIA, migration-governance mutation or Sentinel maintenance as a competing workstream while WA owns the lock.
+Historical docs/chat output never override exact CURRENT + live production.
 
-## Runtime
+## Portfolio ownership
 
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
+`REV-F5-CLOSEOUT` owns the single global HIGH/CRITICAL mutable lock.
 
-S15.3 fixed invalid Phase S → F17 buffered HTTP framing. Do not bypass F17 or downstream WA wrappers.
+MKT Integrity Loop 5 is closed; Loop 6 is not started. CIA, WA feature work, KronIA and unrelated schema/data work remain read-only/regression-only until explicit handoff.
 
-## WA closeout entry contract
+## REV-F5 entry truth
 
-Verified production evidence:
+Fresh production state at this capture:
 
-- real inbound after S15.3 persists again;
-- `PRUEBA 6 S15.3` produced canonical `message.received` and updated `zi vital`;
-- conversation remains `HUMAN_ACTIVE`, owner CESAR;
-- Push dispatch executed and returned provider 410;
-- retired PWA endpoint is inactive with one recorded failure;
-- S15.4 production DB recovery migration is live and service-role-only;
-- old legacy notification RPC ACL remains intentionally uncut.
+- expected = **15,498**;
+- staged = **8,264**;
+- remaining = **7,234**;
+- complete batches = **1/6**;
+- clusters = **3,950 provisional**;
+- members = **0**;
+- previews = **0**;
+- apply events = **0**;
+- structural duplicates = **0**;
+- source-row orphans = **0**.
 
-## Next actions
+Per batch:
 
-1. freeze exact CURRENT before each merge;
-2. integrate S15.4 client recovery from exact CURRENT;
-3. pass S14/S15/Ascenda CI on the exact candidate;
-4. verify exact Railway deploy;
-5. reopen installed PWA and require a new active Push subscription while stale endpoint stays inactive;
-6. close PWA completely and run a new real inbound canary;
-7. require WA persistence + Push `DELIVERED` + Windows notification + deep-link;
-8. verify no visible-app duplicate storm;
-9. execute final legacy notification ACL cutover only after the physical Push gate;
-10. repair Meta outbound token separately with a long-lived System User token in Railway, then controlled outbound canary;
-11. revalidate WA1/WA2/WA3/WA4/Phase S/S13/S14/S15 before any 100_COMPLETE claim;
-12. update GitHub current docs, `aos_memory`, then Notion and wait for explicit next owner lock.
+- PL2024 3,949/4,192;
+- PL2025 1,801/3,053;
+- PL2026 993/993;
+- SI2024 1,521/3,190;
+- SI2025 0/3,066;
+- SI2026 0/1,004.
+
+Therefore REV-F5 is **ACTIVE / NOT CERTIFIED** and REV-F6 remains blocked.
+
+## Mandatory data-certification rule
+
+Do not close a data gate because a tool/RPC/local loop says `success`.
+
+Require:
+
+1. execution receipt;
+2. direct live production readback;
+3. independent invariant query.
+
+At source-batch closure additionally require full idempotent replay of the exact SHA-bound source with zero new inserts/conflicts.
+
+If a call times out, is truncated, is blocked by an intermediary or has ambiguous result: query the persisted state first. Never infer persistence from intent or output text.
+
+## Recovery pattern
+
+`OBSERVE LIVE → IDENTIFY EXACT GAP → MUTATE ONLY THAT GAP → READ BACK → VERIFY → CHECKPOINT → CONTINUE`.
+
+If persisted content conflicts with the source, isolate the exact range, repair only that range, replay and continue. Do not restart valid history for convenience.
+
+## Identity + interconnection boundary
+
+- F3 owns product identity;
+- F4 owns payment/revenue/cartera semantics;
+- F5 owns historical/canonical patient identity + provenance;
+- F6 will consume certified F3/F4/F5 facts;
+- CIA owns governed acquisition attribution;
+- WA owns conversation/channel UX.
+
+Do not build another customer identity engine inside CIA/WA/F6.
+
+Prefer explicit links (`lead_id_origen`, `llamada_id_origen`, `venta_id_match`, sale IDs, cotización/plan/item IDs). `numero_limpio` is supporting/transversal evidence, not standalone merge authority.
+
+## Future historical sales
+
+When 2024–2025 sales exports become available, follow `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`.
+
+They must extend the existing domains:
+
+`source provenance → sale fact → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
+
+Do not infer missing transactions from patient history, Agenda or budgets.
 
 ## Certification rule
 
-No percentage, runtime merge, sibling PASS, queued/skipped job or historical green CI certifies WA/Notifications. Require exact-head evidence, live state, security boundary, rollback/recovery, real physical canaries and final cross-source reconciliation.
+REV-F5 may be declared `PRODUCTION CERTIFIED` only after an independent final audit proves all declared F5.0–F5.10 gates from exact-head GitHub/CI/deploy + live Supabase, and CURRENT docs/aos_memory/Notion are reconciled afterward.
+
+Until then, any earlier 100% claim is `SUPERSEDED_BY_LIVE_TRUTH`.
