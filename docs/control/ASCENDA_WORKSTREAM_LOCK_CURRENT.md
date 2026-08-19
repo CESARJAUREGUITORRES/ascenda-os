@@ -2,72 +2,104 @@
 
 **Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
 **Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
-**Source main before transfer:** `6ffdd18542d9636704e5b107e0692beb29405af9`  
+**Loop-2 entry main:** `d2113e6e5be91210e111a33813f6d8167b1eb54e`  
 **Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
 **NEXT LOCK:** `REV-F5-CLOSEOUT` after MKT Integrity production certification and handback.
 
-## Authorized scope
+## Roadmap execution state
 
-The user explicitly authorized the 13-loop Marketing Integrity & Call Center Semantics V3 roadmap. **Only Loop 1 is complete/authorized as executed at this checkpoint. Loop 2 has not started.**
+- LOOP 1 — Control / freeze / BEFORE package: **PASS** (PR #287 / main `d2113e6e5be91210e111a33813f6d8167b1eb54e`).
+- LOOP 2 — Marketing V3 Shadow: **PASS_PENDING_FINAL_MERGE_READBACK** on branch `feat/mkt-integrity-v3-loop2-shadow`.
+- LOOP 3 — Acquisition V2↔V3 parity: **NOT STARTED**.
 
-Loop 1 authorizes governance/control writes only:
-
-- revalidate exact `main`;
-- reconcile live REV-F5;
-- create recoverable F5 checkpoint;
-- capture BEFORE/rollback baselines;
-- transfer the single global mutable HIGH/CRITICAL lock.
-
-No Marketing rule, RPC, frontend, call, Agenda, lead, sale, attribution, LTV or F5 functional data was mutated by Loop 1.
+The user authorized the 13-loop roadmap, but loops must execute sequentially and each loop must stop after certification. Do not infer permission to skip gates or begin the next loop automatically.
 
 ## REV-F5 recoverable pause
 
 Canonical checkpoint: `docs/control/REV_F5_PAUSE_CHECKPOINT_20260818_MKT_INTEGRITY_V3.md`.
 
-Live F5-owned state captured 2026-08-18 20:30:10 Lima:
+Frozen F5-owned state:
 
-- live batch table: **`aos_f5_source_batches_v1`** (older references to `aos_f5_patient_source_batches_v1` are stale documentation);
+- live batch table: `aos_f5_source_batches_v1`;
 - source batches: **6**;
 - expected source rows: **15,498**;
-- `aos_f5_patient_source_rows_v1`: **7,064**;
-- remaining source rows: **8,434**;
-- `aos_f5_identity_clusters_v1`: **3,950**;
-- `aos_f5_identity_cluster_members_v1`: **0**;
-- `aos_f5_patient_link_preview_v1`: **0**;
-- `aos_f5_canonical_apply_events_v1`: **0**;
-- observational `aos_pacientes`: **7,684** at capture, **not an F5 invariant** because normal production can continue creating/updating patients.
+- persisted source rows: **7,064**;
+- remaining: **8,434**;
+- identity clusters: **3,950**;
+- cluster members: **0**;
+- link preview: **0**;
+- canonical apply events: **0**.
 
-F5 recovery hashes:
+Loop-1 canonical recovery hashes:
 
 - batches: `807f03e96e5786203d867938c3938154`
 - source rows: `62b8fbedaa5da450a38c2471dd23b6b9`
 - clusters: `2d39d9ac990fee61a7ecb6ffa52efb64`
 
-Resume REV-F5 from **7,064 / 15,498** only after re-reading live state at handback. If the F5-owned hashes/counts are unchanged, continue from this checkpoint. If a higher idempotent state exists, reconcile before resuming. Never restart from obsolete snapshots.
+Loop 2 verified that the maximum F5 write timestamps predate the Loop-1 freeze and all F5 counts remain unchanged. A separately recomputed ad-hoc JSON hash differed because the exact Loop-1 hash serialization SQL was not persisted; treat this as hash-method mismatch, not F5 data drift. Original hashes above remain the canonical handback references.
 
-## MKT-INTEGRITY-HOTFIX-V3 BEFORE package
+## Loop 2 — Marketing V3 Shadow
 
-Canonical manifest: `docs/control/MKT_INTEGRITY_V3_LOOP1_BEFORE_MANIFEST_20260818.md`.
+Canonical artifacts:
 
-It contains timestamped counts/hashes for:
+- `docs/control/MKT_INTEGRITY_V3_LOOP2_IMPACT_REPORT_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP2_SHADOW_BASELINE_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP2_EXECUTION_REPORT_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP2_ROLLBACK_20260818.sql`
+- migration source `supabase/migrations/20260819015100_mkt_integrity_v3_shadow_loop2.sql`
+- live migration `20260819015951_mkt_integrity_v3_shadow_loop2_20260818`.
 
-- `aos_llamadas`, `aos_agenda_citas`, `aos_leads`, `aos_ventas`;
-- Attribution V2 and Acquisition V2;
-- LTV and Marketing Histórico 2026;
-- Modal Leads summary;
-- Home/Monitoreo explicit Lima-date snapshot;
-- Mireya callback/inbound cases;
-- late-lead candidate reconciliation;
-- pending buyer attribution cases;
-- relevant function definition hashes.
+Loop 2 created only V3 shadow/read-path objects:
 
-## Reconciliation findings from Loop 1
+1. `aos_marketing_treatment_family_v3(text)`
+2. `aos_marketing_call_lead_match_v3_preview(date,date)`
+3. `aos_marketing_agenda_lead_match_v3_preview(date,date)`
+4. `aos_marketing_acquisition_customers_v3_preview()`
+5. `aos_marketing_attribution_v3_preview(date,date)`
+6. `aos_marketing_touchpoint_rollup_v3_preview(date,date)`
+7. `aos_marketing_leads_detalle_v3_paged(date,date,text,text,integer,integer)`
+8. `aos_marketing_leads_detalle_v3_summary(date,date,text,text)`
 
-1. The previous control file was stale: it still referenced Hotfix-2/PR #284 and patient count 7,679 while `main` had already advanced to Hotfix-3B.
-2. `aos_pacientes` is operationally live and must not be used as the sole REV-F5 freeze invariant.
-3. The planning shorthand `19 strong / 17 compatible / 2 mismatches` for late leads is not canonical. In particular, `961780427` has a prior CAPILAR lead (`4650`) before its CAPILAR call/Agenda and must not be grouped with the true CAPILAR↔BIO mismatch `957549186` without re-derivation.
-4. Audit records prove Mireya calls `37108` and `37110` were inserted as `CITA CONFIRMADA / MARKETING` and then deleted; restoration is deferred to Loop 5.
+Exact Loop-2 objects are restricted to postgres/service_role. No production frontend was redirected to them.
+
+## Loop 2 shadow baseline
+
+Acquisition:
+
+- V2 = **54** customers.
+- V3 shadow = **55** customers.
+- V3-only = exactly `973438607 → lead 2135`, method `NEAREST_PRIOR_FIRST_SALE`.
+- V2-only = 0.
+
+Attribution 2026-01-01..2026-08-18:
+
+- V2 = **126 ops / S/45,158.70**.
+- V3 shadow = **173 ops / S/66,644.10**.
+- Delta = **+47 ops / +S/21,485.40**.
+
+This operation-level delta is **not approved for cutover**. It is an explicit Loop-3/Loop-9 parity subject. V3 remains shadow.
+
+Reference cases:
+
+- `961780427`, call 32014 → prior CAPILAR lead `4650`, confidence 80.
+- `957549186`, call 35976 → no automatic lead; remains REVIEW/unresolved.
+- `992829013` → V3 exposes 2 first-sale-day operations / S1,018; later sales remain outside shadow acquisition attribution.
+- `998564399` → V3 exposes 4 operations / S1,567 without creating a duplicate acquisition customer.
+- Mireya calls `37108` / `37110` remain deleted; restoration is still Loop 5.
+
+## Safety status
+
+Loop 2 did **not**:
+
+- update/insert/delete `aos_llamadas`, `aos_agenda_citas`, `aos_leads` or `aos_ventas`;
+- perform late-lead backfills;
+- restore Mireya calls;
+- modify any certified V2 function definition;
+- modify frontend, Home, Monitoreo or Call Center;
+- modify REV-F5.
+
+The shadow migration was first compiled inside a transaction and rolled back successfully. A reverse-order schema-only rollback artifact is stored in `docs/control/MKT_INTEGRITY_V3_LOOP2_ROLLBACK_20260818.sql`.
 
 ## Concurrency rule
 
@@ -76,8 +108,16 @@ At most one HIGH/CRITICAL mutable workstream may operate at a time. While `MKT-I
 - REV-F5 is read/audit/documentation only;
 - CIA, Sentinel, WhatsApp and other mutable HIGH/CRITICAL workstreams remain paused/regression-only;
 - open stale/draft PRs do not acquire ownership by existing;
-- any `main` advance requires exact-head revalidation before the next hotfix loop.
+- every future `main` advance requires exact-head revalidation before another mutable loop.
 
-## Exit / handback gate
+## Next authorized step after Loop-2 final merge/readback
 
-The lock returns to `REV-F5-CLOSEOUT` only after the Marketing Integrity work is production-certified, all required canaries/read-backs pass, GitHub/Notion control is reconciled, and REV-F5 hashes/counts are re-read.
+If and only if Loop 2 receives final PASS after merge + Supabase/GitHub/Notion readback, the next loop is:
+
+`LOOP 3 — PARITY ACQUISITION V2 ↔ V3`
+
+Do not start it automatically.
+
+## Exit / handback
+
+The global lock returns to `REV-F5-CLOSEOUT` only after MKT-INTEGRITY-HOTFIX-V3 reaches full production certification at Loop 13 and REV-F5 is revalidated against its recoverable checkpoint.
