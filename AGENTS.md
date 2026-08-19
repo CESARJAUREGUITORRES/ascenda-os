@@ -15,6 +15,7 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 7. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
 8. the CURRENT Control Maestro / phase checkpoint of **one selected project only**
 9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
+10. for Revenue F5 / identity / historical data work, `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`
 
 Historical documents may contain useful context, but they do not override CURRENT.
 
@@ -117,6 +118,30 @@ For every bug/feature/data change:
 
 Do not fix symptoms by mutating data or bypassing wrappers without identifying the source of truth.
 
+## Persistence Triple-Proof — mandatory for HIGH/CRITICAL data work
+
+A data mutation is not certified because an agent/tool/RPC/local loop reports `success`.
+
+Before closing any data checkpoint require:
+
+1. **Execution receipt** — the intended RPC/job/transaction reports the expected action.
+2. **Direct live readback** — the authoritative production tables show the expected persisted delta.
+3. **Independent invariant query** — a separate query proves count/range/uniqueness/orphans/conflicts/protected-table invariants.
+
+For source/batch ingestion also require a full idempotent replay of the exact SHA-bound source at batch closure, with zero new inserts/conflicts.
+
+Timeout, blocked transport, truncated response, local completion or generated payload never proves persistence. Always reconcile live state before retrying or advancing.
+
+Canonical recovery loop:
+
+`OBSERVE LIVE → IDENTIFY EXACT GAP → MUTATE ONLY GAP → READ BACK → VERIFY → CHECKPOINT → CONTINUE`.
+
+Never use:
+
+`ERROR/AMBIGUITY → ASSUME → SKIP → CERTIFY`.
+
+False or stale certification claims must be explicitly superseded in CURRENT documentation; do not silently preserve them.
+
 ## Branches and PRs
 
 - `main` = GitHub production baseline.
@@ -164,11 +189,14 @@ Requires Zero-Cost certificate, negative tests, read-only production preflight, 
 - deterministic filters and idempotency;
 - never erase clinical/financial data as cleanup;
 - REV-F5 never mutates canonical patients before provenance + preview + human approval;
-- production is not a test environment.
+- production is not a test environment;
+- every HIGH/CRITICAL data gate follows Persistence Triple-Proof.
 
 ### Identifiers
 
 Treat `numero_limpio/contact_key` as a transversal bridge until an explicitly certified canonical identity supersedes it. Identity changes require cross-domain impact review.
+
+For patients/customers, F5 governed identity/provenance is the canonical resolution layer. CIA, WA, F6 and future historical-sales imports must not create competing customer identity truth. Phone equality alone is never merge authority.
 
 ### RPC
 
@@ -191,6 +219,15 @@ A Meta canary may provide evidence to both, but closing CIA-F17 does not close W
 
 ### Revenue
 Revenue F5 owns historical patient/source identity and canonical enrichment review. Do not run it concurrently with channel/runtime releases.
+
+Canonical Revenue responsibility:
+
+- REV-F3 = product/service identity for sales;
+- REV-F4 = payment/revenue/cartera/reconciliation truth;
+- REV-F5 = historical patient identity + provenance + governed canonical enrichment;
+- REV-F6 = intelligence derived from certified F3/F4/F5 facts.
+
+Historical 2024–2025 transaction imports must reuse those domains rather than create a new product/customer/revenue model. See `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`.
 
 ### Sentinel
 Sentinel SEN-F1..F13 is closed. Run regressions as sensors for other projects; reopen Sentinel only on a demonstrated Sentinel regression.
@@ -236,7 +273,9 @@ Trust-boundary review, bypass/replay/forged-claim negatives, canary/additive rol
 
 Never conflate `ZERO-COST CERTIFIED`, `CANARY CERTIFIED`, `PRODUCTION CERTIFIED`, and `100_COMPLETE`.
 
-`100_COMPLETE` requires every declared gate closed and GitHub/runtime/live DB/aos_memory/Notion reconciled. Runtime activation alone is not completion — CIA-F17 is the current example.
+`100_COMPLETE` requires every declared gate closed and GitHub/runtime/live DB/aos_memory/Notion reconciled. Runtime activation alone is not completion.
+
+For data phases, `PRODUCTION CERTIFIED` additionally requires persisted post-conditions proven through Persistence Triple-Proof and any declared full-source replay/coverage gates.
 
 ## Handoff / pause protocol
 
@@ -255,7 +294,7 @@ No chat should reconstruct a project from informal memory when these sources exi
 
 ## Prohibitions
 
-Do not run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastructure; experiment in production; broad DROP/TRUNCATE/DELETE for convenience; force-push production history; blind-rewrite migration history; copy secrets between environments; use real Zi Vital data as generic SaaS seed; hide failing tests; infer project closure from sibling certificates; or revive stale branches without CURRENT revalidation.
+Do not run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastructure; experiment in production; broad DROP/TRUNCATE/DELETE for convenience; force-push production history; blind-rewrite migration history; copy secrets between environments; use real Zi Vital data as generic SaaS seed; hide failing tests; infer project closure from sibling certificates; infer data persistence from tool output alone; certify a phase whose live post-conditions are not present; or revive stale branches without CURRENT revalidation.
 
 ## Long-term objective
 
