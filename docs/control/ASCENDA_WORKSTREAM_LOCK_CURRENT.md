@@ -3,72 +3,93 @@
 **Status:** CURRENT / REV-F5 ACTIVE / NOT YET PRODUCTION CERTIFIED  
 **Captured:** 2026-08-19 America/Lima  
 **Owner assignment:** explicit owner directive to continue REV-F5 closeout  
-**REV-F5.5 entry baseline:** `main@a9e5d0940d5bf43d43d65589d4ad739bd02276f2`  
+**REV-F5.6 entry baseline:** `main@3c208712e136b4618b6618b7044096811b273f74`  
 **ACTIVE LOCK:** `REV-F5-CLOSEOUT`  
-**NEXT MUTABLE GATE:** `REV-F5.6 — REVIEW & APPLY`  
-**REV-F5.6 STATUS:** `BLOCKED PENDING EXPLICIT OWNER AUTHORIZATION`
+**REV-F5.6 STATUS:** `PASS — GOVERNED LOW-RISK REVIEW & APPLY`  
+**NEXT MUTABLE GATE:** `REV-F5.7 — HISTORICAL JOIN`  
 
 ## Concurrency rule
 
 At most one HIGH/CRITICAL mutable workstream may operate at a time. While `REV-F5-CLOSEOUT` owns the lock, other HIGH/CRITICAL feature/data workstreams remain read-only/documentation/regression-only unless explicitly required for REV-F5 validation.
 
-## REV-F5 LIVE checkpoint
-
-Certified production truth after REV-F5.5:
+## REV-F5 LIVE checkpoint after REV-F5.6
 
 - REV-F5.1 ingest = **PASS**;
 - REV-F5.2 staging = **PASS**;
 - REV-F5.3 identity rebuild/preview = **PASS**;
-- REV-F5.4 canonical matching classification = **PASS**;
-- REV-F5.5 fill-only enrichment preview = **PASS**;
-- 6/6 source batches complete;
+- REV-F5.4 canonical matching = **PASS**;
+- REV-F5.5 enrichment preview = **PASS**;
+- REV-F5.6 governed Review & Apply = **PASS**;
 - source rows = **15,498 / 15,498**;
 - identity memberships = **15,498 / 15,498**;
 - identity clusters = **8,716**;
-- classifications = **8,716 / 8,716**;
-- MATCH = **296**;
-- REVIEW = **6,984**;
-- NEW = **1,436**;
-- F5.5 MATCH patients with at least one fill-only proposal = **202**;
-- F5.5 field-level enrichment preview rows = **455**;
-- F5.5 policy states = **229 APPLY_ALLOWED / 23 POLICY_BLOCKED / 203 POLICY_UNDEFINED**;
-- ambiguous source-value previews = **0**;
-- canonical overwrite violations = **0**;
-- non-MATCH enrichment previews = **0**;
-- clinical-note/allergy enrichment previews = **0**;
-- F5.5 apply-eligible rows = **0**;
-- preview applied rows = **0**;
-- canonical Apply events = **0**;
-- `aos_pacientes` = **7,687**;
-- canonical fingerprint = `619f20596f6f9181f96332997ee3d953`;
-- F5.4 classification fingerprint = `7a2c36e1e7a3ff6fb12196cbf7bacdfd`;
-- F5.5 enrichment fingerprint = `d22f2542813dcf71e767abc9e78d1021`.
+- MATCH / REVIEW / NEW = **296 / 6,984 / 1,436**;
+- enrichment previews = **455** across **202** MATCH patients;
+- final REV-F5.6 policy = **229 APPLY_ALLOWED / 226 POLICY_BLOCKED / 0 POLICY_UNDEFINED**;
+- applied LOW-risk fields = **229 / 229**;
+- blocked fields applied = **0 / 226**;
+- applied distribution = **Sexo 121 / distrito 108 / departamento 0 / ciudad 0**;
+- F5 Apply events = **230 total / 229 active / 1 exact canary rollback**;
+- event ↔ canonical mismatches = **0**;
+- event ↔ preview mismatches = **0**;
+- invalid before/after hash events = **0**;
+- active events outside allowlist = **0**;
+- canonical patients = **7,688**;
+- final canonical fingerprint = `eee5a57717937a4f77049b3aebd8c525`.
 
-## REV-F5.5 enrichment boundary
+The canonical patient count moved externally from 7,687 to 7,688 before the first F5.6 canary while F5 still had zero reviews and zero Apply events. F5.6 stopped, rebuilt/revalidated F5.3→F5.5 against CURRENT and proved the external row did not change the 296/6,984/1,436 classification or the 455 enrichment proposals.
 
-F5.5 reuses the established F5.3 fill-only `proposed_patch` field semantics and materializes them only for REV-F5.4 MATCH identities.
+## REV-F5.6 governance boundary
 
-Every F5.5 preview row requires:
+F5.6 uses a field-level v2 path on top of the existing F5 classification, enrichment preview and Apply-event ledger.
 
-- canonical target field is empty;
-- exactly one distinct historical value for that field;
-- source-row provenance retained;
-- human review remains mandatory;
-- `apply_eligible=false`.
+Every mutation requires:
 
-The current 455 field proposals are:
+- service-role transport only;
+- active hierarchy-1 admin;
+- `two_factor=true`;
+- live non-revoked `PASSWORD_2FA` app session;
+- REV-F5.4 `MATCH` with no blocking canonical/source conflict or collision;
+- one-value F5.5 provenance;
+- explicit field review;
+- LOW-risk live policy;
+- canonical field still empty;
+- optimistic review snapshot hash;
+- locked target row;
+- before/after canonical row hashes;
+- private audit event.
 
-- Sexo **121**;
-- distrito **108**;
-- Fecha de nacimiento **75**;
-- Ocupación **67**;
-- Dirección **57**;
-- Email **23**;
-- N° documento **4**.
+Only these fields are Apply-allowed in REV-F5.6:
 
-The existing apply-field policy was not widened. `Email` remains explicitly blocked; fields without policy remain undefined. Even the 229 rows whose field policy is currently allowed are not Apply-authorized by F5.5.
+- `Sexo`;
+- `distrito`;
+- `departamento`;
+- `ciudad`.
 
-Potential fills for latest appointment (**201**) and acquisition channel/origin (**1**) remain deferred because their destination semantics are not yet governed by an approved canonical mapping. Phone has **0** current fill opportunities. Clinical notes/allergies remain excluded.
+Identity anchors, birth date, potentially stale address/occupation, unresolved acquisition/latest-visit mappings and clinical/free-text data remain blocked.
+
+## Canary and rollback proof
+
+A single `Sexo` canary passed DRY_RUN, APPLY and exact ROLLBACK before expansion.
+
+- pre-canary global fingerprint = `7ee00cb855f253c52c464b1d49eec289`;
+- target before hash = `7ccfca60d309dfdd5936e0d98fae43924947b06384327979ac08737448d99df4`;
+- target after hash = `90521400b8c1598e3a21f073ea78f43838e8471fbaef82a8b034e8ba37b5a103`;
+- rollback hash = exact before hash;
+- post-rollback global fingerprint = exact pre-canary fingerprint;
+- active events after rollback = 0;
+- rolled-back canary event retained in ledger = 1.
+
+Two implementation defects were caught fail-closed before unsafe expansion:
+
+1. dynamic SQL quoting in the first canary call — transaction aborted before mutation and canonical fingerprint stayed unchanged;
+2. legacy one-active-event-per-cluster index during the first 50-field expansion attempt — whole attempted batch rolled back; uniqueness was split into legacy cluster scope and v2 `(cluster,field)` scope without weakening idempotency.
+
+## Progressive expansion proof
+
+Successful batch sizes: **10 + 50 + 50 + 50 + 50 + 19 = 229**.
+
+Every successful checkpoint preserved patient count and produced exact event/preview deltas. Final replay processed **0** additional fields and preserved fingerprint `eee5a57717937a4f77049b3aebd8c525`.
 
 ## Mandatory persistence proof
 
@@ -78,7 +99,7 @@ Every data checkpoint requires all three:
 2. direct LIVE persisted readback;
 3. independent invariant query.
 
-F5.4 and F5.5 additionally proved deterministic replay with identical semantic fingerprints across two complete runs.
+REV-F5.6 additionally requires active-session 2FA proof, dry-run proof, exact canary rollback and field-level event/hash consistency.
 
 ## Mandatory REV-F5 closeout sequence
 
@@ -86,10 +107,10 @@ F5.4 and F5.5 additionally proved deterministic replay with identical semantic f
 2. REV-F5.1 exact source ingestion — **PASS**.
 3. REV-F5.2 staging/manifests/replay — **PASS**.
 4. REV-F5.3 identity memberships and preview — **PASS**.
-5. REV-F5.4 MATCH / REVIEW / NEW classification — **PASS**.
+5. REV-F5.4 MATCH / REVIEW / NEW — **PASS**.
 6. REV-F5.5 fill-only enrichment preview — **PASS**.
-7. REV-F5.6 governed Review & Apply with admin+2FA, dry-run, optimistic lock, canary, audit and rollback proof — **BLOCKED PENDING OWNER AUTHORIZATION**.
-8. REV-F5.7 patient → sale → F3 product → F4 payment/revenue/cartera linkage.
+7. REV-F5.6 governed Review & Apply — **PASS**.
+8. REV-F5.7 patient → sale → F3 product → F4 payment/revenue/cartera linkage — **NEXT / UNBLOCKED**.
 9. REV-F5.8 real transaction coverage for 2024–2025; prohibit unsupported YoY.
 10. REV-F5.9 numeric Coverage & Data Quality Report.
 11. REV-F5.10 independent exact-head/live final certification; only then can REV-F6 be unblocked.
@@ -99,15 +120,14 @@ F5.4 and F5.5 additionally proved deterministic replay with identical semantic f
 - no merge by name alone;
 - phone alone does not authorize merge;
 - canonical strong-field contradiction blocks MATCH;
-- canonical target collision blocks automatic MATCH;
-- no overwrite of populated canonical fields through F5.5;
-- source patient ID and HC remain source-specific unless proven otherwise;
-- `Último presupuesto` is evidence only;
-- `ADELANTO` is payment evidence only;
-- clinical notes/allergies stay outside automatic commercial enrichment;
+- target collision blocks MATCH;
+- no overwrite of populated canonical fields;
+- no Apply to identity anchors or blocked fields in F5.6;
+- clinical notes/allergies stay outside commercial enrichment;
+- `Último presupuesto` remains evidence only;
+- `ADELANTO` remains payment evidence only;
 - every retry reconciles persisted state first;
-- no competing HIGH/CRITICAL migrations/imports/canaries;
-- no Review/Apply before REV-F5.6 governance authorization.
+- no competing HIGH/CRITICAL mutable workstream.
 
 ## Cross-domain boundary
 
