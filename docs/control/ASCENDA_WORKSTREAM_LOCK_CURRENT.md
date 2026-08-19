@@ -3,6 +3,7 @@
 **Status:** CURRENT / REV-F5 PAUSED RECOVERABLY / MKT-INTEGRITY-HOTFIX-V3 ACTIVE  
 **Owner assignment:** 2026-08-18 Lima — Marketing Integrity & Call Center Semantics V3  
 **Loop-5R entry main:** `19c326a7f3193ec88dc3ec7755aa29391b091dfd`  
+**Loop-5 functional merge:** PR #296 → `bec9da0d8f114e41632a99cf7732e3949237f760`  
 **Previous lock:** `REV-F5-CLOSEOUT` — `PAUSED_RECOVERABLY`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
 **NEXT LOCK:** `REV-F5-CLOSEOUT` only after MKT Integrity production certification and handback.
@@ -13,7 +14,7 @@
 - LOOP 2 — Marketing V3 Shadow: **PASS**.
 - LOOP 3 — Acquisition V2↔V3 parity: **PASS**.
 - LOOP 4 — Deterministic late-lead backfill: **PASS**.
-- LOOP 5 — Mireya repair / inbound-manual semantics: **PASS_PENDING_GITHUB_MERGE_READBACK**.
+- LOOP 5 — Mireya repair / inbound-manual semantics: **PASS**.
 - LOOP 6 — Semántica Call Center + modal paciente existente: **NOT STARTED**.
 
 Loop 5 was unblocked by the narrowly scoped prerequisite `LOOP 5R — cleanup semantics + historical inferred reconciliation`. Do not begin Loop 6 automatically.
@@ -65,6 +66,8 @@ Canonical artifacts:
 - `docs/control/MKT_INTEGRITY_V3_LOOP5R_IMPACT_REPORT_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP5R_EXECUTION_REPORT_20260818.md`
 - `docs/control/MKT_INTEGRITY_V3_LOOP5R_ROLLBACK_20260818.sql`
+- `docs/control/MKT_INTEGRITY_V3_LOOP5R_POLICY_NOTE_20260818.md`
+- `docs/control/MKT_INTEGRITY_V3_LOOP5_FINAL_READBACK_20260818_V2.md`
 - `supabase/migrations/20260819033000_mkt_integrity_v3_loop5r_cleanup_semantics.sql`
 - `supabase/backfills/20260818_mkt_integrity_v3_loop5r_historical_and_mireya.sql`
 
@@ -145,7 +148,7 @@ At most one HIGH/CRITICAL mutable workstream may operate at a time. `MKT-INTEGRI
 
 `LOOP 6 — Semántica Call Center + modal paciente existente`
 
-Loop 6 is **NOT STARTED** and requires explicit invocation after Loop-5 final GitHub/Notion readback.
+Loop 6 is **NOT STARTED** and requires explicit invocation.
 
 ## Exit / handback
 
