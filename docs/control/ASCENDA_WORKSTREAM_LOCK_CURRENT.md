@@ -3,16 +3,17 @@
 **Status:** CURRENT / REV-F5 ACTIVE / NOT YET PRODUCTION CERTIFIED  
 **Captured:** 2026-08-19 America/Lima  
 **Owner assignment:** explicit owner directive to continue REV-F5 closeout  
-**REV-F5.6 entry baseline:** `main@3c208712e136b4618b6618b7044096811b273f74`  
+**CURRENT baseline before REV-F5.8 merge:** `main@d1f165fa436165ad6b7b60b2b7bdf007939b9166`  
 **ACTIVE LOCK:** `REV-F5-CLOSEOUT`  
-**REV-F5.6 STATUS:** `PASS — GOVERNED LOW-RISK REVIEW & APPLY`  
-**NEXT MUTABLE GATE:** `REV-F5.7 — HISTORICAL JOIN`  
+**REV-F5.7 STATUS:** `PASS — HISTORICAL JOIN`  
+**REV-F5.8 STATUS:** `PASS — NO CERTIFIED 2024/2025 TRANSACTIONAL SALES SOURCE`  
+**NEXT GATE:** `REV-F5.9 — COVERAGE & DATA QUALITY REPORT`  
 
 ## Concurrency rule
 
 At most one HIGH/CRITICAL mutable workstream may operate at a time. While `REV-F5-CLOSEOUT` owns the lock, other HIGH/CRITICAL feature/data workstreams remain read-only/documentation/regression-only unless explicitly required for REV-F5 validation.
 
-## REV-F5 LIVE checkpoint after REV-F5.6
+## REV-F5 LIVE checkpoint after REV-F5.8
 
 - REV-F5.1 ingest = **PASS**;
 - REV-F5.2 staging = **PASS**;
@@ -20,24 +21,27 @@ At most one HIGH/CRITICAL mutable workstream may operate at a time. While `REV-F
 - REV-F5.4 canonical matching = **PASS**;
 - REV-F5.5 enrichment preview = **PASS**;
 - REV-F5.6 governed Review & Apply = **PASS**;
+- REV-F5.7 historical commercial JOIN = **PASS**;
+- REV-F5.8 historical sales 2024–2025 source audit = **PASS**;
 - source rows = **15,498 / 15,498**;
 - identity memberships = **15,498 / 15,498**;
 - identity clusters = **8,716**;
 - MATCH / REVIEW / NEW = **296 / 6,984 / 1,436**;
-- enrichment previews = **455** across **202** MATCH patients;
-- final REV-F5.6 policy = **229 APPLY_ALLOWED / 226 POLICY_BLOCKED / 0 POLICY_UNDEFINED**;
-- applied LOW-risk fields = **229 / 229**;
-- blocked fields applied = **0 / 226**;
-- applied distribution = **Sexo 121 / distrito 108 / departamento 0 / ciudad 0**;
-- F5 Apply events = **230 total / 229 active / 1 exact canary rollback**;
-- event ↔ canonical mismatches = **0**;
-- event ↔ preview mismatches = **0**;
-- invalid before/after hash events = **0**;
-- active events outside allowlist = **0**;
 - canonical patients = **7,688**;
-- final canonical fingerprint = `eee5a57717937a4f77049b3aebd8c525`.
-
-The canonical patient count moved externally from 7,687 to 7,688 before the first F5.6 canary while F5 still had zero reviews and zero Apply events. F5.6 stopped, rebuilt/revalidated F5.3→F5.5 against CURRENT and proved the external row did not change the 296/6,984/1,436 classification or the 455 enrichment proposals.
+- final canonical fingerprint after F5.6 = `eee5a57717937a4f77049b3aebd8c525`;
+- F5.7 bridge = **1,299 / 1,299 sales**;
+- F5.7 sale identity = **208 MATCH / 940 REVIEW / 151 UNRESOLVED**;
+- F5.7 bridge fingerprint = `5af139243f6aed37020048af292587fe`;
+- F5.7 F3 = **397 RESOLVED / 3 REVIEW_REQUIRED / 6 EXCLUDED / 0 MISSING_F3_FACT / 893 NOT_APPLICABLE**;
+- F5.7 F4 = **123 LINKED / 1,176 NO_F4_RECONCILIATION_EVIDENCE**;
+- F5.8 canonical `aos_ventas` 2024–2025 rows = **0**;
+- F5.8 reconciled sales months 2024–2025 = **0**;
+- F5 patient-history rows 2024–2025 = **13,501 across 4 certified batches**;
+- F5 patient exports contain no transaction keys = **true**;
+- F5.8 evidence fingerprint = `4ce1695532a57655179558ed2b5f78aa`;
+- 2024 sales coverage = **NO CERTIFIED TRANSACTIONAL SOURCE**;
+- 2025 sales coverage = **NO CERTIFIED TRANSACTIONAL SOURCE**;
+- unsupported historical YoY/revenue must not be exposed as factual.
 
 ## REV-F5.6 governance boundary
 
@@ -91,6 +95,29 @@ Successful batch sizes: **10 + 50 + 50 + 50 + 50 + 19 = 229**.
 
 Every successful checkpoint preserved patient count and produced exact event/preview deltas. Final replay processed **0** additional fields and preserved fingerprint `eee5a57717937a4f77049b3aebd8c525`.
 
+## REV-F5.7 JOIN proof
+
+The private F5.7 bridge consumes existing domains instead of creating parallel truth:
+
+- F5 owns patient identity;
+- F3 owns product resolution;
+- F4 owns payment/revenue/cartera evidence.
+
+Builder initial run + replay x2 returned identical fingerprint `5af139243f6aed37020048af292587fe`. Independent invariants proved one row per sale, no unsafe identity MATCH, no phone-only authority, no review target leakage, private access boundary and no mutation of pacientes / ventas / F3 / F4.
+
+## REV-F5.8 coverage boundary
+
+The six already-certified historical Excel sources are patient exports, not transaction ledgers. They are valid for identity/provenance but do not contain canonical sale id/date/amount/currency/payment/product transaction fields.
+
+REV-F5.8 independently profiled the persisted transactional candidates. All auditable sale/payment/reconciliation coverage currently begins in 2026. No real 2024 or 2025 sales ledger was found in the persisted production domains or repository evidence.
+
+Therefore:
+
+- do not reinterpret absence as business `sales = 0`;
+- do not derive sales from `Último presupuesto`, appointments, calls or patient history;
+- do not expose factual 2024/2025 revenue, LTV or YoY until a real source is ingested through the existing historical-sales ingest contract;
+- if such a source appears later, reopen F5.8 intake and rebaseline instead of silently changing this contract.
+
 ## Mandatory persistence proof
 
 Every data checkpoint requires all three:
@@ -101,6 +128,10 @@ Every data checkpoint requires all three:
 
 REV-F5.6 additionally requires active-session 2FA proof, dry-run proof, exact canary rollback and field-level event/hash consistency.
 
+REV-F5.7 additionally requires deterministic bridge replay and protected-domain fingerprints.
+
+REV-F5.8 is a read-only coverage certification: its PASS requires independent LIVE year profiling plus repository/source-contract verification and a deterministic evidence fingerprint. It performs no patient/sale/financial mutation.
+
 ## Mandatory REV-F5 closeout sequence
 
 1. REV-F5.0 exact-current rebaseline and lock ownership — maintained.
@@ -110,9 +141,9 @@ REV-F5.6 additionally requires active-session 2FA proof, dry-run proof, exact ca
 5. REV-F5.4 MATCH / REVIEW / NEW — **PASS**.
 6. REV-F5.5 fill-only enrichment preview — **PASS**.
 7. REV-F5.6 governed Review & Apply — **PASS**.
-8. REV-F5.7 patient → sale → F3 product → F4 payment/revenue/cartera linkage — **NEXT / UNBLOCKED**.
-9. REV-F5.8 real transaction coverage for 2024–2025; prohibit unsupported YoY.
-10. REV-F5.9 numeric Coverage & Data Quality Report.
+8. REV-F5.7 patient → sale → F3 product → F4 payment/revenue/cartera linkage — **PASS**.
+9. REV-F5.8 real transaction coverage for 2024–2025; prohibit unsupported YoY — **PASS: NO CERTIFIED SOURCE**.
+10. REV-F5.9 numeric Coverage & Data Quality Report — **NEXT / UNBLOCKED**.
 11. REV-F5.10 independent exact-head/live final certification; only then can REV-F6 be unblocked.
 
 ## Safety invariants
@@ -126,6 +157,7 @@ REV-F5.6 additionally requires active-session 2FA proof, dry-run proof, exact ca
 - clinical notes/allergies stay outside commercial enrichment;
 - `Último presupuesto` remains evidence only;
 - `ADELANTO` remains payment evidence only;
+- missing 2024/2025 transaction coverage is not equivalent to zero revenue;
 - every retry reconciles persisted state first;
 - no competing HIGH/CRITICAL mutable workstream.
 
@@ -134,7 +166,7 @@ REV-F5.6 additionally requires active-session 2FA proof, dry-run proof, exact ca
 - F3 owns product truth;
 - F4 owns payment/revenue/cartera truth;
 - F5 owns patient identity/provenance;
-- F6 consumes only certified facts;
+- F6 consumes only certified facts and explicit coverage state;
 - CIA/WA must not create a second canonical customer identity.
 
 ## Main-moving policy
