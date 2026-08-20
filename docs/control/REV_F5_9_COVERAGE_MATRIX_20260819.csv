@@ -1,0 +1,38 @@
+domain,metric,numerator,denominator,pct,status,interpretation
+STAGING,source_rows_persisted,15498,15498,100.00,PASS,Exact persisted source coverage
+STAGING,identity_memberships,15498,15498,100.00,PASS,One membership per source row
+STAGING,exact_batches,6,6,100.00,PASS,All batch states MATCHED and persisted rows equal expected
+IDENTITY,safe_MATCH_clusters,296,8716,3.40,MEDIUM_COVERAGE,Conservative safe canonical linkage; not an accuracy failure
+IDENTITY,REVIEW_clusters,6984,8716,80.13,INFO,Human-review or blocking evidence remains
+IDENTITY,NEW_clusters,1436,8716,16.48,INFO,No safe canonical target under current contract
+CANONICAL_DQ,14_field_cell_completeness,,,51.48,MEDIUM_COVERAGE,Completeness index only; no global correctness claim
+CANONICAL_DQ,Nombres,7641,7688,99.39,PASS,Coverage
+CANONICAL_DQ,Apellidos,7639,7688,99.36,PASS,Coverage
+CANONICAL_DQ,Telefono,7629,7688,99.23,PASS,7524/7629 meet Peru-9 format
+CANONICAL_DQ,Email,1809,7688,23.53,MEDIUM_COVERAGE,1744/1809 syntactically valid
+CANONICAL_DQ,Documento,3843,7688,49.99,MEDIUM_COVERAGE,2932/3843 meet DNI8 format
+CANONICAL_DQ,Sexo,7147,7688,92.96,PASS,Coverage
+CANONICAL_DQ,Fecha_nacimiento,1244,7688,16.18,MEDIUM_COVERAGE,1244/1244 parse under certified F5 parser
+CANONICAL_DQ,Direccion,1098,7688,14.28,MEDIUM_COVERAGE,Coverage only
+CANONICAL_DQ,distrito,110,7688,1.43,MEDIUM_COVERAGE,Coverage only
+CANONICAL_DQ,ciudad,7688,7688,100.00,PASS,Coverage only; not independent correctness validation
+CANONICAL_DQ,departamento,7688,7688,100.00,PASS,Coverage only; not independent correctness validation
+CANONICAL_DQ,Ocupacion,1019,7688,13.25,MEDIUM_COVERAGE,Coverage only
+CANONICAL_DQ,SEDE_PRINCIPAL,269,7688,3.50,MEDIUM_COVERAGE,Coverage only
+CANONICAL_DQ,ULTIMA_VISITA,587,7688,7.64,MEDIUM_COVERAGE,586/587 parse under certified F5 parser
+APPLY,allowed_applied,229,229,100.00,PASS,All LOW-risk approved fields applied
+APPLY,blocked_unapplied,226,226,100.00,PASS,Blocked fields remained unapplied
+APPLY,policy_violations,0,229,0.00,PASS,No applied policy violation
+SALES,safe_patient_MATCH,208,1299,16.01,MEDIUM_COVERAGE,DNI+name exact only
+SALES,historical_MATCH_linked,102,1299,7.85,MEDIUM_COVERAGE,Sale linked to F5 historical MATCH cluster
+F3,RESOLVED_applicable,397,406,97.78,PASS,F3 is sole product-truth layer
+F3,REVIEW_REQUIRED,3,406,0.74,INFO,Requires product review
+F3,EXCLUDED,6,406,1.48,INFO,Explicitly excluded by F3 contract
+F3,MISSING_F3_FACT,0,406,0.00,PASS,No applicable sale lacks F3 fact
+F4,sales_with_reconciliation_evidence,123,1299,9.47,HIGH_COVERAGE_GAP,Financial evidence sparse; unlinked does not mean unpaid
+F4,payment_evidence_rows,0,1299,0.00,HIGH_COVERAGE_GAP,No payment truth may be inferred outside F4
+F4,confirmed_balance_evidence_rows,0,1299,0.00,HIGH_COVERAGE_GAP,No debt/balance truth may be inferred
+HISTORICAL,patient_history_years_available,3,3,100.00,PASS,2024 2025 2026 patient history available
+HISTORICAL,transaction_years_certified,1,3,33.33,INFO,2024/2025 NO_CERTIFIED_SOURCE; 2026 available only in certified date range
+SAFETY,unsafe_identity_matches,0,,0.00,PASS,Phone/name alone never authorize MATCH
+SAFETY,critical_invariant_failures,0,,0.00,PASS,No CRITICAL structural failure detected
