@@ -18,6 +18,7 @@ drop function if exists public.aos_rev_customer_lifecycle_v1(text,text,date);
 drop function if exists public.aos_rev_customer_lifecycle_by_patient_v1(text,date);
 drop view if exists public.aos_rev_customer_lifecycle_events_v1;
 drop view if exists public.aos_rev_customer_agenda_identity_v1;
+drop function if exists public.aos_rev_business_date_lima_v1();
 
 select pg_notify('pgrst','reload schema');
 commit;
