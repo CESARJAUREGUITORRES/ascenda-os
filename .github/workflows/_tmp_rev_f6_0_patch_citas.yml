@@ -1,0 +1,47 @@
+name: REV-F6.0 one-shot Citas patch
+
+on:
+  push:
+    branches:
+      - data/rev-f6-0-data-contract-20260819
+    paths:
+      - .github/workflows/_tmp_rev_f6_0_patch_citas.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: data/rev-f6-0-data-contract-20260819
+          fetch-depth: 0
+      - name: Patch legacy Patient 360 consumer deterministically
+        shell: python
+        run: |
+          from pathlib import Path
+          old = "_rpc('aos_paciente_360',{p_numero:num},function(d){"
+          new = "_rpc('aos_patient_history_summary_v1',{p_token:(sessionStorage.getItem('aos_app_token')||''),p_numero:num},function(d){"
+          for name in ('app/public/citas.html','app/public/citas.js'):
+              p = Path(name)
+              s = p.read_text(encoding='utf-8')
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f'{name}: expected exactly 1 legacy call, found {n}')
+              p.write_text(s.replace(old,new), encoding='utf-8')
+      - name: Verify no browser consumer calls legacy Patient 360
+        shell: bash
+        run: |
+          ! grep -R "_rpc('aos_paciente_360'" app/public/citas.html app/public/citas.js
+          grep -n "aos_patient_history_summary_v1" app/public/citas.html app/public/citas.js
+      - name: Commit patch to branch
+        shell: bash
+        run: |
+          git config user.name "ascenda-ci"
+          git config user.email "ascenda-ci@users.noreply.github.com"
+          git add app/public/citas.html app/public/citas.js
+          git diff --cached --check
+          git commit -m "REV-F6.0: route Citas history through Auth V3 summary"
+          git push origin HEAD:data/rev-f6-0-data-contract-20260819
