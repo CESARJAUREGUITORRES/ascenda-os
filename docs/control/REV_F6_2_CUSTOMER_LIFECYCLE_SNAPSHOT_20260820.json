@@ -1,0 +1,109 @@
+{
+  "contract_id": "REV-F6.2_CUSTOMER_LIFECYCLE_FINAL_V1",
+  "captured_date_lima": "2026-08-20",
+  "implementation_pr": 311,
+  "implementation_expected_head": "3eb30e39c8184d4acd2cf7dcc7548d35f65c5fa3",
+  "implementation_merge_main": "1532cb20e087a5f2025b29bf86d4d828b7445f68",
+  "terminal_fingerprint": "d977b9669b9e741e8785cd863caaf9c2",
+  "migrations": {
+    "base": "rev_f6_2_customer_lifecycle_v1",
+    "lima_fusionado_hotfix": "rev_f6_2_lima_date_active_subject_fix"
+  },
+  "business_date": {
+    "timezone": "America/Lima",
+    "as_of": "2026-08-20",
+    "matches_lima_expression": true
+  },
+  "lifecycle": {
+    "canonical_population": 7262,
+    "classified_population": 543,
+    "insufficient_activity_evidence": 6719,
+    "qualifying_event_rows": 1089,
+    "states": {
+      "HISTORICAL_REACTIVATED": 1,
+      "NEW_PATIENT": 129,
+      "ACTIVE_REPEAT": 90,
+      "RETURNING_PATIENT": 137,
+      "DORMANT": 186
+    },
+    "thresholds_days": {
+      "active_recent": 90,
+      "dormant_gap": 180,
+      "reactivation_gap": 180,
+      "reactivation_window": 30
+    }
+  },
+  "fusionado_boundary": {
+    "lifecycle_event_rows": 0,
+    "agenda_identity_rows": 0
+  },
+  "agenda_identity": {
+    "rows": 3132,
+    "resolved": 2754,
+    "identity_conflict": 90,
+    "unresolved": 288,
+    "bad_resolved_rows": 0
+  },
+  "real_canaries": {
+    "ACTIVE_REPEAT": {"pass": true, "recency_days": 61},
+    "DORMANT": {"pass": true, "recency_days": 199},
+    "HISTORICAL_REACTIVATED": {"pass": true, "recency_days": 19, "reactivation_gap_days": 372, "claim_strength": "HIGH"},
+    "future_confirmed_appointment": {"eligible_live_subjects": 0, "live_canary": "N/A", "isolated_ci_fixture": "PASS"}
+  },
+  "phone_conflict_fail_closed": {
+    "keys": 37,
+    "fail_closed": 37,
+    "violations": 0
+  },
+  "identity_bridge_f6_1": {
+    "CANONICAL_ID": {"keys": 7262, "resolved": 7262, "conflicts": 0, "max_candidates": 1},
+    "PHONE": {"keys": 7136, "resolved": 7099, "conflicts": 37, "max_candidates": 4},
+    "DOCUMENT": {"keys": 2605, "resolved": 2459, "conflicts": 146, "max_candidates": 7},
+    "EMAIL": {"keys": 1633, "resolved": 1555, "conflicts": 78, "max_candidates": 7},
+    "memberships": 15498,
+    "classifications": 8716,
+    "match_clusters": 296,
+    "old_current_distinct_phone_subjects": 4
+  },
+  "acl": {
+    "business_date_helper_browser_closed": true,
+    "agenda_identity_view_browser_closed": true,
+    "lifecycle_events_view_browser_closed": true,
+    "direct_lifecycle_browser_closed": true,
+    "by_patient_browser_closed": true,
+    "f6_1_private_base_browser_closed": true,
+    "governed_patient_360_gateway_browser_executable": true,
+    "legacy_patient_360_browser_closed": true
+  },
+  "protected_truth": {
+    "patients": {"rows": 7688, "fingerprint": "eee5a57717937a4f77049b3aebd8c525"},
+    "sales": {"rows": 1299, "fingerprint": "20104fd91fbf427e39566e7b84d7ec4f"},
+    "f3": {"rows": 406, "fingerprint": "e3c8499026d13401c4a733b4da16b6c8"},
+    "f4": {"rows": 162, "fingerprint": "5524a2280442224ec4e9a7cfdfffa008"},
+    "f5_7_fingerprint": "5af139243f6aed37020048af292587fe",
+    "f6_0_fingerprint": "02ba53adb9dabfcd0a4557061be53c2f",
+    "f6_1_terminal_input": "cd313998c5b5b38d5cb9e2f08882b826"
+  },
+  "historical_semantics": {
+    "patient_history_2024": "AVAILABLE",
+    "patient_history_2025": "AVAILABLE",
+    "patient_history_2026": "AVAILABLE",
+    "transactional_sales_2024": "NO_CERTIFIED_SOURCE",
+    "transactional_sales_2025": "NO_CERTIFIED_SOURCE",
+    "transactional_sales_2026": "AVAILABLE_2026-01-05_TO_2026-08-15",
+    "absence_means_zero": false,
+    "unsupported_historical_yoy_allowed": false
+  },
+  "pre_certificate_ci": {
+    "rev_f6_2_run_id": 32329958387,
+    "rev_f6_0_run_id": 32329958435,
+    "rev_f6_1_run_id": 32329958478,
+    "ascenda_ci_run_id": 32329958393,
+    "all_success": true
+  },
+  "next": {
+    "rev_f6_2": "CERTIFICATION_PR_EXACT_HEAD_PENDING",
+    "rev_f6_3": "BLOCKED_UNTIL_FINAL_POST_MERGE_READBACK",
+    "rev_f7": "BLOCKED_UNTIL_REV_F6_FINAL_CERTIFICATION"
+  }
+}

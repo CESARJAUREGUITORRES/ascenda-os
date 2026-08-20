@@ -1,17 +1,17 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Status:** CURRENT / REV-F6 ACTIVE  
-**Captured:** 2026-08-19 America/Lima  
-**Entry baseline:** `main@9fb146358979bdff0e4af37c8c44d09e8babf4f9`  
+**Captured:** 2026-08-20 America/Lima  
+**Implementation main:** `1532cb20e087a5f2025b29bf86d4d828b7445f68`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
 **REV-F6.0:** `PASS / CERTIFIED` · fp `02ba53adb9dabfcd0a4557061be53c2f`  
-**REV-F6.1:** `PASS / CERTIFIED — 100%` · PR #310 MERGED · fp `cd313998c5b5b38d5cb9e2f08882b826`  
-**CURRENT GATE:** `REV-F6.2 — CUSTOMER LIFECYCLE / IN PROGRESS`  
-**REV-F6.3:** `BLOCKED until REV-F6.2 terminal certification`  
+**REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
+**REV-F6.2:** `LIVE TERMINAL PASS · CERTIFICATION PR EXACT-HEAD + POST-MERGE READBACK PENDING` · fp `d977b9669b9e741e8785cd863caaf9c2`  
+**REV-F6.3:** `BLOCKED until REV-F6.2 final post-merge readback`  
 **REV-F7:** `BLOCKED until REV-F6 certification`
 
-This is the single mutable Revenue execution pointer. GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints.
+This remains the single mutable Revenue execution pointer. GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints.
 
 ## One-lock rule
 
@@ -19,7 +19,7 @@ This is the single mutable Revenue execution pointer. GitHub CURRENT + Supabase 
 
 ## Certified upstream truth boundary
 
-F6.2 is read-model/analytics only and must preserve:
+F6 is analytics/read-model only and preserves:
 
 - patients = **7,688** / `eee5a57717937a4f77049b3aebd8c525`;
 - sales = **1,299** / `20104fd91fbf427e39566e7b84d7ec4f`;
@@ -32,65 +32,67 @@ F6.2 is read-model/analytics only and must preserve:
 
 F3 owns product truth, F4 owns financial/payment/cartera truth, F5 owns patient identity/provenance, F6 only derives analytics/read models.
 
-## REV-F6.1 terminal handoff
+## REV-F6.2 terminal LIVE proof
 
-PR #310 merged with exact expected head to `main@9fb146358979bdff0e4af37c8c44d09e8babf4f9`. Post-merge LIVE reproduced F6.1 terminal fp `cd313998c5b5b38d5cb9e2f08882b826`; real old/current phone aliases converge to the same canonical patient; PHONE conflicts are **37/37 fail-closed**; 0 bad RESOLVED aliases; 0 orphan targets; legacy `aos_paciente_360` remains browser-closed. `aos_memory` and Notion were reconciled to `REV-F6.2 NEXT / UNBLOCKED`.
+Contract: `REV-F6.2_CUSTOMER_LIFECYCLE_FINAL_V1`  
+Terminal fingerprint: `d977b9669b9e741e8785cd863caaf9c2` — reproduced identically in two independent LIVE calls.
 
-## REV-F6.2 contract
+LIVE business date is explicit `America/Lima` and equals the Lima timezone expression.
 
-Lifecycle is derived from `canonical_patient_id` plus qualifying observed patient activity. Required non-null states:
+Lifecycle summary as-of 2026-08-20:
 
-1. `UNRESOLVED_IDENTITY`
-2. `HISTORICAL_REACTIVATED`
-3. `NEW_PATIENT`
-4. `ACTIVE_REPEAT`
-5. `RETURNING_PATIENT`
-6. `DORMANT`
+- canonical/non-fused population = **7,262**;
+- classified = **543**;
+- insufficient activity evidence = **6,719**;
+- qualifying event rows = **1,089**;
+- `HISTORICAL_REACTIVATED` = **1**;
+- `NEW_PATIENT` = **129**;
+- `ACTIVE_REPEAT` = **90**;
+- `RETURNING_PATIENT` = **137**;
+- `DORMANT` = **186**.
 
-Default thresholds are explicit and versioned:
+Hard invariants:
 
-- active/recent ≤ **90 days**;
-- dormant/reactivation gap ≥ **180 days**;
-- reactivation window = first **30 days** after return.
+- lifecycle events targeting `FUSIONADO` = **0**;
+- Agenda identity rows targeting `FUSIONADO` = **0**;
+- Agenda RESOLVED rows with `candidate_count <> 1` = **0**;
+- PHONE conflict keys = **37**;
+- PHONE conflict fail-closed = **37/37**;
+- conflict violations = **0**.
 
-Qualifying activity V1:
+Real LIVE canaries:
 
-- F5-reviewed historical appointment evidence;
-- Agenda `ASISTIO` / `EFECTIVA` resolved safely through Identity Bridge V2;
-- canonical F5-matched sale.
+- `ACTIVE_REPEAT` expected = actual;
+- `DORMANT` expected = actual;
+- `HISTORICAL_REACTIVATED` expected = actual, gap **372 days**;
+- future confirmed appointment LIVE eligible subjects = **0**, therefore real canary N/A; exact-head isolated fixture remains PASS.
 
-Patient registration alone is **not** a qualifying lifecycle event. A known canonical patient with no qualifying activity is not force-labelled: `lifecycle_state = null` + `classification_status = INSUFFICIENT_ACTIVITY_EVIDENCE`.
+Security remains fail-closed: lifecycle internal views/functions and F6.1 private base are browser closed; governed Patient Commercial 360 remains browser executable; legacy Patient 360 remains browser closed.
 
-Historical patient activity may support lifecycle recency/reactivation, but **2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, never revenue zero and never historical revenue evidence**.
+Historical rule remains frozen: 2024/2025 patient history may support lifecycle, but 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, never zero revenue and never inferred historical revenue.
 
-## Entry LIVE profile for F6.2
+## Implementation / certification sequencing
 
-At explicit as-of `2026-08-19` before F6.2 mutation:
+Implementation PR #311 merged with `expected_head_sha=3eb30e39c8184d4acd2cf7dcc7548d35f65c5fa3` to `main@1532cb20e087a5f2025b29bf86d4d828b7445f68`. Final certificate/snapshot/current-control artifacts are being closed in a separate certification PR so the audit sequence remains explicit.
 
-- active/non-fused canonical patients = **7,262**;
-- patients with safely linked qualifying activity = **551**;
-- patients without qualifying activity evidence = **6,718**;
-- safely linked qualifying event rows = **1,096**;
-- F5 historical-appointment patients = **272**;
-- canonical-sale patients = **66**;
-- safely resolved attended/effective Agenda patients = **351**;
-- qualifying event window = **2024-03-08 → 2026-08-17**.
+Authoritative artifacts:
 
-These counts are evidence/coverage, not a mandate to classify patients without sufficient history.
+- `docs/control/REV_F6_2_CUSTOMER_LIFECYCLE_CERTIFICATE_20260820.md`
+- `docs/control/REV_F6_2_CUSTOMER_LIFECYCLE_SNAPSHOT_20260820.json`
 
-## F6.2 exit gate
+## Final gate
 
-F6.2 closes only after all of the following pass on one exact head:
+Close REV-F6.2 only after the certification PR exact head passes F6.2 + affected upstream CI, is merged with its exact `expected_head_sha`, and post-merge readbacks prove:
 
-1. deterministic mutually-exclusive lifecycle semantics + explicit thresholds/as-of;
-2. unresolved/conflicting identity → `UNRESOLVED_IDENTITY` and no patient-level repeat/lifetime claim;
-3. insufficient activity evidence fails closed without invented lifecycle state;
-4. historical reactivation uses patient-history evidence without manufacturing historical revenue;
-5. future confirmed appointment prevents a false `DORMANT` state;
-6. Patient Commercial 360 consumes F6.2 through the existing governed gateway; private F6.1 base has no browser bypass;
-7. isolated DB/security/semantic tests + full replay + fail-closed recovery PASS;
-8. protected F3/F4/F5/F6.0/F6.1 truth fingerprints remain unchanged LIVE;
-9. deterministic F6.2 terminal fingerprint is reproduced independently;
-10. certificate + final exact-head CI + expected-head merge + post-merge LIVE + `aos_memory` + Notion readback PASS.
+1. certificate + snapshot + CURRENT exist in `main`;
+2. LIVE fp remains `d977b9669b9e741e8785cd863caaf9c2`;
+3. protected truth remains exact;
+4. `aos_memory` CURRENT persists/readbacks;
+5. Notion CURRENT persists/readbacks.
 
-Only then set `REV-F6.2 = PASS / CERTIFIED — 100%` and `REV-F6.3 = NEXT / UNBLOCKED`.
+Then set:
+
+- `REV-F6.2 = PASS / CERTIFIED — 100%`;
+- `REV-F6.3 — Identity Confidence / Metric Trust = NEXT / UNBLOCKED`;
+- `REV-F6-CLOSEOUT` remains the single mutable Revenue lock;
+- `REV-F7` remains blocked until REV-F6 final certification.
