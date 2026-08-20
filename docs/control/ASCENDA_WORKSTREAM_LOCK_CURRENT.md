@@ -9,8 +9,8 @@
 **REV-F6.0:** `PASS / CERTIFIED` · fp `02ba53adb9dabfcd0a4557061be53c2f`  
 **REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
 **REV-F6.2:** `PASS / CERTIFIED — 100%` · fp `d977b9669b9e741e8785cd863caaf9c2`  
-**REV-F6.3:** `IN PROGRESS · PRE-LIVE`  
-**REV-F6.4:** `BLOCKED until REV-F6.3 certification`  
+**REV-F6.3:** `LIVE PASS · terminal fp 3f4174660107661a2c4509f6f8817d7a · FINAL EXACT-HEAD CLOSEOUT PENDING`  
+**REV-F6.4:** `BLOCKED until REV-F6.3 final post-merge readback`  
 **REV-F7:** `BLOCKED until REV-F6 final certification`
 
 GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints. `REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane.
@@ -27,45 +27,68 @@ F6 remains analytics/read-model only and must preserve:
 - F5.10 = `2f0a365fae4caaa7be9d204e0f76679b`;
 - F6.0 = `02ba53adb9dabfcd0a4557061be53c2f`;
 - F6.1 = `cd313998c5b5b38d5cb9e2f08882b826`;
-- F6.2 = `d977b9669b9e741e8785cd863caaf9c2`.
+- F6.2 = `d977b9669b9e741e8785cd863caaf9c2`;
+- F6.3 terminal = `3f4174660107661a2c4509f6f8817d7a`.
 
 F3 owns product truth, F4 financial/payment/cartera truth, F5 patient identity/provenance. F6 derives analytics only.
 
-## REV-F6.3 contract
+## REV-F6.3 LIVE certified candidate
 
-F6.3 formalizes two reusable, explainable layers without a second patient truth:
+Pre-LIVE exact-head `3feab3c9cf9de59159196a382c8b68a3f36d6d16` passed dedicated REV-F6.3 plus F6.2/F6.1/F6.0 regressions and Ascenda CI.
 
-1. **Identity Confidence** by `canonical_patient_id`: `HIGH / MEDIUM / LOW / UNRESOLVED`, based only on governed F5/F6.1 evidence. Alias conflict is fail-closed and cannot auto-authorize cross-source attribution. `FUSIONADO` cannot become an active subject.
-2. **Metric Trust** envelopes carrying `value + coverage + confidence + freshness + sample_size`, plus source status/period, limitations, provenance, data-quality flags and an auditable trust level. No opaque probability score.
+Supabase LIVE migration ledger:
 
-Frozen semantics:
+- `20260820180246 · rev_f6_3_identity_confidence_metric_trust_v1`.
 
-- coverage always includes numerator + denominator + semantic;
-- freshness = `CURRENT / STALE / UNKNOWN`;
-- `NO_CERTIFIED_SOURCE != 0` remains mandatory;
-- F4 coverage `9.47%` means financial evidence availability, never non-payment;
-- 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, never zero revenue;
-- no fuzzy matching, phone-nearness authority or silent identity merge;
-- no new browser-facing internal trust endpoints and no new PHI exposure.
+LIVE Identity Confidence:
 
-Candidate implementation lives on branch `data/rev-f6-3-identity-confidence-metric-trust-20260820`. No F6.3 DDL may be applied LIVE until exact-head FAST + isolated DB/security/semantic + replay/recovery and affected upstream regressions are PASS and `main`/LIVE protected fingerprints are revalidated.
+- canonical population **7,262**;
+- HIGH **238**;
+- MEDIUM **6,583**;
+- LOW **441**;
+- safe automatic cross-source attribution **238**;
+- patients with conflict keys **441**;
+- PHONE conflict keys **37**.
 
-## Exit gate
+Metric Trust remains explicit and non-opaque: `value + coverage + confidence + freshness + sample_size + source_status + limitations + provenance`.
+
+Frozen baseline semantics:
+
+- Identity safe match **296/8,716 = 3.40%**;
+- Sales safe linkage **208/1,299 = 16.01%**;
+- F3 product resolution **397/406 = 97.78%**;
+- F4 financial evidence **123/1,299 = 9.47%**, never interpreted as non-payment;
+- historical transaction source availability **1/3 = 33.33%**, source availability not revenue;
+- lifecycle classified evidence **543/7,262 = 7.48%**, sample_size **1,089**;
+- 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, `value=null`, never zero revenue.
+
+Security PASS:
+
+- Identity Confidence view/function and F6.3 aggregate contract are browser-closed;
+- governed Patient Commercial 360 remains browser-executable behind the existing lower-layer Auth V3 + PASSWORD_2FA contract;
+- legacy `aos_paciente_360(text)` remains browser-closed;
+- no fuzzy identity, phone-nearness authority, silent merge or aggregate PII/PHI exposure.
+
+Terminal fingerprint replay:
+
+- run 1: `3f4174660107661a2c4509f6f8817d7a`;
+- run 2: `3f4174660107661a2c4509f6f8817d7a`.
+
+Certificate: `docs/control/REV_F6_3_IDENTITY_CONFIDENCE_METRIC_TRUST_CERTIFICATE_20260820.md`  
+Snapshot: `docs/control/REV_F6_3_IDENTITY_CONFIDENCE_METRIC_TRUST_SNAPSHOT_20260820.json`
+
+## Remaining exit gate
 
 Close REV-F6.3 only after:
 
-1. exact-head dedicated CI PASS;
-2. F6.0/F6.1/F6.2 regression PASS;
-3. anti-drift `main` + protected LIVE truth PASS;
-4. exact F6.3 migration receipt + direct readback + independent invariants;
-5. deterministic F6.3 terminal fingerprint reproduced twice;
-6. certificate + snapshot committed;
-7. final exact-head CI PASS;
-8. merge with exact `expected_head_sha`;
-9. post-merge LIVE fingerprint exact;
-10. `aos_memory` persisted/read back;
-11. Notion persisted/read back;
-12. GitHub CURRENT final readback.
+1. final exact-head dedicated CI PASS;
+2. F6.0/F6.1/F6.2 regressions + Ascenda CI PASS on that same final head;
+3. merge PR #313 with exact `expected_head_sha`;
+4. post-merge LIVE F6.3 fingerprint exact;
+5. protected truth unchanged post-merge;
+6. `aos_memory` persisted + independent readback;
+7. Notion persisted + independent readback;
+8. GitHub CURRENT final readback.
 
 Only then set:
 
