@@ -48,39 +48,41 @@ $$;
 revoke all on function public.aos_sentinel_rev_f6_6_mark_dirty_v1() from public,anon,authenticated;
 grant execute on function public.aos_sentinel_rev_f6_6_mark_dirty_v1() to service_role;
 
--- Statement-level markers keep the health path O(1) while preserving fail-closed semantics.
-drop trigger if exists trg_f66_dirty_f5_batches on public.aos_f5_source_batches_v1;
-create trigger trg_f66_dirty_f5_batches after insert or update or delete or truncate on public.aos_f5_source_batches_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_SOURCE');
-drop trigger if exists trg_f66_dirty_f5_source_rows on public.aos_f5_patient_source_rows_v1;
-create trigger trg_f66_dirty_f5_source_rows after insert or update or delete or truncate on public.aos_f5_patient_source_rows_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_SOURCE');
-drop trigger if exists trg_f66_dirty_f5_members on public.aos_f5_identity_cluster_members_v1;
-create trigger trg_f66_dirty_f5_members after insert or update or delete or truncate on public.aos_f5_identity_cluster_members_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_MEMBERSHIP');
-drop trigger if exists trg_f66_dirty_f5_classification on public.aos_f5_canonical_classification_v1;
-create trigger trg_f66_dirty_f5_classification after insert or update or delete or truncate on public.aos_f5_canonical_classification_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_IDENTITY');
-drop trigger if exists trg_f66_dirty_f5_apply on public.aos_f5_canonical_apply_events_v1;
-create trigger trg_f66_dirty_f5_apply after insert or update or delete or truncate on public.aos_f5_canonical_apply_events_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_APPLY');
-drop trigger if exists trg_f66_dirty_f5_preview on public.aos_f5_enrichment_preview_v1;
-create trigger trg_f66_dirty_f5_preview after insert or update or delete or truncate on public.aos_f5_enrichment_preview_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('F5_APPLY');
-drop trigger if exists trg_f66_dirty_patients on public.aos_pacientes;
-create trigger trg_f66_dirty_patients after insert or update or delete or truncate on public.aos_pacientes for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('IDENTITY_LIFECYCLE');
-drop trigger if exists trg_f66_dirty_sales on public.aos_ventas;
-create trigger trg_f66_dirty_sales after insert or update or delete or truncate on public.aos_ventas for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('SALES');
-drop trigger if exists trg_f66_dirty_product_fact on public.aos_product_sale_fact_v1;
-create trigger trg_f66_dirty_product_fact after insert or update or delete or truncate on public.aos_product_sale_fact_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('PRODUCT');
-drop trigger if exists trg_f66_dirty_product_identity on public.aos_product_identity_v1;
-create trigger trg_f66_dirty_product_identity after insert or update or delete or truncate on public.aos_product_identity_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('PRODUCT');
-drop trigger if exists trg_f66_dirty_f4 on public.aos_cartera_reconciliacion;
-create trigger trg_f66_dirty_f4 after insert or update or delete or truncate on public.aos_cartera_reconciliacion for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('FINANCE');
-drop trigger if exists trg_f66_dirty_pagos on public.aos_pagos;
-create trigger trg_f66_dirty_pagos after insert or update or delete or truncate on public.aos_pagos for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('FINANCE');
-drop trigger if exists trg_f66_dirty_cotizaciones on public.aos_cotizaciones;
-create trigger trg_f66_dirty_cotizaciones after insert or update or delete or truncate on public.aos_cotizaciones for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('FINANCE');
-drop trigger if exists trg_f66_dirty_dashboard_cache on public.aos_rev_si_dashboard_cache_v1;
-create trigger trg_f66_dirty_dashboard_cache after insert or update or delete or truncate on public.aos_rev_si_dashboard_cache_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('READMODEL');
-drop trigger if exists trg_f66_dirty_historical_manifest on public.aos_rev_historical_source_manifest_v1;
-create trigger trg_f66_dirty_historical_manifest after insert or update or delete or truncate on public.aos_rev_historical_source_manifest_v1 for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('HISTORICAL');
-drop trigger if exists trg_f66_dirty_agenda on public.aos_agenda_citas;
-create trigger trg_f66_dirty_agenda after insert or update or delete or truncate on public.aos_agenda_citas for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1('LIFECYCLE');
+-- Install statement-level markers only where the physical source relation exists.
+-- This keeps production coverage broad while allowing reduced isolated CI fixtures.
+do $$
+declare
+  r record;
+begin
+  for r in
+    select * from (values
+      ('public.aos_f5_source_batches_v1','trg_f66_dirty_f5_batches','F5_SOURCE'),
+      ('public.aos_f5_patient_source_rows_v1','trg_f66_dirty_f5_source_rows','F5_SOURCE'),
+      ('public.aos_f5_identity_cluster_members_v1','trg_f66_dirty_f5_members','F5_MEMBERSHIP'),
+      ('public.aos_f5_canonical_classification_v1','trg_f66_dirty_f5_classification','F5_IDENTITY'),
+      ('public.aos_f5_canonical_apply_events_v1','trg_f66_dirty_f5_apply','F5_APPLY'),
+      ('public.aos_f5_enrichment_preview_v1','trg_f66_dirty_f5_preview','F5_APPLY'),
+      ('public.aos_pacientes','trg_f66_dirty_patients','IDENTITY_LIFECYCLE'),
+      ('public.aos_ventas','trg_f66_dirty_sales','SALES'),
+      ('public.aos_product_sale_fact_v1','trg_f66_dirty_product_fact','PRODUCT'),
+      ('public.aos_product_identity_v1','trg_f66_dirty_product_identity','PRODUCT'),
+      ('public.aos_cartera_reconciliacion','trg_f66_dirty_f4','FINANCE'),
+      ('public.aos_pagos','trg_f66_dirty_pagos','FINANCE'),
+      ('public.aos_cotizaciones','trg_f66_dirty_cotizaciones','FINANCE'),
+      ('public.aos_rev_si_dashboard_cache_v1','trg_f66_dirty_dashboard_cache','READMODEL'),
+      ('public.aos_rev_historical_source_manifest_v1','trg_f66_dirty_historical_manifest','HISTORICAL'),
+      ('public.aos_agenda_citas','trg_f66_dirty_agenda','LIFECYCLE')
+    ) as x(rel_name,trg_name,domain_name)
+  loop
+    if to_regclass(r.rel_name) is not null then
+      execute pg_catalog.format('drop trigger if exists %I on %s',r.trg_name,r.rel_name);
+      execute pg_catalog.format(
+        'create trigger %I after insert or update or delete or truncate on %s for each statement execute function public.aos_sentinel_rev_f6_6_mark_dirty_v1(%L)',
+        r.trg_name,r.rel_name,r.domain_name
+      );
+    end if;
+  end loop;
+end $$;
 
 create or replace function public.aos_sentinel_rev_f6_6_refresh_cache_v1()
 returns jsonb
