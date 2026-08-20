@@ -1,0 +1,100 @@
+{
+  "contract": "REV-F6.5_HISTORICAL_SALES_PLUGIN_CERTIFICATION_SNAPSHOT_V1",
+  "captured_date": "2026-08-20",
+  "status": "PRE_MERGE_TERMINAL_CANDIDATE",
+  "repository": "CESARJAUREGUITORRES/ascenda-os",
+  "pr": 315,
+  "entry_main": "c73b41b318639ef09027956b3c183f8379c42e33",
+  "implementation_head_before_certificate": "6736b005b2e4b6ebbfeb1e3d589b3d0e48a21b30",
+  "supabase": {
+    "project_id": "ituyqwstonmhnfshnaqz",
+    "migration_version": "20260820201634",
+    "migration_name": "rev_f6_5_historical_sales_plugin_v1",
+    "manifest_rows": 0,
+    "certified_sources": 0
+  },
+  "fingerprints": {
+    "f6_3": "3f4174660107661a2c4509f6f8817d7a",
+    "f6_4": "b0f06d841c74ceeb231451aecdeceef2",
+    "f6_5_candidate": "88a6dab1f3ef228eaa79f8489d6d8eb0",
+    "f6_5_reproduced_twice": true,
+    "f6_4_unchanged_after_recompute": true
+  },
+  "historical_coverage": {
+    "2024": {
+      "value": null,
+      "source_status": "NO_CERTIFIED_SOURCE",
+      "trust_level": "UNAVAILABLE",
+      "manifest_count": 0,
+      "certified_source_count": 0,
+      "canonical_sale_rows": 0
+    },
+    "2025": {
+      "value": null,
+      "source_status": "NO_CERTIFIED_SOURCE",
+      "trust_level": "UNAVAILABLE",
+      "manifest_count": 0,
+      "certified_source_count": 0,
+      "canonical_sale_rows": 0
+    },
+    "2026": {
+      "source_status": "AVAILABLE",
+      "transactions": 1299,
+      "billed_amount": 561889.27,
+      "min_date": "2026-01-05",
+      "max_date": "2026-08-15"
+    },
+    "no_certified_source_means_zero": false
+  },
+  "protected_truth": {
+    "patients": 7688,
+    "sales": 1299,
+    "f3_rows": 406,
+    "f4_rows": 162,
+    "f6_4_sales_fact_rows": 1299
+  },
+  "security": {
+    "manifest_anon_select": false,
+    "manifest_authenticated_select": false,
+    "register_anon_execute": false,
+    "certify_authenticated_execute": false,
+    "recompute_authenticated_execute": false,
+    "internal_v3_anon_execute": false,
+    "gateway_anon_execute": true,
+    "legacy_360_anon_execute": false,
+    "raw_pii_phi_in_coverage_contract": false
+  },
+  "performance_ms": {
+    "global": 11.983,
+    "san_isidro": 8.78,
+    "pueblo_libre": 7.861,
+    "target_max": 1000
+  },
+  "ci_implementation_head": {
+    "ascenda_ci": {"run_number": 2671, "conclusion": "success"},
+    "rev_f6_0": {"run_number": 43, "conclusion": "success"},
+    "rev_f6_1": {"run_number": 44, "conclusion": "success"},
+    "rev_f6_2": {"run_number": 23, "conclusion": "success"},
+    "rev_f6_3": {"run_number": 14, "conclusion": "success"},
+    "rev_f6_4": {"run_number": 9, "conclusion": "success"},
+    "rev_f6_5": {"run_number": 1, "conclusion": "success", "fixtures_A_J": true, "idempotent_replay": true, "recovery_to_f6_4": true}
+  },
+  "semantic_guards": {
+    "manifest_coverage_is_revenue": false,
+    "uncertified_source_exposed_as_revenue": false,
+    "direct_mass_insert_into_aos_ventas": false,
+    "phone_only_identity_authority": false,
+    "f3_f5_f4_reuse_required": true,
+    "hardcoded_2024_2025_runtime_status": false,
+    "active_historical_coverage_contract": "REV-F6.5_HISTORICAL_COVERAGE_V1"
+  },
+  "remaining_terminal_gates": [
+    "ATOMIC_CERTIFICATE_SNAPSHOT_COMMIT",
+    "FINAL_EXACT_HEAD_7_WORKFLOWS_SUCCESS",
+    "MERGE_PR_315_EXPECTED_HEAD_SHA",
+    "POST_MERGE_LIVE_REVALIDATION",
+    "AOS_MEMORY",
+    "NOTION",
+    "GITHUB_CURRENT"
+  ]
+}
