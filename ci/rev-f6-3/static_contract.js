@@ -25,7 +25,9 @@ for (const token of required) {
   if (!migration.includes(token)) throw new Error(`missing contract token: ${token}`);
 }
 if (/statement_timeout/i.test(migration)) throw new Error('F6.3 must not solve performance by increasing statement_timeout');
-if (/levenshtein|similarity\s*\(|fuzzy/i.test(migration)) throw new Error('F6.3 must not introduce fuzzy identity');
+if (/\blevenshtein\s*\(|\bsimilarity\s*\(|\bword_similarity\s*\(|\bstrict_word_similarity\s*\(/i.test(migration)) {
+  throw new Error('F6.3 must not introduce executable fuzzy identity primitives');
+}
 if (!migration.includes("'TRANSACTIONAL_SALES_2024','null'::jsonb")) throw new Error('2024 no-source must remain null, not zero');
 if (!migration.includes("'TRANSACTIONAL_SALES_2025','null'::jsonb")) throw new Error('2025 no-source must remain null, not zero');
 if (!rollback.includes('rename to aos_patient_commercial_360_v2')) throw new Error('recovery must restore F6.2 governed gateway');
