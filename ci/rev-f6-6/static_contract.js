@@ -20,6 +20,8 @@ ok(JSON.stringify(reg.states)===JSON.stringify(['OK','DEGRADED','REVIEW_REQUIRED
 ok(reg.signals.length===10&&new Set(reg.signals.map(x=>x.signal_id)).size===10,'SIGNAL_COUNT');
 for(const id of ids){ok(reg.signals.some(x=>x.signal_id===id),`REG:${id}`);ok(mig.includes(`'${id}'`),`MIG:${id}`);ok(canon.includes(id),`CANON:${id}`);}
 for(const t of ['aos_rev_f6_6_integrity_baseline_v1','aos_sentinel_rev_f6_6_signal_envelope_v1','aos_sentinel_rev_f6_6_evaluate_v1','aos_sentinel_rev_f6_6_snapshot_v1','aos_sentinel_rev_f6_6_integrity_health_v1','aos_sentinel_rev_f6_6_incident_candidates_v1','aos_rev_f6_6_contract_v1',"'auto_ingest',false","'observation_only',true","'auto_repair',false","'state_digest'",'source_newer_than_cache','coverage_material_drop_pp']) ok(mig.includes(t),`MIG_TOKEN:${t}`);
+ok(!mig.includes('pg_catalog.coalesce'),'POSTGRES_SPECIAL_EXPRESSION_COALESCE_MUST_NOT_BE_SCHEMA_QUALIFIED');
+ok(!mig.includes('pg_catalog.greatest'),'POSTGRES_SPECIAL_EXPRESSION_GREATEST_MUST_NOT_BE_SCHEMA_QUALIFIED');
 for(const t of ['aos_pacientes','aos_ventas','aos_product_sale_fact_v1','aos_cartera_reconciliacion','aos_f5_patient_source_rows_v1','aos_f5_identity_cluster_members_v1','aos_f5_canonical_classification_v1']){const re=new RegExp(`\\b(insert\\s+into|update|delete\\s+from)\\s+public\\.${t}\\b`,'i');ok(!re.test(mig),`BUSINESS_DML:${t}`);}
 ok(!/\btruncate\b/i.test(mig),'TRUNCATE');
 for(const fn of ['aos_rev_f6_6_contract_v1','aos_sentinel_rev_f6_6_incident_candidates_v1','aos_sentinel_rev_f6_6_integrity_health_v1','aos_sentinel_rev_f6_6_snapshot_v1','aos_sentinel_rev_f6_6_evaluate_v1','aos_sentinel_rev_f6_6_signal_envelope_v1','aos_rev_f6_6_integrity_baseline_v1']) ok(rb.includes(`drop function if exists public.${fn}`),`ROLLBACK:${fn}`);
