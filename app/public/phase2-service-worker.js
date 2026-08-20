@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S14/S15.1 — controlled-write + revenue + Sentinel + actor-bound notification bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S14/S15.1/REV-F6.0 — controlled-write + revenue + Sentinel + actor-bound notification/patient-history bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -136,6 +136,16 @@ self.addEventListener('fetch',function(event){
   }
   if(rm&&rm[1]==='aos_mark_notif_read'){
     event.respondWith((async function(){var p=await requestJson(req);return notificationApi('/api/notifications/read','POST',{id:p.p_id});})());return;
+  }
+  // REV-F6.0: keep the legacy Citas UI contract, but never let browser roles execute
+  // the legacy SECURITY DEFINER Patient 360 RPC. Bind the read to Auth V3 + 2FA and
+  // return only the minimum commercial history consumed by the Citas panel.
+  if(rm&&rm[1]==='aos_paciente_360'){
+    event.respondWith((async function(){
+      var p=await requestJson(req),t=String(await getToken()).trim();
+      if(t.length<32)return json({ok:false,error:'PATIENT_HISTORY_APP_SESSION_REQUIRED'},401);
+      return rpcFrom(req,'aos_patient_history_summary_v1',{p_token:t,p_numero:p.p_numero||''});
+    })());return;
   }
   if(rm&&IDENTITY[rm[1]]){
     event.respondWith((async function(){var p=await requestJson(req);p.p_token=await getToken();if(rm[1]==='aos_admin_cambiar_password'&&!p.p_usuario_id){return json({ok:false,error:'LEGACY_IDENTITY_FLOW_RETIRED'},403);}if(rm[1]==='aos_cambiar_password')p={p_token:p.p_token,p_password_actual:p.p_password_actual,p_password_nuevo:p.p_password_nuevo};var r=await rpcFrom(req,IDENTITY[rm[1]],p);if(isMissing(r))return fetch(req);return r;})());return;
