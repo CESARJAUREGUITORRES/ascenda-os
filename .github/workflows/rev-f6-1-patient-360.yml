@@ -1,0 +1,155 @@
+name: ASCENDA REV-F6.1 Patient Commercial 360 V2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*rev_f6_1*'
+      - 'supabase/rollbacks/*rev_f6_1*'
+      - 'ci/rev-f6-1/**'
+      - 'app/public/patients-f6-v2.js'
+      - 'app/public/phase2-service-worker.js'
+      - 'scripts/rev_f6_1_patch_service_worker.js'
+      - 'docs/control/REV_F6_1*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - '.github/workflows/rev-f6-1-patient-360.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rev-f6-1-pr-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-patch:
+    name: F6.1 prepare deterministic service-worker cutover
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    outputs:
+      changed: ${{ steps.patch.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - id: patch
+        name: Apply deterministic patch
+        shell: powershell
+        run: |
+          node scripts/rev_f6_1_patch_service_worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (git status --porcelain -- app/public/phase2-service-worker.js) {
+            "changed=true" >> $env:GITHUB_OUTPUT
+            git config user.name "ascenda-bot"
+            git config user.email "ascenda-bot@users.noreply.github.com"
+            git add app/public/phase2-service-worker.js
+            git commit -m "REV-F6.1: route Patient 360 through canonical V2"
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          } else {
+            "changed=false" >> $env:GITHUB_OUTPUT
+          }
+
+  fast-contracts:
+    name: F6.1 FAST/UI contracts
+    needs: prepare-patch
+    if: needs.prepare-patch.outputs.changed == 'false'
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+      - name: JavaScript syntax
+        shell: powershell
+        run: |
+          node --check app/public/phase2-service-worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/patients.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/patients-f6-v2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/rev-f6-1/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Patient 360 V2 UI contract
+        shell: powershell
+        run: node ci/rev-f6-1/ui_contract.js
+
+  db-security:
+    name: F6.1 DB/security/semantic contracts
+    needs: [prepare-patch, fast-contracts]
+    if: needs.prepare-patch.outputs.changed == 'false' && needs.fast-contracts.result == 'success'
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59632/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost DB runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-rev-f6-1"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59631/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59632/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59630/' supabase/config.toml
+      - name: Start isolated Postgres
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-rev-f6-1' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59632 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/schema_contract.sql
+      - name: Inject historical alias-format edge fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/schema_alias_format_edge.sql
+      - name: Apply certified F6.0 prerequisite
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820013500_rev_f6_0_data_contract_v1.sql
+      - name: Apply exact F6.1 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022000_rev_f6_1_patient_commercial_360_v2.sql
+      - name: Apply F6.1 alias-normalization hotfix
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022500_rev_f6_1_alias_normalization_fix.sql
+      - name: F6.1 DB/security/semantic invariants
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/tests/001_patient_commercial_360.sql
+      - name: Full idempotent replay
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022000_rev_f6_1_patient_commercial_360_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022500_rev_f6_1_alias_normalization_fix.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/tests/001_patient_commercial_360.sql
+      - name: Recovery stays fail-closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260820022000_rev_f6_1_patient_commercial_360_v2_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_paciente_360(text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('authenticated','public.aos_paciente_360(text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_patient_commercial_360_v2(text,text,text)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_rev_f6_data_contract_v1()','EXECUTE')")" = "t"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true

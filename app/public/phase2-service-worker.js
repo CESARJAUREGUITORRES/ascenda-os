@@ -1,4 +1,4 @@
-// ASCENDA OS Phase 2/F4/F9/WA-S14/S15.1/REV-F6.0 — controlled-write + revenue + Sentinel + actor-bound notification/patient-history bridge.
+// ASCENDA OS Phase 2/F4/F9/WA-S14/S15.1/REV-F6.1 — controlled-write + revenue + Sentinel + canonical Patient Commercial 360 bridge.
 'use strict';
 self.addEventListener('install',function(){self.skipWaiting();});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});
@@ -84,6 +84,9 @@ async function injectF4(req){
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
   }
+  if(html.indexOf('/patients-f6-v2.js')<0){
+    tags+='<script src="/patients-f6-v2.js?v=20260819-rev-f6-1-v1"></script>';
+  }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
   return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
@@ -137,14 +140,21 @@ self.addEventListener('fetch',function(event){
   if(rm&&rm[1]==='aos_mark_notif_read'){
     event.respondWith((async function(){var p=await requestJson(req);return notificationApi('/api/notifications/read','POST',{id:p.p_id});})());return;
   }
-  // REV-F6.0: keep the legacy Citas UI contract, but never let browser roles execute
-  // the legacy SECURITY DEFINER Patient 360 RPC. Bind the read to Auth V3 + 2FA and
-  // return only the minimum commercial history consumed by the Citas panel.
+  // REV-F6.1: browser callers never execute the legacy SECURITY DEFINER Patient 360 RPC.
+  // Compatibility phone inputs resolve through Identity Bridge V2 to canonical_patient_id.
   if(rm&&rm[1]==='aos_paciente_360'){
     event.respondWith((async function(){
       var p=await requestJson(req),t=String(await getToken()).trim();
-      if(t.length<32)return json({ok:false,error:'PATIENT_HISTORY_APP_SESSION_REQUIRED'},401);
-      return rpcFrom(req,'aos_patient_history_summary_v1',{p_token:t,p_numero:p.p_numero||''});
+      if(t.length<32)return json({ok:false,error:'PATIENT_360_APP_SESSION_REQUIRED'},401);
+      return rpcFrom(req,'aos_patient_commercial_360_v2',{p_token:t,p_lookup_type:'PHONE',p_lookup_value:p.p_numero||''});
+    })());return;
+  }
+  if(rm&&(rm[1]==='aos_patient_search_v2'||rm[1]==='aos_patient_commercial_360_v2')){
+    event.respondWith((async function(){
+      var p=await requestJson(req),t=String(await getToken()).trim();
+      if(t.length<32)return json({ok:false,error:'PATIENT_360_APP_SESSION_REQUIRED'},401);
+      p.p_token=t;
+      return rpcFrom(req,rm[1],p);
     })());return;
   }
   if(rm&&IDENTITY[rm[1]]){
