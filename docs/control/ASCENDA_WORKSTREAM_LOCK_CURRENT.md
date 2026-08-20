@@ -2,74 +2,99 @@
 
 **Status:** CURRENT / REV-F6 ACTIVE  
 **Captured:** 2026-08-20 America/Lima  
-**Current main before terminal hardening:** `70bd591a2f4da7a39e41819416af40af4a694b29`  
+**Certification merge main:** `ad2a879c895177d375fac89c64911ce3ea12f49a`  
+**Terminal exact-head pre-merge:** `0cfdc71cfe5b1110be3ceaab952f184f926cf0a7`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
-**CURRENT GATE:** `REV-F6.5 — POST-MERGE TERMINAL FINGERPRINT ISOLATION`  
+**CURRENT GATE:** `REV-F6.6 — Sentinel Data-Integrity Handoff`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
-**REV-F6.0:** `PASS / CERTIFIED — semantic hardening in progress`  
-**REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
-**REV-F6.2:** `PASS / CERTIFIED — 100%` · fp `d977b9669b9e741e8785cd863caaf9c2`  
-**REV-F6.3:** `PASS / CERTIFIED — terminal chain fp pending isolation`  
-**REV-F6.4:** `PASS / CERTIFIED — terminal chain fp pending isolation`  
-**REV-F6 global:** `62.5%` until F6.5 terminal certification  
-**REV-F6.5:** `POST-MERGE HARDENING / NOT YET TERMINALLY CERTIFIED`  
-**REV-F6.6:** `BLOCKED until REV-F6.5 certification`  
-**REV-F6.7:** `BLOCKED`  
-**REV-F7:** `BLOCKED until REV-F6 final certification`
+**REV-F6.0:** `PASS / CERTIFIED — 100%` · fp `f81a1b8fcfe010cd5254c4ab2e6048d2`  
+**REV-F6.1:** `PASS / CERTIFIED — 100%`  
+**REV-F6.2:** `PASS / CERTIFIED — 100%`  
+**REV-F6.3:** `PASS / CERTIFIED — 100%` · fp `186a1da2c29b498dad26223ae264adea`  
+**REV-F6.4:** `PASS / CERTIFIED — 100%` · fp `54c07961f191147860f6acd3a3e85c2a`  
+**REV-F6.5:** `PASS / CERTIFIED — 100%` · fp `88957cec3d785e4931a8f834c0259a91`  
+**REV-F6 global:** `75%`  
+**REV-F6.6:** `NEXT / UNBLOCKED`  
+**REV-F6.7:** `PENDING`  
+**REV-F7:** `BLOCKED until REV-F6.6 + REV-F6.7 complete`
 
-GitHub CURRENT + Supabase LIVE remain authoritative. `REV-F6-CLOSEOUT` is the only mutable HIGH/CRITICAL Revenue lane.
+GitHub CURRENT + Supabase LIVE remain authoritative. `REV-F6-CLOSEOUT` remains the only mutable HIGH/CRITICAL Revenue lane until F6 is complete.
 
-## REV-F6.5 implementation + first merge
+## REV-F6.5 terminal certification
 
-PR **#315** passed final exact-head Ascenda CI + REV-F6.0 through REV-F6.5 on `1d4d6005ac2aa9747e14625dfdffb9864b88c889` and merged with `expected_head_sha` to `main@70bd591a2f4da7a39e41819416af40af4a694b29`.
+PR **#316** is merged. Merge commit:
 
-Supabase LIVE migration `20260820201634 rev_f6_5_historical_sales_plugin_v1` is applied. Historical runtime semantics remain correct:
+`ad2a879c895177d375fac89c64911ce3ea12f49a`
 
-- manifest rows **0**;
-- certified historical sources **0**;
-- 2024 = `value=null / NO_CERTIFIED_SOURCE`;
-- 2025 = `value=null / NO_CERTIFIED_SOURCE`;
-- 2026 = **1,299** transactions / billed **561889.27**;
-- protected truth = patients **7,688** / sales **1,299** / F3 **406** / F4 **162**;
-- ACL remains fail-closed and browser raw historical access remains closed.
+Terminal exact-head before merge:
 
-## Post-merge fingerprint finding
+`0cfdc71cfe5b1110be3ceaab952f184f926cf0a7`
 
-Post-merge readback correctly stopped terminal certification because F6.0→F6.3→F6.4→F6.5 fingerprints moved while protected Revenue truth did not.
+Final exact-head CI = **7/7 SUCCESS**:
 
-Root cause is architectural, not business-data drift: `aos_rev_f6_data_contract_v1()` included mutable cardinality/freshness from `aos_cia_contact_identity_v1` in its certification fingerprint. That compatibility view spans patients + leads + calls + appointments + sales, so normal CIA/WA activity can change its row cardinality without changing Revenue truth.
+- Ascenda CI **#2680**;
+- REV-F6.0 **#49**;
+- REV-F6.1 **#49**;
+- REV-F6.2 **#28**;
+- REV-F6.3 **#19**;
+- REV-F6.4 **#14**;
+- REV-F6.5 **#6**.
 
-Observed post-merge chain before hardening:
+Supabase LIVE hardening migration:
 
-- F6.0 `5ab234f6f37cfcae31bccee45cb1607a`;
-- F6.3 `8656f87a275a84588ee103fbe1626950`;
-- F6.4 `583b8b79e781f3c9303e64aceedc2105`;
-- F6.5 `2595c0d17989714693f32cf19f064f98`.
+`20260820211638 rev_f6_5_rev_f6_0_fingerprint_isolation_v1`
 
-These hashes are **not accepted as terminal certification fingerprints** because their upstream F6.0 projection is coupled to another mutable workstream.
+Terminal deterministic fingerprint chain:
 
-## Terminal hardening contract
+- F6.0 `f81a1b8fcfe010cd5254c4ab2e6048d2`;
+- F6.3 `186a1da2c29b498dad26223ae264adea`;
+- F6.4 `54c07961f191147860f6acd3a3e85c2a`;
+- F6.5 `88957cec3d785e4931a8f834c0259a91`.
 
-Branch `data/rev-f6-5-terminal-fingerprint-isolation-20260820` isolates the Revenue certification fingerprint while preserving full CIA compatibility metrics in the visible F6.0 contract.
+Hardening semantic:
 
-The fingerprint projection excludes only:
+`REVENUE_TRUTH_EXCLUDES_MUTABLE_CIA_COMPATIBILITY_CARDINALITY`
 
-- `compatibility_identity.rows`;
-- `compatibility_identity.with_canonical_patient`;
-- `compatibility_identity.identity_conflicts`;
-- `freshness_sources.cia_identity_updated_at`.
+Normal CIA/WA activity can no longer invalidate Revenue certification fingerprints through compatibility-view cardinality/freshness. The CIA compatibility metrics remain visible in the contract; only the certification hash projection is isolated.
 
-It does **not** exclude or alter patient, sales, F3, F4, F5, lifecycle, identity-confidence, historical-source, security, or Revenue coverage truth.
+## LIVE terminal truth
 
-Required terminal proof:
+Final reconciliation readback:
 
-1. synthetic CIA-churn test demonstrates legacy hash changes while isolated Revenue hash remains stable;
-2. F6.0/F6.3/F6.4/F6.5 new chain fingerprints reproduce deterministically;
-3. exact-head Ascenda CI + F6.0–F6.5 SUCCESS;
-4. LIVE migration + protected truth + ACL + historical no-source + performance PASS;
-5. final certificate/snapshot updated with superseded and terminal fingerprints;
-6. exact-head merge of hardening PR;
-7. post-merge LIVE fingerprints exact;
-8. `aos_memory` + Notion + CURRENT reconciled last.
+- patients **7,690**;
+- canonical sales **1,299**;
+- F3 product facts **406**;
+- F4 reconciliation rows **162**;
+- F6.4 sales fact **1,299**;
+- 2024 transactional sales = `value=null / NO_CERTIFIED_SOURCE`;
+- 2025 transactional sales = `value=null / NO_CERTIFIED_SOURCE`.
 
-Until all gates pass, **REV-F6.5 remains not terminally certified and REV-F6.6 remains blocked**.
+The patient count **7,690** is the current valid LIVE baseline. The increase from **7,688 → 7,690** came from two legitimate operational patient creations before the terminal PR #316 merge; it was not caused by REV-F6.5. No patients were created after the terminal merge timestamp during reconciliation.
+
+No REV-F6.5 terminal hardening mutation was made to patients, sales, F3, or F4.
+
+Security/ACL = **PASS**. Replay/recovery = **PASS**. Post-merge LIVE = **PASS**.
+
+Performance = **PASS**, target `<1000 ms`:
+
+- global **3.211 ms**;
+- San Isidro **138.042 ms**;
+- Pueblo Libre **10.591 ms**.
+
+## Historical semantics
+
+No certified transactional source exists for 2024 or 2025. Therefore historical transactional revenue remains **null / unavailable**, never fabricated as zero.
+
+`NO_CERTIFIED_SOURCE != zero`
+
+No historical XLSX search, Google Drive source discovery, parallel revenue master, patient rewrite, or direct historical mass insert is authorized by this certification.
+
+## Next gate
+
+`REV-F6.5 — PASS / CERTIFIED — 100%`
+
+`REV-F6 global = 75%`
+
+`REV-F6.6 — Sentinel Data-Integrity Handoff = NEXT / UNBLOCKED`
+
+REV-F6.7 remains pending. REV-F7 remains blocked until REV-F6.6 + REV-F6.7 are complete and REV-F6 reaches terminal certification.
