@@ -3,6 +3,9 @@ const fs=require('fs');
 const migration=fs.readFileSync('supabase/migrations/20260820195500_rev_f6_5_historical_sales_plugin_v1.sql','utf8');
 const rollback=fs.readFileSync('supabase/rollbacks/20260820195500_rev_f6_5_historical_sales_plugin_v1_recovery.sql','utf8');
 const fixtures=fs.readFileSync('ci/rev-f6-5/fixtures_A_J.sql','utf8');
+const isolation=fs.readFileSync('supabase/migrations/20260820204500_rev_f6_5_rev_f6_0_fingerprint_isolation_v1.sql','utf8');
+const isolationRollback=fs.readFileSync('supabase/rollbacks/20260820204500_rev_f6_5_rev_f6_0_fingerprint_isolation_v1_recovery.sql','utf8');
+const isolationTest=fs.readFileSync('ci/rev-f6-5/tests/002_cross_workstream_fingerprint_isolation.sql','utf8');
 function must(x,msg){if(!x)throw new Error(msg)}
 [
  'aos_rev_historical_source_manifest_v1','aos_rev_historical_source_register_v1','aos_rev_historical_source_certify_v1',
@@ -25,4 +28,20 @@ must(!/(insert\s+into|update|delete\s+from)\s+public\.aos_pacientes/i.test(migra
 must(rollback.includes('rename to aos_rev_sales_intelligence_v3'),'recovery must restore F6.4 runtime name');
 must(rollback.includes('drop table if exists public.aos_rev_historical_source_manifest_v1'),'recovery must remove F6.5 manifest');
 for(const l of 'ABCDEFGHIJ') must(fixtures.includes('FIXTURE '+l+' —'),'missing fixture '+l);
+
+[
+ 'aos_rev_f6_data_contract_fingerprint_isolated_v1',
+ 'aos_rev_f6_data_contract_v1_legacy_dynamic_fp',
+ 'REVENUE_TRUTH_EXCLUDES_MUTABLE_CIA_COMPATIBILITY_CARDINALITY',
+ "array['compatibility_identity','rows']",
+ "array['compatibility_identity','with_canonical_patient']",
+ "array['compatibility_identity','identity_conflicts']",
+ "array['freshness_sources','cia_identity_updated_at']"
+].forEach(s=>must(isolation.includes(s),'missing fingerprint-isolation contract: '+s));
+must(/revoke all on function public\.aos_rev_f6_data_contract_v1\(\) from public,anon,authenticated/i.test(isolation),'isolated F6.0 wrapper must stay browser-closed');
+must(!/(insert\s+into|update|delete\s+from)\s+public\.(aos_ventas|aos_pacientes|aos_leads|aos_llamadas|aos_agenda_citas)/i.test(isolation),'fingerprint isolation must not mutate business rows');
+must(isolationRollback.includes('rename to aos_rev_f6_data_contract_v1'),'isolation recovery must restore original F6.0 name');
+must(isolationTest.includes('legacy fingerprint did not react to synthetic CIA churn'),'isolation test must prove old coupling');
+must(isolationTest.includes('Revenue fingerprint still coupled to mutable CIA compatibility state'),'isolation test must prove new decoupling');
+must(isolationTest.includes('F6.5 chain fingerprint unstable'),'isolation test must cover terminal chain determinism');
 console.log('REV-F6.5 FAST static contract PASS');
