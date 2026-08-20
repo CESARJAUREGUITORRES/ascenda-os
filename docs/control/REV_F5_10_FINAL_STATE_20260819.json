@@ -1,0 +1,101 @@
+{
+  "contract": "REV-F5.10_FINAL_CERT_V1",
+  "captured_local_date": "2026-08-19",
+  "entry_main": "4c81992934afdd187628c48b6ee8132b4d248a79",
+  "final_state_fingerprint": "2f0a365fae4caaa7be9d204e0f76679b",
+  "replay_match": true,
+  "source": {
+    "batches": 6,
+    "matched_batches": 6,
+    "expected_rows": 15498,
+    "persisted_rows": 15498,
+    "memberships": 15498,
+    "clusters": 8716,
+    "orphans": 0,
+    "bad_multiplicity": 0,
+    "duplicate_source_keys": 0,
+    "provenance_gaps": 0
+  },
+  "identity": {
+    "match": 296,
+    "review": 6984,
+    "new": 1436,
+    "strong_conflicts": 111,
+    "target_collisions": 1740,
+    "unsafe_match": 0,
+    "coverage_pct": 3.40
+  },
+  "apply": {
+    "previews": 455,
+    "preview_patients": 202,
+    "allowed": 229,
+    "blocked": 226,
+    "applied": 229,
+    "active_events": 229,
+    "rolled_back_events": 1,
+    "exact_canary_rollbacks": 1,
+    "policy_violations": 0,
+    "active_outside_allowlist": 0
+  },
+  "protected": {
+    "patients": 7688,
+    "patient_fp": "eee5a57717937a4f77049b3aebd8c525",
+    "sales": 1299,
+    "sales_fp": "20104fd91fbf427e39566e7b84d7ec4f",
+    "f3_rows": 406,
+    "f3_fp": "e3c8499026d13401c4a733b4da16b6c8",
+    "f4_rows": 162,
+    "f4_fp": "5524a2280442224ec4e9a7cfdfffa008"
+  },
+  "historical_join": {
+    "rows": 1299,
+    "distinct_sales": 1299,
+    "match": 208,
+    "review": 940,
+    "unresolved": 151,
+    "historical_linked_sales": 102,
+    "f57_fp": "5af139243f6aed37020048af292587fe"
+  },
+  "f3": {
+    "resolved": 397,
+    "review_required": 3,
+    "excluded": 6,
+    "missing": 0,
+    "not_applicable": 893,
+    "coverage_pct": 97.78
+  },
+  "f4": {
+    "linked_sales": 123,
+    "unlinked_sales": 1176,
+    "payment_evidence_rows": 0,
+    "confirmed_balance_evidence_rows": 0,
+    "coverage_pct": 9.47,
+    "coverage_severity": "HIGH"
+  },
+  "coverage": {
+    "identity_pct": 3.40,
+    "canonical_patient_dq_pct": 51.48,
+    "sales_linkage_pct": 16.01,
+    "f3_product_pct": 97.78,
+    "f4_financial_pct": 9.47,
+    "historical_transaction_pct": 33.33
+  },
+  "historical": {
+    "patient_history_2024": "AVAILABLE",
+    "patient_history_2025": "AVAILABLE",
+    "patient_history_2026": "AVAILABLE",
+    "transactional_sales_2024": "NO_CERTIFIED_SOURCE",
+    "transactional_sales_2025": "NO_CERTIFIED_SOURCE",
+    "transactional_sales_2026": "AVAILABLE_2026-01-05_TO_2026-08-15",
+    "f58_fp": "4ce1695532a57655179558ed2b5f78aa",
+    "missing_source_means_zero": false,
+    "yoy_supported": false
+  },
+  "f59_report_fp": "5070c701d216eb839572bd70f530c2e6",
+  "semantics": {
+    "phone_alone_authorizes_identity": false,
+    "name_alone_authorizes_identity": false,
+    "ultimo_presupuesto_is_financial_fact": false,
+    "adelanto_is_automatic_debt": false
+  }
+}
