@@ -95,7 +95,7 @@ declare
   v_ms numeric;
 begin
   v_snapshot:=public.aos_sentinel_rev_f6_6_snapshot_full_v1();
-  v_ms:=pg_catalog.extract(epoch from (pg_catalog.clock_timestamp()-v_t0))*1000;
+  v_ms:=extract(epoch from (pg_catalog.clock_timestamp()-v_t0))*1000;
   insert into public.aos_sentinel_rev_f6_6_sensor_cache_v1(singleton,snapshot,dirty_domains,refreshed_at,refresh_duration_ms)
   values(true,v_snapshot,'{}'::text[],pg_catalog.clock_timestamp(),v_ms)
   on conflict(singleton) do update
@@ -144,42 +144,42 @@ begin
 
   v_snapshot:=pg_catalog.jsonb_set(v_snapshot,'{captured_at}',pg_catalog.to_jsonb(pg_catalog.clock_timestamp()),true)
     || pg_catalog.jsonb_build_object(
-      'cache_state',case when pg_catalog.coalesce(pg_catalog.array_length(v_dirty,1),0)=0 then 'CURRENT' else 'STALE' end,
-      'cache_dirty_domains',pg_catalog.to_jsonb(pg_catalog.coalesce(v_dirty,'{}'::text[])),
+      'cache_state',case when coalesce(pg_catalog.array_length(v_dirty,1),0)=0 then 'CURRENT' else 'STALE' end,
+      'cache_dirty_domains',pg_catalog.to_jsonb(coalesce(v_dirty,'{}'::text[])),
       'cache_refreshed_at',v_refreshed_at
     );
 
-  if 'F5_SOURCE'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'F5_SOURCE'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f5_source'-'f5_membership'-'identity_bridge'-'patient360'-'f6_coverage';
   end if;
-  if 'F5_MEMBERSHIP'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'F5_MEMBERSHIP'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f5_membership'-'identity_bridge'-'patient360'-'f6_coverage';
   end if;
-  if 'F5_IDENTITY'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'F5_IDENTITY'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'identity_bridge'-'patient360'-'f6_coverage';
   end if;
-  if 'IDENTITY_LIFECYCLE'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'IDENTITY_LIFECYCLE'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'identity_bridge'-'patient360'-'f6_coverage';
   end if;
-  if 'F5_APPLY'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'F5_APPLY'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f5_apply';
   end if;
-  if 'SALES'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'SALES'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'product_sale'-'reconciliation'-'f6_readmodel'-'f6_coverage';
   end if;
-  if 'PRODUCT'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'PRODUCT'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'product_sale'-'f6_readmodel'-'f6_coverage';
   end if;
-  if 'FINANCE'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'FINANCE'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'reconciliation'-'f6_readmodel'-'f6_coverage';
   end if;
-  if 'READMODEL'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'READMODEL'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f6_readmodel';
   end if;
-  if 'HISTORICAL'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'HISTORICAL'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f6_coverage';
   end if;
-  if 'LIFECYCLE'=any(pg_catalog.coalesce(v_dirty,'{}'::text[])) then
+  if 'LIFECYCLE'=any(coalesce(v_dirty,'{}'::text[])) then
     v_snapshot:=v_snapshot-'f6_coverage';
   end if;
 
