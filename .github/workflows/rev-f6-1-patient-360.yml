@@ -9,7 +9,7 @@ on:
       - 'ci/rev-f6-1/**'
       - 'app/public/patients-f6-v2.js'
       - 'app/public/phase2-service-worker.js'
-      - 'scripts/rev_f6_1_patch_service_worker.py'
+      - 'scripts/rev_f6_1_patch_service_worker.js'
       - 'docs/control/REV_F6_1*'
       - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
       - '.github/workflows/rev-f6-1-patient-360.yml'
@@ -21,7 +21,7 @@ on:
       - 'ci/rev-f6-1/**'
       - 'app/public/patients-f6-v2.js'
       - 'app/public/phase2-service-worker.js'
-      - 'scripts/rev_f6_1_patch_service_worker.py'
+      - 'scripts/rev_f6_1_patch_service_worker.js'
       - '.github/workflows/rev-f6-1-patient-360.yml'
   workflow_dispatch:
 
@@ -44,14 +44,15 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
+          node-version: '20'
       - id: patch
         name: Apply deterministic patch
         shell: powershell
         run: |
-          python scripts/rev_f6_1_patch_service_worker.py
+          node scripts/rev_f6_1_patch_service_worker.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (git status --porcelain -- app/public/phase2-service-worker.js) {
             "changed=true" >> $env:GITHUB_OUTPUT
             git config user.name "ascenda-bot"
