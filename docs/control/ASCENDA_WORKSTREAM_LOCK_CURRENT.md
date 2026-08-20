@@ -2,24 +2,22 @@
 
 **Status:** CURRENT / REV-F6 ACTIVE  
 **Captured:** 2026-08-20 America/Lima  
-**F6.2 certification merge:** `main@60b19256928844aedd9438da2ed2584f60078217`  
+**Entry main:** `a0929aa029ed9c804ddd76d3c1b27dd644a3837b`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
+**CURRENT GATE:** `REV-F6.3 — Identity Confidence + Metric Trust`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
 **REV-F6.0:** `PASS / CERTIFIED` · fp `02ba53adb9dabfcd0a4557061be53c2f`  
 **REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
 **REV-F6.2:** `PASS / CERTIFIED — 100%` · fp `d977b9669b9e741e8785cd863caaf9c2`  
-**REV-F6.3:** `NEXT / UNBLOCKED — Identity Confidence + Metric Trust`  
-**REV-F7:** `BLOCKED until REV-F6 certification`
+**REV-F6.3:** `LIVE PASS · terminal fp 3f4174660107661a2c4509f6f8817d7a · FINAL EXACT-HEAD CLOSEOUT PENDING`  
+**REV-F6.4:** `BLOCKED until REV-F6.3 final post-merge readback`  
+**REV-F7:** `BLOCKED until REV-F6 final certification`
 
-This remains the single mutable Revenue execution pointer. GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints.
+GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints. `REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane.
 
-## One-lock rule
+## Protected certified truth
 
-`REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane until F6.7 or explicit owner handoff. Other workstreams may run regression/read-only checks only.
-
-## Certified upstream truth boundary
-
-F6 is analytics/read-model only and preserves:
+F6 remains analytics/read-model only and must preserve:
 
 - patients = **7,688** / `eee5a57717937a4f77049b3aebd8c525`;
 - sales = **1,299** / `20104fd91fbf427e39566e7b84d7ec4f`;
@@ -28,72 +26,73 @@ F6 is analytics/read-model only and preserves:
 - F5.7 = `5af139243f6aed37020048af292587fe`;
 - F5.10 = `2f0a365fae4caaa7be9d204e0f76679b`;
 - F6.0 = `02ba53adb9dabfcd0a4557061be53c2f`;
-- F6.1 = `cd313998c5b5b38d5cb9e2f08882b826`.
+- F6.1 = `cd313998c5b5b38d5cb9e2f08882b826`;
+- F6.2 = `d977b9669b9e741e8785cd863caaf9c2`;
+- F6.3 terminal = `3f4174660107661a2c4509f6f8817d7a`.
 
-F3 owns product truth, F4 owns financial/payment/cartera truth, F5 owns patient identity/provenance, F6 only derives analytics/read models.
+F3 owns product truth, F4 financial/payment/cartera truth, F5 patient identity/provenance. F6 derives analytics only.
 
-## REV-F6.2 terminal LIVE proof
+## REV-F6.3 LIVE certified candidate
 
-Contract: `REV-F6.2_CUSTOMER_LIFECYCLE_FINAL_V1`  
-Terminal fingerprint: `d977b9669b9e741e8785cd863caaf9c2` — reproduced identically before certification merge and again from independent post-merge atomic readbacks.
+Pre-LIVE exact-head `3feab3c9cf9de59159196a382c8b68a3f36d6d16` passed dedicated REV-F6.3 plus F6.2/F6.1/F6.0 regressions and Ascenda CI.
 
-LIVE business date is explicit `America/Lima` and equals the Lima timezone expression.
+Supabase LIVE migration ledger:
 
-Lifecycle summary as-of 2026-08-20:
+- `20260820180246 · rev_f6_3_identity_confidence_metric_trust_v1`.
 
-- canonical/non-fused population = **7,262**;
-- classified = **543**;
-- insufficient activity evidence = **6,719**;
-- qualifying event rows = **1,089**;
-- `HISTORICAL_REACTIVATED` = **1**;
-- `NEW_PATIENT` = **129**;
-- `ACTIVE_REPEAT` = **90**;
-- `RETURNING_PATIENT` = **137**;
-- `DORMANT` = **186**.
+LIVE Identity Confidence:
 
-Hard invariants:
+- canonical population **7,262**;
+- HIGH **238**;
+- MEDIUM **6,583**;
+- LOW **441**;
+- safe automatic cross-source attribution **238**;
+- patients with conflict keys **441**;
+- PHONE conflict keys **37**.
 
-- lifecycle events targeting `FUSIONADO` = **0**;
-- Agenda identity rows targeting `FUSIONADO` = **0**;
-- Agenda RESOLVED rows with `candidate_count <> 1` = **0**;
-- PHONE conflict keys = **37**;
-- PHONE conflict fail-closed = **37/37**;
-- conflict violations = **0**.
+Metric Trust remains explicit and non-opaque: `value + coverage + confidence + freshness + sample_size + source_status + limitations + provenance`.
 
-Real LIVE canaries:
+Frozen baseline semantics:
 
-- `ACTIVE_REPEAT` expected = actual;
-- `DORMANT` expected = actual;
-- `HISTORICAL_REACTIVATED` expected = actual, gap **372 days**;
-- future confirmed appointment LIVE eligible subjects = **0**, therefore real canary N/A; exact-head isolated fixture remains PASS.
+- Identity safe match **296/8,716 = 3.40%**;
+- Sales safe linkage **208/1,299 = 16.01%**;
+- F3 product resolution **397/406 = 97.78%**;
+- F4 financial evidence **123/1,299 = 9.47%**, never interpreted as non-payment;
+- historical transaction source availability **1/3 = 33.33%**, source availability not revenue;
+- lifecycle classified evidence **543/7,262 = 7.48%**, sample_size **1,089**;
+- 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, `value=null`, never zero revenue.
 
-Security remains fail-closed: lifecycle internal views/functions and F6.1 private base are browser closed; governed Patient Commercial 360 remains browser executable; legacy Patient 360 remains browser closed.
+Security PASS:
 
-Historical rule remains frozen: 2024/2025 patient history may support lifecycle, but 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE`, never zero revenue and never inferred historical revenue.
+- Identity Confidence view/function and F6.3 aggregate contract are browser-closed;
+- governed Patient Commercial 360 remains browser-executable behind the existing lower-layer Auth V3 + PASSWORD_2FA contract;
+- legacy `aos_paciente_360(text)` remains browser-closed;
+- no fuzzy identity, phone-nearness authority, silent merge or aggregate PII/PHI exposure.
 
-## Implementation / certification sequencing
+Terminal fingerprint replay:
 
-Implementation PR #311 merged with `expected_head_sha=3eb30e39c8184d4acd2cf7dcc7548d35f65c5fa3` to `main@1532cb20e087a5f2025b29bf86d4d828b7445f68`. Final certificate/snapshot/control artifacts were closed via certification PR #312 and merged to `main@60b19256928844aedd9438da2ed2584f60078217` after exact-head F6.2 + F6.1 + F6.0 workflows all returned SUCCESS.
+- run 1: `3f4174660107661a2c4509f6f8817d7a`;
+- run 2: `3f4174660107661a2c4509f6f8817d7a`.
 
-Authoritative artifacts:
+Certificate: `docs/control/REV_F6_3_IDENTITY_CONFIDENCE_METRIC_TRUST_CERTIFICATE_20260820.md`  
+Snapshot: `docs/control/REV_F6_3_IDENTITY_CONFIDENCE_METRIC_TRUST_SNAPSHOT_20260820.json`
 
-- `docs/control/REV_F6_2_CUSTOMER_LIFECYCLE_CERTIFICATE_20260820.md`
-- `docs/control/REV_F6_2_CUSTOMER_LIFECYCLE_SNAPSHOT_20260820.json`
+## Remaining exit gate
 
-## Final gate — PASS
+Close REV-F6.3 only after:
 
-Post-merge closeout completed on 2026-08-20:
+1. final exact-head dedicated CI PASS;
+2. F6.0/F6.1/F6.2 regressions + Ascenda CI PASS on that same final head;
+3. merge PR #313 with exact `expected_head_sha`;
+4. post-merge LIVE F6.3 fingerprint exact;
+5. protected truth unchanged post-merge;
+6. `aos_memory` persisted + independent readback;
+7. Notion persisted + independent readback;
+8. GitHub CURRENT final readback.
 
-1. certificate + snapshot + CURRENT confirmed in GitHub;
-2. Supabase LIVE post-merge atomic readbacks reconstructed exact terminal fp `d977b9669b9e741e8785cd863caaf9c2`;
-3. business date Lima, lifecycle distribution, `FUSIONADO=0/0`, Agenda identity invariants and 37/37 PHONE conflict fail-closed revalidated;
-4. protected truth and F6.0 input fingerprint remained exact; F6.1 Identity Bridge certified cardinalities remained exact;
-5. `aos_memory` CURRENT and next-action were persisted and independently read back;
-6. Notion CURRENT was reconciled and independently read back at REV-F6 progress **37.5%**.
+Only then set:
 
-Therefore:
-
-- `REV-F6.2 = PASS / CERTIFIED — 100%`;
-- `REV-F6.3 — Identity Confidence + Metric Trust = NEXT / UNBLOCKED`;
-- `REV-F6-CLOSEOUT` remains the single mutable Revenue lock;
+- `REV-F6.3 = PASS / CERTIFIED — 100%`;
+- `REV-F6 global = 50%`;
+- `REV-F6.4 — Sales Intelligence 3.0 = NEXT / UNBLOCKED`;
 - `REV-F7` remains blocked until REV-F6 final certification.
