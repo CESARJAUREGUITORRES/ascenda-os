@@ -13,23 +13,13 @@ on:
       - 'docs/control/REV_F6_1*'
       - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
       - '.github/workflows/rev-f6-1-patient-360.yml'
-  push:
-    branches: ['data/rev-f6-1-patient-commercial-360-v2-20260819']
-    paths:
-      - 'supabase/migrations/*rev_f6_1*'
-      - 'supabase/rollbacks/*rev_f6_1*'
-      - 'ci/rev-f6-1/**'
-      - 'app/public/patients-f6-v2.js'
-      - 'app/public/phase2-service-worker.js'
-      - 'scripts/rev_f6_1_patch_service_worker.js'
-      - '.github/workflows/rev-f6-1-patient-360.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: rev-f6-1-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: rev-f6-1-pr-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
