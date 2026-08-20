@@ -1,97 +1,99 @@
 {
-  "contract": "REV-F6.5_HISTORICAL_SALES_PLUGIN_CERTIFICATION_SNAPSHOT_V1",
+  "contract": "REV-F6.5_HISTORICAL_SALES_PLUGIN_CERTIFICATION_SNAPSHOT_V2",
   "captured_date": "2026-08-20",
-  "status": "PRE_MERGE_TERMINAL_CANDIDATE",
+  "status": "TERMINAL_CANDIDATE_LIVE_HARDENING_PASS_FINAL_EXACT_HEAD_CI_PENDING",
   "repository": "CESARJAUREGUITORRES/ascenda-os",
-  "pr": 315,
-  "entry_main": "c73b41b318639ef09027956b3c183f8379c42e33",
-  "implementation_head_before_certificate": "6736b005b2e4b6ebbfeb1e3d589b3d0e48a21b30",
+  "terminal_hardening_pr": 316,
+  "entry_main": "70bd591a2f4da7a39e41819416af40af4a694b29",
+  "validated_hardening_head_before_certificate": "74c9c0d98d4d75609775c380b60b20c1d72707e1",
   "supabase": {
     "project_id": "ituyqwstonmhnfshnaqz",
-    "migration_version": "20260820201634",
-    "migration_name": "rev_f6_5_historical_sales_plugin_v1",
+    "migrations": [
+      {"version": "20260820201634", "name": "rev_f6_5_historical_sales_plugin_v1"},
+      {"version": "20260820211638", "name": "rev_f6_5_rev_f6_0_fingerprint_isolation_v1"}
+    ],
     "manifest_rows": 0,
     "certified_sources": 0
   },
+  "fingerprint_isolation": {
+    "semantic": "REVENUE_TRUTH_EXCLUDES_MUTABLE_CIA_COMPATIBILITY_CARDINALITY",
+    "legacy_hash_reacts_to_synthetic_cia_churn": true,
+    "isolated_revenue_hash_stable_under_same_churn": true,
+    "excluded_only": [
+      "compatibility_identity.rows",
+      "compatibility_identity.with_canonical_patient",
+      "compatibility_identity.identity_conflicts",
+      "freshness_sources.cia_identity_updated_at"
+    ]
+  },
   "fingerprints": {
-    "f6_3": "3f4174660107661a2c4509f6f8817d7a",
-    "f6_4": "b0f06d841c74ceeb231451aecdeceef2",
-    "f6_5_candidate": "88a6dab1f3ef228eaa79f8489d6d8eb0",
-    "f6_5_reproduced_twice": true,
-    "f6_4_unchanged_after_recompute": true
+    "f6_0": "f81a1b8fcfe010cd5254c4ab2e6048d2",
+    "f6_3": "186a1da2c29b498dad26223ae264adea",
+    "f6_4": "54c07961f191147860f6acd3a3e85c2a",
+    "f6_5": "88957cec3d785e4931a8f834c0259a91",
+    "chain_reproduced_twice": true,
+    "recompute_stable": true
   },
   "historical_coverage": {
-    "2024": {
-      "value": null,
-      "source_status": "NO_CERTIFIED_SOURCE",
-      "trust_level": "UNAVAILABLE",
-      "manifest_count": 0,
-      "certified_source_count": 0,
-      "canonical_sale_rows": 0
-    },
-    "2025": {
-      "value": null,
-      "source_status": "NO_CERTIFIED_SOURCE",
-      "trust_level": "UNAVAILABLE",
-      "manifest_count": 0,
-      "certified_source_count": 0,
-      "canonical_sale_rows": 0
-    },
-    "2026": {
-      "source_status": "AVAILABLE",
-      "transactions": 1299,
-      "billed_amount": 561889.27,
-      "min_date": "2026-01-05",
-      "max_date": "2026-08-15"
-    },
+    "2024": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"},
+    "2025": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"},
+    "2026": {"source_status": "AVAILABLE", "transactions": 1299},
     "no_certified_source_means_zero": false
   },
   "protected_truth": {
-    "patients": 7688,
+    "patients_current": 7690,
+    "patients_previous_checkpoint": 7688,
+    "patient_growth_after_pr315_merge": 2,
+    "first_post_merge_patient_created_at": "2026-08-20T20:47:40.27904Z",
+    "latest_post_merge_patient_created_at": "2026-08-20T21:06:21.982437Z",
+    "patient_growth_classification": "LEGITIMATE_POST_CERTIFICATION_LIVE_ACTIVITY_NOT_HARDENING_MUTATION",
+    "patients_before_hardening": 7690,
+    "patients_after_hardening_and_recompute": 7690,
     "sales": 1299,
     "f3_rows": 406,
     "f4_rows": 162,
     "f6_4_sales_fact_rows": 1299
   },
   "security": {
+    "f6_0_anon_execute": false,
+    "fingerprint_helper_authenticated_execute": false,
+    "f6_0_service_role_execute": true,
     "manifest_anon_select": false,
     "manifest_authenticated_select": false,
     "register_anon_execute": false,
-    "certify_authenticated_execute": false,
     "recompute_authenticated_execute": false,
     "internal_v3_anon_execute": false,
     "gateway_anon_execute": true,
-    "legacy_360_anon_execute": false,
-    "raw_pii_phi_in_coverage_contract": false
+    "legacy_360_anon_execute": false
   },
   "performance_ms": {
-    "global": 11.983,
-    "san_isidro": 8.78,
-    "pueblo_libre": 7.861,
+    "global": 3.211,
+    "san_isidro": 138.042,
+    "pueblo_libre": 10.591,
     "target_max": 1000
   },
-  "ci_implementation_head": {
-    "ascenda_ci": {"run_number": 2671, "conclusion": "success"},
-    "rev_f6_0": {"run_number": 43, "conclusion": "success"},
-    "rev_f6_1": {"run_number": 44, "conclusion": "success"},
-    "rev_f6_2": {"run_number": 23, "conclusion": "success"},
-    "rev_f6_3": {"run_number": 14, "conclusion": "success"},
-    "rev_f6_4": {"run_number": 9, "conclusion": "success"},
-    "rev_f6_5": {"run_number": 1, "conclusion": "success", "fixtures_A_J": true, "idempotent_replay": true, "recovery_to_f6_4": true}
-  },
-  "semantic_guards": {
-    "manifest_coverage_is_revenue": false,
-    "uncertified_source_exposed_as_revenue": false,
-    "direct_mass_insert_into_aos_ventas": false,
-    "phone_only_identity_authority": false,
-    "f3_f5_f4_reuse_required": true,
-    "hardcoded_2024_2025_runtime_status": false,
-    "active_historical_coverage_contract": "REV-F6.5_HISTORICAL_COVERAGE_V1"
+  "ci_validated_hardening_head": {
+    "sha": "74c9c0d98d4d75609775c380b60b20c1d72707e1",
+    "ascenda_ci": {"run_number": 2679, "conclusion": "success"},
+    "rev_f6_0": {"run_number": 48, "conclusion": "success"},
+    "rev_f6_1": {"run_number": 48, "conclusion": "success"},
+    "rev_f6_2": {"run_number": 27, "conclusion": "success"},
+    "rev_f6_3": {"run_number": 18, "conclusion": "success"},
+    "rev_f6_4": {"run_number": 13, "conclusion": "success"},
+    "rev_f6_5": {
+      "run_number": 5,
+      "conclusion": "success",
+      "fixtures_A_J": true,
+      "f6_5_invariants": true,
+      "cross_workstream_isolation": true,
+      "idempotent_replay": true,
+      "recovery_to_pre_hardening_f6_4": true
+    }
   },
   "remaining_terminal_gates": [
     "ATOMIC_CERTIFICATE_SNAPSHOT_COMMIT",
     "FINAL_EXACT_HEAD_7_WORKFLOWS_SUCCESS",
-    "MERGE_PR_315_EXPECTED_HEAD_SHA",
+    "MERGE_PR_316_EXPECTED_HEAD_SHA",
     "POST_MERGE_LIVE_REVALIDATION",
     "AOS_MEMORY",
     "NOTION",

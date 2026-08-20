@@ -1,142 +1,125 @@
-# REV-F6.5 — Historical Sales Plug-in — CERTIFICATE 2026-08-20
+# REV-F6.5 — Historical Sales Plug-in — TERMINAL CERTIFICATE 2026-08-20
 
-**Status:** PRE-MERGE TERMINAL CANDIDATE — LIVE + CI PASS  
+**Status:** TERMINAL CANDIDATE — LIVE HARDENING PASS / FINAL EXACT-HEAD CI PENDING  
 **Workstream:** REV — Revenue Data & Intelligence Core  
 **Phase:** REV-F6.5 — Historical Sales Plug-in  
-**PR:** #315  
-**Entry main:** `c73b41b318639ef09027956b3c183f8379c42e33`  
-**Implementation head before certificate:** `6736b005b2e4b6ebbfeb1e3d589b3d0e48a21b30`  
-**Upstream certified F6.4 fingerprint:** `b0f06d841c74ceeb231451aecdeceef2`  
+**Terminal hardening PR:** #316  
+**Entry main for hardening:** `70bd591a2f4da7a39e41819416af40af4a694b29`  
+**Validated hardening head before this certificate:** `74c9c0d98d4d75609775c380b60b20c1d72707e1`
 
-## 1. Purpose and semantic boundary
+## 1. Certified boundary
 
-REV-F6.5 certifies the dynamic Historical Sales Plug-in boundary. It does not fabricate, infer, or backfill historical transactional revenue.
-
-The certified pipeline is:
+REV-F6.5 provides the dynamic Historical Sales Plug-in contract without fabricating historical revenue. The governed future pipeline remains:
 
 `MANIFEST/SHA -> ROW PROVENANCE -> STAGING -> DEDUP/VALIDATION -> AOS_VENTAS-COMPATIBLE CANONICAL SALE -> F3 PRODUCT -> F5 PATIENT -> F4 FINANCIAL -> RECOMPUTE F6`.
 
-F6.5 reuses the existing Revenue, Product, Patient Identity and Financial truth layers. It creates no parallel historical patient/product/revenue master and authorizes no direct mass insert into `aos_ventas`.
+No parallel historical patient/product/revenue master is introduced. A source manifest proves source coverage, not revenue. 2024/2025 values remain null until canonical transactional evidence exists.
 
-## 2. GitHub exact-head CI evidence
+## 2. Terminal cross-workstream fingerprint hardening
 
-Implementation exact-head `6736b005b2e4b6ebbfeb1e3d589b3d0e48a21b30` passed all required pull-request workflows:
+Post-merge verification of PR #315 found that the REV-F6.0 certification fingerprint included mutable cardinality/freshness from `aos_cia_contact_identity_v1`. That compatibility view spans patient, lead, call, appointment and sale activity, so normal CIA/WA activity could invalidate the REV-F6 chain without changing Revenue truth.
 
-- Ascenda CI #2671 — SUCCESS
-- REV-F6.0 #43 — SUCCESS
-- REV-F6.1 #44 — SUCCESS
-- REV-F6.2 #23 — SUCCESS
-- REV-F6.3 #14 — SUCCESS
-- REV-F6.4 #9 — SUCCESS
-- REV-F6.5 #1 — SUCCESS
+PR #316 corrects this by retaining all compatibility metrics visibly while excluding only these volatile observations from the REV certification hash:
 
-The dedicated F6.5 workflow passed:
+- `compatibility_identity.rows`
+- `compatibility_identity.with_canonical_patient`
+- `compatibility_identity.identity_conflicts`
+- `freshness_sources.cia_identity_updated_at`
 
-- FAST/static Historical Sales Plug-in contract;
-- isolated Postgres bootstrap;
-- F6.0–F6.4 certified prerequisites;
-- F6.4 regression revalidation;
-- fixtures A–J;
-- F6.5 DB/security/semantic/performance invariants;
-- full idempotent migration replay;
-- recovery restoring the exact F6.4 boundary.
+Fingerprint semantic: `REVENUE_TRUTH_EXCLUDES_MUTABLE_CIA_COMPATIBILITY_CARDINALITY`.
 
-## 3. Supabase LIVE migration
+A synthetic no-write LIVE probe proved both conditions simultaneously:
 
-Applied migration ledger:
+- legacy full-payload hash reacts to synthetic CIA churn: **true**;
+- isolated Revenue hash remains stable under the same synthetic churn: **true**.
+
+## 3. Exact-head CI before LIVE hardening
+
+Exact-head `74c9c0d98d4d75609775c380b60b20c1d72707e1` passed all seven required workflows:
+
+- Ascenda CI #2679 — SUCCESS
+- REV-F6.0 #48 — SUCCESS
+- REV-F6.1 #48 — SUCCESS
+- REV-F6.2 #27 — SUCCESS
+- REV-F6.3 #18 — SUCCESS
+- REV-F6.4 #13 — SUCCESS
+- REV-F6.5 #5 — SUCCESS
+
+The dedicated F6.5 DB job passed migration, F6.3/F6.4 post-isolation rebaseline, fixtures A–J, F6.5 invariants, cross-workstream isolation, full idempotent replay and recovery to the pre-hardening F6.4 boundary.
+
+## 4. Supabase LIVE migrations
+
+Active terminal migration ledger:
 
 - `20260820201634` — `rev_f6_5_historical_sales_plugin_v1`
+- `20260820211638` — `rev_f6_5_rev_f6_0_fingerprint_isolation_v1`
 
-No historical source manifest was registered in LIVE and no historical business sale row was fabricated.
+No historical source manifest was registered in LIVE and no historical business sale row was fabricated by either migration.
 
-## 4. LIVE historical coverage truth
+## 5. Final LIVE fingerprint chain
 
-Current LIVE state after migration:
+The post-hardening chain was reproduced twice with exact equality:
 
-- manifest rows: **0**;
-- certified historical sources: **0**;
-- 2024: `value=null`, `source_status=NO_CERTIFIED_SOURCE`, `trust_level=UNAVAILABLE`;
-- 2025: `value=null`, `source_status=NO_CERTIFIED_SOURCE`, `trust_level=UNAVAILABLE`;
-- 2026: **1,299** certified transactions, billed amount **561889.27**.
+- REV-F6.0: `f81a1b8fcfe010cd5254c4ab2e6048d2`
+- REV-F6.3: `186a1da2c29b498dad26223ae264adea`
+- REV-F6.4: `54c07961f191147860f6acd3a3e85c2a`
+- REV-F6.5: `88957cec3d785e4931a8f834c0259a91`
 
-`NO_CERTIFIED_SOURCE` explicitly does not mean zero revenue.
+A governed `aos_rev_historical_recompute_v1()` replay preserved F6.3, F6.4 and F6.5 fingerprints exactly and did not mutate protected business truth.
 
-The active Sales Intelligence runtime now exposes `REV-F6.5_HISTORICAL_COVERAGE_V1` dynamically instead of treating hardcoded 2024/2025 status as the authority. The certified F6.4 runtime remains preserved as an internal base.
+## 6. Protected truth and legitimate LIVE growth
 
-## 5. Deterministic fingerprint
+At the terminal hardening deployment boundary LIVE contained:
 
-F6.5 terminal PRE-MERGE fingerprint candidate:
-
-`88a6dab1f3ef228eaa79f8489d6d8eb0`
-
-It was reproduced twice in LIVE before recompute and remained the same after the governed recompute hook.
-
-Upstream F6.4 fingerprint remained exact before/after recompute:
-
-`b0f06d841c74ceeb231451aecdeceef2`
-
-## 6. Protected truth / non-mutation
-
-LIVE protected truth remained unchanged:
-
-- patients: **7,688**;
+- patients: **7,690**;
 - canonical sales: **1,299**;
 - F3 product facts: **406**;
 - F4 reconciliation rows: **162**;
-- F6.3 fingerprint: `3f4174660107661a2c4509f6f8817d7a`;
 - F6.4 sales fact rows: **1,299**.
 
-F6.5 did not mutate `aos_pacientes`, existing canonical sales, F3, F4, F5 identity truth, or F6.0–F6.4 certified source truth.
+The previous F6.5 checkpoint contained 7,688 patients. The two-row increase was investigated before applying the hardening: exactly **2 patient rows were created after the PR #315 merge**, with the first at `2026-08-20 20:47:40.27904+00` and the latest at `2026-08-20 21:06:21.982437+00`. They are legitimate subsequent LIVE activity and were not created by this hardening. They were not deleted or rolled back.
 
-## 7. Security
+The hardening preserved **7,690 -> 7,690** patients and **1,299 -> 1,299 / 406 -> 406 / 162 -> 162** across governed recompute.
 
-LIVE security readback PASS:
+## 7. Historical coverage truth
 
-- historical manifest anon SELECT: false;
-- historical manifest authenticated SELECT: false;
+Current LIVE coverage remains:
+
+- 2024: `value=null`, `source_status=NO_CERTIFIED_SOURCE`;
+- 2025: `value=null`, `source_status=NO_CERTIFIED_SOURCE`;
+- 2026: available through the canonical 1,299-sale read model.
+
+`NO_CERTIFIED_SOURCE` is not interpreted as zero revenue.
+
+## 8. Security / ACL
+
+Terminal LIVE ACL readback PASS:
+
+- F6.0 internal contract anon EXECUTE: false;
+- isolated fingerprint helper authenticated EXECUTE: false;
+- F6.0 service_role EXECUTE: true;
+- historical manifest anon/authenticated SELECT: false;
 - source registration anon EXECUTE: false;
-- source certification authenticated EXECUTE: false;
 - recompute authenticated EXECUTE: false;
 - internal Sales Intelligence V3 anon EXECUTE: false;
-- governed V3 gateway anon EXECUTE remains true through the existing admin/2FA boundary;
-- legacy `aos_paciente_360(text)` anon EXECUTE remains false.
+- governed Sales Intelligence V3 gateway anon EXECUTE: true through the existing authorization boundary;
+- legacy `aos_paciente_360(text)` anon EXECUTE: false.
 
-Raw PII/PHI is not exposed by the aggregate historical coverage contract.
+## 9. Performance
 
-## 8. Performance
+Post-hardening LIVE `EXPLAIN ANALYZE` execution times:
 
-Repeated LIVE V3 calls after F6.5 overlay:
+- global 2026: **3.211 ms**;
+- San Isidro: **138.042 ms**;
+- Pueblo Libre: **10.591 ms**.
 
-- global: **11.983 ms**;
-- San Isidro: **8.780 ms**;
-- Pueblo Libre: **7.861 ms**.
+All are below the `<1000 ms` certification target. No timeout increase was used.
 
-Certification target remains `<1000 ms`; no timeout increase was used.
+## 10. Remaining terminal gate
 
-## 9. Replay / recovery
+This certificate is the terminal candidate to be committed atomically with its snapshot. After that commit, its new exact-head must again pass Ascenda CI + REV-F6.0 through REV-F6.5. PR #316 may then merge only with `expected_head_sha` equal to that final certificate commit. Post-merge LIVE must reproduce the fingerprint chain, ACL, performance, historical no-source semantics and current protected truth. `aos_memory`, Notion and GitHub CURRENT are reconciled last.
 
-Synthetic certification proved:
-
-- same SHA + same immutable metadata is idempotent;
-- same SHA + conflicting immutable metadata fails closed;
-- uncertified source remains non-revenue;
-- partial coverage is explicit;
-- complete manifest coverage is still not revenue by itself;
-- year isolation is preserved;
-- recompute is derived-read-model only;
-- recovery removes F6.5 objects and restores the exact certified F6.4 runtime boundary.
-
-## 10. Final merge gate
-
-This certificate becomes terminal only after:
-
-1. this certificate + snapshot are committed atomically;
-2. the new exact-head passes Ascenda CI + REV-F6.0 through REV-F6.5;
-3. PR #315 is merged with `expected_head_sha` equal to that final exact-head;
-4. post-merge LIVE reproduces F6.5 fingerprint `88a6dab1f3ef228eaa79f8489d6d8eb0`, preserves security/performance/protected truth and historical no-source semantics;
-5. `aos_memory`, Notion and GitHub CURRENT are reconciled last.
-
-Only then declare:
+Only after those gates declare:
 
 `REV-F6.5 — PASS / CERTIFIED — 100%`
 

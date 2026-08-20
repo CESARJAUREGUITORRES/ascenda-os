@@ -2,61 +2,74 @@
 
 **Status:** CURRENT / REV-F6 ACTIVE  
 **Captured:** 2026-08-20 America/Lima  
-**Entry main:** `c73b41b318639ef09027956b3c183f8379c42e33`  
+**Current main before terminal hardening:** `70bd591a2f4da7a39e41819416af40af4a694b29`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
-**CURRENT GATE:** `REV-F6.5 — Historical Sales Plug-in`  
+**CURRENT GATE:** `REV-F6.5 — POST-MERGE TERMINAL FINGERPRINT ISOLATION`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
-**REV-F6.0:** `PASS / CERTIFIED` · fp `02ba53adb9dabfcd0a4557061be53c2f`  
+**REV-F6.0:** `PASS / CERTIFIED — semantic hardening in progress`  
 **REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
 **REV-F6.2:** `PASS / CERTIFIED — 100%` · fp `d977b9669b9e741e8785cd863caaf9c2`  
-**REV-F6.3:** `PASS / CERTIFIED — 100%` · fp `3f4174660107661a2c4509f6f8817d7a`  
-**REV-F6.4:** `PASS / CERTIFIED — 100%` · fp `b0f06d841c74ceeb231451aecdeceef2`  
-**REV-F6 global:** `62.5%`  
-**REV-F6.5:** `IN PROGRESS / PRE-LIVE`  
+**REV-F6.3:** `PASS / CERTIFIED — terminal chain fp pending isolation`  
+**REV-F6.4:** `PASS / CERTIFIED — terminal chain fp pending isolation`  
+**REV-F6 global:** `62.5%` until F6.5 terminal certification  
+**REV-F6.5:** `POST-MERGE HARDENING / NOT YET TERMINALLY CERTIFIED`  
 **REV-F6.6:** `BLOCKED until REV-F6.5 certification`  
 **REV-F6.7:** `BLOCKED`  
 **REV-F7:** `BLOCKED until REV-F6 final certification`
 
-GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints. `REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane.
+GitHub CURRENT + Supabase LIVE remain authoritative. `REV-F6-CLOSEOUT` is the only mutable HIGH/CRITICAL Revenue lane.
 
-## REV-F6.4 certified boundary
+## REV-F6.5 implementation + first merge
 
-PR #314 merged with expected head `36914e89d6624cc0541774adcff89600fd14537a` to certification `main@5ba6401406812115ee55eb245854331be2ce818e`. Post-merge LIVE reproduced F6.4 fp `b0f06d841c74ceeb231451aecdeceef2`; protected truth remains patients 7,688 / sales 1,299 / F3 406 / F4 162; F6.3 fp remains exact. Post-merge Sales Intelligence V3 performance remained below 1000 ms globally and by both sedes.
+PR **#315** passed final exact-head Ascenda CI + REV-F6.0 through REV-F6.5 on `1d4d6005ac2aa9747e14625dfdffb9864b88c889` and merged with `expected_head_sha` to `main@70bd591a2f4da7a39e41819416af40af4a694b29`.
 
-## REV-F6.5 entry
+Supabase LIVE migration `20260820201634 rev_f6_5_historical_sales_plugin_v1` is applied. Historical runtime semantics remain correct:
 
-F6.5 starts from docs-reconciled `main@c73b41b318639ef09027956b3c183f8379c42e33` on isolated branch `data/rev-f6-5-historical-sales-plugin-20260820`.
+- manifest rows **0**;
+- certified historical sources **0**;
+- 2024 = `value=null / NO_CERTIFIED_SOURCE`;
+- 2025 = `value=null / NO_CERTIFIED_SOURCE`;
+- 2026 = **1,299** transactions / billed **561889.27**;
+- protected truth = patients **7,688** / sales **1,299** / F3 **406** / F4 **162**;
+- ACL remains fail-closed and browser raw historical access remains closed.
 
-No certifiable 2024/2025 transactional files are currently supplied. Therefore:
+## Post-merge fingerprint finding
 
-- no historical revenue may be invented;
-- 2024/2025 must remain `value=null` until canonical transaction evidence exists;
-- source manifest/SHA proves coverage only, not revenue;
-- future ingestion must reuse `aos_ventas` + F3 + F5 + F4, not create parallel masters;
-- same SHA replay must be idempotent;
-- conflicting SHA-bound metadata must fail closed;
-- active Sales Intelligence historical availability must become dynamic, replacing fixed runtime labels;
-- recompute may refresh derived read models only and may not ingest/mutate business rows.
+Post-merge readback correctly stopped terminal certification because F6.0→F6.3→F6.4→F6.5 fingerprints moved while protected Revenue truth did not.
 
-## F6.5 implementation contract
+Root cause is architectural, not business-data drift: `aos_rev_f6_data_contract_v1()` included mutable cardinality/freshness from `aos_cia_contact_identity_v1` in its certification fingerprint. That compatibility view spans patients + leads + calls + appointments + sales, so normal CIA/WA activity can change its row cardinality without changing Revenue truth.
 
-Required objects/gates:
+Observed post-merge chain before hardening:
 
-- private zero-PII historical source manifest registry;
-- dynamic year coverage contract for 2024/2025;
-- service-only manifest registration and certification with immutable provenance;
-- F6.4 runtime preserved as internal base;
-- F6.5 dynamic historical overlay on the active Sales Intelligence V3 name;
-- service-only recompute hook;
-- fixtures A–J;
-- migration replay/idempotency;
-- exact F6.4 recovery;
-- security + no-PII + `<1000 ms` performance;
-- deterministic F6.5 terminal fingerprint;
-- LIVE no-source readback before certification.
+- F6.0 `5ab234f6f37cfcae31bccee45cb1607a`;
+- F6.3 `8656f87a275a84588ee103fbe1626950`;
+- F6.4 `583b8b79e781f3c9303e64aceedc2105`;
+- F6.5 `2595c0d17989714693f32cf19f064f98`.
 
-Until certified:
+These hashes are **not accepted as terminal certification fingerprints** because their upstream F6.0 projection is coupled to another mutable workstream.
 
-- `REV-F6.5 = IN PROGRESS`;
-- `REV-F6.6/F6.7 = BLOCKED`;
-- `REV-F7 = BLOCKED`.
+## Terminal hardening contract
+
+Branch `data/rev-f6-5-terminal-fingerprint-isolation-20260820` isolates the Revenue certification fingerprint while preserving full CIA compatibility metrics in the visible F6.0 contract.
+
+The fingerprint projection excludes only:
+
+- `compatibility_identity.rows`;
+- `compatibility_identity.with_canonical_patient`;
+- `compatibility_identity.identity_conflicts`;
+- `freshness_sources.cia_identity_updated_at`.
+
+It does **not** exclude or alter patient, sales, F3, F4, F5, lifecycle, identity-confidence, historical-source, security, or Revenue coverage truth.
+
+Required terminal proof:
+
+1. synthetic CIA-churn test demonstrates legacy hash changes while isolated Revenue hash remains stable;
+2. F6.0/F6.3/F6.4/F6.5 new chain fingerprints reproduce deterministically;
+3. exact-head Ascenda CI + F6.0–F6.5 SUCCESS;
+4. LIVE migration + protected truth + ACL + historical no-source + performance PASS;
+5. final certificate/snapshot updated with superseded and terminal fingerprints;
+6. exact-head merge of hardening PR;
+7. post-merge LIVE fingerprints exact;
+8. `aos_memory` + Notion + CURRENT reconciled last.
+
+Until all gates pass, **REV-F6.5 remains not terminally certified and REV-F6.6 remains blocked**.
