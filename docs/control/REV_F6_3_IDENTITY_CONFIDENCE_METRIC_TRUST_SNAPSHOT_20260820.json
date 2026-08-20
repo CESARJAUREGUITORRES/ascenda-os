@@ -1,0 +1,83 @@
+{
+  "contract_id": "REV-F6.3_IDENTITY_CONFIDENCE_METRIC_TRUST_V1",
+  "captured_date_lima": "2026-08-20",
+  "entry_main": "a0929aa029ed9c804ddd76d3c1b27dd644a3837b",
+  "implementation_pr": 313,
+  "pre_certificate_exact_head": "3feab3c9cf9de59159196a382c8b68a3f36d6d16",
+  "migration": {
+    "version": "20260820180246",
+    "name": "rev_f6_3_identity_confidence_metric_trust_v1"
+  },
+  "terminal_fingerprint": "3f4174660107661a2c4509f6f8817d7a",
+  "identity_confidence": {
+    "canonical_population": 7262,
+    "HIGH": 238,
+    "MEDIUM": 6583,
+    "LOW": 441,
+    "UNRESOLVED": 0,
+    "safe_for_automatic_cross_source_attribution": 238,
+    "patients_with_conflict_keys": 441,
+    "phone_conflict_keys": 37,
+    "authority": "canonical_patient_id"
+  },
+  "metric_trust": {
+    "required_fields": ["value","coverage","confidence","freshness","sample_size"],
+    "extended_fields": ["source_status","source_period","limitations","data_quality_flags","provenance","trust_level"],
+    "trust_precedence": ["SOURCE_AVAILABILITY","FRESHNESS","COVERAGE","CONFIDENCE"],
+    "opaque_numeric_confidence_score": false,
+    "baselines": {
+      "identity_safe_match": {"numerator":296,"denominator":8716,"pct":3.40,"trust":"LOW"},
+      "sales_safe_linkage": {"numerator":208,"denominator":1299,"pct":16.01,"trust":"LOW"},
+      "f3_product_resolution": {"numerator":397,"denominator":406,"pct":97.78,"trust":"HIGH"},
+      "f4_financial_evidence": {"numerator":123,"denominator":1299,"pct":9.47,"trust":"LOW"},
+      "historical_transaction_source_availability": {"numerator":1,"denominator":3,"pct":33.33,"trust":"LOW"},
+      "lifecycle_classified_evidence": {"numerator":543,"denominator":7262,"pct":7.48,"sample_size":1089,"trust":"LOW"}
+    },
+    "transactional_sales_2024": {"value":null,"source_status":"NO_CERTIFIED_SOURCE","trust":"UNAVAILABLE"},
+    "transactional_sales_2025": {"value":null,"source_status":"NO_CERTIFIED_SOURCE","trust":"UNAVAILABLE"},
+    "absence_means_zero": false
+  },
+  "acl": {
+    "identity_view_browser_closed": true,
+    "identity_by_patient_browser_closed": true,
+    "aggregate_contract_browser_closed": true,
+    "governed_patient_360_browser_executable": true,
+    "legacy_patient_360_browser_closed": true
+  },
+  "protected_truth": {
+    "patients": {"rows":7688,"fingerprint":"eee5a57717937a4f77049b3aebd8c525"},
+    "sales": {"rows":1299,"fingerprint":"20104fd91fbf427e39566e7b84d7ec4f"},
+    "f3": {"rows":406,"fingerprint":"e3c8499026d13401c4a733b4da16b6c8"},
+    "f4": {"rows":162,"fingerprint":"5524a2280442224ec4e9a7cfdfffa008"},
+    "f6_0": "02ba53adb9dabfcd0a4557061be53c2f",
+    "f6_1": "cd313998c5b5b38d5cb9e2f08882b826",
+    "f6_2": "d977b9669b9e741e8785cd863caaf9c2"
+  },
+  "f6_2_live_readback": {
+    "canonical_population": 7262,
+    "classified_population": 543,
+    "insufficient_activity_evidence": 6719,
+    "qualifying_event_rows": 1089,
+    "states": {
+      "HISTORICAL_REACTIVATED": 1,
+      "NEW_PATIENT": 129,
+      "ACTIVE_REPEAT": 90,
+      "RETURNING_PATIENT": 137,
+      "DORMANT": 186
+    }
+  },
+  "pre_certificate_ci": {
+    "rev_f6_3_run_id": 32397892096,
+    "rev_f6_2_run_id": 32397892532,
+    "rev_f6_1_run_id": 32397892203,
+    "rev_f6_0_run_id": 32397892200,
+    "ascenda_ci_run_id": 32397892177,
+    "all_success": true
+  },
+  "terminal_transition": {
+    "rev_f6_3": "LIVE_PASS_FINAL_EXACT_HEAD_CLOSEOUT_PENDING",
+    "rev_f6_global_progress_pct": 37.5,
+    "rev_f6_4": "BLOCKED_UNTIL_FINAL_POST_MERGE_READBACK",
+    "rev_f7": "BLOCKED_UNTIL_REV_F6_FINAL_CERTIFICATION"
+  }
+}
