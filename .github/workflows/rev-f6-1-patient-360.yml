@@ -125,16 +125,21 @@ jobs:
           exit 1
       - name: Build synthetic prerequisite schema
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/schema_contract.sql
+      - name: Inject historical alias-format edge fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/schema_alias_format_edge.sql
       - name: Apply certified F6.0 prerequisite
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820013500_rev_f6_0_data_contract_v1.sql
       - name: Apply exact F6.1 migration
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022000_rev_f6_1_patient_commercial_360_v2.sql
+      - name: Apply F6.1 alias-normalization hotfix
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022500_rev_f6_1_alias_normalization_fix.sql
       - name: F6.1 DB/security/semantic invariants
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/tests/001_patient_commercial_360.sql
       - name: Full idempotent replay
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022000_rev_f6_1_patient_commercial_360_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022500_rev_f6_1_alias_normalization_fix.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/tests/001_patient_commercial_360.sql
       - name: Recovery stays fail-closed
         run: |
