@@ -1,0 +1,65 @@
+{
+  "contract_id": "REV-F6.1_PATIENT_COMMERCIAL_360_V2_FINAL_V1",
+  "captured_date_lima": "2026-08-19",
+  "entry_main": "2b636acef991f51ce5e3c71a5ddbde7f3c58e23c",
+  "pre_certificate_pr_head": "7ca6ebd29708d4b91bdca18d7cbc26cded7db562",
+  "terminal_fingerprint": "cd313998c5b5b38d5cb9e2f08882b826",
+  "migrations": {
+    "base": {"version":"20260820030050","name":"rev_f6_1_patient_commercial_360_v2"},
+    "normalization_hotfix": {"version":"20260820031515","name":"rev_f6_1_alias_normalization_fix"}
+  },
+  "identity_bridge": {
+    "CANONICAL_ID": {"keys":7262,"resolved_keys":7262,"conflict_keys":0,"max_candidates":1},
+    "PHONE": {"keys":7136,"resolved_keys":7099,"conflict_keys":37,"max_candidates":4},
+    "DOCUMENT": {"keys":2605,"resolved_keys":2459,"conflict_keys":146,"max_candidates":7},
+    "EMAIL": {"keys":1633,"resolved_keys":1555,"conflict_keys":78,"max_candidates":7},
+    "bad_resolved_rows": 0,
+    "orphan_targets": 0,
+    "memberships": 15498,
+    "classifications": 8716,
+    "match_clusters": 296,
+    "real_old_current_same_canonical": true,
+    "phone_conflict_keys": 37,
+    "phone_conflict_fail_closed": 37,
+    "phone_conflict_violations": 0
+  },
+  "security": {
+    "alias_view_browser_closed": true,
+    "internal_resolver_browser_closed": true,
+    "legacy_patient_360_browser_closed": true,
+    "search_gateway_token_gated": true,
+    "commercial_360_gateway_token_gated": true,
+    "auth_v3_2fa_contract": true,
+    "clinical_admin_gate": true,
+    "advisor_clinical_arrays_empty_in_semantic_test": true,
+    "admin_2fa_clinical_arrays_role_gated_in_semantic_test": true,
+    "exact_normalized_key_only": true,
+    "fuzzy_matching": false,
+    "phone_nearness_authority": false
+  },
+  "protected_truth": {
+    "patients": {"rows":7688,"fingerprint":"eee5a57717937a4f77049b3aebd8c525"},
+    "sales": {"rows":1299,"fingerprint":"20104fd91fbf427e39566e7b84d7ec4f"},
+    "f3": {"rows":406,"fingerprint":"e3c8499026d13401c4a733b4da16b6c8"},
+    "f4": {"rows":162,"fingerprint":"5524a2280442224ec4e9a7cfdfffa008"},
+    "f5_7_fingerprint": "5af139243f6aed37020048af292587fe",
+    "f6_0_fingerprint": "02ba53adb9dabfcd0a4557061be53c2f"
+  },
+  "historical_semantics": {
+    "canonical_sales_2024_2025_rows": 0,
+    "meaning": "NO_CERTIFIED_SOURCE_NE_ZERO_REVENUE"
+  },
+  "pre_certificate_ci": {
+    "rev_f6_1_run_id": 32326821500,
+    "rev_f6_1_run_number": 18,
+    "rev_f6_1_conclusion": "SUCCESS",
+    "ascenda_ci_run_number": 2613,
+    "cartera_rerun_job_id": 96301352394,
+    "cartera_rerun_conclusion": "SUCCESS"
+  },
+  "terminal_transition": {
+    "rev_f6_1": "LIVE_PASS_FINAL_EXACT_HEAD_CLOSEOUT_PENDING",
+    "rev_f6_2": "BLOCKED_UNTIL_REV_F6_1_CLOSEOUT",
+    "rev_f7": "BLOCKED_UNTIL_REV_F6_CERTIFICATION"
+  }
+}
