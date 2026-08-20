@@ -1,0 +1,62 @@
+{
+  "workstream": "REV-F6.4",
+  "gate": "Sales Intelligence 3.0",
+  "captured_date": "2026-08-20 America/Lima",
+  "entry_main_sha": "10c8ebccb0be1d8e538491de834cb7457f453de9",
+  "pre_certificate_head_sha": "c2db4e86dc1cb0be6e7cdce064243a704f97d944",
+  "pr": 314,
+  "live_migrations": [
+    {"version":"20260820191924","name":"rev_f6_4_sales_intelligence_3_v1"},
+    {"version":"20260820192121","name":"rev_f6_4_live_performance_baseline_decouple_v1"},
+    {"version":"20260820192333","name":"rev_f6_4_dashboard_cache_performance_v1"}
+  ],
+  "contract_fingerprint": "b0f06d841c74ceeb231451aecdeceef2",
+  "fingerprint_replays": 2,
+  "read_models": {
+    "sales_fact_rows": 1299,
+    "monthly_rows": 72,
+    "patient_value_rows": 66,
+    "cohort_rows": 8,
+    "product_transition_rows": 34,
+    "explicit_acquisition_rows": 0,
+    "dashboard_cache_rows": 22
+  },
+  "historical_source_status": {
+    "2024": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"},
+    "2025": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"},
+    "2026": {"source_status": "AVAILABLE", "canonical_sales_rows": 1299}
+  },
+  "performance_ms_observed": {
+    "global_2026": 53.017,
+    "san_isidro_2026": 6.414,
+    "pueblo_libre_2026": 0.98,
+    "target_ms": 1000,
+    "timeout_increase_used": false
+  },
+  "protected_truth": {
+    "patients": {"rows":7688,"fingerprint":"eee5a57717937a4f77049b3aebd8c525"},
+    "sales": {"rows":1299,"fingerprint":"20104fd91fbf427e39566e7b84d7ec4f"},
+    "f3": {"rows":406,"fingerprint":"e3c8499026d13401c4a733b4da16b6c8"},
+    "f4": {"rows":162,"fingerprint":"5524a2280442224ec4e9a7cfdfffa008"},
+    "f6_0": "02ba53adb9dabfcd0a4557061be53c2f",
+    "f6_1": "cd313998c5b5b38d5cb9e2f08882b826",
+    "f6_2": "d977b9669b9e741e8785cd863caaf9c2",
+    "f6_3": "3f4174660107661a2c4509f6f8817d7a"
+  },
+  "exact_head_ci": {
+    "ascenda_ci": {"run_number":2667,"conclusion":"success"},
+    "f6_0": {"run_number":41,"conclusion":"success"},
+    "f6_1": {"run_number":42,"conclusion":"success"},
+    "f6_2": {"run_number":21,"conclusion":"success"},
+    "f6_3": {"run_number":12,"conclusion":"success"},
+    "f6_4": {"run_number":7,"conclusion":"success"}
+  },
+  "semantic_guards": {
+    "no_certified_source_means_zero": false,
+    "patient_analytics_match_only": true,
+    "f4_evidence_means_collected_cash": false,
+    "phone_only_acquisition_attribution": false,
+    "observed_value_is_future_ltv": false
+  },
+  "terminal_merge_required": true
+}
