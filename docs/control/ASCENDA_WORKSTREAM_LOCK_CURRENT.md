@@ -2,7 +2,7 @@
 
 **Status:** CURRENT / REV-F6 ACTIVE  
 **Captured:** 2026-08-20 America/Lima  
-**Certification main:** `5ba6401406812115ee55eb245854331be2ce818e`  
+**Entry main:** `c73b41b318639ef09027956b3c183f8379c42e33`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
 **CURRENT GATE:** `REV-F6.5 — Historical Sales Plug-in`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
@@ -12,61 +12,51 @@
 **REV-F6.3:** `PASS / CERTIFIED — 100%` · fp `3f4174660107661a2c4509f6f8817d7a`  
 **REV-F6.4:** `PASS / CERTIFIED — 100%` · fp `b0f06d841c74ceeb231451aecdeceef2`  
 **REV-F6 global:** `62.5%`  
-**REV-F6.5:** `NEXT / UNBLOCKED`  
+**REV-F6.5:** `IN PROGRESS / PRE-LIVE`  
 **REV-F6.6:** `BLOCKED until REV-F6.5 certification`  
 **REV-F6.7:** `BLOCKED`  
 **REV-F7:** `BLOCKED until REV-F6 final certification`
 
 GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints. `REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane.
 
-## REV-F6.4 terminal certification
+## REV-F6.4 certified boundary
 
-PR **#314** merged with exact expected head `36914e89d6624cc0541774adcff89600fd14537a` to certification `main@5ba6401406812115ee55eb245854331be2ce818e` after exact-head SUCCESS for Ascenda CI and REV-F6.0 through REV-F6.4.
+PR #314 merged with expected head `36914e89d6624cc0541774adcff89600fd14537a` to certification `main@5ba6401406812115ee55eb245854331be2ce818e`. Post-merge LIVE reproduced F6.4 fp `b0f06d841c74ceeb231451aecdeceef2`; protected truth remains patients 7,688 / sales 1,299 / F3 406 / F4 162; F6.3 fp remains exact. Post-merge Sales Intelligence V3 performance remained below 1000 ms globally and by both sedes.
 
-Supabase LIVE:
+## REV-F6.5 entry
 
-- migrations `20260820191924`, `20260820192121`, `20260820192333` applied;
-- F6.4 terminal fingerprint `b0f06d841c74ceeb231451aecdeceef2` reproduced twice post-merge;
-- F6.3 fingerprint remains `3f4174660107661a2c4509f6f8817d7a`;
-- patients **7,688**;
-- sales **1,299**;
-- F3 **406**;
-- F4 **162**;
-- dashboard cache **22** governed filter combinations;
-- 2026 certified transactions **1,299**, billed amount **561889.27**;
-- 2024/2025: `hasData=false`, `value=null`, `source_status=NO_CERTIFIED_SOURCE`.
+F6.5 starts from docs-reconciled `main@c73b41b318639ef09027956b3c183f8379c42e33` on isolated branch `data/rev-f6-5-historical-sales-plugin-20260820`.
 
-Post-merge performance:
+No certifiable 2024/2025 transactional files are currently supplied. Therefore:
 
-- global: **97.29 ms**;
-- San Isidro: **4.09 ms**;
-- Pueblo Libre: **4.32 ms**;
-- certification target: **<1000 ms**.
+- no historical revenue may be invented;
+- 2024/2025 must remain `value=null` until canonical transaction evidence exists;
+- source manifest/SHA proves coverage only, not revenue;
+- future ingestion must reuse `aos_ventas` + F3 + F5 + F4, not create parallel masters;
+- same SHA replay must be idempotent;
+- conflicting SHA-bound metadata must fail closed;
+- active Sales Intelligence historical availability must become dynamic, replacing fixed runtime labels;
+- recompute may refresh derived read models only and may not ingest/mutate business rows.
 
-Security remains fail-closed: raw Sales Intelligence read models/cache are browser-closed; internal V3 is not anon executable; refresh is not authenticated executable; governed gateway remains available; legacy `aos_paciente_360` remains closed.
+## F6.5 implementation contract
 
-`aos_memory` and Notion were reconciled to REV-F6.4 PASS / REV-F6 62.5%.
+Required objects/gates:
 
-## REV-F6.5 execution contract
+- private zero-PII historical source manifest registry;
+- dynamic year coverage contract for 2024/2025;
+- service-only manifest registration and certification with immutable provenance;
+- F6.4 runtime preserved as internal base;
+- F6.5 dynamic historical overlay on the active Sales Intelligence V3 name;
+- service-only recompute hook;
+- fixtures A–J;
+- migration replay/idempotency;
+- exact F6.4 recovery;
+- security + no-PII + `<1000 ms` performance;
+- deterministic F6.5 terminal fingerprint;
+- LIVE no-source readback before certification.
 
-F6.5 may now create the Historical Sales Plug-in only as an additive governed ingestion/read-model boundary. It must not fabricate historical revenue, mutate certified 2026 source truth, or relax F3/F4/F5/F6.0–F6.4 semantics.
+Until certified:
 
-Required gates:
-
-- dynamic Historical Coverage Contract;
-- removal of F6.4 hardcoded 2024/2025 availability semantics in favor of governed source registry/coverage;
-- recompute/refresh hook;
-- fixtures A–J covering no-source, partial, complete, duplicate, invalid, provenance, year isolation, replay, recovery and security cases;
-- idempotent ingestion/recompute;
-- fail-closed recovery;
-- browser-closed raw historical models;
-- no raw PII/PHI in aggregate contracts;
-- performance gate without timeout inflation;
-- deterministic terminal fingerprint;
-- exact-head CI + LIVE migration/readback + post-merge replay.
-
-Until F6.5 is certified:
-
-- `REV-F6.5 = IN PROGRESS` once its isolated branch is opened;
+- `REV-F6.5 = IN PROGRESS`;
 - `REV-F6.6/F6.7 = BLOCKED`;
 - `REV-F7 = BLOCKED`.
