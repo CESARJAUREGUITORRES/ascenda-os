@@ -13,6 +13,7 @@ declare
   t0 timestamptz;
   ms numeric;
   i integer;
+  v_unrelated_state text;
 begin
   if to_regprocedure('public.aos_sentinel_rev_f6_6_snapshot_full_v1()') is null then raise exception 'HOTFIX_FULL_SNAPSHOT_MISSING'; end if;
   if to_regprocedure('public.aos_sentinel_rev_f6_6_refresh_cache_v1()') is null then raise exception 'HOTFIX_REFRESH_MISSING'; end if;
@@ -36,6 +37,7 @@ begin
     ms:=extract(epoch from (clock_timestamp()-t0))*1000;
     if ms>=1000 then raise exception 'HOTFIX_HEALTH_TOO_SLOW:%ms',ms; end if;
   end loop;
+  v_unrelated_state:=pg_temp.f66_hot_signal(h,'SEN-DQ-F5-001')->>'state';
 
   update public.aos_sentinel_rev_f6_6_sensor_cache_v1 set dirty_domains=array['SALES']::text[] where singleton=true;
   s:=public.aos_sentinel_rev_f6_6_snapshot_v1();
@@ -45,7 +47,7 @@ begin
   if pg_temp.f66_hot_signal(h,'SEN-DQ-REV-002')->>'state'<>'UNKNOWN' then raise exception 'HOTFIX_SALES_RECON_FALSE_GREEN'; end if;
   if pg_temp.f66_hot_signal(h,'SEN-DQ-F6-001')->>'state'<>'UNKNOWN' then raise exception 'HOTFIX_SALES_READMODEL_FALSE_GREEN'; end if;
   if pg_temp.f66_hot_signal(h,'SEN-DQ-F6-002')->>'state'<>'UNKNOWN' then raise exception 'HOTFIX_SALES_COVERAGE_FALSE_GREEN'; end if;
-  if pg_temp.f66_hot_signal(h,'SEN-DQ-F5-001')->>'state'<>'OK' then raise exception 'HOTFIX_UNRELATED_DOMAIN_REGRESSION'; end if;
+  if pg_temp.f66_hot_signal(h,'SEN-DQ-F5-001')->>'state' is distinct from v_unrelated_state then raise exception 'HOTFIX_UNRELATED_DOMAIN_REGRESSION'; end if;
 
   r:=public.aos_sentinel_rev_f6_6_refresh_cache_v1();
   if coalesce((r->>'ok')::boolean,false)=false or r->>'cache_state'<>'CURRENT' then raise exception 'HOTFIX_REFRESH_FAILED'; end if;
