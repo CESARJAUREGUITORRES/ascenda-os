@@ -104,7 +104,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260820034000_rev_f6_2_customer_lifecycle_v1_recovery.sql
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_rev_customer_lifecycle_v1(text,text,date)') is null")" = "t"
-          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_rev_business_date_lima_v1()') is null")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_rev_business_date_lima_v1()') is null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_patient_commercial_360_v2(text,text,text)') is not null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_patient_commercial_360_v2(text,text,text)','EXECUTE')")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_paciente_360(text)','EXECUTE')")" = "f"
