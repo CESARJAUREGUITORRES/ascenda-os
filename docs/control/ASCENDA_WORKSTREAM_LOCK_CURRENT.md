@@ -7,6 +7,7 @@
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
 **CURRENT GATE:** `REV-F6.6 — Sentinel Data-Integrity Handoff / IN PROGRESS`  
 **ACTIVE BRANCH:** `data/rev-f6-6-sentinel-integrity-handoff-20260820`  
+**CANDIDATE REVALIDATION:** corrected PostgreSQL conditional-expression syntax; exact-head CI must rerun before LIVE.  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
 **REV-F6.0:** `PASS / CERTIFIED — 100%` · fp `f81a1b8fcfe010cd5254c4ab2e6048d2`  
 **REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
