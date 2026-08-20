@@ -2,7 +2,7 @@
 
 **Status:** CURRENT / REV-F6 ACTIVE  
 **Captured:** 2026-08-20 America/Lima  
-**Certification main:** `c3da45ce18ebad9d89ba42181299da86625ce8e2`  
+**Entry main:** `10c8ebccb0be1d8e538491de834cb7457f453de9`  
 **ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
 **CURRENT GATE:** `REV-F6.4 — Sales Intelligence 3.0`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
@@ -11,7 +11,7 @@
 **REV-F6.2:** `PASS / CERTIFIED — 100%` · fp `d977b9669b9e741e8785cd863caaf9c2`  
 **REV-F6.3:** `PASS / CERTIFIED — 100%` · fp `3f4174660107661a2c4509f6f8817d7a`  
 **REV-F6 global:** `50%`  
-**REV-F6.4:** `NEXT / UNBLOCKED`  
+**REV-F6.4:** `IN PROGRESS / PRE-LIVE`  
 **REV-F6.5:** `BLOCKED until REV-F6.4 certification`  
 **REV-F6.6:** `BLOCKED`  
 **REV-F6.7:** `BLOCKED`  
@@ -19,91 +19,65 @@
 
 GitHub CURRENT + Supabase LIVE are authoritative over historical checkpoints. `REV-F6-CLOSEOUT` remains the only HIGH/CRITICAL mutable Revenue lane.
 
-## REV-F6.3 final certification
+## REV-F6.4 entry
 
-Implementation/certification PR **#313** was merged with exact expected head `440b068c422b546d24c3b47748ba9347d492a848` to certification main `c3da45ce18ebad9d89ba42181299da86625ce8e2`.
+F6.4 started from exact `main@10c8ebccb0be1d8e538491de834cb7457f453de9` after independent LIVE revalidation of the certified F6.3 boundary.
 
-Final exact-head CI on `440b068c422b546d24c3b47748ba9347d492a848`:
+Entry proof:
 
-- REV-F6.3 run #5 / `32401302561` — SUCCESS;
-- REV-F6.2 run #14 / `32401302456` — SUCCESS;
-- REV-F6.1 run #35 / `32401302457` — SUCCESS;
-- REV-F6.0 run #34 / `32401302464` — SUCCESS;
-- Ascenda CI #2652 / `32401302460` — SUCCESS.
+- Supabase SQL available;
+- F6.3 LIVE fp `3f4174660107661a2c4509f6f8817d7a`;
+- patients **7,688** / `eee5a57717937a4f77049b3aebd8c525`;
+- sales **1,299** / `20104fd91fbf427e39566e7b84d7ec4f`;
+- F3 **406** / `e3c8499026d13401c4a733b4da16b6c8`;
+- F4 **162** / `5524a2280442224ec4e9a7cfdfffa008`;
+- F6.0 `02ba53adb9dabfcd0a4557061be53c2f`;
+- F6.1 `cd313998c5b5b38d5cb9e2f08882b826`;
+- F6.2 `d977b9669b9e741e8785cd863caaf9c2`.
 
-Supabase LIVE migration ledger:
+Current certified linkage boundary is **208 MATCH / 940 REVIEW / 151 UNRESOLVED** sales. Patient-level intelligence must use MATCH-only evidence. Executive billed revenue can use all certified 2026 sale rows but must disclose patient-link coverage.
 
-- `20260820180246 · rev_f6_3_identity_confidence_metric_trust_v1`.
+F4 currently gives **123/1,299** linked financial-evidence rows and no certified confirmed-cash amount. F6.4 must not present F4 linkage as collected cash.
 
-Terminal fingerprint:
+Current explicit acquisition→sale lineage through `Agenda.venta_id_match + lead_id_origen` is zero in LIVE, so the acquisition-to-revenue metric must remain `NO_DEFENDABLE_ATTRIBUTION`, never fabricated zero conversion.
 
-- pre-merge replay 1: `3f4174660107661a2c4509f6f8817d7a`;
-- pre-merge replay 2: `3f4174660107661a2c4509f6f8817d7a`;
-- post-merge LIVE: `3f4174660107661a2c4509f6f8817d7a`.
+## F6.4 architecture
 
-## Identity Confidence LIVE
+Sales Intelligence 3.0 uses bounded materialized read models plus set-based aggregate RPCs. It consumes F3/F4/F5/F6.0–F6.3 and does not create competing patient/product/revenue truth.
 
-- canonical population **7,262**;
-- HIGH **238**;
-- MEDIUM **6,583**;
-- LOW **441**;
-- aggregate canonical UNRESOLVED **0**;
-- safe automatic cross-source attribution **238**;
-- patients with conflict keys **441**;
-- PHONE conflict keys **37**.
+Required domains:
 
-Authority remains `canonical_patient_id`. Strong alias conflict remains fail-closed. No fuzzy identity, phone-nearness authority, name-only identity, or silent patient merge is permitted.
+- Executive Revenue;
+- cohorts/retention;
+- observed value/LTV;
+- canonical product + cross-sell;
+- sede/advisor performance;
+- acquisition-to-revenue only with explicit lineage;
+- demographic/geographic dimensions only above declared coverage thresholds.
 
-## Metric Trust V1
+Metric Trust remains explicit. 2024/2025 transactional sales remain `NO_CERTIFIED_SOURCE != zero`.
 
-Every relevant trust envelope keeps these dimensions separate:
+## Security / mutation boundary
 
-`value + coverage + confidence + freshness + sample_size + source_status + source_period + limitations + data_quality_flags + provenance + trust_level`.
+F6.4 is additive analytical schema. No mutation of `aos_pacientes`, `aos_ventas`, F3, F4, F5 identity/classification or F6.0–F6.3 certified source truth is authorized.
 
-Frozen observed baselines:
+Raw read models are browser-closed/service-only. Existing admin + PASSWORD_2FA Sales Intelligence gateway semantics remain the browser trust boundary.
 
-- Identity safe match **296/8,716 = 3.40%** — LOW coverage;
-- Sales safe linkage **208/1,299 = 16.01%** — LOW coverage;
-- F3 product resolution **397/406 = 97.78%** — HIGH trust;
-- F4 financial evidence **123/1,299 = 9.47%** — LOW coverage and **not non-payment**;
-- Historical transaction source availability **1/3 = 33.33%** — source availability, not revenue;
-- Lifecycle classified evidence **543/7,262 = 7.48%**, sample_size **1,089** — LOW coverage;
-- 2024 transactional sales = `NO_CERTIFIED_SOURCE`, `value=null`, never zero revenue;
-- 2025 transactional sales = `NO_CERTIFIED_SOURCE`, `value=null`, never zero revenue.
+## Exit gate
 
-## Protected certified truth
+Do not mark F6.4 PASS until:
 
-Post-migration and post-merge readback remained exact:
+- exact-head FAST + Zero-Cost DB/security/semantic/performance and upstream regressions PASS;
+- LIVE migration/readback/reconciliation PASS;
+- protected truth unchanged;
+- security/no-PII invariants PASS;
+- F6.4 deterministic fingerprint reproduced twice;
+- exact-head PR merge with `expected_head_sha`;
+- post-merge LIVE fingerprint exact;
+- `aos_memory` + Notion + CURRENT reconciled.
 
-- patients = **7,688** / `eee5a57717937a4f77049b3aebd8c525`;
-- sales = **1,299** / `20104fd91fbf427e39566e7b84d7ec4f`;
-- F3 = **406** / `e3c8499026d13401c4a733b4da16b6c8`;
-- F4 = **162** / `5524a2280442224ec4e9a7cfdfffa008`;
-- F5.7 = `5af139243f6aed37020048af292587fe`;
-- F5.10 = `2f0a365fae4caaa7be9d204e0f76679b`;
-- F6.0 = `02ba53adb9dabfcd0a4557061be53c2f`;
-- F6.1 = `cd313998c5b5b38d5cb9e2f08882b826`;
-- F6.2 = `d977b9669b9e741e8785cd863caaf9c2`;
-- F6.3 = `3f4174660107661a2c4509f6f8817d7a`.
+Until then:
 
-F3 owns product truth, F4 financial/payment/cartera truth, F5 patient identity/provenance. F6 derives analytics only.
-
-## Security boundary
-
-PASS:
-
-- Identity Confidence view/function and F6.3 aggregate contract are browser-closed;
-- governed Patient Commercial 360 remains browser-executable behind existing Auth V3 + PASSWORD_2FA semantics;
-- legacy `aos_paciente_360(text)` remains browser-closed;
-- no aggregate raw PII/PHI exposure.
-
-## CURRENT next gate — REV-F6.4
-
-REV-F6.4 must consume F6.0/F6.1/F6.2/F6.3 without replacing their truth. Sales Intelligence 3.0 must be set-based/preaggregated where appropriate, must propagate Metric Trust, and must not infer 2024/2025 revenue from absent transactional sources.
-
-At F6.4 entry:
-
-- `REV-F6.4 = NEXT / UNBLOCKED`;
-- `REV-F6.5/F6.6/F6.7 = BLOCKED` according to dependency order;
-- `REV-F7 = BLOCKED until REV-F6 final certification`;
-- `REV-F6-CLOSEOUT` remains the single mutable Revenue lock.
+- `REV-F6.4 = IN PROGRESS`;
+- `REV-F6.5/F6.6/F6.7 = BLOCKED`;
+- `REV-F7 = BLOCKED`.
