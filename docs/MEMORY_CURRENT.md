@@ -1,174 +1,124 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured from exact baseline:** `main@1d964d99f018cbdb671ddce90e52ece6bac0a8bd`  
 **Captured:** 2026-08-19 America/Lima  
-**ACTIVE WORKSTREAM:** `REV-F5-CLOSEOUT`
+**GitHub entry baseline:** `main@754ab44f39f10123ab83b98f97b5c01fff25bab5`  
+**ACTIVE WORKSTREAM:** `REV-F6-CLOSEOUT`  
+**CURRENT GATE:** `REV-F6.0 — DATA CONTRACT`
 
-## Authority
+## Authority order
 
-Read in order:
+1. root `AGENTS.md`;
+2. `SECURITY.md`;
+3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
+4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
+5. `docs/control/REV_F6_0_DATA_CONTRACT_V1.md`;
+6. F6 design contracts under `docs/control/`;
+7. exact GitHub CURRENT + Supabase LIVE;
+8. fresh CURRENT rows in `aos_memory`;
+9. Notion visual continuity.
 
-1. root `AGENTS.md`
-2. `SECURITY.md`
-3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
-4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
-5. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`
-6. `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`
-7. `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`
-8. `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`
-9. `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md`
-10. `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`
-11. exact GitHub + live Supabase/Railway
-12. `aos_memory`
-13. Notion
+Historical documents and chat checkpoints never override persisted CURRENT/LIVE.
 
-Historical documents/chat checkpoints never override CURRENT or live persisted state.
+## Revenue state
 
-## Global state
+- REV-F1 — CLOSED;
+- REV-F2 — CLOSED;
+- REV-F3 — CLOSED;
+- REV-F4 — CLOSED;
+- REV-F5 — **PRODUCTION CERTIFIED — 100%**;
+- REV-F5 terminal fingerprint — `2f0a365fae4caaa7be9d204e0f76679b`;
+- REV-F6 — **ACTIVE**;
+- REV-F6.0 Data Contract — **IN PROGRESS**;
+- REV-F6.1 Patient Commercial 360 V2 — **BLOCKED until F6.0 PASS**;
+- REV-F7 — **BLOCKED until F6 certification**.
 
-MKT Integrity V3 Loop 5 is closed; Loop 6 is not started. `REV-F5-CLOSEOUT` is the only active HIGH/CRITICAL mutable workstream. Other programs remain read-only/regression-only unless needed as sensors for F5.
+## F6.0 certified-entry snapshot
 
-Production runtime chain remains:
+LIVE preflight at the F6.0 entry baseline:
 
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`.
+- F5 batches = **6 / 6 MATCHED**;
+- source rows = **15,498 / 15,498**;
+- identity memberships = **15,498 / 15,498**;
+- clusters = **8,716**;
+- MATCH / REVIEW / NEW = **296 / 6,984 / 1,436**;
+- canonical patients = **7,688**;
+- sales = **1,299**, range **2026-01-05 → 2026-08-15**;
+- sale identity MATCH / REVIEW / UNRESOLVED = **208 / 940 / 151**;
+- F3 = **406** facts, **397 RESOLVED / 3 REVIEW_REQUIRED / 6 EXCLUDED / 0 MISSING**;
+- F4 = **162** reconciliation rows / **123** linked sales;
+- `aos_cia_contact_identity_v1` = **11,796** rows / **7,069** with canonical patient / **23** conflicts;
+- Identity Bridge V2 materialized = **false**.
 
-## REV-F5 LIVE truth at registered baseline
+Protected entry fingerprints:
 
-- manifests: **6**;
-- expected source rows: **15,498**;
-- persisted source rows: **8,264**;
-- remaining rows: **7,234**;
-- staging-complete batches: **1 / 6**;
-- provisional identity clusters: **3,950**;
-- identity members: **0**;
-- patient link previews: **0**;
-- canonical apply events: **0**;
-- structural duplicate keys: **0**;
-- orphan source rows: **0**;
-- observational canonical patients: **7,685**.
+- patients `eee5a57717937a4f77049b3aebd8c525`;
+- sales `20104fd91fbf427e39566e7b84d7ec4f`;
+- F3 `e3c8499026d13401c4a733b4da16b6c8`;
+- F4 `5524a2280442224ec4e9a7cfdfffa008`;
+- F5.7 `5af139243f6aed37020048af292587fe`;
+- F5.8 `4ce1695532a57655179558ed2b5f78aa`;
+- F5.9 `5070c701d216eb839572bd70f530c2e6`;
+- F5.10 `2f0a365fae4caaa7be9d204e0f76679b`.
 
-Per source:
+## Truth ownership carried into F6
 
-- PL2024: **3,949 / 4,192** — missing Excel 3951–4193;
-- PL2025: **1,801 / 3,053** — missing Excel 1703–1802 and 1903–3054;
-- PL2026: **993 / 993** — complete;
-- SI2024: **1,521 / 3,190** — missing Excel 1523–3191;
-- SI2025: **0 / 3,066** — missing Excel 2–3067;
-- SI2026: **0 / 1,004** — missing Excel 2–1005.
+- F3 owns product truth;
+- F4 owns payment/revenue/cartera truth;
+- F5 owns patient identity + provenance;
+- `aos_ventas` is the canonical persisted sales ledger;
+- `aos_cia_contact_identity_v1` is compatibility identity only;
+- F6 owns derived intelligence/read models only;
+- CIA owns governed audience/activation/assignment/channel attribution;
+- Sentinel observes integrity and does not silently repair business data.
 
-Always rederive LIVE before mutation.
+## Metric Trust contract
 
-## Persistence rule
+Every material F6-derived insight must expose or inherit:
 
-Every HIGH/CRITICAL data checkpoint uses Persistence Triple-Proof:
+`coverage + confidence + freshness + sample_size`
 
-1. execution receipt;
-2. direct live persisted readback;
-3. independent invariant query.
+Never collapse:
 
-Every source batch closes only after full idempotent replay of the SHA-bound source with zero new inserts/conflicts.
+- zero observed;
+- zero applicable;
+- unknown;
+- no certified source.
 
-## Identity / duplicate audit learning
+No global average may hide a low-coverage critical domain.
 
-Current read-only duplicate profile at registration:
+## Historical transaction boundary
 
-- 174 same normalized name+surname groups;
-- 69 of those span multiple phones;
-- 57 span multiple documents;
-- 110 duplicate name+surname+phone groups;
-- 30 of those contain >1 non-empty document;
-- 27 duplicate name+surname+document groups;
-- 15 of those contain >1 non-empty phone;
-- 14 groups / 29 patient rows currently match exact name+surname+phone+document.
+- patient history 2024/2025/2026 = AVAILABLE;
+- transactional sales 2024 = NO_CERTIFIED_SOURCE;
+- transactional sales 2025 = NO_CERTIFIED_SOURCE;
+- transactional sales 2026 = available only inside certified current range;
+- missing source never means zero sales/revenue;
+- unsupported factual YoY remains prohibited.
 
-Interpretation: repeated names are not automatically duplicates. The exact four-signal set is a high-confidence candidate pool, not permission for silent merge.
+Future historical sales must follow the existing SHA/provenance → staging → sale → F3 → F5 → F4 → F6 pipeline.
 
-The legacy duplicate detector contains a prohibited approximate-phone heuristic based on numeric proximity and the legacy merge RPC is phone-pair-centric. Neither becomes F5 batch authority without a versioned dependency/security/rollback audit.
+## REV-F6.0 security finding
 
-## Identity Bridge V2 decision
+The F6.0 preflight found a real CRITICAL boundary defect: legacy `public.aos_paciente_360(text)` was SECURITY DEFINER and browser-executable while returning more patient/clinical/document data than the Citas consumer requires.
 
-`numero_limpio/contact_key` remains important for Excel imports, search and compatibility but is no longer the identity target.
+F6.0 therefore includes a mandatory fail-closed cutover:
 
-Target:
+- legacy Patient 360 becomes service-role-only and search-path hardened;
+- new minimum history summary requires Auth V3 + PASSWORD_2FA + patient-panel permission;
+- Citas compatibility is preserved by the production service worker, which injects the existing app token and routes the legacy RPC name to the secure summary;
+- no fallback may invoke the weak legacy RPC;
+- recovery never reopens browser access;
+- protected patient/sales/F3/F4 data must remain byte-identical.
 
-`identifier → governed alias/evidence → canonical_patient_id → unified history`.
+## F6 roadmap
 
-A canonical patient may retain multiple current/historical phone aliases. Old and new phone can therefore resolve to the same patient after governed review. Shared phone/homonym conflicts remain explicit.
+1. F6.0 Data Contract — ACTIVE.
+2. F6.1 Patient Commercial 360 V2.
+3. F6.2 Customer Lifecycle.
+4. F6.3 Identity Confidence + Metric Trust.
+5. F6.4 Sales Intelligence 3.0.
+6. F6.5 Historical-sales plug-in for certified sources only.
+7. F6.6 Sentinel integrity handoff.
+8. F6.7 Final certification.
 
-Existing `aos_cia_contact_identity_v1` has a useful phone/contact compatibility view and must be reused rather than replaced by a competing CIA identity. F5 owns richer identity semantics.
-
-## Patient Commercial 360 V2
-
-The existing `app/public/patients.html` / `aos_paciente_360` remains the product surface. Do not create a second patient master.
-
-V2 target:
-
-- canonical identity + historical aliases;
-- identity confidence/review/conflict state;
-- customer lifecycle;
-- acquisition/contact/agenda/sales/product/payment timeline;
-- observed revenue with explicit transaction coverage;
-- merge/audit status;
-- metric trust: coverage, confidence, freshness, sample size;
-- role-gated clinical boundary.
-
-Phone lookup remains backward compatible but resolves server-side to canonical identity before history aggregation.
-
-## REV-F6 prepared contracts
-
-REV-F6 remains BLOCKED until actual F5.10 PASS. Once unblocked it must implement:
-
-- identity-aware Patient Commercial 360 V2;
-- lifecycle: `NEW_PATIENT`, `RETURNING_PATIENT`, `HISTORICAL_REACTIVATED`, `ACTIVE_REPEAT`, `DORMANT`, `UNRESOLVED_IDENTITY`;
-- Identity Confidence Contract;
-- metric trust fields `coverage`, `confidence`, `freshness`, `sample_size`;
-- Sales Intelligence read models from certified F3/F4/F5 facts;
-- future 2024/2025 sales as a plug-in through the existing historical-sales ingest contract, not a redesign.
-
-## Sentinel data integrity
-
-Registered design: `docs/control/SENTINEL_DATA_INTEGRITY_SIGNALS_CONTRACT.md`.
-
-Sentinel should eventually detect aggregate zero-PII failures such as source batch mismatch, membership mismatch, identity collision, canonical apply without governance, product-sale orphan, reconciliation orphan and stale/low-coverage F6 read models. Sentinel observes and routes; it does not silently repair business data.
-
-## Cross-domain ownership
-
-- F3 = product identity.
-- F4 = payment/revenue/cartera truth.
-- F5 = patient identity, provenance and duplicate resolution.
-- F6 = intelligence/read models.
-- CIA = governed acquisition/activation attribution.
-- WA = conversation/channel product consuming permitted context.
-- Sentinel = observability/integrity.
-
-Prefer explicit IDs (`lead_id_origen`, `llamada_id_origen`, `venta_id_match`, sale/cotization/plan/item IDs) before identity-bridge fallback.
-
-## Future historical sales 2024–2025
-
-Use `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`:
-
-`source manifest/SHA → row provenance/staging → canonical sale → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
-
-Do not fabricate 2024/2025 YoY from patient history or `Último presupuesto` while certified transaction ledgers are absent.
-
-## Execution prompts
-
-- Definitive F5 closeout prompt: `docs/control/prompts/REV_F5_CLOSEOUT_EXECUTION_PROMPT.md`.
-- F6 template returned only after real F5.10 certification: `docs/control/prompts/REV_F6_EXECUTION_PROMPT_TEMPLATE.md`.
-
-At F5.10 PASS the executing agent must bind the F6 template to the final exact SHA/LIVE counts and return it to the owner; do not silently start F6.
-
-## Safety rules specific to F5
-
-- no merge by name alone;
-- no merge by phone alone;
-- approximate/numeric-near phone is prohibited identity evidence;
-- physical patient merge is CRITICAL: admin+2FA, dependency audit, dry-run, canary, immutable event and rollback/recovery;
-- preserve absorbed aliases/provenance;
-- source patient IDs/HC remain source-specific unless proven otherwise;
-- fill-only enrichment by default;
-- clinical notes/allergies stay outside automatic commercial apply;
-- `Último presupuesto` is evidence only;
-- `ADELANTO` is payment evidence only;
-- every retry reconciles persisted state first;
-- Notion is reconciled last.
+Do not start F6.1 before F6.0 exact-head CI, LIVE persistence/readback, deterministic contract fingerprint, merge and Notion/aos_memory reconciliation all PASS.

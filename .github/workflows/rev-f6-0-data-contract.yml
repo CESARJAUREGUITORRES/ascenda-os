@@ -1,0 +1,113 @@
+name: ASCENDA REV-F6.0 Data Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*rev_f6_0*'
+      - 'supabase/rollbacks/*rev_f6_0*'
+      - 'ci/rev-f6-0/**'
+      - 'app/public/phase2-service-worker.js'
+      - 'docs/control/REV_F6_0*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - 'docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md'
+      - 'docs/MEMORY_CURRENT.md'
+      - '.github/workflows/rev-f6-0-data-contract.yml'
+  push:
+    branches: ['data/**']
+    paths:
+      - 'supabase/migrations/*rev_f6_0*'
+      - 'supabase/rollbacks/*rev_f6_0*'
+      - 'ci/rev-f6-0/**'
+      - 'app/public/phase2-service-worker.js'
+      - '.github/workflows/rev-f6-0-data-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rev-f6-0-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  fast-contracts:
+    name: F6.0 FAST contracts
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce FAST self-hosted lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+      - name: Service-worker syntax
+        shell: powershell
+        run: node --check app/public/phase2-service-worker.js
+      - name: Patient-history compatibility contract
+        shell: powershell
+        run: |
+          node --check ci/rev-f6-0/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/rev-f6-0/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  db-security:
+    name: F6.0 DB/security contracts
+    needs: fast-contracts
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 20
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59622/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost DB runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-rev-f6-0"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59621/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59622/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59620/' supabase/config.toml
+      - name: Start isolated Postgres
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-rev-f6-0' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59622 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-0/schema_contract.sql
+      - name: Apply exact F6.0 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820013500_rev_f6_0_data_contract_v1.sql
+      - name: F6.0 DB/security invariants
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-0/tests/001_data_contract_security.sql
+      - name: Recovery stays fail-closed
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260820013500_rev_f6_0_data_contract_v1_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_paciente_360(text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('authenticated','public.aos_paciente_360(text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_patient_history_summary_v1(text,text)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_rev_f6_data_contract_v1()','EXECUTE')")" = "t"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
