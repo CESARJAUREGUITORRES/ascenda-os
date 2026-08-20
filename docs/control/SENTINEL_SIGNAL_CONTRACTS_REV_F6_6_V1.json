@@ -1,0 +1,37 @@
+{
+  "schema_version": "sentinel-signal-contracts/rev-f6-6/v1",
+  "registry_id": "ASCENDA-SENTINEL-REV-F6-6-SIGNALS-V1",
+  "owner": "REV-F6-CLOSEOUT",
+  "entry_main": "589f790b72b9373fa983f745f7e4d9c0e3090b4d",
+  "extension_of": "docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json",
+  "contract_source": "docs/control/SENTINEL_DATA_INTEGRITY_SIGNALS_CONTRACT.md",
+  "observation_only": true,
+  "auto_repair": false,
+  "auto_incident_ingest": false,
+  "zero_pii": true,
+  "missing_telemetry_state": "UNKNOWN",
+  "states": ["OK", "DEGRADED", "REVIEW_REQUIRED", "BROKEN", "UNKNOWN"],
+  "dedup_key": ["signal_id", "affected_contract", "state_digest"],
+  "safe_fields": ["signal_id", "signal_name", "owning_workstream", "affected_contract", "state", "severity", "observed_at", "expected", "actual", "source_version", "baseline_version", "state_digest", "runbook_ref", "limitations"],
+  "forbidden_payload_classes": ["patient_name", "phone", "email", "document", "dni", "address", "birth_date", "clinical_note", "message_body", "payment_reference", "raw_source_row", "raw_event_payload", "secret", "token"],
+  "signals": [
+    {"signal_id":"SEN-DQ-F5-001","name":"SOURCE_BATCH_MISMATCH","owning_workstream":"REV-F5","affected_contract":"REV-F5_SOURCE_TRUTH","severity":"HIGH"},
+    {"signal_id":"SEN-DQ-F5-002","name":"IDENTITY_MEMBERSHIP_MISMATCH","owning_workstream":"REV-F5","affected_contract":"REV-F5_IDENTITY_MEMBERSHIP","severity":"CRITICAL"},
+    {"signal_id":"SEN-DQ-F5-003","name":"IDENTITY_BRIDGE_COLLISION","owning_workstream":"REV-F5","affected_contract":"REV_PATIENT_IDENTITY_BRIDGE_V2","severity":"CRITICAL"},
+    {"signal_id":"SEN-DQ-F5-004","name":"APPLY_WITHOUT_GOVERNANCE","owning_workstream":"REV-F5","affected_contract":"REV-F5_GOVERNED_APPLY","severity":"CRITICAL"},
+    {"signal_id":"SEN-DQ-F5-005","name":"DUPLICATE_PROFILE_DRIFT","owning_workstream":"REV-F5","affected_contract":"REV-F5_DUPLICATE_PROFILE_CLASSIFICATION","severity":"MEDIUM"},
+    {"signal_id":"SEN-DQ-REV-001","name":"PRODUCT_SALE_ORPHAN","owning_workstream":"REV-F3","affected_contract":"REV-F3_PRODUCT_SALE_FACT","severity":"HIGH"},
+    {"signal_id":"SEN-DQ-REV-002","name":"RECONCILIATION_ORPHAN","owning_workstream":"REV-F4","affected_contract":"REV-F4_RECONCILIATION","severity":"HIGH"},
+    {"signal_id":"SEN-DQ-F6-001","name":"READMODEL_STALE","owning_workstream":"REV-F6","affected_contract":"REV-F6.4_SALES_INTELLIGENCE_3_V1","severity":"HIGH"},
+    {"signal_id":"SEN-DQ-F6-002","name":"COVERAGE_REGRESSION","owning_workstream":"REV-F6","affected_contract":"REV-F6.3_METRIC_TRUST","severity":"HIGH"},
+    {"signal_id":"SEN-DQ-360-001","name":"PATIENT360_IDENTITY_RESOLUTION_REGRESSION","owning_workstream":"REV-F6.1","affected_contract":"REV_PATIENT_COMMERCIAL_360_V2","severity":"HIGH"}
+  ],
+  "implementation": {
+    "snapshot_rpc": "aos_sentinel_rev_f6_6_snapshot_v1",
+    "evaluator_rpc": "aos_sentinel_rev_f6_6_evaluate_v1",
+    "health_rpc": "aos_sentinel_rev_f6_6_integrity_health_v1",
+    "f8_candidate_adapter": "aos_sentinel_rev_f6_6_incident_candidates_v1",
+    "f8_auto_ingest": false
+  },
+  "limitations": ["SEN-DQ-F5-005 returns UNKNOWN in LIVE until AUTO_ELIGIBLE_EXACT/REVIEW_STRONG/BLOCK_CONFLICT/NO_MERGE telemetry is materially available."]
+}
