@@ -1,0 +1,37 @@
+name: REV-F6.1 Bootstrap Service Worker Patch
+
+on:
+  push:
+    branches: ['data/rev-f6-1-patient-commercial-360-v2-20260819']
+    paths:
+      - 'scripts/rev_f6_1_patch_service_worker.py'
+      - '.github/workflows/rev-f6-1-bootstrap-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: data/rev-f6-1-patient-commercial-360-v2-20260819
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply deterministic patch
+        shell: powershell
+        run: python scripts/rev_f6_1_patch_service_worker.py
+      - name: Commit patch if needed
+        shell: powershell
+        run: |
+          if (git status --porcelain) {
+            git config user.name "ascenda-bot"
+            git config user.email "ascenda-bot@users.noreply.github.com"
+            git add app/public/phase2-service-worker.js
+            git commit -m "REV-F6.1: route Patient 360 through canonical V2"
+            git push origin HEAD:data/rev-f6-1-patient-commercial-360-v2-20260819
+          }
