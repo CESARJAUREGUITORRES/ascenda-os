@@ -5,8 +5,12 @@ drop function if exists public.aos_rev_sales_intelligence_v3_gateway(text,intege
 drop function if exists public.aos_rev_si_refresh_v1();
 drop function if exists public.aos_rev_f6_4_contract_v1();
 drop function if exists public.aos_rev_sales_intelligence_v3(integer,text,text);
+drop function if exists public.aos_rev_si_rebuild_dashboard_cache_v1();
+drop function if exists public.aos_rev_si_cache_filter_v1(integer,text,text);
+drop function if exists public.aos_rev_sales_intelligence_v3_uncached_f6_4_base(integer,text,text);
 drop function if exists public.aos_rev_si_patient_value_by_patient_v1(text);
 
+drop table if exists public.aos_rev_si_dashboard_cache_v1;
 drop materialized view if exists public.aos_rev_si_acquisition_fact_v1;
 drop materialized view if exists public.aos_rev_si_product_transition_v1;
 drop materialized view if exists public.aos_rev_si_cohort_month_v1;
