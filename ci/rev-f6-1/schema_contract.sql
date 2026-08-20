@@ -86,7 +86,7 @@ values
  ('P1','Ana','Prueba','999111111','ana@example.test','12345678','F','1990-01-01','Dir 1','Ing','SAN ISIDRO','TEST','2026-01-01','PACIENTE','999111111','2026-08-15','LASER','Peru','Lima','Lima','Miraflores','SOLTERA','999999999'),
  ('P2','Beto','Prueba','999222222','beto@example.test','87654321','M','1988-02-02','Dir 2','Doc','PUEBLO LIBRE','TEST','2026-01-02','PACIENTE','999222222','2026-08-10','BOTOX','Peru','Lima','Lima','Pueblo Libre','SOLTERO','988888888');
 
-with c as (select gen_random_uuid() c1,gen_random_uuid() c2), b as (select min(id) bid from public.aos_f5_source_batches_v1)
+with b as (select id bid from public.aos_f5_source_batches_v1 order by id::text limit 1)
 insert into public.aos_f5_patient_source_rows_v1(id,batch_id,source_row_num,source_patient_id,phone_key,document_key,email_key)
 select * from (
  select 1,b.bid,1,'S-P1-A','999000111','12345678','ana@example.test' from b
