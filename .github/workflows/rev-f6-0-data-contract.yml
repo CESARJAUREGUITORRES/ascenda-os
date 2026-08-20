@@ -49,7 +49,11 @@ jobs:
         run: node --check app/public/phase2-service-worker.js
       - name: Patient-history compatibility contract
         shell: powershell
-        run: python ci/rev-f6-0/ui_contract.py
+        run: |
+          node --check ci/rev-f6-0/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/rev-f6-0/ui_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   db-security:
     name: F6.0 DB/security contracts
