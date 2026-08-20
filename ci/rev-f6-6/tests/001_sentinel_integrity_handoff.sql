@@ -97,15 +97,22 @@ begin
   d2:=pg_temp.f66_signal(h,'SEN-DQ-REV-001')->>'state_digest';
   if d1 is not distinct from d2 then raise exception 'U_STATE_CHANGE_DIGEST'; end if;
   -- V. zero-PII envelope and live missing duplicate telemetry is UNKNOWN.
-  if h::text ~* '"(phone|email|dni|document|address|birth_date|clinical_note|message_body|payment_reference|raw_payload|identifier_key|target_patient_id|canonical_patient_id)"[[:space:]]*:' then raise exception 'V_PII_KEY_IN_HEALTH'; end if;
-  if h::text ~* '\b[0-9]{9}\b' then raise exception 'V_PHONE_LIKE_VALUE_IN_HEALTH'; end if;
+  -- PHONE/EMAIL/DOCUMENT may appear only as aggregate dimension labels; raw identifier-bearing keys and values remain forbidden.
+  if h::text ~* '"(dni|address|birth_date|clinical_note|message_body|payment_reference|raw_payload|identifier_key|target_patient_id|canonical_patient_id)"[[:space:]]*:' then raise exception 'V_PII_KEY_IN_HEALTH'; end if;
+  if h::text ~* '\b[0-9]{8,9}\b' then raise exception 'V_IDENTIFIER_LIKE_NUMERIC_VALUE_IN_HEALTH'; end if;
+  if h::text ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}' then raise exception 'V_EMAIL_LIKE_VALUE_IN_HEALTH'; end if;
   x:=public.aos_sentinel_rev_f6_6_integrity_health_v1();
+  if x::text ~* '"(dni|address|birth_date|clinical_note|message_body|payment_reference|raw_payload|identifier_key|target_patient_id|canonical_patient_id)"[[:space:]]*:' then raise exception 'V_PII_KEY_IN_LIVE_HEALTH'; end if;
+  if x::text ~* '\b[0-9]{8,9}\b' then raise exception 'V_IDENTIFIER_LIKE_NUMERIC_VALUE_IN_LIVE_HEALTH'; end if;
+  if x::text ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}' then raise exception 'V_EMAIL_LIKE_VALUE_IN_LIVE_HEALTH'; end if;
   if pg_temp.f66_signal(x,'SEN-DQ-F5-005')->>'state'<>'UNKNOWN' then raise exception 'V_LIVE_DUPLICATE_TELEMETRY_FALSE_GREEN'; end if;
   candidate:=public.aos_sentinel_rev_f6_6_incident_candidates_v1();
   if coalesce((candidate->>'auto_ingest')::boolean,true) then raise exception 'F8_AUTO_INGEST_FORBIDDEN'; end if;
   if coalesce((candidate->>'f8_compatible')::boolean,false)=false then raise exception 'F8_COMPAT_FLAG'; end if;
   if coalesce((candidate->>'candidate_count')::integer,0)<1 then raise exception 'F8_EXPECT_UNKNOWN_CANDIDATE'; end if;
   if candidate::text ~* '"(phone|email|dni|document|address|birth_date|clinical_note|message_body|payment_reference|raw_payload|identifier_key|target_patient_id|canonical_patient_id)"[[:space:]]*:' then raise exception 'F8_PII_KEY'; end if;
+  if candidate::text ~* '\b[0-9]{8,9}\b' then raise exception 'F8_IDENTIFIER_LIKE_NUMERIC_VALUE'; end if;
+  if candidate::text ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}' then raise exception 'F8_EMAIL_LIKE_VALUE'; end if;
   ingest1:=public.aos_sentinel_ingest_signal_v1(candidate->'signals'->0);
   ingest2:=public.aos_sentinel_ingest_signal_v1(candidate->'signals'->0);
   if coalesce((ingest1->>'ok')::boolean,false)=false then raise exception 'F8_INGEST_COMPAT'; end if;
