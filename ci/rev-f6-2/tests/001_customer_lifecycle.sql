@@ -7,7 +7,13 @@ declare
   s jsonb;
   a jsonb;
   n integer;
+  lima_date date;
 begin
+  lima_date := (now() at time zone 'America/Lima')::date;
+  if public.aos_rev_business_date_lima_v1() is distinct from lima_date then raise exception 'Lima business date mismatch'; end if;
+  s := public.aos_rev_customer_lifecycle_summary_v1(null);
+  if (s->>'as_of')::date is distinct from lima_date then raise exception 'default summary date is not Lima: %',s->>'as_of'; end if;
+
   r := public.aos_rev_customer_lifecycle_v1('PHONE','999300003','2026-08-19');
   if r->>'lifecycle_state'<>'NEW_PATIENT' or r->>'classification_status'<>'CLASSIFIED' then raise exception 'NEW_PATIENT failed: %',r; end if;
 
@@ -59,21 +65,29 @@ begin
     raise exception 'summary state counts mismatch: %',s->'states';
   end if;
 
+  -- A historical event attached to a FUSIONADO row must never enter active lifecycle.
+  if exists(select 1 from public.aos_rev_customer_lifecycle_events_v1 where canonical_patient_id='P9') then raise exception 'fused patient leaked into lifecycle events'; end if;
+  if exists(select 1 from public.aos_rev_customer_agenda_identity_v1 where canonical_patient_id='P9') then raise exception 'fused patient leaked into agenda identity'; end if;
+  r := public.aos_rev_customer_lifecycle_by_patient_v1('P9','2026-08-19');
+  if r->>'classification_status'<>'CANONICAL_TARGET_MISSING' or r->'lifecycle_state'<>'null'::jsonb then raise exception 'fused subject classified: %',r; end if;
+
   a := public.aos_patient_commercial_360_v2('advisor-f61-token-00000000000000000000','PHONE','999400004');
   if coalesce((a->>'found')::boolean,false) is not true then raise exception 'F6.2 wrapper 360 not found: %',a; end if;
   if a->>'contract'<>'REV-F6.2_PATIENT_COMMERCIAL_360_V2' then raise exception 'wrapper contract wrong'; end if;
   if a->'commercial_summary'->>'lifecycle_state'<>'HISTORICAL_REACTIVATED' then raise exception '360 lifecycle not injected: %',a->'commercial_summary'; end if;
   if a->'lifecycle'->>'lifecycle_state'<>'HISTORICAL_REACTIVATED' then raise exception 'top lifecycle contract missing'; end if;
+  if (a->'lifecycle'->>'as_of')::date is distinct from lima_date then raise exception 'Patient 360 lifecycle not using Lima business date: %',a->'lifecycle'->>'as_of'; end if;
   if coalesce((a->>'clinical_access')::boolean,true) is not false or jsonb_array_length(a->'notas')<>0 or jsonb_array_length(a->'documentos')<>0 then
     raise exception 'advisor PHI boundary regressed';
   end if;
 
   if exists(select 1 from public.aos_rev_customer_agenda_identity_v1 where identity_status='RESOLVED' and candidate_count<>1) then raise exception 'resolved agenda identity multiplicity'; end if;
-  if exists(select 1 from public.aos_rev_customer_lifecycle_events_v1 e left join public.aos_pacientes p on p."ID_PACIENTE"=e.canonical_patient_id where p."ID_PACIENTE" is null) then raise exception 'lifecycle orphan patient'; end if;
+  if exists(select 1 from public.aos_rev_customer_agenda_identity_v1 where identity_status='IDENTITY_CONFLICT' and canonical_patient_id is not null) then raise exception 'conflict agenda identity target leak'; end if;
+  if exists(select 1 from public.aos_rev_customer_lifecycle_events_v1 e left join public.aos_pacientes p on p."ID_PACIENTE"=e.canonical_patient_id where p."ID_PACIENTE" is null or coalesce(p."ESTADO_PACIENTE",'')='FUSIONADO') then raise exception 'lifecycle inactive/orphan patient'; end if;
   if exists(select 1 from public.aos_ventas where fecha < date '2026-01-01') then raise exception 'synthetic historical sale introduced'; end if;
 
   select count(*) into n from public.aos_pacientes;
-  if n<>8 then raise exception 'patient mutation detected: %',n; end if;
+  if n<>9 then raise exception 'patient mutation detected: %',n; end if;
   select count(*) into n from public.aos_ventas;
   if n<>1 then raise exception 'sales mutation detected: %',n; end if;
   select count(*) into n from public.aos_product_sale_fact_current_v1;
@@ -87,6 +101,7 @@ do $$ begin
   if has_table_privilege('authenticated','public.aos_rev_customer_agenda_identity_v1','SELECT') then raise exception 'authenticated agenda identity view access'; end if;
   if has_function_privilege('anon','public.aos_rev_customer_lifecycle_v1(text,text,date)','EXECUTE') then raise exception 'anon direct lifecycle resolver access'; end if;
   if has_function_privilege('authenticated','public.aos_rev_customer_lifecycle_by_patient_v1(text,date)','EXECUTE') then raise exception 'authenticated direct lifecycle patient access'; end if;
+  if has_function_privilege('anon','public.aos_rev_business_date_lima_v1()','EXECUTE') then raise exception 'anon business-date helper access'; end if;
   if has_function_privilege('anon','public.aos_patient_commercial_360_v2_f6_1_base(text,text,text)','EXECUTE') then raise exception 'F6.1 base browser bypass'; end if;
   if not has_function_privilege('anon','public.aos_patient_commercial_360_v2(text,text,text)','EXECUTE') then raise exception 'governed browser 360 gateway missing'; end if;
   if has_function_privilege('anon','public.aos_paciente_360(text)','EXECUTE') then raise exception 'legacy Patient 360 reopened'; end if;
