@@ -8,29 +8,44 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: loop6-runtime-loader-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   patch-calls-loader:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@v4
         with:
           ref: feat/mkt-integrity-v3-loop6-call-semantics-atomic
           fetch-depth: 1
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Enforce Zero-Cost CI V2 policy
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Self-hosted runner healthcheck
+        run: bash scripts/ci/runner-healthcheck.sh
       - name: Apply deterministic loader patch
-        run: python scripts/ci/loop6_patch_calls_html.py
+        run: python3 scripts/ci/loop6_patch_calls_html.py
+      - name: Validate runtime loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/public/calls-loop6.js
+          grep -q 'calls-loop6.js?v=20260821-loop6' app/public/calls.html
+          test "$(grep -c 'calls-loop6.js?v=20260821-loop6' app/public/calls.html)" -eq 1
+          git diff --check
       - name: Commit only if changed
         shell: bash
         run: |
+          set -euo pipefail
           if git diff --quiet -- app/public/calls.html; then
             echo 'No loader patch required.'
             exit 0
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
           git add app/public/calls.html
           git commit -m 'LOOP 6 — load atomic Call Center runtime override'
           git push origin HEAD:feat/mkt-integrity-v3-loop6-call-semantics-atomic
