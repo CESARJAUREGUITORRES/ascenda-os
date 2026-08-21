@@ -459,7 +459,10 @@ function ahSem(sem,fecha){
       // Mostrar fecha seleccionada si no es hoy
 var muEl=document.getElementById('ah-mu');
 if(muEl&&fecha!==_hoy()){muEl.textContent='Fecha: '+fecha;}
-var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};
+var map={};
+      /* Dynamic operational roster: render only advisors with real activity in the selected period. */
+      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});
+      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});
       (sem||[]).forEach(function(s){map[s.asesor]=s;});
       var tb=document.getElementById('ah-mtb');if(!tb)return;
       var totalCitas=0;
