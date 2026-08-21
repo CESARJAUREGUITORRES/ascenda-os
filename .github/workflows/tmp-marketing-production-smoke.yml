@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - smoke/marketing-v421-production-20260821
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
