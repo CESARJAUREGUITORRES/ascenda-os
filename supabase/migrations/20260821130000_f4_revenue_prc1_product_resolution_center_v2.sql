@@ -47,7 +47,7 @@ begin
   select coalesce(pg_catalog.jsonb_agg(y.yr order by y.yr desc),'[]'::jsonb)
     into v_years
   from (
-    select distinct pg_catalog.extract(year from v.fecha)::integer yr
+    select distinct extract(year from v.fecha)::integer yr
     from public.aos_product_sale_fact_v1 f join public.aos_ventas v on v.id=f.sale_id
     where v.fecha is not null
   ) y;
@@ -82,8 +82,8 @@ begin
     join public.aos_ventas v on v.id=f.sale_id
     left join public.aos_product_identity_v1 i on i.product_key=f.product_key
     where (v_status='ALL' or f.resolution_status=v_status)
-      and (p_year is null or pg_catalog.extract(year from v.fecha)::integer=p_year)
-      and (p_month is null or pg_catalog.extract(month from v.fecha)::integer=p_month)
+      and (p_year is null or extract(year from v.fecha)::integer=p_year)
+      and (p_month is null or extract(month from v.fecha)::integer=p_month)
       and (coalesce(trim(p_sede),'')='' or upper(trim(v.sede))=upper(trim(p_sede)))
       and (
         v_search='' or
@@ -95,30 +95,37 @@ begin
       )
   ), grouped as (
     select
-      coalesce(raw_alias_key,'SIN_ALIAS') alias_key,
-      resolution_status,
-      product_key,
-      max(canonical_name) canonical_name,
-      max(lifecycle_status) lifecycle_status,
-      pg_catalog.to_jsonb(pg_catalog.array_agg(distinct descripcion order by descripcion)) raw_descriptions,
+      coalesce(b.raw_alias_key,'SIN_ALIAS') alias_key,
+      b.resolution_status,
+      b.product_key,
+      max(b.canonical_name) canonical_name,
+      max(b.lifecycle_status) lifecycle_status,
+      pg_catalog.to_jsonb(pg_catalog.array_agg(distinct b.descripcion order by b.descripcion)) raw_descriptions,
       count(*)::integer line_count,
-      count(*) filter(where coalesce(locked,false))::integer locked_count,
-      min(fecha) first_date,
-      max(fecha) last_date,
-      pg_catalog.to_jsonb(pg_catalog.array_agg(distinct sede order by sede)) sedes,
-      coalesce(sum(monto),0)::numeric revenue,
-      coalesce(sum(physical_qty),0)::numeric physical_units,
-      count(*) filter(where coalesce(is_pack,false))::integer pack_lines,
-      max(resolution_source) resolution_source,
-      max(fact_updated_at) fact_updated_at,
+      count(*) filter(where coalesce(b.locked,false))::integer locked_count,
+      min(b.fecha) first_date,
+      max(b.fecha) last_date,
+      pg_catalog.to_jsonb(pg_catalog.array_agg(distinct b.sede order by b.sede)) sedes,
+      coalesce(sum(b.monto),0)::numeric revenue,
+      coalesce(sum(b.physical_qty),0)::numeric physical_units,
+      count(*) filter(where coalesce(b.is_pack,false))::integer pack_lines,
+      max(b.resolution_source) resolution_source,
+      max(b.fact_updated_at) fact_updated_at,
+      (
+        select count(*)::integer
+        from public.aos_product_sale_fact_v1 f2
+        where f2.raw_alias_key=b.raw_alias_key
+          and f2.resolution_status=b.resolution_status
+          and (b.product_key is null or f2.product_key=b.product_key)
+      ) global_group_count,
       pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-        'saleId',sale_id,'date',fecha,'names',nombres,'lastNames',apellidos,
-        'document',dni,'phone',celular,'treatment',tratamiento,'rawDescription',descripcion,
-        'amount',monto,'sede',sede,'advisor',asesor,'attendedBy',atendio,'type',tipo,
-        'physicalQty',physical_qty,'isPack',is_pack,'saleUpdatedAt',sale_updated_at
-      ) order by fecha desc,sale_id desc) sales
-    from base
-    group by coalesce(raw_alias_key,'SIN_ALIAS'),resolution_status,product_key
+        'saleId',b.sale_id,'date',b.fecha,'names',b.nombres,'lastNames',b.apellidos,
+        'document',b.dni,'phone',b.celular,'treatment',b.tratamiento,'rawDescription',b.descripcion,
+        'amount',b.monto,'sede',b.sede,'advisor',b.asesor,'attendedBy',b.atendio,'type',b.tipo,
+        'physicalQty',b.physical_qty,'isPack',b.is_pack,'saleUpdatedAt',b.sale_updated_at
+      ) order by b.fecha desc,b.sale_id desc) sales
+    from base b
+    group by b.raw_alias_key,b.resolution_status,b.product_key
   )
   select
     count(*)::integer,
@@ -131,6 +138,7 @@ begin
       'lifecycleStatus',lifecycle_status,
       'rawDescriptions',raw_descriptions,
       'lineCount',line_count,
+      'globalGroupCount',global_group_count,
       'lockedCount',locked_count,
       'firstDate',first_date,
       'lastDate',last_date,
