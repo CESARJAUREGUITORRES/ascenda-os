@@ -113,12 +113,24 @@ function patchSalesEditorTruth(){
   window.evCampoSel=safe;
 }
 function loadProductResolutionCenter(){
+  function loadCenterRuntime(){
+    if(window.__AOS_REV_PRC1__||document.getElementById('rev-prc1-runtime'))return;
+    var s=document.createElement('script');
+    s.id='rev-prc1-runtime';
+    s.src='/rev-prc1-product-resolution-center.js?v=20260821-prc1-v3-authbridge';
+    s.async=false;
+    (document.head||document.documentElement).appendChild(s);
+  }
   if(window.__AOS_REV_PRC1__||document.getElementById('rev-prc1-runtime'))return;
-  var s=document.createElement('script');
-  s.id='rev-prc1-runtime';
-  s.src='/rev-prc1-product-resolution-center.js?v=20260821-prc1-v2';
-  s.async=false;
-  (document.head||document.documentElement).appendChild(s);
+  if(window.__AOS_REV_PRC1_AUTH_BRIDGE__){loadCenterRuntime();return;}
+  if(document.getElementById('rev-prc1-auth-bridge'))return;
+  var b=document.createElement('script');
+  b.id='rev-prc1-auth-bridge';
+  b.src='/rev-prc1-auth-bridge.js?v=20260821-prc1-auth-v1';
+  b.async=false;
+  b.onload=loadCenterRuntime;
+  b.onerror=function(){console.error('[REV-PRC1] auth bridge failed to load');};
+  (document.head||document.documentElement).appendChild(b);
 }
 function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();}
 run();

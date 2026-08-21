@@ -6,6 +6,7 @@ const bridge = read('app/public/f4-revenue-ops.js');
 const kronia = read('app/public/f4-kronia-revenue-bridge.js');
 const canary = read('app/public/f4-production-canary-hotfix.js');
 const prc1 = read('app/public/rev-prc1-product-resolution-center.js');
+const prc1Auth = read('app/public/rev-prc1-auth-bridge.js');
 const prc1Sql = read('supabase/migrations/20260821122500_f4_revenue_prc1_product_resolution_center_v1.sql');
 const prc1SqlV2 = read('supabase/migrations/20260821130000_f4_revenue_prc1_product_resolution_center_v2.sql');
 const sw = read('app/public/phase2-service-worker.js');
@@ -36,14 +37,18 @@ ok(proxy.includes('aos_sales_admin_sale_v4') && proxy.includes('aos_editar_venta
 ok(proxy.includes("pathname==='/api/f4/cartera-candidates'"), 'cartera candidates route missing');
 ok(proxy.includes('aos_cartera_candidates_v2'), 'cartera candidates RPC missing');
 
-// REV-PRC1 v2: deterministic runtime + modal + historical human-in-the-loop contracts.
+// REV-PRC1 v3 auth bridge: deterministic runtime + modal + historical human-in-the-loop contracts.
 new Function(prc1);
-ok(canary.includes("/rev-prc1-product-resolution-center.js?v=20260821-prc1-v2"), 'PRC1 v2 must load through deterministic F4 runtime');
+new Function(prc1Auth);
+ok(canary.includes("/rev-prc1-auth-bridge.js?v=20260821-prc1-auth-v1"), 'PRC1 auth bridge must load through deterministic F4 runtime');
+ok(canary.includes("/rev-prc1-product-resolution-center.js?v=20260821-prc1-v3-authbridge"), 'PRC1 v3 auth bridge runtime must load through deterministic F4 runtime');
+ok(canary.includes('b.onload=loadCenterRuntime'), 'PRC1 runtime must wait for auth bridge load');
+ok(prc1Auth.includes("downstreamFetch('/api/prc1/rpc'") && prc1Auth.includes("'X-AOS-App-Token':token"), 'PRC1 must use same-origin Auth V3 transport');
 for(const marker of ['prc1-products-review-btn','Centro de validación de productos','aos_product_review_admin_v2','aos_product_review_resolve_v2','aos_product_review_reopen_v1','aos_product_batch_review_v1','LINK_EXISTING','CREATE_NEW','EXCLUDE_NOT_PRODUCT','REVIEW_REQUIRED','Todos los años','Todos los meses','Todas las sedes','Vista previa del impacto','Editar venta','Reabrir para corregir']) ok(prc1.includes(marker), `missing PRC1 v2 UI marker: ${marker}`);
 ok(prc1.includes('la descripción original de cada venta NO será modificada'), 'PRC1 impact preview must disclose raw-sale preservation');
 ok(prc1.includes('p_expected_count'), 'PRC1 resolution must carry optimistic review count');
 ok(prc1.includes('p_default_qty') && prc1.includes('p_default_is_pack'), 'PRC1 physical quantity controls missing');
-ok(!prc1.toLowerCase().includes('service_role'), 'PRC1 browser runtime must not contain service_role');
+ok(!prc1.toLowerCase().includes('service_role') && !prc1Auth.toLowerCase().includes('service_role'), 'PRC1 browser runtime must not contain service_role');
 for(const marker of ['aos_product_review_admin_v1','aos_product_batch_review_v1','aos_product_review_resolve_v1','OWNER_REVIEW_CENTER','OWNER_CONFIRMED','STALE_REVIEW','ALIAS_CONFLICT','CANONICAL_ALREADY_EXISTS']) ok(prc1Sql.includes(marker), `missing PRC1 v1 SQL marker: ${marker}`);
 for(const marker of ['aos_product_review_admin_v2','aos_product_review_resolve_v2','aos_product_review_reopen_v1','OWNER_REOPENED','REV_PRC1_PRODUCT_REOPEN',"r.treatment<>'OTROS'"]) ok(prc1SqlV2.includes(marker), `missing PRC1 v2 SQL marker: ${marker}`);
 ok(prc1Sql.includes("v_actor:=public.aos_f4_actor(p_token,'admin-sales')"), 'PRC1 admin resolution must require F4 Auth V3/2FA actor');
