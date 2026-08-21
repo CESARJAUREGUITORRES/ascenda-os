@@ -17,6 +17,6 @@ ok(v2.includes("r.treatment<>'OTROS'")&&v2.includes("OTROS is always SERVICIO"),
 ok(v2.includes('aos_product_review_admin_v2')&&v2.includes('p_year integer')&&v2.includes('p_month integer')&&v2.includes('p_sede text')&&v2.includes('p_search text'),'historical filter SQL contract missing');
 ok(v2.includes('OWNER_REOPENED')&&v2.includes('REV_PRC1_PRODUCT_REOPEN'),'audited correction/reopen contract missing');
 ok(!v1.toLowerCase().includes('update public.aos_ventas')&&!v2.toLowerCase().includes('update public.aos_ventas'),'PRC migrations must never mutate raw sales');
-ok(canary.includes('20260821-prc1-v2'),'deterministic PRC1 v2 runtime version missing');
+ok(canary.includes('20260821-prc1-v3-authbridge'),'deterministic PRC1 v3 auth-bridge runtime version missing');
 ok(!ui.toLowerCase().includes('service_role'),'browser PRC must not contain service_role');
 console.log('REV-PRC1 UI/governance contract PASS');
