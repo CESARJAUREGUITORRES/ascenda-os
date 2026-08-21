@@ -112,18 +112,22 @@ function mkL(){
   if(MK.modo==='anio'){
     el('mk-per').textContent='📈 KPIs de Campaña — Año '+anio;
     rpc('aos_marketing_dashboard_anio',{p_anio:anio},function(d){if(!d||d.error)return;
+      /* Operational tables must not wait for LTV/history. */
+      rKPI(d.kpis);rEmb(d.embudo);rGest(d.gestion);
+      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
       rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:12},function(ltv){
-        rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
-        rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+        rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});
       });
     });
   } else {
     var mes=Number(el('mk-mes').value);
     el('mk-per').textContent='📈 KPIs de Campaña — '+MF[mes]+' '+anio;
     rpc('aos_marketing_dashboard',{p_mes:mes,p_anio:anio},function(d){if(!d||d.error)return;
+      /* Operational tables must not wait for LTV/history. */
+      rKPI(d.kpis);rEmb(d.embudo);rGest(d.gestion);
+      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
       rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:mes},function(ltv){
-        rKPI(d.kpis);rEmb(d.embudo);rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});rGest(d.gestion);
-        rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);
+        rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});
       });
     });
   }

@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-08-12-v4.2';
+var RELEASE='2026-08-21-v4.2.1';
 if(window.__AOS_MKT4&&window.__AOS_MKT4.destroy){
   try{window.__AOS_MKT4.destroy();}catch(e){}
 }
@@ -327,7 +327,7 @@ hook('rHist',function(){if(S.history.length)renderHistory(S.history);});
 hook('rLTV',function(){if(S.ltv.length)renderLtv(S.ltv);});
 hook('mkL',function(){
   var r=call(B.mkL,arguments);
-  L(loadAll,20);
+  L(loadAll,1200);
   return r;
 });
 
@@ -339,6 +339,6 @@ function destroy(){
 window.__AOS_MKT4={release:RELEASE,reload:loadAll,destroy:destroy,state:S};
 window.__AOS_MARKETING_V3_ACTIVE=false;
 window.__AOS_MARKETING_V3_CONSISTENCY_PATCH=false;
-traceBox();insights();L(loadAll,50);
+traceBox();insights();L(loadAll,1200);
 console.log('[ASCENDA] Marketing V4.2 mounted — serialized annual analytics');
 })();
