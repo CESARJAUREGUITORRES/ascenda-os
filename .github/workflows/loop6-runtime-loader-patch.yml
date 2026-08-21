@@ -5,11 +5,14 @@ on:
     branches: [main]
     paths:
       - 'app/public/calls-loop6.js'
+      - 'app/public/calls-loop6-policy-v2.js'
       - 'app/public/calls.html'
       - 'scripts/ci/loop6_patch_calls_html.mjs'
       - '.github/workflows/loop6-runtime-loader-patch.yml'
       - 'supabase/migrations/*mkt_integrity_loop6*'
+      - 'supabase/migrations/*mkt_loop6*'
       - 'supabase/rollbacks/*mkt_integrity_loop6*'
+      - 'supabase/rollbacks/*mkt_loop6*'
       - 'docs/control/MKT_INTEGRITY_V3_LOOP6*'
   workflow_dispatch:
 
@@ -53,7 +56,7 @@ jobs:
             git config user.name 'ASCENDA Zero-Cost CI'
             git config user.email 'actions@users.noreply.github.com'
             git add app/public/calls.html
-            git commit -m 'LOOP 6 — load atomic Call Center runtime override'
+            git commit -m 'LOOP 6 — load credit ownership policy runtime'
             git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
           } else {
             "changed=false" >> $env:GITHUB_OUTPUT
@@ -64,9 +67,14 @@ jobs:
         run: |
           node --check app/public/calls-loop6.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/calls-loop6-policy-v2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $text = Get-Content -Raw app/public/calls.html
-          $marker = '<script src="/calls-loop6.js?v=20260821-loop6"></script>'
-          $count = ([regex]::Matches($text, [regex]::Escape($marker))).Count
-          if ($count -ne 1) { throw "Expected exactly one Loop 6 loader, found $count" }
+          $baseMarker = '<script src="/calls-loop6.js?v=20260821-loop6"></script>'
+          $policyMarker = '<script src="/calls-loop6-policy-v2.js?v=20260821-loop6-policy-v2"></script>'
+          $baseCount = ([regex]::Matches($text, [regex]::Escape($baseMarker))).Count
+          $policyCount = ([regex]::Matches($text, [regex]::Escape($policyMarker))).Count
+          if ($baseCount -ne 1) { throw "Expected exactly one Loop 6 base loader, found $baseCount" }
+          if ($policyCount -ne 1) { throw "Expected exactly one Loop 6 policy loader, found $policyCount" }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
