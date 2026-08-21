@@ -26,6 +26,7 @@ must(bootstrap,"PRC1_RPC_NOT_ALLOWED",'server must fail closed outside allowlist
 must(bootstrap,"F4_STRONG_SESSION_REQUIRED",'server must require strong app session');
 must(hotfix,"/rev-prc1-auth-bridge.js?v=20260821-prc1-auth-v1",'hotfix must load auth bridge');
 must(hotfix,"/rev-prc1-product-resolution-center.js?v=20260821-prc1-v3-authbridge",'hotfix must cache-bust PRC1 runtime');
-if(hotfix.indexOf('rev-prc1-auth-bridge.js')>hotfix.indexOf('rev-prc1-product-resolution-center.js'))throw new Error('REV_PRC1_AUTH_BRIDGE_CONTRACT: bridge must be declared before PRC1 runtime');
+must(hotfix,'b.onload=loadCenterRuntime','PRC1 runtime must load only after bridge onload');
+must(hotfix,'if(window.__AOS_REV_PRC1_AUTH_BRIDGE__){loadCenterRuntime();return;}','already-loaded bridge path missing');
 
 console.log('REV_PRC1_AUTH_BRIDGE_CONTRACT PASS');
