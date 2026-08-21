@@ -20,8 +20,6 @@ function parseBody(init){try{return JSON.parse((init&&init.body)||'{}');}catch(e
 function rpcUrl(url,name){return url.split('/rest/v1/')[0]+'/rest/v1/rpc/'+name;}
 function unique(xs){var out=[];xs.forEach(function(x){x=String(x||'').trim();if(x&&out.indexOf(x)<0)out.push(x);});return out;}
 function storageTokens(){
-  // Ventas F4 is authorized exclusively by Auth V3 app sessions.
-  // Never consume the separate Sales Intelligence finance token here.
   try{return unique([sessionStorage.getItem('aos_app_token')]);}
   catch(e){return [];}
 }
@@ -35,14 +33,10 @@ function strongTokenCandidates(){
 }
 function rememberToken(t){
   if(!t)return;
-  // Keep token scopes isolated: app_token belongs to aos_app_sessions_v3.
-  // Sales Intelligence owns its own finance token and must remain untouched.
   try{sessionStorage.setItem('aos_app_token',t);}catch(e){}
   try{caches.open('aos-phase2-auth').then(function(c){return c.put('/__aos_app_token',new Response(t));}).catch(function(){});}catch(e){}
 }
 function syncCanonicalAppToken(){
-  // F4 bridge is synchronous and reads sessionStorage. Before every governed write,
-  // synchronize it from the same canonical cache used by the Phase 2 service worker.
   if(tokenSyncPromise)return tokenSyncPromise;
   tokenSyncPromise=cacheToken().then(function(t){
     t=String(t||'').trim();
@@ -60,7 +54,6 @@ function salesErrorBanner(msg){
   host.insertBefore(el,host.firstChild);
 }
 function clearSalesError(){var old=document.getElementById('f4-sales-auth-alert');if(old)old.remove();}
-
 function postSalesGateway(url,init,name,body,token){
   var payload={p_token:token,p_anio:body.p_anio,p_sede:body.p_sede||'',p_asesor:body.p_asesor||'',p_mode:name==='aos_ventas_admin_anio'?'ANIO':'MES'};
   if(name==='aos_ventas_admin')payload.p_mes=body.p_mes;
@@ -88,19 +81,11 @@ function strongSalesRead(url,init,name,body){
     return attempt();
   });
 }
-
-// The V4 preview is the authoritative import approval. The old app shell still has a
-// native CONFIRMAR IMPORTACIÓN DE VENTAS dialog; suppress only that exact legacy dialog
-// when the F4 bridge is active, retaining native confirm as a fallback if F4 is absent.
 window.confirm=function(message){
   var text=String(message||'');
   if(window.__AOS_F4_REVENUE_OPS__&&text.indexOf('CONFIRMAR IMPORTACIÓN DE VENTAS')===0)return true;
   return nativeConfirm(message);
 };
-
-// P0.5/P0.6: reads try both strong token sources. Governed writes first synchronize the
-// canonical cache token into sessionStorage, then hand control to the existing F4 bridge.
-// This keeps one Auth V3 session authority for edit/import/caja without duplicating F4 logic.
 window.fetch=function(input,init){
   var url=urlOf(input),rm=url.match(/\/rest\/v1\/rpc\/([^?]+)/),name=rm&&rm[1];
   if(name==='aos_ventas_admin'||name==='aos_ventas_admin_anio'){
@@ -108,19 +93,12 @@ window.fetch=function(input,init){
   }
   if(name==='aos_editar_venta'||name==='aos_importar_ventas'||name==='aos_grabar_venta_caja'){
     return syncCanonicalAppToken().then(function(t){
-      if(String(t||'').trim().length<32){
-        salesErrorBanner('Sesión 2FA de Ventas no disponible. Vuelve a iniciar sesión; no se realizó ninguna escritura.');
-      }
+      if(String(t||'').trim().length<32){salesErrorBanner('Sesión 2FA de Ventas no disponible. Vuelve a iniciar sesión; no se realizó ninguna escritura.');}
       return previousFetch(input,init);
     });
   }
   return previousFetch(input,init);
 };
-
-// P0.7: the legacy Sales editor hard-codes a short list of advisor/attendant names.
-// If production contains a valid value outside that list, a native <select> silently
-// falls back to its first option (for example DRA. CAROLINA -> MIREYA). Preserve the
-// exact current truth as a selectable option instead of fabricating a different value.
 function patchSalesEditorTruth(){
   if(typeof window.evCampoSel!=='function'||window.evCampoSel.__f4TruthSafe)return;
   var original=window.evCampoSel;
@@ -134,18 +112,14 @@ function patchSalesEditorTruth(){
   safe.__original=original;
   window.evCampoSel=safe;
 }
-
-// REV-PRC1 is loaded through the already deterministic F4 production bridge so the
-// Product Resolution Center does not depend on service-worker HTML rewriting.
 function loadProductResolutionCenter(){
   if(window.__AOS_REV_PRC1__||document.getElementById('rev-prc1-runtime'))return;
   var s=document.createElement('script');
   s.id='rev-prc1-runtime';
-  s.src='/rev-prc1-product-resolution-center.js?v=20260821-prc1-v1';
+  s.src='/rev-prc1-product-resolution-center.js?v=20260821-prc1-v2';
   s.async=false;
   (document.head||document.documentElement).appendChild(s);
 }
-
 function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();}
 run();
 syncCanonicalAppToken();
@@ -153,9 +127,5 @@ setTimeout(syncCanonicalAppToken,700);
 setTimeout(syncCanonicalAppToken,2500);
 try{window.addEventListener('focus',syncCanonicalAppToken);}catch(e){}
 try{document.addEventListener('visibilitychange',function(){if(!document.hidden)syncCanonicalAppToken();});}catch(e){}
-
-try{
-  var obs=new MutationObserver(function(){run();});
-  obs.observe(document.documentElement||document.body,{childList:true,subtree:true});
-}catch(e){}
+try{var obs=new MutationObserver(function(){run();});obs.observe(document.documentElement||document.body,{childList:true,subtree:true});}catch(e){}
 })();
