@@ -4,16 +4,12 @@ on:
   push:
     branches:
       - fix/admin-home-active-advisors-20260821
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,26 +23,24 @@ jobs:
 
           paths = [Path('app/public/admin-home.html'), Path('src/admin-home.html')]
           old = "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};\n      (sem||[]).forEach(function(s){map[s.asesor]=s;});"
-          new = "var map={};\n      (sem||[]).forEach(function(s){if(s&&s.asesor)map[s.asesor]=s;});\n      /* Dynamic operational roster: only advisors with actual activity in the selected period.\n         No hardcoded names; new advisors appear automatically after their first call. */\n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});\n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
+          new = "var map={};\n      (sem||[]).forEach(function(s){if(s&&s.asesor)map[s.asesor]=s;});\n      /* Dynamic operational roster: render only advisors with real activity in the selected period. */\n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});\n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
 
           for p in paths:
               text = p.read_text(encoding='utf-8')
               count = text.count(old)
               if count != 1:
-                  raise SystemExit(f'{p}: expected exactly 1 hardcoded roster, found {count}')
+                  raise SystemExit(f'{p}: expected 1 hardcoded roster, found {count}')
               p.write_text(text.replace(old, new, 1), encoding='utf-8')
-              print(f'patched {p}')
-
-          for p in paths:
-              text = p.read_text(encoding='utf-8')
-              assert "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN']" not in text
-              assert "parseInt(s.llamadas||0)>0" in text
+              print('patched', p)
           PY
-      - name: Remove temporary workflow and commit patch
+      - name: Verify patch
         run: |
-          rm .github/workflows/tmp-admin-home-active-advisors-patch.yml
+          ! grep -R "var todos=\['WILMER','RUVILA','MIREYA','SRA CARMEN'\]" app/public/admin-home.html src/admin-home.html
+          grep -n "Dynamic operational roster" app/public/admin-home.html src/admin-home.html
+      - name: Commit patch
+        run: |
           git config user.name "ascenda-automation"
           git config user.email "actions@users.noreply.github.com"
-          git add app/public/admin-home.html src/admin-home.html .github/workflows/tmp-admin-home-active-advisors-patch.yml
+          git add app/public/admin-home.html src/admin-home.html
           git commit -m "ADMIN-HOME: derive call monitor roster from real activity"
           git push origin HEAD:fix/admin-home-active-advisors-20260821
