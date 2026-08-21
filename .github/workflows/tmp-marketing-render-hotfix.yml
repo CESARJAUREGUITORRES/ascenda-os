@@ -24,73 +24,64 @@ jobs:
       - name: Patch Marketing loaders without touching data
         shell: powershell
         run: |
+          $patchFile = Join-Path $env:RUNNER_TEMP 'patch-marketing-render.cjs'
           @'
-          from pathlib import Path
-          import re
+          const fs = require('fs');
 
-          html_paths = [Path('app/public/admin-marketing.html'), Path('src/admin-marketing.html')]
+          const htmlPaths = ['app/public/admin-marketing.html','src/admin-marketing.html'];
 
-          def patch_html(path):
-              data = path.read_bytes()
-              eol = b'\r\n' if b'\r\n' in data else b'\n'
+          function patchHtml(path) {
+            let text = fs.readFileSync(path, 'utf8');
+            const eol = text.includes('\r\n') ? '\r\n' : '\n';
 
-              annual = re.compile(
-                  rb"rpc\('aos_marketing_dashboard_anio',\{p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n"
-                  rb"\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:12\},function\(ltv\)\{\r?\n"
-                  rb"\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n"
-                  rb"\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n"
-                  rb"\s*\}\);\r?\n\s*\}\);"
-              )
-              month = re.compile(
-                  rb"rpc\('aos_marketing_dashboard',\{p_mes:mes,p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n"
-                  rb"\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:mes\},function\(ltv\)\{\r?\n"
-                  rb"\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n"
-                  rb"\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n"
-                  rb"\s*\}\);\r?\n\s*\}\);"
-              )
+            const annual = /rpc\('aos_marketing_dashboard_anio',\{p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:12\},function\(ltv\)\{\r?\n\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n\s*\}\);\r?\n\s*\}\);/;
+            const month = /rpc\('aos_marketing_dashboard',\{p_mes:mes,p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:mes\},function\(ltv\)\{\r?\n\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n\s*\}\);\r?\n\s*\}\);/;
 
-              def block(kind):
-                  until = b'12' if kind == 'annual' else b'mes'
-                  dashboard = b'aos_marketing_dashboard_anio' if kind == 'annual' else b'aos_marketing_dashboard'
-                  args = b'{p_anio:anio}' if kind == 'annual' else b'{p_mes:mes,p_anio:anio}'
-                  return eol.join([
-                      b"rpc('" + dashboard + b"'," + args + b",function(d){if(!d||d.error)return;",
-                      b"      /* Operational tables must not wait for LTV/history. */",
-                      b"      rKPI(d.kpis);rEmb(d.embudo);rGest(d.gestion);",
-                      b"      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);",
-                      b"      rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:" + until + b"},function(ltv){",
-                      b"        rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});",
-                      b"      });",
-                      b"    });"
-                  ])
+            function block(kind) {
+              const annualMode = kind === 'annual';
+              const dashboard = annualMode ? 'aos_marketing_dashboard_anio' : 'aos_marketing_dashboard';
+              const args = annualMode ? '{p_anio:anio}' : '{p_mes:mes,p_anio:anio}';
+              const until = annualMode ? '12' : 'mes';
+              return [
+                `rpc('${dashboard}',${args},function(d){if(!d||d.error)return;`,
+                '      /* Operational tables must not wait for LTV/history. */',
+                '      rKPI(d.kpis);rEmb(d.embudo);rGest(d.gestion);',
+                '      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);',
+                `      rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:${until}},function(ltv){`,
+                '        rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});',
+                '      });',
+                '    });'
+              ].join(eol);
+            }
 
-              data, n1 = annual.subn(block('annual'), data, count=1)
-              data, n2 = month.subn(block('month'), data, count=1)
-              if (n1, n2) != (1, 1):
-                  raise SystemExit(f'{path}: expected annual/month replacements 1/1, got {n1}/{n2}')
-              if data.find(b'Operational tables must not wait for LTV/history.') < 0:
-                  raise SystemExit(f'{path}: guard missing')
-              path.write_bytes(data)
+            if (!annual.test(text)) throw new Error(`${path}: annual legacy block not found exactly once`);
+            text = text.replace(annual, block('annual'));
+            if (!month.test(text)) throw new Error(`${path}: month legacy block not found exactly once`);
+            text = text.replace(month, block('month'));
+            if ((text.match(/Operational tables must not wait for LTV\/history\./g)||[]).length !== 2) throw new Error(`${path}: operational guards != 2`);
+            fs.writeFileSync(path, text, 'utf8');
+            console.log('patched', path);
+          }
 
-          for p in html_paths:
-              patch_html(p)
-              print('patched', p)
+          htmlPaths.forEach(patchHtml);
 
-          ctl = Path('app/public/admin-marketing-v2.js')
-          data = ctl.read_bytes()
-          replacements = [
-              (b"var RELEASE='2026-08-12-v4.2';", b"var RELEASE='2026-08-21-v4.2.1';"),
-              (b"L(loadAll,20);", b"L(loadAll,1200);"),
-              (b"traceBox();insights();L(loadAll,50);", b"traceBox();insights();L(loadAll,1200);")
-          ]
-          for old, new in replacements:
-              count = data.count(old)
-              if count != 1:
-                  raise SystemExit(f'{ctl}: expected 1 occurrence of {old!r}, found {count}')
-              data = data.replace(old, new, 1)
-          ctl.write_bytes(data)
-          print('patched', ctl)
-          '@ | python -
+          const ctl = 'app/public/admin-marketing-v2.js';
+          let data = fs.readFileSync(ctl, 'utf8');
+          const replacements = [
+            ["var RELEASE='2026-08-12-v4.2';", "var RELEASE='2026-08-21-v4.2.1';"],
+            ['L(loadAll,20);', 'L(loadAll,1200);'],
+            ['traceBox();insights();L(loadAll,50);', 'traceBox();insights();L(loadAll,1200);']
+          ];
+          for (const [oldText,newText] of replacements) {
+            const count = data.split(oldText).length - 1;
+            if (count !== 1) throw new Error(`${ctl}: expected one ${oldText}, got ${count}`);
+            data = data.replace(oldText,newText);
+          }
+          fs.writeFileSync(ctl,data,'utf8');
+          console.log('patched',ctl);
+          '@ | Set-Content -Path $patchFile -Encoding UTF8
+          node $patchFile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
