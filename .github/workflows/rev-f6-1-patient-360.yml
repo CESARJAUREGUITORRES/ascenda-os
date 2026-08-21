@@ -9,7 +9,6 @@ on:
       - 'ci/rev-f6-1/**'
       - 'app/public/patients-f6-v2.js'
       - 'app/public/phase2-service-worker.js'
-      - 'app/public/app.html'
       - 'scripts/rev_f6_1_patch_service_worker.js'
       - 'docs/control/REV_F6_1*'
       - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
@@ -44,12 +43,12 @@ jobs:
         run: |
           node scripts/rev_f6_1_patch_service_worker.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (git status --porcelain -- app/public/phase2-service-worker.js app/public/app.html) {
+          if (git status --porcelain -- app/public/phase2-service-worker.js) {
             "changed=true" >> $env:GITHUB_OUTPUT
             git config user.name "ascenda-bot"
             git config user.email "ascenda-bot@users.noreply.github.com"
-            git add app/public/phase2-service-worker.js app/public/app.html
-            git commit -m "REV-F6.1: harden critical runtime bridge loading"
+            git add app/public/phase2-service-worker.js
+            git commit -m "REV-F6.1: route Patient 360 through canonical V2"
             git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
           } else {
             "changed=false" >> $env:GITHUB_OUTPUT
