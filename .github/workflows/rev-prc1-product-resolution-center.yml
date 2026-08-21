@@ -6,7 +6,9 @@ on:
     paths:
       - 'supabase/migrations/*prc1*'
       - 'app/public/rev-prc1-product-resolution-center.js'
+      - 'app/public/rev-prc1-auth-bridge.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/server-phase-s-f17.js'
       - 'ci/rev-prc1/**'
       - 'ci/phase4-revenue/schema_contract.sql'
       - '.github/workflows/rev-prc1-product-resolution-center.yml'
@@ -15,7 +17,9 @@ on:
     paths:
       - 'supabase/migrations/*prc1*'
       - 'app/public/rev-prc1-product-resolution-center.js'
+      - 'app/public/rev-prc1-auth-bridge.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/server-phase-s-f17.js'
       - 'ci/rev-prc1/**'
       - 'ci/phase4-revenue/schema_contract.sql'
       - '.github/workflows/rev-prc1-product-resolution-center.yml'
@@ -54,9 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           node --check app/public/rev-prc1-product-resolution-center.js
+          node --check app/public/rev-prc1-auth-bridge.js
           node --check app/public/f4-production-canary-hotfix.js
+          node --check app/server-phase-s-f17.js
           node --check ci/rev-prc1/ui_contract.js
+          node --check ci/rev-prc1/auth_bridge_contract.js
           node ci/rev-prc1/ui_contract.js
+          node ci/rev-prc1/auth_bridge_contract.js
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
