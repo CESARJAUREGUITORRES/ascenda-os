@@ -1,0 +1,78 @@
+{
+  "contract": "REV-F6.7_FINAL_CERTIFICATION_V1",
+  "captured_at": "2026-08-20 America/Lima",
+  "pr": 319,
+  "base_main": "6a240e82b886e372581d59df4d287af52ef2aaec",
+  "technical_exact_head": "bf2ca5406735ce32f00015d7a7654d731eadc623",
+  "ci_exact_head": {
+    "ascenda_ci": {"run": 2730, "status": "SUCCESS"},
+    "rev_f6_0": {"run": 68, "status": "SUCCESS"},
+    "rev_f6_1": {"run": 68, "status": "SUCCESS"},
+    "rev_f6_2": {"run": 47, "status": "SUCCESS"},
+    "rev_f6_3": {"run": 38, "status": "SUCCESS"},
+    "rev_f6_4": {"run": 33, "status": "SUCCESS"},
+    "rev_f6_5": {"run": 25, "status": "SUCCESS"},
+    "rev_f6_6": {"run": 19, "status": "SUCCESS"},
+    "rev_f6_7": {"run": 2, "status": "SUCCESS"},
+    "sales_intelligence_phase1": {"run": 157, "status": "SUCCESS"}
+  },
+  "live_migration": {
+    "version": "20260821013922",
+    "name": "rev_f6_7_ui_acceptance_gateway_v1",
+    "applied": true
+  },
+  "live_boundary": {
+    "patients": 7694,
+    "sales": 1299,
+    "f3": 406,
+    "f4": 162
+  },
+  "live_fingerprints": {
+    "f6_0": "d8a86d5787ffeaee436eabbbff502d51",
+    "f6_1": "cd313998c5b5b38d5cb9e2f08882b826",
+    "f6_2": "d977b9669b9e741e8785cd863caaf9c2",
+    "f6_3": "4d4f22d764a43da965caa65f864d9a0f",
+    "f6_4": "5c0879041eb8d21e29a3407a8197935b",
+    "f6_5": "7534bdd97182593788d0a8b0e980ac1d",
+    "f6_6": "a1959bb7bc39034efab2657607c5a45d"
+  },
+  "sales_intelligence_live": {
+    "year": 2026,
+    "billed_amount": 561889.27,
+    "transactions": 1299,
+    "executive_revenue_coverage_pct": 100,
+    "executive_revenue_confidence": "HIGH",
+    "executive_revenue_freshness": "CURRENT",
+    "sample_size": 1299,
+    "core_execution_ms": 37.533,
+    "performance_gate_ms": 1000,
+    "performance": "PASS"
+  },
+  "historical_transactional_revenue": {
+    "2024": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"},
+    "2025": {"value": null, "source_status": "NO_CERTIFIED_SOURCE"}
+  },
+  "security": {
+    "invalid_gateway_token": "UNAUTHORIZED",
+    "legacy_base_anon_execute": false,
+    "legacy_base_authenticated_execute": false,
+    "legacy_base_service_role_execute": true,
+    "governed_gateway_anon_execute": true,
+    "v3_gateway_anon_execute": true,
+    "raw_v3_anon_execute": false,
+    "raw_v3_authenticated_execute": false,
+    "admin_2fa_boundary_preserved": true,
+    "same_origin_route_preserved": true,
+    "read_only": true
+  },
+  "sentinel": {
+    "OK": 9,
+    "UNKNOWN": 1,
+    "DEGRADED": 0,
+    "REVIEW_REQUIRED": 0,
+    "BROKEN": 0,
+    "known_unknown": "SEN-DQ-F5-005 DUPLICATE_PROFILE_DRIFT telemetry not materialized; UNKNOWN is intentional and must not false-green"
+  },
+  "business_truth_mutation": false,
+  "result": "PASS"
+}

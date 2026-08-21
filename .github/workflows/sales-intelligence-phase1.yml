@@ -142,7 +142,7 @@ jobs:
             if ($envHeader -ne 'staging-fixture') { throw "Missing staging fixture response header: $envHeader" }
             $si = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence.html').Content
             $staging = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:4173/admin-sales-intelligence-staging.html').Content
-            if (-not $si.Contains('Sales Intelligence V2')) { throw 'Production SI surface marker missing' }
+            if (-not $si.Contains('Sales Intelligence V3')) { throw 'Production SI V3 surface marker missing' }
             if (-not $staging.Contains('ASCENDA Sales Intelligence')) { throw 'Staging SI title missing' }
             if (-not $staging.Contains('window.__ASCENDA_STAGING_FIXTURE__=true')) { throw 'Staging fixture marker missing over HTTP' }
             Write-Host 'PHASE1_HTTP_SHADOW=PASS'

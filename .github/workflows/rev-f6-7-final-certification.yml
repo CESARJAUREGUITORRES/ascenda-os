@@ -1,0 +1,126 @@
+name: ASCENDA REV-F6.7 Final Certification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*rev_f6_7*'
+      - 'supabase/rollbacks/*rev_f6_7*'
+      - 'ci/rev-f6-7/**'
+      - 'app/public/admin-sales-intelligence.html'
+      - 'docs/control/REV_F6_7*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - '.github/workflows/rev-f6-7-final-certification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rev-f6-7-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  fast-ui-acceptance:
+    name: F6.7 FAST UI/privacy/compatibility
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'FAST lane must be self-hosted' }
+      - name: F6.7 final static acceptance
+        shell: powershell
+        run: node ci/rev-f6-7/static_acceptance.js
+      - name: Preserve certified Sales Intelligence workflow
+        shell: powershell
+        run: node ci/phase1-sales-intelligence/ui_contract.js
+      - name: Preserve Patient 360 workflow
+        shell: powershell
+        run: node ci/rev-f6-1/ui_contract.js
+
+  db-final-acceptance:
+    name: F6.7 DB/reconciliation/security/performance/recovery
+    needs: fast-ui-acceptance
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59692/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost DB runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-rev-f6-7"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59691/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59692/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59690/' supabase/config.toml
+      - name: Start isolated Postgres
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-rev-f6-7' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59692 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build F6.1 synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-1/schema_contract.sql
+      - name: Add F6.2 lifecycle fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-2/fixture.sql
+      - name: Add F6.3 confidence fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-3/fixture.sql
+      - name: Apply F6.0-F6.3 certified prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820013500_rev_f6_0_data_contract_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022000_rev_f6_1_patient_commercial_360_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820022500_rev_f6_1_alias_normalization_fix.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820034000_rev_f6_2_customer_lifecycle_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820035500_rev_f6_2_lima_date_active_subject_fix.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820172500_rev_f6_3_identity_confidence_metric_trust_v1.sql
+      - name: Add and apply F6.4 certified Sales Intelligence fixture
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-4/fixture.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820190000_rev_f6_4_sales_intelligence_3_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820191000_rev_f6_4_live_performance_baseline_decouple_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260820191500_rev_f6_4_dashboard_cache_performance_v1.sql
+      - name: Apply F6.7 exact gateway cutover
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260821011000_rev_f6_7_ui_acceptance_gateway_v1.sql
+      - name: F6.7 independent reconciliation + ACL + latency
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-7/tests/001_final_acceptance.sql
+      - name: Idempotent replay remains green
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260821011000_rev_f6_7_ui_acceptance_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f6-7/tests/001_final_acceptance.sql
+      - name: Recovery restores certified F6.4 gateway topology
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260821011000_rev_f6_7_ui_acceptance_gateway_v1_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_sales_intelligence_gateway_v2_f6_7_base(text,integer,text,text)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select (public.aos_sales_intelligence_gateway('admin-f64-token-00000000000000000000',2026,'','')->>'authorized')='true'")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select public.aos_rev_sales_intelligence_v3_gateway('admin-f64-token-00000000000000000000',2026,'','')->>'ui_contract' is null")" = "t"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
