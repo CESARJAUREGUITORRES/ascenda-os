@@ -1,62 +1,76 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 GATE 0 RELEASED  
-**Captured:** 2026-08-21 16:54 America/Lima  
-**Reconciled from main:** `b48d46ed3d69370326e5a5a094322c6f04ffa527`  
+**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 PRODUCTION CANARY 0/5 REAL OPERATIONS  
+**Captured:** 2026-08-21 17:40 America/Lima  
+**Production main:** `a279d35034b25acba5acf2c93bd20e9903fceaed`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
-**CURRENT GATE:** `LOOP 6 — Call Center Semantics + Existing-Patient Decision Layer + Atomic Call↔Agenda Persistence`  
-**NEXT FUNCTIONAL BRANCH:** `feat/mkt-integrity-v3-loop6-call-semantics-atomic`  
+**CURRENT GATE:** `LOOP 6 — post-cutover real-operation canary + minimum 5 genuine operations`  
+**LOOP 7:** `NOT STARTED`
 
-## Portfolio lock reconciliation — 2026-08-21
+GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the lock or certify Loop 6 until the five-real-operation gate and downstream invariants pass.
 
-`REV-RUNTIME-BRIDGE-HOTFIX` is **CLOSED / RELEASED**.
+## Portfolio lock state
 
-Closure evidence:
+- `REV-RUNTIME-BRIDGE-HOTFIX`: **CLOSED / RELEASED** after owner smoke PASS for Patient 360 and Importar Ventas.
+- **REV-F5:** `PRODUCTION CERTIFIED — 100%`.
+- **REV-F6.0–F6.7:** `PASS / CERTIFIED — 100%`.
+- **REV-F6 global:** `PRODUCTION CERTIFIED — 100%`.
+- **REV-F7:** `NEXT / UNBLOCKED`, paused while MKT owns the single HIGH/CRITICAL mutable lane.
 
-- the runtime compatibility fixes for Patient 360 and Sales Import are present in `main`;
-- subsequent Patient 360/runtime fixes were deployed successfully to Railway;
-- owner smoke on 2026-08-21 America/Lima is **PASS** for both originally reported flows:
-  - Patient 360: search/select opens the patient record successfully; no `No encontrado` regression;
-  - Importar Ventas: owner confirms the import panel/flow is working correctly;
-- owner supplied visual evidence of a real Patient 360 record open with purchases, appointments and calls visible.
+## Loop 6 implementation / deployment
 
-The REV runtime hotfix therefore no longer owns the single HIGH/CRITICAL mutable lane.
+Functional PR **#335** — `MKT Loop 6 — atomic Call Center semantics + patient decision layer` — is **MERGED**.
 
-## Revenue status preserved
+Exact merge:
 
-- **REV-F5:** `PRODUCTION CERTIFIED — 100%`
-- **REV-F6.0–F6.7:** `PASS / CERTIFIED — 100%`
-- **REV-F6 global:** `PRODUCTION CERTIFIED — 100%`
-- **REV-F7:** `NEXT / UNBLOCKED`, but paused while `MKT-INTEGRITY-HOTFIX-V3` owns the single mutable HIGH/CRITICAL lane.
+- PR head: `1b73c1b34deec92a9ffadec8056d9256d8ede074`;
+- production main: `a279d35034b25acba5acf2c93bd20e9903fceaed`.
 
-No REV-F5/F6 data contract is reopened by this handback.
+Pre-merge gates on the exact PR head:
 
-## Active Marketing / Call Center lane
+- Loop6 Runtime Loader Patch #7 — **SUCCESS**;
+- Ascenda CI #2835 — **SUCCESS**;
+- ASCENDA CIA Phase 16 Email Contracts #81 — **SUCCESS**.
 
-`MKT-INTEGRITY-HOTFIX-V3` acquires the single mutable HIGH/CRITICAL lane for **Loop 6**.
+Railway deployment status for exact merge `a279d35034b25acba5acf2c93bd20e9903fceaed` is **SUCCESS** in context `ASCENDA-OS - ascenda-os`.
 
-Loop 6 objective:
+The production merge contains:
 
-Call Center → explicit management semantics → F6 identity/patient-state → lead/origin resolution → atomic Call + Agenda persistence → direct links → idempotency → correct KPI/Marketing behavior.
+- governed F6-backed patient-state preparation;
+- atomic Call + Agenda persistence;
+- durable action idempotency journal `aos_callcenter_actions_v1`;
+- direct linkage before COMMIT;
+- explicit `LLAMADA_MANUAL_COMERCIAL`, `CALLBACK_INBOUND`, `REACTIVACION`, `SEGUIMIENTO_PACIENTE` and `AGENDA_ONLY` semantics;
+- existing-patient decision modal;
+- identity conflict fail-closed / REVIEW;
+- cleanup compatibility that preserves explicit real commercial calls;
+- `app/public/calls-loop6.js`;
+- exactly one `calls-loop6.js?v=20260821-loop6` loader in `app/public/calls.html`;
+- rollback scripts and Impact Report.
 
-Gate 0 read-only preflight already established:
+## Validation completed before production real-use gate
 
-- current `calls.js` still writes Call + Agenda in independent browser operations;
-- current patient autocomplete does not prove converted-patient state;
-- F6 Identity/Lifecycle must be reused, not duplicated;
-- F6 private/service-role-only boundaries must remain closed to the browser;
-- `aos_llamadas.tipo_gestion`, `lead_id_origen`, Agenda `lead_id_origen` and `llamada_id_origen` are reusable;
-- durable retry safety requires an action-level idempotency key/ledger; call `sync_key` alone is insufficient;
-- `aos_siguiente_lead` (CC-Q1 Contact Debt) exists but frontend still consumes `aos_siguiente_lead_v2` and must not be cut over before F6 patient-state gating.
+The prompt-defined **15 DB canaries PASS** in transactions/rollback with zero synthetic residue.
 
-Control evidence:
-- `docs/control/MKT_INTEGRITY_V3_LOOP6_GATE0_PREFLIGHT_20260821.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP6_REENTRY_DATA_REPAIR_20260821.md`
-- `docs/control/MKT_INTEGRITY_V3_LOOP6_EXECUTION_PROMPT_REBASED_20260821.md`
+Coverage included:
+
+- Marco, Julia and Carlos MARKETING / late-lead cases;
+- Lidia forced atomic failure rollback;
+- Alberto double-click idempotency;
+- Alan converted-patient Reactivation and Agenda-only;
+- César Bravo correctly non-converted;
+- synthetic Agenda-only call delta 0;
+- callback/inbound semantic;
+- organic new patient;
+- synthetic shared-phone identity conflict → REVIEW;
+- legacy ambiguous cleanup vs explicit commercial call preservation;
+- retry-after-timeout idempotency;
+- old lead + NO ASISTIO-only not treated as converted;
+- converted patient + new Meta lead blocked from new acquisition.
 
 ## Protected repair baseline
 
-The 2026-08-21 repaired calls must remain intact throughout Loop 6:
+These repaired calls must remain intact throughout final certification:
 
 - `36701` Alan Valencia
 - `37185` Marco Antonio Salcedo Soto
@@ -67,23 +81,62 @@ The 2026-08-21 repaired calls must remain intact throughout Loop 6:
 
 Repaired direct links must remain intact. Removed duplicate Agenda rows for Alberto and Alan must not reappear.
 
+## Production canary baseline
+
+Captured before real Loop 6 use at **2026-08-21 17:35:03 America/Lima**:
+
+- `aos_callcenter_actions_v1`: **0 rows**;
+- `journal_max_created`: **NULL**;
+- max `aos_llamadas.id`: **38254**;
+- Agenda rows: **3147**;
+- REV-F5: **6 batches / 15,498 source rows / 8,716 clusters / 15,498 members / 8,716 previews / 230 apply events**;
+- six protected repaired calls intact.
+
+Readback at **17:40:13 America/Lima** remains **0 journal rows**. No genuine post-cutover operation has yet occurred.
+
+Evidence: `docs/control/MKT_INTEGRITY_V3_LOOP6_PRODUCTION_CANARY_20260821.md`.
+
+## Controlled canary → expansion
+
+The **first genuine** post-cutover row in `aos_callcenter_actions_v1` is the controlled production canary.
+
+It must pass all of the following before expansion is treated as healthy:
+
+1. one committed action-level idempotency key;
+2. correct explicit management semantic;
+3. correct Call/Agenda cardinality;
+4. correct direct links when applicable;
+5. existing-patient actions create no new acquisition;
+6. no partial state / duplicate on retry;
+7. Marketing, protected repair data and REV-F5 remain intact.
+
+If the first real action fails: **STOP expansion** and repair/rollback inside Loop 6.
+
+If PASS: continue ordinary Call Center use and observe until at least **5 genuine post-cutover actions** exist.
+
+## Loop 6 final PASS rule
+
+Do not certify Loop 6 100% until:
+
+- >=5 genuine post-cutover actions exist in the Loop 6 journal;
+- each action passes semantic/cardinality/direct-link/idempotency readback;
+- no false Marketing acquisition is introduced;
+- acquisition/attribution changes, if any, are explainable only by genuine eligible business events;
+- REV-F5 remains exact;
+- six repaired calls/direct links remain intact and removed duplicates stay absent;
+- security grants/F6 private boundaries remain unchanged;
+- final CURRENT + certificate + Notion are reconciled.
+
+Until then:
+
+- **Loop 6 = PRODUCTION CANARY ACTIVE / NOT YET CERTIFIED**;
+- **active lock remains `MKT-INTEGRITY-HOTFIX-V3`**;
+- **Loop 7 = NOT STARTED**.
+
 ## Single-lane rule
 
 While this CURRENT is active:
 
 - mutate only `MKT-INTEGRITY-HOTFIX-V3` as the HIGH/CRITICAL lane;
-- REV-F7, CIA, WA, Sentinel hardening and other HIGH/CRITICAL functional work remain paused unless purely read-only/control;
+- REV-F7, CIA, WA, Sentinel hardening and other HIGH/CRITICAL functional work remain paused unless read-only/control;
 - any incompatible `main` advance requires exact-head revalidation before the next functional mutation.
-
-## Loop 6 handoff
-
-After this control reconciliation merges:
-
-1. re-read exact `main` HEAD;
-2. create `feat/mkt-integrity-v3-loop6-call-semantics-atomic` from that exact HEAD;
-3. create Impact Report before functional mutation;
-4. implement governed atomic contract + frontend semantics;
-5. execute the prompt-defined canaries and regression gates;
-6. use shadow → controlled canary → readback → expansion;
-7. require minimum five real post-cutover operations before PASS;
-8. do **not** start Loop 7 automatically.
