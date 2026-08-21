@@ -27,8 +27,8 @@ jobs:
         shell: powershell
         run: |
           $paths = @('app/public/admin-home.html','src/admin-home.html')
-          $old = "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};`n      (sem||[]).forEach(function(s){map[s.asesor]=s;});"
-          $new = "var map={};`n      (sem||[]).forEach(function(s){if(s&&s.asesor)map[s.asesor]=s;});`n      /* Dynamic operational roster: render only advisors with real activity in the selected period. */`n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});`n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
+          $old = "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};"
+          $new = "var map={};`n      /* Dynamic operational roster: render only advisors with real activity in the selected period. */`n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});`n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
           foreach ($p in $paths) {
             $text = [System.IO.File]::ReadAllText($p)
             if (-not $text.Contains($old)) { throw "${p}: hardcoded roster not found" }
@@ -38,7 +38,7 @@ jobs:
           }
           foreach ($p in $paths) {
             $text = [System.IO.File]::ReadAllText($p)
-            if ($text.Contains("var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN']")) { throw "${p}: stale hardcode remains" }
+            if ($text.Contains($old)) { throw "${p}: stale hardcode remains" }
             if (-not $text.Contains('Dynamic operational roster')) { throw "${p}: dynamic roster guard missing" }
           }
 
