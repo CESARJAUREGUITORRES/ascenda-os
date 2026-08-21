@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - fix/admin-home-active-advisors-20260821
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,11 +34,9 @@ jobs:
               count = text.count(old)
               if count != 1:
                   raise SystemExit(f'{p}: expected exactly 1 hardcoded roster, found {count}')
-              text = text.replace(old, new, 1)
-              p.write_text(text, encoding='utf-8')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
               print(f'patched {p}')
 
-          # Contract guards
           for p in paths:
               text = p.read_text(encoding='utf-8')
               assert "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN']" not in text
