@@ -135,7 +135,18 @@ function patchSalesEditorTruth(){
   window.evCampoSel=safe;
 }
 
-function run(){cleanCajaClosedState();patchSalesEditorTruth();}
+// REV-PRC1 is loaded through the already deterministic F4 production bridge so the
+// Product Resolution Center does not depend on service-worker HTML rewriting.
+function loadProductResolutionCenter(){
+  if(window.__AOS_REV_PRC1__||document.getElementById('rev-prc1-runtime'))return;
+  var s=document.createElement('script');
+  s.id='rev-prc1-runtime';
+  s.src='/rev-prc1-product-resolution-center.js?v=20260821-prc1-v1';
+  s.async=false;
+  (document.head||document.documentElement).appendChild(s);
+}
+
+function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();}
 run();
 syncCanonicalAppToken();
 setTimeout(syncCanonicalAppToken,700);
