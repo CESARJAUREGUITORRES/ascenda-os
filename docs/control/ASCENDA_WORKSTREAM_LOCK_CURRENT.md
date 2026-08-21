@@ -1,13 +1,14 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / REV-F6 ACTIVE  
+**Status:** CURRENT / REV-F6 CLOSED  
 **Captured:** 2026-08-20 America/Lima  
-**Current main at REV-F6.7 entry:** `6a240e82b886e372581d59df4d287af52ef2aaec`  
-**REV-F6.6 certification merge:** `0f7b9d4c6867b420e49156b9651664fac92481c0`  
-**REV-F6.6 terminal exact-head:** `0aa45e2c0d478fdac11a6afeb9e9f7d981662091`  
-**ACTIVE LOCK:** `REV-F6-CLOSEOUT`  
-**CURRENT GATE:** `REV-F6.7 — Certification / UI / Performance / Acceptance / IN PROGRESS`  
-**ACTIVE BRANCH:** `data/rev-f6-7-final-certification-20260820`  
+**REV-F6.7 implementation PR:** `#319`  
+**REV-F6.7 technical exact-head:** `bf2ca5406735ce32f00015d7a7654d731eadc623`  
+**REV-F6.7 terminal evidence head:** `ccb788cb9aabbe72688c7a9656f7142b78dd4ad2`  
+**REV-F6.7 merge commit:** `04f4da5d363cf6b80777b5a5e89c5ed4d1d9f70d`  
+**ACTIVE LOCK:** `NONE — REV-F6-CLOSEOUT RELEASED`  
+**CURRENT GATE:** `REV-F7 — NEXT / UNBLOCKED`  
+**ACTIVE BRANCH:** `NONE`  
 **REV-F5:** `PRODUCTION CERTIFIED — 100%`  
 **REV-F6.0:** `PASS / CERTIFIED — 100%`  
 **REV-F6.1:** `PASS / CERTIFIED — 100%` · fp `cd313998c5b5b38d5cb9e2f08882b826`  
@@ -16,74 +17,89 @@
 **REV-F6.4:** `PASS / CERTIFIED — 100%`  
 **REV-F6.5:** `PASS / CERTIFIED — 100%`  
 **REV-F6.6:** `PASS / CERTIFIED — 100%` · fp `a1959bb7bc39034efab2657607c5a45d`  
-**REV-F6 global:** `87.5% until REV-F6.7 terminal certification`  
-**REV-F6.7:** `IN PROGRESS`  
-**REV-F7:** `BLOCKED until REV-F6.7 completes`
+**REV-F6.7:** `PASS / CERTIFIED — 100%`  
+**REV-F6 global:** `PRODUCTION CERTIFIED — 100%`  
+**REV-F7:** `NEXT / UNBLOCKED — not started`
 
-GitHub CURRENT + Supabase LIVE remain authoritative. `REV-F6-CLOSEOUT` remains the only mutable HIGH/CRITICAL lane.
+GitHub CURRENT + Supabase LIVE remain authoritative. `aos_memory` and Notion are continuity mirrors and have been synchronized after terminal technical acceptance.
 
-## REV-F6.6 certified input
+## REV-F6.7 terminal certification
 
-PR **#317** merged with `expected_head_sha=0aa45e2c0d478fdac11a6afeb9e9f7d981662091` to certification `main@0f7b9d4c6867b420e49156b9651664fac92481c0`. Final docs-only synchronization moved `main` to `6a240e82b886e372581d59df4d287af52ef2aaec` without changing application code or Supabase.
+PR **#319** merged with `expected_head_sha=ccb788cb9aabbe72688c7a9656f7142b78dd4ad2` to `main@04f4da5d363cf6b80777b5a5e89c5ed4d1d9f70d`.
 
-F6.6 terminal exact-head CI was **8/8 SUCCESS**: Ascenda CI #2719, F6.0 #66, F6.1 #66, F6.2 #45, F6.3 #36, F6.4 #31, F6.5 #23, F6.6 #17.
+The code-bearing technical exact-head `bf2ca5406735ce32f00015d7a7654d731eadc623` completed **10/10 SUCCESS**:
 
-LIVE baseline at F6.7 entry:
+- Ascenda CI **#2730**
+- REV-F6.0 **#68**
+- REV-F6.1 **#68**
+- REV-F6.2 **#47**
+- REV-F6.3 **#38**
+- REV-F6.4 **#33**
+- REV-F6.5 **#25**
+- REV-F6.6 **#19**
+- REV-F6.7 **#2**
+- Sales Intelligence Phase 1 **#157**
 
-- patients **7,694**;
-- sales **1,299**;
-- F3 **406**;
-- F4 **162**;
-- F6.0 `d8a86d5787ffeaee436eabbbff502d51`;
-- F6.1 `cd313998c5b5b38d5cb9e2f08882b826`;
-- F6.2 `d977b9669b9e741e8785cd863caaf9c2`;
-- F6.3 `4d4f22d764a43da965caa65f864d9a0f`;
-- F6.4 `5c0879041eb8d21e29a3407a8197935b`;
-- F6.5 `7534bdd97182593788d0a8b0e980ac1d`;
-- F6.6 `a1959bb7bc39034efab2657607c5a45d`.
+The later terminal evidence commit `ccb788cb...` adds only certificate/snapshot documentation and does not alter runtime code, migrations, business data, ACL logic or analytical semantics. Any workflows automatically re-triggered by the PR synchronization event after that docs-only commit are redundant regression executions, not new F6.7 gates.
 
-Sentinel terminal health: **9 OK + 1 UNKNOWN + 0 DEGRADED + 0 BROKEN**. The only UNKNOWN remains `SEN-DQ-F5-005` because requested duplicate-profile telemetry is not materialized. Missing telemetry must never false-green.
+## Supabase LIVE terminal state
+
+Applied migration:
+
+- `20260821013922 rev_f6_7_ui_acceptance_gateway_v1`
+
+Protected truth after migration and after PR merge:
+
+- patients **7,694**
+- sales **1,299**
+- F3 **406**
+- F4 **162**
+
+Current fingerprints:
+
+- F6.0 `d8a86d5787ffeaee436eabbbff502d51`
+- F6.1 `cd313998c5b5b38d5cb9e2f08882b826`
+- F6.2 `d977b9669b9e741e8785cd863caaf9c2`
+- F6.3 `4d4f22d764a43da965caa65f864d9a0f`
+- F6.4 `5c0879041eb8d21e29a3407a8197935b`
+- F6.5 `7534bdd97182593788d0a8b0e980ac1d`
+- F6.6 `a1959bb7bc39034efab2657607c5a45d`
+
+Sales Intelligence V3 LIVE:
+
+- 2026 billed amount **S/ 561,889.27**
+- transactions **1,299**
+- executive revenue coverage **100%**
+- confidence **HIGH**
+- freshness **CURRENT**
+- sample size **1,299**
+- core execution **37.533 ms** under the **1,000 ms** gate
+
+Security / transport terminal state:
+
+- existing `/api/f4/sales-intelligence-read` same-origin transport preserved
+- admin + 2FA authority preserved
+- invalid token returns `UNAUTHORIZED`
+- V2 compatibility base browser-closed and service-role-only
+- raw V3 browser-closed
+- governed compatibility gateway browser-callable through the existing protected flow
+- read-only semantics preserved
+- no patient/sale/F3/F4/F5 business mutation
 
 Historical transactional revenue remains:
 
-- 2024: `value=null / NO_CERTIFIED_SOURCE`;
-- 2025: `value=null / NO_CERTIFIED_SOURCE`.
+- 2024: `value=null / NO_CERTIFIED_SOURCE`
+- 2025: `value=null / NO_CERTIFIED_SOURCE`
 
-## REV-F6.7 execution contract
+`NO_CERTIFIED_SOURCE != zero` remains non-negotiable.
 
-REV-F6.7 is the terminal product/certification gate. It may make only the minimum governed read-path/UI changes required to expose already-certified F6 intelligence truthfully. It must not create a parallel analytics master or mutate patients, sales, F3, F4 or F5 business truth.
+Sentinel terminal health remains **9 OK + 1 UNKNOWN + 0 DEGRADED + 0 BROKEN**. The only UNKNOWN is `SEN-DQ-F5-005 DUPLICATE_PROFILE_DRIFT` because the requested duplicate-profile telemetry is not materialized; missing telemetry must never false-green.
 
-Entry discovery found a real certification gap: the backend V3 contract already exposes `metric_trust` with coverage, confidence, freshness and sample size, but the active `admin-sales-intelligence.html` surface remained labeled V2 and did not visibly expose that trust metadata.
+Certificate: `docs/control/REV_F6_7_FINAL_CERTIFICATION_CERTIFICATE_20260820.md`  
+Snapshot: `docs/control/REV_F6_7_FINAL_CERTIFICATION_SNAPSHOT_20260820.json`
 
-F6.7 therefore owns only this bounded cutover:
+## Handoff
 
-- preserve `/api/f4/sales-intelligence-read` as the sole browser read request;
-- preserve existing admin + 2FA + explicit panel authorization;
-- preserve the existing RPC name consumed by `server-f4.js`;
-- make the certified V2 gateway a private authorization/compatibility base;
-- return V3 analytics + V2-compatible keys through the governed same-origin entrypoint;
-- upgrade the existing UI in place to Sales Intelligence V3;
-- display coverage/confidence/freshness/sample-size/source-status truthfully;
-- add explicit loading/empty/error/responsive states;
-- preserve known Patient 360 workflows unchanged;
-- keep raw V3/read models browser-closed;
-- no direct `.supabase.co` browser read and no N+1 secondary fetch.
+`REV-F6 — PRODUCTION CERTIFIED — 100%` is terminally closed. Do not reinterpret F6.0–F6.7 as pending unless a future material code or data-contract change explicitly reopens them.
 
-Formal gate contract: `docs/control/REV_F6_7_FINAL_CERTIFICATION_V1.md`.
-
-## Terminal acceptance requirements
-
-Before any LIVE F6.7 migration:
-
-1. dedicated F6.7 FAST UI/privacy/compatibility PASS;
-2. dedicated F6.7 isolated DB reconciliation/security/performance/replay/recovery PASS;
-3. existing Sales Intelligence UI contract PASS;
-4. existing Patient 360 UI contract PASS;
-5. Ascenda CI + F6.0–F6.6 upstream regressions PASS on the exact branch head;
-6. fresh LIVE anti-drift readback PASS.
-
-LIVE acceptance must independently reconcile executive billed amount/transaction count and monthly totals against canonical `aos_ventas`, prove bounded latency <1000 ms, preserve ACL/2FA topology, preserve historical null semantics and prove no protected business mutation.
-
-Only after certificate/snapshot, terminal exact-head CI, protected merge, post-merge LIVE reconciliation and continuity synchronization may REV-F6 close as `PRODUCTION CERTIFIED — 100%`.
-
-REV-F7 remains blocked during this entire loop. Do not start it automatically.
+`REV-F7 — NEXT / UNBLOCKED` is the next Revenue workstream gate, but has **not** been started by this closeout.
