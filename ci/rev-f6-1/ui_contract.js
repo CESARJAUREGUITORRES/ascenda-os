@@ -3,30 +3,34 @@ const sw=fs.readFileSync('app/public/phase2-service-worker.js','utf8');
 const app=fs.readFileSync('app/public/app.html','utf8');
 const ui=fs.readFileSync('app/public/patients-f6-v2.js','utf8');
 function ok(cond,msg){if(!cond){console.error('F6.1 UI CONTRACT FAIL:',msg);process.exit(1);}}
-ok(sw.includes('/patients-f6-v2.js'),'Service worker must preserve Patient 360 V2 compatibility injection');
-ok(sw.includes('20260820-rev-f6-runtime-hotfix-v1'),'Patient 360 bridge cache-buster must advance for runtime hotfix');
+
+// Runtime availability remains deterministic through the existing critical bridge slot.
+ok(sw.includes('/patients-f6-v2.js'),'Service worker must preserve Patient 360 runtime compatibility injection');
 ok(app.includes('ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820'),'App shell must contain deterministic critical-runtime marker');
-ok(app.includes('/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1'),'Patient V2 bridge must load directly from app shell, not only from service worker');
-ok(sw.includes("rpcFrom(req,'aos_patient_commercial_360_v2'"),'legacy Patient 360 must route to canonical V2');
-ok(sw.includes("rm[1]==='aos_patient_search_v2'"),'search V2 must receive governed token injection');
-ok(sw.includes('p.p_token=t'),'V2 browser RPCs must receive app token from controlled cache');
-ok(!sw.includes("rpcFrom(req,'aos_patient_history_summary_v1',{p_token:t,p_numero:p.p_numero||''})"),'legacy Patient 360 must not route to F6.0 minimum summary');
-ok(ui.includes('window.__AOS_PATIENTS_F6_V2__'),'Patient bridge must be globally idempotent across shell/panel reloads');
-ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='waiting'"),'Patient bridge must preserve a waiting state until patients.js exists');
-ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='installed'"),'Patient bridge must publish installed state');
-ok(!ui.includes('tries>240'),'Patient bridge must not expire after 60 seconds in long-lived sessions');
-ok(ui.includes('schedule();return;'),'Patient bridge must retry when the Patients panel is loaded later');
-ok(ui.includes('p_lookup_type:a.type'),'Patient selection must execute the explicit governed lookup attempt');
-ok(ui.includes("addAttempt('PHONE',phone)"),'Canonical selection must safely fall back to the current unique phone alias');
-ok(ui.includes("addAttempt('DOCUMENT',dni)"),'Canonical selection must safely fall back to the current unique document alias');
-ok(ui.includes('data-phone=')&&ui.includes('data-dni='),'Search result cards must preserve current identifiers for safe fallback');
+ok(app.includes('/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1'),'Patient runtime must load directly from app shell');
+
+// Rebuild semantics: search resolves current canonical identity once; selection never re-resolves it.
+ok(ui.includes('window.__AOS_PATIENTS_360_V3__'),'Rebuilt Patient 360 runtime must publish a V3 idempotency marker');
+ok(ui.includes("window.__AOS_PATIENTS_360_V3__='waiting'"),'V3 runtime must wait until base patients.js exists');
+ok(ui.includes("window.__AOS_PATIENTS_360_V3__='installed'"),'V3 runtime must publish installed state');
+ok(ui.includes('schedule();return;'),'V3 runtime must support long-lived sessions without expiry');
+ok(ui.includes("'aos_patient_search_v2'"),'Search must keep governed canonical patient discovery');
+ok(ui.includes('p_token:token()'),'Patient search must carry the current Auth V3 application token explicitly');
+ok(ui.includes('onclick="ptSelCurrent'),'Search cards must open the returned canonical patient directly');
+ok(ui.includes("'aos_patient_360_current_v3'"),'Selection must call the rebuilt canonical-current Patient 360 RPC');
+ok(ui.includes('p_canonical_patient_id:cid'),'Selection must pass canonical_patient_id directly');
+ok(!ui.includes("'aos_patient_commercial_360_v2'"),'Current selection must not use the failed V2 re-resolution chain');
+ok(!ui.includes("addAttempt('PHONE'"),'Current canonical selection must not fall back through phone resolution');
+ok(!ui.includes("addAttempt('DOCUMENT'"),'Current canonical selection must not fall back through document resolution');
+
+// F5/F6 enrich current truth; historical review remains visible but non-blocking.
 ok(ui.includes('ACTUAL RESOLVED'),'UI must distinguish resolved current patient identity');
-ok(ui.includes('HISTÓRICO REVIEW'),'UI must distinguish historical linkage review from current identity resolution');
-// Search cards are HTML strings, so their inline JS quotes are escaped in source.
-ok(/ptSelV2\(\\?'CANONICAL_ID\\?'\s*,/.test(ui),'search results must select canonical_patient_id explicitly');
-ok(ui.includes('canonical_patient_id'),'search result payload must use canonical_patient_id');
-ok(ui.includes('IDENTITY_CONFLICT'),'shared-identifier conflicts must be visible');
-ok(ui.includes('Timeline V2'),'existing panel must expose unified timeline');
-ok(ui.includes('NO_CERTIFIED_SOURCE'),'historical coverage warning must be visible');
-ok(ui.includes('Metric Trust'),'trust metadata must be visible');
-console.log('REV-F6.1 UI contract PASS');
+ok(ui.includes('HISTÓRICO REVIEW'),'UI must distinguish historical linkage review from current identity');
+ok(ui.includes('el histórico pendiente no bloquea esta ficha'),'UI must state that historical review does not gate current visibility');
+ok(ui.includes('NO_CERTIFIED_SOURCE'),'Historical transaction coverage warning must remain explicit');
+
+// Legacy phone buttons may resolve once through governed search, but never auto-merge.
+ok(ui.includes('Compatibility for old buttons'),'Legacy UI compatibility must be explicit');
+ok(ui.includes('Selecciona la ficha por nombre'),'Shared phone compatibility must fail closed instead of auto-merging');
+
+console.log('REV-F6.1 UI contract PASS — canonical current Patient 360 V3');
