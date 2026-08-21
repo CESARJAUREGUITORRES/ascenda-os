@@ -4,6 +4,9 @@ function read(path){ return fs.readFileSync(path, 'utf8'); }
 function ok(condition, message){ if(!condition) throw new Error(message); }
 const bridge = read('app/public/f4-revenue-ops.js');
 const kronia = read('app/public/f4-kronia-revenue-bridge.js');
+const canary = read('app/public/f4-production-canary-hotfix.js');
+const prc1 = read('app/public/rev-prc1-product-resolution-center.js');
+const prc1Sql = read('supabase/migrations/20260821122500_f4_revenue_prc1_product_resolution_center_v1.sql');
 const sw = read('app/public/phase2-service-worker.js');
 const proxy = read('app/server-f4.js');
 const railway = read('app/railway.json');
@@ -31,6 +34,20 @@ ok(proxy.includes('F4_STRONG_SESSION_REQUIRED'), 'strong-session guard missing')
 ok(proxy.includes('aos_sales_admin_sale_v4') && proxy.includes('aos_editar_venta_v4'), 'server sales V4 RPC routing missing');
 ok(proxy.includes("pathname==='/api/f4/cartera-candidates'"), 'cartera candidates route missing');
 ok(proxy.includes('aos_cartera_candidates_v2'), 'cartera candidates RPC missing');
+
+// REV-PRC1: deterministic runtime + human-in-the-loop contracts.
+new Function(prc1);
+ok(canary.includes("/rev-prc1-product-resolution-center.js?v=20260821-prc1-v1"), 'PRC1 must load through deterministic F4 runtime');
+for(const marker of ['prc1-products-review-btn','Product Resolution Center','aos_product_review_admin_v1','aos_product_review_resolve_v1','aos_product_batch_review_v1','LINK_EXISTING','CREATE_NEW','EXCLUDE_NOT_PRODUCT','REVIEW_REQUIRED']) ok(prc1.includes(marker), `missing PRC1 UI marker: ${marker}`);
+ok(prc1.includes('La venta original NO se modificará'), 'PRC1 exclusion must disclose raw-sale preservation');
+ok(prc1.includes('p_expected_count'), 'PRC1 resolution must carry optimistic review count');
+ok(!prc1.toLowerCase().includes('service_role'), 'PRC1 browser runtime must not contain service_role');
+for(const marker of ['aos_product_review_admin_v1','aos_product_batch_review_v1','aos_product_review_resolve_v1','OWNER_REVIEW_CENTER','OWNER_CONFIRMED','STALE_REVIEW','ALIAS_CONFLICT','CANONICAL_ALREADY_EXISTS']) ok(prc1Sql.includes(marker), `missing PRC1 SQL marker: ${marker}`);
+ok(prc1Sql.includes("v_actor:=public.aos_f4_actor(p_token,'admin-sales')"), 'PRC1 admin resolution must require F4 Auth V3/2FA actor');
+ok(prc1Sql.includes("v_actor:=public.aos_f4_actor(p_token,'admin-import-ventas')"), 'PRC1 batch preview must require import permission');
+ok(!/update\s+public\.aos_ventas/i.test(prc1Sql), 'PRC1 must never overwrite raw sales rows');
+ok(prc1Sql.includes("resolution_status='RESOLVED'") && prc1Sql.includes("resolution_status='EXCLUDED'"), 'PRC1 governed outcomes missing');
+
 const directF4 = railway.includes('node server-f4.js');
 const wa2WrappedF4 = railway.includes('node server-wa2.js') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
 const wa3WrappedChain = railway.includes('node server-wa3.js') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
