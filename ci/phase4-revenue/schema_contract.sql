@@ -27,8 +27,28 @@ create table public.aos_ventas(
  pago text,monto numeric,estado_pago text,asesor text,atendio text,sede text,tipo text,numero_limpio text,nro_doc text,estado_doc text,
  tipo_comprobante text,created_at timestamptz default now(),updated_at timestamptz default now(),moneda text default 'PEN',cotizacion_id text
 );
-create table public.aos_product_identity_v1(product_key text primary key,canonical_name text,active boolean default true);
-create table public.aos_product_alias_v2(alias_key text primary key,alias_text text,product_key text,default_qty numeric default 1,default_is_pack boolean default false,active boolean default true);
+create table public.aos_product_identity_v1(
+  product_key text primary key,
+  canonical_name text not null,
+  catalog_service_id uuid,
+  lifecycle_status text not null default 'CURRENT_UNCATALOGED',
+  active boolean not null default true,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table public.aos_product_alias_v2(
+  alias_key text primary key,
+  alias_text text not null,
+  product_key text not null,
+  default_qty numeric default 1,
+  default_is_pack boolean default false,
+  source text,
+  confidence text,
+  active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 create table public.aos_product_sale_fact_v1(
  sale_id bigint primary key,product_key text,raw_alias_key text,physical_qty numeric,is_pack boolean,resolution_status text,resolution_source text,locked boolean default false,note text,created_at timestamptz default now(),updated_at timestamptz default now()
 );
