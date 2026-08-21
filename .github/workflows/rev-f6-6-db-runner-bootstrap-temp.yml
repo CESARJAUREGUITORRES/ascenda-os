@@ -1,11 +1,6 @@
-name: TEMP REV-F6.6 DB Runner Bootstrap
+name: TEMP REV-F6.6 DB Runner Probe
 
 on:
-  push:
-    branches:
-      - debug/rev-f6-6-runner-bootstrap-20260820
-    paths:
-      - '.github/workflows/rev-f6-6-db-runner-bootstrap-temp.yml'
   pull_request:
     branches: [main]
     paths:
@@ -15,49 +10,44 @@ permissions:
   contents: read
 
 jobs:
-  bootstrap:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2]
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - name: Start canonical Linux DB runner inside WSL
+      - name: Probe DB-capable local tooling
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          Write-Host 'Available WSL distributions:'
-          wsl.exe -l -q
-          $script = @'
-          set -euo pipefail
-          service docker start >/dev/null 2>&1 || true
-          RUNNER_DIR=/home/ascenda-runner/actions-runner/actions-runner
-          test -x "$RUNNER_DIR/run.sh"
-          cd "$RUNNER_DIR"
-
-          if pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
-            echo 'ASCENDA_DB_RUNNER_ALREADY_RUNNING'
-            pgrep -af 'Runner.Listener'
-            exit 0
-          fi
-
-          if test -x ./svc.sh; then
-            ./svc.sh start >/tmp/ascenda-zero-cost-v2-svc-start.log 2>&1 || true
-            sleep 3
-            if pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
-              echo 'ASCENDA_DB_RUNNER_STARTED_BY_SERVICE'
-              pgrep -af 'Runner.Listener'
-              exit 0
-            fi
-          fi
-
-          su - ascenda-runner -c 'cd /home/ascenda-runner/actions-runner/actions-runner && unset RUNNER_TRACKING_ID && nohup ./run.sh >/tmp/ascenda-zero-cost-v2-runner.log 2>&1 </dev/null &'
-          sleep 5
-          if ! pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
-            echo 'ASCENDA_DB_RUNNER_START_FAILED'
-            tail -80 /tmp/ascenda-zero-cost-v2-runner.log 2>/dev/null || true
-            tail -80 /tmp/ascenda-zero-cost-v2-svc-start.log 2>/dev/null || true
-            exit 1
-          fi
-          echo 'ASCENDA_DB_RUNNER_STARTED_FOREGROUND_DETACHED'
-          pgrep -af 'Runner.Listener'
-          '@
-          $script | wsl.exe -d Ubuntu -u root -- bash -s
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $ErrorActionPreference = 'Continue'
+          Write-Host "RUNNER_NAME=$env:RUNNER_NAME"
+          Write-Host "COMPUTERNAME=$env:COMPUTERNAME"
+          Write-Host '--- Docker command ---'
+          $docker = Get-Command docker -ErrorAction SilentlyContinue
+          if ($docker) {
+            Write-Host "DOCKER_PATH=$($docker.Source)"
+            docker version
+            Write-Host "DOCKER_EXIT=$LASTEXITCODE"
+            docker info --format '{{json .ServerVersion}}'
+            Write-Host "DOCKER_INFO_EXIT=$LASTEXITCODE"
+          } else {
+            Write-Host 'DOCKER_NOT_FOUND'
+          }
+          Write-Host '--- PostgreSQL client ---'
+          $psql = Get-Command psql -ErrorAction SilentlyContinue
+          if ($psql) {
+            Write-Host "PSQL_PATH=$($psql.Source)"
+            psql --version
+          } else {
+            Write-Host 'PSQL_NOT_FOUND'
+          }
+          Write-Host '--- Supabase CLI ---'
+          $sb = Get-Command supabase -ErrorAction SilentlyContinue
+          if ($sb) {
+            Write-Host "SUPABASE_PATH=$($sb.Source)"
+            supabase --version
+          } else {
+            Write-Host 'SUPABASE_NOT_FOUND'
+          }
