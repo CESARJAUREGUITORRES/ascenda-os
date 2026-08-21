@@ -1,0 +1,145 @@
+{
+  "certificate": "REV-F6.6_SENTINEL_DATA_INTEGRITY_HANDOFF_V1",
+  "status": "TECHNICAL_LIVE_ACCEPTANCE_PASS_PENDING_TERMINAL_EXACT_HEAD_CI_AND_MERGE",
+  "captured_at_utc": "2026-08-21T00:44:00Z",
+  "repository": "CESARJAUREGUITORRES/ascenda-os",
+  "pull_request": 317,
+  "implementation_exact_head": "b8e5b897af830cd2c0d816338d8a352a4786676c",
+  "pre_live_exact_head_ci": {
+    "status": "PASS",
+    "workflows": [
+      {"name": "Ascenda CI", "run": 2715, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.0 Data Contract", "run": 64, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.1 Patient Commercial 360 V2", "run": 64, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.2 Customer Lifecycle", "run": 43, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.3 Identity Confidence + Metric Trust", "run": 34, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.4 Sales Intelligence 3.0", "run": 29, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.5 Historical Sales Plug-in", "run": 21, "conclusion": "SUCCESS"},
+      {"name": "REV-F6.6 Sentinel Data-Integrity Handoff", "run": 15, "conclusion": "SUCCESS"}
+    ],
+    "f6_6_db_gate": {
+      "synthetic_A_X": "PASS",
+      "acl": "PASS",
+      "zero_pii": "PASS",
+      "sentinel_f8_compatibility": "PASS",
+      "protected_truth": "PASS",
+      "performance": "PASS",
+      "migration_replay": "PASS",
+      "recovery": "PASS"
+    }
+  },
+  "live_migrations": [
+    {"version": "20260820232649", "name": "rev_f6_6_sentinel_integrity_handoff_v1"},
+    {"version": "20260821004152", "name": "rev_f6_6_sensor_cache_performance_hotfix_v1"}
+  ],
+  "live_signal_health": {
+    "signal_count": 10,
+    "double_read_digest_mismatches": 0,
+    "summary": {
+      "OK": 9,
+      "UNKNOWN": 1,
+      "DEGRADED": 0,
+      "BROKEN": 0,
+      "REVIEW_REQUIRED": 0
+    },
+    "signals": [
+      {"signal_id": "SEN-DQ-F5-001", "state": "OK"},
+      {"signal_id": "SEN-DQ-F5-002", "state": "OK"},
+      {"signal_id": "SEN-DQ-F5-003", "state": "OK"},
+      {"signal_id": "SEN-DQ-F5-004", "state": "OK"},
+      {"signal_id": "SEN-DQ-F5-005", "state": "UNKNOWN", "reason": "DUPLICATE_PROFILE_TELEMETRY_NOT_MATERIALIZED_FAIL_CLOSED"},
+      {"signal_id": "SEN-DQ-REV-001", "state": "OK"},
+      {"signal_id": "SEN-DQ-REV-002", "state": "OK"},
+      {"signal_id": "SEN-DQ-F6-001", "state": "OK"},
+      {"signal_id": "SEN-DQ-F6-002", "state": "OK"},
+      {"signal_id": "SEN-DQ-360-001", "state": "OK"}
+    ],
+    "cache_state": "CURRENT",
+    "dirty_domains": []
+  },
+  "readmodel_stale_detection_and_recovery": {
+    "detected": true,
+    "signal": "SEN-DQ-F6-001",
+    "initial_state": "DEGRADED",
+    "initial_evidence": {
+      "cache_rows": 22,
+      "cache_newest": "2026-08-20T21:19:17.770945+00:00",
+      "source_latest": "2026-08-21T00:09:20.63017+00:00",
+      "source_newer_than_cache": true,
+      "version_mismatch_count": 0
+    },
+    "governed_resolution": [
+      "aos_rev_si_refresh_v1()",
+      "aos_sentinel_rev_f6_6_refresh_cache_v1()"
+    ],
+    "business_source_mutation": false,
+    "final_state": "OK"
+  },
+  "security": {
+    "functions_checked": 10,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_role_execute": true,
+    "sensor_cache_anon_select": false,
+    "sensor_cache_authenticated_select": false,
+    "sensor_cache_service_role_select": true,
+    "zero_pii_phi": "PASS"
+  },
+  "sentinel_f8": {
+    "compatible": true,
+    "auto_ingest": false,
+    "candidate_count": 1,
+    "candidate_reason": "EXPECTED_F5_005_UNKNOWN",
+    "counts_before_and_after_candidate": {
+      "incidents": 3,
+      "incident_signals": 5,
+      "timeline": 17
+    },
+    "automatic_incident_mutation": false
+  },
+  "performance_ms": {
+    "sample_runs": 5,
+    "target_max_ms": 1000,
+    "contract": {"min": 0.076, "avg": 0.186, "max": 0.602, "pass": true},
+    "health": {"min": 1.204, "avg": 12.765, "max": 58.643, "pass": true},
+    "snapshot": {"min": 0.123, "avg": 0.160, "max": 0.244, "pass": true},
+    "controlled_full_refresh_ms": 23204.999,
+    "controlled_full_refresh_in_hot_path": false
+  },
+  "protected_truth": {
+    "patients": 7694,
+    "sales": 1299,
+    "f3_product_sale_fact": 406,
+    "f4_reconciliation": 162,
+    "business_truth_mutation_by_f6_6_hotfix": false,
+    "patient_growth_note": "7690_TO_7694_OCCURRED_OPERATIONALLY_BEFORE_HOTFIX_TERMINAL_BOUNDARY_AND_MUST_NOT_BE_REVERTED"
+  },
+  "fingerprints": {
+    "REV-F6.0": "d8a86d5787ffeaee436eabbbff502d51",
+    "REV-F6.3": "4d4f22d764a43da965caa65f864d9a0f",
+    "REV-F6.4": "5c0879041eb8d21e29a3407a8197935b",
+    "REV-F6.5": "7534bdd97182593788d0a8b0e980ac1d",
+    "REV-F6.6": "a1959bb7bc39034efab2657607c5a45d"
+  },
+  "historical_transactional_revenue": {
+    "2024": {"source_status": "NO_CERTIFIED_SOURCE", "value": null},
+    "2025": {"source_status": "NO_CERTIFIED_SOURCE", "value": null}
+  },
+  "semantic_guards": {
+    "observation_only": true,
+    "auto_repair": false,
+    "auto_incident_ingest": false,
+    "missing_telemetry_is_green": false,
+    "sentinel_is_business_truth": false,
+    "pii_phi_in_signal_envelope": false
+  },
+  "remaining_terminal_gates": [
+    "CERTIFICATE_AND_SNAPSHOT_EXACT_HEAD_CI",
+    "MERGE_PR_317_WITH_EXPECTED_HEAD_SHA",
+    "POST_MERGE_LIVE_RECONCILIATION",
+    "AOS_MEMORY_502",
+    "NOTION",
+    "GITHUB_CURRENT",
+    "FINAL_CROSS_READBACK"
+  ]
+}
