@@ -1,0 +1,36 @@
+name: Loop6 Runtime Loader Patch
+
+on:
+  push:
+    branches:
+      - feat/mkt-integrity-v3-loop6-call-semantics-atomic
+
+permissions:
+  contents: write
+
+jobs:
+  patch-calls-loader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/mkt-integrity-v3-loop6-call-semantics-atomic
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply deterministic loader patch
+        run: python scripts/ci/loop6_patch_calls_html.py
+      - name: Commit only if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- app/public/calls.html; then
+            echo 'No loader patch required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/public/calls.html
+          git commit -m 'LOOP 6 — load atomic Call Center runtime override'
+          git push origin HEAD:feat/mkt-integrity-v3-loop6-call-semantics-atomic
