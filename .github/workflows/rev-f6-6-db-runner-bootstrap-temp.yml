@@ -1,0 +1,59 @@
+name: TEMP REV-F6.6 DB Runner Bootstrap
+
+on:
+  push:
+    branches:
+      - debug/rev-f6-6-runner-bootstrap-20260820
+    paths:
+      - '.github/workflows/rev-f6-6-db-runner-bootstrap-temp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - name: Start canonical Linux DB runner inside WSL
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host 'Available WSL distributions:'
+          wsl.exe -l -q
+          $script = @'
+          set -euo pipefail
+          service docker start >/dev/null 2>&1 || true
+          RUNNER_DIR=/home/ascenda-runner/actions-runner/actions-runner
+          test -x "$RUNNER_DIR/run.sh"
+          cd "$RUNNER_DIR"
+
+          if pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
+            echo 'ASCENDA_DB_RUNNER_ALREADY_RUNNING'
+            pgrep -af 'Runner.Listener'
+            exit 0
+          fi
+
+          if test -x ./svc.sh; then
+            ./svc.sh start >/tmp/ascenda-zero-cost-v2-svc-start.log 2>&1 || true
+            sleep 3
+            if pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
+              echo 'ASCENDA_DB_RUNNER_STARTED_BY_SERVICE'
+              pgrep -af 'Runner.Listener'
+              exit 0
+            fi
+          fi
+
+          su - ascenda-runner -c 'cd /home/ascenda-runner/actions-runner/actions-runner && unset RUNNER_TRACKING_ID && nohup ./run.sh >/tmp/ascenda-zero-cost-v2-runner.log 2>&1 </dev/null &'
+          sleep 5
+          if ! pgrep -af 'Runner.Listener' >/dev/null 2>&1; then
+            echo 'ASCENDA_DB_RUNNER_START_FAILED'
+            tail -80 /tmp/ascenda-zero-cost-v2-runner.log 2>/dev/null || true
+            tail -80 /tmp/ascenda-zero-cost-v2-svc-start.log 2>/dev/null || true
+            exit 1
+          fi
+          echo 'ASCENDA_DB_RUNNER_STARTED_FOREGROUND_DETACHED'
+          pgrep -af 'Runner.Listener'
+          '@
+          $script | wsl.exe -d Ubuntu -u root -- bash -s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
