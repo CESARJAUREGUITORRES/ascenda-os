@@ -53,4 +53,16 @@ Off-app activity that is not recorded cannot be inferred.
 - F6 private grants remain unchanged.
 - Dedicated rollback canaries must cover: ≥15d, <15d, NO ASISTIO <72h, >72h no follow-up, >72h with owner follow-up, original-owner rebooking, active appointment duplicate, callback/followup conversion, Agenda-only, and attempted misuse.
 
-No Loop 6 PASS may be declared until this addendum is implemented, deployed, and the real-operation gate is re-run under these rules.
+## Applied / validated so far
+The V2 migration was applied to LIVE only after a clean pre-apply gate: journal `0`, all six protected repaired calls present, and removed duplicate Agenda rows still absent.
+
+Rollback canaries completed before this control update:
+- **Early reactivation (<15d): PASS** — result `DOWNGRADE`, call remains `SEGUIMIENTO`, `beneficiaryScope=CLINIC`, no credited advisor/new commercial cita.
+- **Eligible reactivation (≥15d): PASS** — `CITA CONFIRMADA`, `tipo_gestion=REACTIVACION`, Agenda linked, `creditedAdvisor` equals executing advisor, `beneficiaryScope=ADVISOR`, no Marketing acquisition lead.
+- **NO ASISTIO rescue inside 72h by another advisor: PASS** — executing advisor is retained in audit, call is `SEGUIMIENTO / RECUPERACION_APOYO`, replacement Agenda remains assigned to the original advisor, and no second commercial cita is created.
+
+The companion runtime `app/public/calls-loop6-policy-v2.js` adds explanatory feedback for early reactivation, protected rescue, owner-followup protection, valid >72h transfer, Agenda-only and active-appointment duplicate blocks. `scripts/ci/loop6_patch_calls_html.mjs` and the Loop6 loader workflow inject and validate this companion after the base Loop 6 runtime.
+
+Still required before merge/certification: >72h recovery without owner follow-up, >72h with owner follow-up, original-owner rebooking, active-appointment duplicate, callback/followup conversion, Agenda-only and misuse canaries; exact PR-head CI; merge; Railway exact-head deploy; then >=5 genuine post-cutover operations under the expanded implementation and full invariant reconciliation.
+
+No Loop 6 PASS may be declared until this addendum is fully implemented, deployed, and the real-operation gate is re-run under these rules.
