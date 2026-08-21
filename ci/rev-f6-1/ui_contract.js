@@ -1,12 +1,21 @@
 const fs=require('fs');
 const sw=fs.readFileSync('app/public/phase2-service-worker.js','utf8');
+const app=fs.readFileSync('app/public/app.html','utf8');
 const ui=fs.readFileSync('app/public/patients-f6-v2.js','utf8');
 function ok(cond,msg){if(!cond){console.error('F6.1 UI CONTRACT FAIL:',msg);process.exit(1);}}
-ok(sw.includes('/patients-f6-v2.js'),'AppShell must inject Patient 360 V2 bridge');
+ok(sw.includes('/patients-f6-v2.js'),'Service worker must preserve Patient 360 V2 compatibility injection');
+ok(sw.includes('20260820-rev-f6-runtime-hotfix-v1'),'Patient 360 bridge cache-buster must advance for runtime hotfix');
+ok(app.includes('ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820'),'App shell must contain deterministic critical-runtime marker');
+ok(app.includes('/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1'),'Patient V2 bridge must load directly from app shell, not only from service worker');
 ok(sw.includes("rpcFrom(req,'aos_patient_commercial_360_v2'"),'legacy Patient 360 must route to canonical V2');
 ok(sw.includes("rm[1]==='aos_patient_search_v2'"),'search V2 must receive governed token injection');
 ok(sw.includes('p.p_token=t'),'V2 browser RPCs must receive app token from controlled cache');
 ok(!sw.includes("rpcFrom(req,'aos_patient_history_summary_v1',{p_token:t,p_numero:p.p_numero||''})"),'legacy Patient 360 must not route to F6.0 minimum summary');
+ok(ui.includes('window.__AOS_PATIENTS_F6_V2__'),'Patient bridge must be globally idempotent across shell/panel reloads');
+ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='waiting'"),'Patient bridge must preserve a waiting state until patients.js exists');
+ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='installed'"),'Patient bridge must publish installed state');
+ok(!ui.includes('tries>240'),'Patient bridge must not expire after 60 seconds in long-lived sessions');
+ok(ui.includes('schedule();return;'),'Patient bridge must retry when the Patients panel is loaded later');
 ok(ui.includes('p_lookup_type:type'),'UI selection must support canonical lookup type');
 // Search cards are HTML strings, so their inline JS quotes are escaped in source.
 ok(/ptSelV2\(\\?'CANONICAL_ID\\?'\s*,/.test(ui),'search results must select canonical_patient_id explicitly');

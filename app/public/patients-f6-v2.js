@@ -1,13 +1,16 @@
 // REV-F6.1 — Patient Commercial 360 V2 UI bridge.
 // Upgrades the existing patients.html/patients.js surface; does not create a second patient panel.
 (function(){'use strict';
-var installed=false,tries=0,timer=setInterval(install,250);
+if(window.__AOS_PATIENTS_F6_V2__==='installed'||window.__AOS_PATIENTS_F6_V2__==='waiting')return;
+window.__AOS_PATIENTS_F6_V2__='waiting';
+var installed=false,timer=null;
 function esc(v){return typeof window.h==='function'?window.h(v):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function pct(o){return o&&o.pct!=null?Number(o.pct).toFixed(2)+'%':'—';}
+function schedule(){if(!installed)timer=setTimeout(install,1000);}
 function install(){
-  tries++; if(installed)return;
-  if(typeof window._rpc!=='function'||typeof window.render360!=='function'||typeof window.renderTab!=='function'||!window.PT){if(tries>240)clearInterval(timer);return;}
-  installed=true;clearInterval(timer);
+  if(installed)return;
+  if(typeof window._rpc!=='function'||typeof window.render360!=='function'||typeof window.renderTab!=='function'||!window.PT){schedule();return;}
+  installed=true;if(timer)clearTimeout(timer);window.__AOS_PATIENTS_F6_V2__='installed';
   var baseRender360=window.render360,baseRenderTab=window.renderTab;
 
   window.ptSearch=function(q){
@@ -50,4 +53,5 @@ function install(){
 
   function renderTimeline(rows){var b=document.getElementById('pt-tc');if(!b)return;if(!rows.length){b.innerHTML='<div class="ld">Sin eventos canónicos observados</div>';return;}b.innerHTML='<table class="tt"><thead><tr><th>Fecha</th><th>Tipo</th><th>Evento</th><th>Estado</th><th>Provenance</th></tr></thead><tbody>'+rows.map(function(e){return '<tr><td>'+esc(e.event_date||'')+'</td><td><span class="pt-bg" style="background:#EEF2FF;color:#4338CA;">'+esc(e.event_type||'')+'</span></td><td>'+esc(e.label||'')+(e.amount!=null?' · S/'+Number(e.amount||0).toFixed(2):'')+'</td><td>'+esc(e.status||'')+'</td><td style="font-size:8px;color:#64748B;">'+esc(e.provenance||'')+'</td></tr>';}).join('')+'</tbody></table>';}
 }
+install();
 })();

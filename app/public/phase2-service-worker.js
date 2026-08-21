@@ -85,7 +85,7 @@ async function injectF4(req){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
   }
   if(html.indexOf('/patients-f6-v2.js')<0){
-    tags+='<script src="/patients-f6-v2.js?v=20260819-rev-f6-1-v1"></script>';
+    tags+='<script src="/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1"></script>';
   }
   if(tags){html=html.indexOf('</body>')>=0?html.replace('</body>',tags+'</body>'):html+tags;}
   var h=new Headers(r.headers);h.set('Cache-Control','no-store, no-cache, must-revalidate');h.delete('content-length');
@@ -139,6 +139,16 @@ self.addEventListener('fetch',function(event){
   }
   if(rm&&rm[1]==='aos_mark_notif_read'){
     event.respondWith((async function(){var p=await requestJson(req);return notificationApi('/api/notifications/read','POST',{id:p.p_id});})());return;
+  }
+  // F4 runtime safety net: if the JavaScript revenue bridge is missing/stale in a long-lived shell,
+  // preserve the legacy UI's explicit confirmation but execute only the Auth V3 + 2FA V4 importer.
+  // Normal current shells never hit this block because f4-revenue-ops.js rewrites the request first.
+  if(rm&&rm[1]==='aos_importar_ventas'){
+    event.respondWith((async function(){
+      var p=await requestJson(req),t=String(await getToken()).trim();
+      if(t.length<32)return json({ok:false,error:'F4_APP_SESSION_REQUIRED'},401);
+      return rpcFrom(req,'aos_importar_ventas_v4',{p_token:t,p_ventas:p.p_ventas||[]});
+    })());return;
   }
   // REV-F6.1: browser callers never execute the legacy SECURITY DEFINER Patient 360 RPC.
   // Compatibility phone inputs resolve through Identity Bridge V2 to canonical_patient_id.

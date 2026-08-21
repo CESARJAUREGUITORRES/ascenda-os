@@ -4,6 +4,7 @@ root = Path(__file__).resolve().parents[2]
 bridge = (root / 'app/public/f4-revenue-ops.js').read_text(encoding='utf-8')
 kronia = (root / 'app/public/f4-kronia-revenue-bridge.js').read_text(encoding='utf-8')
 sw = (root / 'app/public/phase2-service-worker.js').read_text(encoding='utf-8')
+app_shell = (root / 'app/public/app.html').read_text(encoding='utf-8')
 proxy = (root / 'app/server-f4.js').read_text(encoding='utf-8')
 railway = (root / 'app/railway.json').read_text(encoding='utf-8')
 wa2_path = root / 'app/server-wa2.js'
@@ -34,6 +35,13 @@ for marker in required_bridge:
     assert marker in bridge, f'missing F4 bridge marker: {marker}'
 assert '/f4-revenue-ops.js' in sw
 assert '/f4-kronia-revenue-bridge.js' in sw
+assert 'ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820' in app_shell, 'critical F4/Patient bridges must have a deterministic app-shell marker'
+assert '/f4-revenue-ops.js?v=20260820-rev-runtime-hotfix-v1' in app_shell, 'F4 bridge must load directly from app shell, not only through service-worker rewriting'
+assert '/f4-kronia-revenue-bridge.js?v=20260820-rev-runtime-hotfix-v1' in app_shell, 'KronIA/F4 bridge must stay paired when direct F4 loading disables SW pair injection'
+assert '/f4-production-canary-hotfix.js?v=20260820-rev-runtime-hotfix-v1' in app_shell, 'F4 strong-session recovery must load directly with revenue bridge'
+assert "rm[1]==='aos_importar_ventas'" in sw, 'legacy sales import must have a controlled stale-shell safety net'
+assert "rpcFrom(req,'aos_importar_ventas_v4'" in sw, 'stale-shell import fallback must route only to tokenized V4 importer'
+assert "F4_APP_SESSION_REQUIRED" in sw, 'stale-shell import fallback must fail closed without controlled app token'
 assert "var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'}" not in sw, 'Cartera reads must not be re-proxied by the service worker'
 assert 'CARTERA[rm[1]]' not in sw, 'Cartera service-worker interception must remain absent'
 assert 'select public.aos_cartera_gateway_v2(' in cartera_auth, 'DB compatibility alias must route legacy Cartera read to Auth V3 V2'
