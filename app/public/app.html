@@ -2307,5 +2307,11 @@ function krCancelarAccion(){
 function krVoz(){if(KR.grabando){krStopVoz();return}if(!navigator.mediaDevices){krAddMsg('ai','Navegador no soporta grabaci\u00f3n.');return}navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){KR.grabando=true;var btn=document.getElementById('kr-mic');btn.style.background='#DC2626';btn.style.color='#fff';btn.innerHTML='&#x23F9;';var chunks=[];var mr=new MediaRecorder(stream,{mimeType:'audio/webm'});mr.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data)};mr.onstop=function(){stream.getTracks().forEach(function(t){t.stop()});var blob=new Blob(chunks,{type:'audio/webm'});krAddMsg('user','Procesando audio...');var typing=document.getElementById('kr-typing');if(typing)typing.style.display='block';fetch('/api/kronia/whisper',{method:'POST',headers:{'Content-Type':'audio/webm','X-AOS-User':(AOS.ctx&&AOS.ctx.nombre)||'','X-AOS-Id':(AOS.ctx&&AOS.ctx.idAsesor)||''},body:blob}).then(function(r){return r.json()}).then(function(d){if(typing)typing.style.display='none';if(d.ok&&d.texto){var msgs=document.querySelectorAll('.kr-msg-user');if(msgs.length){msgs[msgs.length-1].innerHTML=d.texto+'<div class="kr-msg-time">'+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'})+'</div>'}document.getElementById('kr-input').value=d.texto;krEnviar()}else{if(typing)typing.style.display='none';krAddMsg('ai','No pude transcribir.')}}).catch(function(){if(typing)typing.style.display='none';krAddMsg('ai','Error audio.')})};mr.start();KR.mediaRec=mr;setTimeout(function(){if(KR.grabando)krStopVoz()},30000)}).catch(function(){krAddMsg('ai','Permiso denegado.')})}
 function krStopVoz(){if(KR.mediaRec&&KR.grabando){KR.mediaRec.stop();KR.grabando=false;var btn=document.getElementById('kr-mic');btn.style.background='rgba(241,245,249,.6)';btn.style.color='';btn.innerHTML='&#x1F3A4;'}}
 </script>
+
+<!-- ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820 -->
+<script src="/f4-revenue-ops.js?v=20260820-rev-runtime-hotfix-v1"></script>
+<script src="/f4-kronia-revenue-bridge.js?v=20260820-rev-runtime-hotfix-v1"></script>
+<script src="/f4-production-canary-hotfix.js?v=20260820-rev-runtime-hotfix-v1"></script>
+<script src="/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1"></script>
 </body>
 </html>
