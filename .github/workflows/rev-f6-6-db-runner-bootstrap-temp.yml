@@ -6,6 +6,10 @@ on:
       - debug/rev-f6-6-runner-bootstrap-20260820
     paths:
       - '.github/workflows/rev-f6-6-db-runner-bootstrap-temp.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/rev-f6-6-db-runner-bootstrap-temp.yml'
 
 permissions:
   contents: read
