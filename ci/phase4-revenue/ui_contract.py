@@ -34,6 +34,9 @@ for marker in required_bridge:
     assert marker in bridge, f'missing F4 bridge marker: {marker}'
 assert '/f4-revenue-ops.js' in sw
 assert '/f4-kronia-revenue-bridge.js' in sw
+assert "rm[1]==='aos_importar_ventas'" in sw, 'legacy sales import must have a controlled stale-shell safety net'
+assert "rpcFrom(req,'aos_importar_ventas_v4'" in sw, 'stale-shell import fallback must route only to tokenized V4 importer'
+assert "F4_APP_SESSION_REQUIRED" in sw, 'stale-shell import fallback must fail closed without controlled app token'
 assert "var CARTERA={aos_cartera_gateway:'aos_cartera_gateway_v2'}" not in sw, 'Cartera reads must not be re-proxied by the service worker'
 assert 'CARTERA[rm[1]]' not in sw, 'Cartera service-worker interception must remain absent'
 assert 'select public.aos_cartera_gateway_v2(' in cartera_auth, 'DB compatibility alias must route legacy Cartera read to Auth V3 V2'
@@ -69,7 +72,7 @@ phase_s_wrapped_chain = (
     and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s
     and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
     and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
-    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
+    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa2
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
 s152_wrapped_chain = (
