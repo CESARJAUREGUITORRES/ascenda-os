@@ -1,0 +1,72 @@
+name: Loop6 Runtime Loader Patch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/calls-loop6.js'
+      - 'app/public/calls.html'
+      - 'scripts/ci/loop6_patch_calls_html.mjs'
+      - '.github/workflows/loop6-runtime-loader-patch.yml'
+      - 'supabase/migrations/*mkt_integrity_loop6*'
+      - 'supabase/rollbacks/*mkt_integrity_loop6*'
+      - 'docs/control/MKT_INTEGRITY_V3_LOOP6*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: loop6-runtime-loader-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  patch-calls-loader:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    outputs:
+      changed: ${{ steps.patch.outputs.changed }}
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce FAST self-hosted lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Loop 6 loader patch must use self-hosted runner' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
+      - id: patch
+        name: Apply deterministic loader patch
+        shell: powershell
+        run: |
+          node scripts/ci/loop6_patch_calls_html.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $changed = git status --porcelain -- app/public/calls.html
+          if ($changed) {
+            "changed=true" >> $env:GITHUB_OUTPUT
+            git config user.name 'ASCENDA Zero-Cost CI'
+            git config user.email 'actions@users.noreply.github.com'
+            git add app/public/calls.html
+            git commit -m 'LOOP 6 — load atomic Call Center runtime override'
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          } else {
+            "changed=false" >> $env:GITHUB_OUTPUT
+          }
+      - name: Validate runtime loader
+        if: steps.patch.outputs.changed == 'false'
+        shell: powershell
+        run: |
+          node --check app/public/calls-loop6.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $text = Get-Content -Raw app/public/calls.html
+          $marker = '<script src="/calls-loop6.js?v=20260821-loop6"></script>'
+          $count = ([regex]::Matches($text, [regex]::Escape($marker))).Count
+          if ($count -ne 1) { throw "Expected exactly one Loop 6 loader, found $count" }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
