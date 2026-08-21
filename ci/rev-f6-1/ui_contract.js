@@ -1,9 +1,12 @@
 const fs=require('fs');
 const sw=fs.readFileSync('app/public/phase2-service-worker.js','utf8');
+const app=fs.readFileSync('app/public/app.html','utf8');
 const ui=fs.readFileSync('app/public/patients-f6-v2.js','utf8');
 function ok(cond,msg){if(!cond){console.error('F6.1 UI CONTRACT FAIL:',msg);process.exit(1);}}
-ok(sw.includes('/patients-f6-v2.js'),'AppShell must inject Patient 360 V2 bridge');
+ok(sw.includes('/patients-f6-v2.js'),'Service worker must preserve Patient 360 V2 compatibility injection');
 ok(sw.includes('20260820-rev-f6-runtime-hotfix-v1'),'Patient 360 bridge cache-buster must advance for runtime hotfix');
+ok(app.includes('ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820'),'App shell must contain deterministic critical-runtime marker');
+ok(app.includes('/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1'),'Patient V2 bridge must load directly from app shell, not only from service worker');
 ok(sw.includes("rpcFrom(req,'aos_patient_commercial_360_v2'"),'legacy Patient 360 must route to canonical V2');
 ok(sw.includes("rm[1]==='aos_patient_search_v2'"),'search V2 must receive governed token injection');
 ok(sw.includes('p.p_token=t'),'V2 browser RPCs must receive app token from controlled cache');
