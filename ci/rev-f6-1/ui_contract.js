@@ -16,7 +16,12 @@ ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='waiting'"),'Patient bridge must p
 ok(ui.includes("window.__AOS_PATIENTS_F6_V2__='installed'"),'Patient bridge must publish installed state');
 ok(!ui.includes('tries>240'),'Patient bridge must not expire after 60 seconds in long-lived sessions');
 ok(ui.includes('schedule();return;'),'Patient bridge must retry when the Patients panel is loaded later');
-ok(ui.includes('p_lookup_type:type'),'UI selection must support canonical lookup type');
+ok(ui.includes('p_lookup_type:a.type'),'Patient selection must execute the explicit governed lookup attempt');
+ok(ui.includes("addAttempt('PHONE',phone)"),'Canonical selection must safely fall back to the current unique phone alias');
+ok(ui.includes("addAttempt('DOCUMENT',dni)"),'Canonical selection must safely fall back to the current unique document alias');
+ok(ui.includes('data-phone=')&&ui.includes('data-dni='),'Search result cards must preserve current identifiers for safe fallback');
+ok(ui.includes('ACTUAL RESOLVED'),'UI must distinguish resolved current patient identity');
+ok(ui.includes('HISTÓRICO REVIEW'),'UI must distinguish historical linkage review from current identity resolution');
 // Search cards are HTML strings, so their inline JS quotes are escaped in source.
 ok(/ptSelV2\(\\?'CANONICAL_ID\\?'\s*,/.test(ui),'search results must select canonical_patient_id explicitly');
 ok(ui.includes('canonical_patient_id'),'search result payload must use canonical_patient_id');
