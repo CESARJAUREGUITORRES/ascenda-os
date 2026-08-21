@@ -64,6 +64,14 @@ assert 'window.__AOS_F4_REVENUE_OPS__' in canary, 'legacy confirmation suppressi
 assert 'return nativeConfirm(message)' in canary, 'native confirmations outside F4 import must remain untouched'
 assert 'Validación previa · Importar ventas' in bridge, 'V4 preview must remain the single authoritative import approval UI'
 
+# P0.7 editor truth regression: values stored in production must never be silently
+# replaced by the first hard-coded <select> option when the legacy list is incomplete.
+assert "typeof window.evCampoSel!=='function'||window.evCampoSel.__f4TruthSafe" in canary, 'sales editor select wrapper must be idempotent'
+assert "var current=String(val==null?'':val)" in canary, 'sales editor must preserve the exact current production value including empty values'
+assert 'if(list.indexOf(current)<0)list.unshift(current)' in canary, 'unknown current sales values must be injected into the editor options instead of falling back'
+assert 'window.evCampoSel=safe' in canary, 'truth-safe sales editor selector must replace the incomplete legacy selector'
+assert 'safe.__f4TruthSafe=true' in canary, 'sales editor truth wrapper must publish an idempotency marker'
+
 direct_f4 = 'node server-f4.js' in railway
 wa2_wrapped_f4 = 'node server-wa2.js' in railway and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 wa3_wrapped_chain = (

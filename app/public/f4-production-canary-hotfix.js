@@ -1,4 +1,4 @@
-// ASCENDA OS — F4 production canary P0/P0.5/P0.6 browser recovery.
+// ASCENDA OS — F4 production canary P0/P0.5/P0.6/P0.7 browser recovery.
 (function(){
 'use strict';
 if(window.__AOS_F4_PRODUCTION_CANARY_P0__)return;
@@ -117,7 +117,25 @@ window.fetch=function(input,init){
   return previousFetch(input,init);
 };
 
-function run(){cleanCajaClosedState();}
+// P0.7: the legacy Sales editor hard-codes a short list of advisor/attendant names.
+// If production contains a valid value outside that list, a native <select> silently
+// falls back to its first option (for example DRA. CAROLINA -> MIREYA). Preserve the
+// exact current truth as a selectable option instead of fabricating a different value.
+function patchSalesEditorTruth(){
+  if(typeof window.evCampoSel!=='function'||window.evCampoSel.__f4TruthSafe)return;
+  var original=window.evCampoSel;
+  function safe(id,label,val,opts){
+    var current=String(val==null?'':val);
+    var list=(opts||[]).map(function(x){return String(x);});
+    if(list.indexOf(current)<0)list.unshift(current);
+    return original(id,label,current,list);
+  }
+  safe.__f4TruthSafe=true;
+  safe.__original=original;
+  window.evCampoSel=safe;
+}
+
+function run(){cleanCajaClosedState();patchSalesEditorTruth();}
 run();
 syncCanonicalAppToken();
 setTimeout(syncCanonicalAppToken,700);
