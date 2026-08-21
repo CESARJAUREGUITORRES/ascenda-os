@@ -1,0 +1,104 @@
+name: TEMP Marketing render pipeline hotfix
+
+on:
+  push:
+    branches:
+      - fix/marketing-render-pipeline-20260821
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/marketing-render-pipeline-20260821
+          fetch-depth: 0
+      - name: Patch Marketing loaders without touching data
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          import re
+
+          html_paths = [Path('app/public/admin-marketing.html'), Path('src/admin-marketing.html')]
+
+          def patch_html(path):
+              data = path.read_bytes()
+              eol = b'\r\n' if b'\r\n' in data else b'\n'
+
+              annual = re.compile(
+                  rb"rpc\('aos_marketing_dashboard_anio',\{p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n"
+                  rb"\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:12\},function\(ltv\)\{\r?\n"
+                  rb"\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n"
+                  rb"\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n"
+                  rb"\s*\}\);\r?\n\s*\}\);"
+              )
+              month = re.compile(
+                  rb"rpc\('aos_marketing_dashboard',\{p_mes:mes,p_anio:anio\},function\(d\)\{if\(!d\|\|d\.error\)return;\r?\n"
+                  rb"\s*rpc\('aos_ltv_cohortes',\{p_anio:anio,p_hasta_mes:mes\},function\(ltv\)\{\r?\n"
+                  rb"\s*rKPI\(d\.kpis\);rEmb\(d\.embudo\);rHist\(d\.historial\|\|\[\]\);rLTV\(d\.kpis,d\.historial\|\|\[\],ltv\|\|\{\}\);rGest\(d\.gestion\);\r?\n"
+                  rb"\s*rAn\(d\.porAnuncio\|\|\[\]\);rCamp\(d\.porTratamiento\|\|\[\]\);rVL\(d\.ventasLeads\|\|\[\]\);rVF\(d\.ventasLeadsFuera\|\|\[\]\);\r?\n"
+                  rb"\s*\}\);\r?\n\s*\}\);"
+              )
+
+              def block(kind):
+                  until = b'12' if kind == 'annual' else b'mes'
+                  dashboard = b'aos_marketing_dashboard_anio' if kind == 'annual' else b'aos_marketing_dashboard'
+                  args = b'{p_anio:anio}' if kind == 'annual' else b'{p_mes:mes,p_anio:anio}'
+                  return eol.join([
+                      b"rpc('" + dashboard + b"'," + args + b",function(d){if(!d||d.error)return;",
+                      b"      /* Operational tables must not wait for LTV/history. */",
+                      b"      rKPI(d.kpis);rEmb(d.embudo);rGest(d.gestion);",
+                      b"      rAn(d.porAnuncio||[]);rCamp(d.porTratamiento||[]);rVL(d.ventasLeads||[]);rVF(d.ventasLeadsFuera||[]);",
+                      b"      rpc('aos_ltv_cohortes',{p_anio:anio,p_hasta_mes:" + until + b"},function(ltv){",
+                      b"        rHist(d.historial||[]);rLTV(d.kpis,d.historial||[],ltv||{});",
+                      b"      });",
+                      b"    });"
+                  ])
+
+              data, n1 = annual.subn(block('annual'), data, count=1)
+              data, n2 = month.subn(block('month'), data, count=1)
+              if (n1, n2) != (1, 1):
+                  raise SystemExit(f'{path}: expected annual/month replacements 1/1, got {n1}/{n2}')
+              if data.find(b'Operational tables must not wait for LTV/history.') < 0:
+                  raise SystemExit(f'{path}: guard missing')
+              path.write_bytes(data)
+
+          for p in html_paths:
+              patch_html(p)
+              print('patched', p)
+
+          ctl = Path('app/public/admin-marketing-v2.js')
+          data = ctl.read_bytes()
+          replacements = [
+              (b"var RELEASE='2026-08-12-v4.2';", b"var RELEASE='2026-08-21-v4.2.1';"),
+              (b"L(loadAll,20);", b"L(loadAll,1200);"),
+              (b"traceBox();insights();L(loadAll,50);", b"traceBox();insights();L(loadAll,1200);")
+          ]
+          for old, new in replacements:
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f'{ctl}: expected 1 occurrence of {old!r}, found {count}')
+              data = data.replace(old, new, 1)
+          ctl.write_bytes(data)
+          print('patched', ctl)
+          '@ | python -
+
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --numstat
+      - name: Commit functional patch
+        shell: powershell
+        run: |
+          git config user.name "ascenda-automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add app/public/admin-marketing.html src/admin-marketing.html app/public/admin-marketing-v2.js
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git commit -m "fix(marketing): decouple operational render from LTV pipeline"
+          git push origin HEAD:fix/marketing-render-pipeline-20260821
