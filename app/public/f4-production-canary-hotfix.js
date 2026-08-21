@@ -1,10 +1,12 @@
-// ASCENDA OS — F4 production canary P0/P0.5 browser recovery.
+// ASCENDA OS — F4 production canary P0/P0.5/P0.6 browser recovery.
 (function(){
 'use strict';
 if(window.__AOS_F4_PRODUCTION_CANARY_P0__)return;
 window.__AOS_F4_PRODUCTION_CANARY_P0__=true;
 
 var previousFetch=window.fetch.bind(window);
+var nativeConfirm=window.confirm.bind(window);
+var tokenSyncPromise=null;
 
 function cleanCajaClosedState(){
   var box=document.getElementById('no-sesion-msg');
@@ -37,6 +39,17 @@ function rememberToken(t){
   // Sales Intelligence owns its own finance token and must remain untouched.
   try{sessionStorage.setItem('aos_app_token',t);}catch(e){}
   try{caches.open('aos-phase2-auth').then(function(c){return c.put('/__aos_app_token',new Response(t));}).catch(function(){});}catch(e){}
+}
+function syncCanonicalAppToken(){
+  // F4 bridge is synchronous and reads sessionStorage. Before every governed write,
+  // synchronize it from the same canonical cache used by the Phase 2 service worker.
+  if(tokenSyncPromise)return tokenSyncPromise;
+  tokenSyncPromise=cacheToken().then(function(t){
+    t=String(t||'').trim();
+    if(t.length>=32)try{sessionStorage.setItem('aos_app_token',t);}catch(e){}
+    return t;
+  }).catch(function(){return '';}).then(function(t){tokenSyncPromise=null;return t;},function(){tokenSyncPromise=null;return '';});
+  return tokenSyncPromise;
 }
 function salesErrorBanner(msg){
   var host=document.querySelector('.vs');if(!host)return;
@@ -76,21 +89,41 @@ function strongSalesRead(url,init,name,body){
   });
 }
 
-// P0.5: intercept Sales reads before the older F4 bridge. The older bridge used
-// only sessionStorage synchronously; after some app/PWA navigation cycles the
-// app token can be absent while the same strong app token remains in the service
-// worker cache written at login. Trying both app-token sources prevents a valid
-// dataset from being rendered as an all-zero dashboard on an UNAUTHORIZED envelope.
+// The V4 preview is the authoritative import approval. The old app shell still has a
+// native CONFIRMAR IMPORTACIÓN DE VENTAS dialog; suppress only that exact legacy dialog
+// when the F4 bridge is active, retaining native confirm as a fallback if F4 is absent.
+window.confirm=function(message){
+  var text=String(message||'');
+  if(window.__AOS_F4_REVENUE_OPS__&&text.indexOf('CONFIRMAR IMPORTACIÓN DE VENTAS')===0)return true;
+  return nativeConfirm(message);
+};
+
+// P0.5/P0.6: reads try both strong token sources. Governed writes first synchronize the
+// canonical cache token into sessionStorage, then hand control to the existing F4 bridge.
+// This keeps one Auth V3 session authority for edit/import/caja without duplicating F4 logic.
 window.fetch=function(input,init){
   var url=urlOf(input),rm=url.match(/\/rest\/v1\/rpc\/([^?]+)/),name=rm&&rm[1];
   if(name==='aos_ventas_admin'||name==='aos_ventas_admin_anio'){
     return strongSalesRead(url,init,name,parseBody(init));
+  }
+  if(name==='aos_editar_venta'||name==='aos_importar_ventas'||name==='aos_grabar_venta_caja'){
+    return syncCanonicalAppToken().then(function(t){
+      if(String(t||'').trim().length<32){
+        salesErrorBanner('Sesión 2FA de Ventas no disponible. Vuelve a iniciar sesión; no se realizó ninguna escritura.');
+      }
+      return previousFetch(input,init);
+    });
   }
   return previousFetch(input,init);
 };
 
 function run(){cleanCajaClosedState();}
 run();
+syncCanonicalAppToken();
+setTimeout(syncCanonicalAppToken,700);
+setTimeout(syncCanonicalAppToken,2500);
+try{window.addEventListener('focus',syncCanonicalAppToken);}catch(e){}
+try{document.addEventListener('visibilitychange',function(){if(!document.hidden)syncCanonicalAppToken();});}catch(e){}
 
 try{
   var obs=new MutationObserver(function(){run();});

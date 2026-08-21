@@ -3,6 +3,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 bridge = (root / 'app/public/f4-revenue-ops.js').read_text(encoding='utf-8')
 kronia = (root / 'app/public/f4-kronia-revenue-bridge.js').read_text(encoding='utf-8')
+canary = (root / 'app/public/f4-production-canary-hotfix.js').read_text(encoding='utf-8')
 sw = (root / 'app/public/phase2-service-worker.js').read_text(encoding='utf-8')
 app_shell = (root / 'app/public/app.html').read_text(encoding='utf-8')
 proxy = (root / 'app/server-f4.js').read_text(encoding='utf-8')
@@ -51,6 +52,17 @@ assert 'F4_STRONG_SESSION_REQUIRED' in proxy
 assert 'aos_sales_admin_sale_v4' in proxy and 'aos_editar_venta_v4' in proxy
 assert "pathname==='/api/f4/cartera-candidates'" in proxy
 assert 'aos_cartera_candidates_v2' in proxy
+
+# P0.6 incident regression: all F4 writes must recover the same Auth V3 app token
+# already cached by the Phase 2 login flow before the synchronous F4 bridge reads it.
+assert "caches.open('aos-phase2-auth')" in canary, 'F4 canary must read the canonical Phase 2 app-token cache'
+assert "sessionStorage.setItem('aos_app_token',t)" in canary, 'F4 canary must synchronize canonical app token into legacy synchronous bridge storage'
+assert "name==='aos_editar_venta'||name==='aos_importar_ventas'||name==='aos_grabar_venta_caja'" in canary, 'governed F4 writes must synchronize canonical token before delegation'
+assert 'return syncCanonicalAppToken().then' in canary, 'F4 write delegation must await canonical token synchronization'
+assert "text.indexOf('CONFIRMAR IMPORTACIÓN DE VENTAS')===0" in canary, 'legacy importer confirmation must be identified exactly'
+assert 'window.__AOS_F4_REVENUE_OPS__' in canary, 'legacy confirmation suppression must only happen when F4 V4 bridge is active'
+assert 'return nativeConfirm(message)' in canary, 'native confirmations outside F4 import must remain untouched'
+assert 'Validación previa · Importar ventas' in bridge, 'V4 preview must remain the single authoritative import approval UI'
 
 direct_f4 = 'node server-f4.js' in railway
 wa2_wrapped_f4 = 'node server-wa2.js' in railway and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
