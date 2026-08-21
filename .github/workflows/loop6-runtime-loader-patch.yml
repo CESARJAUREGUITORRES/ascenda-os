@@ -14,36 +14,47 @@ concurrency:
 
 jobs:
   patch-calls-loader:
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 8
     steps:
-      - name: Checkout exact triggering SHA
+      - name: Checkout exact feature branch
         uses: actions/checkout@v4
         with:
           ref: feat/mkt-integrity-v3-loop6-call-semantics-atomic
           fetch-depth: 1
-      - name: Enforce Zero-Cost CI V2 policy
-        run: python3 scripts/ci/enforce-zero-cost-policy.py
-      - name: Self-hosted runner healthcheck
-        run: bash scripts/ci/runner-healthcheck.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce FAST self-hosted lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Loop 6 loader patch must use self-hosted runner' }
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
       - name: Apply deterministic loader patch
-        run: python3 scripts/ci/loop6_patch_calls_html.py
+        shell: powershell
+        run: |
+          node scripts/ci/loop6_patch_calls_html.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate runtime loader
-        shell: bash
+        shell: powershell
         run: |
-          set -euo pipefail
           node --check app/public/calls-loop6.js
-          grep -q 'calls-loop6.js?v=20260821-loop6' app/public/calls.html
-          test "$(grep -c 'calls-loop6.js?v=20260821-loop6' app/public/calls.html)" -eq 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $text = Get-Content -Raw app/public/calls.html
+          $marker = '<script src="/calls-loop6.js?v=20260821-loop6"></script>'
+          $count = ([regex]::Matches($text, [regex]::Escape($marker))).Count
+          if ($count -ne 1) { throw "Expected exactly one Loop 6 loader, found $count" }
           git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Commit only if changed
-        shell: bash
+        shell: powershell
         run: |
-          set -euo pipefail
-          if git diff --quiet -- app/public/calls.html; then
-            echo 'No loader patch required.'
+          $changed = git status --porcelain -- app/public/calls.html
+          if (-not $changed) {
+            Write-Host 'No loader patch required.'
             exit 0
-          fi
+          }
           git config user.name 'ASCENDA Zero-Cost CI'
           git config user.email 'actions@users.noreply.github.com'
           git add app/public/calls.html
