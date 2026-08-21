@@ -37,8 +37,8 @@ begin
 
   if v#>>'{historical_source_status,2024,source_status}'<>'NO_CERTIFIED_SOURCE'
      or v#>>'{historical_source_status,2025,source_status}'<>'NO_CERTIFIED_SOURCE'
-     or (v#>'{historical_source_status,2024,value}') is not null
-     or (v#>'{historical_source_status,2025,value}') is not null then
+     or (v#>>'{historical_source_status,2024,value}') is not null
+     or (v#>>'{historical_source_status,2025,value}') is not null then
     raise exception 'F67_HISTORICAL_NULL_SEMANTICS_REGRESSED %',v->'historical_source_status';
   end if;
 
