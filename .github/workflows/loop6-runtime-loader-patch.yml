@@ -1,27 +1,37 @@
 name: Loop6 Runtime Loader Patch
 
 on:
-  push:
-    branches:
-      - feat/mkt-integrity-v3-loop6-call-semantics-atomic
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/calls-loop6.js'
+      - 'app/public/calls.html'
+      - 'scripts/ci/loop6_patch_calls_html.mjs'
+      - '.github/workflows/loop6-runtime-loader-patch.yml'
+      - 'supabase/migrations/*mkt_integrity_loop6*'
+      - 'supabase/rollbacks/*mkt_integrity_loop6*'
+      - 'docs/control/MKT_INTEGRITY_V3_LOOP6*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: loop6-runtime-loader-${{ github.ref }}
+  group: loop6-runtime-loader-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   patch-calls-loader:
     runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 8
+    outputs:
+      changed: ${{ steps.patch.outputs.changed }}
     steps:
-      - name: Checkout exact feature branch
+      - name: Checkout exact PR head
         uses: actions/checkout@v4
         with:
-          ref: feat/mkt-integrity-v3-loop6-call-semantics-atomic
-          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -31,12 +41,25 @@ jobs:
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Loop 6 loader patch must use self-hosted runner' }
           Write-Host "Runner: $env:RUNNER_NAME"
           Write-Host "OS: $env:RUNNER_OS"
-      - name: Apply deterministic loader patch
+      - id: patch
+        name: Apply deterministic loader patch
         shell: powershell
         run: |
           node scripts/ci/loop6_patch_calls_html.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $changed = git status --porcelain -- app/public/calls.html
+          if ($changed) {
+            "changed=true" >> $env:GITHUB_OUTPUT
+            git config user.name 'ASCENDA Zero-Cost CI'
+            git config user.email 'actions@users.noreply.github.com'
+            git add app/public/calls.html
+            git commit -m 'LOOP 6 — load atomic Call Center runtime override'
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          } else {
+            "changed=false" >> $env:GITHUB_OUTPUT
+          }
       - name: Validate runtime loader
+        if: steps.patch.outputs.changed == 'false'
         shell: powershell
         run: |
           node --check app/public/calls-loop6.js
@@ -47,16 +70,3 @@ jobs:
           if ($count -ne 1) { throw "Expected exactly one Loop 6 loader, found $count" }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Commit only if changed
-        shell: powershell
-        run: |
-          $changed = git status --porcelain -- app/public/calls.html
-          if (-not $changed) {
-            Write-Host 'No loader patch required.'
-            exit 0
-          }
-          git config user.name 'ASCENDA Zero-Cost CI'
-          git config user.email 'actions@users.noreply.github.com'
-          git add app/public/calls.html
-          git commit -m 'LOOP 6 — load atomic Call Center runtime override'
-          git push origin HEAD:feat/mkt-integrity-v3-loop6-call-semantics-atomic
