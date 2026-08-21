@@ -72,7 +72,7 @@ phase_s_wrapped_chain = (
     and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s
     and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
     and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
-    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa2
+    and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
 s152_wrapped_chain = (
