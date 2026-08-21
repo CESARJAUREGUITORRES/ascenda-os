@@ -4,43 +4,51 @@ on:
   push:
     branches:
       - fix/admin-home-active-advisors-20260821
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout patch branch
+        uses: actions/checkout@v4
         with:
           ref: fix/admin-home-active-advisors-20260821
           fetch-depth: 0
+
       - name: Replace hardcoded advisor roster
+        shell: powershell
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          $paths = @('app/public/admin-home.html','src/admin-home.html')
+          $old = "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};`n      (sem||[]).forEach(function(s){map[s.asesor]=s;});"
+          $new = "var map={};`n      (sem||[]).forEach(function(s){if(s&&s.asesor)map[s.asesor]=s;});`n      /* Dynamic operational roster: render only advisors with real activity in the selected period. */`n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});`n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
+          foreach ($p in $paths) {
+            $text = [System.IO.File]::ReadAllText($p)
+            if (-not $text.Contains($old)) { throw "$p: hardcoded roster not found" }
+            $text = $text.Replace($old,$new)
+            [System.IO.File]::WriteAllText($p,$text,[System.Text.UTF8Encoding]::new($false))
+            Write-Host "Patched $p"
+          }
+          foreach ($p in $paths) {
+            $text = [System.IO.File]::ReadAllText($p)
+            if ($text.Contains("var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN']")) { throw "$p: stale hardcode remains" }
+            if (-not $text.Contains('Dynamic operational roster')) { throw "$p: dynamic roster guard missing" }
+          }
 
-          paths = [Path('app/public/admin-home.html'), Path('src/admin-home.html')]
-          old = "var todos=['WILMER','RUVILA','MIREYA','SRA CARMEN'],map={};\n      (sem||[]).forEach(function(s){map[s.asesor]=s;});"
-          new = "var map={};\n      (sem||[]).forEach(function(s){if(s&&s.asesor)map[s.asesor]=s;});\n      /* Dynamic operational roster: render only advisors with real activity in the selected period. */\n      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});\n      todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});"
-
-          for p in paths:
-              text = p.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{p}: expected 1 hardcoded roster, found {count}')
-              p.write_text(text.replace(old, new, 1), encoding='utf-8')
-              print('patched', p)
-          PY
-      - name: Verify patch
-        run: |
-          ! grep -R "var todos=\['WILMER','RUVILA','MIREYA','SRA CARMEN'\]" app/public/admin-home.html src/admin-home.html
-          grep -n "Dynamic operational roster" app/public/admin-home.html src/admin-home.html
-      - name: Commit patch
+      - name: Commit patched runtime and source mirror
+        shell: powershell
         run: |
           git config user.name "ascenda-automation"
           git config user.email "actions@users.noreply.github.com"
           git add app/public/admin-home.html src/admin-home.html
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'No patch required'; exit 0 }
           git commit -m "ADMIN-HOME: derive call monitor roster from real activity"
           git push origin HEAD:fix/admin-home-active-advisors-20260821
