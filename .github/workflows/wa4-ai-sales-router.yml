@@ -81,7 +81,7 @@ jobs:
           grep -q "aos_wa4_authorize_copilot_v1" app/server-wa4.js
           grep -Eq "auto_send:[[:space:]]*false" app/server-wa4.js
           grep -q "ASCENDA_GROQ_COMPAT" app/server-wa4.js
-          grep -q "\['server-wa3.js'\]" app/server-wa4.js
+          grep -Eq "\['server-wa3(-v2)?\.js'\]" app/server-wa4.js
           ! grep -q "graph.facebook.com" app/server-wa4.js
           ! grep -q "WHATSAPP_ACCESS_TOKEN" app/server-wa4.js
           ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|api_key)\s*=\s*['\"][^'\"]{20,}['\"]" app/server-wa4.js app/ai-router.js app/legacy-groq-model-hook.js
