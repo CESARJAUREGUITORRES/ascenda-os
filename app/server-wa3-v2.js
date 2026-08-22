@@ -103,28 +103,45 @@ async function getQueue(req,res){
 async function teamSummary(req,res){
   const a=await requireActor(req,res,true);if(!a)return;
   try{
-    const [members,users,presence,assignments]=await Promise.all([
+    const [members,users,assignments]=await Promise.all([
       serviceGet('/rest/v1/aos_wa_box_members_v1?active=eq.true&select=box_id,user_id,max_active,priority,last_assigned_at'),
       serviceGet('/rest/v1/aos_usuarios?activo=eq.true&select=id,nombre,rol,cargo,sede,nivel_jerarquia,paneles_acceso'),
-      serviceGet('/rest/v1/aos_wa_agent_presence_v1?select=user_id,status,last_seen_at,available_since'),
       serviceGet('/rest/v1/aos_wa_assignments_v1?state=eq.ACTIVE&select=owner_user_id,box_id')
     ]);
     const memberRows=Array.isArray(members.data)?members.data:[];
     const userRows=Array.isArray(users.data)?users.data:[];
-    const presenceRows=Array.isArray(presence.data)?presence.data:[];
     const assignmentRows=Array.isArray(assignments.data)?assignments.data:[];
     const ids=new Set(memberRows.map(x=>String(x.user_id||'')));
-    const now=Date.now();
-    const agents=userRows.filter(u=>ids.has(String(u.id))).map(u=>{
-      const p=presenceRows.find(x=>x.user_id===u.id)||{};
-      // Must match WA-3 FINAL V3 stale threshold exactly: global ASCENDA heartbeat older than 60s is OFFLINE.
-      const fresh=!!p.last_seen_at&&Number.isFinite(Date.parse(p.last_seen_at))&&(now-Date.parse(p.last_seen_at)<60000);
-      const effective=fresh&&p.status==='AVAILABLE'?'AVAILABLE':(fresh&&p.status==='AWAY'?'AWAY':'OFFLINE');
+    const candidateUsers=userRows.filter(u=>ids.has(String(u.id)));
+    const agents=await Promise.all(candidateUsers.map(async u=>{
+      const effectiveOut=await serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id});
+      const p=effectiveOut.data||{};
+      if(p.ok===false)throw new Error('WA3_EFFECTIVE_PRESENCE_UNAVAILABLE');
       const boxes=memberRows.filter(m=>m.user_id===u.id).map(m=>({box_id:m.box_id,max_active:m.max_active,priority:m.priority}));
       const activeLoad=assignmentRows.filter(x=>x.owner_user_id===u.id).length;
-      return {id:u.id,name:u.nombre||null,role:u.rol||null,cargo:u.cargo||null,sede:u.sede||null,effective_status:effective,last_seen_at:p.last_seen_at||null,available_since:p.available_since||null,active_load:activeLoad,boxes:boxes};
-    }).sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''),'es'));
-    writeJson(res,200,{ok:true,agents:agents,generated_at:new Date().toISOString(),privacy:'NO_CUSTOMER_DATA'});
+      return {
+        id:u.id,
+        name:u.nombre||null,
+        role:u.rol||null,
+        cargo:u.cargo||null,
+        sede:u.sede||null,
+        effective_status:p.status||'OFFLINE',
+        labor_state:p.labor_state||null,
+        last_seen_at:p.last_seen_at||null,
+        available_since:p.available_since||null,
+        presence_source:p.presence_source||null,
+        active_load:activeLoad,
+        boxes:boxes
+      };
+    }));
+    agents.sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''),'es'));
+    writeJson(res,200,{
+      ok:true,
+      agents:agents,
+      generated_at:new Date().toISOString(),
+      snapshot_source:'aos_wa3_effective_presence_v2',
+      privacy:'NO_CUSTOMER_DATA'
+    });
   }catch(e){writeJson(res,503,{ok:false,error:'WA3_TEAM_SUMMARY_UNAVAILABLE'});}
 }
 async function presence(req,res){
