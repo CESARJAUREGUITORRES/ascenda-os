@@ -5,6 +5,8 @@ root = Path(__file__).resolve().parents[2]
 server = (root / 'app/server-wa2.js').read_text(encoding='utf-8')
 wa3_path = root / 'app/server-wa3.js'
 wa3 = wa3_path.read_text(encoding='utf-8') if wa3_path.exists() else ''
+wa3v2_path = root / 'app/server-wa3-v2.js'
+wa3v2 = wa3v2_path.read_text(encoding='utf-8') if wa3v2_path.exists() else ''
 wa4_path = root / 'app/server-wa4.js'
 wa4 = wa4_path.read_text(encoding='utf-8') if wa4_path.exists() else ''
 f5_path = root / 'app/server-f5.js'
@@ -49,18 +51,23 @@ assert "textContent" in ui or "esc(" in ui
 
 start=railway['deploy']['startCommand']
 sentinel_phase_s="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
+sentinel_phase_s_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
 sentinel_s152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js"
+sentinel_s152_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
 direct=start=='node server-wa2.js'
 wa3_wrapped=(start=='node server-wa3.js' and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-wa4_wrapped=(start=='node server-wa4.js' and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-f5_wrapped=(start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-phase_s_entry=(start=='node server-phase-s.js' or start==sentinel_phase_s)
-phase_s_wrapped=(phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-s152_entry=(start=='node server-phase-s-f17.js' or start==sentinel_s152)
-s152_wrapped=(s152_entry and "a[0]==='server-f5.js'" in s152 and "a[0]='server-f17.js'" in s152 and "require('./server-phase-s.js')" in s152 and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-f5.js']" in f17 and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
-assert direct or wa3_wrapped or wa4_wrapped or f5_wrapped or phase_s_wrapped or s152_wrapped, 'Railway must start WA-2 directly or through certified WA-3/WA-4/F5/Phase-S/F17 wrappers'
-if start==sentinel_phase_s or start==sentinel_s152:
-    assert 'NODE_OPTIONS' not in str(railway.get('build',{}).get('buildCommand','')), 'Sentinel preload must not contaminate build'
+wa4_to_wa3_v1=("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
+wa4_to_wa3_v2=("['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2)
+wa4_authority=wa4_to_wa3_v1 or wa4_to_wa3_v2
+wa4_wrapped=(start=='node server-wa4.js' and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
+f5_wrapped=(start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
+phase_s_entry=start in ('node server-phase-s.js',sentinel_phase_s,sentinel_phase_s_email)
+phase_s_wrapped=(phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
+s152_entry=start in ('node server-phase-s-f17.js',sentinel_s152,sentinel_s152_email)
+s152_wrapped=(s152_entry and "a[0]==='server-f5.js'" in s152 and "a[0]='server-f17.js'" in s152 and "require('./server-phase-s.js')" in s152 and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-f5.js']" in f17 and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3)
+assert direct or wa3_wrapped or wa4_wrapped or f5_wrapped or phase_s_wrapped or s152_wrapped, 'Railway must start WA-2 directly or through certified WA-3/WA-3V2/WA-4/F5/Phase-S/F17 wrappers'
+if start in (sentinel_phase_s,sentinel_phase_s_email,sentinel_s152,sentinel_s152_email):
+    assert 'NODE_OPTIONS' not in str(railway.get('build',{}).get('buildCommand','')), 'Runtime preloads must not contaminate build'
 
 assert 'aos_wa_conversations_v1' in migration
 assert 'aos_wa_conversation_events_v1' in migration
