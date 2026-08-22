@@ -1,4 +1,4 @@
--- ASCENDA OS · REV-SX1 — Sales Explorer Read-Only V1
+-- ASCENDA OS Â· REV-SX1 â€” Sales Explorer Read-Only V1
 -- Additive analytics only. No business-data writes, triggers, or formula mutations.
 -- Initial Explorer rendering is client-memory only; this RPC is lazy-loaded for historical/drill-down analysis.
 
@@ -71,10 +71,10 @@ begin
     v_prev_end:=least(make_date(p_anio-1,12,31), (v_period_end-interval '1 year')::date);
   else
     v_period_start:=make_date(p_anio,p_mes,1);
-    v_period_end:=least((v_period_start+interval '1 month-1 day')::date,
-      case when date_trunc('month',v_period_start)=date_trunc('month',v_today) then v_today else (v_period_start+interval '1 month-1 day')::date end);
+    v_period_end:=least((v_period_start+(interval '1 month' - interval '1 day'))::date,
+      case when date_trunc('month',v_period_start)=date_trunc('month',v_today) then v_today else (v_period_start+(interval '1 month' - interval '1 day'))::date end);
     v_prev_start:=(v_period_start-interval '1 month')::date;
-    v_prev_end:=least((v_prev_start+interval '1 month-1 day')::date,
+    v_prev_end:=least((v_prev_start+(interval '1 month' - interval '1 day'))::date,
       v_prev_start + (v_period_end-v_period_start));
   end if;
 
@@ -199,7 +199,7 @@ begin
   else
     with base as (
       select v.*,
-        translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN') service_key
+        translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN') service_key
       from public.aos_ventas v
       where upper(trim(coalesce(v.tipo,'')))='SERVICIO'
         and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
@@ -218,7 +218,7 @@ begin
     ) order by mes),'[]'::jsonb) into v_history from months;
 
     with base as (
-      select v.*,translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN') service_key
+      select v.*,translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN') service_key
       from public.aos_ventas v where upper(trim(coalesce(v.tipo,'')))='SERVICIO' and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
         and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede) and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
     )
@@ -227,7 +227,7 @@ begin
     into v_current from base where fecha between v_period_start and v_period_end and (v_entity='' or service_key=v_entity);
 
     with base as (
-      select v.*,translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN') service_key
+      select v.*,translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN') service_key
       from public.aos_ventas v where upper(trim(coalesce(v.tipo,'')))='SERVICIO' and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
         and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede) and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
     )
@@ -240,7 +240,7 @@ begin
         select v.* from public.aos_ventas v
         where extract(year from v.fecha)::integer=p_anio and upper(trim(coalesce(v.tipo,'')))='SERVICIO'
           and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
-          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN')=v_entity
+          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN')=v_entity
           and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede)
           and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
       )
@@ -252,7 +252,7 @@ begin
         select v.* from public.aos_ventas v
         where extract(year from v.fecha)::integer=p_anio and upper(trim(coalesce(v.tipo,'')))='SERVICIO'
           and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
-          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN')=v_entity
+          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN')=v_entity
           and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede)
           and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
       )
@@ -264,7 +264,7 @@ begin
         select v.* from public.aos_ventas v
         where extract(year from v.fecha)::integer=p_anio and upper(trim(coalesce(v.tipo,'')))='SERVICIO'
           and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
-          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN')=v_entity
+          and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN')=v_entity
           and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede)
           and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
       )
@@ -279,7 +279,7 @@ begin
       from public.aos_ventas v
       where extract(year from v.fecha)::integer=p_anio and upper(trim(coalesce(v.tipo,'')))='SERVICIO'
         and upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'
-        and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÁÉÍÓÚÜÑ','AEIOUUN')=v_entity
+        and translate(upper(trim(regexp_replace(coalesce(v.tratamiento,''),'\s+',' ','g'))),'ÃÃ‰ÃÃ“ÃšÃœÃ‘','AEIOUUN')=v_entity
         and (v_sede='' or upper(trim(coalesce(v.sede,'')))=v_sede)
         and (v_asesor='' or upper(trim(coalesce(v.asesor,'')))=v_asesor)
       limit 500;
