@@ -1,13 +1,13 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 PRODUCTION CANARY 0/5 REAL OPERATIONS  
-**Captured:** 2026-08-21 17:40 America/Lima  
-**Production main:** `a279d35034b25acba5acf2c93bd20e9903fceaed`  
+**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 V2 PRODUCTION CANARY 0/5 REAL OPERATIONS  
+**Captured:** 2026-08-21 19:23 America/Lima  
+**Functional runtime:** `7e5e7915b4c771649e50fd11e2af767819383052`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
-**CURRENT GATE:** `LOOP 6 — post-cutover real-operation canary + minimum 5 genuine operations`  
+**CURRENT GATE:** `LOOP 6 V2 — post-hotfix controlled canary + minimum 5 genuine operations`  
 **LOOP 7:** `NOT STARTED`
 
-GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the lock or certify Loop 6 until the five-real-operation gate and downstream invariants pass.
+GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the lock or certify Loop 6 until the expanded V2 five-real-operation gate and downstream invariants pass.
 
 ## Portfolio lock state
 
@@ -17,60 +17,51 @@ GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the lock or 
 - **REV-F6 global:** `PRODUCTION CERTIFIED — 100%`.
 - **REV-F7:** `NEXT / UNBLOCKED`, paused while MKT owns the single HIGH/CRITICAL mutable lane.
 
-## Loop 6 implementation / deployment
+## Loop 6 runtime lineage
 
-Functional PR **#335** — `MKT Loop 6 — atomic Call Center semantics + patient decision layer` — is **MERGED**.
+- PR #335 — atomic Call Center semantics + F6 decision layer: **MERGED**.
+- PR #337 — 15-day reactivation + 72h ownership/recovery V2: **MERGED** at `521c013209702a7c26ddafed23799f9c36236481`.
+- PR #338 — retry/idempotency precheck hotfix: **MERGED** at `7e5e7915b4c771649e50fd11e2af767819383052` using exact expected head.
+- Railway status for exact functional runtime `7e5e7915b4c771649e50fd11e2af767819383052`: **SUCCESS** in context `ASCENDA-OS - ascenda-os`.
 
-Exact merge:
+Production continues to load exactly one `app/public/calls-loop6.js` override.
 
-- PR head: `1b73c1b34deec92a9ffadec8056d9256d8ede074`;
-- production main: `a279d35034b25acba5acf2c93bd20e9903fceaed`.
+## V2 server-authoritative commercial rules
 
-Pre-merge gates on the exact PR head:
+1. Reactivation commercial credit requires >=15 full days since latest qualifying prior sale, clinical attention or ASISTIO/EFECTIVA appointment, using America/Lima.
+2. Reactivation before 15 days may create management/Agenda but is DOWNGRADE / no new commercial `CITA CONFIRMADA`; beneficiary scope = CLINIC.
+3. NO ASISTIO ownership is protected for 72 hours from the original appointment slot.
+4. A different advisor may help during protection, but the Call remains non-conversion follow-up and Agenda/ownership remain with the prior advisor; executor is still audited.
+5. After 72 hours, transfer is permitted only when the prior owner has no recorded post-no-show follow-up.
+6. Recorded prior-owner follow-up prevents automatic transfer even after 72h.
+7. Original-owner rebook does not create a second conversion.
+8. Existing active PENDIENTE/CITA CONFIRMADA appointment blocks a new commercial conversion/Agenda.
+9. `FOLLOWUP_CONVERSION` is distinct from `CALLBACK_INBOUND`.
+10. `AGENDA_ONLY` creates Agenda only, zero commercial Call/Cita credit.
+11. Browser selection is advisory; server policy may BLOCK/DOWNGRADE and is authoritative.
+12. Action journal separates executor (`asesor/id_asesor`) from `credited_advisor`, `commercial_owner`, `beneficiary_scope`, eligibility and ownership-transfer state.
 
-- Loop6 Runtime Loader Patch #7 — **SUCCESS**;
-- Ascenda CI #2835 — **SUCCESS**;
-- ASCENDA CIA Phase 16 Email Contracts #81 — **SUCCESS**.
+## V2 validation completed
 
-Railway deployment status for exact merge `a279d35034b25acba5acf2c93bd20e9903fceaed` is **SUCCESS** in context `ASCENDA-OS - ascenda-os`.
+Dedicated rollback canaries PASS for:
 
-The production merge contains:
+- Reactivation <15d;
+- Reactivation >=15d;
+- NO ASISTIO <72h support by another advisor;
+- NO ASISTIO >72h without owner follow-up -> transfer + `CITA CONFIRMADA` + `FOLLOWUP_CONVERSION`;
+- >72h with owner follow-up -> no transfer;
+- original owner rebook -> no second conversion;
+- active appointment -> BLOCK + 0 Call/0 Agenda;
+- Seguimientos conversion -> `FOLLOWUP_CONVERSION` + direct links;
+- AGENDA_ONLY -> Call 0 / Agenda 1;
+- attempted commercial-button misuse on converted/non-eligible patient -> server BLOCK;
+- retry/idempotency -> after hotfix, identical retry returns same IDs with `idempotent=true`, physical cardinality journal 1 / Call 1 / Agenda 1.
 
-- governed F6-backed patient-state preparation;
-- atomic Call + Agenda persistence;
-- durable action idempotency journal `aos_callcenter_actions_v1`;
-- direct linkage before COMMIT;
-- explicit `LLAMADA_MANUAL_COMERCIAL`, `CALLBACK_INBOUND`, `REACTIVACION`, `SEGUIMIENTO_PACIENTE` and `AGENDA_ONLY` semantics;
-- existing-patient decision modal;
-- identity conflict fail-closed / REVIEW;
-- cleanup compatibility that preserves explicit real commercial calls;
-- `app/public/calls-loop6.js`;
-- exactly one `calls-loop6.js?v=20260821-loop6` loader in `app/public/calls.html`;
-- rollback scripts and Impact Report.
-
-## Validation completed before production real-use gate
-
-The prompt-defined **15 DB canaries PASS** in transactions/rollback with zero synthetic residue.
-
-Coverage included:
-
-- Marco, Julia and Carlos MARKETING / late-lead cases;
-- Lidia forced atomic failure rollback;
-- Alberto double-click idempotency;
-- Alan converted-patient Reactivation and Agenda-only;
-- César Bravo correctly non-converted;
-- synthetic Agenda-only call delta 0;
-- callback/inbound semantic;
-- organic new patient;
-- synthetic shared-phone identity conflict → REVIEW;
-- legacy ambiguous cleanup vs explicit commercial call preservation;
-- retry-after-timeout idempotency;
-- old lead + NO ASISTIO-only not treated as converted;
-- converted patient + new Meta lead blocked from new acquisition.
+The retry canary found an ordering defect before final certification: retry was hitting active-appointment policy before the journal. PR #338 fixes this with a narrow precheck wrapper; the underlying V2 policy implementation remains isolated/service-role-only.
 
 ## Protected repair baseline
 
-These repaired calls must remain intact throughout final certification:
+These repaired calls must remain intact throughout terminal certification:
 
 - `36701` Alan Valencia
 - `37185` Marco Antonio Salcedo Soto
@@ -81,55 +72,68 @@ These repaired calls must remain intact throughout final certification:
 
 Repaired direct links must remain intact. Removed duplicate Agenda rows for Alberto and Alan must not reappear.
 
-## Production canary baseline
+## Post-canary invariants
 
-Captured before real Loop 6 use at **2026-08-21 17:35:03 America/Lima**:
+After all rollback canaries:
 
-- `aos_callcenter_actions_v1`: **0 rows**;
-- `journal_max_created`: **NULL**;
-- max `aos_llamadas.id`: **38254**;
-- Agenda rows: **3147**;
-- REV-F5: **6 batches / 15,498 source rows / 8,716 clusters / 15,498 members / 8,716 previews / 230 apply events**;
-- six protected repaired calls intact.
+- action journal = **0**;
+- policy events = **0**;
+- synthetic Calls = **0**;
+- synthetic Agenda rows = **0**;
+- repaired calls/direct links intact;
+- removed duplicates = **0**;
+- REV-F5 = **6 batches / 15,498 source rows / 8,716 clusters / 15,498 members / 8,716 previews / 230 apply events**;
+- F6 Identity/Lifecycle remain service-role-only;
+- Acquisition = **V2 56 / V3 57 / V2-only 0 / sole V3-only 973438607 -> lead 2135**;
+- August Attribution checkpoint = **V2 22 rows / S/6,538; V3 35 rows / S/13,747**.
 
-Readback at **17:40:13 America/Lima** remains **0 journal rows**. No genuine post-cutover operation has yet occurred.
+## V2 production canary baseline
 
-Evidence: `docs/control/MKT_INTEGRITY_V3_LOOP6_PRODUCTION_CANARY_20260821.md`.
+Captured **after Railway SUCCESS for functional runtime `7e5e7915b4c771649e50fd11e2af767819383052`**:
 
-## Controlled canary → expansion
+- UTC: `2026-08-22T00:23:02.593121+00:00`
+- America/Lima: **2026-08-21 19:23:02**
+- `aos_callcenter_actions_v1`: **0 rows**
+- `aos_callcenter_policy_events_v1`: **0 rows**
+- max `aos_llamadas.id`: **38343**
+- Agenda rows: **3148**
 
-The **first genuine** post-cutover row in `aos_callcenter_actions_v1` is the controlled production canary.
+Evidence: `docs/control/MKT_INTEGRITY_V3_LOOP6_V2_PRODUCTION_CANARY_20260821.md`.
 
-It must pass all of the following before expansion is treated as healthy:
+Only genuine actions with `created_at > 2026-08-22T00:23:02.593121+00:00` qualify for the V2 terminal gate.
 
-1. one committed action-level idempotency key;
-2. correct explicit management semantic;
+## Controlled canary -> expansion
+
+The first genuine qualifying V2 action is the controlled production canary. It must pass:
+
+1. correct server-side eligibility decision;
+2. correct executor vs credited advisor / owner;
 3. correct Call/Agenda cardinality;
-4. correct direct links when applicable;
-5. existing-patient actions create no new acquisition;
-6. no partial state / duplicate on retry;
-7. Marketing, protected repair data and REV-F5 remain intact.
+4. correct direct links;
+5. no duplicate/partial state;
+6. no false Marketing acquisition;
+7. repaired data, REV-F5 and F6 security unchanged.
 
-If the first real action fails: **STOP expansion** and repair/rollback inside Loop 6.
+If first qualifying action fails: **STOP expansion** and repair inside Loop 6.
 
-If PASS: continue ordinary Call Center use and observe until at least **5 genuine post-cutover actions** exist.
+If PASS: continue ordinary Call Center use until at least **5 genuine post-baseline actions** exist.
 
 ## Loop 6 final PASS rule
 
 Do not certify Loop 6 100% until:
 
-- >=5 genuine post-cutover actions exist in the Loop 6 journal;
-- each action passes semantic/cardinality/direct-link/idempotency readback;
+- >=5 genuine actions exist after the V2 baseline;
+- every action passes semantic/cardinality/direct-link/idempotency/credit-ownership readback;
 - no false Marketing acquisition is introduced;
-- acquisition/attribution changes, if any, are explainable only by genuine eligible business events;
+- Acquisition/Attribution deltas are explainable only by genuine eligible events;
 - REV-F5 remains exact;
 - six repaired calls/direct links remain intact and removed duplicates stay absent;
 - security grants/F6 private boundaries remain unchanged;
-- final CURRENT + certificate + Notion are reconciled.
+- final certificate + CURRENT + Notion are reconciled.
 
 Until then:
 
-- **Loop 6 = PRODUCTION CANARY ACTIVE / NOT YET CERTIFIED**;
+- **Loop 6 = V2 PRODUCTION CANARY ACTIVE / NOT YET CERTIFIED**;
 - **active lock remains `MKT-INTEGRITY-HOTFIX-V3`**;
 - **Loop 7 = NOT STARTED**.
 
