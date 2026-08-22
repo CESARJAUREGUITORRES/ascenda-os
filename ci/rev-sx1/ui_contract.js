@@ -1,0 +1,27 @@
+const fs=require('fs');
+const assert=require('assert');
+const bridge=fs.readFileSync('app/public/f4-revenue-ops.js','utf8');
+const sx=fs.readFileSync('app/public/rev-sx1-sales-explorer.js','utf8');
+const sales=fs.readFileSync('app/public/admin-sales.html','utf8');
+const migration=fs.readFileSync('supabase/migrations/20260822024500_rev_sx1_sales_explorer_read_v1.sql','utf8');
+
+assert(bridge.includes("sc.src='/rev-sx1-sales-explorer.js?v=20260822-sx1-v1'"),'SX1 must lazy-load only after ranking click');
+assert(bridge.includes("['vs-top-serv','SERVICE']")&&bridge.includes("['vs-top-prod','PRODUCT']"),'both ranking titles must be entrypoints');
+assert(bridge.includes("name==='aos_sales_explorer_history_v1'")&&bridge.includes('xb.p_token=token()'),'history RPC must inherit canonical F4 token');
+assert(!sales.includes('rev-sx1-sales-explorer.js'),'Sales initial HTML must not preload SX1 asset');
+assert(sx.includes("S.tab='SUMMARY'")&&sx.includes("if(S.tab==='HISTORY'){history();return}"),'initial open must render memory summary before any history request');
+assert(sx.includes("window.VS&&VS.data&&Array.isArray(VS.data.detalle)"),'Explorer must reuse already-loaded Sales detail');
+assert(sx.includes('0 data requests'),'initial performance contract must be explicit');
+assert(sx.includes("['SUMMARY','Resumen']")&&sx.includes("['HISTORY','Histórico']")&&sx.includes("['CLIENTS','Clientes']")&&sx.includes("['BREAKDOWN','Asesores / Sedes']")&&sx.includes("['SALES','Ventas']"),'required tabs missing');
+assert(sx.includes('DATA_MISMATCH')&&sx.includes('NO_CERTIFIED_SOURCE'),'fail-closed analytical states missing');
+assert(sx.includes('Exportar CSV')&&sx.includes('text/csv'),'CSV export must be client-side/read-only');
+assert(sx.includes("productResolutionStatus")&&sx.includes('physicalQty')&&sx.includes('isPack'),'product facts must preserve F3/F4/PRC1 semantics');
+assert(sx.includes("key==='OTROS'")||sx.includes("key==='OTROS'"),'service OTROS exclusion contract missing');
+assert(!/method\s*:\s*['\"](?:PATCH|DELETE|PUT)['\"]/i.test(sx),'SX1 browser module must not contain write methods');
+assert(!/insert\s+into|update\s+public\.|delete\s+from|create\s+trigger/i.test(migration),'SX1 migration must contain no business writes/triggers');
+assert(migration.includes("public.aos_f4_actor(p_token,'admin-sales')"),'SX1 backend must use governed admin-sales auth');
+assert(migration.includes("f.resolution_status='RESOLVED'")&&migration.includes('f.physical_qty'),'product history must use canonical resolved facts and physical quantities');
+assert(migration.includes("upper(trim(coalesce(v.tratamiento,'')))<>'OTROS'"),'service history must preserve OTROS ranking rule');
+assert(migration.includes("v_prev_end:=least")&&migration.includes('v_period_end-v_period_start'),'partial-month comparison must use equivalent elapsed span');
+assert(!fs.existsSync('src/admin-sales.html'),'admin-sales has no src parity target; app/public is authoritative');
+console.log('REV-SX1 UI/read-only contracts PASS');

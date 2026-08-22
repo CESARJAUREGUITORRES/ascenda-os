@@ -119,6 +119,11 @@ window.fetch=function(input,init){
     return postRpc(url,init,'aos_grabar_venta_caja_v4',cb).then(function(r){if(missing(r))return nativeFetch(input,init);return r});
   }
 
+  if(name==='aos_sales_explorer_history_v1'){
+    var xb=parseBody(init);xb.p_token=token();
+    return postRpc(url,init,'aos_sales_explorer_history_v1',xb).then(function(r){if(missing(r))return nativeFetch(input,init);return r});
+  }
+
   if(name==='aos_cartera_gateway'){
     return nativeFetch(input,init).then(function(r){
       try{r.clone().json().then(function(d){if(d&&d.ok)carteraRows=d.rows||[]}).catch(function(){})}catch(e){}
@@ -139,7 +144,30 @@ window.fetch=function(input,init){
   return nativeFetch(input,init);
 };
 
+
+var sx1Loader=null;
+function openSalesExplorer(kind){
+  if(window.AOS_SX1&&typeof window.AOS_SX1.open==='function'){window.AOS_SX1.open(kind);return}
+  if(!sx1Loader){
+    sx1Loader=new Promise(function(resolve,reject){
+      var sc=document.createElement('script');sc.src='/rev-sx1-sales-explorer.js?v=20260822-sx1-v1';sc.async=true;
+      sc.onload=resolve;sc.onerror=function(){sx1Loader=null;reject(new Error('SX1_ASSET_LOAD_FAILED'))};document.head.appendChild(sc);
+    });
+  }
+  sx1Loader.then(function(){if(window.AOS_SX1&&window.AOS_SX1.open)window.AOS_SX1.open(kind)}).catch(function(e){console.error('[REV-SX1]',e)});
+}
+function patchSalesExplorerEntrypoints(){
+  [['vs-top-serv','SERVICE'],['vs-top-prod','PRODUCT']].forEach(function(pair){
+    var body=document.getElementById(pair[0]);if(!body)return;var card=body.closest?body.closest('.crd'):null,title=card&&card.querySelector('.ct');
+    if(!title||title.getAttribute('data-sx1')==='1')return;
+    title.setAttribute('data-sx1','1');title.setAttribute('role','button');title.setAttribute('tabindex','0');title.style.cursor='pointer';title.title='Abrir Sales Explorer';
+    var mark=document.createElement('span');mark.textContent='\u2197';mark.style.cssText='font-size:10px;color:#0A4FBF;margin-left:4px';title.appendChild(mark);
+    function go(){openSalesExplorer(pair[1])}title.addEventListener('click',go);title.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();go()}});
+  });
+}
+
 function patchSales(){
+  patchSalesExplorerEntrypoints();
   var box=document.getElementById('vs-top-prod');
   if(!box||typeof window.renderCategoryRankings!=='function'||window.renderCategoryRankings.__f4)return;
   var original=window.renderCategoryRankings;
