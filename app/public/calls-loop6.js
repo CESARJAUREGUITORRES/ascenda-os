@@ -3,7 +3,7 @@
  */
 (function(){
 'use strict';
-window.__AOS_CC_LOOP6_V2__='v2.2';
+window.__AOS_CC_LOOP6_V2__='v2.3';
 
 function cc6Token(){return (window.AOS_getToken&&window.AOS_getToken())||sessionStorage.getItem('aos_app_token')||(window.CC&&CC.token)||'';}
 function cc6Rpc(fn,p){return new Promise(function(resolve,reject){if(typeof window._rpc!=='function'){reject(new Error('RPC_UNAVAILABLE'));return;}window._rpc(fn,p,function(d){resolve(d);},function(e){reject(e||new Error('RPC_FAILED'));});});}
@@ -26,7 +26,16 @@ if(typeof window._rpc==='function'&&!window._rpc.__cc6wrapped){var _rpc0=window.
 
 function cc6ClassifyCurrentLead(){if(!window.CC||!CC.lead||!CC.lead.num)return;var num=CC.lead.num;cc6Prepare(num).then(function(prep){if(!CC.lead||String(CC.lead.num)!==String(num))return;CC.loop6Patient=prep;CC.loop6Blocked=!!(prep&&prep.error==='IDENTITY_CONFLICT');var tier=document.getElementById('cc-tier'),ctx=document.getElementById('cc-contexto'),p=cc6Policy(prep);if(CC.loop6Blocked){if(tier)tier.textContent='REVIEW · IDENTIDAD';if(ctx){ctx.style.display='block';ctx.innerHTML='<div class="ctx-bloque" style="border-left-color:#DC2626;background:#FEF2F2"><div class="ctx-tit" style="color:#DC2626">⚠️ Identidad ambigua</div><div class="ctx-row"><span class="ctx-val">No registrar conversión automática. Revisar identidad.</span></div></div>';}return;}if(prep.patientState==='CONVERTED_PATIENT'){if(tier)tier.textContent='PACIENTE EXISTENTE';if(ctx){var current=ctx.innerHTML||'',elig=p.reactivationEligible?'Reactivación elegible':'Reactivación elegible desde '+cc6Local(p.reactivationEligibleFrom);var note='<div class="ctx-bloque" id="cc6-patient-context" style="border-left-color:#D97706;background:#FFF7ED"><div class="ctx-tit" style="color:#D97706">♻️ Paciente convertido</div><div class="ctx-row"><span class="ctx-val">'+cc6Esc(cc6EvidenceLabel(prep))+' · '+cc6Esc(elig)+'</span></div></div>';if(current.indexOf('cc6-patient-context')<0){ctx.style.display='block';ctx.innerHTML=current+note;}}}else if(p.lastNoShow&&ctx){var ns=p.lastNoShow,txt='NO ASISTIO '+ns.date+' '+(ns.time||'')+' · Propietario: '+(ns.advisor||'—')+' · protección hasta '+cc6Local(ns.protectedUntil);var cur=ctx.innerHTML||'';if(cur.indexOf('cc6-noshow-context')<0){ctx.style.display='block';ctx.innerHTML=cur+'<div class="ctx-bloque" id="cc6-noshow-context" style="border-left-color:#2563EB;background:#EFF6FF"><div class="ctx-tit" style="color:#2563EB">↩️ Oportunidad con NO ASISTIO</div><div class="ctx-row"><span class="ctx-val">'+cc6Esc(txt)+'</span></div></div>';}}}).catch(function(e){console.warn('[CC6V2] patient state unavailable',e);});}
 
-function cc6EnsureSelectors(){var cita=document.querySelector('#cc-m-cita .mg');if(cita&&!document.getElementById('cc6-contact-mode')){var wrap=document.createElement('div');wrap.className='mf full';wrap.innerHTML='<div class="ml">Origen de esta conversación</div><select class="ms2" id="cc6-contact-mode"><option value="COMMERCIAL">📞 Llamada comercial</option><option value="CALLBACK">↩️ Seguimiento / callback / entrante</option></select>';cita.insertBefore(wrap,cita.firstChild);}var manual=document.querySelector('#cc-m-cita-manual .mg');if(manual&&!document.getElementById('cc6-manual-mode')){var mw=document.createElement('div');mw.className='mf full';mw.innerHTML='<div class="ml">Qué gestión realizó</div><select class="ms2" id="cc6-manual-mode"><option value="COMMERCIAL">📞 Llamada comercial</option><option value="CALLBACK">↩️ Seguimiento / callback / entrante</option><option value="AGENDA_ONLY">📅 Solo agendar</option></select>';manual.insertBefore(mw,manual.firstChild);}}
+function cc6EnsureSelectors(){
+  var obsolete=document.getElementById('cc6-contact-mode');
+  if(obsolete){var ow=obsolete.closest('.mf');if(ow)ow.remove();else obsolete.remove();}
+  var manual=document.querySelector('#cc-m-cita-manual .mg');
+  if(manual&&!document.getElementById('cc6-manual-mode')){
+    var mw=document.createElement('div');mw.className='mf full';
+    mw.innerHTML='<div class="ml">Qué gestión realizó</div><select class="ms2" id="cc6-manual-mode"><option value="COMMERCIAL">📞 Llamada comercial</option><option value="CALLBACK">↩️ Seguimiento / callback / entrante</option><option value="AGENDA_ONLY">📅 Solo agendar</option></select>';
+    manual.insertBefore(mw,manual.firstChild);
+  }
+}
 function cc6PayloadFromCita(){var tipo='CONSULTA NUEVA';document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){if(t.classList.contains('act'))tipo=t.getAttribute('data-val')||tipo;});var num=window.CC&&CC.lead?String(CC.lead.num||'').replace(/\D/g,''):'';return{numero:num,lead_id:(CC.lead&&CC.lead.leadId)||null,tratamiento:(document.getElementById('cc-c-trat')||{}).value||((CC.lead&&CC.lead.trat)||''),anuncio:(CC.lead&&CC.lead.anuncio)||'',source_mode:(CC.lead&&CC.lead.fromSeg)?'FOLLOWUP':((CC.lead&&CC.lead.manual)?'MANUAL':'QUEUE'),nombre:(document.getElementById('cc-c-nombre')||{}).value||'',apellido:(document.getElementById('cc-c-apellido')||{}).value||'',dni:(document.getElementById('cc-c-dni')||{}).value||'',correo:(document.getElementById('cc-c-correo')||{}).value||'',tipo_atencion:(document.getElementById('cc-c-tipo-at')||{}).value||'',sede:(document.getElementById('cc-c-sede')||{}).value||'',fecha_cita:(document.getElementById('cc-c-fecha')||{}).value||'',hora_cita:(document.getElementById('cc-c-hora')||{}).value||'',tipo_cita:tipo,doctora:(document.getElementById('cc-c-doctora')||{}).value||'',obs:(document.getElementById('cc-c-obs')||{}).value||'',duracion_seg:(CC.leadStartTs?Math.max(0,Math.round((Date.now()-CC.leadStartTs)/1000)):0),desde_dispositivo:/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)?'movil':'web',followup_id:(CC.lead&&CC.lead.fromSeg&&CC.lead.segId)?CC.lead.segId:null};}
 function cc6PayloadFromManual(){var tipo='CONSULTA NUEVA',grp=document.getElementById('cm-tipo-cita-grp');if(grp)grp.querySelectorAll('.tb').forEach(function(t){if(t.classList.contains('act'))tipo=t.getAttribute('data-val')||tipo;});return{numero:String((document.getElementById('cm-num')||{}).value||'').replace(/\D/g,''),lead_id:null,tratamiento:(document.getElementById('cm-trat')||{}).value||'',anuncio:'',source_mode:'MANUAL',nombre:(document.getElementById('cm-nombre')||{}).value||'',apellido:(document.getElementById('cm-apellido')||{}).value||'',dni:(document.getElementById('cm-dni')||{}).value||'',correo:(document.getElementById('cm-correo')||{}).value||'',tipo_atencion:(document.getElementById('cm-tipo-at')||{}).value||'',sede:(document.getElementById('cm-sede')||{}).value||'',fecha_cita:(document.getElementById('cm-fecha')||{}).value||'',hora_cita:(document.getElementById('cm-hora')||{}).value||'',tipo_cita:tipo,doctora:(document.getElementById('cm-doctora')||{}).value||'',obs:(document.getElementById('cm-obs')||{}).value||'',duracion_seg:0,desde_dispositivo:/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)?'movil':'web'};}
 function cc6ValidatePayload(p){if(!p.numero||p.numero.length<7)return'Número inválido';if(!p.fecha_cita)return'Falta fecha de cita';if(!p.hora_cita)return'Falta hora de cita';return'';}
@@ -38,7 +47,63 @@ function cc6ManualChoice(payload,done){var mode=((document.getElementById('cc6-m
 function cc6Outcome(res){var reason=res&&res.eligibilityReason;if(res&&res.eligibilityStatus==='DOWNGRADE'){var txt=reason==='REACTIVATION_BEFORE_15D'?'Paciente reciente: la gestión y Agenda quedaron registradas, pero aún no genera nueva cita comercial. Beneficiario: Clínica.':reason==='NO_SHOW_PROTECTED_72H'?'La oportunidad sigue protegida para '+(res.commercialOwner||res.priorAdvisor||'el asesor anterior')+'. Tu gestión quedó registrada como ayuda; no se creó una segunda cita comercial.':reason==='ORIGINAL_OWNER_FOLLOWUP_EXISTS'?'El asesor anterior tiene seguimiento registrado. La oportunidad mantiene su propietario; tu gestión quedó como apoyo.':reason==='ORIGINAL_OWNER_REBOOK'?'Reagendamiento del mismo propietario: conserva la oportunidad, pero no crea una segunda conversión.':'La gestión fue registrada sin nuevo crédito comercial.';cc6InfoModal('cc6-outcome-modal','Gestión registrada con regla de crédito','<div style="padding:10px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px">'+cc6Esc(txt)+'</div>','Cerrar',function(){});return;}if(res&&res.ownershipTransfer)cc6Toast('✓ Recuperación acreditada',res.executedBy+' recuperó la oportunidad','toast-venta');}
 function cc6Commit(action,payload,sourceModal){if(action==='CALLBACK_INBOUND_APPOINTMENT')payload.source_mode=payload.followup_id?'FOLLOWUP':'CALLBACK';if(action==='AGENDA_ONLY'&&payload.source_mode==='QUEUE')payload.source_mode='MANUAL';var pending=cc6PendingKey(action,payload);return cc6Rpc('aos_callcenter_commit_action_v1',{p_token:cc6Token(),p_idempotency_key:pending.key,p_action_type:action,p_payload:payload}).then(function(res){if(!res||res.ok!==true){var er=new Error((res&&res.error)||'CALLCENTER_ACTION_FAILED');er.payload=res;throw er;}cc6ClearPending(pending.fp);if(sourceModal&&typeof window.closeCCModal==='function')closeCCModal(sourceModal);var isCommercial=res.callState==='CITA CONFIRMADA',label=action==='AGENDA_ONLY'?'Cita agendada · no suma conversión':res.eligibilityReason==='REACTIVATION_15D_ELIGIBLE'?'Reactivación válida + cita comercial':action==='REACTIVATION'?'Reactivación registrada':action==='PATIENT_FOLLOWUP'?'Seguimiento guardado':action==='CALLBACK_INBOUND_APPOINTMENT'?'Seguimiento/callback guardado':'Cita confirmada';if(window.AOS_playSound)AOS_playSound(isCommercial?'venta':'notif');cc6Toast(label,res.origin||'Guardado',isCommercial?'toast-venta':'');cc6Outcome(res);if(payload.correo&&typeof window.enviarEmailConfirmacionCita==='function')enviarEmailConfirmacionCita({correo:payload.correo,nombre:payload.nombre,apellido:payload.apellido,fecha_cita:payload.fecha_cita,hora_cita:payload.hora_cita,tratamiento:payload.tratamiento,sede:payload.sede,dni:payload.dni,numero_limpio:payload.numero});if(typeof window.loadHistorial==='function')loadHistorial();if(typeof window.loadMetrics==='function')loadMetrics();if(typeof window.recargarCalendario==='function')recargarCalendario();if(window.AOS_pollNow)AOS_pollNow();if(typeof window.loadLead==='function'&&action!=='AGENDA_ONLY')loadLead();return res;}).catch(function(err){console.error('[CC6V2] commit',action,err,err&&err.payload);var ep=err&&err.payload||{},msg=ep.error||(err&&err.message)||'Error al guardar';if(msg==='PATIENT_ACTION_REQUIRED')msg='Paciente existente: selecciona Reactivación, Seguimiento o Solo agendar.';if(msg==='IDENTITY_CONFLICT')msg='Identidad ambigua: requiere revisión antes de guardar.';if(msg==='ACTIVE_APPOINTMENT_EXISTS'){var a=ep.activeAppointment||{};cc6InfoModal('cc6-active-error','Ya existe una cita activa','<b>Asesor:</b> '+cc6Esc(a.advisor||'—')+'<br><b>Fecha:</b> '+cc6Esc(a.date||'—')+' · '+cc6Esc(a.time||'—')+'<br>No se creó una segunda cita.',null);throw err;}cc6Toast('No se guardó',msg,'toast-alerta');throw err;});}
 function cc6RunPrepared(prep,p,sourceModal,chooser){if(cc6ActiveBlock(prep)){cc6SetBusy(false);return;}if(prep.patientState==='CONVERTED_PATIENT'){cc6ExistingPatientModal(prep,p,function(action){cc6Commit(action,p,sourceModal).finally(function(){cc6SetBusy(false);});});return;}cc6NoShowGate(prep,function(){chooser(function(action){cc6Commit(action,p,sourceModal).finally(function(){cc6SetBusy(false);});});});}
-window.ccConfirmarCita=function(){if(window.CC&&CC.guardando)return;cc6EnsureSelectors();var p=cc6PayloadFromCita(),bad=cc6ValidatePayload(p);if(bad){cc6Toast('⚠️ '+bad,'','toast-alerta');return;}cc6SetBusy(true);cc6Prepare(p.numero).then(function(prep){if(!prep||prep.ok!==true)throw Object.assign(new Error((prep&&prep.error)||'PATIENT_STATE_FAILED'),{payload:prep});CC.loop6Patient=prep;cc6RunPrepared(prep,p,'cc-m-cita',function(done){var mode=((document.getElementById('cc6-contact-mode')||{}).value||'COMMERCIAL');done(mode==='CALLBACK'?'CALLBACK_INBOUND_APPOINTMENT':'COMMERCIAL_CALL_APPOINTMENT');});}).catch(function(e){cc6SetBusy(false);var msg=(e&&e.payload&&e.payload.error)||(e&&e.message)||'No se pudo clasificar';cc6Toast('No se guardó',msg,'toast-alerta');});};
+/* LOOP6_V23_AUTO_QUEUE */
+function cc6QueueFinishModal(res,payload){
+  cc6RemoveModal('cc6-queue-success-modal');
+  var commercial=res&&res.callState==='CITA CONFIRMADA'&&res.eligibilityStatus==='ALLOW';
+  var title=commercial?'✅ CITA AGENDADA CON ÉXITO':'Gestión registrada';
+  var bg=commercial?'#F0FDF4':'#FFF7ED',bd=commercial?'#BBF7D0':'#FED7AA',fg=commercial?'#166534':'#92400E';
+  var name=((payload.nombre||'')+' '+(payload.apellido||'')).trim()||payload.numero;
+  var detail='<div style="padding:12px;background:'+bg+';border:1px solid '+bd+';border-radius:10px;color:'+fg+';line-height:1.6"><b>'+cc6Esc(name)+'</b><br>'+cc6Esc(payload.fecha_cita||'')+' · '+cc6Esc(payload.hora_cita||'')+'<br>'+cc6Esc(payload.tratamiento||'')+'<br>'+cc6Esc(payload.sede||'')+'<br>Asesor: '+cc6Esc((res&&res.executedBy)||'—')+(commercial?'':'<br><b>Regla:</b> '+cc6Esc((res&&res.eligibilityReason)||'Sin nuevo crédito comercial')+'</div>';
+  cc6InfoModal('cc6-queue-success-modal',title,detail,'CONTINUAR LLAMADAS',function(){
+    if(typeof window.loadMetrics==='function')loadMetrics();
+    if(typeof window.loadHistorial==='function')loadHistorial();
+    if(typeof window.recargarCalendario==='function')recargarCalendario();
+    if(window.AOS_pollNow)AOS_pollNow();
+    if(typeof window.loadLead==='function')loadLead();
+  });
+}
+function cc6QueueCommit(payload,sourceModal){
+  var pending=cc6PendingKey('QUEUE_AUTO_APPOINTMENT',payload);
+  return cc6Rpc('aos_callcenter_confirm_queue_appointment_v1',{p_token:cc6Token(),p_idempotency_key:pending.key,p_payload:payload}).then(function(res){
+    if(!res||res.ok!==true){var er=new Error((res&&res.error)||'QUEUE_CONFIRM_FAILED');er.payload=res;throw er;}
+    cc6ClearPending(pending.fp);
+    if(sourceModal&&typeof window.closeCCModal==='function')closeCCModal(sourceModal);
+    if(window.AOS_playSound)AOS_playSound(res.callState==='CITA CONFIRMADA'?'venta':'notif');
+    if(payload.correo&&typeof window.enviarEmailConfirmacionCita==='function')enviarEmailConfirmacionCita({correo:payload.correo,nombre:payload.nombre,apellido:payload.apellido,fecha_cita:payload.fecha_cita,hora_cita:payload.hora_cita,tratamiento:payload.tratamiento,sede:payload.sede,dni:payload.dni,numero_limpio:payload.numero});
+    cc6QueueFinishModal(res,payload);
+    return res;
+  }).catch(function(err){
+    console.error('[CC6V23] queue commit',err,err&&err.payload);
+    var ep=err&&err.payload||{},msg=ep.error||(err&&err.message)||'No se pudo guardar la cita';
+    if(msg==='ACTIVE_APPOINTMENT_EXISTS'){var a=ep.activeAppointment||{};cc6InfoModal('cc6-active-error','Ya existe una cita activa','<b>Asesor:</b> '+cc6Esc(a.advisor||'—')+'<br><b>Fecha:</b> '+cc6Esc(a.date||'—')+' · '+cc6Esc(a.time||'—')+'<br>No se creó una segunda cita.',null);throw err;}
+    if(msg==='IDENTITY_CONFLICT')cc6InfoModal('cc6-identity-error','Identidad requiere revisión','Este número está vinculado a más de una identidad. No se creó Call ni Agenda.',null);
+    else if(msg==='PATIENT_ACTION_REQUIRED')cc6InfoModal('cc6-patient-error','Paciente existente detectado','El servidor detectó un paciente convertido. Reabre la cita y selecciona Reactivación, Seguimiento o Solo agendar desde el modal de excepción.',null);
+    else cc6Toast('No se guardó',msg,'toast-alerta');
+    throw err;
+  });
+}
+window.ccConfirmarCita=function(){
+  if(window.CC&&CC.guardando)return;
+  cc6EnsureSelectors();
+  var p=cc6PayloadFromCita(),bad=cc6ValidatePayload(p);
+  if(bad){cc6Toast('⚠️ '+bad,'','toast-alerta');return;}
+  cc6SetBusy(true);
+  cc6Prepare(p.numero).then(function(prep){
+    if(!prep||prep.ok!==true)throw Object.assign(new Error((prep&&prep.error)||'PATIENT_STATE_FAILED'),{payload:prep});
+    CC.loop6Patient=prep;
+    if(cc6ActiveBlock(prep)){cc6SetBusy(false);return;}
+    if(prep.patientState==='CONVERTED_PATIENT'){
+      cc6ExistingPatientModal(prep,p,function(action){cc6Commit(action,p,'cc-m-cita').finally(function(){cc6SetBusy(false);});});
+      return;
+    }
+    cc6NoShowGate(prep,function(){cc6QueueCommit(p,'cc-m-cita').finally(function(){cc6SetBusy(false);});});
+  }).catch(function(e){
+    cc6SetBusy(false);
+    var msg=(e&&e.payload&&e.payload.error)||(e&&e.message)||'No se pudo clasificar';
+    if(msg!=='ACTIVE_APPOINTMENT_EXISTS'&&msg!=='IDENTITY_CONFLICT'&&msg!=='PATIENT_ACTION_REQUIRED')cc6Toast('No se guardó',msg,'toast-alerta');
+  });
+};
 window.guardarCitaManual=function(){if(window.CC&&CC.guardando)return;cc6EnsureSelectors();var p=cc6PayloadFromManual(),bad=cc6ValidatePayload(p);if(bad){cc6Toast('⚠️ '+bad,'','toast-alerta');return;}cc6SetBusy(true);cc6Prepare(p.numero).then(function(prep){if(!prep||prep.ok!==true)throw Object.assign(new Error((prep&&prep.error)||'PATIENT_STATE_FAILED'),{payload:prep});cc6RunPrepared(prep,p,'cc-m-cita-manual',function(done){cc6ManualChoice(p,done);});}).catch(function(e){cc6SetBusy(false);var msg=(e&&e.payload&&e.payload.error)||(e&&e.message)||'No se pudo clasificar';cc6Toast('No se guardó',msg,'toast-alerta');});};
 cc6EnsureSelectors();setTimeout(function(){if(typeof window.loadLead==='function')loadLead();},80);console.log('[ASCENDA][CC6V2] credit/ownership policy ready');
 })();
