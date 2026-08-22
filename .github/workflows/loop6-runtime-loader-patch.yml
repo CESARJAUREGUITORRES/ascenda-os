@@ -13,6 +13,7 @@ on:
       - 'supabase/migrations/*mkt_loop6*'
       - 'supabase/rollbacks/*mkt_integrity_loop6*'
       - 'supabase/rollbacks/*mkt_loop6*'
+      - 'supabase/backfills/*mkt_loop6*'
       - 'docs/control/MKT_INTEGRITY_V3_LOOP6*'
   workflow_dispatch:
 
@@ -43,7 +44,7 @@ jobs:
         run: |
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Loop 6 loader patch must use self-hosted runner' }
       - id: patch
-        name: Apply deterministic V2.2 runtime patch
+        name: Apply deterministic V2.3 runtime patch
         shell: powershell
         run: |
           node scripts/ci/loop6_patch_calls_html.mjs
@@ -54,12 +55,12 @@ jobs:
             git config user.name 'ASCENDA Zero-Cost CI'
             git config user.email 'actions@users.noreply.github.com'
             git add app/public/calls.html app/public/calls.js app/public/calls-loop6.js
-            git commit -m 'LOOP 6 V2.2 — rearm runtime and block legacy frontend fallback'
+            git commit -m 'LOOP 6 V2.3 — automatic queue confirmation and manual-only selector'
             git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
           } else {
             "changed=false" >> $env:GITHUB_OUTPUT
           }
-      - name: Validate V2.2 runtime
+      - name: Validate V2.3 runtime
         if: steps.patch.outputs.changed == 'false'
         shell: powershell
         run: |
@@ -68,12 +69,16 @@ jobs:
           $html = Get-Content -Raw app/public/calls.html
           $callsjs = Get-Content -Raw app/public/calls.js
           $runtime = Get-Content -Raw app/public/calls-loop6.js
-          $marker = '<script src="/calls-loop6.js?v=20260821-loop6-v2.2"></script>'
-          if (([regex]::Matches($html,[regex]::Escape($marker))).Count -ne 1) { throw 'Expected exactly one V2.2 loader' }
-          if ($html.Contains('calls-loop6.js?v=20260821-loop6"></script>')) { throw 'Old Loop6 cache key remains' }
-          if (([regex]::Matches($html,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.2'"))).Count -lt 2) { throw 'Legacy guards missing in calls.html' }
-          if (([regex]::Matches($callsjs,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.2'"))).Count -lt 2) { throw 'Legacy guards missing in calls.js' }
-          if (-not $runtime.Contains("window.__AOS_CC_LOOP6_V2__='v2.2';")) { throw 'V2.2 runtime build marker missing' }
+          $marker = '<script src="/calls-loop6.js?v=20260821-loop6-v2.3"></script>'
+          if (([regex]::Matches($html,[regex]::Escape($marker))).Count -ne 1) { throw 'Expected exactly one V2.3 loader' }
+          if ($html.Contains('calls-loop6.js?v=20260821-loop6-v2.2')) { throw 'V2.2 cache key remains' }
+          if (([regex]::Matches($html,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.3'"))).Count -lt 2) { throw 'V2.3 legacy guards missing in calls.html' }
+          if (([regex]::Matches($callsjs,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.3'"))).Count -lt 2) { throw 'V2.3 legacy guards missing in calls.js' }
+          if (-not $runtime.Contains("window.__AOS_CC_LOOP6_V2__='v2.3';")) { throw 'V2.3 runtime marker missing' }
+          if ($runtime.Contains('id="cc6-contact-mode"')) { throw 'Queue selector markup must be absent' }
+          if (([regex]::Matches($runtime,[regex]::Escape('id="cc6-manual-mode"'))).Count -ne 1) { throw 'Expected exactly one Agenda Manual selector' }
+          if (-not $runtime.Contains('aos_callcenter_confirm_queue_appointment_v1')) { throw 'Automatic queue RPC missing' }
+          if (-not $runtime.Contains('CITA AGENDADA CON ÉXITO')) { throw 'Success modal missing' }
           if ($runtime.Contains('if(window.__AOS_CC_LOOP6_V2__) return;')) { throw 'Unsafe SPA early-return remains' }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
