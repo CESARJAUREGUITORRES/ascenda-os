@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/public/calls-loop6.js'
       - 'app/public/calls.html'
+      - 'app/public/calls.js'
       - 'scripts/ci/loop6_patch_calls_html.mjs'
       - '.github/workflows/loop6-runtime-loader-patch.yml'
       - 'supabase/migrations/*mkt_integrity_loop6*'
@@ -41,34 +42,38 @@ jobs:
         shell: powershell
         run: |
           if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'Loop 6 loader patch must use self-hosted runner' }
-          Write-Host "Runner: $env:RUNNER_NAME"
-          Write-Host "OS: $env:RUNNER_OS"
       - id: patch
-        name: Apply deterministic loader patch
+        name: Apply deterministic V2.2 runtime patch
         shell: powershell
         run: |
           node scripts/ci/loop6_patch_calls_html.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $changed = git status --porcelain -- app/public/calls.html
+          $changed = git status --porcelain -- app/public/calls.html app/public/calls.js app/public/calls-loop6.js
           if ($changed) {
             "changed=true" >> $env:GITHUB_OUTPUT
             git config user.name 'ASCENDA Zero-Cost CI'
             git config user.email 'actions@users.noreply.github.com'
-            git add app/public/calls.html
-            git commit -m 'LOOP 6 — load atomic Call Center runtime override'
+            git add app/public/calls.html app/public/calls.js app/public/calls-loop6.js
+            git commit -m 'LOOP 6 V2.2 — rearm runtime and block legacy frontend fallback'
             git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
           } else {
             "changed=false" >> $env:GITHUB_OUTPUT
           }
-      - name: Validate runtime loader
+      - name: Validate V2.2 runtime
         if: steps.patch.outputs.changed == 'false'
         shell: powershell
         run: |
           node --check app/public/calls-loop6.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $text = Get-Content -Raw app/public/calls.html
-          $marker = '<script src="/calls-loop6.js?v=20260821-loop6"></script>'
-          $count = ([regex]::Matches($text, [regex]::Escape($marker))).Count
-          if ($count -ne 1) { throw "Expected exactly one Loop 6 loader, found $count" }
+          $html = Get-Content -Raw app/public/calls.html
+          $callsjs = Get-Content -Raw app/public/calls.js
+          $runtime = Get-Content -Raw app/public/calls-loop6.js
+          $marker = '<script src="/calls-loop6.js?v=20260821-loop6-v2.2"></script>'
+          if (([regex]::Matches($html,[regex]::Escape($marker))).Count -ne 1) { throw 'Expected exactly one V2.2 loader' }
+          if ($html.Contains('calls-loop6.js?v=20260821-loop6"></script>')) { throw 'Old Loop6 cache key remains' }
+          if (([regex]::Matches($html,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.2'"))).Count -lt 2) { throw 'Legacy guards missing in calls.html' }
+          if (([regex]::Matches($callsjs,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.2'"))).Count -lt 2) { throw 'Legacy guards missing in calls.js' }
+          if (-not $runtime.Contains("window.__AOS_CC_LOOP6_V2__='v2.2';")) { throw 'V2.2 runtime build marker missing' }
+          if ($runtime.Contains('if(window.__AOS_CC_LOOP6_V2__) return;')) { throw 'Unsafe SPA early-return remains' }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
