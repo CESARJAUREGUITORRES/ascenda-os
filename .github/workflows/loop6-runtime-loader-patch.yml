@@ -9,7 +9,9 @@ on:
       - 'scripts/ci/loop6_patch_calls_html.mjs'
       - '.github/workflows/loop6-runtime-loader-patch.yml'
       - 'supabase/migrations/*mkt_integrity_loop6*'
+      - 'supabase/migrations/*mkt_loop6*'
       - 'supabase/rollbacks/*mkt_integrity_loop6*'
+      - 'supabase/rollbacks/*mkt_loop6*'
       - 'docs/control/MKT_INTEGRITY_V3_LOOP6*'
   workflow_dispatch:
 
