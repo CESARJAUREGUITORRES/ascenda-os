@@ -16,20 +16,20 @@ function patchLegacy(path){
   let changed=false;
   for(const sig of ['function ccConfirmarCita(){','function guardarCitaManual(){']){
     const guarded=`${sig}\n  ${guard}`;
-    if(text.includes(guarded)) continue;
+    const guardedCr=`${sig}\r\n  ${guard}`;
+    if(text.includes(guarded)||text.includes(guardedCr)) continue;
     if(!text.includes(sig)) throw new Error(`Loop6 legacy function not found in ${path}: ${sig}`);
-    text=text.replace(sig,guarded);
+    text=text.replace(sig,`${sig}\n  ${guard}`);
     changed=true;
   }
   if(changed) fs.writeFileSync(path,text,'utf8');
-  return changed;
 }
 
 let html=fs.readFileSync(htmlPath,'utf8');
 let htmlChanged=false;
 for(const old of oldMarkers){
   if(html.includes(old)){
-    html=html.split(old+'\n').join('').split(old).join('');
+    html=html.split(old+'\n').join('').split(old+'\r\n').join('').split(old).join('');
     htmlChanged=true;
   }
 }
@@ -46,12 +46,11 @@ patchLegacy(htmlPath);
 patchLegacy(callsJsPath);
 
 let runtime=fs.readFileSync(jsPath,'utf8');
-const oldBoot="if(window.__AOS_CC_LOOP6_V2__) return;\nwindow.__AOS_CC_LOOP6_V2__='v2';";
-const newBoot="window.__AOS_CC_LOOP6_V2__='v2.2';";
-if(runtime.includes(oldBoot)){
-  runtime=runtime.replace(oldBoot,newBoot);
+const bootRe=/if\(window\.__AOS_CC_LOOP6_V2__\) return;\r?\nwindow\.__AOS_CC_LOOP6_V2__='v2';/;
+if(bootRe.test(runtime)){
+  runtime=runtime.replace(bootRe,"window.__AOS_CC_LOOP6_V2__='v2.2';");
   fs.writeFileSync(jsPath,runtime,'utf8');
-}else if(!runtime.includes(newBoot)){
+}else if(!runtime.includes("window.__AOS_CC_LOOP6_V2__='v2.2';")){
   throw new Error('Loop6 runtime bootstrap signature not found');
 }
 
