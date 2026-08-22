@@ -78,13 +78,19 @@ function cc6QueueFinishModal(res,payload){
   var bg=commercial?'#F0FDF4':'#FFF7ED',bd=commercial?'#BBF7D0':'#FED7AA',fg=commercial?'#166534':'#92400E';
   var name=((payload.nombre||'')+' '+(payload.apellido||'')).trim()||payload.numero;
   var detail='<div style="padding:12px;background:'+bg+';border:1px solid '+bd+';border-radius:10px;color:'+fg+';line-height:1.6"><b>'+cc6Esc(name)+'</b><br>'+cc6Esc(payload.fecha_cita||'')+' · '+cc6Esc(payload.hora_cita||'')+'<br>'+cc6Esc(payload.tratamiento||'')+'<br>'+cc6Esc(payload.sede||'')+'<br>Asesor: '+cc6Esc((res&&res.executedBy)||'—')+(commercial?'':'<br><b>Regla:</b> '+cc6Esc((res&&res.eligibilityReason)||'Sin nuevo crédito comercial')+'</div>';
-  cc6InfoModal('cc6-queue-success-modal',title,detail,'CONTINUAR LLAMADAS',function(){
+  var m=document.createElement('div');
+  m.id='cc6-queue-success-modal';m.className='mov open';m.style.zIndex='1250';
+  m.innerHTML='<div class="modal" style="max-width:520px"><div class="mhd"><span style="font-size:22px">'+(commercial?'✅':'ℹ️')+'</span><div><div class="mtit">'+cc6Esc(title)+'</div></div></div>'+detail+'<div class="mfoot"><button class="mconf gr" data-ok>CONTINUAR LLAMADAS</button></div></div>';
+  document.body.appendChild(m);
+  var ok=m.querySelector('[data-ok]');
+  if(ok)ok.onclick=function(){
+    m.remove();
     if(typeof window.loadMetrics==='function')loadMetrics();
     if(typeof window.loadHistorial==='function')loadHistorial();
     if(typeof window.recargarCalendario==='function')recargarCalendario();
     if(window.AOS_pollNow)AOS_pollNow();
     if(typeof window.loadLead==='function')loadLead();
-  });
+  };
 }
 function cc6QueueCommit(payload,sourceModal){
   var pending=cc6PendingKey('QUEUE_AUTO_APPOINTMENT',payload);
@@ -132,9 +138,15 @@ runtime=runtime.slice(0,queueStart)+queuePatch+runtime.slice(queueEnd+1);
 
 if(runtime.includes('id="cc6-contact-mode"')) throw new Error('Queue selector markup still exists');
 if((runtime.match(/id="cc6-manual-mode"/g)||[]).length!==1) throw new Error('Expected exactly one manual selector');
-if(!runtime.includes("aos_callcenter_confirm_queue_appointment_v1")) throw new Error('Queue RPC not wired');
+if(!runtime.includes('aos_callcenter_confirm_queue_appointment_v1')) throw new Error('Queue RPC not wired');
 if(!runtime.includes('CITA AGENDADA CON ÉXITO')) throw new Error('Queue success modal missing');
 if(runtime.includes('if(window.__AOS_CC_LOOP6_V2__) return;')) throw new Error('Unsafe SPA early-return remains');
+const finishStart=runtime.indexOf('function cc6QueueFinishModal('),commitStart=runtime.indexOf('function cc6QueueCommit(',finishStart),queueOverrideStart=runtime.indexOf('window.ccConfirmarCita=function(){',commitStart);
+if(finishStart<0||commitStart<0||queueOverrideStart<0) throw new Error('V2.3 queue blocks missing');
+const finishBlock=runtime.slice(finishStart,commitStart),commitBlock=runtime.slice(commitStart,queueOverrideStart);
+if(finishBlock.includes('data-cancel')||finishBlock.includes('cc6InfoModal(')) throw new Error('Success modal must not expose Cancel');
+if(!finishBlock.includes('data-ok')||!finishBlock.includes('CONTINUAR LLAMADAS')||!finishBlock.includes('loadLead()')) throw new Error('Success modal continue contract incomplete');
+if(commitBlock.includes('loadLead()')) throw new Error('Next lead must not load before post-commit success confirmation');
 fs.writeFileSync(jsPath,runtime,'utf8');
 
 console.log('LOOP6_V23_PATCH=OK');
