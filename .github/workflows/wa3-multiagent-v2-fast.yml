@@ -1,0 +1,75 @@
+name: ASCENDA WA-3 V2 Multiagent FAST
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa3-v2.js'
+      - 'app/server-wa3.js'
+      - 'app/server-wa4.js'
+      - 'app/public/wa-multiagent-v2-panel.js'
+      - 'app/public/wa-shell-integration.js'
+      - 'supabase/migrations/*wa3_multiagent_readiness_v2*'
+      - 'supabase/rollbacks/*wa3_multiagent_readiness_v2*'
+      - 'ci/wa3-boxes-routing-handoff/**'
+      - '.github/workflows/wa3-multiagent-v2-fast.yml'
+  push:
+    branches: ['feature/wa3-multiagent-v2-20260822']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa3-v2-fast-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-ui:
+    name: FAST 1 · runtime + UI
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax and V2 UI contract
+        shell: powershell
+        run: |
+          node --check app/server-wa3-v2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-wa3.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-wa4.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/wa-multiagent-v2-panel.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/wa-shell-integration.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/wa3-boxes-routing-handoff/ui_contract_v2.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  security-chain:
+    name: FAST 2 · security + wrapper chain
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static security and fail-closed invariants
+        shell: powershell
+        run: |
+          $server = Get-Content app/server-wa3-v2.js -Raw
+          $panel = Get-Content app/public/wa-multiagent-v2-panel.js -Raw
+          $wa4 = Get-Content app/server-wa4.js -Raw
+          if ($server -notmatch "server-wa3\.js") { throw 'WA3 V2 must proxy to WA3 V1' }
+          if ($wa4 -notmatch "server-wa3-v2\.js") { throw 'WA4 must mount WA3 V2 boundary' }
+          if ($server -notmatch "requireActor\(req,res,true\)") { throw 'Supervisor endpoint must require admin actor' }
+          if ($server -match 'contact_number|message_body') { throw 'V2 aggregate boundary must not fetch customer content' }
+          if ($panel -match 'contact_number|message_body|conversation_id') { throw 'V2 queue UI must not depend on unowned customer PII' }
+          if ($panel -notmatch '/api/wa3/queue-summary' -or $panel -notmatch '/api/wa3/claim-next') { throw 'Queue/claim endpoints missing' }
+          $migration = Get-Content supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql -Raw
+          if ($migration -notmatch 'force row level security') { throw 'Presence FORCE RLS missing' }
+          if ($migration -notmatch 'WA3_AGENT_NOT_READY') { throw 'Presence fail-closed claim missing' }
+          if ($migration -match 'auto_routing_enabled\s*=\s*true|ai_send_enabled\s*=\s*true') { throw 'WA3 V2 must not enable automation' }
+          Write-Host 'WA-3 V2 FAST security chain: PASS'
