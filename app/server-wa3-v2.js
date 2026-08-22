@@ -117,7 +117,8 @@ async function teamSummary(req,res){
     const now=Date.now();
     const agents=userRows.filter(u=>ids.has(String(u.id))).map(u=>{
       const p=presenceRows.find(x=>x.user_id===u.id)||{};
-      const fresh=!!p.last_seen_at&&Number.isFinite(Date.parse(p.last_seen_at))&&(now-Date.parse(p.last_seen_at)<120000);
+      // Must match WA-3 FINAL V3 stale threshold exactly: global ASCENDA heartbeat older than 60s is OFFLINE.
+      const fresh=!!p.last_seen_at&&Number.isFinite(Date.parse(p.last_seen_at))&&(now-Date.parse(p.last_seen_at)<60000);
       const effective=fresh&&p.status==='AVAILABLE'?'AVAILABLE':(fresh&&p.status==='AWAY'?'AWAY':'OFFLINE');
       const boxes=memberRows.filter(m=>m.user_id===u.id).map(m=>({box_id:m.box_id,max_active:m.max_active,priority:m.priority}));
       const activeLoad=assignmentRows.filter(x=>x.owner_user_id===u.id).length;
