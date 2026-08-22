@@ -1,16 +1,16 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 V2.2 PRODUCTION CANARY 0/5 GENUINE OPERATIONS  
-**Captured:** 2026-08-21 20:17:57 America/Lima  
-**Functional runtime:** `f6adba60358d7d45ef547ba29f0189767b0355e9`  
+**Status:** CURRENT / MKT-INTEGRITY-HOTFIX-V3 ACTIVE — LOOP 6 V2.3 PRODUCTION CANARY 0/5 GENUINE OPERATIONS  
+**Captured:** 2026-08-21 21:27:02 America/Lima  
+**Functional runtime:** `0318597188fbd358b9b207181426094154766d55`  
 **ACTIVE LOCK:** `MKT-INTEGRITY-HOTFIX-V3`  
-**CURRENT GATE:** `LOOP 6 V2.2 — fresh post-Ruben controlled canary + minimum 5 genuine operations`  
+**CURRENT GATE:** `LOOP 6 V2.3 — minimum 5 genuine post-cutover Call Center operations + terminal readback`  
 **LOOP 7:** `NOT STARTED`
 
-GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the MKT lock or certify Loop 6 until the V2.2 five-genuine-operation gate and downstream invariants pass.
+GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the MKT lock or certify Loop 6 terminally until five genuine customer operations after the V2.3 baseline are observed and audited. Synthetic canaries, repairs and administrative actions do not count.
 
 ## Portfolio lock state
-- `REV-RUNTIME-BRIDGE-HOTFIX`: CLOSED / RELEASED after owner smoke PASS for Patient 360 + Importar Ventas.
+- `REV-RUNTIME-BRIDGE-HOTFIX`: CLOSED / RELEASED.
 - REV-F5: PRODUCTION CERTIFIED — 100%.
 - REV-F6.0–F6.7 / REV-F6 global: PRODUCTION CERTIFIED — 100%.
 - REV-F7: NEXT / UNBLOCKED, paused while MKT owns the single HIGH/CRITICAL mutable lane.
@@ -19,18 +19,42 @@ GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the MKT lock
 - PR #335 — atomic Call Center semantics + F6 decision layer: MERGED.
 - PR #337 — 15-day reactivation + 72h ownership/recovery V2: MERGED at `521c013209702a7c26ddafed23799f9c36236481`.
 - PR #338 — retry/idempotency precheck: MERGED at `7e5e7915b4c771649e50fd11e2af767819383052`.
-- First real V2 canary exposed legacy/stale-runtime bypass on Ruben `997883711`.
-- PR #340 — V2.2 legacy-bypass fail-closed + cache-bust + Ruben evidence/rollback: MERGED at `f6adba60358d7d45ef547ba29f0189767b0355e9`.
-- Railway exact-commit status for `f6adba60358d7d45ef547ba29f0189767b0355e9`: SUCCESS (`ASCENDA-OS - ascenda-os`).
+- PR #340 — V2.2 legacy-bypass fail-closed + cache-bust + Rubén repair evidence: MERGED at `f6adba60358d7d45ef547ba29f0189767b0355e9`.
+- PR #342 — V2.3 automatic queue semantics + Carlos repair + frontend hardening: MERGED at `0318597188fbd358b9b207181426094154766d55`.
+- Railway exact-commit status for `0318597188fbd358b9b207181426094154766d55`: SUCCESS (`ASCENDA-OS - ascenda-os`).
 
-## V2.2 fail-closed guarantees
-1. Non-governed `CITA CONFIRMADA` Call inserts are rejected server-side with `AOS_LOOP6_RUNTIME_REQUIRED`.
-2. Non-governed `CITA_MANUAL` / `CALL_CENTER*` Agenda inserts are rejected server-side.
-3. Canonical Loop 6 core sets transaction-local `aos.loop6_governed_write=1` before governed writes.
-4. Frontend loads exactly one `calls-loop6.js?v=20260821-loop6-v2.2`.
-5. Runtime build marker = `v2.2`; unsafe SPA early-return removed so overrides re-arm after panel reinjection.
-6. Legacy `ccConfirmarCita()` / `guardarCitaManual()` fail closed unless exact v2.2 runtime is active.
-7. Post-deploy rollback canary: legacy Call 0 / legacy Agenda 0 / governed journal 1 + Call 1 + Agenda 1; all synthetic data rolled back.
+## V2.3 exact-head CI certification
+Premerge exact head: `62f9289e8df8085a22ec6eab6881d6e650ba53d8`.
+All required gates passed on the same head:
+- Ascenda CI: SUCCESS.
+- Loop6 Runtime Loader Patch: SUCCESS.
+- ASCENDA CIA Phase 16 Email Contracts: SUCCESS.
+- Sentinel F6 Business Health Certificate: SUCCESS.
+
+The runtime patcher was hardened to be idempotent when re-run over an already materialized V2.3 runtime. The post-commit success modal JavaScript syntax defect found by CI was corrected before merge.
+
+## V2.3 Call Center contract
+### Normal queue
+- No semantic selector is shown to the advisor for the normal queue happy path.
+- Browser does not choose authoritative `action_type`.
+- `aos_callcenter_confirm_queue_appointment_v1` validates lead↔phone and derives the allowed action server-side.
+- New / unconverted eligible lead -> governed commercial Call + Agenda + direct links + journal.
+- Follow-up source -> server derives FOLLOWUP conversion semantics.
+- Converted patient -> automatic commercial conversion is blocked and explicit patient exception flow is required.
+- Identity conflict -> fail closed / REVIEW.
+- Active appointment -> no duplicate conversion.
+
+### Agenda Manual
+Exactly three semantic choices remain available:
+1. `COMMERCIAL` — commercial manual call.
+2. `CALLBACK` — callback / inbound / follow-up.
+3. `AGENDA_ONLY` — Agenda only, zero commercial Call/Cita credit.
+
+### Post-commit UX
+- Success UI appears only after the governed queue commit succeeds.
+- Success modal has one forward action: `CONTINUAR LLAMADAS`.
+- No Cancel button is exposed after a successful commit.
+- `loadLead()` is not executed inside the queue commit block; the next lead loads only after the advisor confirms the post-commit success modal.
 
 ## Frozen business rules
 - Reactivation credit requires >=15 full days from latest qualifying sale / clinical attention / ASISTIO-EFECTIVA, America/Lima.
@@ -40,52 +64,83 @@ GitHub CURRENT + Supabase LIVE remain authoritative. Do not release the MKT lock
 - >72h transfers only if prior owner has no recorded follow-up.
 - Prior-owner follow-up blocks transfer; original-owner rebook creates no second conversion.
 - Active PENDIENTE/CITA CONFIRMADA blocks duplicate conversion.
-- `FOLLOWUP_CONVERSION` distinct from `CALLBACK_INBOUND`.
+- `FOLLOWUP_CONVERSION` remains distinct from `CALLBACK_INBOUND`.
 - `AGENDA_ONLY` = Agenda only, zero commercial Call/Cita credit.
-- Server policy is authoritative over browser selection.
+- Server policy is authoritative.
 - Journal separates executor, credited advisor, commercial owner, beneficiary, eligibility and ownership transfer.
 
-## Ruben first-canary incident — repaired
-Ruben Carlos Dominguez Munoz / `997883711`:
-- unique Marketing lead `5884` CAPILAR;
-- Mireya follow-up `SEG-1787354621097-4zle` / call `38301` preceded conversion;
-- legacy Agenda `2c581c52-89e9-465f-89be-0e3818eda309` originally persisted without direct links/journal;
-- strong evidence showed no prior sale, attention or attended/effective appointment.
+## Rollback canary certification
+The V2.3 backend / policy suite passed rollback canaries covering:
+- healthy Marketing queue conversion;
+- converted patient >=15d exception path;
+- converted patient <15d downgrade;
+- active appointment duplicate block;
+- NO ASISTIO <72h ownership protection;
+- NO ASISTIO >72h eligible transfer;
+- PHONE identity conflict fail-closed;
+- Agenda Manual commercial;
+- Agenda Manual callback/inbound;
+- Agenda-only 0 Call / 1 Agenda;
+- legacy fail-closed Call and Agenda;
+- retry/idempotency cardinality;
+- Follow-up -> FOLLOWUP_CONVERSION derivation;
+- Carlos second-run idempotency;
+- Rubén regression.
 
-Certified repair:
+All synthetic canaries were executed in rollback and left zero synthetic residue.
+
+## Rubén regression — frozen PASS
+Rubén Carlos Dominguez Munoz / `997883711`:
 - Call `38384` = `CITA CONFIRMADA / FOLLOWUP_CONVERSION / MARKETING / lead 5884 / MIREYA`;
-- Agenda now links Call `38384` + lead `5884`, `origen_cita=CALL_CENTER`;
-- Seguimiento = COMPLETADO + lead 5884;
-- journal `repair-ruben-997883711-20260821-193506` = COMPLETE, creditedAdvisor MIREYA;
-- Mireya panel observed at 3 citas after repair (call count dynamic during concurrent work).
+- Agenda `2c581c52-89e9-465f-89be-0e3818eda309` links Call `38384` + lead `5884`;
+- journal `repair-ruben-997883711-20260821-193506` = COMPLETE;
+- current cardinality at baseline: 1 Call / 1 Agenda / 1 journal.
 
-Three pre-hotfix Wilmer legacy Agenda rows remain documented without automatic KPI because evidence did not justify new commercial credit: `7d530a24-fe05-43bc-b7ab-a83428050532`, `dc99e863-1e97-49e3-8000-cc420b71bc8a`, `92949454-4c1e-4273-bb7c-9b2b9288e0b2`.
+## Carlos repair — frozen PASS
+Carlos Alonso Aguilar Uceda / `941764266`:
+- prior Call `38396` remains `SIN CONTACTO` and was not overwritten;
+- governed repair Call `38437` = `CITA CONFIRMADA / MARKETING / lead 5894 / MIREYA`;
+- Agenda `53039d52-4392-4557-a50f-58da21090ab7` links Call `38437` + lead `5894`;
+- journal `repair-carlos-941764266-20260821-v23` = COMPLETE;
+- repair second-run proved idempotency: exactly 1 commercial Call / 1 Agenda / 1 journal.
 
-## Protected invariants after V2.2 deploy
+## Wilmer legacy review
+Three pre-hotfix Wilmer Agenda rows remain REVIEW / NO AUTO CREDIT because the audit found no contemporaneous recorded follow-up and no auditable WhatsApp evidence proving the required management. No KPI was fabricated.
+
+## Protected invariants at V2.3 baseline
 - protected repaired Calls `36701,37185,37813,38012,38168,38186`: 6/6 intact;
 - removed Alberto/Alan duplicate Agenda IDs: 0 present;
-- no new unlinked legacy Call Center Agenda after fail-closed activation;
 - REV-F5 = 6 batches / 15,498 source / 8,716 clusters / 15,498 members / 8,716 previews / 230 apply events;
-- F6 Identity/Lifecycle remain service-role-only;
-- Acquisition = V2 56 / V3 57.
+- Rubén = 1 Call / 1 Agenda / 1 journal;
+- Carlos = 1 commercial Call / 1 Agenda / 1 journal + prior Call intact;
+- policy events = 0;
+- no synthetic V2.3 canary residue.
 
-## New authoritative V2.2 production baseline
-Captured after PR #340 Railway exact-commit SUCCESS and post-deploy fail-closed rollback canary:
-- UTC: `2026-08-22T01:17:57.749075+00:00`
-- America/Lima: **2026-08-21 20:17:57**
-- action journal total: **1**, exclusively Ruben repair audit row;
+## Authoritative V2.3 production baseline
+Captured after PR #342 merge + Railway exact-commit SUCCESS:
+- UTC: `2026-08-22T02:27:02.696935+00:00`
+- America/Lima: **2026-08-21 21:27:02**
+- action journal total: **2** — Rubén repair + Carlos repair;
 - policy events: **0**;
-- max `aos_llamadas.id`: **38397**;
-- Agenda rows: **3152**;
-- genuine post-baseline V2.2 operations: **0 / 5**.
+- max `aos_llamadas.id`: **38437**;
+- Agenda rows: **3153**;
+- genuine post-cutover V2.3 operations: **0 / 5**.
 
-Evidence: `docs/control/MKT_INTEGRITY_V3_LOOP6_V22_PRODUCTION_CANARY_20260821.md`.
+For terminal certification, count only genuine customer actions with `created_at > 2026-08-22T02:27:02.696935+00:00`. Exclude repair/test/canary/admin keys and synthetic operations.
 
-For terminal certification count only genuine customer actions with `created_at > 2026-08-22T01:17:57.749075+00:00`. Exclude repair/test/admin keys, including `repair-ruben-997883711-20260821-193506`.
+## Terminal 5-operation gate
+The first genuine operation after the V2.3 baseline is the controlled live canary. For each of the first five genuine operations audit:
+1. executor/advisor;
+2. patient/prospect classification;
+3. effective semantic action;
+4. Call cardinality and state;
+5. Agenda cardinality and direct links;
+6. lead/origin attribution;
+7. credited advisor/commercial owner/beneficiary;
+8. eligibility/ownership rule;
+9. idempotency / no duplicate on retry;
+10. KPI and Marketing attribution correctness.
 
-## Controlled canary -> terminal gate
-The first genuine action after the V2.2 baseline is the new controlled production canary. It must pass server eligibility, executor/credited-owner semantics, Call/Agenda cardinality, direct links, idempotency, no false Marketing acquisition and protected invariants.
+If any of the first five genuine operations violates the contract: STOP Loop 6 and repair inside the same MKT lane. If all five pass, execute terminal invariant readback and certify Loop 6 100%, then release the MKT lock. Do not auto-start Loop 7.
 
-If first action fails: STOP Loop 6 again and repair inside the same lane. If PASS: continue ordinary use until >=5 genuine V2.2 actions exist, then execute terminal certification.
-
-Loop 6 remains **PRODUCTION CANARY ACTIVE / NOT YET CERTIFIED**. Active lock remains `MKT-INTEGRITY-HOTFIX-V3`. Loop 7 remains **NOT STARTED**.
+Loop 6 remains **PRODUCTION CANARY ACTIVE / TERMINAL HUMAN-EVIDENCE GATE 0/5**. Active lock remains `MKT-INTEGRITY-HOTFIX-V3`. Loop 7 remains **NOT STARTED**.
