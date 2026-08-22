@@ -7,11 +7,9 @@ const migration=fs.readFileSync('supabase/migrations/20260822224500_wa3_presence
 
 assert(shell.includes("MULTI_SRC='/wa-multiagent-final-panel.js?v=20260822-wa3-final-p01'"));
 assert(shell.includes('startGlobalPresence()'));
-assert(shell.includes("presenceBeat('HEARTBEAT')"));
-assert(shell.includes('15000'));
+assert(shell.includes("presenceTimer=setInterval(function(){presenceBeat('HEARTBEAT');},15000)"));
 assert(shell.includes("presenceBeat('OFFLINE',true)"));
 assert(shell.includes("X-AOS-App-Token"));
-assert(!shell.includes("if(!document.hidden)presenceBeat('HEARTBEAT')"));
 
 for(const token of ['Supervisor WA','Requieren humano','No leídos','Humano','Bot','ESPERANDO ASESOR','ASESOR · ','ADMIN · ','Tomar','HUMAN_REQUESTED','wa3f-owner','Meta aceptó el mensaje']) assert(panel.includes(token),token);
 assert(!panel.includes('data-pres='));
