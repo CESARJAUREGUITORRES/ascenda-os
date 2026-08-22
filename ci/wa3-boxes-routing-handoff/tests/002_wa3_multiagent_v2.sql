@@ -70,6 +70,14 @@ select ok(not (public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-44444444
 select ok(position('contact_number' in public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444')::text)=0,'queue summary contains no customer phone');
 select ok(position('conversation_id' in public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444')::text)=0,'queue summary contains no conversation identifiers');
 
+-- Service-layer membership guard remains mandatory even if an internal caller has a valid user id.
+select ok((public.aos_wa3_agent_presence_touch_v1('66666666-6666-4666-8666-666666666666','AVAILABLE')->>'ok')::boolean,'nonmember can have a readiness row without gaining box access');
+select is(
+  public.aos_wa3_claim_next_v2('cccccccc-cccc-4ccc-8ccc-cccccccccccc','66666666-6666-4666-8666-666666666666')->>'error',
+  'WA3_NOT_BOX_MEMBER',
+  'V2 claim denies an actor outside the box'
+);
+
 select ok((public.aos_wa3_agent_presence_touch_v1('44444444-4444-4444-8444-444444444444','AVAILABLE')->>'ok')::boolean,'agent A marks AVAILABLE');
 select is(public.aos_wa3_agent_presence_touch_v1('44444444-4444-4444-8444-444444444444','AVAILABLE')->>'status','AVAILABLE','AVAILABLE heartbeat is idempotent');
 select ok((public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444')->'presence'->>'ready')::boolean,'fresh AVAILABLE presence is ready');
