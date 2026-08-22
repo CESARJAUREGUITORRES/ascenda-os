@@ -18,7 +18,8 @@ for token in ['AVAILABLE','AWAY','OFFLINE','/api/wa3/queue-summary','/api/wa3/pr
 assert "d.error==='WA3_NOT_OWNER'" in panel
 assert "ownership_lost:true" in panel
 assert "X.timer=setInterval(function(){if(!document.hidden)refresh();},5000)" in panel
-assert "o.disabled=a.effective_status!=='AVAILABLE'&&!o.selected" in panel
+assert "var disabled=a.effective_status!=='AVAILABLE'&&!o.selected" in panel
+assert "if(o.disabled!==disabled)o.disabled=disabled" in panel
 assert "if(old&&old.textContent===lab.text&&old.className===cls)return" in panel
 assert "if(o.textContent!==desired)o.textContent=desired" in panel
 
