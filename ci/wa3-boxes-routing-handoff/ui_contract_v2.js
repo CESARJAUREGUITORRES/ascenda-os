@@ -7,18 +7,23 @@ const panel = read('app/public/wa-multiagent-v2-panel.js');
 const server = read('app/server-wa3-v2.js');
 const wa4 = read('app/server-wa4.js');
 
-assert(shell.includes("MULTI_SRC='/wa-multiagent-v2-panel.js?v=20260822-wa3-multiagent-v2-p01'"));
+assert(shell.includes("MULTI_SRC='/wa-multiagent-v2-panel.js?v=20260822-wa3-multiagent-v2-p02'"));
 assert(shell.includes('function ensureMulti()'));
 assert(shell.includes('return ensureMulti();'));
 assert(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260818-s15-5-shell-mount-p01'"));
 assert(shell.includes('ensurePush().catch'));
 
-for (const token of ['AVAILABLE','AWAY','OFFLINE','/api/wa3/queue-summary','/api/wa3/presence','/api/wa3/claim-next','/api/wa3/team-summary','Tomar siguiente','Equipo WA']) {
+for (const token of ['AVAILABLE','AWAY','OFFLINE','/api/wa3/queue-summary','/api/wa3/presence','/api/wa3/claim-next','/api/wa3/team-summary','Tomar siguiente','Equipo WA','WA3_NOT_OWNER','ownershipLostRemount','wa3v2-owner-chip','Meta aceptó el mensaje','5000']) {
   assert(panel.includes(token), token);
 }
 for (const forbidden of ['contact_number','message_body','conversation_id']) {
   assert(!panel.includes(forbidden), forbidden);
 }
+assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
+assert(panel.includes("new Response(JSON.stringify({ok:true,messages:[],ownership_lost:true})"));
+assert(panel.includes("t.classList.contains('ok')&&/^Meta aceptó el mensaje/"));
+assert(panel.includes("X.timer=setInterval(function(){if(!document.hidden)refresh();},5000)"));
+assert(panel.includes("o.disabled=a.effective_status!=='AVAILABLE'&&!o.selected"));
 
 assert(server.includes("['server-wa3.js']"));
 assert(server.includes("'/api/wa3/queue-summary'"));
