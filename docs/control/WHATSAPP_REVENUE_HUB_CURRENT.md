@@ -1,273 +1,233 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub — CURRENT
 
-**Estado:** LIVE CORE / STABILIZATION BEFORE WA-4 CANARY  
-**Fecha:** 2026-08-15 (America/Lima)  
-**Último checkpoint funcional observado:** shell integrado + inbox + timeline inbound visible  
+**Estado:** V2 ACTIVE / WA-V2-0 BASELINE & GOVERNANCE  
+**Fecha:** 2026-08-22 (America/Lima)  
+**Entry main:** `26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
 **Supabase:** `ituyqwstonmhnfshnaqz`
 
-## 1. North Star
+## 1. North Star V2
 
-Convertir WhatsApp en una capa conversacional nativa de ASCENDA, no en un CRM paralelo:
+Convertir WhatsApp en el Revenue Conversation System nativo de ASCENDA:
 
-`Meta Ad / Organic → WhatsApp → conversación → IA/humano → agenda/seguimiento/call center → cita → asistencia → venta → atribución → insights/costos`.
+`Meta Ads / orgánico → WhatsApp → provenance → identity → conversation → sales stage → knowledge → AI/humano → tools → cita/seguimiento/llamada → asistencia → venta → revenue → attribution → learning → optimization`.
 
-## 2. Estado productivo medido
+WhatsApp no crea un CRM paralelo. Consume fuentes canónicas de ASCENDA y conserva trazabilidad de fuente, actor, acción y resultado.
 
-Checkpoint de base al cierre de la recuperación:
+## 2. Exact-current runtime
+
+Railway CURRENT entra por:
+
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
+
+`app/railway.json` preloads Sentry plus backend-only email runtime compatibility and reports `/health` as the healthcheck path.
+
+Current source still injects `wa-shell-integration.js`; that bootstrap still mounts `notification-push-s14.js` S15.5. Therefore the notification and native-Hub code remains physically present after the later Revenue, MKT, Sales Explorer and Cartero/email work.
+
+Railway combined status for entry main: **SUCCESS**.
+
+## 3. Certified baseline — preserve, do not reopen without regression
+
+### WA-0 — Recovery & Architecture
+**CLOSED.**
+
+### WA-1 — Secure WhatsApp Gateway
+**CORE LIVE.** Signed inbound, idempotent canonical ledger and governed outbound boundary were demonstrated.
+
+### WA-2 — Conversation Store & Live Inbox
+**CORE LIVE.** Conversation projection, inbox/timeline and same-origin private APIs are present.
+
+### WA-3 — Boxes, Routing & Human Handoff
+**CORE LIVE / V2 MULTIAGENT INCOMPLETE.** Ownership, assignment, routing events, exact-owner human-send boundary and manual routing primitives exist. The next WA-3 work is genuine multiagent operation, not rebuilding WA-3 from zero.
+
+### WA-4 — AI Sales Agent / Copilot
+**INFRA DEPLOYED / OFF.** Control, audit schema, model router and safety boundary exist; production AI runs remain zero. Auto-reply remains structurally off.
+
+### Notifications S13 → S15.5
+**CLOSED / 100% CERTIFIED / REGRESSION ONLY.** Closed-PWA Web Push and Windows notification were physically demonstrated; click opens installed ASCENDA while respecting Auth; final notification ACL cutover is complete.
+
+## 4. Live WhatsApp baseline — 2026-08-22
 
 | Métrica | Valor |
 |---|---:|
-| mensajes WA ledger | 2 |
-| conversaciones | 2 |
-| boxes | 1 |
-| members activos | 1 |
-| assignments activos | 1 |
-| routing events | 4 |
+| canonical messages | 15 |
+| inbound | 11 |
+| outbound persisted | 4 |
+| conversations | 2 |
+| events | 25 |
+| outbound requests | 9 |
+| routing events | 11 |
+| active boxes | 2 |
+| active memberships | 2 |
+| active assignments | 1 |
 | AI runs | 0 |
-| outbound requests | 0 |
 
-Controles:
+Boxes:
+
+- `VENTAS_GENERAL` — ACTIVE / MANUAL / default;
+- `WA_TEST` — ACTIVE / MANUAL.
+
+Both active memberships currently belong to the same operational actor, so multiagent production has not yet been proven.
+
+Controls:
 
 - `human_send_enabled=true`;
 - `auto_routing_enabled=false`;
 - `ai_send_enabled=false`;
-- WA-4 `copilot_enabled=false`;
-- WA-4 `auto_reply_enabled=false`;
-- budget AI diario: USD 0.50;
-- router WA-4: Groq con GPT-OSS fast/reasoning/safety configurado en control.
+- `copilot_enabled=false`;
+- `auto_reply_enabled=false`;
+- AI daily budget: USD 0.50.
 
-Evidencia visible:
+## 5. Meta provider / outbound status
 
-- `zi vital` / `51960618468` visible en inbox;
-- estado `HUMAN_ACTIVE`;
-- mensaje inbound real `ASCENDA INBOUND REAL 02` visible en timeline;
-- segunda conversación de prueba visible;
-- WhatsApp Hub dentro del shell principal ASCENDA;
-- recovery automático WA-3 probado.
+Historical outbound ledger:
 
-## 3. Runtime actual
+- ACCEPTED = 4;
+- FAILED `META_190` = 4;
+- FAILED `META_SEND_REJECTED` = 1.
 
-Railway entra por:
+The transport path itself has historical positive evidence, but current Meta credential/provider health is **NOT RECERTIFIED** on this V2 baseline. Before using WhatsApp to sell in production, run a current provider health check and controlled allowlisted outbound canary with a long-lived/system-user credential stored server-side only.
 
-`server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → server-phase2.js → server.js`.
+No token may be pasted into chat or committed to Git/Notion/frontend.
 
-La composición por wrappers es una estrategia de migración segura. No consolidar todavía durante stabilization. La consolidación modular se evaluará después de WA-8.
+## 6. New ASCENDA ecosystem available to WhatsApp
 
-## 4. Fases
+Live upstream truth now available:
 
-### WA-0 — Recovery & Architecture
+| Domain | Live baseline |
+|---|---:|
+| canonical patients | 7,702 |
+| canonical sales | 1,331 |
+| leads | 5,880 |
+| F5 source rows | 15,498 |
+| F5 identity memberships | 15,498 |
+| F5 identity clusters | 8,716 |
+| F5 previews | 8,716 |
+| CIA contact identity | 11,911 |
+| CIA canonical-linked contacts | 7,083 |
+| CIA email facts | 11,911 |
 
-**Estado:** CLOSED.
+This changes the WhatsApp opportunity materially: the Hub can now be grounded in a certified customer identity layer, sales truth, lifecycle/read models and email/contact facts instead of operating only on a small conversation ledger.
 
-Arquitectura, impact map, cost baseline y benchmark spec existentes.
+## 7. Knowledge/catalog baseline
 
-### WA-1 — Secure WhatsApp Gateway
+`aos_catalogo_servicios`:
 
-**Estado:** LIVE / inbound real demostrado.
+- 221 total / 221 active;
+- 221 with price;
+- 175 with commercial description;
+- 198 with benefits;
+- 167 with contraindications;
+- 221 with FAQ payload;
+- 0 with populated tags.
 
-Invariantes:
+Structured grounding is already possible, but Knowledge Fabric still needs source authority, versioning, validity, tags, evidence refs and selective enterprise-document connectors.
 
-- webhook firmado;
-- secrets server-side;
-- message/event ledger;
-- idempotencia;
-- outbound gobernado/canary;
-- no retorno al POST unsigned.
+## 8. Meta attribution gap
 
-**Pendiente de esta nueva etapa:** recertificar human outbound real desde el Hub y delivery receipts.
+Current explicit WA provenance coverage:
 
-### WA-2 — Conversation Store & Live Inbox
+- `campaign_source`: 0/15;
+- `ad_id`: 0/15;
+- `lead_id`: 0/15;
+- `raw_referral`: 0/15.
 
-**Estado:** LIVE.
+Do not infer campaign attribution from phone coincidence alone. WA-7A will own Meta referral/touchpoint ingress and later connect ad → adset → campaign → treatment/playbook → appointment → sale.
 
-- conversation projection activa;
-- inbox/timeline visibles;
-- stores privados;
-- same-origin APIs;
-- fallback read-only probado.
+## 9. Handling State vs Sales Stage
 
-### WA-3 — Boxes, Routing & Human Handoff
+Keep separate dimensions.
 
-**Estado:** CORE LIVE / STABILIZATION.
+Handling State:
 
-Probado:
-
-- box/membership;
-- assignment activo;
+- `AI_AUTO`;
+- `AI_COPILOT`;
 - `HUMAN_ACTIVE`;
-- routing events;
-- administración autorizada;
-- panel central ASCENDA.
+- `WAITING_CUSTOMER`;
+- `CLOSED`.
 
-Pendiente:
+Sales Stage future V2:
 
-1. estabilizar bootstrap nativo sin depender de recovery;
-2. probar composer/send humano real;
-3. delivery/read status;
-4. crear boxes de negocio;
-5. otorgar `whatsapp-agent` explícitamente a agentes canary;
-6. probar claim/reassign/release con usuarios reales autorizados.
+- `NEW`;
+- `DISCOVERY`;
+- `QUALIFIED`;
+- `OFFER`;
+- `OBJECTION`;
+- `BOOKING_INTENT`;
+- `BOOKED`;
+- `FOLLOW_UP`;
+- `WON`;
+- `LOST`.
 
-### WA-4 — AI Sales Agent & Multi-Model Router
+Do not overload routing/ownership state with commercial funnel state.
 
-**Estado:** INFRA DEPLOYED / OFF.
+## 10. V2 phases
 
-Existe control/router/audit schema; no hay AI runs aún.
+1. `WA-V2-0` — Baseline & Governance — ACTIVE.
+2. `WA-3` — Human Operations Multiagent.
+3. `WA-3.5` — Revenue Inbox UX.
+4. `WA-7A` — Meta Attribution Ingress.
+5. `WA-4A` — Knowledge Fabric.
+6. `WA-4B` — Sales Playbook Engine.
+7. `WA-4C` — AI Sales Copilot canary.
+8. `WA-5` — Multimedia / Audio / Media Library.
+9. `WA-6` — Agenda / Follow-up / Call Center tools.
+10. `WA-7B` — Meta Ads Sync.
+11. `WA-7C` — Campaign Flow Router + WhatsApp Flows.
+12. `WA-7D` — Revenue Stitching.
+13. `WA-8` — Production / SLO / Security / FinOps.
+14. `WA-9 → WA-14` — Supervisor Intelligence, Customer 360, Lifecycle Automation, Controlled AI Autonomy, Revenue Optimization and reusable platform core.
 
-Siguiente gate WA-4:
+Authoritative V2 roadmap: `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`.
 
-- provider health;
-- grounded knowledge;
-- safety/escalation evals;
-- exact-owner copilot;
-- human approval mandatory;
-- no auto-send.
+## 11. Immediate NEXT after WA-V2-0
 
-### WA-5 — Multimedia, Audio & Knowledge
+`WA-3 — HUMAN OPERATIONS MULTIAGENT`.
 
-**Estado:** NOT STARTED.
+Discover and certify:
 
-No existe `server-wa5` al checkpoint.
+- explicit `whatsapp-agent` permissions;
+- 2+ real authorized agents;
+- memberships / `max_active`;
+- claim / reassign / release;
+- supervisor override;
+- presence/readiness;
+- ownership ACL;
+- no cross-owner leakage;
+- queue/unread integrity;
+- routing audit events;
+- rollback.
 
-Scope:
+Initial topology to evaluate, not blindly create:
 
-- image/audio/document receive;
-- private media storage;
-- STT/transcript;
-- approved media outbound;
-- vision limitada y escalamiento clínico.
+- `BOT_INBOX`;
+- `VENTAS_GENERAL`;
+- `FOLLOW_UP`;
+- `ESCALAMIENTO_CLINICO`.
 
-### WA-6 — Agenda, Booking, Follow-up & Call Center
+During first WA-3 canary keep auto-routing and AI auto-send OFF.
 
-**Estado:** NOT STARTED.
+## 12. WA-3.5 preserved plan
 
-Reutilizar fuentes ASCENDA:
+After WA-3 closes, evolve the native Hub into a Revenue Inbox:
 
-- `aos_slots_disponibles()`;
-- agenda canónica;
-- booking link;
-- `aos_seguimientos`;
-- call center.
+- smart queues, unread/SLA/hot lead/follow-up;
+- campaign/treatment/sede/stage/owner filters;
+- cleaner conversation timeline + sent/delivered/read;
+- quick replies/templates/media/internal notes/drafts/shortcuts;
+- Agenda/call actions;
+- right panel: DETAILS / COPILOT / CUSTOMER 360 / CAMPAIGN / ACTIVITY;
+- notification click → Auth if needed → restore exact conversation destination.
 
-No crear motor paralelo de agenda.
+## 13. Rules
 
-### WA-7 — Meta Attribution, Orders & Revenue Loop
-
-**Estado:** NOT STARTED.
-
-Objetivo:
-
-`conversation_id / explicit provenance → appointment → attendance → sale → revenue/ROAS`.
-
-Nunca atribuir revenue solo por coincidencia telefónica.
-
-### WA-8 — Canary, Production & Cost Governance
-
-**Estado:** NOT STARTED.
-
-Incluye:
-
-- SLOs;
-- observability;
-- cost controls;
-- load testing;
-- disaster/recovery drills;
-- scale rollout.
-
-## 5. Incidente shell/inbox 2026-08-15 — CLOSED
-
-Causa combinada:
-
-1. WA-2 nació como shadow page, no panel integrado;
-2. `sessionStorage` era tab-scoped;
-3. bootstrap WA-3 abortaba toda la cadena si fallaba una lectura;
-4. service worker/cache podía mantener asset anterior.
-
-Solución:
-
-- `wa-shell-integration.js`;
-- sidebar `WhatsApp Hub`;
-- same-origin iframe bridge temporal;
-- token bridge allowlisted en service worker;
-- recovery WA-3 → WA-2 read-only;
-- diagnostics persistentes;
-- explicit asset version bump.
-
-Documento completo:
-
-`docs/control/WHATSAPP_SHELL_INBOX_RECOVERY_20260815.md`
-
-## 6. Reusable knowledge
-
-Playbook extraído de este trabajo:
-
-`docs/control/WHATSAPP_CONNECTION_REUSABLE_PLAYBOOK_V1.md`
-
-Este documento debe consultarse antes de integrar WhatsApp Cloud API en otro producto/proyecto.
-
-## 7. Roadmap maestro vigente
-
-`docs/control/WHATSAPP_REVENUE_HUB_ROADMAP_TO_100_20260815.md`
-
-Prioridad inmediata:
-
-1. WA-3 native bootstrap stabilization;
-2. human outbound real;
-3. business boxes + agents;
-4. WA-4 copilot canary;
-5. WA-5 multimedia/audio;
-6. WA-6 booking/follow-up/call center;
-7. WA-7 attribution/revenue;
-8. WA-8 production/FinOps.
-
-## 8. Fuentes de verdad existentes
-
-No duplicar:
-
-| Dominio | Fuente |
-|---|---|
-| persona | `numero_limpio`, `aos_pacientes` |
-| leads/provenance | `aos_leads`, `lead_id_origen` + WA provenance |
-| llamadas | `aos_llamadas` |
-| seguimientos | `aos_seguimientos` |
-| agenda | `aos_agenda_citas` |
-| disponibilidad | `aos_slots_disponibles()` |
-| booking | contratos existentes de agenda/link público |
-| catálogo/producto | `aos_catalogo_*` + producto canónico |
-| ventas | `aos_ventas` + Revenue contracts |
-| IA | KronIA/Maya + WA-4 router/capabilities |
-| WhatsApp message truth | `aos_wa_messages_v1` |
-| WhatsApp conversation truth | `aos_wa_conversations_v1` |
-| WhatsApp ownership truth | WA-3 assignments/routing tables |
-
-## 9. Reglas no negociables
-
-- no secretos en frontend/Git/docs;
-- no diagnóstico médico autónomo;
-- no SQL arbitrario por IA;
-- no auto-reply AI hasta pasar gates;
-- no CRM paralelo;
-- no agenda paralela;
-- no attribution falsa por teléfono;
-- writes idempotentes/auditados;
-- recovery fail-closed;
-- preserve evidence on rollback;
-- shell integration forma parte del Definition of Done.
-
-## 10. NEXT
-
-**NEXT oficial:** `PHASE S — WA-3 Stabilization & Human Outbound Certification`.
-
-Exit gate de Phase S:
-
-- 20+ loads/reloads sin recovery;
-- Routing & Handoff carga nativamente;
-- inbound real visible;
-- human outbound desde ASCENDA aceptado por Meta;
-- message id + timeline outbound;
-- delivery/read/failure observable;
-- idempotency retry probado;
-- canary recipient guard probado;
-- primer business box + agentes canary configurados.
-
-Solo después se activa WA-4 Copilot canary.
+- no secrets in frontend/Git/docs/chat;
+- no autonomous diagnosis;
+- no SQL arbitrary from AI;
+- no auto-reply AI before controlled autonomy gates;
+- no parallel CRM/customer master;
+- no parallel agenda;
+- no parallel sales/email truth;
+- no attribution fabricated from phone matching;
+- idempotent/audited writes;
+- fail-closed recovery;
+- exact-head + live evidence before 100% claims.
