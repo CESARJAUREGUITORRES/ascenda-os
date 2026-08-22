@@ -1,0 +1,64 @@
+name: OPS Email Cartero Runtime Hotfix 2026-08-22
+
+on:
+  push:
+    branches: ['hotfix/email-cartero-runtime-20260822']
+    paths:
+      - '.github/workflows/ops-email-cartero-hotfix-20260822.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ops-email-cartero-hotfix-20260822
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    name: Restore backend-only Email credential inheritance
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Runner policy
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          bash scripts/ci/runner-healthcheck.sh
+      - name: Apply minimal F16 Cartero compatibility patch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/server-f4.js')
+          s = p.read_text()
+          old = "delete childEnv.SUPABASE_SERVICE_ROLE_KEY;"
+          if old not in s:
+              raise SystemExit('Expected F4 service-role strip line not found')
+          new = "// F16 operational compatibility: Cartero remains a backend-only child and its legacy\n// transactional Email path still requires the service-role for dedup/audit tables.\n// Browser Email writes continue to terminate at the outer F16 gateway.\n// Do not strip SUPABASE_SERVICE_ROLE_KEY until Cartero is migrated to an internal capability bridge."
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Syntax and scope gates
+        run: |
+          set -euo pipefail
+          node --check app/server-f4.js
+          node --check app/server-phase2.js
+          node --check app/server.js
+          grep -q "const EMAIL_SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.service_role || ''" app/server.js
+          grep -q "F16 operational compatibility: Cartero remains a backend-only child" app/server-f4.js
+          ! grep -q '^delete childEnv.SUPABASE_SERVICE_ROLE_KEY;' app/server-f4.js
+          ! git diff --name-only | grep -v '^app/server-f4.js$'
+          git diff --check
+          ! grep -Eq "['\"](eyJ|re_|sb_secret_)[A-Za-z0-9._-]{20,}['\"]" app/server-f4.js
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name 'ASCENDA Zero-Cost CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server-f4.js
+          git commit -m 'fix(email): restore Cartero backend credential inheritance'
+          git push origin HEAD:${GITHUB_REF_NAME}
