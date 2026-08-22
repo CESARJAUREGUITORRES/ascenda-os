@@ -12,7 +12,7 @@ assert(shell.includes("presenceTimer=setInterval(function(){presenceBeat('HEARTB
 assert(shell.includes("presenceBeat('OFFLINE',true)"));
 assert(shell.includes("X-AOS-App-Token"));
 
-for(const token of ['Supervisor WA','Requieren humano','No leídos','Humano','Bot','ESPERANDO ASESOR','ASESOR · ','ADMIN · ','Tomar','HUMAN_REQUESTED','wa3f-owner','Meta aceptó el mensaje']) assert(panel.includes(token),token);
+for(const token of ['Supervisor WA','Requieren humano','No leídos','Humano','Bot','ESPERANDO ASESOR','ASESOR · ','ADMIN · ','Tomar','HUMAN_REQUESTED','wa3f-owner','Meta aceptó el mensaje','labor_state','announceTeamChanges','teamSeen','AOS_showToast']) assert(panel.includes(token),token);
 assert(!panel.includes('data-pres='));
 assert(!panel.includes('Disponible</button>'));
 assert(!panel.includes('Ausente</button>'));
@@ -23,9 +23,15 @@ assert(panel.includes("row.state==='HUMAN_REQUESTED'"));
 assert(panel.includes("/^24H\\s/i"));
 assert(panel.includes("boxNames.has(t)"));
 assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
+assert(panel.includes("detail=statusLabel(a.effective_status)+laborSuffix(a)"));
 
-assert(server.includes("now-Date.parse(p.last_seen_at)<60000"));
-assert(!server.includes("now-Date.parse(p.last_seen_at)<120000"));
+assert(server.includes("serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id})"));
+assert(server.includes("snapshot_source:'aos_wa3_effective_presence_v2'"));
+assert(server.includes("labor_state:p.labor_state||null"));
+assert(server.includes('const candidateUsers='));
+assert(server.includes('Promise.all(candidateUsers.map(async u=>'));
+assert(!server.includes('aos_wa_agent_presence_v1?select=user_id,status,last_seen_at,available_since'));
+assert(!server.includes('now-Date.parse(p.last_seen_at)<120000'));
 
 for(const token of ['aos_wa3_effective_presence_v2','ASCENDA_GLOBAL','HUMAN_HANDOFF_ONLY','HUMAN_REQUESTED','conversation.handoff_requested','NO_HUMAN_HANDOFF_WORK']) assert(migration.includes(token),token);
 assert(migration.includes("c.state='HUMAN_REQUESTED'"));
@@ -36,4 +42,4 @@ assert(migration.includes("now()-interval '60 seconds'"));
 assert(!migration.includes('auto_routing_enabled=true'));
 assert(!migration.includes('ai_send_enabled=true'));
 
-console.log('WA-3 FINAL presence/handoff UI contract: PASS');
+console.log('WA-3 FINAL canonical labor presence/supervisor alert contract: PASS');
