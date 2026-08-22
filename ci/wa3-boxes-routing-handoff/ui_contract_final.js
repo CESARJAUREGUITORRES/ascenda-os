@@ -3,6 +3,7 @@ const fs=require('fs');
 const assert=require('assert');
 const shell=fs.readFileSync('app/public/wa-shell-integration.js','utf8');
 const panel=fs.readFileSync('app/public/wa-multiagent-final-panel.js','utf8');
+const server=fs.readFileSync('app/server-wa3-v2.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260822224500_wa3_presence_handoff_final_v3.sql','utf8');
 
 assert(shell.includes("MULTI_SRC='/wa-multiagent-final-panel.js?v=20260822-wa3-final-p01'"));
@@ -22,6 +23,9 @@ assert(panel.includes("row.state==='HUMAN_REQUESTED'"));
 assert(panel.includes("/^24H\\s/i"));
 assert(panel.includes("boxNames.has(t)"));
 assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
+
+assert(server.includes("now-Date.parse(p.last_seen_at)<60000"));
+assert(!server.includes("now-Date.parse(p.last_seen_at)<120000"));
 
 for(const token of ['aos_wa3_effective_presence_v2','ASCENDA_GLOBAL','HUMAN_HANDOFF_ONLY','HUMAN_REQUESTED','conversation.handoff_requested','NO_HUMAN_HANDOFF_WORK']) assert(migration.includes(token),token);
 assert(migration.includes("c.state='HUMAN_REQUESTED'"));
