@@ -1,0 +1,137 @@
+name: ASCENDA WA-3 FINAL Presence Handoff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/wa-multiagent-final-panel.js'
+      - 'app/public/wa-shell-integration.js'
+      - 'supabase/migrations/*wa3_presence_handoff_final_v3*'
+      - 'supabase/rollbacks/*wa3_presence_handoff_final_v3*'
+      - 'ci/wa3-boxes-routing-handoff/ui_contract_final.js'
+      - 'ci/wa3-boxes-routing-handoff/tests/003_wa3_presence_handoff_final.sql'
+      - '.github/workflows/wa3-final-presence-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa3-final-presence-handoff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast:
+    name: FAST · final UI presence contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax and static contracts
+        shell: powershell
+        run: |
+          node --check app/public/wa-multiagent-final-panel.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/wa-shell-integration.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/wa3-boxes-routing-handoff/ui_contract_final.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  zero-cost:
+    name: ZERO-COST · final DB handoff contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 40
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59822/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Zero-Cost policy and syntax
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --check app/public/wa-multiagent-final-panel.js
+          node --check app/public/wa-shell-integration.js
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+          node ci/wa3-boxes-routing-handoff/ui_contract_final.js
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/public/wa-shell-integration.js app/public/wa-multiagent-final-panel.js
+          ! grep -q "graph.facebook.com" app/public/wa-shell-integration.js app/public/wa-multiagent-final-panel.js
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa3-final"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59821/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59822/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59820/' supabase/config.toml
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa3-final' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59822 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          alter table public.aos_usuarios add column if not exists codigo_asesor text;
+          create table if not exists public.aos_estado_equipo(
+            asesor text,estado text,inicio timestamptz,fin timestamptz,minutos_en_estado numeric,
+            updated_at timestamptz,sede text,codigo_asesor text
+          );
+          SQL
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+      - name: Preserve certified V2 pgTAP before final override
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/002_wa3_multiagent_v2.sql | tee /tmp/wa3-v2.txt
+          ! grep -q 'not ok' /tmp/wa3-v2.txt
+      - name: Apply WA-3 FINAL V3
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822224500_wa3_presence_handoff_final_v3.sql
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+      - name: pgTAP final presence and handoff
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/003_wa3_presence_handoff_final.sql | tee /tmp/wa3-final.txt
+          ! grep -q 'not ok' /tmp/wa3-final.txt
+          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa3-final.txt || true)
+          echo "WA-3 FINAL pgTAP assertions: $COUNT"
+          test "$COUNT" -ge 30
+      - name: Concurrent claim remains single-owner under final contract
+        run: bash ci/wa3-boxes-routing-handoff/concurrency_v2.sh
+      - name: Final rollback restores V2 authority
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260822224500_wa3_presence_handoff_final_v3.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_effective_presence_v2(uuid)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_handoff_request_v1(uuid,uuid,uuid,text)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_claim_next_v2(uuid,uuid)') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_agent_presence_v1') is not null")" = "t"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
