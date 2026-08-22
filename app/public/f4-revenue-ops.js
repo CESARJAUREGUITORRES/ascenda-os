@@ -161,7 +161,7 @@ function patchSalesExplorerEntrypoints(){
     var body=document.getElementById(pair[0]);if(!body)return;var card=body.closest?body.closest('.crd'):null,title=card&&card.querySelector('.ct');
     if(!title||title.getAttribute('data-sx1')==='1')return;
     title.setAttribute('data-sx1','1');title.setAttribute('role','button');title.setAttribute('tabindex','0');title.style.cursor='pointer';title.title='Abrir Sales Explorer';
-    var mark=document.createElement('span');mark.textContent='â†—';mark.style.cssText='font-size:10px;color:#0A4FBF;margin-left:4px';title.appendChild(mark);
+    var mark=document.createElement('span');mark.textContent='\u2197';mark.style.cssText='font-size:10px;color:#0A4FBF;margin-left:4px';title.appendChild(mark);
     function go(){openSalesExplorer(pair[1])}title.addEventListener('click',go);title.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();go()}});
   });
 }
