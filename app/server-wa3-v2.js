@@ -3,6 +3,7 @@
 // Handles only readiness/queue/claim/team summary. Existing server-wa3.js remains ownership, routing and human-send authority.
 const http=require('http');
 const https=require('https');
+const crypto=require('crypto');
 const {spawn}=require('child_process');
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
@@ -149,14 +150,26 @@ async function claimNext(req,res){
   }catch(e){writeJson(res,503,{ok:false,error:'WA3_CLAIM_UNAVAILABLE'});}
 }
 
+// Per-session limiter. The WA3V2 boundary sits behind multiple internal wrappers,
+// so socket.remoteAddress is normally loopback and MUST NOT be the primary key.
+// Reads and writes use independent buckets so UI polling can never block a human action.
 const buckets=new Map();
+function rateIdentity(req){
+  const token=strongToken(req);
+  if(token)return 'session:'+crypto.createHash('sha256').update(token).digest('hex').slice(0,32);
+  return 'unauth:'+String(req.socket.remoteAddress||'unknown');
+}
 function rateAllowed(req){
-  const key=String(req.socket.remoteAddress||'unknown'),now=Date.now();
+  const now=Date.now();
+  const read=req.method==='GET'||req.method==='HEAD';
+  const scope=read?'read':'write';
+  const limit=read?600:120;
+  const key=rateIdentity(req)+'|'+scope;
   let b=buckets.get(key);
   if(!b||now-b.start>60000){b={start:now,n:0};buckets.set(key,b);}
   b.n++;
-  if(buckets.size>1000){for(const [k,v] of buckets)if(now-v.start>120000)buckets.delete(k);}
-  return b.n<=120;
+  if(buckets.size>2000){for(const [k,v] of buckets)if(now-v.start>120000)buckets.delete(k);}
+  return b.n<=limit;
 }
 function proxy(req,res){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
