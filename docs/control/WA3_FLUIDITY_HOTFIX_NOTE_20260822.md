@@ -1,0 +1,1 @@
+This slice is intentionally UI/runtime-only and must be merged only after exact-head CI and anti-drift.
