@@ -29,6 +29,16 @@ assert(server.includes('requireActor(req,res,true)'));
 assert(server.includes("privacy:'NO_CUSTOMER_DATA'"));
 assert(!server.includes('contact_number'));
 assert(!server.includes('message_body'));
+
+// Regression: every Railway/internal wrapper connection can share loopback remoteAddress.
+// Authenticated WA-3 traffic must therefore be limited by a non-reversible session key,
+// with reads isolated from human/admin write actions.
+assert(server.includes("const crypto=require('crypto')"));
+assert(server.includes("crypto.createHash('sha256').update(token)"));
+assert(server.includes("const scope=read?'read':'write'"));
+assert(server.includes("const limit=read?600:120"));
+assert(!server.includes("const key=String(req.socket.remoteAddress||'unknown'),now=Date.now()"));
+
 assert(wa4.includes("['server-wa3-v2.js']"));
 assert(wa4.includes('Copilot only'));
 console.log('WA-3 V2 UI/boundary contract: PASS');
