@@ -1,6 +1,6 @@
 'use strict';
 // WA-3 V2 additive multiagent boundary.
-// Handles only readiness/queue/claim. Existing server-wa3.js remains ownership, routing and human-send authority.
+// Handles only readiness/queue/claim/team summary. Existing server-wa3.js remains ownership, routing and human-send authority.
 const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
@@ -72,6 +72,7 @@ function sbRequest(method,endpoint,body,useService){
 }
 const sbRpc=(name,payload)=>sbRequest('POST','/rest/v1/rpc/'+name,payload,false);
 const serviceRpc=(name,payload)=>sbRequest('POST','/rest/v1/rpc/'+name,payload,true);
+const serviceGet=(endpoint)=>sbRequest('GET',endpoint,null,true);
 
 async function actor(req){
   const token=strongToken(req);if(!token)return null;
@@ -81,9 +82,10 @@ async function actor(req){
     return a&&a.ok===true&&UUID_RE.test(String(a.actor_id||''))?a:null;
   }catch(_){return null;}
 }
-async function requireActor(req,res){
+async function requireActor(req,res,adminOnly){
   const a=await actor(req);
   if(!a){writeJson(res,403,{ok:false,error:'WA3_2FA_PANEL_REQUIRED'});return null;}
+  if(adminOnly&&a.is_admin!==true){writeJson(res,403,{ok:false,error:'WA3_ADMIN_REQUIRED'});return null;}
   return a;
 }
 async function queueSummary(a){
@@ -91,14 +93,40 @@ async function queueSummary(a){
   return out.data||{ok:false,error:'WA3_QUEUE_SUMMARY_EMPTY'};
 }
 async function getQueue(req,res){
-  const a=await requireActor(req,res);if(!a)return;
+  const a=await requireActor(req,res,false);if(!a)return;
   try{
     const d=await queueSummary(a);
     writeJson(res,d.ok===false?409:200,d);
   }catch(e){writeJson(res,503,{ok:false,error:'WA3_QUEUE_SUMMARY_UNAVAILABLE'});}
 }
+async function teamSummary(req,res){
+  const a=await requireActor(req,res,true);if(!a)return;
+  try{
+    const [members,users,presence,assignments]=await Promise.all([
+      serviceGet('/rest/v1/aos_wa_box_members_v1?active=eq.true&select=box_id,user_id,max_active,priority,last_assigned_at'),
+      serviceGet('/rest/v1/aos_usuarios?activo=eq.true&select=id,nombre,rol,cargo,sede,nivel_jerarquia,paneles_acceso'),
+      serviceGet('/rest/v1/aos_wa_agent_presence_v1?select=user_id,status,last_seen_at,available_since'),
+      serviceGet('/rest/v1/aos_wa_assignments_v1?state=eq.ACTIVE&select=owner_user_id,box_id')
+    ]);
+    const memberRows=Array.isArray(members.data)?members.data:[];
+    const userRows=Array.isArray(users.data)?users.data:[];
+    const presenceRows=Array.isArray(presence.data)?presence.data:[];
+    const assignmentRows=Array.isArray(assignments.data)?assignments.data:[];
+    const ids=new Set(memberRows.map(x=>String(x.user_id||'')));
+    const now=Date.now();
+    const agents=userRows.filter(u=>ids.has(String(u.id))).map(u=>{
+      const p=presenceRows.find(x=>x.user_id===u.id)||{};
+      const fresh=!!p.last_seen_at&&Number.isFinite(Date.parse(p.last_seen_at))&&(now-Date.parse(p.last_seen_at)<120000);
+      const effective=fresh&&p.status==='AVAILABLE'?'AVAILABLE':(fresh&&p.status==='AWAY'?'AWAY':'OFFLINE');
+      const boxes=memberRows.filter(m=>m.user_id===u.id).map(m=>({box_id:m.box_id,max_active:m.max_active,priority:m.priority}));
+      const activeLoad=assignmentRows.filter(x=>x.owner_user_id===u.id).length;
+      return {id:u.id,name:u.nombre||null,role:u.rol||null,cargo:u.cargo||null,sede:u.sede||null,effective_status:effective,last_seen_at:p.last_seen_at||null,available_since:p.available_since||null,active_load:activeLoad,boxes:boxes};
+    }).sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''),'es'));
+    writeJson(res,200,{ok:true,agents:agents,generated_at:new Date().toISOString(),privacy:'NO_CUSTOMER_DATA'});
+  }catch(e){writeJson(res,503,{ok:false,error:'WA3_TEAM_SUMMARY_UNAVAILABLE'});}
+}
 async function presence(req,res){
-  const a=await requireActor(req,res);if(!a)return;
+  const a=await requireActor(req,res,false);if(!a)return;
   let body;try{body=await readJson(req);}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message});}
   const status=String(body&&body.status||'AVAILABLE').trim().toUpperCase();
   try{
@@ -110,7 +138,7 @@ async function presence(req,res){
   }catch(e){writeJson(res,503,{ok:false,error:'WA3_PRESENCE_UNAVAILABLE'});}
 }
 async function claimNext(req,res){
-  const a=await requireActor(req,res);if(!a)return;
+  const a=await requireActor(req,res,false);if(!a)return;
   let body;try{body=await readJson(req);}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message});}
   const boxId=String(body&&body.box_id||'');
   if(!UUID_RE.test(boxId))return writeJson(res,400,{ok:false,error:'INVALID_BOX_ID'});
@@ -147,6 +175,7 @@ const server=http.createServer(async(req,res)=>{
   const p=u.pathname;
   if(p.startsWith('/api/wa3/')&&!rateAllowed(req))return writeJson(res,429,{ok:false,error:'WA3_RATE_LIMIT'});
   if(req.method==='GET'&&p==='/api/wa3/queue-summary')return getQueue(req,res);
+  if(req.method==='GET'&&p==='/api/wa3/team-summary')return teamSummary(req,res);
   if(req.method==='POST'&&p==='/api/wa3/presence')return presence(req,res);
   if(req.method==='POST'&&p==='/api/wa3/claim-next')return claimNext(req,res);
   return proxy(req,res);
