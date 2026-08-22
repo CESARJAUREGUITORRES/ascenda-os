@@ -84,7 +84,11 @@ select ok((public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444
 select ok((public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444')->'boxes'->0->>'can_claim')::boolean,'ready agent can claim from member box');
 
 select ok((public.aos_wa3_claim_next_v2('cccccccc-cccc-4ccc-8ccc-cccccccccccc','44444444-4444-4444-8444-444444444444')->>'claimed')::boolean,'ready agent A claims next');
-select is((select owner_user_id from public.aos_wa_conversations_v1 where id='20000000-0000-4000-8000-000000000001'),'44444444-4444-4444-8444-444444444444'::uuid,'claim V2 preserves exact owner semantics');
+select is(
+  (select count(*)::integer from public.aos_wa_conversations_v1 where id in ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002') and owner_user_id='44444444-4444-4444-8444-444444444444'),
+  1,
+  'claim V2 assigns exactly one queued conversation to agent A regardless of UUID tie-break order'
+);
 select is((public.aos_wa3_queue_summary_v1('44444444-4444-4444-8444-444444444444')->>'total_queued')::integer,1,'queue count falls after claim');
 
 select is(public.aos_wa3_agent_presence_touch_v1('55555555-5555-4555-8555-555555555555','AWAY')->>'status','AWAY','agent B can explicitly mark AWAY');

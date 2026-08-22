@@ -1,8 +1,9 @@
 from pathlib import Path
+import re
 
 root=Path(__file__).resolve().parents[2]
 shell=(root/'app/public/wa-shell-integration.js').read_text(encoding='utf-8')
-final_mode='/wa-multiagent-final-panel.js?v=20260822-wa3-final-p01' in shell
+final_mode=re.search(r'/wa-multiagent-final-panel\.js\?v=20260822-wa3-final-p0[12]',shell) is not None
 panel=(root/('app/public/wa-multiagent-final-panel.js' if final_mode else 'app/public/wa-multiagent-v2-panel.js')).read_text(encoding='utf-8')
 server=(root/'app/server-wa3-v2.js').read_text(encoding='utf-8')
 wa4=(root/'app/server-wa4.js').read_text(encoding='utf-8')
