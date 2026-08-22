@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "echo 'Skip build — Phase S outer runtime: node server-phase-s-f17.js -> server-phase-s.js -> server-f17.js -> server-f5.js -> server-wa4.js -> server-wa3-v2.js -> server-wa3.js -> server-wa2.js -> server-f4.js'"
+    "buildCommand": "echo 'Skip build — Phase S outer runtime: node server-phase-s-f17.js -> server-phase-s.js -> server-f17.js -> server-f5.js -> server-wa4.js -> server-wa3.js -> server-wa2.js -> server-f4.js'"
   },
   "deploy": {
     "startCommand": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js",
