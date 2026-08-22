@@ -137,7 +137,8 @@ jobs:
           $s152 = Get-Content app/server-phase-s-f17.js -Raw
           $f17 = Get-Content app/server-f17.js -Raw
           $sync = Get-Content app/auth-resend-reconcile.js -Raw
-          $rail = Get-Content app/railway.json -Raw
+          $cfg = Get-Content app/railway.json -Raw | ConvertFrom-Json
+          $start = [string]$cfg.deploy.startCommand
           if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
           if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
           if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
@@ -147,20 +148,25 @@ jobs:
           if ($sync -notmatch 'aos_integration_secrets_v1') { throw 'Private integration vault target missing' }
           if ($sync -match '/rest/v1/aos_integraciones(?:\?|["''])') { throw 'Public integration catalog must not receive provider secret' }
           if (($s + $sync + $s152 + $f17) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
-          $legacy = '"startCommand"\s*:\s*"node server-phase-s\.js"'
-          $sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s\.js"'
-          $s152Legacy = '"startCommand"\s*:\s*"node server-phase-s-f17\.js"'
-          $s152Sentinel = '"startCommand"\s*:\s*"env NODE_OPTIONS=''--require \./sentinel-sentry-init\.cjs'' node server-phase-s-f17\.js"'
-          $directOk = ($rail -match $legacy) -or ($rail -match $sentinel)
-          $bootstrapOk = (($rail -match $s152Legacy) -or ($rail -match $s152Sentinel)) -and
+          $phaseSEntries = @(
+            'node server-phase-s.js',
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js",
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
+          )
+          $s152Entries = @(
+            'node server-phase-s-f17.js',
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js",
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
+          )
+          $directOk = $phaseSEntries -contains $start
+          $bootstrapOk = ($s152Entries -contains $start) -and
             ($s152 -match "a\[0\]==='server-f5\.js'") -and
             ($s152 -match "a\[0\]='server-f17\.js'") -and
             ($s152 -match "require\('./server-phase-s\.js'\)") -and
             ($f17 -match "\['server-f5\.js'\]")
           if (-not ($directOk -or $bootstrapOk)) { throw 'Railway certified Phase S/F17 start command missing' }
-          if (($rail -match $sentinel) -or ($rail -match $s152Sentinel)) {
-            $cfg = $rail | ConvertFrom-Json
-            if ([string]$cfg.build.buildCommand -match 'NODE_OPTIONS') { throw 'Sentinel preload must not contaminate build' }
+          if ($start -like "env NODE_OPTIONS='*'") {
+            if ([string]$cfg.build.buildCommand -match 'NODE_OPTIONS') { throw 'Runtime preload must not contaminate build' }
           }
 
       - name: Delegated Linux contracts remain canonical
