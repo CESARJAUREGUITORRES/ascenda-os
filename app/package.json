@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node server-f17.js"
+    "start": "node server-email-compat.js"
   },
   "dependencies": {
     "@sentry/node": "10.70.0",
