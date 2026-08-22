@@ -47,7 +47,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/wa-shell-integration.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python ci/wa3-boxes-routing-handoff/ui_contract_v2.py
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   security-chain:
