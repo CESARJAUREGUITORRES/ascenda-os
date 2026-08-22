@@ -80,5 +80,14 @@ jobs:
           if (-not $runtime.Contains('aos_callcenter_confirm_queue_appointment_v1')) { throw 'Automatic queue RPC missing' }
           if (-not $runtime.Contains('CITA AGENDADA CON ÉXITO')) { throw 'Success modal missing' }
           if ($runtime.Contains('if(window.__AOS_CC_LOOP6_V2__) return;')) { throw 'Unsafe SPA early-return remains' }
+          $finishStart = $runtime.IndexOf('function cc6QueueFinishModal(')
+          $commitStart = $runtime.IndexOf('function cc6QueueCommit(', $finishStart)
+          $overrideStart = $runtime.IndexOf('window.ccConfirmarCita=function(){', $commitStart)
+          if ($finishStart -lt 0 -or $commitStart -lt 0 -or $overrideStart -lt 0) { throw 'Queue function boundaries missing' }
+          $finishBlock = $runtime.Substring($finishStart, $commitStart-$finishStart)
+          $commitBlock = $runtime.Substring($commitStart, $overrideStart-$commitStart)
+          if ($finishBlock.Contains('data-cancel') -or $finishBlock.Contains('cc6InfoModal(')) { throw 'Success modal must expose only CONTINUAR LLAMADAS' }
+          if (-not $finishBlock.Contains('data-ok') -or -not $finishBlock.Contains('CONTINUAR LLAMADAS') -or -not $finishBlock.Contains('loadLead()')) { throw 'Success modal continue contract incomplete' }
+          if ($commitBlock.Contains('loadLead()')) { throw 'Next lead may not load before post-commit confirmation' }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
