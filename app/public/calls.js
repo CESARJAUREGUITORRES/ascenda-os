@@ -212,7 +212,7 @@ function ccGuardar(){
 }
 
 function ccConfirmarCita(){
-  if(window.__AOS_CC_LOOP6_V2__!=='v2.2'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
+  if(window.__AOS_CC_LOOP6_V2__!=='v2.3'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
   var tipoCita='';document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
   if(!document.getElementById('cc-c-fecha').value){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','Seleccioná la fecha.','');else alert('Falta la fecha');return;}
   var p={numero:CC.lead?CC.lead.num:'',estado:'CITA CONFIRMADA',nombre:document.getElementById('cc-c-nombre').value.trim(),apellido:document.getElementById('cc-c-apellido').value.trim(),dni:document.getElementById('cc-c-dni').value.trim(),correo:document.getElementById('cc-c-correo').value.trim(),tipoAtencion:document.getElementById('cc-c-tipo-at').value,sede:document.getElementById('cc-c-sede').value,fechaCita:document.getElementById('cc-c-fecha').value,horaCita:document.getElementById('cc-c-hora').value,tratamiento:document.getElementById('cc-c-trat').value,tipoCita:tipoCita||'CONSULTA NUEVA',obs:document.getElementById('cc-c-obs').value.trim(),rowNum:CC.lead?(CC.lead.rowNum||0):0};
@@ -839,7 +839,7 @@ function buscarPacCitaManual(q){
 }
 
 function guardarCitaManual(){
-  if(window.__AOS_CC_LOOP6_V2__!=='v2.2'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
+  if(window.__AOS_CC_LOOP6_V2__!=='v2.3'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
   var num=(document.getElementById('cm-num').value||'').trim().replace(/\D/g,'');
   if(!num||num.length<7){alert('Ingresa un número válido.');return;}
   var fecha=document.getElementById('cm-fecha').value;

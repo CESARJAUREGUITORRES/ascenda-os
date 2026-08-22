@@ -713,7 +713,7 @@ function ccGuardar(){
 }
 
 function ccConfirmarCita(){
-  if(window.__AOS_CC_LOOP6_V2__!=='v2.2'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
+  if(window.__AOS_CC_LOOP6_V2__!=='v2.3'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
   if(CC.guardando)return;CC.guardando=true;
   var tipoCita='';document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
   if(!document.getElementById('cc-c-fecha').value){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','Seleccioná la fecha.','');else alert('Falta la fecha');return;}
@@ -1382,7 +1382,7 @@ function buscarPacCitaManual(q){
 }
 
 function guardarCitaManual(){
-  if(window.__AOS_CC_LOOP6_V2__!=='v2.2'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
+  if(window.__AOS_CC_LOOP6_V2__!=='v2.3'){alert('ASCENDA Call Center se actualizó. Recarga esta pantalla antes de registrar una cita.');return;}
   var num=(document.getElementById('cm-num').value||'').trim().replace(/\D/g,'');
   if(!num||num.length<7){alert('Ingresa un número válido.');return;}
   var fecha=document.getElementById('cm-fecha').value;
@@ -1508,5 +1508,5 @@ function buscarRepo(){
 
 </script>
 
-<script src="/calls-loop6.js?v=20260821-loop6-v2.2"></script>
+<script src="/calls-loop6.js?v=20260821-loop6-v2.3"></script>
 <!-- KronIA Chat — en app.html (persistente entre paneles) -->
