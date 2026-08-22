@@ -67,7 +67,9 @@ const ensureFn=`function cc6EnsureSelectors(){
 `;
 runtime=runtime.slice(0,ensureStart)+ensureFn+runtime.slice(ensureEnd);
 
-const queueStart=runtime.indexOf('window.ccConfirmarCita=function(){');
+const existingQueueMarker=runtime.indexOf('/* LOOP6_V23_AUTO_QUEUE */');
+const legacyQueueOverride=runtime.indexOf('window.ccConfirmarCita=function(){');
+const queueStart=existingQueueMarker>=0?existingQueueMarker:legacyQueueOverride;
 const queueEnd=runtime.indexOf('\nwindow.guardarCitaManual=function(){',queueStart);
 if(queueStart<0||queueEnd<0) throw new Error('ccConfirmarCita override boundaries not found');
 const queuePatch=`/* LOOP6_V23_AUTO_QUEUE */
