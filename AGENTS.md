@@ -15,8 +15,9 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 7. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
 8. the CURRENT Control Maestro / phase checkpoint of **one selected project only**
 9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
-10. for Revenue F5 / identity / historical data work, `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`
-11. for F5→F6 identity/Patient 360 work, `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`, `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`, `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md` and `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`.
+10. for WhatsApp Revenue Hub V2 work, `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md` and `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
+11. for Revenue F5 / identity / historical data work, `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`;
+12. for F5→F6 identity/Patient 360 work, `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`, `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`, `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md` and `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`.
 
 Historical documents may contain useful context, but they do not override CURRENT.
 
@@ -54,9 +55,9 @@ Do not use a bare `F17` in cross-program control because several programs have n
 
 Always verify `app/railway.json` and `app/package.json` before changing server topology.
 
-Captured Railway outer command:
+Captured Railway outer command at the 2026-08-22 WA-V2 baseline:
 
-`env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js`
+`env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js`
 
 Captured effective chain:
 
@@ -67,7 +68,7 @@ Important:
 - `app/server.js` remains a lower/core API server; it is **not automatically the outer Railway entrypoint**.
 - `app/public/` is the product frontend served through the runtime chain.
 - wrappers belong to different workstreams and must not be bypassed accidentally.
-- runtime-chain change = HIGH/CRITICAL and requires exact-chain regression evidence.
+- runtime-chain/preload change = HIGH/CRITICAL and requires exact-chain regression evidence.
 
 ## Repository classification
 

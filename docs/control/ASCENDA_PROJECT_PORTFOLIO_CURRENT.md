@@ -1,80 +1,82 @@
 # ASCENDA OS — PROJECT PORTFOLIO CURRENT
 
-**Captured:** 2026-08-19 America/Lima  
-**GitHub entry baseline:** `main@754ab44f39f10123ab83b98f97b5c01fff25bab5`  
-**ACTIVE PORTFOLIO OWNER:** `REV-F6-CLOSEOUT`
+**Captured:** 2026-08-22 America/Lima  
+**Entry baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
+**ACTIVE PORTFOLIO OWNER:** `WHATSAPP-REVENUE-HUB-V2`
 
 ## Current owner state
 
-REV-F5 is **PRODUCTION CERTIFIED — 100%** and its lock is released. Revenue now owns the single HIGH/CRITICAL mutable lane under `REV-F6-CLOSEOUT`; the active gate is **REV-F6.0 Data Contract**.
+The owner explicitly moved the single HIGH/CRITICAL mutable lane back to WhatsApp to finish the Revenue Hub and connect it to Meta for production selling.
+
+`WA-V2-0 — BASELINE & GOVERNANCE` is the active gate.
 
 ## Program map
 
-| Program | Certified / closed input | Remaining | Portfolio state |
+| Program | Certified / preserved input | Remaining | Portfolio state |
 |---|---|---|---|
-| Revenue | REV-F1..F5 closed; F5 terminal fp `2f0a365fae4caaa7be9d204e0f76679b` | REV-F6.0→F6.7, then F7 | **ACTIVE — F6.0 IN PROGRESS** |
-| MKT Integrity / Call Center | prior closed loops preserved | later loops | **PAUSED / READ-ONLY** |
-| WhatsApp + Notifications | certified notification/conversation baseline preserved | roadmap items outside Revenue | **PAUSED / REGRESSION-ONLY** |
-| CIA | prior certified phases preserved | CIA-F17/F18 and later activation work | **PAUSED / READ-ONLY until Revenue handoff** |
-| Sentinel | observability foundation preserved | regression/deferred maintenance + future F6.6 handoff | **REGRESSION-ONLY** |
-| KronIA | prior closed baseline preserved | later hardening | **PAUSED** |
-| Migration governance | safe owner slices | parity/baseline maintenance | **MAINTENANCE ONLY** |
+| WhatsApp Revenue Hub V2 | WA core + Notifications S13–S15.5 preserved | WA-V2-0, WA-3, WA-3.5, Meta/Knowledge/AI/Tools/Revenue phases | **ACTIVE** |
+| Revenue | REV-F1..F6 certified | REV-F7 and later | PAUSED / READ-ONLY while WA owns lock |
+| MKT Integrity / Call Center | Loop 6 V2.3 baseline preserved | terminal 5 genuine-op gate | PAUSED / RECOVERABLE at 0/5 |
+| CIA / Email / Acquisition | certified facts and adapters preserved | later activation work | READ-ONLY dependency source for WA |
+| Sentinel | observability/integrity foundation preserved | regression/deferred maintenance | REGRESSION-ONLY |
+| KronIA | prior baseline preserved | later hardening | PAUSED |
+| Migration governance | existing safe owner slices | parity/baseline maintenance | MAINTENANCE ONLY |
 
-## Revenue CURRENT
+## Upstream truth boundary now available to WA
 
-- REV-F1 Sales Intelligence V2 Foundation — **CLOSED**;
-- REV-F2 Cartera/Reconciliation Foundation — **CLOSED**;
-- REV-F3 Producto Canónico — **CLOSED**;
-- REV-F4 Revenue Operations Integration V1 — **CLOSED**;
-- REV-F5 Historical + Patient Identity — **PRODUCTION CERTIFIED — 100%**;
-- REV-F6 Sales Intelligence 3.0 — **ACTIVE**;
-- REV-F6.0 Data Contract — **IN PROGRESS**;
-- REV-F6.1 Patient Commercial 360 V2 — **BLOCKED until F6.0 PASS**;
-- REV-F7 Governed Revenue Signals & CIA Handoff — **BLOCKED until F6 certification**.
+Production live at WA-V2 handoff:
 
-## Certified upstream truth boundary
+- canonical patients: **7,702**;
+- canonical sales: **1,331**;
+- leads: **5,880**;
+- F5 provenance: **15,498 source rows / 15,498 memberships / 8,716 clusters / 8,716 previews**;
+- CIA contact identity / email facts: **11,911**;
+- CIA contacts linked to canonical patient: **7,083**;
+- catalog: **221 active services**.
 
-Do not create competing truth layers:
+Truth ownership remains:
 
 - F3 = product identity/facts;
 - F4 = payment/revenue/cartera/reconciliation truth;
 - F5 = patient identity + provenance;
 - F6 = derived intelligence/read models;
-- CIA = governed audience/activation/assignment/channel/attribution;
+- CIA = governed audience/channel/acquisition facts;
+- Email = governed email channel facts/events;
 - WA = conversation/channel product;
-- Sentinel = observability/integrity, not autonomous business-data repair.
+- Sentinel = observation/integrity.
 
-F6.0 entry LIVE:
+WA must integrate these; it must not duplicate them.
 
-- 6/6 historical patient batches MATCHED;
-- 15,498 / 15,498 source rows and memberships;
-- 8,716 identity clusters;
-- 296 MATCH / 6,984 REVIEW / 1,436 NEW;
-- 7,688 canonical patients;
-- 1,299 canonical sales, current certified range 2026-01-05 → 2026-08-15;
-- F3: 406 applicable facts, 397 RESOLVED;
-- F4: 162 reconciliation rows / 123 linked sales;
-- Identity Bridge V2: frozen contract, not materialized at F6.0.
+## WhatsApp live entry
 
-## F6.0 security/current correction
+- 15 canonical WA messages: 11 inbound / 4 outbound;
+- 2 conversations;
+- 25 events;
+- 9 outbound requests;
+- 11 routing events;
+- 2 active boxes;
+- 2 active memberships belonging to the current single operational actor;
+- 1 active assignment;
+- 0 AI runs;
+- human send ON;
+- auto routing OFF;
+- AI send OFF;
+- Copilot OFF;
+- auto reply OFF.
 
-Preflight discovered legacy `aos_paciente_360(text)` exposed to browser roles under SECURITY DEFINER and returning domains that Citas does not consume. F6.0 owns a fail-closed cutover to a minimum Auth V3 + PASSWORD_2FA patient-commercial history summary while preserving the existing UI contract through the production service-worker bridge.
+Notifications S13–S15.5 are CLOSED / 100% CERTIFIED / REGRESSION ONLY.
 
-No F6.0 gate may be certified until direct LIVE ACL/function readback proves the legacy browser path is closed and protected patient/sales/F3/F4 fingerprints remain unchanged.
+## Previous MKT lock handoff
 
-## Historical-sales boundary
+MKT Loop 6 V2.3 remains recoverable from its frozen baseline. Fresh readback before this handoff found **0 qualifying genuine operations** after the V2.3 cutover baseline, so no customer operation was interrupted. Do not call Loop 6 complete; resume later from its checkpoint.
 
-Patient history 2024/2025 does not create transactional revenue facts. Until certified transaction sources are ingested:
+## Global rule
 
-- 2024 sales = `NO_CERTIFIED_SOURCE`;
-- 2025 sales = `NO_CERTIFIED_SOURCE`;
-- missing source ≠ zero;
-- unsupported historical YoY/revenue remains prohibited.
+At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While WA owns the lane, all other programs may perform read-only/regression work only unless WA requires a narrowly documented dependency.
 
-Future historical sales follow:
+## Immediate execution
 
-`source SHA/provenance → sales staging → canonical sale → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
-
-## Global lock rule
-
-At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. Other workstreams may run read-only, documentation or regression work only when it cannot alter production state or compete for mutable DB/release ownership.
+1. Certify `WA-V2-0` from exact-head GitHub + Railway + Supabase + aos_memory + Notion reconciliation.
+2. Run `WA-3 Human Operations Multiagent` discover-first.
+3. Run `WA-3.5 Revenue Inbox UX` only after WA-3 ownership contracts close.
+4. Then continue Meta attribution, Knowledge Fabric, Sales Playbooks, Copilot, multimedia, Agenda/Follow-up/Call Center, Meta Ads/Flows and revenue attribution under the V2 roadmap.

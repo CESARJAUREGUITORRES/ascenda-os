@@ -1,124 +1,155 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-08-19 America/Lima  
-**GitHub entry baseline:** `main@754ab44f39f10123ab83b98f97b5c01fff25bab5`  
-**ACTIVE WORKSTREAM:** `REV-F6-CLOSEOUT`  
-**CURRENT GATE:** `REV-F6.0 — DATA CONTRACT`
+**Captured:** 2026-08-22 America/Lima  
+**GitHub entry baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
+**ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
+**CURRENT GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
 
 ## Authority order
 
 1. root `AGENTS.md`;
-2. `SECURITY.md`;
+2. root `SECURITY.md`;
 3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
-5. `docs/control/REV_F6_0_DATA_CONTRACT_V1.md`;
-6. F6 design contracts under `docs/control/`;
-7. exact GitHub CURRENT + Supabase LIVE;
-8. fresh CURRENT rows in `aos_memory`;
-9. Notion visual continuity.
+5. this file;
+6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
+7. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
+8. exact GitHub CURRENT + Railway exact deploy + Supabase LIVE;
+9. fresh scoped rows in `aos_memory`;
+10. Notion executive continuity.
 
-Historical documents and chat checkpoints never override persisted CURRENT/LIVE.
+Historical chat/doc snapshots never override exact CURRENT + live production.
 
-## Revenue state
+## Portfolio state
 
-- REV-F1 — CLOSED;
-- REV-F2 — CLOSED;
-- REV-F3 — CLOSED;
-- REV-F4 — CLOSED;
 - REV-F5 — **PRODUCTION CERTIFIED — 100%**;
-- REV-F5 terminal fingerprint — `2f0a365fae4caaa7be9d204e0f76679b`;
-- REV-F6 — **ACTIVE**;
-- REV-F6.0 Data Contract — **IN PROGRESS**;
-- REV-F6.1 Patient Commercial 360 V2 — **BLOCKED until F6.0 PASS**;
-- REV-F7 — **BLOCKED until F6 certification**.
+- REV-F6 — **PRODUCTION CERTIFIED — 100%**;
+- REV-F7 — paused while WA owns the mutable lane;
+- MKT Integrity Loop 6 V2.3 — **PAUSED / RECOVERABLE at 0/5 genuine operations**;
+- WhatsApp Revenue Hub V2 — **ACTIVE**;
+- Notifications S13–S15.5 — **CLOSED / 100% CERTIFIED / REGRESSION ONLY**;
+- CIA, Sentinel, KronIA and unrelated feature/data work — read-only/regression-only unless WA proves a strict dependency.
 
-## F6.0 certified-entry snapshot
+## Runtime exact-current entry
 
-LIVE preflight at the F6.0 entry baseline:
+Current `main` at handoff: `26171abe38bb4bb6f6364aff6624ddc3d0d39580`.
 
-- F5 batches = **6 / 6 MATCHED**;
-- source rows = **15,498 / 15,498**;
-- identity memberships = **15,498 / 15,498**;
-- clusters = **8,716**;
-- MATCH / REVIEW / NEW = **296 / 6,984 / 1,436**;
-- canonical patients = **7,688**;
-- sales = **1,299**, range **2026-01-05 → 2026-08-15**;
-- sale identity MATCH / REVIEW / UNRESOLVED = **208 / 940 / 151**;
-- F3 = **406** facts, **397 RESOLVED / 3 REVIEW_REQUIRED / 6 EXCLUDED / 0 MISSING**;
-- F4 = **162** reconciliation rows / **123** linked sales;
-- `aos_cia_contact_identity_v1` = **11,796** rows / **7,069** with canonical patient / **23** conflicts;
-- Identity Bridge V2 materialized = **false**.
+Railway combined status for that commit: **SUCCESS**.
 
-Protected entry fingerprints:
+Production chain remains:
 
-- patients `eee5a57717937a4f77049b3aebd8c525`;
-- sales `20104fd91fbf427e39566e7b84d7ec4f`;
-- F3 `e3c8499026d13401c4a733b4da16b6c8`;
-- F4 `5524a2280442224ec4e9a7cfdfffa008`;
-- F5.7 `5af139243f6aed37020048af292587fe`;
-- F5.8 `4ce1695532a57655179558ed2b5f78aa`;
-- F5.9 `5070c701d216eb839572bd70f530c2e6`;
-- F5.10 `2f0a365fae4caaa7be9d204e0f76679b`.
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
 
-## Truth ownership carried into F6
+`app/railway.json` also preloads Sentry plus the backend-only email runtime compatibility module. The WhatsApp shell mount and S15.5 Push bootstrap remain present in current source.
 
-- F3 owns product truth;
-- F4 owns payment/revenue/cartera truth;
-- F5 owns patient identity + provenance;
-- `aos_ventas` is the canonical persisted sales ledger;
-- `aos_cia_contact_identity_v1` is compatibility identity only;
-- F6 owns derived intelligence/read models only;
-- CIA owns governed audience/activation/assignment/channel attribution;
-- Sentinel observes integrity and does not silently repair business data.
+## Certified WhatsApp baseline preserved
 
-## Metric Trust contract
+Already demonstrated and not to be reopened without regression:
 
-Every material F6-derived insight must expose or inherit:
+- Meta signed inbound;
+- WA canonical message/event persistence;
+- live inbox and native ASCENDA shell integration;
+- WA-3 ownership/handoff boundary;
+- human-send path with historical ACCEPTED provider sends;
+- PWA Web Push self-healing;
+- closed-PWA Windows notification;
+- click → installed ASCENDA PWA → Auth gate;
+- final notification ACL cutover.
 
-`coverage + confidence + freshness + sample_size`
+Notification infrastructure is not the current work item.
 
-Never collapse:
+## WhatsApp live baseline — 2026-08-22 revalidation
 
-- zero observed;
-- zero applicable;
-- unknown;
-- no certified source.
+- messages = **15**: 11 INBOUND / 4 OUTBOUND;
+- conversations = **2**;
+- events = **25**;
+- outbound requests = **9**;
+- routing events = **11**;
+- active boxes = **2** (`VENTAS_GENERAL`, `WA_TEST`);
+- active box memberships = **2** for the current single operational actor;
+- active assignments = **1**;
+- AI runs = **0**;
+- `human_send_enabled=true`;
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- `copilot_enabled=false`;
+- `auto_reply_enabled=false`;
+- AI provider configured = Groq GPT-OSS fast/reasoning/safety, daily budget USD 0.50.
 
-No global average may hide a low-coverage critical domain.
+Outbound credential/provider health is **not current-certified**. Historical outbound request outcomes:
 
-## Historical transaction boundary
+- ACCEPTED = 4;
+- FAILED `META_190` = 4;
+- FAILED `META_SEND_REJECTED` = 1.
 
-- patient history 2024/2025/2026 = AVAILABLE;
-- transactional sales 2024 = NO_CERTIFIED_SOURCE;
-- transactional sales 2025 = NO_CERTIFIED_SOURCE;
-- transactional sales 2026 = available only inside certified current range;
-- missing source never means zero sales/revenue;
-- unsupported factual YoY remains prohibited.
+Before production selling, perform current provider health and a controlled outbound canary using a long-lived/system-user Meta credential stored only server-side.
 
-Future historical sales must follow the existing SHA/provenance → staging → sale → F3 → F5 → F4 → F6 pipeline.
+## New ecosystem truth now available to WA
 
-## REV-F6.0 security finding
+Live counts at WA-V2 entry:
 
-The F6.0 preflight found a real CRITICAL boundary defect: legacy `public.aos_paciente_360(text)` was SECURITY DEFINER and browser-executable while returning more patient/clinical/document data than the Citas consumer requires.
+- canonical patients = **7,702**;
+- canonical sales = **1,331**;
+- leads = **5,880**;
+- F5 source rows = **15,498**;
+- F5 identity memberships = **15,498**;
+- F5 identity clusters = **8,716**;
+- F5 previews = **8,716**;
+- CIA contact identity rows = **11,911**;
+- CIA canonical-linked contacts = **7,083**;
+- CIA email facts = **11,911**.
 
-F6.0 therefore includes a mandatory fail-closed cutover:
+WA must consume this evidence through Customer/Identity/Revenue contracts. Do not build another CRM, patient master, sales ledger or email master inside WhatsApp.
 
-- legacy Patient 360 becomes service-role-only and search-path hardened;
-- new minimum history summary requires Auth V3 + PASSWORD_2FA + patient-panel permission;
-- Citas compatibility is preserved by the production service worker, which injects the existing app token and routes the legacy RPC name to the secure summary;
-- no fallback may invoke the weak legacy RPC;
-- recovery never reopens browser access;
-- protected patient/sales/F3/F4 data must remain byte-identical.
+## Knowledge baseline
 
-## F6 roadmap
+`aos_catalogo_servicios` live:
 
-1. F6.0 Data Contract — ACTIVE.
-2. F6.1 Patient Commercial 360 V2.
-3. F6.2 Customer Lifecycle.
-4. F6.3 Identity Confidence + Metric Trust.
-5. F6.4 Sales Intelligence 3.0.
-6. F6.5 Historical-sales plug-in for certified sources only.
-7. F6.6 Sentinel integrity handoff.
-8. F6.7 Final certification.
+- 221 total / 221 active;
+- 221 with price;
+- 175 with commercial description;
+- 198 with benefits;
+- 167 with contraindications;
+- 221 with FAQ payload;
+- 0 with populated tags.
 
-Do not start F6.1 before F6.0 exact-head CI, LIVE persistence/readback, deterministic contract fingerprint, merge and Notion/aos_memory reconciliation all PASS.
+This is enough for structured grounding, but not yet enough for a mature Knowledge Fabric. Tags, source authority, versioning, policy validity and provenance still need explicit V2 work.
+
+## Meta attribution gap
+
+Current WA messages with explicit attribution:
+
+- `campaign_source`: 0/15;
+- `ad_id`: 0/15;
+- `lead_id`: 0/15;
+- `raw_referral`: 0/15.
+
+Do not infer ad/campaign attribution from phone matching alone. WA-7A will own Meta referral/provenance ingress.
+
+## WA V2 execution order
+
+1. `WA-V2-0` — Baseline & Governance — ACTIVE.
+2. `WA-3` — Human Operations Multiagent.
+3. `WA-3.5` — Revenue Inbox UX.
+4. `WA-7A` — Meta Attribution Ingress.
+5. `WA-4A` — Knowledge Fabric.
+6. `WA-4B` — Sales Playbook Engine.
+7. `WA-4C` — AI Sales Copilot canary.
+8. `WA-5` — Multimedia / Audio / Media Library.
+9. `WA-6` — Agenda / Follow-up / Call Center tools.
+10. `WA-7B` — Meta Ads Sync.
+11. `WA-7C` — Campaign Flow Router + WhatsApp Flows.
+12. `WA-7D` — Revenue Stitching.
+13. `WA-8` — Production / SLO / Security / FinOps.
+14. WA-9→WA-14 expansion only after core certification.
+
+## Safety invariants
+
+- one HIGH/CRITICAL mutable workstream;
+- no secrets in frontend/Git/Notion/chat;
+- no auto-reply AI before controlled autonomy gates;
+- no diagnosis/clinical advice automation;
+- no attribution invented from phone alone;
+- no duplicate CRM/agenda/sales/email truth layer;
+- exact-head + live readback before 100% claims;
+- updates land GitHub first, then `aos_memory`, then Notion last.

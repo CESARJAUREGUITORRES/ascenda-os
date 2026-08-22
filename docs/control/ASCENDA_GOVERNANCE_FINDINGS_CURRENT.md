@@ -1,97 +1,105 @@
 # ASCENDA OS — GOVERNANCE FINDINGS CURRENT
 
-**Baseline:** `main@40b2cbf50a9ffc2d9ca1ee3fedbf457c133c4a21`  
-**Captured:** 2026-08-19 America/Lima  
-**Scope:** CURRENT governance/read-only evidence + documentation reconciliation
+**Baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
+**Captured:** 2026-08-22 America/Lima  
+**Scope:** global CURRENT governance + WhatsApp Revenue Hub V2 handoff
 
 ## Findings
 
 | ID | Finding | Risk | State | Required action |
 |---|---|---|---|---|
 | GOV-01 | Bare `F#` names collide across CIA, Revenue and Sentinel. | HIGH | MITIGATED | Use `CIA-F*`, `REV-F*`, `SEN-F*`, `WA-*`, `K*`, `PARITY-*`. |
-| GOV-02 | Multiple HIGH/CRITICAL projects could launch work on shared CURRENT/runners concurrently. | CRITICAL | MITIGATED BY LOCK | One global mutable workstream in `ASCENDA_WORKSTREAM_LOCK_CURRENT.md`. |
-| GOV-03 | Runtime docs/agents historically described `node server.js` while production uses wrapper topology. | HIGH | CONTROLLED | Root AGENTS/bootstrap must track the effective runtime chain. |
-| GOV-04 | Historical `docs/MEMORY.md` / `docs/adn/AGENTS.md` describe obsolete authority. | HIGH | MITIGATED | CURRENT memory/agent overlays supersede them operationally. |
-| GOV-05 | Old CIA branches/PRs can predate runtime-chain changes. | HIGH | PAUSED / DO NOT MERGE AS-IS | Rebuild/revalidate from CURRENT when CIA receives lock. |
-| GOV-06 | Historical KronIA branches predate multiple runtime/schema wrappers. | CRITICAL | PAUSED / EVIDENCE_ONLY | Fresh K1 from then-CURRENT. |
-| GOV-07 | Revenue F5 documentation has repeatedly contained counters that did not match live production. | CRITICAL | OPEN / CONTROLLED | Exact live Supabase readback is mandatory before every F5 gate and documentation update. |
-| GOV-08 | Separate product phases can appear simultaneously active in trackers. | HIGH | CONTROLLED | Global lock + explicit namespace/state. |
-| GOV-09 | Stale PRs may remain open and look merge-ready despite being superseded. | MEDIUM | CLEANUP ACTIVE | Classify by evidence; close superseded work deliberately. |
-| GOV-10 | Runtime/Supabase/Notion can advance independently within minutes. | HIGH | CONTROLLED | exact-head + live readiness before certification; Notion last. |
-| GOV-11 | Governance/control itself can fork when concurrent control PRs are created. | HIGH | CONTROLLED | One active control lane per mutable workstream. |
-| GOV-12 | Sentinel baseline can remain certified while cross-workstream changes make old regression assumptions stale. | MEDIUM | QUEUED MAINTENANCE | Treat baseline certification and CURRENT alignment as separate dimensions. |
-| GOV-13 | Branch protection/required checks do not replace project ownership. | HIGH | OPEN | Complement CI with global lock and exact-head certification. |
-| GOV-14 | Parity/baseline maintenance can be confused with feature phases. | HIGH | FIXED | Keep maintenance lanes distinct from product workstreams. |
-| GOV-15 | A tool/RPC/local loop may report apparent success while the intended production rows are not actually persisted. | CRITICAL | MITIGATION ADOPTED | Persistence Triple-Proof: execution receipt + direct live readback + independent invariant query. |
-| GOV-16 | An assistant can produce a convincing `PRODUCTION CERTIFIED` narrative without matching GitHub closeout evidence or live DB post-conditions. | CRITICAL | INCIDENT RECORDED | Certification is a property of authoritative post-conditions, never narrative/tool transcript. False claims must be explicitly superseded. |
-| GOV-17 | CURRENT control docs (`AGENTS_CURRENT`, portfolio, bootstrap) can remain bound to a previous workstream after ownership has changed. | HIGH | FIX IN THIS DOC SET | Reconcile CURRENT overlays whenever the global lock moves; stale CURRENT is itself a governance defect. |
-| GOV-18 | `numero_limpio` is useful across Leads/Calls/Agenda/Patients/Sales but can be mistaken for canonical identity. | HIGH | RULE ADDED | Treat as transversal bridge/supporting evidence only; F5 governed identity remains canonical patient resolution. |
-| GOV-19 | Availability of 2026 sales can bias analytics into treating 2026 as complete historical business truth. | HIGH | CONTRACT ADDED | Every revenue metric carries covered period/denominator; future 2024–2025 sales follow a provenance-first ingest contract. |
-| GOV-20 | `presupuesto`, `adelanto`, `venta`, `pago`, `saldo` and `facturado` can be collapsed into one revenue concept. | CRITICAL | RULE ADDED | Keep transaction/payment/cartera semantics separate; no budget-as-debt/payment inference. |
+| GOV-02 | Multiple HIGH/CRITICAL projects can mutate shared CURRENT concurrently. | CRITICAL | MITIGATED BY LOCK | One global mutable owner in `ASCENDA_WORKSTREAM_LOCK_CURRENT.md`. |
+| GOV-03 | Runtime docs can lag the actual Railway wrapper/preload topology. | HIGH | ACTIVE CONTROL | `app/railway.json` + exact deploy outrank prose; update CURRENT on each topology/preload change. |
+| GOV-04 | Historical memory/agent docs can describe obsolete authority. | HIGH | MITIGATED | CURRENT overlays supersede historical snapshots. |
+| GOV-05 | Stale branches/PRs can remain green against old runtime/schema. | HIGH | CONTROLLED | Rebuild/revalidate from exact CURRENT before merge. |
+| GOV-06 | KronIA/CIA historical branches predate later wrappers/data contracts. | CRITICAL | PAUSED / EVIDENCE ONLY | Fresh work starts from then-CURRENT. |
+| GOV-07 | Data-phase narrative can diverge from live persisted rows. | CRITICAL | MITIGATED | Persistence Triple-Proof + exact live readback. |
+| GOV-08 | Separate project trackers can each appear ACTIVE. | HIGH | CONTROLLED | Global lock is authoritative across project-local trackers. |
+| GOV-09 | Stale open PRs can look merge-ready. | MEDIUM | CONTROLLED | Explicitly classify/close superseded candidates. |
+| GOV-10 | GitHub/runtime/Supabase/Notion can advance independently within minutes. | HIGH | CONTROLLED | exact-head + live revalidation; Notion last. |
+| GOV-11 | Governance can fork through competing control writes. | HIGH | CONTROLLED | One control lane under the current owner. |
+| GOV-12 | A previously certified subsystem may need regression checks after unrelated runtime changes. | HIGH | ACTIVE CONTROL | Certification is preserved, but current compatibility must be revalidated before dependent release. |
+| GOV-13 | Branch protection/checks do not replace project ownership. | HIGH | OPEN | Global lock + expected-head merge + exact-head certification. |
+| GOV-14 | Maintenance/parity lanes can be confused with feature phases. | HIGH | FIXED | Keep namespaces/states distinct. |
+| GOV-15 | Tool/RPC success may not equal production persistence. | CRITICAL | MITIGATION ADOPTED | execution receipt + direct live readback + independent invariant. |
+| GOV-16 | A persuasive 100% narrative can be false without authoritative post-conditions. | CRITICAL | INCIDENT LEARNING FROZEN | Certification is a property of exact GitHub/runtime/live DB/evidence, never narrative. |
+| GOV-17 | CURRENT docs can remain bound to an older workstream after a handoff. | HIGH | WA-V2-0 RECONCILING | Reconcile all global CURRENT overlays when lock moves. |
+| GOV-18 | `numero_limpio` is useful but can be mistaken for canonical identity. | HIGH | RULE FROZEN | Supporting bridge only; F5 governed canonical identity remains authority. |
+| GOV-19 | Incomplete historical sales coverage can be interpreted as zero. | HIGH | CONTRACT FROZEN | Every revenue claim carries coverage/period; missing source != zero. |
+| GOV-20 | Budget/payment/sale/balance concepts can collapse into one revenue meaning. | CRITICAL | RULE FROZEN | Preserve F4 transaction/payment/cartera semantics. |
+| GOV-21 | A project may retain a terminal human-evidence gate while the owner explicitly reprioritizes another workstream. | HIGH | CONTROLLED BY PAUSE CHECKPOINT | Preserve exact recoverable checkpoint; PAUSED != CLOSED; move lock only by explicit owner directive. |
+| GOV-22 | WhatsApp can build a second CRM now that richer patient/sales/email data exists. | CRITICAL | PROHIBITED | WA consumes F5/F6/CIA/Email/Agenda/Revenue contracts; no duplicate truth layer. |
+| GOV-23 | Historical WhatsApp send success can be mistaken for current Meta credential readiness. | HIGH | OPEN GATE | Recertify current provider/WABA/token health and allowlisted outbound before production selling. |
+| GOV-24 | Phone coincidence can falsely attribute WhatsApp revenue to Meta campaigns. | CRITICAL | PROHIBITED | Require explicit referral/touchpoint/ad lineage; phone-only attribution never authoritative. |
+| GOV-25 | AI could answer from generic model knowledge instead of approved live business facts. | HIGH | V2 CONTROL | Knowledge Fabric authority + evidence refs; generic LLM knowledge last. |
 
-## Live REV-F5 evidence — 2026-08-19
+## Current portfolio decision
 
-- expected source rows: **15,498**;
-- persisted source rows: **8,264**;
-- complete batches: **1/6**;
-- PL2024: 3,949/4,192;
-- PL2025: 1,801/3,053;
-- PL2026: 993/993;
-- SI2024: 1,521/3,190;
-- SI2025: 0/3,066;
-- SI2026: 0/1,004;
-- provisional clusters: 3,950;
-- identity members: 0;
-- link previews: 0;
-- apply events: 0;
-- structural duplicates: 0;
-- source-row orphans: 0.
+Explicit owner directive on 2026-08-22 moves the mutable lane to:
 
-Interpretation: REV-F5 is **ACTIVE / NOT CERTIFIED**. REV-F6 remains blocked.
+`WHATSAPP-REVENUE-HUB-V2 / WA-V2-0`
 
-## REV-F5 false-certification incident
+Previous `MKT-INTEGRITY-HOTFIX-V3 / LOOP 6 V2.3` is **PAUSED / RECOVERABLE**, not closed. Fresh handoff readback found **0/5** qualifying genuine post-cutover operations, so no qualifying customer action was interrupted.
 
-A prior narrative claimed F5 staging, identity rebuild, Review/Apply and final certification were complete. Fresh production evidence disproves those claims.
+## Certified upstream truth now available to WhatsApp
 
-The incident demonstrates two different failure classes:
+Live entry snapshot:
 
-1. **execution ambiguity** — sending/constructing a payload is not proof that it persisted;
-2. **certification ambiguity** — even multiple apparent `PASS` messages are not proof unless the final authoritative state reflects the declared post-conditions.
+- canonical patients = **7,702**;
+- canonical sales = **1,331**;
+- leads = **5,880**;
+- F5 source rows = **15,498**;
+- F5 identity memberships = **15,498**;
+- F5 clusters/previews = **8,716 / 8,716**;
+- CIA contact/email facts = **11,911**;
+- canonical-linked CIA contacts = **7,083**.
 
-Mandatory control:
+Governance: WhatsApp integrates these sources. It does not recreate patient identity, sales, email, Agenda or acquisition truth.
 
-`EXECUTE → DIRECT LIVE READBACK → INDEPENDENT INVARIANT QUERY → CHECKPOINT`.
+## WhatsApp exact-current finding
 
-At source-batch closure add full exact-source idempotent replay.
+Live revalidation at handoff:
 
-## Cross-domain identity finding
+- 15 canonical messages = 11 inbound / 4 outbound;
+- 2 conversations;
+- 25 events;
+- 9 outbound requests;
+- 11 routing events;
+- 2 active boxes;
+- 2 active memberships for the same current operational actor;
+- 1 active assignment;
+- 0 AI runs;
+- human send ON;
+- auto routing OFF;
+- AI send OFF;
+- Copilot OFF;
+- auto reply OFF.
 
-Current schema exposes explicit links that should be preferred over fuzzy matching:
+Notifications S13–S15.5 remain CLOSED / certified / regression-only.
 
-- Lead → Call: `aos_llamadas.lead_id_origen`;
-- Lead/Call → Agenda: `aos_agenda_citas.lead_id_origen`, `llamada_id_origen`;
-- Agenda → Sale: `venta_id_match` where available;
-- Sale → Product: `aos_product_sale_fact_current_v1.sale_id`;
-- Sale → Cartera: `aos_cartera_reconciliacion.venta_row_id`;
-- payments/reconciliation: cotización/item/payment identifiers;
-- `numero_limpio` exists across several domains as fallback evidence.
+Historical outbound results include 4 ACCEPTED, 4 `META_190` failures and 1 `META_SEND_REJECTED`; therefore current Meta provider readiness remains an explicit pre-selling gate.
 
-Governance decision: F5 must be the patient identity/provenance authority. CIA, WA, F6 and future historical-sales import consume it rather than create separate customer identity truth.
+Explicit campaign provenance is currently absent from all 15 WA messages (`campaign_source`, `ad_id`, `lead_id`, `raw_referral` = 0 populated). WA-7A owns this gap.
 
-## Future historical sales finding
+## Runtime governance
 
-ASCENDA already has the target domains necessary to ingest 2024–2025 transactions later without architecture replacement:
+Exact entry main: `26171abe38bb4bb6f6364aff6624ddc3d0d39580`.
 
-`source/provenance → sale → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
+Railway exact commit status: SUCCESS.
 
-See `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`.
+Current start command is defined in `app/railway.json` and preloads Sentry plus backend-only email compatibility before `server-phase-s-f17.js`.
 
-Until certified historical transaction files exist, do not manufacture 2024/2025 YoY revenue from patient history, Agenda or budgets.
+Effective chain:
 
-## Current control decision
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`.
 
-- Active mutable lock: `REV-F5-CLOSEOUT`.
-- REV-F5 stays open until live F5.0–F5.10 gates pass.
-- REV-F6 stays blocked.
-- Other HIGH/CRITICAL feature/data workstreams remain read-only/regression-only.
-- CURRENT docs must be reconciled to live truth before any future handoff.
+A runtime-chain/preload change is HIGH/CRITICAL and requires exact-chain regression evidence.
+
+## Certification control
+
+For every HIGH/CRITICAL phase:
+
+`REVALIDATE → BUILD ISOLATED → EXACT-HEAD TEST → ANTI-DRIFT → MERGE EXPECTED HEAD → EXACT DEPLOY → LIVE READBACK → SECURITY/ROLLBACK/CANARY → CURRENT → aos_memory → Notion LAST`.
+
+Never certify by percentage or historical green evidence.

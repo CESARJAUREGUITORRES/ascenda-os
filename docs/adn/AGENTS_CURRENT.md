@@ -1,8 +1,9 @@
 # ASCENDA OS — AGENTS CURRENT OVERLAY
 
 **Applies to:** every CURRENT ASCENDA agent/chat  
-**Captured:** 2026-08-19 America/Lima  
-**ACTIVE WORKSTREAM:** `REV-F5-CLOSEOUT`
+**Captured:** 2026-08-22 America/Lima  
+**ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
+**ACTIVE GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
 
 This overlay supersedes operational assumptions in historical `docs/adn/AGENTS.md` and earlier CURRENT snapshots while preserving them as provenance.
 
@@ -15,169 +16,148 @@ Before any write:
 3. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 4. `docs/MEMORY_CURRENT.md`;
 5. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
-6. `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`;
-7. `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`;
-8. patient identity/360/lifecycle contracts under `docs/control/REV_PATIENT_*` and `REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md` when relevant;
-9. exact GitHub `main`, Railway status/runtime and live Supabase state;
-10. the current project checkpoint only.
+6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
+7. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
+8. exact GitHub `main`, Railway status/runtime and live Supabase state;
+9. the current WhatsApp/Meta/Knowledge/Revenue checkpoint only.
 
 Historical chat statements never override CURRENT or live persisted state.
 
 ## Portfolio Controller
 
-Declare `WORKSTREAM_ID=REV-F5-CLOSEOUT`. Enforce one global HIGH/CRITICAL mutable workstream. CIA, WA feature releases, KronIA and unrelated Sentinel mutation remain read-only/regression-only while F5 owns the lock.
+Declare `WORKSTREAM_ID=WHATSAPP-REVENUE-HUB-V2`.
 
-## Revenue / Patient Identity Agent
+Enforce one global HIGH/CRITICAL mutable workstream. MKT Loop 6 is PAUSED at its preserved 0/5 genuine-operation checkpoint; Revenue, CIA, KronIA and unrelated mutation remain read-only while WA owns the lane.
 
-Current production truth at the registered baseline:
+## WhatsApp Product Agent
 
-- 6 source batches / 15,498 expected rows;
-- **8,264 persisted source rows**;
-- **1/6 staging-complete batches**;
-- 3,950 provisional clusters;
-- 0 members;
-- 0 link previews;
-- 0 canonical apply events;
-- 0 structural duplicate keys;
-- 0 orphan source rows.
+Current live entry baseline:
 
-Always rederive LIVE before write. Do not claim REV-F5 production certification from local/tool execution output.
+- 15 messages = 11 inbound / 4 outbound;
+- 2 conversations;
+- 25 events;
+- 9 outbound requests;
+- 11 routing events;
+- 2 active boxes (`VENTAS_GENERAL`, `WA_TEST`);
+- 2 active memberships for the current single operational actor;
+- 1 active assignment;
+- 0 AI runs;
+- human send ON;
+- auto routing OFF;
+- AI send OFF;
+- Copilot OFF;
+- auto reply OFF.
 
-## Persistence Triple-Proof
+Notifications S13–S15.5 are CLOSED / 100% CERTIFIED / REGRESSION ONLY. Do not reopen them unless a current regression is proven.
 
-A HIGH/CRITICAL data checkpoint closes only when all are true:
+## Meta / Provider Agent
 
-1. execution receipt;
-2. direct production readback showing the persisted delta;
-3. independent invariant query proving expected count/range/uniqueness/orphans/conflicts/protected-table state.
+Inbound signed Meta flow is historically demonstrated. Human outbound transport has historical ACCEPTED sends, but current credential/provider health is not certified. The outbound ledger contains historical `META_190` and `META_SEND_REJECTED` failures.
 
-At batch closure also require full idempotent replay of the exact SHA-bound source with zero new inserts/conflicts.
+Before calling WhatsApp production-selling ready:
 
-`tool returned success` != `production persisted success`.
+1. verify current WABA/phone/provider health without exposing credentials;
+2. use a long-lived/system-user access token stored server-side only;
+3. controlled allowlisted human outbound canary;
+4. require provider message ID and delivery/read/failure observability;
+5. preserve idempotency and customer-service-window rules.
 
-## Recovery loop
+Never place Meta tokens in chat, Git, Notion, frontend or logs.
 
-`OBSERVE LIVE → IDENTIFY EXACT GAP → MUTATE ONLY GAP → READ BACK → VERIFY → CHECKPOINT → CONTINUE`.
+## Human Operations Agent — WA-3
 
-If a call times out or is blocked, reconcile persisted state before retrying.
+After WA-V2-0 certification, DISCOVER first:
 
-## Canonical identity / duplicate rules
+- boxes/members;
+- `whatsapp-agent` permissions;
+- claim/reassign/release;
+- supervisor override;
+- ownership_version;
+- presence/readiness;
+- max_active/capacity;
+- exact per-agent inbox visibility;
+- no cross-owner leakage;
+- routing events and queue integrity.
 
-Historical rows are evidence, not canonical patients. The durable subject is `canonical_patient_id` once F5 certifies it.
+First multiagent canary keeps:
 
-- source patient ID/HC remain source-scoped unless proven global;
-- name alone never merges;
-- phone alone never merges;
-- approximate/numeric-near phone is not evidence; phone ±3 heuristics are prohibited;
-- exact normalized name+surname+phone+valid document with no strong conflicts may be `AUTO_ELIGIBLE_EXACT`, but physical merge remains CRITICAL/governed;
-- same valid document + compatible person evidence with changed phone can be `REVIEW_STRONG`/verified after review;
-- conflicting document/DOB/sex or identifier already bound elsewhere = `BLOCK_CONFLICT`;
-- absorbed phones/emails/source IDs remain aliases/provenance;
-- no physical merge without admin+2FA, dependency audit, dry-run, canary, immutable audit event and rollback/recovery.
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- `auto_reply_enabled=false`.
 
-Current read-only duplicate profile at registration: 174 same-name groups; 69 span multiple phones; 57 span multiple documents; 14 groups/29 rows matched exact name+surname+phone+document. Recompute before action.
+Do not create boxes by sede/treatment without evidence. Evaluate `BOT_INBOX`, `VENTAS_GENERAL`, `FOLLOW_UP`, `ESCALAMIENTO_CLINICO` as the initial topology.
 
-Legacy `aos_duplicados_paciente`/`aos_fusionar_pacientes` are evidence/legacy tools, not the new F5 batch authority until audited/versioned.
+## Revenue Inbox UX Agent — WA-3.5
 
-## Identity Bridge V2
+Do not mutate during WA-3. Preserve planned work only:
 
-Reuse existing `aos_cia_contact_identity_v1` for compatibility evidence but do not let its phone-centric contact key become the final identity model.
+- smart inbox / unread / SLA / hot-lead / follow-up views;
+- campaign/treatment/stage/owner filters;
+- clean timeline with delivery states and separable events;
+- quick replies/templates/media/notes/drafts/shortcuts;
+- Agenda/call actions;
+- right panel: DETAILS / COPILOT / CUSTOMER 360 / CAMPAIGN / ACTIVITY;
+- notification click → Auth if needed → restore exact destination.
 
-Target:
+## Knowledge / Sales Agent
 
-`phone/document/email/source-scoped ID/HC → governed alias/evidence → canonical_patient_id or REVIEW/CONFLICT/UNRESOLVED`.
+The ecosystem now contains:
 
-CIA, WA, imports, Patient 360 and F6 consume this same identity; none creates a second customer identity truth.
+- 7,702 canonical patients;
+- 1,331 canonical sales;
+- 5,880 leads;
+- 11,911 CIA contact/email facts;
+- 221 active catalog services.
 
-## Patient Commercial 360 V2
+WA must consume canonical truth. No second CRM/customer master/sales ledger/email ledger/agenda engine.
 
-Evolve existing `app/public/patients.html` / `aos_paciente_360`; do not create another patient panel/master.
+Knowledge authority order:
 
-Phone lookup remains supported, but backend resolution becomes:
+1. transactional live facts;
+2. approved commercial knowledge;
+3. approved enterprise docs;
+4. campaign context;
+5. Customer 360 facts;
+6. current conversation context;
+7. general LLM knowledge last.
 
-`lookup identifier → Identity Bridge V2 → canonical_patient_id → all permitted aliases/history`.
+No price, promo, availability, stock or clinical fact may be invented from general model knowledge.
 
-V2 adds identity confidence/review state, lifecycle, commercial timeline, canonical product/revenue facts and metric trust (`coverage`, `confidence`, `freshness`, `sample_size`), while preserving role-gated PHI.
+## Attribution Agent
 
-## REV-F6 lifecycle / trust contract
+Current explicit WA attribution is 0/15 for `campaign_source`, `ad_id`, `lead_id`, and `raw_referral`.
 
-Prepare after real F5 certification:
-
-- `NEW_PATIENT`
-- `RETURNING_PATIENT`
-- `HISTORICAL_REACTIVATED`
-- `ACTIVE_REPEAT`
-- `DORMANT`
-- `UNRESOLVED_IDENTITY`
-
-Every inferred/aggregate insight must carry period/coverage, confidence, freshness and sample size. Incomplete transaction history must reduce claim strength.
-
-## Cross-domain rule
-
-Canonical responsibilities:
-
-- F3 = product identity;
-- F4 = payment/revenue/cartera truth;
-- F5 = patient identity + provenance + duplicate resolution;
-- F6 = intelligence/read models from certified F3/F4/F5;
-- CIA = governed acquisition/activation attribution;
-- WA = conversation/channel product consuming permitted identity context;
-- Sentinel = observation/integrity, never business truth.
-
-Prefer explicit IDs (`lead_id_origen`, `llamada_id_origen`, `venta_id_match`, sale IDs, cotización/plan/item IDs) before identity-bridge fallback.
-
-## Future 2024–2025 sales
-
-Use `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`:
-
-`source SHA/provenance → sales staging/dedup → canonical sale → F3 product → F5 patient → F4 payment/cartera → F6 recomputation`.
-
-No parallel historical customer/product/revenue architecture and no unsupported YoY while ledgers are absent.
-
-## Sentinel data-integrity handoff
-
-Use `docs/control/SENTINEL_DATA_INTEGRITY_SIGNALS_CONTRACT.md`. Signals are aggregate/zero-PII and should detect source batch mismatch, membership mismatch, identity collision, apply without governance, product-sale orphan, reconciliation orphan and F6 freshness/coverage regression.
-
-Sentinel observes and routes to the owning workstream; it does not silently repair production.
+WA-7A owns provenance ingress. Never attribute campaign/revenue solely by phone coincidence. Preserve touchpoint IDs and explicit Meta referral/ad lineage.
 
 ## Security Guardian
 
-Use root `SECURITY.md`. Do not move PII/PHI through GitHub, logs or public artifacts. Never store real credentials in skills/docs/examples/prompts; use authorized auth/secret stores.
+- use root `SECURITY.md`;
+- no PII/PHI in GitHub/public artifacts;
+- no secrets in docs/examples/prompts;
+- no autonomous diagnosis or clinical recommendation;
+- no SQL arbitrary from AI;
+- exact owner / Auth V3 / 2FA boundaries remain authoritative;
+- no auto-send AI before later controlled-autonomy gates.
 
-## CI/Runner Governor
+## CI / Runner Governor
 
-- runner activity is execution state, not source of truth;
-- exact commit/diff + live production post-conditions are authority;
-- another workstream PASS cannot close REV-F5;
-- queued/pending is capacity evidence, not data completion;
-- any unrelated `main` advance requires exact-head revalidation before the next mutable F5 gate.
+- runners are execution capacity, never source of truth;
+- exact commit/diff + live post-conditions are authority;
+- any unrelated `main` advance requires exact-head revalidation before the next WA mutation;
+- use parallel runners only for independent validation; never parallel HIGH/CRITICAL writes.
 
 ## Historian / Memory Manager
 
-At each material incident or gate:
+For every material gate:
 
 1. freeze exact GitHub evidence;
 2. read live production state;
-3. record persisted counters/missing ranges/invariants;
+3. record persisted counters/invariants;
 4. update CURRENT docs;
-5. update `aos_memory` only after live baseline is proven;
+5. update `aos_memory` only after merge/live proof;
 6. update Notion last;
-7. explicitly supersede incorrect historical claims.
+7. explicitly supersede stale claims.
 
 ## Release Certifier
 
-REV-F5 cannot be `PRODUCTION CERTIFIED` and REV-F6 cannot be unblocked until a fresh independent final audit proves:
-
-- 15,498/15,498 staging and 6/6 full source replays;
-- 15,498/15,498 identity memberships;
-- exhaustive MATCH/REVIEW/NEW plus duplicate resolution states;
-- governed Identity Bridge V2 semantics / explicit conflicts;
-- fill-only enrichment;
-- governed Review/Apply and any physical patient consolidation with rollback evidence;
-- patient→sale→F3 product→F4 payment/cartera coverage;
-- explicit 2024–2025 transaction coverage statement;
-- numeric coverage/DQ report;
-- exact-head GitHub/CI/deploy + live Supabase reconciliation;
-- CURRENT docs/aos_memory/Notion reconciled after live proof.
-
-At real F5.10 PASS, return the rebound REV-F6 execution prompt from `docs/control/prompts/REV_F6_EXECUTION_PROMPT_TEMPLATE.md`; do not silently start F6.
+No WA phase is `100%` from code completion alone. Require exact-head CI, deploy, live Supabase invariants, security/rollback evidence and physical canary when the gate is user-visible or provider-dependent.

@@ -1,10 +1,11 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Captured from baseline:** `main@40b2cbf50a9ffc2d9ca1ee3fedbf457c133c4a21`  
-**Captured:** 2026-08-19 America/Lima  
-**ACTIVE WORKSTREAM:** `REV-F5-CLOSEOUT`
+**Captured:** 2026-08-22 America/Lima  
+**Entry baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
+**ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
+**ACTIVE GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
 
-## Mandatory bootstrap
+## Mandatory bootstrap before any write
 
 1. root `AGENTS.md`;
 2. root `SECURITY.md`;
@@ -12,89 +13,87 @@
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. `docs/MEMORY_CURRENT.md`;
 6. `docs/adn/AGENTS_CURRENT.md`;
-7. for Revenue/F5 or data-pipeline work: `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`;
-8. exact GitHub `main`, relevant branch/PR/checks, Railway deploy/runtime and live Supabase;
-9. current Control Maestro/checkpoint for the selected workstream only.
+7. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
+8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
+9. exact GitHub `main`, Railway exact deploy/runtime and live Supabase WA state;
+10. WhatsApp Control Maestro / Roadmap Maestro V2 in Notion only after technical truth is read.
 
-Historical docs/chat output never override exact CURRENT + live production.
+Historical docs/chat checkpoints never override CURRENT + live persisted state.
 
 ## Portfolio ownership
 
-`REV-F5-CLOSEOUT` owns the single global HIGH/CRITICAL mutable lock.
+`WHATSAPP-REVENUE-HUB-V2` owns the single HIGH/CRITICAL mutable lane by explicit owner directive dated 2026-08-22.
 
-MKT Integrity Loop 5 is closed; Loop 6 is not started. CIA, WA feature work, KronIA and unrelated schema/data work remain read-only/regression-only until explicit handoff.
+Previous `MKT-INTEGRITY-HOTFIX-V3 / LOOP 6 V2.3` is PAUSED / recoverable at 0/5 genuine post-cutover operations. It is not terminally certified and must not mutate while WA owns the lane.
 
-## REV-F5 entry truth
+REV-F5 and REV-F6 are production-certified upstream inputs. REV-F7, CIA feature mutation, KronIA and unrelated work remain paused/read-only.
 
-Fresh production state at this capture:
+## Exact-current runtime
 
-- expected = **15,498**;
-- staged = **8,264**;
-- remaining = **7,234**;
-- complete batches = **1/6**;
-- clusters = **3,950 provisional**;
-- members = **0**;
-- previews = **0**;
-- apply events = **0**;
-- structural duplicates = **0**;
-- source-row orphans = **0**.
+Railway production chain:
 
-Per batch:
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
 
-- PL2024 3,949/4,192;
-- PL2025 1,801/3,053;
-- PL2026 993/993;
-- SI2024 1,521/3,190;
-- SI2025 0/3,066;
-- SI2026 0/1,004.
+`app/railway.json` preloads Sentry and backend-only email compatibility before the outer runtime. Current source still mounts `wa-shell-integration.js`, and that bootstrap still mounts `notification-push-s14.js` S15.5.
 
-Therefore REV-F5 is **ACTIVE / NOT CERTIFIED** and REV-F6 remains blocked.
+## Certified WA evidence — regression only
 
-## Mandatory data-certification rule
+Do not re-open without a demonstrated regression:
 
-Do not close a data gate because a tool/RPC/local loop says `success`.
+- signed Meta inbound;
+- canonical WA message/event ledger;
+- WA-2 live inbox/conversation store;
+- WA-3 ownership/human-send boundary;
+- native shell integration;
+- Web Push subscription self-heal;
+- closed-PWA Windows notification;
+- notification click opens installed PWA and respects Auth;
+- final notification ACL cutover.
 
-Require:
+## Live WA entry baseline
 
-1. execution receipt;
-2. direct live production readback;
-3. independent invariant query.
+- 15 messages: 11 inbound / 4 outbound;
+- 2 conversations;
+- 25 events;
+- 9 outbound requests;
+- 11 routing events;
+- 2 active boxes (`VENTAS_GENERAL`, `WA_TEST`);
+- 2 active memberships for the current single operational actor;
+- 1 active assignment;
+- 0 AI runs;
+- human send ON;
+- auto routing OFF;
+- AI send OFF;
+- Copilot OFF;
+- auto reply OFF.
 
-At source-batch closure additionally require full idempotent replay of the exact SHA-bound source with zero new inserts/conflicts.
+Historical outbound outcomes include 4 ACCEPTED, 4 `META_190` failures and 1 `META_SEND_REJECTED`. Provider credential health must be re-certified before selling.
 
-If a call times out, is truncated, is blocked by an intermediary or has ambiguous result: query the persisted state first. Never infer persistence from intent or output text.
+## Upstream ecosystem now available to WA
 
-## Recovery pattern
+- patients: 7,702;
+- sales: 1,331;
+- leads: 5,880;
+- CIA contact/email facts: 11,911;
+- F5 provenance: 15,498 rows / 15,498 memberships / 8,716 clusters / 8,716 previews;
+- catalog: 221 active services.
 
-`OBSERVE LIVE → IDENTIFY EXACT GAP → MUTATE ONLY THAT GAP → READ BACK → VERIFY → CHECKPOINT → CONTINUE`.
+Consume canonical sources; do not create parallel CRM, identity, sales, agenda, email or attribution truth.
 
-If persisted content conflicts with the source, isolate the exact range, repair only that range, replay and continue. Do not restart valid history for convenience.
+## WA-V2-0 rule
 
-## Identity + interconnection boundary
+WA-V2-0 is control/docs/baseline only. No runtime, schema, routing, AI or Meta mutation belongs in this gate.
 
-- F3 owns product identity;
-- F4 owns payment/revenue/cartera semantics;
-- F5 owns historical/canonical patient identity + provenance;
-- F6 will consume certified F3/F4/F5 facts;
-- CIA owns governed acquisition attribution;
-- WA owns conversation/channel UX.
+Exit only after exact-head GitHub merge, Railway SUCCESS/readback, live Supabase baseline reconciliation, `aos_memory` update and Notion-last reconciliation.
 
-Do not build another customer identity engine inside CIA/WA/F6.
+## Next functional gate
 
-Prefer explicit links (`lead_id_origen`, `llamada_id_origen`, `venta_id_match`, sale IDs, cotización/plan/item IDs). `numero_limpio` is supporting/transversal evidence, not standalone merge authority.
+After WA-V2-0 PASS, run `WA-3 — HUMAN OPERATIONS MULTIAGENT` in discover-first mode.
 
-## Future historical sales
+Preserve fail-closed defaults during the first canary:
 
-When 2024–2025 sales exports become available, follow `docs/control/REV_HISTORICAL_SALES_2024_2025_INGEST_CONTRACT.md`.
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- `auto_reply_enabled=false`.
 
-They must extend the existing domains:
-
-`source provenance → sale fact → F3 product → F5 patient → F4 payment/cartera → F6 intelligence`.
-
-Do not infer missing transactions from patient history, Agenda or budgets.
-
-## Certification rule
-
-REV-F5 may be declared `PRODUCTION CERTIFIED` only after an independent final audit proves all declared F5.0–F5.10 gates from exact-head GitHub/CI/deploy + live Supabase, and CURRENT docs/aos_memory/Notion are reconciled afterward.
-
-Until then, any earlier 100% claim is `SUPERSEDED_BY_LIVE_TRUTH`.
+`WA-3.5 Revenue Inbox UX` remains planned but must not contaminate ownership/security contracts before WA-3 closes.
