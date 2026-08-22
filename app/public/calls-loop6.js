@@ -3,8 +3,7 @@
  */
 (function(){
 'use strict';
-if(window.__AOS_CC_LOOP6_V2__) return;
-window.__AOS_CC_LOOP6_V2__='v2';
+window.__AOS_CC_LOOP6_V2__='v2.2';
 
 function cc6Token(){return (window.AOS_getToken&&window.AOS_getToken())||sessionStorage.getItem('aos_app_token')||(window.CC&&CC.token)||'';}
 function cc6Rpc(fn,p){return new Promise(function(resolve,reject){if(typeof window._rpc!=='function'){reject(new Error('RPC_UNAVAILABLE'));return;}window._rpc(fn,p,function(d){resolve(d);},function(e){reject(e||new Error('RPC_FAILED'));});});}
