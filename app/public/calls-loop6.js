@@ -54,7 +54,8 @@ function cc6QueueFinishModal(res,payload){
   var title=commercial?'✅ CITA AGENDADA CON ÉXITO':'Gestión registrada';
   var bg=commercial?'#F0FDF4':'#FFF7ED',bd=commercial?'#BBF7D0':'#FED7AA',fg=commercial?'#166534':'#92400E';
   var name=((payload.nombre||'')+' '+(payload.apellido||'')).trim()||payload.numero;
-  var detail='<div style="padding:12px;background:'+bg+';border:1px solid '+bd+';border-radius:10px;color:'+fg+';line-height:1.6"><b>'+cc6Esc(name)+'</b><br>'+cc6Esc(payload.fecha_cita||'')+' · '+cc6Esc(payload.hora_cita||'')+'<br>'+cc6Esc(payload.tratamiento||'')+'<br>'+cc6Esc(payload.sede||'')+'<br>Asesor: '+cc6Esc((res&&res.executedBy)||'—')+(commercial?'':'<br><b>Regla:</b> '+cc6Esc((res&&res.eligibilityReason)||'Sin nuevo crédito comercial')+'</div>';
+  var rule=commercial?'':'<br><b>Regla:</b> '+cc6Esc((res&&res.eligibilityReason)||'Sin nuevo crédito comercial');
+  var detail='<div style="padding:12px;background:'+bg+';border:1px solid '+bd+';border-radius:10px;color:'+fg+';line-height:1.6"><b>'+cc6Esc(name)+'</b><br>'+cc6Esc(payload.fecha_cita||'')+' · '+cc6Esc(payload.hora_cita||'')+'<br>'+cc6Esc(payload.tratamiento||'')+'<br>'+cc6Esc(payload.sede||'')+'<br>Asesor: '+cc6Esc((res&&res.executedBy)||'—')+rule+'</div>';
   var m=document.createElement('div');
   m.id='cc6-queue-success-modal';m.className='mov open';m.style.zIndex='1250';
   m.innerHTML='<div class="modal" style="max-width:520px"><div class="mhd"><span style="font-size:22px">'+(commercial?'✅':'ℹ️')+'</span><div><div class="mtit">'+cc6Esc(title)+'</div></div></div>'+detail+'<div class="mfoot"><button class="mconf gr" data-ok>CONTINUAR LLAMADAS</button></div></div>';
