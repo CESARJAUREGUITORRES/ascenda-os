@@ -12,6 +12,8 @@ wa2_path = root / 'app/server-wa2.js'
 wa2 = wa2_path.read_text(encoding='utf-8') if wa2_path.exists() else ''
 wa3_path = root / 'app/server-wa3.js'
 wa3 = wa3_path.read_text(encoding='utf-8') if wa3_path.exists() else ''
+wa3v2_path = root / 'app/server-wa3-v2.js'
+wa3v2 = wa3v2_path.read_text(encoding='utf-8') if wa3v2_path.exists() else ''
 wa4_path = root / 'app/server-wa4.js'
 wa4 = wa4_path.read_text(encoding='utf-8') if wa4_path.exists() else ''
 f5_path = root / 'app/server-f5.js'
@@ -72,6 +74,15 @@ assert 'if(list.indexOf(current)<0)list.unshift(current)' in canary, 'unknown cu
 assert 'window.evCampoSel=safe' in canary, 'truth-safe sales editor selector must replace the incomplete legacy selector'
 assert 'safe.__f4TruthSafe=true' in canary, 'sales editor truth wrapper must publish an idempotency marker'
 
+# WA-3 V2 is an additive wrapper between WA-4 and the certified WA-3 V1 authority.
+wa4_to_wa3 = (
+    ("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
+    or (
+        "['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4
+        and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2
+    )
+)
+
 direct_f4 = 'node server-f4.js' in railway
 wa2_wrapped_f4 = 'node server-wa2.js' in railway and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 wa3_wrapped_chain = (
@@ -81,14 +92,14 @@ wa3_wrapped_chain = (
 )
 wa4_wrapped_chain = (
     'node server-wa4.js' in railway
-    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and wa4_to_wa3
     and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
 f5_wrapped_chain = (
     'node server-f5.js' in railway
     and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
-    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and wa4_to_wa3
     and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
@@ -96,7 +107,7 @@ phase_s_wrapped_chain = (
     'node server-phase-s.js' in railway
     and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s
     and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
-    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and wa4_to_wa3
     and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )
@@ -106,7 +117,7 @@ s152_wrapped_chain = (
     and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s
     and "['server-f5.js']" in f17
     and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
-    and "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
+    and wa4_to_wa3
     and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3
     and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2
 )

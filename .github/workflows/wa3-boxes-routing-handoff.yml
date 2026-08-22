@@ -5,10 +5,16 @@ on:
     branches: [main]
     paths:
       - 'app/server-wa3.js'
+      - 'app/server-wa3-v2.js'
+      - 'app/server-wa4.js'
       - 'app/public/admin-whatsapp-wa3.html'
+      - 'app/public/wa-multiagent-v2-panel.js'
+      - 'app/public/wa-shell-integration.js'
       - 'app/railway.json'
       - 'supabase/migrations/*wa3_boxes_routing_handoff*'
+      - 'supabase/migrations/*wa3_multiagent_readiness_v2*'
       - 'supabase/rollbacks/*wa3_boxes_routing_handoff*'
+      - 'supabase/rollbacks/*wa3_multiagent_readiness_v2*'
       - 'ci/wa3-boxes-routing-handoff/**'
       - 'ci/wa2-conversation-live-inbox/ui_contract.py'
       - 'ci/phase4-revenue/ui_contract.py'
@@ -16,7 +22,7 @@ on:
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA3_*'
       - '.github/workflows/wa3-boxes-routing-handoff.yml'
   push:
-    branches: ['feature/wa3-boxes-routing-handoff']
+    branches: ['feature/wa3-boxes-routing-handoff','feature/wa3-multiagent-v2-20260822']
   workflow_dispatch:
 
 permissions:
@@ -30,7 +36,7 @@ jobs:
   certify:
     name: WA-3 Zero-Cost routing certification
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:59822/postgres
     steps:
@@ -52,14 +58,19 @@ jobs:
         run: |
           set -euo pipefail
           node --check app/server-wa3.js
+          node --check app/server-wa3-v2.js
+          node --check app/server-wa4.js
           node --check app/server-wa2.js
           node --check app/server-f4.js
           node --check app/wa-gateway.js
+          node --check app/public/wa-multiagent-v2-panel.js
+          node --check app/public/wa-shell-integration.js
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           python3 ci/phase4-revenue/ui_contract.py
           node ci/phase4-revenue/ui_contract.js
           python3 ci/wa2-conversation-live-inbox/ui_contract.py
           python3 ci/wa3-boxes-routing-handoff/ui_contract.py
+          python3 ci/wa3-boxes-routing-handoff/ui_contract_v2.py
 
       - name: Source security invariants
         run: |
@@ -68,12 +79,17 @@ jobs:
           grep -q "validIdempotencyKey" app/server-wa3.js
           grep -q "canaryAllows" app/server-wa3.js
           grep -q "\['server-wa2.js'\]" app/server-wa3.js
+          grep -q "\['server-wa3.js'\]" app/server-wa3-v2.js
+          grep -q "\['server-wa3-v2.js'\]" app/server-wa4.js
+          grep -q "aos_wa3_queue_summary_v1" app/server-wa3-v2.js
+          grep -q "aos_wa3_claim_next_v2" app/server-wa3-v2.js
+          grep -q "WA3_AGENT_NOT_READY" supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
           grep -q "ai_send_enabled boolean not null default false check (ai_send_enabled = false)" supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
-          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-wa3.js
-          ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-wa3.js app/public/admin-whatsapp-wa3.html
-          ! grep -q "supabase.co" app/public/admin-whatsapp-wa3.html
-          ! grep -q "/rest/v1/" app/public/admin-whatsapp-wa3.html
-          ! grep -q "graph.facebook.com" app/public/admin-whatsapp-wa3.html
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/server-wa3.js app/server-wa3-v2.js
+          ! grep -Eq "Bearer [A-Za-z0-9_-]{20,}" app/server-wa3.js app/server-wa3-v2.js app/public/admin-whatsapp-wa3.html app/public/wa-multiagent-v2-panel.js
+          ! grep -q "supabase.co" app/public/admin-whatsapp-wa3.html app/public/wa-multiagent-v2-panel.js
+          ! grep -q "/rest/v1/" app/public/admin-whatsapp-wa3.html app/public/wa-multiagent-v2-panel.js
+          ! grep -q "graph.facebook.com" app/public/admin-whatsapp-wa3.html app/public/wa-multiagent-v2-panel.js
 
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
@@ -108,23 +124,47 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
 
-      - name: Apply exact WA-3 migration
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+      - name: Apply exact WA-3 V1 and V2 migrations
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
         run: supabase db lint --local --schema public --level error
 
-      - name: pgTAP routing ownership handoff contracts
+      - name: pgTAP WA-3 V1 routing ownership contracts
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/001_wa3_routing.sql | tee /tmp/wa3-pgtap.txt
-          ! grep -q 'not ok' /tmp/wa3-pgtap.txt
-          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa3-pgtap.txt || true)
-          echo "WA-3 pgTAP assertions: $COUNT"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/001_wa3_routing.sql | tee /tmp/wa3-pgtap-v1.txt
+          ! grep -q 'not ok' /tmp/wa3-pgtap-v1.txt
+          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa3-pgtap-v1.txt || true)
+          echo "WA-3 V1 pgTAP assertions: $COUNT"
           test "$COUNT" -ge 60
 
-      - name: Recovery stays fail-closed and preserves WA-2 evidence
+      - name: pgTAP WA-3 V2 readiness and privacy contracts
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/002_wa3_multiagent_v2.sql | tee /tmp/wa3-pgtap-v2.txt
+          ! grep -q 'not ok' /tmp/wa3-pgtap-v2.txt
+          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa3-pgtap-v2.txt || true)
+          echo "WA-3 V2 pgTAP assertions: $COUNT"
+          test "$COUNT" -ge 25
+
+      - name: Concurrent claim remains single-owner
+        run: bash ci/wa3-boxes-routing-handoff/concurrency_v2.sh
+
+      - name: V2 rollback preserves V1 authority
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260822173000_wa3_multiagent_readiness_v2.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_agent_presence_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_claim_next_v2(uuid,uuid)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_human_send_authorize_v1(text,uuid)') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_assignments_v1') is not null")" = "t"
+
+      - name: WA-3 V1 recovery stays fail-closed and preserves WA-2 evidence
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260815190500_wa3_boxes_routing_handoff_v1.rollback.sql

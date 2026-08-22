@@ -14,6 +14,7 @@ const proxy = read('app/server-f4.js');
 const railway = read('app/railway.json');
 const wa2 = fs.existsSync('app/server-wa2.js') ? read('app/server-wa2.js') : '';
 const wa3 = fs.existsSync('app/server-wa3.js') ? read('app/server-wa3.js') : '';
+const wa3v2 = fs.existsSync('app/server-wa3-v2.js') ? read('app/server-wa3-v2.js') : '';
 const wa4 = fs.existsSync('app/server-wa4.js') ? read('app/server-wa4.js') : '';
 const f5 = fs.existsSync('app/server-f5.js') ? read('app/server-f5.js') : '';
 const f17 = fs.existsSync('app/server-f17.js') ? read('app/server-f17.js') : '';
@@ -56,13 +57,18 @@ ok(prc1Sql.includes("v_actor:=public.aos_f4_actor(p_token,'admin-import-ventas')
 ok(!/update\s+public\.aos_ventas/i.test(prc1Sql) && !/update\s+public\.aos_ventas/i.test(prc1SqlV2), 'PRC1 must never overwrite raw sales rows');
 ok(prc1Sql.includes("resolution_status='RESOLVED'") && prc1Sql.includes("resolution_status='EXCLUDED'"), 'PRC1 governed outcomes missing');
 
+// WA-3 V2 is allowed only as the explicit additive wrapper between WA-4 and WA-3 V1.
+const wa4ToWa3 = (
+  (wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)')) ||
+  (wa4.includes("['server-wa3-v2.js']") && wa4.includes('proxy(req,res)') && wa3v2.includes("['server-wa3.js']") && wa3v2.includes('proxy(req,res)'))
+);
 const directF4 = railway.includes('node server-f4.js');
 const wa2WrappedF4 = railway.includes('node server-wa2.js') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
 const wa3WrappedChain = railway.includes('node server-wa3.js') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
-const wa4WrappedChain = railway.includes('node server-wa4.js') && wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
-const f5WrappedChain = railway.includes('node server-f5.js') && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
-const phaseSWrappedChain = railway.includes('node server-phase-s.js') && phaseS.includes("['server-f5.js']") && phaseS.includes('proxy(req,res)') && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
-const s152WrappedChain = railway.includes('node server-phase-s-f17.js') && s152.includes("a[0]==='server-f5.js'") && s152.includes("a[0]='server-f17.js'") && s152.includes("require('./server-phase-s.js')") && phaseS.includes("['server-f5.js']") && phaseS.includes('proxy(req,res)') && f17.includes("['server-f5.js']") && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)') && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+const wa4WrappedChain = railway.includes('node server-wa4.js') && wa4ToWa3 && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+const f5WrappedChain = railway.includes('node server-f5.js') && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4ToWa3 && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+const phaseSWrappedChain = railway.includes('node server-phase-s.js') && phaseS.includes("['server-f5.js']") && phaseS.includes('proxy(req,res)') && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4ToWa3 && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
+const s152WrappedChain = railway.includes('node server-phase-s-f17.js') && s152.includes("a[0]==='server-f5.js'") && s152.includes("a[0]='server-f17.js'") && s152.includes("require('./server-phase-s.js')") && phaseS.includes("['server-f5.js']") && phaseS.includes('proxy(req,res)') && f17.includes("['server-f5.js']") && f5.includes("['server-wa4.js']") && f5.includes('proxy(req,res)') && wa4ToWa3 && wa3.includes("['server-wa2.js']") && wa3.includes('proxy(req,res)') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');
 ok(directF4 || wa2WrappedF4 || wa3WrappedChain || wa4WrappedChain || f5WrappedChain || phaseSWrappedChain || s152WrappedChain, 'Railway must preserve certified F4 chain through explicit WA/F5/Phase-S/F17 wrappers');
 const preEnvironments = railway.split('"environments"')[0];
 ok(!preEnvironments.includes('node server-phase2.js'), 'legacy phase2 server must not be production start command');

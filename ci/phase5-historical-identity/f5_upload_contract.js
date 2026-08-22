@@ -26,15 +26,17 @@ ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be
 ok(pkg.scripts.start==='node server-f5.js'||pkg.scripts.start==='node server-f17.js','npm start must enter F5 directly or through F17 wrapper');
 const start=rail.deploy.startCommand;
 const sentinelPhaseS="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
+const sentinelPhaseSEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js";
 const sentinelS152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js";
+const sentinelS152Email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js";
 const directF5=start==='node server-f5.js';
-const phaseSEntry=start==='node server-phase-s.js'||start===sentinelPhaseS;
+const phaseSEntry=['node server-phase-s.js',sentinelPhaseS,sentinelPhaseSEmail].includes(start);
 const phaseSWrapped=phaseSEntry&&phaseS.includes("['server-f5.js']")&&phaseS.includes('proxy(req,res)');
-const s152Entry=start==='node server-phase-s-f17.js'||start===sentinelS152;
+const s152Entry=['node server-phase-s-f17.js',sentinelS152,sentinelS152Email].includes(start);
 const s152Wrapped=s152Entry&&s152.includes("a[0]==='server-f5.js'")&&s152.includes("a[0]='server-f17.js'")&&s152.includes("require('./server-phase-s.js')")&&phaseS.includes("['server-f5.js']")&&phaseS.includes('proxy(req,res)')&&f17.includes("['server-f5.js']");
 ok(directF5||phaseSWrapped||s152Wrapped,'Railway must enter F5 directly, through certified Phase S, or through S15.2 Phase S -> F17 -> F5 wrapper');
-if(start===sentinelPhaseS||start===sentinelS152){
-  ok(rail.build&&!String(rail.build.buildCommand).includes('NODE_OPTIONS'),'Sentinel preload must not contaminate build');
+if([sentinelPhaseS,sentinelPhaseSEmail,sentinelS152,sentinelS152Email].includes(start)){
+  ok(rail.build&&!String(rail.build.buildCommand).includes('NODE_OPTIONS'),'Runtime preloads must not contaminate build');
 }
 if(phaseSWrapped||s152Wrapped){
   ok(String(rail.build.buildCommand).includes('server-phase-s.js'),'Phase S chain declaration missing');
