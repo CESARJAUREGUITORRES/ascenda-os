@@ -23,7 +23,8 @@ assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
 assert(panel.includes("new Response(JSON.stringify({ok:true,messages:[],ownership_lost:true})"));
 assert(panel.includes("t.classList.contains('ok')&&/^Meta aceptó el mensaje/"));
 assert(panel.includes("X.timer=setInterval(function(){if(!document.hidden)refresh();},5000)"));
-assert(panel.includes("o.disabled=a.effective_status!=='AVAILABLE'&&!o.selected"));
+assert(panel.includes("var disabled=a.effective_status!=='AVAILABLE'&&!o.selected"));
+assert(panel.includes("if(o.disabled!==disabled)o.disabled=disabled"));
 assert(panel.includes("if(old&&old.textContent===lab.text&&old.className===cls)return"));
 assert(panel.includes("if(o.textContent!==desired)o.textContent=desired"));
 
