@@ -19,7 +19,13 @@ select is(
 
 update public.aos_usuarios
 set paneles_acceso=array_append(coalesce(paneles_acceso,'{}'::text[]),'whatsapp-agent')
-where id in ('44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555');
+where id in ('44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555','66666666-6666-4666-8666-666666666666');
+
+select is(
+  public.aos_wa3_actor_v1('no2fa-token-66666666666666666666666666666666666')->>'error',
+  'WA3_2FA_PANEL_REQUIRED',
+  'whatsapp-agent still requires 2FA'
+);
 
 select ok((public.aos_wa3_box_upsert_v1(
   '11111111-1111-4111-8111-111111111111',
@@ -80,6 +86,13 @@ select is(
   'AWAY agent cannot claim'
 );
 
+select is(public.aos_wa3_agent_presence_touch_v1('44444444-4444-4444-8444-444444444444','OFFLINE')->>'status','OFFLINE','agent A can explicitly mark OFFLINE');
+select is(
+  public.aos_wa3_claim_next_v2('cccccccc-cccc-4ccc-8ccc-cccccccccccc','44444444-4444-4444-8444-444444444444')->>'error',
+  'WA3_AGENT_NOT_READY',
+  'OFFLINE agent cannot claim'
+);
+
 select ok((public.aos_wa3_agent_presence_touch_v1('55555555-5555-4555-8555-555555555555','AVAILABLE')->>'ok')::boolean,'agent B becomes available');
 update public.aos_wa_agent_presence_v1 set last_seen_at=now()-interval '3 minutes' where user_id='55555555-5555-4555-8555-555555555555';
 select is(
@@ -89,8 +102,23 @@ select is(
 );
 select ok((public.aos_wa3_queue_summary_v1('55555555-5555-4555-8555-555555555555')->'presence'->>'stale')::boolean,'stale readiness is reported');
 
+select ok((public.aos_wa3_agent_presence_touch_v1('55555555-5555-4555-8555-555555555555','AVAILABLE')->>'ok')::boolean,'agent B heartbeat refreshes readiness');
+select ok((public.aos_wa3_claim_next_v2('cccccccc-cccc-4ccc-8ccc-cccccccccccc','55555555-5555-4555-8555-555555555555')->>'claimed')::boolean,'agent B claims its first active conversation');
+
+insert into public.aos_wa_conversations_v1(id,conversation_key,contact_number,contact_name,state)
+values('20000000-0000-4000-8000-000000000003','wa3v2:3','51980000003','V2 Tres','NEW');
+select ok((public.aos_wa3_route_v1(
+  '20000000-0000-4000-8000-000000000003','cccccccc-cccc-4ccc-8ccc-cccccccccccc',null,
+  '11111111-1111-4111-8111-111111111111','V2_QUEUE_3'
+)->>'ok')::boolean,'third V2 conversation queued for capacity test');
+select is(
+  public.aos_wa3_claim_next_v2('cccccccc-cccc-4ccc-8ccc-cccccccccccc','55555555-5555-4555-8555-555555555555')->>'error',
+  'WA3_CAPACITY_REACHED',
+  'V2 claim preserves max_active capacity enforcement'
+);
+
 select is(public.aos_wa3_agent_presence_touch_v1('44444444-4444-4444-8444-444444444444','INVALID')->>'error','WA3_INVALID_PRESENCE_STATUS','invalid presence status rejected');
-select ok((select count(*)>=2 from public.aos_wa_routing_events_v1 where event_type='agent.presence_changed'),'presence changes are audited without heartbeat storms');
+select ok((select count(*)>=4 from public.aos_wa_routing_events_v1 where event_type='agent.presence_changed'),'presence changes are audited without heartbeat storms');
 select is((select auto_routing_enabled from public.aos_wa_routing_control_v1 where id=1),false,'WA3 V2 does not enable auto routing');
 select is((select ai_send_enabled from public.aos_wa_routing_control_v1 where id=1),false,'WA3 V2 keeps AI send OFF');
 
