@@ -1,128 +1,85 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Status:** CURRENT / OWNER HANDOFF TO WHATSAPP REVENUE HUB V2  
+**Status:** CURRENT / OWNER HANDOFF TO ASC-PERF STABILIZATION  
 **Captured:** 2026-08-22 America/Lima  
-**Entry main:** `26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
-**Railway entry status:** SUCCESS (`ASCENDA-OS - ascenda-os`)  
-**ACTIVE LOCK:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`  
-**NEXT AFTER CERTIFICATION:** `WA-3 — HUMAN OPERATIONS MULTIAGENT`
+**Entry main:** `ae0448d0cb56a3df91e92f9c28b8250cdc0ecad8`  
+**ACTIVE LOCK:** `ASC-PERF-STABILIZATION`  
+**CURRENT GATE:** `ASC-PERF-0 — GOVERNANCE FREEZE & EXACT BASELINE`  
+**NEXT:** `ASC-PERF-1 — RUNTIME CALL MAP 360`
 
 ## Owner directive
 
-The owner explicitly ordered ASCENDA to resume and finish the WhatsApp Revenue Hub so it can be connected to Meta and become an operational sales channel. This handoff supersedes the prior scheduling preference while preserving every previous workstream checkpoint.
+The owner explicitly prioritized systemic ASCENDA performance stabilization before continuing feature expansion because current read amplification, duplicated synchronization loops and unnecessary recurrent database/API traffic materially interfere with normal application use and continued development.
 
-At most one HIGH/CRITICAL mutable workstream may operate at a time.
+At most one HIGH/CRITICAL mutable workstream may operate at a time. While ASC-PERF owns the lock:
 
-## Previous lock — preserved checkpoint, not closed
+- unrelated feature/data work remains PAUSED / READ-ONLY / REGRESSION-ONLY;
+- no new overlapping runtime pollers, workers or performance-sensitive feature layers are to be introduced;
+- no ad-hoc production patching;
+- all mutable remediation follows isolated branch, tests, Zero-Cost when applicable, production read-only preflight, canary and exact-head certification;
+- documentation/read-only investigation may proceed if it does not create competing DB-heavy work.
 
-`MKT-INTEGRITY-HOTFIX-V3 / LOOP 6 V2.3` is **PAUSED / RECOVERABLE**, not certified terminally.
+Canonical execution contract: `docs/control/ASCENDA_PERFORMANCE_STABILIZATION_CURRENT.md`.
 
-Frozen resume checkpoint:
+## Previous lock — WhatsApp Revenue Hub V2
 
-- V2.3 baseline: `2026-08-22T02:27:02.696935+00:00`;
-- genuine post-cutover operations at handoff readback: **0 / 5**;
-- no qualifying customer operation was interrupted by this handoff;
-- PR #342 / runtime `0318597188fbd358b9b207181426094154766d55` and all frozen Loop 6 invariants remain evidence for later resume;
-- do not infer Loop 6 100% from the pause.
+`WHATSAPP-REVENUE-HUB-V2` is now **PAUSED / RECOVERABLE**, not closed and not superseded.
 
-MKT must remain read-only while WA owns the mutable lane.
+Frozen handoff baseline:
 
-## Certified upstream state available to WhatsApp V2
+- production `main` at handoff: `ae0448d0cb56a3df91e92f9c28b8250cdc0ecad8`;
+- latest merged change at handoff: PR #352, WA-3 session continuity hotfix;
+- production runtime chain remains `server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`;
+- WA core and Notifications S13–S15.5 remain preserved regression inputs;
+- existing WA messages/conversations/events/outbound/routing state must not be reset or re-created for ASC-PERF;
+- `auto_routing_enabled`, `ai_send_enabled` and `auto_reply_enabled` remain governed by the WA checkpoint and must not be enabled by performance work;
+- when WA resumes it must revalidate from CURRENT rather than assume this frozen baseline is still mergeable/certified.
 
-- REV-F5: **PRODUCTION CERTIFIED — 100%**;
-- REV-F6.0–F6.7 / REV-F6 global: **PRODUCTION CERTIFIED — 100%**;
-- canonical patient records live: **7,702**;
-- canonical sales live: **1,331**;
-- leads live: **5,880**;
-- F5 provenance: **15,498 source rows / 15,498 memberships / 8,716 clusters / 8,716 previews**;
-- CIA contact/email facts live: **11,911**.
+ASC-PERF may modify WA runtime synchronization only when the change is explicitly a performance stabilization dependency and all WA auth/ownership/send invariants remain protected.
 
-These are upstream sources of truth. WA must consume them through explicit contracts; it must not create a competing customer, sales, lead or email truth layer.
+## Other preserved checkpoints
 
-## WhatsApp V2 entry baseline
+- MKT Integrity / Call Center Loop 6 V2.3: **PAUSED / RECOVERABLE**, prior 0/5 genuine-op terminal gate preserved;
+- REV: certified upstream truth preserved; later mutable phases paused;
+- CIA / Email / Acquisition: read-only dependency sources unless required by ASC-PERF evidence;
+- Sentinel: regression/observability only;
+- KronIA: paused except performance evidence on existing runtime;
+- migration governance: maintenance only unless required by an ASC-PERF DB optimization gate.
 
-Live readback at handoff:
+## ASC-PERF entry evidence
 
-- `aos_wa_messages_v1 = 15` — 11 inbound / 4 outbound;
-- `aos_wa_conversations_v1 = 2`;
-- `aos_wa_events_v1 = 25`;
-- `aos_wa_outbound_requests_v1 = 9`;
-- `aos_wa_routing_events_v1 = 11`;
-- active boxes = 2: `VENTAS_GENERAL`, `WA_TEST`;
-- active box memberships = 2, currently belonging to the same operational actor;
-- active assignments = 1;
-- AI runs = 0;
-- `human_send_enabled=true`;
-- `auto_routing_enabled=false`;
-- `ai_send_enabled=false`;
-- `copilot_enabled=false`;
-- `auto_reply_enabled=false`.
+Read-only audit before handoff identified cross-domain amplification patterns including:
 
-Attribution gap at entry: 0/15 WA messages currently have populated `campaign_source`, `ad_id`, `lead_id` or `raw_referral`.
+- multiple WA readers for inbox/messages/team/presence;
+- repeated WA actor validation and queue/presence fan-out;
+- fixed 4-second notification push claim pump;
+- Product Resolution badge using a heavy admin RPC recurrently;
+- recurring agent reads broader than required;
+- duplicate `aos_panel_admin` / `aos_panel_asesor` consumption within visual refresh paths;
+- weekly calendar fan-out;
+- coordination/chat overlapping timers;
+- directly reachable legacy pollers that can continue independent traffic.
 
-Knowledge/catalog entry:
+The full root-cause map is not considered frozen until ASC-PERF-1 closes.
 
-- 221 services active;
-- 221 with price;
-- 175 with commercial description;
-- 198 with benefits;
-- 167 with contraindications;
-- 221 with FAQ payload;
-- 0 with populated tags.
+## ASC-PERF exit gate
 
-## Certified WhatsApp infrastructure preserved
+The stabilization lock may be released only when:
 
-Notifications `S13 → S15.5` are **CLOSED / 100% CERTIFIED / REGRESSION ONLY**.
+1. Runtime Call Map 360 is complete for CURRENT production scope;
+2. every recurrent read has a declared owner and performance budget;
+3. targeted duplicate/amplified reads are remediated through independently measurable patches;
+4. residual hot RPC/queries are remeasured after call reduction and optimized only with evidence;
+5. automated Performance Guard CI rejects representative recurrence patterns;
+6. production canary proves lower request/egress pressure without functional/security regression;
+7. CURRENT performance architecture, ownership registry, budgets and anti-pattern learning are committed;
+8. GitHub exact head, live production evidence, `aos_memory` and Notion continuity are reconciled;
+9. the next mutable owner is explicitly handed the lock after fresh CURRENT revalidation.
 
-Preserved evidence includes:
+## Immediate execution
 
-- signed Meta inbound path;
-- canonical message/event persistence;
-- WA-2 live conversation store;
-- WA-3 ownership/human-send boundary;
-- closed-PWA Web Push delivery;
-- native Windows notification;
-- notification click opening the installed PWA while respecting Auth;
-- final notification ACL cutover.
+Proceed in this order:
 
-Do not reopen notifications unless a real regression is demonstrated.
+`ASC-PERF-0 → ASC-PERF-1 → ASC-PERF-2 → ASC-PERF-3 → ASC-PERF-4/5/6 → ASC-PERF-7 → ASC-PERF-8 → ASC-PERF-9 → ASC-PERF-10`.
 
-## Runtime at entry
-
-Railway deploy configuration remains:
-
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
-
-`app/railway.json` still mounts Sentry and the backend-only email compatibility preload before `server-phase-s-f17.js`. Recent Revenue/Sales Explorer/Cartero work therefore becomes part of the exact-current regression surface for WA, not a reason to fork another runtime.
-
-## Current Meta outbound boundary
-
-The human outbound transport has historical ACCEPTED sends, but credential/provider health is **not recertified for the current date**. Historical outbound ledger contains four `META_190` failures and one `META_SEND_REJECTED`; therefore production selling cannot be declared ready until a current Meta credential/provider health gate and controlled outbound canary pass.
-
-Never put Meta access tokens in GitHub, Notion, chat, logs or browser code.
-
-## WA-V2-0 exit gate
-
-WA-V2-0 may be certified only when:
-
-1. CURRENT docs agree on `WHATSAPP-REVENUE-HUB-V2` as the active mutable owner;
-2. old WA snapshots no longer claim `0 outbound` or `Phase S` as CURRENT;
-3. exact current runtime, Railway status and live Supabase WA baseline are recorded;
-4. MKT Loop 6 is preserved as PAUSED / 0-of-5 checkpoint, not silently closed;
-5. Notifications remain regression-only;
-6. `aos_memory` and Notion are reconciled after GitHub merge;
-7. no functional product/data mutation occurred during WA-V2-0;
-8. anti-drift readback confirms the merged exact head.
-
-## Next functional execution
-
-After WA-V2-0 certification, proceed to `WA-3 — HUMAN OPERATIONS MULTIAGENT` in DISCOVER-FIRST mode.
-
-Do not enable auto-routing or AI auto-reply during the first WA-3 canary. Preserve:
-
-- `auto_routing_enabled=false`;
-- `ai_send_enabled=false`;
-- `auto_reply_enabled=false`.
-
-The next phase after WA-3 is `WA-3.5 — REVENUE INBOX UX`; it must not contaminate WA-3 security/ownership contracts.
+No production remediation begins merely because a code smell is known. PERF-0/1 establish the matched baseline and complete recurrent-call inventory first.
