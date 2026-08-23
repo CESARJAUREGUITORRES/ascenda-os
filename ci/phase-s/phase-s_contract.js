@@ -7,6 +7,7 @@ const f17=fs.readFileSync('app/server-f17.js','utf8');
 const s152=fs.readFileSync('app/server-phase-s-f17.js','utf8');
 const railway=fs.readFileSync('app/railway.json','utf8');
 const authSync=fs.readFileSync('app/auth-resend-reconcile.js','utf8');
+const waPrelude=fs.readFileSync('app/public/wa-native-bootstrap-prelude.js','utf8');
 
 assert(s.includes("['server-f5.js']"),'Phase S must wrap the certified server-f5 chain');
 assert(s.includes("p==='/api/wa3/bootstrap'"),'Phase S must intercept WA3 bootstrap');
@@ -18,6 +19,10 @@ assert(s.includes("ai_send_enabled:false"),'degraded control must fail closed fo
 assert(s.includes("p==='/api/phase-s/status'"),'Phase S must expose protected diagnostics');
 assert(s.includes("p==='/health'"),'Phase S must expose non-secret Railway health');
 assert(s.includes("p==='/api/auth/v3/login'"),'Phase S must preserve Auth V3 Resend reconcile gate');
+assert(waPrelude.includes("caches.open('aos-phase2-auth')"),'WA bootstrap must recover a previously issued strong token from the existing auth bridge cache');
+assert(waPrelude.includes("c.match('/__aos_app_token')"),'WA bootstrap cache recovery must use the canonical Auth V3 bridge key');
+assert(waPrelude.includes("sessionStorage.setItem('aos_app_token',t)"),'recovered strong token should repopulate only session-scoped browser state');
+assert(!waPrelude.includes('localStorage.setItem(\'aos_app_token\''),'WA bootstrap must never persist the strong token in localStorage');
 assert(authSync.includes('aos_integration_secrets_v1'),'Auth Resend sync must target private integration vault');
 assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must not write public integration catalog');
 assert(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded Meta access token');
