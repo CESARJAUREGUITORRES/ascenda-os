@@ -73,6 +73,7 @@ assert 'if (abonoFailed)' in caja
 prod = railway.split('"environments"')[0]
 studio_prefix='"startCommand": "env AOS_STUDIO_BACKGROUND_ENABLED=false '
 normalized_prod=prod.replace(studio_prefix,'"startCommand": "env ',1) if studio_prefix in prod else prod
+normalized_prod=normalized_prod.replace(' --require ./supabase-quota-circuit-preload.cjs','')
 sentinel_phase_s = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js\""
 sentinel_phase_s_email = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js\""
 sentinel_s152 = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js\""
