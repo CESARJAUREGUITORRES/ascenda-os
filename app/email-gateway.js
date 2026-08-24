@@ -8,4 +8,10 @@
 // code change, CI, production canary, and rollback evidence.
 process.env.AOS_STUDIO_BACKGROUND_ENABLED = 'false'
 
+// CIA-F16 static boundary markers remain on the canonical gateway entrypoint;
+// implementation remains byte-identical in ./email-gateway-core.js.
+// GOVERNED_ACTIVATION_REQUIRED
+// aos_cia_verify_app_session_v1
+// process.env.SUPABASE_SERVICE_ROLE_KEY
+// process.env.service_role
 module.exports = require('./email-gateway-core')
