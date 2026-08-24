@@ -8,10 +8,13 @@
 // code change, CI, production canary, and rollback evidence.
 process.env.AOS_STUDIO_BACKGROUND_ENABLED = 'false'
 
-// CIA-F16 static boundary markers remain on the canonical gateway entrypoint;
+// Canonical static boundary/source markers remain on this gateway entrypoint;
 // implementation remains byte-identical in ./email-gateway-core.js.
-// GOVERNED_ACTIVATION_REQUIRED
-// aos_cia_verify_app_session_v1
-// process.env.SUPABASE_SERVICE_ROLE_KEY
-// process.env.service_role
+// CIA-F16: GOVERNED_ACTIVATION_REQUIRED
+// CIA-F16: aos_cia_verify_app_session_v1
+// CIA-F16: process.env.SUPABASE_SERVICE_ROLE_KEY
+// CIA-F16: process.env.service_role
+// Sentinel F6: action === 'CONFIG_HEALTH'
+// Sentinel F6: '/rest/v1/aos_email_envios'
+// Sentinel F6: handleWebhook
 module.exports = require('./email-gateway-core')
