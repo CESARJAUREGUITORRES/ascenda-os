@@ -19,6 +19,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 let child = null
 let notificationPumpTimer = null
 let notificationPumpBusy = false
+let notificationPumpIdleLevel = 0
+const NOTIFICATION_PUMP_ACTIVE_MS = 4000
+const NOTIFICATION_PUMP_IDLE_MS = [8000, 15000]
 
 function parseJson(text) { try { return text ? JSON.parse(text) : null } catch (_) { return null } }
 function writeJson(res, status, body) {
@@ -76,26 +79,45 @@ const push = createPushService({
 })
 
 async function runNotificationPump() {
-  if (notificationPumpBusy) return
+  if (notificationPumpBusy) return { busy: true }
   notificationPumpBusy = true
   try {
     const r = await push.dispatchPendingNotifications(25)
     if (r && (r.delivered || r.failed || r.partial)) console.log('[S15] notification push', r)
+    return r || { ok: true, claimed: 0 }
   } catch (e) {
     console.error('[S15] notification pump fail-open', e && e.message || e)
+    return { ok: false, error: true, claimed: 0 }
   } finally {
     notificationPumpBusy = false
   }
 }
-function startNotificationPump() {
-  if (notificationPumpTimer) return
-  setImmediate(function() { runNotificationPump().catch(function(){}) })
-  notificationPumpTimer = setInterval(function() { runNotificationPump().catch(function(){}) }, 4000)
+function notificationPumpDelay(result) {
+  const didWork = !!(result && (Number(result.claimed || 0) > 0 || Number(result.delivered || 0) > 0 || Number(result.failed || 0) > 0 || Number(result.partial || 0) > 0))
+  if (didWork) { notificationPumpIdleLevel = 0; return NOTIFICATION_PUMP_ACTIVE_MS }
+  notificationPumpIdleLevel = Math.min(notificationPumpIdleLevel + 1, NOTIFICATION_PUMP_IDLE_MS.length)
+  return NOTIFICATION_PUMP_IDLE_MS[notificationPumpIdleLevel - 1]
+}
+function scheduleNotificationPump(delay) {
+  if (notificationPumpTimer) clearTimeout(notificationPumpTimer)
+  notificationPumpTimer = setTimeout(function tick() {
+    notificationPumpTimer = null
+    runNotificationPump().then(function(result) {
+      scheduleNotificationPump(notificationPumpDelay(result))
+    }).catch(function() { scheduleNotificationPump(NOTIFICATION_PUMP_IDLE_MS[0]) })
+  }, Math.max(1000, Number(delay || NOTIFICATION_PUMP_ACTIVE_MS)))
   if (notificationPumpTimer.unref) notificationPumpTimer.unref()
 }
+function startNotificationPump() {
+  if (notificationPumpTimer || notificationPumpBusy) return
+  setImmediate(function() {
+    runNotificationPump().then(function(result) { scheduleNotificationPump(notificationPumpDelay(result)) }).catch(function() { scheduleNotificationPump(NOTIFICATION_PUMP_IDLE_MS[0]) })
+  })
+}
 function stopNotificationPump() {
-  if (notificationPumpTimer) clearInterval(notificationPumpTimer)
+  if (notificationPumpTimer) clearTimeout(notificationPumpTimer)
   notificationPumpTimer = null
+  notificationPumpIdleLevel = 0
 }
 
 function proxy(req, res) {
