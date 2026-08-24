@@ -3,7 +3,7 @@
 'use strict';
 if(window.AOS_WA_PERF&&window.AOS_WA_PERF.installed)return;
 var baseFetch=window.fetch.bind(window);
-var cache=new Map(),inflight=new Map();
+var cache=new Map(),inflight=new Map(),epoch=0;
 var metrics={requests:0,network:0,cache_hits:0,coalesced:0,invalidations:0};
 var rules=[
   {test:function(u){return u.pathname==='/api/wa3/inbox';},visible:4000,hidden:20000},
@@ -18,7 +18,7 @@ function ttlFor(rule){return document.hidden?rule.hidden:rule.visible;}
 function keyFor(u){return u.pathname+u.search;}
 function snapshot(resp,body){var hs=[];try{resp.headers.forEach(function(v,k){hs.push([k,v]);});}catch(_){}return {status:resp.status,statusText:resp.statusText,headers:hs,body:body};}
 function materialize(s,kind){var h=new Headers(s.headers||[]);h.set('X-AOS-WA-Perf',kind||'HIT');return new Response(s.body,{status:s.status,statusText:s.statusText,headers:h});}
-function invalidate(reason){cache.clear();metrics.invalidations++;try{window.dispatchEvent(new CustomEvent('aos-wa-perf-invalidated',{detail:{reason:reason||'unknown'}}));}catch(_){} }
+function invalidate(reason){epoch++;cache.clear();inflight.clear();metrics.invalidations++;try{window.dispatchEvent(new CustomEvent('aos-wa-perf-invalidated',{detail:{reason:reason||'unknown'}}));}catch(_){} }
 function cacheableResponse(resp){return !!resp&&resp.ok===true&&resp.status>=200&&resp.status<300;}
 function readCached(key,rule){var x=cache.get(key);if(!x)return null;if(Date.now()-x.at>=ttlFor(rule)){cache.delete(key);return null;}return x.snapshot;}
 function store(key,s){cache.set(key,{at:Date.now(),snapshot:s});}
@@ -39,10 +39,11 @@ window.fetch=function(input,init){
     return inflight.get(key).then(function(s){return s?materialize(s,'COALESCED'):baseFetch(input,init);});
   }
   metrics.network++;
+  var requestEpoch=epoch;
   var networkPromise=baseFetch(input,init);
   var shared=networkPromise.then(function(resp){
-    if(!cacheableResponse(resp))return null;
-    return resp.clone().text().then(function(body){var s=snapshot(resp,body);store(key,s);return s;}).catch(function(){return null;});
+    if(!cacheableResponse(resp)||requestEpoch!==epoch)return null;
+    return resp.clone().text().then(function(body){if(requestEpoch!==epoch)return null;var s=snapshot(resp,body);store(key,s);return s;}).catch(function(){return null;});
   }).catch(function(){return null;});
   inflight.set(key,shared);
   shared.finally(function(){if(inflight.get(key)===shared)inflight.delete(key);});
@@ -52,5 +53,5 @@ function fresh(){invalidate('foreground');}
 window.addEventListener('focus',fresh);
 window.addEventListener('online',fresh);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)fresh();});
-window.AOS_WA_PERF={installed:true,invalidate:invalidate,stats:function(){return Object.assign({cache_entries:cache.size,inflight:inflight.size,hidden:document.hidden},metrics);}};
+window.AOS_WA_PERF={installed:true,invalidate:invalidate,stats:function(){return Object.assign({cache_entries:cache.size,inflight:inflight.size,epoch:epoch,hidden:document.hidden},metrics);}};
 })();
