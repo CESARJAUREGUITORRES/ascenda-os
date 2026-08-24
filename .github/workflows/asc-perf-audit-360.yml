@@ -37,10 +37,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Enforce zero-cost runner
         run: |
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
+          node --version
           python3 scripts/ci/enforce-zero-cost-policy.py
 
       - name: Studio hard-off contract
