@@ -67,11 +67,12 @@ async function main(){
   assert(queueResolve,'delayed queue resolver missing');
   await window.fetch('/api/wa3/claim-next',{method:'POST',body:'{}'});
   queueResolve();
-  const staleResponse=await staleQueue;
-  assert.strictEqual(staleResponse.headers.get('x-aos-wa-perf'),'STALE');
-  const beforeFreshQueue=network;
-  await window.fetch('/api/wa3/queue-summary');
-  assert.strictEqual(network,beforeFreshQueue+1,'stale pre-mutation queue response repopulated cache');
+  const retriedQueue=await staleQueue;
+  assert.strictEqual(retriedQueue.headers.get('x-aos-wa-perf'),'MISS','pre-write queue read must transparently retry after invalidation');
+  const beforeQueueHit=network;
+  const queueHit=await window.fetch('/api/wa3/queue-summary');
+  assert.strictEqual(queueHit.headers.get('x-aos-wa-perf'),'HIT','retried post-write queue snapshot should seed the new cache generation');
+  assert.strictEqual(network,beforeQueueHit,'stale pre-mutation queue response should not force another network read');
 
   await window.fetch('/api/wa3/inbox?limit=120');
   const beforePresence=network;
@@ -81,9 +82,10 @@ async function main(){
   assert.strictEqual(network,beforePresence+1,'presence heartbeat invalidated read cache');
 
   const stats=window.AOS_WA_PERF.stats();
-  assert(stats.cache_hits>=2,'expected cache hits were not recorded');
+  assert(stats.cache_hits>=3,'expected cache hits were not recorded');
   assert(stats.coalesced>=1,'expected coalesced read was not recorded');
   assert(stats.invalidations>=1,'write invalidation was not recorded');
+  assert(stats.stale_retries>=1,'stale pre-write read was not retried');
   console.log('WA_PERFORMANCE_HARDENING_BEHAVIOR_CONTRACT_PASS',stats);
 }
 
