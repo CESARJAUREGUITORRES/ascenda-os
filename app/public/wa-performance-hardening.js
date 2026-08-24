@@ -4,7 +4,7 @@
 if(window.AOS_WA_PERF&&window.AOS_WA_PERF.installed)return;
 var baseFetch=window.fetch.bind(window);
 var cache=new Map(),inflight=new Map(),epoch=0;
-var metrics={requests:0,network:0,cache_hits:0,coalesced:0,invalidations:0};
+var metrics={requests:0,network:0,cache_hits:0,coalesced:0,invalidations:0,stale_retries:0};
 var rules=[
   {test:function(u){return u.pathname==='/api/wa3/inbox';},visible:4000,hidden:20000},
   {test:function(u){return u.pathname==='/api/wa3/queue-summary';},visible:4000,hidden:15000},
@@ -36,22 +36,22 @@ window.fetch=function(input,init){
   if(hit){metrics.cache_hits++;return Promise.resolve(materialize(hit,'HIT'));}
   if(inflight.has(key)){
     metrics.coalesced++;
-    return inflight.get(key).then(function(s){if(s)return materialize(s,'COALESCED');metrics.network++;return baseFetch(input,init);});
+    return inflight.get(key).then(function(s){if(s)return materialize(s,'COALESCED');metrics.stale_retries++;return window.fetch(input,init);});
   }
   metrics.network++;
   var requestEpoch=epoch;
   var pipeline=baseFetch(input,init).then(function(resp){
-    if(!cacheableResponse(resp))return {cache:null,response:resp};
+    if(!cacheableResponse(resp))return {cache:null,response:resp,stale:false};
     return resp.text().then(function(body){
       var s=snapshot(resp,body),fresh=requestEpoch===epoch;
       if(fresh)store(key,s);
-      return {cache:fresh?s:null,response:materialize(s,fresh?'MISS':'STALE')};
-    }).catch(function(){return {cache:null,response:resp};});
+      return {cache:fresh?s:null,response:fresh?materialize(s,'MISS'):null,stale:!fresh};
+    }).catch(function(){return {cache:null,response:resp,stale:false};});
   });
   var shared=pipeline.then(function(x){return x.cache;}).catch(function(){return null;});
   inflight.set(key,shared);
   shared.finally(function(){if(inflight.get(key)===shared)inflight.delete(key);});
-  return pipeline.then(function(x){return x.response;});
+  return pipeline.then(function(x){if(x.stale){metrics.stale_retries++;return window.fetch(input,init);}return x.response;});
 };
 function fresh(){invalidate('foreground');}
 window.addEventListener('focus',fresh);
