@@ -13,29 +13,35 @@ The application is therefore creating avoidable failed traffic while production 
 
 ## Objective
 
-Introduce a process-local Supabase quota circuit for WA runtime wrappers so that the first upstream 402 opens a bounded cooldown and subsequent Supabase calls fail locally without issuing another network request until a controlled probe window reopens.
+Introduce a process-local Supabase quota circuit for the recurrent WA runtime clients so that the first upstream 402 opens a bounded cooldown and subsequent matching calls fail locally without issuing another network request until a controlled probe window reopens.
 
-## Scope
+## Implementation scope
 
-Adopt one shared helper in the WA runtime processes that currently own recurrent Supabase calls:
+To avoid rewriting three already-certified wrappers, the circuit is loaded as a small runtime preload through the existing Railway `NODE_OPTIONS` chain:
 
-- `app/server-phase-s.js`;
-- `app/server-wa3-v2.js`;
-- `app/server-f17.js`.
+- `app/supabase-quota-circuit.js` — pure state machine;
+- `app/supabase-quota-circuit-preload.cjs` — scoped `https.request` interceptor;
+- `app/railway.json` — adds the preload to the existing Sentry/email preload chain.
 
-The helper is process-local by design because these wrappers run as separate Node processes.
+The interceptor is intentionally narrow. It applies only when both conditions are true:
+
+1. request hostname equals the configured ASCENDA Supabase hostname;
+2. `User-Agent` belongs to one of the recurrent WA wrappers: `AscendaOS-Phase-S/*`, `AscendaOS-WA3V2/*`, `AscendaOS-F17/*`.
+
+Other runtime traffic is not intercepted. The state remains process-local because each wrapper runs in a separate Node process and inherits `NODE_OPTIONS`.
 
 ## Required semantics
 
 1. First real upstream `402` opens the circuit.
-2. Circuit remains open for a bounded cooldown; default target: 15 minutes.
-3. While open, requests fail locally with a deterministic `SUPABASE_QUOTA_BLOCKED` error and `upstreamStatus=402` / `upstream_status=402` compatibility metadata.
+2. Circuit remains open for a bounded cooldown; default: 15 minutes, bounded to 1–60 minutes.
+3. While open, matching requests fail locally with deterministic `SUPABASE_QUOTA_BLOCKED` and compatibility metadata `upstreamStatus=402` / `upstream_status=402`.
 4. No credentials, session tokens, customer data or provider payload are stored by the circuit.
 5. 401/403/429/5xx do not open the quota circuit.
-6. Successful probe after cooldown closes/rearms normal operation.
-7. Security remains fail-closed: no actor, 2FA, ownership, RLS or permission bypass.
-8. Production data/schema are untouched.
-9. The circuit is not a substitute for the August 29 production revalidation gate.
+6. Cooldown expiry permits one probe; parallel probes are suppressed.
+7. Any non-402 probe result releases the quota circuit; a successful 2xx probe therefore rearms normal operation immediately.
+8. Security remains fail-closed: no actor, 2FA, ownership, RLS or permission bypass.
+9. Production data/schema are untouched.
+10. The circuit is not a substitute for the August 29 production revalidation gate.
 
 ## Performance intent
 
@@ -45,16 +51,17 @@ This is a protection budget, not a live production performance certification. Ex
 
 ## Tests
 
-- pure unit/behavior contract for open → short-circuit → cooldown → successful probe reset;
-- negative contract: 401/403/429/500 never open this quota circuit;
-- wrapper static/runtime contract confirms all three WA callers use the shared circuit;
-- existing Phase S / WA-2 / WA-3 / WA-4 / S14 / S15 contracts remain green;
-- Performance Guard remains green;
-- Zero-Cost WA-3 FINAL local Supabase/pgTAP/concurrency/rollback remains green.
+- pure state-machine contract for open → local short-circuit → cooldown → single probe → reset;
+- negative contract: 401/403/429/500 never open the quota circuit;
+- preload behavior contract proves first target 402 reaches the caller, the next target request makes zero network calls, and a non-target runtime remains untouched;
+- static contract proves Railway loads the preload and the WA runtime allowlist/host scope are present;
+- existing Phase S / WA-2 / WA-3 / WA-4 / S14 / S15 contracts remain mandatory;
+- Performance Guard remains mandatory;
+- Zero-Cost WA-3 FINAL local Supabase/pgTAP/concurrency/rollback remains mandatory.
 
 ## Rollback
 
-Revert the helper adoption commit(s). No SQL rollback and no production data recovery are required because this slice makes no DB/schema mutation.
+Remove the preload from `app/railway.json` and revert the two helper files. No SQL rollback and no production data recovery are required because this slice makes no DB/schema mutation.
 
 ## Production state
 
