@@ -21,32 +21,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Apply byte-safe exact PERF-5B patch
+      - name: Apply raw-byte exact PERF-5B patch
         shell: powershell
         run: |
           @'
           const fs = require('fs');
           const p = 'app/server.js';
-          const s = fs.readFileSync(p, 'utf8');
-          const oldText = "sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron')";
-          const newText = "sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron')";
-          const count = s.split(oldText).length - 1;
-          if (count !== 1) throw new Error(`PERF-5B exact-match expected 1 occurrence, found ${count}`);
-          const out = s.replace(oldText, newText);
-          if (out.includes(oldText)) throw new Error('PERF-5B broad cron read remains');
-          fs.writeFileSync(p, out, 'utf8');
+          const src = fs.readFileSync(p);
+          const oldBuf = Buffer.from("sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron')", 'ascii');
+          const newBuf = Buffer.from("sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron')", 'ascii');
+          const first = src.indexOf(oldBuf);
+          if (first < 0) throw new Error('PERF-5B exact target not found');
+          if (src.indexOf(oldBuf, first + 1) >= 0) throw new Error('PERF-5B target is not unique');
+          const out = Buffer.concat([src.subarray(0, first), newBuf, src.subarray(first + oldBuf.length)]);
+          if (out.indexOf(oldBuf) >= 0) throw new Error('PERF-5B broad cron read remains');
+          fs.writeFileSync(p, out);
           '@ | node -
           node --check app/server.js
-      - name: Verify minimal diff and commit
+      - name: Verify one-line diff and commit
         shell: powershell
         run: |
-          git diff --numstat -- app/server.js
+          $stat = git diff --numstat -- app/server.js
+          Write-Host $stat
+          if ($stat -notmatch '^1\s+1\s+app/server\.js$') { throw "PERF-5B must be exactly 1+/1-, got: $stat" }
           $changed = git diff -- app/server.js
           if ($changed -notmatch 'select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo') { throw 'PERF-5B compact cron read missing from diff' }
           git config user.name 'ASCENDA PERF Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add app/server.js
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) { throw 'PERF-5B produced no diff' }
           git commit -m 'perf(agents): narrow recurrent cron agent read'
           git push origin HEAD:perf/asc-perf-5b-agent-cron-20260824
