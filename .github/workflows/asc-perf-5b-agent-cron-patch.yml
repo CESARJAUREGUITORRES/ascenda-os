@@ -1,8 +1,8 @@
 name: ASC-PERF 5B Agent Cron Patch
 
 on:
-  push:
-    branches: ['perf/asc-perf-5b-agent-cron-20260824']
+  pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/asc-perf-5b-agent-cron-patch.yml'
 
