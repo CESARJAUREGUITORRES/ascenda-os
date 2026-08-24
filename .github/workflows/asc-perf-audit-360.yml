@@ -81,3 +81,45 @@ jobs:
         if: always()
         run: |
           rm -f "$RUNNER_TEMP/asc-perf-runtime-census.json" /tmp/asc-perf-census.log || true
+
+  dynamic-foundation:
+    name: PERF-1C runner instrumentation foundation
+    needs: static-census
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Probe runner instrumentation
+        run: |
+          set -euo pipefail
+          echo 'ASC-PERF-1C RUNNER PROBE'
+          echo "node=$(node --version)"
+          echo "python=$(python3 --version 2>&1)"
+          echo "curl=$(curl --version | head -1)"
+          for cmd in google-chrome google-chrome-stable chromium chromium-browser firefox; do
+            if command -v "$cmd" >/dev/null 2>&1; then echo "browser_${cmd}=FOUND:$(command -v "$cmd")"; else echo "browser_${cmd}=MISSING"; fi
+          done
+          python3 - <<'PY'
+          import importlib.util
+          for name in ('playwright','selenium'):
+              print(f'python_{name}=' + ('FOUND' if importlib.util.find_spec(name) else 'MISSING'))
+          PY
+
+      - name: Outer runtime read-only latency sample
+        run: |
+          set -euo pipefail
+          BASE='https://ascenda-os-production.up.railway.app'
+          echo 'outer_health_begin'
+          for i in 1 2 3 4 5; do
+            curl --silent --show-error --location --max-time 15 --output /dev/null --write-out "sample=$i code=%{http_code} connect=%{time_connect} starttransfer=%{time_starttransfer} total=%{time_total} bytes=%{size_download}\n" "$BASE/health"
+          done
+          echo 'outer_health_end'
+          echo 'outer_app_begin'
+          curl --silent --show-error --location --max-time 20 --output /dev/null --write-out "code=%{http_code} connect=%{time_connect} starttransfer=%{time_starttransfer} total=%{time_total} bytes=%{size_download}\n" "$BASE/app.html"
+          echo 'outer_app_end'
