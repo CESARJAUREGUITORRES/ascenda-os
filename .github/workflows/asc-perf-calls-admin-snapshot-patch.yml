@@ -1,0 +1,89 @@
+name: ASC-PERF Calls Admin Snapshot Patch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/asc-perf-calls-admin-snapshot-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/asc-perf-calls-admin-snapshot-20260824
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply exact Calls/Admin snapshot consolidation
+        shell: powershell
+        run: |
+          @'
+          const fs=require('fs');
+          function replaceOne(path,oldText,newText){
+            const src=fs.readFileSync(path),oldBuf=Buffer.from(oldText,'ascii'),newBuf=Buffer.from(newText,'ascii');
+            const first=src.indexOf(oldBuf);
+            if(first<0)throw new Error(path+': target not found: '+oldText.slice(0,100));
+            if(src.indexOf(oldBuf,first+1)>=0)throw new Error(path+': target not unique: '+oldText.slice(0,100));
+            fs.writeFileSync(path,Buffer.concat([src.subarray(0,first),newBuf,src.subarray(first+oldBuf.length)]));
+          }
+          function replaceCount(path,oldText,newText,expected){
+            const src=fs.readFileSync(path),oldBuf=Buffer.from(oldText,'ascii'),newBuf=Buffer.from(newText,'ascii');
+            let pos=0,count=0,parts=[];
+            while(true){const i=src.indexOf(oldBuf,pos);if(i<0)break;parts.push(src.subarray(pos,i),newBuf);pos=i+oldBuf.length;count++;}
+            if(count!==expected)throw new Error(path+': expected '+expected+' matches, found '+count+' for '+oldText.slice(0,100));
+            parts.push(src.subarray(pos));fs.writeFileSync(path,Buffer.concat(parts));
+          }
+
+          const calls='app/public/calls.html';
+          replaceOne(calls,
+            "var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras', leadStartTs:null };",
+            "var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras', leadStartTs:null, panelInflight:{} };\r\nfunction _panelAsesorShared(x,cb){var key=[x.a,x.id,x.hoy,x.mes].join('|'),wait=CC.panelInflight[key];if(wait){wait.push(cb);return;}CC.panelInflight[key]=[cb];var done=false,t=setTimeout(function(){if(done)return;done=true;var q=CC.panelInflight[key]||[];delete CC.panelInflight[key];q.forEach(function(fn){try{fn(null);}catch(e){console.error(e);}});},15000);_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){if(done)return;done=true;clearTimeout(t);var q=CC.panelInflight[key]||[];delete CC.panelInflight[key];q.forEach(function(fn){try{fn(d);}catch(e){console.error(e);}});});}");
+          replaceOne(calls,
+            "CC.lead=null;CC.guardando=false;CC.ficha360=null;CC.fichaTab='compras';",
+            "CC.lead=null;CC.guardando=false;CC.ficha360=null;CC.fichaTab='compras';CC.panelInflight={};");
+          replaceCount(calls,
+            "_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:x.mes},function(d){",
+            "_panelAsesorShared(x,function(d){",2);
+
+          const admin='app/public/admin-home.html';
+          replaceOne(admin,
+            "var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null};",
+            "var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null,panelInflight:{}};\r\nfunction _panelAdminShared(p,cb){var key=JSON.stringify(p||{}),wait=_D.panelInflight[key];if(wait){wait.push(cb);return;}_D.panelInflight[key]=[cb];var done=false,t=setTimeout(function(){if(done)return;done=true;var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(null);}catch(e){console.error(e);}});},15000);_r('aos_panel_admin',p,function(d){if(done)return;done=true;clearTimeout(t);var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(d);}catch(e){console.error(e);}});});}");
+          replaceOne(admin,
+            "_r('aos_panel_admin',{p_hoy:_hoy(),p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){",
+            "_panelAdminShared({p_hoy:_hoy(),p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){");
+          replaceOne(admin,
+            "_r('aos_panel_admin',{p_hoy:fecha,p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){",
+            "_panelAdminShared({p_hoy:fecha,p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){");
+
+          for(const p of [calls,admin]){
+            const txt=fs.readFileSync(p,'utf8');
+            if(p===calls){
+              if((txt.match(/_rpc\('aos_panel_asesor'/g)||[]).length!==1)throw new Error('Calls must retain only the shared helper as direct aos_panel_asesor owner');
+              if((txt.match(/_panelAsesorShared\(x,function\(d\)/g)||[]).length!==2)throw new Error('Calls consumers not consolidated');
+            } else {
+              if((txt.match(/_r\('aos_panel_admin'/g)||[]).length!==1)throw new Error('Admin must retain only the shared helper as direct aos_panel_admin owner');
+              if((txt.match(/_panelAdminShared\(/g)||[]).length<3)throw new Error('Admin consumers not consolidated');
+            }
+          }
+          '@ | node -
+      - name: Verify bounded diff and commit
+        shell: powershell
+        run: |
+          git diff --numstat -- app/public/calls.html app/public/admin-home.html
+          $names=@(git diff --name-only)
+          $expected=@('app/public/admin-home.html','app/public/calls.html')
+          foreach($n in $names){if($expected -notcontains $n){throw "Unexpected file: $n"}}
+          foreach($e in $expected){if($names -notcontains $e){throw "Missing file: $e"}}
+          git config user.name 'ASCENDA PERF Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/public/calls.html app/public/admin-home.html
+          git commit -m 'perf(reads): consolidate Calls and Admin snapshots'
+          git push origin HEAD:perf/asc-perf-calls-admin-snapshot-20260824
