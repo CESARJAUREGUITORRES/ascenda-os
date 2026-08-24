@@ -5,7 +5,8 @@
 **Entry main:** `ae0448d0cb56a3df91e92f9c28b8250cdc0ecad8`  
 **Branch:** `perf/asc-perf-stabilization-20260822`  
 **Parent:** `ASCENDA_PERFORMANCE_AUDIT_360_CURRENT.md`  
-**Online loop:** `ASCENDA_PERFORMANCE_ONLINE_LOOP_CURRENT.md`
+**Online loop:** `ASCENDA_PERFORMANCE_ONLINE_LOOP_CURRENT.md`  
+**Machine-readable map:** `ASCENDA_RUNTIME_CALL_MAP_ONLINE_CURRENT.json`
 
 ## Classification
 
@@ -26,21 +27,22 @@ Material `UNKNOWN` findings block `ASC-PERF-1G` closure.
 | PERF-F003 | WhatsApp | CONFIRMED | Actor/session validation amplification | `aos_wa3_actor_v1` is invoked across sibling endpoints and is one of the highest-call statements in production statistics. Current cumulative count remains ~39.6k in the same stats window while current idle logs are dominated by server background work, so WA is a proven amplification family but not the current idle dominant producer. | PERF-1D |
 | PERF-F004 | WhatsApp | CONFIRMED | Team presence N+1 | Team summary maps candidate users to `aos_wa3_effective_presence_v2`, multiplying RPCs by user count. | PERF-1D then PERF-4 |
 | PERF-F005 | Notifications | CONFIRMED | Fixed 4-second idle claim pump | `server-f17.js` owns one immediate + fixed 4000ms notification pump. Fresh live logs on 2026-08-24 show `aos_notification_push_claim_v1` every ~4s with `AscendaOS-F17/1.4`. Same stats window reached `56,485` calls, ~`894,013 ms` total, ~`15.83 ms` mean. | PERF-1D/1E then PERF-5 |
-| PERF-F006 | Agents | CONFIRMED | Cron scheduler recurrent `select=*` | CURRENT `server.js` runs guarded `autoTick` every 60s and first reads `aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron`. Fresh live logs match ~60s cadence. Same stats window reached `3,770` calls. | PERF-1E then PERF-3/5 |
+| PERF-F006 | Agents | CONFIRMED | Cron scheduler recurrent `select=*` | CURRENT `server.js` runs guarded `autoTick` every 60s and first reads `aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron`. Fresh live logs match ~60s cadence. Same stats window reached `3,770` calls. Current 9-row response is ~13,178 JSON bytes; a scheduler-only 8-field projection is ~1,707 bytes, about 87% smaller. | PERF-1E then PERF-3/5 |
 | PERF-F007 | Product Resolution | CONFIRMED | Heavy admin snapshot used as badge/status refresh | Product-resolution badge can invoke `aos_product_review_admin_v1`; RPC constructs queue/catalog and updates session `last_used_at`, making a visual status read materially heavier than a counter. Current same-window count ~`2,922`, ~`155.53 ms` mean. | PERF-1C/1D then PERF-3/6 |
 | PERF-F008 | Admin Home | CONFIRMED | Same-cycle `aos_panel_admin` duplication | Admin home main load and monitoring load can request the same read model twice for the same date. | PERF-1C then PERF-6 |
 | PERF-F009 | Call Center | CONFIRMED | `aos_panel_asesor` duplicate snapshot + weekly calendar fan-out | Metrics/history duplicate advisor snapshot; month calendar can issue one weekly RPC per rendered week. | PERF-1C/1D then PERF-6 |
 | PERF-F010 | Coordination | CONFIRMED | Overlapping 8s/15s synchronization loops | `coordinacion.html` contains two recurrent channel/message refresh paths; `lCh()` can itself trigger `lMs()`, amplifying active-chat reads. | PERF-1C/1F then PERF-6 |
-| PERF-F011 | Legacy WA | CANDIDATE | Legacy direct pages can independently poll | `admin-whatsapp.html` and `admin-whatsapp-wa3.html` contain their own recurrent polling. Need runtime/navigation proof for current reachability/usage. | PERF-1B/1F |
+| PERF-F011 | Legacy WA | CONFIRMED | Legacy direct pages remain reachable and can independently poll | Base `server.js` serves arbitrary existing `app/public` files. `admin-whatsapp.html` therefore remains directly reachable and polls visible inbox at 2.5s / hidden 12s with active-message reads; `admin-whatsapp-wa3.html` polls every 3s while visible. Both are strong-session gated. Current usage frequency/concurrency still requires browser/runtime proof. | PERF-1C/1F |
 | PERF-F012 | Brain / KronIA | CANDIDATE | Realtime + unconditional REST fallback on same audit stream | `cerebro.html` opens Supabase Realtime on `aos_log_auditoria` while also polling the same audit stream every 8s, plus a separate 30s connectivity read. The REST fallback is not conditioned on WebSocket failure in CURRENT source. | PERF-1B/1C/1F |
 | PERF-F013 | Brain / KronIA | CANDIDATE | Separate 15s proactive polling chain | `checkProactiveEvents()` runs every 15s; initial pass queries latest IDs from sales/agenda/leads in parallel, then subsequent cycles query new sales and conditionally agenda/leads. | PERF-1B/1C/1E |
-| PERF-F014 | Studio | UNKNOWN | Recurrent unauthorized background query conflicts with hibernation contract | Fresh live API logs on 2026-08-24 still show `aos_studio_contenido?...estado=eq.PROGRAMADO...` returning HTTP 401 at ~60s cadence. CURRENT `server.js` registers Studio only when `AOS_STUDIO_BACKGROUND_ENABLED=true`, at 120s cadence; the canonical Studio Hibernation doc says default OFF and no query while OFF. Live table currently has 0 rows / 0 PROGRAMADO. Current source and live cadence therefore do not reconcile. | PERF-1B/1D/1F |
+| PERF-F014 | Studio | UNKNOWN | Recurrent unauthorized background query conflicts with hibernation contract | Fresh live API logs on 2026-08-24 still show `aos_studio_contenido?...estado=eq.PROGRAMADO...` returning HTTP 401 at ~60s cadence. CURRENT `server.js` registers Studio only when `AOS_STUDIO_BACKGROUND_ENABLED=true`, at 120s cadence; the canonical Studio Hibernation doc says default OFF and no query while OFF. Live table currently has 0 rows / 0 PROGRAMADO. Git history confirms the production hibernation change kept the scheduler at 120s and only added the default-OFF guard. Current source/history and live ~60s cadence therefore do not reconcile. | PERF-1B/1D/1F |
 | PERF-F015 | CI / Control Plane | CONFIRMED | Global CURRENT doc edits trigger unrelated heavy domain workflows | REV-F6 workflows include global lock/portfolio/memory files in PR path filters. ASC-PERF documentation changes therefore fan out into unrelated suites. The ASC-PERF Audit 360 run on head `284f983...` waited without executing and ended `cancelled`, leaving no certifiable scanner output while unrelated workflows were also triggered/cancelled. | PERF-1B control-plane map then PERF-8 |
 | PERF-F016 | Shell lifecycle | CANDIDATE | Timer cleanup does not prove cleanup of all recurrent resource classes | Shell captures/clears panel-created intervals, but MutationObservers, listeners, WebSockets, Service Workers, fetch monkey patches and recursive async loops require independent teardown proof. | PERF-1F |
 | PERF-F017 | Runtime patches | CANDIDATE | Multiple global `window.fetch` monkey patches may form layered runtime behavior | CURRENT source contains several fetch wrappers/shims across Calls, Revenue, Auth/Security and WA modules. Ordering/teardown/consumer scope must be mapped before performance or auth changes. | PERF-1B/1F |
 | PERF-F018 | Agents | CONFIRMED | Due-agent execution amplifies one scheduler decision into multiple DB reads/writes | Production has 9 active cron agents and 55 active tasks. The minute dispatcher reads all cron agents, then for each due agent reads its active tasks. Same stats window contains `227` broad `aos_agente_tareas.*` reads, `407` `aos_execute_agent_query` calls, `1,195` agent status update shape calls, `1,151` `aos_agente_logs` inserts, plus domain RPCs such as `fn_dante_alertar_leads_alto_valor` (`123`) and `aos_estado_bases` (`123`). This proves execution fan-out, but does not classify the business tasks themselves as unnecessary. | PERF-1D/1E then PERF-5 |
-| PERF-F019 | Shell global runtime | CANDIDATE | Logged-in shell keeps global per-user polling independent of active panel | CURRENT `app/public/app.html` starts ADMIN `pollAgentFeed` every 15s and `pollNotifications` every 30s, plus ADMIN refresh hook every 60s. `pollAgentFeed` directly reads `aos_agentes`. No `visibilitychange` guard is present in CURRENT shell source. Dynamic user-session cost still needs browser proof. | PERF-1C/1F |
+| PERF-F019 | Shell global runtime | CANDIDATE | Logged-in shell keeps global per-user polling independent of active panel | CURRENT `app/public/app.html` starts ADMIN `pollAgentFeed` every 15s and `pollNotifications` every 30s, plus ADMIN refresh hook every 60s. `pollAgentFeed` directly reads `aos_agentes`; its current 13-agent selected-field JSON is ~2,581 bytes per read. No `visibilitychange` guard is present in CURRENT shell source. Dynamic session duration/cost still needs browser proof. | PERF-1C/1F |
 | PERF-F020 | Database structural backlog | CANDIDATE | Supabase advisor reports structural performance debt outside amplification root cause | Read-only performance advisors report many unindexed foreign keys, multiple permissive RLS policy warnings on core tables, many currently-unused indexes and one confirmed duplicate-index warning on `aos_cia_admin_sessions`. These are PERF-7 inputs only; no index/policy mutation is justified from advisor output alone. | PERF-7 after call reduction |
+| PERF-F021 | Runtime architecture | CANDIDATE | Deep multi-process proxy chain adds per-request loopback/proxy overhead | Production start is `server-phase-s-f17.js`. Source contracts resolve the downstream chain as Phase S → F17 → F5 → WA4 → WA3V2 → WA3 → WA2 → F4 → Phase2 → base `server.js`. Requests not intercepted earlier can traverse multiple localhost HTTP boundaries before reaching the base server; Phase S also buffers/injects selected HTML. This does not itself create Supabase egress, but can add CPU, memory, latency and lifecycle complexity. Exact hop latency must be dynamically measured before remediation. | PERF-1C/1F then architecture review |
 
 ## Triage examples — avoid false positives
 
@@ -50,6 +52,7 @@ Not every short interval is a network defect.
 - `f4-revenue-ops.js` combines a MutationObserver and 1.2s `patchSales` timer, but that recurring function is primarily UI patching; any network consequence must be traced separately.
 - Brain audio/VAD intervals are local audio/DOM computation and must not be grouped with network polling merely because their cadence is short.
 - `app/public/app.html` also has 1s clock/turn/break timers that are DOM-only and are not counted as network amplification.
+- `calls.html` has a 60s date-boundary check, but it only loads network data when the calendar day actually changes; it is not a 60s data poll.
 
 This distinction is mandatory for the static scanner and future CI rules.
 
@@ -97,12 +100,21 @@ There are 9 active cron agents:
 
 The scheduler nevertheless performs its broad cron-agent discovery every minute. Optimization must preserve due-time semantics while reducing idle discovery/payload and unnecessary execution fan-out.
 
+## Production runtime chain — source baseline
+
+Current governed chain resolves to:
+
+`Railway → server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3-v2.js → server-wa3.js → server-wa2.js → server-f4.js → server-phase2.js → server.js`
+
+`server-phase-s-f17.js` rewrites Phase S's intended `server-f5.js` child to `server-f17.js`, and F17 then delegates to F5. The Railway build-description string is not a complete representation of every downstream wrapper, so source/runtime contracts take precedence for Audit 360.
+
 ## Current control state
 
 - Production application/database mutation by ASC-PERF: **0**.
 - `main` mutation by ASC-PERF: **0**.
 - Supabase project: `ACTIVE_HEALTHY` at latest read-only check.
 - Branch-only Audit 360 tooling: active.
-- `ASCENDA ASC-PERF Audit 360` latest exact-head run: `CANCELLED` without certifiable scanner execution; requires self-hosted runner availability for R1.
-- Online investigation continues under `ASCENDA_PERFORMANCE_ONLINE_LOOP_CURRENT.md` until the remaining proof genuinely requires a runner/browser execution.
-- Remediation phases PERF-3+: blocked until Audit 360 has enough evidence to avoid symptom-only fixes.
+- Online Runtime Call Map frozen in `ASCENDA_RUNTIME_CALL_MAP_ONLINE_CURRENT.json`.
+- `ASCENDA ASC-PERF Audit 360` latest attempted run: `CANCELLED` without certifiable scanner execution; self-hosted runner availability is required for the next exact-head automated proof.
+- Material online-resolvable sources have been mapped far enough that the remaining decisive proofs are dynamic execution/lifecycle assertions.
+- Remediation phases PERF-3+: remain blocked until Runner Gate R1 evidence is collected.
