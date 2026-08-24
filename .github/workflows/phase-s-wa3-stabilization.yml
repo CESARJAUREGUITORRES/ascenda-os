@@ -166,7 +166,7 @@ jobs:
           if ($sync -notmatch 'aos_integration_secrets_v1') { throw 'Private integration vault target missing' }
           if ($sync -match '/rest/v1/aos_integraciones(?:\?|["''])') { throw 'Public integration catalog must not receive provider secret' }
           if (($s + $sync + $s152 + $f17 + $quota) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
-          if ($quota -notmatch 'Phase-S\|WA3V2\|F17') { throw 'WA quota circuit runtime allowlist missing' }
+          if ($quota -notmatch 'Phase-S\|WA2\|WA3\|WA3V2\|WA4\|F17') { throw 'WA quota circuit runtime allowlist missing' }
           if ($quota -match 'SUPABASE_SERVICE_ROLE_KEY') { throw 'WA quota preload must not inspect service-role credential' }
           $phaseSEntries = @(
             'node server-phase-s.js',
