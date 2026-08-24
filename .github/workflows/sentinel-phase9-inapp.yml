@@ -46,6 +46,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/phase2-service-worker.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/sentinel/phase9_inapp_client_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/sentinel/phase9_inapp_client_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/sentinel/phase9_alert_routing_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/sentinel/phase9_alert_routing_synthetic.js
