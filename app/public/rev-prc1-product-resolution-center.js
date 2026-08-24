@@ -60,9 +60,9 @@ function injectStyles(){
 function buttonHost(){var h=document.querySelector('.vs .vs-hdr');if(!h)return null;return h.lastElementChild||h;}
 function ensureButton(){
   injectStyles();var host=buttonHost();if(!host)return;
-  var b=document.getElementById('prc1-products-review-btn');
-  if(!b){b=document.createElement('button');b.id='prc1-products-review-btn';b.type='button';b.className='prc1-btn';b.textContent='🧴 Validar productos';b.onclick=openCenter;var cfg=host.querySelector('.vs-cfg');if(cfg)host.insertBefore(b,cfg);else host.appendChild(b);}
-  if(Date.now()-lastBadgeLoad>3000)refreshBadge();
+  var b=document.getElementById('prc1-products-review-btn'),created=false;
+  if(!b){created=true;b=document.createElement('button');b.id='prc1-products-review-btn';b.type='button';b.className='prc1-btn';b.textContent='🧴 Validar productos';b.onclick=openCenter;var cfg=host.querySelector('.vs-cfg');if(cfg)host.insertBefore(b,cfg);else host.appendChild(b);}
+  if(created)refreshBadge();
 }
 function refreshBadge(){
   lastBadgeLoad=Date.now();rpc('aos_product_review_admin_v1',{}).then(function(d){if(!d||!d.ok)return;var b=document.getElementById('prc1-products-review-btn');if(!b)return;var n=Number(d.reviewLines||0);b.textContent=n?'🧴 Validar productos · '+n:'🧴 Productos ✓';b.classList.toggle('ok',n===0);}).catch(function(){});
@@ -121,8 +121,8 @@ function decorateImportPreview(d,attempt){
   attempt=attempt||0;if(!d||!d.ok||!Number(d.reviewLines||0))return;var ov=document.getElementById('f4-import-preview');if(!ov){if(attempt<30)setTimeout(function(){decorateImportPreview(d,attempt+1);},100);return;}if(document.getElementById('prc1-import-details'))return;var cancel=document.getElementById('f4-imp-cancel'),actions=cancel&&cancel.parentElement;if(!actions)return;var box=document.createElement('div');box.id='prc1-import-details';box.style.cssText='margin:10px 0;padding:9px 11px;border-radius:9px;background:#FFF7ED;border:1px solid #FDE68A;color:#92400E;font:600 10px DM Sans,sans-serif';var groups=d.groups||[];box.innerHTML='<b>'+Number(d.reviewLines||0)+' línea(s) / '+Number(d.uniqueAliases||0)+' descripción(es) por validar</b><div style="margin-top:4px">'+groups.map(function(g){return esc((g.rawDescriptions||[]).join(' / ')||g.aliasKey)+' ×'+Number(g.lineCount||0);}).join('<br>')+'</div><div style="margin-top:5px;font-size:9px">Puedes importar: quedarán en REVIEW_REQUIRED y aparecerán en “Validar productos”. OTROS se mantiene como SERVICIO.</div>';actions.parentElement.insertBefore(box,actions);
 }
 window.fetch=function(input,init){
-  var name=rpcName(input);if(name!=='aos_importar_ventas_preview_v4')return previousFetch(input,init);var body=parseBody(init),ventas=body.p_ventas;return previousFetch(input,init).then(function(resp){var clone=resp.clone();clone.json().then(function(d){if(d&&d.ok&&Array.isArray(ventas)&&ventas.length){rpc('aos_product_batch_review_v1',{p_ventas:ventas}).then(function(br){decorateImportPreview(br,0);}).catch(function(){});}}).catch(function(){});return resp;});
+  var name=rpcName(input);if(name!=='aos_importar_ventas_preview_v4')return previousFetch(input,init);var body=parseBody(init),ventas=body.p_ventas;return previousFetch(input,init).then(function(resp){var clone=resp.clone();clone.json().then(function(d){if(d&&d.ok&&Array.isArray(ventas)&&ventas.length){rpc('aos_product_batch_review_v1',{p_ventas:ventas}).then(function(br){decorateImportPreview(br,0);refreshBadge();}).catch(function(){});}}).catch(function(){});return resp;});
 };
 function run(){ensureButton();}
-run();try{new MutationObserver(run).observe(document.documentElement||document.body,{childList:true,subtree:true});}catch(e){}try{window.addEventListener('focus',function(){ensureButton();refreshBadge();});}catch(e){}
+run();try{new MutationObserver(run).observe(document.documentElement||document.body,{childList:true,subtree:true});}catch(e){}try{window.addEventListener('focus',function(){ensureButton();});}catch(e){}
 })();
