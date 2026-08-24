@@ -29,7 +29,7 @@ assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must 
 assert(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded Meta access token');
 assert(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+quota),'no hard-coded service role');
 assert(!/RESEND_API_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+authSync),'no hard-coded Resend API key');
-assert(quota.includes('Phase-S|WA3V2|F17'),'quota preload must remain limited to recurrent WA runtime user-agents');
+assert(quota.includes('Phase-S|WA2|WA3|WA3V2|WA4|F17'),'quota preload must remain limited to the full recurrent WA runtime family');
 assert(!quota.includes('SUPABASE_SERVICE_ROLE_KEY'),'quota preload must never inspect service-role credentials');
 
 const cfg=JSON.parse(railway);
