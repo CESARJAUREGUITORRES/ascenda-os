@@ -245,7 +245,8 @@
 // ═══════════════════════════════════════════════════════════════
 var _S='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null};
+var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null,panelInflight:{}};
+function _panelAdminShared(p,cb){var key=JSON.stringify(p||{}),wait=_D.panelInflight[key];if(wait){wait.push(cb);return;}_D.panelInflight[key]=[cb];var done=false,t=setTimeout(function(){if(done)return;done=true;var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(null);}catch(e){console.error(e);}});},15000);_r('aos_panel_admin',p,function(d){if(done)return;done=true;clearTimeout(t);var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(d);}catch(e){console.error(e);}});});}
 
 function _r(fn,p,cb){function go(a){fetch(_S+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){if(!r.ok&&a<2&&(r.status>=500||r.status===429)){setTimeout(function(){go(a+1);},5000);return null;}return r.json();}).then(function(d){if(d===null)return;cb(Array.isArray(d)?d[0]:d);}).catch(function(e){if(a<2)setTimeout(function(){go(a+1);},5000);else console.error(fn,e);});}go(1);}
 function _q(t,f,cb){fetch(_S+'/rest/v1/'+t+'?'+f,{headers:{'apikey':_K,'Authorization':'Bearer '+_K}}).then(function(r){return r.json();}).then(cb).catch(function(e){console.error(t,e);});}
@@ -279,7 +280,7 @@ function ahN(type,title,msg){
 // ═══════ CARGA PRINCIPAL ═══════
 function ahLoad(){
   _sb('ld','Conectando...');
-  _r('aos_panel_admin',{p_hoy:_hoy(),p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){
+  _panelAdminShared({p_hoy:_hoy(),p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){
     if(!res||!res.kpis){_sb('er','Sin respuesta');return;}
     _sb('ok','Supabase · '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
     var k=res.kpis,fh=parseFloat(k.factHoy||0),nv=parseInt(k.nVentasHoy||0);
@@ -467,7 +468,7 @@ function ahMonFecha(tipo){
 
 function ahMonLoad(){
   var fecha=_MON_FECHA||_hoy();
-  _r('aos_panel_admin',{p_hoy:fecha,p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){
+  _panelAdminShared({p_hoy:fecha,p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){
     if(!res)return;
     _s('ah-mu','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
     ahSem(res.semaforo||[],fecha);
