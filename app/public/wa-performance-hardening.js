@@ -36,18 +36,22 @@ window.fetch=function(input,init){
   if(hit){metrics.cache_hits++;return Promise.resolve(materialize(hit,'HIT'));}
   if(inflight.has(key)){
     metrics.coalesced++;
-    return inflight.get(key).then(function(s){return s?materialize(s,'COALESCED'):baseFetch(input,init);});
+    return inflight.get(key).then(function(s){if(s)return materialize(s,'COALESCED');metrics.network++;return baseFetch(input,init);});
   }
   metrics.network++;
   var requestEpoch=epoch;
-  var networkPromise=baseFetch(input,init);
-  var shared=networkPromise.then(function(resp){
-    if(!cacheableResponse(resp)||requestEpoch!==epoch)return null;
-    return resp.clone().text().then(function(body){if(requestEpoch!==epoch)return null;var s=snapshot(resp,body);store(key,s);return s;}).catch(function(){return null;});
-  }).catch(function(){return null;});
+  var pipeline=baseFetch(input,init).then(function(resp){
+    if(!cacheableResponse(resp))return {cache:null,response:resp};
+    return resp.text().then(function(body){
+      var s=snapshot(resp,body),fresh=requestEpoch===epoch;
+      if(fresh)store(key,s);
+      return {cache:fresh?s:null,response:materialize(s,fresh?'MISS':'STALE')};
+    }).catch(function(){return {cache:null,response:resp};});
+  });
+  var shared=pipeline.then(function(x){return x.cache;}).catch(function(){return null;});
   inflight.set(key,shared);
   shared.finally(function(){if(inflight.get(key)===shared)inflight.delete(key);});
-  return networkPromise;
+  return pipeline.then(function(x){return x.response;});
 };
 function fresh(){invalidate('foreground');}
 window.addEventListener('focus',fresh);
