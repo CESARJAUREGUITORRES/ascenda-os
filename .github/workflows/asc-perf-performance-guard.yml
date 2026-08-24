@@ -1,0 +1,62 @@
+name: ASCENDA Performance Guard CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'sentinel/**'
+      - 'tools/perf-audit/**'
+      - 'ci/performance/**'
+      - '.github/workflows/asc-perf-performance-guard.yml'
+      - 'docs/control/PERFORMANCE_*'
+      - 'docs/control/READ_OWNERSHIP_*'
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'sentinel/**'
+      - 'tools/perf-audit/**'
+      - 'ci/performance/**'
+      - '.github/workflows/asc-perf-performance-guard.yml'
+      - 'docs/control/PERFORMANCE_*'
+      - 'docs/control/READ_OWNERSHIP_*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asc-perf-guard-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  performance-guard:
+    name: Performance architecture guard
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce zero-cost policy
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Build runtime census
+        run: |
+          set -euo pipefail
+          node tools/perf-audit/runtime-census.mjs app sentinel > "$RUNNER_TEMP/asc-perf-census.log"
+          test -s "$RUNNER_TEMP/asc-perf-runtime-census.json"
+          grep -q '^ASC-PERF-1A STATIC CENSUS$' "$RUNNER_TEMP/asc-perf-census.log"
+      - name: Enforce performance architecture
+        run: |
+          set -euo pipefail
+          node ci/performance/performance-guard.mjs "$RUNNER_TEMP/asc-perf-runtime-census.json"
+      - name: No persisted runtime artifacts
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/asc-perf-runtime-census.json" "$RUNNER_TEMP/asc-perf-census.log" || true
