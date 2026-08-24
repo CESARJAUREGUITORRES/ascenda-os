@@ -39,7 +39,11 @@ const s152SentinelEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs 
 const start=cfg.deploy.startCommand;
 const studioHardOffPrefix='env AOS_STUDIO_BACKGROUND_ENABLED=false ';
 const studioHardOff=String(start||'').startsWith(studioHardOffPrefix);
-const normalizedStart=studioHardOff?start.slice(studioHardOffPrefix.length):start;
+let normalizedStart=start;
+if(studioHardOff){
+  const remainder=start.slice(studioHardOffPrefix.length);
+  normalizedStart=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
+}
 assert(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
 const directPhaseS=[legacy,sentinel,sentinelEmail].includes(normalizedStart);
 const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail].includes(normalizedStart)
