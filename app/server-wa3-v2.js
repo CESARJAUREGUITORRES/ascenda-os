@@ -12,6 +12,8 @@ const SB_URL=process.env.SUPABASE_URL||'https://ituyqwstonmhnfshnaqz.supabase.co
 const SB_ANON_KEY=process.env.SUPABASE_ANON_KEY||'';
 const SB_SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PRESENCE_COALESCE_MS=10000;
+const presenceHeartbeats=new Map();
 
 const child=spawn(process.execPath,['server-wa3.js'],{
   cwd:__dirname,
@@ -148,13 +150,36 @@ async function presence(req,res){
   const a=await requireActor(req,res,false);if(!a)return;
   let body;try{body=await readJson(req);}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message});}
   const status=String(body&&body.status||'AVAILABLE').trim().toUpperCase();
+  const heartbeat=status==='HEARTBEAT';
+  const now=Date.now();
+  const key=String(a.actor_id);
   try{
-    const touched=await serviceRpc('aos_wa3_agent_presence_touch_v1',{p_actor_id:a.actor_id,p_status:status});
-    const p=touched.data||{};
-    if(p.ok===false)return writeJson(res,409,p);
-    const queue=await queueSummary(a);
-    writeJson(res,200,{ok:true,presence:p,queue:queue});
-  }catch(e){writeJson(res,503,{ok:false,error:'WA3_PRESENCE_UNAVAILABLE'});}
+    if(heartbeat){
+      const prior=presenceHeartbeats.get(key);
+      if(prior&&now-prior.at<PRESENCE_COALESCE_MS){
+        const p=await prior.promise;
+        return writeJson(res,200,{ok:true,presence:p,coalesced:true});
+      }
+    }
+    const promise=serviceRpc('aos_wa3_agent_presence_touch_v1',{p_actor_id:a.actor_id,p_status:status}).then(touched=>{
+      const p=touched.data||{};
+      if(p.ok===false)throw Object.assign(new Error('WA3_PRESENCE_REJECTED'),{presence:p});
+      return p;
+    });
+    if(heartbeat){
+      presenceHeartbeats.set(key,{at:now,promise});
+      if(presenceHeartbeats.size>1000){
+        for(const [k,v] of presenceHeartbeats)if(now-v.at>60000)presenceHeartbeats.delete(k);
+      }
+    }
+    const p=await promise;
+    writeJson(res,200,{ok:true,presence:p,coalesced:false});
+  }catch(e){
+    if(heartbeat){const prior=presenceHeartbeats.get(key);if(prior&&prior.promise)presenceHeartbeats.delete(key);}
+    const p=e&&e.presence;
+    if(p&&p.ok===false)return writeJson(res,409,p);
+    writeJson(res,503,{ok:false,error:'WA3_PRESENCE_UNAVAILABLE'});
+  }
 }
 async function claimNext(req,res){
   const a=await requireActor(req,res,false);if(!a)return;

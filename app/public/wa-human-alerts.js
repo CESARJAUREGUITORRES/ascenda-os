@@ -5,7 +5,7 @@
 if(window.__AOS_WA_HUMAN_ALERTS_V3)return;
 window.__AOS_WA_HUMAN_ALERTS_V3=true;
 
-var TICK_MS=2200;
+var TICK_MS=5000;
 var S={actorId:null,seen:Object.create(null),seeded:false,busy:false,timer:null,audio:null,lastBootAt:0,enabled:true,volume:.72};
 try{S.enabled=localStorage.getItem('aos_wa_human_alerts')!=='0';var stored=Number(localStorage.getItem('aos_wa_alert_volume'));if(Number.isFinite(stored))S.volume=Math.min(1,Math.max(.2,stored));}catch(_){}
 
@@ -26,7 +26,8 @@ function persistentNotification(r){if(!S.enabled||typeof Notification==='undefin
 function fire(r){var background=document.hidden||!isWaView();if(background){persistentNotification(r).catch(function(){chime();});}else{chime();}}
 function inspect(rows){rows=Array.isArray(rows)?rows:[];if(!S.seeded){rows.forEach(function(r){if(r&&r.id)S.seen[r.id]=String(r.last_message_id||'');});S.seeded=true;return;}rows.forEach(function(r){if(!r||!r.id)return;var cur=String(r.last_message_id||''),prev=Object.prototype.hasOwnProperty.call(S.seen,r.id)?String(S.seen[r.id]||''):null;S.seen[r.id]=cur;if(!cur)return;if(prev===null){if(qualifies(r))fire(r);return;}if(cur!==prev&&qualifies(r))fire(r);});}
 function ensureActor(){if(S.actorId&&Date.now()-S.lastBootAt<60000)return Promise.resolve(S.actorId);return api('/api/wa3/bootstrap').then(function(d){S.actorId=d&&d.actor&&d.actor.id||null;S.lastBootAt=Date.now();return S.actorId;});}
-function tick(){if(S.busy||!S.enabled||token().length<32)return;S.busy=true;ensureActor().then(function(){if(!S.actorId)return null;return api('/api/wa3/inbox?limit=120');}).then(function(d){if(d)inspect(d.rows||[]);}).catch(function(e){if(e&&e.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}}).finally(function(){S.busy=false;});}
+function tick(){if(S.busy||!S.enabled||token().length<32)return;if(isWaView()){if(S.actorId&&Date.now()-S.lastBootAt<60000)return;S.busy=true;ensureActor().catch(function(e){if(e&&e.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}}).finally(function(){S.busy=false;});return;}S.busy=true;ensureActor().then(function(){if(!S.actorId)return null;return api('/api/wa3/inbox?limit=120');}).then(function(d){if(d)inspect(d.rows||[]);}).catch(function(e){if(e&&e.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}}).finally(function(){S.busy=false;});}
+function consumeNativeInbox(e){if(!S.enabled)return;var rows=e&&e.detail&&Array.isArray(e.detail.rows)?e.detail.rows:null;if(!rows)return;ensureActor().then(function(){inspect(rows);}).catch(function(err){if(err&&err.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}});}
 function start(){if(S.timer)return;tick();S.timer=setInterval(tick,TICK_MS);}
 function stop(){if(S.timer)clearInterval(S.timer);S.timer=null;}
 function enable(){S.enabled=true;try{localStorage.setItem('aos_wa_human_alerts','1');}catch(_){}primeAudio();start();if(typeof Notification!=='undefined'&&Notification.permission==='default'){try{return Notification.requestPermission().then(function(p){return {enabled:true,notification_permission:p,volume:S.volume};});}catch(_){}}return Promise.resolve({enabled:true,notification_permission:typeof Notification==='undefined'?'unsupported':Notification.permission,volume:S.volume});}
@@ -38,6 +39,7 @@ function consumeDeepLink(){try{var u=new URL(location.href),id=u.searchParams.ge
 
 document.addEventListener('pointerdown',function(e){primeAudio();var n=e.target&&e.target.closest?e.target.closest('#nav-admin-whatsapp,#nav-whatsapp-agent'):null;if(n&&S.enabled&&typeof Notification!=='undefined'&&Notification.permission==='default'){try{Notification.requestPermission().catch(function(){});}catch(_){}}},{capture:true});
 window.addEventListener('focus',function(){tick();});
+window.addEventListener('aos:wa3-inbox',consumeNativeInbox);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)tick();});
 if(navigator.serviceWorker&&navigator.serviceWorker.addEventListener){navigator.serviceWorker.addEventListener('message',function(e){var d=e&&e.data||{};if(d.type==='AOS_WA_OPEN_CONVERSATION'&&d.conversationId)openConversation(d.conversationId);});}
 window.AOS_WA_ALERTS={start:start,stop:stop,enable:enable,disable:disable,status:status,test:test,setVolume:setVolume,safeSender:safeSender,safePreview:safePreview};

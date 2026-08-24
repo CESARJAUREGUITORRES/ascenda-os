@@ -71,25 +71,27 @@ assert 'if (abonoFailed)' in caja
 
 # Production runtime compatibility is explicit, not arbitrary wrapper acceptance.
 prod = railway.split('"environments"')[0]
+studio_prefix='"startCommand": "env AOS_STUDIO_BACKGROUND_ENABLED=false '
+normalized_prod=prod.replace(studio_prefix,'"startCommand": "env ',1) if studio_prefix in prod else prod
 sentinel_phase_s = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js\""
 sentinel_phase_s_email = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js\""
 sentinel_s152 = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js\""
 sentinel_s152_email = "\"startCommand\": \"env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js\""
-direct_phase2 = '"startCommand": "node server-phase2.js"' in prod
-f4_chain = '"startCommand": "node server-f4.js"' in prod and "spawn(process.execPath,['server-phase2.js']" in f4
-wa2_chain = ('"startCommand": "node server-wa2.js"' in prod and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
-wa3_chain = ('"startCommand": "node server-wa3.js"' in prod and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+direct_phase2 = '"startCommand": "node server-phase2.js"' in normalized_prod
+f4_chain = '"startCommand": "node server-f4.js"' in normalized_prod and "spawn(process.execPath,['server-phase2.js']" in f4
+wa2_chain = ('"startCommand": "node server-wa2.js"' in normalized_prod and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+wa3_chain = ('"startCommand": "node server-wa3.js"' in normalized_prod and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
 wa4_to_v1 = ("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
 wa4_to_v2_to_v1 = ("['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2)
 wa4_authority = wa4_to_v1 or wa4_to_v2_to_v1
-wa4_chain = ('"startCommand": "node server-wa4.js"' in prod and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
-f5_chain = ('"startCommand": "node server-f5.js"' in prod and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
-phase_s_entry = ('"startCommand": "node server-phase-s.js"' in prod or sentinel_phase_s in prod or sentinel_phase_s_email in prod)
+wa4_chain = ('"startCommand": "node server-wa4.js"' in normalized_prod and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+f5_chain = ('"startCommand": "node server-f5.js"' in normalized_prod and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
+phase_s_entry = ('"startCommand": "node server-phase-s.js"' in normalized_prod or sentinel_phase_s in normalized_prod or sentinel_phase_s_email in normalized_prod)
 phase_s_chain = (phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
-s152_entry = ('"startCommand": "node server-phase-s-f17.js"' in prod or sentinel_s152 in prod or sentinel_s152_email in prod)
+s152_entry = ('"startCommand": "node server-phase-s-f17.js"' in normalized_prod or sentinel_s152 in normalized_prod or sentinel_s152_email in normalized_prod)
 s152_chain = (s152_entry and "a[0]==='server-f5.js'" in s152 and "a[0]='server-f17.js'" in s152 and "require('./server-phase-s.js')" in s152 and "['server-f5.js']" in f17 and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority and "['server-wa2.js']" in wa3 and 'proxy(req,res)' in wa3 and "['server-f4.js']" in wa2 and 'proxy(req,res)' in wa2 and "spawn(process.execPath,['server-phase2.js']" in f4)
 assert direct_phase2 or f4_chain or wa2_chain or wa3_chain or wa4_chain or f5_chain or phase_s_chain or s152_chain, 'Cartera requires certified Phase2 runtime chain'
-if sentinel_phase_s in prod or sentinel_phase_s_email in prod or sentinel_s152 in prod or sentinel_s152_email in prod:
+if sentinel_phase_s in normalized_prod or sentinel_phase_s_email in normalized_prod or sentinel_s152 in normalized_prod or sentinel_s152_email in normalized_prod:
     build = railway.split('"deploy"')[0]
     assert 'NODE_OPTIONS' not in build, 'Runtime preload must not contaminate build'
 assert 'LEGACY_AUTH_ENDPOINT_RETIRED' in phase2

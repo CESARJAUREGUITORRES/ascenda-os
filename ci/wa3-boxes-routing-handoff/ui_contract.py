@@ -25,22 +25,26 @@ assert "['server-wa2.js']" in server
 assert "proxy(req,res)" in server
 assert "X-Ascenda-WA3-Routing':'v1'" in server
 start=railway['deploy']['startCommand']
+# ASC-PERF/Studio containment may prepend this exact fail-closed runtime flag.
+# Normalize only this known prefix; arbitrary env wrappers remain rejected.
+studio_fail_closed_prefix='env AOS_STUDIO_BACKGROUND_ENABLED=false '
+normalized_start=('env '+start[len(studio_fail_closed_prefix):]) if start.startswith(studio_fail_closed_prefix) else start
 sentinel_phase_s="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
 sentinel_phase_s_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
 sentinel_s152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js"
 sentinel_s152_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
-direct=start=='node server-wa3.js'
+direct=normalized_start=='node server-wa3.js'
 wa4_to_v1=("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
 wa4_to_v2_to_v1=("['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2)
 wa4_authority=wa4_to_v1 or wa4_to_v2_to_v1
-wa4_wrapped=(start=='node server-wa4.js' and wa4_authority)
-f5_wrapped=(start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority)
-phase_s_entry=start in ('node server-phase-s.js',sentinel_phase_s,sentinel_phase_s_email)
+wa4_wrapped=(normalized_start=='node server-wa4.js' and wa4_authority)
+f5_wrapped=(normalized_start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority)
+phase_s_entry=normalized_start in ('node server-phase-s.js',sentinel_phase_s,sentinel_phase_s_email)
 phase_s_wrapped=(phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority)
-s152_entry=start in ('node server-phase-s-f17.js',sentinel_s152,sentinel_s152_email)
+s152_entry=normalized_start in ('node server-phase-s-f17.js',sentinel_s152,sentinel_s152_email)
 s152_wrapped=(s152_entry and "a[0]==='server-f5.js'" in s152 and "a[0]='server-f17.js'" in s152 and "require('./server-phase-s.js')" in s152 and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-f5.js']" in f17 and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority)
 assert direct or wa4_wrapped or f5_wrapped or phase_s_wrapped or s152_wrapped, 'Railway must start WA-3 directly or through certified WA-3V2/WA-4/F5/Phase-S/F17 wrappers'
-if start in (sentinel_phase_s,sentinel_phase_s_email,sentinel_s152,sentinel_s152_email):
+if normalized_start in (sentinel_phase_s,sentinel_phase_s_email,sentinel_s152,sentinel_s152_email):
     assert 'NODE_OPTIONS' not in str(railway.get('build',{}).get('buildCommand','')), 'Runtime preloads must not contaminate build'
 assert '/api/wa3/bootstrap' in server
 assert '/api/wa3/inbox' in server

@@ -6,10 +6,13 @@ on:
     paths:
       - 'app/public/wa-multiagent-final-panel.js'
       - 'app/public/wa-shell-integration.js'
+      - 'app/public/wa-human-alerts.js'
+      - 'app/server-wa3-v2.js'
       - 'supabase/migrations/*wa3_presence_handoff_final_v3*'
       - 'supabase/rollbacks/*wa3_presence_handoff_final_v3*'
       - 'ci/wa3-boxes-routing-handoff/ui_contract_final.js'
       - 'ci/wa3-boxes-routing-handoff/tests/003_wa3_presence_handoff_final.sql'
+      - 'ci/phase-s/wa_presence_single_owner_contract.js'
       - '.github/workflows/wa3-final-presence-handoff.yml'
   workflow_dispatch:
 
@@ -37,6 +40,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/wa-shell-integration.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/wa-human-alerts.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/server-wa3-v2.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/phase-s/wa_presence_single_owner_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/phase-s/wa_presence_single_owner_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/wa3-boxes-routing-handoff/ui_contract_final.js
@@ -63,10 +74,14 @@ jobs:
           python3 scripts/ci/enforce-zero-cost-policy.py
           node --check app/public/wa-multiagent-final-panel.js
           node --check app/public/wa-shell-integration.js
+          node --check app/public/wa-human-alerts.js
+          node --check app/server-wa3-v2.js
+          node --check ci/phase-s/wa_presence_single_owner_contract.js
+          node ci/phase-s/wa_presence_single_owner_contract.js
           node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
           node ci/wa3-boxes-routing-handoff/ui_contract_final.js
-          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/public/wa-shell-integration.js app/public/wa-multiagent-final-panel.js
-          ! grep -q "graph.facebook.com" app/public/wa-shell-integration.js app/public/wa-multiagent-final-panel.js
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/public/wa-shell-integration.js app/public/wa-human-alerts.js app/public/wa-multiagent-final-panel.js app/server-wa3-v2.js
+          ! grep -q "graph.facebook.com" app/public/wa-shell-integration.js app/public/wa-human-alerts.js app/public/wa-multiagent-final-panel.js app/server-wa3-v2.js
       - name: Configure isolated Supabase ports
         working-directory: ci/zero-cost-staging
         run: |
