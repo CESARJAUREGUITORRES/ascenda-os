@@ -1,0 +1,77 @@
+name: ASCENDA ASC-PERF Audit 360
+
+on:
+  push:
+    branches:
+      - 'perf/asc-perf-*'
+    paths:
+      - 'app/**'
+      - 'sentinel/**'
+      - 'tools/perf-audit/**'
+      - 'ci/performance/**'
+      - 'docs/control/ASCENDA_PERFORMANCE_*'
+      - '.github/workflows/asc-perf-audit-360.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'sentinel/**'
+      - 'tools/perf-audit/**'
+      - 'ci/performance/**'
+      - 'docs/control/ASCENDA_PERFORMANCE_*'
+      - '.github/workflows/asc-perf-audit-360.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asc-perf-audit-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-census:
+    name: PERF-1A static runtime census
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Studio hard-off contract
+        run: |
+          set -euo pipefail
+          grep -q 'AOS_STUDIO_BACKGROUND_ENABLED=false' app/railway.json
+          grep -q "process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'" app/server.js
+          echo 'ASC-STUDIO HARD OFF CONTRACT PASS'
+
+      - name: Runtime census
+        run: |
+          set -euo pipefail
+          node tools/perf-audit/runtime-census.mjs app sentinel | tee /tmp/asc-perf-census.log
+          grep -q '^ASC-PERF-1A STATIC CENSUS$' /tmp/asc-perf-census.log
+          grep -q '^candidate_files_end$' /tmp/asc-perf-census.log
+
+      - name: Census integrity
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/asc-perf-runtime-census.json"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = process.env.RUNNER_TEMP + '/asc-perf-runtime-census.json';
+          const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (d.schema !== 'asc-perf-runtime-census/v1') throw new Error('bad schema');
+          if (!Number.isInteger(d.filesScanned) || d.filesScanned < 1) throw new Error('empty census');
+          if (!Array.isArray(d.findings) || !Array.isArray(d.recurrentNetworkCandidates)) throw new Error('missing arrays');
+          console.log(JSON.stringify({filesScanned:d.filesScanned,linesScanned:d.linesScanned,findings:d.findingsCount,recurrentNetworkCandidateFiles:d.recurrentNetworkCandidateCount,fastIntervals:d.fastIntervalCandidateCount,broadReads:d.broadReadCandidateCount}));
+          NODE
+
+      - name: No persisted audit artifact
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/asc-perf-runtime-census.json" /tmp/asc-perf-census.log || true
