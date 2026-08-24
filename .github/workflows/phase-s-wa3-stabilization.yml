@@ -138,7 +138,11 @@ jobs:
           $f17 = Get-Content app/server-f17.js -Raw
           $sync = Get-Content app/auth-resend-reconcile.js -Raw
           $cfg = Get-Content app/railway.json -Raw | ConvertFrom-Json
-          $start = [string]$cfg.deploy.startCommand
+          $rawStart = [string]$cfg.deploy.startCommand
+          $studioPrefix = 'env AOS_STUDIO_BACKGROUND_ENABLED=false '
+          if (-not $rawStart.StartsWith($studioPrefix)) { throw 'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane' }
+          $start = $rawStart.Substring($studioPrefix.Length)
+          if ($start.StartsWith('NODE_OPTIONS=')) { $start = 'env ' + $start }
           if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
           if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
           if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
