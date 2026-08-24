@@ -20,18 +20,20 @@ secret = (root/'supabase/migrations/20260815205000_integration_secret_boundary_v
 secret_rb = (root/'supabase/rollbacks/20260815205000_integration_secret_boundary_v1.rollback.sql').read_text()
 rail = json.loads((root/'app/railway.json').read_text())
 start = rail['deploy']['startCommand']
+studio_fail_closed_prefix='env AOS_STUDIO_BACKGROUND_ENABLED=false '
+normalized_start=('env '+start[len(studio_fail_closed_prefix):]) if start.startswith(studio_fail_closed_prefix) else start
 sentinel_phase_s = "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
 sentinel_phase_s_email = "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
 sentinel_s152 = "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js"
 sentinel_s152_email = "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
-direct = start == 'node server-wa4.js'
-f5_wrapped = start == 'node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
-phase_s_entry = start in ('node server-phase-s.js', sentinel_phase_s, sentinel_phase_s_email)
+direct = normalized_start == 'node server-wa4.js'
+f5_wrapped = normalized_start == 'node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5
+phase_s_entry = normalized_start in ('node server-phase-s.js', sentinel_phase_s, sentinel_phase_s_email)
 phase_s_wrapped = (phase_s_entry and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5)
-s152_entry = start in ('node server-phase-s-f17.js', sentinel_s152, sentinel_s152_email)
+s152_entry = normalized_start in ('node server-phase-s-f17.js', sentinel_s152, sentinel_s152_email)
 s152_wrapped = (s152_entry and "a[0]==='server-f5.js'" in s152 and "a[0]='server-f17.js'" in s152 and "require('./server-phase-s.js')" in s152 and "['server-f5.js']" in phase_s and 'proxy(req,res)' in phase_s and "['server-f5.js']" in f17 and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5)
 assert direct or f5_wrapped or phase_s_wrapped or s152_wrapped, 'Railway must start WA-4 directly or through certified F5/Phase-S/F17 wrappers'
-if start in (sentinel_phase_s, sentinel_phase_s_email, sentinel_s152, sentinel_s152_email):
+if normalized_start in (sentinel_phase_s, sentinel_phase_s_email, sentinel_s152, sentinel_s152_email):
     assert 'NODE_OPTIONS' not in str(rail.get('build',{}).get('buildCommand','')), 'Runtime preloads must not contaminate build'
 wa4_to_v1 = "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
 wa4_to_v2_to_v1 = "['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2
