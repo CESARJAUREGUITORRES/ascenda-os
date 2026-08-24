@@ -24,7 +24,15 @@ ok(html.includes('X-AOS-App-Token')&&html.includes('X-AOS-Source-Filename'),'adm
 ok(html.includes('No crea pacientes')&&html.includes('no fusiona identidades'),'safety disclosure missing');
 ok(pkg.dependencies&&pkg.dependencies.exceljs==='4.4.0','ExcelJS version must be pinned');
 ok(pkg.scripts.start==='node server-f5.js'||pkg.scripts.start==='node server-f17.js','npm start must enter F5 directly or through F17 wrapper');
-const start=rail.deploy.startCommand;
+const rawStart=rail.deploy.startCommand;
+const studioHardOffPrefix='env AOS_STUDIO_BACKGROUND_ENABLED=false ';
+const studioHardOff=String(rawStart||'').startsWith(studioHardOffPrefix);
+let start=rawStart;
+if(studioHardOff){
+  const remainder=rawStart.slice(studioHardOffPrefix.length);
+  start=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
+}
+ok(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
 const sentinelPhaseS="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
 const sentinelPhaseSEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js";
 const sentinelS152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js";

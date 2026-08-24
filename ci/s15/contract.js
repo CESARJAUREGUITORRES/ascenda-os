@@ -38,7 +38,7 @@ ok(push.includes("rpc('aos_notification_push_claim_v1'"),'generic push claim mis
 ok(push.includes('async function dispatchPendingNotifications'),'notification outbox dispatcher missing')
 ok(push.includes("await finishNotification(n.id, 'DELIVERED'"),'notification completion missing')
 ok(server.includes('let notificationPumpBusy = false'),'pump overlap guard missing')
-ok(server.includes('setInterval(function() { runNotificationPump()'), 'notification pump cadence missing')
+ok(server.includes('function notificationPumpDelay(result)')&&server.includes('NOTIFICATION_PUMP_IDLE_MS = [8000, 15000]')&&server.includes('scheduleNotificationPump(notificationPumpDelay(result))'), 'adaptive notification pump cadence missing')
 ok(server.includes("console.error('[S15] notification pump fail-open'"),'notification pump must be fail-open')
 ok(server.includes('stopNotificationPump(); server.close'),'pump shutdown cleanup missing')
 

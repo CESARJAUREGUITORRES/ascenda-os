@@ -22,7 +22,7 @@ assert(s.includes("p==='/api/auth/v3/login'"),'Phase S must preserve Auth V3 Res
 assert(waPrelude.includes("caches.open('aos-phase2-auth')"),'WA bootstrap must recover a previously issued strong token from the existing auth bridge cache');
 assert(waPrelude.includes("c.match('/__aos_app_token')"),'WA bootstrap cache recovery must use the canonical Auth V3 bridge key');
 assert(waPrelude.includes("sessionStorage.setItem('aos_app_token',t)"),'recovered strong token should repopulate only session-scoped browser state');
-assert(!waPrelude.includes('localStorage.setItem(\'aos_app_token\''),'WA bootstrap must never persist the strong token in localStorage');
+assert(!waPrelude.includes("localStorage.setItem('aos_app_token'"),'WA bootstrap must never persist the strong token in localStorage');
 assert(authSync.includes('aos_integration_secrets_v1'),'Auth Resend sync must target private integration vault');
 assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must not write public integration catalog');
 assert(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded Meta access token');
@@ -37,14 +37,22 @@ const s152Legacy='node server-phase-s-f17.js';
 const s152Sentinel="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js";
 const s152SentinelEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js";
 const start=cfg.deploy.startCommand;
-const directPhaseS=[legacy,sentinel,sentinelEmail].includes(start);
-const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail].includes(start)
+const studioHardOffPrefix='env AOS_STUDIO_BACKGROUND_ENABLED=false ';
+const studioHardOff=String(start||'').startsWith(studioHardOffPrefix);
+let normalizedStart=start;
+if(studioHardOff){
+  const remainder=start.slice(studioHardOffPrefix.length);
+  normalizedStart=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
+}
+assert(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
+const directPhaseS=[legacy,sentinel,sentinelEmail].includes(normalizedStart);
+const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail].includes(normalizedStart)
   && s152.includes("a[0]==='server-f5.js'")
   && s152.includes("a[0]='server-f17.js'")
   && s152.includes("require('./server-phase-s.js')")
   && f17.includes("['server-f5.js']");
-assert(directPhaseS||f17Bootstrap,'Phase S start command must be direct or an exact certified F17 bootstrap/preload chain');
-if([sentinel,sentinelEmail,s152Sentinel,s152SentinelEmail].includes(start)){
+assert(directPhaseS||f17Bootstrap,'Phase S start command must be direct or an exact certified F17 bootstrap/preload chain after the Studio HARD-OFF prefix');
+if([sentinel,sentinelEmail,s152Sentinel,s152SentinelEmail].includes(normalizedStart)){
   assert(!String(cfg.build&&cfg.build.buildCommand||'').includes('NODE_OPTIONS'),'runtime preloads must not contaminate build');
 }
 assert.strictEqual(cfg.deploy.healthcheckPath,'/health');
