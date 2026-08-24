@@ -1,11 +1,11 @@
-const http = require('http')
+﻿const http = require('http')
 const https = require('https')
 const fs   = require('fs')
 const path = require('path')
 const { createEmailGateway } = require('./email-gateway')
 const EMAIL_GATEWAY = createEmailGateway()
 const PORT = parseInt(process.env.PORT || '4173', 10)
-// Servir siempre desde public/ (archivos HTML estáticos editados directamente)
+// Servir siempre desde public/ (archivos HTML estÃ¡ticos editados directamente)
 // El build de vite no aplica a estos archivos
 const PUB  = path.join(__dirname, 'public')
 const MIME = {
@@ -17,7 +17,7 @@ const MIME = {
   '.txt':'text/plain; charset=utf-8','.map':'application/json'
 }
 
-// ═══ SUPABASE ═══
+// â•â•â• SUPABASE â•â•â•
 const SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0'
 const VERIFY_TOKEN = 'ascendaos_zivital_2026'
@@ -104,7 +104,7 @@ function sbPatch(endpoint, body) {
   })
 }
 
-// ═══ VALIDADOR DE SESION KRONIA ═══
+// â•â•â• VALIDADOR DE SESION KRONIA â•â•â•
 // Verifica que el usuario que llama al endpoint existe en aos_usuarios
 function validarSesionKronia(usuario, idAsesor) {
   if (!usuario || usuario.trim() === '') return Promise.resolve(false)
@@ -153,11 +153,11 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         var leadActual = d.lead_actual || null
         var confirmarAccion = d.confirmar_accion || null
         var idAsesor = d.id_asesor || ''
-        if (!pregunta && !confirmarAccion) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
+        if (!pregunta && !confirmarAccion) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacÃ­a'})); return }
         
-        // ═══════════════════════════════════════════════════════════
-        // BRANCH 1: Si viene confirmar_accion = ejecutar la acción pendiente
-        // ═══════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // BRANCH 1: Si viene confirmar_accion = ejecutar la acciÃ³n pendiente
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if (confirmarAccion && confirmarAccion.rpc && confirmarAccion.params) {
           var rpcsPermitidas = [
             'aos_editar_venta',
@@ -170,7 +170,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           if (rpcsPermitidas.indexOf(confirmarAccion.rpc) === -1) {
             res.writeHead(400); res.end(JSON.stringify({error:'RPC no autorizada para KronIA'})); return
           }
-          // Inyectar usuario y rol según la RPC (cada una tiene su contrato)
+          // Inyectar usuario y rol segÃºn la RPC (cada una tiene su contrato)
           var params = Object.assign({}, confirmarAccion.params)
           if (confirmarAccion.rpc === 'aos_editar_venta') {
             params.p_editado_por = usuario.toUpperCase()
@@ -187,7 +187,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           sbRpc(confirmarAccion.rpc, params).then(function(result) {
             var dur = Date.now() - startTs
             
-            // Auditoría en aos_kronia_acciones
+            // AuditorÃ­a en aos_kronia_acciones
             sbPost('/rest/v1/aos_kronia_acciones', {
               usuario: usuario, rol: rol, session_id: sessionId,
               accion: 'tool_call', objeto_tipo: confirmarAccion.rpc.replace('aos_kronia_','').replace('aos_',''),
@@ -203,29 +203,29 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             
             if (!result || result.ok === false) {
               res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ ok: true, respuesta: '⚠️ No pude ejecutar: ' + (result && result.error ? result.error : 'error desconocido'), provider: 'ejecutor' }))
+              res.end(JSON.stringify({ ok: true, respuesta: 'âš ï¸ No pude ejecutar: ' + (result && result.error ? result.error : 'error desconocido'), provider: 'ejecutor' }))
               return
             }
             
             // Mensaje humano
-            var msg = '✅ Listo. '
+            var msg = 'âœ… Listo. '
             if (result.cambios && result.total > 0) {
               msg += 'Cambios aplicados: '
               var cambiosArr = typeof result.cambios === 'string' ? JSON.parse(result.cambios) : result.cambios
-              msg += cambiosArr.map(function(c){return c.campo+': '+(c.antes||'(vacío)')+' → '+c.despues}).join(', ')
+              msg += cambiosArr.map(function(c){return c.campo+': '+(c.antes||'(vacÃ­o)')+' â†’ '+c.despues}).join(', ')
             } else if (result.total === 0) {
-              msg = 'ℹ️ No hubo cambios (los valores ya eran iguales).'
+              msg = 'â„¹ï¸ No hubo cambios (los valores ya eran iguales).'
             } else if (result.fecha_nueva) {
               msg += 'Reprogramado al '+result.fecha_nueva
             } else if (result.despues) {
-              msg += result.antes+' → '+result.despues
+              msg += result.antes+' â†’ '+result.despues
             } else {
               msg += JSON.stringify(result).substring(0,200)
             }
             
             sbPost('/rest/v1/aos_agente_logs', {
               agente_id: 'kronia', accion: 'ejecutar_' + confirmarAccion.rpc.replace('aos_kronia_','').replace('aos_',''),
-              input_resumen: 'Acción confirmada por ' + usuario,
+              input_resumen: 'AcciÃ³n confirmada por ' + usuario,
               output_resumen: msg.substring(0,200), exitoso: true, duracion_ms: dur
             }).catch(function(){})
             sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'kronia', p_exitoso: true }).catch(function(){})
@@ -234,19 +234,19 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             res.end(JSON.stringify({ ok: true, respuesta: msg, provider: 'ejecutor', resultado: result }))
           }).catch(function(e) {
             res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ ok: true, respuesta: '⚠️ Error al ejecutar: ' + e.message, provider: 'ejecutor' }))
+            res.end(JSON.stringify({ ok: true, respuesta: 'âš ï¸ Error al ejecutar: ' + e.message, provider: 'ejecutor' }))
           })
           return
         }
         
-        // ═══════════════════════════════════════════════════════════
-        // BRANCH 2: Detectar si la pregunta es de EJECUCIÓN
-        // ═══════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // BRANCH 2: Detectar si la pregunta es de EJECUCIÃ“N
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         var pLower = pregunta.toLowerCase()
-        var verbosEjecucion = /(cambia|corrige|corregir|edita|editar|modifica|modificar|actualiz|reprogram|reasign|mueve|cambiar fecha|cambiar estado|pon en|pásalo|pasalo|asígnale|asignale)/
+        var verbosEjecucion = /(cambia|corrige|corregir|edita|editar|modifica|modificar|actualiz|reprogram|reasign|mueve|cambiar fecha|cambiar estado|pon en|pÃ¡salo|pasalo|asÃ­gnale|asignale)/
         var esEjecucion = verbosEjecucion.test(pLower) && !/no\s+(cambies|edites|modifiques)/.test(pLower)
         
-        if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacía'})); return }
+        if (!pregunta) { res.writeHead(400); res.end(JSON.stringify({error:'Pregunta vacÃ­a'})); return }
 
         var contextQueries = []
         var esAdmin = rol === 'ADMIN' || rol === 'admin'
@@ -256,12 +256,12 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         var anioNum = new Date().getFullYear()
         var idAsesor = d.id_asesor || ''
 
-        /* Catálogo completo */
-        /* Catálogo de servicios — solo cargar si la pregunta menciona tratamientos/precios.
+        /* CatÃ¡logo completo */
+        /* CatÃ¡logo de servicios â€” solo cargar si la pregunta menciona tratamientos/precios.
            OPTIMIZACION SES-038: antes se cargaba SIEMPRE (40 servicios completos = ~3KB
            innecesarios por chat). Ahora solo si lo pide. */
         var _pqcat = pregunta.toLowerCase()
-        var pideCatalogo = /tratamiento|servicio|precio|costo|cuanto cuesta|cuanto vale|catalogo|catálogo|paquete|promo|oferta|hidrofacial|hifu|toxina|enzima|botox|capilar|facial|corporal/.test(_pqcat)
+        var pideCatalogo = /tratamiento|servicio|precio|costo|cuanto cuesta|cuanto vale|catalogo|catÃ¡logo|paquete|promo|oferta|hidrofacial|hifu|toxina|enzima|botox|capilar|facial|corporal/.test(_pqcat)
         if (pideCatalogo) {
           contextQueries.push(sbGet('/rest/v1/aos_catalogo_servicios?estado=eq.ACTIVO&select=nombre,categoria,precio_oferta,precio_base,descripcion_comercial,beneficios,contraindicaciones,perfil_paciente,faqs&limit=40&order=categoria'))
         } else {
@@ -270,7 +270,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
         
         if (!esAdmin) {
           /* OPTIMIZACION SES-038: si es saludo puro, no cargar nada pesado */
-          var _saludoAsesor = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
+          var _saludoAsesor = /^(hola|hi|buen[ao]s|qu[eÃ©] tal|c[oÃ³]mo est[aÃ¡]s|hey|saludos|gracias|listo|ok|chau|adios|ad[iÃ­]os)\s*[\?Â¿!Â¡\.]*$/i.test(pregunta.trim())
           if (_saludoAsesor) {
             contextQueries.push(Promise.resolve(null)) // panel asesor
             contextQueries.push(Promise.resolve(null)) // comisiones
@@ -278,7 +278,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             contextQueries.push(Promise.resolve(null)) // leads hoy
             contextQueries.push(Promise.resolve(null)) // seguimientos
           } else {
-            /* Panel asesor consolidado (métricas del mes + hoy) */
+            /* Panel asesor consolidado (mÃ©tricas del mes + hoy) */
             contextQueries.push(sbRpc('aos_panel_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_hoy: hoy, p_mes_inicio: mesInicio}))
             /* Comisiones REALES */
             contextQueries.push(sbRpc('aos_comisiones_asesor', {p_asesor: usuario, p_id_asesor: idAsesor, p_mes: mesNum, p_anio: anioNum}))
@@ -290,10 +290,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             contextQueries.push(sbGet('/rest/v1/aos_seguimientos?select=*&limit=15&order=id.desc'))
           }
         } else {
-          /* ADMIN: cargar métricas globales del mes (panel + ventas + comisiones + agenda + llamadas)
+          /* ADMIN: cargar mÃ©tricas globales del mes (panel + ventas + comisiones + agenda + llamadas)
              OPTIMIZACION SES-038: si es saludo puro, NO cargar nada pesado.
-             Detección de saludo se hace mas abajo, pero la replicamos aqui para optimizar. */
-          var _esSaludo = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
+             DetecciÃ³n de saludo se hace mas abajo, pero la replicamos aqui para optimizar. */
+          var _esSaludo = /^(hola|hi|buen[ao]s|qu[eÃ©] tal|c[oÃ³]mo est[aÃ¡]s|hey|saludos|gracias|listo|ok|chau|adios|ad[iÃ­]os)\s*[\?Â¿!Â¡\.]*$/i.test(pregunta.trim())
           if (_esSaludo) {
             /* Saludo: cero datos pesados, deja 5 slots nulos para mantener indices */
             contextQueries.push(Promise.resolve(null)) // 1: panel
@@ -310,21 +310,21 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           }
         }
 
-        /* Si la pregunta menciona tendencias/análisis/LTV/cohortes → cargar insights de Sofía */
+        /* Si la pregunta menciona tendencias/anÃ¡lisis/LTV/cohortes â†’ cargar insights de SofÃ­a */
         var preguntaLower = pregunta.toLowerCase()
-        var pideAnalisis = /tendencia|analisis|análisis|ltv|cohorte|comparar|crecimiento|conversion|conversión|facturación|facturacion|mes pasado|histórico|historico|evolución|evolucion/.test(preguntaLower)
+        var pideAnalisis = /tendencia|analisis|anÃ¡lisis|ltv|cohorte|comparar|crecimiento|conversion|conversiÃ³n|facturaciÃ³n|facturacion|mes pasado|histÃ³rico|historico|evoluciÃ³n|evolucion/.test(preguntaLower)
         if (pideAnalisis) {
           contextQueries.push(sbRpc('aos_kronia_obtener_insights_sofia', {}))
         } else {
           contextQueries.push(Promise.resolve(null))
         }
         
-        /* Si está en modo ejecutor, cargar ventas y seguimientos recientes para tener IDs reales */
+        /* Si estÃ¡ en modo ejecutor, cargar ventas y seguimientos recientes para tener IDs reales */
         if (esEjecucion) {
-          // Extraer posibles nombres/números mencionados en la pregunta para búsqueda dirigida
-          var palabras = pregunta.toUpperCase().match(/[A-ZÁÉÍÓÚÑ]{4,}/g) || []
+          // Extraer posibles nombres/nÃºmeros mencionados en la pregunta para bÃºsqueda dirigida
+          var palabras = pregunta.toUpperCase().match(/[A-ZÃÃ‰ÃÃ“ÃšÃ‘]{4,}/g) || []
           // Filtrar palabras comunes
-          var stopWords = ['VENTA','CITA','PACIENTE','CLIENTE','SEGUIMIENTO','CAMBIA','CORRIGE','EDITA','MODIFICA','ACTUALIZA','REPROGRAMA','REASIGNA','FECHA','MONTO','ESTADO','PAGO','NUEVA','VIEJA','HOY','AYER','MAÑANA','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO','MAYO','ABRIL','JUNIO','HOLA','GRACIAS','POR','FAVOR','PARA','DESDE','HASTA','SOLES','SOLES','SOLO']
+          var stopWords = ['VENTA','CITA','PACIENTE','CLIENTE','SEGUIMIENTO','CAMBIA','CORRIGE','EDITA','MODIFICA','ACTUALIZA','REPROGRAMA','REASIGNA','FECHA','MONTO','ESTADO','PAGO','NUEVA','VIEJA','HOY','AYER','MAÃ‘ANA','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO','MAYO','ABRIL','JUNIO','HOLA','GRACIAS','POR','FAVOR','PARA','DESDE','HASTA','SOLES','SOLES','SOLO']
           var nombres = palabras.filter(function(w){return stopWords.indexOf(w)===-1})
           var numeros = pregunta.match(/\d{7,9}/g) || []
           
@@ -332,10 +332,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           if (!esAdmin) ventasUrl += '&asesor=eq.' + encodeURIComponent(usuario.toUpperCase())
           contextQueries.push(sbGet(ventasUrl))
           
-          // Búsqueda dirigida por nombre/número mencionado en la pregunta
+          // BÃºsqueda dirigida por nombre/nÃºmero mencionado en la pregunta
           var ventasMencionadasPromise = Promise.resolve([])
           if (nombres.length > 0 || numeros.length > 0) {
-            // Buscar por cada nombre/número mencionado usando la RPC
+            // Buscar por cada nombre/nÃºmero mencionado usando la RPC
             var filtros = nombres.slice(0,3).concat(numeros.slice(0,2))
             var promesas = filtros.map(function(f){
               return sbRpc('aos_kronia_buscar_venta', { p_filtro: f, p_usuario: usuario.toUpperCase(), p_rol: rol })
@@ -361,17 +361,17 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(Promise.resolve(null))
         }
 
-        /* ═══ STATS GLOBALES KRONIA (índices 10-13) ═══
+        /* â•â•â• STATS GLOBALES KRONIA (Ã­ndices 10-13) â•â•â•
            OPTIMIZACION SES-038 (Supabase NANO saturado): carga AGRESIVAMENTE
-           bajo demanda. sinFoco YA NO precarga nada — antes precargaba leads+
+           bajo demanda. sinFoco YA NO precarga nada â€” antes precargaba leads+
            agenda+comisiones "por si acaso" en cada chat y eso multiplicaba x4
            las consultas. Ahora solo carga lo que la pregunta menciona EXPLICITAMENTE. */
         var pq = pregunta.toLowerCase()
         /* Saludos / preguntas conversacionales sin sustancia: cero precarga */
-        var esSaludo = /^(hola|hi|buen[ao]s|qu[eé] tal|c[oó]mo est[aá]s|hey|saludos|gracias|listo|ok|chau|adios|ad[ií]os)\s*[\?¿!¡\.]*$/i.test(pregunta.trim())
-        var pideLeads     = /lead|prospecto|campaña|campana|anuncio|importad/.test(pq)
+        var esSaludo = /^(hola|hi|buen[ao]s|qu[eÃ©] tal|c[oÃ³]mo est[aÃ¡]s|hey|saludos|gracias|listo|ok|chau|adios|ad[iÃ­]os)\s*[\?Â¿!Â¡\.]*$/i.test(pregunta.trim())
+        var pideLeads     = /lead|prospecto|campaÃ±a|campana|anuncio|importad/.test(pq)
         var pideAgenda    = /cita|agenda|agendad|asisti|no asist|reprogram|doctora|turno|programad/.test(pq)
-        var pideLlamadas  = /llamad|llamó|llamo|contact|marcar|gestion telef|tipificac/.test(pq)
+        var pideLlamadas  = /llamad|llamÃ³|llamo|contact|marcar|gestion telef|tipificac/.test(pq)
         var pidePacientes = /paciente|cliente nuevo|clientes nuevos|cartera|activos|registrad|base de datos/.test(pq)
         /* sinFoco solo se usa para que las preguntas vagas tipo "como va todo"
            muestren panorama. Excluimos saludos puros. */
@@ -393,19 +393,19 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           contextQueries.push(Promise.resolve(null))
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           KRONIA EXPLORER — Acceso al ecosistema bajo demanda (admin only)
+        /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+           KRONIA EXPLORER â€” Acceso al ecosistema bajo demanda (admin only)
            Indices 15-22. Solo carga si la pregunta lo pide explicitamente
            para optimizar tokens.
-           ═══════════════════════════════════════════════════════════════ */
+           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
         var pideVentasGlobal  = esAdmin && /venta[s]?|facturad|cobr|ingres|ticket|promedio|total/.test(pq)
         var pideInventarioGl  = esAdmin && /inventario|stock|product[ao]|insumo|almacen|cantidad disponible|qued/.test(pq)
         var pideEquipoGlobal  = esAdmin && /equipo|asesor|doctor|enfermer|personal|trabajador|sueld|rrhh|meta/.test(pq)
-        var pideMarketingGl   = esAdmin && /marketing|inversi[oó]n|campa[ñn]a|anuncio|publicidad|meta ads|facebook|instagram|roas|cpa|cac/.test(pq)
+        var pideMarketingGl   = esAdmin && /marketing|inversi[oÃ³]n|campa[Ã±n]a|anuncio|publicidad|meta ads|facebook|instagram|roas|cpa|cac/.test(pq)
         var pideFinanzasGl    = esAdmin && /finanz|caja|gasto|balance|costo|utilidad|ganancia|ingreso|egreso|presupuesto/.test(pq)
-        var pideAtencionesGl  = esAdmin && /atenci[oó]n|triaje|evaluaci[oó]n|procedimiento|sesi[oó]n cl[ií]nic|atendi/.test(pq)
+        var pideAtencionesGl  = esAdmin && /atenci[oÃ³]n|triaje|evaluaci[oÃ³]n|procedimiento|sesi[oÃ³]n cl[iÃ­]nic|atendi/.test(pq)
         var pideSeguimGlobal  = esAdmin && /seguimient|recontact|vencid|pendient|control de pacient/.test(pq)
-        var pideAgendaFutura  = esAdmin && /pr[oó]xim|siguiente|esta semana|pr[oó]xima semana|futura|por venir|mañana|manana/.test(pq)
+        var pideAgendaFutura  = esAdmin && /pr[oÃ³]xim|siguiente|esta semana|pr[oÃ³]xima semana|futura|por venir|maÃ±ana|manana/.test(pq)
 
         /* Indice 15: inventario */
         if (pideInventarioGl) {
@@ -474,7 +474,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
           var statsLlamadas = results[12] || null
           var statsPacientes = results[13] || null
           var comisionesAdmin = results[14] || null
-          /* KRONIA EXPLORER results (indices 15-22) — bajo demanda */
+          /* KRONIA EXPLORER results (indices 15-22) â€” bajo demanda */
           var expInventario = results[15] || null
           var expEquipo = results[16] || null
           var expMarketing = results[17] || null
@@ -580,11 +580,11 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if(leadsHoy && leadsHoy.length)datosCtx+='\nLEADS HOY: '+leadsHoy.length+' nuevos. Trats:'+[...new Set(leadsHoy.map(function(l){return l.tratamiento}))].join(',')
             if(seguimientos && seguimientos.length){var segPend = seguimientos.filter(function(s){return s.ESTADO==='PENDIENTE'}).length; var segVenc = seguimientos.filter(function(s){return s.ESTADO==='VENCIDO'}).length; datosCtx+='\nSEGUIMIENTOS (muestra): '+segPend+' pendientes, '+segVenc+' vencidos en muestra'}
 
-            /* ═══════════════════════════════════════════════════════════
-               KRONIA EXPLORER — Datos del ecosistema bajo demanda
+            /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+               KRONIA EXPLORER â€” Datos del ecosistema bajo demanda
                Estos bloques solo aparecen si la pregunta menciona el modulo.
                Cada bloque pesa ~150-400 tokens, suma manejable.
-               ═══════════════════════════════════════════════════════════ */
+               â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
             if(expInventario && Array.isArray(expInventario) && expInventario.length){
               datosCtx += '\n\n--- INVENTARIO POR SEDE ---'
               expInventario.forEach(function(s){
@@ -599,7 +599,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             }
             if(expMarketing){
               datosCtx += '\n\n--- MARKETING / INVERSION ---'
-              datosCtx += '\nInversion total mes: S/'+Math.round(expMarketing.inversion_total||0)+' ('+(expMarketing.campanas||0)+' campañas)'
+              datosCtx += '\nInversion total mes: S/'+Math.round(expMarketing.inversion_total||0)+' ('+(expMarketing.campanas||0)+' campaÃ±as)'
               if(expMarketing.por_tratamiento){
                 datosCtx += '\nPor tratamiento: '+expMarketing.por_tratamiento.slice(0,10).map(function(p){return p.tratamiento+':S/'+Math.round(p.monto)}).join(' | ')
               }
@@ -656,12 +656,12 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             }
           }
 
-          /* ═══ STATS OPERATIVAS DEL DÍA A DÍA (admin y asesor) ═══ */
+          /* â•â•â• STATS OPERATIVAS DEL DÃA A DÃA (admin y asesor) â•â•â• */
           if(statsLeads){
             var sl=statsLeads
             datosCtx+='\n\n--- LEADS ---'
-            datosCtx+='\nLEADS: hoy='+(sl.hoy||0)+' | esta semana='+(sl.semana||0)+' | este mes='+(sl.mes||0)+' | histórico total='+(sl.historico||0)
-            datosCtx+='\nCONVERSIÓN A CITA (mes): '+(sl.conversion_pct||0)+'% ('+(sl.convertidos_mes||0)+' de '+(sl.mes||0)+' leads ya tienen cita)'
+            datosCtx+='\nLEADS: hoy='+(sl.hoy||0)+' | esta semana='+(sl.semana||0)+' | este mes='+(sl.mes||0)+' | histÃ³rico total='+(sl.historico||0)
+            datosCtx+='\nCONVERSIÃ“N A CITA (mes): '+(sl.conversion_pct||0)+'% ('+(sl.convertidos_mes||0)+' de '+(sl.mes||0)+' leads ya tienen cita)'
             if(sl.por_tratamiento){datosCtx+='\nLEADS MES POR TRATAMIENTO: '+Object.keys(sl.por_tratamiento).map(function(k){return k+':'+sl.por_tratamiento[k]}).join(', ')}
             if(sl.por_anuncio){datosCtx+='\nTOP ANUNCIOS MES: '+Object.keys(sl.por_anuncio).map(function(k){return k+':'+sl.por_anuncio[k]}).join(' | ')}
           }
@@ -672,14 +672,14 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             if(sa.hoy_por_estado){datosCtx+='\nCITAS HOY POR ESTADO: '+Object.keys(sa.hoy_por_estado).map(function(k){return k+':'+sa.hoy_por_estado[k]}).join(', ')}
             if(sa.mes_por_estado){datosCtx+='\nCITAS MES POR ESTADO: '+Object.keys(sa.mes_por_estado).map(function(k){return k+':'+sa.mes_por_estado[k]}).join(', ')}
             if(sa.mes_por_sede){datosCtx+='\nCITAS MES POR SEDE: '+Object.keys(sa.mes_por_sede).map(function(k){return k+':'+sa.mes_por_sede[k]}).join(', ')}
-            if(sa.hoy_detalle&&sa.hoy_detalle.length){datosCtx+='\nDETALLE CITAS HOY: '+sa.hoy_detalle.map(function(c){return c.hora+' '+c.nombre+' ('+c.tratamiento+') '+c.sede+' ·'+c.estado}).join(' | ')}
+            if(sa.hoy_detalle&&sa.hoy_detalle.length){datosCtx+='\nDETALLE CITAS HOY: '+sa.hoy_detalle.map(function(c){return c.hora+' '+c.nombre+' ('+c.tratamiento+') '+c.sede+' Â·'+c.estado}).join(' | ')}
           }
           if(statsLlamadas){
             var sll=statsLlamadas
             datosCtx+='\n\n--- LLAMADAS ---'
             datosCtx+='\nLLAMADAS: hoy='+(sll.llam_hoy||0)+' | esta semana='+(sll.llam_semana||0)+' | este mes='+(sll.llam_mes||0)+' | minutos mes='+(sll.minutos_mes||0)
             if(sll.mes_por_asesor){datosCtx+='\nLLAMADAS MES POR ASESOR: '+Object.keys(sll.mes_por_asesor).map(function(k){return k+':'+sll.mes_por_asesor[k]}).join(', ')}
-            if(sll.mes_por_estado){datosCtx+='\nLLAMADAS MES POR TIPIFICACIÓN: '+Object.keys(sll.mes_por_estado).map(function(k){return k+':'+sll.mes_por_estado[k]}).join(', ')}
+            if(sll.mes_por_estado){datosCtx+='\nLLAMADAS MES POR TIPIFICACIÃ“N: '+Object.keys(sll.mes_por_estado).map(function(k){return k+':'+sll.mes_por_estado[k]}).join(', ')}
           }
           if(statsPacientes){
             var sp=statsPacientes
@@ -696,7 +696,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             'COMO USAR TUS DATOS:\\n'+
             'Abajo en este prompt tienes secciones con datos REALES y actualizados de la clinica (LEADS, AGENDA/CITAS, LLAMADAS, PACIENTES, VENTAS, INVENTARIO, etc). '+
             'Esos son tus datos en vivo: usalos para responder con cifras concretas. Cuando te pregunten "cuantos leads este mes", "cuantas citas hoy", "como va la cartera", etc., '+
-            'la respuesta esta en esas secciones — leela y respondela directo con el numero.\\n'+
+            'la respuesta esta en esas secciones â€” leela y respondela directo con el numero.\\n'+
             'REGLA DE ORO sobre acceso: NUNCA digas frases como "no tengo acceso" o "no puedo ver esa informacion" de forma seca. '+
             'Si el dato exacto NO aparece en las secciones de abajo, di con naturalidad: "Ese dato puntual no lo tengo cargado en este momento, pero puedo consultarlo si me das un poco mas de detalle" '+
             'o sugiere la forma de obtenerlo. La diferencia importa: tu SI tienes acceso al sistema, solo que a veces un dato muy especifico no esta pre-cargado en esta consulta.\\n\\n'+
@@ -708,10 +708,10 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               'COMISIONES (ranking mes/reglas), INVENTARIO (stock/alertas/por sede), EQUIPO (lista/sueldos/metas), '+
               'MARKETING (inversion mes/campanas/ROAS), FINANZAS (cajas/gastos/balance del mes), '+
               'ATENCIONES (flujo clinico por profesional), SEGUIMIENTOS (vencidos/por asesor), AGENDA FUTURA (proximos 7 dias). '+
-              'En el contexto abajo veras los modulos que la pregunta pidio cargar — usa esos numeros para responder. '+
+              'En el contexto abajo veras los modulos que la pregunta pidio cargar â€” usa esos numeros para responder. '+
               'Si te falta un dato MUY especifico no pre-cargado (ej. nombre + DNI de cliente x), '+
               'di: "Dame un momento, voy a buscarlo" y propon una tool (search venta/paciente). '+
-              'NUNCA digas "no tengo acceso" — si el dato no esta cargado, pide refinar la pregunta o ejecuta una tool.' :
+              'NUNCA digas "no tengo acceso" â€” si el dato no esta cargado, pide refinar la pregunta o ejecuta una tool.' :
               'Eres asistente de la asesora "'+usuario+'". Ve libremente: sus ventas, sus clientes y lo facturado con cada uno, sus comisiones, sus llamadas y metricas, '+
               'pacientes que gestiona, inventario, catalogo, precios, sus leads. Ademas tiene a la vista los totales operativos de la clinica (leads/citas/llamadas/pacientes del equipo) para que se ubique en el contexto general. '+
               'Responde con datos concretos: nombres, montos, fechas, tratamientos. '+
@@ -720,9 +720,9 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
             '\n\nCATALOGO:\n'+catResumen.substring(0,3500)+
             datosCtx+
             (insightsSofia && typeof insightsSofia === 'object' ? '\n\nINSIGHTS DE SOFIA (analista de datos):\n'+JSON.stringify(insightsSofia).substring(0,1500)+'\nUSA estos datos para responder sobre tendencias, LTV, cohortes, evolucion, conversion.' : '')+
-            (esEjecucion && ventasEjecutor && ventasEjecutor.length ? '\n\nVENTAS RECIENTES (id es el campo CRÍTICO para editar):\n'+ventasEjecutor.map(function(v){return 'id:'+v.id+' | '+(v.nombres||'')+' '+(v.apellidos||'')+' | '+v.tratamiento+' | S/'+v.monto+' | '+v.fecha+' | '+v.estado_pago+' | asesor:'+v.asesor+' | cel:'+(v.numero_limpio||'')}).join('\n').substring(0,3500) : '')+
-            (esEjecucion && segEjecutor && segEjecutor.length ? '\n\nSEGUIMIENTOS PENDIENTES (para mapear a IDs):\n'+segEjecutor.map(function(s){return 'ID:'+s.ID+' NUM:'+s.NUMERO+' '+s.TRATAMIENTO+' · fecha:'+s.FECHA_PROGRAMADA+' '+s.HORA_PROGRAMADA+' · asesor:'+s.ASESOR}).join('\n').substring(0,1500) : '')+
-            (esEjecucion ? '\n\n═══════ MODO EJECUTOR ═══════\nEl usuario quiere EDITAR algo. Tu trabajo: identificar la acción, validar que tienes todos los datos, y proponer el JSON.\n\nREGLAS CRÍTICAS:\n1. NUNCA inventes IDs. Si no tienes el ID exacto del registro, primero pide info para identificarlo (nombre del cliente, fecha aproximada, número de celular).\n2. NUNCA ejecutes — solo PROPONES con un JSON al final.\n3. Si la búsqueda devuelve VARIAS coincidencias, lista las opciones y pide que elija cuál.\n4. NUNCA digas \"ya está hecho\" o \"lo he modificado\" — eso es alucinación. Solo el JSON puede ejecutar.\n5. Si te faltan datos, pregunta primero. NO generes JSON con datos inventados.\n\nFormato de propuesta (al final de tu respuesta humana):\n```json\n{\n  "preview": "Voy a cambiar X de Y a Z",\n  "rpc": "aos_editar_venta",\n  "params": { ... }\n}\n```\n\nRPCs DISPONIBLES Y SUS PARAMS:\n\n1. EDITAR VENTA: aos_editar_venta(p_venta_id, p_campos)\n   - p_venta_id: id numérico de la venta (campo `id` de las ventas listadas)\n   - p_campos: objeto JSON con los campos a cambiar. Permitidos: fecha, monto, nombres, apellidos, dni, celular, tratamiento, descripcion, pago, estado_pago, asesor, atendio, sede, tipo, numero_limpio, nro_doc\n   - Ejemplo cambiar monto: { p_venta_id: 1583, p_campos: { monto: "6.95" } }\n   - Ejemplo cambiar fecha: { p_venta_id: 1583, p_campos: { fecha: "2026-05-14" } }\n   - Ejemplo cambiar varios: { p_venta_id: 1583, p_campos: { asesor: "MIREYA", monto: "500" } }\n\n2. EDITAR CITA: aos_kronia_editar_cita(p_cita_id, p_campos)\n   - p_cita_id: id numérico\n   - p_campos: { fecha_cita, hora_cita, nombre, tratamiento, asesor, sede, doctora, estado_cita }\n\n3. EDITAR PACIENTE: aos_kronia_editar_paciente(p_paciente_id, p_campos)\n   - p_paciente_id: id text del paciente\n   - p_campos: { nombres, apellidos, telefono, dni, email, numero_limpio, sede }\n\n4. REPROGRAMAR SEGUIMIENTO: aos_kronia_reprogramar_seguimiento(p_seg_id, p_nueva_fecha, p_nueva_hora)\n   - p_seg_id: ID del seguimiento (de la lista de seguimientos)\n   - p_nueva_fecha: "YYYY-MM-DD"\n   - p_nueva_hora: "HH:MM"\n\n5. MARCAR ESTADO CITA: aos_kronia_marcar_estado_cita(p_cita_id, p_nuevo_estado)\n   - p_cita_id: id\n   - p_nuevo_estado: uno de [POR LLAMAR, LLAMADA, ASISTIO, NO ASISTIO, REPROGRAMADA, CANCELADA, CONFIRMADA]\n\n6. AGREGAR NOTA PACIENTE: aos_kronia_agregar_nota_paciente(p_numero_paciente, p_nota)\n   - p_numero_paciente: número de celular (solo dígitos)\n   - p_nota: texto de la nota\n\nNOTAS:\n- Estados válidos de pago: "PAGO COMPLETO", "ADELANTO", "PENDIENTE", "ANULADO"\n- Solo ADMIN puede reasignar ventas a otro asesor o editar ventas de otros asesores\n- Las búsquedas en "VENTAS RECIENTES" del contexto te dan los IDs exactos.' : '')+
+            (esEjecucion && ventasEjecutor && ventasEjecutor.length ? '\n\nVENTAS RECIENTES (id es el campo CRÃTICO para editar):\n'+ventasEjecutor.map(function(v){return 'id:'+v.id+' | '+(v.nombres||'')+' '+(v.apellidos||'')+' | '+v.tratamiento+' | S/'+v.monto+' | '+v.fecha+' | '+v.estado_pago+' | asesor:'+v.asesor+' | cel:'+(v.numero_limpio||'')}).join('\n').substring(0,3500) : '')+
+            (esEjecucion && segEjecutor && segEjecutor.length ? '\n\nSEGUIMIENTOS PENDIENTES (para mapear a IDs):\n'+segEjecutor.map(function(s){return 'ID:'+s.ID+' NUM:'+s.NUMERO+' '+s.TRATAMIENTO+' Â· fecha:'+s.FECHA_PROGRAMADA+' '+s.HORA_PROGRAMADA+' Â· asesor:'+s.ASESOR}).join('\n').substring(0,1500) : '')+
+            (esEjecucion ? '\n\nâ•â•â•â•â•â•â• MODO EJECUTOR â•â•â•â•â•â•â•\nEl usuario quiere EDITAR algo. Tu trabajo: identificar la acciÃ³n, validar que tienes todos los datos, y proponer el JSON.\n\nREGLAS CRÃTICAS:\n1. NUNCA inventes IDs. Si no tienes el ID exacto del registro, primero pide info para identificarlo (nombre del cliente, fecha aproximada, nÃºmero de celular).\n2. NUNCA ejecutes â€” solo PROPONES con un JSON al final.\n3. Si la bÃºsqueda devuelve VARIAS coincidencias, lista las opciones y pide que elija cuÃ¡l.\n4. NUNCA digas \"ya estÃ¡ hecho\" o \"lo he modificado\" â€” eso es alucinaciÃ³n. Solo el JSON puede ejecutar.\n5. Si te faltan datos, pregunta primero. NO generes JSON con datos inventados.\n\nFormato de propuesta (al final de tu respuesta humana):\n```json\n{\n  "preview": "Voy a cambiar X de Y a Z",\n  "rpc": "aos_editar_venta",\n  "params": { ... }\n}\n```\n\nRPCs DISPONIBLES Y SUS PARAMS:\n\n1. EDITAR VENTA: aos_editar_venta(p_venta_id, p_campos)\n   - p_venta_id: id numÃ©rico de la venta (campo `id` de las ventas listadas)\n   - p_campos: objeto JSON con los campos a cambiar. Permitidos: fecha, monto, nombres, apellidos, dni, celular, tratamiento, descripcion, pago, estado_pago, asesor, atendio, sede, tipo, numero_limpio, nro_doc\n   - Ejemplo cambiar monto: { p_venta_id: 1583, p_campos: { monto: "6.95" } }\n   - Ejemplo cambiar fecha: { p_venta_id: 1583, p_campos: { fecha: "2026-05-14" } }\n   - Ejemplo cambiar varios: { p_venta_id: 1583, p_campos: { asesor: "MIREYA", monto: "500" } }\n\n2. EDITAR CITA: aos_kronia_editar_cita(p_cita_id, p_campos)\n   - p_cita_id: id numÃ©rico\n   - p_campos: { fecha_cita, hora_cita, nombre, tratamiento, asesor, sede, doctora, estado_cita }\n\n3. EDITAR PACIENTE: aos_kronia_editar_paciente(p_paciente_id, p_campos)\n   - p_paciente_id: id text del paciente\n   - p_campos: { nombres, apellidos, telefono, dni, email, numero_limpio, sede }\n\n4. REPROGRAMAR SEGUIMIENTO: aos_kronia_reprogramar_seguimiento(p_seg_id, p_nueva_fecha, p_nueva_hora)\n   - p_seg_id: ID del seguimiento (de la lista de seguimientos)\n   - p_nueva_fecha: "YYYY-MM-DD"\n   - p_nueva_hora: "HH:MM"\n\n5. MARCAR ESTADO CITA: aos_kronia_marcar_estado_cita(p_cita_id, p_nuevo_estado)\n   - p_cita_id: id\n   - p_nuevo_estado: uno de [POR LLAMAR, LLAMADA, ASISTIO, NO ASISTIO, REPROGRAMADA, CANCELADA, CONFIRMADA]\n\n6. AGREGAR NOTA PACIENTE: aos_kronia_agregar_nota_paciente(p_numero_paciente, p_nota)\n   - p_numero_paciente: nÃºmero de celular (solo dÃ­gitos)\n   - p_nota: texto de la nota\n\nNOTAS:\n- Estados vÃ¡lidos de pago: "PAGO COMPLETO", "ADELANTO", "PENDIENTE", "ANULADO"\n- Solo ADMIN puede reasignar ventas a otro asesor o editar ventas de otros asesores\n- Las bÃºsquedas en "VENTAS RECIENTES" del contexto te dan los IDs exactos.' : '')+
             '\nFecha: '+hoy+' | Sede: '+(sede||'N/A')
 
           var messages = [{ role: 'system', content: systemPrompt }]
@@ -764,16 +764,16 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
               groqReq.on('error', function(err){
                 console.error('[KRONIA-CHAT] Error de red Groq:', err.message)
                 res.writeHead(200,{'Content-Type':'application/json'})
-                res.end(JSON.stringify({ok:true, respuesta:'Error de conexión con el modelo. Probá de nuevo.', provider:'groq', cost:0}))
+                res.end(JSON.stringify({ok:true, respuesta:'Error de conexiÃ³n con el modelo. ProbÃ¡ de nuevo.', provider:'groq', cost:0}))
               })
               groqReq.write(groqBody); groqReq.end()
             }
 
-            /* Wrapper del parseo original. Recibe data + status + modelo usado + tamaño payload */
+            /* Wrapper del parseo original. Recibe data + status + modelo usado + tamaÃ±o payload */
             function procesarRespuestaGroq(gData, statusCode, modeloUsado, payloadSize){
               try {
                 var result = JSON.parse(gData)
-                /* === DIAGNÓSTICO: si la respuesta no tiene choices, loguear el error real === */
+                /* === DIAGNÃ“STICO: si la respuesta no tiene choices, loguear el error real === */
                 if (!result.choices || !result.choices[0]) {
                   console.error('[KRONIA-CHAT] Groq sin choices. Status:', statusCode, 'Modelo:', modeloUsado)
                   console.error('[KRONIA-CHAT] Respuesta Groq:', JSON.stringify(result).slice(0, 1000))
@@ -782,14 +782,14 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                   if (result.error && result.error.message) {
                     /* Si es rate limit, mensaje amable */
                     if (statusCode === 429) {
-                      errorMsg = 'Llegué al límite diario de consultas en este modelo. Probá una pregunta más simple o esperá unos minutos.'
+                      errorMsg = 'LleguÃ© al lÃ­mite diario de consultas en este modelo. ProbÃ¡ una pregunta mÃ¡s simple o esperÃ¡ unos minutos.'
                     } else {
                       errorMsg = 'Error: ' + result.error.message.slice(0, 200)
                     }
                   } else if (statusCode === 413 || payloadSize > 30000) {
-                    errorMsg = 'La consulta tiene demasiado contexto. Hacé una pregunta más específica.'
+                    errorMsg = 'La consulta tiene demasiado contexto. HacÃ© una pregunta mÃ¡s especÃ­fica.'
                   } else if (statusCode >= 500) {
-                    errorMsg = 'El modelo está saturado. Probá de nuevo en un momento.'
+                    errorMsg = 'El modelo estÃ¡ saturado. ProbÃ¡ de nuevo en un momento.'
                   }
                   res.writeHead(200,{'Content-Type':'application/json'})
                   res.end(JSON.stringify({ok:true, respuesta: errorMsg, provider:'groq', cost:0, debug: {status: statusCode, modelo: modeloUsado}}))
@@ -797,15 +797,15 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                 }
                 var text = result.choices[0].message.content || ''
                 if (!text && result.choices[0].message.tool_calls) {
-                  console.error('[KRONIA-CHAT] Groq devolvió tool_calls sin content')
-                  text = 'Necesito hacer una búsqueda. Dame un momento... (modo herramientas)'
+                  console.error('[KRONIA-CHAT] Groq devolviÃ³ tool_calls sin content')
+                  text = 'Necesito hacer una bÃºsqueda. Dame un momento... (modo herramientas)'
                 }
                 if (!text) {
-                  console.error('[KRONIA-CHAT] content vacío. finish_reason:', result.choices[0].finish_reason)
+                  console.error('[KRONIA-CHAT] content vacÃ­o. finish_reason:', result.choices[0].finish_reason)
                   text = 'No pude generar respuesta.'
                 }
                   
-                  // ═══ Extraer plan de acción si está en modo ejecutor ═══
+                  // â•â•â• Extraer plan de acciÃ³n si estÃ¡ en modo ejecutor â•â•â•
                   var accionPropuesta = null
                   if (esEjecucion) {
                     var jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
@@ -815,19 +815,19 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                         if (parsed.rpc && parsed.params) {
                           accionPropuesta = {
                             accion: parsed.accion || 'editar',
-                            preview: parsed.preview || 'Confirma esta acción',
+                            preview: parsed.preview || 'Confirma esta acciÃ³n',
                             rpc: parsed.rpc,
                             params: parsed.params
                           }
                           // Limpiar el JSON del texto visible (lo reemplazamos por el preview)
                           text = text.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/, '').trim()
                           if (!text || text.length < 10) {
-                            text = '📝 ' + accionPropuesta.preview + '\n\n¿Confirmas?'
+                            text = 'ðŸ“ ' + accionPropuesta.preview + '\n\nÂ¿Confirmas?'
                           } else {
-                            text += '\n\n¿Confirmas?'
+                            text += '\n\nÂ¿Confirmas?'
                           }
                         }
-                      } catch(e) { /* no es JSON válido, continuar */ }
+                      } catch(e) { /* no es JSON vÃ¡lido, continuar */ }
                     }
                   }
                   
@@ -839,7 +839,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
                     metadata: JSON.stringify({model:esEjecucion?'llama-3.3-70b-versatile':'llama-3.1-8b-instant',tokens:result.usage||{},lead:leadActual||null,accion:accionPropuesta||null})
                   }).catch(function(){})
 
-                  /* Registrar como ejecución del agente KronIA en aos_agente_logs */
+                  /* Registrar como ejecuciÃ³n del agente KronIA en aos_agente_logs */
                   sbPost('/rest/v1/aos_agente_logs', {
                     agente_id: 'kronia',
                     accion: esEjecucion ? (accionPropuesta ? 'proponer_accion' : 'chat_query') : 'chat_query',
@@ -868,7 +868,7 @@ function procesarKroniaChat(d, pregunta, usuario, rol, sede, sessionId, res) {
   } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Error procesando: '+e.message})) }
 }
 
-// ═══ WEBHOOK VERIFY (GET) ═══
+// â•â•â• WEBHOOK VERIFY (GET) â•â•â•
 function webhookVerify(req, res) {
   const u = new URL(req.url, 'http://localhost')
   const mode = u.searchParams.get('hub.mode')
@@ -882,7 +882,7 @@ function webhookVerify(req, res) {
   }
 }
 
-// ═══ WEBHOOK MESSAGE (POST) ═══
+// â•â•â• WEBHOOK MESSAGE (POST) â•â•â•
 function webhookMessage(req, res) {
   let body = ''
   req.on('data', c => body += c)
@@ -923,7 +923,7 @@ function webhookMessage(req, res) {
   })
 }
 
-// ═══ STATIC ═══
+// â•â•â• STATIC â•â•â•
 function serve(f, res) {
   var mime = MIME[path.extname(f)] || 'text/plain'
   fs.stat(f, function(err, stat) {
@@ -933,7 +933,7 @@ function serve(f, res) {
   })
 }
 
-// ═══ SERVER ═══
+// â•â•â• SERVER â•â•â•
 http.createServer(function(req, res) {
   var p = req.url.split('?')[0]
   // F16: all admin Email writes and provider webhooks enter through a server-authoritative boundary.
@@ -958,7 +958,7 @@ http.createServer(function(req, res) {
     }).on('error', function() { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"compra":"3.695","venta":"3.750","euro_venta":"4.020","source":"fallback"}') }); return
   }
   // ===== FIN TIPO DE CAMBIO =====
-  // ═══ STUDIO API — GENERACIÓN DE IMÁGENES (Gemini GRATIS + OpenAI fallback) ═══
+  // â•â•â• STUDIO API â€” GENERACIÃ“N DE IMÃGENES (Gemini GRATIS + OpenAI fallback) â•â•â•
   if (p === '/api/studio/generate-image' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
@@ -1022,7 +1022,7 @@ http.createServer(function(req, res) {
                     uploadReq.write(imgBuffer); uploadReq.end()
                   } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' })
-                    res.end(JSON.stringify({ success: false, error: 'Gemini no generó imagen. Respuesta: ' + (textPart ? textPart.text.substring(0, 200) : 'sin texto'), provider: 'gemini' }))
+                    res.end(JSON.stringify({ success: false, error: 'Gemini no generÃ³ imagen. Respuesta: ' + (textPart ? textPart.text.substring(0, 200) : 'sin texto'), provider: 'gemini' }))
                   }
                 } else {
                   res.writeHead(400, { 'Content-Type': 'application/json' })
@@ -1048,7 +1048,7 @@ http.createServer(function(req, res) {
                   res.writeHead(200, { 'Content-Type': 'application/json' })
                   res.end(JSON.stringify({ success: true, url: result.data[0].url || '', image_base64: result.data[0].b64_json || '', provider: 'openai', cost: 0.04 }))
                 } else {
-                  res.writeHead(400); res.end(JSON.stringify({ error: 'OpenAI no generó imagen', details: result }))
+                  res.writeHead(400); res.end(JSON.stringify({ error: 'OpenAI no generÃ³ imagen', details: result }))
                 }
               } catch(e) { res.writeHead(500); res.end(JSON.stringify({error:'Parse error'})) }
             })
@@ -1071,21 +1071,21 @@ http.createServer(function(req, res) {
             getKey('api', function(oaiKey) {
               var key = oaiKey || process.env.OPENAI_API_KEY
               if (key) { tryOpenAI(key); return }
-              res.writeHead(400); res.end(JSON.stringify({error:'No hay API de imagen configurada. Configura Gemini o OpenAI en Configuración → Integraciones.'}))
+              res.writeHead(400); res.end(JSON.stringify({error:'No hay API de imagen configurada. Configura Gemini o OpenAI en ConfiguraciÃ³n â†’ Integraciones.'}))
             })
           })
         }
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ STUDIO API — GENERAR COPY CON AI (Groq GRATIS + Claude fallback) ═══
+  // â•â•â• STUDIO API â€” GENERAR COPY CON AI (Groq GRATIS + Claude fallback) â•â•â•
   if (p === '/api/studio/generate-copy' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
       try {
         var d = JSON.parse(body)
         var prompt = d.prompt || ''
-        var system = d.system || 'Eres el agente creativo de Zi Vital, clínica de medicina estética en Lima, Perú. Generas copy para redes sociales en español. Tono elegante y cercano.'
+        var system = d.system || 'Eres el agente creativo de Zi Vital, clÃ­nica de medicina estÃ©tica en Lima, PerÃº. Generas copy para redes sociales en espaÃ±ol. Tono elegante y cercano.'
         
         /* Leer key de Groq */
         https.get({
@@ -1125,7 +1125,7 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ KRONIA EXT — CORS PREFLIGHT GLOBAL para /api/kronia/* ═══
+  // â•â•â• KRONIA EXT â€” CORS PREFLIGHT GLOBAL para /api/kronia/* â•â•â•
   if (req.method === 'OPTIONS' && p.startsWith('/api/kronia/')) {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -1135,7 +1135,7 @@ http.createServer(function(req, res) {
     res.end(); return
   }
 
-  // ═══ KRONIA EXT — STEP 1: REQUEST CODE (envia codigo 2FA al email) ═══
+  // â•â•â• KRONIA EXT â€” STEP 1: REQUEST CODE (envia codigo 2FA al email) â•â•â•
   // POST /api/kronia/login-request  { usuario }
   // Reutiliza aos_login_v2 que ya envia codigo por email
   if (p === '/api/kronia/login-request' && req.method === 'POST') {
@@ -1156,7 +1156,7 @@ http.createServer(function(req, res) {
     }); return
   }
 
-  // ═══ KRONIA EXT — STEP 2: VERIFY CODE & EMIT TOKEN ═══
+  // â•â•â• KRONIA EXT â€” STEP 2: VERIFY CODE & EMIT TOKEN â•â•â•
   // POST /api/kronia/login-verify  { usuario, codigo }
   // Valida el codigo 2FA y emite token de 24h
   if (p === '/api/kronia/login-verify' && req.method === 'POST') {
@@ -1198,7 +1198,7 @@ http.createServer(function(req, res) {
     }); return
   }
 
-  // ═══ KRONIA EXT — VERIFY TOKEN (refresca sesion) ═══
+  // â•â•â• KRONIA EXT â€” VERIFY TOKEN (refresca sesion) â•â•â•
   // GET /api/kronia/verify  con header Authorization: Bearer <token>
   if (p === '/api/kronia/verify' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -1215,7 +1215,7 @@ http.createServer(function(req, res) {
     return
   }
 
-  // ═══ KRONIA EXT — LOGOUT (revoca token) ═══
+  // â•â•â• KRONIA EXT â€” LOGOUT (revoca token) â•â•â•
   if (p === '/api/kronia/logout' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var authHeader2 = req.headers['authorization'] || ''
@@ -1231,12 +1231,12 @@ http.createServer(function(req, res) {
     return
   }
 
-  // ═══ KRONIA CHAT — AI ASESOR CON CONTROL DE ROLES ═══
+  // â•â•â• KRONIA CHAT â€” AI ASESOR CON CONTROL DE ROLES â•â•â•
   // Soporta dos modos de auth:
   //   1) BEARER TOKEN (extension Chrome): header Authorization: Bearer <tok>
-  //      → datos del usuario salen del token (mas seguro: no se pueden suplantar)
+  //      â†’ datos del usuario salen del token (mas seguro: no se pueden suplantar)
   //   2) BODY (chat interno / Brain): body con {usuario, id_asesor, rol, sede}
-  //      → flujo legado, valida que el usuario exista en aos_usuarios
+  //      â†’ flujo legado, valida que el usuario exista en aos_usuarios
   if (p === '/api/kronia/chat' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var bearerHeader = req.headers['authorization'] || ''
@@ -1246,7 +1246,7 @@ http.createServer(function(req, res) {
         var d = JSON.parse(body)
         var pregunta = (d.pregunta || '').trim()
 
-        // ═══ MODO 1: Bearer token (extension) ═══
+        // â•â•â• MODO 1: Bearer token (extension) â•â•â•
         if (bearerTok) {
           sbRpc('aos_kronia_verify_token', { p_token: bearerTok }).then(function(rt){
             var v = Array.isArray(rt) ? rt[0] : rt
@@ -1265,7 +1265,7 @@ http.createServer(function(req, res) {
           return
         }
 
-        // ═══ MODO 2: legado (chat interno / Brain) ═══
+        // â•â•â• MODO 2: legado (chat interno / Brain) â•â•â•
         var usuario = d.usuario || ''
         var rol = d.rol || 'asesor'
         var sede = d.sede || ''
@@ -1277,7 +1277,7 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ KRONIA WHISPER — VOICE TO TEXT ═══
+  // â•â•â• KRONIA WHISPER â€” VOICE TO TEXT â•â•â•
   // Acepta Bearer token (extension) o header X-AOS-User (flujo legado)
   if (p === '/api/kronia/whisper' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -1347,7 +1347,7 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ STUDIO API — PUBLISH TO FACEBOOK ═══
+  // â•â•â• STUDIO API â€” PUBLISH TO FACEBOOK â•â•â•
   if (p === '/api/studio/publish-facebook' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
@@ -1372,12 +1372,12 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ STUDIO CORS PREFLIGHT ═══
+  // â•â•â• STUDIO CORS PREFLIGHT â•â•â•
   if (req.method === 'OPTIONS' && p.startsWith('/api/studio/')) {
     res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,GET,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' })
     res.end(); return
   }
-  // ═══ STUDIO API — PULL MÉTRICAS INSTAGRAM ═══
+  // â•â•â• STUDIO API â€” PULL MÃ‰TRICAS INSTAGRAM â•â•â•
   if (p === '/api/studio/metrics-instagram' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN
@@ -1398,7 +1398,7 @@ http.createServer(function(req, res) {
     }).on('error', function(e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({error:e.message,configured:true})) })
     return
   }
-  // ═══ STUDIO — PUBLICAR A LINKEDIN ═══
+  // â•â•â• STUDIO â€” PUBLICAR A LINKEDIN â•â•â•
   if (p === '/api/studio/publish-linkedin' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
@@ -1430,7 +1430,7 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ STUDIO — PUBLICAR CARRUSEL A INSTAGRAM ═══
+  // â•â•â• STUDIO â€” PUBLICAR CARRUSEL A INSTAGRAM â•â•â•
   if (p === '/api/studio/publish-instagram-carousel' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var body = ''; req.on('data', function(c) { body += c }); req.on('end', function() {
@@ -1490,7 +1490,7 @@ http.createServer(function(req, res) {
       } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Invalid JSON'})) }
     }); return
   }
-  // ═══ STUDIO — ESTADO DE CONEXIONES ═══
+  // â•â•â• STUDIO â€” ESTADO DE CONEXIONES â•â•â•
   if (p === '/api/studio/connections' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     var connData = JSON.stringify({
@@ -1503,7 +1503,7 @@ http.createServer(function(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(connData); return
   }
-  // ═══ FIN STUDIO API ═══
+  // â•â•â• FIN STUDIO API â•â•â•
   // ===== F16 EMAIL ADMIN SEND =====
   // Handled above by EMAIL_GATEWAY with authoritative admin session verification.
   // ===== F16 LEGACY 2FA RETIRED =====
@@ -1513,7 +1513,7 @@ http.createServer(function(req, res) {
     res.end(JSON.stringify({ ok:false, error:'LEGACY_2FA_RETIRED' })); return
   }
   // ===== FIN F16 LEGACY 2FA =====
-  // ===== TEMPLATE EMAILS (confirmación cita, recibo venta, seguimiento) =====
+  // ===== TEMPLATE EMAILS (confirmaciÃ³n cita, recibo venta, seguimiento) =====
   if (p === '/api/send-template' && req.method === 'POST') {
     var templateToken = String(req.headers['x-ascenda-session'] || '')
     EMAIL_GATEWAY.verifyApp(templateToken).then(function(templateAuth) {
@@ -1534,7 +1534,7 @@ http.createServer(function(req, res) {
         // Construir variables para la plantilla
         var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
 
-        // Construir tabla de items dinámica para recibo/cotización
+        // Construir tabla de items dinÃ¡mica para recibo/cotizaciÃ³n
         if (d.items && d.items.length) {
           var sym = (d.moneda === 'USD') ? '$ ' : 'S/ '
           var itemsHtml = ''
@@ -1568,52 +1568,52 @@ http.createServer(function(req, res) {
           vars.items_tabla = ''
         }
 
-        // Contexto de segmentación para plantillas inteligentes
+        // Contexto de segmentaciÃ³n para plantillas inteligentes
         var tplCtx = { segmento: d.segmento || '', tipo_tratamiento: d.tipo_tratamiento || '' }
         
         if (tipo === 'confirmacion_cita') {
-          subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
+          subject = 'âœ… Cita confirmada â€” ' + (d.sede || '') + ' Â· ' + (d.hora || '') + ' â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('confirmacion_cita', vars, function() { return buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono}) }, tplCtx)
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'recibo_venta') {
-          subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
+          subject = 'ðŸ§¾ Recibo de pago â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('recibo_venta', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'cotizacion') {
-          subject = '📋 Tu cotización — ' + BRAND.nombre_empresa
+          subject = 'ðŸ“‹ Tu cotizaciÃ³n â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('catalogo', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', '', d.sede||'', d.fecha||'', '') }), tplCtx
         } else if (tipo === 'seguimiento') {
-          subject = '💆‍♀️ ¿Cómo te fue con tu tratamiento? — ' + BRAND.nombre_empresa
+          subject = 'ðŸ’†â€â™€ï¸ Â¿CÃ³mo te fue con tu tratamiento? â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('seguimiento', vars, function() { return buildEmailSeguimiento(d.nombre||'Paciente', d.tratamiento||'', d.dias||7) }), tplCtx
         } else if (tipo === 'recordatorio') {
-          subject = d.es_manana ? 'Tu cita de mañana — ' + (d.hora||'') : '¡Tu cita es hoy! ' + (d.hora||'')
+          subject = d.es_manana ? 'Tu cita de maÃ±ana â€” ' + (d.hora||'') : 'Â¡Tu cita es hoy! ' + (d.hora||'')
           var recTipo = d.es_manana ? 'recordatorio' : 'recordatorio_hoy'
           html = buildFromTemplate(recTipo, vars, function() { return buildEmailRecordatorio(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'', !!d.es_manana) }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'bienvenida') {
-          subject = '¡Bienvenida a ' + BRAND.nombre_empresa + '! ✨'
+          subject = 'Â¡Bienvenida a ' + BRAND.nombre_empresa + '! âœ¨'
           html = buildFromTemplate('bienvenida', vars, function() { return buildEmailBienvenida(d.nombre||'Paciente') }), tplCtx
         } else if (tipo === 'agradecimiento_visita') {
-          subject = '🌟 ¡Gracias por tu visita! — ' + BRAND.nombre_empresa
+          subject = 'ðŸŒŸ Â¡Gracias por tu visita! â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('agradecimiento_visita', vars, function() { return buildEmailAgradecimiento(d.nombre||'Paciente', d.tratamiento||'', d.sede||'', d.fecha||'') }), tplCtx
         } else if (tipo === 'saldo_pendiente') {
-          subject = '💳 Tienes un saldo pendiente — ' + BRAND.nombre_empresa
+          subject = 'ðŸ’³ Tienes un saldo pendiente â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('saldo_pendiente', vars, function() { return buildEmailSaldoPendiente(d.nombre||'Paciente', d.items||[]) }), tplCtx
         } else if (tipo === 'cumpleanos') {
-          subject = '🎂 ¡Feliz cumpleaños, ' + (d.nombre||'').split(' ')[0] + '! — ' + BRAND.nombre_empresa
+          subject = 'ðŸŽ‚ Â¡Feliz cumpleaÃ±os, ' + (d.nombre||'').split(' ')[0] + '! â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('cumpleanos', vars, function() { return buildEmailCumpleanos(d.nombre||'Paciente') }), tplCtx
         } else if (tipo === 'reactivacion') {
-          subject = '💚 Te extrañamos, ' + (d.nombre||'').split(' ')[0] + ' — ' + BRAND.nombre_empresa
+          subject = 'ðŸ’š Te extraÃ±amos, ' + (d.nombre||'').split(' ')[0] + ' â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('reactivacion', vars, function() { return buildEmailReactivacion(d.nombre||'Paciente', d.ultimo_tratamiento||'', d.dias||60) }), tplCtx
         } else if (tipo === 'no_asistencia') {
-          subject = '😔 Lamentamos que no hayas podido asistir — ' + BRAND.nombre_empresa
+          subject = 'ðŸ˜” Lamentamos que no hayas podido asistir â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('no_asistencia', vars, function() { return buildEmailNoAsistencia(d.nombre||'Paciente', d.tratamiento||'', d.fecha||'', d.hora||'', d.sede||'') }), tplCtx
         } else if (tipo === 'confirmacion_pago') {
-          subject = '✅ Pago recibido — S/' + parseFloat(d.monto||0).toFixed(2) + ' — ' + BRAND.nombre_empresa
+          subject = 'âœ… Pago recibido â€” S/' + parseFloat(d.monto||0).toFixed(2) + ' â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('confirmacion_pago', vars, function() { return buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'reprogramacion') {
-          subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
+          subject = 'ðŸ”„ Tu cita ha sido reprogramada â€” ' + BRAND.nombre_empresa
           html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else {
@@ -1647,7 +1647,7 @@ http.createServer(function(req, res) {
   // ===== F16 RESEND WEBHOOK =====
   // Handled above by EMAIL_GATEWAY with cryptographic signature + replay protection.
 
-  // ===== RESEND STATS — datos reales de emails enviados =====
+  // ===== RESEND STATS â€” datos reales de emails enviados =====
   if (p === '/api/resend-stats' && req.method === 'GET') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     // Consultar TODAS las fuentes de emails en Supabase
@@ -1673,11 +1673,11 @@ http.createServer(function(req, res) {
         allEmails.push({ to: e.destinatario_email, subject: e.asunto, status: e.estado === 'enviado' ? 'delivered' : e.estado, created_at: e.enviado_at || e.created_at, tipo: 'manual', origen: 'panel' })
       })
       seguridad.forEach(function(e) {
-        allEmails.push({ to: e.usuario, subject: '🔑 Código 2FA — Login', status: 'delivered', created_at: e.created_at, tipo: 'sistema', origen: 'sistema' })
+        allEmails.push({ to: e.usuario, subject: 'ðŸ”‘ CÃ³digo 2FA â€” Login', status: 'delivered', created_at: e.created_at, tipo: 'sistema', origen: 'sistema' })
       })
       // Ordenar por fecha desc
       allEmails.sort(function(a, b) { return (b.created_at || '') > (a.created_at || '') ? 1 : -1 })
-      // Calcular métricas
+      // Calcular mÃ©tricas
       var totalHoy = 0, totalMes = 0, entregados = 0, porTipo = {}
       var totalAbiertos = 0, totalRebotados = 0, totalClicks = 0
       allEmails.forEach(function(e) {
@@ -1784,7 +1784,7 @@ http.createServer(function(req, res) {
             : 'Eres un agente AI de la clinica Zi Vital. Responde de forma concisa y util.'
           var modelo = (rows && rows[0] && rows[0].modelo) ? rows[0].modelo : 'llama-3.3-70b-versatile'
 
-          // Cargar contexto real para que el agente sepa qué puede hacer
+          // Cargar contexto real para que el agente sepa quÃ© puede hacer
           return buildChatContext(agentId).then(function(ctx) {
             var sysPrompt = baseSysPrompt + '\n\n' + ctx
             return callGroqChat(sysPrompt, msgs, modelo)
@@ -1794,7 +1794,7 @@ http.createServer(function(req, res) {
           res.end(JSON.stringify({ ok: true, reply: reply }))
         }).catch(function(e) {
           res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ ok: false, reply: '⚠ ' + (e.message || 'error'), error: e.message }))
+          res.end(JSON.stringify({ ok: false, reply: 'âš  ' + (e.message || 'error'), error: e.message }))
         })
       } catch(e) {
         res.writeHead(400, { 'Content-Type': 'application/json' })
@@ -1827,7 +1827,7 @@ http.createServer(function(req, res) {
     res.end(); return
   }
 
-  // ═══ CAMILA — COPYWRITER ON-DEMAND ═══
+  // â•â•â• CAMILA â€” COPYWRITER ON-DEMAND â•â•â•
   // Body: { tipo: 'social_post'|'email'|'sms'|'anuncio', tratamiento: '...', tono: 'profesional'|'urgente'|'amigable', contexto?: '...' }
   if (p === '/api/agents/camila/generar' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -1840,7 +1840,7 @@ http.createServer(function(req, res) {
         var ctxExtra = d.contexto || ''
         if (!tratamiento) { res.writeHead(400); res.end(JSON.stringify({error:'Falta tratamiento'})); return }
         
-        // Cargar info del catálogo + prompt de Camila
+        // Cargar info del catÃ¡logo + prompt de Camila
         Promise.all([
           sbGet('/rest/v1/aos_catalogo_servicios?nombre=ilike.*' + encodeURIComponent(tratamiento) + '*&select=nombre,precio_oferta,beneficios,contraindicaciones,perfil_paciente&limit=1'),
           sbGet('/rest/v1/aos_agentes?id=eq.creador&select=system_prompt,modelo')
@@ -1864,7 +1864,7 @@ http.createServer(function(req, res) {
             'FORMATO: ' + instruccion + '\n' +
             'IMPORTANTE: Solo responde el copy, sin explicaciones ni meta-texto.'
           
-          // Usar Groq (Gemini sería ideal pero ya tenemos infra de Groq)
+          // Usar Groq (Gemini serÃ­a ideal pero ya tenemos infra de Groq)
           sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
             var groqKey = rows && rows[0] ? rows[0].api_key : null
             if (!groqKey) { res.writeHead(400); res.end(JSON.stringify({error:'Groq key no encontrada'})); return }
@@ -1921,7 +1921,7 @@ http.createServer(function(req, res) {
     res.end(); return
   }
 
-  // ═══ MAYA — RECEPCIONISTA (WhatsApp inbound simulado / endpoint público para webhook futuro) ═══
+  // â•â•â• MAYA â€” RECEPCIONISTA (WhatsApp inbound simulado / endpoint pÃºblico para webhook futuro) â•â•â•
   // Body: { numero: '...', mensaje: '...', tratamiento?: '...' }
   if (p === '/api/agents/maya/responder' && req.method === 'POST') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -1951,7 +1951,7 @@ http.createServer(function(req, res) {
             'Si pregunta por horarios: lunes a sabado 9am-8pm, domingos 10am-2pm. ' +
             'Si pregunta direccion: tenemos sedes en San Isidro y Pueblo Libre. ' +
             'Si quiere agendar: pidele su nombre completo, DNI y tratamiento de interes para coordinar. ' +
-            'NUNCA inventes precios — usa SOLO los del catalogo. Si pregunta por tratamiento sin precio, di "te coordino con un asesor".'
+            'NUNCA inventes precios â€” usa SOLO los del catalogo. Si pregunta por tratamiento sin precio, di "te coordino con un asesor".'
           
           sbGet('/rest/v1/aos_integraciones?tipo=eq.groq&estado=eq.conectado&select=api_key&limit=1').then(function(rows) {
             var groqKey = rows && rows[0] ? rows[0].api_key : null
@@ -1986,7 +1986,7 @@ http.createServer(function(req, res) {
                   }).catch(function(){})
                   sbRpc('aos_agente_registrar_ejecucion', { p_agente_id: 'recepcion', p_exitoso: respuesta.length > 0 }).catch(function(){})
                   
-                  // Guardar conversación en tabla específica de Maya
+                  // Guardar conversaciÃ³n en tabla especÃ­fica de Maya
                   sbPost('/rest/v1/aos_maya_conversaciones', {
                     numero_paciente: numero, mensaje_in: mensaje, mensaje_out: respuesta,
                     paciente_existe: pac !== null, canal: d.canal || 'web'
@@ -2031,7 +2031,7 @@ http.createServer(function(req, res) {
 
 
 
-// ═══ TRACKING DE COSTOS Y CONTENIDO ═══
+// â•â•â• TRACKING DE COSTOS Y CONTENIDO â•â•â•
 var TOKEN_COSTS = {
   'llama-3.3-70b-versatile':   { input: 0, output: 0, motor: 'groq' },      // Groq gratis
   'llama3-70b-8192':           { input: 0, output: 0, motor: 'groq' },
@@ -2068,13 +2068,13 @@ function saveContent(agentId, tipo, titulo, contenido, metadata) {
     .catch(function(e) { console.error('[CONTENT] Error:', e.message) })
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOTOR DE ACCIONES — agentes actúan, no solo analizan
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// MOTOR DE ACCIONES â€” agentes actÃºan, no solo analizan
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 var RESEND_KEY_AG = process.env.RESEND_API_KEY || ''
 
-// ═══ BRANDING CACHE (se carga al inicio y refresca cada 30min) ═══
+// â•â•â• BRANDING CACHE (se carga al inicio y refresca cada 30min) â•â•â•
 var BRAND = {
   color_primario: '#f0ebe0', color_secundario: '#cea14a', color_dark: '#e1ded1',
   color_texto: '#b89447', color_enlace: '#a28444', color_degradado2: '#f1eee4',
@@ -2089,11 +2089,11 @@ function loadBrand() {
     console.log('[BRAND] Branding cargado: header=' + BRAND.color_header + ' sec=' + BRAND.color_secundario)
   }).catch(function(e) { console.error('[BRAND] Error:', e.message) })
 }
-// Cargar al arrancar (con delay para que sbFetch esté listo)
+// Cargar al arrancar (con delay para que sbFetch estÃ© listo)
 setTimeout(loadBrand, 3000)
 setInterval(loadBrand, 1800000) // refresh cada 30 min
 
-// ═══ EMAIL TEMPLATE ENGINE — branding dinámico desde aos_configuracion ═══
+// â•â•â• EMAIL TEMPLATE ENGINE â€” branding dinÃ¡mico desde aos_configuracion â•â•â•
 function emailShell(headerHtml, bodyHtml) {
   var logo = BRAND.logo_sin_fondo_url || BRAND.logo_con_fondo_url
   var logoBlock = logo ? '<img src="' + logo + '" alt="' + BRAND.nombre_empresa + '" style="height:36px;margin-bottom:10px;display:block;" />' : ''
@@ -2106,7 +2106,7 @@ function emailShell(headerHtml, bodyHtml) {
     '<div style="color:' + hdrTxt + '">' + headerHtml + '</div>' +
     '</div>' +
     '<div style="padding:28px 32px">' + bodyHtml + '</div>' +
-    '<div style="background:' + hdrBg + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_secundario + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
+    '<div style="background:' + hdrBg + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_secundario + '">' + BRAND.nombre_empresa + ' Â· info@zivital.pe</div>' +
     '</div>'
 }
 function emailInfoBox(label, value) {
@@ -2116,10 +2116,10 @@ function emailCard(content) {
   return '<div style="background:' + BRAND.color_primario + ';border-radius:10px;padding:18px 20px;border-left:4px solid ' + BRAND.color_secundario + ';margin-bottom:20px">' + content + '</div>'
 }
 
-// ═══ FIRMA MÉDICA CON CMP — se inyecta en recibos/confirmaciones cuando hay doctora ═══
-var _cmpCache = {} // nombre → {cmp, nombre_completo}
+// â•â•â• FIRMA MÃ‰DICA CON CMP â€” se inyecta en recibos/confirmaciones cuando hay doctora â•â•â•
+var _cmpCache = {} // nombre â†’ {cmp, nombre_completo}
 function loadCmpCache() {
-  sbFetch('/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.médica&cmp=neq.').then(function(rows) {
+  sbFetch('/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.mÃ©dica&cmp=neq.').then(function(rows) {
     if (!rows) return
     rows.forEach(function(r) { if (r.cmp) _cmpCache[(r.nombre||'').toUpperCase()] = { cmp: r.cmp, full: (r.nombre||'') + ' ' + (r.apellidos||'') }; })
     console.log('[CMP] Cache cargado:', Object.keys(_cmpCache).length, 'doctoras')
@@ -2145,17 +2145,17 @@ function emailFirmaMedica(doctoraNombre) {
     '</div>'
 }
 
-// Enviar email vía Resend (reutiliza la misma clave y from)
-// ===== VALIDAR EMAIL — evitar errores recurrentes con emails inválidos =====
+// Enviar email vÃ­a Resend (reutiliza la misma clave y from)
+// ===== VALIDAR EMAIL â€” evitar errores recurrentes con emails invÃ¡lidos =====
 function validarEmail(email) {
   if (!email || typeof email !== 'string') return false
   email = email.trim()
   if (email.length < 5) return false
-  // Regex básico pero efectivo
+  // Regex bÃ¡sico pero efectivo
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false
-  // Detectar caracteres non-ASCII (ñ, acentos en email)
+  // Detectar caracteres non-ASCII (Ã±, acentos en email)
   if (/[^\x00-\x7F]/.test(email)) return false
-  // Detectar emails vacíos como @gmail.com
+  // Detectar emails vacÃ­os como @gmail.com
   if (email.indexOf('@') === 0) return false
   // Detectar punto antes de @
   if (email.indexOf('.@') >= 0) return false
@@ -2171,14 +2171,14 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
     if (EMAILS_TRANSACCIONALES.indexOf(String(tipo || '')) === -1) {
       resolve({ skip:true, reason:'F16_MARKETING_GOVERNED_ACTIVATION_REQUIRED', governed_activation_required:true }); return
     }
-    // Anti-duplicado: verificar si ya se envió hoy
+    // Anti-duplicado: verificar si ya se enviÃ³ hoy
     sbFetch('/rest/v1/aos_emails_enviados?tipo=eq.' + encodeURIComponent(tipo) + '&destinatario=eq.' + encodeURIComponent(destinatario_id) + '&fecha_envio=eq.' + limaDateStr())
       .then(function(rows) {
         if (rows && rows.length > 0) { resolve({ skip: true, reason: 'ya enviado hoy' }); return }
 
-        // ═══ GUARD CADENCIA: máx 2 emails marketing/semana por paciente ═══
+        // â•â•â• GUARD CADENCIA: mÃ¡x 2 emails marketing/semana por paciente â•â•â•
         if (EMAILS_TRANSACCIONALES.indexOf(tipo) === -1) {
-          // Es marketing/engagement — verificar cadencia semanal
+          // Es marketing/engagement â€” verificar cadencia semanal
           var _limaD = new Date(Date.now() + (-5 * 60) * 60000)
           var _dow = _limaD.getDay() // 0=dom
           var _inicioSemana = new Date(_limaD.getTime() - _dow * 86400000)
@@ -2186,11 +2186,11 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
           return sbFetch('/rest/v1/aos_email_cadencia?email_destino=eq.' + encodeURIComponent(to) + '&fecha_envio=gte.' + _isoInicio + '&select=id')
             .then(function(cadRows) {
               if (cadRows && cadRows.length >= 2) {
-                console.log('[CADENCIA] Skip ' + to + ' — ya recibió ' + cadRows.length + ' emails esta semana (tipo: ' + tipo + ')')
+                console.log('[CADENCIA] Skip ' + to + ' â€” ya recibiÃ³ ' + cadRows.length + ' emails esta semana (tipo: ' + tipo + ')')
                 resolve({ skip: true, reason: 'cadencia_semanal: ' + cadRows.length + '/2' })
                 return
               }
-              // Pasar al envío real
+              // Pasar al envÃ­o real
               _doSendEmail(to, subject, html, tipo, destinatario_id, resolve)
             }).catch(function() {
               // Si falla la consulta de cadencia, enviar de todos modos (fail-open)
@@ -2198,16 +2198,16 @@ function sendAgentEmail(to, subject, html, tipo, destinatario_id) {
             })
         }
 
-        // Transaccional — enviar sin límite de cadencia
+        // Transaccional â€” enviar sin lÃ­mite de cadencia
         _doSendEmail(to, subject, html, tipo, destinatario_id, resolve)
       }).catch(function(e) { resolve({ ok: false, error: e.message }) })
   })
 }
 
-// ═══ ENVÍO REAL de email vía Resend + registro en cadencia ═══
+// â•â•â• ENVÃO REAL de email vÃ­a Resend + registro en cadencia â•â•â•
 function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
   var emailData = JSON.stringify({
-    from: 'Clínica Zi Vital <info@zivital.pe>',
+    from: 'ClÃ­nica Zi Vital <info@zivital.pe>',
     to: [to], subject: subject, html: html,
     reply_to: 'jaureguitorrescesar@gmail.com'
   })
@@ -2219,7 +2219,7 @@ function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
       try {
         var r = JSON.parse(d)
         if (r.id) {
-          // Registrar envío para anti-duplicado
+          // Registrar envÃ­o para anti-duplicado
           sbPost('/rest/v1/aos_emails_enviados', {
             tipo: tipo, destinatario: destinatario_id,
             fecha_envio: limaDateStr(), resend_id: r.id,
@@ -2234,7 +2234,7 @@ function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
           // Alerta en panel
           sbPost('/rest/v1/aos_email_alertas', {
             tipo: 'exito', template: tipo,
-            titulo: '✅ ' + tipo + ' enviado',
+            titulo: 'âœ… ' + tipo + ' enviado',
             detalle: subject,
             destinatario: to, resend_id: r.id
           }).catch(function(){})
@@ -2242,7 +2242,7 @@ function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
           // Alerta de error en panel
           sbPost('/rest/v1/aos_email_alertas', {
             tipo: 'error', template: tipo,
-            titulo: '❌ Error enviando ' + tipo,
+            titulo: 'âŒ Error enviando ' + tipo,
             detalle: r.message || 'Sin respuesta de Resend',
             destinatario: to
           }).catch(function(){})
@@ -2255,7 +2255,7 @@ function _doSendEmail(to, subject, html, tipo, destinatario_id, resolve) {
   req.write(emailData); req.end()
 }
 
-// Insertar notificación en el CRM (aparece en el panel de notificaciones)
+// Insertar notificaciÃ³n en el CRM (aparece en el panel de notificaciones)
 function notifyAdmin(titulo, contenido, tipo, prioridad) {
   return sbPost('/rest/v1/aos_notificaciones', {
     titulo: titulo, contenido: contenido,
@@ -2265,7 +2265,7 @@ function notifyAdmin(titulo, contenido, tipo, prioridad) {
   }).catch(function(){})
 }
 
-// Registrar acción real del agente
+// Registrar acciÃ³n real del agente
 function logAction(agentId, tipoAccion, descripcion, metadata) {
   return sbPost('/rest/v1/aos_agente_acciones', {
     agente_id: agentId, tipo_accion: tipoAccion,
@@ -2273,8 +2273,8 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
   }).catch(function(){})
 }
 
-// ═══ CACHE DE PLANTILLAS — Lee de aos_email_plantillas con segmentación ═══
-var _tplCache = {} // tipo → array de {body, asunto, segmento, tipo_tratamiento, prioridad}
+// â•â•â• CACHE DE PLANTILLAS â€” Lee de aos_email_plantillas con segmentaciÃ³n â•â•â•
+var _tplCache = {} // tipo â†’ array de {body, asunto, segmento, tipo_tratamiento, prioridad}
 function loadTplCache() {
   sbFetch('/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto,segmento,tipo_tratamiento,prioridad&activo=eq.true').then(function(rows) {
     if (!rows) return
@@ -2289,7 +2289,7 @@ function loadTplCache() {
         prioridad: r.prioridad || 0
       })
     })
-    // Ordenar cada tipo por prioridad DESC (más específica primero)
+    // Ordenar cada tipo por prioridad DESC (mÃ¡s especÃ­fica primero)
     Object.keys(_tplCache).forEach(function(k) {
       _tplCache[k].sort(function(a, b) { return (b.prioridad || 0) - (a.prioridad || 0) })
     })
@@ -2300,8 +2300,8 @@ function loadTplCache() {
 setTimeout(loadTplCache, 4000)
 setInterval(loadTplCache, 600000) // Recargar cada 10 min
 
-// Construir email desde plantilla BD con segmentación inteligente
-// ctx = { segmento: 'VIP', tipo_tratamiento: 'TOXINA' } — opcional
+// Construir email desde plantilla BD con segmentaciÃ³n inteligente
+// ctx = { segmento: 'VIP', tipo_tratamiento: 'TOXINA' } â€” opcional
 function buildFromTemplate(tipo, vars, fallbackFn, ctx) {
   var candidates = _tplCache[tipo]
   if (!candidates || !candidates.length) return fallbackFn()
@@ -2309,20 +2309,20 @@ function buildFromTemplate(tipo, vars, fallbackFn, ctx) {
   var seg = (ctx && ctx.segmento || '').toUpperCase() || null
   var trat = (ctx && ctx.tipo_tratamiento || '').toUpperCase() || null
 
-  // Buscar mejor match: segmento+tratamiento → segmento → tratamiento → genérica
+  // Buscar mejor match: segmento+tratamiento â†’ segmento â†’ tratamiento â†’ genÃ©rica
   var best = null
   for (var i = 0; i < candidates.length; i++) {
     var c = candidates[i]
     var matchSeg = !c.segmento || c.segmento === seg
     var matchTrat = !c.tipo_tratamiento || c.tipo_tratamiento === trat
     if (matchSeg && matchTrat) {
-      // Calcular score: +2 si match segmento específico, +2 si match tratamiento específico
+      // Calcular score: +2 si match segmento especÃ­fico, +2 si match tratamiento especÃ­fico
       var score = (c.segmento && c.segmento === seg ? 2 : 0) + (c.tipo_tratamiento && c.tipo_tratamiento === trat ? 2 : 0)
       if (!best || score > best.score) best = { tpl: c, score: score }
     }
   }
   if (!best) {
-    // Fallback: buscar genérica (sin segmento ni tratamiento)
+    // Fallback: buscar genÃ©rica (sin segmento ni tratamiento)
     for (var j = 0; j < candidates.length; j++) {
       if (!candidates[j].segmento && !candidates[j].tipo_tratamiento) { best = { tpl: candidates[j], score: 0 }; break }
     }
@@ -2344,126 +2344,126 @@ function buildFromTemplate(tipo, vars, fallbackFn, ctx) {
   )
 }
 
-// Template email recordatorio de cita — COMPLETO con dirección y estacionamiento
+// Template email recordatorio de cita â€” COMPLETO con direcciÃ³n y estacionamiento
 function buildEmailRecordatorio(nombre, tratamiento, hora, sede, fecha, esManana) {
-  var titulo = esManana ? 'Te esperamos mañana' : '¡Tu cita es hoy!'
-  var cuando = esManana ? 'mañana' : 'hoy'
+  var titulo = esManana ? 'Te esperamos maÃ±ana' : 'Â¡Tu cita es hoy!'
+  var cuando = esManana ? 'maÃ±ana' : 'hoy'
   var esPL = sede && sede.toUpperCase().indexOf('PUEBLO') > -1
   var sedeNombre = esPL ? 'PUEBLO LIBRE' : 'SAN ISIDRO'
-  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio'
+  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima Â· Edificio Capricornio'
   var sedeMaps = esPL ? 'https://goo.gl/maps/Cw36T6YPudyRNmVe6' : 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
 
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + titulo + ', ' + (nombre || '').split(' ')[0] + ' 👋</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">' + titulo + ', ' + (nombre || '').split(' ')[0] + ' ðŸ‘‹</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Te recordamos que tienes una cita programada para <b>' + cuando + '</b>:</p>' +
 
     emailCard(
-      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">📌 TU CITA DE ' + cuando.toUpperCase() + '</div>' +
+      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">ðŸ“Œ TU CITA DE ' + cuando.toUpperCase() + '</div>' +
       '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
       '<tr><td style="padding:5px 0;color:#64748B;width:100px">Servicio:</td><td style="padding:5px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (tratamiento || '') + '</td></tr>' +
-      (fecha ? '<tr><td style="padding:5px 0;color:#64748B">Día:</td><td style="padding:5px 0;font-weight:600;color:#071D4A">' + fecha + '</td></tr>' : '') +
+      (fecha ? '<tr><td style="padding:5px 0;color:#64748B">DÃ­a:</td><td style="padding:5px 0;font-weight:600;color:#071D4A">' + fecha + '</td></tr>' : '') +
       '<tr><td style="padding:5px 0;color:#64748B">Hora:</td><td style="padding:5px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (hora || '') + '</td></tr>' +
       '<tr><td style="padding:5px 0;color:#64748B">Sede:</td><td style="padding:5px 0;font-weight:800;color:' + BRAND.color_secundario + '">' + sedeNombre + '</td></tr>' +
       '</table>'
     ) +
 
-    // Dirección
+    // DirecciÃ³n
     '<div style="margin-top:12px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0">' +
-    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">📍 Sede ' + sedeNombre + '</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">ðŸ“ Sede ' + sedeNombre + '</div>' +
     '<div style="font-size:13px;color:#475569">' + sedeDir + '</div>' +
-    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:6px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">Ver en Google Maps →</a>' +
+    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:6px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">Ver en Google Maps â†’</a>' +
     '</div>' +
 
     // Recomendaciones
     '<div style="margin-top:10px;padding:12px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
-    '<p style="color:#92400E;font-size:12px;margin:0">⏱️ Llegar <b>15 minutos antes</b> y presentar tu DNI en recepción.</p>' +
+    '<p style="color:#92400E;font-size:12px;margin:0">â±ï¸ Llegar <b>15 minutos antes</b> y presentar tu DNI en recepciÃ³n.</p>' +
     '</div>' +
 
-    '<p style="color:#94A3B8;font-size:12px;margin-top:20px">Si necesitas reprogramar, llámanos o escríbenos por WhatsApp.</p>' +
-    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:12px">¡TE ESPERAMOS! 🤗</p>'
+    '<p style="color:#94A3B8;font-size:12px;margin-top:20px">Si necesitas reprogramar, llÃ¡manos o escrÃ­benos por WhatsApp.</p>' +
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:12px">Â¡TE ESPERAMOS! ðŸ¤—</p>'
   )
 }
 
-// Template email bienvenida paciente nuevo (branding dinámico)
+// Template email bienvenida paciente nuevo (branding dinÃ¡mico)
 function buildEmailBienvenida(nombre) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Bienvenida a ' + BRAND.nombre_empresa + ', ' + nombre.split(' ')[0] + ' ✨</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Bienvenida a ' + BRAND.nombre_empresa + ', ' + nombre.split(' ')[0] + ' âœ¨</div>',
     '<p style="color:#475569;font-size:15px">Nos alegra tenerte como parte de nuestra comunidad. En ' + BRAND.nombre_empresa + ' estamos comprometidos con tu bienestar y belleza.</p>' +
-    '<p style="color:#475569;font-size:15px">Ante cualquier consulta sobre tus tratamientos o para agendar tu próxima cita, no dudes en escribirnos.</p>' +
+    '<p style="color:#475569;font-size:15px">Ante cualquier consulta sobre tus tratamientos o para agendar tu prÃ³xima cita, no dudes en escribirnos.</p>' +
     '<div style="margin-top:24px;text-align:center">' +
-    '<a href="mailto:info@zivital.pe" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Contáctanos</a>' +
+    '<a href="mailto:info@zivital.pe" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">ContÃ¡ctanos</a>' +
     '</div>'
   )
 }
 
-// Template email confirmación de cita — COMPLETO con datos del paciente, dirección, estacionamiento
+// Template email confirmaciÃ³n de cita â€” COMPLETO con datos del paciente, direcciÃ³n, estacionamiento
 function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha, datos) {
   var d = datos || {}
   var esPL = sede && sede.toUpperCase().indexOf('PUEBLO') > -1
   var sedeNombre = esPL ? 'PUEBLO LIBRE' : 'SAN ISIDRO'
-  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio'
+  var sedeDir = esPL ? 'Av. Brasil 1170, Pueblo Libre - Lima' : 'Av. Javier Prado Este 996 - Ofi 501 - Lima Â· Edificio Capricornio'
   var sedeMaps = esPL ? 'https://goo.gl/maps/Cw36T6YPudyRNmVe6' : 'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
   var sedeRef = esPL ? 'A 4 cuadras de la Rambla (en la misma recta)' : ''
 
   // Estacionamiento por sede
   var estacionamiento = ''
   if (esPL) {
-    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">🚗 Estacionamiento</div>' +
+    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">ðŸš— Estacionamiento</div>' +
       '<div style="font-size:11px;color:#475569;line-height:1.6">' +
-      '✅ Frente a nuestra fachada (depende de la hora)<br>' +
-      '✅ <a href="https://maps.app.goo.gl/6uVF3qf4MVbYjGkn9" style="color:' + BRAND.color_secundario + '">Univ. Alas Peruanas</a> — Jr. Pedro Ruiz Gallo 251<br>' +
-      '✅ <a href="https://maps.app.goo.gl/aLcsQ2Pg1fmfZU3h6" style="color:' + BRAND.color_secundario + '">C.E.P. Santa María</a> — Jr. Pedro Ruiz Gallo 137<br>' +
-      '✅ <a href="https://goo.gl/maps/yhwvXKMothFwQJoH6" style="color:' + BRAND.color_secundario + '">Playa Otorcuna</a> — Juan Pablo Fernandini 1255' +
+      'âœ… Frente a nuestra fachada (depende de la hora)<br>' +
+      'âœ… <a href="https://maps.app.goo.gl/6uVF3qf4MVbYjGkn9" style="color:' + BRAND.color_secundario + '">Univ. Alas Peruanas</a> â€” Jr. Pedro Ruiz Gallo 251<br>' +
+      'âœ… <a href="https://maps.app.goo.gl/aLcsQ2Pg1fmfZU3h6" style="color:' + BRAND.color_secundario + '">C.E.P. Santa MarÃ­a</a> â€” Jr. Pedro Ruiz Gallo 137<br>' +
+      'âœ… <a href="https://goo.gl/maps/yhwvXKMothFwQJoH6" style="color:' + BRAND.color_secundario + '">Playa Otorcuna</a> â€” Juan Pablo Fernandini 1255' +
       '</div>'
   } else {
-    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">🚗 Estacionamiento</div>' +
+    estacionamiento = '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:6px">ðŸš— Estacionamiento</div>' +
       '<div style="font-size:11px;color:#475569;line-height:1.6">' +
-      '✅ Frente al Edificio Capricornio (según disponibilidad)<br>' +
-      '✅ <a href="https://maps.app.goo.gl/omT3RWCxVnrvg4MNA" style="color:' + BRAND.color_secundario + '">Gratuito (máx. 3h)</a> — Av. Aux. Rep. de Panamá<br>' +
-      '✅ <a href="https://maps.app.goo.gl/bM6xMzotahK5BQPJ8" style="color:' + BRAND.color_secundario + '">Los Portales</a> — C. Ricardo Angulo 197<br>' +
-      '✅ <a href="https://maps.app.goo.gl/YEfCyNqVS5imdkL89" style="color:' + BRAND.color_secundario + '">C.C. Santa Catalina</a> — Av. Carlos Villarán 500' +
+      'âœ… Frente al Edificio Capricornio (segÃºn disponibilidad)<br>' +
+      'âœ… <a href="https://maps.app.goo.gl/omT3RWCxVnrvg4MNA" style="color:' + BRAND.color_secundario + '">Gratuito (mÃ¡x. 3h)</a> â€” Av. Aux. Rep. de PanamÃ¡<br>' +
+      'âœ… <a href="https://maps.app.goo.gl/bM6xMzotahK5BQPJ8" style="color:' + BRAND.color_secundario + '">Los Portales</a> â€” C. Ricardo Angulo 197<br>' +
+      'âœ… <a href="https://maps.app.goo.gl/YEfCyNqVS5imdkL89" style="color:' + BRAND.color_secundario + '">C.C. Santa Catalina</a> â€” Av. Carlos VillarÃ¡n 500' +
       '</div>'
   }
 
   // Taxi info para San Isidro
   var taxiInfo = esPL ? '' :
     '<div style="margin-top:10px;padding:10px;background:#EBF5FF;border-radius:8px;border:1px solid #BFDBFE">' +
-    '<div style="font-size:11px;font-weight:700;color:#1E40AF">🚖 Si vienes en taxi con app</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#1E40AF">ðŸš– Si vienes en taxi con app</div>' +
     '<div style="font-size:10px;color:#475569;margin-top:4px">Buscar: <b>Av. Javier Prado Este 996, San Isidro</b> o <b>ZI VITAL SAN ISIDRO</b><br>' +
-    '⚠️ YANGO: usar <i>Av Pablo Carriquiry 106, San Isidro</i> (esquina del edificio)</div></div>'
+    'âš ï¸ YANGO: usar <i>Av Pablo Carriquiry 106, San Isidro</i> (esquina del edificio)</div></div>'
 
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Aquí te envío tu confirmación de cita ♥</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">AquÃ­ te envÃ­o tu confirmaciÃ³n de cita â™¥</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 6px">Hola <b>' + (nombre || '').split(' ')[0] + '</b>, tu cita ha sido registrada exitosamente.</p>' +
-    '<p style="color:#475569;font-size:12px;margin:0 0 20px">Te saluda tu Asesora de salud de la Clínica Estética Zi Vital 🏥👩‍⚕️</p>' +
+    '<p style="color:#475569;font-size:12px;margin:0 0 20px">Te saluda tu Asesora de salud de la ClÃ­nica EstÃ©tica Zi Vital ðŸ¥ðŸ‘©â€âš•ï¸</p>' +
 
     // Card de datos de la cita
     emailCard(
-      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">📌 CITA CONFIRMADA</div>' +
+      '<div style="font-size:13px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:12px">ðŸ“Œ CITA CONFIRMADA</div>' +
       '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
       '<tr><td style="padding:6px 0;color:#64748B;width:130px">Nombre:</td><td style="padding:6px 0;font-weight:600;color:#071D4A">' + (nombre || '') + '</td></tr>' +
       (d.dni ? '<tr><td style="padding:6px 0;color:#64748B">DNI / C.E:</td><td style="padding:6px 0;font-weight:600;color:#071D4A">' + d.dni + '</td></tr>' : '') +
       (d.email ? '<tr><td style="padding:6px 0;color:#64748B">E-mail:</td><td style="padding:6px 0;color:#071D4A">' + d.email + '</td></tr>' : '') +
-      (d.telefono ? '<tr><td style="padding:6px 0;color:#64748B">Teléfono:</td><td style="padding:6px 0;color:#071D4A">' + d.telefono + '</td></tr>' : '') +
-      '<tr><td style="padding:6px 0;color:#64748B">Día:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (fecha || '') + '</td></tr>' +
+      (d.telefono ? '<tr><td style="padding:6px 0;color:#64748B">TelÃ©fono:</td><td style="padding:6px 0;color:#071D4A">' + d.telefono + '</td></tr>' : '') +
+      '<tr><td style="padding:6px 0;color:#64748B">DÃ­a:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (fecha || '') + '</td></tr>' +
       '<tr><td style="padding:6px 0;color:#64748B">Horario:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (hora || '') + '</td></tr>' +
       '<tr><td style="padding:6px 0;color:#64748B">Servicio:</td><td style="padding:6px 0;font-weight:700;color:' + BRAND.color_secundario + '">' + (tratamiento || '') + '</td></tr>' +
       '<tr><td style="padding:6px 0;color:#64748B">Sede:</td><td style="padding:6px 0;font-weight:800;color:' + BRAND.color_secundario + '">' + sedeNombre + '</td></tr>' +
       '</table>'
     ) +
 
-    // Dirección con mapa
+    // DirecciÃ³n con mapa
     '<div style="margin-top:16px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0">' +
-    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">📍 Sede ' + sedeNombre + '</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#071D4A;margin-bottom:4px">ðŸ“ Sede ' + sedeNombre + '</div>' +
     '<div style="font-size:13px;color:#475569">' + sedeDir + '</div>' +
     (sedeRef ? '<div style="font-size:11px;color:#94A3B8;margin-top:2px">' + sedeRef + '</div>' : '') +
-    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:8px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">📍 Ver en Google Maps →</a>' +
+    '<a href="' + sedeMaps + '" style="display:inline-block;margin-top:8px;font-size:11px;color:' + BRAND.color_secundario + ';font-weight:600;text-decoration:none">ðŸ“ Ver en Google Maps â†’</a>' +
     '</div>' +
 
     // Recomendaciones
     '<div style="margin-top:12px;padding:14px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">' +
-    '<p style="color:#92400E;font-size:12px;margin:0">⏱️ Llegar <b>15 minutos antes</b> y presentar su DNI en recepción.</p>' +
-    '<p style="color:#92400E;font-size:11px;margin:6px 0 0">✔️ La consulta/tratamiento es personalizado. Puede haber tiempo de espera según la afluencia. Agradecemos su comprensión.</p>' +
+    '<p style="color:#92400E;font-size:12px;margin:0">â±ï¸ Llegar <b>15 minutos antes</b> y presentar su DNI en recepciÃ³n.</p>' +
+    '<p style="color:#92400E;font-size:11px;margin:6px 0 0">âœ”ï¸ La consulta/tratamiento es personalizado. Puede haber tiempo de espera segÃºn la afluencia. Agradecemos su comprensiÃ³n.</p>' +
     '</div>' +
 
     // Estacionamiento
@@ -2473,12 +2473,12 @@ function buildEmailConfirmacionCita(nombre, tratamiento, hora, sede, fecha, dato
 
     taxiInfo +
 
-    '<p style="color:#94A3B8;font-size:11px;margin-top:20px;text-align:center">📱 Agréganos a tus contactos como <b>ZI VITAL</b> para recibir recordatorios y cupones de descuento.</p>' +
-    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:16px">¡TE ESPERAMOS! 🤗</p>'
+    '<p style="color:#94A3B8;font-size:11px;margin-top:20px;text-align:center">ðŸ“± AgrÃ©ganos a tus contactos como <b>ZI VITAL</b> para recibir recordatorios y cupones de descuento.</p>' +
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:16px">Â¡TE ESPERAMOS! ðŸ¤—</p>'
   )
 }
 
-// Template email recibo de venta (nueva — branding dinámico)
+// Template email recibo de venta (nueva â€” branding dinÃ¡mico)
 function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, fecha, ventaId) {
   var sym = moneda === 'USD' ? '$ ' : 'S/ '
   var itemsHtml = ''
@@ -2492,15 +2492,15 @@ function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, f
     })
   }
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Recibo de pago 🧾</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, aquí tienes el detalle de tu compra.</p>' +
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Recibo de pago ðŸ§¾</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, aquÃ­ tienes el detalle de tu compra.</p>' +
     emailCard(
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-      '<span style="font-size:11px;color:#94A3B8">Nro. Operación</span>' +
-      '<span style="font-size:13px;font-weight:700;color:' + BRAND.color_secundario + '">' + (ventaId || '—') + '</span>' +
+      '<span style="font-size:11px;color:#94A3B8">Nro. OperaciÃ³n</span>' +
+      '<span style="font-size:13px;font-weight:700;color:' + BRAND.color_secundario + '">' + (ventaId || 'â€”') + '</span>' +
       '</div>' +
       '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
-      emailInfoBox('Fecha', fecha || '') + emailInfoBox('Sede', sede || '') + emailInfoBox('Método', metodoPago || '') +
+      emailInfoBox('Fecha', fecha || '') + emailInfoBox('Sede', sede || '') + emailInfoBox('MÃ©todo', metodoPago || '') +
       '</div>'
     ) +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
@@ -2514,48 +2514,48 @@ function buildEmailReciboVenta(nombre, items, total, moneda, metodoPago, sede, f
     '<td style="padding:12px;text-align:right;font-size:16px;font-weight:800;color:' + BRAND.color_secundario + '">' + sym + parseFloat(total || 0).toFixed(2) + '</td>' +
     '</tr></tfoot></table>' +
     '<div style="margin-top:20px;padding:14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">' +
-    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Términos y condiciones</div>' +
+    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">TÃ©rminos y condiciones</div>' +
     '<div style="font-size:8px;color:#94A3B8;line-height:1.5">' +
-    '• Algunas promociones aplican únicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de débito o crédito.<br>' +
-    '• No se realizan devoluciones post pago. En caso de requerir cambio, se emitirá un cupón por servicios del mismo monto o mayor. No aplica para productos.<br>' +
-    '• Las cotizaciones tienen validez de 7 días calendario. Posterior a ello, los precios están sujetos a cambios sin previo aviso.<br>' +
-    '• Este recibo es un comprobante interno de ' + BRAND.nombre_empresa + '. No constituye factura ni boleta fiscal.' +
+    'â€¢ Algunas promociones aplican Ãºnicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de dÃ©bito o crÃ©dito.<br>' +
+    'â€¢ No se realizan devoluciones post pago. En caso de requerir cambio, se emitirÃ¡ un cupÃ³n por servicios del mismo monto o mayor. No aplica para productos.<br>' +
+    'â€¢ Las cotizaciones tienen validez de 7 dÃ­as calendario. Posterior a ello, los precios estÃ¡n sujetos a cambios sin previo aviso.<br>' +
+    'â€¢ Este recibo es un comprobante interno de ' + BRAND.nombre_empresa + '. No constituye factura ni boleta fiscal.' +
     '</div></div>'
   )
 }
 
-// Template email seguimiento post-tratamiento (nueva — branding dinámico)
+// Template email seguimiento post-tratamiento (nueva â€” branding dinÃ¡mico)
 function buildEmailSeguimiento(nombre, tratamiento, diasDesde) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¿Cómo te fue con tu tratamiento? 💆‍♀️</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, hace ' + diasDesde + ' días realizaste tu tratamiento de <b>' + tratamiento + '</b> y queremos saber cómo te sientes.</p>' +
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Â¿CÃ³mo te fue con tu tratamiento? ðŸ’†â€â™€ï¸</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + nombre.split(' ')[0] + '</b>, hace ' + diasDesde + ' dÃ­as realizaste tu tratamiento de <b>' + tratamiento + '</b> y queremos saber cÃ³mo te sientes.</p>' +
     emailCard(
-      '<div style="font-size:14px;color:#475569">Tu bienestar es nuestra prioridad. Si tienes alguna consulta sobre los resultados o cuidados posteriores, estamos aquí para ayudarte.</div>'
+      '<div style="font-size:14px;color:#475569">Tu bienestar es nuestra prioridad. Si tienes alguna consulta sobre los resultados o cuidados posteriores, estamos aquÃ­ para ayudarte.</div>'
     ) +
     '<div style="margin-top:20px;text-align:center">' +
-    '<a href="https://wa.me/51999999999?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento%20de%20' + encodeURIComponent(tratamiento) + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Escríbenos por WhatsApp</a>' +
+    '<a href="https://wa.me/51999999999?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento%20de%20' + encodeURIComponent(tratamiento) + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">EscrÃ­benos por WhatsApp</a>' +
     '</div>' +
-    '<p style="color:#94A3B8;font-size:12px;margin-top:20px;text-align:center">¿Lista para tu próxima sesión? Agenda tu cita respondiendo a este correo.</p>'
+    '<p style="color:#94A3B8;font-size:12px;margin-top:20px;text-align:center">Â¿Lista para tu prÃ³xima sesiÃ³n? Agenda tu cita respondiendo a este correo.</p>'
   )
 }
 
-// ═══ TEMPLATE: Agradecimiento post-visita ═══
+// â•â•â• TEMPLATE: Agradecimiento post-visita â•â•â•
 function buildEmailAgradecimiento(nombre, tratamiento, sede, fecha) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Gracias por tu visita! 🌟</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Â¡Gracias por tu visita! ðŸŒŸ</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, fue un placer atenderte en tu tratamiento de <b>' + (tratamiento||'') + '</b>' + (sede ? ' en nuestra sede de <b>' + sede + '</b>' : '') + '.</p>' +
     emailCard(
-      '<div style="font-size:14px;color:#475569;line-height:1.6">Tu bienestar y satisfacción son nuestra prioridad. Esperamos que los resultados superen tus expectativas. 💆‍♀️</div>' +
+      '<div style="font-size:14px;color:#475569;line-height:1.6">Tu bienestar y satisfacciÃ³n son nuestra prioridad. Esperamos que los resultados superen tus expectativas. ðŸ’†â€â™€ï¸</div>' +
       '<div style="font-size:12px;color:#6B7BA8;margin-top:8px">Si tienes alguna consulta sobre los cuidados posteriores de tu tratamiento, no dudes en escribirnos.</div>'
     ) +
     '<div style="text-align:center;margin-top:20px">' +
-    '<a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">💬 Escríbenos por WhatsApp</a>' +
+    '<a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20consultar%20sobre%20mi%20tratamiento" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">ðŸ’¬ EscrÃ­benos por WhatsApp</a>' +
     '</div>' +
-    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:20px">¡Nos vemos pronto! 🤗</p>'
+    '<p style="color:' + BRAND.color_secundario + ';font-size:14px;font-weight:700;text-align:center;margin-top:20px">Â¡Nos vemos pronto! ðŸ¤—</p>'
   )
 }
 
-// ═══ TEMPLATE: Recordatorio saldo pendiente ═══
+// â•â•â• TEMPLATE: Recordatorio saldo pendiente â•â•â•
 function buildEmailSaldoPendiente(nombre, items) {
   var detalleHtml = (items||[]).map(function(it) {
     return '<tr><td style="padding:8px 12px;font-size:13px;font-weight:600;color:#334155">' + (it.tratamiento||'') + '</td>' +
@@ -2564,74 +2564,74 @@ function buildEmailSaldoPendiente(nombre, items) {
   }).join('')
   var totalSaldo = (items||[]).reduce(function(s,it){return s+parseFloat(it.saldo||0)},0)
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Tienes un saldo pendiente 💳</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Tienes un saldo pendiente ðŸ’³</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, te recordamos que tienes pagos pendientes por completar:</p>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
     '<thead><tr style="background:' + BRAND.color_primario + '"><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase">Tratamiento</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pagado</th><th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748B">Pendiente</th></tr></thead>' +
     '<tbody>' + detalleHtml + '</tbody>' +
     '<tfoot><tr style="background:' + BRAND.color_primario + '"><td style="padding:10px 12px;font-weight:700">TOTAL PENDIENTE</td><td></td><td style="padding:10px 12px;text-align:right;font-size:16px;font-weight:800;color:#DC2626">S/ ' + totalSaldo.toFixed(2) + '</td></tr></tfoot></table>' +
-    '<p style="color:#475569;font-size:13px">Puedes acercarte a cualquiera de nuestras sedes para completar tu pago, o comunícate con nosotros para coordinar.</p>' +
+    '<p style="color:#475569;font-size:13px">Puedes acercarte a cualquiera de nuestras sedes para completar tu pago, o comunÃ­cate con nosotros para coordinar.</p>' +
     '<div style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20coordinar%20mi%20pago%20pendiente" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Coordinar pago</a></div>'
   )
 }
 
-// ═══ TEMPLATE: Cumpleaños ═══
+// â•â•â• TEMPLATE: CumpleaÃ±os â•â•â•
 function buildEmailCumpleanos(nombre) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Feliz cumpleaños, ' + (nombre||'').split(' ')[0] + '! 🎂🎉</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 16px">En <b>' + BRAND.nombre_empresa + '</b> queremos celebrar contigo este día tan especial.</p>' +
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Â¡Feliz cumpleaÃ±os, ' + (nombre||'').split(' ')[0] + '! ðŸŽ‚ðŸŽ‰</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">En <b>' + BRAND.nombre_empresa + '</b> queremos celebrar contigo este dÃ­a tan especial.</p>' +
     emailCard(
       '<div style="text-align:center">' +
-      '<div style="font-size:40px;margin-bottom:8px">🎁</div>' +
-      '<div style="font-size:18px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:4px">¡Te regalamos un 10% de descuento!</div>' +
-      '<div style="font-size:13px;color:#6B7BA8">En tu próximo tratamiento este mes. Solo menciona este correo al momento de tu visita.</div>' +
+      '<div style="font-size:40px;margin-bottom:8px">ðŸŽ</div>' +
+      '<div style="font-size:18px;font-weight:800;color:' + BRAND.color_secundario + ';margin-bottom:4px">Â¡Te regalamos un 10% de descuento!</div>' +
+      '<div style="font-size:13px;color:#6B7BA8">En tu prÃ³ximo tratamiento este mes. Solo menciona este correo al momento de tu visita.</div>' +
       '</div>'
     ) +
-    '<p style="color:#475569;font-size:13px;text-align:center">Agenda tu cita y disfruta de tu regalo de cumpleaños. 🥳</p>' +
-    '<div style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20agendar%20mi%20cita%20de%20cumplea%C3%B1os" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">🎂 Agendar mi cita</a></div>'
+    '<p style="color:#475569;font-size:13px;text-align:center">Agenda tu cita y disfruta de tu regalo de cumpleaÃ±os. ðŸ¥³</p>' +
+    '<div style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20agendar%20mi%20cita%20de%20cumplea%C3%B1os" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">ðŸŽ‚ Agendar mi cita</a></div>'
   )
 }
 
-// ═══ TEMPLATE: Reactivación paciente inactivo ═══
+// â•â•â• TEMPLATE: ReactivaciÃ³n paciente inactivo â•â•â•
 function buildEmailReactivacion(nombre, ultimoTrat, diasSinVisita) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Te extrañamos, ' + (nombre||'').split(' ')[0] + ' 💚</div>',
-    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Han pasado <b>' + (diasSinVisita||'') + ' días</b> desde tu último tratamiento' + (ultimoTrat ? ' de <b>' + ultimoTrat + '</b>' : '') + ' en ' + BRAND.nombre_empresa + '.</p>' +
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Te extraÃ±amos, ' + (nombre||'').split(' ')[0] + ' ðŸ’š</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 16px">Han pasado <b>' + (diasSinVisita||'') + ' dÃ­as</b> desde tu Ãºltimo tratamiento' + (ultimoTrat ? ' de <b>' + ultimoTrat + '</b>' : '') + ' en ' + BRAND.nombre_empresa + '.</p>' +
     emailCard(
       '<div style="font-size:14px;color:#475569;line-height:1.6">Tu piel y tu bienestar nos importan. Queremos que sigas disfrutando de los beneficios de nuestros tratamientos con las mejores condiciones.</div>'
     ) +
     '<div style="margin-top:16px;padding:16px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;text-align:center">' +
-    '<div style="font-size:16px;font-weight:800;color:#059669;margin-bottom:4px">🌿 Condiciones especiales para tu regreso</div>' +
-    '<div style="font-size:13px;color:#475569">Agenda tu cita esta semana y recibe atención preferencial.</div>' +
+    '<div style="font-size:16px;font-weight:800;color:#059669;margin-bottom:4px">ðŸŒ¿ Condiciones especiales para tu regreso</div>' +
+    '<div style="font-size:13px;color:#475569">Agenda tu cita esta semana y recibe atenciÃ³n preferencial.</div>' +
     '</div>' +
-    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reagendar%20mi%20tratamiento" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">💬 Quiero volver</a></div>'
+    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reagendar%20mi%20tratamiento" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">ðŸ’¬ Quiero volver</a></div>'
   )
 }
 
-// ═══ TEMPLATE: No asistencia ═══
+// â•â•â• TEMPLATE: No asistencia â•â•â•
 function buildEmailNoAsistencia(nombre, tratamiento, fecha, hora, sede) {
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Lamentamos que no hayas podido asistir 😔</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Lamentamos que no hayas podido asistir ðŸ˜”</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 16px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, notamos que no pudiste asistir a tu cita de <b>' + (tratamiento||'') + '</b> programada para el ' + (fecha||'') + ' a las ' + (hora||'') + '.</p>' +
     emailCard(
-      '<div style="font-size:14px;color:#475569">Entendemos que pueden surgir imprevistos. Tu salud y bienestar siguen siendo nuestra prioridad, y queremos ayudarte a reprogramar tu cita sin ningún inconveniente.</div>'
+      '<div style="font-size:14px;color:#475569">Entendemos que pueden surgir imprevistos. Tu salud y bienestar siguen siendo nuestra prioridad, y queremos ayudarte a reprogramar tu cita sin ningÃºn inconveniente.</div>'
     ) +
-    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reprogramar%20mi%20cita%20de%20' + encodeURIComponent(tratamiento||'') + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">🔄 Reprogramar mi cita</a></div>' +
-    '<p style="color:#94A3B8;font-size:12px;margin-top:16px;text-align:center">También puedes llamarnos o escribirnos por WhatsApp para coordinar una nueva fecha.</p>'
+    '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reprogramar%20mi%20cita%20de%20' + encodeURIComponent(tratamiento||'') + '" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">ðŸ”„ Reprogramar mi cita</a></div>' +
+    '<p style="color:#94A3B8;font-size:12px;margin-top:16px;text-align:center">TambiÃ©n puedes llamarnos o escribirnos por WhatsApp para coordinar una nueva fecha.</p>'
   )
 }
 
-// ═══ TEMPLATE: Confirmación de pago ═══
+// â•â•â• TEMPLATE: ConfirmaciÃ³n de pago â•â•â•
 function buildEmailConfirmacionPago(nombre, tratamiento, monto, saldoActual, metodoPago) {
   var saldoHtml = parseFloat(saldoActual||0) > 0.01 ?
     '<div style="margin-top:16px;padding:14px;background:#FEF3C7;border-radius:10px;border:1px solid #FDE68A">' +
-    '<div style="font-size:13px;color:#92400E;font-weight:700">💰 Saldo pendiente: S/ ' + parseFloat(saldoActual).toFixed(2) + '</div>' +
-    '<div style="font-size:11px;color:#92400E;margin-top:4px">Puedes completar tu pago en tu próxima visita o comunicándote con nosotros.</div></div>' :
+    '<div style="font-size:13px;color:#92400E;font-weight:700">ðŸ’° Saldo pendiente: S/ ' + parseFloat(saldoActual).toFixed(2) + '</div>' +
+    '<div style="font-size:11px;color:#92400E;margin-top:4px">Puedes completar tu pago en tu prÃ³xima visita o comunicÃ¡ndote con nosotros.</div></div>' :
     '<div style="margin-top:16px;padding:14px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;text-align:center">' +
-    '<div style="font-size:16px;margin-bottom:4px">🎉</div>' +
-    '<div style="font-size:14px;font-weight:700;color:#059669">Pago completo — Sin saldo pendiente</div></div>'
+    '<div style="font-size:16px;margin-bottom:4px">ðŸŽ‰</div>' +
+    '<div style="font-size:14px;font-weight:700;color:#059669">Pago completo â€” Sin saldo pendiente</div></div>'
   return emailShell(
-    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">¡Pago recibido con éxito! ✅</div>',
+    '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:22px;font-weight:800">Â¡Pago recibido con Ã©xito! âœ…</div>',
     '<p style="color:#475569;font-size:15px;margin:0 0 20px">Hola <b>' + (nombre||'').split(' ')[0] + '</b>, muchas gracias por tu confianza. Confirmamos que hemos recibido tu pago:</p>' +
     // Card principal de pago
     '<div style="background:linear-gradient(135deg,' + BRAND.color_primario + ',' + BRAND.color_degradado2 + ');border-radius:14px;padding:24px;margin-bottom:16px;text-align:center">' +
@@ -2639,27 +2639,27 @@ function buildEmailConfirmacionPago(nombre, tratamiento, monto, saldoActual, met
     '<div style="font-size:36px;font-weight:800;color:#059669;font-family:Exo 2,sans-serif">S/ ' + parseFloat(monto||0).toFixed(2) + '</div>' +
     '<div style="margin-top:12px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">' +
     emailInfoBox('Servicio', tratamiento||'') +
-    (metodoPago ? emailInfoBox('Método', metodoPago) : '') +
+    (metodoPago ? emailInfoBox('MÃ©todo', metodoPago) : '') +
     '</div></div>' +
     saldoHtml +
     // Agradecimiento
-    '<p style="color:#475569;font-size:13px;margin-top:20px;text-align:center">Agradecemos tu preferencia. Tu bienestar es nuestra prioridad. 💆‍♀️</p>' +
-    '<div style="text-align:center;margin-top:12px"><a href="https://wa.me/51960618468" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:13px">💬 ¿Consultas? Escríbenos</a></div>' +
-    // Términos y condiciones
+    '<p style="color:#475569;font-size:13px;margin-top:20px;text-align:center">Agradecemos tu preferencia. Tu bienestar es nuestra prioridad. ðŸ’†â€â™€ï¸</p>' +
+    '<div style="text-align:center;margin-top:12px"><a href="https://wa.me/51960618468" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:13px">ðŸ’¬ Â¿Consultas? EscrÃ­benos</a></div>' +
+    // TÃ©rminos y condiciones
     '<div style="margin-top:24px;padding:14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">' +
-    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Términos y condiciones</div>' +
+    '<div style="font-size:8px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">TÃ©rminos y condiciones</div>' +
     '<div style="font-size:8px;color:#94A3B8;line-height:1.5">' +
-    '• Algunas promociones aplican únicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de débito o crédito.<br>' +
-    '• No se realizan devoluciones post pago. En caso de requerir cambio, se emitirá un cupón por servicios del mismo monto o mayor. No aplica para productos.<br>' +
-    '• Las cotizaciones tienen validez de 7 días calendario. Posterior a ello, los precios están sujetos a cambios sin previo aviso.<br>' +
-    '• Este comprobante es un documento interno de ' + BRAND.nombre_empresa + ' y no constituye boleta ni factura fiscal.' +
+    'â€¢ Algunas promociones aplican Ãºnicamente para pagos en efectivo, transferencia, Yape o Plin. No aplican con tarjeta de dÃ©bito o crÃ©dito.<br>' +
+    'â€¢ No se realizan devoluciones post pago. En caso de requerir cambio, se emitirÃ¡ un cupÃ³n por servicios del mismo monto o mayor. No aplica para productos.<br>' +
+    'â€¢ Las cotizaciones tienen validez de 7 dÃ­as calendario. Posterior a ello, los precios estÃ¡n sujetos a cambios sin previo aviso.<br>' +
+    'â€¢ Este comprobante es un documento interno de ' + BRAND.nombre_empresa + ' y no constituye boleta ni factura fiscal.' +
     '</div></div>'
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// EJECUTOR DE ACCIONES — se llama después de sql_query si hay accion
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// EJECUTOR DE ACCIONES â€” se llama despuÃ©s de sql_query si hay accion
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function executeAction(agent, task, queryResult) {
   var accion = (task.input_config || {}).accion
   var template = (task.input_config || {}).template
@@ -2667,13 +2667,13 @@ function executeAction(agent, task, queryResult) {
 
   var data = (queryResult && queryResult.data) ? queryResult.data : []
   if (!data.length) {
-    console.log('[ACTION] ' + agent.nombre + ' — ' + accion + ': sin datos, nada que hacer')
+    console.log('[ACTION] ' + agent.nombre + ' â€” ' + accion + ': sin datos, nada que hacer')
     return Promise.resolve()
   }
 
-  // ═══ ENVÍO EN LOTES — evitar rate limiting de Resend ═══
-  // Envía de a 3 emails, espera 2 segundos entre lotes
-  // Al final envía reporte al admin (César)
+  // â•â•â• ENVÃO EN LOTES â€” evitar rate limiting de Resend â•â•â•
+  // EnvÃ­a de a 3 emails, espera 2 segundos entre lotes
+  // Al final envÃ­a reporte al admin (CÃ©sar)
   function sendInBatches(emails, batchSize, delayMs) {
     var results = { ok: 0, skip: 0, fail: 0, errors: [] }
     var batches = []
@@ -2685,12 +2685,12 @@ function executeAction(agent, task, queryResult) {
       chain = chain.then(function() {
         return Promise.all(batch.map(function(e) {
           return e.sendFn().then(function(r) {
-            if (r && r.skip) { results.skip++; console.log('[CARTERO] Skip ' + e.email + ' — ya enviado') }
-            else if (r && r.ok) { results.ok++; console.log('[CARTERO] ✓ ' + e.email) }
-            else { results.fail++; results.errors.push(e.email + ': respuesta inesperada'); console.log('[CARTERO] ⚠ ' + e.email + ' — sin confirmación') }
+            if (r && r.skip) { results.skip++; console.log('[CARTERO] Skip ' + e.email + ' â€” ya enviado') }
+            else if (r && r.ok) { results.ok++; console.log('[CARTERO] âœ“ ' + e.email) }
+            else { results.fail++; results.errors.push(e.email + ': respuesta inesperada'); console.log('[CARTERO] âš  ' + e.email + ' â€” sin confirmaciÃ³n') }
           }).catch(function(err) {
             results.fail++; results.errors.push(e.email + ': ' + (err.message || err))
-            console.log('[CARTERO] ✕ ' + e.email + ' — ' + (err.message || err))
+            console.log('[CARTERO] âœ• ' + e.email + ' â€” ' + (err.message || err))
           })
         })).then(function() {
           if (bIdx < batches.length - 1) {
@@ -2715,58 +2715,58 @@ function executeAction(agent, task, queryResult) {
   }
 
   function sendAdminReport(agent, template, results, totalData) {
-    var status = results.fail > 0 ? '⚠️' : '✅'
-    var titulo = status + ' ' + template + ' — ' + results.ok + '/' + totalData + ' enviados'
+    var status = results.fail > 0 ? 'âš ï¸' : 'âœ…'
+    var titulo = status + ' ' + template + ' â€” ' + results.ok + '/' + totalData + ' enviados'
     var detalle = 'OK:' + results.ok + ' Skip:' + results.skip + ' Fail:' + results.fail
     if (results.errors.length) detalle += ' | Errores: ' + results.errors.join(', ')
 
     // SIEMPRE guardar alerta en panel
     saveEmailAlerta(results.fail > 0 ? 'error' : 'exito', template, titulo, detalle)
 
-    // Solo enviar reporte por email si son 3+ envíos
+    // Solo enviar reporte por email si son 3+ envÃ­os
     if (totalData < 3) {
       console.log('[CARTERO] Reporte unitario, solo alerta panel: ' + titulo)
       return
     }
 
     var adminEmail = 'jaureguitorrescesar@gmail.com'
-    var subject = status + ' Elena: ' + template + ' — ' + results.ok + '/' + totalData
+    var subject = status + ' Elena: ' + template + ' â€” ' + results.ok + '/' + totalData
     var errorList = results.errors.length ? '<div style="margin-top:12px;padding:12px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA"><div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:6px">Errores (' + results.fail + '):</div><div style="font-size:10px;color:#991B1B">' + results.errors.join('<br>') + '</div></div>' : ''
     var html = emailShell(
-      '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:20px;font-weight:800">📊 Reporte de envío — Elena</div>',
+      '<div style="color:' + (BRAND.color_header_texto || '#FFFFFF') + ';font-size:20px;font-weight:800">ðŸ“Š Reporte de envÃ­o â€” Elena</div>',
       '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#059669">' + results.ok + '</div><div style="font-size:9px;color:#6B7BA8">Enviados</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F0F4FC;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0A4FBF">' + results.skip + '</div><div style="font-size:9px;color:#6B7BA8">Ya enviados</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:' + (results.fail > 0 ? '#FEF2F2' : '#F0FDF4') + ';border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:' + (results.fail > 0 ? '#DC2626' : '#059669') + '">' + results.fail + '</div><div style="font-size:9px;color:#6B7BA8">Fallidos</div></div>' +
       '<div style="flex:1;min-width:80px;padding:12px;background:#F8FAFF;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#071D4A">' + totalData + '</div><div style="font-size:9px;color:#6B7BA8">Total</div></div>' +
       '</div>' +
-      '<p style="font-size:13px;color:#475569"><b>Tipo:</b> ' + template + ' · <b>Hora:</b> ' + new Date(Date.now() + (-5*60)*60000).toISOString().replace('T', ' ').slice(11,19) + ' Lima</p>' +
+      '<p style="font-size:13px;color:#475569"><b>Tipo:</b> ' + template + ' Â· <b>Hora:</b> ' + new Date(Date.now() + (-5*60)*60000).toISOString().replace('T', ' ').slice(11,19) + ' Lima</p>' +
       errorList
     )
     fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + RESEND_KEY_AG, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Clínica Zi Vital <info@zivital.pe>', to: [adminEmail], subject: subject, html: html })
+      body: JSON.stringify({ from: 'ClÃ­nica Zi Vital <info@zivital.pe>', to: [adminEmail], subject: subject, html: html })
     }).catch(function(e) { console.log('[CARTERO] Error reporte admin: ' + e.message) })
   }
 
-  // ─── CARTERO: enviar emails reales ───────────────────────────
+  // â”€â”€â”€ CARTERO: enviar emails reales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'recordatorio_manana') {
     var emails = data.filter(function(c) { return c.correo }).map(function(cita) {
       return {
         email: cita.correo,
         sendFn: function() {
           var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, true)
-          return sendAgentEmail(cita.correo, 'Tu cita de mañana en Zi Vital — ' + cita.hora_cita, html, 'recordatorio_manana', cita.correo + '_' + cita.fecha_cita)
+          return sendAgentEmail(cita.correo, 'Tu cita de maÃ±ana en Zi Vital â€” ' + cita.hora_cita, html, 'recordatorio_manana', cita.correo + '_' + cita.fecha_cita)
             .then(function(r) {
-              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio mañana → ' + cita.nombre, { correo: cita.correo, tratamiento: cita.tratamiento })
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio maÃ±ana â†’ ' + cita.nombre, { correo: cita.correo, tratamiento: cita.tratamiento })
               return r
             })
         }
       }
     })
     return sendInBatches(emails, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '📧 ' + results.ok + '/' + emails.length + ' recordatorios mañana ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ“§ ' + results.ok + '/' + emails.length + ' recordatorios maÃ±ana âœ“' })
       sendAdminReport(agent, 'recordatorio_manana', results, data.length)
     })
   }
@@ -2777,16 +2777,16 @@ function executeAction(agent, task, queryResult) {
         email: cita.correo,
         sendFn: function() {
           var html = buildEmailRecordatorio(cita.nombre, cita.tratamiento, cita.hora_cita, cita.sede, cita.fecha_cita, false)
-          return sendAgentEmail(cita.correo, '¡Tu cita es hoy! ' + cita.hora_cita + ' — Zi Vital', html, 'recordatorio_hoy', cita.correo + '_' + cita.fecha_cita)
+          return sendAgentEmail(cita.correo, 'Â¡Tu cita es hoy! ' + cita.hora_cita + ' â€” Zi Vital', html, 'recordatorio_hoy', cita.correo + '_' + cita.fecha_cita)
             .then(function(r) {
-              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio hoy → ' + cita.nombre, { correo: cita.correo })
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recordatorio hoy â†’ ' + cita.nombre, { correo: cita.correo })
               return r
             })
         }
       }
     })
     return sendInBatches(emails2, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '📧 ' + results.ok + '/' + emails2.length + ' recordatorios hoy ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ“§ ' + results.ok + '/' + emails2.length + ' recordatorios hoy âœ“' })
       sendAdminReport(agent, 'recordatorio_hoy', results, data.length)
     })
   }
@@ -2797,132 +2797,132 @@ function executeAction(agent, task, queryResult) {
       var email = p['Email'] || p.email
       var nombre = p['Nombres'] || p.nombre || 'Paciente'
       var html = buildEmailBienvenida(nombre)
-      return sendAgentEmail(email, '¡Bienvenida a Zi Vital, ' + nombre.split(' ')[0] + '! ✨', html, 'bienvenida', p.numero_limpio || email)
+      return sendAgentEmail(email, 'Â¡Bienvenida a Zi Vital, ' + nombre.split(' ')[0] + '! âœ¨', html, 'bienvenida', p.numero_limpio || email)
         .then(function(r) {
-          if (r.ok) logAction(agent.id, 'email_enviado', 'Email bienvenida → ' + nombre, { email: email })
+          if (r.ok) logAction(agent.id, 'email_enviado', 'Email bienvenida â†’ ' + nombre, { email: email })
         })
     })
     return Promise.all(sends3)
   }
 
-  // ─── CARTERO: comprobante de ventas del día (11pm) ───────────
+  // â”€â”€â”€ CARTERO: comprobante de ventas del dÃ­a (11pm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'recibo_venta') {
     var emails4 = data.filter(function(v) { return v.correo }).map(function(venta) {
       return {
         email: venta.correo,
         sendFn: function() {
           var nombre = (venta.nombres || '') + ' ' + (venta.apellidos || '')
-          var items = [{ nombre: venta.detalle_items || 'Servicios del día', cantidad: 1, subtotal: venta.total }]
+          var items = [{ nombre: venta.detalle_items || 'Servicios del dÃ­a', cantidad: 1, subtotal: venta.total }]
           var html = buildEmailReciboVenta(nombre, items, venta.total, 'PEN', '', venta.sede || '', venta.fecha || '', '')
-          return sendAgentEmail(venta.correo, '🧾 Tu comprobante de hoy — Zi Vital', html, 'recibo_venta', venta.correo + '_' + venta.fecha)
+          return sendAgentEmail(venta.correo, 'ðŸ§¾ Tu comprobante de hoy â€” Zi Vital', html, 'recibo_venta', venta.correo + '_' + venta.fecha)
             .then(function(r) {
-              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Comprobante venta → ' + nombre.trim(), { correo: venta.correo, total: venta.total })
+              if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Comprobante venta â†’ ' + nombre.trim(), { correo: venta.correo, total: venta.total })
               return r
             })
         }
       }
     })
     return sendInBatches(emails4, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '🧾 ' + results.ok + '/' + emails4.length + ' comprobantes ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ§¾ ' + results.ok + '/' + emails4.length + ' comprobantes âœ“' })
       sendAdminReport(agent, 'recibo_venta', results, data.length)
     })
   }
 
-  // ─── CARTERO: agradecimiento post-visita ───────────
+  // â”€â”€â”€ CARTERO: agradecimiento post-visita â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'agradecimiento_visita') {
     var emails5 = data.filter(function(v) { return v.correo }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var html = buildEmailAgradecimiento(p.nombre, p.tratamiento, p.sede, p.fecha)
-        return sendAgentEmail(p.correo, '🌟 ¡Gracias por tu visita! — Zi Vital', html, 'agradecimiento_visita', p.correo + '_' + (p.fecha || ''))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Agradecimiento → ' + p.nombre, { correo: p.correo }); return r })
+        return sendAgentEmail(p.correo, 'ðŸŒŸ Â¡Gracias por tu visita! â€” Zi Vital', html, 'agradecimiento_visita', p.correo + '_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Agradecimiento â†’ ' + p.nombre, { correo: p.correo }); return r })
       }}
     })
     return sendInBatches(emails5, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '🌟 ' + results.ok + ' agradecimientos ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸŒŸ ' + results.ok + ' agradecimientos âœ“' })
       sendAdminReport(agent, 'agradecimiento_visita', results, data.length)
     })
   }
 
-  // ─── CARTERO: saldos pendientes ───────────
+  // â”€â”€â”€ CARTERO: saldos pendientes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'saldo_pendiente') {
     var emails6 = data.filter(function(v) { return v.correo }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var items = [{ tratamiento: p.tratamiento || '', pagado: p.pagado || 0, saldo: p.saldo || 0 }]
         var html = buildEmailSaldoPendiente(p.nombre, items)
-        return sendAgentEmail(p.correo, '💳 Saldo pendiente — Zi Vital', html, 'saldo_pendiente', p.correo + '_saldo_semanal')
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Saldo pendiente → ' + p.nombre, { correo: p.correo, saldo: p.saldo }); return r })
+        return sendAgentEmail(p.correo, 'ðŸ’³ Saldo pendiente â€” Zi Vital', html, 'saldo_pendiente', p.correo + '_saldo_semanal')
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Saldo pendiente â†’ ' + p.nombre, { correo: p.correo, saldo: p.saldo }); return r })
       }}
     })
     return sendInBatches(emails6, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '💳 ' + results.ok + ' recordatorios saldo ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ’³ ' + results.ok + ' recordatorios saldo âœ“' })
       sendAdminReport(agent, 'saldo_pendiente', results, data.length)
     })
   }
 
-  // ─── CARTERO: cumpleaños ───────────
+  // â”€â”€â”€ CARTERO: cumpleaÃ±os â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'cumpleanos') {
     var emails7 = data.filter(function(v) { return v.correo }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var html = buildEmailCumpleanos(p.nombre)
-        return sendAgentEmail(p.correo, '🎂 ¡Feliz cumpleaños! — Zi Vital', html, 'cumpleanos', p.correo + '_cumple_' + new Date().getFullYear())
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Cumpleaños → ' + p.nombre, { correo: p.correo }); return r })
+        return sendAgentEmail(p.correo, 'ðŸŽ‚ Â¡Feliz cumpleaÃ±os! â€” Zi Vital', html, 'cumpleanos', p.correo + '_cumple_' + new Date().getFullYear())
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'CumpleaÃ±os â†’ ' + p.nombre, { correo: p.correo }); return r })
       }}
     })
     return sendInBatches(emails7, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '🎂 ' + results.ok + ' cumpleaños ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸŽ‚ ' + results.ok + ' cumpleaÃ±os âœ“' })
       sendAdminReport(agent, 'cumpleanos', results, data.length)
     })
   }
 
-  // ─── CARTERO: reactivación ───────────
+  // â”€â”€â”€ CARTERO: reactivaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'reactivacion') {
     var emails8 = data.filter(function(v) { return v.correo }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var html = buildEmailReactivacion(p.nombre, p.ultimo_tratamiento, p.dias_sin_visita)
-        return sendAgentEmail(p.correo, '💚 Te extrañamos — Zi Vital', html, 'reactivacion', p.correo + '_reactiv_' + new Date().toISOString().slice(0,7))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Reactivación → ' + p.nombre, { correo: p.correo, dias: p.dias_sin_visita }); return r })
+        return sendAgentEmail(p.correo, 'ðŸ’š Te extraÃ±amos â€” Zi Vital', html, 'reactivacion', p.correo + '_reactiv_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'ReactivaciÃ³n â†’ ' + p.nombre, { correo: p.correo, dias: p.dias_sin_visita }); return r })
       }}
     })
     return sendInBatches(emails8, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '💚 ' + results.ok + ' reactivaciones ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ’š ' + results.ok + ' reactivaciones âœ“' })
       sendAdminReport(agent, 'reactivacion', results, data.length)
     })
   }
 
-  // ─── CARTERO: no asistió — reprogramar ───────────
+  // â”€â”€â”€ CARTERO: no asistiÃ³ â€” reprogramar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'no_asistencia') {
     var emails9 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var html = buildEmailNoAsistencia(p.nombre, p.tratamiento, p.fecha, p.hora, p.sede)
-        return sendAgentEmail(p.correo, '😔 Lamentamos que no hayas podido asistir — Zi Vital', html, 'no_asistencia', p.correo + '_noasist_' + (p.fecha || ''))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'No asistió → ' + p.nombre, { correo: p.correo }); return r })
+        return sendAgentEmail(p.correo, 'ðŸ˜” Lamentamos que no hayas podido asistir â€” Zi Vital', html, 'no_asistencia', p.correo + '_noasist_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'No asistiÃ³ â†’ ' + p.nombre, { correo: p.correo }); return r })
       }}
     })
     return sendInBatches(emails9, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '😔 ' + results.ok + ' no asistencia ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ˜” ' + results.ok + ' no asistencia âœ“' })
       sendAdminReport(agent, 'no_asistencia', results, data.length)
     })
   }
 
-  // ─── CARTERO: seguimiento 7d post-procedimiento ───────────
+  // â”€â”€â”€ CARTERO: seguimiento 7d post-procedimiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'seguimiento') {
     var emails10 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var html = buildEmailSeguimiento(p.nombre, p.tratamiento, 7)
-        return sendAgentEmail(p.correo, '💆‍♀️ ¿Cómo te fue con tu ' + (p.tratamiento || 'tratamiento') + '? — Zi Vital', html, 'seguimiento', p.correo + '_seg_' + (p.fecha || ''))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Seguimiento 7d → ' + p.nombre, { correo: p.correo, tratamiento: p.tratamiento }); return r })
+        return sendAgentEmail(p.correo, 'ðŸ’†â€â™€ï¸ Â¿CÃ³mo te fue con tu ' + (p.tratamiento || 'tratamiento') + '? â€” Zi Vital', html, 'seguimiento', p.correo + '_seg_' + (p.fecha || ''))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Seguimiento 7d â†’ ' + p.nombre, { correo: p.correo, tratamiento: p.tratamiento }); return r })
       }}
     })
     return sendInBatches(emails10, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '💆 ' + results.ok + ' seguimientos ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ’† ' + results.ok + ' seguimientos âœ“' })
       sendAdminReport(agent, 'seguimiento', results, data.length)
     })
   }
 
-  // ─── CARTERO: reposición de productos de receta ───────────
+  // â”€â”€â”€ CARTERO: reposiciÃ³n de productos de receta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'reposicion_producto') {
     var emails11 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
-      // Verificar qué productos están por acabarse
+      // Verificar quÃ© productos estÃ¡n por acabarse
       var items = []
       try {
         var receta = typeof p.receta_items === 'string' ? JSON.parse(p.receta_items) : (p.receta_items || [])
@@ -2935,114 +2935,114 @@ function executeAction(agent, task, queryResult) {
       if (!items.length) return null
       return { email: p.correo, sendFn: function() {
         var prods = items.map(function(it) { return it.nombre }).join(', ')
-        var html = emailShell('Tu producto está por terminarse',
+        var html = emailShell('Tu producto estÃ¡ por terminarse',
           '<p>Hola <b>' + p.nombre + '</b>,</p>' +
-          '<p>Tu tratamiento con <b>' + prods + '</b> está por completarse.</p>' +
-          '<p>Para continuar con los resultados, te recomendamos renovar a tiempo. Puedes pedirlo en tu próxima visita o contactarnos por WhatsApp.</p>' +
-          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#00C9A7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📱 Pedir por WhatsApp</a></p>')
-        return sendAgentEmail(p.correo, '💊 Tu ' + items[0].nombre + ' está por terminarse — Zi Vital', html, 'reposicion_producto', p.correo + '_repos_' + p.fecha_receta)
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Reposición → ' + p.nombre + ': ' + prods, { correo: p.correo }); return r })
+          '<p>Tu tratamiento con <b>' + prods + '</b> estÃ¡ por completarse.</p>' +
+          '<p>Para continuar con los resultados, te recomendamos renovar a tiempo. Puedes pedirlo en tu prÃ³xima visita o contactarnos por WhatsApp.</p>' +
+          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#00C9A7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">ðŸ“± Pedir por WhatsApp</a></p>')
+        return sendAgentEmail(p.correo, 'ðŸ’Š Tu ' + items[0].nombre + ' estÃ¡ por terminarse â€” Zi Vital', html, 'reposicion_producto', p.correo + '_repos_' + p.fecha_receta)
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'ReposiciÃ³n â†’ ' + p.nombre + ': ' + prods, { correo: p.correo }); return r })
       }}
     }).filter(Boolean)
     return sendInBatches(emails11, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '💊 ' + results.ok + ' reposiciones ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ’Š ' + results.ok + ' reposiciones âœ“' })
       sendAdminReport(agent, 'reposicion_producto', results, data.length)
     })
   }
 
-  // ─── CARTERO: sesiones por vencer (>90 días sin usar) ───────────
+  // â”€â”€â”€ CARTERO: sesiones por vencer (>90 dÃ­as sin usar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'sesion_por_vencer') {
     var emails12 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
-        var html = emailShell('Tienes una sesión pendiente',
+        var html = emailShell('Tienes una sesiÃ³n pendiente',
           '<p>Hola <b>' + p.nombre + '</b>,</p>' +
-          '<p>Tienes una sesión de <b>' + (p.tratamiento || '') + '</b> (' + (p.sesion || '') + ') pagada hace ' + (p.dias || 90) + ' días que aún no has utilizado.</p>' +
-          '<p>No queremos que pierdas tu inversión. Agenda tu sesión lo antes posible.</p>' +
-          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#0A4FBF;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📅 Agendar mi sesión</a></p>')
-        return sendAgentEmail(p.correo, '⏰ Tu sesión de ' + (p.tratamiento || 'tratamiento') + ' está por vencer — Zi Vital', html, 'sesion_por_vencer', p.correo + '_vencer_' + p.fecha_compra)
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Sesión por vencer → ' + p.nombre + ': ' + p.tratamiento, { correo: p.correo, dias: p.dias }); return r })
+          '<p>Tienes una sesiÃ³n de <b>' + (p.tratamiento || '') + '</b> (' + (p.sesion || '') + ') pagada hace ' + (p.dias || 90) + ' dÃ­as que aÃºn no has utilizado.</p>' +
+          '<p>No queremos que pierdas tu inversiÃ³n. Agenda tu sesiÃ³n lo antes posible.</p>' +
+          '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51922028889" style="background:#0A4FBF;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">ðŸ“… Agendar mi sesiÃ³n</a></p>')
+        return sendAgentEmail(p.correo, 'â° Tu sesiÃ³n de ' + (p.tratamiento || 'tratamiento') + ' estÃ¡ por vencer â€” Zi Vital', html, 'sesion_por_vencer', p.correo + '_vencer_' + p.fecha_compra)
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'SesiÃ³n por vencer â†’ ' + p.nombre + ': ' + p.tratamiento, { correo: p.correo, dias: p.dias }); return r })
       }}
     })
     return sendInBatches(emails12, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '⏰ ' + results.ok + ' sesiones vencer ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'â° ' + results.ok + ' sesiones vencer âœ“' })
       sendAdminReport(agent, 'sesion_por_vencer', results, data.length)
     })
   }
 
-  // ─── CARTERO: predicción de recompra ───────────
+  // â”€â”€â”€ CARTERO: predicciÃ³n de recompra â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'prediccion_recompra') {
     var emails13 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var vars = { nombre: p.nombre || '', tratamiento: p.tratamiento || 'tratamiento', ciclo: p.ciclo || '45' }
         var html = buildFromTemplate('prediccion_recompra', vars, function() {
-          return emailShell('Es hora de tu próxima sesión',
-            '<p>Hola <b>' + (p.nombre||'') + '</b>, basándonos en tu historial, es buen momento para tu próxima sesión de <b>' + (p.tratamiento||'') + '</b>.</p>' +
-            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📅 Agendar</a></p>')
+          return emailShell('Es hora de tu prÃ³xima sesiÃ³n',
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, basÃ¡ndonos en tu historial, es buen momento para tu prÃ³xima sesiÃ³n de <b>' + (p.tratamiento||'') + '</b>.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">ðŸ“… Agendar</a></p>')
         })
-        return sendAgentEmail(p.correo, '💆 ' + (p.nombre||'').split(' ')[0] + ', es hora de tu próxima sesión — Zi Vital', html, 'prediccion_recompra', p.correo + '_recompra_' + new Date().toISOString().slice(0,7))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recompra → ' + p.nombre, { correo: p.correo }); return r })
+        return sendAgentEmail(p.correo, 'ðŸ’† ' + (p.nombre||'').split(' ')[0] + ', es hora de tu prÃ³xima sesiÃ³n â€” Zi Vital', html, 'prediccion_recompra', p.correo + '_recompra_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Recompra â†’ ' + p.nombre, { correo: p.correo }); return r })
       }}
     })
     return sendInBatches(emails13, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '🔄 ' + results.ok + ' recompra ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ”„ ' + results.ok + ' recompra âœ“' })
       sendAdminReport(agent, 'prediccion_recompra', results, data.length)
       // Marcar predicciones como procesadas
       sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'recompra' }) }).catch(function(){})
     })
   }
 
-  // ─── CARTERO: riesgo de abandono ───────────
+  // â”€â”€â”€ CARTERO: riesgo de abandono â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'riesgo_abandono') {
     var emails14 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var vars = { nombre: p.nombre || '' }
         var html = buildFromTemplate('riesgo_abandono', vars, function() {
           return emailShell('Queremos escucharte',
-            '<p>Hola <b>' + (p.nombre||'') + '</b>, notamos que no has podido asistir últimamente. Estamos aquí para ayudarte a reprogramar.</p>' +
-            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">💬 Conversemos</a></p>')
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, notamos que no has podido asistir Ãºltimamente. Estamos aquÃ­ para ayudarte a reprogramar.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">ðŸ’¬ Conversemos</a></p>')
         })
-        return sendAgentEmail(p.correo, (p.nombre||'').split(' ')[0] + ', queremos escucharte — Zi Vital', html, 'riesgo_abandono', p.correo + '_abandono_' + new Date().toISOString().slice(0,7))
+        return sendAgentEmail(p.correo, (p.nombre||'').split(' ')[0] + ', queremos escucharte â€” Zi Vital', html, 'riesgo_abandono', p.correo + '_abandono_' + new Date().toISOString().slice(0,7))
           .then(function(r) {
             if (r && r.ok && !r.skip) {
-              logAction(agent.id, 'email_enviado', 'Abandono → ' + p.nombre, { correo: p.correo, cancelaciones: p.cancelaciones })
-              // Alerta interna a César
-              notifyAdmin('⚠️ Riesgo de abandono: ' + p.nombre, p.cancelaciones + ' cancelaciones recientes. Email enviado.', 'PACIENTE', 'ALTA')
+              logAction(agent.id, 'email_enviado', 'Abandono â†’ ' + p.nombre, { correo: p.correo, cancelaciones: p.cancelaciones })
+              // Alerta interna a CÃ©sar
+              notifyAdmin('âš ï¸ Riesgo de abandono: ' + p.nombre, p.cancelaciones + ' cancelaciones recientes. Email enviado.', 'PACIENTE', 'ALTA')
             }
             return r
           })
       }}
     })
     return sendInBatches(emails14, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '⚠️ ' + results.ok + ' abandono ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'âš ï¸ ' + results.ok + ' abandono âœ“' })
       sendAdminReport(agent, 'riesgo_abandono', results, data.length)
       sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'abandono' }) }).catch(function(){})
     })
   }
 
-  // ─── CARTERO: cross-sell inteligente ───────────
+  // â”€â”€â”€ CARTERO: cross-sell inteligente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'send_email' && template === 'crosssell') {
     var emails15 = data.filter(function(v) { return v.correo && validarEmail(v.correo) }).map(function(p) {
       return { email: p.correo, sendFn: function() {
         var vars = { nombre: p.nombre || '', tratamientos_actuales: p.tratamientos_actuales || '', sugerencia: p.sugerencia || 'nuevo tratamiento' }
         var html = buildFromTemplate('crosssell', vars, function() {
           return emailShell('Descubre un nuevo tratamiento',
-            '<p>Hola <b>' + (p.nombre||'') + '</b>, basándonos en tu experiencia, te recomendamos conocer nuestro tratamiento de <b>' + (p.sugerencia||'') + '</b>.</p>' +
-            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">📋 Más info</a></p>')
+            '<p>Hola <b>' + (p.nombre||'') + '</b>, basÃ¡ndonos en tu experiencia, te recomendamos conocer nuestro tratamiento de <b>' + (p.sugerencia||'') + '</b>.</p>' +
+            '<p style="text-align:center;margin-top:16px"><a href="https://wa.me/51960618468" style="background:#cea14a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700">ðŸ“‹ MÃ¡s info</a></p>')
         })
-        return sendAgentEmail(p.correo, '✨ ' + (p.nombre||'').split(' ')[0] + ', descubre un tratamiento complementario — Zi Vital', html, 'crosssell', p.correo + '_crosssell_' + new Date().toISOString().slice(0,7))
-          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Cross-sell → ' + p.nombre + ': ' + p.sugerencia, { correo: p.correo }); return r })
+        return sendAgentEmail(p.correo, 'âœ¨ ' + (p.nombre||'').split(' ')[0] + ', descubre un tratamiento complementario â€” Zi Vital', html, 'crosssell', p.correo + '_crosssell_' + new Date().toISOString().slice(0,7))
+          .then(function(r) { if (r && r.ok && !r.skip) logAction(agent.id, 'email_enviado', 'Cross-sell â†’ ' + p.nombre + ': ' + p.sugerencia, { correo: p.correo }); return r })
       }}
     })
     return sendInBatches(emails15, 3, 2000).then(function(results) {
-      sbPatchAgent(agent.id, { bubble_text: '✨ ' + results.ok + ' cross-sell ✓' })
+      sbPatchAgent(agent.id, { bubble_text: 'âœ¨ ' + results.ok + ' cross-sell âœ“' })
       sendAdminReport(agent, 'crosssell', results, data.length)
       sbFetch('/rest/v1/rpc/aos_marcar_predicciones_procesadas', { method: 'POST', body: JSON.stringify({ p_tipo: 'crosssell' }) }).catch(function(){})
     })
   }
 
-  // ─── CARTERO: Motor flujos multi-paso ───────────
+  // â”€â”€â”€ CARTERO: Motor flujos multi-paso â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'procesar_flujos') {
-    // Buscar ejecuciones activas cuyo proximo_envio ya pasó
+    // Buscar ejecuciones activas cuyo proximo_envio ya pasÃ³
     return sbFetch('/rest/v1/aos_email_flujo_ejecuciones?estado=eq.activo&flujo_id=not.is.null&proximo_envio=lte.' + new Date().toISOString() + '&select=*&limit=20')
       .then(function(ejecuciones) {
         if (!ejecuciones || !ejecuciones.length) {
@@ -3059,14 +3059,14 @@ function executeAction(agent, task, queryResult) {
           })
         })
         return chain.then(function() {
-          sbPatchAgent(agent.id, { bubble_text: '🔄 ' + ejecuciones.length + ' flujos procesados ✓' })
+          sbPatchAgent(agent.id, { bubble_text: 'ðŸ”„ ' + ejecuciones.length + ' flujos procesados âœ“' })
         })
       }).catch(function(e) {
         console.error('[FLUJOS] Error:', e.message)
       })
   }
 
-  // ─── CARTERO: reintentar emails fallidos del día ───────────
+  // â”€â”€â”€ CARTERO: reintentar emails fallidos del dÃ­a â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accion === 'reintentar_fallidos') {
     if (!data.length) { console.log('[CARTERO] Sin errores que reintentar'); return Promise.resolve() }
     console.log('[CARTERO] Reintentando ' + data.length + ' emails fallidos...')
@@ -3077,9 +3077,9 @@ function executeAction(agent, task, queryResult) {
       return new Promise(function(resolve) {
         // Buscar el template original y los datos del paciente
         var tipo = err.template || 'recordatorio_hoy'
-        // Marcar alerta como leída (procesada)
+        // Marcar alerta como leÃ­da (procesada)
         sbPost('/rest/v1/aos_email_alertas?id=eq.' + err.id, { leido: true }, 'PATCH').catch(function(){})
-        // Reenviar usando el endpoint send-template con datos mínimos
+        // Reenviar usando el endpoint send-template con datos mÃ­nimos
         var body = JSON.stringify({ to: email, template: tipo, nombre: 'Paciente', tratamiento: '', hora: '', sede: '', fecha: '' })
         var url = new URL(SB_URL.replace('supabase.co', '') + '') // dummy
         // Usar el endpoint local
@@ -3088,10 +3088,10 @@ function executeAction(agent, task, queryResult) {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: reqData
         }).then(function(r) { return r.json() }).then(function(d) {
           if (d && (d.ok || d.id)) {
-            console.log('[CARTERO] ✓ Reintento exitoso: ' + email)
-            logAction(agent.id, 'email_reintento', 'Reintento exitoso → ' + email, { template: tipo })
+            console.log('[CARTERO] âœ“ Reintento exitoso: ' + email)
+            logAction(agent.id, 'email_reintento', 'Reintento exitoso â†’ ' + email, { template: tipo })
           } else {
-            console.log('[CARTERO] ✕ Reintento fallido: ' + email)
+            console.log('[CARTERO] âœ• Reintento fallido: ' + email)
           }
           resolve()
         }).catch(function() { resolve() })
@@ -3105,15 +3105,15 @@ function executeAction(agent, task, queryResult) {
       })
     })
     return chain.then(function() {
-      sbPatchAgent(agent.id, { bubble_text: '🔄 ' + data.length + ' reintentos procesados' })
+      sbPatchAgent(agent.id, { bubble_text: 'ðŸ”„ ' + data.length + ' reintentos procesados' })
     })
   }
 
   return Promise.resolve()
 }
-// ═══ MOTOR FLUJOS MULTI-PASO — procesa un paso de un flujo activo ═══
-// ═══ DISPARAR FLUJO — crea ejecución cuando se cumple un trigger ═══
-// Mapeo: template de email → trigger_tipo del flujo
+// â•â•â• MOTOR FLUJOS MULTI-PASO â€” procesa un paso de un flujo activo â•â•â•
+// â•â•â• DISPARAR FLUJO â€” crea ejecuciÃ³n cuando se cumple un trigger â•â•â•
+// Mapeo: template de email â†’ trigger_tipo del flujo
 var FLUJO_TRIGGERS = {
   'confirmacion_cita': 'cita_confirmada',
   'recibo_venta': 'post_compra',
@@ -3130,17 +3130,17 @@ function _dispararFlujo(triggerTipo, email, pacienteId, variables) {
       var flujo = flujos[0]
       var pasos = flujo.pasos || []
       if (!pasos.length) return
-      // Verificar que no exista ya una ejecución activa de este flujo para este paciente
+      // Verificar que no exista ya una ejecuciÃ³n activa de este flujo para este paciente
       sbFetch('/rest/v1/aos_email_flujo_ejecuciones?flujo_id=eq.' + flujo.id + '&email=eq.' + encodeURIComponent(email) + '&estado=eq.activo&select=id&limit=1')
         .then(function(existing) {
           if (existing && existing.length > 0) {
-            console.log('[FLUJOS] Ya existe ejecución activa de ' + triggerTipo + ' para ' + email)
+            console.log('[FLUJOS] Ya existe ejecuciÃ³n activa de ' + triggerTipo + ' para ' + email)
             return
           }
-          // El paso 1 se ejecuta inmediato (delay 0), así que avanzamos a paso 2
-          // El paso 1 ya se envió como el email que disparó este trigger
+          // El paso 1 se ejecuta inmediato (delay 0), asÃ­ que avanzamos a paso 2
+          // El paso 1 ya se enviÃ³ como el email que disparÃ³ este trigger
           var paso2 = pasos.find(function(p) { return p.paso === 2 })
-          if (!paso2) return // Flujo de 1 solo paso, ya se ejecutó
+          if (!paso2) return // Flujo de 1 solo paso, ya se ejecutÃ³
           var delayMs = (paso2.delay_minutos || 0) * 60000
           var proximoEnvio = new Date(Date.now() + delayMs).toISOString()
           sbPost('/rest/v1/aos_email_flujo_ejecuciones', {
@@ -3154,7 +3154,7 @@ function _dispararFlujo(triggerTipo, email, pacienteId, variables) {
             estado: 'activo',
             variables: variables || {}
           }).then(function() {
-            console.log('[FLUJOS] ✓ Disparado ' + triggerTipo + ' → paso 2 en ' + (paso2.delay_minutos || 0) + 'min para ' + email)
+            console.log('[FLUJOS] âœ“ Disparado ' + triggerTipo + ' â†’ paso 2 en ' + (paso2.delay_minutos || 0) + 'min para ' + email)
             // Incrementar total_ejecutados
             sbFetch('/rest/v1/aos_email_flujos?id=eq.' + flujo.id + '&select=total_ejecutados').then(function(f) {
               if (f && f[0]) sbPost('/rest/v1/aos_email_flujos?id=eq.' + flujo.id, { total_ejecutados: (f[0].total_ejecutados || 0) + 1 }, 'PATCH').catch(function(){})
@@ -3165,27 +3165,27 @@ function _dispararFlujo(triggerTipo, email, pacienteId, variables) {
 }
 
 function _procesarPasoFlujo(agent, ej) {
-  // Defensa adicional: una ejecución activa sin flujo padre es inválida.
+  // Defensa adicional: una ejecuciÃ³n activa sin flujo padre es invÃ¡lida.
   if (!ej || !ej.flujo_id) {
-    console.warn('[FLUJOS] Ejecución inválida sin flujo_id; se omite:', ej && ej.id ? ej.id : 'sin-id')
+    console.warn('[FLUJOS] EjecuciÃ³n invÃ¡lida sin flujo_id; se omite:', ej && ej.id ? ej.id : 'sin-id')
     return Promise.resolve()
   }
   // Cargar flujo padre para obtener pasos
   return sbFetch('/rest/v1/aos_email_flujos?id=eq.' + ej.flujo_id + '&select=nombre,pasos')
     .then(function(flujos) {
       if (!flujos || !flujos.length) {
-        // Flujo eliminado — cancelar ejecución
+        // Flujo eliminado â€” cancelar ejecuciÃ³n
         return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, { estado: 'cancelado', updated_at: new Date().toISOString() }, 'PATCH')
       }
       var flujo = flujos[0]
       var pasos = flujo.pasos || []
       var pasoActual = pasos.find(function(p) { return p.paso === ej.paso_actual })
       if (!pasoActual) {
-        // Paso no existe — completar
+        // Paso no existe â€” completar
         return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, { estado: 'completado', updated_at: new Date().toISOString() }, 'PATCH')
       }
 
-      console.log('[FLUJOS] ' + flujo.nombre + ' — paso ' + ej.paso_actual + '/' + pasos.length + ' para ' + (ej.email || ej.numero_limpio))
+      console.log('[FLUJOS] ' + flujo.nombre + ' â€” paso ' + ej.paso_actual + '/' + pasos.length + ' para ' + (ej.email || ej.numero_limpio))
 
       if (pasoActual.tipo === 'esperar') {
         // Paso de espera: avanzar al siguiente paso con delay
@@ -3193,7 +3193,7 @@ function _procesarPasoFlujo(agent, ej) {
       }
 
       if (pasoActual.tipo === 'condicion') {
-        // Por ahora skip condiciones complejas — avanzar
+        // Por ahora skip condiciones complejas â€” avanzar
         return _avanzarPasoFlujo(ej, pasos, pasoActual)
       }
 
@@ -3210,7 +3210,7 @@ function _procesarPasoFlujo(agent, ej) {
             var tpl = tpls[0]
             var emailTo = ej.email || ''
             if (!emailTo || !validarEmail(emailTo)) {
-              console.log('[FLUJOS] Email inválido: ' + emailTo)
+              console.log('[FLUJOS] Email invÃ¡lido: ' + emailTo)
               return _avanzarPasoFlujo(ej, pasos, pasoActual)
             }
             // Reemplazar variables
@@ -3229,14 +3229,14 @@ function _procesarPasoFlujo(agent, ej) {
             return sendAgentEmail(emailTo, asunto, html, tipoFlujo, (ej.paciente_id || ej.numero_limpio || emailTo) + '_flujo_' + ej.flujo_id)
               .then(function(r) {
                 if (r && r.ok) {
-                  logAction(agent.id, 'flujo_email', flujo.nombre + ' paso ' + ej.paso_actual + ' → ' + emailTo, { flujo: flujo.nombre, paso: ej.paso_actual })
+                  logAction(agent.id, 'flujo_email', flujo.nombre + ' paso ' + ej.paso_actual + ' â†’ ' + emailTo, { flujo: flujo.nombre, paso: ej.paso_actual })
                 }
                 return _avanzarPasoFlujo(ej, pasos, pasoActual)
               })
           })
       }
 
-      // Tipo desconocido — avanzar
+      // Tipo desconocido â€” avanzar
       return _avanzarPasoFlujo(ej, pasos, pasoActual)
     })
 }
@@ -3256,7 +3256,7 @@ function _avanzarPasoFlujo(ej, pasos, pasoActual) {
       }).catch(function(){})
     })
   }
-  // Calcular próximo envío basado en delay del siguiente paso
+  // Calcular prÃ³ximo envÃ­o basado en delay del siguiente paso
   var delayMs = (siguientePaso.delay_minutos || 0) * 60000
   var proximoEnvio = new Date(Date.now() + delayMs).toISOString()
   return sbPost('/rest/v1/aos_email_flujo_ejecuciones?id=eq.' + ej.id, {
@@ -3268,33 +3268,33 @@ function _avanzarPasoFlujo(ej, pasos, pasoActual) {
 function executeRpcAction(agent, rpcName, result) {
   if (!result) return Promise.resolve()
 
-  // ─── BRUNO (guardian): alertas reales al CRM ─────────────────
+  // â”€â”€â”€ BRUNO (guardian): alertas reales al CRM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (agent.id === 'guardian' && rpcName === 'aos_inventario_alertas') {
     var agotados = (result.agotados || []).slice(0, 5)
     if (!agotados.length) return Promise.resolve()
-    var lista = agotados.map(function(p){ return '• ' + p.nombre_producto + ' (' + p.sede + ')' }).join('\n')
+    var lista = agotados.map(function(p){ return 'â€¢ ' + p.nombre_producto + ' (' + p.sede + ')' }).join('\n')
     return notifyAdmin(
-      '⚠ Bruno: ' + agotados.length + ' productos agotados',
-      'Productos sin stock:\n' + lista + (result.agotados.length > 5 ? '\n...y ' + (result.agotados.length-5) + ' más.' : ''),
+      'âš  Bruno: ' + agotados.length + ' productos agotados',
+      'Productos sin stock:\n' + lista + (result.agotados.length > 5 ? '\n...y ' + (result.agotados.length-5) + ' mÃ¡s.' : ''),
       'ALERTA', 'ALTA'
     ).then(function() {
       logAction(agent.id, 'notificacion_crm', agotados.length + ' alertas de inventario enviadas al CRM', { total: result.agotados.length })
-      sbPatchAgent(agent.id, { bubble_text: '⚠ ' + result.agotados.length + ' productos agotados — CRM notificado' })
+      sbPatchAgent(agent.id, { bubble_text: 'âš  ' + result.agotados.length + ' productos agotados â€” CRM notificado' })
     })
   }
 
-  // ─── BRUNO: alertas de venta ──────────────────────────────────
+  // â”€â”€â”€ BRUNO: alertas de venta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (agent.id === 'guardian' && rpcName === 'aos_alertas_venta') {
     var alertas = result.alertas || result || []
     if (!Array.isArray(alertas) || !alertas.length) return Promise.resolve()
     return notifyAdmin(
-      '💰 Bruno: ' + alertas.length + ' alertas de ventas',
-      alertas.slice(0,3).map(function(a){ return '• ' + (a.descripcion || JSON.stringify(a).substring(0,60)) }).join('\n'),
+      'ðŸ’° Bruno: ' + alertas.length + ' alertas de ventas',
+      alertas.slice(0,3).map(function(a){ return 'â€¢ ' + (a.descripcion || JSON.stringify(a).substring(0,60)) }).join('\n'),
       'ALERTA', 'MEDIA'
     )
   }
 
-  // ─── LEÓN (monitor): detectar anomalías en KPIs ───────────────
+  // â”€â”€â”€ LEÃ“N (monitor): detectar anomalÃ­as en KPIs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (agent.id === 'monitor' && rpcName === 'aos_kpis_dashboard') {
     var kpis = result
     var anomalias = []
@@ -3306,18 +3306,18 @@ function executeRpcAction(agent, rpcName, result) {
       anomalias.push('Sin citas registradas para hoy')
     }
     if (!anomalias.length) return Promise.resolve()
-    // Solo notificar 1 vez por día — anti-spam
+    // Solo notificar 1 vez por dÃ­a â€” anti-spam
     return sbFetch('/rest/v1/aos_agente_acciones?agente_id=eq.monitor&tipo_accion=eq.alerta_kpi&created_at=gte.' + limaDateStr() + 'T00:00:00-05:00&limit=1')
       .then(function(rows) {
-        if (rows && rows.length > 0) return // ya alertó hoy
-        return notifyAdmin('📊 León: anomalía detectada', anomalias.join('\n'), 'ALERTA', 'MEDIA')
+        if (rows && rows.length > 0) return // ya alertÃ³ hoy
+        return notifyAdmin('ðŸ“Š LeÃ³n: anomalÃ­a detectada', anomalias.join('\n'), 'ALERTA', 'MEDIA')
           .then(function() { logAction(agent.id, 'alerta_kpi', anomalias.join(' | '), { kpis: kpis }) })
       })
   }
 
-  // ─── DANTE (centinela): detectar leads sin contactar ─────────
-  // El sql_query ya devuelve los datos — esto se maneja en executeAction
-  // Pero si viene de estado_bases, notificar si hay muchas vírgenes
+  // â”€â”€â”€ DANTE (centinela): detectar leads sin contactar â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // El sql_query ya devuelve los datos â€” esto se maneja en executeAction
+  // Pero si viene de estado_bases, notificar si hay muchas vÃ­rgenes
   if (agent.id === 'centinela' && rpcName === 'aos_estado_bases') {
     var bases = result
     var virgenes = 0
@@ -3328,11 +3328,11 @@ function executeRpcAction(agent, rpcName, result) {
     }
     if (virgenes > 20) {
       return notifyAdmin(
-        '📋 Dante: ' + virgenes + ' leads sin contactar',
-        'Hay ' + virgenes + ' leads que nunca han sido contactados. Revisar distribución.',
+        'ðŸ“‹ Dante: ' + virgenes + ' leads sin contactar',
+        'Hay ' + virgenes + ' leads que nunca han sido contactados. Revisar distribuciÃ³n.',
         'ALERTA', 'MEDIA'
       ).then(function() {
-        sbPatchAgent(agent.id, { bubble_text: '📋 ' + virgenes + ' leads vírgenes — equipo notificado' })
+        sbPatchAgent(agent.id, { bubble_text: 'ðŸ“‹ ' + virgenes + ' leads vÃ­rgenes â€” equipo notificado' })
       })
     }
   }
@@ -3340,9 +3340,9 @@ function executeRpcAction(agent, rpcName, result) {
   return Promise.resolve()
 }
 
-// ═══════════════════════════════════════════════
-// RESOLVER DE PLACEHOLDERS — inyecta datos reales en prompts AI
-// ═══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// RESOLVER DE PLACEHOLDERS â€” inyecta datos reales en prompts AI
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // Utilidades de fecha Lima
 function limaDateStr() {
@@ -3353,7 +3353,7 @@ function limaFirstOfMonth() {
   return limaDateStr().slice(0, 8) + '01'
 }
 
-// Resumen de ventas de la semana para Sofía (analista)
+// Resumen de ventas de la semana para SofÃ­a (analista)
 function fetchVentasData() {
   var lunes = new Date(Date.now() + (-5 * 60) * 60000)
   lunes.setDate(lunes.getDate() - lunes.getDay() + 1)
@@ -3369,7 +3369,7 @@ function fetchVentasData() {
       var top = Object.entries(byTrat).sort(function(a,b){return b[1]-a[1]}).slice(0,5)
         .map(function(e){ return e[0] + '(' + e[1] + ')' }).join(', ')
       var unicos = new Set(rows.map(function(r){return r.numero_limpio})).size
-      return 'Semana del ' + lunesStr + '. Ventas: ' + rows.length + '. Facturado: S/' + totalMonto.toFixed(0) + '. Ticket promedio: S/' + (totalMonto/rows.length).toFixed(0) + '. Pacientes únicos: ' + unicos + '. Top tratamientos: ' + top + '.'
+      return 'Semana del ' + lunesStr + '. Ventas: ' + rows.length + '. Facturado: S/' + totalMonto.toFixed(0) + '. Ticket promedio: S/' + (totalMonto/rows.length).toFixed(0) + '. Pacientes Ãºnicos: ' + unicos + '. Top tratamientos: ' + top + '.'
     }).catch(function(){ return 'Error al cargar ventas.' })
 }
 
@@ -3377,7 +3377,7 @@ function fetchVentasData() {
 function fetchLeadsData() {
   return sbFetch('/rest/v1/aos_leads?fecha=gte.' + new Date(Date.now() - 3*86400000).toISOString().split('T')[0] + '&select=celular,tratamiento,anuncio,fecha,hora_ingreso,numero_limpio&order=fecha.desc&limit=20')
     .then(function(leads) {
-      if (!leads || !leads.length) return 'Sin leads nuevos en los últimos 3 días.'
+      if (!leads || !leads.length) return 'Sin leads nuevos en los Ãºltimos 3 dÃ­as.'
       // Enriquecer con estado de contacto
       var nums = leads.map(function(l){ return l.numero_limpio }).filter(Boolean).join(',')
       return sbFetch('/rest/v1/aos_llamadas?numero_limpio=in.(' + nums + ')&select=numero_limpio,estado&order=fecha.desc')
@@ -3385,7 +3385,7 @@ function fetchLeadsData() {
           var llamSet = {}
           ;(llams||[]).forEach(function(l){ llamSet[l.numero_limpio] = l.estado })
           return leads.map(function(l) {
-            return 'Tratamiento:' + l.tratamiento + '|Anuncio:' + (l.anuncio||'orgánico') + '|Fecha:' + l.fecha + '|Estado:' + (llamSet[l.numero_limpio] || 'SIN CONTACTAR')
+            return 'Tratamiento:' + l.tratamiento + '|Anuncio:' + (l.anuncio||'orgÃ¡nico') + '|Fecha:' + l.fecha + '|Estado:' + (llamSet[l.numero_limpio] || 'SIN CONTACTAR')
           }).join('\n')
         })
     }).catch(function(){ return 'Error al cargar leads.' })
@@ -3396,7 +3396,7 @@ function fetchPendingMessages(agentId) {
   return sbFetch('/rest/v1/aos_agente_mensajes?para_agente_id=eq.' + agentId + '&leido=eq.false&order=created_at.desc&limit=3')
     .then(function(msgs) {
       if (!msgs || !msgs.length) return null
-      // Marcar como leídos
+      // Marcar como leÃ­dos
       msgs.forEach(function(m) {
         sbPatch('/rest/v1/aos_agente_mensajes?id=eq.' + m.id, { leido: true }).catch(function(){})
       })
@@ -3404,12 +3404,12 @@ function fetchPendingMessages(agentId) {
     }).catch(function(){ return null })
 }
 
-// Función principal: resuelve todos los placeholders del template
+// FunciÃ³n principal: resuelve todos los placeholders del template
 function resolvePlaceholders(agent, task, template) {
   var promises = []
   var keys = []
 
-  // Detectar qué placeholders hay en el template
+  // Detectar quÃ© placeholders hay en el template
   if (template.indexOf('{ventas_data}') >= 0) {
     keys.push('ventas_data')
     promises.push(fetchVentasData())
@@ -3419,20 +3419,20 @@ function resolvePlaceholders(agent, task, template) {
     promises.push(fetchLeadsData())
   }
   if (template.indexOf('{insights}') >= 0) {
-    // Camila (creador) recibe de Sofía (analista) vía mensajes
+    // Camila (creador) recibe de SofÃ­a (analista) vÃ­a mensajes
     keys.push('insights')
     promises.push(fetchPendingMessages(agent.id).then(function(msg) {
       if (msg) return msg
-      // Fallback: últimos KPIs reales si no hay mensaje de Sofía
+      // Fallback: Ãºltimos KPIs reales si no hay mensaje de SofÃ­a
       return sbFetch('/rest/v1/aos_agente_logs?agente_id=eq.analista&exitoso=eq.true&order=created_at.desc&limit=1&select=output_resumen')
         .then(function(rows) {
-          if (!rows || !rows[0]) return 'Sin insights disponibles aún.'
+          if (!rows || !rows[0]) return 'Sin insights disponibles aÃºn.'
           return rows[0].output_resumen ? rows[0].output_resumen.substring(0, 800) : 'Sin insights disponibles.'
         }).catch(function(){ return 'Sin insights disponibles.' })
     }))
   }
   if (template.indexOf('{tarea}') >= 0) {
-    // KronIA — revisar si hay mensajes pendientes de agentes o usar cola de leads como contexto
+    // KronIA â€” revisar si hay mensajes pendientes de agentes o usar cola de leads como contexto
     keys.push('tarea')
     promises.push(
       sbFetch('/rest/v1/aos_agente_mensajes?para_agente_id=eq.kronia&leido=eq.false&order=created_at.desc&limit=1')
@@ -3441,17 +3441,17 @@ function resolvePlaceholders(agent, task, template) {
             sbPatch('/rest/v1/aos_agente_mensajes?id=eq.' + msgs[0].id, { leido: true }).catch(function(){})
             return 'Mensaje de ' + msgs[0].de_agente_id + ': ' + msgs[0].mensaje.substring(0, 400)
           }
-          // Sin mensajes — KronIA hace revisión del estado global
-          return 'Revisión diaria del estado del equipo: verificar agentes bloqueados, leads sin contactar, y próximas citas del día.'
-        }).catch(function(){ return 'Revisión general del equipo.' })
+          // Sin mensajes â€” KronIA hace revisiÃ³n del estado global
+          return 'RevisiÃ³n diaria del estado del equipo: verificar agentes bloqueados, leads sin contactar, y prÃ³ximas citas del dÃ­a.'
+        }).catch(function(){ return 'RevisiÃ³n general del equipo.' })
     )
   }
   if (template.indexOf('{chat_history}') >= 0) {
     keys.push('chat_history')
-    promises.push(Promise.resolve('Sin conversaciones de WhatsApp disponibles — API pendiente de configuración.'))
+    promises.push(Promise.resolve('Sin conversaciones de WhatsApp disponibles â€” API pendiente de configuraciÃ³n.'))
   }
   if (template.indexOf('{kpis_data}') >= 0) {
-    // Luna (resumidor) — KPIs reales del día
+    // Luna (resumidor) â€” KPIs reales del dÃ­a
     keys.push('kpis_data')
     promises.push(
       sbFetch('/rest/v1/rpc/aos_kpis_dashboard', {
@@ -3474,14 +3474,14 @@ function resolvePlaceholders(agent, task, template) {
     keys.forEach(function(key, i) {
       resolved = resolved.replace(new RegExp('\{' + key + '\}', 'g'), values[i] || '[sin datos]')
     })
-    console.log('[RESOLVE] ' + agent.nombre + ' — placeholders: ' + keys.join(', ') + ' | chars: ' + resolved.length)
+    console.log('[RESOLVE] ' + agent.nombre + ' â€” placeholders: ' + keys.join(', ') + ' | chars: ' + resolved.length)
     return resolved
   })
 }
 
-// ═══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AGENTS THINK-LOOP ENGINE
-// ═══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 var GROQ_KEY = ''
 var GEMINI_KEY = ''
@@ -3493,7 +3493,7 @@ function loadAIKeys() {
       if (rows[i].tipo === 'groq') GROQ_KEY = rows[i].api_key || ''
       if (rows[i].tipo === 'gemini') GEMINI_KEY = rows[i].api_key || ''
     }
-    console.log('[AGENTS] Keys loaded — Groq:', GROQ_KEY ? 'YES' : 'NO', '| Gemini:', GEMINI_KEY ? 'YES' : 'NO')
+    console.log('[AGENTS] Keys loaded â€” Groq:', GROQ_KEY ? 'YES' : 'NO', '| Gemini:', GEMINI_KEY ? 'YES' : 'NO')
   }).catch(function(e) { console.error('[AGENTS] Key load error:', e.message) })
 }
 
@@ -3594,7 +3594,7 @@ function callGroq(systemPrompt, userPrompt, model) {
   })
 }
 
-// ═══ CONTEXTO REAL PARA CHAT — SNAPSHOT CENTRALIZADO ═══
+// â•â•â• CONTEXTO REAL PARA CHAT â€” SNAPSHOT CENTRALIZADO â•â•â•
 // Todos los agentes leen del mismo snapshot (se genera cada 5min)
 var _cachedSnapshot = null
 var _snapshotAge = 0
@@ -3623,31 +3623,31 @@ function buildChatContext(agentId) {
     parts.push('MES ACTUAL: S/' + (k.ventas_mes||0) + ' facturado, ' + (k.n_ventas_mes||0) + ' ventas, ' + (k.leads_mes||0) + ' leads, ' + (k.llamadas_mes||0) + ' llamadas.')
     parts.push('BASE TOTAL: ' + (t.pacientes||0) + ' pacientes (' + (t.pacientes_email||0) + ' con email), ' + (t.leads||0) + ' leads, ' + (t.ventas||0) + ' ventas.')
 
-    // Contexto específico por agente
+    // Contexto especÃ­fico por agente
     if (agentId === 'cartero') {
       var citasM = s.citas_manana_detalle || []
       var conEmail = citasM.filter(function(c) { return c.correo })
       var sinEmail = citasM.filter(function(c) { return !c.correo })
-      parts.push('CITAS MAÑANA: ' + citasM.length + ' total, ' + conEmail.length + ' con email, ' + sinEmail.length + ' sin email.')
-      parts.push('DETALLE CITAS MAÑANA:')
+      parts.push('CITAS MAÃ‘ANA: ' + citasM.length + ' total, ' + conEmail.length + ' con email, ' + sinEmail.length + ' sin email.')
+      parts.push('DETALLE CITAS MAÃ‘ANA:')
       citasM.forEach(function(c) {
-        parts.push('  • ' + c.nombre + ' — ' + c.tratamiento + ' ' + c.hora + ' ' + c.sede + (c.correo ? ' ✓' + c.correo : ' ✗SIN EMAIL'))
+        parts.push('  â€¢ ' + c.nombre + ' â€” ' + c.tratamiento + ' ' + c.hora + ' ' + c.sede + (c.correo ? ' âœ“' + c.correo : ' âœ—SIN EMAIL'))
       })
       var emailsHoy = s.emails_hoy || []
       parts.push('EMAILS ENVIADOS HOY: ' + emailsHoy.length + '.')
-      emailsHoy.forEach(function(e) { parts.push('  • ' + e.desc) })
+      emailsHoy.forEach(function(e) { parts.push('  â€¢ ' + e.desc) })
     }
 
     if (agentId === 'centinela') {
       var lsc = s.leads_sin_contactar || []
-      parts.push('LEADS SIN CONTACTAR (3 días): ' + lsc.length + '.')
+      parts.push('LEADS SIN CONTACTAR (3 dÃ­as): ' + lsc.length + '.')
       lsc.slice(0,10).forEach(function(l) {
-        parts.push('  • ' + l.celular + ' — ' + l.tratamiento + ' (' + l.fecha + ')')
+        parts.push('  â€¢ ' + l.celular + ' â€” ' + l.tratamiento + ' (' + l.fecha + ')')
       })
       var seg = s.seguimientos_pendientes || []
       parts.push('SEGUIMIENTOS PENDIENTES: ' + seg.length + '.')
       seg.slice(0,5).forEach(function(s2) {
-        parts.push('  • ' + s2.numero + ' — ' + s2.tratamiento + ' prog: ' + s2.fecha + ' asesor: ' + s2.asesor)
+        parts.push('  â€¢ ' + s2.numero + ' â€” ' + s2.tratamiento + ' prog: ' + s2.fecha + ' asesor: ' + s2.asesor)
       })
     }
 
@@ -3655,7 +3655,7 @@ function buildChatContext(agentId) {
       var inv = s.inventario_agotados || []
       parts.push('INVENTARIO AGOTADO: ' + inv.length + ' productos.')
       inv.slice(0,10).forEach(function(p) {
-        parts.push('  • ' + p.producto + ' (' + p.sede + ', ' + p.categoria + ')')
+        parts.push('  â€¢ ' + p.producto + ' (' + p.sede + ', ' + p.categoria + ')')
       })
     }
 
@@ -3663,12 +3663,12 @@ function buildChatContext(agentId) {
       var eq = s.equipo_hoy || []
       parts.push('EQUIPO HOY:')
       eq.forEach(function(e) {
-        parts.push('  • ' + e.asesor + ': ' + e.llamadas + ' llamadas, ' + e.citas + ' citas')
+        parts.push('  â€¢ ' + e.asesor + ': ' + e.llamadas + ' llamadas, ' + e.citas + ' citas')
       })
       var top = s.top_tratamientos || []
       parts.push('TOP TRATAMIENTOS MES:')
       top.forEach(function(t2) {
-        parts.push('  • ' + t2.t + ': ' + t2.n + ' ventas, S/' + t2.m)
+        parts.push('  â€¢ ' + t2.t + ': ' + t2.n + ' ventas, S/' + t2.m)
       })
     }
 
@@ -3681,13 +3681,13 @@ function buildChatContext(agentId) {
     }
 
     parts.push('')
-    parts.push('IMPORTANTE: Estos son datos reales de Supabase. Responde usando SOLO estos datos. Si te preguntan algo que no está arriba, di que necesitas que se actualice el snapshot o que ese dato específico no está en tu contexto actual.')
+    parts.push('IMPORTANTE: Estos son datos reales de Supabase. Responde usando SOLO estos datos. Si te preguntan algo que no estÃ¡ arriba, di que necesitas que se actualice el snapshot o que ese dato especÃ­fico no estÃ¡ en tu contexto actual.')
 
     return parts.join('\n')
   })
 }
 
-// PERFORMANCE GUARD — trabajos background compartidos
+// PERFORMANCE GUARD â€” trabajos background compartidos
 var _bgFailures = 0
 var _bgOpenUntil = 0
 function bgCanRun() { return Date.now() >= _bgOpenUntil }
@@ -3780,10 +3780,10 @@ function executeTask(agent, task) {
     if (limaHH !== config.hora_ejecucion) {
       return Promise.resolve() // No es la hora, skip silencioso
     }
-    // Filtro por día de semana (0=dom, 1=lun, 2=mar...)
+    // Filtro por dÃ­a de semana (0=dom, 1=lun, 2=mar...)
     if (config.dia_semana !== undefined && config.dia_semana !== null) {
       if (_lh.getDay() !== parseInt(config.dia_semana)) {
-        return Promise.resolve() // No es el día, skip
+        return Promise.resolve() // No es el dÃ­a, skip
       }
     }
   }
@@ -3794,7 +3794,7 @@ function executeTask(agent, task) {
   if (tipo === 'rpc_call') {
     var rpcName = config.rpc
     var params = config.params || {}
-    // Replace dynamic params — FIX: usar timezone Lima (UTC-5) para evitar desfase nocturno
+    // Replace dynamic params â€” FIX: usar timezone Lima (UTC-5) para evitar desfase nocturno
     var _limaOff = -5 * 60
     var _limaDate = new Date(Date.now() + _limaOff * 60000)
     var _limaYest = new Date(Date.now() + _limaOff * 60000 - 86400000)
@@ -3813,7 +3813,7 @@ function executeTask(agent, task) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'execute', rpcName, JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
       executeRpcAction(agent, rpcName, result).catch(function(e) { console.error('[RPC-ACTION]', e.message) })
-      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' ✓', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' âœ“', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
       return { ok: true, result: result, dur: dur }
     }).catch(function(e) {
       var dur = Date.now() - start
@@ -3828,9 +3828,9 @@ function executeTask(agent, task) {
     return sbRpc('aos_execute_agent_query', { p_query: query }).then(function(result) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'execute', query.substring(0, 100), JSON.stringify(result).substring(0, 2000), 'script', '', 0, 0, 0, dur, true, '')
-      // Ejecutar acción real si la tarea la tiene definida
+      // Ejecutar acciÃ³n real si la tarea la tiene definida
       executeAction(agent, task, result).catch(function(e) { console.error('[ACTION] Error:', e.message) })
-      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' ✓', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
+      sbPatchAgent(agent.id, { estado: 'idle', bubble_text: task.nombre + ' âœ“', total_ejecuciones: (agent.total_ejecuciones || 0) + 1, ultima_actividad: new Date().toISOString() })
       return { ok: true, result: result, dur: dur }
     }).catch(function(e) {
       var dur = Date.now() - start
@@ -3853,15 +3853,15 @@ function executeTask(agent, task) {
     // Intentar con motor principal, fallback a Groq si falla
     return callFn(sysPrompt, resolvedPrompt, modelo).catch(function(primaryErr) {
       if (motor !== 'gemini') throw primaryErr // solo hace fallback desde Gemini
-      console.log('[FALLBACK] ' + agent.nombre + ' Gemini falló (' + primaryErr.message.substring(0,50) + ') → reintentando con Groq')
-      sbPatchAgent(agent.id, { bubble_text: '⚡ Gemini no disponible → usando Groq' })
+      console.log('[FALLBACK] ' + agent.nombre + ' Gemini fallÃ³ (' + primaryErr.message.substring(0,50) + ') â†’ reintentando con Groq')
+      sbPatchAgent(agent.id, { bubble_text: 'âš¡ Gemini no disponible â†’ usando Groq' })
       return fallbackFn(sysPrompt, resolvedPrompt, 'llama-3.3-70b-versatile')
     }).then(function(aiResult) {
       var dur = Date.now() - start
       logAgent(agent.id, task.id, 'think', promptTemplate.substring(0, 200), aiResult.text.substring(0, 2000), motor, modelo, aiResult.tokens_in, aiResult.tokens_out, 0, dur, true, '')
       // Track costos reales
       trackCost(agent.id, motor, modelo, aiResult.tokens_in, aiResult.tokens_out, task.nombre)
-      // Guardar contenido generado según agente
+      // Guardar contenido generado segÃºn agente
       var contentType = agent.id === 'analista' ? 'insight' : agent.id === 'creador' ? 'copy_ig' : agent.id === 'clasificador' ? 'clasificacion' : agent.id === 'resumidor' ? 'reporte' : agent.id === 'planificador' ? 'calendario' : agent.id === 'kronia' ? 'dispatch' : 'analisis'
       saveContent(agent.id, contentType, task.nombre, aiResult.text, { tokens: aiResult.tokens_in + aiResult.tokens_out, motor: motor, modelo: modelo })
       sbPatchAgent(agent.id, {
@@ -3873,7 +3873,7 @@ function executeTask(agent, task) {
 
       // Chain: if task has siguiente_agente_id, pass output
       if (task.siguiente_agente_id) {
-        console.log('[CHAIN] ' + agent.nombre + ' → ' + task.siguiente_agente_id + ' | ' + aiResult.text.substring(0, 80))
+        console.log('[CHAIN] ' + agent.nombre + ' â†’ ' + task.siguiente_agente_id + ' | ' + aiResult.text.substring(0, 80))
         // Create a message between agents
         sbPost('/rest/v1/aos_agente_mensajes', {
           de_agente_id: agent.id, para_agente_id: task.siguiente_agente_id,
@@ -3899,12 +3899,12 @@ function executeTask(agent, task) {
 
 // Auto-tick: check which cron agents need to run
 function autoTick() {
-  sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron').then(function(agents) {
+  sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron').then(function(agents) {
     if (!agents || !agents.length) return
     var now = new Date()
     agents.forEach(function(agent) {
       if (!shouldRunCron(agent.cron_intervalo, now, agent.ultima_actividad)) return
-      console.log('[TICK] ' + agent.emoji + ' ' + agent.nombre + ' (' + agent.id + ') — running cron')
+      console.log('[TICK] ' + agent.emoji + ' ' + agent.nombre + ' (' + agent.id + ') â€” running cron')
       // Get tasks for this agent
       sbFetch('/rest/v1/aos_agente_tareas?agente_id=eq.' + agent.id + '&activa=eq.true&order=prioridad').then(function(tasks) {
         if (!tasks || !tasks.length) return
@@ -3976,7 +3976,7 @@ function agentRunSingle(req, res) {
         var taskFilter = d.task_id ? '&id=eq.' + d.task_id : '&order=prioridad&limit=1'
         sbFetch('/rest/v1/aos_agente_tareas?agente_id=eq.' + agent.id + '&activa=eq.true' + taskFilter).then(function(tasks) {
           if (!tasks || !tasks[0]) { res.writeHead(404); res.end('{"error":"No active tasks"}'); return }
-          console.log('[RUN] ' + agent.emoji + ' ' + agent.nombre + ' → ' + tasks[0].nombre)
+          console.log('[RUN] ' + agent.emoji + ' ' + agent.nombre + ' â†’ ' + tasks[0].nombre)
           executeTask(agent, tasks[0]).then(function(result) {
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ ok: true, agent: agent.nombre, task: tasks[0].nombre, result: result }))
@@ -4001,7 +4001,7 @@ function agentStatus(res) {
 // Load keys on startup
 setTimeout(loadAIKeys, 2000)
 
-// ═══ STUDIO CRON SCHEDULER ═══
+// â•â•â• STUDIO CRON SCHEDULER â•â•â•
 // Revisa cada 60 segundos si hay contenido programado que deba publicarse
 function studioSchedulerRun() {
   var now = new Date().toISOString()
@@ -4024,14 +4024,14 @@ function studioSchedulerRun() {
             method: 'PATCH',
             headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(lockBody) }
           }, function(lockRes) {
-            /* Solo publicar si el lock tuvo éxito (estado era PROGRAMADO) */
+            /* Solo publicar si el lock tuvo Ã©xito (estado era PROGRAMADO) */
             var plats = item.plataformas || ['instagram']
             var pubDone = 0; var pubSuccess = 0; var pubTotal = plats.length
             plats.forEach(function(plat) {
               studioPublishToNetwork(plat, item, function(success, result) {
                 if(success) pubSuccess++
                 pubDone++
-                /* Registrar publicación */
+                /* Registrar publicaciÃ³n */
                 var pubBody = JSON.stringify({
                   contenido_id: item.id, plataforma: plat,
                   post_id_externo: (result && (result.media_id || result.post_id)) || '',
@@ -4129,9 +4129,9 @@ function studioPublishToNetwork(plat, item, callback) {
   }
 }
 
-// PERFORMANCE GUARD v1.2 — Studio background hibernado por defecto.
+// PERFORMANCE GUARD v1.2 â€” Studio background hibernado por defecto.
 // El panel, tablas, assets y funciones de Studio permanecen intactos.
-// Reactivación controlada: AOS_STUDIO_BACKGROUND_ENABLED=true + redeploy.
+// ReactivaciÃ³n controlada: AOS_STUDIO_BACKGROUND_ENABLED=true + redeploy.
 var STUDIO_BACKGROUND_ENABLED = /^(1|true|yes|on)$/i.test(String(process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'))
 var _studioSchedulerRunning = false
 function guardedStudioSchedulerRun() {
@@ -4143,7 +4143,7 @@ function guardedStudioSchedulerRun() {
 if (STUDIO_BACKGROUND_ENABLED) {
   setInterval(guardedStudioSchedulerRun, 120000)
   setTimeout(guardedStudioSchedulerRun, 10000)
-  console.log('[STUDIO-CRON] ACTIVE — revisión protegida cada 120s')
+  console.log('[STUDIO-CRON] ACTIVE â€” revisiÃ³n protegida cada 120s')
 } else {
-  console.log('[STUDIO-CRON] HIBERNATED — background OFF; panel y datos preservados')
+  console.log('[STUDIO-CRON] HIBERNATED â€” background OFF; panel y datos preservados')
 }
