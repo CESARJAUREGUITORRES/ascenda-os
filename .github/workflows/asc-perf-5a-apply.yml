@@ -1,0 +1,52 @@
+name: ASC-PERF 5A Apply
+
+on:
+  push:
+    branches:
+      - 'perf/asc-perf-5a-notification-pump-20260824'
+    paths:
+      - 'tools/perf-audit/apply-perf-5a.py'
+      - '.github/workflows/asc-perf-5a-apply.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: asc-perf-5a-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[perf-5a-applied]') }}
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce Zero-Cost
+        run: python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Apply deterministic patch
+        run: python3 tools/perf-audit/apply-perf-5a.py
+      - name: Validate
+        run: |
+          set -euo pipefail
+          node --check app/server-f17.js
+          node ci/s15/contract.js
+          grep -q 'NOTIFICATION_PUMP_IDLE_MS = \[8000, 15000\]' app/server-f17.js
+          grep -q 'scheduleNotificationPump(notificationPumpDelay(result))' app/server-f17.js
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- app/server-f17.js ci/s15/contract.js; then
+            echo 'No patch diff produced'; exit 1
+          fi
+          git config user.name 'ASCENDA Zero-Cost Runner'
+          git config user.email 'ascenda-zero-cost@users.noreply.github.com'
+          git add app/server-f17.js ci/s15/contract.js
+          git commit -m 'ASC-PERF 5A: adaptive notification pump [perf-5a-applied]'
+          git push origin HEAD:${{ github.ref_name }}
