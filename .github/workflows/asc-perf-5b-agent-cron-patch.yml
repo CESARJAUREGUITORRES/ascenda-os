@@ -21,23 +21,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Apply exact PERF-5B patch
+      - name: Apply byte-safe exact PERF-5B patch
         shell: powershell
         run: |
-          $p = 'app/server.js'
-          $s = Get-Content $p -Raw
-          $old = "sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron')"
-          $new = "sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron')"
-          $n = ([regex]::Matches($s, [regex]::Escape($old))).Count
-          if ($n -ne 1) { throw "PERF-5B exact-match expected 1 occurrence, found $n" }
-          $s = $s.Replace($old, $new)
-          Set-Content -Path $p -Value $s -NoNewline -Encoding utf8
-          node --check $p
-          if ((Get-Content $p -Raw) -match 'aos_agentes\?select=\*&activo=eq.true&tipo_ejecucion=eq.cron') { throw 'PERF-5B broad cron read remains' }
-          if ((Get-Content $p -Raw) -notmatch 'select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron') { throw 'PERF-5B compact cron read missing' }
-      - name: Commit deterministic patch
+          @'
+          const fs = require('fs');
+          const p = 'app/server.js';
+          const s = fs.readFileSync(p, 'utf8');
+          const oldText = "sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron')";
+          const newText = "sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron')";
+          const count = s.split(oldText).length - 1;
+          if (count !== 1) throw new Error(`PERF-5B exact-match expected 1 occurrence, found ${count}`);
+          const out = s.replace(oldText, newText);
+          if (out.includes(oldText)) throw new Error('PERF-5B broad cron read remains');
+          fs.writeFileSync(p, out, 'utf8');
+          '@ | node -
+          node --check app/server.js
+      - name: Verify minimal diff and commit
         shell: powershell
         run: |
+          git diff --numstat -- app/server.js
+          $changed = git diff -- app/server.js
+          if ($changed -notmatch 'select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo') { throw 'PERF-5B compact cron read missing from diff' }
           git config user.name 'ASCENDA PERF Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add app/server.js
