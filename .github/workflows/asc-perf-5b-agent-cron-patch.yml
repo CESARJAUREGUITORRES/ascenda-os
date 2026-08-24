@@ -1,0 +1,47 @@
+name: ASC-PERF 5B Agent Cron Patch
+
+on:
+  push:
+    branches: ['perf/asc-perf-5b-agent-cron-20260824']
+    paths:
+      - '.github/workflows/asc-perf-5b-agent-cron-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/asc-perf-5b-agent-cron-20260824
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply exact PERF-5B patch
+        shell: powershell
+        run: |
+          $p = 'app/server.js'
+          $s = Get-Content $p -Raw
+          $old = "sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron')"
+          $new = "sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron')"
+          $n = ([regex]::Matches($s, [regex]::Escape($old))).Count
+          if ($n -ne 1) { throw "PERF-5B exact-match expected 1 occurrence, found $n" }
+          $s = $s.Replace($old, $new)
+          Set-Content -Path $p -Value $s -NoNewline -Encoding utf8
+          node --check $p
+          if ((Get-Content $p -Raw) -match 'aos_agentes\?select=\*&activo=eq.true&tipo_ejecucion=eq.cron') { throw 'PERF-5B broad cron read remains' }
+          if ((Get-Content $p -Raw) -notmatch 'select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron') { throw 'PERF-5B compact cron read missing' }
+      - name: Commit deterministic patch
+        shell: powershell
+        run: |
+          git config user.name 'ASCENDA PERF Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/server.js
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { throw 'PERF-5B produced no diff' }
+          git commit -m 'perf(agents): narrow recurrent cron agent read'
+          git push origin HEAD:perf/asc-perf-5b-agent-cron-20260824
