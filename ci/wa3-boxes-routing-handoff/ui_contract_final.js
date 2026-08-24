@@ -8,7 +8,9 @@ const migration=fs.readFileSync('supabase/migrations/20260822224500_wa3_presence
 
 assert(shell.includes("MULTI_SRC='/wa-multiagent-final-panel.js?v=20260822-wa3-final-p02'"));
 assert(shell.includes('startGlobalPresence()'));
-assert(shell.includes("presenceTimer=setInterval(function(){presenceBeat('HEARTBEAT');},15000)"));
+assert(shell.includes('PRESENCE_HEARTBEAT_MS=30000'));
+assert(shell.includes('PRESENCE_BURST_GUARD_MS=10000'));
+assert(shell.includes("presenceTimer=setInterval(function(){presenceBeat('HEARTBEAT');},PRESENCE_HEARTBEAT_MS)"));
 assert(shell.includes("presenceBeat('OFFLINE',true)"));
 assert(shell.includes("X-AOS-App-Token"));
 
