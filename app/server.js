@@ -3899,7 +3899,7 @@ function executeTask(agent, task) {
 
 // Auto-tick: check which cron agents need to run
 function autoTick() {
-  sbFetch('/rest/v1/aos_agentes?select=*&activo=eq.true&tipo_ejecucion=eq.cron').then(function(agents) {
+  sbFetch('/rest/v1/aos_agentes?select=id,nombre,emoji,cron_intervalo,ultima_actividad,system_prompt,motor_ai,modelo&activo=eq.true&tipo_ejecucion=eq.cron').then(function(agents) {
     if (!agents || !agents.length) return
     var now = new Date()
     agents.forEach(function(agent) {
