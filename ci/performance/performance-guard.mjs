@@ -55,8 +55,11 @@ expect('NOTIFICATION_NO_FIXED_INTERVAL',!f17.includes('setInterval(runNotificati
 expect('NOTIFICATION_SINGLE_TIMER',f17.includes('notificationPumpTimer')&&f17.includes('scheduleNotificationPump'),'notification single timer ownership missing');
 
 const railway=read('app/railway.json');
+const emailGatewayBootstrap=read('app/email-gateway.js');
 expect('STUDIO_HARD_OFF_RAILWAY',railway.includes('AOS_STUDIO_BACKGROUND_ENABLED=false'),'Studio background hard-off missing in Railway config');
 expect('STUDIO_HARD_OFF_DEFAULT',server.includes("process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'"),'Studio server default is not hard-off');
+expect('STUDIO_BOOTSTRAP_FAIL_CLOSED',emailGatewayBootstrap.includes("process.env.AOS_STUDIO_BACKGROUND_ENABLED = 'false'"),'Studio runtime bootstrap hard-off missing');
+expect('STUDIO_BOOTSTRAP_CORE_CHAIN',emailGatewayBootstrap.includes("module.exports = require('./email-gateway-core')"),'Email gateway core chain missing');
 
 if(failures.length){
   console.error('ASC-PERF PERFORMANCE GUARD = FAIL');
