@@ -13,11 +13,11 @@ The application is therefore creating avoidable failed traffic while production 
 
 ## Objective
 
-Introduce a process-local Supabase quota circuit for the recurrent WA runtime clients so that the first upstream 402 opens a bounded cooldown and subsequent matching calls fail locally without issuing another network request until a controlled probe window reopens.
+Introduce a process-local Supabase quota circuit for the WA runtime family so that the first upstream 402 opens a bounded cooldown and subsequent matching calls fail locally without issuing another network request until a controlled probe window reopens.
 
 ## Implementation scope
 
-To avoid rewriting three already-certified wrappers, the circuit is loaded as a small runtime preload through the existing Railway `NODE_OPTIONS` chain:
+To avoid rewriting already-certified wrappers, the circuit is loaded as a small runtime preload through the existing Railway `NODE_OPTIONS` chain:
 
 - `app/supabase-quota-circuit.js` — pure state machine;
 - `app/supabase-quota-circuit-preload.cjs` — scoped `https.request` interceptor;
@@ -26,7 +26,7 @@ To avoid rewriting three already-certified wrappers, the circuit is loaded as a 
 The interceptor is intentionally narrow. It applies only when both conditions are true:
 
 1. request hostname equals the configured ASCENDA Supabase hostname;
-2. `User-Agent` belongs to one of the recurrent WA wrappers: `AscendaOS-Phase-S/*`, `AscendaOS-WA3V2/*`, `AscendaOS-F17/*`.
+2. `User-Agent` belongs to the WA runtime family: `AscendaOS-Phase-S/*`, `AscendaOS-WA2/*`, `AscendaOS-WA3/*`, `AscendaOS-WA3V2/*`, `AscendaOS-WA4/*`, or `AscendaOS-F17/*`.
 
 Other runtime traffic is not intercepted. The state remains process-local because each wrapper runs in a separate Node process and inherits `NODE_OPTIONS`.
 
@@ -53,8 +53,9 @@ This is a protection budget, not a live production performance certification. Ex
 
 - pure state-machine contract for open → local short-circuit → cooldown → single probe → reset;
 - negative contract: 401/403/429/500 never open the quota circuit;
-- preload behavior contract proves first target 402 reaches the caller, the next target request makes zero network calls, and a non-target runtime remains untouched;
+- preload behavior contract proves first target 402 reaches the caller, all six WA runtime user-agent families short-circuit after opening, and a non-target runtime remains untouched;
 - static contract proves Railway loads the preload and the WA runtime allowlist/host scope are present;
+- historical runtime contracts normalize only this exact certified preload and continue rejecting arbitrary wrappers;
 - existing Phase S / WA-2 / WA-3 / WA-4 / S14 / S15 contracts remain mandatory;
 - Performance Guard remains mandatory;
 - Zero-Cost WA-3 FINAL local Supabase/pgTAP/concurrency/rollback remains mandatory.
