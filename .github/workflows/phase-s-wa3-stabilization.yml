@@ -9,6 +9,8 @@ on:
       - 'app/server-f17.js'
       - 'app/auth-resend-reconcile.js'
       - 'app/railway.json'
+      - 'app/supabase-quota-circuit.js'
+      - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/server-f5.js'
       - 'app/server-wa4.js'
       - 'app/server-wa3.js'
@@ -18,6 +20,7 @@ on:
       - 'app/public/wa-shell-integration.js'
       - 'app/public/wa-native-panel.js'
       - 'ci/phase-s/**'
+      - 'ci/performance/wa-supabase-quota-circuit-contract.js'
       - 'ci/phase16/test_auth_resend_reconcile.js'
       - 'ci/phase4-revenue/**'
       - 'ci/wa2-conversation-live-inbox/**'
@@ -26,6 +29,7 @@ on:
       - 'ci/phase5-historical-identity/**'
       - 'docs/control/WHATSAPP_PHASE_S_*'
       - 'docs/control/WHATSAPP_REVENUE_HUB_EXPANSION_*'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA_CLOSEOUT_*'
       - '.github/workflows/phase-s-wa3-stabilization.yml'
   push:
     branches: ['phase-s/wa3-stabilization-human-outbound']
@@ -64,6 +68,8 @@ jobs:
             'app/server-phase-s.js',
             'app/server-f17.js',
             'app/auth-resend-reconcile.js',
+            'app/supabase-quota-circuit.js',
+            'app/supabase-quota-circuit-preload.cjs',
             'app/server-f5.js',
             'app/server-wa4.js',
             'app/server-wa3.js',
@@ -75,6 +81,7 @@ jobs:
             'ci/phase-s/wa_native_s8_contract.js',
             'ci/phase-s/wa_customer_window_s10_contract.js',
             'ci/phase-s/wa_s11_live_sync_meta_auth_contract.js',
+            'ci/performance/wa-supabase-quota-circuit-contract.js',
             'ci/phase16/test_auth_resend_reconcile.js'
           )
           foreach ($file in $files) {
@@ -104,6 +111,12 @@ jobs:
         shell: powershell
         run: |
           node ci/phase-s/wa_s11_live_sync_meta_auth_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA Supabase quota circuit contract
+        shell: powershell
+        run: |
+          node ci/performance/wa-supabase-quota-circuit-contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Auth Resend private-vault regression
@@ -137,6 +150,7 @@ jobs:
           $s152 = Get-Content app/server-phase-s-f17.js -Raw
           $f17 = Get-Content app/server-f17.js -Raw
           $sync = Get-Content app/auth-resend-reconcile.js -Raw
+          $quota = Get-Content app/supabase-quota-circuit-preload.cjs -Raw
           $cfg = Get-Content app/railway.json -Raw | ConvertFrom-Json
           $rawStart = [string]$cfg.deploy.startCommand
           $studioPrefix = 'env AOS_STUDIO_BACKGROUND_ENABLED=false '
@@ -151,16 +165,20 @@ jobs:
           if ($s -notmatch 'WA_CUSTOMER_WINDOW_CLOSED') { throw 'WA 24h customer window gate missing' }
           if ($sync -notmatch 'aos_integration_secrets_v1') { throw 'Private integration vault target missing' }
           if ($sync -match '/rest/v1/aos_integraciones(?:\?|["''])') { throw 'Public integration catalog must not receive provider secret' }
-          if (($s + $sync + $s152 + $f17) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          if (($s + $sync + $s152 + $f17 + $quota) -match '(SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*["''][^"'']+["'']') { throw 'hard-coded secret detected' }
+          if ($quota -notmatch 'Phase-S\|WA2\|WA3\|WA3V2\|WA4\|WA-Gateway\|F17') { throw 'WA quota circuit runtime allowlist missing' }
+          if ($quota -match 'SUPABASE_SERVICE_ROLE_KEY') { throw 'WA quota preload must not inspect service-role credential' }
           $phaseSEntries = @(
             'node server-phase-s.js',
             "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js",
-            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js",
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs --require ./supabase-quota-circuit-preload.cjs' node server-phase-s.js"
           )
           $s152Entries = @(
             'node server-phase-s-f17.js',
             "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js",
-            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js",
+            "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs --require ./supabase-quota-circuit-preload.cjs' node server-phase-s-f17.js"
           )
           $directOk = $phaseSEntries -contains $start
           $bootstrapOk = ($s152Entries -contains $start) -and
@@ -193,5 +211,6 @@ jobs:
           Write-Host 'WA S8 NATIVE WORKSPACE CONTRACT PASS'
           Write-Host 'WA S10 CUSTOMER-WINDOW CONTRACT PASS'
           Write-Host 'WA S11 LIVE-SYNC + META-AUTH CONTRACT PASS'
+          Write-Host 'WA SUPABASE QUOTA CIRCUIT CONTRACT PASS'
           Write-Host 'AUTH RESEND PRIVATE-VAULT RECONCILIATION GATE PASS'
-          Write-Host 'Production validation remaining: deploy health + provider readiness + authenticated human outbound canary inside an open 24h window.'
+          Write-Host 'Production validation remaining: Supabase quota reset + deploy health + provider readiness + authenticated human outbound canary inside an open 24h window.'

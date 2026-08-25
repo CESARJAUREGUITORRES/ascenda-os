@@ -46,6 +46,12 @@ jobs:
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: WA Supabase quota circuit contract
+        run: |
+          set -euo pipefail
+          node --check app/supabase-quota-circuit.js
+          node --check app/supabase-quota-circuit-preload.cjs
+          node ci/performance/wa-supabase-quota-circuit-contract.js
       - name: Build runtime census
         run: |
           set -euo pipefail

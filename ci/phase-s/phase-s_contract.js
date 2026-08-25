@@ -7,6 +7,7 @@ const f17=fs.readFileSync('app/server-f17.js','utf8');
 const s152=fs.readFileSync('app/server-phase-s-f17.js','utf8');
 const railway=fs.readFileSync('app/railway.json','utf8');
 const authSync=fs.readFileSync('app/auth-resend-reconcile.js','utf8');
+const quota=fs.readFileSync('app/supabase-quota-circuit-preload.cjs','utf8');
 const waPrelude=fs.readFileSync('app/public/wa-native-bootstrap-prelude.js','utf8');
 
 assert(s.includes("['server-f5.js']"),'Phase S must wrap the certified server-f5 chain');
@@ -26,16 +27,20 @@ assert(!waPrelude.includes("localStorage.setItem('aos_app_token'"),'WA bootstrap
 assert(authSync.includes('aos_integration_secrets_v1'),'Auth Resend sync must target private integration vault');
 assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must not write public integration catalog');
 assert(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded Meta access token');
-assert(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded service role');
+assert(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+quota),'no hard-coded service role');
 assert(!/RESEND_API_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+authSync),'no hard-coded Resend API key');
+assert(quota.includes('Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17'),'quota preload must remain limited to the full recurrent WA runtime family including secure gateway persistence');
+assert(!quota.includes('SUPABASE_SERVICE_ROLE_KEY'),'quota preload must never inspect service-role credentials');
 
 const cfg=JSON.parse(railway);
 const legacy='node server-phase-s.js';
 const sentinel="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
 const sentinelEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js";
+const sentinelEmailQuota="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs --require ./supabase-quota-circuit-preload.cjs' node server-phase-s.js";
 const s152Legacy='node server-phase-s-f17.js';
 const s152Sentinel="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js";
 const s152SentinelEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js";
+const s152SentinelEmailQuota="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs --require ./supabase-quota-circuit-preload.cjs' node server-phase-s-f17.js";
 const start=cfg.deploy.startCommand;
 const studioHardOffPrefix='env AOS_STUDIO_BACKGROUND_ENABLED=false ';
 const studioHardOff=String(start||'').startsWith(studioHardOffPrefix);
@@ -45,14 +50,14 @@ if(studioHardOff){
   normalizedStart=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
 }
 assert(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
-const directPhaseS=[legacy,sentinel,sentinelEmail].includes(normalizedStart);
-const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail].includes(normalizedStart)
+const directPhaseS=[legacy,sentinel,sentinelEmail,sentinelEmailQuota].includes(normalizedStart);
+const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail,s152SentinelEmailQuota].includes(normalizedStart)
   && s152.includes("a[0]==='server-f5.js'")
   && s152.includes("a[0]='server-f17.js'")
   && s152.includes("require('./server-phase-s.js')")
   && f17.includes("['server-f5.js']");
 assert(directPhaseS||f17Bootstrap,'Phase S start command must be direct or an exact certified F17 bootstrap/preload chain after the Studio HARD-OFF prefix');
-if([sentinel,sentinelEmail,s152Sentinel,s152SentinelEmail].includes(normalizedStart)){
+if([sentinel,sentinelEmail,sentinelEmailQuota,s152Sentinel,s152SentinelEmail,s152SentinelEmailQuota].includes(normalizedStart)){
   assert(!String(cfg.build&&cfg.build.buildCommand||'').includes('NODE_OPTIONS'),'runtime preloads must not contaminate build');
 }
 assert.strictEqual(cfg.deploy.healthcheckPath,'/health');

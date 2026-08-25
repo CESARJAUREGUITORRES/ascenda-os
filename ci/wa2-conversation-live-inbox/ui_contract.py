@@ -51,9 +51,10 @@ assert "textContent" in ui or "esc(" in ui
 
 start=railway['deploy']['startCommand']
 # ASC-PERF/Studio containment may prepend this exact fail-closed runtime flag.
-# Normalize only this known prefix; arbitrary env wrappers remain rejected.
+# Normalize only this known prefix and the certified WA quota preload; arbitrary env wrappers remain rejected.
 studio_fail_closed_prefix='env AOS_STUDIO_BACKGROUND_ENABLED=false '
 normalized_start=('env '+start[len(studio_fail_closed_prefix):]) if start.startswith(studio_fail_closed_prefix) else start
+normalized_start=normalized_start.replace(' --require ./supabase-quota-circuit-preload.cjs','')
 sentinel_phase_s="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js"
 sentinel_phase_s_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js"
 sentinel_s152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js"
