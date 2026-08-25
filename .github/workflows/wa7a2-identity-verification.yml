@@ -1,0 +1,184 @@
+name: ASCENDA WA-7A.2 Identity Verification & Continuity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa-gateway.js'
+      - 'supabase/migrations/*wa7a2_identity_verification*'
+      - 'supabase/rollbacks/*wa7a2_identity_verification*'
+      - 'ci/wa7a2-identity-verification/**'
+      - 'docs/control/WHATSAPP_WA_7A_2_IDENTITY_VERIFICATION_EVIDENCE.md'
+      - '.github/workflows/wa7a2-identity-verification.yml'
+  push:
+    branches: ['feat/wa-7a-2-identity-verification-continuity-20260825']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa7a2-identity-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · WA-7A.2 verification + lineage
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59832/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Authority and scope invariants
+        run: |
+          set -euo pipefail
+          M=supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          J=app/wa-gateway.js
+          grep -q 'aos_wa_channel_aliases_v1' "$M"
+          grep -q 'aos_wa_events_v1' "$M"
+          grep -q "VERIFIED','CLAIMED','UNKNOWN','CONFLICT" "$M"
+          grep -q 'superseded_by' "$M"
+          grep -q 'META_CONTACT_REQUEST' "$M"
+          grep -q 'META_STATUS_RECIPIENT_USER_ID' "$M"
+          grep -q 'user_changed_number' "$J"
+          grep -q 'user_changed_user_id' "$J"
+          grep -q 'request_contact_info' "$J"
+          grep -q 'identity.contact_disclosure' "$J"
+          ! grep -Eiq 'create[[:space:]]+table' "$M"
+          ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.aos_pacientes' "$M"
+          ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.aos_rev_' "$M"
+          ! grep -Eq "change\.field[[:space:]]*={2,3}[[:space:]]*['\"]user_id_update['\"]" "$J"
+          ! grep -Eq '(^|[^[:alnum:]_])(contact_username|username)[[:space:]]*(:=|=|in[[:space:]]*\(|join|where|on[[:space:]])' "$M"
+
+      - name: Gateway parser and outbound contracts
+        run: |
+          set -euo pipefail
+          node --check app/wa-gateway.js
+          node --test ci/wa7a2-identity-verification/identity_webhook_contract.test.js
+          node --test ci/wa7a0-identity-compatibility/identity_contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa7a2-identity"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59831/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59832/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59830/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa7a2-identity' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59832 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-7A.2 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build certified WA + REV prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143100_wa7a0_direct_insert_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: Verification continuity behavior
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a2-identity-verification/tests/001_identity_verification.sql | tee /tmp/wa7a2-db.txt
+          grep -q 'WA7A2_IDENTITY_VERIFICATION_PASS' /tmp/wa7a2-db.txt
+
+      - name: Concurrent lineage fork prevention
+        run: |
+          set -euo pipefail
+          bash ci/wa7a2-identity-verification/concurrent_identity.sh | tee /tmp/wa7a2-concurrency.txt
+          grep -q 'WA7A2_CONCURRENT_LINEAGE_PASS' /tmp/wa7a2-concurrency.txt
+
+      - name: Destructive rollback guard
+        run: |
+          set -euo pipefail
+          if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825222500_wa7a2_identity_verification_continuity_v1.rollback.sql; then
+            echo 'WA-7A.2 rollback unexpectedly removed live lineage evidence' >&2
+            exit 1
+          fi
+          echo WA7A2_ROLLBACK_GUARD_PASS
+
+      - name: Clear WA-7A.2 synthetic lineage before historical regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          delete from public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+
+      - name: WA-7A.0 and WA-7A.1 regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a0-identity-compatibility/tests/001_identity_compatibility.sql | tee /tmp/wa7a0-regression.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/tests/001_identity_resolution.sql | tee /tmp/wa7a1-regression.txt
+          grep -q 'WA7A1_IDENTITY_RESOLUTION_PASS' /tmp/wa7a1-regression.txt
+
+      - name: Clean regression fixtures then rollback and reapply
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          delete from public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825222500_wa7a2_identity_verification_continuity_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_channel_aliases_v1' and column_name='verification_status'")" = "0"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_channel_aliases_v1' and column_name='verification_status'")" = "1"
+
+      - name: Certification boundary
+        run: |
+          set -euo pipefail
+          echo 'WA-7A.2 reuses WA aliases/events + REV bridge; no customer/person master and no attribution.'
+          echo 'Typed/manual/forwarded phone is never auto-VERIFIED. Current Meta system-message contract is covered.'
+          echo 'Fresh REST/Auth/provider/physical REQUEST_CONTACT_INFO and BSUID rotation remain LIVE_PENDING while HTTP 402 persists.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
