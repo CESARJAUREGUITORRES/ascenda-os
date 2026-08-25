@@ -101,6 +101,7 @@ async function preloadContract() {
     'AscendaOS-WA3/1.0',
     'AscendaOS-WA3V2/1.0',
     'AscendaOS-WA4/1.0',
+    'AscendaOS-WA-Gateway/1.0',
     'AscendaOS-F17/1.4'
   ];
   for (const ua of targetAgents) {
@@ -109,8 +110,8 @@ async function preloadContract() {
   }
   assert.strictEqual(network, 1, 'blocked WA-family calls escaped to network');
 
-  const nonTarget = await call('OtherRuntime/1.0');
-  assert.strictEqual(nonTarget.status, 402, 'non-WA target must preserve base transport behavior');
+  const nonTarget = await call('AscendaOS-F4-RevenueProxy/1.0');
+  assert.strictEqual(nonTarget.status, 402, 'non-WA revenue proxy must preserve base transport behavior');
   assert.strictEqual(network, 2, 'non-target runtime was incorrectly intercepted');
 
   https.request = original;
@@ -120,7 +121,7 @@ function staticContract() {
   const railway = fs.readFileSync(path.join(process.cwd(), 'app/railway.json'), 'utf8');
   const preload = fs.readFileSync(path.join(process.cwd(), 'app/supabase-quota-circuit-preload.cjs'), 'utf8');
   assert(railway.includes('--require ./supabase-quota-circuit-preload.cjs'), 'Railway quota preload missing');
-  assert(preload.includes('Phase-S|WA2|WA3|WA3V2|WA4|F17'), 'full WA runtime target allowlist missing');
+  assert(preload.includes('Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17'), 'full WA runtime target allowlist missing');
   assert(preload.includes('configuredHost'), 'Supabase host scoping missing');
   assert(!preload.includes('SUPABASE_SERVICE_ROLE_KEY'), 'preload must not inspect service-role credentials');
 }
