@@ -9,7 +9,7 @@ if (!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__) {
   const circuit = createSupabaseQuotaCircuit();
   let configuredHost = 'ituyqwstonmhnfshnaqz.supabase.co';
   try { configuredHost = new URL(process.env.SUPABASE_URL || ('https://' + configuredHost)).hostname; } catch (_) {}
-  const userAgentRe = /^AscendaOS-(?:Phase-S|WA2|WA3|WA3V2|WA4|F17)\//i;
+  const userAgentRe = /^AscendaOS-(?:Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17)\//i;
 
   function requestOptions(args) {
     const first = args[0];
