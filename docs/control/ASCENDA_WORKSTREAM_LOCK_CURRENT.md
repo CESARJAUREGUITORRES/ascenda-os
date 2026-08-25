@@ -2,15 +2,15 @@
 
 **Status:** CURRENT / WHATSAPP REVENUE HUB V2  
 **Captured:** 2026-08-25 America/Lima  
-**Runtime baseline:** `main@6e6e69eac108e3a4497425d5c53b757760185ccc`  
-**WA-7A.0:** `CLOSED AT DEMONSTRATED BOUNDARY`  
-**ACTIVE LOCK:** `WA-7A.1 — IDENTITY RESOLUTION`
+**WA-7A.1 merge:** `0bdac2d8e171fbc8883835cb7cfdda0b39339807`  
+**WA-7A.1:** `CLOSED AT DEMONSTRATED BOUNDARY`  
+**ACTIVE LOCK:** `WA-7A.2 — IDENTITY VERIFICATION & CONTINUITY`
 
 ## Owner directive
 
 Continue WhatsApp Revenue Hub with at most one HIGH/CRITICAL mutable workstream at a time.
 
-**Only WA-7A.1 is mutable now.** Other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-7A.1 proves a strict dependency.
+**Only WA-7A.2 is mutable now.** Other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-7A.2 proves a strict dependency.
 
 ## Preserved portfolio state
 
@@ -20,50 +20,85 @@ Continue WhatsApp Revenue Hub with at most one HIGH/CRITICAL mutable workstream 
 - Notifications S13–S15.5 = CLOSED / regression-only.
 - CIA, Sentinel, KronIA and unrelated product/data work = read-only/regression-only unless strict dependency.
 
-## WA-7A.0 handoff
+## WA-7A.0 preserved
 
-WA-7A.0 delivered PHONE + BSUID transport compatibility, generic recipients, alias continuity, conflict fail-closed semantics, PHONE-key regression protection and S14 provider-message target resolution.
+WA-7A.0 owns PHONE/BSUID/PARENT_BSUID transport compatibility, generic recipients, alias continuity and channel-identity conflict handling. PHONE remains backward compatible. Fresh provider/BSUID LIVE recertification remains external debt while Supabase REST/Auth is HTTP 402.
 
-Production schema/readback and existing PHONE compatibility passed. Railway exact merge is green. Fresh REST/Auth/provider/BSUID LIVE validation remains external debt because Supabase API currently returns HTTP 402.
+## WA-7A.1 handoff
 
-WA-7A.0 must not be reopened merely to bypass the 402. Post-recovery provider/BSUID canaries remain a recertification gate.
+WA-7A.1 proved that ASCENDA does **not** need a new CRM/customer/person master for WhatsApp identity resolution.
 
-## WA-7A.1 — allowed mutations
+Canonical authority remains REV/F5/F6. The minimal bridge is:
 
-May discover/build only what is necessary to connect governed WhatsApp channel alias evidence to existing canonical ASCENDA identity boundaries.
+`WA conversation + active aliases → governed PHONE evidence → REV Patient Identity Bridge V2 → MATCH | UNRESOLVED | IDENTITY_CONFLICT`.
 
-Allowed:
+Delivered:
 
-- read/audit existing REV/F5 identity contracts;
-- alias-to-canonical resolution contracts;
-- explicit portfolio/business scope;
-- evidence/confidence/source timestamps;
-- conflict/review states;
-- additive schema/functions/tests strictly necessary for resolution;
-- reversible/fail-closed migration and rollback contracts;
-- read-only integration with current canonical identity surfaces.
+- private view `aos_wa_identity_resolution_v1`;
+- gated RPC `aos_wa7a1_resolve_conversation_identity_v1`;
+- no canonical mutation;
+- no username merge authority;
+- no BSUID→person direct mapping;
+- conflicts fail closed;
+- Zero-Cost rollback/reapply coverage.
+
+Production readback after apply:
+
+- 2 WA conversations;
+- 2 PHONE aliases;
+- 0 real BSUID aliases currently;
+- 2 `UNRESOLVED` canonical resolutions;
+- 0 fabricated MATCH;
+- 0 identity conflicts;
+- 21 messages preserved;
+- 0 raw alias columns exposed by the bridge.
+
+The two current conversations correctly remain unresolved because their existing PHONE aliases do not have an exact governed canonical match in REV.
+
+## WA-7A.2 — allowed mutations
+
+May discover/build only what is necessary to preserve WhatsApp identity continuity and verification evidence when provider identifiers/contact facts change.
+
+Allowed discovery:
+
+- current `user_id_update` / provider-equivalent events;
+- old/current BSUID and parent-BSUID semantics;
+- `REQUEST_CONTACT_INFO` and contact-share origin;
+- typed/manual/CRM/import/form/lead-ad phone source;
+- provider status evidence such as recipient user identity when contractually reliable;
+- Contact Book behavior only as provider-side assistance;
+- current alias ledger/REV bridge reuse.
+
+Allowed implementation when necessary:
+
+- old→new BSUID lineage/supersession;
+- contact source metadata;
+- `VERIFIED / CLAIMED / UNKNOWN / CONFLICT` verification state;
+- immutable evidence/timestamps;
+- reversible functions/schema strictly necessary for continuity;
+- tests for replay/idempotency/concurrency/conflict/no destructive overwrite.
 
 Must not:
 
-- create a parallel person/customer master;
-- auto-merge from username similarity;
-- treat BSUID as a universal cross-portfolio customer id;
-- infer attribution from phone, username or identity alone;
-- broaden to WA-7A.2/3/4 without closing WA-7A.1;
-- build broad Meta Ads sync before WA-7B;
+- create a parallel customer/person master;
+- overwrite canonical patient facts silently;
+- mark typed/manual phone as VERIFIED automatically;
+- resolve identity from username;
+- treat Contact Book as canonical identity;
+- infer attribution from identity facts;
+- broaden into WA-7A.3 Attribution before WA-7A.2 closes;
+- build Ads Sync before WA-7B;
 - activate AI send, auto-reply or auto-routing.
 
 ## Mandatory identity invariants
 
-- phone is nullable for WhatsApp;
-- BSUID is channel identity alias, not canonical person id;
-- BSUID scope must remain explicit;
-- username is mutable display/search metadata only;
-- PHONE + BSUID continuity may converge when evidence is explicit;
-- conflicting identifiers fail closed;
-- canonical identity remains governed by existing REV/F5 authority;
-- channel identity and acquisition touchpoint remain separate concepts;
-- identifier changes preserve lineage; no destructive overwrite.
+- phone remains nullable for WhatsApp;
+- BSUID remains a scoped channel alias, not canonical person id;
+- identifier changes preserve lineage instead of destructive overwrite;
+- PHONE disclosure is evidence, not automatic ownership proof;
+- canonical identity remains governed by REV/F5/F6;
+- channel identity and acquisition touchpoint remain separate;
+- unresolved and conflict states are valid fail-closed outcomes.
 
 ## Safety state
 
@@ -73,8 +108,7 @@ Preserve:
 - replay/idempotency;
 - Auth V3/2FA;
 - explicit whatsapp-agent authorization;
-- exact-owner send;
-- active assignment requirement;
+- exact-owner send and active assignment requirement;
 - queue privacy/claim/reassign/release;
 - customer 24h window;
 - canary allowlist;
@@ -83,23 +117,19 @@ Preserve:
 - `copilot=false`;
 - `auto_reply=false`.
 
-`human_send=true` is a pre-existing governed canary state and must not be widened as part of WA-7A.1.
+`human_send=true` is a pre-existing governed canary state and must not be widened by WA-7A.2.
 
 ## External LIVE hold
 
-Supabase SQL management access currently works, but REST/Auth remains HTTP 402. Do not interpret SQL access as full Cloud recovery.
+Supabase SQL management access works, but REST/Auth remains HTTP 402. Do not interpret SQL access as full Cloud recovery.
 
 Forbidden:
 
 - auth bypass;
-- service-role substitution for a user/session canary;
+- service-role substitution for user/session canaries;
 - blind provider retries;
-- synthetic LIVE claims based only on historical provider evidence.
-
-Post-recovery recertification remains:
-
-`402 → 200 → Railway health → Auth/2FA → REST → provider health → signed inbound → governed outbound → delivery readback → ownership isolation → visual smoke`.
+- synthetic LIVE claims from historical provider evidence.
 
 ## Lock transition rule
 
-WA-7A.1 remains the sole mutable HIGH/CRITICAL lane until its scoped closeout is certified. Only then may the lock advance to `WA-7A.2 — Identity Verification & Continuity`.
+WA-7A.2 remains the sole mutable HIGH/CRITICAL lane until its scoped closeout is certified. Only then may the lock advance to `WA-7A.3 — Attribution Ingress`.
