@@ -1,29 +1,32 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub V2 — ROADMAP CURRENT
 
-**Captured:** 2026-08-24 America/Lima  
-**Baseline before WA-3.5 closeout:** `main@6292852fad190f1489836fc34644a2161aa575a2`  
-**Active closeout:** `WA-3.5 / PR #372`  
-**Next mutable phase after merge:** `WA-7A — META ATTRIBUTION INGRESS`  
-**LIVE hold:** Supabase HTTP 402 + provider/session canary recertification
+**Captured:** 2026-08-25 America/Lima  
+**Current GitHub baseline:** `main@e454c9535eeff00c665794c2ac319dcc38bdf13f`  
+**WA-3.5:** `CLOSED / CODE-CI-ZERO-COST OFFLINE CERTIFIED 100%`  
+**Active next mutable phase:** `WA-7A — WHATSAPP IDENTITY & ATTRIBUTION FOUNDATION`  
+**LIVE hold:** Supabase HTTP 402 + fresh provider/session canary recertification
 
 ## North Star
 
-`Meta Ads / Organic → WhatsApp → explicit provenance → canonical identity → conversation → handling state + sales stage → knowledge → human/AI → business tools → appointment/follow-up/call → attendance → sale → revenue attribution → learning`.
+`Meta Ads / Business Username / Organic / QR / Web → WhatsApp → explicit provenance + channel identity → canonical identity → conversation → handling state + sales stage → knowledge → human/AI → business tools → appointment/follow-up/call → attendance → sale → revenue attribution → learning`.
 
 ## Architecture rules
 
 - WA is a governed conversation/channel product, not a CRM replacement.
-- F5 owns canonical identity/provenance resolution boundaries.
-- REV/F3/F4/F6 own revenue and Customer 360 truth.
-- CIA owns governed acquisition/channel facts.
-- Agenda and Call Center remain existing ASCENDA systems consumed through contracts.
+- The phone number is a contact point, not a mandatory WhatsApp primary key.
+- BSUID is a WhatsApp channel identity alias scoped to the business portfolio.
+- Username is informational/display data and is never canonical routing identity.
+- Canonical person resolution remains governed by REV/F5 identity boundaries.
+- Acquisition touchpoints are separate from person/channel identity.
+- `ctwa_clid`/referral evidence identifies provenance; it must not be confused with BSUID.
 - Meta attribution requires explicit provenance; phone matching alone is never attribution authority.
+- `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`.
 - Knowledge is source-governed; a general model is never authoritative for price, promo, availability, stock or clinical facts.
 - CODE/CI/ZERO-COST certification is distinct from LIVE production certification.
 
 ## Phase graph
 
-`WA-V2-0 ✅ → WA-3 ✅ OFFLINE → WA-3.5 ✅ OFFLINE CLOSEOUT → WA-7A → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
+`WA-V2-0 ✅ → WA-3 ✅ OFFLINE → WA-3.5 ✅ OFFLINE → WA-7A [0→4] → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
 
 ## WA-V2-0 — Baseline & Governance
 
@@ -37,75 +40,164 @@ Implemented: permissions/2FA, boxes/members/max-active, presence/readiness, huma
 
 ## WA-3.5 — Revenue Inbox UX
 
-**Status: CODE/CI/ZERO-COST CLOSEOUT — PR #372.**
+**Status: OFFLINE CERTIFIED 100% / LIVE HOLD.**
 
-### P0 — canonical workspace foundation — DONE
+### Closed scope
 
-- all / mine / human requested / unread / waiting customer / bot-AI / finalised filters;
-- campaign filter from canonical `campaign_source`;
-- richer conversation cards and handoff/24h context;
-- existing timeline and notification/auth restoration preserved;
-- shared inbox snapshot remains the single read owner.
+- P0 canonical Revenue Inbox;
+- P1A advisor productivity;
+- P2 governed side-panel context;
+- no duplicate inbox read owner;
+- no browser-only internal notes;
+- no P2 polling/timers/MutationObserver;
+- Customer 360 reuses REV-F6 on-demand/permission-gated;
+- Campaign exposes factual provenance only;
+- Copilot remains SAFE-OFF.
 
-### P1A — advisor productivity — DONE
+## WA-7A — WhatsApp Identity & Attribution Foundation — ACTIVE NEXT
 
-- generic quick replies, populate-only;
-- per-actor/per-conversation drafts with TTL and size bound;
-- keyboard shortcuts;
-- responsive baseline;
-- no browser-only internal notes.
+### Why this precedes attribution-only implementation
 
-### P2 — governed side-panel context — DONE
+The 2026 WhatsApp username rollout means new conversations may not expose a consumer phone number. Existing ASCENDA WA gateway behavior is phone-first, so attribution must not be built on top of a soon-invalid identity assumption.
 
-- `DETAILS` — native WA-3 authority;
-- `CUSTOMER 360` — canonical REV-F6 read model, on-demand and permission-gated, narrow commercial projection;
-- `CAMPAIGN` — current factual provenance only;
-- `ACTIVITY` — canonical conversation milestones;
-- `COPILOT` — SAFE-OFF integration boundary;
-- mobile Context drawer and explicit degraded states;
-- event-driven only: zero P2 pollers/timers/MutationObserver.
+WA-7A therefore owns both:
 
-### WA-3.5 governance exclusions
+1. **channel identity compatibility/continuity**, and
+2. **immutable acquisition provenance at first inbound**.
 
-- internal notes require a governed persistence contract; they are not browser truth;
-- treatment/sales-stage are not fabricated merely to satisfy UI filters;
-- private media/STT belongs to WA-5;
-- Copilot autonomy belongs to WA-4C;
-- expanded attribution belongs to WA-7A.
+It does not replace canonical ASCENDA identity and does not yet build the full campaign manager.
 
-### WA-3.5 LIVE exit
+### WA-7A.0 — Identity Compatibility
 
-Requires Supabase recovery plus a fresh real production smoke. Until then: offline certified only.
+**Goal:** make WhatsApp transport identity phone-optional.
 
-## WA-7A — Meta Attribution Ingress — NEXT
+Required:
 
-**Purpose:** preserve explicit Meta provenance at the first inbound, before identity or downstream business logic can blur the original touchpoint.
+- parse and persist phone+BSUID or BSUID-only safely;
+- store username only as display/search aid;
+- keep business portfolio scope with BSUID;
+- replace phone-only recipient assumptions with `PHONE|BSUID`;
+- retain phone-only restriction for authentication template types that require it;
+- update tests so an alphanumeric BSUID cannot be digit-normalized or rejected as an invalid phone;
+- preserve all WA-1/WA-3 auth/ownership/idempotency authority.
 
-### Target facts
+Exit:
 
-Persist when supplied by Meta:
+- inbound BSUID-only does not create blank/garbled `from_number`;
+- outbound can address a governed BSUID where provider support permits;
+- no existing phone-based conversation regression.
 
+### WA-7A.1 — Identity Resolution
+
+**Goal:** connect channel aliases to canonical ASCENDA identity without unsafe merges.
+
+Required:
+
+- alias model linking `canonical_contact/person` ↔ `phone` ↔ `BSUID` ↔ optional username;
+- explicit portfolio scope;
+- conflict states;
+- no merge from username similarity;
+- no assumption that BSUID is a universal cross-portfolio customer ID;
+- reuse REV/F5 resolution contracts rather than creating a parallel CRM.
+
+Exit:
+
+- same person is not duplicated solely because phone visibility changes;
+- conflicts fail closed;
+- identity evidence is auditable.
+
+### WA-7A.2 — Identity Verification & Continuity
+
+**Goal:** preserve identity through contact disclosure and WhatsApp identifier changes.
+
+Required:
+
+- consume `user_id_update` or provider-equivalent events when available;
+- retain prior/current BSUID lineage;
+- support governed `REQUEST_CONTACT_INFO` acquisition where useful;
+- distinguish contact source and verification state;
+- optionally use delivery/status evidence as corroboration only when contractually reliable;
+- treat Contact Book as provider-side assistance, never canonical ASCENDA identity.
+
+Suggested contact states:
+
+`VERIFIED / CLAIMED / UNKNOWN / CONFLICT`.
+
+Exit:
+
+- identifier replacement never destroys lineage;
+- newly disclosed phone joins the existing identity instead of creating a duplicate;
+- unverified contact claims cannot silently override canonical data.
+
+### WA-7A.3 — Attribution Ingress
+
+**Goal:** preserve immutable acquisition touchpoints at the first inbound.
+
+Persist when supplied:
+
+- `ctwa_clid` or provider-equivalent click identifier;
 - referral/source id and source type;
-- referral headline/body where policy permits;
+- source URL when supplied and policy-safe;
 - ad id;
 - lead id;
 - campaign source;
+- headline/body when permitted;
 - sanitized raw referral evidence;
 - immutable touchpoint id;
-- received-at/provider identifiers necessary for replay/idempotency.
+- provider message/event ids;
+- replay/idempotency evidence and observed timestamps.
 
-### Flow
+Flow:
 
-`Meta signed webhook → referral parser → immutable provenance/touchpoint → canonical conversation → identity resolver`.
+`Meta signed webhook → identity-safe envelope → provenance parser → immutable touchpoint → canonical conversation → identity resolver`.
 
-### Rules
+Rules:
 
+- `BSUID != touchpoint`;
+- one customer may own many touchpoints;
 - no attribution from phone alone;
-- webhook signature and replay/idempotency remain mandatory;
-- provenance is immutable evidence, not a mutable CRM label;
-- parser must degrade safely when referral fields are absent;
-- no broad Meta Ads sync yet — that belongs to WA-7B;
-- real CTWA/live provider canary remains required for LIVE exit when Cloud is available.
+- parser degrades safely when referral/CTWA fields are absent;
+- no broad Meta Ads sync yet — that belongs to WA-7B.
+
+### WA-7A.4 — Marketing Eligibility Foundation
+
+**Goal:** prepare future campaigns without conflating addressability and consent.
+
+Persist/derive through governed contracts:
+
+- recipient identity kind/value;
+- WhatsApp reachability;
+- marketing consent/eligibility;
+- `stop/resume` or provider-equivalent preference events;
+- suppression reason;
+- last eligibility observation.
+
+Rules:
+
+- a BSUID-only contact can be a valid WhatsApp-native customer/lead;
+- reachable does not mean marketing-authorized;
+- username is not a cold-prospect import key;
+- no consumer-username scraping/directory assumption;
+- no bulk marketing engine in WA-7A.
+
+Exit:
+
+- future campaign engine can select eligible WhatsApp recipients by governed recipient identity instead of requiring every row to have a phone number.
+
+## Future campaign identity model
+
+Conceptual audience decomposition:
+
+- `PHONE + BSUID`;
+- `BSUID-only`;
+- `PHONE-only`;
+- `not WhatsApp reachable`.
+
+Marketing eligibility is then evaluated separately from identity/reachability.
+
+## Business Username inbound
+
+Business username may become a new inbound acquisition/discovery source. When provider evidence identifies this origin, preserve it as provenance. Do not infer it merely because a business username exists.
 
 ## WA-4A — Knowledge Fabric
 
@@ -151,6 +243,13 @@ SLO/error budgets, provider failure policy, load/performance, cost ceilings, ret
 - WA-12 Controlled AI Autonomy;
 - WA-13 Revenue Optimization;
 - WA-14 reusable platform core.
+
+## Research / evidence policy for WA-7A
+
+- Meta/provider current documentation is policy/transport authority.
+- BSPs and public repositories are implementation evidence, not permission to assume policy behavior.
+- Any capability observed only in community code remains provisional until verified against current provider behavior.
+- Re-check rollout/policy immediately before LIVE certification because usernames/BSUID behavior is actively rolling out during 2026.
 
 ## Standard phase loop
 
