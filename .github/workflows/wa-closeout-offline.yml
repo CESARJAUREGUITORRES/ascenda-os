@@ -1,0 +1,97 @@
+name: ASCENDA WA-CLOSEOUT Offline Certification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ci/wa-closeout/**'
+      - '.github/workflows/wa-closeout-offline.yml'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA_CLOSEOUT_OFFLINE_CERTIFICATE.md'
+      - 'docs/MEMORY_CURRENT.md'
+  push:
+    branches: ['cert/wa-closeout-offline-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-closeout-offline-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Zero-Cost WhatsApp offline closeout
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test '${{ runner.environment }}' = 'self-hosted'
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --version
+
+      - name: Install notification runtime dependencies
+        working-directory: app
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --check ci/wa-closeout/wa-closeout-runtime-contract.js
+          node --check app/wa-gateway.js
+          node --check app/server-f4.js
+          node --check app/server-phase-s.js
+          node --check app/server-wa3-v2.js
+          node --check app/supabase-quota-circuit.js
+          node --check app/supabase-quota-circuit-preload.cjs
+
+      - name: WA-CLOSEOUT aggregate runtime contract
+        run: node ci/wa-closeout/wa-closeout-runtime-contract.js
+
+      - name: WA-1 signed gateway regression
+        run: node --test ci/wa1-secure-gateway/wa-gateway.test.js
+
+      - name: Phase S stabilization regressions
+        run: |
+          set -euo pipefail
+          node ci/phase-s/phase-s_contract.js
+          node ci/phase-s/wa_native_s8_contract.js
+          node ci/phase-s/wa_customer_window_s10_contract.js
+          node ci/phase-s/wa_s11_live_sync_meta_auth_contract.js
+          node ci/performance/wa-supabase-quota-circuit-contract.js
+
+      - name: WA-3 multiagent UI/source regressions
+        run: |
+          set -euo pipefail
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+          node ci/wa3-boxes-routing-handoff/ui_contract_final.js
+
+      - name: WA-4 safe-OFF AI router regression
+        run: node --test ci/wa4-ai-sales-router/ai-router.test.js
+
+      - name: Notifications S12 to S15.5 regression
+        run: |
+          set -euo pipefail
+          node ci/wa-s12/contract.js
+          node ci/wa-s13/contract.js
+          node ci/wa-s14/contract.js
+          node ci/s15/contract.js
+          node ci/s15/topbar_contract.js
+          node ci/s15/legacy_bridge_contract.js
+          node ci/s15/auth_boundary_contract.js
+          node ci/s15/production_chain_contract.js
+
+      - name: Offline certification boundary
+        run: |
+          echo 'WA CODE/CI OFFLINE CLOSEOUT = PASS'
+          echo 'Database/RLS/concurrency authority remains the already-green Zero-Cost WA-2/WA-3 exact-head gates.'
+          echo 'LIVE PRODUCTION remains BLOCKED until Supabase 402 clears and WA-PROD-CERT is executed.'
