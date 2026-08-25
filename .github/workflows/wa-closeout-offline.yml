@@ -23,8 +23,8 @@ concurrency:
 
 jobs:
   certify:
-    name: FAST WhatsApp offline closeout
-    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    name: Zero-Cost WhatsApp offline closeout
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -32,20 +32,20 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Enforce self-hosted FAST lane
-        shell: powershell
+      - name: Enforce Zero-Cost lane
         run: |
-          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'WA-CLOSEOUT must run self-hosted' }
+          set -euo pipefail
+          test '${{ runner.environment }}' = 'self-hosted'
+          python3 scripts/ci/enforce-zero-cost-policy.py
           node --version
 
       - name: Install notification runtime dependencies
         working-directory: app
-        shell: powershell
-        run: npm.cmd install --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Syntax
-        shell: powershell
         run: |
+          set -euo pipefail
           node --check ci/wa-closeout/wa-closeout-runtime-contract.js
           node --check app/wa-gateway.js
           node --check app/server-f4.js
@@ -55,16 +55,14 @@ jobs:
           node --check app/supabase-quota-circuit-preload.cjs
 
       - name: WA-CLOSEOUT aggregate runtime contract
-        shell: powershell
         run: node ci/wa-closeout/wa-closeout-runtime-contract.js
 
       - name: WA-1 signed gateway regression
-        shell: powershell
         run: node --test ci/wa1-secure-gateway/wa-gateway.test.js
 
       - name: Phase S stabilization regressions
-        shell: powershell
         run: |
+          set -euo pipefail
           node ci/phase-s/phase-s_contract.js
           node ci/phase-s/wa_native_s8_contract.js
           node ci/phase-s/wa_customer_window_s10_contract.js
@@ -72,18 +70,17 @@ jobs:
           node ci/performance/wa-supabase-quota-circuit-contract.js
 
       - name: WA-3 multiagent UI/source regressions
-        shell: powershell
         run: |
+          set -euo pipefail
           node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
           node ci/wa3-boxes-routing-handoff/ui_contract_final.js
 
       - name: WA-4 safe-OFF AI router regression
-        shell: powershell
         run: node --test ci/wa4-ai-sales-router/ai-router.test.js
 
       - name: Notifications S12 to S15.5 regression
-        shell: powershell
         run: |
+          set -euo pipefail
           node ci/wa-s12/contract.js
           node ci/wa-s13/contract.js
           node ci/wa-s14/contract.js
@@ -94,8 +91,7 @@ jobs:
           node ci/s15/production_chain_contract.js
 
       - name: Offline certification boundary
-        shell: powershell
         run: |
-          Write-Host 'WA CODE/CI OFFLINE CLOSEOUT = PASS'
-          Write-Host 'Database/RLS/concurrency authority remains the already-green Zero-Cost WA-2/WA-3 exact-head gates.'
-          Write-Host 'LIVE PRODUCTION remains BLOCKED until Supabase 402 clears and WA-PROD-CERT is executed.'
+          echo 'WA CODE/CI OFFLINE CLOSEOUT = PASS'
+          echo 'Database/RLS/concurrency authority remains the already-green Zero-Cost WA-2/WA-3 exact-head gates.'
+          echo 'LIVE PRODUCTION remains BLOCKED until Supabase 402 clears and WA-PROD-CERT is executed.'
