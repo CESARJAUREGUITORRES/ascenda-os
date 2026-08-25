@@ -3,7 +3,7 @@ const fs=require('fs');
 const assert=require('assert');
 function read(p){return fs.readFileSync(p,'utf8');}
 const shell=read('app/public/wa-shell-integration.js');
-const finalMode=/\/wa-multiagent-final-panel\.js\?v=20260822-wa3-final-p0[12]/.test(shell);
+const finalMode=/\/wa-multiagent-final-panel\.js\?v=(?:20260822-wa3-final-p0[12]|20260824-wa35-[a-z0-9-]+)/.test(shell);
 const panel=read(finalMode?'app/public/wa-multiagent-final-panel.js':'app/public/wa-multiagent-v2-panel.js');
 const server=read('app/server-wa3-v2.js');
 const wa4=read('app/server-wa4.js');
