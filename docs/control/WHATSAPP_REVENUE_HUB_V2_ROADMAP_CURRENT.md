@@ -1,12 +1,14 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub V2 — ROADMAP CURRENT
 
-**Captured:** 2026-08-22 America/Lima  
-**Active gate:** `WA-V2-0 — BASELINE & GOVERNANCE`  
-**Goal:** finish WhatsApp as an integrated ASCENDA sales channel, connect current Meta traffic/provenance, ground agents in certified business data, and close the loop through appointment, sale and revenue attribution.
+**Captured:** 2026-08-24 America/Lima  
+**Runtime anchor:** `main@43c1ac717622b9c1a809f6883980e7e60f00ef89`  
+**Active closeout gate:** `WA-3 — OFFLINE CLOSEOUT / PR #369`  
+**Next mutable gate after closeout merge:** `WA-3.5 — REVENUE INBOX UX`  
+**Live production hold:** Supabase HTTP 402 + provider/canary recertification
 
 ## North Star
 
-`Meta Ads / Organic → WhatsApp → provenance → canonical identity → conversation → handling state + sales stage → knowledge → human/AI → business tools → appointment/follow-up/call → attendance → sale → revenue attribution → learning`.
+`Meta Ads / Organic → WhatsApp → explicit provenance → canonical identity → conversation → handling state + sales stage → knowledge → human/AI → business tools → appointment/follow-up/call → attendance → sale → revenue attribution → learning`.
 
 ## Architecture rules
 
@@ -18,101 +20,112 @@
 - Agenda/Call Center remain existing business systems consumed through tools/contracts.
 - Meta attribution requires explicit provenance; phone matching alone is never attribution authority.
 - Knowledge is source-governed; general model knowledge is never authoritative for price, promo, availability, stock or clinical facts.
+- CODE/CI/ZERO-COST certification is distinct from LIVE production certification.
 
 ## Phase graph
 
-`WA-V2-0 → WA-3 → WA-3.5 → WA-7A → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
+`WA-V2-0 ✅ → WA-3 OFFLINE CLOSEOUT → WA-3.5 → WA-7A → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
 
-Some implementation slices may be executed earlier when dependency-safe, but phase certification cannot bypass declared prerequisites.
+Some implementation slices may be dependency-safe earlier, but certification cannot bypass prerequisites.
 
 ## WA-V2-0 — Baseline & Governance
 
-Purpose: reacquire exact-current ownership and reconcile GitHub, Railway, Supabase, aos_memory and Notion without changing product behavior.
+**Status: CLOSED.**
 
-Exit:
-
-- active lock = `WHATSAPP-REVENUE-HUB-V2`;
-- Notifications S13–S15.5 = CLOSED / regression-only everywhere;
-- exact runtime and live counts recorded;
-- stale `0 outbound` / old Phase S CURRENT claims superseded;
-- previous MKT Loop 6 preserved as PAUSED / 0-of-5 checkpoint;
-- GitHub merged, Railway read back, aos_memory updated, Notion updated last.
+Baseline/governance was reacquired and the active WhatsApp V2 ownership was established without rebuilding prior certified infrastructure.
 
 ## WA-3 — Human Operations Multiagent
 
-Purpose: move from single operational actor to governed multiagent sales operation.
+**Status: FUNCTIONALLY BUILT / CODE-CI-ZERO-COST CLOSEOUT.**
 
-Discover/build:
+Implemented and covered offline:
 
 - explicit `whatsapp-agent` permission;
-- 2+ authorized canary agents;
-- boxes/members/max_active;
+- multiagent boxes/members/`max_active`;
 - claim/reassign/release;
-- supervisor override;
-- presence/readiness;
-- ownership_version and exact-owner send boundary;
-- per-agent inbox visibility;
-- no cross-owner leakage;
+- supervisor override/manual intervention;
+- presence/readiness with labor-state integration and stale fail-closed behavior;
+- exact-owner send boundary;
+- per-agent visibility/ownership isolation;
+- `HUMAN_REQUESTED` human-only queue semantics;
 - routing/queue/unread integrity;
-- audit events and rollback.
+- audit events;
+- concurrent single-owner claim;
+- rollback/recovery;
+- strong Auth V3/2FA continuity;
+- performance shared-snapshot/single-owner hardening;
+- Supabase 402 retry-storm circuit.
 
-Evaluate first topology:
+First production canary remains fail-closed with:
 
-- `BOT_INBOX`;
-- `VENTAS_GENERAL`;
-- `FOLLOW_UP`;
-- `ESCALAMIENTO_CLINICO`.
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- `copilot_enabled=false`;
+- `auto_reply_enabled=false`.
 
-Do not auto-create boxes by sede/treatment without volume evidence.
-
-First canary keeps auto-routing OFF and AI auto-send OFF.
+**Live exit still pending:** Supabase 402→200 + provider health + consolidated CESAR↔MIREYA handoff/send/reassign canary.
 
 ## WA-3.5 — Revenue Inbox UX
 
-Purpose: turn the current functional Hub into an advisor-grade workspace.
+**Status: NEXT AFTER PR #369 MERGE.**
 
-Left rail:
+Purpose: turn the governed WA-3 runtime into an advisor-grade Revenue Inbox without changing ownership/security authority.
+
+### P0 — canonical workspace foundation
+
+Start with existing canonical fields only:
 
 - My conversations;
-- unassigned;
-- bot;
-- waiting customer;
-- SLA critical;
-- unread;
-- hot leads;
-- follow-up;
-- filters: campaign, treatment, sede, sales stage, owner.
+- Human requested;
+- Unread;
+- Waiting customer;
+- Bot/New state view;
+- filters by campaign/state/owner/box where already available;
+- cards with contact, last message, state, owner/box, unread, campaign and handoff/queue age when available;
+- clean timeline preserving sent/delivered/read/failure;
+- exact conversation restoration from notifications/auth;
+- shared inbox snapshot remains the single read owner; no duplicate high-frequency poller.
 
-Conversation workspace:
+### P1 — advisor productivity
 
-- clean timeline;
-- sent/delivered/read/failure state;
-- optional event separation;
 - quick replies/templates;
-- attachments/media;
-- internal notes;
-- drafts and keyboard shortcuts;
-- Agenda/call actions;
-- Copilot integrated in composer later.
+- persistent drafts;
+- keyboard shortcuts;
+- optional event separation;
+- internal notes only through governed persistence, not browser-only truth;
+- responsive/basic mobile behavior;
+- clear empty/error/degraded states.
 
-Right panel:
+### P2 — governed side panel integrations
+
+Right panel target:
 
 - DETAILS;
-- COPILOT;
-- CUSTOMER 360;
-- CAMPAIGN;
+- COPILOT placeholder/integration boundary;
+- CUSTOMER 360 read models;
+- CAMPAIGN provenance;
 - ACTIVITY.
 
-UX backlog: notification click → Auth if required → preserve destination → open exact conversation after login.
+Agenda/call actions must reuse existing ASCENDA systems. Treatment/sede/sales-stage filters are added only after those canonical facts are exposed; do not fabricate them in the inbox.
+
+Private Meta media fetch/storage/signed URLs/STT are **WA-5**, not WA-3.5.
+
+### WA-3.5 exit
+
+- usable by a real advisor;
+- no ambiguous ownership/queue state;
+- no security/2FA regression;
+- no duplicate read owner;
+- basic responsive behavior;
+- exact-head CI and production smoke when Cloud is available.
 
 ## WA-7A — Meta Attribution Ingress
 
-Purpose: preserve provenance at first inbound.
+Purpose: preserve explicit provenance at first inbound.
 
 Persist when Meta supplies it:
 
-- referral/source id;
-- source type;
+- referral/source id/type;
 - headline/body;
 - ad id;
 - lead id;
@@ -120,11 +133,9 @@ Persist when Meta supplies it:
 - sanitized raw referral;
 - immutable touchpoint id.
 
-Flow:
+Flow: `Meta webhook → referral parser → touchpoint/provenance → conversation → canonical identity`.
 
-`Meta webhook → referral parser → touchpoint/provenance → conversation → canonical identity`.
-
-Exit requires a real CTWA canary with provenance visible and no attribution invented by phone.
+Exit requires a real CTWA canary; never infer attribution from phone alone.
 
 ## WA-4A — Knowledge Fabric
 
@@ -132,63 +143,34 @@ Authority layers:
 
 1. transactional live truth;
 2. approved commercial knowledge;
-3. approved enterprise docs from GitHub/Notion/Drive connectors;
+3. approved enterprise docs/connectors;
 4. campaign context;
 5. Customer 360 facts;
 6. current conversation context;
 7. general LLM knowledge last.
 
-Build:
-
-- source registry;
-- owner/version/validity/sensitivity/authority;
-- structured retrieval first;
-- selective document chunking/vector retrieval only where useful;
-- source/evidence IDs in AI runs;
-- cache invalidation for changing prices/policies;
-- role/domain ACL;
-- retrieval evals.
-
-Never bulk-copy all enterprise docs into an ungoverned vector store.
+Build source registry, authority/version/validity/sensitivity, structured retrieval first, selective vector retrieval, evidence IDs, cache invalidation, ACLs and retrieval evals.
 
 ## WA-4B — Sales Playbook Engine
 
-Separate sales progression from conversation handling.
+Separate handling state from commercial progression.
 
-Handling State:
+Handling State target:
+`AI_AUTO / AI_COPILOT / HUMAN_ACTIVE / WAITING_CUSTOMER / CLOSED`.
 
-`AI_AUTO / AI_COPILOT / HUMAN_ACTIVE / WAITING_CUSTOMER / CLOSED`
+Sales Stage target:
+`NEW / DISCOVERY / QUALIFIED / OFFER / OBJECTION / BOOKING_INTENT / BOOKED / FOLLOW_UP / WON / LOST`.
 
-Sales Stage:
-
-`NEW / DISCOVERY / QUALIFIED / OFFER / OBJECTION / BOOKING_INTENT / BOOKED / FOLLOW_UP / WON / LOST`
-
-Add:
-
-- intent taxonomy;
-- treatment/interest;
-- lead temperature;
-- objection taxonomy;
-- qualification fields;
-- next-best-action;
-- playbook version by treatment/campaign;
-- CTA policy;
-- escalation rules;
-- lost reason;
-- follow-up timers;
-- appointment/sale/revenue links.
+Add intent, interest/treatment, lead temperature, objections, qualification, next-best-action, playbook version, CTA/escalation rules, lost reason, follow-up timers and appointment/sale/revenue links.
 
 ## WA-4C — AI Sales Copilot Canary
 
 Prerequisites: Knowledge Fabric + Playbook Engine.
 
-Requirements:
-
 - provider/model health;
 - exact-owner authorization;
-- grounded retrieval;
-- source evidence;
-- safety/escalation model;
+- grounded retrieval/evidence;
+- safety/escalation;
 - budget/cost/latency audit;
 - human approval required;
 - no autonomous send in initial certification.
@@ -197,10 +179,9 @@ Requirements:
 
 - receive image/audio/document;
 - private media storage + retention;
-- STT transcript;
-- structured audio summary;
+- STT transcript and structured audio summary;
 - approved media outbound;
-- limited vision only under explicit safety policy;
+- limited vision under explicit safety policy;
 - clinical uncertainty escalates to human/clinical workflow.
 
 ## WA-6 — Business Tools
@@ -217,44 +198,23 @@ AI never invents availability. No parallel Agenda engine.
 
 ## WA-7B — Meta Ads Sync
 
-Resolve explicit `ad_id` into:
-
-`ad → adset → campaign → creative → treatment/offer metadata`.
-
-Keep sync incremental, auditable and cost-governed.
+Resolve explicit `ad_id` into `ad → adset → campaign → creative → treatment/offer metadata` with incremental, auditable and cost-governed sync.
 
 ## WA-7C — Campaign Flow Router + WhatsApp Flows
 
-Purpose: choose the correct business flow from provenance and sales context.
-
-Example:
-
-`HIFU ad → HIFU campaign metadata → HIFU playbook → booking intent → WhatsApp Flow / Agenda tool`.
-
-Support governed WhatsApp Flows for lead qualification, appointment booking and support where they reduce friction.
+Choose governed business flow from provenance and sales context. Support WhatsApp Flows for qualification/booking/support where they reduce friction.
 
 ## WA-7D — Revenue Stitching
 
 Create explicit lineage:
-
 `touchpoint → conversation → canonical customer → appointment → attendance → sale → revenue`.
 
-Measure:
-
-- qualified conversation rate;
-- appointment rate;
-- attendance rate;
-- sale conversion;
-- revenue;
-- CAC/ROAS where cost source exists;
-- AI-only vs human-only vs hybrid contribution.
-
-Never infer revenue attribution solely from phone.
+Measure qualification, appointment, attendance, close, revenue and CAC/ROAS where evidence exists. Never infer revenue attribution solely from phone.
 
 ## WA-8 — Production / SLO / Security / FinOps
 
-- SLOs and incident boundaries;
-- provider failover policy;
+- SLO/error budgets;
+- provider failure policy;
 - load/performance;
 - cost ceilings;
 - retention/deletion;
@@ -262,30 +222,17 @@ Never infer revenue attribution solely from phone.
 - audit/export controls;
 - regression/eval registry;
 - Sentinel integration;
-- staged scale rollout.
+- staged rollout.
 
-## Expansion
+## WA-9 → WA-14 expansion
 
-### WA-9 — Supervisor Intelligence
-SLA, queue age, intent/temperature, objections, next-best-action, agent/box conversion, quality evals, loss reasons and coaching.
-
-### WA-10 — Customer 360 Omnichannel
-One timeline across Meta touchpoint, WhatsApp, calls, follow-up, Agenda, attendance, sales, payments/cartera and email, role-gated.
-
-### WA-11 — Lifecycle Automation
-Governed recontact for abandoned price inquiry, availability-no-book, appointment confirmation, no-show, post-attention commercial follow-up and allowed reactivation with opt-in/templates/frequency caps.
-
-### WA-12 — Controlled AI Autonomy
-Escalation ladder: suggest-only → classify → allowlisted internal actions → low-risk auto-reply → book with explicit confirmation → broader autonomy only by new gates.
-
-### WA-13 — Revenue Optimization
-Campaign-to-sale funnel, CAC/ROAS, demand signals, staffing/load forecast and budget recommendations with human approval.
-
-### WA-14 — Platformization
-Extract reusable provider adapters, secure gateway, message ledger, conversation engine, routing, policy, AI capability router, business tools, attribution, observability and FinOps only after ASCENDA core is stable.
+- WA-9 Supervisor Intelligence;
+- WA-10 Customer 360 Omnichannel;
+- WA-11 Lifecycle Automation;
+- WA-12 Controlled AI Autonomy;
+- WA-13 Revenue Optimization;
+- WA-14 reusable platform core.
 
 ## Standard phase loop
 
-For every phase:
-
-`REVALIDATE CURRENT → DISCOVER → PLAN → BUILD ISOLATED → CONTRACT TESTS → EXACT-HEAD CI → ANTI-DRIFT → MERGE → RAILWAY EXACT DEPLOY → LIVE CANARY → SECURITY/DATA CHECK → CERTIFY OR FAIL-CLOSED → GitHub CURRENT → aos_memory → Notion LAST → NEXT LOCK`.
+`REVALIDATE CURRENT → DISCOVER → PLAN → BUILD ISOLATED → CONTRACT TESTS → EXACT-HEAD CI → ANTI-DRIFT → MERGE → RAILWAY EXACT DEPLOY → LIVE CANARY → SECURITY/DATA CHECK → CERTIFY OR FAIL-CLOSED → GitHub CURRENT → aos_memory when available → Notion LAST → NEXT LOCK`.
