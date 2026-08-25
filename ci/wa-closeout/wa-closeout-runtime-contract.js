@@ -36,6 +36,7 @@ assert.equal(wa.canaryAllows('51922222222','true','51911111111'),false);
 
 const f4=read('app/server-f4.js');
 const phaseS=read('app/server-phase-s.js');
+const wa3=read('app/server-wa3.js');
 const wa3v2=read('app/server-wa3-v2.js');
 const authPrelude=read('app/public/wa-native-bootstrap-prelude.js');
 const alerts=read('app/public/wa-human-alerts.js');
@@ -65,7 +66,8 @@ assert(phaseS.includes('WA_CUSTOMER_WINDOW_CLOSED'),'24h customer-window gate mi
 assert(phaseS.includes('human_send_enabled:false'),'human-send degraded default must remain false');
 assert(phaseS.includes('auto_routing_enabled:false'),'auto-routing degraded default must remain false');
 assert(phaseS.includes('ai_send_enabled:false'),'AI-send degraded default must remain false');
-for(const needle of ['WA3_NOT_OWNER','/api/wa3/claim-next','/api/wa3/queue-summary','/api/wa3/team-summary'])
+assert(wa3.includes('WA3_NOT_OWNER'),'WA3 ownership boundary missing: WA3_NOT_OWNER');
+for(const needle of ['/api/wa3/claim-next','/api/wa3/queue-summary','/api/wa3/team-summary'])
   assert(wa3v2.includes(needle),'WA3 V2 invariant missing: '+needle);
 
 // Canonical state model and explicit human handoff.
