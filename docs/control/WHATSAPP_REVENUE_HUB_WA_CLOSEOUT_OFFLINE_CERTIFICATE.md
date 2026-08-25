@@ -19,21 +19,19 @@ There are no `UNKNOWN` rows in the implemented WA-1 → WA-3 / notifications / W
 
 PR #368 exact head: `81f7f6e5f329bc9184f4d4f611de6d0ca48b5608`.
 
-Exact-head successful gates observed for that slice:
+Exact-head successful gates for that final head:
 
 - Ascenda CI — run `32792393890` — PASS.
-- Phase S WA3 Stabilization — run `32792393973` — PASS; includes final quota-circuit behavioral contract.
+- Phase S WA3 Stabilization — run `32792393973` — PASS; includes the final quota-circuit behavioral contract.
+- WA-2 Conversation Store & Live Inbox Zero-Cost — run `32792393969` — PASS.
 - WA-3 V2 Multiagent FAST — run `32792393859` — PASS.
 - WA-3 Boxes Routing Handoff / Zero-Cost — run `32792393938` — PASS.
 - S15 Unified Notification Events — run `32792393894` — PASS.
 - WA-4 AI Sales Router — run `32792393949` — PASS.
+- Performance Guard — run `32792393960` — PASS.
+- ASC-PERF Audit 360 — run `32792393877` — PASS.
 
-Same-slice predecessor `b0f8ab6f65161f18629baaab0a4230642402120f` additionally completed:
-
-- Performance Guard — run `32791741174` — PASS.
-- WA-2 Conversation Store & Live Inbox Zero-Cost — run `32791741128` — PASS.
-
-After that predecessor, no WA-2 schema/business path changed. The final changes were quota-breaker scope/contract/documentation; the final Phase S gate executes the updated quota behavior. Runtime tree then merged as `main@43c1ac717622b9c1a809f6883980e7e60f00ef89`.
+The same exact tree was merged as `main@43c1ac717622b9c1a809f6883980e7e60f00ef89`, and Railway reported SUCCESS for that merge SHA.
 
 Sentinel F4's independent `F2_PUBLIC_HTML_DRIFT` is an existing cross-workstream static fingerprint debt and is not created by WA-CLOSEOUT. It is not reclassified as a WhatsApp defect.
 
@@ -53,7 +51,7 @@ Sentinel F4's independent `F2_PUBLIC_HTML_DRIFT` is an existing cross-workstream
 | Delivery `sent/delivered/read/failed` projection | PASS-OFFLINE | gateway source + S13 timeline contract |
 | Auth V3 / 2FA continuity | PASS-OFFLINE | server actor gate + cache bridge; no strong-token localStorage downgrade |
 | Explicit `whatsapp-agent` access | PASS-OFFLINE | WA-3 V2 pgTAP |
-| Presence AVAILABLE/AWAY/OFFLINE + stale fail-closed | PASS-OFFLINE | WA-3 V2/final pgTAP + prior physical MIREYA presence canary |
+| Presence AVAILABLE/AWAY/OFFLINE + stale fail-closed | PASS-OFFLINE | WA-3 V2/final pgTAP + physical MIREYA presence canary |
 | `max_active` capacity | PASS-OFFLINE | WA-3 V2 pgTAP |
 | Human queue privacy | PASS-OFFLINE | aggregate queue exposes no phone/conversation id |
 | Explicit handoff | PASS-OFFLINE | only `HUMAN_REQUESTED` is claimable; repeat request idempotent |
@@ -85,7 +83,7 @@ There is no separate literal `BOT_ACTIVE` state in the current schema. Do not ad
 
 ## Production hold
 
-`WA CODE / CI / ZERO-COST = eligible for offline certification once the aggregate WA-CLOSEOUT workflow is green at the closeout PR exact head.`
+`WA CODE / CI / ZERO-COST = eligible for offline certification once the aggregate WA-CLOSEOUT workflow is green at PR #369 exact head.`
 
 `WA PRODUCTION CERTIFIED 100% = NOT YET.`
 
@@ -104,6 +102,6 @@ Production certification remains fail-closed until all of the following are obse
 
 ## Next lock
 
-After the offline closeout PR is merged and GitHub/Notion are reconciled, the mutable WhatsApp lock moves to:
+After PR #369 is green/merged and GitHub/Notion are reconciled, the mutable WhatsApp lock moves to:
 
 `WA-3.5 — Revenue Inbox UX`.
