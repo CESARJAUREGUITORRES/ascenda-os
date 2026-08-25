@@ -6,9 +6,11 @@ const path = require('path');
 const root = path.resolve(__dirname, '..', '..');
 const uiPath = path.join(root, 'app', 'public', 'wa-multiagent-final-panel.js');
 const nativePath = path.join(root, 'app', 'public', 'wa-native-panel.js');
+const previewPath = path.join(root, 'ci', 'wa3-5-revenue-inbox', 'preview.html');
 
 const ui = fs.readFileSync(uiPath, 'utf8');
 const native = fs.readFileSync(nativePath, 'utf8');
+const preview = fs.readFileSync(previewPath, 'utf8');
 
 function assert(cond, message) {
   if (!cond) {
@@ -81,5 +83,19 @@ assert(ui.includes('/api/wa3/bootstrap'), 'strong WA3 bootstrap removed');
   'create table',
   'alter table'
 ].forEach(s => assert(!ui.includes(s), 'forbidden P0 dependency found: ' + s));
+
+// Offline preview must remain synthetic and cloud-independent.
+assert(preview.includes('OFFLINE FIXTURE ONLY'), 'offline preview boundary missing');
+assert(preview.includes('HUMAN_REQUESTED'), 'preview lacks human-requested fixture');
+assert(preview.includes('WAITING_CUSTOMER'), 'preview lacks waiting-customer fixture');
+assert(preview.includes('AI_ACTIVE'), 'preview lacks bot/AI fixture');
+assert(preview.includes("state:'WON'"), 'preview lacks finalised fixture');
+assert(preview.includes('campaign_source'), 'preview lacks campaign provenance fixture');
+[
+  'supabase.co',
+  'graph.facebook.com',
+  'SUPABASE_',
+  'WHATSAPP_ACCESS_TOKEN'
+].forEach(s => assert(!preview.includes(s), 'offline preview must not depend on cloud/provider: ' + s));
 
 console.log('WA35_REVENUE_INBOX_P0_CONTRACT_PASS');
