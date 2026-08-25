@@ -7,7 +7,7 @@
 
 ## Incident
 
-Supabase project `ituyqwstonmhnfshnaqz` is `ACTIVE_HEALTHY`, but current API logs show repeated HTTP `402` responses while the Free-plan egress quota is exhausted. WA recurrent callers continue reaching Supabase during the blocked billing window, especially `aos_wa3_actor_v1` from Phase S / WA3V2 and notification RPCs from F17.
+Supabase project `ituyqwstonmhnfshnaqz` is `ACTIVE_HEALTHY`, but current API logs show repeated HTTP `402` responses while the Free-plan egress quota is exhausted. WA recurrent callers continue reaching Supabase during the blocked billing window, especially `aos_wa3_actor_v1` from Phase S / WA3V2 and notification RPCs from F17. The secure WA gateway also owns inbound/outbound persistence calls and must be protected from repeated 402 writes during provider retries.
 
 The application is therefore creating avoidable failed traffic while production cannot serve reliable data. A 402 must not be treated like a transient application error that deserves tight retry loops.
 
@@ -26,9 +26,9 @@ To avoid rewriting already-certified wrappers, the circuit is loaded as a small 
 The interceptor is intentionally narrow. It applies only when both conditions are true:
 
 1. request hostname equals the configured ASCENDA Supabase hostname;
-2. `User-Agent` belongs to the WA runtime family: `AscendaOS-Phase-S/*`, `AscendaOS-WA2/*`, `AscendaOS-WA3/*`, `AscendaOS-WA3V2/*`, `AscendaOS-WA4/*`, or `AscendaOS-F17/*`.
+2. `User-Agent` belongs to the WA runtime family: `AscendaOS-Phase-S/*`, `AscendaOS-WA2/*`, `AscendaOS-WA3/*`, `AscendaOS-WA3V2/*`, `AscendaOS-WA4/*`, `AscendaOS-WA-Gateway/*`, or `AscendaOS-F17/*`.
 
-Other runtime traffic is not intercepted. The state remains process-local because each wrapper runs in a separate Node process and inherits `NODE_OPTIONS`.
+The mixed Revenue client `AscendaOS-F4-RevenueProxy/*` is deliberately excluded; the secure WA persistence client `AscendaOS-WA-Gateway/*` is included. Other runtime traffic is not intercepted. The state remains process-local because each wrapper runs in a separate Node process and inherits `NODE_OPTIONS`.
 
 ## Required semantics
 
@@ -45,7 +45,7 @@ Other runtime traffic is not intercepted. The state remains process-local becaus
 
 ## Performance intent
 
-During a quota block, Supabase request volume from each covered WA process should collapse from recurrent polling cadence to at most one quota probe per cooldown window, rather than one failed request per UI/pump tick.
+During a quota block, Supabase request volume from each covered WA process should collapse from recurrent polling/provider-retry cadence to at most one quota probe per cooldown window, rather than one failed request per UI/pump/provider tick.
 
 This is a protection budget, not a live production performance certification. Exact live request-rate verification remains blocked until Supabase quota resets.
 
@@ -53,10 +53,10 @@ This is a protection budget, not a live production performance certification. Ex
 
 - pure state-machine contract for open → local short-circuit → cooldown → single probe → reset;
 - negative contract: 401/403/429/500 never open the quota circuit;
-- preload behavior contract proves first target 402 reaches the caller, all six WA runtime user-agent families short-circuit after opening, and a non-target runtime remains untouched;
+- preload behavior contract proves first target 402 reaches the caller, all seven WA runtime user-agent families short-circuit after opening, and `F4-RevenueProxy` remains untouched;
 - static contract proves Railway loads the preload and the WA runtime allowlist/host scope are present;
 - historical runtime contracts normalize only this exact certified preload and continue rejecting arbitrary wrappers;
-- existing Phase S / WA-2 / WA-3 / WA-4 / S14 / S15 contracts remain mandatory;
+- existing Phase S / WA-1 / WA-2 / WA-3 / WA-4 / S14 / S15 contracts remain mandatory;
 - Performance Guard remains mandatory;
 - Zero-Cost WA-3 FINAL local Supabase/pgTAP/concurrency/rollback remains mandatory.
 
