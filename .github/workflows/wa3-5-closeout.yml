@@ -12,6 +12,11 @@ on:
       - 'ci/wa3-5-advisor-productivity/p1a_contract.js'
       - 'ci/wa3-boxes-routing-handoff/ui_contract_v2.js'
       - 'ci/wa3-boxes-routing-handoff/ui_contract_final.js'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA_3_5_OFFLINE_CERTIFICATE.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - 'docs/MEMORY_CURRENT.md'
       - '.github/workflows/wa3-5-closeout.yml'
   workflow_dispatch:
 
