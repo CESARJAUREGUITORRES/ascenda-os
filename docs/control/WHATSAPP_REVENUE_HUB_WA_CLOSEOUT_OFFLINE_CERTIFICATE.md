@@ -81,9 +81,11 @@ The current persisted conversation state model uses:
 
 There is no separate literal `BOT_ACTIVE` state in the current schema. Do not add one merely to satisfy checklist wording. Bot/non-human handling must be interpreted through the canonical state and routing contracts until WA-4B formalizes Handling State vs Sales Stage.
 
-## Production hold
+## Offline certification
 
-`WA CODE / CI / ZERO-COST = eligible for offline certification once the aggregate WA-CLOSEOUT workflow is green at PR #369 exact head.`
+`WA CODE / CI / ZERO-COST = OFFLINE CERTIFIED 100%` for the implemented WA-1 → WA-3 / Notifications / WA-4-infrastructure scope represented by this certificate.
+
+This certificate is valid on `main` only when PR #369 is merged from an exact head whose aggregate `ASCENDA WA-CLOSEOUT Offline Certification` workflow is green. Any change to this certificate or its covered runtime/contracts requires exact-head revalidation before merge.
 
 `WA PRODUCTION CERTIFIED 100% = NOT YET.`
 
