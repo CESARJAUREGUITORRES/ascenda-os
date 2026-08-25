@@ -2,11 +2,11 @@
 
 **Status:** CURRENT / WHATSAPP REVENUE HUB V2  
 **Captured:** 2026-08-24 America/Lima  
-**Runtime tree:** `main@43c1ac717622b9c1a809f6883980e7e60f00ef89`  
-**Railway runtime status:** SUCCESS  
-**ACTIVE LOCK:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT GATE:** `WA-3 — OFFLINE CLOSEOUT / PR #369`  
-**NEXT AFTER CLOSEOUT:** `WA-3.5 — REVENUE INBOX UX`
+**Main after WA closeout:** `b97b84a1878c42e41e7870bcde2289d1541e0f58`  
+**Certified runtime baseline:** `43c1ac717622b9c1a809f6883980e7e60f00ef89`  
+**Railway runtime status:** SUCCESS on certified runtime baseline  
+**ACTIVE LOCK:** `WA-3.5 — REVENUE INBOX UX`  
+**CURRENT GATE:** `WA-3.5 P0 — Revenue Inbox UX / read-model only`
 
 ## Owner directive
 
@@ -21,30 +21,23 @@ Finish WhatsApp Revenue Hub as the active ASCENDA mutable program while preservi
 - Notifications S13–S15.5 = CLOSED / regression-only.
 - Sentinel's historical `F2_PUBLIC_HTML_DRIFT` remains a separate cross-workstream debt; do not mutate Sentinel inside WA solely to force a green status.
 
-## Runtime / closeout checkpoint
+## WA closeout checkpoint — CLOSED
 
 PR #368 merged the fail-closed Supabase 402 circuit.
 
 - PR #368 exact head: `81f7f6e5f329bc9184f4d4f611de6d0ca48b5608`.
 - runtime merge SHA: `43c1ac717622b9c1a809f6883980e7e60f00ef89`.
 - Railway: SUCCESS for runtime merge SHA.
-- PR #369 is docs/CI/offline-certificate only; it does not mutate runtime or DB schema.
 
-PR #368 final exact-head PASS surface:
+PR #369 closed the implemented WhatsApp scope offline.
 
-- Ascenda CI;
-- Phase S;
-- WA-2 Zero-Cost;
-- WA-3 V2 FAST;
-- WA-3 routing/concurrency Zero-Cost;
-- S15 notifications;
-- WA-4 AI Router;
-- Performance Guard;
-- ASC-PERF Audit 360.
+- PR #369 exact head: `582e4fe4547f7dcbf38023ab5229c2f3120a40c5`.
+- merge/main SHA: `b97b84a1878c42e41e7870bcde2289d1541e0f58`.
+- aggregate WA-CLOSEOUT exact-head gate: PASS.
+- `WA CODE / CI / ZERO-COST = OFFLINE CERTIFIED 100%`.
+- PR #369 changed certification/CI/docs only and did not change DB schema or the certified runtime baseline.
 
-## WA-3 closeout boundary
-
-The following are implemented and treated as regression invariants:
+The following remain regression invariants:
 
 - explicit `whatsapp-agent` permission + strong 2FA;
 - multiagent boxes/members/`max_active`;
@@ -60,42 +53,49 @@ The following are implemented and treated as regression invariants:
 - alerts and closed-PWA Web Push regression chain;
 - `auto_routing=false`, `ai_send=false`, `copilot=false`, `auto_reply=false`.
 
-PR #369 must seal the aggregate offline contract and leave no `UNKNOWN` in the implemented WA-1→WA-3 / notifications / WA-4-infrastructure scope.
-
 ## Production hold
 
 Supabase production API is currently returning HTTP 402 quota responses. Therefore:
 
-- Cloud is not a valid certification target;
-- no live production writes are required or permitted for WA closeout;
+- Cloud is not a valid certification or development target;
+- do not add production writes merely to exercise WA-3.5;
 - historical live counts remain evidence only, not fresh readback;
-- WA CODE/CI/ZERO-COST may close independently;
-- `WA PRODUCTION CERTIFIED 100%` must remain false until live recovery/canary gates pass.
+- WA-3.5 may advance through CODE/CI/ZERO-COST independently;
+- `WA PRODUCTION CERTIFIED 100%` remains false until live recovery/canary gates pass.
 
 Live gates after recovery:
 
 `402 → 200 → Railway exact health → Auth/2FA → provider health → signed inbound → allowlisted outbound → terminal delivery status → CESAR↔MIREYA handoff/claim/send/reassign/isolation/readback → alerts → egress measurement`.
 
-## Next mutable lock — WA-3.5
+## Active mutable lock — WA-3.5
 
-Only after PR #369 is exact-head green, merged and Notion is reconciled, move the mutable lock to:
+`WA-3.5 — REVENUE INBOX UX` is now the single mutable WA lane.
 
-`WA-3.5 — REVENUE INBOX UX`.
+### P0 boundary
 
-P0 is UX/read-model work, not a new CRM or routing authority:
+P0 is UX/read-model work, not a new CRM, database or routing authority. It must reuse the certified WA-3 inbox snapshot and existing canonical fields.
 
-- My conversations;
-- Human requested;
-- Unread;
-- Waiting customer;
-- Bot/New view;
-- filters only from existing canonical campaign/state/owner/box fields;
-- richer cards;
-- clean sent/delivered/read/failure timeline;
-- notification/auth destination restore;
-- reuse shared inbox snapshot and avoid duplicate pollers.
+Target surface:
 
-Treatment/sede/sales-stage are not invented if absent. Private media/STT stays in WA-5.
+- all / my conversations;
+- human requested;
+- unread;
+- waiting customer;
+- bot / AI-active view;
+- finalised conversations;
+- campaign filter from canonical `campaign_source`;
+- richer cards using last-message direction/time, unread, state, owner, campaign, handoff age and 24h window;
+- no duplicate inbox polling;
+- no new Supabase table/RPC;
+- no ownership, 2FA, routing or AI-send authority changes.
+
+Treatment, sede and sales-stage must not be invented while absent from the canonical inbox read model. Private media/STT stays in WA-5. Agenda/call tooling stays in its existing authority.
+
+### P0 implementation branch
+
+`feat/wa-3-5-revenue-inbox-p0-20260824`
+
+P0 must pass its dedicated Zero-Cost contract plus the existing WA-3 UI/runtime regressions before merge.
 
 ## Safety invariants
 
