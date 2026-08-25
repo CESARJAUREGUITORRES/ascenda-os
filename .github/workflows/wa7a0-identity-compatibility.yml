@@ -1,0 +1,189 @@
+name: ASCENDA WA-7A.0 Identity Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa-gateway.js'
+      - 'supabase/migrations/*wa7a0_identity_compatibility*'
+      - 'supabase/migrations/*wa7a0_direct_insert_compat*'
+      - 'supabase/migrations/*wa7a0_phone_key_compat*'
+      - 'supabase/rollbacks/*wa7a0_identity_compatibility*'
+      - 'supabase/rollbacks/*wa7a0_direct_insert_compat*'
+      - 'supabase/rollbacks/*wa7a0_phone_key_compat*'
+      - 'ci/wa7a0-identity-compatibility/**'
+      - '.github/workflows/wa7a0-identity-compatibility.yml'
+  push:
+    branches: ['feat/wa-7a-0-identity-compatibility-20260825']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa7a0-identity-compatibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · WA-7A.0 PHONE + BSUID
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59922/postgres
+      ROLLBACK_DB_URL: postgresql://postgres:postgres@127.0.0.1:59922/wa7a0_rollback
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Runtime syntax and gateway contracts
+        run: |
+          set -euo pipefail
+          node --check app/wa-gateway.js
+          node --check app/server-f4.js
+          node --check app/server-wa2.js
+          node --check app/server-wa3.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node --test ci/wa7a0-identity-compatibility/identity_contract.test.js
+
+      - name: Source safety invariants
+        run: |
+          set -euo pipefail
+          grep -q "from_user_id" app/wa-gateway.js
+          grep -q "from_parent_user_id" app/wa-gateway.js
+          grep -q "contact_username" app/wa-gateway.js
+          grep -q "out.recipient=recipient.address" app/wa-gateway.js
+          grep -q "enumerable:false" app/wa-gateway.js
+          grep -q "WA7A0_IDENTITY_CONFLICT" supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          grep -q "recipient_kind" supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          grep -q "m.provider_message_id=v_provider_id" supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          grep -q "WA-2 certified PHONE key" supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+          grep -q "WA7A0_ROLLBACK_BLOCKED_BSUID_DATA" supabase/rollbacks/20260825143000_wa7a0_identity_compatibility_v1.rollback.sql
+          ! grep -Eq "alias_type[^\n]*(USERNAME|username)" supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN)\s*=\s*['\"][^'\"]+['\"]" app/wa-gateway.js
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa7a0-identity"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59921/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59922/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59920/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa7a0-identity' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59922 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-7A.0 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build synthetic prerequisite schema
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+
+      - name: Apply WA-1 and seed certified pre-WA2 fixture
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/pre_migration_fixture.sql
+
+      - name: Apply certified WA-2 WA-3 S14 prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql
+
+      - name: Apply WA-7A.0 identity compatibility
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143100_wa7a0_direct_insert_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: Preserve WA-2 phone behavior
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa2-conversation-live-inbox/tests/001_wa2_store.sql | tee /tmp/wa7a0-wa2.txt
+          grep -q '1..51' /tmp/wa7a0-wa2.txt
+          ! grep -q 'not ok' /tmp/wa7a0-wa2.txt
+
+      - name: Preserve WA-3 routing and ownership
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/001_wa3_routing.sql | tee /tmp/wa7a0-wa3-v1.txt
+          ! grep -q 'not ok' /tmp/wa7a0-wa3-v1.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/tests/002_wa3_multiagent_v2.sql | tee /tmp/wa7a0-wa3-v2.txt
+          ! grep -q 'not ok' /tmp/wa7a0-wa3-v2.txt
+
+      - name: PHONE + BSUID database behavior
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a0-identity-compatibility/tests/001_identity_compatibility.sql
+
+      - name: Rollback blocks destructive downgrade after BSUID evidence
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825143200_wa7a0_phone_key_compat_v1.rollback.sql
+          set +e
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825143100_wa7a0_direct_insert_compat_v1.rollback.sql > /tmp/wa7a0-blocked.txt 2>&1
+          RC=$?
+          set -e
+          test "$RC" -ne 0
+          grep -q 'WA7A0_ROLLBACK_BLOCKED_BSUID_DATA' /tmp/wa7a0-blocked.txt
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_channel_aliases_v1') is not null")" = "t"
+
+      - name: Safe rollback remains possible before BSUID adoption
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres dropdb -h 127.0.0.1 -p 59922 -U postgres --if-exists wa7a0_rollback
+          PGPASSWORD=postgres createdb -h 127.0.0.1 -p 59922 -U postgres wa7a0_rollback
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143100_wa7a0_direct_insert_compat_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825143200_wa7a0_phone_key_compat_v1.rollback.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825143100_wa7a0_direct_insert_compat_v1.rollback.sql
+          psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260825143000_wa7a0_identity_compatibility_v1.rollback.sql
+          test "$(psql "$ROLLBACK_DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_channel_aliases_v1') is null")" = "t"
+          test "$(psql "$ROLLBACK_DB_URL" -X -qAt -c "select is_nullable='NO' from information_schema.columns where table_schema='public' and table_name='aos_wa_conversations_v1' and column_name='contact_number'")" = "t"
+          test "$(psql "$ROLLBACK_DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa3_human_send_authorize_v1(text,uuid)') is not null")" = "t"
+
+      - name: Certification boundary
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa_channel_aliases_v1 where alias_type='BSUID'")" -ge 1
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa_conversations_v1 where contact_address_type='BSUID'")" -ge 1
+          echo 'WA-7A.0 CODE/DB/ZERO-COST contract complete; LIVE provider canary is a separate gate.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
