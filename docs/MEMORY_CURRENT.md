@@ -1,11 +1,10 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-08-24 America/Lima  
+**Captured:** 2026-08-25 America/Lima  
 **ACTIVE PROGRAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT GATE:** `WA-3.5 CLOSEOUT / PR #372`  
-**BASELINE BEFORE CLOSEOUT:** `main@6292852fad190f1489836fc34644a2161aa575a2`  
-**PRODUCT CODE HEAD:** `71a8a327bf832c58ea50b0998a41a73306e30bdb`  
-**NEXT LOCK AFTER MERGE:** `WA-7A — META ATTRIBUTION INGRESS`
+**CURRENT GATE:** `WA-7A.1 — IDENTITY RESOLUTION`  
+**RUNTIME MERGE:** `6e6e69eac108e3a4497425d5c53b757760185ccc`  
+**WA-7A.0 CERT HEAD:** `8d081b9be16edd2e7858e015faf0d32ff8fb87fd`
 
 ## Authority order
 
@@ -15,11 +14,10 @@
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
 6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-7. `docs/control/WHATSAPP_REVENUE_HUB_WA_3_5_OFFLINE_CERTIFICATE.md`;
+7. `docs/control/WHATSAPP_REVENUE_HUB_WA_7A_0_CERTIFICATE.md`;
 8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-9. exact GitHub runtime + Railway + Supabase LIVE when available;
-10. fresh scoped `aos_memory` when Cloud is available;
-11. Notion executive continuity.
+9. exact GitHub runtime + Railway + Supabase evidence;
+10. Notion executive continuity.
 
 Historical chat/doc snapshots never override exact CURRENT + runtime evidence.
 
@@ -30,68 +28,92 @@ Historical chat/doc snapshots never override exact CURRENT + runtime evidence.
 - REV-F7 — paused while WA owns the mutable lane.
 - WhatsApp Revenue Hub V2 — ACTIVE.
 - Notifications S13–S15.5 — CLOSED / regression-only.
-- CIA, Sentinel, KronIA and unrelated mutable work — frozen/read-only unless strict WA dependency.
+- CIA, Sentinel, KronIA and unrelated HIGH/CRITICAL work — read-only/regression-only unless strict WA dependency.
 
 ## WhatsApp V2 current
 
 - `WA-V2-0` = CLOSED.
-- `WA-3` = OFFLINE CERTIFIED / LIVE HOLD.
-- `WA-3.5 P0` = built and merged.
-- `WA-3.5 P1A` = built and merged in PR #371; baseline main `6292852fad190f1489836fc34644a2161aa575a2`.
-- `WA-3.5 P2` = built in PR #372; final offline closeout in progress.
-- `WA-7A` = next mutable phase only after #372 merge/reconciliation.
-- WA-4 existing infrastructure = SAFE-OFF and does not certify WA-4A/B/C.
+- `WA-3` = OFFLINE CERTIFIED / LIVE recovery debt.
+- `WA-3.5` = OFFLINE CERTIFIED 100% / LIVE recovery debt.
+- `WA-7A.0` = CLOSED at demonstrated CODE/CI/ZERO-COST/PROD-SCHEMA/PHONE-COMPAT boundary.
+- `WA-7A.1` = ACTIVE MUTABLE LOCK.
+- `WA-7A.2/3/4` = blocked behind WA-7A.1 closeout.
+- WA-4 existing infrastructure remains SAFE-OFF and does not certify WA-4A/B/C.
 
-## WA-3.5 product facts
+## WA-7A.0 closeout facts
 
-P0:
-- Revenue Inbox filters and campaign selector;
-- richer canonical conversation cards;
-- no duplicate inbox read owner/poller.
+PR #374 merged with exact head `8d081b9be16edd2e7858e015faf0d32ff8fb87fd`.
 
-P1A:
-- populate-only quick replies;
-- actor+conversation drafts with TTL/size bounds;
-- keyboard shortcuts;
-- responsive baseline.
+Runtime merge: `6e6e69eac108e3a4497425d5c53b757760185ccc`.
 
-P2:
-- DETAILS / CUSTOMER 360 / CAMPAIGN / ACTIVITY / COPILOT tabs;
-- Customer 360 uses canonical REV-F6 on demand and only existing patient permissions;
-- WA projects a narrow commercial subset only; no notes/documents/extra PHI expansion;
-- Campaign shows only existing provenance and hands expanded touchpoints to WA-7A;
-- Activity uses canonical conversation timestamps;
-- Copilot is SAFE-OFF;
-- event-driven only: zero P2 polling timers and zero MutationObserver;
-- shell cache key advanced so browsers receive P0/P1/P2 instead of stale WA-3 FINAL assets.
+Exact-head CI matrix = SUCCESS:
 
-Internal notes remain deliberately deferred until a governed persistence/write contract exists. They must not become browser-only truth.
-
-## Product-head certification evidence
-
-At `71a8a327bf832c58ea50b0998a41a73306e30bdb`, SUCCESS:
-
-- WA-3.5 Closeout;
-- WA-3 Boxes Routing Handoff with local DB/pgTAP/concurrency/rollback;
-- WA-3.5 P1A including P0 regression and WA-3 UI authority;
-- WA-3 FINAL Presence Handoff FAST + DB;
+- WA-7A.0 Identity Compatibility;
+- WA-1 Secure Gateway;
+- WA-3 Stabilization;
+- Ascenda CI;
 - Performance Guard;
-- ASC-PERF Audit 360;
-- S14 Web Push;
-- S15 Unified Notifications.
+- ASC-PERF Audit 360.
 
-Runs cancelled by later same-PR commits are not failures. Final docs/certificate are governed by the dedicated WA-3.5 Closeout exact-head gate.
+Production Supabase migrations applied:
+
+- `wa7a0_identity_compatibility_v1`;
+- `wa7a0_direct_insert_compat_v1`;
+- `wa7a0_phone_key_compat_v1`.
+
+Production readback:
+
+- messages = 21 preserved;
+- conversations = 2 PHONE;
+- aliases = 2 PHONE;
+- invalid/null channel addresses = 0;
+- PHONE address mismatch = 0;
+- typed `:PHONE:` key regressions = 0;
+- BSUID production rows = 0;
+- all 21 existing messages remain bound to PHONE conversations with PHONE alias evidence;
+- alias RLS/FORCE RLS enabled and direct anon/authenticated reads denied.
+
+Railway exact runtime merge status = SUCCESS.
 
 ## Production hold
 
-Supabase project `ituyqwstonmhnfshnaqz` remains HTTP 402. Do not use Cloud as current certification target and do not build an auth bypass.
+Supabase SQL management access works, but fresh API logs still return HTTP 402 on `/rest-admin/v1/ready`, `/auth/v1/health` and real `/rest/v1/*` requests.
 
-`WA-3.5 LIVE / PRODUCTION CERTIFIED 100% = NOT YET`.
+Therefore:
 
-After recovery perform exact Railway health, Auth/2FA, provider health, signed inbound, allowlisted outbound, delivery-state readback, CESAR↔MIREYA ownership/handoff canary, notifications, real Revenue Inbox visual smoke and egress observation.
+- `WA-7A.0 LIVE/PROVIDER/BSUID CERTIFIED 100% = NO`;
+- no authenticated UI canary is currently valid;
+- no current Meta/provider canary may be manufactured via service-role/auth bypass;
+- historical provider evidence remains historical only.
 
-## Next execution after WA-3.5 merge
+Safety remains:
 
-`WA-7A — META ATTRIBUTION INGRESS`.
+- `auto_routing=false`;
+- `ai_send=false`;
+- `copilot=false`;
+- `auto_reply=false`;
+- `human_send=true` preserved as pre-existing governed canary state.
 
-Goal: preserve immutable, explicit first-inbound Meta provenance/touchpoint evidence before identity/downstream processing. Never infer attribution solely from phone matching. WA-7B remains the later broad Meta Ads sync; do not conflate it with WA-7A.
+## WA-7A.1 next execution
+
+Goal: connect WhatsApp channel aliases to canonical ASCENDA identity using governed REV/F5 boundaries without a parallel customer master.
+
+First loop:
+
+1. revalidate exact `main` and current lock;
+2. discover REV/F5 canonical identity owners/functions/tables and existing WA alias contracts;
+3. build evidence matrix `existing / missing / unsafe / duplicate / canonical owner`;
+4. freeze WA-7A.1 DoD before mutation;
+5. design additive fail-closed alias→canonical resolution;
+6. add conflict/review semantics and audit evidence;
+7. local/Zero-Cost DB tests including PHONE+BSUID continuity and conflict cases;
+8. exact-head CI;
+9. anti-drift;
+10. production apply/readback only when safe;
+11. merge expected head;
+12. Railway if runtime changes;
+13. GitHub CURRENT;
+14. Notion LAST;
+15. advance only after WA-7A.1 closeout.
+
+Hard rules: no username merge authority, no universal-BSUID assumption, no phone-only attribution, no broad Ads sync, no AI/auto-routing activation.
