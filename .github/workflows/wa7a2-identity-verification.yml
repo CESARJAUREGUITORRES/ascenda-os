@@ -59,7 +59,7 @@ jobs:
           ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.aos_pacientes' "$M"
           ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.aos_rev_' "$M"
           ! grep -Eq "change\.field[[:space:]]*={2,3}[[:space:]]*['\"]user_id_update['\"]" "$J"
-          ! grep -Eq '(contact_username|username).*canonical|canonical.*(contact_username|username)' "$M"
+          ! grep -Eq '(^|[^[:alnum:]_])(contact_username|username)[[:space:]]*(:=|=|in[[:space:]]*\(|join|where|on[[:space:]])' "$M"
 
       - name: Gateway parser and outbound contracts
         run: |
