@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WA-3.5 P0 Revenue Inbox · Offline Preview</title>
+<style>
+html,body{height:100%;margin:0}body{font-family:Arial,sans-serif;background:#eef2f7;color:#0d1b3e}.note{padding:10px 14px;background:#fff8e8;border-bottom:1px solid #ead8af;font-size:12px}.wrap{height:calc(100% - 38px);display:grid;grid-template-columns:340px 1fr}.left{background:#fff;border-right:1px solid #dfe6f2;min-height:0;display:flex;flex-direction:column}.wa8-search{padding:12px;border-bottom:1px solid #e5eaf5}.wa8-search input{width:100%;box-sizing:border-box;height:38px;border:1px solid #d9e1f1;border-radius:10px;padding:0 12px}.wa8-list{overflow:auto;flex:1}.wa8-conv{padding:12px 13px;border-bottom:1px solid #edf0f6;background:#fff}.wa8-row{display:flex;align-items:center;gap:7px}.wa8-name{font-size:12px;font-weight:800}.wa8-grow{flex:1}.wa8-phone,.wa8-meta{font-size:9px;color:#7584a5}.wa8-preview{font-size:10px;color:#51617f;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa8-chip{display:inline-flex;border-radius:999px;padding:3px 6px;font-size:8px;font-weight:800;background:#eef2f7;color:#5d6c89}.wa8-badge{min-width:18px;height:18px;border-radius:999px;background:#e9eef7;font-size:8px;font-weight:800;display:grid;place-items:center}.center{background:#f7f9fc}.wa8-head{height:64px;background:#fff;border-bottom:1px solid #dde4f5;display:flex;align-items:center;padding:0 14px;gap:10px}.wa8-head-actions{margin-left:auto}.demo{padding:28px;color:#62718e;font-size:13px}.wa8-right{display:none}.wa8-toast{display:none}
+</style>
+</head>
+<body>
+<div class="note"><b>OFFLINE FIXTURE ONLY.</b> No Supabase Cloud, Meta API, credentials or production data are used.</div>
+<div id="aos-wa-native" class="wrap">
+  <aside class="left">
+    <div class="wa8-search"><input placeholder="Buscar conversación..." disabled></div>
+    <div class="wa8-list" id="fixture-list"></div>
+  </aside>
+  <main class="center">
+    <div class="wa8-head"><b>WA-3.5 P0 · Revenue Inbox</b><div class="wa8-head-actions"></div></div>
+    <div class="demo">Este harness existe para validar filtros, badges, campañas y prioridad visual sin depender del login productivo.</div>
+  </main>
+  <aside class="wa8-right"><div id="wa8-right-body"></div></aside>
+  <div class="wa8-toast" id="wa8-toast"></div>
+</div>
+<script>
+(function(){
+'use strict';
+var now=Date.now(),owner='11111111-1111-4111-8111-111111111111';
+var rows=[
+{id:'c1',contact_name:'Ana Torres',contact_number:'51999000101',state:'HUMAN_REQUESTED',owner_user_id:null,box_id:'b1',unread_count:4,last_message_preview:'Quiero separar una cita para este viernes',last_message_direction:'INBOUND',last_message_at:new Date(now-8*60000).toISOString(),last_inbound_at:new Date(now-8*60000).toISOString(),handoff_requested_at:new Date(now-6*60000).toISOString(),updated_at:new Date(now-6*60000).toISOString(),campaign_source:'Meta · Rejuvenecimiento'},
+{id:'c2',contact_name:'Lucía Ramos',contact_number:'51999000102',state:'HUMAN_ACTIVE',owner_user_id:owner,box_id:'b1',unread_count:1,last_message_preview:'Sí, me interesa conocer el precio',last_message_direction:'INBOUND',last_message_at:new Date(now-42*60000).toISOString(),last_inbound_at:new Date(now-42*60000).toISOString(),updated_at:new Date(now-40*60000).toISOString(),campaign_source:'Instagram Orgánico'},
+{id:'c3',contact_name:'María Paredes',contact_number:'51999000103',state:'WAITING_CUSTOMER',owner_user_id:owner,box_id:'b1',unread_count:0,last_message_preview:'Te envío los horarios disponibles',last_message_direction:'OUTBOUND',last_message_at:new Date(now-3*3600000).toISOString(),last_inbound_at:new Date(now-5*3600000).toISOString(),updated_at:new Date(now-3*3600000).toISOString(),campaign_source:'Meta · Armonización'},
+{id:'c4',contact_name:'Valeria Díaz',contact_number:'51999000104',state:'AI_ACTIVE',owner_user_id:null,box_id:'b1',unread_count:2,last_message_preview:'¿Atienden los sábados?',last_message_direction:'INBOUND',last_message_at:new Date(now-20*60000).toISOString(),last_inbound_at:new Date(now-20*60000).toISOString(),updated_at:new Date(now-20*60000).toISOString(),campaign_source:'Meta · Rejuvenecimiento'},
+{id:'c5',contact_name:'Camila Soto',contact_number:'51999000105',state:'WON',owner_user_id:owner,box_id:'b1',unread_count:0,last_message_preview:'Gracias, nos vemos mañana',last_message_direction:'INBOUND',last_message_at:new Date(now-2*86400000).toISOString(),last_inbound_at:new Date(now-2*86400000).toISOString(),updated_at:new Date(now-2*86400000).toISOString(),campaign_source:'Referido'}
+];
+function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+function renderRows(){document.getElementById('fixture-list').innerHTML=rows.map(function(r){return '<div class="wa8-conv" data-id="'+r.id+'"><div class="wa8-row"><div class="wa8-name">'+esc(r.contact_name)+'</div><div class="wa8-grow"></div>'+(r.unread_count?'<div class="wa8-badge">'+r.unread_count+'</div>':'')+'</div><div class="wa8-phone">+'+r.contact_number+'</div><div class="wa8-preview">'+esc(r.last_message_preview)+'</div><div class="wa8-row" style="margin-top:6px"><span class="wa8-chip">'+esc(r.state)+'</span></div></div>';}).join('');}
+renderRows();
+try{localStorage.setItem('aos_wa_selected','c2');}catch(_){}
+window.AOS_showToast=function(){};
+window.AOS_WA_NATIVE={
+  mount:function(){},unmount:function(){},getInboxSnapshot:function(){return rows.slice();},
+  api:function(path){
+    if(path==='/api/wa3/bootstrap')return Promise.resolve({actor:{id:owner,name:'César Demo',is_admin:true},boxes:[{id:'b1',name:'Ventas',status:'ACTIVE'}],users:[{id:owner,nombre:'César Demo',rol:'ADMIN',nivel_jerarquia:1}],members:[{box_id:'b1',user_id:owner,active:true}]});
+    if(path==='/api/wa3/queue-summary')return Promise.resolve({presence:{status:'AVAILABLE'},total_queued:1,boxes:[{box_id:'b1',queued_count:1,active_load:2,max_active:5,can_claim:true}]});
+    if(path==='/api/wa3/team-summary')return Promise.resolve({agents:[{id:owner,name:'César Demo',effective_status:'AVAILABLE',labor_state:'DISPONIBLE',active_load:2}]});
+    if(path==='/api/wa3/claim-next')return Promise.resolve({ok:true});
+    return Promise.resolve({ok:true});
+  }
+};
+})();
+</script>
+<script src="../../app/public/wa-multiagent-final-panel.js"></script>
+</body>
+</html>

@@ -14,7 +14,11 @@ assert(shell.includes("presenceTimer=setInterval(function(){presenceBeat('HEARTB
 assert(shell.includes("presenceBeat('OFFLINE',true)"));
 assert(shell.includes("X-AOS-App-Token"));
 
-for(const token of ['Supervisor WA','Requieren humano','No leídos','Humano','Bot','ESPERANDO ASESOR','ASESOR · ','ADMIN · ','Tomar','HUMAN_REQUESTED','wa3f-owner','Meta aceptó el mensaje','labor_state','announceTeamChanges','teamSeen','AOS_showToast']) assert(panel.includes(token),token);
+// WA-3.5 evolves the supervisor filters without changing WA-3 authority.
+for(const token of ['Revenue Inbox','Requieren humano','No leídos','Míos','Bot / IA','Finalizados','ESPERANDO ASESOR','ASESOR · ','ADMIN · ','Tomar','HUMAN_REQUESTED','WAITING_CUSTOMER','wa3f-owner','Meta aceptó el mensaje','labor_state','announceTeamChanges','teamSeen','AOS_showToast']) assert(panel.includes(token),token);
+assert(panel.includes("['WON','LOST','CLOSED']"));
+assert(panel.includes('campaign_source'));
+assert(panel.includes('last_message_direction'));
 assert(!panel.includes('data-pres='));
 assert(!panel.includes('Disponible</button>'));
 assert(!panel.includes('Ausente</button>'));
@@ -44,4 +48,4 @@ assert(migration.includes("now()-interval '60 seconds'"));
 assert(!migration.includes('auto_routing_enabled=true'));
 assert(!migration.includes('ai_send_enabled=true'));
 
-console.log('WA-3 FINAL canonical labor presence/supervisor alert contract: PASS');
+console.log('WA-3 FINAL / WA-3.5 P0 canonical labor presence + Revenue Inbox contract: PASS');

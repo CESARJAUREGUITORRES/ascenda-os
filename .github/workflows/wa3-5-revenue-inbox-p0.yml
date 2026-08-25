@@ -1,0 +1,53 @@
+name: ASCENDA WA-3.5 P0 Revenue Inbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/wa-multiagent-final-panel.js'
+      - 'app/public/wa-native-panel.js'
+      - 'ci/wa3-5-revenue-inbox/p0_contract.js'
+      - '.github/workflows/wa3-5-revenue-inbox-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa35-revenue-inbox-p0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p0:
+    name: ZERO-COST · Revenue Inbox P0 contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --check app/public/wa-multiagent-final-panel.js
+          node --check app/public/wa-native-panel.js
+          node --check ci/wa3-5-revenue-inbox/p0_contract.js
+      - name: Revenue Inbox P0 contract
+        run: node ci/wa3-5-revenue-inbox/p0_contract.js
+      - name: Preserve WA-3 certified UI contracts
+        run: |
+          set -euo pipefail
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+          node ci/wa3-boxes-routing-handoff/ui_contract_final.js
+      - name: Fail closed on cloud/provider coupling
+        run: |
+          set -euo pipefail
+          ! grep -Eq "(SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_ACCESS_TOKEN|graph\.facebook\.com|/rest/v1/|/rpc/)" app/public/wa-multiagent-final-panel.js
+      - name: P0 boundary
+        run: echo "WA-3.5 P0 is UI/read-model only; LIVE certification remains separate."
