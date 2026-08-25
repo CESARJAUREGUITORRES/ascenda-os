@@ -1,0 +1,101 @@
+name: ASCENDA WA-CLOSEOUT Offline Certification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ci/wa-closeout/**'
+      - '.github/workflows/wa-closeout-offline.yml'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA_CLOSEOUT_OFFLINE_CERTIFICATE.md'
+      - 'docs/MEMORY_CURRENT.md'
+  push:
+    branches: ['cert/wa-closeout-offline-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-closeout-offline-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: FAST WhatsApp offline closeout
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Enforce self-hosted FAST lane
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -ne 'self-hosted') { throw 'WA-CLOSEOUT must run self-hosted' }
+          node --version
+
+      - name: Install notification runtime dependencies
+        working-directory: app
+        shell: powershell
+        run: npm.cmd install --no-audit --no-fund
+
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check ci/wa-closeout/wa-closeout-runtime-contract.js
+          node --check app/wa-gateway.js
+          node --check app/server-f4.js
+          node --check app/server-phase-s.js
+          node --check app/server-wa3-v2.js
+          node --check app/supabase-quota-circuit.js
+          node --check app/supabase-quota-circuit-preload.cjs
+
+      - name: WA-CLOSEOUT aggregate runtime contract
+        shell: powershell
+        run: node ci/wa-closeout/wa-closeout-runtime-contract.js
+
+      - name: WA-1 signed gateway regression
+        shell: powershell
+        run: node --test ci/wa1-secure-gateway/wa-gateway.test.js
+
+      - name: Phase S stabilization regressions
+        shell: powershell
+        run: |
+          node ci/phase-s/phase-s_contract.js
+          node ci/phase-s/wa_native_s8_contract.js
+          node ci/phase-s/wa_customer_window_s10_contract.js
+          node ci/phase-s/wa_s11_live_sync_meta_auth_contract.js
+          node ci/performance/wa-supabase-quota-circuit-contract.js
+
+      - name: WA-3 multiagent UI/source regressions
+        shell: powershell
+        run: |
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+          node ci/wa3-boxes-routing-handoff/ui_contract_final.js
+
+      - name: WA-4 safe-OFF AI router regression
+        shell: powershell
+        run: node --test ci/wa4-ai-sales-router/ai-router.test.js
+
+      - name: Notifications S12 to S15.5 regression
+        shell: powershell
+        run: |
+          node ci/wa-s12/contract.js
+          node ci/wa-s13/contract.js
+          node ci/wa-s14/contract.js
+          node ci/s15/contract.js
+          node ci/s15/topbar_contract.js
+          node ci/s15/legacy_bridge_contract.js
+          node ci/s15/auth_boundary_contract.js
+          node ci/s15/production_chain_contract.js
+
+      - name: Offline certification boundary
+        shell: powershell
+        run: |
+          Write-Host 'WA CODE/CI OFFLINE CLOSEOUT = PASS'
+          Write-Host 'Database/RLS/concurrency authority remains the already-green Zero-Cost WA-2/WA-3 exact-head gates.'
+          Write-Host 'LIVE PRODUCTION remains BLOCKED until Supabase 402 clears and WA-PROD-CERT is executed.'
