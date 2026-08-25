@@ -158,8 +158,8 @@ jobs:
       - name: Safe rollback remains possible before BSUID adoption
         run: |
           set -euo pipefail
-          dropdb -h 127.0.0.1 -p 59922 -U postgres --if-exists wa7a0_rollback
-          createdb -h 127.0.0.1 -p 59922 -U postgres wa7a0_rollback
+          PGPASSWORD=postgres dropdb -h 127.0.0.1 -p 59922 -U postgres --if-exists wa7a0_rollback
+          PGPASSWORD=postgres createdb -h 127.0.0.1 -p 59922 -U postgres wa7a0_rollback
           psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
           psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
           psql "$ROLLBACK_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
