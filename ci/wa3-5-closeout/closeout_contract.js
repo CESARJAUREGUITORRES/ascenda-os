@@ -58,15 +58,16 @@ assert(!p2.includes('auto_reply=true'));
 assert(!p2.includes('ai_send=true'));
 assert(!p2.includes('copilot=true'));
 
-// P2 owns no transport/provider/backend loop. The one setInterval is bounded startup enhancement retry only.
+// P2 is event-driven: no transport/provider/backend loop, polling timer or DOM observer.
 assert(!p2.includes('fetch('));
 assert(!p2.includes('/api/'));
 assert(!p2.includes('SUPABASE_SERVICE_ROLE_KEY'));
 assert(!p2.includes('WHATSAPP_ACCESS_TOKEN'));
 assert(!p2.includes('graph.facebook.com'));
-assert(count(p2,'setInterval(')===1,'P2 may only use the bounded startup enhancement retry');
-assert(p2.includes('tries>60'));
+assert(count(p2,'setInterval(')===0,'P2 must not own polling timers');
+assert(!p2.includes('MutationObserver'),'P2 must not self-observe its rendered DOM');
 assert(p2.includes("window.addEventListener('aos:wa3-inbox'"));
+assert(p2.includes("root.addEventListener('click',S.clickHandler,true)"));
 assert(p2.includes('getInboxSnapshot'));
 
 // Internal notes are intentionally not browser truth.
