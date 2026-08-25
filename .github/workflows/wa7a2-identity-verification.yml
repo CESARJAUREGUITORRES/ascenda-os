@@ -124,14 +124,6 @@ jobs:
           bash ci/wa7a2-identity-verification/concurrent_identity.sh | tee /tmp/wa7a2-concurrency.txt
           grep -q 'WA7A2_CONCURRENT_LINEAGE_PASS' /tmp/wa7a2-concurrency.txt
 
-      - name: WA-7A.0 and WA-7A.1 regressions
-        run: |
-          set -euo pipefail
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a0-identity-compatibility/tests/001_identity_compatibility.sql | tee /tmp/wa7a0-regression.txt
-          grep -q 'WA7A0' /tmp/wa7a0-regression.txt || true
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/tests/001_identity_resolution.sql | tee /tmp/wa7a1-regression.txt
-          grep -q 'WA7A1_IDENTITY_RESOLUTION_PASS' /tmp/wa7a1-regression.txt
-
       - name: Destructive rollback guard
         run: |
           set -euo pipefail
@@ -141,7 +133,26 @@ jobs:
           fi
           echo WA7A2_ROLLBACK_GUARD_PASS
 
-      - name: Clean synthetic evidence then rollback and reapply
+      - name: Clear WA-7A.2 synthetic lineage before historical regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          delete from public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+
+      - name: WA-7A.0 and WA-7A.1 regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a0-identity-compatibility/tests/001_identity_compatibility.sql | tee /tmp/wa7a0-regression.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/tests/001_identity_resolution.sql | tee /tmp/wa7a1-regression.txt
+          grep -q 'WA7A1_IDENTITY_RESOLUTION_PASS' /tmp/wa7a1-regression.txt
+
+      - name: Clean regression fixtures then rollback and reapply
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
