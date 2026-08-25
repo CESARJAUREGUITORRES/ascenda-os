@@ -14,7 +14,12 @@ assert(panel.includes('__wa35AdvisorProductivityP1=true'));
 // Quick replies are composition helpers only; none performs an automatic send.
 for(const token of ['Saludo','Objetivo','Horario','Seguimiento','QUICK_REPLIES','insertQuickReply'])assert(panel.includes(token),token);
 assert(panel.includes('ta.dispatchEvent(new Event(\'input\',{bubbles:true}))'));
-assert(!/function insertQuickReply[\s\S]*?\/api\/wa3\/conversations\//.test(panel),'quick reply must not send automatically');
+const quickStart=panel.indexOf('function insertQuickReply');
+const quickEnd=panel.indexOf('function decorateComposer',quickStart);
+assert(quickStart>=0&&quickEnd>quickStart,'quick reply function boundary missing');
+const quickBody=panel.slice(quickStart,quickEnd);
+assert(!quickBody.includes('/api/'),'quick reply must not call an API');
+assert(!quickBody.includes('wa8-send'),'quick reply must not click the send control');
 assert(!panel.includes('precio desde'));
 assert(!panel.includes('disponibilidad confirmada'));
 
