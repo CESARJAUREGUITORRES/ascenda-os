@@ -1,10 +1,10 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-08-25 America/Lima  
+**Captured:** 2026-08-27 America/Lima  
 **ACTIVE PROGRAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT GATE:** `WA-7A.2 — IDENTITY VERIFICATION & CONTINUITY`  
-**WA-7A.1 MERGE:** `0bdac2d8e171fbc8883835cb7cfdda0b39339807`  
-**WA-7A.1 CERT HEAD:** `ab432ddf5f7b0b8c1be9afb2ba3dfe7e616855b3`
+**CURRENT GATE:** `WA-7A.3 — ATTRIBUTION INGRESS`  
+**WA-7A.2 EXACT HEAD:** `8106f0ba6d644c062168fe84dc52dd83e50edb69`  
+**WA-7A.2 MERGE:** `a943dca94534e9016de158177131e88bbcb72b73`
 
 ## Authority order
 
@@ -14,9 +14,9 @@
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
 6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-7. `docs/control/WHATSAPP_REVENUE_HUB_WA_7A_1_CERTIFICATE.md`;
+7. `docs/control/WHATSAPP_REVENUE_HUB_WA_7A_2_CERTIFICATE.md`;
 8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-9. exact GitHub + Supabase + Railway/runtime evidence when applicable;
+9. exact GitHub + Supabase + Railway/runtime evidence;
 10. Notion executive continuity.
 
 Historical chat/doc snapshots never override exact CURRENT + runtime evidence.
@@ -36,68 +36,74 @@ Historical chat/doc snapshots never override exact CURRENT + runtime evidence.
 - `WA-3` = OFFLINE CERTIFIED / LIVE recovery debt.
 - `WA-3.5` = OFFLINE CERTIFIED 100% / LIVE recovery debt.
 - `WA-7A.0` = CLOSED at demonstrated identity-compatibility boundary.
-- `WA-7A.1` = CLOSED at CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK boundary.
-- `WA-7A.2` = ACTIVE MUTABLE LOCK.
-- `WA-7A.3/4` = blocked behind sequential closeout.
+- `WA-7A.1` = CLOSED at demonstrated identity-resolution boundary.
+- `WA-7A.2` = CLOSED at CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY demonstrated boundary.
+- `WA-7A.3` = ACTIVE MUTABLE LOCK.
+- `WA-7A.4` = blocked behind WA-7A.3.
 - WA-4 existing infrastructure remains SAFE-OFF and does not certify WA-4A/B/C.
 
-## WA-7A.1 necessity result
+## Identity foundation through WA-7A.2
 
-ASCENDA already had canonical identity authority in REV/F5/F6. WA-7A.1 therefore did not create a new CRM/customer/person master.
+Canonical person identity remains REV/F5/F6. WhatsApp uses the existing scoped alias ledger and does not create another customer/person master.
 
-Reused:
+- WA-7A.0: PHONE / BSUID / PARENT_BSUID transport and conversation continuity.
+- WA-7A.1: read-only WA conversation → REV canonical identity projection.
+- WA-7A.2: verification/source/evidence and non-destructive identifier supersession lineage.
 
-- `aos_pacientes.ID_PACIENTE` as canonical subject;
-- `aos_rev_patient_identity_alias_v2` for governed exact aliases/candidate/conflict/confidence evidence;
-- F5 reviewed evidence through the REV bridge;
-- WA-7A.0 `aos_wa_channel_aliases_v1` for PHONE/BSUID/PARENT_BSUID conversation continuity.
+Hard separation:
 
-Added only:
+`channel alias != canonical patient identity != acquisition touchpoint`.
 
-- private view `aos_wa_identity_resolution_v1`;
-- permission-gated read RPC `aos_wa7a1_resolve_conversation_identity_v1`;
-- Zero-Cost behavioral and rollback tests.
+Username is display-only. BSUID is scoped channel identity, not universal person identity.
 
-Resolution semantics:
+## WA-7A.2 certification evidence
 
-`WA conversation → active PHONE evidence → REV → MATCH | UNRESOLVED | IDENTITY_CONFLICT`.
+PR #376 exact head `8106f0ba6d644c062168fe84dc52dd83e50edb69` merged to `a943dca94534e9016de158177131e88bbcb72b73`.
 
-BSUID/username do not independently resolve a canonical patient. Genuine BSUID-only without corroborating canonical evidence remains unresolved. Conflicting PHONE evidence fails closed.
+Exact-head SUCCESS:
 
-## Certification evidence
+- WA-7A.2 Identity Verification & Continuity `32911787992`;
+- WA-7A.0 Identity Compatibility `32911788228`;
+- WA-1 Secure Gateway `32911788014`;
+- Phase S WA3 Stabilization `32911787931`;
+- Ascenda CI `32911788025`;
+- Performance Guard `32911787970`;
+- ASC-PERF Audit 360 `32911788017`.
 
-PR #375 exact head: `ab432ddf5f7b0b8c1be9afb2ba3dfe7e616855b3`.
+Delivered:
 
-Merge: `0bdac2d8e171fbc8883835cb7cfdda0b39339807`.
+- `VERIFIED / CLAIMED / UNKNOWN / CONFLICT` channel-fact states;
+- verification sources/evidence timestamps;
+- old→new BSUID/PARENT_BSUID lineage using inactive history + `superseded_by`;
+- current Meta system identity-change parsing (`user_changed_number`, `user_changed_user_id`);
+- signed PHONE+BSUID pair evidence;
+- native `contact_request` verification;
+- forwarded/manual contact is CLAIMED only;
+- delivered/read `recipient_user_id` binding;
+- governed `request_contact_info` outbound payload;
+- replay/idempotency, conflict/no-theft, concurrent fork prevention and destructive rollback guard.
 
-Exact-head:
+No new person/customer/event master. No `aos_pacientes`/REV canonical mutation. No Attribution, Ads Sync or AI/campaign automation.
 
-- WA-7A.1 run `32903271309` = SUCCESS;
-- Ascenda CI run `32903271282` = SUCCESS.
+## Production readback
 
-Production migration applied as `wa7a1_identity_resolution_bridge_v1`.
+Production migration `wa7a2_identity_verification_continuity_v1` is recorded as management version `20260825234845`.
 
-Production readback:
+As of 2026-08-27:
 
-- messages = 21 preserved;
+- WA-7A.2 schema/function/trigger exist;
+- messages = 21;
 - conversations = 2;
-- active PHONE aliases = 2;
-- active BSUID aliases = 0;
-- identity resolution = 2 UNRESOLVED / 0 MATCH / 0 CONFLICT;
-- canonical candidates = 0;
-- raw aliases exposed by bridge = 0;
-- direct anon/authenticated bridge reads = denied;
-- invalid token returns `WA_2FA_PANEL_REQUIRED`.
+- aliases = 2 active PHONE;
+- both legacy aliases remain `UNKNOWN / LEGACY_OBSERVED`;
+- real identity events = 0;
+- superseded aliases = 0;
+- aliases with evidence = 0;
+- conflict aliases = 0.
 
-The current unresolved state is correct because neither WA PHONE alias currently has an exact governed canonical match in REV. No patient was fabricated.
+This no-op-on-history result is intentional: existing observations were not retroactively promoted to VERIFIED and no synthetic lineage was created.
 
-WA-7A.1 changed no runtime/server/frontend file; Railway is N/A as a phase gate.
-
-## Production hold
-
-Supabase SQL management works but REST/Auth still returns HTTP 402 on real API traffic.
-
-Therefore fresh browser/Auth/provider/Meta/BSUID canaries remain external debt. No auth/service-role bypass is allowed to manufacture LIVE certification.
+Railway external status for merge `a943dca94534e9016de158177131e88bbcb72b73` = SUCCESS.
 
 Safety remains:
 
@@ -107,26 +113,32 @@ Safety remains:
 - `auto_reply=false`;
 - `human_send=true` preserved as pre-existing governed canary state.
 
-## WA-7A.2 next execution
+## Production hold
 
-Goal: preserve identity continuity and verification evidence when WhatsApp identifiers/contact facts change, while reusing WA-7A.0 aliases + WA-7A.1 REV bridge.
+Current Supabase API logs on 2026-08-27 still return HTTP 402 on real `/rest/v1/*` ASCENDA traffic. SQL management works, but fresh Auth/browser/provider/REQUEST_CONTACT_INFO/BSUID-rotation canaries cannot be certified through the governed path.
+
+No auth/service-role bypass is allowed. Therefore WA-7A.2 is CLOSED only at the demonstrated technical/product-schema boundary, not fresh provider LIVE 100%.
+
+## WA-7A.3 next execution
+
+Goal: preserve explicit acquisition provenance as immutable first-inbound touchpoint evidence without confusing attribution with identity.
 
 First loop:
 
-1. revalidate exact CURRENT and lock;
-2. discover current provider/Meta contracts for identifier updates, parent BSUID, contact-info request, contact-share origin, recipient user identity and Contact Book;
-3. audit existing ASCENDA source/verification metadata before adding schema;
-4. run necessity gate/evidence matrix;
-5. build minimum old→new BSUID lineage and phone-source/verification contracts only where missing;
-6. preserve `VERIFIED / CLAIMED / UNKNOWN / CONFLICT` and evidence timestamps;
-7. test replay/idempotency/concurrency/conflict/no destructive overwrite;
-8. exact-head Zero-Cost CI;
-9. anti-drift;
+1. revalidate exact CURRENT and exclusive lock;
+2. discover current Meta CTWA/referral payload and provider equivalents;
+3. audit existing ASCENDA marketing attribution/touchpoint structures before adding schema;
+4. build evidence matrix / necessity gate;
+5. preserve only explicitly supplied `ctwa_clid`, referral/source, ad/lead/campaign and safe referral evidence;
+6. create/reuse immutable touchpoint identity with deterministic replay/idempotency;
+7. link touchpoint → canonical WA conversation → optional canonical patient via existing WA-7A.1 resolution only;
+8. test missing/malformed/referral replay/conflict/multi-touchpoint cases;
+9. exact-head Zero-Cost CI and anti-drift;
 10. production apply/readback only when safe;
-11. merge expected head;
-12. Railway only if runtime changed;
+11. Railway only if runtime changes;
+12. certify only demonstrated boundary;
 13. GitHub CURRENT;
 14. Notion LAST;
-15. advance to WA-7A.3 only after closeout.
+15. advance to WA-7A.4 only after closeout.
 
-Hard rules: typed/manual phone is not VERIFIED automatically; username is not identity; no canonical overwrite; no Attribution/Ads Sync/AI/campaign expansion in WA-7A.2.
+Hard rules: `BSUID != touchpoint`; no phone/username/BSUID-only attribution; no broad Ads Sync before WA-7B; no canonical identity mutation; no AI/auto-routing/campaign activation.
