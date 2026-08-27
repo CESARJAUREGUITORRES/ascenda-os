@@ -42,7 +42,11 @@ test('invalid or non-https source URL is stripped while explicit referral eviden
   assert.equal(t.payload.source_url,null);assert.equal(t.payload.source_id,'post-9');assert.equal(t.payload.ad_id,null);
 });
 
-test('replay produces the same deterministic touchpoint key',()=>{
+test('replay produces the same deterministic touchpoint key and separate messages remain separate touchpoints',()=>{
   const msg={id:'wamid.ctwa.replay',from:'51911111111',timestamp:'1786807003',type:'text',text:{body:'Hola'},referral:{source_id:'ad-88',source_type:'ad'}};
-  const a=touchpoints(wa.extractWebhook(payload([msg)));
+  const a=touchpoints(wa.extractWebhook(payload([msg])))[0];
+  const b=touchpoints(wa.extractWebhook(payload([msg])))[0];
+  assert.equal(a.event_key,b.event_key);
+  const c=touchpoints(wa.extractWebhook(payload([{...msg,id:'wamid.ctwa.replay.2'}])))[0];
+  assert.notEqual(a.event_key,c.event_key);
 });
