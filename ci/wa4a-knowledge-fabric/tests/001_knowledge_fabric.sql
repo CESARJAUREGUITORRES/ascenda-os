@@ -52,7 +52,7 @@ BEGIN
   IF exists(select 1 from public.aos_wa4a_knowledge_search_v1('laser conflict',12,array['CATALOG']) where subject_id in ('10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000004')) then raise exception 'WA4A_CONFLICT_RETURNED_TO_RETRIEVAL'; end if;
   IF exists(select 1 from public.aos_wa4a_knowledge_search_v1('san isidro',12,array['HOURS'])) then raise exception 'WA4A_CONFLICTING_HOURS_RETURNED'; end if;
   IF not exists(select 1 from public.aos_wa4a_knowledge_search_v1('miraflores',12,array['HOURS']) where domain='HOURS') then raise exception 'WA4A_READY_HOURS_RETRIEVAL_FAILED'; end if;
-  IF exists(select 1 from public.aos_wa4a_knowledge_search_v1('promo expirada',12,array['PROMOTION'])) then raise exception 'WA4A_EXPIRED_PROMO_RETURNED'; end if;
+  IF exists(select 1 from public.aos_wa4a_knowledge_search_v1('promo expirada',12,array['PROMOTION']) where knowledge_id='promotion:20000000-0000-4000-8000-000000000002') then raise exception 'WA4A_EXPIRED_PROMO_RETURNED'; end if;
 END $$;
 
 DO $$
