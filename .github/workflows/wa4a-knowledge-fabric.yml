@@ -1,0 +1,170 @@
+name: ASCENDA WA-4A Knowledge Fabric
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa4-knowledge.js'
+      - 'supabase/migrations/*wa4a_knowledge_fabric*'
+      - 'supabase/rollbacks/*wa4a_knowledge_fabric*'
+      - 'ci/wa4a-knowledge-fabric/**'
+      - 'docs/control/WHATSAPP_REVENUE_HUB_WA4A_*'
+      - '.github/workflows/wa4a-knowledge-fabric.yml'
+  push:
+    branches: ['feat/wa-4a-knowledge-fabric-20260827']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa4a-knowledge-fabric-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · WA-4A governed knowledge
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59952/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Runtime adapter and hallucination contracts
+        run: |
+          set -euo pipefail
+          node --check app/wa4-knowledge.js
+          node --test ci/wa4a-knowledge-fabric/wa4-knowledge.test.js
+          node --check app/wa4-copilot.js
+          node --check app/ai-router.js
+          node --test ci/wa4-ai-sales-router/ai-router.test.js
+          ! grep -q "wa4-knowledge" app/server-wa4.js app/wa4-copilot.js
+          ! grep -Eq "auto_send:[[:space:]]*true" app/wa4-knowledge.js
+          ! grep -q "graph.facebook.com" app/wa4-knowledge.js
+
+      - name: Authority least-data and source-mutation invariants
+        run: |
+          set -euo pipefail
+          M=supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          grep -q 'aos_wa4a_knowledge_authority_v1' "$M"
+          grep -q 'aos_wa4a_knowledge_items_v1' "$M"
+          grep -q 'aos_wa4a_knowledge_issues_v1' "$M"
+          grep -q 'aos_wa4a_knowledge_search_v1' "$M"
+          grep -q 'generic_llm_knowledge' "$M"
+          grep -q 'NON_AUTHORITY' "$M"
+          grep -q 'public.aos_config_horarios' "$M"
+          grep -q 'public.aos_sedes_geo.horario_\*' "$M"
+          grep -q 'security_invoker=true' "$M"
+          ! grep -Eiq '(insert into|update|delete from|alter table)[[:space:]]+public\.(aos_catalogo_servicios|aos_promociones|aos_sedes_geo|aos_config_horarios|aos_catalogo_categorias)' "$M"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M"
+          ! grep -Eiq '(descripcion_clinica|indicaciones|contraindicaciones|perfil_paciente|mecanismo_accion|composicion)' "$M"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M"
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa4a-knowledge"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59951/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59952/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59950/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa4a-knowledge' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59952 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-4A isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build certified WA prerequisites through WA-7A.4
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815203000_wa4_ai_sales_router_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143100_wa7a0_direct_insert_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/cia_recipient_controls_stub.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/source_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: Knowledge retrieval provenance freshness conflict and ACL
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/tests/001_knowledge_fabric.sql | tee /tmp/wa4a-db.txt
+          grep -q 'WA4A_KNOWLEDGE_FABRIC_PASS' /tmp/wa4a-db.txt
+
+      - name: Existing WA-4 ownership budget safety regression
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4-ai-sales-router/tests/001_wa4_ai.sql | tee /tmp/wa4-regression.txt
+          ! grep -q 'not ok' /tmp/wa4-regression.txt
+          COUNT=$(grep -Ec '^[[:space:]]*ok [0-9]+' /tmp/wa4-regression.txt || true)
+          echo "WA-4 regression assertions: $COUNT"
+          test "$COUNT" -ge 30
+
+      - name: WA-7A.4 eligibility regression
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql | tee /tmp/wa7a4-regression.txt
+          grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/wa7a4-regression.txt
+
+      - name: Derived rollback and reapply preserve canonical sources
+        run: |
+          set -euo pipefail
+          CATALOG_BEFORE=$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')
+          PROMO_BEFORE=$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_promociones')
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260827185000_wa4a_knowledge_fabric_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa4a_knowledge_items_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')" = "$CATALOG_BEFORE"
+          test "$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_promociones')" = "$PROMO_BEFORE"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa4a_knowledge_search_v1(text,integer,text[])') is not null")" = "t"
+
+      - name: Safety boundary
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -X -qAt -c 'select copilot_enabled from public.aos_wa_ai_control_v1 where id=1')" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c 'select auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1')" = "f"
+          echo 'WA-4A TEST CERTIFICATION ONLY: Knowledge Fabric is PROD-ready but unapplied to production.'
+          echo 'Governed source facts + evidence refs > approved derived knowledge > generic LLM knowledge.'
+          echo 'Conflicting/stale/missing facts fail closed; no Copilot activation, AI send, auto-reply, auto-routing, campaigns or Ads Sync.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
