@@ -2,16 +2,16 @@
 
 **Status:** CURRENT / WHATSAPP REVENUE HUB V2  
 **Captured:** 2026-08-27 America/Lima  
-**WA-7A.2 exact head:** `8106f0ba6d644c062168fe84dc52dd83e50edb69`  
-**WA-7A.2 merge:** `a943dca94534e9016de158177131e88bbcb72b73`  
-**WA-7A.2:** `CLOSED AT DEMONSTRATED BOUNDARY`  
-**ACTIVE LOCK:** `WA-7A.3 — ATTRIBUTION INGRESS`
+**WA-7A.3 exact head:** `be4132223118f6009d5bba23116da5adbd2463f8`  
+**WA-7A.3 runtime merge:** `5aab7b408882811d1c6cd00c6fb939f2f8de432e`  
+**WA-7A.3:** `CLOSED AT DEMONSTRATED BOUNDARY`  
+**ACTIVE LOCK:** `WA-7A.4 — MARKETING ELIGIBILITY FOUNDATION`
 
 ## Owner directive
 
 Continue WhatsApp Revenue Hub with at most one HIGH/CRITICAL mutable workstream at a time.
 
-**Only WA-7A.3 is mutable now.** All other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-7A.3 proves a strict dependency.
+**Only WA-7A.4 is mutable now.** All other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-7A.4 proves a strict dependency.
 
 ## Preserved portfolio state
 
@@ -21,87 +21,86 @@ Continue WhatsApp Revenue Hub with at most one HIGH/CRITICAL mutable workstream 
 - Notifications S13–S15.5 = CLOSED / regression-only.
 - CIA, Sentinel, KronIA and unrelated product/data work = read-only/regression-only unless strict dependency.
 
-## WA-7A.0 / WA-7A.1 preserved
+## WA-7A.0 / 1 / 2 / 3 preserved
 
-WA-7A.0 owns PHONE/BSUID/PARENT_BSUID transport compatibility and channel alias continuity. WA-7A.1 reuses REV/F5/F6 as the only canonical patient identity authority and provides the read-only WA→REV identity bridge. No parallel customer/person master exists.
+WA-7A.0 owns channel identifier compatibility. WA-7A.1 reuses REV/F5/F6 as the only canonical patient identity authority. WA-7A.2 owns verification/evidence and non-destructive channel-identifier lineage. WA-7A.3 owns explicit acquisition provenance at ingress on the existing immutable WA event ledger.
 
-## WA-7A.2 closeout
+No parallel customer/person master exists. No channel alias is a marketing-consent record.
 
-PR #376 exact head `8106f0ba6d644c062168fe84dc52dd83e50edb69` merged to `a943dca94534e9016de158177131e88bbcb72b73`.
+## WA-7A.3 closeout
 
-Delivered at the existing boundaries only:
+PR #377 exact head `be4132223118f6009d5bba23116da5adbd2463f8` merged with expected head to runtime `5aab7b408882811d1c6cd00c6fb939f2f8de432e`.
 
-- `VERIFIED / CLAIMED / UNKNOWN / CONFLICT` channel-fact semantics;
-- verification source/evidence timestamps;
-- old→new BSUID/PARENT_BSUID supersession lineage;
-- Meta system identity-change parsing;
-- signed PHONE+BSUID pair evidence;
-- native `REQUEST_CONTACT_INFO` / `contact_request` handling;
-- delivered/read `recipient_user_id` binding;
-- replay/idempotency and concurrent fork prevention;
-- destructive rollback guard.
+Exact-head gates = 8/8 SUCCESS. Production migration `wa7a3_attribution_ingress_v1` applied/read back successfully. Railway exact runtime = SUCCESS.
 
-Hard invariants preserved:
+Delivered at existing boundaries:
 
-- username never resolves identity;
-- BSUID remains scoped channel identity, not canonical person id;
-- typed/manual/forwarded phone never becomes VERIFIED automatically;
-- Contact Book is not a CRM/customer master;
-- no write to `aos_pacientes` or REV canonical identity;
-- no attribution, Ads Sync, AI send, auto-reply or auto-routing in WA-7A.2.
+- explicit referral/CTWA provenance parsing;
+- deterministic replay/idempotency;
+- immutable `attribution.touchpoint` events on `aos_wa_events_v1`;
+- service_role event-ledger least privilege = SELECT+INSERT only;
+- private `aos_wa_attribution_touchpoints_v1` projection;
+- touchpoint → message → conversation → optional WA-7A.1 canonical identity;
+- no PHONE/BSUID/username-only attribution;
+- no new customer/person/touchpoint master;
+- no write to `aos_pacientes`, `aos_leads`, REV canonical identity or Marketing Attribution V2;
+- no Ads Sync, AI/campaign activation, auto-reply or auto-routing.
 
-Production readback keeps 21 messages, 2 conversations and 2 legacy PHONE aliases. Both aliases correctly remain `UNKNOWN / LEGACY_OBSERVED`; there are 0 real WA-7A.2 identity events, 0 synthetic supersessions and 0 fabricated verification evidence. Railway exact merge = SUCCESS.
+Production readback preserves `7702` patients, `6061` leads, `21` messages, `2` conversations, `39` events and `0` fabricated real touchpoints. Marketing Attribution V2 hash remains `66b3d38378ca0610aa5de037d5be8292`. Safety remains `auto_routing=false`, `ai_send=false`, `copilot=false`, `auto_reply=false`, `human_send=true` unchanged.
 
-Supabase REST remains HTTP 402 on current traffic, therefore fresh Auth/browser/provider/REQUEST_CONTACT_INFO/BSUID-rotation LIVE canaries remain external debt. WA-7A.2 is closed only at the demonstrated CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY boundary.
+Supabase REST/Auth still reports HTTP 402 after Railway deployment, therefore the fresh physical CTWA attribution canary remains external recovery debt. No bypass or synthetic replacement is allowed. WA-7A.3 is closed at CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY demonstrated boundary.
 
-## WA-7A.3 — allowed mutations
+## WA-7A.4 — allowed mutations
 
-Goal: preserve explicit acquisition provenance at ingress as immutable touchpoint evidence, without confusing channel identity with attribution.
+Goal: establish governed marketing eligibility without conflating identity, reachability, attribution or consent.
 
-Allowed discovery/build when necessary:
+Allowed discovery/build only when necessity is proven:
 
-- current Meta CTWA/referral payload contracts;
-- `ctwa_clid` or provider-equivalent click id;
-- referral/source id and source type;
-- source URL only when supplied and safe;
-- `ad_id`, `lead_id`, `campaign_source` when explicitly supplied;
-- permitted headline/body and sanitized raw referral evidence;
-- immutable touchpoint/event id;
-- provider message/replay ids and timestamps;
-- linkage from touchpoint → canonical WA conversation → optional resolved canonical patient through existing WA-7A.1 authority.
+- existing consent / opt-in / opt-out data and functions;
+- suppression lists and recipient-control structures;
+- channel-specific preference records;
+- evidence/source/timestamp of marketing permission or suppression;
+- deterministic eligibility state and reason codes;
+- WA-specific eligibility evidence if existing cross-channel structures cannot safely represent it;
+- read-only adapters that reuse existing CIA/email/marketing controls;
+- audit events required to make eligibility transitions explainable and replay-safe.
 
-Required ordering:
+Required semantic ordering:
 
-`signed webhook → replay/idempotency → identity-safe envelope → provenance parser → immutable touchpoint → canonical conversation → existing identity resolver`.
+`canonical/channel identity → reachability → explicit consent/preferences/suppression evidence → channel eligibility decision`.
+
+Attribution provenance from WA-7A.3 may inform origin/audit, but **never grants marketing permission by itself**.
 
 Must not:
 
-- infer attribution from PHONE, BSUID, username or canonical patient identity alone;
-- use BSUID as touchpoint id;
-- merge identity because two touchpoints resemble each other;
-- build broad Meta Ads sync before WA-7B;
-- activate campaigns, AI send, auto-reply or auto-routing;
-- mutate REV/F5 canonical identity to make attribution resolve;
+- treat phone/BSUID/username existence as consent;
+- treat message receipt or CTWA click as blanket marketing opt-in;
+- erase or override suppression to increase reach;
+- build bulk sender or autonomous campaign execution;
+- build Meta Ads Sync before WA-7B;
+- activate Campaign Flow Router before WA-7C;
+- mutate REV/F5 canonical identity to satisfy eligibility;
 - widen clinical/customer data exposure.
 
 ## Mandatory invariants
 
-- `BSUID != ctwa_clid/touchpoint`;
-- one governed identity may have multiple touchpoints;
-- missing referral evidence degrades safely to no explicit attribution;
-- first-inbound provenance must remain auditable/immutable once accepted;
-- identity and acquisition provenance remain separate concepts;
-- no phone-only or username-only attribution.
+- `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`;
+- `ATTRIBUTION EVIDENCE != CONSENT`;
+- suppression wins over ambiguous eligibility;
+- missing required consent fails closed;
+- opt-out transitions are auditable and cannot be silently reversed;
+- channel preferences remain channel-scoped;
+- one person may be eligible on one governed channel and ineligible on another.
 
 ## Safety state
 
-Preserve signed Meta gateway, replay/idempotency, Auth V3/2FA, exact-owner/assignment authority, queue privacy, 24h window and canary allowlist.
+Preserve signed Meta gateway, replay/idempotency, Auth V3/2FA, exact-owner/assignment authority, queue privacy, 24h customer window and canary allowlist.
 
 - `auto_routing=false`;
 - `ai_send=false`;
 - `copilot=false`;
 - `auto_reply=false`;
-- `human_send=true` remains the existing governed canary state and is not widened by WA-7A.3.
+- `human_send=true` remains the existing governed canary state and is not widened by WA-7A.4.
 
 ## External LIVE hold
 
@@ -109,4 +108,4 @@ Supabase SQL management works while REST/Auth remains HTTP 402. No auth bypass, 
 
 ## Lock transition rule
 
-WA-7A.3 remains the sole mutable HIGH/CRITICAL lane until its scoped closeout is certified. Only then may the lock advance to `WA-7A.4 — Marketing Eligibility Foundation`.
+WA-7A.4 is now the sole mutable HIGH/CRITICAL lane. It remains locked until its scoped closeout is certified and GitHub CURRENT + Notion LAST are updated. No later WA functional phase may become mutable before that closeout.
