@@ -1,0 +1,190 @@
+name: ASCENDA WA-7A.4 Marketing Eligibility Foundation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*wa7a4_marketing_eligibility*'
+      - 'supabase/rollbacks/*wa7a4_marketing_eligibility*'
+      - 'ci/wa7a4-marketing-eligibility/**'
+      - 'docs/control/WHATSAPP_WA_7A_4_MARKETING_ELIGIBILITY_EVIDENCE.md'
+      - '.github/workflows/wa7a4-marketing-eligibility.yml'
+  push:
+    branches: ['feat/wa-7a-4-marketing-eligibility-20260827']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa7a4-marketing-eligibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · WA-7A.4 marketing eligibility
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59942/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce Zero-Cost lane
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+
+      - name: Authority and scope invariants
+        run: |
+          set -euo pipefail
+          M=supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
+          grep -q 'aos_wa_marketing_eligibility_events_v1' "$M"
+          grep -q 'aos_wa_marketing_eligibility_v1' "$M"
+          grep -q 'aos_wa_marketing_eligibility_record_v1' "$M"
+          grep -q 'aos_wa_marketing_eligibility_check_v1' "$M"
+          grep -q 'aos_cia_channel_recipient_controls_v1' "$M"
+          grep -q "'BSUID'" "$M"
+          grep -q "'PARENT_BSUID'" "$M"
+          grep -q 'WA7A4_SOURCE_CANNOT_GRANT_CONSENT' "$M"
+          grep -q 'WA7A4_EXPLICIT_RECONSENT_REQUIRED' "$M"
+          grep -q 'security_invoker=true' "$M"
+          ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.aos_cia_channel_recipient_controls_v1' "$M"
+          ! grep -Eiq '(insert into|update|delete from)[[:space:]]+public\.(aos_pacientes|aos_leads|aos_rev_)' "$M"
+          ! grep -Eiq 'aos_marketing_touchpoints_v2' "$M"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M"
+          ! grep -Eiq '(bulk|broadcast|campaign)[_[:space:]-]*(send|dispatch)[_[:space:]-]*enabled' "$M"
+
+      - name: Configure isolated Supabase ports
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa7a4-eligibility"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59941/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59942/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59940/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa7a4-eligibility' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59942 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo 'WA-7A.4 isolated Postgres did not become ready' >&2
+          exit 1
+
+      - name: Build certified WA prerequisites
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143100_wa7a0_direct_insert_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825143200_wa7a0_phone_key_compat_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/cia_recipient_controls_stub.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
+
+      - name: Database lint
+        working-directory: ci/zero-cost-staging
+        run: supabase db lint --local --schema public --level error
+
+      - name: Eligibility behavior, replay, security and separation
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql | tee /tmp/wa7a4-db.txt
+          grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/wa7a4-db.txt
+
+      - name: Destructive rollback guard
+        run: |
+          set -euo pipefail
+          if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260827141500_wa7a4_marketing_eligibility_v1.rollback.sql; then
+            echo 'WA-7A.4 rollback unexpectedly removed accepted eligibility evidence' >&2
+            exit 1
+          fi
+          echo WA7A4_ROLLBACK_GUARD_PASS
+
+      - name: Clean synthetic eligibility then rollback and reapply
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c 'truncate table public.aos_wa_marketing_eligibility_events_v1;'
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260827141500_wa7a4_marketing_eligibility_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.tables where table_schema='public' and table_name='aos_wa_marketing_eligibility_events_v1'")" = "0"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.views where table_schema='public' and table_name='aos_wa_marketing_eligibility_v1'")" = "1"
+
+      - name: WA-7A.3 database regression
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a3-attribution-ingress/tests/001_attribution_ingress.sql | tee /tmp/wa7a3-regression.txt
+          grep -q 'WA7A3_ATTRIBUTION_INGRESS_PASS' /tmp/wa7a3-regression.txt
+
+      - name: Clear WA fixtures before identity regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          truncate table public.aos_wa_marketing_eligibility_events_v1;
+          truncate table public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+
+      - name: WA-7A.2 / 7A.1 / 7A.0 regressions
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a2-identity-verification/tests/001_identity_verification.sql | tee /tmp/wa7a2.txt
+          grep -q 'WA7A2_IDENTITY_VERIFICATION_PASS' /tmp/wa7a2.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          truncate table public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/tests/001_identity_resolution.sql | tee /tmp/wa7a1.txt
+          grep -q 'WA7A1_IDENTITY_RESOLUTION_PASS' /tmp/wa7a1.txt
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          truncate table public.aos_wa_events_v1;
+          delete from public.aos_wa_messages_v1;
+          update public.aos_wa_channel_aliases_v1 set superseded_by=null;
+          delete from public.aos_wa_channel_aliases_v1;
+          delete from public.aos_wa_conversations_v1;
+          truncate table public.aos_rev_patient_identity_alias_v2;
+          SQL
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa7a0-identity-compatibility/tests/001_identity_compatibility.sql | tee /tmp/wa7a0.txt
+
+      - name: Certification boundary
+        run: |
+          set -euo pipefail
+          echo 'WA-7A.4 TEST CERTIFICATION ONLY: no production migration apply while Supabase REST/Auth 402 hold is active.'
+          echo 'IDENTITY != REACHABILITY != MARKETING ELIGIBILITY; ATTRIBUTION EVIDENCE != CONSENT.'
+          echo 'CIA-F17 suppression is reused read-only and can block; CIA ALLOWED never grants WhatsApp consent.'
+          echo 'No bulk sender, campaign activation, Ads Sync, AI send, auto-reply or auto-routing.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
