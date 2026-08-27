@@ -32,6 +32,10 @@ function usernameValue(v){
   const s=String(v==null?'':v).trim().replace(/^@/,'');
   return s?trimText(s,256):null;
 }
+function safeHttpsUrl(v){
+  const s=trimText(v,2048).trim();if(!s)return null;
+  try{const u=new URL(s);return u.protocol==='https:'?u.toString():null;}catch(e){return null;}
+}
 function isoFromUnix(v){const n=Number(v);return Number.isFinite(n)&&n>0?new Date(n*1000).toISOString():new Date().toISOString();}
 
 function recipientFromInput(d){
@@ -86,6 +90,25 @@ function contactPhones(card){
   return Array.from(seen);
 }
 function identityKey(parts){return trimText(parts.filter(Boolean).join(':'),900);}
+function referralEvidence(referral,businessScope,providerMessageId,observedAt){
+  const r=referral&&typeof referral==='object'&&!Array.isArray(referral)?referral:{};
+  const sourceId=trimText(r.source_id,256)||null;
+  const sourceType=(trimText(r.source_type,64).trim().toLowerCase()||null);
+  const sourceUrl=safeHttpsUrl(r.source_url);
+  const ctwaClid=userIdValue(r.ctwa_clid);
+  const providerLeadId=userIdValue(r.lead_id);
+  const campaignSource=trimText(r.campaign_source,256).trim()||null;
+  const headline=trimText(r.headline,512)||null;
+  const body=trimText(r.body,1000)||null;
+  const mediaType=trimText(r.media_type,64).trim().toLowerCase()||null;
+  if(![sourceId,sourceType,sourceUrl,ctwaClid,providerLeadId,campaignSource,headline,body,mediaType].some(Boolean))return null;
+  return {
+    evidence_version:'WA_7A_3_V1',channel:'WHATSAPP',provider:'META_CLOUD_API',business_scope:businessScope,
+    provider_message_id:providerMessageId,ctwa_clid:ctwaClid,source_id:sourceId,source_type:sourceType,source_url:sourceUrl,
+    ad_id:sourceType==='ad'?sourceId:null,provider_lead_id:providerLeadId,campaign_source:campaignSource,
+    headline,body,media_type:mediaType,observed_at:observedAt
+  };
+}
 
 function extractWebhook(payload){
   const messages=[];const statuses=[];const events=[];
@@ -137,6 +160,12 @@ function extractWebhook(payload){
         if(!row.provider_message_id)return;
         messages.push(row);
         events.push({event_key:'message:'+row.provider_message_id,event_type:'message.received',provider_message_id:row.provider_message_id,status:'received',payload:{message_type:row.message_type,phone_number_id:row.phone_number_id,has_referral:!!row.raw_referral,sender_kind:row.from_number?'PHONE':(row.from_user_id?'BSUID':'UNKNOWN'),has_user_id:!!row.from_user_id}});
+
+        // WA-7A.3: acquisition provenance is a separate immutable event, never an identity fact.
+        const provenance=referralEvidence(referral,businessScope,row.provider_message_id,observedAt);
+        if(provenance){
+          events.push({event_key:'attribution:touchpoint:'+row.provider_message_id,event_type:'attribution.touchpoint',provider_message_id:row.provider_message_id,status:'observed',payload:provenance});
+        }
 
         // A signed Meta message carrying both identifiers is direct channel-pair evidence.
         if(fromPhone&&fromUser){
