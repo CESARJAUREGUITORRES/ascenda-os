@@ -1,11 +1,11 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub V2 — ROADMAP CURRENT
 
-**Captured:** 2026-08-25 America/Lima  
-**WA-7A.1 merge:** `0bdac2d8e171fbc8883835cb7cfdda0b39339807`  
-**WA-7A.0:** `CLOSED`  
-**WA-7A.1:** `CLOSED — CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK`  
-**ACTIVE NEXT:** `WA-7A.2 — IDENTITY VERIFICATION & CONTINUITY`  
-**LIVE recovery debt:** Supabase REST/Auth HTTP 402 + fresh provider/BSUID canary
+**Captured:** 2026-08-27 America/Lima  
+**WA-7A.0:** CLOSED  
+**WA-7A.1:** CLOSED  
+**WA-7A.2:** `CLOSED AT DEMONSTRATED BOUNDARY`  
+**ACTIVE NEXT:** `WA-7A.3 — ATTRIBUTION INGRESS`  
+**LIVE recovery debt:** Supabase REST/Auth HTTP 402 + fresh provider identity canaries
 
 ## North Star
 
@@ -17,100 +17,86 @@
 - Phone is a contact point, not a mandatory WhatsApp primary key.
 - BSUID is a scoped WhatsApp channel alias, not canonical person identity.
 - Username is display/search metadata only.
-- Canonical identity remains governed by REV/F5/F6.
-- WA-7A.1 reuses REV identity authority; no parallel customer master exists.
+- Canonical patient identity remains governed by REV/F5/F6.
 - Acquisition touchpoints remain separate from channel/person identity.
 - `BSUID != ctwa_clid/touchpoint`.
 - `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`.
-- CODE/CI/DB certification is distinct from fresh LIVE provider certification.
+- CODE/CI/DB/Railway certification is distinct from fresh provider LIVE certification.
 
 ## Phase graph
 
-`WA-V2-0 ✅ → WA-3 ✅ OFFLINE → WA-3.5 ✅ OFFLINE → WA-7A.0 ✅ → WA-7A.1 ✅ → WA-7A.2 ACTIVE → WA-7A.3 → WA-7A.4 → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
+`WA-V2-0 ✅ → WA-3 ✅ OFFLINE → WA-3.5 ✅ OFFLINE → WA-7A.0 ✅ → WA-7A.1 ✅ → WA-7A.2 ✅ → WA-7A.3 ACTIVE → WA-7A.4 → WA-4A → WA-4B → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
 
 ## WA-7A.0 — Identity Compatibility — CLOSED
 
-Delivered PHONE/BSUID/PARENT_BSUID transport compatibility, generic recipient semantics, alias continuity, conflict fail-closed behavior and PHONE backward compatibility. Fresh provider/BSUID LIVE remains a post-402 recertification gate.
+PHONE/BSUID/PARENT_BSUID transport compatibility, generic recipient semantics, alias continuity, conflict fail-closed behavior and PHONE backward compatibility are preserved.
 
 ## WA-7A.1 — Identity Resolution — CLOSED
 
-**Decision:** no new identity engine or customer master was necessary.
+No new identity engine or customer master was necessary. Existing REV/F5/F6 authority is reused through a minimal read-only WA conversation→canonical identity bridge. BSUID alone never identifies a canonical patient; username never resolves identity; conflicts remain fail-closed.
 
-Existing authorities reused:
+## WA-7A.2 — Identity Verification & Continuity — CLOSED
 
-- canonical `aos_pacientes` subject;
-- REV/F5/F6 Patient Identity Bridge V2;
-- `aos_rev_patient_identity_alias_v2`;
-- WA-7A.0 channel alias ledger.
+**Decision:** build was necessary only at existing WA alias/event boundaries.
 
-Minimal bridge delivered:
+PR #376 exact head `8106f0ba6d644c062168fe84dc52dd83e50edb69` merged to `a943dca94534e9016de158177131e88bbcb72b73`.
 
-`WA conversation + aliases → governed PHONE evidence → REV → MATCH | UNRESOLVED | IDENTITY_CONFLICT`.
+Delivered:
 
-Rules proven:
+- verification/source/evidence on the existing alias ledger;
+- `VERIFIED / CLAIMED / UNKNOWN / CONFLICT`;
+- non-destructive old→new BSUID and parent-BSUID lineage;
+- current Meta system identity-change handling;
+- signed PHONE+BSUID evidence;
+- native `REQUEST_CONTACT_INFO` response verification;
+- forwarded/manual contact remains non-attested/CLAIMED only;
+- delivered/read `recipient_user_id` binding;
+- replay/idempotency and concurrency fork prevention;
+- rollback fails closed once real lineage/evidence exists.
 
-- BSUID alone never identifies a canonical patient;
-- username never resolves identity;
-- historical PHONE evidence may preserve identity continuity when a later inbound is BSUID-only;
-- genuine BSUID-only with no canonical evidence remains `UNRESOLVED`;
-- REV conflict remains fail-closed;
-- multiple active PHONE aliases resolving to different canonical patients remain fail-closed;
-- no canonical patient/REV mutation occurs.
+Exact-head CI matrix = SUCCESS across WA-7A.2, WA-7A.0, WA-1, Phase S, Ascenda CI and performance gates. Production schema is applied; Railway exact merge = SUCCESS.
 
-Closeout evidence:
+Production readback on 2026-08-27 correctly preserves 21 messages, 2 conversations and 2 legacy PHONE aliases as `UNKNOWN / LEGACY_OBSERVED`, with 0 real identity events and 0 fabricated supersessions/evidence.
 
-- PR #375 exact head `ab432ddf5f7b0b8c1be9afb2ba3dfe7e616855b3`;
-- merge `0bdac2d8e171fbc8883835cb7cfdda0b39339807`;
-- dedicated WA-7A.1 run `32903271309` SUCCESS;
-- Ascenda CI run `32903271282` SUCCESS;
-- production migration applied and read back;
-- 2 current conversations resolve to `UNRESOLVED`, which matches the absence of exact REV identity evidence;
-- 21 messages and 2 PHONE aliases preserved;
-- no runtime code changed, so Railway is N/A for this slice;
-- browser/Auth/provider LIVE remains blocked by Supabase 402.
+Supabase REST remains HTTP 402 on current traffic, so fresh physical provider semantics remain a post-recovery recertification gate. WA-7A.2 is closed at its demonstrated CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY boundary, not fresh LIVE provider end-to-end.
 
-## WA-7A.2 — Identity Verification & Continuity — ACTIVE
+## WA-7A.3 — Attribution Ingress — ACTIVE
 
-**Goal:** preserve channel identity when provider identifiers change or a contact point is disclosed later, without corrupting canonical identity.
+**Goal:** persist explicit acquisition provenance at first inbound as immutable touchpoint evidence while preserving separation from channel/person identity.
 
 Discover first:
 
-- Meta/provider `user_id_update` or current equivalent;
-- parent-BSUID semantics and availability;
-- `REQUEST_CONTACT_INFO` response shape;
-- contact-share origin/evidence;
-- outgoing status recipient-user identity when contractually reliable;
-- Contact Book scope/limitations;
-- existing source/verification facts in ASCENDA before adding schema.
+- current Meta Click-to-WhatsApp referral payload;
+- `ctwa_clid` or provider-equivalent click id;
+- source/referral id/type and safe supplied source URL;
+- explicit `ad_id`, `lead_id`, `campaign_source` fields already available in ASCENDA/provider payloads;
+- headline/body/raw referral retention limits;
+- provider message/event/replay identifiers and timestamps;
+- existing marketing attribution/touchpoint structures that can be reused rather than duplicated.
 
 Required behavior:
 
-- old BSUID → new BSUID lineage/supersession, not destructive overwrite;
-- newly disclosed phone joins the existing channel relationship when evidence permits, without creating a second customer master;
-- distinguish `VERIFIED / CLAIMED / UNKNOWN / CONFLICT`;
-- typed/manual phone is not automatically VERIFIED;
-- source/evidence/timestamps remain auditable;
-- Contact Book is assistance, not canonical identity;
-- reuse WA-7A.1 bridge + REV authority;
-- replay/idempotency/concurrency and rollback must be tested;
-- no Attribution/Ads/AI expansion in this slice.
+- signed webhook → replay/idempotency → identity-safe envelope → provenance parser → immutable touchpoint → canonical conversation → existing identity resolver;
+- one person/conversation may have multiple touchpoints;
+- `BSUID != touchpoint`;
+- phone/username/BSUID alone never infer attribution;
+- missing referral evidence produces no fabricated attribution;
+- provenance remains immutable/auditable once accepted;
+- conflicts or malformed evidence fail closed;
+- no broad Meta Ads Sync in this slice.
 
-Exit:
+Exit gates:
 
-- identifier changes preserve lineage;
-- conflicting disclosure remains fail-closed;
-- no canonical fact is overwritten silently;
-- Zero-Cost/exact-head gates green;
+- explicit first-inbound provenance is persisted idempotently without duplicating identity/customer authority;
+- repeated provider delivery cannot create duplicate touchpoints;
+- attribution evidence cannot mutate canonical identity;
+- exact-head Zero-Cost/CI green;
 - production apply/readback only when safe;
-- LIVE provider-dependent semantics certified only when REST/Auth/provider access permits.
-
-## WA-7A.3 — Attribution Ingress
-
-Persist immutable first-inbound CTWA/referral/source/ad/lead/campaign evidence when supplied. `BSUID != touchpoint`; no attribution from phone/username alone; no broad Ads sync.
+- provider-dependent LIVE remains separately gated by current REST/Auth/provider availability.
 
 ## WA-7A.4 — Marketing Eligibility Foundation
 
-Separate recipient identity, reachability and marketing eligibility/consent/preferences/suppression. No bulk sender yet.
+After WA-7A.3, separate recipient identity, reachability and marketing consent/eligibility/preferences/suppression. No bulk sender yet.
 
 ## Later roadmap
 
