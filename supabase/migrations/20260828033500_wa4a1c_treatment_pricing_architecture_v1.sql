@@ -13,7 +13,6 @@ create table public.aos_wa4_process_role_policy_v1 (
   public_exposable boolean not null default false,
   created_at timestamptz not null default now()
 );
-
 revoke all on table public.aos_wa4_process_role_policy_v1 from public,anon,authenticated;
 grant select on table public.aos_wa4_process_role_policy_v1 to service_role;
 
@@ -27,11 +26,7 @@ values
 ('CONTROL','Control','Seguimiento/control de un componente o fase ya indicada.',false,true,array['SERVICIO'],true),
 ('MAINTENANCE','Mantenimiento','Continuidad posterior; no modifica retrospectivamente la intervención principal.',false,false,array['SERVICIO','PRODUCTO'],true),
 ('PRODUCT_SUPPORT','Producto de soporte','Producto domiciliario o de continuidad aprobado; nunca universal ni obligatorio por categoría.',false,false,array['PRODUCTO'],true),
-('TOPPING_ELIGIBLE','Topping elegible','Beneficio/add-on candidato sujeto a coherencia, autorización y reglas de no-descuento.',false,false,array['TOPPING'],false)
-on conflict(role_code) do update set
- title=excluded.title,semantics=excluded.semantics,can_auto_assign=excluded.can_auto_assign,
- requires_authorized_plan=excluded.requires_authorized_plan,allowed_entity_types=excluded.allowed_entity_types,
- public_exposable=excluded.public_exposable;
+('TOPPING_ELIGIBLE','Topping elegible','Beneficio/add-on candidato sujeto a coherencia, autorización y reglas de no-descuento.',false,false,array['TOPPING'],false);
 
 create table public.aos_wa4_process_templates_v1 (
   template_code text primary key,
@@ -50,9 +45,8 @@ create table public.aos_wa4_process_templates_v1 (
   updated_at timestamptz not null default now(),
   unique(domain_code,approach_code)
 );
-
 revoke all on table public.aos_wa4_process_templates_v1 from public,anon,authenticated;
-grant select,insert,update,delete on table public.aos_wa4_process_templates_v1 to service_role;
+grant select on table public.aos_wa4_process_templates_v1 to service_role;
 
 insert into public.aos_wa4_process_templates_v1
 (template_code,domain_code,approach_code,title,public_summary,advisor_summary,evidence_note)
@@ -64,11 +58,7 @@ values
 ('TPL_CORPORAL_SCULPT','DOMAIN_CORPORAL','CORPORAL_SCULPT_BODY','Corporal · Sculpt Body','Proceso de contorno y reducción progresiva definido por evaluación.','Separa preparación, intervención y continuidad; no promete medidas ni rebote cero.','WA-4A.1B + Arquitectura Comercial Zi Vital.'),
 ('TPL_CORPORAL_BOOTY','DOMAIN_CORPORAL','CORPORAL_SCULPT_BOOTY','Corporal · Sculpt Booty','Proceso de firmeza/proyección y calidad tisular según evaluación.','Estructura opciones sin convertir aparatología, inyectables o sesiones en obligación automática.','WA-4A.1B + Arquitectura Comercial Zi Vital.'),
 ('TPL_CAPILAR_ACTIVATE','DOMAIN_CAPILAR','CAPILAR_ACTIVACION_REGENERACION','Capilar · Activación & Regeneración','Proceso capilar de activación/regeneración sujeto a evaluación profesional.','Organiza intervención y continuidad; fármacos, dosis, sesiones y activos son autoridad clínica.','WA-4A.1B; protocolos farmacológicos permanecen CLINICAL_RESTRICTED.'),
-('TPL_CAPILAR_MAINTAIN','DOMAIN_CAPILAR','CAPILAR_MANTENIMIENTO_PREVENCION','Capilar · Mantenimiento & Prevención','Proceso de continuidad capilar para sostener resultados cuando corresponde.','Permite servicios/productos de soporte sin volverlos add-ons universales.','WA-4A.1B + Arquitectura Comercial Zi Vital.')
-on conflict(template_code) do update set
- domain_code=excluded.domain_code,approach_code=excluded.approach_code,title=excluded.title,
- public_summary=excluded.public_summary,advisor_summary=excluded.advisor_summary,
- phase_sequence=excluded.phase_sequence,evidence_note=excluded.evidence_note,updated_at=now();
+('TPL_CAPILAR_MAINTAIN','DOMAIN_CAPILAR','CAPILAR_MANTENIMIENTO_PREVENCION','Capilar · Mantenimiento & Prevención','Proceso de continuidad capilar para sostener resultados cuando corresponde.','Permite servicios/productos de soporte sin volverlos add-ons universales.','WA-4A.1B + Arquitectura Comercial Zi Vital.');
 
 create or replace view public.aos_wa4_price_authority_v1 as
 select
@@ -82,7 +72,7 @@ select
   c.num_sesiones,
   c.frecuencia,
   c.updated_at as price_source_updated_at,
-  greatest(0,(current_date - c.updated_at::date))::integer as age_days,
+  greatest(0,(current_date-c.updated_at::date))::integer as age_days,
   case
     when c.precio_oferta is null and c.precio_base is null then 'MISSING_PRICE'
     when coalesce(c.precio_oferta,c.precio_base,0)<=0 then 'INVALID_NONPOSITIVE_PRICE'
@@ -98,7 +88,6 @@ select
   'aos_catalogo_servicios:'||c.id::text||':'||to_char(c.updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS') as evidence_ref
 from public.aos_catalogo_servicios c
 where c.estado='ACTIVO' and c.tipo in ('SERVICIO','PRODUCTO');
-
 revoke all on table public.aos_wa4_price_authority_v1 from public,anon,authenticated;
 grant select on table public.aos_wa4_price_authority_v1 to service_role;
 
@@ -120,14 +109,17 @@ select
   'aos_catalogo_toppings:'||t.id::text as evidence_ref
 from public.aos_catalogo_toppings t
 where t.estado='ACTIVO';
-
 revoke all on table public.aos_wa4_topping_authority_v1 from public,anon,authenticated;
 grant select on table public.aos_wa4_topping_authority_v1 to service_role;
 
+-- Contract bridge: WA-4A.1B maps knowledge entity types as SERVICE/PRODUCT,
+-- while the canonical runtime catalog uses SERVICIO/PRODUCTO. The pricing layer
+-- exposes the canonical catalog type and preserves the 1B mapping type separately.
 create or replace view public.aos_wa4_process_entity_context_v1 as
 select
   m.entity_id,
-  m.entity_type,
+  p.entity_type,
+  m.entity_type as knowledge_entity_type,
   m.entity_name,
   m.category,
   m.domain_codes,
@@ -136,7 +128,7 @@ select
   m.clinical_lifecycle,
   m.zi_function,
   m.mapping_state,
-  m.confidence,
+  m.mapping_confidence,
   p.precio_base,
   p.precio_oferta,
   p.quote_price,
@@ -149,7 +141,6 @@ select
   p.evidence_ref as price_evidence_ref
 from public.aos_knowledge_entity_map_v1 m
 join public.aos_wa4_price_authority_v1 p on p.entity_id=m.entity_id;
-
 revoke all on table public.aos_wa4_process_entity_context_v1 from public,anon,authenticated;
 grant select on table public.aos_wa4_process_entity_context_v1 to service_role;
 
@@ -198,11 +189,11 @@ declare
   v_role_policy record;
   v_unit numeric;
   v_subtotal numeric;
-  v_total numeric := 0;
-  v_lines jsonb := '[]'::jsonb;
-  v_phase_totals jsonb := '{"COMMERCIAL_F1_PREP_ACT":0,"COMMERCIAL_F2_INTERVENTION":0,"COMMERCIAL_F3_CONTINUITY":0}'::jsonb;
+  v_total numeric:=0;
+  v_lines jsonb:='[]'::jsonb;
+  v_phase_totals jsonb:='{"COMMERCIAL_F1_PREP_ACT":0,"COMMERCIAL_F2_INTERVENTION":0,"COMMERCIAL_F3_CONTINUITY":0}'::jsonb;
   v_prev numeric;
-  v_mode text := upper(trim(coalesce(p_payment_mode,'')));
+  v_mode text:=upper(trim(coalesce(p_payment_mode,'')));
   v_count integer;
 begin
   if p_components is null or jsonb_typeof(p_components)<>'array' then
@@ -323,7 +314,6 @@ begin
   );
 end;
 $$;
-
 revoke all on function public.aos_wa4_quote_preview_v1(jsonb,text,boolean) from public,anon,authenticated;
 grant execute on function public.aos_wa4_quote_preview_v1(jsonb,text,boolean) to service_role;
 
