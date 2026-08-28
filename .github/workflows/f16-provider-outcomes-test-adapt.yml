@@ -1,58 +1,62 @@
-name: F16 Provider Outcomes Test Adapt
+name: WA-4C Runtime Canary (ephemeral branch)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - 'wa4c/runtime-canary-20260828'
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  EXPECTED_PROD_SHA: 075b8802ad96e397b66e4997d51a1c4740dc8de2
 
 jobs:
-  adapt:
+  runtime-canary:
+    name: WA-4C · Railway + REST + models + 2FA fail-closed
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 6
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: Zero-Cost health
-        run: |
-          python3 scripts/ci/enforce-zero-cost-policy.py
-          bash scripts/ci/runner-healthcheck.sh
-      - name: Adapt existing delivery contract to complaint suppression
+      - name: Railway outer health
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('ci/phase16/test_phase16_delivery_contracts.sql')
-          s=p.read_text()
-          needle="""  if j->>'state' <> 'COMPLAINED' then
-    raise exception 'F16_DELIVERY_TEST_FAIL: post-delivery complaint transition %',j;
-  end if;
-end
-$test$;
-"""
-          replacement="""  if j->>'state' <> 'COMPLAINED' then
-    raise exception 'F16_DELIVERY_TEST_FAIL: post-delivery complaint transition %',j;
-  end if;
-  if coalesce((select global_suppressed from public.aos_cia_email_recipient_controls where contact_key='synthetic-contact-1'),false) is not true then
-    raise exception 'F16_DELIVERY_TEST_FAIL: complaint did not suppress recipient';
-  end if;
-  update public.aos_cia_email_recipient_controls
-     set global_suppressed=false,suppression_reason=null,source='SYNTHETIC_RESET',source_updated_at=now(),updated_by_user_id='00000000-0000-0000-0000-000000000001'
-   where contact_key='synthetic-contact-1';
-end
-$test$;
-"""
-          if s.count(needle)!=1:
-            raise SystemExit('complaint contract anchor not unique')
-          p.write_text(s.replace(needle,replacement,1))
-          PY
-          git diff --check
-      - name: Commit test contract adaptation
+          echo "expected_prod_sha=$EXPECTED_PROD_SHA"
+          BASE='https://ascenda-os-production.up.railway.app'
+          getent hosts ascenda-os-production.up.railway.app
+          code=$(curl --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -o /tmp/outer-health.json -w '%{http_code}' "$BASE/health")
+          echo "outer_health_http=$code"
+          cat /tmp/outer-health.json
+          test "$code" = '200'
+
+      - name: WA-4 model readiness
         run: |
           set -euo pipefail
-          git config user.name 'ASCENDA Zero-Cost CI'
-          git config user.email 'actions@users.noreply.github.com'
-          git add ci/phase16/test_phase16_delivery_contracts.sql
-          git commit -m 'test(f16): assert complaint suppression outcome'
-          git push origin HEAD:${GITHUB_REF_NAME}
+          BASE='https://ascenda-os-production.up.railway.app'
+          code=$(curl --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -o /tmp/wa4-health.json -w '%{http_code}' "$BASE/api/wa4/health")
+          echo "wa4_health_http=$code"
+          cat /tmp/wa4-health.json
+          test "$code" = '200'
+          python3 -c "import json; j=json.load(open('/tmp/wa4-health.json')); h=j.get('health') or {}; a=h.get('active') or {}; assert j.get('ok') is True; assert j.get('auto_send') is False; assert h.get('configured') is True, h; assert h.get('copilot_ready') is True, h; assert a.get('fast') is True and a.get('reasoning') is True and a.get('safety') is True, a; assert h.get('error') is None, h; print(json.dumps({'configured':h.get('configured'),'copilot_ready':h.get('copilot_ready'),'active':a,'checked_at':h.get('checked_at'),'error':h.get('error')},indent=2))"
+
+      - name: Bootstrap remains 2FA fail-closed without token
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          BASE='https://ascenda-os-production.up.railway.app'
+          code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -o /tmp/bootstrap-no-token.json -w '%{http_code}' "$BASE/api/wa4/bootstrap")
+          echo "bootstrap_no_token_http=$code"
+          cat /tmp/bootstrap-no-token.json
+          test "$code" = '403'
+          python3 -c "import json; j=json.load(open('/tmp/bootstrap-no-token.json')); assert j.get('ok') is False and j.get('error')=='WA4_2FA_PANEL_REQUIRED',j"
+
+      - name: Suggest remains 2FA fail-closed without token
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          BASE='https://ascenda-os-production.up.railway.app'
+          CID='00000000-0000-4000-8000-000000000001'
+          code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -X POST -H 'Content-Type: application/json' -d '{}' -o /tmp/suggest-no-token.json -w '%{http_code}' "$BASE/api/wa4/conversations/$CID/suggest")
+          echo "suggest_no_token_http=$code"
+          cat /tmp/suggest-no-token.json
+          test "$code" = '403'
+          python3 -c "import json; j=json.load(open('/tmp/suggest-no-token.json')); assert j.get('ok') is False and j.get('error')=='WA4_2FA_PANEL_REQUIRED',j"
