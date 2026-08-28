@@ -8,6 +8,8 @@ on:
       - 'supabase/migrations/*wa4a1c_multicurrency*'
       - 'supabase/rollbacks/*catalog_sep2026*'
       - 'ci/catalog-sep2026/**'
+      - 'app/wa4-copilot.js'
+      - 'app/wa4-playbook.js'
       - '.github/workflows/catalog-sep2026-deep-reconciliation.yml'
   workflow_dispatch:
 
@@ -22,7 +24,7 @@ jobs:
   certify:
     name: ZERO-COST · SEP26.1 catalog + WA4 revalidation
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       DB_URL: postgresql://postgres:postgres@127.0.0.1:60002/postgres
     steps:
@@ -39,17 +41,29 @@ jobs:
           set -euo pipefail
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
-          M=supabase/migrations/20260828140500_catalog_sep2026_deep_reconciliation_v1.sql
+          F=supabase/migrations/20260828140500_catalog_sep2026_reconciliation_foundation_v1.sql
+          Z=supabase/migrations/20260828140590_catalog_sep2026_finalize_v1.sql
           MC=supabase/migrations/20260828142000_wa4a1c_multicurrency_hardening_v1.sql
-          grep -q '154 UPDATED_CURRENT' "$M"
-          grep -q '30 INSERTED_CURRENT' "$M"
-          grep -q '13 INACTIVATED_HISTORICAL' "$M"
-          grep -q 'aos_catalogo_reconciliation_lineage_v1' "$M"
-          grep -q 'OPERATIONAL_SUPPLY' "$M"
+          FILES=(
+            "$F"
+            supabase/migrations/20260828140510_catalog_sep2026_services_slice_1_v1.sql
+            supabase/migrations/20260828140520_catalog_sep2026_services_slice_2_v1.sql
+            supabase/migrations/20260828140530_catalog_sep2026_services_slice_3_v1.sql
+            supabase/migrations/20260828140540_catalog_sep2026_services_slice_4_v1.sql
+            supabase/migrations/20260828140550_catalog_sep2026_services_slice_5_v1.sql
+            supabase/migrations/20260828140560_catalog_sep2026_services_slice_6_v1.sql
+            "$Z"
+            "$MC"
+          )
+          grep -q 'aos_catalogo_reconciliation_lineage_v1' "$F"
+          grep -q "action='UPDATED_CURRENT')<>154" "$Z"
+          grep -q "action='INSERTED_CURRENT')<>30" "$Z"
+          grep -q "action='INACTIVATED_HISTORICAL')<>13" "$Z"
+          grep -q "entity_kind}'='OPERATIONAL_SUPPLY" "$Z"
           grep -q 'MIXED_CURRENCY_NOT_SUPPORTED' "$MC"
-          grep -q "c.moneda" "$MC"
-          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$MC"
-          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$MC"
+          grep -q 'coalesce(c.moneda' "$MC" || grep -q 'c.moneda' "$MC"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "${FILES[@]}"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "${FILES[@]}" app/wa4-copilot.js app/wa4-playbook.js
           node --check app/wa4-playbook.js
           node --check app/wa4-copilot.js
           node --check app/wa4-knowledge.js
@@ -81,20 +95,38 @@ jobs:
       - name: SEP26.1 exact-shape migration and rollback
         run: |
           set -euo pipefail
+          apply_sep26() {
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140500_catalog_sep2026_reconciliation_foundation_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140510_catalog_sep2026_services_slice_1_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140520_catalog_sep2026_services_slice_2_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140530_catalog_sep2026_services_slice_3_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140540_catalog_sep2026_services_slice_4_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140550_catalog_sep2026_services_slice_5_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140560_catalog_sep2026_services_slice_6_v1.sql
+            psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140590_catalog_sep2026_finalize_v1.sql
+          }
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/source_contract.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/catalog-sep2026/current_fixture.sql
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140500_catalog_sep2026_deep_reconciliation_v1.sql
+          apply_sep26
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/catalog-sep2026/tests/001_deep_reconciliation.sql | tee /tmp/sep26-deep.txt
           grep -q 'CATALOG_SEP2026_DEEP_RECONCILIATION_PASS' /tmp/sep26-deep.txt
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260828140500_catalog_sep2026_deep_reconciliation_v1.rollback.sql
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios where tipo='SERVICIO' and estado='ACTIVO'")" = "167"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios where tipo='PRODUCTO' and estado='ACTIVO'")" = "50"
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_toppings where estado='ACTIVO'")" = "20"
 
       - name: Rebuild SEP26.1 CURRENT for WA4 dependencies
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/catalog-sep2026/current_fixture.sql
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140500_catalog_sep2026_deep_reconciliation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140500_catalog_sep2026_reconciliation_foundation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140510_catalog_sep2026_services_slice_1_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140520_catalog_sep2026_services_slice_2_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140530_catalog_sep2026_services_slice_3_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140540_catalog_sep2026_services_slice_4_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140550_catalog_sep2026_services_slice_5_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140560_catalog_sep2026_services_slice_6_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828140590_catalog_sep2026_finalize_v1.sql
 
       - name: Build WA-4A / 4A.1 / 4A.1B on SEP26 CURRENT
         run: |
@@ -130,6 +162,8 @@ jobs:
           node --test ci/wa4-ai-sales-router/ai-router.test.js
           grep -q "price_authority:'WA4A1C_ONLY'" app/wa4-copilot.js
           grep -q "send_authority:'HUMAN_ONLY'" app/wa4-playbook.js
+          grep -q 'mapping_confidence' app/wa4-copilot.js
+          grep -q 'moneda' app/wa4-copilot.js
           ! grep -Eiq '(auto_send|ai_send|auto_reply|auto_routing)[[:space:]]*[:=][[:space:]]*true' app/wa4-playbook.js app/wa4-copilot.js
           echo 'SEP26.1 REVALIDATED: WA-4A.1B + WA-4A.1C multi-currency + WA-4B HUMAN_ONLY.'
 
