@@ -3,36 +3,21 @@
 const https = require('https');
 const { EventEmitter } = require('events');
 const { createSupabaseQuotaCircuit } = require('./supabase-quota-circuit');
+const { isConfiguredSupabaseRequest } = require('./supabase-quota-target.cjs');
 
 if (!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__) {
   const baseRequest = https.request;
   const circuit = createSupabaseQuotaCircuit();
   let configuredHost = 'ituyqwstonmhnfshnaqz.supabase.co';
   try { configuredHost = new URL(process.env.SUPABASE_URL || ('https://' + configuredHost)).hostname; } catch (_) {}
-  const userAgentRe = /^AscendaOS-(?:Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17)\//i;
 
-  function requestOptions(args) {
-    const first = args[0];
-    const second = args[1];
-    if (first instanceof URL) return { hostname: first.hostname, headers: second && second.headers || {} };
-    if (typeof first === 'string') {
-      try { const u = new URL(first); return { hostname: u.hostname, headers: second && second.headers || {} }; } catch (_) { return { hostname: '', headers: second && second.headers || {} }; }
-    }
-    return first && typeof first === 'object' ? first : {};
-  }
-
-  function header(headers, name) {
-    if (!headers) return '';
-    const lower = String(name).toLowerCase();
-    for (const k of Object.keys(headers)) if (String(k).toLowerCase() === lower) return String(headers[k] == null ? '' : headers[k]);
-    return '';
-  }
-
+  // Supabase Fair Use 402 is project-wide, not endpoint- or user-agent-specific.
+  // Therefore every request from this Railway process to the configured Supabase
+  // host participates in the same breaker. During a quota block, user-driven
+  // requests would fail upstream too; short-circuiting them prevents pointless
+  // egress/API churn and allows a single controlled probe after cooldown.
   function isTarget(args) {
-    const opts = requestOptions(args);
-    const host = String(opts.hostname || opts.host || '').split(':')[0].toLowerCase();
-    const ua = header(opts.headers, 'user-agent');
-    return host === String(configuredHost || '').toLowerCase() && userAgentRe.test(ua);
+    return isConfiguredSupabaseRequest(args, configuredHost);
   }
 
   class BlockedRequest extends EventEmitter {
@@ -73,6 +58,7 @@ if (!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__) {
   global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__ = {
     installed: true,
     host: configuredHost,
+    scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS',
     snapshot: function() { return circuit.snapshot(); }
   };
 }
