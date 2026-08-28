@@ -2,13 +2,13 @@
 
 **Status:** CURRENT / WHATSAPP REVENUE HUB V2  
 **Captured:** 2026-08-28 America/Lima  
-**WA-4A.1C exact head:** `8354b65c5eaab022f7e4991e15ee48111205c799`  
-**WA-4A.1C merge:** `99a2413a7fb13e5e18ec8f4b5e3ed0b49d159880`  
-**WA-4A.1C:** `TEST CERTIFIED / PROD-READY / PROD FEATURE DDL UNAPPLIED`  
-**ACTIVE LOCK:** `WA-4B — SALES PLAYBOOK ENGINE`
+**WA-4B exact head:** `d5d63515c9ee94bb2458a70f825fabdfd0804697`  
+**WA-4B functional merge:** `e8180b99ba3a77716969f9ea4a7bbf604cb20d6d`  
+**WA-4B:** `TEST CERTIFIED / RUNTIME DEPLOYED SAFE-OFF / LIVE COPILOT CANARY PENDING`  
+**ACTIVE LOCK:** `WA-4C — AI SALES COPILOT CANARY`
 
 ## Execution rule
-Only one HIGH/CRITICAL mutable workstream at a time. `WA-4B` is now the only mutable lane. All other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-4B has a narrowly documented dependency.
+Only one HIGH/CRITICAL mutable workstream at a time. `WA-4C` is the only mutable lane. All other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-4C has a narrowly documented dependency.
 
 Preserved: REV-F5/F6 production-certified; REV-F7 paused; CIA/Sentinel/KronIA/unrelated work read-only/regression-only unless strict dependency.
 
@@ -17,13 +17,14 @@ Preserved: REV-F5/F6 production-certified; REV-F7 paused; CIA/Sentinel/KronIA/un
 - WA-7A.1: REV/F5/F6 canonical identity reuse.
 - WA-7A.2: channel verification/identifier lineage.
 - WA-7A.3: acquisition provenance.
-- WA-7A.4: TEST-certified marketing eligibility.
+- WA-7A.4: TEST-certified marketing eligibility; PROD promotion pending.
 - WA-4A: governed Knowledge Fabric.
-- WA-4A.1: role-aware Zi Vital clinic knowledge.
-- WA-4A.1B: certified commercial semantics across 167 services + 50 products.
-- WA-4A.1C: certified structural treatment/process + current-price read architecture.
+- WA-4A.1: role-aware Zi Vital clinic knowledge; PROD promotion pending.
+- WA-4A.1B: certified commercial semantics across 167 services + 50 products; feature graph PROD promotion pending.
+- WA-4A.1C: certified treatment/process/current-price architecture; feature DDL PROD promotion pending.
+- WA-4B: certified advisor-only sales playbook orchestration; runtime deployed SAFE-OFF.
 
-No parallel patient/product/revenue/pricing/customer/clinical master may be created.
+No parallel patient/product/revenue/pricing/customer/clinical/commercial master may be created.
 
 Mandatory separations:
 `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`
@@ -33,115 +34,91 @@ Mandatory separations:
 `PROCESS TEMPLATE != PATIENT-SPECIFIC PRESCRIPTION`
 `ADVISOR RECOMMENDATION != AUTONOMOUS SEND`
 `PLAYBOOK LOGIC != BUSINESS FACT AUTHORITY`
+`TEST CERTIFICATION != LIVE CANARY CERTIFICATION`
 
-## WA-4A.1C certified boundary
-PR #385 exact head `8354b65c5eaab022f7e4991e15ee48111205c799` merged with `expected_head_sha` to `99a2413a7fb13e5e18ec8f4b5e3ed0b49d159880`.
+## WA-4B certified boundary
+PR #387 exact head `d5d63515c9ee94bb2458a70f825fabdfd0804697` passed all required exact-head gates before merge.
 
-Exact-head gates:
-- dedicated WA-4A.1C Zero-Cost / DB / lint / rollback run `33140086173` = SUCCESS;
-- Ascenda CI run `33140086255` = SUCCESS;
-- WA knowledge regressions = SUCCESS;
-- isolated Supabase baseline + 1C migration = SUCCESS;
-- DB lint = SUCCESS;
-- quote-preview contract tests = SUCCESS;
-- rollback preserving canonical catalog/toppings and WA-4A.1B = SUCCESS.
+Exact-head SUCCESS:
+- WA-4B dedicated `33188177283`;
+- WA-4 AI Sales Router `33188177180`;
+- Ascenda CI `33188177163`;
+- WA-3 V2 Multiagent FAST `33188177241`;
+- WA-3 Boxes Routing Handoff `33188177177`;
+- ASC-PERF Audit 360 `33188177183`;
+- Performance Guard CI `33188177665`;
+- Phase S WA3 Stabilization `33188177230`.
 
-Certified architecture:
-- 8 structural process templates, all `STRUCTURAL_NOT_PRESCRIPTIVE`;
-- 8 explicit component roles with `can_auto_assign=false`;
-- 217/217 active catalog entities covered by the 1C TEST context;
-- live catalog remains price authority;
-- toppings distinguish `PAID_ADDON` vs `ZERO_PRICE_BENEFIT_CANDIDATE`;
-- COMPLETE vs PROGRESSIVE preserves canonical scope/total;
-- stale/anomalous price fails closed;
-- quote preview is private/read-only and does not create quote/payment/plan state.
+Anti-drift before merge:
+- `main = 95b77e2630cc67fb407276ead48caa42865befd7`;
+- PR #387 head remained `d5d63515c9ee94bb2458a70f825fabdfd0804697`;
+- no base/head drift.
 
-Post-merge PROD readback is unchanged:
+PR #387 merged with `expected_head_sha` to `e8180b99ba3a77716969f9ea4a7bbf604cb20d6d`.
+
+## Certified WA-4B behavior
+- deterministic commercial-stage/playbook orchestration;
+- Copilot no longer reads `aos_catalogo_servicios` / `aos_promociones` directly as business authority;
+- Knowledge Fabric retrieval separates `PUBLIC_CLIENT` from `ADVISOR_INTERNAL`;
+- governed commercial rules are required by stage and missing rule evidence fails closed;
+- catalog money is stripped from model context unless the stage is PRICE/PAYMENT and WA-4A.1C marks the entity `ready_for_quote` with READY/FRESH price context;
+- stale/anomalous/missing price fails closed;
+- promotions require READY governed promotion evidence;
+- continuity products are candidates only and never auto-added;
+- personalized clinical risk deterministically escalates `HUMAN_CLINICAL`;
+- playbook output remains advisor-facing with evidence refs;
+- `send_authority=HUMAN_ONLY`; `auto_send=false`.
+
+## Post-merge runtime and PROD safety
+Railway status for exact merge `e8180b99...` = SUCCESS on `ascenda-os-production.up.railway.app`. `app/railway.json` configures `/health` as deployment healthcheck, so the successful Railway deployment passed the configured runtime deployment gate.
+
+Merge-commit checks:
+- Runtime baseline = SUCCESS;
+- Performance architecture guard = SUCCESS.
+
+PROD readback after merge:
 - active services = 167;
 - active products = 50;
 - active toppings = 20;
 - offer-above-base review rows = 7;
 - price fingerprint = `4f2bdff1a36dc1c621c237a8da655155`;
-- all WA-4A.1C feature tables/views/functions remain absent in PROD.
+- WA-4A.1 / WA-4A.1B / WA-4A.1C feature objects remain absent in PROD;
+- `copilot_enabled=false`;
+- `auto_reply_enabled=false`;
+- `ai_send_enabled=false`;
+- `auto_routing_enabled=false`;
+- `human_send_enabled=true`;
+- WA messages = 21; conversations = 2; events = 39.
 
-Therefore `WA-4A.1C = TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`. No Railway runtime certification is required for this closeout because #385 changes migration/CI/control artifacts only and does not alter the Node/browser runtime.
+Therefore the production runtime is SAFE-OFF and no autonomous behavior was activated by WA-4B.
 
-## WA-4B necessity gate
-Discovery completed before mutation.
+## Certification
+`WA-4B — Sales Playbook Engine = TEST CERTIFIED / RUNTIME DEPLOYED SAFE-OFF / LIVE COPILOT CANARY NOT YET CERTIFIED`.
 
-Existing governed authorities already contain the commercial rules that a sales playbook needs:
-- `RULE_MEDICAL_PLAN_TO_COMMERCIAL`;
-- `RULE_QUOTE_PROCESS`;
-- `RULE_RECALCULATE_PROCESS`;
-- `RULE_PAYMENT_SCENARIOS`;
-- `RULE_TOPPINGS_BENEFITS`;
-- `RULE_ETHICAL_UPSELL`;
-- `RULE_PRODUCTS_AS_EXTENSION`;
-- `POLICY_REFUND_ALIGNMENT`;
-- governed public/advisor language and Domain / Approach / Commercial Phase semantics;
-- WA-4A.1C structural process roles + price/quote-preview contracts.
+The remaining LIVE boundary is not a code-quality failure: the upstream Knowledge Fabric / commercial graph / process-pricing contracts are still intentionally absent in PROD, and Copilot remains disabled. No bypass is allowed.
 
-Decision:
-`BUILD = YES`
-`NEW COMMERCIAL KNOWLEDGE MASTER = NO`
-`NEW PRICE/QUOTE/PATIENT-PLAN MASTER = NO`
-`MINIMAL PLAYBOOK ORCHESTRATION ENGINE = YES`
+## WA-4C — AI Sales Copilot Canary — active lock
+Purpose: prove the certified WA-4B playbook through the real authenticated advisor Copilot path under controlled canary conditions.
 
-## WA-4B allowed scope
-Goal: convert governed facts + commercial rules + conversation context into an evidence-backed **advisor recommendation**, while keeping human send and professional clinical authority intact.
+WA-4C starts discover/recovery-first. The LIVE canary is BLOCKED until its upstream dependencies are deliberately promoted/revalidated in the certified order.
 
 Allowed:
-- inventory current WA4 Copilot/router/advisor surfaces and conversation context contracts;
-- define deterministic commercial conversation states/stages without creating customer truth;
-- resolve applicable governed rule nodes and 1C process context;
-- produce structured advisor-only recommendations such as objective, next best action, approved talking points, objection handling, safe CTA, quote/payment framing, continuity opportunity and escalation reason;
-- return evidence/source references and confidence/freshness state with every governed recommendation;
-- distinguish public-safe text from advisor-only guidance and clinical-restricted content;
-- use current catalog price authority only through governed 1C contracts when price context is required;
-- add TEST fixtures for discovery, objection, quote, payment scenario, topping, product-continuity, follow-up and clinical-escalation paths;
-- keep Copilot as assistive/draft/recommendation mode only;
-- CI, least-privilege, hallucination, stale/conflict, role-boundary and rollback tests.
+- inventory exact queued WA-4A/4A.1/4A.1B/4A.1C PROD dependencies and promotion order;
+- revalidate PROD Auth/REST and provider/model readiness;
+- promote only already-certified dependencies through their own migration/readback gates;
+- verify least-privilege retrieval and advisor-only audience separation;
+- enable a narrowly scoped Copilot canary only after dependencies and controls are proven;
+- execute authenticated advisor canaries for INFO, PRICE, PAYMENT, OBJECTION, CONTINUITY and CLINICAL_ESCALATION;
+- prove evidence refs, fail-closed behavior, cost/audit logging and HUMAN_ONLY send authority;
+- immediately roll SAFE-OFF on any evidence, identity, pricing, clinical or authorization failure.
 
 Must not:
-- create a second product/service/business-rule/price master;
-- copy prices or clinical facts into prompt constants as authority;
-- infer diagnosis, medical necessity, dose, ml, vial, treatment selection, contraindication clearance or patient-specific plan;
-- mark a component `REQUIRED_BY_PLAN` without authorized plan evidence;
-- automatically add toppings/products or manufacture discounts;
-- mutate quote/payment/patient-plan/revenue/identity truth merely to make a recommendation;
-- expose OWNER_ADMIN/internal economics to PUBLIC_CLIENT;
-- send WhatsApp messages autonomously;
-- activate `ai_send`, `auto_reply`, `auto_routing`, campaigns or bulk send;
-- bypass marketing-eligibility/consent or clinical escalation gates.
+- enable autonomous WhatsApp sending;
+- enable auto-reply or auto-routing;
+- bypass marketing eligibility/consent;
+- fabricate missing knowledge/prices/promotions;
+- promote unreviewed migrations out of certified order;
+- mutate patient/REV/canonical identity to satisfy canaries;
+- call WA-4C LIVE-certified until authenticated real runtime evidence passes.
 
-## WA-4B output contract direction
-A playbook result should be evidence-first and machine-checkable, with fields equivalent to:
-- `commercial_stage`;
-- `objective`;
-- `recommended_next_action`;
-- `advisor_talking_points`;
-- `public_safe_facts`;
-- `objection_strategy`;
-- `quote_or_payment_context` when applicable;
-- `continuity_candidates` when governed and contextually eligible;
-- `clinical_escalation` / `policy_escalation`;
-- `evidence_refs`;
-- `freshness/conflict state`;
-- `send_authority = HUMAN_ONLY`.
-
-This is a contract direction, not permission to invent missing facts or a mandate for a new table. Necessity must be proven for each persistence layer.
-
-## WA-4B invariants
-- governed source facts > approved derived knowledge > generic LLM knowledge;
-- missing/conflicting/stale business evidence fails closed or escalates;
-- commercial playbook may organize a conversation but does not prescribe treatment;
-- clinical-restricted content is not converted into patient-facing claims;
-- price uses current governed authority, not examples or historical snapshots;
-- payment scenario cannot alter clinical scope;
-- benefits/toppings are context candidates, never hidden discounts;
-- products are continuity candidates, not universal add-ons;
-- advisor recommendation is not autonomous send authority;
-- Copilot/AI send/auto-reply/auto-routing remain SAFE-OFF throughout WA-4B unless a later separately certified phase explicitly changes that policy.
-
-## Next transition
-`WA-4B` may close only after exact-head TEST certification, regressions/security/rollback, expected-head merge, PROD-unchanged readback where applicable, GitHub CURRENT and Notion LAST. The next lock after WA-4B must be taken from the roadmap at closeout; do not infer or start it early.
+Next phase after WA-4C remains `WA-5` per roadmap; it stays BLOCKED until WA-4C closeout.
