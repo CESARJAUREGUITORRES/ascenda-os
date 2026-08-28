@@ -82,7 +82,7 @@ do $$ begin
   if not exists(select 1 from public.aos_knowledge_entity_map_v1 where entity_name='BEAUTY MAKER 330G' and approach_codes @> array['FACIAL_BIOREGEN_FACE','CAPILAR_MANTENIMIENTO_PREVENCION']) then
     raise exception 'Beauty Maker multi-approach mapping missing';
   end if;
-  if not exists(select 1 from public.aos_knowledge_entity_map_v1 where entity_name='REDUFAST' and domain_codes=array['CORPORAL']) then
+  if not exists(select 1 from public.aos_knowledge_entity_map_v1 where entity_name='REDUFAST' and domain_codes=array['DOMAIN_CORPORAL']) then
     raise exception 'Redufast corporal mapping missing';
   end if;
 end $$;
