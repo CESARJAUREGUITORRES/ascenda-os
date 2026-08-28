@@ -5,8 +5,8 @@ on:
     branches: [main]
     paths:
       - 'app/wa4-knowledge.js'
-      - 'supabase/migrations/*wa4a1_zivital_governed_knowledge*'
-      - 'supabase/rollbacks/*wa4a1_zivital_governed_knowledge*'
+      - 'supabase/migrations/*wa4a1_zivital_*'
+      - 'supabase/rollbacks/*wa4a1_zivital_*'
       - 'ci/wa4a1-zivital-knowledge/**'
       - 'docs/control/WHATSAPP_WA4A1_*'
       - '.github/workflows/wa4a1-zivital-governed-knowledge.yml'
@@ -48,6 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           M=supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
+          H=supabase/migrations/20260828001600_wa4a1_zivital_audience_search_isolation_v1.sql
           grep -q 'PUBLIC_CLIENT' "$M"
           grep -q 'ADVISOR_INTERNAL' "$M"
           grep -q 'OWNER_ADMIN' "$M"
@@ -57,8 +58,10 @@ jobs:
           grep -q 'Hair Revival' "$M"
           grep -q 'Contour Sculpt' "$M"
           grep -q 'CLINICAL_REVIEW_REQUIRED' "$M"
-          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M"
-          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M"
+          grep -q "when 'PUBLIC_CLIENT' then n.public_client" "$H"
+          grep -q "when 'CLINICAL_RESTRICTED' then n.clinical_restricted" "$H"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$H"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$H"
           ! grep -q 'aos_wa4a_knowledge_search_v2' app/server-wa4.js app/wa4-copilot.js
 
       - name: Configure isolated Supabase
@@ -93,6 +96,7 @@ jobs:
           CATALOG_BEFORE=$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')
           echo "$CATALOG_BEFORE" > /tmp/wa4a1-catalog-count
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001600_wa4a1_zivital_audience_search_isolation_v1.sql
 
       - name: Database lint and governed knowledge tests
         run: |
@@ -105,10 +109,12 @@ jobs:
       - name: Audience leakage negative tests
         run: |
           set -euo pipefail
-          PUBLIC=$(psql "$DB_URL" -X -qAt -c "select coalesce(string_agg(facts::text,' '),'') from public.aos_wa4a_knowledge_search_v2('dutasteride','PUBLIC_CLIENT',24,array['CLINIC_KNOWLEDGE'])")
-          ! printf '%s' "$PUBLIC" | grep -Eqi 'prescribir|dosis|Dutasteride CAPILAR'
+          PUBLIC_COUNT=$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa4a_knowledge_search_v2('dutasteride','PUBLIC_CLIENT',24,array['CLINIC_KNOWLEDGE'])")
+          test "$PUBLIC_COUNT" = "0"
           CLINICAL=$(psql "$DB_URL" -X -qAt -c "select coalesce(string_agg(facts::text,' '),'') from public.aos_wa4a_knowledge_search_v2('dutasteride','CLINICAL_RESTRICTED',24,array['CLINIC_KNOWLEDGE'])")
           printf '%s' "$CLINICAL" | grep -qi 'dutasteride'
+          OWNER=$(psql "$DB_URL" -X -qAt -c "select coalesce(string_agg(facts::text,' '),'') from public.aos_wa4a_knowledge_search_v2('Sculpt Body','OWNER_ADMIN',24,array['CLINIC_KNOWLEDGE'])")
+          printf '%s' "$OWNER" | grep -q 'system_reference'
 
       - name: Rollback preserves canonical catalog and WA-4A V1
         run: |
