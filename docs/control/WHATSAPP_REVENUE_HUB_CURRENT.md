@@ -1,24 +1,28 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub — CURRENT
 
-**Captured:** 2026-08-27 America/Lima  
+**Captured:** 2026-08-28 America/Lima  
 **Program:** `WHATSAPP-REVENUE-HUB-V2`  
-**WA-7A.4 exact head:** `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3`  
-**WA-7A.4 merge:** `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`  
-**WA-7A.4:** `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`  
-**ACTIVE MUTABLE SUBPHASE:** `WA-4A — Knowledge Fabric`  
-**PROD hold:** Supabase REST/Auth HTTP 402 + owner-directed TEST-first promotion queue
+**WA-4A.1B exact head:** `23ceb7bc8b5b0afb9b077773bd781c079223ef14`  
+**WA-4A.1B merge:** `03efd22cdacc61a8c2f1de351afc6315926e4263`  
+**WA-4A.1B:** `TEST CERTIFIED / PROD-READY GRAPH / BUSINESS-CONTENT DML READBACK VERIFIED`  
+**ACTIVE MUTABLE SUBPHASE:** `WA-4A.1C — Treatment & Pricing Architecture`  
+**NEXT BLOCKED:** `WA-4B — Sales Playbook Engine`  
+**PROD hold:** Supabase REST/Auth recovery debt + owner-directed TEST-first promotion queue
 
 ## Current phase state
 
 - `WA-V2-0 — Baseline & Governance` = CLOSED.
 - `WA-3 — Human Operations Multiagent` = OFFLINE CERTIFIED / LIVE recovery debt.
 - `WA-3.5 — Revenue Inbox UX` = OFFLINE CERTIFIED 100% / LIVE recovery debt.
-- `WA-7A.0 — Identity Compatibility` = CLOSED.
-- `WA-7A.1 — Identity Resolution` = CLOSED.
-- `WA-7A.2 — Identity Verification & Continuity` = CLOSED at demonstrated PROD technical boundary.
-- `WA-7A.3 — Attribution Ingress` = CLOSED at demonstrated PROD technical/runtime boundary.
-- `WA-7A.4 — Marketing Eligibility Foundation` = TEST CERTIFIED / PROD-READY / PROD promotion queued.
-- `WA-4A — Knowledge Fabric` = ACTIVE MUTABLE SUBPHASE.
+- `WA-7A.0` = CLOSED.
+- `WA-7A.1` = CLOSED.
+- `WA-7A.2` = CLOSED at demonstrated PROD technical boundary.
+- `WA-7A.3` = CLOSED at demonstrated PROD technical/runtime boundary.
+- `WA-7A.4` = TEST CERTIFIED / PROD-READY / PROD promotion queued.
+- `WA-4A` = ACTIVE parent Knowledge Fabric workstream.
+- `WA-4A.1` = governed Zi Vital clinic knowledge merged / TEST-first / PROD-ready.
+- `WA-4A.1B` = CERTIFIED at stated boundary.
+- `WA-4A.1C` = ACTIVE MUTABLE SUBPHASE.
 - `WA-4B`, `WA-4C`, `WA-5`, `WA-6`, `WA-7B/C/D`, `WA-8`, `WA-9..14` remain later roadmap.
 
 ## Canonical architecture
@@ -31,78 +35,86 @@ Canonical patient identity remains REV/F5/F6. WA consumes certified upstream tru
 
 `ATTRIBUTION EVIDENCE != CONSENT`.
 
-## WA-7A.4 closeout
+Knowledge authority remains:
 
-Necessity gate: `BUILD YES / NEW CONSENT MASTER NO / PROD MUTATION NO`.
+`governed source facts + evidence refs > approved derived knowledge > generic LLM knowledge`.
 
-Existing CIA-F17 recipient controls were discovered and reused only as a read-only deny/suppression guard. Their phone-centric `contact_key` cannot safely represent BSUID-only WhatsApp recipients and their `ALLOWED` state does not grant WA consent.
+## WA-4A.1B closeout
 
-TEST package adds:
+Purpose: transform the complete 114-page `ARQUITECTURA_COMERCIAL_ZI_VITAL_.pdf` into governed commercial knowledge and map the CURRENT catalog to Zi Vital semantics.
 
-- immutable WA conversation-scoped eligibility events;
-- GLOBAL/MARKETING/UTILITY/AUTHENTICATION/CALL scope separation;
-- consent/suppression/source/evidence/policy timestamps;
-- explicit re-consent requirement after denial/suppression;
-- active PHONE/BSUID/PARENT_BSUID reachability; username excluded;
-- CTWA/attribution/message/identifier facts cannot grant marketing permission;
-- current fail-closed eligibility projection and service-only check;
-- immutable/RLS/ACL/rollback security boundary.
+Delivered:
 
-Exact-head `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3`:
+- third authoritative internal source `ZV_COMMERCIAL_ARCH_2026`;
+- commercial phases separated from clinical lifecycle;
+- approach aliases normalized without duplicate concepts;
+- 6 commercial principles;
+- client vs internal language dictionary;
+- quotation/no-discount/payment/topping/ethical-upsell/continuity rules;
+- OWNER_ADMIN KPI/OKR knowledge;
+- exact-shape graph for 167 services + 50 products;
+- explicit functional/operational exceptions;
+- 43 service composition gaps classified as 17 NOT_APPLICABLE + 26 REAL_MISSING_REVIEW;
+- 39 Vitaminas formula blocks marked CATEGORY_TEMPLATE_REVIEW;
+- 41 Vitaminas/Detox services enriched in PROD business content;
+- residual internal-product gaps closed and Prunex claims hardened.
 
-- WA-7A.4 Zero-Cost run `33103975948` = SUCCESS;
-- Ascenda CI `33103975951` = SUCCESS.
+Exact-head gates:
 
-PR #378 merged with expected head to `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`.
+- specialized run `33137921448` = SUCCESS;
+- Ascenda CI `33137921445` = SUCCESS;
+- graph certification = SUCCESS;
+- DB lint = SUCCESS;
+- rollback preserving WA-4A.1 = SUCCESS.
 
-## Production proof / promotion queue
+PR #383 merged with expected head `23ceb7bc8b5b0afb9b077773bd781c079223ef14` to `03efd22cdacc61a8c2f1de351afc6315926e4263`.
 
-WA-7A.4 was deliberately not applied to production.
+Post-merge PROD readback:
 
-After merge:
+- 167 active services; 167/167 description; 167/167 indications; 167/167 FAQ coverage; 6,926 service FAQs;
+- 50 active products; 50/50 description; 50/50 indications; 50/50 FAQ coverage; 480 product FAQs;
+- feature graph table/RPC remain absent in PROD under TEST-first hold.
 
-- WA-7A.4 migration recorded = false;
-- WA-7A.4 table = absent;
-- WA-7A.4 view = absent;
-- patients = 7702;
-- leads = 6061;
-- messages = 21;
-- conversations = 2;
-- events = 39;
-- real attribution touchpoints = 0.
+Certification:
 
-Migration + rollback remain in GitHub as the PROD-ready promotion package.
+`SERVICE + PRODUCT COMMERCIAL KNOWLEDGE GRAPH = COMPLETE` at CURRENT 167 + 50 shape.
 
-Railway automatic deploy for merge `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6` = SUCCESS. WA-7A.4 introduced no `app/` runtime change, so this is deployment revalidation, not schema promotion.
+Not falsely certified:
 
-## Safety state
+`EXACT CLINICAL FORMULA CONTENT = 100%` remains open evidence debt for 26 exact service formulas + 39 per-SKU Vitaminas formulas.
 
-No bulk sender, campaigns, Meta Ads Sync, Campaign Router, AI send, auto-reply or auto-routing was activated.
+## WA-4A.1C — Treatment & Pricing Architecture — ACTIVE
 
-Existing governed runtime controls remain outside WA-7A.4 scope.
+Goal: turn certified Zi Vital semantics + live catalog pricing into a governed architecture for treatment processes and quotation scenarios without creating rigid packages or duplicating price authority.
 
-## WA-4A — Knowledge Fabric — ACTIVE
+Core rules:
 
-Goal: make WhatsApp human/Copilot reasoning consume governed ASCENDA business facts with evidence references, source authority, freshness and conflict handling.
+- `aos_catalogo_servicios` remains current price authority;
+- PDF/example prices never become runtime authority;
+- process != package;
+- domain/approach/phase/function guide quotation context;
+- clinical selection/dose/material/session count remain professional authority;
+- no autonomous discounting;
+- toppings/benefits must preserve margin and clinical coherence;
+- progressive-payment scenarios must not silently alter medical scope;
+- products can support continuity but must not be forced as universal add-ons.
 
-Discover first:
+Required deliverables:
 
-- current catalog/services/prices/branches/business rules/FAQ/protocol sources;
-- existing WA4 Copilot/context retrieval contracts;
-- existing product/CIA/Agenda/Revenue/read-model sources that should be referenced rather than copied;
-- existing knowledge tables/files/embeddings if any;
-- sensitive-data boundaries for Copilot context;
-- freshness/version/provenance gaps.
+1. price/source inventory and drift contract;
+2. treatment-process component model;
+3. F1/F2/F3 quotation architecture;
+4. mandatory/optional/alternative/dependent component semantics;
+5. session/unit/control/maintenance semantics;
+6. topping/benefit eligibility and internal cost boundary;
+7. complete-vs-progressive payment scenarios;
+8. treatment templates by Zi Vital Domain/Approach without fixed combo lock-in;
+9. safety rules for clinical authority and margin/no-discount governance;
+10. TEST fixtures, regressions, exact-head CI and PROD-ready package.
 
-Required authority principle:
+`WA-4B — Sales Playbook Engine` remains blocked until WA-4A.1C is certified.
 
-`governed source facts + evidence refs > derived approved knowledge > generic LLM knowledge`.
-
-Generic model knowledge must not silently override ASCENDA facts. Missing/stale/conflicting business facts degrade safely instead of being invented.
-
-Existing `server-wa4.js` Copilot infrastructure remains SAFE-OFF; WA-4A activation does not mean Copilot/AI send activation.
-
-Certificate: `docs/control/WHATSAPP_WA_7A_4_MARKETING_ELIGIBILITY_CERTIFICATE_20260827.md`.  
-Evidence: `docs/control/WHATSAPP_WA_7A_4_MARKETING_ELIGIBILITY_EVIDENCE.md`.  
+Certificate: `docs/control/WHATSAPP_WA4A1B_ZIVITAL_COMMERCIAL_KNOWLEDGE_CERTIFICATE_20260827.md`.  
+Evidence: `docs/control/WHATSAPP_WA4A1B_ZIVITAL_COMMERCIAL_KNOWLEDGE_EVIDENCE.md`.  
 Roadmap: `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`.  
 Lock: `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`.

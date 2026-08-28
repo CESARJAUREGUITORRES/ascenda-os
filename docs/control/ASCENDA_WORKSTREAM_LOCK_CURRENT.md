@@ -1,104 +1,88 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Status:** CURRENT / WHATSAPP REVENUE HUB V2  
-**Captured:** 2026-08-27 America/Lima  
-**WA-7A.4 exact head:** `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3`  
-**WA-7A.4 merge:** `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`  
-**WA-7A.4:** `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`  
-**ACTIVE LOCK:** `WA-4A — KNOWLEDGE FABRIC`
+**Captured:** 2026-08-28 America/Lima  
+**WA-4A.1B exact head:** `23ceb7bc8b5b0afb9b077773bd781c079223ef14`  
+**WA-4A.1B merge:** `03efd22cdacc61a8c2f1de351afc6315926e4263`  
+**WA-4A.1B:** `TEST CERTIFIED / PROD-READY GRAPH / BUSINESS-CONTENT DML READBACK VERIFIED`  
+**ACTIVE LOCK:** `WA-4A.1C — TREATMENT & PRICING ARCHITECTURE`
 
-## Owner directive
+## Execution rule
+Only one HIGH/CRITICAL mutable workstream at a time. `WA-4A.1C` is the only mutable lane. `WA-4B — Sales Playbook Engine` is BLOCKED until WA-4A.1C closeout, GitHub CURRENT and Notion LAST are complete.
 
-Continue WhatsApp Revenue Hub with at most one HIGH/CRITICAL mutable workstream at a time.
+Preserved: REV-F5/F6 production-certified; REV-F7 paused; CIA/Sentinel/KronIA/unrelated work read-only/regression-only unless strict dependency.
 
-**Only WA-4A is mutable now.** All other HIGH/CRITICAL workstreams remain read-only/regression-only unless WA-4A proves a strict dependency.
+## Preserved WA authority
+- WA-7A.0: channel continuity.
+- WA-7A.1: REV/F5/F6 canonical identity reuse.
+- WA-7A.2: channel verification/identifier lineage.
+- WA-7A.3: acquisition provenance.
+- WA-7A.4: TEST-certified marketing eligibility.
+- WA-4A: governed Knowledge Fabric.
+- WA-4A.1: role-aware Zi Vital clinic knowledge.
+- WA-4A.1B: certified commercial semantics across 167 services + 50 products.
 
-## Preserved portfolio state
+No parallel patient/product/revenue/pricing/customer master may be created.
 
-- REV-F5 = PRODUCTION CERTIFIED 100%.
-- REV-F6 = PRODUCTION CERTIFIED 100%.
-- REV-F7 = paused while WA owns the mutable lane.
-- Notifications S13–S15.5 = CLOSED / regression-only.
-- CIA, Sentinel, KronIA and unrelated product/data work = read-only/regression-only unless strict dependency.
-
-## WA-7A foundation preserved
-
-- WA-7A.0 owns PHONE/BSUID/PARENT_BSUID channel continuity.
-- WA-7A.1 reuses REV/F5/F6 as canonical patient identity authority.
-- WA-7A.2 owns channel verification and identifier lineage.
-- WA-7A.3 owns explicit immutable acquisition provenance.
-- WA-7A.4 owns TEST-certified marketing eligibility evidence and promotion package.
-
-No parallel customer/person master exists.
-
-Mandatory separation:
-
+Mandatory separations:
 `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`
-
 `ATTRIBUTION EVIDENCE != CONSENT`
+`LIVE PRICE AUTHORITY != DOCUMENT EXAMPLE PRICE`
+`COMMERCIAL PHASE != CLINICAL LIFECYCLE`
+`PROCESS TEMPLATE != PATIENT-SPECIFIC PRESCRIPTION`
 
-## WA-7A.4 closeout
+## WA-4A.1B certified boundary
+PR #383 exact head `23ceb7bc8b5b0afb9b077773bd781c079223ef14` merged with expected head to `03efd22cdacc61a8c2f1de351afc6315926e4263`.
 
-PR #378 exact head `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3` merged with expected head to `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`.
+Gates:
+- specialized Zero-Cost `33137921448` = SUCCESS;
+- Ascenda CI `33137921445` = SUCCESS;
+- DB lint = SUCCESS;
+- 217/217 graph certification = SUCCESS;
+- WA regressions = SUCCESS;
+- rollback preserving WA-4A.1 = SUCCESS.
 
-Exact-head TEST gates:
+Certified: `SERVICE + PRODUCT COMMERCIAL KNOWLEDGE GRAPH = COMPLETE` at CURRENT 167 + 50 shape.
 
-- WA-7A.4 Marketing Eligibility Foundation `33103975948` = SUCCESS;
-- Ascenda CI `33103975951` = SUCCESS.
+PROD business-content readback: 167/167 service descriptions + indications + FAQ coverage (6,926 FAQs); 50/50 product descriptions + indications + FAQ coverage (480 FAQs). Feature graph DDL remains absent in PROD under TEST-first hold.
 
-Scope delivered in TEST:
+Explicit clinical evidence debt remains: 26 exact service formulas `REAL_MISSING_REVIEW` + 39 per-SKU Vitaminas formulas `CATEGORY_TEMPLATE_REVIEW`.
 
-- immutable conversation-scoped eligibility ledger;
-- GLOBAL/MARKETING/UTILITY/AUTHENTICATION/CALL scopes;
-- explicit consent/suppression/source/evidence/policy/timestamp;
-- replay/idempotency + replay conflict;
-- explicit re-consent after denial/suppression;
-- BSUID/PARENT_BSUID reachability without requiring phone;
-- username does not create reachability;
-- CTWA/touchpoint/message receipt/phone/BSUID/username cannot grant consent;
-- CIA-F17 recipient controls reused read-only as deny/suppression guard only;
-- CIA ALLOWED cannot grant WA consent;
-- RLS/ACL/immutable evidence + destructive rollback guard;
-- WA-7A.3/2/1/0 regressions.
+## WA-4A.1C allowed scope
+Goal: build a governed treatment-process + pricing architecture using live catalog price authority and WA-4A.1B semantic authority.
 
-Production was deliberately untouched: WA-7A.4 migration is not recorded; table/view are absent; patients/leads/WA counts remain unchanged. The migration + rollback are queued for controlled PROD promotion after Supabase renewal/recovery.
-
-Railway automatic merge deploy = SUCCESS. No `app/` runtime behavior was changed by WA-7A.4.
-
-## WA-4A — allowed mutations
-
-Goal: establish a governed Knowledge Fabric for WhatsApp human/Copilot use without creating duplicate source-of-truth systems.
-
-Allowed discover/build when necessary:
-
-- inventory certified catalog/service/price/branch/FAQ/protocol/business-rule sources;
-- inventory existing WA4 Copilot retrieval/context code and safe-off controls;
-- define knowledge authority tiers, provenance/evidence refs, freshness and version rules;
-- read-only adapters/indexes/read models over certified sources;
-- narrowly scoped normalized knowledge artifacts when source systems cannot provide usable retrieval contracts;
-- conflict/freshness/fallback logic;
-- TEST fixtures and retrieval/evidence contracts;
-- private service-only APIs required for governed retrieval.
+Allowed:
+- inventory live price/session/unit/duration/control/package semantics;
+- inventory quote/payment/promotion/topping tables, RPCs and UI;
+- read-only price fingerprints/adapters;
+- process component roles: REQUIRED_BY_PLAN / OPTIONAL_SUPPORT / ALTERNATIVE / DEPENDENT / CONTROL / MAINTENANCE / PRODUCT_SUPPORT / TOPPING_ELIGIBLE;
+- F1/F2/F3 quotation structure;
+- complete vs progressive payment scenarios;
+- process templates by Domain/Approach without fixed prescriptions;
+- private OWNER_ADMIN cost/margin semantics only when evidence exists;
+- TEST-only quote math, CI, security, regressions and rollback.
 
 Must not:
+- create another live price master;
+- copy PDF/example prices into runtime authority;
+- mutate prices to satisfy architecture tests;
+- infer medical necessity, dose, ml, vial, sessions or intervals without authoritative evidence;
+- expose costs/margins to PUBLIC_CLIENT;
+- autonomously discount;
+- silently remove required scope to fit budget;
+- activate AI send, auto-reply, auto-routing, campaigns or bulk send;
+- mutate canonical identity or REV.
 
-- create a second patient/product/revenue/customer truth master;
-- use generic LLM knowledge as authority over governed ASCENDA facts;
-- expose unnecessary clinical/sensitive data to Copilot context;
-- activate autonomous AI send, auto-reply or auto-routing;
-- activate campaigns, bulk sender, Meta Ads Sync or WA-7C router;
-- mutate REV/F5 canonical identity to improve retrieval;
-- bypass Auth V3/2FA or ownership boundaries.
+## WA-4A.1C invariants
+- runtime catalog remains price authority;
+- missing/stale/conflicting price fails closed;
+- process templates are structural, not prescriptions;
+- payment scenario is not clinical-scope authority;
+- canonical price != commercial benefit;
+- topping eligibility requires evidence/coherence/permission;
+- products are support candidates, not universal mandatory add-ons;
+- one catalog row is not assumed to equal one clinical unit/session;
+- TEST-first remains active for feature DDL/runtime changes.
 
-## Mandatory WA-4A invariants
-
-- governed source facts + evidence references outrank generic model knowledge;
-- knowledge answers must be traceable to source/version/freshness where applicable;
-- stale/conflicting/missing facts fail closed or are surfaced as unknown, not invented;
-- retrieval context must follow least-data/least-privilege;
-- existing WA4 Copilot infrastructure remains SAFE-OFF until later certified activation;
-- TEST-first rule remains active: build/certify PROD-ready packages without production promotion while Supabase recovery is pending.
-
-## Lock transition rule
-
-WA-4A remains the sole mutable HIGH/CRITICAL lane until its scoped TEST closeout is certified and GitHub CURRENT + Notion LAST are updated. Only then may the lock move to `WA-4B — Sales Playbook Engine`.
+## Lock transition
+Only after WA-4A.1C exact-head certification, expected-head merge, GitHub CURRENT and Notion LAST may the mutable lock move to `WA-4B — Sales Playbook Engine`.
