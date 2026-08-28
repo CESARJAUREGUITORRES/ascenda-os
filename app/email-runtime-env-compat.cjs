@@ -1,10 +1,14 @@
 'use strict'
 
-// Backend-only compatibility for the legacy Cartero transactional Email worker.
-// F4 strips SUPABASE_SERVICE_ROLE_KEY before spawning its legacy child, while
-// server.js/email-gateway already support `service_role` as the Railway alias.
-// Copy only inside the server process environment; no secret value is logged,
-// committed, serialized, or exposed to browser code.
+// Backend-only compatibility for Railway/Supabase service-role naming.
+// Existing Ascenda runtimes consume both the canonical
+// SUPABASE_SERVICE_ROLE_KEY name and the legacy Railway `service_role` alias.
+// Normalize only inside the server process environment; never log, serialize,
+// commit, or expose either secret value to browser code.
+// Preserve an explicitly configured value when both names already exist.
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.service_role) {
+  process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.service_role
+}
 if (!process.env.service_role && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   process.env.service_role = process.env.SUPABASE_SERVICE_ROLE_KEY
 }
