@@ -1,0 +1,132 @@
+name: ASCENDA WA-4A.1C Treatment Pricing Architecture
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*wa4a1c*'
+      - 'supabase/rollbacks/*wa4a1c*'
+      - 'ci/wa4a1c-treatment-pricing/**'
+      - 'docs/control/WHATSAPP_WA4A1C_*'
+      - '.github/workflows/wa4a1c-treatment-pricing-architecture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa4a1c-treatment-pricing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · treatment pricing architecture
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59982/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Zero-Cost and static governance
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          M=supabase/migrations/20260828033500_wa4a1c_treatment_pricing_architecture_v1.sql
+          grep -q 'aos_wa4_price_authority_v1' "$M"
+          grep -q 'aos_wa4_quote_preview_v1' "$M"
+          grep -q 'STRUCTURAL_NOT_PRESCRIPTIVE' "$M"
+          grep -q 'REQUIRED_BY_PLAN' "$M"
+          grep -q 'TOPPING_ELIGIBLE' "$M"
+          grep -q 'discount_applied' "$M"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M"
+          ! grep -Eiq '(update|insert into|delete from)[[:space:]]+public\.aos_(catalogo_servicios|cotizaciones|cotizacion_items|pagos|planes_trabajo|plan_trabajo_items)' "$M"
+
+      - name: Existing WA knowledge regressions
+        run: |
+          set -euo pipefail
+          node --check app/wa4-knowledge.js
+          node --test ci/wa4a-knowledge-fabric/wa4-knowledge.test.js
+          node --test ci/wa4a1-zivital-knowledge/wa4a1-audience.test.js
+
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa4a1c-pricing"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59981/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59982/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59980/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa4a1c-pricing' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59982 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Build certified WA knowledge baseline
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/source_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1b-zivital-commercial/catalog_fixture.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014500_wa4a1b_zivital_commercial_knowledge_graph_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014600_wa4a1b_prephase_and_mapping_hardening_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014700_wa4a1b_explicit_exception_mapping_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014800_wa4a1b_product_composition_semantics_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014900_wa4a1b_relation_reconciliation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828015000_wa4a1b_domain_code_reconciliation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_vitaminas_detox_commercial_enrichment.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_internal_product_completion.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_prunex_knowledge_hardening.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1b-zivital-commercial/tests/001_commercial_graph.sql | tee /tmp/wa4a1b-regression.txt
+          grep -q 'WA4A1B_ZIVITAL_COMMERCIAL_GRAPH_PASS' /tmp/wa4a1b-regression.txt
+
+      - name: Apply 1C fixture and architecture
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1c-treatment-pricing/source_fixture.sql
+          echo "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios")" > /tmp/catalog-count-before
+          echo "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_toppings")" > /tmp/topping-count-before
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828033500_wa4a1c_treatment_pricing_architecture_v1.sql
+
+      - name: Database lint and 1C certification
+        run: |
+          set -euo pipefail
+          (cd ci/zero-cost-staging && supabase db lint --local --schema public --level error)
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1c-treatment-pricing/tests/001_treatment_pricing.sql | tee /tmp/wa4a1c.txt
+          grep -q 'WA4A1C_TREATMENT_PRICING_ARCHITECTURE_PASS' /tmp/wa4a1c.txt
+
+      - name: Rollback preserves canonical sources and WA-4A.1B
+        run: |
+          set -euo pipefail
+          BEFORE_C=$(cat /tmp/catalog-count-before)
+          BEFORE_T=$(cat /tmp/topping-count-before)
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260828033500_wa4a1c_treatment_pricing_architecture_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')" = "$BEFORE_C"
+          test "$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_toppings')" = "$BEFORE_T"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_knowledge_entity_map_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa4_process_templates_v1') is null")" = "t"
+          echo 'WA-4A.1C TEST CERTIFIED BOUNDARY: pricing/process architecture is read-only; PROD feature DDL unapplied; WA-4B remains blocked until closeout.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
