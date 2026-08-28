@@ -8,7 +8,7 @@ const AUDIENCES = Object.freeze(new Set([
 ]));
 
 const FIELD_ALLOWLIST = Object.freeze({
-  CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria']),
+  CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','moneda','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria']),
   PROMOTION: new Set(['nombre','descripcion','tipo_descuento','valor_descuento','tratamientos','segmentos','codigo','vigencia_inicio','vigencia_fin']),
   BRANCH: new Set(['nombre','direccion','telefono','maps_link']),
   HOURS: new Set(['sede','dia_semana','hora_apertura','hora_cierre','activo']),
@@ -81,20 +81,26 @@ function buildKnowledgeBundle(rows, maxItems, expectedAudience) {
   return {version:'WA4A1-KNOWLEDGE-V2',audience,items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
 }
 
-function moneyValues(bundle) {
-  const values = [];
+function moneyValuesByCurrency(bundle) {
+  const values = {PEN:new Set(),USD:new Set()};
   for (const item of bundle.items || []) {
     const f = item.facts || {};
-    for (const key of ['precio_base','precio_oferta']) {
-      const n = Number(f[key]);
-      if (Number.isFinite(n)) values.push(n);
+    if (item.domain === 'CATALOG') {
+      // Legacy knowledge rows predate explicit currency and were PEN. Runtime WA-4B
+      // always re-gates catalog money through 1C before it reaches the model.
+      const currency = String(f.moneda || f.currency || 'PEN').toUpperCase();
+      if (!values[currency]) continue;
+      for (const key of ['precio_base','precio_oferta']) {
+        const n = Number(f[key]);
+        if (Number.isFinite(n)) values[currency].add(n.toFixed(2));
+      }
     }
     if (item.domain === 'PROMOTION' && String(f.tipo_descuento || '').toLowerCase().includes('monto')) {
       const n = Number(f.valor_descuento);
-      if (Number.isFinite(n)) values.push(n);
+      if (Number.isFinite(n)) values.PEN.add(n.toFixed(2));
     }
   }
-  return new Set(values.map(v=>v.toFixed(2)));
+  return values;
 }
 
 function timeValues(bundle) {
@@ -123,12 +129,17 @@ function validateGroundedSuggestion(obj, bundle) {
   if (!humanOnly && citations.length === 0) return {ok:false,error:'WA4A_EVIDENCE_REQUIRED'};
   if (!humanOnly && items.length === 0) return {ok:false,error:'WA4A_KNOWLEDGE_REQUIRED'};
 
-  const allowedMoney = moneyValues(bundle || {items:[]});
-  const amounts = [];
-  const moneyRe = /(?:s\/\.?\s*|soles?\s*)(\d+(?:[.,]\d{1,2})?)/gi;
-  let m;
-  while ((m = moneyRe.exec(reply))) amounts.push(Number(m[1].replace(',','.')));
-  if (amounts.some(x=>!allowedMoney.has(x.toFixed(2)))) return {ok:false,error:'WA4A_UNGROUNDED_PRICE'};
+  const allowedMoney = moneyValuesByCurrency(bundle || {items:[]});
+  const mentions = [];
+  const patterns = [
+    {currency:'PEN',re:/(?:s\/\.?\s*|soles?\s*)(\d+(?:[.,]\d{1,2})?)/gi},
+    {currency:'USD',re:/(?:us\$\s*|usd\s*\$?\s*|\$\s*|d[oó]lares?\s*)(\d+(?:[.,]\d{1,2})?)/gi}
+  ];
+  for (const p of patterns) {
+    let m;
+    while ((m = p.re.exec(reply))) mentions.push({currency:p.currency,value:Number(m[1].replace(',','.'))});
+  }
+  if (mentions.some(x=>!allowedMoney[x.currency].has(x.value.toFixed(2)))) return {ok:false,error:'WA4A_UNGROUNDED_PRICE'};
 
   const allowedTimes = timeValues(bundle || {items:[]});
   const mentionedTimes = [...reply.matchAll(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g)].map(x=>x[0].padStart(5,'0'));

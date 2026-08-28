@@ -217,7 +217,11 @@ function buildPlaybook(input) {
   const priceStage = stage === 'PRICE_QUOTE' || stage === 'PAYMENT';
   if (priceStage && ids.length > 0) {
     const missingCtx = ids.filter(id => !byId.has(id));
-    const blockedCtx = matched.filter(x => x.ready_for_quote !== true || String(x.price_state || '') !== 'READY' || String(x.freshness_state || '') === 'STALE_REVIEW');
+    const blockedCtx = matched.filter(x =>
+      x.ready_for_quote !== true || String(x.price_state || '') !== 'READY' ||
+      String(x.freshness_state || '') === 'STALE_REVIEW' ||
+      !['PEN','USD'].includes(String(x.moneda || '').toUpperCase())
+    );
     if (missingCtx.length || blockedCtx.length) {
       return {
         version:'WA4B-PLAYBOOK-V1',status:'FAIL_CLOSED',commercial_stage:stage,objective:g.objective,
@@ -245,7 +249,8 @@ function buildPlaybook(input) {
 
   const quoteContext = priceStage ? matched.filter(x => x.ready_for_quote === true).map(x => ({
     entity_id:String(x.entity_id),entity_type:String(x.entity_type || ''),entity_name:String(x.entity_name || ''),
-    quote_price:Number(x.quote_price),price_state:String(x.price_state || ''),freshness_state:String(x.freshness_state || ''),
+    quote_price:Number(x.quote_price),currency:String(x.moneda || '').toUpperCase(),
+    price_state:String(x.price_state || ''),freshness_state:String(x.freshness_state || ''),
     commercial_phase_codes:Array.isArray(x.commercial_phase_codes)?x.commercial_phase_codes:[],
     price_evidence_ref:x.price_evidence_ref == null ? null : String(x.price_evidence_ref)
   })) : null;
