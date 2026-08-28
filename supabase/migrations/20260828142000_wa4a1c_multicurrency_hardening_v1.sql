@@ -1,6 +1,7 @@
 -- WA-4A.1C V2 — explicit multi-currency safety contract
 -- Applies after WA-4A.1C V1 when promoted. Catalog/toppings remain the only price masters.
 -- No FX conversion is performed. A quote preview may contain exactly one currency.
+-- Compatibility rule: existing V1 view column order is preserved; moneda is appended.
 begin;
 
 create or replace view public.aos_wa4_price_authority_v1 as
@@ -11,7 +12,6 @@ select
   c.categoria,
   c.precio_base,
   c.precio_oferta,
-  c.moneda,
   coalesce(c.precio_oferta,c.precio_base) as quote_price,
   c.num_sesiones,
   c.frecuencia,
@@ -32,7 +32,8 @@ select
     and current_date-c.updated_at::date<=180
   ) as ready_for_quote,
   'aos_catalogo_servicios:'||c.id::text||':'||c.moneda||':'||
-    to_char(c.updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS') as evidence_ref
+    to_char(c.updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS') as evidence_ref,
+  c.moneda
 from public.aos_catalogo_servicios c
 where c.estado='ACTIVO' and c.tipo in ('SERVICIO','PRODUCTO');
 
@@ -45,7 +46,6 @@ select
   t.nombre,
   t.categoria_vinculada,
   t.precio,
-  t.moneda,
   t.tipo_pago,
   t.sesiones,
   t.descripcion,
@@ -56,7 +56,8 @@ select
     else 'PAID_ADDON'
   end as benefit_mode,
   (t.moneda in ('PEN','USD') and t.precio is not null and t.precio>=0 and t.estado='ACTIVO') as ready_for_consideration,
-  'aos_catalogo_toppings:'||t.id::text||':'||t.moneda as evidence_ref
+  'aos_catalogo_toppings:'||t.id::text||':'||t.moneda as evidence_ref,
+  t.moneda
 from public.aos_catalogo_toppings t
 where t.estado='ACTIVO';
 
@@ -79,7 +80,6 @@ select
   m.mapping_confidence,
   p.precio_base,
   p.precio_oferta,
-  p.moneda,
   p.quote_price,
   p.price_state,
   p.freshness_state,
@@ -87,7 +87,8 @@ select
   p.num_sesiones,
   p.frecuencia,
   p.price_source_updated_at,
-  p.evidence_ref as price_evidence_ref
+  p.evidence_ref as price_evidence_ref,
+  p.moneda
 from public.aos_knowledge_entity_map_v1 m
 join public.aos_wa4_price_authority_v1 p on p.entity_id=m.entity_id;
 
