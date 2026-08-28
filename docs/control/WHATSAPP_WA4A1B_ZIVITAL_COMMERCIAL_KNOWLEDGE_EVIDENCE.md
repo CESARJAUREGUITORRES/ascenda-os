@@ -103,15 +103,42 @@ Post-write catalog content coverage:
 ## Feature / runtime boundary
 The WA-4A.1B graph migrations remain TEST-first / PROD-ready only while the current PROD REST/Auth recovery debt exists.
 - No `aos_knowledge_entity_map_v1` in PROD yet.
+- No `aos_wa4a_entity_context_v1(uuid,text)` in PROD yet.
 - No Copilot wiring in this phase.
 - no `auto_reply`, `ai_send`, `auto_routing` activation.
 - no patient, lead, sale or REV mutation.
 
-## Certification boundary
-Eligible certification after exact-head CI:
-- `SERVICE + PRODUCT COMMERCIAL KNOWLEDGE GRAPH = COMPLETE` at the CURRENT 167 + 50 catalog shape.
-- `PUBLIC/ADVISOR/OWNER semantic structure = COMPLETE` for the scope implemented.
+## Exact-head certification
+Certified PR: #383.
+Certified exact head: `23ceb7bc8b5b0afb9b077773bd781c079223ef14`.
+Merge SHA: `03efd22cdacc61a8c2f1de351afc6315926e4263`.
 
-Not eligible for false certification:
+Final gates on the certified head:
+- `ASCENDA WA-4A.1B Zi Vital Commercial Knowledge` run `33137921448` = SUCCESS.
+- `Ascenda CI` run `33137921445` = SUCCESS.
+- graph certification = SUCCESS.
+- DB lint = SUCCESS.
+- rollback-preserves-WA-4A.1 = SUCCESS.
+- WA-4A/WA-4A.1 regressions = SUCCESS.
+
+The REDUFAST failure seen on earlier attempts was a stale assertion expecting `CORPORAL`; the governed graph had already normalized domains to `DOMAIN_CORPORAL`. Final test asserts the canonical code and passes.
+
+Post-merge PROD readback:
+- active services = 167; 167/167 description; 167/167 indications; 167/167 FAQ coverage; 6,926 FAQs.
+- active products = 50; 50/50 description; 50/50 indications; 50/50 FAQ coverage; 480 FAQs.
+- PROD graph table = absent.
+- PROD graph RPC = absent.
+
+## Certification result
+`WA-4A.1B = TEST CERTIFIED / PROD-READY GRAPH / BUSINESS-CONTENT DML READBACK VERIFIED`.
+
+`SERVICE + PRODUCT COMMERCIAL KNOWLEDGE GRAPH = COMPLETE` at the CURRENT 167 + 50 catalog shape.
+
+`PUBLIC/ADVISOR/OWNER semantic structure = COMPLETE` for the scope implemented.
+
+Not certified as complete:
 - `EXACT CLINICAL FORMULA CONTENT = 100%` remains false while 26 exact service formulas and 39 per-SKU Vitaminas formulas lack authoritative product/protocol evidence.
 - Those are explicit review debt, not silent blanks.
+
+## Next lock
+`WA-4A.1C — Treatment & Pricing Architecture` becomes the sole mutable subphase under WA-4A. `WA-4B — Sales Playbook Engine` remains blocked until WA-4A.1C is certified.
