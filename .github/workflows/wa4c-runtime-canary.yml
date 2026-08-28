@@ -22,7 +22,7 @@ jobs:
           HOST='ascenda-os-production.up.railway.app'
           BASE="https://${HOST}"
           getent hosts "$HOST"
-          code=$(curl --fail-with-body --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -o /tmp/outer-health.json -w '%{http_code}' "$BASE/health")
+          code=$(curl --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -o /tmp/outer-health.json -w '%{http_code}' "$BASE/health")
           test "$code" = '200'
           echo "outer_health_http=$code"
           cat /tmp/outer-health.json
@@ -32,42 +32,20 @@ jobs:
         run: |
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
-          code=$(curl --fail-with-body --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -o /tmp/wa4-health.json -w '%{http_code}' "$BASE/api/wa4/health")
+          code=$(curl --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -o /tmp/wa4-health.json -w '%{http_code}' "$BASE/api/wa4/health")
           test "$code" = '200'
-          node - <<'NODE'
-          const fs=require('fs');
-          const j=JSON.parse(fs.readFileSync('/tmp/wa4-health.json','utf8'));
-          if(j.ok!==true) throw new Error('WA4_HEALTH_NOT_OK');
-          if(j.auto_send!==false) throw new Error('WA4_AUTO_SEND_MUST_BE_FALSE');
-          if(!j.health || j.health.configured!==true) throw new Error('WA4_PROVIDER_NOT_CONFIGURED');
-          if(j.health.copilot_ready!==true) throw new Error('WA4_COPILOT_MODELS_NOT_READY');
-          if(!j.health.active || j.health.active.fast!==true || j.health.active.reasoning!==true || j.health.active.safety!==true) throw new Error('WA4_MODEL_SET_INCOMPLETE');
-          console.log(JSON.stringify({
-            ok:j.ok,
-            auto_send:j.auto_send,
-            configured:j.health.configured,
-            copilot_ready:j.health.copilot_ready,
-            active:j.health.active,
-            checked_at:j.health.checked_at,
-            error:j.health.error
-          },null,2));
-NODE
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/wa4-health.json','utf8'));if(j.ok!==true)throw Error('WA4_HEALTH_NOT_OK');if(j.auto_send!==false)throw Error('WA4_AUTO_SEND_MUST_BE_FALSE');if(!j.health||j.health.configured!==true)throw Error('WA4_PROVIDER_NOT_CONFIGURED');if(j.health.copilot_ready!==true)throw Error('WA4_COPILOT_MODELS_NOT_READY');if(!j.health.active||j.health.active.fast!==true||j.health.active.reasoning!==true||j.health.active.safety!==true)throw Error('WA4_MODEL_SET_INCOMPLETE');console.log(JSON.stringify({ok:j.ok,auto_send:j.auto_send,configured:j.health.configured,copilot_ready:j.health.copilot_ready,active:j.health.active,checked_at:j.health.checked_at,error:j.health.error},null,2));"
 
-      - name: Auth/2FA fail-closed at runtime without token
+      - name: Auth 2FA fail-closed without token
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
           code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -o /tmp/bootstrap-no-token.json -w '%{http_code}' "$BASE/api/wa4/bootstrap")
           test "$code" = '403'
-          node - <<'NODE'
-          const fs=require('fs');
-          const j=JSON.parse(fs.readFileSync('/tmp/bootstrap-no-token.json','utf8'));
-          if(j.ok!==false || j.error!=='WA4_2FA_PANEL_REQUIRED') throw new Error('WA4_2FA_FAIL_CLOSED_CONTRACT_BROKEN');
-          console.log(JSON.stringify({http:403,error:j.error},null,2));
-NODE
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/bootstrap-no-token.json','utf8'));if(j.ok!==false||j.error!=='WA4_2FA_PANEL_REQUIRED')throw Error('WA4_2FA_FAIL_CLOSED_CONTRACT_BROKEN');console.log(JSON.stringify({http:403,error:j.error},null,2));"
 
-      - name: Suggest endpoint also rejects missing 2FA before inference
+      - name: Suggest rejects missing 2FA before inference
         shell: bash
         run: |
           set -euo pipefail
@@ -75,9 +53,4 @@ NODE
           CID='00000000-0000-4000-8000-000000000001'
           code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -X POST -H 'Content-Type: application/json' -d '{}' -o /tmp/suggest-no-token.json -w '%{http_code}' "$BASE/api/wa4/conversations/$CID/suggest")
           test "$code" = '403'
-          node - <<'NODE'
-          const fs=require('fs');
-          const j=JSON.parse(fs.readFileSync('/tmp/suggest-no-token.json','utf8'));
-          if(j.ok!==false || j.error!=='WA4_2FA_PANEL_REQUIRED') throw new Error('WA4_SUGGEST_AUTH_BOUNDARY_BROKEN');
-          console.log(JSON.stringify({http:403,error:j.error},null,2));
-NODE
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/suggest-no-token.json','utf8'));if(j.ok!==false||j.error!=='WA4_2FA_PANEL_REQUIRED')throw Error('WA4_SUGGEST_AUTH_BOUNDARY_BROKEN');console.log(JSON.stringify({http:403,error:j.error},null,2));"
