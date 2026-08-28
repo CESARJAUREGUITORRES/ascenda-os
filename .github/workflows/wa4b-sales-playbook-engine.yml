@@ -1,0 +1,90 @@
+name: ASCENDA WA-4B Sales Playbook Engine
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa4-playbook.js'
+      - 'app/wa4-copilot.js'
+      - 'app/server-wa4.js'
+      - 'app/wa4-knowledge.js'
+      - 'ci/wa4b-sales-playbook/**'
+      - 'docs/control/WHATSAPP_WA4B_*'
+      - '.github/workflows/wa4b-sales-playbook-engine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa4b-sales-playbook-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · governed advisor playbook
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Zero-Cost and syntax
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --check app/wa4-playbook.js
+          node --check app/wa4-copilot.js
+          node --check app/wa4-knowledge.js
+          node --check app/server-wa4.js
+
+      - name: WA-4B contracts
+        run: |
+          set -euo pipefail
+          node --test ci/wa4b-sales-playbook/wa4-playbook.test.js
+          node --test ci/wa4b-sales-playbook/wa4-copilot-grounding.test.js
+
+      - name: Knowledge and router regressions
+        run: |
+          set -euo pipefail
+          node --test ci/wa4a-knowledge-fabric/wa4-knowledge.test.js
+          node --test ci/wa4a1-zivital-knowledge/wa4a1-audience.test.js
+          node --test ci/wa4-ai-sales-router/ai-router.test.js
+
+      - name: Authority and safe-off invariants
+        run: |
+          set -euo pipefail
+          grep -q 'aos_wa4a_knowledge_search_v2' app/wa4-copilot.js
+          grep -q 'aos_wa4_process_entity_context_v1' app/wa4-copilot.js
+          grep -q "price_authority:'WA4A1C_ONLY'" app/wa4-copilot.js
+          grep -q "send_authority:'HUMAN_ONLY'" app/wa4-playbook.js
+          grep -q "generic_llm_authority:false" app/wa4-playbook.js
+          grep -q 'RULE_QUOTE_PROCESS' app/wa4-playbook.js
+          grep -q 'RULE_PAYMENT_SCENARIOS' app/wa4-playbook.js
+          grep -q 'RULE_ETHICAL_UPSELL' app/wa4-playbook.js
+          grep -q 'RULE_PRODUCTS_AS_EXTENSION' app/wa4-playbook.js
+          ! grep -q '/rest/v1/aos_catalogo_servicios' app/wa4-copilot.js
+          ! grep -q '/rest/v1/aos_promociones' app/wa4-copilot.js
+          ! grep -Eiq '(auto_send|ai_send|auto_reply|auto_routing)[[:space:]]*[:=][[:space:]]*true' app/wa4-playbook.js app/wa4-copilot.js
+          ! grep -Eiq 'graph\.facebook\.com|WHATSAPP_ACCESS_TOKEN' app/wa4-playbook.js app/wa4-copilot.js
+
+      - name: Certified upstream contract references
+        run: |
+          set -euo pipefail
+          M1=supabase/migrations/20260828014500_wa4a1b_zivital_commercial_knowledge_graph_v1.sql
+          M2=supabase/migrations/20260828033500_wa4a1c_treatment_pricing_architecture_v1.sql
+          grep -q 'RULE_MEDICAL_PLAN_TO_COMMERCIAL' "$M1"
+          grep -q 'RULE_QUOTE_PROCESS' "$M1"
+          grep -q 'RULE_RECALCULATE_PROCESS' "$M1"
+          grep -q 'RULE_PAYMENT_SCENARIOS' "$M1"
+          grep -q 'RULE_TOPPINGS_BENEFITS' "$M1"
+          grep -q 'RULE_ETHICAL_UPSELL' "$M1"
+          grep -q 'RULE_PRODUCTS_AS_EXTENSION' "$M1"
+          grep -q 'POLICY_REFUND_ALIGNMENT' "$M1"
+          grep -q 'aos_wa4_process_entity_context_v1' "$M2"
+          grep -q 'aos_wa4_quote_preview_v1' "$M2"
+          grep -q 'STRUCTURAL_NOT_PRESCRIPTIVE' "$M2"
+          echo 'WA-4B TEST CERTIFIED BOUNDARY CANDIDATE: governed advisor orchestration only; HUMAN_ONLY send; PROD knowledge/1C promotion remains separate.'
