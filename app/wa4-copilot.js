@@ -30,7 +30,7 @@ async function loadProcessContexts(serviceGet,ids){
   const valid=ids.filter(x=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(x))).slice(0,24);
   if(!valid.length)return [];
   try{
-    const select='entity_id,entity_type,knowledge_entity_type,entity_name,category,domain_codes,approach_codes,commercial_phase_codes,clinical_lifecycle,zi_function,mapping_state,confidence,precio_base,precio_oferta,quote_price,price_state,freshness_state,ready_for_quote,price_evidence_ref';
+    const select='entity_id,entity_type,knowledge_entity_type,entity_name,category,domain_codes,approach_codes,commercial_phase_codes,clinical_lifecycle,zi_function,mapping_state,mapping_confidence,precio_base,precio_oferta,moneda,quote_price,price_state,freshness_state,ready_for_quote,price_evidence_ref';
     const out=await serviceGet('/rest/v1/aos_wa4_process_entity_context_v1?entity_id=in.('+valid.map(encodeURIComponent).join(',')+')&select='+encodeURIComponent(select));
     return Array.isArray(out.data)?out.data:[];
   }catch(_){ return []; }
@@ -43,10 +43,13 @@ function gatePublicCatalogMoney(bundle,processContexts,stage){
     if(!item||item.domain!=='CATALOG')return item;
     const copy=Object.assign({},item,{facts:Object.assign({},item.facts||{})});
     const id=playbooks.catalogId(item),p=id?ctx.get(id):null;
-    delete copy.facts.precio_base; delete copy.facts.precio_oferta;
-    if(allowPrice&&p&&p.ready_for_quote===true&&String(p.price_state||'')==='READY'&&String(p.freshness_state||'')!=='STALE_REVIEW'){
+    delete copy.facts.precio_base; delete copy.facts.precio_oferta; delete copy.facts.moneda; delete copy.facts.currency;
+    const currency=String(p&&p.moneda||'').toUpperCase();
+    if(allowPrice&&p&&p.ready_for_quote===true&&String(p.price_state||'')==='READY'&&String(p.freshness_state||'')!=='STALE_REVIEW'&&(currency==='PEN'||currency==='USD')){
       if(p.precio_base!=null&&Number.isFinite(Number(p.precio_base)))copy.facts.precio_base=Number(p.precio_base);
       if(p.precio_oferta!=null&&Number.isFinite(Number(p.precio_oferta)))copy.facts.precio_oferta=Number(p.precio_oferta);
+      copy.facts.moneda=currency;
+      copy.facts.currency=currency;
     }
     return copy;
   });
