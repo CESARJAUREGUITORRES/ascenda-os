@@ -100,6 +100,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014700_wa4a1b_explicit_exception_mapping_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014800_wa4a1b_product_composition_semantics_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014900_wa4a1b_relation_reconciliation_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828015000_wa4a1b_domain_code_reconciliation_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_vitaminas_detox_commercial_enrichment.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_internal_product_completion.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_prunex_knowledge_hardening.sql
