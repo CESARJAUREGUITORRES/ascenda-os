@@ -1,0 +1,15 @@
+insert into public.aos_catalogo_servicios(nombre,tipo,categoria,descripcion_comercial,beneficios,precio_oferta,estado,updated_at) values
+('PINK GLOW 1ML','SERVICIO','BIOREVITALIZACIÓN','Fixture','Fixture',1,'ACTIVO',now()),
+('HIDROFACIAL PREMIUM','SERVICIO','FACIALES','Fixture','Fixture',1,'ACTIVO',now()),
+('HIDROFACIAL ROSTRO','SERVICIO','FACIALES','Fixture','Fixture',1,'ACTIVO',now()),
+('RF FRACCIONADA ROSTRO/CUELLO x1','SERVICIO','RF FRACCIONADA','Fixture','Fixture',1,'ACTIVO',now()),
+('DERMAPEN VIT FACIAL x1','SERVICIO','MESOTERAPIA','Fixture','Fixture',1,'ACTIVO',now()),
+('MESO CAPILAR MINOXIDIL','SERVICIO','CAPILAR','Fixture','Fixture',1,'ACTIVO',now()),
+('DUTASTERIDE CAPILAR x1','SERVICIO','CAPILAR','Fixture','Fixture',1,'ACTIVO',now()),
+('PRP CAPILAR x1','SERVICIO','CAPILAR','Fixture','Fixture',1,'ACTIVO',now()),
+('EXOSOMAS EXOSIGNAL HAIR x1','SERVICIO','CAPILAR','Fixture','Fixture',1,'ACTIVO',now()),
+('RF FRACCIONADA CAPILAR x1','SERVICIO','CAPILAR','Fixture','Fixture',1,'ACTIVO',now()),
+('DETOX IÓNICO','SERVICIO','DETOX','Fixture','Fixture',1,'ACTIVO',now()),
+('CRIOLIPÓLISIS 1 ZONA','SERVICIO','CRIOLIPÓLISIS','Fixture','Fixture',1,'ACTIVO',now()),
+('HIFU CORP ABDOMEN ALTO','SERVICIO','CORPORAL','Fixture','Fixture',1,'ACTIVO',now()),
+('ENZIMAS CORP ABDOMEN/GLÚTEOS x1','SERVICIO','CORPORAL','Fixture','Fixture',1,'ACTIVO',now());
