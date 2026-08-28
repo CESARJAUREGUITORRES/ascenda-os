@@ -10,11 +10,11 @@ permissions:
   contents: read
 
 env:
-  EXPECTED_PROD_SHA: dbd78df5d1f9df8a57bc088a9430ec12b8c39cb3
+  EXPECTED_PROD_SHA: 89fd39eae567bf7acf81de0632a842b9d5330161
 
 jobs:
   runtime-canary:
-    name: WA-4C · Railway vault probe + model readiness + 2FA fail-closed
+    name: WA-4C · Railway #395 runtime + model readiness + 2FA fail-closed
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 15
     steps:
@@ -31,16 +31,15 @@ jobs:
           cat /tmp/outer-health.json
           test "$code" = '200'
 
-      - name: Temporary non-sensitive Railway to Supabase vault probe
+      - name: Removed WA-4C diagnostic must stay removed
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
-          code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -o /tmp/vault-probe.json -w '%{http_code}' "$BASE/api/wa4c/vault-probe")
-          echo "vault_probe_http=$code"
-          cat /tmp/vault-probe.json
-          test "$code" = '200'
-          python3 -c "import json; j=json.load(open('/tmp/vault-probe.json')); assert 'code' in j; print(json.dumps(j,indent=2))"
+          code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -o /tmp/vault-probe-removed.txt -w '%{http_code}' "$BASE/api/wa4c/vault-probe")
+          echo "vault_probe_removed_http=$code"
+          cat /tmp/vault-probe-removed.txt || true
+          test "$code" != '200'
 
       - name: WA-4 health snapshot
         if: ${{ always() }}
