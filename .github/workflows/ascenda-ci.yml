@@ -78,6 +78,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/server-f4.js') { node --check app/server-f4.js }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/server-wa4.js') { node --check app/server-wa4.js }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/email-runtime-env-compat.cjs') { node --check app/email-runtime-env-compat.cjs }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-4C Railway service-role env compatibility
+        shell: powershell
+        run: |
+          node ci/wa4c-runtime/env-compat.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check public JavaScript syntax
         shell: powershell
