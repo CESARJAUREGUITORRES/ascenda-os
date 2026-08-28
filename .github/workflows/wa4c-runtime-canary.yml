@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  EXPECTED_PROD_SHA: 3eb6e7bae5127958fe39f35a1a55b680830e1fc3
+  EXPECTED_PROD_SHA: dbd78df5d1f9df8a57bc088a9430ec12b8c39cb3
 
 jobs:
   runtime-canary:
