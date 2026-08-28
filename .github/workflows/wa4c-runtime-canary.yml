@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  EXPECTED_PROD_SHA: 8b5bce5dab3ce5fd84942109885af5251f8f273b
+
 jobs:
   runtime-canary:
     name: WA-4C · Railway + Supabase REST + model readiness + 2FA fail-closed
@@ -19,6 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "expected_prod_sha=$EXPECTED_PROD_SHA"
           HOST='ascenda-os-production.up.railway.app'
           BASE="https://${HOST}"
           getent hosts "$HOST"
