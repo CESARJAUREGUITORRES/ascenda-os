@@ -141,7 +141,9 @@ function validateGroundedSuggestion(obj, bundle) {
 
   const citedItems = items.filter(x=>citations.includes(String(x.knowledge_id)));
   const requestedAudience = normalizeAudience(bundle && bundle.audience);
-  if (requestedAudience === 'PUBLIC_CLIENT' && citedItems.some(x=>String((x.facts||{}).audience || '').toUpperCase() !== 'PUBLIC_CLIENT')) {
+  if (requestedAudience === 'PUBLIC_CLIENT' && citedItems.some(x=>
+    x.domain === 'ZI_VITAL' && String((x.facts||{}).audience || '').toUpperCase() !== 'PUBLIC_CLIENT'
+  )) {
     return {ok:false,error:'WA4A1_PUBLIC_AUDIENCE_LEAK'};
   }
 
