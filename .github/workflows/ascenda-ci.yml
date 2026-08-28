@@ -84,6 +84,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/supabase-runtime-auth.cjs') { node --check app/supabase-runtime-auth.cjs }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/supabase-quota-target.cjs') { node --check app/supabase-quota-target.cjs }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/supabase-quota-circuit-preload.cjs') { node --check app/supabase-quota-circuit-preload.cjs }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: WA-4C Railway + Supabase runtime compatibility
         shell: powershell
@@ -91,6 +95,8 @@ jobs:
           node ci/wa4c-runtime/env-compat.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/wa4c-runtime/supabase-auth-header.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/wa4c-runtime/quota-target.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check public JavaScript syntax

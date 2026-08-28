@@ -8,6 +8,7 @@ const s152=fs.readFileSync('app/server-phase-s-f17.js','utf8');
 const railway=fs.readFileSync('app/railway.json','utf8');
 const authSync=fs.readFileSync('app/auth-resend-reconcile.js','utf8');
 const quota=fs.readFileSync('app/supabase-quota-circuit-preload.cjs','utf8');
+const quotaTarget=fs.readFileSync('app/supabase-quota-target.cjs','utf8');
 const waPrelude=fs.readFileSync('app/public/wa-native-bootstrap-prelude.js','utf8');
 
 assert(s.includes("['server-f5.js']"),'Phase S must wrap the certified server-f5 chain');
@@ -27,9 +28,11 @@ assert(!waPrelude.includes("localStorage.setItem('aos_app_token'"),'WA bootstrap
 assert(authSync.includes('aos_integration_secrets_v1'),'Auth Resend sync must target private integration vault');
 assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must not write public integration catalog');
 assert(!/WHATSAPP_ACCESS_TOKEN\s*=\s*['\"][^'\"]+['\"]/.test(s),'no hard-coded Meta access token');
-assert(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+quota),'no hard-coded service role');
-assert(!/RESEND_API_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+authSync),'no hard-coded Resend API key');
-assert(quota.includes('Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17'),'quota preload must remain limited to the full recurrent WA runtime family including secure gateway persistence');
+assert(!/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"][^'\"]+['\"]/.test(s+quota+quotaTarget),'no hard-coded service role');
+assert(quota.includes("isConfiguredSupabaseRequest(args, configuredHost)"),'quota preload must classify requests by the configured Supabase host');
+assert(quota.includes("scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS'"),'project-wide 402 breaker scope must remain explicit');
+assert(quotaTarget.includes("host === String(configuredHost || '').toLowerCase()"),'quota target must match only the configured Supabase host');
+assert(!quota.includes('userAgentRe'),'quota breaker must not depend on User-Agent because Fair Use 402 is project-wide');
 assert(!quota.includes('SUPABASE_SERVICE_ROLE_KEY'),'quota preload must never inspect service-role credentials');
 
 const cfg=JSON.parse(railway);
