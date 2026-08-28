@@ -36,6 +36,23 @@ async function loadProcessContexts(serviceGet,ids){
   }catch(_){ return []; }
 }
 
+function gatePublicCatalogMoney(bundle,processContexts,stage){
+  const allowPrice=stage==='PRICE_QUOTE'||stage==='PAYMENT';
+  const ctx=new Map((Array.isArray(processContexts)?processContexts:[]).filter(x=>x&&x.entity_id).map(x=>[String(x.entity_id),x]));
+  const items=(bundle&&Array.isArray(bundle.items)?bundle.items:[]).map(item=>{
+    if(!item||item.domain!=='CATALOG')return item;
+    const copy=Object.assign({},item,{facts:Object.assign({},item.facts||{})});
+    const id=playbooks.catalogId(item),p=id?ctx.get(id):null;
+    delete copy.facts.precio_base; delete copy.facts.precio_oferta;
+    if(allowPrice&&p&&p.ready_for_quote===true&&String(p.price_state||'')==='READY'&&String(p.freshness_state||'')!=='STALE_REVIEW'){
+      if(p.precio_base!=null&&Number.isFinite(Number(p.precio_base)))copy.facts.precio_base=Number(p.precio_base);
+      if(p.precio_oferta!=null&&Number.isFinite(Number(p.precio_oferta)))copy.facts.precio_oferta=Number(p.precio_oferta);
+    }
+    return copy;
+  });
+  return Object.assign({},bundle,{items,price_authority:'WA4A1C_ONLY',price_stage:allowPrice});
+}
+
 async function buildGovernedContext(serviceRpc,serviceGet,inbound,maxItems,clinicalRisk){
   const stage=clinicalRisk?'CLINICAL_ESCALATION':playbooks.classifyStage(inbound);
   if(clinicalRisk){
@@ -47,7 +64,7 @@ async function buildGovernedContext(serviceRpc,serviceGet,inbound,maxItems,clini
     searchKnowledge(serviceRpc,inbound,'PUBLIC_CLIENT',baseLimit,null),
     searchKnowledge(serviceRpc,inbound,'ADVISOR_INTERNAL',baseLimit,null)
   ]);
-  const publicBundle=knowledge.buildKnowledgeBundle(publicRows,baseLimit,'PUBLIC_CLIENT');
+  const rawPublicBundle=knowledge.buildKnowledgeBundle(publicRows,baseLimit,'PUBLIC_CLIENT');
   const advisorBase=knowledge.buildKnowledgeBundle(advisorRows,baseLimit,'ADVISOR_INTERNAL');
   const ruleQueries=playbooks.ruleSearchQueries(stage);
   const ruleBundles=[];
@@ -56,7 +73,8 @@ async function buildGovernedContext(serviceRpc,serviceGet,inbound,maxItems,clini
     ruleBundles.push(knowledge.buildKnowledgeBundle(rows,4,'ADVISOR_INTERNAL'));
   }
   const advisorBundle=playbooks.mergeBundles(advisorBase,...ruleBundles);
-  const processContexts=await loadProcessContexts(serviceGet,catalogIdsFromBundles(publicBundle,advisorBundle));
+  const processContexts=await loadProcessContexts(serviceGet,catalogIdsFromBundles(rawPublicBundle,advisorBundle));
+  const publicBundle=gatePublicCatalogMoney(rawPublicBundle,processContexts,stage);
   const playbook=playbooks.buildPlaybook({inbound,publicBundle,advisorBundle,processContexts,clinicalRisk:false});
   return {publicBundle,advisorBundle,processContexts,playbook};
 }
@@ -124,4 +142,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext};
+module.exports={createCopilot,buildGovernedContext,gatePublicCatalogMoney};
