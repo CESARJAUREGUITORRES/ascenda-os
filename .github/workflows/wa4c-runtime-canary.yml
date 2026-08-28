@@ -33,24 +33,32 @@ jobs:
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
           code=$(curl --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -o /tmp/wa4-health.json -w '%{http_code}' "$BASE/api/wa4/health")
+          echo "wa4_health_http=$code"
+          cat /tmp/wa4-health.json
           test "$code" = '200'
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/wa4-health.json','utf8'));if(j.ok!==true)throw Error('WA4_HEALTH_NOT_OK');if(j.auto_send!==false)throw Error('WA4_AUTO_SEND_MUST_BE_FALSE');if(!j.health||j.health.configured!==true)throw Error('WA4_PROVIDER_NOT_CONFIGURED');if(j.health.copilot_ready!==true)throw Error('WA4_COPILOT_MODELS_NOT_READY');if(!j.health.active||j.health.active.fast!==true||j.health.active.reasoning!==true||j.health.active.safety!==true)throw Error('WA4_MODEL_SET_INCOMPLETE');console.log(JSON.stringify({ok:j.ok,auto_send:j.auto_send,configured:j.health.configured,copilot_ready:j.health.copilot_ready,active:j.health.active,checked_at:j.health.checked_at,error:j.health.error},null,2));"
+          python3 -c "import json; j=json.load(open('/tmp/wa4-health.json')); assert j.get('ok') is True,'WA4_HEALTH_NOT_OK'; assert j.get('auto_send') is False,'WA4_AUTO_SEND_MUST_BE_FALSE'; h=j.get('health') or {}; assert h.get('configured') is True,'WA4_PROVIDER_NOT_CONFIGURED'; assert h.get('copilot_ready') is True,'WA4_COPILOT_MODELS_NOT_READY'; a=h.get('active') or {}; assert a.get('fast') is True and a.get('reasoning') is True and a.get('safety') is True,'WA4_MODEL_SET_INCOMPLETE'; print(json.dumps({'ok':j.get('ok'),'auto_send':j.get('auto_send'),'configured':h.get('configured'),'copilot_ready':h.get('copilot_ready'),'active':a,'checked_at':h.get('checked_at'),'error':h.get('error')},indent=2))"
 
       - name: Auth 2FA fail-closed without token
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
           code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -o /tmp/bootstrap-no-token.json -w '%{http_code}' "$BASE/api/wa4/bootstrap")
+          echo "bootstrap_no_token_http=$code"
+          cat /tmp/bootstrap-no-token.json
           test "$code" = '403'
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/bootstrap-no-token.json','utf8'));if(j.ok!==false||j.error!=='WA4_2FA_PANEL_REQUIRED')throw Error('WA4_2FA_FAIL_CLOSED_CONTRACT_BROKEN');console.log(JSON.stringify({http:403,error:j.error},null,2));"
+          python3 -c "import json; j=json.load(open('/tmp/bootstrap-no-token.json')); assert j.get('ok') is False and j.get('error')=='WA4_2FA_PANEL_REQUIRED','WA4_2FA_FAIL_CLOSED_CONTRACT_BROKEN'"
 
       - name: Suggest rejects missing 2FA before inference
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ascenda-os-production.up.railway.app'
           CID='00000000-0000-4000-8000-000000000001'
           code=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 -X POST -H 'Content-Type: application/json' -d '{}' -o /tmp/suggest-no-token.json -w '%{http_code}' "$BASE/api/wa4/conversations/$CID/suggest")
+          echo "suggest_no_token_http=$code"
+          cat /tmp/suggest-no-token.json
           test "$code" = '403'
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('/tmp/suggest-no-token.json','utf8'));if(j.ok!==false||j.error!=='WA4_2FA_PANEL_REQUIRED')throw Error('WA4_SUGGEST_AUTH_BOUNDARY_BROKEN');console.log(JSON.stringify({http:403,error:j.error},null,2));"
+          python3 -c "import json; j=json.load(open('/tmp/suggest-no-token.json')); assert j.get('ok') is False and j.get('error')=='WA4_2FA_PANEL_REQUIRED','WA4_SUGGEST_AUTH_BOUNDARY_BROKEN'"
