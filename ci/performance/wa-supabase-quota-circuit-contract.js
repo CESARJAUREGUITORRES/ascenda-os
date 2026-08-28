@@ -74,10 +74,10 @@ async function preloadContract() {
   delete require.cache[require.resolve('../../app/supabase-quota-circuit-preload.cjs')];
   require('../../app/supabase-quota-circuit-preload.cjs');
 
-  function call(userAgent) {
+  function call(userAgent, hostname) {
     return new Promise(function(resolve) {
       const req = https.request({
-        hostname: 'ituyqwstonmhnfshnaqz.supabase.co',
+        hostname: hostname || 'ituyqwstonmhnfshnaqz.supabase.co',
         path: '/rest/v1/rpc/aos_wa3_actor_v1',
         method: 'POST',
         headers: { 'User-Agent': userAgent }
@@ -92,27 +92,29 @@ async function preloadContract() {
 
   const first = await call('AscendaOS-Phase-S/1.0');
   assert.strictEqual(first.status, 402, 'first upstream 402 must be observable by caller');
-  assert.strictEqual(network, 1, 'first target call must reach network');
+  assert.strictEqual(network, 1, 'first Supabase call must reach network');
   assert.strictEqual(global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__.snapshot().open, true, 'preload circuit did not open');
 
-  const targetAgents = [
+  const supabaseAgents = [
     'AscendaOS-Phase-S/1.0',
     'AscendaOS-WA2/1.0',
     'AscendaOS-WA3/1.0',
     'AscendaOS-WA3V2/1.0',
     'AscendaOS-WA4/1.0',
     'AscendaOS-WA-Gateway/1.0',
-    'AscendaOS-F17/1.4'
+    'AscendaOS-F17/1.4',
+    'AscendaOS-F4-RevenueProxy/1.0',
+    'legacy-no-tag'
   ];
-  for (const ua of targetAgents) {
+  for (const ua of supabaseAgents) {
     const blocked = await call(ua);
-    assert(blocked.error && blocked.error.code === 'SUPABASE_QUOTA_BLOCKED', ua + ' must short-circuit during quota block');
+    assert(blocked.error && blocked.error.code === 'SUPABASE_QUOTA_BLOCKED', ua + ' must short-circuit against the restricted Supabase project');
   }
-  assert.strictEqual(network, 1, 'blocked WA-family calls escaped to network');
+  assert.strictEqual(network, 1, 'blocked Supabase calls escaped to network');
 
-  const nonTarget = await call('AscendaOS-F4-RevenueProxy/1.0');
-  assert.strictEqual(nonTarget.status, 402, 'non-WA revenue proxy must preserve base transport behavior');
-  assert.strictEqual(network, 2, 'non-target runtime was incorrectly intercepted');
+  const external = await call('AscendaOS-WA-Gateway/1.0', 'graph.facebook.com');
+  assert.strictEqual(external.status, 402, 'non-Supabase host must preserve base transport behavior');
+  assert.strictEqual(network, 2, 'external host was incorrectly intercepted by Supabase quota circuit');
 
   https.request = original;
 }
@@ -120,8 +122,12 @@ async function preloadContract() {
 function staticContract() {
   const railway = fs.readFileSync(path.join(process.cwd(), 'app/railway.json'), 'utf8');
   const preload = fs.readFileSync(path.join(process.cwd(), 'app/supabase-quota-circuit-preload.cjs'), 'utf8');
+  const target = fs.readFileSync(path.join(process.cwd(), 'app/supabase-quota-target.cjs'), 'utf8');
   assert(railway.includes('--require ./supabase-quota-circuit-preload.cjs'), 'Railway quota preload missing');
-  assert(preload.includes('Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17'), 'full WA runtime target allowlist missing');
+  assert(preload.includes("scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS'"), 'project-wide Supabase quota scope missing');
+  assert(preload.includes('isConfiguredSupabaseRequest(args, configuredHost)'), 'Supabase host classifier missing');
+  assert(target.includes("host === String(configuredHost || '').toLowerCase()"), 'quota circuit must remain scoped to the configured Supabase host');
+  assert(!preload.includes('userAgentRe'), 'quota circuit must not depend on runtime User-Agent');
   assert(preload.includes('configuredHost'), 'Supabase host scoping missing');
   assert(!preload.includes('SUPABASE_SERVICE_ROLE_KEY'), 'preload must not inspect service-role credentials');
 }
