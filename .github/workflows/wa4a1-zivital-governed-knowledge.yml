@@ -1,0 +1,132 @@
+name: ASCENDA WA-4A.1 Zi Vital Governed Knowledge
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa4-knowledge.js'
+      - 'supabase/migrations/*wa4a1_zivital_*'
+      - 'supabase/rollbacks/*wa4a1_zivital_*'
+      - 'ci/wa4a1-zivital-knowledge/**'
+      - 'docs/control/WHATSAPP_WA4A1_*'
+      - '.github/workflows/wa4a1-zivital-governed-knowledge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa4a1-zivital-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: ZERO-COST · governed Zi Vital knowledge
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59962/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Zero-Cost and runtime contracts
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --check app/wa4-knowledge.js
+          node --test ci/wa4a-knowledge-fabric/wa4-knowledge.test.js
+          node --test ci/wa4a1-zivital-knowledge/wa4a1-audience.test.js
+
+      - name: Governance static invariants
+        run: |
+          set -euo pipefail
+          M=supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
+          H=supabase/migrations/20260828001600_wa4a1_zivital_audience_search_isolation_v1.sql
+          grep -q 'PUBLIC_CLIENT' "$M"
+          grep -q 'ADVISOR_INTERNAL' "$M"
+          grep -q 'OWNER_ADMIN' "$M"
+          grep -q 'CLINICAL_RESTRICTED' "$M"
+          grep -q 'SYSTEM_REFERENCE' "$M"
+          grep -q 'aos_wa4a_knowledge_search_v2' "$M"
+          grep -q 'Hair Revival' "$M"
+          grep -q 'Contour Sculpt' "$M"
+          grep -q 'CLINICAL_REVIEW_REQUIRED' "$M"
+          grep -q "when 'PUBLIC_CLIENT' then n.public_client" "$H"
+          grep -q "when 'CLINICAL_RESTRICTED' then n.clinical_restricted" "$H"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$H"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$H"
+          ! grep -q 'aos_wa4a_knowledge_search_v2' app/server-wa4.js app/wa4-copilot.js
+
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa4a1-zivital"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59961/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59962/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59960/' supabase/config.toml
+
+      - name: Start isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa4a1-zivital' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59962 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Build Knowledge Fabric V1 + Zi Vital V2
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/source_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1-zivital-knowledge/catalog_fixture.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          CATALOG_BEFORE=$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')
+          echo "$CATALOG_BEFORE" > /tmp/wa4a1-catalog-count
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001600_wa4a1_zivital_audience_search_isolation_v1.sql
+
+      - name: Database lint and governed knowledge tests
+        run: |
+          set -euo pipefail
+          (cd ci/zero-cost-staging && supabase db lint --local --schema public --level error)
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a1-zivital-knowledge/tests/001_zivital_knowledge.sql | tee /tmp/wa4a1.txt
+          grep -q 'WA4A1_ZIVITAL_GOVERNED_KNOWLEDGE_PASS' /tmp/wa4a1.txt
+          ! grep -q 'not ok' /tmp/wa4a1.txt
+
+      - name: Audience leakage negative tests
+        run: |
+          set -euo pipefail
+          PUBLIC_COUNT=$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa4a_knowledge_search_v2('dutasteride','PUBLIC_CLIENT',24,array['CLINIC_KNOWLEDGE'])")
+          test "$PUBLIC_COUNT" = "0"
+          CLINICAL=$(psql "$DB_URL" -X -qAt -c "select coalesce(string_agg(facts::text,' '),'') from public.aos_wa4a_knowledge_search_v2('dutasteride','CLINICAL_RESTRICTED',24,array['CLINIC_KNOWLEDGE'])")
+          printf '%s' "$CLINICAL" | grep -qi 'dutasteride'
+          OWNER=$(psql "$DB_URL" -X -qAt -c "select coalesce(string_agg(facts::text,' '),'') from public.aos_wa4a_knowledge_search_v2('Sculpt Body','OWNER_ADMIN',24,array['CLINIC_KNOWLEDGE'])")
+          printf '%s' "$OWNER" | grep -q 'system_reference'
+
+      - name: Rollback preserves canonical catalog and WA-4A V1
+        run: |
+          set -euo pipefail
+          BEFORE=$(cat /tmp/wa4a1-catalog-count)
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260828001500_wa4a1_zivital_governed_knowledge_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c 'select count(*) from public.aos_catalogo_servicios')" = "$BEFORE"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_knowledge_nodes_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa4a_knowledge_search_v1(text,integer,text[])') is not null")" = "t"
+          echo 'WA-4A.1 TEST CERTIFIED BOUNDARY: PROD migration remains unapplied; Copilot remains SAFE-OFF.'
+
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true

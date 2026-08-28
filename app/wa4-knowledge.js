@@ -1,18 +1,28 @@
 'use strict';
 
-// WA-4A Knowledge Fabric adapter. PROD-ready but intentionally not wired into Copilot in WA-4A.
-// It accepts only READY governed rows from aos_wa4a_knowledge_search_v1 and validates model grounding.
+// WA-4A/4A.1 Knowledge Fabric adapter.
+// Accepts only READY governed rows and enforces audience isolation for Zi Vital clinic knowledge.
+
+const AUDIENCES = Object.freeze(new Set([
+  'PUBLIC_CLIENT','ADVISOR_INTERNAL','OWNER_ADMIN','CLINICAL_RESTRICTED','SYSTEM_REFERENCE'
+]));
 
 const FIELD_ALLOWLIST = Object.freeze({
   CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria']),
   PROMOTION: new Set(['nombre','descripcion','tipo_descuento','valor_descuento','tratamientos','segmentos','codigo','vigencia_inicio','vigencia_fin']),
   BRANCH: new Set(['nombre','direccion','telefono','maps_link']),
   HOURS: new Set(['sede','dia_semana','hora_apertura','hora_cierre','activo']),
-  CATEGORY: new Set(['nombre','descripcion_comercial','beneficios','faqs'])
+  CATEGORY: new Set(['nombre','descripcion_comercial','beneficios','faqs']),
+  CLINIC_KNOWLEDGE: new Set(['code','node_type','parent_code','title','aliases','answer','public_summary','system_reference','risk_level','audience'])
 });
 
 function normalize(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+
+function normalizeAudience(value) {
+  const audience = String(value || 'PUBLIC_CLIENT').toUpperCase();
+  return AUDIENCES.has(audience) ? audience : 'PUBLIC_CLIENT';
 }
 
 function sanitizeFacts(domain, facts) {
@@ -23,8 +33,9 @@ function sanitizeFacts(domain, facts) {
   return out;
 }
 
-function buildKnowledgeBundle(rows, maxItems) {
+function buildKnowledgeBundle(rows, maxItems, expectedAudience) {
   const limit = Math.max(1, Math.min(Number(maxItems || 12), 24));
+  const audience = normalizeAudience(expectedAudience);
   const source = Array.isArray(rows) ? rows : [];
   const seen = new Set();
   const items = [];
@@ -35,12 +46,23 @@ function buildKnowledgeBundle(rows, maxItems) {
     if (!id || seen.has(id)) continue;
     const evidence = row.evidence_ref && typeof row.evidence_ref === 'object' ? row.evidence_ref : {};
     if (!evidence.relation || !evidence.pk) continue;
+    const domain = String(row.domain || '').toUpperCase();
+    const facts = sanitizeFacts(domain,row.facts);
+    if (domain === 'CLINIC_KNOWLEDGE') {
+      const rowAudience = normalizeAudience(facts.audience || evidence.audience);
+      if (rowAudience !== audience) continue;
+      if (!String(facts.answer || '').trim()) continue;
+      if (audience === 'PUBLIC_CLIENT') {
+        delete facts.system_reference;
+        delete facts.public_summary;
+      }
+    }
     seen.add(id);
     items.push({
       knowledge_id: id,
-      domain: String(row.domain || '').toUpperCase(),
+      domain,
       title: String(row.title || '').slice(0,240),
-      facts: sanitizeFacts(row.domain,row.facts),
+      facts,
       authority_tier: Number(row.authority_tier || 99),
       freshness_state: String(row.freshness_state || 'UNKNOWN'),
       retrieval_state: String(row.retrieval_state),
@@ -48,12 +70,15 @@ function buildKnowledgeBundle(rows, maxItems) {
         relation: String(evidence.relation).slice(0,120),
         pk: String(evidence.pk).slice(0,120),
         version: evidence.version == null ? 'UNKNOWN' : String(evidence.version).slice(0,160),
-        warning: evidence.warning == null ? null : String(evidence.warning).slice(0,120)
+        warning: evidence.warning == null ? null : String(evidence.warning).slice(0,120),
+        source_code: evidence.source_code == null ? null : String(evidence.source_code).slice(0,120),
+        source_locator: evidence.source_locator == null ? null : String(evidence.source_locator).slice(0,200),
+        audience: domain === 'CLINIC_KNOWLEDGE' ? audience : null
       }
     });
     if (items.length >= limit) break;
   }
-  return {version:'WA4A-KNOWLEDGE-V1',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
+  return {version:'WA4A1-KNOWLEDGE-V2',audience,items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
 }
 
 function moneyValues(bundle) {
@@ -118,4 +143,4 @@ function validateGroundedSuggestion(obj, bundle) {
   return {ok:true,reply,citations,nextAction};
 }
 
-module.exports = {FIELD_ALLOWLIST, normalize, sanitizeFacts, buildKnowledgeBundle, validateGroundedSuggestion};
+module.exports = {AUDIENCES,FIELD_ALLOWLIST,normalize,normalizeAudience,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
