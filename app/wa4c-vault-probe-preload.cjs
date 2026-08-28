@@ -1,6 +1,7 @@
 'use strict'
 
-// TEMPORARY WA-4C diagnostic. Exposes only booleans/status codes; never secret values.
+// TEMPORARY WA-4C diagnostic. Exposes only booleans/status codes and sanitized
+// upstream error metadata; never secret values or arbitrary response bodies.
 const http=require('http')
 const https=require('https')
 const originalCreateServer=http.createServer
@@ -8,6 +9,9 @@ const originalCreateServer=http.createServer
 function safeJson(res,status,obj){
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
   res.end(JSON.stringify(obj))
+}
+function safeField(v){
+  return typeof v==='string'?v.replace(/[\r\n\t]/g,' ').slice(0,160):null
 }
 
 function probe(){
@@ -18,23 +22,29 @@ function probe(){
     try{u=new URL(rawUrl)}catch(_){return resolve({ok:false,code:'SUPABASE_URL_INVALID',service_key_present:!!key,expected_project:false})}
     const expectedProject=u.hostname==='ituyqwstonmhnfshnaqz.supabase.co'
     if(!key)return resolve({ok:false,code:'SERVICE_KEY_MISSING',service_key_present:false,expected_project:expectedProject})
-    const headers={apikey:key,'User-Agent':'AscendaOS-WA4C-Probe/1.0'}
+    const headers={apikey:key,'User-Agent':'AscendaOS-WA4C-Probe/1.1'}
     if(!/^sb_(?:secret|publishable)_/i.test(key))headers.Authorization='Bearer '+key
     const q=https.request({hostname:u.hostname,port:u.port||443,path:'/rest/v1/aos_integration_secrets_v1?tipo=eq.groq&select=api_key,nombre&limit=1',method:'GET',headers,timeout:12000},r=>{
       let raw=''
       r.on('data',c=>raw+=c)
       r.on('end',()=>{
-        let rows=null
-        try{rows=raw?JSON.parse(raw):null}catch(_){}
-        const first=Array.isArray(rows)?rows[0]:null
+        let parsed=null
+        try{parsed=raw?JSON.parse(raw):null}catch(_){}
+        const first=Array.isArray(parsed)?parsed[0]:null
+        const isOk=(r.statusCode||500)>=200&&(r.statusCode||500)<300
+        const err=!isOk&&parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:null
         resolve({
-          ok:(r.statusCode||500)>=200&&(r.statusCode||500)<300,
-          code:(r.statusCode||500)>=200&&(r.statusCode||500)<300?'REST_OK':'REST_REJECTED',
+          ok:isOk,
+          code:isOk?'REST_OK':'REST_REJECTED',
           upstream_http:r.statusCode||502,
           service_key_present:true,
           expected_project:expectedProject,
-          row_count:Array.isArray(rows)?rows.length:null,
-          groq_key_present:!!(first&&typeof first.api_key==='string'&&first.api_key.length>10)
+          row_count:Array.isArray(parsed)?parsed.length:null,
+          groq_key_present:!!(first&&typeof first.api_key==='string'&&first.api_key.length>10),
+          upstream_error_code:err?safeField(err.code):null,
+          upstream_error_message:err?safeField(err.message):null,
+          upstream_error_details:err?safeField(err.details):null,
+          upstream_error_hint:err?safeField(err.hint):null
         })
       })
     })
