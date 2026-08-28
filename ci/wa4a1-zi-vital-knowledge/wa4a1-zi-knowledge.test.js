@@ -42,6 +42,20 @@ function row(audience, extra) {
   },extra || {});
 }
 
+function catalogRow() {
+  return {
+    knowledge_id:'service:catalog-1',
+    domain:'CATALOG',
+    title:'Pink Glow 1ML',
+    retrieval_state:'READY',
+    conflict_state:'CLEAR',
+    authority_tier:10,
+    freshness_state:'FRESH',
+    facts:{nombre:'PINK GLOW 1ML',precio_oferta:450,descripcion_comercial:'Biorevitalización aprobada'},
+    evidence_ref:{relation:'public.aos_catalogo_servicios',pk:'catalog-1',version:'v1'}
+  };
+}
+
 test('ZI facts are least-data sanitized', () => {
   const facts = sanitizeFacts('ZI_VITAL',row('PUBLIC_CLIENT').facts);
   assert.equal(facts.forbidden_secret,undefined);
@@ -61,6 +75,17 @@ test('PUBLIC_CLIENT cannot receive ADVISOR_INTERNAL or OWNER_ADMIN blocks', () =
   assert.equal(bundle.items.length,1);
   assert.equal(bundle.items[0].facts.audience,'PUBLIC_CLIENT');
   assert.equal(bundle.response_policy.max_reply_chars,480);
+});
+
+test('public audience can combine public Zi Vital evidence with ordinary catalog evidence', () => {
+  const bundle=buildKnowledgeBundle([row('PUBLIC_CLIENT'),catalogRow()],12,'PUBLIC_CLIENT');
+  assert.equal(bundle.items.length,2);
+  const result=validateGroundedSuggestion({
+    reply:'Pink Glow forma parte de este enfoque y el precio vigente es S/ 450.',
+    cited_knowledge_ids:['zi:APP_SKIN_SIGNATURE:PUBLIC_CLIENT','service:catalog-1'],
+    next_action:'REPLY'
+  },bundle);
+  assert.equal(result.ok,true);
 });
 
 test('advisor receives advisor block and not public/owner by accident', () => {
