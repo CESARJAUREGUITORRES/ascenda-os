@@ -41,7 +41,8 @@ jobs:
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
           M=supabase/migrations/20260828014500_wa4a1b_zivital_commercial_knowledge_graph_v1.sql
-          P=supabase/data_patches/20260828_wa4a1b_vitaminas_detox_commercial_enrichment.sql
+          P1=supabase/data_patches/20260828_wa4a1b_vitaminas_detox_commercial_enrichment.sql
+          P2=supabase/data_patches/20260828_wa4a1b_internal_product_completion.sql
           grep -q 'ZV_COMMERCIAL_ARCH_2026' "$M"
           grep -q 'TAX_COMMERCIAL_PHASES' "$M"
           grep -q 'TAX_CLINICAL_LIFECYCLE' "$M"
@@ -50,9 +51,9 @@ jobs:
           grep -q 'KPI_PATIENT_CONTINUITY' "$M"
           grep -q 'aos_knowledge_entity_map_v1' "$M"
           ! grep -q 'S/' "$M"
-          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$P"
-          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$P"
-          ! grep -Eiq 'precio_(base|oferta)[[:space:]]*=' "$P"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$P1" "$P2"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$P1" "$P2"
+          ! grep -Eiq 'precio_(base|oferta)[[:space:]]*=' "$P1" "$P2"
 
       - name: Existing WA knowledge regressions
         run: |
@@ -93,7 +94,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
           echo "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios")" > /tmp/wa4a1b-count
 
-      - name: Apply WA-4A.1B graph and governed business-content patch
+      - name: Apply WA-4A.1B graph and governed business-content patches
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014500_wa4a1b_zivital_commercial_knowledge_graph_v1.sql
@@ -102,6 +103,7 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014800_wa4a1b_product_composition_semantics_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260828014900_wa4a1b_relation_reconciliation_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_vitaminas_detox_commercial_enrichment.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/data_patches/20260828_wa4a1b_internal_product_completion.sql
 
       - name: Database lint and graph certification
         run: |
@@ -111,6 +113,7 @@ jobs:
           grep -q 'WA4A1B_ZIVITAL_COMMERCIAL_GRAPH_PASS' /tmp/wa4a1b.txt
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios where estado='ACTIVO' and tipo='SERVICIO' and categoria in ('VITAMINAS','DETOX') and (nullif(btrim(descripcion_comercial),'') is null or nullif(btrim(indicaciones),'') is null)")" = "0"
           test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios where info_extendida#>>'{knowledge_enrichment_v1b,sync_version}'='WA4A1B_ZV_COMMERCIAL_20260828_V1'")" = "41"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_catalogo_servicios where estado='ACTIVO' and tipo='PRODUCTO' and (nullif(btrim(descripcion_comercial),'') is null or nullif(btrim(composicion),'') is null or nullif(btrim(indicaciones),'') is null)")" = "0"
 
       - name: Rollback preserves catalog and WA-4A.1
         run: |
