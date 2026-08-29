@@ -20,7 +20,7 @@ function aggregateLatestInboundBurst(messages,windowMs){
   const w=Math.max(500,Math.min(Number(windowMs||BURST_WINDOW_MS),12000));
   let end=-1;
   for(let i=ms.length-1;i>=0;i--){if(inbound(ms[i])){end=i;break;}}
-  if(end<0)return {text:'',parts:[],count:0,burst:false,window_ms:w};
+  if(end<0)return {text:'',latest_text:'',parts:[],count:0,burst:false,window_ms:w};
   const out=[ms[end]];
   let cursor=end;
   while(cursor>0){
@@ -31,7 +31,7 @@ function aggregateLatestInboundBurst(messages,windowMs){
     out.unshift(prev);cursor--;
   }
   const parts=out.map(textOf).filter(Boolean);
-  return {text:parts.join('\n'),parts,count:parts.length,burst:parts.length>1,window_ms:w};
+  return {text:parts.join('\n'),latest_text:parts.length?parts[parts.length-1]:'',parts,count:parts.length,burst:parts.length>1,window_ms:w};
 }
 
 function treatmentHint(text,campaign){
@@ -155,6 +155,7 @@ function promptPolicy(runtime){
     instructions:[
       'Answer every material explicit customer question before advancing sales or booking.',
       'Use known campaign/treatment/site/zone/time context; never ask again for a resolved slot.',
+      'Within a burst, preserve all intents but treat the latest explicit message as authoritative for the current product/service/entity.',
       'One outbound message per semantic customer turn by default; a second outbound requires a real transport/media reason.',
       'Write concise professional WhatsApp Spanish with low emoji density and natural line breaks.',
       'Free text is the default. Use interactive buttons only when they reduce friction for a concrete decision.',
@@ -181,7 +182,7 @@ function buildRuntimeContext(input){
   const semantic=aggregateLatestInboundBurst(messages,input.burst_window_ms);
   const intents=detectIntents(semantic.text);
   const state=mergeState(messages,conversation);
-  const current=extractSlots(semantic.text,state.campaign_source);
+  const current=extractSlots(semantic.latest_text||semantic.text,state.campaign_source);
   Object.assign(state,current,{zones:uniq((state.zones||[]).concat(current.zones||[]))});
   const readiness=bookingReadiness(intents,state);
   const nba=nextBestAction(intents,state);
@@ -195,6 +196,7 @@ function buildRuntimeContext(input){
     next_best_action:nba,
     guards:{
       explicit_question_first:true,
+      latest_explicit_entity_wins:true,
       anti_repeat:true,
       one_outbound_default:true,
       max_outbound_without_transport_exception:1,
