@@ -3,6 +3,7 @@
 const VERSION='WA4C-BOOKING-RESOLVER-V1';
 const DAY_NUM={LUNES:1,MARTES:2,MIERCOLES:3,JUEVES:4,VIERNES:5,SABADO:6,DOMINGO:7};
 const SITE_DB={SAN_ISIDRO:'SAN ISIDRO',PUEBLO_LIBRE:'PUEBLO LIBRE'};
+const WRITE_BOUNDARY='GOVERNED_HUMAN_BOOKING_WRITE_V1';
 
 function clean(v){return String(v==null?'':v).trim();}
 function norm(v){return clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();}
@@ -59,6 +60,8 @@ function safePrompt(result){
     exact_requested_time_available:result.exact_requested_time_available===true,
     candidate_slot_count:Number(result.candidate_slot_count||0),
     confirmation_allowed:false,
+    human_commit_required:true,
+    write_boundary:WRITE_BOUNDARY,
     slot_must_be_revalidated:true,
     limitations:result.limitations||[]
   };
@@ -87,7 +90,7 @@ function createBookingResolver(deps){
   async function resolve(input){
     input=input||{};
     const runtime=input.runtime||{},state=runtime.state||{};
-    const result={version:VERSION,status:'NOT_REQUESTED',target_date:null,site:null,required_roles:[],schedule_source_fresh:false,schedule_source_max_date:null,requested_time:clean(state.requested_time)||null,time_constraint:clean(state.time_constraint)||null,candidate_slots:[],candidate_slot_count:0,exact_requested_time_available:false,confirmation_allowed:false,write_boundary:'NO_GOVERNED_CANONICAL_BOOKING_WRITE',limitations:[]};
+    const result={version:VERSION,status:'NOT_REQUESTED',target_date:null,site:null,required_roles:[],schedule_source_fresh:false,schedule_source_max_date:null,requested_time:clean(state.requested_time)||null,time_constraint:clean(state.time_constraint)||null,candidate_slots:[],candidate_slot_count:0,exact_requested_time_available:false,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY,limitations:[]};
     const wantsBooking=runtime.booking_readiness==='HIGH'||asArray(runtime.intents).some(x=>['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT'].includes(String(x)));
     if(!wantsBooking){result.prompt_context=safePrompt(result);return result;}
     if(clean(state.requested_day).toUpperCase()==='DOMINGO'){
@@ -150,18 +153,18 @@ function createBookingResolver(deps){
   async function revalidateSlot(input){
     input=input||{};
     const targetDate=clean(input.target_date),professionalId=clean(input.professional_id),time=clean(input.time).slice(0,5),site=siteDb(input.site);
-    if(!targetDate||!professionalId||!time)return {ok:false,status:'INVALID_REVALIDATION_INPUT',version:VERSION};
+    if(!targetDate||!professionalId||!time)return {ok:false,status:'INVALID_REVALIDATION_INPUT',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
     let maxDate;
-    try{maxDate=await latestScheduleDate();}catch(_){return {ok:false,status:'SCHEDULE_SOURCE_UNAVAILABLE',version:VERSION};}
-    if(!maxDate||maxDate<targetDate)return {ok:false,status:'SCHEDULE_SOURCE_STALE',schedule_source_max_date:maxDate||null,version:VERSION};
+    try{maxDate=await latestScheduleDate();}catch(_){return {ok:false,status:'SCHEDULE_SOURCE_UNAVAILABLE',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};}
+    if(!maxDate||maxDate<targetDate)return {ok:false,status:'SCHEDULE_SOURCE_STALE',schedule_source_max_date:maxDate||null,version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
     try{
       const data=rpcData(await serviceRpc('aos_slots_disponibles',{p_profesional_id:professionalId,p_fecha:targetDate,p_sede:site}))||{};
       const slot=asArray(data.slots).find(x=>clean(x&&x.hora).slice(0,5)===time&&x.disponible!==false);
-      return {ok:Boolean(slot),status:slot?'REVALIDATED_AVAILABLE':'NO_LONGER_AVAILABLE',slot:slot||null,version:VERSION,confirmation_allowed:false,write_boundary:'NO_GOVERNED_CANONICAL_BOOKING_WRITE'};
-    }catch(_){return {ok:false,status:'SLOT_REVALIDATION_UNAVAILABLE',version:VERSION};}
+      return {ok:Boolean(slot),status:slot?'REVALIDATED_AVAILABLE':'NO_LONGER_AVAILABLE',slot:slot||null,version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
+    }catch(_){return {ok:false,status:'SLOT_REVALIDATION_UNAVAILABLE',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};}
   }
 
   return {resolve,revalidateSlot,version:VERSION};
 }
 
-module.exports={VERSION,DAY_NUM,SITE_DB,createBookingResolver,limaDate,resolveRequestedDate,dbDayForIso,siteDb,roleFromRows,rankSlots,safePrompt};
+module.exports={VERSION,WRITE_BOUNDARY,DAY_NUM,SITE_DB,createBookingResolver,limaDate,resolveRequestedDate,dbDayForIso,siteDb,roleFromRows,rankSlots,safePrompt};
