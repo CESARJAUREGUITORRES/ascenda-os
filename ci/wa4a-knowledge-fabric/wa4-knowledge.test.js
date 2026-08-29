@@ -36,6 +36,35 @@ test('bundle keeps only ready evidence and strips clinical/non-allowlisted field
   assert.equal(b.items[1].facts.horario_lv,undefined);
 });
 
+test('SEP26 included benefit and safe SKU identity survive adapter while unsafe nested fields are stripped',()=>{
+  const row={...readyCatalog,knowledge_id:'service:sep26',facts:{...readyCatalog.facts,
+    included_benefit:'1 sesión LED',included_benefit_source:'CATALOG_SEP2026_CURRENT_SKU',
+    catalog_identity_source:'CATALOG_SEP2026_CURRENT_SKU',
+    catalog_identity:{family_name:'HIFU',commercial_variant:'HIFUTOX',clinical_sessions:1,brand:'HUTOX',zones:3,unit_cap:50,syringes:1,volume_ml:5,body_area:'NO PASAR',indication:'NO PASAR',aliases:['NO PASAR'],active_or_technology:'NO PASAR'}
+  }};
+  const b=k.buildKnowledgeBundle([row],12,'PUBLIC_CLIENT');
+  const f=b.items[0].facts;
+  assert.equal(f.included_benefit,'1 sesión LED');
+  assert.equal(f.included_benefit_source,'CATALOG_SEP2026_CURRENT_SKU');
+  assert.deepEqual(f.catalog_identity,{family_name:'HIFU',commercial_variant:'HIFUTOX',clinical_sessions:1,brand:'HUTOX',zones:3,unit_cap:50,syringes:1,volume_ml:5});
+  assert.equal(f.catalog_identity.body_area,undefined);
+  assert.equal(f.catalog_identity.indication,undefined);
+  assert.equal(f.catalog_identity.aliases,undefined);
+  assert.equal(f.catalog_identity.active_or_technology,undefined);
+});
+
+test('SEP26 facts require the exact canonical source marker',()=>{
+  const row={...readyCatalog,knowledge_id:'service:untrusted-source',facts:{...readyCatalog.facts,
+    included_benefit:'REGALO INVENTADO',included_benefit_source:'OTHER_SOURCE',
+    catalog_identity:{family_name:'X',commercial_variant:'Y',clinical_sessions:1},catalog_identity_source:'OTHER_SOURCE'
+  }};
+  const f=k.buildKnowledgeBundle([row],12,'PUBLIC_CLIENT').items[0].facts;
+  assert.equal(f.included_benefit,undefined);
+  assert.equal(f.included_benefit_source,undefined);
+  assert.equal(f.catalog_identity,undefined);
+  assert.equal(f.catalog_identity_source,undefined);
+});
+
 test('valid cited governed price passes',()=>{
   const b=k.buildKnowledgeBundle([readyCatalog],12);
   const out=k.validateGroundedSuggestion({reply:'El precio aprobado es S/ 450.',next_action:'REPLY',cited_knowledge_ids:['service:1']},b);
