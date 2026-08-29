@@ -9,6 +9,7 @@ const UUID='11111111-1111-4111-8111-111111111111';
 
 test('campaign adapter preserves explicit provenance without inferring treatment from ad name',async()=>{
   const serviceGet=async path=>{
+    if(path.includes('aos_wa4_campaign_context_map_v1'))return {data:[]};
     if(path.includes('aos_meta_campanas'))return {data:[{campaign_id:'c1',campaign_name:'Camp',adset_id:'s1',adset_name:'Set',ad_id:'a1',ad_name:'TOXINA SUPER',status:'ACTIVE',objective:'MESSAGES'}]};
     if(path.includes('aos_promociones'))return {data:[]};
     throw new Error('unexpected '+path);
@@ -17,8 +18,37 @@ test('campaign adapter preserves explicit provenance without inferring treatment
   const out=await a.resolve({conversation:{campaign_source:'META',ad_id:'a1'},runtime:{state:{campaign_source:'META',treatment:null}},now:new Date('2026-08-29T12:00:00Z')});
   assert.equal(out.ad_matched,true);
   assert.equal(out.treatment_context,null);
-  assert.equal(out.treatment_mapping_status,'UNAVAILABLE_NO_GOVERNED_AD_TREATMENT_JOIN');
+  assert.equal(out.treatment_mapping_status,'NO_GOVERNED_AD_MAPPING');
   assert.equal(out.prompt_context.meta_objective,'MESSAGES');
+});
+
+test('campaign adapter uses governed ad mapping when the current turn has no treatment',async()=>{
+  const serviceGet=async path=>{
+    if(path.includes('aos_wa4_campaign_context_map_v1'))return {data:[{ad_id:'a2',campaign_id:'c2',treatment_entity_id:null,treatment_code:'HIFU',promotion_id:null,booking_goal:'BOOKING',active:true,evidence_ref:'META:APPROVED'}]};
+    if(path.includes('aos_meta_campanas'))return {data:[{campaign_id:'c2',campaign_name:'Camp 2',ad_id:'a2',ad_name:'Creative 2',status:'ACTIVE',objective:'MESSAGES'}]};
+    if(path.includes('aos_promociones'))return {data:[]};
+    throw new Error('unexpected '+path);
+  };
+  const a=campaign.createCampaignContextAdapter({serviceGet});
+  const out=await a.resolve({conversation:{campaign_source:'META',ad_id:'a2'},runtime:{state:{campaign_source:'META',treatment:null}}});
+  assert.equal(out.governed_ad_mapping,true);
+  assert.equal(out.treatment_context,'HIFU');
+  assert.equal(out.treatment_context_source,'GOVERNED_AD_MAPPING');
+  assert.equal(out.prompt_context.booking_goal,'BOOKING');
+});
+
+test('explicit current-turn treatment overrides a different governed campaign treatment',async()=>{
+  const serviceGet=async path=>{
+    if(path.includes('aos_wa4_campaign_context_map_v1'))return {data:[{ad_id:'a3',treatment_code:'HIFU',booking_goal:'BOOKING',active:true,evidence_ref:'META:APPROVED'}]};
+    if(path.includes('aos_meta_campanas'))return {data:[]};
+    if(path.includes('aos_promociones'))return {data:[]};
+    throw new Error('unexpected '+path);
+  };
+  const a=campaign.createCampaignContextAdapter({serviceGet});
+  const out=await a.resolve({conversation:{campaign_source:'META',ad_id:'a3'},runtime:{state:{campaign_source:'META',treatment:'TOXINA_BOTULINICA'}}});
+  assert.equal(out.treatment_context,'TOXINA_BOTULINICA');
+  assert.equal(out.treatment_mapping_status,'GOVERNED_MAPPING_OVERRIDDEN_BY_CURRENT_TURN');
+  assert.ok(out.limitations.includes('CAMPAIGN_TREATMENT_OVERRIDDEN_BY_CURRENT_TURN'));
 });
 
 test('campaign adapter uses semantic treatment only and checks governed active promotion authority',async()=>{
