@@ -10,7 +10,7 @@ function lastInbound(ms){ for(let i=ms.length-1;i>=0;i--)if(String(ms[i].directi
 function history(ms,max){ return ms.slice(-max).map(m=>({role:String(m.direction||'').toUpperCase().includes('IN')?'user':'assistant',content:ai.redactPII(String(m.message_body||'').slice(0,1800))})).filter(m=>m.content.trim()); }
 
 async function searchKnowledge(serviceRpc,query,audience,limit,domains){
-  const out=await serviceRpc('aos_wa4a_knowledge_search_v2',{
+  const out=await serviceRpc('aos_wa4a_knowledge_search_v3',{
     p_query:String(query||''),p_audience:String(audience||'PUBLIC_CLIENT'),
     p_limit:Math.max(1,Math.min(Number(limit||12),24)),p_domains:Array.isArray(domains)?domains:null
   });

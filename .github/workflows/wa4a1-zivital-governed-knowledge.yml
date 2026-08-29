@@ -5,8 +5,11 @@ on:
     branches: [main]
     paths:
       - 'app/wa4-knowledge.js'
+      - 'app/wa4-copilot.js'
       - 'supabase/migrations/*wa4a1_zivital_*'
       - 'supabase/rollbacks/*wa4a1_zivital_*'
+      - 'supabase/migrations/*wa4c_included_benefit_knowledge_v3*'
+      - 'supabase/rollbacks/*wa4c_included_benefit_knowledge_v3*'
       - 'ci/wa4a1-zivital-knowledge/**'
       - 'docs/control/WHATSAPP_WA4A1_*'
       - '.github/workflows/wa4a1-zivital-governed-knowledge.yml'
@@ -49,6 +52,7 @@ jobs:
           set -euo pipefail
           M=supabase/migrations/20260828001500_wa4a1_zivital_governed_knowledge_v1.sql
           H=supabase/migrations/20260828001600_wa4a1_zivital_audience_search_isolation_v1.sql
+          V3=supabase/migrations/20260828235500_wa4c_included_benefit_knowledge_v3.sql
           grep -q 'PUBLIC_CLIENT' "$M"
           grep -q 'ADVISOR_INTERNAL' "$M"
           grep -q 'OWNER_ADMIN' "$M"
@@ -60,10 +64,14 @@ jobs:
           grep -q 'CLINICAL_REVIEW_REQUIRED' "$M"
           grep -q "when 'PUBLIC_CLIENT' then n.public_client" "$H"
           grep -q "when 'CLINICAL_RESTRICTED' then n.clinical_restricted" "$H"
-          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$H"
-          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$H"
+          grep -q 'aos_wa4a_knowledge_search_v2' "$V3"
+          grep -q "b.domain='CATALOG'" "$V3"
+          grep -q 'CATALOG_SEP2026_CURRENT_SKU' "$V3"
+          ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M" "$H" "$V3"
+          ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M" "$H" "$V3"
           ! grep -q 'aos_wa4a_knowledge_search_v2' app/server-wa4.js
-          grep -q 'aos_wa4a_knowledge_search_v2' app/wa4-copilot.js
+          grep -q 'aos_wa4a_knowledge_search_v3' app/wa4-copilot.js
+          ! grep -q 'aos_wa4a_knowledge_search_v2' app/wa4-copilot.js
           ! grep -q '/rest/v1/aos_catalogo_servicios' app/wa4-copilot.js
           ! grep -q '/rest/v1/aos_promociones' app/wa4-copilot.js
 
