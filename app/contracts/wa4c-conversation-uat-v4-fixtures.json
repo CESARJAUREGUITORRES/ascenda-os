@@ -1,0 +1,94 @@
+{
+  "version": "WA4C-UAT-V4-20260829",
+  "scope": "conversation_runtime_regression",
+  "source_head_before_fixture": "0fd1b54ec0de6ad44aeb524af888b58bdb365611",
+  "authorities": {
+    "location": "aos_sedes_geo",
+    "promotion": "aos_promociones",
+    "catalog": "aos_catalogo_servicios"
+  },
+  "current_public_snapshot_2026_08_29": {
+    "sites": [
+      {
+        "site": "SAN_ISIDRO",
+        "address": "Av. Javier Prado Este 996, San Isidro 15036",
+        "maps_link": "https://maps.app.goo.gl/sDAG8LeaSd5xmFat8",
+        "weekday_hours": "10:30-20:30",
+        "weekend_hours": "09:30-18:00"
+      },
+      {
+        "site": "PUEBLO_LIBRE",
+        "address": "Av. Brasil 1170, Pueblo Libre 15084",
+        "maps_link": "https://maps.app.goo.gl/KetHqNm7rM6WVEAh7",
+        "weekday_hours": "10:00-20:30",
+        "weekend_hours": "09:30-18:00"
+      }
+    ],
+    "active_formal_promotions": 0,
+    "toxin_catalog": [
+      {"name": "HUTOX 1 ZONA 15U", "price_base": 299, "price_offer": 299, "currency": "PEN", "state": "ACTIVO"},
+      {"name": "HUTOX 3 ZONAS 50U", "price_base": 799, "price_offer": 799, "currency": "PEN", "state": "ACTIVO"},
+      {"name": "NABOTA 1 ZONA 15U", "price_base": 399, "price_offer": 399, "currency": "PEN", "state": "ACTIVO"},
+      {"name": "NABOTA 3 ZONAS 50U", "price_base": 999, "price_offer": 999, "currency": "PEN", "state": "ACTIVO"}
+    ]
+  },
+  "required_cases": [
+    {
+      "id": "LOCATION_GENERIC_RETURNS_ADDRESS_AND_MAPS",
+      "context": {"treatment_or_interest": "TOXINA_BOTULINICA"},
+      "user": "cual es su direccion?",
+      "must_detect": ["BUSINESS_LOCATION"],
+      "must_answer_before_sales": true,
+      "must_include": ["San Isidro", "Av. Javier Prado Este 996", "maps.app.goo.gl", "Pueblo Libre", "Av. Brasil 1170"],
+      "must_not_next_action": "CLARIFY_GOAL"
+    },
+    {
+      "id": "LOCATION_SITE_SPECIFIC_RETURNS_EXACT_SITE",
+      "context": {"preferred_site": "SAN_ISIDRO"},
+      "user": "me das la direccion de san isidro?",
+      "must_detect": ["BUSINESS_LOCATION"],
+      "must_include": ["Av. Javier Prado Este 996", "https://maps.app.goo.gl/sDAG8LeaSd5xmFat8"]
+    },
+    {
+      "id": "PROMOTION_REQUEST_DOES_NOT_FALLBACK_TO_DISCOVERY",
+      "context": {"treatment_or_interest": "TOXINA_BOTULINICA", "areas_or_zones": ["ENTRECEJO"]},
+      "user": "toxina pero quiero ofertas",
+      "must_detect": ["PROMOTION_REQUEST", "TOXINA_BOTULINICA"],
+      "must_answer_before_sales": true,
+      "must_include_semantics": ["no_active_promotion", "current_catalog_options"],
+      "must_not_next_action": "CLARIFY_GOAL",
+      "must_not_repeat": ["cuentame que es lo principal que te gustaria mejorar", "cuentame un poco mas sobre lo que buscas"]
+    },
+    {
+      "id": "MULTI_INTENT_INCLUDES_PLUS_PROMO",
+      "context": {"treatment_or_interest": "TOXINA_BOTULINICA", "areas_or_zones": ["ENTRECEJO"]},
+      "user": "que incluye, tiene ofertas?",
+      "must_detect": ["INFO_INCLUDED", "PROMOTION_REQUEST"],
+      "must_answer_all_explicit_questions": true,
+      "must_include_semantics": ["one_zone_options", "no_active_promotion"],
+      "must_not_next_action": "CLARIFY_GOAL"
+    },
+    {
+      "id": "ANTI_REPEAT_GUARD",
+      "context": {
+        "treatment_or_interest": "TOXINA_BOTULINICA",
+        "areas_or_zones": ["ENTRECEJO"],
+        "last_question_mode": "OPEN_DISCOVERY",
+        "last_question_topic": "goal_or_zone"
+      },
+      "user": "quiero ofertas",
+      "must_not_repeat_resolved_question": true,
+      "must_preserve_context": ["TOXINA_BOTULINICA", "ENTRECEJO"]
+    }
+  ],
+  "invariants": {
+    "explicit_question_first": true,
+    "sales_cta_after_answer": true,
+    "promotion_fail_closed": true,
+    "no_invented_discount": true,
+    "no_repeated_resolved_question": true,
+    "free_text_default": true,
+    "buttons_by_exception": true,
+    "send_authority": "HUMAN_ONLY"
+  }
+}
