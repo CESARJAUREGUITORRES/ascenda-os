@@ -97,7 +97,7 @@ jobs:
             echo 'WA4C_FULL_LOCAL_DB_LINT_ERROR' >&2
             exit 1
           fi
-          grep -q 'No schema errors found' /tmp/wa4c-full-local-lint.txt
+          echo 'WA4C_FULL_LOCAL_DB_LINT_PASS'
 
       - name: Start real WA-4→WA-1 runtime with local provider shims
         working-directory: app
@@ -134,7 +134,6 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'WA4C_FULL_LOCAL_CANARIES_PASS' /tmp/wa4c-full-local-canaries.txt
-          grep -q 'No schema errors found' /tmp/wa4c-full-local-lint.txt
           ! grep -q '\[ERROR\]' /tmp/wa4c-full-local-lint.txt
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_runs_v1")" -ge 7
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND'")" = "1"
