@@ -59,11 +59,14 @@ jobs:
           test "${{ runner.environment }}" = "self-hosted"
           python3 scripts/ci/enforce-zero-cost-policy.py
           node --check ci/wa4c-full-local/local-network-preload.cjs
+          node --check ci/wa4c-full-local/local-supabase-auth-preload.cjs
           node --check ci/wa4c-full-local/run-canaries.js
           bash -n ci/wa4c-full-local/bootstrap.sh
           grep -q "ASCENDA_FULL_LOCAL" ci/wa4c-full-local/local-network-preload.cjs
           grep -q "production_network_mutation: false" ci/wa4c-full-local/local-network-preload.cjs
-          ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN|sb_secret_' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
+          grep -q "modern_api_key_bearer_removed: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
+          grep -q "apikey_preserved: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
+          ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
           ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql
 
       - name: Wait for canonical WA runtime ports
@@ -94,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           export PORT=60300
-          export NODE_OPTIONS="--require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-network-preload.cjs"
+          export NODE_OPTIONS="--require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-network-preload.cjs --require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-supabase-auth-preload.cjs"
           nohup node server-wa4.js >/tmp/wa4c-full-local-runtime.log 2>&1 &
           echo $! >/tmp/wa4c-full-local-runtime.pid
           for i in $(seq 1 60); do
