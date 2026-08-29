@@ -16,6 +16,7 @@ on:
       - 'app/wa4-knowledge.js'
       - 'app/wa4-conversation-runtime-v2.js'
       - 'app/wa4-conversation-runtime-v2.test.js'
+      - 'app/contracts/wa4*.json'
       - 'app/ai-router.js'
       - 'app/public/wa4-copilot-experience.js'
       - 'app/public/wa-shell-integration.js'
