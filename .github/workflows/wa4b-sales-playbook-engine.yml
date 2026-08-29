@@ -48,6 +48,7 @@ jobs:
           set -euo pipefail
           node --test ci/wa4b-sales-playbook/wa4-playbook.test.js
           node --test ci/wa4b-sales-playbook/wa4-copilot-grounding.test.js
+          node --test ci/wa4b-sales-playbook/wa4c-data-boundary.test.js
 
       - name: Knowledge and router regressions
         run: |
@@ -66,6 +67,9 @@ jobs:
           grep -q "send_authority:'HUMAN_ONLY'" app/wa4-playbook.js
           grep -q "generic_llm_authority:false" app/wa4-playbook.js
           grep -q 'PUBLIC_INFO_EVIDENCE_INSUFFICIENT' app/wa4-playbook.js
+          grep -q 'included_benefit' app/wa4-knowledge.js
+          grep -q 'catalog_identity' app/wa4-knowledge.js
+          grep -q 'CATALOG_IDENTITY_ALLOWLIST' app/wa4-knowledge.js
           grep -q 'RULE_QUOTE_PROCESS' app/wa4-playbook.js
           grep -q 'RULE_PAYMENT_SCENARIOS' app/wa4-playbook.js
           grep -q 'RULE_ETHICAL_UPSELL' app/wa4-playbook.js
@@ -75,17 +79,22 @@ jobs:
           ! grep -Eiq '(auto_send|ai_send|auto_reply|auto_routing)[[:space:]]*[:=][[:space:]]*true' app/wa4-playbook.js app/wa4-copilot.js
           ! grep -Eiq 'graph\.facebook\.com|WHATSAPP_ACCESS_TOKEN' app/wa4-playbook.js app/wa4-copilot.js
 
-      - name: WA-4C included-benefit source invariants
+      - name: WA-4C catalog lineage invariants
         run: |
           set -euo pipefail
           M3=supabase/migrations/20260828235500_wa4c_included_benefit_knowledge_v3.sql
           R3=supabase/rollbacks/20260828235500_wa4c_included_benefit_knowledge_v3.rollback.sql
           grep -q 'aos_wa4a_knowledge_search_v2' "$M3"
           grep -q "catalog_sep2026,gift_raw" "$M3"
-          grep -q "included_benefit" "$M3"
-          grep -q "CATALOG_SEP2026_CURRENT_SKU" "$M3"
+          grep -q "treatment_identity,source" "$M3"
+          grep -q 'SEP2026_PRICE_LIST' "$M3"
+          grep -q "treatment_identity,current_status" "$M3"
+          grep -q "treatment_identity,public_catalog" "$M3"
+          grep -q 'included_benefit' "$M3"
+          grep -q 'catalog_identity' "$M3"
+          grep -q 'CATALOG_SEP2026_CURRENT_SKU' "$M3"
           grep -q 'to service_role' "$M3"
-          ! grep -q 'aos_promociones' "$M3"
+          ! grep -Eq 'body_area|indication|aliases|active_or_technology|aos_promociones' "$M3"
           grep -q 'drop function if exists public.aos_wa4a_knowledge_search_v3' "$R3"
 
       - name: Certified upstream contract references
@@ -104,4 +113,4 @@ jobs:
           grep -q 'aos_wa4_process_entity_context_v1' "$M2"
           grep -q 'aos_wa4_quote_preview_v1' "$M2"
           grep -q 'STRUCTURAL_NOT_PRESCRIPTIVE' "$M2"
-          echo 'WA-4C READINESS CANDIDATE: governed v3 included benefits + deterministic INFO fail-closed + seven official canary contracts; HUMAN_ONLY send.'
+          echo 'WA-4C READINESS CANDIDATE: governed v3 included benefits + allowlisted CURRENT SKU identity + deterministic INFO fail-closed + seven official canary contracts; HUMAN_ONLY send.'
