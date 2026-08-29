@@ -117,6 +117,15 @@ function contextById(rows) {
   return map;
 }
 
+function publicInfoEvidenceReady(item) {
+  if (!item || item.domain !== 'CATALOG' || !catalogId(item)) return true;
+  const f = item.facts || {};
+  const description = String(f.descripcion_comercial || '').trim();
+  const benefits = String(f.beneficios || '').trim();
+  const faqs = Array.isArray(f.faqs) ? f.faqs : [];
+  return description.length > 0 || benefits.length > 0 || faqs.length > 0;
+}
+
 function stageGuidance(stage) {
   switch (stage) {
     case 'PRICE_QUOTE': return {
@@ -211,6 +220,21 @@ function buildPlaybook(input) {
     };
   }
 
+  if (stage === 'INFO') {
+    const primaryCatalog = publicItems.find(x => x && x.domain === 'CATALOG' && catalogId(x));
+    if (primaryCatalog && !publicInfoEvidenceReady(primaryCatalog)) {
+      return {
+        version:'WA4B-PLAYBOOK-V1',status:'FAIL_CLOSED',commercial_stage:stage,objective:g.objective,
+        recommended_next_action:'HUMAN_COMMERCIAL',advisor_talking_points:g.talking,
+        public_safe_knowledge_ids:publicItems.map(x=>String(x.knowledge_id)),objection_strategy:g.objection,
+        quote_or_payment_context:null,continuity_candidates:[],clinical_escalation:{required:false,reason:null},
+        policy_escalation:{required:true,reason:'PUBLIC_INFO_EVIDENCE_INSUFFICIENT',knowledge_id:String(primaryCatalog.knowledge_id)},
+        evidence_refs:uniqueItems([...advisorItems,...publicItems]).map(evidenceRef).filter(Boolean),
+        freshness_state:freshnessState([...advisorItems,...publicItems],processContexts),send_authority:'HUMAN_ONLY',auto_send:false
+      };
+    }
+  }
+
   const ids = uniqueItems([...publicItems,...advisorItems]).map(catalogId).filter(Boolean);
   const byId = contextById(processContexts);
   const matched = ids.map(id => byId.get(id)).filter(Boolean);
@@ -292,5 +316,5 @@ function promptContext(playbook) {
 
 module.exports = {
   RULE_TITLES,RULES_BY_STAGE,normalize,classifyStage,requiredRuleCodes,ruleSearchQueries,
-  mergeBundles,buildPlaybook,promptContext,catalogId,ruleId
+  mergeBundles,buildPlaybook,promptContext,catalogId,ruleId,publicInfoEvidenceReady
 };
