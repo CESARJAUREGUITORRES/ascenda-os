@@ -6,9 +6,13 @@
 const AUDIENCES = Object.freeze(new Set([
   'PUBLIC_CLIENT','ADVISOR_INTERNAL','OWNER_ADMIN','CLINICAL_RESTRICTED','SYSTEM_REFERENCE'
 ]));
+const SEP26_CURRENT_SKU = 'CATALOG_SEP2026_CURRENT_SKU';
+const CATALOG_IDENTITY_ALLOWLIST = Object.freeze(new Set([
+  'family_name','commercial_variant','clinical_sessions','brand','zones','unit_cap','syringes','volume_ml'
+]));
 
 const FIELD_ALLOWLIST = Object.freeze({
-  CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','moneda','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria']),
+  CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','moneda','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria','included_benefit','included_benefit_source','catalog_identity','catalog_identity_source']),
   PROMOTION: new Set(['nombre','descripcion','tipo_descuento','valor_descuento','tratamientos','segmentos','codigo','vigencia_inicio','vigencia_fin']),
   BRANCH: new Set(['nombre','direccion','telefono','maps_link']),
   HOURS: new Set(['sede','dia_semana','hora_apertura','hora_cierre','activo']),
@@ -25,11 +29,50 @@ function normalizeAudience(value) {
   return AUDIENCES.has(audience) ? audience : 'PUBLIC_CLIENT';
 }
 
+function sanitizeCatalogIdentity(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const out = {};
+  for (const key of CATALOG_IDENTITY_ALLOWLIST) {
+    if (!Object.prototype.hasOwnProperty.call(value,key)) continue;
+    if (['family_name','commercial_variant','brand'].includes(key)) {
+      const text = String(value[key] == null ? '' : value[key]).trim();
+      if (text) out[key] = text.slice(0,180);
+      continue;
+    }
+    const n = Number(value[key]);
+    if (Number.isFinite(n) && n > 0 && n <= 10000) out[key] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 function sanitizeFacts(domain, facts) {
   const allowed = FIELD_ALLOWLIST[String(domain || '').toUpperCase()];
   if (!allowed || !facts || typeof facts !== 'object' || Array.isArray(facts)) return {};
   const out = {};
-  for (const key of allowed) if (Object.prototype.hasOwnProperty.call(facts,key)) out[key] = facts[key];
+  for (const key of allowed) {
+    if (!Object.prototype.hasOwnProperty.call(facts,key)) continue;
+    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'included_benefit') {
+      if (facts.included_benefit_source !== SEP26_CURRENT_SKU) continue;
+      const text = String(facts[key] == null ? '' : facts[key]).trim();
+      if (text) out[key] = text.slice(0,500);
+      continue;
+    }
+    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'included_benefit_source') {
+      if (facts[key] === SEP26_CURRENT_SKU) out[key] = SEP26_CURRENT_SKU;
+      continue;
+    }
+    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'catalog_identity') {
+      if (facts.catalog_identity_source !== SEP26_CURRENT_SKU) continue;
+      const identity = sanitizeCatalogIdentity(facts[key]);
+      if (identity) out[key] = identity;
+      continue;
+    }
+    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'catalog_identity_source') {
+      if (facts[key] === SEP26_CURRENT_SKU) out[key] = SEP26_CURRENT_SKU;
+      continue;
+    }
+    out[key] = facts[key];
+  }
   return out;
 }
 
@@ -154,4 +197,4 @@ function validateGroundedSuggestion(obj, bundle) {
   return {ok:true,reply,citations,nextAction};
 }
 
-module.exports = {AUDIENCES,FIELD_ALLOWLIST,normalize,normalizeAudience,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
+module.exports = {AUDIENCES,SEP26_CURRENT_SKU,CATALOG_IDENTITY_ALLOWLIST,FIELD_ALLOWLIST,normalize,normalizeAudience,sanitizeCatalogIdentity,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
