@@ -3,11 +3,46 @@
   "status": "DESIGN_CONTRACT",
   "send_authority": "HUMAN_ONLY",
   "auto_send": false,
+  "response_priority": [
+    "SAFETY",
+    "EXPLICIT_USER_QUESTION",
+    "CONVERSATION_STATE",
+    "SALES_NEXT_BEST_ACTION"
+  ],
   "message_economy": {
     "default_outbound_messages": 1,
     "exception_max_outbound_messages": 2,
     "prefer_interactive_body_with_actions": true,
     "emoji_density": "LOW"
+  },
+  "interaction_policy": {
+    "default_mode": "FREE_TEXT_CONVERSATION",
+    "buttons_are_not_default": true,
+    "buttons_reserved_for": [
+      "IDENTITY_BRANCH_WHEN_UNRESOLVED",
+      "SITE_SELECTION",
+      "SCHEDULE_WINDOW",
+      "REAL_SLOT_SELECTION",
+      "OTHER_HIGH_FRICTION_CHOICE"
+    ],
+    "avoid_buttons_for": [
+      "ZONE_DISCOVERY",
+      "PRICE_DISCOVERY",
+      "GENERAL_INFORMATION",
+      "NORMAL_CONTINUATION"
+    ],
+    "live_rendering": "NATIVE_WHATSAPP_INTERACTIVE_MESSAGE"
+  },
+  "humanization": {
+    "typing_indicator_target": true,
+    "typing_delay_ms": {
+      "min": 850,
+      "max": 2600,
+      "adaptive_by_response_length": true,
+      "jitter": true
+    },
+    "goal": "NATURAL_PACING_NOT_ARTIFICIAL_STALLING",
+    "do_not_delay_urgent_safety_handoff_unnecessarily": true
   },
   "question_modes": [
     "OPEN_DISCOVERY",
@@ -110,6 +145,9 @@
   },
   "wa4c_exit_gate": {
     "requires_conversational_hardening_certified": true,
+    "requires_explicit_question_priority_tests": true,
+    "requires_free_text_continuity_tests": true,
+    "requires_typing_indicator_pacing_test": true,
     "requires_supabase_auth_rest_2xx": true,
     "requires_legitimate_2fa": true,
     "requires_live_multi_turn_canaries": true,
