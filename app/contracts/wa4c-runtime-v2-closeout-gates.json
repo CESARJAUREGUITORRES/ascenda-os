@@ -1,0 +1,53 @@
+{
+  "contract": "WA4C-RUNTIME-V2-CLOSEOUT-GATES",
+  "status": "IMPLEMENTATION_IN_PROGRESS",
+  "production_enablement": false,
+  "implemented_in_branch": [
+    "semantic inbound burst aggregation",
+    "multi-intent extraction",
+    "campaign-aware treatment context",
+    "state preservation across topic switches",
+    "booking readiness",
+    "question mode",
+    "next-best-action",
+    "hard time constraint preservation",
+    "Sunday closed rule",
+    "defer/follow-up pause",
+    "explicit-question-first prompt policy",
+    "one-outbound default",
+    "price intent override for governed price facts",
+    "advisor runtime visibility",
+    "buttons/list UI only when interaction reduces decision friction",
+    "deterministic regression tests in WA-4C full-local CI"
+  ],
+  "required_before_runtime_v2_ready": [
+    "exact-head WA-4C full-local CI green",
+    "Ascenda CI green",
+    "response quality guard: unanswered explicit question, repeated question, unsupported number, excessive questions, overlong draft",
+    "campaign ad_id/referral mapping to governed treatment/promotion/media strategy",
+    "governed location/public-hours reconciliation",
+    "governed consultation S/100/free-first-consult authority before LIVE use",
+    "role-aware booking resolver with current date-specific schedules",
+    "slot revalidation immediately before booking write",
+    "canonical patient identity adapter with minimum-data LLM exposure",
+    "audio transcription adapter with confidence and narrow clarification",
+    "image/video descriptive-only multimodal adapter",
+    "quoted/reply-to context persistence",
+    "real-conversation benchmark pass",
+    "cost/outbound-message telemetry"
+  ],
+  "live_blockers": [
+    "Supabase production must recover from HTTP 402 to 2xx",
+    "legitimate 2FA/login must succeed",
+    "no production AI send, auto reply or auto routing before governed certification"
+  ],
+  "safety_invariants": {
+    "human_only": true,
+    "auto_send": false,
+    "auto_reply": false,
+    "auto_routing": false,
+    "invent_price_or_promotion": false,
+    "invent_availability": false,
+    "autonomous_clinical_diagnosis": false
+  }
+}
