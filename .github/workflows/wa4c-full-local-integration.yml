@@ -1,0 +1,188 @@
+name: ASCENDA WA-4C FULL LOCAL Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa4.js'
+      - 'app/server-wa3-v2.js'
+      - 'app/server-wa3.js'
+      - 'app/server-wa2.js'
+      - 'app/server-f4.js'
+      - 'app/wa-gateway.js'
+      - 'app/wa-interactive.js'
+      - 'app/wa4-copilot.js'
+      - 'app/wa4-playbook.js'
+      - 'app/wa4-knowledge.js'
+      - 'app/ai-router.js'
+      - 'app/public/wa4-copilot-experience.js'
+      - 'app/public/wa-shell-integration.js'
+      - 'supabase/migrations/*wa4*'
+      - 'supabase/rollbacks/*wa4*'
+      - 'ci/wa4c-full-local/**'
+      - '.github/workflows/wa4c-full-local-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa4c-full-local-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-local:
+    name: ZERO-COST · WA runtime + UI + interactive conversation beta
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 60
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+      WA4C_RUNTIME_URL: 'http://127.0.0.1:60300'
+      WHATSAPP_VERIFY_TOKEN: 'wa4c-full-local-verify-token'
+      WHATSAPP_APP_SECRET: 'wa4c-full-local-app-secret'
+      WHATSAPP_ACCESS_TOKEN: 'wa4c-full-local-meta-token'
+      WHATSAPP_PHONE_NUMBER_ID: 'local-phone-id'
+      WHATSAPP_GRAPH_VERSION: 'v23.0'
+      WA_CANARY_MODE: 'true'
+      WA_CANARY_ALLOW_TO: '51911111111'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Enforce zero-cost and test-only boundary
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --check app/server-wa3.js
+          node --check app/wa-interactive.js
+          node --check app/public/wa4-copilot-experience.js
+          node --check app/public/wa-shell-integration.js
+          node --check ci/wa4c-full-local/local-network-preload.cjs
+          node --check ci/wa4c-full-local/local-supabase-auth-preload.cjs
+          node --check ci/wa4c-full-local/run-canaries.js
+          node --check ci/wa4c-full-local/run-conversation-beta.js
+          bash -n ci/wa4c-full-local/bootstrap.sh
+          grep -q "ASCENDA_FULL_LOCAL" ci/wa4c-full-local/local-network-preload.cjs
+          grep -q "production_network_mutation: false" ci/wa4c-full-local/local-network-preload.cjs
+          grep -q "modern_api_key_bearer_removed: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
+          grep -q "apikey_preserved: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
+          ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
+          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql
+
+      - name: Interactive payload and advisor UI contracts
+        run: |
+          set -euo pipefail
+          node --test ci/wa4c-full-local/interactive-contract.test.js
+          node --test ci/wa4c-full-local/ui-contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+
+      - name: Wait for canonical WA runtime ports
+        run: |
+          set -euo pipefail
+          ports='60300 4198 4200 4196 4197 4178 4189 4190 60200 60201 60202'
+          for i in $(seq 1 60); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for runner ports:$busy"
+            sleep 2
+          done
+          echo 'WA4C_FULL_LOCAL_RUNNER_PORT_CONTENTION' >&2
+          exit 1
+
+      - name: Start full local Supabase and rebuild CURRENT
+        run: bash ci/wa4c-full-local/bootstrap.sh
+
+      - name: Local DB lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/wa4c-full-local-lint.txt
+          if grep -q '\[ERROR\]' /tmp/wa4c-full-local-lint.txt; then
+            echo 'WA4C_FULL_LOCAL_DB_LINT_ERROR' >&2
+            exit 1
+          fi
+          echo 'WA4C_FULL_LOCAL_DB_LINT_PASS'
+
+      - name: Start real WA-4→WA-1 runtime with local provider shims
+        working-directory: app
+        run: |
+          set -euo pipefail
+          export PORT=60300
+          export NODE_OPTIONS="--require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-network-preload.cjs --require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-supabase-auth-preload.cjs"
+          nohup node server-wa4.js >/tmp/wa4c-full-local-runtime.log 2>&1 &
+          echo $! >/tmp/wa4c-full-local-runtime.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:60300/api/wa4/health >/tmp/wa4c-health.json 2>/dev/null; then
+              cat /tmp/wa4c-health.json
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/wa4c-full-local-runtime.pid)" 2>/dev/null; then
+              cat /tmp/wa4c-full-local-runtime.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cat /tmp/wa4c-full-local-runtime.log >&2
+          exit 1
+
+      - name: Seven official WA-4C end-to-end canaries
+        run: |
+          set -euo pipefail
+          if ! node ci/wa4c-full-local/run-canaries.js 2>&1 | tee /tmp/wa4c-full-local-canaries.txt; then
+            echo '--- WA runtime log ---' >&2
+            cat /tmp/wa4c-full-local-runtime.log >&2 || true
+            exit 1
+          fi
+
+      - name: FULL LOCAL integration closeout
+        run: |
+          set -euo pipefail
+          grep -q 'WA4C_FULL_LOCAL_CANARIES_PASS' /tmp/wa4c-full-local-canaries.txt
+          ! grep -q '\[ERROR\]' /tmp/wa4c-full-local-lint.txt
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_runs_v1")" -ge 7
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND'")" = "1"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_routing_control_v1 where ai_send_enabled is false and auto_routing_enabled is false")" = "1"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_control_v1 where auto_reply_enabled is false")" = "1"
+
+      - name: Complete client ↔ advisor ↔ Copilot conversation beta
+        run: |
+          set -euo pipefail
+          if ! node ci/wa4c-full-local/run-conversation-beta.js 2>&1 | tee /tmp/wa4c-conversation-beta.txt; then
+            echo '--- WA runtime log ---' >&2
+            cat /tmp/wa4c-full-local-runtime.log >&2 || true
+            exit 1
+          fi
+
+      - name: BETA LOCAL certification assertions
+        run: |
+          set -euo pipefail
+          grep -q 'WA4C_FULL_LOCAL_CONVERSATION_BETA_PASS' /tmp/wa4c-conversation-beta.txt
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND'")" = "3"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND' and message_type='interactive_buttons'")" = "1"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND' and message_type='interactive_list'")" = "1"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_routing_control_v1 where human_send_enabled is true and ai_send_enabled is false and auto_routing_enabled is false")" = "1"
+          test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_control_v1 where copilot_enabled is true and auto_reply_enabled is false")" = "1"
+          echo 'WA-4C BETA LOCAL CERTIFIED: Copilot visual contract + explicit human use-response + reply buttons + list messages + signed interactive replies + full client/advisor/Copilot conversation + 7 canaries + clean lint + no autonomous send.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Production remains HUMAN_ONLY / SAFE-OFF. LIVE provider certification is a separate gate.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup local runtime and Supabase
+        if: always()
+        run: |
+          set +e
+          if [ -f /tmp/wa4c-full-local-runtime.pid ]; then
+            kill -TERM "$(cat /tmp/wa4c-full-local-runtime.pid)" 2>/dev/null || true
+            sleep 2
+          fi
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
