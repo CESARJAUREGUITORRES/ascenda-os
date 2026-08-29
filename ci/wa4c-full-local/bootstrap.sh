@@ -39,6 +39,9 @@ psqlf supabase/migrations/20260815160000_wa1_secure_gateway_v1.sql
 psqlf supabase/migrations/20260815175500_wa2_conversation_live_inbox_v1.sql
 psqlf supabase/migrations/20260815190500_wa3_boxes_routing_handoff_v1.sql
 psqlf supabase/migrations/20260822173000_wa3_multiagent_readiness_v2.sql
+# WA-7A.0's certified contract depends on S14 web-push transport. Keep the same
+# upstream ordering here so every function introduced by WA-7A.0 lints cleanly.
+psqlf supabase/migrations/20260817221500_wa_s14_web_push_notification_transport.sql
 # CURRENT wa-gateway emits PHONE/BSUID-compatible message fields. Reuse the
 # already-certified WA-7A.0 compatibility chain instead of creating local-only columns.
 psqlf supabase/migrations/20260825143000_wa7a0_identity_compatibility_v1.sql
@@ -91,6 +94,7 @@ test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa4_process_e
 test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_promociones")" = "0"
 test "$(psql "$DB_URL" -X -qAt -c "select copilot_enabled and not auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1")" = "t"
 test "$(psql "$DB_URL" -X -qAt -c "select human_send_enabled and not ai_send_enabled and not auto_routing_enabled from public.aos_wa_routing_control_v1 where id=1")" = "t"
+test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_push_subscriptions_v1') is not null")" = "t"
 test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_messages_v1' and column_name in ('from_user_id','from_parent_user_id','to_user_id','to_parent_user_id','contact_username')")" = "5"
 test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_conversations_v1' and column_name in ('contact_address','contact_address_type','contact_bsuid','contact_parent_bsuid','contact_username')")" = "5"
 
