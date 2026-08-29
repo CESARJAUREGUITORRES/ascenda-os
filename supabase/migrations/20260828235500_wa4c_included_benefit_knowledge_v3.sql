@@ -28,12 +28,12 @@ select
   b.title,
   b.facts
     || case when g.included_benefit is not null then jsonb_build_object(
-         'included_benefit',g.included_benefit,
-         'included_benefit_source','CATALOG_SEP2026_CURRENT_SKU'
+         'included_benefit', g.included_benefit,
+         'included_benefit_source', 'CATALOG_SEP2026_CURRENT_SKU'
        ) else '{}'::jsonb end
     || case when i.safe_identity <> '{}'::jsonb then jsonb_build_object(
-         'catalog_identity',i.safe_identity,
-         'catalog_identity_source','CATALOG_SEP2026_CURRENT_SKU'
+         'catalog_identity', i.safe_identity,
+         'catalog_identity_source', 'CATALOG_SEP2026_CURRENT_SKU'
        ) else '{}'::jsonb end as facts,
   b.authority_tier,
   b.source_relation,
@@ -44,11 +44,11 @@ select
   b.retrieval_state,
   b.evidence_ref
     || case when g.included_benefit is not null then jsonb_build_object(
-         'included_benefit_path','info_extendida.catalog_sep2026.gift_raw'
+         'included_benefit_path', 'info_extendida.catalog_sep2026.gift_raw'
        ) else '{}'::jsonb end
     || case when i.safe_identity <> '{}'::jsonb then jsonb_build_object(
-         'catalog_identity_path','info_extendida.treatment_identity',
-         'catalog_identity_verified_at',nullif(btrim(s.info_extendida #>> '{treatment_identity,verified_at}'),'')
+         'catalog_identity_path', 'info_extendida.treatment_identity',
+         'catalog_identity_verified_at', nullif(btrim(s.info_extendida #>> '{treatment_identity,verified_at}'),'')
        ) else '{}'::jsonb end as evidence_ref,
   b.score
 from public.aos_wa4a_knowledge_search_v2(p_query,p_audience,p_limit,p_domains) b
@@ -66,14 +66,14 @@ left join lateral (
      and coalesce(s.info_extendida #>> '{treatment_identity,current_status}','')='CURRENT'
      and lower(coalesce(s.info_extendida #>> '{treatment_identity,public_catalog}','false'))='true'
     then jsonb_strip_nulls(jsonb_build_object(
-      'family_name',nullif(btrim(s.info_extendida #>> '{treatment_identity,family_name}'),''),
-      'commercial_variant',nullif(btrim(s.info_extendida #>> '{treatment_identity,commercial_variant}'),''),
-      'clinical_sessions',case when coalesce(s.info_extendida #>> '{treatment_identity,clinical_sessions}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,clinical_sessions}')::numeric end,
-      'brand',nullif(btrim(s.info_extendida #>> '{treatment_identity,brand}'),''),
-      'zones',case when coalesce(s.info_extendida #>> '{treatment_identity,zones}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,zones}')::numeric end,
-      'unit_cap',case when coalesce(s.info_extendida #>> '{treatment_identity,unit_cap}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,unit_cap}')::numeric end,
-      'syringes',case when coalesce(s.info_extendida #>> '{treatment_identity,syringes}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,syringes}')::numeric end,
-      'volume_ml',case when coalesce(s.info_extendida #>> '{treatment_identity,volume_ml}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,volume_ml}')::numeric end
+      'family_name', nullif(btrim(s.info_extendida #>> '{treatment_identity,family_name}'),''),
+      'commercial_variant', nullif(btrim(s.info_extendida #>> '{treatment_identity,commercial_variant}'),''),
+      'clinical_sessions', case when coalesce(s.info_extendida #>> '{treatment_identity,clinical_sessions}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,clinical_sessions}')::numeric end,
+      'brand', nullif(btrim(s.info_extendida #>> '{treatment_identity,brand}'),''),
+      'zones', case when coalesce(s.info_extendida #>> '{treatment_identity,zones}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,zones}')::numeric end,
+      'unit_cap', case when coalesce(s.info_extendida #>> '{treatment_identity,unit_cap}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,unit_cap}')::numeric end,
+      'syringes', case when coalesce(s.info_extendida #>> '{treatment_identity,syringes}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,syringes}')::numeric end,
+      'volume_ml', case when coalesce(s.info_extendida #>> '{treatment_identity,volume_ml}','') ~ '^[0-9]+([.][0-9]+)?$' then (s.info_extendida #>> '{treatment_identity,volume_ml}')::numeric end
     ))
     else '{}'::jsonb
   end as safe_identity
