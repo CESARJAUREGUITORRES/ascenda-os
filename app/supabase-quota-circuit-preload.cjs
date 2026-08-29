@@ -55,10 +55,21 @@ if (!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__) {
     return req;
   };
 
+  // Node's native https.get() closes over its internal request implementation;
+  // replacing https.request alone does not guarantee that legacy get() callers
+  // traverse the patched export. Route every get() through the patched request
+  // explicitly, then end it to preserve normal https.get semantics.
+  https.get = function aosQuotaAwareGet() {
+    const req = https.request.apply(https, arguments);
+    req.end();
+    return req;
+  };
+
   global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__ = {
     installed: true,
     host: configuredHost,
     scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS',
+    transports: ['https.request', 'https.get'],
     snapshot: function() { return circuit.snapshot(); }
   };
 }

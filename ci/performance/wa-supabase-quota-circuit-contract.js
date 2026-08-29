@@ -47,7 +47,8 @@ async function coreContract() {
 
 async function preloadContract() {
   const https = require('https');
-  const original = https.request;
+  const originalRequest = https.request;
+  const originalGet = https.get;
   let network = 0;
   let status = 402;
 
@@ -90,10 +91,27 @@ async function preloadContract() {
     });
   }
 
+  function callGet(userAgent, hostname) {
+    return new Promise(function(resolve) {
+      const req = https.get({
+        hostname: hostname || 'ituyqwstonmhnfshnaqz.supabase.co',
+        path: '/rest/v1/aos_agentes?activo=eq.true',
+        headers: { 'User-Agent': userAgent }
+      }, function(res) {
+        res.on('end', function() { resolve({ status: res.statusCode }); });
+      });
+      req.on('error', function(e) { resolve({ error: e }); });
+    });
+  }
+
   const first = await call('AscendaOS-Phase-S/1.0');
   assert.strictEqual(first.status, 402, 'first upstream 402 must be observable by caller');
   assert.strictEqual(network, 1, 'first Supabase call must reach network');
   assert.strictEqual(global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__.snapshot().open, true, 'preload circuit did not open');
+
+  const legacyGet = await callGet('legacy-no-tag');
+  assert(legacyGet.error && legacyGet.error.code === 'SUPABASE_QUOTA_BLOCKED', 'legacy https.get must share the Supabase quota circuit');
+  assert.strictEqual(network, 1, 'legacy https.get escaped to network while circuit was open');
 
   const supabaseAgents = [
     'AscendaOS-Phase-S/1.0',
@@ -113,10 +131,17 @@ async function preloadContract() {
   assert.strictEqual(network, 1, 'blocked Supabase calls escaped to network');
 
   const external = await call('AscendaOS-WA-Gateway/1.0', 'graph.facebook.com');
-  assert.strictEqual(external.status, 402, 'non-Supabase host must preserve base transport behavior');
-  assert.strictEqual(network, 2, 'external host was incorrectly intercepted by Supabase quota circuit');
+  assert.strictEqual(external.status, 402, 'non-Supabase host must preserve base request behavior');
+  assert.strictEqual(network, 2, 'external request host was incorrectly intercepted');
 
-  https.request = original;
+  const externalGet = await callGet('legacy-no-tag', 'graph.facebook.com');
+  assert.strictEqual(externalGet.status, 402, 'non-Supabase https.get must preserve base transport behavior');
+  assert.strictEqual(network, 3, 'external https.get host was incorrectly intercepted');
+
+  assert.deepStrictEqual(global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__.transports, ['https.request', 'https.get'], 'preload transport coverage metadata mismatch');
+
+  https.request = originalRequest;
+  https.get = originalGet;
 }
 
 function staticContract() {
@@ -126,6 +151,8 @@ function staticContract() {
   assert(railway.includes('--require ./supabase-quota-circuit-preload.cjs'), 'Railway quota preload missing');
   assert(preload.includes("scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS'"), 'project-wide Supabase quota scope missing');
   assert(preload.includes('isConfiguredSupabaseRequest(args, configuredHost)'), 'Supabase host classifier missing');
+  assert(preload.includes('https.get = function aosQuotaAwareGet'), 'legacy https.get quota transport hook missing');
+  assert(preload.includes("transports: ['https.request', 'https.get']"), 'quota transport coverage metadata missing');
   assert(target.includes("host === String(configuredHost || '').toLowerCase()"), 'quota circuit must remain scoped to the configured Supabase host');
   assert(!preload.includes('userAgentRe'), 'quota circuit must not depend on runtime User-Agent');
   assert(preload.includes('configuredHost'), 'Supabase host scoping missing');
