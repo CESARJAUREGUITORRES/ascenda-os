@@ -20,7 +20,7 @@ function aggregateLatestInboundBurst(messages,windowMs){
   const w=Math.max(500,Math.min(Number(windowMs||BURST_WINDOW_MS),12000));
   let end=-1;
   for(let i=ms.length-1;i>=0;i--){if(inbound(ms[i])){end=i;break;}}
-  if(end<0)return {text:'',latest_text:'',parts:[],count:0,burst:false,window_ms:w};
+  if(end<0)return {text:'',latest_text:'',combined_text:'',parts:[],count:0,burst:false,window_ms:w};
   const out=[ms[end]];
   let cursor=end;
   while(cursor>0){
@@ -31,7 +31,8 @@ function aggregateLatestInboundBurst(messages,windowMs){
     out.unshift(prev);cursor--;
   }
   const parts=out.map(textOf).filter(Boolean);
-  return {text:parts.join('\n'),latest_text:parts.length?parts[parts.length-1]:'',parts,count:parts.length,burst:parts.length>1,window_ms:w};
+  const latest=parts.length?parts[parts.length-1]:'';
+  return {text:latest,latest_text:latest,combined_text:parts.join('\n'),parts,count:parts.length,burst:parts.length>1,window_ms:w};
 }
 
 function treatmentHint(text,campaign){
@@ -180,7 +181,7 @@ function buildRuntimeContext(input){
   const messages=Array.isArray(input.messages)?input.messages:[];
   const conversation=input.conversation||{};
   const semantic=aggregateLatestInboundBurst(messages,input.burst_window_ms);
-  const intents=detectIntents(semantic.text);
+  const intents=detectIntents(semantic.combined_text||semantic.text);
   const state=mergeState(messages,conversation);
   const current=extractSlots(semantic.latest_text||semantic.text,state.campaign_source);
   Object.assign(state,current,{zones:uniq((state.zones||[]).concat(current.zones||[]))});
