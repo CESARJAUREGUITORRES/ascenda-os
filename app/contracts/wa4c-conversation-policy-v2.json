@@ -1,0 +1,118 @@
+{
+  "version": "WA4C-CONVERSATION-POLICY-V2",
+  "status": "DESIGN_CONTRACT",
+  "send_authority": "HUMAN_ONLY",
+  "auto_send": false,
+  "message_economy": {
+    "default_outbound_messages": 1,
+    "exception_max_outbound_messages": 2,
+    "prefer_interactive_body_with_actions": true,
+    "emoji_density": "LOW"
+  },
+  "question_modes": [
+    "OPEN_DISCOVERY",
+    "GUIDED_CHOICE",
+    "ALTERNATIVE_CLOSE",
+    "DIRECT_CONFIRMATION",
+    "NONE"
+  ],
+  "booking_readiness": [
+    "LOW",
+    "MEDIUM",
+    "HIGH"
+  ],
+  "next_best_actions": [
+    "ANSWER_INFO",
+    "CLARIFY_GOAL",
+    "CLARIFY_ZONE",
+    "CLARIFY_VARIANT",
+    "SHOW_PRICE",
+    "SHOW_PAYMENT",
+    "OFFER_APPROVED_MEDIA",
+    "RESOLVE_OBJECTION",
+    "OFFER_BOOKING",
+    "SELECT_SITE",
+    "SELECT_SCHEDULE_WINDOW",
+    "SELECT_REAL_SLOT",
+    "CONFIRM_BOOKING",
+    "HUMAN_COMMERCIAL",
+    "HUMAN_CLINICAL"
+  ],
+  "identity": {
+    "customer_types": ["EXISTING", "NEW", "UNKNOWN"],
+    "states": ["CHANNEL_RESOLVED", "VERIFIED", "UNRESOLVED", "CONFLICT", "NEW_LEAD"],
+    "prohibit_name_only_binding": true,
+    "canonical_authorities": [
+      "aos_patient_search_v2",
+      "aos_patient_360_current_v3",
+      "aos_patient_commercial_360_v2",
+      "aos_rev_resolve_patient_identity_v2",
+      "aos_rev_normalize_patient_identifier_v2",
+      "aos_rev_customer_agenda_identity_v1"
+    ],
+    "unresolved_patient_choices": ["Soy paciente", "Es mi primera vez"],
+    "do_not_echo_full_document": true,
+    "identity_conflict_action": "HUMAN_COMMERCIAL"
+  },
+  "conversation_slots": [
+    "treatment_or_interest",
+    "goal",
+    "areas_or_zones",
+    "brand_if_explicit",
+    "variant_if_explicit",
+    "price_requested",
+    "price_already_presented",
+    "payment_question",
+    "objection",
+    "preferred_site",
+    "schedule_preference",
+    "media_requested_or_sent",
+    "booking_intent",
+    "customer_identity_state",
+    "customer_type",
+    "last_next_best_action"
+  ],
+  "privacy": {
+    "public_business_info_without_identity": true,
+    "patient_specific_sensitive_details_require_verification": true,
+    "clinical_history_in_sales_copilot": false,
+    "upcoming_appointment_details_require_governed_identity": true,
+    "minimum_data_collection": true,
+    "optional_fields_should_not_block_booking_by_default": true
+  },
+  "booking": {
+    "real_availability_required": true,
+    "invented_availability_forbidden": true,
+    "dni_optional_in_legacy_aos_agendar_publica": true,
+    "email_optional_in_legacy_aos_agendar_publica": true,
+    "whatsapp_should_reuse_trusted_phone": true,
+    "governed_adapter_required_before_wa6_finalization": true
+  },
+  "multimodal": {
+    "audio_transcription_supported_target": true,
+    "image_understanding_mode": "DESCRIPTIVE_ONLY",
+    "diagnosis_from_image": false,
+    "clinical_decision_action": "HUMAN_CLINICAL"
+  },
+  "commercial_media": {
+    "arbitrary_asset_search": false,
+    "governed_asset_library_required": true,
+    "human_send_required": true
+  },
+  "safety_invariants": {
+    "ai_send_enabled": false,
+    "auto_reply_enabled": false,
+    "auto_routing_enabled": false,
+    "human_send_enabled": true,
+    "unsupported_price": "FAIL_CLOSED",
+    "unsupported_promotion": "FAIL_CLOSED",
+    "clinical_escalation": "HUMAN_CLINICAL"
+  },
+  "wa4c_exit_gate": {
+    "requires_conversational_hardening_certified": true,
+    "requires_supabase_auth_rest_2xx": true,
+    "requires_legitimate_2fa": true,
+    "requires_live_multi_turn_canaries": true,
+    "requires_audit_cost_no_send": true
+  }
+}
