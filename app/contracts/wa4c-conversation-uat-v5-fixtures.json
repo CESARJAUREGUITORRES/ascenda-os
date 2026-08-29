@@ -1,0 +1,68 @@
+{
+  "version": "WA4C-CONVERSATION-UAT-V5",
+  "fixtures": [
+    {
+      "id": "consult_price_campaign_before_booking",
+      "state": {
+        "source": "META_AD",
+        "treatment": "TOXINA_BOTULINICA",
+        "preferred_site": "SAN_ISIDRO",
+        "booking_readiness": "HIGH"
+      },
+      "user": "antes de agendar, tiene costo?",
+      "must": [
+        "classify CONSULTATION_PRICE",
+        "answer regular consultation price S/100 before any booking question",
+        "if campaign eligibility is governed true, explain first consultation free",
+        "communicate only governed expiry/urgency",
+        "preserve SAN_ISIDRO and TOXINA context",
+        "finish with a soft booking CTA"
+      ],
+      "must_not": [
+        "repeat schedule-window question without answering price",
+        "invent promotion eligibility",
+        "invent expiry date"
+      ]
+    },
+    {
+      "id": "consult_price_noncampaign",
+      "state": {
+        "source": "ORGANIC",
+        "booking_readiness": "MEDIUM"
+      },
+      "user": "cuanto cuesta la consulta?",
+      "must": [
+        "answer governed regular consultation price",
+        "not claim free consultation unless eligibility authority confirms it"
+      ]
+    },
+    {
+      "id": "location_full_answer",
+      "user": "cual es su direccion?",
+      "must": [
+        "return active site address",
+        "return maps_link",
+        "use aos_sedes_geo authority",
+        "answer before sales CTA"
+      ]
+    },
+    {
+      "id": "promotion_toxin_context",
+      "state": {
+        "treatment": "TOXINA_BOTULINICA",
+        "areas_or_zones": ["ENTRECEJO"]
+      },
+      "user": "toxina pero quiero ofertas",
+      "must": [
+        "classify PROMOTION_REQUEST",
+        "query governed promotion/catalog offer authorities",
+        "if none active, explicitly say no additional governed promotion",
+        "preserve known treatment and zone"
+      ],
+      "must_not": [
+        "return CLARIFY_GOAL",
+        "ask again what treatment is wanted"
+      ]
+    }
+  ]
+}
