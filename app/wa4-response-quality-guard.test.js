@@ -23,6 +23,12 @@ test('blocks availability assertion when schedule authority is stale',()=>{
   assert.ok(out.violations.includes('UNSUPPORTED_AVAILABILITY_ASSERTION'));
 });
 
+test('availability assertion remains blocked even when followed by validation language',()=>{
+  const out=check('Sí, hay disponibilidad a las 10 am, pero igual voy a validar el horario.',{state:{requested_day:'TOMORROW',requested_time:'10:00'},intents:['BOOKING','SCHEDULE']},{status:'SCHEDULE_SOURCE_STALE',schedule_source_fresh:false,confirmation_allowed:false});
+  assert.equal(out.ok,false);
+  assert.ok(out.violations.includes('UNSUPPORTED_AVAILABILITY_ASSERTION'));
+});
+
 test('allows compact human validation language when schedule authority is stale',()=>{
   const out=check('Mantengo tu preferencia de las 10 am. Necesito validar la disponibilidad actual antes de confirmarte ese horario.',{state:{requested_day:'TOMORROW',requested_time:'10:00'},intents:['BOOKING','SCHEDULE']},{status:'SCHEDULE_SOURCE_STALE',schedule_source_fresh:false,confirmation_allowed:false});
   assert.equal(out.ok,true);
@@ -37,6 +43,12 @@ test('blocks internal state leakage and excessive questions',()=>{
 
 test('explicit price question must be addressed before advancing booking',()=>{
   const out=check('Perfecto, ¿qué día deseas agendar?',{state:{treatment:'HIFU'},intents:['TREATMENT_PRICE','BOOKING']});
+  assert.equal(out.ok,false);
+  assert.ok(out.violations.includes('EXPLICIT_PRICE_UNANSWERED'));
+});
+
+test('mentioning price without amount or validation does not count as an answer',()=>{
+  const out=check('Sobre el precio, con gusto te ayudo. ¿Quieres agendar?',{state:{treatment:'HIFU'},intents:['TREATMENT_PRICE','BOOKING']});
   assert.equal(out.ok,false);
   assert.ok(out.violations.includes('EXPLICIT_PRICE_UNANSWERED'));
 });
