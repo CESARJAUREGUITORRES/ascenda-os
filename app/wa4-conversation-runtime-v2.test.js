@@ -19,6 +19,7 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   const r=rt.buildRuntimeContext({messages,conversation:{campaign_source:'Toxina · líneas de expresión'}});
   assert.strictEqual(r.semantic_turn.count,5);
   assert.strictEqual(r.semantic_turn.burst,true);
+  assert.strictEqual(r.semantic_turn.latest_text,'Me confirma gracias');
   has(r,'BOOKING'); has(r,'SCHEDULE');
   assert.strictEqual(r.state.treatment,'TOXINA_BOTULINICA');
   assert.strictEqual(r.state.requested_day,'VIERNES');
@@ -32,8 +33,20 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   const messages=[m('INBOUND','Hola, el precio de la sesión',0),m('INBOUND','¿Cuántas sesiones tiene que ser?',2)];
   const r=rt.buildRuntimeContext({messages,conversation:{campaign_source:'Bioestimuladores de colágeno para hombres'}});
   has(r,'PRICE_PER_SESSION'); has(r,'SESSION_COUNT');
+  assert.strictEqual(r.semantic_turn.latest_text,'¿Cuántas sesiones tiene que ser?');
   assert.strictEqual(r.state.treatment,'BIOESTIMULADOR_COLAGENO');
   assert.strictEqual(r.next_best_action,'ANSWER_EXPLICIT_QUESTIONS');
+}
+
+// Two complete price questions can arrive in the same debounce window. Keep both intents,
+// but the latest explicit entity must govern current retrieval/answering.
+{
+  const messages=[m('INBOUND','¿Cuánto cuesta Servicio PEN?',0),m('INBOUND','¿Cuánto cuesta Servicio USD?',2)];
+  const r=rt.buildRuntimeContext({messages,conversation:{}});
+  has(r,'TREATMENT_PRICE');
+  assert.strictEqual(r.semantic_turn.burst,true);
+  assert.strictEqual(r.semantic_turn.latest_text,'¿Cuánto cuesta Servicio USD?');
+  assert.strictEqual(r.guards.latest_explicit_entity_wins,true);
 }
 
 // Hard time constraint must be preserved and checked first.
