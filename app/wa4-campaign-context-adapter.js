@@ -27,6 +27,7 @@ function safeCampaignPrompt(result){
     explicit_provenance:result.explicit_provenance,
     ad_matched:result.ad_matched,
     governed_ad_mapping:result.governed_ad_mapping===true,
+    runtime_hydrated:result.runtime_hydrated===true,
     meta_status:result.meta&&result.meta.status||null,
     meta_objective:result.meta&&result.meta.objective||null,
     treatment_context:result.treatment_context||null,
@@ -67,7 +68,7 @@ function createCampaignContextAdapter(deps){
     const result={
       version:VERSION,status:'READY',source,ad_id:adId,lead_id:leadId,
       explicit_provenance:Boolean(source||adId||leadId),ad_matched:false,meta:null,
-      governed_ad_mapping:false,campaign_treatment:null,
+      governed_ad_mapping:false,runtime_hydrated:false,campaign_treatment:null,
       treatment_context:currentTreatment,
       treatment_context_source:currentTreatment?'SEMANTIC_OR_EXPLICIT_CONVERSATION':null,
       treatment_mapping_status:currentTreatment?'KNOWN_FROM_CONVERSATION':'UNAVAILABLE_NO_GOVERNED_AD_TREATMENT_JOIN',
@@ -95,6 +96,10 @@ function createCampaignContextAdapter(deps){
               result.treatment_context=currentTreatment||mapped;
               result.treatment_context_source=currentTreatment?'SEMANTIC_AND_GOVERNED_AD_MAPPING':'GOVERNED_AD_MAPPING';
               result.treatment_mapping_status='GOVERNED_AD_MAPPING';
+              if(!currentTreatment){
+                state.treatment=mapped;
+                result.runtime_hydrated=true;
+              }
             }
           }else{
             result.treatment_mapping_status=currentTreatment?'KNOWN_FROM_CONVERSATION':'GOVERNED_MAP_MISSING_TREATMENT_VALUE';
