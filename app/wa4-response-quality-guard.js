@@ -12,16 +12,16 @@ function humanValidation(text){return /\b(validar|validamos|validacion|verificar
 function bookingContext(input){return input&&input.contexts&&input.contexts.booking||{};}
 function runtimeState(input){return input&&input.runtime&&input.runtime.state||{};}
 function runtimeIntents(input){return asArray(input&&input.runtime&&input.runtime.intents).map(String);}
-function hasMoneyAnswer(text){return /(?:s\/?\.?\s*\d|usd\s*\d|\$\s*\d|precio|costo|cuesta|valor|tarifa|validar|verificar|revisar)/.test(text);}
-function hasPromoAnswer(text){return /promo|promocion|oferta|descuento|vigencia|no (?:tenemos|hay) (?:una )?promocion|validar|verificar|revisar/.test(text);}
-function hasLocationAnswer(text){return /san isidro|pueblo libre|direccion|ubicacion|maps|mapa|sede|validar|verificar|revisar/.test(text);}
-function hasWhoAnswer(text){return /doctora|doctor|enfermer|profesional|equipo|personal|validar|verificar|revisar/.test(text);}
-function hasSessionAnswer(text){return /sesion|sesiones|evaluacion|depende|validar|verificar|revisar/.test(text);}
+function hasMoneyAnswer(text){return /(?:s\/?\.?\s*\d|usd\s*\d|\$\s*\d|\b\d+(?:[.,]\d+)?\s*(?:soles?|dolares?|usd)\b|\bcuesta\s+\d)/.test(text)||humanValidation(text);}
+function hasPromoAnswer(text){return /\b(?:promo|promocion|oferta|descuento|vigencia)\b|\bno (?:tenemos|hay) (?:una )?(?:promo|promocion|oferta|descuento)\b/.test(text)||humanValidation(text);}
+function hasLocationAnswer(text){return /\b(?:san isidro|pueblo libre|direccion|maps|mapa)\b/.test(text)||humanValidation(text);}
+function hasWhoAnswer(text){return /\b(?:doctora|doctor|enfermera|enfermeria|equipo clinico|personal clinico)\b/.test(text)||humanValidation(text);}
+function hasSessionAnswer(text){return /\b\d+\s+sesiones?\b|\buna sola sesion\b|\bdepende\b|\bevaluacion\b/.test(text)||humanValidation(text);}
 function availabilityAssertion(text){
-  return /\b(hay|tenemos|tengo|queda|quedan)\s+(?:un\s+)?(?:cupo|cupos|disponibilidad|horario disponible)|\b(?:esta|está|estan|están)\s+disponible|\bpuedo\s+(?:confirmarte|separarte|reservarte)\s+(?:ese|el)?\s*horario/.test(text);
+  return /\b(hay|tenemos|tengo|queda|quedan)\s+(?:un\s+)?(?:cupo|cupos|disponibilidad|horario disponible)|\b(?:esta|estan)\s+disponible|\bpuedo\s+(?:confirmarte|separarte|reservarte)\s+(?:ese|el)?\s*horario/.test(text);
 }
 function bookingConfirmation(text){
-  return /\b(?:tu|la)\s+cita\s+(?:esta|está|quedo|quedó)\s+(?:confirmada|agendada|reservada)|\b(?:cita|reserva)\s+confirmada|\bte\s+(?:agende|agendé|reserve|reservé)\b/.test(text);
+  return /\b(?:tu|la)\s+cita\s+(?:esta|quedo)\s+(?:confirmada|agendada|reservada)|\b(?:cita|reserva)\s+confirmada|\bte\s+(?:agende|reserve)\b/.test(text);
 }
 function leaksInternalState(text){
   return /canonical_patient_id|identity_state|booking_readiness|next_best_action|evidence_ref|runtime_policy|adapter_contexts|wa4c-|aos_wa4|aos_rev_/.test(text);
@@ -59,7 +59,7 @@ function validate(input){
   if(leaksInternalState(text))addViolation(violations,'INTERNAL_STATE_LEAK');
   for(const code of repeatedKnownQuestion(text,state))addViolation(violations,code);
   if(bookingConfirmation(text)&&booking.confirmation_allowed!==true)addViolation(violations,'UNAUTHORIZED_BOOKING_CONFIRMATION');
-  if(availabilityAssertion(text)&&!availabilityBacked(booking)&&!humanValidation(text))addViolation(violations,'UNSUPPORTED_AVAILABILITY_ASSERTION');
+  if(availabilityAssertion(text)&&!availabilityBacked(booking))addViolation(violations,'UNSUPPORTED_AVAILABILITY_ASSERTION');
   explicitIntentCoverage(intents,text,violations);
 
   return {
