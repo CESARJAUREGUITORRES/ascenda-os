@@ -14,6 +14,8 @@ on:
       - 'app/wa4-copilot.js'
       - 'app/wa4-playbook.js'
       - 'app/wa4-knowledge.js'
+      - 'app/wa4-conversation-runtime-v2.js'
+      - 'app/wa4-conversation-runtime-v2.test.js'
       - 'app/ai-router.js'
       - 'app/public/wa4-copilot-experience.js'
       - 'app/public/wa-shell-integration.js'
@@ -63,6 +65,9 @@ jobs:
           python3 scripts/ci/enforce-zero-cost-policy.py
           node --check app/server-wa3.js
           node --check app/wa-interactive.js
+          node --check app/wa4-conversation-runtime-v2.js
+          node --check app/wa4-conversation-runtime-v2.test.js
+          node --check app/wa4-copilot.js
           node --check app/public/wa4-copilot-experience.js
           node --check app/public/wa-shell-integration.js
           node --check ci/wa4c-full-local/local-network-preload.cjs
@@ -76,6 +81,11 @@ jobs:
           grep -q "apikey_preserved: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
           ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
           ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql
+
+      - name: Conversation Runtime V2 deterministic regression corpus
+        run: |
+          set -euo pipefail
+          node app/wa4-conversation-runtime-v2.test.js
 
       - name: Interactive payload and advisor UI contracts
         run: |
@@ -173,7 +183,7 @@ jobs:
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND' and message_type='interactive_list'")" = "1"
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_routing_control_v1 where human_send_enabled is true and ai_send_enabled is false and auto_routing_enabled is false")" = "1"
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_control_v1 where copilot_enabled is true and auto_reply_enabled is false")" = "1"
-          echo 'WA-4C BETA LOCAL CERTIFIED: Copilot visual contract + explicit human use-response + reply buttons + list messages + signed interactive replies + full client/advisor/Copilot conversation + 7 canaries + clean lint + no autonomous send.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'WA-4C BETA LOCAL CERTIFIED: Conversation Runtime V2 deterministic corpus + Copilot visual contract + explicit human use-response + reply buttons + list messages + signed interactive replies + full client/advisor/Copilot conversation + 7 canaries + clean lint + no autonomous send.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Production remains HUMAN_ONLY / SAFE-OFF. LIVE provider certification is a separate gate.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup local runtime and Supabase
