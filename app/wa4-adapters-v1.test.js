@@ -115,6 +115,7 @@ test('booking resolver blocks future slots when date-specific schedule authority
   assert.equal(out.schedule_source_max_date,'2026-06-26');
   assert.equal(slotCalls,0);
   assert.equal(out.confirmation_allowed,false);
+  assert.equal(out.write_boundary,'GOVERNED_HUMAN_BOOKING_WRITE_V1');
 });
 
 test('booking resolver returns governed real slots only after current schedule authority is fresh',async()=>{
@@ -138,7 +139,8 @@ test('booking resolver returns governed real slots only after current schedule a
   assert.equal(out.exact_requested_time_available,true);
   assert.equal(out.candidate_slots[0].hora,'10:00');
   assert.equal(out.confirmation_allowed,false);
-  assert.equal(out.write_boundary,'NO_GOVERNED_CANONICAL_BOOKING_WRITE');
+  assert.equal(out.human_commit_required,true);
+  assert.equal(out.write_boundary,'GOVERNED_HUMAN_BOOKING_WRITE_V1');
 });
 
 test('booking role authority conflicts fail closed',async()=>{
