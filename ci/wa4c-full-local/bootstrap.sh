@@ -89,6 +89,7 @@ psqlf supabase/migrations/20260829231000_wa4c_campaign_context_map_v1.sql
 # Synthetic booking substrate + exact governed WA booking write.
 psqlf ci/wa4c-full-local/booking_fixture.sql
 psqlf supabase/migrations/20260829235500_wa4c_governed_booking_write_v1.sql
+psqlf supabase/migrations/20260830001500_wa4c_booking_digest_search_path_fix_v1.sql
 
 psqlf ci/wa4c-full-local/seed.sql
 
