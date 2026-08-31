@@ -82,6 +82,15 @@ psqlf supabase/data_patches/20260828_wa4a1b_prunex_knowledge_hardening.sql
 psqlf supabase/migrations/20260828033500_wa4a1c_treatment_pricing_architecture_v1.sql
 psqlf supabase/migrations/20260828142000_wa4a1c_multicurrency_hardening_v1.sql
 psqlf supabase/migrations/20260828235500_wa4c_included_benefit_knowledge_v3.sql
+
+# Governed Meta campaign provenance authority. Empty/fail-closed by default.
+psqlf supabase/migrations/20260829231000_wa4c_campaign_context_map_v1.sql
+
+# Synthetic booking substrate + exact governed WA booking write.
+psqlf ci/wa4c-full-local/booking_fixture.sql
+psqlf supabase/migrations/20260829235500_wa4c_governed_booking_write_v1.sql
+psqlf supabase/migrations/20260830001500_wa4c_booking_digest_search_path_fix_v1.sql
+
 psqlf ci/wa4c-full-local/seed.sql
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
@@ -95,6 +104,9 @@ test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_promociones")
 test "$(psql "$DB_URL" -X -qAt -c "select copilot_enabled and not auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1")" = "t"
 test "$(psql "$DB_URL" -X -qAt -c "select human_send_enabled and not ai_send_enabled and not auto_routing_enabled from public.aos_wa_routing_control_v1 where id=1")" = "t"
 test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_push_subscriptions_v1') is not null")" = "t"
+test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa4_campaign_context_map_v1') is not null")" = "t"
+test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_wa4_campaign_context_map_v1")" = "0"
+test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa4_booking_actions_v1') is not null")" = "t"
 test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_messages_v1' and column_name in ('from_user_id','from_parent_user_id','to_user_id','to_parent_user_id','contact_username')")" = "5"
 test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_wa_conversations_v1' and column_name in ('contact_address','contact_address_type','contact_bsuid','contact_parent_bsuid','contact_username')")" = "5"
 

@@ -1,0 +1,75 @@
+{
+  "version": "WA4C-BOOKING-UAT-V6",
+  "cases": [
+    {
+      "id": "TOXIN_EFFECT_DURATION",
+      "context": {"treatment": "TOXINA_BOTULINICA"},
+      "user": "¿Cuánto dura la toxina?",
+      "must": ["answer_effect_duration_4_6_months", "preserve_treatment_context"],
+      "must_not": ["clarify_goal", "offer_fake_slot"]
+    },
+    {
+      "id": "TOXIN_PROCEDURE_DURATION",
+      "context": {"treatment": "TOXINA_BOTULINICA"},
+      "user": "¿Cuánto dura la aplicación?",
+      "must": ["answer_without_false_precision", "distinguish_procedure_from_effect"],
+      "must_not": ["claim_unreconciled_exact_duration"]
+    },
+    {
+      "id": "TOXIN_ROLE",
+      "context": {"treatment": "TOXINA_BOTULINICA"},
+      "user": "Quiero agendar",
+      "must": ["required_role_DOCTORA", "sunday_closed", "monday_saturday_only"],
+      "must_not": ["route_to_nursing_from_profile_tag", "weekday_weekend_binary_close"]
+    },
+    {
+      "id": "BOOKING_SITE_IF_UNKNOWN",
+      "context": {"booking_intent": "HIGH", "site": null},
+      "user": "Quiero una cita",
+      "must": ["ask_site_once", "continue_booking_state"],
+      "must_not": ["ask_site_if_already_known"]
+    },
+    {
+      "id": "BOOKING_ONE_FIELD_PER_TURN",
+      "context": {"site": "SAN_ISIDRO", "date_preference": "martes"},
+      "user": "martes",
+      "must": ["ask_full_name_only", "collect_one_field_per_turn"],
+      "must_not": ["ask_name_dni_email_in_same_turn"]
+    },
+    {
+      "id": "DNI_DECLINED_CONTINUES",
+      "context": {"booking_stage": "ASK_DNI"},
+      "user": "No lo tengo ahora",
+      "must": ["acknowledge", "continue_to_email"],
+      "must_not": ["block_booking", "repeat_dni_request"]
+    },
+    {
+      "id": "EMAIL_DECLINED_CONTINUES",
+      "context": {"booking_stage": "ASK_EMAIL"},
+      "user": "No uso correo",
+      "must": ["acknowledge", "continue_to_availability"],
+      "must_not": ["block_booking", "repeat_email_request"]
+    },
+    {
+      "id": "NO_REAL_SLOT_FROM_STALE_SOURCE",
+      "context": {"aos_horarios_personal_max_date": "2026-06-26"},
+      "user": "¿Qué hora tienen mañana?",
+      "must": ["fail_closed_on_real_slot", "require_current_date_specific_schedule"],
+      "must_not": ["present_synthetic_slot_as_live"]
+    },
+    {
+      "id": "FINAL_SLOT_REVALIDATION",
+      "context": {"booking_stage": "READY_TO_CONFIRM"},
+      "user": "Ese horario me sirve",
+      "must": ["revalidate_slot_immediately_before_create", "preserve_captured_data"],
+      "must_not": ["create_without_revalidation"]
+    },
+    {
+      "id": "MID_BOOKING_QUESTION",
+      "context": {"booking_stage": "ASK_DNI", "treatment": "TOXINA_BOTULINICA"},
+      "user": "Antes, ¿cuánto dura la toxina?",
+      "must": ["answer_explicit_question", "resume_same_booking_stage"],
+      "must_not": ["restart_booking", "lose_captured_fields"]
+    }
+  ]
+}

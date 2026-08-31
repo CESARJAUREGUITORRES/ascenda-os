@@ -1,0 +1,199 @@
+{
+  "contract": "WA4C-REAL-CONVERSATION-BENCHMARK-V7",
+  "scope": "Anonymized UAT patterns derived from real WhatsApp screenshots supplied by the owner on 2026-08-29. No phone numbers, names, clinical records, or raw media are persisted in this benchmark.",
+  "principles": [
+    "Treat fragmented consecutive inbound messages as one semantic turn when they arrive in a short burst.",
+    "Use campaign/referral context before asking what treatment the user means.",
+    "Answer explicit questions before advancing sales or booking state.",
+    "Support multiple intents in the same turn and answer all material explicit questions.",
+    "Preserve conversation state across topic switches, quoted replies, audio, image/video, and booking interruptions.",
+    "Free-text is the default; buttons are only decision accelerators.",
+    "Booking can start directly from date/time intent without forcing discovery already resolved by campaign or treatment context.",
+    "Hard time constraints must be preserved and used to rank real slots; do not erase them with generic availability questions.",
+    "Audio is a first-class inbound modality: transcribe, normalize, extract multi-intent, retain original media reference, and apply confidence/fail-closed rules.",
+    "Images/video can provide descriptive commercial context but must not be used for autonomous diagnosis or clinical treatment selection."
+  ],
+  "burst_aggregation_policy": {
+    "goal": "Avoid responding separately to rapid fragments such as 'Una cita por favor' + 'Puede ser este viernes' + 'A las 7 pm' + 'Me confirma gracias'.",
+    "runtime_requirement": "Aggregate a short inbound burst into one normalized turn before generating a response when no urgent safety event requires immediate handling.",
+    "must_preserve_order": true,
+    "must_not_drop_earlier_fragments": true
+  },
+  "cases": [
+    {
+      "id": "REAL_V7_01_HARMONIZATION_ALREADY_NAMED",
+      "inbound": ["Hola, información de armonización facial"],
+      "expected": [
+        "Recognize HARMONIZATION_FACIAL from the text itself.",
+        "Do not ask '¿en qué tratamiento estás interesada?'.",
+        "Answer or clarify the requested information using that known treatment context."
+      ]
+    },
+    {
+      "id": "REAL_V7_02_PROVIDER_ROLE_QUERY",
+      "context": {"treatment": "HARMONIZATION_FACIAL"},
+      "inbound": ["¿La doctora es la que atiende?"],
+      "expected": [
+        "Resolve WHO_PERFORMS / PROFESSIONAL_ROLE intent.",
+        "Answer from governed treatment-role authority, not profile tags alone.",
+        "Do not divert to price, location, or generic discovery unless useful after answering."
+      ]
+    },
+    {
+      "id": "REAL_V7_03_PRODUCT_OR_BRAND_OPTIONS",
+      "context": {"treatment": "CAPILAR"},
+      "inbound": ["¿Con qué productos cuentan?"],
+      "expected": [
+        "Resolve PRODUCT_OR_BRAND_OPTIONS.",
+        "Return only governed current products/brands relevant to the known treatment.",
+        "If product choice is clinically dependent, explain that briefly and preserve commercial guidance without diagnosing."
+      ]
+    },
+    {
+      "id": "REAL_V7_04_HARD_TIME_CONSTRAINT",
+      "inbound": ["Para mañana temprano a las 9 am", "Solo tengo disponibilidad a esa hora porque estaré cerca"],
+      "expected": [
+        "Aggregate the two messages into one turn.",
+        "Store requested_date=tomorrow, requested_time=09:00 and constraint_reason=proximity without requiring the reason for booking.",
+        "Query real availability for that exact constraint first.",
+        "If unavailable, offer nearest valid alternatives rather than restarting booking."
+      ]
+    },
+    {
+      "id": "REAL_V7_05_DEFERRED_FOLLOWUP",
+      "inbound": ["Llamaré la próxima semana para coordinar"],
+      "expected": [
+        "Recognize DEFER / FOLLOW_UP_LATER.",
+        "Do not pressure for immediate booking.",
+        "Acknowledge and, if governed follow-up automation exists and consent/policy permits, mark a follow-up opportunity without pretending one was scheduled unless actually created."
+      ]
+    },
+    {
+      "id": "REAL_V7_06_DIRECT_BOOKING_BURST",
+      "context": {"source": "META_AD", "treatment": "TOXINA"},
+      "inbound": ["Buenas tardes", "Una cita por favor", "Puede ser este viernes", "A las 7 pm", "Me confirma gracias"],
+      "expected": [
+        "Aggregate the burst before replying.",
+        "Infer booking_intent=HIGH, preferred_day=Friday, preferred_time=19:00.",
+        "Skip sales discovery already unnecessary for a direct booking request.",
+        "Check governed role and real slot availability, then confirm or offer nearest alternatives.",
+        "Never state confirmed until the slot has been revalidated and the booking write succeeds."
+      ]
+    },
+    {
+      "id": "REAL_V7_07_PROMOTION_FROM_AD_CONTEXT",
+      "context": {"source": "META_AD", "campaign_interest": "BIOESTIMULADOR_COLAGENO"},
+      "inbound": ["Hola, quiero más información", "¿Alguna promoción?"],
+      "expected": [
+        "Use campaign interest automatically.",
+        "Resolve PROMOTION_REQUEST for BIOESTIMULADOR_COLAGENO without asking which treatment.",
+        "Use governed promotion authority; if none active, say so without inventing a discount and optionally provide current price/options."
+      ]
+    },
+    {
+      "id": "REAL_V7_08_FRAGMENTED_PROFILE_ANSWERS",
+      "inbound": ["No, no hago ningún tratamiento", "Tengo 41", "Años"],
+      "expected": [
+        "Aggregate fragments semantically as prior_treatment=false and age=41 when those questions were actually asked in context.",
+        "Do not interpret isolated age as diagnosis or treatment eligibility.",
+        "Use only as conversational context; clinical suitability remains human/governed."
+      ]
+    },
+    {
+      "id": "REAL_V7_09_PRICE_THEN_LOCATION",
+      "context": {"treatment": "BIOESTIMULADOR_COLAGENO"},
+      "inbound": ["Precio", "¿Dónde queda?"],
+      "expected": [
+        "Answer price from current authority, then answer location directly when asked.",
+        "Preserve treatment and campaign context across the topic switch.",
+        "Location reply should include current address and Maps link; booking CTA only after answering."
+      ]
+    },
+    {
+      "id": "REAL_V7_10_MULTI_PRICE",
+      "context": {"treatment": "HIFU"},
+      "inbound": ["Precio de la consulta y la del tratamiento"],
+      "expected": [
+        "Resolve CONSULTATION_PRICE + TREATMENT_PRICE as separate intents.",
+        "Answer both governed prices/promotions in one compact outbound.",
+        "Do not collapse the two into one ambiguous number."
+      ]
+    },
+    {
+      "id": "REAL_V7_11_SINGLE_SESSION_EXPECTATION",
+      "context": {"treatment": "HIFU"},
+      "inbound": ["¿En una sola sesión se consigue mejorar?"],
+      "expected": [
+        "Resolve SESSION_COUNT + EXPECTED_RESULT nuance.",
+        "Answer practical expectation first, then explain evaluation dependence if applicable.",
+        "Do not overpromise outcomes."
+      ]
+    },
+    {
+      "id": "REAL_V7_12_WHERE_IS_CLINIC_OR_OTHER_SITE",
+      "inbound": ["¿Tiene otra sede? Porque vivo en La Molina"],
+      "expected": [
+        "Resolve LOCATION + PROXIMITY_CONSTRAINT.",
+        "Offer governed sites and Maps links.",
+        "If the user later changes preference, overwrite preferred_site and recompute availability without restarting."
+      ]
+    },
+    {
+      "id": "REAL_V7_13_BURST_PRICE_AND_SESSION_COUNT",
+      "context": {"source": "META_AD", "campaign_interest": "BIOESTIMULADOR_COLAGENO"},
+      "inbound": ["Hola, el precio de la sesión", "¿Cuántas sesiones tiene que ser?"],
+      "expected": [
+        "Aggregate or semantically combine adjacent messages.",
+        "Answer PRICE_PER_SESSION and SESSION_COUNT in the same compact response when evidence is available.",
+        "Use campaign context rather than asking the treatment again."
+      ]
+    },
+    {
+      "id": "REAL_V7_14_AUDIO_MULTI_INTENT",
+      "context": {"source": "META_AD"},
+      "inbound_media": {"type": "audio", "example_transcript": "Quería saber cuánto cuesta lo del anuncio, cuántas sesiones son y si tienen sede cerca"},
+      "expected": [
+        "Transcribe audio with confidence metadata.",
+        "Extract PRICE + SESSION_COUNT + LOCATION in one normalized turn.",
+        "Answer all material questions supported by governed sources.",
+        "If transcription confidence is low on a critical entity such as treatment, ask a narrow clarification instead of guessing."
+      ]
+    },
+    {
+      "id": "REAL_V7_15_QUOTED_REPLY_CONTEXT",
+      "inbound": ["reply-to previous treatment message: ¿La doctora es la que atiende?"],
+      "expected": [
+        "Use quoted/replied-to message context when available.",
+        "Do not lose the treatment reference merely because the current text omits it."
+      ]
+    }
+  ],
+  "required_new_intents": [
+    "WHO_PERFORMS",
+    "PRODUCT_OR_BRAND_OPTIONS",
+    "HARD_TIME_CONSTRAINT",
+    "DEFER_OR_FOLLOW_UP_LATER",
+    "SESSION_COUNT",
+    "EXPECTED_RESULT",
+    "CONSULTATION_PRICE",
+    "TREATMENT_PRICE",
+    "PRICE_PER_SESSION",
+    "PROXIMITY_CONSTRAINT"
+  ],
+  "required_runtime_capabilities": [
+    "short-burst inbound aggregation/debounce",
+    "multi-intent extraction",
+    "quoted/replied-to message context",
+    "audio transcription and confidence handling",
+    "campaign referral context",
+    "state preservation across topic switches",
+    "booking constraint memory",
+    "slot revalidation before confirmation"
+  ],
+  "privacy": {
+    "benchmark_must_remain_anonymized": true,
+    "raw_phone_numbers_allowed": false,
+    "raw_patient_names_allowed": false,
+    "raw_media_persistence_in_contract": false
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "version": "WA4C-BOOKING-CONVERSATION-POLICY-V6",
+  "status": "DESIGN_CONTRACT",
+  "scope": "WhatsApp conversational booking handoff",
+  "send_authority": "HUMAN_ONLY",
+  "knowledge_resolution": {
+    "explicit_question_before_booking": true,
+    "treatment_effect_duration_intent": "ANSWER_FROM_GOVERNED_KNOWLEDGE",
+    "treatment_procedure_duration_intent": "ANSWER_FROM_GOVERNED_KNOWLEDGE",
+    "toxin_effect_duration_current": "4-6 months",
+    "toxin_effect_onset_current": "48-72 hours",
+    "toxin_full_effect_current": "7-14 days",
+    "toxin_procedure_duration_evidence": ["10-15 minutes", "15-20 minutes"],
+    "procedure_duration_conflict_action": "USE_NON_FALSE_PRECISION_OR_RECONCILE_AUTHORITY"
+  },
+  "treatment_role_authority": {
+    "primary_source": "aos_catalogo_servicios.requiere_doctora/requiere_enfermeria",
+    "secondary_policy": "aos_wa4_process_role_policy_v1",
+    "professional_profile_service_tags_are_not_authorization": true,
+    "toxin": {
+      "requires_doctor": true,
+      "requires_nursing": false
+    },
+    "active_service_counts": {
+      "doctor_and_nursing": 23,
+      "doctor_only": 68,
+      "nursing_only": 91,
+      "neither_flag": 52
+    }
+  },
+  "operating_days": {
+    "booking_authority": "aos_config_horarios",
+    "monday_to_saturday": true,
+    "sunday": false,
+    "public_hours_drift_detected": true,
+    "drift_note": "aos_sedes_geo public hours differ from aos_config_horarios and must be reconciled before LIVE"
+  },
+  "recurring_role_windows": {
+    "source": "aos_horarios_profesional",
+    "doctor": {
+      "monday_to_friday": "10:00-18:00",
+      "saturday": "10:00-14:00",
+      "slot_minutes": 30
+    },
+    "nursing": {
+      "monday_to_friday": "10:00-20:30",
+      "saturday": "10:00-16:00",
+      "slot_minutes": 45
+    }
+  },
+  "exact_slot_resolution": {
+    "current_rpc": "aos_slots_disponibles",
+    "current_date_specific_source": "aos_horarios_personal",
+    "source_is_stale": true,
+    "source_max_date_observed": "2026-06-26",
+    "live_rule": "NEVER_PRESENT_A_SLOT_AS_REAL_UNTIL_DATE_SPECIFIC_AUTHORITY_IS_CURRENT_AND_SLOT_IS_REVALIDATED",
+    "final_booking_rule": "REVALIDATE_SLOT_IMMEDIATELY_BEFORE_CREATE"
+  },
+  "booking_dialogue": {
+    "no_weekday_weekend_binary_close": true,
+    "default_flow": [
+      "CONFIRM_TREATMENT_AND_ROLE",
+      "STATE_VALID_SERVICE_DAYS_AND_ROLE_WINDOW",
+      "ASK_PREFERRED_DAY_OR_DATE",
+      "START_DATA_CAPTURE_WHILE_AVAILABILITY_IS_RESOLVED",
+      "ASK_FULL_NAME",
+      "ASK_DNI",
+      "ASK_EMAIL",
+      "PRESENT_REAL_AVAILABILITY_OR_RANGE",
+      "ASK_TIME_PREFERENCE",
+      "REVALIDATE_SLOT",
+      "CREATE_APPOINTMENT",
+      "SEND_CONFIRMATION"
+    ],
+    "one_data_field_per_turn": true,
+    "tell_user_data_are_collected_one_by_one": true,
+    "trusted_whatsapp_phone_should_be_reused": true,
+    "dni": {
+      "ask": true,
+      "blocking": false,
+      "if_declined": "ACKNOWLEDGE_AND_CONTINUE"
+    },
+    "email": {
+      "ask": true,
+      "blocking": false,
+      "if_declined": "ACKNOWLEDGE_AND_CONTINUE"
+    },
+    "existing_verified_patient": "REUSE_TRUSTED_EXISTING_FIELDS_AND_ASK_ONLY_MISSING_REQUIRED_DATA",
+    "mid_booking_question": "ANSWER_EXPLICIT_QUESTION_THEN_RESUME_EXACT_BOOKING_STAGE",
+    "anti_repeat": true
+  },
+  "booking_write_boundary": {
+    "existing_rpc": "aos_agendar_publica",
+    "required_runtime_adapter": true,
+    "adapter_must_use_canonical_identity": true,
+    "adapter_must_not_bind_identity_by_name_only": true,
+    "adapter_must_preserve_campaign_and_lead_attribution": true
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "version": "WA4C-COMMERCIAL-CAMPAIGN-POLICY-V5",
+  "status": "USER_APPROVED_PENDING_GOVERNED_SOURCE",
+  "response_priority_extension": [
+    "CONSULTATION_PRICE",
+    "CAMPAIGN_PROMOTION_ELIGIBILITY",
+    "BOOKING_NEXT_BEST_ACTION"
+  ],
+  "consultation": {
+    "regular_price_pen": 100,
+    "first_consultation_free_when_campaign_eligible": true,
+    "source_status": "NOT_PRESENT_IN_CURRENT_CATALOG_AS_GENERIC_CONSULTATION",
+    "do_not_claim_live_until_registered_in_current_authority": true
+  },
+  "campaign_urgency": {
+    "goal": "ETHICAL_URGENCY_WITHOUT_FALSE_SCARCITY",
+    "user_approved_example": "If contacted on Monday, communicate validity through Saturday.",
+    "runtime_rule_status": "NEEDS_FINAL_FREEZE_BEFORE_LIVE",
+    "candidate_rule": "NEXT_SATURDAY_WITHIN_CAMPAIGN_ELIGIBILITY_WINDOW",
+    "prohibit_invented_expiry": true
+  },
+  "intent_rules": {
+    "consultation_price_examples": [
+      "cuanto cuesta la consulta",
+      "la consulta tiene costo",
+      "antes de agendar tiene costo",
+      "cuanto cuesta la evaluacion"
+    ],
+    "must_answer_price_before_booking": true,
+    "must_preserve_existing_treatment_and_site_context": true,
+    "anti_repeat_guard": true
+  },
+  "promotion_rules": {
+    "formal_promotion_authority": "aos_promociones",
+    "catalog_offer_authority": "aos_catalogo_servicios.precio_oferta",
+    "no_active_promotion_behavior": "EXPLAIN_NO_ADDITIONAL_PROMO_AND_OFFER_CURRENT_PRICE",
+    "unsupported_promotion": "FAIL_CLOSED"
+  },
+  "site_authority": {
+    "table": "aos_sedes_geo",
+    "fields": ["direccion", "maps_link", "horario_lv", "horario_finde", "activa"]
+  },
+  "safety": {
+    "send_authority": "HUMAN_ONLY",
+    "auto_send": false,
+    "no_false_discount": true,
+    "no_false_expiry": true
+  }
+}

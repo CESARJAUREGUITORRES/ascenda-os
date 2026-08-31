@@ -134,8 +134,12 @@ if (!global.__ASCENDA_WA4C_FULL_LOCAL_PRELOAD__) {
     const req = JSON.parse(raw || '{}');
     const messages = Array.isArray(req.messages) ? req.messages : [];
     const system = String(messages[0] && messages[0].content || '');
+    const model = String(req.model || 'openai/gpt-oss-20b');
     let response;
-    if (system.includes('Evalúa MENSAJE DEL CLIENTE')) {
+    const safetyCall = model.toLowerCase().includes('safeguard') ||
+      system.includes('Evalúa MENSAJE DEL CLIENTE') ||
+      system.includes('Evalúa TURNO SEMÁNTICO DEL CLIENTE');
+    if (safetyCall) {
       response = { allow: true, category: 'SAFE', rationale: 'FULL_LOCAL deterministic safety pass.' };
     } else {
       const user = [...messages].reverse().find(x => x && x.role === 'user');
@@ -188,7 +192,6 @@ if (!global.__ASCENDA_WA4C_FULL_LOCAL_PRELOAD__) {
         reason: 'FULL_LOCAL_DETERMINISTIC_PROVIDER'
       };
     }
-    const model = String(req.model || 'openai/gpt-oss-20b');
     return { body: {
       id: 'chatcmpl-local-' + Date.now(), object: 'chat.completion', model,
       choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(response) }, finish_reason: 'stop' }],
