@@ -5,19 +5,19 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-08-21-v4.2.1';
+var RELEASE='2026-08-31-v4.2.2-organic-paid-boundary';
 if(window.__AOS_MKT4&&window.__AOS_MKT4.destroy){
   try{window.__AOS_MKT4.destroy();}catch(e){}
 }
 
 var alive=true, cycle=0, ctl=null, timers=[], wraps={};
-var S={kpi:null,summary:null,history:[],ltv:[],attr:null,intent:[],intentDetail:[]};
+var S={kpi:null,summary:null,campaigns:[],history:[],ltv:[],attr:null,intent:[],intentDetail:[]};
 
 function $id(x){return document.getElementById(x);}
 function N(v){var x=Number(v);return Number.isFinite(x)?x:0;}
 function R2(v){return Math.round(N(v)*100)/100;}
 function M(v){return 'S/'+Math.round(N(v)).toLocaleString('es-PE');}
-function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c];});}
 function A(v){
   if(Array.isArray(v))return v;
   if(v&&Array.isArray(v.ltv))return v.ltv;
@@ -46,6 +46,7 @@ var B={
   mkL:U(window.mkL),
   rKPI:U(window.rKPI),
   rEmb:U(window.rEmb),
+  rCamp:U(window.rCamp),
   rHist:U(window.rHist),
   rLTV:U(window.rLTV)
 };
@@ -55,6 +56,31 @@ function call(fn,args){
   catch(e){console.warn('[MKT4.2] legacy:',e);}
 }
 function hook(n,fn){fn.__mkt4base=B[n];wraps[n]=fn;window[n]=fn;}
+
+function organicCampaign(){
+  var rows=S.campaigns||[];
+  for(var i=0;i<rows.length;i++){
+    var name=String(rows[i]&&((rows[i].nombre!=null)?rows[i].nombre:rows[i].tratamiento)||'').trim().toUpperCase();
+    if(name==='ORGANICO'||name==='ORGÁNICO')return rows[i];
+  }
+  return null;
+}
+
+function styleOrganicRow(){
+  var body=$id('mk-camp');if(!body)return;
+  Array.prototype.forEach.call(body.querySelectorAll('tr'),function(tr){
+    var td=tr.querySelector('td');if(!td)return;
+    var raw=(td.getAttribute('data-organic-label')||td.textContent||'').trim().toUpperCase();
+    if(raw.indexOf('ORGANICO')!==0&&raw.indexOf('ORGÁNICO')!==0)return;
+    td.setAttribute('data-organic-label','ORGANICO');
+    tr.style.background='#F0FDFA';
+    tr.style.boxShadow='inset 3px 0 0 #00C9A7';
+    Array.prototype.forEach.call(tr.querySelectorAll('td'),function(c){c.style.background='#F0FDFA';});
+    if(!td.querySelector('.mk-organic-badge')){
+      td.innerHTML='<span class="mk-organic-badge" style="display:inline-block;padding:2px 7px;border-radius:999px;background:#CCFBF1;color:#0D9488;font-size:8px;font-weight:800;letter-spacing:.25px">ORGÁNICO</span>';
+    }
+  });
+}
 
 function rpc(fn,p,sig){
   return fetch(SB+'/rest/v1/rpc/'+fn,{
@@ -141,7 +167,10 @@ function renderTrace(s){
 
 function renderTop(){
   if(!S.summary||!month())return;
-  var s=S.summary,k={},old=S.kpi||{},inv=N(old.invTotal);
+  var s=S.summary,k={},old=S.kpi||{},inv=N(old.invTotal),org=organicCampaign();
+  var organicFact=org?N(org.fact_mes!=null?org.fact_mes:org.fact_m0):0;
+  var organicClients=org?N(org.clientes!=null?org.clientes:org.clientes_m0):0;
+  var paidClients=Math.max(0,N(s.clientesM0)-organicClients);
   Object.keys(old).forEach(function(x){k[x]=old[x];});
   k.leads=N(s.personasUnicas);
   k.llamados=N(s.personasGestionadas);
@@ -149,10 +178,10 @@ function renderTop(){
   k.asistieron=N(s.personasAsistieron);
   k.clientes=N(s.clientesM0);
   k.nVentas=N(s.ventasM0);
-  k.factTotal=N(s.factM0);
+  k.factTotal=Math.max(0,N(s.factM0)-organicFact);
   k.pctLlamados=k.leads?R2(k.llamados/k.leads*100):0;
   k.roas=inv?R2(k.factTotal/inv):0;
-  k.cac=k.clientes&&inv?Math.round(inv/k.clientes):null;
+  k.cac=paidClients&&inv?Math.round(inv/paidClients):null;
   k.cpl=k.leads&&inv?R2(inv/k.leads):null;
   call(B.rKPI,[k]);
 
@@ -169,7 +198,7 @@ function renderTop(){
   var e=$id('mk-emb'),o=$id('mk4-fnote');if(o)o.remove();
   if(e){
     o=document.createElement('div');o.id='mk4-fnote';o.style.cssText='font-size:8px;color:#6B7BA8;margin-top:5px';
-    o.innerHTML='<b>Nota:</b> Ventas = operaciones. El último ratio puede superar 100%; no es conversión de personas.';
+    o.innerHTML='<b>Nota:</b> Ventas = operaciones. Facturación, ROAS y CAC excluyen ORGANICO; la fila orgánica permanece visible abajo. El último ratio puede superar 100%; no es conversión de personas.';
     e.appendChild(o);
   }
 }
@@ -323,6 +352,7 @@ function loadAll(){
 
 hook('rKPI',function(k){S.kpi=k||{};call(B.rKPI,[k]);if(S.summary)renderTop();});
 hook('rEmb',function(e){call(B.rEmb,[e]);if(S.summary)L(renderTop,5);});
+hook('rCamp',function(rows){S.campaigns=rows||[];call(B.rCamp,[rows]);L(styleOrganicRow,0);if(S.summary)L(renderTop,5);});
 hook('rHist',function(){if(S.history.length)renderHistory(S.history);});
 hook('rLTV',function(){if(S.ltv.length)renderLtv(S.ltv);});
 hook('mkL',function(){
@@ -339,6 +369,6 @@ function destroy(){
 window.__AOS_MKT4={release:RELEASE,reload:loadAll,destroy:destroy,state:S};
 window.__AOS_MARKETING_V3_ACTIVE=false;
 window.__AOS_MARKETING_V3_CONSISTENCY_PATCH=false;
-traceBox();insights();L(loadAll,1200);
-console.log('[ASCENDA] Marketing V4.2 mounted — serialized annual analytics');
+traceBox();insights();L(loadAll,1200);L(styleOrganicRow,1400);
+console.log('[ASCENDA] Marketing V4.2 mounted — paid KPI boundary excludes ORGANICO');
 })();
