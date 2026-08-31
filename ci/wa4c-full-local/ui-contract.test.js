@@ -7,6 +7,8 @@ const root=path.resolve(__dirname,'../..');
 const ui=fs.readFileSync(path.join(root,'app/public/wa4-copilot-experience.js'),'utf8');
 const shell=fs.readFileSync(path.join(root,'app/public/wa-shell-integration.js'),'utf8');
 const wa3=fs.readFileSync(path.join(root,'app/server-wa3.js'),'utf8');
+const agenda=fs.readFileSync(path.join(root,'app/public/agendar-v2.html'),'utf8');
+const agendaLegacy=fs.readFileSync(path.join(root,'app/public/agendar.html'),'utf8');
 
 test('native shell mounts and refreshes WA-4 Copilot experience',()=>{
   assert.match(shell,/wa4-copilot-experience\.js/);
@@ -53,4 +55,14 @@ test('server does not introduce AI send or auto-routing mutation',()=>{
   assert.doesNotMatch(ui,/ai_send_enabled\s*[:=]\s*true/);
   assert.doesNotMatch(ui,/auto_reply_enabled\s*[:=]\s*true/);
   assert.doesNotMatch(ui,/auto_routing_enabled\s*[:=]\s*true/);
+});
+
+test('public agenda consumes the same canonical booking authority as WA-4C',()=>{
+  assert.match(agenda,/aos_booking_public_catalog_v2/);
+  assert.match(agenda,/aos_booking_availability_v2/);
+  assert.match(agenda,/aos_agendar_publica_v2/);
+  assert.match(agenda,/SITE_POOL/);
+  assert.match(agenda,/Enfermería de turno/);
+  assert.match(agenda,/p_profesional_id:AG\.slot\.mode==='EXACT_PROVIDER'\?AG\.slot\.professional_id:null/);
+  assert.match(agendaLegacy,/agendar-v2\.html/);
 });
