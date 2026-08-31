@@ -99,48 +99,81 @@ test('identity conflict fails closed and never reads patient row',async()=>{
   assert.equal(reads,0);
 });
 
-test('booking resolver blocks future slots when date-specific schedule authority is stale',async()=>{
-  let slotCalls=0;
+test('booking resolver blocks future slots when role-specific schedule authority is stale',async()=>{
+  let authorityCalls=0;
   const a=booking.createBookingResolver({
     serviceGet:async path=>{
-      if(path.includes('aos_catalogo_servicios'))return {data:[{id:UUID,nombre:'TOXINA',requiere_doctora:true,requiere_enfermeria:false,estado:'ACTIVO'}]};
+      if(path.includes('aos_catalogo_servicios'))return {data:[{id:UUID,nombre:'TOXINA',categoria:'TOXINA',requiere_doctora:true,requiere_enfermeria:false,estado:'ACTIVO'}]};
       if(path.includes('aos_config_horarios'))return {data:[{sede:'SAN ISIDRO',dia_semana:6,activo:true}]};
-      if(path.includes('aos_horarios_personal'))return {data:[{fecha:'2026-06-26'}]};
+      if(path.includes('aos_horarios_personal')){assert.ok(path.includes('rol=eq.DOCTORA'));return {data:[{fecha:'2026-06-26'}]};}
       throw new Error('unexpected '+path);
     },
-    serviceRpc:async()=>{slotCalls++;return {data:{ok:true,slots:[]}};}
+    serviceRpc:async()=>{authorityCalls++;return {data:{ok:true,slots:[]}};}
   });
   const out=await a.resolve({runtime:{booking_readiness:'HIGH',intents:['BOOKING','SCHEDULE'],state:{requested_day:'SABADO',requested_time:'10:00',site:'SAN_ISIDRO',time_constraint:'HARD'}},processContexts:[{entity_id:UUID}],now:new Date('2026-08-29T12:00:00Z')});
   assert.equal(out.status,'SCHEDULE_SOURCE_STALE');
   assert.equal(out.schedule_source_max_date,'2026-06-26');
-  assert.equal(slotCalls,0);
+  assert.equal(authorityCalls,0);
   assert.equal(out.confirmation_allowed,false);
   assert.equal(out.write_boundary,'GOVERNED_HUMAN_BOOKING_WRITE_V1');
 });
 
-test('booking resolver returns governed real slots only after current schedule authority is fresh',async()=>{
+test('booking resolver consumes canonical exact-provider authority for doctors',async()=>{
   const a=booking.createBookingResolver({
     serviceGet:async path=>{
-      if(path.includes('aos_catalogo_servicios'))return {data:[{id:UUID,nombre:'TOXINA',requiere_doctora:true,requiere_enfermeria:false,estado:'ACTIVO'}]};
+      if(path.includes('aos_catalogo_servicios'))return {data:[{id:UUID,nombre:'HUTOX 3 ZONAS 50U',categoria:'TOXINA',requiere_doctora:true,requiere_enfermeria:false,estado:'ACTIVO'}]};
       if(path.includes('aos_config_horarios'))return {data:[{sede:'SAN ISIDRO',dia_semana:6,activo:true,hora_apertura:'09:00:00',hora_cierre:'19:00:00'}]};
-      if(path.includes('aos_horarios_personal'))return {data:[{fecha:'2026-08-29'}]};
-      if(path.includes('aos_perfiles_profesional'))return {data:[{id:'doc1',nombre_publico:'Dra. Test',tipo:'DOCTORA',sede:'TODAS',visible:true}]};
+      if(path.includes('aos_horarios_personal'))return {data:[{fecha:'2026-09-22'}]};
       throw new Error('unexpected '+path);
     },
     serviceRpc:async(name,args)=>{
-      assert.equal(name,'aos_slots_disponibles');
+      assert.equal(name,'aos_booking_availability_v2');
+      assert.equal(args.p_treatment_id,UUID);
       assert.equal(args.p_fecha,'2026-08-29');
-      return {data:{ok:true,slots:[{hora:'09:30',sede:'SAN ISIDRO',disponible:true,libres:1,capacidad:5},{hora:'10:00',sede:'SAN ISIDRO',disponible:true,libres:2,capacidad:5}]}};
+      return {data:{ok:true,status:'REAL_SLOTS_READY',role:'DOCTORA',mode:'EXACT_PROVIDER',capability:'TOXINA',slots:[
+        {hora:'09:30',sede:'SAN ISIDRO',professional_id:'doc1',professional_name:'Dra. Test',role:'DOCTORA',mode:'EXACT_PROVIDER',disponible:true,libres:1,capacidad:5},
+        {hora:'10:00',sede:'SAN ISIDRO',professional_id:'doc1',professional_name:'Dra. Test',role:'DOCTORA',mode:'EXACT_PROVIDER',disponible:true,libres:2,capacidad:5}
+      ]}};
     }
   });
   const runtime={booking_readiness:'HIGH',intents:['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT'],state:{requested_day:'SABADO',requested_time:'10:00',site:'SAN_ISIDRO',time_constraint:'HARD'}};
   const out=await a.resolve({runtime,processContexts:[{entity_id:UUID}],now:new Date('2026-08-29T12:00:00Z')});
   assert.equal(out.status,'REAL_SLOTS_READY');
+  assert.equal(out.booking_mode,'EXACT_PROVIDER');
+  assert.equal(out.capability,'TOXINA');
   assert.equal(out.exact_requested_time_available,true);
   assert.equal(out.candidate_slots[0].hora,'10:00');
+  assert.equal(out.candidate_slots[0].professional_id,'doc1');
   assert.equal(out.confirmation_allowed,false);
   assert.equal(out.human_commit_required,true);
-  assert.equal(out.write_boundary,'GOVERNED_HUMAN_BOOKING_WRITE_V1');
+});
+
+test('booking resolver consumes nursing SITE_POOL authority without promising a nurse',async()=>{
+  const nurseTreatment='33333333-3333-4333-8333-333333333333';
+  const a=booking.createBookingResolver({
+    serviceGet:async path=>{
+      if(path.includes('aos_catalogo_servicios'))return {data:[{id:nurseTreatment,nombre:'HIDROFACIAL ROSTRO',categoria:'FACIALES',requiere_doctora:false,requiere_enfermeria:true,estado:'ACTIVO'}]};
+      if(path.includes('aos_config_horarios'))return {data:[{sede:'SAN ISIDRO',dia_semana:2,activo:true}]};
+      if(path.includes('aos_horarios_personal')){assert.ok(path.includes('rol=eq.ENFERMERIA'));return {data:[{fecha:'2026-09-30'}]};}
+      throw new Error('unexpected '+path);
+    },
+    serviceRpc:async(name,args)=>{
+      assert.equal(name,'aos_booking_availability_v2');
+      assert.equal(args.p_profesional_id,null);
+      return {data:{ok:true,status:'REAL_SLOTS_READY',role:'ENFERMERIA',mode:'SITE_POOL',capability:'HIDROFACIAL',slots:[
+        {hora:'11:00',sede:'SAN ISIDRO',professional_id:null,professional_name:'Enfermería',role:'ENFERMERIA',mode:'SITE_POOL',member_count:2,disponible:true,libres:4,capacidad:4}
+      ]}};
+    }
+  });
+  const runtime={booking_readiness:'HIGH',intents:['BOOKING','SCHEDULE'],state:{requested_day:'MARTES',requested_time:'11:00',site:'SAN_ISIDRO'}};
+  const out=await a.resolve({runtime,processContexts:[{entity_id:nurseTreatment}],now:new Date('2026-08-31T12:00:00Z')});
+  assert.equal(out.status,'REAL_SLOTS_READY');
+  assert.equal(out.booking_mode,'SITE_POOL');
+  assert.equal(out.capability,'HIDROFACIAL');
+  assert.equal(out.candidate_slots[0].professional_id,null);
+  assert.equal(out.candidate_slots[0].professional_name,'Enfermería');
+  assert.equal(out.candidate_slots[0].capacidad,4);
+  assert.equal(out.candidate_slots[0].member_count,2);
 });
 
 test('booking role authority conflicts fail closed',async()=>{
@@ -155,5 +188,5 @@ test('booking role authority conflicts fail closed',async()=>{
     serviceRpc:async()=>({data:{}})
   });
   const out=await a.resolve({runtime:{booking_readiness:'HIGH',intents:['BOOKING'],state:{requested_day:'SABADO',site:'SAN_ISIDRO'}},processContexts:[{entity_id:UUID},{entity_id:'22222222-2222-4222-8222-222222222222'}],now:new Date('2026-08-29T12:00:00Z')});
-  assert.equal(out.status,'ROLE_AUTHORITY_CONFLICT');
+  assert.equal(out.status,'TREATMENT_SELECTION_REQUIRED');
 });
