@@ -1,0 +1,106 @@
+name: ASCENDA AGV2 Unified Booking Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/control/AGV2_*'
+      - 'supabase/migrations/*agv2*'
+      - 'supabase/rollbacks/*agv2*'
+      - 'ci/agv2/**'
+      - '.github/workflows/agv2-unified-booking-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agv2-unified-booking-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: ZERO-COST · Agenda + WhatsApp transactional BOOK/REBOOK
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Static AGV2 contract
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --check ci/agv2/unified-booking-contract.test.js
+          node --test ci/agv2/unified-booking-contract.test.js
+          grep -q 'BUSINESS_FROZEN' docs/control/AGV2_1_CONVERSATIONAL_BOOKING_CONTRACT_DRAFT.md
+          ! grep -Eqi '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+
+      - name: Wait for isolated local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 60); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'AGV2_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+
+      - name: Build isolated booking substrate
+        run: bash ci/wa4c-full-local/bootstrap.sh
+
+      - name: Apply CURRENT booking authority + AGV2 migration in TEST only
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003500_wa4c_team_skill_catalog_classification_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+
+      - name: AGV2 BOOK + idempotency + ownership + REBOOK canary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/agv2/unified-booking-canary.sql 2>&1 | tee /tmp/agv2-canary.txt
+          grep -q 'AGV2_UNIFIED_BOOKING_CANARY_PASS' /tmp/agv2-canary.txt
+
+      - name: Schema and safety assertions
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_booking_operations_v2') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_agenda_events_v2') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_agenda_commit_booking_v2(text,text,jsonb)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa4_commit_booking_v2(uuid,text,uuid,jsonb)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2 where operation_type='BOOK'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2 where operation_type='REBOOK'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_events_v2 where event_type='BOOKED'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_events_v2 where event_type='RESCHEDULED'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_routing_control_v1 where human_send_enabled=true and ai_send_enabled=false and auto_routing_enabled=false")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_ai_control_v1 where copilot_enabled=true and auto_reply_enabled=false")" = '1'
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/agv2-lint.txt
+          if grep -q '\[ERROR\]' /tmp/agv2-lint.txt; then exit 1; fi
+          echo 'AGV2-2 UNIFIED TRANSACTIONAL BOOKING CONTRACT PASS' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
