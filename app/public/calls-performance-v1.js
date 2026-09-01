@@ -12,6 +12,17 @@ function stable(v){
   return '{'+Object.keys(v).sort().map(function(k){return JSON.stringify(k)+':'+stable(v[k]);}).join(',')+'}';
 }
 
+function callCenterTokenCandidates(){
+  var out=[];
+  function add(v){v=String(v||'').trim();if(v&&out.indexOf(v)<0)out.push(v);}
+  // The F4 strong-session bridge keeps the canonical app token in sessionStorage.
+  // Prefer it over the legacy shell getter, which can remain stale after token sync.
+  try{add(sessionStorage.getItem('aos_app_token'));}catch(_e){}
+  try{if(window.AOS_getToken)add(window.AOS_getToken());}catch(_e2){}
+  try{add(window.CC&&CC.token);}catch(_e3){}
+  return out;
+}
+
 function install(){
   if(window.__AOS_CC_LOOP6_POSTLOAD_READY__!=='v2.3-postload')return false;
   if(typeof window._rpc!=='function')return false;
@@ -37,6 +48,29 @@ function install(){
     });
   }
 
+  function callBase(actual,p,ok,fail){
+    var governed=/^aos_callcenter_(prepare_action_v1|commit_action_v1|confirm_queue_appointment_v1)$/.test(actual);
+    if(!governed)return base(actual,p,ok,fail);
+
+    var candidates=callCenterTokenCandidates();
+    var i=0;
+    function attempt(){
+      var body=Object.assign({},p||{});
+      if(candidates.length)body.p_token=candidates[i++];
+      return base(actual,body,function(d){
+        // UNAUTHORIZED is a fail-closed response before any governed mutation.
+        // Retry only with the next already-present session candidate; never bypass auth.
+        if(d&&d.ok===false&&d.error==='UNAUTHORIZED'&&i<candidates.length){attempt();return;}
+        if(d&&d.ok===true&&body.p_token){
+          try{sessionStorage.setItem('aos_app_token',body.p_token);}catch(_e){}
+          if(window.CC)CC.token=body.p_token;
+        }
+        if(ok)ok(d);
+      },fail);
+    }
+    return attempt();
+  }
+
   function perfRpc(fn,p,ok,fail){
     // calls.js still invokes _v2. The certified selector is aos_siguiente_lead;
     // because `base` is Loop6, CONTACT_DEBT/lead lineage metadata is preserved.
@@ -48,7 +82,7 @@ function install(){
     var coalesceOnly=actual==='aos_siguiente_lead';
 
     if(!ms&&!coalesceOnly){
-      return base(actual,p,function(d){
+      return callBase(actual,p,function(d){
         if(isWrite&&d&&d.ok===true)clearOperationalCache();
         if(ok)ok(d);
       },fail);
@@ -65,7 +99,7 @@ function install(){
 
     var waiters=[{ok:ok,fail:fail}];
     pending.set(key,waiters);
-    return base(actual,p,function(d){
+    return callBase(actual,p,function(d){
       pending.delete(key);
       if(ms)cache.set(key,{at:Date.now(),data:d});
       deliver(waiters,'ok',d);
@@ -99,8 +133,8 @@ function install(){
     window.loadLead=guardedLoadLead;
   }
 
-  window.__AOS_CC_PERF_V1__={version:'v1.1',installedAt:new Date().toISOString(),clear:clearOperationalCache};
-  console.log('[ASCENDA][CC-PERF] P0 read coalescing + single-flight lead selector active');
+  window.__AOS_CC_PERF_V1__={version:'v1.2',installedAt:new Date().toISOString(),clear:clearOperationalCache};
+  console.log('[ASCENDA][CC-PERF] P0 read coalescing + canonical strong-session auth active');
   return true;
 }
 
