@@ -18,8 +18,8 @@ permissions:
 
 jobs:
   p0-contract:
-    name: Hosted P0 performance + governed status contract
-    runs-on: ubuntu-latest
+    name: Self-hosted P0 performance + governed status contract
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
