@@ -67,7 +67,25 @@ jobs:
           # Compact FULL LOCAL intentionally omits the Equipo skills array. The real
           # production schema has it; add only the missing TEST compatibility column.
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];"
-          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          # Reuse the real hierarchy DDL/functions. Its terminal 234-service coverage
+          # assertion is valid only against the complete production catalog, not this
+          # deliberately reduced FULL LOCAL catalog, so omit that assertion in TEST.
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path('supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql').read_text()
+          needle = "'WA4C_SKILL_HIERARCHY_UNMAPPED_ACTIVE_SERVICES:%'"
+          pos = src.find(needle)
+          if pos < 0:
+              raise SystemExit('L2_TEST_SKILL_ASSERTION_MARKER_NOT_FOUND')
+          start = src.rfind('\ndo $$', 0, pos)
+          end = src.find('\n$$;', pos)
+          if start < 0 or end < 0:
+              raise SystemExit('L2_TEST_SKILL_ASSERTION_BLOCK_NOT_FOUND')
+          end += len('\n$$;')
+          out = src[:start] + "\n-- TEST ONLY: global production catalog coverage assertion omitted here.\n" + src[end:]
+          Path('/tmp/wa4c-professional-skill-hierarchy-l2-test.sql').write_text(out)
+          PY
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/wa4c-professional-skill-hierarchy-l2-test.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
