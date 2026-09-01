@@ -61,13 +61,15 @@ jobs:
 
           # FULL LOCAL intentionally keeps a compact catalog. Add only deterministic
           # TEST representatives needed to exercise L2 procedure-specific timing.
+          # Use exact names here because booking normalization is created later in this
+          # same TEST bootstrap; these rows are synthetic and deterministic.
           psql "$DB" -X -v ON_ERROR_STOP=1 <<'SQL'
           insert into public.aos_catalogo_servicios(
             nombre,nombre_corto,tipo,categoria,estado,requiere_doctora,requiere_enfermeria,precio_base,precio_oferta,moneda
           )
           select 'CELLBOOSTER GLOW x1','CELLBOOSTER GLOW x1','SERVICIO','BIOREVITALIZACION FACIAL','ACTIVO',true,false,100,90,'PEN'
           where not exists (
-            select 1 from public.aos_catalogo_servicios where public.aos_booking_norm_v1(nombre)=public.aos_booking_norm_v1('CELLBOOSTER GLOW x1')
+            select 1 from public.aos_catalogo_servicios where nombre='CELLBOOSTER GLOW x1'
           );
 
           insert into public.aos_catalogo_servicios(
@@ -75,7 +77,7 @@ jobs:
           )
           select 'FACIAL COREANO','FACIAL COREANO','SERVICIO','FACIALES','ACTIVO',false,true,100,90,'PEN'
           where not exists (
-            select 1 from public.aos_catalogo_servicios where public.aos_booking_norm_v1(nombre)=public.aos_booking_norm_v1('FACIAL COREANO')
+            select 1 from public.aos_catalogo_servicios where nombre='FACIAL COREANO'
           );
           SQL
 
