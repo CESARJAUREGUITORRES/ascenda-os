@@ -64,6 +64,9 @@ jobs:
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831235500_wa4c_catalog_capability_reconciliation_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          # Compact FULL LOCAL intentionally omits the Equipo skills array. The real
+          # production schema has it; add only the missing TEST compatibility column.
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];"
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
