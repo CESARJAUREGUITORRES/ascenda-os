@@ -5,17 +5,19 @@ const assert=require('node:assert/strict')
 const fs=require('node:fs')
 
 const migration=fs.readFileSync('supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql','utf8')
+const revisionFix=fs.readFileSync('supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql','utf8')
 const rollback=fs.readFileSync('supabase/rollbacks/20260901193000_agv2_l3_delivery_outbox_v3_rollback.sql','utf8')
 const server=fs.readFileSync('app/server.js','utf8')
 
 function has(s){assert.ok(migration.includes(s),`missing contract: ${s}`)}
+function hasFix(s){assert.ok(revisionFix.includes(s),`missing active-revision fix: ${s}`)}
 
 test('L3 is durable/idempotent and remains dormant until L4',()=>{
   has('aos_agenda_delivery_outbox_v3')
   has('idempotency_key text not null unique')
   has("state text not null default 'DORMANT'")
   has("'dispatch_boundary','L4_AUTHORITY_REQUIRED'")
-  assert.equal(/sendResend|graph\.facebook\.com|https:\/\//i.test(migration),false,'DDL must not perform provider network dispatch')
+  assert.equal(/sendResend|graph\.facebook\.com|https:\/\//i.test(migration+revisionFix),false,'DDL must not perform provider network dispatch')
 })
 
 test('booking event projection is fail-soft and repairable',()=>{
@@ -39,6 +41,14 @@ test('TODAY/TOMORROW reminders are local-time, V2-only, and idempotent',()=>{
   has("exists(select 1 from public.aos_agenda_events_v2 e where e.appointment_id=c.id)")
   has("'REMINDER_TODAY' else 'REMINDER_TOMORROW'")
   has("v_key:='agv2-l3:'||p_schedule_revision||':'||v_kind||':'||v_channel")
+})
+
+test('reminders resolve the active non-superseded schedule revision deterministically',()=>{
+  hasFix("o.delivery_kind in ('CONFIRMATION','REPROGRAMMATION')")
+  hasFix("o.state<>'SUPERSEDED'")
+  hasFix("case when e.event_type='RESCHEDULED' then 0 else 1 end")
+  hasFix('perform public.aos_agenda_delivery_reconcile_v3(2000)')
+  assert.equal(/order by\s+e\.created_at desc\s*,\s*e\.id desc\s*limit 1/i.test(revisionFix),false,'must not rely on timestamp+UUID alone for active revision')
 })
 
 test('current email runtime already supports the L3 transactional contracts',()=>{
