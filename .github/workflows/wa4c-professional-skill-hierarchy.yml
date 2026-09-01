@@ -1,0 +1,37 @@
+name: ASCENDA WA-4C Professional Skill Hierarchy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/admin-team.html'
+      - 'app/public/admin-team-skill-hierarchy.js'
+      - 'supabase/migrations/*skill_hierarchy*'
+      - 'supabase/rollbacks/*skill_hierarchy*'
+      - 'ci/wa4c-full-local/professional-skill-hierarchy-v1.test.js'
+      - '.github/workflows/wa4c-professional-skill-hierarchy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and hierarchy contracts
+        run: |
+          set -euo pipefail
+          node --check app/public/admin-team-skill-hierarchy.js
+          node --check ci/wa4c-full-local/professional-skill-hierarchy-v1.test.js
+          node --test ci/wa4c-full-local/professional-skill-hierarchy-v1.test.js
+          grep -q 'admin-team-skill-hierarchy.js?v=20260901-1' app/public/admin-team.html
+          grep -q 'aos_professional_can_service_v1' supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          grep -q "'PROCEDURE_UNMAPPED'" supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          ! grep -Eq '(ai_send_enabled|auto_reply_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          echo 'WA4C_PROFESSIONAL_SKILL_HIERARCHY_CONTRACT_PASS'
