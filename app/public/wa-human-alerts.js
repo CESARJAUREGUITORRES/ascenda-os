@@ -5,8 +5,8 @@
 if(window.__AOS_WA_HUMAN_ALERTS_V3)return;
 window.__AOS_WA_HUMAN_ALERTS_V3=true;
 
-var TICK_MS=5000;
-var S={actorId:null,seen:Object.create(null),seeded:false,busy:false,timer:null,audio:null,lastBootAt:0,enabled:true,volume:.72};
+var TICK_MS=5000,AUTH_DENIED_BACKOFF_MS=120000;
+var S={actorId:null,seen:Object.create(null),seeded:false,busy:false,timer:null,audio:null,lastBootAt:0,enabled:true,volume:.72,authDeniedUntil:0,authDeniedToken:''};
 try{S.enabled=localStorage.getItem('aos_wa_human_alerts')!=='0';var stored=Number(localStorage.getItem('aos_wa_alert_volume'));if(Number.isFinite(stored))S.volume=Math.min(1,Math.max(.2,stored));}catch(_){}
 
 function token(){try{return String(sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'').trim();}catch(_){return '';}}
@@ -17,6 +17,8 @@ function qualifies(r){return !!(r&&S.actorId&&r.owner_user_id===S.actorId&&r.sta
 function clean(v,max){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,max||140);}
 function safeSender(r){var name=clean(r&&r.contact_name,72);if(name)return name;var phone=String(r&&r.contact_number||'').replace(/\D/g,'').slice(0,20);return phone?('+'+phone):'Contacto WhatsApp';}
 function safePreview(r){var body=clean(r&&r.last_message_preview,140);if(body)return body;var type=clean(r&&r.last_message_type,32).toLowerCase();if(type==='image')return '📷 Imagen recibida';if(type==='audio')return '🎤 Audio recibido';if(type==='video')return '🎥 Video recibido';if(type==='document')return '📎 Documento recibido';if(type==='sticker')return 'Sticker recibido';return 'Nuevo mensaje recibido';}
+function authReady(){var t=token();if(S.authDeniedToken&&t&&t!==S.authDeniedToken){S.authDeniedToken='';S.authDeniedUntil=0;}return Date.now()>=S.authDeniedUntil;}
+function authFailure(e){if(!e||(e.status!==401&&e.status!==403))return;S.actorId=null;S.seeded=false;S.seen=Object.create(null);S.authDeniedToken=token();S.authDeniedUntil=Date.now()+AUTH_DENIED_BACKOFF_MS;}
 
 function primeAudio(){if(!S.enabled)return;try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;if(!S.audio)S.audio=new C();if(S.audio.state==='suspended')S.audio.resume().catch(function(){});}catch(_){}}
 function pulse(c,out,now,at,freq,dur,level,type){var g=c.createGain(),o=c.createOscillator();g.gain.setValueAtTime(.0001,now+at);g.gain.exponentialRampToValueAtTime(Math.max(.001,level),now+at+.008);g.gain.exponentialRampToValueAtTime(.0001,now+at+dur);o.type=type||'sine';o.frequency.setValueAtTime(freq,now+at);o.connect(g);g.connect(out);o.start(now+at);o.stop(now+at+dur+.02);}
@@ -25,15 +27,16 @@ function openConversation(id){if(!id)return;try{localStorage.setItem('aos_wa_sel
 function persistentNotification(r){if(!S.enabled||typeof Notification==='undefined'||Notification.permission!=='granted')return Promise.reject(new Error('NOTIFICATION_PERMISSION_MISSING'));var title='WhatsApp · '+safeSender(r),opts={body:safePreview(r),tag:'aos-wa-human-'+r.id,renotify:true,silent:false,icon:'/icons/channel-whatsapp.svg',badge:'/icons/icon-192x192.png',data:{kind:'AOS_WA_HUMAN',channel:'WHATSAPP',conversationId:r.id,view:actorView()}};if(navigator.serviceWorker&&navigator.serviceWorker.ready){return navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);});}try{var n=new Notification(title,opts);n.onclick=function(){try{window.focus();openConversation(r.id);}catch(_){}try{n.close();}catch(_){}};return Promise.resolve();}catch(e){return Promise.reject(e);}}
 function fire(r){var background=document.hidden||!isWaView();if(background){persistentNotification(r).catch(function(){chime();});}else{chime();}}
 function inspect(rows){rows=Array.isArray(rows)?rows:[];if(!S.seeded){rows.forEach(function(r){if(r&&r.id)S.seen[r.id]=String(r.last_message_id||'');});S.seeded=true;return;}rows.forEach(function(r){if(!r||!r.id)return;var cur=String(r.last_message_id||''),prev=Object.prototype.hasOwnProperty.call(S.seen,r.id)?String(S.seen[r.id]||''):null;S.seen[r.id]=cur;if(!cur)return;if(prev===null){if(qualifies(r))fire(r);return;}if(cur!==prev&&qualifies(r))fire(r);});}
-function ensureActor(){if(S.actorId&&Date.now()-S.lastBootAt<60000)return Promise.resolve(S.actorId);return api('/api/wa3/bootstrap').then(function(d){S.actorId=d&&d.actor&&d.actor.id||null;S.lastBootAt=Date.now();return S.actorId;});}
-function tick(){if(S.busy||!S.enabled||token().length<32)return;if(isWaView()){if(S.actorId&&Date.now()-S.lastBootAt<60000)return;S.busy=true;ensureActor().catch(function(e){if(e&&e.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}}).finally(function(){S.busy=false;});return;}S.busy=true;ensureActor().then(function(){if(!S.actorId)return null;return api('/api/wa3/inbox?limit=120');}).then(function(d){if(d)inspect(d.rows||[]);}).catch(function(e){if(e&&e.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}}).finally(function(){S.busy=false;});}
-function consumeNativeInbox(e){if(!S.enabled)return;var rows=e&&e.detail&&Array.isArray(e.detail.rows)?e.detail.rows:null;if(!rows)return;ensureActor().then(function(){inspect(rows);}).catch(function(err){if(err&&err.status===403){S.actorId=null;S.seeded=false;S.seen=Object.create(null);}});}
+function ensureActor(){if(S.actorId&&Date.now()-S.lastBootAt<60000)return Promise.resolve(S.actorId);return api('/api/wa3/bootstrap').then(function(d){S.actorId=d&&d.actor&&d.actor.id||null;S.lastBootAt=Date.now();S.authDeniedUntil=0;S.authDeniedToken='';return S.actorId;});}
+function tick(){if(S.busy||!S.enabled||token().length<32||!authReady())return;if(!isWaView())return;if(S.actorId&&Date.now()-S.lastBootAt<60000)return;S.busy=true;ensureActor().catch(authFailure).finally(function(){S.busy=false;});}
+function consumeNativeInbox(e){if(!S.enabled)return;var rows=e&&e.detail&&Array.isArray(e.detail.rows)?e.detail.rows:null;if(!rows)return;if(!authReady())return;ensureActor().then(function(){inspect(rows);}).catch(authFailure);}
+function consumePushEvent(d){if(!S.enabled||isWaView()||!d||d.type!=='AOS_PUSH_EVENT'||!d.payload)return;var p=d.payload;if(String(p.channel||'').toUpperCase()!=='WHATSAPP')return;chime();}
 function start(){if(S.timer)return;tick();S.timer=setInterval(tick,TICK_MS);}
 function stop(){if(S.timer)clearInterval(S.timer);S.timer=null;}
 function enable(){S.enabled=true;try{localStorage.setItem('aos_wa_human_alerts','1');}catch(_){}primeAudio();start();if(typeof Notification!=='undefined'&&Notification.permission==='default'){try{return Notification.requestPermission().then(function(p){return {enabled:true,notification_permission:p,volume:S.volume};});}catch(_){}}return Promise.resolve({enabled:true,notification_permission:typeof Notification==='undefined'?'unsupported':Notification.permission,volume:S.volume});}
 function disable(){S.enabled=false;try{localStorage.setItem('aos_wa_human_alerts','0');}catch(_){}stop();return {enabled:false};}
 function setVolume(v){v=Number(v);if(!Number.isFinite(v))return status();S.volume=Math.min(1,Math.max(.2,v));try{localStorage.setItem('aos_wa_alert_volume',String(S.volume));}catch(_){}return status();}
-function status(){return {enabled:S.enabled,actor_id:S.actorId,notification_permission:typeof Notification==='undefined'?'unsupported':Notification.permission,seeded:S.seeded,volume:S.volume,pwa_notifications:!!(navigator.serviceWorker&&navigator.serviceWorker.ready)};}
+function status(){return {enabled:S.enabled,actor_id:S.actorId,notification_permission:typeof Notification==='undefined'?'unsupported':Notification.permission,seeded:S.seeded,volume:S.volume,pwa_notifications:!!(navigator.serviceWorker&&navigator.serviceWorker.ready),auth_backoff_until:S.authDeniedUntil||0};}
 function test(){primeAudio();chime();return status();}
 function consumeDeepLink(){try{var u=new URL(location.href),id=u.searchParams.get('wa_conv');if(!id)return;localStorage.setItem('aos_wa_selected',id);u.searchParams.delete('wa_conv');history.replaceState(null,'',u.pathname+(u.search||'')+(u.hash||''));setTimeout(function(){openConversation(id);},250);}catch(_){} }
 
@@ -41,7 +44,7 @@ document.addEventListener('pointerdown',function(e){primeAudio();var n=e.target&
 window.addEventListener('focus',function(){tick();});
 window.addEventListener('aos:wa3-inbox',consumeNativeInbox);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)tick();});
-if(navigator.serviceWorker&&navigator.serviceWorker.addEventListener){navigator.serviceWorker.addEventListener('message',function(e){var d=e&&e.data||{};if(d.type==='AOS_WA_OPEN_CONVERSATION'&&d.conversationId)openConversation(d.conversationId);});}
+if(navigator.serviceWorker&&navigator.serviceWorker.addEventListener){navigator.serviceWorker.addEventListener('message',function(e){var d=e&&e.data||{};consumePushEvent(d);if(d.type==='AOS_WA_OPEN_CONVERSATION'&&d.conversationId)openConversation(d.conversationId);});}
 window.AOS_WA_ALERTS={start:start,stop:stop,enable:enable,disable:disable,status:status,test:test,setVolume:setVolume,safeSender:safeSender,safePreview:safePreview};
 consumeDeepLink();
 start();
