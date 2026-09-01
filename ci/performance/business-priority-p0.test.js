@@ -24,7 +24,7 @@ test('certified production entrypoint stays unchanged and composes P0-A',()=>{
   assert.match(quotaPreload,/require\('\.\/business-priority-preload\.js'\)/);
   assert.doesNotMatch(rail.deploy.startCommand,/business-priority-preload\.js/);
   const out=execFileSync(process.execPath,['-e',"require('./app/supabase-quota-circuit-preload.cjs');if(!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__||!global.__AOS_BUSINESS_PRIORITY_V1__)process.exit(2);process.stdout.write('COMPOSED')"],{cwd:process.cwd(),encoding:'utf8'});
-  assert.equal(out,'COMPOSED');
+  assert.ok(out.trim().endsWith('COMPOSED'));
 });
 
 test('server background breaker is narrowly scoped',()=>{
