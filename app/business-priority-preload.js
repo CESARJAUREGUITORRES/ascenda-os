@@ -3,15 +3,15 @@
 /*
  * ASCENDA OS · Business Priority Mode P0-A
  *
- * Scope is deliberately tiny: only known background Supabase traffic is
- * circuit-broken. Revenue-critical reads/writes, Call Center, Agenda, Sales
- * and WhatsApp routing are never classified here and therefore pass through
- * unchanged.
+ * Only known non-critical Supabase background traffic is circuit-broken.
+ * Revenue-critical reads/writes, Call Center, Agenda, Sales, WhatsApp routing
+ * and AI-key bootstrap remain outside this shield and always use the normal
+ * transport path.
  *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
- * the existing project-wide 402 quota breaker while this layer adds a
- * separate 5xx/timeout backoff only for background traffic.
+ * the existing project-wide 402 quota breaker while this layer adds a shared
+ * 5xx/timeout shield for background work.
  */
 
 const https = require('https')
@@ -23,6 +23,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   const inheritedRequest = https.request.bind(https)
   const PROJECT_HOST = String(process.env.AOS_SUPABASE_HOST || 'ituyqwstonmhnfshnaqz.supabase.co').toLowerCase()
+  const SHIELD_KEY = 'background-shield'
   const states = new Map()
 
   function targetOf(first) {
@@ -43,14 +44,17 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   function classify(first) {
     const t = targetOf(first)
     if (!t || t.host !== PROJECT_HOST) return ''
-    if (t.path.indexOf('/rest/v1/aos_agentes?') === 0 && t.path.indexOf('tipo_ejecucion=eq.cron') >= 0) return 'agent-cron-scan'
-    if (t.path.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
+    const p = t.path
+    if (p.indexOf('/rest/v1/aos_agentes?') === 0 && p.indexOf('tipo_ejecucion=eq.cron') >= 0) return 'agent-cron-scan'
+    if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
+    if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
+    if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
     return ''
   }
 
-  function stateFor(key) {
-    if (!states.has(key)) states.set(key, { failures: 0, openUntil: 0, lastLogUntil: 0 })
-    return states.get(key)
+  function stateFor() {
+    if (!states.has(SHIELD_KEY)) states.set(SHIELD_KEY, { failures: 0, openUntil: 0, lastLogUntil: 0, lastKey: '' })
+    return states.get(SHIELD_KEY)
   }
 
   function isFailureStatus(status) {
@@ -60,27 +64,28 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   function markSuccess(key) {
     if (!key) return
-    const s = stateFor(key)
+    const s = stateFor()
     s.failures = 0
     s.openUntil = 0
     s.lastLogUntil = 0
+    s.lastKey = key
   }
 
   function markFailure(key, reason) {
     if (!key) return
-    const s = stateFor(key)
+    const s = stateFor()
     s.failures += 1
+    s.lastKey = key
     const wait = s.failures >= 3 ? 600000 : (s.failures === 2 ? 120000 : 30000)
     s.openUntil = Math.max(s.openUntil, Date.now() + wait)
     if (Date.now() >= s.lastLogUntil) {
       s.lastLogUntil = s.openUntil
-      console.warn('[BUSINESS-PRIORITY] background backoff', { key: key, wait_ms: wait, failures: s.failures, reason: String(reason || 'upstream') })
+      console.warn('[BUSINESS-PRIORITY] background shield open', { source: key, wait_ms: wait, failures: s.failures, reason: String(reason || 'upstream') })
     }
   }
 
   function circuitOpen(key) {
-    if (!key) return false
-    return Date.now() < stateFor(key).openUntil
+    return !!key && Date.now() < stateFor().openUntil
   }
 
   function syntheticResponse() {
@@ -149,7 +154,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   // Route get() through the composed request export exactly once. This avoids
-  // bypassing either the existing quota breaker or this background breaker.
+  // bypassing either the existing quota breaker or this background shield.
   https.get = function aosBusinessPriorityGet() {
     const req = https.request.apply(https, arguments)
     req.end()
@@ -157,10 +162,11 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.1',
+    version: 'p0-a-v1.2',
     states: states,
+    shieldKey: SHIELD_KEY,
     classify: classify
   }
 
-  console.log('[BUSINESS-PRIORITY] scoped background circuit breaker active')
+  console.log('[BUSINESS-PRIORITY] shared background shield active')
 }

@@ -27,7 +27,7 @@ test('certified production entrypoint stays unchanged and composes P0-A',()=>{
   assert.ok(out.trim().endsWith('COMPOSED'));
 });
 
-test('server background breaker is narrowly scoped',()=>{
+test('shared server background shield is narrow and protects critical traffic',()=>{
   const fakeHttps={};
   let baseCalls=0;
   fakeHttps.request=function(){
@@ -48,24 +48,36 @@ test('server background breaker is narrowly scoped',()=>{
   const runtime=localGlobal.__AOS_BUSINESS_PRIORITY_V1__;
   const classify=runtime.classify;
   const host='ituyqwstonmhnfshnaqz.supabase.co';
-  const bg={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
-  assert.equal(classify(bg),'agent-cron-scan');
+  const template={hostname:host,path:'/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto,segmento,tipo_tratamiento,prioridad&activo=eq.true'};
+  const agent={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
+  const cmp={hostname:host,path:'/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.médica&cmp=neq.'};
+
+  assert.equal(classify(agent),'agent-cron-scan');
   assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'}),'notification-push-claim');
+  assert.equal(classify(template),'email-template-cache');
+  assert.equal(classify(cmp),'medical-cmp-cache');
+  assert.equal(classify({hostname:host,path:'/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)'}),'','AI key bootstrap must never be shielded');
   assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_siguiente_lead'}),'');
   assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_callcenter_commit_action_v1'}),'');
   assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_wa3_actor_v1'}),'');
 
-  const first=fakeHttps.request(bg,function(){});
+  const first=fakeHttps.request(template,function(){});
   first.emit('response',{statusCode:524});
   assert.equal(baseCalls,1);
-  assert.ok(runtime.states.get('agent-cron-scan').openUntil>Date.now());
+  assert.ok(runtime.states.get(runtime.shieldKey).openUntil>Date.now());
+  assert.equal(runtime.states.get(runtime.shieldKey).lastKey,'email-template-cache');
 
-  const second=fakeHttps.request(bg,function(){});
-  second.end();
-  assert.equal(baseCalls,1,'open circuit must not hit Supabase again');
+  const suppressedAgent=fakeHttps.request(agent,function(){});
+  suppressedAgent.end();
+  const suppressedCmp=fakeHttps.request(cmp,function(){});
+  suppressedCmp.end();
+  assert.equal(baseCalls,1,'one background failure must shield other known background jobs');
 
   fakeHttps.request({hostname:host,path:'/rest/v1/rpc/aos_siguiente_lead'},function(){});
-  assert.equal(baseCalls,2,'critical next-lead request must bypass background breaker');
+  fakeHttps.request({hostname:host,path:'/rest/v1/rpc/aos_callcenter_commit_action_v1'},function(){});
+  fakeHttps.request({hostname:host,path:'/rest/v1/rpc/aos_wa3_actor_v1'},function(){});
+  fakeHttps.request({hostname:host,path:'/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)'},function(){});
+  assert.equal(baseCalls,5,'critical and AI-key traffic must bypass background shield');
 });
 
 test('browser scheduler preserves governed writes and prioritizes next lead',async()=>{
