@@ -1,8 +1,8 @@
-# ASCENDA OS · AGV2-1 — Conversational Booking Contract (DRAFT)
+# ASCENDA OS · AGV2-1 — Conversational Booking Contract
 
-Fecha: 2026-09-01
-Baseline main: `66ac1bfaa92465f061c243578607388926970c32`
-Estado: `DRAFT_FOR_BUSINESS_FREEZE`
+Fecha de freeze: 2026-09-01
+Baseline main de apertura: `66ac1bfaa92465f061c243578607388926970c32`
+Estado: `BUSINESS_FROZEN`
 Mutación PROD: `NO`
 
 ## Objetivo
@@ -13,153 +13,162 @@ Definir cómo una conversación de WhatsApp pasa de intención comercial a una c
 
 El usuario no debe decidir manualmente datos que ASCENDA ya puede resolver desde autoridad canónica.
 
-Cadena:
+Cadena canónica:
 
 `contexto/campaña → tratamiento/intención → procedimiento/capability → profesional(es) elegibles → sede → horario date-specific → slot real → confirmación explícita → commit gobernado`
 
+Agenda interna y WhatsApp deben converger en la misma autoridad transaccional de booking. La UI y la conversación pueden ser distintas; las reglas y el commit no.
+
 ## Interacción comercial
 
-La conversación no debe convertirse en un formulario largo. Primero responde lo que el prospecto pregunta, con economía de mensajes, y orienta a una cita/evaluación cuando sea apropiado.
+La conversación no debe convertirse en un formulario largo. Primero responde exactamente lo que el prospecto pregunta, con economía de mensajes, y orienta a cita/evaluación cuando sea apropiado.
 
-No hardcodear “evaluación gratuita” globalmente. Solo ofrecerla como gratuita cuando la autoridad comercial vigente del tratamiento/campaña lo permita; de lo contrario usar el precio/condición canónica de consulta.
+No hardcodear “evaluación gratuita”. Solo comunicar gratuidad cuando la autoridad comercial vigente del tratamiento/campaña/consulta la confirme. Si la autoridad no lo puede demostrar, se comunica el precio/condición canónica o se evita afirmar gratuidad.
 
-Para tratamientos genéricos (p.ej. TOXINA, MESOTERAPIA, HIFU), no inundar al prospecto con subvariantes no solicitadas. Resolver primero su intención y presentar detalles adicionales únicamente cuando sean necesarios para responder o elegir correctamente el servicio.
+Para tratamientos genéricos como TOXINA, MESOTERAPIA o HIFU, no inundar al prospecto con subvariantes no solicitadas. Resolver primero intención y presentar variantes solo cuando sean necesarias para contestar, cotizar o elegir correctamente el servicio.
 
 ## Inicio del modo booking
 
-Cuando el usuario expresa intención inequívoca de agendar, el runtime entra en un estado de booking explícito. Copy objetivo natural, no coercitivo:
+Cuando el usuario expresa intención inequívoca de agendar, el runtime entra en estado explícito de booking.
+
+Copy objetivo natural:
 
 > Perfecto, te ayudo a agendar. Te pediré unos datos rápidos y luego te mostraré los horarios realmente disponibles.
 
-No exigir que el usuario responda con un formato rígido. El sistema debe tolerar lenguaje natural y repreguntar solo el campo faltante o ambiguo.
+No exigir formato rígido. El sistema tolera lenguaje natural y repregunta únicamente el campo faltante o ambiguo.
 
 ## Datos y fricción
 
 ### Tratamiento
 
-Si ya quedó resuelto por conversación/campaña y la confianza es suficiente, no volver a preguntarlo. Si existe ambigüedad material, aclararla antes de consultar disponibilidad.
+Si ya quedó resuelto por conversación/campaña con confianza suficiente, no volver a preguntarlo. Si existe ambigüedad material, aclararla antes de disponibilidad.
 
 ### Nombre completo
 
-Solicitar nombres y apellidos en una sola interacción. Preservar también el valor textual completo recibido; separar campos cuando sea posible y pedir aclaración solo si es realmente necesario para persistencia canónica.
+Solicitar nombres y apellidos en una sola interacción cuando aún no estén confiablemente disponibles. Para una identidad canónica ya conocida, reutilizar lo existente y solo completar faltantes. Al commit debe existir nombre y apellido suficientes para la cita; no duplicar preguntas si la autoridad ya los posee.
 
 ### WhatsApp / teléfono
 
-El número inbound de la conversación es la identidad de contacto primaria. No volver a pedirlo por defecto. Si el negocio necesita un teléfono alternativo, debe solicitarse como opcional y explícitamente diferente al WhatsApp actual.
+El número inbound de la conversación es la identidad de contacto primaria para WhatsApp. No volver a pedirlo por defecto. Un teléfono alternativo es opcional y debe presentarse explícitamente como diferente al WhatsApp actual.
 
 ### Email
 
-Recomendado, pero no bloqueante para una cita normal. Explicar el valor: confirmación y recordatorios por correo. Validar sintaxis antes de guardar. El booking debe poder cerrarse aunque el usuario no quiera dejar email.
+Recomendado, no bloqueante. Explicar su utilidad: confirmación y recordatorios por correo. Validar sintaxis antes de persistir. Rechazar un email inválido como dato, pero no cancelar el booking si el usuario prefiere continuar sin email.
 
 ### DNI / documento
 
-No convertirlo en requisito de booking sin una regla legal/operativa explícita. Puede solicitarse opcionalmente o completarse después/en clínica. Un prospecto que no entregue DNI no debe perder un slot si el resto del contrato permite identificarlo de forma suficiente.
+Opcional durante el booking normal. Puede completarse después o en clínica. Solo podrá convertirse en obligatorio para un servicio concreto si en el futuro existe una regla legal/operativa versionada en la autoridad canónica; nunca por inferencia del bot.
 
 ### Sede
 
-Debe resolverse antes de consultar slots, porque la disponibilidad es sede-específica. Si el contexto ya determina sede, puede confirmarse en vez de repreguntarse.
+Debe resolverse antes de consultar slots porque disponibilidad es sede-específica. Si campaña/contexto ya determina sede, confirmar en lugar de repreguntar.
 
 ### Profesional / rol clínico
 
-No preguntar “doctora o enfermería” cuando el tratamiento ya determina capability/rol. El sistema resuelve profesionales elegibles usando `aos_booking_availability_v2` + `aos_professional_can_service_v1` + horario date-specific.
+No preguntar “doctora o enfermería” cuando el tratamiento ya determina capability/rol. El sistema resuelve elegibilidad mediante `aos_booking_availability_v2`, `aos_professional_can_service_v1`, skills/procedimientos y horario date-specific.
 
-Si solo existe un profesional elegible con horario real, no presentar una falsa elección; informar el profesional en la propuesta/confirmación. Si existen varios, se puede ofrecer preferencia o primera disponibilidad según la política que se congele.
+Regla congelada de elección profesional:
+
+1. Por defecto priorizar la **primera disponibilidad real** compatible con tratamiento, sede y fecha/preferencia temporal del paciente.
+2. Si solo existe un profesional elegible con horario real, no presentar una falsa elección: se informa quién atenderá en la propuesta/confirmación.
+3. Si existen varios elegibles, no forzar una pregunta adicional. Se ofrece primera disponibilidad; si el paciente expresa preferencia por profesional, esa preferencia se respeta únicamente si el profesional es elegible y tiene slot real.
+4. Agenda interna sí puede exponer un filtro opcional de profesional para operación, pero el backend valida la misma autoridad.
+
+### Tipo de cita
+
+Para un prospecto nuevo que llega por interés comercial, WhatsApp usa por defecto `CONSULTA NUEVA`, salvo que contexto canónico demuestre que corresponde `APLICACION` o `CONTROL`. El bot no debe convertir automáticamente “quiero toxina/HIFU/etc.” en APLICACION.
 
 ### Fecha y hora
 
-Nunca aceptar una hora como disponibilidad por simple texto sin validarla. Primero consultar autoridad real; luego presentar fechas/slots válidos. El usuario puede elegir mediante botones/listas interactivas o lenguaje natural, pero el backend siempre valida contra la misma autoridad.
+Nunca aceptar una hora como disponible por simple texto sin validarla. Primero consultar autoridad real; luego presentar fechas/slots válidos. Si el usuario escribe “mañana a las 4”, interpretar intención y comprobar el slot; si no existe, ofrecer alternativas reales.
 
-## Uso de botones/listas en WhatsApp
+## Botones y listas
 
-Usar interacción estructurada únicamente donde reduce fricción y las opciones son discretas: sede, fecha disponible, slot disponible y confirmación/reprogramación. No reemplazar con botones la conversación abierta de preguntas, objeciones, síntomas, tratamiento o precio.
+Usar interacción estructurada solo cuando reduce fricción y las opciones son discretas: sede, fecha, slot, confirmar y reprogramar. Preguntas abiertas, objeciones, síntomas, tratamiento y precio siguen siendo conversacionales.
 
-Los botones son aceleradores, no un requisito: si el usuario escribe “mañana a las 4”, el sistema debe interpretar la intención, comprobar si ese slot existe y responder con resultado o alternativas.
+Regla congelada de paginación WhatsApp:
+
+- mostrar inicialmente hasta **3 fechas** próximas relevantes;
+- al elegir fecha, mostrar inicialmente hasta **5 slots** reales, ordenados cronológicamente;
+- incluir `Ver más`/lista adicional cuando existan más opciones;
+- la Agenda interna puede mostrar más resultados por pantalla, pero consume la misma lista canónica y nunca genera horarios propios.
+
+Los botones son aceleradores, no requisito. El texto libre sigue siendo válido y siempre se revalida.
 
 ## Confirmación previa al commit
 
-Antes de escribir la cita, presentar un resumen mínimo: tratamiento, sede, fecha, hora y profesional/pool cuando aplique. El usuario debe realizar una acción afirmativa inequívoca.
+Antes de escribir la cita mostrar resumen mínimo:
 
-Luego el commit debe revalidar el slot de forma transaccional e idempotente. Si el slot dejó de estar libre, no crear la cita y ofrecer nuevas opciones.
+- tratamiento;
+- sede;
+- fecha;
+- hora;
+- profesional exacto cuando aplique o modalidad de atención/pool cuando corresponda.
 
-## Post-booking
+Debe existir una acción afirmativa inequívoca del usuario/operador. Después el commit vuelve a validar el slot dentro de la transacción. Si dejó de estar disponible, no crea la cita y exige reselección.
 
-Tras commit exitoso:
+## Reprogramación — modelo congelado
 
-1. `aos_agenda_citas` refleja la cita con origen/atribución correctos.
-2. El ledger de booking conserva `conversation_id`, actor/origen e idempotencia.
-3. WhatsApp confirma dentro del flujo permitido.
-4. Si existe email válido, se encola confirmación transaccional por email.
-5. Un fallo de WhatsApp/email posterior NO revierte ni corrompe una cita confirmada; las notificaciones son side-effects/outbox.
-6. La cita queda disponible para recordatorios y seguimiento posterior.
+Se adopta **un mismo appointment lógico (`aos_agenda_citas.id`) + event ledger append-only**.
 
-## Reprogramación conversacional
+Reprogramar NO crea una segunda cita lógica ni elimina la anterior. Actualiza fecha/hora/sede/profesional del mismo appointment bajo lock transaccional y registra un evento `RESCHEDULED` con snapshot anterior/nuevo, actor, canal, conversación y motivo cuando exista.
 
-El sistema debe detectar intención de reprogramar en lenguaje natural: “no podré ir”, “se me complicó”, “puede ser otro día”, “quiero mover mi cita”, etc. Las expresiones reales aportadas por operación se convertirán en canaries/corpus de regresión.
+Consecuencias:
 
-Flujo objetivo:
+- `booking_created` y `rebooking` son métricas distintas;
+- no se inflan citas generadas;
+- se conserva trazabilidad completa;
+- el tratamiento no cambia durante una reprogramación. Cambiar tratamiento es una edición clínica/comercial diferente y debe volver a resolver autoridad.
 
-`mensaje → RESCHEDULE_INTENT → resolver cita activa del paciente/conversación → si hay ambigüedad preguntar cuál → conservar tratamiento/reglas clínicas → consultar nuevos slots reales → elección → confirmación explícita → rebook transaccional`
+El sistema debe detectar intención de reprogramar en lenguaje natural y resolver la cita activa por identidad/conversación. Si hay más de una candidata, pregunta cuál antes de mutar.
 
-No borrar silenciosamente la cita anterior ni crear una nueva sin vínculo. Debe preservarse historial de reprogramación y evitar doble conteo de “citas generadas”.
+## Post-booking y notificaciones
 
-AGV2-1 debe congelar si se usará:
+El commit de booking/rebooking termina primero. Email y WhatsApp son side-effects posteriores y nunca forman parte de la transacción core.
 
-- un mismo appointment lógico + event ledger de cambios, o
-- fila anterior marcada `REAGENDADA/REPROGRAMADA` + nueva fila vinculada por relación explícita.
+Política congelada:
 
-La métrica debe distinguir `booking_created` de `rebooking`.
+1. con email válido, encolar `confirmacion_cita` después de BOOK;
+2. con email válido, encolar `reprogramacion` después de REBOOK;
+3. mantener recordatorios transaccionales `recordatorio_manana` y `recordatorio_hoy` según scheduler vigente, evitando doble envío por clave idempotente;
+4. `bienvenida` es un evento de relación/onboarding y no se dispara por cada cita; nunca debe duplicar una confirmación;
+5. `no_asistencia` pertenece al flujo posterior de estado/no-show, no al commit de booking;
+6. un fallo de Resend/Meta nunca revierte la cita confirmada; el side-effect se reintenta por separado.
 
-## Continuidad y seguimiento
+## Continuidad
 
-La conversación de WhatsApp debe mantener el contexto del mismo número/conversación. Una respuesta a un recordatorio no abre un lead nuevo si la identidad canónica permite asociarla al mismo paciente/cita.
+La conversación mantiene contexto del mismo número/conversación. Una respuesta a recordatorio no abre un lead nuevo cuando la identidad canónica permite asociarla a paciente/cita existente. Ninguna modificación de agenda se ejecuta sin confirmación explícita.
 
-El seguimiento posterior puede ofrecer reprogramación o recuperar riesgo de no-show, pero ninguna modificación de agenda se realiza sin una confirmación explícita del usuario.
+## WhatsApp Cost Intelligence
 
-## Email transaccional
+El recorrido objetivo debe permitir:
 
-La infraestructura actual ya contempla clases como `confirmacion_cita`, `recordatorio_manana`, `recordatorio_hoy`, `reprogramacion` y `no_asistencia`. AGV2 no debe enviar correo dentro de la transacción de booking. Debe persistir un evento/outbox y permitir que el worker de email lo despache y audite por separado.
+`campaña/anuncio → conversación → mensajes/costo Meta → AI runs/costo IA → BOOK/REBOOK → asistencia/no-show → venta → facturación`
 
-## Economía de conversación / WhatsApp Cost Intelligence
+Fuentes CURRENT:
 
-Objetivo adicional: poder saber cuánto costó una conversación hasta cada outcome.
+- `aos_wa_messages_v1`: conversación, dirección, estado, pricing category/model y billable;
+- `aos_wa_ai_runs_v1`: tokens, modelo, latencia y costo IA estimado;
+- `aos_wa_attribution_touchpoints_v1`: campaña/anuncio/origen/paciente;
+- `aos_wa4_booking_actions_v1`: vínculo booking-conversación.
 
-Fuentes CURRENT existentes:
+Costo Meta exacto requiere autoridad de pricing versionada y/o costo efectivo por evento; `billable` por sí solo no es importe.
 
-- `aos_wa_messages_v1`: `conversation_id`, dirección, estado, `pricing_category`, `pricing_model`, `billable`.
-- `aos_wa_ai_runs_v1`: tokens, modelo, latencia y `estimated_cost_usd`.
-- `aos_wa_attribution_touchpoints_v1`: campaña/anuncio/origen y paciente canónico.
-- `aos_wa4_booking_actions_v1`: vínculo de conversación con el commit de booking.
+Popup objetivo por conversación: mensajes, billable/non-billable/unknown, costo Meta, costo IA, costo total, BOOK/REBOOK, asistencia/no-show, venta/facturación atribuida, costo por booking/asistencia/venta.
 
-Para costo exacto de Meta falta una autoridad de pricing versionada por fecha/mercado/categoría y/o persistir el costo efectivo por evento. `billable=true/false` por sí solo no es un importe.
+## Reglas comerciales cerradas
 
-### Popup objetivo por conversación
+1. Profesional: primera disponibilidad por defecto; preferencia solo cuando el paciente la expresa y es válida.
+2. Evaluación gratuita: solo si autoridad comercial la demuestra; nunca hardcoded.
+3. Reprogramación: mismo appointment + event ledger append-only.
+4. DNI: opcional salvo futura regla canónica explícita.
+5. Email: opcional para booking; confirmación/reprogramación/recordatorios como side-effects idempotentes; bienvenida separada.
+6. Opciones WhatsApp: 3 fechas iniciales y 5 slots iniciales, con `Ver más`.
+7. Tipo de cita comercial inbound: `CONSULTA NUEVA` por defecto salvo contexto canónico contrario.
+8. Teléfono WhatsApp: reutilizar inbound; no repreguntar por defecto.
 
-Mostrar como mínimo:
+## Gate
 
-- mensajes inbound/outbound;
-- mensajes Meta billables/no billables/unknown;
-- costo Meta acumulado;
-- consumo IA y costo IA estimado;
-- costo total de conversación;
-- cita generada/reprogramada;
-- asistió/no-show;
-- venta y facturación atribuida cuando exista;
-- costo por booking, costo por asistencia y costo de conversación hasta venta.
+`AGV2-1 = BUSINESS FROZEN`.
 
-A nivel agregado, permitir cortes por campaña/anuncio, orgánico, tratamiento, bot/humano y periodo.
-
-## Datos CURRENT verificados al redactar este draft
-
-- Dra. Carolina Zimic tiene horario date-specific vigente observado en septiembre.
-- Dra. Pamela y Dra. Yessica están visibles como perfiles, pero no presentan horario date-specific futuro en el readback actual; por tanto no deben aparecer como disponibilidad real mientras eso siga así.
-- El sistema de email ya registra envíos recientes de `confirmacion_cita`, `recordatorio_manana`, `recordatorio_hoy`, `bienvenida` y `no_asistencia`.
-- El ledger WA ya contiene campos de pricing/billable, pero la muestra actual todavía tiene eventos con pricing desconocido y no existen aún AI cost runs persistidos en PROD.
-
-## Pendientes de freeze empresarial
-
-1. Si la cita debe preguntar preferencia profesional cuando existen varios elegibles o priorizar primera disponibilidad.
-2. Regla exacta de “evaluación gratuita” por tratamiento/campaña/consulta.
-3. Modelo canónico de reprogramación (same logical appointment + event ledger vs linked rows).
-4. Cuándo pedir DNI y en qué casos sí sería obligatorio.
-5. Política de email: confirmación, recordatorios, reprogramación y evitar duplicación con bienvenida.
-6. Cantidad máxima de fechas/slots a mostrar en una interacción antes de paginar/listar.
+Cualquier cambio posterior de estas reglas requiere una versión nueva del contrato y regresión de Agenda + WhatsApp.
