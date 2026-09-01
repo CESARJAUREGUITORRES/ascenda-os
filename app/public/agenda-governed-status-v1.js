@@ -1,6 +1,7 @@
 /* ASCENDA OS · Agenda Governed Status V1
  * Replaces the legacy browser PATCH + DELETE + POST chain with one atomic,
  * permissioned database action. Other Agenda operations remain untouched.
+ * Loaded after the panel inline runtime by the already-certified shell hotfix.
  */
 (function(){
 'use strict';
@@ -30,13 +31,12 @@ function apiError(code){
   return map[code]||code||'No se pudo actualizar la cita.';
 }
 function selectedStatus(){
-  var v='';
-  var host=document.getElementById('det-estados');
+  var v='',host=document.getElementById('det-estados');
   if(host)host.querySelectorAll('.est-btn.act').forEach(function(b){v=b.getAttribute('data-val')||'';});
   return v;
 }
 function sendNoShowEmail(c){
-  var num=String(c&& (c.numero_limpio||c.numero)||'').replace(/\D/g,'');
+  var num=String(c&&(c.numero_limpio||c.numero)||'').replace(/\D/g,'');
   if(!num||!window._SB||!window._SK)return;
   fetch(window._SB+'/rest/v1/aos_pacientes?select=Email,nombres&numero_limpio=eq.'+num,{headers:{apikey:window._SK,Authorization:'Bearer '+window._SK}})
     .then(function(r){return r.ok?r.json():[];}).then(function(rows){
@@ -52,8 +52,7 @@ function install(){
   if(window.agGuardarEstado.__agendaGovernedV1)return true;
 
   function governedSave(){
-    if(!window.AG||!AG.sel)return;
-    if(AG._guardando)return;
+    if(!window.AG||!AG.sel||AG._guardando)return;
     var est=selectedStatus();
     var nota=((document.getElementById('det-nota')||{}).value||'').trim();
     var asistente=(document.getElementById('det-asistente')||{}).value||'';
@@ -62,14 +61,11 @@ function install(){
 
     strongToken().then(function(token){
       if(String(token||'').length<32)throw new Error('AGENDA_2FA_PANEL_REQUIRED');
-      var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
-      var timer=ctrl?setTimeout(function(){ctrl.abort();},20000):null;
       return fetch(window._SB+'/rest/v1/rpc/aos_agenda_set_status_v1',{
-        method:'POST',cache:'no-store',signal:ctrl?ctrl.signal:undefined,
+        method:'POST',cache:'no-store',
         headers:{apikey:window._SK,Authorization:'Bearer '+window._SK,'Content-Type':'application/json'},
         body:JSON.stringify({p_token:token,p_cita_id:String(AG.sel.id),p_estado:est,p_asistente:asistente,p_nota:nota})
       }).then(function(r){
-        if(timer)clearTimeout(timer);
         return r.json().catch(function(){return null;}).then(function(d){
           if(!r.ok||!d||d.ok!==true){var code=d&&d.error?d.error:('HTTP_'+r.status);throw new Error(code);}
           return d;
@@ -78,14 +74,14 @@ function install(){
     }).then(function(d){
       AG._guardando=false;
       toast('Estado actualizado',est,'');
-      if((est==='ASISTIO'||est==='EFECTIVA')&&d.attentionId){toast('✅ Atención sincronizada','Registro clínico creado/actualizado','');}
+      if((est==='ASISTIO'||est==='EFECTIVA')&&d.attentionId)toast('✅ Atención sincronizada','Registro clínico creado/actualizado','');
       if(est==='NO ASISTIO')sendNoShowEmail(AG.sel);
       if(typeof window.agCloseDet==='function')window.agCloseDet();
       if(typeof window.agLoad==='function')window.agLoad();
     }).catch(function(e){
       AG._guardando=false;
-      var code=e&&e.name==='AbortError'?'AGENDA_TIMEOUT':String(e&&e.message||'AGENDA_ERROR');
-      toast('No se guardó la cita',code==='AGENDA_TIMEOUT'?'La operación tardó demasiado. Reintenta; no se duplicará.':apiError(code),'toast-alerta');
+      var code=String(e&&e.message||'AGENDA_ERROR');
+      toast('No se guardó la cita',apiError(code),'toast-alerta');
       console.error('[AGENDA-GOVERNED]',code);
     });
   }
@@ -98,6 +94,5 @@ function install(){
 }
 
 window.__AOS_INSTALL_AGENDA_GOVERNED_STATUS_V1__=install;
-var attempts=0;
-(function wait(){attempts++;if(install())return;if(attempts<200&&document.getElementById('ag-content'))setTimeout(wait,50);})();
+install();
 })();
