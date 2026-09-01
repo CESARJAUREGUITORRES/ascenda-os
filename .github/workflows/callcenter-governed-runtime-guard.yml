@@ -31,9 +31,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  hosted-contract:
-    name: Hosted governed-write contract
-    runs-on: ubuntu-latest
+  governed-contract:
+    name: Self-hosted governed-write contract
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
