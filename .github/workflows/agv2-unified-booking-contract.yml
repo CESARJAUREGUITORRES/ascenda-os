@@ -84,6 +84,7 @@ jobs:
           grep -q 'AGV2_UNIFIED_BOOKING_CANARY_PASS' /tmp/agv2-canary.txt
 
       - name: Schema and safety assertions
+        working-directory: ci/wa4c-full-local
         run: |
           set -euo pipefail
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
