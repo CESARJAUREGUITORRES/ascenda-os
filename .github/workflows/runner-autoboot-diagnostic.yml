@@ -36,6 +36,7 @@ jobs:
           echo '=== VIRTUALIZATION ==='
           if grep -qi microsoft /proc/version 2>/dev/null; then echo 'wsl_detected=yes'; else echo 'wsl_detected=no'; fi
           echo "virt=$(systemd-detect-virt 2>/dev/null || echo unknown)"
+          echo "wsl_distro_name=${WSL_DISTRO_NAME:-unknown}"
           echo "wsl_interop_env=${WSL_INTEROP:+present}"
           echo "wslinterop_binfmt=$(test -e /proc/sys/fs/binfmt_misc/WSLInterop && echo present || echo missing)"
           echo "powershell_interop=$(command -v powershell.exe >/dev/null 2>&1 && echo yes || echo no)"
@@ -69,6 +70,14 @@ jobs:
           echo 'runner_processes_begin'
           ps -eo pid,ppid,user,args | grep -E 'Runner.Listener|Runner.Worker|runsvc.sh|run.sh' | grep -v grep || true
           echo 'runner_processes_end'
+          echo 'runner_ancestry_begin'
+          p=$(pgrep -u "$(id -u)" -f 'Runner.Listener run' | head -1 || true)
+          for i in 1 2 3 4 5 6; do
+            [ -n "$p" ] || break
+            ps -o pid=,ppid=,user=,args= -p "$p" 2>/dev/null || true
+            p=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ' || true)
+          done
+          echo 'runner_ancestry_end'
 
           echo '=== PRIVILEGE / DEPENDENCIES ==='
           if sudo -n true 2>/dev/null; then echo 'passwordless_sudo=yes'; else echo 'passwordless_sudo=no'; fi
@@ -76,6 +85,18 @@ jobs:
           echo "docker_enabled=$(systemctl is-enabled docker 2>/dev/null || true)"
           echo "docker_cli=$(command -v docker >/dev/null 2>&1 && echo yes || echo no)"
           echo "docker_access=$(docker info >/dev/null 2>&1 && echo yes || echo no)"
+
+          echo '=== NON-ROOT AUTOBOOT OPTIONS ==='
+          echo "crontab_cli=$(command -v crontab >/dev/null 2>&1 && echo yes || echo no)"
+          echo "cron_active=$(systemctl is-active cron 2>/dev/null || true)"
+          echo "cron_enabled=$(systemctl is-enabled cron 2>/dev/null || true)"
+          echo 'user_crontab_begin'
+          crontab -l 2>/dev/null || true
+          echo 'user_crontab_end'
+          echo "user_systemd=$(systemctl --user is-system-running 2>/dev/null || true)"
+          echo 'user_runner_units_begin'
+          systemctl --user list-unit-files 'ascenda*' --no-pager 2>/dev/null || true
+          echo 'user_runner_units_end'
 
           echo '=== USER LINGER ==='
           loginctl show-user "$(id -un)" -p Linger 2>/dev/null || true
