@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'supabase/migrations/*l3_delivery_outbox*'
+      - 'supabase/migrations/*agv2_l3_*'
       - 'supabase/rollbacks/*l3_delivery_outbox*'
       - 'ci/agv2-l3-delivery/**'
       - '.github/workflows/agv2-l3-delivery-outbox.yml'
@@ -128,6 +128,7 @@ jobs:
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
 
       - name: L3 confirmation, reminder, rebook and idempotency canaries
@@ -149,6 +150,7 @@ jobs:
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260901193000_agv2_l3_delivery_outbox_v3_rollback.sql
           test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_agenda_delivery_outbox_v3') is null")" = 't'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where active=true")" = '10'
 
       - name: Local DB lint and dormant boundary
