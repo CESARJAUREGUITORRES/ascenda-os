@@ -137,6 +137,16 @@ function loadProductResolutionCenter(){
   (document.head||document.documentElement).appendChild(b);
 }
 
+function loadBusinessPriorityRuntime(){
+  if(window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__||document.getElementById('aos-business-priority-browser-v1'))return;
+  var s=document.createElement('script');
+  s.id='aos-business-priority-browser-v1';
+  s.src='/browser-business-priority-v1.js?v=20260901-p0-bc-v1';
+  s.async=false;
+  s.onerror=function(){console.error('[BUSINESS-PRIORITY] browser runtime failed');};
+  (document.head||document.documentElement).appendChild(s);
+}
+
 function loadCallCenterPerformance(){
   var old=document.getElementById('aos-cc-performance-v1');if(old)old.remove();
   var p=document.createElement('script');
@@ -220,6 +230,7 @@ function ensureAgendaGovernedPostload(){
 }
 
 function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();ensureCallCenterLoop6Postload();ensureAgendaGovernedPostload();}
+loadBusinessPriorityRuntime();
 run();
 syncCanonicalAppToken();
 setTimeout(syncCanonicalAppToken,700);
