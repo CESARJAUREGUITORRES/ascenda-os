@@ -73,3 +73,8 @@ if (!global.__AOS_WA_SUPABASE_QUOTA_PRELOAD__) {
     snapshot: function() { return circuit.snapshot(); }
   };
 }
+
+// P0-A composes after the project-wide 402 quota circuit. It only adds
+// 5xx/timeout backoff for known background traffic; business-critical traffic
+// remains governed by the existing transport path above.
+require('./business-priority-preload.js');
