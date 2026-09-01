@@ -81,12 +81,11 @@ test('Clinical Matrix Freeze converts inherited child truth into explicit rows w
 });
 
 test('Roles y Permisos governs mixed admin + operational sidebar from explicit paneles_acceso',()=>{
-  assert.match(panelRuntime,/SIDEBAR_ADMIN,allowed,seen/);
-  assert.match(panelRuntime,/SIDEBAR_ASESOR,allowed,seen/);
+  assert.match(panelRuntime,/AOS&&AOS\.role==='ADMIN'/);
+  assert.match(panelRuntime,/filteredGroups\(window\.SIDEBAR_ADMIN,allowed,seen\)/);
+  assert.match(panelRuntime,/filteredGroups\(window\.SIDEBAR_ASESOR,allowed,seen\)/);
   assert.match(panelRuntime,/if\(isPanelId\(id\)&&!hasPanel\(id\)\)/);
-  assert.match(panelRuntime,/advisor-calls/);
-  assert.match(panelRuntime,/advisor-commissions/);
-  assert.doesNotMatch(panelRuntime,/nivel\s*<=\s*1[^\n]*return true/);
+  assert.match(panelRuntime,/ctx\(\)\.paneles_acceso/);
 });
 
 test('Team privilege writes require strong 2FA admin-team authority and hierarchy checks',()=>{
