@@ -7,6 +7,8 @@ window.__AOS_F4_PRODUCTION_CANARY_P0__=true;
 var previousFetch=window.fetch.bind(window);
 var nativeConfirm=window.confirm.bind(window);
 var tokenSyncPromise=null;
+var cc6PanelSeen=null;
+var cc6ReloadTimer=null;
 
 function cleanCajaClosedState(){
   var box=document.getElementById('no-sesion-msg');
@@ -132,7 +134,41 @@ function loadProductResolutionCenter(){
   b.onerror=function(){console.error('[REV-PRC1] auth bridge failed to load');};
   (document.head||document.documentElement).appendChild(b);
 }
-function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();}
+
+// Call Center Loop 6 V2.3 must execute after the panel's legacy inline script.
+// app.html intentionally loads panel externals before inline code, so the first
+// calls-loop6.js execution can be overwritten by legacy function declarations.
+// This bridge replays the governed runtime after the panel has settled, keeping
+// direct CALL_CENTER/CITA_MANUAL PostgREST writes fail-closed.
+function ensureCallCenterLoop6Postload(){
+  var panel=document.getElementById('cc-m-cita-manual');
+  if(!panel){
+    cc6PanelSeen=null;
+    if(cc6ReloadTimer){clearTimeout(cc6ReloadTimer);cc6ReloadTimer=null;}
+    return;
+  }
+  if(panel===cc6PanelSeen)return;
+  cc6PanelSeen=panel;
+  if(cc6ReloadTimer)clearTimeout(cc6ReloadTimer);
+  cc6ReloadTimer=setTimeout(function(){
+    cc6ReloadTimer=null;
+    if(document.getElementById('cc-m-cita-manual')!==panel)return;
+    var old=document.getElementById('aos-cc6-postload-runtime');
+    if(old)old.remove();
+    var s=document.createElement('script');
+    s.id='aos-cc6-postload-runtime';
+    s.src='/calls-loop6.js?v=20260901-loop6-v2.3-postload';
+    s.async=false;
+    s.onload=function(){
+      window.__AOS_CC_LOOP6_POSTLOAD_READY__='v2.3-postload';
+      console.log('[ASCENDA][CC6V23] governed postload runtime active');
+    };
+    s.onerror=function(){console.error('[ASCENDA][CC6V23] postload runtime failed');};
+    (document.head||document.documentElement).appendChild(s);
+  },120);
+}
+
+function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();ensureCallCenterLoop6Postload();}
 run();
 syncCanonicalAppToken();
 setTimeout(syncCanonicalAppToken,700);
