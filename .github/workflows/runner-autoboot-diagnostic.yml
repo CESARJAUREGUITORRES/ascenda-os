@@ -1,0 +1,73 @@
+name: ASCENDA Runner Autoboot Diagnostic
+
+on:
+  push:
+    branches: ['infra/runner-autoboot-diagnostic-20260901']
+    paths:
+      - '.github/workflows/runner-autoboot-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runner-autoboot-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose runner boot/service state
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host and service diagnostics
+        shell: bash
+        run: |
+          set -u
+          echo '=== IDENTITY ==='
+          echo "runner_name=${RUNNER_NAME:-unknown}"
+          echo "user=$(id -un)"
+          echo "home=$HOME"
+          echo "hostname=$(hostname)"
+          echo "kernel=$(uname -srmo)"
+          echo "pid1=$(ps -p 1 -o comm= 2>/dev/null || true)"
+
+          echo '=== VIRTUALIZATION ==='
+          if grep -qi microsoft /proc/version 2>/dev/null; then echo 'wsl_detected=yes'; else echo 'wsl_detected=no'; fi
+          echo "virt=$(systemd-detect-virt 2>/dev/null || echo unknown)"
+          echo "powershell_interop=$(command -v powershell.exe >/dev/null 2>&1 && echo yes || echo no)"
+          echo "cmd_interop=$(command -v cmd.exe >/dev/null 2>&1 && echo yes || echo no)"
+
+          echo '=== SYSTEMD ==='
+          echo "system_state=$(systemctl is-system-running 2>/dev/null || true)"
+          echo 'runner_unit_files_begin'
+          systemctl list-unit-files 'actions.runner*' --no-pager 2>/dev/null || true
+          echo 'runner_unit_files_end'
+          echo 'runner_units_begin'
+          systemctl list-units 'actions.runner*' --all --no-pager 2>/dev/null || true
+          echo 'runner_units_end'
+
+          echo '=== RUNNER INSTALL ==='
+          for d in "$HOME/actions-runner" /home/ascenda-runner/actions-runner; do
+            if [ -d "$d" ]; then
+              echo "runner_dir=$d"
+              test -x "$d/svc.sh" && echo 'svc_sh=yes' || echo 'svc_sh=no'
+              test -x "$d/run.sh" && echo 'run_sh=yes' || echo 'run_sh=no'
+              if [ -x "$d/svc.sh" ]; then
+                (cd "$d" && ./svc.sh status) || true
+              fi
+            fi
+          done
+
+          echo '=== PRIVILEGE / DEPENDENCIES ==='
+          if sudo -n true 2>/dev/null; then echo 'passwordless_sudo=yes'; else echo 'passwordless_sudo=no'; fi
+          echo "docker_active=$(systemctl is-active docker 2>/dev/null || true)"
+          echo "docker_enabled=$(systemctl is-enabled docker 2>/dev/null || true)"
+          echo "docker_cli=$(command -v docker >/dev/null 2>&1 && echo yes || echo no)"
+          echo "docker_access=$(docker info >/dev/null 2>&1 && echo yes || echo no)"
+
+          echo '=== USER LINGER ==='
+          loginctl show-user "$(id -un)" -p Linger 2>/dev/null || true
+
+          echo 'RUNNER_AUTOBOOT_DIAGNOSTIC_COMPLETE'
