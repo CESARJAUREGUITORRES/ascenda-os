@@ -15,8 +15,8 @@ permissions:
 
 jobs:
   team-skill-contract:
-    name: Hosted Team Skill + Dual Role contract
-    runs-on: ubuntu-latest
+    name: Self-hosted Team Skill + Dual Role contract
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
