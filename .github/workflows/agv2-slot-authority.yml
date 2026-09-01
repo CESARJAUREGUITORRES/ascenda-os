@@ -157,7 +157,7 @@ jobs:
           grep -q 'AGV2_L2_SLOT_AUTHORITY_CANARY_PASS' /tmp/agv2-l2-canary.txt
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2")" = '0'
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_events_v2")" = '0'
-          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/agv2-l2-lint.txt
+          (cd ci/wa4c-full-local && supabase db lint --local --schema public --level error) 2>&1 | tee /tmp/agv2-l2-lint.txt
           if grep -q '\[ERROR\]' /tmp/agv2-l2-lint.txt; then exit 1; fi
 
       - name: Cleanup local Supabase
