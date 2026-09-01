@@ -17,6 +17,16 @@ test('Call Center waits for Loop6 and coalesces duplicated panel reads',()=>{
   assert.match(cc,/aos_horarios_semana:30000/);
 });
 
+test('Call Center governed writes prefer canonical strong-session token and fail closed',()=>{
+  const storage=cc.indexOf("sessionStorage.getItem('aos_app_token')");
+  const legacy=cc.indexOf('window.AOS_getToken');
+  assert.ok(storage>=0,'canonical app token read missing');
+  assert.ok(legacy>storage,'legacy shell token must remain fallback after canonical session token');
+  assert.match(cc,/^\s*var governed=\/\^aos_callcenter_/m);
+  assert.match(cc,/d\.error==='UNAUTHORIZED'&&i<candidates\.length/);
+  assert.doesNotMatch(cc,/UNAUTHORIZED.*ok\)ok\(\{ok:true/s);
+});
+
 test('Call Center attribution fast-path is transaction-scoped, not a global reporting filter',()=>{
   assert.match(io,/current_setting\('aos\.callcenter_phone',true\)/);
   assert.match(io,/set_config\('aos\.callcenter_phone',v_num,true\)/);
