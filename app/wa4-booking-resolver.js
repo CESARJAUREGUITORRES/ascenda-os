@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION='WA4C-BOOKING-RESOLVER-V2';
+const VERSION='WA4C-BOOKING-RESOLVER-V3';
 const DAY_NUM={LUNES:1,MARTES:2,MIERCOLES:3,JUEVES:4,VIERNES:5,SABADO:6,DOMINGO:7};
 const SITE_DB={SAN_ISIDRO:'SAN ISIDRO',PUEBLO_LIBRE:'PUEBLO LIBRE'};
 const WRITE_BOUNDARY='GOVERNED_HUMAN_BOOKING_WRITE_V1';
@@ -38,14 +38,14 @@ function roleFromRows(rows){
   const pair=[...pairs][0];
   if(pair==='D-')return {status:'READY',roles:['DOCTORA']};
   if(pair==='-N')return {status:'READY',roles:['ENFERMERIA']};
-  if(pair==='DN')return {status:'COMPLEX_ROLE_REQUIRES_HUMAN',roles:['DOCTORA','ENFERMERIA']};
+  if(pair==='DN')return {status:'READY',roles:['DOCTORA','ENFERMERIA']};
   return {status:'ROLE_UNSPECIFIED',roles:[]};
 }
 function rankSlots(slots,requestedTime){
   const req=timeMinutes(requestedTime);
   const xs=asArray(slots).filter(x=>x&&x.disponible!==false&&timeMinutes(x.hora)!=null);
-  if(req==null)return xs.sort((a,b)=>timeMinutes(a.hora)-timeMinutes(b.hora));
-  return xs.sort((a,b)=>Math.abs(timeMinutes(a.hora)-req)-Math.abs(timeMinutes(b.hora)-req)||timeMinutes(a.hora)-timeMinutes(b.hora));
+  if(req==null)return xs.sort((a,b)=>timeMinutes(a.hora)-timeMinutes(b.hora)||clean(a.role).localeCompare(clean(b.role)));
+  return xs.sort((a,b)=>Math.abs(timeMinutes(a.hora)-req)-Math.abs(timeMinutes(b.hora)-req)||timeMinutes(a.hora)-timeMinutes(b.hora)||clean(a.role).localeCompare(clean(b.role)));
 }
 function safePrompt(result){
   return {
@@ -57,6 +57,7 @@ function safePrompt(result){
     booking_mode:result.booking_mode||null,
     capability:result.capability||null,
     schedule_source_fresh:result.schedule_source_fresh===true,
+    schedule_sources:result.schedule_sources||{},
     requested_time:result.requested_time||null,
     time_constraint:result.time_constraint||null,
     exact_requested_time_available:result.exact_requested_time_available===true,
@@ -94,7 +95,7 @@ function createBookingResolver(deps){
   async function resolve(input){
     input=input||{};
     const runtime=input.runtime||{},state=runtime.state||{};
-    const result={version:VERSION,status:'NOT_REQUESTED',target_date:null,site:null,treatment_id:null,required_roles:[],booking_mode:null,capability:null,schedule_source_fresh:false,schedule_source_max_date:null,requested_time:clean(state.requested_time)||null,time_constraint:clean(state.time_constraint)||null,candidate_slots:[],candidate_slot_count:0,exact_requested_time_available:false,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY,limitations:[]};
+    const result={version:VERSION,status:'NOT_REQUESTED',target_date:null,site:null,treatment_id:null,required_roles:[],booking_mode:null,capability:null,schedule_source_fresh:false,schedule_source_max_date:null,schedule_sources:{},requested_time:clean(state.requested_time)||null,time_constraint:clean(state.time_constraint)||null,candidate_slots:[],candidate_slot_count:0,exact_requested_time_available:false,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY,limitations:[]};
     const wantsBooking=runtime.booking_readiness==='HIGH'||asArray(runtime.intents).some(x=>['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT'].includes(String(x)));
     if(!wantsBooking){result.prompt_context=safePrompt(result);return result;}
     if(clean(state.requested_day).toUpperCase()==='DOMINGO'){
@@ -120,12 +121,17 @@ function createBookingResolver(deps){
       if(!row||row.activo!==true){result.status='CLOSED_DAY';result.limitations.push('SITE_CLOSED_FOR_REQUESTED_DATE');result.prompt_context=safePrompt(result);return result;}
     }catch(_){result.status='PUBLIC_HOURS_AUTHORITY_UNAVAILABLE';result.limitations.push('PUBLIC_HOURS_AUTHORITY_UNAVAILABLE');result.prompt_context=safePrompt(result);return result;}
 
-    try{result.schedule_source_max_date=await latestScheduleDate(result.required_roles[0]);}
-    catch(_){result.status='SCHEDULE_SOURCE_UNAVAILABLE';result.limitations.push('DATE_SPECIFIC_SCHEDULE_UNAVAILABLE');result.prompt_context=safePrompt(result);return result;}
-    if(!result.schedule_source_max_date||result.schedule_source_max_date<result.target_date){
-      result.status='SCHEDULE_SOURCE_STALE';result.limitations.push('DATE_SPECIFIC_SCHEDULE_STALE');result.prompt_context=safePrompt(result);return result;
-    }
-    result.schedule_source_fresh=true;
+    try{
+      const entries=await Promise.all(result.required_roles.map(async r=>[r,await latestScheduleDate(r)]));
+      entries.forEach(([r,d])=>{result.schedule_sources[r]=d||null;});
+      const dates=entries.map(x=>x[1]).filter(Boolean).sort();
+      result.schedule_source_max_date=dates.length?dates[dates.length-1]:null;
+      const fresh=entries.filter(x=>x[1]&&x[1]>=result.target_date).map(x=>x[0]);
+      const stale=entries.filter(x=>!x[1]||x[1]<result.target_date).map(x=>x[0]);
+      stale.forEach(r=>result.limitations.push('DATE_SPECIFIC_SCHEDULE_STALE_'+r));
+      if(!fresh.length){result.status='SCHEDULE_SOURCE_STALE';result.limitations.push('DATE_SPECIFIC_SCHEDULE_STALE');result.prompt_context=safePrompt(result);return result;}
+      result.schedule_source_fresh=true;
+    }catch(_){result.status='SCHEDULE_SOURCE_UNAVAILABLE';result.limitations.push('DATE_SPECIFIC_SCHEDULE_UNAVAILABLE');result.prompt_context=safePrompt(result);return result;}
 
     let auth;
     try{
@@ -147,9 +153,10 @@ function createBookingResolver(deps){
 
     result.booking_mode=clean(auth.mode)||null;
     result.capability=clean(auth.capability)||null;
+    if(auth.schedule_sources&&typeof auth.schedule_sources==='object')result.schedule_sources=auth.schedule_sources;
     const candidates=asArray(auth.slots).map(s=>({
       professional_id:clean(s.professional_id)||null,
-      professional_name:clean(s.professional_name)||(result.booking_mode==='SITE_POOL'?'Enfermería':null),
+      professional_name:clean(s.professional_name)||(clean(s.mode)==='SITE_POOL'?'Enfermería':null),
       role:clean(s.role)||result.required_roles[0],
       mode:clean(s.mode)||result.booking_mode,
       hora:clean(s.hora),
@@ -169,13 +176,14 @@ function createBookingResolver(deps){
 
   async function revalidateSlot(input){
     input=input||{};
-    const targetDate=clean(input.target_date),treatmentId=clean(input.treatment_id),professionalId=clean(input.professional_id)||null,time=clean(input.time).slice(0,5),site=siteDb(input.site);
+    const targetDate=clean(input.target_date),treatmentId=clean(input.treatment_id),professionalId=clean(input.professional_id)||null,time=clean(input.time).slice(0,5),site=siteDb(input.site),requestedRole=clean(input.role||input.professional_role).toUpperCase();
     if(!targetDate||!isUuid(treatmentId)||!time||!site)return {ok:false,status:'INVALID_REVALIDATION_INPUT',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
     try{
       const data=rpcData(await serviceRpc('aos_booking_availability_v2',{p_treatment_id:treatmentId,p_fecha:targetDate,p_sede:site,p_profesional_id:professionalId}))||{};
       if(data.ok!==true)return {ok:false,status:clean(data.status)||'BOOKING_AUTHORITY_BLOCKED',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
-      const slot=asArray(data.slots).find(x=>clean(x&&x.hora).slice(0,5)===time&&x.disponible!==false&&(!professionalId||clean(x.professional_id)===professionalId));
-      return {ok:Boolean(slot),status:slot?'REVALIDATED_AVAILABLE':'NO_LONGER_AVAILABLE',slot:slot||null,booking_mode:clean(data.mode)||null,version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
+      if(clean(data.mode)==='MULTI_ROLE'&&!professionalId&&!requestedRole)return {ok:false,status:'ROLE_SELECTION_REQUIRED',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
+      const slot=asArray(data.slots).find(x=>clean(x&&x.hora).slice(0,5)===time&&x.disponible!==false&&(!professionalId||clean(x.professional_id)===professionalId)&&(!requestedRole||clean(x.role).toUpperCase()===requestedRole));
+      return {ok:Boolean(slot),status:slot?'REVALIDATED_AVAILABLE':'NO_LONGER_AVAILABLE',slot:slot||null,booking_mode:slot?clean(slot.mode):clean(data.mode)||null,version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};
     }catch(_){return {ok:false,status:'SLOT_REVALIDATION_UNAVAILABLE',version:VERSION,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY};}
   }
 
