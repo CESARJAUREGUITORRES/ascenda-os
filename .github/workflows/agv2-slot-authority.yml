@@ -53,8 +53,21 @@ jobs:
           echo 'AGV2_L2_LOCAL_PORT_CONTENTION' >&2
           exit 1
 
-      - name: Build isolated CURRENT substrate
-        run: bash ci/wa4c-full-local/bootstrap.sh
+      - name: Build isolated CURRENT + certified L1/L2 prerequisites
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          # Rehydrate the canonical booking/procedure authority that is intentionally
+          # outside the compact WA full-local fixture. This remains TEST-only.
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831235500_wa4c_catalog_capability_reconciliation_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
 
       - name: L2 timing and capacity canaries
         run: |
