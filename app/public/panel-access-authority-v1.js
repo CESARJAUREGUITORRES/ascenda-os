@@ -226,10 +226,9 @@ function install(){
   installNavigationAuthority();
   installSidebarAuthority();
 }
+
+// Loaded by sentinel-hub-bootstrap after the shell has defined its sidebar and
+// navigation functions. Keep installation one-shot: no timer/focus/visibility
+// network owner is created by this permission layer.
 install();
-setTimeout(install,0);
-setTimeout(install,500);
-setTimeout(install,1800);
-try{window.addEventListener('focus',function(){install();governedBuildSidebar();});}catch(_){}
-try{document.addEventListener('visibilitychange',function(){if(!document.hidden){install();governedBuildSidebar();}});}catch(_){}
 })();
