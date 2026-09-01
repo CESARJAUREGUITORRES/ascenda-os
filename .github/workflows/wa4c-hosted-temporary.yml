@@ -29,6 +29,8 @@ on:
       - 'supabase/migrations/*wa4*'
       - 'supabase/rollbacks/*wa4*'
       - 'ci/wa4c-full-local/**'
+      - 'ci/performance/**'
+      - 'tools/perf-audit/**'
       - '.github/workflows/wa4c-hosted-temporary.yml'
   workflow_dispatch:
 
@@ -41,7 +43,7 @@ concurrency:
 
 jobs:
   hosted-full-local:
-    name: TEMP HOSTED · WA-4C full local parity
+    name: TEMP HOSTED · WA-4C release-gate parity
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -61,6 +63,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package.json
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -92,6 +96,73 @@ jobs:
           ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
           ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql
 
+      - name: TEMP HOSTED · Ascenda CI parity
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "github-hosted"
+          cd app
+          npm install --no-audit --no-fund
+          cd ..
+          for f in \
+            app/server.js \
+            app/server-phase2.js \
+            app/server-f4.js \
+            app/server-wa4.js \
+            app/email-runtime-env-compat.cjs \
+            app/supabase-runtime-auth.cjs \
+            app/supabase-quota-target.cjs \
+            app/supabase-quota-circuit-preload.cjs; do
+            if [ -f "$f" ]; then node --check "$f"; fi
+          done
+          node ci/wa4c-runtime/env-compat.test.js
+          node ci/wa4c-runtime/supabase-auth-header.test.js
+          node ci/wa4c-runtime/quota-target.test.js
+          while IFS= read -r -d '' f; do node --check "$f"; done < <(find app/public -maxdepth 1 -type f -name '*.js' -print0)
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          let checked=0;
+          function walk(dir){
+            for(const e of fs.readdirSync(dir,{withFileTypes:true})){
+              if(e.name==='node_modules'||e.name==='dist') continue;
+              const p=path.join(dir,e.name);
+              if(e.isDirectory()) walk(p);
+              else if(e.isFile()&&e.name.endsWith('.json')){JSON.parse(fs.readFileSync(p,'utf8'));checked++;}
+            }
+          }
+          walk('app');
+          console.log(`Validated ${checked} JSON files`);
+          NODE
+          for f in app/server.js app/package.json app/railway.json app/nixpacks.toml app/public/app.html app/public/login.html; do
+            test -s "$f"
+          done
+          echo 'ASCENDA_TEMP_HOSTED_CI_PARITY_PASS'
+
+      - name: TEMP HOSTED · Performance + ASC-PERF parity
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "github-hosted"
+          grep -q 'AOS_STUDIO_BACKGROUND_ENABLED=false' app/railway.json
+          grep -q "process.env.AOS_STUDIO_BACKGROUND_ENABLED || 'false'" app/server.js
+          node --check app/supabase-quota-circuit.js
+          node --check app/supabase-quota-circuit-preload.cjs
+          node ci/performance/wa-supabase-quota-circuit-contract.js
+          node tools/perf-audit/runtime-census.mjs app sentinel | tee /tmp/asc-perf-hosted-census.log
+          grep -q '^ASC-PERF-1A STATIC CENSUS$' /tmp/asc-perf-hosted-census.log
+          grep -q '^candidate_files_end$' /tmp/asc-perf-hosted-census.log
+          test -s "$RUNNER_TEMP/asc-perf-runtime-census.json"
+          node ci/performance/performance-guard.mjs "$RUNNER_TEMP/asc-perf-runtime-census.json"
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=process.env.RUNNER_TEMP+'/asc-perf-runtime-census.json';
+          const d=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(d.schema!=='asc-perf-runtime-census/v1') throw new Error('bad schema');
+          if(!Number.isInteger(d.filesScanned)||d.filesScanned<1) throw new Error('empty census');
+          if(!Array.isArray(d.findings)||!Array.isArray(d.recurrentNetworkCandidates)) throw new Error('missing arrays');
+          console.log(JSON.stringify({filesScanned:d.filesScanned,linesScanned:d.linesScanned,findings:d.findingsCount,recurrentNetworkCandidateFiles:d.recurrentNetworkCandidateCount,fastIntervals:d.fastIntervalCandidateCount,broadReads:d.broadReadCandidateCount}));
+          NODE
+          rm -f "$RUNNER_TEMP/asc-perf-runtime-census.json" /tmp/asc-perf-hosted-census.log
+          echo 'ASCENDA_TEMP_HOSTED_PERF_PARITY_PASS'
+
       - name: Conversation Runtime V2 deterministic regression corpus
         run: node app/wa4-conversation-runtime-v2.test.js
 
@@ -107,6 +178,8 @@ jobs:
           node --test ci/wa4c-full-local/interactive-contract.test.js
           node --test ci/wa4c-full-local/ui-contract.test.js
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node --test ci/wa4c-full-local/team-skill-authority-v2.test.js
+          node --test ci/wa4c-full-local/catalog-role-product-authority-v2.test.js
 
       - name: Start full local Supabase and rebuild CURRENT
         run: bash ci/wa4c-full-local/bootstrap.sh
@@ -154,7 +227,7 @@ jobs:
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_agenda_citas where origen_cita='WHATSAPP' and llamada_id_origen is null")" = "1"
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_routing_control_v1 where human_send_enabled is true and ai_send_enabled is false and auto_routing_enabled is false")" = "1"
           test "$(psql "$WA4C_LOCAL_DB_URL" -X -qAt -c "select count(*) from public.aos_wa_ai_control_v1 where copilot_enabled is true and auto_reply_enabled is false")" = "1"
-          echo 'WA-4C TEMP HOSTED PARITY PASS. Production remains HUMAN_ONLY / SAFE-OFF; LIVE provider and fresh schedule remain separate gates.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'WA-4C TEMP HOSTED RELEASE-GATE PARITY PASS. GitHub-hosted fallback substitutes offline self-hosted validation for this change only; production remains HUMAN_ONLY / SAFE-OFF.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup
         if: always()
