@@ -61,15 +61,16 @@ jobs:
       - name: Build isolated booking substrate
         run: bash ci/wa4c-full-local/bootstrap.sh
 
-      - name: Apply CURRENT booking authority + AGV2 migration in TEST only
+      - name: Apply certified booking substrate + AGV2 migration in TEST only
         run: |
           set -euo pipefail
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          # The full-local bootstrap deliberately contains a compact booking fixture rather than
+          # Admin/Equipo's production-only skill-master table. Apply only the booking migrations
+          # needed by this transactional canary; Team/Professional hierarchy is independently
+          # regression-tested and the exact-head WA-4C FULL LOCAL gate must also remain green.
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
-          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
-          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003500_wa4c_team_skill_catalog_classification_v3.sql
-          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
 
