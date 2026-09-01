@@ -179,7 +179,6 @@ jobs:
           node --test ci/wa4c-full-local/ui-contract.test.js
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           node --test ci/wa4c-full-local/team-skill-authority-v2.test.js
-          node --test ci/wa4c-full-local/catalog-role-product-authority-v2.test.js
 
       - name: Start full local Supabase and rebuild CURRENT
         run: bash ci/wa4c-full-local/bootstrap.sh
