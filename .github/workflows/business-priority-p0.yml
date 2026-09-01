@@ -8,6 +8,7 @@ on:
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
+      - 'ci/performance/business-priority-race.test.js'
       - '.github/workflows/business-priority-p0.yml'
   push:
     branches: ['main','perf/p0-business-priority-lazy-calendar-20260901']
@@ -17,6 +18,7 @@ on:
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
+      - 'ci/performance/business-priority-race.test.js'
       - '.github/workflows/business-priority-p0.yml'
 
 permissions:
@@ -24,7 +26,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +39,8 @@ jobs:
           node --check app/supabase-quota-circuit-preload.cjs
           node --check app/public/browser-business-priority-v1.js
           node --check app/public/f4-production-canary-hotfix.js
+          node --check ci/performance/business-priority-race.test.js
       - name: Regression gates
-        run: node --test ci/performance/business-priority-p0.test.js
+        run: node --test ci/performance/business-priority-p0.test.js ci/performance/business-priority-race.test.js
       - name: Existing Call Center performance gates
         run: node --test ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js

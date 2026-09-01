@@ -52,9 +52,15 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return ''
   }
 
-  function stateFor() {
-    if (!states.has(SHIELD_KEY)) states.set(SHIELD_KEY, { failures: 0, openUntil: 0, lastLogUntil: 0, lastKey: '' })
+  function shieldState() {
+    if (!states.has(SHIELD_KEY)) states.set(SHIELD_KEY, { openUntil: 0, lastLogUntil: 0, lastKey: '' })
     return states.get(SHIELD_KEY)
+  }
+
+  function keyState(key) {
+    const stateKey = 'source:' + key
+    if (!states.has(stateKey)) states.set(stateKey, { failures: 0, lastFailureAt: 0, lastSuccessAt: 0 })
+    return states.get(stateKey)
   }
 
   function isFailureStatus(status) {
@@ -64,28 +70,31 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   function markSuccess(key) {
     if (!key) return
-    const s = stateFor()
-    s.failures = 0
-    s.openUntil = 0
-    s.lastLogUntil = 0
-    s.lastKey = key
+    const k = keyState(key)
+    k.failures = 0
+    k.lastSuccessAt = Date.now()
+    // A successful sibling request must never close a shield opened by another
+    // background source. The shared cooldown expires only by time.
   }
 
   function markFailure(key, reason) {
     if (!key) return
-    const s = stateFor()
-    s.failures += 1
+    const now = Date.now()
+    const s = shieldState()
+    const k = keyState(key)
+    k.failures += 1
+    k.lastFailureAt = now
+    const wait = k.failures >= 3 ? 600000 : (k.failures === 2 ? 120000 : 30000)
     s.lastKey = key
-    const wait = s.failures >= 3 ? 600000 : (s.failures === 2 ? 120000 : 30000)
-    s.openUntil = Math.max(s.openUntil, Date.now() + wait)
-    if (Date.now() >= s.lastLogUntil) {
+    s.openUntil = Math.max(s.openUntil, now + wait)
+    if (now >= s.lastLogUntil) {
       s.lastLogUntil = s.openUntil
-      console.warn('[BUSINESS-PRIORITY] background shield open', { source: key, wait_ms: wait, failures: s.failures, reason: String(reason || 'upstream') })
+      console.warn('[BUSINESS-PRIORITY] background shield open', { source: key, wait_ms: wait, failures: k.failures, reason: String(reason || 'upstream') })
     }
   }
 
   function circuitOpen(key) {
-    return !!key && Date.now() < stateFor().openUntil
+    return !!key && Date.now() < shieldState().openUntil
   }
 
   function syntheticResponse() {
@@ -162,11 +171,11 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.2',
+    version: 'p0-a-v1.3',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify
   }
 
-  console.log('[BUSINESS-PRIORITY] shared background shield active')
+  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active')
 }
