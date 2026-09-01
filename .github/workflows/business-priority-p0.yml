@@ -4,8 +4,7 @@ on:
   pull_request:
     paths:
       - 'app/business-priority-preload.js'
-      - 'app/bootstrap-business-priority.js'
-      - 'app/package.json'
+      - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
@@ -14,8 +13,7 @@ on:
     branches: ['main','perf/p0-business-priority-lazy-calendar-20260901']
     paths:
       - 'app/business-priority-preload.js'
-      - 'app/bootstrap-business-priority.js'
-      - 'app/package.json'
+      - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
@@ -36,7 +34,7 @@ jobs:
       - name: Syntax
         run: |
           node --check app/business-priority-preload.js
-          node --check app/bootstrap-business-priority.js
+          node --check app/supabase-quota-circuit-preload.cjs
           node --check app/public/browser-business-priority-v1.js
           node --check app/public/f4-production-canary-hotfix.js
       - name: Regression gates
