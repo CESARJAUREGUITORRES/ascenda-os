@@ -6,6 +6,7 @@ const fs=require('node:fs')
 
 const migration=fs.readFileSync('supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql','utf8')
 const rollback=fs.readFileSync('supabase/rollbacks/20260901193000_agv2_l3_delivery_outbox_v3_rollback.sql','utf8')
+const server=fs.readFileSync('app/server.js','utf8')
 
 function has(s){assert.ok(migration.includes(s),`missing contract: ${s}`)}
 
@@ -38,6 +39,15 @@ test('TODAY/TOMORROW reminders are local-time, V2-only, and idempotent',()=>{
   has("exists(select 1 from public.aos_agenda_events_v2 e where e.appointment_id=c.id)")
   has("'REMINDER_TODAY' else 'REMINDER_TOMORROW'")
   has("v_key:='agv2-l3:'||p_schedule_revision||':'||v_kind||':'||v_channel")
+})
+
+test('current email runtime already supports the L3 transactional contracts',()=>{
+  assert.ok(server.includes("tipo === 'confirmacion_cita'"),'confirmation renderer missing')
+  assert.ok(server.includes("tipo === 'reprogramacion'"),'reprogram renderer missing')
+  assert.ok(server.includes("template === 'recordatorio_manana'"),'tomorrow reminder runtime missing')
+  assert.ok(server.includes('buildEmailRecordatorio'),'reminder renderer missing')
+  assert.ok(server.includes("'recordatorio_hoy'"),'today reminder contract missing')
+  assert.ok(server.includes("'recordatorio_manana'"),'tomorrow reminder transactional type missing')
 })
 
 test('email can be provider-ready but WhatsApp remains fail-closed pending Meta approval',()=>{
