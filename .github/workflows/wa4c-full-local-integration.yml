@@ -28,7 +28,10 @@ on:
       - 'app/public/wa-shell-integration.js'
       - 'supabase/migrations/*wa4*'
       - 'supabase/rollbacks/*wa4*'
+      - 'supabase/migrations/*agv2*'
+      - 'supabase/rollbacks/*agv2*'
       - 'ci/wa4c-full-local/**'
+      - 'ci/agv2/**'
       - '.github/workflows/wa4c-full-local-integration.yml'
   workflow_dispatch:
 
@@ -89,13 +92,17 @@ jobs:
           node --check ci/wa4c-full-local/run-canaries.js
           node --check ci/wa4c-full-local/run-booking-canary.js
           node --check ci/wa4c-full-local/run-conversation-beta.js
+          node --check ci/agv2/unified-booking-contract.test.js
           bash -n ci/wa4c-full-local/bootstrap.sh
           grep -q "ASCENDA_FULL_LOCAL" ci/wa4c-full-local/local-network-preload.cjs
           grep -q "production_network_mutation: false" ci/wa4c-full-local/local-network-preload.cjs
           grep -q "modern_api_key_bearer_removed: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
           grep -q "apikey_preserved: true" ci/wa4c-full-local/local-supabase-auth-preload.cjs
-          ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql
-          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql
+          ! grep -Eq 'ituyqwstonmhnfshnaqz|SUPABASE_ACCESS_TOKEN' ci/wa4c-full-local/*.js ci/wa4c-full-local/*.sh ci/wa4c-full-local/*.sql ci/agv2/*
+          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' ci/wa4c-full-local/*.sql supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+
+      - name: AGV2 static transactional contract
+        run: node --test ci/agv2/unified-booking-contract.test.js
 
       - name: Conversation Runtime V2 deterministic regression corpus
         run: |
