@@ -1,9 +1,10 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Captured:** 2026-08-22 America/Lima  
-**Entry baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
+**Captured:** 2026-09-01 America/Lima  
+**Entry baseline:** `main@66ac1bfaa92465f061c243578607388926970c32`  
 **ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**ACTIVE GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
+**ACTIVE LOOP:** GitHub issue `#410 — WA-AUTO · Autonomous Revenue Agent Production Loop`  
+**ACTIVE TECHNICAL GATE:** `L1 / AGV2-2 Unified BOOK/REBOOK Contract`
 
 ## Mandatory bootstrap before any write
 
@@ -14,86 +15,101 @@
 5. `docs/MEMORY_CURRENT.md`;
 6. `docs/adn/AGENTS_CURRENT.md`;
 7. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-9. exact GitHub `main`, Railway exact deploy/runtime and live Supabase WA state;
-10. WhatsApp Control Maestro / Roadmap Maestro V2 in Notion only after technical truth is read.
+8. `docs/control/WHATSAPP_AUTONOMOUS_PRODUCTION_CURRENT.md`;
+9. GitHub issue #410;
+10. PR #409 CURRENT head + workflow runs;
+11. exact GitHub `main`, Railway exact deploy/runtime and live Supabase state;
+12. Notion Control Maestro/Roadmap only after technical truth is read.
 
-Historical docs/chat checkpoints never override CURRENT + live persisted state.
+Historical docs/chat checkpoints never override CURRENT + exact GitHub + live persisted state.
 
 ## Portfolio ownership
 
-`WHATSAPP-REVENUE-HUB-V2` owns the single HIGH/CRITICAL mutable lane by explicit owner directive dated 2026-08-22.
+`WHATSAPP-REVENUE-HUB-V2` owns the single HIGH/CRITICAL mutable lane. Agenda V2 is currently a strict dependency inside that same lane. Marketing Loop 6, Revenue, CIA, KronIA and unrelated mutation remain paused/read-only/regression-only unless a narrowly documented dependency is necessary.
 
-Previous `MKT-INTEGRITY-HOTFIX-V3 / LOOP 6 V2.3` is PAUSED / recoverable at 0/5 genuine post-cutover operations. It is not terminally certified and must not mutate while WA owns the lane.
+## Current achieved boundary
 
-REV-F5 and REV-F6 are production-certified upstream inputs. REV-F7, CIA feature mutation, KronIA and unrelated work remain paused/read-only.
+- WA-4C conversation runtime, Knowledge/Playbook, patient identity, campaign adapter, professional skill hierarchy and booking authority are implemented and have passed canonical Linux FULL LOCAL regression.
+- Team clinical skills + procedure children are explicitly frozen after admin configuration.
+- Team panel access is governed from Roles/Permissions; mixed ADMIN + operational panels work; César level 1 remains supreme.
+- P0 Call Center/Agenda performance changes are merged and canonical Linux gates passed.
+- Linux runner is back and `ascenda-zero-cost-v2` is canonical again; GitHub-hosted fallback is removed.
+- WSL/runner autoboot was installed; physical restart certification remains pending.
+- Production Copilot is ON for assistance; auto reply/AI send/auto routing remain OFF and structurally blocked by current contracts.
+- Existing booking V1 remains live; AGV2 V2 is still additive/dormant work in PR #409.
 
-## Exact-current runtime
+## PR #409 / AGV2-2 exact resume state
 
-Railway production chain:
+PR #409 is Draft and implements:
 
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
+- frozen AGV2-1 business rules;
+- shared Agenda/WhatsApp BOOK core;
+- shared REBOOK core preserving same appointment;
+- idempotent operation ledger;
+- append-only appointment event ledger;
+- Agenda strong-session wrapper;
+- WhatsApp owner/active-assignment wrapper;
+- slot revalidation before/after lock;
+- post-commit provider side-effect boundary.
 
-`app/railway.json` preloads Sentry and backend-only email compatibility before the outer runtime. Current source still mounts `wa-shell-integration.js`, and that bootstrap still mounts `notification-push-s14.js` S15.5.
+Known blocker at capture:
 
-## Certified WA evidence — regression only
+- WA-4C FULL LOCAL = PASS;
+- dedicated AGV2 canary = FAIL before BOOK because reduced synthetic fixture is missing `aos_booking_capability_for_service_v1(uuid)`;
+- fix fixture/substrate, not production semantics.
 
-Do not re-open without a demonstrated regression:
+## Production truth that must be re-read on every resume
 
-- signed Meta inbound;
-- canonical WA message/event ledger;
-- WA-2 live inbox/conversation store;
-- WA-3 ownership/human-send boundary;
-- native shell integration;
-- Web Push subscription self-heal;
-- closed-PWA Windows notification;
-- notification click opens installed PWA and respects Auth;
-- final notification ACL cutover.
+At capture:
 
-## Live WA entry baseline
-
-- 15 messages: 11 inbound / 4 outbound;
-- 2 conversations;
-- 25 events;
-- 9 outbound requests;
-- 11 routing events;
-- 2 active boxes (`VENTAS_GENERAL`, `WA_TEST`);
-- 2 active memberships for the current single operational actor;
-- 1 active assignment;
-- 0 AI runs;
+- Copilot ON;
 - human send ON;
-- auto routing OFF;
+- auto reply OFF;
 - AI send OFF;
-- Copilot OFF;
-- auto reply OFF.
+- auto routing OFF;
+- future schedule rows = 91, overall freshness through 2026-09-30;
+- 182 active services;
+- 94 canonical procedures;
+- all 182 active service `duracion_sesion` values missing;
+- governed campaign context mapping rows = 0;
+- current canary Meta referral/ad coverage = 0 real CTWA evidence;
+- legacy Supabase RLS debt exists and must be handled selectively before general autonomous rollout.
 
-Historical outbound outcomes include 4 ACCEPTED, 4 `META_190` failures and 1 `META_SEND_REJECTED`. Provider credential health must be re-certified before selling.
+Do not reuse these counters blindly after any new mutation; query live PROD again.
 
-## Upstream ecosystem now available to WA
+## Frozen Agenda/booking rules
 
-- patients: 7,702;
-- sales: 1,331;
-- leads: 5,880;
-- CIA contact/email facts: 11,911;
-- F5 provenance: 15,498 rows / 15,498 memberships / 8,716 clusters / 8,716 previews;
-- catalog: 221 active services.
+- do not ask doctor vs nurse; derive from treatment authority;
+- doctor exact-provider; nursing governed site-pool unless explicitly redesigned;
+- if one valid professional, do not offer fake provider choice;
+- reuse trusted WhatsApp phone;
+- name/surname only when needed;
+- email recommended but optional;
+- DNI optional for normal booking;
+- do not claim free evaluation unless governed commercial authority proves it;
+- buttons/lists for site/date/slot/confirm/rebook, free text must still work;
+- BOOK requires explicit confirmation + slot revalidation;
+- REBOOK mutates the same logical appointment and appends history;
+- email/WhatsApp confirmation/reminder dispatch happens after DB commit through idempotent event/outbox logic.
 
-Consume canonical sources; do not create parallel CRM, identity, sales, agenda, email or attribution truth.
+## Autonomous rollout rule
 
-## WA-V2-0 rule
+The production target is not a blind `auto_reply=true` switch. Required authority:
 
-WA-V2-0 is control/docs/baseline only. No runtime, schema, routing, AI or Meta mutation belongs in this gate.
+`Runtime → governed facts → policy → safety/quality → tool decision → send authority → idempotent Meta outbound`.
 
-Exit only after exact-head GitHub merge, Railway SUCCESS/readback, live Supabase baseline reconciliation, `aos_memory` update and Notion-last reconciliation.
+Mandatory controls: `AUTO_OFF | CANARY | PROD`, allowlist, budgets, max turns, rate limits, duplicate guard, cooldown, kill switch, human handoff.
 
-## Next functional gate
+Do not start autonomous send before issue #410 L1–L3 are complete.
 
-After WA-V2-0 PASS, run `WA-3 — HUMAN OPERATIONS MULTIAGENT` in discover-first mode.
+## Runner rule
 
-Preserve fail-closed defaults during the first canary:
+Canonical Linux labels: `[self-hosted, Linux, X64, ascenda-zero-cost-v2]`.
 
-- `auto_routing_enabled=false`;
-- `ai_send_enabled=false`;
-- `auto_reply_enabled=false`.
+Runner autoboot is installed through Windows-login/WSL bootstrap + Linux supervisor. It is only certified after a real restart/login shows the runner reconnects without opening Ubuntu or entering sudo manually.
 
-`WA-3.5 Revenue Inbox UX` remains planned but must not contaminate ownership/security contracts before WA-3 closes.
+## Immediate next action
+
+Resume issue #410 `L1` only:
+
+`fix AGV2 reduced fixture → rerun AGV2 + WA-4C FULL LOCAL Linux → exact-head/anti-drift → merge PR #409 → apply merged migrations to PROD → readback dormant V2 → L2 duration/capacity/resource authority`.

@@ -1,11 +1,10 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-08-27 America/Lima  
+**Captured:** 2026-09-01 America/Lima  
 **ACTIVE PROGRAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT GATE / MUTABLE LOCK:** `WA-4A — KNOWLEDGE FABRIC`  
-**WA-7A.4 CERT HEAD:** `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3`  
-**WA-7A.4 MERGE:** `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`  
-**WA-7A.4 PROD STATE:** `NOT APPLIED / PROMOTION QUEUED`
+**ACTIVE LOOP:** GitHub issue #410 — `WA-AUTO · Autonomous Revenue Agent Production Loop`  
+**ACTIVE TECHNICAL GATE:** `L1 / AGV2-2 Unified BOOK/REBOOK Contract`  
+**ENTRY MAIN:** `66ac1bfaa92465f061c243578607388926970c32`
 
 ## Authority order
 
@@ -14,112 +13,194 @@
 3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
-6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-7. latest WA certificate;
-8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-9. exact GitHub + Supabase + Railway/runtime evidence;
-10. Notion executive continuity.
+6. `docs/adn/AGENTS_CURRENT.md`;
+7. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
+8. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
+9. `docs/control/WHATSAPP_AUTONOMOUS_PRODUCTION_CURRENT.md`;
+10. GitHub issue #410 + active PR #409;
+11. exact GitHub/Supabase/Railway/runtime evidence;
+12. Notion executive continuity last.
 
 Historical chat/doc snapshots never override exact CURRENT + runtime evidence.
 
 ## Portfolio state
 
-- REV-F5 = PRODUCTION CERTIFIED 100%.
-- REV-F6 = PRODUCTION CERTIFIED 100%.
-- REV-F7 = paused while WA owns the mutable lane.
-- WhatsApp Revenue Hub V2 = ACTIVE.
-- Notifications S13–S15.5 = CLOSED / regression-only.
-- CIA, Sentinel, KronIA and unrelated HIGH/CRITICAL work = read-only/regression-only unless strict WA dependency.
+- WhatsApp Revenue Hub V2 owns the single HIGH/CRITICAL mutable lane.
+- Agenda V2 is allowed only as a strict dependency of the WhatsApp autonomous-production target.
+- Marketing Loop 6 remains paused/recoverable.
+- REV-F5/F6 remain certified upstream inputs.
+- Revenue/CIA/Sentinel/KronIA/unrelated HIGH/CRITICAL work remains read-only/regression-only unless strict dependency.
 
-## WhatsApp V2 current
+## Product target now frozen
 
-- `WA-V2-0` = CLOSED.
-- `WA-3` = OFFLINE CERTIFIED / LIVE recovery debt.
-- `WA-3.5` = OFFLINE CERTIFIED 100% / LIVE recovery debt.
-- `WA-7A.0` = CLOSED at demonstrated identity-compatibility boundary.
-- `WA-7A.1` = CLOSED at demonstrated identity-resolution boundary.
-- `WA-7A.2` = CLOSED at demonstrated CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY boundary.
-- `WA-7A.3` = CLOSED at demonstrated CODE/CI/ZERO-COST/PROD-SCHEMA/READBACK/RAILWAY boundary.
-- `WA-7A.4` = `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`.
-- `WA-4A` = ACTIVE MUTABLE LOCK.
-- existing WA4/Copilot runtime remains SAFE-OFF and does not certify WA-4A/B/C.
+Required production journey:
 
-## Foundation through WA-7A.4
+`Meta/WhatsApp ingress → campaign/referral context → autonomous commercial conversation → governed current facts/price → real booking availability → BOOK → WhatsApp/email confirmation → reminders → natural-language REBOOK preserving same appointment → attendance → sale → attribution + cost`.
 
-Canonical person identity remains REV/F5/F6. WhatsApp does not create another customer/person master.
+Rollout is staged:
 
-- WA-7A.0: PHONE / BSUID / PARENT_BSUID transport and conversation continuity.
-- WA-7A.1: read-only WA conversation → REV canonical identity projection.
-- WA-7A.2: channel verification/evidence + non-destructive identifier lineage.
-- WA-7A.3: explicit provider acquisition provenance as immutable attribution touchpoints.
-- WA-7A.4: conversation-scoped marketing eligibility evidence, category scopes, suppression, opt-out and explicit re-consent semantics.
+`AUTONOMOUS DEMO READY → AUTONOMOUS PRODUCTION CANARY → GENERAL PRODUCTION`.
 
-Hard separation:
+Copilot-only operation is an achieved foundation, not the final production definition.
 
-`channel alias != canonical patient identity != acquisition touchpoint != marketing eligibility`.
+## Current production safety snapshot
 
-`IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`.
+At capture:
 
-`ATTRIBUTION EVIDENCE != CONSENT`.
+- `copilot_enabled=true`;
+- `auto_reply_enabled=false`;
+- `ai_send_enabled=false`;
+- `auto_routing_enabled=false`;
+- `human_send_enabled=true`.
 
-## WA-7A.4 certification evidence
+Current WA-3/WA-4 contracts structurally prohibit autonomous AI send/reply. Do not bypass them. A new governed autonomous authority must be built with `AUTO_OFF | CANARY | PROD`, allowlists, budgets, max turns, rate limits, cooldown, duplicate guards, kill switch and human handoff.
 
-PR #378 exact head `ac58ceced7b6d06bec1792bbb4aa27d97f8e3db3` merged with expected head to `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6`.
+## Achieved WhatsApp / commercial foundation
 
-Exact-head TEST SUCCESS:
+- secure provider ingress/store/conversation substrate;
+- real inbound/outbound human operation historically demonstrated;
+- commercial Copilot and multi-turn semantic runtime;
+- governed Knowledge Fabric + playbook + current price authority;
+- patient identity adapter with fail-closed conflict behavior;
+- campaign/referral ingestion adapter;
+- response quality/safety regression suite;
+- canonical self-hosted Linux WA-4C FULL LOCAL PASS;
+- current Linux `ascenda-zero-cost-v2` restored as canonical runner;
+- temporary hosted fallback removed.
 
-- WA-7A.4 Marketing Eligibility Foundation `33103975948`;
-- Ascenda CI `33103975951`.
+## Runner continuity
 
-TEST delivered and proved:
+Runner autoboot supervisor/Windows-login→WSL startup has been installed. It is not `100% certified` until a real Windows restart/login proves automatic runner reconnect without manual Ubuntu/sudo start.
 
-- immutable eligibility evidence ledger;
-- GLOBAL / MARKETING / UTILITY / AUTHENTICATION / CALL scopes;
-- BSUID/PARENT_BSUID reachability without phone;
-- phone/BSUID/username/CTWA/message receipt never imply consent;
-- explicit opt-in + opt-out + re-consent evidence;
-- suppression precedence;
-- CIA-F17 controls reused read-only as deny/suppression guard;
-- CIA ALLOWED never grants WA consent;
-- replay/idempotency + conflict guard;
-- RLS/ACL/immutable rollback boundary;
-- WA-7A.3/2/1/0 regressions.
+## Team / clinical authority achieved
 
-No `aos_pacientes`, `aos_leads`, REV or Marketing Attribution V2 write. No WA runtime modification. No bulk sender, Meta Ads Sync, campaign router, AI send, auto-reply or auto-routing activation.
+- services/skills are modeled as category → parent skill → child procedure → commercial SKU;
+- current staff procedure scopes were explicitly frozen after user configuration;
+- newly added child procedures must not auto-grant to existing staff;
+- role incompatibilities remain fail-closed;
+- Team Roles/Permissions now govern actual panels;
+- ADMIN users may additionally receive operational panels such as Call Center/Commissions;
+- César level 1 remains supreme/non-delegable;
+- removing a panel removes it from the menu/access path rather than relying on role hardcoding.
 
-## Production promotion queue
+## Booking / Agenda authority frozen
 
-WA-7A.4 migration and rollback are committed but intentionally unapplied to production under the owner-directed TEST-first strategy while Supabase renewal/recovery is pending.
+Canonical chain:
 
-Post-merge production proof:
+`service/SKU → procedure → skill → role → eligible professional → site/date schedule → duration/capacity/resource → real slot → BOOK/REBOOK`.
 
-- WA-7A.4 migration recorded = false;
-- WA-7A.4 table/view absent;
-- patients = 7702;
-- leads = 6061;
-- WA messages = 21;
-- conversations = 2;
-- WA events = 39;
-- real attribution touchpoints = 0.
+Rules:
 
-Railway merge `95bd4acb806c2cee8b7e6d5dadba8b078beb15f6` = SUCCESS; this is runtime revalidation only, not WA-7A.4 schema promotion.
+- do not ask customer doctor vs nurse;
+- doctor = exact-provider;
+- nursing = governed site-pool unless explicitly redesigned;
+- if one valid provider exists, do not show fake provider choice;
+- provider preference only if explicitly requested and valid;
+- no slot if required authority is missing/stale;
+- final slot revalidated under lock;
+- REBOOK updates same logical appointment and appends history;
+- provider side effects are post-commit.
 
-When PROD recovers, promotion uses: exact-main revalidation → production drift/fingerprint → ordered queued migrations → ACL/readback → REST/Auth health → physical provider/human canaries → PROD certificate. No bypass.
+## AGV2-1 business rules frozen
 
-## WA-4A active execution
+- first real availability by default;
+- trusted WhatsApp phone reused;
+- name/surname requested when needed;
+- email recommended but optional;
+- DNI optional for normal booking;
+- no hardcoded free evaluation;
+- inbound commercial booking defaults to `CONSULTA NUEVA` unless canonical context proves otherwise;
+- free text stays valid;
+- buttons/lists are used only for discrete site/date/slot/confirm/rebook decisions;
+- initial UX up to 3 dates and 5 slots;
+- explicit confirmation before BOOK;
+- booking/rebooking confirmation/reminder provider sends occur after DB commit.
 
-Goal: build a governed Knowledge Fabric that supplies approved business facts and evidence references to human/Copilot workflows without duplicating canonical product/patient/revenue truth.
+## AGV2-2 current state
 
-Discover first:
+PR #409 is Draft and implements additive/dormant shared Agenda/WhatsApp BOOK/REBOOK V2:
 
-1. inventory existing catalog/service/price/branch/FAQ/protocol/business-rule knowledge sources;
-2. inspect existing WA4 Copilot/context retrieval and authority boundaries;
-3. define knowledge authority hierarchy and evidence references;
-4. reuse certified source systems instead of copying truth into a second knowledge master;
-5. define freshness/versioning/conflict/fallback rules;
-6. build TEST-only minimum required adapters/index/read models;
-7. prove no sensitive clinical overexposure and no generic-LLM authority over approved business facts;
-8. exact-head Zero-Cost + regressions;
-9. leave PROD-ready promotion package queued if schema/runtime changes are needed.
+- idempotent operation ledger;
+- append-only appointment event ledger;
+- shared BOOK core;
+- shared REBOOK core;
+- Agenda strong-session wrapper;
+- WhatsApp owner + active-assignment wrapper;
+- identity conflict fail-closed;
+- availability recheck before and after advisory lock;
+- same appointment id preserved on rebook;
+- V1 remains live until V2 is certified.
 
-Hard rule: approved governed business facts + evidence refs outrank generic LLM knowledge. No autonomous send activation in WA-4A.
+Test condition at capture:
+
+- WA-4C FULL LOCAL = PASS;
+- dedicated AGV2 canary = FAIL before BOOK because the reduced test fixture lacks `aos_booking_capability_for_service_v1(uuid)`;
+- correct fix is the test fixture/substrate, not production semantics.
+
+## Agenda gaps discovered
+
+- 182 active services;
+- 94 canonical procedures;
+- all 182 active services currently have missing `duracion_sesion`;
+- autonomous booking therefore requires procedure-level duration/buffer/capacity/resource authority before real production slot promises;
+- future schedule source had 91 active rows and overall freshness through 2026-09-30 at capture; re-read live before use.
+
+## Meta / attribution memory
+
+Gateway already captures referral/ad evidence when provider sends it. Do not infer treatment or attribution from campaign names.
+
+Governed mapping must be explicit:
+
+`ad_id/campaign_id → treatment/promotion/booking_goal/media strategy`.
+
+At capture `aos_wa4_campaign_context_map_v1` has 0 governed rows and current canary data has no real CTWA referral/ad evidence. A real Click-to-WhatsApp canary is mandatory before claiming end-to-end campaign attribution.
+
+Organic remains organic when no evidence exists.
+
+## Confirmations / reminders memory
+
+Existing email infrastructure is active and already supports transactional confirmation/reminder/reprogramming categories.
+
+Future BOOK/REBOOK integration must use:
+
+`DB commit → event/outbox → email/WhatsApp provider send → status/retry`.
+
+Provider failures must never roll back/duplicate bookings.
+
+## Cost intelligence memory
+
+Existing WA message model carries `pricing_category`, `pricing_model`, `billable`. AI run model carries provider/model/tokens/latency/estimated cost.
+
+Target journey economics:
+
+`conversation → Meta cost + AI cost → BOOK/REBOOK → attendance → sale → revenue`.
+
+Unknown Meta cost stays UNKNOWN until provider/billing evidence closes it.
+
+## Performance lesson
+
+Call Center/Agenda P0 demonstrated that repeated analytical calls and browser-side multi-request pseudo-transactions caused major latency/HTTP 500 risk. Preserve the rule:
+
+- remove query amplification before assuming hardware upgrade;
+- one logical business write should use one governed transactional RPC;
+- do not reintroduce PATCH/DELETE/POST chains from browser for one appointment action.
+
+## Security debt
+
+Supabase advisor reports substantial legacy tables without RLS. Do not mass-enable RLS without correct policies because this can break production. Before autonomous general rollout, harden exact WhatsApp/Agenda surfaces and retire obsolete direct browser writes behind governed RPCs.
+
+No secrets/PII/PHI in GitHub/public artifacts. No autonomous diagnosis/prescription/candidacy. No arbitrary SQL from AI.
+
+## Authoritative remaining loop
+
+Issue #410:
+
+`L0 baseline → L1 BOOK/REBOOK V2 → L2 duration/capacity/resources → L3 confirmations/reminders → L4 autonomous authority → L5 conversational BOOK/REBOOK → L6 Meta attribution → L7 cost intelligence → L8 selective security → L9 demo → L10 limited campaign canary → L11 general production`.
+
+Do not activate autonomous send before L1–L3 close.
+
+## Immediate resume point
+
+Start with issue #410 L1 only:
+
+`fix reduced AGV2 fixture → rerun dedicated AGV2 + WA-4C FULL LOCAL on self-hosted Linux → exact-head/anti-drift → merge PR #409 if green → apply merged V2 migrations to PROD dormantly → live readback → L2`.

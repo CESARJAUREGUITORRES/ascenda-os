@@ -1,192 +1,249 @@
 # ASCENDA Conversations — WhatsApp Revenue Hub V2 — ROADMAP CURRENT
 
-**Captured:** 2026-08-28 America/Lima  
-**WA-7A.0:** CLOSED  
-**WA-7A.1:** CLOSED  
-**WA-7A.2:** CLOSED AT DEMONSTRATED BOUNDARY  
-**WA-7A.3:** CLOSED AT DEMONSTRATED BOUNDARY  
-**WA-7A.4:** `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`  
-**WA-4A.1B:** `TEST CERTIFIED / PROD-READY GRAPH / BUSINESS-CONTENT DML READBACK VERIFIED`  
-**ACTIVE NEXT:** `WA-4A.1C — TREATMENT & PRICING ARCHITECTURE`  
-**BLOCKED NEXT:** `WA-4B — SALES PLAYBOOK ENGINE`  
-**PROD recovery debt:** queued TEST-certified promotions remain separated from business-content DML
+**Captured:** 2026-09-01 America/Lima  
+**Entry main:** `66ac1bfaa92465f061c243578607388926970c32`  
+**ACTIVE EXECUTION LOOP:** GitHub issue #410 — `WA-AUTO · Autonomous Revenue Agent Production Loop`  
+**ACTIVE GATE:** `L1 / AGV2-2 Unified BOOK/REBOOK Contract`
 
 ## North Star
 
-`Meta Ads / Business Username / Organic / QR / Web → WhatsApp → explicit provenance + channel identity → canonical identity → conversation → governed eligibility → knowledge → process/pricing context → human/AI sales playbook → business tools → appointment/follow-up/call → attendance → sale → revenue attribution → learning`.
+`Meta Ads / Organic / QR / Web → WhatsApp → explicit provenance → autonomous governed conversation → canonical identity/privacy → current knowledge/price → real booking authority → BOOK/REBOOK → confirmations/reminders → attendance → sale → attribution + cost → learning`.
 
-## Architecture rules
+The current production goal is no longer only Copilot. Required staged release:
 
-- WA is a governed conversation/channel product, not a CRM replacement.
-- Canonical patient identity remains governed by REV/F5/F6.
-- Acquisition touchpoints remain separate from channel/person identity.
-- Marketing eligibility remains separate from identity/reachability/attribution.
-- Knowledge references governed source authority instead of duplicating canonical truth.
-- Current price authority remains the runtime catalog, never document examples or generic model knowledge.
-- Treatment process architecture must preserve clinical authority and must not create rigid clinical prescriptions.
-- `BSUID != ctwa_clid/touchpoint`.
-- `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`.
-- `ATTRIBUTION EVIDENCE != CONSENT`.
-- TEST certification and PROD promotion remain separate gates under the current hold.
+`AUTONOMOUS DEMO READY → AUTONOMOUS PRODUCTION CANARY → GENERAL PRODUCTION`.
 
-## Phase graph
+## Achieved foundation
 
-`WA-V2-0 ✅ → WA-3 ✅ OFFLINE → WA-3.5 ✅ OFFLINE → WA-7A.0 ✅ → WA-7A.1 ✅ → WA-7A.2 ✅ → WA-7A.3 ✅ → WA-7A.4 ✅ TEST/PROD-READY → WA-4A → WA-4A.1 ✅ → WA-4A.1B ✅ → WA-4A.1C ACTIVE → WA-4B BLOCKED → WA-4C → WA-5 → WA-6 → WA-7B → WA-7C → WA-7D → WA-8 → WA-9..WA-14`
+- secure WhatsApp ingress/store/conversation projection;
+- ownership/assignment/human outbound;
+- commercial AI Copilot/runtime;
+- governed Knowledge Fabric + commercial playbook + current price authority;
+- canonical patient identity integration;
+- campaign/referral adapter;
+- clinical category/skill/procedure hierarchy;
+- explicit professional procedure scope freeze;
+- Team panel/permission authority;
+- date/site/professional booking availability;
+- governed booking V1;
+- Call Center/Agenda P0 performance hardening;
+- canonical self-hosted Linux FULL LOCAL regression;
+- existing transactional email confirmation/reminder pipeline.
 
-## WA-4A.1B — Zi Vital Commercial Knowledge Graph — CERTIFIED
+## CURRENT blockers to autonomous production
 
-Certified exact head `23ceb7bc8b5b0afb9b077773bd781c079223ef14` merged via PR #383 to `03efd22cdacc61a8c2f1de351afc6315926e4263`.
+1. AGV2-2 BOOK/REBOOK V2 is not yet in PROD.
+2. Procedure duration/buffer/capacity/resource authority is missing; 182/182 active services currently lack explicit `duracion_sesion`.
+3. Booking confirmation/reminder provider sends are not yet driven from the new BOOK/REBOOK event ledger.
+4. Current WA-3/WA-4 contracts structurally prohibit auto-reply/AI-send.
+5. Real Click-to-WhatsApp referral/campaign mapping has not been demonstrated; governed campaign map currently has 0 rows.
+6. Meta/AI cost journey is only partially evidenced.
+7. Autonomous-surface security/RLS hardening remains before general traffic.
 
-Certified scope:
+## Frozen architecture rules
 
-- 114-page commercial architecture transformed into governed knowledge;
-- third source `ZV_COMMERCIAL_ARCH_2026`;
-- commercial phases normalized separately from clinical lifecycle;
-- approach aliases normalized;
-- commercial principles, dictionary, quotation/no-discount/payment/topping/upsell/continuity rules;
-- OWNER_ADMIN KPI/OKR knowledge;
-- exact-shape graph for 167 services + 50 products;
-- explicit exception semantics;
-- 17 composition N/A vs 26 real missing review;
-- 39 Vitaminas formula templates explicitly review-gated;
-- 41 Vitaminas/Detox services enriched in canonical PROD business content;
-- internal product residual gaps closed; Prunex public claims hardened.
+- no second CRM/customer/patient/sales/agenda/email/price master;
+- canonical patient identity remains external authority;
+- `IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`;
+- `ATTRIBUTION EVIDENCE != CONSENT`;
+- `LIVE PRICE AUTHORITY != DOCUMENT EXAMPLE PRICE`;
+- `LLM OUTPUT != BUSINESS FACT AUTHORITY`;
+- `LLM OUTPUT != DIRECT META SEND AUTHORITY`;
+- `BOOK/REBOOK TRANSACTION != PROVIDER SIDE EFFECT`;
+- `REBOOK != DELETE + CREATE UNRELATED APPOINTMENT`;
+- TEST/local certification never substitutes LIVE/provider canary evidence.
 
-Final exact-head gates:
+## Booking architecture frozen
 
-- specialized Zero-Cost run `33137921448` = SUCCESS;
-- Ascenda CI run `33137921445` = SUCCESS;
-- DB lint, graph certification, WA regressions and rollback = SUCCESS.
+`service/SKU → procedure → skill → role → eligible professional → site/date schedule → duration/capacity/resource → real slot → BOOK/REBOOK`.
 
-Post-merge PROD business-content readback:
+- role is derived; do not ask doctor vs nurse;
+- doctor exact-provider;
+- nursing site-pool unless explicitly redesigned;
+- one eligible provider means no fake provider selection;
+- provider preference only when explicit and valid;
+- no invented slot if any authority is absent/stale;
+- final slot revalidated under lock;
+- REBOOK preserves same logical appointment and event history.
 
-- 167/167 active services with description + indications + FAQ coverage; 6,926 service FAQs;
-- 50/50 active products with description + indications + FAQ coverage; 480 product FAQs;
-- graph feature DDL remains unapplied to PROD under TEST-first hold.
+## AGV2-1 — BUSINESS FROZEN ✅
 
-Certification boundary:
+- first real availability by default;
+- trusted WhatsApp phone reused;
+- collect name/surname when needed;
+- email recommended/optional;
+- DNI optional for normal booking;
+- no hardcoded free evaluation;
+- inbound commercial booking defaults to `CONSULTA NUEVA` unless canonical context proves another type;
+- free text stays valid;
+- buttons/lists only for discrete site/date/slot/confirm/rebook decisions;
+- initial UX: up to 3 dates + 5 slots, then more;
+- explicit confirmation before BOOK;
+- confirmations/reminders are post-commit side effects.
 
-`SERVICE + PRODUCT COMMERCIAL KNOWLEDGE GRAPH = COMPLETE` at CURRENT 167 + 50 shape.
+## L0 — Baseline / anti-drift
 
-Open evidence debt is explicit, not silent:
+Exit requires exact main/head, Railway, Supabase, runner, safety flags, schedule/skills/campaign/email snapshots and frozen fixtures.
 
-- 26 exact service formulas;
-- 39 per-SKU Vitaminas formulas.
+Current entry: main `66ac1bfa...`, Copilot ON, auto-reply/AI-send/auto-routing OFF, human-send ON.
 
-## WA-4A.1C — Treatment & Pricing Architecture — ACTIVE
+## L1 — AGV2-2 Unified BOOK/REBOOK — ACTIVE
 
-**Goal:** create a governed treatment-process and quotation architecture that combines live price authority with Zi Vital Domain/Approach/Phase/Function semantics, without turning processes into rigid packages or allowing autonomous clinical/pricing decisions.
+PR #409 contains additive/dormant V2:
 
-### 1C.0 — Revalidate & inventory
+- booking operation ledger;
+- append-only agenda event ledger;
+- shared BOOK core;
+- shared REBOOK core;
+- Agenda strong-session wrapper;
+- WhatsApp owner + active-assignment wrapper;
+- identity conflict fail-closed;
+- pre/post-lock slot revalidation;
+- V1 compatibility preserved.
 
-- revalidate exact `main`;
-- inventory active service/product pricing fields and presentation/session semantics;
-- identify current quote/payment/package/topping tables, RPCs and UI;
-- identify current discounts/promotions and any duplicate price truth;
-- fingerprint current catalog price state.
+Current test state:
 
-### 1C.1 — Price authority contract
+- WA-4C FULL LOCAL = PASS;
+- dedicated AGV2 canary = FAIL before BOOK because reduced fixture lacks `aos_booking_capability_for_service_v1(uuid)`;
+- fix fixture/substrate only; do not weaken production semantics.
 
-- `aos_catalogo_servicios` = current service/product price authority unless an already-governed source proves otherwise;
-- document examples never override runtime price;
-- stale/missing/conflicting prices fail closed;
-- no hardcoded price inside playbook knowledge.
+Exit:
 
-### 1C.2 — Process component model
+`dedicated AGV2 PASS + WA-4C FULL LOCAL PASS → exact-head → anti-drift → Ready/merge #409 → apply migrations from merged lineage → PROD dormant readback`.
 
-Model components as:
+## L2 — Slot Authority V2: duration / capacity / resources
 
-- `REQUIRED_BY_PLAN` — medically/operationally required only when explicitly selected by authorized plan;
-- `OPTIONAL_SUPPORT` — useful support, not mandatory;
-- `ALTERNATIVE` — mutually substitutable under authorized choice;
-- `DEPENDENT` — valid only if another component exists;
-- `CONTROL` — follow-up/control;
-- `MAINTENANCE` — continuity;
-- `PRODUCT_SUPPORT` — approved home/support product;
-- `TOPPING_ELIGIBLE` — commercial benefit candidate subject to rules.
+Create explicit authority at canonical procedure level:
 
-The model must never infer clinical necessity from category alone.
+`procedure → duration → buffer → capacity → resource/cabin`.
 
-### 1C.3 — F1/F2/F3 quotation architecture
+Commercial SKU variants inherit procedure rules unless explicit override exists.
 
-- F1 preparation/activation;
-- F2 personalized intervention;
-- F3 accompaniment/maintenance/continuity;
-- support complete-payment and progressive-payment views;
-- progressive payment cannot silently remove clinical scope or create hidden debt semantics.
+Must cover at least representative Toxina, Cellbooster/Biorevitalización, HIFU, Hidrofacial and Criolipólisis canaries.
 
-### 1C.4 — Unit/session/control semantics
+Fail closed when required timing/resource authority is missing.
 
-- distinguish row / session / unit / vial / ml / zone / control / package count;
-- no assumption that one catalog row equals one treatment unit;
-- price math must use explicit semantics.
+## L3 — Post-commit confirmations / reminders
 
-### 1C.5 — Toppings / no-discount / margin boundary
+`BOOKED/RESCHEDULED → event/outbox → WhatsApp/email provider dispatch → provider status/retry`.
 
-- benefit increases value; it does not rewrite canonical base price;
-- no autonomous discounting;
-- topping eligibility requires commercial + clinical coherence;
-- internal cost/margin evidence is private OWNER_ADMIN data;
-- no public exposure of cost/margin fields.
+Reuse current email confirmation/reminder/reprogramming infrastructure.
 
-### 1C.6 — Process templates
+Never send provider side effects inside the DB booking transaction.
 
-Governed templates by Domain/Approach, not fixed combos:
+WhatsApp notifications outside the customer-service window use approved/active Meta templates as required.
 
-- Facial / Skin Signature;
-- Facial / Harmony Design;
-- Facial / BioRegen Face;
-- Corporal / Body Reset;
-- Corporal / Sculpt Body;
-- Corporal / Sculpt Booty;
-- Capilar / Activación & Regeneración;
-- Capilar / Mantenimiento & Prevención;
-- cross-domain support/evaluation where appropriate.
+## L4 — WA-AUTO Autonomous Send Authority
 
-Templates define allowed structure and explanatory logic, not patient-specific medical prescriptions.
+Replace structural prohibition with a new governed authority, not an unrestricted ON switch.
 
-### 1C.7 — Safety / evidence / CI
+Required:
 
-- service-role/private owner boundaries;
-- no patient mutation;
-- no REV mutation;
-- no price mutation during architecture certification;
-- no AI send/auto-reply/auto-routing activation;
-- exact-head Zero-Cost tests;
-- anti-drift + expected-head merge;
-- PROD unchanged for feature DDL unless separately promoted.
+- `AUTO_OFF | CANARY | PROD`;
+- allowlists by phone/conversation/campaign;
+- daily budget;
+- max turns;
+- rate limit/cooldown;
+- duplicate guard;
+- kill switch;
+- human takeover;
+- deterministic handoff for clinical/safety/identity/provider/unsupported conditions.
 
-### 1C exit gate
+Pipeline:
 
-Only after 1C exact-head certification may the lock move to:
+`Runtime → governed facts → policy → safety/quality → tool decision → send authority → idempotent Meta outbound`.
 
-`WA-4B — Sales Playbook Engine`.
+No direct LLM → Meta/SQL.
 
-## WA-4B — Sales Playbook Engine — BLOCKED CONTRACT
+L4 cannot activate before L1–L3 close.
 
-WA-4B will consume, not recreate:
+## L5 — Conversational BOOK / REBOOK wiring
 
-- WA identity/reachability/eligibility;
-- governed Knowledge Fabric;
-- Zi Vital Domains/Approaches;
-- WA-4A.1B commercial principles/language;
-- WA-4A.1C treatment/process/pricing context.
+- booking readiness HIGH drives real site/date/slot flow;
+- buttons/lists for discrete choices; free text still works;
+- reuse phone;
+- name required only when absent;
+- email/DNI optional;
+- natural-language `RESCHEDULE_INTENT`;
+- identity/privacy gate before reading appointment;
+- REBOOK same appointment;
+- conversation memory continues after booking/rebooking.
 
-Target behaviors after unblock:
+Exit: allowlisted conversation can BOOK and REBOOK without human action.
 
-- concise client-facing explanations;
-- richer advisor/owner copilot explanations;
-- intent/objective detection;
-- objection handling;
-- process explanation before price fragmentation;
-- safe quotation scenario support;
-- continuity and ethical upsell suggestions;
-- human approval first;
-- evidence-required business facts;
-- clinical escalation where required.
+## L6 — Meta Campaign Context & Attribution
 
-WA-4B does not activate autonomous send; WA-4C remains the later AI Sales Copilot canary.
+Gateway already preserves explicit referral/ad evidence when provider sends it.
 
-## Standard TEST-first phase loop
+Build governed mapping:
 
-`REVALIDATE CURRENT → DISCOVER → NECESSITY GATE → BUILD MINIMUM IN ISOLATED TEST → CONTRACT/SECURITY/REGRESSION TESTS → EXACT-HEAD ZERO-COST CI → ANTI-DRIFT → MERGE EXPECTED HEAD → VERIFY PROD BOUNDARY → TEST CERTIFICATE / PROD-READY PACKAGE → GitHub CURRENT → Notion LAST → NEXT LOCK`.
+`ad_id/campaign_id → treatment/promotion/booking_goal/media strategy`.
+
+Never infer by campaign name.
+
+Required real CTWA canary:
+
+`ad → signed webhook/referral → conversation/touchpoint → campaign context → BOOK/REBOOK → attendance → sale`.
+
+Organic stays explicitly organic.
+
+## L7 — WhatsApp / AI Cost Intelligence
+
+Reconcile evidence:
+
+- Meta pricing category/model/billable/provider billing;
+- AI model/tokens/latency/estimated cost;
+- messages;
+- booking/rebook;
+- attendance;
+- sale/revenue.
+
+Unknown provider cost remains UNKNOWN.
+
+Target mini-panel per chat + cost/conversation, booking, attendance, sale and revenue/cost KPIs.
+
+## L8 — Security Gate for autonomous canary
+
+Supabase has substantial legacy RLS debt. Do not blindly enable RLS globally.
+
+Before general autonomous rollout:
+
+- harden exact WhatsApp/Agenda tables/RPCs touched by autonomy;
+- remove/retire replaced browser direct writes;
+- keep secrets server-only;
+- signed webhook/replay/idempotency;
+- redact PII/PHI from AI/logging paths.
+
+## L9 — AUTONOMOUS DEMO READY
+
+Allowlisted LIVE scenario must show:
+
+`real WhatsApp/Meta entry → autonomous grounded sale conversation → price/objection → real availability → BOOK appears in Agenda → email + WhatsApp confirmation → customer asks natural-language rebook → same appointment changes + history → updated confirmation → attribution/cost visible`.
+
+Exit: `AUTONOMOUS DEMO READY = PASS`.
+
+## L10 — AUTONOMOUS PRODUCTION CANARY
+
+One limited campaign/audience, kill switch, human takeover, error/latency/cost/booking observability and conversation review.
+
+Exit: `AUTONOMOUS PRODUCTION CANARY = PASS`.
+
+## L11 — GENERAL PRODUCTION
+
+Gradual expansion, SLO/error budget, monitoring/alerts, security backlog by batches and rollback/recovery runbook.
+
+Exit: `WHATSAPP REVENUE AGENT = GENERAL PRODUCTION CERTIFIED`.
+
+## Runner / CI rule
+
+Canonical Linux runner is `[self-hosted, Linux, X64, ascenda-zero-cost-v2]`.
+
+Temporary GitHub-hosted fallback was removed after Linux returned. Runner autoboot is installed but remains unverified until a real Windows restart/login proves automatic WSL + runner reconnect.
+
+Any main advance requires exact-head reconciliation of the active functional PR before merge.
+
+## Immediate resume
+
+Start at **L1 only**:
+
+`fix reduced AGV2 fixture → rerun AGV2 + WA-4C FULL LOCAL Linux → exact-head/anti-drift → merge #409 → PROD dormant V2 readback → L2`.

@@ -1,15 +1,15 @@
 # ASCENDA OS — AGENTS CURRENT OVERLAY
 
 **Applies to:** every CURRENT ASCENDA agent/chat  
-**Captured:** 2026-08-22 America/Lima  
+**Captured:** 2026-09-01 America/Lima  
 **ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**ACTIVE GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
+**ACTIVE EXECUTION LOOP:** `WA-AUTO · Autonomous Revenue Agent Production Loop` — GitHub issue #410  
+**ENTRY MAIN:** `66ac1bfaa92465f061c243578607388926970c32`  
+**ACTIVE TECHNICAL GATE:** `L1 / AGV2-2 Unified BOOK/REBOOK Contract`
 
 This overlay supersedes operational assumptions in historical `docs/adn/AGENTS.md` and earlier CURRENT snapshots while preserving them as provenance.
 
-## Mandatory bootstrap
-
-Before any write:
+## Mandatory bootstrap before any write
 
 1. root `AGENTS.md` + `SECURITY.md`;
 2. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
@@ -17,147 +17,193 @@ Before any write:
 4. `docs/MEMORY_CURRENT.md`;
 5. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
 6. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-7. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-8. exact GitHub `main`, Railway status/runtime and live Supabase state;
-9. the current WhatsApp/Meta/Knowledge/Revenue checkpoint only.
+7. `docs/control/WHATSAPP_AUTONOMOUS_PRODUCTION_CURRENT.md`;
+8. GitHub issue #410;
+9. PR #409 CURRENT head + workflow evidence;
+10. exact GitHub `main`, Railway exact deployment/runtime and live Supabase state;
+11. Notion Control Maestro / Roadmap only after technical truth is re-read.
 
-Historical chat statements never override CURRENT or live persisted state.
+Historical docs/chat statements never override CURRENT + exact GitHub + live persisted state.
 
 ## Portfolio Controller
 
 Declare `WORKSTREAM_ID=WHATSAPP-REVENUE-HUB-V2`.
 
-Enforce one global HIGH/CRITICAL mutable workstream. MKT Loop 6 is PAUSED at its preserved 0/5 genuine-operation checkpoint; Revenue, CIA, KronIA and unrelated mutation remain read-only while WA owns the lane.
+Only one HIGH/CRITICAL mutable lane at a time. Current lane is WhatsApp + its strict Agenda V2 dependency. Marketing Loop 6, Revenue, CIA, KronIA and unrelated mutation remain read-only/regression-only unless a narrowly documented dependency is required.
 
-## WhatsApp Product Agent
+## Current production product boundary
 
-Current live entry baseline:
+Target product is no longer merely Copilot. Required production journey:
 
-- 15 messages = 11 inbound / 4 outbound;
-- 2 conversations;
-- 25 events;
-- 9 outbound requests;
-- 11 routing events;
-- 2 active boxes (`VENTAS_GENERAL`, `WA_TEST`);
-- 2 active memberships for the current single operational actor;
-- 1 active assignment;
-- 0 AI runs;
+`Meta/referral → autonomous commercial conversation → governed facts/price → real availability → BOOK → confirmation/reminders → natural-language REBOOK same appointment → attendance → sale → attribution/cost`.
+
+Rollout stages are mandatory:
+
+`AUTONOMOUS DEMO READY → AUTONOMOUS PRODUCTION CANARY → GENERAL PRODUCTION`.
+
+Never jump directly to unrestricted traffic.
+
+## WhatsApp / AI Agent
+
+CURRENT safety snapshot at capture:
+
+- Copilot ON;
 - human send ON;
-- auto routing OFF;
+- auto reply OFF;
 - AI send OFF;
-- Copilot OFF;
-- auto reply OFF.
+- auto routing OFF;
+- autonomous send is structurally prohibited by current WA-3/WA-4 contracts.
 
-Notifications S13–S15.5 are CLOSED / 100% CERTIFIED / REGRESSION ONLY. Do not reopen them unless a current regression is proven.
+Autonomous authority must be a new governed boundary, not a blind flag flip. Required path:
 
-## Meta / Provider Agent
+`Runtime → governed knowledge/price/campaign facts → deterministic policy → safety/quality → tool decision → send authority → idempotent Meta outbound`.
 
-Inbound signed Meta flow is historically demonstrated. Human outbound transport has historical ACCEPTED sends, but current credential/provider health is not certified. The outbound ledger contains historical `META_190` and `META_SEND_REJECTED` failures.
+Never let LLM output directly call Meta, arbitrary SQL or unrestricted tools.
 
-Before calling WhatsApp production-selling ready:
+Required autonomous controls: `AUTO_OFF | CANARY | PROD`, allowlist, daily budget, max turns, rate limit, cooldown, duplicate guard, kill switch, handoff.
 
-1. verify current WABA/phone/provider health without exposing credentials;
-2. use a long-lived/system-user access token stored server-side only;
-3. controlled allowlisted human outbound canary;
-4. require provider message ID and delivery/read/failure observability;
-5. preserve idempotency and customer-service-window rules.
+Clinical/adverse-event/identity-conflict/provider-error/unsupported cases must hand off to human.
 
-Never place Meta tokens in chat, Git, Notion, frontend or logs.
+## Conversational Sales Agent
 
-## Human Operations Agent — WA-3
+Frozen behavior:
 
-After WA-V2-0 certification, DISCOVER first:
+- one useful customer turn → one outbound by default;
+- answer explicit need before advancing the sale;
+- use known campaign/treatment/site/context and do not repeat questions;
+- stop over-selling when booking readiness is HIGH;
+- free text remains primary; buttons/lists only for discrete choices such as site/date/slot/confirm/rebook;
+- do not promise free evaluation unless governed commercial authority proves it;
+- no invented price/promo/availability/clinical facts.
 
-- boxes/members;
-- `whatsapp-agent` permissions;
-- claim/reassign/release;
-- supervisor override;
-- ownership_version;
-- presence/readiness;
-- max_active/capacity;
-- exact per-agent inbox visibility;
-- no cross-owner leakage;
-- routing events and queue integrity.
+## Patient Identity / Privacy Agent
 
-First multiagent canary keeps:
+- reuse canonical ASCENDA identity; no second customer master;
+- phone/channel evidence may accelerate low-risk flow but name-only binding is forbidden;
+- identity conflict fails closed;
+- sensitive appointment/history disclosure requires sufficient verification;
+- trusted WhatsApp phone is reused for booking rather than re-asked;
+- name/surname collected when needed;
+- email recommended but optional for normal booking;
+- DNI/document optional for normal booking unless a future explicit governed policy says otherwise;
+- clinical intake remains outside sales conversation unless specifically required.
 
-- `auto_routing_enabled=false`;
-- `ai_send_enabled=false`;
-- `auto_reply_enabled=false`.
+## Booking / Agenda Agent
 
-Do not create boxes by sede/treatment without evidence. Evaluate `BOT_INBOX`, `VENTAS_GENERAL`, `FOLLOW_UP`, `ESCALAMIENTO_CLINICO` as the initial topology.
+Canonical chain:
 
-## Revenue Inbox UX Agent — WA-3.5
+`service/SKU → procedure → skill → role → eligible professional → site/date schedule → duration/capacity/resource → real slot → BOOK/REBOOK`.
 
-Do not mutate during WA-3. Preserve planned work only:
+Frozen rules:
 
-- smart inbox / unread / SLA / hot-lead / follow-up views;
-- campaign/treatment/stage/owner filters;
-- clean timeline with delivery states and separable events;
-- quick replies/templates/media/notes/drafts/shortcuts;
-- Agenda/call actions;
-- right panel: DETAILS / COPILOT / CUSTOMER 360 / CAMPAIGN / ACTIVITY;
-- notification click → Auth if needed → restore exact destination.
+- never ask customer to choose doctor vs nurse; derive role;
+- doctor = exact-provider;
+- nursing = governed site-pool unless explicitly redesigned;
+- if only one professional is eligible/available, do not show fake provider choice;
+- provider preference only if explicitly requested and valid;
+- no slot without fresh schedule + clinical skill + child procedure + duration/capacity/resource authority;
+- final slot must be revalidated under lock;
+- REBOOK changes the same logical appointment and appends history; never delete/create unrelated replacement;
+- BOOK/REBOOK DB transaction must not synchronously send email/Meta side effects.
 
-## Knowledge / Sales Agent
+AGV2-1 business rules are frozen. PR #409 implements AGV2-2 but remains Draft until its dedicated canary passes.
 
-The ecosystem now contains:
+## Clinical Skill Authority Agent
 
-- 7,702 canonical patients;
-- 1,331 canonical sales;
-- 5,880 leads;
-- 11,911 CIA contact/email facts;
-- 221 active catalog services.
+- Team category/skill/procedure hierarchy is the booking skill authority;
+- current professional procedure scopes were explicitly frozen after admin configuration;
+- a newly added child procedure must not auto-grant to existing staff;
+- preserve role-incompatible restrictions;
+- HIFU remains doctor-only where catalog authority says so;
+- products/operational supplies are not bookable clinical procedures;
+- do not mutate staff clinical competence automatically.
 
-WA must consume canonical truth. No second CRM/customer master/sales ledger/email ledger/agenda engine.
+## Meta / Attribution Agent
 
-Knowledge authority order:
+Gateway already captures explicit referral/ad evidence when Meta provides it. Do not infer treatment or attribution from campaign/ad names.
 
-1. transactional live facts;
-2. approved commercial knowledge;
-3. approved enterprise docs;
-4. campaign context;
-5. Customer 360 facts;
-6. current conversation context;
-7. general LLM knowledge last.
+Governed campaign context must be explicit:
 
-No price, promo, availability, stock or clinical fact may be invented from general model knowledge.
+`ad_id/campaign_id → treatment/promotion/booking_goal/media strategy`.
 
-## Attribution Agent
+At capture, governed campaign-map rows in PROD are 0 and current canary messages do not yet prove real Click-to-WhatsApp referral. A real CTWA canary is mandatory before claiming campaign attribution.
 
-Current explicit WA attribution is 0/15 for `campaign_source`, `ad_id`, `lead_id`, and `raw_referral`.
+Organic traffic remains explicitly organic when no campaign evidence exists.
 
-WA-7A owns provenance ingress. Never attribute campaign/revenue solely by phone coincidence. Preserve touchpoint IDs and explicit Meta referral/ad lineage.
+## Confirmation / Reminder Agent
+
+Email infrastructure is already operational. Booking side effects must be post-commit and idempotent:
+
+`BOOKED/RESCHEDULED event → outbox/provider dispatch → email/WhatsApp → status audit/retry`.
+
+Provider failure must not roll back or duplicate a valid appointment.
+
+Outside the Meta customer-service window, WhatsApp notification sends must use approved/active templates as required by provider policy.
+
+## Cost Intelligence Agent
+
+Track only evidenced economics:
+
+- Meta pricing category/model/billable;
+- provider billing evidence where available;
+- AI provider/model/tokens/latency/estimated cost;
+- conversation/message counts;
+- booking/rebook/attendance/sale/revenue.
+
+Unknown Meta cost remains UNKNOWN; never fabricate it.
+
+Target KPIs: cost/conversation, cost/booking, cost/attendance, cost/sale, revenue/cost.
+
+## Performance Agent
+
+Call Center/Agenda P0 reduced repeated/high-I/O paths and introduced governed Agenda status write. Preserve the rule: fix query amplification and transactional design before assuming infrastructure upgrade is the solution.
+
+Do not reintroduce browser-side multi-request pseudo-transactions for a single business action.
 
 ## Security Guardian
 
-- use root `SECURITY.md`;
-- no PII/PHI in GitHub/public artifacts;
-- no secrets in docs/examples/prompts;
-- no autonomous diagnosis or clinical recommendation;
-- no SQL arbitrary from AI;
-- exact owner / Auth V3 / 2FA boundaries remain authoritative;
-- no auto-send AI before later controlled-autonomy gates.
+- root `SECURITY.md` remains authoritative;
+- no PII/PHI/secrets in GitHub/public artifacts;
+- no Meta/Groq/Resend tokens in chat, Git, Notion, frontend or logs;
+- no autonomous diagnosis/prescription/candidacy;
+- no arbitrary SQL from AI;
+- exact Auth/2FA/owner/assignment boundaries remain authoritative where applicable;
+- Supabase currently has significant legacy tables without RLS; do not enable RLS globally without policies;
+- harden exact autonomous WhatsApp/Agenda surfaces first and migrate direct browser writes to governed RPCs before general rollout.
 
 ## CI / Runner Governor
 
+- self-hosted Linux canonical label: `[self-hosted, Linux, X64, ascenda-zero-cost-v2]`;
+- Windows `ascenda-fast` remains a separate lane where still configured;
 - runners are execution capacity, never source of truth;
 - exact commit/diff + live post-conditions are authority;
-- any unrelated `main` advance requires exact-head revalidation before the next WA mutation;
-- use parallel runners only for independent validation; never parallel HIGH/CRITICAL writes.
+- any `main` advance requires active PR exact-head reconciliation/revalidation;
+- no temporary GitHub-hosted fallback unless owner explicitly authorizes it for a named boundary;
+- runner autoboot has been installed but is not `100%` certified until a real restart/login proves automatic recovery.
 
-## Historian / Memory Manager
+## Historian / Continuity Manager
 
 For every material gate:
 
-1. freeze exact GitHub evidence;
-2. read live production state;
-3. record persisted counters/invariants;
-4. update CURRENT docs;
-5. update `aos_memory` only after merge/live proof;
+1. re-read exact main + active PR head;
+2. freeze exact workflow evidence;
+3. read live production invariants;
+4. record drift and supersede stale claims explicitly;
+5. update CURRENT GitHub docs;
 6. update Notion last;
-7. explicitly supersede stale claims.
+7. never mark a provider/user-visible gate `100%` without physical/live evidence when required.
 
-## Release Certifier
+## Immediate resume point
 
-No WA phase is `100%` from code completion alone. Require exact-head CI, deploy, live Supabase invariants, security/rollback evidence and physical canary when the gate is user-visible or provider-dependent.
+Do not start autonomous send yet.
+
+Resume issue #410 at `L1`:
+
+1. fix the reduced AGV2 canary fixture so it contains the CURRENT booking capability authority;
+2. do not weaken or change production semantics merely to pass the fixture;
+3. rerun dedicated AGV2 + WA-4C FULL LOCAL on self-hosted Linux;
+4. exact-head + anti-drift;
+5. Ready/merge PR #409 only after PASS;
+6. apply AGV2 migrations from merged lineage to PROD;
+7. read back dormant BOOK/REBOOK functions/tables/guards;
+8. then continue L2 duration/capacity/resource authority.
