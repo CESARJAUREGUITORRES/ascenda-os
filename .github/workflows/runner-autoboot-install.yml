@@ -1,0 +1,111 @@
+name: ASCENDA Runner Autoboot Install
+
+on:
+  push:
+    branches: ['infra/runner-autoboot-diagnostic-20260901']
+    paths:
+      - '.github/workflows/runner-autoboot-install.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runner-autoboot-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Install WSL + cron autoboot bridge
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install user-level runner supervisor and Windows startup bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUNNER_DIR='/home/ascenda-runner/actions-runner/actions-runner'
+          AUTOSTART='/home/ascenda-runner/ascenda-runner-autoboot.sh'
+          LOG='/home/ascenda-runner/ascenda-runner-autoboot.log'
+          CRON_MARKER='# ASCENDA_ZERO_COST_V2_AUTOBOOT'
+
+          test "$(id -un)" = 'ascenda-runner'
+          test -x "$RUNNER_DIR/run.sh"
+          test "$(systemctl is-active cron)" = 'active'
+          test "$(systemctl is-enabled cron)" = 'enabled'
+
+          cat > "$AUTOSTART" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -u
+          RUNNER_DIR='/home/ascenda-runner/actions-runner/actions-runner'
+          LOG='/home/ascenda-runner/ascenda-runner-autoboot.log'
+          LOCK='/home/ascenda-runner/.ascenda-runner-autoboot.lock'
+
+          exec 9>"$LOCK"
+          /usr/bin/flock -n 9 || exit 0
+
+          rotate_log() {
+            if [ -f "$LOG" ]; then
+              size=$(/usr/bin/stat -c%s "$LOG" 2>/dev/null || echo 0)
+              if [ "${size:-0}" -gt 5242880 ]; then
+                /bin/mv -f "$LOG" "$LOG.1" 2>/dev/null || true
+              fi
+            fi
+          }
+
+          rotate_log
+          echo "[$(/bin/date -Is)] ASCENDA runner autoboot supervisor started" >> "$LOG"
+
+          while true; do
+            if /usr/bin/pgrep -u "$(id -u)" -f "$RUNNER_DIR/bin/Runner.Listener run" >/dev/null 2>&1; then
+              /bin/sleep 15
+              continue
+            fi
+
+            echo "[$(/bin/date -Is)] starting ASCENDA-ZERO-COST-V2" >> "$LOG"
+            cd "$RUNNER_DIR" || exit 1
+            ./run.sh >> "$LOG" 2>&1
+            rc=$?
+            echo "[$(/bin/date -Is)] runner exited rc=$rc; retrying in 10s" >> "$LOG"
+            /bin/sleep 10
+          done
+          SCRIPT
+          chmod 700 "$AUTOSTART"
+
+          current_cron=$(crontab -l 2>/dev/null || true)
+          cleaned=$(printf '%s\n' "$current_cron" | grep -vF "$CRON_MARKER" | grep -vF "$AUTOSTART" || true)
+          {
+            printf '%s\n' "$cleaned"
+            printf '%s\n' "$CRON_MARKER"
+            printf '@reboot /usr/bin/nohup %s >/dev/null 2>&1 &\n' "$AUTOSTART"
+          } | sed '/^[[:space:]]*$/N;/^\n$/D' | crontab -
+
+          startup=''
+          count=0
+          for profile in /mnt/c/Users/*; do
+            [ -d "$profile" ] || continue
+            base=$(basename "$profile")
+            case "$base" in Public|Default|'Default User'|'All Users'|desktop.ini) continue;; esac
+            candidate="$profile/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
+            if [ -d "$candidate" ] && [ -w "$candidate" ]; then
+              startup="$candidate"
+              count=$((count+1))
+            fi
+          done
+          test "$count" -eq 1
+
+          cat > "$startup/ASCENDA-WSL-RUNNER.vbs" <<'VBS'
+          Set shell = CreateObject("WScript.Shell")
+          shell.Run "wsl.exe --exec /bin/true", 0, False
+          VBS
+
+          echo '=== AUTOboot verification ==='
+          test -x "$AUTOSTART"
+          grep -F "$CRON_MARKER" < <(crontab -l)
+          grep -F "$AUTOSTART" < <(crontab -l)
+          test -f "$startup/ASCENDA-WSL-RUNNER.vbs"
+          grep -F 'wsl.exe --exec /bin/true' "$startup/ASCENDA-WSL-RUNNER.vbs"
+          echo 'ASCENDA_RUNNER_AUTOBOOT_INSTALLED=PASS'
+          echo 'Activation occurs on the next Windows user logon / WSL boot. Current foreground runner is intentionally left untouched.'
