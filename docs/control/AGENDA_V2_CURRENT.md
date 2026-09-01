@@ -2,7 +2,7 @@
 
 Fecha de apertura: 2026-09-01
 Baseline: `main@66ac1bfaa92465f061c243578607388926970c32`
-Estado: `INVENTORY_AND_ARCHITECTURE`
+Estado: `AGV2-0_INVENTORY_ACTIVE`
 Mutación PROD: `NO`
 
 ## Objetivo
@@ -48,6 +48,68 @@ Esto permite combinaciones que deberían derivarse de autoridad clínica y dispo
 
 `agenda-governed-status-v1.js` solo sustituyó el guardado de estado legacy por una operación atómica gobernada. Creación, edición y reprogramación todavía requieren reconciliación/migración.
 
+## AGV2-0 — mapa inicial de superficies de escritura
+
+La cita canónica no se escribe únicamente desde `agenda.js`. El inventario de repo confirma múltiples superficies legacy:
+
+| Superficie | Ruta observada | Riesgo / decisión V2 |
+| --- | --- | --- |
+| `app/public/agenda.js` | PATCH directo de `aos_agenda_citas` | edición debe migrar a frontera gobernada |
+| `app/public/agenda.js` | DELETE directo de `aos_agenda_citas` | eliminación física debe salir del browser; preferir cancelación/state machine salvo caso administrativo explícito |
+| `app/public/agenda.js` | reprogramación por `PATCH original + POST nueva` en paralelo | no atómico; migrar a una sola transacción de rebook |
+| `app/public/citas.js` / `citas.html` | PATCH/DELETE directos | deben consumir la misma autoridad que Agenda V2 |
+| `app/public/citas.html` | reprogramación directa PATCH + POST | segunda ruta legacy de booking; eliminar divergencia |
+| `app/public/calls.js` / `calls.html` | POST de cita desde Call Center legacy | ya existe Loop6 governed runtime; mantener únicamente ruta gobernada/postload |
+| `app/public/attendance.html` | puede crear `aos_agenda_citas` directamente | revisar ownership: asistencia no debe inventar booking fuera del contrato canónico |
+| `app/public/admin-agenda.html` | POST/DELETE directo de `aos_horarios_personal` | horarios requieren frontera administrativa y auditoría propias |
+
+Principio AGV2: no corregir cada pantalla con reglas distintas. Todas las superficies que creen/reprogramen/editen una cita deben converger en un único contrato transaccional.
+
+## Boundary de seguridad encontrado en PROD
+
+`aos_agenda_citas` tiene RLS habilitado, pero conserva políticas legacy permisivas `ALL / true` para `anon` y `authenticated`. Además, los roles `anon` y `authenticated` conservan privilegios de tabla incluyendo `SELECT/INSERT/UPDATE/DELETE`.
+
+Esto significa que la seguridad efectiva actual depende parcialmente de triggers de runtime/origen y de que la UI use rutas gobernadas; no existe todavía un boundary de tabla suficientemente cerrado para Agenda V2.
+
+Agenda V2 debe eliminar esta dependencia gradualmente y sin romper Call Center, WhatsApp, asistencia o integraciones legacy:
+
+1. inventariar cada writer legítimo;
+2. darle RPC/función gobernada propia o consolidada;
+3. certificar cada writer;
+4. retirar writes directos del browser;
+5. recién entonces endurecer grants/RLS de la tabla canónica.
+
+No revocar ACL/RLS en PROD durante AGV2-0: podría cortar writers existentes no reconciliados.
+
+## Triggers y side-effects actuales de `aos_agenda_citas`
+
+El ledger tiene side-effects que obligan a que Create/Rebook/State sean transacciones diseñadas, no simples PATCH/POST:
+
+- Loop6 guard para INSERT de origen `CITA_MANUAL` / `CALL_CENTER*`.
+- WA-4 governed booking guard para INSERT/UPDATE de origen `WHATSAPP`.
+- dedupe de agenda en INSERT.
+- cleanup de llamadas legacy para ciertas citas manuales.
+- notificaciones en INSERT y en cambios de `estado_cita`.
+- asignación de historia clínica al pasar a `ASISTIO`.
+- autocreación/enriquecimiento de paciente desde la cita.
+- auditoría general INSERT/UPDATE/DELETE.
+- dirty marker de Revenue/Sentinel.
+
+Por lo tanto, una operación de Agenda V2 debe preservar deliberadamente los side-effects válidos y retirar los accidentales/duplicados solo con pruebas.
+
+## Status authority CURRENT
+
+`aos_agenda_set_status_v1(...)` ya implementa una frontera fuerte para estados:
+
+- exige sesión 2FA válida para `advisor-agenda` o `admin-agenda`;
+- acepta solo `PENDIENTE`, `CITA CONFIRMADA`, `ASISTIO`, `EFECTIVA`, `NO ASISTIO`, `CANCELADA`;
+- bloquea la fila con `FOR UPDATE`;
+- para `ASISTIO/EFECTIVA` exige autoridad de profesional clínico y crea/actualiza `aos_atenciones`;
+- al volver a `PENDIENTE/CITA CONFIRMADA`, preserva atención si ya existen notas clínicas y limpia solo cuando no existen;
+- registra auditoría `AGENDA_STATUS_GOVERNED`.
+
+AGV2-3 debe construir la state machine sobre esta base y definir explícitamente qué transiciones entre estados son legales; el RPC actual valida el estado destino, pero todavía no congela una matriz completa `estado anterior → estado nuevo`.
+
 ## Booking authority ya disponible
 
 `aos_booking_availability_v2` actualmente:
@@ -65,6 +127,18 @@ Reglas técnicas CURRENT a debatir antes de congelar como regla comercial de Age
 - domingo no agendable en `aos_agendar_publica_v2`.
 
 Estas reglas existen hoy, pero NO quedan congeladas como política de negocio por este documento.
+
+## Patrón transaccional reutilizable
+
+`aos_agendar_publica_v2` ya demuestra varias piezas correctas que AGV2-2 puede reutilizar conceptualmente:
+
+- advisory lock de booking;
+- llamada a la autoridad de disponibilidad dentro de la operación;
+- revalidación del slot inmediatamente antes de insertar;
+- fallo `SLOT_NO_LONGER_AVAILABLE` si cambió la disponibilidad;
+- resolución de profesional exacto o pool según rol.
+
+No reutilizar ciegamente sus semánticas de token/origen/atribución porque son de agenda pública; el booking interno necesita actor 2FA, owner/asesor y origen interno explícitos.
 
 ## Contrato objetivo Agenda V2
 
@@ -106,6 +180,20 @@ Eliminar lecturas duplicadas, fijar ownership de vistas día/semana/mes y medir 
 
 ### AGV2-7 — LIVE Certification
 Con sesión 2FA real y horario laboral: crear, reprogramar y cambiar estado de citas reales allowlisted; validar readback, atribución, capacidad, auditoría y side-effects.
+
+## Próximo gate de arquitectura
+
+Antes de escribir AGV2-2 hay que cerrar AGV2-1 con decisión humana sobre estas reglas de negocio que el código actual no debe imponer por accidente:
+
+- duración/capacidad por procedimiento, no solo por rol;
+- cuándo se exige profesional exacto y cuándo pool;
+- si una cita puede cambiar de tratamiento sin rebooking;
+- reglas de reprogramación y conservación de historial/origen;
+- cancelación vs eliminación física;
+- estados y transiciones válidas;
+- qué datos del paciente son obligatorios al agendar;
+- ownership de la cita: asesor, sede, canal y atribución;
+- horarios especiales, bloqueos, feriados y excepciones.
 
 ## Gate aplazado hasta horario laboral
 
