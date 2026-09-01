@@ -129,7 +129,17 @@ jobs:
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901235000_agv2_l3_delivery_outbox_fk_indexes_v3.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+
+      - name: L3-H1 FK covering indexes
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_agenda_event_id') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_operation_id') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select pg_get_indexdef('public.idx_aos_agenda_delivery_outbox_v3_agenda_event_id'::regclass) like '%(agenda_event_id)%'")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select pg_get_indexdef('public.idx_aos_agenda_delivery_outbox_v3_operation_id'::regclass) like '%(operation_id)%'")" = 't'
 
       - name: L3 confirmation, reminder, rebook and idempotency canaries
         run: |
@@ -143,6 +153,17 @@ jobs:
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where active=true")" = '10'
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where provider_verified=false")" = '6'
 
+      - name: L3-H1 rollback compiles and re-applies cleanly
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260901235000_agv2_l3_delivery_outbox_fk_indexes_v3_rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_agenda_event_id') is null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_operation_id') is null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901235000_agv2_l3_delivery_outbox_fk_indexes_v3.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_agenda_event_id') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_operation_id') is not null")" = 't'
+
       - name: L3 rollback compiles and re-applies cleanly
         run: |
           set -euo pipefail
@@ -151,7 +172,10 @@ jobs:
           test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_agenda_delivery_outbox_v3') is null")" = 't'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901235000_agv2_l3_delivery_outbox_fk_indexes_v3.sql
           test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where active=true")" = '10'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_agenda_event_id') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.idx_aos_agenda_delivery_outbox_v3_operation_id') is not null")" = 't'
 
       - name: Local DB lint and dormant boundary
         run: |
