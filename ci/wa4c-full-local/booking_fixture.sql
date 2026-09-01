@@ -55,7 +55,15 @@ create table if not exists public.aos_horarios_personal(
   hora_inicio text not null,
   hora_fin text not null,
   sede text not null,
+  rol text,
   activo boolean default true
+);
+
+-- Compact governed treatment authority required by the canonical booking capability resolver.
+-- This remains TEST-only: the selected synthetic service is mirrored 1:1 as its own capability.
+create table if not exists public.aos_cat_tratamientos(
+  tratamiento text primary key,
+  estado text default 'ACTIVO'
 );
 
 create table if not exists public.aos_pacientes(
@@ -84,6 +92,7 @@ end
 $$;
 
 grant select,insert,update on public.aos_agenda_citas,public.aos_perfiles_profesional,public.aos_horarios_personal,public.aos_pacientes to service_role;
+grant select on public.aos_cat_tratamientos to service_role;
 grant execute on function public.aos_rev_resolve_patient_identity_v2(text,text) to service_role;
 
 insert into public.aos_perfiles_profesional(id,codigo_asesor,nombre_publico,sede,tipo,visible,orden)
@@ -93,15 +102,15 @@ on conflict(id) do update set visible=true,sede='TODAS',tipo='DOCTORA',nombre_pu
 with d as (
   select current_date + case extract(isodow from current_date)::int when 6 then 2 when 7 then 1 else 1 end as target_date
 )
-insert into public.aos_horarios_personal(personal,fecha,hora_inicio,hora_fin,sede,activo)
-select 'DRA. TEST',target_date,'10:00','12:00','SAN ISIDRO',true from d;
+insert into public.aos_horarios_personal(personal,fecha,hora_inicio,hora_fin,sede,rol,activo)
+select 'DRA. TEST',target_date,'10:00','12:00','SAN ISIDRO','DOCTORA',true from d;
 
 -- Keep the freshness watermark beyond the target date.
 with d as (
   select current_date + case extract(isodow from current_date)::int when 6 then 2 when 7 then 1 else 1 end + 7 as future_date
 )
-insert into public.aos_horarios_personal(personal,fecha,hora_inicio,hora_fin,sede,activo)
-select 'DRA. TEST',future_date,'10:00','12:00','SAN ISIDRO',true from d;
+insert into public.aos_horarios_personal(personal,fecha,hora_inicio,hora_fin,sede,rol,activo)
+select 'DRA. TEST',future_date,'10:00','12:00','SAN ISIDRO','DOCTORA',true from d;
 
 create table if not exists public.aos_wa4c_booking_test_fixture(
   id integer primary key,
@@ -126,6 +135,15 @@ update public.aos_catalogo_servicios s
 set requiere_doctora=true,requiere_enfermeria=false
 from public.aos_wa4c_booking_test_fixture f
 where f.id=1 and s.id=f.treatment_id;
+
+-- Mirror the exact selected service into the compact treatment authority so the
+-- canonical capability resolver is exercised rather than stubbed.
+insert into public.aos_cat_tratamientos(tratamiento,estado)
+select s.nombre,'ACTIVO'
+from public.aos_catalogo_servicios s
+join public.aos_wa4c_booking_test_fixture f on f.treatment_id=s.id
+where f.id=1
+on conflict(tratamiento) do update set estado='ACTIVO';
 
 grant select on public.aos_wa4c_booking_test_fixture to service_role;
 
