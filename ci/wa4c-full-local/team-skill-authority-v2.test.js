@@ -8,6 +8,9 @@ const ROOT=path.resolve(__dirname,'../..');
 const resolver=require(path.join(ROOT,'app/wa4-booking-resolver.js'));
 const migration=fs.readFileSync(path.join(ROOT,'supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql'),'utf8');
 const classification=fs.readFileSync(path.join(ROOT,'supabase/migrations/20260901003500_wa4c_team_skill_catalog_classification_v3.sql'),'utf8');
+const freeze=fs.readFileSync(path.join(ROOT,'supabase/migrations/20260901030000_wa4c_clinical_matrix_freeze_panel_authority_v1.sql'),'utf8');
+const panelRuntime=fs.readFileSync(path.join(ROOT,'app/public/panel-access-authority-v1.js'),'utf8');
+const sentinelBoot=fs.readFileSync(path.join(ROOT,'app/public/sentinel-hub-bootstrap.js'),'utf8');
 
 test('AMBOS means either governed clinical role, not two simultaneous professionals',()=>{
   const out=resolver.roleFromRows([{requiere_doctora:true,requiere_enfermeria:true}]);
@@ -68,4 +71,36 @@ test('HIFU is governed as doctor-only in category, service rows and Team skill m
   assert.match(classification,/where upper\(tratamiento\)='HIFU'/);
   assert.match(classification,/WA4C_HIFU_DOCTOR_ONLY_SERVICE_FAILED/);
   assert.match(classification,/WA4C_HIFU_DOCTOR_ONLY_SKILL_FAILED/);
+});
+
+test('Clinical Matrix Freeze converts inherited child truth into explicit rows without overwriting existing scope',()=>{
+  assert.match(freeze,/CLINICAL_MATRIX_FREEZE_V1/);
+  assert.match(freeze,/not exists \([\s\S]*aos_professional_procedure_scope_v1/);
+  assert.match(freeze,/on conflict \(codigo_asesor,capability,procedure_key\) do nothing/);
+  assert.match(freeze,/ZIV-002','ZIV-003','ZIV-004','ZIV-006','ZIV-007','ZIV-008/);
+});
+
+test('Roles y Permisos governs mixed admin + operational sidebar from explicit paneles_acceso',()=>{
+  assert.match(panelRuntime,/AOS&&AOS\.role==='ADMIN'/);
+  assert.match(panelRuntime,/filteredGroups\(window\.SIDEBAR_ADMIN,allowed,seen\)/);
+  assert.match(panelRuntime,/filteredGroups\(window\.SIDEBAR_ASESOR,allowed,seen\)/);
+  assert.match(panelRuntime,/if\(isPanelId\(id\)&&!hasPanel\(id\)\)/);
+  assert.match(panelRuntime,/ctx\(\)\.paneles_acceso/);
+});
+
+test('Team privilege writes require strong 2FA admin-team authority and hierarchy checks',()=>{
+  assert.match(freeze,/aos_app_actor_v3\(p_token,'admin-team',true\)/);
+  assert.match(freeze,/SUPER_ADMIN_NOT_DELEGABLE/);
+  assert.match(freeze,/SUPER_ADMIN_SELF_DEMOTION_BLOCKED/);
+  assert.match(freeze,/ADMIN_PANEL_REQUIRES_ADMIN_LEVEL/);
+  assert.match(freeze,/SALES_INTELLIGENCE_OWNER_ONLY/);
+  assert.match(freeze,/AOS_TEAM_ACCESS_RPC_REQUIRED/);
+  assert.match(panelRuntime,/aos_team_set_access_v1/);
+  assert.match(panelRuntime,/aos_app_token/);
+});
+
+test('Previously hardcoded admin surfaces become selectable and Sentinel requires explicit assignment',()=>{
+  for(const id of ['admin-catalogo','admin-inventario','admin-studio','admin-sentinel']) assert.match(freeze,new RegExp(id));
+  assert.match(sentinelBoot,/panelList\(\)\.indexOf\('admin-sentinel'\)>=0/);
+  assert.match(sentinelBoot,/panel-access-authority-v1\.js/);
 });

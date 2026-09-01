@@ -1,13 +1,25 @@
 (function(){
 'use strict';
-var installed=false,origNavigate=null,loading=null;
+var installed=false,origNavigate=null,loading=null,panelAuthorityLoading=null;
 function ctx(){try{return typeof window.AOS_getCtx==='function'?(window.AOS_getCtx()||{}):(window.AOS&&window.AOS.ctx||{});}catch(_){return {};}}
-function allowed(){var c=ctx();return String(c.role||'').toUpperCase()==='ADMIN'&&Number(c.nivel||99)<=2;}
+function panelList(){var c=ctx(),p=c.paneles_acceso||[];if(typeof p==='string'){try{p=JSON.parse(p);}catch(_){p=[];}}return Array.isArray(p)?p:[];}
+function allowed(){var c=ctx();return String(c.role||'').toUpperCase()==='ADMIN'&&Number(c.nivel||99)<=2&&panelList().indexOf('admin-sentinel')>=0;}
+function ensurePanelAuthority(){
+  if(window.__AOS_PANEL_ACCESS_AUTHORITY_V1__)return Promise.resolve();
+  if(panelAuthorityLoading)return panelAuthorityLoading;
+  panelAuthorityLoading=new Promise(function(resolve,reject){
+    var s=document.createElement('script');s.src='/panel-access-authority-v1.js?v=20260901-panel-authority-v1';s.setAttribute('data-panel-authority','1');s.async=false;
+    s.onload=function(){resolve();};s.onerror=function(){reject(new Error('PANEL_AUTHORITY_UNAVAILABLE'));};
+    document.head.appendChild(s);
+  });
+  return panelAuthorityLoading;
+}
 function ensureScript(){if(window.AOS_SentinelHub)return Promise.resolve();if(loading)return loading;loading=new Promise(function(resolve,reject){var s=document.createElement('script');s.src='/sentinel-hub.js?v=1';s.setAttribute('data-sentinel-hub','1');s.onload=function(){resolve();};s.onerror=function(){reject(new Error('SENTINEL_HUB_SCRIPT_UNAVAILABLE'));};document.head.appendChild(s);});return loading;}
 function markNav(){document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('act-asesor','act-admin');});var nd=document.getElementById('nav-admin-sentinel');if(nd)nd.classList.add('act-admin');}
 function executePanelScripts(ws){var scripts=[].slice.call(ws.querySelectorAll('script'));scripts.forEach(function(s){s.remove();});return ensureScript();}
 function openHub(){if(!allowed()){if(origNavigate)return origNavigate('admin-home');return;}if(window.AOS_SentinelHub)window.AOS_SentinelHub.stop();if(window.AOS)window.AOS.activeView='admin-sentinel';markNav();var ws=document.getElementById('workspace');if(!ws)return;ws.textContent='';var loadingEl=document.createElement('div');loadingEl.className='view-loading';var sp=document.createElement('div');sp.className='vl-spinner';var tx=document.createElement('div');tx.className='vl-txt';tx.textContent='Cargando Sentinel...';loadingEl.appendChild(sp);loadingEl.appendChild(tx);ws.appendChild(loadingEl);fetch('/admin-sentinel.html',{cache:'no-store',credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('PANEL_UNAVAILABLE');return r.text();}).then(function(html){ws.innerHTML=html;return executePanelScripts(ws);}).then(function(){if(window.AOS_SentinelHub)window.AOS_SentinelHub.start();}).catch(function(){ws.textContent='';var e=document.createElement('div');e.className='view-error';var t=document.createElement('div');t.className='ve-txt';t.textContent='Sentinel Hub no disponible';e.appendChild(t);ws.appendChild(e);});}
 function addNav(){if(!allowed()||!Array.isArray(window.SIDEBAR_ADMIN))return;var exists=window.SIDEBAR_ADMIN.some(function(x){return x&&x.id==='admin-sentinel';});if(!exists){var idx=window.SIDEBAR_ADMIN.findIndex(function(x){return x&&x.id==='admin-config';});var item={type:'item',id:'admin-sentinel',ico:'eye',lbl:'Sentinel'};if(idx<0)window.SIDEBAR_ADMIN.push(item);else window.SIDEBAR_ADMIN.splice(idx,0,item);}if(typeof window.buildSidebar==='function')window.buildSidebar();}
-function install(){if(installed||!allowed())return;installed=true;origNavigate=window.navigateTo;if(typeof origNavigate==='function'){window.navigateTo=function(viewId){if(viewId==='admin-sentinel')return openHub();if(window.AOS_SentinelHub)window.AOS_SentinelHub.stop();return origNavigate.apply(this,arguments);};}addNav();window.AOS_openSentinelHub=openHub;}
+function installSentinel(){if(installed||!allowed())return;installed=true;origNavigate=window.navigateTo;if(typeof origNavigate==='function'){window.navigateTo=function(viewId){if(viewId==='admin-sentinel')return openHub();if(window.AOS_SentinelHub)window.AOS_SentinelHub.stop();return origNavigate.apply(this,arguments);};}addNav();window.AOS_openSentinelHub=openHub;}
+function install(){ensurePanelAuthority().then(installSentinel).catch(function(e){console.error('[ASCENDA][PANEL-AUTH]',e.message);});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(install,0);});else setTimeout(install,0);
 })();
