@@ -1,0 +1,53 @@
+name: TEMP WA-4C Hierarchy Perf Patch
+on:
+  push:
+    branches: [feat/wa4c-professional-skill-hierarchy-20260901]
+    paths: ['.github/workflows/temp-wa4c-hierarchy-perf-patch.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/wa4c-professional-skill-hierarchy-20260901
+          fetch-depth: 0
+      - name: Remove direct network ownership from hierarchy UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/public/admin-team-skill-hierarchy.js')
+          s=p.read_text(encoding='utf-8')
+          old="""  function rpcCall(fn,p){
+    return fetch(window.SB+'/rest/v1/rpc/'+fn,{
+      method:'POST',
+      headers:{'apikey':window.SK,'Authorization':'Bearer '+window.SK,'Content-Type':'application/json'},
+      body:JSON.stringify(p||{})
+    }).then(function(r){
+      return r.text().then(function(t){
+        var d;try{d=t?JSON.parse(t):{};}catch(e){d={raw:t};}
+        if(!r.ok)throw new Error((d&&d.message)||('HTTP '+r.status));
+        return d;
+      });
+    });
+  }
+"""
+          new="""  function rpcCall(fn,p){
+    if(typeof window.sb_rpc!=='function')return Promise.reject(new Error('SB_RPC_NOT_READY'));
+    return Promise.resolve(window.sb_rpc(fn,p||{}));
+  }
+"""
+          if old not in s:
+              raise SystemExit('rpcCall block not found')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+          PY
+          node --check app/public/admin-team-skill-hierarchy.js
+          ! grep -Eq '\bfetch\s*\(|/rest/v1/' app/public/admin-team-skill-hierarchy.js
+      - name: Commit patch
+        run: |
+          git config user.name 'ascenda-wa4c-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/public/admin-team-skill-hierarchy.js
+          git commit -m 'WA-4C: keep hierarchy UI outside recurrent network owner budget'
+          git push origin HEAD:feat/wa4c-professional-skill-hierarchy-20260901
