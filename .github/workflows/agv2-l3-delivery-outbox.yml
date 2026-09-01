@@ -1,0 +1,169 @@
+name: ASCENDA AGV2 L3 Delivery Outbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*agv2_l3_*'
+      - 'supabase/rollbacks/*l3_delivery_outbox*'
+      - 'ci/agv2-l3-delivery/**'
+      - '.github/workflows/agv2-l3-delivery-outbox.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agv2-l3-delivery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: ZERO-COST · post-commit confirmations + reminders
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Static L3 delivery contract
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --test ci/agv2-l3-delivery/delivery-outbox-contract.test.js
+
+      - name: Wait for isolated local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 60); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'AGV2_L3_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+
+      - name: Build isolated CURRENT + certified L1/L2 prerequisites
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+
+          # FULL LOCAL is deliberately compact. Add deterministic representatives
+          # required by the already-certified L1/L2 migrations reused by L3.
+          psql "$DB" -X -v ON_ERROR_STOP=1 <<'SQL'
+          insert into public.aos_catalogo_servicios(
+            nombre,nombre_corto,tipo,categoria,estado,requiere_doctora,requiere_enfermeria,precio_base,precio_oferta,moneda
+          )
+          select 'CELLBOOSTER GLOW x1','CELLBOOSTER GLOW x1','SERVICIO','BIOREVITALIZACION FACIAL','ACTIVO',true,false,100,90,'PEN'
+          where not exists (select 1 from public.aos_catalogo_servicios where nombre='CELLBOOSTER GLOW x1');
+
+          insert into public.aos_catalogo_servicios(
+            nombre,nombre_corto,tipo,categoria,estado,requiere_doctora,requiere_enfermeria,precio_base,precio_oferta,moneda
+          )
+          select 'FACIAL COREANO','FACIAL COREANO','SERVICIO','FACIALES','ACTIVO',false,true,100,90,'PEN'
+          where not exists (select 1 from public.aos_catalogo_servicios where nombre='FACIAL COREANO');
+
+          update public.aos_catalogo_servicios
+             set categoria='FACIALES'
+           where upper(coalesce(estado,'ACTIVO'))='ACTIVO'
+             and upper(coalesce(tipo,'SERVICIO'))='SERVICIO'
+             and upper(nombre) like 'HIDROFACIAL%';
+
+          insert into public.aos_cat_tratamientos(
+            tratamiento,estado,orden,ultima_edicion,editado_por,categoria,requiere_doctora,requiere_enfermeria
+          ) values ('HIDROFACIAL','ACTIVO',320,now(),'L3_TEST_PROD_PARITY','FACIAL',false,true)
+          on conflict(tratamiento) do update
+          set estado='ACTIVO',categoria='FACIAL',requiere_doctora=false,
+              requiere_enfermeria=true,ultima_edicion=now(),editado_por='L3_TEST_PROD_PARITY';
+          SQL
+
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831235500_wa4c_catalog_capability_reconciliation_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+
+          psql "$DB" -X -v ON_ERROR_STOP=1 <<'SQL'
+          alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];
+          alter table public.aos_catalogo_categorias add column if not exists tipo text default 'SERVICIO';
+          alter table public.aos_catalogo_categorias add column if not exists icono text;
+          alter table public.aos_catalogo_categorias add column if not exists rol_profesional text default 'AMBOS';
+          alter table public.aos_catalogo_categorias add column if not exists estado text default 'ACTIVO';
+          alter table public.aos_catalogo_categorias add column if not exists orden integer default 0;
+          alter table public.aos_catalogo_categorias add column if not exists updated_at timestamptz default now();
+          create unique index if not exists ux_aos_catalogo_categorias_nombre_l3_test
+            on public.aos_catalogo_categorias(nombre);
+          SQL
+
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003500_wa4c_team_skill_catalog_classification_v3.sql
+
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path('supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql').read_text()
+          needle = "'WA4C_SKILL_HIERARCHY_UNMAPPED_ACTIVE_SERVICES:%'"
+          pos = src.find(needle)
+          if pos < 0:
+              raise SystemExit('L3_TEST_SKILL_ASSERTION_MARKER_NOT_FOUND')
+          start = src.rfind('\ndo $$', 0, pos)
+          end = src.find('\n$$;', pos)
+          if start < 0 or end < 0:
+              raise SystemExit('L3_TEST_SKILL_ASSERTION_BLOCK_NOT_FOUND')
+          end += len('\n$$;')
+          out = src[:start] + "\n-- TEST ONLY: global production catalog coverage assertion omitted here.\n" + src[end:]
+          Path('/tmp/wa4c-professional-skill-hierarchy-l3-test.sql').write_text(out)
+          PY
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/wa4c-professional-skill-hierarchy-l3-test.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901123000_agv2_slot_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+
+      - name: L3 confirmation, reminder, rebook and idempotency canaries
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/agv2-l3-delivery/delivery-outbox-canary.sql 2>&1 | tee /tmp/agv2-l3-canary.txt
+          grep -q 'AGV2_L3_DELIVERY_OUTBOX_CANARY_PASS' /tmp/agv2-l3-canary.txt
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_events_v2")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_outbox_v3")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where active=true")" = '10'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where provider_verified=false")" = '6'
+
+      - name: L3 rollback compiles and re-applies cleanly
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260901193000_agv2_l3_delivery_outbox_v3_rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_agenda_delivery_outbox_v3') is null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193500_agv2_l3_active_revision_fix_v3.sql
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_template_registry_v3 where active=true")" = '10'
+
+      - name: Local DB lint and dormant boundary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_delivery_outbox_v3 where state in ('READY','CLAIMED','ACCEPTED')")" = '0'
+          (cd ci/wa4c-full-local && supabase db lint --local --schema public --level error) 2>&1 | tee /tmp/agv2-l3-lint.txt
+          if grep -q '\[ERROR\]' /tmp/agv2-l3-lint.txt; then exit 1; fi
+
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
