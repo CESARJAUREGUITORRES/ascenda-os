@@ -88,9 +88,20 @@ jobs:
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831235500_wa4c_catalog_capability_reconciliation_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
 
-          # Compact FULL LOCAL intentionally omits the Equipo skills array. The real
-          # production schema has it; add only the missing TEST compatibility column.
-          psql "$DB" -X -v ON_ERROR_STOP=1 -c "alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];"
+          # Compact FULL LOCAL intentionally omits columns that exist in the real Team/
+          # catalog schemas. Add only TEST compatibility required by the certified
+          # production migrations reused below; no production semantics are changed.
+          psql "$DB" -X -v ON_ERROR_STOP=1 <<'SQL'
+          alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];
+          alter table public.aos_catalogo_categorias add column if not exists tipo text default 'SERVICIO';
+          alter table public.aos_catalogo_categorias add column if not exists icono text;
+          alter table public.aos_catalogo_categorias add column if not exists rol_profesional text default 'AMBOS';
+          alter table public.aos_catalogo_categorias add column if not exists estado text default 'ACTIVO';
+          alter table public.aos_catalogo_categorias add column if not exists orden integer default 0;
+          alter table public.aos_catalogo_categorias add column if not exists updated_at timestamptz default now();
+          create unique index if not exists ux_aos_catalogo_categorias_nombre_l2_test
+            on public.aos_catalogo_categorias(nombre);
+          SQL
 
           # Rehydrate the already-certified service→skill authority that supplies the
           # exact CELLBOOSTER/FACIALES mappings used by the production procedure hierarchy.
