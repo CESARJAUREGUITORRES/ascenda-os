@@ -221,14 +221,41 @@ function installFetchAuthority(){
   window.fetch=governedFetch;
 }
 
+// P0 operational runtime loader. This observer watches DOM only; it owns no
+// polling/network cadence. It allows the existing SPA to activate targeted
+// fixes each time a panel's legacy scripts recreate their globals.
+function loadRuntime(id,src,onReady){
+  var old=document.getElementById(id);
+  if(old){if(onReady)onReady();return;}
+  var s=document.createElement('script');s.id=id;s.src=src;s.async=false;
+  if(onReady)s.onload=onReady;
+  s.onerror=function(){console.error('[ASCENDA][RUNTIME] failed',src);};
+  (document.head||document.documentElement).appendChild(s);
+}
+function installOperationalRuntimes(){
+  if(document.getElementById('cc-m-cita-manual')){
+    if(typeof window.__AOS_CC_INSTALL_PERF_V1__==='function')window.__AOS_CC_INSTALL_PERF_V1__();
+    else loadRuntime('aos-cc-performance-v1','/calls-performance-v1.js?v=20260901-p0-v1',function(){if(window.__AOS_CC_INSTALL_PERF_V1__)window.__AOS_CC_INSTALL_PERF_V1__();});
+  }
+  if(document.getElementById('ag-content')){
+    if(typeof window.__AOS_INSTALL_AGENDA_GOVERNED_STATUS_V1__==='function')window.__AOS_INSTALL_AGENDA_GOVERNED_STATUS_V1__();
+    else loadRuntime('aos-agenda-governed-status-v1','/agenda-governed-status-v1.js?v=20260901-p0-v1',function(){if(window.__AOS_INSTALL_AGENDA_GOVERNED_STATUS_V1__)window.__AOS_INSTALL_AGENDA_GOVERNED_STATUS_V1__();});
+  }
+}
+
 function install(){
   installFetchAuthority();
   installNavigationAuthority();
   installSidebarAuthority();
+  installOperationalRuntimes();
 }
 
 // Loaded by sentinel-hub-bootstrap after the shell has defined its sidebar and
-// navigation functions. Keep installation one-shot: no timer/focus/visibility
-// network owner is created by this permission layer.
+// navigation functions. The observer is DOM-only and exists solely because
+// panel scripts are recreated by the SPA after navigation.
 install();
+try{
+  var opObs=new MutationObserver(function(){installOperationalRuntimes();});
+  opObs.observe(document.documentElement||document.body,{childList:true,subtree:true});
+}catch(_){}
 })();
