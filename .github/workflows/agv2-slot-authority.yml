@@ -79,6 +79,15 @@ jobs:
           where not exists (
             select 1 from public.aos_catalogo_servicios where nombre='FACIAL COREANO'
           );
+
+          -- PROD resolves HIDROFACIAL through the governed FACIALES category. The
+          -- compact synthetic catalog uses a placeholder category, so align only
+          -- these deterministic TEST rows with the observed production semantics.
+          update public.aos_catalogo_servicios
+             set categoria='FACIALES'
+           where upper(coalesce(estado,'ACTIVO'))='ACTIVO'
+             and upper(coalesce(tipo,'SERVICIO'))='SERVICIO'
+             and upper(nombre) like 'HIDROFACIAL%';
           SQL
 
           # Rehydrate the canonical booking/procedure authority that is intentionally
