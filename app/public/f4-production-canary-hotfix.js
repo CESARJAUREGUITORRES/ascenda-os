@@ -9,6 +9,8 @@ var nativeConfirm=window.confirm.bind(window);
 var tokenSyncPromise=null;
 var cc6PanelSeen=null;
 var cc6ReloadTimer=null;
+var agendaPanelSeen=null;
+var agendaReloadTimer=null;
 
 function cleanCajaClosedState(){
   var box=document.getElementById('no-sesion-msg');
@@ -135,6 +137,16 @@ function loadProductResolutionCenter(){
   (document.head||document.documentElement).appendChild(b);
 }
 
+function loadCallCenterPerformance(){
+  var old=document.getElementById('aos-cc-performance-v1');if(old)old.remove();
+  var p=document.createElement('script');
+  p.id='aos-cc-performance-v1';
+  p.src='/calls-performance-v1.js?v=20260901-p0-v1';
+  p.async=false;
+  p.onerror=function(){console.error('[ASCENDA][CC-PERF] runtime failed');};
+  (document.head||document.documentElement).appendChild(p);
+}
+
 // Call Center Loop 6 V2.3 must execute after the panel's legacy inline script.
 // app.html loads panel externals first and sets AOS._capturePanelTimers=false
 // only after the collected inline runtime has finished loading. We wait for
@@ -167,6 +179,7 @@ function ensureCallCenterLoop6Postload(){
     s.onload=function(){
       window.__AOS_CC_LOOP6_POSTLOAD_READY__='v2.3-postload';
       console.log('[ASCENDA][CC6V23] governed postload runtime active');
+      loadCallCenterPerformance();
     };
     s.onerror=function(){console.error('[ASCENDA][CC6V23] postload runtime failed');};
     (document.head||document.documentElement).appendChild(s);
@@ -174,7 +187,39 @@ function ensureCallCenterLoop6Postload(){
   cc6ReloadTimer=setTimeout(afterInline,0);
 }
 
-function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();ensureCallCenterLoop6Postload();}
+// Agenda legacy inline code owns agGuardarEstado. Replay the governed status
+// adapter only after that inline boundary so it cannot be overwritten.
+function ensureAgendaGovernedPostload(){
+  var panel=document.getElementById('ag-content');
+  if(!panel){
+    agendaPanelSeen=null;
+    if(agendaReloadTimer){clearTimeout(agendaReloadTimer);agendaReloadTimer=null;}
+    return;
+  }
+  if(panel===agendaPanelSeen)return;
+  agendaPanelSeen=panel;
+  if(agendaReloadTimer)clearTimeout(agendaReloadTimer);
+  var attempts=0;
+  function afterInline(){
+    if(document.getElementById('ag-content')!==panel)return;
+    attempts++;
+    if(window.AOS&&AOS._capturePanelTimers===true&&attempts<100){
+      agendaReloadTimer=setTimeout(afterInline,50);
+      return;
+    }
+    agendaReloadTimer=null;
+    var old=document.getElementById('aos-agenda-governed-status-v1');if(old)old.remove();
+    var s=document.createElement('script');
+    s.id='aos-agenda-governed-status-v1';
+    s.src='/agenda-governed-status-v1.js?v=20260901-p0-v1';
+    s.async=false;
+    s.onerror=function(){console.error('[ASCENDA][AGENDA] governed status runtime failed');};
+    (document.head||document.documentElement).appendChild(s);
+  }
+  agendaReloadTimer=setTimeout(afterInline,0);
+}
+
+function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();ensureCallCenterLoop6Postload();ensureAgendaGovernedPostload();}
 run();
 syncCanonicalAppToken();
 setTimeout(syncCanonicalAppToken,700);

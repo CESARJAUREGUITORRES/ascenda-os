@@ -1,0 +1,44 @@
+name: ASCENDA P0 Call Center + Agenda Performance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/calls-performance-v1.js'
+      - 'app/public/agenda-governed-status-v1.js'
+      - 'app/public/panel-access-authority-v1.js'
+      - 'supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql'
+      - 'supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql'
+      - 'ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js'
+      - '.github/workflows/p0-callcenter-agenda-performance-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p0-contract:
+    name: Hosted P0 performance + governed status contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check app/public/calls-performance-v1.js
+          node --check app/public/agenda-governed-status-v1.js
+          node --check app/public/panel-access-authority-v1.js
+          node --check ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: P0 contracts
+        run: node --test ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Safety assertions
+        run: |
+          set -euo pipefail
+          grep -q "set_config('aos.callcenter_phone',v_num,true)" supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql
+          grep -q "aos_agenda_set_status_v1" supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql
+          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/2026090103*.sql
+          echo 'ASCENDA_P0_CALLCENTER_AGENDA_PERFORMANCE_CONTRACT_PASS'
