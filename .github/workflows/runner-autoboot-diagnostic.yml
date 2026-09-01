@@ -94,11 +94,20 @@ jobs:
           crontab -l 2>/dev/null || true
           echo 'user_crontab_end'
           echo "user_systemd=$(systemctl --user is-system-running 2>/dev/null || true)"
-          echo 'user_runner_units_begin'
-          systemctl --user list-unit-files 'ascenda*' --no-pager 2>/dev/null || true
-          echo 'user_runner_units_end'
 
-          echo '=== USER LINGER ==='
-          loginctl show-user "$(id -un)" -p Linger 2>/dev/null || true
+          echo '=== WINDOWS STARTUP BRIDGE ==='
+          total=0; writable=0
+          for profile in /mnt/c/Users/*; do
+            [ -d "$profile" ] || continue
+            base=$(basename "$profile")
+            case "$base" in Public|Default|'Default User'|'All Users'|desktop.ini) continue;; esac
+            startup="$profile/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
+            if [ -d "$startup" ]; then
+              total=$((total+1))
+              if [ -w "$startup" ]; then writable=$((writable+1)); fi
+            fi
+          done
+          echo "windows_startup_candidates=$total"
+          echo "windows_startup_writable=$writable"
 
           echo 'RUNNER_AUTOBOOT_DIAGNOSTIC_COMPLETE'
