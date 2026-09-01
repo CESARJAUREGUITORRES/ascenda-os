@@ -61,9 +61,17 @@ create table if not exists public.aos_horarios_personal(
 
 -- Compact governed treatment authority required by the canonical booking capability resolver.
 -- This remains TEST-only: the selected synthetic service is mirrored 1:1 as its own capability.
+-- Keep the production-facing metadata columns used by Team Skill Authority so downstream
+-- certification exercises the real migration shape instead of a schema-truncated stub.
 create table if not exists public.aos_cat_tratamientos(
   tratamiento text primary key,
-  estado text default 'ACTIVO'
+  estado text default 'ACTIVO',
+  orden integer not null default 0,
+  ultima_edicion timestamptz default now(),
+  editado_por text,
+  categoria text,
+  requiere_doctora boolean not null default false,
+  requiere_enfermeria boolean not null default false
 );
 
 create table if not exists public.aos_pacientes(
