@@ -44,7 +44,7 @@ test('rebooking mutates the same appointment and appends history',()=>{
   assert.match(mig,/event_type[^\n]*RESCHEDULED|,'RESCHEDULED'/);
   assert.match(mig,/AGV2_EVENT_LEDGER_APPEND_ONLY/);
   assert.doesNotMatch(mig,/delete from public\.aos_agenda_citas/i);
-  assert.match(contract,/same logical appointment/i);
+  assert.match(contract,/mismo `appointment_id`|mismo appointment/i);
 });
 
 test('Agenda uses strong session authority and WA preserves HUMAN_ONLY ownership',()=>{
