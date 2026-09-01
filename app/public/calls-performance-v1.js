@@ -1,7 +1,7 @@
 /* ASCENDA OS · Call Center P0 Performance V1
- * Loaded AFTER calls-loop6.js, so the outer wrapper can route legacy
- * aos_siguiente_lead_v2 through the governed contact-debt selector and still
- * preserve the Loop6 metadata hook.
+ * Loaded by the shell when the Call Center panel exists. Installation waits
+ * for the certified Loop6 V2.3 post-load replay so the performance wrapper
+ * stays OUTSIDE the governed write/metadata authority.
  */
 (function(){
 'use strict';
@@ -13,6 +13,7 @@ function stable(v){
 }
 
 function install(){
+  if(window.__AOS_CC_LOOP6_POSTLOAD_READY__!=='v2.3-postload')return false;
   if(typeof window._rpc!=='function')return false;
   if(window._rpc.__ccPerfV1)return true;
 
@@ -37,9 +38,8 @@ function install(){
   }
 
   function perfRpc(fn,p,ok,fail){
-    // Legacy calls.js still invokes _v2. Route it through the newer selector;
-    // because `base` is the Loop6 wrapper, its CONTACT_DEBT metadata hook now
-    // runs as originally designed.
+    // calls.js still invokes _v2. The certified selector is aos_siguiente_lead;
+    // because `base` is Loop6, CONTACT_DEBT/lead lineage metadata is preserved.
     var actual=fn==='aos_siguiente_lead_v2'?'aos_siguiente_lead':fn;
     var isWrite=/^aos_callcenter_(commit|confirm)_/.test(actual);
     var ms=ttl[actual]||0;
@@ -58,10 +58,7 @@ function install(){
     }
 
     var inflight=pending.get(key);
-    if(inflight){
-      inflight.push({ok:ok,fail:fail});
-      return;
-    }
+    if(inflight){inflight.push({ok:ok,fail:fail});return;}
 
     var waiters=[{ok:ok,fail:fail}];
     pending.set(key,waiters);
@@ -84,5 +81,10 @@ function install(){
 }
 
 window.__AOS_CC_INSTALL_PERF_V1__=install;
-if(!install())setTimeout(install,50);
+var attempts=0;
+(function waitForGovernedRuntime(){
+  attempts++;
+  if(install())return;
+  if(attempts<200&&document.getElementById('cc-m-cita-manual'))setTimeout(waitForGovernedRuntime,50);
+})();
 })();
