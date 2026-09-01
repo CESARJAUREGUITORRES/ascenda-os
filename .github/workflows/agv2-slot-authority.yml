@@ -80,14 +80,23 @@ jobs:
             select 1 from public.aos_catalogo_servicios where nombre='FACIAL COREANO'
           );
 
-          -- PROD resolves HIDROFACIAL through the governed FACIALES category. The
-          -- compact synthetic catalog uses a placeholder category, so align only
-          -- these deterministic TEST rows with the observed production semantics.
+          -- PROD resolves these SKUs through category FACIALES plus the governed
+          -- HIDROFACIAL parent skill. The compact fixture intentionally omits part of
+          -- that authority, so mirror the observed production semantics in TEST only.
           update public.aos_catalogo_servicios
              set categoria='FACIALES'
            where upper(coalesce(estado,'ACTIVO'))='ACTIVO'
              and upper(coalesce(tipo,'SERVICIO'))='SERVICIO'
              and upper(nombre) like 'HIDROFACIAL%';
+
+          insert into public.aos_cat_tratamientos(
+            tratamiento,estado,orden,ultima_edicion,editado_por,categoria,requiere_doctora,requiere_enfermeria
+          ) values (
+            'HIDROFACIAL','ACTIVO',320,now(),'L2_TEST_PROD_PARITY','FACIAL',false,true
+          )
+          on conflict(tratamiento) do update
+          set estado='ACTIVO',categoria='FACIAL',requiere_doctora=false,
+              requiere_enfermeria=true,ultima_edicion=now(),editado_por='L2_TEST_PROD_PARITY';
           SQL
 
           # Rehydrate the canonical booking/procedure authority that is intentionally
