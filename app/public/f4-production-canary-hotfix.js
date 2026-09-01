@@ -136,10 +136,9 @@ function loadProductResolutionCenter(){
 }
 
 // Call Center Loop 6 V2.3 must execute after the panel's legacy inline script.
-// app.html intentionally loads panel externals before inline code, so the first
-// calls-loop6.js execution can be overwritten by legacy function declarations.
-// This bridge replays the governed runtime after the panel has settled, keeping
-// direct CALL_CENTER/CITA_MANUAL PostgREST writes fail-closed.
+// app.html loads panel externals first and sets AOS._capturePanelTimers=false
+// only after the collected inline runtime has finished loading. We wait for
+// that exact loader boundary, then replay the certified governed handlers.
 function ensureCallCenterLoop6Postload(){
   var panel=document.getElementById('cc-m-cita-manual');
   if(!panel){
@@ -150,9 +149,15 @@ function ensureCallCenterLoop6Postload(){
   if(panel===cc6PanelSeen)return;
   cc6PanelSeen=panel;
   if(cc6ReloadTimer)clearTimeout(cc6ReloadTimer);
-  cc6ReloadTimer=setTimeout(function(){
-    cc6ReloadTimer=null;
+  var attempts=0;
+  function afterInline(){
     if(document.getElementById('cc-m-cita-manual')!==panel)return;
+    attempts++;
+    if(window.AOS&&AOS._capturePanelTimers===true&&attempts<100){
+      cc6ReloadTimer=setTimeout(afterInline,50);
+      return;
+    }
+    cc6ReloadTimer=null;
     var old=document.getElementById('aos-cc6-postload-runtime');
     if(old)old.remove();
     var s=document.createElement('script');
@@ -165,7 +170,8 @@ function ensureCallCenterLoop6Postload(){
     };
     s.onerror=function(){console.error('[ASCENDA][CC6V23] postload runtime failed');};
     (document.head||document.documentElement).appendChild(s);
-  },120);
+  }
+  cc6ReloadTimer=setTimeout(afterInline,0);
 }
 
 function run(){cleanCajaClosedState();patchSalesEditorTruth();loadProductResolutionCenter();ensureCallCenterLoop6Postload();}
