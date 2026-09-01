@@ -1,0 +1,82 @@
+name: ASCENDA Call Center Governed Runtime Guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/app.html'
+      - 'app/public/calls.html'
+      - 'app/public/calls.js'
+      - 'app/public/calls-loop6.js'
+      - 'app/public/f4-production-canary-hotfix.js'
+      - 'supabase/migrations/*loop6*'
+      - '.github/workflows/callcenter-governed-runtime-guard.yml'
+  push:
+    branches: [main, 'fix/**']
+    paths:
+      - 'app/public/app.html'
+      - 'app/public/calls.html'
+      - 'app/public/calls.js'
+      - 'app/public/calls-loop6.js'
+      - 'app/public/f4-production-canary-hotfix.js'
+      - 'supabase/migrations/*loop6*'
+      - '.github/workflows/callcenter-governed-runtime-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: callcenter-governed-runtime-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  hosted-contract:
+    name: Hosted governed-write contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --check app/public/f4-production-canary-hotfix.js
+          node --check app/public/calls-loop6.js
+
+      - name: Call Center postload + fail-closed contract
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const assert = require('assert');
+          const app = fs.readFileSync('app/public/app.html','utf8');
+          const calls = fs.readFileSync('app/public/calls.html','utf8');
+          const loop6 = fs.readFileSync('app/public/calls-loop6.js','utf8');
+          const bridge = fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
+          const guard = fs.readFileSync('supabase/migrations/20260822011500_mkt_loop6_legacy_bypass_guard_v22.sql','utf8');
+
+          assert(app.includes('AOS._capturePanelTimers = true'), 'panel-loader start marker missing');
+          assert(app.includes('AOS._capturePanelTimers = false'), 'panel-loader completion marker missing');
+          assert(app.indexOf('if (extSrcs.length)') < app.indexOf('else if (allInline.length)'), 'expected external-before-inline loader contract changed');
+
+          assert(calls.includes('/calls-loop6.js?v=20260821-loop6-v2.3'), 'Loop6 panel runtime reference missing');
+          assert(loop6.includes("window.__AOS_CC_LOOP6_V2__='v2.3'"), 'Loop6 V2.3 marker missing');
+          assert(loop6.includes('aos_callcenter_confirm_queue_appointment_v1'), 'governed queue RPC missing');
+          assert(loop6.includes('aos_callcenter_commit_action_v1'), 'governed manual RPC missing');
+          assert(loop6.includes('window.guardarCitaManual=function'), 'governed manual handler override missing');
+          assert(loop6.includes('window.ccConfirmarCita=function'), 'governed queue handler override missing');
+
+          assert(bridge.includes('ensureCallCenterLoop6Postload'), 'postload bridge missing');
+          assert(bridge.includes('AOS._capturePanelTimers===true'), 'bridge must wait for inline panel runtime completion');
+          assert(bridge.includes('/calls-loop6.js?v=20260901-loop6-v2.3-postload'), 'postload governed runtime source missing');
+          assert(bridge.includes("window.__AOS_CC_LOOP6_POSTLOAD_READY__='v2.3-postload'"), 'postload readiness marker missing');
+
+          assert(guard.includes('AOS_LOOP6_RUNTIME_REQUIRED'), 'fail-closed trigger error missing');
+          assert(guard.includes("set_config('aos.loop6_governed_write','1',true)"), 'governed write marker missing');
+          assert(guard.includes("v_origin='CITA_MANUAL' or v_origin like 'CALL_CENTER%'"), 'legacy agenda bypass guard missing');
+
+          console.log('CALLCENTER_GOVERNED_RUNTIME_GUARD_PASS');
+          NODE
