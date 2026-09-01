@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 
 const cc=fs.readFileSync('app/public/calls-performance-v1.js','utf8');
 const agenda=fs.readFileSync('app/public/agenda-governed-status-v1.js','utf8');
+const f4=fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
 const panel=fs.readFileSync('app/public/panel-access-authority-v1.js','utf8');
 const io=fs.readFileSync('supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql','utf8');
 const agSql=fs.readFileSync('supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql','utf8');
@@ -30,11 +31,15 @@ test('Agenda status is an atomic strong-session RPC and preserves WhatsApp direc
   assert.match(agSql,/AGENDA_STATUS_GOVERNED_V1/);
   assert.match(agenda,/rpc\/aos_agenda_set_status_v1/);
   assert.doesNotMatch(agenda,/method:'PATCH'/);
+  assert.doesNotMatch(agenda,/setInterval\(/);
+  assert.doesNotMatch(agenda,/setTimeout\(/);
 });
 
-test('SPA authority layer loads both P0 operational runtimes without creating network polling',()=>{
-  assert.match(panel,/calls-performance-v1\.js/);
-  assert.match(panel,/agenda-governed-status-v1\.js/);
-  assert.match(panel,/new MutationObserver/);
-  assert.doesNotMatch(panel,/setInterval\(/);
+test('P0 runtimes reuse the already-certified F4 observer instead of creating new recurrent network owners',()=>{
+  assert.match(f4,/calls-performance-v1\.js/);
+  assert.match(f4,/agenda-governed-status-v1\.js/);
+  assert.match(f4,/ensureAgendaGovernedPostload/);
+  assert.doesNotMatch(panel,/calls-performance-v1\.js/);
+  assert.doesNotMatch(panel,/agenda-governed-status-v1\.js/);
+  assert.doesNotMatch(panel,/MutationObserver/);
 });
