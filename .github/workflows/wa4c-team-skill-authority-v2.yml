@@ -1,0 +1,35 @@
+name: ASCENDA WA-4C Team Skill Authority V2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa4-booking-resolver.js'
+      - 'supabase/migrations/*team_skill*'
+      - 'ci/wa4c-full-local/team-skill-authority-v2.test.js'
+      - '.github/workflows/wa4c-team-skill-authority-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  team-skill-contract:
+    name: Hosted Team Skill + Dual Role contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        run: node --check app/wa4-booking-resolver.js
+      - name: Team Skill Authority V2 contract
+        run: node --test ci/wa4c-full-local/team-skill-authority-v2.test.js
+      - name: Safety boundary
+        run: |
+          set -euo pipefail
+          ! grep -Eqi '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
+          grep -q 'HUMAN_ONLY' supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
+          grep -q 'MESOTERAPIA FACIAL' supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
