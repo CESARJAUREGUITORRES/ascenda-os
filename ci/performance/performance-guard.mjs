@@ -39,6 +39,11 @@ expect('WA_HIDDEN_GUARD',waMulti.includes('X.busy||document.hidden'),'multiagent
 const calls=read('app/public/calls.html');
 expect('CALLS_SINGLE_PANEL_OWNER',count(calls,/_rpc\('aos_panel_asesor'/g)===1,'Calls has more than one direct aos_panel_asesor owner');
 expect('CALLS_SHARED_HELPER',calls.includes('function _panelAsesorShared('),'Calls shared snapshot helper missing');
+const callsPerf=read('app/public/calls-performance-v1.js');
+try{new Function(callsPerf);}catch(e){fail('CALLS_PERF_SYNTAX',e.message);}
+expect('CALLS_LEAD_SINGLE_FLIGHT',callsPerf.includes("var coalesceOnly=actual==='aos_siguiente_lead'"),'Call Center lead selector is not single-flight');
+expect('CALLS_LEAD_NO_TTL_CACHE',callsPerf.includes('if(ms)cache.set(key,{at:Date.now(),data:d});'),'mutable lead selector can be TTL-cached');
+expect('CALLS_POSTLOAD_DUP_GUARD',callsPerf.includes('__ccPerfLeadGuardV1')&&callsPerf.includes('suppressed duplicate postload lead request'),'postload duplicate lead guard missing');
 
 const admin=read('app/public/admin-home.html');
 expect('ADMIN_SINGLE_PANEL_OWNER',count(admin,/_r\('aos_panel_admin'/g)===1,'Admin has more than one direct aos_panel_admin owner');
