@@ -58,18 +58,46 @@ jobs:
           set -euo pipefail
           bash ci/wa4c-full-local/bootstrap.sh
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+
+          # FULL LOCAL intentionally keeps a compact catalog. Add only deterministic
+          # TEST representatives needed to exercise L2 procedure-specific timing.
+          psql "$DB" -X -v ON_ERROR_STOP=1 <<'SQL'
+          insert into public.aos_catalogo_servicios(
+            nombre,nombre_corto,tipo,categoria,estado,requiere_doctora,requiere_enfermeria,precio_base,precio_oferta,moneda
+          )
+          select 'CELLBOOSTER GLOW x1','CELLBOOSTER GLOW x1','SERVICIO','BIOREVITALIZACION FACIAL','ACTIVO',true,false,100,90,'PEN'
+          where not exists (
+            select 1 from public.aos_catalogo_servicios where public.aos_booking_norm_v1(nombre)=public.aos_booking_norm_v1('CELLBOOSTER GLOW x1')
+          );
+
+          insert into public.aos_catalogo_servicios(
+            nombre,nombre_corto,tipo,categoria,estado,requiere_doctora,requiere_enfermeria,precio_base,precio_oferta,moneda
+          )
+          select 'FACIAL COREANO','FACIAL COREANO','SERVICIO','FACIALES','ACTIVO',false,true,100,90,'PEN'
+          where not exists (
+            select 1 from public.aos_catalogo_servicios where public.aos_booking_norm_v1(nombre)=public.aos_booking_norm_v1('FACIAL COREANO')
+          );
+          SQL
+
           # Rehydrate the canonical booking/procedure authority that is intentionally
           # outside the compact WA full-local fixture. This remains TEST-only.
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831235500_wa4c_catalog_capability_reconciliation_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+
           # Compact FULL LOCAL intentionally omits the Equipo skills array. The real
           # production schema has it; add only the missing TEST compatibility column.
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "alter table public.aos_usuarios add column if not exists servicios text[] not null default '{}'::text[];"
-          # Reuse the real hierarchy DDL/functions. Its terminal 234-service coverage
-          # assertion is valid only against the complete production catalog, not this
-          # deliberately reduced FULL LOCAL catalog, so omit that assertion in TEST.
+
+          # Rehydrate the already-certified service→skill authority that supplies the
+          # exact CELLBOOSTER/FACIALES mappings used by the production procedure hierarchy.
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003000_wa4c_team_skill_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901003500_wa4c_team_skill_catalog_classification_v3.sql
+
+          # Reuse the real hierarchy DDL/functions. Its terminal complete-production-
+          # catalog coverage assertion is invalid against this deliberately compact
+          # fixture, so omit only that assertion in TEST; procedure/capability logic is real.
           python3 - <<'PY'
           from pathlib import Path
           src = Path('supabase/migrations/20260901012000_wa4c_professional_skill_hierarchy_v1.sql').read_text()
