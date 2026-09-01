@@ -36,8 +36,15 @@ jobs:
           echo '=== VIRTUALIZATION ==='
           if grep -qi microsoft /proc/version 2>/dev/null; then echo 'wsl_detected=yes'; else echo 'wsl_detected=no'; fi
           echo "virt=$(systemd-detect-virt 2>/dev/null || echo unknown)"
+          echo "wsl_interop_env=${WSL_INTEROP:+present}"
+          echo "wslinterop_binfmt=$(test -e /proc/sys/fs/binfmt_misc/WSLInterop && echo present || echo missing)"
           echo "powershell_interop=$(command -v powershell.exe >/dev/null 2>&1 && echo yes || echo no)"
           echo "cmd_interop=$(command -v cmd.exe >/dev/null 2>&1 && echo yes || echo no)"
+          echo "windows_powershell_file=$(test -f /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe && echo yes || echo no)"
+          echo "windows_schtasks_file=$(test -f /mnt/c/Windows/System32/schtasks.exe && echo yes || echo no)"
+          echo 'wsl_conf_begin'
+          cat /etc/wsl.conf 2>/dev/null || true
+          echo 'wsl_conf_end'
 
           echo '=== SYSTEMD ==='
           echo "system_state=$(systemctl is-system-running 2>/dev/null || true)"
@@ -49,7 +56,7 @@ jobs:
           echo 'runner_units_end'
 
           echo '=== RUNNER INSTALL ==='
-          for d in "$HOME/actions-runner" /home/ascenda-runner/actions-runner; do
+          for d in "$HOME/actions-runner/actions-runner" "$HOME/actions-runner" /home/ascenda-runner/actions-runner/actions-runner /home/ascenda-runner/actions-runner; do
             if [ -d "$d" ]; then
               echo "runner_dir=$d"
               test -x "$d/svc.sh" && echo 'svc_sh=yes' || echo 'svc_sh=no'
@@ -59,6 +66,9 @@ jobs:
               fi
             fi
           done
+          echo 'runner_processes_begin'
+          ps -eo pid,ppid,user,args | grep -E 'Runner.Listener|Runner.Worker|runsvc.sh|run.sh' | grep -v grep || true
+          echo 'runner_processes_end'
 
           echo '=== PRIVILEGE / DEPENDENCIES ==='
           if sudo -n true 2>/dev/null; then echo 'passwordless_sudo=yes'; else echo 'passwordless_sudo=no'; fi
