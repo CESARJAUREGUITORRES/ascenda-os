@@ -7,6 +7,11 @@
  * circuit-broken. Revenue-critical reads/writes, Call Center, Agenda, Sales
  * and WhatsApp routing are never classified here and therefore pass through
  * unchanged.
+ *
+ * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
+ * Railway NODE_OPTIONS. The inherited request function therefore preserves
+ * the existing project-wide 402 quota breaker while this layer adds a
+ * separate 5xx/timeout backoff only for background traffic.
  */
 
 const https = require('https')
@@ -16,8 +21,7 @@ const { PassThrough } = require('stream')
 if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__ = true
 
-  const originalRequest = https.request.bind(https)
-  const originalGet = https.get.bind(https)
+  const inheritedRequest = https.request.bind(https)
   const PROJECT_HOST = String(process.env.AOS_SUPABASE_HOST || 'ituyqwstonmhnfshnaqz.supabase.co').toLowerCase()
   const states = new Map()
 
@@ -90,6 +94,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   function fakeRequest(callback) {
     const req = new EventEmitter()
     let ended = false
+    if (typeof callback === 'function') req.once('response', callback)
     req.write = function() { return true }
     req.setHeader = function() {}
     req.getHeader = function() { return undefined }
@@ -106,7 +111,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
       ended = true
       process.nextTick(function() {
         const res = syntheticResponse()
-        if (typeof callback === 'function') callback(res)
+        req.emit('response', res)
         res.end('{"ok":false,"error":"BUSINESS_PRIORITY_BACKOFF"}')
       })
       return req
@@ -114,65 +119,45 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return req
   }
 
-  function wrappedCallback(key, callback) {
-    return function(res) {
-      const status = Number(res && res.statusCode || 0)
-      if (isFailureStatus(status)) markFailure(key, 'HTTP_' + status)
-      else if (status >= 200 && status < 500) markSuccess(key)
-      if (typeof callback === 'function') callback(res)
-    }
+  function callbackFrom(args) {
+    for (let i = args.length - 1; i >= 0; i--) if (typeof args[i] === 'function') return args[i]
+    return null
   }
 
-  https.request = function() {
+  https.request = function aosBusinessPriorityRequest() {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
-    let callbackIndex = -1
-    for (let i = args.length - 1; i >= 0; i--) {
-      if (typeof args[i] === 'function') { callbackIndex = i; break }
-    }
-    const callback = callbackIndex >= 0 ? args[callbackIndex] : null
+    if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args))
 
-    if (key && circuitOpen(key)) return fakeRequest(callback)
-    if (key && callbackIndex >= 0) args[callbackIndex] = wrappedCallback(key, callback)
-
-    const req = originalRequest.apply(https, args)
-    if (key && req && typeof req.on === 'function') {
-      let marked = false
-      function failOnce(reason) { if (marked) return; marked = true; markFailure(key, reason) }
-      req.on('timeout', function() { failOnce('TIMEOUT') })
-      req.on('error', function(e) { failOnce(e && e.code || e && e.message || 'ERROR') })
+    const req = inheritedRequest.apply(https, args)
+    if (key && req && typeof req.once === 'function') {
+      let failedByTransport = false
+      req.once('response', function(res) {
+        const status = Number(res && res.statusCode || 0)
+        if (isFailureStatus(status)) markFailure(key, 'HTTP_' + status)
+        else if (status >= 200 && status < 500) markSuccess(key)
+      })
+      function failOnce(reason) {
+        if (failedByTransport) return
+        failedByTransport = true
+        markFailure(key, reason)
+      }
+      req.once('timeout', function() { failOnce('TIMEOUT') })
+      req.once('error', function(e) { failOnce(e && e.code || e && e.message || 'ERROR') })
     }
     return req
   }
 
-  https.get = function() {
-    const args = Array.prototype.slice.call(arguments)
-    const key = classify(args[0])
-    let callbackIndex = -1
-    for (let i = args.length - 1; i >= 0; i--) {
-      if (typeof args[i] === 'function') { callbackIndex = i; break }
-    }
-    const callback = callbackIndex >= 0 ? args[callbackIndex] : null
-
-    if (key && circuitOpen(key)) {
-      const req = fakeRequest(callback)
-      req.end()
-      return req
-    }
-    if (key && callbackIndex >= 0) args[callbackIndex] = wrappedCallback(key, callback)
-
-    const req = originalGet.apply(https, args)
-    if (key && req && typeof req.on === 'function') {
-      let marked = false
-      function failOnce(reason) { if (marked) return; marked = true; markFailure(key, reason) }
-      req.on('timeout', function() { failOnce('TIMEOUT') })
-      req.on('error', function(e) { failOnce(e && e.code || e && e.message || 'ERROR') })
-    }
+  // Route get() through the composed request export exactly once. This avoids
+  // bypassing either the existing quota breaker or this background breaker.
+  https.get = function aosBusinessPriorityGet() {
+    const req = https.request.apply(https, arguments)
+    req.end()
     return req
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1',
+    version: 'p0-a-v1.1',
     states: states,
     classify: classify
   }
