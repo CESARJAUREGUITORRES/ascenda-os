@@ -6,19 +6,21 @@ const fs=require('fs');
 const vm=require('vm');
 
 const preload=fs.readFileSync('app/business-priority-preload.js','utf8');
-const bootstrap=fs.readFileSync('app/bootstrap-business-priority.js','utf8');
+const quotaPreload=fs.readFileSync('app/supabase-quota-circuit-preload.cjs','utf8');
 const browser=fs.readFileSync('app/public/browser-business-priority-v1.js','utf8');
 const f4=fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
 const pkg=JSON.parse(fs.readFileSync('app/package.json','utf8'));
+const rail=JSON.parse(fs.readFileSync('app/railway.json','utf8'));
 
-for(const [name,src] of [['preload',preload],['bootstrap',bootstrap],['browser',browser],['f4',f4]]){
+for(const [name,src] of [['preload',preload],['quotaPreload',quotaPreload],['browser',browser],['f4',f4]]){
   test(name+' syntax',()=>assert.doesNotThrow(()=>new Function(src)));
 }
 
-test('Railway starts through inherited priority bootstrap',()=>{
-  assert.equal(pkg.scripts.start,'node bootstrap-business-priority.js');
-  assert.match(bootstrap,/process\.env\.NODE_OPTIONS/);
-  assert.match(bootstrap,/require\('\.\/server-f17\.js'\)/);
+test('certified production entrypoint stays unchanged and composes P0-A',()=>{
+  assert.equal(pkg.scripts.start,'node server-f17.js');
+  assert.match(rail.deploy.startCommand,/supabase-quota-circuit-preload\.cjs/);
+  assert.match(quotaPreload,/require\('\.\/business-priority-preload\.js'\)/);
+  assert.doesNotMatch(rail.deploy.startCommand,/business-priority-preload\.js/);
 });
 
 test('server background breaker is narrowly scoped',()=>{
