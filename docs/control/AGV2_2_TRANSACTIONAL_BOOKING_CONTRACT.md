@@ -125,9 +125,11 @@ No fusionar pacientes dentro del commit de booking.
 
 ## Wrapper WhatsApp
 
-`aos_wa4_commit_booking_v1(actor_id, idempotency_key, conversation_id, payload)` se mantiene como contrato de compatibilidad, pero delega en el core V2.
+Durante la implementación/certificación se introduce `aos_wa4_commit_booking_v2(actor_id, idempotency_key, conversation_id, payload)` como wrapper nuevo sobre el core V2.
 
-Antes de delegar conserva:
+El contrato productivo existente `aos_wa4_commit_booking_v1(...)` **permanece intacto y live** hasta que AGV2-2 pase los gates y una fase posterior conecte explícitamente el runtime a V2. No se hace reemplazo silencioso durante esta migración aditiva.
+
+El wrapper V2, antes de delegar, conserva:
 
 - conversación existente;
 - owner exacto;
@@ -191,12 +193,12 @@ Esto evita que un proveedor externo convierta un BOOK exitoso en error o duplica
 
 ## Compatibilidad y rollout
 
-1. Implementar tablas + core + wrappers en migración aditiva.
-2. Mantener firmas de WA existentes.
+1. Implementar tablas + core + wrappers V2 en migración aditiva.
+2. Mantener `aos_wa4_commit_booking_v1` sin cambios durante certificación.
 3. Ejecutar full local y canaries actuales sin regresión.
-4. Agregar canaries AGV2 de BOOK Agenda sintético local, BOOK WhatsApp y REBOOK.
+4. Agregar canaries AGV2 de BOOK Agenda sintético local, BOOK WhatsApp V2 y REBOOK.
 5. Merge exact-head.
-6. Aplicar PROD solo desde lineage fusionado.
+6. Aplicar PROD solo desde lineage fusionado; V2 queda dormante hasta wiring explícito.
 7. No cambiar todavía UI legacy hasta AGV2-4.
 8. Smoke LIVE con sesión real y horario laboral se reserva para AGV2-7.
 
