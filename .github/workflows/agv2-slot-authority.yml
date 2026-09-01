@@ -1,0 +1,75 @@
+name: ASCENDA AGV2 L2 Slot Authority
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*slot_authority*'
+      - 'ci/agv2-slot-authority/**'
+      - '.github/workflows/agv2-slot-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agv2-slot-authority-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: ZERO-COST · 30m grid + duration + capacity authority
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Static L2 business contract
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          node --test ci/agv2-slot-authority/slot-authority-contract.test.js
+
+      - name: Wait for isolated local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 60); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'AGV2_L2_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+
+      - name: Build isolated CURRENT substrate
+        run: bash ci/wa4c-full-local/bootstrap.sh
+
+      - name: L2 timing and capacity canaries
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/agv2-slot-authority/slot-authority-canary.sql 2>&1 | tee /tmp/agv2-l2-canary.txt
+          grep -q 'AGV2_L2_SLOT_AUTHORITY_CANARY_PASS' /tmp/agv2-l2-canary.txt
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_agenda_events_v2")" = '0'
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/agv2-l2-lint.txt
+          if grep -q '\[ERROR\]' /tmp/agv2-l2-lint.txt; then exit 1; fi
+
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
