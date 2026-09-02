@@ -15,10 +15,17 @@
 6. `docs/adn/AGENTS_CURRENT.md`;
 7. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
 8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-9. exact GitHub `main`, Railway exact deploy/runtime and live Supabase WA state;
-10. WhatsApp Control Maestro / Roadmap Maestro V2 in Notion only after technical truth is read.
+9. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+10. exact GitHub `main`, Railway exact deploy/runtime and live Supabase WA state;
+11. WhatsApp Control Maestro / Roadmap Maestro V2 in Notion only after technical truth is read.
 
 Historical docs/chat checkpoints never override CURRENT + live persisted state.
+
+## Reliability / performance gate
+
+For every HIGH/CRITICAL mutation, the reliability doctrine is a transversal exit gate. Preserve operational critical paths, keep analytics/background work out of synchronous revenue writes, do not mask slow SQL by raising browser timeouts, and require realistic LIVE readback when the defect or risk is user-, browser-, load- or concurrency-dependent.
+
+A WhatsApp phase is not complete if it regresses Agenda, Call Center, Marketing, Sales/Commissions or shared Supabase pressure.
 
 ## Portfolio ownership
 
