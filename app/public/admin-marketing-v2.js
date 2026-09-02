@@ -1,19 +1,20 @@
-/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1
+/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.1
  * Keeps the certified V4.2 controller byte-for-byte in admin-marketing-v2-core.js.
  * This bootstrap only shapes read pressure: single-flight, short-lived read cache,
- * and viewport-gating for the two expensive annual analytics (History + LTV).
+ * viewport-gating for the two expensive annual analytics (History + LTV), and
+ * suppression of the redundant legacy aos_ltv_cohortes read once V4.2 is mounted.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-09-01-p0-marketing-read-pressure-v1';
+var RELEASE='2026-09-01-p0-marketing-read-pressure-v1.1';
 var G=window.__AOS_MKT_PERF_V1;
 
 if(!G){
   var baseFetch=window.fetch.bind(window);
   var cache=new Map();
   var inflight=new Map();
-  var stats={network:0,cacheHit:0,coalesced:0,deferred:0};
+  var stats={network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0};
   var targets={
     aos_marketing_dashboard:2500,
     aos_marketing_dashboard_anio:2500,
@@ -31,7 +32,7 @@ if(!G){
   };
 
   function fnFrom(url){
-    var m=String(url||'').match(/\/rest\/v1\/rpc\/(aos_marketing_[A-Za-z0-9_]+)/);
+    var m=String(url||'').match(/\/rest\/v1\/rpc\/(aos_marketing_[A-Za-z0-9_]+|aos_ltv_cohortes)/);
     return m?m[1]:'';
   }
   function aborted(signal){return !!(signal&&signal.aborted);}
@@ -80,11 +81,24 @@ if(!G){
     if(typeof b==='string')return b;
     return b==null?'':String(b);
   }
+  function emptyJsonResponse(){
+    return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
+  }
 
   window.fetch=function(input,init){
     var url=typeof input==='string'?input:(input&&input.url)||'';
     var fn=fnFrom(url);
     var method=String((init&&init.method)||'GET').toUpperCase();
+
+    // V4.2 owns History/LTV rendering. The legacy mkL() still asks aos_ltv_cohortes
+    // only to feed rHist/rLTV callbacks that V4.2 already intercepts and ignores.
+    // Once V4.2 is mounted, return an empty successful payload locally instead of
+    // spending ~0.7-1.1s of Supabase work on every month switch.
+    if(method==='POST'&&fn==='aos_ltv_cohortes'&&window.__AOS_MKT4){
+      stats.suppressedLegacyLtv++;
+      return Promise.resolve(emptyJsonResponse());
+    }
+
     if(method!=='POST'||!Object.prototype.hasOwnProperty.call(targets,fn))return baseFetch(input,init);
 
     var signal=init&&init.signal;

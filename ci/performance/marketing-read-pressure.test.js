@@ -30,6 +30,14 @@ test('expensive annual analytics are viewport gated',()=>{
   assert.match(boot,/setTimeout\(finish,12000\)/);
 });
 
+test('legacy LTV cohort read is suppressed only after V4.2 owns rendering',()=>{
+  assert.match(boot,/aos_ltv_cohortes/);
+  assert.match(boot,/fn==='aos_ltv_cohortes'&&window\.__AOS_MKT4/);
+  assert.match(boot,/suppressedLegacyLtv/);
+  assert.match(boot,/emptyJsonResponse/);
+  assert.doesNotMatch(core,/suppressedLegacyLtv/);
+});
+
 test('bootstrap adds no recurrent polling and core keeps canonical RPCs',()=>{
   assert.doesNotMatch(boot,/setInterval\s*\(/);
   assert.match(core,/aos_marketing_period_summary_v2/);
