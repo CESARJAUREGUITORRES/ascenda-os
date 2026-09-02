@@ -6,6 +6,7 @@
 **Most recently closed authority:** `REV-F5.11 — Historical Patient Identity Completion 2024–2026` · Issue `#441`  
 **NEXT ELIGIBLE HIGH/CRITICAL WORKSTREAM:** `WA-L4 — Autonomous Authority + Kill Switch`  
 **WA-L4 exact state:** `NOT STARTED · AUTO_OFF · SAFE-OFF`  
+**Mandatory PRE-L4 doctrine:** `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md` · freeze commit `f874f9797ed65408f43b4beb3bab6c31603042a1`  
 **Closeout checksum:** `REV-F5.11-CLOSEOUT-V1 · SHA256 e2f148e0ba640ca26a333345b6c47955f6333a5f5910768614bdaf2766f74a8e`
 
 ## REV-F5.11 production closeout
@@ -46,4 +47,17 @@ Until WA-L4 passes its own entry/authorization gates, preserve:
 - no LLM→Meta direct authority;
 - no LLM→SQL direct authority.
 
-The next WA-L4 entry must independently revalidate current `main`, PROD safety flags, cross-panel regression matrix, allowlist/canary scope, global kill switch, budgets/rate/max-turn limits, duplicate/cooldown/idempotency controls, provider-approved templates, clinical/identity handoff, telemetry and recovery before any transition away from `AUTO_OFF`.
+## Mandatory PRE-L4 regression boundary
+
+The next WA-L4 entry must read and apply `ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md` before any HIGH/CRITICAL write.
+
+L4 must preserve, at minimum:
+- Agenda governed create/edit/status + transactional booking;
+- Call Center next-lead + prepare + commit/confirm hot paths;
+- Marketing monthly load without legacy/new duplication or annual fan-out;
+- Sales/Commissions exact totals, filters, commission rules and responsive reads;
+- Patients/Patient 360 canonical search/core rendering and deferred-enrichment survivability;
+- current non-FUSIONADO patient master + governed historical aliases with fail-closed conflicts;
+- shared Supabase/background pressure without new timeout/lock amplification.
+
+The next WA-L4 entry must independently revalidate current `main`, PROD safety flags, full cross-panel regression matrix, allowlist/canary scope, global kill switch, budgets/rate/max-turn limits, duplicate/cooldown/idempotency controls, provider-approved templates, clinical/identity handoff, telemetry and recovery before any transition away from `AUTO_OFF`.
