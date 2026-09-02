@@ -1,6 +1,6 @@
 // commissions.js — Panel Comisiones Asesor | AscendaOS v1 | 100% Supabase
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
-var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXN1cGFza2V5IiwicmVmIjoiaXR1eXF3c3Rvbm1obmZzaG5hcXoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NDc0NDIxOCwiZXhwIjoyMDkwMzIwMjE4fQ.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 function _rpc(fn,p,ok,fail){
   fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})})
