@@ -2,14 +2,15 @@
 
 -- A REVIEW with identity strong enough to retain the target while current identity anchors are absent;
 -- sex conflict must remain explicit rather than overwrite the patient.
-insert into public.aos_pacientes("ID_PACIENTE","Nombres","Apellidos","Sexo","ESTADO_PACIENTE",fuente_datos) values ('P-E','Elena','Evidencia','F','ACTIVO','historico');
+insert into public.aos_pacientes("ID_PACIENTE","Nombres","Apellidos","Sexo","ESTADO_PACIENTE",fuente_datos)
+values ('P-E','Elena','Evidencia','F','ACTIVO','historico') on conflict ("ID_PACIENTE") do nothing;
 insert into public.aos_f5_identity_clusters_v1(id,status,confidence,source_row_count,canonical_preview,evidence,conflicts) values
-('00000000-0000-0000-0000-000000000009','REVIEW_REQUIRED','HIGH',1,'{"nombres":"Elena","apellidos":"Evidencia","sex":"M"}','{}','{}');
+('00000000-0000-0000-0000-000000000009','REVIEW_REQUIRED','HIGH',1,'{"nombres":"Elena","apellidos":"Evidencia","sex":"M"}','{}','{}') on conflict (id) do nothing;
 insert into public.aos_f5_canonical_classification_v1(cluster_id,target_patient_id,source_match_status,classification,reason,match_method,match_score,canonical_sex_conflict) values
-('00000000-0000-0000-0000-000000000009','P-E','REVIEW_REQUIRED','REVIEW','CANONICAL_STRONG_FIELD_CONFLICT','EMAIL',60,true);
+('00000000-0000-0000-0000-000000000009','P-E','REVIEW_REQUIRED','REVIEW','CANONICAL_STRONG_FIELD_CONFLICT','EMAIL',60,true) on conflict (cluster_id) do nothing;
 insert into public.aos_f5_patient_source_rows_v1(id,phone_key,phone_type,names_raw,surnames_raw,name_key,email_key,document_key,document_type,sex_raw,source_created_date) values
-(10,null,'MISSING','Elena','Evidencia','ELENAEVIDENCIA','elena.old@test.pe',null,null,'M','2024-07-01');
-insert into public.aos_f5_identity_cluster_members_v1 values ('00000000-0000-0000-0000-000000000009',10);
+(10,null,'MISSING','Elena','Evidencia','ELENAEVIDENCIA','elena.old@test.pe',null,null,'M','2024-07-01') on conflict (id) do nothing;
+insert into public.aos_f5_identity_cluster_members_v1 values ('00000000-0000-0000-0000-000000000009',10) on conflict (cluster_id,source_row_id) do nothing;
 
 do $$
 declare s jsonb;
