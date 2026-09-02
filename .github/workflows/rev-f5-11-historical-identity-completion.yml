@@ -29,16 +29,15 @@ jobs:
       - name: Enforce identity-only scope
         shell: powershell
         run: |
-          $m='supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql'
-          $r='supabase/rollbacks/20260902224000_rev_f5_11_historical_identity_completion_v1_recovery.sql'
-          if (-not (Test-Path $m)) { throw 'migration missing' }
-          if (-not (Test-Path $r)) { throw 'recovery missing' }
-          $sql=Get-Content $m -Raw
+          $files=Get-ChildItem 'supabase/migrations/*rev_f5_11*.sql'
+          if (-not $files) { throw 'migrations missing' }
+          if (-not (Test-Path 'supabase/rollbacks/20260902224000_rev_f5_11_historical_identity_completion_v1_recovery.sql')) { throw 'recovery missing' }
+          $sql=($files | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
           if ($sql -match '(?i)update\s+public\.aos_pacientes') { throw 'existing patient UPDATE forbidden' }
           if ($sql -match '(?i)delete\s+from\s+public\.aos_pacientes') { throw 'patient DELETE forbidden in forward migration' }
           if ($sql -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.aos_ventas') { throw '2024/2025 sales mutation forbidden' }
           if ($sql -match '(?i)grant\s+.*\s+to\s+(anon|authenticated)') { throw 'browser privilege escalation forbidden' }
-          if ($sql -notmatch 'PHONE.*never auto-links' -and $sql -notmatch 'phone alone never auto-links') { throw 'phone-only safety contract missing' }
+          if ($sql -notmatch '(?i)phone alone never auto-links') { throw 'phone-only safety contract missing' }
           if ($sql -notmatch 'P-HIST-F511-') { throw 'deterministic historical patient namespace missing' }
 
   db-contract:
@@ -81,8 +80,11 @@ jobs:
           exit 1
       - name: Build synthetic certified identity state
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f5-11/schema_contract.sql
-      - name: Apply exact F5.11 migration
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql
+      - name: Apply exact F5.11 migrations
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224100_rev_f5_11_alias_continuity_fix.sql
       - name: Security and schema contract
         run: |
           set -euo pipefail
@@ -107,6 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224100_rev_f5_11_alias_continuity_fix.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f5-11/tests/001_identity_completion.sql
       - name: Stop isolated Supabase
         if: always()
