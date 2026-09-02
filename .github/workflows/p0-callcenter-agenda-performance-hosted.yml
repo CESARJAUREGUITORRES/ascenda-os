@@ -48,8 +48,8 @@ jobs:
           grep -q 'lifecycleDeferred' "$HOT"
           grep -q 'activeAppointment' "$HOT"
           grep -q 'lastNoShow' "$HOT"
-          ! grep -q 'aos_rev_customer_lifecycle_v1(' "$HOT"
-          ! grep -qi 'statement_timeout' "$HOT"
+          ! grep -Ev '^[[:space:]]*--' "$HOT" | grep -q 'aos_rev_customer_lifecycle_v1('
+          ! grep -Ev '^[[:space:]]*--' "$HOT" | grep -qi 'statement_timeout'
           grep -q "aos_agenda_set_status_v1" supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql
           ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/2026090103*.sql "$HOT"
           echo 'ASCENDA_P0_CALLCENTER_AGENDA_PERFORMANCE_CONTRACT_PASS'
