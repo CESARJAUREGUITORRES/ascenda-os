@@ -3,6 +3,7 @@
 if(window.__AOS_PATIENTS_360_V3__==='installed'||window.__AOS_PATIENTS_360_V3__==='waiting')return;
 window.__AOS_PATIENTS_360_V3__='waiting';
 window.__AOS_PATIENT_BRIDGE_GUARD__='p0436-v2-hotpath';
+window.__AOS_PATIENT_FILIATION_CONTACTS__='v1';
 var installed=false,timer=null,cards={},bridgeReadyPromise=null,activeCid='',enrichmentSeq=0;
 function esc(v){return typeof window.h==='function'?window.h(v):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function token(){try{return sessionStorage.getItem('aos_app_token')||'';}catch(_){return '';}}
@@ -59,7 +60,15 @@ function install(){
     if(box)box.innerHTML=contextHtml(d);
     if(!root.querySelector('[data-p360v3="trust"]')){var fkr=root.querySelector('.fkr');if(fkr)fkr.insertAdjacentHTML('afterend','<div data-p360v3="trust" style="margin:0 0 10px;padding:9px 12px;background:#0F172A;color:#E2E8F0;border-radius:10px;font-size:9px;line-height:1.5;"><b style="color:white;">Revenue enrichment</b> · el expediente operativo carga primero; identidad/lifecycle se enriquecen en serie. 2024/2025 transaccional sigue siendo NO_CERTIFIED_SOURCE.</div>');}
   }
-  function renderCurrent(d){window.PT.data=d;window.PT.sel=d.paciente;window.PT.tab='cotizaciones';baseRender360(d);augment(d);var rt=document.getElementById('pt-right');if(rt&&rt.classList)rt.classList.toggle('hidden',!d.clinical_access);if(typeof window.renderNotas==='function')window.renderNotas(d.notas||[]);}
+  function ensureFiliationContacts(d){
+    var root=document.getElementById('pt-ficha'),grid=root&&root.querySelector('.fd');if(!grid)return;
+    var p=d&&d.paciente||{},labels=grid.querySelectorAll('.fdl'),seen={};
+    for(var i=0;i<labels.length;i++)seen[String(labels[i].textContent||'').trim().toUpperCase()]=true;
+    function card(label,value,key){if(seen[label.toUpperCase()])return;var node=document.createElement('div');node.className='fdc';node.setAttribute('data-p360v3',key);node.innerHTML='<div class="fdl">'+esc(label)+'</div><div class="fdv">'+esc(value||'—')+'</div>';grid.insertBefore(node,grid.firstChild);seen[label.toUpperCase()]=true;}
+    card('Teléfono',p.telefono,'filiation-phone');
+    card('Correo',p.correo,'filiation-email');
+  }
+  function renderCurrent(d){window.PT.data=d;window.PT.sel=d.paciente;window.PT.tab='cotizaciones';baseRender360(d);augment(d);ensureFiliationContacts(d);var rt=document.getElementById('pt-right');if(rt&&rt.classList)rt.classList.toggle('hidden',!d.clinical_access);if(typeof window.renderNotas==='function')window.renderNotas(d.notas||[]);}
   function applyDeferred(cid,seq,section,res){
     if(activeCid!==cid||seq!==enrichmentSeq||!window.PT.data)return;
     var payload=res&&res.payload||null;
@@ -90,7 +99,7 @@ function install(){
   };
 
   window.ptSel=function(value){value=String(value||'').trim();if(/^P-/i.test(value)){window.ptSelCurrent(value);return;}window._rpc('aos_patient_search_v2',{p_token:token(),p_query:value,p_limit:10},function(d){var rows=d&&d.results||[];if(rows.length===1&&rows[0].canonical_patient_id){window.ptSelCurrent(rows[0].canonical_patient_id);return;}showError(rows.length>1?'El teléfono corresponde a más de un paciente actual. Selecciona la ficha por nombre.':'No se encontró un paciente actual para ese identificador.');},function(){showError('No se pudo resolver el botón legado hacia un paciente actual.');});};
-  window.render360=function(d){baseRender360(d);augment(d);};
+  window.render360=function(d){baseRender360(d);augment(d);ensureFiliationContacts(d);};
 }
 install();
 })();
