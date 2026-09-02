@@ -6,6 +6,7 @@ const boot=fs.readFileSync('app/public/admin-marketing-v2.js','utf8');
 const core=fs.readFileSync('app/public/admin-marketing-v2-core.js','utf8');
 const indexMigration=fs.readFileSync('supabase/migrations/20260902022000_p0_marketing_confirmed_call_lookup_index.sql','utf8');
 const callLeadMigration=fs.readFileSync('supabase/migrations/20260902024000_p0_marketing_call_lead_single_pass_v4.sql','utf8');
+const summaryMigration=fs.readFileSync('supabase/migrations/20260902164000_p0_marketing_period_summary_fast_v5.sql','utf8');
 
 test('preserves certified Marketing V4.2 core',()=>{
   assert.match(boot,/admin-marketing-v2-core\.js/);
@@ -24,12 +25,28 @@ test('single-flight and cache are scoped to Marketing reads',()=>{
   assert.match(boot,/cache\.get\(key\)/);
 });
 
-test('expensive annual analytics are viewport gated',()=>{
+test('failed reads never poison the short-lived cache and one timeout retry is bounded',()=>{
+  assert.match(boot,/function timeoutSnap\(/);
+  assert.match(boot,/57014/);
+  assert.match(boot,/var RETRY_MS=300/);
+  assert.match(boot,/stats\.timeoutRetries\+\+/);
+  assert.match(boot,/if\(successful\(x\)\)cache\.set/);
+  assert.match(boot,/else stats\.failedNotCached\+\+/);
+  assert.doesNotMatch(boot,/while\s*\([^)]*timeout/i);
+});
+
+test('expensive annual analytics are viewport gated and wait for monthly quiescence',()=>{
   assert.match(boot,/aos_marketing_historico_public_v2:'#mk-hist'/);
   assert.match(boot,/aos_marketing_ltv_public_v2:'#mk-ltv'/);
   assert.match(boot,/IntersectionObserver/);
   assert.match(boot,/rootMargin:'500px 0px'/);
   assert.match(boot,/setTimeout\(finish,12000\)/);
+  assert.match(boot,/var annualTail=Promise\.resolve\(\)/);
+  assert.match(boot,/var QUIET_MS=3500/);
+  assert.match(boot,/function waitQuiescent\(/);
+  assert.match(boot,/function runAnnual\(/);
+  assert.match(boot,/return monthlyTail\.catch/);
+  assert.match(boot,/annualTail=queued\.then/);
 });
 
 test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
@@ -42,23 +59,24 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/p0-marketing-read-pressure-v1\.3/);
+  assert.match(boot,/p0-marketing-read-pressure-v1\.4/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
 });
 
-test('monthly attribution and intent insights share one serialized lane',()=>{
-  assert.match(boot,/var insightTail=Promise\.resolve\(\)/);
-  assert.match(boot,/var serialInsights=\{/);
+test('period summary attribution and intent share one serialized monthly lane',()=>{
+  assert.match(boot,/var monthlyTail=Promise\.resolve\(\)/);
+  assert.match(boot,/var monthlySerial=\{/);
+  assert.match(boot,/aos_marketing_period_summary_v2:true/);
   assert.match(boot,/aos_marketing_attribution_public_v3:true/);
   assert.match(boot,/aos_marketing_intent_public_v2:true/);
   assert.match(boot,/aos_marketing_intent_detail_public_v3:true/);
-  assert.match(boot,/function runSerializedInsight\(/);
+  assert.match(boot,/function runMonthly\(/);
   assert.match(boot,/function withoutSignal\(/);
-  assert.match(boot,/baseFetch\(input,withoutSignal\(init\)\)/);
-  assert.match(boot,/insightTail=queued\.then/);
-  assert.match(boot,/serializedInsights/);
+  assert.match(boot,/monthlyTail=queued\.then/);
+  assert.match(boot,/serializedMonthly/);
+  assert.match(boot,/waitAnnualDrain/);
 });
 
 test('confirmed-call lookup index is partial and formula-neutral',()=>{
@@ -87,6 +105,20 @@ test('call-lead P0.4 preserves canonical match states and removes global touchpo
   assert.doesNotMatch(callLeadMigration,/aos_marketing_touchpoints_v2\(null,null\)/i);
   assert.doesNotMatch(callLeadMigration,/statement_timeout/i);
   assert.doesNotMatch(callLeadMigration,/update\s+public\./i);
+});
+
+test('period summary P0.5 keeps canonical fields while removing full lead-detail materialization',()=>{
+  assert.match(summaryMigration,/create or replace function public\.aos_marketing_period_summary_v2/);
+  assert.match(summaryMigration,/period_seed as materialized/);
+  assert.match(summaryMigration,/phones as materialized/);
+  assert.match(summaryMigration,/join phones p using\(numero_limpio\)/);
+  assert.match(summaryMigration,/person_flags as materialized/);
+  assert.match(summaryMigration,/touch_flags as materialized/);
+  assert.match(summaryMigration,/aos_marketing_attribution_v2_preview\(p_fecha_desde,p_fecha_hasta\)/);
+  ['ingresos','personasUnicas','reingresos','personasGestionadas','personasSinGestion','personasCitaTel','personasConCita','personasAsistieron','touchpointsGestionados','touchpointsConCita','clientesM0','ventasM0','factM0'].forEach(k=>assert.match(summaryMigration,new RegExp("'"+k+"'")));
+  assert.doesNotMatch(summaryMigration,/aos_marketing_leads_detalle_v2/i);
+  assert.doesNotMatch(summaryMigration,/statement_timeout/i);
+  assert.doesNotMatch(summaryMigration,/update\s+public\./i);
 });
 
 test('bootstrap adds no recurrent polling and core keeps canonical RPCs',()=>{
