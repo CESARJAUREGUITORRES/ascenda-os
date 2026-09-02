@@ -10,6 +10,7 @@ ok(app.includes('ASCENDA_CRITICAL_RUNTIME_BRIDGES_20260820'),'App shell must con
 ok(app.includes('/patients-f6-v2.js?v=20260820-rev-f6-runtime-hotfix-v1'),'Patient runtime must load directly from app shell');
 ok(ui.includes('window.__AOS_PATIENTS_360_V3__'),'Patient runtime must publish V3 idempotency state');
 ok(ui.includes("window.__AOS_PATIENT_BRIDGE_GUARD__='p0436-v2-hotpath'"),'Runtime must publish P0 #436 hot-path generation');
+ok(ui.includes("window.__AOS_PATIENT_FILIATION_CONTACTS__='v1'"),'Runtime must publish filiación contact-field generation');
 ok(ui.includes("'aos_patient_search_v2'"),'Search must keep canonical patient discovery');
 ok(ui.includes("'aos_patient_360_current_v3'"),'Selection must call canonical-current operational RPC');
 ok(ui.includes('p_canonical_patient_id:cid'),'Selection must pass canonical_patient_id directly');
@@ -39,8 +40,13 @@ ok(!ui.includes('loadCurrent(cid,true)'),'Deterministic operational RPC failures
 ok(ui.includes('activeCid!==cid||seq!==enrichmentSeq'),'Late enrichment responses must not overwrite a newly selected patient');
 ok(ui.includes('el contexto analítico nunca bloquea la ficha'),'UI must state the operational/enrichment boundary');
 
+// Owner-smoke UX correction: filiación must surface contact data already present in the canonical patient payload.
+ok(ui.includes("card('Teléfono',p.telefono,'filiation-phone')"),'Filiación must explicitly render canonical phone');
+ok(ui.includes("card('Correo',p.correo,'filiation-email')"),'Filiación must preserve explicit email rendering when base UI omits it');
+ok(!ui.includes('ep-telefono'),'P0 contact display correction must not introduce direct phone mutation authority');
+
 ok(ui.includes('ACTUAL RESOLVED'),'UI must distinguish resolved current patient identity');
 ok(ui.includes('HISTÓRICO REVIEW'),'UI must preserve historical review visibility');
 ok(ui.includes('NO_CERTIFIED_SOURCE'),'Historical revenue limitation must remain explicit');
 ok(ui.includes('Selecciona la ficha por nombre'),'Shared phone compatibility must remain fail-closed');
-console.log('REV-F6.1 UI contract PASS — Patient operational hot path + serial deferred enrichment');
+console.log('REV-F6.1 UI contract PASS — Patient operational hot path + serial deferred enrichment + filiación contacts');
