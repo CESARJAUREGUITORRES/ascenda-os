@@ -8,10 +8,11 @@ const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
 function baseDom(){
   const ficha={style:{},innerHTML:'',querySelector:function(){return null;}};
   const empty={style:{}};
+  const right={style:{},classList:{toggle:function(){}}};
   return {
     ficha,
     document:{
-      getElementById:function(id){if(id==='pt-ficha')return ficha;if(id==='pt-empty')return empty;return {style:{},innerHTML:'',querySelector:function(){return null;}};},
+      getElementById:function(id){if(id==='pt-ficha')return ficha;if(id==='pt-empty')return empty;if(id==='pt-right')return right;return {style:{},innerHTML:'',querySelector:function(){return null;},classList:{toggle:function(){}}};},
       querySelectorAll:function(){return [];}
     }
   };
