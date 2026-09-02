@@ -4,6 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const boot=fs.readFileSync('app/public/admin-marketing-v2.js','utf8');
 const core=fs.readFileSync('app/public/admin-marketing-v2-core.js','utf8');
+const migration=fs.readFileSync('supabase/migrations/20260902022000_p0_marketing_confirmed_call_lookup_index.sql','utf8');
 
 test('preserves certified Marketing V4.2 core',()=>{
   assert.match(boot,/admin-marketing-v2-core\.js/);
@@ -36,6 +37,30 @@ test('legacy LTV cohort read is suppressed only after V4.2 owns rendering',()=>{
   assert.match(boot,/suppressedLegacyLtv/);
   assert.match(boot,/emptyJsonResponse/);
   assert.doesNotMatch(core,/suppressedLegacyLtv/);
+});
+
+test('monthly attribution and intent insights share one serialized lane',()=>{
+  assert.match(boot,/var insightTail=Promise\.resolve\(\)/);
+  assert.match(boot,/var serialInsights=\{/);
+  assert.match(boot,/aos_marketing_attribution_public_v3:true/);
+  assert.match(boot,/aos_marketing_intent_public_v2:true/);
+  assert.match(boot,/aos_marketing_intent_detail_public_v3:true/);
+  assert.match(boot,/function runSerializedInsight\(/);
+  assert.match(boot,/function withoutSignal\(/);
+  assert.match(boot,/baseFetch\(input,withoutSignal\(init\)\)/);
+  assert.match(boot,/insightTail=queued\.then/);
+  assert.match(boot,/serializedInsights/);
+});
+
+test('confirmed-call lookup index is partial and formula-neutral',()=>{
+  assert.match(migration,/idx_aos_llamadas_mkt_confirmed_phone_advisor_v1/);
+  assert.match(migration,/numero_limpio/);
+  assert.match(migration,/upper\(coalesce\(asesor,''\)\)/);
+  assert.match(migration,/where upper\(coalesce\(estado,''\)\)='CITA CONFIRMADA'/);
+  assert.match(migration,/include \(id, lead_id_origen, fecha, hora_llamada, created_at, ult_ts, ts_log\)/);
+  assert.doesNotMatch(migration,/statement_timeout/i);
+  assert.doesNotMatch(migration,/create or replace function/i);
+  assert.doesNotMatch(migration,/update\s+public\./i);
 });
 
 test('bootstrap adds no recurrent polling and core keeps canonical RPCs',()=>{
