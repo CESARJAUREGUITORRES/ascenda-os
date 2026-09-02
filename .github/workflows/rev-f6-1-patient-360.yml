@@ -80,9 +80,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check ci/rev-f6-1/ui_contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check ci/rev-f6-1/p0436_bridge_guard_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Patient 360 V2 UI contract
         shell: powershell
         run: node ci/rev-f6-1/ui_contract.js
+      - name: P0 436 stale-worker bridge self-heal contract
+        shell: powershell
+        run: node ci/rev-f6-1/p0436_bridge_guard_contract.js
 
   db-security:
     name: F6.1 DB/security/semantic contracts
