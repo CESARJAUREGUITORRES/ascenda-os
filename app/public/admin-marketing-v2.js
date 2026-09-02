@@ -1,20 +1,22 @@
-/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.1
+/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.2
  * Keeps the certified V4.2 controller byte-for-byte in admin-marketing-v2-core.js.
  * This bootstrap only shapes read pressure: single-flight, short-lived read cache,
- * viewport-gating for the two expensive annual analytics (History + LTV), and
- * suppression of the redundant legacy aos_ltv_cohortes read once V4.2 is mounted.
+ * viewport-gating for the two expensive annual analytics (History + LTV),
+ * suppression of the redundant legacy aos_ltv_cohortes read once V4.2 is mounted,
+ * and one-at-a-time execution for heavy monthly attribution/intent reads.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-09-01-p0-marketing-read-pressure-v1.1';
+var RELEASE='2026-09-02-p0-marketing-read-pressure-v1.2';
 var G=window.__AOS_MKT_PERF_V1;
 
 if(!G){
   var baseFetch=window.fetch.bind(window);
   var cache=new Map();
   var inflight=new Map();
-  var stats={network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0};
+  var insightTail=Promise.resolve();
+  var stats={network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0,serializedInsights:0};
   var targets={
     aos_marketing_dashboard:2500,
     aos_marketing_dashboard_anio:2500,
@@ -29,6 +31,11 @@ if(!G){
   var lazy={
     aos_marketing_historico_public_v2:'#mk-hist',
     aos_marketing_ltv_public_v2:'#mk-ltv'
+  };
+  var serialInsights={
+    aos_marketing_attribution_public_v3:true,
+    aos_marketing_intent_public_v2:true,
+    aos_marketing_intent_detail_public_v3:true
   };
 
   function fnFrom(url){
@@ -84,6 +91,24 @@ if(!G){
   function emptyJsonResponse(){
     return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
   }
+  function withoutSignal(init){
+    var x={};
+    Object.keys(init||{}).forEach(function(k){if(k!=='signal')x[k]=init[k];});
+    return x;
+  }
+  function runSerializedInsight(input,init,signal){
+    var queued=insightTail.catch(function(){}).then(function(){
+      if(aborted(signal))throw abortError();
+      stats.serializedInsights++;
+      stats.network++;
+      // Once a read-only insight reaches PostgREST, do not abort the HTTP request.
+      // Aborting fetch does not reliably cancel the PostgreSQL statement and can let
+      // the next month overlap it. The V4.2 cycle guard still discards stale results.
+      return baseFetch(input,withoutSignal(init)).then(snap);
+    });
+    insightTail=queued.then(function(){},function(){});
+    return queued;
+  }
 
   window.fetch=function(input,init){
     var url=typeof input==='string'?input:(input&&input.url)||'';
@@ -119,9 +144,10 @@ if(!G){
     if(lazy[fn])p=p.then(function(){return waitVisible(lazy[fn],signal);});
     p=p.then(function(){
       if(aborted(signal))throw abortError();
+      if(serialInsights[fn])return runSerializedInsight(input,init,signal);
       stats.network++;
-      return baseFetch(input,init);
-    }).then(snap).then(function(x){
+      return baseFetch(input,init).then(snap);
+    }).then(function(x){
       cache.set(key,{ts:Date.now(),snap:x});
       return x;
     }).finally(function(){inflight.delete(key);});
