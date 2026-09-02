@@ -6,6 +6,8 @@ const fs=require('fs');
 const vm=require('vm');
 
 const browser=fs.readFileSync('app/public/browser-business-priority-v1.js','utf8');
+const migration=fs.readFileSync('supabase/migrations/20260902202000_p0432_db_hotpath_refresh_removal_v1.sql','utf8');
+const rollback=fs.readFileSync('supabase/rollbacks/20260902202000_p0432_db_hotpath_refresh_removal_v1_recovery.sql','utf8');
 
 function rpcName(input){const m=String(input||'').match(/\/rpc\/([^?]+)/);return m&&m[1]||'';}
 function FakeResponse(name,status){this.name=name;this.status=status==null?200:status;this.ok=this.status>=200&&this.status<300;}
@@ -31,6 +33,23 @@ test('P0 #432 static contract keeps governed and mutable paths outside throttle'
   assert.match(browser,/\^aos_callcenter_\/\.test\(name\)/);
   assert.doesNotMatch(browser,/aos_get_historial_paciente:1/);
   assert.doesNotMatch(browser,/aos_search_pacientes:1/);
+});
+
+test('P0 #432 DB hot-path migration removes only the per-insert refresh trigger',()=>{
+  assert.match(migration,/drop trigger if exists trg_refresh_llammap on public\.aos_llamadas/i);
+  assert.match(migration,/to_regclass\('public\.aos_llamadas_ultimo'\)/i);
+  assert.match(migration,/to_regprocedure\('public\.fn_refresh_llammap\(\)'\)/i);
+  assert.match(migration,/to_regprocedure\('public\.aos_refresh_llammap\(\)'\)/i);
+  assert.doesNotMatch(migration,/drop\s+materialized\s+view/i);
+  assert.doesNotMatch(migration,/drop\s+function/i);
+  assert.doesNotMatch(migration,/statement_timeout/i);
+  assert.doesNotMatch(migration,/alter\s+table/i);
+});
+
+test('P0 #432 DB hot-path rollback restores exact legacy trigger shape',()=>{
+  assert.match(rollback,/create trigger trg_refresh_llammap\s+after insert on public\.aos_llamadas\s+for each statement\s+execute function public\.fn_refresh_llammap\(\)/is);
+  assert.doesNotMatch(rollback,/statement_timeout/i);
+  assert.doesNotMatch(rollback,/drop\s+materialized\s+view/i);
 });
 
 test('heavy cross-panel analytics are serialized even without Call Center mounted',async()=>{
