@@ -1,0 +1,114 @@
+name: ASCENDA REV-F5.11 Historical Identity Completion
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*rev_f5_11*'
+      - 'supabase/rollbacks/*rev_f5_11*'
+      - 'ci/rev-f5-11/**'
+      - 'docs/control/REV_F5_11*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - '.github/workflows/rev-f5-11-historical-identity-completion.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rev-f5-11-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-safety:
+    name: F5.11 static mutation boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce identity-only scope
+        shell: powershell
+        run: |
+          $m='supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql'
+          $r='supabase/rollbacks/20260902224000_rev_f5_11_historical_identity_completion_v1_recovery.sql'
+          if (-not (Test-Path $m)) { throw 'migration missing' }
+          if (-not (Test-Path $r)) { throw 'recovery missing' }
+          $sql=Get-Content $m -Raw
+          if ($sql -match '(?i)update\s+public\.aos_pacientes') { throw 'existing patient UPDATE forbidden' }
+          if ($sql -match '(?i)delete\s+from\s+public\.aos_pacientes') { throw 'patient DELETE forbidden in forward migration' }
+          if ($sql -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.aos_ventas') { throw '2024/2025 sales mutation forbidden' }
+          if ($sql -match '(?i)grant\s+.*\s+to\s+(anon|authenticated)') { throw 'browser privilege escalation forbidden' }
+          if ($sql -notmatch 'PHONE.*never auto-links' -and $sql -notmatch 'phone alone never auto-links') { throw 'phone-only safety contract missing' }
+          if ($sql -notmatch 'P-HIST-F511-') { throw 'deterministic historical patient namespace missing' }
+
+  db-contract:
+    name: F5.11 DB apply / replay / recovery
+    needs: static-safety
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59642/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce Zero-Cost DB runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-rev-f5-11"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59641/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59642/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59640/' supabase/config.toml
+      - name: Start isolated Postgres
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-rev-f5-11' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59642 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build synthetic certified identity state
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f5-11/schema_contract.sql
+      - name: Apply exact F5.11 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql
+      - name: Security and schema contract
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_f5_historical_identity_resolution_v2') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_f5_historical_identity_completion_preview_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_f5_11_apply_identity_completion_v1(text,integer)') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('anon','public.aos_f5_historical_identity_resolution_v2','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('authenticated','public.aos_f5_historical_identity_resolution_v2','SELECT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('anon','public.aos_f5_11_apply_identity_completion_v1(text,integer)','EXECUTE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_f5_11_apply_identity_completion_v1(text,integer)','EXECUTE')")" = "t"
+      - name: Behavioral resolution / apply / replay contract
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f5-11/tests/001_identity_completion.sql
+      - name: Recovery contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260902224000_rev_f5_11_historical_identity_completion_v1_recovery.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_f5_historical_identity_resolution_v2') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_f5_11_apply_identity_completion_v1(text,integer)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_pacientes where \"ID_PACIENTE\" like 'P-HIST-F511-%'")" = "0"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from public.aos_pacientes where \"ID_PACIENTE\" in ('P-A','P-B','P-C','P-D','P-E','P-OLD')")" = "6"
+      - name: Full apply after recovery remains reproducible
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902224000_rev_f5_11_historical_identity_completion_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/rev-f5-11/tests/001_identity_completion.sql
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
