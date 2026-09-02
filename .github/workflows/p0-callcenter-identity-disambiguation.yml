@@ -1,0 +1,27 @@
+name: P0 Call Center Identity Disambiguation
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260902192500_p0_callcenter_identity_disambiguation_v1.sql'
+      - 'supabase/rollbacks/20260902192500_p0_callcenter_identity_disambiguation_v1_recovery.sql'
+      - 'ci/wa4c-full-local/p0-callcenter-identity-disambiguation.test.js'
+      - '.github/workflows/p0-callcenter-identity-disambiguation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-disambiguation-contract:
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: JavaScript syntax
+        run: node --check ci/wa4c-full-local/p0-callcenter-identity-disambiguation.test.js
+      - name: Identity disambiguation contracts
+        run: node ci/wa4c-full-local/p0-callcenter-identity-disambiguation.test.js
