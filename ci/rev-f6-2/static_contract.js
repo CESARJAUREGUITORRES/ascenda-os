@@ -17,6 +17,13 @@ must(fix.includes("America/Lima"),'Lima business-date boundary missing');
 must(fix.includes("aos_rev_business_date_lima_v1"),'business-date helper missing');
 must(fix.includes("coalesce(p.\"ESTADO_PACIENTE\",'')<>'FUSIONADO'"),'active canonical subject filter missing');
 must(fix.includes("grant execute on function public.aos_patient_commercial_360_v2(text,text,text) to anon,authenticated,service_role"),'governed browser gateway missing after hotfix');
-must(ui.includes('cs.lifecycle_state'),'Patient 360 has no lifecycle display path');
+// P0 #436 split Patient 360 into operational core + serial deferred enrichment.
+// Lifecycle is now rendered from `life.lifecycle_state`, populated only by the governed
+// LIFECYCLE section of aos_patient_360_enrichment_v1. Accept the legacy direct path only
+// for backward compatibility, but require the governed deferred path in the current V3 UI.
+const legacyLifecyclePath=ui.includes('cs.lifecycle_state');
+const deferredLifecyclePath=ui.includes('life.lifecycle_state')&&ui.includes("section==='LIFECYCLE'")&&ui.includes("aos_patient_360_enrichment_v1");
+must(legacyLifecyclePath||deferredLifecyclePath,'Patient 360 has no lifecycle display path');
+must(deferredLifecyclePath,'Patient 360 current V3 must use governed deferred lifecycle enrichment');
 must(!fix.includes("lifecycle_state','PENDING_REV_F6_2"),'F6.2 hotfix still emits pending lifecycle');
 console.log('REV-F6.2 FAST static contract PASS');
