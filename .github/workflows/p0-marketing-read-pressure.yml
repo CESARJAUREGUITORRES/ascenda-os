@@ -1,0 +1,44 @@
+name: ASCENDA P0 Marketing Read Pressure
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/admin-marketing-v2.js'
+      - 'app/public/admin-marketing-v2-core.js'
+      - 'ci/performance/marketing-read-pressure.test.js'
+      - '.github/workflows/p0-marketing-read-pressure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  marketing-read-pressure:
+    name: Self-hosted Marketing read-pressure contract
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check app/public/admin-marketing-v2.js
+          node --check app/public/admin-marketing-v2-core.js
+          node --check ci/performance/marketing-read-pressure.test.js
+      - name: Marketing performance contracts
+        run: node --test ci/performance/marketing-read-pressure.test.js
+      - name: Read-pressure assertions
+        run: |
+          set -euo pipefail
+          BOOT='app/public/admin-marketing-v2.js'
+          CORE='app/public/admin-marketing-v2-core.js'
+          grep -q 'admin-marketing-v2-core.js' "$BOOT"
+          grep -q 'aos_marketing_historico_public_v2' "$BOOT"
+          grep -q 'aos_marketing_ltv_public_v2' "$BOOT"
+          grep -q '2026-08-31-v4.2.2-organic-paid-boundary' "$CORE"
+          ! grep -Eq 'setInterval[[:space:]]*\(' "$BOOT"
+          echo 'ASCENDA_P0_MARKETING_READ_PRESSURE_PASS'
