@@ -4,16 +4,56 @@
 (function(){'use strict';
 if(window.__AOS_PATIENTS_360_V3__==='installed'||window.__AOS_PATIENTS_360_V3__==='waiting')return;
 window.__AOS_PATIENTS_360_V3__='waiting';
-var installed=false,timer=null,cards={};
+window.__AOS_PATIENT_BRIDGE_GUARD__='p0436-v1';
+var installed=false,timer=null,cards={},bridgeReadyPromise=null;
 function esc(v){return typeof window.h==='function'?window.h(v):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function token(){try{return sessionStorage.getItem('aos_app_token')||'';}catch(_){return '';}}
 function schedule(){if(!installed)timer=setTimeout(install,800);}
 function showError(msg){var f=document.getElementById('pt-ficha');if(!f)return;f.innerHTML='<div style="padding:16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;color:#B91C1C;font-size:11px;font-weight:700;">'+esc(msg)+'</div>';}
+
+// P0 #436: the governed token bridge is service-worker authority. A long-lived installed
+// ASCENDA client may still be controlled by a pre-#323 worker even after current code deploys.
+// Refresh the registration exactly once per Patients runtime and wait a bounded interval for
+// activation/controller takeover. No polling, no browser-token fallback, no auth weakening.
+function ensurePatientBridge(force){
+  if(!('serviceWorker' in navigator))return Promise.resolve(false);
+  if(bridgeReadyPromise&&!force)return bridgeReadyPromise;
+  bridgeReadyPromise=navigator.serviceWorker.getRegistration('/').then(function(reg){
+    if(reg)return reg;
+    return navigator.serviceWorker.register('/phase2-service-worker.js',{scope:'/',updateViaCache:'none'});
+  }).then(function(reg){
+    return reg.update().catch(function(){return reg;}).then(function(){return reg;});
+  }).then(function(reg){
+    return new Promise(function(resolve){
+      var done=false,pending=reg.installing||reg.waiting,timeout=null;
+      function finish(ok){
+        if(done)return;done=true;
+        if(timeout)clearTimeout(timeout);
+        try{navigator.serviceWorker.removeEventListener('controllerchange',onController);}catch(_){}
+        resolve(!!ok);
+      }
+      function onController(){finish(!!navigator.serviceWorker.controller);}
+      navigator.serviceWorker.addEventListener('controllerchange',onController);
+      if(reg.waiting){try{reg.waiting.postMessage({type:'ASCENDA_ACTIVATE_NOW'});}catch(_){} }
+      if(!pending){finish(!!navigator.serviceWorker.controller);return;}
+      try{pending.addEventListener('statechange',function(){
+        if(pending.state==='activated')finish(!!navigator.serviceWorker.controller);
+        else if(pending.state==='redundant')finish(!!navigator.serviceWorker.controller);
+      });}catch(_){}
+      timeout=setTimeout(function(){finish(!!navigator.serviceWorker.controller);},4500);
+    });
+  }).catch(function(){return false;});
+  return bridgeReadyPromise;
+}
+
 function install(){
   if(installed)return;
   if(typeof window._rpc!=='function'||typeof window.render360!=='function'||!window.PT){schedule();return;}
   installed=true;if(timer)clearTimeout(timer);window.__AOS_PATIENTS_360_V3__='installed';
   var baseRender360=window.render360;
+
+  // Warm the bridge update in the background once. It is bounded and single-flight.
+  ensurePatientBridge(false);
 
   window.ptSearch=function(q){
     clearTimeout(window._ptT);var r=document.getElementById('pt-res');
@@ -33,17 +73,47 @@ function install(){
     },250);
   };
 
+  function renderCurrent(d){
+    window.PT.data=d;window.PT.sel=d.paciente;window.PT.tab='cotizaciones';baseRender360(d);augment(d);
+    var rt=document.getElementById('pt-right');if(rt)rt.classList.toggle('hidden',!d.clinical_access);
+    if(typeof window.renderNotas==='function')window.renderNotas(d.notas||[]);
+  }
+
+  function loadCurrent(cid,allowRepair){
+    window._rpc('aos_patient_360_current_v3',{p_token:token(),p_canonical_patient_id:cid},function(d){
+      if(d&&d.found){renderCurrent(d);return;}
+      var status=d&&d.identity_resolution&&d.identity_resolution.status||'';
+      if(status==='CANONICAL_TARGET_MISSING'){
+        showError('El registro canónico actual '+cid+' ya no existe o fue fusionado. No se modificó ningún dato.');return;
+      }
+      if(allowRepair){
+        bridgeReadyPromise=null;
+        ensurePatientBridge(true).then(function(ok){
+          if(ok){loadCurrent(cid,false);return;}
+          showError('El puente seguro de Pacientes está desactualizado o no pudo activarse. Recarga ASCENDA e inicia sesión nuevamente.');
+        });return;
+      }
+      showError('No se pudo validar el registro canónico actual '+cid+' mediante el puente seguro. No se modificó ningún dato.');
+    },function(){
+      if(allowRepair){
+        bridgeReadyPromise=null;
+        ensurePatientBridge(true).then(function(ok){
+          if(ok){loadCurrent(cid,false);return;}
+          showError('El puente seguro de Pacientes está desactualizado o no pudo activarse. Recarga ASCENDA e inicia sesión nuevamente.');
+        });return;
+      }
+      showError('Error al cargar Pacientes 360 mediante el puente seguro. El registro actual no fue modificado.');
+    });
+  }
+
   window.ptSelCurrent=function(cid){
     cid=String(cid||'').trim();if(!cid){showError('Paciente canónico inválido.');return;}
     document.querySelectorAll('.pt-c').forEach(function(c){c.classList.toggle('act',c.getAttribute('data-cid')===cid);});
     var f=document.getElementById('pt-ficha'),empty=document.getElementById('pt-empty');if(empty)empty.style.display='none';if(!f)return;f.style.display='block';f.innerHTML='<div class="ld"><span class="sp"></span>Cargando Pacientes 360...</div>';
-    var t=token();if(t.length<32){showError('Sesión segura no disponible. Vuelve a iniciar sesión.');return;}
-    window._rpc('aos_patient_360_current_v3',{p_token:t,p_canonical_patient_id:cid},function(d){
-      if(!d||!d.found){showError('No se pudo cargar el registro canónico actual '+cid+'.');return;}
-      window.PT.data=d;window.PT.sel=d.paciente;window.PT.tab='cotizaciones';baseRender360(d);augment(d);
-      var rt=document.getElementById('pt-right');if(rt)rt.classList.toggle('hidden',!d.clinical_access);
-      if(typeof window.renderNotas==='function')window.renderNotas(d.notas||[]);
-    },function(){showError('Error al cargar Pacientes 360. El registro actual no fue modificado.');});
+    ensurePatientBridge(false).then(function(ok){
+      if(!ok){showError('No está disponible el puente seguro de Pacientes. Recarga ASCENDA e inicia sesión nuevamente.');return;}
+      loadCurrent(cid,true);
+    });
   };
 
   // Compatibility for old buttons that still pass a phone number. Resolve once through
