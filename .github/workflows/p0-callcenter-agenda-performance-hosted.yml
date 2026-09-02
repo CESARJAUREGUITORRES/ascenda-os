@@ -9,6 +9,8 @@ on:
       - 'app/public/panel-access-authority-v1.js'
       - 'supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql'
       - 'supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql'
+      - 'supabase/migrations/20260902002500_mkt_loop6_p0_booking_hotpath_v3.sql'
+      - 'supabase/rollbacks/20260902002500_mkt_loop6_p0_booking_hotpath_v3_recovery.sql'
       - 'ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js'
       - '.github/workflows/p0-callcenter-agenda-performance-hosted.yml'
   workflow_dispatch:
@@ -38,7 +40,16 @@ jobs:
       - name: Safety assertions
         run: |
           set -euo pipefail
-          grep -q "set_config('aos.callcenter_phone',v_num,true)" supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql
+          OLD='supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql'
+          HOT='supabase/migrations/20260902002500_mkt_loop6_p0_booking_hotpath_v3.sql'
+          grep -q "set_config('aos.callcenter_phone',v_num,true)" "$OLD"
+          grep -q 'aos_callcenter_resolve_identity_fast_v3' "$HOT"
+          grep -q 'aos_callcenter_patient_state_fast_v3' "$HOT"
+          grep -q 'lifecycleDeferred' "$HOT"
+          grep -q 'activeAppointment' "$HOT"
+          grep -q 'lastNoShow' "$HOT"
+          ! grep -q 'aos_rev_customer_lifecycle_v1(' "$HOT"
+          ! grep -qi 'statement_timeout' "$HOT"
           grep -q "aos_agenda_set_status_v1" supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql
-          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/2026090103*.sql
+          ! grep -Eq '(auto_reply_enabled|ai_send_enabled|auto_routing_enabled)[[:space:]]*=[[:space:]]*true' supabase/migrations/2026090103*.sql "$HOT"
           echo 'ASCENDA_P0_CALLCENTER_AGENDA_PERFORMANCE_CONTRACT_PASS'
