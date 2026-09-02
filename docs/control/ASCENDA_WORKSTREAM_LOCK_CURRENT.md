@@ -1,63 +1,75 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-02 America/Lima  
-**REV-F5.11 certified merge baseline:** `main@30da24d6a3e5b0b32e0e6b9b38fdb51e3e2c607e`  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
-**Most recently closed authority:** `REV-F5.11 — Historical Patient Identity Completion 2024–2026` · Issue `#441`  
-**NEXT ELIGIBLE HIGH/CRITICAL WORKSTREAM:** `WA-L4 — Autonomous Authority + Kill Switch`  
-**WA-L4 exact state:** `NOT STARTED · AUTO_OFF · SAFE-OFF`  
+**ACTIVE HIGH/CRITICAL LOCK:** `WA-L4 — Autonomous Authority + Kill Switch`  
+**GitHub authority:** Issue `#443`  
+**Entry main:** `73a4bab955fffb8a423f8ff07fa8c835df125227`  
 **Mandatory PRE-L4 doctrine:** `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md` · freeze commit `f874f9797ed65408f43b4beb3bab6c31603042a1`  
-**Closeout checksum:** `REV-F5.11-CLOSEOUT-V1 · SHA256 e2f148e0ba640ca26a333345b6c47955f6333a5f5910768614bdaf2766f74a8e`
+**WA-L4 exact operational state:** `IN DEVELOPMENT · AUTO_OFF · SAFE-OFF`
 
-## REV-F5.11 production closeout
+## Entry safety snapshot
 
-All exit gates are satisfied:
-
-- PR `#442` merged after exact-head **11/11 CI PASS** and anti-drift PASS.
-- Certified code baseline: `30da24d6a3e5b0b32e0e6b9b38fdb51e3e2c607e`.
-- LIVE deterministic preview: **8,716 clusters / 15,498 source rows**.
-- LIVE preview fingerprint: `076556ed053dd815c329e6d27199d720`.
-- Final ledger: **1,121 RESOLVED_EXISTING / 37 RESOLVED_EXISTING_ATTRIBUTE_REVIEW / 20 NEW_CREATED / 8 STALE_TARGET / 7,530 REVIEW_REQUIRED**.
-- LIVE canary executed the complete apply inside a transaction and returned by exact `ROLLBACK` before the persistent apply.
-- Governed persistent apply created exactly **20** deterministic `P-HIST-F511-*` patients.
-- Patient population after apply: **7,757 total / 7,331 non-FUSIONADO / 426 FUSIONADO**.
-- All **7,737 pre-existing patients** remained unchanged under independent certification:
-  - identity fingerprint `8857a3f966fcae3226a6f969f60d32ef`;
-  - full-row fingerprint `677a17cb331761a2f79225edc5073c13`.
-- Source coverage remains **15,498 / 15,498** with **0 orphan memberships**.
-- Historical identity bridge preserves conflicts explicitly and has **0 aliases to FUSIONADO targets** and **0 null targets**.
-- Transactional sales 2024/2025 remain outside this workstream; no certified historical transactional rows were imported by REV-F5.11.
-- GitHub, Supabase LIVE and Notion closeout are reconciled.
-
-## Lock release decision
-
-`REV-F5.11` no longer owns the mutable HIGH/CRITICAL lane.
-
-`WA-L4` is now **eligible** to become the next mutable workstream, but this document does **not** authorize implementation or autonomous authority by itself. Eligibility is not activation.
-
-Until WA-L4 passes its own entry/authorization gates, preserve:
+Production remains fail-closed while L4 is built:
 
 - authority mode = `AUTO_OFF`;
 - global autonomous state = `SAFE-OFF`;
-- `auto_reply=false`;
-- `ai_send=false`;
-- `auto_routing=false`;
-- `human_send=true`;
-- no provider autonomous dispatch;
-- no LLM→Meta direct authority;
-- no LLM→SQL direct authority.
+- `copilot_enabled=true`;
+- `auto_reply_enabled=false`;
+- `auto_routing_enabled=false`;
+- `ai_send_enabled=false`;
+- `human_send_enabled=true`;
+- no autonomous provider dispatch authorized;
+- no direct LLM → Meta authority;
+- no direct LLM → SQL authority.
 
-## Mandatory PRE-L4 regression boundary
+LIVE entry evidence:
+- booking operations V2 = `0`;
+- Agenda events V2 = `0`;
+- L3 delivery outbox V3 = `0`;
+- L3 dispatchable = `0`;
+- active template registry = `10`;
+- active WhatsApp templates = `6`;
+- provider-verified WhatsApp templates = `0`;
+- existing outbound request ledger = `15` rows / `7` provider message IDs.
 
-The next WA-L4 entry must read and apply `ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md` before any HIGH/CRITICAL write.
+## Sole mutable lane
 
-L4 must preserve, at minimum:
-- Agenda governed create/edit/status + transactional booking;
+While #443 is open, no other HIGH/CRITICAL workstream may mutate ASCENDA. Other workstreams may perform read-only audit/documentation only.
+
+## L4 implementation boundary
+
+Allowed under `AUTO_OFF`:
+- implement explicit authority state machine `AUTO_OFF | CANARY | PROD`;
+- global kill switch;
+- server-side allowlist;
+- daily/message/turn/rate/cooldown/duplicate budgets;
+- provider idempotency authority;
+- provider-approved-template gate;
+- clinical/safety/identity/provider-error handoff;
+- append-only authority decision audit/telemetry;
+- recovery/rollback;
+- runtime wiring that remains dormant in AUTO_OFF;
+- CI, isolated DB canaries and production read-only validation.
+
+Forbidden without a separate explicit owner authorization:
+- transition effective mode from `AUTO_OFF` to `CANARY`;
+- set `auto_reply_enabled=true`;
+- set `ai_send_enabled=true`;
+- set `auto_routing_enabled=true` for autonomous operation;
+- autonomous Meta dispatch;
+- bulk sends/broadcasts/campaign activation.
+
+## Mandatory regression boundary
+
+Every L4 exit gate must preserve:
+- Agenda governed create/edit/status and transactional booking;
 - Call Center next-lead + prepare + commit/confirm hot paths;
 - Marketing monthly load without legacy/new duplication or annual fan-out;
-- Sales/Commissions exact totals, filters, commission rules and responsive reads;
+- Sales/Commissions exact totals, filters, rules, ownership and responsive reads;
 - Patients/Patient 360 canonical search/core rendering and deferred-enrichment survivability;
 - current non-FUSIONADO patient master + governed historical aliases with fail-closed conflicts;
 - shared Supabase/background pressure without new timeout/lock amplification.
 
-The next WA-L4 entry must independently revalidate current `main`, PROD safety flags, full cross-panel regression matrix, allowlist/canary scope, global kill switch, budgets/rate/max-turn limits, duplicate/cooldown/idempotency controls, provider-approved templates, clinical/identity handoff, telemetry and recovery before any transition away from `AUTO_OFF`.
+## Exit decision
+
+L4 implementation may be merged/deployed in `AUTO_OFF` after exact-head CI, anti-drift, recovery, LIVE readback and cross-module regression PASS. `CANARY` remains a distinct authorization boundary and must not be inferred from implementation completion.
