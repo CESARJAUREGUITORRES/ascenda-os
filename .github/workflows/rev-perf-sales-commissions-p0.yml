@@ -1,0 +1,44 @@
+name: ASCENDA REV-PERF Sales Commissions P0
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260902181000_rev_perf_sales_commissions_p0_v1.sql'
+      - 'supabase/rollbacks/20260902181000_rev_perf_sales_commissions_p0_v1_rollback.sql'
+      - 'ci/performance/rev-perf-sales-commissions-p0.test.js'
+      - 'app/public/commissions.js'
+      - '.github/workflows/rev-perf-sales-commissions-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rev-perf-sales-commissions:
+    name: Self-hosted Sales + Commissions performance contract
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check ci/performance/rev-perf-sales-commissions-p0.test.js
+          node --check app/public/commissions.js
+      - name: REV-PERF contracts
+        run: node --test ci/performance/rev-perf-sales-commissions-p0.test.js
+      - name: Static pressure assertions
+        run: |
+          set -euo pipefail
+          MIG='supabase/migrations/20260902181000_rev_perf_sales_commissions_p0_v1.sql'
+          RB='supabase/rollbacks/20260902181000_rev_perf_sales_commissions_p0_v1_rollback.sql'
+          grep -q 'period_all as materialized' "$MIG"
+          grep -q 'year_sales as materialized' "$MIG"
+          grep -q "'rankingTop'" "$MIG"
+          grep -q 'aos_comisiones_asesor' "$RB"
+          ! sed 's/--.*$//' "$MIG" | grep -Eq 'statement_timeout|SET[[:space:]]+LOCAL.*timeout'
+          echo 'ASCENDA_REV_PERF_SALES_COMMISSIONS_P0_PASS'

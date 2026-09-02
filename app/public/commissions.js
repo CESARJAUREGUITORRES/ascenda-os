@@ -130,11 +130,22 @@ function renderData(d){
     db.innerHTML='<tr><td colspan="6" class="ld">Sin ventas</td></tr>';
   }
 
-  // Ranking mini (otros asesores)
-  loadRankingMini();
+  // Ranking mini (otros asesores). REV-PERF prefers the ranking embedded in the main RPC.
+  loadRankingMini(d.rankingTop);
 }
 
-function loadRankingMini(){
+function renderRankingMini(arr){
+  if(!arr||!arr.length){el('h-rank-mini').innerHTML='Sin datos';return;}
+  var html=arr.slice(0,5).map(function(r,i){
+    var medal=i===0?'\uD83E\uDD47':i===1?'\uD83E\uDD48':i===2?'\uD83E\uDD49':'#'+(i+1);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;">'+'<span style="font-size:11px;">'+medal+' '+h((r.asesor||'').split(' ')[0])+'</span>'+'<span style="font-weight:800;font-size:12px;color:#0A4FBF;">S/'+parseFloat(r.com||0).toFixed(2)+'</span>'+'</div>';
+  }).join('');
+  el('h-rank-mini').innerHTML=html;
+}
+
+function loadRankingMini(rankingTop){
+  // Deploy-order compatibility: use the legacy read only if the DB has not yet exposed rankingTop.
+  if(Array.isArray(rankingTop)){renderRankingMini(rankingTop);return;}
   var mesI=VCom.anio+'-'+String(VCom.mes).padStart(2,'0')+'-01';
   var mesFin=VCom.anio+'-'+String(VCom.mes).padStart(2,'0')+'-31';
   fetch(_SB+'/rest/v1/aos_ventas?select=asesor,monto,tipo&fecha=gte.'+mesI+'&fecha=lte.'+mesFin+'&asesor=not.in.(NO+APLICA,DRA+CAROLINA,DRA+YESSICA,VINO+SOLA(O))',{
@@ -155,10 +166,6 @@ function loadRankingMini(){
     });
     var arr=Object.keys(by).map(function(a){return{asesor:a,com:by[a].com,fact:by[a].fact};});
     arr.sort(function(a,b){return b.com-a.com;});
-    var html=arr.slice(0,5).map(function(r,i){
-      var medal=i===0?'\uD83E\uDD47':i===1?'\uD83E\uDD48':i===2?'\uD83E\uDD49':'#'+(i+1);
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;">'+'<span style="font-size:11px;">'+medal+' '+h(r.asesor.split(' ')[0])+'</span>'+'<span style="font-weight:800;font-size:12px;color:#0A4FBF;">S/'+r.com.toFixed(2)+'</span>'+'</div>';
-    }).join('');
-    el('h-rank-mini').innerHTML=html;
+    renderRankingMini(arr);
   }).catch(function(){el('h-rank-mini').innerHTML='Error';});
 }
