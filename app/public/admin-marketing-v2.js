@@ -1,14 +1,12 @@
-/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.3
+/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.4
  * Keeps the certified V4.2 controller byte-for-byte in admin-marketing-v2-core.js.
- * This bootstrap only shapes read pressure: single-flight, short-lived read cache,
- * viewport-gating for the two expensive annual analytics (History + LTV),
- * suppression of the redundant legacy aos_ltv_cohortes read from bootstrap start,
- * and one-at-a-time execution for heavy monthly attribution/intent reads.
+ * Shapes read pressure only: single-flight, successful-response cache, monthly lane,
+ * annual quiescence, startup suppression of obsolete LTV, and one timeout retry.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-09-02-p0-marketing-read-pressure-v1.3';
+var RELEASE='2026-09-02-p0-marketing-read-pressure-v1.4';
 var G=window.__AOS_MKT_PERF_V1;
 
 // SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
@@ -23,8 +21,16 @@ if(!G){
   var baseFetch=window.fetch.bind(window);
   var cache=new Map();
   var inflight=new Map();
-  var insightTail=Promise.resolve();
-  var stats={network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0,serializedInsights:0};
+  var monthlyTail=Promise.resolve();
+  var annualTail=Promise.resolve();
+  var lastCriticalSettledAt=Date.now();
+  var QUIET_MS=3500;
+  var RETRY_MS=300;
+  var stats={
+    network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0,
+    serializedInsights:0,serializedMonthly:0,annualDeferred:0,timeoutRetries:0,
+    failedNotCached:0
+  };
   var targets={
     aos_marketing_dashboard:2500,
     aos_marketing_dashboard_anio:2500,
@@ -40,7 +46,19 @@ if(!G){
     aos_marketing_historico_public_v2:'#mk-hist',
     aos_marketing_ltv_public_v2:'#mk-ltv'
   };
-  var serialInsights={
+  var monthlySerial={
+    aos_marketing_period_summary_v2:true,
+    aos_marketing_attribution_public_v3:true,
+    aos_marketing_intent_public_v2:true,
+    aos_marketing_intent_detail_public_v3:true
+  };
+  var annualReads={
+    aos_marketing_historico_public_v2:true,
+    aos_marketing_ltv_public_v2:true
+  };
+  var criticalReads={
+    aos_marketing_dashboard:true,
+    aos_marketing_period_summary_v2:true,
     aos_marketing_attribution_public_v3:true,
     aos_marketing_intent_public_v2:true,
     aos_marketing_intent_detail_public_v3:true
@@ -54,6 +72,16 @@ if(!G){
   function abortError(){
     try{return new DOMException('The operation was aborted.','AbortError');}
     catch(e){var x=new Error('The operation was aborted.');x.name='AbortError';return x;}
+  }
+  function sleep(ms,signal){
+    if(aborted(signal))return Promise.reject(abortError());
+    return new Promise(function(resolve,reject){
+      var done=false;
+      var timer=setTimeout(function(){if(done)return;done=true;clean();resolve();},ms);
+      function clean(){if(signal&&signal.removeEventListener)signal.removeEventListener('abort',onAbort);}
+      function onAbort(){if(done)return;done=true;clearTimeout(timer);clean();reject(abortError());}
+      if(signal&&signal.addEventListener)signal.addEventListener('abort',onAbort,{once:true});
+    });
   }
   function visible(el){
     if(!el||!el.getBoundingClientRect)return true;
@@ -79,10 +107,16 @@ if(!G){
         if(entries.some(function(x){return x.isIntersecting;}))finish();
       },{rootMargin:'500px 0px'});
       io.observe(el);
-      // Safety fallback: analytics eventually arrive even if browser/layout visibility is unusual.
       timer=setTimeout(finish,12000);
       if(signal&&signal.addEventListener)signal.addEventListener('abort',onAbort,{once:true});
     });
+  }
+  function waitQuiescent(signal){
+    if(aborted(signal))return Promise.reject(abortError());
+    var remaining=QUIET_MS-(Date.now()-lastCriticalSettledAt);
+    if(remaining<=0)return Promise.resolve();
+    stats.annualDeferred++;
+    return sleep(remaining,signal).then(function(){return waitQuiescent(signal);});
   }
   function snap(resp){
     return resp.clone().text().then(function(body){
@@ -104,18 +138,66 @@ if(!G){
     Object.keys(init||{}).forEach(function(k){if(k!=='signal')x[k]=init[k];});
     return x;
   }
-  function runSerializedInsight(input,init,signal){
-    var queued=insightTail.catch(function(){}).then(function(){
-      if(aborted(signal))throw abortError();
-      stats.serializedInsights++;
-      stats.network++;
-      // Once a read-only insight reaches PostgREST, do not abort the HTTP request.
-      // Aborting fetch does not reliably cancel the PostgreSQL statement and can let
-      // the next month overlap it. The V4.2 cycle guard still discards stale results.
-      return baseFetch(input,withoutSignal(init)).then(snap);
+  function timeoutSnap(x){
+    return !!(x&&x.status>=500&&(/\"code\"\s*:\s*\"57014\"/i.test(x.body||'')||/statement timeout/i.test(x.body||'')));
+  }
+  function successful(x){return !!(x&&x.status>=200&&x.status<300);}
+  function networkSnap(input,init,signal,allowRetry){
+    if(aborted(signal))return Promise.reject(abortError());
+    stats.network++;
+    // Once a read reaches PostgREST, let it finish. Browser abort does not reliably
+    // cancel the server statement and can otherwise create hidden overlap.
+    return baseFetch(input,withoutSignal(init)).then(snap).then(function(x){
+      if(!allowRetry||!timeoutSnap(x))return x;
+      stats.timeoutRetries++;
+      return sleep(RETRY_MS,signal).then(function(){
+        if(aborted(signal))throw abortError();
+        stats.network++;
+        return baseFetch(input,withoutSignal(init)).then(snap);
+      });
     });
-    insightTail=queued.then(function(){},function(){});
+  }
+  function waitAnnualDrain(signal){
+    return annualTail.catch(function(){}).then(function(){if(aborted(signal))throw abortError();});
+  }
+  function runMonthly(input,init,signal){
+    var queued=monthlyTail.catch(function(){}).then(function(){
+      if(aborted(signal))throw abortError();
+      return waitAnnualDrain(signal);
+    }).then(function(){
+      if(aborted(signal))throw abortError();
+      stats.serializedMonthly++;
+      stats.serializedInsights++;
+      return networkSnap(input,init,signal,true);
+    }).finally(function(){lastCriticalSettledAt=Date.now();});
+    monthlyTail=queued.then(function(){},function(){});
     return queued;
+  }
+  function runCritical(input,init,signal){
+    return waitAnnualDrain(signal).then(function(){
+      if(aborted(signal))throw abortError();
+      return networkSnap(input,init,signal,true);
+    }).finally(function(){lastCriticalSettledAt=Date.now();});
+  }
+  function runAnnual(input,init,signal){
+    return monthlyTail.catch(function(){}).then(function(){
+      if(aborted(signal))throw abortError();
+      return waitQuiescent(signal);
+    }).then(function(){
+      if(aborted(signal))throw abortError();
+      var queued=annualTail.catch(function(){}).then(function(){
+        if(aborted(signal))throw abortError();
+        return monthlyTail.catch(function(){});
+      }).then(function(){
+        if(aborted(signal))throw abortError();
+        return waitQuiescent(signal);
+      }).then(function(){
+        if(aborted(signal))throw abortError();
+        return networkSnap(input,init,signal,true);
+      });
+      annualTail=queued.then(function(){},function(){});
+      return queued;
+    });
   }
 
   window.fetch=function(input,init){
@@ -123,9 +205,7 @@ if(!G){
     var fn=fnFrom(url);
     var method=String((init&&init.method)||'GET').toUpperCase();
 
-    // V4.2 is always loaded by this bootstrap and owns History/LTV rendering.
-    // Suppress the obsolete cohort request immediately, including the startup race
-    // before window.__AOS_MKT4 has finished mounting.
+    // V4.2 owns History/LTV rendering; this legacy cohort response is discarded.
     if(method==='POST'&&fn==='aos_ltv_cohortes'){
       stats.suppressedLegacyLtv++;
       return Promise.resolve(emptyJsonResponse());
@@ -151,11 +231,15 @@ if(!G){
     if(lazy[fn])p=p.then(function(){return waitVisible(lazy[fn],signal);});
     p=p.then(function(){
       if(aborted(signal))throw abortError();
-      if(serialInsights[fn])return runSerializedInsight(input,init,signal);
+      if(annualReads[fn])return runAnnual(input,init,signal);
+      if(monthlySerial[fn])return runMonthly(input,init,signal);
+      if(criticalReads[fn])return runCritical(input,init,signal);
       stats.network++;
       return baseFetch(input,init).then(snap);
     }).then(function(x){
-      cache.set(key,{ts:Date.now(),snap:x});
+      // A transient API/database error must never poison the short-lived cache.
+      if(successful(x))cache.set(key,{ts:Date.now(),snap:x});
+      else stats.failedNotCached++;
       return x;
     }).finally(function(){inflight.delete(key);});
 
