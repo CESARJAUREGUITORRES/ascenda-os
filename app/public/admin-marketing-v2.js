@@ -1,15 +1,23 @@
-/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.2
+/* ASCENDA OS — Marketing P0 read-pressure bootstrap V1.3
  * Keeps the certified V4.2 controller byte-for-byte in admin-marketing-v2-core.js.
  * This bootstrap only shapes read pressure: single-flight, short-lived read cache,
  * viewport-gating for the two expensive annual analytics (History + LTV),
- * suppression of the redundant legacy aos_ltv_cohortes read once V4.2 is mounted,
+ * suppression of the redundant legacy aos_ltv_cohortes read from bootstrap start,
  * and one-at-a-time execution for heavy monthly attribution/intent reads.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-09-02-p0-marketing-read-pressure-v1.2';
+var RELEASE='2026-09-02-p0-marketing-read-pressure-v1.3';
 var G=window.__AOS_MKT_PERF_V1;
+
+// SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
+// restoring its original fetch and installing the current release once.
+if(G&&G.release!==RELEASE&&typeof G.baseFetch==='function'){
+  try{window.fetch=G.baseFetch;}catch(e){}
+  try{delete window.__AOS_MKT_PERF_V1;}catch(e){window.__AOS_MKT_PERF_V1=null;}
+  G=null;
+}
 
 if(!G){
   var baseFetch=window.fetch.bind(window);
@@ -115,11 +123,10 @@ if(!G){
     var fn=fnFrom(url);
     var method=String((init&&init.method)||'GET').toUpperCase();
 
-    // V4.2 owns History/LTV rendering. The legacy mkL() still asks aos_ltv_cohortes
-    // only to feed rHist/rLTV callbacks that V4.2 already intercepts and ignores.
-    // Once V4.2 is mounted, return an empty successful payload locally instead of
-    // spending ~0.7-1.1s of Supabase work on every month switch.
-    if(method==='POST'&&fn==='aos_ltv_cohortes'&&window.__AOS_MKT4){
+    // V4.2 is always loaded by this bootstrap and owns History/LTV rendering.
+    // Suppress the obsolete cohort request immediately, including the startup race
+    // before window.__AOS_MKT4 has finished mounting.
+    if(method==='POST'&&fn==='aos_ltv_cohortes'){
       stats.suppressedLegacyLtv++;
       return Promise.resolve(emptyJsonResponse());
     }
