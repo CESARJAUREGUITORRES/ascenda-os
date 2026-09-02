@@ -1,0 +1,46 @@
+name: P0 #432 Call Ledger Refresh
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1.sql'
+      - 'supabase/rollbacks/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1_recovery.sql'
+      - 'ci/performance/p0432-call-ledger-refresh.test.js'
+      - '.github/workflows/p0432-call-ledger-refresh.yml'
+  push:
+    branches: [main, 'perf/p0432-call-ledger-refresh-decouple-20260902']
+    paths:
+      - 'supabase/migrations/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1.sql'
+      - 'supabase/rollbacks/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1_recovery.sql'
+      - 'ci/performance/p0432-call-ledger-refresh.test.js'
+      - '.github/workflows/p0432-call-ledger-refresh.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Static regression gate
+        run: node --test ci/performance/p0432-call-ledger-refresh.test.js
+      - name: Existing Call Center performance contract
+        run: node --test ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Migration boundary assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          m='supabase/migrations/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1.sql'
+          r='supabase/rollbacks/20260902201500_mkt_loop6_p0432_decouple_llammap_refresh_v1_recovery.sql'
+          grep -Eq 'DROP TRIGGER trg_refresh_llammap ON public\.aos_llamadas' "$m"
+          ! grep -Eqi 'DROP (MATERIALIZED VIEW|FUNCTION|TABLE)' "$m"
+          grep -Eq 'CREATE TRIGGER trg_refresh_llammap' "$r"
+          grep -Eq 'FOR EACH STATEMENT' "$r"
+          grep -Eq 'fn_refresh_llammap' "$r"
+          echo P0432_CALL_LEDGER_REFRESH_GATE_PASS
