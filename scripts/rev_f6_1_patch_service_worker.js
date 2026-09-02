@@ -19,4 +19,13 @@ if(!s.includes("rpcFrom(req,'aos_patient_commercial_360_v2'")){
   s=s.slice(0,start)+neu+s.slice(end);
 }
 
+// P0 #436: both the operational Patient 360 read and its serial deferred enrichment
+// remain governed by the service-worker token. Never trust browser/sessionStorage authority.
+if(!s.includes("rm[1]==='aos_patient_360_enrichment_v1'")){
+  const old="rm[1]==='aos_patient_search_v2'||rm[1]==='aos_patient_commercial_360_v2'||rm[1]==='aos_patient_360_current_v3'";
+  const neu=old+"||rm[1]==='aos_patient_360_enrichment_v1'";
+  if(!s.includes(old))throw new Error('governed Patient RPC bridge marker not found');
+  s=s.replace(old,neu);
+}
+
 if(s!==original){fs.writeFileSync(path,s,'utf8');console.log('REV-F6.1 service worker patched');}else console.log('REV-F6.1 service worker already patched');

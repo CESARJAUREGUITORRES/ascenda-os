@@ -161,7 +161,7 @@ self.addEventListener('fetch',function(event){
   }
   // Governed patient reads must all use the canonical worker token. The browser/sessionStorage
   // token is never authoritative; overwrite it before calling PostgREST.
-  if(rm&&(rm[1]==='aos_patient_search_v2'||rm[1]==='aos_patient_commercial_360_v2'||rm[1]==='aos_patient_360_current_v3')){
+  if(rm&&(rm[1]==='aos_patient_search_v2'||rm[1]==='aos_patient_commercial_360_v2'||rm[1]==='aos_patient_360_current_v3'||rm[1]==='aos_patient_360_enrichment_v1')){
     event.respondWith((async function(){
       var p=await requestJson(req),t=String(await getToken()).trim();
       if(t.length<32)return json({ok:false,error:'PATIENT_360_APP_SESSION_REQUIRED'},401);
