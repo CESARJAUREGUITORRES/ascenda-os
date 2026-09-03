@@ -1,0 +1,152 @@
+name: ASCENDA WA-L5 Conversational BOOK REBOOK
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa4.js'
+      - 'app/wa-l5-booking.js'
+      - 'app/wa-l5-booking.test.js'
+      - 'app/wa4-booking-resolver.js'
+      - 'app/wa4-conversation-runtime-v2.js'
+      - 'app/wa4-conversation-runtime-v2.test.js'
+      - 'supabase/migrations/*wa_l5*'
+      - 'supabase/rollbacks/*wa_l5*'
+      - 'ci/wa-l5/**'
+      - 'docs/control/WA_L5_*'
+      - '.github/workflows/wa-l5-conversational-booking.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l5-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-contract:
+    name: L5 runtime state machine and mutation boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static and deterministic runtime tests
+        shell: powershell
+        run: |
+          node --check app/wa-l5-booking.js
+          node --check app/server-wa4.js
+          node --check app/wa4-booking-resolver.js
+          node --check app/wa4-conversation-runtime-v2.js
+          node --test app/wa-l5-booking.test.js
+          node app/wa4-conversation-runtime-v2.test.js
+      - name: Enforce dormant production migration
+        shell: powershell
+        run: |
+          $sql=Get-Content 'supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql' -Raw
+          if ($sql -match '(?i)auto_reply_enabled\s*=\s*true') { throw 'L5 migration may not enable auto reply' }
+          if ($sql -match '(?i)ai_send_enabled\s*=\s*true') { throw 'L5 migration may not enable AI send' }
+          if ($sql -match '(?i)auto_routing_enabled\s*=\s*true') { throw 'L5 migration may not enable auto routing' }
+          if ($sql -match '(?i)update\s+public\.aos_agenda_citas') { throw 'L5 migration may not directly mutate Agenda' }
+          if ($sql -match '(?i)insert\s+into\s+public\.aos_agenda_citas') { throw 'L5 migration may not directly insert Agenda' }
+          if ($sql -notmatch 'WA_L5_AUTO_OFF') { throw 'AUTO_OFF fail-closed gate missing' }
+          if ($sql -notmatch 'WA_L5_CANARY_NOT_ALLOWLISTED') { throw 'CANARY allowlist gate missing' }
+          if ($sql -notmatch 'aos_booking_commit_core_v2' -or $sql -notmatch 'aos_booking_rebook_core_v2') { throw 'AGV2 BOOK/REBOOK authority missing' }
+
+  db-contract:
+    name: L5 BOOK REBOOK local canary and recovery
+    needs: runtime-contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Wait for isolated full-local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 60); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'WA_L5_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+      - name: Build isolated CURRENT booking substrate
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
+      - name: L5 structural apply recovery reapply before history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l5_booking_memory_v1') is not null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903005500_wa_l5_conversational_booking_v1.rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l5_booking_memory_v1') is null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l5/fixture.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+      - name: L5 BOOK REBOOK and negative-path canary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l5/tests/001_book_rebook_contract.sql 2>&1 | tee /tmp/wa-l5-canary.txt
+          grep -q 'WA_L5_BOOK_REBOOK_CONTRACT_PASS' /tmp/wa-l5-canary.txt
+      - name: Post-canary exact assertions
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
+          test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2 where operation_type='BOOK'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_booking_operations_v2 where operation_type='REBOOK'")" = '1'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l5_booking_events_v1 where event_type='COMMITTED'")" = '2'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where send_origin='AUTO' and direction='OUTBOUND'")" = '0'
+      - name: Recovery must fail closed after committed history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          set +e
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903005500_wa_l5_conversational_booking_v1.rollback.sql >/tmp/wa-l5-recovery.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L5_RECOVERY_BLOCKED_COMMITTED_HISTORY' /tmp/wa-l5-recovery.log
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l5_booking_memory_v1') is not null")" = 't'
+      - name: DB lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/wa-l5-lint.txt
+          if grep -q '\[ERROR\]' /tmp/wa-l5-lint.txt; then exit 1; fi
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
