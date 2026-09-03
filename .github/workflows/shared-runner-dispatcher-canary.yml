@@ -1,0 +1,31 @@
+name: Shared Runner Dispatcher Canary — ASCENDA
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1']
+    paths:
+      - '.shared-runner/CANARY_ASCENDA_*'
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    name: ASCENDA dispatcher pickup canary
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Read-only runner identity and shared-lock state
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_DIR='/var/tmp/ascenda-shared-runner-v1'
+          echo "CANARY=ASCENDA"
+          echo "USER=$(id -un)"
+          echo "MACHINE=$(hostname)"
+          echo "TURN=$(cat "$STATE_DIR/turn" 2>/dev/null || echo missing)"
+          echo "ACTIVE=$(cat "$STATE_DIR/active" 2>/dev/null || echo missing)"
+          test "$(id -un)" = 'ascenda-runner'
+          test -x /home/ascenda-runner/shared-runner-supervisor-v1.sh
+          test -f "$STATE_DIR/armed"
+          echo 'ASCENDA_DISPATCHER_CANARY=PASS'
