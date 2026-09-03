@@ -31,7 +31,13 @@ assert.ok(ui.includes('Date.now()-S.costFetchedAt<15000'));
 assert.ok(ui.includes('Costos temporalmente no disponibles. El inbox y los mensajes siguen operativos.'));
 assert.ok(ui.includes('Se carga de forma diferida para no competir con el inbox.'));
 assert.ok(ui.includes('WA-L7 es read-only. SAFE-OFF y autoridad de envío siguen separados.'));
-for(const state of ['KNOWN','PARTIAL','UNKNOWN'])assert.ok(ui.includes(state));
+// Completeness is server-driven, not hardcoded UI text: exact values are rendered dynamically.
+assert.ok(ui.includes("function stateClass(v){v=String(v||'UNKNOWN').toLowerCase();return v==='known'?'known':v==='partial'?'partial':'unknown'}"));
+assert.ok(ui.includes("stateClass(t.state)"));
+assert.ok(ui.includes("esc(t.state||'UNKNOWN')"));
+assert.ok(ui.includes("esc(m.state||'UNKNOWN')"));
+assert.ok(ui.includes("esc(a.state||'UNKNOWN')"));
+for(const cssState of ['.coststate.known','.coststate.partial','.coststate.unknown'])assert.ok(ui.includes(cssState));
 for(const label of ['Costo/booking','Costo/asistencia','Costo/venta','Ingreso/Costo'])assert.ok(ui.includes(label));
 assert.ok(ui.includes('var ms=document.hidden?12000:2500'));
 assert.ok(ui.includes('if(!S.active||S.costBusy)return'));
